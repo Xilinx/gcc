@@ -1,3 +1,16 @@
+2008-09-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: corrected some type mismatch != as !=i
+	etc...
+	* melt/warmelt-macro.bysl: localized error messages. better
+	assert_msg position handling.
+	* melt/warmelt-normal.bysl: emit warning on type mismatch in
+	primitive invocations.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-09-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl (simpana_latessaexec) corrected call to
 	basicblock_gimpleseq.

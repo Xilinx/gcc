@@ -370,7 +370,7 @@
 	 (tup (make_multiple discr_multiple (-i nbarg 1)))
 	 )
     (forever exploop
-	     (if (not curpair) (exit exploop))
+	     (if (null curpair) (exit exploop))
 	     (assert_msg "check curpair" (is_pair curpair))
 	     (let ( (curarg (pair_head curpair)) 
 		    (curexp (macroexpand_1 curarg env mexpander))
@@ -433,7 +433,7 @@
 	 (spair (pair_tail (list_first scont)))
 	 )
     (if (not (is_pair spair))
-	(error_plain sloc "missing reciever expression in message send"))
+	(error_plain sloc "missing reciever expression in message send"_))
     (let ( (xrecv (pair_head spair))
 	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
 	   (res (make_instance class_src_msend
@@ -479,7 +479,7 @@
 	  (setq spair (pair_tail spair))
 	  )
       (progn
-	(error_strv sloc "missing startargs expression in citeration"
+	(error_strv sloc "missing startargs expression in citeration"_
 		    (unsafe_get_field :named_name citer))
 	(return)
 	))
@@ -490,7 +490,7 @@
 	  (setq varformals (lambda_arg_bindings varexp))
 	  )
       (progn
-	(error_strv sloc "missing varformals in citeration"
+	(error_strv sloc "missing varformals in citeration"_
 		    (unsafe_get_field :named_name citer))
 	(return)
 	))
@@ -517,7 +517,7 @@
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented")
+  (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented"_)
   (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
 )
 
@@ -579,7 +579,7 @@
 				(debug_msg resc "macroexpand_1 result for send resc")
 				(return resc)))
 			    (:else
-			     (error_strv sloc "macroexpand_1 bad valued operation symbol"
+			     (error_strv sloc "macroexpand_1 bad valued operation symbol"_
 					 (unsafe_get_field :named_name soper))
 			     (inform_strv sloc "macroexpand_1 bad symbol value discr"
 					  (unsafe_get_field :named_name (discrim val)))
@@ -682,7 +682,7 @@
 			     (== (unsafe_get_field :ctype_keyword cty) curarg))
 			(setq argtype cty)
 		      (progn
-			(error_strv argloc "invalid keyword in formal arglist"
+			(error_strv argloc "invalid keyword in formal arglist"_
 				    (unsafe_get_field :named_name curarg))
 			()
 			)
@@ -691,7 +691,7 @@
 		  )
 		( (is_a curarg class_symbol)
 		  (if (mapobject_get argmap curarg)
-		      (error_strv argloc "duplicate argument in formal arglist"
+		      (error_strv argloc "duplicate argument in formal arglist"_
 				  (unsafe_get_field :named_name curarg)))
 		  (let ( (curbind
 			  (make_instance class_formal_binding 
@@ -700,7 +700,7 @@
 		    (if checkargs
 			(if (or (not (is_a argtype class_ctype))
 				(not (is_string (unsafe_get_field :ctype_parstring argtype))))
-			    (error_strv argloc "invalid argument type in formal arglist"
+			    (error_strv argloc "invalid argument type in formal arglist"_
 					(unsafe_get_field :named_name curarg))))
 		    (put_int curbind argrk)
 		    (mapobject_put argmap curarg curbind)
@@ -712,7 +712,7 @@
 		(:else 
 		 (debug_msg curarg "unexpected argument in formal arglist")
 		 (let ( (discrarg  (discrim curarg) ))
-		   (error_strv argloc "unexepected argument in formal arglist" 
+		   (error_strv argloc "unexepected argument in formal arglist"_
 			       (unsafe_get_field :named_name discrarg))
 		   )
 		 ()
@@ -811,7 +811,7 @@
 		       (setq curhead (make_string discr_verbatimstring curhead))
 		       ())
 		     ( (!= (discrim curhead) class_symbol)
-		       (error_plain loc "invalid expansion component in C code expansion")
+		       (error_plain loc "invalid expansion component in C code expansion"_)
 		       ()))
 	       (multiple_put_nth etuple ix curhead)
 	       (setq curpair (pair_tail curpair))
@@ -832,7 +832,7 @@
 	 (symb (pair_head curpair))
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type expansion...)"))
+	(error_plain loc "missing symbol for (DEFPRIMITIVE symb args type expansion...)"_))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
     (let ( (btup (lambda_arg_bindings (pair_head curpair) (the_null))) )
@@ -840,19 +840,19 @@
       ;; parse the type keyword
       (let ( (typkw  (pair_head curpair)) )
 	(if (is_not_a typkw class_keyword)
-	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type expansion...)"))
+	    (error_plain loc "missing type keyword for (DEFPRIMITIVE symb args type expansion...)"_))
 	(let ( (cty (unsafe_get_field :symb_data typkw)) )
 	  (if (is_not_a cty class_ctype)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive bad cty")
-		(error_strv loc "bad type keyword for "
+		(error_strv loc "bad type keyword for "_
 			    (unsafe_get_field :named_name typkw))
 		(return (the_null))
 		))
 	  (if (!= (unsafe_get_field :ctype_keyword cty) typkw)
 	      (progn
 		(debug_msg typkw "mexpand_defprimitive strange typkw")
-		(error_strv loc "invalid type keyword for defprimitive"
+		(error_strv loc "invalid type keyword for defprimitive"_
 			    (unsafe_get_field :named_name typkw)) 
 		(return (the_null))   
 		))
@@ -909,7 +909,8 @@
 	 )
     (if (is_not_a symb class_symbol)
 	(progn
-	  (error_plain loc "missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	  (error_plain loc 
+		       "missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	  (return)
 	  ))
     (setq curpair (pair_tail curpair))
@@ -919,7 +920,8 @@
     (setq statsymb (pair_head curpair))
     (if (is_not_a statsymb class_symbol)
 	(progn
-	  (error_plain loc "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	  (error_plain loc 
+		       "missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	  (return)))
     (setq curpair (pair_tail curpair))
     (setq blocvtup  (lambda_arg_bindings (pair_head curpair)))
@@ -928,7 +930,7 @@
     (let ( (sexpbef (pair_head curpair)) )
       (if (is_not_a sexpbef class_sexpr)
 	  (progn
-	    (error_plain loc "missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	    (error_plain loc "missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	    (return)))
       (setq expbef (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpbef))))
       )
@@ -937,7 +939,7 @@
     (let ( (sexpaft (pair_head curpair)) )
       (if (is_not_a sexpaft class_sexpr)
 	  (progn
-	    (error_plain loc "missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)")
+	    (error_plain loc "missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	    (return)))
       (setq expaft  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpaft))))
       )
@@ -983,7 +985,7 @@
 	 (newenv (fresh_env env))
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defun"))
+	(error_plain loc "missing symbol for DEFUN"_))
     (setq curpair (pair_tail curpair))
     ;; parse the formal arguments
     (let ( (curpairhead (pair_head curpair)) 
@@ -994,14 +996,14 @@
 		    (lambda_arg_bindings (pair_head curpair) sexpr))
 		  (:else
 		   (debug_msg curpairhead "mexpand_defun strange arglist curpairhead")
-		   (error_plain loc "missing or invalid arglist for DEFUN")
+		   (error_plain loc "missing or invalid arglist for DEFUN"_)
 		   (the_null)
 		   )))
 	   )
       (if (not (is_multiple btup))
 	  (progn
 	    (debug_msg btup "mexpand_defun strange btup")
-	    (error_plain loc "missing formal arguments for DEFUN")))
+	    (error_plain loc "missing formal arguments for DEFUN"_)))
       (multiple_every btup (lambda (fb) (put_env newenv fb)))
       (setq curpair (pair_tail curpair))
       (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
@@ -1044,21 +1046,21 @@
 	 )
     (debug_msg sexpr "scan_defclass sexpr")
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for defclass"))
+	(error_plain loc "missing symbol for DEFCLASS"_))
     (setq curpair (pair_tail curpair))
     (forever scanloop
 	     (if (not (is_pair curpair)) (exit scanloop))
 	     (let ( (curkw (pair_head curpair)) )
 	       (if (not (is_a curkw class_keyword)) 
-		   (error_plain loc "expecting keyword in defclass"))
+		   (error_plain loc "expecting keyword in DEFCLASS"_))
 	       (setq curpair (pair_tail curpair))
 	       (let ( (curval (pair_head curpair)) )
 		 (setq curpair (pair_tail curpair))
 		 (cond 
 		  ( (== curkw ':super)
-		    (if supernam (error_plain loc "duplicate super in defclass"))
+		    (if supernam (error_plain loc "duplicate super in DEFCLASS"_))
 		    (if (not (is_a curval class_symbol))
-			(error_plain loc "bad super in defclass"))
+			(error_plain loc "bad super in DEFCLASS"_))
 		    (setq supernam curval)
 		    (debug_msg supernam "scan_defclass supernam")
 		    (let ( (superb (find_env env supernam)) )
@@ -1075,22 +1077,22 @@
 				      (setq superbind superb)
 				      (setq superclass superval)
 				      )
-				  (error_strv loc "super is not a class in defclass" 
+				  (error_strv loc "super is not a class in defclass"_ 
 					      (unsafe_get_field :named_name supernam))))
 			      )
 			    (:else 
 			     (debug_msg superb "scan_defclass superb")
 			     (debug_msg env "scan_defclass env")
-			     (error_strv loc "invalid super in defclass" 
+			     (error_strv loc "invalid super in defclass"_
 					 (unsafe_get_field :named_name supernam))
 			     )
 			    )
 		      ))
 		  ( (== curkw ':fields)
-		    (if fieldnams (error_plain loc "duplicate fields in defclass"))
+		    (if fieldnams (error_plain loc "duplicate fields in defclass"_))
 		    (if curval
 			(if (is_not_a curval class_sexpr)
-			    (error_plain loc "bad fields in defclass")))
+			    (error_plain loc "bad fields in defclass"_)))
 		    (let ( (namlist (if curval (unsafe_get_field :sexp_contents curval)))
 			   (namloc (if curval (unsafe_get_field :loca_location curval)))
 			   (:long nbnam  (list_length namlist))
@@ -1102,7 +1104,7 @@
 			       (if (not (is_pair nampair)) (exit namloop))
 			       (let ( (curnam (pair_head nampair)) )
 				 (if (not (is_a curnam class_symbol))
-				     (error_plain namloc "non name field in defclass"))
+				     (error_plain namloc "non name field in DEFCLASS"_))
 				 (multiple_put_nth namtupl ix curnam)
 				 )
 			       (setq nampair (pair_tail nampair))
@@ -1111,7 +1113,7 @@
 		      (setq fieldnams namtupl)
 		      ))
 		  ( (== curkw ':predef)
-		    (if predef (error_plain loc "duplicate predef in DEFCLASS"))
+		    (if predef (error_plain loc "duplicate predef in DEFCLASS"_))
 		    (setq predef (macroexpand_1 curval env mexpander))
 		    (cond
 		     ( (is_integerbox predef) 
@@ -1121,18 +1123,18 @@
 		       ()
 		       )
 		     (:else
-		      (error_plain loc "bad predef in DEFCLASS")
+		      (error_plain loc "bad predef in DEFCLASS"_)
 		      )
 		     )
 		    )
 		  ( (== curkw ':docstr)
-		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"))
+		    (if docstr (error_plain loc "duplicate docstr in DEFCLASS"_))
 		    (setq docstr (macroexpand_1 curval env mexpander))
 		    (if (not (is_string docstr))
-			(error_plain loc "bad docstr in DEFCLASS"))
+			(error_plain loc "bad docstr in DEFCLASS"_))
 		    )
 		  (:else
-		   (error_strv loc "invalid keyword in DEFCLASS" 
+		   (error_strv loc "invalid keyword in DEFCLASS"_ 
 			       (unsafe_get_field :named_name curkw))
 		   )
 		  ))))
@@ -1221,7 +1223,7 @@
 	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
 	       )
 	  (if (mapstring_getstr fieldstrmap fldstr)
-	      (error_strv fieldsloc "duplicate field in deflclass" fldstr))
+	      (error_strv fieldsloc "duplicate field in DEFLCLASS"_ fldstr))
 	  (let ( (:long fldoff (+i ix (get_int boxnbsuperfields))) 
 		 (newfld (make_instance class_field
 					:named_name fldstr
@@ -1260,7 +1262,7 @@
 ;; internal to parse a field assignment in a given class (or without class, for put_field)
 (defun parse_field_assignment (cla loc fldkw expr env mexpander)
   (if (not (is_a fldkw class_keyword))
-      (error_plain loc "expecting :fieldname"))
+      (error_plain loc "expecting :fieldname"_))
   (assert_msg "check fldkw" (is_a fldkw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -1293,7 +1295,7 @@
 		       )) )
 	  (if (is_a fld class_field)
 	      (box_put fldbox fld)
-	      (error_strv loc "invalid field name in field assignment" 
+	      (error_strv loc "invalid field name in field assignment"_ 
 			  (unsafe_get_field :named_name fldkw)))
 	  ()
 	  ))
@@ -1306,7 +1308,7 @@
 			   :sfla_field fld
 			   :sfla_expr xex
 			   ))
-	  (error_strv loc "unknown field name in field assignment"
+	  (error_strv loc "unknown field name in field assignment"_
 		      (unsafe_get_field :named_name fldkw))
 	  ))))
 
@@ -1328,11 +1330,11 @@
 	 (clabind ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for definstance"))
+	(error_plain loc "missing symbol for DEFINSTANCE"_))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for definstance"))
+	  (error_plain loc "missing class name for DEFINSTANCE"_))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
 	     )
@@ -1345,7 +1347,7 @@
 	   (setq clabind bnd)
 	   (setq cla (unsafe_get_field :vbind_value bnd)))
 	 (:else
-	  (error_strv loc "invalid class name for definstance"
+	  (error_strv loc "invalid class name for DEFINSTANCE"_
 		      (unsafe_get_field :named_name nam))
 	  (return (the_null))
 	  ))
@@ -1356,18 +1358,18 @@
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
 		   (if (is_not_a curfkw class_keyword)
-		       (error_plain loc "expecting keyword in definstance"))
+		       (error_plain loc "expecting keyword in DEFINSTANCE"_))
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
 		     (cond  ( (== curfkw ':obj_num)
-			      (if objnum (error_plain loc "duplicate :obj_num in definstance"))
+			      (if objnum (error_plain loc "duplicate :obj_num in DEFINSTANCE"_))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
-			      (if predef (error_plain loc "duplicate :predef in definstance"))
+			      (if predef (error_plain loc "duplicate :predef in DEFINSTANCE"_))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
@@ -1425,11 +1427,11 @@
 	 (clabind ())
 	 )
     (if (is_not_a symb class_symbol)
-	(error_plain loc "missing symbol for definstance"))
+	(error_plain loc "missing symbol for DEFINSTANCE"_))
     (setq curpair (pair_tail curpair))
     (let ( (nam (pair_head curpair)) )
       (if (is_not_a nam class_symbol)
-	  (error_plain loc "missing class name for definstance"))
+	  (error_plain loc "missing class name for DEFINSTANCE"_))
       (let ( (bnd (find_env env nam)) 
 	     (fldlist (make_list discr_list))
 	     )
@@ -1442,7 +1444,7 @@
 	   (setq clabind bnd)
 	   (setq cla (unsafe_get_field :vbind_value bnd)))
 	 (:else
-	  (error_strv loc "invalid class name for definstance"
+	  (error_strv loc "invalid class name for DEFINSTANCE"_
 		      (unsafe_get_field :named_name nam))
 	  (return (the_null))
 	  ))
@@ -1453,18 +1455,18 @@
 		 (if (not (is_pair curpair)) (exit insloop))
 		 (let ( (curfkw (pair_head curpair)) )
 		   (if (is_not_a curfkw class_keyword)
-		       (error_plain loc "expecting keyword in definstance"))
+		       (error_plain loc "expecting keyword in DEFINSTANCE"_))
 		   (setq curpair (pair_tail curpair))
 		   (let ( (curexp (pair_head curpair)) )
 		     (cond  ( (== curfkw ':obj_num)
-			      (if curexp (error_plain loc "duplicate :obj_num in definstance"))
+			      (if curexp (error_plain loc "duplicate :obj_num in DEFINSTANCE"_))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
-			      (if curexp (error_plain loc "duplicate :predef in definstance"))
+			      (if curexp (error_plain loc "duplicate :predef in DEFINSTANCE"_))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
 					(macroexpand_1 curexp env mexpander)
@@ -1516,7 +1518,7 @@
 	 )
     (debug_msg sexpr "mexpand_make_instance start sexpr")
     (if (is_not_a claname class_symbol)
-	(error_plain loc "missing class symbol for make_instance"))
+	(error_plain loc "missing class symbol for MAKE_INSTANCE"_))
     (let ( (bnd (find_env env claname)) 
 	   (fldlist (make_list discr_list))
 	   )
@@ -1531,7 +1533,7 @@
 	 (setq cla (unsafe_get_field :vbind_value bnd))
 	 )
        (:else
-	(error_strv loc "invalid class name for make_instance"
+	(error_strv loc "invalid class name for MAKE_INSTANCE"_
 		    (unsafe_get_field :named_name claname))
 	(return (the_null))
 	))
@@ -1541,13 +1543,14 @@
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (if (is_not_a curfkw class_keyword)
-		     (error_plain loc "expecting keyword in MAKE_INSTANCE"))
+		     (error_plain loc "expecting keyword in MAKE_INSTANCE"_))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
 		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
 		     (if flda 
 			 (list_append fldlist flda)
-		       (error_strv loc "bad field name in MAKE_INSTANCE" (unsafe_get_field :named_name curfkw))
+		       (error_strv loc "bad field name in MAKE_INSTANCE"_
+				   (unsafe_get_field :named_name curfkw))
 		       ))))
 	       (setq curpair (pair_tail curpair))
 	       )
@@ -1584,7 +1587,7 @@
 	       (if (not (is_pair curpair)) (exit insloop))
 	       (let ( (curfkw (pair_head curpair)) )
 		 (if (is_not_a curfkw class_keyword)
-		     (error_plain loc "expecting heyword in unsafe_put_fields"))
+		     (error_plain loc "expecting heyword in UNSAFE_PUT_FIELDS"_))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
 		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
@@ -1613,18 +1616,18 @@
 	 )
     (if (is_not_a curfkw class_keyword)
 	(progn
-	  (error_plain loc "field keyword expected in unsafe_get_field")
+	  (error_plain loc "field keyword expected in UNSAFE_GET_FIELD"_)
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
-      (if curpair (error_plain loc "unsafe_get_field with more than two sons"))
+      (if curpair (error_plain loc "UNSAFE_GET_FIELD with more than two sons"_))
       ;; it is not a field assignment but we use the parse_field_assignment
       ;; routine to get the field and the expression
       (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
 	(if (not (is_a flda class_src_fieldassign))
 	    (progn 
-	      (error_plain loc "bad field and expression in unsafe_get_field")
+	      (error_plain loc "bad field and expression in UNSAFE_GET_FIELD"_)
 	      (return (the_null))))
 	(let ( (fld (unsafe_get_field :sfla_field flda))
 	       (exp (unsafe_get_field :sfla_expr flda)) )
@@ -1648,12 +1651,12 @@
 	 )
     (if (is_not_a cursym class_symbol)
 	(progn
-	  (error_plain loc "var symbol name expected in setq")
+	  (error_plain loc "var symbol name expected in SETQ"_)
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (curexp (pair_head curpair)) )
       (setq curpair (pair_tail curpair))
-      (if curpair (error_plain loc "setq with more than two sons"))
+      (if curpair (error_plain loc "SETQ with more than two sons"_))
       (make_instance class_src_setq 
 		     :src_loc loc
 		     :sstq_var cursym
@@ -1674,10 +1677,10 @@
 	(curpair (pair_tail (list_first cont)))
 	(curif (pair_head curpair)) )
     (if (not (is_pair curpair))
-	(error_plain loc "missing condition in IF"))
+	(error_plain loc "missing condition in IF"_))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing then in IF"))
+	(error_plain loc "missing then in IF"_))
     (let ( (xcond (macroexpand_1 curif env mexpander)) )
       (debug_msg xcond "mexpand_if xcond")
       (let ( (curthen (pair_head curpair)) )
@@ -1690,7 +1693,7 @@
 		(debug_msg xelse "mexpand_if xelse")
 		(setq curpair (pair_tail curpair))
 		(if (is_pair curpair)
-		    (error_plain loc "IF with more than three sons"))
+		    (error_plain loc "IF with more than three sons"_))
 		(let ( (rese
 			(make_instance class_src_ifelse
 				       :src_loc loc
@@ -1721,17 +1724,17 @@
 	(curpair (pair_tail (list_first cont)))
 	(curif (pair_head curpair)) )
     (if (not (is_pair curpair))
-	(error_plain loc "missing condition in CPPIF"))
+	(error_plain loc "missing condition in CPPIF"_))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing then in CPPIF"))
+	(error_plain loc "missing then in CPPIF"_))
     (let ( (xcond (macroexpand_1 curif env mexpander)) )
       (debug_msg xcond "mexpand_cppif xcond")
       (cond 
        ( (is_string xcond) ())
        ( (is_a xcond class_symbol) ())
        (:else
-	(error_plain loc "invalid cpp-condition in CPPIF - string or symbol expected")
+	(error_plain loc "invalid cpp-condition in CPPIF - string or symbol expected"_)
 	(return ())))
       (let ( (curthen (pair_head curpair)) )
 	(setq curpair (pair_tail curpair))
@@ -1746,7 +1749,7 @@
 		(setq curpair (pair_tail curpair))
 		(setq xelse gotxelse)
 		(if (is_pair curpair)
-		    (error_plain loc "CPPIF with more than three sons"))))
+		    (error_plain loc "CPPIF with more than three sons"_))))
 	  (let ( (resp (make_instance class_src_cppif
 				      :src_loc loc
 				      :sifp_cond xcond
@@ -1775,7 +1778,7 @@
 		    discr_multiple
 		    (lambda (c)
 		      (if (is_not_a c class_sexpr)
-			  (error_plain loc "COND with non-sexpr"))
+			  (error_plain loc "COND with non-sexpr"_))
 		      c
 		      ))) 
 	(:long nbcond (multiple_length cexptuple))
@@ -1875,7 +1878,7 @@
     (debug_msg cxtup "mexpand_and cxtup")
     (if (<i nbcomp 1)
 	(progn
-	  (error_plain loc "AND without sons")
+	  (error_plain loc "AND without sons"_)
 	  (return))
       (let ( (res (multiple_nth cxtup (-i nbcomp 1)))
 	     (:long ix (-i nbcomp 2)) )
@@ -1912,7 +1915,7 @@
 	)
     (if (<i nbcomp 1)
 	(progn 
-	  (error_plain loc "OR without sons")
+	  (error_plain loc "OR without sons"_)
 	  (return (the_null)))
       (let ( (res 
 	      (make_instance class_src_or
@@ -1945,13 +1948,13 @@
 	  (if (and (is_a cty class_ctype) 
 		   (== (unsafe_get_field :ctype_keyword cty) curarg))
 	      (setq ctyp cty)
-	    (error_strv loc "letbinding with invalid type keyword"
+	    (error_strv loc "letbinding with invalid type keyword"_
 			(unsafe_get_field :named_name curarg)))
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
 	  ))
     (cond ( (is_a curarg class_keyword)
-	    (error_strv loc "letbinding cannot bind keyword"  
+	    (error_strv loc "letbinding cannot bind keyword"_  
 			(unsafe_get_field :named_name curarg)))
 	  ( (is_a curarg class_symbol)
 	    (setq var curarg)
@@ -1959,13 +1962,13 @@
 	    (setq curarg (pair_head curpair))
 	    ))
     (if (null var) 
-	(error_plain loc "missing variable in letbinding"))
+	(error_plain loc "missing variable in letbinding"_))
     (if curarg
 	(progn 
 	  (setq expr (macroexpand_1 curarg env mexpander))
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
-	  (if curarg (error_plain loc "too long letbinding"))
+	  (if curarg (error_plain loc "too long letbinding"_))
 	  ))
     (let ( (letb
 	    (make_instance class_src_letbinding
@@ -1997,7 +2000,7 @@
 			   (list_first (unsafe_get_field :sexp_contents bindexpr))
 			   discr_multiple
 			   (lambda (b) (mexpand_letbinding b env mexpander))))
-	  (error_plain loc "missing letbinding-s in LET"))
+	  (error_plain loc "missing letbinding-s in LET"_))
       )
     (multiple_every
      bindtup
@@ -2036,7 +2039,7 @@
 	 )
     ;; parse the formal arguments
     (if (and (notnull formals) (is_not_a formals class_sexpr))
-	(error_plain loc "missing formal argument list in (LAMBDA (arglist...) body...)"))
+	(error_plain loc "missing formal argument list in (LAMBDA (arglist...) body...)"_))
     (let ( (argtup (lambda_arg_bindings formals sexpr)) )
       (setq curpair (pair_tail curpair))
       (multiple_every argtup 
@@ -2068,7 +2071,7 @@
       (setq curpair (pair_tail curpair))
       (let ( (curcallexp (pair_head curpair)) )
 	(if (not (is_a curcallexp class_sexpr))
-	    (error_plain loc "missing called expression in multicall"))
+	    (error_plain loc "missing called expression in multicall"_))
 	(setq curpair (pair_tail curpair))
 	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
 	  (multiple_every restup 
@@ -2100,9 +2103,9 @@
 	 (quoted (pair_head curpair))
 	 )
     (if (pair_tail curpair)
-	(error_plain loc "QUOTE should have only one symbol argument"))
+	(error_plain loc "QUOTE should have only one symbol argument"_))
     (if (not (is_a quoted class_symbol))
-	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"))
+	(error_plain loc "QUOTE should have a symbol argument - composite quotations unsupported"_))
     (if (is_a quoted class_keyword)
 	(return quoted))
     (let ( (squ (make_instance class_src_quote
@@ -2123,10 +2126,10 @@
 	 (comstr (pair_head curpair))
 	 )
     (if (pair_tail curpair)
-	(error_plain loc "COMMENT should have only one string argument"))
+	(error_plain loc "COMMENT should have only one string argument"_))
     (if (not (is_string comstr))
 	(progn
-	  (error_plain loc "COMMENT should have a string")
+	  (error_plain loc "COMMENT should have a string"_)
 	  (setq comstr ()))
       )
     (let ( (scom (make_instance class_src_comment
@@ -2178,7 +2181,7 @@
 	 )
     (if (not (is_pair pairs))
 	(progn
-	  (error_plain sloc "empty PROGN")
+	  (error_plain sloc "empty PROGN"_)
 	  (return)))
     (let ( (progr
 	    (pairlist_to_progn pairs
@@ -2217,7 +2220,7 @@
 	 )
     (if (is_not_a xlabnam class_symbol)
 	(progn
-	  (error_plain loc "missing label in FOREVER")
+	  (error_plain loc "missing label in FOREVER"_)
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (make_instance class_label_binding
@@ -2251,13 +2254,13 @@
 	 )
     (if (is_not_a xlabnam class_symbol)
 	(progn
-	  (error_plain loc "missing label in EXIT")
+	  (error_plain loc "missing label in EXIT"_)
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (labind (find_env env xlabnam)) )
       (if (is_not_a labind class_label_binding)
 	  (progn 
-	    (error_strv loc "bad label in EXIT" 
+	    (error_strv loc "bad label in EXIT"_
 			(unsafe_get_field :named_name xlabnam))
 	    (return (the_null))))
       (let ( (bodytup (pairlist_to_multiple
@@ -2289,7 +2292,7 @@
 	 )
     (if (not (is_string xmsg))
 	(progn
-	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)")
+	  (error_plain loc "missing message string in (COMPILE_WARNING <msg> <exp>)"_)
 	  (return (the_null))))
     (setq curpair (pair_tail curpair))
     (let ( (sexp (pair_head curpair))
@@ -2297,7 +2300,7 @@
 	   )
       (setq curpair (pair_tail curpair))
       (if (notnull curpair)
-	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"))
+	  (error_plain loc "too many arguments in (COMPILE_WARNING <msg> <exp>)"_))
       (let ( (res (make_instance  class_src_compilewarning
 				  :src_loc loc
 				  :scwarn_msg xmsg
@@ -2331,18 +2334,18 @@
 	(assfail_binding (find_env env assfail_symb))
 	)
     (if (not (is_string xmsg))
-	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "non string message in (ASSERT_MSG <msg> <test>)"_))
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "missing test in (ASSERT_MSG <msg> <test>)"_))
     (setq xtest (macroexpand_1 (pair_head curpair) env mexpander))
     (if (pair_tail curpair)
-	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"))
+	(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"_))
     (let (
 	  (afprim 
 	   (cond 
 	    ( (null assfail_binding)
-	      (error_plain loc "unbound ASSERT_FAILED in (ASSERT_MSG <msg> <test>)")
+	      (error_plain loc "unbound ASSERT_FAILED in (ASSERT_MSG <msg> <test>)"_)
 	      (debug_msg env "mexpand_assert_msg env without assert_failed")
 	      (debug_msg (discrim env) "mexpand_assert_msg env's class without assert_failed")
 	      (debug_msg  (find_env_debug env assfail_symb) "mexpand_assert_msg findenvdbg give")
@@ -2357,7 +2360,7 @@
 	      (unsafe_get_field :vbind_value assfail_binding))
 	    (:else
 	     (debug_msg assfail_binding "bad assfail_binding")
-	     (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)")
+	     (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)"_)
 	     (return)
 	     )))
 	  (aprim (make_instance 
@@ -2366,7 +2369,7 @@
 		  :sprim_oper afprim
 		  :sprim_args (make_tuple3 discr_multiple
 					   xmsg
-					   (mixint_val loc)
+					   (mixloc_val loc)
 					   (make_integerbox discr_integer (get_int loc)))))
 	  (atest (make_instance
 		  class_src_ifelse
@@ -2408,7 +2411,7 @@
 	)
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
-	(error_plain loc "missing message in DEBUG_MSG"))
+	(error_plain loc "missing message in DEBUG_MSG"_))
     (setq xmsg  (macroexpand_1 (pair_head curpair) env mexpander))
     (setq curpair (pair_tail curpair))
     (if (is_pair curpair)
@@ -2416,9 +2419,9 @@
 	  (setq xcount (macroexpand_1 (pair_head curpair) env mexpander))
 	  (setq curpair (pair_tail curpair))))
     (if curpair
-	(error_plain loc "too many arguments to DEBUG_MSG"))
+	(error_plain loc "too many arguments to DEBUG_MSG"_))
     (if (not (is_string xmsg))
-	(error_plain loc "message argument should be string in DEBUG_MSG"))
+	(error_plain loc "message argument should be string in DEBUG_MSG"_))
     (if (null xcount)
 	(let ( (conlis (make_list discr_list)) )
 	  (list_append conlis 'the_callcount)
@@ -2466,7 +2469,7 @@
 		      (if (is_not_a sym class_symbol)
 			  (progn
 			    (debugmsg sym "mexpand_export_values bad sym")
-			    (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol")))
+			    (error_plain loc "(EXPORT_VALUES <sym>...) expecting symbol"_)))
 		      sym
 		      ))))
 	(res (make_instance class_src_export_values
@@ -2492,12 +2495,12 @@
 	(symb (macroexpand_1 (pair_head curpair) env mexpander))
 	)
     (if (is_not_a symb class_symbol)
-	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"))
+	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"_))
     (setq curpair (pair_tail curpair))
     (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
 	   )
       (if (null expv)
-	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"))
+	  (error_plain loc  "(EXPORT_MACRO <sym> <expander>) expecting expander"_))
       (let ( (res (make_instance class_src_export_macro
 				 :src_loc loc
 				 :sexpmac_mname symb
@@ -2525,7 +2528,7 @@
 		  (lambda (s)
 		    (let ( (sym  (macroexpand_1 s env mexpander)) )
 		      (if (is_not_a sym class_symbol)
-			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"))
+			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"_))
 		      sym
 		      ))))
 	(res (make_instance class_src_export_class
@@ -2552,7 +2555,7 @@
 			    :src_loc loc))
 	)
     (if (notnull curpair)
-	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"))
+	(error_plain loc "(CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"_))
     (debug_msg res "mexpand_current_module_environment_container return res")
     (return res)
 ))
@@ -2577,7 +2580,7 @@
 			    :src_loc loc))
 	)
     (if (notnull curpair)
-	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"))
+	(error_plain loc "(PARENT_MODULE_ENVIRONMENT) should not have any argument"_))
     (debug_msg res "mexpand_parent_module_environment return res")
     (return res)
 ))
@@ -2600,7 +2603,7 @@
 			    :src_loc loc))
 	)
     (if (notnull curpair)
-	(error_plain loc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"))
+	(error_plain loc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) should not have any argument"_))
     (debug_msg res "mexpand_update_current_module_environment_container return res")
     (return res)
 ))
@@ -2626,11 +2629,11 @@
 	(spredef (macroexpand_1 (pair_head curpair) env mexpander))
 	)
     (if (null curpair) 
-	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) missing argument"))
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) missing argument"_))
     (if (notnull (pair_tail curpair))
-	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) extra argument"))
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) extra argument"_))
     (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
-	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) invalid argument"))
+	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) invalid argument"_))
     (let ( (res (make_instance class_src_fetch_predefined
 			       :src_loc loc
 			       :sfepd_predef spredef)) )
@@ -2653,15 +2656,15 @@
 	(sval ())
 	)
     (if (null curpair) 
-	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"_))
     (setq curpair (pair_tail curpair))
     (if (null curpair) 
-	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"_))
     (setq sval (macroexpand_1 (pair_head curpair) env mexpander))
     (if (notnull (pair_tail curpair))
-	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) extra argument"))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) extra argument"_))
     (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))
-	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) invalid predef"))
+	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) invalid predef"_))
     (let ( (res (make_instance class_src_store_predefined
 			       :src_loc loc
 			       :sstpd_predef spredef

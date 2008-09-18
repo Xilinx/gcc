@@ -1208,10 +1208,27 @@
 	  sopformals
 	  (lambda (forb :long ix)
 	    (assert_msg "check forb" (is_a forb class_formal_binding))
+	    (debug_msg forb "normexp_primitive forb")
 	    (let ( (forarg (unsafe_get_field :binder forb))
-		   (actarg (multiple_nth nargs ix)) )
-	      (debug_msg forarg "normexp_primitive forarg")
+		   (actarg (multiple_nth nargs ix)) 
+		   (fortype (unsafe_get_field :fbind_type forb))
+		   (actype (get_ctype actarg env))
+		   )
 	      (debug_msg actarg "normexp_primitive actarg")
+	      (debug_msg actype "normexp_primitive actype")
+	      (if (and (is_a fortype class_ctype)
+		       (is_a actype class_ctype)
+		       (!= fortype actype))
+		  (progn
+		    (warning_strv sloc "type mismatch between formals & actuals in primitive"
+				  sopnamstr)
+		    (inform_strv sloc "mismatched primitive formal name"
+				  (unsafe_get_field :named_name forarg))
+		    (inform_strv sloc "mismatched primitive actual type"
+				  (unsafe_get_field :named_name actype))
+		    (inform_strv sloc "mismatched primitive expected type"
+				  (unsafe_get_field :named_name fortype))
+		    ))
 	      (mapobject_put bmap forarg actarg)
 	      )))
 	 (debug_msg bmap "normexp_primitive bmap in sopexp")
@@ -3192,7 +3209,7 @@
      (debug_msg nbindings "normexp_citeration nbindings")
      (let ( (starformals (unsafe_get_field :citer_start_formals soper)) )
        (debug_msg starformals "normexp_citeration starformals")
-       (if (!= (multiple_length starformals) (multiple_length nargs))
+       (if (!=i (multiple_length starformals) (multiple_length nargs))
 	   (progn
 	     (error_strv sloc "start formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
 	     (return)))
@@ -3229,7 +3246,7 @@
 	      (nsymocctup (make_multiple discr_multiple nbcitbform))
 	      )
 	 (debug_msg citbform "normexp_citeration citbform")
-	 (if (!= nbcitbform (multiple_length svbind))
+	 (if (!=i nbcitbform (multiple_length svbind))
 	     (progn
 	       (error_strv sloc "body formals and actuals length mismatch in citerator" (unsafe_get_field :named_name soper))
 	       (return)))

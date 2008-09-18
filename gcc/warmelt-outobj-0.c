@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Wed Sep 17 13:58:31 2008 */
+/* generated on Thu Sep 18 21:50:23 2008 */
 
 #include "run-basilys.h"
 
@@ -796,7 +796,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:36: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:38: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outdeclinit_root unimplemented catchall"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(38)?(38):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outdeclinit_root unimplemented catchall"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(38)?(38):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -933,7 +933,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:43: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:44: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obelem"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(44)?(44):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obelem"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(44)?(44):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -989,7 +989,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:43: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:47: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check cnam"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(47)?(47):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check cnam"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(47)?(47):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
       ;
       /*epilog*/}
@@ -1031,7 +1031,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:43: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:48: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check olocvar"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(48)?(48):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check olocvar"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(48)?(48):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
       ;
       /*epilog*/}
@@ -1245,7 +1245,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:54: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:56: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_root unimplemented catchall"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(56)?(56):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_root unimplemented catchall"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(56)?(56):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -1625,7 +1625,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:69: @block");
         BASILYS_LOCATION("warmelt-outobj.bysl:83: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "invalid obpredef"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(83)?(83):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "invalid obpredef"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(83)?(83):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
          ;
          /*epilog*/}
@@ -1792,7 +1792,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:88: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:89: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obpredef"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(89)?(89):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obpredef"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(89)?(89):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -1963,7 +1963,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:95: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:96: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obnil"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(96)?(96):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obnil"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(96)?(96):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -2163,7 +2163,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:111: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:112: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_objinitobject check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(112)?(112):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_objinitobject check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(112)?(112):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -2277,7 +2277,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:111: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:120: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check odata"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(120)?(120):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check odata"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(120)?(120):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -2711,7 +2711,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:111: @block");
             BASILYS_LOCATION("warmelt-outobj.bysl:190: @block");
             /*block*/{
              /*block*/{
-              basilys_assert_failed(( "outcinitfill_objinitobject unexpected odobnum"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(190)?(190):__LINE__, __FUNCTION__);
+              basilys_assert_failed(( "outcinitfill_objinitobject unexpected odobnum"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(190)?(190):__LINE__, __FUNCTION__);
               /*clear*/ /*_.IFELSE___V40*/ curfptr[39] = 0 ;}
              ;
              /*epilog*/}
@@ -2944,7 +2944,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:231: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:232: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitpredef_objinitobject check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(232)?(232):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitpredef_objinitobject check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(232)?(232):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -2987,7 +2987,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:231: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:233: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitpredef_objinitobject check sbuf"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(233)?(233):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitpredef_objinitobject check sbuf"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(233)?(233):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -3101,7 +3101,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:231: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:241: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check odata"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(241)?(241):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check odata"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(241)?(241):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -3490,7 +3490,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:231: @block");
             BASILYS_LOCATION("warmelt-outobj.bysl:302: @block");
             /*block*/{
              /*block*/{
-              basilys_assert_failed(( "outcinitpredef_objinitobject unexpected oiopredef"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(302)?(302):__LINE__, __FUNCTION__);
+              basilys_assert_failed(( "outcinitpredef_objinitobject unexpected oiopredef"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(302)?(302):__LINE__, __FUNCTION__);
               /*clear*/ /*_.IFELSE___V41*/ curfptr[40] = 0 ;}
              ;
              /*epilog*/}
@@ -3799,7 +3799,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:321: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:322: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_objinitmultiple check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(322)?(322):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_objinitmultiple check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(322)?(322):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -4159,7 +4159,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:362: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:363: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_objinitclosure check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(363)?(363):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_objinitclosure check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(363)?(363):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -4520,7 +4520,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:407: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:408: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_objinitroutine check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(408)?(408):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_objinitroutine check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(408)?(408):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -4993,7 +4993,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:407: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:468: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check ipro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(468)?(468):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check ipro"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(468)?(468):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V31*/ curfptr[25] = 0 ;}
         ;
         /*epilog*/}
@@ -5313,7 +5313,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:496: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:497: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outcinitfill_objinitstring check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(497)?(497):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outcinitfill_objinitstring check recv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(497)?(497):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -5669,7 +5669,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:530: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:535: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@ outpucod_anydiscr not able to output"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(535)?(535):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@ outpucod_anydiscr not able to output"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(535)?(535):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -5962,7 +5962,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:545: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:551: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@ outpucod_catchall_root not able to output"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(551)?(551):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@ outpucod_catchall_root not able to output"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(551)?(551):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V11*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -6911,7 +6911,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:690: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:691: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check other oloc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(691)?(691):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check other oloc"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(691)?(691):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -6967,7 +6967,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:690: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:695: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check octyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(695)?(695):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check octyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(695)?(695):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
       ;
       /*epilog*/}
@@ -7353,7 +7353,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:760: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:761: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check prou"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(761)?(761):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check prou"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(761)?(761):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -7682,7 +7682,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:760: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:817: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ogargs"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(817)?(817):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ogargs"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(817)?(817):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V28*/ curfptr[27] = 0 ;}
       ;
       /*epilog*/}
@@ -7809,7 +7809,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:760: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:836: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check obody"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(836)?(836):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check obody"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(836)?(836):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V35*/ curfptr[34] = 0 ;}
       ;
       /*epilog*/}
@@ -9021,7 +9021,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:937: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:938: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check pini"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(938)?(938):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check pini"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(938)?(938):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -10062,7 +10062,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1056: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1057: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check garg"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1057)?(1057):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check garg"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1057)?(1057):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -10172,7 +10172,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1056: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1065: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check obind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1065)?(1065):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check obind"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1065)?(1065):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -10232,7 +10232,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1056: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1067: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oloc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1067)?(1067):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oloc"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1067)?(1067):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
       /*epilog*/}
@@ -10275,7 +10275,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1056: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1068: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ctybind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1068)?(1068):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ctybind"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1068)?(1068):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
       ;
       /*epilog*/}
@@ -10327,7 +10327,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1056: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:1071: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check ctybind first"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1071)?(1071):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check ctybind first"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1071)?(1071):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V22*/ curfptr[21] = 0 ;}
         ;
         /*epilog*/}
@@ -10769,7 +10769,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1122: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1123: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check locv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1123)?(1123):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check locv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1123)?(1123):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -11006,7 +11006,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1152: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1153: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check occv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1153)?(1153):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check occv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1153)?(1153):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -11067,7 +11067,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1152: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1156: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check valueness of closed occurrence"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1156)?(1156):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check valueness of closed occurrence"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1156)?(1156):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
       ;
       /*epilog*/}
@@ -11218,7 +11218,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1169: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1170: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ocnstv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1170)?(1170):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ocnstv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1170)?(1170):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -11322,7 +11322,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1169: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1174: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check valueness of const occurrence"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1174)?(1174):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check valueness of const occurrence"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1174)?(1174):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
       ;
       /*epilog*/}
@@ -11478,7 +11478,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1187: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1188: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check lis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1188)?(1188):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check lis"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1188)?(1188):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -11521,7 +11521,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1187: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1189: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check boxeddepth"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1189)?(1189):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check boxeddepth"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1189)?(1189):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -11840,7 +11840,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1204: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1205: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oblo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1205)?(1205):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oblo"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1205)?(1205):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -12231,7 +12231,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1228: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1229: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obcit"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1229)?(1229):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obcit"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1229)?(1229):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -12352,7 +12352,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1228: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1239: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check citer"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1239)?(1239):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check citer"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1239)?(1239):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -13009,7 +13009,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1278: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1279: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obci"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1279)?(1279):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obci"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1279)?(1279):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -13204,7 +13204,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1297: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1298: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oblo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1298)?(1298):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oblo"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1298)?(1298):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -13618,7 +13618,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1334: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1335: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check sbuf"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1335)?(1335):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check sbuf"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1335)?(1335):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -13661,7 +13661,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1334: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1336: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check csy"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1336)?(1336):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check csy"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1336)?(1336):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -13820,7 +13820,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1345: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1346: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oblo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1346)?(1346):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oblo"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1346)?(1346):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -13931,7 +13931,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1345: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1354: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check lab"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1354)?(1354):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check lab"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1354)?(1354):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -14710,7 +14710,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1402: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1403: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obxi"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1403)?(1403):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obxi"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1403)?(1403):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -14809,7 +14809,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1402: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1408: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check olab"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1408)?(1408):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check olab"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1408)?(1408):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -14990,7 +14990,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1420: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1421: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check obcomp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1421)?(1421):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check obcomp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1421)?(1421):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -15835,7 +15835,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1459: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1460: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ocond"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1460)?(1460):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ocond"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1460)?(1460):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -15944,7 +15944,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1459: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1467: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ctest"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1467)?(1467):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ctest"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1467)?(1467):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -16395,7 +16395,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1501: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1502: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check opif"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1502)?(1502):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check opif"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1502)?(1502):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -16505,7 +16505,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1501: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1510: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ccond"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1510)?(1510):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ccond"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1510)?(1510):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -16769,7 +16769,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1533: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1534: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oisy"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1534)?(1534):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oisy"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1534)?(1534):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -16878,7 +16878,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1533: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1541: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oiobj"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1541)?(1541):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oiobj"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1541)?(1541):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -16921,7 +16921,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1533: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1542: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oidat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1542)?(1542):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oidat"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1542)?(1542):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -17160,7 +17160,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1557: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1558: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oikw"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1558)?(1558):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oikw"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1558)?(1558):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -17269,7 +17269,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1557: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1565: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oidat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1565)?(1565):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oidat"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1565)?(1565):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -17505,7 +17505,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1580: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1581: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ogsy"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1581)?(1581):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ogsy"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1581)?(1581):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -17614,7 +17614,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1580: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1588: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oiobj"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1588)?(1588):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oiobj"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1588)?(1588):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -17657,7 +17657,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1580: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1589: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ogdat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1589)?(1589):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ogdat"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1589)?(1589):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -17944,7 +17944,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1618: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1619: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ogkw"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1619)?(1619):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ogkw"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1619)?(1619):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -18053,7 +18053,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1618: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1626: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oiobj"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1626)?(1626):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oiobj"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1626)?(1626):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -18096,7 +18096,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1618: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1627: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ogdat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1627)?(1627):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ogdat"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1627)?(1627):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -18353,7 +18353,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1653: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1654: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oapp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1654)?(1654):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oapp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1654)?(1654):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -18928,7 +18928,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1679: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1681: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "outputcod_objapply check curarg not objinstr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1681)?(1681):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "outputcod_objapply check curarg not objinstr"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1681)?(1681):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -19041,7 +19041,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1679: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:1686: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check curctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1686)?(1686):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check curctyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1686)?(1686):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
         ;
         /*epilog*/}
@@ -19554,7 +19554,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1747: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1748: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check omsend"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1748)?(1748):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check omsend"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1748)?(1748):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -20177,7 +20177,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1776: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1780: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1780)?(1780):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curctyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1780)?(1780):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
       ;
       /*epilog*/}
@@ -20676,7 +20676,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1838: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:1839: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oapp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1839)?(1839):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oapp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1839)?(1839):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -20796,7 +20796,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1838: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1853: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oargs"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1853)?(1853):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oargs"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1853)?(1853):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
       /*epilog*/}
@@ -20839,7 +20839,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1838: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1854: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oxres"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1854)?(1854):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oxres"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1854)?(1854):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
       ;
       /*epilog*/}
@@ -21817,7 +21817,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1895: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:1900: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check curctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1900)?(1900):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check curctyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1900)?(1900):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
         ;
         /*epilog*/}
@@ -22185,7 +22185,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:1927: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:1930: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curestyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1930)?(1930):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curestyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(1930)?(1930):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
       ;
       /*epilog*/}
@@ -22697,7 +22697,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2001: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2002: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check omsnd"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2002)?(2002):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check omsnd"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2002)?(2002):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -23738,7 +23738,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2053: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2057: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2057)?(2057):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curctyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2057)?(2057):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
       ;
       /*epilog*/}
@@ -24095,7 +24095,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2084: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2087: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curestyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2087)?(2087):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curestyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2087)?(2087):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
       ;
       /*epilog*/}
@@ -24607,7 +24607,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2155: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2156: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oclear"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2156)?(2156):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oclear"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2156)?(2156):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -24848,7 +24848,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2170: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2171: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oralob"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2171)?(2171):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oralob"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2171)?(2171):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -24964,7 +24964,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2170: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2180: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "outpucod_objrawallocobj check iclass"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2180)?(2180):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "outpucod_objrawallocobj check iclass"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2180)?(2180):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -25340,7 +25340,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2204: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2205: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oralob"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2205)?(2205):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oralob"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2205)?(2205):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -25803,7 +25803,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2234: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2235: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oclear"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2235)?(2235):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oclear"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2235)?(2235):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -26023,7 +26023,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2259: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2260: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check optyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2260)?(2260):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check optyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2260)?(2260):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -26409,7 +26409,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2294: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2295: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ogsl"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2295)?(2295):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ogsl"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2295)?(2295):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -26477,7 +26477,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2294: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2302: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ofield"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2302)?(2302):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ofield"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2302)?(2302):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
       ;
       /*epilog*/}
@@ -26873,7 +26873,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2325: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2326: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check opslo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2326)?(2326):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check opslo"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2326)?(2326):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -26988,7 +26988,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2325: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2334: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "outpucod_objputslot check oval not nrep"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2334)?(2334):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "outpucod_objputslot check oval not nrep"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2334)?(2334):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -27467,7 +27467,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2385: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2386: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check opclor"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2386)?(2386):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check opclor"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2386)?(2386):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -27782,7 +27782,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2413: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2414: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check opclor"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2414)?(2414):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check opclor"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2414)?(2414):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -28168,7 +28168,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2448: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2449: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check opclor"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2449)?(2449):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check opclor"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2449)?(2449):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -28577,7 +28577,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2487: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2488: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oprconst"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2488)?(2488):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oprconst"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2488)?(2488):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -28946,7 +28946,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2522: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2523: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oprconst"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2523)?(2523):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oprconst"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2523)?(2523):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29012,7 +29012,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2522: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2528: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check notnull ocval"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2528)?(2528):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check notnull ocval"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2528)?(2528):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -29290,7 +29290,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2555: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2556: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oputx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2556)?(2556):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oputx"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2556)?(2556):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29380,7 +29380,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2555: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2563: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check octyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2563)?(2563):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check octyp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2563)?(2563):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -29423,7 +29423,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2555: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2564: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check orank"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2564)?(2564):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check orank"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2564)?(2564):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -29669,7 +29669,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2590: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2591: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oexp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2591)?(2591):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oexp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2591)?(2591):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29722,7 +29722,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2590: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2595: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check cont"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2595)?(2595):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check cont"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2595)?(2595):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
       ;
       /*epilog*/}
@@ -30024,7 +30024,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2604: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2605: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check oexp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2605)?(2605):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check oexp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2605)?(2605):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -30082,7 +30082,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2604: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2610: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check cont"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2610)?(2610):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check cont"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2610)?(2610):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -30456,7 +30456,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2622: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2623: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check vstr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2623)?(2623):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check vstr"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2623)?(2623):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -30589,7 +30589,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2633: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2634: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check vstr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2634)?(2634):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check vstr"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2634)?(2634):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -30723,7 +30723,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2645: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2646: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check vint"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2646)?(2646):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check vint"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2646)?(2646):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -30856,7 +30856,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2652: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2653: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check fret"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2653)?(2653):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check fret"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2653)?(2653):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -31189,7 +31189,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2671: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2672: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ent named"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2672)?(2672):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ent named"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2672)?(2672):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -31513,7 +31513,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2687: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2689: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check modctx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2689)?(2689):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check modctx"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2689)?(2689):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -31741,7 +31741,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2699: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2700: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check fld"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2700)?(2700):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check fld"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2700)?(2700):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -31871,7 +31871,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2713: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2714: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check cla"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2714)?(2714):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check cla"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2714)?(2714):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -32149,7 +32149,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2734: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check lsexp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2734)?(2734):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check lsexp"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2734)?(2734):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
      ;
      /*epilog*/}
@@ -32192,7 +32192,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2735: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check modnamstr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2735)?(2735):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check modnamstr"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2735)?(2735):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
      ;
      /*epilog*/}
@@ -32235,7 +32235,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2736: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check inienv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2736)?(2736):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check inienv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2736)?(2736):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
      ;
      /*epilog*/}
@@ -32361,7 +32361,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2745: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ncx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2745)?(2745):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ncx"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2745)?(2745):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V25*/ curfptr[24] = 0 ;}
       ;
       /*epilog*/}
@@ -32564,7 +32564,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
       BASILYS_LOCATION("warmelt-outobj.bysl:2761: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check iniproc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2761)?(2761):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check iniproc"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2761)?(2761):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V42*/ curfptr[41] = 0 ;}
        ;
        /*epilog*/}
@@ -32607,7 +32607,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
       BASILYS_LOCATION("warmelt-outobj.bysl:2762: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check xlist"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2762)?(2762):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check xlist"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2762)?(2762):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V44*/ curfptr[43] = 0 ;}
        ;
        /*epilog*/}
@@ -32756,7 +32756,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:2801: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check prolist"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2801)?(2801):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check prolist"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2801)?(2801):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V55*/ curfptr[54] = 0 ;}
         ;
         /*epilog*/}
@@ -32891,7 +32891,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
        BASILYS_LOCATION("warmelt-outobj.bysl:2815: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check objlist"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2815)?(2815):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check objlist"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2815)?(2815):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V62*/ curfptr[61] = 0 ;}
         ;
         /*epilog*/}
@@ -32957,7 +32957,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2729: @block");
         BASILYS_LOCATION("warmelt-outobj.bysl:2821: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check inipro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2821)?(2821):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check inipro"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2821)?(2821):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V68*/ curfptr[67] = 0 ;}
          ;
          /*epilog*/}
@@ -33961,7 +33961,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2804: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2805: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check pro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2805)?(2805):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check pro"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2805)?(2805):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -35002,7 +35002,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2875: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2886: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curenv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2886)?(2886):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curenv"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2886)?(2886):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
       ;
       /*epilog*/}
@@ -35509,7 +35509,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2901: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2906: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check rlist"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2906)?(2906):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check rlist"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2906)?(2906):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
       ;
       /*epilog*/}
@@ -35552,7 +35552,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2901: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2907: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curead"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2907)?(2907):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curead"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2907)?(2907):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
       ;
       /*epilog*/}
@@ -36250,7 +36250,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2940: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2944: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check rlist"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2944)?(2944):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check rlist"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2944)?(2944):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
       ;
       /*epilog*/}
@@ -36293,7 +36293,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2940: @block");
      BASILYS_LOCATION("warmelt-outobj.bysl:2945: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curead"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2945)?(2945):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curead"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2945)?(2945):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
       ;
       /*epilog*/}
@@ -37009,7 +37009,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:2991: @block");
     BASILYS_LOCATION("warmelt-outobj.bysl:2993: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "unimplemented help command"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2993)?(2993):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "unimplemented help command"),( "warmelt-outobj.bysl")?( "warmelt-outobj.bysl"):__FILE__,(2993)?(2993):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}

@@ -2438,7 +2438,7 @@
 		     (dbg_out (pair_head curpair) dbgi (+i depth 1))
 		     (setq curpair (pair_tail curpair))
 		     (checkcallstack_msg "near endloop dbgout_list_method")
-		     (if (not curpair)
+		     (if (null curpair)
 			 (exit listloop))
 		     (setq ix (+i ix 1))
 		     (if (>i (-i (strbuf_usedlength sbuf) curulen) 100)

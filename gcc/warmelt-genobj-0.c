@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-genobj-3.c - DO NOT EDIT */
-/* generated on Wed Sep 17 13:58:24 2008 */
+/* generated on Thu Sep 18 21:53:23 2008 */
 
 #include "run-basilys.h"
 
@@ -802,7 +802,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:535: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:541: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@compile_obj should be implemented in nrep-s subclasses"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(541)?(541):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@compile_obj should be implemented in nrep-s subclasses"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(541)?(541):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -1033,7 +1033,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:545: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:551: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@ unexpected catchall putobjdest objcod"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(551)?(551):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@ unexpected catchall putobjdest objcod"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(551)?(551):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V11*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -1264,7 +1264,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:555: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:562: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@ unexpected catchall putobjdest anydiscr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(562)?(562):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@ unexpected catchall putobjdest anydiscr"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(562)?(562):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V11*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -1390,7 +1390,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:566: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:567: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv objvalue"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(567)?(567):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv objvalue"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(567)?(567):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -1790,7 +1790,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:591: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:592: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "putobjdest_objdestinstr check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(592)?(592):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "putobjdest_objdestinstr check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(592)?(592):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -2150,7 +2150,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:628: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:629: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(629)?(629):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(629)?(629):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -2330,7 +2330,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:642: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check pro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(642)?(642):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check pro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(642)?(642):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -2373,7 +2373,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:643: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check compicache"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(643)?(643):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check compicache"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(643)?(643):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
      ;
      /*epilog*/}
@@ -2416,7 +2416,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:644: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check modctx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(644)?(644):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check modctx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(644)?(644):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
      ;
      /*epilog*/}
@@ -2886,7 +2886,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:639: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:723: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check nbody"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(723)?(723):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check nbody"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(723)?(723):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V50*/ curfptr[49] = 0 ;}
        ;
        /*epilog*/}
@@ -3348,7 +3348,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:692: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:693: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bnd"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(693)?(693):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bnd"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(693)?(693):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -3716,7 +3716,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:729: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:731: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compile2obj_procedure check pthu"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(731)?(731):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compile2obj_procedure check pthu"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(731)?(731):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -4092,7 +4092,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:760: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ipro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(760)?(760):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ipro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(760)?(760):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -4135,7 +4135,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:761: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check idata"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(761)?(761):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check idata"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(761)?(761):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -4178,7 +4178,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:762: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check modctx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(762)?(762):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check modctx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(762)?(762):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -4221,7 +4221,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:763: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check compicache"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(763)?(763):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check compicache"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(763)?(763):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
      /*epilog*/}
@@ -4264,7 +4264,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:764: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check importvalues"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(764)?(764):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check importvalues"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(764)?(764):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
      ;
      /*epilog*/}
@@ -5319,7 +5319,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:759: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:928: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check toplis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(928)?(928):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check toplis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(928)?(928):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V110*/ curfptr[109] = 0 ;}
         ;
         /*epilog*/}
@@ -6397,7 +6397,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:797: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:801: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check curou"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(801)?(801):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check curou"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(801)?(801):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
       ;
       /*epilog*/}
@@ -6570,7 +6570,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:887: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:889: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ival"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(889)?(889):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ival"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(889)?(889):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -6766,7 +6766,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:918: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:920: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check curdat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(920)?(920):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check curdat"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(920)?(920):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -7452,7 +7452,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:980: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:982: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check curimport"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(982)?(982):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check curimport"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(982)?(982):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -8082,7 +8082,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1067: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1068: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1068)?(1068):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1068)?(1068):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -8205,7 +8205,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1067: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1079: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check orout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1079)?(1079):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check orout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1079)?(1079):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[10] = 0 ;}
       ;
       /*epilog*/}
@@ -8265,7 +8265,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1067: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1082: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "get_free_objlocptr check offpfree"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1082)?(1082):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "get_free_objlocptr check offpfree"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1082)?(1082):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
          ;
          /*epilog*/}
@@ -8371,7 +8371,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1067: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1087: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check off"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1087)?(1087):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check off"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1087)?(1087):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V20*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -8712,7 +8712,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1114: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1115: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1115)?(1115):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1115)?(1115):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -8770,7 +8770,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1114: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1121: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check orout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1121)?(1121):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check orout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1121)?(1121):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
       ;
       /*epilog*/}
@@ -8830,7 +8830,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1114: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1124: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check offpfree"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1124)?(1124):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check offpfree"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1124)?(1124):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
          ;
          /*epilog*/}
@@ -8912,7 +8912,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1114: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1127: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check nblongorout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1127)?(1127):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check nblongorout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1127)?(1127):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V17*/ curfptr[12] = 0 ;}
          ;
          /*epilog*/}
@@ -8982,7 +8982,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1114: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1129: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check off"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1129)?(1129):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check off"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1129)?(1129):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V19*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -9393,7 +9393,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1150: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1153: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1153)?(1153):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1153)?(1153):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
      ;
      /*epilog*/}
@@ -9436,7 +9436,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1150: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1154: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1154)?(1154):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ctyp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1154)?(1154):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
      ;
      /*epilog*/}
@@ -9677,7 +9677,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1150: @block");
            BASILYS_LOCATION("warmelt-genobj.bysl:1169: @block");
            /*block*/{
             /*block*/{
-             basilys_assert_failed(( "check freemap"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1169)?(1169):__LINE__, __FUNCTION__);
+             basilys_assert_failed(( "check freemap"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1169)?(1169):__LINE__, __FUNCTION__);
              /*clear*/ /*_.IFELSE___V28*/ curfptr[27] = 0 ;}
             ;
             /*epilog*/}
@@ -9720,7 +9720,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1150: @block");
            BASILYS_LOCATION("warmelt-genobj.bysl:1170: @block");
            /*block*/{
             /*block*/{
-             basilys_assert_failed(( "check orout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1170)?(1170):__LINE__, __FUNCTION__);
+             basilys_assert_failed(( "check orout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1170)?(1170):__LINE__, __FUNCTION__);
              /*clear*/ /*_.IFELSE___V30*/ curfptr[29] = 0 ;}
             ;
             /*epilog*/}
@@ -9868,7 +9868,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1150: @block");
               BASILYS_LOCATION("warmelt-genobj.bysl:1185: @block");
               /*block*/{
                /*block*/{
-                basilys_assert_failed(( "check others"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1185)?(1185):__LINE__, __FUNCTION__);
+                basilys_assert_failed(( "check others"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1185)?(1185):__LINE__, __FUNCTION__);
                 /*clear*/ /*_.IFELSE___V43*/ curfptr[42] = 0 ;}
                ;
                /*epilog*/}
@@ -10187,7 +10187,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1203: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bnd"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1203)?(1203):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bnd"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1203)?(1203):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -10230,7 +10230,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1204: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1204)?(1204):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1204)?(1204):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -10465,7 +10465,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1217: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oldloc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1217)?(1217):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oldloc"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1217)?(1217):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V22*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -10592,7 +10592,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
            BASILYS_LOCATION("warmelt-genobj.bysl:1232: @block");
            /*block*/{
             /*block*/{
-             basilys_assert_failed(( "check freemap"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1232)?(1232):__LINE__, __FUNCTION__);
+             basilys_assert_failed(( "check freemap"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1232)?(1232):__LINE__, __FUNCTION__);
              /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
             ;
             /*epilog*/}
@@ -10635,7 +10635,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
            BASILYS_LOCATION("warmelt-genobj.bysl:1233: @block");
            /*block*/{
             /*block*/{
-             basilys_assert_failed(( "check orout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1233)?(1233):__LINE__, __FUNCTION__);
+             basilys_assert_failed(( "check orout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1233)?(1233):__LINE__, __FUNCTION__);
              /*clear*/ /*_.IFELSE___V31*/ curfptr[30] = 0 ;}
             ;
             /*epilog*/}
@@ -10682,7 +10682,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1202: @block");
             BASILYS_LOCATION("warmelt-genobj.bysl:1236: @block");
             /*block*/{
              /*block*/{
-              basilys_assert_failed(( "check freeli"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1236)?(1236):__LINE__, __FUNCTION__);
+              basilys_assert_failed(( "check freeli"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1236)?(1236):__LINE__, __FUNCTION__);
               /*clear*/ /*_.IFELSE___V34*/ curfptr[33] = 0 ;}
              ;
              /*epilog*/}
@@ -10924,7 +10924,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1242: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1243: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nchk"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1243)?(1243):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nchk"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1243)?(1243):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -10967,7 +10967,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1242: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1244: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1244)?(1244):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1244)?(1244):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -11071,7 +11071,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1242: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1252: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nprim"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1252)?(1252):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nprim"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1252)?(1252):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -11114,7 +11114,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1242: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1253: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nexp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1253)?(1253):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nexp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1253)?(1253):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -11274,7 +11274,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1242: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1274: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check primty"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1274)?(1274):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check primty"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1274)?(1274):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
        ;
        /*epilog*/}
@@ -11657,7 +11657,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1282: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1283: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nilo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1283)?(1283):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nilo"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1283)?(1283):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -11700,7 +11700,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1282: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1284: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1284)?(1284):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1284)?(1284):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -11913,7 +11913,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1294: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1295: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ncomm"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1295)?(1295):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ncomm"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1295)?(1295):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -11956,7 +11956,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1294: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1296: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1296)?(1296):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1296)?(1296):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -12309,7 +12309,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1318: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1319: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nchk"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1319)?(1319):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nchk"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1319)?(1319):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -12352,7 +12352,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1318: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1320: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1320)?(1320):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1320)?(1320):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -12518,7 +12518,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1318: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1338: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "locsymocc without binding"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1338)?(1338):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "locsymocc without binding"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1338)?(1338):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V21*/ curfptr[20] = 0 ;}
         ;
         /*epilog*/}
@@ -12679,7 +12679,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1318: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1346: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "compilobj locsymocc null ovar without ctype_void"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1346)?(1346):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "compilobj locsymocc null ovar without ctype_void"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1346)?(1346):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
         ;
         /*epilog*/}
@@ -12748,7 +12748,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1318: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1348: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "compilobj locsymocc check ovar"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1348)?(1348):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "compilobj locsymocc check ovar"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1348)?(1348):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V32*/ curfptr[20] = 0 ;}
         ;
         /*epilog*/}
@@ -12930,7 +12930,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1356: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nclo"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1356)?(1356):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nclo"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1356)?(1356):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -12973,7 +12973,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1357: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1357)?(1357):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1357)?(1357):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -13089,7 +13089,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1371: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check lastcproc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1371)?(1371):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check lastcproc"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1371)?(1371):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
       /*epilog*/}
@@ -13141,7 +13141,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1375: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check cloblis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1375)?(1375):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check cloblis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1375)?(1375):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V23*/ curfptr[22] = 0 ;}
        ;
        /*epilog*/}
@@ -13312,7 +13312,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1390: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check good closed rank"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1390)?(1390):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check good closed rank"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1390)?(1390):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V32*/ curfptr[28] = 0 ;}
         ;
         /*epilog*/}
@@ -13404,7 +13404,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1355: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1401: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check nclotyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1401)?(1401):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check nclotyp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1401)?(1401):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V40*/ curfptr[39] = 0 ;}
          ;
          /*epilog*/}
@@ -13663,7 +13663,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1410: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ncnst"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1410)?(1410):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ncnst"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1410)?(1410):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -13706,7 +13706,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1411: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1411)?(1411):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1411)?(1411):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -13860,7 +13860,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1424: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check lastcproc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1424)?(1424):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check lastcproc"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1424)?(1424):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
       ;
       /*epilog*/}
@@ -13912,7 +13912,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1428: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check cnstlis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1428)?(1428):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check cnstlis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1428)?(1428):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V24*/ curfptr[23] = 0 ;}
        ;
        /*epilog*/}
@@ -14083,7 +14083,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:1443: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check good const rank"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1443)?(1443):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check good const rank"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1443)?(1443):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V33*/ curfptr[29] = 0 ;}
         ;
         /*epilog*/}
@@ -14175,7 +14175,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1409: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1453: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check cnstyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1453)?(1453):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check cnstyp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1453)?(1453):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V41*/ curfptr[40] = 0 ;}
          ;
          /*epilog*/}
@@ -14434,7 +14434,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1461: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1462: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1462)?(1462):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1462)?(1462):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -14477,7 +14477,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1461: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1463: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nsva"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1463)?(1463):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nsva"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1463)?(1463):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -14663,7 +14663,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1461: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1470: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check var"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1470)?(1470):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check var"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1470)?(1470):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
       /*epilog*/}
@@ -14706,7 +14706,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1461: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1471: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check olocv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1471)?(1471):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check olocv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1471)?(1471):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V21*/ curfptr[20] = 0 ;}
       ;
       /*epilog*/}
@@ -14874,7 +14874,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1478: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1479: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1479)?(1479):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1479)?(1479):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -14917,7 +14917,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1478: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1480: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nconst"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1480)?(1480):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nconst"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1480)?(1480):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -15170,7 +15170,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1478: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:1507: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check coff"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1507)?(1507):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check coff"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1507)?(1507):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V26*/ curfptr[23] = 0 ;}
          ;
          /*epilog*/}
@@ -15633,7 +15633,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1537: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1539: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nqme"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1539)?(1539):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nqme"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1539)?(1539):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -15916,7 +15916,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1567: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1567)?(1567):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1567)?(1567):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -15959,7 +15959,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1568: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nfor"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1568)?(1568):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nfor"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1568)?(1568):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -16226,7 +16226,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1583: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1583)?(1583):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1583)?(1583):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V27*/ curfptr[24] = 0 ;}
       ;
       /*epilog*/}
@@ -16312,7 +16312,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1585: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oresv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1585)?(1585):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oresv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1585)?(1585):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V31*/ curfptr[30] = 0 ;}
       ;
       /*epilog*/}
@@ -16370,7 +16370,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1587: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check again nbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1587)?(1587):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check again nbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1587)?(1587):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V33*/ curfptr[32] = 0 ;}
       ;
       /*epilog*/}
@@ -16464,7 +16464,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1589: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check 99bis nbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1589)?(1589):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check 99bis nbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1589)?(1589):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V38*/ curfptr[35] = 0 ;}
       ;
       /*epilog*/}
@@ -16507,7 +16507,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1590: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check 99bis oresv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1590)?(1590):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check 99bis oresv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1590)?(1590):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V40*/ curfptr[39] = 0 ;}
       ;
       /*epilog*/}
@@ -16644,7 +16644,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1566: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1602: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check closy"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1602)?(1602):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check closy"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1602)?(1602):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V50*/ curfptr[49] = 0 ;}
        ;
        /*epilog*/}
@@ -17022,7 +17022,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1616: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1617: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1617)?(1617):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1617)?(1617):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -17065,7 +17065,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1616: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1618: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nexi"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1618)?(1618):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nexi"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1618)?(1618):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -17169,7 +17169,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1616: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1625: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nbindx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1625)?(1625):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nbindx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1625)?(1625):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -17518,7 +17518,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1655: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1656: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1656)?(1656):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1656)?(1656):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -17641,7 +17641,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1663: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1664: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check rlet"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1664)?(1664):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check rlet"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1664)?(1664):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -17684,7 +17684,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1663: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1665: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1665)?(1665):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1665)?(1665):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -17867,7 +17867,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1663: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1685: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_let check bnds multiple"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1685)?(1685):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_let check bnds multiple"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1685)?(1685):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V22*/ curfptr[21] = 0 ;}
       ;
       /*epilog*/}
@@ -18641,7 +18641,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1690: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1694: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nlbnd in compilobj_nrep_let"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1694)?(1694):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nlbnd in compilobj_nrep_let"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1694)?(1694):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
      ;
      /*epilog*/}
@@ -18964,7 +18964,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1690: @block");
           BASILYS_LOCATION("warmelt-genobj.bysl:1709: @block");
           /*block*/{
            /*block*/{
-            basilys_assert_failed(( "compilobj_nrep_let check obnx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1709)?(1709):__LINE__, __FUNCTION__);
+            basilys_assert_failed(( "compilobj_nrep_let check obnx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1709)?(1709):__LINE__, __FUNCTION__);
             /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
            ;
            /*epilog*/}
@@ -19853,7 +19853,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1769: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nciter"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1769)?(1769):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nciter"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1769)?(1769):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -19896,7 +19896,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1770: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1770)?(1770):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1770)?(1770):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -20018,7 +20018,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1778: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check nstatocc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1778)?(1778):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check nstatocc"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1778)?(1778):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
        ;
        /*epilog*/}
@@ -20140,7 +20140,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:1785: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check nstatbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1785)?(1785):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check nstatbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1785)?(1785):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V29*/ curfptr[28] = 0 ;}
        ;
        /*epilog*/}
@@ -20314,7 +20314,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1802: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check citer"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1802)?(1802):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check citer"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1802)?(1802):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V42*/ curfptr[41] = 0 ;}
       ;
       /*epilog*/}
@@ -20357,7 +20357,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1803: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check locmap"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1803)?(1803):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check locmap"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1803)?(1803):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V44*/ curfptr[43] = 0 ;}
       ;
       /*epilog*/}
@@ -20400,7 +20400,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1804: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nlocbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1804)?(1804):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nlocbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1804)?(1804):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V46*/ curfptr[45] = 0 ;}
       ;
       /*epilog*/}
@@ -20750,7 +20750,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1768: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:1868: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nbodbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1868)?(1868):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nbodbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1868)?(1868):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V67*/ curfptr[54] = 0 ;}
       ;
       /*epilog*/}
@@ -21217,7 +21217,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1807: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1809: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nlbnd in compilobj_nrep_citeration"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1809)?(1809):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nlbnd in compilobj_nrep_citeration"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1809)?(1809):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -22125,7 +22125,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1871: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1873: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nbbnd in compilobj_nrep_citeration"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1873)?(1873):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nbbnd in compilobj_nrep_citeration"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1873)?(1873):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -22639,7 +22639,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1913: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1914: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nsq"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1914)?(1914):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nsq"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1914)?(1914):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -22682,7 +22682,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1913: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1915: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1915)?(1915):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1915)?(1915):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -23030,7 +23030,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1935: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1936: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check npro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1936)?(1936):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check npro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1936)?(1936):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -23073,7 +23073,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1935: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1937: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1937)?(1937):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1937)?(1937):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -23513,7 +23513,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1963: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1964: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nma"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1964)?(1964):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nma"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1964)?(1964):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -23556,7 +23556,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:1963: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:1965: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(1965)?(1965):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(1965)?(1965):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -24247,7 +24247,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2015: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2016: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nfa"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2016)?(2016):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nfa"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2016)?(2016):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -24290,7 +24290,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2015: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2017: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2017)?(2017):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2017)?(2017):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -24431,7 +24431,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2015: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2047: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_fieldacc check fld"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2047)?(2047):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_fieldacc check fld"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2047)?(2047):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
       /*epilog*/}
@@ -25112,7 +25112,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2070: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2071: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nugf"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2071)?(2071):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nugf"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2071)?(2071):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -25155,7 +25155,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2070: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2072: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2072)?(2072):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2072)?(2072):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -25428,7 +25428,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2092: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2093: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nupf"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2093)?(2093):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nupf"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2093)?(2093):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -25471,7 +25471,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2092: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2094: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2094)?(2094):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2094)?(2094):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -25823,7 +25823,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2109: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2110: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nfa"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2110)?(2110):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nfa"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2110)?(2110):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -25885,7 +25885,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2109: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2116: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check afield"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2116)?(2116):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check afield"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2116)?(2116):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
       ;
       /*epilog*/}
@@ -25997,7 +25997,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2109: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:2125: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "compilobj_nrep_unsafe_put_fields check oval not nrep"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2125)?(2125):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "compilobj_nrep_unsafe_put_fields check oval not nrep"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2125)?(2125):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
        ;
        /*epilog*/}
@@ -26149,7 +26149,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2138: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2139: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check napp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2139)?(2139):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check napp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2139)?(2139):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -26192,7 +26192,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2138: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2140: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2140)?(2140):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2140)?(2140):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -26555,7 +26555,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2149: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2151: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_apply check ocomp not objinstr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2151)?(2151):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_apply check ocomp not objinstr"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2151)?(2151):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
       ;
       /*epilog*/}
@@ -26690,7 +26690,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2169: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2170: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check napp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2170)?(2170):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check napp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2170)?(2170):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -26733,7 +26733,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2169: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2171: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2171)?(2171):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2171)?(2171):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -27471,7 +27471,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2183: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2185: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compilobj_nrep_multiapply check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2185)?(2185):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compilobj_nrep_multiapply check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2185)?(2185):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -27541,7 +27541,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2183: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2191: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_multiapply check cty"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2191)?(2191):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_multiapply check cty"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2191)?(2191):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -28190,7 +28190,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2255: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2256: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nsnd"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2256)?(2256):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nsnd"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2256)?(2256):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -28233,7 +28233,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2255: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2257: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2257)?(2257):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2257)?(2257):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -28700,7 +28700,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2286: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2287: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nmsnd"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2287)?(2287):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nmsnd"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2287)?(2287):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -28743,7 +28743,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2286: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2288: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2288)?(2288):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2288)?(2288):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -29495,7 +29495,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2301: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2303: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compilobj_nrep_multimsend check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2303)?(2303):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compilobj_nrep_multimsend check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2303)?(2303):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -29565,7 +29565,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2301: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2309: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_multimsend check cty"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2309)?(2309):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_multimsend check cty"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2309)?(2309):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -30214,7 +30214,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2376: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2377: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2377)?(2377):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2377)?(2377):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -30257,7 +30257,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2376: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2378: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2378)?(2378):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2378)?(2378):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -30373,7 +30373,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2376: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2384: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "@@compile_obj should be implemented in anybinding-s subclasses"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2384)?(2384):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "@@compile_obj should be implemented in anybinding-s subclasses"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2384)?(2384):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V14*/ curfptr[11] = 0 ;}
      ;
      /*epilog*/}
@@ -30505,7 +30505,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2390: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2391: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2391)?(2391):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2391)?(2391):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -30548,7 +30548,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2390: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2392: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2392)?(2392):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2392)?(2392):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -30691,7 +30691,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2390: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2399: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check olocv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2399)?(2399):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check olocv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2399)?(2399):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -30853,7 +30853,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2407: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2408: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2408)?(2408):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2408)?(2408):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -30896,7 +30896,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2407: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2409: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2409)?(2409):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2409)?(2409):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -31157,7 +31157,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2422: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2423: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2423)?(2423):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2423)?(2423):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -31200,7 +31200,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2422: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2424: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2424)?(2424):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2424)?(2424):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -31461,7 +31461,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2436: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2436)?(2436):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2436)?(2436):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -31504,7 +31504,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2435: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2437: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2437)?(2437):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2437)?(2437):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -31765,7 +31765,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2448: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2449: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2449)?(2449):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2449)?(2449):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -31808,7 +31808,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2448: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2450: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2450)?(2450):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2450)?(2450):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -32069,7 +32069,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2461: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2462: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2462)?(2462):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2462)?(2462):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -32112,7 +32112,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2461: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2463: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2463)?(2463):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2463)?(2463):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -32373,7 +32373,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2474: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2475: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check bind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2475)?(2475):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check bind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2475)?(2475):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -32416,7 +32416,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2474: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2476: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2476)?(2476):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2476)?(2476):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -32673,7 +32673,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2489: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2490: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2490)?(2490):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2490)?(2490):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -32716,7 +32716,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2489: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2491: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2491)?(2491):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2491)?(2491):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -32914,7 +32914,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2489: @block");
          BASILYS_LOCATION("warmelt-genobj.bysl:2524: @block");
          /*block*/{
           /*block*/{
-           basilys_assert_failed(( "check same typrecv&rtpdesto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2524)?(2524):__LINE__, __FUNCTION__);
+           basilys_assert_failed(( "check same typrecv&rtpdesto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2524)?(2524):__LINE__, __FUNCTION__);
            /*clear*/ /*_.IFELSE___V23*/ curfptr[17] = 0 ;}
           ;
           /*epilog*/}
@@ -33245,7 +33245,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2489: @block");
          BASILYS_LOCATION("warmelt-genobj.bysl:2548: @block");
          /*block*/{
           /*block*/{
-           basilys_assert_failed(( "putobjdest_objvalue type mismatch"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2548)?(2548):__LINE__, __FUNCTION__);
+           basilys_assert_failed(( "putobjdest_objvalue type mismatch"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2548)?(2548):__LINE__, __FUNCTION__);
            /*clear*/ /*_.IFELSE___V44*/ curfptr[15] = 0 ;}
           ;
           /*epilog*/}
@@ -33437,7 +33437,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2556: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2557: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2557)?(2557):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2557)?(2557):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -33480,7 +33480,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2556: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2558: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2558)?(2558):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2558)?(2558):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -33642,7 +33642,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2556: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2570: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check typdesto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2570)?(2570):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check typdesto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2570)?(2570):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
       /*epilog*/}
@@ -33843,7 +33843,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2579: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2580: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2580)?(2580):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2580)?(2580):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -33886,7 +33886,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2579: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2581: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2581)?(2581):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2581)?(2581):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -34249,7 +34249,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2604: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2605: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2605)?(2605):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2605)?(2605):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -34292,7 +34292,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2604: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2606: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2606)?(2606):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2606)?(2606):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -34348,7 +34348,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2604: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2612: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check obl"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2612)?(2612):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check obl"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2612)?(2612):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
       ;
       /*epilog*/}
@@ -34391,7 +34391,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2604: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2613: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check oep"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2613)?(2613):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check oep"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2613)?(2613):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -34580,7 +34580,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2631: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2632: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2632)?(2632):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2632)?(2632):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -34623,7 +34623,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2631: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2633: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2633)?(2633):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2633)?(2633):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -34704,7 +34704,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2631: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2644: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check epil"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2644)?(2644):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check epil"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2644)?(2644):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -34747,7 +34747,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2631: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2645: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check resv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2645)?(2645):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check resv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2645)?(2645):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -34940,7 +34940,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2655: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2656: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2656)?(2656):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2656)?(2656):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -34983,7 +34983,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2655: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2657: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2657)?(2657):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2657)?(2657):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -35109,7 +35109,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2665: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2666: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check rif"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2666)?(2666):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check rif"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2666)?(2666):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -35152,7 +35152,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2665: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2667: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2667)?(2667):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2667)?(2667):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -35266,7 +35266,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2665: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2675: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check nctyp"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2675)?(2675):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check nctyp"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2675)?(2675):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -35401,7 +35401,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2665: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:2686: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check otest"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2686)?(2686):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check otest"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2686)?(2686):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V26*/ curfptr[25] = 0 ;}
        ;
        /*epilog*/}
@@ -35624,7 +35624,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2693: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2696: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2696)?(2696):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2696)?(2696):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -35667,7 +35667,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2693: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2697: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2697)?(2697):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2697)?(2697):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -35876,7 +35876,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2717: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2718: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check pif"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2718)?(2718):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check pif"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2718)?(2718):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -35919,7 +35919,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2717: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2719: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2719)?(2719):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2719)?(2719):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -36071,7 +36071,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2717: @block");
          BASILYS_LOCATION("warmelt-genobj.bysl:2729: @block");
          /*block*/{
           /*block*/{
-           basilys_assert_failed(( "invalid ncond in nrep_cppif"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2729)?(2729):__LINE__, __FUNCTION__);
+           basilys_assert_failed(( "invalid ncond in nrep_cppif"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2729)?(2729):__LINE__, __FUNCTION__);
            /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
           ;
           /*epilog*/}
@@ -36375,7 +36375,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2745: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2748: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check recv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2748)?(2748):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check recv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2748)?(2748):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -36418,7 +36418,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2745: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2749: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check desto"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2749)?(2749):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check desto"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2749)?(2749):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -36627,7 +36627,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2769: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2770: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nret"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2770)?(2770):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nret"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2770)?(2770):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -36670,7 +36670,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2769: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2771: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2771)?(2771):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2771)?(2771):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -36819,7 +36819,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2769: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2785: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check orout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2785)?(2785):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check orout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2785)?(2785):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V21*/ curfptr[20] = 0 ;}
       ;
       /*epilog*/}
@@ -36905,7 +36905,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2769: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2787: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check rrest"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2787)?(2787):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check rrest"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2787)?(2787):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V25*/ curfptr[24] = 0 ;}
       ;
       /*epilog*/}
@@ -37441,7 +37441,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2820: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2821: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2821)?(2821):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2821)?(2821):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -37484,7 +37484,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2820: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2822: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nlam"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2822)?(2822):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nlam"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2822)?(2822):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -37586,7 +37586,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2820: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:2827: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check checkpro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2827)?(2827):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check checkpro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2827)?(2827):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
        ;
        /*epilog*/}
@@ -38268,7 +38268,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2875: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2876: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2876)?(2876):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2876)?(2876):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -38311,7 +38311,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2875: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2877: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nmki"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2877)?(2877):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nmki"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2877)?(2877):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -38420,7 +38420,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2875: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2885: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check ncla"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2885)?(2885):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check ncla"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2885)?(2885):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -38811,7 +38811,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2906: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2907: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compilobj_nrep_makeinst check cfla"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2907)?(2907):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compilobj_nrep_makeinst check cfla"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2907)?(2907):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -38872,7 +38872,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2906: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2911: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compilobj_nrep_makeinst check cfield"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2911)?(2911):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compilobj_nrep_makeinst check cfield"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2911)?(2911):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
       ;
       /*epilog*/}
@@ -38930,7 +38930,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2906: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:2915: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "compilobj_nrep_makeinst check oval not nrep"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2915)?(2915):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "compilobj_nrep_makeinst check oval not nrep"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2915)?(2915):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
        ;
        /*epilog*/}
@@ -39141,7 +39141,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2933: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2934: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2934)?(2934):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2934)?(2934):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -39184,7 +39184,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2933: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2935: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check npro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2935)?(2935):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check npro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2935)?(2935):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -39312,7 +39312,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2933: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2938: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "UNEXPECTED CALL TO compilobj_routproc"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2938)?(2938):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "UNEXPECTED CALL TO compilobj_routproc"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2938)?(2938):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -39444,7 +39444,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2943: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2944: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2944)?(2944):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2944)?(2944):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -39634,7 +39634,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2962: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check ndat"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2962)?(2962):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check ndat"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2962)?(2962):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
      ;
      /*epilog*/}
@@ -39677,7 +39677,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2963: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check obj"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2963)?(2963):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check obj"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2963)?(2963):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V10*/ curfptr[9] = 0 ;}
      ;
      /*epilog*/}
@@ -39720,7 +39720,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2964: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check odiscr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2964)?(2964):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check odiscr"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2964)?(2964):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V12*/ curfptr[11] = 0 ;}
      ;
      /*epilog*/}
@@ -39763,7 +39763,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2965: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check irout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2965)?(2965):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check irout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2965)?(2965):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
      ;
      /*epilog*/}
@@ -39806,7 +39806,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:2966: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2966)?(2966):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2966)?(2966):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
      ;
      /*epilog*/}
@@ -40094,7 +40094,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2984: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compil_data_and_slots_fill check ibodylis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2984)?(2984):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compil_data_and_slots_fill check ibodylis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2984)?(2984):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V38*/ curfptr[37] = 0 ;}
       ;
       /*epilog*/}
@@ -40142,7 +40142,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2985: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compil_data_and_slots_fill check fresh obj"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2985)?(2985):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compil_data_and_slots_fill check fresh obj"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2985)?(2985):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V41*/ curfptr[40] = 0 ;}
       ;
       /*epilog*/}
@@ -40203,7 +40203,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2987: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compil_data_and_slots_fill check ifilllis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2987)?(2987):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compil_data_and_slots_fill check ifilllis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2987)?(2987):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V43*/ curfptr[40] = 0 ;}
       ;
       /*epilog*/}
@@ -40246,7 +40246,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:2961: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:2988: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "compil_data_and_slots_fill check ibodylis"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(2988)?(2988):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "compil_data_and_slots_fill check ibodylis"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(2988)?(2988):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V45*/ curfptr[44] = 0 ;}
       ;
       /*epilog*/}
@@ -40961,7 +40961,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3036: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3038: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "compil_data_and_slots_fill check lbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3038)?(3038):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "compil_data_and_slots_fill check lbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3038)?(3038):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V4*/ curfptr[3] = 0 ;}
      ;
      /*epilog*/}
@@ -41222,7 +41222,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3055: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:3062: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "compil_data_and_slots_fill check slobj not nrep"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3062)?(3062):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "compil_data_and_slots_fill check slobj not nrep"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3062)?(3062):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
         ;
         /*epilog*/}
@@ -41505,7 +41505,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3106: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3107: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3107)?(3107):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3107)?(3107):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -41797,7 +41797,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3114: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3115: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3115)?(3115):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3115)?(3115):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -41840,7 +41840,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3114: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3116: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check syv"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3116)?(3116):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check syv"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3116)?(3116):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -41940,7 +41940,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3114: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3123: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3123)?(3123):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3123)?(3123):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -42484,7 +42484,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3165: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3166: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3166)?(3166):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3166)?(3166):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -42584,7 +42584,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3165: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3174: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3174)?(3174):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3174)?(3174):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
       ;
       /*epilog*/}
@@ -42758,7 +42758,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3165: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:3192: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "compilobj_datainstance check drank"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3192)?(3192):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "compilobj_datainstance check drank"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3192)?(3192):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V30*/ curfptr[29] = 0 ;}
        ;
        /*epilog*/}
@@ -43527,7 +43527,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3243: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3244: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nti"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3244)?(3244):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nti"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3244)?(3244):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -43570,7 +43570,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3243: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3245: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3245)?(3245):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3245)?(3245):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -43670,7 +43670,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3243: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3253: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3253)?(3253):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3253)?(3253):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -44487,7 +44487,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3314: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3315: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nds"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3315)?(3315):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nds"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3315)?(3315):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -44530,7 +44530,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3314: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3316: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3316)?(3316):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3316)?(3316):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -44630,7 +44630,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3314: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3324: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3324)?(3324):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3324)?(3324):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
       ;
       /*epilog*/}
@@ -45073,7 +45073,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3364: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ncl"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3364)?(3364):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ncl"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3364)?(3364):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -45116,7 +45116,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3365: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3365)?(3365):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3365)?(3365):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -45221,7 +45221,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3373: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3373)?(3373):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3373)?(3373):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -45409,7 +45409,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:3391: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check npro"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3391)?(3391):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check npro"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3391)?(3391):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V34*/ curfptr[33] = 0 ;}
        ;
        /*epilog*/}
@@ -45533,7 +45533,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:3411: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check ndatarou"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3411)?(3411):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check ndatarou"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3411)?(3411):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V42*/ curfptr[41] = 0 ;}
         ;
         /*epilog*/}
@@ -45621,7 +45621,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3363: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:3424: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "check ocrout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3424)?(3424):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "check ocrout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3424)?(3424):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V50*/ curfptr[49] = 0 ;}
          ;
          /*epilog*/}
@@ -46187,7 +46187,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3454: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3455: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check ndrou"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3455)?(3455):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check ndrou"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3455)?(3455):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -46230,7 +46230,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3454: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3456: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3456)?(3456):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3456)?(3456):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -46331,7 +46331,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3454: @block");
      BASILYS_LOCATION("warmelt-genobj.bysl:3465: @block");
      /*block*/{
       /*block*/{
-       basilys_assert_failed(( "check inirout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3465)?(3465):__LINE__, __FUNCTION__);
+       basilys_assert_failed(( "check inirout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3465)?(3465):__LINE__, __FUNCTION__);
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -46562,7 +46562,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3454: @block");
       BASILYS_LOCATION("warmelt-genobj.bysl:3482: @block");
       /*block*/{
        /*block*/{
-        basilys_assert_failed(( "check compicache"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3482)?(3482):__LINE__, __FUNCTION__);
+        basilys_assert_failed(( "check compicache"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3482)?(3482):__LINE__, __FUNCTION__);
         /*clear*/ /*_.IFELSE___V36*/ curfptr[33] = 0 ;}
        ;
        /*epilog*/}
@@ -47244,7 +47244,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3516: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:3521: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "compilobj_dataroutine check cnstbind"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3521)?(3521):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "compilobj_dataroutine check cnstbind"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3521)?(3521):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V8*/ curfptr[7] = 0 ;}
         ;
         /*epilog*/}
@@ -47660,7 +47660,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3516: @block");
         BASILYS_LOCATION("warmelt-genobj.bysl:3561: @block");
         /*block*/{
          /*block*/{
-          basilys_assert_failed(( "compilobj_dataroutine unexepected constx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3561)?(3561):__LINE__, __FUNCTION__);
+          basilys_assert_failed(( "compilobj_dataroutine unexepected constx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3561)?(3561):__LINE__, __FUNCTION__);
           /*clear*/ /*_.IFELSE___V27*/ curfptr[11] = 0 ;}
          ;
          /*epilog*/}
@@ -47816,7 +47816,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3581: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3582: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check qdcm"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3582)?(3582):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check qdcm"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3582)?(3582):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -47859,7 +47859,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3581: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3583: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3583)?(3583):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3583)?(3583):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -48106,7 +48106,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3593: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3594: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check qdpm"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3594)?(3594):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check qdpm"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3594)?(3594):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -48149,7 +48149,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3593: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3595: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3595)?(3595):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3595)?(3595):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -48396,7 +48396,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3605: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3606: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nspr"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3606)?(3606):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nspr"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3606)?(3606):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -48439,7 +48439,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3605: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3607: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3607)?(3607):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3607)?(3607):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -48596,7 +48596,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3605: @block");
          BASILYS_LOCATION("warmelt-genobj.bysl:3619: @block");
          /*block*/{
           /*block*/{
-           basilys_assert_failed(( "unexpected npred"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3619)?(3619):__LINE__, __FUNCTION__);
+           basilys_assert_failed(( "unexpected npred"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3619)?(3619):__LINE__, __FUNCTION__);
            /*clear*/ /*_.IFELSE___V20*/ curfptr[19] = 0 ;}
           ;
           /*epilog*/}
@@ -48892,7 +48892,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3640: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check nucmeb"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3640)?(3640):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check nucmeb"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3640)?(3640):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -48935,7 +48935,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3639: @block");
     BASILYS_LOCATION("warmelt-genobj.bysl:3641: @block");
     /*block*/{
      /*block*/{
-      basilys_assert_failed(( "check gcx"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3641)?(3641):__LINE__, __FUNCTION__);
+      basilys_assert_failed(( "check gcx"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3641)?(3641):__LINE__, __FUNCTION__);
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -49581,7 +49581,7 @@ BASILYS_LOCATION("warmelt-genobj.bysl:3671: @block");
        BASILYS_LOCATION("warmelt-genobj.bysl:3684: @block");
        /*block*/{
         /*block*/{
-         basilys_assert_failed(( "check odatarout"),((/*nil*/NULL))?((/*nil*/NULL)):__FILE__,(3684)?(3684):__LINE__, __FUNCTION__);
+         basilys_assert_failed(( "check odatarout"),( "warmelt-genobj.bysl")?( "warmelt-genobj.bysl"):__FILE__,(3684)?(3684):__LINE__, __FUNCTION__);
          /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
         ;
         /*epilog*/}
@@ -56583,7 +56583,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_783__INITIALSYSTEMD
  if (!/*_.VALDATA___V898*/ curfptr[897]) /*_.VALDATA___V898*/ curfptr[897] = (void*)&cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_785__INITIALSYSTEMDATA_OBJPREDEF", NULL != (void*)/*_.VALDATA___V170*/ curfptr[169]);
   cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V170*/ curfptr[169]);
-  cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 47124911;
+  cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF.obj_hash = 766399307;
   cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF.obj_len = 2;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_785__INITIALSYSTEMDATA_OBJPREDEF));
  
@@ -58381,7 +58381,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_1064__DISCRCLOSURE_
  if (!/*_.VALDATA___V1173*/ curfptr[1172]) /*_.VALDATA___V1173*/ curfptr[1172] = (void*)&cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF;
   basilys_assertmsg("iniobj checkdiscr dobj_1066__DISCRCLOSURE_OBJPREDEF", NULL != (void*)/*_.VALDATA___V170*/ curfptr[169]);
   cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF.obj_class = (basilysobject_ptr_t)(/*_.VALDATA___V170*/ curfptr[169]);
-  cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF.obj_hash = 368391691;
+  cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF.obj_hash = 701299202;
   cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF.obj_len = 2;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_1066__DISCRCLOSURE_OBJPREDEF));
  
