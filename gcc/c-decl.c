@@ -4023,6 +4023,7 @@ grokdeclarator (const struct c_declarator *declarator,
   bool bitfield = width != NULL;
   tree element_type;
   struct c_arg_info *arg_info = 0;
+  addr_space_t as1, as2;
 
   if (decl_context == FUNCDEF)
     funcdef_flag = true, decl_context = NORMAL;
@@ -4134,17 +4135,14 @@ grokdeclarator (const struct c_declarator *declarator,
 	pedwarn (input_location, OPT_pedantic, "duplicate %<volatile%>");
     }
 
-  if (!flag_iso)
-    {
-      addr_space_t as1 = declspecs->address_space;
-      addr_space_t as2 = TYPE_ADDR_SPACE (element_type);
-
-      if (as1 > 0 && as2 > 0 && as1 != as2)
-	error ("incompatible address space qualifiers %qs and %qs",
-	       targetm.addr_space_name (as1),
-	       targetm.addr_space_name (as2));
-    }
-
+  as1 = declspecs->address_space;
+  as2 = TYPE_ADDR_SPACE (element_type);
+  
+  if (as1 > 0 && as2 > 0 && as1 != as2)
+    error ("incompatible address space qualifiers %qs and %qs",
+	   targetm.addr_space_name (as1),
+	   targetm.addr_space_name (as2));
+  
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
