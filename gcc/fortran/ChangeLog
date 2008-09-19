@@ -1,3 +1,68 @@
+2008-09-18  Paul Thomas  <pault@gcc.gnu.org>
+
+       PR fortran/35945
+       * resolve.c (resolve_fl_variable_derived):  Remove derived type
+       comparison for use associated derived types.  Host association
+       of a derived type will not arise if there is a local derived type
+       whose use name is the same.
+
+       PR fortran/36700
+       * match.c (gfc_match_call):  Use the existing symbol even if
+       it is a function.
+
+2008-09-18  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37507
+	* trans.h (gfc_trans_runtime_error): New method.
+	(gfc_trans_runtime_error_vararg): New method.
+	(gfc_allocate_array_with_status): New argument `expr' for locus/varname.
+	(gfc_deallocate_array_with_status): Ditto.
+	* trans-array.h (gfc_array_deallocate): Ditto.
+	* trans.c (gfc_trans_runtime_error): New method.
+	(gfc_trans_runtime_error_vararg): New method, moved parts of the code
+	from gfc_trans_runtime_check here.
+	(gfc_trans_runtime_error_check): Moved code partly to new method.
+	(gfc_call_malloc): Fix tab-indentation.
+	(gfc_allocate_array_with_status): New argument `expr' and call
+	gfc_trans_runtime_error for error reporting to include locus.
+	(gfc_deallocate_with_status): Ditto.
+	* trans-stmt.c (gfc_trans_deallocate): Pass expr as new argument.
+	* trans-array.c (gfc_array_allocate): Ditto.
+	(gfc_array_deallocate): New argument `expr', passed on.
+	(gfc_trans_dealloc_allocated): Pass NULL for expr.
+	* trans-openmp.c (gfc_omp_clause_default): Ditto.
+
+2008-09-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37274
+	PR fortran/36374
+	* module.c (check_for_ambiguous): New function to test loaded
+	symbol for ambiguity with fixup symbol.
+	(read_module): Call check_for_ambiguous.
+	(write_symtree): Do not write the symtree for symbols coming
+	from an interface body.
+
+	PR fortran/36374
+	* resolve.c (count_specific_procs ): New function to count the
+	number of specific procedures with the same name as the generic
+	and emit appropriate errors for and actual argument reference.
+	(resolve_assumed_size_actual): Add new argument no_formal_args.
+	Correct logic around passing generic procedures as arguments.
+	Call count_specific_procs from two locations.
+	(resolve_function): Evaluate and pass no_formal_args.
+	(resolve call): The same and clean up a bit by using csym more
+	widely.
+
+	PR fortran/36454
+	* symbol.c (gfc_add_access): Access can be updated if use
+	associated and not private.
+
+2008-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/37536
+	* trans-stmt.c (gfc_trans_do): Optimize integer type non-simple
+	do loop initialization.
+
 2008-09-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 	    Tobias Burnus  <burnus@net.b.de>
 
