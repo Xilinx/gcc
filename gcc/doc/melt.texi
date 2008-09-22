@@ -440,7 +440,75 @@ whose ending doublequote is immediately followed by an underscore
 @subsection Main MELT syntax.
 
 We list each key symbol in alphabetical order and provide a short
-derscription. Lisp familiarity is required.
+derscription. Familiarity with some Lisp or Scheme dialect is
+required.
+
+@menu
+* MELT formal arguments::
+* MELT syntax constructs::
+@end menu
+
+@node MELT formal arguments
+@subsubsection MELT formal arguments
+
+A formal argument list is a possibly empty list (between
+parenthesis). This list contains either ctype keywords or formal
+names. A ctype keyword apply to all further formals (until another
+ctype keyword, or end of formal arguments list. Ctypes have a keyword
+and are each described by a predefined instance (of
+@code{CLASS_CTYPE}) with a name conventionnally starting with
+@code{ctype_}.
+@cindex ctype MELT keyword
+[Expert: to add a new ctype, define a predefined in
+@file{gcc/basilys.h} and an instance in @file{warmelt-first.bysl}
+using @code{install_ctype_descr}, then regenerate all the
+@file{gcc/warmelt-*.c} files]
+
+Here are the list of ctype-s.
+@itemize
+@item @code{:value} (ctype instance @code{ctype_value})
+This ctype is for MELT [boxed] values. It is the default ctype of arguments.
+
+@item @code{:long} (ctype instance @code{ctype_long})
+This ctype is for unboxed long integers; it is also used for conditions and tests.
+
+@item @code{:tree} (ctype instance @code{ctype_tree})
+This ctype is for GCC @code{tree} raw pointers, as in @file{gcc/tree.h}.
+
+@item @code{:gimple} (ctype instance @code{ctype_gimple})
+This ctype is for GCC @code{gimple} raw tuple pointers, as in @file{gcc/gimple.h}.
+
+@item @code{:gimpleseq}  (ctype instance @code{ctype_gimple})
+This ctype is for GCC @code{gimple_seq} raw pointers, representing
+sequences of gimple instructions, as in @file{gcc/gimple.h}
+
+@item @code{:basicblock}  (ctype instance @code{ctype_basicblock})
+This ctype is for GCC @code{basic_block} raw pointers, representing
+basic blocks, as in @file{gcc/basic-block.h}
+
+@item @code{:edge}  (ctype instance @code{ctype_edge})
+This ctype is for GCC @code{edge} raw pointers, representing edges of
+the control flow graph, as in @file{gcc/basic-block.h}
+
+@item @code{:void}  (ctype instance @code{ctype_void})
+This ctype is the same as C @code{void} type. It should not be the
+type of formal arguments, but of results (e.g. primitive results).
+
+@item @code{:cstring} (ctype instance @code{ctype_cstring})
+This ctpe is only for constant strings (like @code{const char[]} in C).
+
+@end itemize
+
+MELT formal arguments appear in @code{lambda defun defprimitive
+defciterator multicall} forms. The first argument of (@code{defun
+lambda multicall}) should -if given- be a @code{:value}. Ctype-s also
+appear in @code{let} bindings.
+
+
+@node MELT syntax constructs
+@subsubsection MELT syntax constructs
+
+The table below gives MELT syntax constructs.
 
 @table @code
 
@@ -515,32 +583,106 @@ filename lineno}) ())} and evaluates to nil.
 
 @item defciterator
 @cindex @code{defciterator} MELT syntax
-@code{(defciterator @var{iter-name} @var{start-formals}
+The form @code{(defciterator @var{iter-name} @var{start-formals}
 @var{state-symbol} @var{local-formals} @var{before-expansion}
-@var{after-expansion})} define a C-iterator named @var{iter-name}. The
-@var{start-formals} is a [binding] list of formal arguments [given to
-the C-iterator].  The @var{state-symbol} is usable in the expansions,
-where it is expanded to a unique C identifier. The @var{local-formals}
-is a [binding] list of variables local to the expanded block. The
-@var{before-expansion} and @var{after-expansion} are lists of items
-like strings (appearing as is in the C expansion) or symbols (either
-from the start formals, or the local formals, or the state symbol).
+@var{after-expansion})} defines a C-iterator named
+@var{iter-name}. The @var{start-formals} is a [binding] list of formal
+arguments [given to the C-iterator].  The @var{state-symbol} is usable
+in the expansions, where it is expanded to a unique C identifier. The
+@var{local-formals} is a [binding] list of variables local to the
+expanded block. The @var{before-expansion} and @var{after-expansion}
+are lists of items like strings (appearing as is in the C expansion)
+or symbols (either from the start formals, or the local formals, or
+the state symbol).
 
 @item defclass
 @cindex @code{defclass} MELT syntax
+The form @code{(defclass @var{class-name} [:predef @var{predefined}]
+[:super @var{superclass-name}] :fields @var{fields-list})} defines a
+class named @var{class-name} of super-class named
+@var{superclass-name} with the given @var{fields-list} (a list of
+field names) and an optional @var{predefined} name (for predefined
+classes [giving a @var{predefined} is for experts]).
 
 @item definstance
 @cindex @code{definstance} MELT syntax
+The form @code{(definstance @var{instance-name} @var{class-name}
+[:predef @var{predefined}] [:obj_num @var{object-number}]
+@var{:field-name} @var{field-value} @var{...})} statically defines an
+instance of name @var{instance-name} of the class
+@var{class-name}. [expert usage: a @var{predefined} name and an
+@var{object-number} may also be given].
 
 @item defprimitive
+@cindex @code{defprimitive} MELT syntax
+The form @code{(defprimitive @var{primitive-name}
+@var{formals-arglist} @var{ctype} @var{expansion} @var{...})}
+statically defines a C primitive named @var{primitive-name} of a given
+@var{formals-list} and given return @var{ctype}. The @var{expansion}-s
+are either strings or formal names.
+
 @item defselector
+@cindex @code{defselector} MELT syntax
+The form @code{(defprimitive @var{selector-name} @var{selector-class}
+@var{:field-name} @var{field-value} @var{...})} defines a
+selector. Usually @var{selector-class} is @code{CLASS_SELECTOR}, and
+no other @var{field}s are given. Once a name is bound to a selector,
+every further occurrence of that name in operator position is
+considered as a message invocation.
+
 @item defun
+@cindex @code{defun} MELT syntax
+The form @code{(defun @var{function-name} @var{formals-list}
+@var{body} @var{...})} define a function named
+@code{function-name}. The ctype of the first (if any) formal argument
+(in the @var{formals-list}) should be a @code{:value}. The
+@code{function-name} can appear in the given @var{body} (for
+recursion).
+
 @item exit
+@cindex @code{exit} MELT syntax
+The form @code{(exit @var{loop-label} @var{expr} @var{...})}, only
+used inside @code{forever} loops, causes the lexically enclosing
+@code{forever} loop named by @var{loop-label} to be exited, after
+evaluation of the @var{expr}s. The last such value (or nil if no
+@var{expr} is given) is the result returned by the @code{forever}
+loop. @code{exit} forms are similar to Ada's @code{exit} or C
+@code{break} (not to @code{longjmp}). The @code{exit} should be local
+to the containing procedure: it cannot jump across @code{lambda}s.
+
 @item export_class
+@cindex @code{export_class} MELT syntax
+The form @code{(export_class @var{class-name} @var{...})} export all
+the given @var{class-name}s and their fields.
+
 @item export_macro
+@cindex @code{export_macro} MELT syntax
+[For experts] The form @code{(export_macro @var{macro-symbol}
+@var{expander})} exports a macro binding for the given
+@var{macro-symbol} with the @var{expander} function (which takes as
+arguments the source expression (of @code{CLASS_SEXPR}), the
+environment (of @code{CLASS_ENVIRONMENT}), the expander produces an
+instance of a subclass of @code{CLASS_SRC}. The macro
+@code{macro-symbol} is defined in the environment exported by the
+current module, so is available in other modules only.
+
 @item export_values
+@cindex @code{export_values} MELT syntax
+The form @code{(export_values @var{exported-name} @var{...})} export
+all the names, as values, given as arguments.
+
 @item fetch_predefined
+@cindex @code{fetch_predefined} MELT syntax
+[For experts] @code{(fetch_predefined @var{predefined-name-or-number})}
+
 @item forever
+@cindex @code{forever} MELT syntax
+@code{(forever @var{label-name} @var{body} @var{...})}  when
+evaluated, the bodies are evaluated in sequence, and indefinitely
+re-evaluated again. The only way of getting out from a @code{forever}
+loop is with @code{exit} (using the given @var{label-name}, lexically
+inside the body) or @code{return}
+
 @item if
 @item lambda
 @item let
