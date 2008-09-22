@@ -161,12 +161,12 @@ into C code @code{foo.c} is done with a special invocation like
 @code{gcc -fbasilys=compilefile
 -fbasilys-arg=foo.bysl -fbasilys-secondarg=foo.c} (possibly with other
 options like some appropriate @code{-fbasilys-init=}). In other words,
-the MELT translator to C is not a gcc front-end.
+the MELT translator to C @emph{is not} a gcc front-end.
 
 The table below lists all MELT specific options, in alphabetical order.
 
 @table @gcctabopt
-@item -fbasilys
+@item -fbasilys=
 @gccoptlist{-fbasilys=}
 @opindex fbasilys
 This flag (without argument) is required for every MELT enabled
@@ -278,6 +278,40 @@ setting it to a non-empty directory.
 
 This section has to be written.
 
+As in all Lisps, parenthesis are important, so @code{a} and @code{(a)}
+do not mean the same thing. The first stuff after an opening
+parenthesis has usually an operator or syntactic keyword role.
+
+MELT is a Lisp dialect translated into (unreadable, or at least
+unfriendly) C code. Some MELT constructs are related to this C
+translatability.
+
+
+@menu
+* Reserved MELT syntax and symbols::
+* Primitives in MELT::
+@end menu
+
+@node Reserved MELT syntax and symbols
+@subsection Reserved MELT syntax and symbols
+
+The following symbols have specific MELT meaning. Use them only as
+described here and avoid redefining them.
+@code{and assert_msg comment compile_warning cond cppif
+current_module_environment_container debug_msg defciterator defclass
+definstance defprimitive defselector defun exit export_class
+export_macro export_values fetch_predefined forever if lambda let
+make_instance match multicall or parent_module_environment progn quote
+redefinition_handling return setq store_predefined unsafe_get_field
+unsafe_put_fields update_current_module_environment_container}
+
+Also avoid symbols starting with @code{def}.
+
+@node Primitives in MELT
+@subsection Primitives in MELT
+
+To be written.
+
 @c =======================================================================
 
 @node Reference on MELT
@@ -318,8 +352,8 @@ bar-hash (@code{|#}). Don't nest block comments.
 
 @item space 
 characters are token sepators, but indentation does not matter (we
-strongly recommend the MELT code to be indented for readability
-purposes).
+strongly recommend the MELT code to be properly indented, e.g. using
+Emacs Lisp mode, for readability purposes).
 
 @item case 
 is insensitive; words, i.e. identifiers and keywords are all converted
@@ -341,9 +375,10 @@ translated to other languages like french).
  (i.e. identifiers) are case insensitive and may contain non
 alphanumerical characters like @code{_+-*/<>=!?:%~&@@$}. It is advised
 to use these special characters sparingly. Symbols cannot start with
-any of @code{?%}. It is advised to avoid digits after underscores in
-symbols like @code{x_12} and to have each symbol contain at least one
-letter (e.g. use @code{<i} instead of @code{<}).
+any of @code{?%}. Because symbols are related to their C translation,
+is advised to avoid digits after underscores in symbols like
+@code{x_12} and to have each symbol contain at least one letter
+(e.g. use @code{<i} instead of @code{<}).
 
 @item the quote character 
 @code{'} is special. @code{'x} is parsed the same as @code{(quote x)}.
@@ -404,6 +439,125 @@ whose ending doublequote is immediately followed by an underscore
 @node Main MELT syntax
 @subsection Main MELT syntax.
 
-This section has to be written.
+We list each key symbol in alphabetical order and provide a short
+derscription. Lisp familiarity is required.
 
+@table @code
+
+@item and
+@cindex @code{and} MELT syntax
+@code{(and @var{e1} @var{e2} @var{e3})} is (like in all Lisps) used
+for sequential conjunction; it is the same as @code{(if @var{e1} (if
+@var{e2} @var{e3}))}.
+
+@item assert_msg
+@cindex @code{assert_msg} MELT syntax
+@cindex @code{assert_failed} MELT primitive
+@code{(assert_msg @var{msg} @var{check})} aborts when @var{check} is
+false (using the @code{assert_failed} primitive, giving the source file
+position) and displays the given @var{msg}, when GCC is built for
+debugging with @code{ENABLE_CHECK}. If GCC is not built for debugging,
+neither operand is used. The entire @code{assert_msg} expression
+evaluates to nil.
+
+@item comment
+@cindex @code{comment} MELT syntax
+@code{(comment @var{msg})} evaluates to nil and output the @var{msg}
+as a C comment in the C translation. Don't use @code{*/} or @code{*/}
+in @var{msg}. When a @code{comment} appears at the beginning of a MELT
+compilation unit, it appears at the beginning of the generated C file;
+this is useful for making copyright notices appear both in the MELT
+source file and the generated C code.
+
+@item compile_warning
+@cindex @code{compile_warning} MELT syntax
+@code{(compile_warning @var{msg} @var{exp})} evaluates like @var{exp} but also
+emits a message at MELT compilation time. Intended use is similar to
+@code{#warning} in C.
+
+@item cond
+@cindex @code{cond} MELT syntax
+@code{(cond @var{condition1} @var{condition2} @var{...})} is -like in
+all Lisps- a conditional evaluation. Each condition is
+@code{(@var{test} @var{then1} @var{then2} @var{...} @var{thenk})} so
+the @var{test} is evaluated. If it is true, all the @var{then}s are
+evaluated in sequence, and the last is the result of the whole
+@code{cond} expression. The last condition can be @code{(:else
+@var{else1} @var{...} @var{elsek})}; if no previous test succeeded,
+all the @var{else}s are sequentially evaluated, and the last of them
+is the whole @code{cond} result. Notice that @code{(cond (@var{test1}
+@var{then1}) (@var{test2} @var{then2a} @var{then2b}) (:else
+@var{else1} @var{else2} @var{else3}))} is the same as @code{(if
+@var{test1} @var{then1} (if @var{test2} (progn @var{then2a}
+@var{then2b}) (progn @var{else1} @var{else2})))}.
+
+@item cppif
+@cindex @code{cppif} MELT syntax
+[for experts] @code{(cppif @var{name} @var{then-cpp} @var{else-cpp})} is translated
+using a C directive @code{#if @var{name}} to the translation of
+@var{then-cpp} or @var{else-cpp}.
+
+@item current_module_environment_container
+@cindex @code{current_module_environment_container} MELT syntax
+[for experts] @code{(current_module_environment_container)} evaluates
+to an object of @code{CLASS_CONTAINER} containing the current module
+environment.
+
+@item debug_msg
+@cindex @code{debug_msg} MELT syntax
+@code{(debug_msg @var{expv} @var{msg} @var{[count]})} -where the
+@var{[count]} expression is usually ommitted- is useful for debugging
+ouput of the value of @var{expv} (with the @code{-fbasilys-debug}
+program option) to output, using the @code{debug_msg_fun}
+function. The entire @code{debug_msg} expression is somehow equivalent
+to @code{(cppif ENABLE_CHECKING (debug_msg_fun @var{expv msg count
+filename lineno}) ())} and evaluates to nil.
+
+@item defciterator
+@cindex @code{defciterator} MELT syntax
+@code{(defciterator @var{iter-name} @var{start-formals}
+@var{state-symbol} @var{local-formals} @var{before-expansion}
+@var{after-expansion})} define a C-iterator named @var{iter-name}. The
+@var{start-formals} is a [binding] list of formal arguments [given to
+the C-iterator].  The @var{state-symbol} is usable in the expansions,
+where it is expanded to a unique C identifier. The @var{local-formals}
+is a [binding] list of variables local to the expanded block. The
+@var{before-expansion} and @var{after-expansion} are lists of items
+like strings (appearing as is in the C expansion) or symbols (either
+from the start formals, or the local formals, or the state symbol).
+
+@item defclass
+@cindex @code{defclass} MELT syntax
+
+@item definstance
+@cindex @code{definstance} MELT syntax
+
+@item defprimitive
+@item defselector
+@item defun
+@item exit
+@item export_class
+@item export_macro
+@item export_values
+@item fetch_predefined
+@item forever
+@item if
+@item lambda
+@item let
+@item make_instance
+@item match
+@item multicall
+@item or
+@item parent_module_environment
+@item progn
+@item quote
+@item redefinition_handling
+@item return
+@item setq
+@item store_predefined
+@item unsafe_get_field
+@item unsafe_put_fields
+@item update_current_module_environment_container
+
+@end table
 @c =======================================================================
