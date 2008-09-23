@@ -622,6 +622,18 @@
 (install_initial_command 
  (stringconst2val discr_string "simpana") simpana_command)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; our findstdout command -fbasilys=findstdout
+(defun findstdout_command (dispatcher arg secarg moduldata)
+  (debug_msg () "start of findstdout command")
+  (debug_msg () "end of findstdout command")
+  (return dispatcher)			;return non-nil to continue compilation
+)
+
+(install_initial_command 
+ (stringconst2val discr_string "findstdout") findstdout_command)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  basilys_earlyopt_gccpass

@@ -4861,7 +4861,7 @@ MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys=compileinit  \
 	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys=compilefile  \
+MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys=translatefile  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \

@@ -158,11 +158,13 @@ but may occasionnally be invoked without compiling any source input to
 perform tasks which are not related to a particular GCC input source
 file. In particular, the translation of a MELT file @code{foo.bysl}
 into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fbasilys=compilefile -fbasilys-arg=foo.bysl
+@code{gcc -fbasilys=translatefile -fbasilys-arg=foo.bysl
 -fbasilys-secondarg=foo.c} (possibly with other options like some
-appropriate @code{-fbasilys-init=}). In other words, the MELT
-translator to C @emph{is not} a GCC front-end, like e.g. @code{g++} is
-a C++ front-end of GCC.
+appropriate @code{-fbasilys-init=}). It is possible but deprecated to
+invoke with @code{-fbasilys=compilefile} instead of
+@code{-fbasilys=translatefile}. In other words, the MELT translator to
+C @emph{is not} a GCC front-end, like e.g. @code{g++} is a C++
+front-end of GCC.
 
 The table below lists all MELT specific options, in alphabetical order.
 

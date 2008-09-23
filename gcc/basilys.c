@@ -5090,6 +5090,7 @@ basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
     goto loadit;
   free (modlistpath);
   modlistpath = 0;
+  fatal_error("cannot load MELT module list %s - incorrect name?", modlistbase);
   if (!modlistpath)
     goto end;
 loadit:

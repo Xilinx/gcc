@@ -2914,6 +2914,7 @@
       )))
 
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
+(install_initial_command  (stringconst2val discr_string "translatefile") compilefile_command)
 
 ;;;;
 
