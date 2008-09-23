@@ -1,4 +1,13 @@
 2008-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+	* melt/warmelt-outobj.bysl: -fbasilys=translateinit same as -fbasilys=compileinit
+	* Makefile.in: use -fbasilys=translate* instead of -fbasilys=compile*
+
+2008-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: mentions -fbasilys=translatefile
 	* melt/warmelt-outobj.bysl: implement -fbasilys=translatefile.
 	* melt/ana-base.bysl: adding -fbasilys=findstdout

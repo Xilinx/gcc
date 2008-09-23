@@ -4854,7 +4854,7 @@ melt.encap: run-basilys.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
-MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys=compileinit  \
+MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys=translateinit  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \

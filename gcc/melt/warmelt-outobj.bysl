@@ -2961,6 +2961,7 @@
     ))
 
 (install_initial_command  (stringconst2val discr_string "compileinit") compileinit_command)
+(install_initial_command  (stringconst2val discr_string "translateinit") compileinit_command)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun showmdata_command (dispatcher arg secarg moduldata)
