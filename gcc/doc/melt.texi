@@ -158,10 +158,11 @@ but may occasionnally be invoked without compiling any source input to
 perform tasks which are not related to a particular GCC input source
 file. In particular, the translation of a MELT file @code{foo.bysl}
 into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fbasilys=compilefile
--fbasilys-arg=foo.bysl -fbasilys-secondarg=foo.c} (possibly with other
-options like some appropriate @code{-fbasilys-init=}). In other words,
-the MELT translator to C @emph{is not} a gcc front-end.
+@code{gcc -fbasilys=compilefile -fbasilys-arg=foo.bysl
+-fbasilys-secondarg=foo.c} (possibly with other options like some
+appropriate @code{-fbasilys-init=}). In other words, the MELT
+translator to C @emph{is not} a GCC front-end, like e.g. @code{g++} is
+a C++ front-end of GCC.
 
 The table below lists all MELT specific options, in alphabetical order.
 
@@ -169,17 +170,16 @@ The table below lists all MELT specific options, in alphabetical order.
 @item -fbasilys=
 @gccoptlist{-fbasilys=}
 @opindex fbasilys
-This flag (without argument) is required for every MELT enabled
-compilation. If it is not given, no MELT specific processing is done.
-If given, this gives the command to be executed before any MELT
-passes. It uses the @code{:sysdata_cmd_fundict} field of
-@code{INITIAL_SYSTEM_DATA} internal object of MELT to determine the
-MELT function applied to execute the command. If this application
-returns nil, no GCC compilation occur (i.e. no @code{*.c} or
-@code{*.cc} etc... source file is read). Hence, some commands may be
-used for their side-effects. In particular, the compilation of MELT
-lisp source file @code{*.bysl} into C code @code{*.c} is done this
-way.
+This flag is required for every MELT enabled compilation. If it is not
+given, no MELT specific processing is done.  If given, this gives the
+command to be executed before any MELT passes. It uses the
+@code{:sysdata_cmd_fundict} field of @code{INITIAL_SYSTEM_DATA}
+internal object of MELT to determine the MELT function applied to
+execute the command. If this application returns nil, no GCC
+compilation occur (i.e. no @code{*.c} or @code{*.cc} etc... source
+file is read). Hence, some commands may be used for their
+side-effects. In particular, the compilation of MELT lisp source file
+@code{*.bysl} into C code @code{*.c} is done this way.
 
 @item -fbasilys-arg=
 @gccoptlist{-fbasilys-arg=}
@@ -297,13 +297,23 @@ dialects) @emph{MELT is dealing with both boxed values and unboxed
 stuff} (e.g. plain @code{long} integers as in C, but also @code{tree}s
 and @code{gimple}s, etc..., as inside GCC, separating them using their
 @emph{ctype}). Keep always in mind the boxed versus unboxed
-disctinction. Because of that, and because of GCC runtime (in
+distinction. Because of that, and because of GCC runtime (in
 particular the GGC garbage collector), MELT is neither polymorphic
 (you cannot deal with unboxed stuff like with boxed values) nor
 polytopic (no variable arguments facility).
 
 Some familiarity with other Lisp dialects and with GCC internals is
 required to code in MELT.
+
+The MELT runtime contains a copying generational garbage collector
+-GC- implemented in @file{gcc/basilys.c}, backed up by the previously
+existing GCC ordinary (precise, marking) garbage collector GGC. The
+MELT-specific copying GC is designed for efficiency (but requires a
+very specific C coding style, easy to achieve in generated C code, but
+uncumfortable for human C developers), and handles well quick
+allocation of many short-lived objects [which is not a goald of
+GGC]. Therefore, @emph{don't be afraid of allocating a lot of values}
+inside MELT code.
 
 @menu
 * Reserved MELT syntax and symbols::
@@ -330,7 +340,25 @@ Also avoid symbols starting with @code{def}
 @node Primitives in MELT
 @subsection Primitives in MELT
 
-To be written.
+A MELT primitive defines an operator by specifying how to translate
+into C each of its invocation. As a simple example, the less-than
+integer operator @code{<i} is defined as
+@lisp
+(defprimitive <i                ; define the primitive 
+  (:long                        ; next formal arguments are longs
+   a b)                         ; the two formal arguments
+  :long                         ; the type of the result (also long)
+  "((" a ") < (" b "))")        ; how to expand into C code
+@end lisp
+
+@cindex unboxed MELT stuff
+@cindex ctype in MELT
+Note that the above primitive accepts raw long integers (exactly the C
+@code{long} type) and returns such a long integer [0 if
+@code{((a)<(b))} was false in the C sense, and non-zero, perhaps -1,
+if it was true]. We say that such integers are @emph{unboxed} stuff
+(we don't speak of values in that case). The symbol @code{:long}
+represents the C type @code{long} and we call it a @emph{ctype}.
 
 @c =======================================================================
 
@@ -340,7 +368,7 @@ To be written.
 
 @menu
 * Lexical MELT conventions::
-* Main MELT syntax::
+* Main MELT syntax and features::
 @end menu
 
 @node Lexical MELT conventions
@@ -456,23 +484,28 @@ whose ending doublequote is immediately followed by an underscore
 
 @c =======================================================================
 
-@node Main MELT syntax
-@subsection Main MELT syntax.
+@node Main MELT syntax and features
+@subsection Main MELT syntax and features
 
 We list each key symbol in alphabetical order and provide a short
 derscription. Familiarity with some Lisp or Scheme dialect is
 required.
 
 @menu
-* MELT formal arguments::
+* MELT formals::
+* MELT ctypes::
+* MELT boxed values::
+* MELT objects and classes::
 * MELT function application::
 * MELT function abstraction and closures::
 * MELT message sending::
 * MELT syntax constructs::
 @end menu
 
-@node MELT formal arguments
-@subsubsection MELT formal arguments
+
+
+@node MELT formals
+@subsubsection MELT formals
 
 A formal argument list is a possibly empty list (between
 parenthesis). This list contains either ctype keywords or formal
@@ -486,6 +519,9 @@ and are each described by a predefined instance (of
 predefined in @file{gcc/basilys.h} and an instance in
 @file{warmelt-first.bysl} using @code{install_ctype_descr}, then
 regenerate all the @file{gcc/warmelt-*.c} files]
+
+@node MELT ctypes
+@subsubsection MELT ctypes
 
 Here are the list of ctype-s.
 @cindex ctype in MELT
@@ -533,7 +569,301 @@ defciterator multicall} forms. The first formal argument of
 @code{defun lambda multicall} constructs should -if given- be a
 @code{:value}. Ctype-s also appear in @code{let} bindings.
 
+The @code{:value} ctype is the only ctype for boxed values. Every
+other ctype is for unboxed stuff.
 
+
+@node MELT boxed values
+@subsubsection MELT boxed values
+
+@cindex minor MELT garbage collection
+@cindex full MELT garbage collection
+@cindex values in MELT
+@cindex boxed values in MELT
+
+Most data manipulated by MELT code are values. Values are allocated in
+the nursery generation of MELT heap, and are later (if alive) copied
+into GGC heap. A @emph{minor MELT garbage collection}, which runs
+quickly and often, only copies live values (in particular, local
+variables of MELT functions) out of the nursery, into the GGC heap. A
+@emph{full MELT garbage collection} also invokes the GGC collector, so
+scans the entire heap.
+
+MELT boxed values can be one of:
+
+@itemize
+
+@item nil
+@cindex nil MELT value
+(represented by the C @code{NULL} pointer and noted @code{()} in MELT)
+is a value. It is the initial or default value everywhere.
+
+@item multiples 
+@cindex multiple MELT value
+(or MELT tuples) - they are a fixed array of values agglomerated as a
+multiple.
+
+@item closures
+@cindex closure MELT value
+(or MELT functional values) represent a functional value, containing a
+routine and closed values; the only way of making closures is thru the
+@code{lambda} and @code{defun} syntactic constructs.
+
+@item routines
+@cindex routine MELT value
+are the reification of MELT functions (generated internally).
+
+@item lists
+@cindex list MELT value
+are singly linked lists of pairs. Efficient access to the first and
+last pair of the list are provided. Unlike in many other Lisps, lists
+are not simply pairs (but implemented as the grouping of the first and
+last pair contained in the list), so appending a list to another one,
+or a single value at the beginning or the end of a list, is a simple
+operation. Lists are never circular and have a finite length.
+
+@item pairs
+@cindex pair MELT value
+are like CONS pairs in most other Lisps. In particular, a list knows
+its first and last pair. The head of a pair is an arbitrary boxed
+value, but its tail is a pair or nil. 
+
+@item triples
+@cindex triple MELT value
+(rarely used) have arbitrary head and middle values, but the tail is a
+triple or nil. They could be used like A-lists' nodes in Lisp.
+
+@item integers
+@cindex integer MELT value
+(are actually boxed longs).
+
+@item strings
+@cindex string MELT value
+(are like boxed cstrings; they are immutable, so the characters inside
+them do not change; they are terminated by a null byte, like in C).
+
+@item string-buffers
+@cindex string-buffer MELT value
+(are mutable buffers of strings and may grow appropriately; they are a
+bit like C++ string streams).
+
+@item boxes
+@cindex box MELT value
+(like references in ML, are mutable boxed containers).
+
+@item objects
+@cindex object MELT value
+have values in their fields (or slots) and are described below; each
+MELT object has a class (which is also a MELT object), which are
+organized in a single-inheritance class hierarchy rooted at
+@code{CLASS_ROOT}.
+
+@item mixints
+@cindex mixints MELT value
+are mixing an arbitrary mutable MELT value and an integer.
+
+@item mixlocs
+@cindex mixlocs MELT value
+(for experts; they are mixing an arbitrary mutable MELT value and a
+@code{location_t} indicating a location inside e.g. a MELT or C source
+file).
+
+@item object maps
+@cindex object map MELT value
+are an hashtable association between MELT objects and arbitrary MELT
+non-null [boxed] values.
+
+@item string maps
+@cindex string map MELT value
+are an hashtable dictionnary mapping strings to arbitrary non-null
+MELT values.
+
+@item boxed ctypes
+@cindex boxed ctype MELT value
+Each @emph{ctype} has its boxed representation, which is a value
+containing the raw (unboxed) @emph{ctype} like @code{gimple} etc..
+
+@item boxed ctype maps
+@cindex boxed ctype map MELT value
+Each @emph{ctype} [except @code{:long :void :cstring}] has its boxed
+map, an hash table associating (non-null) stuff of the given ctype
+with arbitrary non-null MELT [boxed] values. For example, a gimple map
+associate GCC @code{gimple}s to arbitrary MELT non-null values
+(usually MELT objects). This is very useful to represent a
+relationship (conceptually an attribute) between @code{gimple}s and
+MELT values such as objects without having to enhance the definition
+of the @code{gimple} structure inside @file{gcc/gimple.h}
+
+@item special values
+@cindex special MELT values
+They are useful to represent stuff like MPFR things (arbitrary
+precision numbers), PPL coefficients, etc... The MELT runtime is able
+to run a sort of destructing C function when a special value is no
+more used, so the handling of special values is more expensive than
+for other values.
+
+@end itemize
+
+Adding additional MELT value types require enhancing the
+@file{gcc/basilys.h} and @file{gcc/basilys.c} files.
+
+@cindex discriminant for MELT values
+Each MELT [boxed] value starts with a @emph{discriminant}. This
+discriminant is a MELT object (it cannot be nil). The nil value has
+conceptually its own discriminant @code{DISCR_NULLRECV}, but is of
+course represented by C @code{NULL} pointer. Discriminants are used by
+the garbage collector (precisely to discriminate various MELT boxed
+data types using the object number of their discriminant), and by the
+MELT message sending machinery (hence messages sent to the nil MELT
+value are processed using the @code{DISCR_NULLRECV}
+discriminant). Each kind of MELT value has its own discriminant, but
+sometimes it is useful to have several discriminants possible for the
+same kind of MELT value. For example, MELT strings can have
+@code{DISCR_STRING} or @code{DISCR_VERBATIMSTRING} etc., and verbatim
+strings are handled specially (in particular when printing them inside
+generated C code). Every MELT [boxed] value has an immutable
+discriminant, set at the time of the value's creation.
+
+Conventionally MELT non-object values have a primitive to test them
+called like @code{is_*}, a primitive to build them called like
+@code{make_*} [which takes a discriminant as the first argument], and
+the accessing and modifying primitives share a common prefix. In
+particular, object maps are tested with @code{is_mapobject}, built
+with @code{make_mapobject}, accessed with @code{mapobject_get} and
+updated using the @code{mapobject_put} and @code{mapobject_remove}
+primitives. For more details, look into file
+@file{gcc/melt/warmelt-first.bysl}.
+
+
+@node MELT objects and classes
+@subsubsection MELT objects and classes
+
+@cindex object MELT values
+@cindex MELT objects
+
+An important (and common) kind of MELT [boxed] values are MELT
+objects. A MELT object contains exactly
+
+@itemize
+@item the discriminant or class 
+@cindex MELT classes
+@cindex class in MELT
+of the object; as every [boxed] value, MELT objects starts with a
+discriminant; for objects, it is their @emph{class}, which is an
+object itself. We say ``@var{Cl} is the class of @var{Ob}'' or
+equivalently ``@var{Ob} is a [direct] instance of @var{Cl}'' when
+@var{Ob} is a MELT object of discriminant @var{Cl}.
+
+@item the hash code 
+of the object is an unsigned non-zero (more or less random, immutable
+i.e. fixed) integer, given at object build time (i.e. instanciation
+time).
+
+@item the object number 
+or @emph{objnum} of the object is a small unsigned short integer. It
+is usually assigned at object build time. For discriminants @var{Di},
+their objnum is also called the @emph{magic number} of the values
+@var{Va} of the given discriminant @var{Di}.
+
+@item the object length
+or size is the number of slots or fields of the objects. All objects
+@var{Ob} of a given class @var{Cl} have the same fixed number of slots
+(no more than 32767 slots and almost always a lot less, e.g. at most a
+dozen). Some objects could have a length of 0 (if their class is the
+@code{CLASS_ROOT} or has no direct or inherited fields), but this is
+very unusual.
+
+@item the object slots 
+or object fields are the values contained inside the object. These
+fields may be mutable; their number is fixed (it is the object
+length).
+
+@end itemize
+
+In practice, every object's slot is described by a field object (of
+class @code{CLASS_FIELD}) inside the object's class.
+
+Every discriminant (in particular every class) is an object with the following fields (or slots):
+@itemize
+@item @code{prop_table}
+is the property object map associating objects to values, and usable as a P-list.
+
+@item @code{named_name}
+is the boxed string naming the discriminant.
+
+@item @code{disc_methodict}
+is an object map associating selectors to closures (method implementations).
+
+@item @code{disc_super}
+is the super-discriminant (or the super-class for objects)
+
+@end itemize
+
+The root discriminant is @code{DISCR_ANYRECV}. The discriminant of the
+nil value is @code{DISCR_NULLRECV}. Other types of values have
+discriminants like @code{DISCR_ANYRECV DISCR_BASICBLOCK DISCR_BOX
+DISCR_CHARINTEGER DISCR_CLOSURE DISCR_EDGE DISCR_GIMPLE
+DISCR_GIMPLESEQ DISCR_INTEGER DISCR_LIST DISCR_MAPBASICBLOCKS
+DISCR_MAPEDGES DISCR_MAPGIMPLES DISCR_MAPGIMPLESEQS DISCR_MAPOBJECTS
+DISCR_MAPSTRINGS DISCR_MAPTREES DISCR_METHODMAP DISCR_MIXEDINT
+DISCR_MIXEDLOC DISCR_MULTIPLE DISCR_NAMESTRING DISCR_NULLRECV
+DISCR_PAIR DISCR_ROUTINE DISCR_SEQCLASS DISCR_SEQFIELD DISCR_STRBUF
+DISCR_STRING DISCR_TREE DISCR_VERBATIMSTRING}.  Some discriminants are
+specialized by having a meaningful (i.e. not @code{DISCR_ANYRECV})
+super-discriminant (i.e. the value inside the @code{:disc_super}
+slot). For example, @code{DISCR_METHODMAP} is used for object maps
+which are method maps (mapping a selector to a function implementing a
+method), instead of the plain @code{DISCR_MAPOBJECTS}.  [For experts:]
+It is possible to make additional discriminants using
+@code{definstance} with @code{CLASS_DISCR} as the class.
+
+Classes are discriminants, but in addition have the following fields
+(or slots):
+@itemize
+@item @code{class_ancestors}
+is the multiple (of discriminant @code{DISCR_SEQCLASS}) of the
+classes' ancestors. Testing that a given object has some given class
+as its direct class or indirect ancestor is quick (@code{is_a}
+primitive in MELT, @code{basilys_is_instance_of} function in C code).
+
+@item @code{class_fields}
+is the multiple (of @code{DISCR_SEQFIELD}) of the classes' fields
+(both inherited from ancestors or own to the class).
+
+@item @code{class_objnumdescr}
+is usable for describing the objnum of instances.
+
+@item @code{class_data}
+is an additional slot for holding class data.
+@end itemize
+
+
+Fields are slot descriptors (objects of @code{CLASS_FIELD}), they are
+named (so inherit fields @code{prop_table named_name}). Their objnum
+is their index, their specific slots are
+@itemize
+@item @code{fld_ownclass}
+gives the class defining the field.
+@item @code{fld_typinfo}
+can be used for describing the field's type in instances.
+@end itemize
+
+Beware that the structure of classes and discriminants is described
+not only in @file{warmelt-first.bysl} but also ``built-in'' in files
+@code{basilys.c} and @code{basilys.h} so changing them is very tricky.
+
+Fields should have a @emph{globally unique} name. Conventionally,
+fields common to the same class share a common prefix for their name.
+
+The @code{defclass} construct builds and fills class and fields
+objects. Don't make instances of @code{CLASS_CLASS} or
+@code{CLASS_FIELD} otherwise!
+
+Objects are built using the @code{make_instance} construct, or
+statically using @code{definstance}. In addition, @code{defselector
+defclass} also statically build objects (likes classes and fields).
+
+Exporting a class means exporting the class object and its own fields.
 
 @node MELT function application
 @subsubsection MELT function application
@@ -584,13 +914,14 @@ results (if any) ignored.
 Function abstraction (i.e. making anonymous functions) is done using
 the @code{lambda} construct. @emph{Only values can be closed}, hence
 it is not possible to close a non-boxed value, so @code{(let ( (:long
-one 1) ) (lambda (a) (f a one)))} is incorrect.
+one 1) ) (lambda (a) (f a one)))} is incorrect (and rejected by the
+MELT translator).
 
 Actually, every MELT function is really a closure, so @code{defun}
 binds a name to the closure which is the named function.
 
 
-Closures are @code{:value}. Use the @code{is_closure} primitive to
+Closures are @code{:value}s. Use the @code{is_closure} primitive to
 test tha a given value is indeed a closure. The only way of building
 closures is thru @code{lambda} or @code{defun}. Closures contain a
 routine pointer (routines are also @code{:values}) and closed
@@ -625,6 +956,39 @@ A method is just a functional value, installed thru the
 or class, a selector, and a function (the method). Method installation
 is very dynamic and can be done at any time.
 
+A message invocation (i.e. an expression starting with a selector) can
+be done on any boxed value. If it is an object, its class is used;
+otherwise its discriminant is used (so @code{DISCR_NULLRECV} is used
+when sending to nil). To send a message of selector @var{sel} (an
+instance of @code{CLASS_SELECTOR}) to a reciever @var{recv} of
+discriminant (e.g. the class of an object) @var{dis}, the following
+procedure is used:
+
+@itemize
+
+@item @var{dis} should be a discriminant;
+if it is not an instance of @code{CLASS_DISCR}, stop and do nothing.
+
+@item get the @code{discr_methodmap} slot of @var{dis}; 
+it should be an object map (i.e. a ``dictionnary'' of methods) that we
+call @var{md}.
+
+@item get the method @var{meth} 
+associated to @var{sel} in @var{md}; if @var{meth} is a function
+(i.e. a boxed MELT closure), apply @var{meth} to the reciever
+@var{recv} and any additional arguments. This ends the message
+invocation.
+
+@item otherwise,
+no method is found, so replace @var{dis} by its super-discriminant
+(its slot @code{disc_super}) and repeat again. Hence, methods are also
+looked in superclasses, etc... so are properly inherited.
+
+@end itemize
+
+Notice that message invocation is more dynamic (hence slower) than
+e.g. C++ virtual member functions, and that method maps can be
+upgraded at any time.
 
 @node MELT syntax constructs
 @subsubsection MELT syntax constructs
