@@ -266,7 +266,8 @@ Notice that modules are seeked in several directories.
 @end table
 This flags sets the temporary MELT directory. If specified it is not
 cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
-setting it to a non-empty directory.
+setting it to a non-empty directory which may contain files named like
+MELT modules.
 
 
 
@@ -276,21 +277,40 @@ setting it to a non-empty directory.
 @section Tutorial about MELT
 @cindex Tutorial about MELT
 
-This section has to be written.
 
 As in all Lisps, parenthesis are important, so @code{a} and @code{(a)}
 do not mean the same thing. The first stuff after an opening
 parenthesis has usually an operator or syntactic keyword role.
 
 MELT is a Lisp dialect translated into (unreadable, or at least
-unfriendly) C code. Some MELT constructs are related to this C
-translatability.
+unfriendly) C code. Some MELT constructs, and some MELT limitations
+(e.g. lack of tail-recursion) are related to this C
+translatability. The MELT translator is itself written in MELT (files
+@file{gcc/melt/warmelt-*.bysl}) and is bootstrapped; the translated C
+files are in @file{gcc/warmelt-*-0.c}; they are quite big and are
+distributed with the GCC source code; use the @code{upgrade-warmelt}
+target of @file{gcc/Makefile.in} to regenerate these C translations.
 
+MELT is closely related to GCC internal passes and internal middle-end
+representations and runtime. Hence (in contrast to other LISP
+dialects) @emph{MELT is dealing with both boxed values and unboxed
+stuff} (e.g. plain @code{long} integers as in C, but also @code{tree}s
+and @code{gimple}s, etc..., as inside GCC, separating them using their
+@emph{ctype}). Keep always in mind the boxed versus unboxed
+disctinction. Because of that, and because of GCC runtime (in
+particular the GGC garbage collector), MELT is neither polymorphic
+(you cannot deal with unboxed stuff like with boxed values) nor
+polytopic (no variable arguments facility).
+
+Some familiarity with other Lisp dialects and with GCC internals is
+required to code in MELT.
 
 @menu
 * Reserved MELT syntax and symbols::
 * Primitives in MELT::
 @end menu
+
+This section has to be completed.
 
 @node Reserved MELT syntax and symbols
 @subsection Reserved MELT syntax and symbols
@@ -305,7 +325,7 @@ make_instance match multicall or parent_module_environment progn quote
 redefinition_handling return setq store_predefined unsafe_get_field
 unsafe_put_fields update_current_module_environment_container}
 
-Also avoid symbols starting with @code{def}.
+Also avoid symbols starting with @code{def}
 
 @node Primitives in MELT
 @subsection Primitives in MELT
@@ -339,7 +359,7 @@ parenthesis.
 
 @item brackets 
 are like parenthesis but should be matched (but you probably don't
-want to use them). @code{[a b]} is the same as @code{(a b)} but botn
+want to use them). @code{[a b]} is the same as @code{(a b)} but both
 @code{[a b)} and @code{(a b]} are incorrect.
 
 @item comments 
@@ -445,6 +465,9 @@ required.
 
 @menu
 * MELT formal arguments::
+* MELT function application::
+* MELT function abstraction and closures::
+* MELT message sending::
 * MELT syntax constructs::
 @end menu
 
@@ -459,12 +482,14 @@ and are each described by a predefined instance (of
 @code{CLASS_CTYPE}) with a name conventionnally starting with
 @code{ctype_}.
 @cindex ctype MELT keyword
-[Expert: to add a new ctype, define a predefined in
-@file{gcc/basilys.h} and an instance in @file{warmelt-first.bysl}
-using @code{install_ctype_descr}, then regenerate all the
-@file{gcc/warmelt-*.c} files]
+[For experts: to add a new ctype, define a @code{BGLOB_CTYPE_*}
+predefined in @file{gcc/basilys.h} and an instance in
+@file{warmelt-first.bysl} using @code{install_ctype_descr}, then
+regenerate all the @file{gcc/warmelt-*.c} files]
 
 Here are the list of ctype-s.
+@cindex ctype in MELT
+
 @itemize
 @item @code{:value} (ctype instance @code{ctype_value})
 This ctype is for MELT [boxed] values. It is the default ctype of arguments.
@@ -492,23 +517,121 @@ the control flow graph, as in @file{gcc/basic-block.h}
 
 @item @code{:void}  (ctype instance @code{ctype_void})
 This ctype is the same as C @code{void} type. It should not be the
-type of formal arguments, but of results (e.g. primitive results).
+type of formal arguments. It is only useful as the result type of
+side-effecting primitives.
 
 @item @code{:cstring} (ctype instance @code{ctype_cstring})
-This ctpe is only for constant strings (like @code{const char[]} in C).
+This ctype is only for constant strings (like @code{const char[]} in
+C). It is not possible to build an unboxed @code{:cstring}. Every
+@code{:cstring} variable may only be bound to constant strings (not to
+something inside some heap).
 
 @end itemize
 
 MELT formal arguments appear in @code{lambda defun defprimitive
-defciterator multicall} forms. The first argument of (@code{defun
-lambda multicall}) should -if given- be a @code{:value}. Ctype-s also
-appear in @code{let} bindings.
+defciterator multicall} forms. The first formal argument of
+@code{defun lambda multicall} constructs should -if given- be a
+@code{:value}. Ctype-s also appear in @code{let} bindings.
+
+
+
+@node MELT function application
+@subsubsection MELT function application
+
+Function applications are noted @code{(@var{fun} @var{args}
+@var{...})}. There may be no arguments, e.g. just
+@code{(@var{fun})}. If arguments are given, the first argument must be
+a @code{:value}. So @code{(f 1 x)} is incorrect (because @code{1} is
+an unboxed @code{:long}); use @code{(f x 1)} instead. Usually, the
+@var{fun}ction is just a variable bound to a function, but it may be a
+more complex expression, like @code{((if (p x) f g) x y)} which,
+depending on the test @code{(p x)} applies either @code{f} or @code{g}
+to @code{x y}.
+
+The application of a non-function returns null. The
+@code{basilys_apply} C function doing the application checks that the
+applied function is indeed a function (ie a closure). Function
+applications are never tail-recursive; they always consume some stack
+space.
+
+Named functions are defined using the @code{defun} construct, using a
+Common Lisp like syntax (not the Scheme @code{define}). If the formal
+arguments list is not empty, its first element (the first formal
+argument of a named or anonymous function) should be a @code{:value}.
+
+Functions are not polytopic nor polymorphic; their signature is
+essentially fixed. They should expect a fixed number of arguments
+[there is no variable argument facility in MELT], each with a defined
+ctype (the first argument should be a @code{:value}), and return a
+fixed number of results (the first result should be a @code{:value})
+each with a defined ctype. An argument which has not the expected
+ctype or is missing is initialized to null or 0. Likewise a secundary
+result which has not the expected ctype is ignored or set to null or
+0.
+
+A function should [always] return a primary result of ctype
+@code{:value} and may also return secondary results (using the
+@code{return} construct). The only way of getting the secondary
+results of a function call (or a message send) is thrue the
+@code{multicall} construct, which binds all the results of the call or
+send to the formal arguments in the @code{multicall}. Function
+applications not done in a @code{multicall} have all their secondary
+results (if any) ignored.
+
+@node MELT function abstraction and closures
+@subsubsection MELT function abstraction and closures
+
+Function abstraction (i.e. making anonymous functions) is done using
+the @code{lambda} construct. @emph{Only values can be closed}, hence
+it is not possible to close a non-boxed value, so @code{(let ( (:long
+one 1) ) (lambda (a) (f a one)))} is incorrect.
+
+Actually, every MELT function is really a closure, so @code{defun}
+binds a name to the closure which is the named function.
+
+
+Closures are @code{:value}. Use the @code{is_closure} primitive to
+test tha a given value is indeed a closure. The only way of building
+closures is thru @code{lambda} or @code{defun}. Closures contain a
+routine pointer (routines are also @code{:values}) and closed
+values. [For experts] the size of a closure is available thru the
+@code{closure_size} primitive. Its routine is available thru
+@code{closure_routine} primitive. To get its n-th closed value, use
+the @code{closure_nth} primitive. At MELT runtime, each MELT call
+frame for MELT function application (or message sending) knows its
+closure.
+
+Routines correspond to MELT generated C functions (with their constant
+values).
+
+
+@node MELT message sending
+@subsubsection MELT message sending
+
+A message invocation is done using the construct
+@code{(@var{selector-name} @var{reciever} @var{args} @var{...})}. This
+construct is syntactically the same as function (or primitive)
+application, and is discriminated by the fact that the
+@var{selector-name} has been previously defined with
+@code{defselector} or is imported as bound to an instance of
+@code{CLASS_SELECTOR}. The selector should be such a name and cannot
+be an expression. The @var{reciever} can be any @code{:value} (even
+null). The @var{args} are optional and can have any ctype (but a
+selector should have a fixed and well defined signature). Use
+@code{export_values} to export selectors.
+
+A method is just a functional value, installed thru the
+@code{install_method} function. This function expects a discriminant
+or class, a selector, and a function (the method). Method installation
+is very dynamic and can be done at any time.
 
 
 @node MELT syntax constructs
 @subsubsection MELT syntax constructs
 
-The table below gives MELT syntax constructs.
+The table below gives MELT syntax constructs. [Experts can add new
+constructs using macros, and implementing appropriate methods in the
+MELT translator].
 
 @table @code
 
@@ -516,7 +639,8 @@ The table below gives MELT syntax constructs.
 @cindex @code{and} MELT syntax
 @code{(and @var{e1} @var{e2} @var{e3})} is (like in all Lisps) used
 for sequential conjunction; it is the same as @code{(if @var{e1} (if
-@var{e2} @var{e3}))}.
+@var{e2} @var{e3}))}. Any number (at least one) of conjuncts are
+possible.
 
 @item assert_msg
 @cindex @code{assert_msg} MELT syntax
@@ -573,13 +697,13 @@ environment.
 
 @item debug_msg
 @cindex @code{debug_msg} MELT syntax
-@code{(debug_msg @var{expv} @var{msg} @var{[count]})} -where the
-@var{[count]} expression is usually ommitted- is useful for debugging
-ouput of the value of @var{expv} (with the @code{-fbasilys-debug}
-program option) to output, using the @code{debug_msg_fun}
-function. The entire @code{debug_msg} expression is somehow equivalent
-to @code{(cppif ENABLE_CHECKING (debug_msg_fun @var{expv msg count
-filename lineno}) ())} and evaluates to nil.
+@code{(debug_msg @var{expv} @var{msg} [@var{count}])} -where the
+@var{count} expression (of ctype @code{:long}) is usually ommitted- is
+useful for debugging ouput of the value of @var{expv} (with the
+@code{-fbasilys-debug} program option) to output, using the
+@code{debug_msg_fun} function. The entire @code{debug_msg} expression
+is somehow equivalent to @code{(cppif ENABLE_CHECKING (debug_msg_fun
+@var{expv msg count filename lineno}) ())} and evaluates to nil.
 
 @item defciterator
 @cindex @code{defciterator} MELT syntax
@@ -684,7 +808,24 @@ loop is with @code{exit} (using the given @var{label-name}, lexically
 inside the body) or @code{return}
 
 @item if
+@cindex @code{if} MELT syntax
+@code{(if @var{test} @var{then-exp} [@var{else-exp}])}. When
+evaluated, the @var{test} is first evaluated. If it is true, the
+@var{then-exp} is evaluated and is the result of the whole
+@code{if}. If it is false (either 0 if ctype-d @code{:long}, or the
+null pointer for @code{:value} and other ctypes), the optional
+@var{else-exp} is evaluated (or 0 or null) and is the result of the
+whole @code{if}.
+
 @item lambda
+@cindex @code{lambda} MELT syntax
+@code{(lambda @var{formal-args} @var{body} @var{...})} is a function
+abstraction, it returns a closure, the anonymous function taking
+@var{formal-args} as arguments and evaluating sequentially the
+@var{body} expressions, returning the value of the last one. The first
+argument of a function and the first result that it is returning
+should be a @code{:value}.
+
 @item let
 @item make_instance
 @item match
