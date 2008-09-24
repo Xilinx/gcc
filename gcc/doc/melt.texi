@@ -284,6 +284,7 @@ As in all Lisps, parenthesis are important, so @code{a} and @code{(a)}
 do not mean the same thing. The first stuff after an opening
 parenthesis has usually an operator or syntactic keyword role.
 
+@cindex @code{upgrade-warmelt} make target for MELT
 MELT is a Lisp dialect translated into (unreadable, or at least
 unfriendly) C code. Some MELT constructs, and some MELT limitations
 (e.g. lack of tail-recursion) are related to this C
@@ -371,6 +372,8 @@ represents the C type @code{long} and we call it a @emph{ctype}.
 @menu
 * Lexical MELT conventions::
 * Main MELT syntax and features::
+* MELT modules and translation::
+* Writing GCC passes in MELT::
 @end menu
 
 @node Lexical MELT conventions
@@ -569,7 +572,9 @@ something inside some heap).
 MELT formal arguments appear in @code{lambda defun defprimitive
 defciterator multicall} forms. The first formal argument of
 @code{defun lambda multicall} constructs should -if given- be a
-@code{:value}. Ctype-s also appear in @code{let} bindings.
+@code{:value}. Ctype-s also appear in @code{let} bindings. Each MELT
+expression (or constant or variable) has a ctype (usually
+@code{:value}).
 
 The @code{:value} ctype is the only ctype for boxed values. Every
 other ctype is for unboxed stuff.
@@ -705,6 +710,11 @@ more used, so the handling of special values is more expensive than
 for other values.
 
 @end itemize
+
+Notice that (contrarily to most other lisps) MELT symbols and MELT
+s-expressions are both objects (respectively of class
+@code{CLASS_SYMBOL} and @code{CLASS_SEXPR}). The reader function
+(which is not as versatile as in CommonLisp) deals with them.
 
 Adding additional MELT value types require enhancing the
 @file{gcc/basilys.h} and @file{gcc/basilys.c} files.
@@ -850,9 +860,10 @@ gives the class defining the field.
 can be used for describing the field's type in instances.
 @end itemize
 
-Beware that the structure of classes and discriminants is described
-not only in @file{warmelt-first.bysl} but also ``built-in'' in files
-@code{basilys.c} and @code{basilys.h} so changing them is very tricky.
+Beware that the structure of classes, fields and discriminants is
+described not only in @file{warmelt-first.bysl} but also ``built-in''
+in files @file{basilys.c} and @file{basilys.h} so changing them is
+very tricky.
 
 Fields should have a @emph{globally unique} name. Conventionally,
 fields common to the same class share a common prefix for their name.
@@ -995,18 +1006,19 @@ upgraded at any time.
 @node MELT syntax constructs
 @subsubsection MELT syntax constructs
 
-The table below gives MELT syntax constructs. [Experts can add new
-constructs using macros, and implementing appropriate methods in the
-MELT translator].
+The table below gives MELT syntax constructs, in alphabetical
+order. [Experts can add new constructs using macros, and implementing
+appropriate methods in the MELT translator].
 
 @table @code
 
 @item and
 @cindex @code{and} MELT syntax
-@code{(and @var{e1} @var{e2} @var{e3})} is (like in all Lisps) used
-for sequential conjunction; it is the same as @code{(if @var{e1} (if
-@var{e2} @var{e3}))}. Any number (at least one) of conjuncts are
-possible.
+@code{(and @var{e1} @var{e2} @var{e3} @var{...})} is (like in all
+Lisps) used for sequential conjunction; it is the same as @code{(if
+@var{e1} (if @var{e2} @var{e3}))} etc... Any number (at least one) of
+conjuncts are possible. All the conjuncts (@var{e1} @var{...}) should
+have the same ctype (usually @code{:value}).
 
 @item assert_msg
 @cindex @code{assert_msg} MELT syntax
@@ -1149,17 +1161,17 @@ the given @var{class-name}s and their fields.
 @cindex @code{export_macro} MELT syntax
 [For experts] The form @code{(export_macro @var{macro-symbol}
 @var{expander})} exports a macro binding for the given
-@var{macro-symbol} with the @var{expander} function (which takes as
-arguments the source expression (of @code{CLASS_SEXPR}), the
-environment (of @code{CLASS_ENVIRONMENT}), the expander produces an
-instance of a subclass of @code{CLASS_SRC}. The macro
+@var{macro-symbol} with the @var{expander} function. The macro
 @code{macro-symbol} is defined in the environment exported by the
-current module, so is available in other modules only.
+current module, so is available in other modules only (but not in the
+current one).
 
 @item export_values
 @cindex @code{export_values} MELT syntax
 The form @code{(export_values @var{exported-name} @var{...})} export
-all the names, as values, given as arguments.
+all the names, as values, given as arguments. For classes,
+@code{export_class} should be used, otherwise the fields are not
+exported.
 
 @item fetch_predefined
 @cindex @code{fetch_predefined} MELT syntax
@@ -1171,7 +1183,8 @@ all the names, as values, given as arguments.
 evaluated, the bodies are evaluated in sequence, and indefinitely
 re-evaluated again. The only way of getting out from a @code{forever}
 loop is with @code{exit} (using the given @var{label-name}, lexically
-inside the body) or @code{return}
+inside the body) or @code{return}. Avoid using a bound variable name
+as a @var{label-name}.
 
 @item if
 @cindex @code{if} MELT syntax
@@ -1181,7 +1194,8 @@ evaluated, the @var{test} is first evaluated. If it is true, the
 @code{if}. If it is false (either 0 if ctype-d @code{:long}, or the
 null pointer for @code{:value} and other ctypes), the optional
 @var{else-exp} is evaluated (or 0 or null) and is the result of the
-whole @code{if}.
+whole @code{if}. Both the @var{then-exp} and the @var{else-exp} (if
+given) should have the same ctype.
 
 @item lambda
 @cindex @code{lambda} MELT syntax
@@ -1193,20 +1207,377 @@ argument of a function and the first result that it is returning
 should be a @code{:value}.
 
 @item let
+@cindex @code{let} MELT syntax
+@code{(let (@var{let-binding} @var{...}) @var{body} @var{...}) is a
+sequential binding construct (closer to @code{let*} in other
+Lisps)}. The first operand should be a list of
+@var{let-binding}s. Others operands make the @var{body}, evaluated in
+sequence with the new bindings applied with lexical scoping. A
+@var{let-binding} is an optional @emph{ctype} (@code{:value} by
+default) followed by a variable name (ie a symbol) followed by one
+expression. Variables bound by previous @var{let-binding}s are visible
+in the expression inside the current @var{let-binding} (so recursion
+is not permitted like with @code{flet} or @code{letrec} in some
+Lisps). Notice that a @var{let-binding} can bind a variable to unboxed
+stuff (like a plain long integer). The result of the whole @code{let}
+expression is the result of the evaluation of the last body
+expression, done with the new bindings.
+
 @item make_instance
+@cindex @code{make_instance} MELT syntax
+@code{(make_instance @var{class-name} [@var{:field-name}
+@var{field-value}] @var{...})} where the @var{class-name} is the name
+of a class (it cannot be a complex expression but should be a class
+statically known) and where each @var{:field-name} keyword (starting
+with a colon) is the name of some field (direct or inherited) of the
+class and the following @var{field-value} is an expression giving its
+initial value; the result of @code{make_instance} is a freshly built
+instance of the given @var{class-name} initialized with the fields
+(fields which are not mentionned are initialized with nil).
+
 @item match
+@cindex @code{match} MELT syntax
+@code{(match @var{expr} @var{match-case} @var{...})}
+@emph{NOT IMPLEMENTED YET}
+
 @item multicall
+@cindex @code{multicall} MELT syntax
+@code{(multicall (@var{result-formals}) @var{call-expr} @var{body}
+@var{...})}  is the only way to retrieve multiple (one primary and
+some secondary) results from a function application or a message
+invocation @var{call-expr} (which should syntactically be an
+application or an invocation, not anything else). The
+@var{result-formals} are syntactically like formal arguments;
+@xref{MELT formals}. The first result formal should be of ctype
+@code{:value}. Secondary result formals which are not matching the
+ctype of the actual secondary result are cleared. The bindings of the
+result formals are local to the @code{multicall} expression and usable
+in the @var{body} sequence.
+
 @item or
+@cindex @code{or} MELT syntax
+@code{(or @var{e1} @var{e2} @var{e3} @var{...})} is the sequential
+disjunction of @var{e1} @var{...} (at least one disjunct). In
+particular @code{(or @var{a} @var{b})} is the same as @code{(if
+@var{a} @var{a} @var{b})} except that @var{a} is evaluated once. All
+the disjuncts should have the same ctype (usually @code{:value}).
+
 @item parent_module_environment
+@cindex @code{parent_module_environment} MELT syntax
+[For experts] @code{(parent_module_environment)} return the parent
+module's environment.
+
 @item progn
+@cindex @code{progn} MELT syntax
+@code{(progn @var{e1} @var{e2} @var{...} @var{en})} evaluates
+successfully @var{e1} then @var{e2} and return the value of the last
+@var{en}.
+
 @item quote
+@cindex @code{quote} MELT syntax
+@code{(quote x)} is the same as @code{'x} and returns the symbol
+@code{x} itself (as an instance of
+@code{CLASS_SYMBOL}). [Expert]Currently, only symbols can be
+quoted. But @code{'1} and @code{'"string"} should be a way to express
+static boxed values [unimplemented].
+
 @item redefinition_handling
+[Expert] probably not needed and obsolete.
+
 @item return
+@cindex @code{return} MELT syntax
+@code{(return @var{e1} @var{...})} return from the entire containing
+function (i.e. @code{defun} or @code{lambda}). The first expression
+@var{e1} should be of ctype @code{:value} and is evaluated as the
+primary result. Other expressions are evaluated (and can have
+different ctypes) and returned as secondary results. A @code{(return)}
+without argument is a convenience for returning the nil value. The
+ctype of the @code{return} is @code{:value} even if the @code{return}
+expression itself does not gives a value (because it breaks the
+control flow), hence @code{(or (return) 'x)} is acceptable but
+tasteless.
+
 @item setq
+@cindex @code{setq} MELT syntax
+@code{(setq @var{var} @var{exp})} assigns to the local variable
+@var{var} the value of @var{exp} (which is also the value of the
+entire @code{setq} expression). Both @var{var} and @var{exp} should
+have the same ctype.
+
 @item store_predefined
+@cindex @code{store_predefined} MELT syntax
+[Expert] @code{(store_predefined @var{predef-name-or-number} @var{expr})}
+Don't use it if you don't understand.
+
 @item unsafe_get_field
+@cindex @code{unsafe_get_field} MELT syntax
+@code{(unsafe_get_field @var{:field-name} @var{expr})} retrieves the
+field named @var{:field-name} from the object returned by @var{expr}
+expression (of ctype @code{:value}). If @var{expr} does not evaluates
+to an object instance (directly or indirectly) of the class defining
+the @var{:field-name} the behavior is undefined, and unsafe (GCC
+usually crashes).
+
 @item unsafe_put_fields
+@cindex @code{unsafe_put_fields} MELT syntax
+@code{(unsafe_put_fields @var{obj} @var{:field-name1} @var{val1}
+@var{...})}  updates the object value of @var{obj} by changing its
+field named @var{:field-name1} to the value of @var{val1} etc... (all
+the fields are updated at once). If @var{obj} is not an object of the
+appropriate class for the fields, the behavior is undefined and unsafe
+(usually GCC crashes).
+
 @item update_current_module_environment_container
+@cindex @code{update_current_module_environment_container} MELT syntax
+[Expert] @code{(update_current_module_environment_container)} don't
+use it if you don't understand.
 
 @end table
+
+
+@node MELT modules and translation
+@subsection MELT modules and translation
+
+[for experts mostly; familiarity with the notions of bindings and
+environments is expected.]
+
+@menu 
+* MELT environments and bindings::
+* translating a MELT module::
+* MELT module initialization and exports::
+* MELT translation steps::
+@end menu
+
+@node MELT environments and bindings
+@subsubsection MELT environments and bindings
+
+A MELT module uses previously available bindings (imported values,
+etc..) and provides its own bindings (exported values,
+etc..). Bindings are objects (of superclass @code{CLASS_ANY_BINDING},
+e.g. of some class like @code{CLASS_VALUE_BINDING}
+@code{CLASS_MACRO_BINDING} etc...). Bindings are grouped in
+environments (themselves objects of class
+@code{CLASS_ENVIRONMENT}). Each environment is linked to its
+parent. So a MELT module is initialized in its parent module
+environment and gives its own module environment.
+
+Hence MELT environments are objects with a @code{env_bind} field (the
+object map of bindings), a @code{env_prev} field (the previous
+environment), etc... All bindings are objects with a @code{binder}
+field (the bound ``name'', e.g. a symbol, used as the key in the
+binding map of environments).
+
+User MELT code is ordinarily not supposed to explicitly change
+environments and bindings (but they are changed implicitly at module
+initialization).
+
+@node translating a MELT module
+@subsubsection translating a MELT module
+
+@cindex translation of MELT 
+A MELT file @file{@var{foo}.bysl} [which can be viewed as defining the
+@var{foo} MELT module] is translated into a C source
+@file{@var{foo}.c} which is then compiled into a dynamically loadable
+shared library - usually @file{@var{foo}.so} on Linux. The translation
+to C is done using @code{cc1} (or @code{gcc}, not implemented yet)
+with the @code{-fbasilys=translatefile -fbasilys-arg=@var{foo}.bysl
+-fbasilys-secondarg=@var{foo}.c} options. The generated file
+@var{foo}.c is usually quite big (and only @code{#include}-ing one
+file, @code{"run-basilys.h"} which includes all the rest). It
+essentially contains one static C function (of signature compatible
+with @code{basilys_apply}) for each @code{defun} or @code{lambda}
+function in MELT, and one big exported @code{start_module_basilys} C
+function which does all the initializations, and some other stuff. The
+initialization code builds all the required data (quoted symbols,
+closures, classes, fields, boxed strings, static instances defined
+thru @code{definstance} etc..); MELT modules have no data outside of
+this @code{start_module_basilys} function.
+
+The start function @code{start_module_basilys} (which is found by
+dynamic loading of the module, usually thru @code{dlopen} and
+@code{dlsym} or their equivalent, and called only once) expects a
+parent environment and returns the newly filled module
+environment@footnote{There is an ordered sequence of MELT modules, the
+very first, @code{warmelt-first}, being translated specially and gets
+a nil parent.}.
+
+@node MELT module initialization and exports
+@subsubsection MELT module initialization and exports
+
+@cindex modules in MELT 
+Names defined (as a function thru @code{defun}, as a class thru
+@code{defclass}, as a field, etc...) are not visible outside their
+module (to further MELT modules loaded afterwards) unless they are
+@emph{exported}. Most names (e.g. functions, selectors, instances) are
+exported as values using the @code{export_values} construct. Classes
+are usually exported using @code{export_class}@footnote{If a class is
+exported using @code{export_value} -almost always a mistake-, its
+fields are not visible outside.}, which also exports all the own
+fields of the exported class (but inherited fields are not exported,
+unless their class was @code{export_class}-ed).
+
+Advanced users can extend the MELT language by exporting macros using
+the @code{export_macro} construct, which gets a macro name and its
+macro expander function, which takes as arguments the source
+expression (of @code{CLASS_SEXPR}), the environment (of
+@code{CLASS_ENVIRONMENT}), the current expander, and produces an
+instance of a subclass of @code{CLASS_SRC}.
+
+@node MELT translation steps
+@subsubsection MELT translation steps
+
+The generated C code is of much lower level than the MELT source. The
+MELT source code is usually in a file but can be elsewhere (a list or
+s-exprs in memory).
+
+The generated C code interacts with MELT runtime and garbage
+collector; in particular, every value -even temporary ones- should be
+explicitly stored in MELT frames known by the GC. Hence, MELT
+expressions are quickly normalized : @code{(f (g x) y)} becomes
+something similar to @i{@b{let} gg = g x @b{in} f gg y}@footnote{We
+use ML like syntax to emphasize that this is only an internal MELT
+representation, not an s-expr!} where @i{gg} is a fresh variable
+(actually an instance of @code{CLASS_CLONEDSYMBOL}).
+
+@cindex reader in MELT 
+@cindex s-expression in MELT 
+The @emph{reader}, or some other source, provides a list of
+s-expressions to be translated. Each such s-expression is an instance
+of @code{CLASS_SEXPR} so has @code{prop_table loca_location
+sexp_contents} as fields. The @code{:loca_location} field is a mixloc
+giving the staring position and file of the s-expr. The
+@code{:sexp_contents} is a list value containing the s-expression
+elements. Leafs are read specifically, e.g. boxed integers (of
+@code{DISCR_INTEGER}) for integers, or symbols (instances of
+@code{CLASS_SYMBOL}) or keywords (instances of @code{CLASS_KEYWORD},
+etc. All these classes are defined in @file{warmelt-first.bysl}.
+
+@cindex macro-expansion in MELT 
+Then s-expressions are @emph{macro-expanded} into objects of
+subclasses of @code{CLASS_SRC}. Standard macros (in particular all the
+constructs defined above, @pxref{MELT syntax constructs}.) are defined
+in @file{warmelt-macro.bysl}. For instance, the @code{if} macro is
+expanded by the @code{mexpand_if} expander function (private to
+@file{warmelt-macro.bysl}) which makes an instance of
+@code{CLASS_SRC_IFELSE} with fields @code{:src_loc sif_test :sif_then
+:sif_else} and this @code{mexpand_if} expander is given to
+@code{export_macro}. Macro expanders might need some of
+@code{expand_apply lambda_arg_bindings macroexpand_1} @dots{}
+functions defined in @file{warmelt-macro.bysl}.
+
+@cindex normalization in MELT 
+@cindex nrep in MELT 
+After macro-expansion, the expanded source code (instances of some
+subclass of @code{CLASS_SRC}) is @emph{normalized} into instances of
+subclasses of @code{CLASS_NREP} (for normal representations,
+i.e. @emph{nrep}s) by code in @file{warmelt-normal.bysl}. Normal
+expressions are not nested, so we separate simple nreps from complex
+normal expressions (@code{CLASS_NREP_SIMPLE} vs
+@code{CLASS_NREP_EXPR}). Normalization means not only adding extra
+internal lets (i.e. instances of @code{CLASS_NREP_LET} but sometimes
+computing additional information, such as the ctype of many
+expressions. Normalization is in particular done with the
+@code{normal_exp} selector (returning the nrep primarily and
+secundarily a list of additional bindings), and other utilities such
+as @code{normalize_tuple get_ctype wrap_normal_letseq} etc... For
+instance the normalization of @code{if} constructs is done in the
+@code{normal_exp} method for @code{CLASS_SRC_IF}, in a private
+function called @code{normexp_if} which returns an instance of
+@code{CLASS_NREP_IF} with fields @code{:nrep_loc nif_test :nif_then
+:nif_else :nif_ctyp} and a list of additional normal bindings (of
+@code{CLASS_NORMLET_BINDING}). Macro-expansion and normalization
+sometimes give simpler representations; e.g. all of @code{if and or}
+constructs get normalized as instances of @code{CLASS_NREP_IF}.
+
+@cindex code generation in MELT
+@cindex objcode in MELT
+After normalization, nreps (which are expression-like) are transformed
+in the ``code generation''@footnote{this is not a proper term, since
+the generated code is only a representation of low level C code.} step
+into instruction-like representations called @emph{objcode}s .
+instances of subclasses of @code{CLASS_OBJCODE}. This happens in
+@file{warmelt-genobj.bysl} using the @code{compile_obj} selector,
+which, applied to nreps and a generation context (a merge of various
+info), produce objcodes. Moving from nreps expressions to instructions
+involve very often putting a destination on an nrep thru the
+@code{put_objdest} selector.
+
+@cindex code output in MELT
+At last, the objcode is output, within the @file{warmelt-outobj.bysl}
+file, in two string-buffers (one for the header part, one for the body
+part) using several selectors like @code{output_c_code
+output_c_declinit output_c_initfill output_c_initpredef}. Only once
+all objcodes has been output in string buffers is it actually spilled
+to the generated C file, all at once.
+
+Advanced users can extend the MELT language by implementing extensions
+at various levels of the MELT translator.
+
+Several important data or functions are available thru the
+@code{initial_system_data} instance (the only instance of
+@code{CLASS_SYSTEM_DATA}), including the exporting and importing
+machinery, the fresh module environment maker, the symbols and
+keywords dictionnaries and internizers.
+
+
+All the MELT translation occur in @file{warmelt-*.bysl} files which
+generate their @file{warmelt-*.c} counterparts (these generated files
+are distributed with GCC sources). Be careful to minimize the
+interaction between these files and the rest of GCC (in particular,
+avoid having a strong dependecies between GCC internal data
+representations - like @code{gimple}) to be able to regenerate the
+translating and translated files @file{warmelt-*.c} from
+@file{warmelt-*.bysl} even when GCC internal passes
+evolve@footnote{using the @code{upgrade-warmelt} make target.}.
+
+
+
+
+@node Writing GCC passes in MELT 
+@subsection Writing GCC passes in MELT
+
+[For experts, knowing about GCC passes in general]
+
+GCC passes can be written in MELT. See the @file{ana-*.bysl} files.
+Currently, GCC pass manager @file{gcc/passes.c} has been extended by
+providing some hooks for some few additional passes, which are reified
+as MELT instances of @code{CLASS_GCC_PASS}. Each of these instances
+have a fixed @code{:named_name} field (the name of the pass, see
+below), a @code{:gccpass_gate} field containing the gate of the pass
+(as a MELT function to decide if the pass will be executed), a
+@code{:gccpass_exec} field containing the executor of the pass (as a
+MELT function which really does the pass work), and an extra
+@code{:gccpass_data} field (to be used at will).
+
+The currently available passes (defined in @file{ana-base.bysl} and
+used in @file{gcc/basilys.c}) are:
+
+@itemize
+
+@item pass @code{basilys-lowering}
+@footnote{It is the name in the @code{opt_pass} structure and the
+@code{:named_name} field} instance @code{basilys_lowering_gccpass}
+@footnote{The exported name in @file{ana-base.bysl}}; is the last
+lowering pass in GCC. Here, the CFG is available, but the tree is not
+in SSA form.
+
+@item pass @code{basilys-earlyopt} 
+instance @code{basilys_earlyopt_gccpass} is the last early
+optimisation pass in GCC (not run in @code{-O0}). Here code in in SSA. 
+
+@item pass @code{basilys-ipa}
+instance @code{basilys_ipa_gccpass} is the last IPA [non-optimizing]
+pass. Here CFF is available, code is in SSA.
+
+@item pass @code{basilys-lateopt}
+instance @code{basilys_lateopt_gccpass} is the last late optimisation
+pass (not run in @code{-O0}). Here code is in SSA.
+
+@item pass @code{basilys-latessa}
+instance @code{basilys_latessa_gccpass} is the last late SSA
+pass. Here code is still SSA but will soon be removed.
+
+@end itemize
+
+
 @c =======================================================================

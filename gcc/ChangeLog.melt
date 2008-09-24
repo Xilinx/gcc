@@ -1,3 +1,6 @@
+2008-09-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: wrote most of the reference material.
+
 2008-09-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* warmelt-first-0.c: regenerated.
 	* warmelt-macro-0.c: regenerated.
