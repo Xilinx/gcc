@@ -1,3 +1,103 @@
+2008-09-24  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/utf-array.c: Fix syntax of dg-error stmts.
+
+2008-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37626
+	* gfortran.dg/allocatable_function_4.f90: New test.
+
+2008-09-23  Steve Ellcey  <sje@cup.hp.com>
+
+	* lib/target-supports.exp (check_effective_target_pow10): New.
+	* g++.dg/cdce3.C: Set GNU_EXTENSION if pow10.
+
+2008-09-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37533
+	* g++.dg/gomp/pr37533.C: New test.
+
+2008-09-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/vect/slp-widen-mult-s16.c: Fix typo.
+
+2008-09-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/cpp/cmdlne-dU-23.c: New test.
+
+2008-09-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/Walways-true-1.c: Test column numbers.
+	* gcc.dg/c90-const-expr-5.c: Same.
+	* gcc.dg/compare4.c: Same.
+	* gcc.dg/Werror-1.c: Same.
+
+2008-09-23  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37588
+	* gfortran.dg/typebound_generic_4.f03: New test.
+	* gfortran.dg/typebound_generic_5.f03: New test.
+
+2008-09-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pragma-init-fini.c: Use dg-warning in lieu of dg-error.
+	* gcc.dg/pragma-align-2.c: Likewise.
+	* gcc.dg/format/cmn-err-1.c: Likewise.
+
+2008-09-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/cpp/cmdlne-dU-16.c: Specify -std=c89 on Solaris.
+	* gcc.dg/cpp/cmdlne-dU-17.c: Likewise.
+
+2008-09-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37580
+	* gfortran.dg/pointer_assign_5.f90: New test.
+	* gfortran.dg/pointer_assign_6.f90: New test.
+
+2008-09-22  David Daney  <ddaney@avtrex.com>
+
+	PR target/37593
+	* gcc.target/mips/long-calls-pg.c: New test.
+
+2008-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37145
+	* gcc.c-torture/compile/20080922-1.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-fre-7.c: Remove XFAIL.
+	* gcc.dg/tree-ssa/ssa-fre-8.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-9.c: Likewise.
+
+2008-09-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/octeon-baddu-1.c: New test.
+
+2008-09-22  David Edelsohn  <edelsohn@gnu.org>
+
+	PR rtl-optimization/33642
+	* gcc.c-torture/compile/pr11832.c: Extend XFAIL to powerpc*-*-*.
+	* gcc.c-torture/compile/pr33009.c: Likewise.
+	
+2008-09-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37145
+	* gcc.dg/tree-ssa/ssa-pre-15.c: Remove XFAIL.
+
+2008-09-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/37486
+	* gfortran.dg/common_align_1.f90: New.
+	* gfortran.dg/warn_align_commons.f90: New.
+
+2008-09-22  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/volatile3.adb: New test.
+
+2008-09-22  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37482
+	* gcc.dg/vect/pr37482.c: New test.
+
 2008-09-22  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR middle-end/37170
@@ -553,6 +653,7 @@
 	PR tree-optimization/37508
 	* gcc.dg/tree-ssa/pr37508.c: New testcase.
 
+>>>>>>> .r140590
 2008-09-15  Aldy Hernandez  <aldyh@redhat.com>
 
 	* g++.old-deja/g++.brendan/crash16.C: Function name is the correct 
@@ -2745,7 +2846,7 @@
 	* gfortran.dg/cshift_char_3.f90:  New test case.
 	* gfortran.dg/cshift_nan_1.f90:  New test case.
 
-2008-08-14  Rafael Ãvila de EspÃ­ndola  <espindola@google.com>
+2008-08-14  Rafael ��vila de Esp�­ndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -3467,7 +3568,7 @@
 	PR tree-optimization/36967
 	* gfortran.dg/pr36967.f: New testcase.
 
-2008-07-30  Rafael Ãvila de EspÃ­ndola  <espindola@google.com>
+2008-07-30  Rafael ��vila de Esp�­ndola  <espindola@google.com>
 
 	* gcc.dg/visibility-14.c: New test.
 	* gcc.dg/visibility-15.c: New test.
@@ -5161,7 +5262,7 @@
 	dg-additional-sources.
 	(profopt-execute): Handle additional sources.
 
-2008-05-28  Rafael EspÃ­ndola  <espindola@google.com>
+2008-05-28  Rafael Esp�­ndola  <espindola@google.com>
 
 	* gcc.dg/20080528-1.c: New test.
 
@@ -5298,7 +5399,7 @@
 	* g++.dg/template/inline1.C: For the not-defined symbol, use the
 	pattern from g++.dg/template/qualttp17.C.
 
-2008-05-23  Rafael EspÃ­ndola  <espindola@google.com>
+2008-05-23  Rafael Esp�­ndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: Move to gcc.dg.
 	* gcc.dg/20080522-1.c: Moved from gcc.c-torture.
@@ -5336,7 +5437,7 @@
 	* gfortran.dg/cshift_large_1.f90:  New test.
 	* gfortran.dg/eoshift_large_1.f90:  New test.
 
-2008-05-22  Rafael EspÃ­ndola  <espindola@google.com>
+2008-05-22  Rafael Esp�­ndola  <espindola@google.com>
 
 	* gcc.c-torture/compile/20080522-1.c: New testcase.
 
@@ -6101,7 +6202,7 @@
 	PR fortran/36162
 	* gfortran.dg/module_widestring_1.f90: New test.
 
-2008-05-08  Rafael EspÃ­ndola  <espindola@google.com>
+2008-05-08  Rafael Esp�­ndola  <espindola@google.com>
 
 	* gcc.dg/vect/vect-111.c: Rename to no-trapping-math-vect-111.c
 	* gcc.dg/vect/vect-ifcvt-11.c: Rename to no-trapping-math-vect-ifcvt-11.c
@@ -7040,7 +7141,7 @@
 	PR fortran/35780
 	* gfortran.dg/simplify_argN_1.f90: New test.
 
-2008-04-06  Tobias SchlÃ¼ter  <tobi@gcc.gnu.org>
+2008-04-06  Tobias Schl�¼ter  <tobi@gcc.gnu.org>
 
 	PR fortran/35832
 	* gfortran.dg/io_constraints_2.f90: Adapt to new error message.
@@ -8801,7 +8902,7 @@
 	* g++.dg/torture/pr35164-1.C: New testcase.
 	* g++.dg/torture/pr35164-2.C: Likewise.
 
-2008-02-15  Dominique d'HumiÃ¨res  <dominiq@lps.ens.fr>
+2008-02-15  Dominique d'Humi�¨res  <dominiq@lps.ens.fr>
 
 	PR testsuite/35119
 	* g++.dg/template/spec35.C: Change the regular expressions
