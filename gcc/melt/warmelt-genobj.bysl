@@ -1260,7 +1260,7 @@
 		       (compile_obj comp gcx)))
 		   ))
 	    (primty (unsafe_get_field :prim_type nprim))
-	    (oexp (if (is_mixint loc)
+	    (oexp (if loc
 		      (make_instance class_objlocatedexpv
 				 :obv_type primty
 				 :obx_cont otup

@@ -561,24 +561,25 @@
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
 	(add2sbuf_indentnl implbuf 0)
-	(add2sbuf_strconst implbuf "#line 0 ")
-	(add2sbuf_strconst implbuf " \"")
 	(cond ( (is_mixint loc) 
-		(progn
-		  (add2sbuf_string implbuf (mixint_val loc))
-		  (add2sbuf_strconst implbuf ":")
-		  (add2sbuf_longdec implbuf (get_int loc))))
+		(add2sbuf_strconst implbuf "#line ")
+		(add2sbuf_longdec implbuf (get_int loc))
+		(add2sbuf_strconst implbuf " \"")
+		(add2sbuf_string implbuf (mixint_val loc))
+		(add2sbuf_strconst implbuf "\""))
 	      ( (is_mixloc loc)
-		(progn
-		  (add2sbuf_string implbuf (mixloc_val loc))
-		  (add2sbuf_strconst implbuf ":")
-		  (add2sbuf_longdec implbuf (get_int loc))))
+		(add2sbuf_strconst implbuf "#line ")
+		(add2sbuf_longdec implbuf (get_int loc))
+		(add2sbuf_strconst implbuf " \"")
+		(add2sbuf_string implbuf (mixloc_val loc))
+		(add2sbuf_strconst implbuf "\""))
 	      )
-	(if msg (progn
-		  (add2sbuf_strconst implbuf ":: @")
-		  (add2sbuf_strconst implbuf msg)
-		  ))
-	(add2sbuf_strconst implbuf "\"")
+	(if msg 
+	    (progn
+	      (add2sbuf_strconst implbuf " /**::")
+	      (add2sbuf_ccomconst implbuf msg)
+	      (add2sbuf_strconst implbuf "::**/")
+	      ))
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#endif /*MELTGCC_NOLINENUMBERING*/")
 	(add2sbuf_indentnl implbuf depth)
@@ -586,7 +587,6 @@
 
 ;; output the location & set the frame's location
 (defun output_location (loc implbuf :long depth :cstring msg)
-  (output_raw_location loc implbuf depth msg)
   (cond
    ( (is_mixint loc) 
      (add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
@@ -594,11 +594,10 @@
      (add2sbuf_strconst implbuf ":")
      (add2sbuf_longdec implbuf (get_int loc))
      (if msg (progn
-	       (add2sbuf_strconst implbuf ": @")
+	       (add2sbuf_strconst implbuf ":/ ")
 	       (add2sbuf_strconst implbuf msg)
 	       ))
      (add2sbuf_strconst implbuf "\");")
-     (add2sbuf_indentnl implbuf depth)
      )
    ( (is_mixloc loc)
      (add2sbuf_strconst implbuf "BASILYS_LOCATION(\"")
@@ -606,13 +605,14 @@
      (add2sbuf_strconst implbuf ":")
      (add2sbuf_longdec implbuf (get_int loc))
      (if msg (progn
-	       (add2sbuf_strconst implbuf ": @")
+	       (add2sbuf_strconst implbuf ":/ ")
 	       (add2sbuf_strconst implbuf msg)
 	       ))
      (add2sbuf_strconst implbuf "\");")
-     (add2sbuf_indentnl implbuf depth)
      )
-   ))
+   )
+  (output_raw_location loc implbuf depth msg)
+)
 
 
 ;;; output the code for declaring the current frame struct

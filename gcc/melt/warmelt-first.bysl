@@ -651,6 +651,9 @@
   "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf 
   "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
 
+;; primitive to add a cstring const, Ccomment encoded, into a strbuf
+(defprimitive add2sbuf_ccomconst (sbuf :cstring cstr) :void 
+  "basilysgc_add_strbuf_ccomment((" sbuf "), "  cstr ")")
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
@@ -3297,8 +3300,9 @@
  ==s
  >=i
  >i
+ add2sbuf_ccomconst
  add2sbuf_ccomstrbuf
- add2sbuf_ccomstring
+ add2sbuf_ccomstring 
  add2sbuf_cencstrbuf
  add2sbuf_cencstring
  add2sbuf_cident

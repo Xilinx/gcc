@@ -472,139 +472,186 @@ packing each @code{gimple} inside the given @code{gimpleseq}.
 )
 @end lisp
 
-This function is only useful for its side effect. It returns the nil
-value.
+This function is only useful for its side effect (calling a function
+for each member of a @code{gimpleseq}). It returns the nil value.
 
-The real translation to C of the above is actually:
+The real translation to C of the above is a quite big and messy C
+function, actually:
 
 @verbatim
 static basilys_ptr_t
-rout_9_DO_EACH_GIMPLESEQ(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp_, const char xargdescr_[], union basilysparam_un *xargtab_,
-      const char xresdescr_[], union basilysparam_un *xrestab_) {
+rout_9_DO_EACH_GIMPLESEQ (basilysclosure_ptr_t closp_,
+			  basilys_ptr_t firstargp_, const char xargdescr_[],
+			  union basilysparam_un *xargtab_,
+			  const char xresdescr_[],
+			  union basilysparam_un *xrestab_)
+{
 #if ENABLE_CHECKING
- static long call_counter__;
- long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
+  static long call_counter__;
+  long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
 #define callcount thiscallcounter__
 #else
 #define callcount 0L
 #endif
-
- struct frame_rout_9_DO_EACH_GIMPLESEQ_st { unsigned nbvar;
+  struct frame_rout_9_DO_EACH_GIMPLESEQ_st
+  {
+    unsigned nbvar;
 #if ENABLE_CHECKING
-  const char* flocs;
+    const char *flocs;
 #endif
-  struct basilysclosure_st *clos;
-  struct excepth_basilys_st *exh;
-  struct callframe_basilys_st *prev;
+    struct basilysclosure_st *clos;
+    struct excepth_basilys_st *exh;
+    struct callframe_basilys_st *prev;
 #define CURFRAM_NBVARPTR 5
-  void* varptr[5];
+    void *varptr[5];
 /*no varnum*/
 #define CURFRAM_NBVARNUM /*none*/0
 /*others*/
-gimple_seq loc_CTYPE_GIMPLESEQ__o0;
-gimple loc_CTYPE_GIMPLE__o1;
-  long _spare_; }
+    gimple_seq loc_CTYPE_GIMPLESEQ__o0;
+    gimple loc_CTYPE_GIMPLE__o1;
+    long _spare_;
+  }
   curfram__;
-  memset(&curfram__, 0, sizeof(curfram__));
- curfram__.nbvar = 5;
+  memset (&curfram__, 0, sizeof (curfram__));
+  curfram__.nbvar = 5;
   curfram__.clos = closp_;
- curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
- basilys_topframe = (struct callframe_basilys_st *) &curfram__;
-basilys_trace_start("DO_EACH_GIMPLESEQ", callcount);
-/*getargs*/
+  curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
+  basilys_topframe = (struct callframe_basilys_st *) &curfram__;
+  basilys_trace_start ("DO_EACH_GIMPLESEQ", callcount);
+@end verbatim
 
- /*getarg#0*/
- 
+The generated C function has a strange C formal arguments list (every
+applicable routine has the same signature in C. All arguments except
+the first are passed in an array of union, described by a short
+constant string, one character per argument, encoding its
+ctype. Secondary results are handled likewise). Some code is only
+enabled with @code{#if ENABLE_CHECKING} when GCC is configured for
+debugging (not for release). The MELT call frame is declared
+explicitly as a structure called @code{curfram__}, and is properly
+initialized, and set as the @code{basilys_topframe}. The
+@code{basilys_trace_strart BASILYS_LOCATION callcount} C macros are
+significant only when @code{#if ENABLE_CHECKING}.
+
+@verbatim
+  /*getarg#0 */
+  BASILYS_LOCATION ("ana-base.bysl:436:/ getarg");
 #ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:436:: @getarg"
-#endif /*MELTGCC_NOLINENUMBERING*/
- BASILYS_LOCATION("ana-base.bysl:436: @getarg");
+#line 436 "ana-base.bysl" /**::getarg::**/
+#endif /*MELTGCC_NOLINENUMBERING */
  /*_.F__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
- 
- /*getarg#1*/
- 
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:436:: @getarg"
-#endif /*MELTGCC_NOLINENUMBERING*/
- BASILYS_LOCATION("ana-base.bysl:436: @getarg");
- if (xargdescr_[0] != BPAR_GIMPLESEQ) goto lab_endgetargs;
- /*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0 = xargtab_[0].bp_gimpleseq;
- ;
- goto lab_endgetargs;
+@end verbatim
+
+We start to fetch the first argument into the current frame, since
+@code{curfptr} is actually a C macro defined as
+@code{curfram__.varptr}. The @code{BASILYS_LOCATION} macro call
+(significant only when checking was enabled, and setting the
+@code{flocs} field of the current frame in that case) and the
+@code{#line} directive@footnote{The @code{#line} directive can be
+disabled by compiling the generated C with
+@code{-DMELTGCC_NOLINENUMBERING}.} refer to the MELT source
+location. For clarity, we now skip them, but there are @emph{lots of
+such positional information} in the generated C code. Note that a
+single MELT source line is producing many C code lines (hence the line
+numbering seen in a debugger might be slightly wrong), and that some
+comments are generated (notably explaining what each @code{curfptr}
+occurrence means).
+
+@verbatim
+  /*getarg#1 */
+  if (xargdescr_[0] != BPAR_GIMPLESEQ)
+    goto lab_endgetargs;
+  curfram__.loc_CTYPE_GIMPLESEQ__o0 = xargtab_[0].bp_gimpleseq;
+  goto lab_endgetargs;
 lab_endgetargs:;
-/*body*/
+@end verbatim
 
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:436:: @block"
-#endif /*MELTGCC_NOLINENUMBERING*/
-BASILYS_LOCATION("ana-base.bysl:436: @block");
-/*block*/{
- /*citerblock EACH_IN_GIMPLESEQ*/ {
- gimple_stmt_iterator gsi_cit1__EACHGIMPLSEQ;
-if (/*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0) for (gsi_cit1__EACHGIMPLSEQ = gsi_start (/*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0); !gsi_end_p (gsi_cit1__EACHGIMPLSEQ); gsi_next (&gsi_cit1__EACHGIMPLSEQ)) {
-/*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 = gsi_stmt (gsi_cit1__EACHGIMPLSEQ);
- 
-  
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:439:: @block"
-#endif /*MELTGCC_NOLINENUMBERING*/
-  BASILYS_LOCATION("ana-base.bysl:439: @block");
-  /*block*/{
-   /*_.GPLVAL__V4*/ curfptr[3] = (basilysgc_new_gimple((basilysobject_ptr_t)((/*!DISCR_GIMPLE*/ curfrout->tabval[0])),(/*_?*/ curfram__.loc_CTYPE_GIMPLE__o1)));;
-   
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:440:: @apply"
-#endif /*MELTGCC_NOLINENUMBERING*/
-   BASILYS_LOCATION("ana-base.bysl:440: @apply");
-   /*apply*/{
-    /*_.F__V5*/ curfptr[4] =  basilys_apply ((basilysclosure_ptr_t)(/*_.F__V2*/ curfptr[1]), (basilys_ptr_t)(/*_.GPLVAL__V4*/ curfptr[3]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
-    }
-   ;
-   /*epilog*/
-   
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:439:: @clear"
-#endif /*MELTGCC_NOLINENUMBERING*/
-   BASILYS_LOCATION("ana-base.bysl:439: @clear");
-   /*clear*/ /*_.GPLVAL__V4*/ curfptr[3] = 0 ;
-   
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:439:: @clear"
-#endif /*MELTGCC_NOLINENUMBERING*/
-   BASILYS_LOCATION("ana-base.bysl:439: @clear");
-   /*clear*/ /*_.F__V5*/ curfptr[4] = 0 ;}
-  ;
- }
- 
-  /*citerepilog*/
-  
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:437:: @clear"
-#endif /*MELTGCC_NOLINENUMBERING*/
-  BASILYS_LOCATION("ana-base.bysl:437: @clear");
-  /*clear*/ /*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 = 0 ;
-  
-#ifndef MELTGCC_NOLINENUMBERING
-#line 0  "ana-base.bysl:437:: @clear"
-#endif /*MELTGCC_NOLINENUMBERING*/
-  BASILYS_LOCATION("ana-base.bysl:437: @clear");
-  /*clear*/ /*_.LET___V3*/ curfptr[2] = 0 ;} /*endciterblock EACH_IN_GIMPLESEQ*/
- ;
- /*epilog*/}
+The second argument is likewise fetched, only if the actual argument
+is of @code{gimpleseq} ctype. The useless goto is optimized by any
+serious C compiler (like gcc).
 
-;
- goto labend_rout;
+@verbatim
+/*block*/
+  {
+    /*citerblock EACH_IN_GIMPLESEQ */
+    {
+      gimple_stmt_iterator gsi_cit1__EACHGIMPLSEQ;
+      if ( /*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0)
+	for (gsi_cit1__EACHGIMPLSEQ =
+	     gsi_start ( /*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0);
+	     !gsi_end_p (gsi_cit1__EACHGIMPLSEQ);
+	     gsi_next (&gsi_cit1__EACHGIMPLSEQ))
+	  {
+/*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 =
+	      gsi_stmt (gsi_cit1__EACHGIMPLSEQ);
+	    /*block */
+	    {
+   /*_.GPLVAL__V4*/ curfptr[3] =
+		(basilysgc_new_gimple
+		 ((basilysobject_ptr_t)
+		  (( /*!DISCR_GIMPLE */ curfrout->tabval[0])),
+		  ( /*_?*/ curfram__.loc_CTYPE_GIMPLE__o1)));;
+@end verbatim
+
+This is the beginning of a block generated by a citerator. It contains
+the translation of the @code{make_gimple} primitive use as a call to
+the @code{basilysgc_new_gimple} C function.
+
+@verbatim
+	      /*apply */
+	      {
+		/*_.F__V5*/ curfptr[4] =
+		  basilys_apply ((basilysclosure_ptr_t)
+				 ( /*_.F__V2*/ curfptr[1]),
+				 (basilys_ptr_t) ( /*_.GPLVAL__V4*/
+						  curfptr[3]), 
+                                 "", (union basilysparam_un *) 0, 
+                                 "", (union basilysparam_un *) 0);
+	      };
+@end verbatim
+
+This is the translation of the application of @code{f}. Since there
+only one argument and no secundary results, we pass null @code{union
+basilysparam_un} pointers described by empty strings to follow the
+pecular conventions required by
+@code{basilys_apply}@footnote{@code{basilys_apply} is a short inlined
+function defined in @file{gcc/basilys.h} which checks that the applied
+value is indeed a MELT function closure and calls its routine.} and
+respected by MELT generated C functions implementing MELT routines.
+
+@verbatim
+	      /*epilog */
+	     /*clear *//*_.GPLVAL__V4*/ curfptr[3] = 0;
+	     /*clear *//*_.F__V5*/ curfptr[4] = 0;
+	    };
+	  }
+      /*citerepilog */
+	    /*clear *//*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 = 0;
+	    /*clear *//*_.LET___V3*/ curfptr[2] = 0;
+    }				/*endciterblock EACH_IN_GIMPLESEQ */
+@end verbatim
+
+Some MELT local variables are explicitly cleared. This helps the MELT
+garbege collector. The block generated for the citerator is ended,
+again by clearing some locals.
+
+@verbatim
+    /*epilog */ };
+  goto labend_rout;
 labend_rout:
- basilys_trace_end("DO_EACH_GIMPLESEQ", callcount);  
- basilys_topframe = (struct callframe_basilys_st*) curfram__.prev;
- return (basilys_ptr_t)(/*noretval*/ NULL);
+  basilys_trace_end ("DO_EACH_GIMPLESEQ", callcount);
+  basilys_topframe = (struct callframe_basilys_st *) curfram__.prev;
+  return (basilys_ptr_t) ( /*noretval */ NULL);
 #undef callcount
 #undef CURFRAM_NBVARNUM
 #undef CURFRAM_NBVARPTR
-} /*end rout_9_DO_EACH_GIMPLESEQ*/
+}				/*end rout_9_DO_EACH_GIMPLESEQ */
 @end verbatim
 
-Of course, nobody wants to read or understand the generated code above.
+This is the whole function epilog. The MELT top frame is popped, and
+the previous is reinstated.
+
+Of course, nobody wants to read or understand the generated code
+above.
 
 In practice, such second-order functions (second order because they
 are functionals, consuming function arguments) are often used with

@@ -1,4 +1,17 @@
 2008-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: explained better the tranlated C code.
+	* melt/warmelt-first.bysl: added add2sbuf_ccomconst primitive.
+	* melt/warmelt-genobj.bysl: generates often location in primitive
+	ecpansion.
+	* melt/warmelt-outobj.bysl: generates a valid but less precise
+	#line with more info as comments.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2008-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: added citerator and function example with the
 	translation.
 
