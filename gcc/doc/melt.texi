@@ -321,6 +321,8 @@ inside MELT code.
 @menu
 * Reserved MELT syntax and symbols::
 * Primitives in MELT::
+* Citerators in MELT::
+* Functions in MELT::
 @end menu
 
 This section has to be completed.
@@ -343,16 +345,25 @@ Also avoid symbols starting with @code{def}
 @node Primitives in MELT
 @subsection Primitives in MELT
 
+@cindex Primitive in MELT
 A MELT primitive defines an operator by specifying how to translate
 into C each of its invocation. As a simple example, the less-than
 integer operator @code{<i} is defined as
 @lisp
-(defprimitive <i                ; define the primitive 
-  (:long                        ; next formal arguments are longs
-   a b)                         ; the two formal arguments
-  :long                         ; the type of the result (also long)
-  "((" a ") < (" b "))")        ; how to expand into C code
+(defprimitive <i                @r{; define the primitive }
+  (:long                        @r{; next formal arguments are longs}
+   a b)                         @r{; the two formal arguments}
+  :long                         @r{; the type of the result (also long)}
+  "((" a ") < (" b "))")        @r{; how to expand into C code}
 @end lisp
+
+Later on, a MELT expression like @code{(<i @var{a} @var{b})} gets
+translated into C code similar to @code{((curfnum[3]) < (curfnum[7]))}
+where @code{curfun[3]}@footnote{@code{curfnum} is a C macro expanding
+to @code{curframe__.varnum}} is the translation of the normalized
+form@footnote{The C code for the normalization of @var{a} which
+assigns @code{curfnum[3]} occurs before, so translating MELT to C is
+not a simple rewriting algorithm..} of @var{a}, etc.
 
 @cindex unboxed MELT stuff
 @cindex ctype in MELT
@@ -363,6 +374,252 @@ if it was true]. We say that such integers are @emph{unboxed} stuff
 (we don't speak of values in that case). The symbol @code{:long}
 represents the C type @code{long} and we call it a @emph{ctype}.
 
+@node Citerators in MELT
+@subsection Citerators in MELT
+
+@cindex Citerator in MELT
+
+A MELT c-iterator or @emph{citerator} is a construct which generalize
+iterative loops (like the @code{for} in C). As a trivial example, to
+iterate on positive integers till a limit, define
+
+@lisp
+(defiterator each-posint-till     @r{; define each-posint-till citerator}
+ (:long lim)                      @r{; start formal argument is lim}
+ eachposint                       @r{; state symbol - uniquely substituted}
+ (:long cur)                      @r{; local formals}
+ (                                @r{; start of before expansion}
+ "long " eachposint ";"
+ " for (" eachposint"=0; " 
+        eachposint "<" lim ";"
+        eachposint "++) @{"
+   cur " = " eachposint;
+ )
+ (                                @r{; start of after expansion}
+ "@}" 
+ )
+) 
+@end lisp
+
+When used in a MELT expression like @code{(each-posint-till (5) (:long
+v) (print-long v))} -which has @code{:void} ctype because citerators
+are only useful for their side-effects- the C translation is vaguely
+similar (assuming @code{print-long} is a primitive expanding to
+@code{printf(``%d\n'',@var{...})} to something looking like
+@example
+curfnum[11] /*LIM*/ = 5;
+@{long eachposint_24;
+ for (eachposint_24=0; eachposint_24<curfnum[11]; eachposint_24++) @{
+   curfnum[3] /*V*/ = eachposint_24;
+   printf("%d\n", curfnum[3] /*V*/);
+ @}
+@}
+@end example
+
+So the start formals is translated as some local variable in the MELT
+frame, the state symbol @code{eachposint} is only used to generate a C
+identifier (unique to each occurrence of the citerator) and the local
+formals are translated to local variables bound inside the iterators
+body.
+
+In practice, citerators are very useful for interfacing to the various
+iterating idioms in GCC. A more realistic example is
+@lisp
+@r{;;;; iterate on a gimpleseq}
+(defciterator each_in_gimpleseq
+  (:gimpleseq gseq)			@r{;start formals}
+  eachgimplseq
+  (:gimple g)				@r{;local formals}
+  ( @r{;;; before expansion}
+   "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
+   @r{;; test that @t{gseq} is not null to be safe}
+   "if (" gseq ") for (gsi_" eachgimplseq " = gsi_start (" gseq
+        "); !gsi_end_p (gsi_" eachgimplseq ");"
+   " gsi_next (&gsi_" eachgimplseq ")) @{\n"
+    g " = gsi_stmt (gsi_" eachgimplseq ");"
+   )
+  ( @r{;;; after expansion}
+   "@}"
+   )
+)
+@end lisp
+
+@node Functions in MELT
+@subsection Functions in MELT
+
+@cindex Function in MELT
+
+As in many lisp dialect (e.g. Common Lisp) MELT functions are defined
+using the @code{defun} construct. The first argument (and the primary
+result) of all MELT function should always be a value, so it is not
+possible to give an unboxed @code{gimple} stuff to a function; hence
+we box it (pack it into a MELT value) before passing it as an
+argument.
+
+The following define a second-order function (actually defined in
+@file{ana-base.bysl}) called @code{do_each_gimpleseq} which gets two
+arguments, the first being itself a MELT function and the second being
+an unobxed @code{gimple} stuff, and apply the first argument to boxes
+packing each @code{gimple} inside the given @code{gimpleseq}.
+
+@lisp
+@r{;; apply a function to each boxed gimple in a gimple seq}
+(defun do_each_gimpleseq (f :gimpleseq gseq)
+  (each_in_gimpleseq 
+   (gseq) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+)
+@end lisp
+
+This function is only useful for its side effect. It returns the nil
+value.
+
+The real translation to C of the above is actually:
+
+@verbatim
+static basilys_ptr_t
+rout_9_DO_EACH_GIMPLESEQ(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp_, const char xargdescr_[], union basilysparam_un *xargtab_,
+      const char xresdescr_[], union basilysparam_un *xrestab_) {
+#if ENABLE_CHECKING
+ static long call_counter__;
+ long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
+#define callcount thiscallcounter__
+#else
+#define callcount 0L
+#endif
+
+ struct frame_rout_9_DO_EACH_GIMPLESEQ_st { unsigned nbvar;
+#if ENABLE_CHECKING
+  const char* flocs;
+#endif
+  struct basilysclosure_st *clos;
+  struct excepth_basilys_st *exh;
+  struct callframe_basilys_st *prev;
+#define CURFRAM_NBVARPTR 5
+  void* varptr[5];
+/*no varnum*/
+#define CURFRAM_NBVARNUM /*none*/0
+/*others*/
+gimple_seq loc_CTYPE_GIMPLESEQ__o0;
+gimple loc_CTYPE_GIMPLE__o1;
+  long _spare_; }
+  curfram__;
+  memset(&curfram__, 0, sizeof(curfram__));
+ curfram__.nbvar = 5;
+  curfram__.clos = closp_;
+ curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
+ basilys_topframe = (struct callframe_basilys_st *) &curfram__;
+basilys_trace_start("DO_EACH_GIMPLESEQ", callcount);
+/*getargs*/
+
+ /*getarg#0*/
+ 
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:436:: @getarg"
+#endif /*MELTGCC_NOLINENUMBERING*/
+ BASILYS_LOCATION("ana-base.bysl:436: @getarg");
+ /*_.F__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
+ 
+ /*getarg#1*/
+ 
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:436:: @getarg"
+#endif /*MELTGCC_NOLINENUMBERING*/
+ BASILYS_LOCATION("ana-base.bysl:436: @getarg");
+ if (xargdescr_[0] != BPAR_GIMPLESEQ) goto lab_endgetargs;
+ /*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0 = xargtab_[0].bp_gimpleseq;
+ ;
+ goto lab_endgetargs;
+lab_endgetargs:;
+/*body*/
+
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:436:: @block"
+#endif /*MELTGCC_NOLINENUMBERING*/
+BASILYS_LOCATION("ana-base.bysl:436: @block");
+/*block*/{
+ /*citerblock EACH_IN_GIMPLESEQ*/ {
+ gimple_stmt_iterator gsi_cit1__EACHGIMPLSEQ;
+if (/*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0) for (gsi_cit1__EACHGIMPLSEQ = gsi_start (/*_?*/ curfram__.loc_CTYPE_GIMPLESEQ__o0); !gsi_end_p (gsi_cit1__EACHGIMPLSEQ); gsi_next (&gsi_cit1__EACHGIMPLSEQ)) {
+/*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 = gsi_stmt (gsi_cit1__EACHGIMPLSEQ);
+ 
+  
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:439:: @block"
+#endif /*MELTGCC_NOLINENUMBERING*/
+  BASILYS_LOCATION("ana-base.bysl:439: @block");
+  /*block*/{
+   /*_.GPLVAL__V4*/ curfptr[3] = (basilysgc_new_gimple((basilysobject_ptr_t)((/*!DISCR_GIMPLE*/ curfrout->tabval[0])),(/*_?*/ curfram__.loc_CTYPE_GIMPLE__o1)));;
+   
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:440:: @apply"
+#endif /*MELTGCC_NOLINENUMBERING*/
+   BASILYS_LOCATION("ana-base.bysl:440: @apply");
+   /*apply*/{
+    /*_.F__V5*/ curfptr[4] =  basilys_apply ((basilysclosure_ptr_t)(/*_.F__V2*/ curfptr[1]), (basilys_ptr_t)(/*_.GPLVAL__V4*/ curfptr[3]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
+    }
+   ;
+   /*epilog*/
+   
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:439:: @clear"
+#endif /*MELTGCC_NOLINENUMBERING*/
+   BASILYS_LOCATION("ana-base.bysl:439: @clear");
+   /*clear*/ /*_.GPLVAL__V4*/ curfptr[3] = 0 ;
+   
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:439:: @clear"
+#endif /*MELTGCC_NOLINENUMBERING*/
+   BASILYS_LOCATION("ana-base.bysl:439: @clear");
+   /*clear*/ /*_.F__V5*/ curfptr[4] = 0 ;}
+  ;
+ }
+ 
+  /*citerepilog*/
+  
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:437:: @clear"
+#endif /*MELTGCC_NOLINENUMBERING*/
+  BASILYS_LOCATION("ana-base.bysl:437: @clear");
+  /*clear*/ /*_?*/ curfram__.loc_CTYPE_GIMPLE__o1 = 0 ;
+  
+#ifndef MELTGCC_NOLINENUMBERING
+#line 0  "ana-base.bysl:437:: @clear"
+#endif /*MELTGCC_NOLINENUMBERING*/
+  BASILYS_LOCATION("ana-base.bysl:437: @clear");
+  /*clear*/ /*_.LET___V3*/ curfptr[2] = 0 ;} /*endciterblock EACH_IN_GIMPLESEQ*/
+ ;
+ /*epilog*/}
+
+;
+ goto labend_rout;
+labend_rout:
+ basilys_trace_end("DO_EACH_GIMPLESEQ", callcount);  
+ basilys_topframe = (struct callframe_basilys_st*) curfram__.prev;
+ return (basilys_ptr_t)(/*noretval*/ NULL);
+#undef callcount
+#undef CURFRAM_NBVARNUM
+#undef CURFRAM_NBVARPTR
+} /*end rout_9_DO_EACH_GIMPLESEQ*/
+@end verbatim
+
+Of course, nobody wants to read or understand the generated code above.
+
+In practice, such second-order functions (second order because they
+are functionals, consuming function arguments) are often used with
+anonymous functions using the @code{lambda} construct, eg
+@lisp
+(do_each_gimpleseq
+ (lambda (boxgimp) @r{;anonymous function with argument boxgimp}
+  (let ( (:long gimp
+          @r{; fetch the content of the boxed gimple value as an unboxed stuff}
+          (gimple_content boxgimp)) )
+  @var{.... do something with @code{gimp} stuff ....}
+ ))
+bgs @r{; some boxed gimple value}
+)
+@end lisp
 @c =======================================================================
 
 @node Reference on MELT
