@@ -1000,10 +1000,11 @@ fname_as_string (int pretty_p)
    now. RID indicates how it should be formatted and IDENTIFIER_NODE
    ID is its name (unfortunately C and C++ hold the RID values of
    keywords in different places, so we can't derive RID from ID in
-   this language independent code.  */
+   this language independent code. LOC is the location of the
+   function.  */
 
 tree
-fname_decl (unsigned int rid, tree id)
+fname_decl (location_t loc, unsigned int rid, tree id)
 {
   unsigned ix;
   tree decl = NULL_TREE;
@@ -1034,7 +1035,7 @@ fname_decl (unsigned int rid, tree id)
       input_location = saved_location;
     }
   if (!ix && !current_function_decl)
-    pedwarn (input_location, 0, "%qD is not defined outside of function scope", decl);
+    pedwarn (loc, 0, "%qD is not defined outside of function scope", decl);
 
   return decl;
 }
@@ -6142,7 +6143,9 @@ handle_weakref_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   /* We must ignore the attribute when it is associated with
      local-scoped decls, since attribute alias is ignored and many
      such symbols do not even have a DECL_WEAK field.  */
-  if (decl_function_context (*node) || current_function_decl)
+  if (decl_function_context (*node)
+      || current_function_decl
+      || (TREE_CODE (*node) != VAR_DECL && TREE_CODE (*node) != FUNCTION_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
