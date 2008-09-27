@@ -103,6 +103,10 @@ along with GCC; see the file COPYING3.   If not see
 #error MELT_COMPILE_SCRIPT  is not defined thru compile flags
 #endif
 
+#if BASILYS_HAS_OBJ_TAB_FIELDS
+#error BASILYS_HAS_OBJ_TAB_FIELDS is no more supported
+#endif
+
 /* *INDENT-OFF* */
 static const char melt_private_include_dir[] = MELT_PRIVATE_INCLUDE_DIR;
 static const char melt_source_dir[] = MELT_SOURCE_DIR;
@@ -695,17 +699,10 @@ forwarded_copy (basilys_ptr_t p)
       {
 	struct basilysobject_st *src = (struct basilysobject_st *) p;
 	unsigned oblen = src->obj_len;
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-	struct basilysobject_st *dst = (struct basilysobject_st *)
-	  ggc_alloc_cleared (offsetof (struct basilysobject_st,
-				       obj__tabfields));
-#else /*!BASILYS_HAS_OBJ_TAB_FIELDS */
 	struct basilysobject_st *dst = (struct basilysobject_st *)
 	  ggc_alloc_cleared (offsetof (struct basilysobject_st,
 				       obj_vartab) +
 			     oblen * sizeof (src->obj_vartab[0]));
-
-#endif /*BASILYS_HAS_OBJ_TAB_FIELDS */
 	int ix;
 	/* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
 	dst->obj_class = src->obj_class;
@@ -715,22 +712,9 @@ forwarded_copy (basilys_ptr_t p)
 #if ENABLE_CHECKING
 	dst->obj_serial = src->obj_serial;
 #endif
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-	dst->obj_vartab = 0;
-	if (oblen > 0)
-	  {
-	    dst->obj_vartab =
-	      (basilys_ptr_t *) ggc_alloc_cleared (sizeof (void *) * oblen);
-	    for (ix = (int) oblen - 1; ix >= 0; ix--)
-	      dst->obj_vartab[ix] = src->obj_vartab[ix];
-	  }
-	else
-	  dst->obj_vartab = NULL;
-#else /*!BASILYS_HAS_OBJ_TAB_FIELDS */
 	if (oblen > 0)
 	  for (ix = (int) oblen - 1; ix >= 0; ix--)
 	    dst->obj_vartab[ix] = src->obj_vartab[ix];
-#endif /*BASILYS_HAS_OBJ_TAB_FIELDS */
 	n = (basilys_ptr_t) dst;
 	break;
       }
@@ -1166,17 +1150,6 @@ scanning (basilys_ptr_t p)
       {
 	int ix;
 	struct basilysobject_st *src = (basilysobject_ptr_t) p;
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-	if (basilys_is_young (src->obj_vartab))
-	  {
-	    basilys_ptr_t *newtab = (basilys_ptr_t *)
-	      ggc_alloc_cleared (sizeof (void *) * src->obj_len);
-	    int ix;
-	    for (ix = (int) src->obj_len - 1; ix >= 0; ix--)
-	      newtab[ix] = src->obj_vartab[ix];
-	    src->obj_vartab = newtab;
-	  }
-#endif
 	for (ix = (int) (src->obj_len) - 1; ix >= 0; ix--)
 	  FORWARDED (src->obj_vartab[ix]);
 	break;
@@ -1681,7 +1654,6 @@ basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
 #define discrv  curfram__.varptr[1]
 #define object_discrv ((basilysobject_ptr_t)(discrv))
 #define int_newintv ((struct basilysint_st*)(newintv))
-  newintv = NULL;
   discrv = (void *) discr_p;
   if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
     goto end;
@@ -2382,10 +2354,6 @@ basilysgc_new_raw_object (basilysobject_ptr_t klass_p, unsigned len)
   obj_newobjv->obj_hash = h;
   obj_newobjv->obj_len = len;
   basilys_object_set_serial (obj_newobjv);
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-  if (len > 0)
-    obj_newobjv->obj_vartab = obj_newobjv->obj__tabfields;
-#endif /*BASILYS_HAS_OBJ_TAB_FIELDS */
 end:
   BASILYS_EXITFRAME ();
   return (basilysobject_ptr_t) newobjv;

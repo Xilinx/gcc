@@ -30,6 +30,7 @@ See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 * Invoking MELT::                             Invoking MELT.
 * Tutorial about MELT::                       Tutorial describing MELT.
 * Reference on MELT::                         MELT language reference.
+* Writing C code for MELT::                   
 @end menu
 
 @c ----------------------------------------------------------------
@@ -1883,5 +1884,178 @@ pass. Here code is still SSA but will soon be removed.
 
 @end itemize
 
+@node Writing C code for MELT
+@section Writing C code for MELT
+
+[For experts] Sometimes (i.e. to implement a new primitive) it may be
+necessary to write some C code for MELT. We describe here the coding
+conventions to follow, in particular because MELT has a copying
+generational garbage collector (which changes pointers when copying
+values out of the nursery).
+
+Above all, @emph{avoid coding in C} (a cumbersome task) and
+@emph{prefer writing MELT code} when possible.
+
+Remember that MELT pointers can move at every allocation and every
+MELT related call.
+
+First, a real example. To box a long integer into a MELT value, MELT
+code have to use the @code{make_integerbox} defined in
+@file{warmelt-first.bysl} as
+@lisp
+(defprimitive make_integerbox (discr :long n) :value
+  "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
+@end lisp
+If the passed @code{discr} is not a discriminant for boxed integers,
+@code{make_integerbox} gives nil.
+
+To get the boxed integer's content, use the @code{getint} primitive in
+MELT. To test if a value is a boxed integer, use the
+@code{is_integerbox} primitive.
+
+The @code{basilysgc_new_int} routine is implemented in
+@file{basilys.c} with the following code. We give it entirely, with
+additional comments
+
+@verbatim
+basilys_ptr_t
+basilysgc_new_int (basilysobject_ptr_t discr_p, long num)
+{
+  BASILYS_ENTERFRAME (2, NULL);
+#define newintv curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define int_newintv ((struct basilysint_st*)(newintv))
+@end verbatim
+We first create a MELT frame using the @code{BASILYS_ENTERFRAME} macro
+which creates, initialize the frame and install it at top. The first
+argument is the number of local MELT values, the second argument is
+the current MELT closure (so is @code{NULL} for C code which is not
+the code of a routine). Instead of writing @code{curfram__.varptr[0]}
+we @code{#define} some more descriptive names for readability. The
+frame is initially filled with nil values. The value pointer arguments
+(here @code{discr_p}) of the C function are conventionally named with
+a @code{_p} suffix. Every local MELT value should be inside your
+@code{curfram__.varptr} array.
+
+
+@verbatim
+  discrv = (void *) discr_p;
+@end verbatim
+Every value passed as a C argument should be immediately copied into
+the MELT frame (i.e. as a local value) and the C argument should not
+be used directly afterwards. So never use @code{_p} suffixed arguments
+after have copied them inside the frame.
+
+@verbatim
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_INT)
+    goto end;
+@end verbatim
+We try to be safe, so we at least test that the discriminant is an
+object. We could have tested that it is indeed an instance of
+@code{CLASS_DISCR} but that would be slower but safer. However we do
+test that the discriminant's magic is indeed
+@code{OBMAG_INT}@footnote{It is essential to ensure that every MELT
+value has the good magic numer in its discriminant. Violating that
+would crash GCC.}. If either test fail, we return nil by @code{goto
+end}. We cannot code a direct @code{return} statement, because that
+would not pop the topmost MELT frame.
+
+@verbatim
+  newintv = basilysgc_allocate (sizeof (struct basilysint_st), 0);
+  int_newintv->discr = object_discrv;
+  int_newintv->val = num;
+@end verbatim
+We allocate space in the nursery with @code{basilysgc_allocate}. This
+C function sometimes trigger MELT garbage collection, so may move any
+pointer inside any MELT frames. The first argument to
+@code{basilysgc_allocate} is the @code{sizeof} of the fixed part of
+the value, and the second is the size of its trailing variable
+part. The allocated zone should be immediately filled to make a valid
+MELT value.
+
+@verbatim
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) newintv;
+#undef newintv
+#undef discrv
+#undef int_newintv
+#undef object_discrv
+}
+@end verbatim
+We end by popping the current MELT frame and retuning. Popping the
+frame should always be done, so conventionally we use an @code{end:}
+label. To be good citizens for further C functions, we
+@code{#undef}-ing every C macro defined for readability.
+
+More generally, every C function which may (directly or in any deeply
+called function) trigger the MELT garbage collector should follow
+these rules:
+
+@enumerate
+
+@item avoid coding in C. 
+The whole purpose of MELT is to make coding more fun.
+
+@item make an explicit MELT frame and enter it.
+The C routine should start by making a frame usually with
+@code{BASILYS_ENTERFRAME} macro (which expands to a C declaration
+followed by some C statements, so should be the last ``declaration''
+like stuff in your function). For readability, you want to define C
+macros (conventionally ending with @code{v}) to access the local
+values in your frame instead of @code{curfram__.varptr[@var{index}]}.
+
+@item put every value in the MELT frame.
+This means that every value should be kept in a local inside the MELT
+frame, accessed thru @code{curfram__}. In particular, @emph{nesting
+function calls is prohibited}; never code @code{f(g(x))} if @code{g}
+may trigger a MELT garbage collection; use a local value for
+@code{g(x)} instead, and avoid declaring any MELT value as a C local.
+
+@item try to code safely.
+Unless you have specific reasons to avoid that, try to test MELT
+values before using them.
+
+@item notify on MELT updates.
+When a MELT value is updated by changing some MELT pointer inside it,
+you have to notify the garbage collector (write barrier) using the
+@code{basilysgc_touch} function (taking as argument the modified MELT
+value) or the @code{basilysgc_touch_dest} (also given the new MELT
+pointer inside). These functions has to be called just after writing
+the MELT pointer into the data. They can call the MELT garbage
+collector (which may change any local value in the MELT frame).
+
+@item allocate MELT data appropriately.
+Use @code{basilysgc_allocate}, or preferably some existing allocating
+function (like @code{basilysgc_new_*}) to allocate new MELT
+values. Never forget that such an allocation may trigger the MELT GC
+and change every local pointer in the current MELT frame
+@code{curfram__}. Most C functions which may directly or indirectly
+trigger a MELT garbage collection are prefixed with @code{basilysgc}
+(but @code{basilys_apply} could also trigger that).
+
+@item don't use longjmp,
+because @code{longjmp} won't pop the MELT frames.
+
+@item always exit the MELT frame
+explicitly using @code{BASILYS_EXITFRAME()} macro, which usually is
+the last statement of your function (so avoid @code{return}-ing
+before, hence always use a @code{goto end} instead.
+
+@item avoid using global MELT values.
+If you really need some, use the @code{BASILYSGOB} or @code{BASILYSG}
+macros. Adding additional MELT globals is tricky (edit files
+@file{basilys.h} and @file{warmelt-normal.bysl}). Using existing MELT
+globals is simpler, e.g. @code{BASILYSGOB(DISCR_LIST)} to fetch the
+predefined discriminant @code{DISCR_LIST}.
+
+@item apply MELT functions and send MELT messages
+using @code{basilys_apply} and @code{basilysgc_send} with their
+pecular calling conventions (constant string describing array of
+unions).
+@end enumerate
 
 @c =======================================================================

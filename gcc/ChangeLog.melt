@@ -1,3 +1,8 @@
+2008-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (forwarded_copy, scanning): BASILYS_HAS_OBJ_TAB_FIELDS
+	is obsolete.
+	* doc/melt.texi: added Writing C code for MELT
+
 2008-09-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: explained better the tranlated C code.
 	* melt/warmelt-first.bysl: added add2sbuf_ccomconst primitive.
