@@ -1453,9 +1453,10 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
       && !same_type_ignoring_top_level_qualifiers_p(DECL_CONTEXT (decl), TREE_TYPE (object)))
     /* TODO: if the lambda does not capture 'this', but has default capture,
      * then we need to add it late.  */
-    object = build_indirect_ref (
+    object = cp_build_indirect_ref (
         lambda_expr_this_capture (CLASSTYPE_LAMBDA_EXPR (TREE_TYPE (object))),
-        /*errorstring=*/"");
+        /*errorstring=*/"",
+        /*complain=*/tf_warning_or_error);
 
   TREE_USED (current_class_ptr) = 1;
   if (processing_template_decl && !qualifying_scope)

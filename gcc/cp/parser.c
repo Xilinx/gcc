@@ -6981,7 +6981,7 @@ static void
 cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
     tree lambda_expr)
 {
-  cp_parameter_declarator* param_list = no_parameters;
+  tree param_list = NULL_TREE;
   tree exception_spec = NULL_TREE;
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
@@ -6992,10 +6992,22 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
     if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
     {
       bool is_error = false;
+
+      begin_scope (sk_function_parms, /*entity=*/NULL_TREE);
+
       param_list = cp_parser_parameter_declaration_list (parser, &is_error);
       /* TODO: better way to handle this error?  */
       if (is_error)
-        param_list = no_parameters;
+        param_list = NULL_TREE;
+
+      /* Remove the function parms from scope.  */
+      {
+        tree t;
+        for (t = current_binding_level->names; t; t = TREE_CHAIN (t))
+          pop_binding (DECL_NAME (t), t);
+        leave_scope();
+      }
+
     }
 
     cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
@@ -7059,7 +7071,8 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
         /*cv_qualifiers=*/(LAMBDA_EXPR_MUTABLE_P (lambda_expr) ?
            (TYPE_UNQUALIFIED) :
            (TYPE_QUAL_CONST)),
-        exception_spec);
+        exception_spec,
+        /*late_return_type=*/NULL_TREE);
 
     parser->in_declarator_p = saved_in_declarator_p;
     parser->default_arg_ok_p = saved_default_arg_ok_p;
