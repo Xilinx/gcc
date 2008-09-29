@@ -344,6 +344,52 @@
 	   sstpd_value
 ))
 
+;;; source patterns
+(defclass class_srcpattern_any
+  :super class_src
+  :fields (
+	   ))
+
+;;; simple source pattern variable
+(defclass class_srcpattern_variable
+  :super class_srcpattern_any
+  :fields (spat_var
+))
+
+;;; simple source pattern constant
+(defclass class_srcpattern_constant
+  :super class_srcpattern_any
+  :fields (spat_constx			;expression giving the constant
+))
+
+;; simple source pattern for objects - with a sequence of fieldpatterns
+;; matches an object whose class is spat_class or a subclass of it
+(defclass class_srcpattern_object
+  :super class_srcpattern_any
+  :fields (spat_class			;required [super*] class
+	   spat_fields			;sequence of fieldpatterns
+))
+
+;; simple source pattern for exact instance
+;; matches an object whose class is exactly spat_class
+(defclass class_srcpattern_instance
+  :super class_srcpattern_object
+  :fields (
+	   ))
+
+;; simple field pattern
+(defclass class_srcfieldpattern
+  :super class_src
+  :fields (spaf_field			;the required field
+	   spaf_pattern			;the pattern matching the field
+))
+
+;; abstract composite source pattern
+(defclass class_srcpattern_composite
+  :super class_srcpattern_object
+  :fields (spac_operator		;pattern operator
+	   spac_args			;subpatterns
+	   ))
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
 
 ;;get the n-th son of a sexpr
@@ -632,6 +678,103 @@
 		   :sprim_args xargtup)))
 
 
+;;; class for pattern expansion context
+(defclass class_pattexpcontext
+  :super class_root
+  :fields (pctx_mexpander      	;macroexpander
+	   pctx_pexpander      	;patter expander
+	   pctx_varmap	        ;objmap for pattern variables [symbols => srcpattern_variable]
+))
+
+;; pattern expansion of a pattern expression like (question SEXPR)
+(defun patternexpand_expr (sexpr env pctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (debug_msg sexpr "patternexpand_expr sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (curpair (list_first scont))
+	 (soper (pair_head curpair)) )
+    (if (is_not_a soper class_symbol)
+	(progn
+	  (error_plain sloc "pattern expression requires symbol operator")
+	  (return)))
+    (let ( (opbind (find_env env soper))
+	   (opnam (unsafe_get_field :named_name soper))
+	   )
+      (cond 
+       ( (null opbind)
+	 (error_strv sloc "unbound pattern operator" opnam)
+	 )
+       ( (is_a opbind class_patmacro_binding)
+	 (let ( (patexp (unsafe_get_field :patbind_expanser opbind)) )
+	   (assert_msg "check patexp" (is_closure patexp))
+	   (let ( (resp (patexp sexpr env pctx)) )
+	     (debug_msg resp "patternexpand_expr resp")
+	     (return resp)
+	 )))
+       (:else
+	(error_strv sloc
+		    "pattern operator badly bound - patternmacro expected"
+		    opnam)
+	)
+       )
+      )))
+
+;; pattern expansion
+(defun patternexpand_1 (sexpr env pctx)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (if (is_a sexpr class_sexpr)
+      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	     (sloc (unsafe_get_field :loca_location sexpr))
+	     (curpair (list_first scont))
+	     (soper (pair_head curpair)) )
+	(debug_msg sexpr "patternexpand_1 sexpr")
+	(debug_msg soper "patternexpand_1 soper")
+	(if (!= soper 'question)
+	    ;; non-question expr: return the constant pattern with...
+	    (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
+		   (exp (macroexpand_1 sexpr env mexpander))
+		   (pat (make_instance class_srcpattern_constant
+				       :src_loc sloc
+				       :spat_constx exp))
+		   )
+	      (return pat)
+	      )
+	  ;; question expr
+	  (let ( (parg1 (pair_head (setq curpair (pair_tail curpair)))) )
+	    (if (pair_tail curpair)
+		(error_plain sloc "QUESTION should have one argument"))
+	    (cond
+	     ((is_a parg1 class_symbol)
+	      ;; if parg1 is a symbol, make a patternvariable and add it
+	      ;; into pctx
+	      (let ( (vamp (unsafe_get_field :pctx_varmap pctx))
+		     (pavr (mapobject_get vamp parg1))
+		     )
+		(if pavr 
+		    pavr
+		  (let ( (newpavr (make_instance class_srcpattern_variable
+						 :src_loc sloc
+						 :spat_var parg1)) 
+			 )
+		    (mapobject_put vamp parg1 newpavr)
+		    newpavr)
+		  ))
+	      )
+	     ((is_a parg1 class_sexpr)
+	      (patternexpand_expr parg1 env pctx)
+	      )
+	     (:else
+	      (error_plain sloc "unexpected pattern QUESTION - neither symbol nor pattern expr")))
+	    )
+	  ))
+    ;; not an s-expr, return itself
+    (return sexpr)
+    )
+  )
 
 (defun macroexpand_toplevel_list (slist env)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
@@ -2679,6 +2822,7 @@
 ;;;;;;;;;;;;;;;;
 
 (export_class  ;classes for source representations, alphabetical order
+ class_pattexpcontext
  class_src_apply
  class_src_citeration
  class_src_comment
@@ -2723,6 +2867,13 @@
  class_src_update_current_module_environment_container
  class_srcdef
  class_srcdeformal
+ class_srcfieldpattern
+ class_srcpattern_any
+ class_srcpattern_composite
+ class_srcpattern_constant
+ class_srcpattern_instance
+ class_srcpattern_object
+ class_srcpattern_variable
  )			       ;end classes for source representations
 
 (export_values			 ;functions for source representations
@@ -2734,6 +2885,7 @@
  lambda_arg_bindings
  macroexpand_1
  macroexpand_toplevel_list
+ patternexpand_1
  )			  ;end of functions for source representations
 
 (debug_msg class_symbol "at end of warmelt-macro Class_Symbol")

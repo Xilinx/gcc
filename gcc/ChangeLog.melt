@@ -1,3 +1,12 @@
+2008-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: start mentionning pattern macros & bindings.
+	* melt/warmelt-first.bysl: added class_patmacro_binding
+	* melt/warmelt-macro.bysl: add class_srcfieldpattern +
+	class_srcpattern_any + class_srcpattern_composite +
+	class_srcpattern_constant + class_srcpattern_instance +
+	class_srcpattern_object + class_srcpattern_variable +
+	patternexpand_1
+
 2008-09-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (forwarded_copy, scanning): BASILYS_HAS_OBJ_TAB_FIELDS
 	is obsolete.

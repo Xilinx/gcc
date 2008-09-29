@@ -1471,6 +1471,10 @@ the given @var{class-name}s and their fields.
 current module, so is available in other modules only (but not in the
 current one).
 
+@item export_patmacro
+@cindex @code{export_patmacro} MELT syntax
+[For experts, not implemented] 
+
 @item export_values
 @cindex @code{export_values} MELT syntax
 The form @code{(export_values @var{exported-name} @var{...})} export
@@ -1660,7 +1664,8 @@ A MELT module uses previously available bindings (imported values,
 etc..) and provides its own bindings (exported values,
 etc..). Bindings are objects (of superclass @code{CLASS_ANY_BINDING},
 e.g. of some class like @code{CLASS_VALUE_BINDING}
-@code{CLASS_MACRO_BINDING} etc...). Bindings are grouped in
+@code{CLASS_MACRO_BINDING} @code{CLASS_PATMACRO_BINDING}
+@code{CLASS_INSTANCE_BINDING} etc...). Bindings are grouped in
 environments (themselves objects of class
 @code{CLASS_ENVIRONMENT}). Each environment is linked to its
 parent. So a MELT module is initialized in its parent module

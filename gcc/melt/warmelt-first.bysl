@@ -224,6 +224,10 @@
   :super class_exported_binding
   :fields (mbind_expanser))
 
+;; pattern macro binding
+(defclass class_patmacro_binding
+  :super class_macro_binding
+  :fields (patbind_expanser))
 
 ;; value binding - as exported 
 (defclass class_value_binding
@@ -3269,6 +3273,7 @@
  class_normcontext
  class_normlet_binding
  class_objcode
+ class_patmacro_binding
  class_primitive
  class_primitive_binding
  class_proped 
