@@ -14,7 +14,6 @@ int main() {
 
   assert(i == 2);
 
-  /*
   [&] () -> void {
     [&i] () -> void {
       i = 3;
@@ -23,9 +22,31 @@ int main() {
 
   assert(i == 3);
 
+  /*
   [&] () -> void {
     [&] () -> void {
       i = 4;
+    } ();
+  } ();
+
+  assert(i == 4);
+  i = 4;
+  */
+
+  /*
+  [&] () -> void {
+    [=] () mutable -> void {
+      i = 5;
+    } ();
+  } ();
+  */
+
+  /*
+  assert(i == 4);
+
+  [=] () mutable -> void {
+    [&] () -> void {
+      i = 6;
     } ();
   } ();
 
