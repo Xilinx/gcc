@@ -1,3 +1,76 @@
+2008-09-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (dot_all_scops_1): Remove unused checks. SCoPs always have
+	exit and entry.
+	(new_scop): Take entry and exit edge to define new SCoP.
+	(sd_region_p): New structure used during SCoP detection.
+	(move_scops): Delete.
+	(move_sd_regions): New.
+	(scopdet_info): Change the definition from edges back to basic_blocks.
+	(scopdet_edge_info):  Work on basic_blocks and rename to
+	scopdet_basic_block_info.
+	(split_difficult_bb): At the moment removed. We should later
+	add it at another place.
+	(build_scops_1): Work on basic_blocks.
+	(bb_in_sd_region): New.
+	(find_single_entry_edge): New.
+	(find_single_exit_edge): New.
+	(create_single_entry_edge): New.
+	(sd_region_without_exit): New.
+	(create_single_exit_edge): New.
+	(unmark_exit_edges): New.
+	(mark_exit_edges): New.
+	(create_sese_edges): New.
+	(build_graphite_scops): New.
+	(build_scops): Make SCoPs SESE.
+	(limit_scops): Use the new functions.
+
+2008-09-29  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config/cris/cris.h (IRA_COVER_CLASSES): Define.
+
+2008-09-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR target/37640
+	* config/rs6000/rs6000.c (rs6000_expand_compare_and_swapqhi): Force
+	address to a register before taking the lower part.
+
+2008-09-28  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.h (OVERRIDE_OPTIONS): Unset flag_dwarf2_cfi_asm
+	for SHmedia.
+
+2008-09-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+            Kaushal Kantawala  <kaushal_kantawala@playstation.sony.com>
+
+	PR tree-opt/36891
+	* tree-ssa-loop-im.c (rewrite_reciprocal): Set DECL_GIMPLE_REG_P on
+	the newly created variable.
+	Create a VECTOR_CST of all 1s for vector types.
+
+2008-09-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/36575
+	* fold-const.c (div_and_round_double) <ROUND_DIV_EXPR>: Fix typo.
+
+2008-09-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expmed.c (store_fixed_bit_field): Always use convert_to_mode in
+	order to convert between modes.
+	(extract_bit_field_1): Test TRULY_NOOP_TRUNCATION on the right mode.
+
+2008-09-27  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_gimplify_va_arg_expr): Use VIEW_CONVERT_EXPR
+	if needed.
+
+2008-09-26  Vladimir Makarov  <vmakarov@redhat.com>
+
+	Revert:
+        2008-09-25  Vladimir Makarov  <vmakarov@redhat.com>
+	* ira-lives.c:...
+	* doc/rtl.texi:...
+
 2008-09-26  Adam Nemet  <anemet@caviumnetworks.com>
 
 	* config/mips/mips.h (ISA_HAS_DMUL3, ISA_HAS_BADDU, ISA_HAS_BBIT,
