@@ -5011,38 +5011,45 @@ finish_lambda_function_body (tree lambda, tree body)
   if (!LAMBDA_EXPR_RETURN_TYPE (lambda))
   {
     tree fco = LAMBDA_EXPR_FUNCTION (lambda);
+    /* 5.1.1.9.2 of the standard says:
+     *   for a lambda expression that does not contain a
+     *   lambda-return-type-clause, the return type is void, unless the
+     *   compound-statement is of the form { return expression ; }  */
+    tree return_type = void_type_node;
 
     tree_stmt_iterator istmt = tsi_start (DECL_SAVED_TREE (fco));
     /* If we got an actual statement...  */
     /* TODO: is this test necessary?  */
     if (!tsi_end_p (istmt))
     {
-      /* If the first statment is a return statement...  */
       tree stmt = tsi_stmt (istmt);
+      /* Get through the cleanup wrapper, if any. */
+      if (TREE_CODE (stmt) == CLEANUP_POINT_EXPR)
+        stmt = TREE_OPERAND (stmt, 0);
+      /* If the first statment is a return statement...  */
       if (TREE_CODE (stmt) == RETURN_EXPR)
-      {
-        tree return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
-        tree result;
-
-        /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
-           TREE_TYPE (METHOD_TYPE)   == return-type */
-        TREE_TYPE (TREE_TYPE (fco)) = return_type;
-
-        /* Must redo some work from start_preparsed_function. */
-        result = build_lang_decl (
-            RESULT_DECL,
-            /*name=*/0,
-            TYPE_MAIN_VARIANT (return_type));
-        /* TODO: are these necessary? */
-        DECL_ARTIFICIAL (result) = 1;
-        DECL_IGNORED_P (result) = 1;
-        cp_apply_type_quals_to_decl (
-            cp_type_quals (return_type),
-            result);
-
-        DECL_RESULT (fco) = result;
-      }
+        return_type = TREE_TYPE (TREE_OPERAND (stmt, 0));
     }
+
+    {
+      /* Must redo some work from start_preparsed_function. */
+      tree result = build_lang_decl (
+          RESULT_DECL,
+          /*name=*/0,
+          TYPE_MAIN_VARIANT (return_type));
+      /* TODO: are these necessary? */
+      DECL_ARTIFICIAL (result) = 1;
+      DECL_IGNORED_P (result) = 1;
+      cp_apply_type_quals_to_decl (
+          cp_type_quals (return_type),
+          result);
+
+      DECL_RESULT (fco) = result;
+      /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
+         TREE_TYPE (METHOD_TYPE)   == return-type */
+      TREE_TYPE (TREE_TYPE (fco)) = return_type;
+    }
+
   }
 
   finish_function_body (body);
