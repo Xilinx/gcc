@@ -1723,7 +1723,7 @@ assemble_start_function (tree decl, const char *fnname)
      because ASM_OUTPUT_MAX_SKIP_ALIGN might not do any alignment at all.  */
   if (! DECL_USER_ALIGN (decl)
       && align_functions_log > align
-      && cfun->function_frequency != FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
+      && optimize_function_for_speed_p (cfun))
     {
 #ifdef ASM_OUTPUT_MAX_SKIP_ALIGN
       ASM_OUTPUT_MAX_SKIP_ALIGN (asm_out_file,
@@ -2286,9 +2286,14 @@ process_pending_assemble_externals (void)
 #endif
 }
 
-/* Output something to declare an external symbol to the assembler.
-   (Most assemblers don't need this, so we normally output nothing.)
-   Do nothing if DECL is not external.  */
+/* This TREE_LIST contains any weak symbol declarations waiting
+   to be emitted.  */
+static GTY(()) tree weak_decls;
+
+/* Output something to declare an external symbol to the assembler,
+   and qualifiers such as weakness.  (Most assemblers don't need
+   extern declaration, so we normally output nothing.)  Do nothing if
+   DECL is not external.  */
 
 void
 assemble_external (tree decl ATTRIBUTE_UNUSED)
@@ -2299,12 +2304,22 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
      open.  If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
 
-#ifdef ASM_OUTPUT_EXTERNAL
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;
 
-  /* We want to output external symbols at very last to check if they
-     are references or not.  */
+  /* We want to output annotation for weak and external symbols at
+     very last to check if they are references or not.  */
+
+  if (SUPPORTS_WEAK && DECL_WEAK (decl)
+      /* TREE_STATIC is a weird and abused creature which is not
+	 generally the right test for whether an entity has been
+	 locally emitted, inlined or otherwise not-really-extern, but
+	 for declarations that can be weak, it happens to be
+	 match.  */
+      && !TREE_STATIC (decl))
+    weak_decls = tree_cons (NULL, decl, weak_decls);
+
+#ifdef ASM_OUTPUT_EXTERNAL
   pending_assemble_externals = tree_cons (0, decl,
 					  pending_assemble_externals);
 #endif
@@ -4056,6 +4071,77 @@ constructor_static_from_elts_p (const_tree ctor)
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (ctor)));
 }
 
+/* A subroutine of initializer_constant_valid_p.  VALUE is either a
+   MINUS_EXPR or a POINTER_PLUS_EXPR.  This looks for cases of VALUE
+   which are valid when ENDTYPE is an integer of any size; in
+   particular, this does not accept a pointer minus a constant.  This
+   returns null_pointer_node if the VALUE is an absolute constant
+   which can be used to initialize a static variable.  Otherwise it
+   returns NULL.  */
+
+static tree
+narrowing_initializer_constant_valid_p (tree value, tree endtype)
+{
+  tree op0, op1;
+
+  if (!INTEGRAL_TYPE_P (endtype))
+    return NULL_TREE;
+
+  op0 = TREE_OPERAND (value, 0);
+  op1 = TREE_OPERAND (value, 1);
+
+  /* Like STRIP_NOPS except allow the operand mode to widen.  This
+     works around a feature of fold that simplifies (int)(p1 - p2) to
+     ((int)p1 - (int)p2) under the theory that the narrower operation
+     is cheaper.  */
+
+  while (CONVERT_EXPR_P (op0)
+	 || TREE_CODE (op0) == NON_LVALUE_EXPR)
+    {
+      tree inner = TREE_OPERAND (op0, 0);
+      if (inner == error_mark_node
+	  || ! INTEGRAL_MODE_P (TYPE_MODE (TREE_TYPE (inner)))
+	  || (GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op0)))
+	      > GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (inner)))))
+	break;
+      op0 = inner;
+    }
+
+  while (CONVERT_EXPR_P (op1)
+	 || TREE_CODE (op1) == NON_LVALUE_EXPR)
+    {
+      tree inner = TREE_OPERAND (op1, 0);
+      if (inner == error_mark_node
+	  || ! INTEGRAL_MODE_P (TYPE_MODE (TREE_TYPE (inner)))
+	  || (GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op1)))
+	      > GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (inner)))))
+	break;
+      op1 = inner;
+    }
+
+  op0 = initializer_constant_valid_p (op0, endtype);
+  op1 = initializer_constant_valid_p (op1, endtype);
+
+  /* Both initializers must be known.  */
+  if (op0 && op1)
+    {
+      if (op0 == op1)
+	return null_pointer_node;
+
+      /* Support differences between labels.  */
+      if (TREE_CODE (op0) == LABEL_DECL
+	  && TREE_CODE (op1) == LABEL_DECL)
+	return null_pointer_node;
+
+      if (TREE_CODE (op0) == STRING_CST
+	  && TREE_CODE (op1) == STRING_CST
+	  && operand_equal_p (op0, op1, 1))
+	return null_pointer_node;
+    }
+
+  return NULL_TREE;
+}
+
 /* Return nonzero if VALUE is a valid constant-valued expression
    for use in initializing a static variable; one that can be an
    element of a "constant" initializer.
@@ -4069,6 +4155,8 @@ constructor_static_from_elts_p (const_tree ctor)
 tree
 initializer_constant_valid_p (tree value, tree endtype)
 {
+  tree ret;
+
   switch (TREE_CODE (value))
     {
     case CONSTRUCTOR:
@@ -4129,19 +4217,36 @@ initializer_constant_valid_p (tree value, tree endtype)
 	return op0;
       }
 
-    case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
       return initializer_constant_valid_p (TREE_OPERAND (value, 0), endtype);
 
+    case VIEW_CONVERT_EXPR:
+      {
+	tree src = TREE_OPERAND (value, 0);
+	tree src_type = TREE_TYPE (src);
+	tree dest_type = TREE_TYPE (value);
+
+	/* Allow view-conversions from aggregate to non-aggregate type only
+	   if the bit pattern is fully preserved afterwards; otherwise, the
+	   RTL expander won't be able to apply a subsequent transformation
+	   to the underlying constructor.  */
+	if (AGGREGATE_TYPE_P (src_type) && !AGGREGATE_TYPE_P (dest_type))
+	  {
+	    if (TYPE_MODE (endtype) == TYPE_MODE (dest_type))
+	      return initializer_constant_valid_p (src, endtype);
+	    else
+	      return NULL_TREE;
+	  }
+
+	/* Allow all other kinds of view-conversion.  */
+	return initializer_constant_valid_p (src, endtype);
+      }
+
     CASE_CONVERT:
       {
-	tree src;
-	tree src_type;
-	tree dest_type;
-
-	src = TREE_OPERAND (value, 0);
-	src_type = TREE_TYPE (src);
-	dest_type = TREE_TYPE (value);
+	tree src = TREE_OPERAND (value, 0);
+	tree src_type = TREE_TYPE (src);
+	tree dest_type = TREE_TYPE (value);
 
 	/* Allow conversions between pointer types, floating-point
 	   types, and offset types.  */
@@ -4209,6 +4314,14 @@ initializer_constant_valid_p (tree value, tree endtype)
 	  if (valid1 == null_pointer_node)
 	    return valid0;
 	}
+
+      /* Support narrowing pointer differences.  */
+      if (TREE_CODE (value) == POINTER_PLUS_EXPR)
+	{
+	  ret = narrowing_initializer_constant_valid_p (value, endtype);
+	  if (ret != NULL_TREE)
+	    return ret;
+	}
       break;
 
     case MINUS_EXPR:
@@ -4237,62 +4350,10 @@ initializer_constant_valid_p (tree value, tree endtype)
 	}
 
       /* Support narrowing differences.  */
-      if (INTEGRAL_TYPE_P (endtype))
-	{
-	  tree op0, op1;
+      ret = narrowing_initializer_constant_valid_p (value, endtype);
+      if (ret != NULL_TREE)
+	return ret;
 
-	  op0 = TREE_OPERAND (value, 0);
-	  op1 = TREE_OPERAND (value, 1);
-
-	  /* Like STRIP_NOPS except allow the operand mode to widen.
-	     This works around a feature of fold that simplifies
-	     (int)(p1 - p2) to ((int)p1 - (int)p2) under the theory
-	     that the narrower operation is cheaper.  */
-
-	  while (CONVERT_EXPR_P (op0)
-		 || TREE_CODE (op0) == NON_LVALUE_EXPR)
-	    {
-	      tree inner = TREE_OPERAND (op0, 0);
-	      if (inner == error_mark_node
-	          || ! INTEGRAL_MODE_P (TYPE_MODE (TREE_TYPE (inner)))
-		  || (GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op0)))
-		      > GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (inner)))))
-		break;
-	      op0 = inner;
-	    }
-
-	  while (CONVERT_EXPR_P (op1)
-		 || TREE_CODE (op1) == NON_LVALUE_EXPR)
-	    {
-	      tree inner = TREE_OPERAND (op1, 0);
-	      if (inner == error_mark_node
-	          || ! INTEGRAL_MODE_P (TYPE_MODE (TREE_TYPE (inner)))
-		  || (GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (op1)))
-		      > GET_MODE_SIZE (TYPE_MODE (TREE_TYPE (inner)))))
-		break;
-	      op1 = inner;
-	    }
-
-	  op0 = initializer_constant_valid_p (op0, endtype);
-	  op1 = initializer_constant_valid_p (op1, endtype);
-
-	  /* Both initializers must be known.  */
-	  if (op0 && op1)
-	    {
-	      if (op0 == op1)
-		return null_pointer_node;
-
-	      /* Support differences between labels.  */
-	      if (TREE_CODE (op0) == LABEL_DECL
-		  && TREE_CODE (op1) == LABEL_DECL)
-		return null_pointer_node;
-
-	      if (TREE_CODE (op0) == STRING_CST
-		  && TREE_CODE (op1) == STRING_CST
-		  && operand_equal_p (op0, op1, 1))
-		return null_pointer_node;
-	    }
-	}
       break;
 
     default:
@@ -4846,10 +4907,6 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
     assemble_zeros (size - total_bytes);
 }
 
-/* This TREE_LIST contains any weak symbol declarations waiting
-   to be emitted.  */
-static GTY(()) tree weak_decls;
-
 /* Mark DECL as weak.  */
 
 static void
@@ -4942,12 +4999,7 @@ declare_weak (tree decl)
     error ("weak declaration of %q+D must be public", decl);
   else if (TREE_CODE (decl) == FUNCTION_DECL && TREE_ASM_WRITTEN (decl))
     error ("weak declaration of %q+D must precede definition", decl);
-  else if (SUPPORTS_WEAK)
-    {
-      if (! DECL_WEAK (decl))
-	weak_decls = tree_cons (NULL, decl, weak_decls);
-    }
-  else
+  else if (!SUPPORTS_WEAK)
     warning (0, "weak declaration of %q+D not supported", decl);
 
   mark_weak (decl);

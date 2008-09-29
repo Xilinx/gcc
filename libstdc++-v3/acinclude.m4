@@ -390,9 +390,15 @@ dnl Check whether S_ISREG (Posix) or S_IFREG is available in <sys/stat.h>.
 dnl Define HAVE_S_ISREG / HAVE_S_IFREG appropriately.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for S_ISREG or S_IFREG])
   AC_CACHE_VAL(glibcxx_cv_S_ISREG, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/stat.h>],
       [struct stat buffer;
        fstat(0, &buffer);
@@ -401,7 +407,7 @@ AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
       [glibcxx_cv_S_ISREG=no])
   ])
   AC_CACHE_VAL(glibcxx_cv_S_IFREG, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/stat.h>],
       [struct stat buffer;
        fstat(0, &buffer);
@@ -420,6 +426,9 @@ AC_DEFUN([GLIBCXX_CHECK_S_ISREG_OR_S_IFREG], [
     res=S_IFREG
   fi
   AC_MSG_RESULT($res)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
@@ -427,9 +436,15 @@ dnl
 dnl Check whether poll is available in <poll.h>, and define HAVE_POLL.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_POLL], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for poll])
   AC_CACHE_VAL(glibcxx_cv_POLL, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <poll.h>],
       [struct pollfd pfd[1];
        pfd[0].events = POLLIN;
@@ -441,6 +456,9 @@ AC_DEFUN([GLIBCXX_CHECK_POLL], [
     AC_DEFINE(HAVE_POLL, 1, [Define if poll is available in <poll.h>.])
   fi
   AC_MSG_RESULT($glibcxx_cv_POLL)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
@@ -448,9 +466,15 @@ dnl
 dnl Check whether writev is available in <sys/uio.h>, and define HAVE_WRITEV.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
   AC_MSG_CHECKING([for writev])
   AC_CACHE_VAL(glibcxx_cv_WRITEV, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <sys/uio.h>],
       [struct iovec iov[2];
        writev(0, iov, 0);],
@@ -461,6 +485,9 @@ AC_DEFUN([GLIBCXX_CHECK_WRITEV], [
     AC_DEFINE(HAVE_WRITEV, 1, [Define if writev is available in <sys/uio.h>.])
   fi
   AC_MSG_RESULT($glibcxx_cv_WRITEV)
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
 ])
 
 
@@ -531,7 +558,7 @@ AC_DEFUN([GLIBCXX_CHECK_LFS], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"	
   AC_MSG_CHECKING([for LFS support])
   AC_CACHE_VAL(glibcxx_cv_LFS, [
-    AC_TRY_LINK(
+    GCC_TRY_COMPILE_OR_LINK(
       [#include <unistd.h>
        #include <stdio.h>
        #include <sys/stat.h>
@@ -1047,10 +1074,28 @@ AC_DEFUN([GLIBCXX_ENABLE_C99], [
 
 
 dnl
-dnl Check for IEEE Std 1003.1-2001 clock_gettime required for 
-dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl Check for clock_gettime clocks, used in the implementation of 20.8.5
+dnl [time.clock] in the current C++0x working draft.
 dnl
-AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
+dnl --enable-clock-gettime
+dnl --enable-clock-gettime=yes
+dnl        checks for the availability of monotonic and realtime clocks
+dnl        in libc and libposix4 and in case links the latter
+dnl --enable-clock-gettime=rt
+dnl        also searches (and, in case, links) librt.  Note that this is
+dnl        not always desirable because, in glibc, for example, in turn it
+dnl        triggers the linking of libpthread too, which activates locking,
+dnl        a large overhead for single-thread programs.
+dnl --enable-clock-gettime=no
+dnl --disable-clock-gettime
+dnl        disables the checks completely
+dnl
+AC_DEFUN([GLIBCXX_ENABLE_CLOCK_GETTIME], [
+
+  AC_MSG_CHECKING([for clock_gettime clocks])					 
+  GLIBCXX_ENABLE(clock-gettime,$1,[=KIND],
+    [use KIND for check type],
+    [permit yes|no|rt])
 
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
@@ -1058,45 +1103,53 @@ AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
   CXXFLAGS="$CXXFLAGS -fno-exceptions"
   ac_save_LIBS="$LIBS"
 
-  AC_SEARCH_LIBS(clock_gettime, [posix4])
-
-  # Link to -lposix4.
-  case "$ac_cv_search_clock_gettime" in
-    -lposix4*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
-  esac
-
-  AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
-  
   ac_has_clock_monotonic=no;  
-  ac_has_clock_realtime=no;  
-  if test x"$ac_has_unistd_h" = x"yes"; then    
-    AC_MSG_CHECKING([for monotonic clock])
-    AC_TRY_LINK(
-      [#include <unistd.h>
-       #include <time.h>
-      ],
-      [#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
-        timespec tp;     
-       #endif
-        clock_gettime(CLOCK_MONOTONIC, &tp);
-      ], [ac_has_clock_monotonic=yes], [ac_has_clock_monotonic=no])
+  ac_has_clock_realtime=no;
+
+  if test x"$enable_clock_gettime" != x"no"; then
+
+    if test x"$enable_clock_gettime" = x"rt"; then
+      AC_SEARCH_LIBS(clock_gettime, [rt posix4])
+    else
+      AC_SEARCH_LIBS(clock_gettime, [posix4])
+    fi
+
+    case "$ac_cv_search_clock_gettime" in
+      -l*) GLIBCXX_LIBS=$ac_cv_search_clock_gettime
+    esac
+
+    AC_CHECK_HEADERS(unistd.h, ac_has_unistd_h=yes, ac_has_unistd_h=no)
+
+    if test x"$ac_has_unistd_h" = x"yes"; then
+      AC_MSG_CHECKING([for monotonic clock])
+      AC_TRY_LINK(
+        [#include <unistd.h>
+         #include <time.h>
+        ],
+        [#if _POSIX_TIMERS > 0 && defined(_POSIX_MONOTONIC_CLOCK)
+          timespec tp;     
+         #endif
+          clock_gettime(CLOCK_MONOTONIC, &tp);
+        ], [ac_has_clock_monotonic=yes], [ac_has_clock_monotonic=no])
+
+      AC_MSG_RESULT($ac_has_clock_monotonic)   
     
-    AC_MSG_RESULT($ac_has_clock_monotonic)   
-    
-    AC_MSG_CHECKING([for realtime clock])
-    AC_TRY_LINK(
-      [#include <unistd.h>
-       #include <time.h>
-      ],
-      [#if _POSIX_TIMERS > 0
-        timespec tp;      
-       #endif
-        clock_gettime(CLOCK_REALTIME, &tp);
-      ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
-    
-    AC_MSG_RESULT($ac_has_clock_realtime)
-  fi 
-  
+      AC_MSG_CHECKING([for realtime clock])
+      AC_TRY_LINK(
+        [#include <unistd.h>
+         #include <time.h>
+        ],
+        [#if _POSIX_TIMERS > 0
+          timespec tp;      
+         #endif
+          clock_gettime(CLOCK_REALTIME, &tp);
+        ], [ac_has_clock_realtime=yes], [ac_has_clock_realtime=no])
+
+      AC_MSG_RESULT($ac_has_clock_realtime)
+    fi
+
+  fi
+
   if test x"$ac_has_clock_monotonic" = x"yes"; then
     AC_DEFINE(_GLIBCXX_USE_CLOCK_MONOTONIC, 1,
       [ Defined if clock_gettime has monotonic clock support. ])
@@ -1115,11 +1168,13 @@ AC_DEFUN([GLIBCXX_CHECK_CLOCK_GETTIME], [
 ])
 
 dnl
-dnl Check for IEEE Std 1003.1-2001 gettimeofday required for 
-dnl 20.8.5 [time.clock] in the current C++0X working draft.
+dnl Check for gettimeofday, used in the implementation of 20.8.5
+dnl [time.clock] in the current C++0x working draft.
 dnl
 AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
   
+  AC_MSG_CHECKING([for gettimeofday])
+
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
   ac_save_CXXFLAGS="$CXXFLAGS"
@@ -1129,7 +1184,7 @@ AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
   AC_CHECK_HEADERS(sys/time.h, ac_has_sys_time_h=yes, ac_has_sys_time_h=no)
   if test x"$ac_has_sys_time_h" = x"yes"; then
     AC_MSG_CHECKING([for gettimeofday])
-    AC_TRY_LINK([#include <sys/time.h>],
+    GCC_TRY_COMPILE_OR_LINK([#include <sys/time.h>],
       [timeval tv; gettimeofday(&tv, 0);],
       [ac_has_gettimeofday=yes], [ac_has_gettimeofday=no])
     
@@ -1141,6 +1196,39 @@ AC_DEFUN([GLIBCXX_CHECK_GETTIMEOFDAY], [
       [ Defined if gettimeofday is available. ])
   fi
   
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
+
+dnl
+dnl Check for nanosleep, used in the implementation of 30.2.2
+dnl [thread.thread.this] in the current C++0x working draft.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_NANOSLEEP], [
+
+  AC_MSG_CHECKING([for nanosleep])
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions"
+
+  ac_has_nanosleep=no;
+  AC_CHECK_HEADERS(time.h, ac_has_time_h=yes, ac_has_time_h=no)
+  if test x"$ac_has_time_h" = x"yes"; then
+    AC_MSG_CHECKING([for nanosleep])
+    AC_TRY_COMPILE([#include <time.h>],                                                                                                         
+      [timespec ts; nanosleep(&ts, 0);],
+      [ac_has_nanosleep=yes], [ac_has_nanosleep=no])
+
+    AC_MSG_RESULT($ac_has_nanosleep)
+  fi
+
+  if test x"$ac_has_nanosleep" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_NANOSLEEP, 1,
+      [ Defined if nanosleep is available. ])
+  fi
+
   CXXFLAGS="$ac_save_CXXFLAGS"
   AC_LANG_RESTORE
 ])
@@ -1247,35 +1335,93 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
   # Check for the existence of <stdint.h> types.
   AC_MSG_CHECKING([for ISO C99 support to TR1 in <stdint.h>])
   AC_CACHE_VAL(glibcxx_cv_c99_stdint_tr1, [
-  AC_TRY_COMPILE([#include <stdint.h>],
+  AC_TRY_COMPILE([#define __STDC_LIMIT_MACROS
+                  #define __STDC_CONSTANT_MACROS
+                  #include <stdint.h>],
 	         [typedef int8_t          my_int8_t;
+		  my_int8_t               i8 = INT8_MIN;
+		  i8 = INT8_MAX;
 	          typedef int16_t         my_int16_t;
+		  my_int16_t              i16 = INT16_MIN;
+		  i16 = INT16_MAX;
 	          typedef int32_t         my_int32_t;
+		  my_int32_t              i32 = INT32_MIN;
+		  i32 = INT32_MAX;
 	          typedef int64_t         my_int64_t;
+		  my_int64_t              i64 = INT64_MIN;
+		  i64 = INT64_MAX;
 	          typedef int_fast8_t     my_int_fast8_t;
+		  my_int_fast8_t          if8 = INT_FAST8_MIN;
+		  if8 = INT_FAST8_MAX;
 	          typedef int_fast16_t    my_int_fast16_t;
+		  my_int_fast16_t         if16 = INT_FAST16_MIN;
+		  if16 = INT_FAST16_MAX;
 	          typedef int_fast32_t    my_int_fast32_t;
-	          typedef int_fast64_t    my_int_fast64_t;	
+		  my_int_fast32_t         if32 = INT_FAST32_MIN;
+		  if32 = INT_FAST32_MAX;
+	          typedef int_fast64_t    my_int_fast64_t;
+		  my_int_fast64_t         if64 = INT_FAST64_MIN;
+		  if64 = INT_FAST64_MAX;
 	          typedef int_least8_t    my_int_least8_t;
+		  my_int_least8_t         il8 = INT_LEAST8_MIN;
+		  il8 = INT_LEAST8_MAX;
 	          typedef int_least16_t   my_int_least16_t;
+		  my_int_least16_t        il16 = INT_LEAST16_MIN;
+		  il16 = INT_LEAST16_MAX;
 	          typedef int_least32_t   my_int_least32_t;
+		  my_int_least32_t        il32 = INT_LEAST32_MIN;
+		  il32 = INT_LEAST32_MAX;
 	          typedef int_least64_t   my_int_least64_t;
+		  my_int_least64_t        il64 = INT_LEAST64_MIN;
+		  il64 = INT_LEAST64_MAX;
 		  typedef intmax_t        my_intmax_t;
+		  my_intmax_t             im = INTMAX_MAX;
+		  im = INTMAX_MIN;
 		  typedef intptr_t        my_intptr_t;
+		  my_intptr_t             ip = INTPTR_MAX;
+		  ip = INTPTR_MIN;
 	          typedef uint8_t         my_uint8_t;
+		  my_uint8_t              ui8 = UINT8_MAX;
+		  ui8 = UINT8_MAX;
 	          typedef uint16_t        my_uint16_t;
+		  my_uint16_t             ui16 = UINT16_MAX;
+		  ui16 = UINT16_MAX;
 	          typedef uint32_t        my_uint32_t;
+		  my_uint32_t             ui32 = UINT32_MAX;
+		  ui32 = UINT32_MAX;
 	          typedef uint64_t        my_uint64_t;
+		  my_uint64_t             ui64 = UINT64_MAX;
+		  ui64 = UINT64_MAX;
 	          typedef uint_fast8_t    my_uint_fast8_t;
+		  my_uint_fast8_t         uif8 = UINT_FAST8_MAX;
+		  uif8 = UINT_FAST8_MAX;
 	          typedef uint_fast16_t   my_uint_fast16_t;
+		  my_uint_fast16_t        uif16 = UINT_FAST16_MAX;
+		  uif16 = UINT_FAST16_MAX;
 	          typedef uint_fast32_t   my_uint_fast32_t;
-	          typedef uint_fast64_t   my_uint_fast64_t;	
+		  my_uint_fast32_t        uif32 = UINT_FAST32_MAX;
+		  uif32 = UINT_FAST32_MAX;
+	          typedef uint_fast64_t   my_uint_fast64_t;
+		  my_uint_fast64_t        uif64 = UINT_FAST64_MAX;
+		  uif64 = UINT_FAST64_MAX;
 	          typedef uint_least8_t   my_uint_least8_t;
+		  my_uint_least8_t        uil8 = UINT_LEAST8_MAX;
+		  uil8 = UINT_LEAST8_MAX;
 	          typedef uint_least16_t  my_uint_least16_t;
+		  my_uint_least16_t       uil16 = UINT_LEAST16_MAX;
+		  uil16 = UINT_LEAST16_MAX;
 	          typedef uint_least32_t  my_uint_least32_t;
+		  my_uint_least32_t       uil32 = UINT_LEAST32_MAX;
+		  uil32 = UINT_LEAST32_MAX;
 	          typedef uint_least64_t  my_uint_least64_t;
+		  my_uint_least64_t       uil64 = UINT_LEAST64_MAX;
+		  uil64 = UINT_LEAST64_MAX;
 		  typedef uintmax_t       my_uintmax_t;
+		  my_uintmax_t            uim = UINTMAX_MAX;
+		  uim = UINTMAX_MAX;
 		  typedef uintptr_t       my_uintptr_t;
+		  my_uintptr_t            uip = UINTPTR_MAX;
+		  uip = UINTPTR_MAX;
 		 ],[glibcxx_cv_c99_stdint_tr1=yes],
 		   [glibcxx_cv_c99_stdint_tr1=no])
   ])
@@ -1407,7 +1553,7 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
   fi
 
   # Check for the existence of <inttypes.h> functions (NB: doesn't make
-  # sense if the previous check fails, per C99, 7.8/1).
+  # sense if the glibcxx_cv_c99_stdint_tr1 check fails, per C99, 7.8/1).
   ac_c99_inttypes_tr1=no;
   if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
     AC_MSG_CHECKING([for ISO C99 support to TR1 in <inttypes.h>])
@@ -1428,6 +1574,27 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
               <tr1/cinttypes> in namespace std::tr1.])
   fi
 
+  # Check for the existence of whcar_t <inttypes.h> functions (NB: doesn't
+  # make sense if the glibcxx_cv_c99_stdint_tr1 check fails, per C99, 7.8/1).
+  ac_c99_inttypes_wchar_t_tr1=no;
+  if test x"$glibcxx_cv_c99_stdint_tr1" = x"yes"; then
+    AC_MSG_CHECKING([for wchar_t ISO C99 support to TR1 in <inttypes.h>])
+    AC_TRY_COMPILE([#include <inttypes.h>],
+	           [intmax_t base;
+		    const wchar_t* s;
+	            wchar_t** endptr;
+	            intmax_t ret = wcstoimax(s, endptr, base);
+	            uintmax_t uret = wcstoumax(s, endptr, base);
+        	   ],[ac_c99_inttypes_wchar_t_tr1=yes],
+		     [ac_c99_inttypes_wchar_t_tr1=no])
+  fi
+  AC_MSG_RESULT($ac_c99_inttypes_wchar_t_tr1)
+  if test x"$ac_c99_inttypes_wchar_t_tr1" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_USE_C99_INTTYPES_WCHAR_T_TR1, 1,
+              [Define if wchar_t C99 functions in <inttypes.h> should be
+	      imported in <tr1/cinttypes> in namespace std::tr1.])
+  fi
+
   # Check for the existence of the <stdbool.h> header.	
   AC_CHECK_HEADERS(stdbool.h)
 
@@ -1436,27 +1603,24 @@ AC_DEFUN([GLIBCXX_CHECK_C99_TR1], [
 ])
 
 dnl
-dnl Check whether "dev/random" and "dev/urandom" are available for the
+dnl Check whether "/dev/random" and "/dev/urandom" are available for the
 dnl random_device of "TR1" (Chapter 5.1, "Random number generation").
 dnl
 AC_DEFUN([GLIBCXX_CHECK_RANDOM_TR1], [
 
-  AC_MSG_CHECKING([for "dev/random" and "dev/urandom" for TR1 random_device])
+  AC_MSG_CHECKING([for "/dev/random" and "/dev/urandom" for TR1 random_device])
   AC_CACHE_VAL(glibcxx_cv_random_tr1, [
-  AC_TRY_RUN([#include <stdio.h>
-	      int main()
-	      {
-                return !(fopen("/dev/random", "r")
-                         && fopen("/dev/urandom", "r"));
-	      }	      
-	     ],
-             [glibcxx_cv_random_tr1=yes], [glibcxx_cv_random_tr1=no],
-	     [glibcxx_cv_random_tr1=no])
+    if test -r /dev/random && test -r /dev/urandom; then
+      glibcxx_cv_random_tr1=yes;
+    else
+      glibcxx_cv_random_tr1=no;
+    fi
   ])
   AC_MSG_RESULT($glibcxx_cv_random_tr1)
+
   if test x"$glibcxx_cv_random_tr1" = x"yes"; then
     AC_DEFINE(_GLIBCXX_USE_RANDOM_TR1, 1,
-              [Define if dev/random and dev/urandom are available for
+              [Define if /dev/random and /dev/urandom are available for
 	       the random_device of TR1 (Chapter 5.1).])
   fi
 
@@ -1533,14 +1697,9 @@ AC_DEFUN([GLIBCXX_CHECK_STANDARD_LAYOUT], [
 		    private:	    
   		    b& operator=(const b&);
   		    b(const b&);
-		    };
-
-		    int main()
-		    {
-		      b tst1 = { false };
-		       return 0;
-		    }],,
-             [ac_standard_layout=yes], [ac_standard_layout=no])
+		    };],
+		 [b tst1 = { false };],
+		 [ac_standard_layout=yes], [ac_standard_layout=no])
 
   CXXFLAGS="$ac_save_CXXFLAGS"
   AC_LANG_RESTORE
@@ -2527,7 +2686,12 @@ if test x$enable_symvers = xyes ; then
     enable_symvers=no
   else
     if test $with_gnu_ld = yes ; then
-      enable_symvers=gnu
+      case ${target_os} in
+        cygwin* | pe | mingw32*)
+          enable_symvers=no ;;
+        *)
+          enable_symvers=gnu ;;
+      esac
     else
       case ${target_os} in
         darwin*)
@@ -2706,6 +2870,51 @@ AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
 ])
 
 
+dnl
+dnl Check if gthread implementation defines the types and functions
+dnl required by the c++0x thread library.  Conforming gthread
+dnl implementations can define __GTHREADS_CXX0X to enable use with c++0x.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions -I${toplevel_srcdir}/gcc"
+
+  target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
+  case $target_thread_file in
+    posix)
+      CXXFLAGS="$CXXFLAGS -DSUPPORTS_WEAK -DGTHREAD_USE_WEAK -D_PTHREADS"
+  esac
+
+  AC_MSG_CHECKING([for gthreads library])
+
+  AC_TRY_COMPILE([#include "gthr.h"],
+    [
+      #ifndef __GTHREADS_CXX0X
+      #error
+      #endif
+
+      // In case of POSIX threads check _POSIX_TIMEOUTS too.
+      #if (defined(_PTHREADS) \
+           && (!defined(_POSIX_TIMEOUTS) || _POSIX_TIMEOUTS <= 0))
+      #error
+      #endif
+    ], [ac_has_gthreads=yes], [ac_has_gthreads=no])
+
+  AC_MSG_RESULT([$ac_has_gthreads])
+
+  if test x"$ac_has_gthreads" = x"yes"; then
+    AC_DEFINE(_GLIBCXX_HAS_GTHREADS, 1,
+              [Define if gthreads library is available.])
+  fi
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  AC_LANG_RESTORE
+])
+
+
 # Check whether LC_MESSAGES is available in <locale.h>.
 # Ulrich Drepper <drepper@cygnus.com>, 1995.
 #
@@ -2716,7 +2925,7 @@ AC_DEFUN([GLIBCXX_ENABLE_THREADS], [
 AC_DEFUN([AC_LC_MESSAGES], [
   AC_CHECK_HEADER(locale.h, [
     AC_CACHE_CHECK([for LC_MESSAGES], ac_cv_val_LC_MESSAGES,
-      [AC_TRY_LINK([#include <locale.h>], [return LC_MESSAGES],
+      [AC_TRY_COMPILE([#include <locale.h>], [return LC_MESSAGES],
        ac_cv_val_LC_MESSAGES=yes, ac_cv_val_LC_MESSAGES=no)])
     if test $ac_cv_val_LC_MESSAGES = yes; then
       AC_DEFINE(HAVE_LC_MESSAGES, 1, 

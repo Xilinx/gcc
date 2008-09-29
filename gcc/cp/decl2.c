@@ -354,7 +354,7 @@ grok_array_decl (tree array_expr, tree index_exp)
       if (array_expr == error_mark_node || index_exp == error_mark_node)
 	error ("ambiguous conversion for array subscript");
 
-      expr = build_array_ref (array_expr, index_exp);
+      expr = build_array_ref (array_expr, index_exp, input_location);
     }
   if (processing_template_decl && expr != error_mark_node)
     return build_min_non_dep (ARRAY_REF, expr, orig_array_expr, orig_index_exp,
@@ -638,8 +638,9 @@ check_classfn (tree ctype, tree function, tree template_parms)
 	  return OVL_CURRENT (fndecls);
 	}
       
-      error ("prototype for %q#D does not match any in class %qT",
-	     function, ctype);
+      error_at (DECL_SOURCE_LOCATION (function),
+		"prototype for %q#D does not match any in class %qT",
+		function, ctype);
       is_conv_op = DECL_CONV_FN_P (fndecl);
 
       if (is_conv_op)
@@ -718,7 +719,7 @@ finish_static_data_member_decl (tree decl,
     VEC_safe_push (tree, gc, pending_statics, decl);
 
   if (LOCAL_CLASS_P (current_class_type))
-    permerror ("local class %q#T shall not have static data member %q#D",
+    permerror (input_location, "local class %q#T shall not have static data member %q#D",
 	       current_class_type, decl);
 
   /* Static consts need not be initialized in the class definition.  */
@@ -1260,15 +1261,15 @@ build_anon_union_vars (tree type, tree object)
 	continue;
       if (TREE_CODE (field) != FIELD_DECL)
 	{
-	  permerror ("%q+#D invalid; an anonymous union can only "
+	  permerror (input_location, "%q+#D invalid; an anonymous union can only "
 		     "have non-static data members", field);
 	  continue;
 	}
 
       if (TREE_PRIVATE (field))
-	permerror ("private member %q+#D in anonymous union", field);
+	permerror (input_location, "private member %q+#D in anonymous union", field);
       else if (TREE_PROTECTED (field))
-	permerror ("protected member %q+#D in anonymous union", field);
+	permerror (input_location, "protected member %q+#D in anonymous union", field);
 
       if (processing_template_decl)
 	ref = build_min_nt (COMPONENT_REF, object,
@@ -1403,7 +1404,7 @@ coerce_new_type (tree type)
     e = 2;
 
   if (e == 2)
-    permerror ("%<operator new%> takes type %<size_t%> (%qT) "
+    permerror (input_location, "%<operator new%> takes type %<size_t%> (%qT) "
 	       "as first parameter", size_type_node);
 
   switch (e)
@@ -2529,14 +2530,16 @@ get_guard_cond (tree guard)
       guard_value = integer_one_node;
       if (!same_type_p (TREE_TYPE (guard_value), TREE_TYPE (guard)))
 	guard_value = convert (TREE_TYPE (guard), guard_value);
-      guard = cp_build_binary_op (BIT_AND_EXPR, guard, guard_value,
+      guard = cp_build_binary_op (input_location,
+				  BIT_AND_EXPR, guard, guard_value,
 				  tf_warning_or_error);
     }
 
   guard_value = integer_zero_node;
   if (!same_type_p (TREE_TYPE (guard_value), TREE_TYPE (guard)))
     guard_value = convert (TREE_TYPE (guard), guard_value);
-  return cp_build_binary_op (EQ_EXPR, guard, guard_value,
+  return cp_build_binary_op (input_location,
+			     EQ_EXPR, guard, guard_value,
 			     tf_warning_or_error);
 }
 
@@ -2926,20 +2929,22 @@ one_static_initialization_or_destruction (tree decl, tree init, bool initp)
 	 last to destroy the variable.  */
       else if (initp)
 	guard_cond
-	  = cp_build_binary_op (EQ_EXPR,
+	  = cp_build_binary_op (input_location,
+				EQ_EXPR,
 				cp_build_unary_op (PREINCREMENT_EXPR,
-						guard,
-						/*noconvert=*/1,
-                                                tf_warning_or_error),
+						   guard,
+						   /*noconvert=*/1,
+						   tf_warning_or_error),
 				integer_one_node,
 				tf_warning_or_error);
       else
 	guard_cond
-	  = cp_build_binary_op (EQ_EXPR,
+	  = cp_build_binary_op (input_location,
+				EQ_EXPR,
 				cp_build_unary_op (PREDECREMENT_EXPR,
-						guard,
-						/*noconvert=*/1,
-                                                tf_warning_or_error),
+						   guard,
+						   /*noconvert=*/1,
+						   tf_warning_or_error),
 				integer_zero_node,
 				tf_warning_or_error);
 
@@ -2992,7 +2997,8 @@ do_static_initialization_or_destruction (tree vars, bool initp)
   /* Build the outer if-stmt to check for initialization or destruction.  */
   init_if_stmt = begin_if_stmt ();
   cond = initp ? integer_one_node : integer_zero_node;
-  cond = cp_build_binary_op (EQ_EXPR,
+  cond = cp_build_binary_op (input_location,
+			     EQ_EXPR,
 			     initialize_p_decl,
 			     cond,
 			     tf_warning_or_error);
@@ -3025,7 +3031,8 @@ do_static_initialization_or_destruction (tree vars, bool initp)
     /* Conditionalize this initialization on being in the right priority
        and being initializing/finalizing appropriately.  */
     priority_if_stmt = begin_if_stmt ();
-    cond = cp_build_binary_op (EQ_EXPR,
+    cond = cp_build_binary_op (input_location,
+			       EQ_EXPR,
 			       priority_decl,
 			       build_int_cst (NULL_TREE, priority),
 			       tf_warning_or_error);
@@ -3767,9 +3774,24 @@ mark_used (tree decl)
   TREE_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
     TREE_USED (DECL_CLONED_FUNCTION (decl)) = 1;
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      && DECL_DELETED_FN (decl))
+    {
+      error ("deleted function %q+D", decl);
+      error ("used here");
+    }
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (skip_evaluation)
     return;
+
+  /* If within finish_function, defer the rest until that function
+     finishes, otherwise it might recurse.  */
+  if (defer_mark_used_calls)
+    {
+      VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
+      return;
+    }
+
   /* Normally, we can wait until instantiation-time to synthesize
      DECL.  However, if DECL is a static data member initialized with
      a constant, we need the value right now because a reference to
@@ -3829,12 +3851,6 @@ mark_used (tree decl)
       synthesize_method (decl);
       /* If we've already synthesized the method we don't need to
 	 do the instantiation test below.  */
-    }
-  else if (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_DELETED_FN (decl))
-    {
-      error ("deleted function %q+D", decl);
-      error ("used here");
     }
   else if ((DECL_NON_THUNK_FUNCTION_P (decl) || TREE_CODE (decl) == VAR_DECL)
 	   && DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)

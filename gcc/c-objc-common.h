@@ -45,8 +45,6 @@ extern void c_initialize_diagnostics (diagnostic_context *);
 #define LANG_HOOKS_GET_ALIAS_SET c_common_get_alias_set
 #undef LANG_HOOKS_EXPAND_EXPR
 #define LANG_HOOKS_EXPAND_EXPR c_expand_expr
-#undef LANG_HOOKS_EXPAND_DECL
-#define LANG_HOOKS_EXPAND_DECL c_expand_decl
 #undef LANG_HOOKS_MARK_ADDRESSABLE
 #define LANG_HOOKS_MARK_ADDRESSABLE c_mark_addressable
 #undef LANG_HOOKS_PARSE_FILE
@@ -69,6 +67,8 @@ extern void c_initialize_diagnostics (diagnostic_context *);
 #define LANG_HOOKS_DUP_LANG_SPECIFIC_DECL c_dup_lang_specific_decl
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
 #define LANG_HOOKS_BUILTIN_FUNCTION c_builtin_function
+#undef  LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE
+#define LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE c_builtin_function_ext_scope
 
 /* Attribute hooks.  */
 #undef LANG_HOOKS_COMMON_ATTRIBUTE_TABLE

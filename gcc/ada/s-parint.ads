@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -115,7 +115,7 @@ package System.Partition_Interface is
       Version : String;
       RCI     : Boolean := True);
    --  Use by the main subprogram to check that a remote receiver
-   --  unit has has the same version than the caller's one.
+   --  unit has the same version than the caller's one.
 
    function Same_Partition
       (Left  : not null access RACW_Stub_Type;

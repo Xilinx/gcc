@@ -2630,7 +2630,8 @@ build_typed_selector_reference (tree ident, tree prototype)
  return_at_index:
   expr = build_unary_op (ADDR_EXPR,
 			 build_array_ref (UOBJC_SELECTOR_TABLE_decl,
-					  build_int_cst (NULL_TREE, index)),
+					  build_int_cst (NULL_TREE, index),
+					  input_location),
 			 1);
   return convert (objc_selector_type, expr);
 }
@@ -2648,7 +2649,8 @@ build_selector_reference (tree ident)
 	return (flag_next_runtime
 		? TREE_PURPOSE (*chain)
 		: build_array_ref (UOBJC_SELECTOR_TABLE_decl,
-				   build_int_cst (NULL_TREE, index)));
+				   build_int_cst (NULL_TREE, index),
+				   input_location));
 
       index++;
       chain = &TREE_CHAIN (*chain);
@@ -2661,7 +2663,8 @@ build_selector_reference (tree ident)
   return (flag_next_runtime
 	  ? expr
 	  : build_array_ref (UOBJC_SELECTOR_TABLE_decl,
-			     build_int_cst (NULL_TREE, index)));
+			     build_int_cst (NULL_TREE, index),
+			     input_location));
 }
 
 static GTY(()) int class_reference_idx;
@@ -3046,11 +3049,13 @@ objc_substitute_decl (tree expr, tree oldexpr, tree newexpr)
       return build_array_ref (objc_substitute_decl (TREE_OPERAND (expr, 0),
 						    oldexpr,
 						    newexpr),
-			      TREE_OPERAND (expr, 1));
+			      TREE_OPERAND (expr, 1),
+			      input_location);
     case INDIRECT_REF:
       return build_indirect_ref (objc_substitute_decl (TREE_OPERAND (expr, 0),
 						       oldexpr,
-						       newexpr), "->");
+						       newexpr), "->",
+				 input_location);
     default:
       return expr;
     }
@@ -3533,7 +3538,7 @@ next_sjlj_build_enter_and_setjmp (void)
   sj = build_function_call (objc_setjmp_decl, t);
 
   cond = build2 (COMPOUND_EXPR, TREE_TYPE (sj), enter, sj);
-  cond = c_common_truthvalue_conversion (cond);
+  cond = c_common_truthvalue_conversion (input_location, cond);
 
   return build3 (COND_EXPR, void_type_node, cond, NULL, NULL);
 }
@@ -3600,7 +3605,7 @@ next_sjlj_build_catch_list (void)
 	      t = objc_get_class_reference (OBJC_TYPE_NAME (TREE_TYPE (type)));
 	      args = tree_cons (NULL, t, args);
 	      t = build_function_call (objc_exception_match_decl, args);
-	      cond = c_common_truthvalue_conversion (t);
+	      cond = c_common_truthvalue_conversion (input_location, t);
 	    }
 	  t = build3 (COND_EXPR, void_type_node, cond, body, NULL);
 	  SET_EXPR_LOCUS (t, EXPR_LOCUS (stmt));
@@ -3722,7 +3727,8 @@ next_sjlj_build_try_catch_finally (void)
   /* Build the complete FINALLY statement list.  */
   t = next_sjlj_build_try_exit ();
   t = build_stmt (COND_EXPR,
-		  c_common_truthvalue_conversion (rethrow_decl),
+		  c_common_truthvalue_conversion 
+		    (input_location, rethrow_decl),
 		  NULL, t);
   SET_EXPR_LOCATION (t, cur_try_context->finally_locus);
   append_to_statement_list (t, &TREE_OPERAND (try_fin, 1));
@@ -3733,7 +3739,8 @@ next_sjlj_build_try_catch_finally (void)
   t = tree_cons (NULL, rethrow_decl, NULL);
   t = build_function_call (objc_exception_throw_decl, t);
   t = build_stmt (COND_EXPR,
-		  c_common_truthvalue_conversion (rethrow_decl),
+		  c_common_truthvalue_conversion (input_location, 
+						  rethrow_decl),
 		  t, NULL);
   SET_EXPR_LOCATION (t, cur_try_context->end_finally_locus);
   append_to_statement_list (t, &TREE_OPERAND (try_fin, 1));
@@ -6713,7 +6720,8 @@ build_ivar_reference (tree id)
       self_decl = convert (objc_instance_type, self_decl); /* cast */
     }
 
-  return objc_build_component_ref (build_indirect_ref (self_decl, "->"), id);
+  return objc_build_component_ref (build_indirect_ref (self_decl, "->",
+  						       input_location), id);
 }
 
 /* Compute a hash value for a given method SEL_NAME.  */
@@ -8737,7 +8745,7 @@ get_super_receiver (void)
 		super_class
 		  = build_indirect_ref
 		    (build_c_cast (build_pointer_type (objc_class_type),
-				   super_class), "unary *");
+				   super_class), "unary *", input_location);
 	    }
 	  else
 	    {
@@ -8794,7 +8802,6 @@ objc_finish_method_definition (tree fndecl)
   /* We cannot validly inline ObjC methods, at least not without a language
      extension to declare that a method need not be dynamically
      dispatched, so suppress all thoughts of doing so.  */
-  DECL_INLINE (fndecl) = 0;
   DECL_UNINLINABLE (fndecl) = 1;
 
 #ifndef OBJCPLUS
@@ -9503,27 +9510,6 @@ objc_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 #else
   return c_gimplify_expr (expr_p, pre_p, post_p);
 #endif
-}
-
-/* Given a CALL expression, find the function being called.  The ObjC
-   version looks for the OBJ_TYPE_REF_EXPR which is used for objc_msgSend.  */
-
-tree
-objc_get_callee_fndecl (const_tree call_expr)
-{
-  tree addr = CALL_EXPR_FN (call_expr);
-  if (TREE_CODE (addr) != OBJ_TYPE_REF)
-    return 0;
-
-  addr = OBJ_TYPE_REF_EXPR (addr);
-
-  /* If the address is just `&f' for some function `f', then we know
-     that `f' is being called.  */
-  if (TREE_CODE (addr) == ADDR_EXPR
-      && TREE_CODE (TREE_OPERAND (addr, 0)) == FUNCTION_DECL)
-    return TREE_OPERAND (addr, 0);
-
-  return 0;
 }
 
 #include "gt-objc-objc-act.h"

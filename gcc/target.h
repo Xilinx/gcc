@@ -274,7 +274,7 @@ struct gcc_target
     /* Finalize machine-dependent scheduling code.  */
     void (* md_finish) (FILE *, int);
 
-    /* Initialize machine-dependent function while scheduling code.  */
+    /* Initialize machine-dependent function wide scheduling code.  */
     void (* md_init_global) (FILE *, int, int);
 
     /* Finalize machine-dependent function wide scheduling code.  */
@@ -354,11 +354,33 @@ struct gcc_target
        second insn (second parameter).  */
     bool (* is_costly_dependence) (struct _dep *_dep, int, int);
 
+    /* Given the current cost, COST, of an insn, INSN, calculate and
+       return a new cost based on its relationship to DEP_INSN through the
+       dependence of type DEP_TYPE.  The default is to make no adjustment.  */
+    int (* adjust_cost_2) (rtx insn, int, rtx dep_insn, int cost, int dw);
+
     /* The following member value is a pointer to a function called
        by the insn scheduler. This hook is called to notify the backend
        that new instructions were emitted.  */
     void (* h_i_d_extended) (void);
-    
+
+    /* Next 5 functions are for multi-point scheduling.  */
+
+    /* Allocate memory for scheduler context.  */
+    void *(* alloc_sched_context) (void);
+
+    /* Fills the context from the local machine scheduler context.  */
+    void (* init_sched_context) (void *, bool);
+
+    /* Sets local machine scheduler context to a saved value.  */
+    void (* set_sched_context) (void *);
+
+    /* Clears a scheduler context so it becomes like after init.  */
+    void (* clear_sched_context) (void *);
+
+    /* Frees the scheduler context.  */
+    void (* free_sched_context) (void *);
+
     /* The following member value is a pointer to a function called
        by the insn scheduler.
        The first parameter is an instruction, the second parameter is the type
@@ -374,8 +396,7 @@ struct gcc_target
 
     /* The following member value is a pointer to a function called
        by the insn scheduler.  It should return true if the check instruction
-       corresponding to the instruction passed as the parameter needs a
-       recovery block.  */
+       passed as the parameter needs a recovery block.  */
     bool (* needs_block_p) (const_rtx);
 
     /* The following member value is a pointer to a function called
@@ -386,7 +407,7 @@ struct gcc_target
        simple check).  If the mutation of the check is requested (e.g. from
        ld.c to chk.a), the third parameter is true - in this case the first
        parameter is the previous check.  */
-    rtx (* gen_check) (rtx, rtx, bool);
+    rtx (* gen_spec_check) (rtx, rtx, bool);
 
     /* The following member value is a pointer to a function controlling
        what insns from the ready insn queue will be considered for the
@@ -400,6 +421,17 @@ struct gcc_target
        information about the speculation capabilities of the target.
        The parameter is a pointer to spec_info variable.  */
     void (* set_sched_flags) (struct spec_info_def *);
+
+    /* Return speculation types of the instruction passed as the parameter.  */
+    int (* get_insn_spec_ds) (rtx);
+
+    /* Return speculation types that are checked for the instruction passed as
+       the parameter.  */
+    int (* get_insn_checked_ds) (rtx);
+
+    /* Return bool if rtx scanning should just skip current layer and
+       advance to the inner rtxes.  */
+    bool (* skip_rtx_p) (const_rtx);
 
     /* The following member value is a pointer to a function that provides
        information about the target resource-based lower bound which is
@@ -438,7 +470,10 @@ struct gcc_target
     /* Return true if vector alignment is reachable (by peeling N
        iterations) for the given type.  */
     bool (* vector_alignment_reachable) (const_tree, bool);
-  } vectorize;
+
+    /* Target builtin that implements vector permute.  */
+    tree (* builtin_vec_perm) (tree, tree*);
+} vectorize;
 
   /* The initial value of target_flags.  */
   int default_target_flags;
@@ -645,11 +680,11 @@ struct gcc_target
      scanned.  In either case, *TOTAL contains the cost result.  */
   /* Note that CODE and OUTER_CODE ought to be RTX_CODE, but that's
      not necessarily defined at this point.  */
-  bool (* rtx_costs) (rtx x, int code, int outer_code, int *total);
+  bool (* rtx_costs) (rtx x, int code, int outer_code, int *total, bool speed);
 
   /* Compute the cost of X, used as an address.  Never called with
      invalid addresses.  */
-  int (* address_cost) (rtx x);
+  int (* address_cost) (rtx x, bool speed);
 
   /* Return where to allocate pseudo for a given hard register initial
      value.  */
@@ -864,6 +899,9 @@ struct gcc_target
      is not permitted on TYPE1 and TYPE2, NULL otherwise.  */
   const char *(*invalid_binary_op) (int op, const_tree type1, const_tree type2);
 
+  /* Return the array of IRA cover classes for the current target.  */
+  const enum reg_class *(*ira_cover_classes) (void);
+
   /* Return the class for a secondary reload, and fill in extra information.  */
   enum reg_class (*secondary_reload) (bool, rtx, enum reg_class,
 				      enum machine_mode,
@@ -988,19 +1026,13 @@ struct gcc_target
     void (*print) (FILE *, int, struct cl_target_option *);
 
     /* Function to parse arguments to be validated for #pragma option, and to
-       change the state if the options are valid.  If the arguments are NULL,
-       use the default target options.  Return true if the options are valid,
-       and set the current state.  */
-    bool (*pragma_parse) (tree);
+       change the state if the options are valid.  If the first argument is
+       NULL, the second argument specifies the default options to use.  Return
+       true if the options are valid, and set the current state.  */
+    bool (*pragma_parse) (tree, tree);
 
     /* Function to determine if one function can inline another function.  */
     bool (*can_inline_p) (tree, tree);
-
-    /* Whether the cold attribute changes the optimization level.  */
-    bool cold_attribute_sets_optimization;
-
-    /* Whether the hot attribute changes the optimization level.  */
-    bool hot_attribute_sets_optimization;
   } target_option;
 
   /* For targets that need to mark extra registers as live on entry to

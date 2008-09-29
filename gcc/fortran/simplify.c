@@ -884,7 +884,8 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
 	{
 	case BT_INTEGER:
 	  if (!y->is_boz)
-	    mpfr_set_z (result->value.complex.i, y->value.integer, GFC_RND_MODE);
+	    mpfr_set_z (result->value.complex.i, y->value.integer,
+			GFC_RND_MODE);
 	  break;
 
 	case BT_REAL:
@@ -3795,6 +3796,8 @@ gfc_simplify_selected_char_kind (gfc_expr *e)
   if (gfc_compare_with_Cstring (e, "ascii", false) == 0
       || gfc_compare_with_Cstring (e, "default", false) == 0)
     kind = 1;
+  else if (gfc_compare_with_Cstring (e, "iso_10646", false) == 0)
+    kind = 4;
   else
     kind = -1;
 

@@ -1,4 +1,6 @@
 // { dg-options "-std=gnu++0x" }
+// { dg-require-atomic-builtins "" }
+
 // 2008-05-25  Sebastian Redl  <sebastian.redl@getdesigned.at>
 
 // Copyright (C) 2008 Free Software Foundation, Inc.

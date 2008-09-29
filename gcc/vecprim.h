@@ -26,4 +26,7 @@ DEF_VEC_ALLOC_I(char,heap);
 DEF_VEC_I(int);
 DEF_VEC_ALLOC_I(int,heap);
 
+DEF_VEC_I(unsigned);
+DEF_VEC_ALLOC_I(unsigned,heap);
+
 #endif /* GCC_VECPRIM_H */

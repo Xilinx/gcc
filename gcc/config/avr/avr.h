@@ -291,6 +291,19 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES               \
+{                                       \
+  GENERAL_REGS, LIM_REG_CLASSES         \
+}
+
 #define BASE_REG_CLASS (reload_completed ? BASE_POINTER_REGS : POINTER_REGS)
 
 #define INDEX_REG_CLASS NO_REGS
@@ -470,10 +483,6 @@ do {									    \
 		           OPNUM, TYPE);				    \
 	      goto WIN;							    \
 	    }								    \
-	  push_reload (XEXP (X, 0), NULL_RTX, &XEXP (X, 0), NULL,	    \
-		       BASE_POINTER_REGS, GET_MODE (X), VOIDmode, 0, 0,	    \
-		       OPNUM, TYPE);					    \
-          goto WIN;							    \
 	}								    \
       else if (! (frame_pointer_needed && XEXP (X,0) == frame_pointer_rtx)) \
 	{								    \
@@ -498,7 +507,7 @@ do {									    \
 					 (MODE)==SImode ? 8 :	\
 					 (MODE)==SFmode ? 8 : 16)
 
-#define BRANCH_COST 0
+#define BRANCH_COST(speed_p, predictable_p) 0
 
 #define SLOW_BYTE_ACCESS 0
 

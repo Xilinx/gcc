@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -75,12 +75,6 @@ __gnat_initialize (void *eh)
       precision, and we require the full precision for proper operation,
       given that we have set Max_Digits etc with this in mind */
    __gnat_init_float ();
-
-#ifndef RTX
-   /* Initialize a lock for a process handle list - see adaint.c for the
-      implementation of __gnat_portable_no_block_spawn, __gnat_portable_wait */
-   __gnat_plist_init();
-#endif
 
    /* Note that we do not activate this for the compiler itself to avoid a
       bootstrap path problem.  Older version of gnatbind will generate a call

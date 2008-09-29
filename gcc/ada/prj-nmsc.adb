@@ -7720,6 +7720,9 @@ package body Prj.Nmsc is
                               end if;
                            end loop;
 
+                        when Mixed_Case =>
+                           null;
+
                         when others =>
                            OK := False;
                      end case;
@@ -8163,7 +8166,9 @@ package body Prj.Nmsc is
                   then
                      Source_To_Replace := Source;
 
-                  elsif Unit /= No_Name then
+                  elsif Unit /= No_Name
+                    and then not Src_Data.Locally_Removed
+                  then
                      Error_Msg_Name_1 := Unit;
                      Error_Msg
                        (Project, In_Tree,

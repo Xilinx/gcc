@@ -8452,7 +8452,7 @@ package body Exp_Dist is
 
             --  Special DSA types
 
-            elsif Is_RTE (U_Type, RE_Any_Content_Ptr) then
+            elsif Is_RTE (U_Type, RE_Any_Container_Ptr) then
                Lib_RE := RE_FA_A;
 
             --  Other (non-primitive) types
@@ -9317,11 +9317,14 @@ package body Exp_Dist is
 
             --  Special DSA types
 
-            elsif Is_RTE (U_Type, RE_Any_Content_Ptr) then
+            elsif Is_RTE (U_Type, RE_Any_Container_Ptr) then
                Lib_RE := RE_TA_A;
+               U_Type := Typ;
 
             elsif U_Type = Underlying_Type (RTE (RE_TypeCode)) then
+
                --  No corresponding FA_TC ???
+
                Lib_RE := RE_TA_TC;
 
             --  Other (non-primitive) types
@@ -10086,7 +10089,7 @@ package body Exp_Dist is
 
                --  Special DSA types
 
-               elsif Is_RTE (U_Type, RE_Any_Content_Ptr) then
+               elsif Is_RTE (U_Type, RE_Any_Container_Ptr) then
                   Lib_RE := RE_TC_A;
 
                --  Other (non-primitive) types
@@ -10350,7 +10353,7 @@ package body Exp_Dist is
                      --  to the union parameter list.
 
                      --  Ordering of declarations is a complete mess in this
-                     --  area, it is supposed to be types/varibles, then
+                     --  area, it is supposed to be types/variables, then
                      --  subprogram specs, then subprogram bodies ???
 
                      ---------------------------------------

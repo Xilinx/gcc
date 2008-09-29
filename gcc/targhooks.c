@@ -575,6 +575,15 @@ default_internal_arg_pointer (void)
     return virtual_incoming_args_rtx;
 }
 
+#ifdef IRA_COVER_CLASSES
+const enum reg_class *
+default_ira_cover_classes (void)
+{
+  static enum reg_class classes[] = IRA_COVER_CLASSES;
+  return classes;
+}
+#endif
+
 enum reg_class
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  enum reg_class reload_class ATTRIBUTE_UNUSED,
@@ -715,6 +724,19 @@ default_target_option_valid_attribute_p (tree ARG_UNUSED (fndecl),
 					 tree ARG_UNUSED (args),
 					 int ARG_UNUSED (flags))
 {
+  warning (OPT_Wattributes,
+	   "target attribute is not supported on this machine");
+
+  return false;
+}
+
+bool
+default_target_option_pragma_parse (tree ARG_UNUSED (args),
+				    tree ARG_UNUSED (pop_target))
+{
+  warning (OPT_Wpragmas,
+	   "#pragma GCC target is not supported for this machine");
+
   return false;
 }
 

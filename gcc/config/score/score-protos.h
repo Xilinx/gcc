@@ -39,7 +39,7 @@ extern const char * score_move (rtx *ops);
 extern bool score_unaligned_load (rtx* ops);
 extern bool score_unaligned_store (rtx* ops);
 extern bool score_block_move (rtx* ops);
-extern int score_address_cost (rtx addr);
+extern int score_address_cost (rtx addr, bool speed);
 extern rtx score_function_arg (const CUMULATIVE_ARGS *cum,
                                enum machine_mode mode,
                                tree type, int named);
@@ -85,7 +85,7 @@ extern const char * score_select (rtx *ops, const char *inst_pre, bool commu,
 extern const char * score_output_casesi (rtx *operands);
 extern const char * score_rpush (rtx *ops);
 extern const char * score_rpop (rtx *ops);
-extern bool score_rtx_costs (rtx x, int code, int outer_code, int *total);
+extern bool score_rtx_costs (rtx x, int code, int outer_code, int *total, bool speed);
 
 #ifdef RTX_CODE
 extern enum machine_mode score_select_cc_mode (enum rtx_code op, rtx x, rtx y);

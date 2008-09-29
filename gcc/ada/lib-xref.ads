@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -188,7 +188,7 @@ package Lib.Xref is
    --              > = subprogram IN parameter
    --              = = subprogram IN OUT parameter
    --              < = subprogram OUT parameter
-   --              > = subprogram ACCESS parameter
+   --              ^ = subprogram ACCESS parameter
 
    --           b is used for spec entities that are repeated in a body,
    --           including the unit (subprogram, package, task, protected
@@ -587,7 +587,7 @@ package Lib.Xref is
    --  Node N is an operator node, whose entity has been set. If this entity
    --  is a user defined operator (i.e. an operator not defined in package
    --  Standard), then a reference to the operator is recorded at node N.
-   --  T is the operand type of of the operator. A reference to the operator
+   --  T is the operand type of the operator. A reference to the operator
    --  is an implicit reference to the type, and that needs to be recorded
    --  to avoid spurious warnings on unused entities, when the operator is
    --  a renaming of a predefined operator.

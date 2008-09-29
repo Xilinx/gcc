@@ -713,7 +713,8 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 		     || (GET_CODE (args[i].value) == SUBREG
 			 && REG_P (SUBREG_REG (args[i].value)))))
 		 && args[i].mode != BLKmode
-		 && rtx_cost (args[i].value, SET) > COSTS_N_INSNS (1)
+		 && rtx_cost (args[i].value, SET, optimize_insn_for_speed_p ())
+		    > COSTS_N_INSNS (1)
 		 && ((SMALL_REGISTER_CLASSES && *reg_parm_seen)
 		     || optimize))
 	  args[i].value = copy_to_mode_reg (args[i].mode, args[i].value);
@@ -1069,10 +1070,10 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 	      rtx copy;
 
 	      if (!COMPLETE_TYPE_P (type)
-		  || TREE_CODE (TYPE_SIZE (type)) != INTEGER_CST
-		  || (flag_stack_check && ! STACK_CHECK_BUILTIN
-		      && (0 < compare_tree_int (TYPE_SIZE_UNIT (type),
-						STACK_CHECK_MAX_VAR_SIZE))))
+		  || TREE_CODE (TYPE_SIZE_UNIT (type)) != INTEGER_CST
+		  || (flag_stack_check == GENERIC_STACK_CHECK
+		      && compare_tree_int (TYPE_SIZE_UNIT (type),
+					   STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
 		  /* This is a variable-sized object.  Make space on the stack
 		     for it.  */
@@ -3422,7 +3423,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	      flags |= ECF_PURE;
 	    }
 
-	  if (GET_MODE (val) == MEM && !must_copy)
+	  if (MEM_P (val) && !must_copy)
 	    slot = val;
 	  else
 	    {

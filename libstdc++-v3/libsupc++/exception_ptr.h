@@ -1,8 +1,6 @@
 // Exception Handling support header (exception_ptr class) for -*- C++ -*-
 
-// Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-// 2004, 2005, 2006, 2007, 2008
-// Free Software Foundation
+// Copyright (C) 2008 Free Software Foundation
 //
 // This file is part of GCC.
 //
@@ -35,12 +33,16 @@
  *  implementation. You should not attempt to use it directly.
  */
 
-#ifndef __EXCEPTION_PTR_H__
-#define __EXCEPTION_PTR_H__
+#ifndef _EXCEPTION_PTR_H
+#define _EXCEPTION_PTR_H
 
 #pragma GCC visibility push(default)
 
 #include <bits/c++config.h>
+
+#if !defined(_GLIBCXX_ATOMIC_BUILTINS_4)
+#  error This platform does not support exception propagation.
+#endif
 
 extern "C++" {
 

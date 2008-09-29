@@ -299,7 +299,7 @@ i[34567]86-*-*)
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
-		       wmmintrin.h cross-stdarg.h"
+		       wmmintrin.h gmmintrin.h cross-stdarg.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -308,7 +308,7 @@ x86_64-*-*)
 	extra_headers="cpuid.h mmintrin.h mm3dnow.h xmmintrin.h emmintrin.h
 		       pmmintrin.h tmmintrin.h ammintrin.h smmintrin.h
 		       nmmintrin.h bmmintrin.h mmintrin-common.h
-		       wmmintrin.h cross-stdarg.h"
+		       wmmintrin.h gmmintrin.h cross-stdarg.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -329,6 +329,9 @@ mips*-*-*)
 	need_64bit_hwint=yes
 	extra_headers="loongson.h"
 	;;
+picochip-*-*)
+        cpu_type=picochip
+        ;;
 powerpc*-*-*)
 	cpu_type=rs6000
 	extra_headers="ppc-asm.h altivec.h spe.h ppu_intrinsics.h paired.h spu2vmx.h vec_types.h si2vmx.h"
@@ -739,7 +742,7 @@ arm*-*-uclinux*)		# ARM ucLinux
 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/linux-gas.h arm/uclinux-elf.h"
 	tmake_file="arm/t-arm arm/t-arm-elf"
 	case ${target} in
-	arm*-*-uclinux-*eabi)
+	arm*-*-uclinux*eabi)
 	    tm_file="$tm_file arm/bpabi.h arm/uclinux-eabi.h"
 	    tmake_file="$tmake_file arm/t-bpabi"
   	    # The BPABI long long divmod functions return a 128-bit value in
@@ -1551,6 +1554,10 @@ mips64*-*-linux* | mipsisa64*-*-linux*)
 			tm_file="${tm_file} mips/st.h"
 			tmake_file="${tmake_file} mips/t-st"
 			;;
+		mips64octeon*-*-linux*)
+			tm_defines="${tm_defines} MIPS_CPU_STRING_DEFAULT=\\\"octeon\\\""
+			target_cpu_default=MASK_SOFT_FLOAT_ABI
+			;;
 		mipsisa64r2*-*-linux*)
 			tm_defines="${tm_defines} MIPS_ISA_DEFAULT=65"
 			;;
@@ -1703,6 +1710,9 @@ pdp11-*-bsd)
         ;;
 pdp11-*-*)
 	;;
+picochip-*)
+        # Nothing special
+        ;;
 # port not yet contributed
 #powerpc-*-openbsd*)
 #	tmake_file="${tmake_file} rs6000/t-fprules rs6000/t-fprules-fpbit "
@@ -2779,7 +2789,7 @@ case "${target}" in
 		;;
 
 	mips*-*-*)
-		supported_defaults="abi arch float tune divide llsc"
+		supported_defaults="abi arch float tune divide llsc mips-plt"
 
 		case ${with_float} in
 		"" | soft | hard)
@@ -2823,6 +2833,21 @@ case "${target}" in
 			;;
 		*)
 			echo "Unknown llsc type used in --with-llsc" 1>&2
+			exit 1
+			;;
+		esac
+
+		case ${with_mips_plt} in
+		yes)
+			with_mips_plt=plt
+			;;
+		no)
+			with_mips_plt=no-plt
+			;;
+		"")
+			;;
+		*)
+			echo "Unknown --with-mips-plt argument: $with_mips_plt" 1>&2
 			exit 1
 			;;
 		esac
@@ -3078,10 +3103,10 @@ case ${target} in
 esac
 
 t=
-all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc"
+all_defaults="abi cpu cpu_32 cpu_64 arch arch_32 arch_64 tune tune_32 tune_64 schedule float mode fpu divide llsc mips-plt"
 for option in $all_defaults
 do
-	eval "val=\$with_$option"
+	eval "val=\$with_"`echo $option | sed s/-/_/g`
 	if test -n "$val"; then
 		case " $supported_defaults " in
 		*" $option "*)

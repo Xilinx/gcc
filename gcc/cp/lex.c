@@ -172,7 +172,6 @@ init_reswords (void)
   tree id;
   int mask = 0;
 
-  mask |= D_CONLY;
   if (cxx_dialect != cxx0x)
     mask |= D_CXX0X;
   if (flag_no_asm)
@@ -186,6 +185,8 @@ init_reswords (void)
   ridpointers = GGC_CNEWVEC (tree, (int) RID_MAX);
   for (i = 0; i < num_c_common_reswords; i++)
     {
+      if (c_common_reswords[i].disable & D_CONLY)
+	continue;
       id = get_identifier (c_common_reswords[i].word);
       C_SET_RID_CODE (id, c_common_reswords[i].rid);
       ridpointers [(int) c_common_reswords[i].rid] = id;
@@ -481,7 +482,7 @@ unqualified_fn_lookup_error (tree name)
 	 Note that we have the exact wording of the following message in
 	 the manual (trouble.texi, node "Name lookup"), so they need to
 	 be kept in synch.  */
-      permerror ("there are no arguments to %qD that depend on a template "
+      permerror (input_location, "there are no arguments to %qD that depend on a template "
 		 "parameter, so a declaration of %qD must be available",
 		 name, name);
 
@@ -490,7 +491,7 @@ unqualified_fn_lookup_error (tree name)
 	  static bool hint;
 	  if (!hint)
 	    {
-	      inform ("(if you use %<-fpermissive%>, G++ will accept your "
+	      inform (input_location, "(if you use %<-fpermissive%>, G++ will accept your "
 		     "code, but allowing the use of an undeclared name is "
 		     "deprecated)");
 	      hint = true;

@@ -1066,7 +1066,7 @@ eliminate_partially_redundant_load (basic_block bb, rtx insn,
   if (/* No load can be replaced by copy.  */
       npred_ok == 0
       /* Prevent exploding the code.  */ 
-      || (optimize_size && npred_ok > 1)
+      || (optimize_bb_for_size_p (bb) && npred_ok > 1)
       /* If we don't have profile information we cannot tell if splitting 
          a critical edge is profitable or not so don't do it.  */
       || ((! profile_info || ! flag_branch_probabilities
@@ -1173,7 +1173,7 @@ eliminate_partially_redundant_loads (void)
 	continue;
 
       /* Do not try anything on cold basic blocks.  */
-      if (probably_cold_bb_p (bb))
+      if (optimize_bb_for_size_p (bb))
 	continue;
 
       /* Reset the table of things changed since the start of the current
@@ -1306,7 +1306,8 @@ gcse_after_reload_main (rtx f ATTRIBUTE_UNUSED)
 static bool
 gate_handle_gcse2 (void)
 {
-  return (optimize > 0 && flag_gcse_after_reload);
+  return (optimize > 0 && flag_gcse_after_reload
+	  && optimize_function_for_speed_p (cfun));
 }
 
 

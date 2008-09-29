@@ -208,23 +208,14 @@ static void do_clobber_return_reg (rtx, void *);
 static void do_use_return_reg (rtx, void *);
 static void set_insn_locators (rtx, int) ATTRIBUTE_UNUSED;
 
-/* Pointer to chain of `struct function' for containing functions.  */
-struct function *outer_function_chain;
+/* Stack of nested functions.  */
+/* Keep track of the cfun stack.  */
 
-/* Given a function decl for a containing function,
-   return the `struct function' for it.  */
+typedef struct function *function_p;
 
-struct function *
-find_function_data (tree decl)
-{
-  struct function *p;
-
-  for (p = outer_function_chain; p; p = p->outer)
-    if (p->decl == decl)
-      return p;
-
-  gcc_unreachable ();
-}
+DEF_VEC_P(function_p);
+DEF_VEC_ALLOC_P(function_p,heap);
+static VEC(function_p,heap) *function_context_stack;
 
 /* Save the current context for compilation of a nested function.
    This is called from language-specific code.  */
@@ -235,8 +226,7 @@ push_function_context (void)
   if (cfun == 0)
     allocate_struct_function (NULL, false);
 
-  cfun->outer = outer_function_chain;
-  outer_function_chain = cfun;
+  VEC_safe_push (function_p, heap, function_context_stack, cfun);
   set_cfun (NULL);
 }
 
@@ -246,10 +236,8 @@ push_function_context (void)
 void
 pop_function_context (void)
 {
-  struct function *p = outer_function_chain;
-
+  struct function *p = VEC_pop (function_p, function_context_stack);
   set_cfun (p);
-  outer_function_chain = p->outer;
   current_function_decl = p->decl;
 
   /* Reset variables that have known state during rtx generation.  */
@@ -286,6 +274,7 @@ free_after_compilation (struct function *f)
   f->cfg = NULL;
 
   regno_reg_rtx = NULL;
+  insn_locators_free ();
 }
 
 /* Return size needed for stack frame based on slots so far allocated.
@@ -1515,6 +1504,7 @@ instantiate_virtual_regs_in_insn (rtx insn)
 	    }
 	  x = simplify_gen_subreg (recog_data.operand_mode[i], new_rtx,
 				   GET_MODE (new_rtx), SUBREG_BYTE (x));
+	  gcc_assert (x);
 	  break;
 
 	default:
@@ -1644,7 +1634,7 @@ instantiate_decls_1 (tree let)
 static void
 instantiate_decls (tree fndecl)
 {
-  tree decl;
+  tree decl, t, next;
 
   /* Process all parameters of the function.  */
   for (decl = DECL_ARGUMENTS (fndecl); decl; decl = TREE_CHAIN (decl))
@@ -1660,6 +1650,17 @@ instantiate_decls (tree fndecl)
 
   /* Now process all variables defined in the function or its subblocks.  */
   instantiate_decls_1 (DECL_INITIAL (fndecl));
+
+  t = cfun->local_decls;
+  cfun->local_decls = NULL_TREE;
+  for (; t; t = next)
+    {
+      next = TREE_CHAIN (t);
+      decl = TREE_VALUE (t);
+      if (DECL_RTL_SET_P (decl))
+	instantiate_decl_rtl (DECL_RTL (decl));
+      ggc_free (t);
+    }
 }
 
 /* Pass through the INSNS of function FNDECL and convert virtual register
@@ -2331,6 +2332,11 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
   stack_parm = gen_rtx_MEM (data->promoted_mode, stack_parm);
 
   set_mem_attributes (stack_parm, parm, 1);
+  /* set_mem_attributes could set MEM_SIZE to the passed mode's size,
+     while promoted mode's size is needed.  */
+  if (data->promoted_mode != BLKmode
+      && data->promoted_mode != DECL_MODE (parm))
+    set_mem_size (stack_parm, GEN_INT (GET_MODE_SIZE (data->promoted_mode)));
 
   boundary = data->locate.boundary;
   align = BITS_PER_UNIT;
@@ -3236,7 +3242,7 @@ gimplify_parameters (void)
       walk_tree_without_duplicates (&data.passed_type,
 				    gimplify_parm_type, &stmts);
 
-      if (!TREE_CONSTANT (DECL_SIZE (parm)))
+      if (TREE_CODE (DECL_SIZE_UNIT (parm)) != INTEGER_CST)
 	{
 	  gimplify_one_sizepos (&DECL_SIZE (parm), &stmts);
 	  gimplify_one_sizepos (&DECL_SIZE_UNIT (parm), &stmts);
@@ -3250,9 +3256,12 @@ gimplify_parameters (void)
 	    {
 	      tree local, t;
 
-	      /* For constant sized objects, this is trivial; for
+	      /* For constant-sized objects, this is trivial; for
 		 variable-sized objects, we have to play games.  */
-	      if (TREE_CONSTANT (DECL_SIZE (parm)))
+	      if (TREE_CODE (DECL_SIZE_UNIT (parm)) == INTEGER_CST
+		  && !(flag_stack_check == GENERIC_STACK_CHECK
+		       && compare_tree_int (DECL_SIZE_UNIT (parm),
+					    STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
 		  local = create_tmp_var (type, get_name (parm));
 		  DECL_IGNORED_P (local) = 0;
@@ -3895,13 +3904,6 @@ set_cfun (struct function *new_cfun)
     }
 }
 
-/* Keep track of the cfun stack.  */
-
-typedef struct function *function_p;
-
-DEF_VEC_P(function_p);
-DEF_VEC_ALLOC_P(function_p,heap);
-
 /* Initialized with NOGC, making this poisonous to the garbage collector.  */
 
 static VEC(function_p,heap) *cfun_stack;
@@ -4480,10 +4482,10 @@ expand_function_end (void)
   if (arg_pointer_save_area && ! crtl->arg_pointer_save_area_init)
     get_arg_pointer_save_area ();
 
-  /* If we are doing stack checking and this function makes calls,
+  /* If we are doing generic stack checking and this function makes calls,
      do a stack probe at the start of the function to ensure we have enough
      space for another stack frame.  */
-  if (flag_stack_check && ! STACK_CHECK_BUILTIN)
+  if (flag_stack_check == GENERIC_STACK_CHECK)
     {
       rtx insn, seq;
 
@@ -4491,7 +4493,7 @@ expand_function_end (void)
 	if (CALL_P (insn))
 	  {
 	    start_sequence ();
-	    probe_stack_range (STACK_CHECK_PROTECT,
+	    probe_stack_range (STACK_OLD_CHECK_PROTECT,
 			       GEN_INT (STACK_CHECK_MAX_FRAME_SIZE));
 	    seq = get_insns ();
 	    end_sequence ();

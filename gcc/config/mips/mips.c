@@ -148,6 +148,13 @@ enum mips_address_type {
   ADDRESS_SYMBOLIC
 };
 
+/* Enumerates the setting of the -mr10k-cache-barrier option.  */
+enum mips_r10k_cache_barrier_setting {
+  R10K_CACHE_BARRIER_NONE,
+  R10K_CACHE_BARRIER_STORE,
+  R10K_CACHE_BARRIER_LOAD_STORE
+};
+
 /* Macros to create an enumeration identifier for a function prototype.  */
 #define MIPS_FTYPE_NAME1(A, B) MIPS_##A##_FTYPE_##B
 #define MIPS_FTYPE_NAME2(A, B, C) MIPS_##A##_FTYPE_##B##_##C
@@ -456,6 +463,9 @@ static int mips_base_align_functions; /* align_functions */
 /* The -mcode-readable setting.  */
 enum mips_code_readable_setting mips_code_readable = CODE_READABLE_YES;
 
+/* The -mr10k-cache-barrier setting.  */
+static enum mips_r10k_cache_barrier_setting mips_r10k_cache_barrier;
+
 /* Index [M][R] is true if register R is allowed to hold a value of mode M.  */
 bool mips_hard_regno_mode_ok[(int) MAX_MACHINE_MODE][FIRST_PSEUDO_REGISTER];
 
@@ -502,7 +512,7 @@ const enum reg_class mips_regno_to_class[FIRST_PSEUDO_REGISTER] = {
   MD0_REG,	MD1_REG,	NO_REGS,	ST_REGS,
   ST_REGS,	ST_REGS,	ST_REGS,	ST_REGS,
   ST_REGS,	ST_REGS,	ST_REGS,	NO_REGS,
-  NO_REGS,	ALL_REGS,	ALL_REGS,	NO_REGS,
+  NO_REGS,	FRAME_REGS,	FRAME_REGS,	NO_REGS,
   COP0_REGS,	COP0_REGS,	COP0_REGS,	COP0_REGS,
   COP0_REGS,	COP0_REGS,	COP0_REGS,	COP0_REGS,
   COP0_REGS,	COP0_REGS,	COP0_REGS,	COP0_REGS,
@@ -652,7 +662,10 @@ static const struct mips_cpu_info mips_cpu_info_table[] = {
   { "sb1", PROCESSOR_SB1, 64, PTF_AVOID_BRANCHLIKELY },
   { "sb1a", PROCESSOR_SB1A, 64, PTF_AVOID_BRANCHLIKELY },
   { "sr71000", PROCESSOR_SR71000, 64, PTF_AVOID_BRANCHLIKELY },
-  { "xlr", PROCESSOR_XLR, 64, 0 }
+  { "xlr", PROCESSOR_XLR, 64, 0 },
+
+  /* MIPS64 Release 2 processors.  */
+  { "octeon", PROCESSOR_OCTEON, 65, PTF_AVOID_BRANCHLIKELY }
 };
 
 /* Default costs.  If these are used for a processor we should look
@@ -851,6 +864,16 @@ static const struct mips_rtx_cost_data mips_rtx_cost_data[PROCESSOR_MAX] = {
   },
   { /* M4k */
     DEFAULT_COSTS
+  },
+    /* Octeon */
+  {
+    SOFT_FP_COSTS,
+    COSTS_N_INSNS (5),            /* int_mult_si */
+    COSTS_N_INSNS (5),            /* int_mult_di */
+    COSTS_N_INSNS (72),           /* int_div_si */
+    COSTS_N_INSNS (72),           /* int_div_di */
+                     1,		  /* branch_cost */
+                     4		  /* memory_latency */
   },
   { /* R3900 */
     COSTS_N_INSNS (2),            /* fp_add */
@@ -1454,13 +1477,20 @@ mips_use_pic_fn_addr_reg_p (const_rtx x)
   if (mips16_stub_function_p (x))
     return false;
 
-  /* When TARGET_ABSOLUTE_ABICALLS is true, locally-defined functions
-     use absolute accesses to set up the global pointer.  */
-  if (TARGET_ABSOLUTE_ABICALLS
-      && GET_CODE (x) == SYMBOL_REF
-      && mips_symbol_binds_local_p (x)
-      && !SYMBOL_REF_EXTERNAL_P (x))
-    return false;
+  if (GET_CODE (x) == SYMBOL_REF)
+    {
+      /* If PLTs and copy relocations are available, the static linker
+	 will make sure that $25 is valid on entry to the target function.  */
+      if (TARGET_ABICALLS_PIC0)
+	return false;
+
+      /* Locally-defined functions use absolute accesses to set up
+	 the global pointer.  */
+      if (TARGET_ABSOLUTE_ABICALLS
+	  && mips_symbol_binds_local_p (x)
+	  && !SYMBOL_REF_EXTERNAL_P (x))
+	return false;
+    }
 
   return true;
 }
@@ -1512,7 +1542,7 @@ mips_classify_symbol (const_rtx x, enum mips_symbol_context context)
 
   /* Don't use GOT accesses for locally-binding symbols when -mno-shared
      is in effect.  */
-  if (TARGET_ABICALLS
+  if (TARGET_ABICALLS_PIC2
       && !(TARGET_ABSOLUTE_ABICALLS && mips_symbol_binds_local_p (x)))
     {
       /* There are three cases to consider:
@@ -3205,8 +3235,8 @@ mips_binary_cost (rtx x, int single_cost, int double_cost)
   else
     cost = single_cost;
   return (cost
-	  + rtx_cost (XEXP (x, 0), 0)
-	  + rtx_cost (XEXP (x, 1), GET_CODE (x)));
+	  + rtx_cost (XEXP (x, 0), 0, !optimize_size)
+	  + rtx_cost (XEXP (x, 1), GET_CODE (x), !optimize_size));
 }
 
 /* Return the cost of floating-point multiplications of mode MODE.  */
@@ -3276,7 +3306,8 @@ mips_zero_extend_cost (enum machine_mode mode, rtx op)
 /* Implement TARGET_RTX_COSTS.  */
 
 static bool
-mips_rtx_costs (rtx x, int code, int outer_code, int *total)
+mips_rtx_costs (rtx x, int code, int outer_code, int *total,
+		bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
   bool float_mode_p = FLOAT_MODE_P (mode);
@@ -3423,7 +3454,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	  && UINTVAL (XEXP (x, 1)) == 0xffffffff)
 	{
 	  *total = (mips_zero_extend_cost (mode, XEXP (x, 0))
-		    + rtx_cost (XEXP (x, 0), 0));
+		    + rtx_cost (XEXP (x, 0), 0, speed));
 	  return true;
 	}
       /* Fall through.  */
@@ -3455,7 +3486,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
     case LO_SUM:
       /* Low-part immediates need an extended MIPS16 instruction.  */
       *total = (COSTS_N_INSNS (TARGET_MIPS16 ? 2 : 1)
-		+ rtx_cost (XEXP (x, 0), 0));
+		+ rtx_cost (XEXP (x, 0), 0, speed));
       return true;
 
     case LT:
@@ -3495,17 +3526,17 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	  if (GET_CODE (op0) == MULT && GET_CODE (XEXP (op0, 0)) == NEG)
 	    {
 	      *total = (mips_fp_mult_cost (mode)
-			+ rtx_cost (XEXP (XEXP (op0, 0), 0), 0)
-			+ rtx_cost (XEXP (op0, 1), 0)
-			+ rtx_cost (op1, 0));
+			+ rtx_cost (XEXP (XEXP (op0, 0), 0), 0, speed)
+			+ rtx_cost (XEXP (op0, 1), 0, speed)
+			+ rtx_cost (op1, 0, speed));
 	      return true;
 	    }
 	  if (GET_CODE (op1) == MULT)
 	    {
 	      *total = (mips_fp_mult_cost (mode)
-			+ rtx_cost (op0, 0)
-			+ rtx_cost (XEXP (op1, 0), 0)
-			+ rtx_cost (XEXP (op1, 1), 0));
+			+ rtx_cost (op0, 0, speed)
+			+ rtx_cost (XEXP (op1, 0), 0, speed)
+			+ rtx_cost (XEXP (op1, 1), 0, speed));
 	      return true;
 	    }
 	}
@@ -3546,9 +3577,9 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      && GET_CODE (XEXP (op, 0)) == MULT)
 	    {
 	      *total = (mips_fp_mult_cost (mode)
-			+ rtx_cost (XEXP (XEXP (op, 0), 0), 0)
-			+ rtx_cost (XEXP (XEXP (op, 0), 1), 0)
-			+ rtx_cost (XEXP (op, 1), 0));
+			+ rtx_cost (XEXP (XEXP (op, 0), 0), 0, speed)
+			+ rtx_cost (XEXP (XEXP (op, 0), 1), 0, speed)
+			+ rtx_cost (XEXP (op, 1), 0, speed));
 	      return true;
 	    }
 	}
@@ -3586,9 +3617,9 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	  if (outer_code == SQRT || GET_CODE (XEXP (x, 1)) == SQRT)
 	    /* An rsqrt<mode>a or rsqrt<mode>b pattern.  Count the
 	       division as being free.  */
-	    *total = rtx_cost (XEXP (x, 1), 0);
+	    *total = rtx_cost (XEXP (x, 1), 0, speed);
 	  else
-	    *total = mips_fp_div_cost (mode) + rtx_cost (XEXP (x, 1), 0);
+	    *total = mips_fp_div_cost (mode) + rtx_cost (XEXP (x, 1), 0, speed);
 	  return true;
 	}
       /* Fall through.  */
@@ -3616,7 +3647,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 	      && CONST_INT_P (XEXP (x, 1))
 	      && exact_log2 (INTVAL (XEXP (x, 1))) >= 0)
 	    {
-	      *total = COSTS_N_INSNS (2) + rtx_cost (XEXP (x, 0), 0);
+	      *total = COSTS_N_INSNS (2) + rtx_cost (XEXP (x, 0), 0, speed);
 	      return true;
 	    }
 	  *total = COSTS_N_INSNS (mips_idiv_insns ());
@@ -3651,7 +3682,7 @@ mips_rtx_costs (rtx x, int code, int outer_code, int *total)
 /* Implement TARGET_ADDRESS_COST.  */
 
 static int
-mips_address_cost (rtx addr)
+mips_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 {
   return mips_address_insns (addr, SImode, false);
 }
@@ -4201,8 +4232,14 @@ mips_expand_scc (enum rtx_code code, rtx target)
 
   if (code == EQ || code == NE)
     {
-      rtx zie = mips_zero_if_equal (cmp_operands[0], cmp_operands[1]);
-      mips_emit_binary (code, target, zie, const0_rtx);
+      if (ISA_HAS_SEQ_SNE
+	  && reg_imm10_operand (cmp_operands[1], GET_MODE (cmp_operands[1])))
+	mips_emit_binary (code, target, cmp_operands[0], cmp_operands[1]);
+      else
+	{
+	  rtx zie = mips_zero_if_equal (cmp_operands[0], cmp_operands[1]);
+	  mips_emit_binary (code, target, zie, const0_rtx);
+	}
     }
   else
     mips_emit_int_order_test (code, 0, target,
@@ -5657,35 +5694,36 @@ mips16_build_function_stub (void)
   assemble_start_function (stubdecl, stubname);
   mips_start_function_definition (stubname, false);
 
-  /* If generating abicalls code, either set up the global pointer or
-     switch to absolute mode.  */
-  if (TARGET_ABSOLUTE_ABICALLS)
-    fprintf (asm_out_file, "\t.option\tpic0\n");
-  else if (TARGET_ABICALLS)
+  /* If generating pic2 code, either set up the global pointer or
+     switch to pic0.  */
+  if (TARGET_ABICALLS_PIC2)
     {
-      output_asm_insn ("%(.cpload\t%^%)", NULL);
-      /* Emit an R_MIPS_NONE relocation to tell the linker what the
-	 target function is.  Use a local GOT access when loading the
-	 symbol, to cut down on the number of unnecessary GOT entries
-	 for stubs that aren't needed.  */
-      output_asm_insn (".reloc\t0,R_MIPS_NONE,%0", &symbol);
-      symbol = alias;
+      if (TARGET_ABSOLUTE_ABICALLS)
+	fprintf (asm_out_file, "\t.option\tpic0\n");
+      else
+	{
+	  output_asm_insn ("%(.cpload\t%^%)", NULL);
+	  /* Emit an R_MIPS_NONE relocation to tell the linker what the
+	     target function is.  Use a local GOT access when loading the
+	     symbol, to cut down on the number of unnecessary GOT entries
+	     for stubs that aren't needed.  */
+	  output_asm_insn (".reloc\t0,R_MIPS_NONE,%0", &symbol);
+	  symbol = alias;
+	}
     }
 
-  /* Load the address of the MIPS16 function into $at.  Do this first so
+  /* Load the address of the MIPS16 function into $25.  Do this first so
      that targets with coprocessor interlocks can use an MFC1 to fill the
      delay slot.  */
-  fprintf (asm_out_file, "\t.set\tnoat\n");
-  output_asm_insn ("la\t%@,%0", &symbol);
+  output_asm_insn ("la\t%^,%0", &symbol);
 
   /* Move the arguments from floating-point registers to general registers.  */
   mips_output_args_xfer (crtl->args.info.fp_code, 'f');
 
   /* Jump to the MIPS16 function.  */
-  output_asm_insn ("jr\t%@", NULL);
-  fprintf (asm_out_file, "\t.set\tat\n");
+  output_asm_insn ("jr\t%^", NULL);
 
-  if (TARGET_ABSOLUTE_ABICALLS)
+  if (TARGET_ABICALLS_PIC2 && TARGET_ABSOLUTE_ABICALLS)
     fprintf (asm_out_file, "\t.option\tpic2\n");
 
   mips_end_function_definition (stubname);
@@ -5906,10 +5944,9 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
 
       if (!fp_ret_p)
 	{
-	  /* Load the address of the MIPS16 function into $at.  Do this
+	  /* Load the address of the MIPS16 function into $25.  Do this
 	     first so that targets with coprocessor interlocks can use
 	     an MFC1 to fill the delay slot.  */
-	  fprintf (asm_out_file, "\t.set\tnoat\n");
 	  if (TARGET_EXPLICIT_RELOCS)
 	    {
 	      output_asm_insn ("lui\t%^,%%hi(%0)", &fn);
@@ -5927,7 +5964,6 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
 	{
 	  /* Jump to the previously-loaded address.  */
 	  output_asm_insn ("jr\t%^", NULL);
-	  fprintf (asm_out_file, "\t.set\tat\n");
 	}
       else
 	{
@@ -6137,7 +6173,8 @@ mips_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
      because there is no direct "jx" instruction equivalent to "jalx" to
      switch the ISA mode.  We only care about cases where the sibling
      and normal calls would both be direct.  */
-  if (mips_use_mips16_mode_p (decl)
+  if (decl
+      && mips_use_mips16_mode_p (decl)
       && const_call_insn_operand (XEXP (DECL_RTL (decl), 0), VOIDmode))
     return false;
 
@@ -6639,6 +6676,32 @@ mips_use_ins_ext_p (rtx op, HOST_WIDE_INT width, HOST_WIDE_INT bitpos)
 
   return true;
 }
+
+/* Check if MASK and SHIFT are valid in mask-low-and-shift-left
+   operation if MAXLEN is the maxium length of consecutive bits that
+   can make up MASK.  MODE is the mode of the operation.  See
+   mask_low_and_shift_len for the actual definition.  */
+
+bool
+mask_low_and_shift_p (enum machine_mode mode, rtx mask, rtx shift, int maxlen)
+{
+  return IN_RANGE (mask_low_and_shift_len (mode, mask, shift), 1, maxlen);
+}
+
+/* The canonical form of a mask-low-and-shift-left operation is
+   (and (ashift X SHIFT) MASK) where MASK has the lower SHIFT number of bits
+   cleared.  Thus we need to shift MASK to the right before checking if it
+   is a valid mask value.  MODE is the mode of the operation.  If true
+   return the length of the mask, otherwise return -1.  */
+
+int
+mask_low_and_shift_len (enum machine_mode mode, rtx mask, rtx shift)
+{
+  HOST_WIDE_INT shval;
+
+  shval = INTVAL (shift) & (GET_MODE_BITSIZE (mode) - 1);
+  return exact_log2 ((UINTVAL (mask) >> shval) + 1);
+}
 
 /* Return true if -msplit-addresses is selected and should be honored.
 
@@ -7006,6 +7069,7 @@ mips_print_float_branch_condition (FILE *file, enum rtx_code code, int letter)
    'X'	Print CONST_INT OP in hexadecimal format.
    'x'	Print the low 16 bits of CONST_INT OP in hexadecimal format.
    'd'	Print CONST_INT OP in decimal.
+   'm'	Print one less than CONST_INT OP in decimal.
    'h'	Print the high-part relocation associated with OP, after stripping
 	  any outermost HIGH.
    'R'	Print the low-part relocation associated with OP.
@@ -7057,6 +7121,13 @@ mips_print_operand (FILE *file, rtx op, int letter)
     case 'd':
       if (GET_CODE (op) == CONST_INT)
 	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (op));
+      else
+	output_operand_lossage ("invalid use of '%%%c'", letter);
+      break;
+
+    case 'm':
+      if (GET_CODE (op) == CONST_INT)
+	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (op) - 1);
       else
 	output_operand_lossage ("invalid use of '%%%c'", letter);
       break;
@@ -7222,15 +7293,16 @@ mips_select_rtx_section (enum machine_mode mode, rtx x,
 /* Implement TARGET_ASM_FUNCTION_RODATA_SECTION.
 
    The complication here is that, with the combination TARGET_ABICALLS
-   && !TARGET_GPWORD, jump tables will use absolute addresses, and should
-   therefore not be included in the read-only part of a DSO.  Handle such
-   cases by selecting a normal data section instead of a read-only one.
-   The logic apes that in default_function_rodata_section.  */
+   && !TARGET_ABSOLUTE_ABICALLS && !TARGET_GPWORD, jump tables will use
+   absolute addresses, and should therefore not be included in the
+   read-only part of a DSO.  Handle such cases by selecting a normal
+   data section instead of a read-only one.  The logic apes that in
+   default_function_rodata_section.  */
 
 static section *
 mips_function_rodata_section (tree decl)
 {
-  if (!TARGET_ABICALLS || TARGET_GPWORD)
+  if (!TARGET_ABICALLS || TARGET_ABSOLUTE_ABICALLS || TARGET_GPWORD)
     return default_function_rodata_section (decl);
 
   if (decl && DECL_SECTION_NAME (decl))
@@ -7729,7 +7801,11 @@ mips_file_start (void)
 
   /* If TARGET_ABICALLS, tell GAS to generate -KPIC code.  */
   if (TARGET_ABICALLS)
-    fprintf (asm_out_file, "\t.abicalls\n");
+    {
+      fprintf (asm_out_file, "\t.abicalls\n");
+      if (TARGET_ABICALLS_PIC0)
+	fprintf (asm_out_file, "\t.option\tpic0\n");
+    }
 
   if (flag_verbose_asm)
     fprintf (asm_out_file, "\n%s -G value = %d, Arch = %s, ISA = %d\n",
@@ -8285,24 +8361,40 @@ mips_global_pointer (void)
   if (crtl->has_nonlocal_goto)
     return GLOBAL_POINTER_REGNUM;
 
-  /* If the gp is never referenced, there's no need to initialize it.
-     Note that reload can sometimes introduce constant pool references
-     into a function that otherwise didn't need them.  For example,
-     suppose we have an instruction like:
-
-	  (set (reg:DF R1) (float:DF (reg:SI R2)))
-
-     If R2 turns out to be constant such as 1, the instruction may have a
-     REG_EQUAL note saying that R1 == 1.0.  Reload then has the option of
-     using this constant if R2 doesn't get allocated to a register.
-
-     In cases like these, reload will have added the constant to the pool
-     but no instruction will yet refer to it.  */
+  /* There's no need to initialize $gp if it isn't referenced now,
+     and if we can be sure that no new references will be added during
+     or after reload.  */
   if (!df_regs_ever_live_p (GLOBAL_POINTER_REGNUM)
-      && !crtl->uses_const_pool
-      && !mips16_cfun_returns_in_fpr_p ()
       && !mips_function_has_gp_insn ())
-    return 0;
+    {
+      /* The function doesn't use $gp at the moment.  If we're generating
+	 -call_nonpic code, no new uses will be introduced during or after
+	 reload.  */
+      if (TARGET_ABICALLS_PIC0)
+	return 0;
+
+      /* We need to handle the following implicit gp references:
+
+	 - Reload can sometimes introduce constant pool references
+	   into a function that otherwise didn't need them.  For example,
+	   suppose we have an instruction like:
+
+	       (set (reg:DF R1) (float:DF (reg:SI R2)))
+
+	   If R2 turns out to be constant such as 1, the instruction may
+	   have a REG_EQUAL note saying that R1 == 1.0.  Reload then has
+	   the option of using this constant if R2 doesn't get allocated
+	   to a register.
+
+	   In cases like these, reload will have added the constant to the
+	   pool but no instruction will yet refer to it.
+
+	 - MIPS16 functions that return in FPRs need to call an
+	   external libgcc routine.  */
+      if (!crtl->uses_const_pool
+	  && !mips16_cfun_returns_in_fpr_p ())
+	return 0;
+    }
 
   /* We need a global pointer, but perhaps we can use a call-clobbered
      register instead of $gp.  */
@@ -8322,10 +8414,12 @@ mips_global_pointer (void)
 static bool
 mips_save_reg_p (unsigned int regno)
 {
-  /* We only need to save $gp if TARGET_CALL_SAVED_GP and only then
-     if we have not chosen a call-clobbered substitute.  */
-  if (regno == GLOBAL_POINTER_REGNUM)
-    return TARGET_CALL_SAVED_GP && cfun->machine->global_pointer == regno;
+  /* We need to save $gp if TARGET_CALL_SAVED_GP and if we have not
+     chosen a call-clobbered substitute.  */
+  if (TARGET_CALL_SAVED_GP
+      && regno == GLOBAL_POINTER_REGNUM
+      && cfun->machine->global_pointer == regno)
+    return true;
 
   /* Check call-saved registers.  */
   if ((crtl->saves_all_registers || df_regs_ever_live_p (regno))
@@ -8691,6 +8785,9 @@ void
 mips_restore_gp (rtx temp)
 {
   gcc_assert (TARGET_ABICALLS && TARGET_OLDABI);
+
+  if (cfun->machine->global_pointer == 0)
+    return;
 
   if (TARGET_MIPS16)
     {
@@ -9119,13 +9216,17 @@ mips_expand_prologue (void)
   mips_emit_loadgp ();
 
   /* Initialize the $gp save slot.  */
-  if (frame->cprestore_size > 0)
+  if (frame->cprestore_size > 0
+      && cfun->machine->global_pointer != 0)
     {
       if (TARGET_MIPS16)
 	mips_emit_move (mips_cprestore_slot (MIPS_PROLOGUE_TEMP (Pmode)),
 			MIPS16_PIC_TEMP);
-      else
+      else if (TARGET_ABICALLS_PIC2)
 	emit_insn (gen_cprestore (GEN_INT (frame->args_size)));
+      else
+	emit_move_insn (mips_cprestore_slot (MIPS_PROLOGUE_TEMP (Pmode)),
+			pic_offset_table_rtx);
     }
 
   /* If we are profiling, make sure no instructions are scheduled before
@@ -10276,6 +10377,7 @@ mips_issue_rate (void)
     case PROCESSOR_R5500:
     case PROCESSOR_R7000:
     case PROCESSOR_R9000:
+    case PROCESSOR_OCTEON:
       return 2;
 
     case PROCESSOR_SB1:
@@ -10416,6 +10518,9 @@ mips_multipass_dfa_lookahead (void)
 
   if (TUNE_LOONGSON_2EF)
     return 4;
+
+  if (TUNE_OCTEON)
+    return 2;
 
   return 0;
 }
@@ -10832,6 +10937,7 @@ AVAIL_NON_MIPS16 (dspr2, TARGET_DSPR2)
 AVAIL_NON_MIPS16 (dsp_32, !TARGET_64BIT && TARGET_DSP)
 AVAIL_NON_MIPS16 (dspr2_32, !TARGET_64BIT && TARGET_DSPR2)
 AVAIL_NON_MIPS16 (loongson, TARGET_LOONGSON_VECTORS)
+AVAIL_NON_MIPS16 (cache, TARGET_CACHE_BUILTIN)
 
 /* Construct a mips_builtin_description from the given arguments.
 
@@ -11262,7 +11368,10 @@ static const struct mips_builtin_description mips_builtins[] = {
   LOONGSON_BUILTIN_SUFFIX (punpcklwd, u, MIPS_UV2SI_FTYPE_UV2SI_UV2SI),
   LOONGSON_BUILTIN_SUFFIX (punpcklbh, s, MIPS_V8QI_FTYPE_V8QI_V8QI),
   LOONGSON_BUILTIN_SUFFIX (punpcklhw, s, MIPS_V4HI_FTYPE_V4HI_V4HI),
-  LOONGSON_BUILTIN_SUFFIX (punpcklwd, s, MIPS_V2SI_FTYPE_V2SI_V2SI)
+  LOONGSON_BUILTIN_SUFFIX (punpcklwd, s, MIPS_V2SI_FTYPE_V2SI_V2SI),
+
+  /* Sundry other built-in functions.  */
+  DIRECT_NO_TARGET_BUILTIN (cache, MIPS_VOID_FTYPE_SI_CVPOINTER, cache)
 };
 
 /* MODE is a vector mode whose elements have type TYPE.  Return the type
@@ -11284,10 +11393,25 @@ mips_builtin_vector_type (tree type, enum machine_mode mode)
   return types[mode_index];
 }
 
+/* Return a type for 'const volatile void *'.  */
+
+static tree
+mips_build_cvpointer_type (void)
+{
+  static tree cache;
+
+  if (cache == NULL_TREE)
+    cache = build_pointer_type (build_qualified_type
+				(void_type_node,
+				 TYPE_QUAL_CONST | TYPE_QUAL_VOLATILE));
+  return cache;
+}
+
 /* Source-level argument types.  */
 #define MIPS_ATYPE_VOID void_type_node
 #define MIPS_ATYPE_INT integer_type_node
 #define MIPS_ATYPE_POINTER ptr_type_node
+#define MIPS_ATYPE_CVPOINTER mips_build_cvpointer_type ()
 
 /* Standard mode-based argument types.  */
 #define MIPS_ATYPE_UQI unsigned_intQI_type_node
@@ -11387,7 +11511,13 @@ mips_prepare_builtin_arg (enum insn_code icode,
   mode = insn_data[icode].operand[opno].mode;
   if (!insn_data[icode].operand[opno].predicate (value, mode))
     {
-      value = copy_to_mode_reg (mode, value);
+      /* Cope with address operands, where MODE is not the mode of
+	 VALUE itself.  */
+      if (GET_MODE (value) == VOIDmode)
+	value = copy_to_mode_reg (mode, value);
+      else
+	value = copy_to_reg (value);
+
       /* Check the predicate again.  */
       if (!insn_data[icode].operand[opno].predicate (value, mode))
 	{
@@ -11932,6 +12062,378 @@ mips16_lay_out_constants (void)
 	}
     }
   mips16_emit_constants (pool.first, get_last_insn ());
+}
+
+/* Return true if it is worth r10k_simplify_address's while replacing
+   an address with X.  We are looking for constants, and for addresses
+   at a known offset from the incoming stack pointer.  */
+
+static bool
+r10k_simplified_address_p (rtx x)
+{
+  if (GET_CODE (x) == PLUS && CONST_INT_P (XEXP (x, 1)))
+    x = XEXP (x, 0);
+  return x == virtual_incoming_args_rtx || CONSTANT_P (x);
+}
+
+/* X is an expression that appears in INSN.  Try to use the UD chains
+   to simplify it, returning the simplified form on success and the
+   original form otherwise.  Replace the incoming value of $sp with
+   virtual_incoming_args_rtx (which should never occur in X otherwise).  */
+
+static rtx
+r10k_simplify_address (rtx x, rtx insn)
+{
+  rtx newx, op0, op1, set, def_insn, note;
+  struct df_ref *use, *def;
+  struct df_link *defs;
+
+  newx = NULL_RTX;
+  if (UNARY_P (x))
+    {
+      op0 = r10k_simplify_address (XEXP (x, 0), insn);
+      if (op0 != XEXP (x, 0))
+	newx = simplify_gen_unary (GET_CODE (x), GET_MODE (x),
+				   op0, GET_MODE (XEXP (x, 0)));
+    }
+  else if (BINARY_P (x))
+    {
+      op0 = r10k_simplify_address (XEXP (x, 0), insn);
+      op1 = r10k_simplify_address (XEXP (x, 1), insn);
+      if (op0 != XEXP (x, 0) || op1 != XEXP (x, 1))
+	newx = simplify_gen_binary (GET_CODE (x), GET_MODE (x), op0, op1);
+    }
+  else if (GET_CODE (x) == LO_SUM)
+    {
+      /* LO_SUMs can be offset from HIGHs, if we know they won't
+	 overflow.  See mips_classify_address for the rationale behind
+	 the lax check.  */
+      op0 = r10k_simplify_address (XEXP (x, 0), insn);
+      if (GET_CODE (op0) == HIGH)
+	newx = XEXP (x, 1);
+    }
+  else if (REG_P (x))
+    {
+      /* Uses are recorded by regno_reg_rtx, not X itself.  */
+      use = df_find_use (insn, regno_reg_rtx[REGNO (x)]);
+      gcc_assert (use);
+      defs = DF_REF_CHAIN (use);
+
+      /* Require a single definition.  */
+      if (defs && defs->next == NULL)
+	{
+	  def = defs->ref;
+	  if (DF_REF_IS_ARTIFICIAL (def))
+	    {
+	      /* Replace the incoming value of $sp with
+		 virtual_incoming_args_rtx.  */
+	      if (x == stack_pointer_rtx
+		  && DF_REF_BB (def) == ENTRY_BLOCK_PTR)
+		newx = virtual_incoming_args_rtx;
+	    }
+	  else if (dominated_by_p (CDI_DOMINATORS, DF_REF_BB (use),
+				   DF_REF_BB (def)))
+	    {
+	      /* Make sure that DEF_INSN is a single set of REG.  */
+	      def_insn = DF_REF_INSN (def);
+	      if (NONJUMP_INSN_P (def_insn))
+		{
+		  set = single_set (def_insn);
+		  if (set && rtx_equal_p (SET_DEST (set), x))
+		    {
+		      /* Prefer to use notes, since the def-use chains
+			 are often shorter.  */
+		      note = find_reg_equal_equiv_note (def_insn);
+		      if (note)
+			newx = XEXP (note, 0);
+		      else
+			newx = SET_SRC (set);
+		      newx = r10k_simplify_address (newx, def_insn);
+		    }
+		}
+	    }
+	}
+    }
+  if (newx && r10k_simplified_address_p (newx))
+    return newx;
+  return x;
+}
+
+/* Return true if ADDRESS is known to be an uncached address
+   on R10K systems.  */
+
+static bool
+r10k_uncached_address_p (unsigned HOST_WIDE_INT address)
+{
+  unsigned HOST_WIDE_INT upper;
+
+  /* Check for KSEG1.  */
+  if (address + 0x60000000 < 0x20000000)
+    return true;
+
+  /* Check for uncached XKPHYS addresses.  */
+  if (Pmode == DImode)
+    {
+      upper = (address >> 40) & 0xf9ffff;
+      if (upper == 0x900000 || upper == 0xb80000)
+	return true;
+    }
+  return false;
+}
+
+/* Return true if we can prove that an access to address X in instruction
+   INSN would be safe from R10K speculation.  This X is a general
+   expression; it might not be a legitimate address.  */
+
+static bool
+r10k_safe_address_p (rtx x, rtx insn)
+{
+  rtx base, offset;
+  HOST_WIDE_INT offset_val;
+
+  x = r10k_simplify_address (x, insn);
+
+  /* Check for references to the stack frame.  It doesn't really matter
+     how much of the frame has been allocated at INSN; -mr10k-cache-barrier
+     allows us to assume that accesses to any part of the eventual frame
+     is safe from speculation at any point in the function.  */
+  mips_split_plus (x, &base, &offset_val);
+  if (base == virtual_incoming_args_rtx
+      && offset_val >= -cfun->machine->frame.total_size
+      && offset_val < cfun->machine->frame.args_size)
+    return true;
+
+  /* Check for uncached addresses.  */
+  if (CONST_INT_P (x))
+    return r10k_uncached_address_p (INTVAL (x));
+
+  /* Check for accesses to a static object.  */
+  split_const (x, &base, &offset);
+  return offset_within_block_p (base, INTVAL (offset));
+}
+
+/* Return true if a MEM with MEM_EXPR EXPR and MEM_OFFSET OFFSET is
+   an in-range access to an automatic variable, or to an object with
+   a link-time-constant address.  */
+
+static bool
+r10k_safe_mem_expr_p (tree expr, rtx offset)
+{
+  if (expr == NULL_TREE
+      || offset == NULL_RTX
+      || !CONST_INT_P (offset)
+      || INTVAL (offset) < 0
+      || INTVAL (offset) >= int_size_in_bytes (TREE_TYPE (expr)))
+    return false;
+
+  while (TREE_CODE (expr) == COMPONENT_REF)
+    {
+      expr = TREE_OPERAND (expr, 0);
+      if (expr == NULL_TREE)
+	return false;
+    }
+
+  return DECL_P (expr);
+}
+
+/* A for_each_rtx callback for which DATA points to the instruction
+   containing *X.  Stop the search if we find a MEM that is not safe
+   from R10K speculation.  */
+
+static int
+r10k_needs_protection_p_1 (rtx *loc, void *data)
+{
+  rtx mem;
+
+  mem = *loc;
+  if (!MEM_P (mem))
+    return 0;
+
+  if (r10k_safe_mem_expr_p (MEM_EXPR (mem), MEM_OFFSET (mem)))
+    return -1;
+
+  if (r10k_safe_address_p (XEXP (mem, 0), (rtx) data))
+    return -1;
+
+  return 1;
+}
+
+/* A note_stores callback for which DATA points to an instruction pointer.
+   If *DATA is nonnull, make it null if it X contains a MEM that is not
+   safe from R10K speculation.  */
+
+static void
+r10k_needs_protection_p_store (rtx x, const_rtx pat ATTRIBUTE_UNUSED,
+			       void *data)
+{
+  rtx *insn_ptr;
+
+  insn_ptr = (rtx *) data;
+  if (*insn_ptr && for_each_rtx (&x, r10k_needs_protection_p_1, *insn_ptr))
+    *insn_ptr = NULL_RTX;
+}
+
+/* A for_each_rtx callback that iterates over the pattern of a CALL_INSN.
+   Return nonzero if the call is not to a declared function.  */
+
+static int
+r10k_needs_protection_p_call (rtx *loc, void *data ATTRIBUTE_UNUSED)
+{
+  rtx x;
+
+  x = *loc;
+  if (!MEM_P (x))
+    return 0;
+
+  x = XEXP (x, 0);
+  if (GET_CODE (x) == SYMBOL_REF && SYMBOL_REF_DECL (x))
+    return -1;
+
+  return 1;
+}
+
+/* Return true if instruction INSN needs to be protected by an R10K
+   cache barrier.  */
+
+static bool
+r10k_needs_protection_p (rtx insn)
+{
+  if (CALL_P (insn))
+    return for_each_rtx (&PATTERN (insn), r10k_needs_protection_p_call, NULL);
+
+  if (mips_r10k_cache_barrier == R10K_CACHE_BARRIER_STORE)
+    {
+      note_stores (PATTERN (insn), r10k_needs_protection_p_store, &insn);
+      return insn == NULL_RTX;
+    }
+
+  return for_each_rtx (&PATTERN (insn), r10k_needs_protection_p_1, insn);
+}
+
+/* Return true if BB is only reached by blocks in PROTECTED_BBS and if every
+   edge is unconditional.  */
+
+static bool
+r10k_protected_bb_p (basic_block bb, sbitmap protected_bbs)
+{
+  edge_iterator ei;
+  edge e;
+
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if (!single_succ_p (e->src)
+	|| !TEST_BIT (protected_bbs, e->src->index)
+	|| (e->flags & EDGE_COMPLEX) != 0)
+      return false;
+  return true;
+}
+
+/* Implement -mr10k-cache-barrier= for the current function.  */
+
+static void
+r10k_insert_cache_barriers (void)
+{
+  int *rev_post_order;
+  unsigned int i, n;
+  basic_block bb;
+  sbitmap protected_bbs;
+  rtx insn, end, unprotected_region;
+
+  if (TARGET_MIPS16)
+    {
+      sorry ("%qs does not support MIPS16 code", "-mr10k-cache-barrier");
+      return;
+    }
+
+  /* Restore the BLOCK_FOR_INSN pointers, which are needed by DF.  */
+  compute_bb_for_insn ();
+
+  /* Create def-use chains.  */
+  df_set_flags (DF_EQ_NOTES);
+  df_chain_add_problem (DF_UD_CHAIN);
+  df_analyze ();
+
+  /* Calculate dominators.  */
+  calculate_dominance_info (CDI_DOMINATORS);
+
+  /* Bit X of PROTECTED_BBS is set if the last operation in basic block
+     X is protected by a cache barrier.  */
+  protected_bbs = sbitmap_alloc (last_basic_block);
+  sbitmap_zero (protected_bbs);
+
+  /* Iterate over the basic blocks in reverse post-order.  */
+  rev_post_order = XNEWVEC (int, last_basic_block);
+  n = pre_and_rev_post_order_compute (NULL, rev_post_order, false);
+  for (i = 0; i < n; i++)
+    {
+      bb = BASIC_BLOCK (rev_post_order[i]);
+
+      /* If this block is only reached by unconditional edges, and if the
+	 source of every edge is protected, the beginning of the block is
+	 also protected.  */
+      if (r10k_protected_bb_p (bb, protected_bbs))
+	unprotected_region = NULL_RTX;
+      else
+	unprotected_region = pc_rtx;
+      end = NEXT_INSN (BB_END (bb));
+
+      /* UNPROTECTED_REGION is:
+
+	 - null if we are processing a protected region,
+	 - pc_rtx if we are processing an unprotected region but have
+	   not yet found the first instruction in it
+	 - the first instruction in an unprotected region otherwise.  */
+      for (insn = BB_HEAD (bb); insn != end; insn = NEXT_INSN (insn))
+	{
+	  if (unprotected_region && INSN_P (insn))
+	    {
+	      if (recog_memoized (insn) == CODE_FOR_mips_cache)
+		/* This CACHE instruction protects the following code.  */
+		unprotected_region = NULL_RTX;
+	      else
+		{
+		  /* See if INSN is the first instruction in this
+		     unprotected region.  */
+		  if (unprotected_region == pc_rtx)
+		    unprotected_region = insn;
+
+		  /* See if INSN needs to be protected.  If so,
+		     we must insert a cache barrier somewhere between
+		     PREV_INSN (UNPROTECTED_REGION) and INSN.  It isn't
+		     clear which position is better performance-wise,
+		     but as a tie-breaker, we assume that it is better
+		     to allow delay slots to be back-filled where
+		     possible, and that it is better not to insert
+		     barriers in the middle of already-scheduled code.
+		     We therefore insert the barrier at the beginning
+		     of the region.  */
+		  if (r10k_needs_protection_p (insn))
+		    {
+		      emit_insn_before (gen_r10k_cache_barrier (),
+					unprotected_region);
+		      unprotected_region = NULL_RTX;
+		    }
+		}
+	    }
+
+	  if (CALL_P (insn))
+	    /* The called function is not required to protect the exit path.
+	       The code that follows a call is therefore unprotected.  */
+	    unprotected_region = pc_rtx;
+	}
+
+      /* Record whether the end of this block is protected.  */
+      if (unprotected_region == NULL_RTX)
+	SET_BIT (protected_bbs, bb->index);
+    }
+  XDELETEVEC (rev_post_order);
+
+  sbitmap_free (protected_bbs);
+
+  free_dominance_info (CDI_DOMINATORS);
+
+  df_finish_pass (false);
+
+  free_bb_for_insn ();
 }
 
 /* A temporary variable used by for_each_rtx callbacks, etc.  */
@@ -12585,6 +13087,13 @@ mips_reorg_process_insns (void)
 		 orphaned high-part relocation.  */
 	      if (mips_orphaned_high_part_p (htab, insn))
 		delete_insn (insn);
+	      /* Also delete cache barriers if the last instruction
+		 was an annulled branch.  INSN will not be speculatively
+		 executed.  */
+	      else if (recog_memoized (insn) == CODE_FOR_r10k_cache_barrier
+		       && last_insn
+		       && INSN_ANNULLED_BRANCH_P (SEQ_BEGIN (last_insn)))
+		delete_insn (insn);
 	      else
 		{
 		  mips_avoid_hazard (last_insn, insn, &hilo_delay,
@@ -12604,6 +13113,8 @@ static void
 mips_reorg (void)
 {
   mips16_lay_out_constants ();
+  if (mips_r10k_cache_barrier != R10K_CACHE_BARRIER_NONE)
+    r10k_insert_cache_barriers ();
   if (mips_base_delayed_branch)
     dbr_schedule (get_insns ());
   mips_reorg_process_insns ();
@@ -13033,6 +13544,17 @@ mips_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 	return false;
       return true;
 
+    case OPT_mr10k_cache_barrier_:
+      if (strcmp (arg, "load-store") == 0)
+	mips_r10k_cache_barrier = R10K_CACHE_BARRIER_LOAD_STORE;
+      else if (strcmp (arg, "store") == 0)
+	mips_r10k_cache_barrier = R10K_CACHE_BARRIER_STORE;
+      else if (strcmp (arg, "none") == 0)
+	mips_r10k_cache_barrier = R10K_CACHE_BARRIER_NONE;
+      else
+	return false;
+      return true;
+
     default:
       return true;
     }
@@ -13194,14 +13716,16 @@ mips_override_options (void)
       target_flags &= ~MASK_ABICALLS;
     }
 
-  if (TARGET_ABICALLS)
+  if (TARGET_ABICALLS_PIC2)
     /* We need to set flag_pic for executables as well as DSOs
        because we may reference symbols that are not defined in
        the final executable.  (MIPS does not use things like
        copy relocs, for example.)
 
-       Also, there is a body of code that uses __PIC__ to distinguish
-       between -mabicalls and -mno-abicalls code.  */
+       There is a body of code that uses __PIC__ to distinguish
+       between -mabicalls and -mno-abicalls code.  The non-__PIC__
+       variant is usually appropriate for TARGET_ABICALLS_PIC0, as
+       long as any indirect jumps use $25.  */
     flag_pic = 1;
 
   /* -mvr4130-align is a "speed over size" optimization: it usually produces
@@ -13265,6 +13789,14 @@ mips_override_options (void)
   if (TARGET_PAIRED_SINGLE_FLOAT && !ISA_HAS_PAIRED_SINGLE)
     warning (0, "the %qs architecture does not support paired-single"
 	     " instructions", mips_arch_info->name);
+
+  if (mips_r10k_cache_barrier != R10K_CACHE_BARRIER_NONE
+      && !TARGET_CACHE_BUILTIN)
+    {
+      error ("%qs requires a target that provides the %qs instruction",
+	     "-mr10k-cache-barrier", "cache");
+      mips_r10k_cache_barrier = R10K_CACHE_BARRIER_NONE;
+    }
 
   /* If TARGET_DSPR2, enable MASK_DSP.  */
   if (TARGET_DSPR2)

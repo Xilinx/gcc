@@ -112,7 +112,8 @@ redirect_edge_var_map_clear (edge e)
 void
 redirect_edge_var_map_dup (edge newe, edge olde)
 {
-  void **new_slot, **old_slot; edge_var_map_vector head;
+  void **new_slot, **old_slot;
+  edge_var_map_vector head;
 
   if (!edge_var_maps)
     return;
@@ -149,6 +150,17 @@ redirect_edge_var_map_vector (edge e)
   return (edge_var_map_vector) *slot;
 }
 
+/* Used by redirect_edge_var_map_destroy to free all memory.  */
+
+static bool
+free_var_map_entry (const void *key ATTRIBUTE_UNUSED,
+		    void **value,
+		    void *data ATTRIBUTE_UNUSED)
+{
+  edge_var_map_vector head = (edge_var_map_vector) *value;
+  VEC_free (edge_var_map, heap, head);
+  return true;
+}
 
 /* Clear the edge variable mappings.  */
 
@@ -157,6 +169,7 @@ redirect_edge_var_map_destroy (void)
 {
   if (edge_var_maps)
     {
+      pointer_map_traverse (edge_var_maps, free_var_map_entry, NULL);
       pointer_map_destroy (edge_var_maps);
       edge_var_maps = NULL;
     }
@@ -1411,6 +1424,10 @@ warn_uninit (tree t, const char *gmsgid, void *data)
   if (TREE_NO_WARNING (var))
     return;
 
+  /* Do not warn if it can be initialized outside this module.  */
+  if (is_global_var (var))
+    return;
+  
   location = (context != NULL && gimple_has_location (context))
 	     ? gimple_location (context)
 	     : DECL_SOURCE_LOCATION (var);
@@ -1423,7 +1440,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
       if (xloc.file != floc.file
 	  || xloc.line < floc.line
 	  || xloc.line > LOCATION_LINE (cfun->function_end_locus))
-	inform ("%J%qD was declared here", var, var);
+	inform (input_location, "%J%qD was declared here", var, var);
     }
 }
 
@@ -1443,8 +1460,46 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
   struct walk_data *data = (struct walk_data *) wi->info;
   tree t = *tp;
 
+  /* We do not care about LHS.  */
+  if (wi->is_lhs)
+    return NULL_TREE;
+
   switch (TREE_CODE (t))
     {
+    case ADDR_EXPR:
+      /* Taking the address of an uninitialized variable does not
+	 count as using it.  */
+      *walk_subtrees = 0;
+      break;
+
+    case VAR_DECL:
+      {
+	/* A VAR_DECL in the RHS of a gimple statement may mean that
+	   this variable is loaded from memory.  */
+	use_operand_p vuse;
+	tree op;
+
+	/* If there is not gimple stmt, 
+	   or alias information has not been computed,
+	   then we cannot check VUSE ops.  */
+	if (data->stmt == NULL
+            || !gimple_aliases_computed_p (cfun))
+	  return NULL_TREE;
+
+	vuse = SINGLE_SSA_USE_OPERAND (data->stmt, SSA_OP_VUSE);
+	if (vuse == NULL_USE_OPERAND_P)
+	    return NULL_TREE;
+
+	op = USE_FROM_PTR (vuse);
+	if (t != SSA_NAME_VAR (op) 
+	    || !SSA_NAME_IS_DEFAULT_DEF (op))
+	  return NULL_TREE;
+	/* If this is a VUSE of t and it is the default definition,
+	   then warn about op.  */
+	t = op;
+	/* Fall through into SSA_NAME.  */
+      }
+
     case SSA_NAME:
       /* We only do data flow with SSA_NAMEs, so that's all we
 	 can warn about.  */
@@ -1598,7 +1653,7 @@ struct gimple_opt_pass pass_late_warn_uninitialized =
  }
 };
 
-/* Compute TREE_ADDRESSABLE for local variables.  */
+/* Compute TREE_ADDRESSABLE and DECL_GIMPLE_REG_P for local variables.  */
 
 static unsigned int
 execute_update_addresses_taken (void)
@@ -1608,6 +1663,7 @@ execute_update_addresses_taken (void)
   gimple_stmt_iterator gsi;
   basic_block bb;
   bitmap addresses_taken = BITMAP_ALLOC (NULL);
+  bitmap not_reg_needs = BITMAP_ALLOC (NULL);
   bitmap vars_updated = BITMAP_ALLOC (NULL);
   bool update_vops = false;
 
@@ -1617,9 +1673,26 @@ execute_update_addresses_taken (void)
     {
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
-	  bitmap taken = gimple_addresses_taken (gsi_stmt (gsi));
+	  const_gimple stmt = gsi_stmt (gsi);
+	  enum gimple_code code = gimple_code (stmt);
+	  bitmap taken = gimple_addresses_taken (stmt);
+	  
 	  if (taken)
 	    bitmap_ior_into (addresses_taken, taken);
+	  
+	  /* If we have a call or an assignment, see if the lhs contains
+	     a local decl that requires not to be a gimple register.  */
+	  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
+	    {
+	      tree lhs = gimple_get_lhs (stmt);
+	      /* A plain decl does not need it set.  */
+	      if (lhs && handled_component_p (lhs))
+	        {
+		  var = get_base_address (lhs);
+		  if (DECL_P (var))
+		    bitmap_set_bit (not_reg_needs, DECL_UID (var));
+		}
+	    }
 	}
 
       for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
@@ -1638,25 +1711,46 @@ execute_update_addresses_taken (void)
 	}
     }
 
-  /* When possible, clear ADDRESSABLE bit and mark variable for conversion into
-     SSA.  */
+  /* When possible, clear ADDRESSABLE bit or set the REGISTER bit
+     and mark variable for conversion into SSA.  */
   FOR_EACH_REFERENCED_VAR (var, rvi)
-    if (!is_global_var (var)
-	&& TREE_CODE (var) != RESULT_DECL
-	&& TREE_ADDRESSABLE (var)
-	&& !bitmap_bit_p (addresses_taken, DECL_UID (var)))
-      {
-        TREE_ADDRESSABLE (var) = 0;
-	if (is_gimple_reg (var))
+    {
+      /* Global Variables, result decls cannot be changed.  */
+      if (is_global_var (var)
+          || TREE_CODE (var) == RESULT_DECL
+	  || bitmap_bit_p (addresses_taken, DECL_UID (var)))
+	continue;
+	
+      if (TREE_ADDRESSABLE (var))
+	{
+	  TREE_ADDRESSABLE (var) = 0;
+	  if (is_gimple_reg (var))
+	    mark_sym_for_renaming (var);
+	  update_vops = true;
+	  bitmap_set_bit (vars_updated, DECL_UID (var));
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "No longer having address taken ");
+	      print_generic_expr (dump_file, var, 0);
+	      fprintf (dump_file, "\n");
+	    }
+	}
+      if (!DECL_GIMPLE_REG_P (var)
+	  && !bitmap_bit_p (not_reg_needs, DECL_UID (var))
+	  && (TREE_CODE (TREE_TYPE (var)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE))
+	{
+	  DECL_GIMPLE_REG_P (var) = 1;
 	  mark_sym_for_renaming (var);
-	update_vops = true;
-	bitmap_set_bit (vars_updated, DECL_UID (var));
-	if (dump_file)
-	  {
-	    fprintf (dump_file, "No longer having address taken ");
-	    print_generic_expr (dump_file, var, 0);
-	    fprintf (dump_file, "\n");
-	  }
+	  update_vops = true;
+	  bitmap_set_bit (vars_updated, DECL_UID (var));
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "Decl is now a gimple register ");
+	      print_generic_expr (dump_file, var, 0);
+	      fprintf (dump_file, "\n");
+	    }
+	}
       }
 
   /* Operand caches needs to be recomputed for operands referencing the updated
@@ -1673,6 +1767,7 @@ execute_update_addresses_taken (void)
 		  && bitmap_intersect_p (gimple_stored_syms (stmt), vars_updated)))
 	    update_stmt (stmt);
 	}
+  BITMAP_FREE (not_reg_needs);
   BITMAP_FREE (addresses_taken);
   BITMAP_FREE (vars_updated);
   return 0;

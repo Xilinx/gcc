@@ -340,7 +340,7 @@ tree gfc_conv_string_tmp (gfc_se *, tree, tree);
 /* Get the string length variable belonging to an expression.  */
 tree gfc_get_expr_charlen (gfc_expr *);
 /* Initialize a string length variable.  */
-void gfc_conv_string_length (gfc_charlen *, stmtblock_t *);
+void gfc_conv_string_length (gfc_charlen *, gfc_expr *, stmtblock_t *);
 /* Ensure type sizes can be gimplified.  */
 void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 
@@ -429,6 +429,16 @@ void gfc_generate_block_data (gfc_namespace *);
 /* Output a decl for a module variable.  */
 void gfc_generate_module_vars (gfc_namespace *);
 
+struct module_htab_entry GTY(())
+{
+  const char *name;
+  tree namespace_decl;
+  htab_t GTY ((param_is (union tree_node))) decls;
+};
+
+struct module_htab_entry *gfc_find_module (const char *);
+void gfc_module_add_decl (struct module_htab_entry *, tree);
+
 /* Get and set the current location.  */
 void gfc_set_backend_locus (locus *);
 void gfc_get_backend_locus (locus *);
@@ -439,6 +449,10 @@ void gfc_generate_constructors (void);
 
 /* Get the string length of an array constructor.  */
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor *, tree *);
+
+/* Generate a runtime error call.  */
+tree gfc_trans_runtime_error (bool, locus*, const char*, ...);
+tree gfc_trans_runtime_error_vararg (bool, locus*, const char*, va_list);
 
 /* Generate a runtime warning/error check.  */
 void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
@@ -451,13 +465,13 @@ tree gfc_call_free (tree);
 tree gfc_call_malloc (stmtblock_t *, tree, tree);
 
 /* Allocate memory for arrays, with optional status variable.  */
-tree gfc_allocate_array_with_status (stmtblock_t *, tree, tree, tree);
+tree gfc_allocate_array_with_status (stmtblock_t*, tree, tree, tree, gfc_expr*);
 
 /* Allocate memory, with optional status variable.  */
 tree gfc_allocate_with_status (stmtblock_t *, tree, tree);
 
 /* Generate code to deallocate an array.  */
-tree gfc_deallocate_with_status (tree, tree, bool);
+tree gfc_deallocate_with_status (tree, tree, bool, gfc_expr*);
 
 /* Generate code to call realloc().  */
 tree gfc_call_realloc (stmtblock_t *, tree, tree);
@@ -605,6 +619,7 @@ struct lang_type		GTY(())
   tree offset;
   tree dtype;
   tree dataptr_type;
+  tree span;
 };
 
 struct lang_decl		GTY(())
@@ -657,6 +672,7 @@ struct lang_decl		GTY(())
 #define GFC_TYPE_ARRAY_DTYPE(node) (TYPE_LANG_SPECIFIC(node)->dtype)
 #define GFC_TYPE_ARRAY_DATAPTR_TYPE(node) \
   (TYPE_LANG_SPECIFIC(node)->dataptr_type)
+#define GFC_TYPE_ARRAY_SPAN(node) (TYPE_LANG_SPECIFIC(node)->span)
 
 /* Build an expression with void type.  */
 #define build1_v(code, arg) fold_build1(code, void_type_node, arg)

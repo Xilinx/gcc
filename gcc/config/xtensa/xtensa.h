@@ -51,6 +51,9 @@ extern unsigned xtensa_current_frame_size;
 #ifndef XCHAL_HAVE_S32C1I
 #define XCHAL_HAVE_S32C1I 0
 #endif
+#ifndef XCHAL_HAVE_THREADPTR
+#define XCHAL_HAVE_THREADPTR 0
+#endif
 #define TARGET_BIG_ENDIAN	XCHAL_HAVE_BE
 #define TARGET_DENSITY		XCHAL_HAVE_DENSITY
 #define TARGET_MAC16		XCHAL_HAVE_MAC16
@@ -72,10 +75,15 @@ extern unsigned xtensa_current_frame_size;
 #define TARGET_RELEASE_SYNC	XCHAL_HAVE_RELEASE_SYNC
 #define TARGET_S32C1I		XCHAL_HAVE_S32C1I
 #define TARGET_ABSOLUTE_LITERALS XSHAL_USE_ABSOLUTE_LITERALS
+#define TARGET_THREADPTR	XCHAL_HAVE_THREADPTR
 
 #define TARGET_DEFAULT \
   ((XCHAL_HAVE_L32R	? 0 : MASK_CONST16) |				\
    MASK_SERIALIZE_VOLATILE)
+
+#ifndef HAVE_AS_TLS
+#define HAVE_AS_TLS 0
+#endif
 
 #define OVERRIDE_OPTIONS override_options ()
 
@@ -479,6 +487,11 @@ enum reg_class
   { 0xffffffff, 0x0000000f }  /* all registers */ \
 }
 
+#define IRA_COVER_CLASSES						\
+{									\
+  BR_REGS, FP_REGS, ACC_REG, AR_REGS, LIM_REG_CLASSES			\
+}
+
 /* A C expression whose value is a register class containing hard
    register REGNO.  In general there is more that one such class;
    choose a class which is "minimal", meaning that no smaller class
@@ -503,12 +516,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
 #define PREFERRED_OUTPUT_RELOAD_CLASS(X, CLASS)				\
   xtensa_preferred_reload_class (X, CLASS, 1)
   
-#define SECONDARY_INPUT_RELOAD_CLASS(CLASS, MODE, X)			\
-  xtensa_secondary_reload_class (CLASS, MODE, X, 0)
-
-#define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, X)			\
-  xtensa_secondary_reload_class (CLASS, MODE, X, 1)
-
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
 #define CLASS_UNITS(mode, size)						\
@@ -792,7 +799,7 @@ typedef struct xtensa_args
 
 /* Nonzero if the constant value X is a legitimate general operand.
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
-#define LEGITIMATE_CONSTANT_P(X) 1
+#define LEGITIMATE_CONSTANT_P(X) (! xtensa_tls_referenced_p (X))
 
 /* A C expression that is nonzero if X is a legitimate immediate
    operand on the target machine when generating position independent
@@ -882,7 +889,7 @@ typedef struct xtensa_args
 
 #define MEMORY_MOVE_COST(MODE, CLASS, IN) 4
 
-#define BRANCH_COST 3
+#define BRANCH_COST(speed_p, predictable_p) 3
 
 /* How to refer to registers in assembler output.
    This sequence is indexed by compiler's hard-register-number (see above).  */

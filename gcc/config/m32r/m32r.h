@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, Renesas M32R cpu.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008  Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -624,6 +624,11 @@ enum reg_class
   NO_REGS, CARRY_REG, ACCUM_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES
 };
 
+#define IRA_COVER_CLASSES				\
+{							\
+  ACCUM_REGS, GENERAL_REGS, LIM_REG_CLASSES		\
+}
+
 #define N_REG_CLASSES ((int) LIM_REG_CLASSES)
 
 /* Give names of register classes as strings for dump file.  */
@@ -1067,7 +1072,7 @@ L2:     .word STATIC
 #define LEGITIMATE_CONSTANT_P(X)					\
   (! (GET_CODE (X) == CONST						\
       && GET_CODE (XEXP (X, 0)) == PLUS					\
-      && GET_CODE (XEXP (XEXP (X, 0), 0)) == SYMBOL_REF			\
+      && (GET_CODE (XEXP (XEXP (X, 0), 0)) == SYMBOL_REF || GET_CODE (XEXP (XEXP (X, 0), 0)) == LABEL_REF) \
       && GET_CODE (XEXP (XEXP (X, 0), 1)) == CONST_INT			\
       && (unsigned HOST_WIDE_INT) INTVAL (XEXP (XEXP (X, 0), 1)) > 32767))
 
@@ -1219,7 +1224,7 @@ L2:     .word STATIC
 /* A value of 2 here causes GCC to avoid using branches in comparisons like
    while (a < N && a).  Branches aren't that expensive on the M32R so
    we define this as 1.  Defining it as 2 had a heavy hit in fp-bit.c.  */
-#define BRANCH_COST ((TARGET_BRANCH_COST) ? 2 : 1)
+#define BRANCH_COST(speed_p, predictable_p) ((TARGET_BRANCH_COST) ? 2 : 1)
 
 /* Nonzero if access to memory by bytes is slow and undesirable.
    For RISC chips, it means that access to memory by bytes is no

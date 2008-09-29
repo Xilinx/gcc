@@ -381,8 +381,7 @@ hashable_expr_equal_p (const struct hashable_expr *expr0,
       if (expr0->ops.unary.op != expr1->ops.unary.op)
         return false;
 
-      if ((expr0->ops.unary.op == NOP_EXPR
-           || expr0->ops.unary.op == CONVERT_EXPR
+      if ((CONVERT_EXPR_CODE_P (expr0->ops.unary.op)
            || expr0->ops.unary.op == NON_LVALUE_EXPR)
           && TYPE_UNSIGNED (expr0->type) != TYPE_UNSIGNED (expr1->type))
         return false;
@@ -460,8 +459,7 @@ iterative_hash_hashable_expr (const struct hashable_expr *expr, hashval_t val)
          Don't hash the type, that can lead to having nodes which
          compare equal according to operand_equal_p, but which
          have different hash codes.  */
-      if (expr->ops.unary.op == NOP_EXPR
-          || expr->ops.unary.op == CONVERT_EXPR
+      if (CONVERT_EXPR_CODE_P (expr->ops.unary.op)
           || expr->ops.unary.op == NON_LVALUE_EXPR)
         val += TYPE_UNSIGNED (expr->type);
 
@@ -1929,8 +1927,7 @@ static bool
 gimple_assign_unary_useless_conversion_p (gimple gs)
 {
   if (is_gimple_assign (gs)
-      && (gimple_assign_rhs_code (gs) == NOP_EXPR
-          || gimple_assign_rhs_code (gs) == CONVERT_EXPR
+      && (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (gs))
           || gimple_assign_rhs_code (gs) == VIEW_CONVERT_EXPR
           || gimple_assign_rhs_code (gs) == NON_LVALUE_EXPR))
     {
@@ -2182,7 +2179,8 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 {
   gimple stmt, old_stmt;
   bool may_optimize_p;
-  bool may_have_exposed_new_symbols = false;
+  bool may_have_exposed_new_symbols;
+  bool modified_p = false;
 
   old_stmt = stmt = gsi_stmt (si);
   
@@ -2191,7 +2189,6 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
   
   update_stmt_if_modified (stmt);
   opt_stats.num_stmts++;
-  may_have_exposed_new_symbols = false;
   push_stmt_changes (gsi_stmt_ptr (&si));
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -2240,6 +2237,10 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 
 	 Indicate we will need to rescan and rewrite the statement.  */
       may_have_exposed_new_symbols = true;
+      /* Indicate that maybe_clean_or_replace_eh_stmt needs to be called,
+	 even if fold_stmt updated the stmt already and thus cleared
+	 gimple_modified_p flag on it.  */
+      modified_p = true;
     }
 
   /* Check for redundant computations.  Do this optimization only
@@ -2288,7 +2289,7 @@ optimize_stmt (struct dom_walk_data *walk_data ATTRIBUTE_UNUSED,
 
      Ultimately I suspect we're going to need to change the interface
      into the SSA_NAME manager.  */
-  if (gimple_modified_p (stmt))
+  if (gimple_modified_p (stmt) || modified_p)
     {
       tree val = NULL;
 

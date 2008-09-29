@@ -69,20 +69,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "tree-pass.h"
 
+#include "profile.h"
+
 /* Hooks for profiling.  */
 static struct profile_hooks* profile_hooks;
-
-/* Additional information about the edges we need.  */
-struct edge_info {
-  unsigned int count_valid : 1;
-
-  /* Is on the spanning tree.  */
-  unsigned int on_tree : 1;
-
-  /* Pretend this edge does not exist (it is abnormal and we've
-     inserted a fake to compensate).  */
-  unsigned int ignore : 1;
-};
 
 struct bb_info {
   unsigned int count_valid : 1;
@@ -92,7 +82,6 @@ struct bb_info {
   gcov_type pred_count;
 };
 
-#define EDGE_INFO(e)  ((struct edge_info *) (e)->aux)
 #define BB_INFO(b)  ((struct bb_info *) (b)->aux)
 
 
@@ -124,7 +113,6 @@ static gcov_type * get_exec_counts (void);
 static basic_block find_group (basic_block);
 static void union_groups (basic_block, basic_block);
 
-
 /* Add edge instrumentation code to the entire insn chain.
 
    F is the first insn of the chain.
@@ -278,64 +266,135 @@ get_exec_counts (void)
 
   return counts;
 }
-
 
-/* Compute the branch probabilities for the various branches.
-   Annotate them accordingly.  */
+
+static bool
+is_edge_inconsistent (VEC(edge,gc) *edges)
+{
+  edge e;
+  edge_iterator ei;
+  FOR_EACH_EDGE (e, ei, edges)
+    {
+      if (!EDGE_INFO (e)->ignore)
+        {
+          if (e->count < 0
+	      && ((!e->flags & EDGE_FAKE)
+	          || !block_ends_with_call_p (e->src)))
+	    {
+	      if (dump_file)
+		{
+		  fprintf (dump_file,
+		  	   "Edge %i->%i is inconsistent, count"HOST_WIDEST_INT_PRINT_DEC,
+			   e->src->index, e->dest->index, e->count);
+		  dump_bb (e->src, dump_file, 0);
+		  dump_bb (e->dest, dump_file, 0);
+		}
+              return true;
+	    }
+        }
+    }
+  return false;
+}
 
 static void
-compute_branch_probabilities (void)
+correct_negative_edge_counts (void)
 {
   basic_block bb;
-  int i;
-  int num_edges = 0;
-  int changes;
-  int passes;
-  int hist_br_prob[20];
-  int num_never_executed;
-  int num_branches;
-  gcov_type *exec_counts = get_exec_counts ();
-  int exec_counts_pos = 0;
+  edge e;
+  edge_iterator ei;
 
-  /* Very simple sanity checks so we catch bugs in our profiling code.  */
-  if (profile_info)
-    {
-      if (profile_info->run_max * profile_info->runs < profile_info->sum_max)
-	{
-	  error ("corrupted profile info: run_max * runs < sum_max");
-	  exec_counts = NULL;
-	}
-
-      if (profile_info->sum_all < profile_info->sum_max)
-	{
-	  error ("corrupted profile info: sum_all is smaller than sum_max");
-	  exec_counts = NULL;
-	}
-    }
-
-  /* Attach extra info block to each bb.  */
-
-  alloc_aux_for_blocks (sizeof (struct bb_info));
   FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
     {
-      edge e;
-      edge_iterator ei;
-
       FOR_EACH_EDGE (e, ei, bb->succs)
-	if (!EDGE_INFO (e)->ignore)
-	  BB_INFO (bb)->succ_count++;
-      FOR_EACH_EDGE (e, ei, bb->preds)
-	if (!EDGE_INFO (e)->ignore)
-	  BB_INFO (bb)->pred_count++;
+        {
+           if (e->count < 0)
+             e->count = 0;
+        }
+    }
+}
+
+/* Check consistency.
+   Return true if inconsistency is found.  */
+static bool
+is_inconsistent (void)
+{
+  basic_block bb;
+  bool inconsistent = false;
+  FOR_EACH_BB (bb)
+    {
+      inconsistent |= is_edge_inconsistent (bb->preds);
+      if (!dump_file && inconsistent)
+	return true;
+      inconsistent |= is_edge_inconsistent (bb->succs);
+      if (!dump_file && inconsistent)
+	return true;
+      if (bb->count < 0)
+        {
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "BB %i count is negative "
+		       HOST_WIDEST_INT_PRINT_DEC,
+		       bb->index,
+		       bb->count);
+	      dump_bb (bb, dump_file, 0);
+	    }
+	  inconsistent = true;
+	}
+      if (bb->count != sum_edge_counts (bb->preds))
+        {
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "BB %i count does not match sum of incomming edges "
+		       HOST_WIDEST_INT_PRINT_DEC" should be " HOST_WIDEST_INT_PRINT_DEC,
+		       bb->index,
+		       bb->count,
+		       sum_edge_counts (bb->preds));
+	      dump_bb (bb, dump_file, 0);
+	    }
+	  inconsistent = true;
+	}
+      if (bb->count != sum_edge_counts (bb->succs) &&
+          ! (find_edge (bb, EXIT_BLOCK_PTR) != NULL && block_ends_with_call_p (bb)))
+	{
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "BB %i count does not match sum of outgoing edges "
+		       HOST_WIDEST_INT_PRINT_DEC" should be " HOST_WIDEST_INT_PRINT_DEC,
+		       bb->index,
+		       bb->count,
+		       sum_edge_counts (bb->succs));
+	      dump_bb (bb, dump_file, 0);
+	    }
+	  inconsistent = true;
+	}
+      if (!dump_file && inconsistent)
+	return true;
     }
 
-  /* Avoid predicting entry on exit nodes.  */
-  BB_INFO (EXIT_BLOCK_PTR)->succ_count = 2;
-  BB_INFO (ENTRY_BLOCK_PTR)->pred_count = 2;
+  return inconsistent;
+}
 
+/* Set each basic block count to the sum of its outgoing edge counts */
+static void
+set_bb_counts (void)
+{
+  basic_block bb;
+  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+    {
+      bb->count = sum_edge_counts (bb->succs);
+      gcc_assert (bb->count >= 0);
+    }
+}
+
+/* Reads profile data and returns total number of edge counts read */
+static int
+read_profile_edge_counts (gcov_type *exec_counts)
+{
+  basic_block bb;
+  int num_edges = 0;
+  int exec_counts_pos = 0;
   /* For each edge not on the spanning tree, set its execution count from
      the .da file.  */
-
   /* The first count in the .da file is the number of times that the function
      was entered.  This is the exec_count for block zero.  */
 
@@ -372,6 +431,62 @@ compute_branch_probabilities (void)
 	      }
 	  }
     }
+
+    return num_edges;
+}
+
+/* Compute the branch probabilities for the various branches.
+   Annotate them accordingly.  */
+
+static void
+compute_branch_probabilities (void)
+{
+  basic_block bb;
+  int i;
+  int num_edges = 0;
+  int changes;
+  int passes;
+  int hist_br_prob[20];
+  int num_never_executed;
+  int num_branches;
+  gcov_type *exec_counts = get_exec_counts ();
+  int inconsistent = 0;
+
+  /* Very simple sanity checks so we catch bugs in our profiling code.  */
+  if (!profile_info)
+    return;
+  if (profile_info->run_max * profile_info->runs < profile_info->sum_max)
+    {
+      error ("corrupted profile info: run_max * runs < sum_max");
+      exec_counts = NULL;
+    }
+
+  if (profile_info->sum_all < profile_info->sum_max)
+    {
+      error ("corrupted profile info: sum_all is smaller than sum_max");
+      exec_counts = NULL;
+    }
+
+  /* Attach extra info block to each bb.  */
+  alloc_aux_for_blocks (sizeof (struct bb_info));
+  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+    {
+      edge e;
+      edge_iterator ei;
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (!EDGE_INFO (e)->ignore)
+	  BB_INFO (bb)->succ_count++;
+      FOR_EACH_EDGE (e, ei, bb->preds)
+	if (!EDGE_INFO (e)->ignore)
+	  BB_INFO (bb)->pred_count++;
+    }
+
+  /* Avoid predicting entry on exit nodes.  */
+  BB_INFO (EXIT_BLOCK_PTR)->succ_count = 2;
+  BB_INFO (ENTRY_BLOCK_PTR)->pred_count = 2;
+
+  num_edges = read_profile_edge_counts (exec_counts);
 
   if (dump_file)
     fprintf (dump_file, "\n%d edge counts read\n", num_edges);
@@ -502,6 +617,31 @@ compute_branch_probabilities (void)
       gcc_assert (!BB_INFO (bb)->succ_count && !BB_INFO (bb)->pred_count);
     }
 
+  /* Check for inconsistent basic block counts */
+  inconsistent = is_inconsistent ();
+
+  if (inconsistent)
+   {
+     if (flag_profile_correction)
+       {
+         /* Inconsistency detected. Make it flow-consistent. */
+         static int informed = 0;
+         if (informed == 0)
+           {
+             informed = 1;
+             inform (input_location, "correcting inconsistent profile data");
+           }
+         correct_negative_edge_counts ();
+         /* Set bb counts to the sum of the outgoing edge counts */
+         set_bb_counts ();
+         if (dump_file)
+           fprintf (dump_file, "\nCalling mcf_smooth_cfg\n");
+         mcf_smooth_cfg ();
+       }
+     else
+       error ("corrupted profile info: profile data is not flow-consistent");
+   }
+
   /* For every edge, calculate its branch probability and add a reg_note
      to the branch insn to indicate this.  */
 
@@ -605,6 +745,7 @@ compute_branch_probabilities (void)
 	}
     }
   counts_to_freqs ();
+  profile_status = PROFILE_READ;
 
   if (dump_file)
     {
@@ -1064,8 +1205,6 @@ branch_prob (void)
 
   VEC_free (histogram_value, heap, values);
   free_edge_list (el);
-  if (flag_branch_probabilities)
-    profile_status = PROFILE_READ;
   coverage_end_function ();
 }
 

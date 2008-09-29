@@ -793,35 +793,29 @@ gen_lowpart_SUBREG (enum machine_mode mode, rtx reg)
 			 subreg_lowpart_offset (mode, inmode));
 }
 
-/* gen_rtvec (n, [rt1, ..., rtn])
-**
-**	    This routine creates an rtvec and stores within it the
-**	pointers to rtx's which are its arguments.
-*/
 
-/*VARARGS1*/
+/* Create an rtvec and stores within it the RTXen passed in the arguments.  */
+
 rtvec
 gen_rtvec (int n, ...)
 {
-  int i, save_n;
-  rtx *vector;
+  int i;
+  rtvec rt_val;
   va_list p;
 
   va_start (p, n);
 
+  /* Don't allocate an empty rtvec...  */
   if (n == 0)
-    return NULL_RTVEC;		/* Don't allocate an empty rtvec...	*/
+    return NULL_RTVEC;
 
-  vector = XALLOCAVEC (rtx, n);
+  rt_val = rtvec_alloc (n);
 
   for (i = 0; i < n; i++)
-    vector[i] = va_arg (p, rtx);
+    rt_val->elem[i] = va_arg (p, rtx);
 
-  /* The definition of VA_* in K&R C causes `n' to go out of scope.  */
-  save_n = n;
   va_end (p);
-
-  return gen_rtvec_v (save_n, vector);
+  return rt_val;
 }
 
 rtvec
@@ -830,10 +824,11 @@ gen_rtvec_v (int n, rtx *argp)
   int i;
   rtvec rt_val;
 
+  /* Don't allocate an empty rtvec...  */
   if (n == 0)
-    return NULL_RTVEC;		/* Don't allocate an empty rtvec...	*/
+    return NULL_RTVEC;
 
-  rt_val = rtvec_alloc (n);	/* Allocate an rtvec...			*/
+  rt_val = rtvec_alloc (n);
 
   for (i = 0; i < n; i++)
     rt_val->elem[i] = *argp++;
@@ -984,7 +979,7 @@ set_reg_attrs_from_value (rtx reg, rtx x)
 	REG_ATTRS (reg)
 	  = get_reg_attrs (MEM_EXPR (x), INTVAL (MEM_OFFSET (x)) + offset);
       if (MEM_POINTER (x))
-	mark_reg_pointer (reg, MEM_ALIGN (x));
+	mark_reg_pointer (reg, 0);
     }
   else if (REG_P (x))
     {
@@ -3985,6 +3980,7 @@ emit_insn_after_1 (rtx first, rtx after, basic_block bb)
 
   if (after == last_insn)
     last_insn = last;
+
   return last;
 }
 

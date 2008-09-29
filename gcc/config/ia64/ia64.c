@@ -202,7 +202,7 @@ static int ia64_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				   tree, bool);
 static bool ia64_function_ok_for_sibcall (tree, tree);
 static bool ia64_return_in_memory (const_tree, const_tree);
-static bool ia64_rtx_costs (rtx, int, int, int *);
+static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
 static bool ia64_handle_option (size_t, const char *, int);
@@ -382,8 +382,8 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_SCHED_NEEDS_BLOCK_P
 #define TARGET_SCHED_NEEDS_BLOCK_P ia64_needs_block_p
 
-#undef TARGET_SCHED_GEN_CHECK
-#define TARGET_SCHED_GEN_CHECK ia64_gen_check
+#undef TARGET_SCHED_GEN_SPEC_CHECK
+#define TARGET_SCHED_GEN_SPEC_CHECK ia64_gen_check
 
 #undef TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD_GUARD_SPEC\
@@ -408,7 +408,7 @@ static const struct attribute_spec ia64_attribute_table[] =
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS ia64_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_UNSPEC_MAY_TRAP_P
 #define TARGET_UNSPEC_MAY_TRAP_P ia64_unspec_may_trap_p
@@ -492,12 +492,6 @@ static const struct attribute_spec ia64_attribute_table[] =
 
 #undef TARGET_C_MODE_FOR_SUFFIX
 #define TARGET_C_MODE_FOR_SUFFIX ia64_c_mode_for_suffix
-
-#undef TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_COLD_ATTRIBUTE_SETS_OPTIMIZATION true
-
-#undef TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION
-#define TARGET_OPTION_HOT_ATTRIBUTE_SETS_OPTIMIZATION true
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -4816,7 +4810,8 @@ ia64_print_operand (FILE * file, rtx x, int code)
 /* ??? This is incomplete.  */
 
 static bool
-ia64_rtx_costs (rtx x, int code, int outer_code, int *total)
+ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
+		bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -5237,6 +5232,9 @@ ia64_override_options (void)
       warning (0, "not yet implemented: latency-optimized inline square root");
       TARGET_INLINE_SQRT = INL_MAX_THR;
     }
+
+  ia64_flag_schedule_insns2 = flag_schedule_insns_after_reload;
+  flag_schedule_insns_after_reload = 0;
 
   ia64_section_threshold = g_switch_set ? g_switch_value : IA64_DEFAULT_GVALUE;
 
@@ -6283,10 +6281,6 @@ static rtx dfa_stop_insn;
 
 static rtx last_scheduled_insn;
 
-/* The following variable value is size of the DFA state.  */
-
-static size_t dfa_state_size;
-
 /* The following variable value is pointer to a DFA state used as
    temporary variable.  */
 
@@ -6862,6 +6856,8 @@ ia64_set_sched_flags (spec_info_t spec_info)
 	    mask |= BE_IN_CONTROL;
 	}
 
+      spec_info->mask = mask;
+
       if (mask)
 	{
 	  *flags |= USE_DEPS_LIST | DO_SPECULATION;
@@ -6869,7 +6865,6 @@ ia64_set_sched_flags (spec_info_t spec_info)
 	  if (mask & BE_IN_SPEC)
 	    *flags |= NEW_BBS;
 	  
-	  spec_info->mask = mask;
 	  spec_info->flags = 0;
       
 	  if ((mask & DATA_SPEC) && mflag_sched_prefer_non_data_spec_insns)
@@ -9930,13 +9925,6 @@ void
 ia64_optimization_options (int level ATTRIBUTE_UNUSED,
                            int size ATTRIBUTE_UNUSED)
 {
-  /* Disable the second machine independent scheduling pass and use one for the
-     IA-64.  This needs to be here instead of in OVERRIDE_OPTIONS because this
-     is done whenever the optimization is changed via #pragma GCC optimize or
-     attribute((optimize(...))).  */
-  ia64_flag_schedule_insns2 = flag_schedule_insns_after_reload;
-  flag_schedule_insns_after_reload = 0;
-
   /* Let the scheduler form additional regions.  */
   set_param_value ("max-sched-extend-regions-iters", 2);
 

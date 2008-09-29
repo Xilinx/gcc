@@ -2067,6 +2067,7 @@ init_alias_info (void)
   struct alias_info *ai;
   referenced_var_iterator rvi;
   tree var;
+  static bool alias_bitmap_obstack_initialized;
 
   ai = XCNEW (struct alias_info);
   ai->ssa_names_visited = sbitmap_alloc (num_ssa_names);
@@ -2094,9 +2095,10 @@ init_alias_info (void)
 
   /* Next time, we will need to reset alias information.  */
   cfun->gimple_df->aliases_computed_p = true;
-  if (alias_bitmap_obstack.elements != NULL)
+  if (alias_bitmap_obstack_initialized)
     bitmap_obstack_release (&alias_bitmap_obstack);    
   bitmap_obstack_initialize (&alias_bitmap_obstack);
+  alias_bitmap_obstack_initialized = true;
 
   return ai;
 }
@@ -3216,7 +3218,7 @@ is_escape_site (gimple stmt)
 	 Applications (OOPSLA), pp. 1-19, 1999.  */
       return ESCAPE_STORED_IN_GLOBAL;
     }
-  else if (gimple_code (stmt) == RETURN_EXPR)
+  else if (gimple_code (stmt) == GIMPLE_RETURN)
     return ESCAPE_TO_RETURN;
 
   return NO_ESCAPE;

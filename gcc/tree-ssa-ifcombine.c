@@ -212,7 +212,7 @@ recognize_single_bit_test (gimple cond, tree *name, tree *bit)
       stmt = SSA_NAME_DEF_STMT (orig_name);
 
       while (is_gimple_assign (stmt)
-	     && (gimple_assign_copy_p (stmt)
+	     && (gimple_assign_ssa_name_copy_p (stmt)
 		 || (gimple_assign_cast_p (stmt)
 		     && integral_operand_p (gimple_assign_lhs (stmt))
 		     && integral_operand_p (gimple_assign_rhs1 (stmt))
@@ -439,6 +439,25 @@ ifcombine_iforif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	}
       else
 	return false;
+
+      /* As we strip non-widening conversions in finding a common
+         name that is tested make sure to end up with an integral
+	 type for building the bit operations.  */
+      if (TYPE_PRECISION (TREE_TYPE (bits1))
+	  >= TYPE_PRECISION (TREE_TYPE (bits2)))
+	{
+	  bits1 = fold_convert (unsigned_type_for (TREE_TYPE (bits1)), bits1);
+	  name1 = fold_convert (TREE_TYPE (bits1), name1);
+	  bits2 = fold_convert (unsigned_type_for (TREE_TYPE (bits2)), bits2);
+	  bits2 = fold_convert (TREE_TYPE (bits1), bits2);
+	}
+      else
+	{
+	  bits2 = fold_convert (unsigned_type_for (TREE_TYPE (bits2)), bits2);
+	  name1 = fold_convert (TREE_TYPE (bits2), name1);
+	  bits1 = fold_convert (unsigned_type_for (TREE_TYPE (bits1)), bits1);
+	  bits1 = fold_convert (TREE_TYPE (bits2), bits1);
+	}
 
       /* Do it.  */
       gsi = gsi_for_stmt (inner_cond);

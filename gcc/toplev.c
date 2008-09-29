@@ -66,6 +66,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "params.h"
 #include "reload.h"
+#include "ira.h"
 #include "dwarf2asm.h"
 #include "integrate.h"
 #include "real.h"
@@ -270,6 +271,14 @@ int flag_next_runtime = 0;
 
 enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
 
+/* Set the default algorithm for the integrated register allocator.  */
+
+enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_MIXED;
+
+/* Set the default value for -fira-verbose.  */
+
+unsigned int flag_ira_verbose = 5;
+
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
 
@@ -305,6 +314,9 @@ rtx stack_limit_rtx;
    flag_var_tracking == AUTODETECT_VALUE it will be set according
    to optimize, debug_info_level and debug_hooks in process_options ().  */
 int flag_var_tracking = AUTODETECT_VALUE;
+
+/* Type of stack check.  */
+enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 
 /* True if the user has tagged the function with the 'section'
    attribute.  */
@@ -821,7 +833,7 @@ check_global_declaration_1 (tree decl)
 	  || TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
     {
       if (TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)))
-	pedwarn (0, "%q+F used but never defined", decl);
+	pedwarn (input_location, 0, "%q+F used but never defined", decl);
       else
 	warning (OPT_Wunused_function, "%q+F declared %<static%> but never defined", decl);
       /* This symbol is effectively an "extern" declaration now.  */
@@ -1347,7 +1359,7 @@ init_asm_output (const char *name)
 						   NULL);
 	    }
 	  else
-	    inform ("-frecord-gcc-switches is not supported by the current target");
+	    inform (input_location, "-frecord-gcc-switches is not supported by the current target");
 	}
 
 #ifdef ASM_COMMENT_START
@@ -1691,6 +1703,14 @@ process_options (void)
   else
     aux_base_name = "gccaux";
 
+#ifndef HAVE_cloog
+  if (flag_graphite
+      || flag_loop_block
+      || flag_loop_interchange
+      || flag_loop_strip_mine)
+    sorry ("Graphite loop optimizations cannot be used");
+#endif
+
   /* Unrolling all loops implies that standard loop unrolling must also
      be done.  */
   if (flag_unroll_all_loops)
@@ -2006,6 +2026,7 @@ backend_init (void)
   save_register_info ();
 
   /* Initialize the target-specific back end pieces.  */
+  ira_init_once ();
   backend_init_target ();
 }
 
@@ -2026,9 +2047,10 @@ lang_dependent_init_target (void)
   /* Do the target-specific parts of expr initialization.  */
   init_expr_target ();
 
-  /* Although the actions of init_set_costs are language-independent,
-     it uses optabs, so we cannot call it from backend_init.  */
+  /* Although the actions of these functions are language-independent,
+     they use optabs, so we cannot call them from backend_init.  */
   init_set_costs ();
+  ira_init ();
 
   expand_dummy_function_end ();
 }
@@ -2098,6 +2120,7 @@ dump_memory_report (bool final)
   dump_varray_statistics ();
   dump_alloc_pool_statistics ();
   dump_bitmap_statistics ();
+  dump_vec_loc_statistics ();
   dump_ggc_loc_statistics (final);
 }
 
@@ -2128,6 +2151,8 @@ finalize (void)
 
   statistics_fini ();
   finish_optimization_passes ();
+
+  ira_finish_once ();
 
   if (mem_report)
     dump_memory_report (true);

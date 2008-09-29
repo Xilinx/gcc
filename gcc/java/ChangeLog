@@ -1,3 +1,39 @@
+2008-09-22  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (rules): Add new rule for
+	gnu.java.lang.VMCPStringBuilder.toString.
+	(rewrite_rule.new_classname): New field.
+	(maybe_rewrite_invocation): Use new_classname field instead of
+	DECL_CONTEXT (*method_p).
+	Allow rewrite_arglist to be NULL.
+
+2008-09-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* lang.c (LANG_HOOKS_GET_CALLEE_FNDECL): Don't define.
+	(java_get_callee_fndecl): Kill.
+
+2008-09-17  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/18071
+	* class.c (add_method_1): Do not initialize DECL_INLINE.
+	(make_local_function_alias): Likewise.
+	* expr.c (rewrite_arglist_getcaller): Set DECL_UNINLINABLE.
+	* lang.c (java_decl_ok_for_sibcall): Use DECL_UNINLINABLE.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (build_result_decl): Remove no longer applicable
+	promotion.
+
+2008-09-05  David Daney  <ddaney@avtrex.com>
+
+	* gcj.texi (-freduced-reflection): Clarify option's restrictions.
+
+2008-08-21  David Daney  <ddaney@avtrex.com>
+
+	* class.c (make_class_data): Don't add field_index when
+	flag_reduced_reflection set.
+
 2008-08-12  Ulrich Weigand  <uweigand@de.ibm.com>
 
 	* typeck.c (convert): Do not check for TARGET_FLOAT_FORMAT.
@@ -629,7 +665,7 @@
 	NEGATIVE and then a POINTER_PLUS_EXPR instead
 	of a MINUS_EXPR.
 
-2007-06-11  Rafael Avila de Espindola  <espindola@google.com>
+2007-06-11  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* typeck.c (java_signed_type): Remove.
 	* lang.c (LANG_HOOKS_SIGNED_TYPE): Remove.
@@ -640,7 +676,7 @@
 	* jcf-dump.c (HANDLE_MAGIC): Use 'unsigned long' for %lx.
 	(print_constant): Likewise.
 
-2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+2007-05-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* expr.c (build_java_binop): Use unsigned_type_for instead of
 	java_unsigned_type.
@@ -675,7 +711,7 @@
 	* jcf-parse.c (give_name_to_class): Don't set input_location from
 	DECL_ARTIFICIAL decls.
 
-2007-03-30  Rafael Avila de Espindola  <espindola@google.com>
+2007-03-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* typeck.c (java_signed_or_unsigned_type): Removed.
 	(java_signed_type): use get_signed_or_unsigned_type instead of
@@ -1555,7 +1591,7 @@
 	* jcf-path.c (jcf_path_compute): New function.
 	* jcf.h (jcf_path_compute): Declare.
 
-2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+2006-10-23 Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* decl.c: Include langhooks.h.
 	(builtin_function): Remove.
@@ -2022,7 +2058,7 @@
 	* jv-scan.c (version), jcf-dump.c (version), gjavah.c (version):
 	Update copyright notice dates.
 
-2006-01-16  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2006-01-16  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* jvspec.c (lang_specific_spec_functions): Remove.
 
@@ -2075,11 +2111,11 @@
 	* expr.c (build_field_ref): Add in-line check for missing field.
 	* decl.c (java_init_decl_processing): Add soft_nosuchfield_node.
 
-2005-12-07  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in (java.all.build, java.install-normal): Remove.
 
-2005-12-07  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in: Remove all dependencies on s-gtype, except for
 	gt-java-parse.h.
@@ -13011,7 +13047,7 @@
 	properly initialize `finished_label'. Don't emit gotos for empty
 	try statements.
 
-2000-03-19  Martin v. Loewis  <loewis@informatik.hu-berlin.de>
+2000-03-19  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
 
 	* except.c (emit_handlers): Clear catch_clauses_last.
 
@@ -13289,7 +13325,7 @@
 	(build_current_thisn): Likewise.
 	(patch_method_invocation): Likewise.
 
-2000-03-01  Martin von Loewis  <loewis@informatik.hu-berlin.de>
+2000-03-01  Martin von Löwis  <loewis@informatik.hu-berlin.de>
 
 	* decl.c (current_function_decl): Move to toplev.c.
 
@@ -13386,7 +13422,7 @@
 	(expand_java_return): Handle the case of a native integer smaller
 	than a JVM integer.
 
-2000-02-18  Martin von Loewis  <loewis@informatik.hu-berlin.de>
+2000-02-18  Martin von Löwis  <loewis@informatik.hu-berlin.de>
 
 	* gjavah.c (help): Use GCCBUGURL.
 	* jv-scan.c (help): Likewise.

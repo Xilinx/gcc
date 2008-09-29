@@ -483,7 +483,6 @@ check_format (bool is_input)
 				      " at %L");
   const char *unexpected_end	  = _("Unexpected end of format string");
   const char *zero_width	  = _("Zero width in format descriptor");
-  const char *g0_precision	= _("Specifying precision with G0 not allowed");
 
   const char *error;
   format_token t, u;
@@ -701,27 +700,25 @@ data_desc:
 	      error = zero_width;
 	      goto syntax;
 	    }
-
 	  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: 'G0' in "
 			      "format at %C") == FAILURE)
 	    return FAILURE;
+	  u = format_lex ();
+	  if (u != FMT_PERIOD)
+	    {
+	      saved_token = u;
+	      break;
+	    }
 
 	  u = format_lex ();
-          if (u == FMT_PERIOD)
+	  if (u == FMT_ERROR)
+	    goto fail;
+	  if (u != FMT_POSINT)
 	    {
-	      error = g0_precision;
+	      error = posint_required;
 	      goto syntax;
 	    }
-	  saved_token = u;
-	  goto between_desc;
-	}
-
-      if (u == FMT_ERROR)
-	goto fail;
-      if (u != FMT_POSINT)
-	{
-	  error = posint_required;
-	  goto syntax;
+	  break;
 	}
 
       u = format_lex ();
@@ -1124,14 +1121,15 @@ match_vtag (const io_tag *tag, gfc_expr **v)
 
   if (result->symtree->n.sym->attr.intent == INTENT_IN)
     {
-      gfc_error ("Variable tag cannot be INTENT(IN) at %C");
+      gfc_error ("Variable %s cannot be INTENT(IN) at %C", tag->name);
       gfc_free_expr (result);
       return MATCH_ERROR;
     }
 
   if (gfc_pure (NULL) && gfc_impure_variable (result->symtree->n.sym))
     {
-      gfc_error ("Variable tag cannot be assigned in PURE procedure at %C");
+      gfc_error ("Variable %s cannot be assigned in PURE procedure at %C",
+		 tag->name);
       gfc_free_expr (result);
       return MATCH_ERROR;
     }
@@ -1144,13 +1142,13 @@ match_vtag (const io_tag *tag, gfc_expr **v)
 /* Match I/O tags that cause variables to become redefined.  */
 
 static match
-match_out_tag(const io_tag *tag, gfc_expr **result)
+match_out_tag (const io_tag *tag, gfc_expr **result)
 {
   match m;
 
-  m = match_vtag(tag, result);
+  m = match_vtag (tag, result);
   if (m == MATCH_YES)
-    gfc_check_do_variable((*result)->symtree);
+    gfc_check_do_variable ((*result)->symtree);
 
   return m;
 }
@@ -1706,8 +1704,7 @@ gfc_match_open (void)
     
       if (open->encoding->expr_type == EXPR_CONSTANT)
 	{
-	  /* TODO: Implement UTF-8 here.  */
-	  static const char * encoding[] = { "DEFAULT", NULL };
+	  static const char * encoding[] = { "DEFAULT", "UTF-8", NULL };
 
 	  if (!compare_to_allowed_values ("ENCODING", encoding, NULL, NULL,
 					  open->encoding->value.character.string,
@@ -2476,6 +2473,7 @@ gfc_resolve_dt (gfc_dt *dt)
   RESOLVE_TAG (&tag_rec, dt->rec);
   RESOLVE_TAG (&tag_spos, dt->rec);
   RESOLVE_TAG (&tag_advance, dt->advance);
+  RESOLVE_TAG (&tag_id, dt->id);
   RESOLVE_TAG (&tag_iomsg, dt->iomsg);
   RESOLVE_TAG (&tag_iostat, dt->iostat);
   RESOLVE_TAG (&tag_size, dt->size);
@@ -2485,6 +2483,7 @@ gfc_resolve_dt (gfc_dt *dt)
   RESOLVE_TAG (&tag_e_round, dt->round);
   RESOLVE_TAG (&tag_e_blank, dt->blank);
   RESOLVE_TAG (&tag_e_decimal, dt->decimal);
+  RESOLVE_TAG (&tag_e_async, dt->asynchronous);
 
   e = dt->io_unit;
   if (gfc_resolve_expr (e) == SUCCESS
