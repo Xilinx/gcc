@@ -1,3 +1,10 @@
+2008-09-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding matching & cmatcher etc...]
+	* doc/melt.texi: use @dots...
+	* basilys.h: added BGLOB_CLASS_CMATCHER
+	* melt/warmelt-first.bysl: added class_cmatcher & class_cmatcher_binding
+	* melt/warmelt-macro.bysl: adding mexpand_match ...
+
 2008-09-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: start mentionning pattern macros & bindings.
 	* melt/warmelt-first.bysl: added class_patmacro_binding

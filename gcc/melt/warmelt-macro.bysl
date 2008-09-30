@@ -682,7 +682,7 @@
 (defclass class_pattexpcontext
   :super class_root
   :fields (pctx_mexpander      	;macroexpander
-	   pctx_pexpander      	;patter expander
+	   pctx_pexpander      	;pattern expander
 	   pctx_varmap	        ;objmap for pattern variables [symbols => srcpattern_variable]
 ))
 
@@ -741,6 +741,7 @@
 				       :src_loc sloc
 				       :spat_constx exp))
 		   )
+	      (debug_msg pat "patternexpand_1 const pat")
 	      (return pat)
 	      )
 	  ;; question expr
@@ -755,16 +756,21 @@
 		     (pavr (mapobject_get vamp parg1))
 		     )
 		(if pavr 
-		    pavr
+		    (progn
+		      (debug_msg pavr "patternexpand_1 found pavr")
+		      (return pavr)
+		    )
 		  (let ( (newpavr (make_instance class_srcpattern_variable
 						 :src_loc sloc
 						 :spat_var parg1)) 
 			 )
 		    (mapobject_put vamp parg1 newpavr)
-		    newpavr)
+		    (debug_msg newpavr "patternexpand_1 nexpavr")
+		    (return newpavr))
 		  ))
 	      )
 	     ((is_a parg1 class_sexpr)
+	      (debug_msg parg1 "patternexpand_1 sexpr parg1")
 	      (patternexpand_expr parg1 env pctx)
 	      )
 	     (:else
@@ -776,6 +782,7 @@
     )
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun macroexpand_toplevel_list (slist env)
   ;; (messageval_dbg "macroexpand_toplevel_list Env" env)
   ;;  (debug_msg  env "macroexpand_toplevel_list env"(the_callcount)) 
@@ -2070,6 +2077,76 @@
 (install_initial_macro 'or mexpand_or)
 (export_macro or mexpand_or)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; the match expander
+(defun mexpand_match (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_match sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(mexptuple (pairlist_to_multiple 
+		    (pair_tail (pair_tail (list_first cont)))
+		    discr_multiple
+		    (lambda (c)
+		      (if (is_not_a c class_sexpr)
+			  (error_plain loc "MATCH with non-sexpr"_))
+		      c
+		      ))) 
+	(:long nbmatch (multiple_length mexptuple))
+	(lastmexp (let ( (lx (multiple_nth mexptuple -1)) )
+		    (debug_msg lx "mexpand_match lastmexp lx")
+		    lx))
+	(:long ix (-i nbmatch 1))
+	(res ())
+	)
+    (debug_msg mexptuple "mexpand_match mexptuple")
+    (forever matchloop
+	     (if (<i ix 0) (exit matchloop))
+	     (let ( (curmatch (multiple_nth mexptuple ix)) )
+	       (debug_msg curmatch "mexpand_match curmatch")
+	       (cond  
+		( (and (null res)
+		       (is_a curmatch class_sexpr)
+		       (== ':else (pair_head (list_first 
+					      (unsafe_get_field :sexp_contents curmatch)))))
+		  (let ( (restpairs 
+			  (pair_tail (list_first (unsafe_get_field :sexp_contents curmatch)))) 
+			 )
+		    (if restpairs 
+			(setq res (pairlist_to_progn restpairs 
+						     (unsafe_get_field :loca_location curmatch) 
+						     env mexpander)))
+		    (debug_msg res "mexpand_match res for :else")
+		    ))
+		( (is_a curmatch class_sexpr)
+		  (let ( (curmatchcont (unsafe_get_field :sexp_contents curmatch))
+			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
+			 (curmatchpatx (pair_head (list_first curmatchcont)))
+			 (curmatchrestpairs (pair_tail (list_first curmatchcont))) 
+			 (curpatctx (make_instance class_pattexpcontext
+						   :pctx_mexpander mexpander
+						   :pctx_pexpander patternexpand_1
+						   :pctx_varmap (make_mapobject discr_mapobjects 13)))
+			 (curpat (patternexpand_1 curmatchpatx env curpatctx))
+			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
+			 )
+		    (debug_msg curpat "mexpand_match curpat")
+		    (debug_msg curbody "mexpand_match curbody")
+		    ;; should do something with them
+		    ))
+		(:else
+		 (error_plain loc "(MATCH <expr> <match-case>...) with non sexpr matchcase") 
+		 )))
+	     (setq ix (-i ix 1)))
+    (compile_warning "mexpand_match incomplete" ())
+    )
+  )
+
+(install_initial_macro 'match mexpand_match)
+(export_macro match mexpand_match)
 
 ;;;;;;;; for LET
 ;; internal routine to make a letbinding

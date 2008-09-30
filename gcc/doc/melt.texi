@@ -151,10 +151,10 @@ Without any MELT specific program flags, the MELT variant of gcc
 behave as the trunk. So to get or use MELT features, you need to pass
 some special flags. Most of these flags are starting with
 @code{-fbasilys}. They for the middle-end of GCC so are common for
-every source language (ie @code{gcc}, @code{g++} ... commands) and
+every source language (ie @code{gcc}, @code{g++} @dots{} commands) and
 target.
 
-MELT is usually invoked while compiling a (C, C++, ...) source file
+MELT is usually invoked while compiling a (C, C++, @dots{}) source file
 but may occasionnally be invoked without compiling any source input to
 perform tasks which are not related to a particular GCC input source
 file. In particular, the translation of a MELT file @code{foo.bysl}
@@ -179,7 +179,7 @@ command to be executed before any MELT passes. It uses the
 @code{:sysdata_cmd_fundict} field of @code{INITIAL_SYSTEM_DATA}
 internal object of MELT to determine the MELT function applied to
 execute the command. If this application returns nil, no GCC
-compilation occur (i.e. no @code{*.c} or @code{*.cc} etc... source
+compilation occur (i.e. no @code{*.c} or @code{*.cc} etc@dots{} source
 file is read). Hence, some commands may be used for their
 side-effects. In particular, the compilation of MELT lisp source file
 @code{*.bysl} into C code @code{*.c} is done this way.
@@ -299,7 +299,7 @@ MELT is closely related to GCC internal passes and internal middle-end
 representations and runtime. Hence (in contrast to other LISP
 dialects) @emph{MELT is dealing with both boxed values and unboxed
 stuff} (e.g. plain @code{long} integers as in C, but also @code{tree}s
-and @code{gimple}s, etc..., as inside GCC, separating them using their
+and @code{gimple}s, etc@dots{}, as inside GCC, separating them using their
 @emph{ctype}). Keep always in mind the boxed versus unboxed
 distinction. Because of that, and because of GCC runtime (in
 particular the GGC garbage collector), MELT is neither polymorphic
@@ -406,7 +406,7 @@ When used in a MELT expression like @code{(each-posint-till (5) (:long
 v) (print-long v))} -which has @code{:void} ctype because citerators
 are only useful for their side-effects- the C translation is vaguely
 similar (assuming @code{print-long} is a primitive expanding to
-@code{printf(``%d\n'',@var{...})} to something looking like
+@code{printf(``%d\n'',@var{@dots{}})} to something looking like
 @example
 curfnum[11] /*LIM*/ = 5;
 @{long eachposint_24;
@@ -663,7 +663,7 @@ anonymous functions using the @code{lambda} construct, eg
   (let ( (:long gimp
           @r{; fetch the content of the boxed gimple value as an unboxed stuff}
           (gimple_content boxgimp)) )
-  @var{.... do something with @code{gimp} stuff ....}
+  @var{@dots{}. do something with @code{gimp} stuff @dots{}.}
  ))
 bgs @r{; some boxed gimple value}
 )
@@ -1009,7 +1009,7 @@ of the @code{gimple} structure inside @file{gcc/gimple.h}
 @item special values
 @cindex special MELT values
 They are useful to represent stuff like MPFR things (arbitrary
-precision numbers), PPL coefficients, etc... The MELT runtime is able
+precision numbers), PPL coefficients, etc@dots{} The MELT runtime is able
 to run a sort of destructing C function when a special value is no
 more used, so the handling of special values is more expensive than
 for other values.
@@ -1187,7 +1187,7 @@ Exporting a class means exporting the class object and its own fields.
 @subsubsection MELT function application
 
 Function applications are noted @code{(@var{fun} @var{args}
-@var{...})}. There may be no arguments, e.g. just
+@var{@dots{}})}. There may be no arguments, e.g. just
 @code{(@var{fun})}. If arguments are given, the first argument must be
 a @code{:value}. So @code{(f 1 x)} is incorrect (because @code{1} is
 an unboxed @code{:long}); use @code{(f x 1)} instead. Usually, the
@@ -1258,7 +1258,7 @@ values).
 @subsubsection MELT message sending
 
 A message invocation is done using the construct
-@code{(@var{selector-name} @var{reciever} @var{args} @var{...})}. This
+@code{(@var{selector-name} @var{reciever} @var{args} @var{@dots{}})}. This
 construct is syntactically the same as function (or primitive)
 application, and is discriminated by the fact that the
 @var{selector-name} has been previously defined with
@@ -1300,7 +1300,7 @@ invocation.
 @item otherwise,
 no method is found, so replace @var{dis} by its super-discriminant
 (its slot @code{disc_super}) and repeat again. Hence, methods are also
-looked in superclasses, etc... so are properly inherited.
+looked in superclasses, etc@dots{} so are properly inherited.
 
 @end itemize
 
@@ -1319,10 +1319,10 @@ appropriate methods in the MELT translator].
 
 @item and
 @cindex @code{and} MELT syntax
-@code{(and @var{e1} @var{e2} @var{e3} @var{...})} is (like in all
+@code{(and @var{e1} @var{e2} @var{e3} @var{@dots{}})} is (like in all
 Lisps) used for sequential conjunction; it is the same as @code{(if
-@var{e1} (if @var{e2} @var{e3}))} etc... Any number (at least one) of
-conjuncts are possible. All the conjuncts (@var{e1} @var{...}) should
+@var{e1} (if @var{e2} @var{e3}))} etc@dots{} Any number (at least one) of
+conjuncts are possible. All the conjuncts (@var{e1} @var{@dots{}}) should
 have the same ctype (usually @code{:value}).
 
 @item assert_msg
@@ -1352,13 +1352,13 @@ emits a message at MELT compilation time. Intended use is similar to
 
 @item cond
 @cindex @code{cond} MELT syntax
-@code{(cond @var{condition1} @var{condition2} @var{...})} is -like in
+@code{(cond @var{condition1} @var{condition2} @var{@dots{}})} is -like in
 all Lisps- a conditional evaluation. Each condition is
-@code{(@var{test} @var{then1} @var{then2} @var{...} @var{thenk})} so
+@code{(@var{test} @var{then1} @var{then2} @var{@dots{}} @var{thenk})} so
 the @var{test} is evaluated. If it is true, all the @var{then}s are
 evaluated in sequence, and the last is the result of the whole
 @code{cond} expression. The last condition can be @code{(:else
-@var{else1} @var{...} @var{elsek})}; if no previous test succeeded,
+@var{else1} @var{@dots{}} @var{elsek})}; if no previous test succeeded,
 all the @var{else}s are sequentially evaluated, and the last of them
 is the whole @code{cond} result. Notice that @code{(cond (@var{test1}
 @var{then1}) (@var{test2} @var{then2a} @var{then2b}) (:else
@@ -1415,7 +1415,7 @@ classes [giving a @var{predefined} is for experts]).
 @cindex @code{definstance} MELT syntax
 The form @code{(definstance @var{instance-name} @var{class-name}
 [:predef @var{predefined}] [:obj_num @var{object-number}]
-@var{:field-name} @var{field-value} @var{...})} statically defines an
+@var{:field-name} @var{field-value} @var{@dots{}})} statically defines an
 instance of name @var{instance-name} of the class
 @var{class-name}. [expert usage: a @var{predefined} name and an
 @var{object-number} may also be given].
@@ -1423,7 +1423,7 @@ instance of name @var{instance-name} of the class
 @item defprimitive
 @cindex @code{defprimitive} MELT syntax
 The form @code{(defprimitive @var{primitive-name}
-@var{formals-arglist} @var{ctype} @var{expansion} @var{...})}
+@var{formals-arglist} @var{ctype} @var{expansion} @var{@dots{}})}
 statically defines a C primitive named @var{primitive-name} of a given
 @var{formals-list} and given return @var{ctype}. The @var{expansion}-s
 are either strings or formal names.
@@ -1431,7 +1431,7 @@ are either strings or formal names.
 @item defselector
 @cindex @code{defselector} MELT syntax
 The form @code{(defprimitive @var{selector-name} @var{selector-class}
-@var{:field-name} @var{field-value} @var{...})} defines a
+@var{:field-name} @var{field-value} @var{@dots{}})} defines a
 selector. Usually @var{selector-class} is @code{CLASS_SELECTOR}, and
 no other @var{field}s are given. Once a name is bound to a selector,
 every further occurrence of that name in operator position is
@@ -1440,7 +1440,7 @@ considered as a message invocation.
 @item defun
 @cindex @code{defun} MELT syntax
 The form @code{(defun @var{function-name} @var{formals-list}
-@var{body} @var{...})} define a function named
+@var{body} @var{@dots{}})} define a function named
 @code{function-name}. The ctype of the first (if any) formal argument
 (in the @var{formals-list}) should be a @code{:value}. The
 @code{function-name} can appear in the given @var{body} (for
@@ -1448,7 +1448,7 @@ recursion).
 
 @item exit
 @cindex @code{exit} MELT syntax
-The form @code{(exit @var{loop-label} @var{expr} @var{...})}, only
+The form @code{(exit @var{loop-label} @var{expr} @var{@dots{}})}, only
 used inside @code{forever} loops, causes the lexically enclosing
 @code{forever} loop named by @var{loop-label} to be exited, after
 evaluation of the @var{expr}s. The last such value (or nil if no
@@ -1459,7 +1459,7 @@ to the containing procedure: it cannot jump across @code{lambda}s.
 
 @item export_class
 @cindex @code{export_class} MELT syntax
-The form @code{(export_class @var{class-name} @var{...})} export all
+The form @code{(export_class @var{class-name} @var{@dots{}})} export all
 the given @var{class-name}s and their fields.
 
 @item export_macro
@@ -1477,7 +1477,7 @@ current one).
 
 @item export_values
 @cindex @code{export_values} MELT syntax
-The form @code{(export_values @var{exported-name} @var{...})} export
+The form @code{(export_values @var{exported-name} @var{@dots{}})} export
 all the names, as values, given as arguments. For classes,
 @code{export_class} should be used, otherwise the fields are not
 exported.
@@ -1488,7 +1488,7 @@ exported.
 
 @item forever
 @cindex @code{forever} MELT syntax
-@code{(forever @var{label-name} @var{body} @var{...})}  when
+@code{(forever @var{label-name} @var{body} @var{@dots{}})}  when
 evaluated, the bodies are evaluated in sequence, and indefinitely
 re-evaluated again. The only way of getting out from a @code{forever}
 loop is with @code{exit} (using the given @var{label-name}, lexically
@@ -1508,7 +1508,7 @@ given) should have the same ctype.
 
 @item lambda
 @cindex @code{lambda} MELT syntax
-@code{(lambda @var{formal-args} @var{body} @var{...})} is a function
+@code{(lambda @var{formal-args} @var{body} @var{@dots{}})} is a function
 abstraction, it returns a closure, the anonymous function taking
 @var{formal-args} as arguments and evaluating sequentially the
 @var{body} expressions, returning the value of the last one. The first
@@ -1517,7 +1517,7 @@ should be a @code{:value}.
 
 @item let
 @cindex @code{let} MELT syntax
-@code{(let (@var{let-binding} @var{...}) @var{body} @var{...}) is a
+@code{(let (@var{let-binding} @var{@dots{}}) @var{body} @var{@dots{}}) is a
 sequential binding construct (closer to @code{let*} in other
 Lisps)}. The first operand should be a list of
 @var{let-binding}s. Others operands make the @var{body}, evaluated in
@@ -1535,7 +1535,7 @@ expression, done with the new bindings.
 @item make_instance
 @cindex @code{make_instance} MELT syntax
 @code{(make_instance @var{class-name} [@var{:field-name}
-@var{field-value}] @var{...})} where the @var{class-name} is the name
+@var{field-value}] @var{@dots{}})} where the @var{class-name} is the name
 of a class (it cannot be a complex expression but should be a class
 statically known) and where each @var{:field-name} keyword (starting
 with a colon) is the name of some field (direct or inherited) of the
@@ -1546,13 +1546,13 @@ instance of the given @var{class-name} initialized with the fields
 
 @item match
 @cindex @code{match} MELT syntax
-@code{(match @var{expr} @var{match-case} @var{...})}
+@code{(match @var{expr} @var{match-case} @var{@dots{}})}
 @emph{NOT IMPLEMENTED YET}
 
 @item multicall
 @cindex @code{multicall} MELT syntax
 @code{(multicall (@var{result-formals}) @var{call-expr} @var{body}
-@var{...})}  is the only way to retrieve multiple (one primary and
+@var{@dots{}})}  is the only way to retrieve multiple (one primary and
 some secondary) results from a function application or a message
 invocation @var{call-expr} (which should syntactically be an
 application or an invocation, not anything else). The
@@ -1565,8 +1565,8 @@ in the @var{body} sequence.
 
 @item or
 @cindex @code{or} MELT syntax
-@code{(or @var{e1} @var{e2} @var{e3} @var{...})} is the sequential
-disjunction of @var{e1} @var{...} (at least one disjunct). In
+@code{(or @var{e1} @var{e2} @var{e3} @var{@dots{}})} is the sequential
+disjunction of @var{e1} @var{@dots{}} (at least one disjunct). In
 particular @code{(or @var{a} @var{b})} is the same as @code{(if
 @var{a} @var{a} @var{b})} except that @var{a} is evaluated once. All
 the disjuncts should have the same ctype (usually @code{:value}).
@@ -1578,7 +1578,7 @@ module's environment.
 
 @item progn
 @cindex @code{progn} MELT syntax
-@code{(progn @var{e1} @var{e2} @var{...} @var{en})} evaluates
+@code{(progn @var{e1} @var{e2} @var{@dots{}} @var{en})} evaluates
 successfully @var{e1} then @var{e2} and return the value of the last
 @var{en}.
 
@@ -1595,7 +1595,7 @@ static boxed values [unimplemented].
 
 @item return
 @cindex @code{return} MELT syntax
-@code{(return @var{e1} @var{...})} return from the entire containing
+@code{(return @var{e1} @var{@dots{}})} return from the entire containing
 function (i.e. @code{defun} or @code{lambda}). The first expression
 @var{e1} should be of ctype @code{:value} and is evaluated as the
 primary result. Other expressions are evaluated (and can have
@@ -1630,8 +1630,8 @@ usually crashes).
 @item unsafe_put_fields
 @cindex @code{unsafe_put_fields} MELT syntax
 @code{(unsafe_put_fields @var{obj} @var{:field-name1} @var{val1}
-@var{...})}  updates the object value of @var{obj} by changing its
-field named @var{:field-name1} to the value of @var{val1} etc... (all
+@var{@dots{}})}  updates the object value of @var{obj} by changing its
+field named @var{:field-name1} to the value of @var{val1} etc@dots{} (all
 the fields are updated at once). If @var{obj} is not an object of the
 appropriate class for the fields, the behavior is undefined and unsafe
 (usually GCC crashes).
@@ -1665,7 +1665,7 @@ etc..) and provides its own bindings (exported values,
 etc..). Bindings are objects (of superclass @code{CLASS_ANY_BINDING},
 e.g. of some class like @code{CLASS_VALUE_BINDING}
 @code{CLASS_MACRO_BINDING} @code{CLASS_PATMACRO_BINDING}
-@code{CLASS_INSTANCE_BINDING} etc...). Bindings are grouped in
+@code{CLASS_INSTANCE_BINDING} etc@dots{}). Bindings are grouped in
 environments (themselves objects of class
 @code{CLASS_ENVIRONMENT}). Each environment is linked to its
 parent. So a MELT module is initialized in its parent module
@@ -1673,7 +1673,7 @@ environment and gives its own module environment.
 
 Hence MELT environments are objects with a @code{env_bind} field (the
 object map of bindings), a @code{env_prev} field (the previous
-environment), etc... All bindings are objects with a @code{binder}
+environment), etc@dots{} All bindings are objects with a @code{binder}
 field (the bound ``name'', e.g. a symbol, used as the key in the
 binding map of environments).
 
@@ -1716,7 +1716,7 @@ a nil parent.}.
 
 @cindex modules in MELT 
 Names defined (as a function thru @code{defun}, as a class thru
-@code{defclass}, as a field, etc...) are not visible outside their
+@code{defclass}, as a field, etc@dots{}) are not visible outside their
 module (to further MELT modules loaded afterwards) unless they are
 @emph{exported}. Most names (e.g. functions, selectors, instances) are
 exported as values using the @code{export_values} construct. Classes
@@ -1789,7 +1789,7 @@ computing additional information, such as the ctype of many
 expressions. Normalization is in particular done with the
 @code{normal_exp} selector (returning the nrep primarily and
 secundarily a list of additional bindings), and other utilities such
-as @code{normalize_tuple get_ctype wrap_normal_letseq} etc... For
+as @code{normalize_tuple get_ctype wrap_normal_letseq} etc@dots{} For
 instance the normalization of @code{if} constructs is done in the
 @code{normal_exp} method for @code{CLASS_SRC_IF}, in a private
 function called @code{normexp_if} which returns an instance of

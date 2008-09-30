@@ -99,6 +99,18 @@
 	   )
   :predef CLASS_CITERATOR)
 
+; class of C matchers (in patterns)
+(defclass class_cmatcher
+  :super class_named
+  :fields (cmatch_in		;the formal input arguments
+	   cmatch_matchbind		;the matched formal binding
+	   cmatch_out			;the formal output arguments
+	   cmatch_state			;the symbol representing the match state
+	   cmatch_exptest		;expansion for test expr
+	   cmatch_expfill		;expansion for filling instr
+	   )
+  :predef CLASS_CMATCHER)
+
 ;; class of located stuff
 (defclass class_located
   :super class_proped
@@ -126,7 +138,7 @@
   :super class_named
   :fields (symb_data))
 
-;; class of generated (ie cloned) symbols - like lisp gensym
+;; class of generated (ie cloned) symbols - like lisp gensym-ed
 (defclass class_clonedsymbol
   :super class_symbol
   :fields (csym_urank			;unique rank as a boxed integer
@@ -249,6 +261,8 @@
   :fields ()
 )
 
+(compile_warning "should define a class_data_binding superclass" ())
+
 ;; selector binding
 (defclass class_selector_binding
   :super class_fixed_binding
@@ -304,6 +318,13 @@
   :fields ( ibind_iclass		;the instance's class
 	    ibind_data			;the compiled data
 	    ))
+
+;; cmatcher binding
+(defclass class_cmatcher_binding
+  :super class_fixed_binding
+  :fields (cmbind_matcher		;the cmatcher
+	   cmbind_data			;the compiled data
+))
 
 ;; let binding
 (defclass class_let_binding
