@@ -1,4 +1,16 @@
 2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding cmatcher-s]
+	* melt/warmelt-first.bysl: added class_cmatcher &
+	class_cmatcher_binding. added foreach_in_multiple citerator, so
+	should regenerate...
+	* melt/warmelt-macro.bysl: adding defcmatcher ... [incomplete]
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[moved the data part of fixed bindings into superclass
 	class_fixed_binding]
 	* melt/warmelt-first.bysl: added fixbind_data to

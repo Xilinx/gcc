@@ -157,6 +157,16 @@
   :fields (sciterdef_citerator		;the citerator
 ))
 
+;;; define a cmatcher
+(defclass class_src_defcmatcher
+  :super class_srcdeformal
+  :fields (;;src_loc is the location
+	   ;;sdef_name is the new cmatcher name
+	   ;;sformal_args is for the matched formal & input arguments
+	   ;;;;the first formal is for the matched stuff. The rest is for input
+	   scmatdef_cmatcher		;the cmatcher
+))
+
 ;; define an object (common to instance, class, selector)
 (defclass class_src_defobjcommon
   :super class_srcdef
@@ -883,7 +893,7 @@
 	       (setq ix (+i ix 1))
 	       (setq bndpair (pair_tail bndpair))
 	       )
-      bndtup
+      (return bndtup)
       )))
 
 
@@ -1121,8 +1131,130 @@
 (install_initial_macro 'defciterator mexpand_defciterator)
 (export_macro defciterator mexpand_defciterator)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; the defcmatcher expander
+;;(DEFCMATCHER  symb match&in-formals out-formals state-sym 
+;;              test-expansion fill-expansion oper-expansion)
+(defun mexpand_defcmatcher (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_defcmatcher sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 ;; the following variables are set later by setq
+	 (sformals ())			;match & input fmals
+	 (matchformal ())		;the match formal binding
+	 (informals ())			;input formals tuple
+	 (outformals ())		;output formals tuple
+	 (statesym ())			;state symbol
+	 (exptest ())			;test expansion tuple
+	 (expfill ())			;fill expansion tuple
+	 (expoper ())			;operand expansion tuple
+	 )
+    (debug_msg symb "mexpand_defcmatcher symb")
+    (if (is_not_a symb class_symbol)
+	(progn 
+	  (error_plain
+	   loc 
+	   "symbol expected for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	  (return)))
+    (setq curpair (pair_tail curpair))
+    ;; parse the match & in formals 
+    (let ( (matinformals (lambda_arg_bindings (pair_head curpair)))
+	   (:long nbmatinformals (multiple_length matinformals)) 
+	   )
+      (if (<i nbmatinformals 1)
+	  (progn 
+	    (error_plain loc "empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	    (return)))
+      (setq sformals matinformals)
+      (setq matchformal (multiple_nth matinformals 0))
+      (debug_msg matchformal "mexpand_defcmatcher matchformal")
+      (setq informals (make_multiple discr_multiple (-i nbmatinformals 1)))
+      (multiple_every 
+       matinformals
+       (lambda (comp :long ix) (if (>i ix 0) (multiple_put_nth informals (-i ix 1) comp))))
+      (debug_msg informals "mexpand_defcmatcher informals")
+      )
+    ;; parse the out formals
+    (setq curpair (pair_tail curpair))
+    (setq outformals (lambda_arg_bindings (pair_head curpair)))
+    (if (not (is_multiple outformals))
+	(progn
+	  (error_plain loc "bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	  (return)))
+    ;; parse the state symbol
+    (setq curpair (pair_tail curpair))
+    (setq statesym (pair_head curpair))
+    (if (is_not_a statesym class_symbol)
+	(progn
+	  (error_plain loc "bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	  (return)))
+    (debug_msg statesym "mexpand_defcmatcher statesym")
+    ;; parse the test expansion
+    (setq curpair (pair_tail curpair))
+    (let ( (sexptest (pair_head curpair)) )
+      (if (and sexptest (is_not_a sexptest class_sexpr))
+	  (progn
+	    (error_plain loc "bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	    (return))
+	(setq exptest (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexptest))))
+	))
+    (debug_msg exptest "mexpand_defcmatcher exptest")
+    ;; parse the fill expansion
+    (setq curpair (pair_tail curpair))
+    (let ( (sexpfill (pair_head curpair)) )
+      (if (and sexpfill (is_not_a sexpfill class_sexpr))
+	  (progn
+	    (error_plain loc "bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	    (return))
+	(setq expfill (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpfill))))
+	))
+    (debug_msg expfill "mexpand_defcmatcher expfill")
+    ;; parse the operate expansion
+    (setq curpair (pair_tail curpair))
+    (let ( (sexpoper (pair_head curpair)) )
+      (if (and sexpoper (is_not_a sexpoper class_sexpr))
+	  (progn
+	    (error_plain loc "bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
+	    (return))
+	(setq expoper (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpoper))))
+	))
+    (debug_msg expoper "mexpand_defcmatcher expfill")
+    ;; check nothing more
+    (setq curpair (pair_tail curpair))
+    (if curpair
+	(warning_plain loc "extra in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_))
+    ;; build the defcmatcher
+    (let (
+	  (cmatch (make_instance class_cmatcher
+				 :named_name (unsafe_get_field :named_name symb)
+				 :cmatch_in informals
+				 :cmatch_matchbind matchformal
+				 :cmatch_out outformals
+				 :cmatch_state statesym
+				 :cmatch_exptest exptest
+				 :cmatch_expfill expfill
+				 :cmatch_expoper expoper
+				 ))
+	  (sdefcmatch (make_instance  class_src_defcmatcher
+				      :src_loc loc
+				      :sdef_name symb
+				      :sformal_args sformals
+				      :scmatdef_cmatcher cmatch)) 
+	  )
+      (debug_msg sdefcmatch "mexpand_defcmatcher sdefcmatch")
+      (compile_warning "should add a cmatcher_binding" ())
+      (return sdefcmatch)
+      )
+    ))
+(install_initial_macro 'defcmatcher mexpand_defcmatcher)
+(export_macro defcmatcher mexpand_defcmatcher)
 
 ;;;;;;;;;;;;;;;;;; the defun expander
+;;;(DEFUN funame formals body...)
 (defun mexpand_defun (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -2906,6 +3038,7 @@
  class_src_cppif
  class_src_current_module_environment_container
  class_src_defciterator
+ class_src_defcmatcher
  class_src_defclass
  class_src_definstance
  class_src_defobjcommon

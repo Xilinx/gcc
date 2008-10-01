@@ -106,8 +106,11 @@
 	   cmatch_matchbind		;the matched formal binding
 	   cmatch_out			;the formal output arguments
 	   cmatch_state			;the symbol representing the match state
-	   cmatch_exptest		;expansion for test expr
+	   cmatch_exptest		;expansion for test expr [in patterns]
 	   cmatch_expfill		;expansion for filling instr
+					;[in patterns]
+	   cmatch_expoper		;expansion for operator use
+					;[in expressions]
 	   )
   :predef CLASS_CMATCHER)
 
@@ -2030,6 +2033,25 @@
 		     (setq ix (+i ix 1)))
 	    ))))
 	
+
+;; citerator on tuple
+(defciterator foreach_in_multiple 
+  (tup)					;start formal
+  eachtup				;state
+  (comp :long ix)			;local formals
+  (					;before expansion
+   "long " eachtup "_ln = basilys_multiple_length((basilys_ptr_t)" tup ");\n"
+   "int " eachtup "_ix = 0;\n"
+   "for ("  eachtup "_ix = 0; " eachtup "_ix < " eachtup "_ln; " 
+         eachtup "_ix ++) {\n"
+	 comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "), " eachtup "_ix);\n"
+	 ix " = " eachtup "_ix;\n"
+   )
+  (					;after expansion
+   "} /* end " eachtup "*/"
+   )
+)
+
 ;;; full iterator on closures  
 ;;; the function is called with the component and its index
 (defun closure_every (clo f)
@@ -3260,6 +3282,8 @@
  class_class_binding
  class_clonedsymbol
  class_container
+ class_cmatcher_binding
+ class_cmatcher
  class_ctype
  class_debuginfo 
  class_described_environment
@@ -3591,6 +3615,12 @@
  put_env
  routine_every
  )
+
+
+;; export the citerators defined above
+(export_values
+ foreach_in_multiple
+)
 
 (debug_msg class_symbol "at end of warmelt-first our Class_Symbol")
 (debug_msg (fetch_predefined CLASS_SYMBOL) "at end of warmelt-first predefined Class_Symbol")
