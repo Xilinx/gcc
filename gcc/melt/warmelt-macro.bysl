@@ -366,6 +366,12 @@
   :fields (spat_var
 ))
 
+;;; the joker source pattern variable
+(defclass class_srcpattern_jokervar
+  :super class_srcpattern_variable
+  :fields (
+))
+
 ;;; simple source pattern constant
 (defclass class_srcpattern_constant
   :super class_srcpattern_any
@@ -400,6 +406,13 @@
   :fields (spac_operator		;pattern operator
 	   spac_args			;subpatterns
 	   ))
+
+;; cmatcher composite source pattern
+(defclass class_srcpattern_cmatch
+  :super class_srcpattern_composite
+  :fields (
+))
+
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
 
 ;;get the n-th son of a sexpr
@@ -696,6 +709,12 @@
 	   pctx_varmap	        ;objmap for pattern variables [symbols => srcpattern_variable]
 ))
 
+
+(defun patternexpand_pairlist_as_tuple (pairlist env pctx)
+  (pairlist_to_multiple pairlist discr_multiple
+			(lambda (x) (patternexpand_1 x env pctx)))
+)
+
 ;; pattern expansion of a pattern expression like (question SEXPR)
 (defun patternexpand_expr (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -723,7 +742,25 @@
 	   (let ( (resp (patexp sexpr env pctx)) )
 	     (debug_msg resp "patternexpand_expr resp")
 	     (return resp)
-	 )))
+	     )))
+       ( (is_a opbind class_cmatcher_binding)
+	 (let ( (cmat (unsafe_get_field :cmbind_matcher opbind)) )
+	   (assert_msg "check cmat-cher" (is_a cmat class_cmatcher))
+	   (let ( (pargs (patternexpand_pairlist_as_tuple (pair_tail curpair) env pctx))
+		  (pcomp (make_instance class_srcpattern_cmatch
+					:src_loc sloc
+					:spac_operator cmat
+					:spac_args pargs
+					))
+		  )
+	     (if (!=i (multiple_length pargs)
+		      (multiple_length (unsafe_get_field :cmatch_out cmat)))
+		 (warning_strv sloc "unexpected number of arguments to cmatcher"
+			       (unsafe_get_field :named_name cmat)))
+	     (debug_msg pcomp "patternexpand_expr cmatcher pcomp")
+	     (return pcomp)
+	     )
+	   ))
        (:else
 	(error_strv sloc
 		    "pattern operator badly bound - patternmacro expected"
@@ -759,6 +796,13 @@
 	    (if (pair_tail curpair)
 		(error_plain sloc "QUESTION should have one argument"))
 	    (cond
+	     ((== parg1 '_) ;  ?_ is a joker
+	      (let ( (jokp (make_instance class_srcpattern_jokervar
+					  :src_loc sloc
+					  :spat_var parg1)) )
+		(debug_msg jokp "patternexpand_1 got jokervar")
+		(return jokp)
+	      ))
 	     ((is_a parg1 class_symbol)
 	      ;; if parg1 is a symbol, make a patternvariable and add it
 	      ;; into pctx
@@ -3079,8 +3123,10 @@
  class_srcfieldpattern
  class_srcpattern_any
  class_srcpattern_composite
+ class_srcpattern_cmatch
  class_srcpattern_constant
  class_srcpattern_instance
+ class_srcpattern_jokervar
  class_srcpattern_object
  class_srcpattern_variable
  )			       ;end classes for source representations
@@ -3095,6 +3141,8 @@
  macroexpand_1
  macroexpand_toplevel_list
  patternexpand_1
+ patternexpand_expr
+ patternexpand_pairlist_as_tuple
  )			  ;end of functions for source representations
 
 (debug_msg class_symbol "at end of warmelt-macro Class_Symbol")

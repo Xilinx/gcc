@@ -1,4 +1,9 @@
 2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added class_srcpattern_cmatch
+	class_srcpattern_jokervar patternexpand_pairlist_as_tuple and
+	defcmatcher expansion [more is missing]
+
+2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding cmatcher-s]
 	* melt/warmelt-first.bysl: added class_cmatcher &
 	class_cmatcher_binding. added foreach_in_multiple citerator, so
