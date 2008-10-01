@@ -258,8 +258,8 @@
 ;;; fixed bindings are defined in a compilation unit and can be implemented as constants in routine
 (defclass class_fixed_binding
   :super class_any_binding
-  :fields ()
-)
+  :fields (fixbind_data
+	   ))
 
 (compile_warning "should define a class_data_binding superclass" ())
 
@@ -267,7 +267,6 @@
 (defclass class_selector_binding
   :super class_fixed_binding
   :fields (sbind_selectordef 		;the "source" defselector
-	   sbind_selectordata		;the compiled data
 	   ;; maybe we need an selectorval for the actual value
 	   )
 )
@@ -277,7 +276,6 @@
   :super class_fixed_binding
   :fields (pbind_primdef		;the source defprimitive
 	   pbind_primitive		;the primitive proper
-	   pbind_primdata		;the primitive data as compiled
 ))
 
 ;; citerator binding
@@ -285,7 +283,6 @@
   :super class_fixed_binding
   :fields (cbind_citerdef		;the source defciterator
 	   cbind_citerator		;the citerator proper
-	   cbind_citerdata		;the citerator data as compiled
 ))
 
 
@@ -293,7 +290,6 @@
 (defclass class_function_binding
   :super class_fixed_binding
   :fields (fubind_defun ;the source definition
-	   fubind_fundata		;compiled data
 ))
 
 ;; class binding
@@ -301,7 +297,6 @@
   :super class_fixed_binding
   :fields (cbind_defclass ;the source definition
 	   cbind_class			;the built class
-	   cbind_cladata		;compiled data
 ))
 
 ;; field binding
@@ -309,21 +304,18 @@
   :super class_fixed_binding
   :fields (flbind_clabind		;the class binding
 	   flbind_field			;the field proper
-	   flbind_fdata			;the compiled field data
 ))
 
 ;; instance binding
 (defclass class_instance_binding
   :super class_fixed_binding
   :fields ( ibind_iclass		;the instance's class
-	    ibind_data			;the compiled data
 	    ))
 
 ;; cmatcher binding
 (defclass class_cmatcher_binding
   :super class_fixed_binding
   :fields (cmbind_matcher		;the cmatcher
-	   cmbind_data			;the compiled data
 ))
 
 ;; let binding

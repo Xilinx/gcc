@@ -5052,7 +5052,7 @@ warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)
 	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
-warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl $(WARMELT_BASE2SO) cc1$(exeext)
+warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt2" \

@@ -1106,7 +1106,6 @@
 				   :binder symb
 				   ;; :cbind_citerdef bound later
 				   :cbind_citerator citer
-				   :cbind_citerdata ()
 				   ))
 	   (srcit (make_instance class_src_defciterator
 				 :src_loc loc

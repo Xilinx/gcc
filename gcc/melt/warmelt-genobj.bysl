@@ -2403,86 +2403,18 @@
 (install_method class_value_binding compile_obj compilobj_value_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile selector bindings
-(defun compilobj_selector_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_selector_binding))
+(compile_warning "all the compilobj on fixbind are same" ())
+(defun compilobj_fixed_binding (bind gcx)
+  (assert_msg "check bind" (is_a bind class_fixed_binding))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_selector_binding bind")
-  (let ( (sbdata (unsafe_get_field :sbind_selectordata bind)) 
+  (debug_msg bind "compilobj_fixed_binding bind")
+  (let ( (sbdata (unsafe_get_field :fixbind_data bind)) 
 	 (osdata (compile_obj sbdata gcx)) )
-    (debug_msg osdata "compilobj_selector_binding osdata")
+    (debug_msg osdata "compilobj_fixed_binding osdata")
     (return osdata)
     )
 )
-
-(install_method class_selector_binding compile_obj compilobj_selector_binding)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile primitive bindings
-(defun compilobj_primitive_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_primitive_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_primitive_binding bind")
-  (let ( (pbdata (unsafe_get_field :pbind_primdata bind)) 
-	 (opdata (compile_obj pbdata gcx)) )
-    (debug_msg opdata "compilobj_primitive_binding opdata")
-    (return opdata))
-)
-(install_method class_primitive_binding compile_obj compilobj_primitive_binding)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile function bindings
-(defun compilobj_function_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_function_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_function_binding bind")
-  (let ( (fbdata (unsafe_get_field :fubind_fundata bind))
-	 (ofdata (compile_obj fbdata gcx)) )
-    (debug_msg ofdata "compilobj_function_binding ofdata")
-    (return ofdata))
-)
-(install_method class_function_binding compile_obj compilobj_function_binding)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile class bindings
-(defun compilobj_class_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_class_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_class_binding bind")
-  (let ( (cbdata (unsafe_get_field :cbind_cladata bind)) 
-	 (ocdata (compile_obj cbdata gcx)) )
-    (debug_msg ocdata "compilobj_class_binding ocdata")
-    (return ocdata))
-)
-(install_method class_class_binding compile_obj compilobj_class_binding)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile field bindings
-(defun compilobj_field_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_field_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_field_binding bind")
-  (let ( (fbdata (unsafe_get_field :flbind_fdata bind))
-	 (ofdata (compile_obj fbdata gcx)) )
-    (debug_msg ofdata "compilobj_field_binding ofdata")
-    (return ofdata))
-)
-(install_method class_field_binding compile_obj compilobj_field_binding)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; compile instance bindings
-(defun compilobj_instance_binding  (bind gcx)
-  (assert_msg "check bind" (is_a bind class_instance_binding))
-  (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg bind "compilobj_instance_binding bind")
-  (let ( (ibdata (unsafe_get_field :ibind_data bind)) 
-	 (oidata (compile_obj ibdata gcx)) )
-    (debug_msg oidata "compilobj_instance_binding oidata" oidata)
-    (return oidata))
-)
-(install_method class_instance_binding compile_obj compilobj_instance_binding)
-
-
+(install_method class_fixed_binding compile_obj compilobj_fixed_binding)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

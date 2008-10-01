@@ -1050,7 +1050,7 @@
       ;; previous function binding at toplevel
       ( (is_a bind class_function_binding)
 	(debug_msg bind "normexp_symbol function bind")
-	(let ( (fubdat (unsafe_get_field :fubind_fundata bind)) )
+	(let ( (fubdat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null fubdat)
 	      (error_strv psloc "unresolved forward function reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1062,7 +1062,7 @@
 	  ))
       ;; previous primitive binding at toplevel
       ( (is_a bind class_primitive_binding)
-	(let ( (pribidat (unsafe_get_field :pbind_primdata bind)) )
+	(let ( (pribidat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null pribidat)
 	      (error_strv psloc "unresolved forward primitive reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1074,7 +1074,7 @@
 	  pribidat))
       ;; previous class binding at toplevel
       ( (is_a bind class_class_binding)
-	(let ( (cldat (unsafe_get_field :cbind_cladata bind)) )
+	(let ( (cldat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null cldat)
 	      (error_strv psloc "unresolved forward class reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1086,7 +1086,7 @@
 	  cldat))
       ;; previous field binding at toplevel
       ( (is_a bind class_field_binding)
-	(let ( (fdat (unsafe_get_field :flbind_fdata bind)) )
+	(let ( (fdat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null fdat)
 	      (error_strv psloc "unresolved forward field reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1098,7 +1098,7 @@
 	  fdat))
       ;; previous selector binding at toplevel
       ( (is_a bind class_selector_binding)
-	(let ( (seldat (unsafe_get_field :sbind_selectordata bind)) )
+	(let ( (seldat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null seldat)
 	      (error_strv psloc "unresolved forward selector reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1110,7 +1110,7 @@
 	  seldat))
       ;; previous instance binding at toplevel
       ( (is_a bind class_instance_binding)
-	(let ( (insdat (unsafe_get_field :ibind_data bind)) )
+	(let ( (insdat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null insdat)
 	      (error_strv psloc "unresolved forward instance reference to"
 			  (unsafe_get_field :named_name recv)
@@ -1123,7 +1123,7 @@
 	)
       ( (is_a bind class_citerator_binding)
 	(debug_msg bind "normexp_symbol citerator_binding")
-	(let ( (iterdat (unsafe_get_field :cbind_citerdata bind)) )
+	(let ( (iterdat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null iterdat)
 	      (error_strv psloc "unresolved forward citerator reference to"
 			  (unsafe_get_field :named_name recv)
@@ -2515,7 +2515,9 @@
 		  )))) )
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
-     (unsafe_put_fields sfubind :fubind_fundata ndataclos)
+     (unsafe_put_fields sfubind 
+			:fixbind_data ndataclos
+			)
      (debug_msg nproc "normexp_defun return nproc")
      (return nproc ())
      )
@@ -3071,7 +3073,9 @@
 		    (normal_predef stype ncx sloc "primitive res type"))
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
-	(unsafe_put_fields sprimbind :pbind_primdata nprimdata))
+	(unsafe_put_fields sprimbind 
+			   :fixbind_data nprimdata 
+			   ))
     (return (the_null))		     ;normalized defprimitive is empty
     ))
 (install_method class_src_defprimitive normal_exp normexp_defprimitive)
@@ -3175,7 +3179,8 @@
       )
     (assert_msg "check citbind" (is_a citbind class_citerator_binding))
     (unsafe_put_fields citbind
-		       :cbind_citerdata insdata)
+		       :fixbind_data insdata 
+		       )
 ;;;;;;;
     ;; return the data
     (debug_msg insdata "normexp_defciterator return insdata")
@@ -3458,7 +3463,9 @@
       (fill_data_slot cladata class_ancestors ancdata)
       (fill_data_slot cladata class_fields flddata)
       (assert_msg "check sclabind" (is_a sclabind class_class_binding))
-      (unsafe_put_fields sclabind :cbind_cladata cladata)
+      (unsafe_put_fields sclabind 
+			 :fixbind_data cladata 
+			 )
       ;; for each field which is not own, make a data to copy it from the superclass
       (setq ix 0)
       (forever loopsuperfield
@@ -3511,7 +3518,9 @@
 		     (fill_data_slot ownfldata fld_ownclass cladata)
 		     (multiple_put_nth fldtup (+i ix nbsupfld) ownfldata)
 		     ;; fill the field binding with its compiled data
-		     (unsafe_put_fields ownfldbind :flbind_fdata ownfldata)
+		     (unsafe_put_fields ownfldbind 
+					:fixbind_data ownfldata 
+					)
 		     )))
 	       (setq ix (+i ix 1))
 	       )
@@ -3599,7 +3608,9 @@
 	  )
       (add_nctx_data ncx insdata)
       (put_env env bindins)
-      (unsafe_put_fields bindins :ibind_data insdata)
+      (unsafe_put_fields bindins 
+			 :fixbind_data insdata
+			 )
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -3693,7 +3704,9 @@
 	  )
       (add_nctx_data ncx insdata)
       (add_nctx_data ncx namstrdata)
-      (unsafe_put_fields bindsel :ibind_data insdata)
+      (unsafe_put_fields bindsel
+			 :fixbind_data insdata
+			 )
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -3723,6 +3736,10 @@
 	    (unsafe_put_fields insdata :ndata_locbind nbindtup))
 	;; force the name of the selectordata
 	(multiple_put_nth slotup (get_int named_name) namstrdata)
+	(if (is_a bindsel class_selector_binding)
+	    (unsafe_put_fields bindsel
+			       :fixbind_data insdata
+			       ))
 	;; return the data
 	(debug_msg insdata "normexp_defselector return insdata")
 	insdata
@@ -3911,7 +3928,7 @@
 			   (unsafe_get_field :named_name xnam))
 	       (return)
 	       ))
-	 (let ( (xdata (unsafe_get_field :cbind_cladata xbind)) 
+	 (let ( (xdata (unsafe_get_field :fixbind_data xbind)) 
 		(xclass (unsafe_get_field :cbind_class xbind))
 		)
 	   (debug_msg xdata "normexp_export_class xdata")
@@ -3945,7 +3962,7 @@
 			       (fldbind (find_env env fldsym))
 			       )
 			  (assert_msg "check fldbind" (is_a fldbind class_field_binding))
-			  (let ( (fldata (unsafe_get_field :flbind_fdata fldbind))
+			  (let ( (fldata (unsafe_get_field :fixbind_data fldbind))
 				 (field (unsafe_get_field :flbind_field fldbind))
 				 (nfld (normal_exported_value fldsym fldata nvaluexporter env ncx sloc bindslist))
 				 )
