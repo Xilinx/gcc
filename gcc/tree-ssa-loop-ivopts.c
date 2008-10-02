@@ -5157,6 +5157,9 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
 
   if (gimple_code (use->stmt) == GIMPLE_PHI)
     {
+      if (TREE_TYPE (op) != TREE_TYPE (tgt))
+	op = fold_convert (TREE_TYPE (tgt), op);
+
       ass = gimple_build_assign (tgt, op);
       gsi_insert_before (&bsi, ass, GSI_SAME_STMT);
       remove_statement (use->stmt, false);
