@@ -129,6 +129,7 @@ lvalue_p_1 (const_tree ref,
       return op1_lvalue_kind;
 
     case STRING_CST:
+    case COMPOUND_LITERAL_EXPR:
       return clk_ordinary;
 
     case CONST_DECL:
@@ -1461,7 +1462,7 @@ array_type_nelts_top (tree type)
 {
   return fold_build2 (PLUS_EXPR, sizetype,
 		      array_type_nelts (type),
-		      integer_one_node);
+		      size_one_node);
 }
 
 /* Return, as an INTEGER_CST node, the number of elements for TYPE

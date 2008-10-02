@@ -1,3 +1,25 @@
+2008-09-22  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (rules): Add new rule for
+	gnu.java.lang.VMCPStringBuilder.toString.
+	(rewrite_rule.new_classname): New field.
+	(maybe_rewrite_invocation): Use new_classname field instead of
+	DECL_CONTEXT (*method_p).
+	Allow rewrite_arglist to be NULL.
+
+2008-09-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* lang.c (LANG_HOOKS_GET_CALLEE_FNDECL): Don't define.
+	(java_get_callee_fndecl): Kill.
+
+2008-09-17  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/18071
+	* class.c (add_method_1): Do not initialize DECL_INLINE.
+	(make_local_function_alias): Likewise.
+	* expr.c (rewrite_arglist_getcaller): Set DECL_UNINLINABLE.
+	* lang.c (java_decl_ok_for_sibcall): Use DECL_UNINLINABLE.
+
 2008-09-09  Richard Guenther  <rguenther@suse.de>
 
 	* decl.c (build_result_decl): Remove no longer applicable

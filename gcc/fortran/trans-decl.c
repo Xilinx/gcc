@@ -1170,7 +1170,8 @@ get_proc_pointer_decl (gfc_symbol *sym)
   decl = build_decl (VAR_DECL, get_identifier (sym->name),
 		     build_pointer_type (gfc_get_function_type (sym)));
 
-  if (sym->ns->proc_name->backend_decl == current_function_decl
+  if ((sym->ns->proc_name
+      && sym->ns->proc_name->backend_decl == current_function_decl)
       || sym->attr.contained)
     gfc_add_decl_to_function (decl);
   else
@@ -2582,7 +2583,7 @@ gfc_trans_dummy_character (gfc_symbol *sym, gfc_charlen *cl, tree fnbody)
   gfc_start_block (&body);
 
   /* Evaluate the string length expression.  */
-  gfc_conv_string_length (cl, &body);
+  gfc_conv_string_length (cl, NULL, &body);
 
   gfc_trans_vla_type_sizes (sym, &body);
 
@@ -2606,7 +2607,7 @@ gfc_trans_auto_character_variable (gfc_symbol * sym, tree fnbody)
   gfc_start_block (&body);
 
   /* Evaluate the string length expression.  */
-  gfc_conv_string_length (sym->ts.cl, &body);
+  gfc_conv_string_length (sym->ts.cl, NULL, &body);
 
   gfc_trans_vla_type_sizes (sym, &body);
 
@@ -3476,11 +3477,6 @@ generate_local_decl (gfc_symbol * sym)
 {
   if (sym->attr.flavor == FL_VARIABLE)
     {
-      /* Check for dependencies in the array specification and string
-	length, adding the necessary declarations to the function.  We
-	mark the symbol now, as well as in traverse_ns, to prevent
-	getting stuck in a circular dependency.  */
-      sym->mark = 1;
       if (!sym->attr.dummy && !sym->ns->proc_name->attr.entry_master)
         generate_dependency_declarations (sym);
 
@@ -3516,6 +3512,12 @@ generate_local_decl (gfc_symbol * sym)
 	  gfc_get_symbol_decl (sym);
 	}
 
+      /* Check for dependencies in the array specification and string
+	length, adding the necessary declarations to the function.  We
+	mark the symbol now, as well as in traverse_ns, to prevent
+	getting stuck in a circular dependency.  */
+      sym->mark = 1;
+
       /* We do not want the middle-end to warn about unused parameters
          as this was already done above.  */
       if (sym->attr.dummy && sym->backend_decl != NULL_TREE)
@@ -3545,7 +3547,7 @@ generate_local_decl (gfc_symbol * sym)
 		        &sym->result->declared_at);
 
 	  /* Prevents "Unused variable" warning for RESULT variables.  */
-	  sym->mark = sym->result->mark = 1;
+	  sym->result->mark = 1;
 	}
     }
 

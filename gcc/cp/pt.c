@@ -8179,6 +8179,7 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	DECL_PENDING_INLINE_INFO (r) = 0;
 	DECL_PENDING_INLINE_P (r) = 0;
 	DECL_SAVED_TREE (r) = NULL_TREE;
+	DECL_STRUCT_FUNCTION (r) = NULL;
 	TREE_USED (r) = 0;
 	if (DECL_CLONED_FUNCTION (r))
 	  {
@@ -9809,7 +9810,7 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	     Replace it with an arbitrary expression with the same type
 	     (*(T*)0).  This should only occur in an unevaluated context
 	     (i.e. decltype).  */
-	  gcc_assert (skip_evaluation && DECL_CONTEXT (t) == NULL_TREE);
+	  gcc_assert (skip_evaluation);
 	  r = non_reference (TREE_TYPE (t));
 	  r = tsubst (r, args, complain, in_decl);
 	  r = build_pointer_type (r);

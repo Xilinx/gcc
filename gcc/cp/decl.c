@@ -1459,7 +1459,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       const char *errmsg = redeclaration_error_message (newdecl, olddecl);
       if (errmsg)
 	{
-	  error (errmsg, newdecl);
+	  error_at (DECL_SOURCE_LOCATION (newdecl), errmsg, newdecl);
 	  if (DECL_NAME (olddecl) != NULL_TREE)
 	    error ((DECL_INITIAL (olddecl) && namespace_bindings_p ())
 			 ? "%q+#D previously defined here"
@@ -6497,7 +6497,8 @@ grokfndecl (tree ctype,
 	    bool funcdef_flag,
 	    int template_count,
 	    tree in_namespace,
-	    tree* attrlist)
+	    tree* attrlist,
+	    location_t location)
 {
   tree decl;
   int staticp = ctype && TREE_CODE (type) == FUNCTION_TYPE;
@@ -6507,6 +6508,12 @@ grokfndecl (tree ctype,
     type = build_exception_variant (type, raises);
 
   decl = build_lang_decl (FUNCTION_DECL, declarator, type);
+
+  /* If we have an explicit location, use it, otherwise use whatever
+     build_lang_decl used (probably input_location).  */
+  if (location != UNKNOWN_LOCATION)
+    DECL_SOURCE_LOCATION (decl) = location;
+
   if (TREE_CODE (type) == METHOD_TYPE)
     {
       tree parm;
@@ -7216,7 +7223,8 @@ compute_array_index_type (tree name, tree size)
 	 cp_build_binary_op will be appropriately folded.  */
       saved_processing_template_decl = processing_template_decl;
       processing_template_decl = 0;
-      itype = cp_build_binary_op (MINUS_EXPR,
+      itype = cp_build_binary_op (input_location,
+				  MINUS_EXPR,
 				  cp_convert (ssizetype, size),
 				  cp_convert (ssizetype, integer_one_node),
 				  tf_warning_or_error);
@@ -8671,8 +8679,10 @@ grokdeclarator (const cp_declarator *declarator,
 	decl = build_lang_decl (TYPE_DECL, unqualified_id, type);
       else
 	decl = build_decl (TYPE_DECL, unqualified_id, type);
-      if (id_declarator && declarator->u.id.qualifying_scope)
+      if (id_declarator && declarator->u.id.qualifying_scope) {
 	error ("%Jtypedef name may not be a nested-name-specifier", decl);
+	TREE_TYPE (decl) = error_mark_node;
+      }
 
       if (decl_context != FIELD)
 	{
@@ -9018,7 +9028,8 @@ grokdeclarator (const cp_declarator *declarator,
 			       virtualp, flags, memfn_quals, raises,
 			       friendp ? -1 : 0, friendp, publicp, inlinep,
 			       sfk,
-			       funcdef_flag, template_count, in_namespace, attrlist);
+			       funcdef_flag, template_count, in_namespace,
+			       attrlist, declarator->id_loc);
 	    if (decl == NULL_TREE)
 	      return error_mark_node;
 #if 0
@@ -9060,7 +9071,8 @@ grokdeclarator (const cp_declarator *declarator,
 			       virtualp, flags, memfn_quals, raises,
 			       friendp ? -1 : 0, friendp, 1, 0, sfk,
 			       funcdef_flag, template_count, in_namespace,
-			       attrlist);
+			       attrlist,
+			       declarator->id_loc);
 	    if (decl == NULL_TREE)
 	      return error_mark_node;
 	  }
@@ -9255,7 +9267,8 @@ grokdeclarator (const cp_declarator *declarator,
 			   virtualp, flags, memfn_quals, raises,
 			   1, friendp,
 			   publicp, inlinep, sfk, funcdef_flag,
-			   template_count, in_namespace, attrlist);
+			   template_count, in_namespace, attrlist,
+			   declarator->id_loc);
 	if (decl == NULL_TREE)
 	  return error_mark_node;
 
@@ -11143,21 +11156,26 @@ build_enumerator (tree name, tree value, tree enumtype)
 	      tree prev_value;
 	      bool overflowed;
 
-	      /* The next value is the previous value plus one.  We can
-		 safely assume that the previous value is an INTEGER_CST.
+	      /* The next value is the previous value plus one.
 		 add_double doesn't know the type of the target expression,
 		 so we must check with int_fits_type_p as well.  */
 	      prev_value = DECL_INITIAL (TREE_VALUE (TYPE_VALUES (enumtype)));
-	      overflowed = add_double (TREE_INT_CST_LOW (prev_value),
-				       TREE_INT_CST_HIGH (prev_value),
-				       1, 0, &lo, &hi);
-	      value = build_int_cst_wide (TREE_TYPE (prev_value), lo, hi);
-	      overflowed |= !int_fits_type_p (value, TREE_TYPE (prev_value));
-
-	      if (overflowed)
+	      if (error_operand_p (prev_value))
+		value = error_mark_node;
+	      else
 		{
-		  error ("overflow in enumeration values at %qD", name);
-		  value = error_mark_node;
+		  overflowed = add_double (TREE_INT_CST_LOW (prev_value),
+					   TREE_INT_CST_HIGH (prev_value),
+					   1, 0, &lo, &hi);
+		  value = build_int_cst_wide (TREE_TYPE (prev_value), lo, hi);
+		  overflowed
+		    |= !int_fits_type_p (value, TREE_TYPE (prev_value));
+
+		  if (overflowed)
+		    {
+		      error ("overflow in enumeration values at %qD", name);
+		      value = error_mark_node;
+		    }
 		}
 	    }
 	  else
@@ -11181,8 +11199,6 @@ build_enumerator (tree name, tree value, tree enumtype)
           /* Silently convert the value so that we can continue.  */
           value = perform_implicit_conversion (ENUM_UNDERLYING_TYPE (enumtype),
                                                value, tf_none);
-          if (value == error_mark_node)
-            value = NULL_TREE;
         }
     }
 
@@ -12319,6 +12335,7 @@ start_method (cp_decl_specifier_seq *declspecs,
   check_template_shadow (fndecl);
 
   DECL_DECLARED_INLINE_P (fndecl) = 1;
+  DECL_NO_INLINE_WARNING_P (fndecl) = 1;
 
   /* We process method specializations in finish_struct_1.  */
   if (processing_template_decl && !DECL_TEMPLATE_SPECIALIZATION (fndecl))

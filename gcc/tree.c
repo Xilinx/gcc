@@ -2492,6 +2492,11 @@ contains_placeholder_p (const_tree exp)
 		  || CONTAINS_PLACEHOLDER_P (TREE_OPERAND (exp, 1))
 		  || CONTAINS_PLACEHOLDER_P (TREE_OPERAND (exp, 2)));
 
+	case SAVE_EXPR:
+	  /* The save_expr function never wraps anything containing
+	     a PLACEHOLDER_EXPR. */
+	  return 0;
+
 	default:
 	  break;
 	}
@@ -3584,7 +3589,7 @@ set_expr_locus (tree node, source_location *loc)
 
 void protected_set_expr_location (tree t, location_t loc)
 {
-  if (t && t != error_mark_node && CAN_HAVE_LOCATION_P (t))
+  if (t && CAN_HAVE_LOCATION_P (t))
     SET_EXPR_LOCATION (t, loc);
 }
 
@@ -6770,9 +6775,8 @@ get_callee_fndecl (const_tree call)
       && TREE_CODE (TREE_OPERAND (addr, 0)) == FUNCTION_DECL)
     return TREE_OPERAND (addr, 0);
 
-  /* We couldn't figure out what was being called.  Maybe the front
-     end has some idea.  */
-  return lang_hooks.lang_get_callee_fndecl (call);
+  /* We couldn't figure out what was being called.  */
+  return NULL_TREE;
 }
 
 /* Print debugging information about tree nodes generated during the compile,

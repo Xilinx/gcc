@@ -281,6 +281,7 @@ enum mips_code_readable_setting {
 #define TUNE_MIPS6000               (mips_tune == PROCESSOR_R6000)
 #define TUNE_MIPS7000               (mips_tune == PROCESSOR_R7000)
 #define TUNE_MIPS9000               (mips_tune == PROCESSOR_R9000)
+#define TUNE_OCTEON		    (mips_tune == PROCESSOR_OCTEON)
 #define TUNE_SB1                    (mips_tune == PROCESSOR_SB1		\
 				     || mips_tune == PROCESSOR_SB1A)
 
@@ -782,7 +783,9 @@ enum mips_code_readable_setting {
 				 && !TARGET_MIPS16)
 
 /* ISA has a three-operand multiplication instruction.  */
-#define ISA_HAS_DMUL3		(TARGET_64BIT && TARGET_OCTEON)
+#define ISA_HAS_DMUL3		(TARGET_64BIT				\
+				 && TARGET_OCTEON			\
+				 && !TARGET_MIPS16)
 
 /* ISA has the floating-point conditional move instructions introduced
    in mips4.  */
@@ -1009,20 +1012,23 @@ enum mips_code_readable_setting {
    ? TARGET_LLSC && !TARGET_MIPS16	\
    : ISA_HAS_LL_SC)
 
+/* ISA includes the baddu instruction.  */
+#define ISA_HAS_BADDU		(TARGET_OCTEON && !TARGET_MIPS16)
+
 /* ISA includes the bbit* instructions.  */
-#define ISA_HAS_BBIT		TARGET_OCTEON
+#define ISA_HAS_BBIT		(TARGET_OCTEON && !TARGET_MIPS16)
 
 /* ISA includes the cins instruction.  */
-#define ISA_HAS_CINS		TARGET_OCTEON
+#define ISA_HAS_CINS		(TARGET_OCTEON && !TARGET_MIPS16)
 
 /* ISA includes the exts instruction.  */
-#define ISA_HAS_EXTS		TARGET_OCTEON
+#define ISA_HAS_EXTS		(TARGET_OCTEON && !TARGET_MIPS16)
 
 /* ISA includes the seq and sne instructions.  */
-#define ISA_HAS_SEQ_SNE		TARGET_OCTEON
+#define ISA_HAS_SEQ_SNE		(TARGET_OCTEON && !TARGET_MIPS16)
 
 /* ISA includes the pop instruction.  */
-#define ISA_HAS_POP		TARGET_OCTEON
+#define ISA_HAS_POP		(TARGET_OCTEON && !TARGET_MIPS16)
 
 /* The CACHE instruction is available in non-MIPS16 code.  */
 #define TARGET_CACHE_BUILTIN (mips_isa >= 3)
@@ -2259,6 +2265,14 @@ typedef struct mips_args {
 {									\
   if (TARGET_MIPS16)							\
     sorry ("mips16 function profiling");				\
+  if (TARGET_LONG_CALLS)						\
+    {									\
+      /*  For TARGET_LONG_CALLS use $3 for the address of _mcount.  */	\
+      if (Pmode == DImode)						\
+	fprintf (FILE, "\tdla\t%s,_mcount\n", reg_names[GP_REG_FIRST + 3]); \
+      else								\
+	fprintf (FILE, "\tla\t%s,_mcount\n", reg_names[GP_REG_FIRST + 3]); \
+    }									\
   fprintf (FILE, "\t.set\tnoat\n");					\
   fprintf (FILE, "\tmove\t%s,%s\t\t# save current return address\n",	\
 	   reg_names[GP_REG_FIRST + 1], reg_names[GP_REG_FIRST + 31]);	\
@@ -2275,7 +2289,10 @@ typedef struct mips_args {
 	       reg_names[STACK_POINTER_REGNUM],				\
 	       Pmode == DImode ? 16 : 8);				\
     }									\
-  fprintf (FILE, "\tjal\t_mcount\n");                                   \
+  if (TARGET_LONG_CALLS)						\
+    fprintf (FILE, "\tjalr\t%s\n", reg_names[GP_REG_FIRST + 3]);	\
+  else									\
+    fprintf (FILE, "\tjal\t_mcount\n");					\
   fprintf (FILE, "\t.set\tat\n");					\
   /* _mcount treats $2 as the static chain register.  */		\
   if (cfun->static_chain_decl != NULL)					\

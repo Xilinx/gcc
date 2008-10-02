@@ -1040,6 +1040,38 @@ resolve_assumed_size_actual (gfc_expr *e)
 }
 
 
+/* Check a generic procedure, passed as an actual argument, to see if
+   there is a matching specific name.  If none, it is an error, and if
+   more than one, the reference is ambiguous.  */
+static int
+count_specific_procs (gfc_expr *e)
+{
+  int n;
+  gfc_interface *p;
+  gfc_symbol *sym;
+	
+  n = 0;
+  sym = e->symtree->n.sym;
+
+  for (p = sym->generic; p; p = p->next)
+    if (strcmp (sym->name, p->sym->name) == 0)
+      {
+	e->symtree = gfc_find_symtree (p->sym->ns->sym_root,
+				       sym->name);
+	n++;
+      }
+
+  if (n > 1)
+    gfc_error ("'%s' at %L is ambiguous", e->symtree->n.sym->name,
+	       &e->where);
+
+  if (n == 0)
+    gfc_error ("GENERIC procedure '%s' is not allowed as an actual "
+	       "argument at %L", sym->name, &e->where);
+
+  return n;
+}
+
 /* Resolve an actual argument list.  Most of the time, this is just
    resolving the expressions in the list.
    The exception is that we sometimes have to decide whether arguments
@@ -1047,13 +1079,14 @@ resolve_assumed_size_actual (gfc_expr *e)
    references.  */
 
 static gfc_try
-resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
+resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
+			bool no_formal_args)
 {
   gfc_symbol *sym;
   gfc_symtree *parent_st;
   gfc_expr *e;
   int save_need_full_assumed_size;
-
+	
   for (; arg; arg = arg->next)
     {
       e = arg->expr;
@@ -1072,12 +1105,11 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 	  continue;
 	}
 
-      if (e->expr_type == EXPR_VARIABLE && e->symtree->ambiguous)
-	{
-	  gfc_error ("'%s' at %L is ambiguous", e->symtree->n.sym->name,
-		     &e->where);
-	  return FAILURE;
-	}
+      if (e->expr_type == FL_VARIABLE
+	    && e->symtree->n.sym->attr.generic
+	    && no_formal_args
+	    && count_specific_procs (e) != 1)
+	return FAILURE;
 
       if (e->ts.type != BT_PROCEDURE)
 	{
@@ -1138,22 +1170,19 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype)
 
 	  /* Check if a generic interface has a specific procedure
 	    with the same name before emitting an error.  */
-	  if (sym->attr.generic)
-	    {
-	      gfc_interface *p;
-	      for (p = sym->generic; p; p = p->next)
-		if (strcmp (sym->name, p->sym->name) == 0)
-		  {
-		    e->symtree = gfc_find_symtree
-					   (p->sym->ns->sym_root, sym->name);
-		    sym = p->sym;
-		    break;
-		  }
+	  if (sym->attr.generic && count_specific_procs (e) != 1)
+	    return FAILURE;
+	  
+	  /* Just in case a specific was found for the expression.  */
+	  sym = e->symtree->n.sym;
 
-	      if (p == NULL || e->symtree == NULL)
-		gfc_error ("GENERIC procedure '%s' is not "
-			   "allowed as an actual argument at %L", sym->name,
-			   &e->where);
+	  if (sym->attr.entry && sym->ns->entries
+		&& sym->ns == gfc_current_ns
+		&& !sym->ns->entries->sym->attr.recursive)
+	    {
+	      gfc_error ("Reference to ENTRY '%s' at %L is recursive, but procedure "
+			 "'%s' is not declared as RECURSIVE",
+			 sym->name, &e->where, sym->ns->entries->sym->name);
 	    }
 
 	  /* If the symbol is the function that names the current (or
@@ -2199,6 +2228,7 @@ resolve_function (gfc_expr *expr)
   gfc_try t;
   int temp;
   procedure_type p = PROC_INTRINSIC;
+  bool no_formal_args;
 
   sym = NULL;
   if (expr->symtree)
@@ -2238,7 +2268,9 @@ resolve_function (gfc_expr *expr)
   if (expr->symtree && expr->symtree->n.sym)
     p = expr->symtree->n.sym->attr.proc;
 
-  if (resolve_actual_arglist (expr->value.function.actual, p) == FAILURE)
+  no_formal_args = sym && is_external_proc (sym) && sym->formal == NULL;
+  if (resolve_actual_arglist (expr->value.function.actual,
+			      p, no_formal_args) == FAILURE)
       return FAILURE;
 
   /* Need to setup the call to the correct c_associated, depending on
@@ -2817,26 +2849,27 @@ resolve_call (gfc_code *c)
 {
   gfc_try t;
   procedure_type ptype = PROC_INTRINSIC;
+  gfc_symbol *csym;
+  bool no_formal_args;
 
-  if (c->symtree && c->symtree->n.sym
-      && c->symtree->n.sym->ts.type != BT_UNKNOWN)
+  csym = c->symtree ? c->symtree->n.sym : NULL;
+
+  if (csym && csym->ts.type != BT_UNKNOWN)
     {
       gfc_error ("'%s' at %L has a type, which is not consistent with "
-		 "the CALL at %L", c->symtree->n.sym->name,
-		 &c->symtree->n.sym->declared_at, &c->loc);
+		 "the CALL at %L", csym->name, &csym->declared_at, &c->loc);
       return FAILURE;
     }
 
   /* If external, check for usage.  */
-  if (c->symtree && is_external_proc (c->symtree->n.sym))
-    resolve_global_procedure (c->symtree->n.sym, &c->loc, 1);
+  if (csym && is_external_proc (csym))
+    resolve_global_procedure (csym, &c->loc, 1);
 
   /* Subroutines without the RECURSIVE attribution are not allowed to
    * call themselves.  */
-  if (c->symtree && c->symtree->n.sym && !c->symtree->n.sym->attr.recursive)
+  if (csym && !csym->attr.recursive)
     {
-      gfc_symbol *csym, *proc;
-      csym = c->symtree->n.sym;
+      gfc_symbol *proc;
       proc = gfc_current_ns->proc_name;
       if (csym == proc)
       {
@@ -2859,10 +2892,12 @@ resolve_call (gfc_code *c)
      of procedure, once the procedure itself is resolved.  */
   need_full_assumed_size++;
 
-  if (c->symtree && c->symtree->n.sym)
-    ptype = c->symtree->n.sym->attr.proc;
+  if (csym)
+    ptype = csym->attr.proc;
 
-  if (resolve_actual_arglist (c->ext.actual, ptype) == FAILURE)
+  no_formal_args = csym && is_external_proc (csym) && csym->formal == NULL;
+  if (resolve_actual_arglist (c->ext.actual, ptype,
+			      no_formal_args) == FAILURE)
     return FAILURE;
 
   /* Resume assumed_size checking.  */
@@ -2870,7 +2905,7 @@ resolve_call (gfc_code *c)
 
   t = SUCCESS;
   if (c->resolved_sym == NULL)
-    switch (procedure_kind (c->symtree->n.sym))
+    switch (procedure_kind (csym))
       {
       case PTYPE_GENERIC:
 	t = resolve_generic_s (c);
@@ -4475,10 +4510,11 @@ resolve_typebound_generic_call (gfc_expr* e)
 
 	      args = update_arglist_pass (args, po, g->specific->pass_arg_num);
 	    }
+	  resolve_actual_arglist (args, target->attr.proc,
+				  is_external_proc (target) && !target->formal);
 
 	  /* Check if this arglist matches the formal.  */
-	  matches = gfc_compare_actual_formal (&args, target->formal, 1,
-					       target->attr.elemental, NULL);
+	  matches = gfc_arglist_matches_symbol (&args, target);
 
 	  /* Clean up and break out of the loop if we've found it.  */
 	  gfc_free_actual_arglist (args);
@@ -4571,6 +4607,7 @@ resolve_compcall (gfc_expr* e)
   e->value.function.isym = NULL;
   e->value.function.esym = NULL;
   e->symtree = target;
+  e->ts = target->n.sym->ts;
   e->expr_type = EXPR_FUNCTION;
 
   return gfc_resolve_expr (e);
@@ -7345,8 +7382,7 @@ resolve_fl_variable_derived (gfc_symbol *sym, int no_init_flag)
     {
       gfc_symbol *s;
       gfc_find_symbol (sym->ts.derived->name, sym->ns, 0, &s);
-      if (s && (s->attr.flavor != FL_DERIVED
-		|| !gfc_compare_derived_types (s, sym->ts.derived)))
+      if (s && s->attr.flavor != FL_DERIVED)
 	{
 	  gfc_error ("The type '%s' cannot be host associated at %L "
 		     "because it is blocked by an incompatible object "

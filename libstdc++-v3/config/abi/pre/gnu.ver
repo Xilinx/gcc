@@ -128,7 +128,11 @@ GLIBCXX_3.4 {
       std::strstream*;
       std::strstreambuf*;
 #     std::t[a-q]*;
-      std::t[a-n]*;
+      std::t[a-g]*;      
+      std::th[a-h]*;
+      std::th[j-q]*;
+      std::th[s-z]*;
+      std::t[i-n]*;
       std::tr1::h[^a]*;
       std::t[s-z]*;
 #     std::[A-Zu-z]*;
@@ -900,6 +904,23 @@ GLIBCXX_3.4.11 {
     _ZNSt22condition_variable_anyD1Ev;
     _ZNSt22condition_variable_anyD2Ev;
 
+    # thread
+    _ZNKSt6thread6get_idEv;
+    _ZNKSt6thread8joinableEv;
+    _ZNSt10shared_ptrISt18__thread_data_baseED1Ev;
+    _ZNSt11this_thread5yieldEv;
+    _ZNSt11this_thread6get_idEv;
+    _ZNSt12bad_weak_ptrD0Ev;
+    _ZNSt12bad_weak_ptrD1Ev;
+    _ZNSt6thread14__start_threadEv;
+    _ZNSt6thread4joinEv;
+    _ZNSt6thread4swapEOS_;
+    _ZNSt6thread6detachEv;
+    _ZNSt6threadC1Ev;
+    _ZNSt6threadC2Ev;
+    _ZNSt6threadD1Ev;
+    _ZNSt6threadD2Ev;
+
     # system_error
     _ZSt18get_posix_categoryv;
     _ZSt19get_system_categoryv;
@@ -931,6 +952,8 @@ GLIBCXX_3.4.11 {
     # chrono
     _ZNSt6chrono12system_clock12is_monotonicE;
     _ZNSt6chrono12system_clock3nowEv;
+    _ZNSt6chrono15monotonic_clock12is_monotonicE;
+    _ZNSt6chrono15monotonic_clock3nowEv;
 
     # string/wstring initializer_list overloads
     _ZNSs6appendESt16initializer_listIcE;
@@ -949,6 +972,10 @@ GLIBCXX_3.4.11 {
     _ZNSbIwSt11char_traitsIwESaIwEEC2ESt16initializer_listIwERKS1_;
     _ZNSbIwSt11char_traitsIwESaIwEEaSESt16initializer_listIwE;
     _ZNSbIwSt11char_traitsIwESaIwEEpLESt16initializer_listIwE;
+
+    # ctype<char>::_M_narrow_init and _M_widen_init
+    _ZNKSt5ctypeIcE14_M_narrow_initEv;
+    _ZNKSt5ctypeIcE13_M_widen_initEv;
 
 } GLIBCXX_3.4.10;
 

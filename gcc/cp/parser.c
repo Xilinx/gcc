@@ -7155,7 +7155,18 @@ cp_parser_selection_statement (cp_parser* parser, bool *if_p)
 	    /* Parse the then-clause.  */
 	    in_statement = parser->in_statement;
 	    parser->in_statement |= IN_IF_STMT;
-	    cp_parser_implicitly_scoped_statement (parser, &nested_if);
+	    if (cp_lexer_next_token_is (parser->lexer, CPP_SEMICOLON))
+	      {
+	        location_t loc = cp_lexer_peek_token (parser->lexer)->location;
+		add_stmt (build_empty_stmt ());
+		cp_lexer_consume_token (parser->lexer);
+	        if (!cp_lexer_next_token_is_keyword (parser->lexer, RID_ELSE))
+		  warning_at (loc, OPT_Wempty_body, "suggest braces around "
+			      "empty body in an %<if%> statement");
+		nested_if = false;
+	      }
+	    else
+	      cp_parser_implicitly_scoped_statement (parser, &nested_if);
 	    parser->in_statement = in_statement;
 
 	    finish_then_clause (statement);
@@ -7168,7 +7179,17 @@ cp_parser_selection_statement (cp_parser* parser, bool *if_p)
 		cp_lexer_consume_token (parser->lexer);
 		begin_else_clause (statement);
 		/* Parse the else-clause.  */
-		cp_parser_implicitly_scoped_statement (parser, NULL);
+	        if (cp_lexer_next_token_is (parser->lexer, CPP_SEMICOLON))
+	          {
+		    warning_at (cp_lexer_peek_token (parser->lexer)->location,
+				OPT_Wempty_body, "suggest braces around "
+			        "empty body in an %<else%> statement");
+		    add_stmt (build_empty_stmt ());
+		    cp_lexer_consume_token (parser->lexer);
+		  }
+		else
+		  cp_parser_implicitly_scoped_statement (parser, NULL);
+
 		finish_else_clause (statement);
 
 		/* If we are currently parsing a then-clause, then
@@ -12563,6 +12584,9 @@ cp_parser_init_declarator (cp_parser* parser,
 	}
       else
 	{
+	  location_t func_brace_location
+	    = cp_lexer_peek_token (parser->lexer)->location;
+
 	  /* Neither attributes nor an asm-specification are allowed
 	     on a function-definition.  */
 	  if (asm_specification)
@@ -12585,6 +12609,13 @@ cp_parser_init_declarator (cp_parser* parser,
 	    decl
 	      = (cp_parser_function_definition_from_specifiers_and_declarator
 		 (parser, decl_specifiers, prefix_attributes, declarator));
+
+	  if (decl != error_mark_node && DECL_STRUCT_FUNCTION (decl))
+	    {
+	      /* This is where the prologue starts...  */
+	      DECL_STRUCT_FUNCTION (decl)->function_start_locus
+		= func_brace_location;
+	    }
 
 	  return decl;
 	}
@@ -15791,6 +15822,8 @@ cp_parser_member_declaration (cp_parser* parser)
 		  return;
 		}
 	      else
+		if (declarator->kind == cdk_function)
+		  declarator->id_loc = token->location;
 		/* Create the declaration.  */
 		decl = grokfield (declarator, &decl_specifiers,
 				  initializer, /*init_const_expr_p=*/true,

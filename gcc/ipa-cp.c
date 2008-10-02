@@ -171,9 +171,8 @@ ipcp_init_cloned_node (struct cgraph_node *orig_node,
 		       struct cgraph_node *new_node)
 {
   ipa_check_create_node_params ();
+  ipa_initialize_node_params (new_node);
   IPA_NODE_REF (new_node)->ipcp_orig_node = orig_node;
-  ipa_count_formal_params (new_node);
-  ipa_create_param_decls_array (new_node);
 }
 
 /* Perform intraprocedrual analysis needed for ipcp.  */
@@ -183,8 +182,7 @@ ipcp_analyze_node (struct cgraph_node *node)
   /* Unreachable nodes should have been eliminated before ipcp.  */
   gcc_assert (node->needed || node->reachable);
 
-  ipa_count_formal_params (node);
-  ipa_create_param_decls_array (node);
+  ipa_initialize_node_params (node);
   ipa_detect_param_modifications (node);
 }
 
@@ -300,9 +298,9 @@ ipa_lattice_meet (struct ipcp_lattice *res, struct ipcp_lattice *lat1,
 /* Return the lattice corresponding to the Ith formal parameter of the function
    described by INFO.  */
 static inline struct ipcp_lattice *
-ipcp_get_ith_lattice (struct ipa_node_params *info, int i)
+ipcp_get_lattice (struct ipa_node_params *info, int i)
 {
-  return &(info->ipcp_lattices[i]);
+  return &(info->params[i].ipcp_lattice);
 }
 
 /* Given the jump function JFUNC, compute the lattice LAT that describes the
@@ -321,7 +319,7 @@ ipcp_lattice_from_jfunc (struct ipa_node_params *info, struct ipcp_lattice *lat,
     {
       struct ipcp_lattice *caller_lat;
 
-      caller_lat = ipcp_get_ith_lattice (info, jfunc->value.formal_id);
+      caller_lat = ipcp_get_lattice (info, jfunc->value.formal_id);
       lat->type = caller_lat->type;
       lat->constant = caller_lat->constant;
     }
@@ -364,7 +362,7 @@ ipcp_print_all_lattices (FILE * f)
       count = ipa_get_param_count (info);
       for (i = 0; i < count; i++)
 	{
-	  struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
+	  struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
 
 	  fprintf (f, "    param [%d]: ", i);
 	  if (lat->type == IPA_CONST_VALUE)
@@ -485,9 +483,6 @@ ipcp_initialize_node_lattices (struct cgraph_node *node)
   struct ipa_node_params *info = IPA_NODE_REF (node);
   enum ipa_lattice_type type;
 
-  info->ipcp_lattices = XCNEWVEC (struct ipcp_lattice,
-				  ipa_get_param_count (info));
-  
   if (ipa_is_called_with_var_arguments (info))
     type = IPA_BOTTOM;
   else if (!node->needed)
@@ -500,7 +495,7 @@ ipcp_initialize_node_lattices (struct cgraph_node *node)
     type = IPA_BOTTOM;
 
   for (i = 0; i < ipa_get_param_count (info) ; i++)
-    ipcp_get_ith_lattice (info, i)->type = type;
+    ipcp_get_lattice (info, i)->type = type;
 }
 
 /* build INTEGER_CST tree with type TREE_TYPE and value according to LAT.
@@ -596,14 +591,14 @@ ipcp_change_tops_to_bottom (void)
       count = ipa_get_param_count (info);
       for (i = 0; i < count; i++)
 	{
-	  struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
+	  struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
 	  if (lat->type == IPA_TOP)
 	    {
 	      prop_again = true;
 	      if (dump_file)
 		{
 		  fprintf (dump_file, "Forcing param ");
-		  print_generic_expr (dump_file, ipa_get_ith_param (info, i), 0);
+		  print_generic_expr (dump_file, ipa_get_param (info, i), 0);
 		  fprintf (dump_file, " of node %s to bottom.\n",
 			   cgraph_node_name (node));
 		}
@@ -651,7 +646,7 @@ ipcp_propagate_stage (void)
 	    {
 	      jump_func = ipa_get_ith_jump_func (args, i);
 	      ipcp_lattice_from_jfunc (info, &inc_lat, jump_func);
-	      dest_lat = ipcp_get_ith_lattice (callee_info, i);
+	      dest_lat = ipcp_get_lattice (callee_info, i);
 	      ipa_lattice_meet (&new_lat, &inc_lat, dest_lat);
 	      if (ipcp_lattice_changed (&new_lat, dest_lat))
 		{
@@ -917,7 +912,7 @@ ipcp_need_redirect_p (struct cgraph_edge *cs)
   count = ipa_get_param_count (orig_callee_info);
   for (i = 0; i < count; i++)
     {
-      struct ipcp_lattice *lat = ipcp_get_ith_lattice (orig_callee_info, i);
+      struct ipcp_lattice *lat = ipcp_get_lattice (orig_callee_info, i);
       if (ipcp_lat_is_const (lat))
 	{
 	  jump_func = ipa_get_ith_jump_func (IPA_EDGE_REF (cs), i);
@@ -946,8 +941,8 @@ ipcp_update_callgraph (void)
 
 	for (i = 0; i < count; i++)
 	  {
-	    struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
-	    tree parm_tree = ipa_get_ith_param (info, i);
+	    struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
+	    tree parm_tree = ipa_get_param (info, i);
 
 	    /* We can proactively remove obviously unused arguments.  */
 	    if (is_gimple_reg (parm_tree)
@@ -972,7 +967,8 @@ ipcp_update_callgraph (void)
 		current_function_decl = cs->caller->decl;
 	        push_cfun (DECL_STRUCT_FUNCTION (cs->caller->decl));
 		
-		new_stmt = giple_copy_call_skip_args (cs->call_stmt, args_to_skip);
+		new_stmt = gimple_call_copy_skip_args (cs->call_stmt,
+						       args_to_skip);
 		gsi = gsi_for_stmt (cs->call_stmt);
 		gsi_replace (&gsi, new_stmt, true);
 		cgraph_set_call_stmt (cs, new_stmt);
@@ -1055,7 +1051,7 @@ ipcp_estimate_growth (struct cgraph_node *node)
   int growth;
 
   for (cs = node->callers; cs != NULL; cs = cs->next_caller)
-    if (!ipcp_need_redirect_p (cs))
+    if (cs->caller == node || !ipcp_need_redirect_p (cs))
       redirectable_node_callers++;
     else
       need_original = true;
@@ -1063,14 +1059,14 @@ ipcp_estimate_growth (struct cgraph_node *node)
   /* If we will be able to fully replace orignal node, we never increase
      program size.  */
   if (!need_original)
-    return false;
+    return 0;
 
   info = IPA_NODE_REF (node);
   count = ipa_get_param_count (info);
   for (i = 0; i < count; i++)
     {
-      struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
-      tree parm_tree = ipa_get_ith_param (info, i);
+      struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
+      tree parm_tree = ipa_get_param (info, i);
 
       /* We can proactively remove obviously unused arguments.  */
       if (is_gimple_reg (parm_tree)
@@ -1142,8 +1138,8 @@ ipcp_const_param_count (struct cgraph_node *node)
 
   for (i = 0; i < count; i++)
     {
-      struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
-      tree parm_tree = ipa_get_ith_param (info, i);
+      struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
+      tree parm_tree = ipa_get_param (info, i);
       if (ipcp_lat_is_insertable (lat)
 	  /* Do not count obviously unused arguments.  */
 	  && (!is_gimple_reg (parm_tree)
@@ -1163,7 +1159,6 @@ ipcp_insert_stage (void)
   int i;
   VEC (cgraph_edge_p, heap) * redirect_callers;
   varray_type replace_trees;
-  struct cgraph_edge *cs;
   int node_callers, count;
   tree parm_tree;
   struct ipa_replace_map *replace_param;
@@ -1213,6 +1208,7 @@ ipcp_insert_stage (void)
       struct ipa_node_params *info;
       int growth = 0;
       bitmap args_to_skip;
+      struct cgraph_edge *cs;
 
       node = (struct cgraph_node *)fibheap_extract_min (heap);
       node->aux = NULL;
@@ -1234,6 +1230,13 @@ ipcp_insert_stage (void)
 
       new_insns += growth;
 
+      /* Look if original function becomes dead after clonning.  */
+      for (cs = node->callers; cs != NULL; cs = cs->next_caller)
+	if (cs->caller == node || ipcp_need_redirect_p (cs))
+	  break;
+      if (!cs && !node->needed)
+	bitmap_set_bit (dead_nodes, node->uid);
+
       info = IPA_NODE_REF (node);
       count = ipa_get_param_count (info);
 
@@ -1242,8 +1245,8 @@ ipcp_insert_stage (void)
       args_to_skip = BITMAP_ALLOC (NULL);
       for (i = 0; i < count; i++)
 	{
-	  struct ipcp_lattice *lat = ipcp_get_ith_lattice (info, i);
-	  parm_tree = ipa_get_ith_param (info, i);
+	  struct ipcp_lattice *lat = ipcp_get_lattice (info, i);
+	  parm_tree = ipa_get_param (info, i);
 
 	  /* We can proactively remove obviously unused arguments.  */
 	  if (is_gimple_reg (parm_tree)

@@ -548,6 +548,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	bool const_flag
 	  = ((kind == E_Constant || kind == E_Variable)
 	     && Is_True_Constant (gnat_entity)
+	     && !Treat_As_Volatile (gnat_entity)
 	     && (((Nkind (Declaration_Node (gnat_entity))
 		   == N_Object_Declaration)
 		  && Present (Expression (Declaration_Node (gnat_entity))))
@@ -733,10 +734,12 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && TREE_CODE (TYPE_SIZE (gnu_type)) == INTEGER_CST)
 	  {
 	    /* No point in jumping through all the hoops needed in order
-	       to support BIGGEST_ALIGNMENT if we don't really have to.  */
+	       to support BIGGEST_ALIGNMENT if we don't really have to.
+	       So we cap to the smallest alignment that corresponds to
+	       a known efficient memory access pattern of the target.  */
 	    unsigned int align_cap = Is_Atomic (gnat_entity)
 				     ? BIGGEST_ALIGNMENT
-				     : get_mode_alignment (word_mode);
+				     : get_mode_alignment (ptr_mode);
 
 	    if (!host_integerp (TYPE_SIZE (gnu_type), 1)
 		|| compare_tree_int (TYPE_SIZE (gnu_type), align_cap) >= 0)
@@ -1939,7 +1942,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			   true, Has_Component_Size_Clause (gnat_entity));
 
 	/* If the component type is a RECORD_TYPE that has a self-referential
-	   size, use the maxium size.  */
+	   size, use the maximum size.  */
 	if (!gnu_comp_size && TREE_CODE (tem) == RECORD_TYPE
 	    && CONTAINS_PLACEHOLDER_P (TYPE_SIZE (tem)))
 	  gnu_comp_size = max_size (TYPE_SIZE (tem), true);
@@ -1955,8 +1958,8 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	       never be declared otherwise.  This is necessary to ensure
 	       that its subtrees are properly marked.  */
 	    if (tem != orig_tem)
-	      create_type_decl (TYPE_NAME (tem), tem, NULL, true, false,
-				gnat_entity);
+	      create_type_decl (TYPE_NAME (tem), tem, NULL, true,
+				debug_info_p, gnat_entity);
 	  }
 
 	if (Has_Volatile_Components (gnat_entity))
@@ -2304,7 +2307,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				 Has_Component_Size_Clause (gnat_entity));
 
 	      /* If the component type is a RECORD_TYPE that has a
-		 self-referential size, use the maxium size.  */
+		 self-referential size, use the maximum size.  */
 	      if (!gnu_comp_size
 		  && TREE_CODE (gnu_type) == RECORD_TYPE
 		  && CONTAINS_PLACEHOLDER_P (TYPE_SIZE (gnu_type)))
@@ -2324,7 +2327,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		     to ensure that its subtrees are properly marked.  */
 		  if (gnu_type != orig_gnu_type)
 		    create_type_decl (TYPE_NAME (gnu_type), gnu_type, NULL,
-				      true, false, gnat_entity);
+				      true, debug_info_p, gnat_entity);
 		}
 
 	      if (Has_Volatile_Components (Base_Type (gnat_entity)))
@@ -5867,8 +5870,8 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 
       if (size && TREE_CODE (size) != INTEGER_CST && definition)
 	create_var_decl (concat_id_with_name (name, "XVZ"), NULL_TREE,
-			 bitsizetype, TYPE_SIZE (record), false, false, false,
-			 false, NULL, gnat_entity);
+			 sizetype, TYPE_SIZE_UNIT (record), false, false,
+			 false, false, NULL, gnat_entity);
     }
 
   rest_of_record_type_compilation (record);

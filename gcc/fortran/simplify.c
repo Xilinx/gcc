@@ -884,7 +884,8 @@ simplify_cmplx (const char *name, gfc_expr *x, gfc_expr *y, int kind)
 	{
 	case BT_INTEGER:
 	  if (!y->is_boz)
-	    mpfr_set_z (result->value.complex.i, y->value.integer, GFC_RND_MODE);
+	    mpfr_set_z (result->value.complex.i, y->value.integer,
+			GFC_RND_MODE);
 	  break;
 
 	case BT_REAL:
@@ -2395,6 +2396,30 @@ gfc_expr *
 gfc_simplify_lbound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 {
   return simplify_bound (array, dim, kind, 0);
+}
+
+
+gfc_expr *
+gfc_simplify_leadz (gfc_expr *e)
+{
+  gfc_expr *result;
+  unsigned long lz, bs;
+  int i;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  i = gfc_validate_kind (e->ts.type, e->ts.kind, false);
+  bs = gfc_integer_kinds[i].bit_size;
+  if (mpz_cmp_si (e->value.integer, 0) == 0)
+    lz = bs;
+  else
+    lz = bs - mpz_sizeinbase (e->value.integer, 2);
+
+  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind, &e->where);
+  mpz_set_ui (result->value.integer, lz);
+
+  return result;
 }
 
 
@@ -4331,6 +4356,27 @@ gfc_simplify_tiny (gfc_expr *e)
 
   result = gfc_constant_result (BT_REAL, e->ts.kind, &e->where);
   mpfr_set (result->value.real, gfc_real_kinds[i].tiny, GFC_RND_MODE);
+
+  return result;
+}
+
+
+gfc_expr *
+gfc_simplify_trailz (gfc_expr *e)
+{
+  gfc_expr *result;
+  unsigned long tz, bs;
+  int i;
+
+  if (e->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  i = gfc_validate_kind (e->ts.type, e->ts.kind, false);
+  bs = gfc_integer_kinds[i].bit_size;
+  tz = mpz_scan1 (e->value.integer, 0);
+
+  result = gfc_constant_result (BT_INTEGER, gfc_default_integer_kind, &e->where);
+  mpz_set_ui (result->value.integer, MIN (tz, bs));
 
   return result;
 }

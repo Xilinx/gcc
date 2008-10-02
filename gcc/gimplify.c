@@ -216,6 +216,7 @@ pop_gimplify_context (gimple body)
 
   gcc_assert (c && (c->bind_expr_stack == NULL
 		    || VEC_empty (gimple, c->bind_expr_stack)));
+  VEC_free (gimple, heap, c->bind_expr_stack);
   gimplify_ctxp = c->prev_context;
 
   for (t = c->temps; t ; t = TREE_CHAIN (t))
@@ -6482,8 +6483,12 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  /* If the target is not LABEL, then it is a computed jump
 	     and the target needs to be gimplified.  */
 	  if (TREE_CODE (GOTO_DESTINATION (*expr_p)) != LABEL_DECL)
-	    ret = gimplify_expr (&GOTO_DESTINATION (*expr_p), pre_p,
-				 NULL, is_gimple_val, fb_rvalue);
+	    {
+	      ret = gimplify_expr (&GOTO_DESTINATION (*expr_p), pre_p,
+				   NULL, is_gimple_val, fb_rvalue);
+	      if (ret == GS_ERROR)
+		break;
+	    }
 	  gimplify_seq_add_stmt (pre_p,
 			  gimple_build_goto (GOTO_DESTINATION (*expr_p)));
 	  break;
@@ -6585,6 +6590,13 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    eval = cleanup = NULL;
 	    gimplify_and_add (TREE_OPERAND (*expr_p, 0), &eval);
 	    gimplify_and_add (TREE_OPERAND (*expr_p, 1), &cleanup);
+	    /* Don't create bogus GIMPLE_TRY with empty cleanup.  */
+	    if (gimple_seq_empty_p (cleanup))
+	      {
+		gimple_seq_add_seq (pre_p, eval);
+		ret = GS_ALL_DONE;
+		break;
+	      }
 	    try_ = gimple_build_try (eval, cleanup,
 				     TREE_CODE (*expr_p) == TRY_FINALLY_EXPR
 				     ? GIMPLE_TRY_FINALLY
@@ -7105,6 +7117,18 @@ gimplify_type_sizes (tree type, gimple_seq *list_p)
       /* These types may not have declarations, so handle them here.  */
       gimplify_type_sizes (TREE_TYPE (type), list_p);
       gimplify_type_sizes (TYPE_DOMAIN (type), list_p);
+      /* When not optimizing, ensure VLA bounds aren't removed.  */
+      if (!optimize
+	  && TYPE_DOMAIN (type)
+	  && INTEGRAL_TYPE_P (TYPE_DOMAIN (type)))
+	{
+	  t = TYPE_MIN_VALUE (TYPE_DOMAIN (type));
+	  if (t && TREE_CODE (t) == VAR_DECL && DECL_ARTIFICIAL (t))
+	    DECL_IGNORED_P (t) = 0;
+	  t = TYPE_MAX_VALUE (TYPE_DOMAIN (type));
+	  if (t && TREE_CODE (t) == VAR_DECL && DECL_ARTIFICIAL (t))
+	    DECL_IGNORED_P (t) = 0;
+	}
       break;
 
     case RECORD_TYPE:
@@ -7212,6 +7236,10 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   struct gimplify_ctx gctx;
 
   timevar_push (TV_TREE_GIMPLIFY);
+
+  /* Initialize for optimize_insn_for_s{ize,peed}_p possibly called during
+     gimplification.  */
+  default_rtl_profile ();
 
   gcc_assert (gimplify_ctxp == NULL);
   push_gimplify_context (&gctx);

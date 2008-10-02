@@ -27,7 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 /* The following definitions and interfaces are used by
    interprocedural analyses.  */
 
-/* A jump function for a callsite represents the values passed as actual 
+/* A jump function for a callsite represents the values passed as actual
    arguments of the callsite. There are three main types of values :
    Formal - the caller's formal parameter is passed as an actual argument.
    Constant - a constant is passed as an actual argument.
@@ -78,8 +78,8 @@ union jump_func_value
   struct ipa_member_ptr_cst member_cst;
 };
 
-/* A jump function for a callsite represents the values passed as actual 
-   arguments of the callsite. See enum jump_func_type for the various 
+/* A jump function for a callsite represents the values passed as actual
+   arguments of the callsite. See enum jump_func_type for the various
    types of jump functions supported.  */
 struct ipa_jump_func
 {
@@ -87,7 +87,7 @@ struct ipa_jump_func
   union jump_func_value value;
 };
 
-/* All formal parameters in the program have a cval computed by 
+/* All formal parameters in the program have a cval computed by
    the interprocedural stage of IPCP. See enum ipa_lattice_type for
    the various types of lattices supported */
 struct ipcp_lattice
@@ -102,22 +102,12 @@ struct ipa_replace_map
 {
   /* The tree that will be replaced.  */
   tree old_tree;
-  /* The new (replacing) tree.  */ 
+  /* The new (replacing) tree.  */
   tree new_tree;
   /* True when a substitution should be done, false otherwise.  */
   bool replace_p;
   /* True when we replace a reference to old_tree.  */
   bool ref_p;
-};
-
-/* ipa_param_flags contains various flags that describe how the associated
-   parameter is treated within a function. */
-struct ipa_param_flags
-{
-  /* Whether the value parameter has been modified within the function.  */
-  unsigned modified : 1;
-  /* Whether the parameter has been used as a call destination. */
-  unsigned called : 1;
 };
 
 /* Each instance of the following  structure describes a statement that calls a
@@ -144,6 +134,19 @@ struct ipa_param_call_note
   bool processed;
 };
 
+/* Structure describing a single formal parameter.  */
+struct ipa_param_descriptor
+{
+  /* IPA-CP lattice.  */
+  struct ipcp_lattice ipcp_lattice;
+  /* PARAM_DECL of this parameter.  */
+  tree decl;
+  /* Whether the value parameter has been modified within the function.  */
+  unsigned modified : 1;
+  /* Whether the parameter has been used as a call destination. */
+  unsigned called : 1;
+};
+
 /* ipa_node_params stores information related to formal parameters of functions
    and some other information for interprocedural passes that operate on
    parameters (such as ipa-cp).  */
@@ -153,20 +156,17 @@ struct ipa_node_params
      this function's parameters would not be analyzed by the different
      stages of IPA CP.  */
   int param_count;
-  /* Array of lattices.  */
-  struct ipcp_lattice *ipcp_lattices;
-  /* Mapping each parameter to its PARM_DECL tree.  */
-  tree *param_decls;
-  /* Various flags describing individual parameters.  */
-  struct ipa_param_flags *param_flags;
+  /* Pointer to an array of structures describing individual formal
+     parameters.  */
+  struct ipa_param_descriptor *params;
   /* List of structures enumerating calls to a formal parameter.  */
   struct ipa_param_call_note *param_calls;
   /* Only for versioned nodes this field would not be NULL,
      it points to the node that IPA cp cloned from.  */
   struct cgraph_node *ipcp_orig_node;
   /* Meaningful only for original functions.  Expresses the
-     ratio between the direct calls and sum of all invocations of 
-     this function (given by profiling info).  It is used to calculate 
+     ratio between the direct calls and sum of all invocations of
+     this function (given by profiling info).  It is used to calculate
      the profiling information of the original function and the versioned
      one.  */
   gcov_type count_scale;
@@ -184,6 +184,7 @@ struct ipa_node_params
    are or will be shared among various passes.  */
 
 /* Set the number of formal parameters. */
+
 static inline void
 ipa_set_param_count (struct ipa_node_params *info, int count)
 {
@@ -191,40 +192,47 @@ ipa_set_param_count (struct ipa_node_params *info, int count)
 }
 
 /* Return the number of formal parameters. */
+
 static inline int
 ipa_get_param_count (struct ipa_node_params *info)
 {
   return info->param_count;
 }
 
-/* Returns the declaration of ith param of the corresponding node.  Note there
-   is no setter function as this array is built just once using
-   ipa_create_param_decls_array. */
+/* Return the declaration of Ith formal parameter of the function corresponding
+   to INFO.  Note there is no setter function as this array is built just once
+   using ipa_initialize_node_params. */
+
 static inline tree
-ipa_get_ith_param (struct ipa_node_params *info, int i)
+ipa_get_param (struct ipa_node_params *info, int i)
 {
-  return info->param_decls[i];
+  return info->params[i].decl;
 }
 
-/* Returns the modification flag corresponding to the ith parameter.  Note
-   there is no setter method as the goal is to set all flags when building the
-   array in ipa_detect_param_modifications.  */
+/* Return the modification flag corresponding to the Ith formal parameter of
+   the function associated with INFO.  Note that there is no setter method as
+   the goal is to set all flags when building the array in
+   ipa_detect_param_modifications.  */
+
 static inline bool
-ipa_is_ith_param_modified (struct ipa_node_params *info, int i)
+ipa_is_param_modified (struct ipa_node_params *info, int i)
 {
-  return info->param_flags[i].modified;
+  return info->params[i].modified;
 }
 
-/* Returns the called flag corresponding o the ith paramterer.  Note there is
-   no setter method as the goal is to set all flags when building the array in
+/* Return the called flag corresponding to the Ith formal parameter of the
+   function associated with INFO.  Note that there is no setter method as the
+   goal is to set all flags when building the array in
    ipa_detect_called_params.  */
+
 static inline bool
-ipa_is_ith_param_called (struct ipa_node_params *info, int i)
+ipa_is_param_called (struct ipa_node_params *info, int i)
 {
-  return info->param_flags[i].called;
+  return info->params[i].called;
 }
 
 /* Flag this node as having callers with variable number of arguments.  */
+
 static inline void
 ipa_set_called_with_variable_arg (struct ipa_node_params *info)
 {
@@ -232,6 +240,7 @@ ipa_set_called_with_variable_arg (struct ipa_node_params *info)
 }
 
 /* Have we detected this node was called with variable number of arguments? */
+
 static inline bool
 ipa_is_called_with_var_arguments (struct ipa_node_params *info)
 {
@@ -257,6 +266,7 @@ struct ipa_edge_args
    are or will be shared among various passes.  */
 
 /* Set the number of actual arguments. */
+
 static inline void
 ipa_set_cs_argument_count (struct ipa_edge_args *args, int count)
 {
@@ -264,6 +274,7 @@ ipa_set_cs_argument_count (struct ipa_edge_args *args, int count)
 }
 
 /* Return the number of actual arguments. */
+
 static inline int
 ipa_get_cs_argument_count (struct ipa_edge_args *args)
 {
@@ -273,6 +284,7 @@ ipa_get_cs_argument_count (struct ipa_edge_args *args)
 /* Returns a pointer to the jump function for the ith argument.  Please note
    there is no setter function as jump functions are all set up in
    ipa_compute_jump_functions. */
+
 static inline struct ipa_jump_func *
 ipa_get_ith_jump_func (struct ipa_edge_args *args, int i)
 {
@@ -283,7 +295,7 @@ ipa_get_ith_jump_func (struct ipa_edge_args *args, int i)
 typedef struct ipa_node_params ipa_node_params_t;
 typedef struct ipa_edge_args ipa_edge_args_t;
 
-/* Types of vectors hodling the infos.  */
+/* Types of vectors holding the infos.  */
 DEF_VEC_O (ipa_node_params_t);
 DEF_VEC_ALLOC_O (ipa_node_params_t, heap);
 DEF_VEC_O (ipa_edge_args_t);
@@ -316,7 +328,8 @@ void free_all_ipa_structures_after_iinln (void);
 void ipa_register_cgraph_hooks (void);
 
 /* This function ensures the array of node param infos is big enough to
-   accomdate a structure for all nodes and realloacates it if not.  */
+   accommodate a structure for all nodes and reallocates it if not.  */
+
 static inline void
 ipa_check_create_node_params (void)
 {
@@ -330,8 +343,9 @@ ipa_check_create_node_params (void)
 			   ipa_node_params_vector, cgraph_max_uid + 1);
 }
 
-/* This function ensures the array of adge arguments infos is big enough to
-   accomdate a structure for all edges and realloacates it if not.  */
+/* This function ensures the array of edge arguments infos is big enough to
+   accommodate a structure for all edges and reallocates it if not.  */
+
 static inline void
 ipa_check_create_edge_args (void)
 {
@@ -345,9 +359,10 @@ ipa_check_create_edge_args (void)
 			   cgraph_edge_max_uid + 1);
 }
 
-/* Returns true if the array of edge infos is large enough to accomodate an
+/* Returns true if the array of edge infos is large enough to accommodate an
    info for EDGE.  The main purpose of this function is that debug dumping
    function can check info availability without causing reallocations.  */
+
 static inline bool
 ipa_edge_args_info_available_for_edge_p (struct cgraph_edge *edge)
 {
@@ -372,13 +387,12 @@ struct cgraph_node *ipa_pop_func_from_list (struct ipa_func_list **);
 void ipa_compute_jump_functions (struct cgraph_edge *);
 void ipa_count_arguments (struct cgraph_edge *);
 
-/* Function parameters related computations.  */
-void ipa_count_formal_params (struct cgraph_node *);
-void ipa_create_param_decls_array (struct cgraph_node *);
+/* Function formal parameters related computations.  */
+void ipa_initialize_node_params (struct cgraph_node *node);
 void ipa_detect_param_modifications (struct cgraph_node *);
 void ipa_analyze_params_uses (struct cgraph_node *);
-void ipa_propagate_indirect_call_infos (struct cgraph_edge *cs,
-					VEC (cgraph_edge_p, heap) *new_edges);
+bool ipa_propagate_indirect_call_infos (struct cgraph_edge *cs,
+					VEC (cgraph_edge_p, heap) **new_edges);
 
 /* Debugging interface.  */
 void ipa_print_node_params (FILE *, struct cgraph_node *node);

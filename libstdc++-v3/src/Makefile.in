@@ -56,9 +56,9 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/enable.m4 \
 	$(top_srcdir)/../config/unwind_ipinfo.m4 \
 	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
 	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
-	$(top_srcdir)/crossconfig.m4 $(top_srcdir)/linkage.m4 \
-	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../config/tls.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/../lt~obsolete.m4 $(top_srcdir)/crossconfig.m4 \
+	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
+	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -86,7 +86,7 @@ am__libstdc___la_SOURCES_DIST = atomic.cc bitmap_allocator.cc \
 	ostream-inst.cc sstream-inst.cc streambuf-inst.cc streambuf.cc \
 	string-inst.cc valarray-inst.cc wlocale-inst.cc \
 	wstring-inst.cc mutex.cc condition_variable.cc chrono.cc \
-	atomicity.cc codecvt_members.cc collate_members.cc \
+	thread.cc atomicity.cc codecvt_members.cc collate_members.cc \
 	ctype_members.cc messages_members.cc monetary_members.cc \
 	numeric_members.cc time_members.cc basic_file.cc c++locale.cc \
 	compatibility-ldbl.cc parallel_list.cc parallel_settings.cc
@@ -111,7 +111,7 @@ am__objects_5 = atomic.lo bitmap_allocator.lo pool_allocator.lo \
 	ostream-inst.lo sstream-inst.lo streambuf-inst.lo streambuf.lo \
 	string-inst.lo valarray-inst.lo wlocale-inst.lo \
 	wstring-inst.lo mutex.lo condition_variable.lo chrono.lo \
-	$(am__objects_1) $(am__objects_4)
+	thread.lo $(am__objects_1) $(am__objects_4)
 am_libstdc___la_OBJECTS = $(am__objects_5)
 libstdc___la_OBJECTS = $(am_libstdc___la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
@@ -166,6 +166,7 @@ CYGPATH_W = @CYGPATH_W@
 C_INCLUDE_DIR = @C_INCLUDE_DIR@
 DEBUG_FLAGS = @DEBUG_FLAGS@
 DEFS = @DEFS@
+DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
@@ -220,6 +221,7 @@ LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
 LIBTOOL = @LIBTOOL@
+LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBICONV = @LTLIBICONV@
 LTLIBOBJS = @LTLIBOBJS@
@@ -228,10 +230,14 @@ MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 NM = @NM@
+NMEDIT = @NMEDIT@
+OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 OPTIMIZE_CXXFLAGS = @OPTIMIZE_CXXFLAGS@
 OPT_LDFLAGS = @OPT_LDFLAGS@
 OS_INC_SRCDIR = @OS_INC_SRCDIR@
+OTOOL = @OTOOL@
+OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -256,7 +262,13 @@ ac_ct_AR = @ac_ct_AR@
 ac_ct_AS = @ac_ct_AS@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
+ac_ct_DSYMUTIL = @ac_ct_DSYMUTIL@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
+ac_ct_LIPO = @ac_ct_LIPO@
+ac_ct_NMEDIT = @ac_ct_NMEDIT@
+ac_ct_OBJDUMP = @ac_ct_OBJDUMP@
+ac_ct_OTOOL = @ac_ct_OTOOL@
+ac_ct_OTOOL64 = @ac_ct_OTOOL64@
 ac_ct_RANLIB = @ac_ct_RANLIB@
 ac_ct_STRIP = @ac_ct_STRIP@
 am__leading_dot = @am__leading_dot@
@@ -425,6 +437,7 @@ sources = \
 	mutex.cc \
 	condition_variable.cc \
 	chrono.cc \
+	thread.cc \
 	${host_sources} \
 	${host_sources_extra} 
 
@@ -887,6 +900,11 @@ wstring-inst.o: wstring-inst.cc
 chrono.lo: chrono.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 chrono.o: chrono.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+thread.lo: thread.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+thread.o: thread.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 # Use special rules for compatibility-ldbl.cc compilation, as we need to

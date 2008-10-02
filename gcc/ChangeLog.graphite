@@ -1,3 +1,7 @@
+2008-10-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (r140164:140838).
+
 2008-09-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
 
 	* graphite-data-ref.c: New.

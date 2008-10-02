@@ -1034,15 +1034,15 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
 	  cons = NULL;
 	  goto depart;
 	}
-        /* Check the bounds.  */
+
+      /* Check the bounds.  */
       if ((ar->as->upper[i]
-	     && ar->as->upper[i]->expr_type == EXPR_CONSTANT
-	     && mpz_cmp (e->value.integer,
-			 ar->as->upper[i]->value.integer) > 0)
-		||
-	  (ar->as->lower[i]->expr_type == EXPR_CONSTANT
-	     && mpz_cmp (e->value.integer,
-			 ar->as->lower[i]->value.integer) < 0))
+	   && ar->as->upper[i]->expr_type == EXPR_CONSTANT
+	   && mpz_cmp (e->value.integer,
+		       ar->as->upper[i]->value.integer) > 0)
+	  || (ar->as->lower[i]->expr_type == EXPR_CONSTANT
+	      && mpz_cmp (e->value.integer,
+			  ar->as->lower[i]->value.integer) < 0))
 	{
 	  gfc_error ("Index in dimension %d is out of bounds "
 		     "at %L", i + 1, &ar->c_where[i]);
@@ -1061,19 +1061,18 @@ find_array_element (gfc_constructor *cons, gfc_array_ref *ar,
       mpz_mul (span, span, tmp);
     }
 
-    for (nelemen = mpz_get_ui (offset); nelemen > 0; nelemen--)
-      {
-        if (cons)
-	  {
-	    if (cons->iterator)
-	      {
-	        cons = NULL;
-	      
-	        goto depart;
-	      }
-	    cons = cons->next;
-	  }
-      }
+  for (nelemen = mpz_get_ui (offset); nelemen > 0; nelemen--)
+    {
+      if (cons)
+	{
+	  if (cons->iterator)
+	    {
+	      cons = NULL;
+	      goto depart;
+	    }
+	  cons = cons->next;
+	}
+    }
 
 depart:
   mpz_clear (delta);
@@ -2956,6 +2955,32 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 
       if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
 	pointer = 1;
+
+      if (ref->type == REF_ARRAY && ref->next == NULL)
+	{
+	  if (ref->u.ar.type == AR_FULL)
+	    break;
+
+	  if (ref->u.ar.type != AR_SECTION)
+	    {
+	      gfc_error ("Expected bounds specification for '%s' at %L",
+			 lvalue->symtree->n.sym->name, &lvalue->where);
+	      return FAILURE;
+	    }
+
+	  if (gfc_notify_std (GFC_STD_F2003,"Fortran 2003: Bounds "
+			      "specification for '%s' in pointer assignment "
+                              "at %L", lvalue->symtree->n.sym->name,
+			      &lvalue->where) == FAILURE)
+            return FAILURE;
+
+	  gfc_error ("Pointer bounds remapping at %L is not yet implemented "
+		     "in gfortran", &lvalue->where);
+	  /* TODO: See PR 29785. Add checks that all lbounds are specified and
+	     either never or always the upper-bound; strides shall not be
+	     present.  */
+	  return FAILURE;
+	}
     }
 
   if (check_intent_in && lvalue->symtree->n.sym->attr.intent == INTENT_IN)
@@ -3051,7 +3076,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       return FAILURE;
     }
 
-  if (attr.is_protected && attr.use_assoc)
+  if (attr.is_protected && attr.use_assoc
+      && !(attr.pointer || attr.proc_pointer))
     {
       gfc_error ("Pointer assignment target has PROTECTED "
 		 "attribute at %L", &rvalue->where);

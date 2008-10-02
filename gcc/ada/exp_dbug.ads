@@ -851,7 +851,7 @@ package Exp_Dbug is
       --  The size of the objects typed as x should be obtained from the
       --  structure of x (and x___XVE, if applicable) as for ordinary types
       --  unless there is a variable named x___XVZ, which, if present, will
-      --  hold the size (in bits) of x.
+      --  hold the size (in bytes) of x.
 
       --  The type x will either be a subtype of y (see also Subtypes of
       --  Variant Records, below) or will contain no fields at all. The layout,
@@ -1490,7 +1490,7 @@ package Exp_Dbug is
    --
    --  These are the external names generated for Case_1.Typ (note that
    --  Pkg1.Typ is associated with the Primary Dispatch Table, because it
-   --  is the the parent of this type, and hence no external name is
+   --  is the parent of this type, and hence no external name is
    --  generated for it).
    --      case_1__typ0P   (associated with Pkg2.Typ)
    --      case_1__typ1P   (associated with Pkg3.Typ)

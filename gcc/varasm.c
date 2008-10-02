@@ -2290,9 +2290,10 @@ process_pending_assemble_externals (void)
    to be emitted.  */
 static GTY(()) tree weak_decls;
 
-/* Output something to declare an external symbol to the assembler.
-   (Most assemblers don't need this, so we normally output nothing.)
-   Do nothing if DECL is not external.  */
+/* Output something to declare an external symbol to the assembler,
+   and qualifiers such as weakness.  (Most assemblers don't need
+   extern declaration, so we normally output nothing.)  Do nothing if
+   DECL is not external.  */
 
 void
 assemble_external (tree decl ATTRIBUTE_UNUSED)
@@ -2303,15 +2304,22 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
      open.  If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
 
-#ifdef ASM_OUTPUT_EXTERNAL
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;
 
-  if (SUPPORTS_WEAK && DECL_WEAK (decl))
+  /* We want to output annotation for weak and external symbols at
+     very last to check if they are references or not.  */
+
+  if (SUPPORTS_WEAK && DECL_WEAK (decl)
+      /* TREE_STATIC is a weird and abused creature which is not
+	 generally the right test for whether an entity has been
+	 locally emitted, inlined or otherwise not-really-extern, but
+	 for declarations that can be weak, it happens to be
+	 match.  */
+      && !TREE_STATIC (decl))
     weak_decls = tree_cons (NULL, decl, weak_decls);
 
-  /* We want to output external symbols at very last to check if they
-     are references or not.  */
+#ifdef ASM_OUTPUT_EXTERNAL
   pending_assemble_externals = tree_cons (0, decl,
 					  pending_assemble_externals);
 #endif
@@ -4064,9 +4072,10 @@ constructor_static_from_elts_p (const_tree ctor)
 }
 
 /* A subroutine of initializer_constant_valid_p.  VALUE is either a
-   MINUS_EXPR or a POINTER_PLUS_EXPR, and ENDTYPE is a narrowing
-   conversion to something smaller than a pointer.  This returns
-   null_pointer_node if the resulting value is an absolute constant
+   MINUS_EXPR or a POINTER_PLUS_EXPR.  This looks for cases of VALUE
+   which are valid when ENDTYPE is an integer of any size; in
+   particular, this does not accept a pointer minus a constant.  This
+   returns null_pointer_node if the VALUE is an absolute constant
    which can be used to initialize a static variable.  Otherwise it
    returns NULL.  */
 
@@ -4074,6 +4083,9 @@ static tree
 narrowing_initializer_constant_valid_p (tree value, tree endtype)
 {
   tree op0, op1;
+
+  if (!INTEGRAL_TYPE_P (endtype))
+    return NULL_TREE;
 
   op0 = TREE_OPERAND (value, 0);
   op1 = TREE_OPERAND (value, 1);
@@ -4205,19 +4217,36 @@ initializer_constant_valid_p (tree value, tree endtype)
 	return op0;
       }
 
-    case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
       return initializer_constant_valid_p (TREE_OPERAND (value, 0), endtype);
 
+    case VIEW_CONVERT_EXPR:
+      {
+	tree src = TREE_OPERAND (value, 0);
+	tree src_type = TREE_TYPE (src);
+	tree dest_type = TREE_TYPE (value);
+
+	/* Allow view-conversions from aggregate to non-aggregate type only
+	   if the bit pattern is fully preserved afterwards; otherwise, the
+	   RTL expander won't be able to apply a subsequent transformation
+	   to the underlying constructor.  */
+	if (AGGREGATE_TYPE_P (src_type) && !AGGREGATE_TYPE_P (dest_type))
+	  {
+	    if (TYPE_MODE (endtype) == TYPE_MODE (dest_type))
+	      return initializer_constant_valid_p (src, endtype);
+	    else
+	      return NULL_TREE;
+	  }
+
+	/* Allow all other kinds of view-conversion.  */
+	return initializer_constant_valid_p (src, endtype);
+      }
+
     CASE_CONVERT:
       {
-	tree src;
-	tree src_type;
-	tree dest_type;
-
-	src = TREE_OPERAND (value, 0);
-	src_type = TREE_TYPE (src);
-	dest_type = TREE_TYPE (value);
+	tree src = TREE_OPERAND (value, 0);
+	tree src_type = TREE_TYPE (src);
+	tree dest_type = TREE_TYPE (value);
 
 	/* Allow conversions between pointer types, floating-point
 	   types, and offset types.  */

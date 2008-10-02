@@ -418,11 +418,6 @@ struct static_var_ann_d GTY(())
 struct function_ann_d GTY(())
 {
   struct tree_ann_common_d common;
-
-  /* Pointer to the structure that contains the sets of global
-     variables modified by function calls.  This field is only used
-     for FUNCTION_DECLs.  */
-  ipa_reference_vars_info_t GTY ((skip)) reference_vars_info;
 };
 
 
@@ -508,7 +503,7 @@ typedef struct immediate_use_iterator_d
        {
          FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
 	   {
-	     SET_USE (use_p) = blah;
+	     SET_USE (use_p, blah);
 	   }
 	 update_stmt (stmt);
        }							 */
@@ -913,7 +908,7 @@ tree fold_const_aggregate_ref (tree);
 
 /* In tree-vrp.c  */
 tree vrp_evaluate_conditional (enum tree_code, tree, tree, gimple);
-void simplify_stmt_using_ranges (gimple);
+bool simplify_stmt_using_ranges (gimple_stmt_iterator *);
 
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);

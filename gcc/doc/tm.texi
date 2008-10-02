@@ -2826,17 +2826,26 @@ as below:
 @end smallexample
 @end defmac
 
-@defmac IRA_COVER_CLASSES
-The macro defines cover classes for the Integrated Register Allocator
+@deftypefn {Target Hook} {const enum reg_class *} TARGET_IRA_COVER_CLASSES ()
+Return an array of cover classes for the Integrated Register Allocator
 (@acronym{IRA}).  Cover classes are a set of non-intersecting register
 classes covering all hard registers used for register allocation
 purposes.  If a move between two registers in the same cover class is
 possible, it should be cheaper than a load or store of the registers.
-The macro value should be the initializer for an array of register
-class values, with @code{LIM_REG_CLASSES} used as the end marker.
+The array is terminated by a @code{LIM_REG_CLASSES} element.
 
-You must define this macro in order to use the integrated register
+This hook is called once at compiler startup, after the command-line
+options have been processed. It is then re-examined by every call to
+@code{target_reinit}.
+
+The default implementation returns @code{IRA_COVER_CLASSES}, if defined,
+otherwise there is no default implementation.  You must define either this
+macro or @code{IRA_COVER_CLASSES} in order to use the integrated register
 allocator for the target.
+@end deftypefn
+
+@defmac IRA_COVER_CLASSES
+See the documentation for @code{TARGET_IRA_COVER_CLASSES}.
 @end defmac
 
 @node Old Constraints
@@ -5344,8 +5353,10 @@ preserve functionality of inline assembly constructs using the
 @end defmac
 
 @defmac FIND_BASE_TERM (@var{x})
-A C expression to determine the base term of address @var{x}.
-This macro is used in only one place: `find_base_term' in alias.c.
+A C expression to determine the base term of address @var{x},
+or to provide a simplified version of @var{x} from which @file{alias.c}
+can easily find the base term.  This macro is used in only two places:
+@code{find_base_value} and @code{find_base_term} in @file{alias.c}.
 
 It is always safe for this macro to not be defined.  It exists so
 that alias analysis can understand machine-dependent addresses.
