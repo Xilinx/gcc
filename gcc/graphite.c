@@ -60,6 +60,14 @@ along with GCC; see the file COPYING3.  If not see
 
 static VEC (scop_p, heap) *current_scops;
 
+/* Converts a GMP constant V to a tree and returns it.  */
+
+static tree
+gmp_cst_to_tree (Value v)
+{
+  return build_int_cst (integer_type_node, value_get_si (v));
+}
+
 /* Debug the list of old induction variables for this SCOP.  */
 
 void
@@ -95,24 +103,60 @@ debug_loop_vec (graphite_bb_p gb)
   fprintf (stderr, "\n");
 }
 
+/* Returns true if stack ENTRY is a constant.  */
+
+static bool
+iv_stack_entry_is_constant (iv_stack_entry *entry)
+{
+  return entry->kind == iv_stack_entry_const;
+}
+
+/* Returns true if stack ENTRY is an induction variable.  */
+
+static bool
+iv_stack_entry_is_iv (iv_stack_entry *entry)
+{
+  return entry->kind == iv_stack_entry_iv;
+}
+
 /* Push (IV, NAME) on STACK.  */
 
 static void 
-loop_iv_stack_push (loop_iv_stack stack, tree iv, const char *name)
+loop_iv_stack_push_iv (loop_iv_stack stack, tree iv, const char *name)
 {
+  iv_stack_entry *entry = XNEW (iv_stack_entry);
   name_tree named_iv = XNEW (struct name_tree);
 
   named_iv->t = iv;
   named_iv->name = name;
-  VEC_safe_push (name_tree, heap, *stack, named_iv);
+
+  entry->kind = iv_stack_entry_iv;
+  entry->data.iv = named_iv;
+
+  VEC_safe_push (iv_stack_entry_p, heap, *stack, entry);
 }
 
-/* Pops an element out of STACK.  */
+/* Inserts a CONSTANT in STACK at INDEX.  */
+
+static void
+loop_iv_stack_insert_constant (loop_iv_stack stack, int index,
+			       tree constant)
+{
+  iv_stack_entry *entry = XNEW (iv_stack_entry);
+  
+  entry->kind = iv_stack_entry_const;
+  entry->data.constant = constant;
+
+  VEC_safe_insert (iv_stack_entry_p, heap, *stack, index, entry);
+}
+
+/* Pops and frees an element out of STACK.  */
 
 static void
 loop_iv_stack_pop (loop_iv_stack stack)
 {
-  VEC_pop (name_tree, *stack);
+  iv_stack_entry_p e = VEC_pop (iv_stack_entry_p, *stack);
+  free (e);
 }
 
 /* Get the IV at INDEX in STACK.  */
@@ -120,7 +164,7 @@ loop_iv_stack_pop (loop_iv_stack stack)
 static tree
 loop_iv_stack_get_iv (loop_iv_stack stack, int index)
 {
-  name_tree named_iv = VEC_index (name_tree, *stack, index);
+  name_tree named_iv = VEC_index (iv_stack_entry_p, *stack, index)->data.iv;
 
   return named_iv->t;
 }
@@ -131,11 +175,14 @@ static tree
 loop_iv_stack_get_iv_from_name (loop_iv_stack stack, const char* name)
 {
   int i;
-  name_tree iv;
+  iv_stack_entry_p entry;
 
-  for (i = 0; VEC_iterate (name_tree, *stack, i, iv); i++)
-    if (!strcmp (name, iv->name))
-      return iv->t;
+  for (i = 0; VEC_iterate (iv_stack_entry_p, *stack, i, entry); i++)
+    {
+      name_tree iv = entry->data.iv;
+      if (!strcmp (name, iv->name))
+	return iv->t;
+    }
 
   return NULL;
 }
@@ -143,25 +190,97 @@ loop_iv_stack_get_iv_from_name (loop_iv_stack stack, const char* name)
 /* Prints on stderr the contents of STACK.  */
 
 void
-loop_iv_stack_debug (loop_iv_stack stack)
+debug_loop_iv_stack (loop_iv_stack stack)
 {
   int i;
-  name_tree iv;
+  iv_stack_entry_p entry;
   bool first = true;
 
   fprintf (stderr, "(");
 
-  for (i = 0; VEC_iterate (name_tree, *stack, i, iv); i++)
+  for (i = 0; VEC_iterate (iv_stack_entry_p, *stack, i, entry); i++)
     {
       if (first) 
 	first = false;
       else
 	fprintf (stderr, " ");
-      fprintf (stderr, "%s:", iv->name);
-      print_generic_expr (stderr, iv->t, 0);
+
+      if (iv_stack_entry_is_iv (entry))
+	{
+	  name_tree iv = entry->data.iv;
+	  fprintf (stderr, "%s:", iv->name);
+	  print_generic_expr (stderr, iv->t, 0);
+	}
+      else 
+	{
+	  tree constant = entry->data.constant;
+	  print_generic_expr (stderr, constant, 0);
+	  fprintf (stderr, ":");
+	  print_generic_expr (stderr, constant, 0);
+	}
     }
 
   fprintf (stderr, ")\n");
+}
+
+/* Frees STACK.  */
+
+static void
+free_loop_iv_stack (loop_iv_stack stack)
+{
+  int i;
+  iv_stack_entry_p entry;
+
+  for (i = 0; VEC_iterate (iv_stack_entry_p, *stack, i, entry); i++)
+    free (entry);
+
+  VEC_free (iv_stack_entry_p, heap, *stack);
+}
+
+/* Inserts constants derived from the USER_STMT argument list into the
+   STACK.  This is needed to map old ivs to constants when loops have
+   been eliminated.  */
+
+static void 
+loop_iv_stack_patch_for_consts (loop_iv_stack stack,
+				struct clast_user_stmt *user_stmt)
+{
+  struct clast_stmt *t;
+  int index = 0;
+  for (t = user_stmt->substitutions; t; t = t->next) 
+    {
+      struct clast_term *term = (struct clast_term*) 
+	((struct clast_assignment *)t)->RHS;
+
+      /* FIXME: What should be done with expr_bin, expr_red?  */
+      if (((struct clast_assignment *)t)->RHS->type == expr_term
+	  && !term->var)
+	{
+	  tree value = gmp_cst_to_tree (term->val);
+	  loop_iv_stack_insert_constant (stack, index, value);
+	}
+      index = index + 1;
+    }
+}
+
+/* Removes all constants in the iv STACK.  */
+
+static void
+loop_iv_stack_remove_constants (loop_iv_stack stack)
+{
+  int i;
+  iv_stack_entry *entry;
+  
+  for (i = 0; VEC_iterate (iv_stack_entry_p, *stack, i, entry);)
+    {
+      if (iv_stack_entry_is_constant (entry))
+	{
+	  free (VEC_index (iv_stack_entry_p, *stack, i));
+	  VEC_ordered_remove (iv_stack_entry_p, *stack, i);
+	}
+      else
+	i++;
+    }
 }
 
 /* In SCOP, get the induction variable from NAME.  OLD is the original
@@ -3013,14 +3132,6 @@ build_scop_data_accesses (scop_p scop)
     }
 }
 
-/* Converts a GMP constant value to a tree and returns it.  */
-
-static tree
-gmp_cst_to_tree (Value v)
-{
-  return build_int_cst (integer_type_node, value_get_si (v));
-}
-
 /* Returns the tree variable from the name NAME that was given in
    Cloog representation.  All the parameters are stored in PARAMS, and
    all the loop induction variables are stored in IVSTACK.
@@ -3275,7 +3386,7 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 				    &iv_before, outer ? outer
 				    : entry_edge->src->loop_father);
 
-  loop_iv_stack_push (ivstack, iv_before, stmt->iterator);
+  loop_iv_stack_push_iv (ivstack, iv_before, stmt->iterator);
 
   return loop;
 }
@@ -3621,8 +3732,11 @@ translate_clast (scop_p scop, struct loop *context_loop,
       mark_virtual_ops_in_bb (bb);
       next_e = make_edge (bb,
 			  context_loop ? context_loop->latch : EXIT_BLOCK_PTR,
-			  EDGE_FALLTHRU);;
+			  EDGE_FALLTHRU);
+      loop_iv_stack_patch_for_consts (ivstack,
+				      (struct clast_user_stmt *) stmt);
       graphite_rename_ivs (gbb, scop, old_loop_father, ivstack);
+      loop_iv_stack_remove_constants (ivstack);
       return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
     }
 
@@ -4159,7 +4273,8 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   basic_block scop_exit = SCOP_EXIT (scop);
   VEC (tree, heap)* phi_args = 
     collect_scop_exit_phi_args (SESE_EXIT (SCOP_REGION (scop)));
-  VEC (name_tree, heap) *ivstack = VEC_alloc (name_tree, heap, 10);
+  VEC (iv_stack_entry_p, heap) *ivstack = 
+    VEC_alloc (iv_stack_entry_p, heap, 10);
   edge construction_edge = SESE_ENTRY (SCOP_REGION (scop));
   basic_block old_scop_exit_idom = get_immediate_dominator (CDI_DOMINATORS,
 							    scop_exit);
@@ -4170,10 +4285,13 @@ gloog (scop_p scop, struct clast_stmt *stmt)
       return;
     }
 
+  redirect_edge_succ_nodup (construction_edge, EXIT_BLOCK_PTR);
   new_scop_exit_edge = translate_clast (scop, 
 					construction_edge->src->loop_father,
 					stmt, construction_edge, &ivstack);
+  free_loop_iv_stack (&ivstack);
   redirect_edge_succ (new_scop_exit_edge, scop_exit);
+
   if (!old_scop_exit_idom
       || !dominated_by_p (CDI_DOMINATORS, SCOP_ENTRY (scop),
 			  old_scop_exit_idom)
