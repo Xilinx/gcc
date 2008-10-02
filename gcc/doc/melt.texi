@@ -1411,6 +1411,21 @@ class named @var{class-name} of super-class named
 field names) and an optional @var{predefined} name (for predefined
 classes [giving a @var{predefined} is for experts]).
 
+@item defcmatcher
+@cindex @code{defcmatcher} MELT syntax.
+The form @code{(defcmatcher @var{cmatcher-name} @var{match&in-formals}
+@var{out-formals} @var{state-sym} @var{test-expansion}
+@var{fill-expansion} @var{oper-expansion})} defined a matching
+construct by its C translation. The @var{match&in-formals} gives the
+matched thing ctype (as the first formal argument, either a boxed
+value or a raw stuff) and input arguments (rest of formals). The
+@var{out-formals} are the signature of the deconstructed things.  The
+@var{test-expansion} expands (as a C boolean-like expression) to the
+test part of the match.  The @var{fill-expansion} expands (as a
+sequence of C instructions) to the deconstructing part. The
+@var{oper-expansion} is used, much like in primitives, when the
+@var{cmatcher-name} appears as an operator in an expression context.
+
 @item definstance
 @cindex @code{definstance} MELT syntax
 The form @code{(definstance @var{instance-name} @var{class-name}

@@ -71,6 +71,13 @@
 	   sciter_body			;tuple for body
 	   ))
 
+;;; source cmatcher expression
+(defclass class_src_cmatchexpr
+  :super class_src
+  :fields (scmatx_cmatcher		;the cmatcher
+	   scmatx_args			;the arguments
+	   ))
+
 ;;; source progn
 (defclass class_src_progn
   :super class_src
@@ -523,7 +530,7 @@
 ;; expand an s-expression known to be a citeration
 (defun expand_citeration (citer sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check citer" (is_a citer class_citerator))
   (debug_msg sexpr "expand_citeration sexpr")
@@ -578,6 +585,31 @@
       )))
 
 
+;; expand a cmatcher expression
+(defun expand_cmatchexpr (cmat sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check cmat" (is_a cmat class_cmatcher))
+  (debug_msg sexpr "expand_cmatchexpr sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (spair (pair_tail (list_first scont)))
+	 (soper (pair_head (list_first scont)))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 )
+    (if (!=i (multiple_length xargtup)
+	     (multiple_length (unsafe_get_field :cmatch_in cmat)))
+	(warning_strv sloc
+		      "bad argument number for cmatcher expression"_
+		      (unsafe_get_field :named_name cmat)))
+    ;; should build a class_src_cmatchexpr
+    (make_instance class_src_cmatchexpr
+		   :src_loc sloc
+		   :scmatx_cmatcher cmat
+		   :scmatx_args xargtup)
+))
+
 ;;; expand a keywordfun s-expression
 ;;; not implemented yet, but might later be useful for stuff like
 ;;;;; (:fieldname obj) to get a field
@@ -627,6 +659,13 @@
 			   (debug_msg resc "macroexpand_1 result for citerator resc")
 			   (return resc)
 			   ))
+		       ( (is_a opbind class_cmatcher_binding)
+			 (let ( (cmatch (unsafe_get_field :cmbind_matcher opbind))
+				(resc (expand_cmatchexpr cmatch sexpr env mexpander))
+			       )
+			   (debug_msg resc "macroexpand_1 result for cmatcher resc")
+			   (return resc)
+			   ))
 		       ( (is_a opbind class_value_binding)
 			(let ( (val (unsafe_get_field :vbind_value opbind))
 			      )
@@ -646,6 +685,10 @@
 			    ( (is_a val class_citerator)
 			      (let ( (resc (expand_citeration val sexpr env mexpander)) )
 				(debug_msg resc "macroexpand_1 result for send resc")
+				(return resc)))
+			    ( (is_a val class_cmatcher)
+			      (let ( (resc (expand_cmatchexpr val sexpr env mexpander)) )
+				(debug_msg resc "macroexpand_1 result for cmatch resc")
 				(return resc)))
 			    (:else
 			     (error_strv sloc "macroexpand_1 bad valued operation symbol"_
@@ -761,6 +804,29 @@
 	     (return pcomp)
 	     )
 	   ))
+       ;; imported values 
+       ( (is_a opbind class_value_binding)
+	 (let ( (opval (unsafe_get_field :vbind_value opbind)) )
+	   (cond 
+	    ( (is_a opval class_cmatcher) 
+	      (let ( (pargs (patternexpand_pairlist_as_tuple (pair_tail curpair) env pctx))
+		     (pcomp (make_instance class_srcpattern_cmatch
+					   :src_loc sloc
+					   :spac_operator opval
+					   :spac_args pargs
+					   ))
+		     )
+		(if (!=i (multiple_length pargs)
+			 (multiple_length (unsafe_get_field :cmatch_out opval)))
+		    (warning_strv sloc "unexpected number of arguments to cmatcher"
+				  (unsafe_get_field :named_name opval)))
+		(debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
+		(return pcomp)
+		)
+	      )
+	    (:else
+	     (error_strv sloc "invalid pattern operator value" opnam)
+	     (return)))))
        (:else
 	(error_strv sloc
 		    "pattern operator badly bound - patternmacro expected"
@@ -3077,6 +3143,7 @@
  class_pattexpcontext
  class_src_apply
  class_src_citeration
+ class_src_cmatchexpr
  class_src_comment
  class_src_compilewarning
  class_src_cppif

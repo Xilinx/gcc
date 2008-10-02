@@ -1,3 +1,8 @@
+2008-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added class_src_cmatchexpr and handle
+	imported cmatcher values.
+	* doc/melt.texi: incomplete documentation of defcmatcher.
+
 2008-10-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_srcpattern_cmatch
 	class_srcpattern_jokervar patternexpand_pairlist_as_tuple and
