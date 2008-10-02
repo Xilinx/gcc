@@ -1,4 +1,20 @@
 2008-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: READ_ERROR macro uses error_at.
+	(readval, readsimplelong, readsexpr, readassoc, readstring)
+	(readhashescape, readval, basilysgc_read_file)
+	(basilysgc_read_from_rawstring, basilysgc_read_from_val):
+	normalized read error messages to start with MELT:
+	* melt/warmelt-first.bysl: added class_any_matcher
+	class_funmatcher class_funmatcher_binding & export them.
+	* melt/warmelt-macro.bysl: adding class_src_defunmatcher
+	... [incomplete]
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2008-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_src_cmatchexpr and handle
 	imported cmatcher values.
 	* doc/melt.texi: incomplete documentation of defcmatcher.

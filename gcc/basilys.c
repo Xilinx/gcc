@@ -5119,10 +5119,11 @@ static struct obstack bstring_obstack;
 #define rdcurc() rd->rcurlin[rd->rcol]
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
 #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
-#define READ_ERROR(Fmt,...)					\
-  fatal_error("%s:%d:%d: read error <%s:%d> - " Fmt,		\
-	      rd->rpath, rd->rlineno,	rd->rcol,		\
-	      basename(__FILE__),__LINE__, ##__VA_ARGS__)
+#define READ_ERROR(Fmt,...)	do {		\
+  error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);	\
+  fatal_error("MELT read failure <%s:%d>",	\
+	      basename(__FILE__), __LINE__);	\
+} while(0)
 /* readval returns the read value and sets *PGOT to true if something
    was read */
 static basilys_ptr_t readval (struct reading_st *rd, bool * pgot);
@@ -5267,7 +5268,7 @@ readsimplelong (struct reading_st *rd)
          them thru strtol */
       r = strtol (&rdcurc (), &endp, 0);
       if (r == 0 && endp <= &rdcurc ())
-	READ_ERROR ("failed to read number %.20s", &rdcurc ());
+	READ_ERROR ("MELT: failed to read number %.20s", &rdcurc ());
       rd->rcol += endp - &rdcurc ();
       return r;
     }
@@ -5283,7 +5284,7 @@ readsimplelong (struct reading_st *rd)
          below simple macro */
       if (!nam)
 	READ_ERROR
-	  ("magic number name expected after +%% or -%% for magic %s", nam);
+	  ("MELT: magic number name expected after +%% or -%% for magic %s", nam);
 #define NUMNAM(N) else if (!strcmp(nam,#N)) r = (N)
       NUMNAM (OBMAG_OBJECT);
       NUMNAM (OBMAG_MULTIPLE);
@@ -5323,12 +5324,12 @@ readsimplelong (struct reading_st *rd)
       /** the fields' ranks of basilys.h have been removed in rev126278 */
 #undef NUMNAM
       if (r < 0)
-	READ_ERROR ("bad magic number name %s", nam);
+	READ_ERROR ("MELT: bad magic number name %s", nam);
       obstack_free (&bname_obstack, nam);
       return neg ? -r : r;
     }
   else
-    READ_ERROR ("invalid number %.20s", &rdcurc ());
+    READ_ERROR ("MELT: invalid number %.20s", &rdcurc ());
   return 0;
 }
 
@@ -5355,7 +5356,7 @@ readagain:
   got = FALSE;
   compv = readval (rd, &got);
   if (!compv && !got)
-    READ_ERROR ("unexpected stuff in seq %.20s ... started line %d",
+    READ_ERROR ("MELT: unexpected stuff in seq %.20s ... started line %d",
 		&rdcurc (), startlin);
   basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) compv);
   nbcomp++;
@@ -5662,7 +5663,7 @@ readsexpr (struct reading_st *rd, int endc)
 #define contv   curfram__.varptr[1]
 #define locmixv curfram__.varptr[2]
   if (!endc || rdeof ())
-    READ_ERROR ("eof in s-expr (lin%d)", lineno);
+    READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
   c = skipspace_getc (rd, COMMENT_SKIP);
   LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
   contv = readseqlist (rd, endc);
@@ -5703,16 +5704,16 @@ readassoc (struct reading_st *rd)
       attrv = readval (rd, &gotat);
       if (!gotat || !attrv
 	  || basilys_magic_discr ((basilys_ptr_t) attrv) != OBMAG_OBJECT)
-	READ_ERROR ("bad attribute in mapoobject line %d", ln);
+	READ_ERROR ("MELT: bad attribute in mapoobject line %d", ln);
       c = skipspace_getc (rd, COMMENT_SKIP);
       if (c != '=')
-	READ_ERROR ("expected equal = after attribute but got %c",
+	READ_ERROR ("MELT: expected equal = after attribute but got %c",
 		    ISPRINT (c) ? c : ' ');
       rdnext ();
       ln = rd->rlineno;
       valv = readval (rd, &gotva);
       if (!valv)
-	READ_ERROR ("null or missing value in mapobject line %d", ln);
+	READ_ERROR ("MELT: null or missing value in mapobject line %d", ln);
       c = skipspace_getc (rd, COMMENT_SKIP);
       if (c == '.')
 	c = skipspace_getc (rd, COMMENT_SKIP);
@@ -5804,7 +5805,7 @@ readstring (struct reading_st *rd)
 	      rdnext ();
 	      c = (char) strtol (&rdcurc (), &endc, 16);
 	      if (c == 0 && endc <= &rdcurc ())
-		READ_ERROR ("illegal hex \\x escape in string %.20s",
+		READ_ERROR ("MELT: illegal hex \\x escape in string %.20s",
 			    &rdcurc ());
 	      if (*endc == ';')
 		endc++;
@@ -5820,7 +5821,7 @@ readstring (struct reading_st *rd)
 		    int cc;
 		    if (rdeof ())
 		      READ_ERROR
-			("reached end of file in braced block string starting line %d",
+			("MELT: reached end of file in braced block string starting line %d",
 			 linbrac);
 		    cc = rdcurc ();
 		    if (cc == '\n')
@@ -5834,7 +5835,7 @@ readstring (struct reading_st *rd)
 	      break;
 	    default:
 	      READ_ERROR
-		("illegal escape sequence %.10s in string -- got \\%c (hex %x)",
+		("MELT: illegal escape sequence %.10s in string -- got \\%c (hex %x)",
 		 &rdcurc () - 1, c, c);
 	    }
 	  obstack_1grow (&bstring_obstack, (char) c);
@@ -5843,7 +5844,7 @@ readstring (struct reading_st *rd)
   if (c == '"')
     rdnext ();
   else
-    READ_ERROR ("unterminated string %.20s", &rdcurc ());
+    READ_ERROR ("MELT: unterminated string %.20s", &rdcurc ());
   c = rdcurc ();
   if (c == '_' && !rdeof()) 
     {
@@ -5875,7 +5876,7 @@ readhashescape (struct reading_st *rd)
   readv = NULL;
   c = rdcurc ();
   if (!c || rdeof ())
-    READ_ERROR ("eof in hashescape %.20s", &rdcurc ());
+    READ_ERROR ("MELT: eof in hashescape %.20s", &rdcurc ());
   if (c == '\\')
     {
       rdnext ();
@@ -5907,7 +5908,7 @@ readhashescape (struct reading_st *rd)
 	  else if (!strcmp (nam, "esc"))
 	    c = 0x1b;
 	  else
-	    READ_ERROR ("invalid char escape %s", nam);
+	    READ_ERROR ("MELT: invalid char escape %s", nam);
 	  obstack_free (&bname_obstack, nam);
 	char_escape:
 	  readv = basilysgc_new_int (BASILYSGOB (DISCR_CHARINTEGER), c);
@@ -5918,7 +5919,7 @@ readhashescape (struct reading_st *rd)
 	  rdnext ();
 	  c = strtol (&rdcurc (), &endc, 16);
 	  if (c == 0 && endc <= &rdcurc ())
-	    READ_ERROR ("illigal hex #\\x escape in char %.20s", &rdcurc ());
+	    READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s", &rdcurc ());
 	  rd->rcol += endc - &rdcurc ();
 	  goto char_escape;
 	}
@@ -5929,7 +5930,7 @@ readhashescape (struct reading_st *rd)
 	  goto char_escape;
 	}
       else
-	READ_ERROR ("unrecognized char escape #\\%s", &rdcurc ());
+	READ_ERROR ("MELT: unrecognized char escape #\\%s", &rdcurc ());
     }
   else if (c == '(')
     {
@@ -5960,7 +5961,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 2);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("bad binary number %s", endc);
+	READ_ERROR ("MELT: bad binary number %s", endc);
       readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
     }
   else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
@@ -5971,7 +5972,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 8);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("bad octal number %s", endc);
+	READ_ERROR ("MELT: bad octal number %s", endc);
       readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
     }
   else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
@@ -5982,7 +5983,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 10);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("bad decimal number %s", endc);
+	READ_ERROR ("MELT: bad decimal number %s", endc);
       readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
     }
   else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
@@ -5993,7 +5994,7 @@ readhashescape (struct reading_st *rd)
       rdnext ();
       n = strtol (&rdcurc (), &endc, 16);
       if (n == 0 && endc <= &rdcurc ())
-	READ_ERROR ("bad octal number %s", endc);
+	READ_ERROR ("MELT: bad octal number %s", endc);
       readv = basilysgc_new_int (BASILYSGOB (DISCR_INTEGER), n);
     }
   else if (c == '+' && ISALPHA (rdfollowc (1)))
@@ -6008,7 +6009,7 @@ readhashescape (struct reading_st *rd)
 	readv = readval (rd, &gotcomp);
     }
   else
-    READ_ERROR ("invalid escape %.20s", &rdcurc ());
+    READ_ERROR ("MELT: invalid escape %.20s", &rdcurc ());
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) readv;
 #undef readv
@@ -6097,7 +6098,7 @@ readval (struct reading_st *rd, bool * pgot)
       rdnext ();
       compv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("expecting value after quote %.20s", &rdcurc ());
+	READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("quote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
@@ -6116,7 +6117,7 @@ readval (struct reading_st *rd, bool * pgot)
       LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
       compv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("expecting value after backquote %.20s", &rdcurc ());
+	READ_ERROR ("MELT: expecting value after backquote %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("backquote", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
@@ -6134,7 +6135,7 @@ readval (struct reading_st *rd, bool * pgot)
       LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
       compv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("expecting value after comma %.20s", &rdcurc ());
+	READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("comma", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
@@ -6152,7 +6153,7 @@ readval (struct reading_st *rd, bool * pgot)
       LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
       compv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("expecting value after question %.20s", &rdcurc ());
+	READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
       seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
       altv = basilysgc_named_symbol ("question", BASILYS_CREATE);
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) altv);
@@ -6166,7 +6167,7 @@ readval (struct reading_st *rd, bool * pgot)
       nam = readsimplename (rd);
       readv = basilysgc_named_keyword (nam, BASILYS_CREATE);
       if (!readv)
-	READ_ERROR ("unknown named keyword %s", nam);
+	READ_ERROR ("MELT: unknown named keyword %s", nam);
       *pgot = TRUE;
       goto end;
     }
@@ -6460,7 +6461,7 @@ basilysgc_read_file (const char *filnam, const char *locnam)
 	break;
       valv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("no value read %.20s", &rdcurc ());
+	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) valv);
     };
   rd = 0;
@@ -6510,7 +6511,7 @@ basilysgc_read_from_rawstring (const char *rawstr, const char *locnam,
 	break;
       valv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("no value read %.20s", &rdcurc ());
+	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) valv);
     };
   rd = 0;
@@ -6580,7 +6581,7 @@ basilysgc_read_from_val (basilys_ptr_t strv_p, basilys_ptr_t locnam_p)
 	break;
       valv = readval (rd, &got);
       if (!got)
-	READ_ERROR ("no value read %.20s", &rdcurc ());
+	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       basilysgc_append_list ((basilys_ptr_t) seqv, (basilys_ptr_t) valv);
     };
   rd = 0;

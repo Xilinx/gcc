@@ -99,12 +99,17 @@
 	   )
   :predef CLASS_CITERATOR)
 
+(defclass class_any_matcher
+  :super class_named
+  :fields (amatch_in		;the formal input arguments
+	   amatch_matchbind		;the matched formal binding
+	   amatch_out			;the formal output arguments
+))
+
 ; class of C matchers (in patterns)
 (defclass class_cmatcher
-  :super class_named
-  :fields (cmatch_in		;the formal input arguments
-	   cmatch_matchbind		;the matched formal binding
-	   cmatch_out			;the formal output arguments
+  :super class_any_matcher
+  :fields (
 	   cmatch_state			;the symbol representing the match state
 	   cmatch_exptest		;expansion for test expr [in patterns]
 	   cmatch_expfill		;expansion for filling instr
@@ -113,6 +118,20 @@
 					;[in expressions]
 	   )
   :predef CLASS_CMATCHER)
+
+; class of function matcher (in patterns)
+(defclass class_funmatcher
+  :super class_any_matcher
+  :fields (
+	   fmatch_matchf		;matching function
+;; first argument to matching function is the funmatcher.
+;; second argument is the stuff to match next arguments are input
+;; primary result is non-nil iff the match succeeded. secondary results
+;; are the deconstructed stuff
+	   fmatch_applyf		;applying function
+;; first argument to applying function is the funmatcher.
+;; next arguments are from the expression
+))
 
 ;; class of located stuff
 (defclass class_located
@@ -258,13 +277,13 @@
   :predef CLASS_FORMAL_BINDING)
 
 
-;;; fixed bindings are defined in a compilation unit and can be implemented as constants in routine
+;;; fixed bindings are defined in a compilation unit and can be
+;;; implemented as constants in routine
 (defclass class_fixed_binding
   :super class_any_binding
-  :fields (fixbind_data
+  :fields (fixbind_data			;the common slot describing data
 	   ))
 
-(compile_warning "should define a class_data_binding superclass" ())
 
 ;; selector binding
 (defclass class_selector_binding
@@ -319,6 +338,13 @@
 (defclass class_cmatcher_binding
   :super class_fixed_binding
   :fields (cmbind_matcher		;the cmatcher
+))
+
+
+;; funmatcher binding
+(defclass class_funmatcher_binding
+  :super class_fixed_binding
+  :fields (fmbind_matchfun		;the funmatcher
 ))
 
 ;; let binding
@@ -3276,6 +3302,7 @@
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
+ class_any_matcher
  class_citerator
  class_citerator_binding
  class_class
@@ -3296,6 +3323,8 @@
  class_fixed_binding
  class_formal_binding
  class_function_binding
+ class_funmatcher
+ class_funmatcher_binding
  class_genercontext
  class_gcc_pass
  class_initgenercontext
