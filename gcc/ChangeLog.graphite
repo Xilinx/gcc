@@ -1,5 +1,10 @@
 2008-10-02  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* cfgloopmanip.c (create_empty_loop_on_edge): Write exit condition
+	with the IV name after increment.
+
+2008-10-02  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Merge from mainline (r140164:140838).
 
 2008-09-10  Konrad Trifunovic  <konrad.trifunovic@inria.fr>
