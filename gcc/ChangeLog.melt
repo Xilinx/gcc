@@ -1,3 +1,7 @@
+2008-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added fmatch_data field.
+	* melt/warmelt-macro.bysl: adding mexpand_defunmatcher & filling
+	class_src_defunmatcher ... [incomplete]
 2008-10-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: READ_ERROR macro uses error_at.
 	(readval, readsimplelong, readsexpr, readassoc, readstring)

@@ -131,6 +131,7 @@
 	   fmatch_applyf		;applying function
 ;; first argument to applying function is the funmatcher.
 ;; next arguments are from the expression
+	   fmatch_data			;client data
 ))
 
 ;; class of located stuff

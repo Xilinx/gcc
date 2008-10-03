@@ -177,9 +177,16 @@
 ;;; define a funmatcher
 (defclass class_src_defunmatcher
   :super class_srcdeformal
-  :fields (
+  :fields (;;src_loc is the location
+	   ;;sdef_name is the new cmatcher name
+	   ;;sformal_args is for matched formal & input arguments
+	   ;;;;the first formal is for the matched stuff. The rest is for input
+	   sfumatdef_ins		;the ins formals (rest of sformal_args)
+	   sfumatdef_outs		;output argument list
+	   sfumatdef_matchf		;the matcher function expr
+	   sfumatdef_applyf		;the applying function expr
+	   sfumatdef_data		;supplementary data expr
 ))
-(compile_warning "class_src_defunmatcher fields to be defined" ())
 
 
 ;; define an object (common to instance, class, selector)
@@ -1282,6 +1289,7 @@
 	 (expfill ())			;fill expansion tuple
 	 (expoper ())			;operand expansion tuple
 	 )
+    ;; check the symb
     (debug_msg symb "mexpand_defcmatcher symb")
     (if (is_not_a symb class_symbol)
 	(progn 
@@ -1385,8 +1393,7 @@
 (install_initial_macro 'defcmatcher mexpand_defcmatcher)
 (export_macro defcmatcher mexpand_defcmatcher)
 
-;;; probably (DEFUNMATCHER <symb> <informals> <outformals> <matchfun> <applyfun>)
-;;; but I am not sure
+;;; probably (DEFUNMATCHER <symb> <informals> <outformals> <matchfun> <applyfun> [<data>])
 (defun mexpand_defunmatcher (sexpr env mexpander)
   (debug_msg sexpr "mexpand_defunmatcher sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -1395,7 +1402,91 @@
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
 	 (symb (pair_head curpair))
+	 ;; the following variables are set later by setq
+	 (sformals ())			;match & input fmals
+	 (matchformal ())		;the match formal binding
+	 (informals ())			;input formals tuple
+	 (outformals ())		;output formals tuple
+	 (matchfunx ())			;the matcher function expr
+	 (applyfunx ())			;the apply function expr
+	 (datax ())			;extra data expr
 	 )
+    ;; check symb
+    (debug_msg symb "mexpand_defunmatcher symb")
+    (if (is_not_a symb class_symbol)
+	(progn 
+	  (error_plain
+	   loc 
+	   "symbol expected for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	  (return)))
+    (setq curpair (pair_tail curpair))
+    ;; parse the match & in formals 
+    (let ( (matinformals (lambda_arg_bindings (pair_head curpair)))
+	   (:long nbmatinformals (multiple_length matinformals)) 
+	   )
+      (if (<i nbmatinformals 1)
+	  (progn 
+	    (error_plain loc "empty ins for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	    (return)))
+      (setq sformals matinformals)
+      (setq matchformal (multiple_nth matinformals 0))
+      (debug_msg matchformal "mexpand_defunmatcher matchformal")
+      (setq informals (make_multiple discr_multiple (-i nbmatinformals 1)))
+      (multiple_every 
+       matinformals
+       (lambda (comp :long ix) (if (>i ix 0) (multiple_put_nth informals (-i ix 1) comp))))
+      (debug_msg informals "mexpand_defunmatcher informals")
+      )
+    ;; parse the out formals
+    (setq curpair (pair_tail curpair))
+    (setq outformals (lambda_arg_bindings (pair_head curpair)))
+    (if (not (is_multiple outformals))
+	(progn
+	  (error_plain loc "bad outs for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_)
+	  (return)))
+    ;; parse & macroexpand the matchfun expr
+    (setq curpair (pair_tail curpair))
+    (let ( (mfa (pair_head curpair)) )
+      (if mfa
+	  (setq matchfunx (macroexpand_1 mfa env mexpander))
+	(error_plain loc "bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
+      )
+    (debug_msg matchfunx "mexpand_defunmatcher matchfunx")
+    ;; parse & macroexpand the applyfun expr
+    (setq curpair (pair_tail curpair))
+    (let ( (afa (pair_head curpair)) )
+      (if afa
+	  (setq applyfunx (macroexpand_1 afa env mexpander))
+	(error_plain loc "bad applyfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
+      )
+    (debug_msg applyfunx "mexpand_defunmatcher applyfunx")
+    ;; parse & macroexpand the data expr
+    (setq curpair (pair_tail curpair))
+    (let ( (dta (pair_head curpair)) )
+      (if dta
+	  (setq datax (macroexpand_1 dta env mexpander))
+	;; data is optional, so no error if missing
+	))
+    (debug_msg datax "mexpand_defunmatcher datax")
+    ;; check for no extra stuff
+    (setq curpair (pair_tail curpair))
+    (if curpair 
+	(error_plain loc "extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
+    (let (
+	  ;; make a class_src_defunmatcher with :src_loc :sdef_name
+	  ;; :sformal_args :sfumatdef_matchf :sfumatdef_applyf
+	  ;; :sfumatdef_data
+	  (sdfum (make_instance class_src_defunmatcher
+				:src_loc loc
+				:sdef_name symb
+				:sformal_args sformals
+				:sfumatdef_ins informals
+				:sfumatdef_outs outformals
+				:sfumatdef_matchf matchfunx
+				:sfumatdef_applyf applyfunx
+				:sfumatdef_data datax))
+	  )
+      )
     (assert_msg "mexpand_defunmatcher not implemented" ())
     (compile_warning "mexpand_defunmatcher to be written" ())
     ))
