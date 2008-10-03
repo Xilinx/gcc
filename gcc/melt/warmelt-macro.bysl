@@ -684,7 +684,7 @@
 			   (return resc)
 			   ))
 		       ( (is_a opbind class_funmatcher_binding)
-			 (let ( (fmatch (unsafe_get_field :fmbind_matchfun opbind)) 
+			 (let ( (fmatch (unsafe_get_field :fmbind_funmatcher opbind)) 
 				)
 			   (compile_warning "should handle funmatch" ())
 			   ))
@@ -1485,10 +1485,28 @@
 				:sfumatdef_matchf matchfunx
 				:sfumatdef_applyf applyfunx
 				:sfumatdef_data datax))
+	  ;; make an (uncompletely filled) funmatcher
+	  (fuma (make_instance class_funmatcher
+			       :named_name (unsafe_get_field :named_name symb)
+			       :amatch_in informals
+			       :amatch_matchbind matchformal
+			       :amatch_out outformals
+			       :fmatch_matchf ()
+			       :fmatch_applyf ()
+			       :fmatch_data ()
+			       ))
+	  ;; make the binding
+	  (fmbind (make_instance class_funmatcher_binding
+				 :binder symb
+				 :fmbind_funmatcher fuma
+				 :fmbind_defunmatcher sdfum
+				 ))
 	  )
+      (put_env env fmbind)
+      (debug_msg fmbind "mexpand_defunmatcher fmbind")
+      (debug_msg sdfum "mexpand_defunmatcher return sdfum")
+      (return sdfum)
       )
-    (assert_msg "mexpand_defunmatcher not implemented" ())
-    (compile_warning "mexpand_defunmatcher to be written" ())
     ))
 (install_initial_macro 'defunmatcher mexpand_defunmatcher)
 (export_macro defunmatcher mexpand_defunmatcher)

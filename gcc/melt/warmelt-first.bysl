@@ -345,7 +345,8 @@
 ;; funmatcher binding
 (defclass class_funmatcher_binding
   :super class_fixed_binding
-  :fields (fmbind_matchfun		;the funmatcher
+  :fields (fmbind_funmatcher		;the funmatcher (of class_funmatcher)
+	   fmbind_defunmatcher		;the source definition
 ))
 
 ;; let binding

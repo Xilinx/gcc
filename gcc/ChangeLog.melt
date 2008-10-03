@@ -1,4 +1,7 @@
 2008-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added fmbind_defunmatcher field.
+	* melt/warmelt-macro.bysl: coded mexpand_defunmatcher.
+2008-10-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added fmatch_data field.
 	* melt/warmelt-macro.bysl: adding mexpand_defunmatcher & filling
 	class_src_defunmatcher ... [incomplete]
