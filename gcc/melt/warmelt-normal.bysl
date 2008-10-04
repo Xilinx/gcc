@@ -4233,6 +4233,18 @@
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an export_patmacro
+(defun normexp_export_patmacro (recv env ncx psloc)
+  (assert_msg "check export_patmacro recv" (is_a recv class_src_export_patmacro))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp export_macro recv")
+  (assert_msg "@@ NOT IMPLEMENTED normexp_export_patmacro" ())
+  (compile_warning "NOT IMPLEMENTED normexp_export_patmacro" ())
+)
+(install_method class_src_export_patmacro normal_exp normexp_export_patmacro)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize current_module_environment_container
 (defun normexp_current_module_environment_container (recv env ncx psloc)
   (assert_msg "check current_module_environment_container recv" (is_a recv class_src_current_module_environment_container))

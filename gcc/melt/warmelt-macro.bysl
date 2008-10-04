@@ -133,6 +133,14 @@
 	   sexpmac_mval
 ))
 
+;; export one pattern - (export_patmacro <macroname> <patexpvalue> <macexpvalue>)
+;; beware that the evaluation of the value is done near end of initial routine!
+(defclass class_src_export_patmacro
+  :super class_src_export_macro
+  :fields (
+	   sexppat_pval			;value of patternexpander
+))
+
 ;;; superclass for all source definitions
 (defclass class_srcdef
   :super class_src
@@ -1061,11 +1069,22 @@
 	 (debug_msg symb "install_initial_macro done symb")
 ))
 
-(debug_msg install_initial_macro "install_initial_macro itself in warmelt-macro after def Install_Initial_Macro")
-(debug_msg (closure_routine install_initial_macro) "install_initial_macro itself in warmelt-macro after def Install_Initial_Macro routgine")
+;;;;;;;;;;;;;;;; install an initial patmacro expanser
+(defun install_initial_patmacro (symb patexpander macexpander)
+  (debug_msg symb "install_initial_patmacro symb")
+  (assert_msg "check symb" (is_a symb class_symbol))
+  (assert_msg "check patexpander" (is_closure patexpander))
+  (assert_msg "check macexpander" (is_closure macexpander))
+;  (debug_msg expander "install_initial_patmacro expander")
+  (let ( (mbind (make_instance class_patmacro_binding 
+			       :binder symb
+			       :mbind_expanser macexpander
+			       :patbind_expanser patexpander
+			       )) )
+	 (put_env initial_environment mbind)
+	 (debug_msg symb "install_initial_patmacro done symb")
+))
 
-(compile_warning "warn_if_redefined should perhaps return true if redefined" ())
-;; basically, we need a mode where any redefinition is ignored
 
 ;; (redefinition_handling ....) NOT YET IMPLEMENTED
 ;; perhaps the argument could be the name of an imported closure, or a keyword
@@ -3128,6 +3147,43 @@
 (export_macro export_macro mexpand_export_macro)
 
 ;;;;
+;;; export_patmacro macro (export_patmacro <symbol> <patexpander> <macexpander>)
+(defun mexpand_export_patmacro (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_export_patmacro sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(symb (macroexpand_1 (pair_head curpair) env mexpander))
+	(patexpv ())		    ;set later to the pattern expander
+	(macexpv ())		    ;set later to the macro expander
+	)
+    (if (is_not_a symb class_symbol)
+	(error_plain loc "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting symbol"_))
+    (setq curpair (pair_tail curpair))
+    (setq patexpv (macroexpand_1 (pair_head curpair) env mexpander))
+    (if (null patexpv)
+	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting patexpander"_))
+    (setq curpair (pair_tail curpair))
+    (setq macexpv (macroexpand_1 (pair_head curpair) env mexpander))
+    (if (null macexpv)
+	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander>) expecting macexpander"_))
+    (let ( (res (make_instance class_src_export_patmacro
+			       :src_loc loc
+			       :sexpmac_mname symb
+			       :sexppat_pval patexpv
+			       :sexpmac_mval macexpv
+			       ))
+	   )
+      (debug_msg res "mexpand_export_patmacro result res")
+      (return res)
+      )))
+(install_initial_macro 'export_patmacro mexpand_export_patmacro)
+(export_macro export_patmacro mexpand_export_patmacro)
+
+;;;;
 ;;; export_class macro (export_class <symbol> ...)
 (defun mexpand_export_class (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -3313,6 +3369,7 @@
  class_src_exit
  class_src_export_class
  class_src_export_macro
+ class_src_export_patmacro
  class_src_export_values
  class_src_exportcommon
  class_src_fetch_predefined

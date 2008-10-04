@@ -821,6 +821,7 @@
 	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
 	)
+    (compile_warning " compile2obj_initproc should handle patmacros" ())
     (append_commentconst oinibody "start of oinibody")
     (debug_msg boxloc "boxloc is")
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
@@ -2403,7 +2404,6 @@
 (install_method class_value_binding compile_obj compilobj_value_binding)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(compile_warning "all the compilobj on fixbind are same" ())
 (defun compilobj_fixed_binding (bind gcx)
   (assert_msg "check bind" (is_a bind class_fixed_binding))
   (assert_msg "check gcx" (is_a gcx class_genercontext))

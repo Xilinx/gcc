@@ -1488,7 +1488,12 @@ current one).
 
 @item export_patmacro
 @cindex @code{export_patmacro} MELT syntax
-[For experts, not implemented] 
+[For experts, not implemented] The form @code{(export_patmacro
+@var{patmacro-symbol} @var{pat-expander} @var{mac-expander})} exports
+a pattern macro binding for the given @var{patmacro-symbol} with the
+@var{pat-expander} as a pattern expanding function (used in patterns)
+and the @var{mac-expander} as a macro expanding function (used in
+expressions).
 
 @item export_values
 @cindex @code{export_values} MELT syntax

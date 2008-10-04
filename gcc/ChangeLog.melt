@@ -1,4 +1,11 @@
 2008-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: documented export_patmacro.
+	* melt/warmelt-macro.bysl: added class_src_export_patmacro
+	export_patmacro mexpand_export_patmacro install_initial_patmacro.
+	* melt/warmelt-normal.bysl: start adding normexp_export_patmacro.
+	* melt/warmelt-genobj.bysl: removed warning about compilobj on
+	fixbind. added warning about patmacros to be implemented.
+2008-10-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added -Wno-shadow wen generating warmelt*.c
 	* melt/warmelt-macro.bysl: warn_if_redefined uses warn_shadow [ie
 	-Wshadow flag]
