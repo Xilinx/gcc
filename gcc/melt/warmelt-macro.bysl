@@ -1082,15 +1082,20 @@
 (install_initial_macro 'redefinition_handling mexpand_redefinition_handling)
 (export_macro redefinition_handling mexpand_redefinition_handling)
 
+
+(defprimitive warn_shadow () :long
+  "warn_shadow")
 ;;;;;;;;;;;;;;;;
 ;;;;;; warn if a symbol redefines something
 (defun warn_if_redefined (symb env loc)
   (assert_msg "check symb" (is_a symb class_symbol))
   (assert_msg "check env" (is_a env class_environment))
-    (if (find_env env symb)
-	(warning_strv loc "symbol redefinition masks previous" 
-		      (unsafe_get_field :named_name symb))
-	))
+    (and 
+     (warn_shadow)
+     (find_env env symb)
+     (warning_strv loc "symbol redefinition masks previous" 
+		   (unsafe_get_field :named_name symb))
+     ))
 
 ;;;;;;;;;;;;;;;;
 ;;;;;; parse a pairlist as a C code expansion, return a tuple

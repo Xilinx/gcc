@@ -2960,36 +2960,45 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utilities for normalization of DEFPRIMITIVE & DEFCITERATOR
+;;;; fill the normal single formal bind
+(defun fill_normal_formalbind (fargb formsymbmap env ncx sloc)
+  (assert_msg "check fargb" (is_a fargb class_formal_binding))
+  (let ( (ftyp (unsafe_get_field :fbind_type fargb)) 
+	 (fsymb (unsafe_get_field :binder fargb))
+	 (fdataslot (create_data_slots class_formal_binding))
+	 (fargdata 
+	  (make_instance 
+	   class_nrep_datainstance
+	   :nrep_loc sloc
+	   :ndata_discrx (normal_predef class_formal_binding ncx sloc "class_formal_binding") 
+	   :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+	   :ninst_slots fdataslot
+	   ))
+	 (fsymbdata (normal_symbol_data fsymb ncx sloc))
+	 (ftypdata (normal_predef ftyp ncx sloc "primitive arg type"))
+	 )
+    (assert_msg "check ftyp" (is_a ftyp class_ctype))
+    (add_nctx_data ncx fargdata)
+    (fill_data_slot fargdata binder fsymbdata)
+    (fill_data_slot fargdata fbind_type ftypdata)
+    (mapobject_put formsymbmap fsymb fargdata)
+    (return fargdata)
+    ))
+
 ;;;; fill the normal formal args
 (defun fill_normal_formals (sargs nargtuple formsymbmap env ncx sloc)
-  (multiple_every
-   sargs
-   (lambda (fargb :long ix)
-     (assert_msg "check fargb" (is_a fargb class_formal_binding))
-     (let ( (ftyp (unsafe_get_field :fbind_type fargb)) 
-	    (fsymb (unsafe_get_field :binder fargb))
-	    (fdataslot (create_data_slots class_formal_binding))
-	    (fargdata 
-	     (make_instance 
-	      class_nrep_datainstance
-	      :nrep_loc sloc
-	      :ndata_discrx (normal_predef class_formal_binding ncx sloc "class_formal_binding") 
-	      :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-	      :ninst_slots fdataslot
-	      :ninst_objnum (make_integerbox discr_integer ix)
-	      ))
-	    (fsymbdata (normal_symbol_data fsymb ncx sloc))
-	    (ftypdata (normal_predef ftyp ncx sloc "primitive arg type"))
-	    )
-       (assert_msg "check ftyp" (is_a ftyp class_ctype))
-       (add_nctx_data ncx fargdata)
-       (fill_data_slot fargdata binder fsymbdata)
-       (fill_data_slot fargdata fbind_type ftypdata)
-       (multiple_put_nth nargtuple ix fargdata)
-       (mapobject_put formsymbmap fsymb fargdata)
-       )))
-  )
+  (foreach_in_multiple
+   (sargs)
+   (fargb :long ix)
+   (let ( (fargdata (fill_normal_formalbind fargb formsymbmap env ncx sloc))
+	  )
+     (assert_msg "check fargdata" (is_a fargdata class_nrep_datainstance))
+     (unsafe_put_fields fargdata
+			:ninst_objnum (make_integerbox discr_integer ix))
+     (multiple_put_nth nargtuple ix fargdata)
+     )))
 
+;;;; fill the normal expansion for primitive etc...
 (defun fill_normal_expansion (sexp nexptuple ncx sloc)
   (multiple_every
    sexp
@@ -3393,6 +3402,140 @@
 
 
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; normalize a DEFCMATCHER
+(defun normexp_defcmatcher (recv env ncx psloc)
+  (assert_msg "check defcmatcher recv" (is_a recv class_src_defcmatcher))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_defcmatcher recv")
+  (let ( (sloc   (unsafe_get_field :src_loc recv))
+	 (sname  (unsafe_get_field :sdef_name recv))
+	 (sformals (unsafe_get_field :sformal_args recv))
+	 (cmatcher (let ( (cm (unsafe_get_field :scmatx_cmatcher recv)) )
+		     (assert_msg "check cmatcher" (is_a cm class_cmatcher))
+		     cm))
+	 (cmbind (let ( (b (find_env env sname)) )
+		   (assert_msg "check cmbind" (is_a b class_cmatcher_binding))
+		   b))
+	 (slotup (make_multiple discr_multiple (object_length cmatcher)))
+	 (inscma (unsafe_get_field :amatch_in cmatcher))
+	 (mbicma (unsafe_get_field :amatch_matchbind cmatcher))
+	 (outscma (unsafe_get_field :amatch_out cmatcher))
+	 (statcma (unsafe_get_field :cmatch_state cmatcher))
+	 (testcma (unsafe_get_field :cmatch_exptest cmatcher))
+	 (fillcma (unsafe_get_field :cmatch_expfill cmatcher))
+	 (opercma (unsafe_get_field :cmatch_expoper cmatcher))
+	 (instup (make_multiple discr_multiple (multiple_length inscma)))
+	 (outstup (make_multiple discr_multiple (multiple_length outscma)))
+	 (testtup (if testcma (make_multiple discr_multiple (multiple_length testcma))))
+	 (filltup (if fillcma (make_multiple discr_multiple (multiple_length fillcma))))
+	 (opertup (if opercma (make_multiple discr_multiple (multiple_length opercma))))
+	 ;; map of formal symbol -> data of formal_binding
+	 (formsymbmap (make_mapobject discr_mapobjects
+				      (+i 5 (*i (+i (multiple_length inscma) (multiple_length outscma)) 2))))
+	 (namstrdata (make_instance class_nrep_datastring
+				    :nrep_loc sloc
+				    :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				    :nstr_string (unsafe_get_field :named_name sname)))
+	 (insdata (make_instance class_nrep_datainstance
+				 :nrep_loc sloc
+				 :ndata_name sname
+				 :ndata_discrx (normal_predef class_cmatcher ncx sloc "class_cmatcher") 
+				 :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+				 :ninst_slots slotup
+				 )) 
+	 )
+    (add_nctx_data ncx insdata)
+    (add_nctx_data ncx namstrdata)
+;;; fill the named_name of insdata
+    (multiple_put_nth slotup (get_int named_name) namstrdata)
+;;; fill the amatch_in of insdata
+    (fill_normal_formals inscma instup formsymbmap env ncx sloc)
+    (let ( (instupdata (make_instance class_nrep_datatuple
+				      :nrep_loc sloc
+				      :ndata_name sname
+				      :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				      :ntup_comp instup))
+	   )
+      (add_nctx_data ncx instupdata)
+      (multiple_put_nth slotup (get_int amatch_in) 
+			instupdata)
+      )
+;;; fill the amatch_matchbind of insdata
+    (let ( (mbdata (fill_normal_formalbind mbicma formsymbmap env ncx sloc)) )
+      (multiple_put_nth slotup (get_int amatch_matchbind)
+			insdata)
+      )
+;;; fill the amatch_out of insdata
+    (fill_normal_formals outscma outstup formsymbmap env ncx sloc)
+    (let ( (outstupdata (make_instance class_nrep_datatuple
+				       :nrep_loc sloc
+				       :ndata_name sname
+				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				       :ntup_comp instup))
+	   )
+      (add_nctx_data ncx outstupdata)
+      (multiple_put_nth slotup (get_int amatch_out) 
+			outstupdata)
+      )
+;;; fill the cmatch_state of insdata
+    (assert_msg "check statcma" (is_a statcma class_symbol))
+    (let ( (nstatcmadata (normal_symbol_data statcma ncx sloc)) )
+      (multiple_put_nth slotup (get_int cmatch_state) 
+			nstatcmadata)
+      )
+;;; fill the cmatch_exptest of insdata
+    (if (is_multiple testcma)
+	(progn
+	  (fill_normal_expansion testcma testtup ncx sloc)
+	  (let ( (ntesttupdata  (make_instance class_nrep_datatuple
+					       :nrep_loc sloc
+					       :ndata_name sname
+					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					       :ntup_comp testtup))
+		 )
+	    (add_nctx_data ncx ntesttupdata)
+	    (multiple_put_nth slotup (get_int cmatch_exptest) ntesttupdata)
+	    )
+	  ))
+;;; fill the cmatch_expfill of insdata
+    (if (is_multiple fillcma)
+	(progn
+	  (fill_normal_expansion fillcma filltup ncx sloc)
+	  (let ( (nfilltupdata  (make_instance class_nrep_datatuple
+					       :nrep_loc sloc
+					       :ndata_name sname
+					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					       :ntup_comp filltup))
+		 )
+	    (add_nctx_data ncx nfilltupdata)
+	    (multiple_put_nth slotup (get_int cmatch_expfill) nfilltupdata)
+	    )
+	  ))
+;;; fill the cmatch_expoper of insdata
+    (if (is_multiple opercma)
+	(progn
+	  (fill_normal_expansion opercma opertup ncx sloc)
+	  (let ( (nopertupdata  (make_instance class_nrep_datatuple
+					       :nrep_loc sloc
+					       :ndata_name sname
+					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					       :ntup_comp opertup))
+		 )
+	    (add_nctx_data ncx nopertupdata)
+	    (multiple_put_nth slotup (get_int cmatch_expoper) nopertupdata)
+	    )
+	  ))
+;;;;;
+    ;; return the data
+    (debug_msg insdata "normexp_defcmatcher return insdata")
+    (return insdata)
+    )
+  )
+(install_method class_src_defcmatcher normal_exp normexp_defcmatcher)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

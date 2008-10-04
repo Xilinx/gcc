@@ -4854,14 +4854,14 @@ melt.encap: run-basilys.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
-MELTBASILYSCCINIT1= time ./cc1$(exeext) -fbasilys=translateinit  \
+MELTBASILYSCCINIT1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translateinit  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCFILE1= time ./cc1$(exeext) -fbasilys=translatefile  \
+MELTBASILYSCCFILE1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translatefile  \
 	      -fbasilys-dynlibdir=. \
 	      -fbasilys-compile-script=built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
