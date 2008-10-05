@@ -772,7 +772,7 @@ declare_vars (tree vars, gimple scope, bool debug_info)
 
       temps = nreverse (last);
 
-      block = gimple_block (scope);
+      block = gimple_bind_block (scope);
       gcc_assert (!block || TREE_CODE (block) == BLOCK);
       if (!block || !debug_info)
 	{
@@ -7366,10 +7366,10 @@ gimplify_function_tree (tree fndecl)
       x = implicit_built_in_decls[BUILT_IN_PROFILE_FUNC_ENTER];
       gimplify_seq_add_stmt (&body, gimple_build_call (x, 0));
       gimplify_seq_add_stmt (&body, tf);
-      new_bind = gimple_build_bind (NULL, body, gimple_block (bind));
+      new_bind = gimple_build_bind (NULL, body, gimple_bind_block (bind));
       /* Clear the block for BIND, since it is no longer directly inside
          the function, but within a try block.  */
-      gimple_set_block (bind, NULL);
+      gimple_bind_set_block (bind, NULL);
 
       /* Replace the current function body with the body
          wrapped in the try/finally TF.  */

@@ -1,3 +1,66 @@
+2008-10-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/gimple.texi: Fix some typos, wrap some long lines,
+	fix some broken wraps with continuations.
+	* tree-ssa-reassoc.c: Fix comment typos.
+
+2000-10-04  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/37603
+	* pa.c (legitimize_pic_address): Force function labels to memory in
+	word mode.
+
+2008-10-04  Anton Blanchard  <anton@samba.org>
+
+	* config/rs6000/rs6000.c (rs6000_emit_sync): Use gen_lwsync().
+	(rs6000_split_atomic_op): Same.
+	(rs6000_split_compare_and_swap): Same.
+	(rs6000_split_compare_and_swapqhi): Same.
+
+2008-10-04  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (vn_reference_op_eq): Use types_compatible_p
+	instead of pointer equality.
+	(vn_nary_op_eq): Likewise.
+
+2008-10-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/rs6000/rs6000.md (fseldfsf4): Add TARGET_SINGLE_FLOAT 
+	condition.
+	(fselsfdf4): Make condition on "TARGET_HARD_FLOAT && TARGET_FPRS &&
+	TARGET_DOUBLE_FLOAT && TARGET_SINGLE_FLOAT".
+
+2008-10-03  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/winnt.c (i386_pe_strip_name_encoding_full):
+	Revert previous change.
+
+2008-10-03  Tom Tromey  <tromey@redhat.com>
+
+	* stringpool.c (ggc_alloc_string): Terminate string.
+
+2008-10-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gimplify.c (gimplify_function_tree): For -finstrument-functions
+	use gimple_bind_{,set_}block instead of gimple_{,set_}block.
+	* gimple.h (gimple_bind_set_block): Allow second argument to be NULL.
+
+	PR debug/37726
+	* gimplify.c (declare_vars): Use gimple_bind_block instead of
+	gimple_block.
+
+2008-10-03  Pascal Obry  <obry@adacore.com>
+
+	* gcov.c (create_file_names): Properly handle UNIX and DOS
+	directory separators.
+	(make_gcov_file_name): Likewise + convert the ':' DOS drive
+	separator to '~' to ensure clean filenames on Windows.
+
+2008-10-02  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/winnt.c (i386_pe_strip_name_encoding_full):
+	Add a null terminator to the stripped name.
+
 2008-10-02  David Edelsohn  <edelsohn@gnu.org>
 
 	* config/rs6000/rs6000.c (USE_FP_FOR_ARG_P): Revert
