@@ -1,4 +1,6 @@
 2008-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: export_patmacro is probably badly handled.
+2008-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added FSYSDAT_PATMACRO_EXPORTER
 	* melt/warmelt-first.bysl: added sysdata_patmacro_exporter & initpatmacro_exporter
 	* melt/warmelt-macro.bysl: make_instance macro can be called as instance.

@@ -4153,8 +4153,40 @@
     (return locsym)
     ))
 
+;;; internal function giving a normalized cloned symbol for the patmacro exporter
+;;; return only one result, and update the bindslist
+(defun normal_patmacro_exporter (env ncx psloc bindslist)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (debug_msg psloc "normal_patmacro_exporter start psloc")
+  (let ( (csymvalexp (clone_symbol '_patmacroxporter_))
+	 (nsysdat (make_instance class_nrep_predef
+				 :nrep_loc psloc
+				 :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (make_instance class_normlet_binding
+			       :letbind_loc psloc
+			       :binder csymvalexp
+			       :letbind_type ctype_value
+			       :letbind_expr (make_instance class_nrep_unsafe_get_field
+							    :nrep_loc psloc
+							    :nuget_obj nsysdat
+							    :nuget_field sysdata_patmacro_exporter)))
+	 (locsym (make_instance class_nrep_locsymocc
+				:nrep_loc psloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csymvalexp
+				:nocc_bind cbind))
+	 )
+    (list_append bindslist cbind)
+    (debug_msg locsym "normal_patmacro_exporter return locsym")
+    (return locsym)
+    ))
+
 ;;;;;;;;;;;;;;;;
 
+
+;; return the normalized application to do the macro expport
 (defun normal_exported_macro (sym nexp nmacroxp env ncx psloc bindslist)
   (debug_msg sym "normal_exported_macro start sym")
   (debug_msg nexp "normal_exported_macro start nexp")
@@ -4235,23 +4267,91 @@
 (install_method class_src_export_macro normal_exp normexp_export_macro)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;; return the normalized application to do the patmacro expport
+(compile_warning "normal_exported_patmacro has to be rethought" ())
+;; I am not sure to understgand when the generated application is called...
+(defun normal_exported_patmacro (sym nexp nmacroxp npattxp env ncx psloc bindslist)
+  (debug_msg sym "normal_exported_patmacro start sym")
+  (debug_msg nexp "normal_exported_patmacro start nexp")
+  (debug_msg nmacroxp "normal_exported_patmacro start nmacroxp")
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (assert_msg "check nexp" (is_a nexp class_nrep))
+  (assert_msg "check nmacroxp" (is_a nmacroxp class_nrep))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check ncx" (is_a ncx class_normcontext))
+  (assert_msg "check bindslist" (is_list bindslist))
+  (let ( (csymexpo (clone_symbol '_exportedpat_))
+	 (symdata (normal_symbol_data sym ncx psloc))
+	 (csbuf (let ( (sb (make_strbuf discr_strbuf)) )
+		  (add2sbuf_strconst sb "norm.exp.pat : ")
+		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
+		  sb))
+	 (scurenvbox (make_instance class_src_current_module_environment_container
+				  :src_loc psloc
+				  :cmec_comment (strbuf2string discr_string csbuf)))
+	 )
+    (debug_msg scurenvbox "normal_exported_patmacro sgetcurenvbox")
+    (multicall 
+     (ncurenvbox curenvbinds)
+     (normal_exp scurenvbox env ncx psloc)
+     (debug_msg ncurenvbox "normal_exported_patmacro ncurenvbox")
+     (debug_msg curenvbinds "normal_exported_patmacro curenvbinds")
+     (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
+     (let (
+	   (cbind (make_instance class_normlet_binding
+				 :letbind_loc psloc
+				 :binder csymexpo
+				 :letbind_type ctype_void
+				 :letbind_expr (make_instance class_nrep_apply
+							      :nrep_loc psloc
+							      :napp_fun nmacroxp
+							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+	   (syocc (make_instance class_nrep_locsymocc
+				 :nrep_loc psloc
+				 :nocc_ctyp ctype_void 
+				 :nocc_symb csymexpo
+				 :nocc_bind cbind) )
+	   )
+       (debug_msg cbind "normal_exported_patmacro cbind")
+       (debug_msg syocc "normal_exported_patmacro return syocc")
+       (list_append bindslist cbind)
+       syocc
+       ;;
+       ))))
+;;;;;;;;;;;;;;;;
 ;;;; normalize an export_patmacro
 (defun normexp_export_patmacro (recv env ncx psloc)
   (assert_msg "check export_patmacro recv" (is_a recv class_src_export_patmacro))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp export_patmacro recv")
-   (let (
-       (sloc (unsafe_get_field :src_loc recv))
-       (mname (unsafe_get_field :sexpmac_mname recv))
-       (mvalexp (unsafe_get_field :sexpmac_mval recv))
-       (mpatexp (unsafe_get_field :sexppat_pval recv))
-       (bindslist (make_list discr_list))
-       )
+  (let (
+	(sloc (unsafe_get_field :src_loc recv))
+	(mname (unsafe_get_field :sexpmac_mname recv))
+	(mvalexp (unsafe_get_field :sexpmac_mval recv))
+	(mpatexp (unsafe_get_field :sexppat_pval recv))
+	(bindslist (make_list discr_list))
+	(npmaexp (normal_patmacro_exporter env ncx sloc bindslist))
+	(nrepnil (make_instance class_nrep_nil :nrep_loc sloc))
+	)
+    (assert_msg "check mname" (is_a mname class_symbol))
+    (multicall 
+     (nexpmac nbindms)
+     (normal_exp mvalexp env ncx sloc)
+     (list_append2list bindslist nbindms)
+     (debug_msg nexpmac "normexp_export_patmacro nexpmac")
+     (multicall 
+      (nexppat nbindps)
+      (normal_exp mpatexp env ncx sloc)
+      (list_append2list bindslist nbindps)
+      (debug_msg nexpmac "normexp_export_patmacro nexppat")
+      )
      )
-  (assert_msg "@@ NOT IMPLEMENTED normexp_export_patmacro" ())
-  (compile_warning "NOT IMPLEMENTED normexp_export_patmacro" ())
-)
+    (assert_msg "@@ NOT IMPLEMENTED normexp_export_patmacro" ())
+    (compile_warning "NOT IMPLEMENTED normexp_export_patmacro" ())
+    ))
 (install_method class_src_export_patmacro normal_exp normexp_export_patmacro)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
