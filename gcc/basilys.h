@@ -2548,7 +2548,7 @@ enum
 {
   FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */
   FSYSDAT_BOX_FRESH_ENV,			/* closure to make a fresh environment box */
-  FSYSDAT_VALUE_EXPORTER,	       /* ;closure to export a value */
+  FSYSDAT_VALUE_EXPORTER,	       /* closure to export a value */
   FSYSDAT_MACRO_EXPORTER,	       /* closure to export a macro */
   FSYSDAT_SYMBOLDICT, 	       /* stringmap for symbols */
   FSYSDAT_KEYWDICT, 		       /* stringmap for keywords */
@@ -2560,6 +2560,7 @@ enum
   FSYSDAT_PASS_DICT,		/* dictionnary of passes */
   FSYSDAT_EXIT_FINALIZER,	/* closure to call at exit */
   FSYSDAT_MELTATTR_DEFINER,	/* closure for melt attributes */
+  FSYSDAT_PATMACRO_EXPORTER,    /* closure to export patmacro */
   FSYSDAT__LAST
 };
 

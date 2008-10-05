@@ -208,6 +208,7 @@
 	   sysdata_pass_dict		;stringmap for passes
 	   sysdata_exit_finalizer       ;;closure to be called after the passes, at finalization
 	   sysdata_meltattr_definer	;;closure to be called for melt attributes
+	   sysdata_patmacro_exporter	;closure to export a patmacro
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -1663,32 +1664,25 @@
 
 ;; initial value importer
 (defun initvalue_importer (sym parenv)
-  ;(debug_msg sym "initvalue_importer sym")
+  (if (is_not_a sym class_symbol)
+      (progn
+	(debug_msg sym "initvalue_importer bad symb")))
   (assert_msg "check sym" (is_a sym class_symbol))
-  ;(if (need_dbg 0) (shortbacktrace_dbg "initvalue_importer" 15))
-  ;(outcstring_err "importing value ")
-  ;(outstr_err (unsafe_get_field :named_name sym))
-  ;(outnewline_err)
-  ;(outnewline_err)
-  ;(debug_msg parenv "initvalue_importer parenv")
   (assert_msg "check parenv" (is_a parenv class_environment))
   (let ( (valbind (find_env parenv sym))
 	 )
-    ;(debug_msg valbind "initvalue_importer found valbind")
     (assert_msg "check valbind" (is_a valbind class_value_binding))
     (return (unsafe_get_field :vbind_value valbind))
 ))
 
 ;; initial macro exporter
 (defun initmacro_exporter (sym val contenv)
- ; (debug_msg sym "initmacro_exporter sym")
- ; (debug_msg val "initmacro_exporter val")
-  ;;(debug_msg contenv "initmacro_exporter contenv")
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
       (progn
 	(if (parent_module_environment)
-	    (warningmsg_strv "exporting macro too early with null environment container"  (unsafe_get_field :named_name sym)))
+	    (warningmsg_strv "exporting macro too early with null environment container" 
+			     (unsafe_get_field :named_name sym)))
 	(return)
 	))
   (assert_msg "check contenv" (is_a contenv class_container))
@@ -1696,7 +1690,8 @@
     ;(if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
     (if (null env)
 	(progn
-	  (informsg_strv "exporting macro too early with null environment" (unsafe_get_field :named_name sym))
+	  (informsg_strv "exporting macro too early with null environment"
+			 (unsafe_get_field :named_name sym))
 	  (return)
 	  ))
     (assert_msg "check env" (is_a env class_environment))
@@ -1708,6 +1703,38 @@
 	   )
       (put_env env macbind)
       (debug_msg macbind "initmacro_exporter macbind")
+      (return)
+      )))
+
+;; initial patmacro exporter
+(defun initpatmacro_exporter (sym macval patval contenv)
+  (assert_msg "check sym" (is_a sym class_symbol))
+  (if (null contenv)
+      (progn
+	(if (parent_module_environment)
+	    (warningmsg_strv "exporting patmacro too early with null environment container" 
+			     (unsafe_get_field :named_name sym)))
+	(return)
+	))
+  (assert_msg "check contenv" (is_a contenv class_container))
+  (let ( (env (unsafe_get_field :container_value contenv)) )
+    (if (null env)
+	(progn
+	  (informsg_strv "exporting patmacro too early with null environment"
+			 (unsafe_get_field :named_name sym))
+	  (return)
+	  ))
+    (assert_msg "check env" (is_a env class_environment))
+    (assert_msg "check macval is closure" (is_closure macval))
+    (assert_msg "check patval is closure" (is_closure patval))
+    (let ( (macbind (make_instance
+		     class_patmacro_binding
+		     :binder sym
+		     :mbind_expanser macval
+		     :patbind_expanser patval))
+	   )
+      (put_env env macbind)
+      (debug_msg macbind "initpatmacro_exporter macbind")
       (return)
       )))
 
@@ -1787,6 +1814,7 @@
   :sysdata_value_importer initvalue_importer
   :sysdata_pass_dict (make_mapstring discr_mapstrings 100) ;stringmap for gcc passes
   :sysdata_exit_finalizer init_exitfinalizer
+  :sysdata_patmacro_exporter initpatmacro_exporter ; patmacro exporter in module
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

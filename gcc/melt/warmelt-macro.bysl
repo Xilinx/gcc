@@ -2066,8 +2066,8 @@
 (export_macro defselector mexpand_defselector)
 
 
-;;;; the make_instance expander
-(defun mexpand_make_instance (sexpr env mexpander)
+;;;; the [make_]instance expander
+(defun mexpand_instance (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (fields ())
@@ -2079,7 +2079,7 @@
 	 (cla ())
 	 (clabind ())
 	 )
-    (debug_msg sexpr "mexpand_make_instance start sexpr")
+    (debug_msg sexpr "mexpand_instance start sexpr")
     (if (is_not_a claname class_symbol)
 	(error_plain loc "missing class symbol for MAKE_INSTANCE"_))
     (let ( (bnd (find_env env claname)) 
@@ -2124,8 +2124,10 @@
 		       :smins_clabind clabind
 		       :smins_fields fastup)
 	))))
-(install_initial_macro 'make_instance mexpand_make_instance)
-(export_macro make_instance mexpand_make_instance)
+(install_initial_macro 'make_instance mexpand_instance)
+(export_macro make_instance mexpand_instance)
+(install_initial_macro 'instance mexpand_instance)
+(export_macro instance mexpand_instance)
 
 
 ;;;; the unsafe_put_fields expander
