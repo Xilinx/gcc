@@ -1,4 +1,7 @@
 2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: debug_msg prints correctly the file location.
+	* melt/warmelt-normal.bysl: more export_patmacro related stuff.
+2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_src_casematch
 	class_src_casewhenmatch class_src_match & mexpand_match.
 	* melt/warmelt-normal.bysl: adding normexp_match [incomplete]

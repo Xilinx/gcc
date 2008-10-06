@@ -3063,13 +3063,16 @@
 	     (error_plain loc "ASSERT_FAILED not bound to a primitive in  (ASSERT_MSG <msg> <test>)"_)
 	     (return)
 	     )))
+	  (filnam (cond
+		   ((is_mixint loc) (mixint_val loc))
+		   ((is_mixloc loc) (mixloc_val loc))))
 	  (aprim (make_instance 
 		  class_src_primitive
 		  :src_loc loc
 		  :sprim_oper afprim
 		  :sprim_args (make_tuple3 discr_multiple
 					   xmsg
-					   (mixloc_val loc)
+					   filnam
 					   (make_integerbox discr_integer (get_int loc)))))
 	  (atest (make_instance
 		  class_src_ifelse
@@ -3129,7 +3132,11 @@
 						     :sexp_contents conlis
 						     :loca_location loc)
 				      env mexpander))))
-    (let ( (dcall (make_instance 
+    (let (
+	  (dfilnam (cond
+		    ((is_mixint loc) (mixint_val loc))
+		    ((is_mixloc loc) (mixloc_val loc))))
+	  (dcall (make_instance 
 		   class_src_apply
 		   :src_loc loc
 		   :sapp_fun 'debug_msg_fun
@@ -3137,7 +3144,7 @@
 					   xval
 					   xmsg
 					   xcount
-					   (mixint_val loc)
+					   dfilnam
 					   (make_integerbox discr_integer (get_int loc)))))
 	   (dcppif (make_instance class_src_cppif
 				  :src_loc loc

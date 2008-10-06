@@ -2299,7 +2299,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an exit
 ;;; the normalization of an exit is a local variable of ctype_void
-;;; this enables detection of applications like (foo (exit 2))
+;;; this enables detection of applications like (foo (exit looplab))
 (defun normexp_exit (recv env ncx psloc)
   (assert_msg "check exit recv" (is_a recv class_src_exit))
   (assert_msg "check env" (is_a env class_environment))
@@ -4331,7 +4331,7 @@
 				 :letbind_expr (make_instance class_nrep_apply
 							      :nrep_loc psloc
 							      :napp_fun nmacroxp
-							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+							      :napp_args (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))))
 	   (syocc (make_instance class_nrep_locsymocc
 				 :nrep_loc psloc
 				 :nocc_ctyp ctype_void 
@@ -4360,6 +4360,8 @@
 	(npmaexp (normal_patmacro_exporter env ncx sloc bindslist))
 	(nrepnil (make_instance class_nrep_nil :nrep_loc sloc))
 	)
+    (debug_msg mname "normexp export_patmacro mname")
+    (debug_msg npmaexp "normexp export_patmacro npmaexp")
     (assert_msg "check mname" (is_a mname class_symbol))
     (multicall 
      (nexpmac nbindms)
@@ -4371,10 +4373,13 @@
       (normal_exp mpatexp env ncx sloc)
       (list_append2list bindslist nbindps)
       (debug_msg nexpmac "normexp_export_patmacro nexppat")
-      )
-     )
-    (assert_msg "@@ NOT IMPLEMENTED normexp_export_patmacro" ())
-    (compile_warning "NOT IMPLEMENTED normexp_export_patmacro" ())
+      (let ( (nexpm (normal_exported_patmacro mname npmaexp nexpmac nexppat env ncx sloc bindslist)) )
+	(debug_msg nexpm "normexp_export_patmacro nexpm")
+	(debug_msg nrepnil "normexp_export_macro final nrepnil")
+	(debug_msg bindslist "normexp_export_macro final bindslist")
+	(return nrepnil bindslist)
+	)
+      ))
     ))
 (install_method class_src_export_patmacro normal_exp normexp_export_patmacro)
 
