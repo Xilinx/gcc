@@ -1566,8 +1566,17 @@ instance of the given @var{class-name} initialized with the fields
 
 @item match
 @cindex @code{match} MELT syntax
-@code{(match @var{expr} @var{match-case} @var{@dots{}})}
-@emph{NOT IMPLEMENTED YET}
+@code{(match @var{expr} @var{match-case} @var{@dots{}} [ (:else
+@var{@dots{}}) ] )} @emph{NOT IMPLEMENTED YET} Do a pattern
+match. Evaluate @var{expr} and for the first maching @var{match-case},
+do its body. If no @var{match-case} is matched and the @code{:else}
+clause is given at last, use it. A @var{match-case} is a simple match
+case @code{(@var{pattern} @var{body} @var{@dots{}})} where @var{body}
+is evaluated with the pattern variables appearing in @var{pattern}
+bound. A @var{match-cas} can be a when match case @code{(:when
+@var{pattern} @var{when-cond} @var{body} @var{@dots{}})} where the
+body is done when that pattern matches and the @var{when-cond}
+(evaluated with the pattern variables bound) is a true condition.
 
 @item multicall
 @cindex @code{multicall} MELT syntax

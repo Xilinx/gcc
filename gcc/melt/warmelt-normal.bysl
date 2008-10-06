@@ -1805,6 +1805,30 @@
   )
 (install_method class_src_or normal_exp normexp_or)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; normalize a match
+(defun normexp_match (recv env ncx psloc)
+  (assert_msg "check match recv" (is_a recv class_src_match))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_match recv")
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (smatsx (unsafe_get_field :smat_matchedx recv))
+	 (scases (unsafe_get_field :smat_cases recv))
+	 (selse (unsafe_get_field :smat_else recv))
+	 )
+    (multicall
+     (nmatx nbindmatx)
+     (normal_exp smatsx env ncx sloc)
+     (debug_msg nmatx "normexp_match nmatx")
+     )
+    (assert_msg "unimplemented normexp_match" ())
+    (compile_warning "@@unimplemented normexp_match" ())
+    )
+  )
+(install_method class_src_match normal_exp normexp_match)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; normalize a PROGN
 ;;;; (PROGN a1 a2 ... an) is based upon the normalization of (LET () a1 a2 ... an)
 (defun normexp_progn (recv env ncx psloc)

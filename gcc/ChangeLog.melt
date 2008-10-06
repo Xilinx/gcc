@@ -1,3 +1,9 @@
+2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added class_src_casematch
+	class_src_casewhenmatch class_src_match & mexpand_match.
+	* melt/warmelt-normal.bysl: adding normexp_match [incomplete]
+	* doc/melt.texi: documented match.
+
 2008-10-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: export_patmacro is probably badly handled.
 2008-10-05  Basile Starynkevitch  <basile@starynkevitch.net>

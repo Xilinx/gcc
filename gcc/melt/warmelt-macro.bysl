@@ -288,6 +288,27 @@
 	   sifp_then			;then clause
 	   sifp_else			;else clause
 ))
+
+;;;;;;;;;;;;;;;;
+;; match 
+(defclass class_src_match
+  :super class_src
+  :fields (smat_matchedx		;matched expression
+	   smat_cases			;match case tuple
+	   smat_else			;else tuple
+))
+
+;; match case
+(defclass class_src_casematch
+  :super class_src
+  :fields (scam_patt			;pattern
+	   scam_body			;body
+	   ))
+;; match case with when
+(defclass class_src_casewhenmatch
+  :super class_src_casematch
+  :fields (scwm_when			;when 
+))
 ;;;;;;;;;;;;;;;;
 
 ;;; letbinding source
@@ -2502,6 +2523,8 @@
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
+	(msexp (pair_head (pair_tail (list_first cont))))
+	(matsx (macroexpand_1 msexp env mexpander))
 	(mexptuple (pairlist_to_multiple 
 		    (pair_tail (pair_tail (list_first cont)))
 		    discr_multiple
@@ -2515,7 +2538,8 @@
 		    (debug_msg lx "mexpand_match lastmexp lx")
 		    lx))
 	(:long ix (-i nbmatch 1))
-	(res ())
+	(elsebody ())
+	(caselist (make_list discr_list))
 	)
     (debug_msg mexptuple "mexpand_match mexptuple")
     (forever matchloop
@@ -2523,7 +2547,8 @@
 	     (let ( (curmatch (multiple_nth mexptuple ix)) )
 	       (debug_msg curmatch "mexpand_match curmatch")
 	       (cond  
-		( (and (null res)
+		;; handle final (:else ...) clause
+		( (and (null elsebody)
 		       (is_a curmatch class_sexpr)
 		       (== ':else (pair_head (list_first 
 					      (unsafe_get_field :sexp_contents curmatch)))))
@@ -2531,11 +2556,41 @@
 			  (pair_tail (list_first (unsafe_get_field :sexp_contents curmatch)))) 
 			 )
 		    (if restpairs 
-			(setq res (pairlist_to_progn restpairs 
-						     (unsafe_get_field :loca_location curmatch) 
-						     env mexpander)))
-		    (debug_msg res "mexpand_match res for :else")
+			(setq elsebody (pairlist_to_progn restpairs 
+							  (unsafe_get_field :loca_location curmatch) 
+							  env mexpander)))
+		    (debug_msg elsebody "mexpand_match elsebody for :else")
 		    ))
+		;; handle (:when pattern condexpr ...) clause
+		( (and 
+		       (is_a curmatch class_sexpr)
+		       (== ':when (pair_head (list_first 
+					      (unsafe_get_field :sexp_contents curmatch)))))
+		  (let ( (curpair (pair_tail (list_first 
+					      (unsafe_get_field :sexp_contents curmatch))))
+			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
+			 (swhenpat (let ( (sw (pair_head curpair)) ) (setq curpair (pair_tail curpair)) sw))
+			 (swhencond (let ( (sc (pair_head curpair)) ) (setq curpair (pair_tail curpair)) sc))
+			 (whencondx (macroexpand_1 swhencond env mexpander))
+			 (whenbody (expand_pairlist_as_tuple curpair 
+							     (unsafe_get_field :loca_location curmatch) 
+							     env mexpander))
+			 (curpatctx (make_instance class_pattexpcontext
+						   :pctx_mexpander mexpander
+						   :pctx_pexpander patternexpand_1
+						   :pctx_varmap (make_mapobject discr_mapobjects 13)))
+			 (curpat (patternexpand_1 swhenpat env curpatctx))
+			 (curcase (make_instance class_src_casewhenmatch
+						 :src_loc curmatchloc
+						 :scam_patt curpat
+						 :scwm_when whencondx
+						 :scam_body whenbody))
+			 )
+		    (debug_msg curcase "mexpand_match when curcase")
+		    (list_append caselist curcase)
+		    )
+		  )
+		;; handle ordinary (patterh ...) clauses
 		( (is_a curmatch class_sexpr)
 		  (let ( (curmatchcont (unsafe_get_field :sexp_contents curmatch))
 			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
@@ -2547,18 +2602,28 @@
 						   :pctx_varmap (make_mapobject discr_mapobjects 13)))
 			 (curpat (patternexpand_1 curmatchpatx env curpatctx))
 			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
+			 (curcase (make_instance class_src_casematch
+						 :src_loc curmatchloc
+						 :scam_patt curpat
+						 :scam_body curbody))
 			 )
-		    (debug_msg curpat "mexpand_match curpat")
-		    (debug_msg curbody "mexpand_match curbody")
-		    ;; should do something with them
+		    (debug_msg curcase "mexpand_match curcase")
+		    (list_append caselist curcase)
 		    ))
+		;; detect non-sexp clauses
 		(:else
 		 (error_plain loc "(MATCH <expr> <match-case>...) with non sexpr matchcase") 
 		 )))
 	     (setq ix (-i ix 1)))
-    (compile_warning "mexpand_match incomplete" ())
-    )
-  )
+    (let ( (smat (make_instance class_src_match
+				:src_loc loc
+				:smat_matchedx matsx
+				:smat_cases (pairlist_to_multiple caselist discr_multiple)
+				:smat_else elsebody)) 
+	   )
+      (debug_msg smat "mexpand_match result smat")
+      (return smat)
+      )))
 
 (install_initial_macro 'match mexpand_match)
 (export_macro match mexpand_match)
@@ -3353,6 +3418,8 @@
 (export_class  ;classes for source representations, alphabetical order
  class_pattexpcontext
  class_src_apply
+ class_src_casematch
+ class_src_casewhenmatch
  class_src_citeration
  class_src_cmatchexpr
  class_src_comment
@@ -3384,6 +3451,7 @@
  class_src_let
  class_src_letbinding
  class_src_make_instance
+ class_src_match
  class_src_msend
  class_src_multicall
  class_src_or
