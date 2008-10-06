@@ -1,4 +1,16 @@
 2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/melt.texi: documented instance, get_field, put_fields.
+	* melt/warmelt-first.bysl: using instance instead of make_instance.
+	* melt/warmelt-macro.bysl: ditto.
+	* melt/warmelt-normal.bysl: ditto.
+	* melt/warmelt-genobj.bysl: ditto.
+	* melt/warmelt-outobj.bysl: ditto.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: debug_msg prints correctly the file location.
 	* melt/warmelt-normal.bysl: more export_patmacro related stuff.
 2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>

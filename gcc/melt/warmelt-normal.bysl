@@ -44,35 +44,35 @@
 (defclass class_nrep
   :super class_root
   :fields (nrep_loc			;location in source
-))
+	   ))
 
 ;; a simple stuff is a non-object, a symbol (or keyword or clonedsym),
 ;; ...
 (defclass class_nrep_simple
   :super class_nrep
   :fields (
-))
+	   ))
 
 ;; a normalized expression should never be the result of normal_exp;
 ;; it should only appear in bindings!
 (defclass class_nrep_expr
   :super class_nrep
   :fields (
-))
+	   ))
 
 ;; normal applications have simple functions & arguments
 (defclass class_nrep_apply
   :super class_nrep_expr
   :fields (napp_fun			;simple function to apply
 	   napp_args			;tuple of simple arguments
-))
+	   ))
 
 ;; normalized multiresult apply
 (defclass class_nrep_multiapply
   :super class_nrep_apply
   :fields (nmulapp_bindings 		;a tuple of formal result bindings
 	   nmulapp_body			;body normexp
-))
+	   ))
 
 ;;; normal message sending
 (defclass class_nrep_msend
@@ -80,7 +80,7 @@
   :fields (nsend_sel		   ;the normalized selector occurrence
 	   nsend_recv		   ;the reciever
 	   nsend_args		   ;the tuple of simple arguments
-))
+	   ))
 
 
 
@@ -89,34 +89,34 @@
   :super class_nrep_msend
   :fields (nmulsend_bindings		;tuple of formal bindings
 	   nmulsend_body		;body normexp
-))
+	   ))
 
 ;; normal chunk is a normalized expansion of primitive
 (defclass class_nrep_chunk
   :super class_nrep_expr
   :fields (nchunk_expansion		;the expansion
 	   nchunk_primitive		;the primitive
-))
+	   ))
 
 ;; normal comment is a normalized comment
 (defclass class_nrep_comment
   :super class_nrep_expr
   :fields (ncomm_string	;the comment
-))
+	   ))
 
 ;; normal lets have simple binding & body subexpressions
 (defclass class_nrep_let
   :super class_nrep_expr
   :fields (nlet_bindings		;a tuple of class_normlet_binding-s
 	   nlet_body
-))
+	   ))
 
 ;; normal return have a main & supplementary subexpressions
 (defclass class_nrep_return
   :super class_nrep_expr
   :fields (nret_main			;main normal expression to return
 	   nret_rest			;tuple of normal expr...
-))
+	   ))
 
 ;; normal if have simple test, then, else clauses & a ctype
 (defclass class_nrep_if
@@ -125,7 +125,7 @@
 	   nif_then
 	   nif_else
 	   nif_ctyp
-))
+	   ))
 
 ;; normal ifcpp have a symbol and a ctyp
 (defclass class_nrep_cppif
@@ -134,7 +134,7 @@
 	   nifp_then
 	   nifp_else
 	   nifp_ctyp
-))
+	   ))
 
 ;; normal progn has a distingished last
 (defclass class_nrep_progn
@@ -161,7 +161,7 @@
   :super class_nrep_expr
   :fields (nstq_var
 	   nstq_exp
-))
+	   ))
 
 ;; normalized forever
 (defclass class_nrep_forever
@@ -169,21 +169,21 @@
   :fields (nforever_bind 		;the label binding
 	   nforever_body		;a tuple
 	   nforever_result		;cloned symbol for result
-))
+	   ))
 
 ;; normalized exit
 (defclass class_nrep_exit
   :super class_nrep_expr
   :fields (nexit_bind			;the label binding
 	   nexit_val			;the exited value
-))
+	   ))
 
 ;; normalized field assign (in make instance)
 (defclass class_nrep_fieldassign
   :super class_nrep
   :fields (nfla_field			;the field
 	   nfla_val			;its normalized value
-))
+	   ))
 
 ;; normalized make instance
 (defclass class_nrep_make_instance
@@ -191,7 +191,7 @@
   :fields (nmins_class			;the instanciated class
 	   nmins_cladata		;its data
 	   nmins_fields			;the tuple of field assignments
-))
+	   ))
 
 ;; normalized lambda
 (defclass class_nrep_lambda 
@@ -199,7 +199,7 @@
   :fields (nlambda_proc			;the procedure
 	   nlambda_constrout		;the constant routine
 	   nlambda_closedv		;the tuple of closed normal values
-))
+	   ))
 
 
 ;; normalized citeration
@@ -212,7 +212,7 @@
 	   nciter_statocc		;the state local occurrence
 	   nciter_bodbindings		;normalized body bindings
 	   nciter_chunkafter		;the expansed chunk after
-))
+	   ))
 
 
 ;;; procedures
@@ -220,14 +220,14 @@
   :super class_nrep
   :fields (
 	   nproc_body
-))
+	   ))
 
 
 ;; the class of the initial procedure
 (defclass class_nrep_initproc
   :super class_nrep_anyproc
   :fields (ninit_topl			;list of toplevel nrep
-))
+	   ))
 
 ;; normal routine procedure
 (defclass class_nrep_routproc
@@ -240,7 +240,7 @@
 	   nrpro_datarout		;routine data object
 	   nrpro_dataclos		;closure data object
 	   nrpro_thunklist		;list of thunks to be called when compiling it
-))
+	   ))
 
 
 ;;; static normalized predef
@@ -248,13 +248,13 @@
   :super class_nrep_simple
   :fields (
 	   nrpredef			;the predef is a symbol or a boxed integer
-))
+	   ))
 
 ;; normalized nil
 (defclass class_nrep_nil
   :super class_nrep_simple
   :fields (
-))
+	   ))
 
 
 ;;; quasidata are stuff to be computed inside the initial routine;
@@ -264,7 +264,7 @@
 (defclass class_nrep_quasidata
   :super class_nrep
   :fields (
-))
+	   ))
 
 
 ;;;; static data is build at module initialization time
@@ -286,44 +286,44 @@
 	   ninst_predef			;predefined rank (number or symbol)
 	   ninst_hash			;integer hash
 	   ninst_slots			;tuple of normalized slots expressions
-))
+	   ))
 
 ;; normal "static" string
 (defclass class_nrep_datastring
   :super class_nrep_data
   :fields ( nstr_string		    ;the string
-))
+	    ))
 
 ;; normal "static" tuple
 (defclass class_nrep_datatuple
   :super class_nrep_data
   :fields ( ntup_comp			;the tuple of component values expressions
-))
+	    ))
 
 ;; normal interned static symbol
 (defclass class_nrep_datasymbol
   :super class_nrep_datainstance
   :fields ( ndsy_namestr
-))
+	    ))
 
 ;; normal interned static keyword
 (defclass class_nrep_datakeyword
   :super class_nrep_datasymbol
   :fields ( 
-))
+	   ))
 
 ;; normal static routine data
 (defclass class_nrep_dataroutine
   :super class_nrep_data
   :fields (ndrou_proc		    ;associated procedure
-))
+	   ))
 
 ;; normal static closure data
 (defclass class_nrep_dataclosure
   :super class_nrep_data
   :fields (ndclo_proc		    ;associated procedure
 	   ndclo_closv		    ;tuple of closed values
-))
+	   ))
 
 ;; normal static start value
 ;; obtained from an initial binding
@@ -339,24 +339,24 @@
   :fields (nocc_symb
 	   nocc_ctyp			;the ctype of the symbol, eg ctype_value
 	   nocc_bind			;the binding of the symbol
-))
+	   ))
 
 ;; normal local occurrence of a symbol
 (defclass class_nrep_locsymocc
   :super class_nrep_symocc
   :fields (
-))
+	   ))
 
 ;; normal closed occurrence of a symbol
 (defclass class_nrep_closedocc
   :super class_nrep_symocc
   :fields (ncloc_procs			;list of enclosing procedures
-))
+	   ))
 
 ;; normal constant occurrence of a symbol
 (defclass class_nrep_constocc
   :super class_nrep_closedocc
-)
+  )
 
 ;;; normal quasi constants for current_module_environment_container &
 ;;; parent_module_environment & constants
@@ -365,39 +365,39 @@
   :fields (nconst_sval			;source value
 	   nconst_proc			;containing proc
 	   nconst_data			;normalized data or stuff inside iniproc
-))
+	   ))
 
 ;; normal constant (.e.g a quoted symbol, a keyword, ...)
 (defclass class_nrep_constant
   :super class_nrep_quasiconstant
   :fields (
 	   
-))
+	   ))
 
 ;; noormal current_module_environment_container quasiconst
 (defclass class_nrep_quasiconst_current_module_environment_container
   :super class_nrep_quasiconstant
   :fields ( nqcmec_comment
-))
+	    ))
 
 
 ;; normal current_module_environment_container quasidata
 (defclass class_nrep_quasidata_current_module_environment_container
   :super class_nrep_quasidata
   :fields (
-))
+	   ))
 
 ;; noormal parent_module_environment quasiconst
 (defclass class_nrep_quasiconst_parent_module_environment
   :super class_nrep_quasiconstant
   :fields (
-))
+	   ))
 
 ;; normal parent_module_environment quasidata
 (defclass class_nrep_quasidata_parent_module_environment
   :super class_nrep_quasidata
   :fields (
-))
+	   ))
 
 ;; data field accessor (mostly used for defclass initialization) this
 ;; translates into basilys_field_object(<obj>,<off>) of obj is not a
@@ -406,7 +406,7 @@
   :super class_nrep_expr
   :fields (naccf_obj			;data for the object to be accessed 
 	   naccf_fld			;rank or field to be accessoed
-))
+	   ))
 
 ;;; data multiple accessor (mostly used for defclass initialization)
 ;; this translates into basilys_multiple_nth(<mul>,<ix>) if mul is not
@@ -415,14 +415,14 @@
   :super class_nrep_expr
   :fields (naccm_mul			;data for the multiple to be accessed
 	   naccm_ix			;index to be accessed (a boxed integer)
-))
+	   ))
 
 ;; normalized store predefined
 (defclass class_nrep_store_predefined
   :super class_nrep_expr
   :fields (nstpd_predef
 	   nstpd_value
-))
+	   ))
 
 ;; normalized update current module environment box
 (defclass class_nrep_update_current_module_environment_container
@@ -431,7 +431,7 @@
 	   nucmeb_expr			;the normalized expression
 					;computing the box
 	   ncumeb_comment		;optional comment
-))
+	   ))
 
 
 ;;; export all the normalized representations classes
@@ -576,62 +576,62 @@
 
 
 (defun fill_initial_predefmap (predefmap)
-    ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
+  ;; manually keep in sync  with enum basilys_globalix_en in basilys.h
   ;;; in alphabetical order
-    (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
-    (mapobject_put predefmap (global_CLASS_CITERATOR)                'CLASS_CITERATOR)
-    (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
-    (mapobject_put predefmap (global_CLASS_CMATCHER)                'CLASS_CMATCHER)
-    (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
-    (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
-    (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
-    (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
-    (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
-    (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
-    (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
-    (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
-    (mapobject_put predefmap (global_CLASS_PROPED)                   'CLASS_PROPED)
-    (mapobject_put predefmap (global_CLASS_ROOT)                     'CLASS_ROOT)
-    (mapobject_put predefmap (global_CLASS_SELECTOR)                 'CLASS_SELECTOR)
-    (mapobject_put predefmap (global_CLASS_SEXPR)                    'CLASS_SEXPR)
-    (mapobject_put predefmap (global_CLASS_SYMBOL)                   'CLASS_SYMBOL)
-    (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
-    (mapobject_put predefmap (global_CTYPE_BASICBLOCK)               'CTYPE_BASICBLOCK)
-    (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
-    (mapobject_put predefmap (global_CTYPE_GIMPLE)                   'CTYPE_GIMPLE)
-    (mapobject_put predefmap (global_CTYPE_GIMPLESEQ)                'CTYPE_GIMPLESEQ)
-    (mapobject_put predefmap (global_CTYPE_EDGE)                     'CTYPE_EDGE)
-    (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
-    (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
-    (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
-    (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
-    (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
-    (mapobject_put predefmap (global_DISCR_CHARINTEGER)              'DISCR_CHARINTEGER)
-    (mapobject_put predefmap (global_DISCR_CLOSURE)                  'DISCR_CLOSURE)
-    (mapobject_put predefmap (global_DISCR_INTEGER)                  'DISCR_INTEGER)
-    (mapobject_put predefmap (global_DISCR_GIMPLE)                   'DISCR_GIMPLE)
-    (mapobject_put predefmap (global_DISCR_GIMPLESEQ)                'DISCR_GIMPLESEQ)
-    (mapobject_put predefmap (global_DISCR_LIST)                     'DISCR_LIST)
-    (mapobject_put predefmap (global_DISCR_MAPGIMPLES)               'DISCR_MAPGIMPLES)
-    (mapobject_put predefmap (global_DISCR_MAPGIMPLESEQS)            'DISCR_MAPGIMPLESEQS)
-    (mapobject_put predefmap (global_DISCR_MAPOBJECTS)               'DISCR_MAPOBJECTS)
-    (mapobject_put predefmap (global_DISCR_MAPSTRINGS)               'DISCR_MAPSTRINGS)
-    (mapobject_put predefmap (global_DISCR_MAPTREES)                 'DISCR_MAPTREES)
-    (mapobject_put predefmap (global_DISCR_METHODMAP)                'DISCR_METHODMAP)
-    (mapobject_put predefmap (global_DISCR_MIXEDINT)                 'DISCR_MIXEDINT)
-    (mapobject_put predefmap (global_DISCR_MIXEDLOC)                 'DISCR_MIXEDLOC)
-    (mapobject_put predefmap (global_DISCR_MULTIPLE)                 'DISCR_MULTIPLE)
-    (mapobject_put predefmap (global_DISCR_NAMESTRING)               'DISCR_NAMESTRING)
-    (mapobject_put predefmap (global_DISCR_NULLRECV)                 'DISCR_NULLRECV)
-    (mapobject_put predefmap (global_DISCR_PAIR)                     'DISCR_PAIR)
-    (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
-    (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
-    (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
-    (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
-    (mapobject_put predefmap (global_DISCR_TREE)                     'DISCR_TREE)
-    (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)
-    (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)            'INITIAL_SYSTEM_DATA)
-)
+  (mapobject_put predefmap (global_ATOM_TRUE)                      'ATOM_TRUE)
+  (mapobject_put predefmap (global_CLASS_CITERATOR)                'CLASS_CITERATOR)
+  (mapobject_put predefmap (global_CLASS_CLASS)                    'CLASS_CLASS)
+  (mapobject_put predefmap (global_CLASS_CMATCHER)                'CLASS_CMATCHER)
+  (mapobject_put predefmap (global_CLASS_CONTAINER)                'CLASS_CONTAINER)
+  (mapobject_put predefmap (global_CLASS_DISCR)                    'CLASS_DISCR)
+  (mapobject_put predefmap (global_CLASS_FIELD)                    'CLASS_FIELD)
+  (mapobject_put predefmap (global_CLASS_FORMAL_BINDING)           'CLASS_FORMAL_BINDING)
+  (mapobject_put predefmap (global_CLASS_KEYWORD)                  'CLASS_KEYWORD)
+  (mapobject_put predefmap (global_CLASS_LOCATED)                  'CLASS_LOCATED)
+  (mapobject_put predefmap (global_CLASS_NAMED)                    'CLASS_NAMED)
+  (mapobject_put predefmap (global_CLASS_PRIMITIVE)                'CLASS_PRIMITIVE)
+  (mapobject_put predefmap (global_CLASS_PROPED)                   'CLASS_PROPED)
+  (mapobject_put predefmap (global_CLASS_ROOT)                     'CLASS_ROOT)
+  (mapobject_put predefmap (global_CLASS_SELECTOR)                 'CLASS_SELECTOR)
+  (mapobject_put predefmap (global_CLASS_SEXPR)                    'CLASS_SEXPR)
+  (mapobject_put predefmap (global_CLASS_SYMBOL)                   'CLASS_SYMBOL)
+  (mapobject_put predefmap (global_CLASS_SYSTEM_DATA)              'CLASS_SYSTEM_DATA)
+  (mapobject_put predefmap (global_CTYPE_BASICBLOCK)               'CTYPE_BASICBLOCK)
+  (mapobject_put predefmap (global_CTYPE_CSTRING)                  'CTYPE_CSTRING)
+  (mapobject_put predefmap (global_CTYPE_GIMPLE)                   'CTYPE_GIMPLE)
+  (mapobject_put predefmap (global_CTYPE_GIMPLESEQ)                'CTYPE_GIMPLESEQ)
+  (mapobject_put predefmap (global_CTYPE_EDGE)                     'CTYPE_EDGE)
+  (mapobject_put predefmap (global_CTYPE_LONG)                     'CTYPE_LONG)
+  (mapobject_put predefmap (global_CTYPE_TREE)                     'CTYPE_TREE)
+  (mapobject_put predefmap (global_CTYPE_VALUE)                    'CTYPE_VALUE)
+  (mapobject_put predefmap (global_CTYPE_VOID)                     'CTYPE_VOID)
+  (mapobject_put predefmap (global_DISCR_BOX)                      'DISCR_BOX)
+  (mapobject_put predefmap (global_DISCR_CHARINTEGER)              'DISCR_CHARINTEGER)
+  (mapobject_put predefmap (global_DISCR_CLOSURE)                  'DISCR_CLOSURE)
+  (mapobject_put predefmap (global_DISCR_INTEGER)                  'DISCR_INTEGER)
+  (mapobject_put predefmap (global_DISCR_GIMPLE)                   'DISCR_GIMPLE)
+  (mapobject_put predefmap (global_DISCR_GIMPLESEQ)                'DISCR_GIMPLESEQ)
+  (mapobject_put predefmap (global_DISCR_LIST)                     'DISCR_LIST)
+  (mapobject_put predefmap (global_DISCR_MAPGIMPLES)               'DISCR_MAPGIMPLES)
+  (mapobject_put predefmap (global_DISCR_MAPGIMPLESEQS)            'DISCR_MAPGIMPLESEQS)
+  (mapobject_put predefmap (global_DISCR_MAPOBJECTS)               'DISCR_MAPOBJECTS)
+  (mapobject_put predefmap (global_DISCR_MAPSTRINGS)               'DISCR_MAPSTRINGS)
+  (mapobject_put predefmap (global_DISCR_MAPTREES)                 'DISCR_MAPTREES)
+  (mapobject_put predefmap (global_DISCR_METHODMAP)                'DISCR_METHODMAP)
+  (mapobject_put predefmap (global_DISCR_MIXEDINT)                 'DISCR_MIXEDINT)
+  (mapobject_put predefmap (global_DISCR_MIXEDLOC)                 'DISCR_MIXEDLOC)
+  (mapobject_put predefmap (global_DISCR_MULTIPLE)                 'DISCR_MULTIPLE)
+  (mapobject_put predefmap (global_DISCR_NAMESTRING)               'DISCR_NAMESTRING)
+  (mapobject_put predefmap (global_DISCR_NULLRECV)                 'DISCR_NULLRECV)
+  (mapobject_put predefmap (global_DISCR_PAIR)                     'DISCR_PAIR)
+  (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
+  (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
+  (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
+  (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
+  (mapobject_put predefmap (global_DISCR_TREE)                     'DISCR_TREE)
+  (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)
+  (mapobject_put predefmap (global_INITIAL_SYSTEM_DATA)            'INITIAL_SYSTEM_DATA)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; create a normalization context
@@ -650,11 +650,11 @@
 	       )
 	     (setq ix (+i ix 1)))
     (fill_initial_predefmap predefmap)
-    (let ( (inipro  (make_instance class_nrep_initproc
-				   :ninit_topl (make_list discr_list)
-				   :nrep_loc ()
-				   )) 
-	   (ncx (make_instance 
+    (let ( (inipro  (instance class_nrep_initproc
+			      :ninit_topl (make_list discr_list)
+			      :nrep_loc ()
+			      )) 
+	   (ncx (instance 
 		 class_normcontext
 		 :nctx_initproc inipro
 		 :nctx_proclist (make_list discr_list)
@@ -669,10 +669,10 @@
 		 :nctx_symbcachemap (make_mapobject discr_mapobjects 30)
 		 :nctx_curproc inipro
 		 :nctx_modulcontext modctx
-		 :nctx_qdatcurmodenvbox (make_instance class_nrep_quasidata_current_module_environment_container
-						       )
-		 :nctx_qdatparmodenv (make_instance class_nrep_quasidata_parent_module_environment
-						    )
+		 :nctx_qdatcurmodenvbox (instance class_nrep_quasidata_current_module_environment_container
+						  )
+		 :nctx_qdatparmodenv (instance class_nrep_quasidata_parent_module_environment
+					       )
 		 :nctx_procurmodenvlist (make_list discr_list)
 		 ))
 	   )
@@ -694,8 +694,8 @@
 ;;; always be a simple occurrence, and the work being done in the
 ;;; bindings list.
 (defselector normal_exp class_selector
-;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
-)
+					;  :named_name (stringconst2val discr_namestring "NORMAL_EXP")
+  )
 
 ;; many stuff are already normalized 
 (defun normexp_identical (recv env ncx psloc)
@@ -713,10 +713,10 @@
 (defun normexp_null (recv env ncx psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  (let ( (normnull (make_instance class_nrep_nil :nrep_loc psloc)) )
+  (let ( (normnull (instance class_nrep_nil :nrep_loc psloc)) )
     (debug_msg normnull "normexp_null normnull")
     normnull
-))
+    ))
 (install_method discr_nullrecv normal_exp normexp_null)
 
 ;;; catchall for src
@@ -737,8 +737,8 @@
 ;;;; sometimes this selector is used with a null environment, for
 ;;;; instance in the code generation phase
 (defselector get_ctype class_selector
-;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
-)
+					;  :named_name (stringconst2val discr_namestring "GET_CTYPE")
+  )
 
 ;;; selector to compile a normalized stuff into an object
 ;;; reciever: the normalized stuff
@@ -747,7 +747,7 @@
 ;;; result = the obj instruction or value
 
 (defselector compile_obj class_selector
-)
+  )
 
 ;;; most stuff are really ctype_value
 (defun gectyp_anyrecv (recv env) ctype_value)
@@ -778,11 +778,11 @@
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-		; (debug_msg comp "normalize_tuple comp")
+					; (debug_msg comp "normalize_tuple comp")
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
-		 ; (debug_msg norcomp "normalize_tuple norcomp")
+					; (debug_msg norcomp "normalize_tuple norcomp")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
 		  (if (is_list nbinds)
@@ -819,13 +819,13 @@
 	   (debug_msg cbind "wrap_normal_letseq cbind")))
      (assert_msg "check cbind wrapnormletseq" (is_a cbind class_normlet_binding))))
   (let ( (wnlet
-	  (make_instance class_nrep_let
-			 :nrep_loc loc
-			 :nlet_bindings (list_to_multiple bindlist)
-			 :nlet_body tupnexp))
+	  (instance class_nrep_let
+		    :nrep_loc loc
+		    :nlet_bindings (list_to_multiple bindlist)
+		    :nlet_body tupnexp))
 	 )
     (return wnlet)))
-    
+
 ;; wrap a normal let around a single normalized expression & a bindinglist
 (defun wrap_normal_let1 (nexp bindlist loc)
   (assert_msg "check bindlist" (is_list_or_null bindlist))
@@ -842,14 +842,14 @@
       (and (is_list bindlist)
 	   (is_pair (list_first bindlist)))
       (let ( (wnlet 
-	      (make_instance class_nrep_let
-			     :nrep_loc loc
-			     :nlet_bindings (list_to_multiple bindlist)
-			     :nlet_body (make_tuple1 discr_multiple nexp)))
+	      (instance class_nrep_let
+			:nrep_loc loc
+			:nlet_bindings (list_to_multiple bindlist)
+			:nlet_body (make_tuple1 discr_multiple nexp)))
 	     )
 	wnlet)
     nexp
-))
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to check that every normalized argument has a passable ctype
@@ -861,8 +861,8 @@
        (assert_msg "check_ctype_nargs ctyp" (is_a ctyp class_ctype))
        (if (not (is_string (unsafe_get_field :ctype_parstring ctyp)))
 	   (error_strv sloc "argument has invalid type" (unsafe_get_field :named_name ctyp))
-     ))
-)))
+	 ))
+     )))
 
 (export_values
  create_normcontext
@@ -873,15 +873,15 @@
  wrap_normal_let1
  check_ctype_nargs
  compile_obj
-)
+ )
 
 
-; for symbols which are imported from a previous environment (this
-; only happens when compiling stuff which is not this warmelt-*) we
-; should detect them and generate some special data to fetch them, in
-; the start routine, from the given environment (which is the only
-; argument to the start routine). Detecting such symbols is easy : their
-; binding is a class_value_binding
+					; for symbols which are imported from a previous environment (this
+					; only happens when compiling stuff which is not this warmelt-*) we
+					; should detect them and generate some special data to fetch them, in
+					; the start routine, from the given environment (which is the only
+					; argument to the start routine). Detecting such symbols is easy : their
+					; binding is a class_value_binding
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
@@ -910,10 +910,10 @@
 	  (debug_msg procs "normexp_symbol value procs")
 	  (if (null bvar)
 	      (let ( (newbvar 
-		      (make_instance class_nrep_importedval
-				     :nrep_loc psloc
-				     :nimport_symb recv
-				     :nimport_sydata (normal_symbol_data recv ncx psloc))) )
+		      (instance class_nrep_importedval
+				:nrep_loc psloc
+				:nimport_symb recv
+				:nimport_sydata (normal_symbol_data recv ncx psloc))) )
 		(mapobject_put (unsafe_get_field :nctx_valbindmap ncx) bind newbvar)
 		(setq bvar newbvar)
 		(list_append (unsafe_get_field :nctx_valuelist ncx) newbvar)
@@ -922,13 +922,13 @@
 	  (if (and (is_list procs)
 		   (is_pair (list_first procs)))
 	      (let ( (fxocc
-		      (make_instance class_nrep_constocc
-				     :nrep_loc psloc
-				     :nocc_symb recv
-				     :nocc_bind bind
-				     :nocc_ctyp ctype_value
-				     :ncloc_procs procs))
-		    )
+		      (instance class_nrep_constocc
+				:nrep_loc psloc
+				:nocc_symb recv
+				:nocc_bind bind
+				:nocc_ctyp ctype_value
+				:ncloc_procs procs))
+		     )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
 		(debug_msg fxocc "normexp_symbol value fxocc")
@@ -950,10 +950,10 @@
 	    ;; otherwise symbol is the direct value
 	    (let ( 
 		  )
-		;; cache the result
-		(mapobject_put sycmap recv bvar)
-		(debug_msg bvar "normexp_symbol value bvar")
-		bvar
+	      ;; cache the result
+	      (mapobject_put sycmap recv bvar)
+	      (debug_msg bvar "normexp_symbol value bvar")
+	      bvar
 	      )
 	    )))
       ;; the procs is a non-empty list, so the symbol is closed
@@ -976,12 +976,12 @@
 	  (setq bty ctype_value)
 	  (if (is_a bind class_fixed_binding)
 	      (let ( (fxocc
-		      (make_instance class_nrep_constocc
-				     :nrep_loc psloc
-				     :nocc_symb recv
-				     :nocc_bind bind
-				     :nocc_ctyp ctype_value
-				     :ncloc_procs procs)) )
+		      (instance class_nrep_constocc
+				:nrep_loc psloc
+				:nocc_symb recv
+				:nocc_bind bind
+				:nocc_ctyp ctype_value
+				:ncloc_procs procs)) )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
 		(debug_msg fxocc "normexp_symbol fxocc")
@@ -1001,12 +1001,12 @@
 		fxocc
 		)
 	    (let ( (clocc 
-		    (make_instance class_nrep_closedocc
-				   :nrep_loc psloc
-				   :nocc_symb recv
-				   :nocc_ctyp ctype_value
-				   :nocc_bind bind
-				   :ncloc_procs procs)) 
+		    (instance class_nrep_closedocc
+			      :nrep_loc psloc
+			      :nocc_symb recv
+			      :nocc_ctyp ctype_value
+			      :nocc_bind bind
+			      :ncloc_procs procs)) 
 		   )
 	      ;; cache the result
 	      (mapobject_put sycmap recv clocc)
@@ -1028,11 +1028,11 @@
       ;; formal arg is a local
       ( (is_a bind class_formal_binding)
 	(let ( (syocc
-		(make_instance class_nrep_locsymocc
-			       :nrep_loc psloc
-			       :nocc_ctyp (unsafe_get_field :fbind_type bind) 
-			       :nocc_symb recv
-			       :nocc_bind bind) ) )
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp (unsafe_get_field :fbind_type bind) 
+			  :nocc_symb recv
+			  :nocc_bind bind) ) )
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv syocc)
 	  syocc
@@ -1040,11 +1040,11 @@
       ;; let binding is a local
       ( (is_a bind class_let_binding)
 	(let ( (syocc
-		(make_instance class_nrep_locsymocc
-			       :nrep_loc psloc
-			       :nocc_ctyp (unsafe_get_field :letbind_type bind)
-			       :nocc_symb recv
-			       :nocc_bind bind) ) )
+		(instance class_nrep_locsymocc
+			  :nrep_loc psloc
+			  :nocc_ctyp (unsafe_get_field :letbind_type bind)
+			  :nocc_symb recv
+			  :nocc_bind bind) ) )
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv syocc)
 	  syocc
@@ -1141,11 +1141,11 @@
       (:else 
        (debug_msg bind "normexp_symbol const? bind")
        (let ( (kocc
-	       (make_instance class_nrep_constocc
-			      :nrep_loc psloc
-			      :nocc_ctyp ctype_value
-			      :nocc_symb recv
-			      :nocc_bind bind) ) )
+	       (instance class_nrep_constocc
+			 :nrep_loc psloc
+			 :nocc_ctyp ctype_value
+			 :nocc_symb recv
+			 :nocc_bind bind) ) )
 	 (debug_msg kocc "normexp_symbol kocc" )
 	 ;; cache the result & return it
 	 (mapobject_put sycmap recv kocc)
@@ -1171,7 +1171,7 @@
 (defun gectyp_symocc (recv env)
   (assert_msg "check recv" (is_a recv class_nrep_symocc))
   (unsafe_get_field :nocc_ctyp recv)
-)
+  )
 (install_method class_nrep_symocc get_ctype gectyp_symocc)
 
 
@@ -1202,7 +1202,7 @@
 	     (error_strv sloc "length mismatch between formals & actuals in primitive" 
 			 sopnamstr)
 	     (return (the_null)))
-	   )
+	 )
        (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
 	      (expargs (make_multiple discr_multiple nbexp))
 	      )
@@ -1225,11 +1225,11 @@
 		    (warning_strv sloc "type mismatch between formals & actuals in primitive"
 				  sopnamstr)
 		    (inform_strv sloc "mismatched primitive formal name"
-				  (unsafe_get_field :named_name forarg))
+				 (unsafe_get_field :named_name forarg))
 		    (inform_strv sloc "mismatched primitive actual type"
-				  (unsafe_get_field :named_name actype))
+				 (unsafe_get_field :named_name actype))
 		    (inform_strv sloc "mismatched primitive expected type"
-				  (unsafe_get_field :named_name fortype))
+				 (unsafe_get_field :named_name fortype))
 		    ))
 	      (mapobject_put bmap forarg actarg)
 	      )))
@@ -1237,7 +1237,7 @@
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-	    ;(debug_msg excu "normexp_primitive excu in sopexp")
+					;(debug_msg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
@@ -1259,25 +1259,25 @@
 			(warning_strv sloc "null primitive original piece is"
 				      (unsafe_get_field :named_name excu)))
 		    ))
-	    ;(debug_msg exval "normexp_primitive exval in sopexp")
-	    (multiple_put_nth expargs jx exval))
+					;(debug_msg exval "normexp_primitive exval in sopexp")
+	      (multiple_put_nth expargs jx exval))
 	    ))
 	 (let ( (csym (clone_symbol  (unsafe_get_field :sdef_name soper))) 
-		(cbind (make_instance class_normlet_binding
-				      :letbind_loc sloc
-				      :binder csym
-				      :letbind_type soptype 
-				      :letbind_expr 
-				      (make_instance class_nrep_chunk
-						     :nrep_loc sloc
-						     :nchunk_expansion expargs
-						     :nchunk_primitive soper
-						     ))) 
-		(clocc (make_instance class_nrep_locsymocc
-				      :nrep_loc sloc
-				      :nocc_ctyp soptype
-				      :nocc_symb csym
-				      :nocc_bind cbind)) 
+		(cbind (instance class_normlet_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type soptype 
+				 :letbind_expr 
+				 (instance class_nrep_chunk
+					   :nrep_loc sloc
+					   :nchunk_expansion expargs
+					   :nchunk_primitive soper
+					   ))) 
+		(clocc (instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp soptype
+				 :nocc_symb csym
+				 :nocc_bind cbind)) 
 		)
 	   (if (is_list nbind) 
 	       (list_append nbind cbind)
@@ -1324,22 +1324,22 @@
       (check_ctype_nargs nargs env sloc)
       (setq nbindargs (list_append2list nbindargs nbindfun))
       (let ( (csym (clone_symbol sfusymb))
-	     (cbind (make_instance class_normlet_binding
-				   :letbind_loc sloc
-				   :binder csym
-				   :letbind_type ctype_value 
-				   :letbind_expr 
-				   (make_instance class_nrep_apply
-						  :nrep_loc sloc
-						  :napp_fun nfun
-						  :napp_args nargs
-						  ))) 
-	     (clocc  (make_instance  class_nrep_locsymocc
-				     :nrep_loc sloc
-				     :nocc_ctyp ctype_value
-				     :nocc_symb csym
-				     :nocc_bind cbind
-				     )) 
+	     (cbind (instance class_normlet_binding
+			      :letbind_loc sloc
+			      :binder csym
+			      :letbind_type ctype_value 
+			      :letbind_expr 
+			      (instance class_nrep_apply
+					:nrep_loc sloc
+					:napp_fun nfun
+					:napp_args nargs
+					))) 
+	     (clocc  (instance  class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp ctype_value
+				:nocc_symb csym
+				:nocc_bind cbind
+				)) 
 	     )
 	(if (not (is_list nbindargs))
 	    (setq nbindargs (make_list discr_list)))
@@ -1354,7 +1354,7 @@
   (assert_msg "check env" (is_a msnd class_src_msend))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  ; (debug_msg ncx "normexp_msend ncx")
+					; (debug_msg ncx "normexp_msend ncx")
   (debug_msg msnd "normexp_msend msnd")
   (let ( (msrecv (unsafe_get_field :msend_recv msnd))
 	 (msargs (unsafe_get_field :msend_args msnd))
@@ -1384,21 +1384,21 @@
       (check_ctype_nargs nargs env sloc)
       (let (
 	    (csym (clone_symbol selnam)) 
-	    (nsend (make_instance class_nrep_msend
-				  :nrep_loc sloc
-				  :nsend_sel nsel
-				  :nsend_recv nrecv
-				  :nsend_args nargs)) 
-	     (cbind (make_instance class_normlet_binding
-				   :letbind_loc sloc
-				   :binder csym
-				   :letbind_type ctype_value 
-				   :letbind_expr nsend))
-	    (clocc  (make_instance  class_nrep_locsymocc
-				    :nrep_loc sloc
-				    :nocc_ctyp ctype_value
-				    :nocc_symb csym
-				    :nocc_bind cbind)) 
+	    (nsend (instance class_nrep_msend
+			     :nrep_loc sloc
+			     :nsend_sel nsel
+			     :nsend_recv nrecv
+			     :nsend_args nargs)) 
+	    (cbind (instance class_normlet_binding
+			     :letbind_loc sloc
+			     :binder csym
+			     :letbind_type ctype_value 
+			     :letbind_expr nsend))
+	    (clocc  (instance  class_nrep_locsymocc
+			       :nrep_loc sloc
+			       :nocc_ctyp ctype_value
+			       :nocc_symb csym
+			       :nocc_bind cbind)) 
 	    )
 	(unsafe_put_fields clocc :nocc_bind cbind)
 	(if (not (is_list nbindrecv))
@@ -1423,28 +1423,28 @@
 	 (csym (clone_symbol 'return_)) 
 	 ;; while the return effectively go out, it is preferable to give it a value type
 	 ;; to avoid make warning on code like (if (p x) (return) (.....))
-	 (cbind (make_instance class_normlet_binding
-			       :letbind_loc sloc
-			       :binder csym
-			       :letbind_type ctype_value 
-			       ;; :letbind_expr is filled later
-			       ))
-	 (clocc (make_instance class_nrep_locsymocc
-			       :nrep_loc sloc
-			       :nocc_ctyp ctype_value
-			       :nocc_symb csym
-			       :nocc_bind cbind)) 
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_value 
+			  ;; :letbind_expr is filled later
+			  ))
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_value
+			  :nocc_symb csym
+			  :nocc_bind cbind)) 
 	 )
     ;; special case for empty return
     (if (<=i nbrets 0)
 	(let ( 
 	      (nbindemp (make_list discr_list))
 	      (nemptret 
-	       (make_instance class_nrep_return
-			      :nrep_loc sloc
-			      :nret_main ()
-			      :nret_rest ()
-			      ))
+	       (instance class_nrep_return
+			 :nrep_loc sloc
+			 :nret_main ()
+			 :nret_rest ()
+			 ))
 	      )
 	  (unsafe_put_fields cbind :letbind_expr nemptret)
 	  (list_append nbindemp cbind)
@@ -1468,10 +1468,10 @@
 	    (if (>i ix 0)
 		(multiple_put_nth toth (-i ix 1) ncomp))))
 	 (let ( (nret
-		 (make_instance class_nrep_return
-				:nrep_loc sloc
-				:nret_main nret0
-				:nret_rest (if (>i nbrets 0) toth)))
+		 (instance class_nrep_return
+			   :nrep_loc sloc
+			   :nret_main nret0
+			   :nret_rest (if (>i nbrets 0) toth)))
 		)
 	   (unsafe_put_fields cbind :letbind_expr nret)
 	   (list_append nbindrets cbind)
@@ -1515,23 +1515,23 @@
 	(setq ctypif (get_ctype nthen newthenenv))
 	;;
 	(let ( (csym (clone_symbol '_if_))
-	       (clocc  (make_instance  class_nrep_locsymocc
-				       :nrep_loc sloc
-				       :nocc_ctyp ctypif
-				       :nocc_symb csym)) 
+	       (clocc  (instance  class_nrep_locsymocc
+				  :nrep_loc sloc
+				  :nocc_ctyp ctypif
+				  :nocc_symb csym)) 
 	       (wthen (wrap_normal_let1 nthen nbindthen sloc))
-	       (cbind (make_instance class_normlet_binding
-				     :letbind_loc sloc
-				     :binder csym
-				     :letbind_type ctypif 
-				     :letbind_expr 
-				     (make_instance class_nrep_if
-						    :nrep_loc sloc
-						    :nif_test ntest
-						    :nif_then wthen
-						    :nif_else (the_null)
-						    :nif_ctyp ctypif
-						    ))) 
+	       (cbind (instance class_normlet_binding
+				:letbind_loc sloc
+				:binder csym
+				:letbind_type ctypif 
+				:letbind_expr 
+				(instance class_nrep_if
+					  :nrep_loc sloc
+					  :nif_test ntest
+					  :nif_then wthen
+					  :nif_else (the_null)
+					  :nif_ctyp ctypif
+					  ))) 
 	       )
 	  (unsafe_put_fields clocc :nocc_bind cbind)
 	  (if (not (is_list nbindif))
@@ -1619,24 +1619,24 @@
 	 ;;
 	 ;;
 	 (let ( (csym (clone_symbol '_ifelse_))
-		(clocc  (make_instance  class_nrep_locsymocc
-					:nrep_loc sloc
-					:nocc_ctyp ctypif
-					:nocc_symb csym)) 
+		(clocc  (instance  class_nrep_locsymocc
+				   :nrep_loc sloc
+				   :nocc_ctyp ctypif
+				   :nocc_symb csym)) 
 		(wthen (wrap_normal_let1 nthen nbindthen sloc))
 		(welse (wrap_normal_let1 nelse nbindelse sloc))
-		(cbind (make_instance class_normlet_binding
-				      :letbind_loc sloc
-				      :binder csym
-				      :letbind_type ctypif 
-				      :letbind_expr 
-				      (make_instance class_nrep_if
-						     :nrep_loc sloc
-						     :nif_test ntest
-						     :nif_then wthen
-						     :nif_else welse
-						     :nif_ctyp ctypif
-						     ))) )
+		(cbind (instance class_normlet_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type ctypif 
+				 :letbind_expr 
+				 (instance class_nrep_if
+					   :nrep_loc sloc
+					   :nif_test ntest
+					   :nif_then wthen
+					   :nif_else welse
+					   :nif_ctyp ctypif
+					   ))) )
 	   (unsafe_put_fields clocc :nocc_bind cbind)
 	   (if (not (is_list nbindif))
 	       (setq nbindif (make_list discr_list)))
@@ -1693,24 +1693,24 @@
 			      (unsafe_get_field :named_name ctypelse))))
 
 	    (let ( (csym (clone_symbol 'ifcpp_))
-		   (clocc  (make_instance  class_nrep_locsymocc
-					   :nrep_loc sloc
-					   :nocc_ctyp ctypif
-					   :nocc_symb csym)) 
+		   (clocc  (instance  class_nrep_locsymocc
+				      :nrep_loc sloc
+				      :nocc_ctyp ctypif
+				      :nocc_symb csym)) 
 		   (wthen (wrap_normal_let1 nthen nbindthen sloc))
 		   (welse (wrap_normal_let1 nelse nbindelse sloc))
-		   (cbind (make_instance class_normlet_binding
-					 :letbind_loc sloc
-					 :binder csym
-					 :letbind_type ctypif 
-					 :letbind_expr 
-					 (make_instance class_nrep_cppif
-							:nrep_loc sloc
-							:nifp_cond scond
-							:nifp_then wthen
-							:nifp_else welse
-							:nifp_ctyp ctypif
-							))) 
+		   (cbind (instance class_normlet_binding
+				    :letbind_loc sloc
+				    :binder csym
+				    :letbind_type ctypif 
+				    :letbind_expr 
+				    (instance class_nrep_cppif
+					      :nrep_loc sloc
+					      :nifp_cond scond
+					      :nifp_then wthen
+					      :nifp_else welse
+					      :nifp_ctyp ctypif
+					      ))) 
 		   (nbindres (make_list discr_list))
 		   )
 	      (unsafe_put_fields clocc :nocc_bind cbind)
@@ -1722,8 +1722,8 @@
 (install_method class_src_cppif normal_exp normexp_cppif)
 
 ;;;;;;;;;;;;;;;; normalize an or
-    ;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
-    ;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
+;; (OR (f1 a1)) is let d1 = (f1 a1) in d1
+;; (OR (f1 a1) (f2 a2)) is let o1 = (let d1 = (f1 a1) in  (if d1 d1 (let d2 = (f2 a2) in d2))) in o1
 (defun normexp_or (recv env ncx psloc)
   (assert_msg "check or recv" (is_a recv class_src_or))
   (assert_msg "check env" (is_a env class_environment))
@@ -1764,7 +1764,7 @@
 		(error_plain  sloc "disjuncts' type mismatch in OR | COND"))
 	    (let (
 		  ;; ncur is normal, so simple
-		  (nifor (make_instance
+		  (nifor (instance
 			  class_nrep_if
 			  :nrep_loc sloc
 			  :nif_test ncur
@@ -1774,13 +1774,13 @@
 			  )
 			 )
 		  (csymor (clone_symbol 'or_))
-		  (corbind (make_instance 
+		  (corbind (instance 
 			    class_normlet_binding
 			    :binder csymor
 			    :letbind_loc sloc
 			    :letbind_type ctypcur
 			    :letbind_expr nifor))
-		  (corocc (make_instance
+		  (corocc (instance
 			   class_nrep_locsymocc
 			   :nrep_loc sloc
 			   :nocc_ctyp ctypcur
@@ -1842,7 +1842,7 @@
 	 (boxlnbody (make_integerbox discr_integer lnbody))
 	 )
     (if (<=i lnbody 0)
-	(let ( (onull (make_instance class_nrep_nil :nrep_loc sloc)) )
+	(let ( (onull (instance class_nrep_nil :nrep_loc sloc)) )
 	  (error_plain sloc "empty PROGN")
 	  (debug_msg onull "normexp_progn return empty onull")
 	  (return onull)))
@@ -1866,19 +1866,19 @@
        (let (
 	     (csym (clone_symbol 'progn_))
 	     (lastctyp (get_ctype nlast env))
-	     (cbind (make_instance class_normlet_binding
-				   :binder csym
-				   :letbind_loc sloc
-				   :letbind_type lastctyp
-				   :letbind_expr (make_instance class_nrep_progn
-								:nrep_loc sloc
-								:nprogn_seq nallbutlast
-								:nprogn_last nlast)))
-	     (clocc (make_instance class_nrep_locsymocc
-				   :nrep_loc sloc
-				   :nocc_ctyp lastctyp
-				   :nocc_symb csym
-				   :nocc_bind cbind))
+	     (cbind (instance class_normlet_binding
+			      :binder csym
+			      :letbind_loc sloc
+			      :letbind_type lastctyp
+			      :letbind_expr (instance class_nrep_progn
+						      :nrep_loc sloc
+						      :nprogn_seq nallbutlast
+						      :nprogn_last nlast)))
+	     (clocc (instance class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp lastctyp
+			      :nocc_symb csym
+			      :nocc_bind cbind))
 	     )
 	 (list_append nbind cbind)
 	 (debug_msg clocc "normexp_progn return clocc")
@@ -1931,11 +1931,11 @@
 		     (if (!= b lastnbinding)
 			 (list_append bindlist b))))
 		  (let ( (newcbnd
-			  (make_instance class_normlet_binding
-					 :binder sbinder
-					 :letbind_type (unsafe_get_field :letbind_type lastnbinding)
-					 :letbind_expr (unsafe_get_field :letbind_expr lastnbinding)
-					 :letbind_loc (unsafe_get_field :letbind_loc lastnbinding)))
+			  (instance class_normlet_binding
+				    :binder sbinder
+				    :letbind_type (unsafe_get_field :letbind_type lastnbinding)
+				    :letbind_expr (unsafe_get_field :letbind_expr lastnbinding)
+				    :letbind_loc (unsafe_get_field :letbind_loc lastnbinding)))
 			 )
 		    (list_append bindlist newcbnd)
 		    (put_env newenv newcbnd)
@@ -1945,11 +1945,11 @@
 ;;; otherwise, eg a plain constant, a complex if...
 		(list_append2list bindlist  nbindings)
 		(let ( (newpbnd 
-			(make_instance class_normlet_binding
-				       :binder sbinder
-				       :letbind_type sbtyp
-				       :letbind_expr nbdexpr
-				       :letbind_loc sbloc)) )
+			(instance class_normlet_binding
+				  :binder sbinder
+				  :letbind_type sbtyp
+				  :letbind_expr nbdexpr
+				  :letbind_loc sbloc)) )
 		  (list_append bindlist newpbnd)
 		  (put_env newenv newpbnd)
 		  ))
@@ -1978,19 +1978,19 @@
 	   (nlastyp (or (get_ctype nlastbody newenv) ctype_void))
 	   (csym (clone_symbol 'let_))
 	   (nlet
-	    (make_instance class_nrep_let
-			   :nrep_loc sloc
-			   :nlet_bindings (list_to_multiple bindlist discr_multiple)
-			   :nlet_body nbody))
-	   (cbind (make_instance class_normlet_binding
-				 :binder csym
-				 :letbind_loc sloc
-				 :letbind_type nlastyp
-				 :letbind_expr nlet))
-	   (clocc (make_instance class_nrep_locsymocc
-				 :nrep_loc sloc
-				 :nocc_ctyp nlastyp
-				 :nocc_bind cbind))
+	    (instance class_nrep_let
+		      :nrep_loc sloc
+		      :nlet_bindings (list_to_multiple bindlist discr_multiple)
+		      :nlet_body nbody))
+	   (cbind (instance class_normlet_binding
+			    :binder csym
+			    :letbind_loc sloc
+			    :letbind_type nlastyp
+			    :letbind_expr nlet))
+	   (clocc (instance class_nrep_locsymocc
+			    :nrep_loc sloc
+			    :nocc_ctyp nlastyp
+			    :nocc_bind cbind))
 	   (resbinds (make_list discr_list))
 	   )
        (list_append resbinds cbind)
@@ -2025,20 +2025,20 @@
      (normal_exp sobj env ncx sloc)
      (if (null nbind) (setq nbind (make_list discr_list)))
      (let ( (csym (clone_symbol (unsafe_get_field :named_name sfld)))
-	    (cbind (make_instance class_normlet_binding
-				  :binder csym
-				  :letbind_loc sloc
-				  :letbind_type ctype_value
-				  :letbind_expr 
-				  (make_instance class_nrep_unsafe_get_field
-						 :nrep_loc sloc
-						 :nuget_obj nobj
-						 :nuget_field sfld)))
-	    (clocc (make_instance  class_nrep_locsymocc
-				   :nrep_loc sloc
-				   :nocc_ctyp ctype_value
-				   :nocc_symb csym
-				   :nocc_bind cbind))
+	    (cbind (instance class_normlet_binding
+			     :binder csym
+			     :letbind_loc sloc
+			     :letbind_type ctype_value
+			     :letbind_expr 
+			     (instance class_nrep_unsafe_get_field
+				       :nrep_loc sloc
+				       :nuget_obj nobj
+				       :nuget_field sfld)))
+	    (clocc (instance  class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp ctype_value
+			      :nocc_symb csym
+			      :nocc_bind cbind))
 	    )
        (list_append nbind cbind)
        (debug_msg clocc "normexp unsafeget result clocc")
@@ -2061,17 +2061,17 @@
 	 (nfields (make_multiple discr_multiple nbfields))
 	 (nbindlist (make_list discr_list)) 
 	 (csym (clone_symbol 'unsafput_))
-	 (cbind (make_instance class_normlet_binding
-			       :binder csym
-			       :letbind_loc sloc
-			       :letbind_type ctype_void
-			       ;; letbind_expr filled later
-			       :letbind_expr ()))
-	 (clocc (make_instance  class_nrep_locsymocc
-				:nrep_loc sloc
-				:nocc_ctyp ctype_void
-				:nocc_symb csym
-				:nocc_bind cbind))
+	 (cbind (instance class_normlet_binding
+			  :binder csym
+			  :letbind_loc sloc
+			  :letbind_type ctype_void
+			  ;; letbind_expr filled later
+			  :letbind_expr ()))
+	 (clocc (instance  class_nrep_locsymocc
+			   :nrep_loc sloc
+			   :nocc_ctyp ctype_void
+			   :nocc_symb csym
+			   :nocc_bind cbind))
 	 )
     (multicall
      (nobj nobjbind)
@@ -2088,16 +2088,16 @@
 	   (nexp nexpbind)
 	   (normal_exp exp env ncx sloc)
 	   (list_append2list nbindlist  nexpbind)
-	   (let ( (nfla (make_instance class_nrep_fieldassign
-				       :nrep_loc sloc
-				       :nfla_field fld
-				       :nfla_val nexp)) )
+	   (let ( (nfla (instance class_nrep_fieldassign
+				  :nrep_loc sloc
+				  :nfla_field fld
+				  :nfla_val nexp)) )
 	     (multiple_put_nth nfields ix nfla)
 	     )))))
-     (let ( (npuf (make_instance class_nrep_unsafe_put_fields
-				 :nrep_loc sloc
-				 :nuput_obj nobj
-				 :nuput_fields nfields)) )
+     (let ( (npuf (instance class_nrep_unsafe_put_fields
+			    :nrep_loc sloc
+			    :nuput_obj nobj
+			    :nuput_fields nfields)) )
        (unsafe_put_fields cbind :letbind_expr npuf)
        (list_append nbindlist cbind)
        (debug_msg clocc "normexp_unsafe_put_fields result clocc")
@@ -2138,22 +2138,22 @@
 			    (unsafe_get_field :named_name varctyp))
 	       (inform_strv sloc "right [expr] type for incomatible SETQ"
 			    (unsafe_get_field :named_name expctyp))
-	   )))
+	       )))
        (let ( (csym (clone_symbol 'setq_)) 
-	      (cbind  (make_instance class_normlet_binding
-				     :binder csym
-				     :letbind_loc sloc
-				     :letbind_type varctyp
-				     :letbind_expr
-				     (make_instance class_nrep_setq
-						    :nrep_loc sloc
-						    :nstq_var nvar
-						    :nstq_exp nexp)))
-	      (clocc (make_instance class_nrep_locsymocc
-				    :nrep_loc sloc
-				    :nocc_ctyp varctyp
-				    :nocc_symb csym
-				    :nocc_bind cbind))
+	      (cbind  (instance class_normlet_binding
+				:binder csym
+				:letbind_loc sloc
+				:letbind_type varctyp
+				:letbind_expr
+				(instance class_nrep_setq
+					  :nrep_loc sloc
+					  :nstq_var nvar
+					  :nstq_exp nexp)))
+	      (clocc (instance class_nrep_locsymocc
+			       :nrep_loc sloc
+			       :nocc_ctyp varctyp
+			       :nocc_symb csym
+			       :nocc_bind cbind))
 	      )
 	 (list_append nbind cbind)
 	 (return clocc nbind)
@@ -2199,28 +2199,28 @@
 		  (normal_exp curexp env ncx curfloc)
 		  (assert_msg "check nbind" (is_list_or_null nbind))
 		  (list_append2list bindlist  nbind)
-		  (make_instance class_nrep_fieldassign
-				 :nrep_loc curfloc
-				 :nfla_field curfield
-				 :nfla_val nexp)
+		  (instance class_nrep_fieldassign
+			    :nrep_loc curfloc
+			    :nfla_field curfield
+			    :nfla_val nexp)
 		  )))))
 	   (nmkins 
-	    (make_instance class_nrep_make_instance
-			   :nrep_loc sloc
-			   :nmins_class sclass
-			   :nmins_cladata cladata
-			   :nmins_fields nfields))
+	    (instance class_nrep_make_instance
+		      :nrep_loc sloc
+		      :nmins_class sclass
+		      :nmins_cladata cladata
+		      :nmins_fields nfields))
 	   (csym (clone_symbol 'inst_))
-	   (cbind (make_instance class_normlet_binding
-				 :binder csym
-				 :letbind_loc sloc
-				 :letbind_type ctype_value
-				 :letbind_expr nmkins))
-	   (clocc (make_instance class_nrep_locsymocc
-				 :nrep_loc sloc
-				 :nocc_ctyp ctype_value
-				 :nocc_symb csym
-				 :nocc_bind cbind))
+	   (cbind (instance class_normlet_binding
+			    :binder csym
+			    :letbind_loc sloc
+			    :letbind_type ctype_value
+			    :letbind_expr nmkins))
+	   (clocc (instance class_nrep_locsymocc
+			    :nrep_loc sloc
+			    :nocc_ctyp ctype_value
+			    :nocc_symb csym
+			    :nocc_bind cbind))
 	   )
       (list_append bindlist cbind)
       (debug_msg clocc "normexp_make_instance result clocc")
@@ -2270,21 +2270,21 @@
 	     (resbody (make_tuple1 discr_multiple 
 				   (wrap_normal_letseq nbody nbodbindings sloc)))
 	     (csym (clone_symbol 'forever_))
-	     (nforever (make_instance class_nrep_forever
-				      :nrep_loc sloc
-				      :nforever_bind slbind
-				      :nforever_body resbody
-				      :nforever_result resy)) 
-	     (cbind (make_instance class_normlet_binding
-				   :binder csym
-				   :letbind_loc sloc
-				   :letbind_type ctype_value
-				   :letbind_expr nforever))
-	     (clocc (make_instance class_nrep_locsymocc
-				   :nrep_loc sloc
-				   :nocc_ctyp ctype_value
-				   :nocc_symb csym
-				   :nocc_bind cbind))
+	     (nforever (instance class_nrep_forever
+				 :nrep_loc sloc
+				 :nforever_bind slbind
+				 :nforever_body resbody
+				 :nforever_result resy)) 
+	     (cbind (instance class_normlet_binding
+			      :binder csym
+			      :letbind_loc sloc
+			      :letbind_type ctype_value
+			      :letbind_expr nforever))
+	     (clocc (instance class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp ctype_value
+			      :nocc_symb csym
+			      :nocc_bind cbind))
 	     (nforbindings (make_list discr_list))
 	     )
 	 (list_append nforbindings cbind)
@@ -2318,21 +2318,21 @@
      (if (null nbodbindings)
 	 (setq nbodbindings (make_list discr_list)))
      ;; the only interesting value of nbody is the last one
-     (let ( (nexit (make_instance class_nrep_exit
-				  :nrep_loc sloc
-				  :nexit_bind slbind
-				  :nexit_val (multiple_nth nbody (-i (multiple_length nbody) 1)))) 
+     (let ( (nexit (instance class_nrep_exit
+			     :nrep_loc sloc
+			     :nexit_bind slbind
+			     :nexit_val (multiple_nth nbody (-i (multiple_length nbody) 1)))) 
 	    (csym (clone_symbol 'exit_))
-	    (cbind (make_instance class_normlet_binding
-				  :binder csym
-				  :letbind_loc sloc
-				  :letbind_type ctype_void
-				  :letbind_expr nexit))
-	    (clocc (make_instance class_nrep_locsymocc
-				  :nrep_loc sloc
-				  :nocc_ctyp ctype_void
-				  :nocc_symb csym
-				  :nocc_bind cbind))
+	    (cbind (instance class_normlet_binding
+			     :binder csym
+			     :letbind_loc sloc
+			     :letbind_type ctype_void
+			     :letbind_expr nexit))
+	    (clocc (instance class_nrep_locsymocc
+			     :nrep_loc sloc
+			     :nocc_ctyp ctype_void
+			     :nocc_symb csym
+			     :nocc_bind cbind))
 	    )
        (list_append nbodbindings cbind)
        (debug_msg nexit "normexp_exit nexit")
@@ -2382,18 +2382,18 @@
        (if (== (unsafe_get_field :nocc_ctyp lastcomp) ctype_value)
 	   (multiple_put_nth 
 	    tup  (-i tuplen 1)
-	    (make_instance class_nrep_return
-			   :nrep_loc sloc
-			   :nret_main lastcomp)))
+	    (instance class_nrep_return
+		      :nrep_loc sloc
+		      :nret_main lastcomp)))
        (return tup)
        )
 ;;; last expression is a normal data, return it
      ( (is_a lastcomp class_nrep_data)
        (multiple_put_nth 
 	tup  (-i tuplen 1)
-	(make_instance class_nrep_return
-		       :nrep_loc sloc
-		       :nret_main lastcomp))
+	(instance class_nrep_return
+		  :nrep_loc sloc
+		  :nret_main lastcomp))
        (return tup)
        )
 ;;; no last expression - don't bother to return
@@ -2424,25 +2424,25 @@
 	      )
 	 (if (== lastyp ctype_value)
 	     (let ( (rclosym (clone_symbol '_retval_))
-		    (rclocc (make_instance class_nrep_locsymocc 
-					   :nrep_loc loc
-					   :nocc_symb rclosym
-					   :nocc_ctyp ctype_value))
-		    (retn (make_instance class_nrep_return
-					 :nrep_loc loc
-					 :nret_main rclocc
-					 ))
-		    (rbind (make_instance class_normlet_binding
-					  :binder rclosym
-					  :letbind_type ctype_value
-					  :letbind_expr lastcomp
-					  :letbind_loc loc
-					  ))
+		    (rclocc (instance class_nrep_locsymocc 
+				      :nrep_loc loc
+				      :nocc_symb rclosym
+				      :nocc_ctyp ctype_value))
+		    (retn (instance class_nrep_return
+				    :nrep_loc loc
+				    :nret_main rclocc
+				    ))
+		    (rbind (instance class_normlet_binding
+				     :binder rclosym
+				     :letbind_type ctype_value
+				     :letbind_expr lastcomp
+				     :letbind_loc loc
+				     ))
 		    (rbintup (make_tuple1 discr_multiple rbind))
-		    (rlet (make_instance class_nrep_let
-					 :nrep_loc loc
-					 :nlet_bindings rbintup
-					 :nlet_body (make_tuple1 discr_multiple retn)))
+		    (rlet (instance class_nrep_let
+				    :nrep_loc loc
+				    :nlet_bindings rbintup
+				    :nlet_body (make_tuple1 discr_multiple retn)))
 		    )
 	       (unsafe_put_fields rclocc :nocc_bind rbind)
 	       (multiple_put_nth 
@@ -2472,29 +2472,29 @@
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (oldsymbcache (unsafe_get_field :nctx_symbcachemap ncx))
 	 (closblis (make_list discr_list))
-	 (nproc (make_instance class_nrep_routproc
+	 (nproc (instance class_nrep_routproc
 ;;; dont forget to put the nil fields at end
-			       :nrep_loc sloc
-			       :nproc_body (the_null) ;filled later
-			       :nrpro_name snam
-			       :nrpro_argb sformals
-			       :nrpro_closedb closblis
-			       :nrpro_const (make_list discr_list)
-			       :nrpro_thunklist (make_list discr_list)
-			       :nrpro_datarout (the_null) ; filled below
-			       :nrpro_dataclos (the_null) ; filled below
-			       ))
-	 (ndatarout (make_instance class_nrep_dataroutine
-				   :ndata_name snam
-				   :ndata_discrx (normal_predef discr_routine ncx sloc "discr_routine")
-				   :ndrou_proc nproc
-				   ))
-	 (ndataclos (make_instance class_nrep_dataclosure
-				   :ndata_name snam
-				   :ndata_discrx  (normal_predef discr_closure ncx sloc "discr_closure")
-				   :ndclo_proc nproc
-				   :ndclo_closv (the_null) ;filled below
-				   ))
+			  :nrep_loc sloc
+			  :nproc_body (the_null) ;filled later
+			  :nrpro_name snam
+			  :nrpro_argb sformals
+			  :nrpro_closedb closblis
+			  :nrpro_const (make_list discr_list)
+			  :nrpro_thunklist (make_list discr_list)
+			  :nrpro_datarout (the_null) ; filled below
+			  :nrpro_dataclos (the_null) ; filled below
+			  ))
+	 (ndatarout (instance class_nrep_dataroutine
+			      :ndata_name snam
+			      :ndata_discrx (normal_predef discr_routine ncx sloc "discr_routine")
+			      :ndrou_proc nproc
+			      ))
+	 (ndataclos (instance class_nrep_dataclosure
+			      :ndata_name snam
+			      :ndata_discrx  (normal_predef discr_closure ncx sloc "discr_closure")
+			      :ndclo_proc nproc
+			      :ndclo_closv (the_null) ;filled below
+			      ))
 	 )
     (unsafe_put_fields ncx 
 		       :nctx_curproc nproc
@@ -2564,29 +2564,29 @@
 	 (sbody (unsafe_get_field :slam_body recv))
 	 (savedcachemap (unsafe_get_field :nctx_symbcachemap ncx))
 	 (csym (clone_symbol 'lambda_))
-	 (clocc (make_instance class_nrep_locsymocc
-			       :nrep_loc sloc
-			       :nocc_ctyp ctype_value
-			       :nocc_symb csym)) 
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_value
+			  :nocc_symb csym)) 
 	 (newenv (fresh_env env))
 	 (oldproc (unsafe_get_field :nctx_curproc ncx))
 	 (closedblist (make_list discr_list))
-	 (nproc (make_instance class_nrep_routproc
-			       :nrep_loc sloc
-			       :nproc_body (the_null) ;filled later
-			       :nrpro_name csym
-			       :nrpro_argb sargs
-			       :nrpro_closedb closedblist
-			       :nrpro_const (make_list discr_list)
-			       :nrpro_datarout (the_null) ; filled below
-			       :nrpro_dataclos (the_null) ; not filled
-			       :nrpro_thunklist (make_list discr_list)
-			       ))
-	 (ndatarout (make_instance class_nrep_dataroutine
-				   :ndata_name csym
-				   :ndata_discrx (normal_predef discr_routine ncx sloc "discr_routine")
-				   :ndrou_proc nproc
-				   ))
+	 (nproc (instance class_nrep_routproc
+			  :nrep_loc sloc
+			  :nproc_body (the_null) ;filled later
+			  :nrpro_name csym
+			  :nrpro_argb sargs
+			  :nrpro_closedb closedblist
+			  :nrpro_const (make_list discr_list)
+			  :nrpro_datarout (the_null) ; filled below
+			  :nrpro_dataclos (the_null) ; not filled
+			  :nrpro_thunklist (make_list discr_list)
+			  ))
+	 (ndatarout (instance class_nrep_dataroutine
+			      :ndata_name csym
+			      :ndata_discrx (normal_predef discr_routine ncx sloc "discr_routine")
+			      :ndrou_proc nproc
+			      ))
 	 )
     (add_nctx_data ncx ndatarout)
     ;; update the context for the new proc & a fresh symbol cache map
@@ -2622,11 +2622,11 @@
 	   ;; we make an anonymous constant for the routine unless in toplevel
 	   (:long insideflag (is_a oldproc class_nrep_routproc))
 	   (krout (if insideflag
-		      (make_instance class_nrep_constant
-				     :nrep_loc sloc
-				     :nconst_sval recv
-				     :nconst_data ndatarout
-				     :nconst_proc oldproc)))
+		      (instance class_nrep_constant
+				:nrep_loc sloc
+				:nconst_sval recv
+				:nconst_data ndatarout
+				:nconst_proc oldproc)))
 	   (clovtup 
 	    (list_to_multiple closedblist
 			      discr_multiple
@@ -2638,17 +2638,17 @@
 				       (nsy (normal_exp sy env ncx sloc))
 				       )
 				  nsy))))
-	   (nlambda (make_instance class_nrep_lambda 
-				   :nrep_loc sloc
-				   :nlambda_proc nproc
-				   :nlambda_constrout (if insideflag krout ndatarout)
-				   :nlambda_closedv clovtup
-				   ))
-	   (cbind (make_instance class_normlet_binding
-				 :letbind_loc sloc
-				 :binder csym
-				 :letbind_type ctype_value
-				 :letbind_expr nlambda))
+	   (nlambda (instance class_nrep_lambda 
+			      :nrep_loc sloc
+			      :nlambda_proc nproc
+			      :nlambda_constrout (if insideflag krout ndatarout)
+			      :nlambda_closedv clovtup
+			      ))
+	   (cbind (instance class_normlet_binding
+			    :letbind_loc sloc
+			    :binder csym
+			    :letbind_type ctype_value
+			    :letbind_expr nlambda))
 	   (nbindlist (make_list discr_list))
 	   )
        (unsafe_put_fields clocc :nocc_bind cbind)
@@ -2718,28 +2718,28 @@
 		(lastnbody (multiple_nth nbody -1))
 		(lastntype (if lastnbody (get_ctype lastnbody newenv) ctype_void))
 		(csym (clone_symbol 'multi_))
-		(cbind (make_instance class_normlet_binding
-				      :binder csym
-				      :letbind_loc sloc
-				      :letbind_type lastntype
+		(cbind (instance class_normlet_binding
+				 :binder csym
+				 :letbind_loc sloc
+				 :letbind_type lastntype
 					; :letbind_expr  filled below
-				      ))
-		(clocc (make_instance class_nrep_locsymocc
-				      :nrep_loc sloc
-				      :nocc_ctyp lastntype
-				      :nocc_symb csym
-				      :nocc_bind cbind))
+				 ))
+		(clocc (instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp lastntype
+				 :nocc_symb csym
+				 :nocc_bind cbind))
 		)
 ;;; handle differently apply & sends
 	    (cond
 	     ( (is_a scall class_src_apply)
 	       (assert_msg "normexp_multicall check nrealcall apply" (is_a nrealcall class_nrep_apply))
-	       (let ( (nres (make_instance class_nrep_multiapply
-					   :nrep_loc sloc
-					   :napp_fun (unsafe_get_field :napp_fun nrealcall)
-					   :napp_args (unsafe_get_field :napp_args nrealcall)
-					   :nmulapp_bindings sresbind
-					   :nmulapp_body wnbodylet)) )
+	       (let ( (nres (instance class_nrep_multiapply
+				      :nrep_loc sloc
+				      :napp_fun (unsafe_get_field :napp_fun nrealcall)
+				      :napp_args (unsafe_get_field :napp_args nrealcall)
+				      :nmulapp_bindings sresbind
+				      :nmulapp_body wnbodylet)) )
 		 (unsafe_put_fields cbind :letbind_expr nres)
 		 (list_append nincallbindings cbind)
 		 (debug_msg clocc "normexp_multicall multiapply result clocc")
@@ -2750,13 +2750,13 @@
 	     ( (is_a scall class_src_msend)
 	       (debug_msg nrealcall "normexp_multicall multicall nrealcall")
 	       (assert_msg "normexp_multicall check nrealcall send" (is_a nrealcall class_nrep_msend))
-	       (let ( (nres (make_instance class_nrep_multimsend
-					   :nrep_loc sloc
-					   :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
-					   :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
-					   :nsend_args (unsafe_get_field :nsend_args nrealcall)
-					   :nmulsend_bindings sresbind
-					   :nmulsend_body wnbodylet)) )
+	       (let ( (nres (instance class_nrep_multimsend
+				      :nrep_loc sloc
+				      :nsend_sel (unsafe_get_field :nsend_sel nrealcall)
+				      :nsend_recv (unsafe_get_field :nsend_recv nrealcall)
+				      :nsend_args (unsafe_get_field :nsend_args nrealcall)
+				      :nmulsend_bindings sresbind
+				      :nmulsend_body wnbodylet)) )
 		 (unsafe_put_fields cbind :letbind_expr nres)
 		 (list_append nincallbindings cbind)
 		 (debug_msg clocc "normexp_multicall multisend result clocc")
@@ -2769,7 +2769,7 @@
 	       (return (the_null))
 	       )
 	     ))))))))
-       
+
 (install_method class_src_multicall normal_exp normexp_multicall)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2782,9 +2782,9 @@
   (let ( (predefmap (unsafe_get_field :nctx_predefmap ncx)) 
 	 (brk (mapobject_get predefmap pred)) )
     (if (or (is_integerbox brk) (is_a brk class_symbol))
-	(make_instance class_nrep_predef
-		       :nrep_loc sloc
-		       :nrpredef brk)
+	(instance class_nrep_predef
+		  :nrep_loc sloc
+		  :nrpredef brk)
       (if (is_string msg) 
 	  (progn
 	    (debug_msg predefmap "normalpredef predefmap")
@@ -2806,31 +2806,31 @@
 	(progn
 	  (debug_msg osydata "normal_symbol_data found osydata")
 	  (return osydata))
-	(let ( (:long syhash (obj_hash sym))
-	       (synamstr (unsafe_get_field :named_name sym))
-	       ;; make the datastring from synamstr
-	       (synamstrdata 
-		(make_instance class_nrep_datastring 
-			       :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-			       :nstr_string synamstr
-					    ))
-	       (syslots (make_multiple discr_multiple
-				       (multiple_length (unsafe_get_field :class_fields class_symbol))))
-	       (sydata (make_instance class_nrep_datasymbol
-				      :ndata_name sym
-				      :ndata_discrx (normal_predef class_symbol ncx sloc "class_symbol")
-				      :ninst_hash (make_integerbox discr_integer syhash)
-				      :ninst_slots syslots
-				      :ndsy_namestr synamstr))
-	       )
-	  (multiple_put_nth syslots (obj_num named_name) synamstrdata)
-	  (add_nctx_data ncx sydata)
-	  (add_nctx_data ncx synamstrdata)
-	  (mapobject_put valmap sym sydata)
-	  (mapstring_putstr (unsafe_get_field :nctx_symbmap ncx) synamstr sydata)
-	  (debug_msg sydata "normal_symbol_data return sydata")
-	  (return sydata)
-	  ))))
+      (let ( (:long syhash (obj_hash sym))
+	     (synamstr (unsafe_get_field :named_name sym))
+	     ;; make the datastring from synamstr
+	     (synamstrdata 
+	      (instance class_nrep_datastring 
+			:ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+			:nstr_string synamstr
+			))
+	     (syslots (make_multiple discr_multiple
+				     (multiple_length (unsafe_get_field :class_fields class_symbol))))
+	     (sydata (instance class_nrep_datasymbol
+			       :ndata_name sym
+			       :ndata_discrx (normal_predef class_symbol ncx sloc "class_symbol")
+			       :ninst_hash (make_integerbox discr_integer syhash)
+			       :ninst_slots syslots
+			       :ndsy_namestr synamstr))
+	     )
+	(multiple_put_nth syslots (obj_num named_name) synamstrdata)
+	(add_nctx_data ncx sydata)
+	(add_nctx_data ncx synamstrdata)
+	(mapobject_put valmap sym sydata)
+	(mapstring_putstr (unsafe_get_field :nctx_symbmap ncx) synamstr sydata)
+	(debug_msg sydata "normal_symbol_data return sydata")
+	(return sydata)
+	))))
 
 
 
@@ -2842,30 +2842,30 @@
   (let ( (valmap  (unsafe_get_field :nctx_valmap ncx))
 	 (osydata (mapobject_get valmap keyw)) )
     (if osydata osydata
-	(let ( (:long syhash (obj_hash keyw))
-	       (synamstr (unsafe_get_field :named_name keyw))
-	       ;; make the datastring from synamstr
-	       (synamstrdata 
-		(make_instance class_nrep_datastring 
-			       :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-			       :nstr_string synamstr
-					    ))
-	       (syslots (make_multiple discr_multiple
-				       (multiple_length (unsafe_get_field :class_fields class_keyword))))
-	       (sydata (make_instance class_nrep_datakeyword
-				      :ndata_name keyw
-				      :ndata_discrx (normal_predef class_keyword ncx sloc "class_keyword")
-				      :ninst_hash (make_integerbox discr_integer syhash)
-				      :ninst_slots syslots
-				      :ndsy_namestr synamstr))
-	       )
-	  (multiple_put_nth syslots (obj_num named_name) synamstrdata)
-	  (add_nctx_data ncx sydata)
-	  (add_nctx_data ncx synamstrdata)
-	  (mapobject_put valmap keyw sydata)
-	  (mapstring_putstr (unsafe_get_field :nctx_keywmap ncx) synamstr sydata)
-	  (return sydata)
-	  ))))
+      (let ( (:long syhash (obj_hash keyw))
+	     (synamstr (unsafe_get_field :named_name keyw))
+	     ;; make the datastring from synamstr
+	     (synamstrdata 
+	      (instance class_nrep_datastring 
+			:ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+			:nstr_string synamstr
+			))
+	     (syslots (make_multiple discr_multiple
+				     (multiple_length (unsafe_get_field :class_fields class_keyword))))
+	     (sydata (instance class_nrep_datakeyword
+			       :ndata_name keyw
+			       :ndata_discrx (normal_predef class_keyword ncx sloc "class_keyword")
+			       :ninst_hash (make_integerbox discr_integer syhash)
+			       :ninst_slots syslots
+			       :ndsy_namestr synamstr))
+	     )
+	(multiple_put_nth syslots (obj_num named_name) synamstrdata)
+	(add_nctx_data ncx sydata)
+	(add_nctx_data ncx synamstrdata)
+	(mapobject_put valmap keyw sydata)
+	(mapstring_putstr (unsafe_get_field :nctx_keywmap ncx) synamstr sydata)
+	(return sydata)
+	))))
 
 
 ;; create the tuples of slots of a datainstance for a particular class
@@ -2886,7 +2886,7 @@
   (let ( (:long fix (obj_num field))
 	 (slots (unsafe_get_field :ninst_slots di)) )
     (multiple_put_nth slots fix val)
-))
+    ))
 
 ;;;;;; normalize a QUOTE-d symbol
 
@@ -2894,7 +2894,7 @@
   (assert_msg "check quote recv" (is_a recv class_src_quote))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
-  ;(debug_msg ncx "normexp_quote ncx")
+					;(debug_msg ncx "normexp_quote ncx")
   (debug_msg recv "normexp_quote recv")
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (quotedsy (unsafe_get_field :squoted recv)) )
@@ -2904,12 +2904,12 @@
 	   )
       (if (is_a curproc class_nrep_routproc)
 	  (let ( 
-		(nconst (make_instance class_nrep_constant
-				       :nrep_loc sloc
-				       :nconst_sval quotedsy
-				       :nconst_data sdata
-				       :nconst_proc curproc
-				       )) )
+		(nconst (instance class_nrep_constant
+				  :nrep_loc sloc
+				  :nconst_sval quotedsy
+				  :nconst_data sdata
+				  :nconst_proc curproc
+				  )) )
 	    (list_append (unsafe_get_field :nrpro_const curproc) sdata)
 	    (debug_msg nconst "normexp_quote in routine nconst")
 	    (return nconst))
@@ -2927,21 +2927,21 @@
   (debug_msg recv "normexp_comment start recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (scomm (unsafe_get_field :scomm_str recv))
-	 (ncomm (make_instance class_nrep_comment
-			       :nrep_loc sloc
-			       :ncomm_string scomm
-			     ))  
+	 (ncomm (instance class_nrep_comment
+			  :nrep_loc sloc
+			  :ncomm_string scomm
+			  ))  
 	 (csym (clone_symbol 'comment_)) 
-	 (cbind (make_instance class_normlet_binding
-			       :letbind_loc sloc
-			       :binder csym
-			       :letbind_type ctype_void
-			       :letbind_expr ncomm))
-	 (clocc (make_instance class_nrep_locsymocc
-			       :nrep_loc sloc
-			       :nocc_ctyp ctype_void
-			       :nocc_symb csym
-			       :nocc_bind cbind))
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_void
+			  :letbind_expr ncomm))
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_void
+			  :nocc_symb csym
+			  :nocc_bind cbind))
 	 (bindlist (make_list discr_list))
 	 )
     (if scomm (assert_msg "check scomm" (is_string scomm)))
@@ -2950,7 +2950,7 @@
     (debug_msg clocc "normexp_comment return clocc")
     (debug_msg bindlist "normexp_comment return bindlist")
     (return clocc bindlist)
-))
+    ))
 (install_method class_src_comment normal_exp normexp_comment)
 
 ;;;;;; normalize a keyword
@@ -2967,11 +2967,11 @@
     (if (is_a curproc class_nrep_routproc)
 	(let (
 	      (constlist (unsafe_get_field :nrpro_const curproc))
-	      (nconst (make_instance class_nrep_constant
-				     :nrep_loc psloc
-				     :nconst_sval recv
-				     :nconst_data kdata
-				     :nconst_proc curproc))
+	      (nconst (instance class_nrep_constant
+				:nrep_loc psloc
+				:nconst_sval recv
+				:nconst_data kdata
+				:nconst_proc curproc))
 	      )
 	  (debug_msg curproc "normexp_keyword routine curproc")
 	  (list_append constlist kdata)
@@ -2993,7 +2993,7 @@
 	 (fsymb (unsafe_get_field :binder fargb))
 	 (fdataslot (create_data_slots class_formal_binding))
 	 (fargdata 
-	  (make_instance 
+	  (instance 
 	   class_nrep_datainstance
 	   :nrep_loc sloc
 	   :ndata_discrx (normal_predef class_formal_binding ncx sloc "class_formal_binding") 
@@ -3033,7 +3033,7 @@
 	    (compdata 
 	     (cond ( (== discrcomp discr_verbatimstring)
 		     (add_nctx_data ncx
-				    (make_instance 
+				    (instance 
 				     class_nrep_datastring
 				     :ndata_discrx (normal_predef discr_verbatimstring ncx sloc "discr_verbatimstring") 
 				     :nstr_string expcomp
@@ -3066,22 +3066,22 @@
 				   (multiple_length sexp)))
 	 (nargtuple (make_multiple discr_multiple
 				   (multiple_length sargs)))
-	 (nexpdata (make_instance class_nrep_datatuple
-				  :nrep_loc sloc
-				  :ndata_name sname
-				  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				  :ntup_comp nexptuple))
-	 (nargdata (make_instance class_nrep_datatuple
-				  :nrep_loc sloc
-				  :ndata_name sname
-				  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				  :ntup_comp nargtuple))
-	 (nprimdata (make_instance class_nrep_datainstance
-				   :nrep_loc sloc
-				   :ndata_name sname
-				   :ndata_discrx (normal_predef class_primitive ncx sloc "class_primitive")
-				   :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-				   :ninst_slots nslotuple)) 
+	 (nexpdata (instance class_nrep_datatuple
+			     :nrep_loc sloc
+			     :ndata_name sname
+			     :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+			     :ntup_comp nexptuple))
+	 (nargdata (instance class_nrep_datatuple
+			     :nrep_loc sloc
+			     :ndata_name sname
+			     :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+			     :ntup_comp nargtuple))
+	 (nprimdata (instance class_nrep_datainstance
+			      :nrep_loc sloc
+			      :ndata_name sname
+			      :ndata_discrx (normal_predef class_primitive ncx sloc "class_primitive")
+			      :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			      :ninst_slots nslotuple)) 
 	 (nsymdata (normal_symbol_data sname ncx sloc))
 	 ;; map of formal symbol -> data of formal_binding
 	 (formsymbmap (make_mapobject discr_mapobjects (+i 3 (*i (multiple_length sargs) 2))))
@@ -3098,7 +3098,7 @@
     (fill_data_slot nprimdata named_name 
 		    (add_nctx_data 
 		     ncx
-		     (make_instance 
+		     (instance 
 		      class_nrep_datastring
 		      :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
 		      :nstr_string (unsafe_get_field :named_name sname))))
@@ -3145,17 +3145,17 @@
 	;; map of formal symbol -> data of formal_binding
 	(formsymbmap (make_mapobject discr_mapobjects
 				     (+i 5 (*i (+i (multiple_length citstafor) (multiple_length citbodfor)) 2))))
-	(namstrdata (make_instance class_nrep_datastring
-				   :nrep_loc sloc
-				   :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-				   :nstr_string (unsafe_get_field :named_name sname)))
-	(insdata (make_instance class_nrep_datainstance
-				:nrep_loc sloc
-				:ndata_name sname
-				:ndata_discrx (normal_predef class_citerator ncx sloc "class_citerator") 
-				:ninst_hash (make_integerbox discr_integer (nonzero_hash))
-				:ninst_slots slotup
-				)) 
+	(namstrdata (instance class_nrep_datastring
+			      :nrep_loc sloc
+			      :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+			      :nstr_string (unsafe_get_field :named_name sname)))
+	(insdata (instance class_nrep_datainstance
+			   :nrep_loc sloc
+			   :ndata_name sname
+			   :ndata_discrx (normal_predef class_citerator ncx sloc "class_citerator") 
+			   :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			   :ninst_slots slotup
+			   )) 
 	)
     (add_nctx_data ncx insdata)
     (add_nctx_data ncx namstrdata)
@@ -3163,11 +3163,11 @@
     (multiple_put_nth slotup (get_int named_name) namstrdata)
 ;;; fill the citer_start_formals of insdata
     (fill_normal_formals citstafor formstatup formsymbmap env ncx sloc)
-    (let ( (nstatupdata (make_instance class_nrep_datatuple
-				       :nrep_loc sloc
-				       :ndata_name sname
-				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				       :ntup_comp formstatup))
+    (let ( (nstatupdata (instance class_nrep_datatuple
+				  :nrep_loc sloc
+				  :ndata_name sname
+				  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				  :ntup_comp formstatup))
 	   )
       (add_nctx_data ncx nstatupdata)
       (multiple_put_nth slotup (get_int citer_start_formals) 
@@ -3181,33 +3181,33 @@
       )
 ;;; fill the citer_body_formals of insdata
     (fill_normal_formals citbodfor formbodtup formsymbmap env ncx sloc)
-    (let ( (nbodtupdata (make_instance class_nrep_datatuple
-				       :nrep_loc sloc
-				       :ndata_name sname
-				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				       :ntup_comp formbodtup))
+    (let ( (nbodtupdata (instance class_nrep_datatuple
+				  :nrep_loc sloc
+				  :ndata_name sname
+				  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				  :ntup_comp formbodtup))
 	   )
       (add_nctx_data ncx nbodtupdata)
       (multiple_put_nth slotup (get_int citer_body_formals) nbodtupdata)
       )
 ;;; fill the citer_expbefore of insdata
     (fill_normal_expansion citexpbef expbeftup ncx sloc)
-    (let ( (nbeftupdata  (make_instance class_nrep_datatuple
-				       :nrep_loc sloc
-				       :ndata_name sname
-				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				       :ntup_comp expbeftup))
+    (let ( (nbeftupdata  (instance class_nrep_datatuple
+				   :nrep_loc sloc
+				   :ndata_name sname
+				   :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				   :ntup_comp expbeftup))
 	   )
       (add_nctx_data ncx nbeftupdata)
       (multiple_put_nth slotup (get_int citer_expbefore) nbeftupdata)
       )
 ;;; fill the citer_expafter of insdata
     (fill_normal_expansion citexpaft expafttup ncx sloc)
-    (let ( (nafttupdata  (make_instance class_nrep_datatuple
-				       :nrep_loc sloc
-				       :ndata_name sname
-				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				       :ntup_comp expafttup))
+    (let ( (nafttupdata  (instance class_nrep_datatuple
+				   :nrep_loc sloc
+				   :ndata_name sname
+				   :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				   :ntup_comp expafttup))
 	   )
       (add_nctx_data ncx nafttupdata)
       (multiple_put_nth slotup (get_int citer_expafter) nafttupdata)
@@ -3264,12 +3264,12 @@
 		 (formarg (unsafe_get_field :binder curforb))
 		 )
 	    (if (== curctyp formctyp)
-		(let ( (nlbind (make_instance class_normlet_binding
-					      :letbind_loc sloc
-					      :binder formarg
-					      :letbind_type curctyp
-					      :letbind_expr curnarg
-					      )) )
+		(let ( (nlbind (instance class_normlet_binding
+					 :letbind_loc sloc
+					 :binder formarg
+					 :letbind_type curctyp
+					 :letbind_expr curnarg
+					 )) )
 		  (multiple_put_nth nbndtup ix nlbind)
 		  )
 	      (progn
@@ -3302,17 +3302,17 @@
 		   (curvfor (unsafe_get_field :binder curbform))
 		   )
 	      (if (== curctyp (unsafe_get_field :fbind_type curbform))
-		  (let ( (nlvbind (make_instance class_normlet_binding
-						 :letbind_loc sloc
-						 :binder curvsym
-						 :letbind_type curctyp
-						 :letbind_expr ()
-						 ))
-			 (clocc (make_instance class_nrep_locsymocc
-					       :nrep_loc sloc
-					       :nocc_ctyp curctyp
-					       :nocc_symb curvsym
-					       :nocc_bind nlvbind))
+		  (let ( (nlvbind (instance class_normlet_binding
+					    :letbind_loc sloc
+					    :binder curvsym
+					    :letbind_type curctyp
+					    :letbind_expr ()
+					    ))
+			 (clocc (instance class_nrep_locsymocc
+					  :nrep_loc sloc
+					  :nocc_ctyp curctyp
+					  :nocc_symb curvsym
+					  :nocc_bind nlvbind))
 			 )
 		    (multiple_put_nth nlocbindtup ix nlvbind)
 		    (multiple_put_nth nsymocctup ix clocc)
@@ -3336,16 +3336,16 @@
 	  (debug_msg nbodbindings "normexp_citeration nbodbindings")
 	  (let ( (citstate (unsafe_get_field :citer_state soper))
 		 (citstsym (clone_symbol citstate))
-		 (citstbind (make_instance class_normlet_binding
-					   :letbind_loc sloc
-					   :binder citstsym
-					   :letbind_type ctype_void
-					   :letbind_expr ()))
-		 (citstocc (make_instance class_nrep_locsymocc
-					  :nrep_loc sloc
-					  :nocc_ctyp ctype_void
-					  :nocc_symb citstsym
-					  :nocc_bind citstbind))
+		 (citstbind (instance class_normlet_binding
+				      :letbind_loc sloc
+				      :binder citstsym
+				      :letbind_type ctype_void
+				      :letbind_expr ()))
+		 (citstocc (instance class_nrep_locsymocc
+				     :nrep_loc sloc
+				     :nocc_ctyp ctype_void
+				     :nocc_symb citstsym
+				     :nocc_bind citstbind))
 		 (citexpbefore (unsafe_get_field :citer_expbefore soper))
 		 (citexpafter (unsafe_get_field :citer_expafter soper))
 		 (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
@@ -3384,7 +3384,7 @@
 	       (mapobject_put citlocmap
 			      (unsafe_get_field :binder curformb)
 			      (multiple_nth  nsymocctup ix))
-			    
+	       
 	       ))
 	    (debug_msg citlocmap "normexp_citeration citlocmap done")
 	    (let ( (chkbefore (citexpander citexpbefore))
@@ -3393,27 +3393,27 @@
 	      (debug_msg chkbefore "normexp_citeration chkbefore")
 	      (debug_msg chkafter "normexp_citeration chkafter")
 	      (let ( (nciter
-		      (make_instance  class_nrep_citeration
-				      :nrep_loc sloc
-				      :nciter_citerator soper
-				      :nciter_locbindings nlocbindtup
-				      :nciter_chunkbefore chkbefore
-				      :nciter_body nbody
-				      :nciter_statocc citstocc
-				      :nciter_bodbindings nbodbindings
-				      :nciter_chunkafter chkafter
-				      ))
+		      (instance  class_nrep_citeration
+				 :nrep_loc sloc
+				 :nciter_citerator soper
+				 :nciter_locbindings nlocbindtup
+				 :nciter_chunkbefore chkbefore
+				 :nciter_body nbody
+				 :nciter_statocc citstocc
+				 :nciter_bodbindings nbodbindings
+				 :nciter_chunkafter chkafter
+				 ))
 		     (csym (clone_symbol (unsafe_get_field :named_name soper)))
-		     (cbind (make_instance class_normlet_binding
-					   :letbind_loc sloc
-					   :binder csym
-					   :letbind_type ctype_void
-					   :letbind_expr nciter))
-		     (clocc (make_instance class_nrep_locsymocc
-					   :nrep_loc sloc
-					   :nocc_ctyp ctype_void
-					   :nocc_symb csym
-					   :nocc_bind cbind))
+		     (cbind (instance class_normlet_binding
+				      :letbind_loc sloc
+				      :binder csym
+				      :letbind_type ctype_void
+				      :letbind_expr nciter))
+		     (clocc (instance class_nrep_locsymocc
+				      :nrep_loc sloc
+				      :nocc_ctyp ctype_void
+				      :nocc_symb csym
+				      :nocc_bind cbind))
 		     )
 		(list_append nbindings cbind)
 		(debug_msg nciter "normexp_citeration nciter")
@@ -3462,17 +3462,17 @@
 	 ;; map of formal symbol -> data of formal_binding
 	 (formsymbmap (make_mapobject discr_mapobjects
 				      (+i 5 (*i (+i (multiple_length inscma) (multiple_length outscma)) 2))))
-	 (namstrdata (make_instance class_nrep_datastring
-				    :nrep_loc sloc
-				    :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-				    :nstr_string (unsafe_get_field :named_name sname)))
-	 (insdata (make_instance class_nrep_datainstance
-				 :nrep_loc sloc
-				 :ndata_name sname
-				 :ndata_discrx (normal_predef class_cmatcher ncx sloc "class_cmatcher") 
-				 :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-				 :ninst_slots slotup
-				 )) 
+	 (namstrdata (instance class_nrep_datastring
+			       :nrep_loc sloc
+			       :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+			       :nstr_string (unsafe_get_field :named_name sname)))
+	 (insdata (instance class_nrep_datainstance
+			    :nrep_loc sloc
+			    :ndata_name sname
+			    :ndata_discrx (normal_predef class_cmatcher ncx sloc "class_cmatcher") 
+			    :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			    :ninst_slots slotup
+			    )) 
 	 )
     (add_nctx_data ncx insdata)
     (add_nctx_data ncx namstrdata)
@@ -3480,11 +3480,11 @@
     (multiple_put_nth slotup (get_int named_name) namstrdata)
 ;;; fill the amatch_in of insdata
     (fill_normal_formals inscma instup formsymbmap env ncx sloc)
-    (let ( (instupdata (make_instance class_nrep_datatuple
-				      :nrep_loc sloc
-				      :ndata_name sname
-				      :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				      :ntup_comp instup))
+    (let ( (instupdata (instance class_nrep_datatuple
+				 :nrep_loc sloc
+				 :ndata_name sname
+				 :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				 :ntup_comp instup))
 	   )
       (add_nctx_data ncx instupdata)
       (multiple_put_nth slotup (get_int amatch_in) 
@@ -3497,11 +3497,11 @@
       )
 ;;; fill the amatch_out of insdata
     (fill_normal_formals outscma outstup formsymbmap env ncx sloc)
-    (let ( (outstupdata (make_instance class_nrep_datatuple
-				       :nrep_loc sloc
-				       :ndata_name sname
-				       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-				       :ntup_comp instup))
+    (let ( (outstupdata (instance class_nrep_datatuple
+				  :nrep_loc sloc
+				  :ndata_name sname
+				  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+				  :ntup_comp instup))
 	   )
       (add_nctx_data ncx outstupdata)
       (multiple_put_nth slotup (get_int amatch_out) 
@@ -3517,11 +3517,11 @@
     (if (is_multiple testcma)
 	(progn
 	  (fill_normal_expansion testcma testtup ncx sloc)
-	  (let ( (ntesttupdata  (make_instance class_nrep_datatuple
-					       :nrep_loc sloc
-					       :ndata_name sname
-					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-					       :ntup_comp testtup))
+	  (let ( (ntesttupdata  (instance class_nrep_datatuple
+					  :nrep_loc sloc
+					  :ndata_name sname
+					  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					  :ntup_comp testtup))
 		 )
 	    (add_nctx_data ncx ntesttupdata)
 	    (multiple_put_nth slotup (get_int cmatch_exptest) ntesttupdata)
@@ -3531,11 +3531,11 @@
     (if (is_multiple fillcma)
 	(progn
 	  (fill_normal_expansion fillcma filltup ncx sloc)
-	  (let ( (nfilltupdata  (make_instance class_nrep_datatuple
-					       :nrep_loc sloc
-					       :ndata_name sname
-					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-					       :ntup_comp filltup))
+	  (let ( (nfilltupdata  (instance class_nrep_datatuple
+					  :nrep_loc sloc
+					  :ndata_name sname
+					  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					  :ntup_comp filltup))
 		 )
 	    (add_nctx_data ncx nfilltupdata)
 	    (multiple_put_nth slotup (get_int cmatch_expfill) nfilltupdata)
@@ -3545,11 +3545,11 @@
     (if (is_multiple opercma)
 	(progn
 	  (fill_normal_expansion opercma opertup ncx sloc)
-	  (let ( (nopertupdata  (make_instance class_nrep_datatuple
-					       :nrep_loc sloc
-					       :ndata_name sname
-					       :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
-					       :ntup_comp opertup))
+	  (let ( (nopertupdata  (instance class_nrep_datatuple
+					  :nrep_loc sloc
+					  :ndata_name sname
+					  :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+					  :ntup_comp opertup))
 		 )
 	    (add_nctx_data ncx nopertupdata)
 	    (multiple_put_nth slotup (get_int cmatch_expoper) nopertupdata)
@@ -3581,25 +3581,25 @@
     (let ( (claobj (unsafe_get_field :cbind_class sclabind)) 
 	   (namsymdata (normal_symbol_data sname ncx sloc))
 	   (namstrdata
-	    (make_instance class_nrep_datastring
-			   :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-			   :nstr_string (unsafe_get_field :named_name sname)
-			   ))
+	    (instance class_nrep_datastring
+		      :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+		      :nstr_string (unsafe_get_field :named_name sname)
+		      ))
 	   (claslots (make_multiple discr_multiple (obj_len claobj)))
 	   (cladata 
-	    (make_instance class_nrep_datainstance
-			   :nrep_loc sloc
-			   :ndata_name sname
-			   :ndata_discrx (normal_predef class_class ncx sloc "class_class")
-			   :ninst_hash  (make_integerbox discr_integer (obj_hash claobj))
-			   :ninst_predef spredef
-			   :ninst_slots claslots
-			   :ninst_objnum 'OBMAG_OBJECT
-			   )) 
+	    (instance class_nrep_datainstance
+		      :nrep_loc sloc
+		      :ndata_name sname
+		      :ndata_discrx (normal_predef class_class ncx sloc "class_class")
+		      :ninst_hash  (make_integerbox discr_integer (obj_hash claobj))
+		      :ninst_predef spredef
+		      :ninst_slots claslots
+		      :ninst_objnum 'OBMAG_OBJECT
+		      )) 
 	   (ancseq (unsafe_get_field :class_ancestors claobj))
 	   (:long nbanc (multiple_length ancseq))
 	   (anctup (make_multiple discr_multiple nbanc))
-	   (ancdata (make_instance 
+	   (ancdata (instance 
 		     class_nrep_datatuple
 		     :nrep_loc sloc
 		     :ndata_name sname
@@ -3612,7 +3612,7 @@
 	   (:long nbsupfld (-i nbfld nbownfld))	;number of super(ie inherited) fields
 	   (:long ix 0)				;temporary index
 	   (fldtup (make_multiple discr_multiple nbfld))
-	   (flddata (make_instance 
+	   (flddata (instance 
 		     class_nrep_datatuple
 		     :nrep_loc sloc
 		     :ndata_name sname
@@ -3640,16 +3640,16 @@
       (forever loopsuperfield
 	       (if (>=i ix nbsupfld) (exit loopsuperfield))
 	       (let ( (supfldata 
-		       (make_instance class_nrep_multacc
-				      :nrep_loc sloc
-				      :naccm_mul
-				      (make_instance class_nrep_fieldacc
-						     :nrep_loc sloc
-						     :naccf_obj superdata
-						     :naccf_fld class_fields
-						     )
-				      :naccm_ix (make_integerbox discr_integer ix)	      
-				      )) 
+		       (instance class_nrep_multacc
+				 :nrep_loc sloc
+				 :naccm_mul
+				 (instance class_nrep_fieldacc
+					   :nrep_loc sloc
+					   :naccf_obj superdata
+					   :naccf_fld class_fields
+					   )
+				 :naccm_ix (make_integerbox discr_integer ix)	      
+				 )) 
 		      )
 		 (multiple_put_nth fldtup ix supfldata)
 		 )
@@ -3669,17 +3669,17 @@
 		   (let ( (ownfldsymdata (normal_symbol_data ownfldsym ncx sloc)) 
 			  (ownfldslots (make_multiple discr_multiple (obj_len ownfld)))
 			  (ownflstrdata 
-			   (make_instance class_nrep_datastring
-					  :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-					  :nstr_string  (unsafe_get_field :named_name ownfld)
-					  ))
-			  (ownfldata (make_instance class_nrep_datainstance
-						    :nrep_loc sloc
-						    :ndata_name ownfldsym
-						    :ndata_discrx (normal_predef class_field ncx sloc "class_field")
-						    :ninst_hash (make_integerbox discr_integer (obj_hash ownfld))
-						    :ninst_objnum (make_integerbox discr_integer (obj_num ownfld))
-						    :ninst_slots ownfldslots))
+			   (instance class_nrep_datastring
+				     :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				     :nstr_string  (unsafe_get_field :named_name ownfld)
+				     ))
+			  (ownfldata (instance class_nrep_datainstance
+					       :nrep_loc sloc
+					       :ndata_name ownfldsym
+					       :ndata_discrx (normal_predef class_field ncx sloc "class_field")
+					       :ninst_hash (make_integerbox discr_integer (obj_hash ownfld))
+					       :ninst_objnum (make_integerbox discr_integer (obj_num ownfld))
+					       :ninst_slots ownfldslots))
 			  )
 		     (add_nctx_data ncx ownfldata)
 		     (add_nctx_data ncx ownflstrdata)
@@ -3701,14 +3701,14 @@
       (forever loopancestorsuper
 	       (if (>=i ix (-i nbanc 1)) (exit loopancestorsuper))
 	       (let ( (supancdata
-		       (make_instance class_nrep_multacc
-				      :nrep_loc sloc
-				      :naccm_mul
-				      (make_instance class_nrep_fieldacc
-						     :nrep_loc sloc
-						     :naccf_obj superdata
-						     :naccf_fld class_ancestors)
-				      :naccm_ix (make_integerbox discr_integer ix))) )
+		       (instance class_nrep_multacc
+				 :nrep_loc sloc
+				 :naccm_mul
+				 (instance class_nrep_fieldacc
+					   :nrep_loc sloc
+					   :naccf_obj superdata
+					   :naccf_fld class_ancestors)
+				 :naccm_ix (make_integerbox discr_integer ix))) )
 		 (multiple_put_nth anctup ix supancdata)
 		 )
 	       (setq ix (+i ix 1))
@@ -3765,15 +3765,15 @@
     (let (
 	  (slotup (make_multiple discr_multiple
 				 (multiple_length (unsafe_get_field :class_fields sinstclass))))
-	  (insdata (make_instance class_nrep_datainstance
-				  :nrep_loc sloc
-				  :ndata_name sname
-				  :ndata_discrx icladata
-				  :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-				  :ninst_predef spredef
-				  :ninst_slots slotup
-				  :ninst_objnum sinstobjnum
-				  )) 
+	  (insdata (instance class_nrep_datainstance
+			     :nrep_loc sloc
+			     :ndata_name sname
+			     :ndata_discrx icladata
+			     :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			     :ninst_predef spredef
+			     :ninst_slots slotup
+			     :ninst_objnum sinstobjnum
+			     )) 
 	  )
       (add_nctx_data ncx insdata)
       (put_env env bindins)
@@ -3857,19 +3857,19 @@
     (let (
 	  (slotup (make_multiple discr_multiple
 				 (multiple_length (unsafe_get_field :class_fields sinstclass))))
-	  (namstrdata (make_instance class_nrep_datastring
-				     :nrep_loc sloc
-				     :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
-				     :nstr_string (unsafe_get_field :named_name sname)))
-	  (insdata (make_instance class_nrep_datainstance
-				  :nrep_loc sloc
-				  :ndata_name sname
-				  :ndata_discrx icladata
-				  :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-				  :ninst_predef spredef
-				  :ninst_slots slotup
-				  :ninst_objnum sinstobjnum
-				  )) 
+	  (namstrdata (instance class_nrep_datastring
+				:nrep_loc sloc
+				:ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				:nstr_string (unsafe_get_field :named_name sname)))
+	  (insdata (instance class_nrep_datainstance
+			     :nrep_loc sloc
+			     :ndata_name sname
+			     :ndata_discrx icladata
+			     :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+			     :ninst_predef spredef
+			     :ninst_slots slotup
+			     :ninst_objnum sinstobjnum
+			     )) 
 	  )
       (add_nctx_data ncx insdata)
       (add_nctx_data ncx namstrdata)
@@ -3936,22 +3936,22 @@
   (assert_msg "check bindslist" (is_list bindslist))
   (assert_msg "check ncx" (is_a ncx class_normcontext))
   (let ( (csymvalexp (clone_symbol '_valuexporter_))
-	 (nsysdat (make_instance class_nrep_predef
-				 :nrep_loc psloc
-				 :nrpredef 'INITIAL_SYSTEM_DATA))
-	 (cbind (make_instance class_normlet_binding
-			       :letbind_loc psloc
-			       :binder csymvalexp
-			       :letbind_type ctype_value
-			       :letbind_expr (make_instance class_nrep_unsafe_get_field
-							    :nrep_loc psloc
-							    :nuget_obj nsysdat
-							    :nuget_field sysdata_value_exporter)))
-	 (locsym (make_instance class_nrep_locsymocc
-				:nrep_loc psloc
-				:nocc_ctyp ctype_value
-				:nocc_symb csymvalexp
-				:nocc_bind cbind))
+	 (nsysdat (instance class_nrep_predef
+			    :nrep_loc psloc
+			    :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc psloc
+			  :binder csymvalexp
+			  :letbind_type ctype_value
+			  :letbind_expr (instance class_nrep_unsafe_get_field
+						  :nrep_loc psloc
+						  :nuget_obj nsysdat
+						  :nuget_field sysdata_value_exporter)))
+	 (locsym (instance class_nrep_locsymocc
+			   :nrep_loc psloc
+			   :nocc_ctyp ctype_value
+			   :nocc_symb csymvalexp
+			   :nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
     (return locsym)
@@ -3984,9 +3984,9 @@
 		  (add2sbuf_strconst sb "norm.exp.val : ")
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
-	 (scurenvbox (make_instance class_src_current_module_environment_container
-				    :src_loc psloc
-				    :cmec_comment (strbuf2string discr_string csbuf)))
+	 (scurenvbox (instance class_src_current_module_environment_container
+			       :src_loc psloc
+			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_value scurenvbox")
     (multicall 
@@ -3997,19 +3997,19 @@
      ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
-	   (cbind (make_instance class_normlet_binding
-				 :letbind_loc psloc
-				 :binder csymexpo
-				 :letbind_type ctype_void
-				 :letbind_expr (make_instance class_nrep_apply
-							      :nrep_loc psloc
-							      :napp_fun nvaluexp
-							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
-	   (syocc (make_instance class_nrep_locsymocc
-				 :nrep_loc psloc
-				 :nocc_ctyp ctype_void 
-				 :nocc_symb csymexpo
-				 :nocc_bind cbind) )
+	   (cbind (instance class_normlet_binding
+			    :letbind_loc psloc
+			    :binder csymexpo
+			    :letbind_type ctype_void
+			    :letbind_expr (instance class_nrep_apply
+						    :nrep_loc psloc
+						    :napp_fun nvaluexp
+						    :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+	   (syocc (instance class_nrep_locsymocc
+			    :nrep_loc psloc
+			    :nocc_ctyp ctype_void 
+			    :nocc_symb csymexpo
+			    :nocc_bind cbind) )
 	   )
        (debug_msg cbind "normal_exported_value cbind")
        (debug_msg syocc "normal_exported_value return syocc")
@@ -4036,8 +4036,8 @@
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
-	(nilnrep (make_instance class_nrep_nil
-				:nrep_loc sloc))
+	(nilnrep (instance class_nrep_nil
+			   :nrep_loc sloc))
 	)
     (debug_msg nvaluexporter "normexp_export_values nvaluexporter")
     (multiple_every
@@ -4061,7 +4061,7 @@
     (debug_msg bindslist "normexp_export_values final bindslist")
     (return nilnrep bindslist)
     ))
-	
+
 
 (install_method class_src_export_values normal_exp normexp_export_values)
 
@@ -4077,8 +4077,8 @@
 	(sxnames (unsafe_get_field :sexport_names recv))
 	(bindslist (make_list discr_list))
 	(nvaluexporter (normal_value_exporter env ncx sloc bindslist))
-	(nilnrep (make_instance class_nrep_nil
-				:nrep_loc sloc))
+	(nilnrep (instance class_nrep_nil
+			   :nrep_loc sloc))
 	(mocx (unsafe_get_field :nctx_modulcontext ncx))
 	)
     (assert_msg "check mocx" (is_a mocx class_modulcontext))
@@ -4155,22 +4155,22 @@
   (assert_msg "check ncx" (is_a ncx class_normcontext))
   (debug_msg psloc "normal_macro_exporter start psloc")
   (let ( (csymvalexp (clone_symbol '_macroxporter_))
-	 (nsysdat (make_instance class_nrep_predef
-				 :nrep_loc psloc
-				 :nrpredef 'INITIAL_SYSTEM_DATA))
-	 (cbind (make_instance class_normlet_binding
-			       :letbind_loc psloc
-			       :binder csymvalexp
-			       :letbind_type ctype_value
-			       :letbind_expr (make_instance class_nrep_unsafe_get_field
-							    :nrep_loc psloc
-							    :nuget_obj nsysdat
-							    :nuget_field sysdata_macro_exporter)))
-	 (locsym (make_instance class_nrep_locsymocc
-				:nrep_loc psloc
-				:nocc_ctyp ctype_value
-				:nocc_symb csymvalexp
-				:nocc_bind cbind))
+	 (nsysdat (instance class_nrep_predef
+			    :nrep_loc psloc
+			    :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc psloc
+			  :binder csymvalexp
+			  :letbind_type ctype_value
+			  :letbind_expr (instance class_nrep_unsafe_get_field
+						  :nrep_loc psloc
+						  :nuget_obj nsysdat
+						  :nuget_field sysdata_macro_exporter)))
+	 (locsym (instance class_nrep_locsymocc
+			   :nrep_loc psloc
+			   :nocc_ctyp ctype_value
+			   :nocc_symb csymvalexp
+			   :nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
     (debug_msg locsym "normal_macro_exporter return locsym")
@@ -4185,22 +4185,22 @@
   (assert_msg "check ncx" (is_a ncx class_normcontext))
   (debug_msg psloc "normal_patmacro_exporter start psloc")
   (let ( (csymvalexp (clone_symbol '_patmacroxporter_))
-	 (nsysdat (make_instance class_nrep_predef
-				 :nrep_loc psloc
-				 :nrpredef 'INITIAL_SYSTEM_DATA))
-	 (cbind (make_instance class_normlet_binding
-			       :letbind_loc psloc
-			       :binder csymvalexp
-			       :letbind_type ctype_value
-			       :letbind_expr (make_instance class_nrep_unsafe_get_field
-							    :nrep_loc psloc
-							    :nuget_obj nsysdat
-							    :nuget_field sysdata_patmacro_exporter)))
-	 (locsym (make_instance class_nrep_locsymocc
-				:nrep_loc psloc
-				:nocc_ctyp ctype_value
-				:nocc_symb csymvalexp
-				:nocc_bind cbind))
+	 (nsysdat (instance class_nrep_predef
+			    :nrep_loc psloc
+			    :nrpredef 'INITIAL_SYSTEM_DATA))
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc psloc
+			  :binder csymvalexp
+			  :letbind_type ctype_value
+			  :letbind_expr (instance class_nrep_unsafe_get_field
+						  :nrep_loc psloc
+						  :nuget_obj nsysdat
+						  :nuget_field sysdata_patmacro_exporter)))
+	 (locsym (instance class_nrep_locsymocc
+			   :nrep_loc psloc
+			   :nocc_ctyp ctype_value
+			   :nocc_symb csymvalexp
+			   :nocc_bind cbind))
 	 )
     (list_append bindslist cbind)
     (debug_msg locsym "normal_patmacro_exporter return locsym")
@@ -4227,9 +4227,9 @@
 		  (add2sbuf_strconst sb "norm.exp.val : ")
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
-	 (scurenvbox (make_instance class_src_current_module_environment_container
-				  :src_loc psloc
-				  :cmec_comment (strbuf2string discr_string csbuf)))
+	 (scurenvbox (instance class_src_current_module_environment_container
+			       :src_loc psloc
+			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_macro sgetcurenvbox")
     (multicall 
@@ -4239,19 +4239,19 @@
      (debug_msg curenvbinds "normal_exported_macro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
-	   (cbind (make_instance class_normlet_binding
-				 :letbind_loc psloc
-				 :binder csymexpo
-				 :letbind_type ctype_void
-				 :letbind_expr (make_instance class_nrep_apply
-							      :nrep_loc psloc
-							      :napp_fun nmacroxp
-							      :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
-	   (syocc (make_instance class_nrep_locsymocc
-				 :nrep_loc psloc
-				 :nocc_ctyp ctype_void 
-				 :nocc_symb csymexpo
-				 :nocc_bind cbind) )
+	   (cbind (instance class_normlet_binding
+			    :letbind_loc psloc
+			    :binder csymexpo
+			    :letbind_type ctype_void
+			    :letbind_expr (instance class_nrep_apply
+						    :nrep_loc psloc
+						    :napp_fun nmacroxp
+						    :napp_args (make_tuple3 discr_multiple symdata nexp ncurenvbox))))
+	   (syocc (instance class_nrep_locsymocc
+			    :nrep_loc psloc
+			    :nocc_ctyp ctype_void 
+			    :nocc_symb csymexpo
+			    :nocc_bind cbind) )
 	   )
        (debug_msg cbind "normal_exported_macro cbind")
        (debug_msg syocc "normal_exported_macro return syocc")
@@ -4272,7 +4272,7 @@
 	(mvalexp (unsafe_get_field :sexpmac_mval recv))
 	(bindslist (make_list discr_list))
 	(nmacexp (normal_macro_exporter env ncx sloc bindslist))
-	(nrepnil (make_instance class_nrep_nil :nrep_loc sloc))
+	(nrepnil (instance class_nrep_nil :nrep_loc sloc))
 	)
     (assert_msg "check mname" (is_a mname class_symbol))
     (multicall 
@@ -4312,9 +4312,9 @@
 		  (add2sbuf_strconst sb "norm.exp.pat : ")
 		  (add2sbuf_string sb (unsafe_get_field :named_name sym))
 		  sb))
-	 (scurenvbox (make_instance class_src_current_module_environment_container
-				  :src_loc psloc
-				  :cmec_comment (strbuf2string discr_string csbuf)))
+	 (scurenvbox (instance class_src_current_module_environment_container
+			       :src_loc psloc
+			       :cmec_comment (strbuf2string discr_string csbuf)))
 	 )
     (debug_msg scurenvbox "normal_exported_patmacro sgetcurenvbox")
     (multicall 
@@ -4324,19 +4324,19 @@
      (debug_msg curenvbinds "normal_exported_patmacro curenvbinds")
      (if (is_list curenvbinds) (list_append2list bindslist curenvbinds))
      (let (
-	   (cbind (make_instance class_normlet_binding
-				 :letbind_loc psloc
-				 :binder csymexpo
-				 :letbind_type ctype_void
-				 :letbind_expr (make_instance class_nrep_apply
-							      :nrep_loc psloc
-							      :napp_fun nmacroxp
-							      :napp_args (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))))
-	   (syocc (make_instance class_nrep_locsymocc
-				 :nrep_loc psloc
-				 :nocc_ctyp ctype_void 
-				 :nocc_symb csymexpo
-				 :nocc_bind cbind) )
+	   (cbind (instance class_normlet_binding
+			    :letbind_loc psloc
+			    :binder csymexpo
+			    :letbind_type ctype_void
+			    :letbind_expr (instance class_nrep_apply
+						    :nrep_loc psloc
+						    :napp_fun nmacroxp
+						    :napp_args (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))))
+	   (syocc (instance class_nrep_locsymocc
+			    :nrep_loc psloc
+			    :nocc_ctyp ctype_void 
+			    :nocc_symb csymexpo
+			    :nocc_bind cbind) )
 	   )
        (debug_msg cbind "normal_exported_patmacro cbind")
        (debug_msg syocc "normal_exported_patmacro return syocc")
@@ -4358,7 +4358,7 @@
 	(mpatexp (unsafe_get_field :sexppat_pval recv))
 	(bindslist (make_list discr_list))
 	(npmaexp (normal_patmacro_exporter env ncx sloc bindslist))
-	(nrepnil (make_instance class_nrep_nil :nrep_loc sloc))
+	(nrepnil (instance class_nrep_nil :nrep_loc sloc))
 	)
     (debug_msg mname "normexp export_patmacro mname")
     (debug_msg npmaexp "normexp export_patmacro npmaexp")
@@ -4396,13 +4396,13 @@
 	(ncurmodenvlist (unsafe_get_field :nctx_procurmodenvlist ncx))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(qdatcur (unsafe_get_field :nctx_qdatcurmodenvbox ncx))
-	(nquasi (make_instance class_nrep_quasiconst_current_module_environment_container
-			       :nrep_loc sloc
-			       :nconst_sval recv
-			       :nconst_proc curproc
-			       :nconst_data qdatcur
-			       :nqcmec_comment scomm
-			       ))
+	(nquasi (instance class_nrep_quasiconst_current_module_environment_container
+			  :nrep_loc sloc
+			  :nconst_sval recv
+			  :nconst_proc curproc
+			  :nconst_data qdatcur
+			  :nqcmec_comment scomm
+			  ))
 	)
     (assert_msg "check qdatcur" (is_a qdatcur class_nrep_quasidata_current_module_environment_container))
     (if (is_a curproc class_nrep_routproc)
@@ -4426,12 +4426,12 @@
 	(sloc (unsafe_get_field :src_loc recv))
 	(curproc (unsafe_get_field :nctx_curproc ncx))
 	(qdatpar (unsafe_get_field :nctx_qdatparmodenv ncx))
-	(nquasi (make_instance class_nrep_quasiconst_parent_module_environment
-			       :nrep_loc sloc
-			       :nconst_sval recv
-			       :nconst_proc curproc
-			       :nconst_data qdatpar
-			       ))
+	(nquasi (instance class_nrep_quasiconst_parent_module_environment
+			  :nrep_loc sloc
+			  :nconst_sval recv
+			  :nconst_proc curproc
+			  :nconst_data qdatpar
+			  ))
 	)
     (assert_msg "check qdatpar" (is_a qdatpar class_nrep_quasidata_parent_module_environment))
     (if (is_a curproc class_nrep_routproc)
@@ -4460,20 +4460,20 @@
 	(progn
 	  (error_plain sloc "(UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER) not at toplevel")
 	  (return)))
-    (let ( (nup (make_instance class_nrep_update_current_module_environment_container
-			       ;; :ncumeb_expr filled later
-			       :nrep_loc sloc
-			       :ncumeb_comment scomm
-			       )) 
+    (let ( (nup (instance class_nrep_update_current_module_environment_container
+			  ;; :ncumeb_expr filled later
+			  :nrep_loc sloc
+			  :ncumeb_comment scomm
+			  )) 
 	   (csym (clone_symbol 'updatcurmodenvbox_))
-	   (cbind (make_instance 
+	   (cbind (instance 
 		   class_normlet_binding
 		   :letbind_loc sloc
 		   :binder csym
 		   :letbind_type ctype_void
 		   ;; ctype_void because the sideffect is in nup
 		   :letbind_expr nup))
-	   (clocc (make_instance 
+	   (clocc (instance 
 		   class_nrep_locsymocc
 		   :nrep_loc sloc
 		   :nocc_ctyp ctype_void
@@ -4483,24 +4483,24 @@
 		    (add2sbuf_strconst sb "cur.mod.env.cont : ")
 		    (add2sbuf_string sb scomm)
 		    sb))
-	   (scurenvbox (make_instance class_src_current_module_environment_container
-				      :src_loc sloc
-				      :cmec_comment (strbuf2string discr_string csbuf)))
+	   (scurenvbox (instance class_src_current_module_environment_container
+				 :src_loc sloc
+				 :cmec_comment (strbuf2string discr_string csbuf)))
 	   (sgetcurenvbox
-	    (make_instance 
+	    (instance 
 	     class_src_or
 	     :src_loc psloc
 	     :sor_disj 
 	     (make_tuple2
 	      discr_multiple
 	      scurenvbox
-	      (make_instance 
+	      (instance 
 	       class_src_apply
 	       :src_loc psloc
-	       :sapp_fun (make_instance
+	       :sapp_fun (instance
 			  class_src_unsafe_get_field
 			  :src_loc psloc
-			  :suget_obj (make_instance
+			  :suget_obj (instance
 				      class_src_fetch_predefined
 				      :src_loc psloc
 				      :sfepd_predef 'initial_system_data
@@ -4508,8 +4508,8 @@
 			  :suget_field sysdata_cont_fresh_env
 			  )
 	       :sapp_args (make_tuple2 discr_multiple
-				       (make_instance class_src_parent_module_environment
-						      :src_loc psloc)
+				       (instance class_src_parent_module_environment
+						 :src_loc psloc)
 				       modnam
 				       )))))
 	   )
@@ -4560,10 +4560,10 @@
 	  (:else
 	   (assert_msg "FETCH_PREDEFINED bad predef" ()))
 	  )
-    (let ( (npre (make_instance class_nrep_predef
-				:nrep_loc sloc
-				:nrpredef spred
-				))
+    (let ( (npre (instance class_nrep_predef
+			   :nrep_loc sloc
+			   :nrpredef spred
+			   ))
 	   )
       (debug_msg npre "normexp_fetch_predefined result npre")
       (return npre)
@@ -4612,26 +4612,26 @@
      (normal_exp sval env ncx sloc)
      (if (null nbinds) 
 	 (setq nbinds (make_list discr_list)))
-    (let ( (csym (clone_symbol '_storepredef_))
-	   (nfpre (make_instance class_nrep_store_predefined
-				 :nrep_loc sloc
-				 :nstpd_predef spred
-				 :nstpd_value nval))
-	   (cbind (make_instance class_normlet_binding
-				 :binder csym
-				 :letbind_type ctype_value
-				 :letbind_expr nfpre))
-	   (syocc (make_instance class_nrep_locsymocc
-				 :nrep_loc sloc
-				 :nocc_ctyp ctype_value
-				 :nocc_symb csym
-				 :nocc_bind cbind))
-	   )
-      (list_append nbinds cbind)
-      (debug_msg nbinds "normexp_store_predefined result nbinds")
-      (debug_msg syocc "normexp_store_predefined result syocc")
-      (return syocc nbinds)
-      ))))
+     (let ( (csym (clone_symbol '_storepredef_))
+	    (nfpre (instance class_nrep_store_predefined
+			     :nrep_loc sloc
+			     :nstpd_predef spred
+			     :nstpd_value nval))
+	    (cbind (instance class_normlet_binding
+			     :binder csym
+			     :letbind_type ctype_value
+			     :letbind_expr nfpre))
+	    (syocc (instance class_nrep_locsymocc
+			     :nrep_loc sloc
+			     :nocc_ctyp ctype_value
+			     :nocc_symb csym
+			     :nocc_bind cbind))
+	    )
+       (list_append nbinds cbind)
+       (debug_msg nbinds "normexp_store_predefined result nbinds")
+       (debug_msg syocc "normexp_store_predefined result syocc")
+       (return syocc nbinds)
+       ))))
 (install_method class_src_store_predefined normal_exp normexp_store_predefined)
 
 (assert_msg "check class_symbol" (is_a class_symbol class_class))

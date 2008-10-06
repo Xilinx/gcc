@@ -332,14 +332,15 @@ This section has to be completed.
 @subsection Reserved MELT syntax and symbols
 
 The following symbols have specific MELT meaning. Use them only as
-described here and avoid redefining them.
-@code{and assert_msg comment compile_warning cond cppif
+described here and avoid redefining them.  @code{and assert_msg
+comment compile_warning cond cppif
 current_module_environment_container debug_msg defciterator defclass
 definstance defprimitive defselector defun exit export_class
-export_macro export_values fetch_predefined forever if lambda let
-make_instance match multicall or parent_module_environment progn quote
-redefinition_handling return setq store_predefined unsafe_get_field
-unsafe_put_fields update_current_module_environment_container}
+export_macro export_values fetch_predefined forever get_field if instance lambda
+let make_instance match multicall or parent_module_environment progn
+put_fields quote redefinition_handling return setq store_predefined
+unsafe_get_field unsafe_put_fields
+update_current_module_environment_container}
 
 Also avoid symbols starting with @code{def}
 
@@ -1515,6 +1516,12 @@ loop is with @code{exit} (using the given @var{label-name}, lexically
 inside the body) or @code{return}. Avoid using a bound variable name
 as a @var{label-name}.
 
+@item get_field
+@cindex @code{get_field} MELT syntax
+[Not implemented] @code{(unsafe_get_field @var{:field-name} @var{expr})} retrieves the
+field named @var{:field-name} from the object returned by @var{expr}
+expression. If it is not an appropriate object, gives nil.
+
 @item if
 @cindex @code{if} MELT syntax
 @code{(if @var{test} @var{then-exp} [@var{else-exp}])}. When
@@ -1525,6 +1532,19 @@ null pointer for @code{:value} and other ctypes), the optional
 @var{else-exp} is evaluated (or 0 or null) and is the result of the
 whole @code{if}. Both the @var{then-exp} and the @var{else-exp} (if
 given) should have the same ctype.
+
+@item instance
+@cindex @code{instance} MELT syntax
+@code{(instance @var{class-name} [@var{:field-name} @var{field-value}]
+@var{@dots{}})} where the @var{class-name} is the name of a class (it
+cannot be a complex expression but should be a class statically known)
+and where each @var{:field-name} keyword (starting with a colon) is
+the name of some field (direct or inherited) of the class and the
+following @var{field-value} is an expression giving its initial value;
+the result of @code{instance} is a freshly built instance of the given
+@var{class-name} initialized with the fields (fields which are not
+mentionned are initialized with nil). @code{make_instance} is a
+deprecated synonym of @code{instance}.
 
 @item lambda
 @cindex @code{lambda} MELT syntax
@@ -1554,15 +1574,10 @@ expression, done with the new bindings.
 
 @item make_instance
 @cindex @code{make_instance} MELT syntax
-@code{(make_instance @var{class-name} [@var{:field-name}
-@var{field-value}] @var{@dots{}})} where the @var{class-name} is the name
-of a class (it cannot be a complex expression but should be a class
-statically known) and where each @var{:field-name} keyword (starting
-with a colon) is the name of some field (direct or inherited) of the
-class and the following @var{field-value} is an expression giving its
-initial value; the result of @code{make_instance} is a freshly built
-instance of the given @var{class-name} initialized with the fields
-(fields which are not mentionned are initialized with nil).
+[Deprecated] @code{(make_instance @var{class-name} [@var{:field-name}
+@var{field-value}] @var{@dots{}})} is a deprecated equivalent of
+@code{instance} MELT syntax @code{(make_instance @var{class-name}
+[@var{:field-name} @var{field-value}] @var{@dots{}})}
 
 @item match
 @cindex @code{match} MELT syntax
@@ -1610,6 +1625,15 @@ module's environment.
 @code{(progn @var{e1} @var{e2} @var{@dots{}} @var{en})} evaluates
 successfully @var{e1} then @var{e2} and return the value of the last
 @var{en}.
+
+@item put_fields
+@cindex @code{put_fields} MELT syntax.
+[Unimplemented]
+@code{(put_fields @var{obj} @var{:field-name1} @var{val1}
+@var{@dots{}})}  updates the object value of @var{obj} by changing its
+field named @var{:field-name1} to the value of @var{val1} etc@dots{}
+(all the fields are updated at once). It is safe, in the sense that if
+@var{obj} is not an object of the appropriate class, nothing happens.
 
 @item quote
 @cindex @code{quote} MELT syntax

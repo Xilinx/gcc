@@ -44,9 +44,9 @@
 
 ;; class of everything with a property table
 (defclass class_proped 
- :super class_root 
- :fields (prop_table)
- :predef CLASS_PROPED)
+  :super class_root 
+  :fields (prop_table)
+  :predef CLASS_PROPED)
 
 
 ;; arbitrary container as class
@@ -60,7 +60,7 @@
   :super class_proped 
   :fields (named_name) 
   :predef CLASS_NAMED)
- 
+
 ;; class of discriminants
 (defclass class_discr 
   :super class_named 
@@ -68,26 +68,26 @@
 	   disc_sender 
 	   disc_super)
   :predef CLASS_DISCR)
- 
+
 ;; class of classes
 (defclass class_class
-   :super class_discr
-   :fields (class_ancestors class_fields class_objnumdescr class_data)
-   :predef CLASS_CLASS)
- 
+  :super class_discr
+  :fields (class_ancestors class_fields class_objnumdescr class_data)
+  :predef CLASS_CLASS)
+
 ;; class of fields
 (defclass class_field
   ;; the fields' objnum is its offset
-   :super class_named
-   :fields (fld_ownclass fld_typinfo)
-   :predef CLASS_FIELD)
- 
+  :super class_named
+  :fields (fld_ownclass fld_typinfo)
+  :predef CLASS_FIELD)
+
 ;; class of primitive
 (defclass class_primitive
-   :super class_named
-   :fields (prim_formals prim_type prim_expansion)
-   :predef CLASS_PRIMITIVE)
- 
+  :super class_named
+  :fields (prim_formals prim_type prim_expansion)
+  :predef CLASS_PRIMITIVE)
+
 ;; class of C iterators
 (defclass class_citerator
   :super class_named
@@ -104,9 +104,9 @@
   :fields (amatch_in		;the formal input arguments
 	   amatch_matchbind		;the matched formal binding
 	   amatch_out			;the formal output arguments
-))
+	   ))
 
-; class of C matchers (in patterns)
+					; class of C matchers (in patterns)
 (defclass class_cmatcher
   :super class_any_matcher
   :fields (
@@ -119,20 +119,20 @@
 	   )
   :predef CLASS_CMATCHER)
 
-; class of function matcher (in patterns)
+					; class of function matcher (in patterns)
 (defclass class_funmatcher
   :super class_any_matcher
   :fields (
 	   fmatch_matchf		;matching function
-;; first argument to matching function is the funmatcher.
-;; second argument is the stuff to match next arguments are input
-;; primary result is non-nil iff the match succeeded. secondary results
-;; are the deconstructed stuff
+	   ;; first argument to matching function is the funmatcher.
+	   ;; second argument is the stuff to match next arguments are input
+	   ;; primary result is non-nil iff the match succeeded. secondary results
+	   ;; are the deconstructed stuff
 	   fmatch_applyf		;applying function
-;; first argument to applying function is the funmatcher.
-;; next arguments are from the expression
+	   ;; first argument to applying function is the funmatcher.
+	   ;; next arguments are from the expression
 	   fmatch_data			;client data
-))
+	   ))
 
 ;; class of located stuff
 (defclass class_located
@@ -146,7 +146,7 @@
   :super class_located
   :fields (sexp_contents		;list of contents
 	   )
-)
+  )
 
 ;; class of message selectors
 (defclass class_selector
@@ -224,7 +224,7 @@
 	   dbgi_occmap ;the occurrence map (to avoid outputing twice the same object)
 	   dbgi_maxdepth ;the boxed integer maximal depth
 	   )
-)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ classes for environments & bindings
@@ -236,24 +236,24 @@
   :fields (env_bind			;the map of bindings
 	   env_prev			;the previous environment
 	   env_proc			;the procedure of this environment
-))
+	   ))
 
 (defclass class_described_environment
   :super class_environment
   :fields (denv_descr
-))
+	   ))
 
 ;; the (super-)class of any binding
 (defclass class_any_binding
   :super class_root
   :fields (binder)
-)
+  )
 
 ;;; superclass of exported bindings
 (defclass class_exported_binding
   :super class_any_binding
   :fields ( )
-)
+  )
 
 ;; macro binding
 (defclass class_macro_binding
@@ -269,9 +269,9 @@
 (defclass class_value_binding
   :super class_exported_binding
   :fields (vbind_value
-))
+	   ))
 
-; formal binding (used in generated defprimitive)
+					; formal binding (used in generated defprimitive)
 (defclass class_formal_binding
   :super class_any_binding
   :fields (fbind_type)
@@ -293,42 +293,42 @@
   :fields (sbind_selectordef 		;the "source" defselector
 	   ;; maybe we need an selectorval for the actual value
 	   )
-)
+  )
 
 ;; primitive binding
 (defclass class_primitive_binding
   :super class_fixed_binding
   :fields (pbind_primdef		;the source defprimitive
 	   pbind_primitive		;the primitive proper
-))
+	   ))
 
 ;; citerator binding
 (defclass class_citerator_binding
   :super class_fixed_binding
   :fields (cbind_citerdef		;the source defciterator
 	   cbind_citerator		;the citerator proper
-))
+	   ))
 
 
 ;; function binding
 (defclass class_function_binding
   :super class_fixed_binding
   :fields (fubind_defun ;the source definition
-))
+	   ))
 
 ;; class binding
 (defclass class_class_binding
   :super class_fixed_binding
   :fields (cbind_defclass ;the source definition
 	   cbind_class			;the built class
-))
+	   ))
 
 ;; field binding
 (defclass class_field_binding
   :super class_fixed_binding
   :fields (flbind_clabind		;the class binding
 	   flbind_field			;the field proper
-))
+	   ))
 
 ;; instance binding
 (defclass class_instance_binding
@@ -340,7 +340,7 @@
 (defclass class_cmatcher_binding
   :super class_fixed_binding
   :fields (cmbind_matcher		;the cmatcher
-))
+	   ))
 
 
 ;; funmatcher binding
@@ -348,7 +348,7 @@
   :super class_fixed_binding
   :fields (fmbind_funmatcher		;the funmatcher (of class_funmatcher)
 	   fmbind_defunmatcher		;the source definition
-))
+	   ))
 
 ;; let binding
 (defclass class_let_binding
@@ -371,7 +371,7 @@
 ;;; following fields are filled later in the compilation phase
 	   labind_clonsy		;unique cloned symbol
 	   labind_res			;result localvar
-))
+	   ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -382,8 +382,8 @@
   :fields (gccpass_gate			;closure for gate
 	   gccpass_exec			;closure for execution
 	   gccpass_data			;extra data
-))
-  
+	   ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -392,7 +392,7 @@
   :super class_root
   :fields (src_loc			;the source location (if any)
 	   )
-)
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -402,7 +402,7 @@
   :fields (mocx_modulename		;the module name
 	   mocx_expfieldict		;dict of exported fields
 	   mocx_expclassdict		;dict of exported classes
-))
+	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context
@@ -423,7 +423,7 @@
 	   nctx_qdatcurmodenvbox ;quasi data for current_module_environment_container
 	   nctx_qdatparmodenv		;quasi data for parent_module_environment
 	   nctx_procurmodenvlist	;list of procedures using the current_module_environment_container construct
-))
+	   ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -441,7 +441,7 @@
 	    gncx_retloc			;return location
 	    gncx_compicache		;cache map of procedure to compiled routines
 	    gncx_modulcontext		;the module compilation context
-))
+	    ))
 
 
 ;; code generation context for initial routine
@@ -451,14 +451,14 @@
 	   igncx_contenvloc	    ;local for the container of environment
 	   igncx_procurmodenvlist   ;list of routines using the current_module_environment_container
 	   igncx_importmap	    ;mapping of imported symbols to locvars
-))
+	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; common superclass for objcode
 (defclass class_objcode
   :super class_root
   :fields (
-))
+	   ))
 
 
 ;; 
@@ -486,13 +486,13 @@
 ;; primitive for testing if an object is NOT a (sub) instance of a class
 (defprimitive is_not_a (obj cla) :long
   " !basilys_is_instance_of((basilys_ptr_t)(" obj "), (basilys_ptr_t)(" cla "))")
-  
+
 ;; primitive for testing objectness
 (defprimitive is_object (obj) :long
   " (basilys_magic_discr((basilys_ptr_t)(" obj ")) == OBMAG_OBJECT)")
 (defprimitive is_not_object (obj) :long
   " (basilys_magic_discr((basilys_ptr_t)(" obj ")) != OBMAG_OBJECT)")
-  
+
 
 ;; primitive to return the last predefined index
 (defprimitive last_globpredef_index () :long
@@ -572,10 +572,10 @@
 
 ;; check explicitly the call stack  
 (defprimitive checkcallstack_msg (:cstring msg) :void
- "basilys_check_call_frames(BASILYS_ANYWHERE, (" msg "))")
+  "basilys_check_call_frames(BASILYS_ANYWHERE, (" msg "))")
 ;; for breakpoint
 (defprimitive cbreak_msg (:cstring msg) :void
- "basilys_cbreak(" msg ")")
+  "basilys_cbreak(" msg ")")
 
 ;;; less, lessorequal, greater, greaterorequal, equal, different number 
 (defprimitive <i (:long a b) :long "((" a ") < (" b "))")
@@ -755,7 +755,7 @@
   "), basilys_strbuf_str((basilys_ptr_t)(" sbuf "))))")
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
- "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+  "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -773,9 +773,9 @@
 ;;;;;; MULTIPLEs primitives
 ;;;; test
 (defprimitive is_multiple (mul) :long
- "(basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
+  "(basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE)")
 (defprimitive is_multiple_or_null (mul) :long
- "((" mul ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
+  "((" mul ") == NULL || (basilys_magic_discr((basilys_ptr_t)(" mul  ")) == OBMAG_MULTIPLE))")
 ;;; make
 (defprimitive make_multiple (discr :long ln) :value
   "(basilysgc_new_multiple((basilysobject_ptr_t)(" discr "), (" ln ")))")
@@ -804,7 +804,7 @@
   "),  (basilys_ptr_t)(" v5  "),  (basilys_ptr_t)(" v6  "),  (basilys_ptr_t)(" v7 ")))")
 ;; primitive to get the nth  in a multiple
 (defprimitive multiple_nth (mul :long n) :value
-    "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
+  "(basilys_multiple_nth((basilys_ptr_t)(" mul "), (" n ")))")
 ;; primitive to get the length of a multiple
 (defprimitive multiple_length (v) :long
   "(basilys_multiple_length((basilys_ptr_t)(" v ")))")
@@ -819,7 +819,7 @@
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
 (defprimitive is_mapobject (map) :long
- "(basilys_magic_discr((basilys_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
+  "(basilys_magic_discr((basilys_ptr_t)(" map  ")) == OBMAG_MAPOBJECTS)")
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
   "(basilys_size_mapobjects((basilysmapobjects_ptr_t)(" map ")))")
@@ -840,7 +840,7 @@
   " (basilysgc_new_mapobjects( (basilysobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
- " basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t) (" key "), (basilys_ptr_t)(" val "))")
+  " basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t) (" key "), (basilys_ptr_t)(" val "))")
 ;; primitive for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
   " basilysgc_remove_mapobjects( (basilysmapobjects_ptr_t) (" map "), (basilysobject_ptr_t)(" key "))")
@@ -848,7 +848,7 @@
 ;;;;;; MAPSTRINGs primitive
 ;; test
 (defprimitive is_mapstring (map) :long
-"(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
+  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPSTRINGS)")
 ;; primitive to get the allocated size of a mapstring
 (defprimitive mapstring_size (map) :long 
   "(basilys_size_mapstrings((struct basilysmapstrings_st*)(" map ")))")
@@ -863,7 +863,7 @@
   " (basilysgc_new_mapstrings( (basilysobject_ptr_t) (" discr "), (" len ")))")
 ;; primitive for putting into a map of strings
 (defprimitive mapstring_rawput (map :cstring key :value val) :void
- " basilysgc_put_mapstrings( (struct basilysmapstrings_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+  " basilysgc_put_mapstrings( (struct basilysmapstrings_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
 (defprimitive mapstring_putstr (map keystr val) :void
   " basilysgc_put_mapstrings((struct basilysmapstrings_st *) (" map "), basilys_string_str((basilys_ptr_t)(" keystr ")), (basilys_ptr_t)(" val "))")
 (defprimitive mapstring_getstr (map keystr) :value
@@ -882,7 +882,7 @@
 ;;;;;; ROUTINEs primitives
 ;; test
 (defprimitive is_routine (rou) :long
-"(basilys_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
+  "(basilys_magic_discr((basilys_ptr_t)(" rou ")) == OBMAG_ROUTINE)")
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
   "(basilysgc_new_stringdup(basilys_routine_descrstr((basilys_ptr_t)(" rou "))))")
@@ -891,7 +891,7 @@
   "(basilys_routine_size((basilys_ptr_t)(" rou ")))")
 ;;; nth comp in routine
 (defprimitive routine_nth (rou :long ix) :value
-"(basilys_routine_nth((basilys_ptr_t)(" rou "), (int) (" ix ")))")
+  "(basilys_routine_nth((basilys_ptr_t)(" rou "), (int) (" ix ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; CLOSUREs primitives
@@ -901,7 +901,7 @@
 (defprimitive closure_size (clo) :long
   " (basilys_closure_size((basilys_ptr_t)(" clo ")))")
 (defprimitive closure_routine (clo) :value
- " (basilys_closure_routine((basilys_ptr_t)(" clo ")))")
+  " (basilys_closure_routine((basilys_ptr_t)(" clo ")))")
 (defprimitive closure_nth (clo :long ix) :value
   "(basilys_closure_nth((basilys_ptr_t)(" clo "), (int)(" ix ")))")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -940,22 +940,22 @@
   "(basilys_list_first((basilys_ptr_t)(" li ")))")
 ;; last pair of list
 (defprimitive list_last (li) :value
-"(basilys_list_last((basilys_ptr_t)(" li ")))")
+  "(basilys_list_last((basilys_ptr_t)(" li ")))")
 ;; length of list
 (defprimitive list_length (li) :long
-"(basilys_list_length((basilys_ptr_t)(" li ")))")
+  "(basilys_list_length((basilys_ptr_t)(" li ")))")
 ;; append into list
 (defprimitive list_append (li el) :void
-"basilysgc_append_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+  "basilysgc_append_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
 ;; prepend into list
 (defprimitive list_prepend (li el) :void
-"basilysgc_prepend_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
+  "basilysgc_prepend_list((basilys_ptr_t)(" li "), (basilys_ptr_t)(" el "))")
 ;; pop first from list
 (defprimitive list_popfirst (li) :value
   "(basilysgc_popfirst_list((basilys_ptr_t)(" li ")))")
 ;; make list
 (defprimitive make_list (discr) :value
-"(basilysgc_new_list((basilysobject_ptr_t)(" discr ")))")
+  "(basilysgc_new_list((basilysobject_ptr_t)(" discr ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; PAIR primitives
@@ -1041,13 +1041,13 @@
 (defprimitive error_plain (loc :cstring msg) :void
   "basilys_error_str((basilys_ptr_t)(" loc "), (" msg 
   "), (basilys_ptr_t)0)")
-  
+
 
 ;; to signal an warning in a basilys source with some additional string value
 (defprimitive warning_strv (loc :cstring msg :value strv) :void
   "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
   "), (basilys_ptr_t)(" strv "))")
-  
+
 ;; signal a plain warning in a basilys source
 (defprimitive warning_plain (loc :cstring msg) :void
   "basilys_warning_str(0, (basilys_ptr_t)(" loc "), (" msg 
@@ -1112,33 +1112,33 @@
 
 ;;; the discriminant for name strings
 (definstance discr_namestring class_discr
- :predef DISCR_NAMESTRING
- :obj_num OBMAG_STRING
+  :predef DISCR_NAMESTRING
+  :obj_num OBMAG_STRING
 ;;; :named_name (stringconst2val discr_namestring "DISCR_NAMESTRING")
 ;;; :disc_super discr_string   ;; forward reference not allowed
-)
+  )
 
 ;;; the discriminant for strings
 (definstance discr_string class_discr
- :predef DISCR_STRING
- :obj_num OBMAG_STRING
- :named_name (stringconst2val discr_namestring "DISCR_STRING"))
+  :predef DISCR_STRING
+  :obj_num OBMAG_STRING
+  :named_name (stringconst2val discr_namestring "DISCR_STRING"))
 
 (unsafe_put_fields discr_namestring :disc_super discr_string)
 (unsafe_put_fields discr_namestring :named_name
 		   (stringconst2val discr_namestring "DISCR_NAMESTRING"))
 ;;; the discriminant for verbatim strings (used for defprimitive)
 (definstance discr_verbatimstring class_discr
- :obj_num OBMAG_STRING
- :predef DISCR_VERBATIMSTRING
- :named_name (stringconst2val discr_namestring "DISCR_VERBATIMSTRING")
- :disc_super discr_string
-)
+  :obj_num OBMAG_STRING
+  :predef DISCR_VERBATIMSTRING
+  :named_name (stringconst2val discr_namestring "DISCR_VERBATIMSTRING")
+  :disc_super discr_string
+  )
 
 ;;; the discriminant for any reciever (used for sending to everything)
 (definstance discr_anyrecv class_discr
   :named_name (stringconst2val discr_namestring "DISCR_ANYRECV")
-)
+  )
 
 (unsafe_put_fields discr_string :disc_super discr_anyrecv)
 
@@ -1150,16 +1150,16 @@
 
 ;;; the discriminant for strbuf
 (definstance discr_strbuf class_discr
- :obj_num OBMAG_STRBUF  
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_STRBUF"))
+  :obj_num OBMAG_STRBUF  
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_STRBUF"))
 
 ;;; the discriminant for integers
 (definstance discr_integer class_discr
- :predef DISCR_INTEGER
- :obj_num OBMAG_INT 
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_INTEGER"))
+  :predef DISCR_INTEGER
+  :obj_num OBMAG_INT 
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_INTEGER"))
 
 ;;; the discriminant for lists
 (definstance discr_list class_discr
@@ -1188,7 +1188,7 @@
   :obj_num OBMAG_MULTIPLE
   :named_name (stringconst2val discr_namestring "DISCR_SEQFIELD")
   :disc_super discr_multiple
-)
+  )
 
 ;;; the discriminant for boxes
 (definstance discr_box class_discr
@@ -1286,7 +1286,7 @@
   :obj_num OBMAG_MULTIPLE
   :named_name (stringconst2val discr_namestring "DISCR_SEQCLASS")
   :disc_super discr_multiple
-)
+  )
 
 
 ;;; the discriminant for method dictionnary maps
@@ -1298,50 +1298,50 @@
 
 ;;; the discriminant for charcode integers
 (definstance discr_charinteger class_discr
- :predef DISCR_CHARINTEGER
- :obj_num OBMAG_INT
- :named_name (stringconst2val discr_namestring "DISCR_CHARINTEGER")
- :disc_super discr_integer
-)
+  :predef DISCR_CHARINTEGER
+  :obj_num OBMAG_INT
+  :named_name (stringconst2val discr_namestring "DISCR_CHARINTEGER")
+  :disc_super discr_integer
+  )
 
 
 ;;; the discriminant for mixedintegers
 (definstance discr_mixedint class_discr
- :predef DISCR_MIXEDINT
- :obj_num OBMAG_MIXINT
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
+  :predef DISCR_MIXEDINT
+  :obj_num OBMAG_MIXINT
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
 
 
 
 ;;; the discriminant for mixed locations
 (definstance discr_mixedloc class_discr
- :predef DISCR_MIXEDLOC
- :obj_num OBMAG_MIXLOC
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_MIXEDLOC"))
+  :predef DISCR_MIXEDLOC
+  :obj_num OBMAG_MIXLOC
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MIXEDLOC"))
 
 
 ;;; the discriminant for closures
 (definstance discr_closure class_discr
- :predef DISCR_CLOSURE
- :obj_num OBMAG_CLOSURE
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_CLOSURE"))
+  :predef DISCR_CLOSURE
+  :obj_num OBMAG_CLOSURE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_CLOSURE"))
 
 ;;; the discriminant for routines
 (definstance discr_routine class_discr
- :predef DISCR_ROUTINE
- :obj_num OBMAG_ROUTINE
- :disc_super discr_anyrecv
- :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
+  :predef DISCR_ROUTINE
+  :obj_num OBMAG_ROUTINE
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_ROUTINE"))
 
 
 ;;; by having the install_ctype_descr called inside each ctype
 ;;; initialization, we are sure it is called once for each, because
 ;;; ctype-s are predefined
 (defun install_ctype_descr (ctyp :cstring descr)
-  ;(debug_msg ctyp "install_ctype_descr")
+					;(debug_msg ctyp "install_ctype_descr")
   (assert_msg "check ctyp" (is_a ctyp class_ctype)) 
   (if (unsafe_get_field :ctype_descr ctyp)
       (return))
@@ -1480,21 +1480,21 @@
 ;; function to add a new symbol
 (defun add_new_symbol_token (syda str)
   (assert_msg "check syda" (is_a syda class_system_data))
-  (let ( (sy (make_instance class_symbol :named_name str)) 
+  (let ( (sy (instance class_symbol :named_name str)) 
 	 (sydict (unsafe_get_field :sysdata_symboldict syda))
 	 )
     (mapstring_putstr sydict str sy)
     sy))
-    
+
 ;; function to add a new keyword
 (defun add_new_keyword_token (syda str)
   (assert_msg "check syda" (is_a syda class_system_data))
-  (let ( (kw (make_instance class_keyword :named_name str)) 
+  (let ( (kw (instance class_keyword :named_name str)) 
 	 (kwdict (unsafe_get_field :sysdata_keywdict syda))
 	 )
     (mapstring_putstr kwdict str kw)
     kw))
-    
+
 ;; function to intern a symbol (or return the previous one)
 (defun intern_symbol (inidat symb)
   (assert_msg "check inidat" (is_a inidat class_system_data))
@@ -1505,10 +1505,10 @@
     (if oldsy 
 	oldsy 
       (progn 
-		(mapstring_putstr sydict syname symb) 
-;		(messageval_dbg "warm interning symbol" symb)
-		symb))
-))
+	(mapstring_putstr sydict syname symb) 
+					;		(messageval_dbg "warm interning symbol" symb)
+	symb))
+    ))
 
 ;; function to intern a keyword (or return the previous one)
 (defun intern_keyword (inidat keyw)
@@ -1520,12 +1520,12 @@
     (if oldkw 
 	oldkw
       (progn (mapstring_putstr kwdict kwname keyw) keyw))
-))
+    ))
 
 ;;; container of a mapstring for cloning symbol, maping symbol names to boxed integer
 (definstance container_clonemapstring class_container
   :container_value (make_mapstring discr_mapstrings 200)
-)
+  )
 
 (defun clone_symbol (symb)
   (let ( (mapstr (unsafe_get_field :container_value container_clonemapstring)) 
@@ -1535,7 +1535,7 @@
 		 ( (is_string symb) 
 		   symb)
 		 (:else 
-		  ;(debug_msg symb "clone_symbol bad symb")
+					;(debug_msg symb "clone_symbol bad symb")
 		  (assert_msg "invalid symb in clone_symbol" ())
 		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
@@ -1547,26 +1547,26 @@
     (let ( (:long i (get_int boxi)) )
       (setq i (+i i 1))
       (put_int boxi i)
-      (make_instance class_clonedsymbol
-		     :named_name synam
-		     :csym_urank (make_integerbox discr_integer i)))))
+      (instance class_clonedsymbol
+		:named_name synam
+		:csym_urank (make_integerbox discr_integer i)))))
 
 
 
- 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; initial fresh environment container maker
 (defun initfresh_contenvmaker (prevenv :cstring modnam)
-  ;(debug_msg prevenv "initfresh_contenvmaker prevenv")
+					;(debug_msg prevenv "initfresh_contenvmaker prevenv")
   (if (need_dbg 0) 
       (shortbacktrace_dbg "initfresh_contenvmaker" 15))
   (let (
 	(descr (if modnam (make_stringconst discr_string modnam)))
 	(newenv (fresh_env prevenv descr)) 
-	(newcont (make_instance class_container 
-				 :container_value newenv))
-	 )
-    ;(debug_msg newcont "initfresh_contenvmaker result newcont")
+	(newcont (instance class_container 
+			   :container_value newenv))
+	)
+					;(debug_msg newcont "initfresh_contenvmaker result newcont")
     (return newcont)
     ))
 
@@ -1595,15 +1595,15 @@
       (assert_msg "check good env" (is_a env class_environment))
       (let (
 	    (prevbind (if parenv (find_env parenv sym)))
-	    (valbind (make_instance
+	    (valbind (instance
 		      class_value_binding
 		      :binder sym
 		      :vbind_value val
 		      )) 
 	    (symnam (unsafe_get_field :named_name sym))
 	    )
-	;(debug_msg valbind "initvalue_exporter valbind")
-	;(debug_msg prevbind "initvalue_exporter prevbind")
+					;(debug_msg valbind "initvalue_exporter valbind")
+					;(debug_msg prevbind "initvalue_exporter prevbind")
 	(cond 
 	 ( (null prevbind) (the_null) )
 	 ( (and 
@@ -1673,7 +1673,7 @@
 	 )
     (assert_msg "check valbind" (is_a valbind class_value_binding))
     (return (unsafe_get_field :vbind_value valbind))
-))
+    ))
 
 ;; initial macro exporter
 (defun initmacro_exporter (sym val contenv)
@@ -1687,7 +1687,7 @@
 	))
   (assert_msg "check contenv" (is_a contenv class_container))
   (let ( (env (unsafe_get_field :container_value contenv)) )
-    ;(if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
+					;(if (need_dbg 0) (shortbacktrace_dbg "initmacro_exporter" 15))
     (if (null env)
 	(progn
 	  (informsg_strv "exporting macro too early with null environment"
@@ -1696,7 +1696,7 @@
 	  ))
     (assert_msg "check env" (is_a env class_environment))
     (assert_msg "check val is closure" (is_closure val))
-    (let ( (macbind (make_instance
+    (let ( (macbind (instance
 		     class_macro_binding
 		     :binder sym
 		     :mbind_expanser val))
@@ -1727,7 +1727,7 @@
     (assert_msg "check env" (is_a env class_environment))
     (assert_msg "check macval is closure" (is_closure macval))
     (assert_msg "check patval is closure" (is_closure patval))
-    (let ( (macbind (make_instance
+    (let ( (macbind (instance
 		     class_patmacro_binding
 		     :binder sym
 		     :mbind_expanser macval
@@ -1749,14 +1749,14 @@
   :named_name (make_stringconst discr_string "system_finalization")
   :final_first (make_list discr_list)
   :final_last (make_list discr_list)
-)
+  )
 
 (defun init_exitfinalizer ()
   (debug_msg system_finalization "init_exitfinalizer system_finalization at start")
   (let ( (firstlist (unsafe_get_field :final_first system_finalization))
 	 (lastlist (unsafe_get_field :final_last system_finalization))
 	 (revlastlist (make_list discr_list))
-	 (rescont (make_instance class_container))
+	 (rescont (instance class_container))
 	 )
 ;;; call the first routines in natural order
     (list_every 
@@ -1789,14 +1789,14 @@
   (let ( (firstlist (unsafe_get_field :final_first system_finalization))
 	 )
     (if (is_closure fun) (list_append firstlist fun)))
-)  
+  )  
 
 (defun at_exit_last (fun)
   (let ( (lastlist (unsafe_get_field :final_last system_finalization))
 	 )
     (if (is_closure fun) (list_append lastlist fun)))
-)
-  
+  )
+
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
@@ -1939,14 +1939,14 @@
 		     (if (not (is_pair curpair)) (exit lisloop))
 		     (let ( (curelem (pair_head curpair)) )
 		       (if (null (f curelem)) (return curelem)))
-		       (setq curpair (pair_tail curpair)))))))
+		     (setq curpair (pair_tail curpair)))))))
 
 ;; add to a destination list a source list
 (defun list_append2list (dlist slist)
   (if (not (is_list slist)) (return dlist))
   (if (not (is_list dlist)) (setq dlist (make_list discr_list)))
   (list_every slist 
-		(lambda (e) (list_append dlist e)))
+	      (lambda (e) (list_append dlist e)))
   dlist)
 
 ;;; full iterator on a pairlist  if the called f returns nil the iteration is stopped
@@ -1956,16 +1956,16 @@
 	       (if (not (is_pair pair)) (exit pairloop))
 	       (f (pair_head pair)) 
 	       (setq pair (pair_tail pair)))))
-		   
+
 ;;; tested iterator on a pairlist  if the called f returns nil the iteration is stopped
 (defun pairlist_iterate_test (pair f)
-      (if (is_closure f)
-	  (forever pairloop
-		   (if (not (is_pair pair)) (exit pairloop))
-		     (let ( (curelem (pair_head pair)) )
-		       (if (null (f curelem)) (return curelem)))
-		       (setq pair (pair_tail pair)))))
-		   
+  (if (is_closure f)
+      (forever pairloop
+	       (if (not (is_pair pair)) (exit pairloop))
+	       (let ( (curelem (pair_head pair)) )
+		 (if (null (f curelem)) (return curelem)))
+	       (setq pair (pair_tail pair)))))
+
 ;;; map on a list (list_map lis f) where lis is (e1 ... en) is ((f e1) .... (f en))
 (defun list_map (lis f)
   (if (is_list lis)
@@ -1978,7 +1978,7 @@
 		       (list_append reslis (f curelem)))
 		     (setq curpair (pair_tail curpair)))
 	    ))))
-		    
+
 ;;; translate a list to a multiple - with each element transformed by a function f (default the identity)
 (defun list_to_multiple (lis disc f)
   (if (null disc) (setq disc discr_multiple))
@@ -2088,7 +2088,7 @@
 		       (multiple_put_nth res ix (f curcomp ix)))
 		     (setq ix (+i ix 1)))
 	    ))))
-	
+
 
 ;; citerator on tuple
 (defciterator foreach_in_multiple 
@@ -2099,14 +2099,14 @@
    "long " eachtup "_ln = basilys_multiple_length((basilys_ptr_t)" tup ");\n"
    "int " eachtup "_ix = 0;\n"
    "for ("  eachtup "_ix = 0; " eachtup "_ix < " eachtup "_ln; " 
-         eachtup "_ix ++) {\n"
-	 comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "), " eachtup "_ix);\n"
-	 ix " = " eachtup "_ix;\n"
+   eachtup "_ix ++) {\n"
+   comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "), " eachtup "_ix);\n"
+   ix " = " eachtup "_ix;\n"
    )
   (					;after expansion
    "} /* end " eachtup "*/"
    )
-)
+  )
 
 ;;; full iterator on closures  
 ;;; the function is called with the component and its index
@@ -2216,19 +2216,19 @@
 ;;; reciever: any object or value
 ;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
 (defselector dbg_output class_selector
-)
+  )
 
 
 ;;; selector to output again for debugging
 ;;; reciever: any object (already output)
 ;;; arguments: the debuginfo (instance of class_debuginfo), the depth (long)
 (defselector dbg_outputagain class_selector
-)
+  )
 
 
 ;;; selector to get the value, e.g. in a binding
 (defselector get_value class_selector
-)
+  )
 
 (defun dbg_outobject (obj dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
@@ -2269,7 +2269,7 @@
       (if (is_strbuf sbuf)
 	  (add2sbuf_strconst sbuf "..")
 	))))
-  
+
 ;; utility to dump fields in an object from a given rank
 (defun dbgout_fields (obj dbgi :long depth rank)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
@@ -2332,8 +2332,8 @@
 	))))
 
 (install_method discr_string  dbg_output dbgout_string_method)
-;(install_method discr_namestring  dbg_output dbgout_string_method)
-;(install_method discr_verbatimstring  dbg_output dbgout_string_method)
+					;(install_method discr_namestring  dbg_output dbgout_string_method)
+					;(install_method discr_verbatimstring  dbg_output dbgout_string_method)
 
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
@@ -2564,7 +2564,7 @@
 	  (add2sbuf_indent sbuf depth)
 	  (dbg_out (pair_tail self) dbgi (+i depth 1))))
     (add2sbuf_strconst sbuf ".)")))
-	
+
 (install_method discr_pair dbg_output dbgout_pair_method)      
 
 ;; box debug output
@@ -2581,7 +2581,7 @@
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(dbg_out (box_content self) dbgi (+i depth 1)))
     (add2sbuf_strconst sbuf ">]")))
-	
+
 (install_method discr_box dbg_output dbgout_box_method)      
 
 
@@ -2879,7 +2879,7 @@
 	  ))
     ))
 (install_method class_root  dbg_outputagain dbgoutagain_anyobject_method)
-	
+
 ;;;; named object debug
 (defun dbgout_namedobject_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
@@ -3035,7 +3035,7 @@
   (if (<=i depth 0)
       (dbgout_namedobject_method self dbgi 0)
     (dbgoutagain_ctype_method self dbgi depth)
-))
+    ))
 (install_method class_ctype dbg_output dbgout_ctype_method)
 
 (defun dbgoutagain_ctype_method (self dbgi :long depth)
@@ -3054,7 +3054,7 @@
 	  ))
     ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;; debug message function
 (defprimitive the_dbgcounter () :long "basilys_dbgcounter")
 (defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
@@ -3065,10 +3065,10 @@
 	 (sbuf (make_strbuf discr_strbuf)) 
 	 (occmap (make_mapobject discr_mapobjects 50))
 	 (boxedmaxdepth (make_integerbox discr_integer 14))
-	 (dbgi (make_instance class_debuginfo
-			      :dbgi_sbuf sbuf
-			      :dbgi_occmap occmap
-			      :dbgi_maxdepth boxedmaxdepth))
+	 (dbgi (instance class_debuginfo
+			 :dbgi_sbuf sbuf
+			 :dbgi_occmap occmap
+			 :dbgi_maxdepth boxedmaxdepth))
 	 )
     (outnum_err "!*#" dbgcounter "/")
     (outnum_err "" (-i (the_framedepth) 1) ":")
@@ -3086,10 +3086,10 @@
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 53))
 	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
-	     (dbgi (make_instance class_debuginfo
-				  :dbgi_sbuf sbuf
-				  :dbgi_occmap occmap
-				  :dbgi_maxdepth boxedmaxdepth))
+	     (dbgi (instance class_debuginfo
+			     :dbgi_sbuf sbuf
+			     :dbgi_occmap occmap
+			     :dbgi_maxdepth boxedmaxdepth))
 	     )
 	(outnum_dbg "!!!***###" dbgcounter "/")
 	(outnum_dbg "" (-i (the_framedepth) 1) ":")
@@ -3107,19 +3107,19 @@
 (defun fresh_env (parenv descr)		;usually descr is not given
   (if (or (null parenv) (is_a parenv class_environment))
       (if descr
-	  (make_instance class_described_environment
-		     :env_bind (make_mapobject discr_mapobjects 26)
-		     :env_prev parenv
-		     :denv_descr descr)
-      (make_instance class_environment 
-		     :env_bind (make_mapobject discr_mapobjects 6)
-		     :env_prev parenv))))
+	  (instance class_described_environment
+		    :env_bind (make_mapobject discr_mapobjects 26)
+		    :env_prev parenv
+		    :denv_descr descr)
+	(instance class_environment 
+		  :env_bind (make_mapobject discr_mapobjects 6)
+		  :env_prev parenv))))
 
 ;; the initial environment
 (definstance initial_environment class_described_environment
   :env_bind  (make_mapobject discr_mapobjects 500)
   :denv_descr (make_stringconst discr_string "Initial Environment")
-)
+  )
 
 ;; find a binding inside an environment
 (defun find_env (env binder)
@@ -3170,21 +3170,21 @@
    )
   )
 
-; find a binding inside an environment and also returns the reversed list of enclosing procedures
+					; find a binding inside an environment and also returns the reversed list of enclosing procedures
 (defun find_enclosing_env (env binder)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check binder" (is_object binder))
   (let ( (proclist (make_list discr_list)) )
-  (forever findloop
-	   (if (is_not_a env class_environment) (exit findloop))
-	   (let ( (bindmap (unsafe_get_field :env_bind env)) 
-		  (eproc (unsafe_get_field :env_proc env))
-		  )
-	     (assert_msg "check bindmap" (is_mapobject bindmap))
-	     (let ( (bnd (mapobject_get bindmap binder)) )
-	       (if bnd (return bnd proclist)))
-	     (if eproc (list_prepend proclist eproc))
-	     (setq env (unsafe_get_field :env_prev env))
+    (forever findloop
+	     (if (is_not_a env class_environment) (exit findloop))
+	     (let ( (bindmap (unsafe_get_field :env_bind env)) 
+		    (eproc (unsafe_get_field :env_proc env))
+		    )
+	       (assert_msg "check bindmap" (is_mapobject bindmap))
+	       (let ( (bnd (mapobject_get bindmap binder)) )
+		 (if bnd (return bnd proclist)))
+	       (if eproc (list_prepend proclist eproc))
+	       (setq env (unsafe_get_field :env_prev env))
 	       ))))
 
 ;; put a binding at top of an environment
@@ -3238,10 +3238,10 @@
 	     (sbuf (make_strbuf discr_strbuf)) 
 	     (occmap (make_mapobject discr_mapobjects 50))
 	     (boxedmaxdepth (make_integerbox discr_integer 17)) ;;;; @@@ DEBUGDEPTH
-	     (dbgi (make_instance class_debuginfo
-				  :dbgi_sbuf sbuf
-				  :dbgi_occmap occmap
-				  :dbgi_maxdepth boxedmaxdepth))
+	     (dbgi (instance class_debuginfo
+			     :dbgi_sbuf sbuf
+			     :dbgi_occmap occmap
+			     :dbgi_maxdepth boxedmaxdepth))
 	     )
 	(outnum_err "!!!!****####" dbgcounter "/")
 	(outnum_err "" (-i (the_framedepth) 1) ":")
@@ -3313,7 +3313,7 @@
 	  (return)
 	  ))
     (debug_msg curmodenvcont "post_initialization curmodenvcont at start")
-    ;(shortbacktrace_dbg "post_initialization" 10)
+					;(shortbacktrace_dbg "post_initialization" 10)
     (assert_msg "check curmodenvcont" (is_a curmodenvcont class_container))
     (let ( (curmodenv (unsafe_get_field :container_value curmodenvcont)) )
       (if (is_a curmodenv class_environment)
@@ -3679,7 +3679,7 @@
 ;; export the citerators defined above
 (export_values
  foreach_in_multiple
-)
+ )
 
 (debug_msg class_symbol "at end of warmelt-first our Class_Symbol")
 (debug_msg (fetch_predefined CLASS_SYMBOL) "at end of warmelt-first predefined Class_Symbol")
