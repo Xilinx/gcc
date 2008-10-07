@@ -1,3 +1,9 @@
+2008-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[export_patmacro does not work well]
+	* melt/warmelt-first.bysl: added debug_msg in initpatmacro_exporter.
+	* melt/warmelt-macro.bysl: adding class_srcpattern_or.
+	temporarily an oror_ patmacro..
+	* melt/warmelt-normal.bysl: reindented.
 2008-10-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: documented instance, get_field, put_fields.
 	* melt/warmelt-first.bysl: using instance instead of make_instance.

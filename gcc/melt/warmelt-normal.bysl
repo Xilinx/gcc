@@ -876,12 +876,12 @@
  )
 
 
-					; for symbols which are imported from a previous environment (this
-					; only happens when compiling stuff which is not this warmelt-*) we
-					; should detect them and generate some special data to fetch them, in
-					; the start routine, from the given environment (which is the only
-					; argument to the start routine). Detecting such symbols is easy : their
-					; binding is a class_value_binding
+;; for symbols which are imported from a previous environment (this
+;; only happens when compiling stuff which is not this warmelt-*) we
+;; should detect them and generate some special data to fetch them, in
+;; the start routine, from the given environment (which is the only
+;; argument to the start routine). Detecting such symbols is easy : their
+;; binding is a class_value_binding
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)

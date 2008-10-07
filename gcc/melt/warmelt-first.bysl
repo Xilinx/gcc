@@ -1708,6 +1708,7 @@
 
 ;; initial patmacro exporter
 (defun initpatmacro_exporter (sym macval patval contenv)
+  (debug_msg sym "initpatmacro_exporter sym")
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
       (progn
