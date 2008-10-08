@@ -1,3 +1,77 @@
+2008-10-07  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c/35437
+	* gcc.dg/struct-parse-2.c: New test.
+	* g++.dg/parse/struct-4.C: New test.
+
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/29609
+	PR debug/36690
+	PR debug/37616
+	* gcc.dg/debug/pr29609-1.c: New test.
+	* gcc.dg/debug/pr29609-2.c: New test.
+	* gcc.dg/debug/pr36690-1.c: New test.
+	* gcc.dg/debug/pr36690-2.c: New test.
+	* gcc.dg/debug/pr36690-3.c: New test.
+	* gcc.dg/debug/pr37616.c: New test.
+	* gcc.dg/debug/dwarf2/pr29609-1.c: New test.
+	* gcc.dg/debug/dwarf2/pr29609-2.c: New test.
+	* gcc.dg/debug/dwarf2/pr36690-1.c: New test.
+	* gcc.dg/debug/dwarf2/pr36690-2.c: New test.
+	* gcc.dg/debug/dwarf2/pr36690-3.c: New test.
+	* gcc.dg/debug/dwarf2/pr37616.c: New test.
+
+2008-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37731
+	* gcc.dg/torture/pr37731-1.c: New.
+	* gcc.dg/torture/pr37731-2.c: Likewise.
+
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/37738
+	* gfortran.dg/debug/pr37738.f: New test.
+
+2008-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization4.adb: New test.
+	* gnat.dg/loop_optimization4_pkg.ad[sb]: New helper.
+
+2008-10-07  Bob Wilson  <bob.wilson@acm.org>
+
+	* gcc.dg/compat/struct-layout-1_generate.c (dg_options): New.  Moved
+	dg-options lines to this array, and added options for xtensa*-*-*.
+	(NDG_OPTIONS): Define.
+	(switchfiles): Print dg-options lines from new dg_options array.
+	* g++.dg/compat/struct-layout-1_generate.c (dg_options): Add options
+	for xtensa*-*-* targets.
+
+2008-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/addr4.adb: New test.
+	* gnat.dg/addr5.adb: Likewise.
+
+2008-10-06  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp (dg-mips-options): Set mips_new_gp to
+	32 when -march=r3900 is passed.
+	* testsuite/gcc.target/mips/r3900-mult.c: New test.
+
+2008-10-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/gomp/for-1.c: Test column.
+	* gcc.dg/misc-column.c: Add column tests for unary arguments.
+
+2008-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert2.adb: New test.
+
+2008-10-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37410
+	* g++.dg/debug/dwarf2/imported-module.C: New test.
+
 2008-10-05  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/35680

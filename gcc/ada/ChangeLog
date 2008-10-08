@@ -1,3 +1,21 @@
+2008-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Move code
+	dealing with volatileness to after code dealing with renaming.
+
+2008-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Minor tweaks.
+	* gcc-interface/trans.c (Pragma_to_gnu): Likewise.
+
+2008-10-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (can_fold_for_view_convert_p): New predicate.
+	(unchecked_convert): Use it to disable problematic folding with
+	VIEW_CONVERT_EXPR in the general case.  Always disable it for the
+	special VIEW_CONVERT_EXPR built for integral types and cope with
+	its addressability issues by preserving the first conversion.
+
 2008-10-01  Andreas Schwab  <schwab@suse.de>
 
 	* system-linux-ppc64.ads: New file.

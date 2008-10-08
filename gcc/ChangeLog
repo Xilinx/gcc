@@ -1,3 +1,277 @@
+2008-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md: Remove trailing white spaces.
+
+2008-10-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/37448
+	alloc_pool_desc (elt_size): New field.
+	alloc_pool_desc (created, allocated, current, peak): Make unsigned
+	long.
+	output_info (count): Renamed total_created and made unsigned long.
+	output_info (size): Renamed total_allocated and made unsigned long.
+	alloc-pool.c (create_alloc_pool, empty_alloc_pool, pool_alloc,
+	pool_free): Properly keep track of desc->size.
+	(print_statistics, dump_alloc_pool_statistics): Enhance the
+	printing of statistics to print the number of elements and to use
+	unsigned longs.
+	
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37576
+	* opts.h (CL_SAVE): Move up to flags range.
+	(CL_PARAMS, CL_WARNING, CL_OPTIMIZATION, CL_TARGET,
+	CL_COMMON): Renumber.
+	(CL_MIN_OPTION_CLASS): Set to CL_PARAMS.
+	* opts.c (common_handle_option): Revert last change.
+
+2008-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-protos.h (ix86_schedule): New.
+
+	* config/i386/i386.c (ix86_schedule): New.
+	(override_options): Add schedule to processor_alias_table.  Set
+	ix86_schedule from the schedule field in processor_alias_table.
+	(ix86_function_specific_save): Save ix86_schedule.
+	(ix86_function_specific_restore): Restore ix86_schedule.
+
+	* config/i386/i386.md (cpu): Map to ix86_schedule instead of
+	ix86_tune.  Add none and remove i386, i486, pentium4, nocona
+	and generic32.
+
+	* config/i386/i386.opt: Add schedule.
+
+	* config/i386/ppro.md: Remove generic32.
+
+2008-10-07  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c/35437
+	* expr.c (count_type_elements): Handle ERROR_MARK.
+
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/29609
+	PR debug/36690
+	PR debug/37616
+	* basic-block.h (struct edge_def): Add goto_block field.
+	* cfglayout.c (fixup_reorder_chain): Ensure that there is at least
+	one insn with locus corresponding to edge's goto_locus if !optimize.
+	* profile.c (branch_prob): Copy edge's goto_block.
+	* cfgrtl.c (force_nonfallthru_and_redirect): Use goto_locus for
+	emitted jumps.
+	(cfg_layout_merge_blocks): Emit a nop with edge's goto_locus
+	locator in between the merged basic blocks if !optimize and needed.
+	* cfgexpand.c (expand_gimple_cond): Convert goto_block and
+	goto_locus into RTL locator.  For unconditional jump use that
+	locator for the jump insn.
+	(expand_gimple_cond): Convert goto_block and goto_locus into
+	RTL locator for all remaining edges.  For unconditional jump
+	use that locator for the jump insn.
+	* cfgcleanup.c (try_forward_edges): Avoid the optimization if
+	there is more than one edge or insn locator along the forwarding
+	edges and !optimize.  If there is just one, set e->goto_locus.
+	* tree-cfg.c (make_cond_expr_edges, make_goto_expr_edges): Set also
+	edge's goto_block.
+	(move_block_to_fn): Adjust edge's goto_block.
+
+2008-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37731
+	* expmed.c (expand_mult): Properly check DImode constant in
+	CONST_DOUBLE.
+
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/37738
+	* dwarf2out.c (common_block_die_table): New variable.
+	(common_block_die_table_hash, common_block_die_table_eq): New
+	functions.
+	(gen_variable_die): Look up a DW_TAG_common_block die for a particular
+	COMMON block in the current scope rather than globally.  Optimize
+	DW_OP_addr SYMBOL_REF DW_OP_plus_uconst off into
+	DW_OP_addr SYMBOL_REF+off.
+
+2008-10-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-ssa-loop-ivopts.c (may_be_nonaddressable_p) <VIEW_CONVERT_EXPR>:
+	Return true for non-addressable GIMPLE operands.
+
+2008-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/24765
+	* config/i386/i386.c (initial_ix86_tune_features): Remove
+	X86_TUNE_USE_BIT_TEST.
+	* config/i386/i386.h (ix86_tune_indices): Likewise.
+	(TARGET_USE_BIT_TEST): Removed.
+
+2008-10-07  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* config.gcc (arm*-*-*): Add aapcs-linux to supported ABIs.
+
+2008-10-06  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (mulsi3_mul3, muldi3_mul3): Merge these ...
+	(mul<mode>3_mul3): ... into this new template.
+
+2008-10-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimplify.c (gimplify_arg): Add location argument.  Use it.
+	(gimplify_call_expr): Pass location to gimplify_arg.
+	(gimplify_modify_expr_to_memcpy): Same.
+	(gimplify_modify_expr_to_memset): Same.
+
+2008-10-06  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/rs6000/rs6000-c.c (altivec_resolve_overloaded_builtin):
+	Update calls to build_unary_op and build_indirect_ref for location
+	changes.
+
+2008-10-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	build_modify_expr.
+	* c-decl.c (finish_decl): Pass input_location to build_unary_op.
+	* c-typeck.c (array_to_pointer_conversion): Pass location to
+	build_unary_op.
+	(function_to_pointer_conversion): Use error_at and warning_at.
+	(build_indirect_ref): Same.
+	(build_array_ref): Pass location to build_binary_op.
+	(parser_build_unary_op): Do not set location after calling
+	build_unary_op.
+	(build_unary_op): Add location argument.  Use it throughout.  Set
+	EXPR_LOCATION before returning new tree.
+	(build_modify_expr): Same.
+	(build_binary_op): Use location throughout.  Set EXPR_LOCATION before
+	returning node.
+	* c-omp.c (c_finish_omp_atomic): Pass location to build_unary_op,
+	build_indirect_ref, build_modify_expr.
+	(c_finish_omp_for): Same.  Use error_at instead of error.
+	* c-common.c (c_common_truthvalue_conversion): Pass location to
+	build_unary_op.
+	(warn_for_div_by_zero): Add location argument.
+	* c-common.h: Add argument to build_modify_expr, build_indirect_ref,
+	build_unary_op, warn_for_div_by_zero.
+	* c-parser.c (c_parser_typeof_specifier): Use
+	protected_set_expr_location.
+	(c_parser_statement_after_labels): Same.
+	(c_parser_condition): Same.
+	(c_parser_expr_no_commas): Pass correct location to build_modify_expr.
+	(c_parser_conditional_expression): Use protected_set_expr_location.
+	(c_parser_unary_expression): Pass location to build_indirect_ref.
+	(c_parser_postfix_expression_after_primary): Pass location to
+	build_indirect_ref, build_unary_op.
+	(c_parser_omp_for_loop): Set the increment expression's EXPR_LOCATION.
+
+2008-10-06  Joshua Kinard  <kumba@gentoo.org>
+
+	* doc/invoke.texi: List r1x000 family under the -march MIPS option.
+	* config/mips/mips.h (PROCESSOR_R10000): New processor_type.
+	* config/mips/mips.c (mips_cpu_info_table): Add r10000, r12000,
+	r14000 and r16000.
+	(mips_rtx_cost_data): Add a PROCESSOR_R10000 entry.
+	(mips_issue_rate): Handle PROCESSOR_R10000.
+	* config/mips/mips.md (cpu): Add r10000.
+	Include r10000.md.
+	* config/mips/10000.md: New file.
+
+2008-10-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/rs6000/rs6000-protos.h (rs6000_find_base_term): Declare.
+	* config/rs6000/rs6000.h (FIND_BASE_TERM): New macro.
+	* config/rs6000/rs6000.c (rs6000_find_base_term): New function.
+
+2008-10-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/darwin-protos.h (machopic_function_base_name): Delete.
+	(machopic_function_base_sym): Likewise.
+	(machopic_gen_offset): Declare.
+	* config/darwin.h (MACHOPIC_FUNCTION_BASE_NAME): New macro.
+	(ASM_OUTPUT_LABELREF): Use it instead of a hard-coded string constant.
+	* config/darwin.c (machopic_function_base_name): Delete.
+	(machopic_function_base_sym): Likewise.
+	(gen_pic_offset): Rename to...
+	(machopic_gen_offset): ...this and remove the pic_base argument.
+	Instead use MACHO_DYNAMIC_NO_PIC_P to decide whether a PIC offset
+	is needed.  Create an UNSPEC_MACHOPIC_OFFSET if so, and set
+	crtl->uses_pic_offset_table.
+	(machopic_indirect_data_reference): Use new machopic_gen_offset
+	interface.
+	(machopic_legitimize_pic_address): Likewise.
+	(machopic_operand_p): Check for UNSPEC_MACHOPIC_OFFSET.
+
+	* config/i386/darwin.h (GOT_SYMBOL_NAME): Use
+	MACHOPIC_FUNCTION_BASE_NAME instead of machopic_function_base_name.
+	* config/i386/i386.c (output_set_got): Likewise.
+	(darwin_local_data_pic): Check for an UNSPEC_MACHOPIC_OFFSET
+	instead of a MINUS.
+	(legitimate_pic_operand_p): Handle UNSPEC_MACHOPIC_OFFSET.
+	(legitimate_address_p): Likewise.
+	(output_pic_addr_const): Likewise.
+	(output_addr_const_extra): Likewise.
+	(ix86_delegitimize_address): Expect darwin_local_data_pic to
+	match an UNSPEC rather than a MINUS.
+	* config/i386/i386.md (UNSPEC_MACHOPIC_OFFSET): Define.
+	(builtin_setjmp_receiver): Use machopic_gen_offset.
+	* config/i386/predicates.md (pic_symbolic_operand): Handle
+	UNSPEC_MACHOPIC_OFFSET.
+
+	* config/rs6000/rs6000.c (rs6000_legitimize_reload_address):
+	Use machopic_gen_offset and machopic_operand_p.
+	(rs6000_output_addr_const_extra): Handle UNSPEC_MACHOPIC_OFFSET.
+	(rs6000_emit_prologue): Use MACHOPIC_FUNCTION_BASE_NAME.
+	* config/rs6000/rs6000.md (UNSPEC_MACHOPIC_OFFSET): Define.
+	(builtin_setjmp_receiver): Use MACHOPIC_FUNCTION_BASE_NAME.
+	Set crtl->uses_pic_offset_table.
+
+2008-10-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/rs6000/rs6000-protos.h (rs6000_output_addr_const_extra):
+	Declare.
+	* config/rs6000/rs6000.h (OUTPUT_ADDR_CONST_EXTRA): New macro.
+	* config/rs6000/rs6000.md (UNSPEC_TOCREL): New constant.
+	* config/rs6000/rs6000.c (constant_pool_expr_1): Delete.
+	(constant_pool_expr_p): Use split_const and check the base.
+	(toc_relative_expr_p): Likewise, checking for an UNSPEC_TOCREL
+	instead of a MINUS.
+	(legitimate_constant_pool_address_p): Check toc_relative_p
+	instead of constant_pool_expr_p.
+	(print_operand_address): Always use output_addr_const for
+	constant pool addresses.
+	(rs6000_output_addr_const_extra): New function.
+	(create_TOC_reference): Create an UNSPEC_TOCREL instead of
+	a MINUS.
+
+2008-10-06  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/37535
+
+	* ira-lives.c (mark_reg_live, mark_reg_dead): New functions.
+	(mark_ref_live, mark_ref_dead): Use them.
+	(def_conflicts_with_inputs_p): Remove.
+	(mark_early_clobbers): New function.
+	(process_bb_node_lives): Call preprocess_constraints and
+	mark_early_clobbers.
+
+	* doc/rtx.texi (clobber): Change how RA deals with clobbers.
+
+2008-10-06  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/mingw32.h (REAL_LIBGCC_SPEC): Add thread cleanup
+	lib with -mthread switch.
+
+2008-10-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37410
+	* dwarf2out.c (dwarf2out_imported_module_or_decl): Split this
+	function in two, making it call a new and reusable
+	dwarf2out_imported_module_or_decl() that takes the containing
+	BLOCK of the declaration in argument.
+	(dwarf2out_imported_module_or_decl_real): New function.
+	(decls_for_scope, gen_decl_die, dwarf2out_decl): Take
+	IMPORTED_DECL in account.
+	* tree.def: Added IMPORTED_DECL node type.
+	* tree.h: Added accessors for IMPORTED_DECL nodes.
+	* tree.c (init_ttree): Initialise IMPORTED_DECL node type.
+
 2008-10-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* doc/gimple.texi: Fix some typos, wrap some long lines,
