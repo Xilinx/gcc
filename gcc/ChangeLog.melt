@@ -1,3 +1,10 @@
+2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-cc-script.proto: guess the second arg dynstuff from the
+	first csource on common platforms.
+	* melt/warmelt-normal.bysl: normal_exported_patmacro uses its nexp
+	argument.
+	* melt/warmelt-outobj.bysl: commented most debug_msg...
+
 2008-10-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[export_patmacro does not work well]
 	* melt/warmelt-first.bysl: added debug_msg in initpatmacro_exporter.

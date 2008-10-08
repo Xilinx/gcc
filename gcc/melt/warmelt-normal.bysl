@@ -4294,12 +4294,15 @@
 
 
 ;; return the normalized application to do the patmacro expport
-(compile_warning "normal_exported_patmacro has to be rethought" ())
-;; I am not sure to understgand when the generated application is called...
+;; sym is the symbol which is export_patmacro-ed
+;; nexp is the nrep of the patmatchexporter
+;; nmacroxp is the nrep of the macro expander
+;; npattxp is the nrep of the pattern expander
 (defun normal_exported_patmacro (sym nexp nmacroxp npattxp env ncx psloc bindslist)
   (debug_msg sym "normal_exported_patmacro start sym")
   (debug_msg nexp "normal_exported_patmacro start nexp")
   (debug_msg nmacroxp "normal_exported_patmacro start nmacroxp")
+  (debug_msg npattxp "normal_exported_patmacro start npattxp")
   (assert_msg "check sym" (is_a sym class_symbol))
   (assert_msg "check nexp" (is_a nexp class_nrep))
   (assert_msg "check nmacroxp" (is_a nmacroxp class_nrep))
@@ -4330,7 +4333,7 @@
 			    :letbind_type ctype_void
 			    :letbind_expr (instance class_nrep_apply
 						    :nrep_loc psloc
-						    :napp_fun nmacroxp
+						    :napp_fun nexp
 						    :napp_args (make_tuple4 discr_multiple symdata nmacroxp npattxp ncurenvbox))))
 	   (syocc (instance class_nrep_locsymocc
 			    :nrep_loc psloc

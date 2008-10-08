@@ -528,7 +528,7 @@
 
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
-  (debug_msg any "outpucod_anydiscr any")
+  ;(debug_msg any "outpucod_anydiscr any")
   (outcstring_err "* output_c_code unimplemented reciever discriminator ")
   (let ( (discr (discrim any)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
@@ -682,7 +682,7 @@
 	(add2sbuf_indentnl dsbuf 0)))
     (if others 
 	(progn
-	  (debug_msg others "output_curframe_init others")
+	  ;(debug_msg others "output_curframe_init others")
 	  (add2sbuf_strconst dsbuf "/*others*/")
 	  (add2sbuf_indentnl dsbuf 0)
 	  (list_every 
@@ -711,7 +711,7 @@
 
 ;;; output the code for declaring and initializing the current frame 
 (defun output_curframe_declstruct_init (declstruct rou implbuf)
-  (debug_msg rou "output_curframe_init rou")
+  ;(debug_msg rou "output_curframe_init rou")
   (let (
 	(obody (unsafe_get_field :obrout_body rou))
 	(onbval (unsafe_get_field :obrout_nbval rou))
@@ -771,7 +771,7 @@
 	 (orloc (unsafe_get_field :oprout_loc prou))
 	 (ofunam (unsafe_get_field :oprout_funam prou))
 	 )
-    (debug_msg prou "outpucod_procroutine prou")
+    ;(debug_msg prou "outpucod_procroutine prou")
     (if (not (is_string ofunam)) 
 	(setq ofunam (make_stringconst discr_string "**")))
     ;; output the declaration
@@ -813,7 +813,7 @@
     ;; output the argument getting
     (add2sbuf_strconst implbuf "/*getargs*/")
     (add2sbuf_indentnl implbuf 0)
-    (debug_msg ogargs "outpucod_procroutine output ogargs")
+    ;(debug_msg ogargs "outpucod_procroutine output ogargs")
     (assert_msg "check ogargs" (is_multiple ogargs))
     (multiple_every
      ogargs
@@ -832,7 +832,7 @@
     (add2sbuf_strconst implbuf "lab_endgetargs:;")
     (add2sbuf_indentnl implbuf 0)
     ;; output the body
-    (debug_msg obody "outpucod_procroutine output obody")
+    ;(debug_msg obody "outpucod_procroutine output obody")
     (assert_msg "check obody" (is_list obody))
     (add2sbuf_strconst implbuf "/*body*/")
     (add2sbuf_indentnl implbuf 0)
@@ -885,7 +885,7 @@
   (multiple_every
    idatup
    (lambda (curdat :long curk) 
-     (debug_msg curdat "output_curframe_cdat_struct curdat")
+     ;(debug_msg curdat "output_curframe_cdat_struct curdat")
      (add2sbuf_indentnl implbuf 1)
      (output_c_declinit curdat implbuf)))
   (add2sbuf_indentnl implbuf 0)
@@ -908,7 +908,7 @@
   (multiple_every
    idatup
    (lambda (curpdat :long curk) 
-     (debug_msg curpdat "outpucod_initialroutine curpdat inipredef")
+     ;(debug_msg curpdat "outpucod_initialroutine curpdat inipredef")
      (output_c_initpredef curpdat implbuf)))
 ;;;
 ;;; generate the initial filling of cdat
@@ -917,7 +917,7 @@
   (multiple_every
    idatup
    (lambda (curfil :long curk) 
-     (debug_msg curfil "outpucod_initialroutine curfil")
+     ;(debug_msg curfil "outpucod_initialroutine curfil")
      (add2sbuf_indentnl implbuf 1)
      (output_c_initfill curfil implbuf)))
 ;;;;;;;
@@ -974,10 +974,10 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "void* start_module_basilys(void* modargp_) {")
     (add2sbuf_indentnl implbuf 0)
-    (debug_msg pini "outpucod_initialroutine pini")
+    ;(debug_msg pini "outpucod_initialroutine pini")
     ;; generate the initial data structure
-    (debug_msg idatup "outpucod_initialroutine start idatup")
-    (debug_msg irfill "outpucod_initialroutine start irfill")
+    ;(debug_msg idatup "outpucod_initialroutine start idatup")
+    ;(debug_msg irfill "outpucod_initialroutine start irfill")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf "char predefinited[BGLOB__LASTGLOB+8];")
     (add2sbuf_indentnl implbuf 1)
@@ -995,7 +995,7 @@
     (list_every
      iprolog
      (lambda (curprol)
-       (debug_msg curprol "outpucod_initialroutine curprol")
+       ;(debug_msg curprol "outpucod_initialroutine curprol")
        (if (and curprol (not (is_a curprol class_objpurevalue)))
 	   (progn
 	     (output_c_code curprol declbuf implbuf 1)
@@ -1015,11 +1015,11 @@
     (add2sbuf_indentnl implbuf 0)
     (let ( (ibody (unsafe_get_field :obrout_body pini)) 
 	   )
-      (debug_msg ibody "outpucod_initialroutine ibody")
+      ;(debug_msg ibody "outpucod_initialroutine ibody")
       (list_every
        ibody
        (lambda (curbody)
-	 (debug_msg curbody "outpucod_initialroutine curbody")
+	 ;(debug_msg curbody "outpucod_initialroutine curbody")
 	 (if (and curbody (not (is_a curbody class_objpurevalue)))
 	     (progn
 	       (output_c_code curbody declbuf implbuf 1)
@@ -1055,7 +1055,7 @@
 ;; output code for argument getter
 (defun outpucod_getarg (garg declbuf implbuf :long depth)
   (assert_msg "check garg" (is_a garg class_objgetarg))
-  (debug_msg garg "outpucod_getarg garg")
+  ;(debug_msg garg "outpucod_getarg garg")
   (let ( (oloc (unsafe_get_field :obarg_obloc garg)) 
 	 (nloc (unsafe_get_field :obi_loc garg))
 	 (obind (unsafe_get_field :obarg_bind garg))
@@ -1112,7 +1112,7 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
-    (debug_msg garg "outpucod_getarg done garg")
+    ;(debug_msg garg "outpucod_getarg done garg")
     ))
 (install_method class_objgetarg output_c_code outpucod_getarg)
 
@@ -2850,8 +2850,6 @@
 
 
 (defun install_initial_command (nam fun)
-					;  (messageval_dbg "install_initial_command @@ fun" fun)
-					;  (messageval_dbg "install_initial_command @@ nam" nam)
   (debug_msg fun "install_initial_command fun")
   (if (is_closure fun)
       (if (is_string nam)
@@ -2990,6 +2988,8 @@
 
 (install_initial_command 
  (stringconst2val discr_string "showvar") showvar_command)
+
+;;;;;;;;;;;;;;;;
 (defun help_command (dispatcher arg secarg moduldata)
   (debug_msg  (unsafe_get_field :sysdata_cmd_fundict initial_system_data) "command function dict")
   (assert_msg "unimplemented help command" ())
@@ -2998,6 +2998,8 @@
 (install_initial_command
  (stringconst2val discr_string "help") help_command)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  install_initial_command
  compile_list_sexpr

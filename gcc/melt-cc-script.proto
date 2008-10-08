@@ -61,6 +61,15 @@ shift `expr $OPTIND - 1`
 csource=$1
 dynstuff=$2
 
+
+## on some machines, try to guess the dynstuff from the csource
+if [ -z $dynstuff ]; then
+    case `uname` in
+	Linux|SunOS|Solaris) 
+	    dynstuff=`basename $csource .c`.so;;
+    esac
+fi
+
 case $dynstuff in
     *.so) nakedynstuff=`basename $dynstuff .so`;;
     *.sl) nakedynstuff=`basename $dynstuff .sl`;;
