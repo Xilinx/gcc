@@ -1,4 +1,6 @@
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added OBJECT & INSTANCE patmacro.
+2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[implemented safe get_field & put_fields]
 	* doc/melt.texi: updated documentation.
 	* melt/warmelt-first.bysl: removed comments.

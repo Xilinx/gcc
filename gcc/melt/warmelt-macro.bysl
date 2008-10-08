@@ -2175,9 +2175,198 @@
 	))))
 (install_initial_macro 'make_instance mexpand_instance)
 (export_macro make_instance mexpand_instance)
-(install_initial_macro 'instance mexpand_instance)
-(export_macro instance mexpand_instance)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; parse a field pattern
+(defun parse_field_pattern (fkeyw cla flpsexp env pctx psloc)
+  (debug_msg fkeyw "parse_field_pattern keyw")
+  (assert_msg "check fkeyw" (is_a fkeyw class_keyword))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctc" (is_a pctx class_pattexpcontext))
+  (assert_msg "check cla" (is_a cla class_class))
+  (let (
+	(clafields (unsafe_get_field :class_fields cla))
+	(fldbox (make_box discr_box ())) 
+	(flpat (patternexpand_1 flpsexp env pctx)) 
+	)
+    ;; find the field inside the class
+    (multiple_iterate_test
+     clafields
+     (lambda (cfld :long ix)
+       (assert_msg "check fld" (is_a cfld class_field))
+       (if (==s (unsafe_get_field :named_name cfld) 
+		(unsafe_get_field :named_name fkeyw))
+	   (progn 
+	     (box_put fldbox cfld)
+	     ()				; nil to exit to iteration
+	     )
+	 cfld))
+     )
+    (let ( (fld (box_content fldbox))
+	   )
+      (if (is_not_a fld class_field)
+	  (progn
+	    (error_strv psloc "invalid :field in pattern"
+			(unsafe_get_field :named_name fkeyw))
+	    (return)))
+      (let (
+	    (patf (instance class_srcfieldpattern
+			    :src_loc psloc
+			    :spaf_field fld
+			    :spaf_pattern flpat
+			    ))
+	    )
+	(debug_msg patf "parse_field_pattern return patf")
+	(return patf)
+	))))
+
+(defun patexpand_instance (sexpr env pctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (debug_msg sexpr "patexpand_instance sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(fields ())
+	(fieldnams ())
+	(curpair (pair_tail (list_first cont)))
+	(claname (pair_head curpair))
+	(cla ())
+	(clabind ())
+	)
+    (if (is_not_a claname class_symbol)
+	(error_plain loc "missing class symbol for INSTANCE pattern"_))
+    (let ( (bnd (find_env env claname)) 
+	   (fldlist (make_list discr_list))
+	   )
+      (cond 
+       ( (is_a bnd class_class_binding)
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :cbind_class bnd)) 
+	 )
+       ( (and (is_a bnd class_value_binding)
+	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :vbind_value bnd))
+	 )
+       (:else
+	(error_strv loc "invalid class name for INSTANCE"_
+		    (unsafe_get_field :named_name claname))
+	(return (the_null))
+	))
+      (assert_msg "check cla" (is_a cla class_class))
+      (setq curpair (pair_tail curpair))
+      ;; build the list of field patterns
+      (forever 
+       insloop
+       (if (not (is_pair curpair)) (exit insloop))
+       (let ( (curfkw (pair_head curpair)) )
+	 (if (is_not_a curfkw class_keyword)
+	     (error_plain loc "expecting keyword in INSTANCE"_))
+	 (setq curpair (pair_tail curpair))
+	 (let ( (curexp (pair_head curpair)) )
+	   (let  ( (fldp (parse_field_pattern curfkw cla curexp env pctx loc)) )
+	     (debug_msg fldp "patexpand_instance fldp")
+	     (if fldp
+		 (list_append fldlist fldp)
+	       (error_strv loc "bad field name in INSTANCE"_
+			   (unsafe_get_field :named_name curfkw))
+	       ))))
+       (setq curpair (pair_tail curpair))
+       )
+      (let ( (spati (instance class_srcpattern_instance
+			      :src_loc loc
+			      :spat_class cla
+			      :spat_fields (list_to_multiple fldlist discr_multiple)))
+	     )
+	(debug_msg spati "patexpand_instance return spati")
+	(return spati)
+	))
+    ))
+(install_initial_patmacro 'instance patexpand_instance mexpand_instance)
+(export_patmacro instance patexpand_instance mexpand_instance)
+
+(defun patexpand_object (sexpr env pctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (debug_msg sexpr "patexpand_object sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(fields ())
+	(fieldnams ())
+	(curpair (pair_tail (list_first cont)))
+	(claname (pair_head curpair))
+	(cla ())
+	(clabind ())
+	)
+    (if (is_not_a claname class_symbol)
+	(error_plain loc "missing class symbol for  OBJECT pattern"_))
+    (let ( (bnd (find_env env claname)) 
+	   (fldlist (make_list discr_list))
+	   )
+      (cond 
+       ( (is_a bnd class_class_binding)
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :cbind_class bnd)) 
+	 )
+       ( (and (is_a bnd class_value_binding)
+	      (is_a (unsafe_get_field :vbind_value bnd) class_class))
+	 (setq clabind bnd)
+	 (setq cla (unsafe_get_field :vbind_value bnd))
+	 )
+       (:else
+	(error_strv loc "invalid class name for OBJECT pattern"_
+		    (unsafe_get_field :named_name claname))
+	(return (the_null))
+	))
+      (assert_msg "check cla" (is_a cla class_class))
+      (setq curpair (pair_tail curpair))
+      ;; build the list of field patterns
+      (forever 
+       insloop
+       (if (not (is_pair curpair)) (exit insloop))
+       (let ( (curfkw (pair_head curpair)) )
+	 (if (is_not_a curfkw class_keyword)
+	     (error_plain loc "expecting keyword in OBJECT pattern"_))
+	 (setq curpair (pair_tail curpair))
+	 (let ( (curexp (pair_head curpair)) )
+	   (let  ( (fldp (parse_field_pattern curfkw cla curexp env pctx loc)) )
+	     (debug_msg fldp "patexpand_object fldp")
+	     (if fldp
+		 (list_append fldlist fldp)
+	       (error_strv loc "bad field name in OBJECT pattern"_
+			   (unsafe_get_field :named_name curfkw))
+	       ))))
+       (setq curpair (pair_tail curpair))
+       )
+      (let ( (spati (instance class_srcpattern_object
+			      :src_loc loc
+			      :spat_class cla
+			      :spat_fields (list_to_multiple fldlist discr_multiple)))
+	     )
+	(debug_msg spati "patexpand_object return spati")
+	(return spati)
+	))
+    ))
+
+(defun mexpand_object (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (debug_msg sexpr "mexpand_object sexpr")
+  (let (
+	(loc  (unsafe_get_field :loca_location sexpr))
+	)
+    (error_plain loc "OBJECT cannot be macro-expanded - use INSTANCE instead")
+    (return)
+))
+
+(install_initial_patmacro 'object patexpand_object mexpand_object)
+(export_patmacro object patexpand_object mexpand_object)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; the unsafe_put_fields expander
 (defun mexpand_unsafe_put_fields (sexpr env mexpander)
@@ -2544,12 +2733,13 @@
 		 )
 	(debug_msg res "mexpand_and res:")
 	(return res)))))
+
 ;;;; the AND pattern expanser
 (defun patexpand_and (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
-  (debug_msg sexpr "patexpand_andr sexpr")
+  (debug_msg sexpr "patexpand_and sexpr")
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
