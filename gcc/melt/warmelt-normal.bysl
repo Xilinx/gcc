@@ -118,13 +118,26 @@
 	   nret_rest			;tuple of normal expr...
 	   ))
 
-;; normal if have simple test, then, else clauses & a ctype
-(defclass class_nrep_if
+
+;; common normal for if & ifisa
+(defclass class_nrep_ifcommon
   :super class_nrep_expr
-  :fields (nif_test
-	   nif_then
+  :fields (nif_then
 	   nif_else
 	   nif_ctyp
+	   ))
+
+;; normal if is_a(value,class) then else
+(defclass class_nrep_ifisa
+  :super class_nrep_ifcommon
+  :fields (nifa_val			;normal value to be tested
+	   nifa_class			;normal class 
+))
+
+;; normal if have simple test, then, else clauses & a ctype
+(defclass class_nrep_if
+  :super class_nrep_ifcommon
+  :fields (nif_test
 	   ))
 
 ;; normal ifcpp have a symbol and a ctyp
@@ -460,6 +473,8 @@
  class_nrep_fieldassign
  class_nrep_forever
  class_nrep_if
+ class_nrep_ifcommon
+ class_nrep_ifisa
  class_nrep_initproc
  class_nrep_lambda
  class_nrep_let
@@ -1174,6 +1189,44 @@
   )
 (install_method class_nrep_symocc get_ctype gectyp_symocc)
 
+
+;;; normalize a class - used in particular in normalization of get_field
+;; this does not work well when the class's name is locally rebound,
+;; which rarely happens in practice
+(defun normexp_class (recv env ncx psloc)
+  (debug_msg recv "normexp_class recv")
+  (assert_msg "check recv" (is_a recv class_class))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (clasymb (get_symbolstr (unsafe_get_field :named_name recv))) 
+	 (clabind (find_env clasymb env))
+	 )
+    (cond ( (is_a clabind class_class_binding)
+	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )
+	      (debug_msg normcla "normexp_class normcla class data inst")
+	      (assert_msg "check normcla" (is_a normcla class_nrep_datainstance))
+	      (return normcla)
+	      ))
+	  ( (is_a clabind class_value_binding)
+	    (assert_msg "check clabind value" (== recv (unsafe_get_field :vbind_value clabind)))
+	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )
+	      (debug_msg normcla "normexp_class normcla class value")
+	      (assert_msg "check normcla" (is_a normcla class_nrep_constocc))
+	      (return normcla)
+	      ))
+	  (:else
+	   ;; this could happen if the class's name has been locally
+	   ;; rebound, But we don't really handle that. We might scan
+	   ;; the environment stack to find the real class binding and
+	   ;; normalize accordingly, but this won't happen often...
+	   (error_strv psloc "class incorrectly bound, perhaps locally rebound"
+		       (unsafe_get_field :named_name recv))
+	   (debug_msg () "normexp_class failed")
+	   (return)
+	   ))
+    ))
+
+(install_method class_class normal_exp normexp_class)
 
 ;;; normalize a primitive invocation
 (defun normexp_primitive (recv env ncx psloc)
@@ -2048,6 +2101,57 @@
 (install_method class_src_unsafe_get_field normal_exp normexp_unsafe_get_field)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an GET_FIELD
+(defun normexp_get_field (recv env ncx psloc)
+  (assert_msg "check getfield recv" (is_a recv class_src_get_field))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_get_field recv")
+  (let ( (sloc   (unsafe_get_field :src_loc recv))
+	 (sobj   (unsafe_get_field :suget_obj recv))
+	 (sfld   (unsafe_get_field :suget_field recv)) 
+	 ) 
+    (assert_msg "check sfld" (is_a sfld class_field))
+    (multicall
+     (nobj nbind)
+     (normal_exp sobj env ncx sloc)
+     (if (null nbind) (setq nbind (make_list discr_list)))
+     (debug_msg nobj "normexp_get_field nobj")
+     (let ( (csym (clone_symbol (unsafe_get_field :named_name sfld)))
+	    (fcla (unsafe_get_field :fld_ownclass sfld))
+	    (ncla (let ( (nc (normal_exp fcla env ncx psloc)) )
+		    (debug_msg nc "normexp_get_field ncla")
+		    nc))
+	    (nuget (instance class_nrep_unsafe_get_field
+			     :nrep_loc sloc
+			     :nuget_obj nobj
+			     :nuget_field sfld))
+	    (cbind (instance class_normlet_binding
+			     :binder csym
+			     :letbind_loc sloc
+			     :letbind_type ctype_value
+			     :letbind_expr 
+			     (instance class_nrep_ifisa
+				       :nrep_loc sloc
+				       :nifa_val nobj
+				       :nifa_class ncla
+				       :nif_then nuget
+				       :nif_ctyp ctype_value)))
+	    (clocc (instance  class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp ctype_value
+			      :nocc_symb csym
+			      :nocc_bind cbind))
+	    )
+       (list_append nbind cbind)
+       (debug_msg clocc "normexp_get_field clocc")
+       (debug_msg nbind "normexp_get_field nbind")
+       (return 	clocc nbind
+		)))))
+(install_method class_src_get_field normal_exp normexp_get_field)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an UNSAFE_PUT_FIELDS
 (defun normexp_unsafe_put_fields (recv env ncx psloc)
   (assert_msg "check unsafeputfields recv" (is_a recv class_src_unsafe_put_fields))
@@ -2106,6 +2210,94 @@
        ))))
 (install_method class_src_unsafe_put_fields normal_exp normexp_unsafe_put_fields)
 (install_method class_nrep_unsafe_put_fields get_ctype (lambda (recv env) ctype_void))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; normalize an PUT_FIELDS
+(defun normexp_put_fields (recv env ncx psloc)
+  (assert_msg "check putfields recv" (is_a recv class_src_unsafe_put_fields))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_put_fields recv")
+  (let ( (sloc   (unsafe_get_field :src_loc recv))
+	 (sobj   (unsafe_get_field :suput_obj recv))
+	 (sfields (unsafe_get_field :suput_fields recv))
+	 (:long nbfields (multiple_length sfields))
+	 (nfields (make_multiple discr_multiple nbfields))
+	 (nbindlist (make_list discr_list)) 
+	 (csym (clone_symbol 'putfld_))
+	 (cbind (instance class_normlet_binding
+			  :binder csym
+			  :letbind_loc sloc
+			  :letbind_type ctype_void
+			  ;; letbind_expr filled later
+			  :letbind_expr ()))
+	 (clocc (instance  class_nrep_locsymocc
+			   :nrep_loc sloc
+			   :nocc_ctyp ctype_void
+			   :nocc_symb csym
+			   :nocc_bind cbind))
+	 (clabox (make_box discr_box ()))
+	 )
+    (multicall
+     (nobj nobjbind)
+     (normal_exp sobj env ncx sloc)
+     (list_append2list nbindlist  nobjbind)
+     (multiple_every 
+      sfields
+      (lambda (fla :long ix) 
+	(assert_msg "check fla" (is_a fla class_src_fieldassign))
+	(let ( (fld (unsafe_get_field :sfla_field fla))
+	       (exp (unsafe_get_field :sfla_expr fla)) )
+	  (assert_msg "check fld" (is_a fld class_field))
+	  (let ( (fcla (unsafe_get_field :fld_ownclass fld)) 
+		 (precla (box_content clabox))
+		 )
+	    (cond ( (null precla)
+		    (box_put clabox fcla))
+		  ( (== precla fcla)
+		    ()
+		    )
+		  ( (subclass_of precla fcla)
+		    ()
+		    )
+		  ( (subclass_of fcla precla)
+		    (box_put clabox fcla))
+		  (:else
+		   (error_strv sloc "bad field name in PUT_FIELD" (unsafe_get_field :named_name fld))
+		   (inform_strv sloc "expecting field of class" (unsafe_get_field :named_name precla))
+		   )
+		  )
+	    )
+	  (multicall
+	   (nexp nexpbind)
+	   (normal_exp exp env ncx sloc)
+	   (list_append2list nbindlist  nexpbind)
+	   (let ( (nfla (instance class_nrep_fieldassign
+				  :nrep_loc sloc
+				  :nfla_field fld
+				  :nfla_val nexp)) )
+	     (multiple_put_nth nfields ix nfla)
+	     )))))
+     (let (
+	   (ncla (normal_exp (box_content clabox) env ncx sloc))
+	   (npuf (instance class_nrep_unsafe_put_fields
+			   :nrep_loc sloc
+			   :nuput_obj nobj
+			   :nuput_fields nfields)) 
+	   (nif (instance class_nrep_ifisa
+			  :nrep_loc sloc
+			  :nifa_val nobj
+			  :nifa_class ncla
+			  :nif_then npuf
+			  :nif_ctyp ctype_void)
+		))
+       (unsafe_put_fields cbind :letbind_expr nif)
+       (list_append nbindlist cbind)
+       (debug_msg clocc "normexp_put_fields result clocc")
+       (debug_msg nbindlist "normexp_put_fields result nbindlist")
+       (return clocc nbindlist)
+       ))))
+(install_method class_src_put_fields normal_exp normexp_put_fields)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize a setq
 (defun normexp_setq (recv env ncx psloc)

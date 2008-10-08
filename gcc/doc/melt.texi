@@ -1518,9 +1518,10 @@ as a @var{label-name}.
 
 @item get_field
 @cindex @code{get_field} MELT syntax
-[Not implemented] @code{(unsafe_get_field @var{:field-name} @var{expr})} retrieves the
+@code{(unsafe_get_field @var{:field-name} @var{expr})} retrieves the
 field named @var{:field-name} from the object returned by @var{expr}
-expression. If it is not an appropriate object, gives nil.
+expression. If it is not an appropriate object (of the class owning
+the @var{:field-name}) , gives nil.
 
 @item if
 @cindex @code{if} MELT syntax
@@ -1628,7 +1629,6 @@ successfully @var{e1} then @var{e2} and return the value of the last
 
 @item put_fields
 @cindex @code{put_fields} MELT syntax.
-[Unimplemented]
 @code{(put_fields @var{obj} @var{:field-name1} @var{val1}
 @var{@dots{}})}  updates the object value of @var{obj} by changing its
 field named @var{:field-name1} to the value of @var{val1} etc@dots{}

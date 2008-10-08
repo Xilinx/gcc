@@ -1,4 +1,14 @@
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[implemented safe get_field & put_fields]
+	* doc/melt.texi: updated documentation.
+	* melt/warmelt-first.bysl: removed comments.
+	* melt/warmelt-macro.bysl: added class_src_get_field
+	class_src_put_fields and their macroexpanders.
+	* melt/warmelt-normal.bysl: added class_nrep_ifcommon
+	class_nrep_ifisa and implemented normaexp_put_fields &
+	normexp_get_field.
+	* melt/warmelt-genobj.bysl: added compilation of class_nrep_ifisa.
+2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: AND becomes a patmacro. added
 	class_srcpattern_and.
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>

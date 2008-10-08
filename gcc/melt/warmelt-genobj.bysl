@@ -2619,6 +2619,49 @@
       )))
 (install_method class_nrep_if compile_obj compilobj_nrep_if)
 
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_ifisa (rif gcx)
+  (assert_msg "check rif" (is_a rif class_nrep_ifisa))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg rif "compilobj_nrep_ifisa rif")
+  (let ( (loc (unsafe_get_field :nrep_loc rif))
+	 (nthen (unsafe_get_field :nif_then rif))
+	 (nelse (unsafe_get_field :nif_else rif))
+	 (nctyp (unsafe_get_field :nif_ctyp rif))
+	 (nval (unsafe_get_field :nifa_val rif))
+	 (ncla (unsafe_get_field :nifa_class rif))
+	 )
+    (assert_msg "check nctyp" (is_a nctyp class_ctype))
+    (let ( (othen (compile_obj nthen gcx))
+	   (oval (compile_obj nval gcx))
+	   (ocla (compile_obj ncla gcx))
+	   (oelse (if (is_not_a nelse class_nrep_nil) 
+		      (compile_obj nelse gcx)))
+	   (otest (instance class_objexpv
+			    :obx_cont
+			    (make_tuple5 discr_multiple
+					 (make_stringconst discr_verbatimstring
+							   "/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(")
+					 oval
+					 (make_stringconst discr_verbatimstring
+							   "), (basilys_ptr_t)(")
+					 ocla
+					 (make_stringconst discr_verbatimstring
+							   "))"))
+			    ))
+	   (obif (instance class_objcond
+			   :obi_loc loc
+			   :obcond_test otest
+			   :obcond_then othen
+			   :obcond_else oelse))
+	   )
+      (debug_msg obif "compilobj_nrep_ifisa obif")
+      obif
+      )))
+(install_method class_nrep_ifisa compile_obj compilobj_nrep_ifisa)
+
+
 ;;;;;;;;;;;;;
 (defun putobjdest_objcond (recv desto)
 					;  (debug_msg recv "putobjdest objcond recv")

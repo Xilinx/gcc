@@ -245,18 +245,33 @@
 	   smins_fields			;the sequence of field assignment
 	   ))
 
-;;; source unsafe get field
-(defclass class_src_unsafe_get_field
+;;; source  get field
+(defclass class_src_get_field
   :super class_src
   :fields (suget_obj	     ;the object expression
 	   suget_field	     ;the field keyword
 	   ))
 
+
+;;; source unsafe get field
+(defclass class_src_unsafe_get_field
+  :super class_src_get_field
+  :fields (
+	   ))
+
+;;; source get field
+
 ;; source unsafe put fields
-(defclass class_src_unsafe_put_fields
+(defclass class_src_put_fields
   :super class_src
   :fields (suput_obj	     ;the object expression
 	   suput_fields			;the sequence of field assignment
+	   ))
+
+;; source unsafe put fields
+(defclass class_src_unsafe_put_fields
+  :super class_src_put_fields
+  :fields (
 	   ))
 
 
@@ -2204,7 +2219,7 @@
 (install_initial_macro 'unsafe_put_fields mexpand_unsafe_put_fields)
 (export_macro unsafe_put_fields mexpand_unsafe_put_fields)
 
-;;;; the unsafe_get_field expander
+;;;; the UNSAFE_GET_FIELD macro expander
 (defun mexpand_unsafe_get_field (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -2237,6 +2252,40 @@
 		    ))))))
 (install_initial_macro 'unsafe_get_field mexpand_unsafe_get_field)
 (export_macro unsafe_get_field mexpand_unsafe_get_field)
+
+;;;; the GET_FIELD expander
+(defun mexpand_get_field (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (curfkw (pair_head curpair)) 
+	 )
+    (if (is_not_a curfkw class_keyword)
+	(progn
+	  (error_plain loc "field keyword expected in GET_FIELD"_)
+	  (return (the_null))))
+    (setq curpair (pair_tail curpair))
+    (let ( (curexp (pair_head curpair)) )
+      (setq curpair (pair_tail curpair))
+      (if curpair (error_plain loc "UNSAFE_GET_FIELD with more than two sons"_))
+      ;; it is not a field assignment but we use the parse_field_assignment
+      ;; routine to get the field and the expression
+      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+	(if (not (is_a flda class_src_fieldassign))
+	    (progn 
+	      (error_plain loc "bad field and expression in GET_FIELD"_)
+	      (return (the_null))))
+	(let ( (fld (unsafe_get_field :sfla_field flda))
+	       (exp (unsafe_get_field :sfla_expr flda)) )
+	  (instance class_src_get_field
+		    :src_loc loc
+		    :suget_obj exp
+		    :suget_field fld
+		    ))))))
+(install_initial_macro 'get_field mexpand_get_field)
+(export_macro get_field mexpand_get_field)
 
 
 ;;;; the setq expander
@@ -3504,6 +3553,7 @@
  class_src_fetch_predefined
  class_src_fieldassign
  class_src_forever
+ class_src_get_field
  class_src_if
  class_src_ifelse
  class_src_labelled
@@ -3518,7 +3568,7 @@
  class_src_parent_module_environment
  class_src_primitive
  class_src_progn
- class_src_progn
+ class_src_put_fields
  class_src_quote
  class_src_return
  class_src_setq
