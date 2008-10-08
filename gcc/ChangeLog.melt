@@ -1,4 +1,14 @@
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{export_patmacro working for or]
+	* melt/warmelt-macro.bysl: or becomes a patmacro.
+	* melt/warmelt-genobj.bysl: all export_macro & export_patmacro
+	done in normalization.
+	* warmelt-first-0.c: regenerated twice.
+	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: regenerated twice.
+2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-cc-script.proto: guess the second arg dynstuff from the
 	first csource on common platforms.
 	* melt/warmelt-normal.bysl: normal_exported_patmacro uses its nexp

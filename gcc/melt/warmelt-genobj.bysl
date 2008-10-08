@@ -818,10 +818,8 @@
 		     (unsafe_put_fields gcx :igncx_prevenvloc preve)
 		     preve))
 	(ovalueexporter (get_free_objlocptr gcx '_valexport_)) 
-	(omacroexporter (get_free_objlocptr gcx '_macroexport_))
 	(ovalueimporter (get_free_objlocptr gcx '_valimport_))
 	)
-    (compile_warning " compile2obj_initproc should handle patmacros" ())
     (append_commentconst oinibody "start of oinibody")
     (debug_msg boxloc "boxloc is")
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 

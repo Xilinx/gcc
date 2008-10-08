@@ -2537,11 +2537,8 @@
     (return res)
     )
   )
-(install_initial_patmacro 'oror_ patexpand_or mexpand_or)
-;(export_patmacro oror_ patexpand_or mexpand_or)
-(install_initial_macro 'or mexpand_or)
-(export_macro or mexpand_or)
-(compile_warning "OR should be a patmacro & export_patmacro dont work" ())
+(install_initial_patmacro 'or patexpand_or mexpand_or)
+(export_patmacro or patexpand_or mexpand_or)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the match expander
