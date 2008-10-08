@@ -1,6 +1,9 @@
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
-	{export_patmacro working for or]
-	* melt/warmelt-macro.bysl: or becomes a patmacro.
+	* melt/warmelt-macro.bysl: AND becomes a patmacro. added
+	class_srcpattern_and.
+2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{export_patmacro working for OR]
+	* melt/warmelt-macro.bysl: OR becomes a patmacro.
 	* melt/warmelt-genobj.bysl: all export_macro & export_patmacro
 	done in normalization.
 	* warmelt-first-0.c: regenerated twice.

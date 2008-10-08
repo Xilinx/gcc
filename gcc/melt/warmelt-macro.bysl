@@ -414,7 +414,13 @@
 ;;; or patterns
 (defclass class_srcpattern_or
   :super class_srcpattern_any
-  :fields (orpat_disj		    ;tuple of disjuncts
+  :fields (orpat_disj		    ;tuple of pattern disjuncts
+))
+
+;;; and patterns
+(defclass class_srcpattern_and
+  :super class_srcpattern_any
+  :fields (andpat_conj			;tuple of pattern conjoncts
 ))
 
 ;;; simple source pattern variable
@@ -2448,7 +2454,8 @@
 (install_initial_macro 'cond mexpand_cond)
 (export_macro cond mexpand_cond)
 
-;;;; the and expanser
+;;;;;;;;;;;;;;;;
+;;;; the AND macro expanser
 ;;; AND pseudo syntax
 ;;; (AND a1) is expanded into a1
 ;;; (AND a1 a2) is expansed into (IF a1 a2)
@@ -2488,10 +2495,30 @@
 		 )
 	(debug_msg res "mexpand_and res:")
 	(return res)))))
-(install_initial_macro 'and mexpand_and)
-(export_macro and mexpand_and)
+;;;; the AND pattern expanser
+(defun patexpand_and (sexpr env pctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (debug_msg sexpr "patexpand_andr sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx))
+	(res (instance class_srcpattern_and
+		       :src_loc loc
+		       :andpat_conj argsp))
+	)
+    (debug_msg res "patexpand_and res")
+    (return res)
+    )
+  )
+(install_initial_patmacro 'and patexpand_and mexpand_and)
+(export_patmacro and patexpand_and mexpand_and)
 
-;;;; the or macro expanser
+;;;;;;;;;;;;;;;;
+;;;; the OR macro expanser
 (defun mexpand_or (sexpr env mexpander)
   (debug_msg sexpr "mexpand_or sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -2518,7 +2545,7 @@
 	(return res)
 	))))
 
-;;;; the or pattern expander
+;;;; the OR pattern expander
 (defun patexpand_or (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
@@ -3502,6 +3529,7 @@
  class_srcdef
  class_srcdeformal
  class_srcfieldpattern
+ class_srcpattern_and
  class_srcpattern_any
  class_srcpattern_composite
  class_srcpattern_cmatch
