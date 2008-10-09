@@ -34,7 +34,7 @@ static inline int scop_nb_loops (scop_p scop);
 static inline unsigned scop_nb_params (scop_p scop);
 static inline bool scop_contains_loop (scop_p scop, struct loop *loop);
 
-struct graphite_bb
+typedef struct graphite_bb
 {
   basic_block bb;
   scop_p scop;
@@ -193,7 +193,7 @@ struct graphite_bb
   lambda_vector compressed_alpha_matrix;
   CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
-};
+} *gbb_p;
 
 #define GBB_BB(GBB) GBB->bb
 #define GBB_SCOP(GBB) GBB->scop

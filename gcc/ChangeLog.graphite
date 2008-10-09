@@ -1,3 +1,17 @@
+2008-10-09  Harsha Jagasia  <harsha.jagasia@amd.com>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (struct rename_map_elt, new_rename_map_elt,
+	rename_map_elt_info, eq_rename_map_elts): New.
+	(graphite_rename_ivs_stmt): Renamed graphite_rename_variables_in_stmt.
+	(expand_scalar_variables_expr): Change parameters.
+	(expand_scalar_variables_stmt): Same.
+	(expand_scalar_variables): Same.
+	(graphite_rename_ivs): Rename graphite_rename_variables.
+	(build_iv_mapping): New.
+	(translate_clast): Call build_iv_mapping.
+	* graphite.h (gbb_p): New name.
+
 2008-10-03  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR tree-optimization/37684

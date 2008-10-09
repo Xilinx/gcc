@@ -794,7 +794,7 @@ dot_all_scops (void)
 {
   /* When debugging, enable the following code.  This cannot be used
      in production compilers because it calls "system".  */
-#if 0
+#if 1
   FILE *stream = fopen ("/tmp/allscops.dot", "w");
   gcc_assert (stream);
 
@@ -3447,11 +3447,50 @@ remove_all_edges (basic_block bb, edge keep)
   remove_all_edges_1 (bb->preds, keep);
 }
 
+/* Structure containing the mapping between the old names and the new
+   names used after block copy in the new loop context.  */
+typedef struct rename_map_elt
+{
+  tree old_name, new_name;
+} *rename_map_elt;
+
+/* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
+
+static inline rename_map_elt
+new_rename_map_elt (tree old_name, tree new_name)
+{
+  rename_map_elt res;
+  
+  res = XNEW (struct rename_map_elt);
+  res->old_name = old_name;
+  res->new_name = new_name;
+
+  return res;
+}
+
+/* Computes a hash function for database element ELT.  */
+
+static hashval_t
+rename_map_elt_info (const void *elt)
+{
+  return htab_hash_pointer (((const struct rename_map_elt *) elt)->old_name);
+}
+
+/* Compares database elements E1 and E2.  */
+
+static int
+eq_rename_map_elts (const void *e1, const void *e2)
+{
+  const struct rename_map_elt *elt1 = (const struct rename_map_elt *) e1;
+  const struct rename_map_elt *elt2 = (const struct rename_map_elt *) e2;
+
+  return (elt1->old_name == elt2->old_name);
+}
+
 /* Rename the SSA_NAMEs used in STMT and that appear in IVSTACK.  */
 
 static void 
-graphite_rename_ivs_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
-			  loop_p old, loop_iv_stack ivstack)
+graphite_rename_variables_in_stmt (gimple stmt, htab_t map)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -3459,15 +3498,14 @@ graphite_rename_ivs_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
     {
       tree use = USE_FROM_PTR (use_p);
-      tree new_iv = NULL;
-      name_tree old_iv = get_old_iv_from_ssa_name (scop, old, use);
-      
-      if (old_iv)
-	new_iv = loop_iv_stack_get_iv (ivstack,
-				       gbb_loop_index (gbb, old_iv->loop));
+      struct rename_map_elt tmp;
+      PTR *slot;
 
-      if (new_iv)
-	SET_USE (use_p, new_iv);
+      tmp.old_name = SSA_NAME_VAR (use);
+      slot = htab_find_slot (map, &tmp, NO_INSERT);
+
+      if (slot && *slot)
+	SET_USE (use_p, ((rename_map_elt) *slot)->new_name);
     }
 }
 
@@ -3497,8 +3535,7 @@ is_old_iv (scop_p scop, loop_p old, tree name)
 
 }
 
-static void expand_scalar_variables_stmt (gimple, graphite_bb_p, scop_p, loop_p,
-					  loop_iv_stack);
+static void expand_scalar_variables_stmt (gimple, graphite_bb_p, scop_p, loop_p);
 
 /* Constructs a tree which only contains old_ivs and parameters.  Any
    other variables that are defined outside GBB will be eliminated by
@@ -3508,7 +3545,7 @@ static void expand_scalar_variables_stmt (gimple, graphite_bb_p, scop_p, loop_p,
 static tree
 expand_scalar_variables_expr (tree type, tree op0, enum tree_code code, 
 			      tree op1, graphite_bb_p gbb, scop_p scop, 
-			      loop_p old_loop_father, loop_iv_stack ivstack)
+			      loop_p old_loop_father)
 {
   if (TREE_CODE_CLASS (code) == tcc_constant
       && code == INTEGER_CST)
@@ -3520,8 +3557,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = 
 	expand_scalar_variables_expr (op0_type, op0, op0_code,
-				      NULL, gbb, scop, old_loop_father,
-				      ivstack);
+				      NULL, gbb, scop, old_loop_father);
 
       return fold_build1 (code, type, op0_expr);
     }
@@ -3532,14 +3568,12 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = 
 	expand_scalar_variables_expr (op0_type, op0, op0_code,
-				      NULL, gbb, scop, old_loop_father,
-				      ivstack);
+				      NULL, gbb, scop, old_loop_father);
       tree op1_type = TREE_TYPE (op1);
       enum tree_code op1_code = TREE_CODE (op1);
       tree op1_expr = 
 	expand_scalar_variables_expr (op1_type, op1, op1_code,
-				      NULL, gbb, scop, old_loop_father,
-				      ivstack);
+				      NULL, gbb, scop, old_loop_father);
 
       return fold_build2 (code, type, op0_expr, op1_expr);
     }
@@ -3562,7 +3596,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	     we do not need to create a new expression for it, we
 	     only need to ensure its operands are expanded.  */
 	  expand_scalar_variables_stmt (def_stmt, gbb, scop,
-					old_loop_father, ivstack);
+					old_loop_father);
 	  return op0;
 	  
 	}
@@ -3575,9 +3609,8 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	  subcode = gimple_assign_rhs_code (def_stmt);
 	  var1 = gimple_assign_rhs2 (def_stmt);
 	  
-	  return expand_scalar_variables_expr (type, var0, subcode, var1, 
-					       gbb, scop, old_loop_father, 
-					       ivstack);
+	  return expand_scalar_variables_expr (type, var0, subcode, var1,
+					       gbb, scop, old_loop_father);
 	}
     }
 
@@ -3591,7 +3624,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
  
 static void
 expand_scalar_variables_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
-			      loop_p old_loop_father, loop_iv_stack ivstack)
+			      loop_p old_loop_father)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -3603,8 +3636,7 @@ expand_scalar_variables_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
       tree type = TREE_TYPE (use);
       enum tree_code code  = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL,
-						    gbb, scop, old_loop_father, 
-						    ivstack);
+						    gbb, scop, old_loop_father);
       if (use_expr != use)
 	{
 	  gimple_stmt_iterator gsi = gsi_after_labels (bb);
@@ -3623,7 +3655,7 @@ expand_scalar_variables_stmt (gimple stmt, graphite_bb_p gbb, scop_p scop,
 
 static void 
 expand_scalar_variables (graphite_bb_p gbb, scop_p scop, 
-			 loop_p old_loop_father, loop_iv_stack ivstack)
+			 loop_p old_loop_father)
 {
   basic_block bb = GBB_BB (gbb);
   gimple_stmt_iterator gsi;
@@ -3631,38 +3663,22 @@ expand_scalar_variables (graphite_bb_p gbb, scop_p scop,
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
       gimple stmt = gsi_stmt (gsi);
-      expand_scalar_variables_stmt (stmt, gbb, scop, old_loop_father, 
-				    ivstack); 
+      expand_scalar_variables_stmt (stmt, gbb, scop, old_loop_father);
       gsi_next (&gsi);
     }
 }
 
 /* Rename all the SSA_NAMEs from block GBB that appear in IVSTACK in
-   terms of new induction variables.  OLD_LOOP_FATHER is the original
-   loop that contained GBB.  */
+   terms of new induction variables.  OLD is the original loop that
+   contained GBB.  */
 
 static void 
-graphite_rename_ivs (graphite_bb_p gbb, scop_p scop, loop_p old_loop_father,
-		     loop_iv_stack ivstack)
+graphite_rename_variables (basic_block bb, htab_t map)
 {
-  basic_block bb = GBB_BB (gbb);
   gimple_stmt_iterator gsi;
   
-  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
-    {
-      gimple stmt = gsi_stmt (gsi);
-
-      if (gimple_get_lhs (stmt)
-	  && TREE_CODE (gimple_get_lhs (stmt)) == SSA_NAME
-	  && get_old_iv_from_ssa_name (scop, old_loop_father,
-				       gimple_get_lhs (stmt)))
-	gsi_remove (&gsi, false);
-      else
-	{
-	  graphite_rename_ivs_stmt (stmt, gbb, scop, old_loop_father, ivstack); 
-	  gsi_next (&gsi);
-	}
-    }
+  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    graphite_rename_variables_in_stmt (gsi_stmt (gsi), map);
 }
 
 /* Move all the PHI nodes from block FROM to block TO.
@@ -3718,6 +3734,33 @@ get_true_edge_from_guard_bb (basic_block bb)
   return NULL;
 }
 
+/* Inserts in MAP a tuple (OLD_NAME, NEW_NAME) for the induction
+   variables of the loops around GBB in SCOP, i.e. GBB_LOOPS.
+   NEW_NAME is obtained from IVSTACK.  IVSTACK has the same stack
+   ordering as GBB_LOOPS.  */
+
+static void
+build_iv_mapping (loop_iv_stack ivstack, htab_t map, gbb_p gbb, scop_p scop)
+{
+  int i;
+  name_tree iv;
+  PTR *slot;
+
+  for (i = 0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, iv); i++)
+    {
+      struct rename_map_elt tmp;
+
+      tmp.old_name = iv->t;
+      slot = htab_find_slot (map, &tmp, INSERT);
+
+      if (!*slot)
+	{
+	  tree new_name = loop_iv_stack_get_iv (ivstack, 
+						gbb_loop_index (gbb, iv->loop));
+	  *slot = new_rename_map_elt (iv->t, new_name);
+	}
+    }
+}
 /* Translates a CLAST statement STMT to GCC representation.  NEXT_E is
    the edge where new generated code should be attached.  BB_EXIT is the last
    basic block that defines the scope of code generation.  CONTEXT_LOOP is the
@@ -3735,6 +3778,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
+      htab_t map;
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
       graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
       basic_block bb = gbb->bb;
@@ -3744,7 +3788,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
 	return next_e;
 
       remove_condition (bb);
-      expand_scalar_variables (gbb, scop, old_loop_father, ivstack);
+      expand_scalar_variables (gbb, scop, old_loop_father);
       remove_all_edges (bb, next_e);
       move_phi_nodes (scop, old_loop_father, bb, next_e->src);	
       redirect_edge_succ_nodup (next_e, bb);
@@ -3760,10 +3804,15 @@ translate_clast (scop_p scop, struct loop *context_loop,
       next_e = make_edge (bb,
 			  context_loop ? context_loop->latch : EXIT_BLOCK_PTR,
 			  EDGE_FALLTHRU);
-      loop_iv_stack_patch_for_consts (ivstack,
-				      (struct clast_user_stmt *) stmt);
-      graphite_rename_ivs (gbb, scop, old_loop_father, ivstack);
+
+      loop_iv_stack_patch_for_consts (ivstack, (struct clast_user_stmt *) stmt);
+
+      map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
+      build_iv_mapping (ivstack, map, gbb, scop);
+      graphite_rename_variables (GBB_BB (gbb), map);
+      htab_delete (map);
       loop_iv_stack_remove_constants (ivstack);
+
       return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
     }
 
