@@ -1079,6 +1079,8 @@
 	  ))
       ;; previous primitive binding at toplevel
       ( (is_a bind class_primitive_binding)
+	;; in every fixed binding, the only difference is the error message
+	(compile_warning "maybe all fixed binding should be handled the same" ())
 	(let ( (pribidat (unsafe_get_field :fixbind_data bind)) )
 	  (if (null pribidat)
 	      (error_strv psloc "unresolved forward primitive reference to"
@@ -1151,6 +1153,20 @@
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv iterdat)
 	  iterdat)
+	)
+      ( (is_a bind class_fixed_binding)
+	(debug_msg bind "normexp_symbol fixed_binding")
+	(let ( (fixdat (unsafe_get_field :fixbind_data bind)) )
+	  (if (null fixdat)
+	      (error_strv psloc "unresolved forward fixed reference to"
+			  (unsafe_get_field :named_name recv)
+			  )
+	    )
+	  (debug_msg fixdat "normexp_symbol fixdat")
+	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_datainstance))
+	  ;; cache the result & return it
+	  (mapobject_put sycmap recv fixdat)
+	  fixdat)
 	)
       ;; all other cases are constants
       (:else 
@@ -1874,6 +1890,7 @@
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
      (debug_msg nmatx "normexp_match nmatx")
+     (debug_msg scases "normexp_match scases")
      )
     (assert_msg "unimplemented normexp_match" ())
     (compile_warning "@@unimplemented normexp_match" ())
@@ -3632,10 +3649,12 @@
   (let ( (sloc   (unsafe_get_field :src_loc recv))
 	 (sname  (unsafe_get_field :sdef_name recv))
 	 (sformals (unsafe_get_field :sformal_args recv))
-	 (cmatcher (let ( (cm (unsafe_get_field :scmatx_cmatcher recv)) )
+	 (cmatcher (let ( (cm (unsafe_get_field :scmatdef_cmatcher recv)) )
+		     (debug_msg cm "normexp_defcmatcher cmatcher")
 		     (assert_msg "check cmatcher" (is_a cm class_cmatcher))
 		     cm))
 	 (cmbind (let ( (b (find_env env sname)) )
+		   (debug_msg b "normexp_defcmatcher cmbind")
 		   (assert_msg "check cmbind" (is_a b class_cmatcher_binding))
 		   b))
 	 (slotup (make_multiple discr_multiple (object_length cmatcher)))

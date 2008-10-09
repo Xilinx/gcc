@@ -1,3 +1,8 @@
+2008-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[defcmatcher failed to export correctly]
+	* melt/warmelt-normal.bysl: maybe all fixed bindings should be handled the same by normexp_symbol.
+	* melt/warmelt-genobj.bysl: better debugmsg in compilobj_nrep_constocc.
+	* melt/ana-base.bysl: adding gimple defcmatcher - not working yet.
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added OBJECT & INSTANCE patmacro.
 2008-10-08  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -1408,7 +1408,7 @@
 (defun compilobj_nrep_constocc (ncnst gcx)
   (assert_msg "check ncnst" (is_a ncnst class_nrep_constocc))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (debug_msg ncnst "compilobj constocc ncnst")
+  (debug_msg ncnst "compilobj_nrep_constocc ncnst")
   ;;(debug_msg gcx "compilobj constocc gcx")
   (let ( 
 	(orout (unsafe_get_field :gncx_objrout gcx))
@@ -1419,7 +1419,7 @@
 	)
     ;;(debug_msg orout "compilobj constocc orout")
     ;;(debug_msg nloc "compilobj constocc nloc")
-    (debug_msg lastcproc "compilobj constocc lastcproc")
+    (debug_msg lastcproc "compilobj_nrep_constocc lastcproc")
     (assert_msg "check lastcproc" (is_a lastcproc class_nrep_routproc))
     (let ( (cnstlis (unsafe_get_field :nrpro_const lastcproc)) 
 	   (:long cnstrank -1)
