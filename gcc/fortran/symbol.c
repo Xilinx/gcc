@@ -636,10 +636,12 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 	  conf2 (threadprivate);
 	}
 
+      if (!attr->proc_pointer)
+	conf2 (in_common);
+
       switch (attr->proc)
 	{
 	case PROC_ST_FUNCTION:
-	  conf2 (in_common);
 	  conf2 (dummy);
 	  break;
 
@@ -649,7 +651,6 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
 
 	case PROC_DUMMY:
 	  conf2 (result);
-	  conf2 (in_common);
 	  conf2 (threadprivate);
 	  break;
 
@@ -1133,13 +1134,7 @@ gfc_add_in_common (symbol_attribute *attr, const char *name, locus *where)
 
   /* Duplicate attribute already checked for.  */
   attr->in_common = 1;
-  if (check_conflict (attr, name, where) == FAILURE)
-    return FAILURE;
-
-  if (attr->flavor == FL_VARIABLE)
-    return SUCCESS;
-
-  return gfc_add_flavor (attr, FL_VARIABLE, name, where);
+  return check_conflict (attr, name, where);
 }
 
 
@@ -1446,7 +1441,8 @@ gfc_add_access (symbol_attribute *attr, gfc_access access,
 		const char *name, locus *where)
 {
 
-  if (attr->access == ACCESS_UNKNOWN)
+  if (attr->access == ACCESS_UNKNOWN
+	|| (attr->use_assoc && attr->access != ACCESS_PRIVATE))
     {
       attr->access = access;
       return check_conflict (attr, name, where);

@@ -1558,7 +1558,7 @@ may_be_nonaddressable_p (tree expr)
 	 non-addressability may be uncovered again, causing ADDR_EXPRs
 	 of inappropriate objects to be built.  */
       if (is_gimple_reg (TREE_OPERAND (expr, 0))
-	  || is_gimple_min_invariant (TREE_OPERAND (expr, 0)))
+	  || !is_gimple_addressable (TREE_OPERAND (expr, 0)))
 	return true;
 
       /* ... fall through ... */
@@ -3887,8 +3887,8 @@ determine_use_iv_cost_condition (struct ivopts_data *data,
   fd_ivopts_data = data;
   walk_tree (&cmp_iv->base, find_depends, &depends_on_express, NULL);
 
-  /* Choose the better approach.  */
-  if (compare_costs (elim_cost, express_cost) < 0)
+  /* Choose the better approach, preferring the eliminated IV. */
+  if (compare_costs (elim_cost, express_cost) <= 0)
     {
       cost = elim_cost;
       depends_on = depends_on_elim;

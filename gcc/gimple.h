@@ -2602,7 +2602,7 @@ static inline void
 gimple_bind_set_block (gimple gs, tree block)
 {
   GIMPLE_CHECK (gs, GIMPLE_BIND);
-  gcc_assert (TREE_CODE (block) == BLOCK);
+  gcc_assert (block == NULL_TREE || TREE_CODE (block) == BLOCK);
   gs->gimple_bind.block = block;
 }
 
@@ -4479,7 +4479,7 @@ basic_block gsi_insert_on_edge_immediate (edge, gimple);
 basic_block gsi_insert_seq_on_edge_immediate (edge, gimple_seq);
 void gsi_commit_one_edge_insert (edge, basic_block *);
 void gsi_commit_edge_inserts (void);
-gimple giple_copy_call_skip_args (gimple, bitmap);
+gimple gimple_call_copy_skip_args (gimple, bitmap);
 
 
 /* Convenience routines to walk all statements of a gimple function.

@@ -1293,15 +1293,6 @@ gfc_match_assignment (void)
       return MATCH_NO;
     }
 
-  if (lvalue->symtree->n.sym->attr.is_protected
-      && lvalue->symtree->n.sym->attr.use_assoc)
-    {
-      gfc_current_locus = old_loc;
-      gfc_free_expr (lvalue);
-      gfc_error ("Setting value of PROTECTED variable at %C");
-      return MATCH_ERROR;
-    }
-
   rvalue = NULL;
   m = gfc_match (" %e%t", &rvalue);
   if (m != MATCH_YES)
@@ -1352,14 +1343,6 @@ gfc_match_pointer_assignment (void)
   gfc_matching_procptr_assignment = 0;
   if (m != MATCH_YES)
     goto cleanup;
-
-  if (lvalue->symtree->n.sym->attr.is_protected
-      && lvalue->symtree->n.sym->attr.use_assoc)
-    {
-      gfc_error ("Assigning to a PROTECTED pointer at %C");
-      m = MATCH_ERROR;
-      goto cleanup;
-    }
 
   new_st.op = EXEC_POINTER_ASSIGN;
   new_st.expr = lvalue;
@@ -2589,9 +2572,12 @@ gfc_match_call (void)
   if (sym->attr.flavor != FL_PROCEDURE && sym->ts.type == BT_DERIVED)
     return match_typebound_call (st);
 
-  /* If it does not seem to be callable...  */
+  /* If it does not seem to be callable (include functions so that the
+     right association is made.  They are thrown out in resolution.)
+     ...  */
   if (!sym->attr.generic
-	&& !sym->attr.subroutine)
+	&& !sym->attr.subroutine
+	&& !sym->attr.function)
     {
       if (!(sym->attr.external && !sym->attr.referenced))
 	{

@@ -356,8 +356,8 @@ extern tree add_stmt (tree);
 extern void push_cleanup (tree, tree, bool);
 extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
-extern tree build_modify_expr (tree, enum tree_code, tree);
-extern tree build_indirect_ref (tree, const char *, location_t);
+extern tree build_modify_expr (location_t, tree, enum tree_code, tree);
+extern tree build_indirect_ref (location_t, tree, const char *);
 
 extern int c_expand_decl (tree);
 
@@ -690,7 +690,7 @@ extern tree build_void_list_node (void);
 extern void start_fname_decls (void);
 extern void finish_fname_decls (void);
 extern const char *fname_as_string (int);
-extern tree fname_decl (unsigned, tree);
+extern tree fname_decl (location_t, unsigned, tree);
 
 extern void check_function_arguments (tree, int, tree *, tree);
 extern void check_function_arguments_recurse (void (*)
@@ -714,19 +714,18 @@ extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
 extern bool decl_with_nonnull_addr_p (const_tree);
-extern tree c_common_truthvalue_conversion (tree);
+extern tree c_common_truthvalue_conversion (location_t, tree);
 extern void c_apply_type_quals_to_decl (int, tree);
 extern tree c_sizeof_or_alignof_type (tree, bool, int);
 extern tree c_alignof_expr (tree);
 /* Print an error message for invalid operands to arith operation CODE.
    NOP_EXPR is used as a special case (see truthvalue_conversion).  */
-extern void binary_op_error (enum tree_code, tree, tree);
+extern void binary_op_error (location_t, enum tree_code, tree, tree);
 extern tree fix_string_type (tree);
 struct varray_head_tag;
 extern void constant_expression_warning (tree);
 extern void constant_expression_error (tree);
 extern bool strict_aliasing_warning (tree, tree, tree);
-extern void empty_if_body_warning (tree, tree);
 extern void warnings_for_convert_and_check (tree, tree, tree);
 extern tree convert_and_check (tree, tree);
 extern void overflow_warning (tree);
@@ -816,8 +815,8 @@ extern tree build_case_label (tree, tree, tree);
 /* These functions must be defined by each front-end which implements
    a variant of the C language.  They are used in c-common.c.  */
 
-extern tree build_unary_op (enum tree_code, tree, int);
-extern tree build_binary_op (enum tree_code, tree, tree, int);
+extern tree build_unary_op (location_t, enum tree_code, tree, int);
+extern tree build_binary_op (location_t, enum tree_code, tree, tree, int);
 extern tree perform_integral_promotions (tree);
 
 /* These functions must be defined by each front-end which implements
@@ -916,8 +915,9 @@ extern void warn_array_subscript_with_type_char (tree);
 extern void warn_about_parentheses (enum tree_code, enum tree_code,
 				    enum tree_code);
 extern void warn_for_unused_label (tree label);
-extern void warn_for_div_by_zero (tree divisor);
-extern void warn_for_sign_compare (tree orig_op0, tree orig_op1, 
+extern void warn_for_div_by_zero (location_t, tree divisor);
+extern void warn_for_sign_compare (location_t,
+				   tree orig_op0, tree orig_op1, 
 				   tree op0, tree op1, 
 				   tree result_type, 
 				   enum tree_code resultcode);

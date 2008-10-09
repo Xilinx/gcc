@@ -1,5 +1,5 @@
 /* Reassociation for trees.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org>
 
 This file is part of GCC.
@@ -154,7 +154,7 @@ along with GCC; see the file COPYING3.  If not see
     
     Thus, this is what we do.  When we have three ops left, we check to see
     what order to put them in, and call it a day.  As a nod to vector sum
-    reduction, we check if any of ops are a really a phi node that is a
+    reduction, we check if any of the ops are really a phi node that is a
     destructive update for the associating op, and keep the destructive
     update together for vector sum reduction recognition.  */
 
@@ -859,8 +859,20 @@ build_and_add_sum (tree tmpvar, tree op1, tree op2, enum tree_code opcode)
 	}
       else
 	{
-	  gsi = gsi_for_stmt (op2def);
-	  gsi_insert_after (&gsi, sum, GSI_NEW_STMT);
+	  if (!stmt_ends_bb_p (op2def))
+	    {
+	      gsi = gsi_for_stmt (op2def);
+	      gsi_insert_after (&gsi, sum, GSI_NEW_STMT);
+	    }
+	  else
+	    {
+	      edge e;
+	      edge_iterator ei;
+
+	      FOR_EACH_EDGE (e, ei, gimple_bb (op2def)->succs)
+		if (e->flags & EDGE_FALLTHRU)
+		  gsi_insert_on_edge_immediate (e, sum);
+	    }
 	}
     }
   else
@@ -872,8 +884,20 @@ build_and_add_sum (tree tmpvar, tree op1, tree op2, enum tree_code opcode)
 	}
       else
 	{
-	  gsi = gsi_for_stmt (op1def);
-	  gsi_insert_after (&gsi, sum, GSI_NEW_STMT);
+	  if (!stmt_ends_bb_p (op1def))
+	    {
+	      gsi = gsi_for_stmt (op1def);
+	      gsi_insert_after (&gsi, sum, GSI_NEW_STMT);
+	    }
+	  else
+	    {
+	      edge e;
+	      edge_iterator ei;
+
+	      FOR_EACH_EDGE (e, ei, gimple_bb (op1def)->succs)
+		if (e->flags & EDGE_FALLTHRU)
+		  gsi_insert_on_edge_immediate (e, sum);
+	    }
 	}
     }
   update_stmt (sum);

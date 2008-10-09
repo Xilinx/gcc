@@ -6304,9 +6304,12 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
   bool need_conversion;
 
   op0 = gimple_assign_rhs1 (stmt);
-  vr = get_value_range (op0);
   if (TYPE_PRECISION (TREE_TYPE (op0)) != 1)
     {
+      if (TREE_CODE (op0) != SSA_NAME)
+	return false;
+      vr = get_value_range (op0);
+
       val = compare_range_with_value (GE_EXPR, vr, integer_zero_node, &sop);
       if (!val || !integer_onep (val))
         return false;
@@ -6329,9 +6332,15 @@ simplify_truth_ops_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
       if (is_gimple_min_invariant (op1))
 	{
           /* Exclude anything that should have been already folded.  */
-	  gcc_assert (rhs_code == EQ_EXPR || rhs_code == NE_EXPR
-		      || rhs_code == TRUTH_XOR_EXPR);
-	  gcc_assert (integer_zerop (op1) || integer_onep (op1));
+	  if (rhs_code != EQ_EXPR
+	      && rhs_code != NE_EXPR
+	      && rhs_code != TRUTH_XOR_EXPR)
+	    return false;
+
+	  if (!integer_zerop (op1)
+	      && !integer_onep (op1)
+	      && !integer_all_onesp (op1))
+	    return false;
 
 	  /* Limit the number of cases we have to consider.  */
 	  if (rhs_code == EQ_EXPR)
@@ -7140,9 +7149,16 @@ execute_vrp (void)
     {
       size_t j;
       size_t n = TREE_VEC_LENGTH (su->vec);
+      tree label;
       gimple_switch_set_num_labels (su->stmt, n);
       for (j = 0; j < n; j++)
 	gimple_switch_set_label (su->stmt, j, TREE_VEC_ELT (su->vec, j));
+      /* As we may have replaced the default label with a regular one
+	 make sure to make it a real default label again.  This ensures
+	 optimal expansion.  */
+      label = gimple_switch_default_label (su->stmt);
+      CASE_LOW (label) = NULL_TREE;
+      CASE_HIGH (label) = NULL_TREE;
     }
 
   if (VEC_length (edge, to_remove_edges) > 0)

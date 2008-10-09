@@ -228,7 +228,8 @@ Objective-C and Objective-C++ Dialects}.
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
 @gccoptlist{-fsyntax-only  -pedantic  -pedantic-errors @gol
 -w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
--Wno-attributes -Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
+-Wno-attributes -Wno-builtin-macro-redefined @gol
+-Wc++-compat -Wc++0x-compat -Wcast-align  -Wcast-qual  @gol
 -Wchar-subscripts -Wclobbered  -Wcomment @gol
 -Wconversion  -Wcoverage-mismatch  -Wno-deprecated  @gol
 -Wno-deprecated-declarations -Wdisabled-optimization  @gol
@@ -580,7 +581,7 @@ Objective-C and Objective-C++ Dialects}.
 -momit-leaf-frame-pointer  -mno-red-zone -mno-tls-direct-seg-refs @gol
 -mcmodel=@var{code-model} @gol
 -m32  -m64 -mlarge-data-threshold=@var{num} @gol
--mfused-madd -mno-fused-madd}
+-mfused-madd -mno-fused-madd -msse2avx}
 
 @emph{IA-64 Options}
 @gccoptlist{-mbig-endian  -mlittle-endian  -mgnu-as  -mgnu-ld  -mno-pic @gol
@@ -714,6 +715,7 @@ See RS/6000 and PowerPC Options.
 -m64  -m32  -mxl-compat  -mno-xl-compat  -mpe @gol
 -malign-power  -malign-natural @gol
 -msoft-float  -mhard-float  -mmultiple  -mno-multiple @gol
+-msingle-float -mdouble-float -msimple-fpu @gol
 -mstring  -mno-string  -mupdate  -mno-update @gol
 -mfused-madd  -mno-fused-madd  -mbit-align  -mno-bit-align @gol
 -mstrict-align  -mno-strict-align  -mrelocatable @gol
@@ -741,7 +743,8 @@ See RS/6000 and PowerPC Options.
 
 @emph{S/390 and zSeries Options}
 @gccoptlist{-mtune=@var{cpu-type}  -march=@var{cpu-type} @gol
--mhard-float  -msoft-float -mlong-double-64 -mlong-double-128 @gol
+-mhard-float  -msoft-float  -mhard-dfp -mno-hard-dfp @gol
+-mlong-double-64 -mlong-double-128 @gol
 -mbackchain  -mno-backchain -mpacked-stack  -mno-packed-stack @gol
 -msmall-exec  -mno-small-exec  -mmvcle -mno-mvcle @gol
 -m64  -m31  -mdebug  -mno-debug  -mesa  -mzarch @gol
@@ -3732,6 +3735,13 @@ Do not warn if an unexpected @code{__attribute__} is used, such as
 unrecognized attributes, function attributes applied to variables,
 etc.  This will not stop errors for incorrect use of supported
 attributes.
+
+@item -Wno-builtin-macro-redefined
+@opindex Wno-builtin-macro-redefined
+@opindex Wbuiltin-macro-redefined
+Do not warn if certain built-in macros are redefined.  This suppresses
+warnings for redefinition of @code{__TIMESTAMP__}, @code{__TIME__},
+@code{__DATE__}, @code{__FILE__}, and @code{__BASE_FILE__}.
 
 @item -Wstrict-prototypes @r{(C and Objective-C only)}
 @opindex Wstrict-prototypes
@@ -11206,6 +11216,12 @@ Enable automatic generation of fused floating point multiply-add instructions
 if the ISA supports such instructions.  The -mfused-madd option is on by
 default.  The fused multiply-add instructions have a different
 rounding behavior compared to executing a multiply followed by an add.
+
+@item -msse2avx
+@itemx -mno-sse2avx
+@opindex msse2avx
+Specify that the assembler should encode SSE instructions with VEX
+prefix.  The option @option{-mavx} turns this on by default.
 @end table
 
 These @samp{-m} switches are supported in addition to the above
@@ -12218,6 +12234,7 @@ The processor names are:
 @samp{r2000}, @samp{r3000}, @samp{r3900}, @samp{r4000}, @samp{r4400},
 @samp{r4600}, @samp{r4650}, @samp{r6000}, @samp{r8000},
 @samp{rm7000}, @samp{rm9000},
+@samp{r10000}, @samp{r12000}, @samp{r14000}, @samp{r16000},
 @samp{sb1},
 @samp{sr71000},
 @samp{vr4100}, @samp{vr4111}, @samp{vr4120}, @samp{vr4130}, @samp{vr4300},
@@ -13413,7 +13430,8 @@ following options:
 
 @gccoptlist{-maltivec  -mfprnd  -mhard-float  -mmfcrf  -mmultiple @gol
 -mnew-mnemonics  -mpopcntb  -mpower  -mpower2  -mpowerpc64 @gol
--mpowerpc-gpopt  -mpowerpc-gfxopt  -mstring  -mmulhw  -mdlmzb  -mmfpgpr}
+-mpowerpc-gpopt  -mpowerpc-gfxopt  -msingle-float -mdouble-float @gol
+-msimple-fpu -mstring  -mmulhw  -mdlmzb  -mmfpgpr}
 
 The particular options set for any particular CPU will vary between
 compiler versions, depending on what setting seems to produce optimal
@@ -13629,6 +13647,17 @@ is not supported.
 Generate code that does not use (uses) the floating-point register set.
 Software floating point emulation is provided if you use the
 @option{-msoft-float} option, and pass the option to GCC when linking.
+
+@item -msingle-float
+@itemx -mdouble-float
+@opindex msingle-float
+@opindex mdouble-float
+Generate code for single or double-precision floating point operations. 
+@option{-mdouble-float} implies @option{-msingle-float}. 
+
+@item -msimple-fpu
+@opindex msimple-fpu
+Do not generate sqrt and div instructions for hardware floating point unit.
 
 @item -mmultiple
 @itemx -mno-multiple
@@ -14052,6 +14081,17 @@ functions in @file{libgcc.a} will be used to perform floating-point
 operations.  When @option{-mhard-float} is specified, the compiler
 generates IEEE floating-point instructions.  This is the default.
 
+@item -mhard-dfp
+@itemx -mno-hard-dfp
+@opindex mhard-dfp
+@opindex mno-hard-dfp
+Use (do not use) the hardware decimal-floating-point instructions for
+decimal-floating-point operations.  When @option{-mno-hard-dfp} is
+specified, functions in @file{libgcc.a} will be used to perform
+decimal-floating-point operations.  When @option{-mhard-dfp} is
+specified, the compiler generates decimal-floating-point hardware
+instructions.  This is the default for @option{-march=z9-ec} or higher.
+
 @item -mlong-double-64
 @itemx -mlong-double-128
 @opindex mlong-double-64
@@ -14162,7 +14202,8 @@ The default is to not print debug information.
 @opindex march
 Generate code that will run on @var{cpu-type}, which is the name of a system
 representing a certain processor type.  Possible values for
-@var{cpu-type} are @samp{g5}, @samp{g6}, @samp{z900}, and @samp{z990}.
+@var{cpu-type} are @samp{g5}, @samp{g6}, @samp{z900}, @samp{z990},
+@samp{z9-109}, @samp{z9-ec} and @samp{z10}.
 When generating code using the instructions available on z/Architecture,
 the default is @option{-march=z900}.  Otherwise, the default is
 @option{-march=g5}.

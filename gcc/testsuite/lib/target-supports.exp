@@ -1057,6 +1057,18 @@ proc check_effective_target_lp64 { } {
     }]
 }
 
+# Return 1 if we're generating 64-bit code using default llp64 options,
+# 0 otherwise.
+
+proc check_effective_target_llp64 { } {
+    return [check_no_compiler_messages llp64 object {
+	int dummy[sizeof (int) == 4
+		  && sizeof (void *) == 8
+		  && sizeof (long long) == 8
+		  && sizeof (long) == 4 ? 1 : -1];
+    }]
+}
+
 # Return 1 if the target supports long double larger than double,
 # 0 otherwise.
 
@@ -2591,4 +2603,37 @@ proc check_effective_target_avx { } {
 	   __builtin_ia32_vzeroall ();
 	}
     } "-O2 -mavx" ]
+}
+
+# Return 1 if C wchar_t type is compatible with char16_t.
+
+proc check_effective_target_wchar_t_char16_t_compatible { } {
+    return [check_no_compiler_messages wchar_t_char16_t object {
+        __WCHAR_TYPE__ wc;
+        __CHAR16_TYPE__ *p16 = &wc;
+        char t[(((__CHAR16_TYPE__) -1) < 0 == ((__WCHAR_TYPE__) -1) < 0) ? 1 : -1];
+    }]
+}
+
+# Return 1 if C wchar_t type is compatible with char32_t.
+
+proc check_effective_target_wchar_t_char32_t_compatible { } {
+    return [check_no_compiler_messages wchar_t_char32_t object {
+        __WCHAR_TYPE__ wc;
+        __CHAR32_TYPE__ *p32 = &wc;
+        char t[(((__CHAR32_TYPE__) -1) < 0 == ((__WCHAR_TYPE__) -1) < 0) ? 1 : -1];
+    }]
+}
+
+# Return 1 if pow10 function exists.
+
+proc check_effective_target_pow10 { } {
+    return [check_runtime pow10 {
+	#include <math.h>
+	int main () {
+	double x;
+	x = pow10 (1);
+	return 0;
+	}
+    } "-lm" ]
 }

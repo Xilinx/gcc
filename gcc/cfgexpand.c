@@ -1440,7 +1440,7 @@ estimated_stack_frame_size (void)
 static void
 expand_used_vars (void)
 {
-  tree t, outer_block = DECL_INITIAL (current_function_decl);
+  tree t, next, outer_block = DECL_INITIAL (current_function_decl);
 
   /* Compute the phase of the stack frame for this function.  */
   {
@@ -1453,10 +1453,14 @@ expand_used_vars (void)
 
   /* At this point all variables on the local_decls with TREE_USED
      set are not associated with any block scope.  Lay them out.  */
-  for (t = cfun->local_decls; t; t = TREE_CHAIN (t))
+  t = cfun->local_decls;
+  cfun->local_decls = NULL_TREE;
+  for (; t; t = next)
     {
       tree var = TREE_VALUE (t);
       bool expand_now = false;
+
+      next = TREE_CHAIN (t);
 
       /* We didn't set a block for static or extern because it's hard
 	 to tell the difference between a global variable (re)declared
@@ -1484,9 +1488,25 @@ expand_used_vars (void)
       TREE_USED (var) = 1;
 
       if (expand_now)
-	expand_one_var (var, true, true);
+	{
+	  expand_one_var (var, true, true);
+	  if (DECL_ARTIFICIAL (var) && !DECL_IGNORED_P (var))
+	    {
+	      rtx rtl = DECL_RTL_IF_SET (var);
+
+	      /* Keep artificial non-ignored vars in cfun->local_decls
+		 chain until instantiate_decls.  */
+	      if (rtl && (MEM_P (rtl) || GET_CODE (rtl) == CONCAT))
+		{
+		  TREE_CHAIN (t) = cfun->local_decls;
+		  cfun->local_decls = t;
+		  continue;
+		}
+	    }
+	}
+
+      ggc_free (t);
     }
-  cfun->local_decls = NULL_TREE;
 
   /* At this point, all variables within the block tree with TREE_USED
      set are actually used by the optimized function.  Lay them out.  */
@@ -1646,7 +1666,12 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       add_reg_br_prob_note (last, true_edge->probability);
       maybe_dump_rtl_for_gimple_stmt (stmt, last);
       if (true_edge->goto_locus)
-  	set_curr_insn_source_location (true_edge->goto_locus);
+	{
+	  set_curr_insn_source_location (true_edge->goto_locus);
+	  set_curr_insn_block (true_edge->goto_block);
+	  true_edge->goto_locus = curr_insn_locator ();
+	}
+      true_edge->goto_block = NULL;
       false_edge->flags |= EDGE_FALLTHRU;
       ggc_free (pred);
       return NULL;
@@ -1657,7 +1682,12 @@ expand_gimple_cond (basic_block bb, gimple stmt)
       add_reg_br_prob_note (last, false_edge->probability);
       maybe_dump_rtl_for_gimple_stmt (stmt, last);
       if (false_edge->goto_locus)
-  	set_curr_insn_source_location (false_edge->goto_locus);
+	{
+	  set_curr_insn_source_location (false_edge->goto_locus);
+	  set_curr_insn_block (false_edge->goto_block);
+	  false_edge->goto_locus = curr_insn_locator ();
+	}
+      false_edge->goto_block = NULL;
       true_edge->flags |= EDGE_FALLTHRU;
       ggc_free (pred);
       return NULL;
@@ -1666,6 +1696,13 @@ expand_gimple_cond (basic_block bb, gimple stmt)
   jumpif (pred, label_rtx_for_bb (true_edge->dest));
   add_reg_br_prob_note (last, true_edge->probability);
   last = get_last_insn ();
+  if (false_edge->goto_locus)
+    {
+      set_curr_insn_source_location (false_edge->goto_locus);
+      set_curr_insn_block (false_edge->goto_block);
+      false_edge->goto_locus = curr_insn_locator ();
+    }
+  false_edge->goto_block = NULL;
   emit_jump (label_rtx_for_bb (false_edge->dest));
 
   BB_END (bb) = last;
@@ -1688,8 +1725,13 @@ expand_gimple_cond (basic_block bb, gimple stmt)
 
   maybe_dump_rtl_for_gimple_stmt (stmt, last2);
 
-  if (false_edge->goto_locus)
-    set_curr_insn_source_location (false_edge->goto_locus);
+  if (true_edge->goto_locus)
+    {
+      set_curr_insn_source_location (true_edge->goto_locus);
+      set_curr_insn_block (true_edge->goto_block);
+      true_edge->goto_locus = curr_insn_locator ();
+    }
+  true_edge->goto_block = NULL;
 
   ggc_free (pred);
   return new_bb;
@@ -1942,19 +1984,21 @@ expand_gimple_basic_block (basic_block bb)
 	}
     }
 
-  /* Expand implicit goto.  */
+  /* Expand implicit goto and convert goto_locus.  */
   FOR_EACH_EDGE (e, ei, bb->succs)
     {
-      if (e->flags & EDGE_FALLTHRU)
-	break;
-    }
-
-  if (e && e->dest != bb->next_bb)
-    {
-      emit_jump (label_rtx_for_bb (e->dest));
-      if (e->goto_locus)
-        set_curr_insn_source_location (e->goto_locus);
-      e->flags &= ~EDGE_FALLTHRU;
+      if (e->goto_locus && e->goto_block)
+	{
+	  set_curr_insn_source_location (e->goto_locus);
+	  set_curr_insn_block (e->goto_block);
+	  e->goto_locus = curr_insn_locator ();
+	}
+      e->goto_block = NULL;
+      if ((e->flags & EDGE_FALLTHRU) && e->dest != bb->next_bb)
+	{
+	  emit_jump (label_rtx_for_bb (e->dest));
+	  e->flags &= ~EDGE_FALLTHRU;
+	}
     }
 
   do_pending_stack_adjust ();

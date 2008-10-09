@@ -18,7 +18,7 @@ To report problems in GCC, please visit:
 Maintainers
 ===========
 
-			Blanket Write Privs.
+			Global Reviewers
 
 Richard Earnshaw				richard.earnshaw@arm.com
 Richard Henderson				rth@redhat.com
@@ -32,6 +32,9 @@ Mark Mitchell					mark@codesourcery.com
 Bernd Schmidt					bernd.schmidt@analog.com
 Jim Wilson					wilson@tuliptree.org
 
+Note that while global reviewers can approve changes to any part of
+the compiler or associated libraries, they still need approval for
+their own patches from other maintainers or reviewers.
 
 			CPU Port Maintainers	(CPU alphabetical order)
 
@@ -55,6 +58,7 @@ i386 port		Richard Henderson	rth@redhat.com
 i386 port		Jan Hubicka		jh@suse.cz
 i386 port		Uros Bizjak		ubizjak@gmail.com
 ia64 port		Jim Wilson		wilson@tuliptree.org
+ia64 port		Steve Ellcey		sje@cup.hp.com
 iq2000 port		Nick Clifton		nickc@redhat.com
 m32c port		DJ Delorie		dj@redhat.com
 m32r port		Nick Clifton		nickc@redhat.com
@@ -279,6 +283,7 @@ Segher Boessenkool				segher@kernel.crashing.org
 Andrea Bona					andrea.bona@st.com
 Paolo Bonzini					bonzini@gnu.org
 Neil Booth					neil@daikokuya.co.uk
+Steven Bosscher					steven@gcc.gnu.org
 Robert Bowdidge					bowdidge@apple.com
 Joel Brobecker					brobecker@gnat.com
 Dave Brolley					brolley@redhat.com
@@ -293,7 +298,7 @@ R. Kelley Cook					kcook@gcc.gnu.org
 Christian Cornelssen				ccorn@cs.tu-berlin.de
 François-Xavier Coudert				fxcoudert@gcc.gnu.org
 Ian Dall					ian@beware.dropbear.id.au
-David Daney					ddaney@avtrex.com
+David Daney					david.daney@caviumnetworks.com
 Bud Davis					jmdavis@link.com
 Benoit Dupont de Dinechin			benoit.dupont-de-dinechin@st.com
 Mohan Embar					gnustuff@thisiscool.com
@@ -302,7 +307,7 @@ Marc Espie					espie@cvs.openbsd.org
 Rafael Ávila de Espíndola			rafael.espindola@gmail.com
 Ansgar Esztermann				ansgar@thphy.uni-duesseldorf.de
 Doug Evans					dje@google.com
-Bernhard Fischer				rep.dot.nop@gmail.com
+Chris Fairles					cfairles@gcc.gnu.org
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
 Daniel Franke					franke.daniel@gmail.com
@@ -402,6 +407,7 @@ Jerry Quinn					jlquinn@optonline.net
 Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
+Bernhard Reutner-Fischer			rep.dot.nop@gmail.com
 Tom Rix						trix@redhat.com
 Craig Rodrigues					rodrigc@gcc.gnu.org
 Erven Rohou					erven.rohou@st.com

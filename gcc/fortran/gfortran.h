@@ -417,6 +417,7 @@ enum gfc_isym_id
   GFC_ISYM_KILL,
   GFC_ISYM_KIND,
   GFC_ISYM_LBOUND,
+  GFC_ISYM_LEADZ,
   GFC_ISYM_LEN,
   GFC_ISYM_LEN_TRIM,
   GFC_ISYM_LGAMMA,
@@ -503,6 +504,7 @@ enum gfc_isym_id
   GFC_ISYM_TIME,
   GFC_ISYM_TIME8,
   GFC_ISYM_TINY,
+  GFC_ISYM_TRAILZ,
   GFC_ISYM_TRANSFER,
   GFC_ISYM_TRANSPOSE,
   GFC_ISYM_TRIM,
@@ -635,10 +637,10 @@ typedef struct
   unsigned function:1, subroutine:1, procedure:1;
   unsigned generic:1, generic_copy:1;
   unsigned implicit_type:1;	/* Type defined via implicit rules.  */
-  unsigned untyped:1;           /* No implicit type could be found.  */
+  unsigned untyped:1;		/* No implicit type could be found.  */
 
-  unsigned is_bind_c:1;		/* say if is bound to C */
-  unsigned extension:1;		/* extends a derived type */
+  unsigned is_bind_c:1;		/* say if is bound to C.  */
+  unsigned extension:1;		/* extends a derived type.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -1035,6 +1037,7 @@ typedef struct gfc_typebound_proc
   unsigned non_overridable:1;
   unsigned is_generic:1;
   unsigned function:1, subroutine:1;
+  unsigned error:1; /* Ignore it, when an error occurred during resolution.  */
 }
 gfc_typebound_proc;
 
@@ -1544,6 +1547,10 @@ typedef struct gfc_expr
      and if we have decided not to allocate temporary data for that array.  */
   unsigned int inline_noncopying_intrinsic : 1, is_boz : 1;
 
+  /* Sometimes, when an error has been emitted, it is necessary to prevent
+      it from recurring.  */
+  unsigned int error : 1;
+
   /* Used to quickly find a given constructor by its offset.  */
   splay_tree con_by_offset;
 
@@ -1969,6 +1976,7 @@ typedef struct
   int warn_intrinsics_std;
   int warn_character_truncation;
   int warn_array_temp;
+  int warn_align_commons;
   int max_errors;
 
   int flag_all_intrinsics;
@@ -2006,6 +2014,7 @@ typedef struct
   int flag_init_logical;
   int flag_init_character;
   char flag_init_character_value;
+  int flag_align_commons;
 
   int fpe;
 
@@ -2515,8 +2524,7 @@ gfc_try gfc_add_interface (gfc_symbol *);
 gfc_interface *gfc_current_interface_head (void);
 void gfc_set_current_interface_head (gfc_interface *);
 gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
-int gfc_compare_actual_formal (gfc_actual_arglist**, gfc_formal_arglist*,
-      			       int, int, locus*);
+bool gfc_arglist_matches_symbol (gfc_actual_arglist**, gfc_symbol*);
 
 /* io.c */
 extern gfc_st_label format_asterisk;

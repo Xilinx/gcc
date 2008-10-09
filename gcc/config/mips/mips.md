@@ -560,7 +560,7 @@
 ;; Attribute describing the processor.  This attribute must match exactly
 ;; with the processor_type enumeration in mips.h.
 (define_attr "cpu"
-  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf2_1,24kf1_1,74kc,74kf2_1,74kf1_1,74kf3_2,loongson_2e,loongson_2f,m4k,octeon,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,sb1,sb1a,sr71000,xlr"
+  "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf2_1,24kf1_1,74kc,74kf2_1,74kf1_1,74kf3_2,loongson_2e,loongson_2f,m4k,octeon,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,r10000,sb1,sb1a,sr71000,xlr"
   (const (symbol_ref "mips_tune")))
 
 ;; The type of hardware hazard associated with this instruction.
@@ -935,10 +935,12 @@
 (include "6000.md")
 (include "7000.md")
 (include "9000.md")
+(include "10000.md")
+(include "loongson2ef.md")
+(include "octeon.md")
 (include "sb1.md")
 (include "sr71k.md")
 (include "xlr.md")
-(include "loongson2ef.md")
 (include "generic.md")
 
 ;;
@@ -1187,6 +1189,38 @@
   [(set_attr "type" "arith")
    (set_attr "mode" "SI")
    (set_attr "extended_mips16" "yes")])
+
+;; Combiner patterns for unsigned byte-add.
+
+(define_insn "*baddu_si_eb"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+        (zero_extend:SI
+	 (subreg:QI
+	  (plus:SI (match_operand:SI 1 "register_operand" "d")
+		   (match_operand:SI 2 "register_operand" "d")) 3)))]
+  "ISA_HAS_BADDU && BYTES_BIG_ENDIAN"
+  "baddu\\t%0,%1,%2"
+  [(set_attr "type" "arith")])
+
+(define_insn "*baddu_si_el"
+  [(set (match_operand:SI 0 "register_operand" "=d")
+        (zero_extend:SI
+	 (subreg:QI
+	  (plus:SI (match_operand:SI 1 "register_operand" "d")
+		   (match_operand:SI 2 "register_operand" "d")) 0)))]
+  "ISA_HAS_BADDU && !BYTES_BIG_ENDIAN"
+  "baddu\\t%0,%1,%2"
+  [(set_attr "type" "arith")])
+
+(define_insn "*baddu_di<mode>"
+  [(set (match_operand:GPR 0 "register_operand" "=d")
+        (zero_extend:GPR
+	 (truncate:QI
+	  (plus:DI (match_operand:DI 1 "register_operand" "d")
+		   (match_operand:DI 2 "register_operand" "d")))))]
+  "ISA_HAS_BADDU && TARGET_64BIT"
+  "baddu\\t%0,%1,%2"
+  [(set_attr "type" "arith")])
 
 ;;
 ;;  ....................
@@ -1333,35 +1367,21 @@
   DONE;
 })
 
-(define_insn "mulsi3_mul3"
-  [(set (match_operand:SI 0 "register_operand" "=d,l")
-	(mult:SI (match_operand:SI 1 "register_operand" "d,d")
-		 (match_operand:SI 2 "register_operand" "d,d")))
-   (clobber (match_scratch:SI 3 "=l,X"))]
-  "ISA_HAS_MUL3"
+(define_insn "mul<mode>3_mul3"
+  [(set (match_operand:GPR 0 "register_operand" "=d,l")
+	(mult:GPR (match_operand:GPR 1 "register_operand" "d,d")
+		  (match_operand:GPR 2 "register_operand" "d,d")))
+   (clobber (match_scratch:GPR 3 "=l,X"))]
+  "ISA_HAS_<D>MUL3"
 {
   if (which_alternative == 1)
-    return "mult\t%1,%2";
-  if (TARGET_MIPS3900)
+    return "<d>mult\t%1,%2";
+  if (<MODE>mode == SImode && TARGET_MIPS3900)
     return "mult\t%0,%1,%2";
-  return "mul\t%0,%1,%2";
+  return "<d>mul\t%0,%1,%2";
 }
   [(set_attr "type" "imul3,imul")
-   (set_attr "mode" "SI")])
-
-(define_insn "muldi3_mul3"
-  [(set (match_operand:DI 0 "register_operand" "=d,l")
-	(mult:DI (match_operand:DI 1 "register_operand" "d,d")
-		 (match_operand:DI 2 "register_operand" "d,d")))
-   (clobber (match_scratch:DI 3 "=l,X"))]
-  "ISA_HAS_DMUL3"
-{
-  if (which_alternative == 1)
-    return "dmult\t%1,%2";
-  return "dmul\t%0,%1,%2";
-}
-  [(set_attr "type" "imul3,imul")
-   (set_attr "mode" "DI")])
+   (set_attr "mode" "<MODE>")])
 
 ;; If a register gets allocated to LO, and we spill to memory, the reload
 ;; will include a move from LO to a GPR.  Merge it into the multiplication

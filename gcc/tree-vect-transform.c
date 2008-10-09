@@ -1077,8 +1077,19 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
   else
     vect_ptr_type = build_pointer_type (vectype);
 
+  if (TREE_CODE (DR_BASE_ADDRESS (dr)) == SSA_NAME
+      && TYPE_RESTRICT (TREE_TYPE (DR_BASE_ADDRESS (dr))))
+    vect_ptr_type = build_qualified_type (vect_ptr_type, TYPE_QUAL_RESTRICT);
   vect_ptr = vect_get_new_vect_var (vect_ptr_type, vect_pointer_var,
                                     get_name (base_name));
+  if (TREE_CODE (DR_BASE_ADDRESS (dr)) == SSA_NAME
+      && TYPE_RESTRICT (TREE_TYPE (DR_BASE_ADDRESS (dr))))
+    {
+      get_alias_set (base_name);
+      DECL_POINTER_ALIAS_SET (vect_ptr)
+	= DECL_POINTER_ALIAS_SET (SSA_NAME_VAR (DR_BASE_ADDRESS (dr)));
+    }
+
   add_referenced_var (vect_ptr);
 
   /** (2) Add aliasing information to the new vector-pointer:
@@ -1175,7 +1186,7 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
 
       create_iv (vect_ptr_init,
 		 fold_convert (vect_ptr_type, step),
-		 NULL_TREE, loop, &incr_gsi, insert_after,
+		 vect_ptr, loop, &incr_gsi, insert_after,
 		 &indx_before_incr, &indx_after_incr);
       incr = gsi_stmt (incr_gsi);
       set_vinfo_for_stmt (incr, new_stmt_vec_info (incr, loop_vinfo));
@@ -1206,7 +1217,7 @@ vect_create_data_ref_ptr (gimple stmt, struct loop *at_loop,
     {
       standard_iv_increment_position (containing_loop, &incr_gsi,
 				      &insert_after);
-      create_iv (vptr, fold_convert (vect_ptr_type, DR_STEP (dr)), NULL_TREE, 
+      create_iv (vptr, fold_convert (vect_ptr_type, DR_STEP (dr)), vect_ptr, 
 		 containing_loop, &incr_gsi, insert_after, &indx_before_incr,
 		 &indx_after_incr);
       incr = gsi_stmt (incr_gsi);
@@ -1401,7 +1412,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   gimple stmt = VEC_index (gimple, stmts, 0);
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
   tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
-  int nunits = TYPE_VECTOR_SUBPARTS (vectype);
+  int nunits;
   tree vec_cst;
   tree t = NULL_TREE;
   int j, number_of_places_left_in_vector;
@@ -1410,12 +1421,33 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   int group_size = VEC_length (gimple, stmts);
   unsigned int vec_num, i;
   int number_of_copies = 1;
-  bool is_store = false;
   VEC (tree, heap) *voprnds = VEC_alloc (tree, heap, number_of_vectors);
-  bool constant_p;
+  bool constant_p, is_store;
 
   if (STMT_VINFO_DATA_REF (stmt_vinfo))
-    is_store = true;
+    {
+      is_store = true;
+      op = gimple_assign_rhs1 (stmt);
+    }
+  else
+    {
+      is_store = false;
+      op = gimple_op (stmt, op_num + 1);
+    }
+
+  if (CONSTANT_CLASS_P (op))
+    {
+      vector_type = vectype;
+      constant_p = true;
+    }
+  else
+    {
+      vector_type = get_vectype_for_scalar_type (TREE_TYPE (op)); 
+      gcc_assert (vector_type);
+      constant_p = false;
+    }
+
+  nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
   /* NUMBER_OF_COPIES is the number of times we need to use the same values in
      created vectors. It is greater than 1 if unrolling is performed. 
@@ -1436,18 +1468,15 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   number_of_copies = least_common_multiple (nunits, group_size) / group_size;
 
   number_of_places_left_in_vector = nunits;
-  constant_p = true;
   for (j = 0; j < number_of_copies; j++)
     {
       for (i = group_size - 1; VEC_iterate (gimple, stmts, i, stmt); i--)
         {
-	  if (is_store)
-	    op = gimple_assign_rhs1 (stmt);
-	  else
-	    op = gimple_op (stmt, op_num + 1);
-	  if (!CONSTANT_CLASS_P (op))
-	    constant_p = false;
-
+          if (is_store)
+            op = gimple_assign_rhs1 (stmt);
+          else
+            op = gimple_op (stmt, op_num + 1);
+    
           /* Create 'vect_ = {op0,op1,...,opn}'.  */
           t = tree_cons (NULL_TREE, op, t);
 
@@ -1457,16 +1486,12 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
             {
               number_of_places_left_in_vector = nunits;
 
-	      vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-              gcc_assert (vector_type);
 	      if (constant_p)
 		vec_cst = build_vector (vector_type, t);
 	      else
 		vec_cst = build_constructor_from_list (vector_type, t);
-	      constant_p = true;
               VEC_quick_push (tree, voprnds,
-                              vect_init_vector (stmt, vec_cst, vector_type,
-						NULL));
+                              vect_init_vector (stmt, vec_cst, vector_type, NULL));
               t = NULL_TREE;
             }
         }
@@ -1886,7 +1911,7 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
   stmt_vec_info def_stmt_info = NULL;
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
   tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
-  int nunits = TYPE_VECTOR_SUBPARTS (vectype);
+  unsigned int nunits = TYPE_VECTOR_SUBPARTS (vectype);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   tree vec_inv;
   tree vec_cst;
@@ -1935,16 +1960,17 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
           {
             t = tree_cons (NULL_TREE, op, t);
           }
-        vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-        gcc_assert (vector_type);
-        vec_cst = build_vector (vector_type, t);
-
-        return vect_init_vector (stmt, vec_cst, vector_type, NULL);
+        vec_cst = build_vector (vectype, t);
+        return vect_init_vector (stmt, vec_cst, vectype, NULL);
       }
 
     /* Case 2: operand is defined outside the loop - loop invariant.  */
     case vect_invariant_def:
       {
+	vector_type = get_vectype_for_scalar_type (TREE_TYPE (def));
+	gcc_assert (vector_type);
+	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
+
 	if (scalar_def) 
 	  *scalar_def = def;
 
@@ -1958,8 +1984,6 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
           }
 
 	/* FIXME: use build_constructor directly.  */
-	vector_type = get_vectype_for_scalar_type (TREE_TYPE (def));
-        gcc_assert (vector_type);
         vec_inv = build_constructor_from_list (vector_type, t);
         return vect_init_vector (stmt, vec_inv, vector_type, NULL);
       }
@@ -2155,7 +2179,6 @@ vect_finish_stmt_generation (gimple stmt, gimple vec_stmt,
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
 
-  gcc_assert (stmt == gsi_stmt (*gsi));
   gcc_assert (gimple_code (stmt) != GIMPLE_LABEL);
 
   gsi_insert_before (gsi, vec_stmt, GSI_SAME_STMT);
@@ -2168,10 +2191,7 @@ vect_finish_stmt_generation (gimple stmt, gimple vec_stmt,
       print_gimple_stmt (vect_dump, vec_stmt, 0, TDF_SLIM);
     }
 
-  /* Make sure gsi points to the stmt that is being vectorized.  */
-  gcc_assert (stmt == gsi_stmt (*gsi));
-
-  gimple_set_location (vec_stmt, gimple_location (stmt));
+  gimple_set_location (vec_stmt, gimple_location (gsi_stmt (*gsi)));
 }
 
 
@@ -2226,6 +2246,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
   tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
   int nunits =  TYPE_VECTOR_SUBPARTS (vectype);
+  tree scalar_type = TREE_TYPE (vectype);
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree type = TREE_TYPE (init_val);
   tree vecdef;
@@ -2233,7 +2254,6 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
   tree init_def;
   tree t = NULL_TREE;
   int i;
-  tree vector_type;
   bool nested_in_vect_loop = false; 
 
   gcc_assert (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type) || SCALAR_FLOAT_TYPE_P (type));
@@ -2254,15 +2274,14 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
     else
       *adjustment_def = init_val;
     /* Create a vector of zeros for init_def.  */
-    if (SCALAR_FLOAT_TYPE_P (type))
-      def_for_init = build_real (type, dconst0);
+    if (SCALAR_FLOAT_TYPE_P (scalar_type))
+      def_for_init = build_real (scalar_type, dconst0);
     else
-      def_for_init = build_int_cst (type, 0);
+      def_for_init = build_int_cst (scalar_type, 0);
+      
     for (i = nunits - 1; i >= 0; --i)
       t = tree_cons (NULL_TREE, def_for_init, t);
-    vector_type = get_vectype_for_scalar_type (TREE_TYPE (def_for_init));
-    gcc_assert (vector_type);
-    init_def = build_vector (vector_type, t);
+    init_def = build_vector (vectype, t);
     break;
 
   case MIN_EXPR:
@@ -5182,24 +5201,12 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
       return false;
     }
 
-  /* The type of the vector store is determined by the rhs.  */
-  vectype = get_vectype_for_scalar_type (TREE_TYPE (op));
-
-  /* If accesses through a pointer to vectype do not alias the original
-     memory reference we have a problem.  */
-  if (get_alias_set (vectype) != get_alias_set (TREE_TYPE (scalar_dest))
-      && !alias_set_subset_of (get_alias_set (vectype), 
-                               get_alias_set (TREE_TYPE (scalar_dest))))
-    {
-      if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "vector type does not alias scalar type");
-      return false;
-    }
-
-  if (!useless_type_conversion_p (TREE_TYPE (op), TREE_TYPE (scalar_dest)))
+  /* The scalar rhs type needs to be trivially convertible to the vector
+     component type.  This should always be the case.  */
+  if (!useless_type_conversion_p (TREE_TYPE (vectype), TREE_TYPE (op)))
     {      
       if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "operands of different types");
+        fprintf (vect_dump, "???  operands of different types");
       return false;
     }
 
@@ -5367,8 +5374,8 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		     Therefore, NEXT_STMT can't be NULL_TREE.  In case that 
 		     there is no interleaving, GROUP_SIZE is 1, and only one 
 		     iteration of the loop will be executed.  */
-		  gcc_assert (next_stmt);
-		  gcc_assert (gimple_assign_single_p (next_stmt));
+		  gcc_assert (next_stmt
+			      && gimple_assign_single_p (next_stmt));
 		  op = gimple_assign_rhs1 (next_stmt);
 
 		  vec_oprnd = vect_get_vec_def_for_operand (op, next_stmt, 
@@ -5379,9 +5386,12 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 		}
 	    }
 
+	  /* We should have catched mismatched types earlier.  */
+	  gcc_assert (useless_type_conversion_p (vectype,
+						 TREE_TYPE (vec_oprnd)));
 	  dataref_ptr = vect_create_data_ref_ptr (first_stmt, NULL, NULL_TREE, 
 						  &dummy, &ptr_incr, false, 
-						  &inv_p, TREE_TYPE (vec_oprnd));
+						  &inv_p, NULL);
 	  gcc_assert (!inv_p);
 	}
       else 
@@ -5430,6 +5440,12 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    vec_oprnd = VEC_index (tree, result_chain, i);
 
 	  data_ref = build_fold_indirect_ref (dataref_ptr);
+	  /* If accesses through a pointer to vectype do not alias the original
+	     memory reference we have a problem.  This should never happen.  */
+	  gcc_assert (get_alias_set (data_ref) == get_alias_set (gimple_assign_lhs (stmt))
+		      || alias_set_subset_of (get_alias_set (data_ref), 
+					      get_alias_set (gimple_assign_lhs (stmt))));
+
 	  /* Arguments are ready. Create the new vector stmt.  */
 	  new_stmt = gimple_build_assign (data_ref, vec_oprnd);
 	  vect_finish_stmt_generation (stmt, new_stmt, gsi);
@@ -5945,17 +5961,24 @@ vect_transform_strided_load (gimple stmt, VEC(tree,heap) *dr_chain, int size,
 	    STMT_VINFO_VEC_STMT (vinfo_for_stmt (next_stmt)) = new_stmt;
 	  else
             {
-	      gimple prev_stmt =
-		STMT_VINFO_VEC_STMT (vinfo_for_stmt (next_stmt));
-	      gimple rel_stmt =
-		STMT_VINFO_RELATED_STMT (vinfo_for_stmt (prev_stmt));
-	      while (rel_stmt)
-		{
-		  prev_stmt = rel_stmt;
-		  rel_stmt = STMT_VINFO_RELATED_STMT (vinfo_for_stmt (rel_stmt));
-		}
-	      STMT_VINFO_RELATED_STMT (vinfo_for_stmt (prev_stmt)) = new_stmt;
+              if (!DR_GROUP_SAME_DR_STMT (vinfo_for_stmt (next_stmt)))
+                {
+ 	          gimple prev_stmt =
+		    STMT_VINFO_VEC_STMT (vinfo_for_stmt (next_stmt));
+	          gimple rel_stmt =
+		    STMT_VINFO_RELATED_STMT (vinfo_for_stmt (prev_stmt));
+	          while (rel_stmt)
+		    {
+		      prev_stmt = rel_stmt;
+		      rel_stmt = 
+                        STMT_VINFO_RELATED_STMT (vinfo_for_stmt (rel_stmt));
+		    }
+
+  	          STMT_VINFO_RELATED_STMT (vinfo_for_stmt (prev_stmt)) = 
+                    new_stmt;
+                }
             }
+
 	  next_stmt = DR_GROUP_NEXT_DR (vinfo_for_stmt (next_stmt));
 	  gap_count = 1;
 	  /* If NEXT_STMT accesses the same DR as the previous statement,
@@ -6003,7 +6026,6 @@ vect_create_mask_and_perm (gimple stmt, gimple next_scalar_stmt,
   for (i = mask_nunits - 1; i >= 0; --i)
     t = tree_cons (NULL_TREE, build_int_cst (mask_element_type, mask_array[i]),
                    t);
-
   mask_vec = build_vector (mask_type, t);
   mask = vect_init_vector (stmt, mask_vec, mask_type, NULL);
 
@@ -6383,14 +6405,12 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
       return false;
     }
 
-  /* If accesses through a pointer to vectype do not alias the original
-     memory reference we have a problem.  */
-  if (get_alias_set (vectype) != get_alias_set (scalar_type)
-      && !alias_set_subset_of (get_alias_set (vectype),
-                               get_alias_set (scalar_type)))
-    {
+  /* The vector component type needs to be trivially convertible to the
+     scalar lhs.  This should always be the case.  */
+  if (!useless_type_conversion_p (TREE_TYPE (scalar_dest), TREE_TYPE (vectype)))
+    {      
       if (vect_print_dump_info (REPORT_DETAILS))
-        fprintf (vect_dump, "vector type does not alias scalar type");
+        fprintf (vect_dump, "???  operands of different types");
       return false;
     }
 
@@ -6648,6 +6668,11 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    default:
 	      gcc_unreachable ();
 	    }
+	  /* If accesses through a pointer to vectype do not alias the original
+	     memory reference we have a problem.  This should never happen.  */
+	  gcc_assert (get_alias_set (data_ref) == get_alias_set (gimple_assign_rhs1 (stmt))
+		      || alias_set_subset_of (get_alias_set (data_ref),
+					      get_alias_set (gimple_assign_rhs1 (stmt))));
 	  vec_dest = vect_create_destination_var (scalar_dest, vectype);
 	  new_stmt = gimple_build_assign (vec_dest, data_ref);
 	  new_temp = make_ssa_name (vec_dest, new_stmt);
@@ -8138,7 +8163,7 @@ vect_remove_stores (gimple first_stmt)
 
 static bool
 vect_schedule_slp_instance (slp_tree node, slp_instance instance,
-                            unsigned int vectorization_factor)
+                            unsigned int vectorization_factor) 
 {
   gimple stmt;
   bool strided_store, is_store;
@@ -8159,6 +8184,7 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
   
   stmt = VEC_index (gimple, SLP_TREE_SCALAR_STMTS (node), 0);
   stmt_info = vinfo_for_stmt (stmt);
+
   /* VECTYPE is the type of the destination.  */
   vectype = get_vectype_for_scalar_type (TREE_TYPE (gimple_assign_lhs (stmt)));
   nunits = (unsigned int) TYPE_VECTOR_SUBPARTS (vectype);
@@ -8200,7 +8226,14 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
       print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
     }	
 
-  si = gsi_for_stmt (stmt);
+  /* Loads should be inserted before the first load.  */
+  if (SLP_INSTANCE_FIRST_LOAD_STMT (instance)
+      && STMT_VINFO_STRIDED_ACCESS (stmt_info)
+      && !REFERENCE_CLASS_P (gimple_get_lhs (stmt)))
+    si = gsi_for_stmt (SLP_INSTANCE_FIRST_LOAD_STMT (instance));
+  else
+    si = gsi_for_stmt (stmt);
+
   is_store = vect_transform_stmt (stmt, &si, &strided_store, node, instance);
   if (is_store)
     {
@@ -8234,8 +8267,7 @@ vect_schedule_slp (loop_vec_info loop_vinfo)
     {
       /* Schedule the tree of INSTANCE.  */
       is_store = vect_schedule_slp_instance (SLP_INSTANCE_TREE (instance),
-                                          instance,
-                                          LOOP_VINFO_VECT_FACTOR (loop_vinfo));
+                            instance, LOOP_VINFO_VECT_FACTOR (loop_vinfo));
 			  
       if (vect_print_dump_info (REPORT_VECTORIZED_LOOPS)
 	  || vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))

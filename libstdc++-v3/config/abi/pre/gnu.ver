@@ -952,6 +952,8 @@ GLIBCXX_3.4.11 {
     # chrono
     _ZNSt6chrono12system_clock12is_monotonicE;
     _ZNSt6chrono12system_clock3nowEv;
+    _ZNSt6chrono15monotonic_clock12is_monotonicE;
+    _ZNSt6chrono15monotonic_clock3nowEv;
 
     # string/wstring initializer_list overloads
     _ZNSs6appendESt16initializer_listIcE;
@@ -1102,12 +1104,12 @@ CXXABI_1.3.2 {
 CXXABI_1.3.3 {
 
     # typeinfo for char16_t and char32_t
-    _ZTIu8char16_t;
-    _ZTIPu8char16_t;
-    _ZTIPKu8char16_t;
-    _ZTIu8char32_t;
-    _ZTIPu8char32_t;
-    _ZTIPKu8char32_t;
+    _ZTIDs;
+    _ZTIPDs;
+    _ZTIPKDs;
+    _ZTIDi;
+    _ZTIPDi;
+    _ZTIPKDi;
 
     # exception_ptr
     _ZNSt15__exception_ptr13exception_ptrC1Ev;

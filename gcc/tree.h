@@ -2579,7 +2579,7 @@ struct tree_memory_partition_tag GTY(())
 /* For a FUNCTION_DECL, holds the tree of BINDINGs.
    For a TRANSLATION_UNIT_DECL, holds the namespace's BLOCK.
    For a VAR_DECL, holds the initial value.
-   For a PARM_DECL, not used--default
+   For a PARM_DECL, used for DECL_ARG_TYPE--default
    values for parameters are encoded in the type of the function,
    not in the PARM_DECL slot.
    For a FIELD_DECL, this is used for enumeration values and the C
@@ -3255,16 +3255,16 @@ struct tree_decl_non_common GTY(())
 #define DECL_POSSIBLY_INLINED(DECL) \
   FUNCTION_DECL_CHECK (DECL)->function_decl.possibly_inlined
 
-/* Nonzero in a FUNCTION_DECL means this function can be substituted
-   where it is called.  */
-#define DECL_INLINE(NODE) (FUNCTION_DECL_CHECK (NODE)->function_decl.inline_flag)
-
 /* Nonzero in a FUNCTION_DECL means that this function was declared inline,
    such as via the `inline' keyword in C/C++.  This flag controls the linkage
-   semantics of 'inline'; whether or not the function is inlined is
-   controlled by DECL_INLINE.  */
+   semantics of 'inline'  */
 #define DECL_DECLARED_INLINE_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.declared_inline_flag)
+
+/* Nonzero in a FUNCTION_DECL means this function should not get
+   -Winline warnings.  */
+#define DECL_NO_INLINE_WARNING_P(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
@@ -3334,7 +3334,7 @@ struct tree_function_decl GTY(())
   unsigned declared_inline_flag : 1;
   unsigned regdecl_flag : 1;
 
-  unsigned inline_flag : 1;
+  unsigned no_inline_warning_flag : 1;
   unsigned no_instrument_function_entry_exit : 1;
   unsigned no_limit_stack : 1;
   unsigned disregard_inline_limits : 1;
@@ -3353,6 +3353,11 @@ struct tree_function_decl GTY(())
    This uses the same flag as DECL_EXTERNAL.  */
 #define TYPE_DECL_SUPPRESS_DEBUG(NODE) \
   (TYPE_DECL_CHECK (NODE)->decl_common.decl_flag_2)
+
+/* Getter of the imported declaration associated to the
+   IMPORTED_DECL node.  */
+#define IMPORTED_DECL_ASSOCIATED_DECL(NODE) \
+(DECL_INITIAL (IMPORTED_DECL_CHECK (NODE)))
 
 struct tree_type_decl GTY(())
 {

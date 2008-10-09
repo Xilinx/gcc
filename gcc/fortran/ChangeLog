@@ -1,3 +1,225 @@
+2008-10-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* f95-lang.c (poplevel): Don't clear BLOCK_VARS if functionbody.
+	* trans-decl.c (gfc_build_qualified_array): Build accurate debug type
+	even if nest.
+	(build_entry_thunks, gfc_generate_function_code,
+	gfc_generate_constructors): Ensure DECL_SAVED_TREE is a BIND_EXPR
+	with DECL_INITIAL as its BLOCK.
+
+2008-10-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35680
+	* gfortran.h : Add 'error' bit field to gfc_expr structure.
+	* expr.c (check_inquiry): When checking a restricted expression
+	check that arguments are either variables or restricted.
+	(check_restricted): Do not emit error if the expression has
+	'error' set.  Clean up detection of host-associated variable.
+
+2008-10-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37638
+	* gfortran.h (struct gfc_typebound_proc): New flag `error'.
+	* resolve.c (update_arglist_pass): Added assertion.
+	(update_compcall_arglist): Fail early for erraneous procedures to avoid
+	confusion later.
+	(resolve_typebound_generic_call): Ignore erraneous specific targets
+	and added assertions.
+	(resolve_typebound_procedure): Set new `error' flag.
+
+2008-10-04  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37706
+	* module.c (load_equiv): Check the module before negating the
+	unused flag.
+
+2008-10-02  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR fortran/37635
+	* intrinsic.c (add_functions): Add LEADZ and TRAILZ as generics.
+	* intrinsic.h (gfc_simplify_leadz, gfc_simplify_trailz): New protos.
+	* gfortran.h <enum gfc_isym_id>: (GFC_ISYM_LEADZ, GFC_ISYM_TRAILZ): New.
+	* f95-lang (gfc_init_builtin_functions): Add BUILT_IN_CLZ,
+	BUILT_IN_CLZL, BUILT_IN_CLZLL, BUILT_IN_CTZ, BUILT_IN_CTZL, and
+	BUILT_IN_CTZLL.
+	* trans-intrinsic.c (gfc_conv_intrinsic_leadz,
+	gfc_conv_intrinsic_trails): New code-generation functions for LEADZ
+	and TRAILZ intrinsics.
+	(gfc_conv_intrinsic_function): Use them
+	* intrinsic.texi: Add documentation for LEADZ and TRAILZ.
+	* simplify.c (gfc_simplify_leadz, gfc_simplify_trailz): New functions.
+
+2008-09-30  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36592
+	* symbol.c (check_conflict): If a symbol in a COMMON block is a
+	procedure, it must be a procedure pointer.
+	(gfc_add_in_common): Symbols in COMMON blocks may be variables or
+	procedure pointers.
+	* trans-types.c (gfc_sym_type): Make procedure pointers in COMMON
+	blocks work.
+
+2008-09-25  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR fortran/37498
+	* trans-io.c (build_dt): Revert previous patch..
+	* ioparm.def: Delete IOPARM_dt_f2003.
+
+2008-09-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37504
+	* expr.c (gfc_check_pointer_assign): Allow assignment of
+	protected pointers.
+	* match.c (gfc_match_assignment,gfc_match_pointer_assignment):
+	Remove unreachable code.
+
+2008-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	* options.c (set_default_std_flags,gfc_init_options):
+	Add comment: keep in sync with libgfortran.
+
+2008-09-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37626
+	* trans-array.c (gfc_trans_deferred_array): Don't auto-deallocate
+	result variables.
+
+2008-09-23  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37588
+	* gfortran.h (gfc_compare_actual_formal): Removed, made private.
+	(gfc_arglist_matches_symbol): New method.
+	* interface.c (compare_actual_formal): Made static.
+	(gfc_procedure_use): Use new name of compare_actual_formal.
+	(gfc_arglist_matches_symbol): New method.
+	(gfc_search_interface): Moved code partially to new
+	gfc_arglist_matches_symbol.
+	* resolve.c (resolve_typebound_generic_call): Resolve actual arglist
+	before checking against formal and use new gfc_arglist_matches_symbol
+	for checking.
+	(resolve_compcall): Set type-spec of generated expression.
+
+2008-09-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37580
+	* expr.c (gfc_check_pointer_assign): Add checks for pointer
+	remapping.
+
+2008-09-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR fortran/37498
+	* trans-io.c (gfc_build_io_library_fndecls): Bump pad size.
+	(build_dt): Set mask bit for IOPARM_dt_f2003.
+	* ioparm.def: Add IOPARM_dt_f2003.
+
+2008-09-22  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/37486
+	* gfortran.h (gfc_option_t): New members flag_align_commons and
+	warn_align_commons. 
+	* lang.opt: New options falign-commons and Walign-commons.
+	* invoke.texi: Documentation for new options.
+	* options.c (gfc_init_options): Initialize new options.
+	(gfc_handle_options): Handle new options.
+	* trans-common.c (translate_common): Implement new options.
+	(gfc_trans_common): Set correct locus.
+
+2008-09-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37583
+	* decl.c (scalarize_intrinsic_call): Both subroutines and
+	functions can give a true for get_proc_mame's last argument so
+	remove the &&gfc_current_ns->proc_name->attr.function.
+	resolve.c (resolve_actual_arglist): Add check for recursion by
+	reference to procedure as actual argument.
+
+2008-09-21  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35846
+	* trans.h (gfc_conv_string_length): New argument `expr'.
+	* trans-expr.c (flatten_array_ctors_without_strlen): New method.
+	(gfc_conv_string_length): New argument `expr' that is used in a new
+	special case handling if cl->length is NULL.
+	(gfc_conv_subref_array_arg): Pass expr to gfc_conv_string_length.
+	* trans-array.c (gfc_conv_expr_descriptor): Ditto.
+	(gfc_trans_auto_array_allocation): Pass NULL as new expr.
+	(gfc_trans_g77_array), (gfc_trans_dummy_array_bias): Ditto.
+	(gfc_trans_deferred_array): Ditto.
+	(gfc_trans_array_constructor): Save and restore old values of globals
+	used for bounds checking.
+	* trans-decl.c (gfc_trans_dummy_character): Ditto.
+	(gfc_trans_auto_character_variable): Ditto.
+
+2008-09-21  Daniel Kraft  <d@domob.eu>
+
+	* decl.c (match_procedure_in_type): Changed misleading error message
+	for not yet implemented PROCEDURE(interface) syntax.
+
+2008-09-18  Paul Thomas  <pault@gcc.gnu.org>
+
+       PR fortran/35945
+       * resolve.c (resolve_fl_variable_derived):  Remove derived type
+       comparison for use associated derived types.  Host association
+       of a derived type will not arise if there is a local derived type
+       whose use name is the same.
+
+       PR fortran/36700
+       * match.c (gfc_match_call):  Use the existing symbol even if
+       it is a function.
+
+2008-09-18  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37507
+	* trans.h (gfc_trans_runtime_error): New method.
+	(gfc_trans_runtime_error_vararg): New method.
+	(gfc_allocate_array_with_status): New argument `expr' for locus/varname.
+	(gfc_deallocate_array_with_status): Ditto.
+	* trans-array.h (gfc_array_deallocate): Ditto.
+	* trans.c (gfc_trans_runtime_error): New method.
+	(gfc_trans_runtime_error_vararg): New method, moved parts of the code
+	from gfc_trans_runtime_check here.
+	(gfc_trans_runtime_error_check): Moved code partly to new method.
+	(gfc_call_malloc): Fix tab-indentation.
+	(gfc_allocate_array_with_status): New argument `expr' and call
+	gfc_trans_runtime_error for error reporting to include locus.
+	(gfc_deallocate_with_status): Ditto.
+	* trans-stmt.c (gfc_trans_deallocate): Pass expr as new argument.
+	* trans-array.c (gfc_array_allocate): Ditto.
+	(gfc_array_deallocate): New argument `expr', passed on.
+	(gfc_trans_dealloc_allocated): Pass NULL for expr.
+	* trans-openmp.c (gfc_omp_clause_default): Ditto.
+
+2008-09-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37274
+	PR fortran/36374
+	* module.c (check_for_ambiguous): New function to test loaded
+	symbol for ambiguity with fixup symbol.
+	(read_module): Call check_for_ambiguous.
+	(write_symtree): Do not write the symtree for symbols coming
+	from an interface body.
+
+	PR fortran/36374
+	* resolve.c (count_specific_procs ): New function to count the
+	number of specific procedures with the same name as the generic
+	and emit appropriate errors for and actual argument reference.
+	(resolve_assumed_size_actual): Add new argument no_formal_args.
+	Correct logic around passing generic procedures as arguments.
+	Call count_specific_procs from two locations.
+	(resolve_function): Evaluate and pass no_formal_args.
+	(resolve call): The same and clean up a bit by using csym more
+	widely.
+
+	PR fortran/36454
+	* symbol.c (gfc_add_access): Access can be updated if use
+	associated and not private.
+
+2008-09-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/37536
+	* trans-stmt.c (gfc_trans_do): Optimize integer type non-simple
+	do loop initialization.
+
 2008-09-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 	    Tobias Burnus  <burnus@net.b.de>
 

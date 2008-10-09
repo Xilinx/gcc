@@ -324,7 +324,7 @@ eat_separator (st_parameter_dt *dtp)
   switch (c)
     {
     case ',':
-      if (dtp->u.p.decimal_status == DECIMAL_COMMA)
+      if (dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
 	{
 	  unget_char (dtp, c);
 	  break;
@@ -934,8 +934,8 @@ read_character (st_parameter_dt *dtp, int length __attribute__ ((unused)))
     default:
       if (dtp->u.p.namelist_mode)
 	{
-	  if (dtp->u.p.delim_status == DELIM_APOSTROPHE
-	      || dtp->u.p.delim_status == DELIM_QUOTE
+	  if (dtp->u.p.current_unit->delim_status == DELIM_APOSTROPHE
+	      || dtp->u.p.current_unit->delim_status == DELIM_QUOTE
 	      || c == '&' || c == '$' || c == '/')
 	    {
 	      unget_char (dtp, c);
@@ -1116,7 +1116,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
       c = next_char (dtp);
     }
 
-  if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+  if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
     c = '.';
   
   if (!isdigit (c) && c != '.')
@@ -1134,7 +1134,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
   for (;;)
     {
       c = next_char (dtp);
-      if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+      if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
 	c = '.';
       switch (c)
 	{
@@ -1306,7 +1306,7 @@ eol_1:
     unget_char (dtp, c);
 
   if (next_char (dtp)
-      !=  (dtp->u.p.decimal_status == DECIMAL_POINT ? ',' : ';'))
+      !=  (dtp->u.p.current_unit->decimal_status == DECIMAL_POINT ? ',' : ';'))
     goto bad_complex;
 
 eol_2:
@@ -1360,7 +1360,7 @@ read_real (st_parameter_dt *dtp, int length)
   seen_dp = 0;
 
   c = next_char (dtp);
-  if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+  if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
     c = '.';
   switch (c)
     {
@@ -1397,7 +1397,7 @@ read_real (st_parameter_dt *dtp, int length)
   for (;;)
     {
       c = next_char (dtp);
-      if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+      if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
 	c = '.';
       switch (c)
 	{
@@ -1463,7 +1463,7 @@ read_real (st_parameter_dt *dtp, int length)
       c = next_char (dtp);
     }
 
-  if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+  if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
     c = '.';
 
   if (!isdigit (c) && c != '.')
@@ -1488,7 +1488,7 @@ read_real (st_parameter_dt *dtp, int length)
   for (;;)
     {
       c = next_char (dtp);
-      if (c == ',' && dtp->u.p.decimal_status == DECIMAL_COMMA)
+      if (c == ',' && dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA)
 	c = '.';
       switch (c)
 	{
@@ -2839,6 +2839,9 @@ get_name:
       goto nml_err_ret;
     }
 
+  if (first_nl != NULL && first_nl->var_rank > 0)
+    nl = first_nl;
+  
   if (nml_read_obj (dtp, nl, 0, pprev_nl, nml_err_msg, nml_err_msg_size,
 		    clow, chigh) == FAILURE)
     goto nml_err_ret;

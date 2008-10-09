@@ -177,11 +177,16 @@ struct cgraph_2node_hook_list *first_cgraph_node_duplicated_hook;
 /* List of hooks triggered when an function is inserted.  */
 struct cgraph_node_hook_list *first_cgraph_function_insertion_hook;
 
+/* Head of a linked list of unused (freed) call graph nodes.
+   Do not GTY((delete)) this list so UIDs gets reliably recycled.  */
+static GTY(()) struct cgraph_node *free_nodes;
 /* Head of a linked list of unused (freed) call graph edges.
    Do not GTY((delete)) this list so UIDs gets reliably recycled.  */
 static GTY(()) struct cgraph_edge *free_edges;
 
-/* Macro to access the next item in the list of free cgraph edges. */
+/* Macros to access the next item in the list of free cgraph nodes and
+   edges. */
+#define NEXT_FREE_NODE(NODE) (NODE)->next
 #define NEXT_FREE_EDGE(EDGE) (EDGE)->prev_caller
 
 /* Register HOOK to be called with DATA on each removed edge.  */
@@ -417,9 +422,18 @@ cgraph_create_node (void)
 {
   struct cgraph_node *node;
 
-  node = GGC_CNEW (struct cgraph_node);
+  if (free_nodes)
+    {
+      node = free_nodes;
+      free_nodes = NEXT_FREE_NODE (node);
+    }
+  else
+    {
+      node = GGC_CNEW (struct cgraph_node);
+      node->uid = cgraph_max_uid++;
+    }
+
   node->next = cgraph_nodes;
-  node->uid = cgraph_max_uid++;
   node->pid = -1;
   node->order = cgraph_order++;
   if (cgraph_nodes)
@@ -752,7 +766,7 @@ cgraph_free_edge (struct cgraph_edge *e)
   int uid = e->uid;
 
   /* Clear out the edge so we do not dangle pointers.  */
-  memset (e, 0, sizeof (e));
+  memset (e, 0, sizeof (*e));
   e->uid = uid;
   NEXT_FREE_EDGE (e) = free_edges;
   free_edges = e;
@@ -846,13 +860,14 @@ cgraph_update_edges_for_call_stmt (gimple old_stmt, gimple new_stmt)
 void
 cgraph_node_remove_callees (struct cgraph_node *node)
 {
-  struct cgraph_edge *e;
+  struct cgraph_edge *e, *f;
 
   /* It is sufficient to remove the edges from the lists of callers of
      the callees.  The callee list of the node can be zapped with one
      assignment.  */
-  for (e = node->callees; e; e = e->next_callee)
+  for (e = node->callees; e; e = f)
     {
+      f = e->next_callee;
       cgraph_call_edge_removal_hooks (e);
       cgraph_edge_remove_callee (e);
       cgraph_free_edge (e);
@@ -870,13 +885,14 @@ cgraph_node_remove_callees (struct cgraph_node *node)
 static void
 cgraph_node_remove_callers (struct cgraph_node *node)
 {
-  struct cgraph_edge *e;
+  struct cgraph_edge *e, *f;
 
   /* It is sufficient to remove the edges from the lists of callees of
      the callers.  The caller list of the node can be zapped with one
      assignment.  */
-  for (e = node->callers; e; e = e->next_caller)
+  for (e = node->callers; e; e = f)
     {
+      f = e->next_caller;
       cgraph_call_edge_removal_hooks (e);
       cgraph_edge_remove_caller (e);
       cgraph_free_edge (e);
@@ -931,6 +947,7 @@ cgraph_remove_node (struct cgraph_node *node)
   void **slot;
   bool kill_body = false;
   struct cgraph_node *n;
+  int uid = node->uid;
 
   cgraph_call_node_removal_hooks (node);
   cgraph_node_remove_callers (node);
@@ -1018,7 +1035,13 @@ cgraph_remove_node (struct cgraph_node *node)
       node->call_site_hash = NULL;
     }
   cgraph_n_nodes--;
-  /* Do not free the structure itself so the walk over chain can continue.  */
+
+  /* Clear out the node to NULL all pointers and add the node to the free
+     list.  */
+  memset (node, 0, sizeof(*node));
+  node->uid = uid;
+  NEXT_FREE_NODE (node) = free_nodes;
+  free_nodes = node;
 }
 
 /* Notify finalize_compilation_unit that given node is reachable.  */

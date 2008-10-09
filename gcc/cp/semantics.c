@@ -695,7 +695,6 @@ finish_if_stmt (tree if_stmt)
   TREE_CHAIN (if_stmt) = NULL;
   add_stmt (do_poplevel (scope));
   finish_stmt ();
-  empty_if_body_warning (THEN_CLAUSE (if_stmt), ELSE_CLAUSE (if_stmt));
 }
 
 /* Begin a while-statement.  Returns a newly created WHILE_STMT if
@@ -2105,6 +2104,9 @@ finish_unary_op_expr (enum tree_code code, tree expr)
 tree
 finish_compound_literal (tree type, tree compound_literal)
 {
+  if (type == error_mark_node)
+    return error_mark_node;
+
   if (!TYPE_OBJ_P (type))
     {
       error ("compound literal of non-object type %qT", type);
@@ -2162,7 +2164,7 @@ finish_fname (tree id)
 {
   tree decl;
 
-  decl = fname_decl (C_RID_CODE (id), id);
+  decl = fname_decl (input_location, C_RID_CODE (id), id);
   if (processing_template_decl)
     decl = DECL_NAME (decl);
   return decl;
@@ -4104,9 +4106,10 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
 					 tf_warning_or_error));
   *pre_body = pop_stmt_list (*pre_body);
 
-  cond = cp_build_binary_op (TREE_CODE (cond), decl, diff,
+  cond = cp_build_binary_op (elocus,
+			     TREE_CODE (cond), decl, diff,
 			     tf_warning_or_error);
-  incr = build_modify_expr (decl, PLUS_EXPR, incr);
+  incr = build_modify_expr (elocus, decl, PLUS_EXPR, incr);
 
   orig_body = *body;
   *body = push_stmt_list ();
@@ -4287,8 +4290,12 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	}
 
       if (!processing_template_decl)
-	init = fold_build_cleanup_point_expr (TREE_TYPE (init), init);
-      init = cp_build_modify_expr (decl, NOP_EXPR, init, tf_warning_or_error);
+	{
+	  init = fold_build_cleanup_point_expr (TREE_TYPE (init), init);
+	  init = cp_build_modify_expr (decl, NOP_EXPR, init, tf_warning_or_error);
+	}
+      else
+	init = build2 (MODIFY_EXPR, void_type_node, decl, init);
       if (cond && TREE_SIDE_EFFECTS (cond) && COMPARISON_CLASS_P (cond))
 	{
 	  int n = TREE_SIDE_EFFECTS (TREE_OPERAND (cond, 1)) != 0;
