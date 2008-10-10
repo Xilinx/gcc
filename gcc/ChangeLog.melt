@@ -1,3 +1,8 @@
+2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[defcmatcher are exported]
+	* melt/warmelt-normal.bysl: normexp_defcmatcher fills the fixbind_data.
+	* melt/ana-base.bysl: added gimple cmatcher.
+
 2008-10-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[defcmatcher failed to export correctly]
 	* melt/warmelt-normal.bysl: maybe all fixed bindings should be handled the same by normexp_symbol.

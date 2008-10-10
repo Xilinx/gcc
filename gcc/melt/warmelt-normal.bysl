@@ -900,9 +900,11 @@
 
 ;;;; normalize a symbol occurrence
 (defun normexp_symbol (recv env ncx psloc)
+  (debug_msg recv "normexp_symbol recv")
   (multicall
    (bind procs)
    (find_enclosing_env env recv)
+   (debug_msg bind "normexp_symbol bind")
    (assert_msg "normexp_symbol check recv" (is_a recv class_symbol))
    (if (null bind)
        (progn
@@ -3766,7 +3768,8 @@
 	    (multiple_put_nth slotup (get_int cmatch_expoper) nopertupdata)
 	    )
 	  ))
-;;;;;
+;;; put the data in the binding
+    (unsafe_put_fields cmbind :fixbind_data insdata)
     ;; return the data
     (debug_msg insdata "normexp_defcmatcher return insdata")
     (return insdata)

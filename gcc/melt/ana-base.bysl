@@ -68,7 +68,6 @@
 (defprimitive gimple_content (v) :gimple
   "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
 
-#|
 (defcmatcher gimple
   (gv)					;match & no ins
   (:gimple g) 				;outs
@@ -83,7 +82,6 @@
    "(basilysgc_new_gimple((basilysobject_ptr_t)NULL, (" g ")))"
    )
 )
-|#
 
 (defprimitive is_gimpleseq (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLESEQ)")
@@ -663,7 +661,7 @@
  each_in_gimpleseq
  fetch_gdbmstate
  fetch_gdbmstate_constr
- ; gimple
+ gimple
  install_gcc_pass
  put_gdbmstate
  put_gdbmstate_constr
