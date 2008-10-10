@@ -1,4 +1,13 @@
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: added class_nrep_typexpr, and
+	nexpr_ctyp field. removed nif_ctyp field.
+	* melt/warmelt-genobj.bysl: don't use nif_ctyp but nexpr_ctyp.
+	* warmelt-first-0.c: regenerated twice.
+	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: regenerated twice.
+2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: changed comment.
 	* melt/warmelt-macro.bysl: better expand_cmatchexpr.
 	* melt/warmelt-normal.bysl: added normexp_cmatchexpr &

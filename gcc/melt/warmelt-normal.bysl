@@ -60,6 +60,12 @@
   :fields (
 	   ))
 
+;; normalized typed expressions also have a ctype
+(defclass class_nrep_typexpr
+  :super class_nrep_expr
+  :fields (nexpr_ctyp			;the ctype
+	   ))
+
 ;; normal applications have simple functions & arguments
 (defclass class_nrep_apply
   :super class_nrep_expr
@@ -93,7 +99,7 @@
 
 ;; normal chunk is a normalized expansion of primitive
 (defclass class_nrep_chunk
-  :super class_nrep_expr
+  :super class_nrep_typexpr
   :fields (nchunk_expansion		;the expansion
 	   nchunk_oper			;the operator (primitive or cmatcher)
 	   ))
@@ -121,10 +127,9 @@
 
 ;; common normal for if & ifisa
 (defclass class_nrep_ifcommon
-  :super class_nrep_expr
+  :super class_nrep_typexpr
   :fields (nif_then
 	   nif_else
-	   nif_ctyp
 	   ))
 
 ;; normal if is_a(value,class) then else
@@ -500,6 +505,7 @@
  class_nrep_importedval
  class_nrep_store_predefined
  class_nrep_symocc
+ class_nrep_typexpr
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
  class_nrep_update_current_module_environment_container
@@ -1261,6 +1267,7 @@
 					   :nrep_loc sloc
 					   :nchunk_expansion expargs
 					   :nchunk_oper soper
+					   :nexpr_ctyp soptype
 					   ))) 
 		(clocc (instance class_nrep_locsymocc
 				 :nrep_loc sloc
@@ -1281,22 +1288,6 @@
 	    )))))))
 
 (install_method class_src_primitive normal_exp normexp_primitive)
-(defun getctype_chunk (recv env)
-  (let ( ( oper (unsafe_get_field :nchunk_oper recv)) )
-    (cond 
-     ((is_a oper class_primitive)
-      (unsafe_get_field :prim_type oper))
-     ((is_a oper class_cmatcher)
-      (let ( (mb (unsafe_get_field :amatch_matchbind oper)) )
-	(assert_msg "check mb" (is_a mb class_formal_binding))
-	(unsafe_get_field :fbind_type mb))
-      )
-     (:else
-      (assert_msg "bad oper in chunk" ())))))
-
-
-(install_method class_nrep_chunk get_ctype getctype_chunk)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a cmatchexpr
@@ -1407,6 +1398,7 @@
 					   :nrep_loc sloc
 					   :nchunk_expansion expargs
 					   :nchunk_oper scmat
+					   :nexpr_ctyp otype
 					   ))) 
 		(clocc (instance class_nrep_locsymocc
 				 :nrep_loc sloc
@@ -1659,7 +1651,7 @@
 					  :nif_test ntest
 					  :nif_then wthen
 					  :nif_else (the_null)
-					  :nif_ctyp ctypif
+					  :nexpr_ctyp ctypif
 					  ))) 
 	       )
 	  (unsafe_put_fields clocc :nocc_bind cbind)
@@ -1672,8 +1664,6 @@
 	  ))
       ))))
 (install_method class_src_if normal_exp normexp_if)
-(install_method class_nrep_if get_ctype 
-		(lambda (recv env) (unsafe_get_field :nif_ctyp recv)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1764,7 +1754,7 @@
 					   :nif_test ntest
 					   :nif_then wthen
 					   :nif_else welse
-					   :nif_ctyp ctypif
+					   :nexpr_ctyp ctypif
 					   ))) )
 	   (unsafe_put_fields clocc :nocc_bind cbind)
 	   (if (not (is_list nbindif))
@@ -1899,7 +1889,7 @@
 			  :nif_test ncur
 			  :nif_then ncur
 			  :nif_else (wrap_normal_let1 (box_content norbox) (box_content nbindorbox) sloc)
-			  :nif_ctyp ctypcur
+			  :nexpr_ctyp ctypcur
 			  )
 			 )
 		  (csymor (clone_symbol 'or_))
@@ -2213,7 +2203,8 @@
 				       :nifa_val nobj
 				       :nifa_class ncla
 				       :nif_then nuget
-				       :nif_ctyp ctype_value)))
+				       :nexpr_ctyp ctype_value
+				       )))
 	    (clocc (instance  class_nrep_locsymocc
 			      :nrep_loc sloc
 			      :nocc_ctyp ctype_value
@@ -2366,7 +2357,8 @@
 			  :nifa_val nobj
 			  :nifa_class ncla
 			  :nif_then npuf
-			  :nif_ctyp ctype_void)
+			  :nexpr_ctyp ctype_void
+			  )
 		))
        (unsafe_put_fields cbind :letbind_expr nif)
        (list_append nbindlist cbind)

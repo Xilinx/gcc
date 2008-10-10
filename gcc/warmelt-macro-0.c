@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-macro-3.c - DO NOT EDIT */
-/* generated on Fri Oct 10 11:59:22 2008 */
+/* generated on Fri Oct 10 16:12:27 2008 */
 
 #include "run-basilys.h"
 
@@ -41283,7 +41283,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_9__CLASS_SRC));
   basilys_assertmsg("iniobj checkdiscr dobj_11__CLASS_SRC_APPLY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_11__CLASS_SRC_APPLY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_11__CLASS_SRC_APPLY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_11__CLASS_SRC_APPLY.obj_hash = 932908659;
+  cdat->dobj_11__CLASS_SRC_APPLY.obj_hash = 813246620;
   cdat->dobj_11__CLASS_SRC_APPLY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_11__CLASS_SRC_APPLY));
  
@@ -41319,7 +41319,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_15__SAPP_FUN));
   basilys_assertmsg("iniobj checkdiscr dobj_17__SAPP_FUN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_17__SAPP_FUN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_17__SAPP_FUN.obj_num = 1;
-  cdat->dobj_17__SAPP_FUN.obj_hash = 975950271;
+  cdat->dobj_17__SAPP_FUN.obj_hash = 251558918;
   cdat->dobj_17__SAPP_FUN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_17__SAPP_FUN));
  
@@ -41347,7 +41347,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_19__SAPP_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_21__SAPP_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_21__SAPP_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_21__SAPP_ARGS.obj_num = 2;
-  cdat->dobj_21__SAPP_ARGS.obj_hash = 473297007;
+  cdat->dobj_21__SAPP_ARGS.obj_hash = 951391570;
   cdat->dobj_21__SAPP_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_21__SAPP_ARGS));
  
@@ -41375,7 +41375,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_23__CLASS_SRC_MSEND
   basilys_assertmsg("iniobj checkdiscr dobj_25__CLASS_SRC_MSEND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_SRC_MSEND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_25__CLASS_SRC_MSEND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_25__CLASS_SRC_MSEND.obj_hash = 921178332;
+  cdat->dobj_25__CLASS_SRC_MSEND.obj_hash = 168754637;
   cdat->dobj_25__CLASS_SRC_MSEND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_25__CLASS_SRC_MSEND));
  
@@ -41411,7 +41411,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__MSEND_SELSYMB))
   basilys_assertmsg("iniobj checkdiscr dobj_31__MSEND_SELSYMB", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__MSEND_SELSYMB.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__MSEND_SELSYMB.obj_num = 1;
-  cdat->dobj_31__MSEND_SELSYMB.obj_hash = 406052328;
+  cdat->dobj_31__MSEND_SELSYMB.obj_hash = 722083542;
   cdat->dobj_31__MSEND_SELSYMB.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__MSEND_SELSYMB));
  
@@ -41439,7 +41439,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__MSEND_RECV));
   basilys_assertmsg("iniobj checkdiscr dobj_35__MSEND_RECV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__MSEND_RECV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__MSEND_RECV.obj_num = 2;
-  cdat->dobj_35__MSEND_RECV.obj_hash = 493075202;
+  cdat->dobj_35__MSEND_RECV.obj_hash = 657579678;
   cdat->dobj_35__MSEND_RECV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__MSEND_RECV));
  
@@ -41467,7 +41467,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__MSEND_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_39__MSEND_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__MSEND_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__MSEND_ARGS.obj_num = 3;
-  cdat->dobj_39__MSEND_ARGS.obj_hash = 400787210;
+  cdat->dobj_39__MSEND_ARGS.obj_hash = 216439663;
   cdat->dobj_39__MSEND_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__MSEND_ARGS));
  
@@ -41495,7 +41495,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__CLASS_SRC_PRIMI
   basilys_assertmsg("iniobj checkdiscr dobj_43__CLASS_SRC_PRIMITIVE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_hash = 381748097;
+  cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_hash = 285895318;
   cdat->dobj_43__CLASS_SRC_PRIMITIVE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_43__CLASS_SRC_PRIMITIVE));
  
@@ -41531,7 +41531,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__SPRIM_OPER));
   basilys_assertmsg("iniobj checkdiscr dobj_49__SPRIM_OPER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__SPRIM_OPER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_49__SPRIM_OPER.obj_num = 1;
-  cdat->dobj_49__SPRIM_OPER.obj_hash = 79925327;
+  cdat->dobj_49__SPRIM_OPER.obj_hash = 866244601;
   cdat->dobj_49__SPRIM_OPER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__SPRIM_OPER));
  
@@ -41559,7 +41559,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_51__SPRIM_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_53__SPRIM_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__SPRIM_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_53__SPRIM_ARGS.obj_num = 2;
-  cdat->dobj_53__SPRIM_ARGS.obj_hash = 1043168954;
+  cdat->dobj_53__SPRIM_ARGS.obj_hash = 51643315;
   cdat->dobj_53__SPRIM_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_53__SPRIM_ARGS));
  
@@ -41587,7 +41587,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_55__CLASS_SRC_CITER
   basilys_assertmsg("iniobj checkdiscr dobj_57__CLASS_SRC_CITERATION", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_num = OBMAG_OBJECT;
-  cdat->dobj_57__CLASS_SRC_CITERATION.obj_hash = 720916888;
+  cdat->dobj_57__CLASS_SRC_CITERATION.obj_hash = 1039471850;
   cdat->dobj_57__CLASS_SRC_CITERATION.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_57__CLASS_SRC_CITERATION));
  
@@ -41623,7 +41623,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_61__SCITER_OPER));
   basilys_assertmsg("iniobj checkdiscr dobj_63__SCITER_OPER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_63__SCITER_OPER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_63__SCITER_OPER.obj_num = 1;
-  cdat->dobj_63__SCITER_OPER.obj_hash = 922561019;
+  cdat->dobj_63__SCITER_OPER.obj_hash = 753618773;
   cdat->dobj_63__SCITER_OPER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_63__SCITER_OPER));
  
@@ -41651,7 +41651,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_65__SCITER_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_67__SCITER_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_67__SCITER_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_67__SCITER_ARGS.obj_num = 2;
-  cdat->dobj_67__SCITER_ARGS.obj_hash = 741708037;
+  cdat->dobj_67__SCITER_ARGS.obj_hash = 342777713;
   cdat->dobj_67__SCITER_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_67__SCITER_ARGS));
  
@@ -41679,7 +41679,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_69__SCITER_VARBIND)
   basilys_assertmsg("iniobj checkdiscr dobj_71__SCITER_VARBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_71__SCITER_VARBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_71__SCITER_VARBIND.obj_num = 3;
-  cdat->dobj_71__SCITER_VARBIND.obj_hash = 773033428;
+  cdat->dobj_71__SCITER_VARBIND.obj_hash = 471083083;
   cdat->dobj_71__SCITER_VARBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_71__SCITER_VARBIND));
  
@@ -41707,7 +41707,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_73__SCITER_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_75__SCITER_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_75__SCITER_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_75__SCITER_BODY.obj_num = 4;
-  cdat->dobj_75__SCITER_BODY.obj_hash = 311533519;
+  cdat->dobj_75__SCITER_BODY.obj_hash = 730757725;
   cdat->dobj_75__SCITER_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_75__SCITER_BODY));
  
@@ -41735,7 +41735,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_77__CLASS_SRC_CMATC
   basilys_assertmsg("iniobj checkdiscr dobj_79__CLASS_SRC_CMATCHEXPR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_SRC_CMATCHEXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_79__CLASS_SRC_CMATCHEXPR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_79__CLASS_SRC_CMATCHEXPR.obj_hash = 745230749;
+  cdat->dobj_79__CLASS_SRC_CMATCHEXPR.obj_hash = 613201668;
   cdat->dobj_79__CLASS_SRC_CMATCHEXPR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_79__CLASS_SRC_CMATCHEXPR));
  
@@ -41771,7 +41771,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_83__SCMATX_CMATCHER
   basilys_assertmsg("iniobj checkdiscr dobj_85__SCMATX_CMATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__SCMATX_CMATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_85__SCMATX_CMATCHER.obj_num = 1;
-  cdat->dobj_85__SCMATX_CMATCHER.obj_hash = 999381005;
+  cdat->dobj_85__SCMATX_CMATCHER.obj_hash = 487288194;
   cdat->dobj_85__SCMATX_CMATCHER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_85__SCMATX_CMATCHER));
  
@@ -41799,7 +41799,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_87__SCMATX_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_89__SCMATX_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__SCMATX_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_89__SCMATX_ARGS.obj_num = 2;
-  cdat->dobj_89__SCMATX_ARGS.obj_hash = 328245479;
+  cdat->dobj_89__SCMATX_ARGS.obj_hash = 720913172;
   cdat->dobj_89__SCMATX_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_89__SCMATX_ARGS));
  
@@ -41827,7 +41827,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__CLASS_SRC_PROGN
   basilys_assertmsg("iniobj checkdiscr dobj_93__CLASS_SRC_PROGN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_93__CLASS_SRC_PROGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_93__CLASS_SRC_PROGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_93__CLASS_SRC_PROGN.obj_hash = 682507442;
+  cdat->dobj_93__CLASS_SRC_PROGN.obj_hash = 156868773;
   cdat->dobj_93__CLASS_SRC_PROGN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_93__CLASS_SRC_PROGN));
  
@@ -41863,7 +41863,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_97__SPROGN_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_99__SPROGN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_99__SPROGN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_99__SPROGN_BODY.obj_num = 1;
-  cdat->dobj_99__SPROGN_BODY.obj_hash = 165217236;
+  cdat->dobj_99__SPROGN_BODY.obj_hash = 147669425;
   cdat->dobj_99__SPROGN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_99__SPROGN_BODY));
  
@@ -41891,7 +41891,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_101__CLASS_SRC_RETU
   basilys_assertmsg("iniobj checkdiscr dobj_103__CLASS_SRC_RETURN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_103__CLASS_SRC_RETURN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_103__CLASS_SRC_RETURN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_103__CLASS_SRC_RETURN.obj_hash = 977779105;
+  cdat->dobj_103__CLASS_SRC_RETURN.obj_hash = 1067707038;
   cdat->dobj_103__CLASS_SRC_RETURN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_103__CLASS_SRC_RETURN));
  
@@ -41927,7 +41927,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_107__SRETURN_BODY))
   basilys_assertmsg("iniobj checkdiscr dobj_109__SRETURN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_109__SRETURN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_109__SRETURN_BODY.obj_num = 1;
-  cdat->dobj_109__SRETURN_BODY.obj_hash = 901007632;
+  cdat->dobj_109__SRETURN_BODY.obj_hash = 5681638;
   cdat->dobj_109__SRETURN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_109__SRETURN_BODY));
  
@@ -41955,7 +41955,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_111__CLASS_SRC_SETQ
   basilys_assertmsg("iniobj checkdiscr dobj_113__CLASS_SRC_SETQ", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_113__CLASS_SRC_SETQ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_113__CLASS_SRC_SETQ.obj_num = OBMAG_OBJECT;
-  cdat->dobj_113__CLASS_SRC_SETQ.obj_hash = 714045589;
+  cdat->dobj_113__CLASS_SRC_SETQ.obj_hash = 433821851;
   cdat->dobj_113__CLASS_SRC_SETQ.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_113__CLASS_SRC_SETQ));
  
@@ -41991,7 +41991,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_117__SSTQ_VAR));
   basilys_assertmsg("iniobj checkdiscr dobj_119__SSTQ_VAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_119__SSTQ_VAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_119__SSTQ_VAR.obj_num = 1;
-  cdat->dobj_119__SSTQ_VAR.obj_hash = 444379968;
+  cdat->dobj_119__SSTQ_VAR.obj_hash = 862309570;
   cdat->dobj_119__SSTQ_VAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_119__SSTQ_VAR));
  
@@ -42019,7 +42019,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_121__SSTQ_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_123__SSTQ_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_123__SSTQ_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_123__SSTQ_EXPR.obj_num = 2;
-  cdat->dobj_123__SSTQ_EXPR.obj_hash = 911048454;
+  cdat->dobj_123__SSTQ_EXPR.obj_hash = 450935068;
   cdat->dobj_123__SSTQ_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_123__SSTQ_EXPR));
  
@@ -42047,7 +42047,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_125__CLASS_SRC_COMM
   basilys_assertmsg("iniobj checkdiscr dobj_127__CLASS_SRC_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_127__CLASS_SRC_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_127__CLASS_SRC_COMMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_127__CLASS_SRC_COMMENT.obj_hash = 543551845;
+  cdat->dobj_127__CLASS_SRC_COMMENT.obj_hash = 849167338;
   cdat->dobj_127__CLASS_SRC_COMMENT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_127__CLASS_SRC_COMMENT));
  
@@ -42083,7 +42083,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_131__SCOMM_STR));
   basilys_assertmsg("iniobj checkdiscr dobj_133__SCOMM_STR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_133__SCOMM_STR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_133__SCOMM_STR.obj_num = 1;
-  cdat->dobj_133__SCOMM_STR.obj_hash = 22807906;
+  cdat->dobj_133__SCOMM_STR.obj_hash = 214257560;
   cdat->dobj_133__SCOMM_STR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_133__SCOMM_STR));
  
@@ -42111,7 +42111,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_135__CLASS_SRC_QUOT
   basilys_assertmsg("iniobj checkdiscr dobj_137__CLASS_SRC_QUOTE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_137__CLASS_SRC_QUOTE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_137__CLASS_SRC_QUOTE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_137__CLASS_SRC_QUOTE.obj_hash = 48508040;
+  cdat->dobj_137__CLASS_SRC_QUOTE.obj_hash = 797367622;
   cdat->dobj_137__CLASS_SRC_QUOTE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_137__CLASS_SRC_QUOTE));
  
@@ -42147,7 +42147,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_141__SQUOTED));
   basilys_assertmsg("iniobj checkdiscr dobj_143__SQUOTED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_143__SQUOTED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_143__SQUOTED.obj_num = 1;
-  cdat->dobj_143__SQUOTED.obj_hash = 520104268;
+  cdat->dobj_143__SQUOTED.obj_hash = 390142540;
   cdat->dobj_143__SQUOTED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_143__SQUOTED));
  
@@ -42175,7 +42175,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_145__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_147__CLASS_SRC_EXPORTCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_147__CLASS_SRC_EXPORTCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_147__CLASS_SRC_EXPORTCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_147__CLASS_SRC_EXPORTCOMMON.obj_hash = 673697336;
+  cdat->dobj_147__CLASS_SRC_EXPORTCOMMON.obj_hash = 882661006;
   cdat->dobj_147__CLASS_SRC_EXPORTCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_147__CLASS_SRC_EXPORTCOMMON));
  
@@ -42211,7 +42211,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__SEXPORT_NAMES)
   basilys_assertmsg("iniobj checkdiscr dobj_153__SEXPORT_NAMES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__SEXPORT_NAMES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__SEXPORT_NAMES.obj_num = 1;
-  cdat->dobj_153__SEXPORT_NAMES.obj_hash = 278972189;
+  cdat->dobj_153__SEXPORT_NAMES.obj_hash = 113341761;
   cdat->dobj_153__SEXPORT_NAMES.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_153__SEXPORT_NAMES));
  
@@ -42239,7 +42239,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_155__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_157__CLASS_SRC_EXPORT_VALUES", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_157__CLASS_SRC_EXPORT_VALUES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_157__CLASS_SRC_EXPORT_VALUES.obj_num = OBMAG_OBJECT;
-  cdat->dobj_157__CLASS_SRC_EXPORT_VALUES.obj_hash = 59517260;
+  cdat->dobj_157__CLASS_SRC_EXPORT_VALUES.obj_hash = 132646099;
   cdat->dobj_157__CLASS_SRC_EXPORT_VALUES.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_157__CLASS_SRC_EXPORT_VALUES));
  
@@ -42275,7 +42275,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_161__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_163__CLASS_SRC_EXPORT_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_163__CLASS_SRC_EXPORT_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_163__CLASS_SRC_EXPORT_CLASS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_163__CLASS_SRC_EXPORT_CLASS.obj_hash = 178925607;
+  cdat->dobj_163__CLASS_SRC_EXPORT_CLASS.obj_hash = 173060052;
   cdat->dobj_163__CLASS_SRC_EXPORT_CLASS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_163__CLASS_SRC_EXPORT_CLASS));
  
@@ -42311,7 +42311,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_167__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_169__CLASS_SRC_EXPORT_MACRO", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_169__CLASS_SRC_EXPORT_MACRO.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_169__CLASS_SRC_EXPORT_MACRO.obj_num = OBMAG_OBJECT;
-  cdat->dobj_169__CLASS_SRC_EXPORT_MACRO.obj_hash = 284511090;
+  cdat->dobj_169__CLASS_SRC_EXPORT_MACRO.obj_hash = 848520264;
   cdat->dobj_169__CLASS_SRC_EXPORT_MACRO.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_169__CLASS_SRC_EXPORT_MACRO));
  
@@ -42347,7 +42347,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_173__SEXPMAC_MNAME)
   basilys_assertmsg("iniobj checkdiscr dobj_175__SEXPMAC_MNAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_175__SEXPMAC_MNAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_175__SEXPMAC_MNAME.obj_num = 1;
-  cdat->dobj_175__SEXPMAC_MNAME.obj_hash = 928974279;
+  cdat->dobj_175__SEXPMAC_MNAME.obj_hash = 837108267;
   cdat->dobj_175__SEXPMAC_MNAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_175__SEXPMAC_MNAME));
  
@@ -42375,7 +42375,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_177__SEXPMAC_MVAL))
   basilys_assertmsg("iniobj checkdiscr dobj_179__SEXPMAC_MVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_179__SEXPMAC_MVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_179__SEXPMAC_MVAL.obj_num = 2;
-  cdat->dobj_179__SEXPMAC_MVAL.obj_hash = 53931416;
+  cdat->dobj_179__SEXPMAC_MVAL.obj_hash = 653434965;
   cdat->dobj_179__SEXPMAC_MVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_179__SEXPMAC_MVAL));
  
@@ -42403,7 +42403,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_181__CLASS_SRC_EXPO
   basilys_assertmsg("iniobj checkdiscr dobj_183__CLASS_SRC_EXPORT_PATMACRO", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO.obj_num = OBMAG_OBJECT;
-  cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO.obj_hash = 165459694;
+  cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO.obj_hash = 933442491;
   cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_183__CLASS_SRC_EXPORT_PATMACRO));
  
@@ -42439,7 +42439,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_187__SEXPPAT_PVAL))
   basilys_assertmsg("iniobj checkdiscr dobj_189__SEXPPAT_PVAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_189__SEXPPAT_PVAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_189__SEXPPAT_PVAL.obj_num = 3;
-  cdat->dobj_189__SEXPPAT_PVAL.obj_hash = 637216699;
+  cdat->dobj_189__SEXPPAT_PVAL.obj_hash = 135165088;
   cdat->dobj_189__SEXPPAT_PVAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_189__SEXPPAT_PVAL));
  
@@ -42467,7 +42467,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_191__CLASS_SRCDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_193__CLASS_SRCDEF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_193__CLASS_SRCDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_193__CLASS_SRCDEF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_193__CLASS_SRCDEF.obj_hash = 506375806;
+  cdat->dobj_193__CLASS_SRCDEF.obj_hash = 836105537;
   cdat->dobj_193__CLASS_SRCDEF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_193__CLASS_SRCDEF));
  
@@ -42503,7 +42503,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_197__SDEF_NAME));
   basilys_assertmsg("iniobj checkdiscr dobj_199__SDEF_NAME", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_199__SDEF_NAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_199__SDEF_NAME.obj_num = 1;
-  cdat->dobj_199__SDEF_NAME.obj_hash = 406012843;
+  cdat->dobj_199__SDEF_NAME.obj_hash = 390479327;
   cdat->dobj_199__SDEF_NAME.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_199__SDEF_NAME));
  
@@ -42531,7 +42531,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_201__CLASS_SRCDEFOR
   basilys_assertmsg("iniobj checkdiscr dobj_203__CLASS_SRCDEFORMAL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_203__CLASS_SRCDEFORMAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_203__CLASS_SRCDEFORMAL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_203__CLASS_SRCDEFORMAL.obj_hash = 198112002;
+  cdat->dobj_203__CLASS_SRCDEFORMAL.obj_hash = 566615599;
   cdat->dobj_203__CLASS_SRCDEFORMAL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_203__CLASS_SRCDEFORMAL));
  
@@ -42567,7 +42567,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_207__SFORMAL_ARGS))
   basilys_assertmsg("iniobj checkdiscr dobj_209__SFORMAL_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__SFORMAL_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__SFORMAL_ARGS.obj_num = 2;
-  cdat->dobj_209__SFORMAL_ARGS.obj_hash = 204111297;
+  cdat->dobj_209__SFORMAL_ARGS.obj_hash = 28771459;
   cdat->dobj_209__SFORMAL_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_209__SFORMAL_ARGS));
  
@@ -42595,7 +42595,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_211__CLASS_SRC_DEFU
   basilys_assertmsg("iniobj checkdiscr dobj_213__CLASS_SRC_DEFUN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_213__CLASS_SRC_DEFUN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_213__CLASS_SRC_DEFUN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_213__CLASS_SRC_DEFUN.obj_hash = 659132922;
+  cdat->dobj_213__CLASS_SRC_DEFUN.obj_hash = 847146443;
   cdat->dobj_213__CLASS_SRC_DEFUN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_213__CLASS_SRC_DEFUN));
  
@@ -42631,7 +42631,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_217__SFUN_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_219__SFUN_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_219__SFUN_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_219__SFUN_BODY.obj_num = 3;
-  cdat->dobj_219__SFUN_BODY.obj_hash = 418066055;
+  cdat->dobj_219__SFUN_BODY.obj_hash = 879543675;
   cdat->dobj_219__SFUN_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_219__SFUN_BODY));
  
@@ -42659,7 +42659,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_221__CLASS_SRC_DEFP
   basilys_assertmsg("iniobj checkdiscr dobj_223__CLASS_SRC_DEFPRIMITIVE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE.obj_hash = 570910676;
+  cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE.obj_hash = 310956693;
   cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_223__CLASS_SRC_DEFPRIMITIVE));
  
@@ -42695,7 +42695,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_227__SPRIM_TYPE));
   basilys_assertmsg("iniobj checkdiscr dobj_229__SPRIM_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__SPRIM_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__SPRIM_TYPE.obj_num = 3;
-  cdat->dobj_229__SPRIM_TYPE.obj_hash = 840097172;
+  cdat->dobj_229__SPRIM_TYPE.obj_hash = 338154128;
   cdat->dobj_229__SPRIM_TYPE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_229__SPRIM_TYPE));
  
@@ -42723,7 +42723,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_231__SPRIM_EXPANSIO
   basilys_assertmsg("iniobj checkdiscr dobj_233__SPRIM_EXPANSION", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_233__SPRIM_EXPANSION.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_233__SPRIM_EXPANSION.obj_num = 4;
-  cdat->dobj_233__SPRIM_EXPANSION.obj_hash = 496893853;
+  cdat->dobj_233__SPRIM_EXPANSION.obj_hash = 725011064;
   cdat->dobj_233__SPRIM_EXPANSION.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_233__SPRIM_EXPANSION));
  
@@ -42751,7 +42751,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_235__CLASS_SRC_DEFC
   basilys_assertmsg("iniobj checkdiscr dobj_237__CLASS_SRC_DEFCITERATOR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_SRC_DEFCITERATOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_237__CLASS_SRC_DEFCITERATOR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_237__CLASS_SRC_DEFCITERATOR.obj_hash = 980725885;
+  cdat->dobj_237__CLASS_SRC_DEFCITERATOR.obj_hash = 194196190;
   cdat->dobj_237__CLASS_SRC_DEFCITERATOR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_237__CLASS_SRC_DEFCITERATOR));
  
@@ -42787,7 +42787,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_241__SCITERDEF_CITE
   basilys_assertmsg("iniobj checkdiscr dobj_243__SCITERDEF_CITERATOR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__SCITERDEF_CITERATOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_243__SCITERDEF_CITERATOR.obj_num = 3;
-  cdat->dobj_243__SCITERDEF_CITERATOR.obj_hash = 425088229;
+  cdat->dobj_243__SCITERDEF_CITERATOR.obj_hash = 175122427;
   cdat->dobj_243__SCITERDEF_CITERATOR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_243__SCITERDEF_CITERATOR));
  
@@ -42815,7 +42815,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_245__CLASS_SRC_DEFC
   basilys_assertmsg("iniobj checkdiscr dobj_247__CLASS_SRC_DEFCMATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_247__CLASS_SRC_DEFCMATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_247__CLASS_SRC_DEFCMATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_247__CLASS_SRC_DEFCMATCHER.obj_hash = 687099883;
+  cdat->dobj_247__CLASS_SRC_DEFCMATCHER.obj_hash = 853608411;
   cdat->dobj_247__CLASS_SRC_DEFCMATCHER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_247__CLASS_SRC_DEFCMATCHER));
  
@@ -42851,7 +42851,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_251__SCMATDEF_CMATC
   basilys_assertmsg("iniobj checkdiscr dobj_253__SCMATDEF_CMATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_253__SCMATDEF_CMATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_253__SCMATDEF_CMATCHER.obj_num = 3;
-  cdat->dobj_253__SCMATDEF_CMATCHER.obj_hash = 348160029;
+  cdat->dobj_253__SCMATDEF_CMATCHER.obj_hash = 933940322;
   cdat->dobj_253__SCMATDEF_CMATCHER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_253__SCMATDEF_CMATCHER));
  
@@ -42879,7 +42879,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_255__CLASS_SRC_DEFU
   basilys_assertmsg("iniobj checkdiscr dobj_257__CLASS_SRC_DEFUNMATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_257__CLASS_SRC_DEFUNMATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_257__CLASS_SRC_DEFUNMATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_257__CLASS_SRC_DEFUNMATCHER.obj_hash = 82855717;
+  cdat->dobj_257__CLASS_SRC_DEFUNMATCHER.obj_hash = 824864673;
   cdat->dobj_257__CLASS_SRC_DEFUNMATCHER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_257__CLASS_SRC_DEFUNMATCHER));
  
@@ -42915,7 +42915,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_261__SFUMATDEF_INS)
   basilys_assertmsg("iniobj checkdiscr dobj_263__SFUMATDEF_INS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_263__SFUMATDEF_INS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_263__SFUMATDEF_INS.obj_num = 3;
-  cdat->dobj_263__SFUMATDEF_INS.obj_hash = 254009617;
+  cdat->dobj_263__SFUMATDEF_INS.obj_hash = 655649333;
   cdat->dobj_263__SFUMATDEF_INS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_263__SFUMATDEF_INS));
  
@@ -42943,7 +42943,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_265__SFUMATDEF_OUTS
   basilys_assertmsg("iniobj checkdiscr dobj_267__SFUMATDEF_OUTS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_267__SFUMATDEF_OUTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_267__SFUMATDEF_OUTS.obj_num = 4;
-  cdat->dobj_267__SFUMATDEF_OUTS.obj_hash = 890134781;
+  cdat->dobj_267__SFUMATDEF_OUTS.obj_hash = 805302630;
   cdat->dobj_267__SFUMATDEF_OUTS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_267__SFUMATDEF_OUTS));
  
@@ -42971,7 +42971,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_269__SFUMATDEF_MATC
   basilys_assertmsg("iniobj checkdiscr dobj_271__SFUMATDEF_MATCHF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_271__SFUMATDEF_MATCHF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_271__SFUMATDEF_MATCHF.obj_num = 5;
-  cdat->dobj_271__SFUMATDEF_MATCHF.obj_hash = 843114953;
+  cdat->dobj_271__SFUMATDEF_MATCHF.obj_hash = 211343344;
   cdat->dobj_271__SFUMATDEF_MATCHF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_271__SFUMATDEF_MATCHF));
  
@@ -42999,7 +42999,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_273__SFUMATDEF_APPL
   basilys_assertmsg("iniobj checkdiscr dobj_275__SFUMATDEF_APPLYF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_275__SFUMATDEF_APPLYF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_275__SFUMATDEF_APPLYF.obj_num = 6;
-  cdat->dobj_275__SFUMATDEF_APPLYF.obj_hash = 185701067;
+  cdat->dobj_275__SFUMATDEF_APPLYF.obj_hash = 283808904;
   cdat->dobj_275__SFUMATDEF_APPLYF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_275__SFUMATDEF_APPLYF));
  
@@ -43027,7 +43027,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_277__SFUMATDEF_DATA
   basilys_assertmsg("iniobj checkdiscr dobj_279__SFUMATDEF_DATA", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_279__SFUMATDEF_DATA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_279__SFUMATDEF_DATA.obj_num = 7;
-  cdat->dobj_279__SFUMATDEF_DATA.obj_hash = 2618185;
+  cdat->dobj_279__SFUMATDEF_DATA.obj_hash = 482360357;
   cdat->dobj_279__SFUMATDEF_DATA.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_279__SFUMATDEF_DATA));
  
@@ -43055,7 +43055,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_281__CLASS_SRC_DEFO
   basilys_assertmsg("iniobj checkdiscr dobj_283__CLASS_SRC_DEFOBJCOMMON", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON.obj_num = OBMAG_OBJECT;
-  cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON.obj_hash = 945757853;
+  cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON.obj_hash = 679228673;
   cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_283__CLASS_SRC_DEFOBJCOMMON));
  
@@ -43091,7 +43091,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_287__SOBJ_PREDEF));
   basilys_assertmsg("iniobj checkdiscr dobj_289__SOBJ_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_289__SOBJ_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_289__SOBJ_PREDEF.obj_num = 2;
-  cdat->dobj_289__SOBJ_PREDEF.obj_hash = 95760411;
+  cdat->dobj_289__SOBJ_PREDEF.obj_hash = 320505164;
   cdat->dobj_289__SOBJ_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_289__SOBJ_PREDEF));
  
@@ -43119,7 +43119,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_291__SOBJ_DOCSTR));
   basilys_assertmsg("iniobj checkdiscr dobj_293__SOBJ_DOCSTR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_293__SOBJ_DOCSTR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_293__SOBJ_DOCSTR.obj_num = 3;
-  cdat->dobj_293__SOBJ_DOCSTR.obj_hash = 1031198603;
+  cdat->dobj_293__SOBJ_DOCSTR.obj_hash = 67188961;
   cdat->dobj_293__SOBJ_DOCSTR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_293__SOBJ_DOCSTR));
  
@@ -43147,7 +43147,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_295__CLASS_SRC_DEFC
   basilys_assertmsg("iniobj checkdiscr dobj_297__CLASS_SRC_DEFCLASS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_297__CLASS_SRC_DEFCLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_297__CLASS_SRC_DEFCLASS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_297__CLASS_SRC_DEFCLASS.obj_hash = 661967188;
+  cdat->dobj_297__CLASS_SRC_DEFCLASS.obj_hash = 402356485;
   cdat->dobj_297__CLASS_SRC_DEFCLASS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_297__CLASS_SRC_DEFCLASS));
  
@@ -43183,7 +43183,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_301__SCLASS_CLABIND
   basilys_assertmsg("iniobj checkdiscr dobj_303__SCLASS_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_303__SCLASS_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_303__SCLASS_CLABIND.obj_num = 4;
-  cdat->dobj_303__SCLASS_CLABIND.obj_hash = 961506892;
+  cdat->dobj_303__SCLASS_CLABIND.obj_hash = 387013637;
   cdat->dobj_303__SCLASS_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_303__SCLASS_CLABIND));
  
@@ -43211,7 +43211,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_305__SCLASS_SUPERBI
   basilys_assertmsg("iniobj checkdiscr dobj_307__SCLASS_SUPERBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_307__SCLASS_SUPERBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_307__SCLASS_SUPERBIND.obj_num = 5;
-  cdat->dobj_307__SCLASS_SUPERBIND.obj_hash = 371494497;
+  cdat->dobj_307__SCLASS_SUPERBIND.obj_hash = 1007180704;
   cdat->dobj_307__SCLASS_SUPERBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_307__SCLASS_SUPERBIND));
  
@@ -43239,7 +43239,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_309__SCLASS_FLDBIND
   basilys_assertmsg("iniobj checkdiscr dobj_311__SCLASS_FLDBINDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_311__SCLASS_FLDBINDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_311__SCLASS_FLDBINDS.obj_num = 6;
-  cdat->dobj_311__SCLASS_FLDBINDS.obj_hash = 787593771;
+  cdat->dobj_311__SCLASS_FLDBINDS.obj_hash = 181105647;
   cdat->dobj_311__SCLASS_FLDBINDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_311__SCLASS_FLDBINDS));
  
@@ -43267,7 +43267,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_313__CLASS_SRC_DEFI
   basilys_assertmsg("iniobj checkdiscr dobj_315__CLASS_SRC_DEFINSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_315__CLASS_SRC_DEFINSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_315__CLASS_SRC_DEFINSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_315__CLASS_SRC_DEFINSTANCE.obj_hash = 368253846;
+  cdat->dobj_315__CLASS_SRC_DEFINSTANCE.obj_hash = 954906143;
   cdat->dobj_315__CLASS_SRC_DEFINSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_315__CLASS_SRC_DEFINSTANCE));
  
@@ -43303,7 +43303,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_319__SINST_CLASS));
   basilys_assertmsg("iniobj checkdiscr dobj_321__SINST_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_321__SINST_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_321__SINST_CLASS.obj_num = 4;
-  cdat->dobj_321__SINST_CLASS.obj_hash = 926036857;
+  cdat->dobj_321__SINST_CLASS.obj_hash = 66553412;
   cdat->dobj_321__SINST_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_321__SINST_CLASS));
  
@@ -43331,7 +43331,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_323__SINST_CLABIND)
   basilys_assertmsg("iniobj checkdiscr dobj_325__SINST_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_325__SINST_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_325__SINST_CLABIND.obj_num = 5;
-  cdat->dobj_325__SINST_CLABIND.obj_hash = 534220566;
+  cdat->dobj_325__SINST_CLABIND.obj_hash = 731476174;
   cdat->dobj_325__SINST_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_325__SINST_CLABIND));
  
@@ -43359,7 +43359,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_327__SINST_OBJNUM))
   basilys_assertmsg("iniobj checkdiscr dobj_329__SINST_OBJNUM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_329__SINST_OBJNUM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_329__SINST_OBJNUM.obj_num = 6;
-  cdat->dobj_329__SINST_OBJNUM.obj_hash = 866655535;
+  cdat->dobj_329__SINST_OBJNUM.obj_hash = 1002249217;
   cdat->dobj_329__SINST_OBJNUM.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_329__SINST_OBJNUM));
  
@@ -43387,7 +43387,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_331__SINST_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_333__SINST_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_333__SINST_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_333__SINST_FIELDS.obj_num = 7;
-  cdat->dobj_333__SINST_FIELDS.obj_hash = 767985733;
+  cdat->dobj_333__SINST_FIELDS.obj_hash = 744530270;
   cdat->dobj_333__SINST_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_333__SINST_FIELDS));
  
@@ -43415,7 +43415,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_335__CLASS_SRC_DEFS
   basilys_assertmsg("iniobj checkdiscr dobj_337__CLASS_SRC_DEFSELECTOR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_337__CLASS_SRC_DEFSELECTOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_337__CLASS_SRC_DEFSELECTOR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_337__CLASS_SRC_DEFSELECTOR.obj_hash = 76119027;
+  cdat->dobj_337__CLASS_SRC_DEFSELECTOR.obj_hash = 601128149;
   cdat->dobj_337__CLASS_SRC_DEFSELECTOR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_337__CLASS_SRC_DEFSELECTOR));
  
@@ -43451,7 +43451,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_341__CLASS_SRC_FIEL
   basilys_assertmsg("iniobj checkdiscr dobj_343__CLASS_SRC_FIELDASSIGN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_343__CLASS_SRC_FIELDASSIGN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_343__CLASS_SRC_FIELDASSIGN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_343__CLASS_SRC_FIELDASSIGN.obj_hash = 377783136;
+  cdat->dobj_343__CLASS_SRC_FIELDASSIGN.obj_hash = 286735599;
   cdat->dobj_343__CLASS_SRC_FIELDASSIGN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_343__CLASS_SRC_FIELDASSIGN));
  
@@ -43487,7 +43487,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_347__SFLA_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_349__SFLA_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_349__SFLA_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_349__SFLA_FIELD.obj_num = 1;
-  cdat->dobj_349__SFLA_FIELD.obj_hash = 566021440;
+  cdat->dobj_349__SFLA_FIELD.obj_hash = 784438692;
   cdat->dobj_349__SFLA_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_349__SFLA_FIELD));
  
@@ -43515,7 +43515,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_351__SFLA_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_353__SFLA_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_353__SFLA_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_353__SFLA_EXPR.obj_num = 2;
-  cdat->dobj_353__SFLA_EXPR.obj_hash = 218566172;
+  cdat->dobj_353__SFLA_EXPR.obj_hash = 433195884;
   cdat->dobj_353__SFLA_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_353__SFLA_EXPR));
  
@@ -43543,7 +43543,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_355__CLASS_SRC_MAKE
   basilys_assertmsg("iniobj checkdiscr dobj_357__CLASS_SRC_MAKE_INSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE.obj_hash = 785609930;
+  cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE.obj_hash = 857896893;
   cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_357__CLASS_SRC_MAKE_INSTANCE));
  
@@ -43579,7 +43579,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_361__SMINS_CLASS));
   basilys_assertmsg("iniobj checkdiscr dobj_363__SMINS_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__SMINS_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_363__SMINS_CLASS.obj_num = 1;
-  cdat->dobj_363__SMINS_CLASS.obj_hash = 302345130;
+  cdat->dobj_363__SMINS_CLASS.obj_hash = 791614001;
   cdat->dobj_363__SMINS_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_363__SMINS_CLASS));
  
@@ -43607,7 +43607,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_365__SMINS_CLABIND)
   basilys_assertmsg("iniobj checkdiscr dobj_367__SMINS_CLABIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_367__SMINS_CLABIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_367__SMINS_CLABIND.obj_num = 2;
-  cdat->dobj_367__SMINS_CLABIND.obj_hash = 221146489;
+  cdat->dobj_367__SMINS_CLABIND.obj_hash = 914851987;
   cdat->dobj_367__SMINS_CLABIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_367__SMINS_CLABIND));
  
@@ -43635,7 +43635,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_369__SMINS_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_371__SMINS_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_371__SMINS_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_371__SMINS_FIELDS.obj_num = 3;
-  cdat->dobj_371__SMINS_FIELDS.obj_hash = 903494639;
+  cdat->dobj_371__SMINS_FIELDS.obj_hash = 930808154;
   cdat->dobj_371__SMINS_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_371__SMINS_FIELDS));
  
@@ -43663,7 +43663,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_373__CLASS_SRC_GET_
   basilys_assertmsg("iniobj checkdiscr dobj_375__CLASS_SRC_GET_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_375__CLASS_SRC_GET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_375__CLASS_SRC_GET_FIELD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_375__CLASS_SRC_GET_FIELD.obj_hash = 105326893;
+  cdat->dobj_375__CLASS_SRC_GET_FIELD.obj_hash = 484104428;
   cdat->dobj_375__CLASS_SRC_GET_FIELD.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_375__CLASS_SRC_GET_FIELD));
  
@@ -43699,7 +43699,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_379__SUGET_OBJ));
   basilys_assertmsg("iniobj checkdiscr dobj_381__SUGET_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_381__SUGET_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_381__SUGET_OBJ.obj_num = 1;
-  cdat->dobj_381__SUGET_OBJ.obj_hash = 591433080;
+  cdat->dobj_381__SUGET_OBJ.obj_hash = 914580633;
   cdat->dobj_381__SUGET_OBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_381__SUGET_OBJ));
  
@@ -43727,7 +43727,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_383__SUGET_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_385__SUGET_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_385__SUGET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_385__SUGET_FIELD.obj_num = 2;
-  cdat->dobj_385__SUGET_FIELD.obj_hash = 468657060;
+  cdat->dobj_385__SUGET_FIELD.obj_hash = 219276863;
   cdat->dobj_385__SUGET_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_385__SUGET_FIELD));
  
@@ -43755,7 +43755,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_387__CLASS_SRC_UNSA
   basilys_assertmsg("iniobj checkdiscr dobj_389__CLASS_SRC_UNSAFE_GET_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD.obj_num = OBMAG_OBJECT;
-  cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD.obj_hash = 388173286;
+  cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD.obj_hash = 551907200;
   cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_389__CLASS_SRC_UNSAFE_GET_FIELD));
  
@@ -43791,7 +43791,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_393__CLASS_SRC_PUT_
   basilys_assertmsg("iniobj checkdiscr dobj_395__CLASS_SRC_PUT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_395__CLASS_SRC_PUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_395__CLASS_SRC_PUT_FIELDS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_395__CLASS_SRC_PUT_FIELDS.obj_hash = 975692147;
+  cdat->dobj_395__CLASS_SRC_PUT_FIELDS.obj_hash = 777800755;
   cdat->dobj_395__CLASS_SRC_PUT_FIELDS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_395__CLASS_SRC_PUT_FIELDS));
  
@@ -43827,7 +43827,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_399__SUPUT_OBJ));
   basilys_assertmsg("iniobj checkdiscr dobj_401__SUPUT_OBJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_401__SUPUT_OBJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_401__SUPUT_OBJ.obj_num = 1;
-  cdat->dobj_401__SUPUT_OBJ.obj_hash = 484184650;
+  cdat->dobj_401__SUPUT_OBJ.obj_hash = 85172960;
   cdat->dobj_401__SUPUT_OBJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_401__SUPUT_OBJ));
  
@@ -43855,7 +43855,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_403__SUPUT_FIELDS))
   basilys_assertmsg("iniobj checkdiscr dobj_405__SUPUT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_405__SUPUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_405__SUPUT_FIELDS.obj_num = 2;
-  cdat->dobj_405__SUPUT_FIELDS.obj_hash = 605987840;
+  cdat->dobj_405__SUPUT_FIELDS.obj_hash = 317771683;
   cdat->dobj_405__SUPUT_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_405__SUPUT_FIELDS));
  
@@ -43883,7 +43883,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_407__CLASS_SRC_UNSA
   basilys_assertmsg("iniobj checkdiscr dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_hash = 294423128;
+  cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_hash = 852419000;
   cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_409__CLASS_SRC_UNSAFE_PUT_FIELDS));
  
@@ -43919,7 +43919,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_413__CLASS_SRC_IF))
   basilys_assertmsg("iniobj checkdiscr dobj_415__CLASS_SRC_IF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_415__CLASS_SRC_IF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_415__CLASS_SRC_IF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_415__CLASS_SRC_IF.obj_hash = 840432717;
+  cdat->dobj_415__CLASS_SRC_IF.obj_hash = 471875674;
   cdat->dobj_415__CLASS_SRC_IF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_415__CLASS_SRC_IF));
  
@@ -43955,7 +43955,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_419__SIF_TEST));
   basilys_assertmsg("iniobj checkdiscr dobj_421__SIF_TEST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_421__SIF_TEST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_421__SIF_TEST.obj_num = 1;
-  cdat->dobj_421__SIF_TEST.obj_hash = 879208811;
+  cdat->dobj_421__SIF_TEST.obj_hash = 1039821393;
   cdat->dobj_421__SIF_TEST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_421__SIF_TEST));
  
@@ -43983,7 +43983,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_423__SIF_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_425__SIF_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_425__SIF_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_425__SIF_THEN.obj_num = 2;
-  cdat->dobj_425__SIF_THEN.obj_hash = 197411357;
+  cdat->dobj_425__SIF_THEN.obj_hash = 167855902;
   cdat->dobj_425__SIF_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_425__SIF_THEN));
  
@@ -44011,7 +44011,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_427__CLASS_SRC_IFEL
   basilys_assertmsg("iniobj checkdiscr dobj_429__CLASS_SRC_IFELSE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_429__CLASS_SRC_IFELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_429__CLASS_SRC_IFELSE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_429__CLASS_SRC_IFELSE.obj_hash = 460934727;
+  cdat->dobj_429__CLASS_SRC_IFELSE.obj_hash = 667028862;
   cdat->dobj_429__CLASS_SRC_IFELSE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_429__CLASS_SRC_IFELSE));
  
@@ -44047,7 +44047,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__SIF_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_435__SIF_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_435__SIF_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_435__SIF_ELSE.obj_num = 3;
-  cdat->dobj_435__SIF_ELSE.obj_hash = 96125300;
+  cdat->dobj_435__SIF_ELSE.obj_hash = 1013479739;
   cdat->dobj_435__SIF_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_435__SIF_ELSE));
  
@@ -44075,7 +44075,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_437__CLASS_SRC_OR))
   basilys_assertmsg("iniobj checkdiscr dobj_439__CLASS_SRC_OR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_439__CLASS_SRC_OR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_439__CLASS_SRC_OR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_439__CLASS_SRC_OR.obj_hash = 258973658;
+  cdat->dobj_439__CLASS_SRC_OR.obj_hash = 693661733;
   cdat->dobj_439__CLASS_SRC_OR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_439__CLASS_SRC_OR));
  
@@ -44111,7 +44111,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_443__SOR_DISJ));
   basilys_assertmsg("iniobj checkdiscr dobj_445__SOR_DISJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_445__SOR_DISJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_445__SOR_DISJ.obj_num = 1;
-  cdat->dobj_445__SOR_DISJ.obj_hash = 157721370;
+  cdat->dobj_445__SOR_DISJ.obj_hash = 86949014;
   cdat->dobj_445__SOR_DISJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_445__SOR_DISJ));
  
@@ -44139,7 +44139,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_447__CLASS_SRC_CPPI
   basilys_assertmsg("iniobj checkdiscr dobj_449__CLASS_SRC_CPPIF", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_449__CLASS_SRC_CPPIF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_449__CLASS_SRC_CPPIF.obj_num = OBMAG_OBJECT;
-  cdat->dobj_449__CLASS_SRC_CPPIF.obj_hash = 1022223225;
+  cdat->dobj_449__CLASS_SRC_CPPIF.obj_hash = 1063348622;
   cdat->dobj_449__CLASS_SRC_CPPIF.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_449__CLASS_SRC_CPPIF));
  
@@ -44175,7 +44175,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_453__SIFP_COND));
   basilys_assertmsg("iniobj checkdiscr dobj_455__SIFP_COND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__SIFP_COND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_455__SIFP_COND.obj_num = 1;
-  cdat->dobj_455__SIFP_COND.obj_hash = 464364892;
+  cdat->dobj_455__SIFP_COND.obj_hash = 1028580316;
   cdat->dobj_455__SIFP_COND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_455__SIFP_COND));
  
@@ -44203,7 +44203,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_457__SIFP_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_459__SIFP_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__SIFP_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_459__SIFP_THEN.obj_num = 2;
-  cdat->dobj_459__SIFP_THEN.obj_hash = 961020626;
+  cdat->dobj_459__SIFP_THEN.obj_hash = 893821125;
   cdat->dobj_459__SIFP_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_459__SIFP_THEN));
  
@@ -44231,7 +44231,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_461__SIFP_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_463__SIFP_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_463__SIFP_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_463__SIFP_ELSE.obj_num = 3;
-  cdat->dobj_463__SIFP_ELSE.obj_hash = 630465419;
+  cdat->dobj_463__SIFP_ELSE.obj_hash = 655154269;
   cdat->dobj_463__SIFP_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_463__SIFP_ELSE));
  
@@ -44259,7 +44259,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_465__CLASS_SRC_MATC
   basilys_assertmsg("iniobj checkdiscr dobj_467__CLASS_SRC_MATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_467__CLASS_SRC_MATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_467__CLASS_SRC_MATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_467__CLASS_SRC_MATCH.obj_hash = 55678749;
+  cdat->dobj_467__CLASS_SRC_MATCH.obj_hash = 436030390;
   cdat->dobj_467__CLASS_SRC_MATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_467__CLASS_SRC_MATCH));
  
@@ -44295,7 +44295,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_471__SMAT_MATCHEDX)
   basilys_assertmsg("iniobj checkdiscr dobj_473__SMAT_MATCHEDX", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__SMAT_MATCHEDX.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_473__SMAT_MATCHEDX.obj_num = 1;
-  cdat->dobj_473__SMAT_MATCHEDX.obj_hash = 333583173;
+  cdat->dobj_473__SMAT_MATCHEDX.obj_hash = 947539818;
   cdat->dobj_473__SMAT_MATCHEDX.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_473__SMAT_MATCHEDX));
  
@@ -44323,7 +44323,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_475__SMAT_CASES));
   basilys_assertmsg("iniobj checkdiscr dobj_477__SMAT_CASES", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__SMAT_CASES.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_477__SMAT_CASES.obj_num = 2;
-  cdat->dobj_477__SMAT_CASES.obj_hash = 762390104;
+  cdat->dobj_477__SMAT_CASES.obj_hash = 452798287;
   cdat->dobj_477__SMAT_CASES.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_477__SMAT_CASES));
  
@@ -44351,7 +44351,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_479__SMAT_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_481__SMAT_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_481__SMAT_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_481__SMAT_ELSE.obj_num = 3;
-  cdat->dobj_481__SMAT_ELSE.obj_hash = 1031094048;
+  cdat->dobj_481__SMAT_ELSE.obj_hash = 479953273;
   cdat->dobj_481__SMAT_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_481__SMAT_ELSE));
  
@@ -44379,7 +44379,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_483__CLASS_SRC_CASE
   basilys_assertmsg("iniobj checkdiscr dobj_485__CLASS_SRC_CASEMATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_485__CLASS_SRC_CASEMATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_485__CLASS_SRC_CASEMATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_485__CLASS_SRC_CASEMATCH.obj_hash = 910708600;
+  cdat->dobj_485__CLASS_SRC_CASEMATCH.obj_hash = 585951138;
   cdat->dobj_485__CLASS_SRC_CASEMATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_485__CLASS_SRC_CASEMATCH));
  
@@ -44415,7 +44415,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_489__SCAM_PATT));
   basilys_assertmsg("iniobj checkdiscr dobj_491__SCAM_PATT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__SCAM_PATT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_491__SCAM_PATT.obj_num = 1;
-  cdat->dobj_491__SCAM_PATT.obj_hash = 289190740;
+  cdat->dobj_491__SCAM_PATT.obj_hash = 823837770;
   cdat->dobj_491__SCAM_PATT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_491__SCAM_PATT));
  
@@ -44443,7 +44443,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_493__SCAM_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_495__SCAM_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__SCAM_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_495__SCAM_BODY.obj_num = 2;
-  cdat->dobj_495__SCAM_BODY.obj_hash = 484516602;
+  cdat->dobj_495__SCAM_BODY.obj_hash = 859752887;
   cdat->dobj_495__SCAM_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_495__SCAM_BODY));
  
@@ -44471,7 +44471,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_497__CLASS_SRC_CASE
   basilys_assertmsg("iniobj checkdiscr dobj_499__CLASS_SRC_CASEWHENMATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_499__CLASS_SRC_CASEWHENMATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_499__CLASS_SRC_CASEWHENMATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_499__CLASS_SRC_CASEWHENMATCH.obj_hash = 480689496;
+  cdat->dobj_499__CLASS_SRC_CASEWHENMATCH.obj_hash = 540354894;
   cdat->dobj_499__CLASS_SRC_CASEWHENMATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_499__CLASS_SRC_CASEWHENMATCH));
  
@@ -44507,7 +44507,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_503__SCWM_WHEN));
   basilys_assertmsg("iniobj checkdiscr dobj_505__SCWM_WHEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_505__SCWM_WHEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_505__SCWM_WHEN.obj_num = 3;
-  cdat->dobj_505__SCWM_WHEN.obj_hash = 709702184;
+  cdat->dobj_505__SCWM_WHEN.obj_hash = 385047386;
   cdat->dobj_505__SCWM_WHEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_505__SCWM_WHEN));
  
@@ -44535,7 +44535,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_507__CLASS_SRC_LETB
   basilys_assertmsg("iniobj checkdiscr dobj_509__CLASS_SRC_LETBINDING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_509__CLASS_SRC_LETBINDING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_509__CLASS_SRC_LETBINDING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_509__CLASS_SRC_LETBINDING.obj_hash = 233592025;
+  cdat->dobj_509__CLASS_SRC_LETBINDING.obj_hash = 1068964071;
   cdat->dobj_509__CLASS_SRC_LETBINDING.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_509__CLASS_SRC_LETBINDING));
  
@@ -44571,7 +44571,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_513__SLETB_TYPE));
   basilys_assertmsg("iniobj checkdiscr dobj_515__SLETB_TYPE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_515__SLETB_TYPE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_515__SLETB_TYPE.obj_num = 1;
-  cdat->dobj_515__SLETB_TYPE.obj_hash = 969145430;
+  cdat->dobj_515__SLETB_TYPE.obj_hash = 306617273;
   cdat->dobj_515__SLETB_TYPE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_515__SLETB_TYPE));
  
@@ -44599,7 +44599,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_517__SLETB_BINDER))
   basilys_assertmsg("iniobj checkdiscr dobj_519__SLETB_BINDER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_519__SLETB_BINDER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_519__SLETB_BINDER.obj_num = 2;
-  cdat->dobj_519__SLETB_BINDER.obj_hash = 282392118;
+  cdat->dobj_519__SLETB_BINDER.obj_hash = 327313143;
   cdat->dobj_519__SLETB_BINDER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_519__SLETB_BINDER));
  
@@ -44627,7 +44627,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_521__SLETB_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_523__SLETB_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_523__SLETB_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_523__SLETB_EXPR.obj_num = 3;
-  cdat->dobj_523__SLETB_EXPR.obj_hash = 720047591;
+  cdat->dobj_523__SLETB_EXPR.obj_hash = 950526991;
   cdat->dobj_523__SLETB_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_523__SLETB_EXPR));
  
@@ -44655,7 +44655,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_525__CLASS_SRC_LET)
   basilys_assertmsg("iniobj checkdiscr dobj_527__CLASS_SRC_LET", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_527__CLASS_SRC_LET.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_527__CLASS_SRC_LET.obj_num = OBMAG_OBJECT;
-  cdat->dobj_527__CLASS_SRC_LET.obj_hash = 529821946;
+  cdat->dobj_527__CLASS_SRC_LET.obj_hash = 943161240;
   cdat->dobj_527__CLASS_SRC_LET.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_527__CLASS_SRC_LET));
  
@@ -44691,7 +44691,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_531__SLET_BINDINGS)
   basilys_assertmsg("iniobj checkdiscr dobj_533__SLET_BINDINGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_533__SLET_BINDINGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_533__SLET_BINDINGS.obj_num = 1;
-  cdat->dobj_533__SLET_BINDINGS.obj_hash = 96861503;
+  cdat->dobj_533__SLET_BINDINGS.obj_hash = 568389564;
   cdat->dobj_533__SLET_BINDINGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_533__SLET_BINDINGS));
  
@@ -44719,7 +44719,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_535__SLET_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_537__SLET_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_537__SLET_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_537__SLET_BODY.obj_num = 2;
-  cdat->dobj_537__SLET_BODY.obj_hash = 736317529;
+  cdat->dobj_537__SLET_BODY.obj_hash = 54656329;
   cdat->dobj_537__SLET_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_537__SLET_BODY));
  
@@ -44747,7 +44747,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_539__CLASS_SRC_LAMB
   basilys_assertmsg("iniobj checkdiscr dobj_541__CLASS_SRC_LAMBDA", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_541__CLASS_SRC_LAMBDA.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_541__CLASS_SRC_LAMBDA.obj_num = OBMAG_OBJECT;
-  cdat->dobj_541__CLASS_SRC_LAMBDA.obj_hash = 430097886;
+  cdat->dobj_541__CLASS_SRC_LAMBDA.obj_hash = 789275914;
   cdat->dobj_541__CLASS_SRC_LAMBDA.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_541__CLASS_SRC_LAMBDA));
  
@@ -44783,7 +44783,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_545__SLAM_ARGBIND))
   basilys_assertmsg("iniobj checkdiscr dobj_547__SLAM_ARGBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_547__SLAM_ARGBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_547__SLAM_ARGBIND.obj_num = 1;
-  cdat->dobj_547__SLAM_ARGBIND.obj_hash = 99135022;
+  cdat->dobj_547__SLAM_ARGBIND.obj_hash = 155327079;
   cdat->dobj_547__SLAM_ARGBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_547__SLAM_ARGBIND));
  
@@ -44811,7 +44811,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_549__SLAM_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_551__SLAM_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_551__SLAM_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_551__SLAM_BODY.obj_num = 2;
-  cdat->dobj_551__SLAM_BODY.obj_hash = 462859332;
+  cdat->dobj_551__SLAM_BODY.obj_hash = 673114625;
   cdat->dobj_551__SLAM_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_551__SLAM_BODY));
  
@@ -44839,7 +44839,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_553__CLASS_SRC_MULT
   basilys_assertmsg("iniobj checkdiscr dobj_555__CLASS_SRC_MULTICALL", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_555__CLASS_SRC_MULTICALL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_555__CLASS_SRC_MULTICALL.obj_num = OBMAG_OBJECT;
-  cdat->dobj_555__CLASS_SRC_MULTICALL.obj_hash = 252598494;
+  cdat->dobj_555__CLASS_SRC_MULTICALL.obj_hash = 151089110;
   cdat->dobj_555__CLASS_SRC_MULTICALL.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_555__CLASS_SRC_MULTICALL));
  
@@ -44875,7 +44875,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_559__SMULC_RESBIND)
   basilys_assertmsg("iniobj checkdiscr dobj_561__SMULC_RESBIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_561__SMULC_RESBIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_561__SMULC_RESBIND.obj_num = 1;
-  cdat->dobj_561__SMULC_RESBIND.obj_hash = 632956469;
+  cdat->dobj_561__SMULC_RESBIND.obj_hash = 1073065457;
   cdat->dobj_561__SMULC_RESBIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_561__SMULC_RESBIND));
  
@@ -44903,7 +44903,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_563__SMULC_CALL));
   basilys_assertmsg("iniobj checkdiscr dobj_565__SMULC_CALL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_565__SMULC_CALL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_565__SMULC_CALL.obj_num = 2;
-  cdat->dobj_565__SMULC_CALL.obj_hash = 420897221;
+  cdat->dobj_565__SMULC_CALL.obj_hash = 323233600;
   cdat->dobj_565__SMULC_CALL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_565__SMULC_CALL));
  
@@ -44931,7 +44931,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_567__SMULC_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_569__SMULC_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_569__SMULC_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_569__SMULC_BODY.obj_num = 3;
-  cdat->dobj_569__SMULC_BODY.obj_hash = 272983117;
+  cdat->dobj_569__SMULC_BODY.obj_hash = 43752621;
   cdat->dobj_569__SMULC_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_569__SMULC_BODY));
  
@@ -44959,7 +44959,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_571__CLASS_SRC_LABE
   basilys_assertmsg("iniobj checkdiscr dobj_573__CLASS_SRC_LABELLED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_SRC_LABELLED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_573__CLASS_SRC_LABELLED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_573__CLASS_SRC_LABELLED.obj_hash = 750941735;
+  cdat->dobj_573__CLASS_SRC_LABELLED.obj_hash = 712407783;
   cdat->dobj_573__CLASS_SRC_LABELLED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_573__CLASS_SRC_LABELLED));
  
@@ -44995,7 +44995,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_577__SLABEL_BIND));
   basilys_assertmsg("iniobj checkdiscr dobj_579__SLABEL_BIND", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_579__SLABEL_BIND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_579__SLABEL_BIND.obj_num = 1;
-  cdat->dobj_579__SLABEL_BIND.obj_hash = 444576060;
+  cdat->dobj_579__SLABEL_BIND.obj_hash = 1056923977;
   cdat->dobj_579__SLABEL_BIND.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_579__SLABEL_BIND));
  
@@ -45023,7 +45023,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_581__CLASS_SRC_FORE
   basilys_assertmsg("iniobj checkdiscr dobj_583__CLASS_SRC_FOREVER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_583__CLASS_SRC_FOREVER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_583__CLASS_SRC_FOREVER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_583__CLASS_SRC_FOREVER.obj_hash = 1043746693;
+  cdat->dobj_583__CLASS_SRC_FOREVER.obj_hash = 490184947;
   cdat->dobj_583__CLASS_SRC_FOREVER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_583__CLASS_SRC_FOREVER));
  
@@ -45059,7 +45059,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_587__SFRV_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_589__SFRV_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_589__SFRV_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_589__SFRV_BODY.obj_num = 2;
-  cdat->dobj_589__SFRV_BODY.obj_hash = 737690403;
+  cdat->dobj_589__SFRV_BODY.obj_hash = 567015125;
   cdat->dobj_589__SFRV_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_589__SFRV_BODY));
  
@@ -45087,7 +45087,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_591__CLASS_SRC_EXIT
   basilys_assertmsg("iniobj checkdiscr dobj_593__CLASS_SRC_EXIT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_593__CLASS_SRC_EXIT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_593__CLASS_SRC_EXIT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_593__CLASS_SRC_EXIT.obj_hash = 849036587;
+  cdat->dobj_593__CLASS_SRC_EXIT.obj_hash = 1052350332;
   cdat->dobj_593__CLASS_SRC_EXIT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_593__CLASS_SRC_EXIT));
  
@@ -45123,7 +45123,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_597__SEXI_BODY));
   basilys_assertmsg("iniobj checkdiscr dobj_599__SEXI_BODY", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_599__SEXI_BODY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_599__SEXI_BODY.obj_num = 2;
-  cdat->dobj_599__SEXI_BODY.obj_hash = 768534843;
+  cdat->dobj_599__SEXI_BODY.obj_hash = 384888604;
   cdat->dobj_599__SEXI_BODY.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_599__SEXI_BODY));
  
@@ -45151,7 +45151,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_601__CLASS_SRC_COMP
   basilys_assertmsg("iniobj checkdiscr dobj_603__CLASS_SRC_COMPILEWARNING", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_603__CLASS_SRC_COMPILEWARNING.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_603__CLASS_SRC_COMPILEWARNING.obj_num = OBMAG_OBJECT;
-  cdat->dobj_603__CLASS_SRC_COMPILEWARNING.obj_hash = 647039841;
+  cdat->dobj_603__CLASS_SRC_COMPILEWARNING.obj_hash = 691922074;
   cdat->dobj_603__CLASS_SRC_COMPILEWARNING.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_603__CLASS_SRC_COMPILEWARNING));
  
@@ -45187,7 +45187,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_607__SCWARN_MSG));
   basilys_assertmsg("iniobj checkdiscr dobj_609__SCWARN_MSG", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_609__SCWARN_MSG.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_609__SCWARN_MSG.obj_num = 1;
-  cdat->dobj_609__SCWARN_MSG.obj_hash = 563299966;
+  cdat->dobj_609__SCWARN_MSG.obj_hash = 774121436;
   cdat->dobj_609__SCWARN_MSG.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_609__SCWARN_MSG));
  
@@ -45215,7 +45215,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_611__SCWARN_EXPR));
   basilys_assertmsg("iniobj checkdiscr dobj_613__SCWARN_EXPR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_613__SCWARN_EXPR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_613__SCWARN_EXPR.obj_num = 2;
-  cdat->dobj_613__SCWARN_EXPR.obj_hash = 951135425;
+  cdat->dobj_613__SCWARN_EXPR.obj_hash = 819419833;
   cdat->dobj_613__SCWARN_EXPR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_613__SCWARN_EXPR));
  
@@ -45243,7 +45243,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_615__CLASS_SRC_CURR
   basilys_assertmsg("iniobj checkdiscr dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 902014614;
+  cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 639283944;
   cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_617__CLASS_SRC_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -45279,7 +45279,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_621__CMEC_COMMENT))
   basilys_assertmsg("iniobj checkdiscr dobj_623__CMEC_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_623__CMEC_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_623__CMEC_COMMENT.obj_num = 1;
-  cdat->dobj_623__CMEC_COMMENT.obj_hash = 645999392;
+  cdat->dobj_623__CMEC_COMMENT.obj_hash = 339482090;
   cdat->dobj_623__CMEC_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_623__CMEC_COMMENT));
  
@@ -45307,7 +45307,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_625__CLASS_SRC_PARE
   basilys_assertmsg("iniobj checkdiscr dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_hash = 217552022;
+  cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_hash = 384067628;
   cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_627__CLASS_SRC_PARENT_MODULE_ENVIRONMENT));
  
@@ -45343,7 +45343,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_631__CLASS_SRC_UPDA
   basilys_assertmsg("iniobj checkdiscr dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 616634435;
+  cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_hash = 257107388;
   cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_633__CLASS_SRC_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER));
  
@@ -45379,7 +45379,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_637__SUCME_COMMENT)
   basilys_assertmsg("iniobj checkdiscr dobj_639__SUCME_COMMENT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_639__SUCME_COMMENT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_639__SUCME_COMMENT.obj_num = 1;
-  cdat->dobj_639__SUCME_COMMENT.obj_hash = 67050306;
+  cdat->dobj_639__SUCME_COMMENT.obj_hash = 1071755372;
   cdat->dobj_639__SUCME_COMMENT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_639__SUCME_COMMENT));
  
@@ -45407,7 +45407,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_641__CLASS_SRC_FETC
   basilys_assertmsg("iniobj checkdiscr dobj_643__CLASS_SRC_FETCH_PREDEFINED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED.obj_hash = 978589394;
+  cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED.obj_hash = 658037280;
   cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_643__CLASS_SRC_FETCH_PREDEFINED));
  
@@ -45443,7 +45443,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_647__SFEPD_PREDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_649__SFEPD_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__SFEPD_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_649__SFEPD_PREDEF.obj_num = 1;
-  cdat->dobj_649__SFEPD_PREDEF.obj_hash = 1052139067;
+  cdat->dobj_649__SFEPD_PREDEF.obj_hash = 713064604;
   cdat->dobj_649__SFEPD_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_649__SFEPD_PREDEF));
  
@@ -45471,7 +45471,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_651__CLASS_SRC_STOR
   basilys_assertmsg("iniobj checkdiscr dobj_653__CLASS_SRC_STORE_PREDEFINED", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED.obj_num = OBMAG_OBJECT;
-  cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED.obj_hash = 4333391;
+  cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED.obj_hash = 583809954;
   cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_653__CLASS_SRC_STORE_PREDEFINED));
  
@@ -45507,7 +45507,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_657__SSTPD_PREDEF))
   basilys_assertmsg("iniobj checkdiscr dobj_659__SSTPD_PREDEF", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_659__SSTPD_PREDEF.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_659__SSTPD_PREDEF.obj_num = 1;
-  cdat->dobj_659__SSTPD_PREDEF.obj_hash = 582445074;
+  cdat->dobj_659__SSTPD_PREDEF.obj_hash = 988037351;
   cdat->dobj_659__SSTPD_PREDEF.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_659__SSTPD_PREDEF));
  
@@ -45535,7 +45535,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_661__SSTPD_VALUE));
   basilys_assertmsg("iniobj checkdiscr dobj_663__SSTPD_VALUE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__SSTPD_VALUE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_663__SSTPD_VALUE.obj_num = 2;
-  cdat->dobj_663__SSTPD_VALUE.obj_hash = 626227125;
+  cdat->dobj_663__SSTPD_VALUE.obj_hash = 847418051;
   cdat->dobj_663__SSTPD_VALUE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_663__SSTPD_VALUE));
  
@@ -45563,7 +45563,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_665__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_667__CLASS_SRCPATTERN_ANY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_667__CLASS_SRCPATTERN_ANY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_667__CLASS_SRCPATTERN_ANY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_667__CLASS_SRCPATTERN_ANY.obj_hash = 405856882;
+  cdat->dobj_667__CLASS_SRCPATTERN_ANY.obj_hash = 1012971335;
   cdat->dobj_667__CLASS_SRCPATTERN_ANY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_667__CLASS_SRCPATTERN_ANY));
  
@@ -45599,7 +45599,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_671__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_673__CLASS_SRCPATTERN_OR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_673__CLASS_SRCPATTERN_OR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_673__CLASS_SRCPATTERN_OR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_673__CLASS_SRCPATTERN_OR.obj_hash = 46846440;
+  cdat->dobj_673__CLASS_SRCPATTERN_OR.obj_hash = 962674462;
   cdat->dobj_673__CLASS_SRCPATTERN_OR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_673__CLASS_SRCPATTERN_OR));
  
@@ -45635,7 +45635,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_677__ORPAT_DISJ));
   basilys_assertmsg("iniobj checkdiscr dobj_679__ORPAT_DISJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_679__ORPAT_DISJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_679__ORPAT_DISJ.obj_num = 1;
-  cdat->dobj_679__ORPAT_DISJ.obj_hash = 346392283;
+  cdat->dobj_679__ORPAT_DISJ.obj_hash = 898145816;
   cdat->dobj_679__ORPAT_DISJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_679__ORPAT_DISJ));
  
@@ -45663,7 +45663,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_681__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_683__CLASS_SRCPATTERN_AND", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_683__CLASS_SRCPATTERN_AND.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_683__CLASS_SRCPATTERN_AND.obj_num = OBMAG_OBJECT;
-  cdat->dobj_683__CLASS_SRCPATTERN_AND.obj_hash = 332464444;
+  cdat->dobj_683__CLASS_SRCPATTERN_AND.obj_hash = 1068743963;
   cdat->dobj_683__CLASS_SRCPATTERN_AND.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_683__CLASS_SRCPATTERN_AND));
  
@@ -45699,7 +45699,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_687__ANDPAT_CONJ));
   basilys_assertmsg("iniobj checkdiscr dobj_689__ANDPAT_CONJ", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_689__ANDPAT_CONJ.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_689__ANDPAT_CONJ.obj_num = 1;
-  cdat->dobj_689__ANDPAT_CONJ.obj_hash = 715462091;
+  cdat->dobj_689__ANDPAT_CONJ.obj_hash = 547199736;
   cdat->dobj_689__ANDPAT_CONJ.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_689__ANDPAT_CONJ));
  
@@ -45727,7 +45727,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_691__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_693__CLASS_SRCPATTERN_VARIABLE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE.obj_hash = 369169558;
+  cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE.obj_hash = 798722793;
   cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_693__CLASS_SRCPATTERN_VARIABLE));
  
@@ -45763,7 +45763,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_697__SPAT_VAR));
   basilys_assertmsg("iniobj checkdiscr dobj_699__SPAT_VAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_699__SPAT_VAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_699__SPAT_VAR.obj_num = 1;
-  cdat->dobj_699__SPAT_VAR.obj_hash = 149722176;
+  cdat->dobj_699__SPAT_VAR.obj_hash = 513365919;
   cdat->dobj_699__SPAT_VAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_699__SPAT_VAR));
  
@@ -45791,7 +45791,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_701__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_703__CLASS_SRCPATTERN_JOKERVAR", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR.obj_num = OBMAG_OBJECT;
-  cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR.obj_hash = 818438378;
+  cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR.obj_hash = 1028324012;
   cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_703__CLASS_SRCPATTERN_JOKERVAR));
  
@@ -45827,7 +45827,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_707__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_709__CLASS_SRCPATTERN_CONSTANT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT.obj_hash = 586155322;
+  cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT.obj_hash = 367050187;
   cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_709__CLASS_SRCPATTERN_CONSTANT));
  
@@ -45863,7 +45863,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_713__SPAT_CONSTX));
   basilys_assertmsg("iniobj checkdiscr dobj_715__SPAT_CONSTX", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_715__SPAT_CONSTX.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_715__SPAT_CONSTX.obj_num = 1;
-  cdat->dobj_715__SPAT_CONSTX.obj_hash = 28021637;
+  cdat->dobj_715__SPAT_CONSTX.obj_hash = 838604287;
   cdat->dobj_715__SPAT_CONSTX.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_715__SPAT_CONSTX));
  
@@ -45891,7 +45891,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_717__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_719__CLASS_SRCPATTERN_OBJECT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_719__CLASS_SRCPATTERN_OBJECT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_719__CLASS_SRCPATTERN_OBJECT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_719__CLASS_SRCPATTERN_OBJECT.obj_hash = 780184468;
+  cdat->dobj_719__CLASS_SRCPATTERN_OBJECT.obj_hash = 379000113;
   cdat->dobj_719__CLASS_SRCPATTERN_OBJECT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_719__CLASS_SRCPATTERN_OBJECT));
  
@@ -45927,7 +45927,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_723__SPAT_CLASS));
   basilys_assertmsg("iniobj checkdiscr dobj_725__SPAT_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_725__SPAT_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_725__SPAT_CLASS.obj_num = 1;
-  cdat->dobj_725__SPAT_CLASS.obj_hash = 428666515;
+  cdat->dobj_725__SPAT_CLASS.obj_hash = 541387951;
   cdat->dobj_725__SPAT_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_725__SPAT_CLASS));
  
@@ -45955,7 +45955,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_727__SPAT_FIELDS));
   basilys_assertmsg("iniobj checkdiscr dobj_729__SPAT_FIELDS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_729__SPAT_FIELDS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_729__SPAT_FIELDS.obj_num = 2;
-  cdat->dobj_729__SPAT_FIELDS.obj_hash = 264603779;
+  cdat->dobj_729__SPAT_FIELDS.obj_hash = 661366045;
   cdat->dobj_729__SPAT_FIELDS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_729__SPAT_FIELDS));
  
@@ -45983,7 +45983,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_731__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_733__CLASS_SRCPATTERN_INSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE.obj_hash = 255239079;
+  cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE.obj_hash = 677842903;
   cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_733__CLASS_SRCPATTERN_INSTANCE));
  
@@ -46019,7 +46019,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_737__CLASS_SRCFIELD
   basilys_assertmsg("iniobj checkdiscr dobj_739__CLASS_SRCFIELDPATTERN", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_739__CLASS_SRCFIELDPATTERN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_739__CLASS_SRCFIELDPATTERN.obj_num = OBMAG_OBJECT;
-  cdat->dobj_739__CLASS_SRCFIELDPATTERN.obj_hash = 1033065746;
+  cdat->dobj_739__CLASS_SRCFIELDPATTERN.obj_hash = 978759341;
   cdat->dobj_739__CLASS_SRCFIELDPATTERN.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_739__CLASS_SRCFIELDPATTERN));
  
@@ -46055,7 +46055,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_743__SPAF_FIELD));
   basilys_assertmsg("iniobj checkdiscr dobj_745__SPAF_FIELD", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_745__SPAF_FIELD.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_745__SPAF_FIELD.obj_num = 1;
-  cdat->dobj_745__SPAF_FIELD.obj_hash = 157017402;
+  cdat->dobj_745__SPAF_FIELD.obj_hash = 324758160;
   cdat->dobj_745__SPAF_FIELD.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_745__SPAF_FIELD));
  
@@ -46083,7 +46083,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_747__SPAF_PATTERN))
   basilys_assertmsg("iniobj checkdiscr dobj_749__SPAF_PATTERN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_749__SPAF_PATTERN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_749__SPAF_PATTERN.obj_num = 2;
-  cdat->dobj_749__SPAF_PATTERN.obj_hash = 944139436;
+  cdat->dobj_749__SPAF_PATTERN.obj_hash = 1002045451;
   cdat->dobj_749__SPAF_PATTERN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_749__SPAF_PATTERN));
  
@@ -46111,7 +46111,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_751__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_753__CLASS_SRCPATTERN_COMPOSITE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE.obj_hash = 37075114;
+  cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE.obj_hash = 896229300;
   cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_753__CLASS_SRCPATTERN_COMPOSITE));
  
@@ -46147,7 +46147,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_757__SPAC_OPERATOR)
   basilys_assertmsg("iniobj checkdiscr dobj_759__SPAC_OPERATOR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_759__SPAC_OPERATOR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_759__SPAC_OPERATOR.obj_num = 3;
-  cdat->dobj_759__SPAC_OPERATOR.obj_hash = 980936449;
+  cdat->dobj_759__SPAC_OPERATOR.obj_hash = 970676680;
   cdat->dobj_759__SPAC_OPERATOR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_759__SPAC_OPERATOR));
  
@@ -46175,7 +46175,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_761__SPAC_ARGS));
   basilys_assertmsg("iniobj checkdiscr dobj_763__SPAC_ARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_763__SPAC_ARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_763__SPAC_ARGS.obj_num = 4;
-  cdat->dobj_763__SPAC_ARGS.obj_hash = 98089161;
+  cdat->dobj_763__SPAC_ARGS.obj_hash = 678401508;
   cdat->dobj_763__SPAC_ARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_763__SPAC_ARGS));
  
@@ -46203,7 +46203,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_765__CLASS_SRCPATTE
   basilys_assertmsg("iniobj checkdiscr dobj_767__CLASS_SRCPATTERN_CMATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_767__CLASS_SRCPATTERN_CMATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_767__CLASS_SRCPATTERN_CMATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_767__CLASS_SRCPATTERN_CMATCH.obj_hash = 491191765;
+  cdat->dobj_767__CLASS_SRCPATTERN_CMATCH.obj_hash = 941726208;
   cdat->dobj_767__CLASS_SRCPATTERN_CMATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_767__CLASS_SRCPATTERN_CMATCH));
  
@@ -46619,7 +46619,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_831__CLASS_ROOT));
   basilys_assertmsg("iniobj checkdiscr dobj_833__CLASS_PATTEXPCONTEXT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_833__CLASS_PATTEXPCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_833__CLASS_PATTEXPCONTEXT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_833__CLASS_PATTEXPCONTEXT.obj_hash = 291053930;
+  cdat->dobj_833__CLASS_PATTEXPCONTEXT.obj_hash = 712065592;
   cdat->dobj_833__CLASS_PATTEXPCONTEXT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_833__CLASS_PATTEXPCONTEXT));
  
@@ -46655,7 +46655,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_837__PCTX_MEXPANDER
   basilys_assertmsg("iniobj checkdiscr dobj_839__PCTX_MEXPANDER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_839__PCTX_MEXPANDER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_839__PCTX_MEXPANDER.obj_num = 0;
-  cdat->dobj_839__PCTX_MEXPANDER.obj_hash = 550787340;
+  cdat->dobj_839__PCTX_MEXPANDER.obj_hash = 679553151;
   cdat->dobj_839__PCTX_MEXPANDER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_839__PCTX_MEXPANDER));
  
@@ -46683,7 +46683,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_841__PCTX_PEXPANDER
   basilys_assertmsg("iniobj checkdiscr dobj_843__PCTX_PEXPANDER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_843__PCTX_PEXPANDER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_843__PCTX_PEXPANDER.obj_num = 1;
-  cdat->dobj_843__PCTX_PEXPANDER.obj_hash = 472732508;
+  cdat->dobj_843__PCTX_PEXPANDER.obj_hash = 681273699;
   cdat->dobj_843__PCTX_PEXPANDER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_843__PCTX_PEXPANDER));
  
@@ -46711,7 +46711,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_845__PCTX_VARMAP));
   basilys_assertmsg("iniobj checkdiscr dobj_847__PCTX_VARMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_847__PCTX_VARMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_847__PCTX_VARMAP.obj_num = 2;
-  cdat->dobj_847__PCTX_VARMAP.obj_hash = 968966083;
+  cdat->dobj_847__PCTX_VARMAP.obj_hash = 60587337;
   cdat->dobj_847__PCTX_VARMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_847__PCTX_VARMAP));
  
@@ -47017,7 +47017,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_893__WARN_SHADOW));
  if (!/*_.VALDATA___V953*/ curfptr[952]) /*_.VALDATA___V953*/ curfptr[952] = (void*)&cdat->dobj_895__WARN_SHADOW;
   basilys_assertmsg("iniobj checkdiscr dobj_895__WARN_SHADOW", NULL != (void*)((void*)(BASILYSG(CLASS_PRIMITIVE))));
   cdat->dobj_895__WARN_SHADOW.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_PRIMITIVE))));
-  cdat->dobj_895__WARN_SHADOW.obj_hash = 430646787;
+  cdat->dobj_895__WARN_SHADOW.obj_hash = 145216156;
   cdat->dobj_895__WARN_SHADOW.obj_len = 5;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_895__WARN_SHADOW));
  

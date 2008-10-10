@@ -1245,9 +1245,11 @@
   (let ( (loc (unsafe_get_field :nrep_loc nchk))
 	 (nexp (unsafe_get_field :nchunk_expansion nchk))
 	 (noper (unsafe_get_field :nchunk_oper nchk))
+	 (ntyp (unsafe_get_field :nexpr_ctyp nchk))
 	 )
     (assert_msg "check noper" (is_a noper class_named))
     (assert_msg "check nexp" (is_multiple nexp))
+    (assert_msg "check ntyp" (is_a ntyp class_ctype))
     (let (  (otup (multiple_map
 		   nexp
 		   (lambda (comp :long ix)
@@ -1256,33 +1258,29 @@
 			 comp
 		       (compile_obj comp gcx)))
 		   ))
-	    (opty (cond
-		   ((is_a noper class_primitive)
-		    (unsafe_get_field :prim_type noper))
-		   ((is_a noper class_cmatcher)
-		    (let ( (mb (unsafe_get_field :amatch_matchbind noper)) )
-		      (assert_msg "check mb" (is_a mb class_formal_binding))
-		      (unsafe_get_field :fbind_type mb)))
-		  (:else
-		   (assert_msg "unexpected noper" ())
-		   (return))))
 	    (oexp (if loc
 		      (instance class_objlocatedexpv
-				:obv_type opty
+				:obv_type ntyp
 				:obx_cont otup
 				:obcx_loc loc
 				)
 		    (instance class_objexpv
-			      :obv_type opty
+			      :obv_type ntyp
 			      :obx_cont otup)
 		    ))      
 	    )
-      (assert_msg "check opty" (is_a opty class_ctype))
+      (assert_msg "check ntyp" (is_a ntyp class_ctype))
       (debug_msg oexp "compilobj nrepchunk oexp")
       oexp)
     ))
 (install_method class_nrep_chunk compile_obj compilobj_nrep_chunk)
 
+
+;;;;;;;;;;;;;;;;
+(defun getctype_typexpr (recv env)
+  (assert_msg "check recv" (is_a recv class_nrep_typexpr))
+   (unsafe_get_field :nexpr_ctyp recv))
+(install_method class_nrep_typexpr get_ctype getctype_typexpr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_nil (nilo gcx)
@@ -2607,7 +2605,7 @@
 	 (ntest (unsafe_get_field :nif_test rif))
 	 (nthen (unsafe_get_field :nif_then rif))
 	 (nelse (unsafe_get_field :nif_else rif))
-	 (nctyp (unsafe_get_field :nif_ctyp rif))
+	 (nctyp (unsafe_get_field :nexpr_ctyp rif))
 	 )
     (assert_msg "check nctyp" (is_a nctyp class_ctype))
     (let ( (otest (compile_obj ntest gcx))
@@ -2635,7 +2633,7 @@
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (nthen (unsafe_get_field :nif_then rif))
 	 (nelse (unsafe_get_field :nif_else rif))
-	 (nctyp (unsafe_get_field :nif_ctyp rif))
+	 (nctyp (unsafe_get_field :nexpr_ctyp rif))
 	 (nval (unsafe_get_field :nifa_val rif))
 	 (ncla (unsafe_get_field :nifa_class rif))
 	 )
