@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2005, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,7 +43,7 @@ package GNAT.Altivec.Vector_Operations is
    --  much smaller set of low level primitives with type conversions around.
    --
    --  In some cases, a direct binding without any intermediate body is
-   --  possible or even even mandatory for technical reasons. What we provide
+   --  possible or even mandatory for technical reasons. What we provide
    --  here for such cases are renamings of straight imports exposed by
    --  Altivec.Low_Level_Interface.  See the comments in the private part for
    --  additional details.

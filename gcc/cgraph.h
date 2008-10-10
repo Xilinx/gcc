@@ -351,7 +351,8 @@ void cgraph_reset_static_var_maps (void);
 void init_cgraph (void);
 struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						VEC(cgraph_edge_p,heap)*,
-						varray_type);
+						varray_type,
+						bitmap);
 void cgraph_analyze_function (struct cgraph_node *);
 struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree);
@@ -372,6 +373,10 @@ void cgraph_remove_edge_removal_hook (struct cgraph_edge_hook_list *);
 struct cgraph_node_hook_list *cgraph_add_node_removal_hook (cgraph_node_hook,
 							    void *);
 void cgraph_remove_node_removal_hook (struct cgraph_node_hook_list *);
+struct cgraph_node_hook_list *cgraph_add_function_insertion_hook (cgraph_node_hook,
+							          void *);
+void cgraph_remove_function_insertion_hook (struct cgraph_node_hook_list *);
+void cgraph_call_function_insertion_hooks (struct cgraph_node *node);
 struct cgraph_2edge_hook_list *cgraph_add_edge_duplication_hook (cgraph_2edge_hook, void *);
 void cgraph_remove_edge_duplication_hook (struct cgraph_2edge_hook_list *);
 struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_hook, void *);
@@ -384,6 +389,8 @@ int compute_call_stmt_bb_frequency (basic_block bb);
 /* In ipa.c  */
 bool cgraph_remove_unreachable_nodes (bool, FILE *);
 int cgraph_postorder (struct cgraph_node **);
+
+bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
 
 /* In varpool.c  */
 
@@ -445,7 +452,6 @@ varpool_next_static_initializer (struct varpool_node *node)
 
 /* In ipa-inline.c  */
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
-void cgraph_mark_inline_edge (struct cgraph_edge *, bool);
 bool cgraph_default_inline_p (struct cgraph_node *, const char **);
 unsigned int compute_inline_parameters (struct cgraph_node *);
 

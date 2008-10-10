@@ -1,5 +1,6 @@
 // -*- C++ -*- Exception handling and frame unwind runtime interface routines.
-// Copyright (C) 2001, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -39,7 +40,7 @@
 #include <exception>
 #include <cstddef>
 #include "unwind.h"
-#include <ext/atomicity.h>
+#include <bits/atomic_word.h>
 
 #pragma GCC visibility push(default)
 

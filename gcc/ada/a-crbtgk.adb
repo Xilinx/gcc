@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -205,7 +205,7 @@ package body Ada.Containers.Red_Black_Trees.Generic_Keys is
       pragma Assert (Tree.Length > 0);
 
       --  A hint can either name the node that immediately follows Key,
-      --  or immediately precedes Key. We first test whether Key is is
+      --  or immediately precedes Key. We first test whether Key is
       --  less than the hint, and if so we compare Key to the node that
       --  precedes the hint. If Key is both less than the hint and
       --  greater than the hint's preceding neighbor, then we're done;

@@ -767,7 +767,7 @@ package body Exp_Disp is
       end if;
 
       --  If the target type is a tagged synchronized type, the dispatch table
-      --  info is in the correspondoing record type.
+      --  info is in the corresponding record type.
 
       if Is_Concurrent_Type (Iface_Typ) then
          Iface_Typ := Corresponding_Record_Type (Iface_Typ);
@@ -812,9 +812,6 @@ package body Exp_Disp is
          --     Acc2 : Iface2_Ref := Iface2_Ref (Acc); -- 2
 
          if Is_Access_Type (Operand_Typ) then
-            pragma Assert
-              (Is_Interface (Directly_Designated_Type (Operand_Typ)));
-
             Rewrite (N,
               Unchecked_Convert_To (Etype (N),
                 Make_Function_Call (Loc,
@@ -6016,9 +6013,7 @@ package body Exp_Disp is
    begin
       --  The scope must be a package
 
-      if Ekind (Scop) /= E_Package
-        and then Ekind (Scop) /= E_Generic_Package
-      then
+      if not Is_Package_Or_Generic_Package (Scop) then
          return False;
       end if;
 

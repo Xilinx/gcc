@@ -73,6 +73,19 @@
 #define TARGET_ABI_OPEN_VMS 0
 #endif
 
+/* For efficient float-to-int rounding, it is necessary to know whether
+   floating-point arithmetic on may use wider intermediate results.
+   When FP_ARITH_MAY_WIDEN is not defined, be conservative and only assume
+   floating-point arithmetic does not widen if double precision is emulated. */
+
+#ifndef FP_ARITH_MAY_WIDEN
+#if defined(HAVE_extendsfdf2)
+#define FP_ARITH_MAY_WIDEN HAVE_extendsfdf2
+#else
+#define FP_ARITH_MAY_WIDEN 0
+#endif
+#endif
+
 extern char *__gnat_to_canonical_file_spec (char *);
 
 int max_gnat_nodes;
@@ -374,10 +387,17 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name,
     gnat_init_gcc_eh ();
 
   gcc_assert (Nkind (gnat_root) == N_Compilation_Unit);
+
+  /* Declare the name of the compilation unit as the first global
+     name in order to make the middle-end fully deterministic.  */
+  t = create_concat_name (Defining_Entity (Unit (gnat_root)), NULL);
+  first_global_object_name = ggc_strdup (IDENTIFIER_POINTER (t));
+
+  /* Now translate the compilation unit proper.  */
   start_stmt_group ();
   Compilation_Unit_to_gnu (gnat_root);
 
-  /* Now see if we have any elaboration procedures to deal with. */
+  /* Finally see if we have any elaboration procedures to deal with.  */
   for (info = elab_info_list; info; info = info->next)
     {
       tree gnu_body = DECL_SAVED_TREE (info->elab_proc);
@@ -781,12 +801,12 @@ Pragma_to_gnu (Node_Id gnat_node)
 		     (First (Pragma_Argument_Associations (gnat_node)))))
 	{
 	case Name_Time:  case Name_Space:
-	  if (optimize == 0)
+	  if (!optimize)
 	    post_error ("insufficient -O value?", gnat_node);
 	  break;
 
 	case Name_Off:
-	  if (optimize != 0)
+	  if (optimize)
 	    post_error ("must specify -O0?", gnat_node);
 	  break;
 
@@ -1608,7 +1628,7 @@ Case_Statement_to_gnu (Node_Id gnat_node)
 
 	  /* If the case value is a subtype that raises Constraint_Error at
 	     run-time because of a wrong bound, then gnu_low or gnu_high is
-	     not transtaleted into an INTEGER_CST.  In such a case, we need
+	     not translated into an INTEGER_CST.  In such a case, we need
 	     to ensure that the when statement is not added in the tree,
 	     otherwise it will crash the gimplifier.  */
 	  if ((!gnu_low || TREE_CODE (gnu_low) == INTEGER_CST)
@@ -1669,17 +1689,20 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
   push_stack (&gnu_loop_label_stack, NULL_TREE,
 	      LOOP_STMT_LABEL (gnu_loop_stmt));
 
-  /* Set the condition that under which the loop should continue.
-     For "LOOP .... END LOOP;" the condition is always true.  */
+  /* Set the condition under which the loop must keep going.
+     For the case "LOOP .... END LOOP;" the condition is always true.  */
   if (No (gnat_iter_scheme))
     ;
-  /* The case "WHILE condition LOOP ..... END LOOP;" */
+
+  /* For the case "WHILE condition LOOP ..... END LOOP;" it's immediate.  */
   else if (Present (Condition (gnat_iter_scheme)))
     LOOP_STMT_TOP_COND (gnu_loop_stmt)
       = gnat_to_gnu (Condition (gnat_iter_scheme));
+
+  /* Otherwise we have an iteration scheme and the condition is given by
+     the bounds of the subtype of the iteration variable.  */
   else
     {
-      /* We have an iteration scheme.  */
       Node_Id gnat_loop_spec = Loop_Parameter_Specification (gnat_iter_scheme);
       Entity_Id gnat_loop_var = Defining_Entity (gnat_loop_spec);
       Entity_Id gnat_type = Etype (gnat_loop_var);
@@ -1725,7 +1748,7 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
       gnu_loop_var = convert (get_base_type (gnu_type), gnu_loop_var);
 
       /* Set either the top or bottom exit condition as appropriate depending
-	 on whether or not we know an overflow cannot occur. */
+	 on whether or not we know an overflow cannot occur.  */
       if (gnu_cond_expr)
 	LOOP_STMT_BOT_COND (gnu_loop_stmt)
 	  = build_binary_op (NE_EXPR, integer_type_node,
@@ -1743,12 +1766,12 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 			   convert (TREE_TYPE (gnu_loop_var),
 				    integer_one_node));
       set_expr_location_from_node (LOOP_STMT_UPDATE (gnu_loop_stmt),
-			  gnat_iter_scheme);
+				   gnat_iter_scheme);
     }
 
   /* If the loop was named, have the name point to this loop.  In this case,
      the association is not a ..._DECL node, but the end label from this
-     LOOP_STMT. */
+     LOOP_STMT.  */
   if (Present (Identifier (gnat_node)))
     save_gnu_tree (Entity (Identifier (gnat_node)),
 		   LOOP_STMT_LABEL (gnu_loop_stmt), true);
@@ -1768,7 +1791,7 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
     }
 
   /* If we have an outer COND_EXPR, that's our result and this loop is its
-     "true" statement.  Otherwise, the result is the LOOP_STMT. */
+     "true" statement.  Otherwise, the result is the LOOP_STMT.  */
   if (gnu_cond_expr)
     {
       COND_EXPR_THEN (gnu_cond_expr) = gnu_loop_stmt;
@@ -1961,11 +1984,11 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
       for (i = 0; VEC_iterate (parm_attr, cache, i, pa); i++)
 	{
 	  if (pa->first)
-	    add_stmt (pa->first);
+	    add_stmt_with_node (pa->first, gnat_node);
 	  if (pa->last)
-	    add_stmt (pa->last);
+	    add_stmt_with_node (pa->last, gnat_node);
 	  if (pa->length)
-	    add_stmt (pa->length);
+	    add_stmt_with_node (pa->length, gnat_node);
 	}
 
       add_stmt (gnu_result);
@@ -1997,7 +2020,7 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 
       add_stmt_with_node
 	(build_return_expr (DECL_RESULT (gnu_subprog_decl), gnu_retval),
-	 gnat_node);
+	 End_Label (Handled_Statement_Sequence (gnat_node)));
       gnat_poplevel ();
       gnu_result = end_stmt_group ();
     }
@@ -2249,7 +2272,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 	    {
 	      gnu_temp = build_binary_op (MODIFY_EXPR, NULL_TREE, gnu_copy,
 					  gnu_name);
-	      set_expr_location_from_node (gnu_temp, gnat_actual);
+	      set_expr_location_from_node (gnu_temp, gnat_node);
 	      append_to_statement_list (gnu_temp, &gnu_after_list);
 	    }
 	}
@@ -2601,7 +2624,7 @@ call_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, tree gnu_target)
 
 	    gnu_result = build_binary_op (MODIFY_EXPR, NULL_TREE,
 					  gnu_actual, gnu_result);
-	    set_expr_location_from_node (gnu_result, gnat_actual);
+	    set_expr_location_from_node (gnu_result, gnat_node);
 	    append_to_statement_list (gnu_result, &gnu_before_list);
 	    scalar_return_list = TREE_CHAIN (scalar_return_list);
 	    gnu_name_list = TREE_CHAIN (gnu_name_list);
@@ -6308,12 +6331,11 @@ convert_with_check (Entity_Id gnat_type, tree gnu_expr, bool overflowp,
       /* The following calculations depend on proper rounding to even
          of each arithmetic operation. In order to prevent excess
          precision from spoiling this property, use the widest hardware
-         floating-point type.
+         floating-point type if FP_ARITH_MAY_WIDEN is true.  */
 
-         FIXME: For maximum efficiency, this should only be done for machines
-         and types where intermediates may have extra precision.  */
+      calc_type = (FP_ARITH_MAY_WIDEN ? longest_float_type_node
+                                      : gnu_in_basetype);
 
-      calc_type = longest_float_type_node;
       /* FIXME: Should not have padding in the first place */
       if (TREE_CODE (calc_type) == RECORD_TYPE
               && TYPE_IS_PADDING_P (calc_type))

@@ -78,6 +78,13 @@ DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
 	  "The threshold ratio between current and hottest structure counts",
 	  10, 0, 100)
 
+/* When branch is predicted to be taken with probability lower than this
+   threshold (in percent), then it is considered well predictable. */
+DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
+	  "predictable-branch-outcome",
+	  "Maximal esitmated outcome of branch considered predictable",
+	  2, 0, 50)
+
 /* The single function inlining limit. This is the maximum size
    of a function counted in internal gcc instructions (not in
    real machine instructions) that is eligible for inlining
@@ -193,6 +200,10 @@ DEFPARAM(PARAM_INLINE_UNIT_GROWTH,
 	 "inline-unit-growth",
 	 "how much can given compilation unit grow because of the inlining (in percent)",
 	 30, 0, 0)
+DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
+	 "ipcp-unit-growth",
+	 "how much can given compilation unit grow because of the interprocedural constant propagation (in percent)",
+	 10, 0, 0)
 DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
@@ -546,6 +557,16 @@ DEFPARAM(PARAM_MAX_SCHED_REGION_INSNS,
 	 "The maximum number of insns in a region to be considered for interblock scheduling",
 	 100, 0, 0)
 
+DEFPARAM(PARAM_MAX_PIPELINE_REGION_BLOCKS,
+	 "max-pipeline-region-blocks",
+	 "The maximum number of blocks in a region to be considered for interblock scheduling",
+	 15, 0, 0)
+
+DEFPARAM(PARAM_MAX_PIPELINE_REGION_INSNS,
+	 "max-pipeline-region-insns",
+	 "The maximum number of insns in a region to be considered for interblock scheduling",
+	 200, 0, 0)
+
 DEFPARAM(PARAM_MIN_SPEC_PROB,
          "min-spec-prob",
          "The minimum probability of reaching a source block for interblock speculative scheduling",
@@ -565,6 +586,26 @@ DEFPARAM(PARAM_SCHED_SPEC_PROB_CUTOFF,
          "sched-spec-prob-cutoff",
          "The minimal probability of speculation success (in percents), so that speculative insn will be scheduled.",
          40, 0, 100)
+
+DEFPARAM(PARAM_SELSCHED_MAX_LOOKAHEAD,
+         "selsched-max-lookahead",
+         "The maximum size of the lookahead window of selective scheduling",
+         50, 0, 0)
+
+DEFPARAM(PARAM_SELSCHED_MAX_SCHED_TIMES,
+         "selsched-max-sched-times",
+         "Maximum number of times that an insn could be scheduled",
+         2, 0, 0)
+
+DEFPARAM(PARAM_SELSCHED_INSNS_TO_RENAME,
+         "selsched-insns-to-rename",
+         "Maximum number of instructions in the ready list that are considered eligible for renaming",
+         2, 0, 0)
+
+DEFPARAM (PARAM_SCHED_MEM_TRUE_DEP_COST,
+	  "sched-mem-true-dep-cost",
+	  "Minimal distance between possibly conflicting store and load",
+	  1, 0, 0)
 
 DEFPARAM(PARAM_MAX_LAST_VALUE_RTL,
 	 "max-last-value-rtl",
@@ -709,6 +750,11 @@ DEFPARAM (PARAM_DF_DOUBLE_QUEUE_THRESHOLD_FACTOR,
 	  "df-double-queue-threshold-factor",
 	  "Multiplier used for determining the double-queueing threshold",
 	  2, 0, 0)
+
+DEFPARAM (PARAM_IRA_MAX_LOOPS_NUM,
+	  "ira-max-loops-num",
+	  "max loops number for regional RA",
+	  50, 0, 0)
 
 /* Switch initialization conversion will refuse to create arrays that are
    bigger than this parameter times the number of switch branches.  */

@@ -447,8 +447,13 @@ dump_typename (tree t, int flags)
 const char *
 class_key_or_enum_as_string (tree t)
 {
-  if (TREE_CODE (t) == ENUMERAL_TYPE)
-    return "enum";
+  if (TREE_CODE (t) == ENUMERAL_TYPE) 
+    {
+      if (SCOPED_ENUM_P (t))
+        return "enum class";
+      else
+        return "enum";
+    }
   else if (TREE_CODE (t) == UNION_TYPE)
     return "union";
   else if (TYPE_LANG_SPECIFIC (t) && CLASSTYPE_DECLARED_CLASS (t))
@@ -1079,10 +1084,15 @@ dump_function_decl (tree t, int flags)
   tree template_parms = NULL_TREE;
   int show_return = flags & TFF_RETURN_TYPE || flags & TFF_DECL_SPECIFIERS;
   int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
+  tree exceptions;
 
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
     t = DECL_TEMPLATE_RESULT (t);
+
+  /* Save the exceptions, in case t is a specialization and we are
+     emitting an error about incompatible specifications.  */
+  exceptions = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (t));
 
   /* Pretty print template instantiations only.  */
   if (DECL_USE_TEMPLATE (t) && DECL_TEMPLATE_INFO (t))
@@ -1148,7 +1158,7 @@ dump_function_decl (tree t, int flags)
       if (flags & TFF_EXCEPTION_SPECIFICATION)
 	{
 	  pp_base (cxx_pp)->padding = pp_before;
-	  dump_exception_spec (TYPE_RAISES_EXCEPTIONS (fntype), flags);
+	  dump_exception_spec (exceptions, flags);
 	}
 
       if (show_return)
@@ -2388,7 +2398,9 @@ cp_print_error_function (diagnostic_context *context,
 	  if (abstract_origin)
 	    {
 	      ao = BLOCK_ABSTRACT_ORIGIN (abstract_origin);
-	      while (TREE_CODE (ao) == BLOCK && BLOCK_ABSTRACT_ORIGIN (ao))
+	      while (TREE_CODE (ao) == BLOCK
+		     && BLOCK_ABSTRACT_ORIGIN (ao)
+		     && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
 		ao = BLOCK_ABSTRACT_ORIGIN (ao);
 	      gcc_assert (TREE_CODE (ao) == FUNCTION_DECL);
 	      fndecl = ao;
@@ -2685,7 +2697,7 @@ maybe_warn_cpp0x (const char* str)
     /* We really want to suppress this warning in system headers,
        because libstdc++ uses variadic templates even when we aren't
        in C++0x mode. */
-    pedwarn (0, "%s only available with -std=c++0x or -std=gnu++0x", str);
+    pedwarn (input_location, 0, "%s only available with -std=c++0x or -std=gnu++0x", str);
 }
 
 /* Warn about the use of variadic templates when appropriate.  */

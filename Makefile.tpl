@@ -108,6 +108,11 @@ GDB_NLM_DEPS =
 # the libraries.
 RPATH_ENVVAR = @RPATH_ENVVAR@
 
+# On targets where RPATH_ENVVAR is PATH, a subdirectory of the GCC build path
+# is used instead of the directory itself to avoid including built
+# executables in PATH.
+GCC_SHLIB_SUBDIR = @GCC_SHLIB_SUBDIR@
+
 # Build programs are put under this directory.
 BUILD_SUBDIR = @build_subdir@
 # This is set by the configure script to the arguments to use when configuring
@@ -194,6 +199,10 @@ HOST_EXPORTS = \
 	TOPLEVEL_CONFIGURE_ARGUMENTS="$(TOPLEVEL_CONFIGURE_ARGUMENTS)"; export TOPLEVEL_CONFIGURE_ARGUMENTS; \
 	GMPLIBS="$(HOST_GMPLIBS)"; export GMPLIBS; \
 	GMPINC="$(HOST_GMPINC)"; export GMPINC; \
+	PPLLIBS="$(HOST_PPLLIBS)"; export PPLLIBS; \
+	PPLINC="$(HOST_PPLINC)"; export PPLINC; \
+	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
+	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
 @if gcc-bootstrap
 	$(RPATH_ENVVAR)=`echo "$(TARGET_LIB_PATH)$$$(RPATH_ENVVAR)" | sed 's,::*,:,g;s,^:*,,;s,:*$$,,'`; export $(RPATH_ENVVAR); \
 @endif gcc-bootstrap
@@ -253,6 +262,14 @@ NORMAL_TARGET_EXPORTS = \
 HOST_GMPLIBS = @gmplibs@
 HOST_GMPINC = @gmpinc@
 
+# Where to find PPL
+HOST_PPLLIBS = @ppllibs@
+HOST_PPLINC = @pplinc@
+
+# Where to find CLOOG
+HOST_CLOOGLIBS = @clooglibs@
+HOST_CLOOGINC = @clooginc@
+
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
 # ----------------------------------------------
@@ -294,6 +311,7 @@ BUILD_PREFIX_1 = @BUILD_PREFIX_1@
 # here so that they can be overridden by Makefile fragments.
 BOOT_CFLAGS= -g -O2
 BOOT_LDFLAGS=
+BOOT_ADAFLAGS=-gnatpg -gnata
 
 BISON = @BISON@
 YACC = @YACC@
@@ -439,7 +457,7 @@ HOST_LIB_PATH = [+ FOR host_modules +][+
 
 # Define HOST_LIB_PATH_gcc here, for the sake of TARGET_LIB_PATH, ouch
 @if gcc
-HOST_LIB_PATH_gcc = $$r/$(HOST_SUBDIR)/gcc:$$r/$(HOST_SUBDIR)/prev-gcc:
+HOST_LIB_PATH_gcc = $$r/$(HOST_SUBDIR)/gcc$(GCC_SHLIB_SUBDIR):$$r/$(HOST_SUBDIR)/prev-gcc$(GCC_SHLIB_SUBDIR):
 @endif gcc
 
 [+ FOR host_modules +][+ IF lib_path +]

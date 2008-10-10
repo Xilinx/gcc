@@ -1,3 +1,37 @@
+2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
+	    Steve Ellcey  <sje@cup.hp.com>
+
+	* configure: Regenerate for new libtool.
+	* Makefile.in: Ditto.
+	* testsuite/Makefile.in: Ditto.
+
+2008-09-19  Jakub Jelinek  <jakub@redhat.com>
+	    Andreas Tobler  <a.tobler@schweiz.org>
+
+	* config/bsd/proc.c: New file.
+	* configure.tgt (*-*-darwin*): Use config_path "bsd posix".
+	* configure.ac: Check for header <sys/sysctl.h>
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
+2008-09-05  Janis Johnson  <janis187@us.ibm.com>
+
+	* testsuite/ligbomp.c/c.exp: Unset lang_test_file only if it exists.
+
+2008-08-31  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	* Makefile.am (libgomp_la_LDFLAGS): Add -no-undefined.
+	* Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+
+2008-08-21  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* testsuite/libgomp.exp (libgomp_init): Only set things that
+	depend on blddir if blddir exists.
+	(libgomp_target_compile): Likewise.
+	* testsuite/libgomp.c++/c++.exp: Likewise.
+	* testsuite/libgomp.fortran/fortran.exp: Likewise.
+
 2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* libgomp.texi: Update to GFDL 1.2.  Update copyright years.

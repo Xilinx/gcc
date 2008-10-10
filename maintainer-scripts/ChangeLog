@@ -1,3 +1,7 @@
+2008-10-04  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* gcc_release: Fix a couple of comments.
+
 2008-07-04  Joseph Myers  <joseph@codesourcery.com>
 
 	* crontab: Remove 4.1 snapshots job.
@@ -329,7 +333,7 @@
 
 	* update_version: Add some documentation.
 
-2004-01-02  Pop Sébastian  <pop@gauvain.u-strasbg.fr>
+2004-01-02  Pop SÃ©bastian  <pop@gauvain.u-strasbg.fr>
 
 	* update_version (ADD_BRANCHES): Add lno-branch.
 

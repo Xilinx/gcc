@@ -385,6 +385,10 @@ fcommon
 Common Report Var(flag_no_common,0) Optimization
 Do not put uninitialized globals in the common section
 
+fconserve-stack
+Common Var(flag_conserve_stack,0) Optimization
+Do not perform optimizations increasing noticeably stack usage
+
 fcprop-registers
 Common Report Var(flag_cprop_registers) Optimization
 Perform a register copy-propagation optimization pass
@@ -547,6 +551,22 @@ Common Report Var(flag_gcse_after_reload) Optimization
 Perform global common subexpression elimination after register allocation
 has finished
 
+fgraphite
+Common Report Var(flag_graphite)
+Enable in and out of Graphite representation
+
+floop-strip-mine
+Common Report Var(flag_loop_strip_mine) Optimization
+Enable Loop Strip Mining transformation
+
+floop-interchange
+Common Report Var(flag_loop_interchange) Optimization
+Enable Loop Interchange transformation
+
+floop-block
+Common Report Var(flag_loop_block) Optimization
+Enable Loop Blocking transformation
+
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
 Enable guessing of branch probabilities
@@ -623,6 +643,10 @@ fipa-cp
 Common Report Var(flag_ipa_cp) Optimization
 Perform Interprocedural constant propagation
 
+fipa-cp-clone
+Common Report Var(flag_ipa_cp_clone) Optimization
+Perform cloning to make Interprocedural constant propagation stronger
+
 fipa-pure-const
 Common Report Var(flag_ipa_pure_const) Init(0) Optimization
 Discover pure and const functions
@@ -648,6 +672,30 @@ fipa-struct-reorg
 Common Report Var(flag_ipa_struct_reorg)
 Perform structure layout optimizations based
 on profiling information.
+
+fira
+Common Report Var(flag_ira) Init(0)
+Use integrated register allocator.
+
+fira-algorithm=
+Common Joined RejectNegative
+-fira-algorithm=[regional|CB|mixed] Set the used IRA algorithm
+
+fira-coalesce
+Common Report Var(flag_ira_coalesce) Init(0)
+Do optimistic coalescing.
+
+fira-share-save-slots
+Common Report Var(flag_ira_share_save_slots) Init(1)
+Share slots for saving different hard registers.
+
+fira-share-spill-slots
+Common Report Var(flag_ira_share_spill_slots) Init(1)
+Share stack slots for spilled pseudo-registers.
+
+fira-verbose=
+Common RejectNegative Joined UInteger
+-fira-verbose=<number> Control IRA's level of diagnostic messages.
 
 fivopts
 Common Report Var(flag_ivopts) Init(1) Optimization
@@ -821,6 +869,10 @@ Common Joined RejectNegative
 Set the top-level directory for storing the profile data.
 The default is 'pwd'.
 
+fprofile-correction
+Common Report Var(flag_profile_correction)
+Enable correction of flow inconsistent profile data input
+
 fprofile-generate
 Common
 Enable common options for generating profile info for profile feedback directed optimizations
@@ -954,6 +1006,29 @@ fschedule-insns2
 Common Report Var(flag_schedule_insns_after_reload) Optimization
 Reschedule instructions after register allocation
 
+; This flag should be on when a target implements non-trivial
+; scheduling hooks, maybe saving some information for its own sake.
+; On IA64, for example, this is used for correct bundling. 
+fselective-scheduling
+Common Report Var(flag_selective_scheduling) Optimization
+Schedule instructions using selective scheduling algorithm
+
+fselective-scheduling2
+Common Report Var(flag_selective_scheduling2) Optimization 
+Run selective scheduling after reload
+
+fsel-sched-pipelining
+Common Report Var(flag_sel_sched_pipelining) Init(0) Optimization
+Perform software pipelining of inner loops during selective scheduling
+
+fsel-sched-pipelining-outer-loops
+Common Report Var(flag_sel_sched_pipelining_outer_loops) Init(0) Optimization
+Perform software pipelining of outer loops during selective scheduling
+
+fsel-sched-reschedule-pipelined
+Common Report Var(flag_sel_sched_reschedule_pipelined) Init(0) Optimization
+Reschedule pipelined regions without pipelining
+
 ; sched_stalled_insns means that insns can be moved prematurely from the queue
 ; of stalled insns into the ready list.
 fsched-stalled-insns
@@ -1016,11 +1091,13 @@ fvariable-expansion-in-unroller
 Common Report Var(flag_variable_expansion_in_unroller) Optimization
 Apply variable expansion when loops are unrolled
 
-; Emit code to probe the stack, to help detect stack overflow; also
-; may cause large objects to be allocated dynamically.
+fstack-check=
+Common Report RejectNegative Joined
+-fstack-check=[no|generic|specific]	Insert stack checking code into the program
+
 fstack-check
-Common Report Var(flag_stack_check)
-Insert stack checking code into the program
+Common Report
+Insert stack checking code into the program.  Same as -fstack-check=specific
 
 fstack-limit
 Common
@@ -1101,8 +1178,8 @@ Common Report Var(flag_tree_ccp) Optimization
 Enable SSA-CCP optimization on trees
 
 ftree-store-ccp
-Common Report Var(flag_tree_store_ccp) Optimization
-Enable SSA-CCP optimization for stores and loads
+Common
+Does nothing.  Preserved for backward compatibility.
 
 ftree-ch
 Common Report Var(flag_tree_ch) Optimization

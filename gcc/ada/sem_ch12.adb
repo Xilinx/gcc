@@ -896,8 +896,8 @@ package body Sem_Ch12 is
       Num_Actuals     : Int := 0;
 
       Others_Present  : Boolean := False;
-      --  In Ada 2005, indicates partial parametrization of of a formal
-      --  package. As usual an others association must be last in the list.
+      --  In Ada 2005, indicates partial parametrization of a formal
+      --  package. As usual an other association must be last in the list.
 
       function Matching_Actual
         (F   : Entity_Id;
@@ -5202,8 +5202,7 @@ package body Sem_Ch12 is
 
          Inst_Par := Entity (Prefix (Gen_Id));
          while Present (Inst_Par)
-           and then Ekind (Inst_Par) /= E_Package
-           and then Ekind (Inst_Par) /= E_Generic_Package
+           and then not Is_Package_Or_Generic_Package (Inst_Par)
          loop
             Inst_Par := Homonym (Inst_Par);
          end loop;
@@ -9565,7 +9564,7 @@ package body Sem_Ch12 is
                   Abandon_Instantiation (Actual);
                end if;
 
-            --  This case should be caught by the earlier check for for
+            --  This case should be caught by the earlier check for
             --  constrainedness, but the check here is added for completeness.
 
             elsif Has_Discriminants (Act_T)

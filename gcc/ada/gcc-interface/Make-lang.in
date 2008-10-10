@@ -299,7 +299,7 @@ TARGET_ADA_SRCS =
 # Since the RTL should be built with the latest compiler, remove the
 #  stamp target in the parent directory whenever gnat1 is rebuilt
 gnat1$(exeext): $(TARGET_ADA_SRCS) $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBDEPS)
-	$(GCC_LINK) -o $@ $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBS) $(SYSLIBS) $(GMPLIBS)
+	$(GCC_LINK) -o $@ $(GNAT1_OBJS) $(ADA_BACKEND) $(LIBS) $(SYSLIBS) $(GMPLIBS) $(CFLAGS)
 	$(RM) stamp-gnatlib2-rts stamp-tools
 
 gnatbind$(exeext): ada/b_gnatb.o $(CONFIG_H) $(GNATBIND_OBJS)
@@ -933,9 +933,11 @@ OSCONS_EXTRACT=../../../$(DECC) -DNATIVE \
   ./s-oscons-tmplt.exe > s-oscons-tmplt.s
 
 else
-OSCONS_CPP=$(GCC_FOR_TARGET) $(CFLAGS_FOR_TARGET) -E -C \
+OSCONS_CC=`echo "$(GCC_FOR_TARGET)" \
+  | sed -e 's^\./xgcc^../../../xgcc^' -e 's^-B./^-B../../../^'`
+OSCONS_CPP=$(OSCONS_CC) $(CFLAGS_FOR_TARGET) -E -C \
   -DTARGET=\"$(target)\" s-oscons-tmplt.c > s-oscons-tmplt.i
-OSCONS_EXTRACT=$(GCC_FOR_TARGET) $(CFLAGS_FOR_TARGET) -S s-oscons-tmplt.i
+OSCONS_EXTRACT=$(OSCONS_CC) $(CFLAGS_FOR_TARGET) -S s-oscons-tmplt.i
 endif
 
 ada/s-oscons.ads : ada/s-oscons-tmplt.c ada/gsocket.h ada/xoscons.adb ada/xutil.ads ada/xutil.adb

@@ -3244,6 +3244,64 @@ subreg_offset_representable_p (unsigned int xregno, enum machine_mode xmode,
   return info.representable_p;
 }
 
+/* Return the number of a YMODE register to which
+
+       (subreg:YMODE (reg:XMODE XREGNO) OFFSET)
+
+   can be simplified.  Return -1 if the subreg can't be simplified.
+
+   XREGNO is a hard register number.  */
+
+int
+simplify_subreg_regno (unsigned int xregno, enum machine_mode xmode,
+		       unsigned int offset, enum machine_mode ymode)
+{
+  struct subreg_info info;
+  unsigned int yregno;
+
+#ifdef CANNOT_CHANGE_MODE_CLASS
+  /* Give the backend a chance to disallow the mode change.  */
+  if (GET_MODE_CLASS (xmode) != MODE_COMPLEX_INT
+      && GET_MODE_CLASS (xmode) != MODE_COMPLEX_FLOAT
+      && REG_CANNOT_CHANGE_MODE_P (xregno, xmode, ymode))
+    return -1;
+#endif
+
+  /* We shouldn't simplify stack-related registers.  */
+  if ((!reload_completed || frame_pointer_needed)
+      && (xregno == FRAME_POINTER_REGNUM
+	  || xregno == HARD_FRAME_POINTER_REGNUM))
+    return -1;
+
+  if (FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
+      && xregno == ARG_POINTER_REGNUM)
+    return -1;
+
+  if (xregno == STACK_POINTER_REGNUM)
+    return -1;
+
+  /* Try to get the register offset.  */
+  subreg_get_info (xregno, xmode, offset, ymode, &info);
+  if (!info.representable_p)
+    return -1;
+
+  /* Make sure that the offsetted register value is in range.  */
+  yregno = xregno + info.offset;
+  if (!HARD_REGISTER_NUM_P (yregno))
+    return -1;
+
+  /* See whether (reg:YMODE YREGNO) is valid.
+
+     ??? We allow invalid registers if (reg:XMODE XREGNO) is also invalid.
+     This is a kludge to work around how float/complex arguments are passed
+     on 32-bit SPARC and should be fixed.  */
+  if (!HARD_REGNO_MODE_OK (yregno, ymode)
+      && HARD_REGNO_MODE_OK (xregno, xmode))
+    return -1;
+
+  return (int) yregno;
+}
+
 /* Return the final regno that a subreg expression refers to.  */
 unsigned int
 subreg_regno (const_rtx x)
@@ -3399,7 +3457,7 @@ keep_with_call_p (const_rtx insn)
       if (SET_DEST (set) == stack_pointer_rtx)
 	{
 	  /* This CONST_CAST is okay because next_nonnote_insn just
-	     returns it's argument and we assign it to a const_rtx
+	     returns its argument and we assign it to a const_rtx
 	     variable.  */
 	  const_rtx i2 = next_nonnote_insn (CONST_CAST_RTX(insn));
 	  if (i2 && keep_with_call_p (i2))
@@ -3443,10 +3501,13 @@ label_is_jump_target_p (const_rtx label, const_rtx jump_insn)
 /* Return an estimate of the cost of computing rtx X.
    One use is in cse, to decide which expression to keep in the hash table.
    Another is in rtl generation, to pick the cheapest way to multiply.
-   Other uses like the latter are expected in the future.  */
+   Other uses like the latter are expected in the future. 
+
+   SPEED parameter specify whether costs optimized for speed or size should
+   be returned.  */
 
 int
-rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED)
+rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
 {
   int i, j;
   enum rtx_code code;
@@ -3494,7 +3555,7 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED)
       break;
 
     default:
-      if (targetm.rtx_costs (x, code, outer_code, &total))
+      if (targetm.rtx_costs (x, code, outer_code, &total, speed))
 	return total;
       break;
     }
@@ -3505,19 +3566,22 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED)
   fmt = GET_RTX_FORMAT (code);
   for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
     if (fmt[i] == 'e')
-      total += rtx_cost (XEXP (x, i), code);
+      total += rtx_cost (XEXP (x, i), code, speed);
     else if (fmt[i] == 'E')
       for (j = 0; j < XVECLEN (x, i); j++)
-	total += rtx_cost (XVECEXP (x, i, j), code);
+	total += rtx_cost (XVECEXP (x, i, j), code, speed);
 
   return total;
 }
 
 /* Return cost of address expression X.
-   Expect that X is properly formed address reference.  */
+   Expect that X is properly formed address reference.  
+
+   SPEED parameter specify whether costs optimized for speed or size should
+   be returned.  */
 
 int
-address_cost (rtx x, enum machine_mode mode)
+address_cost (rtx x, enum machine_mode mode, bool speed)
 {
   /* We may be asked for cost of various unusual addresses, such as operands
      of push instruction.  It is not worthwhile to complicate writing
@@ -3526,15 +3590,15 @@ address_cost (rtx x, enum machine_mode mode)
   if (!memory_address_p (mode, x))
     return 1000;
 
-  return targetm.address_cost (x);
+  return targetm.address_cost (x, speed);
 }
 
 /* If the target doesn't override, compute the cost as with arithmetic.  */
 
 int
-default_address_cost (rtx x)
+default_address_cost (rtx x, bool speed)
 {
-  return rtx_cost (x, MEM);
+  return rtx_cost (x, MEM, speed);
 }
 
 
@@ -4505,7 +4569,7 @@ num_sign_bit_copies1 (const_rtx x, enum machine_mode mode, const_rtx known_x,
    zero indicates an instruction pattern without a known cost.  */
 
 int
-insn_rtx_cost (rtx pat)
+insn_rtx_cost (rtx pat, bool speed)
 {
   int i, cost;
   rtx set;
@@ -4533,7 +4597,7 @@ insn_rtx_cost (rtx pat)
   else
     return 0;
 
-  cost = rtx_cost (SET_SRC (set), SET);
+  cost = rtx_cost (SET_SRC (set), SET, speed);
   return cost > 0 ? cost : COSTS_N_INSNS (1);
 }
 

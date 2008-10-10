@@ -962,11 +962,11 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define TREE_HASH(NODE) ((size_t) (NODE) & 0777777)
 
 /* Tests if CODE is a conversion expr (NOP_EXPR or CONVERT_EXPR).  */
-#define IS_CONVERT_EXPR_CODE_P(CODE)				\
+#define CONVERT_EXPR_CODE_P(CODE)				\
   ((CODE) == NOP_EXPR || (CODE) == CONVERT_EXPR)
 
 /* Similarly, but accept an expressions instead of a tree code.  */
-#define CONVERT_EXPR_P(EXP)	IS_CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
+#define CONVERT_EXPR_P(EXP)	CONVERT_EXPR_CODE_P (TREE_CODE (EXP))
 
 /* Generate case for NOP_EXPR, CONVERT_EXPR.  */
 
@@ -1577,6 +1577,8 @@ struct tree_constructor GTY(())
 /* True if a tree is an expression or statement that can have a
    location.  */
 #define CAN_HAVE_LOCATION_P(NODE) (EXPR_P (NODE))
+
+extern void protected_set_expr_location (tree, location_t);
 
 /* In a TARGET_EXPR node.  */
 #define TARGET_EXPR_SLOT(NODE) TREE_OPERAND_CHECK_CODE (NODE, TARGET_EXPR, 0)
@@ -2557,7 +2559,7 @@ struct tree_memory_partition_tag GTY(())
 /* For a FUNCTION_DECL, holds the tree of BINDINGs.
    For a TRANSLATION_UNIT_DECL, holds the namespace's BLOCK.
    For a VAR_DECL, holds the initial value.
-   For a PARM_DECL, not used--default
+   For a PARM_DECL, used for DECL_ARG_TYPE--default
    values for parameters are encoded in the type of the function,
    not in the PARM_DECL slot.
    For a FIELD_DECL, this is used for enumeration values and the C
@@ -3233,16 +3235,16 @@ struct tree_decl_non_common GTY(())
 #define DECL_POSSIBLY_INLINED(DECL) \
   FUNCTION_DECL_CHECK (DECL)->function_decl.possibly_inlined
 
-/* Nonzero in a FUNCTION_DECL means this function can be substituted
-   where it is called.  */
-#define DECL_INLINE(NODE) (FUNCTION_DECL_CHECK (NODE)->function_decl.inline_flag)
-
 /* Nonzero in a FUNCTION_DECL means that this function was declared inline,
    such as via the `inline' keyword in C/C++.  This flag controls the linkage
-   semantics of 'inline'; whether or not the function is inlined is
-   controlled by DECL_INLINE.  */
+   semantics of 'inline'  */
 #define DECL_DECLARED_INLINE_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.declared_inline_flag)
+
+/* Nonzero in a FUNCTION_DECL means this function should not get
+   -Winline warnings.  */
+#define DECL_NO_INLINE_WARNING_P(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
@@ -3312,7 +3314,7 @@ struct tree_function_decl GTY(())
   unsigned declared_inline_flag : 1;
   unsigned regdecl_flag : 1;
 
-  unsigned inline_flag : 1;
+  unsigned no_inline_warning_flag : 1;
   unsigned no_instrument_function_entry_exit : 1;
   unsigned no_limit_stack : 1;
   unsigned disregard_inline_limits : 1;
@@ -3331,6 +3333,11 @@ struct tree_function_decl GTY(())
    This uses the same flag as DECL_EXTERNAL.  */
 #define TYPE_DECL_SUPPRESS_DEBUG(NODE) \
   (TYPE_DECL_CHECK (NODE)->decl_common.decl_flag_2)
+
+/* Getter of the imported declaration associated to the
+   IMPORTED_DECL node.  */
+#define IMPORTED_DECL_ASSOCIATED_DECL(NODE) \
+(DECL_INITIAL (IMPORTED_DECL_CHECK (NODE)))
 
 struct tree_type_decl GTY(())
 {
@@ -3591,11 +3598,9 @@ enum tree_index
 
   TI_OPTIMIZATION_DEFAULT,
   TI_OPTIMIZATION_CURRENT,
-  TI_OPTIMIZATION_COLD,
-  TI_OPTIMIZATION_HOT,
   TI_TARGET_OPTION_DEFAULT,
   TI_TARGET_OPTION_CURRENT,
-  TI_CURRENT_OPTION_PRAGMA,
+  TI_CURRENT_TARGET_PRAGMA,
   TI_CURRENT_OPTIMIZE_PRAGMA,
 
   TI_MAX
@@ -3765,12 +3770,10 @@ extern GTY(()) tree global_trees[TI_MAX];
 #define main_identifier_node		global_trees[TI_MAIN_IDENTIFIER]
 #define MAIN_NAME_P(NODE) (IDENTIFIER_NODE_CHECK (NODE) == main_identifier_node)
 
-/* Optimization options (OPTIMIZATION_NODE) to use for default, current, cold,
-   and hot functions.  */
+/* Optimization options (OPTIMIZATION_NODE) to use for default and current
+   functions.  */
 #define optimization_default_node	global_trees[TI_OPTIMIZATION_DEFAULT]
 #define optimization_current_node	global_trees[TI_OPTIMIZATION_CURRENT]
-#define optimization_cold_node		global_trees[TI_OPTIMIZATION_COLD]
-#define optimization_hot_node		global_trees[TI_OPTIMIZATION_HOT]
 
 /* Default/current target options (TARGET_OPTION_NODE).  */
 #define target_option_default_node	global_trees[TI_TARGET_OPTION_DEFAULT]
@@ -3778,7 +3781,7 @@ extern GTY(()) tree global_trees[TI_MAX];
 
 /* Default tree list option(), optimize() pragmas to be linked into the
    attribute list.  */
-#define current_option_pragma		global_trees[TI_CURRENT_OPTION_PRAGMA]
+#define current_target_pragma		global_trees[TI_CURRENT_TARGET_PRAGMA]
 #define current_optimize_pragma		global_trees[TI_CURRENT_OPTIMIZE_PRAGMA]
 
 /* An enumeration of the standard C integer types.  These must be
@@ -3994,6 +3997,8 @@ extern tree build_index_2_type (tree, tree);
 extern tree build_array_type (tree, tree);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
+extern tree build_function_type_skip_args (tree, bitmap);
+extern tree build_function_decl_skip_args (tree, bitmap);
 extern tree build_varargs_function_type_list (tree, ...);
 extern tree build_method_type_directly (tree, tree, tree);
 extern tree build_method_type (tree, tree);
@@ -4859,6 +4864,7 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern int get_pointer_alignment (tree, unsigned int);
+extern int get_object_alignment (tree, unsigned int, unsigned int);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 
@@ -4868,6 +4874,7 @@ extern tree strip_float_extensions (tree);
 /* In tree.c */
 extern int really_constant_p (const_tree);
 extern bool decl_address_invariant_p (const_tree);
+extern bool decl_address_ip_invariant_p (const_tree);
 extern int int_fits_type_p (const_tree, const_tree);
 #ifndef GENERATOR_FILE
 extern void get_type_static_bounds (const_tree, mpz_t, mpz_t);
@@ -5044,7 +5051,6 @@ extern void expand_asm_expr (tree);
 extern tree resolve_asm_operand_names (tree, tree, tree);
 extern void expand_case (tree);
 extern void expand_decl (tree);
-extern void expand_anon_union_decl (tree, tree, tree);
 #ifdef HARD_CONST
 /* Silly ifdef to avoid having all includers depend on hard-reg-set.h.  */
 extern tree tree_overlaps_hard_reg_set (tree, HARD_REG_SET *);

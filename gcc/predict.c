@@ -66,8 +66,10 @@ along with GCC; see the file COPYING3.  If not see
 static sreal real_zero, real_one, real_almost_one, real_br_prob_base,
 	     real_inv_br_prob_base, real_one_half, real_bb_freq_max;
 
-/* Random guesstimation given names.  */
-#define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 100 - 1)
+/* Random guesstimation given names.  
+   PROV_VERY_UNLIKELY should be small enough so basic block predicted
+   by it gets bellow HOT_BB_FREQUENCY_FRANCTION.  */
+#define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
 #define PROB_EVEN		(REG_BR_PROB_BASE / 2)
 #define PROB_VERY_LIKELY	(REG_BR_PROB_BASE - PROB_VERY_UNLIKELY)
 #define PROB_ALWAYS		(REG_BR_PROB_BASE)
@@ -108,7 +110,8 @@ static const struct predictor_info predictor_info[]= {
 #undef DEF_PREDICTOR
 
 /* Return TRUE if frequency FREQ is considered to be hot.  */
-static bool
+
+static inline bool
 maybe_hot_frequency_p (int freq)
 {
   if (!profile_info || !flag_branch_probabilities)
@@ -125,17 +128,50 @@ maybe_hot_frequency_p (int freq)
   return true;
 }
 
+/* Return TRUE if frequency FREQ is considered to be hot.  */
+
+static inline bool
+maybe_hot_count_p (gcov_type count)
+{
+  if (profile_status != PROFILE_READ)
+    return true;
+  /* Code executed at most once is not hot.  */
+  if (profile_info->runs >= count)
+    return false;
+  return (count
+	  > profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION));
+}
+
 /* Return true in case BB can be CPU intensive and should be optimized
    for maximal performance.  */
 
 bool
 maybe_hot_bb_p (const_basic_block bb)
 {
-  if (profile_info && flag_branch_probabilities
-      && (bb->count
-	  < profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
-    return false;
+  if (profile_status == PROFILE_READ)
+    return maybe_hot_count_p (bb->count);
   return maybe_hot_frequency_p (bb->frequency);
+}
+
+/* Return true if the call can be hot.  */
+
+bool
+cgraph_maybe_hot_edge_p (struct cgraph_edge *edge)
+{
+  if (profile_info && flag_branch_probabilities
+      && (edge->count
+	  <= profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
+    return false;
+  if (lookup_attribute ("cold", DECL_ATTRIBUTES (edge->callee->decl))
+      || lookup_attribute ("cold", DECL_ATTRIBUTES (edge->caller->decl)))
+    return false;
+  if (lookup_attribute ("hot", DECL_ATTRIBUTES (edge->caller->decl)))
+    return true;
+  if (flag_guess_branch_prob
+      && edge->frequency < (CGRAPH_FREQ_MAX
+      			    / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION)))
+    return false;
+  return true;
 }
 
 /* Return true in case BB can be CPU intensive and should be optimized
@@ -144,28 +180,9 @@ maybe_hot_bb_p (const_basic_block bb)
 bool
 maybe_hot_edge_p (edge e)
 {
-  if (profile_info && flag_branch_probabilities
-      && (e->count
-	  < profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
-    return false;
+  if (profile_status == PROFILE_READ)
+    return maybe_hot_count_p (e->count);
   return maybe_hot_frequency_p (EDGE_FREQUENCY (e));
-}
-
-/* Return true in case BB is cold and should be optimized for size.  */
-
-bool
-probably_cold_bb_p (const_basic_block bb)
-{
-  if (profile_info && flag_branch_probabilities
-      && (bb->count
-	  < profile_info->sum_max / PARAM_VALUE (HOT_BB_COUNT_FRACTION)))
-    return true;
-  if ((!profile_info || !flag_branch_probabilities)
-      && cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)
-    return true;
-  if (bb->frequency < BB_FREQ_MAX / PARAM_VALUE (HOT_BB_FREQUENCY_FRACTION))
-    return true;
-  return false;
 }
 
 /* Return true in case BB is probably never executed.  */
@@ -182,25 +199,34 @@ probably_never_executed_bb_p (const_basic_block bb)
 
 /* Return true when current function should always be optimized for size.  */
 
-static bool
-always_optimize_for_size_p (void)
+bool
+optimize_function_for_size_p (struct function *fun)
 {
   return (optimize_size
-	  || cfun->function_frequency == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED);
+	  || (fun && (fun->function_frequency
+		      == FUNCTION_FREQUENCY_UNLIKELY_EXECUTED)));
+}
+
+/* Return true when current function should always be optimized for speed.  */
+
+bool
+optimize_function_for_speed_p (struct function *fun)
+{
+  return !optimize_function_for_size_p (fun);
 }
 
 /* Return TRUE when BB should be optimized for size.  */
 
 bool
-optimize_bb_for_size_p (basic_block bb)
+optimize_bb_for_size_p (const_basic_block bb)
 {
-  return always_optimize_for_size_p () || !maybe_hot_bb_p (bb);
+  return optimize_function_for_size_p (cfun) || !maybe_hot_bb_p (bb);
 }
 
 /* Return TRUE when BB should be optimized for speed.  */
 
 bool
-optimize_bb_for_speed_p (basic_block bb)
+optimize_bb_for_speed_p (const_basic_block bb)
 {
   return !optimize_bb_for_size_p (bb);
 }
@@ -210,7 +236,7 @@ optimize_bb_for_speed_p (basic_block bb)
 bool
 optimize_edge_for_size_p (edge e)
 {
-  return always_optimize_for_size_p () || !maybe_hot_edge_p (e);
+  return optimize_function_for_size_p (cfun) || !maybe_hot_edge_p (e);
 }
 
 /* Return TRUE when BB should be optimized for speed.  */
@@ -226,7 +252,7 @@ optimize_edge_for_speed_p (edge e)
 bool
 optimize_insn_for_size_p (void)
 {
-  return always_optimize_for_size_p () || !crtl->maybe_hot_insn_p;
+  return optimize_function_for_size_p (cfun) || !crtl->maybe_hot_insn_p;
 }
 
 /* Return TRUE when BB should be optimized for speed.  */
@@ -236,6 +262,75 @@ optimize_insn_for_speed_p (void)
 {
   return !optimize_insn_for_size_p ();
 }
+
+/* Return TRUE when LOOP should be optimized for size.  */
+
+bool
+optimize_loop_for_size_p (struct loop *loop)
+{
+  return optimize_bb_for_size_p (loop->header);
+}
+
+/* Return TRUE when LOOP should be optimized for speed.  */
+
+bool
+optimize_loop_for_speed_p (struct loop *loop)
+{
+  return optimize_bb_for_speed_p (loop->header);
+}
+
+/* Return TRUE when LOOP nest should be optimized for speed.  */
+
+bool
+optimize_loop_nest_for_speed_p (struct loop *loop)
+{
+  struct loop *l = loop;
+  if (optimize_loop_for_speed_p (loop))
+    return true;
+  l = loop->inner;
+  while (l && l != loop)
+    {
+      if (optimize_loop_for_speed_p (l))
+        return true;
+      if (l->inner)
+        l = l->inner;
+      else if (l->next)
+        l = l->next;
+      else
+        {
+	  while (l != loop && !l->next)
+	    l = loop_outer (l);
+	  if (l != loop)
+	    l = l->next;
+	}
+    }
+  return false;
+}
+
+/* Return TRUE when LOOP nest should be optimized for size.  */
+
+bool
+optimize_loop_nest_for_size_p (struct loop *loop)
+{
+  return !optimize_loop_nest_for_speed_p (loop);
+}
+
+/* Return true when edge E is likely to be well predictable by branch
+   predictor.  */
+
+bool
+predictable_edge_p (edge e)
+{
+  if (profile_status == PROFILE_ABSENT)
+    return false;
+  if ((e->probability
+       <= PARAM_VALUE (PARAM_PREDICTABLE_BRANCH_OUTCOME) * REG_BR_PROB_BASE / 100)
+      || (REG_BR_PROB_BASE - e->probability
+          <= PARAM_VALUE (PARAM_PREDICTABLE_BRANCH_OUTCOME) * REG_BR_PROB_BASE / 100))
+    return true;
+  return false;
+}
+
 
 /* Set RTL expansion for BB profile.  */
 
@@ -1168,9 +1263,10 @@ expr_expected_value (tree expr, bitmap visited)
 }
 
 
-/* Get rid of all builtin_expect calls we no longer need.  */
-static void
-strip_builtin_expect (void)
+/* Get rid of all builtin_expect calls and GIMPLE_PREDICT statements
+   we no longer need.  */
+static unsigned int
+strip_predict_hints (void)
 {
   basic_block bb;
   gimple ass_stmt;
@@ -1179,28 +1275,34 @@ strip_builtin_expect (void)
   FOR_EACH_BB (bb)
     {
       gimple_stmt_iterator bi;
-      for (bi = gsi_start_bb (bb); !gsi_end_p (bi); gsi_next (&bi))
+      for (bi = gsi_start_bb (bb); !gsi_end_p (bi);)
 	{
 	  gimple stmt = gsi_stmt (bi);
-	  tree fndecl;
 
-	  if (gimple_code (stmt) != GIMPLE_CALL)
-	    continue;
-
-	  fndecl = gimple_call_fndecl (stmt);
-
-	  if (fndecl
-	      && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
-	      && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_EXPECT
-	      && gimple_call_num_args (stmt) == 2)
+	  if (gimple_code (stmt) == GIMPLE_PREDICT)
 	    {
-	      var = gimple_call_lhs (stmt);
-	      ass_stmt = gimple_build_assign (var, gimple_call_arg (stmt, 0));
-
-	      gsi_replace (&bi, ass_stmt, true);
+	      gsi_remove (&bi, true);
+	      continue;
 	    }
+	  else if (gimple_code (stmt) == GIMPLE_CALL)
+	    {
+	      tree fndecl = gimple_call_fndecl (stmt);
+
+	      if (fndecl
+		  && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+		  && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_EXPECT
+		  && gimple_call_num_args (stmt) == 2)
+		{
+		  var = gimple_call_lhs (stmt);
+		  ass_stmt = gimple_build_assign (var, gimple_call_arg (stmt, 0));
+
+		  gsi_replace (&bi, ass_stmt, true);
+		}
+	    }
+	  gsi_next (&bi);
 	}
     }
+  return 0;
 }
 
 /* Predict using opcode of the last statement in basic block.  */
@@ -1426,7 +1528,7 @@ tree_bb_level_predictions (void)
     {
       gimple_stmt_iterator gsi;
 
-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
 	  gimple stmt = gsi_stmt (gsi);
 	  tree decl;
@@ -1447,11 +1549,9 @@ tree_bb_level_predictions (void)
 	    {
 	      predict_paths_leading_to (bb, gimple_predict_predictor (stmt),
 					gimple_predict_outcome (stmt));
-	      gsi_remove (&gsi, true);
-	      continue;
+	      /* Keep GIMPLE_PREDICT around so early inlining will propagate
+	         hints to callers.  */
 	    }
-
-	  gsi_next (&gsi);
 	}
     }
 }
@@ -1579,7 +1679,6 @@ tree_estimate_probability (void)
   pointer_map_destroy (bb_predictions);
   bb_predictions = NULL;
 
-  strip_builtin_expect ();
   estimate_bb_frequencies ();
   free_dominance_info (CDI_POST_DOMINATORS);
   remove_fake_exit_edges ();
@@ -1915,7 +2014,7 @@ estimate_bb_frequencies (void)
   basic_block bb;
   sreal freq_max;
 
-  if (!flag_branch_probabilities || !counts_to_freqs ())
+  if (cfun->function_frequency != PROFILE_READ || !counts_to_freqs ())
     {
       static int real_values_initialized = 0;
 
@@ -2065,6 +2164,25 @@ struct gimple_opt_pass pass_profile =
   "profile",				/* name */
   gate_estimate_probability,		/* gate */
   tree_estimate_probability,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_BRANCH_PROB,			/* tv_id */
+  PROP_cfg,				/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_ggc_collect | TODO_verify_ssa			/* todo_flags_finish */
+ }
+};
+
+struct gimple_opt_pass pass_strip_predict_hints = 
+{
+ {
+  GIMPLE_PASS,
+  NULL,					/* name */
+  NULL,					/* gate */
+  strip_predict_hints,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */

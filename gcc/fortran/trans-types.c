@@ -1415,10 +1415,10 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed)
   mpz_clear (stride);
   mpz_clear (delta);
 
-  /* In debug info represent packed arrays as multi-dimensional
-     if they have rank > 1 and with proper bounds, instead of flat
-     arrays.  */
-  if (known_offset && write_symbols != NO_DEBUG)
+  /* Represent packed arrays as multi-dimensional if they have rank >
+     1 and with proper bounds, instead of flat arrays.  This makes for
+     better debug info.  */
+  if (known_offset)
     {
       tree gtype = etype, rtype, type_decl;
 
@@ -1627,6 +1627,16 @@ gfc_sym_type (gfc_symbol * sym)
   tree type;
   int byref;
 
+  /* Procedure Pointers inside COMMON blocks.  */
+  if (sym->attr.proc_pointer && sym->attr.in_common)
+    {
+      /* Unset proc_pointer as gfc_get_function_type calls gfc_sym_type.  */
+      sym->attr.proc_pointer = 0;
+      type = build_pointer_type (gfc_get_function_type (sym));
+      sym->attr.proc_pointer = 1;
+      return type;
+    }
+
   if (sym->attr.flavor == FL_PROCEDURE && !sym->attr.function)
     return void_type_node;
 
@@ -1764,7 +1774,7 @@ copy_dt_decls_ifequal (gfc_symbol *from, gfc_symbol *to)
   for (; to_cm; to_cm = to_cm->next, from_cm = from_cm->next)
     {
       to_cm->backend_decl = from_cm->backend_decl;
-      if (!from_cm->pointer && from_cm->ts.type == BT_DERIVED)
+      if (!from_cm->attr.pointer && from_cm->ts.type == BT_DERIVED)
 	gfc_get_derived_type (to_cm->ts.derived);
 
       else if (from_cm->ts.type == BT_CHARACTER)
@@ -1848,7 +1858,7 @@ gfc_get_derived_type (gfc_symbol * derived)
       if (c->ts.type != BT_DERIVED)
 	continue;
 
-      if (!c->pointer || c->ts.derived->backend_decl == NULL)
+      if (!c->attr.pointer || c->ts.derived->backend_decl == NULL)
 	c->ts.derived->backend_decl = gfc_get_derived_type (c->ts.derived);
 
       if (c->ts.derived && c->ts.derived->attr.is_iso_c)
@@ -1893,12 +1903,12 @@ gfc_get_derived_type (gfc_symbol * derived)
 
       /* This returns an array descriptor type.  Initialization may be
          required.  */
-      if (c->dimension)
+      if (c->attr.dimension)
 	{
-	  if (c->pointer || c->allocatable)
+	  if (c->attr.pointer || c->attr.allocatable)
 	    {
 	      enum gfc_array_kind akind;
-	      if (c->pointer)
+	      if (c->attr.pointer)
 		akind = GFC_ARRAY_POINTER;
 	      else
 		akind = GFC_ARRAY_ALLOCATABLE;
@@ -1910,7 +1920,7 @@ gfc_get_derived_type (gfc_symbol * derived)
 	    field_type = gfc_get_nodesc_array_type (field_type, c->as,
 						    PACKED_STATIC);
 	}
-      else if (c->pointer)
+      else if (c->attr.pointer)
 	field_type = build_pointer_type (field_type);
 
       field = gfc_add_field_to_struct (&fieldlist, typenode,
@@ -1934,12 +1944,23 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   gfc_finish_type (typenode);
   gfc_set_decl_location (TYPE_STUB_DECL (typenode), &derived->declared_at);
+  if (derived->module && derived->ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      if (derived->ns->proc_name->backend_decl
+	  && TREE_CODE (derived->ns->proc_name->backend_decl)
+	     == NAMESPACE_DECL)
+	{
+	  TYPE_CONTEXT (typenode) = derived->ns->proc_name->backend_decl;
+	  DECL_CONTEXT (TYPE_STUB_DECL (typenode))
+	    = derived->ns->proc_name->backend_decl;
+	}
+    }
 
   derived->backend_decl = typenode;
 
-    /* Add this backend_decl to all the other, equal derived types.  */
-    for (dt = gfc_derived_types; dt; dt = dt->next)
-      copy_dt_decls_ifequal (derived, dt->derived);
+  /* Add this backend_decl to all the other, equal derived types.  */
+  for (dt = gfc_derived_types; dt; dt = dt->next)
+    copy_dt_decls_ifequal (derived, dt->derived);
 
   return derived->backend_decl;
 }
@@ -2278,7 +2299,10 @@ gfc_get_array_descr_info (const_tree type, struct array_descr_info *info)
   else
     info->base_decl = base_decl = build_decl (VAR_DECL, NULL_TREE, ptype);
 
-  elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
+  if (GFC_TYPE_ARRAY_SPAN (type))
+    elem_size = GFC_TYPE_ARRAY_SPAN (type);
+  else
+    elem_size = fold_convert (gfc_array_index_type, TYPE_SIZE_UNIT (etype));
   field = TYPE_FIELDS (TYPE_MAIN_VARIANT (type));
   data_off = byte_position (field);
   field = TREE_CHAIN (field);

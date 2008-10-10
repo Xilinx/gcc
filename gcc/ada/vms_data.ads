@@ -774,6 +774,17 @@ package VMS_Data is
    --
    --   Use full source locations references in the report file.
 
+   S_Diagnosis   : aliased constant S := "/DIAGNOSIS_LIMIT=#"              &
+                                            "-m#";
+   --        /DIAGNOSIS_LIMIT=500 (D)
+   --        /ERROR_LIMIT=nnn
+   --
+   --   NNN is a decimal integer in the range of 1 to 1000 and limits the
+   --   number of diagnostic messages to be generated into Stdout to that
+   --   number.  Once that number has been reached, gnatcheck stops
+   --   to print out diagnoses into Stderr. If NNN is equal to 0, this means
+   --  that there is no limit on the number of diagnoses in Stdout
+
    S_Check_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="       &
                                              "DEFAULT "                    &
                                                 "-vP0 "                    &
@@ -867,6 +878,7 @@ package VMS_Data is
    Check_Switches : aliased constant Switches :=
                       (S_Check_Add      'Access,
                        S_Check_All      'Access,
+                       S_Diagnosis      'Access,
                        S_Check_Ext      'Access,
                        S_Check_Files    'Access,
                        S_Check_Follow   'Access,
@@ -4866,8 +4878,8 @@ package VMS_Data is
    --
    --   Specifies the syntax element metrics to be computed (if at least one
    --   positive syntax element metric, line metric, complexity or coupling
-   --   metric is specified then only explicitly specified specified syntax
-   --   element metrics are computed and reported)
+   --   metric is specified then only explicitly specified syntax element
+   --   metrics are computed and reported)
    --
    --   option may be one of the following:
    --
@@ -5000,8 +5012,8 @@ package VMS_Data is
 
    --   Specifies the line metrics to be computed (if at least one positive
    --   syntax element metric, line metric, complexity or coupling metric is
-   --   specified then only explicitly specified specified line metrics are
-   --   computed and reported)
+   --   specified then only explicitly specified line metrics are computed
+   --   and reported)
    --
    --   option may be one of the following:
    --
@@ -5055,8 +5067,8 @@ package VMS_Data is
 
    --   Specifies the complexity metrics to be computed (if at least one
    --   positive syntax element metric, line metric, complexity or coupling
-   --   metric is specified then only explicitly specified specified complexity
-   --   metrics are computed and reported)
+   --   metric is specified then only explicitly specified complexity metrics
+   --   are computed and reported)
    --
    --   option may be one of the following:
    --

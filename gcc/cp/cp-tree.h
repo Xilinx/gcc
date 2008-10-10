@@ -48,8 +48,8 @@ extern void cp_cpp_error			(cpp_reader *, int,
      ATTRIBUTE_GCC_CXXDIAG(3,0);
 #ifdef GCC_TOPLEV_H
 #error \
-"In order for the format checking to accept the C++ front end diagnostic\n"
-"framework extensions, you must include this file before toplev.h, not after."
+In order for the format checking to accept the C++ front end diagnostic \
+framework extensions, you must include this file before toplev.h, not after.
 #endif
 #include "toplev.h"
 #include "diagnostic.h"
@@ -116,7 +116,8 @@ extern void cp_cpp_error			(cpp_reader *, int,
    2: Unused
    3: TYPE_FOR_JAVA.
    4: TYPE_HAS_NONTRIVIAL_DESTRUCTOR
-   5: CLASS_TYPE_P.
+   5: CLASS_TYPE_P (in RECORD_TYPE and UNION_TYPE)
+      SCOPED_ENUM_P (in ENUMERAL_TYPE)
    6: TYPE_DEPENDENT_P_VALID
 
    Usage of DECL_LANG_FLAG_?:
@@ -173,9 +174,6 @@ extern void cp_cpp_error			(cpp_reader *, int,
      This is an expression with POINTER_TYPE that gives the value
      to which the vptr should be initialized.  Use get_vtbl_decl_for_binfo
      to extract the VAR_DECL for the complete vtable.
-
-   DECL_ARGUMENTS
-     For a VAR_DECL this is DECL_ANON_UNION_ELEMS.
 
    DECL_VINDEX
      This field is NULL for a non-virtual function.  For a virtual
@@ -980,7 +978,7 @@ enum languages { lang_c, lang_cplusplus, lang_java };
    || TREE_CODE (T) == TYPEOF_TYPE			\
    || TREE_CODE (T) == BOUND_TEMPLATE_TEMPLATE_PARM	\
    || TREE_CODE (T) == DECLTYPE_TYPE			\
-   || TYPE_LANG_FLAG_5 (T))
+   || CLASS_TYPE_P (T))
 
 /* Set CLASS_TYPE_P for T to VAL.  T must be a class, struct, or
    union type.  */
@@ -1628,7 +1626,7 @@ struct lang_decl_flags GTY(())
   unsigned this_thunk_p : 1;
   unsigned repo_available_p : 1;
   unsigned hidden_friend_p : 1;
-  unsigned threadprivate_p : 1;
+  unsigned threadprivate_or_deleted_p : 1;
   unsigned defaulted_p : 1;
 
   union lang_decl_u {
@@ -2644,11 +2642,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Nonzero if DECL has been declared threadprivate by
    #pragma omp threadprivate.  */
 #define CP_DECL_THREADPRIVATE_P(DECL) \
-  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (DECL))->decl_flags.threadprivate_p)
+  (DECL_LANG_SPECIFIC (VAR_DECL_CHECK (DECL))->decl_flags.threadprivate_or_deleted_p)
 
 /* Nonzero if DECL was declared with '= delete'.  */
 #define DECL_DELETED_FN(DECL) \
-  (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->decl_flags.threadprivate_p)
+  (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->decl_flags.threadprivate_or_deleted_p)
 
 /* Nonzero if DECL was declared with '= default'.  */
 #define DECL_DEFAULTED_FN(DECL) \
@@ -2688,6 +2686,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define INTEGRAL_OR_ENUMERATION_TYPE_P(TYPE) \
    (TREE_CODE (TYPE) == ENUMERAL_TYPE || CP_INTEGRAL_TYPE_P (TYPE))
 
+/* Returns true if TYPE is an integral or unscoped enumeration type.  */
+#define INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P(TYPE) \
+   (UNSCOPED_ENUM_P (TYPE) || CP_INTEGRAL_TYPE_P (TYPE))
+
 /* [basic.fundamental]
 
    Integral and floating types are collectively called arithmetic
@@ -2713,6 +2715,59 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    || ARITHMETIC_TYPE_P (TYPE)			\
    || TYPE_PTR_P (TYPE)				\
    || TYPE_PTRMEMFUNC_P (TYPE))
+
+/* Determines whether this type is a C++0x scoped enumeration
+   type. Scoped enumerations types are introduced via "enum class" or
+   "enum struct", e.g.,
+
+     enum class Color {
+       Red, Green, Blue
+     };
+
+   Scoped enumeration types are different from normal (unscoped)
+   enumeration types in several ways:
+   
+     - The enumerators of a scoped enumeration type are only available
+       within the scope of the enumeration type and not in the
+       enclosing scope. For example, the Red color can be referred to
+       with "Color::Red" but not "Red".
+
+     - Scoped enumerators and enumerations do not implicitly convert
+       to integers or 'bool'.
+
+     - The underlying type of the enum is well-defined.  */
+#define SCOPED_ENUM_P(TYPE)                                             \
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && TYPE_LANG_FLAG_5 (TYPE))
+
+/* Determine whether this is an unscoped enumeration type.  */
+#define UNSCOPED_ENUM_P(TYPE)                                           \
+  (TREE_CODE (TYPE) == ENUMERAL_TYPE && !TYPE_LANG_FLAG_5 (TYPE))
+
+/* Set the flag indicating whether an ENUMERAL_TYPE is a C++0x scoped
+   enumeration type (1) or a normal (unscoped) enumeration type
+   (0).  */
+#define SET_SCOPED_ENUM_P(TYPE, VAL)                    \
+  (TYPE_LANG_FLAG_5 (ENUMERAL_TYPE_CHECK (TYPE)) = (VAL))
+
+/* Returns the underlying type of the given enumeration type. The
+   underlying type is determined in different ways, depending on the
+   properties of the enum:
+
+     - In C++0x, the underlying type can be explicitly specified, e.g.,
+
+         enum E1 : char { ... } // underlying type is char
+
+     - In a C++0x scoped enumeration, the underlying type is int
+       unless otherwises specified:
+
+         enum class E2 { ... } // underlying type is int
+
+     - Otherwise, the underlying type is determined based on the
+       values of the enumerators. In this case, the
+       ENUM_UNDERLYING_TYPE will not be set until after the definition
+       of the enumeration is completed by finish_enum.  */
+#define ENUM_UNDERLYING_TYPE(TYPE) \
+  TREE_TYPE (ENUMERAL_TYPE_CHECK (TYPE))
 
 /* [dcl.init.aggr]
 
@@ -3805,6 +3860,12 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, OP_FLAG, TYPENAME_FLAG };
 #define SF_INCLASS_INLINE    2  /* The function is an inline, defined
 				   in the class body.  */
 
+/* Used with start_decl's initialized parameter.  */
+#define SD_UNINITIALIZED     0
+#define SD_INITIALIZED       1
+#define SD_DEFAULTED         2
+#define SD_DELETED           3
+
 /* Returns nonzero iff TYPE1 and TYPE2 are the same type, or if TYPE2
    is derived from TYPE1, or if TYPE2 is a pointer (reference) to a
    class derived from the type pointed to (referred to) by TYPE1.  */
@@ -4028,7 +4089,7 @@ struct cp_declarator {
   /* For all but cdk_id and cdk_error, the contained declarator.  For
      cdk_id and cdk_error, guaranteed to be NULL.  */
   cp_declarator *declarator;
-  location_t id_loc; /* Currently only set for cdk_id. */
+  location_t id_loc; /* Currently only set for cdk_id and cdk_function. */
   union {
     /* For identifiers.  */
     struct {
@@ -4044,12 +4105,14 @@ struct cp_declarator {
     } id;
     /* For functions.  */
     struct {
-      /* The parameters to the function.  */
-      cp_parameter_declarator *parameters;
+      /* The parameters to the function as a TREE_LIST of decl/default.  */
+      tree parameters;
       /* The cv-qualifiers for the function.  */
       cp_cv_quals qualifiers;
       /* The exception-specification for the function.  */
       tree exception_specification;
+      /* The late-specified return type, if any.  */
+      tree late_return_type;
     } function;
     /* For arrays.  */
     struct {
@@ -4272,9 +4335,10 @@ extern bool grok_op_properties			(tree, bool);
 extern tree xref_tag				(enum tag_types, tree, tag_scope, bool);
 extern tree xref_tag_from_type			(tree, tree, tag_scope);
 extern bool xref_basetypes			(tree, tree);
-extern tree start_enum				(tree);
+extern tree start_enum				(tree, tree, bool);
 extern void finish_enum				(tree);
 extern void build_enumerator			(tree, tree, tree);
+extern tree lookup_enumerator			(tree, tree);
 extern void start_preparsed_function		(tree, tree, int);
 extern int start_function			(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern tree begin_function_body			(void);
@@ -4305,6 +4369,7 @@ extern tree register_dtor_fn			(tree);
 extern tmpl_spec_kind current_tmpl_spec_kind	(int);
 extern tree cp_fname_init			(const char *, tree *);
 extern tree cxx_builtin_function		(tree decl);
+extern tree cxx_builtin_function_ext_scope	(tree decl);
 extern tree check_elaborated_type_specifier	(enum tag_types, tree, bool);
 extern void warn_extern_redeclared_static	(tree, tree);
 extern const char *cxx_comdat_group		(tree);
@@ -4312,6 +4377,9 @@ extern bool cp_missing_noreturn_ok_p		(tree);
 extern void initialize_artificial_var		(tree, tree);
 extern tree check_var_type			(tree, tree);
 extern tree reshape_init (tree, tree);
+
+extern bool defer_mark_used_calls;
+extern GTY(()) VEC(tree, gc) *deferred_mark_used_calls;
 
 /* in decl2.c */
 extern bool check_java_method			(tree);
@@ -4462,6 +4530,11 @@ extern void end_specialization			(void);
 extern void begin_explicit_instantiation	(void);
 extern void end_explicit_instantiation		(void);
 extern tree check_explicit_specialization	(tree, tree, int, int);
+extern tree make_auto				(void);
+extern tree do_auto_deduction			(tree, tree, tree);
+extern tree type_uses_auto			(tree);
+extern tree splice_late_return_type		(tree, tree);
+extern bool is_auto				(const_tree);
 extern tree process_template_parm		(tree, tree, bool, bool);
 extern tree end_template_parm_list		(tree);
 extern void end_template_decl			(void);
@@ -4844,7 +4917,7 @@ extern tree build_x_indirect_ref		(tree, const char *,
                                                  tsubst_flags_t);
 extern tree cp_build_indirect_ref		(tree, const char *,
                                                  tsubst_flags_t);
-extern tree build_array_ref			(tree, tree);
+extern tree build_array_ref			(tree, tree, location_t);
 extern tree get_member_function_from_ptrfunc	(tree *, tree);
 extern tree cp_build_function_call              (tree, tree, tsubst_flags_t);
 extern tree build_x_binary_op			(enum tree_code, tree,
@@ -4890,7 +4963,8 @@ extern tree composite_pointer_type		(tree, tree, tree, tree,
 						 const char*, tsubst_flags_t);
 extern tree merge_types				(tree, tree);
 extern tree check_return_expr			(tree, bool *);
-extern tree cp_build_binary_op                  (enum tree_code, tree, tree,
+extern tree cp_build_binary_op                  (location_t,
+						 enum tree_code, tree, tree,
 						 tsubst_flags_t);
 #define cxx_sizeof(T)  cxx_sizeof_or_alignof_type (T, SIZEOF_EXPR, true)
 extern tree build_ptrmemfunc_access_expr	(tree, tree);

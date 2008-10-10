@@ -314,6 +314,8 @@ match_array_element_spec (gfc_array_spec *as)
     gfc_error ("Expected expression in array specification at %C");
   if (m != MATCH_YES)
     return AS_UNKNOWN;
+  if (gfc_expr_check_typed (*upper, gfc_current_ns, false) == FAILURE)
+    return AS_UNKNOWN;
 
   if (gfc_match_char (':') == MATCH_NO)
     {
@@ -332,6 +334,8 @@ match_array_element_spec (gfc_array_spec *as)
     return AS_UNKNOWN;
   if (m == MATCH_NO)
     return AS_ASSUMED_SHAPE;
+  if (gfc_expr_check_typed (*upper, gfc_current_ns, false) == FAILURE)
+    return AS_UNKNOWN;
 
   return AS_EXPLICIT;
 }
@@ -2069,14 +2073,13 @@ gfc_array_size (gfc_expr *array, mpz_t *result)
 {
   expand_info expand_save;
   gfc_ref *ref;
-  int i, flag;
+  int i;
   gfc_try t;
 
   switch (array->expr_type)
     {
     case EXPR_ARRAY:
-      flag = gfc_suppress_error;
-      gfc_suppress_error = 1;
+      gfc_push_suppress_errors ();
 
       expand_save = current_expand;
 
@@ -2087,7 +2090,8 @@ gfc_array_size (gfc_expr *array, mpz_t *result)
       iter_stack = NULL;
 
       t = expand_constructor (array->value.constructor);
-      gfc_suppress_error = flag;
+
+      gfc_pop_suppress_errors ();
 
       if (t == FAILURE)
 	mpz_clear (*result);

@@ -307,7 +307,7 @@ package System.OS_Lib is
       Append);
       --  If the target file exists, the contents of the source file is
       --  appended at the end. Otherwise the source file is just copied. The
-      --  time stamps and other file attributes are are preserved if the
+      --  time stamps and other file attributes are preserved if the
       --  destination file does not exist.
 
    type Attribute is
@@ -719,12 +719,12 @@ package System.OS_Lib is
    --  "Spawn" should not be used in tasking applications.
 
    procedure Spawn
-     (Program_Name  : String;
-      Args          : Argument_List;
-      Output_File   : String;
-      Success       : out Boolean;
-      Return_Code   : out Integer;
-      Err_To_Out    : Boolean := True);
+     (Program_Name : String;
+      Args         : Argument_List;
+      Output_File  : String;
+      Success      : out Boolean;
+      Return_Code  : out Integer;
+      Err_To_Out   : Boolean := True);
    --  Similar to the procedure above, but saves the output of the command to
    --  a file with the name Output_File.
    --

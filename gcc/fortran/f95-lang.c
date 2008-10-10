@@ -99,6 +99,7 @@ int global_bindings_p (void);
 static void clear_binding_stack (void);
 static void gfc_be_parse_file (int);
 static alias_set_type gfc_get_alias_set (tree);
+static void gfc_init_ts (void);
 
 #undef LANG_HOOKS_NAME
 #undef LANG_HOOKS_INIT
@@ -112,6 +113,7 @@ static alias_set_type gfc_get_alias_set (tree);
 #undef LANG_HOOKS_TYPE_FOR_MODE
 #undef LANG_HOOKS_TYPE_FOR_SIZE
 #undef LANG_HOOKS_GET_ALIAS_SET
+#undef LANG_HOOKS_INIT_TS
 #undef LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE
 #undef LANG_HOOKS_OMP_PREDETERMINED_SHARING
 #undef LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR
@@ -134,10 +136,11 @@ static alias_set_type gfc_get_alias_set (tree);
 #define LANG_HOOKS_POST_OPTIONS		gfc_post_options
 #define LANG_HOOKS_PRINT_IDENTIFIER     gfc_print_identifier
 #define LANG_HOOKS_PARSE_FILE           gfc_be_parse_file
-#define LANG_HOOKS_MARK_ADDRESSABLE        gfc_mark_addressable
-#define LANG_HOOKS_TYPE_FOR_MODE           gfc_type_for_mode
-#define LANG_HOOKS_TYPE_FOR_SIZE           gfc_type_for_size
-#define LANG_HOOKS_GET_ALIAS_SET	   gfc_get_alias_set
+#define LANG_HOOKS_MARK_ADDRESSABLE	gfc_mark_addressable
+#define LANG_HOOKS_TYPE_FOR_MODE	gfc_type_for_mode
+#define LANG_HOOKS_TYPE_FOR_SIZE	gfc_type_for_size
+#define LANG_HOOKS_GET_ALIAS_SET	gfc_get_alias_set
+#define LANG_HOOKS_INIT_TS		gfc_init_ts
 #define LANG_HOOKS_OMP_PRIVATIZE_BY_REFERENCE	gfc_omp_privatize_by_reference
 #define LANG_HOOKS_OMP_PREDETERMINED_SHARING	gfc_omp_predetermined_sharing
 #define LANG_HOOKS_OMP_CLAUSE_DEFAULT_CTOR	gfc_omp_clause_default_ctor
@@ -427,14 +430,8 @@ poplevel (int keep, int reverse, int functionbody)
   current_binding_level = current_binding_level->level_chain;
 
   if (functionbody)
-    {
-      /* This is the top level block of a function. The ..._DECL chain stored
-         in BLOCK_VARS are the function's parameters (PARM_DECL nodes). Don't
-         leave them in the BLOCK because they are found in the FUNCTION_DECL
-         instead.  */
-      DECL_INITIAL (current_function_decl) = block_node;
-      BLOCK_VARS (block_node) = 0;
-    }
+    /* This is the top level block of a function. */
+    DECL_INITIAL (current_function_decl) = block_node;
   else if (current_binding_level == global_binding_level)
     /* When using gfc_start_block/gfc_finish_block from middle-end hooks,
        don't add newly created BLOCKs as subblocks of global_binding_level.  */
@@ -604,7 +601,7 @@ gfc_mark_addressable (tree exp)
 		       IDENTIFIER_POINTER (DECL_NAME (x)));
 		return false;
 	      }
-	    pedwarn (0, "register variable %qs used in nested function",
+	    pedwarn (input_location, 0, "register variable %qs used in nested function",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 	else if (DECL_REGISTER (x) && !TREE_ADDRESSABLE (x))
@@ -629,7 +626,7 @@ gfc_mark_addressable (tree exp)
 	      }
 #endif
 
-	    pedwarn (0, "address of register variable %qs requested",
+	    pedwarn (input_location, 0, "address of register variable %qs requested",
 		     IDENTIFIER_POINTER (DECL_NAME (x)));
 	  }
 
@@ -1000,6 +997,37 @@ gfc_init_builtin_functions (void)
 		          BUILT_IN_SINCOSF, "sincosf", false);
     }
 
+  /* For LEADZ / TRAILZ.  */
+  tmp = tree_cons (NULL_TREE, unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clz", ftype, BUILT_IN_CLZ,
+		      "__builtin_clz", true);
+
+  tmp = tree_cons (NULL_TREE, long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clzl", ftype, BUILT_IN_CLZL,
+		      "__builtin_clzl", true);
+
+  tmp = tree_cons (NULL_TREE, long_long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clzll", ftype, BUILT_IN_CLZLL,
+		      "__builtin_clzll", true);
+
+  tmp = tree_cons (NULL_TREE, unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctz", ftype, BUILT_IN_CTZ,
+		      "__builtin_ctz", true);
+
+  tmp = tree_cons (NULL_TREE, long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctzl", ftype, BUILT_IN_CTZL,
+		      "__builtin_ctzl", true);
+
+  tmp = tree_cons (NULL_TREE, long_long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctzll", ftype, BUILT_IN_CTZLL,
+		      "__builtin_ctzll", true);
+
   /* Other builtin functions we use.  */
 
   tmp = tree_cons (NULL_TREE, long_integer_type_node, void_list_node);
@@ -1188,6 +1216,16 @@ gfc_init_builtin_functions (void)
 
 #undef DEFINE_MATH_BUILTIN_C
 #undef DEFINE_MATH_BUILTIN
+
+static void
+gfc_init_ts (void)
+{
+  tree_contains_struct[NAMESPACE_DECL][TS_DECL_NON_COMMON] = 1;
+  tree_contains_struct[NAMESPACE_DECL][TS_DECL_WITH_VIS] = 1;
+  tree_contains_struct[NAMESPACE_DECL][TS_DECL_WRTL] = 1;
+  tree_contains_struct[NAMESPACE_DECL][TS_DECL_COMMON] = 1;
+  tree_contains_struct[NAMESPACE_DECL][TS_DECL_MINIMAL] = 1;
+}
 
 #include "gt-fortran-f95-lang.h"
 #include "gtype-fortran.h"

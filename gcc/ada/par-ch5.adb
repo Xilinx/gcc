@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1067,7 +1067,7 @@ package body Ch5 is
       --  scanned out and is in Prev_Token.
 
       procedure Check_If_Column;
-      --  An internal procedure used to check that THEN, ELSE ELSE, or ELSIF
+      --  An internal procedure used to check that THEN, ELSE, or ELSIF
       --  appear in the right place if column checking is enabled (i.e. if
       --  they are the first token on the line, then they must appear in
       --  the same column as the opening IF).

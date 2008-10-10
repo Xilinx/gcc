@@ -253,6 +253,82 @@ static bool called_as_built_in (tree node)
   return false;
 }
 
+/* Return the alignment in bits of EXP, an object.
+   Don't return more than MAX_ALIGN no matter what, ALIGN is the inital
+   guessed alignment e.g. from type alignment.  */
+
+int
+get_object_alignment (tree exp, unsigned int align, unsigned int max_align)
+{
+  unsigned int inner;
+
+  inner = max_align;
+  if (handled_component_p (exp))
+   {
+      HOST_WIDE_INT bitsize, bitpos;
+      tree offset;
+      enum machine_mode mode; 
+      int unsignedp, volatilep;
+
+      exp = get_inner_reference (exp, &bitsize, &bitpos, &offset,
+				 &mode, &unsignedp, &volatilep, true);
+      if (bitpos)
+	inner = MIN (inner, (unsigned) (bitpos & -bitpos));
+      while (offset)
+	{
+	  tree next_offset;
+
+	  if (TREE_CODE (offset) == PLUS_EXPR)
+	    {
+	      next_offset = TREE_OPERAND (offset, 0);
+	      offset = TREE_OPERAND (offset, 1);
+	    }
+	  else
+	    next_offset = NULL;
+	  if (host_integerp (offset, 1))
+	    {
+	      /* Any overflow in calculating offset_bits won't change
+		 the alignment.  */
+	      unsigned offset_bits
+		= ((unsigned) tree_low_cst (offset, 1) * BITS_PER_UNIT);
+
+	      if (offset_bits)
+		inner = MIN (inner, (offset_bits & -offset_bits));
+	    }
+	  else if (TREE_CODE (offset) == MULT_EXPR
+		   && host_integerp (TREE_OPERAND (offset, 1), 1))
+	    {
+	      /* Any overflow in calculating offset_factor won't change
+		 the alignment.  */
+	      unsigned offset_factor
+		= ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
+		   * BITS_PER_UNIT);
+
+	      if (offset_factor)
+		inner = MIN (inner, (offset_factor & -offset_factor));
+	    }
+	  else
+	    {
+	      inner = MIN (inner, BITS_PER_UNIT);
+	      break;
+	    }
+	  offset = next_offset;
+	}
+    }
+  if (DECL_P (exp))
+    align = MIN (inner, DECL_ALIGN (exp));
+#ifdef CONSTANT_ALIGNMENT
+  else if (CONSTANT_CLASS_P (exp))
+    align = MIN (inner, (unsigned)CONSTANT_ALIGNMENT (exp, align));
+#endif
+  else if (TREE_CODE (exp) == VIEW_CONVERT_EXPR
+	   || TREE_CODE (exp) == INDIRECT_REF)
+    align = MIN (TYPE_ALIGN (TREE_TYPE (exp)), inner);
+  else
+    align = MIN (align, inner);
+  return MIN (align, max_align);
+}
+
 /* Return the alignment in bits of EXP, a pointer valued expression.
    But don't return more than MAX_ALIGN no matter what.
    The alignment returned is, by default, the alignment of the thing that
@@ -306,59 +382,7 @@ get_pointer_alignment (tree exp, unsigned int max_align)
 
 	case ADDR_EXPR:
 	  /* See what we are pointing at and look at its alignment.  */
-	  exp = TREE_OPERAND (exp, 0);
-	  inner = max_align;
-	  if (handled_component_p (exp))
-	    {
-	      HOST_WIDE_INT bitsize, bitpos;
-	      tree offset;
-	      enum machine_mode mode; 
-	      int unsignedp, volatilep;
-
-	      exp = get_inner_reference (exp, &bitsize, &bitpos, &offset,
-					 &mode, &unsignedp, &volatilep, true);
-	      if (bitpos)
-		inner = MIN (inner, (unsigned) (bitpos & -bitpos));
-	      if (offset && TREE_CODE (offset) == PLUS_EXPR
-		  && host_integerp (TREE_OPERAND (offset, 1), 1))
-	        {
-		  /* Any overflow in calculating offset_bits won't change
-		     the alignment.  */
-		  unsigned offset_bits
-		    = ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
-		       * BITS_PER_UNIT);
-
-		  if (offset_bits)
-		    inner = MIN (inner, (offset_bits & -offset_bits));
-		  offset = TREE_OPERAND (offset, 0);
-		}
-	      if (offset && TREE_CODE (offset) == MULT_EXPR
-		  && host_integerp (TREE_OPERAND (offset, 1), 1))
-	        {
-		  /* Any overflow in calculating offset_factor won't change
-		     the alignment.  */
-		  unsigned offset_factor
-		    = ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
-		       * BITS_PER_UNIT);
-
-		  if (offset_factor)
-		    inner = MIN (inner, (offset_factor & -offset_factor));
-		}
-	      else if (offset)
-		inner = MIN (inner, BITS_PER_UNIT);
-	    }
-	  if (DECL_P (exp))
-	    align = MIN (inner, DECL_ALIGN (exp));
-#ifdef CONSTANT_ALIGNMENT
-	  else if (CONSTANT_CLASS_P (exp))
-	    align = MIN (inner, (unsigned)CONSTANT_ALIGNMENT (exp, align));
-#endif
-	  else if (TREE_CODE (exp) == VIEW_CONVERT_EXPR
-		   || TREE_CODE (exp) == INDIRECT_REF)
-	    align = MIN (TYPE_ALIGN (TREE_TYPE (exp)), inner);
-	  else
-	    align = MIN (align, inner);
-	  return MIN (align, max_align);
+	  return get_object_alignment (TREE_OPERAND (exp, 0), align, max_align);
 
 	default:
 	  return align;
@@ -4933,14 +4957,14 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       if (!gave_help && warned)
 	{
 	  gave_help = true;
-	  inform ("(so you should pass %qT not %qT to %<va_arg%>)",
+	  inform (input_location, "(so you should pass %qT not %qT to %<va_arg%>)",
 		   promoted_type, type);
 	}
 
       /* We can, however, treat "undefined" any way we please.
 	 Call abort to encourage the user to fix the program.  */
       if (warned)
-	inform ("if this code is reached, the program will abort");
+	inform (input_location, "if this code is reached, the program will abort");
       t = build_call_expr (implicit_built_in_decls[BUILT_IN_TRAP], 0);
       gimplify_and_add (t, pre_p);
 
@@ -7279,7 +7303,7 @@ fold_builtin_inf (tree type, int warn)
      Thus we pedwarn to ensure this constraint violation is
      diagnosed.  */
   if (!MODE_HAS_INFINITIES (TYPE_MODE (type)) && warn)
-    pedwarn (0, "target format does not support infinity");
+    pedwarn (input_location, 0, "target format does not support infinity");
 
   real_inf (&real);
   return build_real (type, real);
@@ -7515,8 +7539,7 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
 	  && operand_equal_p (real, imag, OEP_PURE_SAME))
         {
 	  const REAL_VALUE_TYPE sqrt2_trunc
-	    = real_value_truncate (TYPE_MODE (type),
-				   *get_real_const (rv_sqrt2));
+	    = real_value_truncate (TYPE_MODE (type), dconst_sqrt2 ());
 	  STRIP_NOPS (real);
 	  return fold_build2 (MULT_EXPR, type,
 			      fold_build1 (ABS_EXPR, type, real),
@@ -7531,7 +7554,7 @@ fold_builtin_cabs (tree arg, tree type, tree fndecl)
 
   /* Don't do this when optimizing for size.  */
   if (flag_unsafe_math_optimizations
-      && optimize && !optimize_size)
+      && optimize && optimize_function_for_speed_p (cfun))
     {
       tree sqrtfn = mathfn_built_in (type, BUILT_IN_SQRT);
 
@@ -7599,7 +7622,7 @@ fold_builtin_sqrt (tree arg, tree type)
 	  tree tree_root;
 	  /* The inner root was either sqrt or cbrt.  */
 	  REAL_VALUE_TYPE dconstroot =
-	    BUILTIN_SQRT_P (fcode) ? dconsthalf : *get_real_const (rv_third);
+	    BUILTIN_SQRT_P (fcode) ? dconsthalf : dconst_third ();
 
 	  /* Adjust for the outer root.  */
 	  SET_REAL_EXP (&dconstroot, REAL_EXP (&dconstroot) - 1);
@@ -7652,7 +7675,7 @@ fold_builtin_cbrt (tree arg, tree type)
 	{
 	  tree expfn = TREE_OPERAND (CALL_EXPR_FN (arg), 0);
 	  const REAL_VALUE_TYPE third_trunc =
-	    real_value_truncate (TYPE_MODE (type), *get_real_const (rv_third));
+	    real_value_truncate (TYPE_MODE (type), dconst_third ());
 	  arg = fold_build2 (MULT_EXPR, type,
 			     CALL_EXPR_ARG (arg, 0),
 			     build_real (type, third_trunc));
@@ -7668,7 +7691,7 @@ fold_builtin_cbrt (tree arg, tree type)
 	    {
 	      tree arg0 = CALL_EXPR_ARG (arg, 0);
 	      tree tree_root;
-	      REAL_VALUE_TYPE dconstroot = *get_real_const (rv_third);
+	      REAL_VALUE_TYPE dconstroot = dconst_third ();
 
 	      SET_REAL_EXP (&dconstroot, REAL_EXP (&dconstroot) - 1);
 	      dconstroot = real_value_truncate (TYPE_MODE (type), dconstroot);
@@ -7691,8 +7714,7 @@ fold_builtin_cbrt (tree arg, tree type)
 		  REAL_VALUE_TYPE dconstroot;
 
 		  real_arithmetic (&dconstroot, MULT_EXPR,
-				   get_real_const (rv_third),
-				   get_real_const (rv_third));
+                                   dconst_third_ptr (), dconst_third_ptr ());
 		  dconstroot = real_value_truncate (TYPE_MODE (type), dconstroot);
 		  tree_root = build_real (type, dconstroot);
 		  return build_call_expr (powfn, 2, arg0, tree_root);
@@ -7711,8 +7733,7 @@ fold_builtin_cbrt (tree arg, tree type)
 	    {
 	      tree powfn = TREE_OPERAND (CALL_EXPR_FN (arg), 0);
 	      const REAL_VALUE_TYPE dconstroot
-		= real_value_truncate (TYPE_MODE (type),
-				       *get_real_const (rv_third));
+		= real_value_truncate (TYPE_MODE (type), dconst_third ());
 	      tree narg01 = fold_build2 (MULT_EXPR, type, arg01,
 					 build_real (type, dconstroot));
 	      return build_call_expr (powfn, 2, arg00, narg01);
@@ -8260,7 +8281,7 @@ fold_builtin_logarithm (tree fndecl, tree arg,
       if (flag_unsafe_math_optimizations && func == mpfr_log)
         {
 	  const REAL_VALUE_TYPE e_truncated =
-	    real_value_truncate (TYPE_MODE (type), *get_real_const (rv_e));
+	    real_value_truncate (TYPE_MODE (type), dconst_e ());
 	  if (real_dconstp (arg, &e_truncated))
 	    return build_real (type, dconst1);
 	}
@@ -8293,9 +8314,8 @@ fold_builtin_logarithm (tree fndecl, tree arg,
 	  {
 	  CASE_FLT_FN (BUILT_IN_EXP):
 	    /* Prepare to do logN(exp(exponent) -> exponent*logN(e).  */
-	    x = build_real (type,
-			    real_value_truncate (TYPE_MODE (type),
-						 *get_real_const (rv_e)));
+	    x = build_real (type, real_value_truncate (TYPE_MODE (type), 
+                                                       dconst_e ()));
 	    exponent = CALL_EXPR_ARG (arg, 0);
 	    break;
 	  CASE_FLT_FN (BUILT_IN_EXP2):
@@ -8322,7 +8342,7 @@ fold_builtin_logarithm (tree fndecl, tree arg,
 	    /* Prepare to do logN(cbrt(x) -> (1/3)*logN(x).  */
 	    x = CALL_EXPR_ARG (arg, 0);
 	    exponent = build_real (type, real_value_truncate (TYPE_MODE (type),
-							      *get_real_const (rv_third)));
+							      dconst_third ()));
 	    break;
 	  CASE_FLT_FN (BUILT_IN_POW):
 	    /* Prepare to do logN(pow(x,exponent) -> exponent*logN(x).  */
@@ -8382,7 +8402,7 @@ fold_builtin_hypot (tree fndecl, tree arg0, tree arg1, tree type)
       && operand_equal_p (arg0, arg1, OEP_PURE_SAME))
     {
       const REAL_VALUE_TYPE sqrt2_trunc
-	= real_value_truncate (TYPE_MODE (type), *get_real_const (rv_sqrt2));
+	= real_value_truncate (TYPE_MODE (type), dconst_sqrt2 ());
       return fold_build2 (MULT_EXPR, type,
 			  fold_build1 (ABS_EXPR, type, arg0),
 			  build_real (type, sqrt2_trunc));
@@ -8448,8 +8468,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
       if (flag_unsafe_math_optimizations)
 	{
 	  const REAL_VALUE_TYPE dconstroot
-	    = real_value_truncate (TYPE_MODE (type),
-				   *get_real_const (rv_third));
+	    = real_value_truncate (TYPE_MODE (type), dconst_third ());
 
 	  if (REAL_VALUES_EQUAL (c, dconstroot))
 	    {
@@ -8464,9 +8483,13 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
       real_from_integer (&cint, VOIDmode, n, n < 0 ? -1 : 0, 0);
       if (real_identical (&c, &cint))
 	{
-	  /* Attempt to evaluate pow at compile-time.  */
+	  /* Attempt to evaluate pow at compile-time, unless this should
+	     raise an exception.  */
 	  if (TREE_CODE (arg0) == REAL_CST
-	      && !TREE_OVERFLOW (arg0))
+	      && !TREE_OVERFLOW (arg0)
+	      && (n > 0
+		  || (!flag_trapping_math && !flag_errno_math)
+		  || !REAL_VALUES_EQUAL (TREE_REAL_CST (arg0), dconst0)))
 	    {
 	      REAL_VALUE_TYPE x;
 	      bool inexact;
@@ -8516,8 +8539,7 @@ fold_builtin_pow (tree fndecl, tree arg0, tree arg1, tree type)
 	  if (tree_expr_nonnegative_p (arg))
 	    {
 	      const REAL_VALUE_TYPE dconstroot
-		= real_value_truncate (TYPE_MODE (type),
-				       *get_real_const (rv_third));
+		= real_value_truncate (TYPE_MODE (type), dconst_third ());
 	      tree narg1 = fold_build2 (MULT_EXPR, type, arg1,
 					build_real (type, dconstroot));
 	      return build_call_expr (fndecl, 2, arg, narg1);
@@ -8888,7 +8910,7 @@ fold_builtin_strcpy (tree fndecl, tree dest, tree src, tree len)
   if (operand_equal_p (src, dest, 0))
     return fold_convert (TREE_TYPE (TREE_TYPE (fndecl)), dest);
 
-  if (optimize_size)
+  if (optimize_function_for_size_p (cfun))
     return NULL_TREE;
 
   fn = implicit_built_in_decls[BUILT_IN_MEMCPY];
@@ -11507,7 +11529,7 @@ fold_builtin_fputs (tree arg0, tree arg1, bool ignore, bool unlocked, tree len)
     case 1: /* length is greater than 1, call fwrite.  */
       {
 	/* If optimizing for size keep fputs.  */
-	if (optimize_size)
+	if (optimize_function_for_size_p (cfun))
 	  return NULL_TREE;
 	/* New argument list transforming fputs(string, stream) to
 	   fwrite(string, 1, len, stream).  */
@@ -11592,6 +11614,17 @@ fold_builtin_next_arg (tree exp, bool va_start_p)
 	     it.  */
 	  warning (0, "second parameter of %<va_start%> not last named argument");
 	}
+
+      /* Undefined by C99 7.15.1.4p4 (va_start):
+         "If the parameter parmN is declared with the register storage
+         class, with a function or array type, or with a type that is
+         not compatible with the type that results after application of
+         the default argument promotions, the behavior is undefined."
+      */
+      else if (DECL_REGISTER (arg))
+        warning (0, "undefined behaviour when second parameter of "
+                 "%<va_start%> is declared with %<register%> storage");
+
       /* We want to verify the second parameter just once before the tree
 	 optimizers are run and then avoid keeping it in the tree,
 	 as otherwise we could warn even for correct code like:

@@ -146,10 +146,8 @@ init_pp_output (FILE *out_stream)
       cb->used_undef = cb_used_undef;
     }
 
-  /* Initialize the print structure.  Setting print.src_line to -1 here is
-     a trick to guarantee that the first token of the file will cause
-     a linemarker to be output by maybe_print_line.  */
-  print.src_line = -1;
+  /* Initialize the print structure.  */
+  print.src_line = 1;
   print.printed = 0;
   print.prev = 0;
   print.outf = out_stream;
@@ -408,6 +406,8 @@ cb_used_define (cpp_reader *pfile, source_location line ATTRIBUTE_UNUSED,
 		cpp_hashnode *node)
 {
   macro_queue *q;
+  if (node->flags & NODE_BUILTIN)
+    return;
   q = XNEW (macro_queue);
   q->macro = xstrdup ((const char *) cpp_macro_definition (pfile, node));
   q->next = define_queue;

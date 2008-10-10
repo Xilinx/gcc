@@ -86,8 +86,8 @@ hppa_fpstore_bypass_p (rtx out_insn, rtx in_insn)
 static void copy_reg_pointer (rtx, rtx);
 static void fix_range (const char *);
 static bool pa_handle_option (size_t, const char *, int);
-static int hppa_address_cost (rtx);
-static bool hppa_rtx_costs (rtx, int, int, int *);
+static int hppa_address_cost (rtx, bool);
+static bool hppa_rtx_costs (rtx, int, int, int *, bool);
 static inline rtx force_mode (enum machine_mode, rtx);
 static void pa_reorg (void);
 static void pa_combine_instructions (void);
@@ -714,8 +714,8 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 
       if (function_label_operand (orig, mode))
 	{
-	  /* Force function label into memory.  */
-	  orig = XEXP (force_const_mem (mode, orig), 0);
+	  /* Force function label into memory in word mode.  */
+	  orig = XEXP (force_const_mem (word_mode, orig), 0);
 	  /* Load plabel address from DLT.  */
 	  emit_move_insn (tmp_reg,
 			  gen_rtx_PLUS (word_mode, pic_offset_table_rtx,
@@ -1279,7 +1279,8 @@ hppa_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
    as GO_IF_LEGITIMATE_ADDRESS.  */
 
 static int
-hppa_address_cost (rtx X)
+hppa_address_cost (rtx X,
+		   bool speed ATTRIBUTE_UNUSED)
 {
   switch (GET_CODE (X))
     {
@@ -1299,7 +1300,8 @@ hppa_address_cost (rtx X)
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-hppa_rtx_costs (rtx x, int code, int outer_code, int *total)
+hppa_rtx_costs (rtx x, int code, int outer_code, int *total,
+		bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {

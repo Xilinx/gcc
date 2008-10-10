@@ -1,3 +1,58 @@
+2008-10-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* objc-act.c (objc_build_string_object): Pass location to
+	build_unary_op.
+	(init_def_list): Same.
+	(init_objc_symtab): Same.
+	(init_module_descriptor): Same.
+	(build_module_initializer_routine): Same.
+	(generate_static_references): Same.
+	(build_typed_selector_reference): Same.
+	(add_objc_string): Same.
+	(objc_substitute_decl): Same.
+	(objc_build_ivar_assignment): Same.
+	(objc_build_global_assignment): Same.
+	(objc_build_strong_cast_assignment): Same.
+	(generate_protocols): Same.
+	(build_protocol_initializer): Same.
+	(build_dispatch_table_initializer): Same.
+	(generate_protocol_list): Same.
+	(build_category_initializer): Same.
+	(build_shared_structure_initializer): Same.
+	(generate_shared_structures): Same.
+	(objc_build_protocol_expr): Same.
+	(build_ivar_reference): Same.
+	(get_super_receiver): Same.
+
+2008-09-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* objc-act.c (next_sjlj_build_enter_and_setjmp): Call
+	c_common_truthvalue_conversion with location.
+	(next_sjlj_build_catch_list): Same.
+	(next_sjlj_build_try_catch_finally): Same.
+
+2008-09-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR objc/37460
+	* objc-lang.c (LANG_HOOKS_GET_CALLEE_FNDECL): Don't define.
+	* objc-act.h (objc_get_callee_fndecl): Remove prototype.
+	* objc-act.c (objc_get_callee_fndecl): Kill.
+
+2008-09-17  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/18071
+	* objc/objc-act.c (objc_finish_method_definition): Do not set
+	DECL_INLINE.
+
+2008-09-01  Aldy Hernandez  <aldyh@redhat.com>
+
+	* objc-act.c (build_typed_selector_reference): Pass input_location to
+	build_unary_op calls.
+	(build_selector_reference): Same, but to build_array_ref.
+	(objc_substitute_decl): Same.
+	(build_ivar_reference): Same, but to build_indirect_ref.
+	(get_super_receiver): Same.
+
 2008-07-28  Richard Guenther  <rguenther@suse.de>
 
 	Merge from gimple-tuples-branch.
@@ -33,7 +88,7 @@
 	PR objc++/36723
 	* objc-act.c (objc_build_constructor): Update C++ tweak.
 
-2007-07-14  Rafael Avila de Espindola  <espindola@google.com>
+2007-07-14  Rafael √Åvila de Esp√≠ndola  <espindola@google.com>
 
 	* objc-act.c (synth_module_prologue): Use TREE_NO_WARNING instead
 	of DECL_IN_SYSTEM_HEADER.
@@ -166,7 +221,7 @@
 	* objc-act.c (objc_finish_file): Remove ifdef clause for OBJCPLUS and
 	content where we called cp_finish_file.
 
-2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+2006-10-23 Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* objc-act.c (synth_module_prologue): Replace calls to
 	builtin_function with add_builtin_function.
@@ -219,7 +274,7 @@
 	module descriptor.
 	(gen_type_name_0): Fix ICE when issuing warning.
 
-2006-02-20 Rafael ¡vila de EspÌndola <rafael.espindola@gmail.com>
+2006-02-20 Rafael √Åvila de Esp√≠ndola <rafael.espindola@gmail.com>
 	* Make-lang.in (OBJC): Remove
 	(OBJECTIVE-C): Remove
 	(objective-c): Remove
@@ -236,11 +291,11 @@
 	PR objc/25348
 	* objc-act.c (encode_array): Handle arrays to zero sized types.
 
-2005-12-07  Rafael ¡vila de EspÌndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in (objc.all.build, objc.install-normal): Remove.
 
-2005-12-07  Rafael ¡vila de EspÌndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in: Remove all dependencies on s-gtype.
 

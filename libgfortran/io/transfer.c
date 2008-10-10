@@ -264,7 +264,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
 	  /* Without padding, terminate the I/O statement without assigning
 	     the value.  With padding, the value still needs to be assigned,
 	     so we can just continue with a short read.  */
-	  if (dtp->u.p.pad_status == PAD_NO)
+	  if (dtp->u.p.current_unit->pad_status == PAD_NO)
 	    {
 	      if (no_error)
 		break;
@@ -329,10 +329,10 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 	   to unit record length and proceed, otherwise error.  */
 	  if (dtp->u.p.current_unit->unit_number == options.stdin_unit
 	      && dtp->u.p.current_unit->recl == DEFAULT_RECL)
-          dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
+            dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
 	  else
 	    {
-	      if (dtp->u.p.pad_status == PAD_NO)
+	      if (dtp->u.p.current_unit->pad_status == PAD_NO)
 		{
 		  /* Not enough data left.  */
 		  generate_error (&dtp->common, LIBERROR_EOR, NULL);
@@ -379,7 +379,7 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 
   if (nread != *nbytes)
     {				/* Short read, this shouldn't happen.  */
-      if (dtp->u.p.pad_status == PAD_YES)
+      if (dtp->u.p.current_unit->pad_status == PAD_YES)
 	*nbytes = nread;
       else
 	{
@@ -738,8 +738,8 @@ unformatted_read (st_parameter_dt *dtp, bt type,
 {
   size_t i, sz;
 
-  if (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE
-      || size == 1)
+  if (likely (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE)
+      || kind == 1)
     {
       sz = size * nelems;
       if (type == BT_CHARACTER)
@@ -789,8 +789,8 @@ static void
 unformatted_write (st_parameter_dt *dtp, bt type,
 		   void *source, int kind, size_t size, size_t nelems)
 {
-  if (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE ||
-      size == 1)
+  if (likely (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE) 
+      || kind == 1)
     {
       size_t stride = type == BT_CHARACTER ?
 		  size * GFC_SIZE_OF_CHAR_KIND(kind) : size;
@@ -950,7 +950,9 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
   /* Set this flag so that commas in reads cause the read to complete before
      the entire field has been read.  The next read field will start right after
      the comma in the stream.  (Set to 0 for character reads).  */
-  dtp->u.p.sf_read_comma = dtp->u.p.decimal_status == DECIMAL_COMMA ? 0 : 1;
+  dtp->u.p.sf_read_comma =
+    dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA ? 0 : 1;
+
   dtp->u.p.line_buffer = scratch;
 
   for (;;)
@@ -1213,7 +1215,12 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 		break;
 	      case BT_REAL:
 		if (f->u.real.w == 0)
-		  write_real (dtp, p, kind);
+		  {
+		    if (f->u.real.d == 0)
+		      write_real (dtp, p, kind);
+		    else
+		      write_real_g0 (dtp, p, kind, f->u.real.d);
+		  }
 		else
 		  write_d (dtp, f, p, kind);
 		break;
@@ -1363,12 +1370,12 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 
 	case FMT_DC:
 	  consume_data_flag = 0;
-	  dtp->u.p.decimal_status = DECIMAL_COMMA;
+	  dtp->u.p.current_unit->decimal_status = DECIMAL_COMMA;
 	  break;
 
 	case FMT_DP:
 	  consume_data_flag = 0;
-	  dtp->u.p.decimal_status = DECIMAL_POINT;
+	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
 	  break;
 
 	case FMT_P:
@@ -1815,7 +1822,13 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   namelist_info *ionml;
 
   ionml = ((cf & IOPARM_DT_IONML_SET) != 0) ? dtp->u.p.ionml : NULL;
-  memset (&dtp->u.p, 0, sizeof (dtp->u.p));
+
+  /* To maintain ABI, &transfer is the start of the private memory area in
+     in st_parameter_dt.  Memory from the beginning of the structure to this
+     point is set by the front end and must not be touched.  The number of
+     bytes to clear must stay within the sizeof q to avoid over-writing.  */
+  memset (&dtp->u.p.transfer, 0, sizeof (dtp->u.q));
+
   dtp->u.p.ionml = ionml;
   dtp->u.p.mode = read_flag ? READING : WRITING;
 
@@ -1831,60 +1844,61 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
      st_parameter_open opp;
      unit_convert conv;
 
-     if (dtp->common.unit < 0)
-     {
-       close_unit (dtp->u.p.current_unit);
-       dtp->u.p.current_unit = NULL;
-       generate_error (&dtp->common, LIBERROR_BAD_OPTION,
-		       "Bad unit number in OPEN statement");
-       return;
-     }
-     memset (&u_flags, '\0', sizeof (u_flags));
-     u_flags.access = ACCESS_SEQUENTIAL;
-     u_flags.action = ACTION_READWRITE;
+    if (dtp->common.unit < 0)
+      {
+	close_unit (dtp->u.p.current_unit);
+	dtp->u.p.current_unit = NULL;
+	generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			"Bad unit number in OPEN statement");
+	return;
+      }
+    memset (&u_flags, '\0', sizeof (u_flags));
+    u_flags.access = ACCESS_SEQUENTIAL;
+    u_flags.action = ACTION_READWRITE;
 
-     /* Is it unformatted?  */
-     if (!(cf & (IOPARM_DT_HAS_FORMAT | IOPARM_DT_LIST_FORMAT
-		 | IOPARM_DT_IONML_SET)))
-       u_flags.form = FORM_UNFORMATTED;
-     else
-       u_flags.form = FORM_UNSPECIFIED;
+    /* Is it unformatted?  */
+    if (!(cf & (IOPARM_DT_HAS_FORMAT | IOPARM_DT_LIST_FORMAT
+		| IOPARM_DT_IONML_SET)))
+      u_flags.form = FORM_UNFORMATTED;
+    else
+      u_flags.form = FORM_UNSPECIFIED;
 
-     u_flags.delim = DELIM_UNSPECIFIED;
-     u_flags.blank = BLANK_UNSPECIFIED;
-     u_flags.pad = PAD_UNSPECIFIED;
-     u_flags.decimal = DECIMAL_UNSPECIFIED;
-     u_flags.encoding = ENCODING_UNSPECIFIED;
-     u_flags.async = ASYNC_UNSPECIFIED;
-     u_flags.round = ROUND_UNSPECIFIED;
-     u_flags.sign = SIGN_UNSPECIFIED;
-     u_flags.status = STATUS_UNKNOWN;
+    u_flags.delim = DELIM_UNSPECIFIED;
+    u_flags.blank = BLANK_UNSPECIFIED;
+    u_flags.pad = PAD_UNSPECIFIED;
+    u_flags.decimal = DECIMAL_UNSPECIFIED;
+    u_flags.encoding = ENCODING_UNSPECIFIED;
+    u_flags.async = ASYNC_UNSPECIFIED;
+    u_flags.round = ROUND_UNSPECIFIED;
+    u_flags.sign = SIGN_UNSPECIFIED;
 
-     conv = get_unformatted_convert (dtp->common.unit);
+    u_flags.status = STATUS_UNKNOWN;
 
-     if (conv == GFC_CONVERT_NONE)
-       conv = compile_options.convert;
+    conv = get_unformatted_convert (dtp->common.unit);
 
-     /* We use big_endian, which is 0 on little-endian machines
-	and 1 on big-endian machines.  */
-     switch (conv)
-       {
-       case GFC_CONVERT_NATIVE:
-       case GFC_CONVERT_SWAP:
-	 break;
+    if (conv == GFC_CONVERT_NONE)
+      conv = compile_options.convert;
+
+    /* We use big_endian, which is 0 on little-endian machines
+       and 1 on big-endian machines.  */
+    switch (conv)
+      {
+	case GFC_CONVERT_NATIVE:
+	case GFC_CONVERT_SWAP:
+	  break;
 	 
-       case GFC_CONVERT_BIG:
-	 conv = big_endian ? GFC_CONVERT_NATIVE : GFC_CONVERT_SWAP;
-	 break;
+	case GFC_CONVERT_BIG:
+	  conv = big_endian ? GFC_CONVERT_NATIVE : GFC_CONVERT_SWAP;
+	  break;
       
-       case GFC_CONVERT_LITTLE:
-	 conv = big_endian ? GFC_CONVERT_SWAP : GFC_CONVERT_NATIVE;
-	 break;
+	case GFC_CONVERT_LITTLE:
+	  conv = big_endian ? GFC_CONVERT_SWAP : GFC_CONVERT_NATIVE;
+	  break;
 	 
-       default:
-	 internal_error (&opp.common, "Illegal value for CONVERT");
-	 break;
-       }
+	default:
+	  internal_error (&opp.common, "Illegal value for CONVERT");
+	  break;
+      }
 
      u_flags.convert = conv;
 
@@ -1965,7 +1979,8 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       && (cf & IOPARM_DT_HAS_REC) != 0)
     {
       generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-		      "Record number not allowed for sequential access data transfer");
+		      "Record number not allowed for sequential access "
+		      "data transfer");
       return;
     }
 
@@ -1981,7 +1996,8 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       if (dtp->u.p.current_unit->flags.access == ACCESS_DIRECT)
 	{
 	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-			  "ADVANCE specification conflicts with sequential access");
+			  "ADVANCE specification conflicts with sequential "
+			  "access");
 	  return;
 	}
 
@@ -2013,10 +2029,12 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	  return;
 	}
 
-      if ((cf & IOPARM_DT_HAS_SIZE) != 0 && dtp->u.p.advance_status != ADVANCE_NO)
+      if ((cf & IOPARM_DT_HAS_SIZE) != 0 
+	  && dtp->u.p.advance_status != ADVANCE_NO)
 	{
 	  generate_error (&dtp->common, LIBERROR_MISSING_OPTION,
-			  "SIZE specification requires an ADVANCE specification of NO");
+			  "SIZE specification requires an ADVANCE "
+			  "specification of NO");
 	  return;
 	}
     }
@@ -2025,21 +2043,24 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       if ((cf & IOPARM_END) != 0)
 	{
 	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-			  "END specification cannot appear in a write statement");
+			  "END specification cannot appear in a write "
+			  "statement");
 	  return;
 	}
 
       if ((cf & IOPARM_EOR) != 0)
 	{
 	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-			  "EOR specification cannot appear in a write statement");
+			  "EOR specification cannot appear in a write "
+			  "statement");
 	  return;
 	}
 
       if ((cf & IOPARM_DT_HAS_SIZE) != 0)
 	{
 	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
-			  "SIZE specification cannot appear in a write statement");
+			  "SIZE specification cannot appear in a write "
+			  "statement");
 	  return;
 	}
     }
@@ -2048,51 +2069,52 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
     dtp->u.p.advance_status = ADVANCE_YES;
 
   /* Check the decimal mode.  */
+  dtp->u.p.current_unit->decimal_status
+	= !(cf & IOPARM_DT_HAS_DECIMAL) ? DECIMAL_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->u.p.decimal, dtp->u.p.decimal_len,
+			decimal_opt, "Bad DECIMAL parameter in data transfer "
+			"statement");
 
-  dtp->u.p.decimal_status
-    = !(cf & IOPARM_DT_HAS_DECIMAL) ? DECIMAL_UNSPECIFIED :
-      find_option (&dtp->common, dtp->decimal, dtp->decimal_len, decimal_opt,
-		   "Bad DECIMAL parameter in data transfer statement");
-
-  if (dtp->u.p.decimal_status == DECIMAL_UNSPECIFIED)
-    dtp->u.p.decimal_status = dtp->u.p.current_unit->flags.decimal;
+  if (dtp->u.p.current_unit->decimal_status == DECIMAL_UNSPECIFIED)
+	dtp->u.p.current_unit->decimal_status = dtp->u.p.current_unit->flags.decimal;
 
   /* Check the sign mode. */
   dtp->u.p.sign_status
-    = !(cf & IOPARM_DT_HAS_SIGN) ? SIGN_UNSPECIFIED :
-      find_option (&dtp->common, dtp->sign, dtp->sign_len, sign_opt,
-		   "Bad SIGN parameter in data transfer statement");
+	= !(cf & IOPARM_DT_HAS_SIGN) ? SIGN_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->u.p.sign, dtp->u.p.sign_len, sign_opt,
+			"Bad SIGN parameter in data transfer statement");
   
   if (dtp->u.p.sign_status == SIGN_UNSPECIFIED)
-    dtp->u.p.sign_status = dtp->u.p.current_unit->flags.sign;
+	dtp->u.p.sign_status = dtp->u.p.current_unit->flags.sign;
 
   /* Check the blank mode.  */
   dtp->u.p.blank_status
-    = !(cf & IOPARM_DT_HAS_BLANK) ? BLANK_UNSPECIFIED :
-      find_option (&dtp->common, dtp->blank, dtp->blank_len, blank_opt,
-		   "Bad BLANK parameter in data transfer statement");
+	= !(cf & IOPARM_DT_HAS_BLANK) ? BLANK_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->u.p.blank, dtp->u.p.blank_len,
+			blank_opt,
+			"Bad BLANK parameter in data transfer statement");
   
   if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
-    dtp->u.p.blank_status = dtp->u.p.current_unit->flags.blank;
+	dtp->u.p.blank_status = dtp->u.p.current_unit->flags.blank;
   
   /* Check the delim mode.  */
-  dtp->u.p.delim_status
-    = !(cf & IOPARM_DT_HAS_DELIM) ? DELIM_UNSPECIFIED :
-      find_option (&dtp->common, dtp->delim, dtp->delim_len, delim_opt,
-		   "Bad DELIM parameter in data transfer statement");
+  dtp->u.p.current_unit->delim_status
+	= !(cf & IOPARM_DT_HAS_DELIM) ? DELIM_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->u.p.delim, dtp->u.p.delim_len,
+	  delim_opt, "Bad DELIM parameter in data transfer statement");
   
-  if (dtp->u.p.delim_status == DELIM_UNSPECIFIED)
-    dtp->u.p.delim_status = dtp->u.p.current_unit->flags.delim;
+  if (dtp->u.p.current_unit->delim_status == DELIM_UNSPECIFIED)
+    dtp->u.p.current_unit->delim_status = dtp->u.p.current_unit->flags.delim;
 
   /* Check the pad mode.  */
-  dtp->u.p.pad_status
-    = !(cf & IOPARM_DT_HAS_PAD) ? PAD_UNSPECIFIED :
-      find_option (&dtp->common, dtp->pad, dtp->pad_len, pad_opt,
-		   "Bad PAD parameter in data transfer statement");
+  dtp->u.p.current_unit->pad_status
+	= !(cf & IOPARM_DT_HAS_PAD) ? PAD_UNSPECIFIED :
+	  find_option (&dtp->common, dtp->u.p.pad, dtp->u.p.pad_len, pad_opt,
+			"Bad PAD parameter in data transfer statement");
   
-  if (dtp->u.p.pad_status == PAD_UNSPECIFIED)
-    dtp->u.p.pad_status = dtp->u.p.current_unit->flags.pad;
- 
+  if (dtp->u.p.current_unit->pad_status == PAD_UNSPECIFIED)
+	dtp->u.p.current_unit->pad_status = dtp->u.p.current_unit->flags.pad;
+
   /* Sanity checks on the record number.  */
   if ((cf & IOPARM_DT_HAS_REC) != 0)
     {

@@ -489,6 +489,13 @@ remove_unused_scope_block_p (tree scope)
       if (TREE_CODE (*t) == FUNCTION_DECL)
 	unused = false;
 
+      /* Remove everything we don't generate debug info for.  */
+      else if (DECL_IGNORED_P (*t))
+	{
+	  *t = TREE_CHAIN (*t);
+	  next = t;
+	}
+
       /* When we are outputting debug info, we usually want to output
 	 info about optimized-out variables in the scope blocks.
 	 Exception are the scope blocks not containing any instructions
@@ -593,6 +600,8 @@ remove_unused_locals (void)
     {
       gimple_stmt_iterator gsi;
       size_t i;
+      edge_iterator ei;
+      edge e;
 
       /* Walk the statements.  */
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
@@ -627,6 +636,10 @@ remove_unused_locals (void)
 	      mark_all_vars_used (&arg, NULL);
             }
         }
+
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if (e->goto_locus)
+	  TREE_USED (e->goto_block) = true;
     }
 
   /* Remove unmarked local vars from local_decls.  */

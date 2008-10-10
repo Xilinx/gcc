@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "rtl.h"
+#include "expr.h"
 #include "ggc.h"
 #include "output.h"
 #include "langhooks.h"
@@ -45,6 +46,9 @@ along with GCC; see the file COPYING3.  If not see
 /* Value of the -G xx switch, and whether it was passed or not.  */
 unsigned HOST_WIDE_INT g_switch_value;
 bool g_switch_set;
+
+/* Same for selective scheduling.  */
+bool sel_sched_switch_set;
 
 /* True if we should exit after parsing options.  */
 bool exit_after_options;
@@ -346,7 +350,8 @@ static bool profile_arc_flag_set, flag_profile_values_set;
 static bool flag_unroll_loops_set, flag_tracer_set;
 static bool flag_value_profile_transformations_set;
 static bool flag_peel_loops_set, flag_branch_probabilities_set;
-static bool flag_inline_functions_set;
+static bool flag_inline_functions_set, flag_ipa_cp_set, flag_ipa_cp_clone_set;
+static bool flag_predictive_commoning_set, flag_unswitch_loops_set, flag_gcse_after_reload_set;
 static char* profile_stdlib_type = NULL;
 
 /* Functions excluded from profiling.  */
@@ -866,33 +871,9 @@ decode_options (unsigned int argc, const char **argv)
 	}
     }
   
-  if (!flag_unit_at_a_time)
-    {
-      flag_section_anchors = 0;
-      flag_toplevel_reorder = 0;
-    }
-  if (!flag_toplevel_reorder)
-    {
-      if (flag_section_anchors == 1)
-        error ("Section anchors must be disabled when toplevel reorder is disabled.");
-      flag_section_anchors = 0;
-    }
-
-  /* Originally we just set the variables if a particular optimization level,
-     but with the advent of being able to change the optimization level for a
-     function, we need to reset optimizations.  */
-  if (!optimize)
-    {
-      flag_merge_constants = 0;
-
-      /* We disable toplevel reordering at -O0 to disable transformations that
-         might be surprising to end users and to get -fno-toplevel-reorder
-	 tested, but we keep section anchors.  */
-      if (flag_toplevel_reorder == 2)
-        flag_toplevel_reorder = 0;
-    }
-  else
-    flag_merge_constants = 1;
+  /* Use IRA if it is implemented for the target.  */
+  if (targetm.ira_cover_classes)
+    flag_ira = 1;
 
   /* -O1 optimizations.  */
   opt1 = (optimize >= 1);
@@ -909,6 +890,7 @@ decode_options (unsigned int argc, const char **argv)
   flag_if_conversion2 = opt1;
   flag_ipa_pure_const = opt1;
   flag_ipa_reference = opt1;
+  flag_merge_constants = opt1;
   flag_split_wide_types = opt1;
   flag_tree_ccp = opt1;
   flag_tree_dce = opt1;
@@ -946,13 +928,13 @@ decode_options (unsigned int argc, const char **argv)
   flag_delete_null_pointer_checks = opt2;
   flag_reorder_blocks = opt2;
   flag_reorder_functions = opt2;
-  flag_tree_store_ccp = opt2;
   flag_tree_vrp = opt2;
   flag_tree_builtin_call_dce = opt2;
   flag_tree_pre = opt2;
-      flag_tree_switch_conversion = 1;
+  flag_tree_switch_conversion = 1;
+  flag_ipa_cp = opt2;
 
-      /* Allow more virtual operators to increase alias precision.  */
+  /* Allow more virtual operators to increase alias precision.  */
 
   set_param_value ("max-aliased-vops",
 		   (opt2) ? 500 : initial_max_aliased_vops);
@@ -968,6 +950,9 @@ decode_options (unsigned int argc, const char **argv)
   flag_unswitch_loops = opt3;
   flag_gcse_after_reload = opt3;
   flag_tree_vectorize = opt3;
+  flag_ipa_cp_clone = opt3;
+  if (flag_ipa_cp_clone)
+    flag_ipa_cp = 1;
 
   /* Allow even more virtual operators.  Max-aliased-vops was set above for
      -O2, so don't reset it unless we are at -O3.  */
@@ -985,50 +970,9 @@ decode_options (unsigned int argc, const char **argv)
 
   if (optimize_size)
     {
-      /* Loop header copying usually increases size of the code.  This used not to
-	 be true, since quite often it is possible to verify that the condition is
-	 satisfied in the first iteration and therefore to eliminate it.  Jump
-	 threading handles these cases now.  */
-      flag_tree_ch = 0;
-
-      /* Conditional DCE generates bigger code.  */
-      flag_tree_builtin_call_dce = 0;
-
-      /* PRE tends to generate bigger code.  */
-      flag_tree_pre = 0;
-
-      /* These options are set with -O3, so reset for -Os */
-      flag_predictive_commoning = 0;
-      flag_inline_functions = 0;
-      flag_unswitch_loops = 0;
-      flag_gcse_after_reload = 0;
-      flag_tree_vectorize = 0;
-
-      /* Don't reorder blocks when optimizing for size because extra jump insns may
-	 be created; also barrier may create extra padding.
-
-	 More correctly we should have a block reordering mode that tried to
-	 minimize the combined size of all the jumps.  This would more or less
-	 automatically remove extra jumps, but would also try to use more short
-	 jumps instead of long jumps.  */
-      flag_reorder_blocks = 0;
-      flag_reorder_blocks_and_partition = 0;
-
       /* Inlining of functions reducing size is a good idea regardless of them
 	 being declared inline.  */
       flag_inline_functions = 1;
-
-      /* Don't align code.  */
-      align_loops = 1;
-      align_jumps = 1;
-      align_labels = 1;
-      align_functions = 1;
-
-      /* Unroll/prefetch switches that may be set on the command line, and tend to
-	 generate bigger code.  */
-      flag_unroll_loops = 0;
-      flag_unroll_all_loops = 0;
-      flag_prefetch_loop_arrays = 0;
 
       /* Basic optimization options.  */
       optimize_size = 1;
@@ -1064,6 +1008,35 @@ decode_options (unsigned int argc, const char **argv)
 
   handle_options (argc, argv, lang_mask);
 
+  /* Handle related options for unit-at-a-time, toplevel-reorder, and
+     section-anchors.  */
+  if (!flag_unit_at_a_time)
+    {
+      if (flag_section_anchors == 1)
+	error ("Section anchors must be disabled when unit-at-a-time "
+	       "is disabled.");
+      flag_section_anchors = 0;
+      if (flag_toplevel_reorder == 1)
+	error ("Toplevel reorder must be disabled when unit-at-a-time "
+	       "is disabled.");
+      flag_toplevel_reorder = 0;
+    }
+  /* Unless the user has asked for section anchors, we disable toplevel
+     reordering at -O0 to disable transformations that might be surprising
+     to end users and to get -fno-toplevel-reorder tested.  */
+  if (!optimize && flag_toplevel_reorder == 2 && flag_section_anchors != 1)
+    {
+      flag_toplevel_reorder = 0;
+      flag_section_anchors = 0;
+    }
+  if (!flag_toplevel_reorder)
+    {
+      if (flag_section_anchors == 1)
+	error ("section anchors must be disabled when toplevel reorder"
+	       " is disabled");
+      flag_section_anchors = 0;
+    }
+
   if (first_time_p)
     {
       if (flag_pie)
@@ -1088,8 +1061,8 @@ decode_options (unsigned int argc, const char **argv)
 
   if (flag_exceptions && flag_reorder_blocks_and_partition)
     {
-      inform
-	    ("-freorder-blocks-and-partition does not work with exceptions");
+      inform (input_location, 
+	      "-freorder-blocks-and-partition does not work with exceptions");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1100,7 +1073,7 @@ decode_options (unsigned int argc, const char **argv)
   if (flag_unwind_tables && ! targetm.unwind_tables_default
       && flag_reorder_blocks_and_partition)
     {
-      inform ("-freorder-blocks-and-partition does not support unwind info");
+      inform (input_location, "-freorder-blocks-and-partition does not support unwind info");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
     }
@@ -1113,10 +1086,21 @@ decode_options (unsigned int argc, const char **argv)
       && (!targetm.have_named_sections
 	  || (flag_unwind_tables && targetm.unwind_tables_default)))
     {
-      inform
-       ("-freorder-blocks-and-partition does not work on this architecture");
+      inform (input_location,
+	      "-freorder-blocks-and-partition does not work on this architecture");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
+    }
+
+  /* Pipelining of outer loops is only possible when general pipelining
+     capabilities are requested.  */
+  if (!flag_sel_sched_pipelining)
+    flag_sel_sched_pipelining_outer_loops = 0;
+
+  if (flag_ira && !targetm.ira_cover_classes)
+    {
+      inform (input_location, "-fira does not work on this architecture");
+      flag_ira = 0;
     }
 
   /* Save the current optimization options if this is the first call.  */
@@ -1126,6 +1110,14 @@ decode_options (unsigned int argc, const char **argv)
       optimization_current_node = optimization_default_node;
       first_time_p = false;
     }
+  if (flag_conserve_stack)
+    {
+      if (!PARAM_SET_P (PARAM_LARGE_STACK_FRAME))
+        PARAM_VALUE (PARAM_LARGE_STACK_FRAME) = 100;
+      if (!PARAM_SET_P (PARAM_STACK_FRAME_GROWTH))
+        PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) = 40;
+    }
+
 }
 
 #define LEFT_COLUMN	27
@@ -1832,6 +1824,17 @@ common_handle_option (size_t scode, const char *arg, int value,
         flag_value_profile_transformations = value;
       if (!flag_inline_functions_set)
         flag_inline_functions = value;
+      if (!flag_ipa_cp_set)
+        flag_ipa_cp = value;
+      if (!flag_ipa_cp_clone_set
+	  && value && flag_ipa_cp)
+	flag_ipa_cp_clone = value;
+      if (!flag_predictive_commoning_set)
+	flag_predictive_commoning = value;
+      if (!flag_unswitch_loops_set)
+	flag_unswitch_loops = value;
+      if (!flag_gcse_after_reload_set)
+	flag_gcse_after_reload = value;
       break;
 
     case OPT_fprofile_generate_:
@@ -1904,6 +1907,11 @@ common_handle_option (size_t scode, const char *arg, int value,
       set_random_seed (arg);
       break;
 
+    case OPT_fselective_scheduling:
+    case OPT_fselective_scheduling2:
+      sel_sched_switch_set = true;
+      break;
+
     case OPT_fsched_verbose_:
 #ifdef INSN_SCHEDULING
       fix_sched_param ("verbose", arg);
@@ -1920,6 +1928,37 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fsched_stalled_insns_dep_:
       flag_sched_stalled_insns_dep = value;
+      break;
+
+    case OPT_fstack_check_:
+      if (!strcmp (arg, "no"))
+	flag_stack_check = NO_STACK_CHECK;
+      else if (!strcmp (arg, "generic"))
+	/* This is the old stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : GENERIC_STACK_CHECK;
+      else if (!strcmp (arg, "specific"))
+	/* This is the new stack checking method.  */
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	warning (0, "unknown stack check parameter \"%s\"", arg);
+      break;
+
+    case OPT_fstack_check:
+      /* This is the same as the "specific" mode above.  */
+      if (value)
+	flag_stack_check = STACK_CHECK_BUILTIN
+			   ? FULL_BUILTIN_STACK_CHECK
+			   : STACK_CHECK_STATIC_BUILTIN
+			     ? STATIC_BUILTIN_STACK_CHECK
+			     : GENERIC_STACK_CHECK;
+      else
+	flag_stack_check = NO_STACK_CHECK;
       break;
 
     case OPT_fstack_limit:
@@ -1960,8 +1999,43 @@ common_handle_option (size_t scode, const char *arg, int value,
 	warning (0, "unknown tls-model \"%s\"", arg);
       break;
 
+    case OPT_fira_algorithm_:
+      if (!strcmp (arg, "regional"))
+	flag_ira_algorithm = IRA_ALGORITHM_REGIONAL;
+      else if (!strcmp (arg, "CB"))
+	flag_ira_algorithm = IRA_ALGORITHM_CB;
+      else if (!strcmp (arg, "mixed"))
+	flag_ira_algorithm = IRA_ALGORITHM_MIXED;
+      else
+	warning (0, "unknown ira algorithm \"%s\"", arg);
+      break;
+
+    case OPT_fira_verbose_:
+      flag_ira_verbose = value;
+      break;
+
     case OPT_ftracer:
       flag_tracer_set = true;
+      break;
+
+    case OPT_fipa_cp:
+      flag_ipa_cp_set = true;
+      break;
+
+    case OPT_fipa_cp_clone:
+      flag_ipa_cp_clone_set = true;
+      break;
+
+    case OPT_fpredictive_commoning:
+      flag_predictive_commoning_set = true;
+      break;
+
+    case OPT_funswitch_loops:
+      flag_unswitch_loops_set = true;
+      break;
+
+    case OPT_fgcse_after_reload:
+      flag_gcse_after_reload_set = true;
       break;
 
     case OPT_funroll_loops:
@@ -2012,6 +2086,7 @@ common_handle_option (size_t scode, const char *arg, int value,
     case OPT_ftree_store_copy_prop:
     case OPT_fforce_addr:
     case OPT_ftree_salias:
+    case OPT_ftree_store_ccp:
       /* These are no-ops, preserved for backward compatibility.  */
       break;
 

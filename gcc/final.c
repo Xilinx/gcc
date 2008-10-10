@@ -664,7 +664,7 @@ insn_current_reference_address (rtx branch)
 /* Compute branch alignments based on frequency information in the
    CFG.  */
 
-static unsigned int
+unsigned int
 compute_alignments (void)
 {
   int log, max_skip, max_log;
@@ -683,7 +683,7 @@ compute_alignments (void)
   label_align = XCNEWVEC (struct label_alignment, max_labelno - min_labelno + 1);
 
   /* If not optimizing or optimizing for size, don't assign any alignments.  */
-  if (! optimize || optimize_size)
+  if (! optimize || optimize_function_for_size_p (cfun))
     return 0;
 
   if (dump_file)
@@ -707,7 +707,7 @@ compute_alignments (void)
       edge_iterator ei;
 
       if (!LABEL_P (label)
-	  || probably_never_executed_bb_p (bb))
+	  || optimize_bb_for_size_p (bb))
 	{
 	  if (dump_file)
 	    fprintf(dump_file, "BB %4i freq %4i loop %2i loop_depth %2i skipped.\n",
@@ -765,7 +765,7 @@ compute_alignments (void)
       /* In case block is frequent and reached mostly by non-fallthru edge,
 	 align it.  It is most likely a first block of loop.  */
       if (has_fallthru
-	  && maybe_hot_bb_p (bb)
+	  && optimize_bb_for_speed_p (bb)
 	  && branch_frequency + fallthru_frequency > freq_threshold
 	  && (branch_frequency
 	      > fallthru_frequency * PARAM_VALUE (PARAM_ALIGN_LOOP_ITERATIONS)))
@@ -784,7 +784,10 @@ compute_alignments (void)
     }
 
   if (dump_file)
-    loop_optimizer_finalize ();
+    {
+      loop_optimizer_finalize ();
+      free_dominance_info (CDI_DOMINATORS);
+    }
   return 0;
 }
 
@@ -3346,6 +3349,31 @@ output_asm_label (rtx x)
   assemble_name (asm_out_file, buf);
 }
 
+/* Helper rtx-iteration-function for output_operand.  Marks
+   SYMBOL_REFs as referenced through use of assemble_external.  */
+
+static int
+mark_symbol_ref_as_used (rtx *xp, void *dummy ATTRIBUTE_UNUSED)
+{
+  rtx x = *xp;
+
+  /* If we have a used symbol, we may have to emit assembly
+     annotations corresponding to whether the symbol is external, weak
+     or has non-default visibility.  */
+  if (GET_CODE (x) == SYMBOL_REF)
+    {
+      tree t;
+
+      t = SYMBOL_REF_DECL (x);
+      if (t)
+	assemble_external (t);
+
+      return -1;
+    }
+
+  return 0;
+}
+
 /* Print operand X using machine-dependent assembler syntax.
    The macro PRINT_OPERAND is defined just to control this function.
    CODE is a non-digit that preceded the operand-number in the % spec,
@@ -3366,14 +3394,11 @@ output_operand (rtx x, int code ATTRIBUTE_UNUSED)
   gcc_assert (!x || !REG_P (x) || REGNO (x) < FIRST_PSEUDO_REGISTER);
 
   PRINT_OPERAND (asm_out_file, x, code);
-  if (x && MEM_P (x) && GET_CODE (XEXP (x, 0)) == SYMBOL_REF)
-    {
-      tree t;
-      x = XEXP (x, 0);
-      t = SYMBOL_REF_DECL (x);
-      if (t)
-	assemble_external (t);
-    }
+
+  if (x == NULL_RTX)
+    return;
+
+  for_each_rtx (&x, mark_symbol_ref_as_used, NULL);
 }
 
 /* Print a memory reference operand for address X

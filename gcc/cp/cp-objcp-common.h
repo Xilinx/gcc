@@ -52,8 +52,6 @@ extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 #define LANG_HOOKS_GET_ALIAS_SET cxx_get_alias_set
 #undef LANG_HOOKS_EXPAND_EXPR
 #define LANG_HOOKS_EXPAND_EXPR c_expand_expr
-#undef LANG_HOOKS_EXPAND_DECL
-#define LANG_HOOKS_EXPAND_DECL c_expand_decl
 #undef LANG_HOOKS_PARSE_FILE
 #define LANG_HOOKS_PARSE_FILE c_common_parse_file
 #undef LANG_HOOKS_STATICP
@@ -86,6 +84,8 @@ extern tree objcp_tsubst_copy_and_build (tree, tree, tsubst_flags_t,
 #define LANG_HOOKS_COMDAT_GROUP cxx_comdat_group
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
 #define LANG_HOOKS_BUILTIN_FUNCTION cxx_builtin_function
+#undef  LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE
+#define LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE cxx_builtin_function_ext_scope
 #undef	LANG_HOOKS_TYPE_HASH_EQ
 #define LANG_HOOKS_TYPE_HASH_EQ	cxx_type_hash_eq
 #undef LANG_HOOKS_MISSING_NORETURN_OK_P

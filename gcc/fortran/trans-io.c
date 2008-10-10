@@ -291,7 +291,7 @@ gfc_build_io_library_fndecls (void)
 			    = build_pointer_type (gfc_intio_type_node);
   types[IOPARM_type_parray] = pchar_type_node;
   types[IOPARM_type_pchar] = pchar_type_node;
-  pad_size = 16 * TREE_INT_CST_LOW (TYPE_SIZE_UNIT (pchar_type_node));
+  pad_size = 32 * TREE_INT_CST_LOW (TYPE_SIZE_UNIT (pchar_type_node));
   pad_size += 32 * TREE_INT_CST_LOW (TYPE_SIZE_UNIT (integer_type_node));
   pad_idx = build_index_type (build_int_cst (NULL_TREE, pad_size));
   types[IOPARM_type_pad] = build_array_type (char_type_node, pad_idx);
@@ -2087,14 +2087,14 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
 	  tmp = fold_build3 (COMPONENT_REF, TREE_TYPE (field),
 			     expr, field, NULL_TREE);
 
-          if (c->dimension)
+          if (c->attr.dimension)
             {
               tmp = transfer_array_component (tmp, c, & code->loc);
               gfc_add_expr_to_block (&se->pre, tmp);
             }
           else
             {
-              if (!c->pointer)
+              if (!c->attr.pointer)
                 tmp = build_fold_addr_expr (tmp);
               transfer_expr (se, &c->ts, tmp, code);
             }

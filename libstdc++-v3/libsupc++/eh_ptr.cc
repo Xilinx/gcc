@@ -28,12 +28,14 @@
 // the GNU General Public License.
 
 #include <bits/c++config.h>
+
+#ifdef _GLIBCXX_ATOMIC_BUILTINS_4
+
 #include <exception>
 #include <exception_ptr.h>
 #include "unwind-cxx.h"
 
 using namespace __cxxabiv1;
-
 
 std::__exception_ptr::exception_ptr::exception_ptr() throw()
   : _M_exception_object(0)
@@ -84,7 +86,7 @@ std::__exception_ptr::exception_ptr::_M_addref() throw()
     {
       __cxa_exception *eh =
         __get_exception_header_from_obj (_M_exception_object);
-      __gnu_cxx::__atomic_add_dispatch (&eh->referenceCount, 1);
+      __sync_add_and_fetch (&eh->referenceCount, 1);
     }
 }
 
@@ -96,7 +98,7 @@ std::__exception_ptr::exception_ptr::_M_release() throw()
     {
       __cxa_exception *eh =
         __get_exception_header_from_obj (_M_exception_object);
-      if (__gnu_cxx::__exchange_and_add_dispatch (&eh->referenceCount, -1) == 0)
+      if (__sync_sub_and_fetch (&eh->referenceCount, 1) == 0)
         {
           if (eh->exceptionDestructor)
             eh->exceptionDestructor (_M_exception_object);
@@ -199,7 +201,9 @@ __gxx_dependent_exception_cleanup (_Unwind_Reason_Code code,
   if (code != _URC_FOREIGN_EXCEPTION_CAUGHT && code != _URC_NO_REASON)
     __terminate (header->terminateHandler);
 
-  if (__gnu_cxx::__exchange_and_add_dispatch (&header->referenceCount, -1) == 0)
+  __cxa_free_dependent_exception (dep);
+
+  if (__sync_sub_and_fetch (&header->referenceCount, 1) == 0)
     {
       if (header->exceptionDestructor)
         header->exceptionDestructor (header + 1);
@@ -217,7 +221,7 @@ std::rethrow_exception(std::exception_ptr ep)
 
   __cxa_dependent_exception *dep = __cxa_allocate_dependent_exception ();
   dep->primaryException = obj;
-  __gnu_cxx::__atomic_add_dispatch (&eh->referenceCount, 1);
+  __sync_add_and_fetch (&eh->referenceCount, 1);
 
   dep->unexpectedHandler = __unexpected_handler;
   dep->terminateHandler = __terminate_handler;
@@ -234,3 +238,5 @@ std::rethrow_exception(std::exception_ptr ep)
   __cxa_begin_catch (&dep->unwindHeader);
   std::terminate ();
 }
+
+#endif

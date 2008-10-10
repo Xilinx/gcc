@@ -434,6 +434,7 @@ cgraph_process_new_functions (void)
 	  gcc_unreachable ();
 	  break;
 	}
+      cgraph_call_function_insertion_hooks (node);
     }
   return output;
 }
@@ -638,7 +639,6 @@ verify_cgraph_node (struct cgraph_node *node)
     }
 
   if (node->analyzed
-      && gimple_body (node->decl)
       && !TREE_ASM_WRITTEN (node->decl)
       && (!DECL_EXTERNAL (node->decl) || node->global.inlined_to))
     {
@@ -859,7 +859,7 @@ cgraph_analyze_functions (void)
     {
       fprintf (cgraph_dump_file, "Initial entry points:");
       for (node = cgraph_nodes; node != first_analyzed; node = node->next)
-	if (node->needed && gimple_body (node->decl))
+	if (node->needed)
 	  fprintf (cgraph_dump_file, " %s", cgraph_node_name (node));
       fprintf (cgraph_dump_file, "\n");
     }
@@ -911,7 +911,7 @@ cgraph_analyze_functions (void)
     {
       fprintf (cgraph_dump_file, "Unit entry points:");
       for (node = cgraph_nodes; node != first_analyzed; node = node->next)
-	if (node->needed && gimple_body (node->decl))
+	if (node->needed)
 	  fprintf (cgraph_dump_file, " %s", cgraph_node_name (node));
       fprintf (cgraph_dump_file, "\n\nInitial ");
       dump_cgraph (cgraph_dump_file);
@@ -925,10 +925,10 @@ cgraph_analyze_functions (void)
       tree decl = node->decl;
       next = node->next;
 
-      if (node->local.finalized && !gimple_body (decl))
+      if (node->local.finalized && !gimple_has_body_p (decl))
 	cgraph_reset_node (node);
 
-      if (!node->reachable && gimple_body (decl))
+      if (!node->reachable && gimple_has_body_p (decl))
 	{
 	  if (cgraph_dump_file)
 	    fprintf (cgraph_dump_file, " %s", cgraph_node_name (node));
@@ -937,7 +937,7 @@ cgraph_analyze_functions (void)
 	}
       else
 	node->next_needed = NULL;
-      gcc_assert (!node->local.finalized || gimple_body (decl));
+      gcc_assert (!node->local.finalized || gimple_has_body_p (decl));
       gcc_assert (node->analyzed == node->local.finalized);
     }
   if (cgraph_dump_file)
@@ -990,7 +990,7 @@ cgraph_mark_functions_to_output (void)
       /* We need to output all local functions that are used and not
 	 always inlined, as well as those that are reachable from
 	 outside the current compilation unit.  */
-      if (gimple_body (decl)
+      if (node->analyzed
 	  && !node->global.inlined_to
 	  && (node->needed
 	      || (e && node->reachable))
@@ -1002,7 +1002,7 @@ cgraph_mark_functions_to_output (void)
 	  /* We should've reclaimed all functions that are not needed.  */
 #ifdef ENABLE_CHECKING
 	  if (!node->global.inlined_to
-	      && gimple_body (decl)
+	      && gimple_has_body_p (decl)
 	      && !DECL_EXTERNAL (decl))
 	    {
 	      dump_cgraph_node (stderr, node);
@@ -1010,7 +1010,7 @@ cgraph_mark_functions_to_output (void)
 	    }
 #endif
 	  gcc_assert (node->global.inlined_to
-		      || !gimple_body (decl)
+		      || !gimple_has_body_p (decl)
 		      || DECL_EXTERNAL (decl));
 
 	}
@@ -1038,16 +1038,13 @@ cgraph_expand_function (struct cgraph_node *node)
   tree_rest_of_compilation (decl);
 
   /* Make sure that BE didn't give up on compiling.  */
-  /* ??? Can happen with nested function of extern inline.  */
   gcc_assert (TREE_ASM_WRITTEN (decl));
   current_function_decl = NULL;
-  if (!cgraph_preserve_function_body_p (decl))
-    {
-      cgraph_release_function_body (node);
-      /* Eliminate all call edges.  This is important so the call_expr no longer
-	 points to the dead function body.  */
-      cgraph_node_remove_callees (node);
-    }
+  gcc_assert (!cgraph_preserve_function_body_p (decl));
+  cgraph_release_function_body (node);
+  /* Eliminate all call edges.  This is important so the GIMPLE_CALL no longer
+     points to the dead function body.  */
+  cgraph_node_remove_callees (node);
 
   cgraph_function_flags_ready = true;
 }
@@ -1328,7 +1325,7 @@ cgraph_optimize (void)
       for (node = cgraph_nodes; node; node = node->next)
 	if (node->analyzed
 	    && (node->global.inlined_to
-		|| gimple_body (node->decl)))
+		|| gimple_has_body_p (node->decl)))
 	  {
 	    error_found = true;
 	    dump_cgraph_node (stderr, node);
@@ -1420,7 +1417,14 @@ update_call_expr (struct cgraph_node *new_version)
 
   /* Update the call expr on the edges to call the new version.  */
   for (e = new_version->callers; e; e = e->next_caller)
-    gimple_call_set_fndecl (e->call_stmt, new_version->decl);
+    {
+      struct function *inner_function = DECL_STRUCT_FUNCTION (e->caller->decl);
+      gimple_call_set_fndecl (e->call_stmt, new_version->decl);
+      /* Update EH information too, just in case.  */
+      if (!stmt_could_throw_p (e->call_stmt)
+          && lookup_stmt_eh_region_fn (inner_function, e->call_stmt))
+        remove_stmt_from_eh_region_fn (inner_function, e->call_stmt);
+    }
 }
 
 
@@ -1495,12 +1499,15 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
     TREE_MAP is a mapping of tree nodes we want to replace with
     new ones (according to results of prior analysis).
     OLD_VERSION_NODE is the node that is versioned.
-    It returns the new version's cgraph node.  */
+    It returns the new version's cgraph node. 
+    ARGS_TO_SKIP lists arguments to be omitted from functions
+    */
 
 struct cgraph_node *
 cgraph_function_versioning (struct cgraph_node *old_version_node,
 			    VEC(cgraph_edge_p,heap) *redirect_callers,
-			    varray_type tree_map)
+			    varray_type tree_map,
+			    bitmap args_to_skip)
 {
   tree old_decl = old_version_node->decl;
   struct cgraph_node *new_version_node = NULL;
@@ -1511,7 +1518,10 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
 
   /* Make a new FUNCTION_DECL tree node for the
      new version. */
-  new_decl = copy_node (old_decl);
+  if (!args_to_skip)
+    new_decl = copy_node (old_decl);
+  else
+    new_decl = build_function_decl_skip_args (old_decl, args_to_skip);
 
   /* Create the new version's call-graph node.
      and update the edges of the new node. */
@@ -1520,21 +1530,26 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
 				     redirect_callers);
 
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
-  tree_function_versioning (old_decl, new_decl, tree_map, false);
-  /* Update the call_expr on the edges to call the new version node. */
-  update_call_expr (new_version_node);
+  tree_function_versioning (old_decl, new_decl, tree_map, false, args_to_skip);
 
   /* Update the new version's properties.
-     Make The new version visible only within this translation unit.
+     Make The new version visible only within this translation unit.  Make sure
+     that is not weak also.
      ??? We cannot use COMDAT linkage because there is no
      ABI support for this.  */
   DECL_EXTERNAL (new_version_node->decl) = 0;
   DECL_ONE_ONLY (new_version_node->decl) = 0;
   TREE_PUBLIC (new_version_node->decl) = 0;
   DECL_COMDAT (new_version_node->decl) = 0;
+  DECL_WEAK (new_version_node->decl) = 0;
   new_version_node->local.externally_visible = 0;
   new_version_node->local.local = 1;
   new_version_node->lowered = true;
+  
+  /* Update the call_expr on the edges to call the new version node. */
+  update_call_expr (new_version_node);
+  
+  cgraph_call_function_insertion_hooks (new_version_node);
   return new_version_node;
 }
 
@@ -1558,7 +1573,7 @@ save_inline_function_body (struct cgraph_node *node)
   gcc_assert (first_clone == cgraph_node (first_clone->decl));
 
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
-  tree_function_versioning (node->decl, first_clone->decl, NULL, true);
+  tree_function_versioning (node->decl, first_clone->decl, NULL, true, NULL);
 
   DECL_EXTERNAL (first_clone->decl) = 0;
   DECL_ONE_ONLY (first_clone->decl) = 0;

@@ -597,6 +597,8 @@ enum reg_class
 
 #define INDEX_REG_CLASS GENERAL_REGS
 
+#define IRA_COVER_CLASSES { GENERAL_REGS, SPECIAL_REGS, LIM_REG_CLASSES }
+
 #define REG_CLASS_FROM_LETTER(C)		\
   (						\
    (C) == 'a' ? ACR_REGS :			\
@@ -1242,7 +1244,7 @@ struct cum_args {int regs;};
    word-length sizes will be emitted.  The "9" will translate to
    (9 - 1) * 4 = 32 bytes maximum moved, but using 16 instructions
    (8 instruction sequences) or less.  */
-#define MOVE_RATIO 9
+#define MOVE_RATIO(speed) 9
 
 
 /* Node: Sections */

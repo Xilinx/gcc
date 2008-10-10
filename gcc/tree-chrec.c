@@ -579,8 +579,7 @@ chrec_apply (unsigned var,
       /* "{a, +, b} (x)"  ->  "a + b*x".  */
       x = chrec_convert_rhs (type, x, NULL);
       res = chrec_fold_multiply (TREE_TYPE (x), CHREC_RIGHT (chrec), x);
-      if (!integer_zerop (CHREC_LEFT (chrec)))
-	res = chrec_fold_plus (type, CHREC_LEFT (chrec), res);
+      res = chrec_fold_plus (type, CHREC_LEFT (chrec), res);
     }
   
   else if (TREE_CODE (chrec) != POLYNOMIAL_CHREC)
@@ -1408,3 +1407,26 @@ scev_direction (const_tree chrec)
   else
     return EV_DIR_GROWS;
 }
+
+/* Iterates over all the components of SCEV, and calls CBCK.  */
+
+void
+for_each_scev_op (tree *scev, bool (*cbck) (tree *, void *), void *data)
+{
+  switch (TREE_CODE_LENGTH (TREE_CODE (*scev)))
+    {
+    case 3:
+      for_each_scev_op (&TREE_OPERAND (*scev, 2), cbck, data);
+
+    case 2:
+      for_each_scev_op (&TREE_OPERAND (*scev, 1), cbck, data);
+      
+    case 1:
+      for_each_scev_op (&TREE_OPERAND (*scev, 0), cbck, data);
+
+    default:
+      cbck (scev, data);
+      break;
+    }
+}
+

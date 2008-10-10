@@ -89,7 +89,7 @@ static void scan_rtx (rtx, rtx *, enum reg_class, enum scan_actions,
 static struct du_chain *build_def_use (basic_block);
 static void dump_def_use_chain (struct du_chain *);
 static void note_sets (rtx, const_rtx, void *);
-static void clear_dead_regs (HARD_REG_SET *, enum machine_mode, rtx);
+static void clear_dead_regs (HARD_REG_SET *, enum reg_note, rtx);
 static void merge_overlapping_regs (basic_block, HARD_REG_SET *,
 				    struct du_chain *);
 
@@ -114,7 +114,7 @@ note_sets (rtx x, const_rtx set ATTRIBUTE_UNUSED, void *data)
    in the list NOTES.  */
 
 static void
-clear_dead_regs (HARD_REG_SET *pset, enum machine_mode kind, rtx notes)
+clear_dead_regs (HARD_REG_SET *pset, enum reg_note kind, rtx notes)
 {
   rtx note;
   for (note = notes; note; note = XEXP (note, 1))
@@ -357,11 +357,13 @@ do_replace (struct du_chain *chain, int reg)
     {
       unsigned int regno = ORIGINAL_REGNO (*chain->loc);
       struct reg_attrs * attr = REG_ATTRS (*chain->loc);
+      int reg_ptr = REG_POINTER (*chain->loc);
 
       *chain->loc = gen_raw_REG (GET_MODE (*chain->loc), reg);
       if (regno >= FIRST_PSEUDO_REGISTER)
 	ORIGINAL_REGNO (*chain->loc) = regno;
       REG_ATTRS (*chain->loc) = attr;
+      REG_POINTER (*chain->loc) = reg_ptr;
       df_insn_rescan (chain->insn);
       chain = chain->next_use;
     }
@@ -1314,6 +1316,10 @@ maybe_mode_change (enum machine_mode orig_mode, enum machine_mode copy_mode,
 		   enum machine_mode new_mode, unsigned int regno,
 		   unsigned int copy_regno ATTRIBUTE_UNUSED)
 {
+  if (GET_MODE_SIZE (copy_mode) < GET_MODE_SIZE (orig_mode)
+      && GET_MODE_SIZE (copy_mode) < GET_MODE_SIZE (new_mode))
+    return NULL_RTX;
+
   if (orig_mode == new_mode)
     return gen_rtx_raw_REG (new_mode, regno);
   else if (mode_change_ok (orig_mode, new_mode, regno))
@@ -1990,4 +1996,3 @@ struct rtl_opt_pass pass_cprop_hardreg =
   TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
  }
 };
-

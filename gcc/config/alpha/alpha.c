@@ -1260,13 +1260,14 @@ alpha_legitimize_reload_address (rtx x,
    scanned.  In either case, *TOTAL contains the cost result.  */
 
 static bool
-alpha_rtx_costs (rtx x, int code, int outer_code, int *total)
+alpha_rtx_costs (rtx x, int code, int outer_code, int *total,
+		 bool speed)
 {
   enum machine_mode mode = GET_MODE (x);
   bool float_mode_p = FLOAT_MODE_P (mode);
   const struct alpha_rtx_cost_data *cost_data;
 
-  if (optimize_size)
+  if (!speed)
     cost_data = &alpha_rtx_cost_size;
   else
     cost_data = &alpha_rtx_cost_data[alpha_tune];
@@ -1311,7 +1312,7 @@ alpha_rtx_costs (rtx x, int code, int outer_code, int *total)
 	*total = COSTS_N_INSNS (15);
       else
 	/* Otherwise we do a load from the GOT.  */
-	*total = COSTS_N_INSNS (optimize_size ? 1 : alpha_memory_latency);
+	*total = COSTS_N_INSNS (!speed ? 1 : alpha_memory_latency);
       return true;
 
     case HIGH:
@@ -1326,8 +1327,8 @@ alpha_rtx_costs (rtx x, int code, int outer_code, int *total)
       else if (GET_CODE (XEXP (x, 0)) == MULT
 	       && const48_operand (XEXP (XEXP (x, 0), 1), VOIDmode))
 	{
-	  *total = (rtx_cost (XEXP (XEXP (x, 0), 0), outer_code)
-		    + rtx_cost (XEXP (x, 1), outer_code) + COSTS_N_INSNS (1));
+	  *total = (rtx_cost (XEXP (XEXP (x, 0), 0), outer_code, speed)
+		    + rtx_cost (XEXP (x, 1), outer_code, speed) + COSTS_N_INSNS (1));
 	  return true;
 	}
       return false;
@@ -1375,7 +1376,7 @@ alpha_rtx_costs (rtx x, int code, int outer_code, int *total)
       return false;
 
     case MEM:
-      *total = COSTS_N_INSNS (optimize_size ? 1 : alpha_memory_latency);
+      *total = COSTS_N_INSNS (!speed ? 1 : alpha_memory_latency);
       return true;
 
     case NEG:
@@ -4599,8 +4600,6 @@ alpha_split_lock_test_and_set (rtx retval, rtx mem, rtx val, rtx scratch)
   enum machine_mode mode = GET_MODE (mem);
   rtx label, x, cond = gen_lowpart (DImode, scratch);
 
-  emit_insn (gen_memory_barrier ());
-
   label = gen_rtx_LABEL_REF (DImode, gen_label_rtx ());
   emit_label (XEXP (label, 0));
 
@@ -4610,6 +4609,8 @@ alpha_split_lock_test_and_set (rtx retval, rtx mem, rtx val, rtx scratch)
 
   x = gen_rtx_EQ (DImode, cond, const0_rtx);
   emit_unlikely_jump (x, label);
+
+  emit_insn (gen_memory_barrier ());
 }
 
 void
@@ -4648,7 +4649,6 @@ alpha_split_lock_test_and_set_12 (enum machine_mode mode, rtx dest, rtx addr,
   mem = gen_rtx_MEM (DImode, align);
   MEM_VOLATILE_P (mem) = 1;
 
-  emit_insn (gen_memory_barrier ());
   label = gen_rtx_LABEL_REF (DImode, gen_label_rtx ());
   emit_label (XEXP (label, 0));
 
@@ -4672,6 +4672,8 @@ alpha_split_lock_test_and_set_12 (enum machine_mode mode, rtx dest, rtx addr,
 
   x = gen_rtx_EQ (DImode, scratch, const0_rtx);
   emit_unlikely_jump (x, label);
+
+  emit_insn (gen_memory_barrier ());
 }
 
 /* Adjust the cost of a scheduling dependency.  Return the new cost of
@@ -5802,38 +5804,34 @@ alpha_build_builtin_va_list (void)
 /* Helper function for alpha_stdarg_optimize_hook.  Skip over casts
    and constant additions.  */
 
-static tree
+static gimple
 va_list_skip_additions (tree lhs)
 {
-  tree rhs, stmt;
-
-  if (TREE_CODE (lhs) != SSA_NAME)
-    return lhs;
+  gimple stmt;
 
   for (;;)
     {
+      enum tree_code code;
+
       stmt = SSA_NAME_DEF_STMT (lhs);
 
-      if (TREE_CODE (stmt) == PHI_NODE)
+      if (gimple_code (stmt) == GIMPLE_PHI)
 	return stmt;
 
-      if (TREE_CODE (stmt) != MODIFY_EXPR
-	  || TREE_OPERAND (stmt, 0) != lhs)
-	return lhs;
+      if (!is_gimple_assign (stmt)
+	  || gimple_assign_lhs (stmt) != lhs)
+	return NULL;
 
-      rhs = TREE_OPERAND (stmt, 1);
-      if (TREE_CODE (rhs) == WITH_SIZE_EXPR)
-	rhs = TREE_OPERAND (rhs, 0);
+      if (TREE_CODE (gimple_assign_rhs1 (stmt)) != SSA_NAME)
+	return stmt;
+      code = gimple_assign_rhs_code (stmt);
+      if (!CONVERT_EXPR_CODE_P (code)
+	  && ((code != PLUS_EXPR && code != POINTER_PLUS_EXPR)
+	      || TREE_CODE (gimple_assign_rhs2 (stmt)) != INTEGER_CST
+	      || !host_integerp (gimple_assign_rhs2 (stmt), 1)))
+	return stmt;
 
-      if (((!CONVERT_EXPR_P (rhs))
-	   && ((TREE_CODE (rhs) != PLUS_EXPR
-		&& TREE_CODE (rhs) != POINTER_PLUS_EXPR)
-	       || TREE_CODE (TREE_OPERAND (rhs, 1)) != INTEGER_CST
-	       || !host_integerp (TREE_OPERAND (rhs, 1), 1)))
-	  || TREE_CODE (TREE_OPERAND (rhs, 0)) != SSA_NAME)
-	return rhs;
-
-      lhs = TREE_OPERAND (rhs, 0);
+      lhs = gimple_assign_rhs1 (stmt);
     }
 }
 
@@ -5858,36 +5856,49 @@ va_list_skip_additions (tree lhs)
 static bool
 alpha_stdarg_optimize_hook (struct stdarg_info *si, const_gimple stmt)
 {
-  tree base, offset, arg1, arg2;
+  tree base, offset, rhs;
   int offset_arg = 1;
+  gimple base_stmt;
 
-#if 1
-  /* FIXME tuples.  */
-  (void) si;
-  (void) stmt;
-  return false;
-#else
+  if (get_gimple_rhs_class (gimple_assign_rhs_code (stmt))
+      != GIMPLE_SINGLE_RHS)
+    return false;
+
+  rhs = gimple_assign_rhs1 (stmt);
   while (handled_component_p (rhs))
     rhs = TREE_OPERAND (rhs, 0);
   if (TREE_CODE (rhs) != INDIRECT_REF
       || TREE_CODE (TREE_OPERAND (rhs, 0)) != SSA_NAME)
     return false;
 
-  lhs = va_list_skip_additions (TREE_OPERAND (rhs, 0));
-  if (lhs == NULL_TREE
-      || TREE_CODE (lhs) != POINTER_PLUS_EXPR)
+  stmt = va_list_skip_additions (TREE_OPERAND (rhs, 0));
+  if (stmt == NULL
+      || !is_gimple_assign (stmt)
+      || gimple_assign_rhs_code (stmt) != POINTER_PLUS_EXPR)
     return false;
 
-  base = TREE_OPERAND (lhs, 0);
+  base = gimple_assign_rhs1 (stmt);
   if (TREE_CODE (base) == SSA_NAME)
-    base = va_list_skip_additions (base);
+    {
+      base_stmt = va_list_skip_additions (base);
+      if (base_stmt
+	  && is_gimple_assign (base_stmt)
+	  && gimple_assign_rhs_code (base_stmt) == COMPONENT_REF)
+	base = gimple_assign_rhs1 (base_stmt);
+    }
 
   if (TREE_CODE (base) != COMPONENT_REF
       || TREE_OPERAND (base, 1) != TYPE_FIELDS (va_list_type_node))
     {
-      base = TREE_OPERAND (lhs, 0);
+      base = gimple_assign_rhs2 (stmt);
       if (TREE_CODE (base) == SSA_NAME)
-	base = va_list_skip_additions (base);
+	{
+	  base_stmt = va_list_skip_additions (base);
+	  if (base_stmt
+	      && is_gimple_assign (base_stmt)
+	      && gimple_assign_rhs_code (base_stmt) == COMPONENT_REF)
+	    base = gimple_assign_rhs1 (base_stmt);
+	}
 
       if (TREE_CODE (base) != COMPONENT_REF
 	  || TREE_OPERAND (base, 1) != TYPE_FIELDS (va_list_type_node))
@@ -5901,55 +5912,88 @@ alpha_stdarg_optimize_hook (struct stdarg_info *si, const_gimple stmt)
       || !bitmap_bit_p (si->va_list_vars, DECL_UID (base)))
     return false;
 
-  offset = TREE_OPERAND (lhs, offset_arg);
+  offset = gimple_op (stmt, 1 + offset_arg);
   if (TREE_CODE (offset) == SSA_NAME)
-    offset = va_list_skip_additions (offset);
-
-  if (TREE_CODE (offset) == PHI_NODE)
     {
-      HOST_WIDE_INT sub;
+      gimple offset_stmt = va_list_skip_additions (offset);
 
-      if (PHI_NUM_ARGS (offset) != 2)
-	goto escapes;
-
-      arg1 = va_list_skip_additions (PHI_ARG_DEF (offset, 0));
-      arg2 = va_list_skip_additions (PHI_ARG_DEF (offset, 1));
-      if (TREE_CODE (arg2) != MINUS_EXPR && TREE_CODE (arg2) != PLUS_EXPR)
+      if (offset_stmt
+	  && gimple_code (offset_stmt) == GIMPLE_PHI)
 	{
-	  tree tem = arg1;
-	  arg1 = arg2;
-	  arg2 = tem;
+	  HOST_WIDE_INT sub;
+	  gimple arg1_stmt, arg2_stmt;
+	  tree arg1, arg2;
+	  enum tree_code code1, code2;
 
-	  if (TREE_CODE (arg2) != MINUS_EXPR && TREE_CODE (arg2) != PLUS_EXPR)
+	  if (gimple_phi_num_args (offset_stmt) != 2)
 	    goto escapes;
+
+	  arg1_stmt
+	    = va_list_skip_additions (gimple_phi_arg_def (offset_stmt, 0));
+	  arg2_stmt
+	    = va_list_skip_additions (gimple_phi_arg_def (offset_stmt, 1));
+	  if (arg1_stmt == NULL
+	      || !is_gimple_assign (arg1_stmt)
+	      || arg2_stmt == NULL
+	      || !is_gimple_assign (arg2_stmt))
+	    goto escapes;
+
+	  code1 = gimple_assign_rhs_code (arg1_stmt);
+	  code2 = gimple_assign_rhs_code (arg2_stmt);
+	  if (code1 == COMPONENT_REF
+	      && (code2 == MINUS_EXPR || code2 == PLUS_EXPR))
+	    /* Do nothing.  */;
+	  else if (code2 == COMPONENT_REF
+		   && (code1 == MINUS_EXPR || code1 == PLUS_EXPR))
+	    {
+	      gimple tem = arg1_stmt;
+	      code2 = code1;
+	      arg1_stmt = arg2_stmt;
+	      arg2_stmt = tem;
+	    }
+	  else
+	    goto escapes;
+
+	  if (!host_integerp (gimple_assign_rhs2 (arg2_stmt), 0))
+	    goto escapes;
+
+	  sub = tree_low_cst (gimple_assign_rhs2 (arg2_stmt), 0);
+	  if (code2 == MINUS_EXPR)
+	    sub = -sub;
+	  if (sub < -48 || sub > -32)
+	    goto escapes;
+
+	  arg1 = gimple_assign_rhs1 (arg1_stmt);
+	  arg2 = gimple_assign_rhs1 (arg2_stmt);
+	  if (TREE_CODE (arg2) == SSA_NAME)
+	    {
+	      arg2_stmt = va_list_skip_additions (arg2);
+	      if (arg2_stmt == NULL
+		  || !is_gimple_assign (arg2_stmt)
+		  || gimple_assign_rhs_code (arg2_stmt) != COMPONENT_REF)
+		goto escapes;
+	      arg2 = gimple_assign_rhs1 (arg2_stmt);
+	    }
+	  if (arg1 != arg2)
+	    goto escapes;
+
+	  if (TREE_CODE (arg1) != COMPONENT_REF
+	      || TREE_OPERAND (arg1, 1) != va_list_gpr_counter_field
+	      || get_base_address (arg1) != base)
+	    goto escapes;
+
+	  /* Need floating point regs.  */
+	  cfun->va_list_fpr_size |= 2;
+	  return false;
 	}
-      if (!host_integerp (TREE_OPERAND (arg2, 1), 0))
-	goto escapes;
-
-      sub = tree_low_cst (TREE_OPERAND (arg2, 1), 0);
-      if (TREE_CODE (arg2) == MINUS_EXPR)
-	sub = -sub;
-      if (sub < -48 || sub > -32)
-	goto escapes;
-
-      arg2 = va_list_skip_additions (TREE_OPERAND (arg2, 0));
-      if (arg1 != arg2)
-	goto escapes;
-
-      if (TREE_CODE (arg1) == SSA_NAME)
-	arg1 = va_list_skip_additions (arg1);
-
-      if (TREE_CODE (arg1) != COMPONENT_REF
-	  || TREE_OPERAND (arg1, 1) != va_list_gpr_counter_field
-	  || get_base_address (arg1) != base)
-	goto escapes;
-
-      /* Need floating point regs.  */
-      cfun->va_list_fpr_size |= 2;
+      if (offset_stmt
+	  && is_gimple_assign (offset_stmt)
+	  && gimple_assign_rhs_code (offset_stmt) == COMPONENT_REF)
+	offset = gimple_assign_rhs1 (offset_stmt);
     }
-  else if (TREE_CODE (offset) != COMPONENT_REF
-	   || TREE_OPERAND (offset, 1) != va_list_gpr_counter_field
-	   || get_base_address (offset) != base)
+  if (TREE_CODE (offset) != COMPONENT_REF
+      || TREE_OPERAND (offset, 1) != va_list_gpr_counter_field
+      || get_base_address (offset) != base)
     goto escapes;
   else
     /* Need general regs.  */
@@ -5959,7 +6003,6 @@ alpha_stdarg_optimize_hook (struct stdarg_info *si, const_gimple stmt)
 escapes:
   si->va_list_escapes = true;
   return false;
-#endif
 }
 #endif
 
@@ -6125,10 +6168,11 @@ alpha_va_start (tree valist, rtx nextarg ATTRIBUTE_UNUSED)
 }
 
 static tree
-alpha_gimplify_va_arg_1 (tree type, tree base, gimple_seq offset,
+alpha_gimplify_va_arg_1 (tree type, tree base, tree offset,
 			 gimple_seq *pre_p)
 {
-  tree type_size, ptr_type, addend, t, addr, internal_post;
+  tree type_size, ptr_type, addend, t, addr;
+  gimple_seq internal_post;
 
   /* If the type could not be passed in registers, skip the block
      reserved for the registers.  */
@@ -6176,7 +6220,7 @@ alpha_gimplify_va_arg_1 (tree type, tree base, gimple_seq offset,
 	         fold_convert (sizetype, addend));
   internal_post = NULL;
   gimplify_expr (&addr, pre_p, &internal_post, is_gimple_val, fb_rvalue);
-  append_to_statement_list (internal_post, pre_p);
+  gimple_seq_add_seq (pre_p, internal_post);
 
   /* Update the offset field.  */
   type_size = TYPE_SIZE_UNIT (TYPE_MAIN_VARIANT (type));
@@ -6229,7 +6273,7 @@ alpha_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
   r = alpha_gimplify_va_arg_1 (type, base, offset, pre_p);
 
   /* Stuff the offset temporary back into its field.  */
-  gimplify_assign (offset_field,
+  gimplify_assign (unshare_expr (offset_field),
 		   fold_convert (TREE_TYPE (offset_field), offset), pre_p);
 
   if (indirect)
@@ -10657,7 +10701,7 @@ alpha_init_libfuncs (void)
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS alpha_rtx_costs
 #undef TARGET_ADDRESS_COST
-#define TARGET_ADDRESS_COST hook_int_rtx_0
+#define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG alpha_reorg
