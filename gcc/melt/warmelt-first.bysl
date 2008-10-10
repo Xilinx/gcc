@@ -115,7 +115,7 @@
 	   cmatch_expfill		;expansion for filling instr
 					;[in patterns]
 	   cmatch_expoper		;expansion for operator use
-					;[in expressions]
+					;[in expressions] using outs
 	   )
   :predef CLASS_CMATCHER)
 

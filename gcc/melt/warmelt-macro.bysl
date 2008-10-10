@@ -669,19 +669,29 @@
 	 (soper (pair_head (list_first scont)))
 	 (xargtup (expand_restlist_as_tuple scont env mexpander))
 	 (cmatin (unsafe_get_field :amatch_in cmat))
+	 (cmatexp (unsafe_get_field :cmatch_expoper cmat))
 	 )
     (if (!=i (multiple_length xargtup)
 	     (multiple_length cmatin))
 	(warning_strv sloc
 		      "bad argument number for cmatcher expression"_
 		      (unsafe_get_field :named_name cmat)))
+    (if (null cmatexp)
+	(progn
+	  (error_strv sloc
+		      "cmatcher used without operation expansion"_
+		      (unsafe_get_field :named_name cmat))
+	  (return)))
     ;; should build a class_src_cmatchexpr
-    (instance class_src_cmatchexpr
-	      :src_loc sloc
-	      :scmatx_cmatcher cmat
-	      :scmatx_args xargtup)
-    )
-  )
+    (let ( (res
+	    (instance class_src_cmatchexpr
+		      :src_loc sloc
+		      :scmatx_cmatcher cmat
+		      :scmatx_args xargtup)
+	    ) )
+      (debug_msg res "expand_cmatchexpr res")
+      (return res)
+)))
 
 ;;; expand a keywordfun s-expression
 ;;; not implemented yet, but might later be useful for stuff like

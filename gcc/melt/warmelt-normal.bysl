@@ -95,7 +95,7 @@
 (defclass class_nrep_chunk
   :super class_nrep_expr
   :fields (nchunk_expansion		;the expansion
-	   nchunk_primitive		;the primitive
+	   nchunk_oper			;the operator (primitive or cmatcher)
 	   ))
 
 ;; normal comment is a normalized comment
@@ -1221,15 +1221,20 @@
 	 (multiple_every
 	  sopexp
 	  (lambda (excu :long jx)
-					;(debug_msg excu "normexp_primitive excu in sopexp")
+	    ;;(debug_msg excu "normexp_primitive excu in sopexp")
 	    (let ( (exval
 		    (if (is_a excu class_symbol)
 			(let ( (bval (mapobject_get bmap excu)) )
 			  (if (null bval) 
 			      (progn 
-				(debug_msg recv "normexp_primitive recv unbound symbol in expansion")
+;; we could perhaps handle symbols which are not primitive arguments
+;; as some kind of closed constants, but this is rarely needed and
+;; requires a lot of work: the excu should then be the constant
+;; itself, and code should be generated to fill the primitive with
+;; non-symbol values.
+				(debug_msg recv "normexp_primitive recv unexpected symbol in expansion")
 				(debug_msg excu "normexp_primitive excu")
-				(error_strv sloc "unbound symbol in primitive expansion" 
+				(error_strv sloc "unexpected symbol in primitive expansion" 
 					    (unsafe_get_field  :named_name excu))
 				(error_strv sloc "bad primitive name" sopnamstr)
 				))
@@ -1255,7 +1260,7 @@
 				 (instance class_nrep_chunk
 					   :nrep_loc sloc
 					   :nchunk_expansion expargs
-					   :nchunk_primitive soper
+					   :nchunk_oper soper
 					   ))) 
 		(clocc (instance class_nrep_locsymocc
 				 :nrep_loc sloc
@@ -1276,12 +1281,152 @@
 	    )))))))
 
 (install_method class_src_primitive normal_exp normexp_primitive)
-(install_method class_nrep_chunk get_ctype 
-		(lambda (recv env)
-		  (let ( ( prim (unsafe_get_field :nchunk_primitive recv)) )
-		    (assert_msg "check prim" (is_a prim class_primitive))
-		    (unsafe_get_field :prim_type prim))))
+(defun getctype_chunk (recv env)
+  (let ( ( oper (unsafe_get_field :nchunk_oper recv)) )
+    (cond 
+     ((is_a oper class_primitive)
+      (unsafe_get_field :prim_type oper))
+     ((is_a oper class_cmatcher)
+      (let ( (mb (unsafe_get_field :amatch_matchbind oper)) )
+	(assert_msg "check mb" (is_a mb class_formal_binding))
+	(unsafe_get_field :fbind_type mb))
+      )
+     (:else
+      (assert_msg "bad oper in chunk" ())))))
 
+
+(install_method class_nrep_chunk get_ctype getctype_chunk)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; normalize a cmatchexpr
+(defun normexp_cmatchexpr (recv env ncx psloc)
+  (debug_msg recv "normexp_cmatchexpr recv")
+  (assert_msg "check recv" (is_a recv class_src_cmatchexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+	 (scmat (unsafe_get_field :scmatx_cmatcher recv))
+	 (sargs (unsafe_get_field :scmatx_args recv)) 
+	 )
+    (assert_msg "check scmat" (is_a scmat class_cmatcher))
+    (multicall 
+     (nargs nbind)
+     (normalize_tuple sargs env ncx sloc)
+     (let ( (cmanamstr (unsafe_get_field :named_name scmat))
+	    ;; the outformals are really the "input" arguments for cmatchexpr
+	    (oformals (unsafe_get_field :amatch_out scmat))
+	    ;; the matchbind gives the result of the cmatchexpr
+	    (mabind (let ( (mb (unsafe_get_field :amatch_matchbind scmat)) )
+		      (assert_msg "check mabind" (is_a mb class_formal_binding))
+		      mb))
+	    ;; the type of the cmatchexpr
+	    (otype (unsafe_get_field :fbind_type mabind))
+	    (sopexp (unsafe_get_field :cmatch_expoper scmat)) 
+	    (:long nbarg (multiple_length nargs))
+	    (:long nbexp (multiple_length sopexp))
+	    )
+       (assert_msg "check otype" (is_a otype class_ctype))
+       (if (!=i nbarg (multiple_length oformals))
+	   (progn
+	     (error_strv sloc "length mismatch between formals & actuals in cmatch expr" 
+			 cmanamstr)
+	     (return))
+	 )
+       (let ( (bmap (make_mapobject  discr_mapobjects (+i 5 (/iraw (*i 3 nbarg) 2))))
+	      (expargs (make_multiple discr_multiple nbexp))
+	      )
+	 (multiple_every
+	  oformals
+	  (lambda (forb :long ix)
+	    (assert_msg "check forb" (is_a forb class_formal_binding))
+	    (debug_msg forb "normexp_cmatchexpr forb")
+	    (let ( (forarg (unsafe_get_field :binder forb))
+		   (actarg (multiple_nth nargs ix)) 
+		   (fortype (unsafe_get_field :fbind_type forb))
+		   (actype (get_ctype actarg env))
+		   )
+	      (debug_msg actarg "normexp_cmatchexpr actarg")
+	      (debug_msg actype "normexp_cmatchexpr actype")
+	      (if (and (is_a fortype class_ctype)
+		       (is_a actype class_ctype)
+		       (!= fortype actype))
+		  (progn
+		    (warning_strv sloc "type mismatch between formals & actuals in cmatch oper"
+				  cmanamstr)
+		    (inform_strv sloc "mismatched primitive formal name"
+				 (unsafe_get_field :named_name forarg))
+		    (inform_strv sloc "mismatched primitive actual type"
+				 (unsafe_get_field :named_name actype))
+		    (inform_strv sloc "mismatched primitive expected type"
+				 (unsafe_get_field :named_name fortype))
+		    ))
+	      (mapobject_put bmap forarg actarg)
+	      )))
+	 (debug_msg bmap "normexp_cmatchexpr bmap in sopexp")
+	 (multiple_every
+	  sopexp
+	  (lambda (excu :long jx)
+	    ;;(debug_msg excu "normexp_cmatchexpr excu in sopexp")
+	    (let ( (exval
+		    (if (is_a excu class_symbol)
+			(let ( (bval (mapobject_get bmap excu)) )
+			  (if (null bval) 
+			      (progn 
+;; we could perhaps handle symbols which are not primitive arguments
+;; as some kind of closed constants, but this is rarely needed and
+;; requires a lot of work: the excu should then be the constant
+;; itself, and code should be generated to fill the primitive with
+;; non-symbol values.
+				(debug_msg recv "normexp_cmatchexpr recv unexpected symbol in expansion")
+				(debug_msg excu "normexp_cmatchexpr excu")
+				(error_strv sloc "unexpected symbol in cmatch expression expansion" 
+					    (unsafe_get_field  :named_name excu))
+				(error_strv sloc "bad primitive name" cmanamstr)
+				))
+			  bval)
+		      excu)) )
+	      (if (null exval)
+		  (progn
+		    (warning_strv sloc "null expansion of cmatch expression argument for"
+				  cmanamstr)
+		    (if (is_a excu class_named) 
+			(warning_strv sloc "null cmatch expression original piece is"
+				      (unsafe_get_field :named_name excu)))
+		    ))
+					;(debug_msg exval "normexp_cmatchexpr exval in sopexp")
+	      (multiple_put_nth expargs jx exval))
+	    ))
+	 (let ( (csym (clone_symbol cmanamstr)) 
+		(cbind (instance class_normlet_binding
+				 :letbind_loc sloc
+				 :binder csym
+				 :letbind_type otype 
+				 :letbind_expr 
+				 (instance class_nrep_chunk
+					   :nrep_loc sloc
+					   :nchunk_expansion expargs
+					   :nchunk_oper scmat
+					   ))) 
+		(clocc (instance class_nrep_locsymocc
+				 :nrep_loc sloc
+				 :nocc_ctyp otype
+				 :nocc_symb csym
+				 :nocc_bind cbind)) 
+		)
+	   (if (is_list nbind) 
+	       (list_append nbind cbind)
+	     (progn
+	       (setq nbind (make_list discr_list))
+	       (list_append nbind cbind)
+	       ))
+	   (debug_msg clocc "normexp_cmatchexpr result clocc")
+	   (return
+	    clocc
+	    nbind
+	    )))))))
+
+(install_method class_src_cmatchexpr normal_exp normexp_cmatchexpr)
 
 
 

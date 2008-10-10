@@ -1242,13 +1242,11 @@
   (assert_msg "check nchk" (is_a nchk class_nrep_chunk))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (debug_msg nchk "compilobj nrepchunk nchk")
-					;  (debug_msg gcx "compilobj nrepchunk gcx")
-					;  (debug_msg env "compilobj nrepchunk env")
   (let ( (loc (unsafe_get_field :nrep_loc nchk))
 	 (nexp (unsafe_get_field :nchunk_expansion nchk))
-	 (nprim (unsafe_get_field :nchunk_primitive nchk))
+	 (noper (unsafe_get_field :nchunk_oper nchk))
 	 )
-    (assert_msg "check nprim" (is_a nprim class_primitive))
+    (assert_msg "check noper" (is_a noper class_named))
     (assert_msg "check nexp" (is_multiple nexp))
     (let (  (otup (multiple_map
 		   nexp
@@ -1258,20 +1256,29 @@
 			 comp
 		       (compile_obj comp gcx)))
 		   ))
-	    (primty (unsafe_get_field :prim_type nprim))
+	    (opty (cond
+		   ((is_a noper class_primitive)
+		    (unsafe_get_field :prim_type noper))
+		   ((is_a noper class_cmatcher)
+		    (let ( (mb (unsafe_get_field :amatch_matchbind noper)) )
+		      (assert_msg "check mb" (is_a mb class_formal_binding))
+		      (unsafe_get_field :fbind_type mb)))
+		  (:else
+		   (assert_msg "unexpected noper" ())
+		   (return))))
 	    (oexp (if loc
 		      (instance class_objlocatedexpv
-				:obv_type primty
+				:obv_type opty
 				:obx_cont otup
 				:obcx_loc loc
 				)
 		    (instance class_objexpv
-			      :obv_type primty
+			      :obv_type opty
 			      :obx_cont otup)
 		    ))      
 	    )
-      (assert_msg "check primty" (is_a primty class_ctype))
-      (debug_msg oexp "compiobj nrepchunk oexp")
+      (assert_msg "check opty" (is_a opty class_ctype))
+      (debug_msg oexp "compilobj nrepchunk oexp")
       oexp)
     ))
 (install_method class_nrep_chunk compile_obj compilobj_nrep_chunk)

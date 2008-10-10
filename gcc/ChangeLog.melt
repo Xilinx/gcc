@@ -1,4 +1,17 @@
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: changed comment.
+	* melt/warmelt-macro.bysl: better expand_cmatchexpr.
+	* melt/warmelt-normal.bysl: added normexp_cmatchexpr &
+	getctype_chunk. class_nrep_chunk has nchunk_oper instead of
+	nchunk_primitive.
+	* melt/warmelt-genobj.bysl: compilobj_nrep_chunk handle primitive
+	& cmatchexpr operators differently.
+	* warmelt-first-0.c: regenerated twice.
+	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: regenerated twice.
+2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: all fixed bindings handled the same in normexp_symbol.
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[defcmatcher are exported]
