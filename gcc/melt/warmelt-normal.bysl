@@ -1066,96 +1066,7 @@
 	  (mapobject_put sycmap recv syocc)
 	  syocc
 	  ))
-      ;; previous function binding at toplevel
-      ( (is_a bind class_function_binding)
-	(debug_msg bind "normexp_symbol function bind")
-	(let ( (fubdat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null fubdat)
-	      (error_strv psloc "unresolved forward function reference to"
-			  (unsafe_get_field :named_name recv)
-			  ))
-	  (assert_msg "normexp_symbol check fubdat" (is_a fubdat class_nrep_dataclosure))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv fubdat)
-	  fubdat
-	  ))
-      ;; previous primitive binding at toplevel
-      ( (is_a bind class_primitive_binding)
-	;; in every fixed binding, the only difference is the error message
-	(compile_warning "maybe all fixed binding should be handled the same" ())
-	(let ( (pribidat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null pribidat)
-	      (error_strv psloc "unresolved forward primitive reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (assert_msg "normexp_symbol check pribdat" (is_a pribidat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv pribidat)
-	  pribidat))
-      ;; previous class binding at toplevel
-      ( (is_a bind class_class_binding)
-	(let ( (cldat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null cldat)
-	      (error_strv psloc "unresolved forward class reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (assert_msg "normexp_symbol check cldat" (is_a cldat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv cldat)
-	  cldat))
-      ;; previous field binding at toplevel
-      ( (is_a bind class_field_binding)
-	(let ( (fdat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null fdat)
-	      (error_strv psloc "unresolved forward field reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (assert_msg "normexp_symbol check fdat" (is_a fdat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv fdat)
-	  fdat))
-      ;; previous selector binding at toplevel
-      ( (is_a bind class_selector_binding)
-	(let ( (seldat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null seldat)
-	      (error_strv psloc "unresolved forward selector reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (assert_msg "normexp_symbol check seldat" (is_a seldat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv seldat)
-	  seldat))
-      ;; previous instance binding at toplevel
-      ( (is_a bind class_instance_binding)
-	(let ( (insdat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null insdat)
-	      (error_strv psloc "unresolved forward instance reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (assert_msg "normexp_symbol check insdat" (is_a insdat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv insdat)
-	  insdat)
-	)
-      ( (is_a bind class_citerator_binding)
-	(debug_msg bind "normexp_symbol citerator_binding")
-	(let ( (iterdat (unsafe_get_field :fixbind_data bind)) )
-	  (if (null iterdat)
-	      (error_strv psloc "unresolved forward citerator reference to"
-			  (unsafe_get_field :named_name recv)
-			  )
-	    )
-	  (debug_msg iterdat "normexp_symbol iterdat")
-	  (assert_msg "normexp_symbol check iterdat" (is_a iterdat class_nrep_datainstance))
-	  ;; cache the result & return it
-	  (mapobject_put sycmap recv iterdat)
-	  iterdat)
-	)
+      ;; handle fixed bindings (like defun definstance defciterator defclass ....)
       ( (is_a bind class_fixed_binding)
 	(debug_msg bind "normexp_symbol fixed_binding")
 	(let ( (fixdat (unsafe_get_field :fixbind_data bind)) )
@@ -1165,14 +1076,16 @@
 			  )
 	    )
 	  (debug_msg fixdat "normexp_symbol fixdat")
-	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_datainstance))
+	  (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
 	  ;; cache the result & return it
 	  (mapobject_put sycmap recv fixdat)
 	  fixdat)
 	)
-      ;; all other cases are constants
+      ;; all other cases are constants, probably unusual, so we warn
       (:else 
        (debug_msg bind "normexp_symbol const? bind")
+       (warning_strv psloc "bizarre?? constant reference to"
+		     (unsafe_get_field :named_name recv))
        (let ( (kocc
 	       (instance class_nrep_constocc
 			 :nrep_loc psloc
