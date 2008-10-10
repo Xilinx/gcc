@@ -1145,21 +1145,6 @@
     ))
 
 
-;; (redefinition_handling ....) NOT YET IMPLEMENTED
-;; perhaps the argument could be the name of an imported closure, or a keyword
-(compile_warning "mexpand_redefinition_handling NOT IMPLEMENTED YET" ())
-(defun mexpand_redefinition_handling (sexpr env mexpander)
-  (debug_msg sexpr "mexpand_redefinition_handling sexpr")
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr)) 
-	 )
-    (warning_plain loc "(REDEFINITION_HANDLING ....) @@ NOT IMPLEMENTED YET")
-    (return)
-    ))
-(install_initial_macro 'redefinition_handling mexpand_redefinition_handling)
-(export_macro redefinition_handling mexpand_redefinition_handling)
-
 
 (defprimitive warn_shadow () :long
   "warn_shadow")
@@ -1420,7 +1405,11 @@
 	  (progn
 	    (error_plain loc "bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	    (return))
-	(setq exptest (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexptest))))
+	(if sexptest
+	    (setq exptest 
+		  (parse_pairlist_c_code_expansion 
+		   loc
+		   (list_first (unsafe_get_field :sexp_contents sexptest)))))
 	))
     (debug_msg exptest "mexpand_defcmatcher exptest")
     ;; parse the fill expansion
@@ -1430,7 +1419,10 @@
 	  (progn
 	    (error_plain loc "bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	    (return))
-	(setq expfill (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpfill))))
+	(if sexpfill
+	    (setq expfill
+		  (parse_pairlist_c_code_expansion 
+		   loc (list_first (unsafe_get_field :sexp_contents sexpfill)))))
 	))
     (debug_msg expfill "mexpand_defcmatcher expfill")
     ;; parse the operate expansion
@@ -1440,7 +1432,9 @@
 	  (progn
 	    (error_plain loc "bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	    (return))
-	(setq expoper (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpoper))))
+	(setq expoper
+	      (if sexpoper
+		  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpoper)))))
 	))
     (debug_msg expoper "mexpand_defcmatcher expfill")
     ;; check nothing more

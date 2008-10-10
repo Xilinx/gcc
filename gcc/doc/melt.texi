@@ -338,7 +338,7 @@ current_module_environment_container debug_msg defciterator defclass
 definstance defprimitive defselector defun exit export_class
 export_macro export_values fetch_predefined forever get_field if instance lambda
 let make_instance match multicall or parent_module_environment progn
-put_fields quote redefinition_handling return setq store_predefined
+put_fields quote return setq store_predefined
 unsafe_get_field unsafe_put_fields
 update_current_module_environment_container}
 
@@ -1643,8 +1643,6 @@ field named @var{:field-name1} to the value of @var{val1} etc@dots{}
 quoted. But @code{'1} and @code{'"string"} should be a way to express
 static boxed values [unimplemented].
 
-@item redefinition_handling
-[Expert] probably not needed and obsolete.
 
 @item return
 @cindex @code{return} MELT syntax

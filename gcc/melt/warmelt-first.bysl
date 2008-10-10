@@ -815,6 +815,34 @@
 (defprimitive multiple_sort (mul cmp discrm) :value
   " basilysgc_sort_multiple((basilys_ptr_t)(" mul "), (basilys_ptr_t)(" cmp "), (basilys_ptr_t)( " discrm "))")
 
+
+;; cmatcher for the tuple nth argument
+(defcmatcher tuple_nth 
+  (tup :long rk)				;match & ins
+  (comp)				;out
+  tupnth				;statesymb
+  (					;test expansion
+   "(basilys_is_multiple_at_least(((basilys_ptr_t)" tup "), (int)(" rk ")))"
+   )
+  (					;fill expansion
+   comp " = basilys_multiple_nth((basilys_ptr_t)(" tu "),(int)(" rk "));"
+   )
+  ;; no operator expansion 
+)
+
+
+;; cmatcher for a tuple of a given exact size
+(defcmatcher tuple_sized
+  (tup :long ln)			;match & ins
+  () 					;outs
+  tupsiz				;statesymb
+  (					;test expansion
+   "(basilys_is_multiple_of_length((basilys_ptr_t)(" tup "), (int) (" ln ")))"
+   )
+  ;; no fill expansion
+  ;; no operator expansion
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MAPOBJECTs primitives
 ;;;; test
@@ -3623,7 +3651,7 @@
  ) ;;;end export discriminants, instances, selectors
 
 
-;; export the functions defined above
+;; export the functions & matchers defined above
 (export_values
  add_new_keyword_token			
  add_new_symbol_token	
@@ -3672,6 +3700,8 @@
  post_initialization
  put_env
  routine_every
+ tuple_nth
+ tuple_sized
  )
 
 

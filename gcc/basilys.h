@@ -926,6 +926,22 @@ basilys_multiple_length (basilys_ptr_t mul)
   return ((basilysmultiple_ptr_t)mul)->nbval;
 }
 
+/* test if something is a tuple of a given length or bigger */
+static inline bool
+basilys_is_multiple_at_least(basilys_ptr_t mul, int ln)
+{
+  if (!mul || ln<0 || ((basilysmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE) return 0;
+  return  (int)((basilysmultiple_ptr_t)mul)->nbval >= (int)ln;
+}
+
+/* test if something is a tuple of an exactly given length */
+static inline bool
+basilys_is_multiple_of_length(basilys_ptr_t mul, int ln)
+{
+  if (!mul || ln<0 || ((basilysmultiple_ptr_t)mul)->discr->object_magic != OBMAG_MULTIPLE) return 0;
+  return  (int)((basilysmultiple_ptr_t)mul)->nbval == (int)ln;
+}
+
 /* sort a multiple MUL using as compare function the closure CMPCLO
    which should return a boxed integer (0 for equality, <0 for less
    than, >0 for greater than), when applied to two values to
