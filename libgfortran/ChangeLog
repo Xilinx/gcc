@@ -1,3 +1,18 @@
+2008-10-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/37753
+	* io/transfer.c (unformatted_read):  CONVERT_NATIVE
+	is the usual case.  Check for kind==1 for non-byte-reversing
+	operation.
+	(unformatted_write):  Likewise.
+
+2008-10-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR libfortran/37707
+	* io/list_read.c (nml_get_obj_data): If the first namelist object rank
+	is greater than zero, call nml_object_read with the first object rather
+	than the sub-object.
+
 2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
             Steve Ellcey  <sje@cup.hp.com>
 
