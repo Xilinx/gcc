@@ -602,6 +602,9 @@ extern tree c_finish_omp_parallel (tree, tree);
 extern tree c_begin_omp_task (void);
 extern tree c_finish_omp_task (tree, tree);
 extern tree c_finish_omp_clauses (tree);
+extern tree c_begin_gtm_txn (void);
+extern tree c_finish_gtm_abort (void); 
+extern tree c_finish_gtm_txn (tree);
 
 /* Set to 0 at beginning of a function definition, set to 1 if
    a return statement that specifies a return value is seen.  */

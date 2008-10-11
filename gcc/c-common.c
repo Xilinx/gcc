@@ -655,6 +655,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__signed",		RID_SIGNED,	0 },
   { "__signed__",	RID_SIGNED,	0 },
   { "__thread",		RID_THREAD,	0 },
+  { "__tm_abort",	RID_GTM_ABORT,	0 },
   { "__typeof",		RID_TYPEOF,	0 },
   { "__typeof__",	RID_TYPEOF,	0 },
   { "__volatile",	RID_VOLATILE,	0 },
@@ -753,6 +754,10 @@ const struct c_common_resword c_common_reswords[] =
 const unsigned int num_c_common_reswords =
   sizeof c_common_reswords / sizeof (struct c_common_resword);
 
+static tree handle_gtm_callable_attribute (tree *, tree, tree, int, bool *);
+static tree handle_gtm_pure_attribute (tree *, tree, tree, int, bool *);
+static tree handle_gtm_unknown_attribute (tree *, tree, tree, int, bool *);
+
 /* Table of machine-independent attributes common to all C-like languages.  */
 const struct attribute_spec c_common_attribute_table[] =
 {
@@ -819,6 +824,14 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_no_limit_stack_attribute },
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute },
+   /* Here the GTM attributes start. */
+  { "tm_pure",                0, 0, true,  false, false,
+                              handle_gtm_pure_attribute },
+  { "tm_callable",            0, 0, true,  false, false,
+                              handle_gtm_callable_attribute },
+  { "tm_unknown",             0, 0, true,  false, false,
+                              handle_gtm_unknown_attribute },
+  /* End of GTM attributes. */
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
@@ -6457,6 +6470,68 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
   return NULL_TREE;
 }
 
+/* Handle a "tm_pure" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_gtm_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+                     int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    DECL_IS_GTM_PURE (*node) = 1;
+  /* ??? TODO: Support types.  */
+  else
+    {
+      if (TREE_CODE (*node) == VAR_DECL)
+	DECL_IS_GTM_PURE_VAR (*node) = 1;
+      else 
+	{
+	  warning (OPT_Wattributes, "%qE attribute ignored", name);
+	  *no_add_attrs = true;
+	}
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "tm_unknown" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_gtm_unknown_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+                     int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    DECL_IS_GTM_UNKNOWN (*node) = 1;
+  /* ??? TODO: Support types.  */
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
+/* Handle a "tm_callable" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_gtm_callable_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+                     int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL)
+    DECL_IS_GTM_CALLABLE (*node) = 1;
+  /* ??? TODO: Support types.  */
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle a "no vops" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -7992,6 +8067,8 @@ resolve_overloaded_builtin (tree function, tree params)
     case BUILT_IN_VAL_COMPARE_AND_SWAP_N:
     case BUILT_IN_LOCK_TEST_AND_SET_N:
     case BUILT_IN_LOCK_RELEASE_N:
+    case BUILT_IN_GTM_LOAD_N:
+    case BUILT_IN_GTM_STORE_N:      
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, result;

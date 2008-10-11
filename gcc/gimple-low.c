@@ -217,6 +217,108 @@ struct gimple_opt_pass pass_lower_cf =
  }
 };
 
+static void
+mark_gtm_save_vars (tree vars)
+{
+  for (; vars; vars = TREE_CHAIN (vars))
+    {
+      tree var = vars;
+      if (TREE_CODE (var) == VAR_DECL)
+        DECL_IS_GTM_PURE_VAR (var) = 1;
+    }
+  return ;
+}
+
+/* Lower the GTM directive statement pointed by TSI.  DATA is
+    passed through the recursion.  */
+
+static void
+lower_gtm_directive (tree_stmt_iterator *tsi, struct lower_data *data)
+{
+  tree stmt;
+
+  stmt = tsi_stmt (*tsi);
+  tree body = GTM_TXN_BODY (stmt);
+  if (TREE_CODE (body) == STATEMENT_LIST)
+    {
+      tree temp;
+      tree_stmt_iterator ttsi = tsi_start (body);
+      if (!tsi_end_p (ttsi))
+        {
+          temp = tsi_stmt (ttsi);
+        }
+      else gcc_unreachable();
+      if (TREE_CODE (temp) == BIND_EXPR)
+        {
+          tree vars = BIND_EXPR_VARS (temp);
+
+          if (vars)
+            {
+              mark_gtm_save_vars(vars);
+            }
+          if (TREE_CODE (BIND_EXPR_BODY (temp)) == STATEMENT_LIST)
+            {
+              tree temp2;
+              tree_stmt_iterator ttsi = tsi_start (BIND_EXPR_BODY (temp));
+
+              if (!tsi_end_p (ttsi))
+                {
+                  temp2 = tsi_stmt (ttsi);
+                }
+              else gcc_unreachable();
+
+            if (TREE_CODE (temp2) == BIND_EXPR)
+              {
+                tree vars = BIND_EXPR_VARS (temp2);
+
+                if (vars)
+                  {
+                    mark_gtm_save_vars(vars);
+                  }
+              }
+          }
+      }
+    }
+  else
+    {
+      if (TREE_CODE (body) == BIND_EXPR)
+        {
+          tree vars = BIND_EXPR_VARS (body);
+
+          if (vars)
+            {
+              mark_gtm_save_vars(vars);
+            }
+        }
+      if (TREE_CODE (BIND_EXPR_BODY (body)) == STATEMENT_LIST)
+      {
+        tree temp;
+        tree_stmt_iterator ttsi = tsi_start (BIND_EXPR_BODY (body));
+
+        if (!tsi_end_p (ttsi))
+          {
+            temp = tsi_stmt (ttsi);
+          }
+        else gcc_unreachable();
+
+        if (TREE_CODE (temp) == BIND_EXPR)
+          {
+            tree vars = BIND_EXPR_VARS (temp);
+
+            if (vars)
+              {
+                mark_gtm_save_vars(vars);
+              }
+          }
+      }
+    }
+
+  lower_stmt_body (body, data);
+  tsi_link_before (tsi, stmt, TSI_SAME_STMT);
+  tsi_link_before (tsi, body, TSI_SAME_STMT);
+  GTM_TXN_BODY (stmt) = NULL_TREE;
+  tsi_delink (tsi);
+}
 
 /* Lower sequence SEQ.  Unlike gimplification the statements are not relowered
    when they are changed -- if this has to be done, the lowering routine must
@@ -306,6 +408,8 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
     case GIMPLE_OMP_ATOMIC_LOAD:
     case GIMPLE_OMP_ATOMIC_STORE:
     case GIMPLE_OMP_CONTINUE:
+    case GIMPLE_GTM_RETURN:
+    case GIMPLE_GTM_ABORT:
       break;
 
     case GIMPLE_CALL:
@@ -326,6 +430,10 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
     case GIMPLE_OMP_PARALLEL:
     case GIMPLE_OMP_TASK:
       lower_omp_directive (gsi, data);
+      return;
+
+    case GIMPLE_GTM_TXN:
+      lower_gtm_directive (tsi, data);
       return;
 
     default:

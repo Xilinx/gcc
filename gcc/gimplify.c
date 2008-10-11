@@ -6115,6 +6115,31 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
    return GS_ALL_DONE;
 }
 
+/* Gimplify the contents of a GTM_TXN statement.  This involves
+   gimplification of the body.  */
+
+static enum gimplify_status
+gimplify_gtm_txn (tree *expr_p, gimple_seq *pre_p)
+{
+  tree expr = *expr_p;
+  gimple g;
+  gimple_seq body = NULL;
+  struct gimplify_ctx gctx;
+
+  push_gimplify_context (&gctx);
+
+  g = gimplify_and_return_first (GTM_TXN_BODY (expr), &body);
+  if (gimple_code (g) == GIMPLE_BIND)
+    pop_gimplify_context (g);
+  else
+    pop_gimplify_context (NULL);
+
+  g = gimple_build_gtm_txn (body);
+  gimplify_seq_add_stmt (pre_p, g);
+  *expr_p = NULL_TREE;
+
+  return GS_ALL_DONE;
+}
 
 /* Converts the GENERIC expression tree *EXPR_P to GIMPLE.  If the
    expression produces a value to be used as an operand inside a GIMPLE
@@ -6767,6 +6792,10 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	case OMP_ATOMIC:
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
+
+        case GTM_TXN:
+          ret = gimplify_gtm_txn (expr_p, pre_p);
+          break;
 
 	case POINTER_PLUS_EXPR:
           /* Convert ((type *)A)+offset into &A->field_of_type_and_offset.

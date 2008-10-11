@@ -45,6 +45,8 @@ typedef enum pragma_kind {
   PRAGMA_OMP_TASKWAIT,
   PRAGMA_OMP_THREADPRIVATE,
 
+  PRAGMA_GTM_ATOMIC,
+
   PRAGMA_GCC_PCH_PREPROCESS,
 
   PRAGMA_FIRST_EXTERNAL
@@ -72,6 +74,13 @@ typedef enum pragma_omp_clause {
   PRAGMA_OMP_CLAUSE_SHARED,
   PRAGMA_OMP_CLAUSE_UNTIED
 } pragma_omp_clause;
+
+/* Clauses defined by GTM. (none up to now)
+   Implemented to be extendible.
+   Used internally by both C and C++ parsers.  */
+typedef enum pragma_gtm_clause {
+  PRAGMA_GTM_CLAUSE_NONE = 0
+} pragma_gtm_clause;
 
 extern struct cpp_reader* parse_in;
 

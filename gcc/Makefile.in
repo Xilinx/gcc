@@ -792,7 +792,8 @@ RTL_BASE_H = rtl.h rtl.def $(MACHMODE_H) reg-notes.def insn-notes.def \
 FIXED_VALUE_H = fixed-value.h $(MACHMODE_H) double-int.h
 RTL_H = $(RTL_BASE_H) genrtl.h
 PARAMS_H = params.h params.def
-BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def
+BUILTINS_DEF = builtins.def sync-builtins.def omp-builtins.def \
+	gtm-builtins.def
 TREE_H = tree.h all-tree.def tree.def c-common.def $(lang_tree_files) \
           $(MACHMODE_H) tree-check.h $(BUILTINS_DEF) \
           $(INPUT_H) statistics.h vec.h treestruct.def $(HASHTAB_H) \
@@ -1109,6 +1110,7 @@ OBJS-common = \
 	graph.o \
 	graphds.o \
 	graphite.o \
+	gtm-low.o \
 	gtype-desc.o \
 	haifa-sched.o \
 	hooks.o \
@@ -2017,6 +2019,11 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	libfuncs.h debug.h $(GGC_H) $(CGRAPH_H) $(TREE_FLOW_H) reload.h \
 	$(CPP_ID_DATA_H) tree-chrec.h $(CFGLAYOUT_H) except.h output.h \
 	$(CFGLOOP_H)
+
+gtm-low.o : gtm-low.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
+        $(RTL_H) $(TREE_GIMPLE_H) $(TREE_INLINE_H) langhooks.h $(DIAGNOSTIC_H) \
+        $(TREE_FLOW_H) $(TIMEVAR_H) $(FLAGS_H) $(EXPR_H) toplev.h tree-pass.h \
+        $(GGC_H) $(SPLAY_TREE_H) $(OPTABS_H) $(CFGLOOP_H) gtm-defines.h
 
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(GGC_H) \
 	$(HASHTAB_H) $(TOPLEV_H) $(PARAMS_H) hosthooks.h $(HOSTHOOKS_DEF_H)

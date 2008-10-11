@@ -142,6 +142,13 @@ along with GCC; see the file COPYING3.  If not see
                false, true, true, ATTRS, false, \
 	       (flag_openmp || flag_tree_parallelize_loops))
 
+/* Builtin used by the implementation of GNU TM.  These
+   functions are mapped to the actual implementation of the STM library. */
+#undef DEF_GTM_BUILTIN
+#define DEF_GTM_BUILTIN(ENUM, NAME, TYPE, ATTRS) \
+  DEF_BUILTIN (ENUM, "__builtin_" NAME, BUILT_IN_NORMAL, TYPE, TYPE,    \
+               false, true, true, ATTRS, false, flag_gtm)
+
 /* Define an attribute list for math functions that are normally
    "impure" because some of them may write into global memory for
    `errno'.  If !flag_errno_math they are instead "const".  */
@@ -763,3 +770,6 @@ DEF_BUILTIN (BUILT_IN_EMUTLS_REGISTER_COMMON,
 
 /* OpenMP builtins.  */
 #include "omp-builtins.def"
+
+/* GTM builtins. */
+#include "gtm-builtins.def"

@@ -817,6 +817,7 @@ copy_var_decl (tree var, tree name, tree type)
   DECL_IGNORED_P (copy) = DECL_IGNORED_P (var);
   DECL_CONTEXT (copy) = DECL_CONTEXT (var);
   DECL_SOURCE_LOCATION (copy) = DECL_SOURCE_LOCATION (var);
+  DECL_IS_GTM_PURE_VAR (copy) = DECL_IS_GTM_PURE_VAR (var);  
   TREE_USED (copy) = 1;
   DECL_SEEN_IN_BIND_EXPR_P (copy) = 1;
 
@@ -6368,6 +6369,38 @@ lower_omp_taskreg (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   pop_gimplify_context (NULL);
 }
 
+/* Simply introduces a new stmt_list (needed by gimple-low.c).
+   Further add the GTM_RETURN at the end of the TXN.
+   TODO: check for omp constructs in txn! */
+
+static void
+lower_gtm_txn (tree *stmt_p, omp_context *ctx)
+{
+  tree txn_body, txn_bind;
+  tree new_body, t;
+  tree stmt;
+
+  stmt = *stmt_p;
+
+  push_gimplify_context ();
+
+  txn_bind  = GTM_TXN_BODY (stmt);
+
+  txn_body =  BIND_EXPR_BODY (txn_bind);
+  lower_omp (&txn_body, ctx);
+
+  new_body = alloc_stmt_list ();
+
+  append_to_statement_list (txn_bind, &new_body);
+
+  t = make_node (GTM_RETURN);
+  append_to_statement_list (t, &new_body);
+  GTM_TXN_BODY (stmt) = new_body;
+  *stmt_p = stmt;
+
+  pop_gimplify_context (NULL_TREE);
+}
+
 /* Callback for lower_omp_1.  Return non-NULL if *tp needs to be
    regimplified.  If DATA is non-NULL, lower_omp_1 is outside
    of OpenMP context, but with task_shared_vars set.  */
@@ -6669,6 +6702,10 @@ diagnose_sb_1 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
     case GIMPLE_LABEL:
       splay_tree_insert (all_labels, (splay_tree_key) gimple_label_label (stmt),
 			 (splay_tree_value) context);
+      break;
+
+    case GTM_TXN:
+      lower_gtm_txn (tp, ctx);
       break;
 
     default:

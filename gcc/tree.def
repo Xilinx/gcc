@@ -1057,6 +1057,16 @@ DEFTREECODE (OMP_ATOMIC, "omp_atomic", tcc_statement, 2)
 /* OpenMP clauses.  */
 DEFTREECODE (OMP_CLAUSE, "omp_clause", tcc_exceptional, 0)
 
+/* GTM TXN tree code.
+   Operand 0: GTM_TXN_BODY: contains body of the transaction.*/
+DEFTREECODE (GTM_TXN, "gtm_txn", tcc_statement, 1)
+
+/* Return from an GTM directive.  */
+DEFTREECODE (GTM_RETURN, "gtm_return", tcc_statement, 0)
+
+/* Abort an transaction.  */
+DEFTREECODE (GTM_ABORT, "gtm_abort", tcc_statement, 0)
+
 /* Reduction operations. 
    Operations that take a vector of elements and "reduce" it to a scalar
    result (e.g. summing the elements of the vector, finding the minimum over

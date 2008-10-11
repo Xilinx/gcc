@@ -8868,6 +8868,82 @@ c_finish_omp_clauses (tree clauses)
   return clauses;
 }
 
+/* Similar to c_begin_omp_parallel. */
+
+tree
+c_begin_gtm_txn (void)
+{
+  tree block;
+
+  keep_next_level ();
+  block = c_begin_compound_stmt (true);
+
+  return block;
+}
+
+/* Parse like OMP_PARALLEL in case
+   OpenMP is used. The lowering
+   pass of OpenMP will do the rest.
+   In case the OMP lowering pass is not
+   triggered simply introduce a new stmt_list
+   while encountering a BIND_EXPR. Then
+   gimple-low.c should behave nicely and
+   add the GTM_RETURN at the end of the
+   transaction. */
+
+tree
+c_finish_gtm_txn (tree block)
+{
+  if (flag_openmp)
+    {
+      tree stmt;
+
+      block = c_end_compound_stmt (block, true);
+
+      stmt = make_node (GTM_TXN);
+      TREE_TYPE (stmt) = void_type_node;
+      GTM_TXN_BODY (stmt) = block;
+
+      return add_stmt (stmt);
+    }
+  else
+    {
+      tree stmt;
+      tree new_body;
+      tree gtm_ret;
+
+      block = c_end_compound_stmt (block, true);
+
+      stmt = make_node (GTM_TXN);
+      TREE_TYPE (stmt) = void_type_node;
+      new_body = block;
+
+      if (TREE_CODE (block) == BIND_EXPR)
+      {
+        new_body = alloc_stmt_list ();
+        append_to_statement_list (block, &new_body);
+        gtm_ret = make_node (GTM_RETURN);
+        append_to_statement_list (gtm_ret, &new_body);
+      }
+
+      GTM_TXN_BODY (stmt) = new_body;
+
+      return add_stmt (stmt);
+    }
+}
+
+/* Create a GTM_ABORT node and add it. */
+
+tree 
+c_finish_gtm_abort (void) 
+{
+  tree stmt;
+
+  stmt = make_node (GTM_ABORT);
+  
+  return add_stmt (stmt);
+}
+
 /* Make a variant type in the proper way for C/C++, propagating qualifiers
    down to the element type of an array.  */
 

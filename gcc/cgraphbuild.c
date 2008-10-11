@@ -122,14 +122,94 @@ compute_call_stmt_bb_frequency (basic_block bb)
   return freq;
 }
 
-/* Create cgraph edges for function calls.
-   Also look for functions and variables having addresses taken.  */
+/* Eagerly clone functions so that GTM expansion can create
+   and redirect calls to a transactional clone.  */
 
-static unsigned int
-build_cgraph_edges (void)
+static void
+prepare_gtm_clone (struct cgraph_node *node)
+{
+  struct cgraph_node *tm_node;
+  tree decl, old_decl, id;
+  struct function *saved_cfun;
+  size_t len;
+  char *tm_name;
+
+  if (!flag_gtm || flag_openmp)
+    return;
+
+  /* No need for a TM clone of the main function */
+  const char *orig = get_name (node->decl);
+  if ((strncmp (orig, "main", 4) == 0)
+      && (strlen (orig) == 4))
+    return; 
+
+  /* Do not prepare functions that are already instances 
+     of an original function decl for inlining. */
+  if (DECL_ABSTRACT_ORIGIN (node->decl) 
+      || DECL_EXTERNAL (node->decl) 
+      || DECL_VIRTUAL_P (node->decl) 
+      || DECL_ARTIFICIAL (node->decl))
+    return;
+
+  /* Clone whole function tree and set TM marker bit. */
+
+  /* Defer redirecting callers of the node to the
+     new versioned node to the gtm expansion pass.  */
+  tm_node = cgraph_function_versioning (node, NULL, NULL); 
+  if (tm_node == NULL)
+    return;
+
+  decl = tm_node->decl;
+  node->next_clone = tm_node;
+  DECL_IS_GTM_CLONE (decl) = 1;
+  cgraph_mark_needed_node (tm_node);
+
+  old_decl = current_function_decl;
+
+  current_function_decl = decl;
+  saved_cfun = cfun;
+  set_cfun (DECL_STRUCT_FUNCTION (decl));
+
+  /* Substitute decl name. */
+  len = strlen (orig);
+  tm_name = (char *) xmalloc (sizeof (char) * (len + 4));
+  strncpy (tm_name, orig, len);
+  strcpy (tm_name + len, "Txn");
+  id = get_identifier (tm_name);
+  DECL_NAME (decl) = id;
+  SET_DECL_ASSEMBLER_NAME(decl, id);
+
+#ifdef GTM_EXPL_HANDLE
+  /* Create parameter declaration for txn_handle and add
+     it to the parameter list */
+  {
+    tree arg, args_type, func_type, parm_decl;
+
+    args_type = TYPE_ARG_TYPES (TREE_TYPE (decl));
+    args_type = tree_cons (NULL_TREE, ptr_type_node, args_type);
+
+    func_type = build_function_type (TREE_TYPE (TREE_TYPE (decl)), args_type);
+    TREE_TYPE (decl) = func_type;
+
+    parm_decl = build_decl (PARM_DECL, get_identifier ("__txn_handle"),
+			    ptr_type_node);
+    DECL_ARG_TYPE (parm_decl) = ptr_type_node;
+    arg = DECL_ARGUMENTS (decl);
+    arg = chainon (arg, parm_decl);
+    DECL_ARGUMENTS (decl) = arg;
+  }
+#endif
+
+  set_cfun (saved_cfun);
+  current_function_decl = old_decl;
+}
+
+
+/* Helper function doing the work for build_cgraph_edge */
+static void
+build_cgraph_edges_from_node (struct cgraph_node *node)
 {
   basic_block bb;
-  struct cgraph_node *node = cgraph_node (current_function_decl);
   struct pointer_set_t *visited_nodes = pointer_set_create ();
   gimple_stmt_iterator gsi;
   tree step;
@@ -196,6 +276,20 @@ build_cgraph_edges (void)
 
   pointer_set_destroy (visited_nodes);
   initialize_inline_failed (node);
+}
+
+/* Create cgraph edges for function calls.
+   Also look for functions and variables having addresses taken.  */
+
+static unsigned int
+build_cgraph_edges (void)
+{
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+
+  build_cgraph_edges_from_node (node);
+  
+  prepare_gtm_clone (node);
+
   return 0;
 }
 

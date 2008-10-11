@@ -417,7 +417,7 @@ eq_node (const void *p1, const void *p2)
 
 /* Allocate new callgraph node and insert it into basic data structures.  */
 
-static struct cgraph_node *
+struct cgraph_node *
 cgraph_create_node (void)
 {
   struct cgraph_node *node;

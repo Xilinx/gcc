@@ -723,7 +723,8 @@ verify_cgraph (void)
     return;
 
   for (node = cgraph_nodes; node; node = node->next)
-    verify_cgraph_node (node);
+    if (!DECL_IS_GTM_CLONE (node->decl))
+      verify_cgraph_node (node);
 }
 
 /* Output all asm statements we have stored up to be output.  */

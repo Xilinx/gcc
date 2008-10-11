@@ -300,6 +300,7 @@ void dump_cgraph (FILE *);
 void debug_cgraph (void);
 void dump_cgraph_node (FILE *, struct cgraph_node *);
 void debug_cgraph_node (struct cgraph_node *);
+struct cgraph_node *cgraph_create_node (void);
 void cgraph_insert_node_to_hashtable (struct cgraph_node *node);
 void cgraph_remove_edge (struct cgraph_edge *);
 void cgraph_remove_node (struct cgraph_node *);

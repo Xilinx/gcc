@@ -177,6 +177,12 @@ extern const enum tree_code_class tree_code_type[];
 
 #define EXPR_P(NODE) IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (TREE_CODE (NODE)))
 
+/* Returns nonzero iff NODE is an GTM directive.  */
+
+#define GTM_DIRECTIVE_P(NODE)                         \
+    (TREE_CODE (NODE) == GTM_TXN                      \
+     || TREE_CODE (NODE) == GTM_RETURN)
+
 /* Number of argument-words in each kind of tree-node.  */
 
 extern const unsigned char tree_code_length[];
@@ -1695,6 +1701,9 @@ extern void protected_set_expr_location (tree, location_t);
 #define CALL_EXPR_ARGP(NODE) \
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
 
+/* GTM directives and accessors */
+#define GTM_TXN_BODY(NODE)         TREE_OPERAND (GTM_TXN_CHECK (NODE), 0)
+
 /* OpenMP directive and clause accessors.  */
 
 #define OMP_BODY(NODE) \
@@ -3052,7 +3061,8 @@ struct tree_decl_with_vis GTY(())
 
  /* Belongs to VAR_DECL exclusively.  */
  ENUM_BITFIELD(tls_model) tls_model : 3;
- /* 12 unused bits. */
+ unsigned gtm_var_pure : 1;
+ /* 11 unused bits. */
 };
 
 /* In a VAR_DECL that's static,
@@ -3063,6 +3073,10 @@ struct tree_decl_with_vis GTY(())
    put in .common, if possible.  If a DECL_INITIAL is given, and it
    is not error_mark_node, then the decl cannot be put in .common.  */
 #define DECL_COMMON(NODE) (DECL_WITH_VIS_CHECK (NODE)->decl_with_vis.common_flag)
+
+/* Nonzero if VAR_DECL does not need instrumentation
+   inside a transaction */
+#define DECL_IS_GTM_PURE_VAR(NODE) (VAR_DECL_CHECK (NODE)->decl_with_vis.gtm_var_pure)
 
 /* In a VAR_DECL, nonzero if the decl is a register variable with
    an explicit asm specification.  */
@@ -3246,6 +3260,26 @@ struct tree_decl_non_common GTY(())
 #define DECL_NO_INLINE_WARNING_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
+/* Nonzero in a FUNCTION_DECL means this function should be treated
+   as "tm_pure" function - does not read shared memory that transactions write to.  */
+#define DECL_IS_GTM_PURE(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_pure_flag)
+
+/* Nonzero in a FUNCTION_DECL means this function is the transactional clone
+   of a function - called only from inside transactions.  */
+#define DECL_IS_GTM_CLONE(NODE) (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_clone_flag)
+
+/* Nonzero in a FUNCTION_DECL means this function should be treated
+   as "tm_unknown" function - behaviour of transactions depends
+   on STM system  to supports irrevocable calls.  */
+#define DECL_IS_GTM_UNKNOWN(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_unknown_flag)
+
+/* Nonzero in a FUNCTION_DECL means this function should be treated
+   as "tm_callable" function - function maybe called from within a transaction. */
+#define DECL_IS_GTM_CALLABLE(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_callable_flag)
+
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
    the always_inline attribute without the required diagnostics if the
@@ -3321,8 +3355,11 @@ struct tree_function_decl GTY(())
   unsigned pure_flag : 1;
   unsigned looping_const_or_pure_flag : 1;
 
-
-  /* 3 bits left */
+  unsigned gtm_callable_flag : 1;
+  unsigned gtm_clone_flag : 1;
+  unsigned gtm_pure_flag : 1;
+  /* unsigned gtm_unknown_flag : 1; */
+  /* no bits left */
 };
 
 /* For a TYPE_DECL, holds the "original" type.  (TREE_TYPE has the copy.) */

@@ -78,6 +78,9 @@ enum rid
      as a normal identifier.  */
   RID_CXX_COMPAT_WARN,
 
+  /* GTM extension */
+  RID_GTM_ABORT,
+
   /* Too many ways of getting the name of a function as a string */
   RID_FUNCTION_NAME, RID_PRETTY_FUNCTION_NAME, RID_C99_FUNCTION_NAME,
 
