@@ -1936,6 +1936,7 @@
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (selse (unsafe_get_field :smat_else recv))
 	 )
+    (debug_msg scases "normexp_match scases")
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)

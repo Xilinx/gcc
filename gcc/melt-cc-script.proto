@@ -98,7 +98,7 @@ echo melt_cc= $melt_cc melt_cflags= $melt_cflags melt_headerdir= $melt_headerdir
 # generate the temporary timestamp & md5s file
 md5src=`md5sum $csource`     
 
-trap "rm -f $datf.* $datf" EXIT
+trap "rm -f $datf.* $datf $nakedynstuff.o" EXIT
 
 date "+const char basilys_compiled_timestamp[]=\"%c $csource\";" > $datf.c
 echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
@@ -113,7 +113,8 @@ Linux|SunOS|Solaris)
 #	echo
 	echo
 	echo Compiling $csource with $melt_cflags
-	time $melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff.so
+	time $melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
+	time $melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf.c $nakedynstuff.o  -o $nakedynstuff.so
 	echo
 	echo
 	ls -lt    $nakedynstuff.so  $csource

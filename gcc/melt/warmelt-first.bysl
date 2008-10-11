@@ -2297,13 +2297,13 @@
 	  (add2sbuf_strconst sbuf "..")
 	))))
 
-;; utility to dump fields in an object from a given rank
-(defun dbgout_fields (obj dbgi :long depth rank)
+;; utility to dump fields in an object from a given rank to a given rank
+(defun dbgout_fields (obj dbgi :long depth fromrank torank)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check obj" (is_object obj))
   (let ( (:long nbf (object_length obj)) 
 	 (cla (discrim obj))
-	 (:long ix rank)
+	 (:long ix fromrank)
 	 (clafieldseq (unsafe_get_field :class_fields cla))
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2313,6 +2313,9 @@
 	(forever fldloop
 		 (if (>=i ix nbf)
 		     (exit fldloop))
+		 (and (>i torank 0)
+		      (>i ix torank)
+		      (exit fldloop))
 		 (let ( (curfld (multiple_nth clafieldseq ix))
 			(curval (object_nth_field obj ix))
 			)
@@ -2322,6 +2325,42 @@
 			 (add2sbuf_string sbuf (unsafe_get_field :named_name curfld))
 			 (add2sbuf_strconst sbuf "=")
 			 (dbg_out curval dbgi (+i depth 1))
+			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
+			   (if  (>i deltalen 80)
+			       (add2sbuf_indentnl sbuf depth)))
+			 )))
+		 (setq ix (+i ix 1))
+		 )
+      )))
+
+;; utility to dump again fields in an object from a given rank to a given rank
+(defun dbgoutagain_fields (obj dbgi :long depth fromrank torank)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check obj" (is_object obj))
+  (let ( (:long nbf (object_length obj)) 
+	 (cla (discrim obj))
+	 (:long ix fromrank)
+	 (clafieldseq (unsafe_get_field :class_fields cla))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (if (<i ix 0) (setq ix 0))
+    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	(forever fldloop
+		 (if (>=i ix nbf)
+		     (exit fldloop))
+		 (and (>i torank 0)
+		      (>i ix torank)
+		      (exit fldloop))
+		 (let ( (curfld (multiple_nth clafieldseq ix))
+			(curval (object_nth_field obj ix))
+			)
+		   (if curval
+		       (let ( (:long curulen (strbuf_usedlength sbuf)) )
+			 (add2sbuf_indent sbuf depth)
+			 (add2sbuf_string sbuf (unsafe_get_field :named_name curfld))
+			 (add2sbuf_strconst sbuf "=")
+			 (dbg_outputagain curval dbgi (+i depth 1))
 			 (let ( (:long deltalen (-i (strbuf_usedlength sbuf) curulen)) )
 			   (if  (>i deltalen 80)
 			       (add2sbuf_indentnl sbuf depth)))
@@ -2510,7 +2549,7 @@
 	(add2sbuf_strconst sbuf " |")
 	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
 	(add2sbuf_strconst sbuf "*clo<")))
-    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 2)
+    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) 3)
     (dbg_out (closure_routine self) dbgi depth)
     (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
@@ -2871,7 +2910,7 @@
       )
     (add2sbuf_strconst sbuf "{")
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	(dbgout_fields self dbgi (+i depth 1) 0)
+	(dbgout_fields self dbgi (+i depth 1) 0 0)
       )
     (add2sbuf_strconst sbuf "}")
     ))
@@ -2939,7 +2978,7 @@
 		(add2sbuf_strconst sbuf "prop=")
 		(dbg_out oprop dbgi (+i depth 3))
 		))
-	  (dbgout_fields self dbgi (+i depth 3) 2)
+	  (dbgout_fields self dbgi (+i depth 3) 2 0)
 	  (add2sbuf_strconst sbuf "}")
 	  ))))
 (install_method class_named  dbg_output dbgout_namedobject_method)
@@ -2995,6 +3034,15 @@
 	  ))
     ))
 (install_method class_symbol dbg_outputagain dbgoutagain_symbol_method)
+
+;;;; class output debug & again
+(defun dbgout_class_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_class))
+  (if (<=i depth 0)
+      (dbgout_namedobject_method self dbgi 0)
+    (dbgoutagain_namedobject_method self dbgi depth)))
+(install_method class_class dbg_output dbgout_class_method)
 
 ;;;; keyword output debug & again
 (defun dbgout_keyword_method (self dbgi :long depth)
@@ -3054,6 +3102,53 @@
 	  ))
     ))
 (install_method class_clonedsymbol dbg_outputagain dbgoutagain_clonedsymbol_method)
+
+
+;;;; environment output debug
+(defun dbgout_environment_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_environment))
+  (let ( (dis (discrim self)) 
+	 (sbuf (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (:long oserial (obj_serial self))
+	 (:long onum (obj_num self)) 
+	 )  
+    (if (== dis class_environment)
+	(add2sbuf_strconst sbuf "env")
+      (progn
+	(add2sbuf_strconst sbuf "|")
+	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+	))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if onum
+	(progn
+	  (add2sbuf_strconst sbuf "#")
+	  (add2sbuf_longdec sbuf onum)))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)))
+    (add2sbuf_strconst sbuf "{")
+    (let ( (:long offprev (get_int env_prev)) 
+	   (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
+	   )
+      (if (<i newmaxdepth 0) (setq newmaxdepth 0))
+      (if (need_dbglim depth oldmaxdepth)
+	  (progn
+	    (and (>i depth 0) (>i oldmaxdepth 3)
+		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
+	    (dbgout_fields self dbgi (+i depth 1) 0 offprev)
+	    (if (need_dbglim (+i depth 2) newmaxdepth)
+		(dbgoutagain_fields self dbgi (+i depth 2) offprev 0)
+	      (add2sbuf_strconst sbuf ".._.."))
+	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+	    )))
+    (add2sbuf_strconst sbuf "}")
+    ))
+(install_method class_environment dbg_output dbgout_environment_method)
+
 
 ;;;; ctype output debug & again
 (defun dbgout_ctype_method (self dbgi :long depth)
@@ -3310,7 +3405,7 @@
     (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf "; ")
-	  (dbgout_fields self dbgi (+i depth 1) 1)
+	  (dbgout_fields self dbgi (+i depth 1) 1 0)
 	  ))
     (add2sbuf_strconst sbuf "~]")
     ))
@@ -3662,7 +3757,9 @@
  closure_every
  compare_obj_ranked			
  dbg_out				
- dbg_outobject				
+ dbg_outobject	
+ dbgout_fields
+ dbgoutagain_fields
  debug_msg_fun				
  debugmsg				
  displaydebugmsg			

@@ -861,11 +861,13 @@
 	 (soper (pair_head curpair)) )
     (if (is_not_a soper class_symbol)
 	(progn
+	  (debug_msg soper "patternexpand_expr bad soper")
 	  (error_plain sloc "pattern expression requires symbol operator")
 	  (return)))
     (let ( (opbind (find_env env soper))
 	   (opnam (unsafe_get_field :named_name soper))
 	   )
+      (debug_msg opbind "patternexpand_expr opbind")
       (cond 
        ( (null opbind)
 	 (error_strv sloc "unbound pattern operator" opnam)
@@ -874,11 +876,12 @@
 	 (let ( (patexp (unsafe_get_field :patbind_expanser opbind)) )
 	   (assert_msg "check patexp" (is_closure patexp))
 	   (let ( (resp (patexp sexpr env pctx)) )
-	     (debug_msg resp "patternexpand_expr resp")
+	     (debug_msg resp "patternexpand_expr patmacro so return resp")
 	     (return resp)
 	     )))
        ( (is_a opbind class_cmatcher_binding)
 	 (let ( (cmat (unsafe_get_field :cmbind_matcher opbind)) )
+	   (debug_msg cmat "patternexpand_expr cmat")
 	   (assert_msg "check cmat-cher" (is_a cmat class_cmatcher))
 	   (let ( (pargs (patternexpand_pairlist_as_tuple (pair_tail curpair) env pctx))
 		  (pcomp (instance class_srcpattern_cmatch
@@ -887,11 +890,13 @@
 				   :spac_args pargs
 				   ))
 		  )
+	     (debug_msg cmat "patternexpand_expr cmat again")
+	     (debug_msg pargs "patternexpand_expr pargs")
 	     (if (!=i (multiple_length pargs)
 		      (multiple_length (unsafe_get_field :amatch_out cmat)))
 		 (warning_strv sloc "unexpected number of arguments to cmatcher"
 			       (unsafe_get_field :named_name cmat)))
-	     (debug_msg pcomp "patternexpand_expr cmatcher pcomp")
+	     (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
 	     (return pcomp)
 	     )
 	   ))
@@ -931,68 +936,74 @@
 (defun patternexpand_1 (sexpr env pctx)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
-  (if (is_a sexpr class_sexpr)
-      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	     (sloc (unsafe_get_field :loca_location sexpr))
-	     (curpair (list_first scont))
-	     (soper (pair_head curpair)) )
-	(debug_msg sexpr "patternexpand_1 sexpr")
-	(debug_msg soper "patternexpand_1 soper")
-	(if (!= soper 'question)
-	    ;; non-question expr: return the constant pattern with...
-	    (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
-		   (exp (macroexpand_1 sexpr env mexpander))
-		   (pat (instance class_srcpattern_constant
-				  :src_loc sloc
-				  :spat_constx exp))
-		   )
-	      (debug_msg pat "patternexpand_1 const pat")
-	      (return pat)
-	      )
-	  ;; question expr
-	  (let ( (parg1 (pair_head (setq curpair (pair_tail curpair)))) )
-	    (if (pair_tail curpair)
-		(error_plain sloc "QUESTION should have one argument"))
-	    (cond
-	     ((== parg1 '_) ;  ?_ is a joker
-	      (let ( (jokp (instance class_srcpattern_jokervar
-				     :src_loc sloc
-				     :spat_var parg1)) )
-		(debug_msg jokp "patternexpand_1 got jokervar")
-		(return jokp)
-		))
-	     ((is_a parg1 class_symbol)
-	      ;; if parg1 is a symbol, make a patternvariable and add it
-	      ;; into pctx
-	      (let ( (vamp (unsafe_get_field :pctx_varmap pctx))
-		     (pavr (mapobject_get vamp parg1))
+  (cond
+   ( (is_a sexpr class_sexpr)
+     (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	    (sloc (unsafe_get_field :loca_location sexpr))
+	    (curpair (list_first scont))
+	    (soper (pair_head curpair)) )
+       (debug_msg sexpr "patternexpand_1 sexpr")
+       (debug_msg soper "patternexpand_1 soper")
+       (if (!= soper 'question)
+	   ;; non-question expr: return the constant pattern with...
+	   (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
+		  (exp (macroexpand_1 sexpr env mexpander))
+		  (pat (instance class_srcpattern_constant
+				 :src_loc sloc
+				 :spat_constx exp))
+		  )
+	     (debug_msg pat "patternexpand_1 return const pat")
+	     (return pat)
+	     )
+	 ;; question expr
+	 (let ( (parg1 (pair_head (setq curpair (pair_tail curpair)))) )
+	   (if (pair_tail curpair)
+	       (error_plain sloc "QUESTION should have one argument"))
+	   (cond
+	    ((== parg1 '_)		;  ?_ is a joker
+	     (let ( (jokp (instance class_srcpattern_jokervar
+				    :src_loc sloc
+				    :spat_var parg1)) )
+	       (debug_msg jokp "patternexpand_1 return jokervar")
+	       (return jokp)
+	       ))
+	    ((is_a parg1 class_symbol)
+	     ;; if parg1 is a symbol, make a patternvariable and add it
+	     ;; into pctx
+	     (let ( (vamp (unsafe_get_field :pctx_varmap pctx))
+		    (pavr (mapobject_get vamp parg1))
+		    )
+	       (if pavr 
+		   (progn
+		     (debug_msg pavr "patternexpand_1 return found pavr")
+		     (return pavr)
 		     )
-		(if pavr 
-		    (progn
-		      (debug_msg pavr "patternexpand_1 found pavr")
-		      (return pavr)
-		      )
-		  (let ( (newpavr (instance class_srcpattern_variable
-					    :src_loc sloc
-					    :spat_var parg1)) 
-			 )
-		    (mapobject_put vamp parg1 newpavr)
-		    (debug_msg newpavr "patternexpand_1 nexpavr")
-		    (return newpavr))
-		  ))
-	      )
-	     ((is_a parg1 class_sexpr)
-	      (debug_msg parg1 "patternexpand_1 sexpr parg1")
-	      (patternexpand_expr parg1 env pctx)
-	      )
-	     (:else
-	      (error_plain sloc "unexpected pattern QUESTION - neither symbol nor pattern expr")))
-	    )
-	  ))
+		 (let ( (newpavr (instance class_srcpattern_variable
+					   :src_loc sloc
+					   :spat_var parg1)) 
+			)
+		   (mapobject_put vamp parg1 newpavr)
+		   (debug_msg newpavr "patternexpand_1 return nexpavr")
+		   (return newpavr))
+		 ))
+	     )
+	    ((is_a parg1 class_sexpr)
+	     (debug_msg parg1 "patternexpand_1 sexpr parg1")
+	     (let ( (patex (patternexpand_expr parg1 env pctx)) )
+	       (debug_msg patex "patternexpand_1 return patex")
+	       (return patex))
+	     )
+	    (:else
+	     (error_plain sloc "unexpected pattern QUESTION - neither symbol nor pattern expr")))
+	   )
+	 ))
+     )
+   (:else
     ;; not an s-expr, return itself
+    (debug_msg sexpr "patternexpand_1 return source")
     (return sexpr)
-    )
-  )
+    )))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun macroexpand_toplevel_list (slist env)
@@ -2886,7 +2897,7 @@
 		    (list_append caselist curcase)
 		    )
 		  )
-		;; handle ordinary (patterh ...) clauses
+		;; handle ordinary (pattern ...) clauses
 		( (is_a curmatch class_sexpr)
 		  (let ( (curmatchcont (unsafe_get_field :sexp_contents curmatch))
 			 (curmatchloc (unsafe_get_field :loca_location curmatch)) 
@@ -2911,10 +2922,11 @@
 		 (error_plain loc "(MATCH <expr> <match-case>...) with non sexpr matchcase") 
 		 )))
 	     (setq ix (-i ix 1)))
+    (debug_msg caselist "mexpand_match caselist")
     (let ( (smat (instance class_src_match
 			   :src_loc loc
 			   :smat_matchedx matsx
-			   :smat_cases (pairlist_to_multiple caselist discr_multiple)
+			   :smat_cases (list_to_multiple caselist discr_multiple)
 			   :smat_else elsebody)) 
 	   )
       (debug_msg smat "mexpand_match result smat")

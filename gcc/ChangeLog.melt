@@ -1,3 +1,13 @@
+2008-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	[match still not working]
+	* melt-cc-script.proto: separate compilation of the big *.c
+	* melt/warmelt-first.bysl: export dbgout_fields &
+	dbgoutagain_fields which take another torank argument.
+	added dbgout_environment_method & dbgout_class_method.
+	* melt/warmelt-macro.bysl: patternexpand_1 with more debugmsg.
+	mexpand_match works better.
+	* melt/warmelt-normal.bysl: added new debugmsg.
+
 2008-10-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* doc/melt.texi: dont mention redefinition_handling - never
 	implemented nor useful.
