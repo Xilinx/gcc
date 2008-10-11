@@ -24,7 +24,7 @@
 ;; the copyright notice above apply both to warmelt-genobj.bysl and 
 ;; to the generated file  warmelt-genobj*.c
 
-;;    This file is the fourth part of a bootstrapping compiler for the
+;;    This file is the fifth part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

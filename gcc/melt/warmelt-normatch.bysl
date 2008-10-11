@@ -1,0 +1,90 @@
+;; file warmelt-normatch.bysl -*- Lisp -*-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "
+    Copyright 2008 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+")
+
+;; the copyright notice above apply both to warmelt-normatch.bysl and 
+;; to the generated file  warmelt-normatch*.c
+
+;;    This file is the fourth part of a bootstrapping compiler for the
+;;    basilys/MELT lisp dialect, compiler which should be able to
+;;    compile itself (into generated C file[s])
+
+
+;;; class for the context of normalization of patterns
+(defclass class_patterncontext
+  :super class_root
+  :fields (pctn_normctxt		;the class_normcontext
+	   pctn_src			;the source expressioon
+	   pctn_mapatvar		;objmap of patternvars
+	   ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; selector to find the pattern variable
+;;; invoked with :
+;;; * the source pattern as reciever
+;;; * a normpatcontext
+(defselector find_patvar class_selector
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; normalize a match
+(defun normexp_match (recv env ncx psloc)
+  (assert_msg "check match recv" (is_a recv class_src_match))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (debug_msg recv "normexp_match recv")
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (smatsx (unsafe_get_field :smat_matchedx recv))
+	 (scases (unsafe_get_field :smat_cases recv))
+	 (selse (unsafe_get_field :smat_else recv))
+	 (pctx (instance class_patterncontext
+			:pctn_normctxt ncx
+			:pctn_src recv
+			:pctn_mapatvar (make_mapobject discr_mapobjects 20)
+			))
+	 )
+    (debug_msg scases "normexp_match scases")
+    (multicall
+     (nmatx nbindmatx)
+     (normal_exp smatsx env ncx sloc)
+     (debug_msg nmatx "normexp_match nmatx")
+     (debug_msg scases "normexp_match scases")
+     )
+    (assert_msg "unimplemented normexp_match" ())
+    (compile_warning "@@unimplemented normexp_match" ())
+    )
+  )
+(install_method class_src_match normal_exp normexp_match)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; export our classes
+(export_class
+ class_patterncontext
+)
+
+;;; export our values
+(export_values
+  find_patvar
+ )
+
+;; eof warmelt-normatch.bysl

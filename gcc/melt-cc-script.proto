@@ -114,7 +114,7 @@ Linux|SunOS|Solaris)
 	echo
 	echo Compiling $csource with $melt_cflags
 	time $melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
-	time $melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf.c $nakedynstuff.o  -o $nakedynstuff.so
+	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf.c $nakedynstuff.o  -o $nakedynstuff.so
 	echo
 	echo
 	ls -lt    $nakedynstuff.so  $csource

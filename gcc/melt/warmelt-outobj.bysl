@@ -24,7 +24,7 @@
 ;; the copyright notice above apply both to warmelt-outobj.bysl and 
 ;; to the generated file  warmelt-outobj*.c
 
-;;    This file is the fifth part of a bootstrapping compiler for the
+;;    This file is the sixth part of a bootstrapping compiler for the
 ;;    basilys/MELT lisp dialect, compiler which should be able to
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -804,7 +804,9 @@
     (add2sbuf_strconst implbuf " union basilysparam_un *xargtab_,")
     (add2sbuf_indentnl implbuf 5)
     (add2sbuf_strconst implbuf " const char xresdescr_[],")
-    (add2sbuf_strconst implbuf " union basilysparam_un *xrestab_) {")
+    (add2sbuf_strconst implbuf " union basilysparam_un *xrestab_)")
+    (add2sbuf_indentnl implbuf 0)
+    (add2sbuf_strconst implbuf "{")
     (output_curframe_declstruct_init output_curframe_declstruct prou implbuf)
     (add2sbuf_strconst implbuf "basilys_trace_start(\"")
     (add2sbuf_string implbuf ofunam)

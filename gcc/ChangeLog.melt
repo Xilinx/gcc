@@ -1,5 +1,23 @@
 2008-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[match still not working]
+	* Makefile.in: addef warmelt-normatch.*
+	* warmelt-first-0.c: regenerated twice.
+	* warmelt-macro-0.c: regenerated twice.
+	* warmelt-normal-0.c: regenerated twice.
+	* warmelt-normatch-0.c: added & regenerated.
+	* warmelt-genobj-0.c: regenerated twice.
+	* warmelt-outobj-0.c: regenerated twice.
+	* melt/warmelt-macro.bysl: in mexpand_match the elsebody is a
+	tuple.
+	* melt/warmelt-normal.bysl: moved normexp_match to
+	warmelt-normatch.bysl.
+	* melt/warmelt-normatch.bysl: new file with normexp_match
+	class_patterncontext find_patvar
+	* melt/warmelt-genobj.bysl: comment change.
+	* melt/warmelt-outobj.bysl: ditto. The first brace of generated
+	routine is in first column.
+2008-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	[match still not working]
 	* melt-cc-script.proto: separate compilation of the big *.c
 	* melt/warmelt-first.bysl: export dbgout_fields &
 	dbgoutagain_fields which take another torank argument.

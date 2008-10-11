@@ -2863,9 +2863,10 @@
 			  (pair_tail (list_first (unsafe_get_field :sexp_contents curmatch)))) 
 			 )
 		    (if restpairs 
-			(setq elsebody (pairlist_to_progn restpairs 
-							  (unsafe_get_field :loca_location curmatch) 
-							  env mexpander)))
+			(setq elsebody (expand_pairlist_as_tuple 
+					restpairs 
+					(unsafe_get_field :loca_location curmatch) 
+					env mexpander)))
 		    (debug_msg elsebody "mexpand_match elsebody for :else")
 		    ))
 		;; handle (:when pattern condexpr ...) clause
