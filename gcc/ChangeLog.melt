@@ -1,3 +1,9 @@
+2008-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	[match need a lot of work; look into Rete networks for ideas]
+	* melt/warmelt-normatch.bysl: renamed find_patvar as scan_pattern.
+	added some incomplete code. added more fields into
+	class_patterncontext
+
 2008-10-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[match still not working]
 	* Makefile.in: addef warmelt-normatch.*

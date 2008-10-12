@@ -34,17 +34,98 @@
   :super class_root
   :fields (pctn_normctxt		;the class_normcontext
 	   pctn_src			;the source expressioon
+	   pctn_env			;the enviornment
 	   pctn_mapatvar		;objmap of patternvars
+	   pctn_mapatcst		;objmap of patternconst
+	   pctn_bindlist		;binding list
 	   ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; selector to find the pattern variable
+;;; selector to scan a pattern
 ;;; invoked with :
 ;;; * the source pattern as reciever
+;;; * a parent source location
+;;; * actype
 ;;; * a normpatcontext
-(defselector find_patvar class_selector
+(defselector scan_pattern class_selector
 )
 
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; catch-all for scanning anyrecv
+(defun scanpat_anyrecv (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_anyrecv recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( (myclass (discrim recv))
+	 (myclassname (unsafe_get_field :named_name myclass)) )
+    (error_strv psloc 
+		"unimplemented scan_pattern for " myclassname)
+    (assert_msg "catchall scan_pattern unimplemented" ())
+))
+(install_method discr_anyrecv scan_pattern scanpat_anyrecv)
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; scanning or pattern
+(defun scanpat_srcpator (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_srcpator recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_or))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (sdisj (unsafe_get_field :orpat_disj recv))
+	 )
+    (foreach_in_multiple
+     (sdisj)
+     (dis :long ix)
+     (scan_pattern dis sloc ctyp pcn)
+     )
+    ))
+(install_method class_srcpattern_or scan_pattern scanpat_srcpator)
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; scanning and pattern
+(defun scanpat_srcpatand (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_srcpatand recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_and))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (sconj (unsafe_get_field :andpat_conj recv))
+	 )
+    (foreach_in_multiple
+     (sconj)
+     (dis :long ix)
+     (scan_pattern dis sloc ctyp pcn)
+     )
+    ))
+(install_method class_srcpattern_and scan_pattern scanpat_srcpatand)
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; scanning patern variable
+(defun scanpat_srcpatvar (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_srcpatvar recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_variable))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (svar (unsafe_get_field :spat_var recv))
+	 )
+    ;; add the var into its map
+    (compile_warning "scanpat_srcpatvar not implemented" ())
+))
+(install_method class_srcpattern_variable scan_pattern scanpat_srcpatvar)
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; scanning patern joker
+(defun scanpat_srcpatjoker (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_srcpatvar recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_jokervar))
+  ;; just return
+  (return)
+)
+(install_method class_srcpattern_jokervar scan_pattern scanpat_srcpatjoker)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
 (defun normexp_match (recv env ncx psloc)
@@ -56,16 +137,26 @@
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (selse (unsafe_get_field :smat_else recv))
-	 (pctx (instance class_patterncontext
+	 (pcn (instance class_patterncontext
 			:pctn_normctxt ncx
 			:pctn_src recv
-			:pctn_mapatvar (make_mapobject discr_mapobjects 20)
+			:pctn_env env
+			:pctn_mapatvar (make_mapobject discr_mapobjects 25)
+			:pctn_mapatcst (make_mapobject discr_mapobjects 20)
+			:pctn_bindlist (make_list discr_list)
 			))
 	 )
     (debug_msg scases "normexp_match scases")
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
+     (let ( (ctyp (get_ctype nmatx env)) )
+	 (foreach_in_multiple
+	  (scases)
+	  (curcas :long ix)
+	  (compile_warning "normexp_match to be completed" ())
+	  (scan_pattern curcas sloc ctyp pcn)
+       ))
      (debug_msg nmatx "normexp_match nmatx")
      (debug_msg scases "normexp_match scases")
      )
@@ -84,7 +175,7 @@
 
 ;;; export our values
 (export_values
-  find_patvar
+  scan_pattern
  )
 
 ;; eof warmelt-normatch.bysl
