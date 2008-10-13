@@ -1,3 +1,6 @@
+2008-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added more scan_pattern methods.
+
 2008-10-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	[match need a lot of work; look into Rete networks for ideas]
 	* melt/warmelt-normatch.bysl: renamed find_patvar as scan_pattern.
