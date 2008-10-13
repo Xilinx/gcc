@@ -1136,7 +1136,7 @@
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (let ( (clasymb (get_symbolstr (unsafe_get_field :named_name recv))) 
-	 (clabind (find_env clasymb env))
+	 (clabind (find_env env clasymb))
 	 )
     (cond ( (is_a clabind class_class_binding)
 	    (let ( (normcla (normexp_symbol clasymb env ncx psloc)) )

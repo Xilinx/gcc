@@ -1,4 +1,15 @@
 2008-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: normexp_class corrected, so get_field
+	well compiled.
+	* melt/warmelt-normatch.bysl: adding scan_pattern for composite.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2008-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added more scan_pattern methods.
 
 2008-10-12  Basile Starynkevitch  <basile@starynkevitch.net>

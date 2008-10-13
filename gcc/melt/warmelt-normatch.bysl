@@ -59,7 +59,7 @@
   (debug_msg recv "scanpat_anyrecv recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
-	 (myclassname (unsafe_get_field :named_name myclass)) )
+	 (myclassname (get_field :named_name myclass)) )
     (error_strv psloc 
 		"unimplemented scan_pattern for " myclassname)
     (assert_msg "catchall scan_pattern unimplemented" ())
@@ -153,7 +153,15 @@
 	 (mcst (if (is_object sconst) (mapobject_get mapcst sconst)))
 	 (bindlist (unsafe_get_field :pctn_bindlist pcn))
 	 (env (unsafe_get_field :pctn_env pcn))
+	 (rectyp (get_ctype recv env))
 	 )
+    (assert_msg "check rectyp" (is_a rectyp class_ctype))
+    (cond ((!= rectyp ctyp)
+	   (error_strv sloc "invalid ctype in constant pattern - expecting"
+		       (unsafe_get_field :named_name rectyp))
+	   (warning_strv sloc "got ctype"
+			 (unsafe_get_field :named_name ctyp))
+	  ))
     (assert_msg "check bindlist" (is_list bindlist))
     (cond 
      ( (not (is_object sconst))
@@ -212,19 +220,35 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;; scanning a cmatch pattern 
-(defun scanpat_srcpatcmatch (recv psloc ctyp pcn)
+;; scanning a composite pattern 
+(defun scanpat_srcpatcomposite (recv psloc ctyp pcn)
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
-  (assert_msg "check recv" (is_a recv class_srcpattern_cmatch))
-  (debug_msg recv "scanpat_srcpatcmatch recv")
+  (assert_msg "check recv" (is_a recv class_srcpattern_composite))
+  (debug_msg recv "scanpat_srcpatcomposite recv")
   (let ( (sloc (unsafe_get_field :src_loc recv))
-	 (soper (unsafe_get_field :spac_operator recv))
-	 (sargs (unsafe_get_field :spac_args recv))
+	 (soper (let ((sop (unsafe_get_field :spac_operator recv)))
+		  (assert_msg "check soper" (is_a sop class_any_matcher))
+		  sop))
+	 (sargs (unsafe_get_field :spac_args recv)) 
+	 (matmb (let ( (mb (unsafe_get_field :amatch_matchbind soper)) )
+		  (assert_msg "check matmb" (is_a mb class_formal_binding))
+		  mb))
+	 (matout (unsafe_get_field :amatch_out soper))
+	 (opnam (unsafe_get_field :named_name soper))
+	 (matctyp (unsafe_get_field :fbind_type matmb))
 	 )
-    (assert_msg "@@unimplemented scanpat_srcpatcmatch" ())
-    (compile_warning "@@unimplemented scanpat_srcpatcmatch" ())
-))
-(install_method class_srcpattern_cmatch scan_pattern scanpat_srcpatcmatch)
+    (assert_msg "check ctyp" (is_a ctyp class_ctype))
+    (assert_msg "check matctyp" (is_a matctyp class_ctype))
+    (cond ((!= ctyp matctyp)
+	   (error_strv sloc "invalid ctype in composite partner - expecting"
+		       (unsafe_get_field :named_name matctyp))
+	   (warning_strv sloc "got ctype"
+			 (unsafe_get_field :named_name ctyp))
+	   (return)))
+    (assert_msg "@@unimplemented scanpat_srcpatcomposite" ())
+    (compile_warning "@@unimplemented scanpat_srcpatcomposite" ())
+    ))
+(install_method class_srcpattern_composite scan_pattern scanpat_srcpatcomposite)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
