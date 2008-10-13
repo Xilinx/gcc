@@ -1,3 +1,300 @@
+2008-10-12  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR middle-end/37808
+	* df-scan.c (df_ref_change_reg_with_loc_1): Added test to make
+	sure that ref has valid bb.
+	
+2008-10-12  Richard Henderson  <rth@redhat.com>
+
+	PR middle-end/37447
+	* Makefile.in (reload1.o): Depend on EMIT_RTL_H.
+	* alias.c (value_addr_p, stack_addr_p): Remove.
+	(nonoverlapping_memrefs_p): Remove IRA special case.
+	* emit-rtl.c (get_spill_slot_decl, set_mem_attrs_for_spill): New.
+	* emit-rtl.h (set_mem_attrs_for_spill): Declare.
+	* reload1.c (alter_reg): Use it.
+
+2008-10-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/driver-i386.c (detect_caches_cpuid2): Use array
+	of registers instead of eax, ebx, ecx and edx.  Use for loop
+	and check register for non-zero value before the call
+	to decode_caches_intel.
+
+2008-10-11  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/37448
+	* df.h: (df_ref_class): New enum.
+	(DF_REF_TYPE_NAMES, df_ref_extract): Removed.
+	(struct df_ref): Replaced with union df_ref_d.
+	(df_base_ref, df_artificial_ref, df_regular_ref, df_extract_ref):
+	New members of df_ref_d union.
+	(DF_REF_REAL_REG, DF_REF_REGNO, DF_REF_REAL_LOC, DF_REF_REG,
+	DF_REF_LOC, DF_REF_BB, DF_REF_INSN_INFO, DF_REF_INSN,
+	DF_REF_CLASS, DF_REF_TYPE, DF_REF_CHAIN, DF_REF_ID, DF_REF_FLAGS,
+	DF_REF_ORDER, DF_REF_IS_ARTIFICIAL, DF_REF_NEXT_REG,
+	DF_REF_PREV_REG, DF_REF_EXTRACT_WIDTH, DF_REF_EXTRACT_OFFSET,
+	DF_REF_EXTRACT_MODE): Replaced definition to access union
+	df_ref_d.
+       	(DF_MWS_REG_DEF_P, DF_MWS_REG_USE_P, DF_MWS_TYPE): New macros.
+	(df_scan_bb_info, df_bb_regno_first_def_find,
+	df_bb_regno_last_def_find, df_find_def, df_find_use,
+	df_refs_chain_dump, df_regs_chain_dump, df_ref_debug,
+	debug_df_ref, df_chain_create, df_chain_unlink, df_chain_copy,
+	df_ref_create, df_ref_remove, df_compute_accessed_bytes,
+	df_get_artificial_defs, df_get_artificial_uses, union_defs)
+	Replaced struct df_ref * with df_ref.
+	* df-scan.c (df_collection_rec, df_null_ref_rec,
+	df_ref_chain_delete_du_chain, df_ref_chain_delete, df_install_ref,
+	df_grow_ref_info, df_ref_create, df_reg_chain_unlink,
+	df_ref_compress_rec, df_ref_remove, df_ref_chain_delete_du_chain,
+	df_ref_chain_delete, df_free_collection_rec, df_insn_rescan,
+	df_reorganize_refs_by_reg_by_reg,
+	df_reorganize_refs_by_reg_by_insn, df_reorganize_refs_by_reg,
+	df_ref_change_reg_with_loc_1, df_notes_rescan, df_swap_refs,
+	df_sort_and_compress_refs, df_install_ref, df_install_refs,
+	df_ref_record, df_get_conditional_uses, df_get_call_refs,
+	df_bb_refs_record, df_exit_block_uses_collect,
+	df_record_exit_block_uses, df_reg_chain_mark,
+	df_reg_chain_verify_unmarked, df_refs_verify): Replaced struct
+	df_ref * with df_ref.
+	(df_ref_record, df_uses_record, df_ref_create_structure): Added
+	df_ref_class parameter.
+	(df_scan_problem_data): Added new pools for different types of
+	refs.
+	(df_scan_free_internal, df_scan_alloc, df_free_ref,
+	df_ref_create_structure): Processed new ref pools.
+	(df_scan_start_dump): Added counts of refs and insns.
+	(df_ref_create, df_notes_rescan, df_def_record_1, df_uses_record,
+	df_get_call_refs, df_insn_refs_collect, df_bb_refs_collect,
+	df_entry_block_defs_collect, df_exit_block_uses_collect): Added
+	code to pass df_ref_class down to ref creation functions.
+	(df_reg_chain_unlink, df_ref_remove, df_ref_change_reg_with_loc_1,
+	df_reg_chain_mark): Use macros to hide references to df_refs.
+	(df_ref_chain_change_bb): Removed.
+	(df_insn_change_bb): Remove calls to df_ref_insn_change_bb.
+	(df_ref_equal_p, df_ref_compare, df_ref_create_structure):
+	Enhanced to understand df_ref union structure.
+	* fwprop.c (local_ref_killed_between_p, use_killed_between,
+	all_uses_available_at, update_df, try_fwprop_subst,
+	forward_propagate_subreg, forward_propagate_and_simplify,
+	forward_propagate_into, fwprop, fwprop_addr): Replaced struct
+	df_ref * with df_ref.
+	(use_killed_between, all_uses_available_at): Use macros to hide
+	references to df_refs.
+	* regstat.c (regstat_bb_compute_ri,
+	regstat_bb_compute_calls_crossed): Replaced struct df_ref * with
+	df_ref.
+	* see.c (see_handle_relevant_defs, see_handle_relevant_uses,
+	see_handle_relevant_refs, see_analyze_one_def,
+	see_update_relevancy, see_propagate_extensions_to_uses): Replaced
+	struct df_ref * with df_ref.
+	* ra-conflict.c (record_one_conflict, clear_reg_in_live,
+	global_conflicts): Replaced struct df_ref * with df_ref.
+	* ddg.c (create_ddg_dep_from_intra_loop_link,
+	add_cross_iteration_register_deps, build_inter_loop_deps):
+	Replaced struct df_ref * with df_ref.
+	(create_ddg_dep_from_intra_loop_link,
+	add_cross_iteration_register_deps): Use macros to hide references
+	to df_refs.
+	* auto-inc-dec.c (find_inc, merge_in_block): Replaced struct
+	df_ref * with df_ref.
+	* df-core.c (df_bb_regno_first_def_find,
+	df_bb_regno_last_def_find, df_find_def, df_find_use,
+	df_refs_chain_dump, df_regs_chain_dump, df_ref_debug,
+	debug_df_ref): Replaced struct df_ref * with df_ref.
+	(df_mws_dump, df_ref_debug): Use macros to hide references to df_refs.
+	* cse.c (cse_extended_basic_block): Replaced struct df_ref * with
+	df_ref.
+	* web.c (union_defs, entry_register, replace_ref, web_main):
+	Replaced struct df_ref * with df_ref.
+	(union_defs, replace_ref): Use macros to hide references to df_refs.
+	* global.c (compute_regs_asm_clobbered, build_insn_chain):
+	Replaced struct df_ref * with df_ref.
+	* ifcvt.c (dead_or_predicable): Replaced struct df_ref * with df_ref.
+	* sel-sched-ir.c (maybe_downgrade_id_to_use, setup_id_reg_sets, ):
+	Replaced struct df_ref * with df_ref.
+	* ira-lives.c (mark_ref_live, def_conflicts_with_inputs_p,
+	mark_ref_dead, process_bb_node_lives): Replaced struct df_ref *
+	with df_ref.
+	* local-alloc.c (block_alloc): Replaced struct df_ref * with df_ref.
+	* df-byte-scan.c (df_compute_accessed_bytes_extract,
+	df_compute_accessed_bytes_strict_low_part,
+	df_compute_accessed_bytes_subreg, df_compute_accessed_bytes):
+	Replaced struct df_ref * with df_ref.
+	(df_compute_accessed_bytes): Use macros to hide references to df_refs.
+	* init-regs.c (initialize_uninitialized_regs): Replaced struct
+	df_ref * with df_ref.
+	* loop-invariant.c (invariant_for_use, hash_invariant_expr_1,
+	check_dependency, check_dependencies, record_uses): Replaced
+	struct df_ref * with df_ref.
+	(invariant_for_use, check_dependency): Use macros to hide
+	references to df_refs.
+	* loop-iv.c (iv_analysis_loop_init, iv_get_reaching_def,
+	get_biv_step_1, get_biv_step, record_iv, iv_analyze_def,
+	iv_analyze, biv_p): Replaced struct df_ref * with df_ref.
+	(iv_analysis_loop_init, iv_get_reaching_def): Use macros to hide
+	references to df_refs.
+	* ira.c (compute_regs_asm_clobbered): Replaced struct df_ref *
+	with df_ref.
+	* combine.c (create_log_links): Replaced struct df_ref * with df_ref.
+	* df-problems.c (df_rd_bb_local_compute_process_def,
+	df_lr_bb_local_compute, df_live_bb_local_compute, df_chain_create,
+	df_chain_unlink_1, df_chain_unlink, df_chain_copy,
+	df_chain_remove_problem, df_chain_create_bb_process_use,
+	df_chain_create_bb, df_chain_top_dump, df_chain_bottom_dump,
+	df_byte_lr_check_regs, df_byte_lr_bb_local_compute,
+	df_byte_lr_simulate_defs, df_byte_lr_simulate_uses,
+	df_byte_lr_simulate_artificial_refs_at_top,
+	df_byte_lr_simulate_artificial_refs_at_end, df_create_unused_note,
+	df_note_bb_compute, df_note_add_problem, df_simulate_defs,
+	df_simulate_uses, df_simulate_artificial_refs_at_end,
+	df_simulate_artificial_refs_at_top): Replaced struct df_ref * with
+	df_ref.
+	(df_chain_dump): Use macros to hide references to df_refs.
+	* config/mips/mips.c (r10k_simplify_address): Replaced struct
+	df_ref * with df_ref.
+	* dce.c (mark_nonreg_stores, delete_corresponding_reg_eq_notes,
+	mark_artificial_uses, mark_reg_dependencies,
+	byte_dce_process_block): Replaced struct df_ref * with df_ref.
+
+2008-10-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.h (contains_packed_reference): Mention ARRAY_RANGE_REF in
+	head comment.
+	(array_ref_element_size): Likewise.
+	(array_ref_low_bound): Likewise.
+	(array_ref_up_bound): Likewise.
+	* expr.c (contains_packed_reference): Likewise.
+	(array_ref_element_size): Likewise.
+	(array_ref_low_bound): Likewise.
+	(array_ref_up_bound): Likewise.
+	* tree-ssa-loop-ivopts.c (idx_contains_abnormal_ssa_name_p): Deal
+	with ARRAY_RANGE_REF.
+	(idx_find_step): Likewise.
+	(idx_record_use): Likewise.
+	(strip_offset_1): Likewise.
+	(idx_remove_ssa_names): Likewise.
+
+2008-10-11  Uros Bizjak  <ubizjak@gmail.com>
+	    Andi Kleen  <ak@linux.intel.com>
+
+	* config/i386/cpuid.h (__cpuid_count): New defines.
+	* config/i386/driver-i386.c (struct cache_desc): New structure.
+	(describe_cache): Use struct cache_desc to pass cache descriptions.
+	(detect_l2_cache): Ditto. Rename from decode_l2_cache.
+	(detect_caches_amd): Use struct cache_desc to describe caches.
+	(decode_caches_intel): Use struct cache_desc to pass cache
+	descriptions.  Update descriptions to match latest (rev -032,
+	December 2007) CPUID documentation.  Do not check valid bit here.
+	Check for Xeon MP value 0x49 problems.
+	(detect_caches_cpuid2): New function, split from detect_caches_intel.
+	Check valid bit before calling decode_caches_intel.  Detect number
+	of times to repeat CPUID instruction.
+	(detect_caches_cpuid4): New function.
+	(detect_caches_intel): Depending on max_level, call
+	detect_caches_cpuid2 or detect_caches_cpuid4.  Call detect_l2_cache
+	only when other methods fail to provide valid L2 cache description.
+
+2008-10-11  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/37608
+	* pa.md (call, call_value): Generate an rtx for register r4 and pass
+	it to PIC call patterns.
+	(call_symref_pic): Revise pattern to expose PIC register save.  Remove
+	code generation and attributes from pattern.  Change peephole2 to split
+	for noreturn case.  Revise split pattern for non noreturn case.
+	(call_symref_64bit, call_reg_pic, call_reg_64bit, call_val_symref_pic,
+	call_val_symref_64bit, call_val_reg_pic, call_val_reg_64bit): Likewise.
+	* pa.c (attr_length_call): Simplify extraction of call rtx.  Add some
+	asserts.
+
+2008-10-11  David Edelsohn  <edelsohn@gnu.org>
+
+	* config/rs6000/rs6000.md (aux_truncdfsf2): Remove TARGET_SINGLE_FLOAT.
+	(addsf3, subsf3, mulsf3 ! TARGET_POWERPC): Remove TARGET_SINGLE_FLOAT
+	and fp_type.
+	(divdf3): Reformat long line.
+
+2008-10-11  Michael J. Eager  <eager@eagercon.com>
+
+	* config/rs6000/rs6000.c (rs6000_parse_fpu_option): Interpret
+	-mfpu options.
+	(rs6000_handle_option): Process -mfpu options.
+	* config/rs6000/rs6000.h: (TARGET_XILINX_FPU): New.
+	(enum fpu_type_t): New.
+	* config/rs6000/rs6000.md (attr fp_type): New.  Include xfpu.md.
+	(addsf3, subsf3, mulsf3, adddf3, subdf3, muldf3, trunctfdf2): Set
+	fp_type.
+	(floatsisf2): Remove TARGET_SINGLE_FPU condition.
+	(floatdidf2): Add TARGET_SINGLE_FPU condition.
+	* config/rs6000/rs6000.opt (-mfpu): New.
+	(-mxilinx-fpu): New.
+	* config/rs6000/sysv4.h: (DRIVER_SELF_SPECS): New.
+	* config/rs6000/xfpu.h: New. Define TARGET_XILINX_FPU.
+	* config/rs6000/xfpu.md: New. Define Xilinx pipeline.
+	* gcc/config.gcc: powerpc-xilinx-eabi target: New.
+	* gcc/doc/invoke.texi (RS/6000 and PowerPC Options): Add -mfpu option.
+
+2008-10-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35760
+	* config/rs6000/rs6000.c (rs6000_legitimize_address): Only create
+	LO_SUM on Darwin if mode has just one unit.
+
+2008-10-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR debug/37002
+	* dwarf2out.c (mem_loc_descriptor): Use DRAP for vDRAP which
+	has been optimized out.
+
+2008-10-10  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/sh/sh.h (PREFERRED_RELOAD_CLASS): Test PIC_ADDR_P
+	instead of PIC_DIRECT_ADDR_P.
+	(SECONDARY_INPUT_RELOAD_CLASS): Likewise.
+	(IS_LITERAL_OR_SYMBOLIC_S16_P, IS_LITERAL_OR_SYMBOLIC_U16_P): Delete.
+	(IS_NON_EXPLICIT_CONSTANT_P): Don't test PIC_OFFSET_P.
+	(PIC_OFFSET_P): Rename to...
+	(PCREL_SYMOFF_P): ...this.
+	(PIC_DIRECT_ADDR_P): Delete.
+	(MOVI_SHORI_BASE_OPERAND_P): Check PCREL_SYMOFF_P instead of
+	PIC_OFFSET_P.
+	(OUTPUT_ADDR_CONST_EXTRA): Don't require unspecs to have a
+	single argument.  Handle UNSPEC_EXTRACT_S16, UNSPEC_EXTRACT_U16,
+	UNSPEC_SYMOFF and UNSPEC_PCREL_SYMOFF.
+	* config/sh/sh.c (print_operand): Remove CONST handling.
+	(unspec_caller_rtx_p): Rewrite to use split_const and check
+	the operands of UNSPEC bases.
+	(fixup_mova): Replace (unspec [(minus A B)] UNSPEC_PIC)
+	with (unspec [A B] UNSPEC_SYMOFF).
+	(nonpic_symbol_mentioned_p): Check for UNSPEC_SYMOFF and
+	UNSPEC_PCREL_SYMOFF.
+	(sh_secondary_reload): Test PIC_ADDR_P instead of PIC_DIRECT_ADDR_P.
+	* config/sh/sh.md (UNSPEC_EXTRACT_S16): New unspec.
+	(UNSPEC_EXTRACT_U16): Likewise.
+	(UNSPEC_SYMOFF): Likewise.
+	(UNSPEC_PCREL_SYMOFF): Likewise.
+	(movsi_const): Use UNSPEC_EXTRACT_*16s to extract 16-bit portions
+	of constants.
+	(movsi_const_16bit): Likewise.
+	(movdi_const, movdi_const_32bit, movdi_const_16bit): Likewise.
+	(GOTaddr2picreg): Replace (unspec [(minus A (minus B pc))] UNSPEC_PIC)
+	with (unspec [A B] UNSPEC_PCREL_SYMOFF).
+	(sym_label2reg): Replace (minus (const (unspec [A] UNSPEC_PIC)) B)
+	with (unspec [A B] UNSPEC_SYMOFF).
+	(symPLT_label2reg): Replace (minus A (minus B pc)) with
+	 (unspec [A B] PCREL_UNSPEC_SYMOFF).
+	* config/sh/constraints.md (Css): Check for an UNSPEC_EXTRACT_S16.
+	(Csu): Likewise UNSPEC_EXTRACT_U16.
+	(Csy): Test PIC_ADDR_P instead of PIC_DIRECT_ADDR_P.
+	(Cpg): Update after changes to IS_NON_EXPLICIT_CONSTANT_P.
+
+2008-10-10  Stepan Kasal  <skasal@redhat.com>
+
+	* gcc/doc/invoke.texi (Optimize Options): Fix typo in examples
+	for loop strip mining and loop blocking.
+
 2008-10-10  Alexandre Oliva  <aoliva@redhat.com>
 
 	* fortran/trans-types.c (gfc_get_nodesc_array_type): Don't

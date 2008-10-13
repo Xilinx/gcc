@@ -1,3 +1,40 @@
+2008-10-12  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37688
+	* gfortran.dg/used_before_typed_6.f90: New test.
+
+2008-10-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37787
+	* gfortran.dg/module_equivalence_5.f90: New test.
+
+2008-10-12  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/37792
+	* gfortran.dg/arithmetic_overflow_1.f90: New test.
+
+2008-10-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization5.adb: New test.
+	* gnat.dg/loop_optimization5_pkg.adb: New helper.
+
+2008-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37794
+	* gfortran.dg/used_types_24.f90: New test.
+
+2008-10-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35760
+	* gcc.c-torture/compile/pr35760.c: New test.
+
+2008-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37146
+	* g++.dg/torture/pr37146-1.C: New test.
+	* g++.dg/torture/pr37146-2.C: New test.
+	* g++.dg/expr/bitfield10.C: New test.
+
 2008-10-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org
 
 	PR libfortran/37707
