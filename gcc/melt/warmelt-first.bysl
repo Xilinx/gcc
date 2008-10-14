@@ -600,6 +600,26 @@
 (defprimitive %iraw (:long a b)  :long "((" a ") % (" b "))")
 ;; boolean not
 (defprimitive not (:long i) :long "(!(" i "))")
+
+;;; citerator on integers
+(defciterator foreach_long_upto
+  (:long imin imax)			;start formals
+  eachlong				;state
+  (:long ix)				;local formals
+  ( 					;before expansion
+   "/*start " eachlong "*/\n"
+   " long " eachlong "_min = " imin ";"
+   " long " eachlong "_max = " imax ";"
+   " long " eachlong "_cur = 0;\n"
+   " for (" eachlong "_cur = " eachlong "_min; "
+            eachlong "_cur <= " eachlong "_max; "
+	    eachlong "_cur ++) {\n"
+	    ix " = " eachlong "_cur;\n"
+	    )
+  (					;after expansion
+   "} /*end " eachlong "*/\n"
+))
+   
 ;;; nullity test (for values)
 (defprimitive null (v) :long "((" v ") == NULL)")
 (defprimitive notnull (v) :long "((" v ") != NULL)")
@@ -3805,6 +3825,7 @@
 ;; export the citerators defined above
 (export_values
  foreach_in_multiple
+ foreach_long_upto
  )
 
 (debug_msg class_symbol "at end of warmelt-first our Class_Symbol")

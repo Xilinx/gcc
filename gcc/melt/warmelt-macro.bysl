@@ -482,8 +482,10 @@
 (defclass class_srcpattern_composite
   :super class_srcpattern_object
   :fields (spac_operator		;pattern operator
-	   spac_args			;subpatterns
+	   spac_inargs			;input expressions
+	   spac_outargs			;output subpatterns
 	   ))
+
 
 ;; cmatcher composite source pattern
 (defclass class_srcpattern_cmatch
@@ -849,6 +851,47 @@
 			(lambda (x) (patternexpand_1 x env pctx)))
   )
 
+
+;; utility function to expand a pairlist for a pattern matcher with both input & output arguments
+;; the primary result is the tuple of argexpr
+;; the secondary result is the tuple of subpatterns
+(defun patmacexpand_for_matcher (pairs matcher env psloc pctx)
+  (assert_msg "check matcher" (is_a matcher class_any_matcher))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattexpcontext))
+  (let ( (mins (unsafe_get_field :amatch_in matcher))
+	 (mouts (unsafe_get_field :amatch_out matcher))
+	 (mexpander (unsafe_get_field :pctx_mexpander pctx))
+	 (:long nbmins (multiple_length mins))
+	 (:long nbouts (multiple_length mouts))
+	 (pairbox (make_box discr_box pairs))
+	 (inargs (multiple_map 
+		  mins
+		  (lambda (curfbind :long inix)
+		    (assert_msg "check curfbind" (is_a curfbind class_formal_binding))
+		    (let ( (curpair (box_content pairbox)) )
+		      (if (is_pair curpair)
+			  (let ( (curin (pair_head curpair)) )
+			    (box_put pairbox (pair_tail curpair))
+			    (macroexpand_1 curin env mexpander))
+			(error_strv psloc "missing in argument for matcher"
+				    (get_field :named_name matcher))
+			)))))
+	 (outpats (multiple_map
+		   mouts 
+		   (lambda (curformal :long outix)
+		     (let ( (curpair (box_content pairbox)) )
+		       (if (is_pair curpair)
+			   (let ( (curout (pair_head curpair)) )
+			     (box_put pairbox (pair_tail curpair))
+			     (patternexpand_1 curout env pctx))
+			 (error_strv psloc "missing out argument for matcher"
+				     (get_field :named_name matcher))
+			 )))))
+	 )
+    (return inargs outpats)
+    ))
+
 ;; pattern expansion of a pattern expression like (question SEXPR)
 (defun patternexpand_expr (sexpr env pctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -883,43 +926,41 @@
 	 (let ( (cmat (unsafe_get_field :cmbind_matcher opbind)) )
 	   (debug_msg cmat "patternexpand_expr cmat")
 	   (assert_msg "check cmat-cher" (is_a cmat class_cmatcher))
-	   (let ( (pargs (patternexpand_pairlist_as_tuple (pair_tail curpair) env pctx))
-		  (pcomp (instance class_srcpattern_cmatch
-				   :src_loc sloc
-				   :spac_operator cmat
-				   :spac_args pargs
-				   ))
-		  )
-	     (debug_msg cmat "patternexpand_expr cmat again")
-	     (debug_msg pargs "patternexpand_expr pargs")
-	     (if (!=i (multiple_length pargs)
-		      (multiple_length (unsafe_get_field :amatch_out cmat)))
-		 (warning_strv sloc "unexpected number of arguments to cmatcher"
-			       (unsafe_get_field :named_name cmat)))
-	     (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
-	     (return pcomp)
-	     )
-	   ))
+	   (multicall
+	    (args pats)
+	    (patmacexpand_for_matcher (pair_tail curpair) cmat env sloc pctx)
+	    (debug_msg args "patternexpand_expr cmatcher args")
+	    (debug_msg pats "patternexpand_expr cmatcher pats")
+	    (let ( (pcomp (instance class_srcpattern_cmatch
+				    :src_loc sloc
+				    :spac_operator cmat
+				    :spac_inargs args
+				    :spac_outargs pats
+				    ))
+		   )
+	      (debug_msg pcomp "patternexpand_expr cmatcher return pcomp")
+	      (return pcomp)
+	      ))))
        ;; imported values 
        ( (is_a opbind class_value_binding)
 	 (let ( (opval (unsafe_get_field :vbind_value opbind)) )
 	   (cond 
 	    ( (is_a opval class_cmatcher) 
-	      (let ( (pargs (patternexpand_pairlist_as_tuple (pair_tail curpair) env pctx))
-		     (pcomp (instance class_srcpattern_cmatch
-				      :src_loc sloc
-				      :spac_operator opval
-				      :spac_args pargs
-				      ))
-		     )
-		(if (!=i (multiple_length pargs)
-			 (multiple_length (unsafe_get_field :amatch_out opval)))
-		    (warning_strv sloc "unexpected number of arguments to cmatcher"
-				  (unsafe_get_field :named_name opval)))
-		(debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
-		(return pcomp)
-		)
-	      )
+	      (multicall
+	       (args pats)
+	       (patmacexpand_for_matcher (pair_tail curpair) opval env sloc pctx)
+	       (debug_msg args "patternexpand_expr imported cmatcher args")
+	       (debug_msg pats "patternexpand_expr imported cmatcher pats")
+	       (let ( (pcomp (instance class_srcpattern_cmatch
+				       :src_loc sloc
+				       :spac_operator opval
+				       :spac_inargs args
+				       :spac_outargs pats
+				       ))
+		      )
+		 (debug_msg pcomp "patternexpand_expr cmatcher value pcomp")
+		 (return pcomp)
+		 )))
 	    (:else
 	     (error_strv sloc "invalid pattern operator value" opnam)
 	     (return)))))

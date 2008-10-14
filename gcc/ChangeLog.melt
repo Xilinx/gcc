@@ -1,3 +1,11 @@
+2008-10-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added foreach_long_upto citerator.
+	* melt/warmelt-macro.bysl: removed spac_args fields, added
+	spac_inargs & spac_outargs fields to
+	class_srcpattern_composite. added patmacexpand_for_matcher
+	function. more in patternexpand_expr.
+	* melt/warmelt-normatch.bysl: more in scanpat_srcpatcomposite.
+
 2008-10-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: normexp_class corrected, so get_field
 	well compiled.
