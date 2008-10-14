@@ -1,4 +1,12 @@
 2008-10-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Undo changes from 2008-10-02:
+	* tree-ssa-loop-ivopts.c (rewrite_use_nonlinear_expr): Convert
+	operand type when copying the operand to a variable of different type.
+	* cfgloopmanip.c (create_empty_loop_on_edge): Write exit condition
+	with the IV name after increment.
+
+2008-10-14  Sebastian Pop  <sebastian.pop@amd.com>
     	    Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR tree-optimization/37828
