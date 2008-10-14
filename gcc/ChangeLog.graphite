@@ -1,3 +1,11 @@
+2008-10-14  Sebastian Pop  <sebastian.pop@amd.com>
+    	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37828
+	* testsuite/gcc.dg/graphite/pr37828.c: New.
+	* graphite.c (graphite_trans_loop_block): Do not loop block
+	single nested loops.
+
 2008-10-09  Harsha Jagasia  <harsha.jagasia@amd.com>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
