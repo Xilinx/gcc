@@ -81,6 +81,7 @@
      (dis :long ix)
      (scan_pattern dis sloc ctyp pcn)
      )
+    (debug_msg recv "scanpat_srcpator end recv")
     ))
 (install_method class_srcpattern_or scan_pattern scanpat_srcpator)
 
@@ -99,6 +100,7 @@
      (dis :long ix)
      (scan_pattern dis sloc ctyp pcn)
      )
+    (debug_msg recv "scanpat_srcpatand end recv")
     ))
 (install_method class_srcpattern_and scan_pattern scanpat_srcpatand)
 
@@ -213,6 +215,7 @@
        (scan_pattern fpat sloc ctype_value pcn)
        )
      )
+    (debug_msg recv "scanpat_srcpatconst end recv")
     )
   )
 (install_method class_srcpattern_object scan_pattern scanpat_srcpatobject)
@@ -240,6 +243,7 @@
 	 (matctyp (unsafe_get_field :fbind_type matmb))
 	 (env (unsafe_get_field :pctn_env pcn))
 	 (ncx (unsafe_get_field :pctn_normctxt pcn))
+	 (bindlist (unsafe_get_field :pctn_bindlist pcn))
 	 )
     (assert_msg "check ctyp" (is_a ctyp class_ctype))
     (assert_msg "check matctyp" (is_a matctyp class_ctype))
@@ -253,10 +257,32 @@
      (nins bindins)
      (normalize_tuple sins env ncx sloc)
      (debug_msg nins "scanpat_srcpatcomposite nins")
-     (assert_msg "@@unimplemented scanpat_srcpatcomposite" ())
-     (compile_warning "@@unimplemented scanpat_srcpatcomposite" ())
+     (if bindins (list_append2list bindlist bindins))
+     (foreach_in_multiple
+      (souts)
+      (pout :long ix)
+      (scan_pattern pout sloc ctyp pcn)
+      )
+     (debug_msg recv "scanpat_srcpatcomposite end recv")
      )))
 (install_method class_srcpattern_composite scan_pattern scanpat_srcpatcomposite)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; backpoints are "backtracking" points in matching nreps
+(defclass class_nrep_backpoint
+  :super class_nrep_typexpr
+  :fields (nbkp_first
+	   nbkp_else))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; testpoints 
+(defclass class_nrep_testpoint
+  :super class_nrep_typexpr
+  :fields (ntsp_failbp			;backpoint for failure
+	   ntsp_matcher			;matcher
+))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -279,29 +305,33 @@
      (debug_msg nmatx "normexp_match nmatx")
      (debug_msg scases "normexp_match scases")
      (let ( (ctyp (get_ctype nmatx env)) )
-       (foreach_in_multiple
-	(scases)
-	(curcas :long ix)
-	(let ( 
-	      (pcn (instance class_patterncontext
-			     :pctn_normctxt ncx
-			     :pctn_src recv
-			     :pctn_env env
-			     :pctn_mapatvar (make_mapobject discr_mapobjects 25)
-			     :pctn_mapatcst (make_mapobject discr_mapobjects 20)
-			     :pctn_bindlist (make_list discr_list)
-			     ))
+       (debug_msg ctyp "normexp_match ctyp")
+       (let ( (tupcn
+	       (multiple_map
+		(lambda 
+		  (curcas :long ix)
+		  (let ( 
+			(pcn (instance class_patterncontext
+				       :pctn_normctxt ncx
+				       :pctn_src recv
+				       :pctn_env env
+				       :pctn_mapatvar (make_mapobject discr_mapobjects 25)
+				       :pctn_mapatcst (make_mapobject discr_mapobjects 20)
+				       :pctn_bindlist (make_list discr_list)
+				       ))
+			)
+		    (debug_msg curcas "normexp_match curcas")
+		    (scan_pattern curcas sloc ctyp pcn)
+		    (debug_msg pcn "normexp_match pcn")
+		    (return pcn)
+		    ))))
 	      )
-	  (debug_msg curcas "normexp_match curcas")
-	  (compile_warning "normexp_match to be completed" ())
-	  (scan_pattern curcas sloc ctyp pcn)
-	  (debug_msg pcn "normexp_match pcn")
-	  )))
-     )
-    (assert_msg "unimplemented normexp_match" ())
-    (compile_warning "@@unimplemented normexp_match" ())
-    )
-  )
+	 (debug_msg tupcn "normexp_match tupcn")
+	 (assert_msg "unimplemented normexp_match" ())
+	 (compile_warning "@@unimplemented normexp_match" ())
+	 )))))
+
+  
 (install_method class_src_match normal_exp normexp_match)
 
 

@@ -1,3 +1,6 @@
+2008-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: adding backpoints & testpoints
+
 2008-10-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added foreach_long_upto citerator.
 	* melt/warmelt-macro.bysl: removed spac_args fields, added
