@@ -1,3 +1,366 @@
+2008-10-15  Jan Sjodin  <jan.sjodin@amd.com>
+    	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37485
+	* graphite.c (gmp_cst_to_tree): Moved.
+	(iv_stack_entry_is_constant): New.
+	(iv_stack_entry_is_iv): New.
+	(loop_iv_stack_push): Renamed to loop_iv_stack_push_iv.
+	(loop_iv_stack_insert_constant): New.
+	(loop_iv_stack_pop): Use new datatpype.
+	(loop_iv_stack_get_iv): Same.
+	(loop_iv_stack_get_iv_from_name): Same.
+	(loop_iv_stack_debug): Renamed to debug_loop_iv_stack.
+	(loop_iv_stack_patch_for_consts): New.
+	(loop_iv_stack_remove_constants): New.
+	(graphite_create_new_loop): Use loop_iv_stack_push_iv.
+	(translate_clast): Call loop_iv_stack_patch_for_consts and
+	loop_iv_stack_remove_constants.
+	(gloog): Use new datatype.  Redirect construction edge to end
+	block to avoid accidental deletion.
+	* graphite.h (enum iv_stack_entry_kind): New.  Tag for data in
+	iv stack entry.
+	(union iv_stack_entry_data): New.  Data in iv stack entry.
+	(struct iv_stack_entry): New.  Datatype for iv stack entries.
+
+2008-10-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* tree-data-ref.c (stmt_simple_memref_p): Fix memleak.
+	* graphite.c (free_scop): Same.
+	(build_scops): Same.
+	(free_scattering): New.
+	(build_cloog_prog): Call free_scattering.
+	(patch_phis_for_virtual_defs): Fix memleak.
+	(graphite_trans_bb_strip_mine): Same.
+	(limit_scops): Same.
+
+2008-10-15  Sebastian Pop  <sebastian.pop@amd.com>
+    	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37828
+	* graphite.c (graphite_trans_loop_block): Do not loop block
+	single nested loops.
+
+2008-10-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/37686
+	* tree-loop-linear.c (linear_transform_loops): Build a
+	loop nest vector.  Pass it to lambda_compute_access_matrices.
+	* tree-data-ref.h (struct access_matrix): Store the loop nest
+	relative to which it encodes the information.
+	(AM_LOOP_NEST_NUM): Renamed AM_LOOP_NEST.
+	(am_vector_index_for_loop): Reimplemented: iterate over the
+	loop nest for finding the loop index in the access matrix.
+	(lambda_compute_access_matrices): Update declaration.
+	* lambda-code.c (build_access_matrix): Pass the loop nest and
+	record it.
+	(lambda_compute_access_matrices): Same.
+
+2008-10-15  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.h: (TARGET_DFP): This requires TARGET_HARD_FLOAT.
+	* config/s390/s390.md: Replace "TARGET_HARD_FLOAT &&
+	TARGET_(HARD_)DFP" with only TARGET_(HARD_)DFP since this
+	already implies hard float.  Also fix several insn condition
+	with TARGET_DFP which shall require TARGET_HARD_DFP instead.
+
+2008-10-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36881
+	* tree-switch-conversion.c (check_final_bb): For flag_pic, check
+	that each value doesn't need runtime relocations, for !flag_pic
+	check that each value is just a valid initializer constant.
+
+2008-10-14  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.h (reg_class): Remove HI_AND_GR_REGS,
+	LO_AND_GR_REGS, HI_AND_FP_REGS, COP0_AND_GR_REGS, COP2_AND_GR_REGS,
+	COP3_AND_GR_REGS, ALL_COP_REGS and ALL_COP_AND_GR_REGS.
+	Add GR_AND_MD0_REGS, GR_AND_MD1_REGS, GR_AND_MD_REGS and
+	GR_AND_ACC_REGS.
+	(REG_CLASS_NAMES): Update accordingly.
+	(REG_CLASS_CONTENTS): Likewise.  Use the class name in the comments,
+	rather than an unpredictable descriptive string.
+	* config/mips/mips.c (mips_register_move_cost): Remove comment.
+	(mips_register_move_cost): Check for specific COP*_REGS classes,
+	instead of ALL_COP_AND_GR_REGS.
+	(mips_ira_cover_classes): New function.
+	(mips_secondary_reload_class): Remove MTLO and MTHI workarounds.
+	(TARGET_IRA_COVER_CLASSES): Define.
+
+2008-10-14  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/37553
+       * tree.c (build_type_attribute_qual_variant): Hash on the
+       unqualified type, and don't overwrite an existing
+       (type_hash_eq): Make the TYPE_NAME of the types significant, to
+       allow distinguishing between wchar_t and its underlying type. This
+       also means that we'll retain a little more typedef information.
+
+2008-10-14  Andrey Belevantsev  <abel@ispras.ru>
+	    Dmitry Melnik  <dm@ispras.ru>
+	    Dmitry Zhurikhin  <zhur@ispras.ru>
+	    Alexander Monakov  <amonakov@ispras.ru>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* target.h (struct gcc_target): Update prototypes of needs_block_p
+	and gen_spec_check.
+	* haifa-sched.c (create_check_block_twin): Update calls to the above.
+	* sel-sched.c (create_speculation_check): Likewise.
+	* doc/tm.texi: Provide documentation for new target hooks.
+		
+	* config/ia64/ia64.c: Include sel-sched.h.  Rewrite speculation hooks.
+	(ia64_gen_spec_insn): Removed.
+	(get_spec_check_gen_function, insn_can_be_in_speculative_p,
+	ia64_gen_spec_check): New static functions.
+	(ia64_alloc_sched_context, ia64_init_sched_context, 
+	ia64_set_sched_context, ia64_clear_sched_context, 
+	ia64_free_sched_context, ia64_get_insn_spec_ds, 
+	ia64_get_insn_checked_ds, ia64_skip_rtx_p): Declare functions.
+	(ia64_needs_block_p): Change prototype.
+	(ia64_gen_check): Rename to ia64_gen_spec_check.
+	(ia64_adjust_cost): Rename to ia64_adjust_cost_2.  Add new parameter 
+	into declaration, add special memory dependencies handling.
+	(TARGET_SCHED_ALLOC_SCHED_CONTEXT, TARGET_SCHED_INIT_SCHED_CONTEXT,
+	TARGET_SCHED_SET_SCHED_CONTEXT, TARGET_SCHED_CLEAR_SCHED_CONTEXT,
+	TARGET_SCHED_FREE_SCHED_CONTEXT, TARGET_SCHED_GET_INSN_SPEC_DS,
+	TARGET_SCHED_GET_INSN_CHECKED_DS, TARGET_SCHED_SKIP_RTX_P): 
+	Define new target hooks.
+	(TARGET_SCHED_GEN_CHECK): Rename to TARGET_SCHED_GEN_SPEC_CHECK.
+	(ia64_optimization_options): Turn on selective scheduling with -O3, 
+	disable -fauto-inc-dec. Set mflag_sched_control_spec to true by default
+	with selective scheduling.
+	(ia64_override_options): Initialize align_loops and align_functions 
+	to 32 and 64, respectively.  Set global selective scheduling flags 
+	according to target-dependent flags.
+	(rtx_needs_barrier): Support UNSPEC_LDS_A.
+	(group_barrier_needed): Use new mstop-bit-before-check flag. 
+	Add heuristic.
+	(dfa_state_size): Make global.
+	(spec_check_no, max_uid): Remove.
+        (mem_ops_in_group, current_cycle): New variables.
+	(ia64_sched_init): Disable checks for !SCHED_GROUP_P after reload.
+        Initialize new variables.
+        (is_load_p, record_memory_reference): New functions.
+        (ia64_dfa_sched_reorder): Lower priority of loads when limit is
+        reached.
+	(ia64_variable_issue): Change use of current_sched_info to 
+	sched_deps_info.  Update comment.  Note if a load or a store is issued.
+        (ia64_first_cycle_multipass_dfa_lookahead_guard_spec): Require a cycle
+        advance if maximal number of loads or stores was issued on current 
+        cycle.
+	(scheduled_good_insn): New static helper function.
+        (ia64_dfa_new_cycle): Assert that last_scheduled_insn is set when 
+        a group barrier is needed.  Fix vertical spacing.  Guard the code
+        doing state transition with last_scheduled_insn check.                
+        Mark that a stop bit should be before current insn if there was a 
+        cycle advance.  Update current_cycle and mem_ops_in_group.
+	(ia64_h_i_d_extended): Change use of current_sched_info to
+        sched_deps_info. Reallocate stops_p by larger chunks.
+	(struct _ia64_sched_context): New structure.
+	(ia64_sched_context_t): New typedef.
+	(ia64_alloc_sched_context, ia64_init_sched_context, 
+	ia64_set_sched_context, ia64_clear_sched_context,
+	ia64_free_sched_context): New static functions.
+	(gen_func_t): New typedef.
+	(get_spec_load_gen_function): New function.
+	(SPEC_GEN_EXTEND_OFFSET): Declare.	
+	(ia64_set_sched_flags): Check common_sched_info instead of *flags.
+	(get_mode_no_for_insn): Change the condition that prevents use of 
+	special hardware registers so it can now handle pseudos.
+	(get_spec_unspec_code): New function.
+	(ia64_skip_rtx_p, get_insn_spec_code, ia64_get_insn_spec_ds,
+	ia64_get_insn_checked_ds, ia64_gen_spec_load): New static functions.
+	(ia64_speculate_insn, ia64_needs_block_p): Support branchy checks
+	during selective scheduling.
+	(ia64_speculate_insn): Use ds_get_speculation_types when 
+	determining whether we need to change the pattern.
+	(SPEC_GEN_LD_MAP, SPEC_GEN_CHECK_OFFSET): Declare.
+	(ia64_spec_check_src_p): Support new speculation/check codes.
+	(struct bundle_state): New field.
+	(issue_nops_and_insn): Initialize it.
+	(insert_bundle_state): Minimize mid-bundle stop bits.
+	(important_for_bundling_p): New function.
+	(get_next_important_insn): Use important_for_bundling_p.
+	(bundling): When shifting TImode from unimportant insns, ignore 
+	also group barriers.  Assert that best state is found before 
+	the backward bundling pass.  Print number of mid-bundle stop bits.  
+	Minimize mid-bundle stop bits.  Check correct calculation of 
+	mid-bundle stop bits.
+	(ia64_sched_finish, final_emit_insn_group_barriers): Fix formatting.
+	(final_emit_insn_group_barriers): Emit stop bits before insns starting
+	a new cycle.
+	(sel2_run): New variable.
+	(ia64_reorg): When flag_selective_scheduling2 is set, run the selective 
+	scheduling pass instead of schedule_ebbs.  
+	
+	* config/ia64/ia64.md (speculable1, speculable2): New attributes.
+	(UNSPEC_LDS_A): New UNSPEC.
+	(movqi_internal, movhi_internal, movsi_internal, movdi_internal, 
+	movti_internal, movsf_internal, movdf_internal, 
+	movxf_internal): Make visible.  Add speculable* attributes.
+	(output_c_nc): New mode attribute.
+	(mov<mode>_speculative_a, zero_extend<mode>di2_speculative_a,
+	mov<mode>_nc, zero_extend<mode>di2_nc, 
+	advanced_load_check_nc_<mode>): New insns.
+	(zero_extend*): Add speculable* attributes.
+
+	* config/ia64/ia64.opt (msched_fp_mem_deps_zero_cost): New option.
+	(msched-stop-bits-after-every-cycle): Likewise.
+	(msched-max-memory-insns,
+        msched-max-memory-insns-hard-limit): Likewise.
+	(msched-spec-verbose): Remove.
+	(msched-prefer-non-data-spec-insns,
+        msched-prefer-non-control-spec-insns, msched-count-spec-in-critical-path,
+	msel-sched-dont-check-control-spec): Use Target 
+        Report Var instead of Common Report Var.
+
+	* config/ia64/itanium2.md: Remove incorrect bypass.
+	
+	* config/ia64/t-ia64 (ia64.o): Add dependency on sel-sched.h.
+
+2008-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37805
+	* opts.c (common_handle_option): Don't ICE on -fhelp=joined
+	and -fhelp=separate.
+
+2008-10-14  Ben Elliston  <bje@au.ibm.com>
+
+	* config/rs6000/rs6000.md (cell_micro): Fix formatting.
+
+2008-10-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* combine.c (simplify_set): Avoid calling LOAD_EXTEND_OP on
+	non-integer modes.
+
+2008-10-13  Matthias Klose  <doko@ubuntu.com>
+
+	* config/pa/linux-atomic.c: Work around missing header file
+	for hppa64-linux-gnu targets.
+
+2008-10-13  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+            Kaushal Kantawala <Kaushal_Kantawala@playstation.sony.com>
+            Trevor Smigiel  <Trevor_Smigiel@playstation.sony.com>
+            Grace Cao  <grace_cao@playstation.sony.com>
+
+	* doc/invoke.texi (-mgen-cell-microcode): Document.
+	(-mwarn-cell-microcode): Document.
+	* cfglayout.c (locator_location): Export.
+	* rtl.h (locator_location): Define prototype.
+	* config/rs6000/predicates.md (cc_reg_not_micro_cr0_operand): New predicate.
+	* rs6000/rs6000-protos.h (rs6000_final_prescan_insn): Define prototype.
+	* config/rs6000/rs6000.opt (mgen-cell-microcode): New option.
+	(mwarn-cell-microcode): New option.
+	* rs6000/rs6000.c (rs6000_cell_dont_microcode): Delete unused variable.
+	(rs6000_override_options): Set rs6000_gen_cell_microcode if tuning for
+	cell and not already set.
+	Turn off string instructions if not generating cell microcode.
+	(rs6000_final_prescan_insn): New function that warns about microcoded
+	instructions.
+	* config/rs6000/rs6000.h (FINAL_PRESCAN_INSN): Define.
+	* config/rs6000/rs6000.md
+	Replace cc_reg_not_cr0_operand with cc_reg_not_micro_cr0_operand if
+	the instruction would have been microcoded on the Cell.
+	Set cell_micro to always on unnamed patterns for the string instructions.
+	(cell_micro): Update definition, remove load/store conditional microcoded.
+	(sign_extend:DI): Define new pattern for non microcoded version.
+	(sign_extend:SI): Likewise.
+	(compare (div:P)): Set cell_micro to not.
+	(andsi3): Define as an expand.
+	(andsi3_mc): New pattern.
+	(andsi3_nomc): New pattern.
+	(andsi3_internal0_nomc): New pattern.
+	(andsi3_internal2): Rename to ...
+	(andsi3_internal2_mc): this and enable iff generating microcode.
+	(andsi3_internal3): Rename to ...
+	(andsi3_internal3_mc): this and enable iff generating microcode.
+	(andsi3_internal4): Enable iif generating microcode.
+	(andsi3_internal5): Rename to ..
+	(andsi3_internal5_mc): this and enable iff generating microcode.
+	(andsi3_internal5_nomc): New pattern.
+	(extzvdi_internal1): Enable iff generating microcode.
+	(extzvdi_internal2): Likewise.
+	(rotlsi3_internal7): Set cell_micro to always if non immediate form.
+	(anddi3): Change to expand.
+	(anddi3_mc): Rename from anddi3.
+	(anddi3_no_mc): New pattern.
+	(anddi3_internal2): Rename to ..
+	(anddi3_internal2_mc): this and enable iff generating microcode.
+	(anddi3_internal2_nomc): New pattern.
+	(anddi3_internal3): Rename to ..
+	(anddi3_internal3_mc): this and enable iff generating microcode.
+	(anddi3_internal3_nomc): New pattern.
+	(movti_string): Set cell_micro to always if TARGET_STRING.
+	(stmsi8): Set cell_micro to always.
+	(stmsi7): Likewise.
+	(stmsi6): Likewise.
+	(stmsi5): Likewise.
+	(stmsi4): Likewise.
+	(stmsi3): Likewise.
+	(stmsi8_power): Likewise.
+	(stmsi7_power): Likewise.
+	(stmsi6_power): Likewise.
+	(stmsi5_power): Likewise.
+	(stmsi4_power): Likewise.
+	(stmsi3_power): Likewise.
+	(movsi_update2): Enable iff generating microcode.
+	(movhi_update3): Likewise.
+	(lmw): Set cell_micro to always.
+
+2008-10-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/s390/s390.md (UNSPEC_POOL_OFFSET): New constant.
+	* config/s390/s390.c (machine_function): Remove
+	decomposed_literal_pool_addresses_ok_p.
+	(s390_decompose_address): Check for UNSPEC_POOL_OFFSET instead of
+	the difference of two labels.
+	(s390_output_addr_const_extra): Handle UNSPEC_POOL_OFFSET.
+	(s390_pool_offset): New function.
+	(s390_find_constant, s390_find_execute, s390_dump_pool): Use it.
+	(s390_reorg): Don't set decomposed_literal_pool_addresses_ok_p.
+
+2008-10-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* doc/install.texi (powerpc-*-*): Require binutils 2.15.
+	(powerpc*-*-linux-gnu*): Describe.
+	* config/rs6000/ppc-asm.h (HIDDEN_FUNC): New macro.
+	* config/rs6000/crtresfpr.asm, config/rs6000/crtresgpr.asm,
+	config/rs6000/crtresxfpr.asm, config/rs6000/crtresxgpr.asm,
+	config/rs6000/crtsavfpr.asm, config/rs6000/crtsavgpr.asm,
+	config/rs6000/e500crtres32gpr.asm,
+	config/rs6000/e500crtres64gpr.asm,
+	config/rs6000/e500crtres64gprctr.asm,
+	config/rs6000/e500crtrest32gpr.asm,
+	config/rs6000/e500crtrest64gpr.asm,
+	config/rs6000/e500crtresx32gpr.asm,
+	config/rs6000/e500crtresx64gpr.asm,
+	config/rs6000/e500crtsav32gpr.asm,
+	config/rs6000/e500crtsav64gpr.asm,
+	config/rs6000/e500crtsav64gprctr.asm,
+	config/rs6000/e500crtsavg32gpr.asm,
+	config/rs6000/e500crtsavg64gpr.asm,
+	config/rs6000/e500crtsavg64gprctr.asm: Use it.
+	* config/rs6000/crtsavres.asm: Really remove.
+
+2008-10-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	Fix PR/25502
+	* c-format.c (convert_format_name_to_system_name): Use
+	TARGET_OVERRIDES_FORMAT_INIT.
+	* config.gcc (extra_options): Add for mingw targets mingw.opt.
+	* config/i386/mingw.opt: New.
+	* config/i386/mingw32.h (TARGET_OVERRIDES_FORMAT_INIT): New.
+	* config/i386/msformat-c.c (TARGET_OVERRIDES_FORMAT_INIT): New.
+	(ms_printf_length_specs): Removed const specifier.
+	* doc/tm.texi (TARGET_OVERRIDES_FORMAT_INIT): New.
+	* doc/invoke.texi (Wno-pedantic-ms-format): New.
+
+2008-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* builtins.c: Remove MPFR_VERSION_NUM(2,3,0) conditionals.
+	* doc/install.texi: Bump recommended MPFR to 2.3.2.
+
 2008-10-12  Kenneth Zadeck <zadeck@naturalbridge.com>
 
 	PR middle-end/37808
