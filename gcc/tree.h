@@ -177,12 +177,6 @@ extern const enum tree_code_class tree_code_type[];
 
 #define EXPR_P(NODE) IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (TREE_CODE (NODE)))
 
-/* Returns nonzero iff NODE is an GTM directive.  */
-
-#define GTM_DIRECTIVE_P(NODE)                         \
-    (TREE_CODE (NODE) == GTM_TXN                      \
-     || TREE_CODE (NODE) == GTM_RETURN)
-
 /* Number of argument-words in each kind of tree-node.  */
 
 extern const unsigned char tree_code_length[];
@@ -3269,11 +3263,13 @@ struct tree_decl_non_common GTY(())
    of a function - called only from inside transactions.  */
 #define DECL_IS_GTM_CLONE(NODE) (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_clone_flag)
 
+#if 0
 /* Nonzero in a FUNCTION_DECL means this function should be treated
    as "tm_unknown" function - behaviour of transactions depends
    on STM system  to supports irrevocable calls.  */
 #define DECL_IS_GTM_UNKNOWN(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.gtm_unknown_flag)
+#endif
 
 /* Nonzero in a FUNCTION_DECL means this function should be treated
    as "tm_callable" function - function maybe called from within a transaction. */

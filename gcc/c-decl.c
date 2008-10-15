@@ -1718,7 +1718,6 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  DECL_IS_NOVOPS (newdecl) |= DECL_IS_NOVOPS (olddecl);
 	  DECL_IS_GTM_PURE (newdecl) |= DECL_IS_GTM_PURE (olddecl);
 	  DECL_IS_GTM_CALLABLE (newdecl) |= DECL_IS_GTM_CALLABLE (olddecl);
-	  DECL_IS_GTM_UNKNOWN (newdecl) |= DECL_IS_GTM_UNKNOWN (olddecl);
 	}
 
       /* Merge the storage class information.  */

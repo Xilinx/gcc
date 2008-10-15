@@ -131,16 +131,12 @@ prepare_gtm_clone (struct cgraph_node *node)
   struct cgraph_node *tm_node;
   tree decl, old_decl, id;
   struct function *saved_cfun;
-  size_t len;
-  char *tm_name;
 
   if (!flag_gtm || flag_openmp)
     return;
 
   /* No need for a TM clone of the main function */
-  const char *orig = get_name (node->decl);
-  if ((strncmp (orig, "main", 4) == 0)
-      && (strlen (orig) == 4))
+  if (MAIN_NAME_P (DECL_NAME (node->decl)))
     return; 
 
   /* Do not prepare functions that are already instances 
@@ -155,7 +151,7 @@ prepare_gtm_clone (struct cgraph_node *node)
 
   /* Defer redirecting callers of the node to the
      new versioned node to the gtm expansion pass.  */
-  tm_node = cgraph_function_versioning (node, NULL, NULL); 
+  tm_node = cgraph_function_versioning (node, NULL, NULL, NULL); 
   if (tm_node == NULL)
     return;
 
@@ -171,13 +167,15 @@ prepare_gtm_clone (struct cgraph_node *node)
   set_cfun (DECL_STRUCT_FUNCTION (decl));
 
   /* Substitute decl name. */
-  len = strlen (orig);
-  tm_name = (char *) xmalloc (sizeof (char) * (len + 4));
-  strncpy (tm_name, orig, len);
-  strcpy (tm_name + len, "Txn");
-  id = get_identifier (tm_name);
-  DECL_NAME (decl) = id;
-  SET_DECL_ASSEMBLER_NAME(decl, id);
+  {
+    char *tm_name;
+
+    tm_name = concat (get_name (node->decl), ".Txn", NULL);
+    id = get_identifier (tm_name);
+    DECL_NAME (decl) = id;
+    SET_DECL_ASSEMBLER_NAME (decl, id);
+    free (tm_name);
+  }
 
 #ifdef GTM_EXPL_HANDLE
   /* Create parameter declaration for txn_handle and add

@@ -355,3 +355,13 @@ DEFGSCODE(GIMPLE_PREDICT, "gimple_predict", NULL)
     
     This tuple should not exist outside of the gimplifier proper.  */
 DEFGSCODE(GIMPLE_WITH_CLEANUP_EXPR, "gimple_with_cleanup_expr", NULL)
+
+/* GIMPLE_GTX_TXN <BODY> represents __tm_atomic blocks.
+   BODY is the sequence of statements inside the transaction.  */
+DEFGSCODE(GIMPLE_GTM_TXN, "gimple_gtm_txn", NULL)
+
+/* GIMPLE_GTM_RETURN marks the end of a transaction.  */
+DEFGSCODE(GIMPLE_GTM_RETURN, "gimple_gtm_return", NULL)
+
+/* GIMPLE_GTM_ABORT marks a user abort of the transaction.  */
+DEFGSCODE(GIMPLE_GTM_ABORT, "gimple_gtm_abort", NULL)

@@ -391,9 +391,9 @@ struct gimple_statement_with_memory_ops GTY(())
 };
 
 
-/* OpenMP statements (#pragma omp).  */
+/* Statements with embedded blocks (#pragma omp, gtm).  */
 
-struct gimple_statement_omp GTY(())
+struct gimple_statement_seq GTY(())
 {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
@@ -571,7 +571,7 @@ struct gimple_statement_asm GTY(())
 struct gimple_statement_omp_critical GTY(())
 {
   /* [ WORD 1-5 ]  */
-  struct gimple_statement_omp omp;
+  struct gimple_statement_seq omp;
 
   /* [ WORD 6 ]
      Critical section name.  */
@@ -602,7 +602,7 @@ struct gimple_omp_for_iter GTY(())
 struct gimple_statement_omp_for GTY(())
 {
   /* [ WORD 1-5 ]  */
-  struct gimple_statement_omp omp;
+  struct gimple_statement_seq omp;
 
   /* [ WORD 6 ]  */
   tree clauses;
@@ -625,7 +625,7 @@ struct gimple_statement_omp_for GTY(())
 struct gimple_statement_omp_parallel GTY(())
 {
   /* [ WORD 1-5 ]  */
-  struct gimple_statement_omp omp;
+  struct gimple_statement_seq omp;
 
   /* [ WORD 6 ]
      Clauses.  */
@@ -668,7 +668,7 @@ struct gimple_statement_omp_task GTY(())
 struct gimple_statement_omp_sections GTY(())
 {
   /* [ WORD 1-5 ]  */
-  struct gimple_statement_omp omp;
+  struct gimple_statement_seq omp;
 
   /* [ WORD 6 ]  */
   tree clauses;
@@ -701,7 +701,7 @@ struct gimple_statement_omp_continue GTY(())
 struct gimple_statement_omp_single GTY(())
 {
   /* [ WORD 1-5 ]  */
-  struct gimple_statement_omp omp;
+  struct gimple_statement_seq omp;
 
   /* [ WORD 6 ]  */
   tree clauses;
@@ -749,7 +749,7 @@ union gimple_statement_d GTY ((desc ("gimple_statement_structure (&%h)")))
   struct gimple_statement_base GTY ((tag ("GSS_BASE"))) gsbase;
   struct gimple_statement_with_ops GTY ((tag ("GSS_WITH_OPS"))) gsops;
   struct gimple_statement_with_memory_ops GTY ((tag ("GSS_WITH_MEM_OPS"))) gsmem;
-  struct gimple_statement_omp GTY ((tag ("GSS_OMP"))) omp;
+  struct gimple_statement_seq GTY ((tag ("GSS_SEQ"))) seq;
   struct gimple_statement_bind GTY ((tag ("GSS_BIND"))) gimple_bind;
   struct gimple_statement_catch GTY ((tag ("GSS_CATCH"))) gimple_catch;
   struct gimple_statement_eh_filter GTY ((tag ("GSS_EH_FILTER"))) gimple_eh_filter;
@@ -816,6 +816,7 @@ gimple gimple_build_omp_single (gimple_seq, tree);
 gimple gimple_build_cdt (tree, tree);
 gimple gimple_build_omp_atomic_load (tree, tree);
 gimple gimple_build_omp_atomic_store (tree);
+gimple gimple_build_gtm_txn (gimple_seq);
 gimple gimple_build_predict (enum br_predictor, enum prediction);
 enum gimple_statement_structure_enum gimple_statement_structure (gimple);
 enum gimple_statement_structure_enum gss_for_assign (enum tree_code);
@@ -3232,20 +3233,20 @@ gimple_switch_set_default_label (gimple gs, tree label)
 }
 
 
-/* Return the body for the OMP statement GS.  */
+/* Return the body for the SEQ statement GS.  */
 
 static inline gimple_seq 
-gimple_omp_body (gimple gs)
+gimple_seq_body (gimple gs)
 {
-  return gs->omp.body;
+  return gs->seq.body;
 }
 
-/* Set BODY to be the body for the OMP statement GS.  */
+/* Set BODY to be the body for the SEQ statement GS.  */
 
 static inline void
-gimple_omp_set_body (gimple gs, gimple_seq body)
+gimple_seq_set_body (gimple gs, gimple_seq body)
 {
-  gs->omp.body = body;
+  gs->seq.body = body;
 }
 
 
@@ -4169,6 +4170,14 @@ is_gimple_omp (const_gimple stmt)
 	  || gimple_code (stmt) == GIMPLE_OMP_CONTINUE);
 }
 
+/* Returns true when the gimple statement STMT is a GTM type.  */
+
+static inline bool
+is_gimple_gtm (const_gimple stmt)
+{
+  return (gimple_code (stmt) == GIMPLE_GTM_TXN
+	  || gimple_code (stmt) == GIMPLE_GTM_RETURN);
+}
 
 /* Returns TRUE if statement G is a GIMPLE_NOP.  */
 

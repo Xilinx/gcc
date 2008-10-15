@@ -1154,11 +1154,11 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       info->new_local_var_chain = NULL;
 
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_seq_body (stmt));
 
       if (info->new_local_var_chain)
 	declare_vars (info->new_local_var_chain,
-	              gimple_seq_first_stmt (gimple_omp_body (stmt)),
+	              gimple_seq_first_stmt (gimple_seq_body (stmt)),
 		      false);
       info->new_local_var_chain = save_local_var_chain;
       info->suppress_expansion = save_suppress;
@@ -1170,7 +1170,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       walk_gimple_omp_for (stmt, convert_nonlocal_reference_stmt,
 	  		   convert_nonlocal_reference_op, info);
       walk_body (convert_nonlocal_reference_stmt,
-	  	 convert_nonlocal_reference_op, info, gimple_omp_body (stmt));
+	  	 convert_nonlocal_reference_op, info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1178,7 +1178,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_nonlocal_omp_clauses (gimple_omp_sections_clauses_ptr (stmt), wi);
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1186,7 +1186,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_nonlocal_omp_clauses (gimple_omp_single_clauses_ptr (stmt), wi);
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1194,7 +1194,7 @@ convert_nonlocal_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
       walk_body (convert_nonlocal_reference_stmt, convert_nonlocal_reference_op,
-	         info, gimple_omp_body (stmt));
+	         info, gimple_seq_body (stmt));
       break;
 
     default:
@@ -1549,11 +1549,11 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       info->new_local_var_chain = NULL;
 
       walk_body (convert_local_reference_stmt, convert_local_reference_op, info,
-	         gimple_omp_body (stmt));
+	         gimple_seq_body (stmt));
 
       if (info->new_local_var_chain)
 	declare_vars (info->new_local_var_chain,
-		      gimple_seq_first_stmt (gimple_omp_body (stmt)), false);
+		      gimple_seq_first_stmt (gimple_seq_body (stmt)), false);
       info->new_local_var_chain = save_local_var_chain;
       info->suppress_expansion = save_suppress;
       break;
@@ -1564,7 +1564,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       walk_gimple_omp_for (stmt, convert_local_reference_stmt,
 			   convert_local_reference_op, info);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1572,7 +1572,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_local_omp_clauses (gimple_omp_sections_clauses_ptr (stmt), wi);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1580,7 +1580,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
       save_suppress = info->suppress_expansion;
       convert_local_omp_clauses (gimple_omp_single_clauses_ptr (stmt), wi);
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_seq_body (stmt));
       info->suppress_expansion = save_suppress;
       break;
 
@@ -1588,7 +1588,7 @@ convert_local_reference_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
       walk_body (convert_local_reference_stmt, convert_local_reference_op,
-		 info, gimple_omp_body (stmt));
+		 info, gimple_seq_body (stmt));
       break;
 
     default:
@@ -1866,7 +1866,7 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_TASK:
       save_static_chain_added = info->static_chain_added;
       info->static_chain_added = 0;
-      walk_body (convert_gimple_call, NULL, info, gimple_omp_body (stmt));
+      walk_body (convert_gimple_call, NULL, info, gimple_seq_body (stmt));
       for (i = 0; i < 2; i++)
 	{
 	  tree c, decl;
@@ -1903,7 +1903,7 @@ convert_gimple_call (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_MASTER:
     case GIMPLE_OMP_ORDERED:
     case GIMPLE_OMP_CRITICAL:
-      walk_body (convert_gimple_call, NULL, info, gimple_omp_body (stmt));
+      walk_body (convert_gimple_call, NULL, info, gimple_seq_body (stmt));
       break;
 
     default:

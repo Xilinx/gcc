@@ -1094,7 +1094,7 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  break;
 
 	case GIMPLE_OMP_PARALLEL:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_parallel
 	           (s1,
 		    gimple_omp_parallel_clauses (stmt),
@@ -1103,7 +1103,7 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  break;
 
 	case GIMPLE_OMP_TASK:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_task
 	           (s1,
 		    gimple_omp_task_clauses (stmt),
@@ -1115,7 +1115,7 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  break;
 
 	case GIMPLE_OMP_FOR:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  s2 = remap_gimple_seq (gimple_omp_for_pre_body (stmt), id);
 	  copy = gimple_build_omp_for (s1, gimple_omp_for_clauses (stmt),
 				       gimple_omp_for_collapse (stmt), s2);
@@ -1138,34 +1138,34 @@ remap_gimple_stmt (gimple stmt, copy_body_data *id)
 	  break;
 
 	case GIMPLE_OMP_MASTER:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_master (s1);
 	  break;
 
 	case GIMPLE_OMP_ORDERED:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_ordered (s1);
 	  break;
 
 	case GIMPLE_OMP_SECTION:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_section (s1);
 	  break;
 
 	case GIMPLE_OMP_SECTIONS:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_sections
 	           (s1, gimple_omp_sections_clauses (stmt));
 	  break;
 
 	case GIMPLE_OMP_SINGLE:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy = gimple_build_omp_single
 	           (s1, gimple_omp_single_clauses (stmt));
 	  break;
 
 	case GIMPLE_OMP_CRITICAL:
-	  s1 = remap_gimple_seq (gimple_omp_body (stmt), id);
+	  s1 = remap_gimple_seq (gimple_seq_body (stmt), id);
 	  copy
 	    = gimple_build_omp_critical (s1, gimple_omp_critical_name (stmt));
 	  break;
@@ -2958,7 +2958,7 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 
     case GIMPLE_OMP_FOR:
       return (weights->omp_cost
-              + estimate_num_insns_seq (gimple_omp_body (stmt), weights)
+              + estimate_num_insns_seq (gimple_seq_body (stmt), weights)
               + estimate_num_insns_seq (gimple_omp_for_pre_body (stmt), weights));
 
     case GIMPLE_OMP_PARALLEL:
@@ -2970,17 +2970,17 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SINGLE:
       return (weights->omp_cost
-              + estimate_num_insns_seq (gimple_omp_body (stmt), weights));
+              + estimate_num_insns_seq (gimple_seq_body (stmt), weights));
 
     /* These GTM directives are cheap enough.  */
-    case GTM_RETURN:
-    case GTM_ABORT:
+    case GIMPLE_GTM_RETURN:
+    case GIMPLE_GTM_ABORT:
       return 0;
 
     /* The entire transaction, however, is expensive.  */
-    case GTM_TXN:
+    case GIMPLE_GTM_TXN:
       return (weights->gtm_txn_cost
-	      + estimate_num_insns_seq (gimple_gtm_txn_body (stmt), weights));
+	      + estimate_num_insns_seq (gimple_seq_body (stmt), weights));
 
     default:
       gcc_unreachable ();

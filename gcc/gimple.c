@@ -117,7 +117,7 @@ gss_for_code (enum gimple_code code)
     case GIMPLE_OMP_FOR:		return GSS_OMP_FOR;
     case GIMPLE_OMP_MASTER:		
     case GIMPLE_OMP_ORDERED:
-    case GIMPLE_OMP_SECTION:		return GSS_OMP;
+    case GIMPLE_OMP_SECTION:		return GSS_SEQ;
     case GIMPLE_OMP_RETURN:
     case GIMPLE_OMP_SECTIONS_SWITCH:    return GSS_BASE;
     case GIMPLE_OMP_CONTINUE:		return GSS_OMP_CONTINUE;
@@ -128,6 +128,9 @@ gss_for_code (enum gimple_code code)
     case GIMPLE_OMP_ATOMIC_LOAD:	return GSS_OMP_ATOMIC_LOAD;
     case GIMPLE_OMP_ATOMIC_STORE:	return GSS_OMP_ATOMIC_STORE;
     case GIMPLE_PREDICT:		return GSS_BASE;
+    case GIMPLE_GTM_TXN:		return GSS_SEQ;
+    case GIMPLE_GTM_RETURN:
+    case GIMPLE_GTM_ABORT:		return GSS_BASE;
     default:				gcc_unreachable ();
     }
 }
@@ -141,64 +144,53 @@ gimple_size (enum gimple_code code)
 {
   enum gimple_statement_structure_enum gss = gss_for_code (code);
 
-  if (gss == GSS_WITH_OPS)
-    return sizeof (struct gimple_statement_with_ops);
-  else if (gss == GSS_WITH_MEM_OPS)
-    return sizeof (struct gimple_statement_with_memory_ops);
-
-  switch (code)
+  switch (gss)
     {
-    case GIMPLE_ASM:
-      return sizeof (struct gimple_statement_asm);
-    case GIMPLE_NOP:
+    case GSS_BASE:
       return sizeof (struct gimple_statement_base);
-    case GIMPLE_BIND:
-      return sizeof (struct gimple_statement_bind);
-    case GIMPLE_CATCH:
-      return sizeof (struct gimple_statement_catch);
-    case GIMPLE_EH_FILTER:
-      return sizeof (struct gimple_statement_eh_filter);
-    case GIMPLE_TRY:
-      return sizeof (struct gimple_statement_try);
-    case GIMPLE_RESX:
-      return sizeof (struct gimple_statement_resx);
-    case GIMPLE_OMP_CRITICAL:
-      return sizeof (struct gimple_statement_omp_critical);
-    case GIMPLE_OMP_FOR:
-      return sizeof (struct gimple_statement_omp_for);
-    case GIMPLE_OMP_PARALLEL:
-      return sizeof (struct gimple_statement_omp_parallel);
-    case GIMPLE_OMP_TASK:
-      return sizeof (struct gimple_statement_omp_task);
-    case GIMPLE_OMP_SECTION:
-    case GIMPLE_OMP_MASTER:
-    case GIMPLE_OMP_ORDERED:
-      return sizeof (struct gimple_statement_omp);
-    case GIMPLE_OMP_RETURN:
-      return sizeof (struct gimple_statement_base);
-    case GIMPLE_OMP_CONTINUE:
-      return sizeof (struct gimple_statement_omp_continue);
-    case GIMPLE_OMP_SECTIONS:
-      return sizeof (struct gimple_statement_omp_sections);
-    case GIMPLE_OMP_SECTIONS_SWITCH:
-      return sizeof (struct gimple_statement_base);
-    case GIMPLE_OMP_SINGLE:
-      return sizeof (struct gimple_statement_omp_single);
-    case GIMPLE_OMP_ATOMIC_LOAD:
-      return sizeof (struct gimple_statement_omp_atomic_load);
-    case GIMPLE_OMP_ATOMIC_STORE:
-      return sizeof (struct gimple_statement_omp_atomic_store);
-    case GIMPLE_WITH_CLEANUP_EXPR:
-      return sizeof (struct gimple_statement_wce);
-    case GIMPLE_CHANGE_DYNAMIC_TYPE:
+    case GSS_WITH_OPS:
       return sizeof (struct gimple_statement_with_ops);
-    case GIMPLE_PREDICT:
-      return sizeof (struct gimple_statement_base);
+    case GSS_WITH_MEM_OPS:
+      return sizeof (struct gimple_statement_with_memory_ops);
+    case GSS_SEQ:
+      return sizeof (struct gimple_statement_seq);
+    case GSS_BIND:
+      return sizeof (struct gimple_statement_bind);
+    case GSS_CATCH:
+      return sizeof (struct gimple_statement_catch);
+    case GSS_EH_FILTER:
+      return sizeof (struct gimple_statement_eh_filter);
+    case GSS_PHI:
+      return sizeof (struct gimple_statement_phi);
+    case GSS_RESX:
+      return sizeof (struct gimple_statement_resx);
+    case GSS_TRY:
+      return sizeof (struct gimple_statement_try);
+    case GSS_WCE:
+      return sizeof (struct gimple_statement_wce);
+    case GSS_ASM:
+      return sizeof (struct gimple_statement_asm);
+    case GSS_OMP_CRITICAL:
+      return sizeof (struct gimple_statement_omp_critical);
+    case GSS_OMP_FOR:
+      return sizeof (struct gimple_statement_omp_for);
+    case GSS_OMP_PARALLEL:
+      return sizeof (struct gimple_statement_omp_parallel);
+    case GSS_OMP_TASK:
+      return sizeof (struct gimple_statement_omp_task);
+    case GSS_OMP_SECTIONS:
+      return sizeof (struct gimple_statement_omp_sections);
+    case GSS_OMP_SINGLE:
+      return sizeof (struct gimple_statement_omp_single);
+    case GSS_OMP_CONTINUE:
+      return sizeof (struct gimple_statement_omp_continue);
+    case GSS_OMP_ATOMIC_LOAD:
+      return sizeof (struct gimple_statement_omp_atomic_load);
+    case GSS_OMP_ATOMIC_STORE:
+      return sizeof (struct gimple_statement_omp_atomic_store);
     default:
-      break;
+      gcc_unreachable ();
     }
-
-  gcc_unreachable ();
 }
 
 
@@ -841,7 +833,7 @@ gimple_build_omp_critical (gimple_seq body, tree name)
   gimple p = gimple_alloc (GIMPLE_OMP_CRITICAL, 0);
   gimple_omp_critical_set_name (p, name);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
 
   return p;
 }
@@ -860,7 +852,7 @@ gimple_build_omp_for (gimple_seq body, tree clauses, size_t collapse,
 {
   gimple p = gimple_alloc (GIMPLE_OMP_FOR, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
   gimple_omp_for_set_clauses (p, clauses);
   p->gimple_omp_for.collapse = collapse;
   p->gimple_omp_for.iter = GGC_CNEWVEC (struct gimple_omp_for_iter, collapse);
@@ -884,7 +876,7 @@ gimple_build_omp_parallel (gimple_seq body, tree clauses, tree child_fn,
 {
   gimple p = gimple_alloc (GIMPLE_OMP_PARALLEL, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
   gimple_omp_parallel_set_clauses (p, clauses);
   gimple_omp_parallel_set_child_fn (p, child_fn);
   gimple_omp_parallel_set_data_arg (p, data_arg);
@@ -909,7 +901,7 @@ gimple_build_omp_task (gimple_seq body, tree clauses, tree child_fn,
 {
   gimple p = gimple_alloc (GIMPLE_OMP_TASK, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
   gimple_omp_task_set_clauses (p, clauses);
   gimple_omp_task_set_child_fn (p, child_fn);
   gimple_omp_task_set_data_arg (p, data_arg);
@@ -930,7 +922,7 @@ gimple_build_omp_section (gimple_seq body)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_SECTION, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
 
   return p;
 }
@@ -945,7 +937,7 @@ gimple_build_omp_master (gimple_seq body)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_MASTER, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
 
   return p;
 }
@@ -975,7 +967,7 @@ gimple_build_omp_ordered (gimple_seq body)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_ORDERED, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
 
   return p;
 }
@@ -1006,7 +998,7 @@ gimple_build_omp_sections (gimple_seq body, tree clauses)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_SECTIONS, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
   gimple_omp_sections_set_clauses (p, clauses);
 
   return p;
@@ -1033,7 +1025,7 @@ gimple_build_omp_single (gimple_seq body, tree clauses)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_SINGLE, 0);
   if (body)
-    gimple_omp_set_body (p, body);
+    gimple_seq_set_body (p, body);
   gimple_omp_single_set_clauses (p, clauses);
 
   return p;
@@ -1074,6 +1066,17 @@ gimple_build_omp_atomic_store (tree val)
 {
   gimple p = gimple_alloc (GIMPLE_OMP_ATOMIC_STORE, 0);
   gimple_omp_atomic_store_set_val (p, val);
+  return p;
+}
+
+/* Build a GIMPLE_GTM_TXN statement.  */
+
+gimple
+gimple_build_gtm_txn (gimple_seq body)
+{
+  gimple p = gimple_alloc (GIMPLE_GTM_TXN, 0);
+  if (body)
+    gimple_seq_set_body (p, body);
   return p;
 }
 
@@ -1767,8 +1770,9 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
     case GIMPLE_OMP_TASK:
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SINGLE:
-      ret = walk_gimple_seq (gimple_omp_body (stmt), callback_stmt, callback_op,
-	                     wi);
+    case GIMPLE_GTM_TXN:
+      ret = walk_gimple_seq (gimple_seq_body (stmt), callback_stmt,
+			     callback_op, wi);
       if (ret)
 	return wi->callback_result;
       break;
@@ -2208,9 +2212,10 @@ gimple_copy (gimple stmt)
 	case GIMPLE_OMP_SECTION:
 	case GIMPLE_OMP_MASTER:
 	case GIMPLE_OMP_ORDERED:
+        case GIMPLE_GTM_TXN:
 	copy_omp_body:
-	  new_seq = gimple_seq_copy (gimple_omp_body (stmt));
-	  gimple_omp_set_body (copy, new_seq);
+	  new_seq = gimple_seq_copy (gimple_seq_body (stmt));
+	  gimple_seq_set_body (copy, new_seq);
 	  break;
 
 	case GIMPLE_WITH_CLEANUP_EXPR:
@@ -2570,7 +2575,9 @@ get_gimple_rhs_num_ops (enum tree_code code)
       || (SYM) == POLYNOMIAL_CHREC					    \
       || (SYM) == DOT_PROD_EXPR						    \
       || (SYM) == VEC_COND_EXPR						    \
-      || (SYM) == REALIGN_LOAD_EXPR) ? GIMPLE_SINGLE_RHS		    \
+      || (SYM) == REALIGN_LOAD_EXPR					    \
+      || (SYM) == GTM_LOAD						    \
+      || (SYM) == GTM_STORE) ? GIMPLE_SINGLE_RHS			    \
    : GIMPLE_INVALID_RHS),
 #define END_OF_BASE_TREE_CODES (unsigned char) GIMPLE_INVALID_RHS,
 

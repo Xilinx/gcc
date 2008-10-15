@@ -6502,8 +6502,9 @@ handle_gtm_unknown_attribute (tree *node, tree name, tree ARG_UNUSED (args),
                      int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL)
-    DECL_IS_GTM_UNKNOWN (*node) = 1;
-  /* ??? TODO: Support types.  */
+    {
+      /* DECL_IS_GTM_UNKNOWN (*node) = 1; */
+    }
   else
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);

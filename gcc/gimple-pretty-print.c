@@ -757,7 +757,7 @@ dump_gimple_omp_for (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_omp_body (gs));
+                       gimple_seq_body (gs));
       dump_omp_clauses (buffer, gimple_omp_for_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >,");
       for (i = 0; i < gimple_omp_for_collapse (gs); i++)
@@ -821,12 +821,12 @@ dump_gimple_omp_for (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  pp_character (buffer, ')');
 	}
 
-      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -865,7 +865,7 @@ dump_gimple_omp_single (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-		       gimple_omp_body (gs));
+		       gimple_seq_body (gs));
       dump_omp_clauses (buffer, gimple_omp_single_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >");
     }
@@ -873,12 +873,12 @@ dump_gimple_omp_single (pretty_printer *buffer, gimple gs, int spc, int flags)
     {
       pp_string (buffer, "#pragma omp single");
       dump_omp_clauses (buffer, gimple_omp_single_clauses (gs), spc, flags);
-      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -894,7 +894,7 @@ dump_gimple_omp_sections (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-		       gimple_omp_body (gs));
+		       gimple_seq_body (gs));
       dump_omp_clauses (buffer, gimple_omp_sections_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >");
     }
@@ -909,12 +909,12 @@ dump_gimple_omp_sections (pretty_printer *buffer, gimple gs, int spc,
 	  pp_character (buffer, '>');
 	}
       dump_omp_clauses (buffer, gimple_omp_sections_clauses (gs), spc, flags);
-      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -929,7 +929,7 @@ dump_gimple_omp_block (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
-		     gimple_omp_body (gs));
+		     gimple_seq_body (gs));
   else
     {
       switch (gimple_code (gs))
@@ -946,12 +946,12 @@ dump_gimple_omp_block (pretty_printer *buffer, gimple gs, int spc, int flags)
 	default:
 	  gcc_unreachable ();
 	}
-      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -966,7 +966,7 @@ dump_gimple_omp_critical (pretty_printer *buffer, gimple gs, int spc,
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
-		     gimple_omp_body (gs));
+		     gimple_seq_body (gs));
   else
     {
       pp_string (buffer, "#pragma omp critical");
@@ -977,12 +977,12 @@ dump_gimple_omp_critical (pretty_printer *buffer, gimple gs, int spc,
 			     flags, false);
 	  pp_character (buffer, ')');
 	}
-      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -1005,6 +1005,45 @@ dump_gimple_omp_return (pretty_printer *buffer, gimple gs, int spc, int flags)
       if (gimple_omp_return_nowait_p (gs))
 	pp_string (buffer, "(nowait)");
     }
+}
+
+/* Dump a GIMPLE_GTM_TXN tuple on the pretty_printer BUFFER.  */
+
+static void
+dump_gimple_gtm_txn (pretty_printer *buffer, gimple gs, int spc, int flags)
+{
+  if (flags & TDF_RAW)
+    dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
+		     gimple_seq_body (gs));
+  else
+    {
+      pp_string (buffer, "__tm_atomic");
+      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+	{
+	  newline_and_indent (buffer, spc + 2);
+	  pp_character (buffer, '{');
+	  pp_newline (buffer);
+	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  newline_and_indent (buffer, spc + 2);
+	  pp_character (buffer, '}');
+	}
+    }
+}
+
+/* Dump a GIMPLE_GTM_RETURN or GIMPLE_GTM_ABORT tuple on the
+   pretty_printer BUFFER.  */
+
+static void
+dump_gimple_gtm_other (pretty_printer *buffer, gimple gs, int spc, int flags)
+{
+  if (flags & TDF_RAW)
+    {
+      dump_gimple_fmt (buffer, spc, flags, "%G", gs);
+    }
+  else if (gimple_code (gs) == GIMPLE_GTM_RETURN)
+    pp_string (buffer, "__tm_return");
+  else if (gimple_code (gs) == GIMPLE_GTM_ABORT)
+    pp_string (buffer, "__tm_abort");
 }
 
 /* Dump a GIMPLE_ASM tuple on the pretty_printer BUFFER, SPC spaces of
@@ -1168,7 +1207,7 @@ dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_omp_body (gs));
+                       gimple_seq_body (gs));
       dump_omp_clauses (buffer, gimple_omp_parallel_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >, %T, %T%n>",
                        gimple_omp_parallel_child_fn (gs),
@@ -1192,7 +1231,7 @@ dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
 	    pp_string (buffer, "???");
 	  pp_string (buffer, ")]");
 	}
-      body = gimple_omp_body (gs);
+      body = gimple_seq_body (gs);
       if (body && gimple_code (gimple_seq_first_stmt (body)) != GIMPLE_BIND)
 	{
 	  newline_and_indent (buffer, spc + 2);
@@ -1222,7 +1261,7 @@ dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_omp_body (gs));
+                       gimple_seq_body (gs));
       dump_omp_clauses (buffer, gimple_omp_task_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >, %T, %T, %T, %T, %T%n>",
                        gimple_omp_task_child_fn (gs),
@@ -1249,7 +1288,7 @@ dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
 	    pp_string (buffer, "???");
 	  pp_string (buffer, ")]");
 	}
-      body = gimple_omp_body (gs);
+      body = gimple_seq_body (gs);
       if (body && gimple_code (gimple_seq_first_stmt (body)) != GIMPLE_BIND)
 	{
 	  newline_and_indent (buffer, spc + 2);
@@ -1581,6 +1620,15 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 	pp_string (buffer, "unlikely by ");
       pp_string (buffer, predictor_name (gimple_predict_predictor (gs)));
       pp_string (buffer, " predictor.");
+      break;
+
+    case GIMPLE_GTM_TXN:
+      dump_gimple_gtm_txn (buffer, gs, spc, flags);
+      break;
+
+    case GIMPLE_GTM_RETURN:
+    case GIMPLE_GTM_ABORT:
+      dump_gimple_gtm_other (buffer, gs, spc, flags);
       break;
 
     default:

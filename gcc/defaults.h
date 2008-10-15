@@ -949,6 +949,8 @@ along with GCC; see the file COPYING3.  If not see
    In particular the explicit passing of transaction handles and
    the implicit handling of transaction handles are distinguished. */
 
+#define TINYSTM_VERSION_0_9_5
+
 #ifdef TINYSTM_VERSION_0_9_0b1 
 #define GTM_EXPL_HANDLE
 #undef GTM_IMPL_HANDLE

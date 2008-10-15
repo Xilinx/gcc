@@ -77,12 +77,16 @@ struct lower_data
 
   /* True if the function calls __builtin_setjmp.  */
   bool calls_builtin_setjmp;
+
+  /* True if we're lowering inside a transaction.  */
+  bool in_transaction;
 };
 
 static void lower_stmt (gimple_stmt_iterator *, struct lower_data *);
 static void lower_gimple_bind (gimple_stmt_iterator *, struct lower_data *);
 static void lower_gimple_return (gimple_stmt_iterator *, struct lower_data *);
 static void lower_builtin_setjmp (gimple_stmt_iterator *);
+static void record_vars_into_tm (tree, tree, bool);
 
 
 /* Lower the body of current_function_decl from High GIMPLE into Low
@@ -217,108 +221,6 @@ struct gimple_opt_pass pass_lower_cf =
  }
 };
 
-static void
-mark_gtm_save_vars (tree vars)
-{
-  for (; vars; vars = TREE_CHAIN (vars))
-    {
-      tree var = vars;
-      if (TREE_CODE (var) == VAR_DECL)
-        DECL_IS_GTM_PURE_VAR (var) = 1;
-    }
-  return ;
-}
-
-/* Lower the GTM directive statement pointed by TSI.  DATA is
-    passed through the recursion.  */
-
-static void
-lower_gtm_directive (tree_stmt_iterator *tsi, struct lower_data *data)
-{
-  tree stmt;
-
-  stmt = tsi_stmt (*tsi);
-  tree body = GTM_TXN_BODY (stmt);
-  if (TREE_CODE (body) == STATEMENT_LIST)
-    {
-      tree temp;
-      tree_stmt_iterator ttsi = tsi_start (body);
-      if (!tsi_end_p (ttsi))
-        {
-          temp = tsi_stmt (ttsi);
-        }
-      else gcc_unreachable();
-      if (TREE_CODE (temp) == BIND_EXPR)
-        {
-          tree vars = BIND_EXPR_VARS (temp);
-
-          if (vars)
-            {
-              mark_gtm_save_vars(vars);
-            }
-          if (TREE_CODE (BIND_EXPR_BODY (temp)) == STATEMENT_LIST)
-            {
-              tree temp2;
-              tree_stmt_iterator ttsi = tsi_start (BIND_EXPR_BODY (temp));
-
-              if (!tsi_end_p (ttsi))
-                {
-                  temp2 = tsi_stmt (ttsi);
-                }
-              else gcc_unreachable();
-
-            if (TREE_CODE (temp2) == BIND_EXPR)
-              {
-                tree vars = BIND_EXPR_VARS (temp2);
-
-                if (vars)
-                  {
-                    mark_gtm_save_vars(vars);
-                  }
-              }
-          }
-      }
-    }
-  else
-    {
-      if (TREE_CODE (body) == BIND_EXPR)
-        {
-          tree vars = BIND_EXPR_VARS (body);
-
-          if (vars)
-            {
-              mark_gtm_save_vars(vars);
-            }
-        }
-      if (TREE_CODE (BIND_EXPR_BODY (body)) == STATEMENT_LIST)
-      {
-        tree temp;
-        tree_stmt_iterator ttsi = tsi_start (BIND_EXPR_BODY (body));
-
-        if (!tsi_end_p (ttsi))
-          {
-            temp = tsi_stmt (ttsi);
-          }
-        else gcc_unreachable();
-
-        if (TREE_CODE (temp) == BIND_EXPR)
-          {
-            tree vars = BIND_EXPR_VARS (temp);
-
-            if (vars)
-              {
-                mark_gtm_save_vars(vars);
-              }
-          }
-      }
-    }
-
-  lower_stmt_body (body, data);
-  tsi_link_before (tsi, stmt, TSI_SAME_STMT);
-  tsi_link_before (tsi, body, TSI_SAME_STMT);
-  GTM_TXN_BODY (stmt) = NULL_TREE;
-  tsi_delink (tsi);
-}
 
 /* Lower sequence SEQ.  Unlike gimplification the statements are not relowered
    when they are changed -- if this has to be done, the lowering routine must
@@ -334,6 +236,26 @@ lower_sequence (gimple_seq seq, struct lower_data *data)
 }
 
 
+/* Lower the GTM directive statement pointed by TSI.  DATA is
+   passed through the recursion.  */
+
+static void
+lower_gtm_directive (gimple_stmt_iterator *gsi, struct lower_data *data)
+{
+  bool old_in_transaction = data->in_transaction;
+  gimple stmt = gsi_stmt (*gsi);
+
+  data->in_transaction = true;
+
+  lower_sequence (gimple_seq_body (stmt), data);
+  gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
+  gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
+  gimple_seq_set_body (stmt, NULL);
+  gsi_remove (gsi, false);
+
+  data->in_transaction = old_in_transaction;
+}
+
 /* Lower the OpenMP directive statement pointed by GSI.  DATA is
    passed through the recursion.  */
 
@@ -344,10 +266,10 @@ lower_omp_directive (gimple_stmt_iterator *gsi, struct lower_data *data)
   
   stmt = gsi_stmt (*gsi);
 
-  lower_sequence (gimple_omp_body (stmt), data);
+  lower_sequence (gimple_seq_body (stmt), data);
   gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
-  gsi_insert_seq_before (gsi, gimple_omp_body (stmt), GSI_SAME_STMT);
-  gimple_omp_set_body (stmt, NULL);
+  gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
+  gimple_seq_set_body (stmt, NULL);
   gsi_remove (gsi, false);
 }
 
@@ -433,7 +355,7 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
       return;
 
     case GIMPLE_GTM_TXN:
-      lower_gtm_directive (tsi, data);
+      lower_gtm_directive (gsi, data);
       return;
 
     default:
@@ -480,7 +402,8 @@ lower_gimple_bind (gimple_stmt_iterator *gsi, struct lower_data *data)
 	}
     }
 
-  record_vars (gimple_bind_vars (stmt));
+  record_vars_into_tm (gimple_bind_vars (stmt), current_function_decl,
+		       data->in_transaction);
   lower_sequence (gimple_bind_body (stmt), data);
 
   if (new_block)
@@ -894,10 +817,11 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
 }
 
 
-/* Record the variables in VARS into function FN.  */
+/* Record the variables in VARS into function FN.  If IN_TRANSACTION is
+   true, mark them DECL_IS_GTM_PURE_VAR.  */
 
-void
-record_vars_into (tree vars, tree fn)
+static void
+record_vars_into_tm (tree vars, tree fn, bool in_transaction)
 {
   if (fn != current_function_decl)
     push_cfun (DECL_STRUCT_FUNCTION (fn));
@@ -918,10 +842,22 @@ record_vars_into (tree vars, tree fn)
       /* Record the variable.  */
       cfun->local_decls = tree_cons (NULL_TREE, var,
 					     cfun->local_decls);
+
+      /* If we're inside a transaction, mark it for NOT checkpointing.  */
+      if (in_transaction)
+	DECL_IS_GTM_PURE_VAR (var) = 1;
     }
 
   if (fn != current_function_decl)
     pop_cfun ();
+}
+
+/* Record the variables in VARS into function FN.  */
+
+void
+record_vars_into (tree vars, tree fn)
+{
+  record_vars_into_tm (vars, fn, false);
 }
 
 
@@ -930,7 +866,7 @@ record_vars_into (tree vars, tree fn)
 void
 record_vars (tree vars)
 {
-  record_vars_into (vars, current_function_decl);
+  record_vars_into_tm (vars, current_function_decl, false);
 }
 
 

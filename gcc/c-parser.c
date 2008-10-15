@@ -913,7 +913,6 @@ static struct c_expr c_parser_postfix_expression_after_paren_type (c_parser *,
 								   struct c_type_name *);
 static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								struct c_expr);
-static tree c_parser_gtm (c_parser *);
 static tree c_parser_gtm_atomic (c_parser *);
 static struct c_expr c_parser_expression (c_parser *);
 static struct c_expr c_parser_expression_conv (c_parser *);

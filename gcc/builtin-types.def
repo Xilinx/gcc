@@ -475,8 +475,6 @@ DEF_FUNCTION_TYPE_3 (BT_FN_PTR_PTR_FN_VOID_VAR_PTR_SIZE,
 		     BT_PTR, BT_PTR_FN_VOID_VAR, BT_PTR, BT_SIZE)
 
 
-#include "gtm-defines.h"
-             
 /* GTM special types go here */
 
 #ifdef GTM_EXPL_HANDLE

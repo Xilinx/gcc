@@ -1894,18 +1894,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
       is_expr = false;
       break;
 
-    case GTM_ABORT:
-      pp_string (buffer, "GTM_ABORT");
-      is_expr = false;
-      break;
-
-    case GTM_RETURN:
-      pp_string (buffer, "GTM_RETURN");
-      is_expr = false;
-      break;
-
     case GTM_TXN:
-      pp_string (buffer, "_Pragma(\"tm atomic\")");
+      pp_string (buffer, "__tm_atomic");
       if (!(flags & TDF_SLIM) && GTM_TXN_BODY (node))
         {
           newline_and_indent (buffer, spc);
@@ -1915,6 +1905,11 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
           newline_and_indent (buffer, spc);
           pp_character (buffer, '}');
         }
+      is_expr = false;
+      break;
+
+    case GTM_ABORT:
+      pp_string (buffer, "GTM_ABORT");
       is_expr = false;
       break;
 

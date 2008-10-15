@@ -1061,11 +1061,14 @@ DEFTREECODE (OMP_CLAUSE, "omp_clause", tcc_exceptional, 0)
    Operand 0: GTM_TXN_BODY: contains body of the transaction.*/
 DEFTREECODE (GTM_TXN, "gtm_txn", tcc_statement, 1)
 
-/* Return from an GTM directive.  */
-DEFTREECODE (GTM_RETURN, "gtm_return", tcc_statement, 0)
-
 /* Abort an transaction.  */
 DEFTREECODE (GTM_ABORT, "gtm_abort", tcc_statement, 0)
+
+/* A read protected by a current transaction.  */
+DEFTREECODE (GTM_LOAD, "gtm_load", tcc_expression, 1)
+
+/* A write protected by a current transaction.  */
+DEFTREECODE (GTM_STORE, "gtm_store", tcc_expression, 1)
 
 /* Reduction operations. 
    Operations that take a vector of elements and "reduce" it to a scalar

@@ -552,7 +552,7 @@ init_optimization_passes (void)
 	{
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
-	  NEXT_PASS (pass_checkpoint_gtm);
+	  /* NEXT_PASS (pass_checkpoint_gtm); */
 	  NEXT_PASS (pass_early_inline);
 	  NEXT_PASS (pass_rename_ssa_copies);
 	  NEXT_PASS (pass_ccp);

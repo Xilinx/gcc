@@ -28,7 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 DEFGSSTRUCT(GSS_BASE, "base")
 DEFGSSTRUCT(GSS_WITH_OPS, "with_ops")
 DEFGSSTRUCT(GSS_WITH_MEM_OPS, "with_mem_ops")
-DEFGSSTRUCT(GSS_OMP, "omp")
+DEFGSSTRUCT(GSS_SEQ, "seq")
 DEFGSSTRUCT(GSS_BIND, "bind")
 DEFGSSTRUCT(GSS_CATCH, "catch")
 DEFGSSTRUCT(GSS_EH_FILTER, "eh_filter")
