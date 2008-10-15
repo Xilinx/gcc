@@ -913,7 +913,8 @@ static struct c_expr c_parser_postfix_expression_after_paren_type (c_parser *,
 								   struct c_type_name *);
 static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								struct c_expr);
-static tree c_parser_gtm_atomic (c_parser *);
+static tree c_parser_tm_atomic (c_parser *);
+static tree c_parser_tm_abort (c_parser *);
 static struct c_expr c_parser_expression (c_parser *);
 static struct c_expr c_parser_expression_conv (c_parser *);
 static tree c_parser_expr_list (c_parser *, bool);
@@ -3714,11 +3715,6 @@ c_parser_statement_after_labels (c_parser *parser)
 	  c_parser_consume_token (parser);
 	  stmt = c_finish_bc_stmt (&c_break_label, true);
 	  goto expect_semicolon;
-	case RID_GTM_ABORT:
-	  c_parser_consume_token (parser);
-	  stmt = c_finish_gtm_abort ();
-	  goto expect_semicolon;
-	  break;
 	case RID_RETURN:
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_SEMICOLON))
@@ -3735,6 +3731,12 @@ c_parser_statement_after_labels (c_parser *parser)
 	case RID_ASM:
 	  stmt = c_parser_asm_statement (parser);
 	  break;
+	case RID_TM_ATOMIC:
+	  stmt = c_parser_tm_atomic (parser);
+	  break;
+	case RID_TM_ABORT:
+	  stmt = c_parser_tm_abort (parser);
+	  goto expect_semicolon;
 	case RID_THROW:
 	  gcc_assert (c_dialect_objc ());
 	  c_parser_consume_token (parser);
@@ -8164,9 +8166,6 @@ c_parser_omp_construct (c_parser *parser)
     case PRAGMA_OMP_TASK:
       stmt = c_parser_omp_task (parser);
       break;
-    case PRAGMA_GTM_ATOMIC:
-      stmt = c_parser_gtm_atomic (parser);
-      break;
     default:
       gcc_unreachable ();
     }
@@ -8222,28 +8221,42 @@ c_parser_omp_threadprivate (c_parser *parser)
   c_parser_skip_to_pragma_eol (parser);
 }
 
-/*
-   GTM attempt to intigrate the pragma tm atomic into the front end
+/* Parse a __tm_atomic statement (GCC Extension).
 
-   structured-block:
-     statements
+   tm-atomic-statement:
+     __tm_atomic statement
 */
 
 static tree
-c_parser_gtm_atomic (c_parser *parser)
+c_parser_tm_atomic (c_parser *parser)
 {
-  tree stmt = NULL;
   tree block;
 
-  c_parser_skip_to_pragma_eol (parser);
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ATOMIC));
+  c_parser_consume_token (parser);
 
-  block = c_begin_gtm_txn ();
+  block = c_begin_tm_atomic ();
   c_parser_statement (parser);
-  stmt = c_finish_gtm_txn (block);
-
-  return stmt;
+  return c_finish_tm_atomic (block);
 }
 
+/* Parse a __tm_abort statement (GCC Extension).
+
+   tm-atomic-statement:
+     __tm_atomic;
+*/
+
+static tree
+c_parser_tm_abort (c_parser *parser)
+{
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ABORT));
+  c_parser_consume_token (parser);
+
+  /* ??? Verify that __tm_abort is contained within the
+     lexical scope of a __tm_atomic.  */
+
+  return build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 0);
+}
 
 /* Parse a single source file.  */
 

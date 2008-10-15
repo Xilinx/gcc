@@ -1,5 +1,46 @@
 2008-10-15  Richard Henderson  <rth@redhat.com>
 
+	* builtin-attrs.def (ATTR_RETURNS_TWICE): New.
+	(ATTR_RETURNSTWICE_NOTHROW_LIST): New.
+	* builtin-types.def: Remove many TM special types.
+	* c-common.c (struct c_common_resword): Add __tm_atomic.
+	* c-common.h (RID_TM_ATOMIC): New.
+	* c-parser.c (c_parser_tm_abort): New.
+	(c_parser_omp_construct): Remove PRAGMA_GTM_ATOMIC.
+	* c-pragma.c (handle_pragma_optimize): Remove tm atomic pragma.
+	* c-pragma.h (PRAGMA_GTM_ATOMIC): Remove.
+	(enum pragma_gtm_clause): Remove.
+	(c_finish_tm_abort): Remove.
+	(prepare_tm_clone): Match Intel's transaction suffix.  Remove	
+	code to add an explicit handle.
+	* defaults.h (TINYSTM_VERSION_0_9_5, GTM_EXPL_HANDLE,
+	GTM_IMPL_HANDLE, TANGER): Remove.
+	* gimple-low.c (lower_tm_atomic): Add label after the tm_atomic.
+	(lower_stmt): Remove GIMPLE_GTM_RETURN, GIMPLE_GTM_ABORT.
+	* gimple.c (gss_for_code): Likewise.
+	(gimple_size): Add GSS_TM_ATOMIC.
+	(gimple_build_tm_atomic): Add label.
+	* gimple-pretty-print.c (dump_gimple_gtm_other): Remove.
+	* gimple.def (GIMPLE_GTM_RETURN, GIMPLE_GTM_ABORT): Remove.
+	* gimple.h (struct gimple_statement_tm_atomic): New.
+	(gimple_tm_atomic_label, gimple_tm_atomic_set_label): New.
+	(is_gimple_gtm): Remove.
+	* gimplify.c (gimplify_tm_atomic): Wrap the body in EH stuff.
+	* gsstruct.def (GSS_TM_ATOMIC): New.
+	* gtm-builtins.def: Remove conditional code, simplify interface.
+	* gtm-low.c (root_gtm_region, dump_gtm_region, debug_gtm_region,
+	debug_all_gtm_regions, new_gtm_region, free_gtm_region_1,
+	free_gtm_regions, build_gtm_regions_1, build_gtm_regions,
+	remove_gtm_stmts): Remove.
+	* tree-cfg.c (make_edges) [GIMPLE_TM_ATOMIC]: Make the edge to
+	the out label.
+	* tree-flow.h (struct gtm_region): Remove.
+	* tree.def (GTM_ABORT): Remove.
+
+	* all files: s/GTM/TM/, s/gtm/tm/.
+
+2008-10-15  Richard Henderson  <rth@redhat.com>
+
 	* Makefile.in (gtm-low.o): Don't depend on gtm-defines.h.
 	* builtin-types.def: Don't include it.
 	* c-common.c (handle_gtm_unknown_attribute): Stub out

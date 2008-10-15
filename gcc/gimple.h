@@ -391,7 +391,7 @@ struct gimple_statement_with_memory_ops GTY(())
 };
 
 
-/* Statements with embedded blocks (#pragma omp, gtm).  */
+/* Statements with embedded blocks (#pragma omp, __tm_atomic).  */
 
 struct gimple_statement_seq GTY(())
 {
@@ -733,6 +733,17 @@ struct gimple_statement_omp_atomic_store GTY(())
   tree val;
 };
 
+/* GIMPLE_TM_ATOMIC.  */
+
+struct gimple_statement_tm_atomic GTY(())
+{
+  /* [ WORD 1-5 ]  */
+  struct gimple_statement_seq gsbase;
+
+  /* [ WORD 6 ] */
+  tree label;
+};
+
 enum gimple_statement_structure_enum {
 #define DEFGSSTRUCT(SYM, STRING)	SYM,
 #include "gsstruct.def"
@@ -767,6 +778,7 @@ union gimple_statement_d GTY ((desc ("gimple_statement_structure (&%h)")))
   struct gimple_statement_omp_continue GTY ((tag ("GSS_OMP_CONTINUE"))) gimple_omp_continue;
   struct gimple_statement_omp_atomic_load GTY ((tag ("GSS_OMP_ATOMIC_LOAD"))) gimple_omp_atomic_load;
   struct gimple_statement_omp_atomic_store GTY ((tag ("GSS_OMP_ATOMIC_STORE"))) gimple_omp_atomic_store;
+  struct gimple_statement_tm_atomic GTY((tag ("GSS_TM_ATOMIC"))) gimple_tm_atomic;
 };
 
 /* In gimple.c.  */
@@ -816,7 +828,7 @@ gimple gimple_build_omp_single (gimple_seq, tree);
 gimple gimple_build_cdt (tree, tree);
 gimple gimple_build_omp_atomic_load (tree, tree);
 gimple gimple_build_omp_atomic_store (tree);
-gimple gimple_build_gtm_txn (gimple_seq);
+gimple gimple_build_tm_atomic (gimple_seq, tree);
 gimple gimple_build_predict (enum br_predictor, enum prediction);
 enum gimple_statement_structure_enum gimple_statement_structure (gimple);
 enum gimple_statement_structure_enum gss_for_assign (enum tree_code);
@@ -4113,6 +4125,23 @@ gimple_omp_continue_set_control_use (gimple g, tree use)
   g->gimple_omp_continue.control_use = use;
 }
 
+/* Return the label associated with a GIMPLE_TM_ATOMIC.  */
+
+static inline tree
+gimple_tm_atomic_label (const_gimple gs)
+{
+  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  return gs->gimple_tm_atomic.label;
+}
+
+/* Set the label associated with a GIMPLE_TM_ATOMIC.  */
+
+static inline void
+gimple_tm_atomic_set_label (gimple gs, tree label)
+{
+  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  gs->gimple_tm_atomic.label = label;
+}
 
 /* Return a pointer to the return value for GIMPLE_RETURN GS.  */
 
@@ -4168,15 +4197,6 @@ is_gimple_omp (const_gimple stmt)
 	  || gimple_code (stmt) == GIMPLE_OMP_ATOMIC_LOAD
 	  || gimple_code (stmt) == GIMPLE_OMP_ATOMIC_STORE
 	  || gimple_code (stmt) == GIMPLE_OMP_CONTINUE);
-}
-
-/* Returns true when the gimple statement STMT is a GTM type.  */
-
-static inline bool
-is_gimple_gtm (const_gimple stmt)
-{
-  return (gimple_code (stmt) == GIMPLE_GTM_TXN
-	  || gimple_code (stmt) == GIMPLE_GTM_RETURN);
 }
 
 /* Returns TRUE if statement G is a GIMPLE_NOP.  */

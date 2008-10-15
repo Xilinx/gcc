@@ -47,180 +47,6 @@
 #include "tree-flow.h"
 
 
-struct gtm_region *root_gtm_region;
-
-/* Debugging dumps for transactional regions.  */
-void dump_gtm_region (FILE *, struct gtm_region *, int);
-void debug_gtm_region (struct gtm_region *);
-void debug_all_gtm_regions (void);
-
-/* Dump the gtm region tree rooted at REGION.  */
-
-void
-dump_gtm_region (FILE *file, struct gtm_region *region, int indent)
-{
-  fprintf (file, "%*sbb %d: GTM_TXN\n", indent, "", region->entry->index);
-
-  if (region->inner)
-    dump_gtm_region (file, region->inner, indent + 4);
-
-  if (region->exit)
-    fprintf (file, "%*sbb %d: GTM_RETURN\n", indent, "",
-	     region->exit->index);
-
-  if (region->next)
-    dump_gtm_region (file, region->next, indent);
-}
-
-void
-debug_gtm_region (struct gtm_region *region)
-{
-  dump_gtm_region (stderr, region, 0);
-}
-
-void
-debug_all_gtm_regions (void)
-{
-  dump_gtm_region (stderr, root_gtm_region, 0);
-}
-
-/* Create a new gtm region starting at STMT inside region PARENT.  */
-
-struct gtm_region *
-new_gtm_region (basic_block bb, struct gtm_region *parent)
-{
-  struct gtm_region *region = XCNEW (struct gtm_region);
-
-  region->outer = parent;
-  region->entry = bb;
-
-  if (parent)
-    {
-      /* This is a nested region.  Add it to the list of inner
-	 regions in PARENT.  */
-      region->next = parent->inner;
-      parent->inner = region;
-    }
-  else
-    {
-      /* This is a toplevel region.  Add it to the list of toplevel
-	 regions in ROOT_GTM_REGION.  */
-      region->next = root_gtm_region;
-      root_gtm_region = region;
-    }
-
-  return region;
-}
-
-/* Release the memory associated with the region tree rooted at REGION.  */
-
-static void
-free_gtm_region_1 (struct gtm_region *region)
-{
-  struct gtm_region *i, *n;
-
-  for (i = region->inner; i ; i = n)
-    {
-      n = i->next;
-      free_gtm_region_1 (i);
-    }
-
-  free (region);
-}
-
-/* Release the memory for the entire gtm region tree.  */
-void
-free_gtm_regions (void)
-{
-  struct gtm_region *r, *n;
-
-  for (r = root_gtm_region; r ; r = n)
-    {
-      n = r->next;
-      free_gtm_region_1 (r);
-    }
-
-  root_gtm_region = NULL;
-}
-
-
-/* Helper for build_gtm_regions.  Scan the dominator tree starting at
-   block BB.  PARENT is the region that contains BB.  If SINGLE_TREE is
-   true, the function ends once a single tree is built.  */
-
-static void
-build_gtm_regions_1 (basic_block bb, struct gtm_region *parent,
-		     bool single_tree)
-{
-  gimple_stmt_iterator gsi;
-  gimple stmt;
-  basic_block son;
-  struct gtm_region *region;
-
-  gsi = gsi_last_bb (bb);
-  if (!gsi_end_p (gsi))
-    {
-      stmt = gsi_stmt (gsi);
-      switch (gimple_code (stmt))
-	{
-	case GIMPLE_GTM_TXN:
-	  region = new_gtm_region (bb, parent);
-	  break;
-
-	case GIMPLE_GTM_RETURN:
-	  /* STMT is the return point out of region PARENT.  Mark it
-	     as the exit point and make PARENT the immediately enclosing
-	     region.  */
-	  gcc_assert (parent);
-	  region = parent;
-	  region->exit = bb;
-	  parent = parent->outer;
-	  break;
-
-	default:
-	  break;
-	}
-    }
-
-  if (single_tree && !parent)
-    return;
-
-  for (son = first_dom_son (CDI_DOMINATORS, bb);
-       son;
-       son = next_dom_son (CDI_DOMINATORS, son))
-    build_gtm_regions_1 (son, parent, single_tree);
-}
-
-/* Scan the CFG and build a tree of GTM regions.
-   Return the root of the GTM region tree. */
-
-static void
-build_gtm_regions (void)
-{
-  gcc_assert (root_gtm_region == NULL);
-  build_gtm_regions_1 (ENTRY_BLOCK_PTR, NULL, false);
-}
-
-/* Remove entry and exit marker from region. */
-
-static void ATTRIBUTE_UNUSED
-remove_gtm_stmts (struct gtm_region *region)
-{
-  gimple_stmt_iterator gsi;
-
-  gcc_assert (region->entry);
-  gcc_assert (region->exit);
-
-  gsi = gsi_last_bb (region->entry);
-  gcc_assert (gimple_code (gsi_stmt (gsi)) == GIMPLE_GTM_TXN);
-  gsi_remove (&gsi, true);
-
-  gsi = gsi_last_bb (region->exit);
-  gcc_assert (gimple_code (gsi_stmt (gsi)) == GIMPLE_GTM_RETURN);
-  gsi_remove (&gsi, true);
-}
-
-
 /* Determine whether X has to be instrumented using a read
    or write barrier.  */
 
@@ -241,7 +67,7 @@ requires_barrier (tree x)
       gcc_unreachable ();
 
     case VAR_DECL:
-      if (DECL_IS_GTM_PURE_VAR (x))
+      if (DECL_IS_TM_PURE_VAR (x))
 	return false;
       if (is_global_var (x))
 	return !TREE_READONLY (x);
@@ -263,10 +89,10 @@ maybe_transactify_assign (gimple stmt)
   if (load_p)
     {
       gcc_assert (!store_p);
-      gimple_assign_set_rhs_code (stmt, GTM_LOAD);
+      gimple_assign_set_rhs_code (stmt, TM_LOAD);
     }
   else if (store_p)
-    gimple_assign_set_rhs_code (stmt, GTM_STORE);
+    gimple_assign_set_rhs_code (stmt, TM_STORE);
 }
 
 /* Helper function that replaces call expressions inside
@@ -291,7 +117,7 @@ maybe_transactify_call (gimple stmt)
       warning (0, "Indirect call potentially breaks isolation of transactions");
       return;
     }
-  if (DECL_IS_GTM_PURE (fn_decl))
+  if (DECL_IS_TM_PURE (fn_decl))
     return;
 
   orig_node = node = cgraph_node (fn_decl);
@@ -300,11 +126,11 @@ maybe_transactify_call (gimple stmt)
   while (node && node->next_clone)
     {
       node = node->next_clone;
-      if (DECL_IS_GTM_CLONE (node->decl))
+      if (DECL_IS_TM_CLONE (node->decl))
 	break;
     }
 
-  if (DECL_IS_GTM_CLONE (node->decl))
+  if (DECL_IS_TM_CLONE (node->decl))
     {
       struct cgraph_edge *callers = orig_node->callers;
 
@@ -361,65 +187,42 @@ transactify_stmt (gimple_stmt_iterator *gsi)
     }
 }
 
-/* Main entry point for expanding GTM-GIMPLE into runtime calls to the STM. */
+/* Main entry point for expanding TM-GIMPLE into runtime calls to the STM. */
 
 static unsigned int
-execute_expand_gtm (void)
+execute_expand_tm (void)
 {
-  /* In case we have to instrument a transactional clone. */
-  if (DECL_IS_GTM_CLONE (current_function_decl))
-    {
-      if (!DECL_IS_GTM_PURE (current_function_decl))
-	/* annotate_gtm_function_body () */ ;
-      else
-	{
-#ifdef ENABLE_CHECKING
-	  /* Function with tm_pure attribute specified.  The front-end
-	     should have generated the appropriate errors and dropped
-	     the transaction trees on the floor.  */
-	  calculate_dominance_info (CDI_DOMINATORS);
-	  build_gtm_regions ();
-	  gcc_assert (root_gtm_region == NULL);
-	  free_dominance_info (CDI_DOMINATORS);
-#endif
-	}
-      return 0;
-    }
+  bool in_transaction = false;
 
-  calculate_dominance_info (CDI_DOMINATORS);
-  build_gtm_regions ();
-  if (root_gtm_region)
-    {
-      if (dump_file)
-	{
-	  fprintf (dump_file, "\nGTM region tree\n\n");
-	  dump_gtm_region (dump_file, root_gtm_region, 0);
-	  fprintf (dump_file, "\n");
-	}
+  /* Functions that are marked TM_PURE don't need annotation by definition.  */
+  if (DECL_IS_TM_PURE (current_function_decl))
+    return 0;
 
-      /* expand_gtm (root_gtm_region); */
-      cleanup_tree_cfg ();
-    }
+  /* When instrumenting a transactional clone, we begin the function inside
+     a transaction.  */
+  if (DECL_IS_TM_CLONE (current_function_decl))
+    in_transaction = true;
 
-  free_dominance_info (CDI_DOMINATORS);
+  /* Walk dominator tree expanding blocks.  Seed with in_transaction.  */
+
   return 0;
 }
 
-/* GTM expansion -- the default pass, run before creation of SSA form.  */
+/* TM expansion -- the default pass, run before creation of SSA form.  */
 
 static bool
-gate_expand_gtm (void)
+gate_tm (void)
 {
-  return flag_gtm;
+  return flag_tm;
 }
 
-struct gimple_opt_pass pass_expand_gtm =
+struct gimple_opt_pass pass_expand_tm =
 {
  {
   GIMPLE_PASS,
-  "gtmexp",				/* name */
-  gate_expand_gtm,			/* gate */
-  execute_expand_gtm,			/* execute */
+  "tmexp",				/* name */
+  gate_tm,				/* gate */
+  execute_expand_tm,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -440,7 +243,7 @@ struct gimple_opt_pass pass_expand_gtm =
    live-in variables to the transaction. */
 
 static void
-checkpoint_live_in_variables (struct gtm_region *region,
+checkpoint_live_in_variables (struct tm_region *region,
 			      gimple_stmt_iterator *gsi_recover,
 			      basic_block begin_bb)
 {
@@ -566,7 +369,7 @@ checkpoint_live_in_variables (struct gtm_region *region,
 
 /* Implements the checkpointing of transactions. */
 static void
-checkpoint_gtm_txn (struct gtm_region *region)
+checkpoint_tm_txn (struct tm_region *region)
 {
   basic_block entry_bb = bb_for_stmt (region->setjmp_stmt);
 
@@ -582,17 +385,13 @@ checkpoint_gtm_txn (struct gtm_region *region)
   gcc_assert (TREE_CODE (bsi_stmt (bsi_recover)) == LABEL_EXPR);
 
   bsi_next (&bsi_recover);
-  gcc_assert (TREE_CODE (bsi_stmt (bsi_recover)) == GTM_RETURN);
 
   checkpoint_live_in_variables (region, &bsi_recover, begin_bb);
-  /* Remove the previously set GTM_RETURN markers
-     from the recover basic block. */
-  bsi_remove (&bsi_recover, true);
 }
 
 /* Walk the region tree and start checkpointing. */
 static void
-checkpoint_gtm (struct gtm_region *region)
+checkpoint_tm (struct tm_region *region)
 {
   while (region)
     {
@@ -602,11 +401,10 @@ checkpoint_gtm (struct gtm_region *region)
 	 Nesting of transactions not implemented correctly.*/
       if (region->inner)
 	{
-	  checkpoint_gtm_txn (region->inner);
+	  checkpoint_tm_txn (region->inner);
 	}
-      gcc_assert ((region->type) == GTM_TXN);
 
-      checkpoint_gtm_txn (region);
+      checkpoint_tm_txn (region);
 
       region = region->next;
     }
@@ -614,46 +412,39 @@ checkpoint_gtm (struct gtm_region *region)
 
 /* Entry point to the checkpointing. */
 void
-execute_checkpoint_gtm (void)
+execute_checkpoint_tm (void)
 {
-  /* Regions are built during GTM expansion pass. */
-  if (!root_gtm_region)
+  /* Regions are built during TM expansion pass. */
+  if (!root_tm_region)
     return;
 
   /* Checkpointing is done here. */
-  checkpoint_gtm (root_gtm_region);
+  checkpoint_tm (root_tm_region);
 
   if (dump_file)
     {
-      fprintf (dump_file, "\nGTM region tree after checkpointing\n\n");
-      dump_gtm_region (dump_file, root_gtm_region, 0);
+      fprintf (dump_file, "\nTM region tree after checkpointing\n\n");
+      dump_tm_region (dump_file, root_tm_region, 0);
       fprintf (dump_file, "\n");
     }
 
   free_dominance_info (CDI_DOMINATORS);
   cleanup_tree_cfg ();
-  free_gtm_regions ();
+  free_tm_regions ();
 
   return;
 }
 
-/* Guarding the checkpointing for GTM. */
-static bool
-gate_checkpoint_gtm (void)
+struct tree_opt_pass pass_checkpoint_tm =
 {
-  return flag_gtm;
-}
-
-struct tree_opt_pass pass_checkpoint_gtm =
-{
-  "gtmcheckpoint",			/* name */
-  gate_checkpoint_gtm,		/* gate */
-  execute_checkpoint_gtm,		/* execute */
-  NULL,				/* sub */
-  NULL,				/* next */
+  "tmcheckpoint",			/* name */
+  gate_tm,				/* gate */
+  execute_checkpoint_tm,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
   0,					/* static_pass_number */
   0,					/* tv_id */
-  PROP_ssa | PROP_cfg,		/* properties_required */
+  PROP_ssa | PROP_cfg,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

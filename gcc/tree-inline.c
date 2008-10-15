@@ -2972,14 +2972,9 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
       return (weights->omp_cost
               + estimate_num_insns_seq (gimple_seq_body (stmt), weights));
 
-    /* These GTM directives are cheap enough.  */
-    case GIMPLE_GTM_RETURN:
-    case GIMPLE_GTM_ABORT:
-      return 0;
-
     /* The entire transaction, however, is expensive.  */
-    case GIMPLE_GTM_TXN:
-      return (weights->gtm_txn_cost
+    case GIMPLE_TM_ATOMIC:
+      return (weights->tm_cost
 	      + estimate_num_insns_seq (gimple_seq_body (stmt), weights));
 
     default:
@@ -3021,13 +3016,13 @@ init_inline_once (void)
   eni_inlining_weights.target_builtin_call_cost = 1;
   eni_inlining_weights.div_mod_cost = 10;
   eni_inlining_weights.omp_cost = 40;
-  eni_inlining_weights.gtm_txn_cost = 40;
+  eni_inlining_weights.tm_cost = 40;
 
   eni_size_weights.call_cost = 1;
   eni_size_weights.target_builtin_call_cost = 1;
   eni_size_weights.div_mod_cost = 1;
   eni_size_weights.omp_cost = 40;
-  eni_size_weights.gtm_txn_cost = 40;
+  eni_size_weights.tm_cost = 40;
 
   /* Estimating time for call is difficult, since we have no idea what the
      called function does.  In the current uses of eni_time_weights,
@@ -3037,7 +3032,7 @@ init_inline_once (void)
   eni_time_weights.target_builtin_call_cost = 10;
   eni_time_weights.div_mod_cost = 10;
   eni_time_weights.omp_cost = 40;
-  eni_time_weights.gtm_txn_cost = 40;
+  eni_time_weights.tm_cost = 40;
 }
 
 /* Estimate the number of instructions in a gimple_seq. */

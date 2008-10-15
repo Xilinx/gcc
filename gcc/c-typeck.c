@@ -8871,7 +8871,7 @@ c_finish_omp_clauses (tree clauses)
 /* Similar to c_begin_omp_parallel. */
 
 tree
-c_begin_gtm_txn (void)
+c_begin_tm_atomic (void)
 {
   tree block;
 
@@ -8884,28 +8884,16 @@ c_begin_gtm_txn (void)
 /* Create a transaction node.  */
 
 tree
-c_finish_gtm_txn (tree block)
+c_finish_tm_atomic (tree block)
 {
   tree stmt;
 
   block = c_end_compound_stmt (block, true);
 
-  stmt = make_node (GTM_TXN);
+  stmt = make_node (TM_ATOMIC);
   TREE_TYPE (stmt) = void_type_node;
-  GTM_TXN_BODY (stmt) = block;
+  TM_ATOMIC_BODY (stmt) = block;
 
-  return add_stmt (stmt);
-}
-
-/* Create a GTM_ABORT node and add it. */
-
-tree 
-c_finish_gtm_abort (void) 
-{
-  tree stmt;
-
-  stmt = make_node (GTM_ABORT);
-  
   return add_stmt (stmt);
 }
 

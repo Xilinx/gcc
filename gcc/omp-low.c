@@ -817,7 +817,7 @@ copy_var_decl (tree var, tree name, tree type)
   DECL_IGNORED_P (copy) = DECL_IGNORED_P (var);
   DECL_CONTEXT (copy) = DECL_CONTEXT (var);
   DECL_SOURCE_LOCATION (copy) = DECL_SOURCE_LOCATION (var);
-  DECL_IS_GTM_PURE_VAR (copy) = DECL_IS_GTM_PURE_VAR (var);  
+  DECL_IS_TM_PURE_VAR (copy) = DECL_IS_TM_PURE_VAR (var);  
   TREE_USED (copy) = 1;
   DECL_SEEN_IN_BIND_EXPR_P (copy) = 1;
 

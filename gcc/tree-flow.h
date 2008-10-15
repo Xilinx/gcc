@@ -674,35 +674,6 @@ void omp_expand_local (basic_block);
 extern tree find_omp_clause (tree, enum omp_clause_code);
 tree copy_var_decl (tree, tree, tree);
 
-
-/* GTM region information.  */
-
-struct gtm_region
-{
-  /* The enclosing region.  */
-  struct gtm_region *outer;
-
-  /* First child region.  */
-  struct gtm_region *inner;
-
-  /* Next peer region.  */
-  struct gtm_region *next;
-
-  /* Block containing the GTM directive as its last stmt.  */
-  basic_block entry;
-
-  /* Block containing the GTM_RETURN as its last stmt.  */
-  basic_block exit;
-
-  /* Since the blocks change this is the stmt containing the setjmp
-     after expansion.  */
-  gimple setjmp_stmt;
-};
-
-extern struct gtm_region *root_gtm_region;
-extern struct gtm_region *new_gtm_region (basic_block, struct gtm_region *);
-extern void free_gtm_regions (void);
-
 /*---------------------------------------------------------------------------
 			      Function prototypes
 ---------------------------------------------------------------------------*/

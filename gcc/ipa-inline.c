@@ -1535,7 +1535,7 @@ cgraph_early_inlining (void)
 static bool
 cgraph_gate_early_inlining (void)
 {
-  return flag_early_inlining && !DECL_IS_GTM_CLONE (current_function_decl);
+  return flag_early_inlining && !DECL_IS_TM_CLONE (current_function_decl);
 }
 
 struct gimple_opt_pass pass_early_inline = 

@@ -126,8 +126,8 @@ typedef struct eni_weights_d
   /* Cost for omp construct.  */
   unsigned omp_cost;
 
-  /* Cost for gtm transaction.  */
-  unsigned gtm_txn_cost;
+  /* Cost for tm transaction.  */
+  unsigned tm_cost;
 } eni_weights;
 
 /* Weights that estimate_num_insns uses for heuristics in inlining.  */

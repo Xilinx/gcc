@@ -944,26 +944,4 @@ along with GCC; see the file COPYING3.  If not see
   ((TYPE) ? LOCAL_ALIGNMENT ((TYPE), (ALIGN)) : (ALIGN))
 #endif
 
-/* Defines to allow for the sharing of code (e.g. builtin types) among
-   different STM implementations, until we settle on a system ABI.
-   In particular the explicit passing of transaction handles and
-   the implicit handling of transaction handles are distinguished. */
-
-#define TINYSTM_VERSION_0_9_5
-
-#ifdef TINYSTM_VERSION_0_9_0b1 
-#define GTM_EXPL_HANDLE
-#undef GTM_IMPL_HANDLE
-#endif
-
-#ifdef TANGER
-#define GTM_EXPL_HANDLE
-#undef GTM_IMPL_HANDLE
-#endif
-
-#ifdef TINYSTM_VERSION_0_9_5 
-#define GTM_IMPL_HANDLE
-#undef GTM_EXPL_HANDLE
-#endif
-
 #endif  /* ! GCC_DEFAULTS_H */

@@ -236,21 +236,26 @@ lower_sequence (gimple_seq seq, struct lower_data *data)
 }
 
 
-/* Lower the GTM directive statement pointed by TSI.  DATA is
+/* Lower the __tm_atomic statement pointed by TSI.  DATA is
    passed through the recursion.  */
 
 static void
-lower_gtm_directive (gimple_stmt_iterator *gsi, struct lower_data *data)
+lower_tm_atomic (gimple_stmt_iterator *gsi, struct lower_data *data)
 {
   bool old_in_transaction = data->in_transaction;
   gimple stmt = gsi_stmt (*gsi);
+  tree label = create_artificial_label ();
 
   data->in_transaction = true;
 
   lower_sequence (gimple_seq_body (stmt), data);
+
   gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
   gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
+  gsi_insert_before (gsi, gimple_build_label (label), GSI_SAME_STMT);
+
   gimple_seq_set_body (stmt, NULL);
+  gimple_tm_atomic_set_label (stmt, label);
   gsi_remove (gsi, false);
 
   data->in_transaction = old_in_transaction;
@@ -330,8 +335,6 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
     case GIMPLE_OMP_ATOMIC_LOAD:
     case GIMPLE_OMP_ATOMIC_STORE:
     case GIMPLE_OMP_CONTINUE:
-    case GIMPLE_GTM_RETURN:
-    case GIMPLE_GTM_ABORT:
       break;
 
     case GIMPLE_CALL:
@@ -354,8 +357,8 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
       lower_omp_directive (gsi, data);
       return;
 
-    case GIMPLE_GTM_TXN:
-      lower_gtm_directive (gsi, data);
+    case GIMPLE_TM_ATOMIC:
+      lower_tm_atomic (gsi, data);
       return;
 
     default:
@@ -818,7 +821,7 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
 
 
 /* Record the variables in VARS into function FN.  If IN_TRANSACTION is
-   true, mark them DECL_IS_GTM_PURE_VAR.  */
+   true, mark them DECL_IS_TM_PURE_VAR.  */
 
 static void
 record_vars_into_tm (tree vars, tree fn, bool in_transaction)
@@ -845,7 +848,7 @@ record_vars_into_tm (tree vars, tree fn, bool in_transaction)
 
       /* If we're inside a transaction, mark it for NOT checkpointing.  */
       if (in_transaction)
-	DECL_IS_GTM_PURE_VAR (var) = 1;
+	DECL_IS_TM_PURE_VAR (var) = 1;
     }
 
   if (fn != current_function_decl)

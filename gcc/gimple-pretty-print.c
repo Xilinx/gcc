@@ -1007,10 +1007,10 @@ dump_gimple_omp_return (pretty_printer *buffer, gimple gs, int spc, int flags)
     }
 }
 
-/* Dump a GIMPLE_GTM_TXN tuple on the pretty_printer BUFFER.  */
+/* Dump a GIMPLE_TM_ATOMIC tuple on the pretty_printer BUFFER.  */
 
 static void
-dump_gimple_gtm_txn (pretty_printer *buffer, gimple gs, int spc, int flags)
+dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
@@ -1028,22 +1028,6 @@ dump_gimple_gtm_txn (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  pp_character (buffer, '}');
 	}
     }
-}
-
-/* Dump a GIMPLE_GTM_RETURN or GIMPLE_GTM_ABORT tuple on the
-   pretty_printer BUFFER.  */
-
-static void
-dump_gimple_gtm_other (pretty_printer *buffer, gimple gs, int spc, int flags)
-{
-  if (flags & TDF_RAW)
-    {
-      dump_gimple_fmt (buffer, spc, flags, "%G", gs);
-    }
-  else if (gimple_code (gs) == GIMPLE_GTM_RETURN)
-    pp_string (buffer, "__tm_return");
-  else if (gimple_code (gs) == GIMPLE_GTM_ABORT)
-    pp_string (buffer, "__tm_abort");
 }
 
 /* Dump a GIMPLE_ASM tuple on the pretty_printer BUFFER, SPC spaces of
@@ -1622,13 +1606,8 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
       pp_string (buffer, " predictor.");
       break;
 
-    case GIMPLE_GTM_TXN:
-      dump_gimple_gtm_txn (buffer, gs, spc, flags);
-      break;
-
-    case GIMPLE_GTM_RETURN:
-    case GIMPLE_GTM_ABORT:
-      dump_gimple_gtm_other (buffer, gs, spc, flags);
+    case GIMPLE_TM_ATOMIC:
+      dump_gimple_tm_atomic (buffer, gs, spc, flags);
       break;
 
     default:

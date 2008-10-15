@@ -949,10 +949,6 @@ handle_pragma_optimize (cpp_reader *ARG_UNUSED(dummy))
       return;
     }
   
-  if (flag_gtm)
-    cpp_register_deferred_pragma (parse_in, "tm", "atomic",
-                                  PRAGMA_GTM_ATOMIC, true, true);
-
   token = pragma_lex (&x);
   if (token == CPP_OPEN_PAREN)
     {

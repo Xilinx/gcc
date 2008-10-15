@@ -6115,26 +6115,42 @@ gimplify_omp_atomic (tree *expr_p, gimple_seq *pre_p)
    return GS_ALL_DONE;
 }
 
-/* Gimplify the contents of a GTM_TXN statement.  This involves
-   gimplification of the body.  */
+/* Gimplify the contents of a TM_ATOMIC statement.  This involves
+   gimplification of the body, and adding some EH bits.  */
 
 static enum gimplify_status
-gimplify_gtm_txn (tree *expr_p, gimple_seq *pre_p)
+gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
 {
   tree expr = *expr_p;
   gimple g;
-  gimple_seq body = NULL;
+  gimple_seq body = NULL, cleanup = NULL;
   struct gimplify_ctx gctx;
 
   push_gimplify_context (&gctx);
 
-  g = gimplify_and_return_first (GTM_TXN_BODY (expr), &body);
+  g = gimplify_and_return_first (TM_ATOMIC_BODY (expr), &body);
   if (gimple_code (g) == GIMPLE_BIND)
     pop_gimplify_context (g);
   else
     pop_gimplify_context (NULL);
 
-  g = gimple_build_gtm_txn (body);
+  /* We need to add the EH support for committing the transaction
+     before pass_lower_eh runs, which is before pass_expand_tm.
+     Doing it now is easy enough.  We need to build
+	try {
+	  BODY
+	} finally {
+	  __tm_commit ();
+	}
+  */
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
+  gimplify_seq_add_stmt (&cleanup, g);
+  g = gimple_build_try (body, cleanup, GIMPLE_TRY_FINALLY);
+
+  body = NULL;
+  gimplify_seq_add_stmt (&body, g);
+  g = gimple_build_tm_atomic (body, NULL);
+
   gimplify_seq_add_stmt (pre_p, g);
   *expr_p = NULL_TREE;
 
@@ -6793,8 +6809,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
 
-        case GTM_TXN:
-          ret = gimplify_gtm_txn (expr_p, pre_p);
+        case TM_ATOMIC:
+          ret = gimplify_tm_atomic (expr_p, pre_p);
           break;
 
 	case POINTER_PLUS_EXPR:

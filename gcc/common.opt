@@ -568,8 +568,8 @@ Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
 
 fgnu-tm
-Common Report Var(flag_gtm)
-Enable support for GNU transactional memory Use together with -O1 
+Common Report Var(flag_tm)
+Enable support for GNU transactional memory
 
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization

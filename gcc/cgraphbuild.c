@@ -122,17 +122,17 @@ compute_call_stmt_bb_frequency (basic_block bb)
   return freq;
 }
 
-/* Eagerly clone functions so that GTM expansion can create
+/* Eagerly clone functions so that TM expansion can create
    and redirect calls to a transactional clone.  */
 
 static void
-prepare_gtm_clone (struct cgraph_node *node)
+prepare_tm_clone (struct cgraph_node *node)
 {
   struct cgraph_node *tm_node;
   tree decl, old_decl, id;
   struct function *saved_cfun;
 
-  if (!flag_gtm || flag_openmp)
+  if (!flag_tm || flag_openmp)
     return;
 
   /* No need for a TM clone of the main function */
@@ -150,14 +150,14 @@ prepare_gtm_clone (struct cgraph_node *node)
   /* Clone whole function tree and set TM marker bit. */
 
   /* Defer redirecting callers of the node to the
-     new versioned node to the gtm expansion pass.  */
+     new versioned node to the tm expansion pass.  */
   tm_node = cgraph_function_versioning (node, NULL, NULL, NULL); 
   if (tm_node == NULL)
     return;
 
   decl = tm_node->decl;
   node->next_clone = tm_node;
-  DECL_IS_GTM_CLONE (decl) = 1;
+  DECL_IS_TM_CLONE (decl) = 1;
   cgraph_mark_needed_node (tm_node);
 
   old_decl = current_function_decl;
@@ -170,33 +170,22 @@ prepare_gtm_clone (struct cgraph_node *node)
   {
     char *tm_name;
 
-    tm_name = concat (get_name (node->decl), ".Txn", NULL);
+#if !defined(NO_DOT_IN_LABEL) && !defined(NO_DOLLAR_IN_LABEL)
+# define TM_SUFFIX	".$TXN"
+#elif !defined(NO_DOT_IN_LABEL)
+# define TM_SUFFIX	".TXN"
+#elif !defined(NO_DOLLAR_IN_LABEL)
+# define TM_SUFFIX	"$TXN"
+#else
+# define TM_SUFFIX	"__TXN"
+#endif
+
+    tm_name = concat (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)),
+		      TM_SUFFIX, NULL);
     id = get_identifier (tm_name);
-    DECL_NAME (decl) = id;
     SET_DECL_ASSEMBLER_NAME (decl, id);
     free (tm_name);
   }
-
-#ifdef GTM_EXPL_HANDLE
-  /* Create parameter declaration for txn_handle and add
-     it to the parameter list */
-  {
-    tree arg, args_type, func_type, parm_decl;
-
-    args_type = TYPE_ARG_TYPES (TREE_TYPE (decl));
-    args_type = tree_cons (NULL_TREE, ptr_type_node, args_type);
-
-    func_type = build_function_type (TREE_TYPE (TREE_TYPE (decl)), args_type);
-    TREE_TYPE (decl) = func_type;
-
-    parm_decl = build_decl (PARM_DECL, get_identifier ("__txn_handle"),
-			    ptr_type_node);
-    DECL_ARG_TYPE (parm_decl) = ptr_type_node;
-    arg = DECL_ARGUMENTS (decl);
-    arg = chainon (arg, parm_decl);
-    DECL_ARGUMENTS (decl) = arg;
-  }
-#endif
 
   set_cfun (saved_cfun);
   current_function_decl = old_decl;
@@ -286,7 +275,7 @@ build_cgraph_edges (void)
 
   build_cgraph_edges_from_node (node);
   
-  prepare_gtm_clone (node);
+  prepare_tm_clone (node);
 
   return 0;
 }

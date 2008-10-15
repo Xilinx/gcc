@@ -466,7 +466,6 @@ make_edges (void)
 {
   basic_block bb;
   struct omp_region *cur_region = NULL;
-  struct gtm_region *cur_gtm_region = NULL;
 
   /* Create an edge from entry to the first block with executable
      statements in it.  */
@@ -613,14 +612,11 @@ make_edges (void)
 		}
 	      break;
 
-	    case GIMPLE_GTM_TXN:
-	      cur_gtm_region = new_gtm_region (bb, cur_gtm_region);
-	      fallthru = true;
-	      break;
-
-	    case GIMPLE_GTM_RETURN:
-	      cur_gtm_region->exit = bb;
-	      cur_gtm_region = cur_gtm_region->outer;
+	    case GIMPLE_TM_ATOMIC:
+	      /* ??? The edge from __tm_atomic to the out-label is only
+		 used when __tm_abort is present.  Detect that's not
+		 present and omit it.  */
+	      make_edge (bb, label_to_block (gimple_tm_atomic_label (last)), 0);
 	      fallthru = true;
 	      break;
 
@@ -638,9 +634,6 @@ make_edges (void)
 
   if (root_omp_region)
     free_omp_regions ();
-
-  if (root_gtm_region)
-    free_gtm_regions();
 
  /* Fold COND_EXPR_COND of each COND_EXPR.  */
   fold_cond_expr_cond ();
@@ -2585,8 +2578,8 @@ is_ctrl_altering_stmt (gimple t)
   if (is_gimple_omp (t))
     return true;
 
-  /* GTM directives alter control flow.  */
-  if (is_gimple_gtm (t))
+  /* __tm_atomic can alter control flow.  */
+  if (gimple_code (t) == GIMPLE_TM_ATOMIC)
     return true;
 
   /* If a statement can throw, it alters control flow.  */
@@ -3965,10 +3958,6 @@ verify_types_in_gimple_stmt (gimple stmt)
     case GIMPLE_PREDICT:
       return false;
 
-    case GTM_ABORT:
-      warning (0, "__tm_abort used outside the scope of a transaction");
-      return false;
-
     default:
       gcc_unreachable ();
     }
@@ -4003,6 +3992,10 @@ verify_types_in_gimple_seq_2 (gimple_seq stmts)
 
 	case GIMPLE_CATCH:
 	  err |= verify_types_in_gimple_seq_2 (gimple_catch_handler (stmt));
+	  break;
+
+	case GIMPLE_TM_ATOMIC:
+	  err |= verify_types_in_gimple_seq_2 (gimple_seq_body (stmt));
 	  break;
 
 	default:
@@ -4801,8 +4794,7 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
     case GIMPLE_OMP_CONTINUE:
     case GIMPLE_OMP_SECTIONS_SWITCH:
     case GIMPLE_OMP_FOR:
-    case GIMPLE_GTM_RETURN:
-      /* The edges from OMP/GTM constructs can be simply redirected.  */
+      /* The edges from OMP constructs can be simply redirected.  */
       break;
 
     default:

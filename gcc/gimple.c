@@ -128,11 +128,14 @@ gss_for_code (enum gimple_code code)
     case GIMPLE_OMP_ATOMIC_LOAD:	return GSS_OMP_ATOMIC_LOAD;
     case GIMPLE_OMP_ATOMIC_STORE:	return GSS_OMP_ATOMIC_STORE;
     case GIMPLE_PREDICT:		return GSS_BASE;
-    case GIMPLE_GTM_TXN:		return GSS_SEQ;
-    case GIMPLE_GTM_RETURN:
-    case GIMPLE_GTM_ABORT:		return GSS_BASE;
-    default:				gcc_unreachable ();
+    case GIMPLE_TM_ATOMIC:		return GSS_TM_ATOMIC;
+
+    /* No default case; let the compiler warn for missed codes.  */
+    case GIMPLE_ERROR_MARK:
+    case LAST_AND_UNUSED_GIMPLE_CODE:
+      break;
     }
+  gcc_unreachable ();
 }
 
 
@@ -188,9 +191,14 @@ gimple_size (enum gimple_code code)
       return sizeof (struct gimple_statement_omp_atomic_load);
     case GSS_OMP_ATOMIC_STORE:
       return sizeof (struct gimple_statement_omp_atomic_store);
-    default:
-      gcc_unreachable ();
+    case GSS_TM_ATOMIC:
+      return sizeof (struct gimple_statement_tm_atomic);
+
+    /* No default case; let the compiler warn for missed codes.  */
+    case LAST_GSS_ENUM:
+      break;
     }
+  gcc_unreachable ();
 }
 
 
@@ -1069,14 +1077,14 @@ gimple_build_omp_atomic_store (tree val)
   return p;
 }
 
-/* Build a GIMPLE_GTM_TXN statement.  */
+/* Build a GIMPLE_TM_ATOMIC statement.  */
 
 gimple
-gimple_build_gtm_txn (gimple_seq body)
+gimple_build_tm_atomic (gimple_seq body, tree label)
 {
-  gimple p = gimple_alloc (GIMPLE_GTM_TXN, 0);
-  if (body)
-    gimple_seq_set_body (p, body);
+  gimple p = gimple_alloc (GIMPLE_TM_ATOMIC, 0);
+  gimple_seq_set_body (p, body);
+  gimple_tm_atomic_set_label (p, label);
   return p;
 }
 
@@ -1770,7 +1778,7 @@ walk_gimple_stmt (gimple_stmt_iterator *gsi, walk_stmt_fn callback_stmt,
     case GIMPLE_OMP_TASK:
     case GIMPLE_OMP_SECTIONS:
     case GIMPLE_OMP_SINGLE:
-    case GIMPLE_GTM_TXN:
+    case GIMPLE_TM_ATOMIC:
       ret = walk_gimple_seq (gimple_seq_body (stmt), callback_stmt,
 			     callback_op, wi);
       if (ret)
@@ -2212,7 +2220,7 @@ gimple_copy (gimple stmt)
 	case GIMPLE_OMP_SECTION:
 	case GIMPLE_OMP_MASTER:
 	case GIMPLE_OMP_ORDERED:
-        case GIMPLE_GTM_TXN:
+        case GIMPLE_TM_ATOMIC:
 	copy_omp_body:
 	  new_seq = gimple_seq_copy (gimple_seq_body (stmt));
 	  gimple_seq_set_body (copy, new_seq);
@@ -2576,8 +2584,8 @@ get_gimple_rhs_num_ops (enum tree_code code)
       || (SYM) == DOT_PROD_EXPR						    \
       || (SYM) == VEC_COND_EXPR						    \
       || (SYM) == REALIGN_LOAD_EXPR					    \
-      || (SYM) == GTM_LOAD						    \
-      || (SYM) == GTM_STORE) ? GIMPLE_SINGLE_RHS			    \
+      || (SYM) == TM_LOAD						    \
+      || (SYM) == TM_STORE) ? GIMPLE_SINGLE_RHS				    \
    : GIMPLE_INVALID_RHS),
 #define END_OF_BASE_TREE_CODES (unsigned char) GIMPLE_INVALID_RHS,
 
