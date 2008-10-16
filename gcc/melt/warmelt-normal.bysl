@@ -3732,7 +3732,7 @@
 ;;; fill the amatch_matchbind of insdata
     (let ( (mbdata (fill_normal_formalbind mbicma formsymbmap env ncx sloc)) )
       (multiple_put_nth slotup (get_int amatch_matchbind)
-			insdata)
+			mbdata)
       )
 ;;; fill the amatch_out of insdata
     (fill_normal_formals outscma outstup formsymbmap env ncx sloc)

@@ -1,4 +1,7 @@
 2008-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[cmatcher correctly filled]
+	* melt/warmelt-normal.bysl: defcmatcher correctly normalized.
+2008-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[cmatcher have incorrect amatch_matchbind & match not implemented]
 	* doc/melt.texi: updated doc on match (removed :else clause).
 	* melt/warmelt-first.bysl: typo in tuple_nth cmatcher.
