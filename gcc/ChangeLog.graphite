@@ -1,3 +1,11 @@
+2008-10-16  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* doc/invoke.texi: Add -fgraphite-identity.
+	* graphite.c (graphite_apply_transformations): Check for
+	-fgraphite-identity.	
+	* toplev.c (process_options): Add flag_graphite_identity.
+	* tree-ssa-loop.c: Add flag_graphite_identity.
+
 2008-10-14  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Undo changes from 2008-10-02:

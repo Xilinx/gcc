@@ -340,7 +340,7 @@ Objective-C and Objective-C++ Dialects}.
 -fira-coalesce -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
--floop-block -floop-interchange -floop-strip-mine @gol
+-floop-block -floop-interchange -floop-strip-mine -fgraphite-identity @gol
 -fmerge-all-constants -fmerge-constants -fmodulo-sched @gol
 -fmodulo-sched-allow-regmoves -fmove-loop-invariants -fmudflap @gol
 -fmudflapir -fmudflapth -fno-branch-count-reg -fno-default-inline @gol
@@ -6115,6 +6115,13 @@ which can be beneficial when @code{M} is larger than the caches,
 because the innermost loop will iterate over a smaller amount of data
 that can be kept in the caches.  This optimization applies to all the
 languages supported by GCC and is not limited to Fortran.
+
+@item -fgraphite-identity
+@opindex fgraphite-identity
+Enable the identity transformation for graphite. For every SCoP we generate
+the polyhedral representation and transform it back to gimple. Using
+-fgraphite-identity we can check the costs or benefits of the
+GIMPLE -> GRAPHITE -> GIMPLE transformation.
 
 @item -fcheck-data-deps
 @opindex fcheck-data-deps
