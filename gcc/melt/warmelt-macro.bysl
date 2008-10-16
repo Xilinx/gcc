@@ -310,7 +310,6 @@
   :super class_src
   :fields (smat_matchedx		;matched expression
 	   smat_cases			;match case tuple
-	   smat_else			;else tuple
 	   ))
 
 ;; match case
@@ -1429,6 +1428,7 @@
       (setq sformals matinformals)
       (setq matchformal (multiple_nth matinformals 0))
       (debug_msg matchformal "mexpand_defcmatcher matchformal")
+      (assert_msg "check matchformal" (is_a matchformal class_formal_binding))
       (setq informals (make_multiple discr_multiple (-i nbmatinformals 1)))
       (multiple_every 
        matinformals
@@ -1493,6 +1493,7 @@
     (setq curpair (pair_tail curpair))
     (if curpair
 	(warning_plain loc "extra in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_))
+    (assert_msg "check matchformal again" (is_a matchformal class_formal_binding))
     ;; build the defcmatcher
     (let (
 	  (cmatch (instance class_cmatcher
@@ -2886,7 +2887,6 @@
 		    (debug_msg lx "mexpand_match lastmexp lx")
 		    lx))
 	(:long ix (-i nbmatch 1))
-	(elsebody ())
 	(caselist (make_list discr_list))
 	)
     (debug_msg mexptuple "mexpand_match mexptuple")
@@ -2895,21 +2895,6 @@
 	     (let ( (curmatch (multiple_nth mexptuple ix)) )
 	       (debug_msg curmatch "mexpand_match curmatch")
 	       (cond  
-		;; handle final (:else ...) clause
-		( (and (null elsebody)
-		       (is_a curmatch class_sexpr)
-		       (== ':else (pair_head (list_first 
-					      (unsafe_get_field :sexp_contents curmatch)))))
-		  (let ( (restpairs 
-			  (pair_tail (list_first (unsafe_get_field :sexp_contents curmatch)))) 
-			 )
-		    (if restpairs 
-			(setq elsebody (expand_pairlist_as_tuple 
-					restpairs 
-					(unsafe_get_field :loca_location curmatch) 
-					env mexpander)))
-		    (debug_msg elsebody "mexpand_match elsebody for :else")
-		    ))
 		;; handle (:when pattern condexpr ...) clause
 		( (and 
 		   (is_a curmatch class_sexpr)
@@ -2968,9 +2953,8 @@
     (let ( (smat (instance class_src_match
 			   :src_loc loc
 			   :smat_matchedx matsx
-			   :smat_cases (list_to_multiple caselist discr_multiple)
-			   :smat_else elsebody)) 
-	   )
+			   :smat_cases (list_to_multiple caselist discr_multiple)) 
+		 ))
       (debug_msg smat "mexpand_match result smat")
       (return smat)
       )))

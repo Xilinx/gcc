@@ -845,7 +845,7 @@
    "(basilys_is_multiple_at_least(((basilys_ptr_t)" tup "), (int)(" rk ")))"
    )
   (					;fill expansion
-   comp " = basilys_multiple_nth((basilys_ptr_t)(" tu "),(int)(" rk "));"
+   comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "),(int)(" rk "));"
    )
   ;; no operator expansion 
 )

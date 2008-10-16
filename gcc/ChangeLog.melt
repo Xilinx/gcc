@@ -1,3 +1,17 @@
+2008-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	[cmatcher have incorrect amatch_matchbind & match not implemented]
+	* doc/melt.texi: updated doc on match (removed :else clause).
+	* melt/warmelt-first.bysl: typo in tuple_nth cmatcher.
+	* melt/warmelt-macro.bysl: remove smat_else field.
+	* melt/warmelt-normatch.bysl: normexp_match scan the pattern of
+	each clause and build the tuple of vars, of consts, of bindlists.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-10-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding backpoints & testpoints
 

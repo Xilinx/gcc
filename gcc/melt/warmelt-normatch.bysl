@@ -190,7 +190,7 @@
 ;;;;;;;;;;;;;;;;
 ;; scanning a pattern object or instance
 (defun scanpat_srcpatobject (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_srcpatconst recv")
+  (debug_msg recv "scanpat_srcpatobject recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_srcpattern_object))
   (let ( (sloc (unsafe_get_field :src_loc recv))
@@ -215,7 +215,7 @@
        (scan_pattern fpat sloc ctype_value pcn)
        )
      )
-    (debug_msg recv "scanpat_srcpatconst end recv")
+    (debug_msg recv "scanpat_srcpatobject end recv")
     )
   )
 (install_method class_srcpattern_object scan_pattern scanpat_srcpatobject)
@@ -235,6 +235,7 @@
 	 (sins (unsafe_get_field :spac_inargs recv)) 
 	 (souts (unsafe_get_field :spac_outargs recv)) 
 	 (matmb (let ( (mb (unsafe_get_field :amatch_matchbind soper)) )
+		  (debug_msg mb "scanpat_srcpatcomposite matmb")
 		  (assert_msg "check matmb" (is_a mb class_formal_binding))
 		  mb))
 	 (matin (unsafe_get_field :amatch_in soper))
@@ -296,9 +297,12 @@
   (let ( (sloc (unsafe_get_field :src_loc recv))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
 	 (scases (unsafe_get_field :smat_cases recv))
-	 (selse (unsafe_get_field :smat_else recv))
+	 (:long nbcases (multiple_length scases))
+	 (tupvar (make_multiple discr_multiple nbcases))
+	 (tupcst (make_multiple discr_multiple nbcases))
+	 (tupbindlist (make_multiple discr_multiple nbcases))
 	 )
-    (debug_msg scases "normexp_match scases")
+    (debug_msg smatsx "normexp_match smatsx")
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
@@ -306,30 +310,39 @@
      (debug_msg scases "normexp_match scases")
      (let ( (ctyp (get_ctype nmatx env)) )
        (debug_msg ctyp "normexp_match ctyp")
-       (let ( (tupcn
-	       (multiple_map
-		(lambda 
-		  (curcas :long ix)
-		  (let ( 
-			(pcn (instance class_patterncontext
-				       :pctn_normctxt ncx
-				       :pctn_src recv
-				       :pctn_env env
-				       :pctn_mapatvar (make_mapobject discr_mapobjects 25)
-				       :pctn_mapatcst (make_mapobject discr_mapobjects 20)
-				       :pctn_bindlist (make_list discr_list)
-				       ))
-			)
-		    (debug_msg curcas "normexp_match curcas")
-		    (scan_pattern curcas sloc ctyp pcn)
-		    (debug_msg pcn "normexp_match pcn")
-		    (return pcn)
-		    ))))
+       (foreach_in_multiple
+	(scases)
+	(curcas :long ix)
+	(assert_msg "check curcas" (is_a curcas class_src_casematch))
+	(let ( 
+	      (curloc (unsafe_get_field :src_loc curcas))
+	      (curpat (unsafe_get_field :scam_patt curcas))
+	      (curbody (unsafe_get_field :scam_body curcas))
+	      (mapvar (make_mapobject discr_mapobjects 13))
+	      (mapcst (make_mapobject discr_mapobjects 11))
+	      (bindlist (make_list discr_list))
+	      (pcn (instance class_patterncontext
+			     :pctn_normctxt ncx
+			     :pctn_src recv
+			     :pctn_env env
+			     :pctn_mapatvar mapvar
+			     :pctn_mapatcst mapcst
+			     :pctn_bindlist bindlist
+			     ))
 	      )
-	 (debug_msg tupcn "normexp_match tupcn")
-	 (assert_msg "unimplemented normexp_match" ())
-	 (compile_warning "@@unimplemented normexp_match" ())
-	 )))))
+	  (debug_msg curcas "normexp_match curcas")
+	  (scan_pattern curpat curloc ctyp pcn)
+	  (debug_msg mapvar "normexp_match mapvar")
+	  (debug_msg mapcst "normexp_match mapcst")
+	  (debug_msg bindlist "normexp_match bindlist")
+	  (multiple_put_nth tupvar ix mapvar)
+	  (multiple_put_nth tupcst ix mapcst)
+	  (multiple_put_nth tupbindlist ix bindlist)
+	  )
+	)
+       (assert_msg "unimplemented normexp_match" ())
+       (compile_warning "@@unimplemented normexp_match" ())
+       ))))
 
   
 (install_method class_src_match normal_exp normexp_match)
