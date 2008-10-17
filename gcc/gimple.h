@@ -735,6 +735,15 @@ struct gimple_statement_omp_atomic_store GTY(())
 
 /* GIMPLE_TM_ATOMIC.  */
 
+/* Bits to be stored in the GIMPLE_TM_ATOMIC subcode.  */
+#define GTMA_HAVE_ABORT			(1u << 0)
+#define GTMA_HAVE_LOAD			(1u << 1)
+#define GTMA_HAVE_STORE			(1u << 2)
+#define GTMA_HAVE_CALL_TM		(1u << 3)
+#define GTMA_HAVE_CALL_IRREVOKABLE	(1u << 4)
+#define GTMA_MUST_CALL_IRREVOKABLE	(1u << 5)
+#define GTMA_HAVE_CALL_INDIRECT		(1u << 6)
+
 struct gimple_statement_tm_atomic GTY(())
 {
   /* [ WORD 1-5 ]  */
@@ -4134,6 +4143,15 @@ gimple_tm_atomic_label (const_gimple gs)
   return gs->gimple_tm_atomic.label;
 }
 
+/* Return the subcode associated with a GIMPLE_TM_ATOMIC.  */
+
+static inline unsigned int
+gimple_tm_atomic_subcode (const_gimple gs)
+{
+  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  return gs->gsbase.subcode;
+}
+
 /* Set the label associated with a GIMPLE_TM_ATOMIC.  */
 
 static inline void
@@ -4142,6 +4160,16 @@ gimple_tm_atomic_set_label (gimple gs, tree label)
   GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
   gs->gimple_tm_atomic.label = label;
 }
+
+/* Set the subcode associated with a GIMPLE_TM_ATOMIC.  */
+
+static inline void
+gimple_tm_atomic_set_subcode (gimple gs, unsigned int subcode)
+{
+  GIMPLE_CHECK (gs, GIMPLE_TM_ATOMIC);
+  gs->gsbase.subcode = subcode;
+}
+
 
 /* Return a pointer to the return value for GIMPLE_RETURN GS.  */
 

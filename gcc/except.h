@@ -92,14 +92,16 @@ extern struct eh_region *gen_eh_region_try (struct eh_region *);
 extern struct eh_region *gen_eh_region_catch (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_allowed (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_must_not_throw (struct eh_region *);
+extern struct eh_region *gen_eh_region_transaction (struct eh_region *);
 extern int get_eh_region_number (struct eh_region *);
+extern struct eh_region *get_eh_region_from_number (int);
 extern bool get_eh_region_may_contain_throw (struct eh_region *);
 extern tree get_eh_region_tree_label (struct eh_region *);
 extern void set_eh_region_tree_label (struct eh_region *, tree);
 
-extern void foreach_reachable_handler (int, bool,
-				       void (*) (struct eh_region *, void *),
-				       void *);
+typedef void (*eh_callback) (struct eh_region *, void *);
+extern void foreach_reachable_handler (int, bool, eh_callback, void *);
+extern void foreach_reachable_transaction (int, eh_callback, void *);
 
 extern void collect_eh_region_array (void);
 extern void expand_resx_expr (tree);
@@ -107,6 +109,7 @@ extern void verify_eh_tree (struct function *);
 extern void dump_eh_tree (FILE *, struct function *);
 extern bool eh_region_outer_p (struct function *, int, int);
 extern int eh_region_outermost (struct function *, int, int);
+extern void remove_eh_handler (struct eh_region *);
 
 /* If non-NULL, this is a function that returns an expression to be
    executed if an unhandled exception is propagated out of a cleanup

@@ -125,7 +125,7 @@ compute_call_stmt_bb_frequency (basic_block bb)
 /* Eagerly clone functions so that TM expansion can create
    and redirect calls to a transactional clone.  */
 
-static void
+static void ATTRIBUTE_UNUSED
 prepare_tm_clone (struct cgraph_node *node)
 {
   struct cgraph_node *tm_node;
@@ -275,7 +275,7 @@ build_cgraph_edges (void)
 
   build_cgraph_edges_from_node (node);
   
-  prepare_tm_clone (node);
+  /* prepare_tm_clone (node); */
 
   return 0;
 }

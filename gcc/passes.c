@@ -515,6 +515,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_lower_cf);
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
+  NEXT_PASS (pass_lower_tm);
   NEXT_PASS (pass_build_cfg);
   NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_lower_vector);
@@ -540,13 +541,11 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
-      NEXT_PASS (pass_expand_tm);
 
       NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_reset_cc_flags);
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_early_warn_uninitialized);
-      /* NEXT_PASS (pass_checkpoint_tm); */
       NEXT_PASS (pass_all_early_optimizations);
 	{
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
@@ -565,6 +564,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_convert_switch);
           NEXT_PASS (pass_profile);
 	}
+      NEXT_PASS (pass_checkpoint_tm);
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);

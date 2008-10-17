@@ -140,7 +140,8 @@ struct eh_region GTY(())
     ERT_CATCH,
     ERT_ALLOWED_EXCEPTIONS,
     ERT_MUST_NOT_THROW,
-    ERT_THROW
+    ERT_THROW,
+    ERT_TRANSACTION
   } type;
 
   /* Holds the action to perform based on the preceding type.  */
@@ -178,6 +179,11 @@ struct eh_region GTY(())
     struct eh_region_u_cleanup {
       struct eh_region *prev_try;
     } GTY ((tag ("ERT_CLEANUP"))) cleanup;
+
+    /* ??? Nothing for now.  */
+    struct eh_region_u_transaction {
+      int dummy;
+    } GTY ((tag ("ERT_TRANSACTION"))) transaction;
   } GTY ((desc ("%0.type"))) u;
 
   /* Entry point for this region's handler before landing pads are built.  */
@@ -253,7 +259,6 @@ static hashval_t ehl_hash (const void *);
 static int ehl_eq (const void *, const void *);
 static void add_ehl_entry (rtx, struct eh_region *);
 static void remove_exception_handler_label (rtx);
-static void remove_eh_handler (struct eh_region *);
 static int for_each_eh_label_1 (void **, void *);
 
 /* The return value of reachable_next_level.  */
@@ -422,7 +427,7 @@ gen_eh_region (enum eh_region_type type, struct eh_region *outer)
   struct eh_region *new_eh;
 
 #ifdef ENABLE_CHECKING
-  gcc_assert (doing_eh (0));
+  gcc_assert (flag_tm || doing_eh (0));
 #endif
 
   /* Insert a new blank region as a leaf in the tree.  */
@@ -509,10 +514,22 @@ gen_eh_region_must_not_throw (struct eh_region *outer)
   return gen_eh_region (ERT_MUST_NOT_THROW, outer);
 }
 
+struct eh_region *
+gen_eh_region_transaction (struct eh_region *outer)
+{
+  return gen_eh_region (ERT_TRANSACTION, outer);
+}
+
 int
 get_eh_region_number (struct eh_region *region)
 {
   return region->region_number;
+}
+
+struct eh_region *
+get_eh_region_from_number (int region_nr)
+{
+  return VEC_index (eh_region, cfun->eh->region_array, region_nr);
 }
 
 bool
@@ -808,7 +825,8 @@ current_function_has_exception_handlers (void)
       region = VEC_index (eh_region, cfun->eh->region_array, i);
       if (region
 	  && region->region_number == i
-	  && region->type != ERT_THROW)
+	  && region->type != ERT_THROW
+	  && region->type != ERT_TRANSACTION)
 	return true;
     }
 
@@ -1473,6 +1491,7 @@ build_post_landing_pads (void)
 
 	case ERT_CATCH:
 	case ERT_THROW:
+	case ERT_TRANSACTION:
 	  /* Nothing to do.  */
 	  break;
 
@@ -2142,7 +2161,7 @@ remove_exception_handler_label (rtx label)
 
 /* Splice REGION from the region tree etc.  */
 
-static void
+void
 remove_eh_handler (struct eh_region *region)
 {
   struct eh_region **pp, **pp_start, *p, *outer, *inner;
@@ -2524,6 +2543,11 @@ reachable_next_level (struct eh_region *region, tree type_thrown,
       else
 	return RNL_BLOCKED;
 
+    case ERT_TRANSACTION:
+      /* Transaction regions don't catch exceptions, they catch
+	 transaction restarts.  */
+      return RNL_NOT_CAUGHT;
+
     case ERT_THROW:
     case ERT_UNKNOWN:
       /* Shouldn't see these here.  */
@@ -2538,8 +2562,7 @@ reachable_next_level (struct eh_region *region, tree type_thrown,
 
 void
 foreach_reachable_handler (int region_number, bool is_resx,
-			   void (*callback) (struct eh_region *, void *),
-			   void *callback_data)
+			   eh_callback callback, void *callback_data)
 {
   struct reachable_info info;
   struct eh_region *region;
@@ -2578,6 +2601,26 @@ foreach_reachable_handler (int region_number, bool is_resx,
 	region = region->u.cleanup.prev_try;
       else
 	region = region->outer;
+    }
+}
+
+/* Invoke CALLBACK for each TRANSACTION region inside REGION_NUMBER.  */
+
+void
+foreach_reachable_transaction (int region_number,
+			       eh_callback callback, void *callback_data)
+{
+  struct eh_region *region;
+
+  region = VEC_index (eh_region, cfun->eh->region_array, region_number);
+  while (region)
+    {
+      if (region->type == ERT_TRANSACTION)
+	{
+	  callback (region, callback_data);
+	  break;
+	}
+      region = region->outer;
     }
 }
 
@@ -3177,8 +3220,10 @@ collect_one_action_chain (htab_t ar_hash, struct eh_region *region)
 
     case ERT_CATCH:
     case ERT_THROW:
+    case ERT_TRANSACTION:
       /* CATCH regions are handled in TRY above.  THROW regions are
-	 for optimization information only and produce no output.  */
+	 for optimization information only and produce no output.
+	 TRANSACTION regions produce no output as well.  */
       return collect_one_action_chain (ar_hash, region->outer);
 
     default:

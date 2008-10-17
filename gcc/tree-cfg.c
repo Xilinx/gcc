@@ -514,6 +514,10 @@ make_edges (void)
 		 create abnormal edges to them.  */
 	      make_eh_edges (last);
 
+	      /* If this statement calls a transaction clone,
+		 add transactional restart edges.  */
+	      make_tm_edge (last);
+
 	      /* Some calls are known not to return.  */
 	      fallthru = !(gimple_call_flags (last) & ECF_NORETURN);
 	      break;
@@ -524,6 +528,7 @@ make_edges (void)
 	      if (is_ctrl_altering_stmt (last))
 		{
 		  make_eh_edges (last);
+		  make_tm_edge (last);
 		}
 	      fallthru = true;
 	      break;
@@ -613,11 +618,12 @@ make_edges (void)
 	      break;
 
 	    case GIMPLE_TM_ATOMIC:
-	      /* ??? The edge from __tm_atomic to the out-label is only
-		 used when __tm_abort is present.  Detect that's not
-		 present and omit it.  */
-	      make_edge (bb, label_to_block (gimple_tm_atomic_label (last)), 0);
-	      fallthru = true;
+	      {
+		tree abort_label = gimple_tm_atomic_label (last);
+		if (abort_label)
+		  make_edge (bb, label_to_block (abort_label), 0);
+		fallthru = true;
+	      }
 	      break;
 
 	    default:
@@ -988,22 +994,30 @@ cleanup_dead_labels (void)
   FOR_EACH_BB (bb)
     {
       gimple stmt = last_stmt (bb);
+      tree label, new_label;
+
       if (!stmt)
 	continue;
 
       switch (gimple_code (stmt))
 	{
 	case GIMPLE_COND:
-	  {
-	    tree true_label = gimple_cond_true_label (stmt);
-	    tree false_label = gimple_cond_false_label (stmt);
+	  label = gimple_cond_true_label (stmt);
+	  if (label)
+	    {
+	      new_label = main_block_label (label);
+	      if (new_label != label)
+		gimple_cond_set_true_label (stmt, new_label);
+	    }
 
-	    if (true_label)
-	      gimple_cond_set_true_label (stmt, main_block_label (true_label));
-	    if (false_label)
-	      gimple_cond_set_false_label (stmt, main_block_label (false_label));
-	    break;
-	  }
+	  label = gimple_cond_false_label (stmt);
+	  if (label)
+	    {
+	      new_label = main_block_label (label);
+	      if (new_label != label)
+		gimple_cond_set_false_label (stmt, new_label);
+	    }
+	  break;
 
 	case GIMPLE_SWITCH:
 	  {
@@ -1013,8 +1027,10 @@ cleanup_dead_labels (void)
 	    for (i = 0; i < n; ++i)
 	      {
 		tree case_label = gimple_switch_label (stmt, i);
-		tree label = main_block_label (CASE_LABEL (case_label));
-		CASE_LABEL (case_label) = label;
+		label = CASE_LABEL (case_label);
+		new_label = main_block_label (label);
+		if (new_label != label)
+		  CASE_LABEL (case_label) = label;
 	      }
 	    break;
 	  }
@@ -1024,10 +1040,24 @@ cleanup_dead_labels (void)
 	case GIMPLE_GOTO:
           if (!computed_goto_p (stmt))
 	    {
-	      tree new_dest = main_block_label (gimple_goto_dest (stmt));
-	      gimple_goto_set_dest (stmt, new_dest);
-	      break;
+	      label = gimple_goto_dest (stmt);
+	      new_label = main_block_label (label);
+	      if (new_label != label)
+		gimple_goto_set_dest (stmt, new_label);
 	    }
+	  break;
+
+	case GIMPLE_TM_ATOMIC:
+	  {
+	    tree label = gimple_tm_atomic_label (stmt);
+	    if (label)
+	      {
+		tree new_label = main_block_label (label);
+		if (new_label != label)
+		  gimple_tm_atomic_set_label (stmt, new_label);
+	      }
+	  }
+	  break;
 
 	default:
 	  break;
@@ -2578,12 +2608,14 @@ is_ctrl_altering_stmt (gimple t)
   if (is_gimple_omp (t))
     return true;
 
-  /* __tm_atomic can alter control flow.  */
-  if (gimple_code (t) == GIMPLE_TM_ATOMIC)
+  /* If a statement can throw, it alters control flow.  */
+  if (stmt_can_throw_internal (t))
     return true;
 
-  /* If a statement can throw, it alters control flow.  */
-  return stmt_can_throw_internal (t);
+  if (flag_tm && is_transactional_stmt (t))
+    return true;
+
+  return false;
 }
 
 
@@ -4085,12 +4117,15 @@ verify_stmt (gimple_stmt_iterator *gsi)
      to match.  */
   if (lookup_stmt_eh_region (stmt) >= 0)
     {
-      if (!stmt_could_throw_p (stmt))
+      bool is_tm = is_transactional_stmt (stmt);
+
+      if (!is_tm && !stmt_could_throw_p (stmt))
 	{
 	  error ("statement marked for throw, but doesn%'t");
 	  goto fail;
 	}
-      if (!last_in_block && stmt_can_throw_internal (stmt))
+      /* ??? Add a transactional function akin to stmt_can_throw_internal.  */
+      if (!last_in_block && !is_tm && stmt_can_throw_internal (stmt))
 	{
 	  error ("statement marked for throw in middle of block");
 	  goto fail;

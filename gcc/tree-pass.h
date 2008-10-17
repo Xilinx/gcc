@@ -388,7 +388,7 @@ extern struct gimple_opt_pass pass_reassoc;
 extern struct gimple_opt_pass pass_rebuild_cgraph_edges;
 extern struct gimple_opt_pass pass_build_cgraph_edges;
 extern struct gimple_opt_pass pass_reset_cc_flags;
-extern struct gimple_opt_pass pass_expand_tm;
+extern struct gimple_opt_pass pass_lower_tm;
 extern struct gimple_opt_pass pass_checkpoint_tm;
 
 /* IPA Passes */

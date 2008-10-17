@@ -161,6 +161,7 @@ debug_gimple_seq (gimple_seq seq)
      'd' - outputs an int as a decimal,
      's' - outputs a string,
      'n' - outputs a newline,
+     'x' - outputs an int as hexadecimal,
      '+' - increases indent by 2 then outputs a newline,
      '-' - decreases indent by 2 then outputs a newline.   */
 
@@ -213,6 +214,10 @@ dump_gimple_fmt (pretty_printer *buffer, int spc, int flags,
 
               case 'n':
                 newline_and_indent (buffer, spc);
+                break;
+
+              case 'x':
+                pp_scalar (buffer, "%x", va_arg (args, int));
                 break;
 
               case '+':
@@ -350,9 +355,19 @@ dump_binary_rhs (pretty_printer *buffer, gimple gs, int spc, int flags)
 static void
 dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
+  enum tree_code code;
+
+  /* Don't bypass the transactional markers like
+     gimple_assign_rhs_code would.  */
+  code = gimple_expr_code (gs);
+  if (code != TM_LOAD && code != TM_STORE
+      && get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS)
+    code = TREE_CODE (gimple_assign_rhs1 (gs));
+
   if (flags & TDF_RAW)
     {
       tree last;
+
       if (gimple_num_ops (gs) == 2)
         last = NULL_TREE;
       else if (gimple_num_ops (gs) == 3)
@@ -361,8 +376,8 @@ dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
         gcc_unreachable ();
 
       dump_gimple_fmt (buffer, spc, flags, "%G <%s, %T, %T, %T>", gs,
-                       tree_code_name[gimple_assign_rhs_code (gs)],
-                       gimple_assign_lhs (gs), gimple_assign_rhs1 (gs), last);
+                       tree_code_name[code], gimple_assign_lhs (gs),
+		       gimple_assign_rhs1 (gs), last);
     }
   else
     {
@@ -371,6 +386,11 @@ dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  dump_generic_node (buffer, gimple_assign_lhs (gs), spc, flags, false);
 	  pp_space (buffer);
 	  pp_character (buffer, '=');
+
+	  if (code == TM_LOAD)
+	    pp_string (buffer, "{tm_load}");
+	  else if (code == TM_STORE)
+	    pp_string (buffer, "{tm_store}");
 
 	  if (gimple_assign_nontemporal_move_p (gs))
 	    pp_string (buffer, "{nt}");
@@ -1013,11 +1033,18 @@ static void
 dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   if (flags & TDF_RAW)
-    dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
-		     gimple_seq_body (gs));
+    dump_gimple_fmt (buffer, spc, flags,
+		     "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
+		     gs, gimple_tm_atomic_subcode (gs),
+		     gimple_tm_atomic_label (gs), gimple_seq_body (gs));
   else
     {
-      pp_string (buffer, "__tm_atomic");
+      pp_printf (buffer, "__tm_atomic [SUBCODE=%x,LABEL=",
+		 gimple_tm_atomic_subcode (gs));
+      dump_generic_node (buffer, gimple_tm_atomic_label (gs),
+			 spc, flags, false);
+      pp_string (buffer, "]");
+
       if (!gimple_seq_empty_p (gimple_seq_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);

@@ -8255,7 +8255,7 @@ c_parser_tm_abort (c_parser *parser)
   /* ??? Verify that __tm_abort is contained within the
      lexical scope of a __tm_atomic.  */
 
-  return build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 0);
+  return add_stmt (build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 0));
 }
 
 /* Parse a single source file.  */

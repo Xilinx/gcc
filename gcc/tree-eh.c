@@ -310,6 +310,10 @@ collect_finally_tree (gimple stmt, gimple region)
       collect_finally_tree_1 (gimple_eh_filter_failure (stmt), region);
       break;
 
+    case GIMPLE_TM_ATOMIC:
+      collect_finally_tree_1 (gimple_seq_body (stmt), region);
+      break;
+
     default:
       /* A type, a decl, or some kind of statement that we're not
 	 interested in.  Don't walk them.  */
@@ -1869,6 +1873,21 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
       /* Return since we don't want gsi_next () */
       return;
 
+    case GIMPLE_TM_ATOMIC:
+      {
+        /* Record the transaction region in the EH tree, then process
+	   the body of the transaction.  We don't lower the transaction
+	   node just yet.  */
+	struct eh_region *outer = state->cur_region;
+	state->cur_region = gen_eh_region_transaction (outer);
+
+	record_stmt_eh_region (state->cur_region, stmt);
+	lower_eh_constructs_1 (state, gimple_seq_body (stmt));
+
+	state->cur_region = outer;
+      }
+      break;
+
     default:
       /* A type, a decl, or some kind of statement that we're not
 	 interested in.  Don't walk them.  */
@@ -2043,6 +2062,9 @@ verify_eh_edges (gimple stmt)
 	}
       if (!stmt_could_throw_p (stmt))
 	{
+	  /* ??? Add bits to verify transactional edges.  */
+	  if (is_transactional_stmt (stmt))
+	    return false;
 	  error ("BB %i last statement has incorrectly set region", bb->index);
 	  return true;
 	}

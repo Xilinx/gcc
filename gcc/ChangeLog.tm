@@ -1,3 +1,51 @@
+2008-10-17  Richard Henderson  <rth@redhat.com>
+
+	* except.c (struct eh_region): Add ERT_TRANSACTION.
+	(gen_eh_region): Allow if flag_tm.
+	(gen_eh_region_transaction, get_eh_region_from_number): New.
+	(remove_eh_handler): Export.
+	(current_function_has_exception_handlers): Handle ERT_TRANSACTION.
+	(build_post_landing_pads, reachable_next_level): Likewise.
+	(collect_one_action_chain): Likewise.
+	(foreach_reachable_transaction): New.
+	* except.h: Add new exported decls.
+	* gimple-low.c (struct lower_data): Remove in_transaction.
+	(lower_tm_atomic, record_vars_into_tm): Remove.
+	* gimple-pretty-print.c (dump_gimple_fmt): Add %x.
+	(dump_gimple_assign): Handle TM_LOAD/STORE.
+	(dump_gimple_tm_atomic): Dump the subcode.
+	* gimple.h (GTMA_HAVE_ABORT, GTMA_HAVE_LOAD, GTMA_HAVE_STORE,
+	GTMA_HAVE_CALL_TM, GTMA_HAVE_CALL_IRREVOKABLE, 
+	GTMA_MUST_CALL_IRREVOKABLE, GTMA_HAVE_CALL_INDIRECT): New.
+	(gimple_tm_atomic_subcode, gimple_tm_atomic_set_subcode): New.
+	* gtm-low.c (struct ltm_state, add_stmt_to_transaction,
+	lower_assign_tm, lower_call_tm, remove_tm_commits,
+	lower_tm_atomic, lower_sequence_tm, lower_sequence_no_tm): New.
+	(execute_lower_tm): Use them.
+	(TM_START_RESTORE_LIVE_IN, TM_START_ABORT): New.
+	(checkpoint_live_in_variables): Rewrite.
+	(checkpoint_tm_txn, checkpoint_tm): Remove.
+	(expand_tm_atomic): New.
+	(execute_checkpoint_tm): Use it.
+	(make_tm_edge_1, make_tm_edge, is_transactional_stmt): New.
+	(pass_lower_tm): Rename from pass_expand_tm.
+	* passes.c (init_optimization_passes): Run pass_lower_tm
+	immediately after pass_lower_eh.  Run pass_checkpoint_tm
+	after early optimizations.
+	* tree-cfg.c (make_edges): Call make_tm_edge.  Conditionally
+	create the __tm_atomic abort edge.
+	(cleanup_dead_labels): Handle GIMPLE_TM_ATOMIC.  Avoid unnecessary
+	writes into the statements to update labels.
+	(is_ctrl_altering_stmt): Include is_transactional_stmt.
+	(verify_stmt): Handle transactional edges.
+	* tree-eh.c (collect_finally_tree): Walk GIMPLE_TM_ATOMIC.
+	(lower_eh_constructs_2): Create EH regions for them.
+	(verify_eh_edges): Handle transactional edges.
+	* tree-flow.h (make_tm_edge, is_transactional_stmt): Declare.
+
+	* c-parser.c (c_parser_tm_abort): Call add_stmt.
+	* cgraphbuild.c (prepare_tm_clone): Disable for now.
+
 2008-10-15  Richard Henderson  <rth@redhat.com>
 
 	* builtin-attrs.def (ATTR_RETURNS_TWICE): New.

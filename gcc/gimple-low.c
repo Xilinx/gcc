@@ -77,16 +77,12 @@ struct lower_data
 
   /* True if the function calls __builtin_setjmp.  */
   bool calls_builtin_setjmp;
-
-  /* True if we're lowering inside a transaction.  */
-  bool in_transaction;
 };
 
 static void lower_stmt (gimple_stmt_iterator *, struct lower_data *);
 static void lower_gimple_bind (gimple_stmt_iterator *, struct lower_data *);
 static void lower_gimple_return (gimple_stmt_iterator *, struct lower_data *);
 static void lower_builtin_setjmp (gimple_stmt_iterator *);
-static void record_vars_into_tm (tree, tree, bool);
 
 
 /* Lower the body of current_function_decl from High GIMPLE into Low
@@ -236,31 +232,6 @@ lower_sequence (gimple_seq seq, struct lower_data *data)
 }
 
 
-/* Lower the __tm_atomic statement pointed by TSI.  DATA is
-   passed through the recursion.  */
-
-static void
-lower_tm_atomic (gimple_stmt_iterator *gsi, struct lower_data *data)
-{
-  bool old_in_transaction = data->in_transaction;
-  gimple stmt = gsi_stmt (*gsi);
-  tree label = create_artificial_label ();
-
-  data->in_transaction = true;
-
-  lower_sequence (gimple_seq_body (stmt), data);
-
-  gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
-  gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
-  gsi_insert_before (gsi, gimple_build_label (label), GSI_SAME_STMT);
-
-  gimple_seq_set_body (stmt, NULL);
-  gimple_tm_atomic_set_label (stmt, label);
-  gsi_remove (gsi, false);
-
-  data->in_transaction = old_in_transaction;
-}
-
 /* Lower the OpenMP directive statement pointed by GSI.  DATA is
    passed through the recursion.  */
 
@@ -358,8 +329,8 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
       return;
 
     case GIMPLE_TM_ATOMIC:
-      lower_tm_atomic (gsi, data);
-      return;
+      lower_sequence (gimple_seq_body (stmt), data);
+      break;
 
     default:
       gcc_unreachable ();
@@ -405,8 +376,7 @@ lower_gimple_bind (gimple_stmt_iterator *gsi, struct lower_data *data)
 	}
     }
 
-  record_vars_into_tm (gimple_bind_vars (stmt), current_function_decl,
-		       data->in_transaction);
+  record_vars (gimple_bind_vars (stmt));
   lower_sequence (gimple_bind_body (stmt), data);
 
   if (new_block)
@@ -820,11 +790,10 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
 }
 
 
-/* Record the variables in VARS into function FN.  If IN_TRANSACTION is
-   true, mark them DECL_IS_TM_PURE_VAR.  */
+/* Record the variables in VARS into function FN.  */
 
-static void
-record_vars_into_tm (tree vars, tree fn, bool in_transaction)
+void
+record_vars_into (tree vars, tree fn)
 {
   if (fn != current_function_decl)
     push_cfun (DECL_STRUCT_FUNCTION (fn));
@@ -843,35 +812,20 @@ record_vars_into_tm (tree vars, tree fn, bool in_transaction)
 	continue;
 
       /* Record the variable.  */
-      cfun->local_decls = tree_cons (NULL_TREE, var,
-					     cfun->local_decls);
-
-      /* If we're inside a transaction, mark it for NOT checkpointing.  */
-      if (in_transaction)
-	DECL_IS_TM_PURE_VAR (var) = 1;
+      cfun->local_decls = tree_cons (NULL_TREE, var, cfun->local_decls);
     }
 
   if (fn != current_function_decl)
     pop_cfun ();
 }
 
-/* Record the variables in VARS into function FN.  */
-
-void
-record_vars_into (tree vars, tree fn)
-{
-  record_vars_into_tm (vars, fn, false);
-}
-
-
 /* Record the variables in VARS into current_function_decl.  */
 
 void
 record_vars (tree vars)
 {
-  record_vars_into_tm (vars, current_function_decl, false);
+  record_vars_into (vars, current_function_decl);
 }
-
 
 /* Mark BLOCK used if it has a used variable in it, then recurse over its
    subblocks.  */
