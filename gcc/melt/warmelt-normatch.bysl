@@ -272,16 +272,43 @@
 ;;;; backpoints are "backtracking" points in matching nreps
 (defclass class_nrep_backpoint
   :super class_nrep_typexpr
-  :fields (nbkp_first
-	   nbkp_else))
+  :fields (nbkp_do
+	   nbkp_fail))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; testpoints 
+;;;; any testpoints 
 (defclass class_nrep_testpoint
   :super class_nrep_typexpr
   :fields (ntsp_failbp			;backpoint for failure
-	   ntsp_matcher			;matcher
+	   ntsp_succp			;success point
+	   ntsp_test			;normal tested expression
 ))
+
+;;; testpoint with matcher
+(defclass class_nrep_testp_matcher
+  :super class_nrep_testpoint
+  :fields (ntsm_matcher			;the matcher
+	   ntsm_binds			;the local bindings
+))
+
+;; testpoint for is_a
+(defclass class_nrep_testp_isa
+  :super class_nrep_testpoint
+  :fields (ntsi_class			;tested is a class
+))
+
+;; testpoint for exact discrim
+(defclass class_nrep_testp_discrim
+  :super class_nrep_testp_isa
+  :fields (
+	   ))
+
+;; conditional testpoint
+(defclass class_nrep_testp_cond
+  :super class_nrep_testpoint
+  :fields (ntsc_cond			;the condition
+))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

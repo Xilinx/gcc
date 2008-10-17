@@ -1,3 +1,5 @@
+2008-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: adding testpoints...
 2008-10-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	[cmatcher correctly filled]
 	* melt/warmelt-normal.bysl: defcmatcher correctly normalized.
