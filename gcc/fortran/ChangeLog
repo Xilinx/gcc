@@ -1,3 +1,51 @@
+2008-10-16  Daniel Kraft  <d@domob.eu>
+
+	* resolve.c (resolve_elemental_actual): Handle calls to intrinsic
+	subroutines correctly.
+
+2008-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* simplify.c: Remove MPFR_VERSION_NUM(2,3,0) conditionals.
+
+2008-10-12  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37688
+	* expr.c (gfc_expr_check_typed): Extend permission of untyped
+	expressions to both top-level variable and basic arithmetic expressions.
+
+2008-10-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37787
+	* dependency.c (gfc_are_equivalenced_arrays): Look in symbol
+	namespace rather than current namespace, if it is available.
+
+2008-10-12  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/37792
+	* fortran/resolve.c (resolve_fl_variable): Simplify the
+	initializer if there is one.
+
+2008-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37794
+	* module.c (check_for_ambiguous): Remove redundant code.
+
+2008-10-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35723
+	* gfortran.h (gfc_suppress_error): Removed from header.
+	(gfc_push_suppress_errors), (gfc_pop_suppress_errors): New methods.
+	* array.c (gfc_array_size): Use new gfc_push/pop_suppress_errors
+	instead of directly changing gfc_suppress_error.
+	* intrinsic.c (gfc_intrinsic_func_interface): Ditto.
+	(gfc_intrinsic_sub_interface): Ditto.
+	* error.c (suppress_errors): Made static from `gfc_suppress_error'.
+	(gfc_push_suppress_errors), (gfc_pop_suppress_errors): New methods.
+	(gfc_notify_std), (gfc_error): Use new static name of global.
+	* expr.c (check_arglist), (check_references): New methods.
+	(check_restricted): Check arglists and references of EXPR_FUNCTIONs
+	and EXPR_VARAIBALEs, respectively.  Allow PARAMETER symbols.
+
 2008-10-07  Jakub Jelinek  <jakub@redhat.com>
 
 	* f95-lang.c (poplevel): Don't clear BLOCK_VARS if functionbody.

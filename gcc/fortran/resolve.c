@@ -1352,10 +1352,18 @@ resolve_elemental_actual (gfc_expr *expr, gfc_code *c)
       else
 	return SUCCESS;
     }
-  else if (c && c->ext.actual != NULL && c->symtree->n.sym->attr.elemental)
+  else if (c && c->ext.actual != NULL)
     {
       arg0 = c->ext.actual;
-      esym = c->symtree->n.sym;
+      
+      if (c->resolved_sym)
+	esym = c->resolved_sym;
+      else
+	esym = c->symtree->n.sym;
+      gcc_assert (esym);
+
+      if (!esym->attr.elemental)
+	return SUCCESS;
     }
   else
     return SUCCESS;
@@ -7524,6 +7532,10 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
 	  return FAILURE;
 	}
     }
+
+  /* Ensure that any initializer is simplified.  */
+  if (sym->value)
+    gfc_simplify_expr (sym->value, 1);
 
   /* Reject illegal initializers.  */
   if (!sym->mark && sym->value)

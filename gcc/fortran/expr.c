@@ -2503,6 +2503,64 @@ restricted_intrinsic (gfc_expr *e)
 }
 
 
+/* Check the expressions of an actual arglist.  Used by check_restricted.  */
+
+static gfc_try
+check_arglist (gfc_actual_arglist* arg, gfc_try (*checker) (gfc_expr*))
+{
+  for (; arg; arg = arg->next)
+    if (checker (arg->expr) == FAILURE)
+      return FAILURE;
+
+  return SUCCESS;
+}
+
+
+/* Check the subscription expressions of a reference chain with a checking
+   function; used by check_restricted.  */
+
+static gfc_try
+check_references (gfc_ref* ref, gfc_try (*checker) (gfc_expr*))
+{
+  int dim;
+
+  if (!ref)
+    return SUCCESS;
+
+  switch (ref->type)
+    {
+    case REF_ARRAY:
+      for (dim = 0; dim != ref->u.ar.dimen; ++dim)
+	{
+	  if (checker (ref->u.ar.start[dim]) == FAILURE)
+	    return FAILURE;
+	  if (checker (ref->u.ar.end[dim]) == FAILURE)
+	    return FAILURE;
+	  if (checker (ref->u.ar.stride[dim]) == FAILURE)
+	    return FAILURE;
+	}
+      break;
+
+    case REF_COMPONENT:
+      /* Nothing needed, just proceed to next reference.  */
+      break;
+
+    case REF_SUBSTRING:
+      if (checker (ref->u.ss.start) == FAILURE)
+	return FAILURE;
+      if (checker (ref->u.ss.end) == FAILURE)
+	return FAILURE;
+      break;
+
+    default:
+      gcc_unreachable ();
+      break;
+    }
+
+  return check_references (ref->next, checker);
+}
+
+
 /* Verify that an expression is a restricted expression.  Like its
    cousin check_init_expr(), an error message is generated if we
    return FAILURE.  */
@@ -2510,7 +2568,7 @@ restricted_intrinsic (gfc_expr *e)
 static gfc_try
 check_restricted (gfc_expr *e)
 {
-  gfc_symbol *sym;
+  gfc_symbol* sym;
   gfc_try t;
 
   if (e == NULL)
@@ -2526,8 +2584,22 @@ check_restricted (gfc_expr *e)
       break;
 
     case EXPR_FUNCTION:
-      t = e->value.function.esym ? external_spec_function (e)
-				 : restricted_intrinsic (e);
+      if (e->value.function.esym)
+	{
+	  t = check_arglist (e->value.function.actual, &check_restricted);
+	  if (t == SUCCESS)
+	    t = external_spec_function (e);
+	}
+      else
+	{
+	  if (e->value.function.isym && e->value.function.isym->inquiry)
+	    t = SUCCESS;
+	  else
+	    t = check_arglist (e->value.function.actual, &check_restricted);
+
+	  if (t == SUCCESS)
+	    t = restricted_intrinsic (e);
+	}
       break;
 
     case EXPR_VARIABLE:
@@ -2561,6 +2633,10 @@ check_restricted (gfc_expr *e)
 	  break;
 	}
 
+      /* Check reference chain if any.  */
+      if (check_references (e->ref, &check_restricted) == FAILURE)
+	break;
+
       /* gfc_is_formal_arg broadcasts that a formal argument list is being
 	 processed in resolve.c(resolve_formal_arglist).  This is done so
 	 that host associated dummy array indices are accepted (PR23446).
@@ -2571,6 +2647,7 @@ check_restricted (gfc_expr *e)
 	    || sym->attr.use_assoc
 	    || sym->attr.dummy
 	    || sym->attr.implied_index
+	    || sym->attr.flavor == FL_PARAMETER
 	    || (sym->ns && sym->ns == gfc_current_ns->parent)
 	    || (sym->ns && gfc_current_ns->parent
 		  && sym->ns == gfc_current_ns->parent->parent)
@@ -3352,9 +3429,11 @@ gfc_expr_set_symbols_referenced (gfc_expr *expr)
 
 /* Walk an expression tree and check each variable encountered for being typed.
    If strict is not set, a top-level variable is tolerated untyped in -std=gnu
-   mode; this is for things in legacy-code like:
+   mode as is a basic arithmetic expression using those; this is for things in
+   legacy-code like:
 
      INTEGER :: arr(n), n
+     INTEGER :: arr(n + 1), n
 
    The namespace is needed for IMPLICIT typing.  */
 
@@ -3381,9 +3460,26 @@ gfc_expr_check_typed (gfc_expr* e, gfc_namespace* ns, bool strict)
 {
   bool error_found;
 
-  /* If this is a top-level variable, do the check with strict given to us.  */
-  if (!strict && e->expr_type == EXPR_VARIABLE && !e->ref)
-    return gfc_check_symbol_typed (e->symtree->n.sym, ns, strict, e->where);
+  /* If this is a top-level variable or EXPR_OP, do the check with strict given
+     to us.  */
+  if (!strict)
+    {
+      if (e->expr_type == EXPR_VARIABLE && !e->ref)
+	return gfc_check_symbol_typed (e->symtree->n.sym, ns, strict, e->where);
+
+      if (e->expr_type == EXPR_OP)
+	{
+	  gfc_try t = SUCCESS;
+
+	  gcc_assert (e->value.op.op1);
+	  t = gfc_expr_check_typed (e->value.op.op1, ns, strict);
+
+	  if (t == SUCCESS && e->value.op.op2)
+	    t = gfc_expr_check_typed (e->value.op.op2, ns, strict);
+
+	  return t;
+	}
+    }
 
   /* Otherwise, walk the expression and do it strictly.  */
   check_typed_ns = ns;

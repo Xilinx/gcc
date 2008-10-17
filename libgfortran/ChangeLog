@@ -1,3 +1,54 @@
+2008-10-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* io/file_pos.c (unformatted_backspace): Normal case is
+	GFC_CONVERT_NATIVE.
+	* io/transfer.c (read_sf):  Mark paths leading to generate_error()
+	as unlikely.
+	(readl_block_form):  Likewise.
+	(read_block_direct):  Likewise.
+	(write_block):  Likewise.
+	(write_buf):  Likewise.
+	(us_read):  Likewise.  Normal case is GFC_CONVERT_NATIVE.
+	(next_record_w_unf):  Mark paths leading to generate_error()
+	as unlikely.
+
+2008-10-16  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* generated/spread_r4.c: Regenerated.
+
+2008-10-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* intrinsics/reshape_generic.c:  Add bounds checking.
+	* m4/reshape.m4:  Likewise.
+        * generated/reshape_c10.c: Regenerated.
+        * generated/reshape_c16.c: Regenerated.
+        * generated/reshape_c4.c: Regenerated.
+        * generated/reshape_c8.c: Regenerated.
+        * generated/reshape_i16.c: Regenerated.
+        * generated/reshape_i4.c: Regenerated.
+        * generated/reshape_i8.c: Regenerated.
+        * generated/reshape_r10.c: Regenerated.
+        * generated/reshape_r16.c: Regenerated.
+        * generated/reshape_r4.c: Regenerated.
+        * generated/reshape_r8.c: Regenerated.
+        * generated/spread_r4.c: Regenerated.
+
+2008-10-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR libfortran/37083
+	* io/list_read.c (next_char): Simplify EOF tests and set endfile flag.
+	(finish_list_read): Add EOF check.
+
+2008-10-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/37753
+	* io/transfer.c (unformatted_read):  CONVERT_NATIVE
+	is the usual case.  Check for kind==1 for non-byte-reversing
+	operation.
+	(unformatted_write):  Likewise.
+
 2008-10-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org
 
 	PR libfortran/37707

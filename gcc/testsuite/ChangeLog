@@ -1,3 +1,141 @@
+2008-10-16  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR target/37381
+	* gcc.c-torture/compile/pr37381.c: New test.
+
+2008-10-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/33192
+	* gcc.dg/imag-1.c: New test.
+
+2008-10-16  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/elemental_intrinsic_1.f03: New test.
+
+2008-10-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37664
+	* gcc.c-torture/compile/pr37664.c: New test.
+
+2008-10-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR middle-end/37418
+	* gcc.c-torture/compile/pr37418-1.c,
+	gcc.c-torture/compile/pr37418-2.c,
+	gcc.c-torture/compile/pr37418-3.c,
+	gcc.c-torture/compile/pr37418-4.c: New tests.
+
+2008-10-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* gfortran.dg/reshape_3.f90:  New test.
+	* gfortran.dg/reshape_4.f90:  New test.
+	* gfortran.dg/reshape_order_1.f90:  Use correct shape.
+	* gfortran.dg/reshape_order_2.f90:  Likewise.
+	* gfortran.dg/reshape_order_3.f90:  Likewise.
+	* gfortran.dg/reshape_order_4.f90:  Likewise.
+
+2008-10-15  Jan Sjodin  <jan.sjodin@amd.com>
+    	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37485
+	* gcc.dg/graphite/pr37485.c: New.
+
+2008-10-15  Sebastian Pop  <sebastian.pop@amd.com>
+    	    Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37828
+	* testsuite/gcc.dg/graphite/pr37828.c: New.
+
+2008-10-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/37686
+	* testsuite/gcc.dg/tree-ssa/pr37686.c: New.
+
+2008-10-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36881
+	* gcc.dg/tree-ssa/pr36881.c: New test.
+
+2008-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37819
+	* g++.dg/expr/bitfield11.C: New test.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/37650
+	* g++.dg/template/crash83.C: New.
+
+2008-10-14  Douglas Gregor  <doug.gregor@gmail.com>
+
+       PR c++/37553
+       * g++.dg/ext/alias-canon2.C: New.
+
+2008-10-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR libfortran/37083
+	* gfortran.dg/list_read_9.f90: New test.
+	* gfortran.dg/arrayio_8.f90: Fix some typos.
+
+2008-10-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	* testsuite/gcc.dg/format/ms-format1.c: New.
+
+2008-10-12  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37688
+	* gfortran.dg/used_before_typed_6.f90: New test.
+
+2008-10-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37787
+	* gfortran.dg/module_equivalence_5.f90: New test.
+
+2008-10-12  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/37792
+	* gfortran.dg/arithmetic_overflow_1.f90: New test.
+
+2008-10-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_optimization5.adb: New test.
+	* gnat.dg/loop_optimization5_pkg.adb: New helper.
+
+2008-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37794
+	* gfortran.dg/used_types_24.f90: New test.
+
+2008-10-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35760
+	* gcc.c-torture/compile/pr35760.c: New test.
+
+2008-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37146
+	* g++.dg/torture/pr37146-1.C: New test.
+	* g++.dg/torture/pr37146-2.C: New test.
+	* g++.dg/expr/bitfield10.C: New test.
+
+2008-10-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR libfortran/37707
+	* gfortran.dg/namelist_54.f90: Revise test, check a(3).
+
+2008-10-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/37753
+	* gfortran.dg/convert_2.f90:  New test case.
+
+2008-10-09  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35723
+	* gfortran.dg/restricted_expression_1.f90: New test.
+	* gfortran.dg/restricted_expression_2.f90: New test.
+	* gfortran.dg/restricted_expression_3.f90: New test.
+
 2008-10-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org
 
 	PR libfortran/37707

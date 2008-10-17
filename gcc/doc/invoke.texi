@@ -250,7 +250,8 @@ Objective-C and Objective-C++ Dialects}.
 -Wmissing-noreturn  -Wno-mudflap @gol
 -Wno-multichar  -Wnonnull  -Wno-overflow @gol
 -Woverlength-strings  -Wpacked  -Wpadded @gol
--Wparentheses  -Wpointer-arith  -Wno-pointer-to-int-cast @gol
+-Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
+-Wpointer-arith  -Wno-pointer-to-int-cast @gol
 -Wredundant-decls @gol
 -Wreturn-type  -Wsequence-point  -Wshadow @gol
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
@@ -649,6 +650,7 @@ Objective-C and Objective-C++ Dialects}.
 -mshared  -mno-shared  -mplt  -mno-plt  -mxgot  -mno-xgot @gol
 -mgp32  -mgp64  -mfp32  -mfp64  -mhard-float  -msoft-float @gol
 -msingle-float  -mdouble-float  -mdsp  -mno-dsp  -mdspr2  -mno-dspr2 @gol
+-mfpu=@var{fpu-type} @gol
 -msmartmips  -mno-smartmips @gol
 -mpaired-single  -mno-paired-single  -mdmx  -mno-mdmx @gol
 -mips3d  -mno-mips3d  -mmt  -mno-mt  -mllsc  -mno-llsc @gol
@@ -733,6 +735,7 @@ See RS/6000 and PowerPC Options.
 -mspe -mno-spe @gol
 -mspe=yes  -mspe=no @gol
 -mpaired @gol
+-mgen-cell-microcode -mwarn-cell-microcode @gol
 -mvrsave -mno-vrsave @gol
 -mmulhw -mno-mulhw @gol
 -mdlmzb -mno-dlmzb @gol
@@ -3574,6 +3577,14 @@ assume anything on the bounds of the loop indices.  With
 @option{-funsafe-loop-optimizations} warn if the compiler made
 such assumptions.
 
+@item -Wno-pedantic-ms-format
+@opindex Wno-pedantic-ms-format
+@opindex Wpedantic-ms-format
+Disables the warnings about non-ISO @code{printf} / @code{scanf} format
+width specifiers @code{I32}, @code{I64}, and @code{I} used on Windows targets
+depending on the MS runtime, when you are using the options @option{-Wformat}
+and @option{-pedantic} without gnu-extensions.
+
 @item -Wpointer-arith
 @opindex Wpointer-arith
 @opindex Wno-pointer-arith
@@ -6083,7 +6094,7 @@ ENDDO
 loop strip mining will transform the loop as if the user had written:
 @smallexample
 DO II = 1, N, 4
-  DO I = II, min (II + 4, N)
+  DO I = II, min (II + 3, N)
     A(I) = A(I) + C
   ENDDO
 ENDDO
@@ -6106,8 +6117,8 @@ loop blocking will transform the loop as if the user had written:
 @smallexample
 DO II = 1, N, 64
   DO JJ = 1, M, 64
-    DO I = II, min (II + 64, N)
-      DO J = JJ, min (JJ + 64, M)
+    DO I = II, min (II + 63, N)
+      DO J = JJ, min (JJ + 63, M)
         A(J, I) = B(I) + C(J)
       ENDDO
     ENDDO
@@ -13483,6 +13494,15 @@ enhancements.
 @opindex mno-vrsave
 Generate VRSAVE instructions when generating AltiVec code.
 
+@item -mgen-cell-microcode
+@opindex mgen-cell-microcode
+Generate Cell microcode instructions
+
+@item -mwarn-cell-microcode
+@opindex mwarn-cell-microcode
+Warning when a Cell microcode instruction is going to emitted.  An example
+of a Cell microcode instruction is a variable shift.
+
 @item -msecure-plt
 @opindex msecure-plt
 Generate code that allows ld and ld.so to build executables and shared
@@ -13658,6 +13678,17 @@ Generate code for single or double-precision floating point operations.
 @item -msimple-fpu
 @opindex msimple-fpu
 Do not generate sqrt and div instructions for hardware floating point unit.
+
+@item -mfpu
+@opindex mfpu
+Specify type of floating point unit.  Valid values are @var{sp_lite} 
+(equivalent to -msingle-float -msimple-fpu), @var{dp_lite} (equivalent
+to -mdouble-float -msimple-fpu), @var{sp_full} (equivalent to -msingle-float),
+and @var{dp_full} (equivalent to -mdouble-float).
+
+@item -mxilinx-fpu
+@opindex mxilinx-fpu
+Perform optimizations for floating point unit on Xilinx PPC 405/440.
 
 @item -mmultiple
 @itemx -mno-multiple

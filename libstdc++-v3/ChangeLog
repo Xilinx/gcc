@@ -1,3 +1,153 @@
+2008-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.tcc (operator==): Use auto.
+
+2008-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (_Fwd_list_base<>::_M_insert_after):
+	Move out of line, tweak to return _Fwd_list_node_base*.
+	(forward_list<>::insert_after(const_iterator, const _Tp&),
+	forward_list<>::insert_after(const_iterator, _Tp&&)): Use it.
+	* include/bits/forward_list.tcc (_Fwd_list_base<>::_M_insert_after):
+	Define.
+
+	* include/bits/forward_list.h (forward_list<>): Consistently qualify
+	calls of base class functions with this->.
+	* include/bits/forward_list.tcc (forward_list<>): Likewise.
+
+	* include/bits/forward_list.h: Move some functions out of line...
+	* include/bits/forward_list.tcc: ... here.
+
+	* include/bits/forward_list.h (forward_list<>::resize(size_type)): Fix.
+
+2008-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h: Remove pointless const qualifiers in
+	const_casts.
+	* include/bits/forward_list.tcc: Likewise.
+
+	* include/bits/forward_list.h (forward_list<>::pointer,
+	const_pointer, reference, const_reference): Fix, use _Tp_alloc_type.
+	* testsuite/23_containers/forward_list/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/forward_list/requirements/
+	explicit_instantiation/1.cc: Likewise.
+
+2008-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::max_size): Use
+	Node_allocator; minor cosmetic changes.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Adjust.
+
+2008-10-15  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/std/forward_list: New.
+	* include/bits/forward_list.h: Likewise.
+	* include/bits/forward_list.tcc: Likewise.
+	* include/precompiled/stdc++.h: Modified to include forward_list.
+	* include/Makefile.am: Add forward_list, forward_list.h, and
+	forward_list.tcc.
+	* include/Makefile.in: Regenerate.
+	* testsuite/23_containers/forward_list/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/6.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/7.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/8.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/9.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/6.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/7.cc: Likewise.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/comparable.cc: Likewise.
+	* testsuite/23_containers/forward_list/moveable.cc: Likewise.
+	* testsuite/23_containers/headers/forward_list/synopsis.cc: Likewise.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: Update.
+	* testsuite/17_intro/headers/c++200x/all: Likewise.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_list.h (_List_node<>::_List_node<>(_Args&&...)):
+	Add in C++0x mode.
+	(list<>::_M_create_node<>(_Args&&...)): Use _M_get_Node_allocator.
+	(list<>::_M_erase(iterator): Likewise, in C++0x mode.
+	* include/bits/list.tcc (_List_base<>::_M_clear): Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_tree.h (_Rb_tree<>::max_size): Use Node_allocator
+	for improved accuracy.
+	* include/bits/stl_list.h (list<>::max_size): Likewise.
+	* testsuite/23_containers/multimap/capacity/29134.cc: Adjust.
+	* testsuite/23_containers/set/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/multiset/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/list/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/map/capacity/29134.cc: Likewise.
+
+2008-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/reference_wrapper/24803.cc: Avoid uninitialized
+	warnings.
+
+2008-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/system_error (native_category): Remove.
+	(posix_category): Add.
+	(error_code::error_code(_ErrorCodeEnum, typename enable_if<>:type*):
+	Fix _M_cat initialization.
+	(error_code::operator=(_ErrorCodeEnum)): Assign _M_cat too.
+	(error_condition::_M_cat, error_condtion::operator=
+	(_ErrorConditionEnum)): Implement resolution of DR 804.
+	(error_condition::error_condition(_ErrorConditionEnum, typename
+	enable_if<>:type*): Fix.
+	(error_condition::clear, error_condition::assign): Implement.
+	(operator==, operator!=): Fix uglification of parameters.
+	(make_error_code, make_error_condition): Define in namespace
+	posix_error.
+	(operator<<(basic_ostream<>&, const error_code&)): Define here.
+	* include/std/ostream (operator<<(basic_ostream<>&,
+	const error_code&)): Do not define here.
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: New.	
+	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/bool_neg.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/equal.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Tweak.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Tweak.
+
+	* testsuite/util/testsuite_error.h: Minor tweaks.
+	* testsuite/util/testsuite_hooks.cc: Avoid uninitialized warning.
+
+2008-10-10  Chris Fairles  <cfairles@gcc.gnu.org>
+  
+	* testsuite/20_util/duration/cons/1.cc: Remove invalid check of 
+	uninitialized duration.
+        
 2008-10-08  Bob Walters  <bob.s.walters@gmail.com>
 
 	* include/bits/stl_vector.h (_Vector_base<>::_Vector_impl::_M_start,

@@ -231,13 +231,11 @@ static tree do_mpfr_arg2 (tree, tree, tree,
 static tree do_mpfr_arg3 (tree, tree, tree, tree,
 			  int (*)(mpfr_ptr, mpfr_srcptr, mpfr_srcptr, mpfr_srcptr, mp_rnd_t));
 static tree do_mpfr_sincos (tree, tree, tree);
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
 static tree do_mpfr_bessel_n (tree, tree, tree,
 			      int (*)(mpfr_ptr, long, mpfr_srcptr, mp_rnd_t),
 			      const REAL_VALUE_TYPE *, bool);
 static tree do_mpfr_remquo (tree, tree, tree);
 static tree do_mpfr_lgamma_r (tree, tree, tree);
-#endif
 
 /* Return true if NODE should be considered for inline expansion regardless
    of the optimization level.  This means whenever a function is invoked with
@@ -251,6 +249,82 @@ static bool called_as_built_in (tree node)
   if (strncmp (name, "__sync_", 7) == 0)
     return true;
   return false;
+}
+
+/* Return the alignment in bits of EXP, an object.
+   Don't return more than MAX_ALIGN no matter what, ALIGN is the inital
+   guessed alignment e.g. from type alignment.  */
+
+int
+get_object_alignment (tree exp, unsigned int align, unsigned int max_align)
+{
+  unsigned int inner;
+
+  inner = max_align;
+  if (handled_component_p (exp))
+   {
+      HOST_WIDE_INT bitsize, bitpos;
+      tree offset;
+      enum machine_mode mode; 
+      int unsignedp, volatilep;
+
+      exp = get_inner_reference (exp, &bitsize, &bitpos, &offset,
+				 &mode, &unsignedp, &volatilep, true);
+      if (bitpos)
+	inner = MIN (inner, (unsigned) (bitpos & -bitpos));
+      while (offset)
+	{
+	  tree next_offset;
+
+	  if (TREE_CODE (offset) == PLUS_EXPR)
+	    {
+	      next_offset = TREE_OPERAND (offset, 0);
+	      offset = TREE_OPERAND (offset, 1);
+	    }
+	  else
+	    next_offset = NULL;
+	  if (host_integerp (offset, 1))
+	    {
+	      /* Any overflow in calculating offset_bits won't change
+		 the alignment.  */
+	      unsigned offset_bits
+		= ((unsigned) tree_low_cst (offset, 1) * BITS_PER_UNIT);
+
+	      if (offset_bits)
+		inner = MIN (inner, (offset_bits & -offset_bits));
+	    }
+	  else if (TREE_CODE (offset) == MULT_EXPR
+		   && host_integerp (TREE_OPERAND (offset, 1), 1))
+	    {
+	      /* Any overflow in calculating offset_factor won't change
+		 the alignment.  */
+	      unsigned offset_factor
+		= ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
+		   * BITS_PER_UNIT);
+
+	      if (offset_factor)
+		inner = MIN (inner, (offset_factor & -offset_factor));
+	    }
+	  else
+	    {
+	      inner = MIN (inner, BITS_PER_UNIT);
+	      break;
+	    }
+	  offset = next_offset;
+	}
+    }
+  if (DECL_P (exp))
+    align = MIN (inner, DECL_ALIGN (exp));
+#ifdef CONSTANT_ALIGNMENT
+  else if (CONSTANT_CLASS_P (exp))
+    align = MIN (inner, (unsigned)CONSTANT_ALIGNMENT (exp, align));
+#endif
+  else if (TREE_CODE (exp) == VIEW_CONVERT_EXPR
+	   || TREE_CODE (exp) == INDIRECT_REF)
+    align = MIN (TYPE_ALIGN (TREE_TYPE (exp)), inner);
+  else
+    align = MIN (align, inner);
+  return MIN (align, max_align);
 }
 
 /* Return the alignment in bits of EXP, a pointer valued expression.
@@ -306,59 +380,7 @@ get_pointer_alignment (tree exp, unsigned int max_align)
 
 	case ADDR_EXPR:
 	  /* See what we are pointing at and look at its alignment.  */
-	  exp = TREE_OPERAND (exp, 0);
-	  inner = max_align;
-	  if (handled_component_p (exp))
-	    {
-	      HOST_WIDE_INT bitsize, bitpos;
-	      tree offset;
-	      enum machine_mode mode; 
-	      int unsignedp, volatilep;
-
-	      exp = get_inner_reference (exp, &bitsize, &bitpos, &offset,
-					 &mode, &unsignedp, &volatilep, true);
-	      if (bitpos)
-		inner = MIN (inner, (unsigned) (bitpos & -bitpos));
-	      if (offset && TREE_CODE (offset) == PLUS_EXPR
-		  && host_integerp (TREE_OPERAND (offset, 1), 1))
-	        {
-		  /* Any overflow in calculating offset_bits won't change
-		     the alignment.  */
-		  unsigned offset_bits
-		    = ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
-		       * BITS_PER_UNIT);
-
-		  if (offset_bits)
-		    inner = MIN (inner, (offset_bits & -offset_bits));
-		  offset = TREE_OPERAND (offset, 0);
-		}
-	      if (offset && TREE_CODE (offset) == MULT_EXPR
-		  && host_integerp (TREE_OPERAND (offset, 1), 1))
-	        {
-		  /* Any overflow in calculating offset_factor won't change
-		     the alignment.  */
-		  unsigned offset_factor
-		    = ((unsigned) tree_low_cst (TREE_OPERAND (offset, 1), 1)
-		       * BITS_PER_UNIT);
-
-		  if (offset_factor)
-		    inner = MIN (inner, (offset_factor & -offset_factor));
-		}
-	      else if (offset)
-		inner = MIN (inner, BITS_PER_UNIT);
-	    }
-	  if (DECL_P (exp))
-	    align = MIN (inner, DECL_ALIGN (exp));
-#ifdef CONSTANT_ALIGNMENT
-	  else if (CONSTANT_CLASS_P (exp))
-	    align = MIN (inner, (unsigned)CONSTANT_ALIGNMENT (exp, align));
-#endif
-	  else if (TREE_CODE (exp) == VIEW_CONVERT_EXPR
-		   || TREE_CODE (exp) == INDIRECT_REF)
-	    align = MIN (TYPE_ALIGN (TREE_TYPE (exp)), inner);
-	  else
-	    align = MIN (align, inner);
-	  return MIN (align, max_align);
+	  return get_object_alignment (TREE_OPERAND (exp, 0), align, max_align);
 
 	default:
 	  return align;
@@ -10116,7 +10138,6 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
 			     &dconstm1, NULL, false);
     break;
 
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
     CASE_FLT_FN (BUILT_IN_J0):
       if (validate_arg (arg0, REAL_TYPE))
 	return do_mpfr_arg1 (arg0, type, mpfr_j0,
@@ -10140,7 +10161,6 @@ fold_builtin_1 (tree fndecl, tree arg0, bool ignore)
 	return do_mpfr_arg1 (arg0, type, mpfr_y1,
 			     &dconst0, NULL, false);
     break;
-#endif
 
     CASE_FLT_FN (BUILT_IN_NAN):
     case BUILT_IN_NAND32:
@@ -10256,7 +10276,6 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
 
   switch (fcode)
     {
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
     CASE_FLT_FN (BUILT_IN_JN):
       if (validate_arg (arg0, INTEGER_TYPE)
 	  && validate_arg (arg1, REAL_TYPE))
@@ -10283,7 +10302,6 @@ fold_builtin_2 (tree fndecl, tree arg0, tree arg1, bool ignore)
 	  && validate_arg(arg1, POINTER_TYPE))
 	return do_mpfr_lgamma_r (arg0, arg1, type);
     break;
-#endif
 
     CASE_FLT_FN (BUILT_IN_ATAN2):
       if (validate_arg (arg0, REAL_TYPE)
@@ -10440,14 +10458,12 @@ fold_builtin_3 (tree fndecl, tree arg0, tree arg1, tree arg2, bool ignore)
 	return do_mpfr_arg3 (arg0, arg1, arg2, type, mpfr_fma);
     break;
 
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
     CASE_FLT_FN (BUILT_IN_REMQUO):
       if (validate_arg (arg0, REAL_TYPE)
 	  && validate_arg(arg1, REAL_TYPE)
 	  && validate_arg(arg2, POINTER_TYPE))
 	return do_mpfr_remquo (arg0, arg1, arg2);
     break;
-#endif
 
     case BUILT_IN_MEMSET:
       return fold_builtin_memset (arg0, arg1, arg2, type, ignore);
@@ -13058,7 +13074,6 @@ do_mpfr_sincos (tree arg, tree arg_sinp, tree arg_cosp)
   return result;
 }
 
-#if MPFR_VERSION >= MPFR_VERSION_NUM(2,3,0)
 /* If argument ARG1 is an INTEGER_CST and ARG2 is a REAL_CST, call the
    two-argument mpfr order N Bessel function FUNC on them and return
    the resulting value as a tree with type TYPE.  The mpfr precision
@@ -13243,7 +13258,6 @@ do_mpfr_lgamma_r (tree arg, tree arg_sg, tree type)
 
   return result;
 }
-#endif
 
 /* FIXME tuples.
    The functions below provide an alternate interface for folding

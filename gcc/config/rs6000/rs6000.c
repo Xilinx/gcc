@@ -143,8 +143,6 @@ struct rs6000_cpu_select rs6000_select[3] =
   { (const char *)0,	"-mtune=",		1,	0 },
 };
 
-static GTY(()) bool rs6000_cell_dont_microcode;
-
 /* Always emit branch hint bits.  */
 static GTY(()) bool rs6000_always_hint;
 
@@ -1609,9 +1607,16 @@ rs6000_override_options (const char *default_cpu)
 	error ("Spe not supported in this target");
     }
 
+  /* Disable cell micro code if we are optimizing for the cell
+     and not optimizing for size.  */
+  if (rs6000_gen_cell_microcode == -1)
+    rs6000_gen_cell_microcode = !(rs6000_cpu == PROCESSOR_CELL
+                                  && !optimize_size);
+
   /* If we are optimizing big endian systems for space, use the load/store
-     multiple and string instructions.  */
-  if (BYTES_BIG_ENDIAN && optimize_size)
+     multiple and string instructions unless we are not generating
+     Cell microcode.  */
+  if (BYTES_BIG_ENDIAN && optimize_size && !rs6000_gen_cell_microcode)
     target_flags |= ~target_flags_explicit & (MASK_MULTIPLE | MASK_STRING);
 
   /* Don't allow -mmultiple or -mstring on little endian systems
@@ -2199,11 +2204,25 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
     flag_section_anchors = 2;
 }
 
+static enum fpu_type_t
+rs6000_parse_fpu_option (const char *option)
+{
+  if (!strcmp("none", option)) return FPU_NONE;
+  if (!strcmp("sp_lite", option)) return FPU_SF_LITE;
+  if (!strcmp("dp_lite", option)) return FPU_DF_LITE;
+  if (!strcmp("sp_full", option)) return FPU_SF_FULL;
+  if (!strcmp("dp_full", option)) return FPU_DF_FULL;
+  error("unknown value %s for -mfpu", option);
+  return FPU_NONE;
+}
+
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
 rs6000_handle_option (size_t code, const char *arg, int value)
 {
+  enum fpu_type_t fpu_type = FPU_NONE;
+
   switch (code)
     {
     case OPT_mno_power:
@@ -2522,6 +2541,30 @@ rs6000_handle_option (size_t code, const char *arg, int value)
     case OPT_msoft_float:
       /* -msoft_float implies -mnosingle-float and -mnodouble-float. */
       rs6000_single_float = rs6000_double_float = 0;
+      break;
+
+    case OPT_mfpu_:
+      fpu_type = rs6000_parse_fpu_option(arg);
+      if (fpu_type != FPU_NONE) 
+      /* If -mfpu is not none, then turn off SOFT_FLOAT, turn on HARD_FLOAT. */
+      {
+        target_flags &= ~MASK_SOFT_FLOAT;
+        target_flags_explicit |= MASK_SOFT_FLOAT;
+        rs6000_xilinx_fpu = 1;
+        if (fpu_type == FPU_SF_LITE || fpu_type == FPU_SF_FULL) 
+        rs6000_single_float = 1;
+        if (fpu_type == FPU_DF_LITE || fpu_type == FPU_DF_FULL) 
+          rs6000_single_float = rs6000_double_float = 1;
+        if (fpu_type == FPU_SF_LITE || fpu_type == FPU_DF_LITE) 
+          rs6000_simple_fpu = 1;
+      }
+      else
+      {
+        /* -mfpu=none is equivalent to -msoft-float */
+        target_flags |= MASK_SOFT_FLOAT;
+        target_flags_explicit |= MASK_SOFT_FLOAT;
+        rs6000_single_float = rs6000_double_float = 0;
+      }
       break;
     }
   return true;
@@ -3860,6 +3903,7 @@ rs6000_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	   && GET_CODE (x) != CONST_INT
 	   && GET_CODE (x) != CONST_DOUBLE
 	   && CONSTANT_P (x)
+	   && GET_MODE_NUNITS (mode) == 1
 	   && ((TARGET_HARD_FLOAT && TARGET_FPRS && TARGET_DOUBLE_FLOAT)
 	       || (mode != DFmode && mode != DDmode))
 	   && mode != DImode
@@ -17997,6 +18041,35 @@ toc_hash_eq (const void *h1, const void *h2)
   || strncmp ("_ZTI", name, strlen ("_ZTI")) == 0	\
   || strncmp ("_ZTC", name, strlen ("_ZTC")) == 0)
 
+#ifdef NO_DOLLAR_IN_LABEL
+/* Return a GGC-allocated character string translating dollar signs in
+   input NAME to underscores.  Used by XCOFF ASM_OUTPUT_LABELREF.  */
+
+const char *
+rs6000_xcoff_strip_dollar (const char *name)
+{
+  char *strip, *p;
+  int len;
+
+  p = strchr (name, '$');
+
+  if (p == 0 || p == name)
+    return name;
+
+  len = strlen (name);
+  strip = (char *) alloca (len + 1);
+  strcpy (strip, name);
+  p = strchr (strip, '$');
+  while (p)
+    {
+      *p = '_';
+      p = strchr (p + 1, '$');
+    }
+
+  return ggc_alloc_string (strip, len);
+}
+#endif
+
 void
 rs6000_output_symbol_ref (FILE *file, rtx x)
 {
@@ -18024,7 +18097,6 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
 {
   char buf[256];
   const char *name = buf;
-  const char *real_name;
   rtx base = x;
   HOST_WIDE_INT offset = 0;
 
@@ -18298,12 +18370,12 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
       gcc_unreachable ();
     }
 
-  real_name = (*targetm.strip_name_encoding) (name);
   if (TARGET_MINIMAL_TOC)
     fputs (TARGET_32BIT ? "\t.long " : DOUBLE_INT_ASM_OP, file);
   else
     {
-      fprintf (file, "\t.tc %s", real_name);
+      fputs ("\t.tc ", file);
+      RS6000_OUTPUT_BASENAME (file, name);
 
       if (offset < 0)
 	fprintf (file, ".N" HOST_WIDE_INT_PRINT_UNSIGNED, - offset);
@@ -22753,6 +22825,33 @@ rs6000_stack_protect_fail (void)
   return (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
 	 ? default_hidden_stack_protect_fail ()
 	 : default_external_stack_protect_fail ();
+}
+
+void
+rs6000_final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
+			   int num_operands ATTRIBUTE_UNUSED)
+{
+  if (rs6000_warn_cell_microcode)
+    {
+      const char *temp;
+      int insn_code_number = recog_memoized (insn);
+      location_t location = locator_location (INSN_LOCATOR (insn));
+
+      /* Punt on insns we cannot recognize.  */
+      if (insn_code_number < 0)
+	return;
+
+      temp = get_insn_template (insn_code_number, insn);
+
+      if (get_attr_cell_micro (insn) == CELL_MICRO_ALWAYS)
+	warning_at (location, OPT_mwarn_cell_microcode,
+		    "emitting microcode insn %s\t[%s] #%d",
+		    temp, insn_data[INSN_CODE (insn)].name, INSN_UID (insn)); 
+      else if (get_attr_cell_micro (insn) == CELL_MICRO_CONDITIONAL)
+	warning_at (location, OPT_mwarn_cell_microcode,
+		    "emitting conditional microcode insn %s\t[%s] #%d",
+		    temp, insn_data[INSN_CODE (insn)].name, INSN_UID (insn));
+    }
 }
 
 #include "gt-rs6000.h"

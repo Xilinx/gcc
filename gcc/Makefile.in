@@ -2653,7 +2653,7 @@ ipa-struct-reorg.o: ipa-struct-reorg.c ipa-struct-reorg.h $(CONFIG_H) $(SYSTEM_H
 coverage.o : coverage.c $(GCOV_IO_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(RTL_H) $(TREE_H) $(FLAGS_H) output.h $(REGS_H) $(EXPR_H) \
    $(FUNCTION_H) $(TOPLEV_H) $(GGC_H) langhooks.h $(COVERAGE_H) gt-coverage.h \
-   $(HASHTAB_H) tree-iterator.h $(CGRAPH_H) tree-pass.h gcov-io.c
+   $(HASHTAB_H) tree-iterator.h $(CGRAPH_H) tree-pass.h gcov-io.c $(TM_P_H)
 cselib.o : cselib.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(REGS_H) hard-reg-set.h $(FLAGS_H) $(REAL_H) insn-config.h $(RECOG_H) \
    $(EMIT_RTL_H) $(TOPLEV_H) output.h $(FUNCTION_H) cselib.h $(GGC_H) $(TM_P_H) \
@@ -2870,7 +2870,7 @@ reload1.o : reload1.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(EXPR_H) $(OPTABS_H) reload.h $(REGS_H) hard-reg-set.h insn-config.h \
    $(BASIC_BLOCK_H) $(RECOG_H) output.h $(FUNCTION_H) $(TOPLEV_H) $(TM_P_H) \
    addresses.h except.h $(TREE_H) $(REAL_H) $(FLAGS_H) $(MACHMODE_H) \
-   $(OBSTACK_H) $(DF_H) $(TARGET_H) dse.h ira.h
+   $(OBSTACK_H) $(DF_H) $(TARGET_H) $(EMIT_RTL_H) ira.h
 rtlhooks.o :  rtlhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    rtlhooks-def.h $(EXPR_H) $(RECOG_H)
 postreload.o : postreload.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
