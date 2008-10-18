@@ -9,7 +9,7 @@
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without Pred the implied warranty of
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
@@ -18,34 +18,19 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
-// 23.2.3.n forward_list capacity [lib.forward_list.capacity]
+// As a special exception, you may use this file as part of a free software
+// library without restriction.  Specifically, if other files instantiate
+// templates or use macros or inline functions from this file, or you compile
+// this file and link it with other files to produce an executable, this
+// file does not by itself cause the resulting executable to be covered by
+// the GNU General Public License.  This exception does not however
+// invalidate any other reasons why the executable file might be covered by
+// the GNU General Public License.
+
+// This file tests explicit instantiation of library containers
 
 #include <forward_list>
-#include <testsuite_hooks.h>
 
-bool test __attribute__((unused)) = true;
+// { dg-do compile }
 
-// This test verifies the following.
-//
-void
-test01()
-{
-  std::forward_list<double> fld;
-  VERIFY(fld.empty() == true);
-
-  fld.push_front(1.0);
-  VERIFY(fld.empty() == false);
-
-  fld.resize(0);
-  VERIFY(fld.empty() == true);
-
-  VERIFY( fld.max_size()
-	  == std::allocator<std::_Fwd_list_node<double> >().max_size() );
-}
-
-int
-main()
-{
-  test01();
-  return 0;
-}
+template class std::forward_list<int>;

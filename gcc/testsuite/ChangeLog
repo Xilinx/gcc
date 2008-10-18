@@ -1,3 +1,36 @@
+2008-10-18  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* gcc.dg/dll-2.c: Revert 2008-08-09 change (R138893): Change
+        "dg-message" back to "dg-warning".
+	* gcc.dg/dll-3.c: Likewise.
+
+2008-10-16  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR target/37381
+	* gcc.c-torture/compile/pr37381.c: New test.
+
+2008-10-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/33192
+	* gcc.dg/imag-1.c: New test.
+
+2008-10-16  Daniel Kraft  <d@domob.eu>
+
+	* gfortran.dg/elemental_intrinsic_1.f03: New test.
+
+2008-10-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37664
+	* gcc.c-torture/compile/pr37664.c: New test.
+
+2008-10-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR middle-end/37418
+	* gcc.c-torture/compile/pr37418-1.c,
+	gcc.c-torture/compile/pr37418-2.c,
+	gcc.c-torture/compile/pr37418-3.c,
+	gcc.c-torture/compile/pr37418-4.c: New tests.
+
 2008-10-15  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/34670
