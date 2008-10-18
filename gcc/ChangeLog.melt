@@ -1,3 +1,6 @@
+2008-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added subclass_or_eq primitive.
+	* melt/warmelt-normatch.bysl: better error msg & test.
 2008-10-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding testpoints...
 2008-10-16  Basile Starynkevitch  <basile@starynkevitch.net>

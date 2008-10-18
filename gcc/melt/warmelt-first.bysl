@@ -788,6 +788,8 @@
 
 (defprimitive subclass_of (cl1 cl2) :long
   "basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 "))")
+(defprimitive subclass_or_eq (cl1 cl2) :long
+  "((" cl1 " == " cl2 ") || basilys_is_subclass_of((basilysobject_ptr_t)(" cl1 "), (basilysobject_ptr_t)(" cl2 ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MULTIPLEs primitives
@@ -3706,6 +3708,7 @@
  string_length
  stringconst2val
  subclass_of
+ subclass_or_eq
  the_callcount
  the_framedepth
  the_null
