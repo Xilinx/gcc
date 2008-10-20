@@ -1,3 +1,8 @@
+2008-10-20  Ben Elliston  <bje@au.ibm.com>
+
+	* doc/invoke.texi (SPU Options): Improve documentation for -mea32,
+	-mea64, -mcache-size and -matomic-updates options.
+
 2008-09-19  Ben Elliston  <bje@au.ibm.com>
 
 	* c-decl.c (grokdeclarator): Always emit an error about

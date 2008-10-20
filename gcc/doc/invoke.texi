@@ -14958,19 +14958,20 @@ specified separated by a comma.
 @opindex mea32
 @opindex mea64
 
-Compile code assuming that pointers to the __ea address space are either
-32 or 64 bits wide. The default is 32 bits.  As this is an ABI changing
-option, all object code in an executable must be compiled with the same
-option.
+Compile code assuming that pointers to the @code{__ea} address space are
+either 32 or 64 bits wide. The default is 32 bits.  The @code{__ea}
+address space qualifier specifies that variables reside in the PPU
+address space.  As this is an ABI changing option, all object code in an
+executable must be compiled with the same option.
 
 @item -mcache-size=@var{cache-size}
 @opindex mcache-size
 
 This option controls the version of libgcc that the compiler links to an
-executable and selects software cache support with a particular software
-cache size.  Possible options for @var{cache-size} are @samp{8},
-@samp{16}, @samp{32}, @samp{64} and @samp{128}.  The default cache size
-is 64KB.
+executable and selects a software-managed cache for accessing variables
+in the PPU address space with a particular cache size.  Possible options
+for @var{cache-size} are @samp{8}, @samp{16}, @samp{32}, @samp{64} and
+@samp{128}.  The default cache size is 64KB.
 
 @item -matomic-updates
 @itemx -mno-atomic-updates
@@ -14978,8 +14979,9 @@ is 64KB.
 @opindex mno-atomic-updates
 
 This option controls the version of libgcc that the compiler links to an
-executable and selects whether atomic updates to the software cache are
-used.  The default behavior is to use atomic updates.
+executable and selects whether atomic updates to the software-managed
+cache of PPU-side variables are used.  The default behavior is to use
+atomic updates.
 
 @item -mdual-nops
 @itemx -mdual-nops=@var{n}
