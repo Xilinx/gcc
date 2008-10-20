@@ -220,8 +220,8 @@ auto-vectorizer		Dorit Nuzman		dorit@il.ibm.com
 loop infrastructure	Zdenek Dvorak		ook@ucw.cz
 OpenMP			Jakub Jelinek		jakub@redhat.com
 
-Note that individuals who maintain parts of the compiler need approval to check
-in changes outside of the parts of the compiler they maintain.
+Note that individuals who maintain parts of the compiler need approval to
+check in changes outside of the parts of the compiler they maintain.
 
 			Non-Algorithmic Maintainers
 
@@ -250,6 +250,8 @@ Fortran			Toon Moene		toon@moene.indiv.nluug.nl
 Fortran			Brooks Moses		brooks.moses@codesourcery.com
 Fortran			Tobias Schlüter		tobias.schlueter@physik.uni-muenchen.de
 Fortran			Paul Thomas		pault@gcc.gnu.org
+Graphite		Daniel Berlin		dberlin@dberlin.org
+Graphite		Sebastian Pop		sebastian.pop@amd.com
 register allocation	Peter Bergner		bergner@vnet.ibm.com
 register allocation	Vladimir Makarov	vmakarov@redhat.com
 register allocation	Kenneth Zadeck		zadeck@naturalbridge.com
