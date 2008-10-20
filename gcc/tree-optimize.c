@@ -316,7 +316,9 @@ execute_fixup_cfg (void)
 		  }
 	      }
 
-	    if (!stmt_could_throw_p (stmt) && lookup_stmt_eh_region (stmt))
+	    if (!stmt_could_throw_p (stmt)
+		&& !is_transactional_stmt (stmt)
+		&& lookup_stmt_eh_region (stmt))
 	      remove_stmt_from_eh_region (stmt);
 	  }
 

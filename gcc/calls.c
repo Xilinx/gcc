@@ -376,19 +376,20 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
   if (ecf_flags & ECF_LOOPING_CONST_OR_PURE)
     RTL_LOOPING_CONST_OR_PURE_CALL_P (call_insn) = 1;
 
-  /* If this call can't throw, attach a REG_EH_REGION reg note to that
-     effect.  */
-  if (ecf_flags & ECF_NOTHROW)
-    add_reg_note (call_insn, REG_EH_REGION, const0_rtx);
-  else
-    {
-      int rn = lookup_expr_eh_region (fntree);
-
-      /* If rn < 0, then either (1) tree-ssa not used or (2) doesn't
-	 throw, which we already took care of.  */
-      if (rn > 0)
-	add_reg_note (call_insn, REG_EH_REGION, GEN_INT (rn));
-    }
+  /* If this call can't throw, attach a REG_EH_REGION reg note
+     to that effect.  When doing transactional memory, we can
+     desire an EH_REGION note even on calls that don't "throw"
+     in the true EH sense.  */
+  {
+    int rn = lookup_expr_eh_region (fntree);
+    if (rn < 0)
+      {
+	if (ecf_flags & ECF_NOTHROW)
+	  rn = 0;
+      }
+    if (rn >= 0)
+      add_reg_note (call_insn, REG_EH_REGION, GEN_INT (rn));
+  }
 
   if (ecf_flags & ECF_NORETURN)
     add_reg_note (call_insn, REG_NORETURN, const0_rtx);
@@ -398,6 +399,9 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
       add_reg_note (call_insn, REG_SETJMP, const0_rtx);
       cfun->calls_setjmp = 1;
     }
+
+  if (ecf_flags & ECF_TM_OPS)
+    add_reg_note (call_insn, REG_TM, const0_rtx);
 
   SIBLING_CALL_P (call_insn) = ((ecf_flags & ECF_SIBCALL) != 0);
 
@@ -471,7 +475,34 @@ emit_call_1 (rtx funexp, tree fntree, tree fndecl ATTRIBUTE_UNUSED,
 static int
 special_function_p (const_tree fndecl, int flags)
 {
-  if (fndecl && DECL_NAME (fndecl)
+  if (fndecl == NULL)
+    return flags;
+
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    {
+      switch (DECL_FUNCTION_CODE (fndecl))
+	{
+	case BUILT_IN_TM_ABORT:
+	case BUILT_IN_TM_STORE_1:
+	case BUILT_IN_TM_STORE_2:
+	case BUILT_IN_TM_STORE_4:
+	case BUILT_IN_TM_STORE_8:
+	case BUILT_IN_TM_STORE_FLOAT:
+	case BUILT_IN_TM_STORE_DOUBLE:
+	case BUILT_IN_TM_LOAD_1:
+	case BUILT_IN_TM_LOAD_2:
+	case BUILT_IN_TM_LOAD_4:
+	case BUILT_IN_TM_LOAD_8:
+	case BUILT_IN_TM_LOAD_FLOAT:
+	case BUILT_IN_TM_LOAD_DOUBLE:
+	  flags |= ECF_TM_OPS;
+	  break;
+	default:
+	  break;
+	}
+    }
+
+  if (DECL_NAME (fndecl)
       && IDENTIFIER_LENGTH (DECL_NAME (fndecl)) <= 17
       /* Exclude functions not at the file scope, or not `extern',
 	 since they are not the magic functions we would otherwise
@@ -613,6 +644,9 @@ flags_from_decl_or_type (const_tree exp)
 
       if (TREE_NOTHROW (exp))
 	flags |= ECF_NOTHROW;
+
+      if (DECL_IS_TM_CLONE (exp))
+	flags |= ECF_TM_OPS;
 
       flags = special_function_p (exp, flags);
     }

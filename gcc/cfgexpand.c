@@ -51,8 +51,10 @@ gimple_assign_rhs_to_tree (gimple stmt)
 {
   tree t;
   enum gimple_rhs_class grhs_class;
-    
-  grhs_class = get_gimple_rhs_class (gimple_expr_code (stmt));
+  enum tree_code code;
+
+  code = gimple_expr_code (stmt);
+  grhs_class = get_gimple_rhs_class (code);
 
   if (grhs_class == GIMPLE_BINARY_RHS)
     t = build2 (gimple_assign_rhs_code (stmt),
@@ -64,7 +66,10 @@ gimple_assign_rhs_to_tree (gimple stmt)
 		TREE_TYPE (gimple_assign_lhs (stmt)),
 		gimple_assign_rhs1 (stmt));
   else if (grhs_class == GIMPLE_SINGLE_RHS)
-    t = gimple_assign_rhs1 (stmt);
+    {
+      gcc_assert (code != TM_LOAD && code != TM_STORE);
+      t = gimple_assign_rhs1 (stmt);
+    }
   else
     gcc_unreachable ();
 
@@ -94,6 +99,99 @@ set_expr_location_r (tree *tp, int *ws ATTRIBUTE_UNUSED, void *data)
   return NULL_TREE;
 }
 
+/* Construct a memory load in a transactional context.  */
+
+static tree
+build_tm_load (tree lhs, tree rhs)
+{
+  enum built_in_function code = END_BUILTINS;
+  tree t, type = TREE_TYPE (rhs);
+
+  if (type == float_type_node)
+    code = BUILT_IN_TM_LOAD_FLOAT;
+  else if (type == double_type_node)
+    code = BUILT_IN_TM_LOAD_DOUBLE;
+  else if (TYPE_SIZE_UNIT (type) != NULL
+	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
+    {
+      switch (tree_low_cst (TYPE_SIZE_UNIT (type), 1))
+	{
+	case 1:
+	  code = BUILT_IN_TM_LOAD_1;
+	  break;
+	case 2:
+	  code = BUILT_IN_TM_LOAD_2;
+	  break;
+	case 4:
+	  code = BUILT_IN_TM_LOAD_4;
+	  break;
+	case 8:
+	  code = BUILT_IN_TM_LOAD_8;
+	  break;
+	}
+    }
+
+  if (code == END_BUILTINS)
+    {
+      sorry ("transactional load for %T not supported", type);
+      code = BUILT_IN_TM_LOAD_4;
+    }
+
+  t = built_in_decls[code];
+  t = build_call_expr (t, 1, build_fold_addr_expr (rhs));
+  if (TYPE_MAIN_VARIANT (TREE_TYPE (t)) != TYPE_MAIN_VARIANT (type))
+    t = build1 (VIEW_CONVERT_EXPR, type, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, t);
+
+  return t;
+}
+
+/* Similarly for storing TYPE in a transactional context.  */
+
+static tree
+build_tm_store (tree lhs, tree rhs)
+{
+  enum built_in_function code = END_BUILTINS;
+  tree t, fn, type = TREE_TYPE (rhs), simple_type;
+
+  if (type == float_type_node)
+    code = BUILT_IN_TM_STORE_FLOAT;
+  else if (type == double_type_node)
+    code = BUILT_IN_TM_STORE_DOUBLE;
+  else if (TYPE_SIZE_UNIT (type) != NULL
+	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
+    {
+      switch (tree_low_cst (TYPE_SIZE_UNIT (type), 1))
+	{
+	case 1:
+	  code = BUILT_IN_TM_STORE_1;
+	  break;
+	case 2:
+	  code = BUILT_IN_TM_STORE_2;
+	  break;
+	case 4:
+	  code = BUILT_IN_TM_STORE_4;
+	  break;
+	case 8:
+	  code = BUILT_IN_TM_STORE_8;
+	  break;
+	}
+    }
+
+  if (code == END_BUILTINS)
+    {
+      sorry ("transactional load for %T not supported", type);
+      code = BUILT_IN_TM_STORE_4;
+    }
+
+  fn = built_in_decls[code];
+  simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
+  if (TYPE_MAIN_VARIANT (simple_type) != TYPE_MAIN_VARIANT (type))
+    rhs = build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
+  t = build_call_expr (fn, 2, build_fold_addr_expr (lhs), rhs);
+
+  return t;
+}
 
 /* RTL expansion has traditionally been done on trees, so the
    transition to doing it on GIMPLE tuples is very invasive to the RTL
@@ -115,10 +213,23 @@ gimple_to_tree (gimple stmt)
       {
 	tree lhs = gimple_assign_lhs (stmt);
 
-	t = gimple_assign_rhs_to_tree (stmt);
-	t = build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, t);
-	if (gimple_assign_nontemporal_move_p (stmt))
-	  MOVE_NONTEMPORAL (t) = true;
+	switch (gimple_expr_code (stmt))
+	  {
+	  case TM_LOAD:
+	    t = build_tm_load (lhs, gimple_assign_rhs1 (stmt));
+	    break;
+				 
+	  case TM_STORE:
+	    t = build_tm_store (lhs, gimple_assign_rhs1 (stmt));
+	    break;
+
+	  default:
+	    t = gimple_assign_rhs_to_tree (stmt);
+	    t = build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, t);
+	    if (gimple_assign_nontemporal_move_p (stmt))
+	      MOVE_NONTEMPORAL (t) = true;
+	    break;
+	  }
       }
       break;
 	                                 

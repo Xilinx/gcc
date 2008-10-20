@@ -2443,7 +2443,8 @@ maybe_clean_or_replace_eh_stmt (gimple old_stmt, gimple new_stmt)
 
   if (region_nr >= 0)
     {
-      bool new_stmt_could_throw = stmt_could_throw_p (new_stmt);
+      bool new_stmt_could_throw
+	= stmt_could_throw_p (new_stmt) || is_transactional_stmt (new_stmt);
 
       if (new_stmt == old_stmt && new_stmt_could_throw)
 	return false;

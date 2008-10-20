@@ -1,3 +1,37 @@
+2008-10-20  Richard Henderson  <rth@redhat.com>
+
+	* builtin-attrs.def (ATTR_RETURNS_TWICE): Remove.
+	(ATTR_RETURNSTWICE_NOTHROW_LIST): Remove.
+	* builtin-types.def: The TM builtin types are not variadic.
+	* calls.c (emit_call_1): Set REG_EH_REGION properly for nothrow
+	tm functions; add REG_TM as needed.
+	(special_function_p): Add ECF_TM_OPS for TM builtins.
+	(flags_from_decl_or_type): Add ECF_TM_OPS for TM clones.
+	* cfgbuild.c (control_flow_insn_p): Tidy.
+	(struct tmee_data, rtl_make_eh_edge_1): New.
+	(rtl_make_eh_edge): Use them with foreach_reachable_handler;
+	use foreach_reachable_transaction for TM functions.
+	* cfgexpand.c (gimple_assign_rhs_to_tree): Assert we don't
+	look past TM_LOAD/TM_STORE.
+	(build_tm_load, build_tm_store): New.
+	(gimple_to_tree): Use them.
+	* except.c (get_eh_region_rtl_label): New.
+	(frob_transaction_start): New.
+	(build_post_landing_pads): Call it.
+	(build_post_landing_pads_tm_only): New.
+	(finish_eh_generation): Call it.
+	(arh_to_landing_pad, arh_to_label, reachable_handlers): Remove.
+	(can_throw_internal): True for TM insns inside a transaction.
+	(gate_handle_eh): Enable for TM.
+	* except.h (reachable_handlers): Remove.
+	(get_eh_region_rtl_label): Declare.
+	* gimple.c (get_call_expr_in): Look through VIEW_CONVERT_EXPR.
+	* gtm-builtins.def (BUILT_IN_TM_START): Don't mark RETURNS_TWICE.
+	* reg-notes.def (TM): New.
+	* tree-eh.c (maybe_clean_or_replace_eh_stmt): Handle transactions.
+	* tree-optimize.c (execute_fixup_cfg): Likewise.
+	* tree.h (ECF_TM_OPS): New.
+
 2008-10-17  Richard Henderson  <rth@redhat.com>
 
 	* except.c (struct eh_region): Add ERT_TRANSACTION.

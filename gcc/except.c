@@ -549,6 +549,12 @@ set_eh_region_tree_label (struct eh_region *region, tree lab)
 {
   region->tree_label = lab;
 }
+
+rtx
+get_eh_region_rtl_label (struct eh_region *region)
+{
+  return (crtl->eh.built_landing_pads ? region->landing_pad : region->label);
+}
 
 void
 expand_resx_expr (tree exp)
@@ -1380,6 +1386,56 @@ emit_to_new_bb_before (rtx seq, rtx insn)
   return bb;
 }
 
+/* Rearrange the EH label for a transaction region immediately after
+   the call to __tm_start.  This means moving the insns copying the
+   return value from hard register to pseudo into the next block.
+   This models the effect of the setjmp accurately.  */
+
+static void
+frob_transaction_start (struct eh_region *region)
+{
+  rtx insn, call = NULL, last = NULL;
+
+  /* Appease get_eh_region_rtl_label.  */
+  region->landing_pad = region->label; 
+
+  for (insn = PREV_INSN (region->label); ; insn = PREV_INSN (insn))
+    {
+      if (NONJUMP_INSN_P (insn))
+	{
+	  if (last == NULL)
+	    last = insn;
+	}
+      else if (CALL_P (insn))
+	{
+	  call = insn;
+	  break;
+	}
+    }
+
+#ifdef ENABLE_CHECKING
+  /* Check that the call is in fact to __tm_start.  */
+  {
+    rtx x = SET_SRC (PATTERN (call));
+    tree decl;
+    gcc_assert (GET_CODE (x) == CALL);
+    x = XEXP (x, 0);
+    gcc_assert (MEM_P (x));
+    x = XEXP (x, 0);
+    decl = SYMBOL_REF_DECL (x);
+    /* DECL could be null due to the target popping the real symbol_ref
+       into the constant pool.  Don't try that hard... */
+    gcc_assert (!decl || (DECL_BUILT_IN_CLASS (decl) == BUILT_IN_NORMAL
+			  && DECL_FUNCTION_CODE (decl) == BUILT_IN_TM_START));
+  }
+#endif
+
+  insn = NEXT_INSN (region->label);
+  gcc_assert (NOTE_INSN_BASIC_BLOCK_P (insn));
+
+  reorder_insns (NEXT_INSN (call), last, insn);
+}
+
 /* Generate the code to actually handle exceptions, which will follow the
    landing pads.  */
 
@@ -1491,8 +1547,11 @@ build_post_landing_pads (void)
 
 	case ERT_CATCH:
 	case ERT_THROW:
-	case ERT_TRANSACTION:
 	  /* Nothing to do.  */
+	  break;
+
+	case ERT_TRANSACTION:
+	  frob_transaction_start (region);
 	  break;
 
 	default:
@@ -1500,6 +1559,31 @@ build_post_landing_pads (void)
 	}
     }
 }
+
+/* Similar, but only expect to process ERT_TRANSACTION nodes.  This is
+   used when EH is not enabled, but TM is.  */
+
+static void
+build_post_landing_pads_tm_only (void)
+{
+  int i;
+
+  for (i = cfun->eh->last_region_number; i > 0; --i)
+    {
+      struct eh_region *region;
+
+      region = VEC_index (eh_region, cfun->eh->region_array, i);
+      /* Mind we don't process a region more than once.  */
+      if (!region || region->region_number != i)
+	continue;
+
+      if (region->type == ERT_TRANSACTION)
+	frob_transaction_start (region);
+      else
+	gcc_unreachable ();
+    }
+}
+
 
 /* Replace RESX patterns with jumps to the next handler if any, or calls to
    _Unwind_Resume otherwise.  */
@@ -1665,7 +1749,8 @@ sjlj_find_directly_reachable_regions (struct sjlj_lp_info *lp_info)
       if (!note || INTVAL (XEXP (note, 0)) <= 0)
 	continue;
 
-      region = VEC_index (eh_region, cfun->eh->region_array, INTVAL (XEXP (note, 0)));
+      region = VEC_index (eh_region, cfun->eh->region_array,
+			  INTVAL (XEXP (note, 0)));
 
       type_thrown = NULL_TREE;
       if (region->type == ERT_THROW)
@@ -2062,14 +2147,23 @@ finish_eh_generation (void)
   if (cfun->eh->region_tree == NULL)
     return;
 
+  /* If doing TM but not EH, go ahead and frob the record for the
+     setjmp-y start of the transaction.  */
+  if (!doing_eh (0))
+    {
+      build_post_landing_pads_tm_only ();
+      crtl->eh.built_landing_pads = 1;
+      return;
+    }
+
   /* The object here is to provide find_basic_blocks with detailed
-     information (via reachable_handlers) on how exception control
-     flows within the function.  In this first pass, we can include
-     type information garnered from ERT_THROW and ERT_ALLOWED_EXCEPTIONS
-     regions, and hope that it will be useful in deleting unreachable
-     handlers.  Subsequently, we will generate landing pads which will
-     connect many of the handlers, and then type information will not
-     be effective.  Still, this is a win over previous implementations.  */
+     information on how exception control flows within the function.
+     In this first pass, we can include type information garnered
+     from ERT_THROW and ERT_ALLOWED_EXCEPTIONS regions, and hope that
+     it will be useful in deleting unreachable handlers.  Subsequently,
+     we will generate landing pads which will connect many of the handlers,
+     and then type information will not be effective.  Still, this is
+     a win over previous implementations.  */
 
   /* These registers are used by the landing pads.  Make sure they
      have been generated.  */
@@ -2624,54 +2718,6 @@ foreach_reachable_transaction (int region_number,
     }
 }
 
-/* Retrieve a list of labels of exception handlers which can be
-   reached by a given insn.  */
-
-static void
-arh_to_landing_pad (struct eh_region *region, void *data)
-{
-  rtx *p_handlers = (rtx *) data;
-  if (! *p_handlers)
-    *p_handlers = alloc_INSN_LIST (region->landing_pad, NULL_RTX);
-}
-
-static void
-arh_to_label (struct eh_region *region, void *data)
-{
-  rtx *p_handlers = (rtx *) data;
-  *p_handlers = alloc_INSN_LIST (region->label, *p_handlers);
-}
-
-rtx
-reachable_handlers (rtx insn)
-{
-  bool is_resx = false;
-  rtx handlers = NULL;
-  int region_number;
-
-  if (JUMP_P (insn)
-      && GET_CODE (PATTERN (insn)) == RESX)
-    {
-      region_number = XINT (PATTERN (insn), 0);
-      is_resx = true;
-    }
-  else
-    {
-      rtx note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
-      if (!note || INTVAL (XEXP (note, 0)) <= 0)
-	return NULL;
-      region_number = INTVAL (XEXP (note, 0));
-    }
-
-  foreach_reachable_handler (region_number, is_resx,
-			     (crtl->eh.built_landing_pads
-			      ? arh_to_landing_pad
-			      : arh_to_label),
-			     &handlers);
-
-  return handlers;
-}
-
 /* Determine if the given INSN can throw an exception that is caught
    within the function.  */
 
@@ -2711,6 +2757,7 @@ bool
 can_throw_internal (const_rtx insn)
 {
   rtx note;
+  int region_number;
 
   if (! INSN_P (insn))
     return false;
@@ -2728,8 +2775,23 @@ can_throw_internal (const_rtx insn)
   note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
   if (!note || INTVAL (XEXP (note, 0)) <= 0)
     return false;
+  region_number = INTVAL (XEXP (note, 0));
 
-  return can_throw_internal_1 (INTVAL (XEXP (note, 0)), false);
+  /* Check for transactional builtins.  */
+  if (flag_tm && find_reg_note (insn, REG_TM, NULL_RTX))
+    {
+      struct eh_region *region;
+
+      region = VEC_index (eh_region, cfun->eh->region_array, region_number);
+      while (region)
+	{
+	  if (region->type == ERT_TRANSACTION)
+	    return true;
+	  region = region->outer;
+	}
+    }
+
+  return can_throw_internal_1 (region_number, false);
 }
 
 /* Determine if the given INSN can throw an exception that is
@@ -3985,7 +4047,7 @@ default_init_unwind_resume_libfunc (void)
 static bool
 gate_handle_eh (void)
 {
-  return doing_eh (0);
+  return flag_tm || doing_eh (0);
 }
 
 /* Complete generation of exception handling code.  */
