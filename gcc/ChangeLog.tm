@@ -1,3 +1,7 @@
+2008-10-21  Richard Henderson  <rth@redhat.com>
+
+	* tree-cfg.c (cleanup_dead_labels): Fix typo last change.
+
 2008-10-20  Richard Henderson  <rth@redhat.com>
 
 	* builtin-attrs.def (ATTR_RETURNS_TWICE): Remove.

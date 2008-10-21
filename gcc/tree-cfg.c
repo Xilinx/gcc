@@ -641,7 +641,7 @@ make_edges (void)
   if (root_omp_region)
     free_omp_regions ();
 
- /* Fold COND_EXPR_COND of each COND_EXPR.  */
+  /* Fold COND_EXPR_COND of each COND_EXPR.  */
   fold_cond_expr_cond ();
 }
 
@@ -1030,7 +1030,7 @@ cleanup_dead_labels (void)
 		label = CASE_LABEL (case_label);
 		new_label = main_block_label (label);
 		if (new_label != label)
-		  CASE_LABEL (case_label) = label;
+		  CASE_LABEL (case_label) = new_label;
 	      }
 	    break;
 	  }
