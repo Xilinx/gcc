@@ -1110,7 +1110,6 @@ OBJS-common = \
 	graph.o \
 	graphds.o \
 	graphite.o \
-	gtm-low.o \
 	gtype-desc.o \
 	haifa-sched.o \
 	hooks.o \
@@ -1198,6 +1197,7 @@ OBJS-common = \
 	timevar.o \
 	toplev.o \
 	tracer.o \
+	trans-mem.o \
 	tree-affine.o \
 	tree-call-cdce.o \
 	tree-cfg.o \
@@ -2020,10 +2020,9 @@ gtype-desc.o: gtype-desc.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(CPP_ID_DATA_H) tree-chrec.h $(CFGLAYOUT_H) except.h output.h \
 	$(CFGLOOP_H)
 
-gtm-low.o : gtm-low.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
-        $(RTL_H) $(TREE_GIMPLE_H) $(TREE_INLINE_H) langhooks.h $(DIAGNOSTIC_H) \
-        $(TREE_FLOW_H) $(TIMEVAR_H) $(FLAGS_H) $(EXPR_H) toplev.h tree-pass.h \
-        $(GGC_H) $(SPLAY_TREE_H) $(OPTABS_H) $(CFGLOOP_H)
+trans-mem.o : trans-mem.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+	$(TREE_H) $(GIMPLE_H) $(TREE_FLOW_H) tree-pass.h except.h \
+	$(DIAGNOSTIC_H)
 
 ggc-common.o: ggc-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(GGC_H) \
 	$(HASHTAB_H) $(TOPLEV_H) $(PARAMS_H) hosthooks.h $(HOSTHOOKS_DEF_H)

@@ -1,7 +1,4 @@
-/* Lowering pass for transactional memory directives.
-   Converts markers of transactions into explicit calls to
-   the TM runtime library.
-
+/* Passes for transactional memory support.
    Copyright (C) 2008 Free Software Foundation, Inc.
 
    This file is part of GCC.

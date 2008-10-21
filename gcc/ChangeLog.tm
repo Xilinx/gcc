@@ -1,5 +1,10 @@
 2008-10-21  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c: Rename from gtm-low.c.
+	* Makefile.in: Update to match.
+
+2008-10-21  Richard Henderson  <rth@redhat.com>
+
 	* tree-cfg.c (cleanup_dead_labels): Fix typo last change.
 
 2008-10-20  Richard Henderson  <rth@redhat.com>
