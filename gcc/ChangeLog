@@ -1,3 +1,24 @@
+2008-10-21  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* config.gcc (powerpc-*): Make t-ppcgas imply usegas.h.
+	* config/svr4.h (SVR4_ASM_SPEC): New.
+	(ASM_SPEC): Inherit from SVR4_ASM_SPEC.
+	* config/rs6000/sysv4.h (ASM_SPEC): Inherit from SVR4_ASM_SPEC.
+
+	* doc/invoke.texi (Option Summary): Add -T to linker options.
+	(Link Options): Document -T.
+	
+2008-10-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-inline.c (tree_inlinable_function_p): Remove tuples
+	debugging hack.
+
+	* gimplify.c (gimplify_expr): Drop TREE_OVERFLOW from
+	INTEGER_CSTs.
+
+	PR debug/37020
+	* c-decl.c (merge_decls): Don't call outlining_inline_function hook.
+
 2008-10-20  Daniel Berlin  <dberlin@dberlin.org>
 
 	* tree-ssa-pre.c (insert_into_preds_of_block): Don't rewrite constant
