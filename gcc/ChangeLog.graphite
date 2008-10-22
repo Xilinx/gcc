@@ -1,3 +1,10 @@
+2008-10-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/37891
+	Reverted last commit.
+	* graphite.c (create_single_entry_edge): Set
+	EDGE_IRREDUCIBLE_LOOP and BB_IRREDUCIBLE_LOOP.
+
 2008-10-21  Sebastian Pop  <sebastian.pop@amd.com>
 	    Mitul Thakkar  <mitul.thakkar@amd.com>
 

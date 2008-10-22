@@ -1640,19 +1640,7 @@ create_single_entry_edge (sd_region *region)
 			 loop_latch_edge (region->entry->loop_father)->src,
 			 region->exit))
     {
-      edge e = single_succ_edge (region->entry);
-      int e_flags = e->flags;
-      int b_flags = region->entry->flags;
-      bool irreducible_e = e_flags & EDGE_IRREDUCIBLE_LOOP;
-      bool irreducible_b = region->entry->flags & BB_IRREDUCIBLE_LOOP;
       edge forwarder = split_block_after_labels (region->entry);
-
-      if (irreducible_e)
-	forwarder->flags = e_flags;
-
-      if (irreducible_b)
-	forwarder->dest->flags = b_flags;
-
       region->entry = forwarder->dest;
     }
   else
