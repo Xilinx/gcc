@@ -1,3 +1,6 @@
+2008-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: adding normal_pattern selector.
+
 2008-10-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added subclass_or_eq primitive.
 	* melt/warmelt-normatch.bysl: better error msg & test.
