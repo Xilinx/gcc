@@ -1,3 +1,34 @@
+2008-10-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37707
+	* io/list_read.c (read_character): Remove code to look ahead in namelist
+	reads to descriminate non-delimited strings from namelist objects.
+	* io/write.c (namelist_write): Delimit character strings with quote or
+	apostrophe, defaulting to quote.
+
+2008-10-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* intrinsics/transpose_generic.c:  Implement bounds checking.
+	* m4/transpose.m4:  Likewise.
+	* generated/transpose_c8.c: Regenerated.
+	* generated/transpose_c16.c: Regenerated.
+	* generated/transpose_r10.c: Regenerated.
+	* generated/transpose_i8.c: Regenerated.
+	* generated/transpose_c10.c: Regenerated.
+	* generated/transpose_r4.c: Regenerated.
+	* generated/transpose_c4.c: Regenerated.
+	* generated/transpose_i16.c: Regenerated.
+	* generated/transpose_i4.c: Regenerated.
+	* generated/transpose_r8.c: Regenerated.
+	* generated/transpose_r16.c: Regenerated.
+
+2008-10-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org
+
+	PR libfortran/37834
+	* io/write_float.def (output_float): Emit '0.' for special case of
+	format specifier 'f0.0' and value of zero. Likewise emit '0' for 'f1.0'.
+
 2008-10-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org
 
 	PR libfortran/37863
