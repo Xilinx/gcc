@@ -4361,7 +4361,8 @@ gloog (scop_p scop, struct clast_stmt *stmt)
       return;
     }
 
-  redirect_edge_succ_nodup (construction_edge, EXIT_BLOCK_PTR);
+  redirect_edge_succ_nodup (construction_edge,
+			    SESE_EXIT (SCOP_REGION (scop))->dest);
   new_scop_exit_edge = translate_clast (scop, 
 					construction_edge->src->loop_father,
 					stmt, construction_edge, &ivstack);

@@ -1,5 +1,10 @@
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	middle-end/37886
+	* graphite.c (gloog): Replace EXIT_BLOCK_PTR with scop exit. 
+
+2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* doc/invoke.texi: Fix spaces.
 
 2008-10-22  Sebastian Pop  <sebastian.pop@amd.com>
