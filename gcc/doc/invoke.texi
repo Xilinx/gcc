@@ -6118,8 +6118,8 @@ languages supported by GCC and is not limited to Fortran.
 
 @item -fgraphite-identity
 @opindex fgraphite-identity
-Enable the identity transformation for graphite. For every SCoP we generate
-the polyhedral representation and transform it back to gimple. Using
+Enable the identity transformation for graphite.  For every SCoP we generate
+the polyhedral representation and transform it back to gimple.  Using
 -fgraphite-identity we can check the costs or benefits of the
 GIMPLE -> GRAPHITE -> GIMPLE transformation.
 
