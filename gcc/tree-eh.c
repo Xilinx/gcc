@@ -357,6 +357,7 @@ struct leh_state
      don't have easy access to.  */
   struct eh_region *cur_region;
   struct eh_region *prev_try;
+  struct eh_region *prev_atomic;
 
   /* Processing of TRY_FINALLY requires a bit more state.  This is
      split out into a separate structure so that we don't have to
@@ -1812,6 +1813,33 @@ lower_cleanup (struct leh_state *state, gimple tp)
 }
 
 
+/* Continue lowering GIMPLE_TM_ATOMIC.  Record an EH region for it,
+   and flatten the body.  */
+
+static void
+lower_tm_atomic_eh (struct leh_state *state, gimple_stmt_iterator *gsi)
+{
+  struct eh_region *outer_region = state->cur_region;
+  struct eh_region *outer_atomic = state->prev_atomic;
+  struct eh_region *region;
+  gimple stmt = gsi_stmt (*gsi);
+
+  /* Record the transaction region in the EH tree.  */
+  region = gen_eh_region_transaction (outer_region, stmt);
+  state->cur_region = region;
+  state->prev_atomic = region;
+  record_stmt_eh_region (region, stmt);
+
+  lower_eh_constructs_1 (state, gimple_seq_body (stmt));
+
+  /* Flatten the atomic node with respect to its body.  */
+  gsi_insert_seq_after (gsi, gimple_seq_body (stmt), GSI_CONTINUE_LINKING);
+  gimple_seq_set_body (stmt, NULL);
+
+  state->cur_region = outer_region;
+  state->prev_atomic = outer_atomic;
+}
+
 
 /* Main loop for lowering eh constructs. Also moves gsi to the next 
    statement. */
@@ -1833,6 +1861,8 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
 	  record_stmt_eh_region (state->cur_region, stmt);
 	  note_eh_region_may_contain_throw (state->cur_region);
 	}
+      if (state->prev_atomic && is_transactional_stmt (stmt))
+	record_stmt_eh_region (state->prev_atomic, stmt);
       break;
 
     case GIMPLE_COND:
@@ -1874,18 +1904,7 @@ lower_eh_constructs_2 (struct leh_state *state, gimple_stmt_iterator *gsi)
       return;
 
     case GIMPLE_TM_ATOMIC:
-      {
-        /* Record the transaction region in the EH tree, then process
-	   the body of the transaction.  We don't lower the transaction
-	   node just yet.  */
-	struct eh_region *outer = state->cur_region;
-	state->cur_region = gen_eh_region_transaction (outer);
-
-	record_stmt_eh_region (state->cur_region, stmt);
-	lower_eh_constructs_1 (state, gimple_seq_body (stmt));
-
-	state->cur_region = outer;
-      }
+      lower_tm_atomic_eh (state, gsi);
       break;
 
     default:

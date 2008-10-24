@@ -514,10 +514,6 @@ make_edges (void)
 		 create abnormal edges to them.  */
 	      make_eh_edges (last);
 
-	      /* If this statement calls a transaction clone,
-		 add transactional restart edges.  */
-	      make_tm_edge (last);
-
 	      /* Some calls are known not to return.  */
 	      fallthru = !(gimple_call_flags (last) & ECF_NORETURN);
 	      break;
@@ -526,10 +522,7 @@ make_edges (void)
 	       /* A GIMPLE_ASSIGN may throw internally and thus be considered
 		  control-altering. */
 	      if (is_ctrl_altering_stmt (last))
-		{
-		  make_eh_edges (last);
-		  make_tm_edge (last);
-		}
+		make_eh_edges (last);
 	      fallthru = true;
 	      break;
 
@@ -554,10 +547,10 @@ make_edges (void)
 	      fallthru = false;
 	      break;
 
-            case GIMPLE_OMP_ATOMIC_LOAD:
-            case GIMPLE_OMP_ATOMIC_STORE:
-               fallthru = true;
-               break;
+	    case GIMPLE_OMP_ATOMIC_LOAD:
+	    case GIMPLE_OMP_ATOMIC_STORE:
+	       fallthru = true;
+	       break;
 
 	    case GIMPLE_OMP_RETURN:
 	      /* In the case of a GIMPLE_OMP_SECTION, the edge will go
@@ -1038,7 +1031,7 @@ cleanup_dead_labels (void)
 	/* We have to handle gotos until they're removed, and we don't
 	   remove them until after we've created the CFG edges.  */
 	case GIMPLE_GOTO:
-          if (!computed_goto_p (stmt))
+	  if (!computed_goto_p (stmt))
 	    {
 	      label = gimple_goto_dest (stmt);
 	      new_label = main_block_label (label);
@@ -1302,7 +1295,7 @@ replace_uses_by (tree name, tree val)
 	push_stmt_changes (&stmt);
 
       FOR_EACH_IMM_USE_ON_STMT (use, imm_iter)
-        {
+	{
 	  replace_exp (use, val);
 
 	  if (gimple_code (stmt) == GIMPLE_PHI)
@@ -1331,9 +1324,9 @@ replace_uses_by (tree name, tree val)
 	  for (i = 0; i < gimple_num_ops (stmt); i++)
 	    {
 	      tree op = gimple_op (stmt, i);
-              /* Operands may be empty here.  For example, the labels
-                 of a GIMPLE_COND are nulled out following the creation
-                 of the corresponding CFG edges.  */
+	      /* Operands may be empty here.  For example, the labels
+	         of a GIMPLE_COND are nulled out following the creation
+	         of the corresponding CFG edges.  */
 	      if (op && TREE_CODE (op) == ADDR_EXPR)
 		recompute_tree_invariant_for_addr_expr (op);
 	    }
@@ -1400,10 +1393,10 @@ gimple_merge_blocks (basic_block a, basic_block b)
 	     appear as arguments of the phi nodes.  */
 	  copy = gimple_build_assign (def, use);
 	  gsi_insert_after (&gsi, copy, GSI_NEW_STMT);
-          remove_phi_node (&psi, false);
+	  remove_phi_node (&psi, false);
 	}
       else
-        {
+	{
 	  /* If we deal with a PHI for virtual operands, we can simply
 	     propagate these without fussing with folding or updating
 	     the stmt.  */
@@ -1418,10 +1411,10 @@ gimple_merge_blocks (basic_block a, basic_block b)
 		  SET_USE (use_p, use);
 	    }
 	  else
-            replace_uses_by (def, use);
+	    replace_uses_by (def, use);
 
-          remove_phi_node (&psi, true);
-        }
+	  remove_phi_node (&psi, true);
+	}
     }
 
   /* Ensure that B follows A.  */
@@ -1537,39 +1530,39 @@ remove_useless_stmts_warn_notreached (gimple_seq stmts)
       gimple stmt = gsi_stmt (gsi);
 
       if (gimple_has_location (stmt))
-        {
-          location_t loc = gimple_location (stmt);
-          if (LOCATION_LINE (loc) > 0)
+	{
+	  location_t loc = gimple_location (stmt);
+	  if (LOCATION_LINE (loc) > 0)
 	    {
-              warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
-              return true;
-            }
-        }
+	      warning (OPT_Wunreachable_code, "%Hwill never be executed", &loc);
+	      return true;
+	    }
+	}
 
       switch (gimple_code (stmt))
-        {
-        /* Unfortunately, we need the CFG now to detect unreachable
-           branches in a conditional, so conditionals are not handled here.  */
+	{
+	/* Unfortunately, we need the CFG now to detect unreachable
+	   branches in a conditional, so conditionals are not handled here.  */
 
-        case GIMPLE_TRY:
-          if (remove_useless_stmts_warn_notreached (gimple_try_eval (stmt)))
-            return true;
-          if (remove_useless_stmts_warn_notreached (gimple_try_cleanup (stmt)))
-            return true;
-          break;
+	case GIMPLE_TRY:
+	  if (remove_useless_stmts_warn_notreached (gimple_try_eval (stmt)))
+	    return true;
+	  if (remove_useless_stmts_warn_notreached (gimple_try_cleanup (stmt)))
+	    return true;
+	  break;
 
-        case GIMPLE_CATCH:
-          return remove_useless_stmts_warn_notreached (gimple_catch_handler (stmt));
+	case GIMPLE_CATCH:
+	  return remove_useless_stmts_warn_notreached (gimple_catch_handler (stmt));
 
-        case GIMPLE_EH_FILTER:
-          return remove_useless_stmts_warn_notreached (gimple_eh_filter_failure (stmt));
+	case GIMPLE_EH_FILTER:
+	  return remove_useless_stmts_warn_notreached (gimple_eh_filter_failure (stmt));
 
-        case GIMPLE_BIND:
-          return remove_useless_stmts_warn_notreached (gimple_bind_body (stmt));
+	case GIMPLE_BIND:
+	  return remove_useless_stmts_warn_notreached (gimple_bind_body (stmt));
 
-        default:
-          break;
-        }
+	default:
+	  break;
+	}
     }
 
   return false;
@@ -1614,11 +1607,11 @@ remove_useless_stmts_cond (gimple_stmt_iterator *gsi, struct rus_data *data)
       tree else_label = gimple_cond_false_label (stmt);
 
       if (then_label == else_label)
-        {
-          /* Goto common destination.  */
-          gsi_replace (gsi, gimple_build_goto (then_label), false);
-          data->last_goto_gsi = *gsi;
-          data->last_was_goto = true;
+	{
+	  /* Goto common destination.  */
+	  gsi_replace (gsi, gimple_build_goto (then_label), false);
+	  data->last_goto_gsi = *gsi;
+	  data->last_was_goto = true;
 	  data->repeat = true;
 	}
     }
@@ -1725,9 +1718,9 @@ remove_useless_stmts_tc (gimple_stmt_iterator *gsi, struct rus_data *data)
   if (!this_may_throw)
     {
       if (warn_notreached)
-        {
-          remove_useless_stmts_warn_notreached (cleanup_seq);
-        }
+	{
+	  remove_useless_stmts_warn_notreached (cleanup_seq);
+	}
       gsi_insert_seq_before (gsi, eval_seq, GSI_SAME_STMT);
       gsi_remove (gsi, false);
       data->repeat = true;
@@ -1747,17 +1740,17 @@ remove_useless_stmts_tc (gimple_stmt_iterator *gsi, struct rus_data *data)
     case GIMPLE_CATCH:
       /* If the first element is a catch, they all must be.  */
       while (!gsi_end_p (cleanup_gsi))
-        {
+	{
 	  stmt = gsi_stmt (cleanup_gsi);
 	  /* If we catch all exceptions, then the body does not
 	     propagate exceptions past this point.  */
 	  if (gimple_catch_types (stmt) == NULL)
 	    this_may_throw = false;
 	  data->last_was_goto = false;
-          handler_seq = gimple_catch_handler (stmt);
-          handler_gsi = gsi_start (handler_seq);
+	  handler_seq = gimple_catch_handler (stmt);
+	  handler_gsi = gsi_start (handler_seq);
 	  remove_useless_stmts_1 (&handler_gsi, data);
-          gsi_next (&cleanup_gsi);
+	  gsi_next (&cleanup_gsi);
 	}
       gsi_next (gsi);
       break;
@@ -1782,12 +1775,12 @@ remove_useless_stmts_tc (gimple_stmt_iterator *gsi, struct rus_data *data)
 	 the enclosing TRY_CATCH_EXPR.  */
       if (gimple_seq_empty_p (cleanup_seq))
 	{
-          gsi_insert_seq_before (gsi, eval_seq, GSI_SAME_STMT);
-          gsi_remove(gsi, false);
+	  gsi_insert_seq_before (gsi, eval_seq, GSI_SAME_STMT);
+	  gsi_remove(gsi, false);
 	  data->repeat = true;
 	}
       else
-        gsi_next (gsi);
+	gsi_next (gsi);
       break;
     }
 
@@ -1821,7 +1814,7 @@ remove_useless_stmts_bind (gimple_stmt_iterator *gsi, struct rus_data *data ATTR
   fn_body_seq = gimple_body (current_function_decl);
   if (gimple_bind_vars (stmt) == NULL_TREE
       && (gimple_seq_empty_p (fn_body_seq)
-          || stmt != gimple_seq_first_stmt (fn_body_seq))
+	  || stmt != gimple_seq_first_stmt (fn_body_seq))
       && (! block
 	  || ! BLOCK_ABSTRACT_ORIGIN (block)
 	  || (TREE_CODE (BLOCK_ABSTRACT_ORIGIN (block))
@@ -1873,12 +1866,12 @@ remove_useless_stmts_label (gimple_stmt_iterator *gsi, struct rus_data *data)
     data->last_was_goto = false;
 
   else if (data->last_was_goto
-           && gimple_goto_dest (gsi_stmt (data->last_goto_gsi)) == label)
+	   && gimple_goto_dest (gsi_stmt (data->last_goto_gsi)) == label)
     {
       /* Replace the preceding GIMPLE_GOTO statement with
-         a GIMPLE_NOP, which will be subsequently removed.
-         In this way, we avoid invalidating other iterators
-         active on the statement sequence.  */
+	 a GIMPLE_NOP, which will be subsequently removed.
+	 In this way, we avoid invalidating other iterators
+	 active on the statement sequence.  */
       gsi_replace(&data->last_goto_gsi, gimple_build_nop(), false);
       data->last_was_goto = false;
       data->repeat = true;
@@ -1925,123 +1918,123 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
       gimple stmt = gsi_stmt (*gsi);
 
       switch (gimple_code (stmt))
-        {
-        case GIMPLE_COND:
-          remove_useless_stmts_cond (gsi, data);
-          break;
+	{
+	case GIMPLE_COND:
+	  remove_useless_stmts_cond (gsi, data);
+	  break;
 
-        case GIMPLE_GOTO:
-          remove_useless_stmts_goto (gsi, data);
-          break;
+	case GIMPLE_GOTO:
+	  remove_useless_stmts_goto (gsi, data);
+	  break;
 
-        case GIMPLE_LABEL:
-          remove_useless_stmts_label (gsi, data);
-          break;
+	case GIMPLE_LABEL:
+	  remove_useless_stmts_label (gsi, data);
+	  break;
 
-        case GIMPLE_ASSIGN:
-          fold_stmt (gsi);
-          stmt = gsi_stmt (*gsi);
-          data->last_was_goto = false;
-          if (stmt_could_throw_p (stmt))
-            data->may_throw = true;
-          gsi_next (gsi);
-          break;
+	case GIMPLE_ASSIGN:
+	  fold_stmt (gsi);
+	  stmt = gsi_stmt (*gsi);
+	  data->last_was_goto = false;
+	  if (stmt_could_throw_p (stmt))
+	    data->may_throw = true;
+	  gsi_next (gsi);
+	  break;
 
-        case GIMPLE_ASM:
-          fold_stmt (gsi);
-          data->last_was_goto = false;
-          gsi_next (gsi);
-          break;
+	case GIMPLE_ASM:
+	  fold_stmt (gsi);
+	  data->last_was_goto = false;
+	  gsi_next (gsi);
+	  break;
 
-        case GIMPLE_CALL:
-          fold_stmt (gsi);
-          stmt = gsi_stmt (*gsi);
-          data->last_was_goto = false;
-          if (is_gimple_call (stmt))
-            notice_special_calls (stmt);
+	case GIMPLE_CALL:
+	  fold_stmt (gsi);
+	  stmt = gsi_stmt (*gsi);
+	  data->last_was_goto = false;
+	  if (is_gimple_call (stmt))
+	    notice_special_calls (stmt);
 
-          /* We used to call update_gimple_call_flags here,
-             which copied side-effects and nothrows status
-             from the function decl to the call.  In the new
-             tuplified GIMPLE, the accessors for this information
-             always consult the function decl, so this copying
-             is no longer necessary.  */
-          if (stmt_could_throw_p (stmt))
-            data->may_throw = true;
-          gsi_next (gsi);
-          break;
+	  /* We used to call update_gimple_call_flags here,
+	     which copied side-effects and nothrows status
+	     from the function decl to the call.  In the new
+	     tuplified GIMPLE, the accessors for this information
+	     always consult the function decl, so this copying
+	     is no longer necessary.  */
+	  if (stmt_could_throw_p (stmt))
+	    data->may_throw = true;
+	  gsi_next (gsi);
+	  break;
 
-        case GIMPLE_RETURN:
-          fold_stmt (gsi);
-          data->last_was_goto = false;
-          data->may_branch = true;
-          gsi_next (gsi);
-          break;
+	case GIMPLE_RETURN:
+	  fold_stmt (gsi);
+	  data->last_was_goto = false;
+	  data->may_branch = true;
+	  gsi_next (gsi);
+	  break;
 
-        case GIMPLE_BIND:
-          remove_useless_stmts_bind (gsi, data);
-          break;
+	case GIMPLE_BIND:
+	  remove_useless_stmts_bind (gsi, data);
+	  break;
 
-        case GIMPLE_TRY:
-          if (gimple_try_kind (stmt) == GIMPLE_TRY_CATCH)
-            remove_useless_stmts_tc (gsi, data);
-          else if (gimple_try_kind (stmt) == GIMPLE_TRY_FINALLY)
-            remove_useless_stmts_tf (gsi, data);
-          else
-            gcc_unreachable ();
-          break;
+	case GIMPLE_TRY:
+	  if (gimple_try_kind (stmt) == GIMPLE_TRY_CATCH)
+	    remove_useless_stmts_tc (gsi, data);
+	  else if (gimple_try_kind (stmt) == GIMPLE_TRY_FINALLY)
+	    remove_useless_stmts_tf (gsi, data);
+	  else
+	    gcc_unreachable ();
+	  break;
 
-        case GIMPLE_CATCH:
-          gcc_unreachable ();
-          break;
+	case GIMPLE_CATCH:
+	  gcc_unreachable ();
+	  break;
 
-        case GIMPLE_NOP:
-          gsi_remove (gsi, false);
-          break;
+	case GIMPLE_NOP:
+	  gsi_remove (gsi, false);
+	  break;
 
-        case GIMPLE_OMP_FOR:
-          {
-            gimple_seq pre_body_seq = gimple_omp_for_pre_body (stmt);
-            gimple_stmt_iterator pre_body_gsi = gsi_start (pre_body_seq);
+	case GIMPLE_OMP_FOR:
+	  {
+	    gimple_seq pre_body_seq = gimple_omp_for_pre_body (stmt);
+	    gimple_stmt_iterator pre_body_gsi = gsi_start (pre_body_seq);
 
-            remove_useless_stmts_1 (&pre_body_gsi, data);
+	    remove_useless_stmts_1 (&pre_body_gsi, data);
 	    data->last_was_goto = false;
-          }
-          /* FALLTHROUGH */
-        case GIMPLE_OMP_CRITICAL:
-        case GIMPLE_OMP_CONTINUE:
-        case GIMPLE_OMP_MASTER:
-        case GIMPLE_OMP_ORDERED:
-        case GIMPLE_OMP_SECTION:
-        case GIMPLE_OMP_SECTIONS:
-        case GIMPLE_OMP_SINGLE:
-          {
-            gimple_seq body_seq = gimple_seq_body (stmt);
-            gimple_stmt_iterator body_gsi = gsi_start (body_seq);
+	  }
+	  /* FALLTHROUGH */
+	case GIMPLE_OMP_CRITICAL:
+	case GIMPLE_OMP_CONTINUE:
+	case GIMPLE_OMP_MASTER:
+	case GIMPLE_OMP_ORDERED:
+	case GIMPLE_OMP_SECTION:
+	case GIMPLE_OMP_SECTIONS:
+	case GIMPLE_OMP_SINGLE:
+	  {
+	    gimple_seq body_seq = gimple_seq_body (stmt);
+	    gimple_stmt_iterator body_gsi = gsi_start (body_seq);
 
-            remove_useless_stmts_1 (&body_gsi, data);
+	    remove_useless_stmts_1 (&body_gsi, data);
 	    data->last_was_goto = false;
 	    gsi_next (gsi);
-          }
-          break;
+	  }
+	  break;
 
-        case GIMPLE_OMP_PARALLEL:
+	case GIMPLE_OMP_PARALLEL:
 	case GIMPLE_OMP_TASK:
-          {
+	  {
 	    /* Make sure the outermost GIMPLE_BIND isn't removed
 	       as useless.  */
-            gimple_seq body_seq = gimple_seq_body (stmt);
-            gimple bind = gimple_seq_first_stmt (body_seq);
-            gimple_seq bind_seq = gimple_bind_body (bind);
-            gimple_stmt_iterator bind_gsi = gsi_start (bind_seq);
+	    gimple_seq body_seq = gimple_seq_body (stmt);
+	    gimple bind = gimple_seq_first_stmt (body_seq);
+	    gimple_seq bind_seq = gimple_bind_body (bind);
+	    gimple_stmt_iterator bind_gsi = gsi_start (bind_seq);
 
-            remove_useless_stmts_1 (&bind_gsi, data);
+	    remove_useless_stmts_1 (&bind_gsi, data);
 	    data->last_was_goto = false;
 	    gsi_next (gsi);
-          }
-          break;
+	  }
+	  break;
 
-        case GIMPLE_CHANGE_DYNAMIC_TYPE:
+	case GIMPLE_CHANGE_DYNAMIC_TYPE:
 	  /* If we do not optimize remove GIMPLE_CHANGE_DYNAMIC_TYPE as
 	     expansion is confused about them and we only remove them
 	     during alias computation otherwise.  */
@@ -2053,11 +2046,11 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
 	    }
 	  /* Fallthru.  */
 
-        default:
-          data->last_was_goto = false;
-          gsi_next (gsi);
-          break;
-        }
+	default:
+	  data->last_was_goto = false;
+	  gsi_next (gsi);
+	  break;
+	}
     }
 }
 
@@ -2245,9 +2238,9 @@ find_taken_edge (basic_block bb, tree val)
       /* Only optimize if the argument is a label, if the argument is
 	 not a label then we can not construct a proper CFG.
 
-         It may be the case that we only need to allow the LABEL_REF to
-         appear inside an ADDR_EXPR, but we also allow the LABEL_REF to
-         appear inside a LABEL_EXPR just to be safe.  */
+	 It may be the case that we only need to allow the LABEL_REF to
+	 appear inside an ADDR_EXPR, but we also allow the LABEL_REF to
+	 appear inside a LABEL_EXPR just to be safe.  */
       if ((TREE_CODE (val) == ADDR_EXPR || TREE_CODE (val) == LABEL_EXPR)
 	  && TREE_CODE (TREE_OPERAND (val, 0)) == LABEL_DECL)
 	return find_taken_edge_computed_goto (bb, TREE_OPERAND (val, 0));
@@ -2573,11 +2566,18 @@ gimple_cfg2vcg (FILE *file)
 bool
 is_ctrl_stmt (gimple t)
 {
-  return gimple_code (t) == GIMPLE_COND
-    || gimple_code (t) == GIMPLE_SWITCH
-    || gimple_code (t) == GIMPLE_GOTO
-    || gimple_code (t) == GIMPLE_RETURN
-    || gimple_code (t) == GIMPLE_RESX;
+  switch (gimple_code (t))
+    {
+    case GIMPLE_COND:
+    case GIMPLE_SWITCH:
+    case GIMPLE_GOTO:
+    case GIMPLE_RETURN:
+    case GIMPLE_RESX:
+      return true;
+
+    default:
+      return false;
+    }
 }
 
 
@@ -2589,33 +2589,52 @@ is_ctrl_altering_stmt (gimple t)
 {
   gcc_assert (t);
 
-  if (is_gimple_call (t))
+  switch (gimple_code (t))
     {
-      int flags = gimple_call_flags (t);
+    case GIMPLE_CALL:
+      {
+	int flags = gimple_call_flags (t);
 
-      /* A non-pure/const call alters flow control if the current
-	 function has nonlocal labels.  */
-      if (!(flags & (ECF_CONST | ECF_PURE))
-	  && cfun->has_nonlocal_label)
-	return true;
+	/* A non-pure/const call alters flow control if the current
+	   function has nonlocal labels.  */
+	if (!(flags & (ECF_CONST | ECF_PURE)) && cfun->has_nonlocal_label)
+	  return true;
 
-      /* A call also alters control flow if it does not return.  */
-      if (gimple_call_flags (t) & ECF_NORETURN)
-	return true;
+	/* A call also alters control flow if it does not return.
+	   A call alters control flow if it may generate a
+	   transaction restart.  */
+	if (flags & (ECF_NORETURN | ECF_TM_OPS))
+	  return true;
+      }
+      break;
+
+    case GIMPLE_OMP_PARALLEL:
+    case GIMPLE_OMP_TASK:
+    case GIMPLE_OMP_FOR:
+    case GIMPLE_OMP_SECTIONS:
+    case GIMPLE_OMP_SECTIONS_SWITCH:
+    case GIMPLE_OMP_SINGLE:
+    case GIMPLE_OMP_SECTION:
+    case GIMPLE_OMP_MASTER:
+    case GIMPLE_OMP_ORDERED:
+    case GIMPLE_OMP_CRITICAL:
+    case GIMPLE_OMP_RETURN:
+    case GIMPLE_OMP_ATOMIC_LOAD:
+    case GIMPLE_OMP_ATOMIC_STORE:
+    case GIMPLE_OMP_CONTINUE:
+      /* OpenMP directives alter control flow.  */
+      return true;
+
+    case GIMPLE_TM_ATOMIC:
+      /* A transaction start alters control flow.  */
+      return true;
+
+    default:
+      break;
     }
 
-  /* OpenMP directives alter control flow.  */
-  if (is_gimple_omp (t))
-    return true;
-
   /* If a statement can throw, it alters control flow.  */
-  if (stmt_can_throw_internal (t))
-    return true;
-
-  if (flag_tm && is_transactional_stmt (t))
-    return true;
-
-  return false;
+  return stmt_can_throw_internal (t);
 }
 
 
@@ -2887,7 +2906,7 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	new_side_effects = TREE_SIDE_EFFECTS (t);
 	new_constant = TREE_CONSTANT (t);
 
-        if (old_constant != new_constant)
+	if (old_constant != new_constant)
 	  {
 	    error ("constant not recomputed when ADDR_EXPR changed");
 	    return t;
@@ -2925,7 +2944,7 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	  return x;
 	}
       if (!is_gimple_condexpr (x))
-        {
+	{
 	  error ("invalid conditional operand");
 	  return x;
 	}
@@ -3415,7 +3434,7 @@ verify_gimple_assign_unary (gimple stmt)
 	    return true;
 	  }
 
-        return false;
+	return false;
       }
 
     case FIX_TRUNC_EXPR:
@@ -3428,7 +3447,7 @@ verify_gimple_assign_unary (gimple stmt)
 	    return true;
 	  }
 
-        return false;
+	return false;
       }
 
     case TRUTH_NOT_EXPR:
@@ -4008,7 +4027,7 @@ verify_types_in_gimple_seq_2 (gimple_seq stmts)
       gimple stmt = gsi_stmt (ittr);
 
       switch (gimple_code (stmt))
-        {
+	{
 	case GIMPLE_BIND:
 	  err |= verify_types_in_gimple_seq_2 (gimple_bind_body (stmt));
 	  break;
@@ -4778,7 +4797,7 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
     case GIMPLE_SWITCH:
       {
 	tree label = gimple_block_label (dest);
-        tree cases = get_cases_for_edge (e, stmt);
+	tree cases = get_cases_for_edge (e, stmt);
 
 	/* If we have a list of cases associated with E, then use it
 	   as it's a lot faster than walking the entire case vector.  */
@@ -5718,7 +5737,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
     }
 
   VEC_replace (basic_block, cfg->x_basic_block_info,
-               bb->index, bb);
+	       bb->index, bb);
 
   /* Remap the variables in phi nodes.  */
   for (si = gsi_start_phis (bb); !gsi_end_p (si); )
@@ -5732,7 +5751,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
 	{
 	  /* Remove the phi nodes for virtual operands (alias analysis will be
 	     run for the new function, anyway).  */
-          remove_phi_node (&si, true);
+	  remove_phi_node (&si, true);
 	  continue;
 	}
 
@@ -5790,7 +5809,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
 	  add_stmt_to_eh_region_fn (dest_cfun, stmt, region + eh_offset);
 	  remove_stmt_from_eh_region (stmt);
 	  gimple_duplicate_stmt_histograms (dest_cfun, stmt, cfun, stmt);
-          gimple_remove_stmt_histograms (cfun, stmt);
+	  gimple_remove_stmt_histograms (cfun, stmt);
 	}
 
       /* We cannot leave any operands allocated from the operand caches of
@@ -5945,7 +5964,7 @@ move_sese_region_to_fn (struct function *dest_cfun, basic_block entry_bb,
   /* If ENTRY does not strictly dominate EXIT, this cannot be an SESE
      region.  */
   gcc_assert (entry_bb != exit_bb
-              && (!exit_bb
+	      && (!exit_bb
 		  || dominated_by_p (CDI_DOMINATORS, exit_bb, entry_bb)));
 
   /* Collect all the blocks in the region.  Manually add ENTRY_BB
@@ -7021,7 +7040,7 @@ gimplify_build3 (gimple_stmt_iterator *gsi, enum tree_code code,
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
-                                   GSI_SAME_STMT);
+	                           GSI_SAME_STMT);
 }
 
 /* Build a binary operation and gimplify it.  Emit code before GSI.
@@ -7037,7 +7056,7 @@ gimplify_build2 (gimple_stmt_iterator *gsi, enum tree_code code,
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
-                                   GSI_SAME_STMT);
+	                           GSI_SAME_STMT);
 }
 
 /* Build a unary operation and gimplify it.  Emit code before GSI.
@@ -7053,7 +7072,7 @@ gimplify_build1 (gimple_stmt_iterator *gsi, enum tree_code code, tree type,
   STRIP_NOPS (ret);
 
   return force_gimple_operand_gsi (gsi, ret, true, NULL, true,
-                                   GSI_SAME_STMT);
+	                           GSI_SAME_STMT);
 }
 
 

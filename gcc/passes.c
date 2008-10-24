@@ -513,9 +513,9 @@ init_optimization_passes (void)
   NEXT_PASS (pass_mudflap_1);
   NEXT_PASS (pass_lower_omp);
   NEXT_PASS (pass_lower_cf);
+  NEXT_PASS (pass_lower_tm);
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
-  NEXT_PASS (pass_lower_tm);
   NEXT_PASS (pass_build_cfg);
   NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_lower_vector);
@@ -564,7 +564,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_convert_switch);
           NEXT_PASS (pass_profile);
 	}
-      NEXT_PASS (pass_checkpoint_tm);
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);
@@ -578,6 +577,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
   NEXT_PASS (pass_ipa_struct_reorg);  
+  NEXT_PASS (pass_ipa_tm);
   *p = NULL;
 
   /* These passes are run after IPA passes on every function that is being
@@ -703,6 +703,14 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
+    }
+  NEXT_PASS (pass_tm_init);
+    {
+      struct opt_pass **p = &pass_tm_init.pass.sub;
+      NEXT_PASS (pass_tm_mark);
+      NEXT_PASS (pass_tm_memopt);
+      NEXT_PASS (pass_tm_edges);
+      NEXT_PASS (pass_tm_done);
     }
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);

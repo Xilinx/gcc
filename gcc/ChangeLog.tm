@@ -1,3 +1,39 @@
+2008-10-24  Richard Henderson  <rth@redhat.com>
+
+	* calls.c (special_function_p): Include more TM builtins.
+	* cfgexpand.c: Revert all changes.
+	* except.c (struct eh_region): Add u.transaction.tm_atomic_stmt.
+	(gen_eh_region_transaction): Take and store the stmt.
+	(for_each_tm_atomic): New.
+	* except.h (for_each_tm_atomic): Declare.
+	* gimple-pretty-print.c (dump_gimple_assign): Revert.
+	* gimple.c (gimple_rhs_class_table): Revert.
+	* gimple.h (GTMA_HAVE_CALL_INDIRECT): Remove.
+	(GTMA_HAVE_UNCOMMITTED_THROW): New.
+	* gimplify.c (gimplify_tm_atomic): Remove EH wrapping.
+	* gtm-builtins.def (BUILT_IN_TM_IRREVOKABLE): New.
+	(BUILT_IN_TM_MEMCPY): New.
+	(BUILT_IN_TM_LOAD_*): Mark PURE.
+	* passes.c (init_optimization_passes): Place TM passes.
+	* trans-mem.c: Rewrite.
+	* tree-cfg.c (make_edges): Revert.
+	(is_ctrl_stmt): Rewrite as switch.
+	(is_ctrl_altering_stmt): Likewise.  Handle GIMPLE_TM_ATOMIC.
+	* tree-eh.c (lower_tm_atomic_eh): New.
+	(lower_eh_constructs_2): Record EH region for transactional stmts.
+	* tree-flow.h (make_tm_edge): Remove.
+	* tree-passes.h (pass_checkpoint_tm): Remove.
+	(pass_tm_init, pass_tm_mark, pass_tm_memopt,
+	pass_tm_edges, pass_tm_done, pass_ipa_tm): New.
+	* tree-ssa-operands.c (get_addr_dereference_operands): Handle
+	ADDR_EXPR.
+	(add_tm_call_ops): New.
+	(maybe_add_call_clobbered_vops): Use it.
+	(add_all_call_clobber_ops): Split out from ... 
+	(get_asm_expr_operands): ... here.
+	(parse_ssa_operands): Convert to switch.
+	* tree.def (TM_LOAD, TM_STORE): Remove.
+
 2008-10-21  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c: Rename from gtm-low.c.

@@ -27,6 +27,8 @@
 #include "tree-pass.h"
 #include "except.h"
 #include "diagnostic.h"
+#include "toplev.h"
+#include "flags.h"
 
 
 /* The representation of a transaction changes several times during the
@@ -39,24 +41,25 @@
 	    __tm_abort;
 	}
 
-  is represented as
-
-	TM_ATOMIC {
-	  local++;
-	  if (++global == 10)
-	    __builtin___tm_abort ();
-	}
-
   During initial gimplification (gimplify.c) the TM_ATOMIC node is
-  trivially replaced with a GIMPLE_TM_ATOMIC node, and we add bits
-  to handle EH cleanup of the transaction:
+  trivially replaced with a GIMPLE_TM_ATOMIC node.
+
+  During pass_lower_tm, we examine the body of transactions looking
+  for aborts.  Transactions that do not contain an abort may be 
+  merged into an outer transaction.  We also add a TRY-FINALLY node
+  to arrange for the transaction to be committed on any exit.
+
+  [??? Think about how this arrangement affects throw-with-commit
+  and throw-with-abort operations.  In this case we want the TRY to
+  handle gotos, but not to catch any exceptions because the transaction
+  will already be closed.]
 
 	GIMPLE_TM_ATOMIC [label=NULL] {
 	  try {
 	    local = local + 1;
-	    t0 [tm_load]= global;
+	    t0 = global;
 	    t1 = t0 + 1;
-	    global [tm_store]= t1;
+	    global = t1;
 	    if (t1 == 10)
 	      __builtin___tm_abort ();
 	  } finally {
@@ -68,91 +71,47 @@
   intermixed with the regular EH stuff.  This gives us a nice persistent
   mapping (all the way through rtl) from transactional memory operation
   back to the transaction, which allows us to get the abnormal edges
-  correct to model transaction aborts and restarts.
-
-  During pass_lower_tm, we mark the gimple statements that perform
-  transactional memory operations with TM_LOAD/TM_STORE, and swap out
-  function calls with their (non-)transactional clones.  At this time
-  we flatten nested transactions (when possible), and flatten the
-  GIMPLE representation.
+  correct to model transaction aborts and restarts:
 
 	GIMPLE_TM_ATOMIC [label=over]
-	eh_label:
 	local = local + 1;
-	t0 [tm_load]= global;
+	t0 = global;
 	t1 = t0 + 1;
-	global [tm_store]= t1;
+	global = t1;
 	if (t1 == 10)
 	  __builtin___tm_abort ();
 	__builtin___tm_commit ();
 	over:
 
-  During pass_checkpoint_tm, we complete the lowering of the
-  GIMPLE_TM_ATOMIC node.  Here we examine the SSA web and arange for
-  local variables to be saved and restored in the event of an abort.
+  This is the end of all_lowering_passes, and so is what is present
+  during the IPA passes, and through all of the optimization passes.
 
-	save_local = local;
+  During pass_ipa_tm, we examine all GIMPLE_TM_ATOMIC blocks in all
+  functions and mark functions for cloning.
+
+  At the end of gimple optimization, before exiting SSA form, 
+  pass_expand_tm replaces statements that perform transactional
+  memory operations with the appropriate TM builtins, and swap
+  out function calls with their transactional clones.  At this
+  point we introduce the abnormal transaction restart edges and
+  complete lowering of the GIMPLE_TM_ATOMIC node.
+
 	x = __builtin___tm_start (MAY_ABORT);
 	eh_label:
-	if (x & restore_locals) {
-	  local = save_local;
-	}
 	if (x & abort_transaction)
 	  goto over;
 	local = local + 1;
-	t0 [tm_load]= global;
+        t0 = __builtin___tm_load (global);
 	t1 = t0 + 1;
-	global [tm_store]= t1;
+        __builtin___tm_store (&global, t1);
 	if (t1 == 10)
 	  __builtin___tm_abort ();
 	__builtin___tm_commit ();
 	over:
+*/
 
-  During expansion to rtl, we expand the TM_LOAD/TM_STORE markings
-  with calls to the appropriate builtin functions.  Delaying this long
-  allows the tree optimizers the most visibility into the operations.  */
-
-DEF_VEC_O(gimple_stmt_iterator);
-DEF_VEC_ALLOC_O(gimple_stmt_iterator,heap);
-
-struct ltm_state
-{
-  /* Bits to be stored in the GIMPLE_TM_ATOMIC subcode.  */
-  unsigned subcode;
-
-  /* The EH region number for this transaction.  Non-negative numbers
-     represent an active transaction within this function; -1 represents
-     an active transaction from a calling function (i.e. we're compiling
-     a transaction clone).  For no active transaction, the state pointer
-     passed will be null.  */
-  int region_nr;
-
-  /* Record the iterator pointing to a __tm_commit function call that
-     binds to this transaction region.  There may be many such calls,
-     depending on how the EH expansion of the try-finally node went.
-     But there's usually exactly one such call, and essentially always
-     only a small number, so to avoid rescanning the entire sequence
-     when we need to remove these calls, record the iterator location.  */
-  VEC(gimple_stmt_iterator,heap) *commit_stmts;
-};
-
-
-static void lower_sequence_tm (struct ltm_state *, gimple_seq);
+static void lower_sequence_tm (unsigned *, gimple_seq);
 static void lower_sequence_no_tm (gimple_seq);
-
-
-/* Record the transaction for this statement.  If the statement
-   already has a region number that's fine -- it means that the
-   statement can also throw.  If there's no region number, it 
-   means we're expanding a transactional clone and the region
-   is in a calling function.  */
-
-static void
-add_stmt_to_transaction (struct ltm_state *state, gimple stmt)
-{
-  if (state->region_nr >= 0 && lookup_stmt_eh_region (stmt) < 0)
-    add_stmt_to_eh_region (stmt, state->region_nr);
-}
 
 /* Determine whether X has to be instrumented using a read
    or write barrier.  */
@@ -166,7 +125,6 @@ requires_barrier (tree x)
   switch (TREE_CODE (x))
     {
     case INDIRECT_REF:
-      /* ??? Use must-alias information to reduce this.  */
       return true;
 
     case ALIGN_INDIRECT_REF:
@@ -189,155 +147,63 @@ requires_barrier (tree x)
    a transaction region.  */
 
 static void
-lower_assign_tm (struct ltm_state *state, gimple_stmt_iterator *gsi)
+examine_assign_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
-  bool load_p = requires_barrier (gimple_assign_rhs1 (stmt));
-  bool store_p = requires_barrier (gimple_assign_lhs (stmt));
 
-  if (load_p && store_p)
-    {
-      /* ??? This is a copy between two aggregates in memory.  I
-	 believe the Intel compiler handles this with a special
-	 version of memcpy.  For now, just consider the transaction
-	 irrevokable at this point.  */
-      state->subcode |= GTMA_HAVE_CALL_IRREVOKABLE;
-      return;
-    }
-  else if (load_p)
-    {
-      gimple_assign_set_rhs_code (stmt, TM_LOAD);
-      state->subcode |= GTMA_HAVE_LOAD;
-    }
-  else if (store_p)
-    {
-      gimple_assign_set_rhs_code (stmt, TM_STORE);
-      state->subcode |= GTMA_HAVE_STORE;
-    }
-  else
-    return;
-
-  add_stmt_to_transaction (state, stmt);
+  if (requires_barrier (gimple_assign_rhs1 (stmt)))
+    *state |= GTMA_HAVE_LOAD;
+  if (requires_barrier (gimple_assign_lhs (stmt)))
+    *state |= GTMA_HAVE_STORE;
 }
 
 /* Mark a GIMPLE_CALL as appropriate for being inside a transaction.  */
 
 static void
-lower_call_tm (struct ltm_state *state, gimple_stmt_iterator *gsi)
+examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree fn_decl;
-  struct cgraph_node *node, *orig_node;
-  int flags;
+  unsigned flags;
 
   flags = gimple_call_flags (stmt);
   if (flags & ECF_CONST)
     return;
 
+  if (flag_exceptions && !(flags & ECF_NOTHROW))
+    *state |= GTMA_HAVE_UNCOMMITTED_THROW;
+
   fn_decl = gimple_call_fndecl (stmt);
   if (!fn_decl)
     {
-      state->subcode |= GTMA_HAVE_CALL_INDIRECT;
+      *state |= GTMA_HAVE_CALL_IRREVOKABLE;
       return;
     }
 
-  /* Check if this call is one of our transactional builtins.  */
-  if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
-    switch (DECL_FUNCTION_CODE (fn_decl))
-      {
-      case BUILT_IN_TM_COMMIT:
-	/* Remember the commit so that we can remove it if
-	   we decide to elide the transaction.  */
-	VEC_safe_push (gimple_stmt_iterator,heap, state->commit_stmts, gsi);
-	return;
-      case BUILT_IN_TM_ABORT:
-	state->subcode |= GTMA_HAVE_ABORT;
-	add_stmt_to_transaction (state, stmt);
-	return;
-
-      default:
-	break;
-      }
-
+  /* If this function is pure, we can ignore it.  */
   if (DECL_IS_TM_PURE (fn_decl))
     return;
 
-  orig_node = node = cgraph_node (fn_decl);
-
-  /* Find transactional clone of function.  */
-  while (node && node->next_clone)
+  /* Check if this call is a transaction abort.  */
+  if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL
+      && DECL_FUNCTION_CODE (fn_decl) == BUILT_IN_TM_ABORT)
     {
-      node = node->next_clone;
-      if (DECL_IS_TM_CLONE (node->decl))
-	break;
-    }
-  if (DECL_IS_TM_CLONE (node->decl))
-    {
-      struct cgraph_edge *callers = orig_node->callers;
-
-      /* Find appropriate call stmt to redirect.  */
-      while (callers)
-	{
-	  if (callers->call_stmt == stmt)
-	    break;
-	  callers = callers->next_caller;
-	}
-
-      /* Substitute call stmt.  */
-      if (callers)
-	{
-	  gimple_call_set_fndecl (stmt, node->decl);
-	  cgraph_redirect_edge_callee (callers, node);
-	  if (dump_file)
-	    {
-	      fprintf (dump_file, "redirected edge to");
-	      print_generic_expr (dump_file, node->decl, 0);
-	      fputc ('\n', dump_file);
-	    }
-
-	  state->subcode |= GTMA_HAVE_CALL_TM;
-	  add_stmt_to_transaction (state, stmt);
-	  return;
-	}
+      *state |= GTMA_HAVE_ABORT;
+      return;
     }
 
-  /* The function was not const, tm_pure, or redirected to a 
-     transactional clone.  The call is therefore considered to
-     be irrevokable.  */
-  state->subcode |= GTMA_HAVE_CALL_IRREVOKABLE;
-}
-
-/* Remove any calls to __tm_commit inside STATE which belong
-   to the transaction.  */
-
-static void
-remove_tm_commits (struct ltm_state *state)
-{
-  gimple_stmt_iterator *gsi;
-  unsigned i;
-
-  for (i = 0;
-       VEC_iterate(gimple_stmt_iterator, state->commit_stmts, i, gsi);
-       ++i)
-    gsi_remove (gsi, true);
+  /* At this point pass_ipa_tm has not run, so no transactional
+     clones exist yet, so there's no point in looking for them.  */
+  *state |= GTMA_HAVE_CALL_IRREVOKABLE;
 }
 
 /* Lower a GIMPLE_TM_ATOMIC statement.  The GSI is advanced.  */
 
 static void
-lower_tm_atomic (struct ltm_state *outer_state, gimple_stmt_iterator *gsi)
+lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
 {
-  gimple stmt = gsi_stmt (*gsi);
-  struct ltm_state this_state;
-  struct eh_region *eh_region;
-  tree label;
-
-  this_state.subcode = 0;
-  this_state.region_nr = lookup_stmt_eh_region (stmt);
-  this_state.commit_stmts = VEC_alloc(gimple_stmt_iterator, heap, 1);
-
-  gcc_assert (this_state.region_nr >= 0);
-  eh_region = get_eh_region_from_number (this_state.region_nr);
+  gimple g, stmt = gsi_stmt (*gsi);
+  unsigned int this_state = 0;
 
   /* First, lower the body.  The scanning that we do inside gives
      us some idea of what we're dealing with.  */
@@ -346,57 +212,45 @@ lower_tm_atomic (struct ltm_state *outer_state, gimple_stmt_iterator *gsi)
   /* If there was absolutely nothing transaction related inside the
      transaction, we may elide it.  Likewise if this is a nested
      transaction and does not contain an abort.  */
-  if (this_state.subcode == 0
-      || (!(this_state.subcode & GTMA_HAVE_ABORT)
-	  && outer_state != NULL))
+  if (this_state == 0
+      || (!(this_state & GTMA_HAVE_ABORT) && outer_state != NULL))
     {
       if (outer_state)
-	outer_state->subcode |= this_state.subcode;
+	*outer_state |= this_state;
 
-      remove_tm_commits (&this_state);
       gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
       gimple_seq_set_body (stmt, NULL);
       gsi_remove (gsi, true);
-      remove_eh_handler (eh_region);
-      goto fini;
+      return;
     }
 
-  /* Insert an EH_LABEL immediately after the GIMPLE_TM_ATOMIC node.
-     This label won't really be used, but it mimicks the effect of 
-     the setjmp/longjmp that's going on behind the scenes.  */
-  label = create_artificial_label ();
-  set_eh_region_tree_label (eh_region, label);
-  gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
+  /* Wrap the body of the transaction in a try-finally node so that
+     the commit call is always properly called.  */
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
+  g = gimple_build_try (gimple_seq_body (stmt),
+			gimple_seq_alloc_with_stmt (g), GIMPLE_TRY_FINALLY);
+  gimple_seq_set_body (stmt, gimple_seq_alloc_with_stmt (g));
 
-  /* Insert the entire transaction sequence.  */
-  gsi_insert_seq_after (gsi, gimple_seq_body (stmt), GSI_CONTINUE_LINKING);
-  gimple_seq_set_body (stmt, NULL);
-
-  /* Record a label at the end of the transaction that will be used in
-     case the transaction aborts.  */
-  if (this_state.subcode & GTMA_HAVE_ABORT)
+  /* If the transaction calls abort, add an "over" label afterwards.  */
+  if (this_state & GTMA_HAVE_ABORT)
     {
-      label = create_artificial_label ();
+      tree label = create_artificial_label ();
       gimple_tm_atomic_set_label (stmt, label);
       gsi_insert_after (gsi, gimple_build_label (label), GSI_CONTINUE_LINKING);
     }
 
-  /* Record the set of operations found for use during final lowering
-     of the GIMPLE_TM_ATOMIC node.  */
-  gimple_tm_atomic_set_subcode (stmt, this_state.subcode);
+  /* Record the set of operations found for use later.  */
+  gimple_tm_atomic_set_subcode (stmt, this_state);
 
   /* Always update the iterator.  */
   gsi_next (gsi);
-
- fini:
-  VEC_free (gimple_stmt_iterator, heap, this_state.commit_stmts);
 }
 
 /* Iterate through the statements in the sequence, lowering them all
    as appropriate for being in a transaction.  */
 
 static void
-lower_sequence_tm (struct ltm_state *state, gimple_seq seq)
+lower_sequence_tm (unsigned int *state, gimple_seq seq)
 {
   gimple_stmt_iterator gsi;
 
@@ -408,11 +262,15 @@ lower_sequence_tm (struct ltm_state *state, gimple_seq seq)
 	case GIMPLE_ASSIGN:
 	  /* Only memory reads/writes need to be instrumented.  */
 	  if (gimple_assign_single_p (stmt))
-	    lower_assign_tm (state, &gsi);
+	    examine_assign_tm (state, &gsi);
 	  break;
 
 	case GIMPLE_CALL:
-	  lower_call_tm (state, &gsi);
+	  examine_call_tm (state, &gsi);
+	  break;
+
+	case GIMPLE_ASM:
+	  *state |= GTMA_HAVE_CALL_IRREVOKABLE;
 	  break;
 
 	case GIMPLE_TM_ATOMIC:
@@ -423,8 +281,8 @@ lower_sequence_tm (struct ltm_state *state, gimple_seq seq)
 	  break;
 	}
       gsi_next (&gsi);
-    no_update:
-      ;
+
+    no_update:;
     }
 }
 
@@ -451,20 +309,11 @@ lower_sequence_no_tm (gimple_seq seq)
 static unsigned int
 execute_lower_tm (void)
 {
-  /* Functions that are marked TM_PURE don't need annotation by definition.  */
-  /* ??? The Intel OOPSLA paper talks about performing the same scan of the
-     function as we would if the function was marked DECL_IS_TM_CLONE, and
-     warning if we find anything for which we would have made a change.  */
-  if (DECL_IS_TM_PURE (current_function_decl))
-    return 0;
-
-  /* When instrumenting a transactional clone, we begin the function inside
+  /* When lowering a transactional clone, we begin the function inside
      a transaction.  */
   if (DECL_IS_TM_CLONE (current_function_decl))
     {
-      struct ltm_state state;
-      state.subcode = 0;
-      state.region_nr = -1;
+      unsigned state = 0;
       lower_sequence_tm (&state, gimple_body (current_function_decl));
     }
   else
@@ -472,8 +321,6 @@ execute_lower_tm (void)
 
   return 0;
 }
-
-/* TM expansion -- the default pass, run before creation of SSA form.  */
 
 static bool
 gate_tm (void)
@@ -492,7 +339,7 @@ struct gimple_opt_pass pass_lower_tm =
   NULL,					/* next */
   0,					/* static_pass_number */
   0,					/* tv_id */
-  PROP_gimple_leh,			/* properties_required */
+  PROP_gimple_lcf,			/* properties_required */
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
@@ -500,6 +347,604 @@ struct gimple_opt_pass pass_lower_tm =
  }
 };
 
+/* Return true if STMT may alter control flow via a transactional edge.  */
+
+bool
+is_transactional_stmt (const_gimple stmt)
+{
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_CALL:
+      return (gimple_call_flags (stmt) & ECF_TM_OPS) != 0;
+    case GIMPLE_TM_ATOMIC:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Collect region information for each transaction.  */
+
+struct tm_region
+{
+  /* Link to the next unnested transaction.  */
+  struct tm_region *next;
+
+  /* The GIMPLE_TM_ATOMIC statement beginning this transaction.  */
+  gimple tm_atomic_stmt;
+
+  /* The entry block to this region.  */
+  basic_block entry_block;
+
+  /* The set of all blocks that end the region; NULL if only EXIT_BLOCK.  */
+  bitmap exit_blocks;
+
+  /* The EH region number assigned to this transaction.  */
+  int region_nr;
+};
+
+static struct tm_region *all_tm_regions;
+static bitmap_obstack tm_obstack;
+
+
+/* A subroutine of gate_tm_init, callback via for_each_tm_atomic.
+   Record the existance of the GIMPLE_TM_ATOMIC statement in a linked
+   list of tm_region elements.  */
+
+static void
+tm_region_init_1 (gimple stmt, void *xdata)
+{
+  struct tm_region **pptr = (struct tm_region **) xdata;
+  struct tm_region *region;
+  basic_block bb = gimple_bb (stmt);
+
+  /* ??? Verify that the statement (and the block) havn't been deleted.  */
+  gcc_assert (bb != NULL);
+  gcc_assert (gimple_code (stmt) == GIMPLE_TM_ATOMIC);
+
+  region = (struct tm_region *)
+    obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
+  region->next = *pptr;
+  region->tm_atomic_stmt = stmt;
+
+  /* There are either one or two edges out of the block containing
+     the GIMPLE_TM_ATOMIC, one to the actual region and one to the
+     "over" label if the region contains an abort.  The former will
+     always be the one marked FALLTHRU.  */
+  region->entry_block = FALLTHRU_EDGE (bb)->dest;
+
+  region->exit_blocks = BITMAP_ALLOC (&tm_obstack);
+  region->region_nr = lookup_stmt_eh_region (stmt);
+
+  *pptr = region;
+}
+
+
+/* The "gate" function for all transactional memory expansion and optimization
+   passes.  We collect region information for each top-level transaction, and
+   if we don't find any, we skip all of the TM passes.  Each region will have
+   all of the exit blocks recorded, and the originating statement.  */
+
+static bool
+gate_tm_init (void)
+{
+  struct tm_region *region;
+  VEC (basic_block, heap) *queue;
+
+  if (!flag_tm)
+    return false;
+
+  calculate_dominance_info (CDI_DOMINATORS);
+  bitmap_obstack_initialize (&tm_obstack);
+
+  /* If the function is a TM_CLONE, then the entire function is the region.  */
+  if (DECL_IS_TM_CLONE (current_function_decl))
+    {
+      region = (struct tm_region *)
+	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
+      region->next = NULL;
+      region->tm_atomic_stmt = NULL;
+      region->entry_block = ENTRY_BLOCK_PTR;
+      region->exit_blocks = NULL;
+      region->region_nr = -1;
+
+      return true;
+    }
+
+  /* Find each GIMPLE_TM_ATOMIC statement.  This data is stored
+     in the exception handling tables, so it's quickest to get
+     it out that way than actually search the function.  */
+  for_each_tm_atomic (false, tm_region_init_1, &all_tm_regions);
+
+  /* If we didn't find any regions, cleanup and skip the whole tree
+     of tm-related optimizations.  */
+  if (all_tm_regions == NULL)
+    {
+      bitmap_obstack_release (&tm_obstack);
+      return false;
+    }
+
+  queue = VEC_alloc (basic_block, heap, 10);
+
+  /* Find the exit blocks for each region.  */
+  for (region = all_tm_regions; region ; region = region->next)
+    {
+      basic_block bb;
+      gimple_stmt_iterator gsi;
+
+      VEC_quick_push (basic_block, queue, region->entry_block);
+      do
+	{
+	  bb = VEC_pop (basic_block, queue);
+
+	  /* Check to see if this is the end of the region by
+	     seeing if it ends in a call to __tm_commit.  */
+	  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
+	    {
+	      gimple g = gsi_stmt (gsi);
+	      if (gimple_code (g) == GIMPLE_CALL)
+		{
+		  tree fn = gimple_call_fndecl (g);
+		  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+		      && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		      && lookup_stmt_eh_region (g) == region->region_nr)
+		    {
+		      bitmap_set_bit (region->exit_blocks, bb->index);
+		      goto skip;
+		    }
+		}
+	    }
+
+	  for (bb = first_dom_son (CDI_DOMINATORS, bb);
+	       bb;
+	       bb = next_dom_son (CDI_DOMINATORS, bb))
+	    VEC_safe_push (basic_block, heap, queue, bb);
+
+	skip:;
+	}
+      while (!VEC_empty (basic_block, queue));
+    }
+
+  VEC_free (basic_block, heap, queue);
+
+  return true;
+}
+
+/* Free the transactional memory data structures.  */
+
+static unsigned int
+execute_tm_done (void)
+{
+  bitmap_obstack_release (&tm_obstack);
+  free_dominance_info (CDI_DOMINATORS);
+
+  return 0;
+}
+
+struct gimple_opt_pass pass_tm_init =
+{
+ {
+  GIMPLE_PASS,
+  "tminit",				/* name */
+  gate_tm_init,				/* gate */
+  NULL,					/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0,					/* todo_flags_finish */
+ }
+};
+
+struct gimple_opt_pass pass_tm_done =
+{
+ {
+  GIMPLE_PASS,
+  "tminit",				/* name */
+  NULL,					/* gate */
+  execute_tm_done,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0,					/* todo_flags_finish */
+ }
+};
+
+/* Add FLAGS to the GIMPLE_TM_ATOMIC subcode for the transaction region
+   represented by STATE.  */
+
+static inline void
+tm_atomic_subcode_ior (struct tm_region *state, unsigned flags)
+{
+  if (state->tm_atomic_stmt)
+    gimple_tm_atomic_set_subcode (state->tm_atomic_stmt,
+      gimple_tm_atomic_subcode (state->tm_atomic_stmt) | flags);
+}
+
+
+/* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
+
+static void
+expand_irrevokable (struct tm_region *state, gimple_stmt_iterator *gsi)
+{
+  gimple g;
+
+  tm_atomic_subcode_ior (state, GTMA_HAVE_CALL_IRREVOKABLE);
+
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
+  add_stmt_to_eh_region (g, state->region_nr);
+
+  gsi_insert_before (gsi, g, GSI_SAME_STMT);
+}
+
+
+/* Construct a memory load in a transactional context.  */
+
+static tree
+build_tm_load (tree lhs, tree rhs)
+{
+  enum built_in_function code = END_BUILTINS;
+  tree t, type = TREE_TYPE (rhs);
+
+  if (type == float_type_node)
+    code = BUILT_IN_TM_LOAD_FLOAT;
+  else if (type == double_type_node)
+    code = BUILT_IN_TM_LOAD_DOUBLE;
+  else if (TYPE_SIZE_UNIT (type) != NULL
+	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
+    {
+      switch (tree_low_cst (TYPE_SIZE_UNIT (type), 1))
+	{
+	case 1:
+	  code = BUILT_IN_TM_LOAD_1;
+	  break;
+	case 2:
+	  code = BUILT_IN_TM_LOAD_2;
+	  break;
+	case 4:
+	  code = BUILT_IN_TM_LOAD_4;
+	  break;
+	case 8:
+	  code = BUILT_IN_TM_LOAD_8;
+	  break;
+	}
+    }
+
+  if (code == END_BUILTINS)
+    {
+      sorry ("transactional load for %T not supported", type);
+      code = BUILT_IN_TM_LOAD_4;
+    }
+
+  t = built_in_decls[code];
+  t = build_call_expr (t, 1, build_fold_addr_expr (rhs));
+  if (TYPE_MAIN_VARIANT (TREE_TYPE (t)) != TYPE_MAIN_VARIANT (type))
+    t = build1 (VIEW_CONVERT_EXPR, type, t);
+  t = build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, t);
+
+  return t;
+}
+
+
+/* Similarly for storing TYPE in a transactional context.  */
+
+static tree
+build_tm_store (tree lhs, tree rhs)
+{
+  enum built_in_function code = END_BUILTINS;
+  tree t, fn, type = TREE_TYPE (rhs), simple_type;
+
+  if (type == float_type_node)
+    code = BUILT_IN_TM_STORE_FLOAT;
+  else if (type == double_type_node)
+    code = BUILT_IN_TM_STORE_DOUBLE;
+  else if (TYPE_SIZE_UNIT (type) != NULL
+	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
+    {
+      switch (tree_low_cst (TYPE_SIZE_UNIT (type), 1))
+	{
+	case 1:
+	  code = BUILT_IN_TM_STORE_1;
+	  break;
+	case 2:
+	  code = BUILT_IN_TM_STORE_2;
+	  break;
+	case 4:
+	  code = BUILT_IN_TM_STORE_4;
+	  break;
+	case 8:
+	  code = BUILT_IN_TM_STORE_8;
+	  break;
+	}
+    }
+
+  if (code == END_BUILTINS)
+    {
+      sorry ("transactional load for %T not supported", type);
+      code = BUILT_IN_TM_STORE_4;
+    }
+
+  fn = built_in_decls[code];
+  simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
+  if (TYPE_MAIN_VARIANT (simple_type) != TYPE_MAIN_VARIANT (type))
+    rhs = build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
+  t = build_call_expr (fn, 2, build_fold_addr_expr (lhs), rhs);
+
+  return t;
+}
+
+
+/* Expand an assignment statement into transactional builtins.  */
+
+static void
+expand_assign_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
+{
+  gimple stmt = gsi_stmt (*gsi);
+  tree lhs = gimple_assign_lhs (stmt);
+  tree rhs = gimple_assign_rhs1 (stmt);
+  bool store_p = requires_barrier (lhs);
+  bool load_p = requires_barrier (rhs);
+  tree call;
+  gimple_seq seq;
+  gimple gcall;
+  gimple_stmt_iterator gsi2;
+  struct gimplify_ctx gctx;
+
+  if (load_p && store_p)
+    {
+      tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
+      call = build_call_expr (built_in_decls [BUILT_IN_TM_MEMCPY],
+			      3, build_fold_addr_expr (lhs),
+			      build_fold_addr_expr (rhs),
+			      TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
+    }
+  else if (load_p)
+    {
+      tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD);
+      call = build_tm_load (lhs, rhs);
+    }
+  else if (store_p)
+    {
+      tm_atomic_subcode_ior (state, GTMA_HAVE_STORE);
+      call = build_tm_store (lhs, rhs);
+    }
+  else
+    return;
+
+  push_gimplify_context (&gctx);
+  gctx.into_ssa = false;
+
+  seq = NULL;
+  gimplify_and_add (call, &seq);
+
+  pop_gimplify_context (NULL);
+
+  for (gsi2 = gsi_last (seq); ; gsi_prev (&gsi2))
+    {
+      gcall = gsi_stmt (gsi2);
+      if (gimple_code (gcall) == GIMPLE_CALL)
+	break;
+    }
+
+  add_stmt_to_eh_region  (gcall, state->region_nr);
+  gsi_insert_seq_before (gsi, seq, GSI_SAME_STMT);
+  gsi_remove (gsi, true);
+}
+
+
+static tree
+find_tm_clone (tree orig_decl ATTRIBUTE_UNUSED)
+{
+  return NULL_TREE;
+}
+
+/* Expand a call statement as appropriate for a transaction.  That is,
+   either verify that the call does not affect the transaction, or
+   redirect the call to a clone that handles transactions, or change
+   the transaction state to IRREVOKABLE.  Return true if the call is
+   one of the builtins that end a transaction.  */
+
+static bool
+expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
+{
+  gimple stmt = gsi_stmt (*gsi);
+  tree fn_decl;
+  unsigned flags;
+
+  flags = gimple_call_flags (stmt);
+  if (flags & ECF_CONST)
+    return false;
+
+  if (flag_exceptions && !(flags & ECF_NOTHROW))
+    tm_atomic_subcode_ior (state, GTMA_HAVE_UNCOMMITTED_THROW);
+
+  fn_decl = gimple_call_fndecl (stmt);
+  if (!fn_decl)
+    {
+      /* ??? The ABI under discussion has us calling into the runtime
+	 to determine if there's a transactional version of this function.
+	 For now, just switch to irrevokable mode.  */
+      expand_irrevokable (state, gsi);
+      return false;
+    }
+
+  if (DECL_IS_TM_PURE (fn_decl))
+    return false;
+
+  if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
+    {
+      /* ??? TM_COMMIT in a nested transaction has an abnormal edge back to
+	 the outer-most transaction (there are no nested retries), while
+	 a TM_ABORT has an abnormal backedge to the inner-most transaction.
+	 We havn't actually saved the inner-most transaction here.  We should
+	 be able to get to it via the region_nr saved on STMT, and read the
+	 tm_atomic_stmt from that, and find the first region block from there.
+	 This assumes we don't expand GIMPLE_TM_ATOMIC until after all other
+	 statements have been expanded.  */
+      switch (DECL_FUNCTION_CODE (fn_decl))
+	{
+	case BUILT_IN_TM_COMMIT:
+	case BUILT_IN_TM_ABORT:
+	  /* Both of these calls end a transaction.  */
+	  if (lookup_stmt_eh_region (stmt) == state->region_nr)
+	    return true;
+
+	default:
+	  break;
+	}
+
+      return false;
+    }
+
+  fn_decl = find_tm_clone (fn_decl);
+  if (fn_decl)
+    {
+      gimple_call_set_fndecl (stmt, fn_decl);
+      return false;
+    }
+
+  expand_irrevokable (state, gsi);
+  return false;
+}
+
+
+/* Expand all statements in BB as appropriate for being inside
+   a transaction.  */
+static void
+expand_block_tm (struct tm_region *state, basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
+    {
+      gimple stmt = gsi_stmt (gsi);
+      switch (gimple_code (stmt))
+	{
+	case GIMPLE_ASSIGN:
+	  /* Only memory reads/writes need to be instrumented.  */
+	  if (gimple_assign_single_p (stmt))
+	    {
+	      expand_assign_tm (state, &gsi);
+	      continue;
+	    }
+	  break;
+
+	case GIMPLE_CALL:
+	  if (expand_call_tm (state, &gsi))
+	    return;
+	  break;
+
+	case GIMPLE_ASM:
+	  expand_irrevokable (state, &gsi);
+	  break;
+
+	default:
+	  break;
+	}
+      gsi_next (&gsi);
+    }
+}
+
+/* Entry point to the MARK phase of TM expansion.  Here we replace
+   transactional memory statements with calls to builtins, and function
+   calls with their transactional clones (if available).  But we don't
+   yet lower GIMPLE_TM_ATOMIC or add the transaction restart back-edges.  */
+
+static unsigned int
+execute_tm_mark (void)
+{
+  struct tm_region *region;
+  basic_block bb;
+  VEC (basic_block, heap) *queue;
+
+  queue = VEC_alloc (basic_block, heap, 10);
+
+  for (region = all_tm_regions; region ; region = region->next)
+    if (region->exit_blocks)
+      {
+	/* Collect a new SUBCODE set, now that optimizations are done.  */
+	gimple_tm_atomic_set_subcode (region->tm_atomic_stmt, 0);
+
+	VEC_quick_push (basic_block, queue, region->entry_block);
+	do
+	  {
+	    bb = VEC_pop (basic_block, queue);
+	    expand_block_tm (region, bb);
+
+	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
+	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
+		   bb;
+		   bb = next_dom_son (CDI_DOMINATORS, bb))
+		VEC_safe_push (basic_block, heap, queue, bb);
+	  }
+	while (!VEC_empty (basic_block, queue));
+      }
+    else
+      {
+	FOR_EACH_BB (bb)
+	  expand_block_tm (region, bb);
+      }
+
+  VEC_free (basic_block, heap, queue);
+
+  return 0;
+}
+
+struct gimple_opt_pass pass_tm_mark =
+{
+ {
+  GIMPLE_PASS,
+  "tmmark",				/* name */
+  NULL,					/* gate */
+  execute_tm_mark,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_update_ssa
+  | TODO_verify_ssa
+  | TODO_dump_func,			/* todo_flags_finish */
+ }
+};
+
+/* Create an abnormal call edge from BB to the first block of the region
+   represented by STATE.  */
+
+static inline void
+make_tm_edge (basic_block bb, struct tm_region *state)
+{
+  make_edge (bb, state->entry_block, EDGE_ABNORMAL | EDGE_ABNORMAL_CALL);
+}
+
+
+/* Split the block at GSI and create an abnormal back edge.  */
+
+static void ATTRIBUTE_UNUSED
+split_and_add_tm_edge (struct tm_region *state, gimple_stmt_iterator *gsi)
+{
+  basic_block bb = gsi->bb;
+  if (!gsi_one_before_end_p (*gsi))
+    {
+      edge e = split_block (bb, gsi_stmt (*gsi));
+      *gsi = gsi_start_bb (e->dest);
+    }
+
+  make_tm_edge (bb, state);
+}
+
 
 /* ??? Find real values for these bits.  */
 #define TM_START_RESTORE_LIVE_IN	1
@@ -516,7 +961,7 @@ struct gimple_opt_pass pass_lower_tm =
    and this isn't necessarily the most efficient implementation, but it
    is just about the easiest.  */
 
-static void
+static void ATTRIBUTE_UNUSED
 checkpoint_live_in_variables (edge e)
 {
   gimple_stmt_iterator gsi;
@@ -566,7 +1011,7 @@ checkpoint_live_in_variables (edge e)
     }
 }
 
-static void
+static void ATTRIBUTE_UNUSED
 expand_tm_atomic (basic_block bb, gimple_stmt_iterator *gsi)
 {
   tree status, tm_start;
@@ -615,31 +1060,21 @@ expand_tm_atomic (basic_block bb, gimple_stmt_iterator *gsi)
   gsi_remove (gsi, true);
 }
 
-/* Entry point to the checkpointing. */
+/* Entry point to the final expansion of transactional nodes. */
 
 static unsigned int
-execute_checkpoint_tm (void)
+execute_tm_edges (void)
 {
-  basic_block bb;
-
-  FOR_EACH_BB (bb)
-    {
-      gimple_stmt_iterator gsi = gsi_last_bb (bb);
-      if (!gsi_end_p (gsi)
-	  && gimple_code (gsi_stmt (gsi)) == GIMPLE_TM_ATOMIC)
-	expand_tm_atomic (bb, &gsi);
-    }
-
   return 0;
 }
 
-struct gimple_opt_pass pass_checkpoint_tm =
+struct gimple_opt_pass pass_tm_edges =
 {
  {
   GIMPLE_PASS,
-  "tmcheckpoint",			/* name */
-  gate_tm,				/* gate */
-  execute_checkpoint_tm,		/* execute */
+  "tmedge",				/* name */
+  gate_tm_init,				/* gate */
+  execute_tm_edges,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -648,87 +1083,65 @@ struct gimple_opt_pass pass_checkpoint_tm =
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_update_ssa |
-  TODO_verify_ssa |
-  TODO_dump_func,			/* todo_flags_finish */
+  TODO_verify_ssa | TODO_dump_func,	/* todo_flags_finish */
  }
 };
 
-/* Construct transaction restart edges for STMT.  */
 
-static void
-make_tm_edge_1 (struct eh_region *region, void *data)
+static unsigned int
+execute_tm_memopt (void)
 {
-  gimple stmt = (gimple) data;
-  basic_block src, dst;
-  unsigned flags;
-
-  src = gimple_bb (stmt);
-  dst = label_to_block (get_eh_region_tree_label (region));
-
-  /* Don't set EDGE_EH here, because that's supposed to be used when
-     we could in principal redirect the edge by modifying the exception
-     tables.  Transactions don't use tables though, only setjmp.  */
-  flags = EDGE_ABNORMAL;
-  if (gimple_code (stmt) == GIMPLE_CALL)
-    flags |= EDGE_ABNORMAL_CALL;
-  make_edge (src, dst, flags);
+  return 0;
 }
 
-void
-make_tm_edge (gimple stmt)
+static bool
+gate_tm_memopt (void)
 {
-  int region_nr;
-
-  /* Do nothing if the region is outside this function.  */
-  region_nr = lookup_stmt_eh_region (stmt);
-  if (region_nr < 0)
-    return;
-
-  /* The control structure inside tree-cfg.c isn't the best;
-     re-check whether this is actually a transactional stmt.  */
-  if (!is_transactional_stmt (stmt))
-    return;
-
-  foreach_reachable_transaction (region_nr, make_tm_edge_1, (void *) stmt);
+  return optimize > 0;
 }
 
-/* Return true if STMT may alter control flow via a transactional edge.  */
-
-bool
-is_transactional_stmt (const_gimple stmt)
+struct gimple_opt_pass pass_tm_memopt =
 {
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_ASSIGN:
-      {
-	/* We only want to process assignments that have been
-	   marked for transactional memory.  */
-	enum tree_code subcode = gimple_expr_code (stmt);
-	return (subcode == TM_LOAD || subcode == TM_STORE);
-      }
+ {
+  GIMPLE_PASS,
+  "tminit",				/* name */
+  gate_tm_memopt,			/* gate */
+  execute_tm_memopt,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_func,			/* todo_flags_finish */
+ }
+};
 
-    case GIMPLE_CALL:
-      {
-	tree fn_decl = gimple_call_fndecl (stmt);
+
 
-	/* We only want to process __tm_abort and cloned direct calls,
-	   since those are the only ones that can restart the transaction.  */
-	if (!fn_decl)
-	  return false;
-	if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL
-	    && DECL_FUNCTION_CODE (fn_decl) == BUILT_IN_TM_ABORT)
-	  return true;
-	if (DECL_IS_TM_CLONE (fn_decl))
-	  return true;
-	else
-	  return false;
-      }
-
-    case GIMPLE_TM_ATOMIC:
-      return true;
-
-    default:
-      return false;
-    }
+static unsigned int
+execute_ipa_tm (void)
+{
+  return 0;
 }
+
+struct simple_ipa_opt_pass pass_ipa_tm =
+{
+ {
+  SIMPLE_IPA_PASS,
+  "tmipa",				/* name */
+  gate_tm,				/* gate */
+  execute_ipa_tm,			/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  0,					/* tv_id */
+  PROP_ssa | PROP_cfg,			/* properties_required */
+  0,			                /* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0,					/* todo_flags_finish */
+ }
+};

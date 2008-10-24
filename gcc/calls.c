@@ -483,6 +483,9 @@ special_function_p (const_tree fndecl, int flags)
       switch (DECL_FUNCTION_CODE (fndecl))
 	{
 	case BUILT_IN_TM_ABORT:
+	case BUILT_IN_TM_COMMIT:
+	case BUILT_IN_TM_IRREVOKABLE:
+	case BUILT_IN_TM_MEMCPY:
 	case BUILT_IN_TM_STORE_1:
 	case BUILT_IN_TM_STORE_2:
 	case BUILT_IN_TM_STORE_4:

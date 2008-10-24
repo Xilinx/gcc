@@ -1551,6 +1551,11 @@ get_addr_dereference_operands (gimple stmt, tree *addr, int flags,
       gimple_set_has_volatile_ops (stmt, true);
       return;
     }
+  else if (TREE_CODE (ptr) == ADDR_EXPR)
+    {
+      get_expr_operands (stmt, &TREE_OPERAND (ptr, 0), flags);
+      return;
+    }
   else
     {
       /* Ok, this isn't even is_gimple_min_invariant.  Something's broke.  */
@@ -1630,11 +1635,35 @@ get_tmr_operands (gimple stmt, tree expr, int flags)
 }
 
 
+/* Clobber everything in memory.  Used when memory barriers are seen.  */
+
+static void
+add_all_call_clobber_ops (gimple stmt)
+{
+  unsigned i;
+  bitmap_iterator bi;
+
+  /* Mark the statement as having memory operands.  */
+  gimple_set_references_memory (stmt, true);
+
+  EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
+    {
+      tree var = referenced_var (i);
+      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
+    }
+
+  EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
+    {
+      tree var = referenced_var (i);
+      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
+    }
+}
+
 /* Add clobbering definitions for .GLOBAL_VAR or for each of the call
    clobbered variables in the function.  */
 
 static void
-add_call_clobber_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
+add_call_clobber_ops (gimple stmt, tree callee)
 {
   unsigned u;
   bitmap_iterator bi;
@@ -1653,8 +1682,13 @@ add_call_clobber_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
   /* Get info for local and module level statics.  There is a bit
      set for each static if the call being processed does not read
      or write that variable.  */
-  not_read_b = callee ? ipa_reference_get_not_read_global (cgraph_node (callee)) : NULL; 
-  not_written_b = callee ? ipa_reference_get_not_written_global (cgraph_node (callee)) : NULL;
+  not_read_b = not_written_b = NULL;
+  if (callee)
+    {
+      struct cgraph_node *cg = cgraph_node (callee);
+      not_read_b = ipa_reference_get_not_read_global (cg);
+      not_written_b = ipa_reference_get_not_written_global (cg);
+    }
 
   /* Add a VDEF operand for every call clobbered variable.  */
   EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, u, bi)
@@ -1695,7 +1729,7 @@ add_call_clobber_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
    function.  */
 
 static void
-add_call_read_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
+add_call_read_ops (gimple stmt, tree callee)
 {
   unsigned u;
   bitmap_iterator bi;
@@ -1705,7 +1739,9 @@ add_call_read_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
   if (gimple_call_flags (stmt) & ECF_CONST)
     return;
 
-  not_read_b = callee ? ipa_reference_get_not_read_global (cgraph_node (callee)) : NULL;
+  not_read_b = NULL;
+  if (callee)
+    not_read_b = ipa_reference_get_not_read_global (cgraph_node (callee));
 
   /* For pure functions we compute non-escaped uses separately.  */
   if (gimple_call_flags (stmt) & ECF_PURE)
@@ -1763,6 +1799,16 @@ add_call_read_ops (gimple stmt, tree callee ATTRIBUTE_UNUSED)
     }
 }
 
+/* STMT is one of the transactional memory barrier builtins, FLAGS
+   is either opf_def or opf_use.  Determine what memory is touched
+   by the builtin, and set the operands appropriately.  */
+
+static void
+add_tm_call_ops (gimple stmt, int flags)
+{
+  tree *pptr = gimple_call_arg_ptr (stmt, 0);
+  get_addr_dereference_operands (stmt, pptr, flags, *pptr, 0, -1, false);
+}
 
 /* If STMT is a call that may clobber globals and other symbols that
    escape, add them to the VDEF/VUSE lists for it.  */
@@ -1771,22 +1817,50 @@ static void
 maybe_add_call_clobbered_vops (gimple stmt)
 {
   int call_flags = gimple_call_flags (stmt);
+  tree fndecl = gimple_call_fndecl (stmt);
 
   /* Mark the statement as having memory operands.  */
   gimple_set_references_memory (stmt, true);
+
+  /* Special-case some builtin functions.  */
+  if (fndecl && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_TM_STORE_1:
+      case BUILT_IN_TM_STORE_2:
+      case BUILT_IN_TM_STORE_4:
+      case BUILT_IN_TM_STORE_8:
+      case BUILT_IN_TM_STORE_FLOAT:
+      case BUILT_IN_TM_STORE_DOUBLE:
+        add_tm_call_ops (stmt, opf_def);
+	return;
+
+      case BUILT_IN_TM_LOAD_1:
+      case BUILT_IN_TM_LOAD_2:
+      case BUILT_IN_TM_LOAD_4:
+      case BUILT_IN_TM_LOAD_8:
+      case BUILT_IN_TM_LOAD_FLOAT:
+      case BUILT_IN_TM_LOAD_DOUBLE:
+        add_tm_call_ops (stmt, opf_use);
+	return;
+
+      /* TODO: All of the <string.h> routines have known memory access
+	 patterns; we can avoid touching all memory for them.  */
+
+      default:
+	break;
+      }
 
   /* If aliases have been computed already, add VDEF or VUSE
      operands for all the symbols that have been found to be
      call-clobbered.  */
   if (gimple_aliases_computed_p (cfun) && !(call_flags & ECF_NOVOPS))
     {
-      /* A 'pure' or a 'const' function never call-clobbers anything. 
-	 A 'noreturn' function might, but since we don't return anyway 
-	 there is no point in recording that.  */ 
-      if (!(call_flags & (ECF_PURE | ECF_CONST | ECF_NORETURN)))
-	add_call_clobber_ops (stmt, gimple_call_fndecl (stmt));
+      /* A 'pure' or a 'const' function never call-clobbers anything.  */
+      if (!(call_flags & (ECF_PURE | ECF_CONST)))
+	add_call_clobber_ops (stmt, fndecl);
       else if (!(call_flags & ECF_CONST))
-	add_call_read_ops (stmt, gimple_call_fndecl (stmt));
+	add_call_read_ops (stmt, fndecl);
     }
 }
 
@@ -1854,23 +1928,7 @@ get_asm_expr_operands (gimple stmt)
       tree link = gimple_asm_clobber_op (stmt, i);
       if (strcmp (TREE_STRING_POINTER (TREE_VALUE (link)), "memory") == 0)
 	{
-	  unsigned i;
-	  bitmap_iterator bi;
-
-	  /* Mark the statement as having memory operands.  */
-	  gimple_set_references_memory (stmt, true);
-
-	  EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
-	    {
-	      tree var = referenced_var (i);
-	      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
-	    }
-
-	  EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
-	    {
-	      tree var = referenced_var (i);
-	      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
-	    }
+	  add_all_call_clobber_ops (stmt);
 	  break;
 	}
     }
@@ -2076,25 +2134,32 @@ static void
 parse_ssa_operands (gimple stmt)
 {
   enum gimple_code code = gimple_code (stmt);
+  size_t i, start = 0;
 
-  if (code == GIMPLE_ASM)
-    get_asm_expr_operands (stmt);
-  else
+  switch (code)
     {
-      size_t i, start = 0;
+    case GIMPLE_ASM:
+      get_asm_expr_operands (stmt);
+      break;
 
-      if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
-	{
-	  get_expr_operands (stmt, gimple_op_ptr (stmt, 0), opf_def);
-	  start = 1;
-	}
+    case GIMPLE_TM_ATOMIC:
+      /* The start of a transaction block acts as a memory barrier.  */
+      add_all_call_clobber_ops (stmt);
+      break;
 
+    case GIMPLE_CALL:
+      maybe_add_call_clobbered_vops (stmt);
+      /* FALLTHRU */
+
+    case GIMPLE_ASSIGN:
+      get_expr_operands (stmt, gimple_op_ptr (stmt, 0), opf_def);
+      start = 1;
+      /* FALLTHRU */
+
+    default:
       for (i = start; i < gimple_num_ops (stmt); i++)
 	get_expr_operands (stmt, gimple_op_ptr (stmt, i), opf_use);
-
-      /* Add call-clobbered operands, if needed.  */
-      if (code == GIMPLE_CALL)
-	maybe_add_call_clobbered_vops (stmt);
+      break;
     }
 }
 

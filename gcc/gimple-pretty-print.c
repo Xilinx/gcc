@@ -355,19 +355,9 @@ dump_binary_rhs (pretty_printer *buffer, gimple gs, int spc, int flags)
 static void
 dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
-  enum tree_code code;
-
-  /* Don't bypass the transactional markers like
-     gimple_assign_rhs_code would.  */
-  code = gimple_expr_code (gs);
-  if (code != TM_LOAD && code != TM_STORE
-      && get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS)
-    code = TREE_CODE (gimple_assign_rhs1 (gs));
-
   if (flags & TDF_RAW)
     {
       tree last;
-
       if (gimple_num_ops (gs) == 2)
         last = NULL_TREE;
       else if (gimple_num_ops (gs) == 3)
@@ -376,8 +366,8 @@ dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
         gcc_unreachable ();
 
       dump_gimple_fmt (buffer, spc, flags, "%G <%s, %T, %T, %T>", gs,
-                       tree_code_name[code], gimple_assign_lhs (gs),
-		       gimple_assign_rhs1 (gs), last);
+                       tree_code_name[gimple_assign_rhs_code (gs)],
+                       gimple_assign_lhs (gs), gimple_assign_rhs1 (gs), last);
     }
   else
     {
@@ -386,11 +376,6 @@ dump_gimple_assign (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  dump_generic_node (buffer, gimple_assign_lhs (gs), spc, flags, false);
 	  pp_space (buffer);
 	  pp_character (buffer, '=');
-
-	  if (code == TM_LOAD)
-	    pp_string (buffer, "{tm_load}");
-	  else if (code == TM_STORE)
-	    pp_string (buffer, "{tm_store}");
 
 	  if (gimple_assign_nontemporal_move_p (gs))
 	    pp_string (buffer, "{nt}");

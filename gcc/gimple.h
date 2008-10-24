@@ -742,7 +742,7 @@ struct gimple_statement_omp_atomic_store GTY(())
 #define GTMA_HAVE_CALL_TM		(1u << 3)
 #define GTMA_HAVE_CALL_IRREVOKABLE	(1u << 4)
 #define GTMA_MUST_CALL_IRREVOKABLE	(1u << 5)
-#define GTMA_HAVE_CALL_INDIRECT		(1u << 6)
+#define GTMA_HAVE_UNCOMMITTED_THROW	(1u << 6)
 
 struct gimple_statement_tm_atomic GTY(())
 {

@@ -182,7 +182,7 @@ struct eh_region GTY(())
 
     /* ??? Nothing for now.  */
     struct eh_region_u_transaction {
-      int dummy;
+      gimple tm_atomic_stmt;
     } GTY ((tag ("ERT_TRANSACTION"))) transaction;
   } GTY ((desc ("%0.type"))) u;
 
@@ -515,9 +515,11 @@ gen_eh_region_must_not_throw (struct eh_region *outer)
 }
 
 struct eh_region *
-gen_eh_region_transaction (struct eh_region *outer)
+gen_eh_region_transaction (struct eh_region *outer, gimple stmt)
 {
-  return gen_eh_region (ERT_TRANSACTION, outer);
+  struct eh_region *region = gen_eh_region (ERT_TRANSACTION, outer);
+  region->u.transaction.tm_atomic_stmt = stmt;
+  return region;
 }
 
 int
@@ -2416,6 +2418,34 @@ for_each_eh_region (void (*callback) (struct eh_region *))
       if (region)
 	(*callback) (region);
     }
+}
+
+void
+for_each_tm_atomic (bool want_nested, void (*callback) (gimple, void *),
+		    void *callback_data)
+{
+  int i, n = cfun->eh->last_region_number;
+  for (i = 1; i <= n; ++i)
+    {
+      struct eh_region *region;
+
+      region = VEC_index (eh_region, cfun->eh->region_array, i);
+      if (region && region->type == ERT_TRANSACTION)
+	{
+	  if (!want_nested)
+	    {
+	      struct eh_region *r = region;
+	      do {
+		r = r->outer;
+	      } while (r && r->type != ERT_TRANSACTION);
+	      if (r)
+		continue;
+	    }
+
+	  callback (region->u.transaction.tm_atomic_stmt, callback_data);
+	}
+    }
+  
 }
 
 /* This section describes CFG exception edges for flow.  */

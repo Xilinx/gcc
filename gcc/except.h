@@ -43,6 +43,9 @@ extern void for_each_eh_label (void (*) (rtx));
 /* Invokes CALLBACK for every exception region in the current function.  */
 extern void for_each_eh_region (void (*) (struct eh_region *));
 
+/* Invokes CALLBACK for every transaction region.  */
+extern void for_each_tm_atomic (bool, void (*) (gimple, void *), void *);
+
 /* Determine if the given INSN can throw an exception.  */
 extern bool can_throw_internal_1 (int, bool);
 extern bool can_throw_internal (const_rtx);
@@ -91,7 +94,7 @@ extern struct eh_region *gen_eh_region_try (struct eh_region *);
 extern struct eh_region *gen_eh_region_catch (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_allowed (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_must_not_throw (struct eh_region *);
-extern struct eh_region *gen_eh_region_transaction (struct eh_region *);
+extern struct eh_region *gen_eh_region_transaction (struct eh_region *, gimple);
 extern int get_eh_region_number (struct eh_region *);
 extern struct eh_region *get_eh_region_from_number (int);
 extern bool get_eh_region_may_contain_throw (struct eh_region *);

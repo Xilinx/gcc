@@ -6123,7 +6123,7 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
 {
   tree expr = *expr_p;
   gimple g;
-  gimple_seq body = NULL, cleanup = NULL;
+  gimple_seq body = NULL;
   struct gimplify_ctx gctx;
 
   push_gimplify_context (&gctx);
@@ -6134,23 +6134,7 @@ gimplify_tm_atomic (tree *expr_p, gimple_seq *pre_p)
   else
     pop_gimplify_context (NULL);
 
-  /* We need to add the EH support for committing the transaction
-     before pass_lower_eh runs, which is before pass_expand_tm.
-     Doing it now is easy enough.  We need to build
-	try {
-	  BODY
-	} finally {
-	  __tm_commit ();
-	}
-  */
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
-  gimplify_seq_add_stmt (&cleanup, g);
-  g = gimple_build_try (body, cleanup, GIMPLE_TRY_FINALLY);
-
-  body = NULL;
-  gimplify_seq_add_stmt (&body, g);
   g = gimple_build_tm_atomic (body, NULL);
-
   gimplify_seq_add_stmt (pre_p, g);
   *expr_p = NULL_TREE;
 

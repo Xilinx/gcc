@@ -1080,7 +1080,6 @@ extern int lookup_stmt_eh_region (gimple);
 extern bool verify_eh_edges (gimple);
 
 /* In gtm-low.c  */
-extern void make_tm_edge (gimple);
 extern bool is_transactional_stmt (const_gimple);
 
 /* In tree-ssa-pre.c  */
