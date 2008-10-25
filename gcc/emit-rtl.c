@@ -293,6 +293,7 @@ mem_attrs_htab_hash (const void *x)
   const mem_attrs *const p = (const mem_attrs *) x;
 
   return (p->alias ^ (p->align * 1000)
+	  ^ (p->addrspace * 4000)
 	  ^ ((p->offset ? INTVAL (p->offset) : 0) * 50000)
 	  ^ ((p->size ? INTVAL (p->size) : 0) * 2500000)
 	  ^ (size_t) iterative_hash_expr (p->expr, 0));
@@ -310,6 +311,7 @@ mem_attrs_htab_eq (const void *x, const void *y)
 
   return (p->alias == q->alias && p->offset == q->offset
 	  && p->size == q->size && p->align == q->align
+	  && p->addrspace == q->addrspace
 	  && (p->expr == q->expr
 	      || (p->expr != NULL_TREE && q->expr != NULL_TREE
 		  && operand_equal_p (p->expr, q->expr, 0))));
@@ -2174,7 +2176,7 @@ get_spill_slot_decl (void)
   rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
   MEM_NOTRAP_P (rd) = 1;
   MEM_ATTRS (rd) = get_mem_attrs (new_alias_set (), d, const0_rtx,
-				  NULL_RTX, 0, BLKmode);
+				  NULL_RTX, 0, 0, BLKmode);
   SET_DECL_RTL (d, rd);
 
   return d;
@@ -2207,7 +2209,7 @@ set_mem_attrs_for_spill (rtx mem)
 
   MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
 				   MEM_SIZE (mem), MEM_ALIGN (mem),
-				   GET_MODE (mem));
+				   0, GET_MODE (mem));
   MEM_NOTRAP_P (mem) = 1;
 }
 

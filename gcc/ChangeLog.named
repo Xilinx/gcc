@@ -1,3 +1,10 @@
+2008-10-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* emit-rtl.c (get_spill_slot_decl): Pass 0 as address space.
+	(set_mem_attrs_for_spill): Ditto.
+	(mem_attrs_htab_hash): Use the address space in the hash.
+	(mem_attrs_htab_eq): Ditto.
+
 2008-10-20  Ben Elliston  <bje@au.ibm.com>
 
 	* doc/invoke.texi (SPU Options): Improve documentation for -mea32,
