@@ -124,8 +124,11 @@ extern void ggc_mark_stringpool	(void);
 extern void ggc_purge_stringpool (void);
 
 /* Call ggc_set_mark on all the roots.  */
-
 extern void ggc_mark_roots (void);
+
+/* Likewise set mark on all roots and also call an extra marking
+   routine if it is not null. */
+extern void ggc_mark_roots_extra_marking (gt_pointer_walker, void*);
 
 /* Save and restore the string pool entries for PCH.  */
 
@@ -269,6 +272,9 @@ extern const char *ggc_alloc_string (const char *contents, int length);
 /* Invoke the collector.  Garbage collection occurs only when this
    function is called, not during allocations.  */
 extern void ggc_collect	(void);
+
+/* Invoke the collector with an extra marking routine and data */
+extern void ggc_collect_extra_marking (gt_pointer_walker, void*);
 
 /* Return the number of bytes allocated at the indicated address.  */
 extern size_t ggc_get_size (const void *);

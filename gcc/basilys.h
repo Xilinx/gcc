@@ -122,6 +122,10 @@ void basilys_dbgbacktrace (int depth);
 
 /******************* closures, routines ************************/
 
+/* when the argdescr string of a closure routine is BASILYSPAR_MARKGGC
+   the routine just marks the frame passed as first argument */
+#define BASILYSPAR_MARKGGC ((char*)(-1L))
+
 union basilysparam_un
 {
   /* for basilys value pointers, we pass the address of a local, to be

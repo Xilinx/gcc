@@ -1,3 +1,25 @@
+2008-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added BASILYSPAR_MARKGGC.
+	* ggc.h: (ggc_mark_roots_extra_marking, ggc_collect_extra_marking)
+	new declarations.
+	* ggc-common.c: (ggc_mark_roots_extra_marking) Added new function.
+	(ggc_mark_roots) Removed. (ggc_collect) Moved function here to
+	wrap ggc_collect_extra_marking.
+	* ggc-page.c: (ggc_collect_extra_marking) replacing (ggc_collect)
+	which has moved in ggc-common.c file.
+	* ggc-zone.c: (ggc_collect_extra_marking) replacing (ggc_collect)
+	which has moved in ggc-common.c file. (ggc_collect_1) takes extra
+	marker routine & data arguments.
+	* melt/warmelt-first.bysl: class_ctype has new field ctype_marker
+	filled for ctype_value ctype_tree ctype_gimple ctype_gimpleseq
+	ctype_basicblock ctype_edge.
+	* melt/warmelt-outobj.bysl: added outpucod_marker and calling it.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2008-10-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding normal_pattern selector.
 

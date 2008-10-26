@@ -185,6 +185,7 @@
 	   ctype_parstring ;the name of the basilys parameter string (eg BPARSTR_LONG)
 	   ctype_argfield ;the name of the basilys argument union field (eg bp_long)
 	   ctype_resfield ;the name of the basilys result union field (eg bp_longptr)
+	   ctype_marker	  ;the name of the marker routine
 	   ctype_descr	  ;descriptive string
 	   )
   )
@@ -1419,6 +1420,7 @@
   ;; value have to be passed specially, we need to pass the address of the pointer
   :ctype_argfield (stringconst2val discr_namestring "bp_aptr")
   :ctype_resfield (stringconst2val discr_namestring "bp_aptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_basilys_un")
   )
 (install_ctype_descr ctype_value "any basilys value pointer")
 
@@ -1445,6 +1447,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_TREE")
   :ctype_argfield (stringconst2val discr_namestring "bp_tree")
   :ctype_resfield (stringconst2val discr_namestring "bp_treeptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_tree_node")
   )
 (install_ctype_descr ctype_tree "GCC tree pointer")
 
@@ -1458,6 +1461,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLE")
   :ctype_argfield (stringconst2val discr_namestring "bp_gimple")
   :ctype_resfield (stringconst2val discr_namestring "bp_gimpleptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_gimple_statement_d")
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
@@ -1471,6 +1475,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_GIMPLESEQ")
   :ctype_argfield (stringconst2val discr_namestring "bp_gimpleseq")
   :ctype_resfield (stringconst2val discr_namestring "bp_gimpleseqptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_gimple_seq_d")
   )
 (install_ctype_descr ctype_gimpleseq "GCC gimpleseq pointer")
 
@@ -1484,6 +1489,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_BB")
   :ctype_argfield (stringconst2val discr_namestring "bp_bb")
   :ctype_resfield (stringconst2val discr_namestring "bp_bbptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_basic_block_def")
   )
 (install_ctype_descr ctype_basicblock "GCC basicblock")
 
@@ -1497,6 +1503,7 @@
   :ctype_parstring (stringconst2val discr_namestring "BPARSTR_EDGE")
   :ctype_argfield (stringconst2val discr_namestring "bp_edge")
   :ctype_resfield (stringconst2val discr_namestring "bp_edgeptr")
+  :ctype_marker (stringconst2val discr_namestring "gt_ggc_mx_edge_def")
   )
 (install_ctype_descr ctype_edge "GCC edge")
 

@@ -1915,7 +1915,7 @@ sweep_pages (struct alloc_zone *zone)
    if we collected, false otherwise.  */
 
 static bool
-ggc_collect_1 (struct alloc_zone *zone, bool need_marking)
+ggc_collect_1 (struct alloc_zone *zone, bool need_marking, gt_pointer_walker walkrout, void* walkdata)
 {
 #if 0
   /* */
@@ -1957,7 +1957,7 @@ ggc_collect_1 (struct alloc_zone *zone, bool need_marking)
   if (need_marking)
     {
       zone_allocate_marks ();
-      ggc_mark_roots ();
+      ggc_mark_roots_extra_marking (walkrout, walkdata);
 #ifdef GATHER_STATISTICS
       ggc_prune_overhead_list ();
 #endif
@@ -2000,7 +2000,7 @@ calculate_average_page_survival (struct alloc_zone *zone)
 /* Top level collection routine.  */
 
 void
-ggc_collect (void)
+ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
 {
   struct alloc_zone *zone;
   bool marked = false;
@@ -2031,7 +2031,7 @@ ggc_collect (void)
 
   /* Start by possibly collecting the main zone.  */
   main_zone.was_collected = false;
-  marked |= ggc_collect_1 (&main_zone, true);
+  marked |= ggc_collect_1 (&main_zone, true, walkrout, walkdata);
 
   /* In order to keep the number of collections down, we don't
      collect other zones unless we are collecting the main zone.  This

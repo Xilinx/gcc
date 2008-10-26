@@ -87,9 +87,17 @@ ggc_htab_delete (void **slot, void *info)
 }
 
 /* Iterate through all registered roots and mark each element.  */
-
 void
 ggc_mark_roots (void)
+{
+  ggc_mark_roots_extra_marking ((gt_pointer_walker)0, (void*)0);
+}
+
+
+/* Iterate likewise through registered roots and also do some extra
+   marking. */
+void 
+ggc_mark_roots_extra_marking(gt_pointer_walker extramarker, void*extradata)
 {
   const struct ggc_root_tab *const *rt;
   const struct ggc_root_tab *rti;
@@ -108,6 +116,9 @@ ggc_mark_roots (void)
 
   if (ggc_protect_identifiers)
     ggc_mark_stringpool ();
+
+  if (extramarker)
+    (*extramarker) (extradata);
 
   /* Now scan all hash tables that have objects which are to be deleted if
      they are not already marked.  */
@@ -1021,4 +1032,11 @@ dump_ggc_loc_statistics (bool final ATTRIBUTE_UNUSED)
   fprintf (stderr, "-------------------------------------------------------\n");
   ggc_force_collect = false;
 #endif
+}
+
+/* Top level mark-and-sweep routine without extra marker. */
+void
+ggc_collect(void)
+{
+  ggc_collect_extra_marking ((gt_pointer_walker)0, (void*)0);
 }
