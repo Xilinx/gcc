@@ -1,3 +1,127 @@
+2008-10-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37919
+	Revert:
+	2008-10-18  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* include/bits/stl_pair.h (__may_be_null_pointer_init): New.
+	(pair::pair): Eliminate the redundant pair(U1&&, U2&&) constructor.
+	Add lvalue pair<U1, U2> constructor to handle non-const pair lvalues.
+	Remove the old variadic constructor, and instead provide several
+	variadic constructors that avoid failing when attempting to
+	initialize a pointer from a null pointer constant.
+	* testsuite/20_util/pair/moveable.cc (test3): Add new tests with
+	initialization of pointers from the null pointer constant.
+
+2008-10-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37522
+	* config/os/mingw32/os_defines.h: Define _GLIBCXX_HAVE_BROKEN_VSWPRINTF
+	* include/bits/basic_string.h: Guard string conversions with 
+	!defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF) too.
+	* testsuite/lib/libstdc++.exp (check_v3_target_string_conversions):
+	New.
+	* testsuite/lib/dg-options.exp (dg-require-string-conversions): New.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stof.cc:
+	Use the latter.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoll.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoi.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stol.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	stoull.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stold.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoul.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	to_string.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stod.cc:
+	Likewise.
+
+2008-10-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/os/generic/error_constants.h (enum errc): Remove
+	no_posix_equivalent.
+	* config/os/mingw32/error_constants.h (enum errc): Likewise.
+	* testsuite/19_diagnostics/headers/system_error/errc_std_c++0x.cc:
+	Adjust.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/Makefile.am (AUTOMAKE_OPTIONS): Remove dejagnu.
+	(RUNTESTDEFAULTFLAGS, EXPECT, check_DEJAGNU_normal_targets): New
+	variables.
+	(%/site.exp, check-DEJAGNU%): New targets.
+	(check-am): Run $(MAKE) check-DEJAGNU.
+	* testsuite/Makefile.in: Regenerated.
+
+2008-10-23  Chris Fairles  <cfairles@gcc.gnu.org>
+
+	* config/os/generic/error_constants.h (errc): Use long type.
+	* config/os/mingw32/error_constants.h (errc): Likewise.
+
+2008-10-22  Chris Fairles  <cfairles@gcc.gnu.org>
+
+	* include/std/system_error (is_error_code_enum): Specialize for errc.
+	(error_category::error_category): Defaulted and protected.
+	(error_category::~error_category): New, virtual.
+	(error_category::error_category(const error_category&), 
+	error_category::operator=(const error_category&)): Deleted.
+	(get_system_category, get_posix_category): Remove (DR 890).
+	(system_category): External linkage (DR 890).
+	(posix_category): Remove.
+	(generic_category): Add. External linkage (DR 890).
+	(error_code::error_code<>(_ErrorCodeEnum)): Use generic_category.
+	(error_code::clear, error_code::operator=<>(_ErrorCodeEnum)): Forward to
+	error_code::assign, use generic_category.
+	(error_condition::error_condition, 
+	error_condition::error_condition<>(_ErrorConditionEnum)): Use 
+	generic_category.
+	(error_condition::clear, 
+	error_condition::operator=<>(_ErrorConditionEnum)): Forward to 
+	error_code::assign, use generic_category.
+	(make_error_code, make_error_condition): Define in namespace std.
+	* include/std/mutex (unique_lock<>::lock, unique_lock<>::try_lock,
+	unique_lock<>::try_lock_until<>(duration),
+	unique_lock<>::try_lock_for<>(duration)): Replace posix_error with errc.
+	* src/system_error.cc (system_error_category, generic_error_category):
+	New.
+	(gnu_error_category): Remove.
+	(get_system_category, get_posix_category): Remove (DR 890).
+	(system_category, generic_category): Define.
+	* src/functexcept.cc (__throw_system_error): Use generic_category.
+	* config/abi/pre/gnu.ver: Export system_category and generic_category,
+	remove get_system_category and get_generic_category (DR 890).
+	* config/os/generic/error_constants.h (posix_errno): Rename to errc, use
+	enum class type. Fix spelling.
+	* config/os/mingw32/error_constants.h (posix_errno): Likewise.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Use errc and 
+	generic_category.
+	* testsuite/19_diagnostics/error_code/operators/bool.cc: Use errc.
+	* testsuite/19_diagnostics/error_code/operators/equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/operators/not_equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Update 
+	dg-error line numbers.
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: Use 
+	generic_category.
+	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Use errc.
+	* testsuite/19_diagnostics/error_condition/operators/equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc: 
+	Likewise.
+	* testsuite/19_diagnostics/headers/system_error/errc_std_c++0x.cc: New.
+	* testsuite/19_diagnostics/headers/system_error/types_std_c++0x.cc: 
+	Remove using tests since errc is not a namespace.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Use errc.
+	* testsuite/19_diagnostics/system_error/what-4.cc: Likewise.
+	* testsuite/27_io/basic_ostream/inserters_other/wchar_t/error_code.cc:
+	Likewise.
+	* testsuite/27_io/basic_ostream/inserters_other/char/error_code.cc:
+	Likewise.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Likewise.
+	
 2008-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/tr1_impl/hashtable_policy.h (_Hash_node<>::_Hash_node<>

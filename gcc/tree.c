@@ -6184,6 +6184,10 @@ build_complex_type (tree component_type)
   tree t;
   hashval_t hashcode;
 
+  gcc_assert (INTEGRAL_TYPE_P (component_type)
+	      || SCALAR_FLOAT_TYPE_P (component_type)
+	      || FIXED_POINT_TYPE_P (component_type));
+
   /* Make a node of the sort we want.  */
   t = make_node (COMPLEX_TYPE);
 
@@ -6939,7 +6943,7 @@ get_file_function_name (const char *type)
 
   /* If we already have a name we know to be unique, just use that.  */
   if (first_global_object_name)
-    p = first_global_object_name;
+    p = q = ASTRDUP (first_global_object_name);
   /* If the target is handling the constructors/destructors, they
      will be local to this file and the name is only necessary for
      debugging purposes.  */
@@ -6956,7 +6960,6 @@ get_file_function_name (const char *type)
       else
 	p = file;
       p = q = ASTRDUP (p);
-      clean_symbol_name (q);
     }
   else
     {
@@ -6975,7 +6978,6 @@ get_file_function_name (const char *type)
       len = strlen (file);
       q = (char *) alloca (9 * 2 + len + 1);
       memcpy (q, file, len + 1);
-      clean_symbol_name (q);
 
       sprintf (q + len, "_%08X_%08X", crc32_string (0, name),
 	       crc32_string (0, get_random_seed (false)));
@@ -6983,6 +6985,7 @@ get_file_function_name (const char *type)
       p = q;
     }
 
+  clean_symbol_name (q);
   buf = (char *) alloca (sizeof (FILE_FUNCTION_FORMAT) + strlen (p)
 			 + strlen (type));
 
