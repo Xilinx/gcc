@@ -4115,7 +4115,7 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
-  addr_space_p = (declspecs->address_space > 0) + (TYPE_ADDR_SPACE (element_type) > 0);
+  addr_space_p = (declspecs->address_space != 0) + (TYPE_ADDR_SPACE (element_type) != 0);
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)

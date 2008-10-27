@@ -1,3 +1,11 @@
+2008-10-27  Ben Elliston  <bje@au.ibm.com>
+
+	* targhooks.c (default_addr_space_number): Conform to the GNU
+	coding standard.
+	* tree.h (addr_space_t): Add a comment.
+	* c-decl.c (grokdeclarator): Use != 0, not > 0 when testing
+	for non-generic address spaces.
+	
 2008-10-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* emit-rtl.c (get_spill_slot_decl): Pass 0 as address space.

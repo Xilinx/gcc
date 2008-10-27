@@ -734,7 +734,8 @@ rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED,
 /* The default hook for TARGET_ADDR_SPACE_NUMBER.  This hook should
    never be called for targets with only a generic address space.  */
 
-unsigned char default_addr_space_number (const_tree ident ATTRIBUTE_UNUSED)
+unsigned char
+default_addr_space_number (const_tree ident ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }

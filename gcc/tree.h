@@ -2267,6 +2267,8 @@ struct tree_block GTY(())
   (TYPE_CHECK (NODE)->type.contains_placeholder_bits)
 
 struct die_struct;
+
+/* Address space number for named address space support.  */
 typedef unsigned char addr_space_t;
 
 struct tree_type GTY(())
