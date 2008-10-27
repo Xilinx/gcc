@@ -1,3 +1,89 @@
+2008-10-26  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/37316
+	* pa.c (function_arg_padding):  Pad complex and vector types upward in
+	64-bit runtime.
+	(function_arg): Use BLKmode for PARALLEL in 64-bit runtime.
+
+2008-10-26  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/install.texi: Document requirements on antlr.
+
+2008-10-25  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.h (REG_ALLOC_ORDER): Put call-clobbered registers
+	first.
+
+2008-10-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/37841
+	* function.c (locate_and_pad_parm): If FUNCTION_ARG_ADJUST_OFFSET
+	is defined, use it to modify the constant offset.
+
+	* doc/tm.texi (FUNCTION_ARG_OFFSET): Document new macro.
+
+	* config/spu/spu.h (FUNCTION_ARG_OFFSET): New macro to move char
+	and short arguments to the correct location as mandated by the
+	ABI.
+
+2008-10-24  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR rtl-optimization/37769
+	* regmove.c (optimize_reg_copy_2): Update REG_INC note if needed.
+
+2008-10-24  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/t-sh: Use $(MULTILIB_CFLAGS) when compiling to
+	unwind-dw2-Os-4-200.o.
+
+2008-10-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-typeck.c (enum impl_conv): Remove ic_argpass_nonproto.
+	(convert_for_assignment): Remove ic_argpass_nonproto cases.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36038
+	* tree-ssa-loop-ivopts.c (add_old_iv_candidates): For pointer bases
+	add sizetype IV with initial value zero instead of pointer type.
+
+2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/7543
+	* value-prof.c (gimple_stringop_fixed_value): Use parentheses
+	around bit operation.
+	* profile.c (is_edge_inconsistent): Likewise.
+	* fold-const.c (truth_value_p): Move from here...
+	* tree.h (truth_value_p): ... to here.
+	* c-tree.h (c_expr): Update description of original_code.
+	* c-typeck.c (parser_build_unary_op): Set original_code.
+	(parser_build_binary_op): Update call to warn_about_parentheses.
+	* c-common.c (warn_about_parentheses): Take two additional
+	arguments of the operands. Use a switch. Quote operators
+	appropriately. Define macro APPEARS_TO_BE_BOOLEAN_EXPR_P.
+	Add warning about !x | y and !x & y.
+	* c-common.h (warn_about_parentheses): Update declaration.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in (lang_checks_parallelized, check_gcc_parallelize,
+	check_p_tool, check_p_vars, check_p_subno, check_p_comma,
+	check_p_subwork, check_p_numbers, check_p_subdir, check_p_subdirs):
+	New variables.
+	(check-subtargets, check-%-subtargets, check-parallel-%): New
+	targets.
+	(check-%): For test targets listed in lang_checks_parallelized
+	if -j is used and RUNTESTFLAGS doesn't specify tests to execute,
+	run the testing in multiple make goals, possibly parallel, and
+	afterwards run dg-extract-results.sh to merge the sum and log files.
+
+2008-10-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_canonicalize_move_class): New function.
+	(mips_move_to_gpr_cost): Likewise.
+	(mips_move_from_gpr_cost): Likewise.
+	(mips_register_move_cost): Make more fine-grained.
+
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (graphite_apply_transformations): Check for
