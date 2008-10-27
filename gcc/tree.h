@@ -4588,24 +4588,24 @@ extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 tree *, enum machine_mode *, int *, int *,
 				 bool);
 
-/* Given an expression EXP that may be a COMPONENT_REF or an ARRAY_REF,
-   look for whether EXP or any nested component-refs within EXP is marked
-   as PACKED.  */
+/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
+   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
+   EXP is marked as PACKED.  */
 
 extern bool contains_packed_reference (const_tree exp);
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
-   of EXP, an ARRAY_REF.  */
+   of EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_element_size (tree);
 
 /* Return a tree representing the lower bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_low_bound (tree);
 
 /* Return a tree representing the upper bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_up_bound (tree);
 
@@ -4873,6 +4873,17 @@ extern bool tree_call_nonnegative_warnv_p (tree, tree, tree, tree, bool *);
 extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
 extern bool fold_real_zero_addition_p (const_tree, const_tree, int);
+
+/* Return nonzero if CODE is a tree code that represents a truth value.  */
+static inline bool
+truth_value_p (enum tree_code code)
+{
+  return (TREE_CODE_CLASS (code) == tcc_comparison
+	  || code == TRUTH_AND_EXPR || code == TRUTH_ANDIF_EXPR
+	  || code == TRUTH_OR_EXPR || code == TRUTH_ORIF_EXPR
+	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
+}
+
 
 /* In builtins.c */
 extern tree fold_call_expr (tree, bool);

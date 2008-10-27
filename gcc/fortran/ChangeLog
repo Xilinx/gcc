@@ -1,3 +1,48 @@
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-f95-subtargets, check-fortran-subtargets): New
+	aliases for check-gfortran-subtargets.
+	(lang_checks_parallelized): Add check-gfortran.
+	(check_gfortran_parallelize): New variable.
+
+2008-10-19  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/37723
+        * dependency.c (gfc_dep_resolver ): If we find equal array
+	element references, go on to the next reference.
+
+2008-10-16  Daniel Kraft  <d@domob.eu>
+
+	* resolve.c (resolve_elemental_actual): Handle calls to intrinsic
+	subroutines correctly.
+
+2008-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* simplify.c: Remove MPFR_VERSION_NUM(2,3,0) conditionals.
+
+2008-10-12  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37688
+	* expr.c (gfc_expr_check_typed): Extend permission of untyped
+	expressions to both top-level variable and basic arithmetic expressions.
+
+2008-10-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37787
+	* dependency.c (gfc_are_equivalenced_arrays): Look in symbol
+	namespace rather than current namespace, if it is available.
+
+2008-10-12  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/37792
+	* fortran/resolve.c (resolve_fl_variable): Simplify the
+	initializer if there is one.
+
+2008-10-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37794
+	* module.c (check_for_ambiguous): Remove redundant code.
+
 2008-10-09  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/35723

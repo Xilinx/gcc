@@ -571,6 +571,10 @@ fgnu-tm
 Common Report Var(flag_tm)
 Enable support for GNU transactional memory
 
+fgraphite-identity
+Common Report Var(flag_graphite_identity) Optimization
+Enable Graphite Identity transformation
+
 fguess-branch-probability
 Common Report Var(flag_guess_branch_prob) Optimization
 Enable guessing of branch probabilities

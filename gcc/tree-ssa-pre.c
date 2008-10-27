@@ -1745,9 +1745,8 @@ phi_translate_set (bitmap_set_t dest, bitmap_set_t set, basic_block pred,
       pre_expr translated;
       translated = phi_translate (expr, set, NULL, pred, phiblock);
 
-      /* Don't add constants or empty translations to the cache, since
-	 we won't look them up that way, or use the result, anyway.  */
-      if (translated && !value_id_constant_p (get_expr_value_id (translated)))
+      /* Don't add empty translations to the cache  */
+      if (translated)
 	phi_trans_add (expr, translated, pred);
 
       if (translated != NULL)
@@ -3020,23 +3019,15 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 	     should give us back a constant with the right type.
 	  */
 	  tree constant = PRE_EXPR_CONSTANT (eprime);
-	  if (TREE_TYPE (constant) != type)
+	  if (!useless_type_conversion_p (type, TREE_TYPE (constant)))
 	    {
 	      tree builtexpr = fold_convert (type, constant);
-	      if (is_gimple_min_invariant (builtexpr))
-		{
-		  PRE_EXPR_CONSTANT (eprime) = builtexpr;
-		}
-	      else
+	      if (!is_gimple_min_invariant (builtexpr)) 
 		{
 		  tree forcedexpr = force_gimple_operand (builtexpr,
 							  &stmts, true,
 							  NULL);
-		  if (is_gimple_min_invariant (forcedexpr))
-		    {
-		      PRE_EXPR_CONSTANT (eprime) = forcedexpr;
-		    }
-		  else
+		  if (!is_gimple_min_invariant (forcedexpr))
 		    {
 		      if (forcedexpr != builtexpr)
 			{

@@ -306,10 +306,12 @@ systems' @command{tar} programs will also work, only try GNU
 
 Necessary to build GCC@.  If you do not have it installed in your
 library search path, you will have to configure with the
-@option{--with-gmp} configure option.  See also
-@option{--with-gmp-lib} and @option{--with-gmp-include}.
+@option{--with-gmp} configure option.  See also @option{--with-gmp-lib}
+and @option{--with-gmp-include}.  Alternatively, if a GMP source
+distribution is found in a subdirectory of your GCC sources named
+@file{gmp}, it will be built together with GCC@.
 
-@item MPFR Library version 2.3.0 (or later)
+@item MPFR Library version 2.3.2 (or later)
 
 Necessary to build GCC@.  It can be downloaded from
 @uref{http://www.mpfr.org/}.  The version of MPFR that is bundled with
@@ -319,8 +321,12 @@ fixed when using this version.  It is strongly recommended to upgrade
 to the recommended version of MPFR.
 
 The @option{--with-mpfr} configure option should be used if your MPFR
-Library is not installed in your default library search path.  See
-also @option{--with-mpfr-lib} and @option{--with-mpfr-include}.
+Library is not installed in your default library search path.  See also
+@option{--with-mpfr-lib} and @option{--with-mpfr-include}.
+Alternatively, if a MPFR source distribution is found in a subdirectory
+of your GCC sources named @file{mpfr}, it will be built together with
+GCC@.
+
 
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
@@ -442,6 +448,17 @@ the GCC-specific entry point.  You can download a suitable jar from
 @uref{ftp://sourceware.org/pub/java/}, or by running the script
 @command{contrib/download_ecj}.
 
+@item antlr.jar version 2.7.1 (or later)
+@itemx antlr binary
+
+If you wish to build the @command{gjdoc} binary in libjava, you will
+need to have a @file{antlr.jar} library available. The library is
+searched in system locations but can be configured with
+@option{--with-antlr-jar=} instead.  When configuring with
+@option{--enable-java-maintainer-mode}, you will need to have one of
+the executables named @command{cantlr}, @command{runantlr} or
+@command{antlr} in your path.
+
 @end table
 
 @html
@@ -495,6 +512,12 @@ a separate one.  In the latter case, add symbolic links to any
 components of the binutils you intend to build alongside the compiler
 (@file{bfd}, @file{binutils}, @file{gas}, @file{gprof}, @file{ld},
 @file{opcodes}, @dots{}) to the directory containing the GCC sources.
+
+Likewise, the GMP and MPFR libraries can be automatically built together
+with GCC.  Unpack the GMP and/or MPFR source distributions in the
+directory containing the GCC sources and rename their directories to
+@file{gmp} and @file{mpfr}, respectively (or use symbolic links with the
+same name).
 
 @html
 <hr />
@@ -3653,6 +3676,10 @@ information about using GCC on IRIX platforms.
 You can specify a default version for the @option{-mcpu=@var{cpu_type}}
 switch by using the configure option @option{--with-cpu-@var{cpu_type}}.
 
+You will need
+@uref{ftp://ftp.kernel.org/pub/linux/devel/binutils,,binutils 2.15}
+or newer for a working GCC@.
+
 @html
 <hr />
 @end html
@@ -3681,9 +3708,7 @@ PowerPC system in big endian mode, running System V.4.
 @end html
 @heading @anchor{powerpc-x-linux-gnu}powerpc*-*-linux-gnu*
 
-You will need
-@uref{ftp://ftp.kernel.org/pub/linux/devel/binutils,,binutils 2.15}
-or newer for a working GCC@.
+PowerPC system in big endian mode running Linux.
 
 @html
 <hr />

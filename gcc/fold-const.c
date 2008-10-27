@@ -105,7 +105,6 @@ static enum comparison_code comparison_to_compcode (enum tree_code);
 static enum tree_code compcode_to_comparison (enum comparison_code);
 static tree combine_comparisons (enum tree_code, enum tree_code,
 				 enum tree_code, tree, tree, tree);
-static int truth_value_p (enum tree_code);
 static int operand_equal_for_comparison_p (tree, tree, tree);
 static int twoval_comparison_p (tree, tree *, tree *, int *);
 static tree eval_subst (tree, tree, tree, tree, tree);
@@ -2981,17 +2980,6 @@ combine_comparisons (enum tree_code code, enum tree_code lcode,
     return fold_build2 (compcode_to_comparison (compcode),
 			truth_type, ll_arg, lr_arg);
 }
-
-/* Return nonzero if CODE is a tree code that represents a truth value.  */
-
-static int
-truth_value_p (enum tree_code code)
-{
-  return (TREE_CODE_CLASS (code) == tcc_comparison
-	  || code == TRUTH_AND_EXPR || code == TRUTH_ANDIF_EXPR
-	  || code == TRUTH_OR_EXPR || code == TRUTH_ORIF_EXPR
-	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
-}
 
 /* Return nonzero if two operands (typically of the same tree node)
    are necessarily equal.  If either argument has side-effects this
@@ -4503,7 +4491,12 @@ build_range_check (tree type, tree exp, int in_p, tree low, tree high)
 	{
 	  if (TYPE_UNSIGNED (etype))
 	    {
-	      etype = signed_type_for (etype);
+	      tree signed_etype = signed_type_for (etype);
+	      if (TYPE_PRECISION (signed_etype) != TYPE_PRECISION (etype))
+		etype
+		  = build_nonstandard_integer_type (TYPE_PRECISION (etype), 0);
+	      else
+		etype = signed_etype;
 	      exp = fold_convert (etype, exp);
 	    }
 	  return fold_build2 (GT_EXPR, type, exp,
@@ -12447,7 +12440,6 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	unsigned int width = TYPE_PRECISION (arg1_type);
 
 	if (TREE_CODE (arg1) == INTEGER_CST
-	    && !TREE_OVERFLOW (arg1)
 	    && width <= 2 * HOST_BITS_PER_WIDE_INT
 	    && (INTEGRAL_TYPE_P (arg1_type) || POINTER_TYPE_P (arg1_type)))
 	  {

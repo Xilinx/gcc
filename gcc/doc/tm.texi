@@ -4110,6 +4110,15 @@ on the stack.  The compiler knows how to track the amount of stack space
 used for arguments without any special help.
 @end defmac
 
+
+@defmac FUNCTION_ARG_OFFSET (@var{mode}, @var{type})
+If defined, a C expression that is the number of bytes to add to the
+offset of the argument passed in memory.  This is needed for the SPU,
+which passes @code{char} and @code{short} arguments in the preferred
+slot that is in the middle of the quad word instead of starting at the
+top.
+@end defmac
+
 @defmac FUNCTION_ARG_PADDING (@var{mode}, @var{type})
 If defined, a C expression which determines whether, and in which direction,
 to pad out an argument with extra space.  The value should be of type
@@ -6365,6 +6374,29 @@ not in cases of "costly dependences", which this hooks allows to define.
 This hook is called by the insn scheduler after emitting a new instruction to
 the instruction stream.  The hook notifies a target backend to extend its
 per instruction data structures.
+@end deftypefn
+
+@deftypefn {Target Hook} void * TARGET_SCHED_ALLOC_SCHED_CONTEXT (void)
+Return a pointer to a store large enough to hold target scheduling context.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_INIT_SCHED_CONTEXT (void *@var{tc}, bool @var{clean_p})
+Initialize store pointed to by @var{tc} to hold target scheduling context.
+It @var{clean_p} is true then initialize @var{tc} as if scheduler is at the
+beginning of the block.  Overwise, make a copy of the current context in
+@var{tc}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_SET_SCHED_CONTEXT (void *@var{tc})
+Copy target scheduling context pointer to by @var{tc} to the current context.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_CLEAR_SCHED_CONTEXT (void *@var{tc})
+Deallocate internal data in target scheduling context pointed to by @var{tc}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FREE_SCHED_CONTEXT (void *@var{tc})
+Deallocate a store for target scheduling context pointed to by @var{tc}.
 @end deftypefn
 
 @deftypefn {Target Hook} void * TARGET_SCHED_ALLOC_SCHED_CONTEXT (void)
@@ -10537,6 +10569,12 @@ default is to have no target-specific format overrides. If defined,
 @defmac TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT
 If defined, this macro specifies the number of entries in
 @code{TARGET_OVERRIDES_FORMAT_ATTRIBUTES}.
+@end defmac
+
+@defmac TARGET_OVERRIDES_FORMAT_INIT
+If defined, this macro specifies the optional initialization
+routine for target specific customizations of the system printf
+and scanf formatter settings.
 @end defmac
 
 @deftypefn {Target Hook} bool TARGET_RELAXED_ORDERING

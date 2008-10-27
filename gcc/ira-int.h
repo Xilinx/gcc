@@ -258,9 +258,9 @@ struct ira_allocno
   /* Register class which should be used for allocation for given
      allocno.  NO_REGS means that we should use memory.  */
   enum reg_class cover_class;
-  /* Minimal accumulated cost of usage register of the cover class for
-     the allocno.  */
-  int cover_class_cost;
+  /* Minimal accumulated and updated costs of usage register of the
+     cover class for the allocno.  */
+  int cover_class_cost, updated_cover_class_cost;
   /* Minimal accumulated, and updated costs of memory for the allocno.
      At the allocation start, the original and updated costs are
      equal.  The updated cost may be changed after finishing
@@ -451,6 +451,7 @@ struct ira_allocno
 #define ALLOCNO_LEFT_CONFLICTS_NUM(A) ((A)->left_conflicts_num)
 #define ALLOCNO_COVER_CLASS(A) ((A)->cover_class)
 #define ALLOCNO_COVER_CLASS_COST(A) ((A)->cover_class_cost)
+#define ALLOCNO_UPDATED_COVER_CLASS_COST(A) ((A)->updated_cover_class_cost)
 #define ALLOCNO_MEMORY_COST(A) ((A)->memory_cost)
 #define ALLOCNO_UPDATED_MEMORY_COST(A) ((A)->updated_memory_cost)
 #define ALLOCNO_EXCESS_PRESSURE_POINTS_NUM(A) ((A)->excess_pressure_points_num)
@@ -546,6 +547,11 @@ extern int ira_overall_cost;
 extern int ira_reg_cost, ira_mem_cost;
 extern int ira_load_cost, ira_store_cost, ira_shuffle_cost;
 extern int ira_move_loops_num, ira_additional_jumps_num;
+
+/* Map: hard register number -> cover class it belongs to.  If the
+   corresponding class is NO_REGS, the hard register is not available
+   for allocation.  */
+extern enum reg_class ira_hard_regno_cover_class[FIRST_PSEUDO_REGISTER];
 
 /* Map: register class x machine mode -> number of hard registers of
    given class needed to store value of given mode.  If the number for
@@ -897,7 +903,6 @@ extern void ira_reassign_conflict_allocnos (int);
 extern void ira_initiate_assign (void);
 extern void ira_finish_assign (void);
 extern void ira_color (void);
-extern void ira_fast_allocation (void);
 
 /* ira-emit.c */
 extern void ira_emit (bool);
