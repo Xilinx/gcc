@@ -1,5 +1,15 @@
 2008-10-27  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (mark_vops_in_stmt): New.
+	(build_tm_load): Construct gimple directly.
+	(build_tm_store, expand_assign_tm): Likewise.
+	(expand_tm_atomic): Simplify.  Mark VOPS.
+	(execute_tm_edges): Call it.
+	(pass_tm_edges): Clear gate function, update ssa.
+	(pass_tm_memopt): Fix name.
+
+2008-10-27  Richard Henderson  <rth@redhat.com>
+
 	* omp-low.c, gimple-low.c, gsstruct.def, tree-eh.c,
 	gimple-pretty-print.c, trans-mem.c, tree-nested.c,
 	tree-inline.c, gimple.c, gimple.h, tree-cfg.c: Revert

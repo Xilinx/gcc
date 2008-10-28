@@ -587,13 +587,29 @@ expand_irrevokable (struct tm_region *state, gimple_stmt_iterator *gsi)
 }
 
 
+/* Mark virtuals in STMT for renaming.  */
+
+static void
+mark_vops_in_stmt (gimple stmt)
+{
+  ssa_op_iter iter;
+  tree op;
+
+  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_ALL_VIRTUALS)
+    {
+      mark_sym_for_renaming (SSA_NAME_VAR (op));
+    }
+}
+
+
 /* Construct a memory load in a transactional context.  */
 
-static tree
-build_tm_load (tree lhs, tree rhs)
+static gimple
+build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 {
   enum built_in_function code = END_BUILTINS;
   tree t, type = TREE_TYPE (rhs);
+  gimple gcall;
 
   if (type == float_type_node)
     code = BUILT_IN_TM_LOAD_FLOAT;
@@ -625,23 +641,40 @@ build_tm_load (tree lhs, tree rhs)
       code = BUILT_IN_TM_LOAD_4;
     }
 
-  t = built_in_decls[code];
-  t = build_call_expr (t, 1, build_fold_addr_expr (rhs));
-  if (TYPE_MAIN_VARIANT (TREE_TYPE (t)) != TYPE_MAIN_VARIANT (type))
-    t = build1 (VIEW_CONVERT_EXPR, type, t);
-  t = build2 (MODIFY_EXPR, TREE_TYPE (lhs), lhs, t);
+  t = build_fold_addr_expr (rhs);
+  gcc_assert (is_gimple_operand (t));
 
-  return t;
+  gcall = gimple_build_call (built_in_decls[code], 1, t);
+  gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
+
+  t = TREE_TYPE (TREE_TYPE (built_in_decls[code]));
+  if (useless_type_conversion_p (type, t))
+    gimple_call_set_lhs (gcall, lhs);
+  else
+    {
+      gimple g;
+      tree temp;
+
+      temp = make_rename_temp (t, NULL);
+      gimple_call_set_lhs (gcall, temp);
+
+      t = fold_build1 (VIEW_CONVERT_EXPR, type, temp);
+      g = gimple_build_assign (lhs, t);
+      gsi_insert_before (gsi, g, GSI_SAME_STMT);
+    }
+
+  return gcall;
 }
 
 
 /* Similarly for storing TYPE in a transactional context.  */
 
-static tree
-build_tm_store (tree lhs, tree rhs)
+static gimple
+build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 {
   enum built_in_function code = END_BUILTINS;
   tree t, fn, type = TREE_TYPE (rhs), simple_type;
+  gimple gcall;
 
   if (type == float_type_node)
     code = BUILT_IN_TM_STORE_FLOAT;
@@ -675,11 +708,25 @@ build_tm_store (tree lhs, tree rhs)
 
   fn = built_in_decls[code];
   simple_type = TREE_VALUE (TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (fn))));
-  if (TYPE_MAIN_VARIANT (simple_type) != TYPE_MAIN_VARIANT (type))
-    rhs = build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
-  t = build_call_expr (fn, 2, build_fold_addr_expr (lhs), rhs);
 
-  return t;
+  if (!useless_type_conversion_p (simple_type, type))
+    {
+      gimple g;
+      tree temp;
+
+      temp = make_rename_temp (simple_type, NULL);
+      t = fold_build1 (VIEW_CONVERT_EXPR, simple_type, rhs);
+      g = gimple_build_assign (temp, t);
+      gsi_insert_before (gsi, g, GSI_SAME_STMT);
+
+      rhs = temp;
+    }
+
+  t = build_fold_addr_expr (lhs);
+  gcall = gimple_build_call (built_in_decls[code], 2, t, rhs);
+  gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
+  
+  return gcall;
 }
 
 
@@ -693,50 +740,33 @@ expand_assign_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
   tree rhs = gimple_assign_rhs1 (stmt);
   bool store_p = requires_barrier (lhs);
   bool load_p = requires_barrier (rhs);
-  tree call;
-  gimple_seq seq;
   gimple gcall;
-  gimple_stmt_iterator gsi2;
-  struct gimplify_ctx gctx;
 
   if (load_p && store_p)
     {
       tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
-      call = build_call_expr (built_in_decls [BUILT_IN_TM_MEMCPY],
-			      3, build_fold_addr_expr (lhs),
-			      build_fold_addr_expr (rhs),
-			      TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
+
+      gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMCPY], 3,
+				 build_fold_addr_expr (lhs),
+				 build_fold_addr_expr (rhs),
+				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
+      gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
     }
   else if (load_p)
     {
       tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD);
-      call = build_tm_load (lhs, rhs);
+      gcall = build_tm_load (lhs, rhs, gsi);
     }
   else if (store_p)
     {
       tm_atomic_subcode_ior (state, GTMA_HAVE_STORE);
-      call = build_tm_store (lhs, rhs);
+      gcall = build_tm_store (lhs, rhs, gsi);
     }
   else
     return;
 
-  push_gimplify_context (&gctx);
-  gctx.into_ssa = false;
-
-  seq = NULL;
-  gimplify_and_add (call, &seq);
-
-  pop_gimplify_context (NULL);
-
-  for (gsi2 = gsi_last (seq); ; gsi_prev (&gsi2))
-    {
-      gcall = gsi_stmt (gsi2);
-      if (gimple_code (gcall) == GIMPLE_CALL)
-	break;
-    }
-
   add_stmt_to_eh_region  (gcall, state->region_nr);
-  gsi_insert_seq_before (gsi, seq, GSI_SAME_STMT);
+  mark_vops_in_stmt (stmt);
   gsi_remove (gsi, true);
 }
 
@@ -1011,53 +1041,53 @@ checkpoint_live_in_variables (edge e)
     }
 }
 
-static void ATTRIBUTE_UNUSED
-expand_tm_atomic (basic_block bb, gimple_stmt_iterator *gsi)
+static void
+expand_tm_atomic (struct tm_region *region)
 {
   tree status, tm_start;
-  basic_block body_bb, test_bb;
-  gimple_stmt_iterator gsi2;
+  basic_block atomic_bb, test_bb;
+  gimple_stmt_iterator gsi;
   tree t1, t2;
   gimple g;
   edge e;
 
+  mark_vops_in_stmt (region->tm_atomic_stmt);
+
   tm_start = built_in_decls[BUILT_IN_TM_START];
   status = make_rename_temp (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
-
-  e = FALLTHRU_EDGE (bb);
-  body_bb = e->dest;
-  checkpoint_live_in_variables (e);
-
-  if (gimple_tm_atomic_label (gsi_stmt (*gsi)))
-    {
-      e = split_block_after_labels (body_bb);
-      test_bb = e->src;
-      body_bb = e->dest;
-
-      gsi2 = gsi_last_bb (test_bb);
-
-      t1 = make_rename_temp (TREE_TYPE (status), NULL);
-      t2 = build_int_cst (TREE_TYPE (status), TM_START_ABORT);
-      g = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
-      gsi_insert_after (&gsi2, g, GSI_CONTINUE_LINKING);
-
-      t2 = build_int_cst (TREE_TYPE (status), 0);
-      g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
-      gsi_insert_after (&gsi2, g, GSI_CONTINUE_LINKING);
-
-      single_succ_edge (test_bb)->flags = EDGE_FALSE_VALUE;
-
-      e = BRANCH_EDGE (bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_TRUE_VALUE;
-    }
 
   /* ??? Need to put the real input to __tm_start here.  */
   t2 = build_int_cst (TREE_TYPE (status), 0);
   g = gimple_build_call (tm_start, 1, t2);
   gimple_call_set_lhs (g, status);
-  gsi_insert_before (gsi, g, GSI_SAME_STMT);
-  gsi_remove (gsi, true);
+
+  atomic_bb = gimple_bb (region->tm_atomic_stmt);
+  gsi = gsi_last_bb (atomic_bb);
+  gsi_insert_before (&gsi, g, GSI_SAME_STMT);
+  gsi_remove (&gsi, true);
+
+  if (gimple_tm_atomic_label (region->tm_atomic_stmt))
+    {
+      test_bb = create_empty_bb (atomic_bb);
+      gsi = gsi_last_bb (test_bb);
+
+      t1 = make_rename_temp (TREE_TYPE (status), NULL);
+      t2 = build_int_cst (TREE_TYPE (status), TM_START_ABORT);
+      g = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
+      gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
+
+      t2 = build_int_cst (TREE_TYPE (status), 0);
+      g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
+      gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
+
+      make_edge (test_bb, region->entry_block, EDGE_FALSE_VALUE);
+
+      e = BRANCH_EDGE (atomic_bb);
+      redirect_edge_pred (e, test_bb);
+      e->flags = EDGE_TRUE_VALUE;
+    }
+
+  region->tm_atomic_stmt = NULL;
 }
 
 /* Entry point to the final expansion of transactional nodes. */
@@ -1065,6 +1095,13 @@ expand_tm_atomic (basic_block bb, gimple_stmt_iterator *gsi)
 static unsigned int
 execute_tm_edges (void)
 {
+  struct tm_region *region;
+
+  for (region = all_tm_regions; region ; region = region->next)
+    {
+      expand_tm_atomic (region);
+    }
+
   return 0;
 }
 
@@ -1073,7 +1110,7 @@ struct gimple_opt_pass pass_tm_edges =
  {
   GIMPLE_PASS,
   "tmedge",				/* name */
-  gate_tm_init,				/* gate */
+  NULL,					/* gate */
   execute_tm_edges,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
@@ -1083,7 +1120,9 @@ struct gimple_opt_pass pass_tm_edges =
   0,			                /* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_verify_ssa | TODO_dump_func,	/* todo_flags_finish */
+  TODO_update_ssa
+  | TODO_verify_ssa
+  | TODO_dump_func,			/* todo_flags_finish */
  }
 };
 
@@ -1104,7 +1143,7 @@ struct gimple_opt_pass pass_tm_memopt =
 {
  {
   GIMPLE_PASS,
-  "tminit",				/* name */
+  "tmmemopt",				/* name */
   gate_tm_memopt,			/* gate */
   execute_tm_memopt,			/* execute */
   NULL,					/* sub */
