@@ -393,7 +393,6 @@ extern struct gimple_opt_pass pass_tm_init;
 extern struct gimple_opt_pass pass_tm_mark;
 extern struct gimple_opt_pass pass_tm_memopt;
 extern struct gimple_opt_pass pass_tm_edges;
-extern struct gimple_opt_pass pass_tm_done;
 
 /* IPA Passes */
 extern struct ipa_opt_pass pass_ipa_inline;

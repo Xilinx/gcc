@@ -746,13 +746,13 @@ struct gimple_statement_omp_atomic_store GTY(())
 
 struct gimple_statement_tm_atomic GTY(())
 {
-  /* [ WORD 1-4 ]  */
-  struct gimple_statement_base gsbase;
+  /* [ WORD 1-10 ]  */
+  struct gimple_statement_with_memory_ops_base gsbase;
 
-  /* [ WORD 5 ] */
+  /* [ WORD 11 ] */
   gimple_seq body;
 
-  /* [ WORD 6 ] */
+  /* [ WORD 12 ] */
   tree label;
 };
 

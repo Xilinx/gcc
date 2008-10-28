@@ -1,3 +1,20 @@
+2008-10-28  Richard Henderson  <rth@redhat.com>
+
+	* gimple.def (GIMPLE_TM_ATOMIC): Move before GIMPLE_RETURN.
+	* gimple.h (gimple_statement_tm_atomic): Inherit from
+	gimple_statement_with_memory_ops_base.
+	* tree-passes.h, passes.c (pass_tm_done): Remove.
+	* trans-mem.c (PROB_VERY_UNLIKELY, PROB_ALWAYS): New.
+	(execute_tm_done): Merge into ...
+	(execute_tm_edges): ... here.  Collect region before splitting edges.
+	(pass_tm_done): Remove.
+	(split_and_add_tm_edge): Merge into ...
+	(expand_block_edges): ... here.
+	(checkpoint_live_in_variables): Remove.
+	(expand_tm_atomic): Update edge probabilities, create eh label.
+	* tree-cfg.c (gimple_redirect_edge_and_branch): Handle TM_ATOMIC.
+	* tree-eh.c (lower_try_finally): Zero this_state.
+
 2008-10-27  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (mark_vops_in_stmt): New.

@@ -1575,6 +1575,7 @@ lower_try_finally (struct leh_state *state, gimple tp)
   else
     this_tf.region = NULL;
 
+  memset (&this_state, 0, sizeof (this_state));
   this_state.cur_region = this_tf.region;
   this_state.prev_try = state->prev_try;
   this_state.tf = &this_tf;

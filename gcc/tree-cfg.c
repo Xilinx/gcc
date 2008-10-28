@@ -4851,6 +4851,14 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
       /* The edges from OMP constructs can be simply redirected.  */
       break;
 
+    case GIMPLE_TM_ATOMIC:
+      /* The ABORT edge has a stored label associated with it, otherwise
+	 the edges are simply redirectable.  */
+      /* ??? We don't really need this label after the cfg is created.  */
+      if (e->flags == 0)
+	gimple_tm_atomic_set_label (stmt, gimple_block_label (dest));
+      break;
+
     default:
       /* Otherwise it must be a fallthru edge, and we don't need to
 	 do anything besides redirecting it.  */

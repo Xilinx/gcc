@@ -710,7 +710,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tm_mark);
       NEXT_PASS (pass_tm_memopt);
       NEXT_PASS (pass_tm_edges);
-      NEXT_PASS (pass_tm_done);
     }
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);

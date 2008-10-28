@@ -31,6 +31,10 @@
 #include "flags.h"
 
 
+#define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
+#define PROB_ALWAYS		(REG_BR_PROB_BASE)
+
+
 /* The representation of a transaction changes several times during the
    lowering process.  In the beginning, in the front-end we have the
    GENERIC tree TM_ATOMIC.  For example,
@@ -510,17 +514,6 @@ gate_tm_init (void)
   return true;
 }
 
-/* Free the transactional memory data structures.  */
-
-static unsigned int
-execute_tm_done (void)
-{
-  bitmap_obstack_release (&tm_obstack);
-  free_dominance_info (CDI_DOMINATORS);
-
-  return 0;
-}
-
 struct gimple_opt_pass pass_tm_init =
 {
  {
@@ -539,49 +532,30 @@ struct gimple_opt_pass pass_tm_init =
   0,					/* todo_flags_finish */
  }
 };
-
-struct gimple_opt_pass pass_tm_done =
-{
- {
-  GIMPLE_PASS,
-  "tminit",				/* name */
-  NULL,					/* gate */
-  execute_tm_done,			/* execute */
-  NULL,					/* sub */
-  NULL,					/* next */
-  0,					/* static_pass_number */
-  0,					/* tv_id */
-  PROP_ssa | PROP_cfg,			/* properties_required */
-  0,			                /* properties_provided */
-  0,					/* properties_destroyed */
-  0,					/* todo_flags_start */
-  0,					/* todo_flags_finish */
- }
-};
 
 /* Add FLAGS to the GIMPLE_TM_ATOMIC subcode for the transaction region
    represented by STATE.  */
 
 static inline void
-tm_atomic_subcode_ior (struct tm_region *state, unsigned flags)
+tm_atomic_subcode_ior (struct tm_region *region, unsigned flags)
 {
-  if (state->tm_atomic_stmt)
-    gimple_tm_atomic_set_subcode (state->tm_atomic_stmt,
-      gimple_tm_atomic_subcode (state->tm_atomic_stmt) | flags);
+  if (region->tm_atomic_stmt)
+    gimple_tm_atomic_set_subcode (region->tm_atomic_stmt,
+      gimple_tm_atomic_subcode (region->tm_atomic_stmt) | flags);
 }
 
 
 /* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
 
 static void
-expand_irrevokable (struct tm_region *state, gimple_stmt_iterator *gsi)
+expand_irrevokable (struct tm_region *region, gimple_stmt_iterator *gsi)
 {
   gimple g;
 
-  tm_atomic_subcode_ior (state, GTMA_HAVE_CALL_IRREVOKABLE);
+  tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
-  add_stmt_to_eh_region (g, state->region_nr);
+  add_stmt_to_eh_region (g, region->region_nr);
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 }
@@ -733,7 +707,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 /* Expand an assignment statement into transactional builtins.  */
 
 static void
-expand_assign_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
+expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree lhs = gimple_assign_lhs (stmt);
@@ -744,7 +718,7 @@ expand_assign_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
 
   if (load_p && store_p)
     {
-      tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
+      tm_atomic_subcode_ior (region, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
 
       gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMCPY], 3,
 				 build_fold_addr_expr (lhs),
@@ -754,18 +728,18 @@ expand_assign_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
     }
   else if (load_p)
     {
-      tm_atomic_subcode_ior (state, GTMA_HAVE_LOAD);
+      tm_atomic_subcode_ior (region, GTMA_HAVE_LOAD);
       gcall = build_tm_load (lhs, rhs, gsi);
     }
   else if (store_p)
     {
-      tm_atomic_subcode_ior (state, GTMA_HAVE_STORE);
+      tm_atomic_subcode_ior (region, GTMA_HAVE_STORE);
       gcall = build_tm_store (lhs, rhs, gsi);
     }
   else
     return;
 
-  add_stmt_to_eh_region  (gcall, state->region_nr);
+  add_stmt_to_eh_region  (gcall, region->region_nr);
   mark_vops_in_stmt (stmt);
   gsi_remove (gsi, true);
 }
@@ -784,7 +758,7 @@ find_tm_clone (tree orig_decl ATTRIBUTE_UNUSED)
    one of the builtins that end a transaction.  */
 
 static bool
-expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
+expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree fn_decl;
@@ -795,7 +769,7 @@ expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
     return false;
 
   if (flag_exceptions && !(flags & ECF_NOTHROW))
-    tm_atomic_subcode_ior (state, GTMA_HAVE_UNCOMMITTED_THROW);
+    tm_atomic_subcode_ior (region, GTMA_HAVE_UNCOMMITTED_THROW);
 
   fn_decl = gimple_call_fndecl (stmt);
   if (!fn_decl)
@@ -803,7 +777,7 @@ expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
       /* ??? The ABI under discussion has us calling into the runtime
 	 to determine if there's a transactional version of this function.
 	 For now, just switch to irrevokable mode.  */
-      expand_irrevokable (state, gsi);
+      expand_irrevokable (region, gsi);
       return false;
     }
 
@@ -825,7 +799,7 @@ expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
 	case BUILT_IN_TM_COMMIT:
 	case BUILT_IN_TM_ABORT:
 	  /* Both of these calls end a transaction.  */
-	  if (lookup_stmt_eh_region (stmt) == state->region_nr)
+	  if (lookup_stmt_eh_region (stmt) == region->region_nr)
 	    return true;
 
 	default:
@@ -842,7 +816,7 @@ expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
       return false;
     }
 
-  expand_irrevokable (state, gsi);
+  expand_irrevokable (region, gsi);
   return false;
 }
 
@@ -850,7 +824,7 @@ expand_call_tm (struct tm_region *state, gimple_stmt_iterator *gsi)
 /* Expand all statements in BB as appropriate for being inside
    a transaction.  */
 static void
-expand_block_tm (struct tm_region *state, basic_block bb)
+expand_block_tm (struct tm_region *region, basic_block bb)
 {
   gimple_stmt_iterator gsi;
 
@@ -863,18 +837,18 @@ expand_block_tm (struct tm_region *state, basic_block bb)
 	  /* Only memory reads/writes need to be instrumented.  */
 	  if (gimple_assign_single_p (stmt))
 	    {
-	      expand_assign_tm (state, &gsi);
+	      expand_assign_tm (region, &gsi);
 	      continue;
 	    }
 	  break;
 
 	case GIMPLE_CALL:
-	  if (expand_call_tm (state, &gsi))
+	  if (expand_call_tm (region, &gsi))
 	    return;
 	  break;
 
 	case GIMPLE_ASM:
-	  expand_irrevokable (state, &gsi);
+	  expand_irrevokable (region, &gsi);
 	  break;
 
 	default:
@@ -954,102 +928,52 @@ struct gimple_opt_pass pass_tm_mark =
    represented by STATE.  */
 
 static inline void
-make_tm_edge (basic_block bb, struct tm_region *state)
+make_tm_edge (basic_block bb, struct tm_region *region)
 {
-  make_edge (bb, state->entry_block, EDGE_ABNORMAL | EDGE_ABNORMAL_CALL);
+  make_edge (bb, region->entry_block, EDGE_ABNORMAL | EDGE_ABNORMAL_CALL);
 }
 
 
-/* Split the block at GSI and create an abnormal back edge.  */
-
-static void ATTRIBUTE_UNUSED
-split_and_add_tm_edge (struct tm_region *state, gimple_stmt_iterator *gsi)
+static void
+expand_block_edges (struct tm_region *region, basic_block bb)
 {
-  basic_block bb = gsi->bb;
-  if (!gsi_one_before_end_p (*gsi))
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
     {
-      edge e = split_block (bb, gsi_stmt (*gsi));
-      *gsi = gsi_start_bb (e->dest);
+      gimple stmt = gsi_stmt (gsi);
+
+      if (gimple_code (stmt) == GIMPLE_CALL
+	  && (gimple_call_flags (stmt) & ECF_TM_OPS) != 0)
+	{
+	  if (!gsi_one_before_end_p (gsi))
+	    {
+	      edge e = split_block (bb, stmt);
+	      make_tm_edge (bb, region);
+	      bb = e->dest;
+	      gsi = gsi_start_bb (bb);
+	      continue;
+	    }
+
+	  make_tm_edge (bb, region);
+	}
+
+      gsi_next (&gsi);
     }
-
-  make_tm_edge (bb, state);
 }
-
 
 /* ??? Find real values for these bits.  */
 #define TM_START_RESTORE_LIVE_IN	1
 #define TM_START_ABORT			2
 
-/* All local variables that have been modified since the beginning of the
-   transaction up until the last possible transaction restart need to be
-   reset when we restart the transaction.
-
-   Here we implement this by replacing the new SSA_NAME created by the
-   PHI at the join of the abnormal backedges by the old SSA_NAME that
-   was originally live at entry to the transaction.  This does result in
-   the old SSA_NAME continuing to stay live when new values are defined,
-   and this isn't necessarily the most efficient implementation, but it
-   is just about the easiest.  */
-
-static void ATTRIBUTE_UNUSED
-checkpoint_live_in_variables (edge e)
-{
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start_phis (e->dest); !gsi_end_p (gsi); )
-    {
-      gimple phi = gsi_stmt (gsi);
-      tree old_ssa, new_ssa;
-      unsigned i, n;
-
-      new_ssa = gimple_phi_result (phi);
-      old_ssa = gimple_phi_arg_def (phi, e->dest_idx);
-
-      /* We need to recompute SSA_NAME_OCCURS_IN_ABNORMAL_PHI on each
-	 of the other arguments to the PHI, discounting the one abnormal
-	 phi node that we're about to delete.  */
-      for (i = 0, n = gimple_phi_num_args (phi); i < n; ++i)
-	{
-	  tree arg = gimple_phi_arg_def (phi, i);
-	  imm_use_iterator imm_iter;
-	  use_operand_p use_p;
-	  bool in_abnormal_phi;
-
-	  if (TREE_CODE (arg) != SSA_NAME
-	      || !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (arg))
-	    continue;
-
-	  in_abnormal_phi = false;
-	  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, arg)
-	    {
-	      gimple phi2 = USE_STMT (use_p);
-	      if (gimple_code (phi2) == GIMPLE_PHI && phi2 != phi)
-		{
-		  unsigned ix = PHI_ARG_INDEX_FROM_USE (use_p);
-		  if (gimple_phi_arg_edge (phi2, ix)->flags & EDGE_ABNORMAL)
-		    {
-		      in_abnormal_phi = true;
-		      break;
-		    }
-		}
-	    }
-	  SSA_NAME_OCCURS_IN_ABNORMAL_PHI (arg) = in_abnormal_phi;
-	}
-
-      replace_uses_by (new_ssa, old_ssa);
-      remove_phi_node (&gsi, true);
-    }
-}
-
 static void
 expand_tm_atomic (struct tm_region *region)
 {
   tree status, tm_start;
-  basic_block atomic_bb, test_bb;
+  basic_block atomic_bb;
   gimple_stmt_iterator gsi;
   tree t1, t2;
   gimple g;
-  edge e;
 
   mark_vops_in_stmt (region->tm_atomic_stmt);
 
@@ -1066,9 +990,14 @@ expand_tm_atomic (struct tm_region *region)
   gsi_insert_before (&gsi, g, GSI_SAME_STMT);
   gsi_remove (&gsi, true);
 
+  /* If we have an ABORT statement, create a test following the start
+     call to perform the abort.  */
   if (gimple_tm_atomic_label (region->tm_atomic_stmt))
     {
-      test_bb = create_empty_bb (atomic_bb);
+      edge e1, e2;
+      basic_block test_bb;
+
+      region->entry_block = test_bb = create_empty_bb (atomic_bb);
       gsi = gsi_last_bb (test_bb);
 
       t1 = make_rename_temp (TREE_TYPE (status), NULL);
@@ -1080,13 +1009,27 @@ expand_tm_atomic (struct tm_region *region)
       g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
 
-      make_edge (test_bb, region->entry_block, EDGE_FALSE_VALUE);
+      e1 = FALLTHRU_EDGE (atomic_bb);
+      e2 = make_edge (test_bb, e1->dest, EDGE_FALSE_VALUE);
+      redirect_edge_succ (e1, test_bb);
+      e1->probability = PROB_ALWAYS;
 
-      e = BRANCH_EDGE (atomic_bb);
-      redirect_edge_pred (e, test_bb);
-      e->flags = EDGE_TRUE_VALUE;
+      e1 = BRANCH_EDGE (atomic_bb);
+      redirect_edge_pred (e1, test_bb);
+      e1->flags = EDGE_TRUE_VALUE;
+      e1->probability = PROB_VERY_UNLIKELY;
+      e2->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
     }
 
+  /* Record an EH label for the region.  This will be where the 
+     transaction restart backedge goes.  This is sort of fake,
+     since the runtime actually uses longjmp to get back here,
+     but its existance makes it easier to interface with the
+     rest of the EH code in creating the CFG.  */
+  set_eh_region_tree_label (get_eh_region_from_number (region->region_nr),
+			    gimple_block_label (region->entry_block));
+
+  /* The GIMPLE_TM_ATOMIC statement no longer exists.  */
   region->tm_atomic_stmt = NULL;
 }
 
@@ -1096,11 +1039,49 @@ static unsigned int
 execute_tm_edges (void)
 {
   struct tm_region *region;
+  basic_block bb;
+  VEC (basic_block, heap) *queue;
+  bitmap blocks;
+  bitmap_iterator iter;
+  unsigned int i;
+
+  queue = VEC_alloc (basic_block, heap, 10);
+  blocks = BITMAP_ALLOC (&tm_obstack);
 
   for (region = all_tm_regions; region ; region = region->next)
-    {
-      expand_tm_atomic (region);
-    }
+    if (region->exit_blocks)
+      {
+	/* Collect the set of blocks in this region.  Do this before
+	   splitting edges, so that we don't have to play with the
+	   dominator tree in the middle.  */
+	bitmap_clear (blocks);
+	VEC_quick_push (basic_block, queue, region->entry_block);
+	do
+	  {
+	    bb = VEC_pop (basic_block, queue);
+	    bitmap_set_bit (blocks, bb->index);
+	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
+	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
+		   bb;
+		   bb = next_dom_son (CDI_DOMINATORS, bb))
+		VEC_safe_push (basic_block, heap, queue, bb);
+	  }
+	while (!VEC_empty (basic_block, queue));
+
+	expand_tm_atomic (region);
+
+	EXECUTE_IF_SET_IN_BITMAP (blocks, 0, i, iter)
+	  expand_block_edges (region, BASIC_BLOCK (i));
+      }
+
+  VEC_free (basic_block, heap, queue);
+  BITMAP_FREE (blocks);
+
+  /* We've got to release the dominance info now, to indicate that it
+     must be rebuilt completely.  Otherwise we'll crash trying to update
+     the SSA web in the TODO section following this pass.  */
+  free_dominance_info (CDI_DOMINATORS);
+  bitmap_obstack_release (&tm_obstack);
 
   return 0;
 }
