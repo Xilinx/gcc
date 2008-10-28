@@ -207,7 +207,7 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
 
   /* First, lower the body.  The scanning that we do inside gives
      us some idea of what we're dealing with.  */
-  lower_sequence_tm (&this_state, gimple_seq_body (stmt));
+  lower_sequence_tm (&this_state, gimple_tm_atomic_body (stmt));
 
   /* If there was absolutely nothing transaction related inside the
      transaction, we may elide it.  Likewise if this is a nested
@@ -218,8 +218,8 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
       if (outer_state)
 	*outer_state |= this_state;
 
-      gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
-      gimple_seq_set_body (stmt, NULL);
+      gsi_insert_seq_before (gsi, gimple_tm_atomic_body (stmt), GSI_SAME_STMT);
+      gimple_tm_atomic_set_body (stmt, NULL);
       gsi_remove (gsi, true);
       return;
     }
@@ -227,9 +227,9 @@ lower_tm_atomic (unsigned int *outer_state, gimple_stmt_iterator *gsi)
   /* Wrap the body of the transaction in a try-finally node so that
      the commit call is always properly called.  */
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_COMMIT], 0);
-  g = gimple_build_try (gimple_seq_body (stmt),
+  g = gimple_build_try (gimple_tm_atomic_body (stmt),
 			gimple_seq_alloc_with_stmt (g), GIMPLE_TRY_FINALLY);
-  gimple_seq_set_body (stmt, gimple_seq_alloc_with_stmt (g));
+  gimple_tm_atomic_set_body (stmt, gimple_seq_alloc_with_stmt (g));
 
   /* If the transaction calls abort, add an "over" label afterwards.  */
   if (this_state & GTMA_HAVE_ABORT)

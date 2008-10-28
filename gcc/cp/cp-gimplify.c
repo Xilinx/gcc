@@ -372,8 +372,8 @@ cp_gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
   gimplify_and_add (for_stmt, &seq);
   stmt = gimple_seq_last_stmt (seq);
   if (gimple_code (stmt) == GIMPLE_OMP_FOR)
-    gimple_seq_set_body (stmt, finish_bc_block (bc_continue, cont_block,
-						gimple_seq_body (stmt)));
+    gimple_omp_set_body (stmt, finish_bc_block (bc_continue, cont_block,
+						gimple_omp_body (stmt)));
   else
     seq = finish_bc_block (bc_continue, cont_block, seq);
   gimple_seq_add_seq (pre_p, seq);

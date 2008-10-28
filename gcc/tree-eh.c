@@ -311,7 +311,7 @@ collect_finally_tree (gimple stmt, gimple region)
       break;
 
     case GIMPLE_TM_ATOMIC:
-      collect_finally_tree_1 (gimple_seq_body (stmt), region);
+      collect_finally_tree_1 (gimple_tm_atomic_body (stmt), region);
       break;
 
     default:
@@ -1830,11 +1830,12 @@ lower_tm_atomic_eh (struct leh_state *state, gimple_stmt_iterator *gsi)
   state->prev_atomic = region;
   record_stmt_eh_region (region, stmt);
 
-  lower_eh_constructs_1 (state, gimple_seq_body (stmt));
+  lower_eh_constructs_1 (state, gimple_tm_atomic_body (stmt));
 
   /* Flatten the atomic node with respect to its body.  */
-  gsi_insert_seq_after (gsi, gimple_seq_body (stmt), GSI_CONTINUE_LINKING);
-  gimple_seq_set_body (stmt, NULL);
+  gsi_insert_seq_after (gsi, gimple_tm_atomic_body (stmt),
+			GSI_CONTINUE_LINKING);
+  gimple_tm_atomic_set_body (stmt, NULL);
 
   state->cur_region = outer_region;
   state->prev_atomic = outer_atomic;

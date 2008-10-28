@@ -1,3 +1,17 @@
+2008-10-27  Richard Henderson  <rth@redhat.com>
+
+	* omp-low.c, gimple-low.c, gsstruct.def, tree-eh.c,
+	gimple-pretty-print.c, trans-mem.c, tree-nested.c,
+	tree-inline.c, gimple.c, gimple.h, tree-cfg.c: Revert
+	the gimple_omp_{set_,}body name change.  Use gimple_tm_atomic_body
+	for GIMPLE_TM_ATOMIC nodes.
+
+	* cp/gimplify.c: Likewise.
+
+2008-10-27  Richard Henderson  <rth@redhat.com>
+
+	Merge from mainline rev 141397.
+
 2008-10-24  Richard Henderson  <rth@redhat.com>
 
 	* calls.c (special_function_p): Include more TM builtins.

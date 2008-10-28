@@ -242,10 +242,10 @@ lower_omp_directive (gimple_stmt_iterator *gsi, struct lower_data *data)
   
   stmt = gsi_stmt (*gsi);
 
-  lower_sequence (gimple_seq_body (stmt), data);
+  lower_sequence (gimple_omp_body (stmt), data);
   gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
-  gsi_insert_seq_before (gsi, gimple_seq_body (stmt), GSI_SAME_STMT);
-  gimple_seq_set_body (stmt, NULL);
+  gsi_insert_seq_before (gsi, gimple_omp_body (stmt), GSI_SAME_STMT);
+  gimple_omp_set_body (stmt, NULL);
   gsi_remove (gsi, false);
 }
 
@@ -329,7 +329,7 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
       return;
 
     case GIMPLE_TM_ATOMIC:
-      lower_sequence (gimple_seq_body (stmt), data);
+      lower_sequence (gimple_tm_atomic_body (stmt), data);
       break;
 
     default:

@@ -1622,7 +1622,7 @@ scan_omp_parallel (gimple_stmt_iterator *gsi, omp_context *outer_ctx)
   /* Ignore parallel directives with empty bodies, unless there
      are copyin clauses.  */
   if (optimize > 0
-      && empty_body_p (gimple_seq_body (stmt))
+      && empty_body_p (gimple_omp_body (stmt))
       && find_omp_clause (gimple_omp_parallel_clauses (stmt),
 			  OMP_CLAUSE_COPYIN) == NULL)
     {
@@ -1643,7 +1643,7 @@ scan_omp_parallel (gimple_stmt_iterator *gsi, omp_context *outer_ctx)
   gimple_omp_parallel_set_child_fn (stmt, ctx->cb.dst_fn);
 
   scan_sharing_clauses (gimple_omp_parallel_clauses (stmt), ctx);
-  scan_omp (gimple_seq_body (stmt), ctx);
+  scan_omp (gimple_omp_body (stmt), ctx);
 
   if (TYPE_FIELDS (ctx->record_type) == NULL)
     ctx->record_type = ctx->receiver_decl = NULL;
@@ -1665,7 +1665,7 @@ scan_omp_task (gimple_stmt_iterator *gsi, omp_context *outer_ctx)
 
   /* Ignore task directives with empty bodies.  */
   if (optimize > 0
-      && empty_body_p (gimple_seq_body (stmt)))
+      && empty_body_p (gimple_omp_body (stmt)))
     {
       gsi_replace (gsi, gimple_build_nop (), false);
       return;
@@ -1693,7 +1693,7 @@ scan_omp_task (gimple_stmt_iterator *gsi, omp_context *outer_ctx)
       create_omp_child_function (ctx, true);
     }
 
-  scan_omp (gimple_seq_body (stmt), ctx);
+  scan_omp (gimple_omp_body (stmt), ctx);
 
   if (TYPE_FIELDS (ctx->record_type) == NULL)
     {
@@ -1754,7 +1754,7 @@ scan_omp_for (gimple stmt, omp_context *outer_ctx)
       scan_omp_op (gimple_omp_for_final_ptr (stmt, i), ctx);
       scan_omp_op (gimple_omp_for_incr_ptr (stmt, i), ctx);
     }
-  scan_omp (gimple_seq_body (stmt), ctx);
+  scan_omp (gimple_omp_body (stmt), ctx);
 }
 
 /* Scan an OpenMP sections directive.  */
@@ -1766,7 +1766,7 @@ scan_omp_sections (gimple stmt, omp_context *outer_ctx)
 
   ctx = new_omp_context (stmt, outer_ctx);
   scan_sharing_clauses (gimple_omp_sections_clauses (stmt), ctx);
-  scan_omp (gimple_seq_body (stmt), ctx);
+  scan_omp (gimple_omp_body (stmt), ctx);
 }
 
 /* Scan an OpenMP single directive.  */
@@ -1785,7 +1785,7 @@ scan_omp_single (gimple stmt, omp_context *outer_ctx)
   TYPE_NAME (ctx->record_type) = name;
 
   scan_sharing_clauses (gimple_omp_single_clauses (stmt), ctx);
-  scan_omp (gimple_seq_body (stmt), ctx);
+  scan_omp (gimple_omp_body (stmt), ctx);
 
   if (TYPE_FIELDS (ctx->record_type) == NULL)
     ctx->record_type = NULL;
@@ -1981,7 +1981,7 @@ scan_omp_1_stmt (gimple_stmt_iterator *gsi, bool *handled_ops_p,
     case GIMPLE_OMP_ORDERED:
     case GIMPLE_OMP_CRITICAL:
       ctx = new_omp_context (stmt, ctx);
-      scan_omp (gimple_seq_body (stmt), ctx);
+      scan_omp (gimple_omp_body (stmt), ctx);
       break;
 
     case GIMPLE_BIND:
@@ -5419,11 +5419,11 @@ lower_omp_sections (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   lower_rec_input_clauses (gimple_omp_sections_clauses (stmt),
       			   &ilist, &dlist, ctx);
 
-  tgsi = gsi_start (gimple_seq_body (stmt));
+  tgsi = gsi_start (gimple_omp_body (stmt));
   for (len = 0; !gsi_end_p (tgsi); len++, gsi_next (&tgsi))
     continue;
 
-  tgsi = gsi_start (gimple_seq_body (stmt));
+  tgsi = gsi_start (gimple_omp_body (stmt));
   body = NULL;
   for (i = 0; i < len; i++, gsi_next (&tgsi))
     {
@@ -5436,9 +5436,9 @@ lower_omp_sections (gimple_stmt_iterator *gsi_p, omp_context *ctx)
 
       gimple_seq_add_stmt (&body, sec_start);
 
-      lower_omp (gimple_seq_body (sec_start), sctx);
-      gimple_seq_add_seq (&body, gimple_seq_body (sec_start));
-      gimple_seq_set_body (sec_start, NULL);
+      lower_omp (gimple_omp_body (sec_start), sctx);
+      gimple_seq_add_seq (&body, gimple_omp_body (sec_start));
+      gimple_omp_set_body (sec_start, NULL);
 
       if (i == len - 1)
 	{
@@ -5489,7 +5489,7 @@ lower_omp_sections (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   gimple_seq_add_stmt (&new_body, t);
 
   gimple_bind_set_body (new_stmt, new_body);
-  gimple_seq_set_body (stmt, NULL);
+  gimple_omp_set_body (stmt, NULL);
 
   gsi_replace (gsi_p, new_stmt, true);
 }
@@ -5525,7 +5525,7 @@ lower_omp_single_simple (gimple single_stmt, gimple_seq *pre_p)
 			    tlabel, flabel);
   gimple_seq_add_stmt (pre_p, cond);
   gimple_seq_add_stmt (pre_p, gimple_build_label (tlabel));
-  gimple_seq_add_seq (pre_p, gimple_seq_body (single_stmt));
+  gimple_seq_add_seq (pre_p, gimple_omp_body (single_stmt));
   gimple_seq_add_stmt (pre_p, gimple_build_label (flabel));
 }
 
@@ -5586,7 +5586,7 @@ lower_omp_single_copy (gimple single_stmt, gimple_seq *pre_p, omp_context *ctx)
 
   gimple_seq_add_stmt (pre_p, gimple_build_label (l0));
 
-  gimple_seq_add_seq (pre_p, gimple_seq_body (single_stmt));
+  gimple_seq_add_seq (pre_p, gimple_omp_body (single_stmt));
 
   copyin_seq = NULL;
   lower_copyprivate_clauses (gimple_omp_single_clauses (single_stmt), pre_p,
@@ -5622,7 +5622,7 @@ lower_omp_single (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   bind_body = NULL;
   lower_rec_input_clauses (gimple_omp_single_clauses (single_stmt),
 			   &bind_body, &dlist, ctx);
-  lower_omp (gimple_seq_body (single_stmt), ctx);
+  lower_omp (gimple_omp_body (single_stmt), ctx);
 
   gimple_seq_add_stmt (&bind_body, single_stmt);
 
@@ -5631,7 +5631,7 @@ lower_omp_single (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   else
     lower_omp_single_simple (single_stmt, &bind_body);
 
-  gimple_seq_set_body (single_stmt, NULL);
+  gimple_omp_set_body (single_stmt, NULL);
 
   gimple_seq_add_seq (&bind_body, dlist);
 
@@ -5678,10 +5678,10 @@ lower_omp_master (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   gimplify_and_add (x, &tseq);
   gimple_bind_add_seq (bind, tseq);
 
-  lower_omp (gimple_seq_body (stmt), ctx);
-  gimple_seq_set_body (stmt, maybe_catch_exception (gimple_seq_body (stmt)));
-  gimple_bind_add_seq (bind, gimple_seq_body (stmt));
-  gimple_seq_set_body (stmt, NULL);
+  lower_omp (gimple_omp_body (stmt), ctx);
+  gimple_omp_set_body (stmt, maybe_catch_exception (gimple_omp_body (stmt)));
+  gimple_bind_add_seq (bind, gimple_omp_body (stmt));
+  gimple_omp_set_body (stmt, NULL);
 
   gimple_bind_add_stmt (bind, gimple_build_label (lab));
 
@@ -5713,10 +5713,10 @@ lower_omp_ordered (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   x = gimple_build_call (built_in_decls[BUILT_IN_GOMP_ORDERED_START], 0);
   gimple_bind_add_stmt (bind, x);
 
-  lower_omp (gimple_seq_body (stmt), ctx);
-  gimple_seq_set_body (stmt, maybe_catch_exception (gimple_seq_body (stmt)));
-  gimple_bind_add_seq (bind, gimple_seq_body (stmt));
-  gimple_seq_set_body (stmt, NULL);
+  lower_omp (gimple_omp_body (stmt), ctx);
+  gimple_omp_set_body (stmt, maybe_catch_exception (gimple_omp_body (stmt)));
+  gimple_bind_add_seq (bind, gimple_omp_body (stmt));
+  gimple_omp_set_body (stmt, NULL);
 
   x = gimple_build_call (built_in_decls[BUILT_IN_GOMP_ORDERED_END], 0);
   gimple_bind_add_stmt (bind, x);
@@ -5805,10 +5805,10 @@ lower_omp_critical (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   gimplify_and_add (lock, &tbody);
   gimple_bind_set_body (bind, tbody);
 
-  lower_omp (gimple_seq_body (stmt), ctx);
-  gimple_seq_set_body (stmt, maybe_catch_exception (gimple_seq_body (stmt)));
-  gimple_bind_add_seq (bind, gimple_seq_body (stmt));
-  gimple_seq_set_body (stmt, NULL);
+  lower_omp (gimple_omp_body (stmt), ctx);
+  gimple_omp_set_body (stmt, maybe_catch_exception (gimple_omp_body (stmt)));
+  gimple_bind_add_seq (bind, gimple_omp_body (stmt));
+  gimple_omp_set_body (stmt, NULL);
 
   tbody = gimple_bind_body (bind);
   gimplify_and_add (unlock, &tbody);
@@ -5888,14 +5888,14 @@ lower_omp_for (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   push_gimplify_context (&gctx);
 
   lower_omp (gimple_omp_for_pre_body (stmt), ctx);
-  lower_omp (gimple_seq_body (stmt), ctx);
+  lower_omp (gimple_omp_body (stmt), ctx);
 
   block = make_node (BLOCK);
   new_stmt = gimple_build_bind (NULL, NULL, block);
 
   /* Move declaration of temporaries in the loop body before we make
      it go away.  */
-  omp_for_body = gimple_seq_body (stmt);
+  omp_for_body = gimple_omp_body (stmt);
   if (!gimple_seq_empty_p (omp_for_body)
       && gimple_code (gimple_seq_first_stmt (omp_for_body)) == GIMPLE_BIND)
     {
@@ -5938,7 +5938,7 @@ lower_omp_for (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   lower_omp_for_lastprivate (&fd, &body, &dlist, ctx);
 
   gimple_seq_add_stmt (&body, stmt);
-  gimple_seq_add_seq (&body, gimple_seq_body (stmt));
+  gimple_seq_add_seq (&body, gimple_omp_body (stmt));
 
   gimple_seq_add_stmt (&body, gimple_build_omp_continue (fd.loop.v,
 							 fd.loop.v));
@@ -5960,7 +5960,7 @@ lower_omp_for (gimple_stmt_iterator *gsi_p, omp_context *ctx)
     TREE_USED (block) = 1;
 
   gimple_bind_set_body (new_stmt, body);
-  gimple_seq_set_body (stmt, NULL);
+  gimple_omp_set_body (stmt, NULL);
   gimple_omp_for_set_pre_body (stmt, NULL);
   gsi_replace (gsi_p, new_stmt, true);
 }
@@ -6288,7 +6288,7 @@ lower_omp_taskreg (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   struct gimplify_ctx gctx;
 
   clauses = gimple_omp_taskreg_clauses (stmt);
-  par_bind = gimple_seq_first_stmt (gimple_seq_body (stmt));
+  par_bind = gimple_seq_first_stmt (gimple_omp_body (stmt));
   par_body = gimple_bind_body (par_bind);
   child_fn = ctx->cb.dst_fn;
   if (gimple_code (stmt) == GIMPLE_OMP_PARALLEL
@@ -6335,7 +6335,7 @@ lower_omp_taskreg (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   lower_send_shared_vars (&ilist, &olist, ctx);
 
   /* Once all the expansions are done, sequence all the different
-     fragments inside gimple_seq_body.  */
+     fragments inside gimple_omp_body.  */
 
   new_body = NULL;
 
@@ -6353,7 +6353,7 @@ lower_omp_taskreg (gimple_stmt_iterator *gsi_p, omp_context *ctx)
   gimple_seq_add_seq (&new_body, par_olist);
   new_body = maybe_catch_exception (new_body);
   gimple_seq_add_stmt (&new_body, gimple_build_omp_return (false));
-  gimple_seq_set_body (stmt, new_body);
+  gimple_omp_set_body (stmt, new_body);
 
   bind = gimple_build_bind (NULL, NULL, gimple_bind_block (par_bind));
   gimple_bind_add_stmt (bind, stmt);
@@ -6652,7 +6652,7 @@ diagnose_sb_1 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
       /* The minimal context here is just the current OMP construct.  */
       inner_context = stmt;
       wi->info = inner_context;
-      walk_gimple_seq (gimple_seq_body (stmt), diagnose_sb_1, NULL, wi);
+      walk_gimple_seq (gimple_omp_body (stmt), diagnose_sb_1, NULL, wi);
       wi->info = context;
       break;
 
@@ -6663,7 +6663,7 @@ diagnose_sb_1 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
 	 walk them.  */
       walk_gimple_seq (gimple_omp_for_pre_body (stmt),
 	  	       diagnose_sb_1, NULL, wi);
-      walk_gimple_seq (gimple_seq_body (stmt), diagnose_sb_1, NULL, wi);
+      walk_gimple_seq (gimple_omp_body (stmt), diagnose_sb_1, NULL, wi);
       wi->info = context;
       break;
 
@@ -6705,7 +6705,7 @@ diagnose_sb_2 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
     case GIMPLE_OMP_ORDERED:
     case GIMPLE_OMP_CRITICAL:
       wi->info = stmt;
-      walk_gimple_seq (gimple_seq_body (stmt), diagnose_sb_2, NULL, wi);
+      walk_gimple_seq (gimple_omp_body (stmt), diagnose_sb_2, NULL, wi);
       wi->info = context;
       break;
 
@@ -6715,7 +6715,7 @@ diagnose_sb_2 (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
 	 walk them.  */
       walk_gimple_seq (gimple_omp_for_pre_body (stmt),
 	  	       diagnose_sb_2, NULL, wi);
-      walk_gimple_seq (gimple_seq_body (stmt), diagnose_sb_2, NULL, wi);
+      walk_gimple_seq (gimple_omp_body (stmt), diagnose_sb_2, NULL, wi);
       wi->info = context;
       break;
 

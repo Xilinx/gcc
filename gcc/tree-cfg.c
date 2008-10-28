@@ -2009,7 +2009,7 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
 	case GIMPLE_OMP_SECTIONS:
 	case GIMPLE_OMP_SINGLE:
 	  {
-	    gimple_seq body_seq = gimple_seq_body (stmt);
+	    gimple_seq body_seq = gimple_omp_body (stmt);
 	    gimple_stmt_iterator body_gsi = gsi_start (body_seq);
 
 	    remove_useless_stmts_1 (&body_gsi, data);
@@ -2023,7 +2023,7 @@ remove_useless_stmts_1 (gimple_stmt_iterator *gsi, struct rus_data *data)
 	  {
 	    /* Make sure the outermost GIMPLE_BIND isn't removed
 	       as useless.  */
-	    gimple_seq body_seq = gimple_seq_body (stmt);
+	    gimple_seq body_seq = gimple_omp_body (stmt);
 	    gimple bind = gimple_seq_first_stmt (body_seq);
 	    gimple_seq bind_seq = gimple_bind_body (bind);
 	    gimple_stmt_iterator bind_gsi = gsi_start (bind_seq);
@@ -4046,7 +4046,7 @@ verify_types_in_gimple_seq_2 (gimple_seq stmts)
 	  break;
 
 	case GIMPLE_TM_ATOMIC:
-	  err |= verify_types_in_gimple_seq_2 (gimple_seq_body (stmt));
+	  err |= verify_types_in_gimple_seq_2 (gimple_omp_body (stmt));
 	  break;
 
 	default:
@@ -5645,7 +5645,7 @@ move_stmt_r (gimple_stmt_iterator *gsi_p, bool *handled_ops_p,
       p->remap_decls_p = false;
       *handled_ops_p = true;
 
-      walk_gimple_seq (gimple_seq_body (stmt), move_stmt_r, move_stmt_op, wi);
+      walk_gimple_seq (gimple_omp_body (stmt), move_stmt_r, move_stmt_op, wi);
 
       p->remap_decls_p = save_remap_decls_p;
     }

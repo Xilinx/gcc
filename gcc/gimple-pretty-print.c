@@ -762,7 +762,7 @@ dump_gimple_omp_for (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_seq_body (gs));
+                       gimple_omp_body (gs));
       dump_omp_clauses (buffer, gimple_omp_for_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >,");
       for (i = 0; i < gimple_omp_for_collapse (gs); i++)
@@ -826,12 +826,12 @@ dump_gimple_omp_for (pretty_printer *buffer, gimple gs, int spc, int flags)
 	  pp_character (buffer, ')');
 	}
 
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -870,7 +870,7 @@ dump_gimple_omp_single (pretty_printer *buffer, gimple gs, int spc, int flags)
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-		       gimple_seq_body (gs));
+		       gimple_omp_body (gs));
       dump_omp_clauses (buffer, gimple_omp_single_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >");
     }
@@ -878,12 +878,12 @@ dump_gimple_omp_single (pretty_printer *buffer, gimple gs, int spc, int flags)
     {
       pp_string (buffer, "#pragma omp single");
       dump_omp_clauses (buffer, gimple_omp_single_clauses (gs), spc, flags);
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -899,7 +899,7 @@ dump_gimple_omp_sections (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-		       gimple_seq_body (gs));
+		       gimple_omp_body (gs));
       dump_omp_clauses (buffer, gimple_omp_sections_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >");
     }
@@ -914,12 +914,12 @@ dump_gimple_omp_sections (pretty_printer *buffer, gimple gs, int spc,
 	  pp_character (buffer, '>');
 	}
       dump_omp_clauses (buffer, gimple_omp_sections_clauses (gs), spc, flags);
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -934,7 +934,7 @@ dump_gimple_omp_block (pretty_printer *buffer, gimple gs, int spc, int flags)
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
-		     gimple_seq_body (gs));
+		     gimple_omp_body (gs));
   else
     {
       switch (gimple_code (gs))
@@ -951,12 +951,12 @@ dump_gimple_omp_block (pretty_printer *buffer, gimple gs, int spc, int flags)
 	default:
 	  gcc_unreachable ();
 	}
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -971,7 +971,7 @@ dump_gimple_omp_critical (pretty_printer *buffer, gimple gs, int spc,
 {
   if (flags & TDF_RAW)
     dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S> >", gs,
-		     gimple_seq_body (gs));
+		     gimple_omp_body (gs));
   else
     {
       pp_string (buffer, "#pragma omp critical");
@@ -982,12 +982,12 @@ dump_gimple_omp_critical (pretty_printer *buffer, gimple gs, int spc,
 			     flags, false);
 	  pp_character (buffer, ')');
 	}
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_omp_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_omp_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -1021,7 +1021,7 @@ dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
     dump_gimple_fmt (buffer, spc, flags,
 		     "%G [SUBCODE=%x,LABEL=%T] <%+BODY <%S> >",
 		     gs, gimple_tm_atomic_subcode (gs),
-		     gimple_tm_atomic_label (gs), gimple_seq_body (gs));
+		     gimple_tm_atomic_label (gs), gimple_tm_atomic_body (gs));
   else
     {
       pp_printf (buffer, "__tm_atomic [SUBCODE=%x,LABEL=",
@@ -1030,12 +1030,12 @@ dump_gimple_tm_atomic (pretty_printer *buffer, gimple gs, int spc, int flags)
 			 spc, flags, false);
       pp_string (buffer, "]");
 
-      if (!gimple_seq_empty_p (gimple_seq_body (gs)))
+      if (!gimple_seq_empty_p (gimple_tm_atomic_body (gs)))
 	{
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '{');
 	  pp_newline (buffer);
-	  dump_gimple_seq (buffer, gimple_seq_body (gs), spc + 4, flags);
+	  dump_gimple_seq (buffer, gimple_tm_atomic_body (gs), spc + 4, flags);
 	  newline_and_indent (buffer, spc + 2);
 	  pp_character (buffer, '}');
 	}
@@ -1203,7 +1203,7 @@ dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_seq_body (gs));
+                       gimple_omp_body (gs));
       dump_omp_clauses (buffer, gimple_omp_parallel_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >, %T, %T%n>",
                        gimple_omp_parallel_child_fn (gs),
@@ -1227,7 +1227,7 @@ dump_gimple_omp_parallel (pretty_printer *buffer, gimple gs, int spc,
 	    pp_string (buffer, "???");
 	  pp_string (buffer, ")]");
 	}
-      body = gimple_seq_body (gs);
+      body = gimple_omp_body (gs);
       if (body && gimple_code (gimple_seq_first_stmt (body)) != GIMPLE_BIND)
 	{
 	  newline_and_indent (buffer, spc + 2);
@@ -1257,7 +1257,7 @@ dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
   if (flags & TDF_RAW)
     {
       dump_gimple_fmt (buffer, spc, flags, "%G <%+BODY <%S>%nCLAUSES <", gs,
-                       gimple_seq_body (gs));
+                       gimple_omp_body (gs));
       dump_omp_clauses (buffer, gimple_omp_task_clauses (gs), spc, flags);
       dump_gimple_fmt (buffer, spc, flags, " >, %T, %T, %T, %T, %T%n>",
                        gimple_omp_task_child_fn (gs),
@@ -1284,7 +1284,7 @@ dump_gimple_omp_task (pretty_printer *buffer, gimple gs, int spc,
 	    pp_string (buffer, "???");
 	  pp_string (buffer, ")]");
 	}
-      body = gimple_seq_body (gs);
+      body = gimple_omp_body (gs);
       if (body && gimple_code (gimple_seq_first_stmt (body)) != GIMPLE_BIND)
 	{
 	  newline_and_indent (buffer, spc + 2);
