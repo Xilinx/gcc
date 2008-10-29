@@ -1,3 +1,4 @@
+<<<<<<< .working
 2008-10-25  Richard Guenther  <rguenther@suse.de>
 
 	* MAINTAINERS (Various Maintainers): Add myself as middle-end
@@ -31,6 +32,45 @@
 	* configure.ac: Set CPPFLAGS_FOR_TARGET, LDFLAGS_FOR_TARGET,
 	and CPPFLAGS_FOR_BUILD.
 
+=======
+2008-10-29  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself to reload.
+
+2008-10-25  Richard Guenther  <rguenther@suse.de>
+
+	* MAINTAINERS (Various Maintainers): Add myself as middle-end
+	maintainer.  Remove myself as libgcc-math maintainer.
+	(Non-Algorithmic Maintainers): Remove myself.
+
+2008-10-24  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.tpl (HOST_EXPORTS): Correct CPPFLAGS typo.
+	* Makefile.in: Regenerated.
+
+2008-10-23  Cary Coutant  <ccoutant@google.com>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-10-22  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR gdb/921
+	PR gdb/1646
+	PR gdb/2175
+	PR gdb/2176
+
+	* Makefile.def (flags_to_pass): Add CPPFLAGS_FOR_BUILD and CPPFLAGS.
+	* Makefile.tpl (BUILD_EXPORTS): Set CPPFLAGS.
+	(EXTRA_BUILD_FLAGS): Correct typo.  Pass CPPFLAGS.
+	(HOST_EXPORTS): Pass CPPFLAGS.
+	(CPPFLAGS_FOR_BUILD, CPPFLAGS, CPPFLAGS_FOR_TARGET): Define.
+	(LDFLAGS_FOR_TARGET): Initialize from configure script.
+	(EXTRA_TARGET_FLAGS): Set CPPFLAGS.
+	* Makefile.in, configure: Regenerated.
+	* configure.ac: Set CPPFLAGS_FOR_TARGET, LDFLAGS_FOR_TARGET,
+	and CPPFLAGS_FOR_BUILD.
+
+>>>>>>> .merge-right.r141434
 2008-10-20  Sebastian Pop <sebastian.pop@amd.com>
 
 	* MAINTAINERS (Graphite Reviewers): Added Daniel Berlin and

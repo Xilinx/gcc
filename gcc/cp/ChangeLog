@@ -1,3 +1,4 @@
+<<<<<<< .working
 2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c/7543
@@ -13,6 +14,38 @@
 	(lang_checks_parallelized): Add check-g++.
 	(check_g++_parallelize): New variable.
 
+=======
+2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 11492
+	* class.c (check_bitfield_decl): Rename min_precision to
+	tree_int_cst_min_precision.
+	* decl.c (finish_enum): Likewise.
+
+2008-10-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/26997
+	* parser.c (cp_parser_token_starts_cast_expression): New.
+	(cp_parser_cast_expression): Peek the next token to decide whether
+	this could be a parenthesized constructor or is definitely an
+	actual cast.
+
+2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/7543
+	* typeck.c (build_x_binary_op): Update call to
+	warn_about_parentheses.
+	* parser.c (cp_parser_binary_expression): Add note about passing
+	the correct code for unary expressions.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-c++-subtargets): New alias for
+	check-g++-subtargets.
+	(lang_checks_parallelized): Add check-g++.
+	(check_g++_parallelize): New variable.
+
+>>>>>>> .merge-right.r141434
 2008-10-21  Richard Guenther  <rguenther@suse.de>
 
 	* semantics.c (simplify_aggr_init_exprs_r): Remove.

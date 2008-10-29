@@ -1,3 +1,4 @@
+<<<<<<< .working
 2008-10-27  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/37879
@@ -103,6 +104,158 @@
 	PR middle-end/37669
 	* gcc.c-torture/compile/pr37669-2.c: New test.
 
+=======
+2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 11492
+	* gcc.dg/pr11492.c: New.
+	* g++.dg/warn/pr11492.C: New.
+
+2008-10-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR middle-end/36578
+	* gcc.dg/dfp/convert-bfp-13.c, gcc.dg/dfp/convert-bfp-14.c,
+	gcc.dg/dfp/convert-dfp-fold-2.c, gcc.target/i386/pr36578-1.c,
+	gcc.target/i386/pr36578-2.c: New tests.
+
+2008-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37870
+	* gcc.target/i386/pr37870.c: New test.
+
+2008-10-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/26997
+	* g++.dg/parse/pr26997.C: New.
+
+2008-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37913
+	* gcc.c-torture/compile/pr37913.c: New test.
+
+2008-10-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37663
+	* gcc.dg/pr37663.c: Require int32plus.
+
+	PR c/37924
+	* gcc.c-torture/execute/pr37924.c: New test.
+
+2008-10-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/dfp/convert-bfp-12.c: New test.
+
+2008-10-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37931
+	* gcc.c-torture/execute/pr37931.c: New test.
+
+2008-10-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37879
+	* gcc.dg/pr37879.c: New test.
+
+2008-10-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/37841
+	* gcc.target/spu/abi.c: New file.
+
+2008-10-24  DJ Delorie  <dj@redhat.com>
+
+	* lib/scanasm.exp (scan-assembler, scan-assembler-not,
+	scan-hidden, scan-not-hidden, scan-file, scan-file-not,
+	scan-assembler-times, scan-assembler-dem, scan-assembler-dem-not):
+	Extract first word of $testcase for all upvar uses, in case
+	$testvar has compiler switches appended.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36038
+	* gcc.c-torture/compile/pr36038.c: New test.
+
+2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/7543
+	* gcc.dg/Wparentheses-11.c: New.
+	* g++.dg/warn/Wparentheses-25.C: New. XFAILED.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37882
+	* gcc.c-torture/execute/pr37882.c: Remove a field.
+
+2008-10-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37707
+	* gfortran.dg/namelist_18.f90: Update test.
+	* gfortran.dg/namelist_55.f90: New test.
+	* gfortran.dg/namelist_56.f90: New test.
+
+2008-10-22  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* gcc.target/bfin/hisilh.c: New file.
+	* gcc.target/bfin/hisilh-O0.c: New file.
+
+	From Mike Frysinger  <michael.frysinger@analog.com>
+	* gcc.target/bfin/mcpu-bf522.c: Check SILICON_REVISION is 0x0002.  Invert
+	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
+	* gcc.target/bfin/mcpu-bf523.c: Likewise.
+	* gcc.target/bfin/mcpu-bf524.c: Likewise.
+	* gcc.target/bfin/mcpu-bf525.c: Likewise.
+	* gcc.target/bfin/mcpu-bf526.c: Likewise.
+	* gcc.target/bfin/mcpu-bf527.c: Likewise.
+	* gcc.target/bfin/mcpu-bf531.c: Check SILICON_REVISION is 0x0006.  Invert
+	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0006+.
+	* gcc.target/bfin/mcpu-bf532.c: Likewise.
+	* gcc.target/bfin/mcpu-bf533.c: Likewise.
+	* gcc.target/bfin/mcpu-bf538.c: Check SILICON_REVISION is 0x0005.  Invert
+	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0005+.
+	* gcc.target/bfin/mcpu-bf539.c: Likewise.
+	* gcc.target/bfin/mcpu-bf542.c: Check SILICON_REVISION is 0x0002.  Invert
+	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
+	* gcc.target/bfin/mcpu-bf544.c: Likewise.
+	* gcc.target/bfin/mcpu-bf547.c: Likewise.
+	* gcc.target/bfin/mcpu-bf548.c: Likewise.
+	* gcc.target/bfin/mcpu-bf549.c: Likewise.
+	* gcc.target/bfin/mcpu-bf512.c: New file.
+	* gcc.target/bfin/mcpu-bf514.c: Likewise.
+	* gcc.target/bfin/mcpu-bf516.c: Likewise.
+	* gcc.target/bfin/mcpu-bf518.c: Likewise.
+
+2008-10-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37882
+	* gcc.c-torture/execute/pr37882.c: New test.
+
+2008-10-22  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/30949
+	* gcc.target/i386/sse-vect-types.c: Update.
+	* gcc.dg/simd-5.c: Update.
+	* gcc.dg/assign-warn-2.c: Update.
+	* gcc.dg/simd-2.c: Update.
+	* gcc.dg/simd-6.c: Update.
+	* gcc.dg/assign-warn-1.c: Update.
+	* gcc.dg/dfp/composite-type.c: Update.
+	* gcc.dg/simd-1.c: Update.
+	* gcc.dg/pr36997.c: Update.
+
+2008-10-21  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR libfortran/36795
+	* gfortran.dg/char_expr_3.f90:  Add the original test case.
+
+2008-10-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/34670
+	* gfortran.dg/transpose_2.f90:  New test.
+
+2008-10-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37669
+	* gcc.c-torture/compile/pr37669-2.c: New test.
+
+>>>>>>> .merge-right.r141434
 2008-10-21  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/tree-ssa/alias-19.c: New testcase.
