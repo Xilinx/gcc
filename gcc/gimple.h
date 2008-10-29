@@ -104,6 +104,7 @@ enum gf_mask {
     GF_CALL_RETURN_SLOT_OPT	= 1 << 2,
     GF_CALL_TAILCALL		= 1 << 3,
     GF_CALL_VA_ARG_PACK		= 1 << 4,
+    GF_CALL_IN_TM_ATOMIC	= 1 << 5,
     GF_OMP_PARALLEL_COMBINED	= 1 << 0,
 
     /* True on an GIMPLE_OMP_RETURN statement if the return does not require
@@ -2219,6 +2220,31 @@ gimple_call_va_arg_pack_p (gimple s)
 {
   GIMPLE_CHECK (s, GIMPLE_CALL);
   return (s->gsbase.subcode & GF_CALL_VA_ARG_PACK) != 0;
+}
+
+
+/* If IN_TM_ATOMIC_P is true, GIMPLE_CALL S is within the dynamic scope of
+   a GIMPLE_TM_ATOMIC transaction.  */
+
+static inline void
+gimple_call_set_in_tm_atomic (gimple s, bool in_tm_atomic_p)
+{
+  GIMPLE_CHECK (s, GIMPLE_CALL);
+  if (in_tm_atomic_p)
+    s->gsbase.subcode |= GF_CALL_IN_TM_ATOMIC;
+  else
+    s->gsbase.subcode &= ~GF_CALL_IN_TM_ATOMIC;
+}
+  
+
+/* Return true if GIMPLE_CALL S is within the dynamic scope of
+   a transaction.  */
+
+static inline bool
+gimple_call_in_tm_atomic_p (gimple s)
+{
+  GIMPLE_CHECK (s, GIMPLE_CALL);
+  return (s->gsbase.subcode & GF_CALL_IN_TM_ATOMIC) != 0;
 }
 
 

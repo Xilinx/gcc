@@ -2600,10 +2600,13 @@ is_ctrl_altering_stmt (gimple t)
 	if (!(flags & (ECF_CONST | ECF_PURE)) && cfun->has_nonlocal_label)
 	  return true;
 
-	/* A call also alters control flow if it does not return.
-	   A call alters control flow if it may generate a
+	/* A call also alters control flow if it does not return.  */
+	if (flags & ECF_NORETURN)
+	  return true;
+
+	/* A call alters control flow if it may generate a
 	   transaction restart.  */
-	if (flags & (ECF_NORETURN | ECF_TM_OPS))
+	if ((flags & ECF_TM_OPS) && lookup_stmt_eh_region (t) >= 0)
 	  return true;
       }
       break;

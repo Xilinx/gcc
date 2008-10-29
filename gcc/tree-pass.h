@@ -399,6 +399,7 @@ extern struct ipa_opt_pass pass_ipa_inline;
 extern struct ipa_opt_pass pass_ipa_cp;
 extern struct ipa_opt_pass pass_ipa_reference;
 extern struct ipa_opt_pass pass_ipa_pure_const;
+extern struct ipa_opt_pass pass_ipa_tm;
 
 extern struct simple_ipa_opt_pass pass_ipa_matrix_reorg;
 extern struct simple_ipa_opt_pass pass_ipa_early_inline;
@@ -408,7 +409,6 @@ extern struct simple_ipa_opt_pass pass_ipa_struct_reorg;
 extern struct simple_ipa_opt_pass pass_early_local_passes;
 extern struct simple_ipa_opt_pass pass_ipa_increase_alignment;
 extern struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility;
-extern struct simple_ipa_opt_pass pass_ipa_tm;
 
 extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;

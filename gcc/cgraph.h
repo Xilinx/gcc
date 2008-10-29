@@ -208,12 +208,14 @@ struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_call
      When set to CGRAPH_FREQ_BASE, the edge is expected to be called once
      per function call.  The range is 0 to CGRAPH_FREQ_MAX.  */
   int frequency;
-  /* Depth of loop nest, 1 means no loop nest.  */
-  unsigned int loop_nest : 31;
-  /* Whether this edge describes a call that was originally indirect.  */
-  unsigned int indirect_call : 1;
   /* Unique id of the edge.  */
   int uid;
+  /* Depth of loop nest, 1 means no loop nest.  */
+  unsigned int loop_nest : 30;
+  /* Whether this edge describes a call that was originally indirect.  */
+  unsigned int indirect_call : 1;
+  /* Whether this edge describes a call from within a TM_ATOMIC region.  */
+  unsigned int tm_atomic_call : 1;
 };
 
 #define CGRAPH_FREQ_BASE 1000

@@ -170,6 +170,8 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
   tree fn_decl;
   unsigned flags;
 
+  gimple_call_set_in_tm_atomic (stmt, true);
+
   flags = gimple_call_flags (stmt);
   if (flags & ECF_CONST)
     return;
@@ -545,6 +547,16 @@ tm_atomic_subcode_ior (struct tm_region *region, unsigned flags)
 }
 
 
+/* Add STMT to the EH region for the given TM region.  */
+
+static void
+add_stmt_to_tm_region (struct tm_region *region, gimple stmt)
+{
+  if (region->region_nr >= 0)
+    add_stmt_to_eh_region (stmt, region->region_nr);
+}
+
+
 /* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
 
 static void
@@ -555,7 +567,7 @@ expand_irrevokable (struct tm_region *region, gimple_stmt_iterator *gsi)
   tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
 
   g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
-  add_stmt_to_eh_region (g, region->region_nr);
+  add_stmt_to_tm_region (region, g);
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 }
@@ -739,17 +751,11 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   else
     return;
 
-  add_stmt_to_eh_region  (gcall, region->region_nr);
+  add_stmt_to_tm_region  (region, gcall);
   mark_vops_in_stmt (stmt);
   gsi_remove (gsi, true);
 }
 
-
-static tree
-find_tm_clone (tree orig_decl ATTRIBUTE_UNUSED)
-{
-  return NULL_TREE;
-}
 
 /* Expand a call statement as appropriate for a transaction.  That is,
    either verify that the call does not affect the transaction, or
@@ -781,7 +787,7 @@ expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       return false;
     }
 
-  if (DECL_IS_TM_PURE (fn_decl))
+  if (DECL_IS_TM_PURE (fn_decl) || DECL_IS_TM_CLONE (fn_decl))
     return false;
 
   if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
@@ -806,13 +812,6 @@ expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 	  break;
 	}
 
-      return false;
-    }
-
-  fn_decl = find_tm_clone (fn_decl);
-  if (fn_decl)
-    {
-      gimple_call_set_fndecl (stmt, fn_decl);
       return false;
     }
 
@@ -1140,20 +1139,172 @@ struct gimple_opt_pass pass_tm_memopt =
 };
 
 
+static struct cgraph_node_hook_list *function_insertion_hook_holder;
+
+static void
+ipa_tm_analyze_function (struct cgraph_node *node)
+{
+  struct cgraph_edge *e;
+
+  if (cgraph_function_body_availability (node) < AVAIL_OVERWRITABLE)
+    return;
+
+  /* If this is a transaction clone, then by definition we're already
+     inside a transaction, and thus by definition all of our callees
+     are within a transaction.  */
+  if (DECL_IS_TM_CLONE (node->decl))
+    {
+      for (e = node->callees; e ; e = e->next_callee)
+	e->tm_atomic_call = 1;
+    }
+
+  /* Otherwise, scan all blocks and transfer the IN-ATOMIC bit we set
+     on the call statement to the cgraph edge.  */
+  else
+    {
+      basic_block bb;
+
+      FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (node->decl))
+	{
+	  gimple_stmt_iterator gsi;
+	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	    {
+	      gimple stmt = gsi_stmt (gsi);
+	      if (is_gimple_call (stmt)
+		  && gimple_call_in_tm_atomic_p (stmt))
+		{
+		  e = cgraph_edge (node, stmt);
+		  e->tm_atomic_call = 1;
+		}
+	    }
+	}
+    }
+}
+
+static void
+ipa_tm_add_new_function (struct cgraph_node *node, void * ARG_UNUSED (data))
+{
+  ipa_tm_analyze_function (node);
+}
+
+static void
+ipa_tm_generate_summary (void)
+{
+  struct cgraph_node *node;
+
+  function_insertion_hook_holder =
+    cgraph_add_function_insertion_hook (&ipa_tm_add_new_function, NULL);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->lowered)
+      ipa_tm_analyze_function (node);
+}
+
+static void
+ipa_tm_create_version (struct cgraph_node *old_node,
+		       VEC (cgraph_edge_p, heap) *redirections)
+{
+  struct cgraph_node *new_node;
+  char *tm_name;
+
+  new_node = cgraph_function_versioning (old_node, redirections,
+					 NULL, NULL);
+
+  /* ??? Versioning can fail at the discression of the inliner.  */
+  if (new_node == NULL)
+    return;
+
+  /* The generic versioning code forces the function to be visible
+     only within this translation unit.  This isn't what we want for
+     functions the programmer marked TM_CALLABLE.  */
+  if (cgraph_is_master_clone (old_node)
+      && DECL_IS_TM_CALLABLE (old_node->decl))
+    {
+      DECL_EXTERNAL (new_node->decl) = DECL_EXTERNAL (old_node->decl);
+      TREE_PUBLIC (new_node->decl) = TREE_PUBLIC (old_node->decl);
+      DECL_WEAK (new_node->decl) = DECL_WEAK (old_node->decl);
+
+      new_node->local.externally_visible = old_node->local.externally_visible;
+      new_node->local.local = old_node->local.local;
+    }
+
+  DECL_IS_TM_CLONE (new_node->decl) = 1;
+
+  /* ??? In tree_function_versioning, we futzed with the DECL_NAME.  I'm
+     not sure why we did this, as it's surely going to destroy any hope
+     of debugging.  */
+  DECL_NAME (new_node->decl) = DECL_NAME (old_node->decl);
+
+  /* ??? The current Intel ABI for these symbols uses this first variant.
+     I believe we ought to be considering _ZGT{t,n,m} extensions to the
+     C++ name mangling ABI.  */
+#if !defined(NO_DOT_IN_LABEL) && !defined(NO_DOLLAR_IN_LABEL)
+# define TM_SUFFIX	".$TXN"
+#elif !defined(NO_DOT_IN_LABEL)
+# define TM_SUFFIX	".TXN"
+#elif !defined(NO_DOLLAR_IN_LABEL)
+# define TM_SUFFIX	"$TXN"
+#else
+# define TM_SUFFIX	"__TXN"
+#endif
+
+  tm_name = concat (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_node->decl)),
+		    TM_SUFFIX, NULL);
+  SET_DECL_ASSEMBLER_NAME (new_node->decl, get_identifier (tm_name));
+  free (tm_name);
+}
+
+static void
+ipa_tm_decide_version (struct cgraph_node *node)
+{
+  VEC (cgraph_edge_p, heap) *redirections = NULL;
+  cgraph_edge_p e;
+
+  /* Don't re-process transaction clones.  */
+  if (DECL_IS_TM_CLONE (node->decl))
+    return;
+
+  /* Collect a vector of all the call sites that are within transactions.  */
+  for (e = node->callers; e ; e = e->next_caller)
+    if (e->tm_atomic_call)
+      VEC_safe_push (cgraph_edge_p, heap, redirections, e);
+
+  /* Create a transaction version if the programmer has explicitly
+     requested one.  Create a transaction version if the version of
+     the function defined here is known to be used, and it has
+     transaction callers.  */
+  if ((cgraph_is_master_clone (node) && DECL_IS_TM_CALLABLE (node->decl))
+      || (cgraph_function_body_availability (node) >= AVAIL_AVAILABLE
+	  && !VEC_empty (cgraph_edge_p, redirections)))
+    {
+      ipa_tm_create_version (node, redirections);
+    }
+
+  VEC_free (cgraph_edge_p, heap, redirections);
+}
 
 static unsigned int
-execute_ipa_tm (void)
+ipa_tm_execute (void)
 {
+  struct cgraph_node *node;
+
+  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
+
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->lowered
+        && (node->needed || node->reachable))
+      ipa_tm_decide_version (node);
+
   return 0;
 }
 
-struct simple_ipa_opt_pass pass_ipa_tm =
+struct ipa_opt_pass pass_ipa_tm =
 {
  {
-  SIMPLE_IPA_PASS,
+  IPA_PASS,
   "tmipa",				/* name */
   gate_tm,				/* gate */
-  execute_ipa_tm,			/* execute */
+  ipa_tm_execute,			/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
@@ -1163,5 +1314,12 @@ struct simple_ipa_opt_pass pass_ipa_tm =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   0,					/* todo_flags_finish */
- }
+ },
+ ipa_tm_generate_summary,		/* generate_summary */
+ NULL,					/* write_summary */
+ NULL,					/* read_summary */
+ NULL,					/* function_read_summary */
+ 0,					/* TODOs */
+ NULL,					/* function_transform */
+ NULL,					/* variable_transform */
 };

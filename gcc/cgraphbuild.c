@@ -122,81 +122,14 @@ compute_call_stmt_bb_frequency (basic_block bb)
   return freq;
 }
 
-/* Eagerly clone functions so that TM expansion can create
-   and redirect calls to a transactional clone.  */
+/* Create cgraph edges for function calls.
+   Also look for functions and variables having addresses taken.  */
 
-static void ATTRIBUTE_UNUSED
-prepare_tm_clone (struct cgraph_node *node)
-{
-  struct cgraph_node *tm_node;
-  tree decl, old_decl, id;
-  struct function *saved_cfun;
-
-  if (!flag_tm || flag_openmp)
-    return;
-
-  /* No need for a TM clone of the main function */
-  if (MAIN_NAME_P (DECL_NAME (node->decl)))
-    return; 
-
-  /* Do not prepare functions that are already instances 
-     of an original function decl for inlining. */
-  if (DECL_ABSTRACT_ORIGIN (node->decl) 
-      || DECL_EXTERNAL (node->decl) 
-      || DECL_VIRTUAL_P (node->decl) 
-      || DECL_ARTIFICIAL (node->decl))
-    return;
-
-  /* Clone whole function tree and set TM marker bit. */
-
-  /* Defer redirecting callers of the node to the
-     new versioned node to the tm expansion pass.  */
-  tm_node = cgraph_function_versioning (node, NULL, NULL, NULL); 
-  if (tm_node == NULL)
-    return;
-
-  decl = tm_node->decl;
-  node->next_clone = tm_node;
-  DECL_IS_TM_CLONE (decl) = 1;
-  cgraph_mark_needed_node (tm_node);
-
-  old_decl = current_function_decl;
-
-  current_function_decl = decl;
-  saved_cfun = cfun;
-  set_cfun (DECL_STRUCT_FUNCTION (decl));
-
-  /* Substitute decl name. */
-  {
-    char *tm_name;
-
-#if !defined(NO_DOT_IN_LABEL) && !defined(NO_DOLLAR_IN_LABEL)
-# define TM_SUFFIX	".$TXN"
-#elif !defined(NO_DOT_IN_LABEL)
-# define TM_SUFFIX	".TXN"
-#elif !defined(NO_DOLLAR_IN_LABEL)
-# define TM_SUFFIX	"$TXN"
-#else
-# define TM_SUFFIX	"__TXN"
-#endif
-
-    tm_name = concat (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)),
-		      TM_SUFFIX, NULL);
-    id = get_identifier (tm_name);
-    SET_DECL_ASSEMBLER_NAME (decl, id);
-    free (tm_name);
-  }
-
-  set_cfun (saved_cfun);
-  current_function_decl = old_decl;
-}
-
-
-/* Helper function doing the work for build_cgraph_edge */
-static void
-build_cgraph_edges_from_node (struct cgraph_node *node)
+static unsigned int
+build_cgraph_edges (void)
 {
   basic_block bb;
+  struct cgraph_node *node = cgraph_node (current_function_decl);
   struct pointer_set_t *visited_nodes = pointer_set_create ();
   gimple_stmt_iterator gsi;
   tree step;
@@ -263,20 +196,6 @@ build_cgraph_edges_from_node (struct cgraph_node *node)
 
   pointer_set_destroy (visited_nodes);
   initialize_inline_failed (node);
-}
-
-/* Create cgraph edges for function calls.
-   Also look for functions and variables having addresses taken.  */
-
-static unsigned int
-build_cgraph_edges (void)
-{
-  struct cgraph_node *node = cgraph_node (current_function_decl);
-
-  build_cgraph_edges_from_node (node);
-  
-  /* prepare_tm_clone (node); */
-
   return 0;
 }
 

@@ -498,9 +498,10 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
 
   if (gimple_call_return_slot_opt_p (gs))
     pp_string (buffer, " [return slot optimization]");
-
   if (gimple_call_tail_p (gs))
     pp_string (buffer, " [tail call]");
+  if (gimple_call_in_tm_atomic_p (gs))
+    pp_string (buffer, " [in atomic]");
 }
 
 

@@ -4184,10 +4184,6 @@ tree_versionable_function_p (tree fndecl)
 {
   if (fndecl == NULL_TREE)
     return false;
-  /* ??? There are cases where a function is
-     uninlinable but can be versioned.  */
-  if (!tree_inlinable_function_p (fndecl))
-    return false;
   
   return true;
 }

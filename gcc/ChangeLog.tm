@@ -1,3 +1,26 @@
+2008-10-29  Richard Henderson  <rth@redhat.com>
+
+	* cgraph.h (struct cgraph_edge): Steal a bit from loop_nest
+	for tm_atomic_call.
+	* cgraphbuild.c: Revert entire file.
+	* gimple-pretty-print.c (dump_gimple_call): Dump in-atomic.
+	* gimple.h (GF_CALL_IN_TM_ATOMIC): New.
+	(gimple_call_set_in_tm_atomic, gimple_call_in_tm_atomic_p): New.
+	* print-tree.c (print_node): Dump tm-clone.
+	* trans-mem.c (examine_call_tm): Set tm-atomic in the call stmt.
+	(add_stmt_to_tm_region): New.
+	(find_tm_clone): Remove.
+	(expand_call_tm): Don't call it.  Exit for DECL_IS_TM_CLONE.
+	(function_insertion_hook_holder, ipa_tm_analyze_function,
+	ipa_tm_add_new_function, ipa_tm_generate_summary,
+	ipa_tm_create_version, ipa_tm_decide_version, ipa_tm_execute): New.
+	(pass_ipa_tm): Use full IPA_PASS.
+	* tree-pass.h: Update to match.
+	* tree-cfg.c (is_ctrl_altering_stmt): TM_OPS functions only
+	throw (visibly) if they have an eh region number.
+	* tree-inline.c (tree_versionable_function_p): Don't check for
+	inlining.
+
 2008-10-28  Richard Henderson  <rth@redhat.com>
 
 	* gimple.def (GIMPLE_TM_ATOMIC): Move before GIMPLE_RETURN.

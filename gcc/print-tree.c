@@ -382,6 +382,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fputs (" built-in", file);
       if (TREE_CODE (node) == FUNCTION_DECL && DECL_NO_STATIC_CHAIN (node))
 	fputs (" no-static-chain", file);
+      if (TREE_CODE (node) == FUNCTION_DECL && DECL_IS_TM_CLONE (node))
+	fputs (" tm-clone", file);
 
       if (TREE_CODE (node) == FIELD_DECL && DECL_PACKED (node))
 	fputs (" packed", file);
@@ -448,9 +450,9 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	  fprintf (file, " %s", GET_MODE_NAME (mode));
 	}
 
-      if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS)  && DECL_DEFER_OUTPUT (node))
+      if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS)
+	  && DECL_DEFER_OUTPUT (node))
 	fputs (" defer-output", file);
-
 
       xloc = expand_location (DECL_SOURCE_LOCATION (node));
       fprintf (file, " file %s line %d col %d", xloc.file, xloc.line,
