@@ -1,12 +1,3 @@
-<<<<<<< .working
-2008-10-24  Jakub Jelinek  <jakub@redhat.com>
-
-	* Make-lang.in (check-f95-subtargets, check-fortran-subtargets): New
-	aliases for check-gfortran-subtargets.
-	(lang_checks_parallelized): Add check-gfortran.
-	(check_gfortran_parallelize): New variable.
-
-=======
 2008-10-28  Tobias Burnus  <burnus@net-b.de>
 
 	* intrinsic.texi: Update OpenMP section for OMPv3.
@@ -18,7 +9,6 @@
 	(lang_checks_parallelized): Add check-gfortran.
 	(check_gfortran_parallelize): New variable.
 
->>>>>>> .merge-right.r141434
 2008-10-19  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/37723
