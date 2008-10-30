@@ -1,3 +1,34 @@
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+        PR fortran/37903
+        * gfortran.dg/vector_subscript_4.f90: New test.
+
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+        PR fortran/37749
+        * gfortran.dg/vector_subscript__5.f90: New test.
+
+2008-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/s390/pr36822.c: Avoid cast to pointer from integer
+	of different size warning with -m31.
+
+	PR middle-end/37730
+	* gcc.dg/vect/pr37730.c: New test.
+
+	PR debug/36668
+	* g++.dg/other/PR23205.C: Allow foobar to be defined as variable.
+	* g++.dg/other/pr23205-2.C: New test.
+
+2008-10-29  David Edelsohn  <edelsohn@gnu.org>
+
+	* gcc.c-torture/compile/pr37878.c: New test.
+
+2008-10-29  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/37339
+	* gcc.dg/pr33545-3.c: Remove.
+
 2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 11492
@@ -148,7 +179,6 @@
 	PR middle-end/37669
 	* gcc.c-torture/compile/pr37669-2.c: New test.
 
->>>>>>> .merge-right.r141434
 2008-10-21  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/tree-ssa/alias-19.c: New testcase.
