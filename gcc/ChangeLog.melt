@@ -1,3 +1,6 @@
+2008-10-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.bysl: in outpucod_marker generate marking of
+	current closure.
 2008-10-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added BASILYSPAR_MARKGGC.
 	* ggc.h: (ggc_mark_roots_extra_marking, ggc_collect_extra_marking)
