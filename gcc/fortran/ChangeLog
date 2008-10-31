@@ -1,3 +1,28 @@
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+        PR fortran/37903
+        * trans-array.c (gfc_trans_create_temp_array): If n is less
+	than the temporary dimension, assert that loop->from is
+	zero (reverts to earlier versions). If there is at least one
+	null loop->to[n], it is a callee allocated array so set the
+	size to NULL and break.
+	(gfc_trans_constant_array_constructor): Set the offset to zero.
+	(gfc_trans_array_constructor): Remove loop shifting around the
+	temporary creation.
+	(gfc_conv_loop_setup): Prefer zero-based descriptors if
+	possible.  Calculate the translation from loop variables to
+	array indices if an array constructor.
+
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+        PR fortran/37749
+        * trans-array.c (gfc_trans_create_temp_array): If size is NULL
+	use the array bounds for loop->to.
+
+2008-10-28  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsic.texi: Update OpenMP section for OMPv3.
+
 2008-10-24  Jakub Jelinek  <jakub@redhat.com>
 
 	* Make-lang.in (check-f95-subtargets, check-fortran-subtargets): New
@@ -7,8 +32,8 @@
 
 2008-10-19  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/37723
-        * dependency.c (gfc_dep_resolver ): If we find equal array
+	PR fortran/37723
+	* dependency.c (gfc_dep_resolver ): If we find equal array
 	element references, go on to the next reference.
 
 2008-10-16  Daniel Kraft  <d@domob.eu>

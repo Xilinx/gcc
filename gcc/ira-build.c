@@ -469,6 +469,7 @@ ira_create_allocno (int regno, bool cap_p, ira_loop_tree_node_t loop_tree_node)
   ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a) = NULL;
   ALLOCNO_LEFT_CONFLICTS_NUM (a) = -1;
   ALLOCNO_COVER_CLASS (a) = NO_REGS;
+  ALLOCNO_UPDATED_COVER_CLASS_COST (a) = 0;
   ALLOCNO_COVER_CLASS_COST (a) = 0;
   ALLOCNO_MEMORY_COST (a) = 0;
   ALLOCNO_UPDATED_MEMORY_COST (a) = 0;
@@ -769,7 +770,6 @@ create_cap_allocno (ira_allocno_t a)
   ALLOCNO_CAP (a) = cap;
   ALLOCNO_COVER_CLASS_COST (cap) = ALLOCNO_COVER_CLASS_COST (a);
   ALLOCNO_MEMORY_COST (cap) = ALLOCNO_MEMORY_COST (a);
-  ALLOCNO_UPDATED_MEMORY_COST (cap) = ALLOCNO_UPDATED_MEMORY_COST (a);
   ira_allocate_and_copy_costs
     (&ALLOCNO_HARD_REG_COSTS (cap), cover_class, ALLOCNO_HARD_REG_COSTS (a));
   ira_allocate_and_copy_costs
@@ -1509,8 +1509,6 @@ propagate_allocno_info (void)
 	  ALLOCNO_COVER_CLASS_COST (parent_a)
 	    += ALLOCNO_COVER_CLASS_COST (a);
 	  ALLOCNO_MEMORY_COST (parent_a) += ALLOCNO_MEMORY_COST (a);
-	  ALLOCNO_UPDATED_MEMORY_COST (parent_a)
-	    += ALLOCNO_UPDATED_MEMORY_COST (a);
 	}
 }
 
@@ -1789,8 +1787,6 @@ remove_unnecessary_allocnos (void)
 		ALLOCNO_COVER_CLASS_COST (parent_a)
 		  += ALLOCNO_COVER_CLASS_COST (a);
 		ALLOCNO_MEMORY_COST (parent_a) += ALLOCNO_MEMORY_COST (a);
-		ALLOCNO_UPDATED_MEMORY_COST (parent_a)
-		  += ALLOCNO_UPDATED_MEMORY_COST (a);
 		finish_allocno (a);
 	      }
 	  }
@@ -2042,11 +2038,12 @@ create_caps (void)
 static ira_allocno_t *regno_top_level_allocno_map;
 
 /* Process all allocnos originated from pseudo REGNO and copy live
-   ranges from low level allocnos to final allocnos which are
-   destinations of removed stores at a loop exit.  Return true if we
-   copied live ranges.  */
+   ranges, hard reg conflicts, and allocno stack reg attributes from
+   low level allocnos to final allocnos which are destinations of
+   removed stores at a loop exit.  Return true if we copied live
+   ranges.  */
 static bool
-copy_live_ranges_to_removed_store_destinations (int regno)
+copy_info_to_removed_store_destinations (int regno)
 {
   ira_allocno_t a, parent_a;
   ira_loop_tree_node_t parent;
@@ -2087,6 +2084,12 @@ copy_live_ranges_to_removed_store_destinations (int regno)
       change_allocno_in_range_list (r, parent_a);
       ALLOCNO_LIVE_RANGES (parent_a)
 	= merge_ranges (r, ALLOCNO_LIVE_RANGES (parent_a));
+      IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (parent_a),
+			ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a));
+#ifdef STACK_REGS
+      if (ALLOCNO_TOTAL_NO_STACK_REG_P (a))
+	ALLOCNO_TOTAL_NO_STACK_REG_P (parent_a) = true;
+#endif
       merged_p = true;
     }
   return merged_p;
@@ -2235,7 +2238,7 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 	  ALLOCNO_COPIES (a) = NULL;
 	  regno_top_level_allocno_map[REGNO (ALLOCNO_REG (a))] = a;
 	}
-      if (mem_dest_p && copy_live_ranges_to_removed_store_destinations (i))
+      if (mem_dest_p && copy_info_to_removed_store_destinations (i))
 	merged_p = true;
     }
   ira_assert (new_pseudos_p || ira_max_point_before_emit == ira_max_point);
@@ -2346,7 +2349,9 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
       ALLOCNO_LOOP_TREE_NODE (a) = ira_loop_tree_root;
       ALLOCNO_REGNO (a) = REGNO (ALLOCNO_REG (a));
       ALLOCNO_CAP (a) = NULL;
+      /* Restore updated costs for assignments from reload.  */
       ALLOCNO_UPDATED_MEMORY_COST (a) = ALLOCNO_MEMORY_COST (a);
+      ALLOCNO_UPDATED_COVER_CLASS_COST (a) = ALLOCNO_COVER_CLASS_COST (a);
       if (! ALLOCNO_ASSIGNED_P (a))
 	ira_free_allocno_updated_costs (a);
       ira_assert (ALLOCNO_UPDATED_HARD_REG_COSTS (a) == NULL);
