@@ -1,3 +1,7 @@
+2008-10-31  Ben Elliston  <bje@au.ibm.com>
+
+	* tree.h (DECODE_QUAL_ADDR_SPACE): Fix logic bug.
+
 2008-10-27  Ben Elliston  <bje@au.ibm.com>
 
 	* targhooks.c (default_addr_space_number): Conform to the GNU

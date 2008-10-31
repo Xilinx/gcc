@@ -2198,7 +2198,7 @@ struct tree_block GTY(())
 #define TYPE_QUAL_RESTRICT 0x4
 
 #define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
-#define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) && 0xFF)
+#define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) & 0xFF)
 
 /* The set of type qualifiers for this type.  */
 #define TYPE_QUALS(NODE)					\
