@@ -634,8 +634,8 @@
   (return dispatcher)			;return non-nil to continue compilation
   )
 
-(install_initial_command 
- (stringconst2val discr_string "simpana") simpana_command)
+(initial_command_install simpana_command "simpana")
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -1,3 +1,14 @@
+2008-11-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	[generated marking code for initial module routine and every procedure]
+	* melt/warmelt-outobj.bysl: Added generation of marking for the initial frame.
+	Added initial_command_install function.
+	* melt/ana-base.bysl: uses initial_command_install function.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2008-10-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.bysl: in outpucod_marker generate marking of
 	current closure.
