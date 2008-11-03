@@ -1,3 +1,28 @@
+2008-11-03  Richard Henderson  <rth@redhat.com>
+
+	* builtin-types.def (BT_FN_LDOUBLE_VPTR, BT_FN_VOID_VPTR_LDOUBLE): New.
+	* gtm-builtins.def (BUILT_IN_TM_RETRY, BUILT_IN_TM_MEMMOVE): New.
+	(BUILT_IN_TM_STORE_LDOUBLE, BUILT_IN_TM_LOAD_LDOUBLE): New.
+	* calls.c (special_function_p): Handle them.
+	* trans-mem.c (build_tm_load): Handle BUILT_IN_TM_LOAD_LDOUBLE.
+	Set call lhs before insertting it.
+	(build_tm_store): Handle BUILT_IN_TM_STORE_LDOUBLE.
+	(expand_assign_tm): Remove the old stmt before adding the new ones.
+
+	* c-common.c (c_common_reswords): Add __tm_retry.
+	* c-common.h (RID_TM_RETRY): New.
+	* c-parser.c (struct c_parser): Add in_tm_atomic.
+	(c_parser_statement_after_labels): Handle RID_TM_RETRY.
+	(c_parser_tm_atomic): Error if !flag_tm; mirror
+	c_parser_omp_structured_block for parsing the contained statement.
+	(c_parser_tm_abort_retry): Rename from c_parser_tm_abort; error
+	if not contained within a __tm_atomic block; handle __tm_retry.
+	* c-tree.h (c_begin_tm_atomic): Remove.
+	* c-typeck.c (c_begin_tm_atomic): Remove.
+	(c_finish_tm_atomic): Don't c_end_compound_stmt.
+
+	* testsuite/gcc.dg/tm: New directory.
+
 2008-10-29  Richard Henderson  <rth@redhat.com>
 
 	* cgraph.h (struct cgraph_edge): Steal a bit from loop_nest

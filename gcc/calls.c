@@ -482,22 +482,26 @@ special_function_p (const_tree fndecl, int flags)
     {
       switch (DECL_FUNCTION_CODE (fndecl))
 	{
-	case BUILT_IN_TM_ABORT:
 	case BUILT_IN_TM_COMMIT:
+	case BUILT_IN_TM_ABORT:
+	case BUILT_IN_TM_RETRY:
 	case BUILT_IN_TM_IRREVOKABLE:
 	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
 	case BUILT_IN_TM_STORE_1:
 	case BUILT_IN_TM_STORE_2:
 	case BUILT_IN_TM_STORE_4:
 	case BUILT_IN_TM_STORE_8:
 	case BUILT_IN_TM_STORE_FLOAT:
 	case BUILT_IN_TM_STORE_DOUBLE:
+	case BUILT_IN_TM_STORE_LDOUBLE:
 	case BUILT_IN_TM_LOAD_1:
 	case BUILT_IN_TM_LOAD_2:
 	case BUILT_IN_TM_LOAD_4:
 	case BUILT_IN_TM_LOAD_8:
 	case BUILT_IN_TM_LOAD_FLOAT:
 	case BUILT_IN_TM_LOAD_DOUBLE:
+	case BUILT_IN_TM_LOAD_LDOUBLE:
 	  flags |= ECF_TM_OPS;
 	  break;
 	default:

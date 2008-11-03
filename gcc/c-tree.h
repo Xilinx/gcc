@@ -602,7 +602,6 @@ extern tree c_finish_omp_parallel (tree, tree);
 extern tree c_begin_omp_task (void);
 extern tree c_finish_omp_task (tree, tree);
 extern tree c_finish_omp_clauses (tree);
-extern tree c_begin_tm_atomic (void);
 extern tree c_finish_tm_atomic (tree);
 
 /* Set to 0 at beginning of a function definition, set to 1 if

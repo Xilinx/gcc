@@ -8867,27 +8867,12 @@ c_finish_omp_clauses (tree clauses)
   return clauses;
 }
 
-/* Similar to c_begin_omp_parallel. */
-
-tree
-c_begin_tm_atomic (void)
-{
-  tree block;
-
-  keep_next_level ();
-  block = c_begin_compound_stmt (true);
-
-  return block;
-}
-
 /* Create a transaction node.  */
 
 tree
 c_finish_tm_atomic (tree block)
 {
   tree stmt;
-
-  block = c_end_compound_stmt (block, true);
 
   stmt = make_node (TM_ATOMIC);
   TREE_TYPE (stmt) = void_type_node;

@@ -657,6 +657,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__thread",		RID_THREAD,	0 },
   { "__tm_abort",	RID_TM_ABORT,	0 },
   { "__tm_atomic",	RID_TM_ATOMIC,	0 },
+  { "__tm_retry",	RID_TM_RETRY,   0 },
   { "__typeof",		RID_TYPEOF,	0 },
   { "__typeof__",	RID_TYPEOF,	0 },
   { "__volatile",	RID_VOLATILE,	0 },

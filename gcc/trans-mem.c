@@ -601,6 +601,8 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     code = BUILT_IN_TM_LOAD_FLOAT;
   else if (type == double_type_node)
     code = BUILT_IN_TM_LOAD_DOUBLE;
+  else if (type == long_double_type_node)
+    code = BUILT_IN_TM_LOAD_LDOUBLE;
   else if (TYPE_SIZE_UNIT (type) != NULL
 	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
     {
@@ -631,11 +633,13 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
   gcc_assert (is_gimple_operand (t));
 
   gcall = gimple_build_call (built_in_decls[code], 1, t);
-  gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
 
   t = TREE_TYPE (TREE_TYPE (built_in_decls[code]));
   if (useless_type_conversion_p (type, t))
-    gimple_call_set_lhs (gcall, lhs);
+    {
+      gimple_call_set_lhs (gcall, lhs);
+      gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
+    }
   else
     {
       gimple g;
@@ -643,6 +647,7 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
 
       temp = make_rename_temp (t, NULL);
       gimple_call_set_lhs (gcall, temp);
+      gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
 
       t = fold_build1 (VIEW_CONVERT_EXPR, type, temp);
       g = gimple_build_assign (lhs, t);
@@ -666,6 +671,8 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     code = BUILT_IN_TM_STORE_FLOAT;
   else if (type == double_type_node)
     code = BUILT_IN_TM_STORE_DOUBLE;
+  else if (type == long_double_type_node)
+    code = BUILT_IN_TM_STORE_LDOUBLE;
   else if (TYPE_SIZE_UNIT (type) != NULL
 	   && host_integerp (TYPE_SIZE_UNIT (type), 1))
     {
@@ -728,6 +735,9 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   bool load_p = requires_barrier (rhs);
   gimple gcall;
 
+  mark_vops_in_stmt (stmt);
+  gsi_remove (gsi, true);
+
   if (load_p && store_p)
     {
       tm_atomic_subcode_ior (region, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
@@ -752,8 +762,6 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
     return;
 
   add_stmt_to_tm_region  (region, gcall);
-  mark_vops_in_stmt (stmt);
-  gsi_remove (gsi, true);
 }
 
 

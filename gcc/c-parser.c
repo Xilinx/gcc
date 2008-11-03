@@ -182,6 +182,8 @@ typedef struct c_parser GTY(())
      undesirable to bind an identifier to an Objective-C class, even
      if a class with that name exists.  */
   BOOL_BITFIELD objc_need_raw_identifier : 1;
+  /* True if we're processing a __tm_atomic statement.  */
+  BOOL_BITFIELD in_tm_atomic : 1;
 } c_parser;
 
 
@@ -914,7 +916,7 @@ static struct c_expr c_parser_postfix_expression_after_paren_type (c_parser *,
 static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								struct c_expr);
 static tree c_parser_tm_atomic (c_parser *);
-static tree c_parser_tm_abort (c_parser *);
+static tree c_parser_tm_abort_retry (c_parser *);
 static struct c_expr c_parser_expression (c_parser *);
 static struct c_expr c_parser_expression_conv (c_parser *);
 static tree c_parser_expr_list (c_parser *, bool);
@@ -3735,7 +3737,8 @@ c_parser_statement_after_labels (c_parser *parser)
 	  stmt = c_parser_tm_atomic (parser);
 	  break;
 	case RID_TM_ABORT:
-	  stmt = c_parser_tm_abort (parser);
+	case RID_TM_RETRY:
+	  stmt = c_parser_tm_abort_retry (parser);
 	  goto expect_semicolon;
 	case RID_THROW:
 	  gcc_assert (c_dialect_objc ());
@@ -8230,32 +8233,65 @@ c_parser_omp_threadprivate (c_parser *parser)
 static tree
 c_parser_tm_atomic (c_parser *parser)
 {
-  tree block;
+  bool old_in_atomic = parser->in_tm_atomic;
+  tree stmt;
 
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ATOMIC));
+
+  if (!flag_tm)
+    error_at (c_parser_peek_token (parser)->location,
+	      "%<__tm_atomic%> without transactional memory support enabled");
+
   c_parser_consume_token (parser);
 
-  block = c_begin_tm_atomic ();
+  parser->in_tm_atomic = true;
+
+  stmt = push_stmt_list ();
   c_parser_statement (parser);
-  return c_finish_tm_atomic (block);
+  stmt = pop_stmt_list (stmt);
+
+  if (flag_tm)
+    stmt = c_finish_tm_atomic (stmt);
+
+  parser->in_tm_atomic = old_in_atomic;
+
+  return stmt;
 }
 
-/* Parse a __tm_abort statement (GCC Extension).
+/* Parse a __tm_abort or __tm_retry statement (GCC Extension).
 
    tm-atomic-statement:
      __tm_atomic;
+   tm-retry-statement:
+     __tm_retry;
 */
 
 static tree
-c_parser_tm_abort (c_parser *parser)
+c_parser_tm_abort_retry (c_parser *parser)
 {
-  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ABORT));
+  enum built_in_function code;
+
+  if (c_parser_next_token_is_keyword (parser, RID_TM_ABORT))
+    code = BUILT_IN_TM_ABORT;
+  else if (c_parser_next_token_is_keyword (parser, RID_TM_RETRY))
+    code = BUILT_IN_TM_RETRY;
+  else
+    gcc_unreachable ();
+
+  if (!parser->in_tm_atomic)
+    {
+      location_t here = c_parser_peek_token (parser)->location;
+      if (code == BUILT_IN_TM_ABORT)
+        error_at (here, "%<__tm_abort%> not within %<__tm_atomic%>");
+      else
+        error_at (here, "%<__tm_retry%> not within %<__tm_atomic%>");
+      c_parser_consume_token (parser);
+      return error_mark_node;
+    }
+
   c_parser_consume_token (parser);
 
-  /* ??? Verify that __tm_abort is contained within the
-     lexical scope of a __tm_atomic.  */
-
-  return add_stmt (build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 0));
+  return add_stmt (build_call_expr (built_in_decls[code], 0));
 }
 
 /* Parse a single source file.  */
