@@ -65,6 +65,7 @@ gfc_init_options (unsigned int argc, const char **argv)
   gfc_option.max_continue_free = 255;
   gfc_option.max_identifier_length = GFC_MAX_SYMBOL_LEN;
   gfc_option.max_subrecord_length = 0;
+  gfc_option.flag_max_array_constructor = 65535;
   gfc_option.convert = GFC_CONVERT_NATIVE;
   gfc_option.record_marker = 0;
   gfc_option.dump_parse_tree = 0;
@@ -264,10 +265,10 @@ gfc_post_options (const char **pfilename)
       source_path = (char *) alloca (i + 1);
       memcpy (source_path, canon_source_file, i);
       source_path[i] = 0;
-      gfc_add_include_path (source_path, true);
+      gfc_add_include_path (source_path, true, true);
     }
   else
-    gfc_add_include_path (".", true);
+    gfc_add_include_path (".", true, true);
 
   if (canon_source_file != gfc_source_file)
     gfc_free (CONST_CAST (char *, canon_source_file));
@@ -406,7 +407,7 @@ gfc_handle_module_path_options (const char *arg)
   strcpy (gfc_option.module_dir, arg);
   strcat (gfc_option.module_dir, "/");
 
-  gfc_add_include_path (gfc_option.module_dir, true);
+  gfc_add_include_path (gfc_option.module_dir, true, false);
 }
 
 
@@ -638,8 +639,12 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_fintrinsic_modules_path:
-      gfc_add_include_path (arg, false);
+      gfc_add_include_path (arg, false, false);
       gfc_add_intrinsic_modules_path (arg);
+      break;
+
+    case OPT_fmax_array_constructor_:
+      gfc_option.flag_max_array_constructor = value > 65535 ? value : 65535;
       break;
 
     case OPT_fmax_errors_:
@@ -739,7 +744,7 @@ gfc_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_I:
-      gfc_add_include_path (arg, true);
+      gfc_add_include_path (arg, true, false);
       break;
 
     case OPT_J:
