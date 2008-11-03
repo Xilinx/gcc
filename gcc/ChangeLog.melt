@@ -1,3 +1,13 @@
+2008-11-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c: added basilys_modulinfo_t.
+	* melt/warmelt-outobj.bysl: Completed generation of marking. Added
+	generation of initial_frame_basilys.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2008-11-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[generated marking code for initial module routine and every procedure]
 	* melt/warmelt-outobj.bysl: Added generation of marking for the initial frame.

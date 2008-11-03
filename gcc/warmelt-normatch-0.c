@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
-/* generated on Sun Nov  2 21:16:15 2008 */
+/* generated on Mon Nov  3 18:47:48 2008 */
 
 #include "run-basilys.h"
 
@@ -70,6 +70,7 @@ static basilys_ptr_t rout_9_NORMEXP_MATCH(basilysclosure_ptr_t closp_, basilys_p
 
 void* start_module_basilys(void*);
 void mark_module_basilys(void*);
+void* initial_frame_basilys;
 
 
 /**** warmelt-normatch-3.c implementations ****/
@@ -5707,7 +5708,8 @@ initial_frame_st     curfram__;
  curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
  basilys_topframe = (struct callframe_basilys_st *) &curfram__;
 /**initial routine prologue**/
-/**COMMENT: get previous environment **/;
+ initial_frame_basilys = (void*) &curfram__;
+ /**COMMENT: get previous environment **/;
  
  /*_.PREVENV___V4*/ curfptr[3] = modargp_;
  /**COMMENT: compute boxloc **/;
@@ -8584,6 +8586,7 @@ initial_frame_st     curfram__;
  ;
  goto labend_rout;
 labend_rout:  basilys_topframe = (struct callframe_basilys_st *) curfram__.prev;
+initial_frame_basilys = (void*)0;
  return /*_.RETINIT___V1*/ curfptr[0];
 #undef callcount
 #undef CURFRAM_NBVARNUM

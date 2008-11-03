@@ -4716,6 +4716,18 @@ typedef struct basilys_ltdlhandle_st*basilys_dlhandle;	/* to keep gengtype happy
 DEF_VEC_P (basilys_dlhandle);
 DEF_VEC_ALLOC_P (basilys_dlhandle, heap);
 
+typedef struct basilys_modulinfo_st {
+  void* dlh;			/* tldl handle */
+  void** iniframp;		/* initial frame pointer adress */
+  void (*marker_rout) (void*);
+} basilys_modulinfo_t;
+
+DEF_VEC_O(basilys_modulinfo_t);
+DEF_VEC_ALLOC_O(basilys_modulinfo_t, heap);
+
+static
+VEC (basilys_modulinfo_t, heap) *modinfvec = 0;
+
 static
 VEC (basilys_dlhandle, heap) *modhdvec = 0;
 
@@ -4759,6 +4771,13 @@ load_checked_dylib (const char *dypath, char *md5src)
 	}
     }
   VEC_safe_push (basilys_dlhandle, heap, modhdvec, dlh);
+  {
+    basilys_modulinfo_t minf = {0,0,0};
+    minf.dlh = dlh;
+    minf.iniframp = (void**)0;
+    minf.marker_rout = 0;
+    VEC_safe_push (basilys_modulinfo_t, heap, modinfvec, &minf);
+  }
   debugeprintf ("load_checked_dylib dypath %s dynmd5 %s dyncomptimstamp %s",
 		dypath, dynmd5, dyncomptimstamp);
   return dlh;
@@ -4796,7 +4815,10 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
   int modfilelen = 0;
   int isasrc = 0;
   typedef basilys_ptr_t startroutine_t (basilys_ptr_t);
+  typedef void markroutine_t (void*);
   startroutine_t *starout = 0;
+  markroutine_t *markrout = 0;
+  void** iniframeptr = 0;
   int srcpathlen = 0;
   char md5srctab[16];
   char *md5src = NULL;
@@ -4982,6 +5004,18 @@ dylibfound:
   debugeprintf
     ("basilysgc_compile before calling start_module_basilys @%p",
      (void *) dlsy);
+  dlsy = lt_dlsym (dlh, "mark_module_basilys");
+  if (!dlsy)
+    fatal_error
+      ("basilysgc_compile failed to lt_dlsym mark_module_basilys in modfile=%s plainstuff=%s - %s",
+       modfile, plainstuffpath, lt_dlerror ());
+  markrout = (markroutine_t*) dlsy;
+  dlsy = lt_dlsym (dlh, "initial_frame_basilys");
+  if (!dlsy)
+    fatal_error
+      ("basilysgc_compile failed to lt_dlsym initial_frame_basilys in modfile=%s plainstuff=%s - %s",
+       modfile, plainstuffpath, lt_dlerror ());
+  iniframeptr = (void**) dlsy;
 #if ENABLE_CHECKING
   {
     static char locbuf[80];
@@ -6866,6 +6900,7 @@ basilys_initialize (void)
   if (inited)
     return;
   modhdvec = VEC_alloc (basilys_dlhandle, heap, 30);
+  modinfvec = VEC_alloc (basilys_modulinfo_t, heap, 32);
   proghandle = lt_dlopen (NULL);
   if (!proghandle)
     fatal_error ("basilys failed to get whole program handle - %s",
