@@ -742,7 +742,9 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
     {
       tm_atomic_subcode_ior (region, GTMA_HAVE_LOAD | GTMA_HAVE_STORE);
 
-      gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMCPY], 3,
+      /* ??? Figure out if there's any possible overlap between the LHS
+	 and the RHS and if not, use MEMCPY.  */
+      gcall = gimple_build_call (built_in_decls [BUILT_IN_TM_MEMMOVE], 3,
 				 build_fold_addr_expr (lhs),
 				 build_fold_addr_expr (rhs),
 				 TYPE_SIZE_UNIT (TREE_TYPE (lhs)));
@@ -800,21 +802,24 @@ expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
 
   if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
     {
-      /* ??? TM_COMMIT in a nested transaction has an abnormal edge back to
-	 the outer-most transaction (there are no nested retries), while
-	 a TM_ABORT has an abnormal backedge to the inner-most transaction.
-	 We havn't actually saved the inner-most transaction here.  We should
-	 be able to get to it via the region_nr saved on STMT, and read the
-	 tm_atomic_stmt from that, and find the first region block from there.
-	 This assumes we don't expand GIMPLE_TM_ATOMIC until after all other
-	 statements have been expanded.  */
       switch (DECL_FUNCTION_CODE (fn_decl))
 	{
 	case BUILT_IN_TM_COMMIT:
 	case BUILT_IN_TM_ABORT:
-	  /* Both of these calls end a transaction.  */
+	case BUILT_IN_TM_RETRY:
+	  /* These calls end a transaction.  */
 	  if (lookup_stmt_eh_region (stmt) == region->region_nr)
 	    return true;
+	  break;
+
+	/* ??? We may well want TM versions of most of the common
+	   <string.h> functions.  */
+	case BUILT_IN_MEMCPY:
+	  gimple_call_set_fndecl (stmt, built_in_decls[BUILT_IN_TM_MEMCPY]);
+	  return false;
+	case BUILT_IN_MEMMOVE:
+	  gimple_call_set_fndecl (stmt, built_in_decls[BUILT_IN_TM_MEMMOVE]);
+	  return false;
 
 	default:
 	  break;
@@ -950,6 +955,13 @@ expand_block_edges (struct tm_region *region, basic_block bb)
     {
       gimple stmt = gsi_stmt (gsi);
 
+      /* ??? TM_COMMIT (and any other ECF_TM_OPS function) in a nested
+	 transaction has an abnormal edge back to the outer-most transaction
+	 (there are no nested retries), while a TM_ABORT has an abnormal
+	 backedge to the inner-most transaction.  We havn't actually saved
+	 the inner-most transaction here.  We should be able to get to it
+	 via the region_nr saved on STMT, and read the tm_atomic_stmt from
+	 that, and find the first region block from there.  */
       if (gimple_code (stmt) == GIMPLE_CALL
 	  && (gimple_call_flags (stmt) & ECF_TM_OPS) != 0)
 	{

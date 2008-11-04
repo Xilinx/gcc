@@ -1,5 +1,12 @@
 2008-11-03  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (expand_assign_tm): Use memmove by default
+	for block copies.
+	(expand_call_tm): Translate memcpy/memmove into their TM
+	counterparts.
+
+2008-11-03  Richard Henderson  <rth@redhat.com>
+
 	* builtin-types.def (BT_FN_LDOUBLE_VPTR, BT_FN_VOID_VPTR_LDOUBLE): New.
 	* gtm-builtins.def (BUILT_IN_TM_RETRY, BUILT_IN_TM_MEMMOVE): New.
 	(BUILT_IN_TM_STORE_LDOUBLE, BUILT_IN_TM_LOAD_LDOUBLE): New.
