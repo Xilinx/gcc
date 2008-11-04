@@ -599,102 +599,73 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
       else
         {
 	  // Parse bool values as alphanumeric.
-	  typedef __numpunct_cache<_CharT>              __cache_type;
+	  typedef __numpunct_cache<_CharT>  __cache_type;
 	  __use_cache<__cache_type> __uc;
 	  const locale& __loc = __io._M_getloc();
 	  const __cache_type* __lc = __uc(__loc);
 
 	  bool __testf = true;
 	  bool __testt = true;
-	  size_t __n;
-	  bool __testeof = __beg == __end;
-          for (__n = 0; !__testeof; ++__n)
-            {
+	  bool __donef = __lc->_M_falsename_size == 0;
+	  bool __donet = __lc->_M_truename_size == 0;
+	  bool __testeof = false;
+	  size_t __n = 0;
+	  while (!__donef || !__donet)
+	    {
+	      if (__beg == __end)
+		{
+		  __testeof = true;
+		  break;
+		}
+
 	      const char_type __c = *__beg;
 
-	      if (__testf)
-	        {
-		  if (__n < __lc->_M_falsename_size)
-		    __testf = __c == __lc->_M_falsename[__n];
-		  else
-		    break;
-		}
+	      if (!__donef)
+		__testf = __c == __lc->_M_falsename[__n];
 
-	      if (__testt)
-	        {
-		  if (__n < __lc->_M_truename_size)
-		    __testt = __c == __lc->_M_truename[__n];
-		  else
-		    break;
-		}
-
-	      if (!__testf && !__testt)
+	      if (!__testf && __donet)
 		break;
-	      
-	      if (++__beg == __end)
-		__testeof = true;
-            }
-	  if (__testf && __n == __lc->_M_falsename_size)
-	    __v = false;
-	  else if (__testt && __n == __lc->_M_truename_size)
-	    __v = true;
+
+	      if (!__donet)
+		__testt = __c == __lc->_M_truename[__n];
+
+	      if (!__testt && __donef)
+		break;
+
+	      if (!__testt && !__testf)
+		break;
+
+	      ++__n;
+	      ++__beg;
+
+	      __donef = !__testf || __n >= __lc->_M_falsename_size;
+	      __donet = !__testt || __n >= __lc->_M_truename_size;
+	    }
+	  if (__testf && __n == __lc->_M_falsename_size && __n)
+	    {
+	      __v = false;
+	      if (__testt && __n == __lc->_M_truename_size)
+		__err = ios_base::failbit;
+	      else
+		__err = __testeof ? ios_base::eofbit : ios_base::goodbit;
+	    }
+	  else if (__testt && __n == __lc->_M_truename_size && __n)
+	    {
+	      __v = true;
+	      __err = __testeof ? ios_base::eofbit : ios_base::goodbit;
+	    }
 	  else
 	    {
 	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
 	      // 23. Num_get overflow result.
 	      __v = false;
 	      __err = ios_base::failbit;
+	      if (__testeof)
+		__err |= ios_base::eofbit;
 	    }
-
-          if (__testeof)
-            __err |= ios_base::eofbit;
-        }
+	}
       return __beg;
     }
-
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, long& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, unsigned short& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, unsigned int& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, unsigned long& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-
-#ifdef _GLIBCXX_USE_LONG_LONG
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, long long& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-
-  template<typename _CharT, typename _InIter>
-    _InIter
-    num_get<_CharT, _InIter>::
-    do_get(iter_type __beg, iter_type __end, ios_base& __io,
-           ios_base::iostate& __err, unsigned long long& __v) const
-    { return _M_extract_int(__beg, __end, __io, __err, __v); }
-#endif
 
   template<typename _CharT, typename _InIter>
     _InIter
@@ -1136,34 +1107,6 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 	}
       return __s;
     }
-
-  template<typename _CharT, typename _OutIter>
-    _OutIter
-    num_put<_CharT, _OutIter>::
-    do_put(iter_type __s, ios_base& __io, char_type __fill, long __v) const
-    { return _M_insert_int(__s, __io, __fill, __v); }
-
-  template<typename _CharT, typename _OutIter>
-    _OutIter
-    num_put<_CharT, _OutIter>::
-    do_put(iter_type __s, ios_base& __io, char_type __fill,
-           unsigned long __v) const
-    { return _M_insert_int(__s, __io, __fill, __v); }
-
-#ifdef _GLIBCXX_USE_LONG_LONG
-  template<typename _CharT, typename _OutIter>
-    _OutIter
-    num_put<_CharT, _OutIter>::
-    do_put(iter_type __s, ios_base& __io, char_type __fill, long long __v) const
-    { return _M_insert_int(__s, __io, __fill, __v); }
-
-  template<typename _CharT, typename _OutIter>
-    _OutIter
-    num_put<_CharT, _OutIter>::
-    do_put(iter_type __s, ios_base& __io, char_type __fill,
-           unsigned long long __v) const
-    { return _M_insert_int(__s, __io, __fill, __v); }
-#endif
 
   template<typename _CharT, typename _OutIter>
     _OutIter

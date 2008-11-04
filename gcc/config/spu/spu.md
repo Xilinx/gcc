@@ -155,6 +155,8 @@
  (UNSPEC_DFTSV		 51)
  (UNSPEC_FLOAT_EXTEND	 52)
  (UNSPEC_FLOAT_TRUNCATE	 53)
+ (UNSPEC_SP_SET         54)
+ (UNSPEC_SP_TEST        55) 
 ])
 
 (include "predicates.md")

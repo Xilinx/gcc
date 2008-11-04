@@ -1,3 +1,190 @@
+2008-11-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/driver-i386.c (enum vendor_signatures): New enum.
+	(host_detect_local_cpu): Use it instead of casted strings to
+	compare vendor signatures.
+
+2008-11-03  Mikael Pettersson  <mikpe@it.uu.se>
+
+        PR target/37989
+	* config/i386/mingw32.h (REAL_LIBGCC_SPEC): Only add libgcc_s.a
+	or libgcc_eh.a to spec if ENABLE_SHARED_LIBGCC.
+
+2008-11-03  Catherine Moore  <clm@codesourcery.com>
+
+	* config/mips.c (mips_conditional_register_usage):  Handle the
+	DSP control register.
+	* doc/extend.texi: Document the DSP control register.
+			    
+2008-11-03  Steve Ellcey <sje@cup.hp.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	* omp-low.c (expand_omp_for_generic): If iter_type has different
+	precision than type and type is a pointer type, cast n1 and n2
+	first to an integer type with the same precision as pointers
+	and only afterwards to iter_type.
+
+2008-11-03  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/arm/arm.md (UNSPEC_PIC_BASE): Update documentation.
+	(UNSPEC_GOTSYM_OFF): New unspec.
+	(pic_add_dot_plus_four): Simplify the UNSPEC_PIC_BASE operands.
+	(pic_add_dot_plus_eight): Likewise.
+	(tls_load_dot_plus_eight): Likewise.  Update peephole2.
+	* config/arm/thumb2.md (pic_load_dot_plus_four): Simplify the
+	UNSPEC_PIC_BASE operands.
+	* config/arm/arm.c (arm_load_pic_register): Use UNSPEC_GOTSYM_OFF.
+	(arm_output_addr_const_extra): Handle it.
+
+2008-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (classify_argument) <ARRAY_TYPE>: Promote partial
+	integer class to full integer class if the offset is not word-aligned.
+
+2008-11-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-opt/37782
+	* loop-doloop.c (doloop_modify): Add from_mode argument that says what
+	mode count is in.
+	(doloop_optimize): Update call to doloop_modify.
+
+2008-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-sra.c (bitfield_overlaps_p): Fix oversight.
+
+2008-11-03  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR other/37463
+	* configure.ac (gcc_cv_ld_ro_rw_mix): Move before
+	gcc_cv_as_cfi_directive.
+	(gcc_cv_as_cfi_directive) [*-*-solaris*]: Check if linker supports
+	merging read-only and read-write sections or assembler emits
+	read-write .eh_frame sections.
+	* configure: Regenerate.
+	
+2008-11-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	Revert:
+	2008-10-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (no_global_regs_above): Fix precedence
+	problem.
+	(rs6000_emit_prologue): Invert logic.
+	* config/rs6000/rs6000.md (*save_gpregs_<mode>): Use explicit
+	(reg:P 11) instead of match_operand.
+	(*save_fpregs_<mode>): Likewise.
+	(*restore_gpregs_<mode>): Likewise.
+	(*return_and_restore_gpregs_<mode>): Likewise.
+	(*return_and_restore_fpregs_<mode>): Likewise.
+	* config/rs6000/spe.md (*save_gpregs_spe): Use explicit
+	(reg:P 11) insted of match_operand.
+	(*restore_gpregs_spe): Likewise.
+	(*return_and_restore_gpregs_spe): Likewise.
+
+2008-11-03  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/37684
+	* gcc.dg/graphite/pr37684.c: New.
+	* graphite.c (exclude_component_ref): New.
+	(is_simple_operand): Call exclude_component_ref.
+
+2008-11-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/36908
+	* testsuite/gcc.dg/tree-ssa/pr36908.c: New.
+	* tree-loop-distribution.c (number_of_rw_in_rdg): New.
+	(number_of_rw_in_partition): New.
+	(partition_contains_all_rw): New.
+	(ldist_gen): Do not distribute when one of the partitions
+	contains all the memory operations.
+
+2008-11-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* cfghooks.c (split_block): Set BB_IRREDUCIBLE_LOOP and
+	EDGE_IRREDUCIBLE_LOOP.
+
+2008-11-03  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.c (bfin_optimize_loop): Properly handle case
+	where we have one entry point in the loop which isn't the head.
+
+2008-11-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37573
+	* tree-data-ref.c (split_constant_offset_1): Fix tuplification.
+
+2008-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37858
+	* passes.c (execute_one_pass): Don't look at cfun->curr_properties
+	for ipa and simple ipa passes.
+
+2008-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37542
+	* tree-ssa-pre.c (fully_constant_expression): Handle more cases.
+	* tree-ssa-sccvn.c (vn_get_expr_for): Fix typo.
+	(vn_nary_op_lookup_stmt): Adjust for unary reference trees.
+	(vn_nary_op_insert_stmt): Likewise.
+	(visit_use): Likewise.
+
+2008-11-02  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.md (UNSPEC_SWAP): Remove constants.
+	(*swap): Remove.
+	(rotlqi3, *rotlqi3_4, rotlhi3, *rotlhi3_8,
+	rotlsi3, *rotlsi3_8, *rotlsi3_16, *rotlsi3_24): New patterns.
+	(ashlqi3_const4, ashlqi3_const5, ashlqi3_const6, ashlqi3_l_const4,
+	ashlqi3_l_const5, ashlqi3_l_const6, lshrqi3_const4, lshrqi3_const5,
+	lshrqi3_const6, lshrqi3_l_const4, lshrqi3_l_const4, lshrqi3_l_const6
+	peephole2's): Replace unspec with rotate.
+	* config/avr/avr.c (avr_rtx_costs): Add ROTATE.
+
+2008-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37991
+	* tree-ssa-sccvn.h (copy_vuses_from_stmt): Remove.
+	* tree-ssa-sccvn.c (copy_vuses_from_stmt): Make static.
+	(set_ssa_val_to): Print if the value changed.
+	(simplify_binary_expression): Strip useless conversions.
+
+2008-11-01  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/37939
+	* config/cris/cris.c (cris_rtx_costs) <MULT>: Return 0 for an ADDI
+	operand.
+
+2008-11-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37976
+	* builtins.c (fold_builtin_strspn): Return a size_t.
+	(fold_builtin_strcspn): Likewise.
+
+2008-10-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (rs6000_file_start): Output gnu
+	attribute for struct return convention.
+
+2008-10-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/crtsavres.asm: Really, really delete.
+
+2008-10-31  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/rs6000/rs6000.c (no_global_regs_above): Fix precedence
+	problem.
+	(rs6000_emit_prologue): Invert logic.
+	* config/rs6000/rs6000.md (*save_gpregs_<mode>): Use explicit
+	(reg:P 11) instead of match_operand.
+	(*save_fpregs_<mode>): Likewise.
+	(*restore_gpregs_<mode>): Likewise.
+	(*return_and_restore_gpregs_<mode>): Likewise.
+	(*return_and_restore_fpregs_<mode>): Likewise.
+	* config/rs6000/spe.md (*save_gpregs_spe): Use explicit
+	(reg:P 11) insted of match_operand.
+	(*restore_gpregs_spe): Likewise.
+	(*return_and_restore_gpregs_spe): Likewise.
+
 2008-10-28  Luis Machado  <luisgpm@br.ibm.com>
 
 	* gcc.h (DEFAULT_WORD_SWITCH_TAKES_ARG): Add "dumpbase" to the
@@ -428,8 +615,7 @@
 	* tree-inline.c (tree_inlinable_function_p): Remove tuples
 	debugging hack.
 
-	* gimplify.c (gimplify_expr): Drop TREE_OVERFLOW from
-	INTEGER_CSTs.
+	* gimplify.c (gimplify_expr): Drop TREE_OVERFLOW from INTEGER_CSTs.
 
 	PR debug/37020
 	* c-decl.c (merge_decls): Don't call outlining_inline_function hook.
