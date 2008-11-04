@@ -1,3 +1,22 @@
+2008-11-04  Richard Henderson  <rth@redhat.com>
+
+	* c-common.c (handle_tm_callable_attribute,
+	handle_tm_pure_attribute, handle_tm_unknown_attribute): Remove.
+	(handle_tm_fntype_attribute): New.  Combine those and apply to
+	function types instead of to decls.
+	(tm_attribute_mask): New.
+	* trans-mem.c (get_attrs_for, is_tm_pure, is_tm_callable): New.
+	(requires_barrier): Don't query tm_pure on variables.
+	(examine_call_tm): Query tm_pure on indirect calls.
+	(expand_call_tm): Likewise.
+	* tree.h (tree_decl_with_vis): Remove tm_var_pure.
+	(DECL_IS_TM_PURE_VAR): Remove.
+	(DECL_IS_TM_PURE, DECL_IS_TM_UNKNOWN, DECL_IS_TM_CALLABLE): Remove.
+	(struct tree_function_decl): Remove tm_callable_flag, tm_pure_flag.
+	(is_tm_pure, is_tm_callable): Declare.
+	* omp-low.c (copy_var_decl): Don't copy DECL_IS_TM_PURE_VAR.
+	* testsuite/gcc.dg/tm/attrib-1.c: New.
+
 2008-11-03  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (expand_assign_tm): Use memmove by default

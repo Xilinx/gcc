@@ -1716,8 +1716,6 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
 	  TREE_READONLY (newdecl) |= TREE_READONLY (olddecl);
 	  DECL_PURE_P (newdecl) |= DECL_PURE_P (olddecl);
 	  DECL_IS_NOVOPS (newdecl) |= DECL_IS_NOVOPS (olddecl);
-	  DECL_IS_TM_PURE (newdecl) |= DECL_IS_TM_PURE (olddecl);
-	  DECL_IS_TM_CALLABLE (newdecl) |= DECL_IS_TM_CALLABLE (olddecl);
 	}
 
       /* Merge the storage class information.  */

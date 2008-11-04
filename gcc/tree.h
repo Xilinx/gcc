@@ -3055,8 +3055,7 @@ struct tree_decl_with_vis GTY(())
 
  /* Belongs to VAR_DECL exclusively.  */
  ENUM_BITFIELD(tls_model) tls_model : 3;
- unsigned tm_var_pure : 1;
- /* 11 unused bits. */
+ /* 12 unused bits. */
 };
 
 /* In a VAR_DECL that's static,
@@ -3067,10 +3066,6 @@ struct tree_decl_with_vis GTY(())
    put in .common, if possible.  If a DECL_INITIAL is given, and it
    is not error_mark_node, then the decl cannot be put in .common.  */
 #define DECL_COMMON(NODE) (DECL_WITH_VIS_CHECK (NODE)->decl_with_vis.common_flag)
-
-/* Nonzero if VAR_DECL does not need instrumentation
-   inside a transaction */
-#define DECL_IS_TM_PURE_VAR(NODE) (VAR_DECL_CHECK (NODE)->decl_with_vis.tm_var_pure)
 
 /* In a VAR_DECL, nonzero if the decl is a register variable with
    an explicit asm specification.  */
@@ -3254,30 +3249,10 @@ struct tree_decl_non_common GTY(())
 #define DECL_NO_INLINE_WARNING_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
-/* Nonzero in a FUNCTION_DECL means this function should be treated
-   as "tm_pure" function - does not read shared memory that transactions
-   write to.  */
-#define DECL_IS_TM_PURE(NODE) \
-  (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_pure_flag)
-
 /* Nonzero in a FUNCTION_DECL means this function is the transactional
    clone of a function - called only from inside transactions.  */
 #define DECL_IS_TM_CLONE(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_clone_flag)
-
-#if 0
-/* Nonzero in a FUNCTION_DECL means this function should be treated
-   as "tm_unknown" function - behaviour of transactions depends
-   on STM system to support irrevocable calls.  */
-#define DECL_IS_TM_UNKNOWN(NODE) \
-  (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_unknown_flag)
-#endif
-
-/* Nonzero in a FUNCTION_DECL means this function should be treated
-   as "tm_callable" function - function may be called from within a
-   transaction. */
-#define DECL_IS_TM_CALLABLE(NODE) \
-  (FUNCTION_DECL_CHECK (NODE)->function_decl.tm_callable_flag)
 
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
@@ -3346,19 +3321,15 @@ struct tree_function_decl GTY(())
   unsigned operator_new_flag : 1;
   unsigned declared_inline_flag : 1;
   unsigned regdecl_flag : 1;
-
   unsigned no_inline_warning_flag : 1;
+
   unsigned no_instrument_function_entry_exit : 1;
   unsigned no_limit_stack : 1;
   unsigned disregard_inline_limits : 1;
   unsigned pure_flag : 1;
   unsigned looping_const_or_pure_flag : 1;
-
-  unsigned tm_callable_flag : 1;
   unsigned tm_clone_flag : 1;
-  unsigned tm_pure_flag : 1;
-  /* unsigned tm_unknown_flag : 1; */
-  /* no bits left */
+  /* 2 bits left */
 };
 
 /* For a TYPE_DECL, holds the "original" type.  (TREE_TYPE has the copy.) */
@@ -4202,6 +4173,12 @@ extern tree remove_attribute (const char *, tree);
 /* Given two attributes lists, return a list of their union.  */
 
 extern tree merge_attributes (tree, tree);
+
+/* Return true if X is marked TM_PURE.  */
+extern bool is_tm_pure (tree);
+
+/* Return true if X is marked TM_CALLABLE.  */
+extern bool is_tm_callable (tree);
 
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
 /* Given two Windows decl attributes lists, possibly including

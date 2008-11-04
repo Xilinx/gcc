@@ -558,6 +558,7 @@ static tree handle_returns_twice_attribute (tree *, tree, tree, int, bool *);
 static tree handle_no_limit_stack_attribute (tree *, tree, tree, int,
 					     bool *);
 static tree handle_pure_attribute (tree *, tree, tree, int, bool *);
+static tree handle_tm_fntype_attribute (tree *, tree, tree, int, bool *);
 static tree handle_novops_attribute (tree *, tree, tree, int, bool *);
 static tree handle_deprecated_attribute (tree *, tree, tree, int,
 					 bool *);
@@ -756,10 +757,6 @@ const struct c_common_resword c_common_reswords[] =
 const unsigned int num_c_common_reswords =
   sizeof c_common_reswords / sizeof (struct c_common_resword);
 
-static tree handle_tm_callable_attribute (tree *, tree, tree, int, bool *);
-static tree handle_tm_pure_attribute (tree *, tree, tree, int, bool *);
-static tree handle_tm_unknown_attribute (tree *, tree, tree, int, bool *);
-
 /* Table of machine-independent attributes common to all C-like languages.  */
 const struct attribute_spec c_common_attribute_table[] =
 {
@@ -826,12 +823,14 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_no_limit_stack_attribute },
   { "pure",                   0, 0, true,  false, false,
 			      handle_pure_attribute },
-  { "tm_pure",                0, 0, true,  false, false,
-                              handle_tm_pure_attribute },
-  { "tm_callable",            0, 0, true,  false, false,
-                              handle_tm_callable_attribute },
-  { "tm_unknown",             0, 0, true,  false, false,
-                              handle_tm_unknown_attribute },
+  { "tm_callable",            0, 0, false,  true,  true,
+                              handle_tm_fntype_attribute },
+  { "tm_pure",                0, 0, false, true, true,
+                              handle_tm_fntype_attribute },
+  { "tm_safe",                0, 0, false,  true,  true,
+                              handle_tm_fntype_attribute },
+  { "tm_unknown",             0, 0, false,  true,  true,
+                              handle_tm_fntype_attribute },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
@@ -6470,60 +6469,62 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
   return NULL_TREE;
 }
 
-/* Handle a "tm_pure" attribute; arguments as in
-   struct attribute_spec.handler.  */
+/* Return a bitmask of TM function attributes:
+   1 TM_UNKNOWN
+   2 TM_PURE
+   4 TM_CALLABLE
+   8 TM_SAFE  */
+
+static unsigned
+tm_attribute_mask (tree name)
+{
+  if (is_attribute_p ("tm_unknown", name))
+    return 1;
+  if (is_attribute_p ("tm_pure", name))
+    return 2;
+  if (is_attribute_p ("tm_callable", name))
+    return 4;
+  if (is_attribute_p ("tm_safe", name))
+    return 8;
+  return 0;
+}
+  
+/* Handle the TM attributes; arguments as in struct attribute_spec.handler.
+   Here we accept only function types, and verify that none of the other
+   function TM attributes are also applied.  */
 
 static tree
-handle_tm_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-                     int ARG_UNUSED (flags), bool *no_add_attrs)
+handle_tm_fntype_attribute (tree *node, tree name, tree ARG_UNUSED (args),
+			    int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  if (TREE_CODE (*node) == FUNCTION_DECL)
-    DECL_IS_TM_PURE (*node) = 1;
-  /* ??? TODO: Support types.  */
-  else
+  if (TREE_CODE (*node) == FUNCTION_TYPE || TREE_CODE (*node) == METHOD_TYPE)
     {
-      if (TREE_CODE (*node) == VAR_DECL)
-	DECL_IS_TM_PURE_VAR (*node) = 1;
-      else 
+      unsigned this_mask, old_mask = 0;
+      tree l;
+
+      for (l = TYPE_ATTRIBUTES (*node); l ; l = TREE_CHAIN (l))
+	old_mask |= tm_attribute_mask (TREE_PURPOSE (l));
+      this_mask = tm_attribute_mask (name);
+
+      if (old_mask == this_mask)
+	*no_add_attrs = true;
+      else if (old_mask != 0)
 	{
-	  warning (OPT_Wattributes, "%qE attribute ignored", name);
+	  const char *old_name;
+	  switch (old_mask)
+	    {
+	    case 1: old_name = "tm_unknown"; break;
+	    case 2: old_name = "tm_pure"; break;
+	    case 4: old_name = "tm_callable"; break;
+	    case 8: old_name = "tm_safe"; break;
+	    default:
+	      gcc_unreachable ();
+	    }
+
+	  error ("function type was previously declared %qs", old_name);
 	  *no_add_attrs = true;
 	}
     }
-
-  return NULL_TREE;
-}
-
-/* Handle a "tm_unknown" attribute; arguments as in
-   struct attribute_spec.handler.  */
-
-static tree
-handle_tm_unknown_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-                     int ARG_UNUSED (flags), bool *no_add_attrs)
-{
-  if (TREE_CODE (*node) == FUNCTION_DECL)
-    {
-      /* DECL_IS_TM_UNKNOWN (*node) = 1; */
-    }
-  else
-    {
-      warning (OPT_Wattributes, "%qE attribute ignored", name);
-      *no_add_attrs = true;
-    }
-
-  return NULL_TREE;
-}
-
-/* Handle a "tm_callable" attribute; arguments as in
-   struct attribute_spec.handler.  */
-
-static tree
-handle_tm_callable_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-                     int ARG_UNUSED (flags), bool *no_add_attrs)
-{
-  if (TREE_CODE (*node) == FUNCTION_DECL)
-    DECL_IS_TM_CALLABLE (*node) = 1;
-  /* ??? TODO: Support types.  */
   else
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);

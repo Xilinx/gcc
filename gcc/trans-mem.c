@@ -114,6 +114,80 @@
 	over:
 */
 
+
+/* Return the attributes we want to examine for X, or NULL if it's not
+   something we examine.  We look at function types, but allow pointers
+   to function types and function decls and peek through.  */
+
+static tree
+get_attrs_for (tree x)
+{
+  switch (TREE_CODE (x))
+    {
+    case FUNCTION_DECL:
+      return TYPE_ATTRIBUTES (TREE_TYPE (x));
+      break;
+
+    case POINTER_TYPE:
+      x = TREE_TYPE (x);
+      if (TREE_CODE (x) != FUNCTION_TYPE)
+	return NULL;
+      /* FALLTHRU */
+
+    case FUNCTION_TYPE:
+      return TYPE_ATTRIBUTES (x);
+
+    default:
+      return NULL;
+    }
+}
+
+/* Return true if X has been marked TM_PURE.  */
+
+bool
+is_tm_pure (tree x)
+{
+  tree attrs = get_attrs_for (x);
+
+  if (attrs)
+    return lookup_attribute ("tm_pure", attrs) != NULL;
+  return false;
+}
+
+/* Return true if X has been marked TM_CALLABLE.  */
+
+bool
+is_tm_callable (tree x)
+{
+  tree attrs = get_attrs_for (x);
+
+  if (attrs)
+    {
+      if (lookup_attribute ("tm_callable", attrs))
+	return true;
+
+      /* TM_SAFE is stricter than TM_CALLABLE.  */
+      return lookup_attribute ("tm_safe", attrs) != NULL;
+    }
+  return false;
+}
+
+/* Return true if STMT may alter control flow via a transactional edge.  */
+
+bool
+is_transactional_stmt (const_gimple stmt)
+{
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_CALL:
+      return (gimple_call_flags (stmt) & ECF_TM_OPS) != 0;
+    case GIMPLE_TM_ATOMIC:
+      return true;
+    default:
+      return false;
+    }
+}
+
 static void lower_sequence_tm (unsigned *, gimple_seq);
 static void lower_sequence_no_tm (gimple_seq);
 
@@ -133,14 +207,18 @@ requires_barrier (tree x)
 
     case ALIGN_INDIRECT_REF:
     case MISALIGNED_INDIRECT_REF:
+      /* ??? Insert an irrevokable when it comes to vectorized loops,
+	 or handle these somehow.  */
       gcc_unreachable ();
 
     case VAR_DECL:
-      if (DECL_IS_TM_PURE_VAR (x))
-	return false;
       if (is_global_var (x))
 	return !TREE_READONLY (x);
-      return TREE_ADDRESSABLE (x);
+      /* ??? For local memory that doesn't escape, we can either save the
+	 value at the beginning of the transaction and restore on restart,
+	 or call a tm function to dynamically save and restore on restart.
+	 We don't actually need a full barrier here.  */
+      return needs_to_live_in_memory (x);
 
     default:
       return false;
@@ -167,7 +245,7 @@ static void
 examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
-  tree fn_decl;
+  tree fn;
   unsigned flags;
 
   gimple_call_set_in_tm_atomic (stmt, true);
@@ -179,20 +257,26 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
   if (flag_exceptions && !(flags & ECF_NOTHROW))
     *state |= GTMA_HAVE_UNCOMMITTED_THROW;
 
-  fn_decl = gimple_call_fndecl (stmt);
-  if (!fn_decl)
+  fn = gimple_call_fn (stmt);
+
+  /* If this function is pure, we can ignore it.  */
+  if (is_tm_pure (TREE_TYPE (fn)))
+    return;
+
+  if (TREE_CODE (fn) == ADDR_EXPR)
+    {
+      fn = TREE_OPERAND (fn, 0);
+      gcc_assert (TREE_CODE (fn) == FUNCTION_DECL);
+    }
+  else
     {
       *state |= GTMA_HAVE_CALL_IRREVOKABLE;
       return;
     }
 
-  /* If this function is pure, we can ignore it.  */
-  if (DECL_IS_TM_PURE (fn_decl))
-    return;
-
   /* Check if this call is a transaction abort.  */
-  if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL
-      && DECL_FUNCTION_CODE (fn_decl) == BUILT_IN_TM_ABORT)
+  if (DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+      && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_ABORT)
     {
       *state |= GTMA_HAVE_ABORT;
       return;
@@ -352,22 +436,6 @@ struct gimple_opt_pass pass_lower_tm =
   TODO_dump_func		        /* todo_flags_finish */
  }
 };
-
-/* Return true if STMT may alter control flow via a transactional edge.  */
-
-bool
-is_transactional_stmt (const_gimple stmt)
-{
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_CALL:
-      return (gimple_call_flags (stmt) & ECF_TM_OPS) != 0;
-    case GIMPLE_TM_ATOMIC:
-      return true;
-    default:
-      return false;
-    }
-}
 
 /* Collect region information for each transaction.  */
 
@@ -797,7 +865,7 @@ expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       return false;
     }
 
-  if (DECL_IS_TM_PURE (fn_decl) || DECL_IS_TM_CLONE (fn_decl))
+  if (DECL_IS_TM_CLONE (fn_decl) || is_tm_pure (fn_decl))
     return false;
 
   if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
@@ -1237,8 +1305,7 @@ ipa_tm_create_version (struct cgraph_node *old_node,
   /* The generic versioning code forces the function to be visible
      only within this translation unit.  This isn't what we want for
      functions the programmer marked TM_CALLABLE.  */
-  if (cgraph_is_master_clone (old_node)
-      && DECL_IS_TM_CALLABLE (old_node->decl))
+  if (cgraph_is_master_clone (old_node) && is_tm_callable (old_node->decl))
     {
       DECL_EXTERNAL (new_node->decl) = DECL_EXTERNAL (old_node->decl);
       TREE_PUBLIC (new_node->decl) = TREE_PUBLIC (old_node->decl);
@@ -1293,7 +1360,7 @@ ipa_tm_decide_version (struct cgraph_node *node)
      requested one.  Create a transaction version if the version of
      the function defined here is known to be used, and it has
      transaction callers.  */
-  if ((cgraph_is_master_clone (node) && DECL_IS_TM_CALLABLE (node->decl))
+  if ((cgraph_is_master_clone (node) && is_tm_callable (node->decl))
       || (cgraph_function_body_availability (node) >= AVAIL_AVAILABLE
 	  && !VEC_empty (cgraph_edge_p, redirections)))
     {
