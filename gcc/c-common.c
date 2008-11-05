@@ -6979,6 +6979,7 @@ parse_optimize_options (tree args, bool attr_p)
   bool ret = true;
   unsigned opt_argc;
   unsigned i;
+  int saved_flag_strict_aliasing;
   const char **opt_argv;
   tree ap;
 
@@ -7069,8 +7070,13 @@ parse_optimize_options (tree args, bool attr_p)
   for (i = 1; i < opt_argc; i++)
     opt_argv[i] = VEC_index (const_char_p, optimize_args, i);
 
+  saved_flag_strict_aliasing = flag_strict_aliasing;
+
   /* Now parse the options.  */
   decode_options (opt_argc, opt_argv);
+
+  /* Don't allow changing -fstrict-aliasing.  */
+  flag_strict_aliasing = saved_flag_strict_aliasing;
 
   VEC_truncate (const_char_p, optimize_args, 0);
   return ret;
@@ -8235,7 +8241,7 @@ warn_for_sign_compare (location_t location,
       && TREE_CODE (TREE_TYPE (orig_op0)) == ENUMERAL_TYPE
       && TREE_CODE (TREE_TYPE (orig_op1)) == ENUMERAL_TYPE
       && TYPE_MAIN_VARIANT (TREE_TYPE (orig_op0))
-      != TYPE_MAIN_VARIANT (TREE_TYPE (orig_op1)))
+	 != TYPE_MAIN_VARIANT (TREE_TYPE (orig_op1)))
     {
       warning_at (location,
 		  OPT_Wsign_compare, "comparison between types %qT and %qT",
@@ -8252,9 +8258,9 @@ warn_for_sign_compare (location_t location,
     /* OK */;
   else
     {
-      tree sop, uop;
+      tree sop, uop, base_type;
       bool ovf;
-      
+
       if (op0_signed)
         sop = orig_op0, uop = orig_op1;
       else 
@@ -8262,6 +8268,8 @@ warn_for_sign_compare (location_t location,
 
       STRIP_TYPE_NOPS (sop); 
       STRIP_TYPE_NOPS (uop);
+      base_type = (TREE_CODE (result_type) == COMPLEX_TYPE
+		   ? TREE_TYPE (result_type) : result_type);
 
       /* Do not warn if the signed quantity is an unsuffixed integer
          literal (or some static constant expression involving such
@@ -8274,7 +8282,7 @@ warn_for_sign_compare (location_t location,
          in the result if the result were signed.  */
       else if (TREE_CODE (uop) == INTEGER_CST
                && (resultcode == EQ_EXPR || resultcode == NE_EXPR)
-               && int_fits_type_p (uop, c_common_signed_type (result_type)))
+	       && int_fits_type_p (uop, c_common_signed_type (base_type)))
         /* OK */;
       /* In C, do not warn if the unsigned quantity is an enumeration
          constant and its maximum value would fit in the result if the
@@ -8282,7 +8290,7 @@ warn_for_sign_compare (location_t location,
       else if (!c_dialect_cxx() && TREE_CODE (uop) == INTEGER_CST
                && TREE_CODE (TREE_TYPE (uop)) == ENUMERAL_TYPE
                && int_fits_type_p (TYPE_MAX_VALUE (TREE_TYPE (uop)),
-                                   c_common_signed_type (result_type)))
+				   c_common_signed_type (base_type)))
         /* OK */;
       else 
         warning_at (location,
