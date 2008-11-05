@@ -631,6 +631,7 @@ static void
 expand_irrevokable (struct tm_region *region, gimple_stmt_iterator *gsi)
 {
   gimple g;
+  tree var;
 
   tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
 
@@ -638,6 +639,29 @@ expand_irrevokable (struct tm_region *region, gimple_stmt_iterator *gsi)
   add_stmt_to_tm_region (region, g);
 
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
+
+  /* We may be inserting this for a function or asm that doesn't clobber
+     all memory state, so we can't just use mark_vops_in_stmt as below.  */
+  var = gimple_global_var (cfun);
+  if (var)
+    mark_sym_for_renaming (var);
+  else
+    {
+      bitmap_iterator bi;
+      unsigned int i;
+
+      EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
+	{
+	  var = referenced_var (i);
+	  mark_sym_for_renaming (var);
+	}
+
+      EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
+	{
+	  var = referenced_var (i);
+	  mark_sym_for_renaming (var);
+	}
+    }
 }
 
 
@@ -1169,6 +1193,7 @@ execute_tm_edges (void)
      the SSA web in the TODO section following this pass.  */
   free_dominance_info (CDI_DOMINATORS);
   bitmap_obstack_release (&tm_obstack);
+  all_tm_regions = NULL;
 
   return 0;
 }
@@ -1204,7 +1229,7 @@ execute_tm_memopt (void)
 static bool
 gate_tm_memopt (void)
 {
-  return optimize > 0;
+  return 0 && optimize > 0;
 }
 
 struct gimple_opt_pass pass_tm_memopt =

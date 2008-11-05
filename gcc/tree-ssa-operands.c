@@ -1635,27 +1635,43 @@ get_tmr_operands (gimple stmt, tree expr, int flags)
 }
 
 
-/* Clobber everything in memory.  Used when memory barriers are seen.  */
+/* Clobber everything in memory.  Used when memory barriers are seen.
+   Note that we set IS_CALL_SITE to true for add_virtual_operand, even
+   if this isn't actually a call, but an ASM or TM_ATOMIC.  This is
+   done because some vdefs are pruned for non-calls, and we don't want
+   that; we want ALL clobbers for the memory barrier.  */
 
 static void
 add_all_call_clobber_ops (gimple stmt)
 {
   unsigned i;
   bitmap_iterator bi;
+  tree global_var;
 
   /* Mark the statement as having memory operands.  */
   gimple_set_references_memory (stmt, true);
 
+  /* If we created .GLOBAL_VAR earlier, just use it.  */
+  global_var = gimple_global_var (cfun);
+  if (global_var)
+    {
+      add_virtual_operand (global_var, stmt, opf_def | opf_implicit,
+			   NULL, 0, -1, true);
+      return;
+    }
+
   EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
     {
       tree var = referenced_var (i);
-      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
+      add_virtual_operand (var, stmt, opf_def | opf_implicit,
+			   NULL_TREE, 0, -1, true);
     }
 
   EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
     {
       tree var = referenced_var (i);
-      add_stmt_operand (&var, stmt, opf_def | opf_implicit);
+      add_virtual_operand (var, stmt, opf_def | opf_implicit,
+			   NULL_TREE, 0, -1, true);
     }
 }
 
@@ -1668,14 +1684,15 @@ add_call_clobber_ops (gimple stmt, tree callee)
   unsigned u;
   bitmap_iterator bi;
   bitmap not_read_b, not_written_b;
+  tree global_var;
 
   gcc_assert (!(gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST)));
 
   /* If we created .GLOBAL_VAR earlier, just use it.  */
-  if (gimple_global_var (cfun))
+  global_var = gimple_global_var (cfun);
+  if (global_var)
     {
-      tree var = gimple_global_var (cfun);
-      add_virtual_operand (var, stmt, opf_def, NULL, 0, -1, true);
+      add_virtual_operand (global_var, stmt, opf_def, NULL, 0, -1, true);
       return;
     }
 
@@ -1734,6 +1751,7 @@ add_call_read_ops (gimple stmt, tree callee)
   unsigned u;
   bitmap_iterator bi;
   bitmap not_read_b;
+  tree global_var;
 
   /* Const functions do not reference memory.  */
   if (gimple_call_flags (stmt) & ECF_CONST)
@@ -1770,10 +1788,10 @@ add_call_read_ops (gimple stmt, tree callee)
   /* Add a VUSE for .GLOBAL_VAR if it has been created.  See
      add_referenced_var for the heuristic used to decide whether to
      create .GLOBAL_VAR.  */
-  if (gimple_global_var (cfun))
+  global_var = gimple_global_var (cfun);
+  if (global_var)
     {
-      tree var = gimple_global_var (cfun);
-      add_virtual_operand (var, stmt, opf_use, NULL, 0, -1, true);
+      add_virtual_operand (global_var, stmt, opf_use, NULL, 0, -1, true);
       return;
     }
 

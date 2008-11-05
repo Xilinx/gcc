@@ -1,3 +1,15 @@
+2008-11-05  Richard Henderson  <rth@redhat.com>
+
+	* trans-mem.c (expand_irrevokable): Mark all call-clobbered tags
+	for renaming.
+	(execute_tm_edges): Clear all_tm_regions at the end.
+	(gate_tm_memopt): Disable.
+	* tree-ssa-operands.c (add_all_call_clobber_ops): Handle .GLOBAL_VAR.
+	Use add_virtual_operand directly and pretend to be a call site.
+	(add_call_clobber_ops): Streamline .GLOBAL_VAR handling.
+	(add_call_read_ops): Likewise.
+	* testsuite/gcc.dg/tm/opt-1.c: New.
+
 2008-11-04  Richard Henderson  <rth@redhat.com>
 
 	* c-common.c (handle_tm_callable_attribute,
