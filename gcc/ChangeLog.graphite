@@ -1,6 +1,14 @@
+2008-11-05  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/37943
+
+	* graphite.c (scopdet_basic_block_info): Fix loops with multiple
+	exits and conditions.
+	* testsuite/gcc.dg/graphite/pr37943.c: New.
+
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	middle-end/37886
+	PR middle-end/37886
 	* graphite.c (gloog): Replace EXIT_BLOCK_PTR with scop exit. 
 
 2008-10-23  Tobias Grosser  <grosser@fim.uni-passau.de>
