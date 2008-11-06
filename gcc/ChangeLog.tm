@@ -1,5 +1,10 @@
 2008-11-05  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (ipa_tm_create_version): Use C++ style mangling.
+	* Makefile.in (trans-mem.o): Update dependencies.
+
+2008-11-05  Richard Henderson  <rth@redhat.com>
+
 	* trans-mem.c (expand_irrevokable): Mark all call-clobbered tags
 	for renaming.
 	(execute_tm_edges): Clear all_tm_regions at the end.

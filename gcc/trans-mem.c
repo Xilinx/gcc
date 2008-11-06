@@ -29,6 +29,7 @@
 #include "diagnostic.h"
 #include "toplev.h"
 #include "flags.h"
+#include "demangle.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -1318,7 +1319,10 @@ ipa_tm_create_version (struct cgraph_node *old_node,
 		       VEC (cgraph_edge_p, heap) *redirections)
 {
   struct cgraph_node *new_node;
+  const char *old_asm_name;
+  struct demangle_component *dc;
   char *tm_name;
+  void *alloc = NULL;
 
   new_node = cgraph_function_versioning (old_node, redirections,
 					 NULL, NULL);
@@ -1347,23 +1351,51 @@ ipa_tm_create_version (struct cgraph_node *old_node,
      of debugging.  */
   DECL_NAME (new_node->decl) = DECL_NAME (old_node->decl);
 
-  /* ??? The current Intel ABI for these symbols uses this first variant.
-     I believe we ought to be considering _ZGT{t,n,m} extensions to the
-     C++ name mangling ABI.  */
-#if !defined(NO_DOT_IN_LABEL) && !defined(NO_DOLLAR_IN_LABEL)
-# define TM_SUFFIX	".$TXN"
-#elif !defined(NO_DOT_IN_LABEL)
-# define TM_SUFFIX	".TXN"
-#elif !defined(NO_DOLLAR_IN_LABEL)
-# define TM_SUFFIX	"$TXN"
-#else
-# define TM_SUFFIX	"__TXN"
-#endif
+  /* Determine if the symbol is already a valid C++ mangled name.  Do this
+     even for C, which might be interfacing with C++ code via appropriately
+     ugly identifiers.  */
+  /* ??? We could probably do just as well checking for "_Z" and be done.  */
+  old_asm_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_node->decl));
+  dc = cplus_demangle_v3_components (old_asm_name, DMGL_NO_OPTS, &alloc);
 
-  tm_name = concat (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_node->decl)),
-		    TM_SUFFIX, NULL);
+  if (dc == NULL)
+    {
+      char length[8];
+
+    do_unencoded:
+      sprintf (length, "%u",
+	       IDENTIFIER_LENGTH (DECL_ASSEMBLER_NAME (old_node->decl)));
+      tm_name = concat ("_ZGTt", length, old_asm_name, NULL);
+    }
+  else
+    {
+      old_asm_name += 2;	/* Skip _Z */
+
+      switch (dc->type)
+	{
+	case DEMANGLE_COMPONENT_TRANSACTION_CLONE:
+	case DEMANGLE_COMPONENT_NONTRANSACTION_CLONE:
+	  /* Don't play silly games, you!  */
+	  goto do_unencoded;
+
+	case DEMANGLE_COMPONENT_HIDDEN_ALIAS:
+	  /* I'd really like to know if we can ever be passed one of
+	     these from the C++ front end.  The Logical Thing would
+	     seem that hidden-alias should be outer-most, so that we
+	     get hidden-alias of a transaction-clone and not vice-versa.  */
+	  old_asm_name += 2;
+	  break;
+
+	default:
+	  break;
+	}
+
+      tm_name = concat ("_ZGTt", old_asm_name, NULL);
+    }
+
   SET_DECL_ASSEMBLER_NAME (new_node->decl, get_identifier (tm_name));
   free (tm_name);
+  free (alloc);
 }
 
 static void
