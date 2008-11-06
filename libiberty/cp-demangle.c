@@ -3549,12 +3549,12 @@ d_print_comp (struct d_print_info *dpi,
       return;
 
     case DEMANGLE_COMPONENT_TRANSACTION_CLONE:
-      d_append_string (dpi, "tranaction clone for ");
+      d_append_string (dpi, "transaction clone for ");
       d_print_comp (dpi, d_left (dc));
       return;
 
     case DEMANGLE_COMPONENT_NONTRANSACTION_CLONE:
-      d_append_string (dpi, "non-tranaction clone for ");
+      d_append_string (dpi, "non-transaction clone for ");
       d_print_comp (dpi, d_left (dc));
       return;
 
