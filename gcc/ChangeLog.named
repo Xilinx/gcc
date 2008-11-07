@@ -4,6 +4,8 @@
 	(tree_log2): Ditto.
 	(tree_floor_log2): Ditto.
 
+	* tree.h (ENCODE_QUAL_ADDR_SPACE): Add a comment.
+
 	* print-tree.c (toplevel): Revert includes of target.h and
 	target-def.h back to the mainline code since MD code has been
 	removed.

@@ -2197,6 +2197,8 @@ struct tree_block GTY(())
 #define TYPE_QUAL_VOLATILE 0x2
 #define TYPE_QUAL_RESTRICT 0x4
 
+/* Encode/decode the named memory support as part of the qualifier.  If more
+   than 8 qualifiers are added, these macros need to be adjusted.  */
 #define ENCODE_QUAL_ADDR_SPACE(NUM) ((NUM & 0xFF) << 8)
 #define DECODE_QUAL_ADDR_SPACE(X) (((X) >> 8) & 0xFF)
 
