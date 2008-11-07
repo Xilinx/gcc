@@ -1,3 +1,6 @@
+2008-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r141668
+
 2008-11-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r141555
 
@@ -182,7 +185,7 @@
 2008-04-21   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r134529 (added fg-byte-scan.c from new trunk)
 
-22008-04-21   Basile Starynkevitch  <basile@starynkevitch.net>
+2008-04-21   Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk r134525
 
 2008-04-17   Basile Starynkevitch  <basile@starynkevitch.net>
