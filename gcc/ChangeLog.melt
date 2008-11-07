@@ -1,3 +1,13 @@
+2008-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c [reindented] (basilys_extra_marking) new not yet used function.
+	[using a vector of basilys_module_info_t]
+	(basilys_module_info_t) new type & structure.
+	(modinfvec) new vector.
+	(load_checked_dylib) removed and renamed as
+	(load_checked_dynamic_module_index) which does all the dlsym-s.
+	(basilysgc_compile_dyn) uses it.
+	[should use ggc_collect_extra_marking].
+
 2008-11-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c: added basilys_modulinfo_t.
 	* melt/warmelt-outobj.bysl: Completed generation of marking. Added
