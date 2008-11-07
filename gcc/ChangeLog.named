@@ -1,6 +1,8 @@
 2008-11-07  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* tree.c (integer_pow2p): Reduce columns to under 80.
+	(tree_log2): Ditto.
+	(tree_floor_log2): Ditto.
 
 	* print-tree.c (toplevel): Revert includes of target.h and
 	target-def.h back to the mainline code since MD code has been
