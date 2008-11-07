@@ -1,10 +1,13 @@
 2008-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
-	* basilys.c [reindented] (basilys_extra_marking) new not yet used function.
+	* basilys.c [reindented] (basilys_extra_marking) new not yet used
+	function.
 	[using a vector of basilys_module_info_t]
 	(basilys_module_info_t) new type & structure.
 	(modinfvec) new vector.
 	(load_checked_dylib) removed and renamed as
-	(load_checked_dynamic_module_index) which does all the dlsym-s.
+	(load_checked_dynamic_module_index) which does all the dlsym-s and
+	accepts both *basilys* & *melt* symbols inside eg both melt_md5 & basilys_md5
+	both start_module_basilys & start_module_melt, etc...
 	(basilysgc_compile_dyn) uses it.
 	[should use ggc_collect_extra_marking].
 
@@ -15,7 +18,7 @@
 	* warmelt-first-0.c: regenerated.
 	* warmelt-macro-0.c: regenerated.
 	* warmelt-normal-0.c: regenerated.
-	* warmelt-normatch-0.c: regenerated.
+	* Warmelt-normatch-0.c: regenerated.
 	* warmelt-genobj-0.c: regenerated.
 	* warmelt-outobj-0.c: regenerated.
 2008-11-02  Basile Starynkevitch  <basile@starynkevitch.net>
