@@ -1,3 +1,41 @@
+2008-11-07  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat.dg/hyper_flat.adb: New test.
+
+2008-11-07  Geert Bosch  <bosch@adacore.com>
+
+	* gnat.dg/test_8bitlong_overflow.adb: New test.
+
+2008-11-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* g++.dg/ipa/iinline-1.C: Remove -c flag, add -fpie for PIC
+	targets.
+
+	* gcc.dg/tree-ssa/inline-2.c (foo): Add 'inline' keyword.
+
+2008-11-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/pr37943.c: Fix missing end of file.
+
+2008-11-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/utf-array-short-wchar.c, gcc.dg/utf-cvt.c,
+	gcc.dg/utf-inc-init.c, gcc.dg/utf16-1.c, gcc.dg/utf16-2.c,
+	gcc.dg/utf16-3.c, gcc.dg/utf16-4.c, gcc.dg/utf32-1.c,
+	gcc.dg/utf32-2.c, gcc.dg/utf32-3.c, gcc.dg/utf32-4.c: Use
+	__CHAR16_TYPE__ and __CHAR32_TYPE__ typedefs.
+
+2008-11-06  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pr37969.c: New testcase.
+
+2008-11-05  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/c-torture.exp: Use ADDITIONAL_TORTURE_OPTIONS if defined.
+	* lib/gcc-dg.exp: Ditto.
+	* lib/fortran-torture.exp: Ditto.
+	* lib/objc-torture.exp: Ditto.
+
 2008-11-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/38025
@@ -7,8 +45,8 @@
 2008-11-05  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR target/38016
-	* gcc.c-torture/execute/ieee/pr38016.c,
-	gcc.c-torture/execute/ieee/pr38016.c: New test.
+	* gcc.c-torture/execute/ieee/pr38016.c: New test.
+	* gcc.c-torture/execute/ieee/pr38016.x: New file.
 
 2008-11-05  Martin Jambor  <mjambor@suse.cz>
 
