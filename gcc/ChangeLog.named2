@@ -82,4 +82,6 @@
 	* dwarf2out.c (modified_type_die): Add support for named address
 	spaces.
 
-	* expr.c (expand_expr_addr_expr):
+	* expr.c (expand_expr_addr_expr): Add named address space
+	support.
+	(expand_expr_real_1): Ditto.
