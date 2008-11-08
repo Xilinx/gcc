@@ -1480,7 +1480,7 @@ integer_pow2p (const_tree expr)
 
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      int addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
       enum machine_mode mode = targetm.addr_space_pointer_mode (addr_space);
       prec = GET_MODE_BITSIZE (mode);
     }
@@ -1554,7 +1554,7 @@ tree_log2 (const_tree expr)
 
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      int addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
       enum machine_mode mode = targetm.addr_space_pointer_mode (addr_space);
       prec = GET_MODE_BITSIZE (mode);
     }
@@ -1600,7 +1600,7 @@ tree_floor_log2 (const_tree expr)
 
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      int addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
       enum machine_mode mode = targetm.addr_space_pointer_mode (addr_space);
       prec = GET_MODE_BITSIZE (mode);
     }
@@ -5567,7 +5567,7 @@ build_pointer_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_pointer_type (tree to_type)
 {
-  int addr_space = TYPE_ADDR_SPACE (strip_array_types (to_type));
+  addr_space_t addr_space = TYPE_ADDR_SPACE (strip_array_types (to_type));
   enum machine_mode mode = targetm.addr_space_pointer_mode (addr_space);
   return build_pointer_type_for_mode (to_type, mode, false);
 }
