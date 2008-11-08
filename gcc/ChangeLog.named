@@ -10,6 +10,8 @@
 	target-def.h back to the mainline code since MD code has been
 	removed.
 
+	* fold-const.c (fit_double_type): Reduce columns to under 80.
+
 2008-10-31  Ben Elliston  <bje@au.ibm.com>
 
 	* tree.h (DECODE_QUAL_ADDR_SPACE): Fix logic bug.
