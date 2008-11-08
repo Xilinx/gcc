@@ -1,0 +1,85 @@
+2008-11-07  Ben Elliston  <bje@au.ibm.com>
+	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* doc/extend.texi (Named Address Spaces): New section, describing
+	named address spaces.
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_POINTER_MODE): New target hook to
+	return the pointer mode for a given address space.
+	(TARGET_ADDR_SPACE_NAME): New target hook to return a string that
+	describes an address space.
+	(TARGET_ADDR_SPACE_NUMBER): New target hook to return the address
+	space number for a given address space.
+	(TARGET_ADDR_SPACE_CONVERSION_RTL): New target hook to convert
+	a pointer from one address space to another.
+	(TARGET_VALID_ADDR_SPACE): New target hook to validate a named
+	address space.
+
+	* doc/invoke.texi (-mfixed-range=): New SPU switch.
+	(-mea32): Ditto.
+	(-mea64): Ditto.
+	(-mcache-size=): Ditto.
+	(-matomic-updates): Ditto.
+	(-mno-atomic-updates): Ditto.
+
+	* doc/rtl.texi (MEM_ADDR_SPACE): Memory space accessor.
+
+	* tree-ssa.c (useless_type_conversion_p_1): Add support for named
+	address spaces.
+	(useless_type_conversion_p): Ditto.
+
+	* targhooks.c (default_addr_space_name): New default hook for
+	named address space support.
+	(default_addr_space_conversion_rtl): Ditto.
+	(default_addr_space_number): Ditto.
+
+	* targhooks.h (default_addr_space_name): New default hook for
+	named address space support.
+	(default_addr_space_conversion_rtl): Ditto.
+	(default_addr_space_number): Ditto.
+
+	* tree-pretty-print.c (toplevel): Include target.h and
+	target-def.h.
+	(op_prio): Add support for named address spaces.
+	(dump_generic_node): Ditto.
+
+	* tree.c (integer_pow2p): Add support for named address spaces.
+	(tree_log2): Ditto.
+	(tree_floor_log2): Ditto.
+	(set_type_quals): Ditto.
+	(build_pointer_type): Ditto.
+
+	* tree.h (OTHER_ADDR_SPACE_POINTER_TYPE_P): New macro that returns
+	true if a pointer points to a non-generic address space.
+	(GENERIC_ADDR_SPACE_POINTER_TYPE_P): New macro that returns true
+	if a pointer points to the generic address space.
+	(TYPE_ADDR_SPACE): Accessor macro for named address space.
+	(ENCODE_QUAL_ADDR_SPACE): New macro to encode the named address
+	space as part of the type qualifiers.
+	(DECODE_QUAL_ADDR_SPACE): New macro to decode the named address
+	space from the type qualifiers.
+	(TYPE_QUALS): Encode the named address space.
+	(addr_space_t): New type for named address spaces.
+	(struct tree_type): Add address_space field.  Move alias_set field
+	earlier in the structure.
+
+	* target.h (struct gcc_target): Add valid_pointer_mode,
+	addr_space_name, addr_space_conversion_rtl, valid_addr_space
+	target hooks for named address spaces.
+
+	* fold-const.c (toplevel): Include target.h.
+	(fit_double_type): Add named address space support.
+
+	* tree-ssa-loop-ivopts.c (generic_type_for): Add support for named
+	address spaces.
+
+	* c-objc-common.c (c_types_compatible_p): Two types that are in
+	different address spaces aren't compatible.
+
+	* c-tree.h (struct c_declspecs): Add address_space field.
+	(declspecs_add_addrspace): New declaration.
+
+	* dwarf2out.c (modified_type_die): Add support for named address
+	spaces.
+
+	* expr.c (expand_expr_addr_expr):

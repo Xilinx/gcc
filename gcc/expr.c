@@ -8133,6 +8133,27 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
       /* Handle casts of pointers to/from address space qualified
 	 pointers.  */
+#if 0
+      /* XXX -- work in progress, meissner */
+      if (POINTER_TYPE_P (type)
+	  && POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
+	{
+	  tree arg = TREE_OPERAND (exp, 0);
+	  addr_space_t to_addr = TYPE_ADDR_SPACE (strip_array_types (type));
+	  addr_space_t from_addr
+	    = TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (arg)));
+
+	  if (to_addr != from_addr)
+	    {
+	      rtx reg = gen_reg_rtx (TYPE_MODE (type));
+	      op0 = expand_expr (arg, NULL_RTX, VOIDmode, modifier);
+	      genfn = targetm.addr_space_conversion_rtl (from_addr, to_addr);
+	      emit_insn (genfn (reg, op0));
+	      return reg;
+	    }
+	}
+
+#else
       if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type)
 	  && GENERIC_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{
@@ -8151,6 +8172,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  emit_insn (genfn (reg, op0));
 	  return reg;
 	}
+#endif
 
       if (mode == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))))
 	{

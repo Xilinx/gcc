@@ -13,6 +13,8 @@
 	* fold-const.c (fit_double_type): Reduce columns to under 80.
 
 	* expr.c (expand_expr_addr_expr): Reduce columns to under 80.
+	(expand_expr_real_1): Start work to merge to/from conversions to
+	one case.
 
 2008-10-31  Ben Elliston  <bje@au.ibm.com>
 
