@@ -1,3 +1,10 @@
+2008-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[collecting reliably all stuff, e.g. gimple ctype, even when
+	allocated in a closure]
+	* basilys.c (basilys_extra_marking) implemented and called.
+	(basilys_module_info_t) declaration moved at start.
+	(basilys_garbcall) calls ggc_collect_extra_marking.
+
 2008-11-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c [reindented] (basilys_extra_marking) new not yet used
 	function.

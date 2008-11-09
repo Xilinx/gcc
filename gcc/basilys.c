@@ -120,6 +120,20 @@ void* basilys_endalz;
 char* basilys_curalz;
 void** basilys_storalz;
 
+
+typedef struct basilys_module_info_st
+{
+  void *dlh;			/* tldl handle */
+  void **iniframp;		/* initial frame pointer adress */
+  void (*marker_rout) (void *);	/* marking routine of initial frame */
+    basilys_ptr_t (*start_rout) (basilys_ptr_t);	/* start routine */
+} basilys_module_info_t;
+
+DEF_VEC_O (basilys_module_info_t);
+DEF_VEC_ALLOC_O (basilys_module_info_t, heap);
+
+static VEC (basilys_module_info_t, heap) *modinfvec = 0;
+
 struct callframe_basilys_st* basilys_topframe; 
 struct basilyslocalsptr_st* basilys_localtab; 
 struct basilysspecial_st* basilys_newspeclist;
@@ -498,7 +512,34 @@ basilys_cbreak_at (const char *msg, const char *fil, int lin)
 static void
 basilys_extra_marking (void *xtradata)
 {
+  int ix = 0;
+  basilys_module_info_t *mi = 0;
+  struct callframe_basilys_st *cf = 0;
   gcc_assert (xtradata == basilys_topframe);
+  /* first, scan all the modules and mark their frame if it is non null */
+  for (ix = 0; VEC_iterate (basilys_module_info_t, modinfvec, ix, mi); ix++)
+    {
+      if (!mi->iniframp || !*mi->iniframp || !mi->marker_rout) 
+	continue;
+      (mi->marker_rout) (*mi->iniframp);
+    };
+  /* then scan all the MELT call frames */
+  for (cf = (struct callframe_basilys_st*) xtradata; cf; cf = cf->prev) {
+    if (cf->clos) {
+      basilysroutfun_t*funp = 0;
+      gcc_assert(cf->clos->rout);
+      funp = *((basilysroutfun_t**) cf->clos->rout->routaddr);
+      gcc_assert(funp);
+      /* call the function specially with the MARKGCC special parameter descriptor */
+      funp(cf->clos, (basilys_ptr_t)cf, BASILYSPAR_MARKGGC, 
+	   (union basilysparam_un*)0, (char*)0, (union basilysparam_un*)0);
+      continue;
+    }
+    /* if no closure, mark the local pointers */
+    for (ix= 0; ix<(int) cf->nbvar; ix++) 
+      if (cf->varptr[ix]) 
+	gt_ggc_mx_basilys_un((basilys_ptr_t)(cf->varptr[ix]));
+  }
 }
 
 /***
@@ -636,9 +677,9 @@ basilys_garbcoll (size_t wanted, bool needfull)
       /* clear marks on the old spec list */
       for (specp = basilys_oldspeclist; specp; specp = specp->nextspec)
 	specp->mark = 0;
-      /* force major collection */
+      /* force major collection with extra marking */
       ggc_force_collect = true;
-      ggc_collect ();
+      ggc_collect_extra_marking (basilys_extra_marking, basilys_topframe);
       ggc_force_collect = wasforced;
       /* delete the unmarked spec */
       prevspecptr = &basilys_oldspeclist;
@@ -4722,20 +4763,6 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
 
 
 
-typedef struct basilys_module_info_st
-{
-  void *dlh;			/* tldl handle */
-  void **iniframp;		/* initial frame pointer adress */
-  void (*marker_rout) (void *);	/* marking routine of initial frame */
-    basilys_ptr_t (*start_rout) (basilys_ptr_t);	/* start routine */
-} basilys_module_info_t;
-
-DEF_VEC_O (basilys_module_info_t);
-DEF_VEC_ALLOC_O (basilys_module_info_t, heap);
-
-static
-VEC (basilys_module_info_t, heap) *
-  modinfvec = 0;
 
 
 /* load a dynamic library using the filepath DYPATH; if MD5SRC is
