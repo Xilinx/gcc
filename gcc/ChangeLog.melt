@@ -1,4 +1,4 @@
-2008-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
+2008-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[collecting reliably all stuff, e.g. gimple ctype, even when
 	allocated in a closure]
 	* basilys.c (basilys_extra_marking) implemented and called.
