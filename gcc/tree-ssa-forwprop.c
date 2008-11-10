@@ -334,10 +334,10 @@ rhs_to_tree (tree type, gimple stmt)
 {
   enum tree_code code = gimple_assign_rhs_code (stmt);
   if (get_gimple_rhs_class (code) == GIMPLE_BINARY_RHS)
-    return fold_convert (type, build2 (code, type, gimple_assign_rhs1 (stmt),
-                         gimple_assign_rhs2 (stmt)));
+    return fold_build2 (code, type, gimple_assign_rhs1 (stmt),
+			gimple_assign_rhs2 (stmt));
   else if (get_gimple_rhs_class (code) == GIMPLE_UNARY_RHS)
-    return fold_convert (type, build1 (code, type, gimple_assign_rhs1 (stmt)));
+    return build1 (code, type, gimple_assign_rhs1 (stmt));
   else if (get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS)
     return gimple_assign_rhs1 (stmt);
   else
@@ -719,12 +719,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
   if (TREE_CODE (lhs) == INDIRECT_REF
       && TREE_OPERAND (lhs, 0) == name
-      && useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (lhs, 0)),
-				    TREE_TYPE (def_rhs))
-      /* ???  This looks redundant, but is required for bogus types
-	 that can sometimes occur.  */
-      && useless_type_conversion_p (TREE_TYPE (lhs),
-				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
+      && may_propagate_address_into_dereference (def_rhs, lhs))
     {
       *lhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
@@ -747,12 +742,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
   if (TREE_CODE (rhs) == INDIRECT_REF
       && TREE_OPERAND (rhs, 0) == name
-      && useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (rhs, 0)),
-				    TREE_TYPE (def_rhs))
-      /* ???  This looks redundant, but is required for bogus types
-	 that can sometimes occur.  */
-      && useless_type_conversion_p (TREE_TYPE (rhs),
-				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
+      && may_propagate_address_into_dereference (def_rhs, rhs))
     {
       *rhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
@@ -767,8 +757,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
       && TREE_OPERAND (rhs, 0) == name
       && TYPE_SIZE (TREE_TYPE (rhs))
       && TYPE_SIZE (TREE_TYPE (TREE_OPERAND (def_rhs, 0)))
-      /* Function decls should not be used for VCE either as it could be
-         a function descriptor that we want and not the actual function code.  */
+      /* Function decls should not be used for VCE either as it could be a
+         function descriptor that we want and not the actual function code.  */
       && TREE_CODE (TREE_OPERAND (def_rhs, 0)) != FUNCTION_DECL
       /* We should not convert volatile loads to non volatile loads. */
       && !TYPE_VOLATILE (TREE_TYPE (rhs))
@@ -776,22 +766,27 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
       && operand_equal_p (TYPE_SIZE (TREE_TYPE (rhs)),
 			  TYPE_SIZE (TREE_TYPE (TREE_OPERAND (def_rhs, 0))), 0)) 
    {
-      bool res = true;
-      tree new_rhs = unshare_expr (TREE_OPERAND (def_rhs, 0));
-      new_rhs = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (rhs), new_rhs);
-      /* If we have folded the VCE, then we have to create a new statement.  */
-      if (TREE_CODE (new_rhs) != VIEW_CONVERT_EXPR)
-	{
-	  gimple_stmt_iterator gsi = gsi_for_stmt (use_stmt);
-	  new_rhs = force_gimple_operand_gsi (&gsi, new_rhs, true, NULL, true, GSI_SAME_STMT);
-	  /* As we change the deference to a SSA_NAME, we need to return false to make sure that
-	     the statement does not get removed.  */
-	  res = false;
-	}
-      *rhsp = new_rhs;
-      fold_stmt_inplace (use_stmt);
-      tidy_after_forward_propagate_addr (use_stmt);
-      return res;
+     tree new_rhs = unshare_expr (TREE_OPERAND (def_rhs, 0));
+     new_rhs = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (rhs), new_rhs);
+     if (TREE_CODE (new_rhs) != VIEW_CONVERT_EXPR)
+       {
+	 /* If we have folded the VIEW_CONVERT_EXPR then the result is only
+	    valid if we can replace the whole rhs of the use statement.  */
+	 if (rhs != gimple_assign_rhs1 (use_stmt))
+	   return false;
+	 new_rhs = force_gimple_operand_gsi (use_stmt_gsi, new_rhs, true, NULL,
+					     true, GSI_NEW_STMT);
+	 gimple_assign_set_rhs1 (use_stmt, new_rhs);
+       }
+     else
+       {
+	 /* We may have arbitrary VIEW_CONVERT_EXPRs in a nested component
+	    reference.  Place it there and fold the thing.  */
+	 *rhsp = new_rhs;
+	 fold_stmt_inplace (use_stmt);
+       }
+     tidy_after_forward_propagate_addr (use_stmt);
+     return true;
    }
 
   /* If the use of the ADDR_EXPR is not a POINTER_PLUS_EXPR, there
@@ -807,6 +802,9 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   array_ref = TREE_OPERAND (def_rhs, 0);
   if (TREE_CODE (array_ref) != ARRAY_REF
       || TREE_CODE (TREE_TYPE (TREE_OPERAND (array_ref, 0))) != ARRAY_TYPE
+      /* Avoid accessing hidden multidimensional arrays in this way or VRP
+	 might give out bogus warnings (see PR 37861) */
+      || TREE_CODE (TREE_OPERAND (array_ref, 0)) == INDIRECT_REF
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
     return false;
 

@@ -316,8 +316,8 @@ typedef struct ptrmem_cst * ptrmem_cst_t;
 #define DECL_MAIN_P(NODE)				\
    (DECL_EXTERN_C_FUNCTION_P (NODE)			\
     && DECL_NAME (NODE) != NULL_TREE			\
-    && MAIN_NAME_P (DECL_NAME (NODE)))                  \
-    && flag_hosted
+    && MAIN_NAME_P (DECL_NAME (NODE))			\
+    && flag_hosted)
 
 /* The overloaded FUNCTION_DECL.  */
 #define OVL_FUNCTION(NODE) \
@@ -1978,8 +1978,7 @@ struct lang_decl GTY(())
 
 /* Nonzero for a DECL means that this member is a non-static member.  */
 #define DECL_NONSTATIC_MEMBER_P(NODE)		\
-  ((TREE_CODE (NODE) == FUNCTION_DECL		\
-    && DECL_NONSTATIC_MEMBER_FUNCTION_P (NODE))	\
+  (DECL_NONSTATIC_MEMBER_FUNCTION_P (NODE)	\
    || TREE_CODE (NODE) == FIELD_DECL)
 
 /* Nonzero for _DECL means that this member object type
@@ -4959,6 +4958,7 @@ extern void cp_apply_type_quals_to_decl		(int, tree);
 extern tree build_ptrmemfunc1			(tree, tree, tree);
 extern void expand_ptrmemfunc_cst		(tree, tree *, tree *);
 extern tree type_after_usual_arithmetic_conversions (tree, tree);
+extern tree common_pointer_type                 (tree, tree);
 extern tree composite_pointer_type		(tree, tree, tree, tree,
 						 const char*, tsubst_flags_t);
 extern tree merge_types				(tree, tree);

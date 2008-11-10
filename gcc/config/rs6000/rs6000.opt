@@ -233,6 +233,14 @@ mlongcall
 Target Report Var(rs6000_default_long_calls)
 Avoid all range limits on call instructions
 
+mgen-cell-microcode
+Target Report Var(rs6000_gen_cell_microcode) Init(-1)
+Generate Cell microcode
+
+mwarn-cell-microcode
+Target Var(rs6000_warn_cell_microcode) Init(0) Warning
+Warn when a Cell microcoded instruction is emitted
+
 mwarn-altivec-long
 Target Var(rs6000_warn_altivec_long) Init(1)
 Warn about deprecated 'vector long ...' AltiVec type usage
@@ -272,3 +280,13 @@ Double-precision floating point unit
 msimple-fpu
 Target RejectNegative Var(rs6000_simple_fpu)
 Floating point unit does not support divide & sqrt
+
+mfpu=
+Target RejectNegative Joined 
+-mfpu=	Specify FP (sp, dp, sp-lite, dp-lite) (implies -mxilinx-fpu)
+
+mxilinx-fpu
+Target Var(rs6000_xilinx_fpu)
+Specify Xilinx FPU.
+
+

@@ -263,7 +263,7 @@ typedef struct name_tree
 {
   tree t;
   const char *name;
-  struct loop* loop;
+  struct loop *loop;
 } *name_tree;
 
 DEF_VEC_P(name_tree);
@@ -368,14 +368,13 @@ typedef struct iv_stack_entry_struct
   iv_stack_entry_data data;
 } iv_stack_entry;
 
-typedef iv_stack_entry* iv_stack_entry_p;
+typedef iv_stack_entry *iv_stack_entry_p;
 
 DEF_VEC_P(iv_stack_entry_p);
 DEF_VEC_ALLOC_P(iv_stack_entry_p,heap);
 
 typedef VEC(iv_stack_entry_p, heap) **loop_iv_stack;
 extern void debug_loop_iv_stack (loop_iv_stack);
-
 
 /* Return the number of gimple loops contained in SCOP.  */
 

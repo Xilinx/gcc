@@ -105,7 +105,6 @@ static enum comparison_code comparison_to_compcode (enum tree_code);
 static enum tree_code compcode_to_comparison (enum comparison_code);
 static tree combine_comparisons (enum tree_code, enum tree_code,
 				 enum tree_code, tree, tree, tree);
-static int truth_value_p (enum tree_code);
 static int operand_equal_for_comparison_p (tree, tree, tree);
 static int twoval_comparison_p (tree, tree *, tree *, int *);
 static tree eval_subst (tree, tree, tree, tree, tree);
@@ -2981,17 +2980,6 @@ combine_comparisons (enum tree_code code, enum tree_code lcode,
     return fold_build2 (compcode_to_comparison (compcode),
 			truth_type, ll_arg, lr_arg);
 }
-
-/* Return nonzero if CODE is a tree code that represents a truth value.  */
-
-static int
-truth_value_p (enum tree_code code)
-{
-  return (TREE_CODE_CLASS (code) == tcc_comparison
-	  || code == TRUTH_AND_EXPR || code == TRUTH_ANDIF_EXPR
-	  || code == TRUTH_OR_EXPR || code == TRUTH_ORIF_EXPR
-	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
-}
 
 /* Return nonzero if two operands (typically of the same tree node)
    are necessarily equal.  If either argument has side-effects this
@@ -3818,6 +3806,9 @@ distribute_bit_expr (enum tree_code code, tree type, tree arg0, tree arg1)
   else
     return 0;
 
+  common = fold_convert (type, common);
+  left = fold_convert (type, left);
+  right = fold_convert (type, right);
   return fold_build2 (TREE_CODE (arg0), type, common,
 		      fold_build2 (code, type, left, right));
 }
@@ -4503,7 +4494,12 @@ build_range_check (tree type, tree exp, int in_p, tree low, tree high)
 	{
 	  if (TYPE_UNSIGNED (etype))
 	    {
-	      etype = signed_type_for (etype);
+	      tree signed_etype = signed_type_for (etype);
+	      if (TYPE_PRECISION (signed_etype) != TYPE_PRECISION (etype))
+		etype
+		  = build_nonstandard_integer_type (TYPE_PRECISION (etype), 0);
+	      else
+		etype = signed_etype;
 	      exp = fold_convert (etype, exp);
 	    }
 	  return fold_build2 (GT_EXPR, type, exp,
@@ -12447,7 +12443,6 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	unsigned int width = TYPE_PRECISION (arg1_type);
 
 	if (TREE_CODE (arg1) == INTEGER_CST
-	    && !TREE_OVERFLOW (arg1)
 	    && width <= 2 * HOST_BITS_PER_WIDE_INT
 	    && (INTEGRAL_TYPE_P (arg1_type) || POINTER_TYPE_P (arg1_type)))
 	  {
@@ -14021,15 +14016,38 @@ tree_binary_nonnegative_warnv_p (enum tree_code code, tree type, tree op0,
       /* zero_extend(x) * zero_extend(y) is non-negative if x and y are
 	 both unsigned and their total bits is shorter than the result.  */
       if (TREE_CODE (type) == INTEGER_TYPE
-	  && TREE_CODE (op0) == NOP_EXPR
-	  && TREE_CODE (op1) == NOP_EXPR)
+	  && (TREE_CODE (op0) == NOP_EXPR || TREE_CODE (op0) == INTEGER_CST)
+	  && (TREE_CODE (op1) == NOP_EXPR || TREE_CODE (op1) == INTEGER_CST))
 	{
-	  tree inner1 = TREE_TYPE (TREE_OPERAND (op0, 0));
-	  tree inner2 = TREE_TYPE (TREE_OPERAND (op1, 0));
-	  if (TREE_CODE (inner1) == INTEGER_TYPE && TYPE_UNSIGNED (inner1)
-	      && TREE_CODE (inner2) == INTEGER_TYPE && TYPE_UNSIGNED (inner2))
-	    return TYPE_PRECISION (inner1) + TYPE_PRECISION (inner2)
-		   < TYPE_PRECISION (type);
+	  tree inner0 = (TREE_CODE (op0) == NOP_EXPR) 
+	    ? TREE_TYPE (TREE_OPERAND (op0, 0))
+	    : TREE_TYPE (op0);
+	  tree inner1 = (TREE_CODE (op1) == NOP_EXPR) 
+	    ? TREE_TYPE (TREE_OPERAND (op1, 0))
+	    : TREE_TYPE (op1);
+
+	  bool unsigned0 = TYPE_UNSIGNED (inner0);
+	  bool unsigned1 = TYPE_UNSIGNED (inner1);
+
+	  if (TREE_CODE (op0) == INTEGER_CST)
+	    unsigned0 = unsigned0 || tree_int_cst_sgn (op0) >= 0;
+
+	  if (TREE_CODE (op1) == INTEGER_CST)
+	    unsigned1 = unsigned1 || tree_int_cst_sgn (op1) >= 0;
+
+	  if (TREE_CODE (inner0) == INTEGER_TYPE && unsigned0
+	      && TREE_CODE (inner1) == INTEGER_TYPE && unsigned1)
+	    {
+	      unsigned int precision0 = (TREE_CODE (op0) == INTEGER_CST)
+		? tree_int_cst_min_precision (op0, /*unsignedp=*/true)
+		: TYPE_PRECISION (inner0);
+
+	      unsigned int precision1 = (TREE_CODE (op1) == INTEGER_CST)
+		? tree_int_cst_min_precision (op1, /*unsignedp=*/true)
+		: TYPE_PRECISION (inner1);
+
+	      return precision0 + precision1 < TYPE_PRECISION (type);
+	    }
 	}
       return false;
 

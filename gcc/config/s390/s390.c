@@ -316,9 +316,6 @@ struct machine_function GTY(())
   /* True if we may need to perform branch splitting.  */
   bool split_branches_pending_p;
 
-  /* True during final stage of literal pool processing.  */
-  bool decomposed_literal_pool_addresses_ok_p;
-
   /* Some local-dynamic TLS symbol name.  */
   const char *some_ld_name;
 
@@ -1955,15 +1952,10 @@ s390_decompose_address (rtx addr, struct s390_address *out)
 	  ;
         }
 
-      /* Accept chunkified literal pool symbol references.  */
-      else if (cfun && cfun->machine
-	       && cfun->machine->decomposed_literal_pool_addresses_ok_p
-	       && GET_CODE (disp) == MINUS
-               && GET_CODE (XEXP (disp, 0)) == LABEL_REF
-               && GET_CODE (XEXP (disp, 1)) == LABEL_REF)
-        {
-	  ;
-        }
+      /* Accept pool label offsets.  */
+      else if (GET_CODE (disp) == UNSPEC
+	       && XINT (disp, 1) == UNSPEC_POOL_OFFSET)
+	;
 
       /* Accept literal pool references.  */
       else if (GET_CODE (disp) == UNSPEC
@@ -4909,6 +4901,14 @@ s390_output_addr_const_extra (FILE *file, rtx x)
 	return true;
       }
 
+  if (GET_CODE (x) == UNSPEC && XVECLEN (x, 0) == 2)
+    switch (XINT (x, 1))
+      {
+      case UNSPEC_POOL_OFFSET:
+	x = gen_rtx_MINUS (GET_MODE (x), XVECEXP (x, 0, 0), XVECEXP (x, 0, 1));
+	output_addr_const (file, x);
+	return true;
+      }
   return false;
 }
 
@@ -5823,6 +5823,20 @@ s390_add_constant (struct constant_pool *pool, rtx val, enum machine_mode mode)
     }
 }
 
+/* Return an rtx that represents the offset of X from the start of
+   pool POOL.  */
+
+static rtx
+s390_pool_offset (struct constant_pool *pool, rtx x)
+{
+  rtx label;
+
+  label = gen_rtx_LABEL_REF (GET_MODE (x), pool->label);
+  x = gen_rtx_UNSPEC (GET_MODE (x), gen_rtvec (2, x, label),
+		      UNSPEC_POOL_OFFSET);
+  return gen_rtx_CONST (GET_MODE (x), x);
+}
+
 /* Find constant VAL of mode MODE in the constant pool POOL.
    Return an RTX describing the distance from the start of
    the pool to the location of the new constant.  */
@@ -5832,7 +5846,6 @@ s390_find_constant (struct constant_pool *pool, rtx val,
 		    enum machine_mode mode)
 {
   struct constant *c;
-  rtx offset;
   int i;
 
   for (i = 0; i < NR_C_MODES; i++)
@@ -5846,10 +5859,7 @@ s390_find_constant (struct constant_pool *pool, rtx val,
 
   gcc_assert (c);
 
-  offset = gen_rtx_MINUS (Pmode, gen_rtx_LABEL_REF (Pmode, c->label),
-                                 gen_rtx_LABEL_REF (Pmode, pool->label));
-  offset = gen_rtx_CONST (Pmode, offset);
-  return offset;
+  return s390_pool_offset (pool, gen_rtx_LABEL_REF (Pmode, c->label));
 }
 
 /* Check whether INSN is an execute.  Return the label_ref to its
@@ -5897,7 +5907,6 @@ static rtx
 s390_find_execute (struct constant_pool *pool, rtx insn)
 {
   struct constant *c;
-  rtx offset;
 
   for (c = pool->execute; c != NULL; c = c->next)
     if (INSN_UID (insn) == INSN_UID (c->value))
@@ -5905,10 +5914,7 @@ s390_find_execute (struct constant_pool *pool, rtx insn)
 
   gcc_assert (c);
 
-  offset = gen_rtx_MINUS (Pmode, gen_rtx_LABEL_REF (Pmode, c->label),
-				 gen_rtx_LABEL_REF (Pmode, pool->label));
-  offset = gen_rtx_CONST (Pmode, offset);
-  return offset;
+  return s390_pool_offset (pool, gen_rtx_LABEL_REF (Pmode, c->label));
 }
 
 /* For an execute INSN, extract the execute target template.  */
@@ -5989,11 +5995,7 @@ s390_dump_pool (struct constant_pool *pool, bool remote_label)
 	    && GET_CODE (XEXP (value, 0)) == UNSPEC
 	    && XINT (XEXP (value, 0), 1) == UNSPEC_LTREL_OFFSET
 	    && XVECLEN (XEXP (value, 0), 0) == 1)
-	  {
-	    value = gen_rtx_MINUS (Pmode, XVECEXP (XEXP (value, 0), 0, 0),
-				   gen_rtx_LABEL_REF (VOIDmode, pool->label));
-	    value = gen_rtx_CONST (VOIDmode, value);
-	  }
+	  value = s390_pool_offset (pool, XVECEXP (XEXP (value, 0), 0, 0));
 
 	insn = emit_label_after (c->label, insn);
 	INSN_ADDRESSES_NEW (insn, -1);
@@ -6662,6 +6664,24 @@ s390_chunkify_cancel (struct constant_pool *pool_list)
     }
 }
 
+/* Helper rtx-iteration-function for s390_output_pool_entry.  Marks
+   SYMBOL_REFs as referenced through use of assemble_external.  */
+
+static int
+s390_mark_symbol_ref_as_used (rtx *x, void *dummy ATTRIBUTE_UNUSED)
+{
+  /* If we have a used symbol, we may have to emit assembly
+     annotations corresponding to whether the symbol is external, weak
+     or has non-default visibility.  */
+  if (GET_CODE (*x) == SYMBOL_REF)
+    {
+      tree t = SYMBOL_REF_DECL (*x);
+      if (t)
+        assemble_external (t);
+      return -1;
+    }
+  return 0;
+}
 
 /* Output the constant pool entry EXP in mode MODE with alignment ALIGN.  */
 
@@ -6682,6 +6702,7 @@ s390_output_pool_entry (rtx exp, enum machine_mode mode, unsigned int align)
 
     case MODE_INT:
       assemble_integer (exp, GET_MODE_SIZE (mode), align, 1);
+      for_each_rtx (&exp, s390_mark_symbol_ref_as_used, NULL);
       break;
 
     default:
@@ -9597,9 +9618,6 @@ s390_reorg (void)
   /* Make sure all splits have been performed; splits after
      machine_dependent_reorg might confuse insn length counts.  */
   split_all_insns_noflow ();
-
-  /* From here on decomposed literal pool addresses must be accepted.  */
-  cfun->machine->decomposed_literal_pool_addresses_ok_p = true;
 
   /* Install the main literal pool and the associated base
      register load insns.

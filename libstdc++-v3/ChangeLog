@@ -1,3 +1,501 @@
+2008-11-07  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/ext/pointer.h: New, add experimental support for non-standard
+	pointer types in containers via the allocator::pointer typedef.
+	(Currently only supported/working with std::vector)
+	* include/ext/cast.h: New, add overload-able pointer casting functions
+	for use in containers supporting non-standard pointer types.
+	* include/ext/extptr_allocator.h: New, add _ExtPtr_allocator.
+	* include/Makefile.am: Update.
+	* include/precompiled/extc++.h: Likewise.
+	* include/Makefile.in: Regenerate.
+	* testsuite/ext/ext_pointer/1.cc: New.
+	* testsuite/ext/ext_pointer/1_neg.cc: Likewise.	
+	* testsuite/23_containers/vector/ext_pointer/citerators.cc: New.
+	* testsuite/23_containers/vector/ext_pointer/data_access.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/resize.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/types/1.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/element.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/erase.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/insert.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/explicit_instantiation/
+	1.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/explicit_instantiation/
+	3.cc: Likewise.
+
+2008-11-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/38017
+	Revert:
+	* include/tr1_impl/functional (result_of,reference_wrapper): Update
+	to use C++0x features.
+	* testsuite/20_util/function_objects/return_types/result_of.cc: New.
+	* testsuite/20_util/function_objects/return_types/result_of_neg.cc:
+	New.
+	* testsuite/20_util/function_objects/return_types/result_of_ref.cc:
+	New.
+	* testsuite/20_util/reference_wrapper/24803.cc: Uncomment FIXMEs.
+
+2008-11-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/24803
+	PR libstdc++/37351
+	* include/tr1_impl/functional (result_of,reference_wrapper): Update
+	to use C++0x features.
+	* testsuite/20_util/function_objects/return_types/result_of.cc: New.
+	* testsuite/20_util/function_objects/return_types/result_of_neg.cc:
+	New.
+	* testsuite/20_util/function_objects/return_types/result_of_ref.cc:
+	New.
+	* testsuite/20_util/reference_wrapper/24803.cc: Uncomment FIXMEs.
+
+2008-11-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Tidy.
+	* testsuite/22_locale/num_get/get/char/37958.cc: Extend.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958 (cont again)
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix again.
+	* testsuite/22_locale/num_get/get/char/37958.cc: Extend.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(, long&),
+	num_get<>::do_get(, unsigned short&),
+	num_get<>::do_get(, unsigned int&),
+	num_get<>::do_get(, unsigned long&),
+	num_get<>::do_get(, long long&),
+	num_get<>::do_get(, unsigned long long&),
+	num_put<>::do_put(, long), num_put<>::do_put(, unsigned long),
+	num_put<>::do_put(, long long),
+	num_put<>::do_put(, unsigned long long)): Move inline...
+	* include/bits/locale_facets.h: ... here.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958 (cont)
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix again.
+
+2008-11-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+        * include/bits/shared_ptr.h: Update comparisons to match WP.
+        (_Sp_counted_ptr): Make copy and assignment members deleted.
+        (_Sp_counted_deleter): Remove private copy and assignment members.
+        (__shared_count::_M_less,__weak_count::_M_less,operator<): Replace
+        friend operator< with overloaded _M_less member functions to allow
+        comparison with either shared_count or weak_count.
+        (__shared_ptr::_M_less,__weak_ptr::_M_less): Replace with...
+        (__shared_ptr::owner_before,__weak_ptr::owner_before): New overloads
+        for ownership-based ordering.
+        (operator<(__shared_ptr,__shared_ptr)): Compare stored pointers,
+        make non-friend.
+        (operator==(__shared_ptr,__shared_ptr)): Make non-friend.
+        (operator!=(__shared_ptr,__shared_ptr)): Likewise.
+        (less<__shared_ptr<>>,less<shared_ptr<>>,_Sp_less): Explicitly call
+        pointer specialization.
+        (__weak_ptr::operator<,weak_ptr::operator<=,weak_ptr::operator>,
+        weak_ptr::operator>=): Remove operator< and delete all comparisons.
+        (_Sp_owner_less,owner_less): Predicate for ownership-based ordering.
+        (operator<(shared_ptr,shared_ptr): Overload for derived shared_ptr.
+        (operator==(shared_ptr,shared_ptr): Likewise.
+        (operator!=(shared_ptr,shared_ptr): Likewise.
+        (swap(shared_ptr,shared_ptr)): Fix parameter types.
+        (swap(weak_ptr,weak_ptr)): Add missing overload.
+        * testsuite/20_util/owner_less/cmp.cc: New.
+        * testsuite/20_util/shared_ptr/comparison/cmp.cc: Test other ops.
+        * testsuite/20_util/shared_ptr/comparison/less.cc: New.
+        * testsuite/20_util/shared_ptr/observers/owner_before.cc: New.
+        * testsuite/20_util/weak_ptr/observers/owner_before.cc: New.
+        * testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: New.
+
+2008-10-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix.
+	* testsuite/22_locale/num_get/get/char/37958.cc: New.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
+2008-10-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37919
+	Revert:
+	2008-10-18  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* include/bits/stl_pair.h (__may_be_null_pointer_init): New.
+	(pair::pair): Eliminate the redundant pair(U1&&, U2&&) constructor.
+	Add lvalue pair<U1, U2> constructor to handle non-const pair lvalues.
+	Remove the old variadic constructor, and instead provide several
+	variadic constructors that avoid failing when attempting to
+	initialize a pointer from a null pointer constant.
+	* testsuite/20_util/pair/moveable.cc (test3): Add new tests with
+	initialization of pointers from the null pointer constant.
+
+2008-10-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37522
+	* config/os/mingw32/os_defines.h: Define _GLIBCXX_HAVE_BROKEN_VSWPRINTF
+	* include/bits/basic_string.h: Guard string conversions with 
+	!defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF) too.
+	* testsuite/lib/libstdc++.exp (check_v3_target_string_conversions):
+	New.
+	* testsuite/lib/dg-options.exp (dg-require-string-conversions): New.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stof.cc:
+	Use the latter.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoll.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoi.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stol.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	stoull.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stold.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stoul.cc:
+	Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/
+	to_string.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/char/stod.cc:
+	Likewise.
+
+2008-10-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/os/generic/error_constants.h (enum errc): Remove
+	no_posix_equivalent.
+	* config/os/mingw32/error_constants.h (enum errc): Likewise.
+	* testsuite/19_diagnostics/headers/system_error/errc_std_c++0x.cc:
+	Adjust.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/Makefile.am (AUTOMAKE_OPTIONS): Remove dejagnu.
+	(RUNTESTDEFAULTFLAGS, EXPECT, check_DEJAGNU_normal_targets): New
+	variables.
+	(%/site.exp, check-DEJAGNU%): New targets.
+	(check-am): Run $(MAKE) check-DEJAGNU.
+	* testsuite/Makefile.in: Regenerated.
+
+2008-10-23  Chris Fairles  <cfairles@gcc.gnu.org>
+
+	* config/os/generic/error_constants.h (errc): Use long type.
+	* config/os/mingw32/error_constants.h (errc): Likewise.
+
+2008-10-22  Chris Fairles  <cfairles@gcc.gnu.org>
+
+	* include/std/system_error (is_error_code_enum): Specialize for errc.
+	(error_category::error_category): Defaulted and protected.
+	(error_category::~error_category): New, virtual.
+	(error_category::error_category(const error_category&), 
+	error_category::operator=(const error_category&)): Deleted.
+	(get_system_category, get_posix_category): Remove (DR 890).
+	(system_category): External linkage (DR 890).
+	(posix_category): Remove.
+	(generic_category): Add. External linkage (DR 890).
+	(error_code::error_code<>(_ErrorCodeEnum)): Use generic_category.
+	(error_code::clear, error_code::operator=<>(_ErrorCodeEnum)): Forward to
+	error_code::assign, use generic_category.
+	(error_condition::error_condition, 
+	error_condition::error_condition<>(_ErrorConditionEnum)): Use 
+	generic_category.
+	(error_condition::clear, 
+	error_condition::operator=<>(_ErrorConditionEnum)): Forward to 
+	error_code::assign, use generic_category.
+	(make_error_code, make_error_condition): Define in namespace std.
+	* include/std/mutex (unique_lock<>::lock, unique_lock<>::try_lock,
+	unique_lock<>::try_lock_until<>(duration),
+	unique_lock<>::try_lock_for<>(duration)): Replace posix_error with errc.
+	* src/system_error.cc (system_error_category, generic_error_category):
+	New.
+	(gnu_error_category): Remove.
+	(get_system_category, get_posix_category): Remove (DR 890).
+	(system_category, generic_category): Define.
+	* src/functexcept.cc (__throw_system_error): Use generic_category.
+	* config/abi/pre/gnu.ver: Export system_category and generic_category,
+	remove get_system_category and get_generic_category (DR 890).
+	* config/os/generic/error_constants.h (posix_errno): Rename to errc, use
+	enum class type. Fix spelling.
+	* config/os/mingw32/error_constants.h (posix_errno): Likewise.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Use errc and 
+	generic_category.
+	* testsuite/19_diagnostics/error_code/operators/bool.cc: Use errc.
+	* testsuite/19_diagnostics/error_code/operators/equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/operators/not_equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Update 
+	dg-error line numbers.
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: Use 
+	generic_category.
+	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Use errc.
+	* testsuite/19_diagnostics/error_condition/operators/equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc: 
+	Likewise.
+	* testsuite/19_diagnostics/headers/system_error/errc_std_c++0x.cc: New.
+	* testsuite/19_diagnostics/headers/system_error/types_std_c++0x.cc: 
+	Remove using tests since errc is not a namespace.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Use errc.
+	* testsuite/19_diagnostics/system_error/what-4.cc: Likewise.
+	* testsuite/27_io/basic_ostream/inserters_other/wchar_t/error_code.cc:
+	Likewise.
+	* testsuite/27_io/basic_ostream/inserters_other/char/error_code.cc:
+	Likewise.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Likewise.
+	
+2008-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/hashtable_policy.h (_Hash_node<>::_Hash_node<>
+	(_Args&&...)): Add in C++0x mode.
+	* include/tr1_impl/hashtable (_Hashtable<>::_M_allocate_node,
+	_Hashtable<>::_M_deallocate_node): Use _M_get_Node_allocator in
+	C++0x mode.
+
+	* include/tr1_impl/hashtable (_Hashtable<>::max_size): Use
+	Node_allocator for improved accuracy.
+	* testsuite/tr1/6_containers/unordered_multimap/capacity/
+	29134-multimap.cc: Adjust.
+	* testsuite/tr1/6_containers/unordered_multimap/capacity/
+	29134-map.cc: Likewise.
+	* testsuite/tr1/6_containers/unordered_multimap/capacity/
+	29134-multiset.cc: Adjust.
+	* testsuite/tr1/6_containers/unordered_multimap/capacity/
+	29134-set.cc: Likewise.
+
+2008-10-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_tree.h (_Rb_tree_node<>::_Rb_tree_node<>
+	(_Args&&...)): Add in C++0x mode.
+	(_Rb_tree<>::_M_create_node<>(_Args&&...)): Add in C++0x mode,
+	use _M_get_Node_allocator.
+	(_Rb_tree<>::_M_destroy_node(_Link_type): Use _M_get_Node_allocator
+	in C++0x mode.
+	* testsuite/23_containers/set/operators/1_neg.cc: Adjust dg-error
+	line numbers.
+	* testsuite/23_containers/map/operators/1_neg.cc: Likewise.
+
+2008-10-18  Douglas Gregor  <doug.gregor@gmail.com>
+
+	* include/bits/stl_pair.h (__may_be_null_pointer_init): New.
+	(pair::pair): Eliminate the redundant pair(U1&&, U2&&) constructor.
+	Add lvalue pair<U1, U2> constructor to handle non-const pair lvalues.
+	Remove the old variadic constructor, and instead provide several
+	variadic constructors that avoid failing when attempting to
+	initialize a pointer from a null pointer constant.
+	* testsuite/20_util/pair/moveable.cc (test3): Add new tests with
+	initialization of pointers from the null pointer constant.
+
+2008-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.tcc (forward_list<>::
+	_M_initialize_dispatch(_InputIterator, _InputIterator, __false_type)):
+	Simplify.
+
+2008-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::
+	forward_list(size_type)): Tweak, use _Base default constructor.
+
+2008-10-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::insert_after): Minor
+	cosmetic changes.
+
+2008-10-16  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/forward_list.h: Factor list construction to dispatch
+	routines.
+	* include/bits/forward_list.tcc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: 
+
+2008-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.tcc (operator==): Use auto.
+
+2008-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (_Fwd_list_base<>::_M_insert_after):
+	Move out of line, tweak to return _Fwd_list_node_base*.
+	(forward_list<>::insert_after(const_iterator, const _Tp&),
+	forward_list<>::insert_after(const_iterator, _Tp&&)): Use it.
+	* include/bits/forward_list.tcc (_Fwd_list_base<>::_M_insert_after):
+	Define.
+
+	* include/bits/forward_list.h (forward_list<>): Consistently qualify
+	calls of base class functions with this->.
+	* include/bits/forward_list.tcc (forward_list<>): Likewise.
+
+	* include/bits/forward_list.h: Move some functions out of line...
+	* include/bits/forward_list.tcc: ... here.
+
+	* include/bits/forward_list.h (forward_list<>::resize(size_type)): Fix.
+
+2008-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h: Remove pointless const qualifiers in
+	const_casts.
+	* include/bits/forward_list.tcc: Likewise.
+
+	* include/bits/forward_list.h (forward_list<>::pointer,
+	const_pointer, reference, const_reference): Fix, use _Tp_alloc_type.
+	* testsuite/23_containers/forward_list/requirements/
+	explicit_instantiation/1.cc: New.
+	* testsuite/23_containers/forward_list/requirements/
+	explicit_instantiation/1.cc: Likewise.
+
+2008-10-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (forward_list<>::max_size): Use
+	Node_allocator; minor cosmetic changes.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Adjust.
+
+2008-10-15  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/std/forward_list: New.
+	* include/bits/forward_list.h: Likewise.
+	* include/bits/forward_list.tcc: Likewise.
+	* include/precompiled/stdc++.h: Modified to include forward_list.
+	* include/Makefile.am: Add forward_list, forward_list.h, and
+	forward_list.tcc.
+	* include/Makefile.in: Regenerate.
+	* testsuite/23_containers/forward_list/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/modifiers/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/modifiers/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/6.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/7.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/8.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/9.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/2.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/4.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/5.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/6.cc: Likewise.
+	* testsuite/23_containers/forward_list/operations/7.cc: Likewise.
+	* testsuite/23_containers/forward_list/capacity/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/comparable.cc: Likewise.
+	* testsuite/23_containers/forward_list/moveable.cc: Likewise.
+	* testsuite/23_containers/headers/forward_list/synopsis.cc: Likewise.
+	* testsuite/17_intro/headers/c++200x/all_multiple_inclusion.cc: Update.
+	* testsuite/17_intro/headers/c++200x/all: Likewise.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_list.h (_List_node<>::_List_node<>(_Args&&...)):
+	Add in C++0x mode.
+	(list<>::_M_create_node<>(_Args&&...)): Use _M_get_Node_allocator.
+	(list<>::_M_erase(iterator): Likewise, in C++0x mode.
+	* include/bits/list.tcc (_List_base<>::_M_clear): Likewise.
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line number.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_tree.h (_Rb_tree<>::max_size): Use Node_allocator
+	for improved accuracy.
+	* include/bits/stl_list.h (list<>::max_size): Likewise.
+	* testsuite/23_containers/multimap/capacity/29134.cc: Adjust.
+	* testsuite/23_containers/set/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/multiset/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/list/capacity/29134.cc: Likewise.
+	* testsuite/23_containers/map/capacity/29134.cc: Likewise.
+
+2008-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/reference_wrapper/24803.cc: Avoid uninitialized
+	warnings.
+
+2008-10-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/system_error (native_category): Remove.
+	(posix_category): Add.
+	(error_code::error_code(_ErrorCodeEnum, typename enable_if<>:type*):
+	Fix _M_cat initialization.
+	(error_code::operator=(_ErrorCodeEnum)): Assign _M_cat too.
+	(error_condition::_M_cat, error_condtion::operator=
+	(_ErrorConditionEnum)): Implement resolution of DR 804.
+	(error_condition::error_condition(_ErrorConditionEnum, typename
+	enable_if<>:type*): Fix.
+	(error_condition::clear, error_condition::assign): Implement.
+	(operator==, operator!=): Fix uglification of parameters.
+	(make_error_code, make_error_condition): Define in namespace
+	posix_error.
+	(operator<<(basic_ostream<>&, const error_code&)): Define here.
+	* include/std/ostream (operator<<(basic_ostream<>&,
+	const error_code&)): Do not define here.
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: New.	
+	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/bool_neg.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/equal.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Tweak.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Tweak.
+
+	* testsuite/util/testsuite_error.h: Minor tweaks.
+	* testsuite/util/testsuite_hooks.cc: Avoid uninitialized warning.
+
+2008-10-10  Chris Fairles  <cfairles@gcc.gnu.org>
+  
+	* testsuite/20_util/duration/cons/1.cc: Remove invalid check of 
+	uninitialized duration.
+        
+2008-10-08  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/bits/stl_vector.h (_Vector_base<>::_Vector_impl::_M_start,
+	_M_finish, _M_end_of_storage, _Vector_base<>::_M_allocate,
+	_M_deallocate): Use _Tp_alloc_type::pointer.
+
+2008-10-07  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/37761
+	* testsuite/abi/demangle/abi_examples/20.cc: Adjust expected spacing.
+	* testsuite/abi/demangle/abi_text/02.cc: Likewise.
+	* testsuite/abi/demangle/regression/cw-16.cc: Likewise.
+
+2008-10-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_iterator.h (operator-(const reverse_iterator<>&,
+	const reverse_iterator<>&), operator-(const __normal_iterator<>&,
+	const __normal_iterator<>&), operator-(const move_iterator<>&,
+	const move_iterator<>&)): Use the auto -> return type syntax,
+	implement DR 685.
+
+2008-10-06  Jason Merrill  <jason@redhat.com>
+
+	* config/abi/pre/gnu.ver: Update char16/32_t manglings.
+
+2008-10-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/reference_wrapper/invoke.cc: New.
+	* testsuite/20_util/reference_wrapper/24803.cc: Likewise.
+	* testsuite/20_util/reference_wrapper/typedefs.cc: Likewise.
+
 2008-10-01  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
 	* config/locale/generic/c_locale.cc (__convert_to_v): Fix

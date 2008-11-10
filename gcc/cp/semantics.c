@@ -54,7 +54,6 @@ along with GCC; see the file COPYING3.  If not see
    degenerate form of parsing.  */
 
 static tree maybe_convert_cond (tree);
-static tree simplify_aggr_init_exprs_r (tree *, int *, void *);
 static tree finalize_nrv_r (tree *, int *, void *);
 
 
@@ -3056,34 +3055,6 @@ finish_offsetof (tree expr)
   return fold_offsetof (expr, NULL_TREE);
 }
 
-/* Called from expand_body via walk_tree.  Replace all AGGR_INIT_EXPRs
-   with equivalent CALL_EXPRs.  */
-
-static tree
-simplify_aggr_init_exprs_r (tree* tp,
-			    int* walk_subtrees,
-			    void* data ATTRIBUTE_UNUSED)
-{
-  /* We don't need to walk into types; there's nothing in a type that
-     needs simplification.  (And, furthermore, there are places we
-     actively don't want to go.  For example, we don't want to wander
-     into the default arguments for a FUNCTION_DECL that appears in a
-     CALL_EXPR.)  */
-  if (TYPE_P (*tp))
-    {
-      *walk_subtrees = 0;
-      return NULL_TREE;
-    }
-  /* Only AGGR_INIT_EXPRs are interesting.  */
-  else if (TREE_CODE (*tp) != AGGR_INIT_EXPR)
-    return NULL_TREE;
-
-  simplify_aggr_init_expr (tp);
-
-  /* Keep iterating.  */
-  return NULL_TREE;
-}
-
 /* Replace the AGGR_INIT_EXPR at *TP with an equivalent CALL_EXPR.  This
    function is broken out from the above for the benefit of the tree-ssa
    project.  */
@@ -3206,11 +3177,6 @@ expand_or_defer_fn (tree fn)
 
   gcc_assert (gimple_body (fn));
 
-  /* Replace AGGR_INIT_EXPRs with appropriate CALL_EXPRs.  */
-  cp_walk_tree_without_duplicates (&DECL_SAVED_TREE (fn),
-				   simplify_aggr_init_exprs_r,
-				   NULL);
-
   /* If this is a constructor or destructor body, we have to clone
      it.  */
   if (maybe_clone_body (fn))
@@ -3310,13 +3276,11 @@ finalize_nrv_r (tree* tp, int* walk_subtrees, void* data)
       tree init;
       if (DECL_INITIAL (dp->var)
 	  && DECL_INITIAL (dp->var) != error_mark_node)
-	{
-	  init = build2 (INIT_EXPR, void_type_node, dp->result,
-			 DECL_INITIAL (dp->var));
-	  DECL_INITIAL (dp->var) = error_mark_node;
-	}
+	init = build2 (INIT_EXPR, void_type_node, dp->result,
+		       DECL_INITIAL (dp->var));
       else
 	init = build_empty_stmt ();
+      DECL_INITIAL (dp->var) = NULL_TREE;
       SET_EXPR_LOCUS (init, EXPR_LOCUS (*tp));
       *tp = init;
     }
@@ -4109,7 +4073,7 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
   cond = cp_build_binary_op (elocus,
 			     TREE_CODE (cond), decl, diff,
 			     tf_warning_or_error);
-  incr = build_modify_expr (decl, PLUS_EXPR, incr);
+  incr = build_modify_expr (elocus, decl, PLUS_EXPR, incr);
 
   orig_body = *body;
   *body = push_stmt_list ();

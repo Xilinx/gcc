@@ -51,9 +51,9 @@ void test01()
         {
           l.lock();
         }
-      catch (std::system_error const& ex)
+      catch (const std::system_error& ex)
         {
-	  VERIFY( ex.code() == std::posix_error::operation_not_permitted );
+	  VERIFY( ex.code() == std::error_code(std::errc::operation_not_permitted) );
         }
       catch (...)
         {
@@ -89,7 +89,8 @@ void test02()
 	}
       catch (const std::system_error& ex)
 	{
-	  VERIFY( ex.code() == std::posix_error::resource_deadlock_would_occur );
+	  VERIFY( ex.code() == std::error_code(
+		    std::errc::resource_deadlock_would_occur) );
 	}
       catch (...)
 	{

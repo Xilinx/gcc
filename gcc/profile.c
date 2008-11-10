@@ -278,7 +278,7 @@ is_edge_inconsistent (VEC(edge,gc) *edges)
       if (!EDGE_INFO (e)->ignore)
         {
           if (e->count < 0
-	      && ((!e->flags & EDGE_FAKE)
+	      && (!(e->flags & EDGE_FAKE)
 	          || !block_ends_with_call_p (e->src)))
 	    {
 	      if (dump_file)
@@ -960,10 +960,12 @@ branch_prob (void)
 	      && (LOCATION_FILE (e->goto_locus)
 	          != LOCATION_FILE (gimple_location (last))
 		  || (LOCATION_LINE (e->goto_locus)
-		      != LOCATION_LINE (gimple_location  (last)))))
+		      != LOCATION_LINE (gimple_location (last)))))
 	    {
 	      basic_block new_bb = split_edge (e);
-	      single_succ_edge (new_bb)->goto_locus = e->goto_locus;
+	      edge ne = single_succ_edge (new_bb);
+	      ne->goto_locus = e->goto_locus;
+	      ne->goto_block = e->goto_block;
 	    }
 	  if ((e->flags & (EDGE_ABNORMAL | EDGE_ABNORMAL_CALL))
 	       && e->dest != EXIT_BLOCK_PTR)

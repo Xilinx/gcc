@@ -3806,11 +3806,14 @@ load_equiv (void)
 	mio_expr (&tail->expr);
       }
 
-    /* Unused equivalence members have a unique name.  */
+    /* Unused equivalence members have a unique name.  In addition, it
+       must be checked that the symbol is that from the module.  */
     unused = true;
     for (eq = head; eq; eq = eq->eq)
       {
-	if (!check_unique_name (eq->expr->symtree->name))
+	if (eq->expr->symtree->n.sym->module
+	      && strcmp (module_name, eq->expr->symtree->n.sym->module) == 0
+	      && !check_unique_name (eq->expr->symtree->name))
 	  {
 	    unused = false;
 	    break;
@@ -3955,13 +3958,6 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
 
   rsym = info->u.rsym.sym;
   if (st_sym == rsym)
-    return false;
-
-  /* Identical derived types are not ambiguous and will be rolled up
-     later.  */
-  if (st_sym->attr.flavor == FL_DERIVED
-	&& rsym->attr.flavor == FL_DERIVED
-	&& gfc_compare_derived_types (st_sym, rsym))
     return false;
 
   /* If the existing symbol is generic from a different module and

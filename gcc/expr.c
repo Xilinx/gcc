@@ -5021,6 +5021,9 @@ count_type_elements (const_tree type, bool allow_flexarr)
     case REFERENCE_TYPE:
       return 1;
 
+    case ERROR_MARK:
+      return 0;
+
     case VOID_TYPE:
     case METHOD_TYPE:
     case FUNCTION_TYPE:
@@ -5576,6 +5579,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	HOST_WIDE_INT bitpos;
 	rtvec vector = NULL;
 	unsigned n_elts;
+	alias_set_type alias;
 
 	gcc_assert (eltmode != BLKmode);
 
@@ -5627,7 +5631,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	if (need_to_clear && size > 0 && !vector)
 	  {
 	    if (REG_P (target))
-	      emit_move_insn (target,  CONST0_RTX (GET_MODE (target)));
+	      emit_move_insn (target, CONST0_RTX (GET_MODE (target)));
 	    else
 	      clear_storage (target, GEN_INT (size), BLOCK_OP_NORMAL);
 	    cleared = 1;
@@ -5636,6 +5640,11 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 	/* Inform later passes that the old value is dead.  */
 	if (!cleared && !vector && REG_P (target))
 	  emit_move_insn (target, CONST0_RTX (GET_MODE (target)));
+
+        if (MEM_P (target))
+	  alias = MEM_ALIAS_SET (target);
+	else
+	  alias = get_alias_set (elttype);
 
         /* Store each element of the constructor into the corresponding
 	   element of TARGET, determined by counting the elements.  */
@@ -5672,7 +5681,7 @@ store_constructor (tree exp, rtx target, int cleared, HOST_WIDE_INT size)
 		bitpos = eltpos * elt_size;
 		store_constructor_field (target, bitsize, bitpos,
 					 value_mode, value, type,
-					 cleared, get_alias_set (elttype));
+					 cleared, alias);
 	      }
 	  }
 
@@ -6076,9 +6085,9 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
   return exp;
 }
 
-/* Given an expression EXP that may be a COMPONENT_REF or an ARRAY_REF,
-   look for whether EXP or any nested component-refs within EXP is marked
-   as PACKED.  */
+/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
+   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
+   EXP is marked as PACKED.  */
 
 bool
 contains_packed_reference (const_tree exp)
@@ -6118,7 +6127,7 @@ contains_packed_reference (const_tree exp)
 }
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
-   of EXP, an ARRAY_REF.  */
+   of EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 tree
 array_ref_element_size (tree exp)
@@ -6145,7 +6154,7 @@ array_ref_element_size (tree exp)
 }
 
 /* Return a tree representing the lower bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 tree
 array_ref_low_bound (tree exp)
@@ -6166,7 +6175,7 @@ array_ref_low_bound (tree exp)
 }
 
 /* Return a tree representing the upper bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 tree
 array_ref_up_bound (tree exp)

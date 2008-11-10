@@ -2795,34 +2795,6 @@ c_register_builtin_type (tree type, const char* name)
 
   registered_builtin_types = tree_cons (0, type, registered_builtin_types);
 }
-
-
-/* Return the minimum number of bits needed to represent VALUE in a
-   signed or unsigned type, UNSIGNEDP says which.  */
-
-unsigned int
-min_precision (tree value, int unsignedp)
-{
-  int log;
-
-  /* If the value is negative, compute its negative minus 1.  The latter
-     adjustment is because the absolute value of the largest negative value
-     is one larger than the largest positive value.  This is equivalent to
-     a bit-wise negation, so use that operation instead.  */
-
-  if (tree_int_cst_sgn (value) < 0)
-    value = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (value), value);
-
-  /* Return the number of bits needed, taking into account the fact
-     that we need one more bit for a signed than unsigned type.  */
-
-  if (integer_zerop (value))
-    log = 0;
-  else
-    log = tree_floor_log2 (value);
-
-  return log + 1 + !unsignedp;
-}
 
 /* Print an error message for invalid operands to arith operation
    CODE with TYPE0 for operand 0, and TYPE1 for operand 1.
@@ -3411,7 +3383,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	     : truthvalue_false_node;
 
     case FUNCTION_DECL:
-      expr = build_unary_op (ADDR_EXPR, expr, 0);
+      expr = build_unary_op (location, ADDR_EXPR, expr, 0);
       /* Fall through.  */
 
     case ADDR_EXPR:
@@ -3514,10 +3486,12 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	      (EXPR_LOCATION (expr),
 	       (TREE_SIDE_EFFECTS (expr)
 		? TRUTH_OR_EXPR : TRUTH_ORIF_EXPR),
-	c_common_truthvalue_conversion (location,
-					build_unary_op (REALPART_EXPR, t, 0)),
-	c_common_truthvalue_conversion (location,
-					build_unary_op (IMAGPART_EXPR, t, 0)),
+	c_common_truthvalue_conversion
+	       (location,
+		build_unary_op (location, REALPART_EXPR, t, 0)),
+	c_common_truthvalue_conversion
+	       (location,
+		build_unary_op (location, IMAGPART_EXPR, t, 0)),
 	       0));
     }
 
@@ -7005,6 +6979,7 @@ parse_optimize_options (tree args, bool attr_p)
   bool ret = true;
   unsigned opt_argc;
   unsigned i;
+  int saved_flag_strict_aliasing;
   const char **opt_argv;
   tree ap;
 
@@ -7095,8 +7070,13 @@ parse_optimize_options (tree args, bool attr_p)
   for (i = 1; i < opt_argc; i++)
     opt_argv[i] = VEC_index (const_char_p, optimize_args, i);
 
+  saved_flag_strict_aliasing = flag_strict_aliasing;
+
   /* Now parse the options.  */
   decode_options (opt_argc, opt_argv);
+
+  /* Don't allow changing -fstrict-aliasing.  */
+  flag_strict_aliasing = saved_flag_strict_aliasing;
 
   VEC_truncate (const_char_p, optimize_args, 0);
   return ret;
@@ -8074,94 +8054,132 @@ warn_array_subscript_with_type_char (tree index)
 /* Implement -Wparentheses for the unexpected C precedence rules, to
    cover cases like x + y << z which readers are likely to
    misinterpret.  We have seen an expression in which CODE is a binary
-   operator used to combine expressions headed by CODE_LEFT and
-   CODE_RIGHT.  CODE_LEFT and CODE_RIGHT may be ERROR_MARK, which
-   means that that side of the expression was not formed using a
-   binary operator, or it was enclosed in parentheses.  */
+   operator used to combine expressions ARG_LEFT and ARG_RIGHT, which
+   before folding had CODE_LEFT and CODE_RIGHT.  CODE_LEFT and
+   CODE_RIGHT may be ERROR_MARK, which means that that side of the
+   expression was not formed using a binary or unary operator, or it
+   was enclosed in parentheses.  */
 
 void
-warn_about_parentheses (enum tree_code code, enum tree_code code_left,
-			enum tree_code code_right)
+warn_about_parentheses (enum tree_code code,
+			enum tree_code code_left, tree ARG_UNUSED (arg_left),
+			enum tree_code code_right, tree arg_right)
 {
   if (!warn_parentheses)
     return;
 
-  if (code == LSHIFT_EXPR || code == RSHIFT_EXPR)
-    {
-      if (code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around + or - inside shift");
-    }
+  /* This macro tests that the expression ARG with original tree code
+     CODE appears to be a boolean expression. or the result of folding a
+     boolean expression.  */
+#define APPEARS_TO_BE_BOOLEAN_EXPR_P(CODE, ARG)                             \
+	(truth_value_p (TREE_CODE (ARG))                                    \
+	 || TREE_CODE (TREE_TYPE (ARG)) == BOOLEAN_TYPE                     \
+	 /* Folding may create 0 or 1 integers from other expressions.  */  \
+	 || ((CODE) != INTEGER_CST                                          \
+	     && (integer_onep (ARG) || integer_zerop (ARG))))
 
-  if (code == TRUTH_ORIF_EXPR)
+  switch (code) 
     {
-      if (code_left == TRUTH_ANDIF_EXPR
-	  || code_right == TRUTH_ANDIF_EXPR)
+    case LSHIFT_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around && within ||");
-    }
+		 "suggest parentheses around %<+%> inside %<<<%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> inside %<<<%>");
+      return;
 
-  if (code == BIT_IOR_EXPR)
-    {
+    case RSHIFT_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<+%> inside %<>>%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> inside %<>>%>");
+      return;
+
+    case TRUTH_ORIF_EXPR:
+      if (code_left == TRUTH_ANDIF_EXPR || code_right == TRUTH_ANDIF_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<&&%> within %<||%>");
+      return;
+
+    case BIT_IOR_EXPR:
       if (code_left == BIT_AND_EXPR || code_left == BIT_XOR_EXPR
 	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
 	  || code_right == BIT_AND_EXPR || code_right == BIT_XOR_EXPR
 	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around arithmetic in operand of |");
+		 "suggest parentheses around arithmetic in operand of %<|%>");
       /* Check cases like x|y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of |");
-    }
+		 "suggest parentheses around comparison in operand of %<|%>");
+      /* Check cases like !x | y */
+      else if (code_left == TRUTH_NOT_EXPR
+	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
+	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+		 "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
+      return;
 
-  if (code == BIT_XOR_EXPR)
-    {
+    case BIT_XOR_EXPR:
       if (code_left == BIT_AND_EXPR
 	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
 	  || code_right == BIT_AND_EXPR
 	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around arithmetic in operand of ^");
+		 "suggest parentheses around arithmetic in operand of %<^%>");
       /* Check cases like x^y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of ^");
-    }
+		 "suggest parentheses around comparison in operand of %<^%>");
+      return;
 
-  if (code == BIT_AND_EXPR)
-    {
-      if (code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
+    case BIT_AND_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around + or - in operand of &");
+		 "suggest parentheses around %<+%> in operand of %<&%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> in operand of %<&%>");
       /* Check cases like x&y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of &");
-    }
+		 "suggest parentheses around comparison in operand of %<&%>");
+      /* Check cases like !x & y */
+      else if (code_left == TRUTH_NOT_EXPR
+	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
+	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+		 "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
+      return;
 
-  if (code == EQ_EXPR || code == NE_EXPR)
-    {
+    case EQ_EXPR:
       if (TREE_CODE_CLASS (code_left) == tcc_comparison
           || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of %s",
-                 code == EQ_EXPR ? "==" : "!=");
-    }
-  else if (TREE_CODE_CLASS (code) == tcc_comparison)
-    {
-      if ((TREE_CODE_CLASS (code_left) == tcc_comparison
-	   && code_left != NE_EXPR && code_left != EQ_EXPR)
-	  || (TREE_CODE_CLASS (code_right) == tcc_comparison
-	      && code_right != NE_EXPR && code_right != EQ_EXPR))
-	warning (OPT_Wparentheses, "comparisons like X<=Y<=Z do not "
+		 "suggest parentheses around comparison in operand of %<==%>");
+      return;
+    case NE_EXPR:
+      if (TREE_CODE_CLASS (code_left) == tcc_comparison
+          || TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<!=%>");
+      return;
+
+    default:
+      if (TREE_CODE_CLASS (code) == tcc_comparison
+	   && ((TREE_CODE_CLASS (code_left) == tcc_comparison
+		&& code_left != NE_EXPR && code_left != EQ_EXPR)
+	       || (TREE_CODE_CLASS (code_right) == tcc_comparison
+		   && code_right != NE_EXPR && code_right != EQ_EXPR)))
+	warning (OPT_Wparentheses, "comparisons like %<X<=Y<=Z%> do not "
 		 "have their mathematical meaning");
+      return;
     }
+#undef NOT_A_BOOLEAN_EXPR_P
 }
 
 /* If LABEL (a LABEL_DECL) has not been used, issue a warning.  */
@@ -8182,10 +8200,11 @@ warn_for_unused_label (tree label)
 struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;
 #endif
 
-/* Warn for division by zero according to the value of DIVISOR.  */
+/* Warn for division by zero according to the value of DIVISOR.  LOC
+   is the location of the division operator.  */
 
 void
-warn_for_div_by_zero (tree divisor)
+warn_for_div_by_zero (location_t loc, tree divisor)
 {
   /* If DIVISOR is zero, and has integral or fixed-point type, issue a warning
      about division by zero.  Do not issue a warning if DIVISOR has a
@@ -8193,7 +8212,7 @@ warn_for_div_by_zero (tree divisor)
      generating a NaN.  */
   if (skip_evaluation == 0
       && (integer_zerop (divisor) || fixed_zerop (divisor)))
-    warning (OPT_Wdiv_by_zero, "division by zero");
+    warning_at (loc, OPT_Wdiv_by_zero, "division by zero");
 }
 
 /* Subroutine of build_binary_op. Give warnings for comparisons
@@ -8222,7 +8241,7 @@ warn_for_sign_compare (location_t location,
       && TREE_CODE (TREE_TYPE (orig_op0)) == ENUMERAL_TYPE
       && TREE_CODE (TREE_TYPE (orig_op1)) == ENUMERAL_TYPE
       && TYPE_MAIN_VARIANT (TREE_TYPE (orig_op0))
-      != TYPE_MAIN_VARIANT (TREE_TYPE (orig_op1)))
+	 != TYPE_MAIN_VARIANT (TREE_TYPE (orig_op1)))
     {
       warning_at (location,
 		  OPT_Wsign_compare, "comparison between types %qT and %qT",
@@ -8239,9 +8258,9 @@ warn_for_sign_compare (location_t location,
     /* OK */;
   else
     {
-      tree sop, uop;
+      tree sop, uop, base_type;
       bool ovf;
-      
+
       if (op0_signed)
         sop = orig_op0, uop = orig_op1;
       else 
@@ -8249,6 +8268,8 @@ warn_for_sign_compare (location_t location,
 
       STRIP_TYPE_NOPS (sop); 
       STRIP_TYPE_NOPS (uop);
+      base_type = (TREE_CODE (result_type) == COMPLEX_TYPE
+		   ? TREE_TYPE (result_type) : result_type);
 
       /* Do not warn if the signed quantity is an unsuffixed integer
          literal (or some static constant expression involving such
@@ -8261,7 +8282,7 @@ warn_for_sign_compare (location_t location,
          in the result if the result were signed.  */
       else if (TREE_CODE (uop) == INTEGER_CST
                && (resultcode == EQ_EXPR || resultcode == NE_EXPR)
-               && int_fits_type_p (uop, c_common_signed_type (result_type)))
+	       && int_fits_type_p (uop, c_common_signed_type (base_type)))
         /* OK */;
       /* In C, do not warn if the unsigned quantity is an enumeration
          constant and its maximum value would fit in the result if the
@@ -8269,7 +8290,7 @@ warn_for_sign_compare (location_t location,
       else if (!c_dialect_cxx() && TREE_CODE (uop) == INTEGER_CST
                && TREE_CODE (TREE_TYPE (uop)) == ENUMERAL_TYPE
                && int_fits_type_p (TYPE_MAX_VALUE (TREE_TYPE (uop)),
-                                   c_common_signed_type (result_type)))
+				   c_common_signed_type (base_type)))
         /* OK */;
       else 
         warning_at (location,

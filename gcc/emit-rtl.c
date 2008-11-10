@@ -1564,6 +1564,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   if (! TYPE_P (t))
     {
       tree base;
+      bool align_computed = false;
 
       if (TREE_THIS_VOLATILE (t))
 	MEM_VOLATILE_P (ref) = 1;
@@ -1620,6 +1621,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 		  && host_integerp (DECL_SIZE_UNIT (t), 1)
 		  ? GEN_INT (tree_low_cst (DECL_SIZE_UNIT (t), 1)) : 0);
 	  align = DECL_ALIGN (t);
+	  align_computed = true;
 	}
 
       /* If this is a constant, we know the alignment.  */
@@ -1629,6 +1631,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 #ifdef CONSTANT_ALIGNMENT
 	  align = CONSTANT_ALIGNMENT (t, align);
 #endif
+	  align_computed = true;
 	}
 
       /* If this is a field reference and not a bit-field, record it.  */
@@ -1688,6 +1691,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 		  align = DECL_ALIGN (t2);
 		  if (aoff && (unsigned HOST_WIDE_INT) aoff < align)
 	            align = aoff;
+		  align_computed = true;
 		  offset = GEN_INT (ioff);
 		  apply_bitpos = bitpos;
 		}
@@ -1720,6 +1724,13 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	{
 	  expr = t;
 	  offset = NULL;
+	}
+
+      if (!align_computed && !INDIRECT_REF_P (t))
+	{
+	  unsigned int obj_align
+	    = get_object_alignment (t, align, BIGGEST_ALIGNMENT);
+	  align = MAX (align, obj_align);
 	}
     }
 
@@ -2125,6 +2136,65 @@ widen_memory_access (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset)
 				   MEM_ALIGN (new_rtx), mode);
 
   return new_rtx;
+}
+
+/* A fake decl that is used as the MEM_EXPR of spill slots.  */
+static GTY(()) tree spill_slot_decl;
+
+tree
+get_spill_slot_decl (bool force_build_p)
+{
+  tree d = spill_slot_decl;
+  rtx rd;
+
+  if (d || !force_build_p)
+    return d;
+
+  d = build_decl (VAR_DECL, get_identifier ("%sfp"), void_type_node);
+  DECL_ARTIFICIAL (d) = 1;
+  DECL_IGNORED_P (d) = 1;
+  TREE_USED (d) = 1;
+  TREE_THIS_NOTRAP (d) = 1;
+  spill_slot_decl = d;
+
+  rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
+  MEM_NOTRAP_P (rd) = 1;
+  MEM_ATTRS (rd) = get_mem_attrs (new_alias_set (), d, const0_rtx,
+				  NULL_RTX, 0, BLKmode);
+  SET_DECL_RTL (d, rd);
+
+  return d;
+}
+
+/* Given MEM, a result from assign_stack_local, fill in the memory
+   attributes as appropriate for a register allocator spill slot.
+   These slots are not aliasable by other memory.  We arrange for
+   them all to use a single MEM_EXPR, so that the aliasing code can
+   work properly in the case of shared spill slots.  */
+
+void
+set_mem_attrs_for_spill (rtx mem)
+{
+  alias_set_type alias;
+  rtx addr, offset;
+  tree expr;
+
+  expr = get_spill_slot_decl (true);
+  alias = MEM_ALIAS_SET (DECL_RTL (expr));
+
+  /* We expect the incoming memory to be of the form:
+	(mem:MODE (plus (reg sfp) (const_int offset)))
+     with perhaps the plus missing for offset = 0.  */
+  addr = XEXP (mem, 0);
+  offset = const0_rtx;
+  if (GET_CODE (addr) == PLUS
+      && GET_CODE (XEXP (addr, 1)) == CONST_INT)
+    offset = XEXP (addr, 1);
+
+  MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
+				   MEM_SIZE (mem), MEM_ALIGN (mem),
+				   GET_MODE (mem));
+  MEM_NOTRAP_P (mem) = 1;
 }
 
 /* Return a newly created CODE_LABEL rtx with a unique label number.  */

@@ -77,6 +77,7 @@ extern int extract_ME (rtx);
 extern void rs6000_output_function_entry (FILE *, const char *);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
+extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
 extern void rs6000_emit_sCOND (enum rtx_code, rtx);
@@ -111,6 +112,7 @@ extern rtx rs6000_legitimize_reload_address (rtx, enum machine_mode,
 extern int rs6000_legitimate_address (enum machine_mode, rtx, int);
 extern bool rs6000_legitimate_offset_address_p (enum machine_mode, rtx, int);
 extern bool rs6000_mode_dependent_address (rtx);
+extern rtx rs6000_find_base_term (rtx);
 extern bool rs6000_offsettable_memref_p (rtx);
 extern rtx rs6000_return_addr (int, rtx);
 extern void rs6000_output_symbol_ref (FILE*, rtx);
@@ -178,6 +180,12 @@ extern void rs6000_cpu_cpp_builtins (struct cpp_reader *);
 #if TARGET_MACHO
 char *output_call (rtx, rtx *, int, int);
 #endif
+
+#ifdef NO_DOLLAR_IN_LABEL
+const char * rs6000_xcoff_strip_dollar (const char *);
+#endif
+
+void rs6000_final_prescan_insn (rtx, rtx *operand, int num_operands);
 
 extern bool rs6000_hard_regno_mode_ok_p[][FIRST_PSEUDO_REGISTER];
 #endif  /* rs6000-protos.h */

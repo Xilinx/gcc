@@ -75,6 +75,11 @@ static HARD_REG_SET hard_regs_live;
 /* The loop tree node corresponding to the current basic block.  */
 static ira_loop_tree_node_t curr_bb_node;
 
+/* The number of the last processed call.  */
+static int last_call_num;
+/* The number of last call at which given allocno was saved.  */
+static int *allocno_saved_at_call;
+
 /* The function processing birth of register REGNO.  It updates living
    hard regs and conflict hard regs for living allocnos or starts a
    new live range for the allocno corresponding to REGNO if it is
@@ -163,6 +168,8 @@ set_allocno_live (ira_allocno_t a)
   int nregs;
   enum reg_class cover_class;
 
+  /* Invalidate because it is referenced.  */
+  allocno_saved_at_call[ALLOCNO_NUM (a)] = 0;
   if (sparseset_bit_p (allocnos_live, ALLOCNO_NUM (a)))
     return;
   sparseset_set_bit (allocnos_live, ALLOCNO_NUM (a));
@@ -189,6 +196,8 @@ clear_allocno_live (ira_allocno_t a)
   unsigned int i;
   enum reg_class cover_class;
 
+  /* Invalidate because it is referenced.  */
+  allocno_saved_at_call[ALLOCNO_NUM (a)] = 0;
   if (sparseset_bit_p (allocnos_live, ALLOCNO_NUM (a)))
     {
       cover_class = ALLOCNO_COVER_CLASS (a);
@@ -209,20 +218,15 @@ clear_allocno_live (ira_allocno_t a)
   sparseset_clear_bit (allocnos_live, ALLOCNO_NUM (a));
 }
 
-/* Mark the register referenced by use or def REF as live
-   Store a 1 in hard_regs_live or allocnos_live for this register or
-   the corresponding allocno, record how many consecutive hardware
-   registers it actually needs.  */
-
+/* Mark the register REG as live.  Store a 1 in hard_regs_live or
+   allocnos_live for this register or the corresponding allocno,
+   record how many consecutive hardware registers it actually
+   needs.  */
 static void
-mark_ref_live (struct df_ref *ref)
+mark_reg_live (rtx reg)
 {
-  rtx reg;
   int regno;
 
-  reg = DF_REF_REG (ref);
-  if (GET_CODE (reg) == SUBREG)
-    reg = SUBREG_REG (reg);
   gcc_assert (REG_P (reg));
   regno = REGNO (reg);
 
@@ -233,7 +237,11 @@ mark_ref_live (struct df_ref *ref)
       if (a != NULL)
 	{
 	  if (sparseset_bit_p (allocnos_live, ALLOCNO_NUM (a)))
-	    return;
+	    {
+	      /* Invalidate because it is referenced.  */
+	      allocno_saved_at_call[ALLOCNO_NUM (a)] = 0;
+	      return;
+	    }
 	  set_allocno_live (a);
 	}
       make_regno_born (regno);
@@ -248,7 +256,7 @@ mark_ref_live (struct df_ref *ref)
 	  if (! TEST_HARD_REG_BIT (hard_regs_live, regno)
 	      && ! TEST_HARD_REG_BIT (eliminable_regset, regno))
 	    {
-	      cover_class = ira_class_translate[REGNO_REG_CLASS (regno)];
+	      cover_class = ira_hard_regno_cover_class[regno];
 	      if (cover_class != NO_REGS)
 		{
 		  curr_reg_pressure[cover_class]++;
@@ -269,32 +277,25 @@ mark_ref_live (struct df_ref *ref)
     }
 }
 
-/* Return true if the definition described by DEF conflicts with the
-   instruction's inputs.  */
-static bool
-def_conflicts_with_inputs_p (struct df_ref *def)
-{
-  /* Conservatively assume that the condition is true for all clobbers.  */
-  return DF_REF_FLAGS_IS_SET (def, DF_REF_MUST_CLOBBER);
-}
-
-/* Mark the register referenced by definition DEF as dead, if the
-   definition is a total one.  Store a 0 in hard_regs_live or
-   allocnos_live for the register.  */
+/* Mark the register referenced by use or def REF as live.  */
 static void
-mark_ref_dead (struct df_ref *def)
+mark_ref_live (df_ref ref)
 {
-  unsigned int i;
   rtx reg;
-  int regno;
 
-  if (DF_REF_FLAGS_IS_SET (def, DF_REF_PARTIAL)
-      || DF_REF_FLAGS_IS_SET (def, DF_REF_CONDITIONAL))
-    return;
-
-  reg = DF_REF_REG (def);
+  reg = DF_REF_REG (ref);
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
+  mark_reg_live (reg);
+}
+
+/* Mark the register REG as dead.  Store a 0 in hard_regs_live or
+   allocnos_live for the register.  */
+static void
+mark_reg_dead (rtx reg)
+{
+  int regno;
+
   gcc_assert (REG_P (reg));
   regno = REGNO (reg);
 
@@ -305,13 +306,18 @@ mark_ref_dead (struct df_ref *def)
       if (a != NULL)
 	{
 	  if (! sparseset_bit_p (allocnos_live, ALLOCNO_NUM (a)))
-	    return;
+	    {
+	      /* Invalidate because it is referenced.  */
+	      allocno_saved_at_call[ALLOCNO_NUM (a)] = 0;
+	      return;
+	    }
 	  clear_allocno_live (a);
 	}
       make_regno_dead (regno);
     }
   else if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno))
     {
+      unsigned int i;
       int last = regno + hard_regno_nregs[regno][GET_MODE (reg)];
       enum reg_class cover_class;
 
@@ -319,7 +325,7 @@ mark_ref_dead (struct df_ref *def)
 	{
 	  if (TEST_HARD_REG_BIT (hard_regs_live, regno))
 	    {
-	      cover_class = ira_class_translate[REGNO_REG_CLASS (regno)];
+	      cover_class = ira_hard_regno_cover_class[regno];
 	      if (cover_class != NO_REGS)
 		{
 		  curr_reg_pressure[cover_class]--;
@@ -341,6 +347,210 @@ mark_ref_dead (struct df_ref *def)
 	  regno++;
 	}
     }
+}
+
+/* Mark the register referenced by definition DEF as dead, if the
+   definition is a total one.  */
+static void
+mark_ref_dead (df_ref def)
+{
+  rtx reg;
+
+  if (DF_REF_FLAGS_IS_SET (def, DF_REF_PARTIAL)
+      || DF_REF_FLAGS_IS_SET (def, DF_REF_CONDITIONAL))
+    return;
+
+  reg = DF_REF_REG (def);
+  if (GET_CODE (reg) == SUBREG)
+    reg = SUBREG_REG (reg);
+  mark_reg_dead (reg);
+}
+
+/* Make pseudo REG conflicting with pseudo DREG, if the 1st pseudo
+   class is intersected with class CL.  Advance the current program
+   point before making the conflict if ADVANCE_P.  Return TRUE if we
+   will need to advance the current program point.  */
+static bool
+make_pseudo_conflict (rtx reg, enum reg_class cl, rtx dreg, bool advance_p)
+{
+  ira_allocno_t a;
+
+  if (GET_CODE (reg) == SUBREG)
+    reg = SUBREG_REG (reg);
+  
+  if (! REG_P (reg) || REGNO (reg) < FIRST_PSEUDO_REGISTER)
+    return advance_p;
+  
+  a = ira_curr_regno_allocno_map[REGNO (reg)];
+  if (! reg_classes_intersect_p (cl, ALLOCNO_COVER_CLASS (a)))
+    return advance_p;
+
+  if (advance_p)
+    curr_point++;
+
+  mark_reg_live (reg);
+  mark_reg_live (dreg);
+  mark_reg_dead (reg);
+  mark_reg_dead (dreg);
+
+  return false;
+}
+
+/* Check and make if necessary conflicts for pseudo DREG of class
+   DEF_CL of the current insn with input operand USE of class USE_CL.
+   Advance the current program point before making the conflict if
+   ADVANCE_P.  Return TRUE if we will need to advance the current
+   program point.  */
+static bool
+check_and_make_def_use_conflict (rtx dreg, enum reg_class def_cl,
+				 int use, enum reg_class use_cl,
+				 bool advance_p)
+{
+  if (! reg_classes_intersect_p (def_cl, use_cl))
+    return advance_p;
+  
+  advance_p = make_pseudo_conflict (recog_data.operand[use],
+				    use_cl, dreg, advance_p);
+  /* Reload may end up swapping commutative operands, so you
+     have to take both orderings into account.  The
+     constraints for the two operands can be completely
+     different.  (Indeed, if the constraints for the two
+     operands are the same for all alternatives, there's no
+     point marking them as commutative.)  */
+  if (use < recog_data.n_operands + 1
+      && recog_data.constraints[use][0] == '%')
+    advance_p
+      = make_pseudo_conflict (recog_data.operand[use + 1],
+			      use_cl, dreg, advance_p);
+  if (use >= 1
+      && recog_data.constraints[use - 1][0] == '%')
+    advance_p
+      = make_pseudo_conflict (recog_data.operand[use - 1],
+			      use_cl, dreg, advance_p);
+  return advance_p;
+}
+
+/* Check and make if necessary conflicts for definition DEF of class
+   DEF_CL of the current insn with input operands.  Process only
+   constraints of alternative ALT.  */
+static void
+check_and_make_def_conflict (int alt, int def, enum reg_class def_cl)
+{
+  int use, use_match;
+  ira_allocno_t a;
+  enum reg_class use_cl, acl;
+  bool advance_p;
+  rtx dreg = recog_data.operand[def];
+	
+  if (def_cl == NO_REGS)
+    return;
+  
+  if (GET_CODE (dreg) == SUBREG)
+    dreg = SUBREG_REG (dreg);
+  
+  if (! REG_P (dreg) || REGNO (dreg) < FIRST_PSEUDO_REGISTER)
+    return;
+  
+  a = ira_curr_regno_allocno_map[REGNO (dreg)];
+  acl = ALLOCNO_COVER_CLASS (a);
+  if (! reg_classes_intersect_p (acl, def_cl))
+    return;
+  
+  advance_p = true;
+  
+  for (use = 0; use < recog_data.n_operands; use++)
+    {
+      if (use == def || recog_data.operand_type[use] == OP_OUT)
+	return;
+      
+      if (recog_op_alt[use][alt].anything_ok)
+	use_cl = ALL_REGS;
+      else
+	use_cl = recog_op_alt[use][alt].cl;
+      
+      advance_p = check_and_make_def_use_conflict (dreg, def_cl, use,
+						   use_cl, advance_p);
+      
+      if ((use_match = recog_op_alt[use][alt].matches) >= 0)
+	{
+	  if (use_match == def)
+	    return;
+	  
+	  if (recog_op_alt[use_match][alt].anything_ok)
+	    use_cl = ALL_REGS;
+	  else
+	    use_cl = recog_op_alt[use_match][alt].cl;
+	  advance_p = check_and_make_def_use_conflict (dreg, def_cl, use,
+						       use_cl, advance_p);
+	}
+    }
+}
+
+/* Make conflicts of early clobber pseudo registers of the current
+   insn with its inputs.  Avoid introducing unnecessary conflicts by
+   checking classes of the constraints and pseudos because otherwise
+   significant code degradation is possible for some targets.  */
+static void
+make_early_clobber_and_input_conflicts (void)
+{
+  int alt;
+  int def, def_match;
+  enum reg_class def_cl;
+
+  for (alt = 0; alt < recog_data.n_alternatives; alt++)
+    for (def = 0; def < recog_data.n_operands; def++)
+      {
+	def_cl = NO_REGS;
+	if (recog_op_alt[def][alt].earlyclobber)
+	  {
+	    if (recog_op_alt[def][alt].anything_ok)
+	      def_cl = ALL_REGS;
+	    else
+	      def_cl = recog_op_alt[def][alt].cl;
+	    check_and_make_def_conflict (alt, def, def_cl);
+	  }
+	if ((def_match = recog_op_alt[def][alt].matches) >= 0
+	    && (recog_op_alt[def_match][alt].earlyclobber
+		|| recog_op_alt[def][alt].earlyclobber))
+	  {
+	    if (recog_op_alt[def_match][alt].anything_ok)
+	      def_cl = ALL_REGS;
+	    else
+	      def_cl = recog_op_alt[def_match][alt].cl;
+	    check_and_make_def_conflict (alt, def, def_cl);
+	  }
+      }
+}
+
+/* Mark early clobber hard registers of the current INSN as live (if
+   LIVE_P) or dead.  Return true if there are such registers.  */
+static bool
+mark_hard_reg_early_clobbers (rtx insn, bool live_p)
+{
+  df_ref *def_rec;
+  bool set_p = false;
+
+  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+    if (DF_REF_FLAGS_IS_SET (*def_rec, DF_REF_MUST_CLOBBER))
+      {
+	rtx dreg = DF_REF_REG (*def_rec);
+	
+	if (GET_CODE (dreg) == SUBREG)
+	  dreg = SUBREG_REG (dreg);
+	if (! REG_P (dreg) || REGNO (dreg) >= FIRST_PSEUDO_REGISTER)
+	  continue;
+
+	/* Hard register clobbers are believed to be early clobber
+	   because there is no way to say that non-operand hard
+	   register clobbers are not early ones.  */ 
+	if (live_p)
+	  mark_ref_live (*def_rec);
+	else
+	  mark_ref_dead (*def_rec);
+	set_p = true;
+      }
+
+  return set_p;
 }
 
 /* Checks that CONSTRAINTS permits to use only one hard register.  If
@@ -580,6 +790,7 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
   bitmap_iterator bi;
   bitmap reg_live_out;
   unsigned int px;
+  bool set_p;
 
   bb = loop_tree_node->bb;
   if (bb != NULL)
@@ -600,10 +811,9 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 	  {
 	    enum reg_class cover_class;
 	    
-	    cover_class = REGNO_REG_CLASS (i);
+	    cover_class = ira_hard_regno_cover_class[i];
 	    if (cover_class == NO_REGS)
 	      continue;
-	    cover_class = ira_class_translate[cover_class];
 	    curr_reg_pressure[cover_class]++;
 	    if (curr_bb_node->reg_pressure[cover_class]
 		< curr_reg_pressure[cover_class])
@@ -627,6 +837,9 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
       if (freq == 0)
 	freq = 1;
 
+      /* Invalidate all allocno_saved_at_call entries.  */
+      last_call_num++;
+
       /* Scan the code of this basic block, noting which allocnos and
 	 hard regs are born or die.
 
@@ -638,7 +851,7 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 	 pessimistic, but it probably doesn't matter much in practice.  */
       FOR_BB_INSNS_REVERSE (bb, insn)
 	{
-	  struct df_ref **def_rec, **use_rec;
+	  df_ref *def_rec, *use_rec;
 	  bool call_p;
 	  
 	  if (! INSN_P (insn))
@@ -698,6 +911,7 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 	      }
 	  
 	  extract_insn (insn);
+	  preprocess_constraints ();
 	  process_single_reg_class_operands (false, freq);
 	  
 	  /* See which defined values die here.  */
@@ -707,12 +921,21 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 
 	  if (call_p)
 	    {
+	      last_call_num++;
 	      /* The current set of live allocnos are live across the call.  */
 	      EXECUTE_IF_SET_IN_SPARSESET (allocnos_live, i)
 	        {
 		  ira_allocno_t a = ira_allocnos[i];
 		  
-		  ALLOCNO_CALL_FREQ (a) += freq;
+		  if (allocno_saved_at_call[i] != last_call_num)
+		    /* Here we are mimicking caller-save.c behaviour
+		       which does not save hard register at a call if
+		       it was saved on previous call in the same basic
+		       block and the hard register was not mentioned
+		       between the two calls.  */
+		    ALLOCNO_CALL_FREQ (a) += freq;
+		  /* Mark it as saved at the next call.  */
+		  allocno_saved_at_call[i] = last_call_num + 1;
 		  ALLOCNO_CALLS_CROSSED_NUM (a)++;
 		  /* Don't allocate allocnos that cross setjmps or any
 		     call, if this function receives a nonlocal
@@ -727,25 +950,37 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 		}
 	    }
 	  
+	  make_early_clobber_and_input_conflicts ();
+
 	  curr_point++;
 
 	  /* Mark each used value as live.  */
 	  for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
 	    mark_ref_live (*use_rec);
 
-	  /* If any defined values conflict with the inputs, mark those
-	     defined values as live.  */
-	  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	    if (def_conflicts_with_inputs_p (*def_rec))
-	      mark_ref_live (*def_rec);
-
 	  process_single_reg_class_operands (true, freq);
 	  
-	  /* See which of the defined values we marked as live are dead
-	     before the instruction.  */
-	  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	    if (def_conflicts_with_inputs_p (*def_rec))
-	      mark_ref_dead (*def_rec);
+	  set_p = mark_hard_reg_early_clobbers (insn, true);
+
+	  if (set_p)
+	    {
+	      mark_hard_reg_early_clobbers (insn, false);
+
+	      /* Mark each hard reg as live again.  For example, a
+		 hard register can be in clobber and in an insn
+		 input.  */
+	      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+		{
+		  rtx ureg = DF_REF_REG (*use_rec);
+		  
+		  if (GET_CODE (ureg) == SUBREG)
+		    ureg = SUBREG_REG (ureg);
+		  if (! REG_P (ureg) || REGNO (ureg) >= FIRST_PSEUDO_REGISTER)
+		    continue;
+		  
+		  mark_ref_live (*use_rec);
+		}
+	    }
 
 	  curr_point++;
 	}
@@ -946,6 +1181,10 @@ ira_create_allocno_live_ranges (void)
 {
   allocnos_live = sparseset_alloc (ira_allocnos_num);
   curr_point = 0;
+  last_call_num = 0;
+  allocno_saved_at_call
+    = (int *) ira_allocate (ira_allocnos_num * sizeof (int));
+  memset (allocno_saved_at_call, 0, ira_allocnos_num * sizeof (int));
   ira_traverse_loop_tree (true, ira_loop_tree_root, NULL,
 			  process_bb_node_lives);
   ira_max_point = curr_point;
@@ -953,6 +1192,7 @@ ira_create_allocno_live_ranges (void)
   if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
     print_live_ranges (ira_dump_file);
   /* Clean up.  */
+  ira_free (allocno_saved_at_call);
   sparseset_free (allocnos_live);
 }
 

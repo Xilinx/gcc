@@ -305,6 +305,7 @@ enum processor_type
 #define TARGET_DOUBLE_FLOAT 1
 #define TARGET_SINGLE_FPU   0
 #define TARGET_SIMPLE_FPU   0
+#define TARGET_XILINX_FPU   0
 
 extern enum processor_type rs6000_cpu;
 
@@ -320,6 +321,18 @@ extern enum processor_type rs6000_cpu;
 /* Define the default processor.  This is overridden by other tm.h files.  */
 #define PROCESSOR_DEFAULT   PROCESSOR_RIOS1
 #define PROCESSOR_DEFAULT64 PROCESSOR_RS64A
+
+/* FP processor type.  */
+enum fpu_type_t
+{
+	FPU_NONE,		/* No FPU */
+	FPU_SF_LITE,		/* Limited Single Precision FPU */
+	FPU_DF_LITE,		/* Limited Double Precision FPU */
+	FPU_SF_FULL,		/* Full Single Precision FPU */
+	FPU_DF_FULL		/* Full Double Single Precision FPU */
+};
+
+extern enum fpu_type_t fpu_type;
 
 /* Specify the dialect of assembler to use.  New mnemonics is dialect one
    and the old mnemonics are dialect zero.  */
@@ -393,6 +406,7 @@ extern int rs6000_float_gprs;
 extern int rs6000_alignment_flags;
 extern const char *rs6000_sched_insert_nops_str;
 extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
+extern int rs6000_xilinx_fpu;
 
 /* Alignment options for fields in structures for sub-targets following
    AIX-like ABI.
@@ -1856,6 +1870,8 @@ do {								\
   if (rs6000_mode_dependent_address (ADDR))			\
     goto LABEL;							\
 } while (0)
+
+#define FIND_BASE_TERM rs6000_find_base_term
 
 /* The register number of the register used to address a table of
    static data addresses in memory.  In some cases this register is
@@ -1889,7 +1905,8 @@ do {								\
 /* Define this if some processing needs to be done immediately before
    emitting code for an insn.  */
 
-/* #define FINAL_PRESCAN_INSN(INSN,OPERANDS,NOPERANDS) */
+#define FINAL_PRESCAN_INSN(INSN,OPERANDS,NOPERANDS) \
+  rs6000_final_prescan_insn (INSN, OPERANDS, NOPERANDS)
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
@@ -2351,6 +2368,12 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 /* Print a memory address as an operand to reference that memory location.  */
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
+
+#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)		\
+  do								\
+    if (!rs6000_output_addr_const_extra (STREAM, X))		\
+      goto FAIL;						\
+  while (0)
 
 /* uncomment for disabling the corresponding default options */
 /* #define  MACHINE_no_sched_interblock */

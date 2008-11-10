@@ -551,6 +551,7 @@ split_constant_offset_1 (tree type, tree op0, enum tree_code code, tree op1,
 	enum machine_mode pmode;
 	int punsignedp, pvolatilep;
 
+	op0 = TREE_OPERAND (op0, 0);
 	if (!handled_component_p (op0))
 	  return false;
 
@@ -3311,13 +3312,14 @@ bool
 stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
 {
   data_reference_p dr;
+  bool res = true;
 
   dr = create_data_ref (loop, op, stmt, true);
   if (!access_functions_are_affine_or_constant_p (dr, loop))
-    return false;
+    res = false;
 
   free_data_ref (dr);
-  return true;
+  return res;
 }
 
 /* Initializes an equation for an OMEGA problem using the information

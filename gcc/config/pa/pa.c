@@ -714,8 +714,8 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
 
       if (function_label_operand (orig, mode))
 	{
-	  /* Force function label into memory.  */
-	  orig = XEXP (force_const_mem (mode, orig), 0);
+	  /* Force function label into memory in word mode.  */
+	  orig = XEXP (force_const_mem (word_mode, orig), 0);
 	  /* Load plabel address from DLT.  */
 	  emit_move_insn (tmp_reg,
 			  gen_rtx_PLUS (word_mode, pic_offset_table_rtx,
@@ -5888,7 +5888,11 @@ enum direction
 function_arg_padding (enum machine_mode mode, const_tree type)
 {
   if (mode == BLKmode
-      || (TARGET_64BIT && type && AGGREGATE_TYPE_P (type)))
+      || (TARGET_64BIT
+	  && type
+	  && (AGGREGATE_TYPE_P (type)
+	      || TREE_CODE (type) == COMPLEX_TYPE
+	      || TREE_CODE (type) == VECTOR_TYPE)))
     {
       /* Return none if justification is not required.  */
       if (type
@@ -7377,11 +7381,13 @@ int
 attr_length_call (rtx insn, int sibcall)
 {
   int local_call;
-  rtx call_dest;
+  rtx call, call_dest;
   tree call_decl;
   int length = 0;
   rtx pat = PATTERN (insn);
   unsigned long distance = -1;
+
+  gcc_assert (GET_CODE (insn) == CALL_INSN);
 
   if (INSN_ADDRESSES_SET_P ())
     {
@@ -7393,12 +7399,17 @@ attr_length_call (rtx insn, int sibcall)
 	distance = -1;
     }
 
-  /* Determine if this is a local call.  */
-  if (GET_CODE (XVECEXP (pat, 0, 0)) == CALL)
-    call_dest = XEXP (XEXP (XVECEXP (pat, 0, 0), 0), 0);
-  else
-    call_dest = XEXP (XEXP (XEXP (XVECEXP (pat, 0, 0), 1), 0), 0);
+  gcc_assert (GET_CODE (pat) == PARALLEL);
 
+  /* Get the call rtx.  */
+  call = XVECEXP (pat, 0, 0);
+  if (GET_CODE (call) == SET)
+    call = SET_SRC (call);
+
+  gcc_assert (GET_CODE (call) == CALL);
+
+  /* Determine if this is a local call.  */
+  call_dest = XEXP (XEXP (call, 0), 0);
   call_decl = SYMBOL_REF_DECL (call_dest);
   local_call = call_decl && targetm.binds_local_p (call_decl);
 
@@ -9270,7 +9281,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
 	      offset += 8;
 	    }
 
-	  return gen_rtx_PARALLEL (mode, gen_rtvec_v (ub, loc));
+	  return gen_rtx_PARALLEL (BLKmode, gen_rtvec_v (ub, loc));
 	}
      }
   else

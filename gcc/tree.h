@@ -2559,7 +2559,7 @@ struct tree_memory_partition_tag GTY(())
 /* For a FUNCTION_DECL, holds the tree of BINDINGs.
    For a TRANSLATION_UNIT_DECL, holds the namespace's BLOCK.
    For a VAR_DECL, holds the initial value.
-   For a PARM_DECL, not used--default
+   For a PARM_DECL, used for DECL_ARG_TYPE--default
    values for parameters are encoded in the type of the function,
    not in the PARM_DECL slot.
    For a FIELD_DECL, this is used for enumeration values and the C
@@ -3334,6 +3334,11 @@ struct tree_function_decl GTY(())
 #define TYPE_DECL_SUPPRESS_DEBUG(NODE) \
   (TYPE_DECL_CHECK (NODE)->decl_common.decl_flag_2)
 
+/* Getter of the imported declaration associated to the
+   IMPORTED_DECL node.  */
+#define IMPORTED_DECL_ASSOCIATED_DECL(NODE) \
+(DECL_INITIAL (IMPORTED_DECL_CHECK (NODE)))
+
 struct tree_type_decl GTY(())
 {
   struct tree_decl_non_common common;
@@ -4017,6 +4022,7 @@ extern HOST_WIDE_INT tree_low_cst (const_tree, int);
 extern int tree_int_cst_msb (const_tree);
 extern int tree_int_cst_sgn (const_tree);
 extern int tree_int_cst_sign_bit (const_tree);
+extern unsigned int tree_int_cst_min_precision (tree, bool);
 extern bool tree_expr_nonnegative_p (tree);
 extern bool tree_expr_nonnegative_warnv_p (tree, bool *);
 extern bool may_negate_without_overflow_p (const_tree);
@@ -4547,24 +4553,24 @@ extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 tree *, enum machine_mode *, int *, int *,
 				 bool);
 
-/* Given an expression EXP that may be a COMPONENT_REF or an ARRAY_REF,
-   look for whether EXP or any nested component-refs within EXP is marked
-   as PACKED.  */
+/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
+   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
+   EXP is marked as PACKED.  */
 
 extern bool contains_packed_reference (const_tree exp);
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
-   of EXP, an ARRAY_REF.  */
+   of EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_element_size (tree);
 
 /* Return a tree representing the lower bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_low_bound (tree);
 
 /* Return a tree representing the upper bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_up_bound (tree);
 
@@ -4833,6 +4839,17 @@ extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
 extern bool fold_real_zero_addition_p (const_tree, const_tree, int);
 
+/* Return nonzero if CODE is a tree code that represents a truth value.  */
+static inline bool
+truth_value_p (enum tree_code code)
+{
+  return (TREE_CODE_CLASS (code) == tcc_comparison
+	  || code == TRUTH_AND_EXPR || code == TRUTH_ANDIF_EXPR
+	  || code == TRUTH_OR_EXPR || code == TRUTH_ORIF_EXPR
+	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
+}
+
+
 /* In builtins.c */
 extern tree fold_call_expr (tree, bool);
 extern tree fold_builtin_fputs (tree, tree, bool, bool, tree);
@@ -4859,6 +4876,7 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern int get_pointer_alignment (tree, unsigned int);
+extern int get_object_alignment (tree, unsigned int, unsigned int);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
 

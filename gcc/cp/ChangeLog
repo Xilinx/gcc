@@ -1,3 +1,155 @@
+2008-11-06  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/26397
+	* g++spec.c (LIBSTDCXX_STATIC): New.
+	(lang_spec_driver): Use LIBSTDCXX_STATIC when not
+	shared_libgcc.
+	
+2008-11-05  Fabien Chene <fabien.chene@gmail.com>
+
+	PR c++/35219
+	* cp-tree.h: Fix DECL_NONSTATIC_MEMBER_P to handle member template
+	functions.
+
+2008-11-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37742
+	* decl.c (start_preparsed_function): Use the correct type for
+	building the RESULT_DECL.
+
+2008-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37967
+	* decl.c (grokdeclarator): Diagnose auto function decl without
+	late return type and late return type function decl where type
+	is not auto.
+
+	PR c++/37965
+	* decl.c (cp_finish_decl): Diagnose type_uses_auto type with
+	no initializer.
+
+2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 11492
+	* class.c (check_bitfield_decl): Rename min_precision to
+	tree_int_cst_min_precision.
+	* decl.c (finish_enum): Likewise.
+
+2008-10-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/26997
+	* parser.c (cp_parser_token_starts_cast_expression): New.
+	(cp_parser_cast_expression): Peek the next token to decide whether
+	this could be a parenthesized constructor or is definitely an
+	actual cast.
+
+2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/7543
+	* typeck.c (build_x_binary_op): Update call to
+	warn_about_parentheses.
+	* parser.c (cp_parser_binary_expression): Add note about passing
+	the correct code for unary expressions.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-c++-subtargets): New alias for
+	check-g++-subtargets.
+	(lang_checks_parallelized): Add check-g++.
+	(check_g++_parallelize): New variable.
+
+2008-10-21  Richard Guenther  <rguenther@suse.de>
+
+	* semantics.c (simplify_aggr_init_exprs_r): Remove.
+	(expand_or_defer_fn): Do not walk the function body to
+	simplify aggr_init_exprs.
+
+2008-10-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/37004
+	* typeck.c (cp_common_type): New. The same as
+	type_after_usual_arithmetic_conversions but without promotions.
+	(type_after_usual_arithmetic_conversions): Do the promotions and
+	call cp_common_type.
+	(common_type): Make it behave like the C version of this
+	function. Do not handle pointer types.
+	(common_pointer_type): Move handling of pointer types from
+	common_type to here.
+	(cp_build_binary_op): Use common_pointer_type instead of
+	common_type in call to pointer_diff.
+	Use cp_common_type instead of common_type.
+	* cp-tree.h (common_pointer_type): Declare.
+
+2008-10-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37819
+	* cp-gimplify.c (cp_genericize_r): Only fold_convert COND_EXPR
+	arguments if they don't already have COND_EXPR's type.
+
+2008-10-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/37650
+	* pt.c (push_template_decl_real): Check that current_template_parms
+	is not null.
+	(process_partial_specialization): Assert current_template_parms not
+	null.
+
+2008-10-13  Doug Evans  <dje@google.com>
+
+	* cp-tree.h (DECL_MAIN_P): Fix parentheses around expression.
+
+2008-10-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37146
+	* cp-gimplify.c (cp_genericize_r): Fix up bitfield operands of
+	COND_EXPR.
+
+2008-10-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37568
+	* semantics.c (finalize_nrv_r): Clear DECL_INITIAL instead of
+	setting it to error_mark_node.
+
+2008-10-07  Steve Ellcey  <sje@cup.hp.com>
+
+	* decl.c (start_cleanup_fn): Declare as inline.
+
+2008-10-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37376, other mangling issues
+	* mangle.c (write_type): Update TYPE_PACK_EXPANSION mangling.
+	(write_member_name): Break out from...
+	(write_expression): ...here.  Handle dependent COMPONENT_REF.
+	(write_template_arg): Wrap an argument pack in 'I'/'E'.
+	(write_builtin_type): Update char16/32_t mangling.
+	(write_nested_name, write_prefix): Don't forget template args
+	for typename types.
+	* operators.def: Add ARROW_EXPR, update COMPONENT_REF and 
+	EXPR_PACK_EXPANSION.
+
+2008-10-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* typeck.c (build_x_indirect_ref): Add location argument.
+	(cp_build_binary_op): Pass location to warn_for_div_by_zero.
+	(cp_build_unary_op): Add location argument.
+	(cp_build_modify_expr): Same.
+	* class.c (build_base_path): Pass location to build_indirect_ref.
+	* semantics.c (handle_omp_for_class_iterator): Pass elocus to
+	build_modify_expr.
+
+2008-10-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37410
+	* cp-gimplify.c (cp_gimplify_expr): For each USING_STMT
+	make sure an IMPORTED_DECL node is added to the BLOCK_VARS list
+	of the innermost containing BLOCK.
+
+2008-10-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/37719
+	* error.c (dump_function_decl): Save the exceptions in case of
+	error about incompatible specifications in a specialization.
+
 2008-10-01  Andrew Pinski  <andrew_pinski@playstation.sony.com>
 
 	* tree.c (lvalue_p_1): COMPOUND_LITERAL_EXPR is also an lvalue.

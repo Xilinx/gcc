@@ -508,6 +508,8 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
   int saved_stmts_are_full_exprs_p = 0;
   enum tree_code code = TREE_CODE (*expr_p);
   enum gimplify_status ret;
+  tree block = NULL;
+  VEC(gimple, heap) *bind_expr_stack = NULL;
 
   if (STATEMENT_CODE_P (code))
     {
@@ -574,8 +576,37 @@ cp_gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
       break;
 
     case USING_STMT:
-      /* Just ignore for now.  Eventually we will want to pass this on to
-	 the debugger.  */
+      /* Get the innermost inclosing GIMPLE_BIND that has a non NULL
+         BLOCK, and append an IMPORTED_DECL to its
+	 BLOCK_VARS chained list.  */
+
+      bind_expr_stack = gimple_bind_expr_stack ();
+      if (bind_expr_stack)
+	{
+	  int i;
+	  for (i = VEC_length (gimple, bind_expr_stack) - 1; i >= 0; i--)
+	    if ((block = gimple_bind_block (VEC_index (gimple,
+						       bind_expr_stack,
+						       i))))
+	      break;
+	}
+      if (block)
+	{
+	  tree using_directive;
+	  gcc_assert (TREE_OPERAND (*expr_p,0)
+		      && NAMESPACE_DECL_CHECK (TREE_OPERAND (*expr_p, 0)));
+
+	  using_directive = make_node (IMPORTED_DECL);
+	  TREE_TYPE (using_directive) = void_type_node;
+
+	  IMPORTED_DECL_ASSOCIATED_DECL (using_directive)
+	    = TREE_OPERAND (*expr_p, 0);
+	  DECL_NAME (using_directive)
+	    = DECL_NAME (TREE_OPERAND (*expr_p, 0));
+	  TREE_CHAIN (using_directive) = BLOCK_VARS (block);
+	  BLOCK_VARS (block) = using_directive;
+	}
+      /* The USING_STMT won't appear in GIMPLE.  */
       *expr_p = NULL;
       ret = GS_ALL_DONE;
       break;
@@ -771,6 +802,38 @@ cp_genericize_r (tree *stmt_p, int *walk_subtrees, void *data)
 		      void_type_node,
 		      CLEANUP_BODY (stmt),
 		      CLEANUP_EXPR (stmt));
+
+  /* COND_EXPR might have incompatible types in branches if one or both
+     arms are bitfields.  Fix it up now.  */
+  else if (TREE_CODE (stmt) == COND_EXPR)
+    {
+      tree type_left
+	= (TREE_OPERAND (stmt, 1)
+	   ? is_bitfield_expr_with_lowered_type (TREE_OPERAND (stmt, 1))
+	   : NULL_TREE);
+      tree type_right
+	= (TREE_OPERAND (stmt, 2)
+	   ? is_bitfield_expr_with_lowered_type (TREE_OPERAND (stmt, 2))
+	   : NULL_TREE);
+      if (type_left
+	  && !useless_type_conversion_p (TREE_TYPE (stmt),
+					 TREE_TYPE (TREE_OPERAND (stmt, 1))))
+	{
+	  TREE_OPERAND (stmt, 1)
+	    = fold_convert (type_left, TREE_OPERAND (stmt, 1));
+	  gcc_assert (useless_type_conversion_p (TREE_TYPE (stmt),
+						 type_left));
+	}
+      if (type_right
+	  && !useless_type_conversion_p (TREE_TYPE (stmt),
+					 TREE_TYPE (TREE_OPERAND (stmt, 2))))
+	{
+	  TREE_OPERAND (stmt, 2)
+	    = fold_convert (type_right, TREE_OPERAND (stmt, 2));
+	  gcc_assert (useless_type_conversion_p (TREE_TYPE (stmt),
+						 type_right));
+	}
+    }
 
   pointer_set_insert (p_set, *stmt_p);
 

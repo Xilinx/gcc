@@ -356,8 +356,8 @@ extern tree add_stmt (tree);
 extern void push_cleanup (tree, tree, bool);
 extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
-extern tree build_modify_expr (tree, enum tree_code, tree);
-extern tree build_indirect_ref (tree, const char *, location_t);
+extern tree build_modify_expr (location_t, tree, enum tree_code, tree);
+extern tree build_indirect_ref (location_t, tree, const char *);
 
 extern int c_expand_decl (tree);
 
@@ -746,7 +746,6 @@ extern tree shorten_binary_op (tree result_type, tree op0, tree op1, bool bitwis
 extern tree shorten_compare (tree *, tree *, tree *, enum tree_code *);
 
 extern tree pointer_int_sum (enum tree_code, tree, tree);
-extern unsigned int min_precision (tree, int);
 
 /* Add qualifiers to a type, in the fashion for C.  */
 extern tree c_build_qualified_type (tree, int);
@@ -815,7 +814,7 @@ extern tree build_case_label (tree, tree, tree);
 /* These functions must be defined by each front-end which implements
    a variant of the C language.  They are used in c-common.c.  */
 
-extern tree build_unary_op (enum tree_code, tree, int);
+extern tree build_unary_op (location_t, enum tree_code, tree, int);
 extern tree build_binary_op (location_t, enum tree_code, tree, tree, int);
 extern tree perform_integral_promotions (tree);
 
@@ -912,10 +911,11 @@ extern int complete_array_type (tree *, tree, bool);
 extern tree builtin_type_for_size (int, bool);
 
 extern void warn_array_subscript_with_type_char (tree);
-extern void warn_about_parentheses (enum tree_code, enum tree_code,
-				    enum tree_code);
+extern void warn_about_parentheses (enum tree_code,
+				    enum tree_code, tree,
+				    enum tree_code, tree);
 extern void warn_for_unused_label (tree label);
-extern void warn_for_div_by_zero (tree divisor);
+extern void warn_for_div_by_zero (location_t, tree divisor);
 extern void warn_for_sign_compare (location_t,
 				   tree orig_op0, tree orig_op1, 
 				   tree op0, tree op1, 

@@ -171,6 +171,13 @@ extern enum processor_type mn10300_processor;
   , 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 \
   }
 
+/* Note: The definition of CALL_REALLY_USED_REGISTERS is not
+   redundant.  It is needed when compiling in PIC mode because
+   the a2 register becomes fixed (and hence must be marked as
+   call_used) but in order to preserve the ABI it is not marked
+   as call_really_used.  */
+#define CALL_REALLY_USED_REGISTERS CALL_USED_REGISTERS
+
 #define REG_ALLOC_ORDER \
   { 0, 1, 4, 5, 2, 3, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 8, 9 \
   , 42, 43, 44, 45, 46, 47, 48, 49, 34, 35, 36, 37, 38, 39, 40, 41 \
@@ -738,7 +745,7 @@ while (0)
    constants.  Used for PIC-specific UNSPECs.  */
 #define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL) \
   do									\
-    if (GET_CODE (X) == UNSPEC && XVECLEN ((X), 0) == 1)	\
+    if (GET_CODE (X) == UNSPEC)						\
       {									\
 	switch (XINT ((X), 1))						\
 	  {								\
@@ -761,6 +768,12 @@ while (0)
 	  case UNSPEC_PLT:						\
 	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
 	    fputs ("@PLT", (STREAM));					\
+	    break;							\
+	  case UNSPEC_GOTSYM_OFF:					\
+	    assemble_name (STREAM, GOT_SYMBOL_NAME);			\
+	    fputs ("-(", STREAM);					\
+	    output_addr_const (STREAM, XVECEXP (X, 0, 0));		\
+	    fputs ("-.)", STREAM);					\
 	    break;							\
 	  default:							\
 	    goto FAIL;							\

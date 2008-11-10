@@ -851,6 +851,31 @@ ccp_visit_phi_node (gimple phi)
     return SSA_PROP_NOT_INTERESTING;
 }
 
+/* Return true if we may propagate the address expression ADDR into the 
+   dereference DEREF and cancel them.  */
+
+bool
+may_propagate_address_into_dereference (tree addr, tree deref)
+{
+  gcc_assert (INDIRECT_REF_P (deref)
+	      && TREE_CODE (addr) == ADDR_EXPR);
+
+  /* If the address is invariant then we do not need to preserve restrict
+     qualifications.  But we do need to preserve volatile qualifiers until
+     we can annotate the folded dereference itself properly.  */
+  if (is_gimple_min_invariant (addr)
+      && (!TREE_THIS_VOLATILE (deref)
+	  || TYPE_VOLATILE (TREE_TYPE (addr))))
+    return useless_type_conversion_p (TREE_TYPE (deref),
+				      TREE_TYPE (TREE_OPERAND (addr, 0)));
+
+  /* Else both the address substitution and the folding must result in
+     a valid useless type conversion sequence.  */
+  return (useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (deref, 0)),
+				     TREE_TYPE (addr))
+	  && useless_type_conversion_p (TREE_TYPE (deref),
+					TREE_TYPE (TREE_OPERAND (addr, 0))));
+}
 
 /* CCP specific front-end to the non-destructive constant folding
    routines.
@@ -897,12 +922,8 @@ ccp_fold (gimple stmt)
 		      prop_value_t *val = get_value (TREE_OPERAND (*base, 0));
 		      if (val->lattice_val == CONSTANT
 			  && TREE_CODE (val->value) == ADDR_EXPR
-			  && useless_type_conversion_p
-			  (TREE_TYPE (TREE_OPERAND (*base, 0)),
-			   TREE_TYPE (val->value))
-			  && useless_type_conversion_p
-			  (TREE_TYPE (*base),
-			   TREE_TYPE (TREE_OPERAND (val->value, 0))))
+			  && may_propagate_address_into_dereference
+			       (val->value, *base))
 			{
 			  /* We need to return a new tree, not modify the IL
 			     or share parts of it.  So play some tricks to
@@ -2430,7 +2451,7 @@ ccp_fold_builtin (gimple stmt)
 {
   tree result, val[3];
   tree callee, a;
-  int arg_mask, i, type;
+  int arg_idx, type;
   bitmap visited;
   bool ignore;
   int nargs;
@@ -2466,12 +2487,12 @@ ccp_fold_builtin (gimple stmt)
     case BUILT_IN_STRLEN:
     case BUILT_IN_FPUTS:
     case BUILT_IN_FPUTS_UNLOCKED:
-      arg_mask = 1;
+      arg_idx = 0;
       type = 0;
       break;
     case BUILT_IN_STRCPY:
     case BUILT_IN_STRNCPY:
-      arg_mask = 2;
+      arg_idx = 1;
       type = 0;
       break;
     case BUILT_IN_MEMCPY_CHK:
@@ -2479,17 +2500,17 @@ ccp_fold_builtin (gimple stmt)
     case BUILT_IN_MEMMOVE_CHK:
     case BUILT_IN_MEMSET_CHK:
     case BUILT_IN_STRNCPY_CHK:
-      arg_mask = 4;
+      arg_idx = 2;
       type = 2;
       break;
     case BUILT_IN_STRCPY_CHK:
     case BUILT_IN_STPCPY_CHK:
-      arg_mask = 2;
+      arg_idx = 1;
       type = 1;
       break;
     case BUILT_IN_SNPRINTF_CHK:
     case BUILT_IN_VSNPRINTF_CHK:
-      arg_mask = 2;
+      arg_idx = 1;
       type = 2;
       break;
     default:
@@ -2498,18 +2519,12 @@ ccp_fold_builtin (gimple stmt)
 
   /* Try to use the dataflow information gathered by the CCP process.  */
   visited = BITMAP_ALLOC (NULL);
+  bitmap_clear (visited);
 
   memset (val, 0, sizeof (val));
-  for (i = 0; i < nargs; i++)
-    {
-      if ((arg_mask >> i) & 1)
-        {
-          a = gimple_call_arg (stmt, i);
-          bitmap_clear (visited);
-          if (!get_maxval_strlen (a, &val[i], visited, type))
-            val[i] = NULL_TREE;
-        }
-    }
+  a = gimple_call_arg (stmt, arg_idx);
+  if (!get_maxval_strlen (a, &val[arg_idx], visited, type))
+    val[arg_idx] = NULL_TREE;
 
   BITMAP_FREE (visited);
 

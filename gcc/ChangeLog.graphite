@@ -1,3 +1,7 @@
+2008-11-09  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Merge from mainline (r140838:141727).
+
 2008-11-05  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	PR middle-end/37833

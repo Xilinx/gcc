@@ -143,8 +143,6 @@ struct rs6000_cpu_select rs6000_select[3] =
   { (const char *)0,	"-mtune=",		1,	0 },
 };
 
-static GTY(()) bool rs6000_cell_dont_microcode;
-
 /* Always emit branch hint bits.  */
 static GTY(()) bool rs6000_always_hint;
 
@@ -765,7 +763,6 @@ static void rs6000_emit_allocate_stack (HOST_WIDE_INT, int, int);
 static unsigned rs6000_hash_constant (rtx);
 static unsigned toc_hash_function (const void *);
 static int toc_hash_eq (const void *, const void *);
-static int constant_pool_expr_1 (rtx, int *, int *);
 static bool constant_pool_expr_p (rtx);
 static bool legitimate_small_data_p (enum machine_mode, rtx);
 static bool legitimate_lo_sum_address_p (enum machine_mode, rtx, int);
@@ -1610,9 +1607,16 @@ rs6000_override_options (const char *default_cpu)
 	error ("Spe not supported in this target");
     }
 
+  /* Disable Cell microcode if we are optimizing for the Cell
+     and not optimizing for size.  */
+  if (rs6000_gen_cell_microcode == -1)
+    rs6000_gen_cell_microcode = !(rs6000_cpu == PROCESSOR_CELL
+                                  && !optimize_size);
+
   /* If we are optimizing big endian systems for space, use the load/store
-     multiple and string instructions.  */
-  if (BYTES_BIG_ENDIAN && optimize_size)
+     multiple and string instructions unless we are not generating
+     Cell microcode.  */
+  if (BYTES_BIG_ENDIAN && optimize_size && !rs6000_gen_cell_microcode)
     target_flags |= ~target_flags_explicit & (MASK_MULTIPLE | MASK_STRING);
 
   /* Don't allow -mmultiple or -mstring on little endian systems
@@ -2200,11 +2204,25 @@ optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
     flag_section_anchors = 2;
 }
 
+static enum fpu_type_t
+rs6000_parse_fpu_option (const char *option)
+{
+  if (!strcmp("none", option)) return FPU_NONE;
+  if (!strcmp("sp_lite", option)) return FPU_SF_LITE;
+  if (!strcmp("dp_lite", option)) return FPU_DF_LITE;
+  if (!strcmp("sp_full", option)) return FPU_SF_FULL;
+  if (!strcmp("dp_full", option)) return FPU_DF_FULL;
+  error("unknown value %s for -mfpu", option);
+  return FPU_NONE;
+}
+
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
 rs6000_handle_option (size_t code, const char *arg, int value)
 {
+  enum fpu_type_t fpu_type = FPU_NONE;
+
   switch (code)
     {
     case OPT_mno_power:
@@ -2524,6 +2542,30 @@ rs6000_handle_option (size_t code, const char *arg, int value)
       /* -msoft_float implies -mnosingle-float and -mnodouble-float. */
       rs6000_single_float = rs6000_double_float = 0;
       break;
+
+    case OPT_mfpu_:
+      fpu_type = rs6000_parse_fpu_option(arg);
+      if (fpu_type != FPU_NONE) 
+      /* If -mfpu is not none, then turn off SOFT_FLOAT, turn on HARD_FLOAT. */
+      {
+        target_flags &= ~MASK_SOFT_FLOAT;
+        target_flags_explicit |= MASK_SOFT_FLOAT;
+        rs6000_xilinx_fpu = 1;
+        if (fpu_type == FPU_SF_LITE || fpu_type == FPU_SF_FULL) 
+        rs6000_single_float = 1;
+        if (fpu_type == FPU_DF_LITE || fpu_type == FPU_DF_FULL) 
+          rs6000_single_float = rs6000_double_float = 1;
+        if (fpu_type == FPU_SF_LITE || fpu_type == FPU_DF_LITE) 
+          rs6000_simple_fpu = 1;
+      }
+      else
+      {
+        /* -mfpu=none is equivalent to -msoft-float */
+        target_flags |= MASK_SOFT_FLOAT;
+        target_flags_explicit |= MASK_SOFT_FLOAT;
+        rs6000_single_float = rs6000_double_float = 0;
+      }
+      break;
     }
   return true;
 }
@@ -2600,6 +2642,9 @@ rs6000_file_start (void)
 	       (TARGET_ALTIVEC_ABI ? 2
 		: TARGET_SPE_ABI ? 3
 		: 1));
+      fprintf (file, "\t.gnu_attribute 12, %d\n",
+	       aix_struct_return ? 2 : 1);
+
     }
 #endif
 
@@ -3505,58 +3550,28 @@ gpr_or_gpr_p (rtx op0, rtx op1)
 
 /* Subroutines of rs6000_legitimize_address and rs6000_legitimate_address.  */
 
-static int
-constant_pool_expr_1 (rtx op, int *have_sym, int *have_toc)
-{
-  switch (GET_CODE (op))
-    {
-    case SYMBOL_REF:
-      if (RS6000_SYMBOL_REF_TLS_P (op))
-	return 0;
-      else if (CONSTANT_POOL_ADDRESS_P (op))
-	{
-	  if (ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (op), Pmode))
-	    {
-	      *have_sym = 1;
-	      return 1;
-	    }
-	  else
-	    return 0;
-	}
-      else if (! strcmp (XSTR (op, 0), toc_label_name))
-	{
-	  *have_toc = 1;
-	  return 1;
-	}
-      else
-	return 0;
-    case PLUS:
-    case MINUS:
-      return (constant_pool_expr_1 (XEXP (op, 0), have_sym, have_toc)
-	      && constant_pool_expr_1 (XEXP (op, 1), have_sym, have_toc));
-    case CONST:
-      return constant_pool_expr_1 (XEXP (op, 0), have_sym, have_toc);
-    case CONST_INT:
-      return 1;
-    default:
-      return 0;
-    }
-}
-
 static bool
 constant_pool_expr_p (rtx op)
 {
-  int have_sym = 0;
-  int have_toc = 0;
-  return constant_pool_expr_1 (op, &have_sym, &have_toc) && have_sym;
+  rtx base, offset;
+
+  split_const (op, &base, &offset);
+  return (GET_CODE (base) == SYMBOL_REF
+	  && CONSTANT_POOL_ADDRESS_P (base)
+	  && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (base), Pmode));
 }
 
 bool
 toc_relative_expr_p (rtx op)
 {
-  int have_sym = 0;
-  int have_toc = 0;
-  return constant_pool_expr_1 (op, &have_sym, &have_toc) && have_toc;
+  rtx base, offset;
+
+  if (GET_CODE (op) != CONST)
+    return false;
+
+  split_const (op, &base, &offset);
+  return (GET_CODE (base) == UNSPEC
+	  && XINT (base, 1) == UNSPEC_TOCREL);
 }
 
 bool
@@ -3566,7 +3581,7 @@ legitimate_constant_pool_address_p (rtx x)
 	  && GET_CODE (x) == PLUS
 	  && GET_CODE (XEXP (x, 0)) == REG
 	  && (TARGET_MINIMAL_TOC || REGNO (XEXP (x, 0)) == TOC_REGISTER)
-	  && constant_pool_expr_p (XEXP (x, 1)));
+	  && toc_relative_expr_p (XEXP (x, 1)));
 }
 
 static bool
@@ -3891,6 +3906,7 @@ rs6000_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	   && GET_CODE (x) != CONST_INT
 	   && GET_CODE (x) != CONST_DOUBLE
 	   && CONSTANT_P (x)
+	   && GET_MODE_NUNITS (mode) == 1
 	   && ((TARGET_HARD_FLOAT && TARGET_FPRS && TARGET_DOUBLE_FLOAT)
 	       || (mode != DFmode && mode != DDmode))
 	   && mode != DImode
@@ -4190,8 +4206,8 @@ rs6000_tls_symbol_ref_1 (rtx *x, void *data ATTRIBUTE_UNUSED)
 
    On Darwin, we use this to generate code for floating point constants.
    A movsf_low is generated so we wind up with 2 instructions rather than 3.
-   The Darwin code is inside #if TARGET_MACHO because only then is
-   machopic_function_base_name() defined.  */
+   The Darwin code is inside #if TARGET_MACHO because only then are the
+   machopic_* functions defined.  */
 rtx
 rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 				  int opnum, int type,
@@ -4217,11 +4233,8 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
       && GET_CODE (XEXP (x, 0)) == PLUS
       && XEXP (XEXP (x, 0), 0) == pic_offset_table_rtx
       && GET_CODE (XEXP (XEXP (x, 0), 1)) == HIGH
-      && GET_CODE (XEXP (XEXP (XEXP (x, 0), 1), 0)) == CONST
       && XEXP (XEXP (XEXP (x, 0), 1), 0) == XEXP (x, 1)
-      && GET_CODE (XEXP (XEXP (x, 1), 0)) == MINUS
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 0)) == SYMBOL_REF
-      && GET_CODE (XEXP (XEXP (XEXP (x, 1), 0), 1)) == SYMBOL_REF)
+      && machopic_operand_p (XEXP (x, 1)))
     {
       /* Result of previous invocation of this function on Darwin
 	 floating point constant.  */
@@ -4313,9 +4326,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 #if TARGET_MACHO
       if (flag_pic)
 	{
-	  rtx offset = gen_rtx_CONST (Pmode,
-			 gen_rtx_MINUS (Pmode, x,
-					machopic_function_base_sym ()));
+	  rtx offset = machopic_gen_offset (x);
 	  x = gen_rtx_LO_SUM (GET_MODE (x),
 		gen_rtx_PLUS (Pmode, pic_offset_table_rtx,
 		  gen_rtx_HIGH (Pmode, offset)), offset);
@@ -4489,6 +4500,27 @@ rs6000_mode_dependent_address (rtx addr)
     }
 
   return false;
+}
+
+/* Implement FIND_BASE_TERM.  */
+
+rtx
+rs6000_find_base_term (rtx op)
+{
+  rtx base, offset;
+
+  split_const (op, &base, &offset);
+  if (GET_CODE (base) == UNSPEC)
+    switch (XINT (base, 1))
+      {
+      case UNSPEC_TOCREL:
+      case UNSPEC_MACHOPIC_OFFSET:
+	/* OP represents SYM [+ OFFSET] - ANCHOR.  SYM is the base term
+	   for aliasing purposes.  */
+	return XVECEXP (base, 0, 0);
+      }
+
+  return op;
 }
 
 /* More elaborate version of recog's offsettable_memref_p predicate
@@ -12572,43 +12604,43 @@ print_operand_address (FILE *file, rtx x)
 #endif
   else if (legitimate_constant_pool_address_p (x))
     {
-      if (TARGET_AIX && (!TARGET_ELF || !TARGET_MINIMAL_TOC))
-	{
-	  rtx contains_minus = XEXP (x, 1);
-	  rtx minus, symref;
-	  const char *name;
-
-	  /* Find the (minus (sym) (toc)) buried in X, and temporarily
-	     turn it into (sym) for output_addr_const.  */
-	  while (GET_CODE (XEXP (contains_minus, 0)) != MINUS)
-	    contains_minus = XEXP (contains_minus, 0);
-
-	  minus = XEXP (contains_minus, 0);
-	  symref = XEXP (minus, 0);
-	  gcc_assert (GET_CODE (XEXP (minus, 1)) == SYMBOL_REF);
-	  XEXP (contains_minus, 0) = symref;
-	  if (TARGET_ELF)
-	    {
-	      char *newname;
-
-	      name = XSTR (symref, 0);
-	      newname = XALLOCAVEC (char, strlen (name) + sizeof ("@toc"));
-	      strcpy (newname, name);
-	      strcat (newname, "@toc");
-	      XSTR (symref, 0) = newname;
-	    }
-	  output_addr_const (file, XEXP (x, 1));
-	  if (TARGET_ELF)
-	    XSTR (symref, 0) = name;
-	  XEXP (contains_minus, 0) = minus;
-	}
-      else
-	output_addr_const (file, XEXP (x, 1));
-
+      output_addr_const (file, XEXP (x, 1));
       fprintf (file, "(%s)", reg_names[REGNO (XEXP (x, 0))]);
     }
   else
     gcc_unreachable ();
+}
+
+/* Implement OUTPUT_ADDR_CONST_EXTRA for address X.  */
+
+bool
+rs6000_output_addr_const_extra (FILE *file, rtx x)
+{
+  if (GET_CODE (x) == UNSPEC)
+    switch (XINT (x, 1))
+      {
+      case UNSPEC_TOCREL:
+	x = XVECEXP (x, 0, 0);
+	gcc_assert (GET_CODE (x) == SYMBOL_REF);
+	output_addr_const (file, x);
+	if (!TARGET_AIX || (TARGET_ELF && TARGET_MINIMAL_TOC))
+	  {
+	    putc ('-', file);
+	    assemble_name (file, toc_label_name);
+	  }
+	else if (TARGET_ELF)
+	  fputs ("@toc", file);
+	return true;
+
+#if TARGET_MACHO
+      case UNSPEC_MACHOPIC_OFFSET:
+	output_addr_const (file, XVECEXP (x, 0, 0));
+	putc ('-', file);
+	machopic_output_function_base_name (file);
+	return true;
+#endif
+      }
+  return false;
 }
 
 /* Target hook for assembling integer objects.  The PowerPC version has
@@ -13792,7 +13824,7 @@ rs6000_emit_sync (enum rtx_code code, enum machine_mode mode,
   rtx shift = NULL_RTX;
 
   if (sync_p)
-    emit_insn (gen_memory_barrier ());
+    emit_insn (gen_lwsync ());
 
   if (GET_CODE (m) == NOT)
     used_m = XEXP (m, 0);
@@ -14032,7 +14064,7 @@ rs6000_split_atomic_op (enum rtx_code code, rtx mem, rtx val,
   enum machine_mode mode = GET_MODE (mem);
   rtx label, x, cond = gen_rtx_REG (CCmode, CR0_REGNO);
 
-  emit_insn (gen_memory_barrier ());
+  emit_insn (gen_lwsync ());
 
   label = gen_label_rtx ();
   emit_label (label);
@@ -14072,7 +14104,7 @@ rs6000_split_compare_and_swap (rtx retval, rtx mem, rtx oldval, rtx newval,
   enum machine_mode mode = GET_MODE (mem);
   rtx label1, label2, x, cond = gen_rtx_REG (CCmode, CR0_REGNO);
 
-  emit_insn (gen_memory_barrier ());
+  emit_insn (gen_lwsync ());
 
   label1 = gen_rtx_LABEL_REF (VOIDmode, gen_label_rtx ());
   label2 = gen_rtx_LABEL_REF (VOIDmode, gen_label_rtx ());
@@ -14177,7 +14209,7 @@ rs6000_split_compare_and_swapqhi (rtx dest, rtx mask,
 {
   rtx label1, label2, x, cond = gen_rtx_REG (CCmode, CR0_REGNO);
 
-  emit_insn (gen_memory_barrier ());
+  emit_insn (gen_lwsync ());
   label1 = gen_rtx_LABEL_REF (VOIDmode, gen_label_rtx ());
   label2 = gen_rtx_LABEL_REF (VOIDmode, gen_label_rtx ());
   emit_label (XEXP (label1, 0));
@@ -15431,8 +15463,7 @@ create_TOC_reference (rtx symbol)
   return gen_rtx_PLUS (Pmode,
 	   gen_rtx_REG (Pmode, TOC_REGISTER),
 	     gen_rtx_CONST (Pmode,
-	       gen_rtx_MINUS (Pmode, symbol,
-		 gen_rtx_SYMBOL_REF (Pmode, toc_label_name))));
+	       gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol), UNSPEC_TOCREL)));
 }
 
 /* If _Unwind_* has been called from within the same module,
@@ -16707,7 +16738,7 @@ rs6000_emit_prologue (void)
       && flag_pic && crtl->uses_pic_offset_table)
     {
       rtx lr = gen_rtx_REG (Pmode, LR_REGNO);
-      rtx src = machopic_function_base_sym ();
+      rtx src = gen_rtx_SYMBOL_REF (Pmode, MACHOPIC_FUNCTION_BASE_NAME);
 
       /* Save and restore LR locally around this call (in R0).  */
       if (!info->lr_save_p)
@@ -18013,6 +18044,35 @@ toc_hash_eq (const void *h1, const void *h2)
   || strncmp ("_ZTI", name, strlen ("_ZTI")) == 0	\
   || strncmp ("_ZTC", name, strlen ("_ZTC")) == 0)
 
+#ifdef NO_DOLLAR_IN_LABEL
+/* Return a GGC-allocated character string translating dollar signs in
+   input NAME to underscores.  Used by XCOFF ASM_OUTPUT_LABELREF.  */
+
+const char *
+rs6000_xcoff_strip_dollar (const char *name)
+{
+  char *strip, *p;
+  int len;
+
+  p = strchr (name, '$');
+
+  if (p == 0 || p == name)
+    return name;
+
+  len = strlen (name);
+  strip = (char *) alloca (len + 1);
+  strcpy (strip, name);
+  p = strchr (strip, '$');
+  while (p)
+    {
+      *p = '_';
+      p = strchr (p + 1, '$');
+    }
+
+  return ggc_alloc_string (strip, len);
+}
+#endif
+
 void
 rs6000_output_symbol_ref (FILE *file, rtx x)
 {
@@ -18040,7 +18100,6 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
 {
   char buf[256];
   const char *name = buf;
-  const char *real_name;
   rtx base = x;
   HOST_WIDE_INT offset = 0;
 
@@ -18314,12 +18373,12 @@ output_toc (FILE *file, rtx x, int labelno, enum machine_mode mode)
       gcc_unreachable ();
     }
 
-  real_name = (*targetm.strip_name_encoding) (name);
   if (TARGET_MINIMAL_TOC)
     fputs (TARGET_32BIT ? "\t.long " : DOUBLE_INT_ASM_OP, file);
   else
     {
-      fprintf (file, "\t.tc %s", real_name);
+      fputs ("\t.tc ", file);
+      RS6000_OUTPUT_BASENAME (file, name);
 
       if (offset < 0)
 	fprintf (file, ".N" HOST_WIDE_INT_PRINT_UNSIGNED, - offset);
@@ -22769,6 +22828,33 @@ rs6000_stack_protect_fail (void)
   return (DEFAULT_ABI == ABI_V4 && TARGET_SECURE_PLT && flag_pic)
 	 ? default_hidden_stack_protect_fail ()
 	 : default_external_stack_protect_fail ();
+}
+
+void
+rs6000_final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
+			   int num_operands ATTRIBUTE_UNUSED)
+{
+  if (rs6000_warn_cell_microcode)
+    {
+      const char *temp;
+      int insn_code_number = recog_memoized (insn);
+      location_t location = locator_location (INSN_LOCATOR (insn));
+
+      /* Punt on insns we cannot recognize.  */
+      if (insn_code_number < 0)
+	return;
+
+      temp = get_insn_template (insn_code_number, insn);
+
+      if (get_attr_cell_micro (insn) == CELL_MICRO_ALWAYS)
+	warning_at (location, OPT_mwarn_cell_microcode,
+		    "emitting microcode insn %s\t[%s] #%d",
+		    temp, insn_data[INSN_CODE (insn)].name, INSN_UID (insn)); 
+      else if (get_attr_cell_micro (insn) == CELL_MICRO_CONDITIONAL)
+	warning_at (location, OPT_mwarn_cell_microcode,
+		    "emitting conditional microcode insn %s\t[%s] #%d",
+		    temp, insn_data[INSN_CODE (insn)].name, INSN_UID (insn));
+    }
 }
 
 #include "gt-rs6000.h"

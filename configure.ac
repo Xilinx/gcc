@@ -891,9 +891,6 @@ case "${target}" in
     ;;
   sparc-*-solaris* | sparc64-*-solaris* | sparcv9-*-solaris*)
     ;;
-  spu-*-*)
-    skipdirs="target-libssp"
-    ;;
   v810-*-*)
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld target-libstdc++-v3 opcodes target-libgloss ${libgcj}"
     ;;
@@ -1267,11 +1264,11 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   if test x"$have_gmp" = xyes; then
     saved_LIBS="$LIBS"
     LIBS="$LIBS $gmplibs"
-    dnl MPFR 2.2.1 is acceptable, but MPFR 2.3.0 is better.
+    dnl MPFR 2.3.0 is acceptable, but MPFR 2.3.2 is better.
     AC_MSG_CHECKING([for correct version of mpfr.h])
     AC_TRY_LINK([#include <gmp.h>
     #include <mpfr.h>],[
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,2,1)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,0)
     choke me
     #endif
     mpfr_t n;
@@ -1284,7 +1281,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
     mpfr_subnormalize (x, t, GMP_RNDN);
     ], [AC_TRY_LINK([#include <gmp.h>
     #include <mpfr.h>],[
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,0)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,2)
     choke me
     #endif
     mpfr_t n; mpfr_init(n);
@@ -1295,7 +1292,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   CFLAGS="$saved_CFLAGS"
 
   if test x$have_gmp != xyes; then
-    AC_MSG_ERROR([Building GCC requires GMP 4.1+ and MPFR 2.3.0+.
+    AC_MSG_ERROR([Building GCC requires GMP 4.1+ and MPFR 2.3.2+.
 Try the --with-gmp and/or --with-mpfr options to specify their locations.
 Copies of these libraries' source code can be found at their respective
 hosting sites as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
@@ -1851,6 +1848,12 @@ if test "x$CXXFLAGS_FOR_TARGET" = x; then
   esac
 fi
 AC_SUBST(CXXFLAGS_FOR_TARGET)
+
+# Other target tools.
+CPPFLAGS_FOR_TARGET=${CPPFLAGS_FOR_TARGET-${CPPFLAGS}}
+AC_SUBST(CPPFLAGS_FOR_TARGET)
+LDFLAGS_FOR_TARGET=${LDFLAGS_FOR_TARGET-${LDFLAGS}}
+AC_SUBST(LDFLAGS_FOR_TARGET)
 
 # Handle --with-headers=XXX.  If the value is not "yes", the contents of
 # the named directory are copied to $(tooldir)/sys-include.
@@ -2592,6 +2595,7 @@ esac
 # our build compiler if desired.
 if test x"${build}" = x"${host}" ; then
   CFLAGS_FOR_BUILD=${CFLAGS_FOR_BUILD-${CFLAGS}}
+  CPPFLAGS_FOR_BUILD=${CPPFLAGS_FOR_BUILD-${CPPFLAGS}}
   CXXFLAGS_FOR_BUILD=${CXXFLAGS_FOR_BUILD-${CXXFLAGS}}
   LDFLAGS_FOR_BUILD=${LDFLAGS_FOR_BUILD-${LDFLAGS}}
 fi
@@ -2657,6 +2661,7 @@ AC_SUBST(AR_FOR_BUILD)
 AC_SUBST(AS_FOR_BUILD)
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(CFLAGS_FOR_BUILD)
+AC_SUBST(CPPFLAGS_FOR_BUILD)
 AC_SUBST(CXXFLAGS_FOR_BUILD)
 AC_SUBST(CXX_FOR_BUILD)
 AC_SUBST(DLLTOOL_FOR_BUILD)

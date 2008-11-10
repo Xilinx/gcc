@@ -637,10 +637,10 @@ typedef struct
   unsigned function:1, subroutine:1, procedure:1;
   unsigned generic:1, generic_copy:1;
   unsigned implicit_type:1;	/* Type defined via implicit rules.  */
-  unsigned untyped:1;           /* No implicit type could be found.  */
+  unsigned untyped:1;		/* No implicit type could be found.  */
 
-  unsigned is_bind_c:1;		/* say if is bound to C */
-  unsigned extension:1;		/* extends a derived type */
+  unsigned is_bind_c:1;		/* say if is bound to C.  */
+  unsigned extension:1;		/* extends a derived type.  */
 
   /* These flags are both in the typespec and attribute.  The attribute
      list is what gets read from/written to a module file.  The typespec
@@ -770,7 +770,10 @@ typedef struct
 #endif
 
 
-extern int gfc_suppress_error;
+/* Suppress error messages or re-enable them.  */
+
+void gfc_push_suppress_errors (void);
+void gfc_pop_suppress_errors (void);
 
 
 /* Character length structures hold the expression that gives the
@@ -1037,6 +1040,7 @@ typedef struct gfc_typebound_proc
   unsigned non_overridable:1;
   unsigned is_generic:1;
   unsigned function:1, subroutine:1;
+  unsigned error:1; /* Ignore it, when an error occurred during resolution.  */
 }
 gfc_typebound_proc;
 
@@ -1546,6 +1550,10 @@ typedef struct gfc_expr
      and if we have decided not to allocate temporary data for that array.  */
   unsigned int inline_noncopying_intrinsic : 1, is_boz : 1;
 
+  /* Sometimes, when an error has been emitted, it is necessary to prevent
+      it from recurring.  */
+  unsigned int error : 1;
+
   /* Used to quickly find a given constructor by its offset.  */
   splay_tree con_by_offset;
 
@@ -1878,6 +1886,7 @@ typedef struct gfc_code
      symbol for the interface definition.
   const char *sub_name;  */
   gfc_symbol *resolved_sym;
+  gfc_intrinsic_sym *resolved_isym;
 
   union
   {
@@ -1983,6 +1992,7 @@ typedef struct
   int flag_second_underscore;
   int flag_implicit_none;
   int flag_max_stack_var_size;
+  int flag_max_array_constructor;
   int flag_range_check;
   int flag_pack_derived;
   int flag_repack_arrays;
@@ -2083,7 +2093,7 @@ bool gfc_in_match_data (void);
 void gfc_scanner_done_1 (void);
 void gfc_scanner_init_1 (void);
 
-void gfc_add_include_path (const char *, bool);
+void gfc_add_include_path (const char *, bool, bool);
 void gfc_add_intrinsic_modules_path (const char *);
 void gfc_release_include_path (void);
 FILE *gfc_open_included_file (const char *, bool, bool);
@@ -2440,8 +2450,8 @@ bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),
 			int);
 void gfc_expr_set_symbols_referenced (gfc_expr *);
-
 gfc_try gfc_expr_check_typed (gfc_expr*, gfc_namespace*, bool);
+void gfc_expr_replace_symbols (gfc_expr *, gfc_symbol *);
 
 /* st.c */
 extern gfc_code new_st;

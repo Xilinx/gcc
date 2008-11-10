@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-mips-options "-O -march=octeon" } */
+/* { dg-mips-options "-O -march=octeon -meb" } */
 /* { dg-final { scan-assembler-times "\texts\t" 4 } } */
 
 struct bar

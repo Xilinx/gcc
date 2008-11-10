@@ -828,22 +828,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 				     "PAD", false, definition,
 				     gnu_size ? true : false);
 
-	/* Make a volatile version of this object's type if we are to make
-	   the object volatile.  We also interpret 13.3(19) conservatively
-	   and disallow any optimizations for an object covered by it.  */
-	if ((Treat_As_Volatile (gnat_entity)
-	     || (Is_Exported (gnat_entity)
-		 /* Exclude exported constants created by the compiler,
-		    which should boil down to static dispatch tables and
-		    make it possible to put them in read-only memory.  */
-		 && (Comes_From_Source (gnat_entity) || !const_flag))
-	     || Is_Imported (gnat_entity)
-	     || Present (Address_Clause (gnat_entity)))
-	    && !TYPE_VOLATILE (gnu_type))
-	  gnu_type = build_qualified_type (gnu_type,
-					   (TYPE_QUALS (gnu_type)
-					    | TYPE_QUAL_VOLATILE));
-
 	/* If this is a renaming, avoid as much as possible to create a new
 	   object.  However, in several cases, creating it is required.
 	   This processing needs to be applied to the raw expression so
@@ -991,22 +975,38 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	      }
 	  }
 
-	/* If this is an aliased object whose nominal subtype is unconstrained,
-	   the object is a record that contains both the template and
-	   the object.  If there is an initializer, it will have already
-	   been converted to the right type, but we need to create the
-	   template if there is no initializer.  */
-	else if (definition
-		 && TREE_CODE (gnu_type) == RECORD_TYPE
-		 && (TYPE_CONTAINS_TEMPLATE_P (gnu_type)
-		     /* Beware that padding might have been introduced
-			via maybe_pad_type above.  */
-		     || (TYPE_IS_PADDING_P (gnu_type)
-			 && TREE_CODE (TREE_TYPE (TYPE_FIELDS (gnu_type)))
-			    == RECORD_TYPE
-			 && TYPE_CONTAINS_TEMPLATE_P
-			    (TREE_TYPE (TYPE_FIELDS (gnu_type)))))
-		 && !gnu_expr)
+	/* Make a volatile version of this object's type if we are to make
+	   the object volatile.  We also interpret 13.3(19) conservatively
+	   and disallow any optimizations for an object covered by it.  */
+	if ((Treat_As_Volatile (gnat_entity)
+	     || (Is_Exported (gnat_entity)
+		 /* Exclude exported constants created by the compiler,
+		    which should boil down to static dispatch tables and
+		    make it possible to put them in read-only memory.  */
+		 && (Comes_From_Source (gnat_entity) || !const_flag))
+	     || Is_Imported (gnat_entity)
+	     || Present (Address_Clause (gnat_entity)))
+	    && !TYPE_VOLATILE (gnu_type))
+	  gnu_type = build_qualified_type (gnu_type,
+					   (TYPE_QUALS (gnu_type)
+					    | TYPE_QUAL_VOLATILE));
+
+	/* If we are defining an aliased object whose nominal subtype is
+	   unconstrained, the object is a record that contains both the
+	   template and the object.  If there is an initializer, it will
+	   have already been converted to the right type, but we need to
+	   create the template if there is no initializer.  */
+	if (definition
+	    && !gnu_expr
+	    && TREE_CODE (gnu_type) == RECORD_TYPE
+	    && (TYPE_CONTAINS_TEMPLATE_P (gnu_type)
+	        /* Beware that padding might have been introduced
+		   via maybe_pad_type above.  */
+		|| (TYPE_IS_PADDING_P (gnu_type)
+		    && TREE_CODE (TREE_TYPE (TYPE_FIELDS (gnu_type)))
+		       == RECORD_TYPE
+		    && TYPE_CONTAINS_TEMPLATE_P
+		       (TREE_TYPE (TYPE_FIELDS (gnu_type))))))
 	  {
 	    tree template_field
 	      = TYPE_IS_PADDING_P (gnu_type)
@@ -1318,6 +1318,24 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 					       get_block_jmpbuf_decl ())),
 			      gnat_entity);
 
+	/* If we are defining an Out parameter and we're not optimizing,
+	   create a fake PARM_DECL for debugging purposes and make it
+	   point to the VAR_DECL.  Suppress debug info for the latter
+	   but make sure it will still live on the stack so it can be
+	   accessed from within the debugger through the PARM_DECL.  */
+	if (kind == E_Out_Parameter && definition && !optimize)
+	  {
+	    tree param = create_param_decl (gnu_entity_id, gnu_type, false);
+	    gnat_pushdecl (param, gnat_entity);
+	    SET_DECL_VALUE_EXPR (param, gnu_decl);
+	    DECL_HAS_VALUE_EXPR_P (param) = 1;
+	    if (debug_info_p)
+	      debug_info_p = false;
+	    else
+	      DECL_IGNORED_P (param) = 1;
+	    TREE_ADDRESSABLE (gnu_decl) = 1;
+	  }
+
 	/* If this is a public constant or we're not optimizing and we're not
 	   making a VAR_DECL for it, make one just for export or debugger use.
 	   Likewise if the address is taken or if either the object or type is
@@ -1328,7 +1346,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && (definition || Sloc (gnat_entity) > Standard_Location)
 	    && ((Is_Public (gnat_entity)
 		 && !Present (Address_Clause (gnat_entity)))
-		|| optimize == 0
+		|| !optimize
 		|| Address_Taken (gnat_entity)
 		|| Is_Aliased (gnat_entity)
 		|| Is_Aliased (Etype (gnat_entity))))
@@ -1343,7 +1361,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	    /* As debugging information will be generated for the variable,
 	       do not generate information for the constant.  */
-	    DECL_IGNORED_P (gnu_decl) = true;
+	    DECL_IGNORED_P (gnu_decl) = 1;
 	  }
 
 	/* If this is declared in a block that contains a block with an

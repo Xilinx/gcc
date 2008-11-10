@@ -1,3 +1,91 @@
+2008-11-06  Jeff Law <law@redhat.com>
+
+	* MAINTAINERS: Add myself as middle end maintainer.
+
+2008-11-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-11-05  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS (Global Reviewers): Add myself.
+	(Non-Algorithmic Maintainers): Remove myself.
+
+2008-11-04  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* MAINTAINERS (Write after approval): Add myself. 
+
+2008-10-31  Mikael Morin  <mikael.morin@tele2.fr>
+
+	* MAINTAINERS (Write after approval): Add myself. 
+
+2008-10-31  Ben Elliston  <bje@au.ibm.com>
+
+	* configure.ac (spu-*-*): Remove special case.
+	* configure: Regenerate.
+
+2008-10-30  Catherine Moore  <clm@codesourcery.com>
+
+	* MAINTAINERS (Write after approval): Update my email address.
+
+2008-10-29  Stefan Schulze Frielinghaus  <xxschulz@de.ibm.com>
+
+	* configure.ac [spu-*-*]: Do not set skipdirs.
+	* configure: Re-generate.
+
+2008-10-29  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself to reload.
+
+2008-10-25  Richard Guenther  <rguenther@suse.de>
+
+	* MAINTAINERS (Various Maintainers): Add myself as middle-end
+	maintainer.  Remove myself as libgcc-math maintainer.
+	(Non-Algorithmic Maintainers): Remove myself.
+
+2008-10-24  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.tpl (HOST_EXPORTS): Correct CPPFLAGS typo.
+	* Makefile.in: Regenerated.
+
+2008-10-23  Cary Coutant  <ccoutant@google.com>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-10-22  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR gdb/921
+	PR gdb/1646
+	PR gdb/2175
+	PR gdb/2176
+
+	* Makefile.def (flags_to_pass): Add CPPFLAGS_FOR_BUILD and CPPFLAGS.
+	* Makefile.tpl (BUILD_EXPORTS): Set CPPFLAGS.
+	(EXTRA_BUILD_FLAGS): Correct typo.  Pass CPPFLAGS.
+	(HOST_EXPORTS): Pass CPPFLAGS.
+	(CPPFLAGS_FOR_BUILD, CPPFLAGS, CPPFLAGS_FOR_TARGET): Define.
+	(LDFLAGS_FOR_TARGET): Initialize from configure script.
+	(EXTRA_TARGET_FLAGS): Set CPPFLAGS.
+	* Makefile.in, configure: Regenerated.
+	* configure.ac: Set CPPFLAGS_FOR_TARGET, LDFLAGS_FOR_TARGET,
+	and CPPFLAGS_FOR_BUILD.
+
+2008-10-20  Sebastian Pop <sebastian.pop@amd.com>
+
+	* MAINTAINERS (Graphite Reviewers): Added Daniel Berlin and
+	Sebastian Pop.
+
+2008-10-14  Antoniu Pop	<antoniu.pop@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Added myself.
+
+2008-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac (MPFR check): Bump minimum version to 2.3.0 and
+	recommended version to 2.3.2.
+
+	* configure: Regenerate.
+
 2008-10-01  Mark Mitchell  <mark@codesourcery.com>
 
 	* MAINTAINERS (Blanket Write Privs): Change to Global Reviewers.
