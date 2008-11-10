@@ -37,50 +37,148 @@
 #ifndef PROFCXX_PROFILER_CONTAINER_SIZE_H__
 #define PROFCXX_PROFILER_CONTAINER_SIZE_H__ 1
 
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 #include "profiler.h"
 #include "profiler_node.h"
 #include "profiler_trace.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+
+#ifndef _GLIBCXX_PROFILE
+using std::max;
+using std::min;
+#else
+using std::_GLIBCXX_STD_PR::max;
+using std::_GLIBCXX_STD_PR::min;
+#endif
 
 namespace cxxprof_runtime
 {
-long reserve_size();
 
-class trace_container_size
-    : public trace_base<stdlib_info_size*, stdlib_info_size*> 
+// Class for container size node. 
+class container_size_info: public object_info_base 
 {
  public:
-  trace_container_size() {}
-  ~trace_container_size() {free_all();}
-  trace_container_size(unsigned long size)  
-      : trace_base<stdlib_info_size*, stdlib_info_size*>(size) {};
+  container_size_info() {}
+  container_size_info(const container_size_info& o);
+  container_size_info(stack_t __stack, size_t __num);
+  virtual ~container_size_info() {}
+  void merge(const container_size_info& o);
+  void write(FILE* f) const;
+  // Call if a container is destructed or cleaned.
+  void destruct(size_t __num, size_t __inum);
+  // Estimate the cost of resize/rehash. 
+  float resize_cost(size_t __from, size_t __to) { return __from; }
+  // Call if container is resized.
+  void resize(size_t __from, size_t __to);
 
-  // Insert a new node at construct with object, callstack and initial size. 
-  void insert(void* __obj, stack_t* __stack, stdlib_size_t __num);
-  // Call at destruction/clean to set container final size.
-  void destruct(void* __obj, stdlib_size_t __num, stdlib_size_t __inum);
-  void construct(void* __obj, stdlib_size_t __inum);
-  // Call at resize to set resize/cost information.
-  void resize(void* __obj, int __from, int __to);
-  void print();
-  void free_all();
-  // Get stack but return a vector.
-  stack_t* get_stack();
+ private:
+  size_t _M_init;
+  size_t _M_max;  // range of # buckets
+  size_t _M_min;
+  size_t _M_total;
+  size_t _M_item_min;  // range of # items
+  size_t _M_item_max;
+  size_t _M_item_total;
+  size_t _M_count;
+  size_t _M_resize;
+  size_t _M_cost;
 };
 
-inline void trace_container_size::insert(void* __obj, stack_t* __stack,
-                                  stdlib_size_t __num)
+inline void container_size_info::destruct(size_t __num, size_t __inum) 
 {
-  ObjMap* live = &trace_info.first;
+  _M_max = max(_M_max, __num);
+  _M_item_max = max(_M_item_max, __inum);
+  if (_M_min == 0) {
+    _M_min = __num; 
+    _M_item_min = __inum;
+  } else {
+    _M_min = min(_M_min, __num);
+    _M_item_min = min(_M_item_min, __inum);
+  }
+  _M_total += __num;
+  _M_item_total += __inum;
+  _M_count += 1;
+}
 
-  // Control the size to be less than reserved size. 
-  if (reserve_size() > 0 && live->size() > reserve_size()) return;
+inline void container_size_info::resize(size_t __from,
+                                        size_t __to) 
+{
+  assert(__from <= __to);
+  _M_cost += this->resize_cost(__from, __to);
+  _M_resize += 1;
+  _M_max = _M_max > __to ? _M_max : __to;
+}
 
-  stdlib_info_size *node = new stdlib_info_size(__obj, __stack, __num);
-  live->insert(ObjMap::value_type(__obj, node));
+inline container_size_info::container_size_info(stack_t __stack, 
+                                                size_t __num)
+  : object_info_base(__stack)
+{
+  _M_init = _M_max = __num;
+  _M_item_min = _M_item_max = _M_item_total = _M_total = 0;
+  _M_min = 0;
+  _M_count = 0;
+  _M_resize = 0;
+}
+
+inline void container_size_info::merge(const container_size_info& o)
+{
+  _M_init        = max(_M_init, o._M_init);
+  _M_max         = max(_M_max, o._M_max);
+  _M_item_max    = max(_M_item_max, o._M_item_max);
+  _M_min         = min(_M_min, o._M_min);
+  _M_item_min    = min(_M_item_min, o._M_item_min);
+  _M_total      += o._M_total;
+  _M_item_total += o._M_item_total;
+  _M_count      += o._M_count;
+  _M_cost       += o._M_cost;
+  _M_resize     += o._M_resize;
+}
+
+inline container_size_info::container_size_info(const container_size_info& o)
+    : object_info_base(o)
+{
+  _M_init        = o._M_init;
+  _M_max         = o._M_max;
+  _M_item_max    = o._M_item_max;
+  _M_min         = o._M_min;
+  _M_item_min    = o._M_item_min;
+  _M_total       = o._M_total;
+  _M_item_total  = o._M_item_total;
+  _M_cost        = o._M_cost;
+  _M_count       = o._M_count;
+  _M_resize      = o._M_resize;
+}
+
+class container_size_stack_info: public container_size_info {
+ public:
+  container_size_stack_info(const container_size_info& o)
+      : container_size_info(o) {}
+};
+
+class trace_container_size
+    : public trace_base<container_size_info, container_size_stack_info> 
+{
+ public:
+  ~trace_container_size() {}
+  trace_container_size()
+      : trace_base<container_size_info, container_size_stack_info>() {};
+
+  // Insert a new node at construct with object, callstack and initial size. 
+  void insert(const object_t __obj, stack_t __stack, size_t __num);
+  // Call at destruction/clean to set container final size.
+  void destruct(const void* __obj, size_t __num, size_t __inum);
+  void construct(const void* __obj, size_t __inum);
+  // Call at resize to set resize/cost information.
+  void resize(const void* __obj, int __from, int __to);
+};
+
+inline void trace_container_size::insert(const object_t __obj,
+                                         stack_t __stack,
+                                         size_t __num)
+{
+  add_object(__obj, container_size_info(__stack, __num));
 }
 
 } // namespace cxxprof_runtime

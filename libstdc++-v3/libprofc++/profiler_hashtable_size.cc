@@ -39,10 +39,10 @@
 #include "profiler_trace.h"
 #include "profiler_state.h"
 #include "profiler_container_size.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 
 namespace cxxprof_runtime
 {
@@ -50,46 +50,51 @@ namespace cxxprof_runtime
 class trace_hashtable_size : public trace_container_size
 {
  public:
-  trace_hashtable_size(unsigned long size)
-      : trace_container_size(size) {}
+  trace_hashtable_size() : trace_container_size() { id = "hashtable-size"; }
 };
+
+//////////////////////////////////////////////////////////////////////////////
+// Initialization and report.
+//////////////////////////////////////////////////////////////////////////////
 
 static trace_hashtable_size* _S_hashtable_size = NULL;
 
-void trace_hashtable_size_construct(void* __obj, stdlib_size_t __num)
+void trace_hashtable_size_init() {
+  _S_hashtable_size = new trace_hashtable_size();
+}
+
+void trace_hashtable_size_report(FILE* f) {
+  if (_S_hashtable_size) {
+    _S_hashtable_size->write(f);
+    delete _S_hashtable_size;
+    _S_hashtable_size = NULL;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of instrumentation hooks.
+//////////////////////////////////////////////////////////////////////////////
+
+void trace_hashtable_size_construct(const void* __obj, size_t __num)
 {
   if (!__profcxx_init()) return;
   
   _S_hashtable_size->insert(__obj, get_stack(), __num);
 }
 
-void trace_hashtable_size_destruct(void* __obj, stdlib_size_t __num, 
-                                   stdlib_size_t __inum)
+void trace_hashtable_size_destruct(const void* __obj, size_t __num, 
+                                   size_t __inum)
 {
   if (!__profcxx_init()) return;
 
   _S_hashtable_size->destruct(__obj, __num, __inum);
 }
 
-void trace_hashtable_size_resize(void* __obj, stdlib_size_t __from, 
-                                 stdlib_size_t __to)
+void trace_hashtable_size_resize(const void* __obj, size_t __from, size_t __to)
 {
   if (!__profcxx_init()) return;
 
   _S_hashtable_size->resize(__obj, __from, __to);
-}
-
-void trace_hashtable_size_init() {
-  unsigned long size = reserve_size() <= 0 ? 0 : reserve_size();
-  _S_hashtable_size = new trace_hashtable_size(size);
-}
-
-void trace_hashtable_size_report() {
-  if (_S_hashtable_size) {
-    _S_hashtable_size->print();
-    delete _S_hashtable_size;
-    _S_hashtable_size = NULL;
-  }
 }
 
 } // namespace cxxprof_runtime

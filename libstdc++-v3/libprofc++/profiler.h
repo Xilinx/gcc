@@ -37,6 +37,8 @@
 #ifndef PROFCXX_PROFILER_H__
 #define PROFCXX_PROFILER_H__ 1
 
+#include <cstddef>  // For size_t.
+
 namespace cxxprof_runtime
 {
 // State management.
@@ -47,12 +49,20 @@ bool is_on();
 bool is_off();
 
 // Instrumentation hooks.
-void trace_hashtable_size_resize(void*, unsigned long, unsigned long);
-void trace_hashtable_size_destruct(void*, unsigned long, unsigned long);
-void trace_hashtable_size_construct(void*, unsigned long);
-void trace_vector_size_resize(void*, unsigned long, unsigned long);
-void trace_vector_size_destruct(void*, unsigned long, unsigned long);
-void trace_vector_size_construct(void*, unsigned long);
+void trace_hashtable_size_resize(const void*, size_t, size_t);
+void trace_hashtable_size_destruct(const void*, size_t, size_t);
+void trace_hashtable_size_construct(const void*, size_t);
+void trace_vector_size_resize(const void*, size_t, size_t);
+void trace_vector_size_destruct(const void*, size_t, size_t);
+void trace_vector_size_construct(const void*, size_t);
+void trace_hash_func_destruct(const void*, size_t, size_t, size_t);
+void trace_hash_func_construct(const void*);
+void trace_vector_to_list_destruct(const void*);
+void trace_vector_to_list_construct(const void*);
+void trace_vector_to_list_insert(const void*, size_t, size_t);
+void trace_vector_to_list_iterate(const void*, size_t);
+void trace_vector_to_list_invalid_operator(const void*);
+void trace_vector_to_list_resize(const void*, size_t, size_t);
 } // namespace cxxprof_runtime
 
 // Master switch turns on all diagnostics.
@@ -62,6 +72,7 @@ void trace_vector_size_construct(void*, unsigned long);
 #define _GLIBCXX_PROFILE_VECTOR_TOO_SMALL
 #define _GLIBCXX_PROFILE_VECTOR_TOO_LARGE
 #define _GLIBCXX_PROFILE_INEFFICIENT_HASH
+#define _GLIBCXX_PROFILE_VECTOR_TO_LIST
 #endif
 
 // Turn on/off instrumentation for HASHTABLE_TOO_SMALL and HASHTABLE_TOO_LARGE.
@@ -93,5 +104,41 @@ void trace_vector_size_construct(void*, unsigned long);
 #define __profcxx_vector_destruct(x...) 
 #define __profcxx_vector_construct(x...)  
 #endif 
+
+// Turn on/off instrumentation for INEFFICIENT_HASH.
+#if (defined(_GLIBCXX_PROFILE_INEFFICIENT_HASH) \
+     && !defined(_NO_GLIBCXX_PROFILE_INEFFICIENT_HASH))
+#define __profcxx_hashtable_construct2 \
+  cxxprof_runtime::trace_hash_func_construct
+#define __profcxx_hashtable_destruct2 \
+  cxxprof_runtime::trace_hash_func_destruct
+#else
+#define __profcxx_hashtable_destruct2(x...) 
+#define __profcxx_hashtable_construct2(x...)  
+#endif
+
+// Turn on/off instrumentation for VECTOR_TO_LIST.
+#if (defined(_GLIBCXX_PROFILE_VECTOR_TO_LIST) \
+     && !defined(_NO_GLIBCXX_PROFILE_VECTOR_TO_LIST))
+#define __profcxx_vector_construct2 \
+  cxxprof_runtime::trace_vector_to_list_construct
+#define __profcxx_vector_destruct2 \
+  cxxprof_runtime::trace_vector_to_list_destruct
+#define __profcxx_vector_insert \
+  cxxprof_runtime::trace_vector_to_list_insert
+#define __profcxx_vector_iterate \
+  cxxprof_runtime::trace_vector_to_list_iterate
+#define __profcxx_vector_invalid_operator \
+  cxxprof_runtime::trace_vector_to_list_invalid_operator
+#define __profcxx_vector_resize2 \
+  cxxprof_runtime::trace_vector_to_list_resize
+#else
+#define __profcxx_vector_destruct2(x...) 
+#define __profcxx_vector_construct2(x...)  
+#define __profcxx_vector_insert(x...)
+#define __profcxx_vector_iterate(x...)
+#define __profcxx_vector_invalid_operator(x...)
+#define __profcxx_vector_resize2(x...)
+#endif
 
 #endif // PROFCXX_PROFILER_H__

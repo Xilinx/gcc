@@ -76,6 +76,7 @@ namespace __profile
       : _Base(__a)
       { 
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 
       explicit vector(size_type __n, const _Tp& __value = _Tp(),
@@ -83,6 +84,7 @@ namespace __profile
       :  _Base(__n, __value, __a)
       { 
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 
       template<class _InputIterator>
@@ -91,12 +93,14 @@ namespace __profile
 	: _Base(__first, __last, __a)
       { 
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 
       vector(const vector& __x)
       : _Base(__x) 
       { 
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 
       /// Construction from a release-mode vector
@@ -104,6 +108,7 @@ namespace __profile
       : _Base(__x) 
       { 
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -111,11 +116,13 @@ namespace __profile
       : _Base(std::forward<vector>(__x))
       {
         __profcxx_vector_construct(this, this->capacity());
+        __profcxx_vector_construct2(this);
       }
 #endif
 
       ~vector() {
         __profcxx_vector_destruct(this, this->capacity(), this->size());
+        __profcxx_vector_destruct2(this);
       }
 
       vector&
@@ -145,6 +152,7 @@ namespace __profile
       void
       resize(size_type __sz, _Tp __c = _Tp())
       {
+        __profcxx_vector_invalid_operator(this);
         profile_resize(this, this->capacity(), __sz);
         _Base::resize(__sz, __c);
       }
@@ -155,12 +163,13 @@ namespace __profile
       reference
       operator[](size_type __n)
       {
+        __profcxx_vector_invalid_operator(this);
         return _M_base()[__n];
       }
-
       const_reference
       operator[](size_type __n) const
       {
+        __profcxx_vector_invalid_operator(this);
         return _M_base()[__n];
       }
 
@@ -217,6 +226,7 @@ namespace __profile
       iterator
       insert(iterator __position, const _Tp& __x)
       {
+        __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	typename _Base::iterator __res = _Base::insert(__position,__x);
         profile_resize(this, old_size, this->capacity());
@@ -227,6 +237,7 @@ namespace __profile
       iterator
       insert(iterator __position, _Tp&& __x)
       {
+        __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	typename _Base::iterator __res = _Base::insert(__position,__x);
         profile_resize(this, old_size, this->capacity());
@@ -248,6 +259,7 @@ namespace __profile
       void
       insert(iterator __position, size_type __n, const _Tp& __x)
       {
+        __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
 	    _Base::insert(__position, __n, __x);
         profile_resize(this, old_size, this->capacity());
@@ -258,6 +270,7 @@ namespace __profile
       insert(iterator __position,
              _InputIterator __first, _InputIterator __last)
       {
+        __profcxx_vector_insert(this,  __position-_Base::begin(), this->size());
         size_type old_size = this->capacity();
         _Base::insert(__position, __first, __last);
         profile_resize(this, old_size, this->capacity());
@@ -267,14 +280,31 @@ namespace __profile
       clear()
       {
         __profcxx_vector_destruct(this, this->capacity(), this->size());
+        __profcxx_vector_destruct2(this);
         _Base::clear();
+      }
+
+      // iterators:
+      iterator
+      begin()
+      { 
+        __profcxx_vector_iterate(this, this->size());
+        return _Base::begin(); 
+      }
+
+      const_iterator
+      begin() const
+      { 
+        __profcxx_vector_iterate(this, this->size());
+        return _Base::begin(); 
       }
 
     private:
       void profile_resize(void* obj, size_type old_size, size_type new_size)
       {
         if (old_size < new_size) {
-          __profcxx_vector_resize(this, old_size, new_size);
+          __profcxx_vector_resize(this, this->size(), new_size);
+          __profcxx_vector_resize2(this, this->size(), new_size);
         }
       }
     };

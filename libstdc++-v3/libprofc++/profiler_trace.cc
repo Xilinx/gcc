@@ -38,17 +38,14 @@
 #include "profiler_node.h"
 #include "profiler_state.h"
 #include "profiler_trace.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+#include <cerrno>
 
 namespace cxxprof_runtime
 {
-class trace_hashtable_size; 
-
-//  Point to all stdlib profiling information
-static trace_hashtable_size* _S_hashtable_size = NULL;
 
 // Trace file name.  Default to "profile-stdlib.txt".
 static char _S_trace_default_file_name[] = "./profile-stdlib.txt";
@@ -58,21 +55,69 @@ static char* _S_trace_file_name = _S_trace_default_file_name;
 // Environment variable to turn everything off.
 static char _S_off_env_var[] = "GLIBCXX_PROFILE_OFF";
 
+// Environment variable to set maximum stack depth.
+static char _S_max_stack_depth_env_var[] = "GLIBCXX_PROFILE_MAX_STACK_DEPTH";
+size_t _S_max_stack_depth = 32;
+
+// Space budget for each object table.
+static char _S_max_mem_env_var[] = "GLIBCXX_PROFILE_MEM_PER_DIAGNOSTIC";
+size_t _S_max_mem = 2 << 27;  // 128 MB.
+
 // Individual diagnostic init and report/destroy methods.
 void trace_vector_size_init();
 void trace_hashtable_size_init();
-void trace_vector_size_report();
-void trace_hashtable_size_report();
+void trace_hash_func_init();
+void trace_vector_to_list_init();
+void trace_vector_size_report(FILE* f);
+void trace_hashtable_size_report(FILE* f);
+void trace_hash_func_report(FILE* f);
+void trace_vector_to_list_report(FILE* f);
 
-char* trace_file_name() {return _S_trace_file_name;}
+static size_t env_to_size_t(const char* env_var, size_t default_value)
+{
+  char* env_value = getenv(env_var);
+  if (env_value) {
+    long int converted_value = strtol(env_value, NULL, 10);
+    if (errno || converted_value < 0) {
+      fprintf(stderr, "Bad value for environment variable '%s'.", env_var);
+      abort();
+    } else {
+      return static_cast<size_t>(converted_value);
+    }
+  } else {
+    return default_value;
+  }
+}
+
+static void set_max_stack_trace_depth()
+{
+  _S_max_stack_depth = env_to_size_t(_S_max_stack_depth_env_var, 
+                                     _S_max_stack_depth);
+}
+
+static void set_max_mem()
+{
+  _S_max_mem = env_to_size_t(_S_max_mem_env_var, _S_max_mem);
+}
 
 // Final report, meant to be registered by "atexit".
 static void __profcxx_report(void)
-{  
+{
   turn_off();
 
-  trace_vector_size_report();
-  trace_hashtable_size_report();
+  FILE* f = fopen(_S_trace_file_name, "a");
+
+  if (!f) {
+    fprintf(stderr, "Could not open trace file '%s'.", _S_trace_file_name);
+    abort();
+  }
+
+  trace_vector_size_report(f);
+  trace_hashtable_size_report(f);
+  trace_hash_func_report(f);
+  trace_vector_to_list_report(f);
+
+  fclose(f);
 }
 
 static void set_trace_path() {
@@ -104,9 +149,14 @@ void __profcxx_init_unconditional()
       set_trace_path();
       atexit(__profcxx_report);
 
+      set_max_stack_trace_depth();
+      set_max_mem();
+
       // Initialize data structures for each trace class.
       trace_vector_size_init();
       trace_hashtable_size_init();
+      trace_hash_func_init();
+      trace_vector_to_list_init();
 
       // Go live.
       turn_on();

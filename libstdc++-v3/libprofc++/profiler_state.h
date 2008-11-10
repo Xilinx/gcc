@@ -37,8 +37,8 @@
 #ifndef PROFCXX_PROFILER_STATE_H__
 #define PROFCXX_PROFILER_STATE_H__ 1
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 
 namespace cxxprof_runtime
 {

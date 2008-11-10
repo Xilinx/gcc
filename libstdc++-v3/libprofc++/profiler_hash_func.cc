@@ -28,7 +28,7 @@
 // reasons why the executable file might be covered by the GNU General
 // Public License.
 
-/** @file libprofc++/profiler_container_size.cc
+/** @file libprofc++/profiler_hash_func.cc
  *  @brief Data structures to represent profiling traces.
  */
 
@@ -42,42 +42,66 @@
 #include "profiler_node.h"
 #include "profiler_trace.h"
 #include "profiler_state.h"
-#include "profiler_container_size.h"
+#include "profiler_hash_func.h"
 
 namespace cxxprof_runtime
 {
 
-void container_size_info::write(FILE* f) const
+void hashfunc_info::write(FILE* f) const
 {
-  fprintf(f, "%Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu %Zu\n", 
-          _M_init, _M_count, _M_cost,_M_resize, _M_min, _M_max, _M_total,
-          _M_item_min, _M_item_max, _M_item_total);
+  fprintf(f, "%Zu %Zu %Zu\n", _M_hops, _M_accesses, _M_longest_chain);
 }
 
-void trace_container_size::destruct(const void* __obj, size_t __num, 
-                                    size_t __inum)
+void trace_hash_func::destruct(const void* __obj, size_t __chain,
+                               size_t __accesses, size_t __hops)
 {
   if (!is_on()) return;
 
-  object_t obj = static_cast<object_t>(__obj);
-
-  container_size_info* object_info = get_object_info(obj);
-  if (!object_info)
+  // First find the item from the live objects and update the informations.
+  hashfunc_info* objs = get_object_info(__obj);
+  if (!objs)
     return;
 
-  object_info->destruct(__num, __inum);
-  retire_object(obj);
+  objs->destruct(__chain, __accesses, __hops);
+  printf("Retiring %p.\n", __obj);
+  retire_object(__obj);
 }
 
-void trace_container_size::resize(const void* __obj, int __from, int __to)
+//////////////////////////////////////////////////////////////////////////////
+// Initialization and report.
+//////////////////////////////////////////////////////////////////////////////
+
+static trace_hash_func* _S_hash_func = NULL;
+
+void trace_hash_func_init() {
+  _S_hash_func = new trace_hash_func();
+}
+
+void trace_hash_func_report(FILE* f) {
+  if (_S_hash_func) {
+    _S_hash_func->write(f);
+    delete _S_hash_func;
+    _S_hash_func = NULL;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Implementations of instrumentation hooks.
+//////////////////////////////////////////////////////////////////////////////
+
+void trace_hash_func_construct(const void* __obj)
 {
-  if (!is_on()) return;
+  if (!__profcxx_init()) return;
 
-  container_size_info* object_info = get_object_info(__obj);
-  if (!object_info)
-    return;
+  _S_hash_func->insert(__obj, get_stack());
+}
 
-  object_info->resize(__from, __to);
+void trace_hash_func_destruct(const void* __obj, size_t __chain,
+                               size_t __accesses, size_t __hops)
+{
+  if (!__profcxx_init()) return;
+
+  _S_hash_func->destruct(__obj, __chain, __accesses, __hops);
 }
 
 } // namespace cxxprof_runtime

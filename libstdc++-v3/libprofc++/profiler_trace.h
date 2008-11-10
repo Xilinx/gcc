@@ -37,14 +37,13 @@
 #ifndef PROFCXX_PROFILER_TRACE_H__
 #define PROFCXX_PROFILER_TRACE_H__ 1
 
-#include <execinfo.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unordered_map>
 #include <vector>
 #include "profiler_state.h"
+#include "profiler_node.h"
 
-namespace cxxprof_runtime 
-{
 #ifndef _GLIBCXX_PROFILE
 using std::unordered_map;
 using std::vector;
@@ -53,67 +52,151 @@ using std::_GLIBCXX_STD_PR::unordered_map;
 using std::_GLIBCXX_STD_PR::vector;
 #endif
 
-typedef vector<void*> stack_t;
-
-inline stack_t* get_stack()
+namespace cxxprof_runtime 
 {
-  const int _S_max_stack_depth = 32;
-  void* __stack_buffer[_S_max_stack_depth];
-
-  int __depth = backtrace(__stack_buffer, _S_max_stack_depth);
-  stack_t* __stack = new vector<void*>(__depth);
-  memcpy(&(*__stack)[0], __stack_buffer, __depth * sizeof(void*));
-
-  return __stack;
-}
 
 // Hash function for summary trace using stack as index.
 class stack_hash 
 {
  public:
-  size_t operator()(stack_t* const  __s) const
+  size_t operator()(const stack_t __s) const
   {
-    if (__s == NULL) return 0;
-
     size_t index = 0;
-    for (stack_t::iterator it = __s->begin(); it != __s->end(); ++it) {
-      index += (unsigned long)*it;
+    stack_npt::const_iterator it;
+    for (it = __s->begin(); it != __s->end(); ++it) {
+      index += reinterpret_cast<size_t>(*it);
     } 
     return index;
   }
 
-  bool operator() (stack_t* const stack1, stack_t* const stack2) const
+  bool operator() (const stack_t stack1, const stack_t stack2) const
   {
-    if (stack1 == NULL && stack2 == NULL) return true;
-
-    if (stack1 == NULL || stack2 == NULL) return false;
-
+    if (!stack1 && !stack2) return true;
+    if (!stack1 || !stack2) return false;
     if (stack1->size() != stack2->size()) return false;
 
-    size_t byte_size = stack1->size() * sizeof(stack_t::value_type);
+    size_t byte_size = stack1->size() * sizeof(stack_npt::value_type);
     return memcmp(&(*stack1)[0], &(*stack2)[0], byte_size) == 0;
   }
 };
 
-template <typename _Obj, typename _Summary>
+inline size_t max_mem()
+{
+  extern size_t _S_max_mem;
+  return _S_max_mem;
+}
+
+typedef const char* trace_id_t;
+inline void print_trace_id(FILE* f, trace_id_t id)
+{
+  if (id) {
+    fprintf(f, "%s", id);
+  } else {
+    fprintf(stderr, "Undefined trace id.");
+    abort();
+  }
+}
+
+template <typename object_info, typename stack_info>
 class trace_base
 {
  public:
-  trace_base() {}
-  trace_base(unsigned long size);
-  ~trace_base() {}  
+  trace_base();
+  ~trace_base() {}
+  void add_object(object_t object, object_info info);
+  object_info* get_object_info(object_t object);
+  void retire_object(object_t object);
+  void write(FILE* f);
 
-protected:
-  typedef unordered_map<void*, _Obj> ObjMap;
-  typedef unordered_map<stack_t*, _Summary, stack_hash, stack_hash> StackMap;
-  std::pair <ObjMap, StackMap> trace_info;
+ private:
+  typedef unordered_map<object_t, object_info> object_table_t;
+  typedef unordered_map<stack_t, stack_info, stack_hash,
+                        stack_hash> stack_table_t;
+  object_table_t object_table;
+  stack_table_t stack_table;
+  size_t stack_table_byte_size;
+
+ protected:
+  trace_id_t id;
 };
 
-template <typename _Obj, typename _Summary>
-inline trace_base<_Obj, _Summary>::trace_base(unsigned long size)
+template <typename object_info, typename stack_info>
+trace_base<object_info, stack_info>::trace_base()
 {
-  trace_info.first.rehash(size);
-  trace_info.second.rehash(size);
+  // Do not pick the initial size too large, as we don't know which diagnostics
+  // are more active.
+  object_table.rehash(10000);
+  stack_table.rehash(10000);
+  stack_table_byte_size = 0;
+  id = NULL;
+}
+
+template <typename object_info, typename stack_info>
+void trace_base<object_info, stack_info>::add_object(object_t object,
+                                                     object_info info)
+{
+  if (max_mem() == 0 || object_table.size() * sizeof(object_info) <= max_mem())
+    object_table.insert(typename object_table_t::value_type(object, info));
+  else
+    printf("Out of profiler memory: %s.\n", id);
+}
+
+template <typename object_info, typename stack_info>
+object_info* trace_base<object_info, stack_info>::get_object_info(
+    object_t object)
+{
+  typename object_table_t::iterator object_it = object_table.find(object);
+  if (object_it == object_table.end()){
+    return NULL;
+  } else {
+    return &object_it->second;
+  }
+}
+
+template <typename object_info, typename stack_info>
+void trace_base<object_info, stack_info>::retire_object(object_t object)
+{
+  typename object_table_t::iterator object_it = object_table.find(object);
+  if (object_it != object_table.end()){
+    const object_info& info = object_it->second;
+    const stack_t& stack = info.stack();
+    typename stack_table_t::iterator stack_it = stack_table.find(stack);
+    if (stack_it == stack_table.end()) {
+      // First occurence of this call context.
+      if (max_mem() == 0 || stack_table_byte_size < max_mem()) {
+        stack_table_byte_size += (sizeof(instruction_address_t) * stack->size()
+                                  + sizeof(stack) + sizeof(stack_info));
+        cxxprof_runtime::write(stdout, stack);
+        printf(" Adding to stack table.\n");
+        stack_table.insert(make_pair(stack, stack_info(info)));
+      } else {
+        printf("Out of profiler memory: %s.\n", id);
+      }
+    } else {
+      // Merge object info into info summary for this call context.
+      stack_it->second.merge(info);
+      delete stack;
+    }
+    object_table.erase(object);
+  } else {
+    printf("Bad object to retire %p.", object);
+  }
+}
+
+template <typename object_info, typename stack_info>
+void trace_base<object_info, stack_info>::write(FILE* f)
+{
+  typename stack_table_t::iterator it;
+
+  for (it = stack_table.begin(); it != stack_table.end(); it++) {
+    if (it->second.is_valid()) {
+      print_trace_id(f, id);
+      fprintf(f, "|");
+      cxxprof_runtime::write(f, it->first);
+      fprintf(f, "|");
+      it->second.write(f);
+    }
+  }
 }
 
 // This function must be called by each instrumentation point.

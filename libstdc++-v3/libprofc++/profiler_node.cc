@@ -35,48 +35,12 @@
 // Written by Lixia Liu
 
 #include "profiler_node.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 
 namespace cxxprof_runtime
 {
-
-void stdlib_info_size::print_debug()
-{
-  for(stack_t::iterator it = _M_stack->begin(); it != _M_stack->end(); it++) {
-    fprintf(stderr, "[%p]", *it);
-  }
-  fprintf(stderr, "|%lu %lu %d ", _M_init, _M_count, int(_M_cost)); 
-  fprintf(stderr, "%lu %lu %lu %lu %lu %lu %lu %lu\n",
-          _M_resize, _M_min, _M_max, _M_total, _M_item_min, _M_item_max, 
-          _M_item_total, (stdlib_size_t)_M_object);
-}
-
-void stdlib_info_size::print(FILE* __f)
-{
-  // XXX: This will be replaced entirely by a binary trace IO module.
-  // For now, 1024 is provably sufficient in all possible cases because
-  // max trace depth is 32.
-  char __str[1024];
-  __str[0] = '\0';
-
-  for (stack_t::iterator it = _M_stack->begin(); it != _M_stack->end(); it++) {
-    snprintf(__str + strlen(__str), sizeof(__str), "[%p]", *it);            
-  }
-  assert(strlen(__str) < sizeof(__str));
-  snprintf(__str + strlen(__str), sizeof(__str), "|%lu %lu %lu ", 
-           _M_init, _M_count, static_cast<unsigned long>(_M_cost));
-  assert(strlen(__str) < sizeof(__str));
-  snprintf(__str + strlen(__str), sizeof(__str), "%lu %lu %lu %lu ", 
-           _M_resize, _M_min, _M_max, _M_total);
-  assert(strlen(__str) < sizeof(__str));
-  snprintf(__str + strlen(__str), sizeof(__str), "%lu %lu %lu %lu\n", 
-           _M_item_min, _M_item_max, _M_item_total, 
-	   reinterpret_cast<stdlib_size_t>(_M_object));
-
-  fputs(__str, __f);
-}
 
 } // namespace cxxprof_runtime

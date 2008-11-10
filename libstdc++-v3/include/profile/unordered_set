@@ -82,6 +82,7 @@ namespace __profile
       : _Base(__n, __hf, __eql, __a)
       {
         __profcxx_hashtable_construct(this, _Base::bucket_count());
+        __profcxx_hashtable_construct2(this);
       }
 
       template<typename _InputIterator>
@@ -93,23 +94,28 @@ namespace __profile
       : _Base(__f, __l, __n, __hf, __eql, __a)
       {
         __profcxx_hashtable_construct(this, _Base::bucket_count());
+        __profcxx_hashtable_construct2(this);
       }
 
       unordered_set(const _Base& __x)
       : _Base(__x) 
       { 
         __profcxx_hashtable_construct(this, _Base::bucket_count());
+        __profcxx_hashtable_construct2(this);
       }
 
       unordered_set(unordered_set&& __x)
       : _Base(std::forward<_Base>(__x)) 
       { 
         __profcxx_hashtable_construct(this, _Base::bucket_count());
+        __profcxx_hashtable_construct2(this);
       }
 
       ~unordered_set()
       {
-        __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
+        __profcxx_hashtable_destruct(this, _Base::bucket_count(), 
+                                     _Base::size());
+        profile_destruct();
       }
 
       void
@@ -121,14 +127,16 @@ namespace __profile
       void
       clear()
       {
-        __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
-	    _Base::clear();
+        __profcxx_hashtable_destruct(this, _Base::bucket_count(), 
+                                     _Base::size());
+        profile_destruct();
+        _Base::clear();
       }
       insert_return_type insert(const value_type& __obj)
       {
         size_type old_size =  _Base::bucket_count();
         insert_return_type __res = _Base::insert(__obj);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return __res;
       }
       iterator
@@ -136,7 +144,7 @@ namespace __profile
       { 
         size_type old_size = _Base::bucket_count(); 
         iterator res = _Base::insert(__iter, __v);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return res;
       }
 
@@ -145,7 +153,7 @@ namespace __profile
       { 
         size_type old_size = _Base::bucket_count(); 
         const_iterator res =_Base::insert(__iter, __v);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return res;
       }
 
@@ -155,7 +163,7 @@ namespace __profile
       {
         size_type old_size = _Base::bucket_count(); 
         _Base::insert(__first.base(), __last.base());
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
 
       void
@@ -163,14 +171,14 @@ namespace __profile
       {
         size_type old_size = _Base::bucket_count(); 
         _Base::insert(__first, __last);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
      
       void rehash(size_type __n)
       {
         size_type old_size =  _Base::bucket_count();
         _Base::rehash(__n);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
     private:
       _Base&
@@ -179,13 +187,32 @@ namespace __profile
       const _Base&
       _M_base() const { return *this; }
 
-      void profile_resize(void* obj, size_type old_size, size_type new_size)
+      void profile_resize(size_type old_size, size_type new_size)
       {
         if (old_size != new_size)
         {
           __profcxx_hashtable_resize(this, old_size, new_size);
         }
-     }
+      }
+      void profile_destruct()
+      {
+        size_type __hops = 0, __lc = 0, __chain = 0;
+        for (iterator it = _M_base().begin(); it != _M_base().end(); it++)
+        {
+          while (it._M_cur_node->_M_next) {
+             __chain++;
+             it++;
+          }
+          if (__chain) {
+            __chain++;
+            __lc = __lc > __chain ? __lc : __chain;
+            __hops += __chain * (__chain - 1) / 2;
+            __chain = 0;
+          }
+        }
+        __profcxx_hashtable_destruct2(this, __lc,  _Base::size(), __hops);
+      }
+
    };
   template<typename _Value, typename _Hash, typename _Pred, typename _Alloc>
     inline void
@@ -270,6 +297,7 @@ namespace __profile
       ~unordered_multiset()
       {
         __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
+        profile_destruct();
       }
 
       void
@@ -282,13 +310,14 @@ namespace __profile
       clear()
       {
         __profcxx_hashtable_destruct(this, _Base::bucket_count(), _Base::size());
-	    _Base::clear();
+        profile_destruct();
+        _Base::clear();
       }
       insert_return_type insert(const value_type& __obj)
       {
         size_type old_size =  _Base::bucket_count();
         insert_return_type __res = _Base::insert(__obj);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return __res;
       }
       iterator
@@ -296,7 +325,7 @@ namespace __profile
       { 
         size_type old_size = _Base::bucket_count(); 
         iterator res = _Base::insert(__iter, __v);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return res;
       }
 
@@ -305,7 +334,7 @@ namespace __profile
       { 
         size_type old_size = _Base::bucket_count(); 
         const_iterator res =_Base::insert(__iter, __v);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
         return res;
       }
 
@@ -315,7 +344,7 @@ namespace __profile
       {
         size_type old_size = _Base::bucket_count(); 
         _Base::insert(__first.base(), __last.base());
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
 
       void
@@ -323,14 +352,14 @@ namespace __profile
       {
         size_type old_size = _Base::bucket_count(); 
         _Base::insert(__first, __last);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
      
       void rehash(size_type __n)
       {
         size_type old_size =  _Base::bucket_count();
         _Base::rehash(__n);
-        profile_resize(this, old_size,  _Base::bucket_count()); 
+        profile_resize(old_size,  _Base::bucket_count()); 
       }
     private:
       _Base&
@@ -339,13 +368,33 @@ namespace __profile
       const _Base&
       _M_base() const { return *this; }
 
-      void profile_resize(void* obj, size_type old_size, size_type new_size)
+      void profile_resize(size_type old_size, size_type new_size)
       {
         if (old_size != new_size)
         {
           __profcxx_hashtable_resize(this, old_size, new_size);
         }
-     }
+      }
+
+      void profile_destruct()
+      {
+        size_type __hops = 0, __lc = 0, __chain = 0;
+        for (iterator it = _M_base().begin(); it != _M_base().end(); it++)
+        {
+          while (it._M_cur_node->_M_next) {
+             __chain++;
+             it++;
+          }
+          if (__chain) {
+            __chain++;
+            __lc = __lc > __chain ? __lc : __chain;
+            __hops += __chain * (__chain - 1) / 2;
+            __chain = 0;
+          }
+        }
+        __profcxx_hashtable_destruct2(this, __lc,  _Base::size(), __hops);
+      }
+
    };
   template<typename _Value, typename _Hash, typename _Pred, typename _Alloc>
     inline void

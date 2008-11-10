@@ -582,6 +582,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	_M_buckets.insert(_M_buckets.end(), __n_buckets, (_Node*) 0);
 	_M_num_elements = 0;
     __profcxx_hashtable_construct(this, __n_buckets);
+    __profcxx_hashtable_construct2(this);
       }
 
       size_type
@@ -1079,8 +1080,10 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     hashtable<_Val, _Key, _HF, _Ex, _Eq, _All>::
     clear()
     {
-      if (_M_num_elements != 0)
+      size_type __hops=0, __lc = 0, __chain = 0;
+      if (_M_num_elements != 0) 
          __profcxx_hashtable_destruct(this, _M_buckets.size(), _M_num_elements);
+      
       for (size_type __i = 0; __i < _M_buckets.size(); ++__i)
 	{
 	  _Node* __cur = _M_buckets[__i];
@@ -1089,9 +1092,22 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	      _Node* __next = __cur->_M_next;
 	      _M_delete_node(__cur);
 	      __cur = __next;
+
+          // Compute the longest chain count.
+          __chain++;
 	    }
 	  _M_buckets[__i] = 0;
+
+      // Collect number of hops.
+      if (__chain > 1) {
+        __lc = __lc > __chain ? __lc : __chain;
+        __hops += (__chain-1) * __chain / 2;
+      }
+      __chain = 0;
 	}
+      if (_M_num_elements) {
+        __profcxx_hashtable_destruct2(this, __lc, _M_num_elements, __hops);
+      }
       _M_num_elements = 0;
     }
 

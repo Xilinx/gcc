@@ -1,0 +1,10 @@
+2008-08-15  Lixia Liu  <liulixia@purdue.edu>
+	* gcc.c (main): Invoke external script when -fprofile-stdlib-use is
+	enabled.
+	* c-cppbuiltin.c (c_cpp_builtins): Enable -D_GLIBCXX_PROFILE when
+	-fprofile-stdlib is on.
+	* cp/g++spec.c (lang_specific_driver): Link profiling runtime library
+	"libprofc++.a" when profiling is enabled.
+	* opts.c (common_handle_option): Handle profiling options
+	* common.opt: Add options for profile-stdlib-use and profile-stdlib
+	* ChangeLog.profile-stdlib: New file. Change log for directory src/gcc.

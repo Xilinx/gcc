@@ -1,0 +1,73 @@
+2008-11-10  Silvius Rus  <rus@google.com>
+	* libprofc++/Makefile.in: Add modules.
+	* libprofc++/profiler_vector_size.cc: Refactor.
+	* libprofc++/profiler_trace.cc: Refactor.
+	* libprofc++/profiler_hash_func.cc: New file.
+	* libprofc++/profiler_vector_to_list.cc: New file.
+	* libprofc++/profiler_trace.h: Refactor.
+	* libprofc++/profiler_hash_func.h: New file.
+	* libprofc++/profiler_vector_to_list.h: New file.
+	* libprofc++/profiler_container_size.cc: Refactor.
+	* libprofc++/profiler_container_size.h: Refactor.
+	* libprofc++/profiler.h: Add hooks for INEFFICIENT_HASH and 
+	VECTOR_TO_LIST.  Change arguments from void* to const void*.
+	* libprofc++/profiler_state.h: Include C++ headers instead of C.
+	* libprofc++/profiler_node.cc: Reorganize.
+	* libprofc++/profiler_hashtable_size.cc: Reorganize.
+	* libprofc++/profiler_node.h: Reorganize.
+	* include/profile/hashtable.h: Add INEFFICIENT_HASH instrumentation.
+	* include/profile/unordered_set:  Add INEFFICIENT_HASH instrumentation.
+	* include/profile/vector: Add VECTOR_TO_LIST instrumentation.
+	* include/profile/unordered_map: Add INEFFICIENT_HASH instrumentation.
+
+2008-08-15  Lixia Liu  <liulixia@purdue.edu>
+	* configure: Add directory libprofc++ for profiling runtime library.
+	* Makefile.in: Add directory libprofc++.
+	* Makefile.am: Ditto.
+	* acinclude.m4: Ditto.
+	* libprofc++/Makefile.in: New makefile.
+	* libprofc++/Makefile.am: New makefile.
+	* libprofc++/profiler.h: New public header file for runtime library.
+	* libprofc++/profiler_trace.h: New file.
+	* libprofc++/profiler_state.h: New file.
+	* libprofc++/profiler_node.h: New file.
+	* libprofc++/profiler_container_size.h: New file.
+	* libprofc++/profiler_trace.cc: New file.
+	* libprofc++/profiler_state.cc: New file.
+	* libprofc++/profiler_node.cc: New file.
+	* libprofc++/profiler_container_size.cc: New file.
+	* libprofc++/profiler_vector_size.cc: New file.
+	* libprofc++/profiler_hashtable_size.cc: New file.
+	* src/Makefile.in: Add new library.
+	* src/Makefile.am: Add new library.
+	* include/Makefile.in: Add new instrumented header files.
+	* include/Makefile.am: Add new instrumented header files.
+	* include/tr1_impl/hashtable (_Hashtable): Expose insert_return_type.
+	* include/std/vector: Include profile/vector guarded by 
+	_GLIBCXX_PROFILE.
+	* include/std/deque: Likewise.
+	* include/std/list: Likewise.
+	* include/std/map: Likewise.
+	* include/std/unordered_map: Likewise.
+	* include/std/bitset: Likewise.
+	* include/std/set: Likewise.
+	* include/std/unordered_set: Likewise.
+	* include/profile/base.h: New file.
+	* include/profile/set.h: New file for instrumented container set.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* include/profile/hashtable.h: Likewise.
+	* include/bits/c++config: Define profile namespace.
+	* include/backward/hash_map: New file for instrumented hash_map
+	* include/backward/hash_set: Likewise.
+	* testsuite/Makefile.in: Add check-profile.
+	* testsuite/Makefile.am: Ditto.
+	* testsuite/23_containers/vector/resize/moveable.cc: Aware profile 
+	mode.
+	* testsuite/31_profile/hash_map.cc: New testcase for profile mode.
+	* testsuite/31_profile/vector.cc:  New testcase for profile mode.
+	* testsuite/31_profile/unordered.cc: New testcase for profile mode.
+	* ChangeLog.profile-stdlib: New changelog for branch profile-stdlib.
