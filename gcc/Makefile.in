@@ -5000,15 +5000,15 @@ MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
 warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
-warm%-n.so : warm%.c built-melt-cc-script
+warm%-n.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
-warm%-d.so : warm%.c built-melt-cc-script
+warm%-d.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script -d $< $@
 ###
 ana%.so: ana%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
-ana%-n.so : ana%.c built-melt-cc-script
+ana%-n.so: ana%.c built-melt-cc-script
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 ana%-d.so : ana%.c built-melt-cc-script
 	./built-melt-cc-script -d $< $@
@@ -5016,9 +5016,6 @@ ana%-d.so : ana%.c built-melt-cc-script
 ##
 warmelt-%-0.so: $(srcdir)/warmelt-%-0.c built-melt-cc-script
 	./built-melt-cc-script $< $@
-
-warm%-n.so : warm%.c built-melt-cc-script
-	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 
 ## the warmelt files - order is important!
 WARMELT_FILES= \
@@ -5049,6 +5046,7 @@ WARMELT_BASE1ROW:=$(shell echo $(WARMELT_BASE1)|sed 's/ /:/g')
 ##
 WARMELT_BASE2= $(patsubst %, %-2, $(WARMELT_BASE))
 WARMELT_BASE2SO= $(patsubst %, %-2.so, $(WARMELT_BASE))
+WARMELT_BASE2NSO= $(patsubst %, %-2-n.so, $(WARMELT_BASE))
 WARMELT_BASE2C= $(patsubst %, %-2.c, $(WARMELT_BASE))
 WARMELT_BASE2ROW:=$(shell echo $(WARMELT_BASE2)|sed 's/ /:/g')
 ##
@@ -5168,13 +5166,6 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
-	@echo generating $@ using $(WARMELT_BASE1SO)
-	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt1" \
-	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
-	ls -l $@
 warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo test showmdata using $(WARMELT_BASE1SO)
@@ -5184,7 +5175,21 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_B
 	      -fbasilys-arg=$< \
 	      -fbasilys-secondarg=$@
 	ls -l $@
+warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
+	@echo generating $@ using $(WARMELT_BASE1SO)
+	-rm -f $@
+	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt1" \
+	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fbasilys-secondarg=$@
+	ls -l $@
 
+warmelt-%-2-n.so: warmelt-%-2.c built-melt-cc-script
+	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
+
+warmelt2n.modlis: $(WARMELT_BASE2NSO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE2); do echo $$f-n >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
 ####
 warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 

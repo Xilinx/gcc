@@ -54,17 +54,42 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; catch-all for scanning anyrecv
-(defun scanpat_anyrecv (recv psloc ctyp pcn)
-  (debug_msg recv "scanpat_anyrecv recv")
+;;; scanning nil
+(defun scanpat_nil (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_nil recv")
+  (assert_msg "check nil recv" (null recv))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+)
+(install_method discr_nullrecv scan_pattern scanpat_nil)
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; catch-all for scanning any reciever (by failing)
+(defun scanpat_anypattern (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_anypattern recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv psloc 
-		"unimplemented scan_pattern for " myclassname)
+		"unimplemented scan_pattern for any " myclassname)
     (assert_msg "catchall scan_pattern unimplemented" ())
 ))
-(install_method discr_anyrecv scan_pattern scanpat_anyrecv)
+(install_method class_srcpattern_any scan_pattern scanpat_anypattern)
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; catch-all for scanning any pattern (by failing)
+(defun scanpat_anypattern (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_anypattern recv")
+  (assert_msg "check pcn" (is_a recv class_srcpattern_any))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( (myclass (discrim recv))
+	 (myclassname (get_field :named_name myclass)) )
+    (error_strv psloc 
+		"unimplemented scan_pattern for pattern " myclassname)
+    (assert_msg "catchall scan_pattern unimplemented" ())
+))
+(install_method class_srcpattern_any scan_pattern scanpat_anypattern)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -262,9 +287,16 @@
      (normalize_tuple sins env ncx sloc)
      (debug_msg nins "scanpat_srcpatcomposite nins")
      (if bindins (list_append2list bindlist bindins))
+     (debug_msg souts "scanpat_srcpatcomposite souts")
      (foreach_in_multiple
       (souts)
       (pout :long ix)
+      (if (null pout)
+	  (progn
+	    (debug_msg discr_nullrecv "scanpat_srcpatcomposite null pout discr_nullrecv")
+	    (debug_msg discr_anyrecv "scanpat_srcpatcomposite null pout discr_anyrecv")
+	    ))
+      (debug_msg pout "scanpat_srcpatcomposite pout")
       (scan_pattern pout sloc ctyp pcn)
       )
      (debug_msg recv "scanpat_srcpatcomposite end recv")

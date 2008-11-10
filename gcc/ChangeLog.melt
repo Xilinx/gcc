@@ -1,3 +1,7 @@
+2008-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: added rules for warmelt2n.modlis...
+	* melt/warmelt-normatch.bysl: added catch alls for anypattern, any value, nil...
+
 2008-11-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[collecting reliably all stuff, e.g. gimple ctype, even when
 	allocated in a closure]
