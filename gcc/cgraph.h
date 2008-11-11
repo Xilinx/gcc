@@ -211,11 +211,9 @@ struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_call
   /* Unique id of the edge.  */
   int uid;
   /* Depth of loop nest, 1 means no loop nest.  */
-  unsigned int loop_nest : 30;
+  unsigned int loop_nest : 31;
   /* Whether this edge describes a call that was originally indirect.  */
   unsigned int indirect_call : 1;
-  /* Whether this edge describes a call from within a TM_ATOMIC region.  */
-  unsigned int tm_atomic_call : 1;
 };
 
 #define CGRAPH_FREQ_BASE 1000
@@ -352,6 +350,8 @@ void verify_cgraph_node (struct cgraph_node *);
 void cgraph_build_static_cdtor (char which, tree body, int priority);
 void cgraph_reset_static_var_maps (void);
 void init_cgraph (void);
+struct cgraph_node * cgraph_copy_node_for_versioning (struct cgraph_node *,
+		tree, VEC(cgraph_edge_p,heap)*);
 struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						VEC(cgraph_edge_p,heap)*,
 						varray_type,

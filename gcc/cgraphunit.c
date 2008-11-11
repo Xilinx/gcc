@@ -1436,7 +1436,7 @@ update_call_expr (struct cgraph_node *new_version)
    are cloned to the new version node.  Return the new
    version node.  */
 
-static struct cgraph_node *
+struct cgraph_node *
 cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 				 tree new_decl,
 				 VEC(cgraph_edge_p,heap) *redirect_callers)
@@ -1450,7 +1450,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 
    new_version = cgraph_node (new_decl);
 
-   new_version->analyzed = true;
+   new_version->analyzed = old_version->analyzed;
    new_version->local = old_version->local;
    new_version->global = old_version->global;
    new_version->rtl = new_version->rtl;
@@ -1533,11 +1533,14 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
   tree_function_versioning (old_decl, new_decl, tree_map, false, args_to_skip);
 
-  /* Update the new version's properties.
-     Make The new version visible only within this translation unit.  Make sure
-     that is not weak also.
-     ??? We cannot use COMDAT linkage because there is no
-     ABI support for this.  */
+  /* Update the new version's properties.  Give it a unique name.  Make it
+     visible only within this translation unit.  Make sure that is not weak.
+     ??? We cannot use COMDAT linkage because there is no ABI support for
+     this.  */
+  DECL_NAME (new_decl)
+    = create_tmp_var_name (IDENTIFIER_POINTER (DECL_NAME (old_decl)));
+  SET_DECL_ASSEMBLER_NAME (new_decl, NULL_TREE);
+  SET_DECL_RTL (new_decl, NULL_RTX);
   DECL_EXTERNAL (new_version_node->decl) = 0;
   DECL_ONE_ONLY (new_version_node->decl) = 0;
   TREE_PUBLIC (new_version_node->decl) = 0;

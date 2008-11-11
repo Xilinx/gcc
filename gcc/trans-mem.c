@@ -25,6 +25,7 @@
 #include "gimple.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
+#include "tree-inline.h"
 #include "except.h"
 #include "diagnostic.h"
 #include "toplev.h"
@@ -155,6 +156,29 @@ is_tm_pure (tree x)
   return false;
 }
 
+/* Return true if CALL is const, or tm_pure.  */
+
+static bool
+is_tm_pure_call (gimple call)
+{
+  tree fn = gimple_call_fn (call);
+  unsigned flags;
+
+  if (is_tm_pure (TREE_TYPE (fn)))
+    return true;
+
+  if (TREE_CODE (fn) == ADDR_EXPR)
+    {
+      fn = TREE_OPERAND (fn, 0);
+      gcc_assert (TREE_CODE (fn) == FUNCTION_DECL);
+    }
+  else
+    fn = TREE_TYPE (fn);
+  flags = flags_from_decl_or_type (fn);
+
+  return (flags & ECF_CONST) != 0;
+}
+
 /* Return true if X has been marked TM_CALLABLE.  */
 
 bool
@@ -188,6 +212,49 @@ is_transactional_stmt (const_gimple stmt)
       return false;
     }
 }
+
+/* Return true for built in functions that "end" a transaction.   */
+
+static bool
+is_tm_ending_fndecl (tree fndecl)
+{
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_TM_COMMIT:
+      case BUILT_IN_TM_ABORT:
+      case BUILT_IN_TM_RETRY:
+      case BUILT_IN_TM_IRREVOKABLE:
+	return true;
+      default:
+	break;
+      }
+
+  return false;
+}
+
+/* Return a TM-aware replacement function for DECL.  */
+
+static tree
+find_tm_replacement_function (tree fndecl)
+{
+  /* ??? We may well want TM versions of most of the common <string.h>
+     functions.  For now, we've already these two defined.  */
+  if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
+    switch (DECL_FUNCTION_CODE (fndecl))
+      {
+      case BUILT_IN_MEMCPY:
+	return built_in_decls[BUILT_IN_TM_MEMCPY];
+      case BUILT_IN_MEMMOVE:
+	return built_in_decls[BUILT_IN_TM_MEMMOVE];
+      default:
+	return NULL;
+      }
+
+  /* ??? Handle tm_wrap attribute here.  */
+  return NULL;
+}
+
 
 static void lower_sequence_tm (unsigned *, gimple_seq);
 static void lower_sequence_no_tm (gimple_seq);
@@ -247,45 +314,20 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree fn;
-  unsigned flags;
 
   gimple_call_set_in_tm_atomic (stmt, true);
 
-  flags = gimple_call_flags (stmt);
-  if (flags & ECF_CONST)
+  if (is_tm_pure_call (stmt))
     return;
-
-  if (flag_exceptions && !(flags & ECF_NOTHROW))
-    *state |= GTMA_HAVE_UNCOMMITTED_THROW;
-
-  fn = gimple_call_fn (stmt);
-
-  /* If this function is pure, we can ignore it.  */
-  if (is_tm_pure (TREE_TYPE (fn)))
-    return;
-
-  if (TREE_CODE (fn) == ADDR_EXPR)
-    {
-      fn = TREE_OPERAND (fn, 0);
-      gcc_assert (TREE_CODE (fn) == FUNCTION_DECL);
-    }
-  else
-    {
-      *state |= GTMA_HAVE_CALL_IRREVOKABLE;
-      return;
-    }
 
   /* Check if this call is a transaction abort.  */
-  if (DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+  fn = gimple_call_fndecl (stmt);
+  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
       && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_ABORT)
-    {
-      *state |= GTMA_HAVE_ABORT;
-      return;
-    }
+    *state |= GTMA_HAVE_ABORT;
 
-  /* At this point pass_ipa_tm has not run, so no transactional
-     clones exist yet, so there's no point in looking for them.  */
-  *state |= GTMA_HAVE_CALL_IRREVOKABLE;
+  /* Note that something may happen.  */
+  *state |= GTMA_HAVE_LOAD | GTMA_HAVE_STORE;
 }
 
 /* Lower a GIMPLE_TM_ATOMIC statement.  The GSI is advanced.  */
@@ -400,15 +442,10 @@ lower_sequence_no_tm (gimple_seq seq)
 static unsigned int
 execute_lower_tm (void)
 {
-  /* When lowering a transactional clone, we begin the function inside
-     a transaction.  */
-  if (DECL_IS_TM_CLONE (current_function_decl))
-    {
-      unsigned state = 0;
-      lower_sequence_tm (&state, gimple_body (current_function_decl));
-    }
-  else
-    lower_sequence_no_tm (gimple_body (current_function_decl));
+  /* Transactional clones aren't created until a later pass.  */
+  gcc_assert (!DECL_IS_TM_CLONE (current_function_decl));
+
+  lower_sequence_no_tm (gimple_body (current_function_decl));
 
   return 0;
 }
@@ -494,6 +531,66 @@ tm_region_init_1 (gimple stmt, void *xdata)
   *pptr = region;
 }
 
+static void
+tm_region_init_2 (struct tm_region *region, VEC (basic_block, heap) **pqueue)
+{
+  gcc_assert (VEC_empty (basic_block, *pqueue));
+
+  VEC_quick_push (basic_block, *pqueue, region->entry_block);
+  do
+    {
+      basic_block bb = VEC_pop (basic_block, *pqueue);
+      gimple_stmt_iterator gsi;
+
+      /* Check to see if this is the end of the region by seeing if it
+	 ends in a call to __tm_commit.  */
+      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
+	{
+	  gimple g = gsi_stmt (gsi);
+	  if (gimple_code (g) == GIMPLE_CALL)
+	    {
+	      tree fn = gimple_call_fndecl (g);
+	      if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
+		  && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
+		  && lookup_stmt_eh_region (g) == region->region_nr)
+		{
+		  bitmap_set_bit (region->exit_blocks, bb->index);
+		  goto skip;
+		}
+	    }
+	}
+
+      for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
+	   bb = next_dom_son (CDI_DOMINATORS, bb))
+	VEC_safe_push (basic_block, heap, *pqueue, bb);
+
+    skip:;
+    }
+  while (!VEC_empty (basic_block, *pqueue));
+}
+
+static struct tm_region *
+tm_region_init (void)
+{
+  struct tm_region *r, *regions = NULL;
+  VEC (basic_block, heap) *queue;
+
+  /* Find each GIMPLE_TM_ATOMIC statement.  This data is stored
+     in the exception handling tables, so it's quickest to get
+     it out that way than actually search the function.  */
+  for_each_tm_atomic (false, tm_region_init_1, &regions);
+
+  if (regions == NULL)
+    return NULL;
+
+  /* Find the exit blocks for each region.  */
+  queue = VEC_alloc (basic_block, heap, 10);
+  for (r = regions; r; r = r->next)
+    tm_region_init_2 (r, &queue);
+  VEC_free (basic_block, heap, queue);
+
+  return regions;
+}
 
 /* The "gate" function for all transactional memory expansion and optimization
    passes.  We collect region information for each top-level transaction, and
@@ -503,9 +600,6 @@ tm_region_init_1 (gimple stmt, void *xdata)
 static bool
 gate_tm_init (void)
 {
-  struct tm_region *region;
-  VEC (basic_block, heap) *queue;
-
   if (!flag_tm)
     return false;
 
@@ -515,21 +609,19 @@ gate_tm_init (void)
   /* If the function is a TM_CLONE, then the entire function is the region.  */
   if (DECL_IS_TM_CLONE (current_function_decl))
     {
-      region = (struct tm_region *)
+      struct tm_region *region = (struct tm_region *)
 	obstack_alloc (&tm_obstack.obstack, sizeof (struct tm_region));
       region->next = NULL;
       region->tm_atomic_stmt = NULL;
       region->entry_block = ENTRY_BLOCK_PTR;
       region->exit_blocks = NULL;
       region->region_nr = -1;
+      all_tm_regions = region;
 
       return true;
     }
 
-  /* Find each GIMPLE_TM_ATOMIC statement.  This data is stored
-     in the exception handling tables, so it's quickest to get
-     it out that way than actually search the function.  */
-  for_each_tm_atomic (false, tm_region_init_1, &all_tm_regions);
+  all_tm_regions = tm_region_init ();
 
   /* If we didn't find any regions, cleanup and skip the whole tree
      of tm-related optimizations.  */
@@ -538,49 +630,6 @@ gate_tm_init (void)
       bitmap_obstack_release (&tm_obstack);
       return false;
     }
-
-  queue = VEC_alloc (basic_block, heap, 10);
-
-  /* Find the exit blocks for each region.  */
-  for (region = all_tm_regions; region ; region = region->next)
-    {
-      basic_block bb;
-      gimple_stmt_iterator gsi;
-
-      VEC_quick_push (basic_block, queue, region->entry_block);
-      do
-	{
-	  bb = VEC_pop (basic_block, queue);
-
-	  /* Check to see if this is the end of the region by
-	     seeing if it ends in a call to __tm_commit.  */
-	  for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
-	    {
-	      gimple g = gsi_stmt (gsi);
-	      if (gimple_code (g) == GIMPLE_CALL)
-		{
-		  tree fn = gimple_call_fndecl (g);
-		  if (fn && DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
-		      && DECL_FUNCTION_CODE (fn) == BUILT_IN_TM_COMMIT
-		      && lookup_stmt_eh_region (g) == region->region_nr)
-		    {
-		      bitmap_set_bit (region->exit_blocks, bb->index);
-		      goto skip;
-		    }
-		}
-	    }
-
-	  for (bb = first_dom_son (CDI_DOMINATORS, bb);
-	       bb;
-	       bb = next_dom_son (CDI_DOMINATORS, bb))
-	    VEC_safe_push (basic_block, heap, queue, bb);
-
-	skip:;
-	}
-      while (!VEC_empty (basic_block, queue));
-    }
-
-  VEC_free (basic_block, heap, queue);
 
   return true;
 }
@@ -623,46 +672,6 @@ add_stmt_to_tm_region (struct tm_region *region, gimple stmt)
 {
   if (region->region_nr >= 0)
     add_stmt_to_eh_region (stmt, region->region_nr);
-}
-
-
-/* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
-
-static void
-expand_irrevokable (struct tm_region *region, gimple_stmt_iterator *gsi)
-{
-  gimple g;
-  tree var;
-
-  tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
-
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
-  add_stmt_to_tm_region (region, g);
-
-  gsi_insert_before (gsi, g, GSI_SAME_STMT);
-
-  /* We may be inserting this for a function or asm that doesn't clobber
-     all memory state, so we can't just use mark_vops_in_stmt as below.  */
-  var = gimple_global_var (cfun);
-  if (var)
-    mark_sym_for_renaming (var);
-  else
-    {
-      bitmap_iterator bi;
-      unsigned int i;
-
-      EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
-	{
-	  var = referenced_var (i);
-	  mark_sym_for_renaming (var);
-	}
-
-      EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
-	{
-	  var = referenced_var (i);
-	  mark_sym_for_renaming (var);
-	}
-    }
 }
 
 
@@ -867,68 +876,34 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
    one of the builtins that end a transaction.  */
 
 static bool
-expand_call_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
+expand_call_tm (struct tm_region * ARG_UNUSED (region),
+		gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree fn_decl;
-  unsigned flags;
 
-  flags = gimple_call_flags (stmt);
-  if (flags & ECF_CONST)
+  if (is_tm_pure_call (stmt))
     return false;
-
-  if (flag_exceptions && !(flags & ECF_NOTHROW))
-    tm_atomic_subcode_ior (region, GTMA_HAVE_UNCOMMITTED_THROW);
 
   fn_decl = gimple_call_fndecl (stmt);
   if (!fn_decl)
     {
       /* ??? The ABI under discussion has us calling into the runtime
 	 to determine if there's a transactional version of this function.
-	 For now, just switch to irrevokable mode.  */
-      expand_irrevokable (region, gsi);
-      return false;
+	 For now, ipa_tm_scan_irr_block considers these to be irrevokable,
+	 which means we should never get here.  */
+      gcc_unreachable ();
     }
 
-  if (DECL_IS_TM_CLONE (fn_decl) || is_tm_pure (fn_decl))
-    return false;
-
-  if (DECL_BUILT_IN_CLASS (fn_decl) == BUILT_IN_NORMAL)
-    {
-      switch (DECL_FUNCTION_CODE (fn_decl))
-	{
-	case BUILT_IN_TM_COMMIT:
-	case BUILT_IN_TM_ABORT:
-	case BUILT_IN_TM_RETRY:
-	  /* These calls end a transaction.  */
-	  if (lookup_stmt_eh_region (stmt) == region->region_nr)
-	    return true;
-	  break;
-
-	/* ??? We may well want TM versions of most of the common
-	   <string.h> functions.  */
-	case BUILT_IN_MEMCPY:
-	  gimple_call_set_fndecl (stmt, built_in_decls[BUILT_IN_TM_MEMCPY]);
-	  return false;
-	case BUILT_IN_MEMMOVE:
-	  gimple_call_set_fndecl (stmt, built_in_decls[BUILT_IN_TM_MEMMOVE]);
-	  return false;
-
-	default:
-	  break;
-	}
-
-      return false;
-    }
-
-  expand_irrevokable (region, gsi);
-  return false;
+  return is_tm_ending_fndecl (fn_decl);
 }
 
 
 /* Expand all statements in BB as appropriate for being inside
-   a transaction.  */
-static void
+   a transaction.  Return true if we reach the end of the transaction,
+   or reach an irrevokable state.  */
+
+static bool
 expand_block_tm (struct tm_region *region, basic_block bb)
 {
   gimple_stmt_iterator gsi;
@@ -949,18 +924,19 @@ expand_block_tm (struct tm_region *region, basic_block bb)
 
 	case GIMPLE_CALL:
 	  if (expand_call_tm (region, &gsi))
-	    return;
+	    return true;
 	  break;
 
 	case GIMPLE_ASM:
-	  expand_irrevokable (region, &gsi);
-	  break;
+	  gcc_unreachable ();
 
 	default:
 	  break;
 	}
       gsi_next (&gsi);
     }
+
+  return false;
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -987,7 +963,9 @@ execute_tm_mark (void)
 	do
 	  {
 	    bb = VEC_pop (basic_block, queue);
-	    expand_block_tm (region, bb);
+
+	    if (expand_block_tm (region, bb))
+	      continue;
 
 	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
 	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
@@ -1253,109 +1231,489 @@ struct gimple_opt_pass pass_tm_memopt =
 };
 
 
-static struct cgraph_node_hook_list *function_insertion_hook_holder;
+/* Interprocedual analysis for the creation of transactional clones.
+   The aim of this pass is to find which functions are referenced in
+   a non-irrevokable transaction context, and for those over which
+   we have control (or user directive), create a version of the 
+   function which uses only the transactional interface to reference
+   protected memories.  This analysis proceeds in several steps:
+
+     (1) Collect the set of all possible transactional clones:
+
+	(a) For all local public functions marked tm_callable, push
+	    it onto the tm_callee queue.
+
+	(b) For all local functions, scan for calls marked in_tm_atomic.
+	    Push the caller and callee onto the tm_caller and tm_callee
+	    queues.  Count the number of callers for each callee.
+
+	(c) For each local function on the callee list, assume we will
+	    create a transactional clone.  Push *all* calls onto the
+	    callee queues; count the number of clone callers separately
+	    to the number of original callers.
+
+     (2) Propagate irrevokable status up the dominator tree:
+
+	(a) Any external function on the callee list that is not marked
+	    tm_callable is irrevokable.  Push all callers of such onto
+	    a worklist.
+
+	(b) For each function on the worklist, mark each block that
+	    contains an irrevokable call.  Use the AND operator to
+	    propagate that mark up the dominator tree.
+
+	(c) If we reach the entry block for a possible transactional
+	    clone, then the transactional clone is irrevokable, and
+	    we should not create the clone after all.  Push all 
+	    callers onto the worklist.
+
+	(d) Place tm_irrevokable calls at the beginning of the relevant
+	    blocks.  Special case here is the entry block for the entire
+	    tm_atomic region; there we mark it MUST_CALL_IRREVOKABLE for
+	    the library to begin the region in serial mode.  Decrement
+	    the call count for all callees in the irrevokable region.
+
+     (3) Create the transactional clones:
+
+	Any tm_callee that still has a non-zero call count is cloned.
+*/
+
+/* This structure is stored in the AUX field of each cgraph_node.  */
+struct tm_ipa_cg_data
+{
+  /* The clone of the function that got created.  */
+  struct cgraph_node *clone;
+
+  /* The tm regions in the normal function.  */
+  struct tm_region *all_tm_regions;
+
+  /* The blocks of the normal/clone functions that contain irrevokable 
+     calls, or blocks that are post-dominated by irrevokable calls.  */
+  bitmap irrevokable_blocks_normal;
+  bitmap irrevokable_blocks_clone;
+
+  /* The number of callers to the transactional clone of this function
+     from normal and transactional clones respectively.  */
+  unsigned tm_callers_normal;
+  unsigned tm_callers_clone;
+
+  /* True if all calls to this function's transactional clone
+     are irrevokable.  Also automatically true if the function
+     has no transactional clone.  */
+  bool is_irrevokable;
+
+  /* Flags indicating the presence of this function in various queues.  */
+  bool in_callee_queue;
+  bool in_worklist;
+
+  /* Flags indicating the kind of scan desired while in the worklist.  */
+  bool want_irr_scan_normal;
+};
+
+typedef struct cgraph_node *cgraph_node_p;
+
+DEF_VEC_P (cgraph_node_p);
+DEF_VEC_ALLOC_P (cgraph_node_p, heap);
+
+typedef VEC (cgraph_node_p, heap) *cgraph_node_queue;
+
+
+/* Return the ipa data associated with NODE, allocating zeroed memory
+   if necessary.  */
+
+static struct tm_ipa_cg_data *
+get_cg_data (struct cgraph_node *node)
+{
+  struct tm_ipa_cg_data *d = (struct tm_ipa_cg_data *) node->aux;
+
+  if (d == NULL)
+    {
+      d = (struct tm_ipa_cg_data *)
+	obstack_alloc (&tm_obstack.obstack, sizeof (*d));
+      node->aux = (void *) d;
+      memset (d, 0, sizeof (*d));
+    }
+
+  return d;
+}
+
+/* Add NODE to the end of QUEUE, unless IN_QUEUE_P indicates that 
+   it is already present.  */
 
 static void
-ipa_tm_analyze_function (struct cgraph_node *node)
+maybe_push_queue (struct cgraph_node *node,
+		  cgraph_node_queue *queue_p, bool *in_queue_p)
+{
+  if (!*in_queue_p)
+    {
+      *in_queue_p = true;
+      VEC_safe_push (cgraph_node_p, heap, *queue_p, node);
+    }
+}
+
+/* Scan all calls in NODE that are within a transaction region,
+   and push the resulting nodes into the callee queue.  */
+
+static void
+ipa_tm_scan_calls_tm_atomic (struct cgraph_node *node,
+			     cgraph_node_queue *callees_p)
 {
   struct cgraph_edge *e;
 
-  if (cgraph_function_body_availability (node) < AVAIL_OVERWRITABLE)
-    return;
+  for (e = node->callees; e ; e = e->next_callee)
+    if (gimple_call_in_tm_atomic_p (e->call_stmt))
+      {
+	struct tm_ipa_cg_data *d;
 
-  /* If this is a transaction clone, then by definition we're already
-     inside a transaction, and thus by definition all of our callees
-     are within a transaction.  */
-  if (DECL_IS_TM_CLONE (node->decl))
+	if (is_tm_pure_call (e->call_stmt))
+	  continue;
+	if (find_tm_replacement_function (e->callee->decl))
+	  continue;
+	
+	d = get_cg_data (e->callee);
+	d->tm_callers_normal++;
+	maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
+      }
+}
+
+/* Scan all calls in NODE as if this is the transactional clone,
+   and push the destinations into the callee queue.  */
+
+static void
+ipa_tm_scan_calls_clone (struct cgraph_node *node, 
+			 cgraph_node_queue *callees_p)
+{
+  struct cgraph_edge *e;
+
+  for (e = node->callees; e ; e = e->next_callee)
+    if (!is_tm_pure_call (e->call_stmt))
+      {
+	struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+
+	d->tm_callers_clone++;
+	maybe_push_queue (e->callee, callees_p, &d->in_callee_queue);
+      }
+}
+
+/* The function NODE has been detected to be irrevokable.  Push all
+   of its callers onto WORKLIST for the purpose of re-scanning them.  */
+
+static void
+ipa_tm_note_irrevokable (struct cgraph_node *node,
+			 cgraph_node_queue *worklist_p)
+{
+  struct tm_ipa_cg_data *d = get_cg_data (node);
+  struct cgraph_edge *e;
+
+  d->is_irrevokable = true;
+
+  for (e = node->callers; e ; e = e->next_caller)
     {
-      for (e = node->callees; e ; e = e->next_callee)
-	e->tm_atomic_call = 1;
+      d = get_cg_data (e->caller);
+
+      /* Don't examine recursive calls.  */
+      if (e->caller == node)
+	continue;
+      if (gimple_call_in_tm_atomic_p (e->call_stmt))
+	d->want_irr_scan_normal = true;
+      maybe_push_queue (e->caller, worklist_p, &d->in_worklist);
+    }
+}
+
+/* A subroutine of ipa_tm_scan_irr_blocks; return true iff any statement
+   within the block is irrevokable.  */
+
+static bool
+ipa_tm_scan_irr_block (basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+  tree fndecl;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      switch (gimple_code (stmt))
+	{
+	case GIMPLE_CALL:
+	  if (is_tm_pure_call (stmt))
+	    break;
+
+	  /* ??? For now we consider all non-pure indirect calls
+	     to be irrevokable.  The tm library may provide a 
+	     means to look up a transaction-aware clone from a
+	     function pointer.  */
+	  fndecl = gimple_call_fndecl (stmt);
+	  if (fndecl == NULL)
+	    return true;
+	  else
+	    {
+	      struct tm_ipa_cg_data *d;
+
+	      if (is_tm_ending_fndecl (fndecl))
+		break;
+	      if (find_tm_replacement_function (fndecl))
+		break;
+
+	      d = get_cg_data (cgraph_node (fndecl));
+	      if (d->is_irrevokable)
+		return true;
+	    }
+	  break;
+
+	case GIMPLE_ASM:
+	  /* ??? The Approved Method of indicating that an inline
+	     assembly statement is not relevant to the transaction
+	     is to wrap it in a __tm_waiver block.  This is not 
+	     yet implemented, so we can't check for it.  */
+	  return true;
+
+	default:
+	  break;
+	}
     }
 
-  /* Otherwise, scan all blocks and transfer the IN-ATOMIC bit we set
-     on the call statement to the cgraph edge.  */
-  else
-    {
-      basic_block bb;
+  return false;
+}
 
-      FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (node->decl))
+/* For each of the blocks seeded witin PQUEUE, walk its dominator tree
+   looking for new irrevokable blocks, marking them in NEW_IRR.  Don't
+   bother scanning past OLD_IRR or EXIT_BLOCKS.  */
+
+static bool
+ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
+		        bitmap old_irr, bitmap exit_blocks)
+{
+  bool any_new_irr = false;
+
+  do
+    {
+      basic_block bb = VEC_pop (basic_block, *pqueue);
+
+      /* Don't re-scan blocks we know already are irrevokable.  */
+      if (old_irr && bitmap_bit_p (old_irr, bb->index))
+	continue;
+
+      if (ipa_tm_scan_irr_block (bb))
 	{
-	  gimple_stmt_iterator gsi;
-	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	  bitmap_set_bit (new_irr, bb->index);
+	  any_new_irr = true;
+	}
+      else if (exit_blocks == NULL || !bitmap_bit_p (exit_blocks, bb->index))
+	for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
+	     bb = next_dom_son (CDI_DOMINATORS, bb))
+	  VEC_safe_push (basic_block, heap, *pqueue, bb);
+    }
+  while (!VEC_empty (basic_block, *pqueue));
+
+  return any_new_irr;
+}
+
+/* Propagate the irrevokable property both up and down the dominator tree.
+   BB is the current block being scanned; EXIT_BLOCKS are the edges of the
+   TM regions; OLD_IRR is the results of a previous scan of the dominator
+   tree which has been fully propagated; NEW_IRR is the set of new blocks
+   which are gaining the irrevokable property during the current scan.  */
+
+static bool
+ipa_tm_propagate_irr (basic_block bb, bitmap new_irr, bitmap old_irr,
+		      bitmap exit_blocks, bool parent_irr)
+{
+  bool this_irr;
+  unsigned index = bb->index;
+
+  /* If this block is in the old set, no need to rescan.  */
+  if (old_irr && bitmap_bit_p (old_irr, index))
+    return true;
+
+  /* For downward propagation, the block is irrevokable if either 
+     the parent block is irrevokable or a scan of the the block
+     revealed an irrevokable statement.  */
+  this_irr = (parent_irr || bitmap_bit_p (new_irr, index));
+
+  if (!bitmap_bit_p (exit_blocks, index))
+    {
+      basic_block son = first_dom_son (CDI_DOMINATORS, bb);
+      bool all_son_irr = true;
+
+      if (son)
+	{
+	  do
 	    {
-	      gimple stmt = gsi_stmt (gsi);
-	      if (is_gimple_call (stmt)
-		  && gimple_call_in_tm_atomic_p (stmt))
-		{
-		  e = cgraph_edge (node, stmt);
-		  e->tm_atomic_call = 1;
-		}
+	      if (!ipa_tm_propagate_irr (son, new_irr, old_irr,
+					 exit_blocks, this_irr))
+		all_son_irr = false;
+	      son = next_dom_son (CDI_DOMINATORS, son);
+	    }
+	  while (son);
+
+	  /* For upward propagation, the block is irrevokable if
+	     all dominated blocks are irrevokable.  */
+	  this_irr |= all_son_irr;
+	}
+    }
+
+  if (this_irr)
+    bitmap_set_bit (new_irr, index);
+
+  return this_irr;
+}
+
+static void
+ipa_tm_decrement_clone_counts (basic_block bb, bool for_clone)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (is_gimple_call (stmt) && !is_tm_pure_call (stmt))
+	{
+	  tree fndecl = gimple_call_fndecl (stmt);
+	  if (fndecl)
+	    {
+	      struct tm_ipa_cg_data *d;
+	      unsigned *pcallers;
+
+	      if (is_tm_ending_fndecl (fndecl))
+		continue;
+	      if (find_tm_replacement_function (fndecl))
+		continue;
+
+	      d = get_cg_data (cgraph_node (fndecl));
+	      pcallers = (for_clone ? &d->tm_callers_clone
+			  : &d->tm_callers_normal);
+
+	      gcc_assert (*pcallers > 0);
+	      *pcallers -= 1;
 	    }
 	}
     }
 }
 
-static void
-ipa_tm_add_new_function (struct cgraph_node *node, void * ARG_UNUSED (data))
+/* (Re-)Scan the tm_atomic blocks in NODE for calls to irrevokable functions,
+   as well as other irrevokable actions such as inline assembly.  Mark all
+   such blocks as irrevokable and decrement the number of calls to
+   transactional clones.  Return true if, for the transactional clone, the
+   entire function is irrevokable.  */
+
+static bool
+ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
 {
-  ipa_tm_analyze_function (node);
+  struct tm_ipa_cg_data *d;
+  bitmap new_irr, old_irr;
+  VEC (basic_block, heap) *queue;
+  bool ret = false;
+
+  current_function_decl = node->decl;
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  calculate_dominance_info (CDI_DOMINATORS);
+
+  d = get_cg_data (node);
+  queue = VEC_alloc (basic_block, heap, 10);
+  new_irr = BITMAP_ALLOC (&tm_obstack);
+
+  /* Scan each tm region, propagating irrevokable status through the tree.  */
+  if (for_clone)
+    {
+      old_irr = d->irrevokable_blocks_clone;
+      VEC_quick_push (basic_block, queue, single_succ (ENTRY_BLOCK_PTR));
+      if (ipa_tm_scan_irr_blocks (&queue, new_irr, old_irr, NULL))
+	ret = ipa_tm_propagate_irr (single_succ (ENTRY_BLOCK_PTR), new_irr,
+				    old_irr, NULL, false);
+    }
+  else
+    {
+      struct tm_region *region;
+
+      old_irr = d->irrevokable_blocks_normal;
+      for (region = d->all_tm_regions; region; region = region->next)
+	{
+	  VEC_quick_push (basic_block, queue, region->entry_block);
+	  if (ipa_tm_scan_irr_blocks (&queue, new_irr, old_irr,
+				      region->exit_blocks))
+	    ipa_tm_propagate_irr (region->entry_block, new_irr, old_irr,
+				  region->exit_blocks, false);
+	}
+    }
+
+  /* If we found any new irrevokable blocks, reduce the call count for
+     transactional clones within the irrevokable blocks.  Save the new
+     set of irrevokable blocks for next time.  */
+  if (!bitmap_empty_p (new_irr))
+    {
+      bitmap_iterator bmi;
+      unsigned i;
+
+      EXECUTE_IF_SET_IN_BITMAP (new_irr, 0, i, bmi)
+	ipa_tm_decrement_clone_counts (BASIC_BLOCK (i), for_clone);
+
+      if (old_irr)
+	{
+	  bitmap_ior_into (old_irr, new_irr);
+	  BITMAP_FREE (new_irr);
+	}
+      else if (for_clone)
+	d->irrevokable_blocks_clone = new_irr;
+      else
+	d->irrevokable_blocks_normal = new_irr;
+    }
+  else
+    BITMAP_FREE (new_irr);
+
+  VEC_free (basic_block, heap, queue);
+  pop_cfun ();
+  current_function_decl = NULL;
+
+  return ret;
 }
 
-static void
-ipa_tm_generate_summary (void)
+/* Invoke tm_region_init within the context of NODE.  */
+
+static struct tm_region *
+ipa_tm_region_init (struct cgraph_node *node)
 {
-  struct cgraph_node *node;
+  struct tm_region *regions;
 
-  function_insertion_hook_holder =
-    cgraph_add_function_insertion_hook (&ipa_tm_add_new_function, NULL);
+  current_function_decl = node->decl;
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  calculate_dominance_info (CDI_DOMINATORS);
 
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->lowered)
-      ipa_tm_analyze_function (node);
+  regions = tm_region_init ();
+
+  pop_cfun ();
+  current_function_decl = NULL;
+
+  return regions;
 }
 
+/* Create a copy the function (possibly declaration only) of OLD_NODE,
+   appropriate for the transactional clone.  */
+
 static void
-ipa_tm_create_version (struct cgraph_node *old_node,
-		       VEC (cgraph_edge_p, heap) *redirections)
+ipa_tm_create_version (struct cgraph_node *old_node)
 {
+  tree new_decl, old_decl;
   struct cgraph_node *new_node;
   const char *old_asm_name;
   struct demangle_component *dc;
   char *tm_name;
   void *alloc = NULL;
 
-  new_node = cgraph_function_versioning (old_node, redirections,
-					 NULL, NULL);
+  old_decl = old_node->decl;
+  new_decl = copy_node (old_decl);
+  new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
+  get_cg_data (old_node)->clone = new_node;
 
-  /* ??? Versioning can fail at the discression of the inliner.  */
-  if (new_node == NULL)
-    return;
+  if (!DECL_EXTERNAL (old_decl))
+    tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
 
-  /* The generic versioning code forces the function to be visible
-     only within this translation unit.  This isn't what we want for
-     functions the programmer marked TM_CALLABLE.  */
-  if (cgraph_is_master_clone (old_node) && is_tm_callable (old_node->decl))
-    {
-      DECL_EXTERNAL (new_node->decl) = DECL_EXTERNAL (old_node->decl);
-      TREE_PUBLIC (new_node->decl) = TREE_PUBLIC (old_node->decl);
-      DECL_WEAK (new_node->decl) = DECL_WEAK (old_node->decl);
-
-      new_node->local.externally_visible = old_node->local.externally_visible;
-      new_node->local.local = old_node->local.local;
-    }
-
-  DECL_IS_TM_CLONE (new_node->decl) = 1;
-
-  /* ??? In tree_function_versioning, we futzed with the DECL_NAME.  I'm
-     not sure why we did this, as it's surely going to destroy any hope
-     of debugging.  */
-  DECL_NAME (new_node->decl) = DECL_NAME (old_node->decl);
+  DECL_IS_TM_CLONE (new_decl) = 1;
 
   /* Determine if the symbol is already a valid C++ mangled name.  Do this
      even for C, which might be interfacing with C++ code via appropriately
      ugly identifiers.  */
   /* ??? We could probably do just as well checking for "_Z" and be done.  */
-  old_asm_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_node->decl));
+  old_asm_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_decl));
   dc = cplus_demangle_v3_components (old_asm_name, DMGL_NO_OPTS, &alloc);
 
   if (dc == NULL)
@@ -1364,7 +1722,7 @@ ipa_tm_create_version (struct cgraph_node *old_node,
 
     do_unencoded:
       sprintf (length, "%u",
-	       IDENTIFIER_LENGTH (DECL_ASSEMBLER_NAME (old_node->decl)));
+	       IDENTIFIER_LENGTH (DECL_ASSEMBLER_NAME (old_decl)));
       tm_name = concat ("_ZGTt", length, old_asm_name, NULL);
     }
   else
@@ -1393,59 +1751,324 @@ ipa_tm_create_version (struct cgraph_node *old_node,
       tm_name = concat ("_ZGTt", old_asm_name, NULL);
     }
 
-  SET_DECL_ASSEMBLER_NAME (new_node->decl, get_identifier (tm_name));
+  SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
   free (tm_name);
   free (alloc);
+
+  cgraph_call_function_insertion_hooks (new_node);
 }
+
+/* Clobber all memory state for the new call to irrevokable.  */
 
 static void
-ipa_tm_decide_version (struct cgraph_node *node)
+ipa_tm_mark_for_rename (void)
 {
-  VEC (cgraph_edge_p, heap) *redirections = NULL;
-  cgraph_edge_p e;
-
-  /* Don't re-process transaction clones.  */
-  if (DECL_IS_TM_CLONE (node->decl))
-    return;
-
-  /* Collect a vector of all the call sites that are within transactions.  */
-  for (e = node->callers; e ; e = e->next_caller)
-    if (e->tm_atomic_call)
-      VEC_safe_push (cgraph_edge_p, heap, redirections, e);
-
-  /* Create a transaction version if the programmer has explicitly
-     requested one.  Create a transaction version if the version of
-     the function defined here is known to be used, and it has
-     transaction callers.  */
-  if ((cgraph_is_master_clone (node) && is_tm_callable (node->decl))
-      || (cgraph_function_body_availability (node) >= AVAIL_AVAILABLE
-	  && !VEC_empty (cgraph_edge_p, redirections)))
+  tree var = gimple_global_var (cfun);
+  if (var)
+    mark_sym_for_renaming (var);
+  else
     {
-      ipa_tm_create_version (node, redirections);
+      bitmap_iterator bi;
+      unsigned int i;
+
+      EXECUTE_IF_SET_IN_BITMAP (gimple_call_clobbered_vars (cfun), 0, i, bi)
+	{
+	  var = referenced_var (i);
+	  mark_sym_for_renaming (var);
+	}
+
+      EXECUTE_IF_SET_IN_BITMAP (gimple_addressable_vars (cfun), 0, i, bi)
+	{
+	  var = referenced_var (i);
+	  mark_sym_for_renaming (var);
+	}
+    }
+}
+
+/* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
+
+static void
+ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
+			basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+  gimple g;
+
+  tm_atomic_subcode_ior (region, GTMA_HAVE_CALL_IRREVOKABLE);
+
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOKABLE], 0);
+  add_stmt_to_tm_region (region, g);
+
+  gsi = gsi_after_labels (bb);
+  gsi_insert_before (&gsi, g, GSI_SAME_STMT);
+
+  cgraph_create_edge (node,
+		      cgraph_node (built_in_decls[BUILT_IN_TM_IRREVOKABLE]),
+		      g, 0, 0, bb->loop_depth);
+}
+
+/* Walk the dominator tree for REGION, beginning at BB.  Install calls to
+   tm_irrevokable when IRR_BLOCKS are reached, redirect other calls to the
+   generated transactional clone.  */
+
+static void
+ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
+			basic_block bb, bitmap irr_blocks)
+{
+  gimple_stmt_iterator gsi;
+
+  if (irr_blocks && bitmap_bit_p (irr_blocks, bb->index))
+    {
+      ipa_tm_insert_irr_call (node, region, bb);
+      return;
     }
 
-  VEC_free (cgraph_edge_p, heap, redirections);
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (is_gimple_call (stmt) && !is_tm_pure_call (stmt))
+	{
+	  tree fndecl = gimple_call_fndecl (stmt);
+	  struct cgraph_edge *e;
+	  struct cgraph_node *new_node;
+
+	  gcc_assert (fndecl != NULL);
+
+	  /* Don't scan past the end of the transaction.  */
+	  if (is_tm_ending_fndecl (fndecl))
+	    continue;
+	  e = cgraph_edge (node, stmt);
+
+	  /* If there is a replacement, use it, otherwise use the clone.  */
+	  fndecl = find_tm_replacement_function (fndecl);
+	  if (fndecl)
+	    new_node = cgraph_node (fndecl);
+	  else
+	    {
+	      struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+	      new_node = d->clone;
+	      fndecl = new_node->decl;
+	    }
+
+	  /* As we've already skipped pure calls and appropriate
+	     builtins, and we've already marked irrevokable blocks,
+	     this function call had better have a replacement.  */
+	  gcc_assert (new_node != NULL);
+
+	  cgraph_redirect_edge_callee (e, new_node);
+	  gimple_call_set_fndecl (stmt, fndecl);
+	}
+    }
+
+  if (!region || !bitmap_bit_p (region->exit_blocks, bb->index))
+    for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
+	 bb = next_dom_son (CDI_DOMINATORS, bb))
+      ipa_tm_transform_calls (node, region, bb, irr_blocks);
 }
+
+/* Transform the calls within the TM regions within NODE.  */
+
+static void
+ipa_tm_transform_tm_atomic (struct cgraph_node *node)
+{
+  struct tm_ipa_cg_data *d = get_cg_data (node);
+  struct tm_region *region;
+
+  current_function_decl = node->decl;
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  calculate_dominance_info (CDI_DOMINATORS);
+
+  /* ??? Update the marks for the GIMPLE_TM_ATOMIC node, in particular
+     note the MUST_CALL_IRREVOKABLE and don't transform anything.  */
+  for (region = d->all_tm_regions; region; region = region->next)
+    ipa_tm_transform_calls (node, region, region->entry_block,
+			    d->irrevokable_blocks_normal);
+
+  if (d->irrevokable_blocks_normal)
+    {
+      ipa_tm_mark_for_rename ();
+      update_ssa (TODO_update_ssa_only_virtuals);
+    }
+
+  pop_cfun ();
+  current_function_decl = NULL;
+}
+
+/* Transform the calls within the transactional clone of NODE.  */
+
+static void
+ipa_tm_transform_clone (struct cgraph_node *node)
+{
+  struct tm_ipa_cg_data *d = get_cg_data (node);
+
+  /* If this function makes no calls and has no irrevokable blocks,
+     then there's nothing to do.  */
+  /* ??? Remove non-aborting top-level transactions.  */
+  if (!node->callees && !d->irrevokable_blocks_clone)
+    return;
+
+  current_function_decl = d->clone->decl;
+  push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
+  calculate_dominance_info (CDI_DOMINATORS);
+
+  ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
+			  d->irrevokable_blocks_clone);
+
+  if (d->irrevokable_blocks_clone)
+    {
+      ipa_tm_mark_for_rename ();
+      update_ssa (TODO_update_ssa_only_virtuals);
+    }
+
+  pop_cfun ();
+  current_function_decl = NULL;
+}
+
+/* Main entry point for the transactional memory IPA pass.  */
 
 static unsigned int
 ipa_tm_execute (void)
 {
-  struct cgraph_node *node;
+  cgraph_node_queue tm_callees = NULL;
+  cgraph_node_queue worklist = NULL;
 
-  cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
+  struct cgraph_node *node;
+  struct tm_ipa_cg_data *d;
+  enum availability a;
+  unsigned int i;
+
+  bitmap_obstack_initialize (&tm_obstack);
+
+  /* For all local public functions marked tm_callable, queue them.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      a = cgraph_function_body_availability (node);
+      if ((a == AVAIL_AVAILABLE || a == AVAIL_OVERWRITABLE)
+	  && is_tm_callable (node->decl))
+	{
+	  d = get_cg_data (node);
+	  maybe_push_queue (node, &tm_callees, &d->in_callee_queue);
+	}
+    }
+
+  /* For all local reachable functions, scan for calls marked in_tm_atomic.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->reachable && node->lowered
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	struct tm_region *regions = ipa_tm_region_init (node);
+	if (regions)
+	  {
+	    d = get_cg_data (node);
+	    d->all_tm_regions = regions;
+	    ipa_tm_scan_calls_tm_atomic (node, &tm_callees);
+	  }
+      }
+
+  /* For every local function on the callee list, scan as if we will be
+     creating a transactional clone, queueing all new functions we find
+     along the way.  */
+  for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
+    {
+      node = VEC_index (cgraph_node_p, tm_callees, i);
+      a = cgraph_function_body_availability (node);
+      d = get_cg_data (node);
+
+      /* Some callees cannot be arbitrarily cloned.  These will always be
+	 irrevokable.  Mark these now, so that we need not scan them.  */
+      if (a <= AVAIL_OVERWRITABLE && !is_tm_callable (node->decl))
+	{
+	  ipa_tm_note_irrevokable (node, &worklist);
+	  continue;
+	}
+
+      if (a >= AVAIL_OVERWRITABLE && !d->is_irrevokable)
+	ipa_tm_scan_calls_clone (node, &tm_callees);
+    }
+
+  /* Iterate scans until no more work to be done.  Prefer not to use
+     VEC_pop because the worklist tends to follow a breadth-first
+     search of the callgraph, which should allow convergance with a
+     minimum number of scans.  But we also don't want the worklist
+     array to grow without bound, so we shift the array up periodically.  */
+  for (i = 0; i < VEC_length (cgraph_node_p, worklist); ++i)
+    {
+      if (i > 256 && i == VEC_length (cgraph_node_p, worklist) / 8)
+	{
+	  VEC_block_remove (cgraph_node_p, worklist, 0, i);
+	  i = 0;
+	}
+
+      node = VEC_index (cgraph_node_p, worklist, i);
+      d = get_cg_data (node);
+      d->in_worklist = false;
+
+      if (d->want_irr_scan_normal)
+	{
+	  d->want_irr_scan_normal = false;
+	  ipa_tm_scan_irr_function (node, false);
+	}
+      if (d->in_callee_queue && ipa_tm_scan_irr_function (node, true))
+	ipa_tm_note_irrevokable (node, &worklist);
+    }
+
+  /* Create clones.  Do those that are not irrevokable and have a
+     positive call count.  Do those publicly visible functions that
+     the user directed us to clone.  */
+  for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
+    {
+      bool doit = false;
+
+      node = VEC_index (cgraph_node_p, tm_callees, i);
+      a = cgraph_function_body_availability (node);
+      d = get_cg_data (node);
+
+      if ((a == AVAIL_AVAILABLE || a == AVAIL_OVERWRITABLE)
+	  && is_tm_callable (node->decl))
+	doit = true;
+      else if (!d->is_irrevokable
+	       && d->tm_callers_normal + d->tm_callers_clone > 0)
+	doit = true;
+
+      if (doit)
+	ipa_tm_create_version (node);
+    }
+
+  /* Redirect calls to the new clones, and insert irrevokable marks.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->reachable && node->lowered
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	d = get_cg_data (node);
+	if (d->all_tm_regions)
+	  ipa_tm_transform_tm_atomic (node);
+      }
+  for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
+    {
+      node = VEC_index (cgraph_node_p, tm_callees, i);
+      if (node->analyzed)
+	{
+	  d = get_cg_data (node);
+	  if (d->clone)
+	    ipa_tm_transform_clone (node);
+	}
+    }
+
+  /* Free and clear all data structures.  */
+  VEC_free (cgraph_node_p, heap, tm_callees);
+  VEC_free (cgraph_node_p, heap, worklist);
+  bitmap_obstack_release (&tm_obstack);
 
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->lowered
-        && (node->needed || node->reachable))
-      ipa_tm_decide_version (node);
+    node->aux = NULL;
 
   return 0;
 }
 
-struct ipa_opt_pass pass_ipa_tm =
+struct simple_ipa_opt_pass pass_ipa_tm =
 {
  {
-  IPA_PASS,
+  SIMPLE_IPA_PASS,
   "tmipa",				/* name */
   gate_tm,				/* gate */
   ipa_tm_execute,			/* execute */
@@ -1459,11 +2082,4 @@ struct ipa_opt_pass pass_ipa_tm =
   0,					/* todo_flags_start */
   0,					/* todo_flags_finish */
  },
- ipa_tm_generate_summary,		/* generate_summary */
- NULL,					/* write_summary */
- NULL,					/* read_summary */
- NULL,					/* function_read_summary */
- 0,					/* TODOs */
- NULL,					/* function_transform */
- NULL,					/* variable_transform */
 };

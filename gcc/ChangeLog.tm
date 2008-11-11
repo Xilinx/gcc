@@ -1,3 +1,42 @@
+2008-11-11  Richard Henderson  <rth@redhat.com>
+
+	* cgraph.h (struct cgraph_edge): Remove tm_atomic_call.
+	(cgraph_copy_node_for_versioning): Declare.
+	* cgraphunit.c (cgraph_copy_node_for_versioning): Export;
+	copy analyzed from old version.
+	(cgraph_function_versioning): Do DECL_NAME et al setup here ...
+	* tree-inline.c (tree_function_versioning): ... not here.
+	* ipa-inline.c (cgraph_gate_early_inlining): Don't check TM_CLONE.
+	* passes.c (init_optimization_passes): Do ipa_tm before ipa_cp.
+	* trans-mem.c (is_tm_pure_call): New.
+	(is_tm_ending_fndecl, find_tm_replacement_function): New.
+	(examine_call_tm): Don't look for irrevokable calls here.
+	(execute_lower_tm): Assert we don't see TM_CLONEs.
+	(tm_region_init_2, tm_region_init): Break out from ...
+	(gate_tm_init): ... here.
+	(expand_irrevokable): Remove.
+	(expand_call_tm): Don't call it.
+	(expand_block_tm): Return true if done expanding.
+	(execute_tm_mark): Notice that.
+	(ipa_tm_analyze_function, ipa_tm_add_new_function,
+	ipa_tm_generate_summary, ipa_tm_decide_version): Remove.
+	(struct tm_ipa_cg_data, cgraph_node_p, cgraph_node_queue,
+	get_cg_data, maybe_push_queue, ipa_tm_scan_calls_tm_atomic,
+	ipa_tm_scan_calls_clone, ipa_tm_note_irrevokable,
+	ipa_tm_scan_irr_block, ipa_tm_scan_irr_blocks, ipa_tm_propagate_irr,
+	ipa_tm_decrement_clone_counts, ipa_tm_scan_irr_function,
+	ipa_tm_region_init, ipa_tm_mark_for_rename, ipa_tm_insert_irr_call,
+	ipa_tm_transform_calls, ipa_tm_transform_tm_atomic, 
+	ipa_tm_transform_clone): New.
+	(ipa_tm_create_version): Don't use cgraph_function_versioning.
+	(ipa_tm_execute): Rewrite.
+	(pass_ipa_tm): Use simple_ipa_opt_pass.
+	* tree-pretty-print.c (PRINT_FUNCTION_NAME): Merge into ...
+	(dump_function_name): ... here.
+	(maybe_dump_asm_name): New.
+
+	* testsuite/gcc.dg/tm/ipa-1.c, testsuite/gcc.dg/tm/ipa-2.c: New.
+
 2008-11-05  Richard Henderson  <rth@redhat.com>
 
 	* trans-mem.c (ipa_tm_create_version): Use C++ style mangling.

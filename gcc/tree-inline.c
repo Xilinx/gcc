@@ -4226,15 +4226,9 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Prepare the data structures for the tree copy.  */
   memset (&id, 0, sizeof (id));
 
-  /* Generate a new name for the new version. */
   if (!update_clones)
-    {
-      DECL_NAME (new_decl) =  create_tmp_var_name (NULL);
-      SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
-      SET_DECL_RTL (new_decl, NULL_RTX);
-      id.statements_to_fold = pointer_set_create ();
-    }
-  
+    id.statements_to_fold = pointer_set_create ();
+
   id.decl_map = pointer_map_create ();
   id.src_fn = old_decl;
   id.dst_fn = new_decl;
