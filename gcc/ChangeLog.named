@@ -1,3 +1,8 @@
+2008-11-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* emit-rtl.c (get_mem_attrs): Consider address space when seeing
+	if the memory has the default attributes.
+
 2008-11-07  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* tree.c (integer_pow2p): Reduce columns to under 80.

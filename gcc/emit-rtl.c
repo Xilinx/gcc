@@ -331,7 +331,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   /* If everything is the default, we can just return zero.
      This must match what the corresponding MEM_* macros return when the
      field is not present.  */
-  if (alias == 0 && expr == 0 && offset == 0
+  if (alias == 0 && expr == 0 && offset == 0 && addrspace == 0
       && (size == 0
 	  || (mode != BLKmode && GET_MODE_SIZE (mode) == INTVAL (size)))
       && (STRICT_ALIGNMENT && mode != BLKmode
