@@ -74,7 +74,7 @@
 #endif
 
 /* For efficient float-to-int rounding, it is necessary to know whether
-   floating-point arithmetic on may use wider intermediate results.
+   floating-point arithmetic may use wider intermediate results.
    When FP_ARITH_MAY_WIDEN is not defined, be conservative and only assume
    floating-point arithmetic does not widen if double precision is emulated. */
 
@@ -1287,7 +1287,10 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		   much rarer cases, for extremely large arrays we expect
 		   never to encounter in practice.  In addition, the former
 		   computation required the use of potentially constraining
-		   signed arithmetic while the latter doesn't.  */
+		   signed arithmetic while the latter doesn't. Note that the
+		   comparison must be done in the original index base type,
+		   otherwise the conversion of either bound to gnu_compute_type
+		   may overflow.  */
 		
 		tree gnu_compute_type = get_base_type (gnu_result_type);
 
@@ -1301,7 +1304,9 @@ Attribute_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p, int attribute)
 		gnu_result
 		  = build3
 		    (COND_EXPR, gnu_compute_type,
-		     build_binary_op (LT_EXPR, gnu_compute_type, hb, lb),
+		     build_binary_op (LT_EXPR, get_base_type (index_type),
+				      TYPE_MAX_VALUE (index_type),
+				      TYPE_MIN_VALUE (index_type)),
 		     convert (gnu_compute_type, integer_zero_node),
 		     build_binary_op
 		     (PLUS_EXPR, gnu_compute_type,
@@ -1709,13 +1714,28 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
       tree gnu_type = get_unpadded_type (gnat_type);
       tree gnu_low = TYPE_MIN_VALUE (gnu_type);
       tree gnu_high = TYPE_MAX_VALUE (gnu_type);
-      bool reversep = Reverse_Present (gnat_loop_spec);
-      tree gnu_first = reversep ? gnu_high : gnu_low;
-      tree gnu_last = reversep ? gnu_low : gnu_high;
-      enum tree_code end_code = reversep ? GE_EXPR : LE_EXPR;
+      tree gnu_first, gnu_last, gnu_limit;
+      enum tree_code update_code, end_code;
       tree gnu_base_type = get_base_type (gnu_type);
-      tree gnu_limit = (reversep ? TYPE_MIN_VALUE (gnu_base_type)
-			: TYPE_MAX_VALUE (gnu_base_type));
+
+      /* We must disable modulo reduction for the loop variable, if any,
+	 in order for the loop comparison to be effective.  */
+      if (Reverse_Present (gnat_loop_spec))
+	{
+	  gnu_first = gnu_high;
+	  gnu_last = gnu_low;
+	  update_code = MINUS_NOMOD_EXPR;
+	  end_code = GE_EXPR;
+	  gnu_limit = TYPE_MIN_VALUE (gnu_base_type);
+	}
+      else
+	{
+	  gnu_first = gnu_low;
+	  gnu_last = gnu_high;
+	  update_code = PLUS_NOMOD_EXPR;
+	  end_code = LE_EXPR;
+	  gnu_limit = TYPE_MAX_VALUE (gnu_base_type);
+	}
 
       /* We know the loop variable will not overflow if GNU_LAST is a constant
 	 and is not equal to GNU_LIMIT.  If it might overflow, we have to move
@@ -1759,12 +1779,13 @@ Loop_Statement_to_gnu (Node_Id gnat_node)
 			     gnu_loop_var, gnu_last);
 
       LOOP_STMT_UPDATE (gnu_loop_stmt)
-	= build_binary_op (reversep ? PREDECREMENT_EXPR
-			   : PREINCREMENT_EXPR,
-			   TREE_TYPE (gnu_loop_var),
+	= build_binary_op (MODIFY_EXPR, NULL_TREE,
 			   gnu_loop_var,
-			   convert (TREE_TYPE (gnu_loop_var),
-				    integer_one_node));
+			   build_binary_op (update_code,
+					    TREE_TYPE (gnu_loop_var),
+					    gnu_loop_var,
+					    convert (TREE_TYPE (gnu_loop_var),
+						     integer_one_node)));
       set_expr_location_from_node (LOOP_STMT_UPDATE (gnu_loop_stmt),
 				   gnat_iter_scheme);
     }

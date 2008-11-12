@@ -1,3 +1,151 @@
+2008-11-12  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/38079
+	* tree-vect-analyze.c (vect_analyze_data_refs): Replace dump_file
+	with vect_dump.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35334
+	* c-pretty-print.c (pp_c_complex_expr): New function.
+	(pp_c_postfix_expression) <case COMPLEX_EXPR>: Call it.
+
+	PR target/35366
+	* expr.c (expand_expr_addr_expr_1): If EXP needs bigger alignment
+	than INNER and INNER is a constant, forcibly align INNER as much
+	as needed.
+
+2008-11-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* cse.c (fold_rtx): Remove redundant gen_rtx_CONST.
+
+2008-11-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/37363
+	* simplify-rtx.c (simplify_plus_minus): Don't create (const (minus ...))
+	expresisons.
+
+2008-11-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ira-lives.c (process_bb_node_lives): Restore EH_RETURN_DATA_REGNO
+	handling.
+
+2008-11-10  Catherine Moore  <clm@codesourcery.com>
+
+	* config.gcc (mips64vrel-*-elf*): Include the tm_file
+	prior to vr.h.
+	* config/mips/linux.h (LINUX_DRIVER_SELF_SPECS): New.
+	(BASE_DRIVER_SELF_SPECS): Remove.
+	(DRIVER_SELF_SPECS): New definition.
+	* config/mips/elfoabi.h: (DRIVER_SELF_SPECS): Include
+	BASE_DRIVER_SELF_SPECS.
+	* config/mips/sde.h: Likewise.
+	* config/mips/iris6.h: Likewise.
+	* config/mips/vr.h: Likewise.
+	* config/mips/mips.h (BASE_DRIVER_SELF_SPECS): New. 
+
+2008-11-10  Vladimir Makarov  <vmakarov@redhat.com>
+	    
+	PR rtl-optimizations/37948
+	* ira-int.h (struct ira_allocno_copy): New member constraint_p.
+	(ira_create_copy, ira_add_allocno_copy): New parameter.
+
+	* ira-conflicts.c (process_regs_for_copy): New parameter.  Pass it
+	to ira_add_allocno_copy.
+	(process_reg_shuffles, add_insn_allocno_copies): Pass a new
+	parameter to process_regs_for_copy.
+	(propagate_copies): Pass a new parameter to ira_add_allocno_copy.
+	Fix typo in passing second allocno to ira_add_allocno_copy.
+
+	* ira-color.c (update_conflict_hard_regno_costs): Use head of
+	coalesced allocnos list.
+	(assign_hard_reg): Ditto.  Check that assigned allocnos are not in
+	the graph.
+	(add_ira_allocno_to_bucket): Rename to add_allocno_to_bucket.
+	(add_ira_allocno_to_ordered_bucket): Rename to
+	add_allocno_to_ordered_bucket.
+	(push_ira_allocno_to_stack): Rename to push_allocno_to_stack.  Use
+	head of coalesced allocnos list.
+	(push_allocnos_to_stack): Remove calculation of ALLOCNO_TEMP.
+	Check that it is aready calculated.
+	(push_ira_allocno_to_spill): Rename to push_ira_allocno_to_spill.
+	(setup_allocno_left_conflicts_num): Use head of coalesced allocnos
+	list.
+	(coalesce_allocnos): Do extended coalescing too.
+
+	* ira-emit.c (add_range_and_copies_from_move_list): Pass a new
+	parameter to ira_add_allocno_copy.
+
+	* ira-build.c (ira_create_copy, ira_add_allocno_copy): Add a new
+	parameter.
+	(print_copy): Print copy origination too.
+
+	* ira-costs.c (scan_one_insn): Use alloc_pref for load from
+	equivalent memory.
+	
+2008-11-10  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR rtl-optimization/37514
+	* config/sh/sh.h (OPTIMIZATION_OPTIONS): Set
+	flag_ira_share_spill_slots to 2 if it's already non-zero.
+	(OVERRIDE_OPTIONS): Clear flag_ira_share_spill_slots if
+	flag_ira_share_spill_slots is 2.
+
+2008-11-10  Kevin Buettner  <kevinb@redhat.com>
+
+	* config/m32c/prologue.md (prologue_enter_16): Set FB to SP - 2.
+	(prologue_enter_32): Set FB to SP - 4.
+
+2008-11-10  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.c (m32c_const_ok_for_constraint_p): Add ImB
+	constraint for single-bit-clear in lower byte of HI constant, vs
+	Imb which just ignores the upper byte.
+	* config/m32c/predicates.md (m32c_1mask8_operand): Use it.
+	* config/m32c/bitops.md (andhi3_16, andhi3_24): Use it.
+	(iorhi3_16): Check for single bit set, not single bit clear.
+
+2008-11-10  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/sourcebuild.texi (Torture Tests): Fix formatting for bullets.
+
+	* doc/sourcebuild.texi (Torture Tests): Fix formatting in example.
+
+2008-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* calls.c (store_unaligned_arguments_into_pseudos): Deal only with
+	values living in memory and use more precise alignment information.
+
+2008-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35314
+	* tree-mudflap.c (mf_build_check_statement_for): Split then_block
+	after __mf_check call if the call must end a bb.
+
+2008-11-10  Ralph Loader  <suckfish@ihug.co.nz>
+
+	PR middle-end/37807
+	PR middle-end/37809
+	* combine.c (force_to_mode): Do not process vector types.
+
+	* rtlanal.c (nonzero_bits1): Do not process vector types.
+	(num_sign_bit_copies1): Likewise.
+
+2008-11-09  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* config/i386/gnu.h: Add copyright and licensing header.
+	* config/gnu.h: Likewise.
+
+2008-11-07  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* fwprop.c (fwprop_done): Call df_remove_problem.
+
+2008-11-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/37379
+	* tree-scalar-evolution.c (instantiate_scev_1): Return
+	chrec_dont_know for VL_EXP_CLASS_P.
+	
 2008-11-06  Uros Bizjak  <ubizjak@gmail.com>
 
 	* reg-stack.c (reg_to_stack): Add missing braces in memset

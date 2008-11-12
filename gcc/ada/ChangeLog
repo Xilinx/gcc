@@ -1,3 +1,42 @@
+2008-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/ada-tree.def (PLUS_NOMOD_EXPR): New tree code.
+	(MINUS_NOMOD_EXPR): Likewise.
+	* gcc-interface/utils2.c (build_binary_op) <PREINCREMENT_EXPR>: Make
+	unreachable.
+	<PLUS_NOMOD_EXPR>: New case.
+	<MINUS_NOMOD_EXPR>: Likewise.
+	* gcc-interface/trans.c (Loop_Statement_to_gnu): Build increment-and-
+	assignment statement instead of using an increment operator.
+
+2008-11-07  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	* system-irix-n64.ads: New file.
+	* gcc-interface/Makefile.in (mips-sgi-irix6*): Support O32 and N64
+	multilibs.
+
+2008-11-07  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+
+	PR ada/37681
+	* system-solaris-x86_64.ads: New file.
+	* gcc-interface/Makefile.in (*86-solaris2*): Support x86_64 multilib.
+
+2008-11-07  Bechir Zalila  <bechir.zalila@gmail.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/34289
+	* lib.ads: (Enable_Switch_Storing): Declare.
+	* lib.adb: (Enable_Switch_Storing): New procedure.
+	* switch-c.adb (Scan_Front_End_Switches): Add support for -gnatea.
+	* make.adb: (Compile_Sources.Compile): Add -gnatea as first option.
+	(Display): Never display -gnatea
+	* gcc-interface/lang-specs.h: If -gnatea is present, pass -gnatez.
+
+2008-11-07  Thomas Quinot  <quinot@adacore.com>
+
+	* gcc-interface/trans.c (Attribute_to_gnu, case Attr_Length): Check
+	for empty range in original base type, not converted result type.
+
 2008-11-07  Geert Bosch  <bosch@adacore.com>
 
 	* gcc-interface/trans.c (build_binary_op_trapv): Convert arguments
