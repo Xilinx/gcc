@@ -473,8 +473,8 @@
 #define TARGET_ADDR_SPACE_CONVERT default_addr_space_convert
 #endif
 
-#ifndef TARGET_VALID_ADDR_SPACE
-#define TARGET_VALID_ADDR_SPACE hook_bool_const_tree_false
+#ifndef TARGET_ADDR_SPACE_VALID_P
+#define TARGET_ADDR_SPACE_VALID_P hook_bool_const_tree_false
 #endif
 
 #ifndef TARGET_ADDR_SPACE_SECTION_NAME
@@ -487,7 +487,7 @@
     TARGET_ADDR_SPACE_NAME,			\
     TARGET_ADDR_SPACE_NUMBER,			\
     TARGET_ADDR_SPACE_CONVERT,			\
-    TARGET_VALID_ADDR_SPACE,			\
+    TARGET_ADDR_SPACE_VALID_P,			\
     TARGET_ADDR_SPACE_SECTION_NAME,		\
   }
 

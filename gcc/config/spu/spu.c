@@ -239,9 +239,9 @@ static bool spu_valid_pointer_mode (enum machine_mode mode);
 #undef TARGET_VALID_POINTER_MODE
 #define TARGET_VALID_POINTER_MODE spu_valid_pointer_mode
 
-static bool spu_valid_addr_space (const_tree);
-#undef TARGET_VALID_ADDR_SPACE
-#define TARGET_VALID_ADDR_SPACE spu_valid_addr_space
+static bool spu_addr_space_valid_p (const_tree);
+#undef TARGET_ADDR_SPACE_VALID_P
+#define TARGET_ADDR_SPACE_VALID_P spu_addr_space_valid_p
 
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS spu_init_builtins
@@ -6637,14 +6637,19 @@ spu_addr_space_convert (rtx op,
   return 0;
 }
 
+static GTY(()) tree spu_ea_identifier;
+
 /* Validate whether an address space is valid.  */
 static bool
-spu_valid_addr_space (const_tree value)
+spu_addr_space_valid_p (const_tree value)
 {
   if (!value)
     return false;
 
-  if (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0)
+  if (!spu_ea_identifier)
+    spu_ea_identifier = get_identifier ("__ea");
+
+  if (spu_ea_identifier == value)
     return true;
 
   return false;
@@ -6657,7 +6662,10 @@ spu_addr_space_number (const_tree value)
   if (!value)
     return ADDR_SPACE_GENERIC;
 
-  if (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0)
+  if (!spu_ea_identifier)
+    spu_ea_identifier = get_identifier ("__ea");
+
+  if (spu_ea_identifier == value)
     return ADDR_SPACE_EA;
 
   gcc_unreachable ();

@@ -1,19 +1,23 @@
-2008-11-12  Ben Elliston  <bje@au.ibm.com>
+2008-11-13  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* doc/extend.texi (Named Address Spaces): New section, describing
 	named address spaces.
 
-	* doc/tm.texi (TARGET_ADDR_SPACE_POINTER_MODE): New target hook to
-	return the pointer mode for a given address space.
+	* doc/tm.texi (Named Address Spaces):  New section to talk about
+	named address space support.
+	(TARGET_ADDR_SPACE_POINTER_MODE): New target hook to return the
+	pointer mode for a given address space.
 	(TARGET_ADDR_SPACE_NAME): New target hook to return a string that
 	describes an address space.
 	(TARGET_ADDR_SPACE_NUMBER): New target hook to return the address
 	space number for a given address space.
-	(TARGET_ADDR_SPACE_CONVERSION_RTL): New target hook to convert
-	a pointer from one address space to another.
-	(TARGET_VALID_ADDR_SPACE): New target hook to validate a named
+	(TARGET_ADDR_SPACE_CONVERT): New target hook to convert a pointer
+	from one address space to another.
+	(TARGET_ADDR_SPACE_VALID_P): New target hook to validate a named
 	address space.
+	(TARGET_ADDR_SPACE_SECTION_NAME): New target hook to return the
+	section name for a named address space.
 
 	* doc/invoke.texi (-mfixed-range=): New SPU switch.
 	(-mea32): Ditto.
@@ -65,7 +69,7 @@
 	* coretypes.h (addr_space_t): New type for named address spaces.
 
 	* target.h (struct gcc_target): Add valid_pointer_mode,
-	addr_space_name, addr_space_conversion_rtl, valid_addr_space
+	addr_space_name, addr_space_conversion_rtl, addr_space_valid_p
 	target hooks for named address spaces.
 
 	* fold-const.c (toplevel): Include target.h.

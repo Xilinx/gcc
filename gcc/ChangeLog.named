@@ -1,3 +1,20 @@
+2008-11-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/spu/spu.c (SPU_ADDR_SPACE_VALID_P): Rename from
+	SPU_VALID_ADDR_SPACE.
+	(spu_ea_identifier): New static tree to hold __ea identifier.
+	(spu_addr_space_valid_p): Rename from spu_valid_addr_space.
+	(spu_addr_space_valid_p): Don't use strcmp to identify __ea, cache
+	the identifier and do a pointer comparison.
+	(spu_addr_space_number): Ditto.
+
+	* target-def.h (SPU_ADDR_SPACE_VALID_P): Rename from
+	SPU_VALID_ADDR_SPACE.
+
+	* doc/tm.texi (Named Address Spaces): Move named address space tm
+	macros to a separate section.  Add documentation for named address
+	support.  Update the target hooks to reflect the current changes.
+
 2008-11-12  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* targhooks.c (default_addr_space_name): Use addr_space_t for the

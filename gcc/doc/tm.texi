@@ -54,6 +54,7 @@ through the macros defined in the @file{.h} file.
 * MIPS Coprocessors::   MIPS coprocessor support and how to customize it.
 * PCH Target::          Validity checking for precompiled headers.
 * C++ ABI::             Controlling C++ ABI changes.
+* Named Address Spaces:: Adding support for named address spaces
 * Misc::                Everything else.
 @end menu
 
@@ -9601,6 +9602,74 @@ defined.  Use this hook to make adjustments to the class (eg, tweak
 visibility or perform any other required target modifications).
 @end deftypefn
 
+@node Named Address Spaces
+@section Adding support for named address spaces
+@cindex named address spaces
+
+The draft technical report of the ISO/IEC JTC1 S22 WG14 N1169
+standards committee, @cite{Programming Languages - C - Extensions to
+support embedded processors}, specifies a syntax for embedded
+processors to specify alternate address spaces.  You can configure a
+GCC port to support section 5.1 of the draft report to add support for
+address spaces other than the default address space.  These address
+spaces are new keywords that are similar to the @code{volatile} and
+@code{const} type attributes.
+
+Named address pointers can be a different size than native pointers.
+
+For example, the SPU port uses the @code{__ea} address space to refer
+to memory in the host processor, rather than memory local to the SPU
+processor.  Access to memory in the @code{__ea} address space involves
+making calls to move the memory to/from the host processor to the
+local processor memory address space.  Pointers in the @code{__ea}
+address space are either 32 bits or 64 bits based on the
+@option{-mea32} or @option{-mea64} switches (native SPU pointers are
+always 32 bits).
+
+Internally, address spaces are represented as a small integer in the
+range 0 to 255 with address space 0 being reserved for the generic
+address space.
+
+@deftypefn {Target Hook} {enum machine_mode} TARGET_ADDR_SPACE_POINTER_MODE (addr_space_t @var{address_space})
+Define this to return a pointer mode for a given @var{address_space} if
+the target supports named address spaces.  The default version of this
+hook returns @code{ptr_mode} for the generic address space only.
+@end deftypefn
+
+@deftypefn {Target Hook} {const char *} TARGET_ADDR_SPACE_NAME (addr_space_t @var{address_space})
+Define this to return a string that describes the @var{address_space}.
+As this hook should never be called for targets that do not support
+named address spaces, the default version of this hook will cause the
+compiler to abort.
+@end deftypefn
+
+@deftypefn {Target Hook} {attr_space_t} TARGET_ADDR_SPACE_NUMBER (tree @var{address_space})
+Define this to return a target-defined address space number for the
+given @var{address_space}.  As this hook should never be called for
+targets that do not support named address spaces, the default version
+of this hook will cause the compiler to abort.
+@end deftypefn
+
+@deftypefn {Target Hook} {rtx} TARGET_ADDR_SPACE_CONVERT (rtx @var{op}, enum machine_mode @var{mode}, addr_space_t @var{from}, addr_space_t @var{to})
+Define this to convert the pointer expression represented by the RTL
+@var{op} that points to the named address space @var{from} to a new
+pointer expression with type @var{mode} in the named address space
+@var{to}.  As this hook should never be called for targets that do not
+support named address spaces, the default version of this hook will
+cause the compiler to abort.
+@end deftypefn
+
+@deftypefn {Target Hook} {bool} TARGET_VALID_ADDR_SPACE (tree @var{address_space})
+Define this to return true if the @var{address_space} is recognized
+for the target.  The default version of this hook unconditionally
+returns false.
+@end deftypefn
+
+@deftypefn {Target Hook} {tree} TARGET_ADDR_SPACE_SECTION_NAME (addr_space_t @var{address_space})
+Define this to return the section name to put static and global
+variables
+@end deftypefn
+
 @node Misc
 @section Miscellaneous Parameters
 @cindex parameters, miscellaneous
@@ -10651,38 +10720,4 @@ debugging easier.  However, when a function is declared with
 cannot safely move arguments from the registers in which they are passed
 to the stack.  Therefore, this hook should return true in general, but
 false for naked functions.  The default implementation always returns true.
-@end deftypefn
-
-@deftypefn {Target Hook} {enum machine_mode} TARGET_ADDR_SPACE_POINTER_MODE (int @var{address_space})
-Define this to return a pointer mode for a given @var{address_space} if
-the target supports named address spaces.  The default version of this
-hook returns @code{ptr_mode} for the generic address space only.
-@end deftypefn
-
-@deftypefn {Target Hook} {const char *} TARGET_ADDR_SPACE_NAME (int @var{address_space})
-Define this to return a string that describes the @var{address_space}.
-As this hook should never be called for targets that do not support
-named address spaces, the default version of this hook will cause the
-compiler to abort.
-@end deftypefn
-
-@deftypefn {Target Hook} {unsigned char} TARGET_ADDR_SPACE_NUMBER (tree @var{address_space})
-Define this to return a target-defined address space number for the
-given @var{address_space}.  As this hook should never be called for
-targets that do not support named address spaces, the default version
-of this hook will cause the compiler to abort.
-@end deftypefn
-
-@deftypefn {Target Hook} {rtx (*int, int)} TARGET_ADDR_SPACE_CONVERSION_RTL (int @var{from}, int @var{to})
-Define this to return a pointer to a function that generates the RTL for
-a pointer conversion from the @var{from} address space to the @var{to}
-address space.  As this hook should never be called for targets that do
-not support named address spaces, the default version of this hook will
-cause the compiler to abort.
-@end deftypefn
-
-@deftypefn {Target Hook} bool TARGET_VALID_ADDR_SPACE (tree @var{address_space})
-Define this to return true if the @var{address_space} is recognized
-for the target.  The default version of this hook unconditionally
-returns false.
 @end deftypefn
