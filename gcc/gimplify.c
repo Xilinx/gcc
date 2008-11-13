@@ -497,6 +497,8 @@ create_tmp_var_name (const char *prefix)
       char *preftmp = ASTRDUP (prefix);
 
       remove_suffix (preftmp, strlen (preftmp));
+      clean_symbol_name (preftmp);
+
       prefix = preftmp;
     }
 

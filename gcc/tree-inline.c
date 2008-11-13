@@ -1744,10 +1744,6 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   gcc_assert (cfun->cfg == NULL);
   gcc_assert (cfun->decl == new_fndecl);
 
-  /* No need to copy; this is initialized later in compilation.  */
-  gcc_assert (!src_cfun->calls_setjmp);
-  gcc_assert (!src_cfun->calls_alloca);
-
   /* Copy items we preserve during clonning.  */
   cfun->static_chain_decl = src_cfun->static_chain_decl;
   cfun->nonlocal_goto_save_area = src_cfun->nonlocal_goto_save_area;
@@ -1767,6 +1763,8 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count,
   cfun->returns_struct = src_cfun->returns_struct;
   cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
   cfun->after_tree_profile = src_cfun->after_tree_profile;
+  cfun->calls_setjmp = src_cfun->calls_setjmp;
+  cfun->calls_alloca = src_cfun->calls_alloca;
 
   init_empty_tree_cfg ();
 

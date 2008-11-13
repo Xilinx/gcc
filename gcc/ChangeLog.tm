@@ -1,3 +1,10 @@
+2008-11-13  Richard Henderson  <rth@redhat.com>
+
+	* cgraphunit.c (cgraph_function_versioning): Copy assembler name
+	from decl.
+	* gimplify.c (create_tmp_var_name): Use clean_symbol_name.
+	* tree-inline.c (initialize_cfun): Copy setjmp and alloca.
+
 2008-11-11  Richard Henderson  <rth@redhat.com>
 
 	* cgraph.h (struct cgraph_edge): Remove tm_atomic_call.

@@ -1539,7 +1539,7 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
      this.  */
   DECL_NAME (new_decl)
     = create_tmp_var_name (IDENTIFIER_POINTER (DECL_NAME (old_decl)));
-  SET_DECL_ASSEMBLER_NAME (new_decl, NULL_TREE);
+  SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
   SET_DECL_RTL (new_decl, NULL_RTX);
   DECL_EXTERNAL (new_version_node->decl) = 0;
   DECL_ONE_ONLY (new_version_node->decl) = 0;
