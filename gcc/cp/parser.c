@@ -5910,6 +5910,60 @@ cp_parser_delete_expression (cp_parser* parser)
   return delete_sanity (expression, NULL_TREE, array_p, global_scope_p);
 }
 
+/* Returns true if TOKEN may start a cast-expression and false
+   otherwise.  */
+
+static bool
+cp_parser_token_starts_cast_expression (cp_token *token)
+{
+  switch (token->type)
+    {
+    case CPP_COMMA:
+    case CPP_SEMICOLON:
+    case CPP_QUERY:
+    case CPP_COLON:
+    case CPP_CLOSE_SQUARE:
+    case CPP_CLOSE_PAREN:
+    case CPP_CLOSE_BRACE:
+    case CPP_DOT:
+    case CPP_DOT_STAR:
+    case CPP_DEREF:
+    case CPP_DEREF_STAR:
+    case CPP_DIV:
+    case CPP_MOD:
+    case CPP_LSHIFT:
+    case CPP_RSHIFT:
+    case CPP_LESS:
+    case CPP_GREATER:
+    case CPP_LESS_EQ:
+    case CPP_GREATER_EQ:
+    case CPP_EQ_EQ:
+    case CPP_NOT_EQ:
+    case CPP_EQ:
+    case CPP_MULT_EQ:
+    case CPP_DIV_EQ:
+    case CPP_MOD_EQ:
+    case CPP_PLUS_EQ:
+    case CPP_MINUS_EQ:
+    case CPP_RSHIFT_EQ:
+    case CPP_LSHIFT_EQ:
+    case CPP_AND_EQ:
+    case CPP_XOR_EQ:
+    case CPP_OR_EQ:
+    case CPP_XOR:
+    case CPP_OR:
+    case CPP_OR_OR:
+      return false;
+
+      /* '[' may start a primary-expression in obj-c++.  */
+    case CPP_OPEN_SQUARE:
+      return c_dialect_objc ();
+
+    default:
+      return true;
+    }
+}
+
 /* Parse a cast-expression.
 
    cast-expression:
@@ -5988,17 +6042,18 @@ cp_parser_cast_expression (cp_parser *parser, bool address_p, bool cast_p)
       /* Restore the saved message.  */
       parser->type_definition_forbidden_message = saved_message;
 
-      /* If ok so far, parse the dependent expression. We cannot be
-	 sure it is a cast. Consider `(T ())'.  It is a parenthesized
-	 ctor of T, but looks like a cast to function returning T
-	 without a dependent expression.  */
-      if (!cp_parser_error_occurred (parser))
-	expr = cp_parser_cast_expression (parser,
-					  /*address_p=*/false,
-					  /*cast_p=*/true);
-
-      if (cp_parser_parse_definitely (parser))
+      /* At this point this can only be either a cast or a
+	 parenthesized ctor such as `(T ())' that looks like a cast to
+	 function returning T.  */
+      if (!cp_parser_error_occurred (parser)
+	  && cp_parser_token_starts_cast_expression (cp_lexer_peek_token
+						     (parser->lexer)))
 	{
+	  cp_parser_parse_definitely (parser);
+	  expr = cp_parser_cast_expression (parser,
+					    /*address_p=*/false,
+					    /*cast_p=*/true);
+
 	  /* Warn about old-style casts, if so requested.  */
 	  if (warn_old_style_cast
 	      && !in_system_header
@@ -6019,6 +6074,8 @@ cp_parser_cast_expression (cp_parser *parser, bool address_p, bool cast_p)
 	  expr = build_c_cast (type, expr);
 	  return expr;
 	}
+      else 
+        cp_parser_abort_tentative_parse (parser);
     }
 
   /* If we get here, then it's not a cast, so it must be a
@@ -11723,6 +11780,7 @@ cp_parser_enum_specifier (cp_parser* parser)
   tree type;
   tree attributes;
   bool scoped_enum_p = false;
+  bool has_underlying_type = false;
   tree underlying_type = NULL_TREE;
 
   /* Parse tentatively so that we can back up if we don't find a
@@ -11748,7 +11806,7 @@ cp_parser_enum_specifier (cp_parser* parser)
 
       scoped_enum_p = true;
     }
-      
+
   attributes = cp_parser_attributes_opt (parser);
 
   if (cp_lexer_next_token_is (parser->lexer, CPP_NAME))
@@ -11761,18 +11819,22 @@ cp_parser_enum_specifier (cp_parser* parser)
     {
       cp_decl_specifier_seq type_specifiers;
 
+      /* At this point this is surely not elaborated type specifier.  */
+      if (!cp_parser_parse_definitely (parser))
+	return NULL_TREE;
+
       if (cxx_dialect == cxx98)
         maybe_warn_cpp0x ("scoped enums");
 
       /* Consume the `:'.  */
       cp_lexer_consume_token (parser->lexer);
 
+      has_underlying_type = true;
+
       /* Parse the type-specifier-seq.  */
       cp_parser_type_specifier_seq (parser, /*is_condition=*/false,
                                     &type_specifiers);
-      if (type_specifiers.type == error_mark_node)
-        return error_mark_node;
-     
+
       /* If that didn't work, stop.  */
       if (type_specifiers.type != error_mark_node)
         {
@@ -11781,15 +11843,17 @@ cp_parser_enum_specifier (cp_parser* parser)
           if (underlying_type == error_mark_node)
             underlying_type = NULL_TREE;
         }
-      else
-        cp_parser_error (parser, "expected underlying type of enumeration");
     }
 
   /* Look for the `{' but don't consume it yet.  */
   if (!cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
-    cp_parser_simulate_error (parser);
+    {
+      cp_parser_error (parser, "expected %<{%>");
+      if (has_underlying_type)
+	return NULL_TREE;
+    }
 
-  if (!cp_parser_parse_definitely (parser))
+  if (!has_underlying_type && !cp_parser_parse_definitely (parser))
     return NULL_TREE;
 
   /* Issue an error message if type-definitions are forbidden here.  */

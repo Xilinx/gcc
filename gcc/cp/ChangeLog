@@ -1,3 +1,55 @@
+2008-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38021
+	* parser.c (cp_parser_enum_specifier): After parsing :,
+	parse definitely.  Don't return early if type specifier
+	is erroneous.
+
+2008-11-06  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/26397
+	* g++spec.c (LIBSTDCXX_STATIC): New.
+	(lang_spec_driver): Use LIBSTDCXX_STATIC when not
+	shared_libgcc.
+	
+2008-11-05  Fabien Chene <fabien.chene@gmail.com>
+
+	PR c++/35219
+	* cp-tree.h: Fix DECL_NONSTATIC_MEMBER_P to handle member template
+	functions.
+
+2008-11-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37742
+	* decl.c (start_preparsed_function): Use the correct type for
+	building the RESULT_DECL.
+
+2008-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37967
+	* decl.c (grokdeclarator): Diagnose auto function decl without
+	late return type and late return type function decl where type
+	is not auto.
+
+	PR c++/37965
+	* decl.c (cp_finish_decl): Diagnose type_uses_auto type with
+	no initializer.
+
+2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 11492
+	* class.c (check_bitfield_decl): Rename min_precision to
+	tree_int_cst_min_precision.
+	* decl.c (finish_enum): Likewise.
+
+2008-10-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/26997
+	* parser.c (cp_parser_token_starts_cast_expression): New.
+	(cp_parser_cast_expression): Peek the next token to decide whether
+	this could be a parenthesized constructor or is definitely an
+	actual cast.
+
 2008-10-24  Manuel López-Ibáñez  <manu@gcc.gnu.org>
 
 	PR c/7543

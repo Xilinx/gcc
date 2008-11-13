@@ -864,6 +864,33 @@ loop_affine_expr (basic_block scop_entry, struct loop *loop, tree expr)
 	  || evolution_function_is_affine_multivariate_p (scev, n));
 }
 
+/* Return false if the tree_code of the operand OP or any of its operands
+   is component_ref.  */
+
+static bool
+exclude_component_ref (tree op) 
+{
+  int i;
+  int len;
+
+  if (op)
+    {
+      if (TREE_CODE (op) == COMPONENT_REF)
+	return false;
+      else
+	{
+	  len = TREE_OPERAND_LENGTH (op);	  
+	  for (i = 0; i < len; ++i)
+	    {
+	      if (!exclude_component_ref (TREE_OPERAND (op, i)))
+		return false;
+	    }
+	}
+    }
+
+  return true;
+}
+
 /* Return true if the operand OP is simple.  */
 
 static bool
@@ -879,7 +906,7 @@ is_simple_operand (loop_p loop, gimple stmt, tree op)
 	  && !stmt_simple_memref_p (loop, stmt, op)))
     return false;
 
-  return true;
+  return exclude_component_ref (op);
 }
 
 /* Return true only when STMT is simple enough for being handled by
@@ -1299,11 +1326,29 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
         int i;
         build_scops_1 (bb, &tmp_scops, loop);
 
-	/* XXX: Use 'e->src' ot better 'bb'?  */
+
+	/* Start at all bbs dominated by a loop exit that only exists in this
+	   loop.  */ 
         for (i = 0; VEC_iterate (edge, exits, i, e); i++)
-          if (dominated_by_p (CDI_DOMINATORS, e->dest, e->src)
-              && e->src->loop_father == loop)
-            build_scops_1 (e->dest, &tmp_scops, e->dest->loop_father);
+          if (e->src->loop_father == loop)
+            {  
+	      VEC (basic_block, heap) *dominated;
+	      basic_block b;
+	      int j;
+	      dominated = get_dominated_by (CDI_DOMINATORS, e->src);
+	      for (j = 0; VEC_iterate (basic_block, dominated, j, b); j++)
+		/* Loop exit.  */
+		if (loop_depth (find_common_loop (loop, b->loop_father))
+		    < loop_depth (loop))
+		  {
+		    /* Pass loop_outer to recognize b as loop header in
+		       build_scops_1.  */
+		    if (b->loop_father->header == b)
+		      build_scops_1 (b, &tmp_scops, loop_outer (b->loop_father));
+		    else
+		      build_scops_1 (b, &tmp_scops, b->loop_father);
+		  }
+	    }
 
         result.next = NULL; 
         result.last = NULL;
@@ -1413,7 +1458,8 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	for (i = 0; VEC_iterate (basic_block, dominated, i, dom_bb); i++)
 	  {
 	    /* Ignore loop exits: they will be handled after the loop body.  */
-	    if (is_loop_exit (loop, dom_bb))
+	    if (loop_depth (find_common_loop (loop, dom_bb->loop_father))
+		< loop_depth (loop))
 	      {
 		result.exits = true;
 		continue;
@@ -1762,7 +1808,6 @@ create_sese_edges (VEC (sd_region, heap) *regions)
 {
   int i;
   sd_region *s;
-
 
   for (i = 0; VEC_iterate (sd_region, regions, i, s); i++)
     create_single_entry_edge (s);
@@ -2198,6 +2243,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
       break;
 
     case PLUS_EXPR:
+    case POINTER_PLUS_EXPR:
       scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
       scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
       break;

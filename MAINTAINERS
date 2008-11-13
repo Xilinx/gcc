@@ -29,6 +29,7 @@ Michael Meissner				gnu@the-meissners.org
 Jason Merrill					jason@redhat.com
 David S. Miller					davem@redhat.com
 Mark Mitchell					mark@codesourcery.com
+Diego Novillo					dnovillo@google.com
 Bernd Schmidt					bernd.schmidt@analog.com
 Jim Wilson					wilson@tuliptree.org
 
@@ -194,6 +195,7 @@ gcov			Jan Hubicka		jh@suse.cz
 gcov			Nathan Sidwell		nathan@codesourcery.com
 option handling		Neil Booth		neil@daikokuya.co.uk
 testsuite		Janis Johnson		janis187@us.ibm.com
+middle-end		Jeff Law		law@redhat.com
 middle-end		Roger Sayle		roger@eyesopen.com
 middle-end		Ian Lance Taylor	ian@airs.com
 middle-end		Diego Novillo		dnovillo@google.com
@@ -212,6 +214,7 @@ type-safe vectors	Nathan Sidwell		nathan@codesourcery.com
 alias analysis		Daniel Berlin		dberlin@dberlin.org
 alias analysis		Diego Novillo		dnovillo@google.com
 reload			Ulrich Weigand		uweigand@de.ibm.com
+reload			Bernd Schmidt		bernd.schmidt@analog.com
 dfp.c, related		Ben Elliston		bje@au.ibm.com
 RTL optimizers		Eric Botcazou		ebotcazou@libertysurf.fr
 auto-vectorizer		Richard Guenther	rguenther@suse.de
@@ -228,7 +231,6 @@ check in changes outside of the parts of the compiler they maintain.
 loop optimizer		Zdenek Dvorak		ook@ucw.cz
 loop optimizer		Daniel Berlin		dberlin@dberlin.org
 libcpp			Tom Tromey		tromey@redhat.com
-blanket write		Diego Novillo		dnovillo@google.com
 blanket write		Ian Lance Taylor	ian@airs.com
 
 Note that individuals who maintain parts of the compiler as non-algorithmic
@@ -389,7 +391,8 @@ Robert Millan					rmh@gcc.gnu.org
 Lee Millward					lee.millward@gmail.com
 Alan Modra					amodra@bigpond.net.au
 Alexander Monakov				amonakov@ispras.ru
-Catherine Moore					clm@redhat.com
+Catherine Moore					clm@codesourcery.com
+Mikael Morin					mikael.morin@tele2.fr
 James A. Morrison				phython@gcc.gnu.org
 Dirk Mueller					dmueller@suse.de
 Adam Nemet					anemet@caviumnetworks.com
@@ -419,6 +422,8 @@ Maciej W. Rozycki				macro@linux-mips.org
 Douglas Rupp					rupp@gnat.com
 Silvius Rus					rus@google.com
 Matthew Sachs					msachs@apple.com
+Duncan Sands					baldrick@gcc.gnu.org
+Thomas Schwinge					tschwinge@gnu.org
 Dodji Seketeli					dseketel@redhat.com
 Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de
@@ -431,6 +436,7 @@ Richard Stallman				rms@gnu.org
 Basile Starynkevitch				basile@starynkevitch.net
 Jakub Staszak					kuba@et.pl
 Graham Stott					graham.stott@btinternet.com
+Andrew Stubbs					ams@codesourcery.com
 Mike Stump					mrs@apple.com
 Jeff Sturm					jsturm@gcc.gnu.org
 Gabriele Svelto					gabriele.svelto@st.com

@@ -1527,15 +1527,30 @@ subst_stack_regs_pat (rtx insn, stack regstack, rtx pat)
 	    else
 	      {
 		/* Both operands are REG.  If neither operand is already
-		   at the top of stack, choose to make the one that is the dest
-		   the new top of stack.  */
+		   at the top of stack, choose to make the one that is the
+		   dest the new top of stack.  */
 
 		int src1_hard_regnum, src2_hard_regnum;
 
 		src1_hard_regnum = get_hard_regnum (regstack, *src1);
 		src2_hard_regnum = get_hard_regnum (regstack, *src2);
-		gcc_assert (src1_hard_regnum != -1);
-		gcc_assert (src2_hard_regnum != -1);
+
+		/* If the source is not live, this is yet another case of
+		   uninitialized variables.  Load up a NaN instead.  */
+		if (src1_hard_regnum == -1)
+		  {
+		    rtx pat2 = gen_rtx_CLOBBER (VOIDmode, *src1);
+		    rtx insn2 = emit_insn_before (pat2, insn);
+		    control_flow_insn_deleted
+		      |= move_nan_for_stack_reg (insn2, regstack, *src1);
+		  }
+		if (src2_hard_regnum == -1)
+		  {
+		    rtx pat2 = gen_rtx_CLOBBER (VOIDmode, *src2);
+		    rtx insn2 = emit_insn_before (pat2, insn);
+		    control_flow_insn_deleted
+		      |= move_nan_for_stack_reg (insn2, regstack, *src2);
+		  }
 
 		if (src1_hard_regnum != FIRST_STACK_REG
 		    && src2_hard_regnum != FIRST_STACK_REG)
@@ -3165,14 +3180,17 @@ reg_to_stack (void)
      ??? We can't load from constant memory in PIC mode, because
      we're inserting these instructions before the prologue and
      the PIC register hasn't been set up.  In that case, fall back
-     on zero, which we can get from `ldz'.  */
+     on zero, which we can get from `fldz'.  */
 
   if ((flag_pic && !TARGET_64BIT)
       || ix86_cmodel == CM_LARGE || ix86_cmodel == CM_LARGE_PIC)
     not_a_num = CONST0_RTX (SFmode);
   else
     {
-      not_a_num = gen_lowpart (SFmode, GEN_INT (0x7fc00000));
+      REAL_VALUE_TYPE r;
+
+      real_nan (&r, "", 1, SFmode);
+      not_a_num = CONST_DOUBLE_FROM_REAL_VALUE (r, SFmode);
       not_a_num = force_const_mem (SFmode, not_a_num);
     }
 
@@ -3180,7 +3198,7 @@ reg_to_stack (void)
   max_uid = get_max_uid ();
   stack_regs_mentioned_data = VEC_alloc (char, heap, max_uid + 1);
   memset (VEC_address (char, stack_regs_mentioned_data),
-	  0, sizeof (char) * max_uid + 1);
+	  0, sizeof (char) * (max_uid + 1));
 
   convert_regs ();
 

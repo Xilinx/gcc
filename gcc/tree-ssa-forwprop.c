@@ -334,10 +334,10 @@ rhs_to_tree (tree type, gimple stmt)
 {
   enum tree_code code = gimple_assign_rhs_code (stmt);
   if (get_gimple_rhs_class (code) == GIMPLE_BINARY_RHS)
-    return fold_convert (type, build2 (code, type, gimple_assign_rhs1 (stmt),
-                         gimple_assign_rhs2 (stmt)));
+    return fold_build2 (code, type, gimple_assign_rhs1 (stmt),
+			gimple_assign_rhs2 (stmt));
   else if (get_gimple_rhs_class (code) == GIMPLE_UNARY_RHS)
-    return fold_convert (type, build1 (code, type, gimple_assign_rhs1 (stmt)));
+    return build1 (code, type, gimple_assign_rhs1 (stmt));
   else if (get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS)
     return gimple_assign_rhs1 (stmt);
   else
@@ -719,12 +719,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
   if (TREE_CODE (lhs) == INDIRECT_REF
       && TREE_OPERAND (lhs, 0) == name
-      && useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (lhs, 0)),
-				    TREE_TYPE (def_rhs))
-      /* ???  This looks redundant, but is required for bogus types
-	 that can sometimes occur.  */
-      && useless_type_conversion_p (TREE_TYPE (lhs),
-				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
+      && may_propagate_address_into_dereference (def_rhs, lhs))
     {
       *lhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
@@ -747,12 +742,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
   if (TREE_CODE (rhs) == INDIRECT_REF
       && TREE_OPERAND (rhs, 0) == name
-      && useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (rhs, 0)),
-				    TREE_TYPE (def_rhs))
-      /* ???  This looks redundant, but is required for bogus types
-	 that can sometimes occur.  */
-      && useless_type_conversion_p (TREE_TYPE (rhs),
-				    TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
+      && may_propagate_address_into_dereference (def_rhs, rhs))
     {
       *rhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
@@ -812,6 +802,9 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   array_ref = TREE_OPERAND (def_rhs, 0);
   if (TREE_CODE (array_ref) != ARRAY_REF
       || TREE_CODE (TREE_TYPE (TREE_OPERAND (array_ref, 0))) != ARRAY_TYPE
+      /* Avoid accessing hidden multidimensional arrays in this way or VRP
+	 might give out bogus warnings (see PR 37861) */
+      || TREE_CODE (TREE_OPERAND (array_ref, 0)) == INDIRECT_REF
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
     return false;
 

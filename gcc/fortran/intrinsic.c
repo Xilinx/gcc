@@ -1957,7 +1957,7 @@ add_functions (void)
   make_generic ("maxloc", GFC_ISYM_MAXLOC, GFC_STD_F95);
 
   add_sym_3red ("maxval", GFC_ISYM_MAXVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_maxval,
+		gfc_check_minval_maxval, gfc_simplify_maxval, gfc_resolve_maxval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -2023,7 +2023,7 @@ add_functions (void)
   make_generic ("minloc", GFC_ISYM_MINLOC, GFC_STD_F95);
 
   add_sym_3red ("minval", GFC_ISYM_MINVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_minval,
+		gfc_check_minval_maxval, gfc_simplify_minval, gfc_resolve_minval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -3746,6 +3746,7 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
   if (!error_flag)
     gfc_pop_suppress_errors ();
 
+  c->resolved_isym = isym;
   if (isym->resolve.s1 != NULL)
     isym->resolve.s1 (c);
   else

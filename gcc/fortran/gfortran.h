@@ -1886,6 +1886,7 @@ typedef struct gfc_code
      symbol for the interface definition.
   const char *sub_name;  */
   gfc_symbol *resolved_sym;
+  gfc_intrinsic_sym *resolved_isym;
 
   union
   {
@@ -1991,6 +1992,7 @@ typedef struct
   int flag_second_underscore;
   int flag_implicit_none;
   int flag_max_stack_var_size;
+  int flag_max_array_constructor;
   int flag_range_check;
   int flag_pack_derived;
   int flag_repack_arrays;
@@ -2091,7 +2093,7 @@ bool gfc_in_match_data (void);
 void gfc_scanner_done_1 (void);
 void gfc_scanner_init_1 (void);
 
-void gfc_add_include_path (const char *, bool);
+void gfc_add_include_path (const char *, bool, bool);
 void gfc_add_intrinsic_modules_path (const char *);
 void gfc_release_include_path (void);
 FILE *gfc_open_included_file (const char *, bool, bool);
@@ -2448,8 +2450,8 @@ bool gfc_traverse_expr (gfc_expr *, gfc_symbol *,
 			bool (*)(gfc_expr *, gfc_symbol *, int*),
 			int);
 void gfc_expr_set_symbols_referenced (gfc_expr *);
-
 gfc_try gfc_expr_check_typed (gfc_expr*, gfc_namespace*, bool);
+void gfc_expr_replace_symbols (gfc_expr *, gfc_symbol *);
 
 /* st.c */
 extern gfc_code new_st;

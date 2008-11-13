@@ -1,3 +1,215 @@
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37986
+	* include/tr1_impl/random (struct _Adaptor): Use remove_pointer
+	and remove_reference on _Engine.
+	* testsuite/tr1/5_numerical_facilities/random/variate_generator/
+	37986.cc: New.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/ext/ext_pointer/1_neg.cc: Adjust dg-error line numbers.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/vector/ext_pointer/modifiers/erase.cc: Fix.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/element.cc:
+	Likewise.
+
+2008-11-11  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/bits/forward_list.h: Support non-standard pointer types
+	(_Fwd_list_node_base): Add _Alloc template parameter.
+	(_Fwd_list_node<>): Likewise.
+	(_Fwd_list_iterator<>): Likewise.
+	(_Fwd_list_const_iterator<>): Likewise.
+	(_Fwd_list_node_base::_M_next, _M_transfer_after, _M_reverse_after): 
+	Use _Alloc<_Tp>::pointer.
+	(_Fwd_list_iterator<>::_M_node): Use _Node_base::_Pointer.
+	(_Fwd_list_base<>::_M_get_node, _M_create_node, _M_create_node, 
+	_M_insert_after, _M_put_node, _M_erase_after): Likewise.
+	(_Fwd_list_const_iterator<>::_M_node): use _Node_base::_Const_pointer.
+	(forward_list<>): Use __static_pointer_cast in place of static_cast,
+	and __const_pointer_cast in place of const_cast.
+	* include/bits/forward_list.tcc
+	(_Fwd_list_node<>::_M_sort_after): Using _Pointer typedefs in place 
+	of standard pointers, __static_pointer_cast in place of static_cast.
+	(_Fwd_list_base<>::_Fwd_list_base, _M_insert_after, _M_erase_after):
+	Likewise.
+	(forward_list<>::_M_initialize_dispatch, _M_fill_initialize, 
+	splice_after, remove, remove_if, merge): Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/2.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/3.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/4.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/5.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/1.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/2.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/3.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/4.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/5.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/6.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/7.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/1.cc: 
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/1.cc: Likewise.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/extptr_allocator.h: Minor tweaks.
+	* include/ext/pointer.h: Likewise.
+	* include/ext/cast.h: Likewise.
+
+2008-11-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38067
+	* config/locale/gnu/monetary_members.cc (moneypunct<>::
+	_M_initialize_moneypunct(__c_locale, const char*)): Use correct vector
+	delete for __wcs_ps and __wcs_ns.
+
+2008-11-07  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/ext/pointer.h: New, add experimental support for non-standard
+	pointer types in containers via the allocator::pointer typedef.
+	(Currently only supported/working with std::vector)
+	* include/ext/cast.h: New, add overload-able pointer casting functions
+	for use in containers supporting non-standard pointer types.
+	* include/ext/extptr_allocator.h: New, add _ExtPtr_allocator.
+	* include/Makefile.am: Update.
+	* include/precompiled/extc++.h: Likewise.
+	* include/Makefile.in: Regenerate.
+	* testsuite/ext/ext_pointer/1.cc: New.
+	* testsuite/ext/ext_pointer/1_neg.cc: Likewise.	
+	* testsuite/23_containers/vector/ext_pointer/citerators.cc: New.
+	* testsuite/23_containers/vector/ext_pointer/data_access.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/resize.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/types/1.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/element.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/erase.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/insert.cc:
+	Likewise.
+	* testsuite/23_containers/vector/ext_pointer/explicit_instantiation/
+	1.cc: Likewise.
+	* testsuite/23_containers/vector/ext_pointer/explicit_instantiation/
+	3.cc: Likewise.
+
+2008-11-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/38017
+	Revert:
+	* include/tr1_impl/functional (result_of,reference_wrapper): Update
+	to use C++0x features.
+	* testsuite/20_util/function_objects/return_types/result_of.cc: New.
+	* testsuite/20_util/function_objects/return_types/result_of_neg.cc:
+	New.
+	* testsuite/20_util/function_objects/return_types/result_of_ref.cc:
+	New.
+	* testsuite/20_util/reference_wrapper/24803.cc: Uncomment FIXMEs.
+
+2008-11-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/24803
+	PR libstdc++/37351
+	* include/tr1_impl/functional (result_of,reference_wrapper): Update
+	to use C++0x features.
+	* testsuite/20_util/function_objects/return_types/result_of.cc: New.
+	* testsuite/20_util/function_objects/return_types/result_of_neg.cc:
+	New.
+	* testsuite/20_util/function_objects/return_types/result_of_ref.cc:
+	New.
+	* testsuite/20_util/reference_wrapper/24803.cc: Uncomment FIXMEs.
+
+2008-11-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Tidy.
+	* testsuite/22_locale/num_get/get/char/37958.cc: Extend.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958 (cont again)
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix again.
+	* testsuite/22_locale/num_get/get/char/37958.cc: Extend.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/locale_facets.tcc (num_get<>::do_get(, long&),
+	num_get<>::do_get(, unsigned short&),
+	num_get<>::do_get(, unsigned int&),
+	num_get<>::do_get(, unsigned long&),
+	num_get<>::do_get(, long long&),
+	num_get<>::do_get(, unsigned long long&),
+	num_put<>::do_put(, long), num_put<>::do_put(, unsigned long),
+	num_put<>::do_put(, long long),
+	num_put<>::do_put(, unsigned long long)): Move inline...
+	* include/bits/locale_facets.h: ... here.
+
+2008-11-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958 (cont)
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix again.
+
+2008-11-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+        * include/bits/shared_ptr.h: Update comparisons to match WP.
+        (_Sp_counted_ptr): Make copy and assignment members deleted.
+        (_Sp_counted_deleter): Remove private copy and assignment members.
+        (__shared_count::_M_less,__weak_count::_M_less,operator<): Replace
+        friend operator< with overloaded _M_less member functions to allow
+        comparison with either shared_count or weak_count.
+        (__shared_ptr::_M_less,__weak_ptr::_M_less): Replace with...
+        (__shared_ptr::owner_before,__weak_ptr::owner_before): New overloads
+        for ownership-based ordering.
+        (operator<(__shared_ptr,__shared_ptr)): Compare stored pointers,
+        make non-friend.
+        (operator==(__shared_ptr,__shared_ptr)): Make non-friend.
+        (operator!=(__shared_ptr,__shared_ptr)): Likewise.
+        (less<__shared_ptr<>>,less<shared_ptr<>>,_Sp_less): Explicitly call
+        pointer specialization.
+        (__weak_ptr::operator<,weak_ptr::operator<=,weak_ptr::operator>,
+        weak_ptr::operator>=): Remove operator< and delete all comparisons.
+        (_Sp_owner_less,owner_less): Predicate for ownership-based ordering.
+        (operator<(shared_ptr,shared_ptr): Overload for derived shared_ptr.
+        (operator==(shared_ptr,shared_ptr): Likewise.
+        (operator!=(shared_ptr,shared_ptr): Likewise.
+        (swap(shared_ptr,shared_ptr)): Fix parameter types.
+        (swap(weak_ptr,weak_ptr)): Add missing overload.
+        * testsuite/20_util/owner_less/cmp.cc: New.
+        * testsuite/20_util/shared_ptr/comparison/cmp.cc: Test other ops.
+        * testsuite/20_util/shared_ptr/comparison/less.cc: New.
+        * testsuite/20_util/shared_ptr/observers/owner_before.cc: New.
+        * testsuite/20_util/weak_ptr/observers/owner_before.cc: New.
+        * testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: New.
+
+2008-10-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37958
+	* include/bits/locale_facets.tcc (num_get<>::do_get(iter_type,
+	iter_type, ios_base&, ios_base::iostate&, bool&): Fix.
+	* testsuite/22_locale/num_get/get/char/37958.cc: New.
+	* testsuite/22_locale/num_get/get/wchar_t/37958.cc: Likewise.
+
 2008-10-27  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/37919

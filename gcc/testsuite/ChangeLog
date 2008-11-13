@@ -1,3 +1,341 @@
+2008-11-10  Catherine Moore  <clm@codesourcery.com>
+
+	* gcc.target/mips/no-smartmips-lwxs.c: New test.
+	* gcc.target/mips/no-smartmips-ror-1.c: New test.
+
+2008-11-10  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.target/sh/pr37514.c: New test.
+
+2008-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/other/anon5.C: Skip on Solaris.
+
+2008-11-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack11.adb: New test.
+
+2008-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38021
+	* g++.dg/cpp0x/enum1.C: New test.
+
+2008-11-02  Ralph Loader  <suckfish@ihug.co.nz>
+
+	PR middle-end/37807
+	PR middle-end/37809
+	* gcc.target/i386/mmx-8.c: New test.
+
+2008-11-09  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37836
+	* gfortran.dg/minmaxval_1.f90: New test.
+
+2008-11-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/loop_boolean.adb: New test.
+
+2008-11-07  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat.dg/hyper_flat.adb: New test.
+
+2008-11-07  Geert Bosch  <bosch@adacore.com>
+
+	* gnat.dg/test_8bitlong_overflow.adb: New test.
+
+2008-11-07  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* g++.dg/ipa/iinline-1.C: Remove -c flag, add -fpie for PIC targets.
+
+	* gcc.dg/tree-ssa/inline-2.c (foo): Add 'inline' keyword.
+
+2008-11-06  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/pr37943.c: Fix missing end of file.
+
+2008-11-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/utf-array-short-wchar.c, gcc.dg/utf-cvt.c,
+	gcc.dg/utf-inc-init.c, gcc.dg/utf16-1.c, gcc.dg/utf16-2.c,
+	gcc.dg/utf16-3.c, gcc.dg/utf16-4.c, gcc.dg/utf32-1.c,
+	gcc.dg/utf32-2.c, gcc.dg/utf32-3.c, gcc.dg/utf32-4.c: Use
+	__CHAR16_TYPE__ and __CHAR32_TYPE__ typedefs.
+
+2008-11-06  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/pr37969.c: New testcase.
+
+2008-11-05  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/c-torture.exp: Use ADDITIONAL_TORTURE_OPTIONS if defined.
+	* lib/gcc-dg.exp: Ditto.
+	* lib/fortran-torture.exp: Ditto.
+	* lib/objc-torture.exp: Ditto.
+
+2008-11-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/38025
+	* gcc.target/spu/intrinsics-1.c (f): Tune expected error messages
+	to match current compiler.
+
+2008-11-05  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/38016
+	* gcc.c-torture/execute/ieee/pr38016.c: New test.
+	* gcc.c-torture/execute/ieee/pr38016.x: New file.
+
+2008-11-05  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/37861
+	* gcc.dg/Warray-bounds-5.c: New test.
+	* gcc.dg/Warray-bounds-6.c: New test.
+
+2008-11-05  Fabien Chene <fabien.chene@gmail.com>
+
+	PR c++/32519
+	* g++.dg/template/pr32519.C: New test.
+
+2008-11-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37742
+	* gcc.c-torture/compile/pr37742.c: New testcase.
+	* g++.dg/pr37742.C: Likewise.
+	* gcc.dg/tree-ssa/forwprop-7.c: Check for two volatile loads.
+
+2008-11-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/37286
+	* gfortran.dg/pr37286.f90: New test.
+
+2008-11-04  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37597
+	* gfortran.dg/host_assoc_call_5.f90: New test.
+
+2008-11-04  Jakub Jelinek  <jakub@redhat.com>
+	    Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c/35430
+	* gcc.dg/pr35430.c: New test.
+	* g++.dg/warn/Wsign-compare-2.C: New test.
+
+2008-11-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/37106
+	* gcc.dg/pr37106-1.c: New test.
+	* gcc.dg/pr37106-2.c: New test.
+
+2008-11-03  Chao-ying Fu  <fu@mips.com>
+
+	* gcc.target/mips/dsp-ctrl.c: New test. 
+
+2008-11-03  Steve Ellcey  <sje@cup.hp.com>
+
+	* gfortran.dg/f2003_io_1.f03: XFAIL until PR37839 is fixed.
+	* gfortran.dg/f2003_io_4.f03: Ditto.
+	* gfortran.dg/f2003_io_5.f03: Ditto.
+	* gfortran.dg/f2003_io_6.f03: Ditto.
+	* gfortran.dg/f2003_io_7.f03: Ditto.
+
+2008-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/37241
+	* g++.dg/abi/key2.C: Adjust regexps to allow __ZTV1f and __ZTI1f
+	sharing one .section directive.
+
+	PR target/37812
+	* gcc.target/powerpc/altivec_check.h (altivec_cell_check): Abort
+	if __PPU__ isn't defined.
+	* lib/target-supports.exp (check_effective_target_powerpc_ppu_ok):
+	New.
+	* gcc.target/powerpc/altivec-cell-8.c: Use powerpc_ppu_ok.
+
+2008-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20081103-1.c: New test.
+
+2008-11-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array5.adb New test.
+
+2008-11-03  Richard Guenther  <rguenther@suse.de>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37573
+	* gcc.c-torture/execute/pr37573.c: New testcase.
+
+2008-11-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37858
+	* gcc.dg/pr37858.c: New test.
+
+2008-11-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/37821
+	* gfortran.dg/include_4.f90: New.
+	* gfortran.dg/include_5.f90: New.
+	* gfortran.dg/include_4.inc: New.
+
+2008-11-03  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37445
+	* gfortran.dg/host_assoc_call_3.f90: New test.
+	* gfortran.dg/host_assoc_call_4.f90: New test.
+	* gfortran.dg/host_assoc_function_4.f90: New test.
+
+2008-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37542
+	* gcc.dg/tree-ssa/ssa-pre-22.c: New testcase.
+	* gcc.c-torture/compile/20081101-1.c: Likewise.
+
+2008-11-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37991
+	* gcc.c-torture/compile/pr37991.c: New testcase.
+
+2008-11-01  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/37939
+	* gcc.target/cris/biap.c: New test.
+
+2008-11-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36426
+	* gfortran.dg/proc_decl_19.f90: New.
+
+2008-11-01  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/19925
+	* gfortran.dg/initialization_20.f90: New test.
+	* gfortran.dg/initialization_21.f90: Ditto.
+
+2008-11-01  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/35681
+	* gfortran.dg/mvbits_4.f90: New test.
+
+2008-11-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36322
+	PR fortran/36463
+	* gfortran.dg/proc_decl_17.f90: New.
+	* gfortran.dg/proc_decl_18.f90: New.
+
+2008-11-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/37976
+	* gcc.c-torture/compile/pr37976.c: New testcase.
+
+2008-11-01  Dennis Wassel  <dennis.wassel@gmail.com>
+
+	PR fortran/37159
+	* gfortran.dg/random_seed_1.f90: New testcase.
+
+2008-10-31  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/cpp/Wsignprom.c: Add column numbers.
+	* gcc.dg/cpp/if-mpar.c: Likewise.
+
+2008-10-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37967
+	* g++.dg/cpp0x/auto8.C: New test.
+
+	PR c++/37965
+	* g++.dg/cpp0x/auto7.C: New test.
+
+2008-10-31  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/35840
+	* gfortran.dg/write_check4.f90: New test.
+
+2008-10-31  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/35820
+	* gfortran.dg/nested_forall_1.f: New test.
+
+2008-10-30  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/37930
+	* gfortran.dg/int_conv_2.f90:  New test.
+
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/37903
+	* gfortran.dg/vector_subscript_4.f90: New test.
+
+2008-10-30  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/37749
+	* gfortran.dg/vector_subscript__5.f90: New test.
+
+2008-10-30  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.target/s390/pr36822.c: Avoid cast to pointer from integer
+	of different size warning with -m31.
+
+	PR middle-end/37730
+	* gcc.dg/vect/pr37730.c: New test.
+
+	PR debug/36668
+	* g++.dg/other/PR23205.C: Allow foobar to be defined as variable.
+	* g++.dg/other/pr23205-2.C: New test.
+
+2008-10-29  David Edelsohn  <edelsohn@gnu.org>
+
+	* gcc.c-torture/compile/pr37878.c: New test.
+
+2008-10-29  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/37339
+	* gcc.dg/pr33645-3.c: Remove.
+
+2008-10-29  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 11492
+	* gcc.dg/pr11492.c: New.
+	* g++.dg/warn/pr11492.C: New.
+
+2008-10-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR middle-end/36578
+	* gcc.dg/dfp/convert-bfp-13.c, gcc.dg/dfp/convert-bfp-14.c,
+	gcc.dg/dfp/convert-dfp-fold-2.c, gcc.target/i386/pr36578-1.c,
+	gcc.target/i386/pr36578-2.c: New tests.
+
+2008-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37870
+	* gcc.target/i386/pr37870.c: New test.
+
+2008-10-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/26997
+	* g++.dg/parse/pr26997.C: New.
+
+2008-10-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37913
+	* gcc.c-torture/compile/pr37913.c: New test.
+
+2008-10-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37663
+	* gcc.dg/pr37663.c: Require int32plus.
+
+	PR c/37924
+	* gcc.c-torture/execute/pr37924.c: New test.
+
+2008-10-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/dfp/convert-bfp-12.c: New test.
+
+2008-10-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37931
+	* gcc.c-torture/execute/pr37931.c: New test.
+
 2008-10-27  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/37879
@@ -45,22 +383,22 @@
 	* gcc.target/bfin/hisilh-O0.c: New file.
 
 	From Mike Frysinger  <michael.frysinger@analog.com>
-	* gcc.target/bfin/mcpu-bf522.c: Check SILICON_REVISION is 0x0002.  Invert
-	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
+	* gcc.target/bfin/mcpu-bf522.c: Check SILICON_REVISION is 0x0002.
+	Invert check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
 	* gcc.target/bfin/mcpu-bf523.c: Likewise.
 	* gcc.target/bfin/mcpu-bf524.c: Likewise.
 	* gcc.target/bfin/mcpu-bf525.c: Likewise.
 	* gcc.target/bfin/mcpu-bf526.c: Likewise.
 	* gcc.target/bfin/mcpu-bf527.c: Likewise.
-	* gcc.target/bfin/mcpu-bf531.c: Check SILICON_REVISION is 0x0006.  Invert
-	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0006+.
+	* gcc.target/bfin/mcpu-bf531.c: Check SILICON_REVISION is 0x0006.
+	Invert check for __WORKAROUND_RETS when SILICON_REVISION is 0x0006+.
 	* gcc.target/bfin/mcpu-bf532.c: Likewise.
 	* gcc.target/bfin/mcpu-bf533.c: Likewise.
-	* gcc.target/bfin/mcpu-bf538.c: Check SILICON_REVISION is 0x0005.  Invert
-	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0005+.
+	* gcc.target/bfin/mcpu-bf538.c: Check SILICON_REVISION is 0x0005.
+	Invert check for __WORKAROUND_RETS when SILICON_REVISION is 0x0005+.
 	* gcc.target/bfin/mcpu-bf539.c: Likewise.
-	* gcc.target/bfin/mcpu-bf542.c: Check SILICON_REVISION is 0x0002.  Invert
-	check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
+	* gcc.target/bfin/mcpu-bf542.c: Check SILICON_REVISION is 0x0002.
+	Invert check for __WORKAROUND_RETS when SILICON_REVISION is 0x0002+.
 	* gcc.target/bfin/mcpu-bf544.c: Likewise.
 	* gcc.target/bfin/mcpu-bf547.c: Likewise.
 	* gcc.target/bfin/mcpu-bf548.c: Likewise.
@@ -108,7 +446,7 @@
 	* gcc.dg/tree-ssa/alias-19.c: New testcase.
 
 2008-10-20  Manuel López-Ibáñez  <manu@gcc.gnu.org>
-        
+
 	PR 12603
 	* gcc.dg/pr12603.c: New testcase.
 
@@ -124,13 +462,13 @@
 
 2008-10-19  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/37723
-        * gfortran.dg/dependency_22.f90: New test.
+	PR fortran/37723
+	* gfortran.dg/dependency_22.f90: New test.
 
 2008-10-18  Danny Smith  <dannysmith@users.sourceforge.net>
 
 	* gcc.dg/dll-2.c: Revert 2008-08-09 change (R138893): Change
-        "dg-message" back to "dg-warning".
+	"dg-message" back to "dg-warning".
 	* gcc.dg/dll-3.c: Likewise.
 
 2008-10-16  Alexander Monakov  <amonakov@ispras.ru>
@@ -530,7 +868,7 @@
 	to avoid pointer truncation warning.
 
 2008-09-26  Dorit Nuzman  <dorit@il.ibm.com>
-	
+
 	PR tree-optimization/37574
 	* gcc.dg/vect/ggc-pr37574.c: New test.
 	* gcc.dg/vect/vect.exp: Compile some tests with ggc flags.
@@ -643,7 +981,7 @@
 	PR rtl-optimization/33642
 	* gcc.c-torture/compile/pr11832.c: Extend XFAIL to powerpc*-*-*.
 	* gcc.c-torture/compile/pr33009.c: Likewise.
-	
+
 2008-09-22  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/37145
@@ -676,7 +1014,7 @@
 	PR rtl-optimization/33642
 	* gcc.c-torture/compile/pr11832.c: XFAIL on sh*-*-*.
 	* gcc.c-torture/compile/pr33009.c: Likewise.
-	
+
 2008-09-21  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/37583
@@ -715,10 +1053,10 @@
 	* gcc.dg/tree-ssa/vector-3.c: New test.
 
 2008-09-18  Bob Wilson  <bob.wilson@acm.org>
-	
+
 	* gcc.c-torture/compile/pr11832.c: xfail on xtensa*-*-*.
 	* gcc.c-torture/compile/pr33009.c: Likewise.
-	
+
 2008-09-18  Janis Johnson  <janis187@us.ibm.com>
 
 	PR testsuite/25241
@@ -1582,10 +1920,10 @@
 2008-09-07  Victor Kaplansky  <victork@il.ibm.com>
 
 	PR testsuite/37334
-	* gcc/testsuite/gcc.dg/fastmath-2.c: Add volatile to
+	* gcc.dg/fastmath-2.c: Add volatile to
 	definition of b, change -ffast-math to -ffinite-math-only
 	and rename test to ...
-	* gcc/testsuite/gcc.dg/div-double-1.c: ... this.
+	* gcc.dg/div-double-1.c: ... this.
 
 2008-09-06  Jeff Law <law@redhat.com>
 
@@ -1641,7 +1979,7 @@
 
 	PR c++/37342
 	* g++.dg/other/canon-37342.C: New.
-	
+
 2008-09-05  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc.c-torture/compile/20080903-1.c: New test.
@@ -1817,7 +2155,7 @@
 	* gfortran.dg/graphite/scop-{1,2}.f: New.
 	* gfortran.dg/graphite/block-{1,3,4}.f90: New.
 	* gfortran.dg/graphite/graphite.exp: New.
-	
+
 2008-09-02  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/37327
@@ -2810,7 +3148,7 @@
 	* gcc.dg/assign-warn-1.c: Update.
 	* gcc.dg/dfp/composite-type.c: Update.
 	* gcc.dg/noncompile/20020213-1.c: Update.
-	
+
 2008-08-28  Daniel Kraft  <d@domob.eu>
 
 	* gfortran.dg/typebound_call_1.f03: New test.
@@ -2963,8 +3301,8 @@
 
 2008-08-24  Daniel Kraft  <d@domob.eu>
 
-	* gfortran.dg/finalize_5.f03:  Adapted expected error message to changes
-	to handling of CONTAINS in derived-type declarations.
+	* gfortran.dg/finalize_5.f03:  Adapted expected error message to
+	changes to handling of CONTAINS in derived-type declarations.
 	* gfortran.dg/typebound_proc_1.f08:  New test.
 	* gfortran.dg/typebound_proc_2.f90:  New test.
 	* gfortran.dg/typebound_proc_3.f03:  New test.
@@ -3198,11 +3536,11 @@
 2008-08-20  Victor Kaplansky  <victork@il.ibm.com>
 
 	* gcc.dg/vect/vect-multitypes-15.c: Fix typo.
-	* gcc/testsuite/lib/target-supports.exp
+	* lib/target-supports.exp
 	(check_effective_target_vect_long_long): Remove spu-*-*.
 	* gcc.dg/vect/vect-multitypes-16.c: Make init loop unvectorizable.
 	* gcc.dg/vect/slp-widen-mult-u8.c: Likewise.
-	
+
 2008-08-20  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/tree-ssa/pr20701.c: Scan vrp1 dump.
@@ -3389,7 +3727,7 @@
 	* gcc.dg/pr30551.c: Likewise.
 	* g++.dg/warn/pr30551-2.C: Likewise.
 	* g++.dg/warn/pr30551.C: Likewise.
-	
+
 2008-08-14  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/36705
@@ -3502,7 +3840,7 @@
 	* g++.dg/warn/pr35635.C: New.
 	* g++.dg/warn/Wconversion-integer.C: Update.
 	* g++.dg/warn/Wsign-conversion.C: Update.
-	
+
 2008-08-13  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/15255
@@ -3529,7 +3867,7 @@
 2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* g++.old-deja/g++.other/decl5.C: Expand new expected errors.
-	
+
 2008-08-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/37087
@@ -3636,7 +3974,7 @@
 
 	PR c++/12242
 	* g++.dg/warn/pr12242.C: New.
-	
+
 2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 36901
@@ -3692,13 +4030,13 @@
 	* gcc.dg/redecl-5.c: Update.
 	* gcc.dg/qual-return-3.c: Update.
 	* gcc.dg/label-decl-4.c: Update.
-	
+
 2008-08-09  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 7651
 	* g++.dg/warn/Wuninitializable-member.C: New.
 	* g++.dg/warn/Wuninitializable-member-no.C: New.
-	
+
 2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
 
 	PR 28875
@@ -3770,7 +4108,7 @@
 
 	PR 26785
 	* g++.dg/warn/pr26785.C: New.
-		
+
 2008-08-06  Victor Kaplansky  <victork@il.ibm.com>
 
 	* gcc.dg/vect/costmodel/ppc/costmodel-slp-34.c: New test.
@@ -3780,7 +4118,7 @@
 	PR 8715
 	* gcc.dg/pr8715.c: New.
 	* g++.dg/warn/pr8715.C: New.
-	
+
 2008-08-06  Marc Gauthier  <marc@tensilica.com>
 
 	* lib/target-supports.exp (check_profiling_available): Match more
@@ -3936,7 +4274,7 @@
 	* gnat.dg/raise_from_pure.ad[bs],
 	* gnat.dg/wrap_raise_from_pure.ad[bs]: Support for ...
 	* gnat.dg/test_raise_from_pure.adb: New test.
-	
+
 2008-07-31  Adam Nemet  <anemet@caviumnetworks.com>
 
 	* gcc.target/mips/ext-1.c: New test.
@@ -4153,7 +4491,7 @@
 	PR 34389
 	* gcc.dg/Wconversion-pr34389.c: New.
 	* g++.dg/warn/Wconversion-pr34389.C: New.
-	
+
 2008-07-29  Steve Ellcey  <sje@cup.hp.com>
 
 	* gcc.dg/pr32370.c: Force 64 bits on IA64.
@@ -4190,7 +4528,7 @@
 	PR 34985
 	* gcc.dg/pr34985.c: New.
 	* g++.dg/warn/pr34985.C: New.
-	
+
 2008-07-29  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/36403
@@ -4309,8 +4647,8 @@
 
 	PR 35058
 	* gcc.dg/Wdeclaration-after-statement-3.c: New.
-	* gcc/testsuite/gcc.dg/Wpointer-arith.c: New.
-	
+	* gcc.dg/Wpointer-arith.c: New.
+
 2008-07-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/36852
@@ -4334,7 +4672,7 @@
 
 	PR 28079
 	* gcc.dg/cpp/line6.c: New.
-	
+
 2008-07-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* gfortran.dg/fmt_g0_3.f08: Fix typo in expected error message.
@@ -4582,8 +4920,8 @@
 
 	PR c++/13101
 	* g++.dg/parse/func-ptr-decl.C: New test.
-	* gcc/testsuite/g++.old-deja/g++.jason/crash11.C: Update this to
-	  catch a warning that is generated by virtue of fixing this bug.
+	* g++.old-deja/g++.jason/crash11.C: Update this to
+	catch a warning that is generated by virtue of fixing this bug.
 
 2008-07-11 Dodji Seketeli <dseketel@redhat.com>
 
@@ -4598,8 +4936,8 @@
 2008-06-30 Dodji Seketeli <dseketel@redhat.com>
 
 	* g++.dg/parse/constructor1.C, g++.dg/parse/error*.C: Update these
-	  tests to make them catch column number regressions. Make these tests
-	  run with the -fshow-column option.
+	tests to make them catch column number regressions. Make these tests
+	run with the -fshow-column option.
 	* g++.dg/parse/error-column.C: new column number test.
 
 2008-07-11  Richard Guenther  <rguenther@suse.de>
@@ -6771,11 +7109,16 @@
 2008-05-08  Rafael Espíndola  <espindola@google.com>
 
 	* gcc.dg/vect/vect-111.c: Rename to no-trapping-math-vect-111.c
-	* gcc.dg/vect/vect-ifcvt-11.c: Rename to no-trapping-math-vect-ifcvt-11.c
-	* gcc.dg/vect/vect-ifcvt-12.c: Rename to no-trapping-math-vect-ifcvt-12.c
-	* gcc.dg/vect/vect-ifcvt-13.c: Rename to no-trapping-math-vect-ifcvt-13.c
-	* gcc.dg/vect/vect-ifcvt-14.c: Rename to no-trapping-math-vect-ifcvt-14.c
-	* gcc.dg/vect/vect-ifcvt-15.c: Rename to no-trapping-math-vect-ifcvt-15.c
+	* gcc.dg/vect/vect-ifcvt-11.c: Rename to
+	no-trapping-math-vect-ifcvt-11.c
+	* gcc.dg/vect/vect-ifcvt-12.c: Rename to
+	no-trapping-math-vect-ifcvt-12.c
+	* gcc.dg/vect/vect-ifcvt-13.c: Rename to
+	no-trapping-math-vect-ifcvt-13.c
+	* gcc.dg/vect/vect-ifcvt-14.c: Rename to
+	no-trapping-math-vect-ifcvt-14.c
+	* gcc.dg/vect/vect-ifcvt-15.c: Rename to
+	no-trapping-math-vect-ifcvt-15.c
 
 2008-05-08  David Daney  <ddaney@avtrex.com>
 
@@ -8854,8 +9197,7 @@
 	gfortran.dg/fmt_t_5.f90, gfortran.dg/namelist_12.f,
 	gfortran.dg/backspace_7.f90, gfortran.dg/write_rewind_2.f,
 	gfortran.dg/ftell_1.f90, gfortran.dg/fseek.f90,
-	gfortran.dg/write_back.f: Gate test on effective_target
-	fd_truncate.
+	gfortran.dg/write_back.f: Gate test on effective_target fd_truncate.
 
 2008-03-04  Joseph Myers  <joseph@codesourcery.com>
 
@@ -10264,7 +10606,8 @@
 
 2008-01-18  Tobias Burnus  <burnus@net-b.de>
 
-	* gfortran.dg/large_real_kind_form_io_1.f90: Enlarge string for internal I/O.
+	* gfortran.dg/large_real_kind_form_io_1.f90: Enlarge string for
+	internal I/O.
 
 2008-01-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
@@ -10820,8 +11163,8 @@
 2008-01-02  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR middle-end/34562
-	* g++.dg/other/first-global.C: Also accept _GLOBAL__I_65535_0_foobar in
-	scan-assembler check.
+	* g++.dg/other/first-global.C: Also accept _GLOBAL__I_65535_0_foobar
+	in scan-assembler check.
 
 2008-01-03  Jakub Jelinek  <jakub@redhat.com>
 
