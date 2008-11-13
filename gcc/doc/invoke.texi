@@ -452,8 +452,9 @@ Objective-C and Objective-C++ Dialects}.
 -mthumb  -marm @gol
 -mtpcs-frame  -mtpcs-leaf-frame @gol
 -mcaller-super-interworking  -mcallee-super-interworking @gol
--mtp=@var{name}
--mword-relocations}
+-mtp=@var{name} @gol
+-mword-relocations @gol
+-mfix-cortex-m3-ldrd}
 
 @emph{AVR Options}
 @gccoptlist{-mmcu=@var{mcu}  -msize  -minit-stack=@var{n}  -mno-interrupts @gol
@@ -3678,9 +3679,7 @@ integers are disabled by default in C++ unless
 @opindex Wempty-body
 @opindex Wno-empty-body
 Warn if an empty body occurs in an @samp{if}, @samp{else} or @samp{do
-while} statement.  Additionally, in C++, warn when an empty body occurs
-in a @samp{while} or @samp{for} statement with no whitespacing before
-the semicolon.  This warning is also enabled by @option{-Wextra}.
+while} statement.  This warning is also enabled by @option{-Wextra}.
 
 @item -Wenum-compare @r{(C++ and Objective-C++ only)}
 @opindex Wenum-compare
@@ -8709,6 +8708,13 @@ Put functions, data, and readonly data in @var{text-section},
 @var{data-section}, and @var{readonly-data-section} respectively
 by default.  This can be overridden with the @code{section} attribute.
 @xref{Variable Attributes}.
+
+@item -mfix-cortex-m3-ldrd
+@opindex mfix-cortex-m3-ldrd
+Some Cortex-M3 cores can cause data corruption when @code{ldrd} instructions
+with overlapping destination and base registers are used.  This option avoids
+generating these instructions.  This option is enabled by default when
+@option{-mcpu=cortex-m3} is specified.
 
 @end table
 

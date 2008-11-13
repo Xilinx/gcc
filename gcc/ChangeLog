@@ -1,3 +1,118 @@
+2008-11-13  Paul Brook  <paul@codesourcery.com>
+
+	* doc/invoke.texi: Document --fix-cortex-m3.
+	* config/arm/arm.c (arm_override_options): Set fix_cm3_ldrd if
+	Cortex-M3 cpu is selected.
+	(output_move_double): Avoid overlapping base register and first
+	destination register when fix_cm3_ldrd.
+	* config/arm/arm.opt: Add mfix-cortex-m3-ldrd.
+
+2008-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/38100
+	* gimple.h (gimple_range_check_failed): Remove prototype.
+	* gimple.c (gimple_check_failed): Don't check GCC_VERSION
+	in guarding #if.
+	(gimple_range_check_failed): Removed.
+
+2008-11-13  Andrew Haley  <aph@redhat.com>
+
+	PR bootstrap/38088
+	* mcf.c (CAP_INFINITY): Use HOST_WIDEST_INT maximum, not GCC specific
+	__LONG_LONG_MAX__.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36478
+	Revert:
+	2007-05-07  Mike Stump  <mrs@apple.com>
+	* doc/invoke.texi (Warning Options): Document that -Wempty-body
+	also checks for and while statements in C++.
+
+2008-11-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/27574
+	* cgraph.h: New abstract_and_needed member to struct cgraph_node.
+	* cgraphunit.c (cgraph_analyze_functions): Flag abstract functions
+	- which clones are reachable - as "abstract and needed".
+	* cgraph.c (cgraph_release_function_body):  If a node is
+	"abstract and needed", do not release its DECL_INITIAL() content
+	that will be needed to emit debug info.
+
+2008-11-12  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/27880
+	* configure.ac (GCC_CHECK_UNWIND_GETIPINFO): Use this macro
+	to set HAVE_GETIPINFO.
+	* aclocal.m4: Include ../config/unwind_ipinfo.m4.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2008-11-12  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR bootstrap/38010
+	* gcc/config.gcc: Use darwin9.h on darwin10 as well.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	Revert:
+	2008-10-21  Jakub Jelinek  <jakub@redhat.com>
+	* gimplify.c (gimplify_expr): Drop TREE_OVERFLOW from
+	INTEGER_CSTs.
+
+2008-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38007
+	* c-common.c (c_common_signed_or_unsigned_type): Remove C++
+	special casing.
+
+2008-11-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.c (avr_mcu_t): Add atmega16hvb, atmega32hvb,
+	atmega4hvd, atmega8hvd, atmega64c1, atmega64m1, atmega16u4 and
+	atmega32u6 devices.
+	* config/avr/avr.h (LINK_SPEC, CRT_BINUTILS_SPECS): (Ditto.).
+	* config/avr/t-avr (MULTILIB_MATCHES): (Ditto.).
+
+2008-11-12  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc/config/s390/s390.h (INITIAL_FRAME_ADDRESS_RTX): Remove
+	packed-stack special handling.
+	(FRAME_ADDR_RTX): Add definition.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35366
+	* fold-const.c (native_encode_string): New function.
+	(native_encode_expr): Use it for STRING_CST.
+
+2008-11-12  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/cond.md (cond_to_int peephole2): Don't eliminate the
+	insns if the intermediate value will be used later.
+
+2008-11-12  Andreas Schwab  <schwab@suse.de>
+
+	* config/m68k/m68k.c (print_operand): Mask off extra extension
+	bits when writing out the representation of real values.
+
+2008-11-12  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/38079
+	* tree-vect-analyze.c (vect_analyze_data_refs): Replace dump_file
+	with vect_dump.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35334
+	* c-pretty-print.c (pp_c_complex_expr): New function.
+	(pp_c_postfix_expression) <case COMPLEX_EXPR>: Call it.
+
+	PR target/35366
+	* expr.c (expand_expr_addr_expr_1): If EXP needs bigger alignment
+	than INNER and INNER is a constant, forcibly align INNER as much
+	as needed.
+
 2008-11-11  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* cse.c (fold_rtx): Remove redundant gen_rtx_CONST.

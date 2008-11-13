@@ -1,3 +1,92 @@
+2008-11-13  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/test_raise_from_pure.adb: Adjust to match revised intent.
+	* gnat.dg/wrap_raise_from_pure.adb: Remove.
+	* gnat.dg/handle_raise_from_pure.adb: New test.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38094
+	* gfortran.dg/private_type_4.f90: Fix dg-error pattern.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36478
+	* g++.old-deja/g++.mike/empty.C: Remove.
+
+2008-11-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/27574
+	* g++.dg/debug/dwarf2/local-var-in-contructor.C: New test.
+
+2008-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20081112-1.c: New test.
+	* gnat.dg/concat1.adb: Likewise.
+	* gnat.dg/concat1_pkg.ad[sb]: New helper.
+
+2008-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38007
+	* g++.dg/conversion/bitfield10.C: New test.
+	* g++.dg/warn/pr35635.C (func1): Accept additional warning.
+	* g++.old-deja/g++.mike/enum1.C: Expect warn about assignment.
+	* g++.dg/expr/bitfield9.C: Pass -Wno-overflow.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38065
+	PR fortran/38094
+	* gfortran.dg/private_type_4.f90: Add -std=f95 option.
+
+2008-11-12  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/frame-addr1.c: New testcase.
+	* gcc.target/s390/frame-addr2.c: New testcase.
+	* gcc.target/s390/return-addr1.c: New testcase.
+	* gcc.target/s390/return-addr2.c: New testcase.
+
+2008-11-12  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38008
+	* gcc.c-torture/execute/builtins/lib/sprintf.c: Make
+	sprintf call more portable for darwin10.
+
+	PR testsuite/37202
+	* gcc.dg/visibility-14.c:  Skip on *-*-darwin*.
+	* gcc.dg/visibility-15.c:  Same.
+	* gcc.dg/visibility-16.c:  Same.
+	* gcc.dg/visibility-17.c:  Same.
+	* gcc.dg/visibility-18.c:  Same.
+	* gcc.dg/visibility-19.c:  Same.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34269
+	* g++.dg/cpp0x/decltype13.C: New test.
+	* g++.dg/cpp0x/decltype-33837.C: Adjust dg-error pattern.
+	* g++.dg/cpp0x/pr33839.C: Likewise.
+
+	PR target/35366
+	PR fortran/33759
+	* gfortran.dg/hollerith.f90: Don't assume a 32-bit value
+	stored into logical variable will be preserved.
+	* gfortran.dg/transfer_simplify_4.f90: Remove undefined
+	cases.  Run at all optimization levels.  Add a couple of
+	new tests.
+	* gfortran.dg/hollerith5.f90: New test.
+	* gfortran.dg/hollerith_legacy.f90: Add dg-warning.
+
+	PR c++/35334
+	* gcc.dg/pr35334.c: New test.
+	* g++.dg/other/error29.C: New test.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38065
+	* gfortran.dg/private_type_11.f90: New test.
+	* gfortran.dg/private_type_12.f90: New test.
+
 2008-11-10  Catherine Moore  <clm@codesourcery.com>
 
 	* gcc.target/mips/no-smartmips-lwxs.c: New test.
