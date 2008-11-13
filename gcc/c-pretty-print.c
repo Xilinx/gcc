@@ -249,7 +249,7 @@ pp_c_type_qualifier_list (c_pretty_printer *pp, tree t)
 
   if (TYPE_ADDR_SPACE (t))
     {
-      const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (t));
+      const char *as = targetm.addr_space.name (TYPE_ADDR_SPACE (t));
       pp_c_identifier (pp, as);
     }
 }

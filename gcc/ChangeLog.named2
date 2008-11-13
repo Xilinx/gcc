@@ -1,4 +1,4 @@
-2008-11-07  Ben Elliston  <bje@au.ibm.com>
+2008-11-12  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* doc/extend.texi (Named Address Spaces): New section, describing
@@ -59,9 +59,10 @@
 	(DECODE_QUAL_ADDR_SPACE): New macro to decode the named address
 	space from the type qualifiers.
 	(TYPE_QUALS): Encode the named address space.
-	(addr_space_t): New type for named address spaces.
 	(struct tree_type): Add address_space field.  Move alias_set field
 	earlier in the structure.
+
+	* coretypes.h (addr_space_t): New type for named address spaces.
 
 	* target.h (struct gcc_target): Add valid_pointer_mode,
 	addr_space_name, addr_space_conversion_rtl, valid_addr_space
@@ -85,3 +86,88 @@
 	* expr.c (expand_expr_addr_expr): Add named address space
 	support.
 	(expand_expr_real_1): Ditto.
+
+	* c-decl.c (toplevel): Include targhooks.h.
+	(shadow_tag_warned): Add support for named address spaces.
+	(quals_from_declspecs): Ditto.
+	(grokdeclarator): Ditto.
+	(start_decl): Warn about unknown address spaces.
+	(declspecs_add_addrspace): New function to print message about
+	incompatible address spaces.
+
+	* c-pretty-print.c (toplevel): Include target.h and target-def.h.
+	(pp_c_type_qualifier): Add support for named address spaces.
+
+	* langhooks.c (lhd_tree_dump_dump_tree): Use CONST_CAST_TREE.
+
+	* print-rtl.c (print_rtx): Print out the address space if it
+	exists.
+
+	* c-typeck.c (comptypes_internal): Use CONST_CAST_TREE.
+	(build_binary_op): Add support for named address spaces.
+
+	* emit-rtl.c (get_mem_attrs): Add parameter for address space.
+	(mem_attrs_htab_hash): Include address space in hash.
+	(mem_attrs_htab_eq): Compare address spaces.
+	(set_mem_attributes_minus_bitpos): Add address space argument to
+	get_mem_attrs call.
+	(set_mem_attrs_from_reg): Ditto.
+	(set_mem_alias_set): Ditto.
+	(set_mem_align): Ditto.
+	(set_mem_expr): Ditto.
+	(set_mem_offset): Ditto.
+	(set_mem_size): Ditto.
+	(change_address): Ditto.
+	(adjust_address_1): Ditto.
+	(offset_address): Ditto.
+	(widen_memory_address): Ditto.
+	(get_spill_slot_decl): Ditto.
+	(set_mem_attrs_for_spill): Ditto.
+	(set_mem_addr_space): New function to set the address space
+	attribute.
+
+	* emit-rtl.h (set_mem_expr): Add declaration.
+
+	* explow.c (memory_address): Add support for named address spaces.
+
+	* varasm.c (make_decl_rtl): Add support for named address spaces.
+	(default_addr_space_pointer_mode): New default hook for named
+	address space pointer mode.
+
+	* target-def.h (TARGET_ADDR_SPACE_POINTER_MODE): New named address
+	target hook.
+	(TARGET_ADDR_SPACE_NAME): Ditto.
+	(TARGET_ADDR_SPACE_NUMBER): Ditto.
+	(TARGET_ADDR_SPACE_CONVERT): Ditto.
+	(TARGET_ADDR_SPACE_SECTION_NAME): Ditto.
+	(TARGET_ADDR_SPACE_HOOKS): Group all of the target address space
+	hooks into one initializer.
+	(TARGET_INITIALIZER): Add named address space hooks.
+
+	* rtl.h (struct mem_attrs): Move alignment field.  Add address
+	space field.
+	(MEM_ADDR_SPACE): New accessor macro for address space.
+
+	* output.h (default_addr_space_pointer_mode): Add declaration.
+
+	* config.gcc (spu*-elf*): Add spu_cache.h.
+
+	* Makefile.in (c-decl.o): Add targhooks.h dependency.
+	(c-pretty-print.o): Add $(TARGET_DEF_H), $(TARGET_H)
+	dependencies.
+	(convert.o): Add $(TARGET_H) dependency.
+	(tree-pretty-print.o): Ditto.
+	(fold-const.o): Ditto.
+
+	* c-parser.c (enum c_id_kind): Add C_ID_ADDRSPACE.
+	(c_lex_one_token): Add support for named address spaces.
+	(c_token_starts_typename): Ditto.
+	(c_token_starts_declspecs): Ditto.
+	(c_parser_asm_definition): Ditto.
+	(c_parser_declspecs): Ditto.
+	(c_parser_postfix_expression_after_paren_finish_init): Ditto.
+
+	* convert.c (toplevel): Include target.h.
+	(convert_to_pointer): Add support for named addresses.
+	(convert_to_integer): Ditto.
+

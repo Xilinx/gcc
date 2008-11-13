@@ -662,20 +662,27 @@ struct gcc_target
   /* True if MODE is valid for a pointer in __attribute__((mode("MODE"))).  */
   bool (* valid_pointer_mode) (enum machine_mode mode);
 
-  /* MODE to use for a pointer into another address space.  */
-  enum machine_mode (* addr_space_pointer_mode) (int);
+  /* Support for named address spaces.  */
+  struct addr_space {
+    /* MODE to use for a pointer into another address space.  */
+    enum machine_mode (* pointer_mode) (int);
 
-  /* Function to map an address space to a descriptive string.  */
-  const char * (* addr_space_name) (int);
+    /* Function to map an address space to a descriptive string.  */
+    const char * (* name) (addr_space_t);
 
-  /* Function to map an address space to a descriptive string.  */
-  unsigned char (* addr_space_number) (const_tree);
+    /* Function to map an address space to a small number.  */
+    addr_space_t (* number) (const_tree);
 
-  /* Function to return a gen function for the pointer conversion.  */
-  rtx (* (* addr_space_conversion_rtl) (int, int)) (rtx, rtx);
+    /* Function to convert an rtl expression from one address space to
+       another.  */
+    rtx (* convert) (rtx, enum machine_mode, addr_space_t, addr_space_t);
 
-  /* True if an identifier that is a valid address space.  */
-  bool (* valid_addr_space) (const_tree);
+    /* True if an identifier that is a valid address space.  */
+    bool (* valid_p) (const_tree);
+
+    /* Section name to use for a named address space.  */
+    tree (* section_name) (addr_space_t);
+  } addr_space;
 
   /* True if MODE is valid for the target.  By "valid", we mean able to
      be manipulated in non-trivial ways.  In particular, this means all

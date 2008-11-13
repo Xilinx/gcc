@@ -206,7 +206,7 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
     {
       addr_space_t addr_space = TYPE_ADDR_SPACE (type);
-      prec = GET_MODE_BITSIZE (targetm.addr_space_pointer_mode (addr_space));
+      prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (addr_space));
     }
   else if (POINTER_TYPE_P (type)
 	   || TREE_CODE (type) == OFFSET_TYPE)

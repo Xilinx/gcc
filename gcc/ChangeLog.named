@@ -1,3 +1,93 @@
+2008-11-12  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* targhooks.c (default_addr_space_name): Use addr_space_t for the
+	argument, not int.
+	(default_addr_space_convert): New hook function to do the
+	conversion between address spaces.
+	(default_addr_space_conversion_rtl): Delete in favor of
+	default_addr_space_convert.
+	(default_addr_space_number): Change return type to addr_space_t
+	from unsigned char.
+	(default_addr_space_section_name): New default hook for returning
+	the section name for a named address.
+
+	* targhooks.h (default_addr_space_name): Update calling signature.
+	(default_addr_space_number): Ditto.
+	(default_addr_space_section_name): Ditto.
+	(default_addr_space_convert): New declaration.
+	(default_addr_space_conversion_rtl): Delete.
+
+	* tree-pretty-print.c (dump_generic_node): Move target space hooks
+	into a sub-structure.
+
+	* tree.c (integer_pow2p): Move target space hooks into a
+	sub-structure.
+	(tree_log2): Ditto.
+	(tree_floor_log2): Ditto.
+	(build_pointer_type): Ditto.
+
+	* fold-const.c (fit_double_type): Move target space hooks into a
+	sub-structure.
+
+	* expr.c (expand_expr_addr_expr): Move target space hooks into a
+	sub-structure.
+	(expand_expr_real_1): Change how the named addresses are
+	converted.
+
+	* tree.h (addr_space_t): Delete, move to coretypes.h.
+
+	* target.h (struct gcc_target): Move address space hooks into a
+	sub-structure.  Change the signature of the address space hooks to
+	use addr_space_t instead of int or unsigned char.  Change the
+	address space conversion hook.  Add a hook for returning the
+	section name.
+
+	* c-decl.c (start_decl): Use named address space section hook to
+	make the section name, instead of hardwiring ._ea.
+	(grokdeclarator): Move target space hooks into a sub-structure.
+	(declspecs_add_addrspace): Ditto.
+
+	* c-pretty-print.c (pp_c_type_qualifier_list): Move target space
+	hooks into a sub-structure.
+
+	* coretypes.h (addr_space_t): Move type here from tree.h.
+
+	* varasm.c (make_decl_rtl): Move target space hooks into a
+	sub-structure.
+
+	* target-def.h (TARGET_ADDR_SPACE_CONVERT): New hook to replace
+	TARGET_ADDR_SPACE_CONVERSION_RTL.
+	(TARGET_ADDR_SPACE_CONVERSION_RTL): Delete.
+	(TARGET_ADDR_SPACE_SECTION_NAME): New hook to return the section
+	name.
+	(TARGET_ADDR_SPACE_HOOKS): Group all of the address space hooks
+	together.
+	(TARGET_INITIALIZER): Use TARGET_ADDR_SPACE_HOOKS instead of the
+	individual hooks.
+
+	* c-parser.c (c_lex_one_token): Move target space hooks into a
+	sub-structure.
+
+	* config/spu/spu.c (ADDR_SPACE_GENERIC): New macro to define
+	address space ids.
+	(ADDR_SPACE_EA): Ditto.
+	(struct spu_address_space): Delete, no longer used.
+	(spu_addr_space_name): Use addr_space_t instead of int arg.
+	Delete use of spu_address_space array.
+	(spu_addr_space_convert): New function to convert between address
+	spaces.  Replace spu_addr_space_conversion_rtl.
+	(spu_addr_space_conversion_rtl): Delete.
+	(spu_addr_space_section_name): New hook to return the section name
+	for named addresses.
+	(spu_valid_addr_space): Delete use of spu_address_space array.
+	(spu_addr_space_number): Ditto.
+	(spu_ea_name): New static to hold the ._ea section name.
+	(gt-spu.h): Include.
+
+	* convert.c (convert_to_pointer): Move target space hooks into a
+	sub-structure.
+	(convert_to_integer): Ditto.
+
 2008-11-11  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* emit-rtl.c (get_mem_attrs): Consider address space when seeing

@@ -716,17 +716,19 @@ default_builtin_vector_alignment_reachable (const_tree type, bool is_packed)
    never be called for targets with only a generic address space.  */
 
 const char *
-default_addr_space_name (int addrspace ATTRIBUTE_UNUSED)
+default_addr_space_name (addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }
 
-/* The default hook for TARGET_ADDR_SPACE_CONVERSION_RTL. This hook
-   should never be called for targets with only a generic address
-   space.  */
+/* The default hook for TARGET_ADDR_SPACE_CONVERT. This hook should never be
+   called for targets with only a generic address space.  */
 
-rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED,
-					  int to ATTRIBUTE_UNUSED)) (rtx, rtx)
+rtx 
+default_addr_space_convert (rtx op ATTRIBUTE_UNUSED,
+			    enum machine_mode mode ATTRIBUTE_UNUSED,
+			    addr_space_t from ATTRIBUTE_UNUSED,
+			    addr_space_t to ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }
@@ -734,8 +736,18 @@ rtx (* default_addr_space_conversion_rtl (int from ATTRIBUTE_UNUSED,
 /* The default hook for TARGET_ADDR_SPACE_NUMBER.  This hook should
    never be called for targets with only a generic address space.  */
 
-unsigned char
+addr_space_t
 default_addr_space_number (const_tree ident ATTRIBUTE_UNUSED)
+{
+  gcc_unreachable ();
+}
+
+/* The default hook for returning the section name to be used for static and
+   global items in a named address space.  This hook should never be called for
+   targets with only a generic address space.  */
+
+tree
+default_addr_space_section_name (addr_space_t addrspace ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }

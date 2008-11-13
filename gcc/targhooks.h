@@ -104,6 +104,8 @@ extern bool default_hard_regno_scratch_ok (unsigned int);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_option_can_inline_p (tree, tree);
-extern const char *default_addr_space_name (int);
+extern const char *default_addr_space_name (addr_space_t);
 extern unsigned char default_addr_space_number (const_tree);
-extern rtx (*default_addr_space_conversion_rtl (int, int)) (rtx, rtx);
+extern rtx default_addr_space_convert (rtx, enum machine_mode, addr_space_t,
+				       addr_space_t);
+extern tree default_addr_space_section_name (addr_space_t);

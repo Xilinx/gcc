@@ -1432,7 +1432,7 @@ make_decl_rtl (tree decl)
     {
       addrmode = (TREE_TYPE (decl) == error_mark_node)
 	? Pmode
-	: targetm.addr_space_pointer_mode
+	: targetm.addr_space.pointer_mode
 	(TYPE_ADDR_SPACE (TREE_TYPE (decl)));
       x = gen_rtx_SYMBOL_REF (addrmode, name);
     }

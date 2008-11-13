@@ -3169,6 +3169,7 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   tree decl;
   tree tem;
   enum deprecated_states deprecated_state = DEPRECATED_NORMAL;
+  addr_space_t addrspace;
 
   /* An object declared as __attribute__((deprecated)) suppresses
      warnings of uses of other deprecated items.  */
@@ -3278,21 +3279,17 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
 
   if (TREE_CODE (decl) == VAR_DECL
       && TREE_TYPE (decl) != error_mark_node
-      && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl)))
+      && (addrspace = TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))))
       && (declspecs->storage_class == csc_static
 	  || (declspecs->storage_class == csc_none
 	      && !current_function_scope)
 	  || (declspecs->storage_class == csc_extern
 	      && initialized)))
     {
-      static tree ea_name;
-
       /* FIXME: do not use __ea.  */
       if (!targetm.have_named_sections)
 	error ("%<__ea%> definitions not supported for %qD", decl);
-      if (!ea_name)
-	ea_name = build_string (4, "._ea");
-      DECL_SECTION_NAME (decl) = ea_name;
+      DECL_SECTION_NAME (decl) = targetm.addr_space.section_name (addrspace);
     }
 
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
@@ -4131,8 +4128,8 @@ grokdeclarator (const struct c_declarator *declarator,
   
   if (as1 > 0 && as2 > 0 && as1 != as2)
     error ("incompatible address space qualifiers %qs and %qs",
-	   targetm.addr_space_name (as1),
-	   targetm.addr_space_name (as2));
+	   targetm.addr_space.name (as1),
+	   targetm.addr_space.name (as2));
   
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
@@ -4147,7 +4144,7 @@ grokdeclarator (const struct c_declarator *declarator,
   if (((declarator->kind == cdk_pointer
  	&& (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals)) != 0)
        || addr_space_p)
-      && targetm.addr_space_name == default_addr_space_name)
+      && targetm.addr_space.name == default_addr_space_name)
      {
        /* A mere warning is sure to result in improper semantics
 	  at runtime.  Don't bother to allow this to compile.  */
@@ -4163,9 +4160,9 @@ grokdeclarator (const struct c_declarator *declarator,
 
       /* Either declspecs or the declarator identifies the address space.  */
       if (declspecs->address_space)
-	addrspace_name = targetm.addr_space_name (declspecs->address_space);
+	addrspace_name = targetm.addr_space.name (declspecs->address_space);
       else
-	addrspace_name = targetm.addr_space_name (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals));
+	addrspace_name = targetm.addr_space.name (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals));
 
       if (decl_context == NORMAL)
 	{
@@ -7244,12 +7241,12 @@ declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
   specs->declspecs_seen_p = true;
 
   if (specs->address_space > 0
-      && specs->address_space != targetm.addr_space_number (addrspace))
+      && specs->address_space != targetm.addr_space.number (addrspace))
     error ("incompatible address space qualifiers %qs and %qs",
-	   targetm.addr_space_name (targetm.addr_space_number (addrspace)),
-	   targetm.addr_space_name (specs->address_space));
+	   targetm.addr_space.name (targetm.addr_space.number (addrspace)),
+	   targetm.addr_space.name (specs->address_space));
 
-  specs->address_space = targetm.addr_space_number (addrspace);
+  specs->address_space = targetm.addr_space.number (addrspace);
   return specs;
 }
 

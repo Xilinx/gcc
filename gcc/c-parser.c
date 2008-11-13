@@ -258,7 +258,7 @@ c_lex_one_token (c_parser *parser, c_token *token)
 		break;
 	      }
 	  }
-	else if (targetm.valid_addr_space (token->value))
+	else if (targetm.addr_space.valid_p (token->value))
 	  {
 	    token->id_kind = C_ID_ADDRSPACE;
 	    break;

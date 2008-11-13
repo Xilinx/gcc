@@ -64,19 +64,6 @@ struct spu_builtin_range
   int low, high;
 };
 
-struct spu_address_space
-{
-  const char *name;
-  rtx (*to_generic_insn) (rtx, rtx);
-  rtx (*from_generic_insn) (rtx, rtx);
-};
-
-static struct spu_address_space spu_address_spaces[] = {
-  {"generic", NULL, NULL },
-  {"__ea", gen_from_ea, gen_to_ea },
-  {NULL, NULL, NULL},
-};
-
 static struct spu_builtin_range spu_builtin_range[] = {
   {-0x40ll, 0x7fll},		/* SPU_BTI_7     */
   {-0x40ll, 0x3fll},		/* SPU_BTI_S7    */
@@ -91,6 +78,10 @@ static struct spu_builtin_range spu_builtin_range[] = {
   {0ll, 0x3ffffll},		/* SPU_BTI_U16_2 */
   {0ll, 0x3ffffll},		/* SPU_BTI_U18   */
 };
+
+/* Address spaces */
+#define ADDR_SPACE_GENERIC	0
+#define ADDR_SPACE_EA		1
 
 
 /*  Target specific attribute specifications.  */
@@ -223,7 +214,7 @@ static enum machine_mode spu_ea_pointer_mode (int);
 #undef TARGET_ADDR_SPACE_POINTER_MODE
 #define TARGET_ADDR_SPACE_POINTER_MODE spu_ea_pointer_mode
 
-static const char *spu_addr_space_name (int);
+static const char *spu_addr_space_name (addr_space_t);
 #undef TARGET_ADDR_SPACE_NAME
 #define TARGET_ADDR_SPACE_NAME spu_addr_space_name
 
@@ -231,9 +222,14 @@ static unsigned char spu_addr_space_number (const_tree);
 #undef TARGET_ADDR_SPACE_NUMBER
 #define TARGET_ADDR_SPACE_NUMBER spu_addr_space_number
 
-static rtx (* spu_addr_space_conversion_rtl (int, int)) (rtx, rtx);
-#undef TARGET_ADDR_SPACE_CONVERSION_RTL
-#define TARGET_ADDR_SPACE_CONVERSION_RTL spu_addr_space_conversion_rtl
+static rtx spu_addr_space_convert (rtx, enum machine_mode, addr_space_t,
+				   addr_space_t);
+#undef TARGET_ADDR_SPACE_CONVERT
+#define TARGET_ADDR_SPACE_CONVERT spu_addr_space_convert
+
+static tree spu_addr_space_section_name (addr_space_t);
+#undef TARGET_ADDR_SPACE_SECTION_NAME
+#define TARGET_ADDR_SPACE_SECTION_NAME spu_addr_space_section_name
 
 static unsigned int spu_section_type_flags (tree, const char *, int);
 #undef TARGET_SECTION_TYPE_FLAGS
@@ -6593,52 +6589,93 @@ spu_libgcc_shift_count_mode (void)
   return SImode;
 }
 
-const char *
-spu_addr_space_name (int addrspace)
+/* Map an address space number into a name.  */
+static const char *
+spu_addr_space_name (addr_space_t addrspace)
 {
-  gcc_assert (addrspace > 0 && addrspace <= 1);
-  return (spu_address_spaces [addrspace].name);
+  switch (addrspace)
+    {
+    case ADDR_SPACE_GENERIC:
+      return "";
+
+    case ADDR_SPACE_EA:
+      return "__ea";
+    }
+
+  gcc_unreachable ();
 }
 
-static
-rtx (* spu_addr_space_conversion_rtl (int from, int to)) (rtx, rtx)
+/* Convert from one address space to another.  */
+static rtx
+spu_addr_space_convert (rtx op,
+			enum machine_mode mode,
+			addr_space_t from,
+			addr_space_t to)
 {
-  gcc_assert ((from == 0 && to == 1) || (from == 1 && to == 0));
+  rtx reg;
 
-  if (to == 0)
-    return spu_address_spaces[1].to_generic_insn;
-  else if (to == 1)
-    return spu_address_spaces[1].from_generic_insn;
+  if (to == from)
+    return op;
+
+  else if (to == ADDR_SPACE_GENERIC && from == ADDR_SPACE_EA)
+    {
+      reg = gen_reg_rtx (mode);
+      emit_insn (gen_from_ea (reg, op));
+      return reg;
+    }
+
+  else if (to == ADDR_SPACE_EA && from == ADDR_SPACE_GENERIC)
+    {
+      reg = gen_reg_rtx (mode);
+      emit_insn (gen_to_ea (reg, op));
+      return reg;
+    }
+
+  else
+    gcc_unreachable ();
 
   return 0;
 }
 
-static
-bool spu_valid_addr_space (const_tree value)
+/* Validate whether an address space is valid.  */
+static bool
+spu_valid_addr_space (const_tree value)
 {
-  int i;
   if (!value)
     return false;
 
-  for (i = 0; spu_address_spaces[i].name; i++)
-    if (strcmp (IDENTIFIER_POINTER (value), spu_address_spaces[i].name) == 0)
-      return true;
+  if (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0)
+    return true;
+
   return false;
 }
 
-static
-unsigned char spu_addr_space_number (const_tree ident)
+/* Return the address number for the identifier.  */
+static addr_space_t
+spu_addr_space_number (const_tree value)
 {
-  int i;
-  if (!ident)
-    return 0;
+  if (!value)
+    return ADDR_SPACE_GENERIC;
 
-  for (i = 0; spu_address_spaces[i].name; i++)
-    if (strcmp (IDENTIFIER_POINTER (ident), spu_address_spaces[i].name) == 0)
-      return i;
+  if (strcmp (IDENTIFIER_POINTER (value), "__ea") == 0)
+    return ADDR_SPACE_EA;
 
   gcc_unreachable ();
 }
+
+static GTY(()) tree spu_ea_name;
+
+static tree
+spu_addr_space_section_name (addr_space_t addrspace)
+{
+  gcc_assert (addrspace == 1);
+
+  if (!spu_ea_name)
+    spu_ea_name = build_string (4, "._ea");
+
+  return spu_ea_name;
+}
+
 
 /* An early place to adjust some flags after GCC has finished processing
  * them. */
@@ -6652,3 +6689,6 @@ asm_file_start (void)
 
   default_file_start ();
 }
+
+
+#include "gt-spu.h"

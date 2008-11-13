@@ -532,7 +532,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 
 	if (TYPE_ADDR_SPACE (node))
 	  {
-	    const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
+	    const char *as = targetm.addr_space.name (TYPE_ADDR_SPACE (node));
 	    pp_string (buffer, as);
 	    pp_space (buffer);
 	  }
@@ -615,7 +615,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 
 	  if (TYPE_ADDR_SPACE (node))
 	    {
-	      const char *as = targetm.addr_space_name (TYPE_ADDR_SPACE (node));
+	      const char *as = targetm.addr_space.name (TYPE_ADDR_SPACE (node));
 	      pp_string (buffer, as);
 	      pp_space (buffer);
 	    }

@@ -2270,9 +2270,6 @@ struct tree_block GTY(())
 
 struct die_struct;
 
-/* Address space number for named address space support.  */
-typedef unsigned char addr_space_t;
-
 struct tree_type GTY(())
 {
   struct tree_common common;
