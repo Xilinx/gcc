@@ -4890,6 +4890,7 @@ extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 extern tree build_lambda_expr                   (void);
 extern tree begin_lambda_type                   (tree);
 extern void finish_lambda_function_body         (tree, tree);
+extern void deduce_lambda_return_type           (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree lambda_expr_this_capture            (tree);

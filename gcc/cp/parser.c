@@ -7056,8 +7056,13 @@ cp_parser_lambda_parameter_declaration_opt (cp_parser* parser,
     }
     else
     {
-      /* For warning suppression.  */
-      return_type_specs.type = error_mark_node;
+      /* 5.1.1.9.2 of the standard says:
+       *   for a lambda expression that does not contain a
+       *   lambda-return-type-clause, the return type is void, unless the
+       *   compound-statement is of the form { return expression ; }  */
+      /* Will find out later what the form is, but can use void as a placeholder
+       * return type anyways.  */
+      return_type_specs.type = void_type_node;
     }
 
     declarator = make_id_declarator (
@@ -7136,9 +7141,43 @@ cp_parser_lambda_body (cp_parser* parser,
 
     body = begin_function_body ();
 
-    /* TODO: does begin_compound_stmt want BCS_FN_BODY?
-     * cp_parser_compound_stmt does not pass it. */
-    cp_parser_function_body (parser);
+    /* 5.1.1.9.2 of the standard says:
+     *   for a lambda expression that does not contain a
+     *   lambda-return-type-clause, the return type is void, unless the
+     *   compound-statement is of the form { return expression ; }  */
+    /* In a lambda that has neither a lambda-return-type-clause
+     * nor a deducible form, errors should be reported for return statements
+     * in the body.  Since we used void as the placeholder return type, parsing
+     * the body as usual will give such desired behavior.  */
+    if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr)
+        && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE)
+        && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN)
+    {
+      tree compound_stmt;
+      tree expr = error_mark_node;
+     
+      cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
+      compound_stmt = begin_compound_stmt (0);
+
+      cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
+      expr = cp_parser_expression (parser, /*cast_p=*/false);
+      cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
+
+      if (expr != error_mark_node)
+      {
+        deduce_lambda_return_type (lambda_expr, expr);
+        /* Will get error here if type not deduced yet.  */
+        finish_return_stmt (expr);
+      }
+
+      cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
+      finish_compound_stmt (compound_stmt);
+
+    } else {
+      /* TODO: does begin_compound_stmt want BCS_FN_BODY?
+       * cp_parser_compound_stmt does not pass it. */
+      cp_parser_function_body (parser);
+    }
 
     finish_lambda_function_body (lambda_expr, body);
 
