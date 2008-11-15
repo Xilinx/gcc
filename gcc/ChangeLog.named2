@@ -1,3 +1,4 @@
+[gcc changes]
 2008-11-15  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
 
@@ -246,3 +247,16 @@
 	(convert_to_pointer): Add support for named addresses.
 	(convert_to_integer): Ditto.
 
+
+[gcc/testsuite changes]
+2007-11-15  Ben Elliston  <bje@au.ibm.com>
+	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/cache.c: New file.
+	* gcc.target/spu/ea/ea.exp: Likewise.
+	* gcc.target/spu/ea/cppdefine32.c: Likewise.
+	* gcc.target/spu/ea/cppdefine64.c: Likewise.
+	* gcc.target/spu/ea/compile.c: Likewise.
+	* gcc.target/spu/ea/cast1.c: Likewise.
+	* gcc.target/spu/ea/errors.c: Likewise.
+	* gcc.target/spu/ea/options1.c: Likewise.
