@@ -1,5 +1,76 @@
-2008-11-13  Ben Elliston  <bje@au.ibm.com>
+2008-11-15  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add -mea64 multilib.
+	(EXTRA_MULTILIB_PARTS): Add libgcc_cachemgr.a,
+	libgcc_cachemgr_nonatomic.a, libgcc_cache8k.a, libgcc_cache16k.a,
+	libgcc_cache32k.a, libgcc_cache64k.a, libgcc_cache128k.a.
+	(cachemgr.o, %/cachemgr.o): New targets.
+	(cachemgr_nonatomic.o, %/cachemgr_nonatomic.o): Likewise.
+	(libgcc_%.a, %/libgcc_%.a): Likewise.
+	(cache8k.o, cache16k.o, cache32k.o, cache64k.o, cache128k.o,
+	%/cache8k.o, %/cache16k.o, %/cache32k.o, %/cache64k.o,
+	%/cache128k.o): Likewise.
+
+	* config/spu/spu.c (ADDR_SPACE_GENERIC): New macro for the generic
+	address space.
+	(ADDR_SPACE_EA): New macro for __ea named address space.
+	(TARGET_ADDR_SPACE_POINTER_NAME): Add named address support.
+	(TARGET_ADDR_SPACE_NAME): Ditto.
+	(TARGET_ADDR_SPACE_NUMBER): Ditto.
+	(TARGET_ADDR_SPACE_SECTION_NAME): Ditto.
+	(TARGET_SECTION_TYPE_FLAGS): Ditto.
+	(TARGET_ADDR_SPACE_VALID_P): Ditto.
+	(TARGET_ASM_ALGNED_DI_OP): Use .quad.
+	(ea_symbol_ref): Return true for __ea qualified SYMBOL_REF.
+	(spu_legitimate_constant_p): Add suupport for __ea named address
+	space.
+	(EAmode): New macro for pointer mode for __ea addresses.
+	(cache_fetch): New static to hold __cache_fetch function.
+	(cache_fetch_dirty): New static to hold __cache_fetch_dirty
+	function.
+	(ea_alias_set): New static to hold the alias set for __ea named
+	address apce.
+	(ea_load_store): New function to generate code to fetch a __ea
+	address to local memory.
+	(ea_load_store_inline): Generate inline code for moving __ea
+	memory to local memory.
+	(expand_ea_mem): New function expand __ea addresses.
+	(spu_expand_mov): Add __ea address space support.
+	(spu_ea_pointer_mode): Return the appropriate modes for pointers.
+	(spu_valid_pointer_mode): Return modes that can be used for
+	pointers.
+	(spu_section_type_flags): New function to set the section flags
+	for the __ea section.
+	(spu_addr_space_name): New target hook to convert an address space
+	to a string.
+	(spu_addr_space_convert): New target hook to convert to/from the
+	__ea named address space.
+	(spu_ea_identifer): New static to remember the token __ea.
+	(spu_addr_space_valid_p): New target hook to validate the __ea
+	keyword.
+	(spu_addr_space_number): New target hook to map an identifier into
+	a named address identifier.
+	(spu_ea_name): New static to remember the string ._ea.
+	(spu_addr_space_section_name): New hook to return the section name
+	for the __ea named address space.
+
+	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Add support for
+	-mcache-size=, -matomic-updates switches.
+	(LIB_SPEC): Ditto.
+
+	* config/spu/spu_cache.h: New file for __ea cache support.
+	* config/spu/cachemgr.c: Ditto.
+	* config/spu/cache.S: Ditto.
+
+	* config/spu/spu.h (TEXT_SECTION_ASM_OP): Add a tab in front of
+	the directive.
+	(DATA_SECTION_ASM_OP): Ditto.
+	(ASM_OUTPUT_SYMBOL_REF): Strip array types on arg.
+
+	* config/spu/spu.md (to_ea): New expanders for __ea named address
+	space support.
+	(from_ea): Ditto.
 
 	* doc/extend.texi (Named Address Spaces): New section, describing
 	named address spaces.

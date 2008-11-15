@@ -4168,11 +4168,12 @@ store_with_one_insn_p (rtx mem)
   return 0;
 }
 
+/* Pointer mode for __ea references.  */
 #define EAmode (spu_ea_model != 32 ? DImode : SImode)
 
-rtx cache_fetch;
-rtx cache_fetch_dirty;
-int ea_alias_set = -1;
+static GTY(()) rtx cache_fetch;		  /* __cache_fetch function */
+static GTY(()) rtx cache_fetch_dirty;	  /* __cache_fetch_dirty function */
+static alias_set_type ea_alias_set = -1;  /* alias set for __ea memory */
 
 /* MEM is known to be an __ea qualified memory access.  Emit a call to
    fetch the ppu memory to local store, and return its address in local
@@ -6448,26 +6449,29 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
   return true;
 }
 
+/* Return the appropriate mode for a named address pointer.  */
 static enum machine_mode
 spu_ea_pointer_mode (int addrspace)
 {
   switch (addrspace)
     {
-    case 0:
+    case ADDR_SPACE_GENERIC:
       return ptr_mode;
-    case 1:
+    case ADDR_SPACE_EA:
       return (spu_ea_model == 64 ? DImode : ptr_mode);
     default:
       gcc_unreachable ();
     }
 }
 
+/* Return valid pointer modes.  */
 static bool
 spu_valid_pointer_mode (enum machine_mode mode)
 {
   return (mode == ptr_mode || mode == Pmode || mode == spu_ea_pointer_mode (1));
 }
 
+/* Adjust section flags for the __ea section.  */
 static unsigned int
 spu_section_type_flags (tree decl, const char *name, int reloc)
 {
@@ -6676,7 +6680,7 @@ static GTY(()) tree spu_ea_name;
 static tree
 spu_addr_space_section_name (addr_space_t addrspace)
 {
-  gcc_assert (addrspace == 1);
+  gcc_assert (addrspace == ADDR_SPACE_EA);
 
   if (!spu_ea_name)
     spu_ea_name = build_string (4, "._ea");
