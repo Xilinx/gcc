@@ -6441,16 +6441,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	  /* Constants need not be gimplified.  */
 	case INTEGER_CST:
-	  /* Don't preserve TREE_OVERFLOW flags, it only inhibits
-	     many optimizations and FEs should have taken care of
-	     reporting all the required diagnostics.  */
-	  if (TREE_OVERFLOW (*expr_p))
-	    *expr_p = build_int_cst_wide (TREE_TYPE (*expr_p),
-					  TREE_INT_CST_LOW (*expr_p),
-					  TREE_INT_CST_HIGH (*expr_p));
-	  ret = GS_ALL_DONE;
-	  break;
-
 	case REAL_CST:
 	case FIXED_CST:
 	case STRING_CST:
@@ -7576,6 +7566,10 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
       break;
     }
 
+  if (gimple_referenced_vars (cfun))
+    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
+      add_referenced_var (t);
+
   if (!gimple_seq_empty_p (pre))
     {
       if (gimple_in_ssa_p (cfun))
@@ -7589,10 +7583,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
     }
   if (post_stmt)
     gsi_insert_after (gsi_p, post_stmt, GSI_NEW_STMT);
-
-  if (gimple_referenced_vars (cfun))
-    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
-      add_referenced_var (t);
 
   pop_gimplify_context (NULL);
 }

@@ -1,3 +1,219 @@
+2008-11-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37294
+	* gfortran.dg/namelist_57.f90: New test.
+	* gfortran.dg/namelist_print_1.f: Adjust test conditions.
+
+2008-11-15  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/37926
+        * gfortran.dg/dummy_procedure_3.f90: New test.
+
+2008-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38123
+	* gcc.c-torture/compile/pr38123.c: New test.
+
+2008-11-15  Richard Guenther  <rguenther@suse.de>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38051
+	* gcc.c-torture/execute/pr38051.c: New testcase.
+
+2008-11-15  Joshua Kinard  <kumba@gentoo.org>
+	    Richard Sandiford  <rdsandiford@goolemail.com>
+
+	* gcc.target/mips/fix-r10000-1.c: New test.
+	* gcc.target/mips/fix-r10000-2.c: Likewise.
+	* gcc.target/mips/fix-r10000-3.c: Likewise.
+	* gcc.target/mips/fix-r10000-4.c: Likewise.
+	* gcc.target/mips/fix-r10000-5.c: Likewise.
+	* gcc.target/mips/fix-r10000-6.c: Likewise.
+	* gcc.target/mips/fix-r10000-7.c: Likewise.
+	* gcc.target/mips/fix-r10000-8.c: Likewise.
+	* gcc.target/mips/fix-r10000-9.c: Likewise.
+	* gcc.target/mips/fix-r10000-10.c: Likewise.
+	* gcc.target/mips/fix-r10000-11.c: Likewise.
+	* gcc.target/mips/fix-r10000-12.c: Likewise.
+	* gcc.target/mips/fix-r10000-13.c: Likewise.
+	* gcc.target/mips/fix-r10000-14.c: Likewise.
+	* gcc.target/mips/fix-r10000-15.c: Likewise.
+
+2008-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37561
+	* gcc.dg/pr37561.c: New test.
+	* g++.dg/other/increment1.C: New test.
+
+2008-11-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/37988
+	* gfortran.dg/fmt_error_6.f90: New test.
+
+2008-11-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38030
+	* g++.dg/template/lookup8.C: New test.
+
+	PR c++/37740
+	* g++.dg/cpp0x/initlist8.C: New test.
+
+2008-11-13  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/38004
+	* g++.dg/vect/pr36648.cc: Check alignment requirement.
+
+2008-11-14  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38098
+	* gcc.dg/cpp/subframework1.c: Use -Wno-deprecated.
+
+2008-10-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38033
+	* gfortran.dg/array_section_2.f90: New test.
+
+2008-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38104
+	* g++.dg/tree-ssa/pr38104.C: New test.
+
+2008-11-14  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.target/sh/pr37514.c: Remove.
+
+2008-11-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/37517
+	* gcc.target/i386/quad-sse.c: Tighten scan-assembler-not pattern.
+
+2008-11-14  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	    Andrew Stubbs  <ams@codesourcery.com>
+	    Gunnar Von Boehn  <gunnar@genesi-usa.com>
+
+	PR target/36134
+	* gcc.target/m68k/pr36134.c: New test.
+
+2008-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36125
+	* gcc.c-torture/compile/pr36125.c: New test.
+
+2008-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37932
+	* g++.dg/conversion/bitfield11.C: New test.
+	* g++.dg/cpp0x/initlist7.C: New test.
+
+2008-11-13  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/loongson-muldiv-1.c: New test.
+	* gcc.target/mips/loongson-muldiv-2.c: Likewise.
+
+2008-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/27017
+	* g++.dg/debug/dwarf2/localclass1.C: New test.
+	* g++.dg/debug/dwarf2/localclass2.C: New test.
+
+2008-11-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/compat/struct-layout-1_generate.c (dg-options): Add -mno-mmx
+	for i?86-*-* and x86_64-*-* targets.
+	* g++.dg/compat/struct-layout-1_generate.c (dg-options): Add
+	-fno-common for *-*-darwin* *-*-mingw32* *-*-cygwin* targets.
+
+	* gcc.dg/compat/struct-layout-1.h: Do not include <mmintrin.h> and
+	<xmmintrin.h>, define __m64 and __m128 directly.
+
+2008-11-13  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/test_raise_from_pure.adb: Adjust to match revised intent.
+	* gnat.dg/wrap_raise_from_pure.adb: Remove.
+	* gnat.dg/handle_raise_from_pure.adb: New test.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38094
+	* gfortran.dg/private_type_4.f90: Fix dg-error pattern.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36478
+	* g++.old-deja/g++.mike/empty.C: Remove.
+
+2008-11-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/27574
+	* g++.dg/debug/dwarf2/local-var-in-contructor.C: New test.
+
+2008-11-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20081112-1.c: New test.
+	* gnat.dg/concat1.adb: Likewise.
+	* gnat.dg/concat1_pkg.ad[sb]: New helper.
+
+2008-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38007
+	* g++.dg/conversion/bitfield10.C: New test.
+	* g++.dg/warn/pr35635.C (func1): Accept additional warning.
+	* g++.old-deja/g++.mike/enum1.C: Expect warn about assignment.
+	* g++.dg/expr/bitfield9.C: Pass -Wno-overflow.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38065
+	PR fortran/38094
+	* gfortran.dg/private_type_4.f90: Add -std=f95 option.
+
+2008-11-12  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.target/s390/frame-addr1.c: New testcase.
+	* gcc.target/s390/frame-addr2.c: New testcase.
+	* gcc.target/s390/return-addr1.c: New testcase.
+	* gcc.target/s390/return-addr2.c: New testcase.
+
+2008-11-12  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38008
+	* gcc.c-torture/execute/builtins/lib/sprintf.c: Make
+	sprintf call more portable for darwin10.
+
+	PR testsuite/37202
+	* gcc.dg/visibility-14.c:  Skip on *-*-darwin*.
+	* gcc.dg/visibility-15.c:  Same.
+	* gcc.dg/visibility-16.c:  Same.
+	* gcc.dg/visibility-17.c:  Same.
+	* gcc.dg/visibility-18.c:  Same.
+	* gcc.dg/visibility-19.c:  Same.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34269
+	* g++.dg/cpp0x/decltype13.C: New test.
+	* g++.dg/cpp0x/decltype-33837.C: Adjust dg-error pattern.
+	* g++.dg/cpp0x/pr33839.C: Likewise.
+
+	PR target/35366
+	PR fortran/33759
+	* gfortran.dg/hollerith.f90: Don't assume a 32-bit value
+	stored into logical variable will be preserved.
+	* gfortran.dg/transfer_simplify_4.f90: Remove undefined cases.
+	Run at all optimization levels.  Add a couple of new tests.
+	* gfortran.dg/hollerith5.f90: New test.
+	* gfortran.dg/hollerith_legacy.f90: Add dg-warning.
+
+	PR c++/35334
+	* gcc.dg/pr35334.c: New test.
+	* g++.dg/other/error29.C: New test.
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38065
+	* gfortran.dg/private_type_11.f90: New test.
+	* gfortran.dg/private_type_12.f90: New test.
+
 2008-11-10  Catherine Moore  <clm@codesourcery.com>
 
 	* gcc.target/mips/no-smartmips-lwxs.c: New test.
@@ -20,7 +236,7 @@
 	PR c++/38021
 	* g++.dg/cpp0x/enum1.C: New test.
 
-2008-11-02  Ralph Loader  <suckfish@ihug.co.nz>
+2008-11-10  Ralph Loader  <suckfish@ihug.co.nz>
 
 	PR middle-end/37807
 	PR middle-end/37809
@@ -146,8 +362,7 @@
 	PR target/37812
 	* gcc.target/powerpc/altivec_check.h (altivec_cell_check): Abort
 	if __PPU__ isn't defined.
-	* lib/target-supports.exp (check_effective_target_powerpc_ppu_ok):
-	New.
+	* lib/target-supports.exp (check_effective_target_powerpc_ppu_ok): New.
 	* gcc.target/powerpc/altivec-cell-8.c: Use powerpc_ppu_ok.
 
 2008-11-03  Eric Botcazou  <ebotcazou@adacore.com>
@@ -5936,6 +6151,11 @@
 
 	PR c++/35327
 	* g++.dg/parse/crash41.C: New.
+
+2008-06-06  Uros Bizjak <ubizjak@gmail.com>
+
+	PR rtl-optimization/36438
+	* gcc.target/i386/pr36438.c
 
 2008-06-06  Jakub Jelinek  <jakub@redhat.com>
 

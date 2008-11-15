@@ -1,9 +1,8 @@
 --  { dg-do run }
 --  { dg-options "-O2" }
-with Wrap_Raise_From_Pure; use Wrap_Raise_From_Pure;
+with Raise_From_Pure; use Raise_From_Pure;
 procedure test_raise_from_pure is
+   K : Integer;
 begin
-   Wrap_Raise_From_Pure.Check;
-exception
-   when Constraint_Error => null;
+   K := Raise_CE_If_0 (0);
 end;

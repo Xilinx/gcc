@@ -1,3 +1,309 @@
+2008-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38123
+	* config/i386/i386.c (ix86_gimplify_va_arg): Don't share valist between
+	gpr and other COMPONENT_REFs.
+
+2008-11-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38051
+	* tree-ssa-alias.c (update_alias_info_1): Manually find
+	written variables.
+
+2008-11-15  Joshua Kinard  <kumba@gentoo.org>
+
+	* doc/invoke.texi (-mfix-r10000): Document.
+	* config/mips/mips.opt (mfix-r10000): New option.
+	* config/mips/mips-protos.h (mips_output_sync_loop): Declare.
+	* config/mips/mips.h (MIPS_COMPARE_AND_SWAP): Use %?.
+	(MIPS_COMPARE_AND_SWAP_12): Likewise.
+	(MIPS_SYNC_OP): Likewise.
+	(MIPS_SYNC_OP_12): Likewise.
+	(MIPS_SYNC_OLD_OP_12): Likewise.
+	(MIPS_SYNC_NEW_OP_12): Likewise.
+	(MIPS_SYNC_OLD_OP): Likewise.
+	(MIPS_SYNC_NAND): Likewise.
+	(MIPS_SYNC_OLD_NAND): Likewise.
+	(MIPS_SYNC_EXCHANGE): Likewise.
+	(MIPS_SYNC_EXCHANGE_12): Likewise.
+	(MIPS_SYNC_NEW_OP): Likewise, using %~ to fill branch-likely
+	delay slots.
+	(MIPS_SYNC_NEW_NAND): Likewise.
+	* config/mips/mips.c (mips_print_operand_punctuation): Handle '~'.
+	(mips_init_print_operand_punct): Treat '~' as a punctuation character.
+	(mips_output_sync_loop): New function.
+	(mips_override_options): Make -march=r10000 imply -mfix-r10000.
+	Make -mfix-r10000 require branch-likely instructions.
+	* config/mips/sync.md (sync_compare_and_swap<mode>): Use
+	mips_output_sync_loop.
+	(compare_and_swap_12): Likewise.
+	(sync_add<mode>): Likewise.
+	(sync_<optab>_12): Likewise.
+	(sync_old_<optab>_12): Likewise.
+	(sync_new_<optab>_12): Likewise.
+	(sync_nand_12): Likewise.
+	(sync_old_nand_12): Likewise.
+	(sync_new_nand_12): Likewise.
+	(sync_sub<mode>): Likewise.
+	(sync_old_add<mode>): Likewise.
+	(sync_old_sub<mode>): Likewise.
+	(sync_new_add<mode>): Likewise.
+	(sync_new_sub<mode>): Likewise.
+	(sync_<optab><mode>): Likewise.
+	(sync_old_<optab><mode>): Likewise.
+	(sync_new_<optab><mode>): Likewise.
+	(sync_nand<mode>): Likewise.
+	(sync_old_nand<mode>): Likewise.
+	(sync_new_nand<mode>): Likewise.
+	(sync_lock_test_and_set<mode>): Likewise.
+	(test_and_set_12): Likewise.
+
+2008-11-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c (cc1_options): Fix comment.
+
+2008-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37561
+	* c-typeck.c (build_unary_op): Don't call get_unwidened.  Use
+	argtype instead of result_type.
+
+2008-11-14  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* ira-int.h (struct ira_loop_tree_node): Improve comments for
+	subloop_next/next and subloops/childen fields.
+
+2008-11-14  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu-elf.h (STANDARD_STARTFILE_PREFIX_2): Disable default.
+	(STANDARD_INCLUDE_DIR): Redefine to "/include".
+	(LOCAL_INCLUDE_DIR): Undefine.
+	* config/spu/t-spu-elf (NATIVE_SYSTEM_HEADER_DIR): Define.
+
+2008-11-14  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/37397
+	* ira-int.h (struct ira_allocno): New member bad_spill_p.
+	(ALLOCNO_BAD_SPILL_P): New macro.
+
+	* ira-color.c (push_allocnos_to_stack): Check ALLOCNO_BAD_SPILL_P.
+
+	* ira-build.c (ira_create_allocno): Initialize
+	ALLOCNO_BAD_SPILL_P.
+	(create_cap_allocno, propagate_allocno_info,
+	remove_unnecessary_allocnos): Set up or update
+	ALLOCNO_BAD_SPILL_P.
+	(update_bad_spill_attribute): New function.
+	(ira_build): Call it.
+
+	* ira-costs.c (record_reg_classes): Set up ALLOCNO_BAD_SPILL_P.
+	
+2008-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38104
+	* gimplify.c (gimple_regimplify_operands): Add referenced vars
+	before calling mark_symbols_for_renaming, not after it.
+
+2008-11-14  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.h (OPTIMIZATION_OPTIONS): Revert last change.
+	(OVERRIDE_OPTIONS): Likewise.
+
+2008-11-14  Maxim Kuvyrkov  <maxim@codesourcery.com>
+	    Andrew Stubbs  <ams@codesourcery.com>
+	    Gunnar Von Boehn  <gunnar@genesi-usa.com>
+
+	PR target/36134
+	* config/m68k/m68k.md (addsi3_5200): Add a new alternative preferring
+	the shorter LEA insn over ADD.L where possible.
+
+2008-11-14  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* configure.ac (gcc_cv_libc_provides_ssp): Also consider GNU/Hurd
+	systems, which are assumend to always provide SSP-support in glibc.
+	* configure: Regenerate.
+
+	* configure.ac (gcc_cv_libc_provides_ssp): Also consider GNU/kFreeBSD,
+	GNU/kNetBSD systems in the `*-*-linux*' case.
+	* configure: Regenerate.
+
+2008-11-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36125
+	* function.c (gimplify_parameters): For callee copies parameters,
+	move TREE_ADDRESSABLE flag from the PARM_DECL to the local copy.
+
+2008-11-13  Thomas Schwinge  <tschwinge@gnu.org>
+
+	PR target/28102
+	* config.gcc (*-*-gnu*): Move Alpha parts into the `alpha*-*-gnu*', x86
+	parts into the `i[34567]86-*-linux*' and parts that are independent of
+	the processor architecture into the `*-*-linux*' cases.
+	(*-*-linux*): Consider `linux.opt' only for Linux-based configurations.
+	* config/i386/gnu.h (GLIBC_DYNAMIC_LINKER): Redefine.
+	(TARGET_OS_CPP_BUILTINS, LINK_SPEC): Don't redefine.
+	[TARGET_LIBC_PROVIDES_SSP] (TARGET_THREAD_SSP_OFFSET): Undefine.
+	* config/gnu.h (NO_IMPLICIT_EXTERN_C): Don't redefine.
+	(HURD_TARGET_OS_CPP_BUILTINS): Don't define, but instead...
+	(LINUX_TARGET_OS_CPP_BUILTINS): Redefine.
+
+2008-11-13  Ruan Beihong  <ruanbeihong@gmail.com>
+
+	* config/mips/loongson.md (<u>div<mode>3, <u>mod<mode>3): New patterns.
+	* config/mips/loongson2ef.md (ls2_imult): Handle imul3nc.
+	(ls2_idiv): Likewise idiv3.
+	(ls2_prefetch): New reservation.
+	* config/mips/mips.h (ISA_HAS_PREFETCH): Add TARGET_LOONGSON_2EF.
+	* config/mips/mips.md (type): Add imul3nc and idiv3.
+	(length): Handle idiv3.
+	(any_mod): New code_iterator.
+	(u): Handle MOD and UMOD.
+	(mul<mode>3): Generate mul<mode>3_mul3_ls2ef on Loongson targets.
+	(prefetch): Handle TARGET_LOONGSON_2EF.
+
+2008-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/27017
+	* dwarf2out.c (prune_unused_types_walk_local_classes): New function.
+	(prune_unused_types_walk): Call it for non-perennial local classes.
+	Set die_mark to 2 if recursing on children.  If die_mark is 1 on
+	entry, just set it to 2 and recurse on children, don't walk attributes
+	again.
+
+2008-11-13  Martin Michlmayr  <tbm@cyrius.com>
+
+	* c-common.c (warn_about_parentheses): Add missing whitespace
+	in warning.
+
+2008-11-13  Paul Brook  <paul@codesourcery.com>
+
+	* doc/invoke.texi: Document --fix-cortex-m3.
+	* config/arm/arm.c (arm_override_options): Set fix_cm3_ldrd if
+	Cortex-M3 cpu is selected.
+	(output_move_double): Avoid overlapping base register and first
+	destination register when fix_cm3_ldrd.
+	* config/arm/arm.opt: Add mfix-cortex-m3-ldrd.
+
+2008-11-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/38100
+	* gimple.h (gimple_range_check_failed): Remove prototype.
+	* gimple.c (gimple_check_failed): Don't check GCC_VERSION
+	in guarding #if.
+	(gimple_range_check_failed): Removed.
+
+2008-11-13  Andrew Haley  <aph@redhat.com>
+
+	PR bootstrap/38088
+	* mcf.c (CAP_INFINITY): Use HOST_WIDEST_INT maximum, not GCC specific
+	__LONG_LONG_MAX__.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36478
+	Revert:
+	2007-05-07  Mike Stump  <mrs@apple.com>
+	* doc/invoke.texi (Warning Options): Document that -Wempty-body
+	also checks for and while statements in C++.
+
+2008-11-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/27574
+	* cgraph.h: New abstract_and_needed member to struct cgraph_node.
+	* cgraphunit.c (cgraph_analyze_functions): Flag abstract functions
+	- which clones are reachable - as "abstract and needed".
+	* cgraph.c (cgraph_release_function_body):  If a node is
+	"abstract and needed", do not release its DECL_INITIAL() content
+	that will be needed to emit debug info.
+
+2008-11-12  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/27880
+	* configure.ac (GCC_CHECK_UNWIND_GETIPINFO): Use this macro
+	to set HAVE_GETIPINFO.
+	* aclocal.m4: Include ../config/unwind_ipinfo.m4.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+
+2008-11-12  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR bootstrap/38010
+	* gcc/config.gcc: Use darwin9.h on darwin10 as well.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	Revert:
+	2008-10-21  Jakub Jelinek  <jakub@redhat.com>
+	* gimplify.c (gimplify_expr): Drop TREE_OVERFLOW from INTEGER_CSTs.
+
+2008-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38007
+	* c-common.c (c_common_signed_or_unsigned_type): Remove C++
+	special casing.
+
+2008-11-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/avr/avr.c (avr_mcu_t): Add atmega16hvb, atmega32hvb,
+	atmega4hvd, atmega8hvd, atmega64c1, atmega64m1, atmega16u4 and
+	atmega32u6 devices.
+	* config/avr/avr.h (LINK_SPEC, CRT_BINUTILS_SPECS): (Ditto.).
+	* config/avr/t-avr (MULTILIB_MATCHES): (Ditto.).
+
+2008-11-12  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc/config/s390/s390.h (INITIAL_FRAME_ADDRESS_RTX): Remove
+	packed-stack special handling.
+	(FRAME_ADDR_RTX): Add definition.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35366
+	* fold-const.c (native_encode_string): New function.
+	(native_encode_expr): Use it for STRING_CST.
+
+2008-11-12  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/cond.md (cond_to_int peephole2): Don't eliminate the
+	insns if the intermediate value will be used later.
+
+2008-11-12  Andreas Schwab  <schwab@suse.de>
+
+	* config/m68k/m68k.c (print_operand): Mask off extra extension
+	bits when writing out the representation of real values.
+
+2008-11-12  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/38079
+	* tree-vect-analyze.c (vect_analyze_data_refs): Replace dump_file
+	with vect_dump.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35334
+	* c-pretty-print.c (pp_c_complex_expr): New function.
+	(pp_c_postfix_expression) <case COMPLEX_EXPR>: Call it.
+
+	PR target/35366
+	* expr.c (expand_expr_addr_expr_1): If EXP needs bigger alignment
+	than INNER and INNER is a constant, forcibly align INNER as much
+	as needed.
+
+2008-11-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* cse.c (fold_rtx): Remove redundant gen_rtx_CONST.
+
+2008-11-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/37363
+	* simplify-rtx.c (simplify_plus_minus): Don't create (const (minus ...))
+	expresisons.
+
+2008-11-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* ira-lives.c (process_bb_node_lives): Restore EH_RETURN_DATA_REGNO
+	handling.
+
 2008-11-10  Catherine Moore  <clm@codesourcery.com>
 
 	* config.gcc (mips64vrel-*-elf*): Include the tm_file
@@ -13,7 +319,7 @@
 	* config/mips/mips.h (BASE_DRIVER_SELF_SPECS): New. 
 
 2008-11-10  Vladimir Makarov  <vmakarov@redhat.com>
-	    
+
 	PR rtl-optimizations/37948
 	* ira-int.h (struct ira_allocno_copy): New member constraint_p.
 	(ira_create_copy, ira_add_allocno_copy): New parameter.
