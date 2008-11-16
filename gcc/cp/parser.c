@@ -7154,21 +7154,19 @@ cp_parser_lambda_body (cp_parser* parser,
         && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN)
     {
       tree compound_stmt;
-      tree expr = error_mark_node;
+      tree expr = NULL_TREE;
      
       cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
       compound_stmt = begin_compound_stmt (0);
 
       cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
-      expr = cp_parser_expression (parser, /*cast_p=*/false);
-      cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
 
-      if (expr != error_mark_node)
-      {
-        deduce_lambda_return_type (lambda_expr, expr);
-        /* Will get error here if type not deduced yet.  */
-        finish_return_stmt (expr);
-      }
+      expr = cp_parser_expression (parser, /*cast_p=*/false);
+      deduce_lambda_return_type (lambda_expr, expr);
+      /* Will get error here if type not deduced yet.  */
+      finish_return_stmt (expr);
+
+      cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
 
       cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
       finish_compound_stmt (compound_stmt);

@@ -5018,18 +5018,26 @@ finish_lambda_function_body (tree lambda, tree body)
 
 }
 
+/* Recompute the return type for LAMBDA with body of the form:
+     { return EXPR ; }  */
+
 void
 deduce_lambda_return_type (tree lambda, tree expr)
 {
   tree fco = LAMBDA_EXPR_FUNCTION (lambda);
   tree return_type;
+  tree result;
 
   return_type = finish_decltype_type (
       expr,
       /*id_expression_or_member_access_p=*/false);
 
-  /* Must redo some work from start_preparsed_function. */
-  tree result = build_lang_decl (
+  /********************************************
+   * Set the DECL_RESULT
+   * - start_preparsed_function
+   * + allocate_struct_function
+   ********************************************/
+  result = build_lang_decl (
       RESULT_DECL,
       /*name=*/0,
       TYPE_MAIN_VARIANT (return_type));
@@ -5044,6 +5052,15 @@ deduce_lambda_return_type (tree lambda, tree expr)
   /* TREE_TYPE (FUNCTION_DECL) == METHOD_TYPE
      TREE_TYPE (METHOD_TYPE)   == return-type */
   TREE_TYPE (TREE_TYPE (fco)) = return_type;
+
+  if (!processing_template_decl && aggregate_value_p (result, fco))
+  {
+#ifdef PCC_STATIC_STRUCT_RETURN
+    cfun->returns_pcc_struct = 1;
+#endif
+    cfun->returns_struct = 1;
+  }
+
 }
 
 /* From an ID and INITIALIZER, create a capture (by reference if
