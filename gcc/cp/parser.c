@@ -7151,7 +7151,8 @@ cp_parser_lambda_body (cp_parser* parser,
      * the body as usual will give such desired behavior.  */
     if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr)
         && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE)
-        && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN)
+        && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN
+        && cp_lexer_peek_nth_token (parser->lexer, 3)->type != CPP_SEMICOLON)
     {
       tree compound_stmt;
       tree expr = NULL_TREE;
