@@ -8145,13 +8145,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       subexp0 = TREE_OPERAND (exp, 0);
       if (POINTER_TYPE_P (type)
 	  && POINTER_TYPE_P (TREE_TYPE (subexp0))
-	  && TYPE_ADDR_SPACE (type) != TYPE_ADDR_SPACE (TREE_TYPE (subexp0)))
+	  && (TYPE_ADDR_SPACE (TREE_TYPE (type))
+	      != TYPE_ADDR_SPACE (TREE_TYPE (subexp0))))
 	{
 	  op0 = expand_expr (subexp0, NULL_RTX, VOIDmode, modifier);
 	  return targetm.addr_space.convert (op0,
 					     TYPE_MODE (type),
-					     TYPE_ADDR_SPACE (subexp0),
-					     TYPE_ADDR_SPACE (type));
+					     TYPE_ADDR_SPACE (TREE_TYPE (subexp0)),
+					     TYPE_ADDR_SPACE (TREE_TYPE (type)));
 	}
 
       if (mode == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))))
