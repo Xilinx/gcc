@@ -9,6 +9,7 @@ class C {
 
   public:
     C() : m_i(-1) {
+      //[] { this; } ();
       [this] () -> void { m_i = 0; } ();
       assert(m_i == 0);
       [this] () -> void { this->m_i = 1; } ();

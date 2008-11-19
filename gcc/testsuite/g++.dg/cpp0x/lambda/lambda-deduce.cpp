@@ -17,6 +17,8 @@ int main() {
   i = [] () { return 3; } ();
   assert(i == 3);
 
+  []{ return; };
+
   return 0;
 }
 
