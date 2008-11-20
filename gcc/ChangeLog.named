@@ -1,3 +1,16 @@
+2008-11-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* tree.h (CLEAR_QUAL_ADDR_SPACE): New macro to clear out the
+	address space portion of the qualifier encoding.
+
+	* c-decl.c (grokdeclarator): Rewrite code dealing with named
+	address spaces so that the correct named address is picked up for
+	multiple pointer levels, like char *__ea *__ea foo.
+
+	* config/spu/spu.c (expand_ea_mem): Add comment for having back to
+	back set_mem_alias calls.  Explicitly clear the named address for
+	the cached pointer.
+
 2008-11-18  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* expr.c (expand_expr_real_1): Fix thinko in converting named

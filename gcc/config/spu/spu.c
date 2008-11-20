@@ -4376,6 +4376,7 @@ expand_ea_mem (rtx mem, bool is_store)
 {
   rtx ea_addr;
   rtx data_addr = gen_reg_rtx (Pmode);
+  rtx new_mem;
 
   ea_addr = force_reg (EAmode, XEXP (mem, 0));
   if (optimize_size || optimize == 0)
@@ -4383,13 +4384,21 @@ expand_ea_mem (rtx mem, bool is_store)
   else
     ea_load_store_inline (mem, is_store, ea_addr, data_addr);
 
-  mem = change_address (mem, VOIDmode, data_addr);
-
   if (ea_alias_set == -1)
     ea_alias_set = new_alias_set ();
-  set_mem_alias_set (mem, 0);
-  set_mem_alias_set (mem, ea_alias_set);
-  return mem;
+
+  new_mem = change_address (mem, VOIDmode, data_addr);
+
+  /* We can't just change the alias set directly to ea_alias_set, because the
+     --enable-checking code may complain that the alias sets don't conflict */
+  set_mem_alias_set (new_mem, 0);
+  set_mem_alias_set (new_mem, ea_alias_set);
+
+  /* Manually reset the address space of the pointer back to the generic
+     address space.  */
+  set_mem_addr_space (new_mem, ADDR_SPACE_GENERIC);
+
+  return new_mem;
 }
 
 int

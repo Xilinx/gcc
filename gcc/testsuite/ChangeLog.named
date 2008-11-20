@@ -1,3 +1,8 @@
+2008-11-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/test-sizes.c: New test to test the size of
+	host and __ea pointers.
+
 2008-08-29  Ben Elliston  <bje@au.ibm.com>
 
 	* gcc.target/spu/ea/compile.c: Add tests for duplicate __ea

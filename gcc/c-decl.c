@@ -3996,7 +3996,6 @@ grokdeclarator (const struct c_declarator *declarator,
   int constp;
   int restrictp;
   int volatilep;
-  int addr_space_p;
   int type_quals = TYPE_UNQUALIFIED;
   const char *name, *orig_name;
   bool funcdef_flag = false;
@@ -4011,7 +4010,7 @@ grokdeclarator (const struct c_declarator *declarator,
   bool bitfield = width != NULL;
   tree element_type;
   struct c_arg_info *arg_info = 0;
-  addr_space_t as1, as2;
+  addr_space_t as1, as2, address_space;
 
   if (decl_context == FUNCDEF)
     funcdef_flag = true, decl_context = NORMAL;
@@ -4112,7 +4111,10 @@ grokdeclarator (const struct c_declarator *declarator,
   constp = declspecs->const_p + TYPE_READONLY (element_type);
   restrictp = declspecs->restrict_p + TYPE_RESTRICT (element_type);
   volatilep = declspecs->volatile_p + TYPE_VOLATILE (element_type);
-  addr_space_p = (declspecs->address_space != 0) + (TYPE_ADDR_SPACE (element_type) != 0);
+  as1 = declspecs->address_space;
+  as2 = TYPE_ADDR_SPACE (element_type);
+  address_space = (as1 ? as1 : as2);
+
   if (pedantic && !flag_isoc99)
     {
       if (constp > 1)
@@ -4123,9 +4125,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	pedwarn (input_location, OPT_pedantic, "duplicate %<volatile%>");
     }
 
-  as1 = declspecs->address_space;
-  as2 = TYPE_ADDR_SPACE (element_type);
-  
   if (as1 > 0 && as2 > 0 && as1 != as2)
     error ("incompatible address space qualifiers %qs and %qs",
 	   targetm.addr_space.name (as1),
@@ -4136,70 +4135,10 @@ grokdeclarator (const struct c_declarator *declarator,
   type_quals = ((constp ? TYPE_QUAL_CONST : 0)
 		| (restrictp ? TYPE_QUAL_RESTRICT : 0)
 		| (volatilep ? TYPE_QUAL_VOLATILE : 0)
-		| (addr_space_p ? ENCODE_QUAL_ADDR_SPACE (declspecs->address_space) : 0));
+		| ENCODE_QUAL_ADDR_SPACE (address_space));
 
   /* Warn about storage classes that are invalid for certain
      kinds of declarations (parameters, typenames, etc.).  */
-
-  if (((declarator->kind == cdk_pointer
- 	&& (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals)) != 0)
-       || addr_space_p)
-      && targetm.addr_space.name == default_addr_space_name)
-     {
-       /* A mere warning is sure to result in improper semantics
-	  at runtime.  Don't bother to allow this to compile.  */
-       error ("extended address space not supported for this target");
-       return 0;
-     }
-
-  if (declarator->kind == cdk_pointer
-      ? (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals)) != 0
-      : addr_space_p)
-    {
-      const char *addrspace_name;
-
-      /* Either declspecs or the declarator identifies the address space.  */
-      if (declspecs->address_space)
-	addrspace_name = targetm.addr_space.name (declspecs->address_space);
-      else
-	addrspace_name = targetm.addr_space.name (DECODE_QUAL_ADDR_SPACE (declarator->u.pointer_quals));
-
-      if (decl_context == NORMAL)
-	{
-	  if (declarator->kind == cdk_function)
-	    error ("%qs specified for function %qs", addrspace_name, name);
-	  else
-	    {
-	      switch (storage_class)
-		{
-		case csc_auto:
-		  error ("%qs combined with %<auto%> qualifier for %qs", addrspace_name, name);
-		  break;
-		case csc_register:
-		  error ("%qs combined with %<register%> qualifier for %qs", addrspace_name, name);
-		  break;
-		case csc_none:
-		  if (current_function_scope)
- 		    {
- 		      error ("%<__ea%> specified for auto variable %qs", name);
- 		      break;
- 		    }
-		  break;
-		case csc_static:
-		  break;
-		case csc_extern:
-		  break;
-		case csc_typedef:
-		  break;
-		}
-	    }
-	}
-      else if (decl_context == PARM
-	       && declarator->kind != cdk_array)
-	error ("%qs specified for parameter %qs", addrspace_name, name);
-      else if (decl_context == FIELD)
-	error ("%qs specified for structure field %qs", addrspace_name, name);
-    }
 
   if (funcdef_flag
       && (threadp
@@ -4614,6 +4553,15 @@ grokdeclarator (const struct c_declarator *declarator,
 	    if (really_funcdef)
 	      put_pending_sizes (arg_info->pending_sizes);
 
+	    /* Warn about functions declared in another address space.  */
+	    address_space = DECODE_QUAL_ADDR_SPACE (type_quals);
+	    if (address_space)
+	      {
+		type_quals = CLEAR_QUAL_ADDR_SPACE (type_quals);
+		error ("%qs specified for function %qs",
+		       targetm.addr_space.name (address_space), name);
+	      }
+
 	    /* Type qualifiers before the return type of the function
 	       qualify the return type, not the function type.  */
 	    if (type_quals)
@@ -4716,6 +4664,47 @@ grokdeclarator (const struct c_declarator *declarator,
   /* Now TYPE has the actual type, apart from any qualifiers in
      TYPE_QUALS.  */
 
+  /* Warn about address space used for things other that static memory or
+     pointers.  */
+  address_space = DECODE_QUAL_ADDR_SPACE (type_quals);
+  if (address_space)
+    {
+      if (decl_context == NORMAL)
+	{
+	  switch (storage_class)
+	    {
+	    case csc_auto:
+	      error ("%qs combined with %<auto%> qualifier for %qs",
+		     targetm.addr_space.name (address_space), name);
+	      break;
+	    case csc_register:
+	      error ("%qs combined with %<register%> qualifier for %qs",
+		     targetm.addr_space.name (address_space), name);
+	      break;
+	    case csc_none:
+	      if (current_function_scope)
+		{
+		  error ("%qs specified for auto variable %qs",
+			 targetm.addr_space.name (address_space), name);
+		  break;
+		}
+	      break;
+	    case csc_static:
+	    case csc_extern:
+	    case csc_typedef:
+	      break;
+	    default:
+	      gcc_unreachable ();
+	    }
+	}
+      else if (decl_context == PARM && TREE_CODE (type) != ARRAY_TYPE)
+	error ("%qs specified for parameter %qs",
+	       targetm.addr_space.name (address_space), name);
+      else if (decl_context == FIELD)
+	error ("%qs specified for structure field %qs",
+	       targetm.addr_space.name (address_space), name);
+    }
+
   /* Check the type and width of a bit-field.  */
   if (bitfield)
     check_bitfield_type_and_width (&type, width, orig_name);
@@ -4739,7 +4728,7 @@ grokdeclarator (const struct c_declarator *declarator,
     {
       tree decl;
       if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
-	  && type_quals)
+	  && CLEAR_QUAL_ADDR_SPACE (type_quals))
 	pedwarn (input_location, OPT_pedantic,
 		 "ISO C forbids qualified function types");
       if (type_quals)
@@ -4763,7 +4752,7 @@ grokdeclarator (const struct c_declarator *declarator,
       gcc_assert (storage_class == csc_none && !threadp
 		  && !declspecs->inline_p);
       if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
-	  && type_quals)
+	  && CLEAR_QUAL_ADDR_SPACE (type_quals))
 	pedwarn (input_location, OPT_pedantic,
 		 "ISO C forbids const or volatile function types");
       if (type_quals)
@@ -5065,8 +5054,8 @@ grokdeclarator (const struct c_declarator *declarator,
 	C_DECL_REGISTER (decl) = was_reg;
       }
 
-  /* This is the earliest point at which we might know the assembler
-     name of a variable.  Thus, if it's known before this, die horribly.  */
+    /* This is the earliest point at which we might know the assembler name of
+       a variable.  Thus, if it's known before this, die horribly.  */
     gcc_assert (!DECL_ASSEMBLER_NAME_SET_P (decl));
 
     return decl;
