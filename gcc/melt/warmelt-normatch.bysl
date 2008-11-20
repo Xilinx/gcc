@@ -65,7 +65,7 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for scanning any reciever (by failing)
-(defun scanpat_anypattern (recv psloc ctyp pcn)
+(defun scanpat_anyrecv (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_anypattern recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
@@ -74,7 +74,7 @@
 		"unimplemented scan_pattern for any " myclassname)
     (assert_msg "catchall scan_pattern unimplemented" ())
 ))
-(install_method class_srcpattern_any scan_pattern scanpat_anypattern)
+(install_method discr_anyrecv scan_pattern scanpat_anyrecv)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -355,6 +355,26 @@
 ;;; the pattern context
 (defselector normal_pattern class_selector)
 
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; catch-all for normpat any reciever (by failing)
+(defun normpat_anyrecv (recv spatlist testptlist pcn)
+  (debug_msg recv "normpat_anyrecv recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( (myclass (discrim recv))
+	 (myclassname (get_field :named_name myclass)) 
+;;;; one of these binding triggers a MELT bug
+;	 (psrc (get_field :pctn_src pcn))
+;	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+;	 (psloc (get_field :src_loc psrc))
+	 (psloc ())
+	 )
+    (error_strv psloc 
+		"unimplemented normal_pattern for any " myclassname)
+    (assert_msg "catchall normal_pattern unimplemented" ())
+))
+(install_method discr_anyrecv normal_pattern normpat_anyrecv)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
@@ -370,6 +390,8 @@
 	 (tupvarmap (make_multiple discr_multiple nbcases))
 	 (tupcstmap (make_multiple discr_multiple nbcases))
 	 (tupbindlist (make_multiple discr_multiple nbcases))
+	 (spatlist (make_list discr_list))
+	 (testptlist (make_list discr_list))
 	 )
     (debug_msg smatsx "normexp_match smatsx")
     (multicall
@@ -407,8 +429,11 @@
 	  (multiple_put_nth tupvarmap ix mapvar)
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
+	  (debug_msg curcas "normexp_match curcas before normal_pattern")
+	  (normal_pattern curcas spatlist testptlist pcn)
+	  (debug_msg curcas "normexp_match curcas after normal_pattern")
 	  )
-	)
+	)				;end foreach_in_multiple
        (debug_msg tupvarmap "normexp_match tupvarmap")
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
@@ -429,6 +454,7 @@
 ;;; export our values
 (export_values
   scan_pattern
+  normal_pattern
  )
 
 ;; eof warmelt-normatch.bysl

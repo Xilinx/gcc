@@ -1,4 +1,8 @@
 2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: adding normal_pattern selector and
+	normpat_anyrecv, which perhaps triggers a MELT bug.
+
+2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: minor variable renaming.
 
 2008-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
