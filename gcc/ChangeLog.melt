@@ -1,3 +1,6 @@
+2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: minor variable renaming.
+
 2008-11-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: added rules for warmelt2n.modlis...
 	* melt/warmelt-normatch.bysl: added catch alls for anypattern, any value, nil...
