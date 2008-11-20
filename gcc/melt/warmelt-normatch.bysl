@@ -363,11 +363,7 @@
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) 
-;;;; one of these binding triggers a MELT bug
-;	 (psrc (get_field :pctn_src pcn))
-;	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
-;	 (psloc (get_field :src_loc psrc))
-	 (psloc ())
+	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
 	 )
     (error_strv psloc 
 		"unimplemented normal_pattern for any " myclassname)
