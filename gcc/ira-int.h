@@ -83,11 +83,11 @@ struct ira_loop_tree_node
   /* The node represents basic block if children == NULL.  */
   basic_block bb;    /* NULL for loop.  */
   struct loop *loop; /* NULL for BB.  */
-  /* The next (loop) node of with the same parent.  SUBLOOP_NEXT is
-     always NULL for BBs. */
+  /* NEXT/SUBLOOP_NEXT is the next node/loop-node of the same parent.
+     SUBLOOP_NEXT is always NULL for BBs.  */
   ira_loop_tree_node_t subloop_next, next;
-  /* The first (loop) node immediately inside the node.  SUBLOOPS is
-     always NULL for BBs.  */
+  /* CHILDREN/SUBLOOPS is the first node/loop-node immediately inside
+     the node.  They are NULL for BBs.  */
   ira_loop_tree_node_t subloops, children;
   /* The node immediately containing given node.  */
   ira_loop_tree_node_t parent;
@@ -106,6 +106,11 @@ struct ira_loop_tree_node
      the edges).  Caps are not in the map (remember we can have more
      one cap with the same regno in a region).  */
   ira_allocno_t *regno_allocno_map;
+
+  /* True if there is an entry to given loop not from its parent (or
+     grandparent) basic block.  For example, it is possible for two
+     adjacent loops inside another loop.  */
+  bool entered_from_non_parent_p;
 
   /* Maximal register pressure inside loop for given register class
      (defined only for the cover classes).  */
@@ -351,6 +356,10 @@ struct ira_allocno
      region and all its subregions recursively.  */
   unsigned int no_stack_reg_p : 1, total_no_stack_reg_p : 1;
 #endif
+  /* TRUE value means that there is no sense to spill the allocno
+     during coloring because the spill will result in additional
+     reloads in reload pass.  */
+  unsigned int bad_spill_p : 1;
   /* TRUE value means that the allocno was not removed yet from the
      conflicting graph during colouring.  */
   unsigned int in_graph_p : 1;
@@ -435,6 +444,7 @@ struct ira_allocno
 #define ALLOCNO_NO_STACK_REG_P(A) ((A)->no_stack_reg_p)
 #define ALLOCNO_TOTAL_NO_STACK_REG_P(A) ((A)->total_no_stack_reg_p)
 #endif
+#define ALLOCNO_BAD_SPILL_P(A) ((A)->bad_spill_p)
 #define ALLOCNO_IN_GRAPH_P(A) ((A)->in_graph_p)
 #define ALLOCNO_ASSIGNED_P(A) ((A)->assigned_p)
 #define ALLOCNO_MAY_BE_SPILLED_P(A) ((A)->may_be_spilled_p)
@@ -857,7 +867,14 @@ extern void ira_add_allocno_conflict (ira_allocno_t, ira_allocno_t);
 extern void ira_print_expanded_allocno (ira_allocno_t);
 extern allocno_live_range_t ira_create_allocno_live_range
 	                    (ira_allocno_t, int, int, allocno_live_range_t);
+extern allocno_live_range_t ira_copy_allocno_live_range_list
+                            (allocno_live_range_t);
+extern allocno_live_range_t ira_merge_allocno_live_ranges
+                            (allocno_live_range_t, allocno_live_range_t);
+extern bool ira_allocno_live_ranges_intersect_p (allocno_live_range_t,
+						 allocno_live_range_t);
 extern void ira_finish_allocno_live_range (allocno_live_range_t);
+extern void ira_finish_allocno_live_range_list (allocno_live_range_t);
 extern void ira_free_allocno_updated_costs (ira_allocno_t);
 extern ira_copy_t ira_create_copy (ira_allocno_t, ira_allocno_t,
 				   int, bool, rtx, ira_loop_tree_node_t);
@@ -893,8 +910,6 @@ extern void ira_compress_allocno_live_ranges (void);
 extern void ira_finish_allocno_live_ranges (void);
 
 /* ira-conflicts.c */
-extern bool ira_allocno_live_ranges_intersect_p (ira_allocno_t, ira_allocno_t);
-extern bool ira_pseudo_live_ranges_intersect_p (int, int);
 extern void ira_debug_conflicts (bool);
 extern void ira_build_conflicts (void);
 

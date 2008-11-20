@@ -619,7 +619,7 @@ build_aggr_conv (tree type, tree ctor, int flags)
   conversion *c;
   tree field = TYPE_FIELDS (type);
 
-  for (; field; field = TREE_CHAIN (field))
+  for (; field; field = TREE_CHAIN (field), ++i)
     {
       if (TREE_CODE (field) != FIELD_DECL)
 	continue;
@@ -814,8 +814,8 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 	  else if (!same_type_p (fbase, tbase))
 	    return NULL;
 	}
-      else if (MAYBE_CLASS_TYPE_P (TREE_TYPE (from))
-	       && MAYBE_CLASS_TYPE_P (TREE_TYPE (to))
+      else if (CLASS_TYPE_P (TREE_TYPE (from))
+	       && CLASS_TYPE_P (TREE_TYPE (to))
 	       /* [conv.ptr]
 
 		  An rvalue of type "pointer to cv D," where D is a

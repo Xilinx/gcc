@@ -4688,7 +4688,7 @@ coerce_template_template_parm (tree parm,
 	   D<int, C> d;
 
 	 i.e. the parameter list of TT depends on earlier parameters.  */
-      if (!dependent_type_p (TREE_TYPE (arg))
+      if (!uses_template_parms (TREE_TYPE (arg))
 	  && !same_type_p
 	        (tsubst (TREE_TYPE (parm), outer_args, complain, in_decl),
 		 TREE_TYPE (arg)))
@@ -5585,6 +5585,7 @@ lookup_template_class (tree d1,
       d1 = DECL_NAME (templ);
     }
   else if (TREE_CODE (d1) == TEMPLATE_DECL
+           && DECL_TEMPLATE_RESULT (d1)
 	   && TREE_CODE (DECL_TEMPLATE_RESULT (d1)) == TYPE_DECL)
     {
       templ = d1;
@@ -15226,7 +15227,8 @@ instantiate_decl (tree d, int defer_ok,
       input_location = saved_loc;
 
       if (at_eof && !pattern_defined
-	  && DECL_EXPLICIT_INSTANTIATION (d))
+	  && DECL_EXPLICIT_INSTANTIATION (d)
+	  && DECL_NOT_REALLY_EXTERN (d))
 	/* [temp.explicit]
 
 	   The definition of a non-exported function template, a

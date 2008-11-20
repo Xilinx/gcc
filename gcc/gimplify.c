@@ -2352,56 +2352,18 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   else if (POINTER_TYPE_P (TREE_TYPE (CALL_EXPR_FN (*expr_p))))
     parms = TYPE_ARG_TYPES (TREE_TYPE (TREE_TYPE (CALL_EXPR_FN (*expr_p))));
 
-  /* Verify if the type of the argument matches that of the function
-     declaration.  If we cannot verify this or there is a mismatch,
-     mark the call expression so it doesn't get inlined later.  */
   if (fndecl && DECL_ARGUMENTS (fndecl))
-    {
-      for (i = 0, p = DECL_ARGUMENTS (fndecl);
-	   i < nargs;
-	   i++, p = TREE_CHAIN (p))
-	{
-	  /* We cannot distinguish a varargs function from the case
-	     of excess parameters, still deferring the inlining decision
-	     to the callee is possible.  */
-	  if (!p)
-	    break;
-	  if (p == error_mark_node
-	      || CALL_EXPR_ARG (*expr_p, i) == error_mark_node
-	      || !fold_convertible_p (DECL_ARG_TYPE (p),
-				      CALL_EXPR_ARG (*expr_p, i)))
-	    {
-	      CALL_CANNOT_INLINE_P (*expr_p) = 1;
-	      break;
-	    }
-	}
-    }
+    p = DECL_ARGUMENTS (fndecl);
   else if (parms)
-    {
-      for (i = 0, p = parms; i < nargs; i++, p = TREE_CHAIN (p))
-	{
-	  /* If this is a varargs function defer inlining decision
-	     to callee.  */
-	  if (!p)
-	    break;
-	  if (TREE_VALUE (p) == error_mark_node
-	      || CALL_EXPR_ARG (*expr_p, i) == error_mark_node
-	      || TREE_CODE (TREE_VALUE (p)) == VOID_TYPE
-	      || !fold_convertible_p (TREE_VALUE (p),
-				      CALL_EXPR_ARG (*expr_p, i)))
-	    {
-	      CALL_CANNOT_INLINE_P (*expr_p) = 1;
-	      break;
-	    }
-	}
-    }
+    p = parms;
   else
     {
       if (nargs != 0)
 	CALL_CANNOT_INLINE_P (*expr_p) = 1;
-      i = 0;
       p = NULL_TREE;
     }
+  for (i = 0; i < nargs && p; i++, p = TREE_CHAIN (p))
+    ;
 
   /* If the last argument is __builtin_va_arg_pack () and it is not
      passed as a named argument, decrease the number of CALL_EXPR
@@ -6441,16 +6403,6 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	  /* Constants need not be gimplified.  */
 	case INTEGER_CST:
-	  /* Don't preserve TREE_OVERFLOW flags, it only inhibits
-	     many optimizations and FEs should have taken care of
-	     reporting all the required diagnostics.  */
-	  if (TREE_OVERFLOW (*expr_p))
-	    *expr_p = build_int_cst_wide (TREE_TYPE (*expr_p),
-					  TREE_INT_CST_LOW (*expr_p),
-					  TREE_INT_CST_HIGH (*expr_p));
-	  ret = GS_ALL_DONE;
-	  break;
-
 	case REAL_CST:
 	case FIXED_CST:
 	case STRING_CST:
@@ -7576,6 +7528,10 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
       break;
     }
 
+  if (gimple_referenced_vars (cfun))
+    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
+      add_referenced_var (t);
+
   if (!gimple_seq_empty_p (pre))
     {
       if (gimple_in_ssa_p (cfun))
@@ -7589,10 +7545,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
     }
   if (post_stmt)
     gsi_insert_after (gsi_p, post_stmt, GSI_NEW_STMT);
-
-  if (gimple_referenced_vars (cfun))
-    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
-      add_referenced_var (t);
 
   pop_gimplify_context (NULL);
 }

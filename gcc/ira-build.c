@@ -456,6 +456,7 @@ ira_create_allocno (int regno, bool cap_p, ira_loop_tree_node_t loop_tree_node)
   ALLOCNO_SOMEWHERE_RENAMED_P (a) = false;
   ALLOCNO_CHILD_RENAMED_P (a) = false;
   ALLOCNO_DONT_REASSIGN_P (a) = false;
+  ALLOCNO_BAD_SPILL_P (a) = false;
   ALLOCNO_IN_GRAPH_P (a) = false;
   ALLOCNO_ASSIGNED_P (a) = false;
   ALLOCNO_MAY_BE_SPILLED_P (a) = false;
@@ -775,6 +776,7 @@ create_cap_allocno (ira_allocno_t a)
   ira_allocate_and_copy_costs
     (&ALLOCNO_CONFLICT_HARD_REG_COSTS (cap), cover_class,
      ALLOCNO_CONFLICT_HARD_REG_COSTS (a));
+  ALLOCNO_BAD_SPILL_P (cap) = ALLOCNO_BAD_SPILL_P (a);
   ALLOCNO_NREFS (cap) = ALLOCNO_NREFS (a);
   ALLOCNO_FREQ (cap) = ALLOCNO_FREQ (a);
   ALLOCNO_CALL_FREQ (cap) = ALLOCNO_CALL_FREQ (a);
@@ -824,8 +826,8 @@ copy_allocno_live_range (allocno_live_range_t r)
 
 /* Copy allocno live range list given by its head R and return the
    result.  */
-static allocno_live_range_t
-copy_allocno_live_range_list (allocno_live_range_t r)
+allocno_live_range_t
+ira_copy_allocno_live_range_list (allocno_live_range_t r)
 {
   allocno_live_range_t p, first, last;
 
@@ -843,11 +845,121 @@ copy_allocno_live_range_list (allocno_live_range_t r)
   return first;
 }
 
+/* Merge ranges R1 and R2 and returns the result.  The function
+   maintains the order of ranges and tries to minimize number of the
+   result ranges.  */
+allocno_live_range_t 
+ira_merge_allocno_live_ranges (allocno_live_range_t r1,
+			       allocno_live_range_t r2)
+{
+  allocno_live_range_t first, last, temp;
+
+  if (r1 == NULL)
+    return r2;
+  if (r2 == NULL)
+    return r1;
+  for (first = last = NULL; r1 != NULL && r2 != NULL;)
+    {
+      if (r1->start < r2->start)
+	{
+	  temp = r1;
+	  r1 = r2;
+	  r2 = temp;
+	}
+      if (r1->start <= r2->finish + 1)
+	{
+	  /* Intersected ranges: merge r1 and r2 into r1.  */
+	  r1->start = r2->start;
+	  if (r1->finish < r2->finish)
+	    r1->finish = r2->finish;
+	  temp = r2;
+	  r2 = r2->next;
+	  ira_finish_allocno_live_range (temp);
+	  if (r2 == NULL)
+	    {
+	      /* To try to merge with subsequent ranges in r1.  */
+	      r2 = r1->next;
+	      r1->next = NULL;
+	    }
+	}
+      else
+	{
+	  /* Add r1 to the result.  */
+	  if (first == NULL)
+	    first = last = r1;
+	  else
+	    {
+	      last->next = r1;
+	      last = r1;
+	    }
+	  r1 = r1->next;
+	  if (r1 == NULL)
+	    {
+	      /* To try to merge with subsequent ranges in r2.  */
+	      r1 = r2->next;
+	      r2->next = NULL;
+	    }
+	}
+    }
+  if (r1 != NULL)
+    {
+      if (first == NULL)
+	first = r1;
+      else
+	last->next = r1;
+      ira_assert (r1->next == NULL);
+    }
+  else if (r2 != NULL)
+    {
+      if (first == NULL)
+	first = r2;
+      else
+	last->next = r2;
+      ira_assert (r2->next == NULL);
+    }
+  else
+    {
+      ira_assert (last->next == NULL);
+    }
+  return first;
+}
+
+/* Return TRUE if live ranges R1 and R2 intersect.  */
+bool
+ira_allocno_live_ranges_intersect_p (allocno_live_range_t r1,
+				     allocno_live_range_t r2)
+{
+  /* Remember the live ranges are always kept ordered.  */
+  while (r1 != NULL && r2 != NULL)
+    {
+      if (r1->start > r2->finish)
+	r1 = r1->next;
+      else if (r2->start > r1->finish)
+	r2 = r2->next;
+      else
+	return true;
+    }
+  return false;
+}
+
 /* Free allocno live range R.  */
 void
 ira_finish_allocno_live_range (allocno_live_range_t r)
 {
   pool_free (allocno_live_range_pool, r);
+}
+
+/* Free list of allocno live ranges starting with R.  */
+void
+ira_finish_allocno_live_range_list (allocno_live_range_t r)
+{
+  allocno_live_range_t next_r;
+
+  for (; r != NULL; r = next_r)
+    {
+      next_r = r->next;
+      ira_finish_allocno_live_range (r);
+    }
 }
 
 /* Free updated register costs of allocno A.  */
@@ -870,7 +982,6 @@ ira_free_allocno_updated_costs (ira_allocno_t a)
 static void
 finish_allocno (ira_allocno_t a)
 {
-  allocno_live_range_t r, next_r;
   enum reg_class cover_class = ALLOCNO_COVER_CLASS (a);
 
   ira_allocnos[ALLOCNO_NUM (a)] = NULL;
@@ -886,11 +997,7 @@ finish_allocno (ira_allocno_t a)
   if (ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a) != NULL)
     ira_free_cost_vector (ALLOCNO_UPDATED_CONFLICT_HARD_REG_COSTS (a),
 			  cover_class);
-  for (r = ALLOCNO_LIVE_RANGES (a); r != NULL; r = next_r)
-    {
-      next_r = r->next;
-      ira_finish_allocno_live_range (r);
-    }
+  ira_finish_allocno_live_range_list (ALLOCNO_LIVE_RANGES (a));
   pool_free (allocno_pool, a);
 }
 
@@ -1490,6 +1597,8 @@ propagate_allocno_info (void)
 	  && bitmap_bit_p (ALLOCNO_LOOP_TREE_NODE (a)->border_allocnos,
 			   ALLOCNO_NUM (a)))
 	{
+	  if (! ALLOCNO_BAD_SPILL_P (a))
+	    ALLOCNO_BAD_SPILL_P (parent_a) = false;
 	  ALLOCNO_NREFS (parent_a) += ALLOCNO_NREFS (a);
 	  ALLOCNO_FREQ (parent_a) += ALLOCNO_FREQ (a);
 	  ALLOCNO_CALL_FREQ (parent_a) += ALLOCNO_CALL_FREQ (a);
@@ -1538,84 +1647,6 @@ create_allocnos (void)
    register allocation.  We remove regions whose separate allocation
    will hardly improve the result.  As a result we speed up regional
    register allocation.  */
-
-/* Merge ranges R1 and R2 and returns the result.  The function
-   maintains the order of ranges and tries to minimize number of the
-   result ranges.  */
-static allocno_live_range_t 
-merge_ranges (allocno_live_range_t r1, allocno_live_range_t r2)
-{
-  allocno_live_range_t first, last, temp;
-
-  if (r1 == NULL)
-    return r2;
-  if (r2 == NULL)
-    return r1;
-  for (first = last = NULL; r1 != NULL && r2 != NULL;)
-    {
-      if (r1->start < r2->start)
-	{
-	  temp = r1;
-	  r1 = r2;
-	  r2 = temp;
-	}
-      if (r1->start <= r2->finish + 1)
-	{
-	  /* Intersected ranges: merge r1 and r2 into r1.  */
-	  r1->start = r2->start;
-	  if (r1->finish < r2->finish)
-	    r1->finish = r2->finish;
-	  temp = r2;
-	  r2 = r2->next;
-	  ira_finish_allocno_live_range (temp);
-	  if (r2 == NULL)
-	    {
-	      /* To try to merge with subsequent ranges in r1.  */
-	      r2 = r1->next;
-	      r1->next = NULL;
-	    }
-	}
-      else
-	{
-	  /* Add r1 to the result.  */
-	  if (first == NULL)
-	    first = last = r1;
-	  else
-	    {
-	      last->next = r1;
-	      last = r1;
-	    }
-	  r1 = r1->next;
-	  if (r1 == NULL)
-	    {
-	      /* To try to merge with subsequent ranges in r2.  */
-	      r1 = r2->next;
-	      r2->next = NULL;
-	    }
-	}
-    }
-  if (r1 != NULL)
-    {
-      if (first == NULL)
-	first = r1;
-      else
-	last->next = r1;
-      ira_assert (r1->next == NULL);
-    }
-  else if (r2 != NULL)
-    {
-      if (first == NULL)
-	first = r2;
-      else
-	last->next = r2;
-      ira_assert (r2->next == NULL);
-    }
-  else
-    {
-      ira_assert (last->next == NULL);
-    }
-  return first;
-}
 
 /* The function changes allocno in range list given by R onto A.  */
 static void
@@ -1758,7 +1789,8 @@ remove_unnecessary_allocnos (void)
 		r = ALLOCNO_LIVE_RANGES (a);
 		change_allocno_in_range_list (r, parent_a);
 		ALLOCNO_LIVE_RANGES (parent_a)
-		  = merge_ranges (r, ALLOCNO_LIVE_RANGES (parent_a));
+		  = ira_merge_allocno_live_ranges
+		    (r, ALLOCNO_LIVE_RANGES (parent_a));
 		merged_p = true;
 		ALLOCNO_LIVE_RANGES (a) = NULL;
 		IOR_HARD_REG_SET (ALLOCNO_CONFLICT_HARD_REGS (parent_a),
@@ -1777,6 +1809,8 @@ remove_unnecessary_allocnos (void)
 		  += ALLOCNO_CALLS_CROSSED_NUM (a);
 		ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
 		  += ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
+		if (! ALLOCNO_BAD_SPILL_P (a))
+		  ALLOCNO_BAD_SPILL_P (parent_a) = false;
 #ifdef STACK_REGS
 		if (ALLOCNO_TOTAL_NO_STACK_REG_P (a))
 		  ALLOCNO_TOTAL_NO_STACK_REG_P (parent_a) = true;
@@ -1821,6 +1855,69 @@ remove_unnecessary_regions (void)
   while (VEC_length (ira_loop_tree_node_t, removed_loop_vec) > 0)
     finish_loop_tree_node (VEC_pop (ira_loop_tree_node_t, removed_loop_vec));
   VEC_free (ira_loop_tree_node_t, heap, removed_loop_vec);
+}
+
+
+
+/* At this point true value of allocno attribute bad_spill_p means
+   that there is an insn where allocno occurs and where the allocno
+   can not be used as memory.  The function updates the attribute, now
+   it can be true only for allocnos which can not be used as memory in
+   an insn and in whose live ranges there is other allocno deaths.
+   Spilling allocnos with true value will not improve the code because
+   it will not make other allocnos colorable and additional reloads
+   for the corresponding pseudo will be generated in reload pass for
+   each insn it occurs.
+
+   This is a trick mentioned in one classic article of Chaitin etc
+   which is frequently omitted in other implementations of RA based on
+   graph coloring.  */
+static void
+update_bad_spill_attribute (void)
+{
+  int i;
+  ira_allocno_t a;
+  ira_allocno_iterator ai;
+  allocno_live_range_t r;
+  enum reg_class cover_class;
+  bitmap_head dead_points[N_REG_CLASSES];
+
+  for (i = 0; i < ira_reg_class_cover_size; i++)
+    {
+      cover_class = ira_reg_class_cover[i];
+      bitmap_initialize (&dead_points[cover_class], &reg_obstack);
+    }
+  FOR_EACH_ALLOCNO (a, ai)
+    {
+      cover_class = ALLOCNO_COVER_CLASS (a);
+      if (cover_class == NO_REGS)
+	continue;
+      for (r = ALLOCNO_LIVE_RANGES (a); r != NULL; r = r->next)
+	bitmap_set_bit (&dead_points[cover_class], r->finish);
+    }
+  FOR_EACH_ALLOCNO (a, ai)
+    {
+      cover_class = ALLOCNO_COVER_CLASS (a);
+      if (cover_class == NO_REGS)
+	continue;
+      if (! ALLOCNO_BAD_SPILL_P (a))
+	continue;
+      for (r = ALLOCNO_LIVE_RANGES (a); r != NULL; r = r->next)
+	{
+	  for (i = r->start + 1; i < r->finish; i++)
+	    if (bitmap_bit_p (&dead_points[cover_class], i))
+	      break;
+	  if (i < r->finish)
+	    break;
+	}
+      if (r != NULL)
+	ALLOCNO_BAD_SPILL_P (a) = false;
+    }
+  for (i = 0; i < ira_reg_class_cover_size; i++)
+    {
+      cover_class = ira_reg_class_cover[i];
+      bitmap_clear (&dead_points[cover_class]);
+    }
 }
 
 
@@ -2086,16 +2183,21 @@ copy_info_to_removed_store_destinations (int regno)
 	  ira_print_live_range_list (ira_dump_file,
 				     ALLOCNO_LIVE_RANGES (a));
 	}
-      r = copy_allocno_live_range_list (ALLOCNO_LIVE_RANGES (a));
+      r = ira_copy_allocno_live_range_list (ALLOCNO_LIVE_RANGES (a));
       change_allocno_in_range_list (r, parent_a);
       ALLOCNO_LIVE_RANGES (parent_a)
-	= merge_ranges (r, ALLOCNO_LIVE_RANGES (parent_a));
+	= ira_merge_allocno_live_ranges (r, ALLOCNO_LIVE_RANGES (parent_a));
       IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (parent_a),
 			ALLOCNO_TOTAL_CONFLICT_HARD_REGS (a));
 #ifdef STACK_REGS
       if (ALLOCNO_TOTAL_NO_STACK_REG_P (a))
 	ALLOCNO_TOTAL_NO_STACK_REG_P (parent_a) = true;
 #endif
+      ALLOCNO_CALL_FREQ (parent_a) += ALLOCNO_CALL_FREQ (a);
+      ALLOCNO_CALLS_CROSSED_NUM (parent_a)
+	+= ALLOCNO_CALLS_CROSSED_NUM (a);
+      ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
+	+= ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
       merged_p = true;
     }
   return merged_p;
@@ -2111,7 +2213,7 @@ void
 ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 {
   int i, j, num;
-  bool stop_p, keep_p;
+  bool keep_p;
   int hard_regs_num;
   bool new_pseudos_p, merged_p, mem_dest_p;
   unsigned int n;
@@ -2186,8 +2288,8 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 		}
 	      change_allocno_in_range_list (ALLOCNO_LIVE_RANGES (a), parent_a);
 	      ALLOCNO_LIVE_RANGES (parent_a)
-		= merge_ranges (ALLOCNO_LIVE_RANGES (a),
-				ALLOCNO_LIVE_RANGES (parent_a));
+		= ira_merge_allocno_live_ranges
+		  (ALLOCNO_LIVE_RANGES (a), ALLOCNO_LIVE_RANGES (parent_a));
 	      merged_p = true;
 	      ALLOCNO_LIVE_RANGES (a) = NULL;
 	      ALLOCNO_MEM_OPTIMIZED_DEST_P (parent_a)
@@ -2196,26 +2298,15 @@ ira_flattening (int max_regno_before_emit, int ira_max_point_before_emit)
 	      continue;
 	    }
 	  new_pseudos_p = true;
-	  first = ALLOCNO_MEM_OPTIMIZED_DEST (a) == NULL ? NULL : a;
-	  stop_p = false;
 	  for (;;)
 	    {
-	      if (first == NULL
-		  && ALLOCNO_MEM_OPTIMIZED_DEST (parent_a) != NULL)
-		first = parent_a;
 	      ALLOCNO_NREFS (parent_a) -= ALLOCNO_NREFS (a);
 	      ALLOCNO_FREQ (parent_a) -= ALLOCNO_FREQ (a);
-	      if (first != NULL
-		  && ALLOCNO_MEM_OPTIMIZED_DEST (first) == parent_a)
-		stop_p = true;
-	      else if (!stop_p)
-		{
-		  ALLOCNO_CALL_FREQ (parent_a) -= ALLOCNO_CALL_FREQ (a);
-		  ALLOCNO_CALLS_CROSSED_NUM (parent_a)
-		    -= ALLOCNO_CALLS_CROSSED_NUM (a);
-		  ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
-		    -= ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
-		}
+	      ALLOCNO_CALL_FREQ (parent_a) -= ALLOCNO_CALL_FREQ (a);
+	      ALLOCNO_CALLS_CROSSED_NUM (parent_a)
+		-= ALLOCNO_CALLS_CROSSED_NUM (a);
+	      ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (parent_a)
+		-= ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (a);
 	      ira_assert (ALLOCNO_CALLS_CROSSED_NUM (parent_a) >= 0
 			  && ALLOCNO_NREFS (parent_a) >= 0
 			  && ALLOCNO_FREQ (parent_a) >= 0);
@@ -2438,6 +2529,7 @@ ira_build (bool loops_p)
   ira_create_allocno_live_ranges ();
   remove_unnecessary_regions ();
   ira_compress_allocno_live_ranges ();
+  update_bad_spill_attribute ();
   loops_p = more_one_region_p ();
   if (loops_p)
     {

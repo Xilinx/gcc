@@ -3605,9 +3605,7 @@ notice_update_cc (rtx exp, rtx insn)
       case ROTATE: case ROTATERT:
 	/* These instructions always clear the overflow bit, and set
 	   the carry to the bit shifted out.  */
-	/* ??? We don't currently have a way to signal carry not valid,
-	   nor do we check for it in the branch insns.  */
-	CC_STATUS_INIT;
+	cc_status.flags |= CC_OVERFLOW_UNUSABLE | CC_NO_CARRY;
 	break;
 
       case PLUS: case MINUS: case MULT:
@@ -3888,7 +3886,7 @@ print_operand (FILE *file, rtx op, int letter)
       long l;
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
       REAL_VALUE_TO_TARGET_SINGLE (r, l);
-      asm_fprintf (file, "%I0x%lx", l);
+      asm_fprintf (file, "%I0x%lx", l & 0xFFFFFFFF);
     }
   else if (GET_CODE (op) == CONST_DOUBLE && GET_MODE (op) == XFmode)
     {
@@ -3896,7 +3894,8 @@ print_operand (FILE *file, rtx op, int letter)
       long l[3];
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
       REAL_VALUE_TO_TARGET_LONG_DOUBLE (r, l);
-      asm_fprintf (file, "%I0x%lx%08lx%08lx", l[0], l[1], l[2]);
+      asm_fprintf (file, "%I0x%lx%08lx%08lx", l[0] & 0xFFFFFFFF,
+		   l[1] & 0xFFFFFFFF, l[2] & 0xFFFFFFFF);
     }
   else if (GET_CODE (op) == CONST_DOUBLE && GET_MODE (op) == DFmode)
     {
@@ -3904,7 +3903,7 @@ print_operand (FILE *file, rtx op, int letter)
       long l[2];
       REAL_VALUE_FROM_CONST_DOUBLE (r, op);
       REAL_VALUE_TO_TARGET_DOUBLE (r, l);
-      asm_fprintf (file, "%I0x%lx%08lx", l[0], l[1]);
+      asm_fprintf (file, "%I0x%lx%08lx", l[0] & 0xFFFFFFFF, l[1] & 0xFFFFFFFF);
     }
   else
     {
@@ -4831,7 +4830,8 @@ sched_attr_op_type (rtx insn, bool opx_p, bool address_p)
 	}
     }
 
-  if (symbolic_operand (op, VOIDmode)
+  if (GET_CODE (op) == CONST
+      || symbolic_operand (op, VOIDmode)
       || LABEL_P (op))
     {
       switch (GET_MODE (op))

@@ -2731,7 +2731,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
 
 #define TYPE_OK(node)							    \
   (TYPE_MODE (type) == TYPE_MODE (node)					    \
-   && (c_dialect_cxx () || TYPE_PRECISION (type) == TYPE_PRECISION (node)))
+   && TYPE_PRECISION (type) == TYPE_PRECISION (node))
   if (TYPE_OK (signed_char_type_node))
     return unsignedp ? unsigned_char_type_node : signed_char_type_node;
   if (TYPE_OK (integer_type_node))
@@ -2761,10 +2761,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
     return unsignedp ? unsigned_intQI_type_node : intQI_type_node;
 #undef TYPE_OK
 
-  if (c_dialect_cxx ())
-    return type;
-  else
-    return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
+  return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
 }
 
 /* Build a bit-field integer type for the given WIDTH and UNSIGNEDP.  */
@@ -8156,7 +8153,7 @@ warn_about_parentheses (enum tree_code code,
       /* Check cases like !x | y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
 		 "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
       return;
 
@@ -8189,7 +8186,7 @@ warn_about_parentheses (enum tree_code code,
       /* Check cases like !x & y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
 		 "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
       return;
 

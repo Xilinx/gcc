@@ -1495,14 +1495,8 @@ fi
 
 # For platforms with the unwind ABI which includes an unwind library,
 # libunwind, we can choose to use the system libunwind.
-AC_ARG_WITH(system-libunwind,
-[  --with-system-libunwind use installed libunwind])
-
 # config.gcc also contains tests of with_system_libunwind.
-if test x$with_system_libunwind = xyes; then
-        AC_DEFINE(HAVE_GETIPINFO, 1,
-[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
-fi
+GCC_CHECK_UNWIND_GETIPINFO
 
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
@@ -1726,20 +1720,6 @@ if test x$enable___cxa_atexit = xyes || \
       This is essential for fully standards-compliant handling of
       destructors, but requires __cxa_atexit in libc.])
   fi
-fi
-
-use_getipinfo=yes
-if test x$with_system_libunwind = xyes; then
-   if test x$host = x$target; then
-     AC_SEARCH_LIBS(_Unwind_GetIPInfo, unwind,, [use_getipinfo=no])
-   fi
-fi
-GCC_TARGET_TEMPLATE(HAVE_GETIPINFO)
-if test x$use_getipinfo = xyes; then
-   AC_DEFINE(HAVE_GETIPINFO, 1,
-	[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
-else
-   echo "The system unwind library does not support _Unwind_GetIPInfo."
 fi
 
 # Look for a file containing extra machine modes.
@@ -3801,7 +3781,7 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
       gcc_cv_libc_provides_ssp,
       [gcc_cv_libc_provides_ssp=no
     case "$target" in
-       *-*-linux*)
+       *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
       if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
 	if test "x$with_sysroot" = x; then
 	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
@@ -3837,6 +3817,12 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	fi
       fi
 	;;
+       *-*-gnu*)
+	 # Avoid complicated tests (see
+	 # <http://gcc.gnu.org/ml/gcc/2008-10/msg00130.html>) and for now
+	 # simply assert that glibc does provide this, which is true for all
+	 # realistically usable GNU/Hurd configurations.
+	 gcc_cv_libc_provides_ssp=yes;;
        *-*-darwin*)
 	 AC_CHECK_FUNC(__stack_chk_fail,[gcc_cv_libc_provides_ssp=yes],
            [echo "no __stack_chk_fail on this target"])

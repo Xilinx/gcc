@@ -5264,7 +5264,7 @@ cp_parser_pseudo_destructor_name (cp_parser* parser,
 					    /*typename_keyword_p=*/false,
 					    /*check_dependency_p=*/true,
 					    /*type_p=*/false,
-					    /*is_declaration=*/true)
+					    /*is_declaration=*/false)
        != NULL_TREE);
   /* Now, if we saw a nested-name-specifier, we might be doing the
      second production.  */
@@ -7427,48 +7427,6 @@ cp_parser_condition (cp_parser* parser)
   return cp_parser_expression (parser, /*cast_p=*/false);
 }
 
-/* We check for a ) immediately followed by ; with no whitespacing
-   between.  This is used to issue a warning for:
-
-     while (...);
-
-   and:
-
-     for (...);
-
-   as the semicolon is probably extraneous.
-
-   On parse errors, the next token might not be a ), so do nothing in
-   that case. */
-
-static void
-check_empty_body (cp_parser* parser, const char* type)
-{
-  cp_token *token;
-  cp_token *close_paren;
-  expanded_location close_loc;
-  expanded_location semi_loc;
-  
-  close_paren = cp_lexer_peek_token (parser->lexer);
-  if (close_paren->type != CPP_CLOSE_PAREN)
-    return;
-
-  close_loc = expand_location (close_paren->location);
-  token = cp_lexer_peek_nth_token (parser->lexer, 2);
-
-  if (token->type != CPP_SEMICOLON
-      || (token->flags & PREV_WHITE))
-    return;
-
-  semi_loc =  expand_location (token->location);
-  if (close_loc.line == semi_loc.line
-      && close_loc.column+1 == semi_loc.column)
-    warning (OPT_Wempty_body,
-	     "suggest a space before %<;%> or explicit braces around empty "
-	     "body in %<%s%> statement",
-	     type);
-}
-
 /* Parse an iteration-statement.
 
    iteration-statement:
@@ -7511,7 +7469,6 @@ cp_parser_iteration_statement (cp_parser* parser)
 	/* Parse the condition.  */
 	condition = cp_parser_condition (parser);
 	finish_while_stmt_cond (condition, statement);
-	check_empty_body (parser, "while");
 	/* Look for the `)'.  */
 	cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 	/* Parse the dependent statement.  */
@@ -7573,7 +7530,6 @@ cp_parser_iteration_statement (cp_parser* parser)
 	if (cp_lexer_next_token_is_not (parser->lexer, CPP_CLOSE_PAREN))
 	  expression = cp_parser_expression (parser, /*cast_p=*/false);
 	finish_for_expr (expression, statement);
-	check_empty_body (parser, "for");
 	/* Look for the `)'.  */
 	cp_parser_require (parser, CPP_CLOSE_PAREN, "%<)%>");
 
@@ -8179,7 +8135,8 @@ cp_parser_simple_declaration (cp_parser* parser,
      (After "int (" we might be looking at a functional cast.)  */
   if (decl_specifiers.any_specifiers_p
       && cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN)
-      && cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_BRACE))
+      && cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_BRACE)
+      && !cp_parser_error_occurred (parser))
     cp_parser_commit_to_tentative_parse (parser);
 
   /* Keep going until we hit the `;' at the end of the simple
@@ -13736,6 +13693,13 @@ cp_parser_type_id (cp_parser* parser)
   if (!cp_parser_parse_definitely (parser))
     abstract_declarator = NULL;
 
+  if (type_specifier_seq.type
+      && type_uses_auto (type_specifier_seq.type))
+    {
+      error ("invalid use of %<auto%>");
+      return error_mark_node;
+    }
+  
   return groktypename (&type_specifier_seq, abstract_declarator);
 }
 
