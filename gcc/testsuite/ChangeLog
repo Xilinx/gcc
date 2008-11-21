@@ -1,3 +1,268 @@
+2008-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-1.c: Include <immintrin.h> instead of
+	<gmmintrin.h>.
+	* gcc.target/i386/avx-2.c: Likewise.
+	* gcc.target/i386/m256-check.h: Likewise.
+	* g++.dg/other/i386-5.C: Likewise.
+	* g++.dg/other/i386-6.C: Likewise.
+
+2008-11-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37472
+	* gfortran.dg/namelist_print_1.f: Update test.
+
+2008-11-20  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/sync-2.c: Add type cast to avoid folding.
+	* gcc.dg/sync-3.c: Likewise.
+
+2008-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/29215
+	* gfortran.dg/array_memcpy_3.f90: Adjust pattern to match even
+	memcpy optimized into ref-all store.
+	* gcc.dg/pr29215.c: New test.
+
+2008-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38151
+	* gcc.target/i386/pr38151-1.c: New test.
+
+2008-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28513
+	* g++.dg/lookup/name-clash7.C: New test.
+
+	PR c++/37540
+	* g++.dg/cpp0x/decltype14.C: New test.
+
+2008-11-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37868
+	* gcc.dg/torture/pr37868.c: New testcase.
+	* gcc.c-torture/execute/pr38048-1.c: Likewise.
+	* gcc.c-torture/execute/pr38048-2.c: Likewise.
+
+2008-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/38181
+	* gfortran.dg/array_section_2.f90: Adjust pattern to match
+	the inlined size0 instead of a size0 call.
+
+	PR c++/36631
+	* g++.dg/template/call5.C: New test.
+
+2008-11-19  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.c-torture/compile/20081119-1.c: New test.
+
+2008-11-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37142
+	* g++.dg/template/crash85.C: New test.
+
+2008-11-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/35405
+	* g++.dg/template/crash84.C: New test.
+
+2008-11-19  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c-torture/compile/pr11832.c: XFAIL even on s390*-*-*.
+	* gcc.c-torture/compile/pr33009.c: Likewise.
+
+2008-11-19  DJ Delorie  <dj@redhat.com>
+
+	* gcc.target/xstormy16/below100.S (.chip_info): Use
+	position-independent expressions for the fillers.
+
+2008-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36410
+	* g++.dg/ext/attrib32.C: Add member typedef case.
+
+	PR c++/37563
+	* g++.dg/template/pseudodtor5.C: New test.
+
+	PR c++/37256
+	* g++.dg/cpp0x/extern_template-3.C: New test.
+
+2008-11-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.target/m68k/xgot-1.c (dg-options): Add -O2.
+
+2008-11-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36038
+	* gcc.c-torture/compile/pr36038.c: Moved to...
+	* gcc.c-torture/execute/pr36038.c: ... here.
+
+2008-11-19  Andrew Stubbs  <ams@codesourcery.com>
+
+	PR target/36133
+	* gcc.target/m68k/pr36133.c: New test.
+
+2008-11-19  Maxim Kuvyrkov  <maxim@codesourcery.com>
+  
+ 	* gcc.gd/struct/wo_prof_global_var.c: Use uninitialized integer
+ 	values instead of uninitialized FP values to avoid NaNs.
+ 	* gcc.dg/struct/wo_prof_local_var.c: Same.
+
+2008-11-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gfortran.dg/f2003_io_1.f03: XFAIL for all SPARC targets.
+	* gfortran.dg/f2003_io_4.f03: Ditto.
+	* gfortran.dg/f2003_io_5.f03: Ditto.
+	* gfortran.dg/f2003_io_6.f03: Ditto.
+	* gfortran.dg/f2003_io_7.f03: Ditto.
+
+2008-11-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38171
+	* gfortran.dg/module_equivalence_6.f90: New test.
+
+2008-11-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38051
+	* gcc.c-torture/execute/pr38051.c (buf): Remove aligned attribute.
+	(buf2): Removed.
+	(main): Only run on little endian targets with
+	sizeof (long) == sizeof (void *).  Use just one buffer, align the
+	pointers at runtime.
+
+2008-11-18  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/38135
+	* gfortran.dg/reshape_pad_1.f90:  New test case.
+
+2008-11-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/37362
+	* gcc.target/mips/pr37362.c: New test.
+
+2008-11-18  Jason Merrill  <jason@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37962
+	* g++.dg/cpp0x/auto[38].C: Adjust expected errors.
+	* g++.dg/cpp0x/auto9.C: New test.
+	* g++.dg/cpp0x/auto10.C: New test.
+
+2008-11-17  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.c-torture/execute/20081117-1.c: New test.
+
+2008-11-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/dspr2-MULT.c: Just check for $ac1 and $ac2.
+	* gcc.target/mips/dspr2-MULTU.c: Likewise.
+
+2008-11-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/madd-5.c: New test.
+	* gcc.target/mips/madd-6.c: Likewise.
+	* gcc.target/mips/madd-7.c: Likewise.
+	* gcc.target/mips/madd-8.c: Likewise.
+	* gcc.target/mips/msub-5.c: Likewise.
+	* gcc.target/mips/msub-6.c: Likewise.
+	* gcc.target/mips/msub-7.c: Likewise.
+	* gcc.target/mips/msub-8.c: Likewise.
+
+2008-11-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/no-smartmips-ror-1.c: Use -march=mips32 instead
+	of -march=mips32r2.
+
+2008-11-17  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* gfortran.dg/default_format_denormal_1.f90: Don't XFAIL darwin10
+	or later.
+
+2008-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38140
+	* gcc.dg/pr38140.c: New test.
+
+2008-11-17  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38099
+	* gcc.dg/compat/struct-layout-1_generate.c: Also use -no-mmx on
+	i?86/x86_64 darwin.
+	* g++.dg/compat/struct-layout-1_generate.c: Same.
+
+2008-11-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/37908
+	* gcc.dg/pr37908.c: New test.
+	* gcc.dg/ia64-sync-1.c: Correct __sync_fetch_and_nand and
+	__sync_nand_and_fetch results.  Add dg-message to look for the warning
+	about changed semantics of NAND builtin.
+	(init_si, init_di): Change init value for __sync_fetch_and_nand to -1.
+	(test_si, test_di): Change expected result of
+	__sync_nand_and_fetch to ~7.
+	* gcc.dg/ia64-sync-2.c: Correct __sync_fetch_and_nand and
+	__sync_nand_and_fetch results.  Add dg-message to look for the warning
+	about changed semantics of NAND builtin.
+	(init_noret_si, init_noret_di): Change init value for
+	__sync_fetch_and_nand to -1.
+	(init_noret_si, init_noret_di): Change expected result of
+	__sync_nand_and_fetch to ~7.
+	* gcc.dg/sync-2.c: Correct __sync_fetch_and_nand and
+	__sync_nand_and_fetch results.  Add dg-message to look for the warning
+	about changed semantics of NAND builtin.
+	(init_qi, init_qi): Change init value for __sync_fetch_and_nand to -1.
+	(init_hi, init_hi): Change expected result of
+	__sync_nand_and_fetch to ~7.
+	* gcc.dg/sync-3.c: Copy from sync-2.c instead of including
+	the c source file.
+	* gcc.c-torture/compile/sync-1.c: Add dg-message to look for the
+	warning about changed semantics of NAND builtin.
+	* gcc.c-torture/compile/sync-2.c: Ditto.
+	* gcc.c-torture/compile/sync-3.c: Ditto.
+
+2008-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36089
+	* g++.dg/template/init8.C: New test.
+
+2008-11-16  Mikael Morin <mikael.morin@tele2.fr>
+
+	PR fortran/35681
+	* gfortran.dg/elemental_dependency_1.f90: New test.
+
+2008-11-16  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/37992
+	* gfotran.dg/charlen_free_1.f90: New test.
+
+2008-11-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38097
+	* gfortran.dg/fmt_bz_bn.f: New test.
+
+2008-11-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/boolean_bitfield.adb: New test.
+
+2008-11-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38095
+	* gfortran.dg/char_length_13.f90: New test.
+
+2008-11-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/pr36246.c: Add -fomit-frame-pointer to dg-options.
+	* gcc.target/i386/pr32661-1.c: Ditto.
+	* gcc.target/i386/pr34256.c: Ditto.
+	* gcc.target/i386/pr22076.c: Ditto. Check for "movl" instruction on
+	nonpic targets only.
+
+2008-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38119
+	* gfortran.dg/array_temporaries_3.f90: New test.
+
 2008-11-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/37294
@@ -6,8 +271,8 @@
 
 2008-11-15  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/37926
-        * gfortran.dg/dummy_procedure_3.f90: New test.
+	PR fortran/37926
+	* gfortran.dg/dummy_procedure_3.f90: New test.
 
 2008-11-15  Jakub Jelinek  <jakub@redhat.com>
 

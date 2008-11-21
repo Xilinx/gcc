@@ -1,7 +1,84 @@
+2008-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/29215
+	* trans-array.c (trans_array_constructor_value,
+	gfc_build_constant_array_constructor): Fill in TREE_PURPOSE.
+
+	* trans-intrinsic.c (gfc_conv_intrinsic_minmaxloc): Use
+	gfc_index_one_node.
+	(gfc_conv_intrinsic_size): Use gfc_index_{zero,one}_node.
+
+	PR fortran/38181
+	* trans-intrinsic.c (gfc_conv_intrinsic_size): Inline 2 argument
+	size if the second argument is not optional and one argument size
+	for rank 1 arrays.
+
+2008-11-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38171
+	* module.c (load_equiv): Regression fix; check that equivalence
+	members come from the same module only.
+
+2008-11-16  Mikael Morin <mikael.morin@tele2.fr>
+
+	PR fortran/35681
+	* dependency.c (gfc_check_argument_var_dependency): Add
+	elemental check flag. Issue a warning if we find a dependency
+	but don't generate a temporary. Add the case of an elemental
+	function call as actual argument to an elemental procedure.
+	Add the case of an operator expression as actual argument
+	to an elemental procedure.
+	(gfc_check_argument_dependency): Add elemental check flag.
+	Update calls to gfc_check_argument_var_dependency.
+	(gfc_check_fncall_dependency): Add elemental check flag.
+	Update call to gfc_check_argument_dependency.
+	* trans-stmt.c (gfc_trans_call): Make call to
+	gfc_conv_elemental_dependency unconditional, but with a flag
+	whether we should check dependencies between variables.
+	(gfc_conv_elemental_dependency): Add elemental check flag.
+	Update call to gfc_check_fncall_dependency.
+	* trans-expr.c (gfc_trans_arrayfunc_assign): Update call to
+	gfc_check_fncall_dependency.
+	* resolve.c (find_noncopying_intrinsics): Update call to
+	gfc_check_fncall_dependency.
+	* dependency.h (enum gfc_dep_check): New enum.
+	(gfc_check_fncall_dependency): Update prototype.
+
+2008-11-16  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/37992
+	* gfortran.h (gfc_namespace): Added member old_cl_list, 
+	backup of cl_list.
+	(gfc_free_charlen): Added prototype.
+	* symbol.c (gfc_free_charlen): New function.
+	(gfc_free_namespace): Use gfc_free_charlen.
+	* parse.c (next_statement): Backup gfc_current_ns->cl_list.
+	(reject_statement): Restore gfc_current_ns->cl_list.
+	Free cl_list's elements before dropping them.
+
+2008-11-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38095
+	* trans-expr.c (gfc_map_intrinsic_function): Fix pointer access.
+
+2008-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38119
+	* trans-array.c (gfc_trans_create_temp_array): Set the
+	loop->from to zero and the renormalisation of loop->to for all
+	dimensions.
+
+2008-11-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37926
+	* trans-expr.c (gfc_free_interface_mapping): Null sym->formal
+	(gfc_add_interface_mapping): Copy the pointer to the formal
+	arglist, rather than using copy_formal_args - fixes regression.
+
 2008-11-15  Paul Thomas  <pault@gcc.gnu.org>
 
-        PR fortran/37926
-        * trans-expr.c (gfc_add_interface_mapping): Transfer the formal
+	PR fortran/37926
+	* trans-expr.c (gfc_add_interface_mapping): Transfer the formal
 	arglist and the always_explicit attribute if the dummy arg is a
 	procedure.
 

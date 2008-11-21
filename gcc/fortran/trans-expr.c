@@ -1583,6 +1583,7 @@ gfc_free_interface_mapping (gfc_interface_mapping * mapping)
   for (sym = mapping->syms; sym; sym = nextsym)
     {
       nextsym = sym->next;
+      sym->new_sym->n.sym->formal = NULL;
       gfc_free_symbol (sym->new_sym->n.sym);
       gfc_free_expr (sym->expr);
       gfc_free (sym->new_sym);
@@ -1715,7 +1716,7 @@ gfc_add_interface_mapping (gfc_interface_mapping * mapping,
      descriptors are passed for array actual arguments.  */
   if (sym->attr.flavor == FL_PROCEDURE)
     {
-      copy_formal_args (new_sym, expr->symtree->n.sym);
+      new_sym->formal = expr->symtree->n.sym->formal;
       new_sym->attr.always_explicit
 	    = expr->symtree->n.sym->attr.always_explicit;
     }
@@ -1921,8 +1922,9 @@ gfc_map_intrinsic_function (gfc_expr *expr, gfc_interface_mapping *mapping)
     case GFC_ISYM_LEN:
       /* TODO figure out why this condition is necessary.  */
       if (sym->attr.function
-	    && arg1->ts.cl->length->expr_type != EXPR_CONSTANT
-	    && arg1->ts.cl->length->expr_type != EXPR_VARIABLE)
+	  && (arg1->ts.cl->length == NULL
+	      || (arg1->ts.cl->length->expr_type != EXPR_CONSTANT
+		  && arg1->ts.cl->length->expr_type != EXPR_VARIABLE)))
 	return false;
 
       new_expr = gfc_copy_expr (arg1->ts.cl->length);
@@ -4286,7 +4288,8 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   /* Check for a dependency.  */
   if (gfc_check_fncall_dependency (expr1, INTENT_OUT,
 				   expr2->value.function.esym,
-				   expr2->value.function.actual))
+				   expr2->value.function.actual,
+				   NOT_ELEMENTAL))
     return NULL;
 
   /* The frontend doesn't seem to bother filling in expr->symtree for intrinsic
