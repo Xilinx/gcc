@@ -5248,17 +5248,24 @@ DONE;
 
   ls_mem = gen_rtx_MEM (DImode, gen_rtx_SYMBOL_REF (Pmode, "__ea_local_store"));
 
-  op0 = force_reg (mode, operands[0]);
-  op1 = force_reg (Pmode, operands[1]);
+  op0 = (REG_P (operands[0]) ? operands[0] : gen_reg_rtx (mode));
+
+  if (GET_MODE (operands[1]) == mode)
+    op1 = force_reg (mode, operands[1]);
+  else
+    {
+      op1 = gen_reg_rtx (mode);
+      convert_move (op1, operands[1], true);
+    }
 
   if (mode == Pmode)
     emit_insn (gen_addsi3 (op0, op1, force_reg (mode, gen_lowpart (mode, ls_mem))));
   else
-    {
-      rtx tmp = gen_reg_rtx (DImode);
-      emit_move_insn (tmp, gen_rtx_ZERO_EXTEND (DImode, op1));
-      emit_insn (gen_adddi3 (op0, tmp, force_reg (mode, ls_mem)));
-    }
+    emit_insn (gen_adddi3 (op0, op1, force_reg (mode, ls_mem)));
+
+  if (op0 != operands[0])
+    emit_move_insn (operands[0], op0);
+
   DONE;
 })
 
@@ -5273,10 +5280,22 @@ DONE;
   ls_mem = gen_rtx_MEM (DImode, gen_rtx_SYMBOL_REF (Pmode, "__ea_local_store"));
   ls = force_reg (Pmode, gen_lowpart (Pmode, ls_mem));
 
-  op0 = force_reg (Pmode, operands[0]);
-  op1 = force_reg (mode, operands[1]);
+  op0 = (REG_P (operands[0]) ? operands[0] : gen_reg_rtx (mode));
+
+  if (GET_MODE (operands[1]) == mode)
+    op1 = force_reg (mode, operands[1]);
+  else
+    {
+      op1 = gen_reg_rtx (mode);
+      convert_move (op1, operands[1], true);
+    }
+
   tmp = (mode == Pmode) ? op1 : force_reg (Pmode, gen_lowpart (Pmode, op1));
 
   emit_insn (gen_subsi3 (op0, tmp, ls));
+
+  if (op0 != operands[0])
+    emit_move_insn (operands[0], op0);
+
   DONE;
 })

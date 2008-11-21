@@ -1,3 +1,21 @@
+2008-11-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/ea.exp (check_effective_target_ea64): New
+	procedure to see if we have full support for -mea64.  Disable
+	temporarily.
+	(check_effective_target_ea32): Ditto.
+
+	* gcc.target/spu/cache.c: Delete cache test from here, move it to
+	the ea subdirectory.
+
+	* gcc.target/spu/ea/cache-common.h: Move cache test here, split
+	into -mea32 and -mea64 tests.
+	* gcc.target/spu/ea/cache32.c: Ditto.
+	* gcc.target/spu/ea/cache64.c: Ditto.
+
+	* gcc.target/spu/ea/cast1.c: Use check_effective_target_ea32 to
+	require support for -mea32.
+
 2008-11-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* gcc.target/spu/ea/cast1.c (main): Add -mea64 support.

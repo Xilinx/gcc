@@ -1,5 +1,6 @@
 /* { dg-do run { target spu-*-* } } */
-/* { dg-options "-std=gnu99" } */
+/* { dg-require-effective-target "ea32" } */
+/* { dg-options "-std=gnu99 -O2 -mea32" } */
 
 extern void abort (void);
 extern unsigned long long __ea_local_store;
