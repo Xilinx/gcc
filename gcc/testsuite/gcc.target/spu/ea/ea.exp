@@ -30,7 +30,6 @@ proc check_effective_target_ea64 { } {
 	#include <stdlib.h>
 	#include <string.h>
 	#include <spu_cache.h>
-	#error "disable test tempoarily"
 
 	__ea void *ptr;
 	__ea void *__malloc_ea64 (unsigned long long);
@@ -49,7 +48,6 @@ proc check_effective_target_ea32 { } {
 	#include <stdlib.h>
 	#include <string.h>
 	#include <spu_cache.h>
-	#error "disable test tempoarily"
 
 	__ea void *ptr;
 	__ea void *__malloc_ea32 (unsigned long);
@@ -65,7 +63,7 @@ proc check_effective_target_ea32 { } {
 # If a testcase doesn't have special options, use these.
 global DEFAULT_CFLAGS
 if ![info exists DEFAULT_CFLAGS] then {
-    set DEFAULT_CFLAGS "-std=gnu89 -pedantic-errors"
+    set DEFAULT_CFLAGS "-std=gnu89 -pedantic-errors -O2"
 }
 
 # Initialize `dg'.
