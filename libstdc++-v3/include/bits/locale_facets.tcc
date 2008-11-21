@@ -1096,11 +1096,25 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 	  const streamsize __w = __io.width();
 	  if (__w > static_cast<streamsize>(__len))
 	    {
-	      _CharT* __cs
+	      const streamsize __plen = __w - __len;
+	      _CharT* __ps
 		= static_cast<_CharT*>(__builtin_alloca(sizeof(_CharT)
-							* __w));
-	      _M_pad(__fill, __w, __io, __cs, __name, __len);
-	      __name = __cs;
+							* __plen));
+
+	      char_traits<_CharT>::assign(__ps, __plen, __fill);
+	      __io.width(0);
+
+	      if ((__flags & ios_base::adjustfield) == ios_base::left)
+		{
+		  __s = std::__write(__s, __name, __len);
+		  __s = std::__write(__s, __ps, __plen);
+		}
+	      else
+		{
+		  __s = std::__write(__s, __ps, __plen);
+		  __s = std::__write(__s, __name, __len);
+		}
+	      return __s;
 	    }
 	  __io.width(0);
 	  __s = std::__write(__s, __name, __len);
@@ -1137,8 +1151,7 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
     {
       const ios_base::fmtflags __flags = __io.flags();
       const ios_base::fmtflags __fmt = ~(ios_base::basefield
-					 | ios_base::uppercase
-					 | ios_base::internal);
+					 | ios_base::uppercase);
       __io.flags((__flags & __fmt) | (ios_base::hex | ios_base::showbase));
 
       typedef __gnu_cxx::__conditional_type<(sizeof(const void*)
