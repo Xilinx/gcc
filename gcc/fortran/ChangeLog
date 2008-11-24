@@ -1,3 +1,66 @@
+2008-11-24  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37779
+	* resolve.c (resolve_procedure_expression): New method.
+	(resolve_variable): Call it.
+	(resolve_actual_arglist): Call gfc_resolve_expr for procedure arguments.
+
+2008-11-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34820
+	* trans-expr.c (gfc_conv_function_call): Remove all code to
+	deallocate intent out derived types with allocatable
+	components.
+	(gfc_trans_assignment_1): An assignment from a scalar to an
+	array of derived types with allocatable components, requires
+	a deep copy to each array element and deallocation of the
+	converted rhs expression afterwards.
+	* trans-array.c : Minor whitespace.
+	* trans-decl.c (init_intent_out_dt): Add code to deallocate
+	allocatable components of derived types with intent out.
+	(generate_local_decl): If these types are unused, set them
+	referenced anyway but allow the uninitialized warning.
+
+	PR fortran/34143
+	* trans-expr.c (gfc_trans_subcomponent_assign): If a conversion
+	expression has a null data pointer argument, nullify the
+	allocatable component.
+
+	PR fortran/32795
+	* trans-expr.c (gfc_trans_subcomponent_assign): Only nullify
+	the data pointer if the source is not a variable.
+
+2008-11-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37735
+	* trans-array.c (structure_alloc_comps): Do not duplicate the
+	descriptor if this is a descriptorless array!
+
+2008-11-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38160
+	* trans-types.c (gfc_validate_c_kind): Remove function.
+	* decl.c (gfc_match_kind_spec): Add C kind parameter check.
+	(verify_bind_c_derived_type): Remove gfc_validate_c_kind call.
+	(verify_c_interop_param): Update call.
+	* gfortran.h (verify_bind_c_derived_type): Update prototype.
+	(gfc_validate_c_kind): Remove.
+	* symbol.c (verify_bind_c_derived_type): Update verify_c_interop call.
+	* resolve.c (gfc_iso_c_func_interface): Ditto.
+
+2008-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/37839
+	* trans-io.c (gfc_build_io_library_fndecls): Decrease pad size back
+	to 16 pointers plus 32 integers.  Don't use max integer kind
+	alignment, only gfc_intio_kind's alignment.
+	(gfc_trans_inquire): Only set flags2 if mask2 is non-zero.
+	* ioparm.def: Fix order, bitmasks and types of inquire round, sign
+	and pending fields.  Move u in dt before id.
+	* io.c (gfc_free_inquire): Free decimal and size exprs.
+	(match_inquire_element): Match size instead of matching blank twice.
+	(gfc_resolve_inquire): Resolve size.
+
 2008-11-20  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/29215

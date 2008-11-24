@@ -1,3 +1,98 @@
+2008-11-24  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR target/35018
+	* config/m68k/m68k.md (ok_for_coldfire, enabled): New attributes.
+	(addsi_lshrsi_31): Add ColdFire-friendly alternatives.
+
+2008-11-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (UNSPECV_CMPXCHG): Rename from
+	UNSPECV_CMPXCHG_[12].
+	* config/i386/sync.md: Use UNSPECV_CMPXCHG instead of
+	UNSPECV_CMPXCHG_[12].
+
+	PR target/36793
+	* config/i386/sync.md (memory_barrier): New expander.
+
+2008-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37135
+	* dse.c (find_shift_sequence): Optimize extraction from a constant.
+
+2008-11-23  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (function_arg): Revert 2008-10-26 change.
+
+2008-11-23  Helge Deller  <deller@gmx.de>
+
+	* pa/linux-atomic.c (EBUSY): Define if not _LP64.
+	(__kernel_cmpxchg): Return -EBUSY if the kernel LWS call
+	succeeded and lws_ret is not equal to oldval.
+
+2008-11-23  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.md (consttable_4): Call mark_symbol_refs_as_used.
+
+2008-11-22  Andreas Schwab  <schwab@suse.de>
+
+	* varasm.c (default_file_start): Suppress ASM_APP_OFF also with
+	-dA and -dP.
+
+2008-11-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (rdhwr): Rename to rdhwr_synci_step_<mode>.
+	Use constant 1 as the operand.
+	* config/mips/mips.c (mips_expand_synci_loop): Make INC Pmode.
+	Rename gen_rdhwr to gen_rdhwr_synci_step_si or
+	gen_rdhwr_synci_step_di depending on the size of Pmode.
+
+2008-11-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38222
+	* config/i386/i386.md (SWI248): New mode iterator.
+	(SWI32): Remove mode iterator.
+	(popcount<mode>2): Rename from popcounthi2, popcountsi2 and
+	popcounthi2 insn patterns. Macroize pattern using SWI248 mode
+	iterator.  Generate popcnt mnemonic without mode extensions
+	for Darwin x86 targets.
+	(*popcount<mode>2_cmp): Ditto.
+	(*popcountsi2_cmp_zext): Generate popcnt mnemonic without mode
+	extensions for Darwin x86 targets.
+
+2008-11-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (TARGET_ASM_OUTPUT_DWARF_DTPREL): Define
+	only if HAVE_AS_SPARC_UA_PCREL is defined.
+
+2008-11-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* ira-costs.c (find_allocno_class_costs): Work out the maximum
+	allocno_costs value of the classees with the lowest total_costs
+	value.  Use this to set ALLOCNO_COVER_CLASS_COST here...
+	(setup_allocno_cover_class_and_costs): ...rather than here.
+	Use the ALLOCNO_COVER_CLASS_COST for all registers in the
+	preferred class.
+
+2008-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/37323
+	* builtins.c (expand_builtin_apply_args): Emit sequence before
+	parm_birth_insn instead of after entry_of_function's first insn.
+
+	PR middle-end/37316
+	* function.c (assign_parm_remove_parallels): Pass
+	data->passed_type as third argument to emit_group_store.
+
+	PR target/37170
+	* final.c (mark_symbol_refs_as_used): New function.
+	* output.h (mark_symbol_refs_as_used): New prototype.
+	* config/s390/s390.c (s390_mark_symbol_ref_as_used): Removed.
+	(s390_output_pool_entry): Use mark_symbol_refs_as_used.
+	* config/arm/arm.md (consttable_4): Likewise.
+
+	PR target/37880
+	* doc/invoke.texi: Adjust wording of -mcmodel=medium description.
+
 2008-11-21  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/38200
@@ -27,7 +122,7 @@
 	gmmintrin.h, add immintrin.h and avxintrin.h.
 
 	* config/i386/gmmintrin.h: Renamed to ...
-	* config/i386/avxintrin.h: This.  Don't include intrinsics if
+	* config/i386/avxintrin.h: This.  Issue an error if
 	_IMMINTRIN_H_INCLUDED is undedined.
 
 	* config/i386/immintrin.h: New.
