@@ -1,3 +1,42 @@
+2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+	    Joey Ye  <joey.ye@intel.com>
+
+	PR middle-end/37843
+	* config/i386/i386.c (ix86_function_ok_for_sibcall): Return
+	false if we need to align the outgoing stack.
+	(ix86_update_stack_boundary): Check parm_stack_boundary.
+
+2008-11-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38151
+	PR middle-end/38236
+	* tree-ssa-alias.c (struct alias_info): Remove written_vars.
+	Remove dereferenced_ptrs_store and dereferenced_ptrs_load
+	in favor of dereferenced_ptrs.
+	(init_alias_info): Adjust.
+	(delete_alias_info): Likewise.
+	(compute_flow_insensitive_aliasing): Properly
+	include all aliased variables.
+	(update_alias_info_1): Use dereferenced_ptrs.
+	(setup_pointers_and_addressables): Likewise.
+	(get_smt_for): Honor ref-all pointers and pointers with known alias
+	set properly.
+	* config/i386/i386.c (ix86_gimplify_va_arg): Use ref-all pointers.
+
+2008-11-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38254
+	* config/i386/sync.md (memory_barrier_nosse): New insn
+	(memory_barrier): Generate memory_barrier_nosse insn for !TARGET_SSE2.
+
+2008-11-24  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/m68k.md (cmpdi): Use (scratch) instead of pseudo.
+
+2008-11-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.h (ASM_OUTPUT_DEBUG_LABEL): Define.
+
 2008-11-24  Maxim Kuvyrkov  <maxim@codesourcery.com>
 
 	PR target/35018

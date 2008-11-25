@@ -1,3 +1,33 @@
+2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* module.c (gfc_dump_module): Report error on unlink only if
+	errno != ENOENT.
+
+2008-11-25  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/36463
+	* expr.c (replace_symbol): Don't replace the symtree
+	if the expresion is an intrinsic function. Don't create
+	non-existent symtrees.  Use symbol's name instead of symtree's,
+	different in case of module procedure dummy arguments.
+
+2008-11-25  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	PR fortran/38248
+	* module.c (gfc_dump_module): Check rename/unlink syscalls errors.
+
+2008-11-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR fortran/37319
+	* parse.c (match_deferred_characteristics): Make sure 'name' is
+	initialized before reading it.
+
+2008-11-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/37803
+	* arith.c (gfc_check_real_range): Add mpfr_check_range.
+	* simplify.c (gfc_simplify_nearest): Add mpfr_check_range.
+
 2008-11-24  Mikael Morin  <mikael.morin@tele2.fr>
 
 	PR fortran/38184

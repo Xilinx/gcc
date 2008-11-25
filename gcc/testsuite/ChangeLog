@@ -1,3 +1,31 @@
+2008-11-25  Janis Johnson  <janis187@us.ibm.com>
+
+	* gfortran.dg/default_format_denormal_1.f90: Fix xfail for darwin.
+
+2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/align-main-3.c: New.
+	* gcc.target/i386/pr37843-1.c: Likewise.
+	* gcc.target/i386/pr37843-2.c: Likewise.
+	* gcc.target/i386/pr37843-3.c: Likewise.
+
+2008-11-25  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/36463
+	* gfortran.dg/proc_decl_20.f90: New test.
+
+2008-11-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38151
+	PR middle-end/38236
+	* gcc.c-torture/execute/pr38151.c: New testcase.
+	* gcc.c-torture/execute/pr38236.c: Likewise.
+
+2008-11-24  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/eh/weak1.C: Don't xfail hppa*64*-*-*.
+
 2008-11-24  DJ Delorie  <dj@redhat.com>
 
 	* gcc.c-torture/execute/pr36321.c: Don't rely on argv[0] being set.
