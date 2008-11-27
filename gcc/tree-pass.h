@@ -226,6 +226,7 @@ struct dump_file_info
 #define TODO_remove_functions		(1 << 8)
 #define TODO_rebuild_frequencies	(1 << 9)
 #define TODO_verify_rtl_sharing         (1 << 10)
+#define TODO_check_sections             (1 << 11)
 
 /* To-do flags for calls to update_ssa.  */
 
@@ -458,7 +459,8 @@ extern struct rtl_opt_pass pass_stack_ptr_mod;
 extern struct rtl_opt_pass pass_initialize_regs;
 extern struct rtl_opt_pass pass_combine;
 extern struct rtl_opt_pass pass_if_after_combine;
-extern struct rtl_opt_pass pass_partition_blocks;
+extern struct rtl_opt_pass pass_partition_blocks_hot_cold;
+extern struct rtl_opt_pass pass_partition_blocks_size;
 extern struct rtl_opt_pass pass_match_asm_constraints;
 extern struct rtl_opt_pass pass_regmove;
 extern struct rtl_opt_pass pass_split_all_insns;

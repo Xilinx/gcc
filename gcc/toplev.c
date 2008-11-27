@@ -1894,6 +1894,12 @@ process_options (void)
 	  warning (0, "-fdata-sections not supported for this target");
 	  flag_data_sections = 0;
 	}
+      if (flag_partition_functions_into_sections)
+        {
+          warning (0, "-fpartition-functions-into-sections disabled; "
+		   " -ffunction-sections not supported for this target");
+          flag_partition_functions_into_sections = 0;
+        }
     }
 
   if (flag_function_sections && profile_flag)
@@ -1901,7 +1907,13 @@ process_options (void)
       warning (0, "-ffunction-sections disabled; it makes profiling impossible");
       flag_function_sections = 0;
     }
-
+  if (flag_partition_functions_into_sections && profile_flag)
+    {
+      warning (0, "-fpartition-functions-into-sections disabled; "
+	       "it makes profiling impossible");
+      flag_partition_functions_into_sections = 0;
+    }
+   
 #ifndef HAVE_prefetch
   if (flag_prefetch_loop_arrays)
     {
@@ -1924,6 +1936,15 @@ process_options (void)
       flag_prefetch_loop_arrays = 0;
     }
 
+  /* TODO: Support debugging for -fpartition-functions-into-sections.  */
+  if (flag_partition_functions_into_sections 
+      && ((write_symbols != NO_DEBUG) || flag_unwind_tables)) 
+    {
+      warning (0, "-fpartition-functions-into-sections disabled; "
+	       "it does not work with debugging or unwind tables");
+      flag_partition_functions_into_sections = 0;
+    }
+  
   /* The presence of IEEE signaling NaNs, implies all math can trap.  */
   if (flag_signaling_nans)
     flag_trapping_math = 1;

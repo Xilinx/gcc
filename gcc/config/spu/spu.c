@@ -57,6 +57,7 @@
 #include "sbitmap.h"
 #include "timevar.h"
 #include "df.h"
+#include "vec.h"
 
 /* Builtin types, data and prototypes. */
 struct spu_builtin_range
@@ -86,6 +87,18 @@ static struct spu_builtin_range spu_builtin_range[] = {
 
 /*  Target specific attribute specifications.  */
 char regs_ever_allocated[FIRST_PSEUDO_REGISTER];
+
+/* The following are types of critical sections.
+   Critical section are sequences must reside in a single section.  */
+enum critical_section_type
+{
+   /* Indicates a jump-table.  */
+   JUMP_TABLE = 0,
+   /* DMA sequence (wrch 16-21).  */
+   CRITICAL_DMA_SEQ,
+   /* Event mask read/write/ack sequence (rd/wrch 0-2).  */
+   CRITICAL_EVENT_MASK
+};
 
 /*  Prototypes and external defs.  */
 static void spu_init_builtins (void);
@@ -147,6 +160,15 @@ static bool spu_vector_alignment_reachable (const_tree, bool);
 static tree spu_builtin_vec_perm (tree, tree *);
 static int spu_sms_res_mii (struct ddg *g);
 static void asm_file_start (void);
+static unsigned HOST_WIDE_INT spu_estimate_section_overhead (void);
+static unsigned HOST_WIDE_INT spu_estimate_instruction_size (rtx);
+static bool begin_critical_section (rtx, enum critical_section_type *);
+static bool end_critical_section (rtx, enum critical_section_type *);
+static unsigned HOST_WIDE_INT record_jump_table (rtx);
+static bool spu_start_new_section (int, unsigned HOST_WIDE_INT, 
+                                   unsigned HOST_WIDE_INT, 
+                                   unsigned HOST_WIDE_INT);
+
 
 extern const char *reg_names[];
 rtx spu_compare_op0, spu_compare_op1;
@@ -364,6 +386,15 @@ const struct attribute_spec spu_attribute_table[];
 #undef TARGET_ASM_FILE_START
 #define TARGET_ASM_FILE_START asm_file_start
 
+#undef TARGET_ESTIMATE_SECTION_OVERHEAD
+#define TARGET_ESTIMATE_SECTION_OVERHEAD spu_estimate_section_overhead
+
+#undef TARGET_ESTIMATE_INSTRUCTION_SIZE
+#define TARGET_ESTIMATE_INSTRUCTION_SIZE spu_estimate_instruction_size
+
+#undef TARGET_START_NEW_SECTION
+#define TARGET_START_NEW_SECTION spu_start_new_section
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 void
@@ -402,6 +433,9 @@ spu_override_options (void)
 
   if (spu_fixed_range_string)
     fix_range (spu_fixed_range_string);
+
+  if (flag_partition_functions_into_sections)
+    fix_range ("75-79");
 
   /* Determine processor architectural level.  */
   if (spu_arch_string)
@@ -2023,6 +2057,565 @@ spu_return_addr (int count, rtx frame ATTRIBUTE_UNUSED)
      it's inefficient. */
   return get_hard_reg_initial_val (Pmode, LINK_REGISTER_REGNUM);
 }
+
+/* Return the size of the stub that the linker will insert for INSN that
+   are branches to another section.  */
+static unsigned HOST_WIDE_INT 
+get_stub_size (rtx insn)
+{
+  unsigned HOST_WIDE_INT stub_size = 0;
+  
+  if (!JUMP_P (insn) && !CALL_P (insn))
+    return 0;
+  
+  if (JUMP_P (insn))
+    {
+      rtx set, src;
+      
+      stub_size = spu_stub_size;
+
+      /* If the branch instruction and the branch target are in the
+         same basic-block they will probably be in the same section
+         as well.  Do not add the stub size in this case.  */
+      if (!tablejump_p (insn, NULL, NULL)
+	  && JUMP_LABEL (insn)
+	  && (BLOCK_NUM (JUMP_LABEL (insn)) == BLOCK_NUM (insn)))
+	stub_size = 0;
+      
+      /* For indirect branches including jump-tables (not including the
+         cases) and indirect function calls; stubs will be created in the
+         non-overlay local store so their stub size is not inserted to the
+         section calculation.  */
+      /* Return statements */
+      if (GET_CODE (PATTERN (insn)) == RETURN)
+	stub_size = 0;
+      
+      /* jump table */
+      if (GET_CODE (PATTERN (insn)) == ADDR_VEC
+	  || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC)
+	stub_size = 0;
+      
+      set = single_set (insn);
+      if (set)
+	{
+	  src = SET_SRC (set);
+	  if (GET_CODE (SET_DEST (set)) != PC)
+	    abort ();
+	  
+	  if (GET_CODE (src) == IF_THEN_ELSE)
+	    {
+	      rtx lab = 0;
+	      
+	      if (GET_CODE (src) == IF_THEN_ELSE)
+		{
+		  rtx lab = 0;
+		  if (GET_CODE (XEXP (src, 1)) != PC)
+		    lab = XEXP (src, 1);
+		  else if (GET_CODE (XEXP (src, 2)) != PC)
+		    lab = XEXP (src, 2);
+		}
+	      if (lab && REG_P (lab))
+		stub_size = 0;
+	    }
+	}
+    }
+  else if (CALL_P (insn))
+    {
+      rtx call;
+      
+      stub_size = spu_stub_size;
+      /* All of our call patterns are in a PARALLEL and the CALL is
+         the first pattern in the PARALLEL. */
+      if (GET_CODE (PATTERN (insn)) != PARALLEL)
+	abort ();
+      call = XVECEXP (PATTERN (insn), 0, 0);
+      if (GET_CODE (call) == SET)
+	call = SET_SRC (call);
+      if (GET_CODE (call) != CALL)
+	abort ();
+      if (REG_P (XEXP (XEXP (call, 0), 0)))
+	stub_size = 0;
+    }
+  
+  return stub_size;
+}
+
+/* Hbrp instructions are inserted when the compiler sees lots of loads
+   and stores in a row.  The worst case would be 1 for every 8 load/store
+   instructions.  */
+static int mem_ref_counter = 0;
+
+/* The compiler inserts 1 hbrp instruction for every 16 instructions
+   in the worst case.  */
+static int safe_hints_counter = 0;
+
+/* Extra nops are added for 2 reasons, dual issue and to make room
+   for hints.  For dual issues the worst case is 1 nop for every 3
+   instructions.  */
+static int spu_dual_nops_counter = 0;
+
+/* Return the size of instruction INSN in bytes.  Take into account the
+   size of extra machine depndent instructions that can be added
+   as a result of insn (like branch-hints for branch instructions).
+   Called when partitioning a function into sections.  */
+static unsigned HOST_WIDE_INT 
+spu_estimate_instruction_size (rtx insn)
+{
+  unsigned HOST_WIDE_INT size;
+  rtx table;
+  /* For dual issues the worst case is 1 nop for every 3
+     instructions.  */
+  int dual_nops = spu_dual_nops > 0 ? 3 : 0;
+  
+  if (NOTE_P (insn))
+    {
+      /* Reset the counters if needed.  */
+      if (NOTE_KIND (insn) == NOTE_INSN_FUNCTION_BEG)
+	{
+	  mem_ref_counter = 0;
+	  safe_hints_counter = 0;
+	  spu_dual_nops_counter = 0;
+	}
+      if (NOTE_KIND (insn) == NOTE_INSN_BASIC_BLOCK)
+	mem_ref_counter = 0;
+      return 0;
+    }
+  
+  size = get_attr_min_length (insn);
+  if (tablejump_p (insn, NULL, &table))
+    {
+      rtvec vec;
+      
+      if (GET_CODE (PATTERN (table)) == ADDR_VEC)
+        vec = XVEC (PATTERN (table), 0);
+      else
+        vec = XVEC (PATTERN (table), 1);
+      
+      /* Add the size of the table to the insn size.  */
+      size += (GET_NUM_ELEM (vec) * 4);
+    }
+  safe_hints_counter += 1;
+  spu_dual_nops_counter += 1;
+  
+  /* The compiler inserts 1 hbrp instruction for every 16 instructions
+     in the worst case.  */
+  if (TARGET_SAFE_HINTS && safe_hints_counter >= 16)
+    {
+      size += 4;
+      safe_hints_counter = 0;
+      spu_dual_nops_counter += 1;
+    }
+  
+  size += get_stub_size (insn);
+  
+  if (!TARGET_BRANCH_HINTS || optimize == 0)
+    return size;
+  
+  /* Add the nops and branch hint which are added for each branch.
+     For hints the worst case is 4 nops for every branch.  */
+  if ((JUMP_P (insn) || CALL_P (insn))
+      && !tablejump_p (insn, NULL, NULL))
+    {
+      /* 4 nops + 1 hint.  */
+      size += 20;
+      safe_hints_counter += 5;
+      spu_dual_nops_counter += 5;
+    }
+  
+  if (mem_read_insn_p (insn) || mem_write_insn_p (insn))
+    {
+      mem_ref_counter++;
+      if (mem_ref_counter > 8)
+	{
+	  mem_ref_counter = 0;
+	  /* Add the hbrp instruction.  */
+	  size += 4;
+	  safe_hints_counter += 1;
+	  spu_dual_nops_counter += 1;
+	}
+    }
+  else
+    mem_ref_counter = 0;
+  
+  /* For dual issues the worst case is 1 nop for every 3
+     instructions.  */
+  if (dual_nops && spu_dual_nops_counter >= dual_nops)
+    {
+      size += 4;
+      spu_dual_nops_counter = 0;
+      safe_hints_counter += 1;
+    }
+  return size;
+}
+
+/* Estimate the size in bytes of the extra instructions that will be
+   generated for each section as a result of creating a new branch for
+   that section.  Called when partitioning a function into sections.  */
+static unsigned HOST_WIDE_INT
+spu_estimate_section_overhead (void)
+{
+  int extra_branch_insns = 0;
+  
+  if (TARGET_BRANCH_HINTS && optimize != 0)
+    {
+      /* Add the nops and branch hint which are added for each branch.
+         For hints the worst case is 4 nops for every branch.  */
+      extra_branch_insns = 5;
+    }
+  /* Take into account the new branch instruction, its extra
+     instructions if they are created and the size of the stub that the
+     linker will add to it.  */
+  return ((1 + extra_branch_insns) * 4 + spu_stub_size);
+}
+
+/* An auxiliary structure for recognizing critical sections.  */
+typedef struct critical_sections
+{
+  /* The type of the critical section.  */
+  enum critical_section_type type;
+
+  /* The size of the critical section.  */
+  unsigned HOST_WIDE_INT size;
+
+  /* True if the end of the critical section was recognized.  */
+  bool closed_p;
+}critical_sections_t;
+
+DEF_VEC_O(critical_sections_t);
+DEF_VEC_ALLOC_O(critical_sections_t,heap);
+
+/* Return true if INSN begins a critical section.
+   Record it's type in TYPE.  */
+static bool
+begin_critical_section (rtx insn, enum critical_section_type *type)
+{
+  rtx body, set;
+  
+  if (!INSN_P (insn))
+    return false;
+
+  if (GET_CODE (PATTERN (insn)) == PARALLEL)
+    return false;
+  
+  set = single_set (insn);
+  
+  if (set != 0)
+    {
+      /* We are looking for this type of instruction:
+	 
+         (insn (set (reg)
+         (unspec_volatile [(const_int)])) {spu_rdch_noclobber})
+      */
+      body = SET_SRC (set);
+      if (GET_CODE (body) == UNSPEC_VOLATILE)
+	if (XINT (body, 1) == UNSPEC_RDCH)
+	  {
+	    rtx tmp = XVECEXP (body, 0, 0);
+	    
+	    if (tmp && GET_CODE (tmp) == CONST_INT && INTVAL (tmp) == 0)
+	      {
+		*type = CRITICAL_EVENT_MASK;
+		return true;
+	      }
+	  }
+      
+      if (GET_CODE (body) == LABEL_REF)
+	{
+	  *type = JUMP_TABLE;
+	  return true;
+	}
+    }
+  else
+    {
+      /* We are looking for this type of instruction:
+	 
+         (insn (unspec_volatile [(const_int) (subreg)])  
+         {spu_wrch_noclobber})
+      */
+      
+      body = PATTERN (insn);
+      
+      if (GET_CODE (body) == UNSPEC_VOLATILE)
+	if (XINT (body, 1) == UNSPEC_WRCH)
+	  {
+	    rtx tmp = XVECEXP (body, 0, 0);
+	    
+	    /* MFC_LSA 16  */
+	    if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 16)
+	      {
+		*type = CRITICAL_DMA_SEQ;
+		return true;
+	      }
+	  }
+      
+    }
+  return false;
+}
+
+/* Return true if INSN ends a critical section.
+   Record it's type in TYPE.  */
+static bool
+end_critical_section (rtx insn, enum critical_section_type *type)
+{
+  rtx body;
+
+  if (!INSN_P (insn))
+    return false;
+
+  body = PATTERN (insn);
+
+  /* We are looking for the following type of instruction:
+
+     (insn (parallel [
+           (unspec_volatile [(const_int) (subreg)])
+                             (clobber (mem))]) {spu_wrch_clobber}) */
+
+  if (GET_CODE (body) == PARALLEL)
+    {
+      rtx tmp = XVECEXP (body, 0, 0);
+
+      if (TARGET_SAFE_DMA && GET_CODE (tmp) == UNSPEC_VOLATILE)
+	{
+	  if (XINT (tmp, 1) == UNSPEC_WRCH)
+	    {
+	      rtx const_val = XVECEXP (tmp, 0, 0);
+
+	      /* MFC_Cmd 21  */
+	      if (GET_CODE (const_val) == CONST_INT
+		  && INTVAL (const_val) == 21)
+		{
+		  *type = CRITICAL_DMA_SEQ;
+		  return true;
+		}
+	    }
+	}
+    }
+  else
+    {
+      /* We are looking for the following type of instruction:
+
+        (insn (unspec_volatile [(const_int 2]) (subreg)])  
+               (spu_wrch_noclobber}) 
+         or
+      
+        (insn (unspec_volatile [(const_int 21]) (subreg)])
+               (spu_wrch_noclobber})  */
+      if (GET_CODE (body) == UNSPEC_VOLATILE)
+        if (XINT (body, 1) == UNSPEC_WRCH)
+          {
+            rtx tmp = XVECEXP (body, 0, 0);
+	    
+            /*  SPU_WrEventAck 2  */
+            if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 2)
+              {
+                *type = CRITICAL_EVENT_MASK;
+                return true;
+              }
+            /* MFC_Cmd 21  */
+            else if (!TARGET_SAFE_DMA 
+		     && tmp 
+		     && (GET_CODE (tmp) == CONST_INT) 
+		     && INTVAL (tmp) == 21)
+	      {
+		*type = CRITICAL_DMA_SEQ;
+		return true;
+		
+	      }
+          }
+    }
+  return false;
+}
+
+/* Record the critical section which is part of the jump-table.
+   The critical section should contain the jump-table and code that
+   reads the table to make sure they will appear in the same section.
+   We are looking for the following sequence of instructions:
+ 
+   ila ,label 
+   .
+   .
+   .
+   jump_insn (use label)
+   label:
+   table
+   .
+   .
+   .
+   end of table
+   */
+static unsigned HOST_WIDE_INT  
+record_jump_table (rtx ila_insn)
+{
+  rtx insn, set;
+  basic_block bb;
+  rtx label, label1;
+  bool *bb_aux;
+  bool found_jump_table = false;
+  unsigned HOST_WIDE_INT size = 0;
+  
+  bb_aux = (bool *)xmalloc (n_basic_blocks * sizeof (bool));
+  memset (bb_aux, false, n_basic_blocks * sizeof (bool));
+
+  set = single_set (ila_insn);
+  
+  gcc_assert (set);
+  
+  label = XEXP (SET_SRC (set), 0);
+
+  /* Reset counters.  */
+  mem_ref_counter = 0;
+  safe_hints_counter = 0;
+  spu_dual_nops_counter = 0;
+  
+  for (insn = ila_insn; insn != NULL; insn = NEXT_INSN (insn))
+    {
+      bb = BLOCK_FOR_INSN (insn);
+      bb_aux[bb->index] = true;
+      
+      if (!INSN_P (insn))
+	continue;
+      
+      size += spu_estimate_instruction_size (insn); 
+      if (!tablejump_p (insn, &label1, NULL))
+	continue;
+      
+      if (rtx_equal_p (label, label1))
+	{
+	  found_jump_table = true;
+	  break;
+	}
+    }
+  
+  if (found_jump_table)
+    {
+      int i;
+      
+      /* Mark the bb's between the jump-table and the code that
+         reads the table so they reside in the same section.  */
+      for (i = 0; i < n_basic_blocks; i++)
+	if (bb_aux[i] == true)
+	  BASIC_BLOCK (i)->il.rtl->skip = 1;
+    }
+  else
+    size = 0;
+  
+  free (bb_aux);
+  
+  return size;
+}
+
+/* Given basic-block BB which contains an instruction that ends a
+   critical section; close an open critical section that is recorded in
+   START_SEQUENCE; which appears in the same basic-block as bb and is
+   of type TYPE.  */
+static void
+close_critical_sections (VEC (critical_sections_t, heap) *start_sequence,
+			 basic_block bb, enum critical_section_type type)
+{
+  unsigned int i;
+  bool bb_close_critical_section_p = false;
+  critical_sections_t *crit;
+  
+  /* Loop through all of the critical sections.  */
+  for (i = 0; VEC_iterate (critical_sections_t, start_sequence, i, crit); i++)
+    {
+      /* First check that this bb closes a critical section of the
+         right type.  */
+      if (crit->type == type && !crit->closed_p)
+	{
+	  /* Mark this section as closed.  */
+	  crit->closed_p = true;
+	  
+	  bb_close_critical_section_p = true;
+	  break;
+	}
+    }
+  if (!bb_close_critical_section_p)
+    warning (0,
+	     "Unexpected end of critical section in basic-block %d.  ",
+	     bb->index);
+}
+
+
+/* Return true if the basic-block with index BB_INDEX should be put in
+   a new section.
+   The following are all taking into account in the decision:
+  
+   BB_SIZE - The size of the basic-block, 
+   ESTIMATE_MAX_SECTION_SIZE - The maximum size of a section,
+   LAST_SECTION_SIZE - The size of the last section.  */
+bool
+spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
+		       unsigned HOST_WIDE_INT estimate_max_section_size,
+		       unsigned HOST_WIDE_INT last_section_size)
+{
+  rtx insn;
+  VEC (critical_sections_t, heap) *start_sequence = NULL;
+  int i;
+  enum critical_section_type type;
+  basic_block bb = BASIC_BLOCK (bb_index);
+  bool start_new_section_p = false;
+  unsigned HOST_WIDE_INT size;
+  critical_sections_t *crit1;
+  
+  /* Loop through all of the basic-block's insns.  */
+  FOR_BB_INSNS (bb, insn)
+    {
+      if (tablejump_p (insn, NULL, NULL) && !bb->il.rtl->skip)
+	warning (0, "Unexpected jump-table in basic-block %d.  ", bb->index);
+      
+      /* Check whether this insn can begin a critical sections.  */
+      if (begin_critical_section (insn, &type))
+	{
+	  critical_sections_t crit;
+	  
+	  size = bb_size;
+	  
+	  if (type == JUMP_TABLE)
+	    {
+	      size = record_jump_table (insn);
+	      if (size > estimate_max_section_size)
+		warning (0,
+			 "jump-table in bb exceeds section size %d.  ",
+			 bb->index);
+	    }
+	  
+	  crit.size = size;
+	  crit.type = type;
+	  crit.closed_p = false;
+	  /* Record the start instruction unless this is the .  */
+	  VEC_safe_push (critical_sections_t, heap, start_sequence, &crit);
+	}
+
+      /* Check whether this insn can end a critical sections.  */
+      if (end_critical_section (insn, &type))
+	{
+	  /* Close any critical section that this instruction may end.  */
+	  close_critical_sections (start_sequence, bb, type);
+	}
+    }
+  
+  if (dump_file && VEC_length (critical_sections_t, start_sequence))
+    fprintf (dump_file, "\n;; bb %d starts a critical section", bb->index);
+  
+  for (i = 0; VEC_iterate (critical_sections_t, start_sequence, i, crit1);
+       i++)
+    {
+      if (!crit1->closed_p && (crit1->type != JUMP_TABLE))
+	error ("Unexpected start of critical section in basic-block %d.  ",
+	       bb->index);
+      if (crit1->size + last_section_size > estimate_max_section_size
+	  && crit1->size < estimate_max_section_size)
+	start_new_section_p = true;
+    }
+  if (last_section_size == 0)
+    start_new_section_p = false;
+  
+  VEC_free (critical_sections_t, heap, start_sequence);
+  
+  return start_new_section_p;
+}
+
 
 
 /* Given VAL, generate a constant appropriate for MODE.

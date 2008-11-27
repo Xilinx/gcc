@@ -1,0 +1,16 @@
+2008-11-27  Revital Eres  <eres@il.ibm.com>
+
+	* gcc.dg/sections/: New directory with tests for the function
+	partitioning into sections pass.
+	* gcc.dg/sections/section.exp: New script.
+	(gcc.dg/sections/section-size-1.c,
+	gcc.dg/sections/section-size-2.c,
+	gcc.dg/sections/section-size-3.c,
+	gcc.dg/sections/section-size-4.c,
+	gcc.dg/sections/section-size-5.c): New tests.
+	* gcc.dg/sections/prof/: New directory.
+	* gcc.dg/sections/prof/sections-prof.exp: New script.
+	* gcc.dg/sections/prof/section-prof-1.c: New test.
+	* gcc.target/spu/overlay-1.c: New test.	
+	* gcc.target/spu/overlay-2.c: New test.
+

@@ -1822,7 +1822,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 #endif
 	    (*debug_hooks->switch_text_section) ();
 
-	  switch_to_section (current_function_section ());
+          if (flag_partition_functions_into_sections)
+            switch_to_section (text_part_section (NOTE_TEXT_SECTION (insn)));
+          else
+            switch_to_section (current_function_section ());
 	  break;
 
 	case NOTE_INSN_BASIC_BLOCK:
@@ -4227,7 +4230,7 @@ struct rtl_opt_pass pass_final =
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
-  0,                                    /* todo_flags_start */
+  TODO_check_sections,                  /* todo_flags_start */
   TODO_ggc_collect                      /* todo_flags_finish */
  }
 };

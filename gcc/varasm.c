@@ -71,6 +71,10 @@ struct addr_const;
 struct constant_descriptor_rtx;
 struct rtx_constant_pool;
 
+/* If the function is spread on multiple sections; this variable saves
+   the name of the last seen section.  */
+const char *last_part_text_section_name;
+
 #define n_deferred_constants (crtl->varasm.deferred_constants)
 
 /* Number for making the label on the next
@@ -167,6 +171,8 @@ section *in_section;
 /* True if code for the current function is currently being directed
    at the cold section.  */
 bool in_cold_section_p;
+
+bool in_part_section_p;
 
 /* A linked list of all the unnamed sections.  */
 static GTY(()) section *unnamed_sections;
@@ -684,6 +690,91 @@ unlikely_text_section (void)
     return get_named_section (NULL, UNLIKELY_EXECUTED_TEXT_SECTION_NAME, 0);
 }
 
+/* Initialize the string which will be part of the section name.
+   It should contain the function name.  UNLIKELY_P is true if the
+   section is cold, otherwise it is false.  */
+
+static void
+initialize_part_section_name (bool unlikely_p)
+{
+  const char *stripped_name;
+  char *name;
+  char *buffer;
+  tree dsn;
+
+  gcc_assert (cfun && current_function_decl);
+
+  if (crtl->subsections.unlikely_text_section_name
+      && crtl->subsections.unlikely_part_text_section_name)
+    return;
+
+  dsn = DECL_SECTION_NAME (current_function_decl);
+
+  /* DECL_SECTION_NAME usually holds the function name.  However, if
+     -fprofile-use flag is used then DECL_SECTION_NAME would hold
+     .text.hot or .text.unlikely.  The function name is used to
+     differentiate between sections in different functions which has
+     the same section id, so we need to get it.  */
+  if (dsn && !flag_profile_use)
+    {
+      name = (char *) alloca (TREE_STRING_LENGTH (dsn) + 1);
+      memcpy (name, TREE_STRING_POINTER (dsn), TREE_STRING_LENGTH (dsn) + 1);
+      stripped_name = targetm.strip_name_encoding (name);
+    }
+  else
+    stripped_name = current_function_name ();
+
+  if (unlikely_p)
+    {
+      buffer = ACONCAT ((stripped_name, "_unlikely.part", NULL));
+      crtl->subsections.unlikely_part_text_section_name = ggc_strdup (buffer);
+    }
+  else
+    {
+      buffer = ACONCAT ((stripped_name, ".part", NULL));
+      crtl->subsections.part_text_section_name = ggc_strdup (buffer);
+    }
+}
+
+/* Tell assembler to switch to a new section with SECTION_ID.  */
+
+section *
+text_part_section (int section_id)
+{
+  char section_id_str[2 + 2 * HOST_BITS_PER_INT / 4 + 1];
+  char *section_name;
+  const char *prefix_str;
+  bool unlikely_p = false;
+
+  in_part_section_p = true;
+  gcc_assert (flag_function_sections && cfun);
+
+  if (first_function_block_is_cold
+      && (unsigned) section_id <
+      crtl->subsections.first_text_section_part_changed)
+    unlikely_p = true;
+  else if (!first_function_block_is_cold
+	   && (unsigned) section_id >=
+	   crtl->subsections.first_text_section_part_changed)
+    unlikely_p = true;
+
+  if (!unlikely_p && !crtl->subsections.part_text_section_name)
+    initialize_part_section_name (false);
+  if (unlikely_p && !crtl->subsections.unlikely_part_text_section_name)
+    initialize_part_section_name (true);
+
+  snprintf (section_id_str, sizeof (section_id_str), "%d", section_id);
+  if (unlikely_p)
+    prefix_str = crtl->subsections.unlikely_part_text_section_name;
+  else
+    prefix_str = crtl->subsections.part_text_section_name;
+
+  section_name = ACONCAT ((prefix_str, section_id_str, NULL));
+  last_part_text_section_name = ggc_strdup (section_name);
+  return get_named_section (NULL, last_part_text_section_name, 0);
+}
+
+
 /* When called within a function context, return true if the function
    has been assigned a cold text section and if SECT is that section.
    When called outside a function context, return true if SECT is the
@@ -834,6 +925,9 @@ function_section (tree decl)
   else
     return targetm.asm_out.select_section (decl, reloc, DECL_ALIGN (decl));
 #else
+   if (flag_partition_functions_into_sections
+       && crtl->subsections.number_of_sections)
+    return text_part_section (0);
   return reloc ? unlikely_text_section () : hot_function_section (decl);
 #endif
 }
@@ -852,6 +946,8 @@ current_function_section (void)
 					   in_cold_section_p,
 					   DECL_ALIGN (current_function_decl));
 #else
+  if (in_part_section_p)
+    return get_named_section (NULL, last_part_text_section_name, 0);
   return (in_cold_section_p
 	  ? unlikely_text_section ()
 	  : hot_function_section (current_function_decl));
@@ -1626,6 +1722,31 @@ notice_global_symbol (tree decl)
     }
 }
 
+/* If the text section is partitioned; make sure all the sections are
+   properly aligned.  */
+
+static void
+output_sections (void)
+{
+  unsigned int i;
+  const char *tmp;
+
+  gcc_assert (cfun && flag_partition_functions_into_sections);
+
+  /* Output for each one of the sections the label which marks the
+     beginning of its address range.  */
+  for (i = 1;
+       VEC_iterate (const_str, crtl->subsections.section_start_labels, i,
+		    tmp); 
+       i++)
+    {
+      switch_to_section (text_part_section (i));
+      assemble_align (FUNCTION_BOUNDARY);
+      if (crtl->subsections.section_start_labels != NULL)
+	ASM_OUTPUT_LABEL (asm_out_file, tmp);
+    }
+}
+
 /* Output assembler code for the constant pool of a function and associated
    with defining the name of the function.  DECL describes the function.
    NAME is the function's name.  For the constant pool, we use the current
@@ -1641,7 +1762,30 @@ assemble_start_function (tree decl, const char *fnname)
   crtl->subsections.unlikely_text_section_name = NULL;
 
   first_function_block_is_cold = false;
-  if (flag_reorder_blocks_and_partition)
+  if (flag_partition_functions_into_sections
+      && cfun
+      && (crtl->subsections.number_of_sections > 0))
+    {
+      unsigned i;
+      int length = crtl->subsections.number_of_sections;
+
+      crtl->subsections.section_start_labels = 
+          VEC_alloc (const_str, gc, length);
+      crtl->subsections.section_end_labels = 
+      VEC_alloc (const_str, gc, length);
+
+      for (i = 0; i < crtl->subsections.number_of_sections; i++)
+        {
+          ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LSECTIONB", const_labelno);
+          VEC_safe_push (const_str, gc, crtl->subsections.section_start_labels,
+                         ggc_strdup (tmp_label));
+          ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LSECTIONE", const_labelno);
+          VEC_safe_push (const_str, gc, crtl->subsections.section_end_labels,
+                         ggc_strdup (tmp_label));
+          const_labelno++;
+        }
+    }
+  else if (flag_reorder_blocks_and_partition)
     {
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LHOTB", const_labelno);
       crtl->subsections.hot_section_label = ggc_strdup (tmp_label);
@@ -1675,7 +1819,8 @@ assemble_start_function (tree decl, const char *fnname)
      has both hot and cold sections, because we don't want to re-set
      the alignment when the section switch happens mid-function.  */
 
-  if (flag_reorder_blocks_and_partition)
+  if (flag_reorder_blocks_and_partition
+      && (flag_partition_functions_into_sections == 0))
     {
       switch_to_section (unlikely_text_section ());
       assemble_align (DECL_ALIGN (decl));
@@ -1694,7 +1839,8 @@ assemble_start_function (tree decl, const char *fnname)
 	  first_function_block_is_cold = true;
 	}
     }
-  else if (DECL_SECTION_NAME (decl))
+   else if (DECL_SECTION_NAME (decl)
+           && (flag_partition_functions_into_sections == 0))
     {
       /* Calls to function_section rely on first_function_block_is_cold
 	 being accurate.  The first block may be cold even if we aren't
@@ -1708,6 +1854,19 @@ assemble_start_function (tree decl, const char *fnname)
 		     crtl->subsections.unlikely_text_section_name) == 0)
 	first_function_block_is_cold = true;
     }
+   if (flag_partition_functions_into_sections)
+    {
+      if (!crtl->is_thunk
+          && BB_PARTITION (ENTRY_BLOCK_PTR->next_bb) == BB_COLD_PARTITION)
+        {
+          first_function_block_is_cold = true;
+        }
+      if (DECL_SECTION_NAME (decl)
+          && strcmp (TREE_STRING_POINTER (DECL_SECTION_NAME (decl)),
+                     UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
+        first_function_block_is_cold = true;
+      output_sections ();
+    }
 
   in_cold_section_p = first_function_block_is_cold;
 
@@ -1715,8 +1874,18 @@ assemble_start_function (tree decl, const char *fnname)
 
   switch_to_section (function_section (decl));
   if (flag_reorder_blocks_and_partition
+      && (flag_partition_functions_into_sections == 0)
       && !hot_label_written)
     ASM_OUTPUT_LABEL (asm_out_file, crtl->subsections.hot_section_label);
+  else if (flag_partition_functions_into_sections
+           && crtl->subsections.section_start_labels != 0
+           && crtl->subsections.number_of_sections > 0)
+   {
+     const char *tmp;
+
+     tmp = VEC_index (const_str, crtl->subsections.section_start_labels, 0);
+     ASM_OUTPUT_LABEL (asm_out_file, tmp);
+   }
 
   /* Tell assembler to move to target machine's alignment for functions.  */
   align = floor_log2 (DECL_ALIGN (decl) / BITS_PER_UNIT);
@@ -1802,6 +1971,25 @@ assemble_end_function (tree decl, const char *fnname ATTRIBUTE_UNUSED)
       ASM_OUTPUT_LABEL (asm_out_file, crtl->subsections.hot_section_end_label);
       switch_to_section (save_text_section);
     }
+    else if (flag_partition_functions_into_sections
+            && crtl->subsections.section_end_labels != NULL)
+    {
+       unsigned int i;
+       const char *tmp;
+
+        /* Output for each one of the sections the label which marks the
+           end of its address range.  */
+        for (i = 0;
+               VEC_iterate (const_str, crtl->subsections.section_end_labels, i,
+                            tmp); i++)
+         {
+         switch_to_section (text_part_section (i));
+         tmp =  VEC_index (const_str, crtl->subsections.section_end_labels, i);
+         ASM_OUTPUT_LABEL (asm_out_file, tmp);
+       }
+
+    }
+
 }
 
 /* Assemble code to leave SIZE bytes of zeros.  */
@@ -5651,6 +5839,15 @@ default_section_type_flags (tree decl, const char *name, int reloc)
     flags = SECTION_CODE;
   else if (decl && decl_readonly_section (decl, reloc))
     flags = 0;
+  else if (flag_partition_functions_into_sections
+           && crtl->subsections.unlikely_part_text_section_name
+           && strstr (name,
+                      crtl->subsections.unlikely_part_text_section_name) != 0)
+    flags = SECTION_CODE;
+  else if (flag_partition_functions_into_sections
+           && crtl->subsections.part_text_section_name
+           && strstr (name, crtl->subsections.part_text_section_name) != 0)
+    flags = SECTION_CODE;
   else if (current_function_decl
 	   && cfun
 	   && crtl->subsections.unlikely_text_section_name

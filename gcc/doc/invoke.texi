@@ -332,7 +332,8 @@ Objective-C and Objective-C++ Dialects}.
 -fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fforward-propagate @gol
--ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
+-ffunction-sections -fpartition-functions-into-sections=@var{n} @gol
+-fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
 -fgcse-sm -fif-conversion -fif-conversion2 -findirect-inlining @gol
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
 -finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol 
@@ -6358,6 +6359,16 @@ Also profile feedback must be available in to make this option effective.  See
 @option{-fprofile-arcs} for details.
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+
+@item -fpartition-functions-into-sections=@var{n}
+@opindex fpartition-functions-into-sections
+Partition function into sections according to a threshold which indicates
+the maximum number of bytes each section can contain.  This transformation
+is aimed for targets with limited local store which may not suffice to
+hold large functions.  To overcome this the function is partitioned into
+several sections which can be swapped while running.  This may result
+in an undefined behavior when using an @code{asm} statement.
+-ffunction-sections flag is implied implicitly when setting this flag.
 
 @item -fstrict-aliasing
 @opindex fstrict-aliasing

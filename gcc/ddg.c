@@ -81,7 +81,7 @@ mark_mem_use_1 (rtx *x, void *data)
 }
 
 /* Returns nonzero if INSN reads from memory.  */
-static bool
+bool
 mem_read_insn_p (rtx insn)
 {
   mem_ref_p = false;
@@ -97,7 +97,7 @@ mark_mem_store (rtx loc, const_rtx setter ATTRIBUTE_UNUSED, void *data ATTRIBUTE
 }
 
 /* Returns nonzero if INSN writes to memory.  */
-static bool
+bool
 mem_write_insn_p (rtx insn)
 {
   mem_ref_p = false;

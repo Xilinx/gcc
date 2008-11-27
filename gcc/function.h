@@ -236,6 +236,10 @@ struct incoming_args GTY(())
   rtx internal_arg_pointer;
 };
 
+typedef const char *const_str;    /* For DEF_VEC_P.  */
+DEF_VEC_P(const_str);
+DEF_VEC_ALLOC_P(const_str, gc);
+
 /* Data for function partitioning.  */
 struct function_subsections GTY(())
 {
@@ -252,6 +256,32 @@ struct function_subsections GTY(())
      targetm.asm_out.named_section.  */
 
   const char *unlikely_text_section_name;
+
+  /* Arrays to hold assembly labels for the text sections, to
+     be used by debugger functions for determining the size of text
+     sections.  */
+
+  VEC(const_str,gc) *section_start_labels;
+  VEC(const_str,gc) *section_end_labels;
+
+ /* String to be used for names of the arbitrary cold text sections
+    parts, via targetm.asm_out.named_section.  */
+
+  const char *unlikely_part_text_section_name;
+
+  /* String to be used for names of the arbitrary hot text section
+     parts, via targetm.asm_out.named_section.  */
+
+  const char *part_text_section_name;
+
+  /* A variable to hold the number of sections in the function.  */
+
+  unsigned int number_of_sections;
+
+  /* The first section with different hotness attribute.  */
+
+  unsigned int first_text_section_part_changed;
+
 };
 
 /* Datastructures maintained for currently processed function in RTL form.  */

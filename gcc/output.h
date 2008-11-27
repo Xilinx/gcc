@@ -570,6 +570,7 @@ extern section *mergeable_constant_section (enum machine_mode,
 					    unsigned int);
 extern section *function_section (tree);
 extern section *unlikely_text_section (void);
+extern section *text_part_section (int);
 extern section *current_function_section (void);
 
 /* Return the numbered .ctors.N (if CONSTRUCTOR_P) or .dtors.N (if

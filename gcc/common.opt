@@ -938,6 +938,16 @@ freorder-functions
 Common Report Var(flag_reorder_functions) Optimization
 Reorder functions to improve code placement
 
+fpartition-functions-into-sections
+Common Report Var(flag_partition_functions_into_sections)
+Partition function into sections
+
+fpartition-functions-into-sections=
+Common RejectNegative Joined UInteger
+-fpartition-functions-into-sections=<number>
+Partition function into sections.  Number indicates the maximum number
+of bytes each section can contain
+
 frerun-cse-after-loop
 Common Report Var(flag_rerun_cse_after_loop) Init(2) Optimization
 Add a common subexpression elimination pass after loop optimizations

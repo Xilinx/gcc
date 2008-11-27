@@ -1,0 +1,113 @@
+2008-11-27  Revital Eres  <eres@il.ibm.com>
+
+	* doc/invoke: Document -fpartition-functions-into-sections
+	new flag.
+	* tree-pass.h (pass_partition_blocks_size): Add new RTL pass.
+	(pass_partition_blocks): Rename to...
+	(pass_partition_blocks_hot_cold): This.
+	(TODO_check_sections): Define.
+	* target.h (bb_partitioning_into_sections): New struct in
+	gcc_target.
+	(estimate_section_overhead, estimate_instruction_size,
+	start_new_section): New members to gcc_target.bb_partitioning.
+	* ddg.c (mem_read_insn_p, mem_write_insn_p): Remove static.
+	* ddg.h (mem_read_insn_p, mem_write_insn_p): Declare. 
+	* final.c (final_scan_insn): Support new functionality.
+	(pass_final): Add TODO_check_sections to todo_flags_start field.
+	* toplev.c (process_options): Disable
+	-fpartition-functions-into-sections if profile_flag or
+	flag_unwind_tables are set, -ffunction-sections is not supported
+	or debugging is set.
+	* opts.c (common_handle_option): Handle
+	OPT_fpartition_functions_into_sections.
+	(decode_options): Disable the new functionality if
+	HAS_LONG_COND_BRANCH or HAS_LONG_UNCOND_BRANCH are not defined;
+	target does not supports have_named_sections; flag_exceptions or
+	flag_unwind_tables are set.  Issue a warning that it doesn't work.
+	* timevar.def (TV_PARTITION_BLOCKS_SIZE): New.
+	* function.h (section_start_labels, section_end_labels,
+	unlikely_part_text_section_name, part_text_section_name,
+	number_of_sections, first_text_section_part_changed): New fields
+	to function_subsections struct.
+	(const_str): Define and DEF_VEC.
+	* print-rtl.c (print_rtx): Avoid printing the basic-block number
+	if -fpartition-functions-into-sections is set.
+	* cfglayout.c: (relink_block_chain): Clear skip field.
+	* common.opt (fpartition-functions-into-sections): Document
+	new flag.
+	* varasm.c (last_part_text_section_name): New variable.
+	(in_part_section_p): Likewise.
+	(initialize_part_section_name, text_part_section,
+	output_sections): New functions.
+	(function_section, current_function_section,
+	assemble_start_function, assemble_end_function,
+	default_section_type_flags): Support new functionality.
+	* target-def.h (TARGET_ESTIMATE_SECTION_OVERHEAD,
+	TARGET_ESTIMATE_INSTRUCTION_SIZE, TARGET_START_NEW_SECTION,
+	TARGET_BB_PARTITIONING): Define.
+	* rtl.h (NOTE_TEXT_SECTION): Define to hold the section id.
+	* output.h (text_part_section): Add declaration.
+	* bb-reorder.c (cfgloop.h, langhooks.h, hashtab.h, vec.h):
+	New includes.
+	(find_rarely_executed_basic_blocks_and_crossing_edges,
+	partition_hot_cold_basic_blocks): Remove.
+	(add_labels_and_missing_jumps,
+	fix_edges_for_rarely_executed_code): Pass VEC instead of edge *.
+	(partition_callbacks, loop_info_def,
+	funcpart_basic_block_data_def, insn_aux) New structures.
+	(loop_info): New typedef and DEF_VEC.
+	(insns_aux, estimate_section_overhead, estimate_max_section_size,
+	fbb_data_size, fbb_data): New static variables.
+	(validate_fbb_data_element, estimate_size_of_insns_in_bb,
+	split_bb, size_insert_section_boundary_note,
+	start_new_section, start_new_section_for_loop,
+	create_sections, size_crossing_edge_p, partition_basic_blocks,
+	partition_hot_cold_init, partition_hot_cold_finalize,
+	mark_hot_cold_blocks, hot_cold_crossing_edge_p,
+	mark_crossing_edges, calculate_loop_boundary, loop_size_is_less,
+	record_insns_size_estimation, record_loops_boundaries,
+	free_fbb_data, check_unexpected_insns, partition_size_init,
+	partition_size_finalize, get_estimate_section_overhead,
+	instruction_size_exceeds_threshold,
+	gate_handle_partition_blocks_size,
+	rest_of_handle_partition_blocks_size, check_sections): New
+	functions.
+	(rest_of_handle_partition_blocks): Rename to...
+	(rest_of_handle_partition_blocks_hot_cold): This and use the
+	new callback functions to do the transformation.
+	(gate_handle_partition_blocks): Rename to...
+	(gate_handle_partition_blocks_hot_cold): This.
+	(pass_partition_blocks): Rename to...
+	(pass_partition_blocks_hot_cold): This.
+	(insert_section_boundary_note): Avoid
+	emitting NOTE_INSN_SWITCH_TEXT_SECTIONS if
+	-fpartition-functions-into-sections is set.
+	(pass_partition_functions): New pass.
+	* Makefile.in (bb-reorder.o): Add CFGLOOP_H,
+	LANGHOOKS_DEF_H, HASHTAB_H, vec.h to dependencies.
+	* basic-block.h (bb_flags): Add new BB_FIRST_AFTER_SECTION_SWITCH
+	flag.
+	(skip): Add new field to struct rtl_bb_info.	
+	(check_sections): Add declaration.
+	* passes.c (pass_partition_blocks): Rename to...
+	(pass_partition_blocks_hot_cold): This.
+	(pass_partition_blocks_size): New.
+	(execute_todo): Call to check_sections function.
+	* config/spu/spu.c (vec.h): New include.
+	(critical_section_type): New enum.
+	(spu_estimate_instruction_size, spu_estimate_section_overhead,
+	record_jump_table, end_critical_section, begin_critical_section,
+	close_critical_sections, get_stub_size, spu_start_new_section):
+	New functions.
+	(critical_sections): New struct.
+	(critical_sections_t): New typedef and DEF_VEC.
+	(TARGET_ESTIMATE_SECTION_OVERHEAD,
+	TARGET_ESTIMATE_INSTRUCTION_SIZE, TARGET_START_NEW_SECTION):
+	Override.
+	(spu_override_options): call fix_range to support new functionality.
+	* config/spu/spu.h (HAS_LONG_COND_BRANCH, HAS_LONG_UNCOND_BRANCH):
+	Define.
+	* config/spu/spu.opt (mstub-size): New flag.
+	* cfgrtl.c (rtl_verify_flow_info_1, rtl_verify_flow_info):
+	Consider NOTE_INSN_VAR_LOCATION note.
+

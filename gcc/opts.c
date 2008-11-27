@@ -1066,6 +1066,14 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
     }
 
+  if (flag_exceptions && flag_partition_functions_into_sections)
+    {
+      inform
+	(input_location, "-fpartition-functions-into-sections does not "
+	 "work with exceptions");
+      flag_partition_functions_into_sections = 0;
+    }
+
   /* If user requested unwind info, then turn off the partitioning
      optimization.  */
 
@@ -1077,6 +1085,14 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
     }
 
+  if (flag_unwind_tables && ! targetm.unwind_tables_default
+      && flag_partition_functions_into_sections)
+    {
+      inform (input_location, "-fpartition-functions-into-sections "
+              "does not support unwind info");
+      flag_partition_functions_into_sections = 0;
+    }
+  
   /* If the target requested unwind info, then turn off the partitioning
      optimization with a different message.  Likewise, if the target does not
      support named sections.  */
@@ -1089,6 +1105,32 @@ decode_options (unsigned int argc, const char **argv)
 	      "-freorder-blocks-and-partition does not work on this architecture");
       flag_reorder_blocks_and_partition = 0;
       flag_reorder_blocks = 1;
+    }
+
+  if (flag_partition_functions_into_sections
+      && (!targetm.have_named_sections
+          || (flag_unwind_tables && targetm.unwind_tables_default)))
+   {
+      inform
+       (input_location, "-fpartition-functions-into-sections does not work "
+        "on this architecture");
+      flag_partition_functions_into_sections = 0;
+    }
+  if (flag_partition_functions_into_sections
+      && (!targetm.have_named_sections))
+    {
+      warning
+        (0, "-fpartition-functions-into-sections does not work on this "
+         "architecture");
+      flag_partition_functions_into_sections = 0;
+    }
+  if (flag_partition_functions_into_sections
+      && (!HAS_LONG_COND_BRANCH || !HAS_LONG_UNCOND_BRANCH))
+    {
+      warning
+        (0, "-fpartition-functions-into-sections does not work on this "
+         "architecture");
+      flag_partition_functions_into_sections = 0;
     }
 
   /* Pipelining of outer loops is only possible when general pipelining
@@ -1900,6 +1942,16 @@ common_handle_option (size_t scode, const char *arg, int value,
       flag_sched_stalled_insns = value;
       if (flag_sched_stalled_insns == 0)
 	flag_sched_stalled_insns = -1;
+      break;
+
+    case OPT_fpartition_functions_into_sections_:
+      flag_partition_functions_into_sections = value;
+      if (flag_partition_functions_into_sections != 0)
+       {
+          flag_function_sections = 1;
+          /* TODO: Use asm directives to handle multiple sections.  */
+          flag_dwarf2_cfi_asm = 0;
+        }
       break;
 
     case OPT_fsched_stalled_insns_dep_:

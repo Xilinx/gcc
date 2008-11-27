@@ -1742,7 +1742,9 @@ rtl_verify_flow_info_1 (void)
 
       for (insn = bb->il.rtl->header; insn; insn = NEXT_INSN (insn))
 	if (!BARRIER_P (insn)
-	    && BLOCK_FOR_INSN (insn) != NULL)
+	    && BLOCK_FOR_INSN (insn) != NULL
+            && !(GET_CODE (insn) == NOTE
+                 && NOTE_KIND (insn) == NOTE_INSN_VAR_LOCATION))
 	  {
 	    error ("insn %d in header of bb %d has non-NULL basic block",
 		   INSN_UID (insn), bb->index);
@@ -1914,7 +1916,8 @@ rtl_verify_flow_info_1 (void)
 	    if (x == BB_END (bb))
 	      break;
 
-	    if (control_flow_insn_p (x))
+	    if (control_flow_insn_p (x)
+                && (!block_ends_with_call_p (bb)))
 	      {
 		error ("in basic block %d:", bb->index);
 		fatal_insn ("flow control insn inside a basic block", x);
@@ -1967,7 +1970,9 @@ rtl_verify_flow_info (void)
 
 	  /* And that the code outside of basic blocks has NULL bb field.  */
 	if (!BARRIER_P (x)
-	    && BLOCK_FOR_INSN (x) != NULL)
+	    && BLOCK_FOR_INSN (x) != NULL
+            && !(GET_CODE (x) == NOTE
+                 && NOTE_KIND (x) == NOTE_INSN_VAR_LOCATION))
 	  {
 	    error ("insn %d outside of basic blocks has non-NULL bb field",
 		   INSN_UID (x));
@@ -2057,7 +2062,9 @@ rtl_verify_flow_info (void)
       /* Check that the code before the first basic block has NULL
 	 bb field.  */
       if (!BARRIER_P (x)
-	  && BLOCK_FOR_INSN (x) != NULL)
+	  && BLOCK_FOR_INSN (x) != NULL
+          && !(GET_CODE (x) == NOTE
+               && NOTE_KIND (x) == NOTE_INSN_VAR_LOCATION))
 	{
 	  error ("insn %d outside of basic blocks has non-NULL bb field",
 		 INSN_UID (x));

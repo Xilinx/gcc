@@ -85,6 +85,10 @@
 #include "toplev.h"
 #include "tree-pass.h"
 #include "df.h"
+#include "cfgloop.h"
+#include "langhooks.h"
+#include "hashtab.h"
+#include "vec.h"
 
 #ifndef HAVE_conditional_execution
 #define HAVE_conditional_execution 0
@@ -179,13 +183,11 @@ static void connect_traces (int, struct trace *);
 static bool copy_bb_p (const_basic_block, int);
 static int get_uncond_jump_length (void);
 static bool push_to_next_round_p (const_basic_block, int, int, int, gcov_type);
-static void find_rarely_executed_basic_blocks_and_crossing_edges (edge **,
-								  int *,
-								  int *);
-static void add_labels_and_missing_jumps (edge *, int);
+static void mark_hot_cold_blocks (void);
+static void add_labels_and_missing_jumps (VEC (edge, heap) *);
 static void add_reg_crossing_jump_notes (void);
 static void fix_up_fall_thru_edges (void);
-static void fix_edges_for_rarely_executed_code (edge *, int);
+static void fix_edges_for_rarely_executed_code (VEC (edge, heap) *);
 static void fix_crossing_conditional_branches (void);
 static void fix_crossing_unconditional_branches (void);
 
@@ -1214,60 +1216,586 @@ get_uncond_jump_length (void)
   return length;
 }
 
-/* Find the basic blocks that are rarely executed and need to be moved to
-   a separate section of the .o file (to cut down on paging and improve
-   cache locality).  */
+/* This structure holds callback functions which are used when
+   partitioning blocks into sections.  */
+struct partition_callbacks 
+{
+  /* A callback to initial the partition.  */ 
+  void (*init) (void);
+  
+  /* A callback to indicate whether an edge cross sections.  */
+  bool (*crossing_edge_p) (edge);
 
-static void
-find_rarely_executed_basic_blocks_and_crossing_edges (edge **crossing_edges,
-						      int *n_crossing_edges,
-						      int *max_idx)
+  /* A callback to mark section boundary.  */
+  void (*insert_section_boundary_note) (void);
+
+  /* A callback to partition blocks into sections.  */
+  void (*partition) (void);
+  
+  /* A callback to finalize the partition.  */
+  void (*finalize) (void);
+};
+
+
+/* This is a callback function, called from
+   mark_crossing_edges function.  Return true if E is an edge which
+   crosses between hot and cold sections.  */
+static bool
+hot_cold_crossing_edge_p (edge e)
+{
+  return (e->src != ENTRY_BLOCK_PTR
+	  && e->dest != EXIT_BLOCK_PTR
+	  && BB_PARTITION (e->src) != BB_PARTITION (e->dest));
+}
+
+/* Mark edges that cross between sections with EDGE_CROSSING; store them
+   in a vector and return the vector.  Use CALLBACKS in the decision.  */
+static VEC (edge, heap) * 
+mark_crossing_edges (struct partition_callbacks *callbacks)
 {
   basic_block bb;
   edge e;
-  int i;
   edge_iterator ei;
-
-  /* Mark which partition (hot/cold) each basic block belongs in.  */
-
-  FOR_EACH_BB (bb)
-    {
-      if (probably_never_executed_bb_p (bb))
-	BB_SET_PARTITION (bb, BB_COLD_PARTITION);
-      else
-	BB_SET_PARTITION (bb, BB_HOT_PARTITION);
-    }
-
+  VEC (edge, heap) *crossing_edges = NULL;
+  
   /* Mark every edge that crosses between sections.  */
-
-  i = 0;
-  FOR_EACH_BB (bb)
+  FOR_EACH_BB (bb) 
     FOR_EACH_EDGE (e, ei, bb->succs)
-    {
-      if (e->src != ENTRY_BLOCK_PTR
-	  && e->dest != EXIT_BLOCK_PTR
-	  && BB_PARTITION (e->src) != BB_PARTITION (e->dest))
-	{
-	  e->flags |= EDGE_CROSSING;
-	  if (i == *max_idx)
-	    {
-	      *max_idx *= 2;
-	      *crossing_edges = XRESIZEVEC (edge, *crossing_edges, *max_idx);
-	    }
-	  (*crossing_edges)[i++] = e;
-	}
-      else
-	e->flags &= ~EDGE_CROSSING;
-    }
-  *n_crossing_edges = i;
+      {
+        if ((*callbacks->crossing_edge_p) (e))
+	  {
+	    e->flags |= EDGE_CROSSING;
+	    VEC_safe_push (edge, heap, crossing_edges, e);
+	  }
+        else
+	  e->flags &= ~EDGE_CROSSING;
+      }
+
+  return crossing_edges;
 }
 
 /* If any destination of a crossing edge does not have a label, add label;
    Convert any fall-through crossing edges (for blocks that do not contain
    a jump) to unconditional jumps.  */
 
+/* Structure to hold needed information for each loop.  */
+struct loop_info_def
+{
+  /* The index of the loop.  */
+  unsigned HOST_WIDE_INT index;
+
+  /* The size (in bytes) of the loop layout.  */
+  unsigned HOST_WIDE_INT size;
+
+  /* The following fields are the first and last basic-blocks in the
+     current loop layout.  They are used to calculate the loop's size.  */
+   basic_block first;
+   basic_block last;
+};
+
+typedef struct loop_info_def *loop_info;
+DEF_VEC_P(loop_info);
+DEF_VEC_ALLOC_P(loop_info,heap);
+
+/* Structure to hold needed information for each basic block.  */
+typedef struct funcpart_basic_block_data_def
+{
+  /* Section id which is attached to each section.  */
+  int section_id;
+
+  /* The list of loops which begin at this basic-block.  */
+  VEC(loop_info,heap) *loops_info_list;
+
+  /* The size in bytes of the basic-block.  */
+  unsigned HOST_WIDE_INT bb_size;
+}funcpart_basic_block_data;
+
+/* The current size (in elements) of the following dynamic array.  */
+static unsigned HOST_WIDE_INT fbb_data_size = 0;
+
+/* The array which holds needed information for basic blocks.  */
+static funcpart_basic_block_data *fbb_data;
+
+/* Information regarding insn.  */
+struct insn_aux
+{
+  /* The insn.  */ 
+  rtx insn;                        
+
+  /* The estimated size in bytes of insn.  */
+  unsigned HOST_WIDE_INT size;            
+};
+
+/* A vector of insns in the function which holds their size (in bytes).  */
+static struct insn_aux *insns_aux;
+
+/* A variable to hold the overhead introduced by splitting a function
+   into sections.  This overhead contains extra branch instructions
+   between section which might effect code size.  */
+static unsigned HOST_WIDE_INT estimate_section_overhead = 0;
+
+/* Estimate the maximum size (in bytes) of one section.  */
+static unsigned HOST_WIDE_INT estimate_max_section_size = 0;
+
+/* Given basic-block with index BB_INDEX validate that fbb_data array
+   has a corresponding element for it.  */
+
 static void
-add_labels_and_missing_jumps (edge *crossing_edges, int n_crossing_edges)
+validate_fbb_data_element (unsigned HOST_WIDE_INT bb_index)
+{
+  unsigned HOST_WIDE_INT prev_size = fbb_data_size;
+  unsigned HOST_WIDE_INT i;
+  
+  if (bb_index < fbb_data_size)
+    return;
+
+  /* Resize the array, if necessary.  */
+  fbb_data_size *= 2;
+  fbb_data = (funcpart_basic_block_data *)
+    xrealloc (fbb_data, (fbb_data_size * sizeof (funcpart_basic_block_data)));
+  for (i = prev_size; i < fbb_data_size; i++)
+    {
+      fbb_data[i].section_id = -1;
+      fbb_data[i].loops_info_list = NULL;
+      fbb_data[i].bb_size = 0;
+    }
+}
+
+/* Given basic block BB return it's size in bytes.  */
+
+static unsigned HOST_WIDE_INT
+estimate_size_of_insns_in_bb (basic_block bb)
+{
+  unsigned HOST_WIDE_INT size = 0;
+  rtx insn;
+  
+  /* Loop through all of the basic-block's insns.  */
+  FOR_BB_INSNS (bb, insn)   
+    if (INSN_P (insn))
+      {
+	/* Retrieve the size of the instruction. */
+	if (insns_aux [INSN_UID (insn)].insn)
+	  size += insns_aux [INSN_UID (insn)].size;
+	else
+	  size += get_attr_min_length (insn);
+      }
+  
+#if ENABLE_CHECKING
+  /* If we already calculated the size of this basic-block we can use it
+     for checking.  */
+  if (fbb_data[bb->index].bb_size != 0)
+    gcc_assert (fbb_data[bb->index].bb_size == size);
+#endif
+  
+  return size;
+}
+
+/* Split basic-block BB such that the first partition will not exceed the
+   maximum size of FIRST_PARTITION_SIZE bytes.  Update the actual size
+   of the first partition in FIRST_PARTITION_ACTUAL_SIZE.  Return the
+   new basic-block if it can be created.  Else return NULL.  */
+
+static basic_block
+split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
+	  unsigned HOST_WIDE_INT *first_partition_actual_size)
+{
+  rtx insn;
+  unsigned HOST_WIDE_INT size = 0;
+  unsigned HOST_WIDE_INT prev_size = 0;
+  edge e;
+  rtx prev_insn = NULL;
+  
+  /* Loop through all of the basic-block's insns.  */
+  FOR_BB_INSNS (bb, insn)
+    {
+      if (INSN_P (insn))
+	{
+	  prev_size = size;
+	  
+	  /* Retrieve the size of the instruction. */
+	  if (insns_aux[INSN_UID (insn)].insn)
+	    size += insns_aux[INSN_UID (insn)].size;
+	  else
+	    size += get_attr_min_length (insn);
+	  
+	  if (size > first_partition_size)
+	    {
+	      if (prev_insn == NULL)
+		return NULL;
+	      break;
+	    }
+	  prev_insn = insn;
+	}
+    }
+  
+#ifdef ENABLE_CHECKING
+  gcc_assert (size > first_partition_size);
+#endif
+  
+  e = split_block (bb, prev_insn);
+  e->dest->aux = bb->aux;
+  bb->aux = e->dest;
+  
+  if (dump_file)
+    fprintf (dump_file,
+	     "\tSplit bb %d; create new bb: %d\n", bb->index, e->dest->index);
+  *first_partition_actual_size = prev_size;
+  return e->dest;
+}
+
+/* Insert a NOTE_INSN_SWITCH_TEXT_SECTIONS note before basic-blocks that
+   are markred as BB_FIRST_AFTER_SECTION_SWITCH.  */
+
+static void
+size_insert_section_boundary_note (void)
+{
+  basic_block bb;
+  rtx new_note;
+  unsigned number_of_sections = 1;
+  bool first_switch_p = true;
+  bool only_one_section_p = true;
+  
+  gcc_assert (cfun && flag_partition_functions_into_sections);
+  
+  FOR_EACH_BB (bb)
+    {
+      if (bb->flags & BB_FIRST_AFTER_SECTION_SWITCH)
+	{
+	  new_note = emit_note_before (NOTE_INSN_SWITCH_TEXT_SECTIONS,
+				       BB_HEAD (bb));
+	  /* ??? This kind of note always lives between basic blocks,
+	     but add_insn_before will set BLOCK_FOR_INSN anyway.  */
+	  BLOCK_FOR_INSN (new_note) = NULL;
+	  NOTE_TEXT_SECTION (new_note) = number_of_sections++;
+	  if (bb->prev_bb && (BB_PARTITION (bb) != BB_PARTITION (bb->prev_bb))
+	      && first_switch_p && flag_reorder_blocks_and_partition)
+	    {
+	      crtl->subsections.first_text_section_part_changed =
+		number_of_sections - 1;
+	      first_switch_p = false;
+	      only_one_section_p = false;
+	    }
+	}
+    }
+  
+  if (only_one_section_p)
+    crtl->subsections.first_text_section_part_changed = number_of_sections;
+  
+  crtl->subsections.number_of_sections = number_of_sections;
+}
+
+/* Start a new section at the beginning of basic-block BB with 
+   SECTION_ID.  */
+
+static void
+start_new_section (int *section_id, basic_block bb)
+{
+  bb->flags |= BB_FIRST_AFTER_SECTION_SWITCH;
+  *section_id = *section_id + 1;
+  if (dump_file)
+    fprintf (dump_file, ";; Start new section %d\n", *section_id);
+}
+
+/* Return true if the given basic-block BB starts a loop that can not
+   fully be inserted into the last section and the loop size is less
+   than the maximum section size threshold.  Use LAST_SECTION_SIZE in
+   the calculation.  */
+
+static bool
+start_new_section_for_loop (basic_block bb,
+			    unsigned HOST_WIDE_INT last_section_size)
+{
+  struct loop_info_def *cur_loop;
+  unsigned i;
+
+  if (fbb_data[bb->index].loops_info_list == NULL)
+    return false;
+
+  if (last_section_size == 0)
+    return false;
+
+  /* The loops are sorted in loops_info_list according to the loop size
+     (in bytes); where the loop with the samllest layout appears first.
+   */
+  for (i = 0;
+       VEC_iterate (loop_info, fbb_data[bb->index].loops_info_list, i,
+		    cur_loop); 
+       i++)
+    {
+      if ((last_section_size + cur_loop->size >
+	   (unsigned) estimate_max_section_size)
+	  && cur_loop->size <= (unsigned) estimate_max_section_size)
+	{
+	  if (dump_file)
+	    fprintf (dump_file,
+		     "\n\tbb %d starts a loop (size " HOST_WIDE_INT_PRINT_DEC
+		     "B) "
+		     "recommend to start a new section to not break it\n",
+		     bb->index, cur_loop->size);
+
+	  return true;
+	}
+    }
+  return false;
+}
+
+/* Create sections for the current function.  Return the edges that
+   cross between sections in CROSSING_EDGES array which is of size
+   N_CROSSING_EDGES so they could be fixed later.  
+
+   The partitioning is done by traversing the basic-blocks according to
+   their order in the code layout.  When a new basic-block is encountered
+   a decision is made whether to add it to the last section, split it
+   or add it to a new section.
+
+   Here is a short description of decision process :
+
+   Start a new section if one of the following conditions exist:
+
+   	a) if adding the basic-block to the last section causes the last
+           section to exceed the max section size and it's size is less
+           than max section size. 
+	b) if a loop starts at this basic-block and the loop can not
+	   fully be inserted into the last section and it's size is less
+	   than max section size. 
+        c) the basic block hotness property is different from it's
+           previous basic-block's hotness property. 
+        d) there is a machine-specific reasons.  (e.g., the
+           basic-block starts a sequence that should reside in a single
+           section; such that its size is less than the section size
+           threshold).
+     
+	If the above conditions are not true split the basic-block
+	if adding the basic-block to the last section causes the last
+	section to exceed the max section size.
+	Otherwise add it to the last section.  */
+        
+static void
+create_sections (void)
+{
+  basic_block bb, new_bb;
+  unsigned HOST_WIDE_INT last_section_size = 0;
+  int current_section_id = 0;
+  unsigned HOST_WIDE_INT first_partition_actual_size;
+  
+  /* Mark which section each basic block belongs in.  */
+  if (dump_file)
+    fprintf (dump_file,
+	     "\n\n--- partition functions into sections --- (%dB)\n\n"
+	     ";; section overhead size %dB\n" ";; max section size %dB\n\n",
+	     flag_partition_functions_into_sections,
+	     (int) estimate_section_overhead,
+	     (int) estimate_max_section_size);
+  
+  FOR_EACH_BB (bb)
+    {
+      unsigned HOST_WIDE_INT bb_size;
+      bool start_new_section_for_loop_p = false;
+      bool start_new_section_due_to_hotness_prop_p = false;
+      bool start_new_sction_md_p = false;
+      
+      /* Validate that fbb_data array has a corresponding element for
+	 this bb, so we could access it directly.  */
+      validate_fbb_data_element (bb->index);
+      
+      bb_size = estimate_size_of_insns_in_bb (bb);
+      if (dump_file)
+	fprintf (dump_file,
+		 ";; Trying to add bb %d (" HOST_WIDE_INT_PRINT_DEC
+		 "B) to section %d", bb->index, bb_size, current_section_id);
+      
+      if (bb->il.rtl->skip)
+	{
+	  /* The skip field is used to mark if this bb should be added
+	     to the current section.  */
+	  last_section_size += bb_size;
+	  if (dump_file) 
+	    fprintf (dump_file,
+		     "\n;; Basic-block %d should be a part of section %d.\n"
+		     ";; current section size: " HOST_WIDE_INT_PRINT_DEC
+		     "B\n", bb->index, current_section_id, last_section_size);
+	  
+	  /* Upadte section id.  */
+	  fbb_data[bb->index].section_id = current_section_id;
+	  continue;
+	}
+      
+      /* Check if a loop starts in this bb and we should start a new
+	 section for it.  */
+      start_new_section_for_loop_p =
+	start_new_section_for_loop (bb, last_section_size);
+      
+      /* Check if the hotness property has been changed.   */
+      start_new_section_due_to_hotness_prop_p =
+	((bb->prev_bb != NULL) && (last_section_size != 0)
+	 && BB_PARTITION (bb) != BB_PARTITION (bb->prev_bb)
+	 && flag_reorder_blocks_and_partition);
+      
+      if (targetm.bb_partitioning.start_new_section != 0)
+	start_new_sction_md_p =
+	  targetm.bb_partitioning.start_new_section (bb->index, bb_size,
+						     estimate_max_section_size,
+						     last_section_size);
+      
+      if (((last_section_size + bb_size) >
+	   estimate_max_section_size) || start_new_section_for_loop_p
+	  || start_new_section_due_to_hotness_prop_p || start_new_sction_md_p)
+	{
+	  /* Do not add the basic-block to the last section.  This is due
+	     to the possible reasons:
+	     1) the addition of the basic block to last section will
+	     cause the last section to exceed the max section size.
+	     2) the basic-block starts a loop that can not fully be
+	     inserted to the last section without exceeding the max
+	     section size and it's size is less than the max section size.
+	     3) The hotness properaty of this basic-block is different
+	     then it's previous.  
+	     4) There is a machine-specific reasons.  */ 
+	  if (dump_file) 
+	    {
+	      if (start_new_section_for_loop_p)
+		fprintf (dump_file,
+			 " ...FAIL\n\tbb %d begins a loop that can not fully"
+			 " be inserted to the last section\n", bb->index);
+	      else if (start_new_section_due_to_hotness_prop_p)
+		fprintf (dump_file,
+			 " ...FAIL\n\tbb %d hotness property is different "
+			 " then it's previous basic-block\n", bb->index);
+	      else if (((last_section_size + bb_size) > 
+			estimate_max_section_size))
+		fprintf (dump_file,
+			 " ...FAIL\n\tSize of section (" 
+                         HOST_WIDE_INT_PRINT_DEC
+			 "B) + bb %d (" HOST_WIDE_INT_PRINT_DEC
+			 "B) exceeds threshold \n", last_section_size, 
+                         bb->index, bb_size);
+	    }
+	  
+	  /* Start a new section if one of following conditions
+	     are fulfilled:
+	     1) the last section is not empty and the bb size is less than
+	     the section size threshold.
+	     2) the basic-block starts a loop that its size is less than
+	     the section size threshold.  
+	     3) The hotness property of this basic block is different then
+	     the previous.  
+             4) There is a machine-specific reasons.  */
+	  if ((last_section_size != 0
+	       && bb_size <= estimate_max_section_size)
+	      || start_new_section_for_loop_p
+	      || start_new_section_due_to_hotness_prop_p
+	      || start_new_sction_md_p)
+	    {
+	      if (dump_file)
+		fprintf (dump_file,
+			 ";; Close section %d (" HOST_WIDE_INT_PRINT_DEC
+			 "B)\n", current_section_id, last_section_size);
+	      start_new_section (&current_section_id, bb);
+	      last_section_size = 0;
+	      bb = bb->prev_bb;
+	      continue;
+	    }
+	  if (bb->il.rtl->skip)
+	    {
+	      /* The basic-block should be skipped.  */
+	      last_section_size += bb_size;
+	      if (dump_file)
+		fprintf (dump_file, "\n\tbb %d should be skipped. "
+			 "Add it to section %d (" HOST_WIDE_INT_PRINT_DEC 
+                         "B)\n",
+			 bb->index, current_section_id, last_section_size);
+	      /* Upadte section id.  */
+	      fbb_data[bb->index].section_id = current_section_id;
+	      continue;
+	    }
+
+	  /* Split the basic-block.  Try to insert it's first partition
+	     to the last section such that the section size will not exceed
+	     the section size threshold.  */
+	  new_bb =
+	    split_bb (bb,
+		      estimate_max_section_size - last_section_size,
+		      &first_partition_actual_size);
+	  
+	  if (new_bb != NULL)
+	    {
+	      /* Success.  The new basic-block was created and was added
+		 to the last section.	Close this section and open a
+		 new one.  */
+	      if (dump_file)
+		{
+		  fprintf (dump_file,
+			   "\tNew edge: (idx %d , size " 
+                           HOST_WIDE_INT_PRINT_DEC
+			   "B) -> BB (idx %d size " HOST_WIDE_INT_PRINT_DEC
+			   "B)\n", bb->index, first_partition_actual_size,
+			   new_bb->index,
+			   bb_size - first_partition_actual_size);
+		  
+		  fprintf (dump_file,
+			   "\tAdd (idx %d; size " HOST_WIDE_INT_PRINT_DEC
+			   "B) to section %d\n", bb->index,
+			   first_partition_actual_size, current_section_id);
+
+		  fprintf (dump_file,
+			   ";; Close section %d (" HOST_WIDE_INT_PRINT_DEC
+			   "B)\n", current_section_id,
+			   last_section_size + first_partition_actual_size);
+		}
+	      /* Upadte section id.  */
+	      fbb_data[bb->index].section_id = current_section_id;
+	      /* Start new section.  */
+	      start_new_section (&current_section_id, new_bb);
+	      last_section_size = 0;
+	    }
+	  else
+	    {
+	      /* Failed to create the new basic-block.  Close this section
+		 with the current bb inside and open a new one.  */
+	      last_section_size += bb_size;
+	      if (dump_file)
+		fprintf (dump_file,
+			 "\n;; Failed to split bb. Close section %d ("
+			 HOST_WIDE_INT_PRINT_DEC "B)\n", current_section_id,
+			 last_section_size);
+	      if (bb->next_bb)
+		start_new_section (&current_section_id, bb->next_bb);
+	      last_section_size = 0;
+	      continue;
+	    }
+	}
+      else
+	{
+	  /* The basic-block can be fully added to the last section.  */
+	  last_section_size += bb_size;
+	  if (dump_file)
+	    fprintf (dump_file,
+		     " ...OK\n\tSection new size: " HOST_WIDE_INT_PRINT_DEC
+		     "B\n", last_section_size);
+	  /* Upadte section id.  */
+	  fbb_data[bb->index].section_id = current_section_id;
+	}
+    }
+  if (dump_file)
+    fprintf (dump_file, "\n\n");
+}
+
+/* This is a callback function, called from
+   mark_crossing_edges function.  Return true if E is an edge which
+   crosses between different sections.  */
+static bool
+size_crossing_edge_p (edge e)
+{
+  return (e->src != ENTRY_BLOCK_PTR
+	  && e->dest != EXIT_BLOCK_PTR
+	  && (fbb_data[(e->src)->index].section_id != -1)
+	  && (fbb_data[(e->dest)->index].section_id != -1)
+	  && (fbb_data[(e->src)->index].section_id !=
+	      fbb_data[(e->dest)->index].section_id));
+}
+
+static void
+add_labels_and_missing_jumps (VEC (edge, heap) *crossing_edges)
 {
   int i;
   basic_block src;
@@ -1275,49 +1803,47 @@ add_labels_and_missing_jumps (edge *crossing_edges, int n_crossing_edges)
   rtx label;
   rtx barrier;
   rtx new_jump;
+  edge e;
 
-  for (i=0; i < n_crossing_edges; i++)
+  for (i = 0; VEC_iterate (edge, crossing_edges, i, e); i++)
     {
-      if (crossing_edges[i])
+      src = e->src;
+      dest = e->dest;
+
+      /* Make sure dest has a label.  */
+
+      if (dest && (dest != EXIT_BLOCK_PTR))
 	{
-	  src = crossing_edges[i]->src;
-	  dest = crossing_edges[i]->dest;
+	  label = block_label (dest);
 
-	  /* Make sure dest has a label.  */
+	  /* Make sure source block ends with a jump.  If the
+	     source block does not end with a jump it might end
+	     with a call_insn;  this case will be handled in
+	     fix_up_fall_thru_edges function.  */
 
-	  if (dest && (dest != EXIT_BLOCK_PTR))
+	  if (src && (src != ENTRY_BLOCK_PTR))
 	    {
-	      label = block_label (dest);
-
-	      /* Make sure source block ends with a jump.  If the
-	         source block does not end with a jump it might end
-	         with a call_insn;  this case will be handled in
-	         fix_up_fall_thru_edges function.  */
-
-	      if (src && (src != ENTRY_BLOCK_PTR))
+	      if (!JUMP_P (BB_END (src)) && !block_ends_with_call_p (src))
+		/* bb just falls through.  */
 		{
-		  if (!JUMP_P (BB_END (src)) && !block_ends_with_call_p (src))
-		    /* bb just falls through.  */
-		    {
-		      /* make sure there's only one successor */
-		      gcc_assert (single_succ_p (src));
+		  /* make sure there's only one successor */
+		  gcc_assert (single_succ_p (src));
 
-		      /* Find label in dest block.  */
-		      label = block_label (dest);
+		  /* Find label in dest block.  */
+		  label = block_label (dest);
 
-		      new_jump = emit_jump_insn_after (gen_jump (label),
-						       BB_END (src));
-		      barrier = emit_barrier_after (new_jump);
-		      JUMP_LABEL (new_jump) = label;
-		      LABEL_NUSES (label) += 1;
-		      src->il.rtl->footer = unlink_insn_chain (barrier, barrier);
-		      /* Mark edge as non-fallthru.  */
-		      crossing_edges[i]->flags &= ~EDGE_FALLTHRU;
-		    } /* end: 'if (GET_CODE ... '  */
-		} /* end: 'if (src && src->index...'  */
-	    } /* end: 'if (dest && dest->index...'  */
-	} /* end: 'if (crossing_edges[i]...'  */
-    } /* end for loop  */
+		  new_jump = emit_jump_insn_after (gen_jump (label),
+						   BB_END (src));
+		  barrier = emit_barrier_after (new_jump);
+		  JUMP_LABEL (new_jump) = label;
+		  LABEL_NUSES (label) += 1;
+		  src->il.rtl->footer = unlink_insn_chain (barrier, barrier);
+		  /* Mark edge as non-fallthru.  */
+		  e->flags &= ~EDGE_FALLTHRU;
+		}/* end: 'if (GET_CODE ... '  */
+	    }/* end: 'if (src && src->index...'  */
+	}/* end: 'if (dest && dest->index...'  */
+    }/* end for loop  */
 }
 
 /* Find any bb's where the fall-through edge is a crossing edge (note that
@@ -1436,8 +1962,8 @@ fix_up_fall_thru_edges (void)
 			}
 		    }
 		}
-
 	      if (cond_jump_crosses || !invert_worked)
+                      
 		{
 		  /* This is the case where both edges out of the basic
 		     block are crossing edges. Here we will fix up the
@@ -1821,13 +2347,12 @@ add_reg_crossing_jump_notes (void)
    indirect jumps.  */
 
 static void
-fix_edges_for_rarely_executed_code (edge *crossing_edges,
-				    int n_crossing_edges)
+fix_edges_for_rarely_executed_code (VEC (edge, heap) *crossing_edges)
 {
   /* Make sure the source of any crossing edge ends in a jump and the
      destination of any crossing edge has a label.  */
 
-  add_labels_and_missing_jumps (crossing_edges, n_crossing_edges);
+  add_labels_and_missing_jumps (crossing_edges);
 
   /* Convert all crossing fall_thru edges to non-crossing fall
      thrus to unconditional jumps (that jump to the original fall
@@ -1957,7 +2482,10 @@ insert_section_boundary_note (void)
   rtx new_note;
   int first_partition = 0;
 
-  if (flag_reorder_blocks_and_partition)
+  /* If -fpartition-functions-into-sections flag is set then
+     NOTE_INSN_SWITCH_TEXT_SECTIONS note will be inserted later.  */
+  if (flag_reorder_blocks_and_partition
+      && (flag_partition_functions_into_sections == 0))
     FOR_EACH_BB (bb)
     {
       if (!first_partition)
@@ -2115,6 +2643,51 @@ struct rtl_opt_pass pass_duplicate_computed_gotos =
  }
 };
 
+/* Partition basic-blocks into sections.  The criterion for partitioning
+   is determined by the callback functions in CALLBACKS.  */
+static void
+partition_basic_blocks (struct partition_callbacks *callbacks)
+{
+  VEC (edge, heap) *crossing_edges = NULL;
+  
+  (*callbacks->init) ();
+  (*callbacks->partition) ();
+  crossing_edges = mark_crossing_edges (callbacks);
+  
+  if (VEC_length (edge, crossing_edges) > 0)
+    fix_edges_for_rarely_executed_code (crossing_edges);
+
+  VEC_free (edge, heap, crossing_edges);
+  (*callbacks->finalize) ();
+  if ((*callbacks->insert_section_boundary_note))
+    (*callbacks->insert_section_boundary_note) ();
+}
+
+
+/* This is a callback function to initialize the basic-blocks partitioning
+   into hot and cold sections, called from partition_basic_blocks
+   function.  */
+static void
+partition_hot_cold_init (void)
+{
+  basic_block cur_bb;
+
+  cfg_layout_initialize (0);
+
+  FOR_EACH_BB (cur_bb)
+    if (cur_bb->index >= NUM_FIXED_BLOCKS
+	&& cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
+    cur_bb->aux = cur_bb->next_bb;
+}
+
+/* This is a callback function to finalize the basic-blocks partitioning
+   into hot and cold sections, called from partition_basic_blocks
+   function.  */
+static void
+partition_hot_cold_finalize (void)
+{
+  cfg_layout_finalize ();
+}
 
 /* This function is the main 'entrance' for the optimization that
    partitions hot and cold basic blocks into separate sections of the
@@ -2174,38 +2747,401 @@ struct rtl_opt_pass pass_duplicate_computed_gotos =
    (through registers) requires that this optimization be performed
    before register allocation.  */
 
-static void
-partition_hot_cold_basic_blocks (void)
+static unsigned int
+rest_of_handle_partition_blocks_hot_cold (void)
 {
-  basic_block cur_bb;
-  edge *crossing_edges;
-  int n_crossing_edges;
-  int max_edges = 2 * last_basic_block;
+  struct partition_callbacks callbacks;
 
   if (n_basic_blocks <= NUM_FIXED_BLOCKS + 1)
-    return;
+    return 0;
 
-  crossing_edges = XCNEWVEC (edge, max_edges);
+  /* Setup callbacks for the partitioning.  */
+  callbacks.init = partition_hot_cold_init;
+  callbacks.finalize = partition_hot_cold_finalize;
+  callbacks.crossing_edge_p = hot_cold_crossing_edge_p;
+  callbacks.insert_section_boundary_note = 0;
+  callbacks.partition = mark_hot_cold_blocks;
 
-  cfg_layout_initialize (0);
-
-  FOR_EACH_BB (cur_bb)
-    if (cur_bb->index >= NUM_FIXED_BLOCKS
-	&& cur_bb->next_bb->index >= NUM_FIXED_BLOCKS)
-      cur_bb->aux = cur_bb->next_bb;
-
-  find_rarely_executed_basic_blocks_and_crossing_edges (&crossing_edges,
-							&n_crossing_edges,
-							&max_edges);
-
-  if (n_crossing_edges > 0)
-    fix_edges_for_rarely_executed_code (crossing_edges, n_crossing_edges);
-
-  free (crossing_edges);
-
-  cfg_layout_finalize ();
+  partition_basic_blocks (&callbacks);
+  return 0;
 }
-
+
+/* Find the basic blocks that are rarely executed and need to be moved to
+   a separate section of the .o file (to cut down on paging and improve
+   cache locality).  */
+static void
+mark_hot_cold_blocks (void)
+{
+  basic_block bb;
+
+  /* Mark which partition (hot/cold) each basic block belongs in.  */
+
+  FOR_EACH_BB (bb)
+    {
+      if (probably_never_executed_bb_p (bb))
+        BB_SET_PARTITION (bb, BB_COLD_PARTITION);
+      else
+        BB_SET_PARTITION (bb, BB_HOT_PARTITION);
+    }
+}
+
+
+/* For each loop in LOOPS calculate the first and last basic-block that appear 
+   in their layout.  */
+static void
+calculate_loop_boundary (struct loop_info_def *loops_aux)
+{
+  struct loop *loop;
+  basic_block bb;
+  
+  if (!loops_aux)
+    return;
+  
+  FOR_EACH_BB (bb)
+    for (loop = bb->loop_father; loop_outer (loop); loop = loop_outer (loop))
+      {
+	loops_aux[loop->num].last = bb;
+	if (!loops_aux[loop->num].first)
+	  loops_aux[loop->num].first = bb;
+      }
+}
+
+/* Return true if loop_info A has less size than loop_info B, in order
+   to give them an ordering.  */
+static bool
+loop_size_is_less (const loop_info a, const loop_info b)
+{
+  if (a->size < b->size)
+    return true;
+  return false;
+}
+
+/* Cache the size (in bytes) of the instructions in the function
+   to avoid re-calculation.  */
+static void
+record_insns_size_estimation (void)
+{
+  basic_block bb;
+  rtx insn;
+
+  FOR_EACH_BB (bb)
+    {
+      unsigned HOST_WIDE_INT size;
+      unsigned HOST_WIDE_INT bb_size = 0;
+      
+      /* Loop through all of the basic-block's insns.  */
+      FOR_BB_INSNS (bb, insn) 
+	if (INSN_P (insn) || NOTE_P (insn))
+	  {
+	    if (targetm.bb_partitioning.estimate_instruction_size != 0)
+	      size = targetm.bb_partitioning.estimate_instruction_size (insn);
+	    else
+	      size = get_attr_min_length (insn);
+	    
+	    if (NOTE_P (insn))
+	      continue;
+	    bb_size += size;
+	    /* Cache the insn's size for later re-use.  */
+	    insns_aux [INSN_UID (insn)].insn = insn;
+	    insns_aux [INSN_UID (insn)].size = size;
+	  }
+      /* Store the size of the basic-block for later validation.  */
+      validate_fbb_data_element (bb->index);
+      fbb_data[bb->index].bb_size = bb_size;
+    }
+}
+
+/*  Calculate the size (in bytes) of each loop.
+    This information will be used later in the code partitioning
+    phase.  */
+static void
+record_loops_boundaries (void)
+{
+  unsigned i;
+  basic_block bb;
+  loop_iterator li;
+  struct loop *loop;
+  unsigned HOST_WIDE_INT total_loop_size;
+  struct loop_info_def *cur_loop;
+  struct loop_info_def *loops_aux = NULL;
+  unsigned int place;
+
+  loop_optimizer_init (LOOPS_HAVE_PREHEADERS | LOOPS_HAVE_RECORDED_EXITS);
+
+  /* Calculate insns size in bytes.  */
+  record_insns_size_estimation ();
+
+  if (number_of_loops () <= 1)
+    {
+      loop_optimizer_finalize ();
+      return;			/* There are no loops.  */
+    }
+  loops_aux = (struct loop_info_def *) xcalloc (number_of_loops (),
+						sizeof (struct
+							loop_info_def));
+  /* Get the start and end insns of each loop.  */
+  calculate_loop_boundary (loops_aux);
+
+  /* We assume that if two loops are disjoint they can not interleave
+     and if they are not disjoint one is completely contained in the
+     other.  This assumption help us to avoid the case of interleaved
+     loop intervals (which is somewhat unlikely to happen in practice).
+     TODO: calculate all the loops's size in one pass.  */
+  FOR_EACH_LOOP (li, loop, 0)
+    {
+      rtx insn;
+      rtx start, end;
+      
+      if (!loop)
+	continue;
+      
+      /* Calculate the size of the loop.  */
+      total_loop_size = 0;
+      start = BB_HEAD (loops_aux[loop->num].first);
+      end = BB_END (loops_aux[loop->num].last);
+      
+      for (insn = start; insn != NEXT_INSN (end); insn = NEXT_INSN (insn))
+	{
+	  if (INSN_P (insn))
+	    {
+	      /* Retrieve the size of the instruction. */
+	      if (insns_aux[INSN_UID (insn)].insn)
+		total_loop_size += insns_aux[INSN_UID (insn)].size;
+	      else
+		total_loop_size += get_attr_min_length (insn);
+	    }
+	}
+      /* Create the loop_info variable, used to hold information about
+	 the loop.  */
+      cur_loop =
+	(struct loop_info_def *) xcalloc (1, sizeof (struct loop_info_def));
+      
+      /* Store the information.  */
+      cur_loop->size = total_loop_size;
+      cur_loop->index = loop->num;
+      
+      validate_fbb_data_element (loops_aux[loop->num].first->index);
+      /* Insert the loop information in loop->first basic-block.  */
+      place =
+	VEC_lower_bound (loop_info,
+			 fbb_data[loops_aux[loop->num].first->index].
+			 loops_info_list, cur_loop, loop_size_is_less);
+      VEC_safe_insert (loop_info, heap,
+		       fbb_data[loops_aux[loop->num].first->index].
+		       loops_info_list, place, cur_loop);
+    }
+  
+  /* Dump the information that was collected. */
+  if (dump_file)
+    FOR_EACH_BB (bb)
+      {
+        validate_fbb_data_element (bb->index);
+      
+        if (fbb_data[bb->index].loops_info_list == NULL)
+	  continue;
+      
+        for (i = 0;
+	     VEC_iterate (loop_info, fbb_data[bb->index].loops_info_list, i,
+		  	  cur_loop); 
+             i++)
+	  {
+	    fprintf (dump_file,
+		     "\n;; bb %d is the first basic-block in the loop"
+		     HOST_WIDE_INT_PRINT_DEC " layout (total loop size "
+		     HOST_WIDE_INT_PRINT_DEC "K)", bb->index, cur_loop->index,
+		     cur_loop->size);
+	  }
+      }
+  free (loops_aux);
+  loop_optimizer_finalize ();
+}
+
+static void
+free_fbb_data (void)
+{
+  unsigned HOST_WIDE_INT i, j;
+  struct loop_info_def *cur_loop;
+
+  for (i = 0; i < fbb_data_size; i++)
+    {
+      if (fbb_data[i].loops_info_list != NULL)
+	{
+	  for (j = 0;
+	       VEC_iterate (loop_info, fbb_data[i].loops_info_list, j,
+			    cur_loop); 
+               j++)
+	    FREE (cur_loop);
+
+	  VEC_free (loop_info, heap, fbb_data[i].loops_info_list);
+	}
+    }
+  FREE (fbb_data);
+}
+
+/* Given RTX_FIRST which is the first instruction we start from; check
+   that there is no unexpected insns outside basic-blocks that could
+   effect the size of the sections, e.g. unexpected read-only code.  */
+static void
+check_unexpected_insns (rtx rtx_first)
+{
+  rtx tmp_rtx;
+  VEC (rtx, heap) *jump_tables_list;
+  enum bb_state { NOT_IN_BB, IN_ONE_BB, IN_MULTIPLE_BB };
+  int max_uid = get_max_uid ();
+  basic_block *start =
+    (basic_block *) xcalloc (max_uid, sizeof (basic_block));
+  basic_block *end = (basic_block *) xcalloc (max_uid, sizeof (basic_block));
+  enum bb_state *in_bb_p =
+    (enum bb_state *) xcalloc (max_uid, sizeof (enum bb_state));
+  basic_block bb;
+  rtx insn;
+  
+  jump_tables_list = VEC_alloc (rtx, heap, 1);
+  
+  if (rtx_first == 0)
+    return;
+  
+  FOR_EACH_BB_REVERSE (bb)
+    {
+      rtx x, table, label;
+      
+      start[INSN_UID (BB_HEAD (bb))] = bb;
+      end[INSN_UID (BB_END (bb))] = bb;
+      for (x = BB_HEAD (bb); x != NULL_RTX; x = NEXT_INSN (x))
+	{
+	  enum bb_state state = IN_MULTIPLE_BB;
+	  
+	  if (in_bb_p[INSN_UID (x)] == NOT_IN_BB)
+	    state = IN_ONE_BB;
+	  in_bb_p[INSN_UID (x)] = state;
+	  
+	  if (INSN_P (x) && tablejump_p (x, &label, &table))
+	    {
+	      /* Record the information regarding the jump table instruction
+		 which we expect to appear outside of basic-block.  */
+	      VEC_safe_push (rtx, heap, jump_tables_list, table);
+	      VEC_safe_push (rtx, heap, jump_tables_list, label);
+	    }
+	  
+	  if (x == BB_END (bb))
+	    break;
+	}
+    }
+  for (tmp_rtx = rtx_first; NULL != tmp_rtx; tmp_rtx = NEXT_INSN (tmp_rtx))
+    {
+      if (in_bb_p[INSN_UID (tmp_rtx)] == NOT_IN_BB
+	  && !NOTE_P (tmp_rtx) && !BARRIER_P (tmp_rtx))
+	{
+	  int i;
+	  bool found_p = false;
+	  rtx label;
+	  
+	  for (i = 0; VEC_iterate (rtx, jump_tables_list, i, insn); i++)
+	    {
+	      /* We expect that the table itself would appear outside
+	         of basic-block.  */
+	      if (rtx_equal_p (tmp_rtx, insn))
+		{
+		  found_p = true;
+		  break;
+		}
+	    }
+	  if (!found_p)
+	    error ("Unexpected insns outside basic-blocks;"
+		   " -fpartition-functions-into-sections may be effected.");
+	  else
+	    {
+	      /* Validate that the table and code that reads the table
+	         will appear in the same section.  */
+	      if (GET_CODE (tmp_rtx) == CODE_LABEL)
+		{
+		  if (tablejump_p (prev_active_insn (tmp_rtx), &label, NULL))
+		    {
+		      if (!rtx_equal_p (tmp_rtx, label))
+			{
+			  error ("Unexpected insns outside basic-blocks;"
+				 " -fpartition-functions-into-sections "
+                                 "may be effected.");
+			  return;
+			}
+		      
+		    }
+		  else
+		    {
+		      error ("Unexpected insns outside basic-blocks;"
+			     " -fpartition-functions-into-sections may "
+                             "be effected.");
+		      return;
+		    }
+		}
+	    }
+	}
+    }
+  
+  free (start);
+  free (end);
+  free (in_bb_p);
+  VEC_free (rtx, heap, jump_tables_list);
+}
+
+/* This is a callback function to initialize the basic-blocks partitioning
+   into sections of maximum size, called from partition_basic_blocks
+   function.  */
+static void
+partition_size_init (void)
+{
+  basic_block cur_bb;
+  unsigned HOST_WIDE_INT i;
+  
+  fbb_data_size = 10 * last_basic_block;
+  
+  /* Allocate the initial hunk of the fbb_data.  */
+  fbb_data =
+    (funcpart_basic_block_data *) xcalloc (fbb_data_size,
+					   sizeof
+					   (funcpart_basic_block_data));
+  for (i = 0; i < fbb_data_size; i++)
+    fbb_data[i].section_id = -1;
+  
+  insns_aux =
+    (struct insn_aux *) xcalloc (get_max_uid (), sizeof (struct insn_aux));
+  
+  check_unexpected_insns (get_insns ());
+  
+  /* Update the maximum section size (in bytes).  */
+  estimate_max_section_size =
+    flag_partition_functions_into_sections - estimate_section_overhead;
+  
+  /* Initialize structures for layout changes.  */
+  cfg_layout_initialize (0);
+  
+  /* Record the start and size of each loop in fbb_data array.  */
+  record_loops_boundaries ();
+  
+  FOR_EACH_BB (cur_bb)
+    {
+      cur_bb->flags &= ~BB_FIRST_AFTER_SECTION_SWITCH;
+      
+      if (cur_bb->next_bb != EXIT_BLOCK_PTR)
+	cur_bb->aux = cur_bb->next_bb;
+    }
+}
+
+/* This is a callback function to finalize the basic-blocks partitioning
+   into sections of maximum size, called from partition_basic_blocks
+   function.  */
+static void
+partition_size_finalize (void)
+{
+  /* Free data.  */
+  free_fbb_data ();
+  /* Finalize layout changes.  */
+  cfg_layout_finalize ();
+
+  free_dominance_info (CDI_DOMINATORS);
+  free (insns_aux);
+}
+
 static bool
 gate_handle_reorder_blocks (void)
 {
@@ -2269,7 +3205,7 @@ struct rtl_opt_pass pass_reorder_blocks =
 };
 
 static bool
-gate_handle_partition_blocks (void)
+gate_handle_partition_blocks_hot_cold (void)
 {
   /* The optimization to partition hot/cold basic blocks into separate
      sections of the .o file does not work well with linkonce or with
@@ -2281,31 +3217,214 @@ gate_handle_partition_blocks (void)
 	  && !user_defined_section_attribute);
 }
 
-/* Partition hot and cold basic blocks.  */
-static unsigned int
-rest_of_handle_partition_blocks (void)
-{
-  partition_hot_cold_basic_blocks ();
-  return 0;
-}
-
-struct rtl_opt_pass pass_partition_blocks =
+struct rtl_opt_pass pass_partition_blocks_hot_cold =
 {
  {
   RTL_PASS,
-  "bbpart",                             /* name */
-  gate_handle_partition_blocks,         /* gate */
-  rest_of_handle_partition_blocks,      /* execute */
-  NULL,                                 /* sub */
-  NULL,                                 /* next */
-  0,                                    /* static_pass_number */
-  TV_REORDER_BLOCKS,                    /* tv_id */
-  0,                                    /* properties_required */
-  0,                                    /* properties_provided */
-  0,                                    /* properties_destroyed */
-  0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing/* todo_flags_finish */
+  "bbpart",                                      /* name */
+  gate_handle_partition_blocks_hot_cold,         /* gate */
+  rest_of_handle_partition_blocks_hot_cold,      /* execute */
+  NULL,                                          /* sub */
+  NULL,                                          /* next */
+  0,                                             /* static_pass_number */
+  TV_REORDER_BLOCKS,                             /* tv_id */
+  0,                                             /* properties_required */
+  0,                                             /* properties_provided */
+  0,                                             /* properties_destroyed */
+  0,                                             /* todo_flags_start */
+  TODO_dump_func | TODO_verify_rtl_sharing       /* todo_flags_finish */
  }
 };
 
+/* The overhead (in bytes) of creating a new section includes adding
+   unconditional branch instruction between sections should also be
+   taken into account.  */
+static void
+get_estimate_section_overhead (void)
+{
+  gcc_assert (flag_partition_functions_into_sections != 0);
 
+  estimate_section_overhead = 0;
+  estimate_max_section_size = 0;
+
+  if (uncond_jump_length == 0)
+    uncond_jump_length = get_uncond_jump_length ();
+
+  if (targetm.bb_partitioning.estimate_section_overhead != 0)
+    {
+      /* The machine depndent pass could add extra instructions
+         as a result of the new branches.  */
+      estimate_section_overhead =
+        targetm.bb_partitioning.estimate_section_overhead ();
+    }
+  /* Add the size of the new branch that will be created for each
+     sections.  */
+  else
+    estimate_section_overhead += uncond_jump_length;
+}
+
+/* Return TRUE if an instruction exists such that it exceeds the threshold
+   of the section size.  Otherwise return FALSE.  */
+static bool
+instruction_size_exceeds_threshold (void)
+{
+  basic_block bb;
+  rtx insn;
+  unsigned HOST_WIDE_INT size = 0;
+
+  FOR_EACH_BB (bb)
+    {
+      FOR_BB_INSNS (bb, insn)
+	{
+	  if (INSN_P (insn) || NOTE_P (insn))
+	    {
+	      if (targetm.bb_partitioning.estimate_instruction_size != 0)
+		size = targetm.bb_partitioning.estimate_instruction_size (insn);
+	      else
+		size = get_attr_min_length (insn);
+	      
+	      if (size >
+		  (flag_partition_functions_into_sections -
+		   estimate_section_overhead))
+		{
+		  warning (0,
+			   "Section threshold value is too small.  ");
+		  return true;
+		}
+	    }
+	}
+    }
+  return false;
+}
+
+static bool
+gate_handle_partition_blocks_size (void)
+{
+  if ((flag_partition_functions_into_sections == 0)
+      || DECL_ONE_ONLY (current_function_decl)
+      || user_defined_section_attribute)
+    return 0;
+ 
+  /* Estimate the overhead in creating new section in term of the new
+     instruction that are needed to support it and need to be
+     considered.  */
+  get_estimate_section_overhead ();
+    
+  /* Make sure there is no instruction with size that exceeds the
+     estimated section size.  */
+  return (!instruction_size_exceeds_threshold ());
+}
+
+/* Main entry point for partitioning functions into sections in order
+   to make it fit small local store.
+   
+   The motivation:
+ 
+   The local store of embedded processors usually imposes a strict
+   threshold on the code size of programs.  Having a limited memory (and
+   lack of hardware i-cache) creates cases where a single program code
+   can not fit into it.  To overcome this problem, the programmer can
+   partition the code into multiple pieces and manually swap them in and
+   out of the local store.  To simplify this task, an overlay technique
+   can be used which handles the memory management tasks automatically
+   and relieves the programmer from managing the local store manually.
+   
+   Preparing the code for the overlay technique consists of a
+   preprocessing static stage which is done by the compiler and linker.
+   The compiler first partition the code into sections which are later
+   constructed into an overlaid program by the linker.  At execution
+   time the overlay manager automatically swap pieces of code in and
+   out of the local store.
+ 
+   The ability to place each function in a different section already
+   exists in GCC (-ffunction-sections).  However, using the granularity
+   of a single function for partitioning is not sufficient when a single
+   function's body can not fully fit the local store.  This new pass
+   overcomes this problem by breaking the large functions.  It can also
+   break a function into fixed sized sections that could be used for
+   a software i-cache scheme implementation, as an alternative to the
+   overlay technique.  */
+
+static unsigned int 
+rest_of_handle_partition_blocks_size (void)
+{
+  struct partition_callbacks callbacks;
+  
+  if (n_basic_blocks < 1)
+    return 0;
+  
+  /* Setup callbacks for the partitioning.  */ 
+  callbacks.init = partition_size_init;
+  callbacks.finalize = partition_size_finalize;
+  callbacks.crossing_edge_p = size_crossing_edge_p;
+  callbacks.insert_section_boundary_note = size_insert_section_boundary_note;
+  callbacks.partition = create_sections;
+  
+  partition_basic_blocks (&callbacks);
+  return 0;
+}
+
+struct rtl_opt_pass pass_partition_blocks_size =
+{
+  {
+   RTL_PASS,
+   "fpart",                              /* name */
+   gate_handle_partition_blocks_size,    /* gate */
+   rest_of_handle_partition_blocks_size, /* execute */
+   NULL,                                 /* sub */
+   NULL,                                 /* next */
+   0,                                    /* static_pass_number */
+   TV_PARTITION_BLOCKS_SIZE,             /* tv_id */
+   0,                                    /* properties_required */
+   0,                                    /* properties_provided */
+   0,                                    /* properties_destroyed */
+   TODO_dump_func,                       /* todo_flags_start */
+   TODO_dump_func,                       /* todo_flags_finish */
+  }
+};
+
+/* Validate that the size (in bytes) of each section does not exceed
+   the maximum section size the user defined.  */
+
+void
+check_sections (void)
+{
+  rtx insn;
+  unsigned HOST_WIDE_INT section_size = 0;
+  int number_of_sections = 1;
+
+  if (flag_partition_functions_into_sections == 0)
+    return;
+
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      if (INSN_P (insn))
+	{
+	  section_size += get_attr_min_length (insn);
+	  continue;
+	}
+      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
+	{
+	  number_of_sections++;
+	  if (section_size > (unsigned) flag_partition_functions_into_sections)
+	    {
+	      warning (0,
+		       "section %d (" HOST_WIDE_INT_PRINT_DEC
+		       "B) exceeds section threshold %dB",
+		       NOTE_TEXT_SECTION (insn) - 1, section_size,
+		       flag_partition_functions_into_sections);
+	    }
+	}
+      section_size = 0;
+    }
+
+  /* Check the last section.  */
+  if (section_size > (unsigned) flag_partition_functions_into_sections)
+    {
+      warning (0,
+	       "section %d (" HOST_WIDE_INT_PRINT_DEC
+	       "B) exceeds section threshold %dB",
+	       number_of_sections, section_size,
+	       flag_partition_functions_into_sections);
+    }
+}

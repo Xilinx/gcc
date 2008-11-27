@@ -751,6 +751,31 @@ struct gcc_target
      delayed-branch scheduling.  */
   void (* machine_dependent_reorg) (void);
 
+  /* Functions relating to basic-block partitioning into sections.  */
+  struct bb_partitioning_into_sections
+  {
+    /* Estimate the number of extra instructions that will be added for each
+       section.  Called when partitioning a function into sections.  */
+    unsigned HOST_WIDE_INT (* estimate_section_overhead) (void);
+
+    /* Return the size of instruction in bytes.  Take into account the
+       size of extra machine depndent instructions that can be added as
+       a result of insn. (like branch-hints for branch instructions).
+       Called when partitioning a function into sections.   */
+    unsigned HOST_WIDE_INT (* estimate_instruction_size) (rtx);
+
+    /* Return true if the basic-block with index BB_INDEX should be put in
+       a new section.
+       The following are all taking into account in the decision:
+
+       BB_SIZE - The size of the basic-block,
+       ESTIMATE_MAX_SECTION_SIZE - The maximum size of a section,
+       LAST_SECTION_SIZE - The size of the last section.  */
+    bool (* start_new_section) (int bb_index, unsigned HOST_WIDE_INT bb_size,
+                                unsigned HOST_WIDE_INT estimate_max_section_size, 
+                                unsigned HOST_WIDE_INT last_section_size);
+  } bb_partitioning;
+
   /* Create the __builtin_va_list type.  */
   tree (* build_builtin_va_list) (void);
 

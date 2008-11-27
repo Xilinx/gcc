@@ -676,6 +676,7 @@ relink_block_chain (bool stay_in_cfglayout_mode)
     {
       bb->aux = NULL;
       bb->il.rtl->visited = 0;
+      bb->il.rtl->skip = 0;
       if (!stay_in_cfglayout_mode)
 	bb->il.rtl->header = bb->il.rtl->footer = NULL;
     }

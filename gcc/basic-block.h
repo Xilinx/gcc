@@ -265,6 +265,9 @@ struct rtl_bb_info GTY(())
 
   /* This field is used by the bb-reorder and tracer passes.  */
   int visited;
+
+  /* This field is used by the bb-partitioning pass.  */
+  int skip;
 };
 
 struct gimple_bb_info GTY(())
@@ -333,7 +336,11 @@ enum bb_flags
 
   /* Set on blocks that cannot be threaded through.
      Only used in cfgcleanup.c.  */
-  BB_NONTHREADABLE_BLOCK = 1 << 11
+  BB_NONTHREADABLE_BLOCK = 1 << 11,
+
+  /* Set on blocks that are first in a section.  */
+  BB_FIRST_AFTER_SECTION_SWITCH = 1 << 12 
+
 };
 
 /* Dummy flag for convenience in the hot/cold partitioning code.  */
@@ -946,6 +953,7 @@ extern basic_block next_dom_son (enum cdi_direction, basic_block);
 unsigned bb_dom_dfs_in (enum cdi_direction, basic_block);
 unsigned bb_dom_dfs_out (enum cdi_direction, basic_block);
 
+extern void check_sections (void);
 extern edge try_redirect_by_replacing_jump (edge, basic_block, bool);
 extern void break_superblocks (void);
 extern void relink_block_chain (bool);

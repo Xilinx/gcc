@@ -633,3 +633,7 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 extern GTY(()) rtx spu_compare_op0;
 extern GTY(()) rtx spu_compare_op1;
 
+#define HAS_LONG_COND_BRANCH 1
+#define HAS_LONG_UNCOND_BRANCH 1
+
+

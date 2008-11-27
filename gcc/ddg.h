@@ -183,4 +183,7 @@ void free_ddg_all_sccs (ddg_all_sccs_ptr);
 int find_nodes_on_paths (sbitmap result, ddg_ptr, sbitmap from, sbitmap to);
 int longest_simple_path (ddg_ptr, int from, int to, sbitmap via);
 
+bool mem_read_insn_p (rtx);
+bool mem_write_insn_p (rtx);
+
 #endif /* GCC_DDG_H */

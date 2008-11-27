@@ -312,7 +312,9 @@ print_rtx (const_rtx in_rtx)
 		{
 #ifndef GENERATOR_FILE
 		  basic_block bb = NOTE_BASIC_BLOCK (in_rtx);
-		  if (bb != 0)
+                  /* When partitioning into multiple sections
+                     NOTE_BASIC_BLOCK holds the section id.  */
+		  if (bb != 0 && !flag_partition_functions_into_sections)
 		    fprintf (outfile, " [bb %d]", bb->index);
 #endif
 		  break;

@@ -43,6 +43,11 @@ mdual-nops=
 Target RejectNegative Joined UInteger Var(spu_dual_nops)
 Insert nops when it might improve performance by allowing dual issue (default)
 
+mstub-size=
+Target RejectNegative Joined UInteger Var(spu_stub_size) Init(16)
+Specify the stub size which is inserted by the linker when an
+overlay manager is used. (Default to 16 bytes)
+
 mstdmain
 Target Report Mask(STD_MAIN)
 Use standard main function as entry for startup

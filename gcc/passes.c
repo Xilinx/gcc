@@ -756,7 +756,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_ud_rtl_dce);
       NEXT_PASS (pass_combine);
       NEXT_PASS (pass_if_after_combine);
-      NEXT_PASS (pass_partition_blocks);
+      NEXT_PASS (pass_partition_blocks_hot_cold);
       NEXT_PASS (pass_regmove);
       NEXT_PASS (pass_split_all_insns);
       NEXT_PASS (pass_lower_subreg2);
@@ -802,6 +802,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_compute_alignments);
 	  NEXT_PASS (pass_duplicate_computed_gotos);
 	  NEXT_PASS (pass_variable_tracking);
+          NEXT_PASS (pass_partition_blocks_size);
 	  NEXT_PASS (pass_free_cfg);
 	  NEXT_PASS (pass_machine_reorg);
 	  NEXT_PASS (pass_cleanup_barriers);
@@ -993,6 +994,9 @@ execute_function_todo (void *data)
       else
 	gcc_unreachable ();
     }
+  if (flags & TODO_check_sections
+      && flag_partition_functions_into_sections != 0)
+     check_sections ();
 
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa)
