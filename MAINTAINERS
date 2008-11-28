@@ -74,7 +74,7 @@ mmix port		Hans-Peter Nilsson	hp@bitrange.com
 mn10300 port		Jeff Law		law@redhat.com
 mn10300 port		Alexandre Oliva		aoliva@redhat.com
 pdp11 port		Paul Koning		ni1d@arrl.net
-picochip port		Hari Sandanagobalane	hariharan@picochip.com
+picochip port		Hariharan Sandanagobalane	hariharan@picochip.com
 picochip port		Daniel Towner		dant@picochip.com
 rs6000 port		Geoff Keating		geoffk@geoffk.org
 rs6000 port		David Edelsohn		edelsohn@gnu.org
@@ -247,7 +247,7 @@ Fortran			Tobias Burnus		burnus@net-b.de
 Fortran			Jerry DeLisle		jvdelisle@gcc.gnu.org
 Fortran			Erik Edelmann		erik.edelmann@iki.fi
 Fortran			Thomas König		tkoenig@gcc.gnu.org
-Fortran			Toon Moene		toon@moene.indiv.nluug.nl
+Fortran			Toon Moene		toon@moene.org
 Fortran			Brooks Moses		brooks.moses@codesourcery.com
 Fortran			Tobias Schlüter		tobias.schlueter@physik.uni-muenchen.de
 Fortran			Paul Thomas		pault@gcc.gnu.org

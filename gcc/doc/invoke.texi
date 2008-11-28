@@ -335,7 +335,7 @@ Objective-C and Objective-C++ Dialects}.
 -ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
 -fgcse-sm -fif-conversion -fif-conversion2 -findirect-inlining @gol
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
--finline-small-functions -fipa-cp -fipa-cp-clone -fipa-marix-reorg -fipa-pta @gol 
+-finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol 
 -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
 -fipa-type-escape -fira -fira-algorithm=@var{algorithm} @gol
 -fira-coalesce -fno-ira-share-save-slots @gol
@@ -469,7 +469,8 @@ Objective-C and Objective-C++ Dialects}.
 -mno-id-shared-library  -mshared-library-id=@var{n} @gol
 -mleaf-id-shared-library  -mno-leaf-id-shared-library @gol
 -msep-data  -mno-sep-data  -mlong-calls  -mno-long-calls @gol
--mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram}
+-mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram @gol
+-micplb}
 
 @emph{CRIS Options}
 @gccoptlist{-mcpu=@var{cpu}  -march=@var{cpu}  -mtune=@var{cpu} @gol
@@ -7608,10 +7609,10 @@ be disabled.  The default maximum SCC size is 10000.
 
 @item ira-max-loops-num
 IRA uses a regional register allocation by default.  If a function
-contains loops more than number given by the parameter, non-regional
-register allocator will be used even when option
-@option{-fira-algorithm} is given.  The default value of the parameter
-is 20.
+contains loops more than number given by the parameter, only at most
+given number of the most frequently executed loops will form regions
+for the regional register allocation.  The default value of the
+parameter is 100.
 
 @end table
 @end table
@@ -9317,6 +9318,12 @@ Build standalone application for SDRAM. Proper start files and
 link scripts will be used to put the application into SDRAM.
 Loader should initialize SDRAM before loading the application
 into SDRAM. This option defines @code{__BFIN_SDRAM}.
+
+@item -micplb
+@opindex micplb
+Assume that ICPLBs are enabled at runtime.  This has an effect on certain
+anomaly workarounds.  For Linux targets, the default is to assume ICPLBs
+are enabled; for standalone applications the default is off.
 @end table
 
 @node CRIS Options
@@ -11298,7 +11305,7 @@ This model has to be used for Linux kernel code.
 @item -mcmodel=medium
 @opindex mcmodel=medium
 Generate code for the medium model: The program is linked in the lower 2
-GB of the address space and symbols with small size as well.  Symbols
+GB of the address space.  Small symbols are also placed there.  Symbols
 with sizes larger than @option{-mlarge-data-threshold} are put into
 large data or bss sections and can be located above 2GB.  Programs can
 be statically or dynamically linked.

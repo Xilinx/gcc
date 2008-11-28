@@ -1,3 +1,49 @@
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/28870
+	* testsuite/lib/libstdc++.exp: Include new timeout library files.
+	(libstdc++_init): Define tool_timeout.
+	(dg-test): Override DejaGnu proc.
+	(v3_target_compile): Set timeout value from new proc.
+	(v3_target_compile_as_c): Ditto.
+
+2008-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38244 (cont, debug bits)
+	* include/debug/bitset (bitset<>::bitset(const char*, char, char)):
+	Remove, do not implement DR 778.
+
+2008-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38244
+	* include/std/bitset (bitset<>::bitset(const char*, char, char)):
+	Remove, do not implement DR 778.
+	* doc/xml/manual/intro.xml: Remove entry for DR 778.
+	* testsuite/23_containers/bitset/cons/2.cc: Remove.
+	* testsuite/23_containers/bitset/cons/dr396.cc: Tweak.
+	* testsuite/23_containers/bitset/cons/38244.cc: Add.
+
+2008-11-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/num_put/put/char/38210.cc: Tweak.
+	* testsuite/22_locale/num_put/put/wchar_t/38210.cc: Likewise.
+
+2008-11-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38210
+	* include/bits/locale_facets.tcc (num_put<>::do_put(iter_type,
+	ios_base&, char_type, const void*)): Fix.
+	* testsuite/22_locale/num_put/put/char/38210.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/38210.cc: Likewise.
+
+2008-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38196
+	* include/bits/locale_facets.tcc (num_put<>::do_put(iter_type,
+	ios_base&, char_type, bool)): Fix.
+	* testsuite/22_locale/num_put/put/char/38196.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/38196.cc: Likewise.
+
 2008-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/tr1_impl/cinttypes: Remove redundant pragma system_header.

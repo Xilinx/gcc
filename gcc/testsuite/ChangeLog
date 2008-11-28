@@ -1,4 +1,230 @@
+2008-11-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37955
+	PR tree-optimization/37742
+	* gcc.c-torture/compile/pr37955.c: New testcase.
+	* gcc.c-torture/compile/pr37742-3.c: Likewise.
+
+2008-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/38261
+	* gcc.dg/tree-ssa/alias-2.c: Only compile on nonpic targets.
+	* gcc.dg/torture/ipa-pta-1.c: Likewise.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/objc.exp (objc_target_compile): Fix typo from previous change.
+	* lib/gnat.exp (gnat_target_compile): Fix typo from previous change.
+
+	PR testsuite/28870
+	* lib/timeout.exp: New.
+	* lib/timeout-dg.exp: New.
+	* lib/gcc-dg.exp: Include new timeout library files.
+	(dg-test): Unset timeout variables.
+	* lib/gcc.exp (gcc_target_compile): Set timeout value from new proc.
+	* lib/g++.exp (g++_target_compile): Ditto.
+	* lib/gfortran.exp (gfortran_target_compile): Ditto.
+	* lib/objc.exp (objc_target_compile): Ditto.
+	* lib/obj-c++.exp (obj-c++_target_compile): Ditto.
+	* lib/obj-c++.exp (obj-c++_target_compile): Ditto.
+	* lib/gnat.exp (gnat_target_compile): Ditto.
+
+2008-11-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/pr37843-1.c: Make it Linux only.
+	* gcc.target/i386/pr37843-2.c: Likewise.
+
+2008-11-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/callabi/func-indirect.c: New.
+
+2008-11-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28743
+	* g++.dg/template/nontype18.C: New test.
+
+2008-11-25  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.c-torture/compile/20080929-1.c: New.
+
+2008-11-25  Janis Johnson  <janis187@us.ibm.com>
+
+	* gfortran.dg/default_format_denormal_1.f90: Fix xfail for darwin.
+
+2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/align-main-3.c: New.
+	* gcc.target/i386/pr37843-1.c: Likewise.
+	* gcc.target/i386/pr37843-2.c: Likewise.
+	* gcc.target/i386/pr37843-3.c: Likewise.
+
+2008-11-25  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/36463
+	* gfortran.dg/proc_decl_20.f90: New test.
+
+2008-11-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38151
+	PR middle-end/38236
+	* gcc.c-torture/execute/pr38151.c: New testcase.
+	* gcc.c-torture/execute/pr38236.c: Likewise.
+
+2008-11-24  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/eh/weak1.C: Don't xfail hppa*64*-*-*.
+
+2008-11-24  DJ Delorie  <dj@redhat.com>
+
+	* gcc.c-torture/execute/pr36321.c: Don't rely on argv[0] being set.
+
+2008-11-24  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38184
+	* gfortran.dg/reshape_empty_1.f03: New test.
+
+2008-11-24  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38241
+	* g++.old-deja/g++.pt/const2.C: Prune output for Darwin.
+
+	PR testsuite/38076
+	* g++.dg/other/anon5.C: Skip on Darwin.
+
+	* gfortran.dg/default_format_denormal_1.f90: XFAIL on darwin8
+	and darwin9 subversions.
+
+2008-11-24  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR target/35018
+	* gcc.target/m68k/pr35018.c: New.
+
+2008-11-24  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37779
+	* gfortran.dg/c_funloc_tests.f03: Added missing `RECURSIVE'.
+	* gfortran.dg/c_funloc_tests_2.f03: Ditto.
+	* gfortran.dg/recursive_check_4.f03: New test.
+	* gfortran.dg/recursive_check_5.f03: New test.
+
+2008-11-24  Mikael Morin <mikael.morin@tele2.fr>
+
+	PR fortran/35681
+	* gfortran.dg/elemental_dependency_1.f90: Really commit it.
+
+2008-11-24  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/34820
+	* gfortran.dg/alloc_comp_constructor_6.f90 : New test.
+	* gfortran.dg/alloc_comp_basics_1.f90 : Reduce expected refs to
+	'builtin_free' from 24 to 18.
+
+	PR fortran/34143
+	* gfortran.dg/alloc_comp_constructor_5.f90 : New test.
+
+	PR fortran/32795
+	* gfortran.dg/alloc_comp_constructor_4.f90 : New test.
+
+2008-11-23  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37735
+	* gfortran.dg/alloc_comp_assign_7.f90: New test.
+
+2008-11-23  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/ext/tmplattr9.C: Require weak.
+	* g++.old-deja/g++.pt/static6.C: Remove xfail for *-*-hpux*.
+
+2008-11-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/38234
+	* gfortran.dg/reshape_4.f90:  New test.
+
+2008-11-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/38225
+	* gfortran.dg/reshape_3.f90:  New test.
+
+2008-11-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38160
+	* gfortran.dg/bind_c_usage_18.f90: New test.
+	* gfortran.dg/c_kind_tests_2.f03: Update dg-messages.
+	* gfortran.dg/interop_params.f03: Ditto.
+
+2008-11-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38222
+	* gcc.target/i386/funcspec-3.c: Scan for popcnt on Darwin targets.
+
+2008-11-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/37839
+	* gfortran.dg/f2003_inquire_1.f03: New test.
+	* gfortran.dg/f2003_io_1.f03: Remove xfail.
+	* gfortran.dg/f2003_io_4.f03: Likewise.
+	* gfortran.dg/f2003_io_5.f03: Likewise.
+	* gfortran.dg/f2003_io_6.f03: Likewise.
+	* gfortran.dg/f2003_io_7.f03: Likewise.
+
+2008-11-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38200
+	* gcc.dg/pr38200.c: New test.
+
+2008-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-1.c: Include <immintrin.h> instead of
+	<gmmintrin.h>.
+	* gcc.target/i386/avx-2.c: Likewise.
+	* gcc.target/i386/m256-check.h: Likewise.
+	* g++.dg/other/i386-5.C: Likewise.
+	* g++.dg/other/i386-6.C: Likewise.
+
+2008-11-20  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37472
+	* gfortran.dg/namelist_print_1.f: Update test.
+
+2008-11-20  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* gcc.dg/sync-2.c: Add type cast to avoid folding.
+	* gcc.dg/sync-3.c: Likewise.
+
 2008-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/29215
+	* gfortran.dg/array_memcpy_3.f90: Adjust pattern to match even
+	memcpy optimized into ref-all store.
+	* gcc.dg/pr29215.c: New test.
+
+2008-11-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38151
+	* gcc.target/i386/pr38151-1.c: New test.
+
+2008-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28513
+	* g++.dg/lookup/name-clash7.C: New test.
+
+	PR c++/37540
+	* g++.dg/cpp0x/decltype14.C: New test.
+
+2008-11-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37868
+	* gcc.dg/torture/pr37868.c: New testcase.
+	* gcc.c-torture/execute/pr38048-1.c: Likewise.
+	* gcc.c-torture/execute/pr38048-2.c: Likewise.
+
+2008-11-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/38181
+	* gfortran.dg/array_section_2.f90: Adjust pattern to match
+	the inlined size0 instead of a size0 call.
 
 	PR c++/36631
 	* g++.dg/template/call5.C: New test.

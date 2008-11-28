@@ -4703,7 +4703,9 @@
     {
       mips_expand_synci_loop (operands[0], operands[1]);
       emit_insn (gen_sync ());
-      emit_insn (gen_clear_hazard ());
+      emit_insn (Pmode == SImode
+		 ? gen_clear_hazard_si ()
+		 : gen_clear_hazard_di ());
     }
   else if (mips_cache_flush_func && mips_cache_flush_func[0])
     {
@@ -4725,21 +4727,21 @@
   "ISA_HAS_SYNCI"
   "synci\t0(%0)")
 
-(define_insn "rdhwr"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-        (unspec_volatile [(match_operand:SI 1 "const_int_operand" "n")]
+(define_insn "rdhwr_synci_step_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+        (unspec_volatile [(const_int 1)]
         UNSPEC_RDHWR))]
   "ISA_HAS_SYNCI"
-  "rdhwr\t%0,$%1")
+  "rdhwr\t%0,$1")
 
-(define_insn "clear_hazard"
+(define_insn "clear_hazard_<mode>"
   [(unspec_volatile [(const_int 0)] UNSPEC_CLEAR_HAZARD)
-   (clobber (reg:SI 31))]
+   (clobber (reg:P 31))]
   "ISA_HAS_SYNCI"
 {
   return "%(%<bal\t1f\n"
          "\tnop\n"
-         "1:\taddiu\t$31,$31,12\n"
+         "1:\t<d>addiu\t$31,$31,12\n"
          "\tjr.hb\t$31\n"
          "\tnop%>%)";
 }

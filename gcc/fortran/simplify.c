@@ -2993,6 +2993,7 @@ gfc_simplify_nearest (gfc_expr *x, gfc_expr *s)
   mpfr_set_emin ((mp_exp_t) gfc_real_kinds[kind].min_exponent -
 		mpfr_get_prec(result->value.real) + 1);
   mpfr_set_emax ((mp_exp_t) gfc_real_kinds[kind].max_exponent - 1);
+  mpfr_check_range (result->value.real, 0, GMP_RNDU);
 
   if (mpfr_sgn (s->value.real) > 0)
     {
@@ -3408,9 +3409,6 @@ is_constant_array_expr (gfc_expr *e)
     return true;
 
   if (e->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (e))
-    return false;
-  
-  if (e->value.constructor == NULL)
     return false;
   
   for (c = e->value.constructor; c; c = c->next)
