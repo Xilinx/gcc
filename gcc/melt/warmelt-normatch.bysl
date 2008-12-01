@@ -371,6 +371,23 @@
 ))
 (install_method discr_anyrecv normal_pattern normpat_anyrecv)
 
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; catch-all for normpat any pattern (by failing)
+(defun normpat_anypat (recv spatlist testptlist pcn)
+  (debug_msg recv "normpat_anyrecv recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_any))
+  (let ( (myclass (discrim recv))
+	 (myclassname (get_field :named_name myclass)) 
+	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 )
+    (error_strv psloc 
+		"unimplemented normal_pattern for pattern of " myclassname)
+    (assert_msg "catchall normal_pattern unimplemented on pattern" ())
+))
+(install_method class_srcpattern_any normal_pattern normpat_anypat)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
@@ -400,6 +417,7 @@
        (foreach_in_multiple
 	(scases)
 	(curcas :long ix)
+	(debug_msg curcas "normexp_match curcas")
 	(assert_msg "check curcas" (is_a curcas class_src_casematch))
 	(let ( 
 	      (curloc (unsafe_get_field :src_loc curcas))
@@ -417,7 +435,6 @@
 			     :pctn_bindlist bindlist
 			     ))
 	      )
-	  (debug_msg curcas "normexp_match curcas")
 	  (scan_pattern curpat curloc ctyp pcn)
 	  (debug_msg mapvar "normexp_match mapvar")
 	  (debug_msg mapcst "normexp_match mapcst")
@@ -425,8 +442,8 @@
 	  (multiple_put_nth tupvarmap ix mapvar)
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
-	  (debug_msg curcas "normexp_match curcas before normal_pattern")
-	  (normal_pattern curcas spatlist testptlist pcn)
+	  (debug_msg curpat "normexp_match curpat before normal_pattern")
+	  (normal_pattern curpat spatlist testptlist pcn)
 	  (debug_msg curcas "normexp_match curcas after normal_pattern")
 	  )
 	)				;end foreach_in_multiple

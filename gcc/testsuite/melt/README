@@ -1,0 +1,7 @@
+This directory gcc/testsuite/melt/ contains various small MELT tests
+
+File ending with *.bysl or *.melt are MELT source files
+
+-- 
+Basile Starynkevitch <basile@starynkevitch.net> 
+december 2008

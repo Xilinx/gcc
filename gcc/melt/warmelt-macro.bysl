@@ -2942,7 +2942,7 @@
 					    :scam_body curbody))
 			 )
 		    (debug_msg curcase "mexpand_match curcase")
-		    (list_append caselist curcase)
+		    (list_prepend caselist curcase)
 		    ))
 		;; detect non-sexp clauses
 		(:else

@@ -1,0 +1,12 @@
+;; -*- lisp -*-
+;; file  gcc/testsuite/melt/tmatch-1.bysl
+;; test the match operation
+
+(defun tmatch_aa (x)
+  (match x
+	 ( ?(instance class_named :named_name ?y)
+	  y)
+	 ( ?_ 
+	  x)))
+
+;; eof tmatch-1.bysl
