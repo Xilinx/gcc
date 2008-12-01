@@ -21,6 +21,7 @@ typedef unsigned long long size_ea_t;
 __ea void *__malloc_ea64 (size_ea_t);
 __ea void *__memset_ea64 (__ea void *, int, size_ea_t);
 __ea void *__memcpy_ea64 (__ea void *, __ea const void *, size_ea_t);
+#define LINE_SIZE 128LL
 #else
 #define malloc_ea __malloc_ea32
 #define memset_ea __memset_ea32
@@ -31,6 +32,7 @@ typedef unsigned long size_ea_t;
 __ea void *__malloc_ea32 (size_ea_t size);
 __ea void *__memset_ea32 (__ea void *, int, size_ea_t);
 __ea void *__memcpy_ea32 (__ea void *, __ea const void *, size_ea_t);
+#define LINE_SIZE 128
 #endif
 
 static __ea void *bigblock;
@@ -39,10 +41,9 @@ static int *ls_block;
 
 extern void __cache_tag_array_size;
 #define CACHE_SIZE (4 * (int) &__cache_tag_array_size)
-#define LINE_SIZE 128
 
 void
-init_mem ()
+init_mem (void)
 {
   bigblock = malloc_ea (CACHE_SIZE + 2 * LINE_SIZE);
   block = malloc_ea (2 * LINE_SIZE);
@@ -56,7 +57,7 @@ init_mem ()
 
 /* Test 1: Simple cache fetching.  */
 void
-test1 ()
+test1 (void)
 {
   addr aligned = ((((addr) block) + LINE_SIZE - 1) & -LINE_SIZE);
   int *p1 = NULL;
@@ -91,7 +92,7 @@ test1 ()
 
 /* Test 2: Eviction testing. */
 void
-test2 ()
+test2 (void)
 {
   addr aligned = ((((addr) block) + LINE_SIZE - 1) & -LINE_SIZE);
   int *p = NULL;
@@ -148,7 +149,7 @@ test2 ()
 
 /* Test LS forced-eviction. */
 void
-test3 ()
+test3 (void)
 {
   addr aligned = ((((addr) bigblock) + LINE_SIZE - 1) & -LINE_SIZE);
   char *test = NULL;

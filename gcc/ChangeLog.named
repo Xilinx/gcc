@@ -1,3 +1,172 @@
+2008-11-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* targhook.c (default_addr_space_common_pointer): New default hook
+	for determining whether there is a common pointer format to use
+	between two pointers.
+
+	* targhook.h (default_addr_space_common_pointer): Add
+	declaration.
+
+	* tree.c (integer_pow2p): Rewrite to eliminate the macro
+	OTHER_ADDR_SPACE_POINTER_TYPE_P.
+	(tree_log2): Ditto.
+	(tree_floor_log2): Ditto.
+	(build_pointer_type_for_mode): Add support for being passed
+	error_mark_node.
+	(build_reference_type_for_mode): Add named address space support.
+
+	* tree.h (OTHER_ADDR_SPACE_POINTER_TYPE_P): Delete.
+	(GENERIC_ADDR_SPACE_POINTER_TYPE_P): Ditto.
+
+	* target.h (struct addr_space): Add new hook to determine whether
+	there is a common pointer pointer to use between two pointers.
+	Change pointer_mode argument to addr_space_t from int.
+
+	* fold-const.c (fit_double_type): Rewrite to eliminate the macro
+	OTHER_ADDR_SPACE_POINTER_TYPE_P.  Get the named address space from
+	the type the pointer points to instead of the pointer itself.
+	(fold_convert_const): Ditto.
+
+	* tree-ssa-loop-ivopts.c (strip_offset): Rewrite to eliminate the
+	macros OTHER_ADDR_SPACE_POINTER_TYPE_P and
+	GENERIC_ADDR_SPACE_POINTER_TYPE_P.
+
+	* expr.c (expand_expr_addr_expr): Rewrite to eliminate the macro
+	OTHER_ADDR_SPACE_POINTER_TYPE_P.
+	
+	* c-typechk.c (common_pointer_type): Determine what named address
+	space should be used if pointers to two different named address spaces.
+	(build_binary_op): Rewrite to eliminate the macro
+	OTHER_ADDR_SPACE_POINTER_TYPE_P.
+
+	* varasm.c (default_addr_space_pointer_mode): Change argument type.
+
+	* tree-ssa.c (useless_type_conversion_p_1): Rewrite to eliminate
+	the macro GENERIC_ADDR_SPACE_POINTER_TYPE_P.
+
+	* target-def.h (TARGET_ADDR_SPACE_COMMON_POINTER): New target hook
+	for determining what named address space should be used when two
+	pointers are combined.
+	(TARGET_ADDR_SPACE_HOOKS): Add TARGET_ADDR_SPACE_COMMON_POINTER.
+
+	* output.h (default_addr_space_pointer_mode): Change argument
+	type.
+
+	* config/spu/spu.c (spu_addr_space_common_pointer): New target
+	hook to return what address space to use between two pointers.
+	(TARGET_ADDR_SPACE_COMMON_POINTER): Define target hook.
+	(spu_ea_pointer_mode): Change argument from int to addr_space_t.
+	(spu_addr_space_can_convert_p): Use TARGET_NO_LOCAL_EA_CONVERSION
+	instead of TARGET_NO_EA_LOCAL_CONVERSION.
+	
+	* config/spu/spu.opt (-mno-local-ea-conversion): Make mask
+	correspond with switch.
+	(-mlocal-ea-conversion): Ditto.
+
+2008-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* tree.h (TYPE_QUALS_NO_ADDR_SPACE): New macro, like TYPE_QUALS,
+	without the address space qualifiers.
+
+	* expr.c (expand_expr_real_1): Add check in converting one pointer
+	to another whether you can convert between different named address
+	spaces.
+
+	* c-decl.c (null_pointer_constant_p): Use TYPE_QUALS_NO_ADDR_SPACE
+	instead of TYPE_QUALS.
+	(composite_type): Ditto.
+	(c_common_type): Ditto.
+	(build_c_cast): Ditto.
+	(convert_for_assignment): Ditto.
+	(build_c_cast): Add error message if it is not possible to convert
+	from one pointer to another.
+
+	* convert.c (convert_to_integer): When converting pointers to
+	integer, use the address space the pointer points to and not the
+	pointer itself.
+	
+	* config/spu/spu.opt (-mno-local-ea-conversion): New switch to
+	disallow converting __ea pointers to local pointers.
+	(-mlocal-ea-conversion): New switch for the default case.
+
+	* config/spu/spu.md (to_ea): Revert previous code.
+	(from_ea): Ditto.
+
+	* doc/invoke.texi (-mlocal-ea-conversion): Document.
+	(-mno-local-ea-conversion): Ditto.
+
+2008-11-26  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* targhooks.h (default_addr_space_can_convert_p): New
+	declaration.
+	(default_addr_space_nop_convert_p): Ditto.
+
+	* targhooks.c (default_addr_space_can_convert_p): New default
+	target hook for named address spaces.
+	(default_addr_space_nop_convert_p): Ditto.
+
+	* tree.c (build_pointer_type): Remove strip_array_types call.
+	(build_array_type): Set the address space in the ARRAY_TYPE node.
+
+	* tree.h (TYPE_QUALS): Remote strip_array_types call.
+
+	* target.h (struct addr_space): Add target hooks for determining
+	if you can convert from a pointer in one named address to another
+	named address, and if the conversion is a NOP.
+
+	* c-objc-common (c_initialize_diagnostics): Delete
+	strip_array_types call from TYPE_ADDR_SPACE macro.
+
+	* dwarf2out.c (modified_type_die): Delete strip_array_types call
+	from TYPE_ADDR_SPACE macro.
+
+	* emit-rtl.c (set__mem_attributes_minus_bitpos): Delete
+	strip_array_types call from TYPE_ADDR_SPACE macro.
+
+	* c-decl.c (start_decl): Delete strip_array_types call from
+	TYPE_ADDR_SPACE macro.
+	(grokdeclarator): If an array is in a named address space, use a
+	qualified type that marks the address space.
+
+	* print-tree.c (print_node_brief): Print non-zero address spaces.
+	(print_node): Ditto.
+
+	* target-def.h (TARGET_ADDR_SPACE_CAN_CONVERT_P): New target hook.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): Ditto.
+	(TARGET_ADDR_SPACE_HOOKS): Add new hooks.
+
+	* c-parser.c (c_parser_postfix_expression_after_paren_): Delete
+	strip_array_types call from TYPE_ADDR_SPACE macro.
+
+	* config/spu/spu.c (spu_addr_space_can_convert_p): New target hook
+	for named address space support.
+	(spu_addr_space_nop_convert_p): Ditto.
+	(ea_symbol_ref): Delete strip_array_types call from
+	TYPE_ADDR_SPACE macro.
+
+	* convert (convert_to_pointer): Check if the backend allows
+	converting a pointer from one named address to another named
+	address, and if it does allow the conversion, whether the
+	conversion is a NOP or real conversion.  Rewrite conversion of
+	integer to pointer for named address spaces.
+	(convert_to_integer): Rewrite named address space conversion code
+	to adhere to GNU coding standards.
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_CAN_CONVERT_P): Document new
+	hook.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): Ditto.
+
+2008-11-25  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-decl.c (diagnose_mismatched_decls): Report on mis-matched
+	named address spaces.
+	(grokdeclarator): Clear named address from qualifiers before
+	checking on whether to warn about ISO C forbidding qualified
+	function types.
+
+	* config/spu/spu.c (spu_addr_space_name): Return "generic" for the
+	generic address space.
+
 2008-11-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* config/spu/spu.md (to_ea): Use convert_move to convert input

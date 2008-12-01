@@ -232,7 +232,7 @@ tree spu_builtin_types[SPU_BTI_MAX];
 
 /*  TARGET overrides.  */
 
-static enum machine_mode spu_ea_pointer_mode (int);
+static enum machine_mode spu_ea_pointer_mode (addr_space_t);
 #undef TARGET_ADDR_SPACE_POINTER_MODE
 #define TARGET_ADDR_SPACE_POINTER_MODE spu_ea_pointer_mode
 
@@ -243,6 +243,19 @@ static const char *spu_addr_space_name (addr_space_t);
 static unsigned char spu_addr_space_number (const_tree);
 #undef TARGET_ADDR_SPACE_NUMBER
 #define TARGET_ADDR_SPACE_NUMBER spu_addr_space_number
+
+static bool spu_addr_space_can_convert_p (addr_space_t, addr_space_t);
+#undef TARGET_ADDR_SPACE_CAN_CONVERT_P
+#define TARGET_ADDR_SPACE_CAN_CONVERT_P spu_addr_space_can_convert_p
+
+static bool spu_addr_space_nop_convert_p (addr_space_t, addr_space_t);
+#undef TARGET_ADDR_SPACE_NOP_CONVERT_P
+#define TARGET_ADDR_SPACE_NOP_CONVERT_P spu_addr_space_nop_convert_p
+
+static addr_space_t spu_addr_space_common_pointer (addr_space_t,
+						   addr_space_t);
+#undef TARGET_ADDR_SPACE_COMMON_POINTER
+#define TARGET_ADDR_SPACE_COMMON_POINTER spu_addr_space_common_pointer
 
 static rtx spu_addr_space_convert (rtx, enum machine_mode, addr_space_t,
 				   addr_space_t);
@@ -4074,7 +4087,7 @@ ea_symbol_ref (rtx *px, void *data ATTRIBUTE_UNUSED)
   return (GET_CODE (x) == SYMBOL_REF
  	  && (decl = SYMBOL_REF_DECL (x)) != 0
  	  && TREE_CODE (decl) == VAR_DECL
- 	  && TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))));
+ 	  && TYPE_ADDR_SPACE (TREE_TYPE (decl)));
 }
 
 /* We accept:
@@ -7053,7 +7066,7 @@ spu_vector_alignment_reachable (const_tree type ATTRIBUTE_UNUSED, bool is_packed
 
 /* Return the appropriate mode for a named address pointer.  */
 static enum machine_mode
-spu_ea_pointer_mode (int addrspace)
+spu_ea_pointer_mode (addr_space_t addrspace)
 {
   switch (addrspace)
     {
@@ -7202,13 +7215,54 @@ spu_addr_space_name (addr_space_t addrspace)
   switch (addrspace)
     {
     case ADDR_SPACE_GENERIC:
-      return "";
+      return "generic";
 
     case ADDR_SPACE_EA:
       return "__ea";
     }
 
   gcc_unreachable ();
+}
+
+/* Determine if you can convert one address to another.  */
+
+static bool
+spu_addr_space_can_convert_p (addr_space_t from,
+			      addr_space_t to)
+{
+  gcc_assert (from == ADDR_SPACE_GENERIC || from == ADDR_SPACE_EA);
+  gcc_assert (to == ADDR_SPACE_GENERIC || to == ADDR_SPACE_EA);
+
+  if (TARGET_NO_LOCAL_EA_CONVERSION
+      && from == ADDR_SPACE_EA
+      && to == ADDR_SPACE_GENERIC)
+    return false;
+
+  return true;
+}
+
+/* Determine if converting one address to another is a NOP.  */
+
+static bool
+spu_addr_space_nop_convert_p (addr_space_t from,
+			      addr_space_t to)
+{
+  gcc_assert (from == ADDR_SPACE_GENERIC || from == ADDR_SPACE_EA);
+  gcc_assert (to == ADDR_SPACE_GENERIC || to == ADDR_SPACE_EA);
+  return (to == from);
+}
+
+/* Determine what named address space pointer to use between pointers to two
+   different address spaces.  */
+
+static addr_space_t
+spu_addr_space_common_pointer (addr_space_t as1,
+			       addr_space_t as2)
+{
+  gcc_assert (as1 == ADDR_SPACE_GENERIC || as1 == ADDR_SPACE_EA);
+  gcc_assert (as2 == ADDR_SPACE_GENERIC || as2 == ADDR_SPACE_EA);
+
+  return (as1 == as2) ? as1 : ADDR_SPACE_EA;
 }
 
 /* Convert from one address space to another.  */
@@ -7219,6 +7273,9 @@ spu_addr_space_convert (rtx op,
 			addr_space_t to)
 {
   rtx reg;
+
+  gcc_assert (from == ADDR_SPACE_GENERIC || from == ADDR_SPACE_EA);
+  gcc_assert (to == ADDR_SPACE_GENERIC || to == ADDR_SPACE_EA);
 
   if (to == from)
     return op;

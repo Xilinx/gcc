@@ -469,7 +469,8 @@ Objective-C and Objective-C++ Dialects}.
 -mno-id-shared-library  -mshared-library-id=@var{n} @gol
 -mleaf-id-shared-library  -mno-leaf-id-shared-library @gol
 -msep-data  -mno-sep-data  -mlong-calls  -mno-long-calls @gol
--mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram}
+-mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram @gol
+-micplb}
 
 @emph{CRIS Options}
 @gccoptlist{-mcpu=@var{cpu}  -march=@var{cpu}  -mtune=@var{cpu} @gol
@@ -800,6 +801,7 @@ See RS/6000 and PowerPC Options.
 -mfixed-range=@var{register-range} @gol
 -mea32 -mea64 @gol
 -mcache-size=@var{cache-size} @gol
+-mlocal-ea-conversion -mno-local-ea-conversion @gol
 -matomic-updates -mno-atomic-updates}
 
 @emph{System V Options}
@@ -7617,10 +7619,10 @@ be disabled.  The default maximum SCC size is 10000.
 
 @item ira-max-loops-num
 IRA uses a regional register allocation by default.  If a function
-contains loops more than number given by the parameter, non-regional
-register allocator will be used even when option
-@option{-fira-algorithm} is given.  The default value of the parameter
-is 20.
+contains loops more than number given by the parameter, only at most
+given number of the most frequently executed loops will form regions
+for the regional register allocation.  The default value of the
+parameter is 100.
 
 @end table
 @end table
@@ -9326,6 +9328,12 @@ Build standalone application for SDRAM. Proper start files and
 link scripts will be used to put the application into SDRAM.
 Loader should initialize SDRAM before loading the application
 into SDRAM. This option defines @code{__BFIN_SDRAM}.
+
+@item -micplb
+@opindex micplb
+Assume that ICPLBs are enabled at runtime.  This has an effect on certain
+anomaly workarounds.  For Linux targets, the default is to assume ICPLBs
+are enabled; for standalone applications the default is off.
 @end table
 
 @node CRIS Options
@@ -15012,6 +15020,14 @@ either 32 or 64 bits wide. The default is 32 bits.  The @code{__ea}
 address space qualifier specifies that variables reside in the PPU
 address space.  As this is an ABI changing option, all object code in an
 executable must be compiled with the same option.
+
+@item -mlocal-ea-conversion
+@itemx -mno-local-ea-conversion
+@opindex mlocal-ea-conversion
+@opindex mno-local-ea-conversion
+
+Allow/disallow pointers to the @code{__ea} address space to be
+converted local pointers.
 
 @item -mcache-size=@var{cache-size}
 @opindex mcache-size

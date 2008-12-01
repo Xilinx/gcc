@@ -36,3 +36,6 @@ int func4 (int *__ea x)	    /* { dg-error "'__ea' specified for parameter 'x'" }
   struct A i = (__ea struct A) { 1 };	/* { dg-error "compound literal qualified by address-space qualifier" } */
   return i.a;
 }
+
+extern __ea int ea_var;		/* { dg-message "note: previous.*decl" "previous.*decl" } */
+int ea_var;			/* { dg-error "conflicting named address spaces" "conflicting named address spaces" } */

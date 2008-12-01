@@ -1478,14 +1478,14 @@ integer_pow2p (const_tree expr)
   if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
 
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      enum machine_mode mode = targetm.addr_space.pointer_mode (addr_space);
-      prec = GET_MODE_BITSIZE (mode);
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      if (as)
+	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
+      else
+	prec = POINTER_SIZE;
     }
-  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = POINTER_SIZE;
   else
     prec = TYPE_PRECISION (TREE_TYPE (expr));
 
@@ -1552,14 +1552,14 @@ tree_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      enum machine_mode mode = targetm.addr_space.pointer_mode (addr_space);
-      prec = GET_MODE_BITSIZE (mode);
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      if (as)
+	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
+      else
+	prec = POINTER_SIZE;
     }
-  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = POINTER_SIZE;
   else
     prec = TYPE_PRECISION (TREE_TYPE (expr));
 
@@ -1598,14 +1598,14 @@ tree_floor_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (expr)))
+  if (POINTER_TYPE_P (TREE_TYPE (expr)))
     {
-      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      enum machine_mode mode = targetm.addr_space.pointer_mode (addr_space);
-      prec = GET_MODE_BITSIZE (mode);
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
+      if (as)
+	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
+      else
+	prec = POINTER_SIZE;
     }
-  else if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    prec = POINTER_SIZE;
   else
     prec = TYPE_PRECISION (TREE_TYPE (expr));
 
@@ -5572,8 +5572,16 @@ build_pointer_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_pointer_type (tree to_type)
 {
-  addr_space_t addr_space = TYPE_ADDR_SPACE (strip_array_types (to_type));
-  enum machine_mode mode = targetm.addr_space.pointer_mode (addr_space);
+  addr_space_t addr_space;
+  enum machine_mode mode;
+
+  if (to_type == error_mark_node)
+    return error_mark_node;
+
+  addr_space = TYPE_ADDR_SPACE (to_type);
+  mode = ((addr_space)
+	  ? targetm.addr_space.pointer_mode (addr_space)
+	  : ptr_mode);
   return build_pointer_type_for_mode (to_type, mode, false);
 }
 
@@ -5638,7 +5646,17 @@ build_reference_type_for_mode (tree to_type, enum machine_mode mode,
 tree
 build_reference_type (tree to_type)
 {
-  return build_reference_type_for_mode (to_type, ptr_mode, false);
+  addr_space_t addr_space;
+  enum machine_mode mode;
+
+  if (to_type == error_mark_node)
+    return error_mark_node;
+
+  addr_space = TYPE_ADDR_SPACE (to_type);
+  mode = ((addr_space)
+	  ? targetm.addr_space.pointer_mode (addr_space)
+	  : ptr_mode);
+  return build_reference_type_for_mode (to_type, mode, false);
 }
 
 /* Build a type that is compatible with t but has no cv quals anywhere
@@ -5781,6 +5799,7 @@ build_array_type (tree elt_type, tree index_type)
   t = make_node (ARRAY_TYPE);
   TREE_TYPE (t) = elt_type;
   TYPE_DOMAIN (t) = index_type;
+  TYPE_ADDR_SPACE (t) = TYPE_ADDR_SPACE (elt_type);
   
   if (index_type == 0)
     {

@@ -5547,7 +5547,7 @@ c_parser_postfix_expression_after_paren_type (c_parser *parser,
   maybe_warn_string_init (type, init);
 
   if (type != error_mark_node
-      && TYPE_ADDR_SPACE (strip_array_types (type))
+      && TYPE_ADDR_SPACE (type)
       && current_function_decl)
     {
       error ("compound literal qualified by address-space qualifier");

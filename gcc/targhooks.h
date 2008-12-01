@@ -108,4 +108,8 @@ extern const char *default_addr_space_name (addr_space_t);
 extern unsigned char default_addr_space_number (const_tree);
 extern rtx default_addr_space_convert (rtx, enum machine_mode, addr_space_t,
 				       addr_space_t);
+extern bool default_addr_space_can_convert_p (addr_space_t, addr_space_t);
+extern bool default_addr_space_nop_convert_p (addr_space_t, addr_space_t);
+extern addr_space_t default_addr_space_common_pointer (addr_space_t,
+						       addr_space_t);
 extern tree default_addr_space_section_name (addr_space_t);

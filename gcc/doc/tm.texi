@@ -3818,6 +3818,8 @@ registers.
 The value of this macro is the size, in bytes, of the area reserved for
 arguments passed in registers for the function represented by @var{fndecl},
 which can be zero if GCC is calling a library function.
+The argument @var{fndecl} can be the FUNCTION_DECL, or the type itself
+of the function.
 
 This space can be allocated by the caller, or be a part of the
 machine-dependent stack frame: @code{OUTGOING_REG_PARM_STACK_SPACE} says
@@ -9648,6 +9650,19 @@ Define this to return a target-defined address space number for the
 given @var{address_space}.  As this hook should never be called for
 targets that do not support named address spaces, the default version
 of this hook will cause the compiler to abort.
+@end deftypefn
+
+@deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_CAN_CONVERT_P (addr_space_t @var{from}, addr_space_t @var{to})
+Define this to return whether a pointer which points to the @var{from}
+named address space can be converted to a pointer which points to the
+@var{to} named address space.
+@end deftypefn
+
+@deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_NOP_CONVERT_P (addr_space_t @var{from}, addr_space_t @var{to})
+Define this to return whether converting a pointer which points to the
+@var{from} named address space to a pointer which points to the
+@var{to} named address space can be done as a simple copy or if a real
+conversion needs to be done.
 @end deftypefn
 
 @deftypefn {Target Hook} {rtx} TARGET_ADDR_SPACE_CONVERT (rtx @var{op}, enum machine_mode @var{mode}, addr_space_t @var{from}, addr_space_t @var{to})

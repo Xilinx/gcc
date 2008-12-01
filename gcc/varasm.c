@@ -6544,7 +6544,7 @@ default_valid_pointer_mode (enum machine_mode mode)
 /* Return the pointer mode for a given ADDRSPACE, defaulting to
    ptr_mode for the generic address space only.  */
 enum machine_mode
-default_addr_space_pointer_mode (int addrspace)
+default_addr_space_pointer_mode (addr_space_t addrspace)
 {
   gcc_assert (addrspace == 0);
   return ptr_mode;

@@ -1,3 +1,118 @@
+2008-11-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37955
+	PR tree-optimization/37742
+	* tree-vect-transform.c (vectorizable_store): Remove assert for
+	compatible aliases.
+	(vectorizable_load): Likewise.
+
+2008-11-27  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (intra_create_variable_infos): Make
+	a constraint for the static chain parameter.
+
+2008-11-27  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* config/bfin/bfin.opt (micplb): New option.
+	* config/bfin/linux.h (SUBTARGET_DRIVER_SELF_SPECS): Set it.
+	* config/bfin/bfin-protos.h (WA_INDIRECT_CALLS,
+	ENABLE_WA_INDIRECT_CALLS): New macros.
+	* config/bfin/bfin.c (bfin_cpus): Add WA_INDIRECT_CALLS to
+	all 54x CPUs.
+	(indirect_call_p): New function.
+	(workaround_speculation): Handle anomaly 05-00-0426 when
+	ENABLE_WA_INDIRECT_CALLS is true.
+	* config/bfin/bfin.h (TARGET_CPU_CPP_BUILTINS): Define
+	__WORKAROUND_INDIRECT_CALLS if ENABLE_WA_INDIRECT_CALLS.
+	* doc/invoke.texi (Blackfin Options): Document -micplb.
+
+2008-11-26  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/mov.md ("extendhipsi2"): New.
+
+	* config/m32c/bitops.md (bset_qi): Add memsym_operand predicate.
+
+	* config/m32c/bitops.md (andhi3_24, iorhi3_24): Don't prefer HL class.
+	* config/m32c/mov.md (zero_extendqihi2): Likewise.
+
+2008-11-26  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (clear_hazard): Rename to
+	clear_hazard_<mode>.  Use mode-specific addition.
+	(clear_cache): Rename gen_clear_hazard to gen_clear_hazard_si
+	or gen_clear_hazard_di depending on the size of Pmode.
+
+2008-11-26  DJ Delorie  <dj@redhat.com>
+
+	* configure.ac: Test m32c-elf-gas for .loc.
+	* configure: Likewise.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/28870
+	* doc/sourcebuild.texi (Test Directives): Add dg-timeout and
+	dg-timeout-factor.
+
+2008-11-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sync.md (memory_barrier_nosse): Disable also for
+	TARGET_64BIT.  Remove special asm template for TARGET_64BIT case.
+	(memory_barrier): Do not generate memory_barrier_nosse instruction
+	for TARGET_64BIT.
+	* config/i386/sse.md (*sse2_mfence): Also enable for TARGET_64BIT.
+
+2008-11-26  Fredrik Unger  <fred@tree.se>
+
+	* config/soft-fp/floatuntisf.c (__floatuntisf): Correct
+	function name from __floatundisf.
+	* config/soft-fp/fixdfti.c (__fixdfti): Correct argument type to
+	DFtype.
+
+2008-11-25  Daniel Berlin  <dberlin@dberlin.org>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37869
+	* tree-ssa-structalias.c (struct constraint_graph): Remove
+	pt_used and number_incoming members.
+	(build_pred_graph): Do not allocate them.
+	(condense_visit): Do not use them.
+	(label_visit): Likewise.
+	(free_var_substitution_info): Do not free them.
+
+2008-11-25  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* doc/invoke.texi (ira-max-loops-num): Change semantics.
+
+	* ira-int.h (struct ira_loop_tree_node): New member to_remove_p.
+
+	* ira-color.c (allocno_spill_priority): New function.
+	(remove_allocno_from_bucket_and_push, push_allocno_to_spill):
+	Print more info about the spilled allocno.
+	(push_allocnos_to_stack): Use allocno_spill_priority.  Add more
+	checks on bad spill.
+
+	* ira-build.c (loop_node_to_be_removed_p): Remove.
+	(loop_compare_func, mark_loops_for_removal): New functions.
+	(remove_uneccesary_loop_nodes_from_loop_t): Use member
+	to_remove_p.
+	(remove_unnecessary_allocnos): Call mark_loops_for_removal.
+
+	* ira.c (ira): Don't change flag_ira_algorithm.
+
+	* params.def (ira-max-loops-num): Change the value.
+
+2008-11-25  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/m68k.md (extendsidi2, extendsidi2_mem): Merge, clean up.
+	Disable unsupported alternative for ColdFire,
+	add new alternative that ColdFire can handle.
+
+2008-11-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* regrename.c (merge_overlapping_regs): Add registers artificially
+	defined at the top of the basic block to the set of live ones just
+	before the first insn.
+
 2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
 	    Joey Ye  <joey.ye@intel.com>
 
@@ -26,7 +141,7 @@
 2008-11-25  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/38254
-	* config/i386/sync.md (memory_barrier_nosse): New insn
+	* config/i386/sync.md (memory_barrier_nosse): New insn pattern.
 	(memory_barrier): Generate memory_barrier_nosse insn for !TARGET_SSE2.
 
 2008-11-24  Maxim Kuvyrkov  <maxim@codesourcery.com>

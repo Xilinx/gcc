@@ -1,3 +1,59 @@
+2008-11-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/pr37843-1.c: Make it nonpic targets only.
+	* gcc.target/i386/pr37843-2.c: Likewise.
+
+2008-11-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37955
+	PR tree-optimization/37742
+	* gcc.c-torture/compile/pr37955.c: New testcase.
+	* gcc.c-torture/compile/pr37742-3.c: Likewise.
+
+2008-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/38261
+	* gcc.dg/tree-ssa/alias-2.c: Only compile on nonpic targets.
+	* gcc.dg/torture/ipa-pta-1.c: Likewise.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	* lib/objc.exp (objc_target_compile): Fix typo from previous change.
+	* lib/gnat.exp (gnat_target_compile): Fix typo from previous change.
+
+	PR testsuite/28870
+	* lib/timeout.exp: New.
+	* lib/timeout-dg.exp: New.
+	* lib/gcc-dg.exp: Include new timeout library files.
+	(dg-test): Unset timeout variables.
+	* lib/gcc.exp (gcc_target_compile): Set timeout value from new proc.
+	* lib/g++.exp (g++_target_compile): Ditto.
+	* lib/gfortran.exp (gfortran_target_compile): Ditto.
+	* lib/objc.exp (objc_target_compile): Ditto.
+	* lib/obj-c++.exp (obj-c++_target_compile): Ditto.
+	* lib/obj-c++.exp (obj-c++_target_compile): Ditto.
+	* lib/gnat.exp (gnat_target_compile): Ditto.
+
+2008-11-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/pr37843-1.c: Make it Linux only.
+	* gcc.target/i386/pr37843-2.c: Likewise.
+
+2008-11-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* gcc.dg/callabi/func-indirect.c: New.
+
+2008-11-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28743
+	* g++.dg/template/nontype18.C: New test.
+
+2008-11-25  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.c-torture/compile/20080929-1.c: New.
+
 2008-11-25  Janis Johnson  <janis187@us.ibm.com>
 
 	* gfortran.dg/default_format_denormal_1.f90: Fix xfail for darwin.

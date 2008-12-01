@@ -43,6 +43,11 @@ along with GCC; see the file COPYING3.  If not see
 tree
 convert_to_pointer (tree type, tree expr)
 {
+  addr_space_t to_as = TYPE_ADDR_SPACE (TREE_TYPE (type));
+  addr_space_t from_as;
+  enum tree_code tcode;
+  int pointer_size;
+
   if (TREE_TYPE (expr) == type)
     return expr;
 
@@ -54,21 +59,39 @@ convert_to_pointer (tree type, tree expr)
     {
     case POINTER_TYPE:
     case REFERENCE_TYPE:
-      return fold_build1 (NOP_EXPR, type, expr);
+      /* If the pointers point to different address spaces, see if we can do the
+	 convert, and if we can do the convert, whether the conversion is a NOP
+	 or not.  */
+      tcode = NOP_EXPR;
+      from_as = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (expr)));
+      if (to_as != from_as)
+	{
+	  if (! targetm.addr_space.can_convert_p (from_as, to_as))
+	    {
+	      error ("cannot convert %s address space pointers to "
+		     "%s address space pointers",
+		     targetm.addr_space.name (from_as),
+		     targetm.addr_space.name (to_as));
+	      return convert_to_pointer (type, integer_zero_node);
+	    }
+
+	  if (! targetm.addr_space.nop_convert_p (from_as, to_as))
+	    tcode = CONVERT_EXPR;
+	}
+      return fold_build1 (tcode, type, expr);
 
     case INTEGER_TYPE:
     case ENUMERAL_TYPE:
     case BOOLEAN_TYPE:
-    {
-      int pointer_size =
-	TYPE_ADDR_SPACE (TREE_TYPE (type))
-	? GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (type))))
-	: POINTER_SIZE;
+      /* Figure out the native pointer size, depending on the address space.  */
+      pointer_size = (!to_as
+		      ? POINTER_SIZE
+		      : GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (to_as))); 
 
       if (TYPE_PRECISION (TREE_TYPE (expr)) != pointer_size)
 	expr = fold_build1 (NOP_EXPR, lang_hooks.types.type_for_size (pointer_size, 0), expr);
-    }
-    return fold_build1 (CONVERT_EXPR, type, expr);
+
+      return fold_build1 (CONVERT_EXPR, type, expr);
 
 
     default:
@@ -488,16 +511,22 @@ convert_to_integer (tree type, tree expr)
     case REFERENCE_TYPE:
       {
  	int pointer_size;
+	addr_space_t as;
 
  	if (integer_zerop (expr))
  	  return build_int_cst (type, 0);
 
  	/* Convert to an unsigned integer of the correct width first,
  	   and from there widen/truncate to the required type.  */
- 	pointer_size =
- 	  TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (intype)))
-	  ? GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (TYPE_ADDR_SPACE (TREE_TYPE (intype))))
- 	  : POINTER_SIZE;
+	as = TYPE_ADDR_SPACE (TREE_TYPE (intype));
+	if (!as)
+	  pointer_size = POINTER_SIZE;
+
+	else
+	  {
+	    enum machine_mode mode = targetm.addr_space.pointer_mode (as);
+	    pointer_size = GET_MODE_BITSIZE (mode);
+	  }
 
  	expr = fold_build1 (CONVERT_EXPR,
  			    lang_hooks.types.type_for_size (pointer_size, 0),

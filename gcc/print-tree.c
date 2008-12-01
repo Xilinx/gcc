@@ -110,6 +110,8 @@ print_node_brief (FILE *file, const char *prefix, const_tree node, int indent)
 	    fprintf (file, " %s",
 		     IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (node))));
 	}
+      if (TYPE_ADDR_SPACE (node))
+	fprintf (file, " address-space-%d", TYPE_ADDR_SPACE (node));
     }
   if (TREE_CODE (node) == IDENTIFIER_NODE)
     fprintf (file, " %s", IDENTIFIER_POINTER (node));
@@ -298,6 +300,9 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
     fputs (" constant", file);
   else if (TYPE_P (node) && TYPE_SIZES_GIMPLIFIED (node))
     fputs (" sizes-gimplified", file);
+
+  if (TYPE_P (node) && TYPE_ADDR_SPACE (node))
+    fprintf (file, " address-space-%d", TYPE_ADDR_SPACE (node));
 
   if (TREE_ADDRESSABLE (node))
     fputs (" addressable", file);

@@ -6927,10 +6927,11 @@ expand_expr_addr_expr (tree exp, rtx target, enum machine_mode tmode,
     tmode = TYPE_MODE (TREE_TYPE (exp));
 
   addrmode = Pmode;
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (TREE_TYPE (exp)))
+  if (POINTER_TYPE_P (TREE_TYPE (exp)))
     {
-      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (exp));
-      addrmode = targetm.addr_space.pointer_mode (addr_space);
+      addr_space_t addr_space = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (exp)));
+      if (addr_space)
+	addrmode = targetm.addr_space.pointer_mode (addr_space);
     }
 
   /* We can get called with some Weird Things if the user does silliness
@@ -8143,16 +8144,20 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Handle casts of pointers to/from address space qualified
 	 pointers.  */
       subexp0 = TREE_OPERAND (exp, 0);
-      if (POINTER_TYPE_P (type)
-	  && POINTER_TYPE_P (TREE_TYPE (subexp0))
-	  && (TYPE_ADDR_SPACE (TREE_TYPE (type))
-	      != TYPE_ADDR_SPACE (TREE_TYPE (subexp0))))
+      if (POINTER_TYPE_P (type) && POINTER_TYPE_P (TREE_TYPE (subexp0)))
 	{
-	  op0 = expand_expr (subexp0, NULL_RTX, VOIDmode, modifier);
-	  return targetm.addr_space.convert (op0,
-					     TYPE_MODE (type),
-					     TYPE_ADDR_SPACE (TREE_TYPE (subexp0)),
-					     TYPE_ADDR_SPACE (TREE_TYPE (type)));
+	  tree subexp0_type = TREE_TYPE (subexp0);
+	  addr_space_t as_to = TYPE_ADDR_SPACE (TREE_TYPE (type));
+	  addr_space_t as_from = TYPE_ADDR_SPACE (TREE_TYPE (subexp0_type));
+
+	  if (as_to != as_from)
+	    {
+	      op0 = expand_expr (subexp0, NULL_RTX, VOIDmode, modifier);
+	      return targetm.addr_space.convert (op0,
+						 TYPE_MODE (type),
+						 as_from,
+						 as_to);
+	    }
 	}
 
       if (mode == TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 0))))

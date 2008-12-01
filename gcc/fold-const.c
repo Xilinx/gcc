@@ -203,13 +203,15 @@ fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
   unsigned int prec;
   int sign_extended_type;
 
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
+  if (POINTER_TYPE_P (type))
     {
-      addr_space_t addr_space = TYPE_ADDR_SPACE (type);
-      prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (addr_space));
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
+      if (as)
+	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
+      else
+	prec = POINTER_SIZE;
     }
-  else if (POINTER_TYPE_P (type)
-	   || TREE_CODE (type) == OFFSET_TYPE)
+  else if (TREE_CODE (type) == OFFSET_TYPE)
     prec = POINTER_SIZE;
   else
     prec = TYPE_PRECISION (type);
@@ -2401,7 +2403,7 @@ fold_convert_const (enum tree_code code, tree type, tree arg1)
   if (TREE_TYPE (arg1) == type)
     return arg1;
 
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
+  if (POINTER_TYPE_P (type) && TYPE_ADDR_SPACE (TREE_TYPE (type)))
     return NULL_TREE;
   else if (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type)
       || TREE_CODE (type) == OFFSET_TYPE)

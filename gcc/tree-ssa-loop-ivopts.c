@@ -2020,14 +2020,17 @@ strip_offset (tree expr, unsigned HOST_WIDE_INT *offset)
 static tree
 generic_type_for (tree type)
 {
-  if (GENERIC_ADDR_SPACE_POINTER_TYPE_P (type))
-    return unsigned_type_for (type);
-
-  if (OTHER_ADDR_SPACE_POINTER_TYPE_P (type))
+  if (POINTER_TYPE_P (type))
     {
-      int qual = ENCODE_QUAL_ADDR_SPACE (TYPE_ADDR_SPACE (TREE_TYPE (type)));
-      return build_pointer_type
-	(build_qualified_type (void_type_node, qual));
+      int qual;
+
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
+      if (!as)			/* generic address space */
+	return unsigned_type_for (type);
+
+      /* named address space */
+      qual = ENCODE_QUAL_ADDR_SPACE (as);
+      return build_pointer_type (build_qualified_type (void_type_node, qual));
     }
 
   if (TYPE_UNSIGNED (type))

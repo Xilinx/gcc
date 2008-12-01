@@ -1246,8 +1246,23 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	}
       else
 	{
-	  if (TYPE_QUALS (newtype) != TYPE_QUALS (oldtype))
-	    error ("conflicting type qualifiers for %q+D", newdecl);
+	  int new_quals = TYPE_QUALS (newtype);
+	  int old_quals = TYPE_QUALS (oldtype);
+
+	  if (new_quals != old_quals)
+	    {
+	      addr_space_t new_addr = DECODE_QUAL_ADDR_SPACE (new_quals);
+	      addr_space_t old_addr = DECODE_QUAL_ADDR_SPACE (old_quals);
+	      if (new_addr != old_addr)
+		error ("conflicting named address spaces (%s vs %s) for %q+D",
+		       targetm.addr_space.name (new_addr),
+		       targetm.addr_space.name (old_addr),
+		       newdecl);
+
+	      if (CLEAR_QUAL_ADDR_SPACE (new_quals)
+		  != CLEAR_QUAL_ADDR_SPACE (old_quals))
+		error ("conflicting type qualifiers for %q+D", newdecl);
+	    }
 	  else
 	    error ("conflicting types for %q+D", newdecl);
 	  diagnose_arglist_conflict (newdecl, olddecl, newtype, oldtype);
@@ -3279,16 +3294,16 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
 
   if (TREE_CODE (decl) == VAR_DECL
       && TREE_TYPE (decl) != error_mark_node
-      && (addrspace = TYPE_ADDR_SPACE (strip_array_types (TREE_TYPE (decl))))
+      && (addrspace = TYPE_ADDR_SPACE (TREE_TYPE (decl)))
       && (declspecs->storage_class == csc_static
 	  || (declspecs->storage_class == csc_none
 	      && !current_function_scope)
 	  || (declspecs->storage_class == csc_extern
 	      && initialized)))
     {
-      /* FIXME: do not use __ea.  */
       if (!targetm.have_named_sections)
-	error ("%<__ea%> definitions not supported for %qD", decl);
+	error ("%<%s%> definitions not supported for %qD",
+	       targetm.addr_space.name (addrspace), decl);
       DECL_SECTION_NAME (decl) = targetm.addr_space.section_name (addrspace);
     }
 
@@ -4465,7 +4480,14 @@ grokdeclarator (const struct c_declarator *declarator,
 	       it, but here we want to make sure we don't ever
 	       modify the shared type, so we gcc_assert (itype)
 	       below.  */
-	      type = build_array_type (type, itype);
+	      {
+		addr_space_t as = DECODE_QUAL_ADDR_SPACE (type_quals);
+		if (as && as != TYPE_ADDR_SPACE (type))
+		  type = build_qualified_type (type,
+					       ENCODE_QUAL_ADDR_SPACE (as));
+
+		type = build_array_type (type, itype);
+	      }
 
 	    if (type != error_mark_node)
 	      {
@@ -4605,7 +4627,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	       for the pointer.  */
 
 	    if (pedantic && TREE_CODE (type) == FUNCTION_TYPE
-		&& type_quals)
+		&& CLEAR_QUAL_ADDR_SPACE (type_quals))
 	      pedwarn (input_location, OPT_pedantic,
 		       "ISO C forbids qualified function types");
 	    if (type_quals)
@@ -4818,7 +4840,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	  }
 	else if (TREE_CODE (type) == FUNCTION_TYPE)
 	  {
-	    if (type_quals)
+	    if (CLEAR_QUAL_ADDR_SPACE (type_quals))
 	      pedwarn (input_location, OPT_pedantic,
 		       "ISO C forbids qualified function types");
 	    if (type_quals)
@@ -4907,7 +4929,8 @@ grokdeclarator (const struct c_declarator *declarator,
 	DECL_SOURCE_LOCATION (decl) = declarator->id_loc;
 	decl = build_decl_attribute_variant (decl, decl_attr);
 
-	if (pedantic && type_quals && !DECL_IN_SYSTEM_HEADER (decl))
+	if (pedantic && CLEAR_QUAL_ADDR_SPACE (type_quals)
+	    && !DECL_IN_SYSTEM_HEADER (decl))
 	  pedwarn (input_location, OPT_pedantic,
 		   "ISO C forbids qualified function types");
 
