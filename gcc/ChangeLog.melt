@@ -1,4 +1,7 @@
 2008-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: adding normapt_cmatchpat.
+	* testsuite/melt/tmatch-1.bysl: first pattern in tmatch_aa is nested.
+2008-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/ : added directory
 	* testsuite/melt/README: added new file.
 	* testsuite/melt/tmatch-1.bysl: added new file.
@@ -6,6 +9,7 @@
 	right order.
 	* melt/warmelt-normatch.bysl: added normpat_anypat method for
 	normal_pattern of class_srcpattern_any.
+
 2008-11-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: normexp_class had too strong assert.
 	* melt/warmelt-normatch.bysl: normpat_anyrecv has good psloc.
