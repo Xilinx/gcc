@@ -1478,17 +1478,7 @@ integer_pow2p (const_tree expr)
   if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
 
-  if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    {
-      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      if (as)
-	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
-      else
-	prec = POINTER_SIZE;
-    }
-  else
-    prec = TYPE_PRECISION (TREE_TYPE (expr));
-
+  prec = int_or_pointer_precision (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -1552,17 +1542,7 @@ tree_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    {
-      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      if (as)
-	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
-      else
-	prec = POINTER_SIZE;
-    }
-  else
-    prec = TYPE_PRECISION (TREE_TYPE (expr));
-
+  prec = int_or_pointer_precision (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -1598,17 +1578,7 @@ tree_floor_log2 (const_tree expr)
   if (TREE_CODE (expr) == COMPLEX_CST)
     return tree_log2 (TREE_REALPART (expr));
 
-  if (POINTER_TYPE_P (TREE_TYPE (expr)))
-    {
-      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (expr));
-      if (as)
-	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
-      else
-	prec = POINTER_SIZE;
-    }
-  else
-    prec = TYPE_PRECISION (TREE_TYPE (expr));
-
+  prec = int_or_pointer_precision (TREE_TYPE (expr));
   high = TREE_INT_CST_HIGH (expr);
   low = TREE_INT_CST_LOW (expr);
 
@@ -9244,6 +9214,31 @@ build_target_option_node (void)
     }
 
   return t;
+}
+
+/* Return the size in bits of an integer or pointer type.  */
+
+unsigned int
+int_or_pointer_precision (const_tree type)
+{
+  unsigned int prec;
+
+  if (POINTER_TYPE_P (type))
+    {
+      /* Pointer types don't always use TYPE_PRECISION, and with the named
+	 address support, pointers can be different sizes.  */
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
+      if (!as)
+	prec = POINTER_SIZE;
+      else
+	prec = GET_MODE_BITSIZE (targetm.addr_space.pointer_mode (as));
+    }
+  else if (TREE_CODE (type) == OFFSET_TYPE)
+    prec = POINTER_SIZE;
+  else
+    prec = TYPE_PRECISION (type);
+
+  return prec;
 }
 
 #include "gt-tree.h"

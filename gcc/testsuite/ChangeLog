@@ -1,3 +1,77 @@
+2008-12-01  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38252
+	* gfortran.dg/empty_function_1.f90: New test.
+
+2008-12-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/33642
+	* gcc.c-torture/compile/pr11832.c: Extend XFAIL to alpha*-*-*.
+	* gcc.c-torture/compile/pr33009.c: Likewise.
+
+2008-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38348
+	* g++.dg/gomp/for-19.C: New test.
+
+	PR rtl-optimization/38245
+	* gcc.dg/pr38245-1.c: New test.
+	* gcc.dg/pr38245-2.c: New test.
+
+2008-11-30  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37779
+	* gfortran.dg/recursive_check_1.f: Changed expected error message to
+	the more general new one.
+	* gfortran.dg/recursive_check_2.f90: Ditto.
+	* gfortran.dg/entry_18.f90: Ditto.
+	* gfortran.dg/recursive_check_4.f03: Do "the same" check also for
+	FUNCTIONS, as this is different in details from SUBROUTINES.
+	* gfortran.dg/recursive_check_6.f03: New test.
+
+2008-11-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/opt/reload3.C: New test.
+
+2008-11-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35824
+	* gfortran.dg/alloc_comp_assign_8.f90 : New test.
+
+2008-11-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/37843
+	* gcc.target/i386/pr37843-3.c: Make it nonpic targets only.
+
+2008-11-29  Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus <burnus@gcc.gnu.org>
+
+	PR fortran/38289
+	PR fortran/38290
+	* gfortran.dg/proc_decl_1.f90: Extended test case.
+
+2008-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* g++.dg/cpp/stringop-1.C: New test.
+
+2008-11-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/test_version.adb: Adjust to new string length.
+
+2008-11-28  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR testsuite/38311
+	* ssp-2.c: Link with -Wl,-multiply_defined,suppress on darwin.
+
+2008-11-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38233
+	* g++.dg/init/array25.C: New test.
+	* g++.dg/init/value4.C: New test.
+
+	PR c++/38278
+	* g++.dg/lookup/name-clash8.C: New test.
+
 2008-11-28  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/37843

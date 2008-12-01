@@ -455,7 +455,7 @@ emutls_common_1 (void **loc, void *xstmts)
 void
 emutls_finish (void)
 {
-  if (!targetm.emutls.register_common)
+  if (targetm.emutls.register_common)
     {
       tree body = NULL_TREE;
 

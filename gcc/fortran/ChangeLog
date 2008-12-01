@@ -1,3 +1,33 @@
+2008-12-01  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38252
+	* parse.c (parse_spec): Skip statement order check in case
+	of a CONTAINS statement.
+
+2008-11-30  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37779
+	* gfortran.h (struct gfc_entry_list): Fixed typo in comment.
+	* resolve.c (is_illegal_recursion): New method.
+	(resolve_procedure_expression): Use new is_illegal_recursion instead of
+	direct check and handle function symbols correctly.
+	(resolve_actual_arglist): Removed useless recursion check.
+	(resolve_function): Use is_illegal_recursion instead of direct check.
+	(resolve_call): Ditto.
+
+2008-11-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* trans-array.c (gfc_conv_array_parameter): Guard union access.
+
+2008-11-29  Janus Weil  <janus@gcc.gnu.org>
+	    Mikael Morin <mikael@gcc.gnu.org>
+
+	PR fortran/38289
+	PR fortran/38290
+	* decl.c (match_procedure_decl): Handle whitespaces.
+	* resolve.c (resolve_specific_s0): Bugfix in check for intrinsic
+	interface.
+
 2008-11-25  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* module.c (gfc_dump_module): Report error on unlink only if

@@ -1,3 +1,15 @@
+2008-12-01  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* tree.h (int_or_pointer_precision): Add declaration.
+
+	* tree.c (int_or_pointer_precision): New function to return the
+	precision in bits of integer and pointer types.
+	(integer_pow2p): Use int_or_pointer_precision.
+	(tree_log2): Ditto.
+	(tree_floor_log2): Ditto.
+
+	* fold-const.c (fit_double_type): Use int_or_pointer_precision.
+
 2008-11-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* targhook.c (default_addr_space_common_pointer): New default hook

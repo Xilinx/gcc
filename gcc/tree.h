@@ -4707,6 +4707,7 @@ extern bool stdarg_p (tree);
 extern bool prototype_p (tree);
 extern int function_args_count (tree);
 extern bool auto_var_in_fn_p (const_tree, const_tree);
+extern unsigned int int_or_pointer_precision (const_tree);
 
 /* In gimplify.c */
 extern tree unshare_expr (tree);
