@@ -1,5 +1,20 @@
 2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
 
+	Fix testsuite/gfortran.dg/graphite/id-1.f90.
+	* graphite.c (gmp_cst_to_tree): Pass the type in parameter.
+	(loop_iv_stack_patch_for_consts): Update use of gmp_cst_to_tree.
+	(max_precision_type): New.
+	(value_clast): Removed.
+	(clast_to_gcc_expression): Be more careful to types of expressions.
+	Use max_precision_type and update use of gmp_cst_to_tree.
+	(graphite_translate_clast_equation): Use max_precision_type.
+	(graphite_create_guard_cond_expr): Do not use integer_type_node, 
+	use the type of the condition.
+	(graphite_create_new_loop): Do not use integer_type_node, use the
+	max_precision_type of lb and ub.
+
+2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (build_scops_1): Initialize open_scop.exit
 	and sinfo.last.
 

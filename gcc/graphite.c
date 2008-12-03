@@ -64,9 +64,9 @@ static VEC (scop_p, heap) *current_scops;
 /* Converts a GMP constant V to a tree and returns it.  */
 
 static tree
-gmp_cst_to_tree (Value v)
+gmp_cst_to_tree (tree type, Value v)
 {
-  return build_int_cst (integer_type_node, value_get_si (v));
+  return build_int_cst (type, value_get_si (v));
 }
 
 /* Debug the list of old induction variables for this SCOP.  */
@@ -263,7 +263,7 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
       if (((struct clast_assignment *)t)->RHS->type == expr_term
 	  && !term->var)
 	{
-	  tree value = gmp_cst_to_tree (term->val);
+	  tree value = gmp_cst_to_tree (integer_type_node, term->val);
 	  loop_iv_stack_insert_constant (stack, index, value);
 	}
       index = index + 1;
@@ -1521,7 +1521,6 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 static struct scopdet_info 
 build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
 {
-
   bool in_scop = false;
   sd_region open_scop;
   struct scopdet_info sinfo;
@@ -3296,12 +3295,15 @@ clast_name_to_gcc (const char *name, VEC (name_tree, heap) *params,
   gcc_unreachable ();
 }
 
-/* A union needed to convert from CLAST expressions to GMP values.  */
+/* Returns the maximal precision type for expressions E1 and E2.  */
 
-typedef union {
-  struct clast_expr *c;
-  Value v;
-} value_clast;
+static inline tree
+max_precision_type (tree e1, tree e2)
+{
+  tree type1 = TREE_TYPE (e1);
+  tree type2 = TREE_TYPE (e2);
+  return TYPE_PRECISION (type1) > TYPE_PRECISION (type2) ? type1 : type2;
+}
 
 /* Converts a Cloog AST expression E back to a GCC expression tree.   */
 
@@ -3310,10 +3312,6 @@ clast_to_gcc_expression (struct clast_expr *e,
 			 VEC (name_tree, heap) *params,
 			 loop_iv_stack ivstack)
 {
-  tree type = integer_type_node;
-
-  gcc_assert (e);
-
   switch (e->type)
     {
     case expr_term:
@@ -3326,21 +3324,26 @@ clast_to_gcc_expression (struct clast_expr *e,
  	      return clast_name_to_gcc (t->var, params, ivstack);
 
 	    else if (value_mone_p (t->val))
-	      return fold_build1 (NEGATE_EXPR, type,
-				  clast_name_to_gcc (t->var, params, ivstack));
+	      {
+		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		tree type = TREE_TYPE (name);
+		return fold_build1 (NEGATE_EXPR, type, name);
+	      }
 	    else
-	      return fold_build2 (MULT_EXPR, type,
-				  gmp_cst_to_tree (t->val),
-				  clast_name_to_gcc (t->var, params, ivstack));
+	      {
+		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		tree type = TREE_TYPE (name);
+		tree cst = gmp_cst_to_tree (type, t->val);
+		return fold_build2 (MULT_EXPR, type, cst, name);
+	      }
 	  }
 	else
-	  return gmp_cst_to_tree (t->val);
+	  return gmp_cst_to_tree (integer_type_node, t->val);
       }
 
     case expr_red:
       {
         struct clast_reduction *r = (struct clast_reduction *) e;
-        tree left, right;
 
         switch (r->type)
           {
@@ -3350,13 +3353,15 @@ clast_to_gcc_expression (struct clast_expr *e,
 
 	    else 
 	      {
+		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
+		tree type = max_precision_type (tl, tr);
+
 		gcc_assert (r->n >= 1
 			    && r->elts[0]->type == expr_term
 			    && r->elts[1]->type == expr_term);
 
-		left = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		right = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		return fold_build2 (PLUS_EXPR, type, left, right);
+		return fold_build2 (PLUS_EXPR, type, tl, tr);
 	      }
 
 	    break;
@@ -3367,9 +3372,10 @@ clast_to_gcc_expression (struct clast_expr *e,
 
 	    else if (r->n == 2)
 	      {
-		left = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		right = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		return fold_build2 (MIN_EXPR, type, left, right);
+		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
+		tree type = max_precision_type (tl, tr);
+		return fold_build2 (MIN_EXPR, type, tl, tr);
 	      }
 
 	    else
@@ -3383,9 +3389,10 @@ clast_to_gcc_expression (struct clast_expr *e,
 
 	    else if (r->n == 2)
 	      {
-		left = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		right = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		return fold_build2 (MAX_EXPR, type, left, right);
+		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
+		tree type = max_precision_type (tl, tr);
+		return fold_build2 (MAX_EXPR, type, tl, tr);
 	      }
 
 	    else
@@ -3404,11 +3411,8 @@ clast_to_gcc_expression (struct clast_expr *e,
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
 	tree tl = clast_to_gcc_expression (lhs, params, ivstack);
-	value_clast r;
-	tree tr;
-
-	r.c = (struct clast_expr *) b->RHS;
-	tr = gmp_cst_to_tree (r.v);
+	tree type = TREE_TYPE (tl);
+	tree tr = gmp_cst_to_tree (type, b->RHS);
 
 	switch (b->type)
 	  {
@@ -3446,6 +3450,7 @@ graphite_translate_clast_equation (scop_p scop,
   enum tree_code comp;
   tree lhs = clast_to_gcc_expression (cleq->LHS, SCOP_PARAMS (scop), ivstack);
   tree rhs = clast_to_gcc_expression (cleq->RHS, SCOP_PARAMS (scop), ivstack);
+  tree type = max_precision_type (lhs, rhs);
 
   if (cleq->sign == 0)
     comp = EQ_EXPR;
@@ -3456,7 +3461,7 @@ graphite_translate_clast_equation (scop_p scop,
   else
     comp = LE_EXPR;
 
-  return fold_build2 (comp, integer_type_node, lhs, rhs);
+  return fold_build2 (comp, type, lhs, rhs);
 }
 
 /* Creates the test for the condition in STMT.  */
@@ -3473,7 +3478,7 @@ graphite_create_guard_cond_expr (scop_p scop, struct clast_guard *stmt,
       tree eq = graphite_translate_clast_equation (scop, &stmt->eq[i], ivstack);
 
       if (cond)
-	cond = fold_build2 (TRUTH_AND_EXPR, integer_type_node, cond, eq);
+	cond = fold_build2 (TRUTH_AND_EXPR, TREE_TYPE (eq), cond, eq);
       else
 	cond = eq;
     }
@@ -3504,26 +3509,17 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 			  struct clast_for *stmt, loop_iv_stack ivstack,
 			  loop_p outer)
 {
-  struct loop *loop;
-  tree ivvar;
-  tree stride, lowb, upb;
+  tree lb = clast_to_gcc_expression (stmt->LB, SCOP_PARAMS (scop), ivstack);
+  tree ub = clast_to_gcc_expression (stmt->UB, SCOP_PARAMS (scop), ivstack);
+  tree type = max_precision_type (lb, ub);
+  tree stride = gmp_cst_to_tree (type, stmt->stride);
+  tree ivvar = create_tmp_var (type, "graphiteIV");
   tree iv_before;
-
-  gcc_assert (stmt->LB
-	      && stmt->UB);
-
-  stride = gmp_cst_to_tree (stmt->stride);
-  lowb = clast_to_gcc_expression (stmt->LB, SCOP_PARAMS (scop), ivstack);
-  ivvar = create_tmp_var (integer_type_node, "graphiteIV");
+  loop_p loop = create_empty_loop_on_edge (entry_edge, lb, stride, ub, ivvar,
+					   &iv_before, outer ? outer
+					   : entry_edge->src->loop_father);
   add_referenced_var (ivvar);
-
-  upb = clast_to_gcc_expression (stmt->UB, SCOP_PARAMS (scop), ivstack);
-  loop = create_empty_loop_on_edge (entry_edge, lowb, stride, upb, ivvar,
-				    &iv_before, outer ? outer
-				    : entry_edge->src->loop_father);
-
   loop_iv_stack_push_iv (ivstack, iv_before, stmt->iterator);
-
   return loop;
 }
 
