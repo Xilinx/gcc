@@ -2324,26 +2324,28 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
     case MULT_EXPR:
       if (chrec_contains_symbols (TREE_OPERAND (e, 0)))
 	{
-	  Value val;
-
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
-
-	  value_init (val);
-	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
-	  value_multiply (k, k, val);
-	  value_clear (val);
+	  if (c)
+	    {
+	      Value val;
+	      gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
+	      value_init (val);
+	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
+	      value_multiply (k, k, val);
+	      value_clear (val);
+	    }
 	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
 	}
       else
 	{
-	  Value val;
-
-	  gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
-
-	  value_init (val);
-	  value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
-	  value_multiply (k, k, val);
-	  value_clear (val);
+	  if (c)
+	    {
+	      Value val;
+	      gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
+	      value_init (val);
+	      value_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
+	      value_multiply (k, k, val);
+	      value_clear (val);
+	    }
 	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
 	}
       break;

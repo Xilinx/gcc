@@ -1,5 +1,11 @@
 2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
 
+	Fix testsuite/gfortran.dg/graphite/id-4.f90.
+	* graphite.c (scan_tree_for_params): Do not compute the multiplicand
+	when not needed.
+
+2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
 	Fix testsuite/gfortran.dg/graphite/id-1.f90.
 	* graphite.c (gmp_cst_to_tree): Pass the type in parameter.
 	(loop_iv_stack_patch_for_consts): Update use of gmp_cst_to_tree.
