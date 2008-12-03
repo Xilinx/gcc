@@ -119,7 +119,7 @@ typedef struct graphite_bb
    CloogMatrix *domain;
 
   /* Lists containing the restrictions of the conditional statements
-     dominating this bb. This bb can only be executed, if all conditions
+     dominating this bb.  This bb can only be executed, if all conditions
      are true.
  
      Example:
@@ -132,13 +132,13 @@ typedef struct graphite_bb
          B
      }
  
-     So for B there is a additional condition (2i <= 8).
+     So for B there is an additional condition (2i <= 8).
  
-     TODO: Add this restrictions to the domain matrix.
+     TODO: Add these restrictions to the domain matrix.
       
-     List of COND_EXPR and SWITCH_EXPR. A COND_EXPR is true only if the 
-     corresponding element in CONDITION_CASES is not NULL_TREE. For a 
-     SWITCH_EXPR the corresponding element in CONDITION_CASES is a 
+     List of COND_EXPR and SWITCH_EXPR.  A COND_EXPR is true only if the
+     corresponding element in CONDITION_CASES is not NULL_TREE.  For a
+     SWITCH_EXPR the corresponding element in CONDITION_CASES is a
      CASE_LABEL_EXPR.  */
   VEC (gimple, heap) *conditions;
   VEC (gimple, heap) *condition_cases;
@@ -237,7 +237,7 @@ gbb_loop_at_index (graphite_bb_p gb, int index)
   return VEC_index (loop_p, GBB_LOOPS (gb), index);
 }
 
-/* Returns the corresponding loop iterator index for a gimple loop.  */
+/* Returns the index of LOOP in the loop nest around GB.  */
 
 static inline int
 gbb_loop_index (graphite_bb_p gb, loop_p loop)
@@ -342,8 +342,7 @@ extern void debug_gbb (graphite_bb_p, int);
 extern void dot_scop (scop_p);
 extern void dot_all_scops (void);
 extern void debug_clast_stmt (struct clast_stmt *);
-
-
+extern void debug_rename_map (htab_t);
 extern void debug_loop_vec (graphite_bb_p gb);
 extern void debug_oldivs (scop_p);
 
@@ -522,8 +521,7 @@ scop_gimple_loop_depth (scop_p scop, loop_p loop)
 
 static inline unsigned scop_nb_params (scop_p scop);
 
-/* Static inline function definitions. Graphite BB
-   manipulation functions.  */
+/* Returns true when BB is in SCOP.  */
 
 static inline bool
 bb_in_scop_p (basic_block bb, scop_p scop)
