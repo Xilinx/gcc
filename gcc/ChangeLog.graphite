@@ -1,4 +1,13 @@
 2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* testsuite/gcc.dg/graphite/pr38084.c: New.
+	* testsuite/gfortran.dg/graphite/id-1.f90: New.
+	* testsuite/gfortran.dg/graphite/id-2.f90: New.
+	* testsuite/gfortran.dg/graphite/id-3.f90: New.
+	* testsuite/gfortran.dg/graphite/id-4.f90: New.
+	* testsuite/gfortran.dg/graphite/pr37857.f90: New.
+
+2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
             Harsha Jagasia  <harsha.jagasia@amd.com>
 
