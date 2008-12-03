@@ -1,3 +1,8 @@
+2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_scops_1): Initialize open_scop.exit
+	and sinfo.last.
+
 2008-12-02  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* testsuite/gcc.dg/graphite/pr38084.c: New.

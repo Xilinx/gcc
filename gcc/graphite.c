@@ -1533,6 +1533,8 @@ build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
   result.next = NULL;
   result.last = NULL;
   open_scop.entry = NULL;
+  open_scop.exit = NULL;
+  sinfo.last = NULL;
 
   /* Loop over the dominance tree.  If we meet a difficult bb, close
      the current SCoP.  Loop and condition header start a new layer,
