@@ -52,6 +52,7 @@
 (defselector scan_pattern class_selector
 )
 
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; scanning nil
@@ -355,6 +356,9 @@
 ;;; the pattern context
 (defselector normal_pattern class_selector)
 
+
+;;; expansion of tuples in cmatcher should be done in warmelt-genobj
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for normpat any reciever (by failing)
@@ -409,12 +413,24 @@
 	)
     (assert_msg "check cmat" (is_a cmat class_cmatcher))
     (debug_msg inargs "normpat_cmatchpat inargs")
+    (debug_msg cmat "normpat_cmatchpat cmat")
     (multicall
      (nins bindins)
      (normalize_tuple inargs env ncx sloc)
      (debug_msg nins "normpat_cmatchpat nins")
      (debug_msg bindins "normpat_cmatchpat bindins")
      (if bindins (list_append2list bindlist bindins))
+     (let ( (curtestp (instance class_nrep_testp_matcher
+				:nrep_loc sloc
+				:nexpr_ctyp (get_field :amatch_matchbind cmat)
+				:ntsp_succp ()
+				:ntsp_test ()
+				:ntsm_matcher cmat
+				:ntsm_binds ()
+				))
+	    )
+       (debug_msg curtestp "normpat_cmatchpat curtestp")
+       )
      (assert_msg "normpat_cmatchpat @@NOT IMPLEMENTED@@" ())
      (compile_warning "normpat_cmatchpat INCOMPLETE" ())
      )

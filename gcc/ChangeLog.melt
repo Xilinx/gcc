@@ -1,5 +1,8 @@
+2008-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added more of normpat_cmatchpat.
+
 2008-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt/warmelt-normatch.bysl: adding normapt_cmatchpat.
+	* melt/warmelt-normatch.bysl: adding normpat_cmatchpat.
 	* testsuite/melt/tmatch-1.bysl: first pattern in tmatch_aa is nested.
 2008-12-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/ : added directory
