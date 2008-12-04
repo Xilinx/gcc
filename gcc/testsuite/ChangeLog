@@ -1,3 +1,94 @@
+2008-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/union-4.c: New test.
+
+2008-12-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.old-deja/g++.eh/badalloc1.C: Add the missing "}".
+
+2008-12-03  Janis Johnson  <janis187@us.ibm.com>
+
+	* g++.old-deja/g++.eh/badalloc1.C: Reinstate XFAIL for Darwin 3-7.
+
+2008-12-03  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* g++.old-deja/g++.eh/badalloc1.C: Omit XFAIL on obsolete Darwin.
+
+2008-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38232
+	* g++.dg/init/value5.C: New test.
+
+	PR c++/38256
+	* g++.dg/cpp0x/auto11.C: New test.
+
+	PR c++/38380
+	* g++.dg/cpp0x/initlist10.C: New test.
+	* g++.old-deja/g++.eh/ctor1.C: Default ctor is a candidate too.
+	* g++.dg/tc1/dr152.C: Likewise.
+
+2008-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38360
+	* gcc.c-torture/compile/pr38360.c: New test.
+
+2008-12-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36326
+	* gcc.dg/tree-ssa/pr36326.c: New testcase.
+
+2008-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37716
+	* g++.dg/torture/pr37716.C: New test.
+
+2008-12-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/torture/pr37868.c: Skip on the SPARC.
+
+2008-12-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20081203-1.c: New test.
+
+2008-12-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35782, c++/37860
+	* g++.dg/cpp0x/initlist9.C: New test.
+
+	PR c++/37234
+	* g++.dg/cpp0x/defaulted5.C: New test.
+
+2008-12-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* gcc.misc-tests/linkage.exp: Correct file type check for Darwin.
+
+2008-12-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38343
+	* gcc.c-torture/compile/pr38343-2.c: New test.
+
+2008-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38359
+	* gcc.c-torture/compile/pr38359.c: New testcase.
+	* gcc.c-torture/execute/shiftopt-1.c: Adjust.
+
+2008-12-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36704
+	PR fortran/38290
+	* gfortran.dg/entry_7.f90: Modified.
+	* gfortran.dg/proc_ptr_2.f90: Extended.
+	* gfortran.dg/proc_ptr_3.f90: Modified.
+	* gfortran.dg/proc_ptr_11.f90: New.
+	* gfortran.dg/proc_ptr_12.f90: New.
+	* gfortran.dg/result_1.f90: New.
+
+2008-12-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38343
+	* gcc.c-torture/compile/pr38343.c: New test.
+
 2008-12-01  Janis Johnson  <janis187@us.ibm.com>
 
 	* gcc.target/powerpc/pr18096-1.c: Adjust location of expected error.

@@ -1,3 +1,153 @@
+2008-12-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cse.c (equiv_constant): Fix pasto.
+
+2008-12-04  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16.md: Remove extraneous spaces and
+	quotes.
+	* config/stormy16/stormy16.c: Remove extraneous spaces and fix up
+	formatting of quotes.
+
+2008-12-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38371
+	* fold-const.c (fold_checksum_tree): Allow modification of
+	TYPE_NEXT_VARIANT.
+
+2008-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38360
+	* tree-ssa-ccp.c (ccp_fold_builtin): Bail out if the builtin doesn't
+	have the right number of arguments.
+
+2008-12-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36326
+	* gimplify.c (is_gimple_mem_or_call_rhs): Remove work-around for
+	non-BLKmode types.
+
+2008-12-03  Tomas Bily  <tbily@suse.cz>
+
+        PR middle-end/38250
+        * tree-loop-distribution.c (build_size_arg): New function.
+        (generate_memset_zero): Checks if dr_analyze_innermost succeed.
+        Reorganized generating of stmts.
+        * testsuite/gcc.dg/tree-ssa/pr38250.c: New file.
+        * tree-data-ref.c (dr_analyze_innermost): Returns bool.
+        Indicate if analysis succeed.
+        * tree-data-ref.h (dr_analyze_innermost): Returns bool.
+        * tree-predcom.c (valid_initializer_p, find_looparound_phi):
+        Uses new definition of dr_analyze_innermost.
+
+2008-12-03  Ben Elliston  <bje@au.ibm.com>
+
+	* tree-ssa-pre.c (do_regular_insertion): Initialise edoubleprime.
+
+2008-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37716
+	* tree-sra.c (sra_build_assignment): For scalar bitfield SRC construct
+	all the needed operations as trees and gimplify_assign it to dst.
+
+	PR target/37610
+	* configure.ac (gcc_cv_readelf): Look for readelf.
+	(gcc_cv_as_cfi_advance_working): Check for working
+	cfi advances with code alignment factor > 1.
+	(HAVE_GAS_CFI_DIRECTIVE): Don't define if cfi advances
+	don't work properly.
+	* configure: Regenerated.
+
+2008-12-03  Eric Botcazou  <ebotcazou@adacore.com>
+            Jakub Jelinek  <jakub@redhat.com>
+            Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR rtl-optimization/38281
+	* combine.c (distribute_notes): When invoking SET_INSN_DELETED on i2,
+	set it to NULL_RTX afterwards.
+
+	* emit-rtl.c (set_insn_deleted): Fix formatting.
+
+2008-12-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_expand_builtin): Fix the mode of the
+	error return value.
+	* config/mips/mips.md (IMOVE32): New mode iterator.
+	(movsi): Generalize with IMOVE32.
+	(*movsi_internal): Likewise.
+	(*mov<mode>_mips16): Likewise.
+	(*lwxs): Likewise.
+
+2008-12-02  Nathan Sidwell  <nathan@codesourcery.com>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/lb1sf68.asm (PICCALL, PICJUMP): Use GOT instead of
+	PC-relative addressing when compiling for uclinux PIC.
+	(__cmpdf_internal, __cmpsf_internal): Hide.
+	(__cmpdf, __cmpsf): Use PIC call sequence.
+
+2008-12-02  Andreas Tobler  <a.tobler@schweiz.org>
+	    Jack Howarth <howarth@bromo.med.uc.edu>
+
+	* config/i386/t-darwin64: Add m32 multilib support.
+
+2008-12-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* testsuite/gcc.dg/darwin-comm.c: Expand to darwin10 and later.
+
+2008-12-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38343
+	* builtins.c (fold_builtin_memory_op): Convert len to sizetype
+	before using it in POINTER_PLUS_EXPR.
+
+2008-12-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38359
+	* fold-const.c (fold_binary): Fold -1 >> x to -1 only for
+	non-negative x.
+
+2008-12-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/37861
+        * tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Do not check
+        for INDIRECT_REFs.
+        (forward_propagate_addr_into_variable_array_index): Check that the
+        offset is not computed from a MULT_EXPR, use is_gimple_assign rather
+        than the gimple code directly.
+        
+2008-12-02  Ben Elliston  <bje@au.ibm.com>
+
+	* config/spu/float_disf.c (__floatdisf): Prototype.
+	* config/spu/float_unsdisf.c (__float_undisf): Likewise.
+	* config/spu/float_unssidf.c (__float_unssidf): Constify cast.
+	* config/spu/float_unsdidf.c (__float_unsdidf): Likewise.
+
+2008-12-02  DJ Delorie  <dj@redhat.com>
+
+	* config/stormy16/stormy16.h (INCOMING_FRAME_SP_OFFSET): Negate.
+	(DWARF_CIE_DATA_ALIGNMENT): Define.
+
+	* config/stormy16/stormy16.c (xstormy16_compute_stack_layout):
+	Invert add/sub for INCOMING_FRAME_SP_OFFSET.
+	(xstormy16_expand_prologue): Likewise.
+	(xstormy16_expand_builtin_va_start): Likewise.
+	(xstormy16_gimplify_va_arg_expr): Likewise.
+
+2008-12-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38343
+	* builtins.c (expand_builtin_mempcpy_args): Handle COMPOUND_EXPRs
+	potentially returned from folding memcpy.
+	(expand_builtin_stpcpy_args): Similarly for folding strcpy.
+	(fold_builtin_2): Handle BUILT_IN_STPCPY if result is ignored.
+
+2008-12-02  Danny Smith  <dannysmith@users.sourceforge.net>
+
+        PR target/38054
+	* config/i386/winnt.c (i386_pe_encode_section_info): Condition stdcall
+	decoration of function RTL names here on Ada language.
+
 2008-12-01  Vladimir Makarov  <vmakarov@redhat.com>
 
 	PR rtl-optimization/38280
