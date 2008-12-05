@@ -5504,6 +5504,25 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
+  if (init && TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      if (init == ridpointers[(int)RID_DELETE])
+	{
+	  /* FIXME check this is 1st decl.  */
+	  DECL_DELETED_FN (decl) = 1;
+	  DECL_DECLARED_INLINE_P (decl) = 1;
+	  DECL_INITIAL (decl) = error_mark_node;
+	  init = NULL_TREE;
+	}
+      else if (init == ridpointers[(int)RID_DEFAULT])
+	{
+	  if (!defaultable_fn_p (decl))
+	    error ("%qD cannot be defaulted", decl);
+	  else
+	    DECL_DEFAULTED_FN (decl) = 1;
+	}
+    }
+    
   if (processing_template_decl)
     {
       bool type_dependent_p;
@@ -5765,25 +5784,12 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	{
 	  if (init)
 	    {
-	      if (init == ridpointers[(int)RID_DELETE])
+	      if (init == ridpointers[(int)RID_DEFAULT])
 		{
-		  /* fixme check this is 1st decl */
-		  DECL_DELETED_FN (decl) = 1;
-		  DECL_DECLARED_INLINE_P (decl) = 1;
-		  DECL_INITIAL (decl) = error_mark_node;
-		}
-	      else if (init == ridpointers[(int)RID_DEFAULT])
-		{
-		  if (!defaultable_fn_p (decl))
-		    error ("%qD cannot be defaulted", decl);
-		  else
-		    {
-		      /* An out-of-class default definition is defined at
-			 the point where it is explicitly defaulted.  */
-		      DECL_DEFAULTED_FN (decl) = 1;
-		      if (DECL_INITIAL (decl) == error_mark_node)
-			synthesize_method (decl);
-		    }
+		  /* An out-of-class default definition is defined at
+		     the point where it is explicitly defaulted.  */
+		  if (DECL_INITIAL (decl) == error_mark_node)
+		    synthesize_method (decl);
 		}
 	      else
 		error ("function %q#D is initialized like a variable", decl);
@@ -8252,12 +8258,7 @@ grokdeclarator (const cp_declarator *declarator,
 	      {
 		if (type_uses_auto (type))
 		  {
-		    if (sfk == sfk_conversion)
-		      {
-			error ("invalid use of %<auto%> in conversion operator");
-			return error_mark_node;
-		      }
-		    else if (!declarator->u.function.late_return_type)
+		    if (!declarator->u.function.late_return_type)
 		      {
 			error ("%qs function uses %<auto%> type specifier without"
 			       " late return type", name);
@@ -9093,15 +9094,6 @@ grokdeclarator (const cp_declarator *declarator,
 	       is called a converting constructor.  */
 	    if (explicitp == 2)
 	      DECL_NONCONVERTING_P (decl) = 1;
-	    else if (DECL_CONSTRUCTOR_P (decl))
-	      {
-		/* A constructor with no parms is not a conversion.
-		   Ignore any compiler-added parms.  */
-		tree arg_types = FUNCTION_FIRST_USER_PARMTYPE (decl);
-
-		if (arg_types == void_list_node)
-		  DECL_NONCONVERTING_P (decl) = 1;
-	      }
 	  }
 	else if (TREE_CODE (type) == METHOD_TYPE)
 	  {
@@ -9850,7 +9842,11 @@ grok_special_member_properties (tree decl)
 	    TYPE_HAS_CONST_INIT_REF (class_type) = 1;
 	}
       else if (sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (decl)))
-	TYPE_HAS_DEFAULT_CONSTRUCTOR (class_type) = 1;
+	{
+	  TYPE_HAS_DEFAULT_CONSTRUCTOR (class_type) = 1;
+	  if (TREE_CODE (decl) == TEMPLATE_DECL || !DECL_DEFAULTED_FN (decl))
+	    TYPE_HAS_COMPLEX_DFLT (class_type) = 1;
+	}
       else if (is_list_ctor (decl))
 	TYPE_HAS_LIST_CTOR (class_type) = 1;
     }

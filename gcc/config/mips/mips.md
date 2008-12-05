@@ -644,6 +644,18 @@
 (define_mode_iterator MOVECC [SI (DI "TARGET_64BIT")
                               (CC "TARGET_HARD_FLOAT && !TARGET_LOONGSON_2EF")])
 
+;; 32-bit integer moves for which we provide move patterns.
+(define_mode_iterator IMOVE32
+  [SI
+   (V2HI "TARGET_DSP")
+   (V4QI "TARGET_DSP")
+   (V2HQ "TARGET_DSP")
+   (V2UHQ "TARGET_DSP")
+   (V2HA "TARGET_DSP")
+   (V2UHA "TARGET_DSP")
+   (V4QQ "TARGET_DSP")
+   (V4UQQ "TARGET_DSP")])
+
 ;; 64-bit modes for which we provide move patterns.
 (define_mode_iterator MOVE64
   [DI DF
@@ -3936,34 +3948,34 @@
 ;; different predicates, because register spilling and other parts of
 ;; the compiler, have memoized the insn number already.
 
-(define_expand "movsi"
-  [(set (match_operand:SI 0 "")
-	(match_operand:SI 1 ""))]
+(define_expand "mov<mode>"
+  [(set (match_operand:IMOVE32 0 "")
+	(match_operand:IMOVE32 1 ""))]
   ""
 {
-  if (mips_legitimize_move (SImode, operands[0], operands[1]))
+  if (mips_legitimize_move (<MODE>mode, operands[0], operands[1]))
     DONE;
 })
 
 ;; The difference between these two is whether or not ints are allowed
 ;; in FP registers (off by default, use -mdebugh to enable).
 
-(define_insn "*movsi_internal"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=d,d,e,d,m,*f,*f,*d,*m,*d,*z,*a,*d,*B*C*D,*B*C*D,*d,*m")
-	(match_operand:SI 1 "move_operand" "d,U,T,m,dJ,*d*J,*m,*f,*f,*z,*d,*J*d,*a,*d,*m,*B*C*D,*B*C*D"))]
+(define_insn "*mov<mode>_internal"
+  [(set (match_operand:IMOVE32 0 "nonimmediate_operand" "=d,d,e,d,m,*f,*f,*d,*m,*d,*z,*a,*d,*B*C*D,*B*C*D,*d,*m")
+	(match_operand:IMOVE32 1 "move_operand" "d,U,T,m,dJ,*d*J,*m,*f,*f,*z,*d,*J*d,*a,*d,*m,*B*C*D,*B*C*D"))]
   "!TARGET_MIPS16
-   && (register_operand (operands[0], SImode)
-       || reg_or_0_operand (operands[1], SImode))"
+   && (register_operand (operands[0], <MODE>mode)
+       || reg_or_0_operand (operands[1], <MODE>mode))"
   { return mips_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,const,load,store,mtc,fpload,mfc,fpstore,mfc,mtc,mthilo,mfhilo,mtc,fpload,mfc,fpstore")
    (set_attr "mode" "SI")])
 
-(define_insn "*movsi_mips16"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=d,y,d,d,d,d,d,d,m,*d")
-	(match_operand:SI 1 "move_operand" "d,d,y,K,N,U,kf,m,d,*a"))]
+(define_insn "*mov<mode>_mips16"
+  [(set (match_operand:IMOVE32 0 "nonimmediate_operand" "=d,y,d,d,d,d,d,d,m,*d")
+	(match_operand:IMOVE32 1 "move_operand" "d,d,y,K,N,U,kf,m,d,*a"))]
   "TARGET_MIPS16
-   && (register_operand (operands[0], SImode)
-       || register_operand (operands[1], SImode))"
+   && (register_operand (operands[0], <MODE>mode)
+       || register_operand (operands[1], <MODE>mode))"
   { return mips_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,move,move,const,constN,const,loadpool,load,store,mfhilo")
    (set_attr "mode" "SI")])
@@ -4109,10 +4121,11 @@
 ;; address expression, not shift.
 
 (define_insn "*lwxs"
-  [(set (match_operand:SI 0 "register_operand" "=d")
-	(mem:SI (plus:SI (mult:SI (match_operand:SI 1 "register_operand" "d")
-				  (const_int 4))
-			 (match_operand:SI 2 "register_operand" "d"))))]
+  [(set (match_operand:IMOVE32 0 "register_operand" "=d")
+	(mem:IMOVE32
+	  (plus:SI (mult:SI (match_operand:SI 1 "register_operand" "d")
+			    (const_int 4))
+		   (match_operand:SI 2 "register_operand" "d"))))]
   "ISA_HAS_LWXS"
   "lwxs\t%0,%1(%2)"
   [(set_attr "type"	"load")

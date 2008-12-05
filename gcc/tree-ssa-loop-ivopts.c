@@ -2021,17 +2021,7 @@ static tree
 generic_type_for (tree type)
 {
   if (POINTER_TYPE_P (type))
-    {
-      int qual;
-
-      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (type));
-      if (!as)			/* generic address space */
-	return unsigned_type_for (type);
-
-      /* named address space */
-      qual = ENCODE_QUAL_ADDR_SPACE (as);
-      return build_pointer_type (build_qualified_type (void_type_node, qual));
-    }
+    return unsigned_type_for (type);
 
   if (TYPE_UNSIGNED (type))
     return type;

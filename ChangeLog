@@ -1,3 +1,32 @@
+2008-12-04  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+        * configure.ac: Add double brackets on darwin[912].
+        * configure: Regenerate.
+
+2008-12-03  Daniel Kraft  <d@domob.eu>
+
+	* MAINTAINERS:  Moved myself and Mikael Morin from Write After
+	Approval to Reviewer section (for Fortran front-end).
+
+2008-12-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Expand to darwin10 and later.
+	* configure: Regenerate.
+
+2008-12-02  Andreas Schwab  <schwab@suse.de>
+
+	* Makefile.def: configure-target-boehm-gc depends on
+	all-target-libstdc++-v3.
+	* Makefile.in: Regenerate.
+
+2008-12-02  Kai Tietz  <kai.tietz@onevision.com>
+
+	* MAINTAINERS:  Add myself as mingw maintainer.
+
+2008-12-02  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
 2008-12-01  Gerald Pfeifer  <gerald@pfeifer.com>
 
 	* README.SCO: Remove.
@@ -72,11 +101,11 @@
 
 2008-11-04  Thomas Schwinge  <tschwinge@gnu.org>
 
-	* MAINTAINERS (Write after approval): Add myself. 
+	* MAINTAINERS (Write after approval): Add myself.
 
 2008-10-31  Mikael Morin  <mikael.morin@tele2.fr>
 
-	* MAINTAINERS (Write after approval): Add myself. 
+	* MAINTAINERS (Write after approval): Add myself.
 
 2008-10-31  Ben Elliston  <bje@au.ibm.com>
 
@@ -173,11 +202,11 @@
 
 2008-09-20  Steven Bosscher  <steven@gcc.gnu.org>
 
-        * MAINTAINERS: Add myself in "Write After Approval".
+	* MAINTAINERS: Add myself in "Write After Approval".
 
 2008-09-18  Steve Ellcey  <sje@cup.hp.com>
 
-        * MAINTAINERS: Add myself as ia64 maintainer.
+	* MAINTAINERS: Add myself as ia64 maintainer.
 
 2008-09-04  Gerald Pfeifer  <gerald@pfeifer.com>
 
@@ -360,7 +389,7 @@
 
 2008-05-18 Xinliang David Li   <davidxl@google.com>
 
-	* ChangeLog: Remove wrong ChangeLog entry. 
+	* ChangeLog: Remove wrong ChangeLog entry.
 
 2008-05-17 Xinliang David Li   <davidxl@google.com>
 
@@ -381,7 +410,7 @@
 2008-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* MAINTAINERS: Update my email address.
-	
+
 2008-05-03  Kris Van Hees  <kris.van.hees@oracle.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -399,8 +428,8 @@
 	Sync with src:
 	2008-04-14  David S. Miller  <davem@davemloft.net>
 
-        * configure.ac: Add sparc*-*-* to gold supported targets.
-        * configure: Regenerate.
+	* configure.ac: Add sparc*-*-* to gold supported targets.
+	* configure: Regenerate.
 
 2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -410,14 +439,14 @@
 
 2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
 
-        * Makefile.tpl (restrap): Call `make all' using double-colon rules.
-        * Makefile.in: Regenerate.
+	* Makefile.tpl (restrap): Call `make all' using double-colon rules.
+	* Makefile.in: Regenerate.
 
 2008-04-18  M R Swami Reddy <MR.Swami.Reddy@nsc.com>
 
-        * configure.ac (cr16-*-*): Add case for cr16 target and include gdb
+	* configure.ac (cr16-*-*): Add case for cr16 target and include gdb
 	as nonconfigurable directories list.
-        * configure: Regenerate.
+	* configure: Regenerate.
 
 2008-04-14  Ben Elliston  <bje@au.ibm.com>
 
@@ -452,8 +481,8 @@
 2008-04-04  NightStrike  <NightStrike@gmail.com>
 
 	PR other/35151
-        * configure.ac: Combine rules for mingw32 and mingw64.
-        * configure: Regenerate.
+	* configure.ac: Combine rules for mingw32 and mingw64.
+	* configure: Regenerate.
 
 2008-04-02  Kai Tietz  <kai.tietz@onvision.com>
 
@@ -498,9 +527,9 @@
 	* configure: Regenerate.
 
 	Backport from upstream Libtool:
-	
+
 	2007-10-12  Eric Blake  <ebb9@byu.net>
-	
+
 	Deal with Autoconf 2.62's semantic change in m4_append.
 	* ltsugar.m4 (lt_append): Replace broken versions of
 	m4_append.
@@ -787,7 +816,7 @@
 	* Makefile.def: Add libgomp config as a maybe dependency for libstdc++.
 	* configure: Regenerate.
 	* Makefile.in: Regenerate.
-	
+
 2007-09-17  Andreas Schwab  <schwab@suse.de>
 
 	* configure.ac: Raise minimum makeinfo version to 4.6.
@@ -979,13 +1008,13 @@
 	* configure.ac: Likewise.
 	* Makefile.in: Regenerate.
 	* configure: Regenerate.
-						
+
 2007-06-28  DJ Delorie  <dj@redhat.com>
 
 	* configure.ac (arm*-*-linux-gnueabi): Don't build libgloss if we're
 	not building newlib.
 	* configure: Regenerated.
-	
+
 2007-06-28  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -1164,7 +1193,7 @@
 2007-04-04  Christian Bruel  <christian.bruel@st.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
-	
+
 2007-04-02  Dave Korn  <dave.korn@artimi.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -1176,7 +1205,7 @@
 2007-03-28  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
-	
+
 2007-03-24  Ayal Zaks  <zaks@il.ibm.com>
 
 	* MAINTAINERS (Modulo Scheduler): Add myself.

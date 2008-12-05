@@ -9629,7 +9629,7 @@ address space are either 32 bits or 64 bits based on the
 always 32 bits).
 
 Internally, address spaces are represented as a small integer in the
-range 0 to 255 with address space 0 being reserved for the generic
+range 0 to 15 with address space 0 being reserved for the generic
 address space.
 
 @deftypefn {Target Hook} {enum machine_mode} TARGET_ADDR_SPACE_POINTER_MODE (addr_space_t @var{address_space})
@@ -9638,18 +9638,24 @@ the target supports named address spaces.  The default version of this
 hook returns @code{ptr_mode} for the generic address space only.
 @end deftypefn
 
+@defmac TARGET_ADDR_SPACE_KEYWORDS
+A list of @code{ADDR_SPACE_KEYWORD} macros to define each named
+address keyword.  The @code{ADDR_SPACE_KEYWORD} macro takes two
+arguments, the keyword string and the number of the named address
+space.  For example, the SPU port uses the following to declare
+@code{__ea} as the keyword for named address space #1:
+@smallexample
+#define ADDR_SPACE_EA 1
+#define TARGET_ADDR_SPACE_KEYWORDS ADDR_SPACE_KEYWORD("__ea", ADDR_SPACE_EA)
+@end smallexample
+
+@end defmac
+
 @deftypefn {Target Hook} {const char *} TARGET_ADDR_SPACE_NAME (addr_space_t @var{address_space})
 Define this to return a string that describes the @var{address_space}.
 As this hook should never be called for targets that do not support
 named address spaces, the default version of this hook will cause the
 compiler to abort.
-@end deftypefn
-
-@deftypefn {Target Hook} {attr_space_t} TARGET_ADDR_SPACE_NUMBER (tree @var{address_space})
-Define this to return a target-defined address space number for the
-given @var{address_space}.  As this hook should never be called for
-targets that do not support named address spaces, the default version
-of this hook will cause the compiler to abort.
 @end deftypefn
 
 @deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_CAN_CONVERT_P (addr_space_t @var{from}, addr_space_t @var{to})
@@ -9665,6 +9671,11 @@ Define this to return whether converting a pointer which points to the
 conversion needs to be done.
 @end deftypefn
 
+@deftypefn {Target Hook} {bool} TARGET_ADDR_SPACE_SUBSET_P (addr_space_t @var{superset}, addr_space_t @var{subset})
+Define this to return the @var{subset} named address space is
+contained within the @var{superset} named address space.
+@end deftypefn
+
 @deftypefn {Target Hook} {rtx} TARGET_ADDR_SPACE_CONVERT (rtx @var{op}, enum machine_mode @var{mode}, addr_space_t @var{from}, addr_space_t @var{to})
 Define this to convert the pointer expression represented by the RTL
 @var{op} that points to the named address space @var{from} to a new
@@ -9672,12 +9683,6 @@ pointer expression with type @var{mode} in the named address space
 @var{to}.  As this hook should never be called for targets that do not
 support named address spaces, the default version of this hook will
 cause the compiler to abort.
-@end deftypefn
-
-@deftypefn {Target Hook} {bool} TARGET_VALID_ADDR_SPACE (tree @var{address_space})
-Define this to return true if the @var{address_space} is recognized
-for the target.  The default version of this hook unconditionally
-returns false.
 @end deftypefn
 
 @deftypefn {Target Hook} {tree} TARGET_ADDR_SPACE_SECTION_NAME (addr_space_t @var{address_space})

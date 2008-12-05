@@ -1681,6 +1681,7 @@ layout_type (tree type)
       /* A pointer might be MODE_PARTIAL_INT,
 	 but ptrdiff_t must be integral.  */
       TYPE_MODE (type) = mode_for_size (POINTER_SIZE, MODE_INT, 0);
+      TYPE_PRECISION (type) = POINTER_SIZE;
       break;
 
     case FUNCTION_TYPE:

@@ -739,16 +739,25 @@ default_addr_space_nop_convert_p (addr_space_t to_addr, addr_space_t from_addr)
   return to_addr == from_addr;
 }
 
-/* The default hook for determining whether there is a common pointer format to
-   use when two pointers are used together.  */
+/* The default hook for determining if one named address space is a subset of
+   another and to return which address space to use as the common address
+   space.  */
 
-addr_space_t
-default_addr_space_common_pointer (addr_space_t addr1, addr_space_t addr2)
+bool
+default_addr_space_subset_p (addr_space_t as1,
+			     addr_space_t as2,
+			     addr_space_t *common_as)
 {
-  if (addr1 == addr2)
-    return addr1;
-
-  gcc_unreachable ();
+  if (as1 == as2)
+    {
+      *common_as = as1;
+      return true;
+    }
+  else
+    {
+      *common_as = 0;
+      return false;
+    }
 }
 
 /* The default hook for TARGET_ADDR_SPACE_CONVERT. This hook should never be
@@ -759,15 +768,6 @@ default_addr_space_convert (rtx op ATTRIBUTE_UNUSED,
 			    enum machine_mode mode ATTRIBUTE_UNUSED,
 			    addr_space_t from ATTRIBUTE_UNUSED,
 			    addr_space_t to ATTRIBUTE_UNUSED)
-{
-  gcc_unreachable ();
-}
-
-/* The default hook for TARGET_ADDR_SPACE_NUMBER.  This hook should
-   never be called for targets with only a generic address space.  */
-
-addr_space_t
-default_addr_space_number (const_tree ident ATTRIBUTE_UNUSED)
 {
   gcc_unreachable ();
 }

@@ -1254,10 +1254,22 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	      addr_space_t new_addr = DECODE_QUAL_ADDR_SPACE (new_quals);
 	      addr_space_t old_addr = DECODE_QUAL_ADDR_SPACE (old_quals);
 	      if (new_addr != old_addr)
-		error ("conflicting named address spaces (%s vs %s) for %q+D",
-		       targetm.addr_space.name (new_addr),
-		       targetm.addr_space.name (old_addr),
-		       newdecl);
+		{
+		  if (!new_addr)
+		    error ("conflicting named address spaces (generic vs %s) "
+			   "for %q+D",
+			   targetm.addr_space.name (old_addr), newdecl);
+		  else if (!old_addr)
+		    error ("conflicting named address spaces (%s vs generic) "
+			   "for %q+D",
+			   targetm.addr_space.name (new_addr), newdecl);
+		  else
+		    error ("conflicting named address spaces (%s vs %s) "
+			   "for %q+D",
+			   targetm.addr_space.name (new_addr),
+			   targetm.addr_space.name (old_addr),
+			   newdecl);
+		}
 
 	      if (CLEAR_QUAL_ADDR_SPACE (new_quals)
 		  != CLEAR_QUAL_ADDR_SPACE (old_quals))
@@ -3295,17 +3307,13 @@ start_decl (struct c_declarator *declarator, struct c_declspecs *declspecs,
   if (TREE_CODE (decl) == VAR_DECL
       && TREE_TYPE (decl) != error_mark_node
       && (addrspace = TYPE_ADDR_SPACE (TREE_TYPE (decl)))
+      && targetm.have_named_sections
       && (declspecs->storage_class == csc_static
 	  || (declspecs->storage_class == csc_none
 	      && !current_function_scope)
 	  || (declspecs->storage_class == csc_extern
 	      && initialized)))
-    {
-      if (!targetm.have_named_sections)
-	error ("%<%s%> definitions not supported for %qD",
-	       targetm.addr_space.name (addrspace), decl);
-      DECL_SECTION_NAME (decl) = targetm.addr_space.section_name (addrspace);
-    }
+    DECL_SECTION_NAME (decl) = targetm.addr_space.section_name (addrspace);
 
   /* Set attributes here so if duplicate decl, will have proper attributes.  */
   decl_attributes (&decl, attributes, 0);
@@ -4141,9 +4149,18 @@ grokdeclarator (const struct c_declarator *declarator,
     }
 
   if (as1 > 0 && as2 > 0 && as1 != as2)
-    error ("incompatible address space qualifiers %qs and %qs",
-	   targetm.addr_space.name (as1),
-	   targetm.addr_space.name (as2));
+    {
+      if (!as1)
+	error ("conflicting named address spaces (generic vs %s)",
+	       targetm.addr_space.name (as1));
+      else if (!as2)
+	error ("conflicting named address spaces (%s vs generic),",
+	       targetm.addr_space.name (as2));
+      else
+	error ("conflicting named address spaces (%s vs %s)",
+	       targetm.addr_space.name (as1),
+	       targetm.addr_space.name (as2));
+    }
   
   if (!flag_gen_aux_info && (TYPE_QUALS (element_type)))
     type = TYPE_MAIN_VARIANT (type);
@@ -7247,18 +7264,17 @@ build_null_declspecs (void)
    SPECS, returning SPECS.  */
 
 struct c_declspecs *
-declspecs_add_addrspace (struct c_declspecs *specs, tree addrspace)
+declspecs_add_addrspace (struct c_declspecs *specs, addr_space_t as)
 {
   specs->non_sc_seen_p = true;
   specs->declspecs_seen_p = true;
 
-  if (specs->address_space > 0
-      && specs->address_space != targetm.addr_space.number (addrspace))
+  if (specs->address_space > 0 && specs->address_space != as)
     error ("incompatible address space qualifiers %qs and %qs",
-	   targetm.addr_space.name (targetm.addr_space.number (addrspace)),
+	   targetm.addr_space.name (as),
 	   targetm.addr_space.name (specs->address_space));
-
-  specs->address_space = targetm.addr_space.number (addrspace);
+  else
+    specs->address_space = as;
   return specs;
 }
 

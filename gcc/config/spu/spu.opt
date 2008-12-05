@@ -96,10 +96,21 @@ mea64
 Target Report RejectNegative Var(spu_ea_model,64) VarExists
 Access variables in 64-bit PPU objects
 
-mno-local-ea-conversion
-Target Report RejectNegative Mask(NO_LOCAL_EA_CONVERSION)
-Don't allow pointers in the __ea address space to be converted to local pointers.
+mno-ea-to-generic-conversion
+Target Report RejectNegative Mask(NO_EA_TO_GENERIC_CONVERSION)
+Don't allow pointers in the __ea address space to be converted to generic pointers.
 
-mlocal-ea-conversion
-Target Report RejectNegative InverseMask(NO_LOCAL_EA_CONVERSION)
+mea-to-generic-conversion
+Target Report RejectNegative InverseMask(NO_EA_TO_GENERIC_CONVERSION)
 Allow pointers in the __ea address space to be converted to local pointers (default).
+
+mno-address-space-conversion
+Target Report RejectNegative Mask(NO_ADDRESS_SPACE_CONVERSION)
+Do not allow automatic conversion between pointers to different named address
+spaces (__ea and generic) without an explicit cast.
+
+maddress-space-conversion
+Target Report RejectNegative InverseMask(NO_ADDRESS_SPACE_CONVERSION)
+Allow automatic conversion between pointers to different named address spaces
+(__ea and generic) without an explicit cast.
+

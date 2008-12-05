@@ -670,9 +670,6 @@ struct gcc_target
     /* Function to map an address space to a descriptive string.  */
     const char * (* name) (addr_space_t);
 
-    /* Function to map an address space to a small number.  */
-    addr_space_t (* number) (const_tree);
-
     /* True if it is legal to convert a pointer of one address space to
        another.  */
     bool (* can_convert_p) (addr_space_t, addr_space_t);
@@ -681,16 +678,13 @@ struct gcc_target
        NOP.  */
     bool (* nop_convert_p) (addr_space_t, addr_space_t);
 
-    /* Return the named address space to use between pointers to different
-       named address spaces.  */
-    addr_space_t (* common_pointer) (addr_space_t, addr_space_t);
+    /* True if one named address space is a subset of another and if so, which
+       address space is the superset.  */
+    bool (* subset_p) (addr_space_t, addr_space_t, addr_space_t *);
 
     /* Function to convert an rtl expression from one address space to
        another.  */
     rtx (* convert) (rtx, enum machine_mode, addr_space_t, addr_space_t);
-
-    /* True if an identifier that is a valid address space.  */
-    bool (* valid_p) (const_tree);
 
     /* Section name to use for a named address space.  */
     tree (* section_name) (addr_space_t);

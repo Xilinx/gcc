@@ -1,17 +1,16 @@
 [gcc changes]
-2008-11-15  Ben Elliston  <bje@au.ibm.com>
+2008-12-01  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
 
-	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add -mea64 multilib.
-	(EXTRA_MULTILIB_PARTS): Add libgcc_cachemgr.a,
-	libgcc_cachemgr_nonatomic.a, libgcc_cache8k.a, libgcc_cache16k.a,
-	libgcc_cache32k.a, libgcc_cache64k.a, libgcc_cache128k.a.
-	(cachemgr.o, %/cachemgr.o): New targets.
-	(cachemgr_nonatomic.o, %/cachemgr_nonatomic.o): Likewise.
-	(libgcc_%.a, %/libgcc_%.a): Likewise.
-	(cache8k.o, cache16k.o, cache32k.o, cache64k.o, cache128k.o,
-	%/cache8k.o, %/cache16k.o, %/cache32k.o, %/cache64k.o,
-	%/cache128k.o): Likewise.
+	* varasm.c (make_decl_rtl): Add support for named address spaces.
+	(default_addr_space_pointer_mode): New default hook for named
+	address space pointer mode.
+
+	* config.gcc (spu*-elf*): Add spu_cache.h.
+
+	* config/spu/spu_cache.h: New file for __ea cache support.
+	* config/spu/cachemgr.c: Ditto.
+	* config/spu/cache.S: Ditto.
 
 	* config/spu/spu.c (ADDR_SPACE_GENERIC): New macro for the generic
 	address space.
@@ -19,13 +18,19 @@
 	(TARGET_ADDR_SPACE_POINTER_NAME): Add named address support.
 	(TARGET_ADDR_SPACE_NAME): Ditto.
 	(TARGET_ADDR_SPACE_NUMBER): Ditto.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): Ditto.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): Ditto.
+	(TARGET_ADDR_SPACE_COMMON_POINTER): Ditto.
+	(TARGET_ADDR_SPACE_CONVERT): Ditto.
 	(TARGET_ADDR_SPACE_SECTION_NAME): Ditto.
-	(TARGET_SECTION_TYPE_FLAGS): Ditto.
 	(TARGET_ADDR_SPACE_VALID_P): Ditto.
+	(TARGET_SECTION_TYPE_FLAGS): Ditto.
+	(TARGET_VALID_POINTER_MODE): Ditto.
 	(TARGET_ASM_ALGNED_DI_OP): Use .quad.
 	(ea_symbol_ref): Return true for __ea qualified SYMBOL_REF.
 	(spu_legitimate_constant_p): Add suupport for __ea named address
 	space.
+	(spu_legitimate_address): Ditto.
 	(EAmode): New macro for pointer mode for __ea addresses.
 	(cache_fetch): New static to hold __cache_fetch function.
 	(cache_fetch_dirty): New static to hold __cache_fetch_dirty
@@ -45,6 +50,14 @@
 	for the __ea section.
 	(spu_addr_space_name): New target hook to convert an address space
 	to a string.
+	(spu_addr_space_can_convert_p): New target hook to determine if
+	you can convert between pointers to different named addresses.
+	(spu_addr_space_nop_convert_p): New target hook to determine
+	whether a pointer conversion between pointers to different address
+	spaces is a nop or not.
+	(spu_addr_space_common_pointer): New target hook to determine what
+	is the common pointer type when using two pointers to different
+	address spaces.
 	(spu_addr_space_convert): New target hook to convert to/from the
 	__ea named address space.
 	(spu_ea_identifer): New static to remember the token __ea.
@@ -55,23 +68,39 @@
 	(spu_ea_name): New static to remember the string ._ea.
 	(spu_addr_space_section_name): New hook to return the section name
 	for the __ea named address space.
-
-	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Add support for
-	-mcache-size=, -matomic-updates switches.
-	(LIB_SPEC): Ditto.
-
-	* config/spu/spu_cache.h: New file for __ea cache support.
-	* config/spu/cachemgr.c: Ditto.
-	* config/spu/cache.S: Ditto.
+	(toplevel): Include gt-spu.h since GTY static variables were added.
 
 	* config/spu/spu.h (TEXT_SECTION_ASM_OP): Add a tab in front of
 	the directive.
 	(DATA_SECTION_ASM_OP): Ditto.
 	(ASM_OUTPUT_SYMBOL_REF): Strip array types on arg.
 
+	* config/spu/spu-elf.h (DRIVER_SELF_SPECS): Add support for
+	-mcache-size=, -matomic-updates switches.
+	(LIB_SPEC): Ditto.
+
 	* config/spu/spu.md (to_ea): New expanders for __ea named address
 	space support.
 	(from_ea): Ditto.
+
+	* config/spu/spu-c.c (spu_cpu_cpp_builtins): Define __EA32__ or
+	__EA64__.
+
+	* config/spu/spu.opt (-mno-local-ea-conversion): New switch.
+	(-mlocal-ea-conversion): Ditto.
+	(-mea32): Ditto.
+	(-mea64): Ditto.
+
+	* config/spu/t-spu-elf (MULTILIB_OPTIONS): Add -mea64 multilib.
+	(EXTRA_MULTILIB_PARTS): Add libgcc_cachemgr.a,
+	libgcc_cachemgr_nonatomic.a, libgcc_cache8k.a, libgcc_cache16k.a,
+	libgcc_cache32k.a, libgcc_cache64k.a, libgcc_cache128k.a.
+	(cachemgr.o, %/cachemgr.o): New targets.
+	(cachemgr_nonatomic.o, %/cachemgr_nonatomic.o): Likewise.
+	(libgcc_%.a, %/libgcc_%.a): Likewise.
+	(cache8k.o, cache16k.o, cache32k.o, cache64k.o, cache128k.o,
+	%/cache8k.o, %/cache16k.o, %/cache32k.o, %/cache64k.o,
+	%/cache128k.o): Likewise.
 
 	* doc/extend.texi (Named Address Spaces): New section, describing
 	named address spaces.
@@ -84,6 +113,14 @@
 	describes an address space.
 	(TARGET_ADDR_SPACE_NUMBER): New target hook to return the address
 	space number for a given address space.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): New target hook to determine if
+	you can convert between pointers to different named addresses.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): New target hook to determine
+	whether a pointer conversion between pointers to different address
+	spaces is a nop or not.
+	(TARGET_ADDR_SPACE_COMMON_POINTER): New target hook to determine
+	what is the common pointer type when using two pointers to
+	different address spaces.
 	(TARGET_ADDR_SPACE_CONVERT): New target hook to convert a pointer
 	from one address space to another.
 	(TARGET_ADDR_SPACE_VALID_P): New target hook to validate a named
@@ -97,55 +134,66 @@
 	(-mcache-size=): Ditto.
 	(-matomic-updates): Ditto.
 	(-mno-atomic-updates): Ditto.
-
+	(-mlocal-ea-conversion): Ditto.
+	(-mno-local-ea-conversion): Ditto.
+	
 	* doc/rtl.texi (MEM_ADDR_SPACE): Memory space accessor.
-
-	* tree-ssa.c (useless_type_conversion_p_1): Add support for named
-	address spaces.
-	(useless_type_conversion_p): Ditto.
 
 	* targhooks.c (default_addr_space_name): New default hook for
 	named address space support.
-	(default_addr_space_conversion_rtl): Ditto.
+	(default_addr_space_can_convert_p): Ditto.
+	(default_addr_space_nop_convert_p): Ditto.
+	(default_addr_space_common_pointer): Ditto.
+	(default_addr_space_convert): Ditto.
 	(default_addr_space_number): Ditto.
+	(default_addr_space_section_name): Ditto.
 
-	* targhooks.h (default_addr_space_name): New default hook for
-	named address space support.
-	(default_addr_space_conversion_rtl): Ditto.
+	* targhooks.h (default_addr_space_name): Add declaration.
+	(default_addr_space_can_convert_p): Ditto.
+	(default_addr_space_nop_convert_p): Ditto.
+	(default_addr_space_common_pointer): Ditto.
+	(default_addr_space_convert): Ditto.
 	(default_addr_space_number): Ditto.
+	(default_addr_space_section_name): Ditto.
 
 	* tree-pretty-print.c (toplevel): Include target.h and
 	target-def.h.
 	(op_prio): Add support for named address spaces.
 	(dump_generic_node): Ditto.
 
-	* tree.c (integer_pow2p): Add support for named address spaces.
+	* tree.c (integer_pow2p): Move code to get int or pointer
+	precision to int_or_pointer_precision.
 	(tree_log2): Ditto.
 	(tree_floor_log2): Ditto.
-	(set_type_quals): Ditto.
-	(build_pointer_type): Ditto.
+	(check_qualified_type): Convert cand argument to const_tree.
+	(build_pointer_type): Add named address support.
+	(build_pointer_type_for_mode): Ditto.
+	(build_reference_type): Ditto.
+	(build_reference_type_for_mode): Ditto.
+	(build_array_type): Ditto.
+	(int_or_pointer_precision): New function to return the precision
+	of int/pointer types.  Handle pointers to named address spaces.
 
-	* tree.h (OTHER_ADDR_SPACE_POINTER_TYPE_P): New macro that returns
-	true if a pointer points to a non-generic address space.
-	(GENERIC_ADDR_SPACE_POINTER_TYPE_P): New macro that returns true
-	if a pointer points to the generic address space.
-	(TYPE_ADDR_SPACE): Accessor macro for named address space.
+	* tree.h (TYPE_ADDR_SPACE): Accessor macro for named address
+	space.
 	(ENCODE_QUAL_ADDR_SPACE): New macro to encode the named address
 	space as part of the type qualifiers.
 	(DECODE_QUAL_ADDR_SPACE): New macro to decode the named address
 	space from the type qualifiers.
 	(TYPE_QUALS): Encode the named address space.
+	(TYPE_QUALS_NO_ADDR_SPACE): Like TYPE_QUALS, but don't include the
+	named address space.
 	(struct tree_type): Add address_space field.  Move alias_set field
 	earlier in the structure.
+	(int_or_pointer_precision): Add declaration.
 
-	* coretypes.h (addr_space_t): New type for named address spaces.
-
-	* target.h (struct gcc_target): Add valid_pointer_mode,
-	addr_space_name, addr_space_conversion_rtl, addr_space_valid_p
-	target hooks for named address spaces.
+	* target.h (struct addr_space): New structure that holds all of
+	the named address space hooks.
+	(struct gcc_target): Add struct addr_space.
 
 	* fold-const.c (toplevel): Include target.h.
 	(fit_double_type): Add named address space support.
+	(fold_convert_const): Ditto.
 
 	* tree-ssa-loop-ivopts.c (generic_type_for): Add support for named
 	address spaces.
@@ -164,10 +212,12 @@
 	(expand_expr_real_1): Ditto.
 
 	* c-decl.c (toplevel): Include targhooks.h.
-	(shadow_tag_warned): Add support for named address spaces.
+	(diagnose_mismatched_decls): Add support for named address
+	spaces.
+	(shadow_tag_warned): Ditto.
 	(quals_from_declspecs): Ditto.
-	(grokdeclarator): Ditto.
 	(start_decl): Warn about unknown address spaces.
+	(grokdeclarator): Ditto.
 	(declspecs_add_addrspace): New function to print message about
 	incompatible address spaces.
 
@@ -176,11 +226,18 @@
 
 	* langhooks.c (lhd_tree_dump_dump_tree): Use CONST_CAST_TREE.
 
-	* print-rtl.c (print_rtx): Print out the address space if it
-	exists.
+	* print-rtl (print_rtx): Add named address support.
 
 	* c-typeck.c (comptypes_internal): Use CONST_CAST_TREE.
-	(build_binary_op): Add support for named address spaces.
+	(null_pointer_constant_p): Add support for named address spaces.
+	(composite_type): Ditto.
+	(common_pointer_type): Ditto.
+	(c_common_type): Ditto.
+	(build_c_cast): Ditto.
+	(convert_for_assignment): Ditto.
+	(build_binary_op): Ditto.
+
+	* coretypes.h (addr_space_t): New type for named address spaces.
 
 	* emit-rtl.c (get_mem_attrs): Add parameter for address space.
 	(mem_attrs_htab_hash): Include address space in hash.
@@ -206,15 +263,22 @@
 
 	* explow.c (memory_address): Add support for named address spaces.
 
-	* varasm.c (make_decl_rtl): Add support for named address spaces.
-	(default_addr_space_pointer_mode): New default hook for named
-	address space pointer mode.
+	* print-tree.c (print_node_brief): Add named address support.
+	(print_node): Ditto.
+
+	* tree-ssa.c (useless_type_conversion_p_1): Add support for named
+	address spaces.
+	(useless_type_conversion_p): Ditto.
 
 	* target-def.h (TARGET_ADDR_SPACE_POINTER_MODE): New named address
 	target hook.
 	(TARGET_ADDR_SPACE_NAME): Ditto.
 	(TARGET_ADDR_SPACE_NUMBER): Ditto.
+	(TARGET_ADDR_SPACE_CAN_CONVERT_P): Ditto.
+	(TARGET_ADDR_SPACE_NOP_CONVERT_P): Ditto.
+	(TARGET_ADDR_SPACE_COMMON_POINTER): Ditto.
 	(TARGET_ADDR_SPACE_CONVERT): Ditto.
+	(TARGET_ADDR_SPACE_VALID_P): Ditto.
 	(TARGET_ADDR_SPACE_SECTION_NAME): Ditto.
 	(TARGET_ADDR_SPACE_HOOKS): Group all of the target address space
 	hooks into one initializer.
@@ -225,8 +289,6 @@
 	(MEM_ADDR_SPACE): New accessor macro for address space.
 
 	* output.h (default_addr_space_pointer_mode): Add declaration.
-
-	* config.gcc (spu*-elf*): Add spu_cache.h.
 
 	* Makefile.in (c-decl.o): Add targhooks.h dependency.
 	(c-pretty-print.o): Add $(TARGET_DEF_H), $(TARGET_H)
@@ -247,16 +309,25 @@
 	(convert_to_pointer): Add support for named addresses.
 	(convert_to_integer): Ditto.
 
-
-[gcc/testsuite changes]
-2007-11-15  Ben Elliston  <bje@au.ibm.com>
+[gcc/cp changes]
+2008-12-01  Ben Elliston  <bje@au.ibm.com>
 	    Michael Meissner  <meissner@linux.vnet.ibm.com>
 
-	* gcc.target/spu/cache.c: New file.
-	* gcc.target/spu/ea/ea.exp: Likewise.
-	* gcc.target/spu/ea/cppdefine32.c: Likewise.
-	* gcc.target/spu/ea/cppdefine64.c: Likewise.
-	* gcc.target/spu/ea/compile.c: Likewise.
-	* gcc.target/spu/ea/cast1.c: Likewise.
-	* gcc.target/spu/ea/errors.c: Likewise.
-	* gcc.target/spu/ea/options1.c: Likewise.
+	* typeck.c (cp_type_quals): Convert argument to const_tree.
+
+[gcc/testsuite changes]
+2008-12-01  Ben Elliston  <bje@au.ibm.com>
+	    Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/cache-common.h: New file.
+	* gcc.target/spu/ea/errors2.c: Ditto.
+	* gcc.target/spu/ea/ea.exp: Ditto.
+	* gcc.target/spu/ea/cppdefine32.c: Ditto.
+	* gcc.target/spu/ea/cppdefine64.c: Ditto.
+	* gcc.target/spu/ea/cache32.c: Ditto.
+	* gcc.target/spu/ea/compile.c: Ditto.
+	* gcc.target/spu/ea/test-sizes.c: Ditto.
+	* gcc.target/spu/ea/cast1.c: Ditto.
+	* gcc.target/spu/ea/errors.c: Ditto.
+	* gcc.target/spu/ea/options1.c: Ditto.
+	* gcc.target/spu/ea/cache64.c: Ditto.

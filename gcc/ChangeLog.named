@@ -1,4 +1,176 @@
+2008-12-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* c-common.h (ADDR_SPACE_KEYWORD): Set the disable flags to
+	D_CONLY|D_EXT so that the source ell_integral.tcc in libstdc++
+	which has a __ea identifier builds.
+
+	* targhooks.c (default_addr_space_number): Delete, target hook is
+	no longer used.
+	* targhooks.h (default_addr_space_number): Ditto.
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_KEYWORDS): Document new method of
+	adding named address space keywords.
+	(TARGET_ADDR_SPACE_NUMBER): Delete, target hook removed.
+	(TARGET_ADDR_SPACE_VALID_P): Ditto.
+
+	* target.h (struct addr_space): Delete number, valid_p target
+	hooks.
+
+	* c-tree.h (declspecs_add_addrspace): Change calling signature.
+
+	* c-decl.c (declspecs_add_addrspace): Take addr_space_t as
+	argument instead of tree.
+
+	* target-def.h (TARGET_ADDR_SPACE_NUMBER): Delete, target hook no
+	longer used.
+	(TARGET_ADDR_SPACE_VALID_P): Ditto.
+	(TARGET_ADDR_SPACE_HOOKS): Ditto.
+
+	* c-common.c (c_common_reswords): If TARGET_ADDR_SPACE_KEYWORDS is
+	defined, include it to define the target's named address space
+	keywords.
+
+	* c-common.h (RID_ADDR_SPACE_0): Add for named address keyword.
+	(RID_ADDR_SPACE_1): Ditto.
+	(RID_ADDR_SPACE_2): Ditto.
+	(RID_ADDR_SPACE_3): Ditto.
+	(RID_ADDR_SPACE_4): Ditto.
+	(RID_ADDR_SPACE_5): Ditto.
+	(RID_ADDR_SPACE_6): Ditto.
+	(RID_ADDR_SPACE_7): Ditto.
+	(RID_ADDR_SPACE_8): Ditto.
+	(RID_ADDR_SPACE_9): Ditto.
+	(RID_ADDR_SPACE_10): Ditto.
+	(RID_ADDR_SPACE_11): Ditto.
+	(RID_ADDR_SPACE_12): Ditto.
+	(RID_ADDR_SPACE_13): Ditto.
+	(RID_ADDR_SPACE_14): Ditto.
+	(RID_ADDR_SPACE_15): Ditto.
+	(RID_FIRST_ADDR_SPACE): Ditto.
+	(RID_LAST_ADDR_SPACE): Ditto.
+	(ADDR_SPACE_KEYWORD): New macro for backends to declare new named
+	address space keywords.
+
+	* c-parser.c (c_parse_init): Add gcc_assert to make sure RID_MAX
+	doesn't overflow the 8 bit field it is stored in.
+	(c_lex_one_token): Change to make named address space keywords
+	real keywords, rather than being discovered via target hook called
+	on each identifier.
+	(c_parser_declspecs): Ditto.
+
+	* config/spu/spu.c (TARGET_ADDR_SPACE_NUMBER): Delete, no longer
+	used.
+	(TARGET_ADDR_SPACE_VALID_P): Ditto.
+	(spu_addr_space_number): Ditto.
+	(spu_addr_space_valid_p): Ditto.
+	(spu_ea_identifier): Ditto.
+	(ADDR_SPACE_GENERIC): Move to spu.h.
+	(ADDR_SPACE_EA): Ditto.
+	(ADDR_SPACE_BAD): Ditto.
+
+	* config/spu/spu.h (ADDR_SPACE_GENERIC): Move here from spu.c.
+	(ADDR_SPACE_EA): Ditto.
+	(ADDR_SPACE_BAD): Ditto.
+	(TARGET_ADDR_SPACE_KEYWORDS): Define to add the __ea keyword.
+
+2008-12-04  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* doc/tm.texi (TARGET_ADDR_SPACE_SUBSET_P): Document new hook to
+	determine if one named address is a subset of another.
+
+	* doc/invoke.texi (-mno-ea-to-generic-conversion): Rename from
+	-mno-local-ea-conversion.
+	(-mea-to-generic-conversion): Rename from
+	-mealocal-ea-conversion.
+	(-mno-address-space-conversion): New switch to
+	prevent automatic conversions of pointers to different named
+	addresses from happening automatically.
+	(-maddress-space-conversion): New default switch.
+
+	* targhooks.c (default_addr_space_common_pointer): Delete target
+	hook, no longer used.
+	(default_addr_space_subset_p): New default target hook to
+	determine if one named address is a subset of another.
+
+	* targhooks.h (default_addr_space_common_pointer): Delete.
+	(default_addr_space_subset_p): New declaration.
+
+	* target.h (struct addr_space): Add subset_p target hook, drop
+	common_pointer target hook.
+
+	* c-objc-common (c_types_compatible_p): Drop named address support
+	that is no longer needed.
+
+	* c-decl.c (diagnose_mismatched_decls): Add error for mismatched
+	named address spaces.
+	(start_decl): Don't give an error if the target doesn't have named
+	addresses, just don't set the section name.
+	(grokdeclarator): Improve named address space mismatch error
+	message.
+	(declspecs_add_addrspace): Cache address space, rather than call
+	target hook twice.
+
+	* c-typechk.c (qualify_type): Check for named addresses.
+	(common_pointer_type): Use subset_p target hook instead of the old
+	common_pointer hook.
+	(c_common_type): Go back to using TYPE_QUALS instead of
+	TYPE_QUALS_NO_ADDR_SPACE to get main type.
+	(comp_target_types): Add support for checking whether two pointer
+	types point to compatible address spaces.
+	(build_conditional_expr): Ditto.
+	(build_c_cast): Improve named address space type mismatch error.
+	(convert_for_assignment): Add support for checking whether
+	pointers are to compatible named addresses.
+
+	* target-def.h (TARGET_ADDR_SPACE_COMMON_POINTER): Delete.
+	(TARGET_ADDR_SPACE_SUBSET_P): New target hook.
+	(TARGET_ADDR_SPACE_HOOKS): Update target hooks.
+
+	* config/spu/spu.opt (-mno-ea-to-generic-conversion): Rename from
+	-mno-local-ea-conversion.
+	(-mea-to-generic-conversion): Rename from
+	-mealocal-ea-conversion.
+	(-mno-address-space-conversion): New switch to
+	prevent automatic conversions of pointers to different named
+	addresses from happening automatically.
+	(-maddress-space-conversion): New default switch.
+
+	* config/spu/spu.c (ADDR_SPACE_BAD): New address space to return
+	in error conditions.
+	(TARGET_ADDR_SPACE_COMMON_POINTER): Delete.
+	(spu_addr_space_common_pointer): Ditto.
+	(TARGET_ADDR_SPACE_SUBSET_P): New target hook.
+	(spu_addr_space_subset_p): New function to determine if one named
+	address is a subset of another.
+	(spu_addr_space_can_convert_p): Change -mno-local-ea-conversion to
+	-mno-ea-to-generic-conversion.
+	(spu_addr_space_nop_convert_p): Whitespace changes.
+
+	* convert.c (convert_to_pointer): Improve the named address space
+	mismatch error message.
+
+2008-12-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* tree.c (int_or_pointer_precision): Simplify if assertion
+	checking is not enabled.
+
+	* tree-ssa-loop-ivopts.c (generic_type_for): Undo named address
+	space support change in favor of doing it in the
+	signed_or_unsigned_type_for function.
+
+	* stor-layout.c (layout_type): Initialize TYPE_PRECISION for
+	OFFSET_TYPE.
+
+	* tree.c (signed_or_unsigned_type_for): Add support for pointers
+	to named address spaces.
+	(int_or_pointer_precision): Add asserts to make sure
+	TYPE_PRECISION is correct for POINTER_TYPE, OFFSET_TYPE, and
+	REFERENCE_TYPE.
+
 2008-12-01  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* emit-rtl.h (set_mem_addr_space): Correct prototype to use
+	addr_space_t, not unsigned char.
 
 	* tree.h (int_or_pointer_precision): Add declaration.
 

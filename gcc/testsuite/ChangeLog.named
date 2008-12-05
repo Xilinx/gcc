@@ -1,3 +1,21 @@
+2008-12-04  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/spu/ea/errors2.c: Add comment saying this is the same
+	as compile2.c without the switch to induce errors.  Change the
+	switch to induce the errors to -mno-ea-to-generic-conversion.
+
+	* gcc.target/spu/ea/compile2.c: New file to make sure the tests in
+	error2.c compile cleanly with -mea-to-generic-conversion.
+
+	* gcc.target/spu/ea/errors3.c: New file to test the subset hooks
+	by making the compiler not convert pointers in different named
+	address spaces automatically.
+
+	* gcc.target/spu/ea/compile3.c: New file to test that the code in
+	errors3.c compiles cleanly without the switch.
+
+	* gcc.target/spu/ea/compile.c: Compile with optimization.
+
 2008-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* gcc.target/spu/ea/errors2.c: New test to test

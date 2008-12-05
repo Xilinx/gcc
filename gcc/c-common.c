@@ -748,6 +748,11 @@ const struct c_common_resword c_common_reswords[] =
   { "inout",		RID_INOUT,		D_OBJC },
   { "oneway",		RID_ONEWAY,		D_OBJC },
   { "out",		RID_OUT,		D_OBJC },
+
+#ifdef TARGET_ADDR_SPACE_KEYWORDS
+  /* Any address space keywords recognized by the target.  */
+  TARGET_ADDR_SPACE_KEYWORDS,
+#endif
 };
 
 const unsigned int num_c_common_reswords =

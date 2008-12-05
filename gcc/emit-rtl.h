@@ -27,7 +27,7 @@ extern void set_mem_alias_set (rtx, alias_set_type);
 extern void set_mem_align (rtx, unsigned int);
 
 /* Set the address space of MEM to ADDRSPACE.  */
-extern void set_mem_addr_space (rtx, unsigned char);
+extern void set_mem_addr_space (rtx, addr_space_t);
 
 /* Set the expr for MEM to EXPR.  */
 extern void set_mem_expr (rtx, tree);

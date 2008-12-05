@@ -70,6 +70,10 @@ c_parse_init (void)
   tree id;
   int mask = 0;
 
+  /* Make sure RID_MAX hasn't grown past the 8 bits used to hold the keyword in
+     the c_token structure.  */
+  gcc_assert (RID_MAX <= 255);
+
   mask |= D_CXXONLY;
   if (!flag_isoc99)
     mask |= D_C99;
@@ -150,7 +154,7 @@ typedef struct c_token GTY (())
   ENUM_BITFIELD (rid) keyword : 8;
   /* If this token is a CPP_PRAGMA, this indicates the pragma that
      was seen.  Otherwise it is PRAGMA_NONE.  */
-  ENUM_BITFIELD (pragma_kind) pragma_kind : 7;
+  ENUM_BITFIELD (pragma_kind) pragma_kind : 8;
   /* The value associated with this token, if any.  */
   tree value;
   /* The location at which this token was found.  */
@@ -228,6 +232,13 @@ c_lex_one_token (c_parser *parser, c_token *token)
 			    "identifier %qs conflicts with C++ keyword",
 			    IDENTIFIER_POINTER (token->value));
 	      }
+	    else if (rid_code >= RID_FIRST_ADDR_SPACE
+		     && rid_code <= RID_LAST_ADDR_SPACE)
+	      {
+		token->id_kind = C_ID_ADDRSPACE;
+		token->keyword = rid_code;
+		break;
+	      }
 	    else if (c_dialect_objc ())
 	      {
 		if (!objc_is_reserved_word (token->value)
@@ -257,11 +268,6 @@ c_lex_one_token (c_parser *parser, c_token *token)
 		token->id_kind = C_ID_TYPENAME;
 		break;
 	      }
-	  }
-	else if (targetm.addr_space.valid_p (token->value))
-	  {
-	    token->id_kind = C_ID_ADDRSPACE;
-	    break;
 	  }
 	else if (c_dialect_objc ())
 	  {
@@ -1459,7 +1465,9 @@ c_parser_declspecs (c_parser *parser, struct c_declspecs *specs,
 
 	  if (kind == C_ID_ADDRSPACE)
 	    {
-	      declspecs_add_addrspace (specs, c_parser_peek_token (parser)->value);
+	      addr_space_t as
+		= c_parser_peek_token (parser)->keyword - RID_FIRST_ADDR_SPACE;
+	      declspecs_add_addrspace (specs, as);
 	      c_parser_consume_token (parser);
 	      attrs_ok = true;
 	      continue;
@@ -1632,7 +1640,7 @@ c_parser_enum_specifier (c_parser *parser)
   struct c_typespec ret;
   tree attrs;
   tree ident = NULL_TREE;
-  location_t ident_loc;
+  location_t ident_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ENUM));
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
@@ -1661,7 +1669,7 @@ c_parser_enum_specifier (c_parser *parser)
 	  tree enum_decl;
 	  bool seen_comma;
 	  c_token *token;
-	  location_t comma_loc;
+	  location_t comma_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	  location_t value_loc;
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
@@ -3092,7 +3100,7 @@ c_parser_initelt (c_parser *parser)
 	 has been a single array designator and 2 otherwise.  */
       int des_seen = 0;
       /* Location of a designator.  */
-      location_t des_loc;
+      location_t des_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
       while (c_parser_next_token_is (parser, CPP_OPEN_SQUARE)
 	     || c_parser_next_token_is (parser, CPP_DOT))
 	{
@@ -3124,7 +3132,7 @@ c_parser_initelt (c_parser *parser)
 	  else
 	    {
 	      tree first, second;
-	      location_t ellipsis_loc;
+	      location_t ellipsis_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	      /* ??? Following the old parser, [ objc-receiver
 		 objc-message-args ] is accepted as an initializer,
 		 being distinguished from a designator by what follows

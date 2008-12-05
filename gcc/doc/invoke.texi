@@ -801,7 +801,8 @@ See RS/6000 and PowerPC Options.
 -mfixed-range=@var{register-range} @gol
 -mea32 -mea64 @gol
 -mcache-size=@var{cache-size} @gol
--mlocal-ea-conversion -mno-local-ea-conversion @gol
+-mea-to-generic-conversion -mno-ea-to-generic-conversion @gol
+-maddress-space-conversion -maddress-space-conversion @gol
 -matomic-updates -mno-atomic-updates}
 
 @emph{System V Options}
@@ -15021,13 +15022,21 @@ address space qualifier specifies that variables reside in the PPU
 address space.  As this is an ABI changing option, all object code in an
 executable must be compiled with the same option.
 
-@item -mlocal-ea-conversion
-@itemx -mno-local-ea-conversion
-@opindex mlocal-ea-conversion
-@opindex mno-local-ea-conversion
+@item -mea-to-generic-conversion
+@itemx -mno-ea-to-generic-conversion
+@opindex mea-to-generic-conversion
+@opindex mno-ea-to-generic-conversion
 
 Allow/disallow pointers to the @code{__ea} address space to be
 converted local pointers.
+
+@item -maddress-space-conversion
+@itemx -mno-address-space-conversion
+@opindex maddress-space-conversion
+@opindex mno-address-space-conversion
+
+Allow/disallow automatically converting pointers to different named
+address spaces (@code{__ea} and generic) to the other address space.
 
 @item -mcache-size=@var{cache-size}
 @opindex mcache-size

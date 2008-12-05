@@ -106,7 +106,9 @@ static int lvalue_p (const_tree);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree);
 
-/* Return true if EXP is a null pointer constant, false otherwise.  */
+/* Return true if EXP is a null pointer constant, false otherwise.  If
+   different named address spaces are available, a null pointer to one address
+   space can be converted as a null pointer to another address space.  */
 
 static bool
 null_pointer_constant_p (const_tree expr)
@@ -249,8 +251,27 @@ c_type_promotes_to (tree type)
 static tree
 qualify_type (tree type, tree like)
 {
+  int quals = (TYPE_QUALS_NO_ADDR_SPACE (type)
+	       | TYPE_QUALS_NO_ADDR_SPACE (like));
+  addr_space_t as_type = TYPE_ADDR_SPACE (type);
+  addr_space_t as_like = TYPE_ADDR_SPACE (like);
+  addr_space_t as_common;
+
+  if (as_type == as_like)
+    as_common = as_type;
+
+  /* Two different named address spaces, check for one being a subset of the
+     other, and if there isn't a common superset address space, raise an
+     error.  */
+  else if (!targetm.addr_space.subset_p (as_type, as_like, &as_common))
+    {
+      as_common = 0;
+      error ("%qT and %qT are in different named address spaces",
+	     type, like);
+    }
+
   return c_build_qualified_type (type,
-				 TYPE_QUALS (type) | TYPE_QUALS (like));
+				 quals | ENCODE_QUAL_ADDR_SPACE (as_common));
 }
 
 /* Return true iff the given tree T is a variable length array.  */
@@ -574,12 +595,14 @@ common_pointer_type (tree t1, tree t2)
     target_quals = (quals1 | quals2);
 
   /* Determine the address space to use if the pointers point to different
-     named address spaces.  */
+     named address spaces and if so, whether one address space is a subset of
+     the other.  */
   as1 = TYPE_ADDR_SPACE (pointed_to_1);
   as2 = TYPE_ADDR_SPACE (pointed_to_2);
-  as_common = ((as1 == as2)
-	       ? as1
-	       : targetm.addr_space.common_pointer (as1, as2));
+  if (as1 == as2)
+    as_common = as1;
+  else if (!targetm.addr_space.subset_p (as1, as2, &as_common))
+    gcc_unreachable ();
 
   target_quals |= ENCODE_QUAL_ADDR_SPACE (as_common);
 
@@ -607,10 +630,10 @@ c_common_type (tree t1, tree t2)
   if (t2 == error_mark_node)
     return t1;
 
-  if (TYPE_QUALS_NO_ADDR_SPACE (t1) != TYPE_UNQUALIFIED)
+  if (TYPE_QUALS (t1) != TYPE_UNQUALIFIED)
     t1 = TYPE_MAIN_VARIANT (t1);
 
-  if (TYPE_QUALS_NO_ADDR_SPACE (t2) != TYPE_UNQUALIFIED)
+  if (TYPE_QUALS (t2) != TYPE_UNQUALIFIED)
     t2 = TYPE_MAIN_VARIANT (t2);
 
   if (TYPE_ATTRIBUTES (t1) != NULL_TREE)
@@ -1037,19 +1060,29 @@ comptypes_internal (const_tree type1, const_tree type2)
   return attrval == 2 && val == 1 ? 2 : val;
 }
 
-/* Return 1 if TTL and TTR are pointers to types that are equivalent,
-   ignoring their qualifiers.  */
+/* Return 1 if TTL and TTR are pointers to types that are equivalent, ignoring
+   their qualifiers, except for named address spaces.  If the pointers point to
+   different named addresses, then we must determine if one address space is a
+   subset of the other.  */
 
 static int
 comp_target_types (tree ttl, tree ttr)
 {
   int val;
-  tree mvl, mvr;
+  tree mvl = TREE_TYPE (ttl);
+  tree mvr = TREE_TYPE (ttr);
+  addr_space_t asl = TYPE_ADDR_SPACE (mvl);
+  addr_space_t asr = TYPE_ADDR_SPACE (mvr);
+  addr_space_t as_common = 0;
+
+  /* See if the pointers point to different address spaces.  */
+  if (asl != asr
+      && !targetm.addr_space.subset_p (asl, asr, &as_common)
+      && (asl != as_common))
+    return 0;
 
   /* Do not lose qualifiers on element types of array types that are
      pointer targets by taking their TYPE_MAIN_VARIANT.  */
-  mvl = TREE_TYPE (ttl);
-  mvr = TREE_TYPE (ttr);
   if (TREE_CODE (mvl) != ARRAY_TYPE)
     mvl = TYPE_MAIN_VARIANT (mvl);
   if (TREE_CODE (mvr) != ARRAY_TYPE)
@@ -3520,6 +3553,10 @@ build_conditional_expr (tree ifexp, tree op1, tree op2)
     }
   else if (code1 == POINTER_TYPE && code2 == POINTER_TYPE)
     {
+      addr_space_t as1;
+      addr_space_t as2;
+      addr_space_t as_common = 0;
+
       if (comp_target_types (type1, type2))
 	result_type = common_pointer_type (type1, type2);
       else if (null_pointer_constant_p (orig_op1))
@@ -3543,6 +3580,16 @@ build_conditional_expr (tree ifexp, tree op1, tree op2)
 		     "%<void *%> and function pointer");
 	  result_type = build_pointer_type (qualify_type (TREE_TYPE (type2),
 							  TREE_TYPE (type1)));
+	}
+      else if (((as1 = TYPE_ADDR_SPACE (TREE_TYPE (type1)))
+		!= (as2 = TYPE_ADDR_SPACE (TREE_TYPE (type2))))
+	       && (TYPE_MAIN_VARIANT (TREE_TYPE (type1))
+		   == TYPE_MAIN_VARIANT (TREE_TYPE (type2)))
+	       && !targetm.addr_space.subset_p (as1, as2, &as_common))
+	{
+	  error ("pointers to incompatible address spaces used in conditional "
+		 "expression");
+	  result_type = type1;
 	}
       else
 	{
@@ -3771,10 +3818,22 @@ build_c_cast (tree type, tree expr)
 	  if (as_to != as_from
 	      && !targetm.addr_space.can_convert_p (as_from, as_to))
 	    {
-	      error ("cast to pointer to address space %s from pointer "
-		     "to address space %s",
-		     targetm.addr_space.name (as_to),
-		     targetm.addr_space.name (as_from));
+	      if (!as_from)
+		error ("cast to %s address space pointer from generic address "
+		       "space pointer",
+		       targetm.addr_space.name (as_to));
+
+	      else if (!as_to)
+		error ("cast to generic address space pointer from %s address "
+		       "space pointer",
+		       targetm.addr_space.name (as_from));
+
+	      else
+		error ("cast to %s address space pointer from %s address "
+		       "space pointer",
+		       targetm.addr_space.name (as_to),
+		       targetm.addr_space.name (as_from));
+
 	      return error_mark_node;
 	    }
 	}
@@ -4289,6 +4348,9 @@ convert_for_assignment (tree type, tree rhs, enum impl_conv errtype,
       tree mvr = ttr;
       bool is_opaque_pointer;
       int target_cmp = 0;   /* Cache comp_target_types () result.  */
+      addr_space_t asl;
+      addr_space_t asr;
+      addr_space_t as_common;
 
       if (TREE_CODE (mvl) != ARRAY_TYPE)
 	mvl = TYPE_MAIN_VARIANT (mvl);
@@ -4307,6 +4369,38 @@ convert_for_assignment (tree type, tree rhs, enum impl_conv errtype,
       if (VOID_TYPE_P (ttr) && rhs != null_pointer_node && !VOID_TYPE_P (ttl))
 	warning (OPT_Wc___compat, "request for implicit conversion from "
 		 "%qT to %qT not permitted in C++", rhstype, type);
+
+	      /* See if the pointers point to incompatible address spaces.  */
+      asl = TYPE_ADDR_SPACE (ttl);
+      asr = TYPE_ADDR_SPACE (ttr);
+      as_common = 0;
+      if ((asl != asr)
+	  && !null_pointer_constant_p (rhs)
+	  && !targetm.addr_space.subset_p (asl, asr, &as_common)
+	  && asl != as_common)
+	{
+	  switch (errtype)
+	    {
+	    case ic_argpass:
+	      error ("passing argument %d of %qE is a pointer to an "
+		     "incompatible address space", parmnum, rname);
+	      break;
+	    case ic_assign:
+	      error ("assignment to a pointer to an incompatible address "
+		     "space");
+	      break;
+	    case ic_init:
+	      error ("initialization of a pointer to an incompatible space"
+		     "address space");
+	      break;
+	    case ic_return:
+	      error ("return of a pointer to an incompatible address space");
+	      break;
+	    default:
+	      gcc_unreachable ();
+	    }
+	  return error_mark_node;
+      }
 
       /* Check if the right-hand side has a format attribute but the
 	 left-hand side doesn't.  */

@@ -68,10 +68,20 @@ convert_to_pointer (tree type, tree expr)
 	{
 	  if (! targetm.addr_space.can_convert_p (from_as, to_as))
 	    {
-	      error ("cannot convert %s address space pointers to "
-		     "%s address space pointers",
-		     targetm.addr_space.name (from_as),
-		     targetm.addr_space.name (to_as));
+	      if (!from_as)
+		error ("cannot convert generic address space pointers to "
+		       "%s address space pointers",
+		       targetm.addr_space.name (to_as));
+	      else if (!to_as)
+		error ("cannot convert %s address space pointers to "
+		       "generic address space pointers",
+		       targetm.addr_space.name (from_as));
+	      else
+		error ("cannot convert %s address space pointers to "
+		       "%s address space pointers",
+		       targetm.addr_space.name (from_as),
+		       targetm.addr_space.name (to_as));
+
 	      return convert_to_pointer (type, integer_zero_node);
 	    }
 
