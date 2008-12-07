@@ -1817,10 +1817,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 	  in_cold_section_p = !in_cold_section_p;
 #ifdef DWARF2_UNWIND_INFO
 	  if (dwarf2out_do_frame ())
-	    dwarf2out_switch_text_section ();
+	    dwarf2out_switch_text_section (NOTE_TEXT_SECTION (insn));
 	  else
 #endif
-	    (*debug_hooks->switch_text_section) ();
+	    (*debug_hooks->switch_text_section) (NOTE_TEXT_SECTION (insn));
 
           if (flag_partition_functions_into_sections)
             switch_to_section (text_part_section (NOTE_TEXT_SECTION (insn)));

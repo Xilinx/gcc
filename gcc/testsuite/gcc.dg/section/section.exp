@@ -34,6 +34,10 @@ dg-init
 # Main loop.
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/section-size-*.\[cS\]]] \
         "" $DEFAULT_SECTIONFLAGS 
+# -g tests
+lappend DEFAULT_SECTIONFLAGS "-g"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/section-debug-*.\[cS\]]] \
+        "" $DEFAULT_SECTIONFLAGS
 
 # All done.
 dg-finish

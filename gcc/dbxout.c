@@ -375,7 +375,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   debug_nothing_rtx,		         /* label */
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
-  debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_int,                     /* switch_text_section */
   0                                      /* start_end_main_source_file */
 };
 #endif /* DBX_DEBUGGING_INFO  */
@@ -407,7 +407,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   debug_nothing_rtx,		         /* label */
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
-  debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_int,                     /* switch_text_section */
   0                                      /* start_end_main_source_file */
 };
 #endif /* XCOFF_DEBUGGING_INFO  */

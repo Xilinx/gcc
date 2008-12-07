@@ -123,7 +123,7 @@ struct gcc_debug_hooks
 
   /* Called from final_scan_insn if there is a switch between hot and cold
      text sections.  */
-  void (* switch_text_section) (void);
+  void (* switch_text_section) (unsigned int);
 
   /* This is 1 if the debug writer wants to see start and end commands for the
      main source files, and 0 otherwise.  */
@@ -162,7 +162,7 @@ extern void dwarf2out_frame_finish (void);
    translation unit.  */
 extern int dwarf2out_do_frame (void);
 extern int dwarf2out_do_cfi_asm (void);
-extern void dwarf2out_switch_text_section (void);
+extern void dwarf2out_switch_text_section (unsigned int);
 
 extern void debug_flush_symbol_queue (void);
 extern void debug_queue_symbol (tree);

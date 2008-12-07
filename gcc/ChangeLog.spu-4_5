@@ -1,3 +1,45 @@
+2008-12-07  Revital Eres  <eres@il.ibm.com>
+
+	* toplev.c (process_options): Enable
+	-fpartition-functions-into-sections when debugging is set.
+	* opts.c (decode_options): Likewise for unwind_tables and
+	exceptions.
+	* vmsdbgout.c (vmsdbg_debug_hooks): Change declaration of
+	switch_text_section field.
+	* debug.c (do_nothing_debug_hooks): Likewise.
+	* debug.h (gcc_debug_hooks): Likewise.
+	(dwarf2out_switch_text_section): Change declaration.
+	* dbxout.c (dbx_debug_hooks, xcoff_debug_hooks): Change
+	declaration of switch_text_section.
+	* final.c (final_scan_insn): Support new functionality.
+	* dwarf2out.c (COMP_UNIT_HAS_SECTIONS): define.
+	(first_section_p, last_section_p): New fields in dw_fde_node.
+	(block_aux_struct): New type for information regarding a lexical
+	block.
+	(block_labels_table): A table to hold information regarding a
+	lexical block.
+	(label_wrapper): New struct.
+	(output_call_frame_info, dwarf2out_begin_prologue,
+	dwarf2out_end_epilogue, add_var_loc_to_decl): Add support for
+	function partitioning.
+	(dwarf2out_switch_text_section): Likewise and also add parameter to
+	pass the section id.
+	(copy_cfi, copy_cfi_from_previous_fde, push_new_label,
+	blk_info_hash, blk_info_eq, clear_block_labels,
+	add_new_loc, add_tables_to_decl_loc_table,
+	convert_cfa_to_fb_loc_list_multiple_sections): New functions to
+	support debug information for function partitioning.
+	(die_sections_def): New struct.
+	(sections_info): New field in die_node.
+	new_section_p, end_section_p): New fields to var_loc_node.
+	(decl): New field to var_loc_list_def structure.
+	(output_aranges, add_location_or_const_value_attribute,
+	gen_subprogram_die, add_high_low_attributes,
+	dwarf2out_begin_block, dwarf2out_end_block, dwarf2out_init,
+	dwarf2out_finish): Support new functionality.
+	* sdbout.c (sdb_debug_hooks): Change declaration of
+	switch_text_section.
+
 2008-11-27  Revital Eres  <eres@il.ibm.com>
 
 	* doc/invoke: Document -fpartition-functions-into-sections

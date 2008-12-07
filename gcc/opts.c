@@ -1066,17 +1066,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
     }
 
-  if (flag_exceptions && flag_partition_functions_into_sections)
-    {
-      inform
-	(input_location, "-fpartition-functions-into-sections does not "
-	 "work with exceptions");
-      flag_partition_functions_into_sections = 0;
-    }
-
-  /* If user requested unwind info, then turn off the partitioning
-     optimization.  */
-
   if (flag_unwind_tables && ! targetm.unwind_tables_default
       && flag_reorder_blocks_and_partition)
     {
@@ -1085,14 +1074,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
     }
 
-  if (flag_unwind_tables && ! targetm.unwind_tables_default
-      && flag_partition_functions_into_sections)
-    {
-      inform (input_location, "-fpartition-functions-into-sections "
-              "does not support unwind info");
-      flag_partition_functions_into_sections = 0;
-    }
-  
   /* If the target requested unwind info, then turn off the partitioning
      optimization with a different message.  Likewise, if the target does not
      support named sections.  */
@@ -1107,15 +1088,6 @@ decode_options (unsigned int argc, const char **argv)
       flag_reorder_blocks = 1;
     }
 
-  if (flag_partition_functions_into_sections
-      && (!targetm.have_named_sections
-          || (flag_unwind_tables && targetm.unwind_tables_default)))
-   {
-      inform
-       (input_location, "-fpartition-functions-into-sections does not work "
-        "on this architecture");
-      flag_partition_functions_into_sections = 0;
-    }
   if (flag_partition_functions_into_sections
       && (!targetm.have_named_sections))
     {

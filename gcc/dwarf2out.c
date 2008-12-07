@@ -280,6 +280,12 @@ typedef struct dw_fde_struct GTY(())
   unsigned stack_realign : 1;
   /* Whether dynamic realign argument pointer register has been saved.  */
   unsigned drap_reg_saved: 1;
+ /* True if the function is spread on multiple sections and this FDE
+    belongs to the first section.  */
+   bool first_section_p;
+ /* True if the function is spread on multiple sections and this FDE 
+    belongs to the last section.  */
+   bool last_section_p;
 }
 dw_fde_node;
 
@@ -388,6 +394,9 @@ static GTY(()) unsigned long dwarf2out_cfi_label_num;
 /* True if the compilation unit places functions in more than one section.  */
 static GTY(()) bool have_multiple_function_sections = false;
 
+#define COMP_UNIT_HAS_SECTIONS (flag_partition_functions_into_sections \
+                                && have_multiple_function_sections)
+
 /* Whether the default text and cold text sections have been used at all.  */
 
 static GTY(()) bool text_section_used = false;
@@ -395,6 +404,32 @@ static GTY(()) bool cold_text_section_used = false;
 
 /* The default cold text section.  */
 static GTY(()) section *cold_text_section;
+
+/* Information regarding a lexical block.
+   When the block is spread on multiple sections; the labels which mark
+   the sections boundaries are saved here.  These labels are needed for 
+   .debug_range section.  */
+typedef struct block_aux_struct GTY(())
+{
+  /* The block number.  */
+  int block_num;
+
+  /* The list of labels for the block.  */
+  VEC(const_str,gc) *block_labels;
+
+  /* A variable to indicate whether the end of the block was analyzed
+     yet.  */
+  bool closed_p;
+}
+block_aux;
+
+/* Hash-table of information regarding lexical blocks.  */
+static GTY((param_is (block_aux))) htab_t block_labels_table;
+
+struct label_wrapper 
+{
+  const char *label;
+};
 
 #if defined (DWARF2_DEBUGGING_INFO) || defined (DWARF2_UNWIND_INFO)
 
@@ -3034,7 +3069,8 @@ output_call_frame_info (int for_eh)
 
       if (for_eh)
 	{
-	  if (fde->dw_fde_switched_sections)
+	  if (fde->dw_fde_switched_sections
+              && flag_partition_functions_into_sections == 0)
 	    {
 	      rtx sym_ref2 = gen_rtx_SYMBOL_REF (Pmode,
 				      fde->dw_fde_unlikely_section_label);
@@ -3070,7 +3106,8 @@ output_call_frame_info (int for_eh)
 	}
       else
 	{
-	  if (fde->dw_fde_switched_sections)
+	  if (fde->dw_fde_switched_sections
+              && flag_partition_functions_into_sections == 0)
 	    {
 	      dw2_asm_output_addr (DWARF2_ADDR_SIZE,
 				   fde->dw_fde_hot_section_label,
@@ -3189,11 +3226,23 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
 #endif
 
   switch_to_section (function_section (current_function_decl));
-  ASM_GENERATE_INTERNAL_LABEL (label, FUNC_BEGIN_LABEL,
-			       current_function_funcdef_no);
-  ASM_OUTPUT_DEBUG_LABEL (asm_out_file, FUNC_BEGIN_LABEL,
-			  current_function_funcdef_no);
-  dup_label = xstrdup (label);
+  if (flag_partition_functions_into_sections
+      && cfun
+      && (crtl->subsections.number_of_sections > 0))
+  {
+     dup_label =
+        xstrdup (VEC_index
+                 (const_str, crtl->subsections.section_start_labels, 0));
+  }
+  else
+  {
+    ASM_GENERATE_INTERNAL_LABEL (label, FUNC_BEGIN_LABEL,
+                                current_function_funcdef_no);
+    ASM_OUTPUT_DEBUG_LABEL (asm_out_file, FUNC_BEGIN_LABEL,
+                           current_function_funcdef_no);
+    dup_label = xstrdup (label);
+  }
+
   current_function_func_begin_label = dup_label;
 
 #ifdef TARGET_UNWIND_INFO
@@ -3232,6 +3281,8 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
   fde->drap_reg = INVALID_REGNUM;
   fde->vdrap_reg = INVALID_REGNUM;
+  fde->first_section_p = true;
+  fde->last_section_p = true;
 
   args_size = old_args_size = 0;
 
@@ -3300,14 +3351,32 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   if (dwarf2out_do_cfi_asm ())
     fprintf (asm_out_file, "\t.cfi_endproc\n");
 
-  /* Output a label to mark the endpoint of the code generated for this
-     function.  */
-  ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
-			       current_function_funcdef_no);
-  ASM_OUTPUT_LABEL (asm_out_file, label);
-  fde = current_fde ();
-  gcc_assert (fde != NULL);
-  fde->dw_fde_end = xstrdup (label);
+  if (flag_partition_functions_into_sections
+      && cfun && crtl->subsections.number_of_sections)
+    {
+      fde = &fde_table[fde_table_in_use - 1];
+      fde->last_section_p = true;
+
+      /* If we have only one then section override it's label.  In case we have
+         more than one section; the endpoint label was already marked.  */
+      if (crtl->subsections.number_of_sections == 1)
+	{
+	  const char *tmp =
+	    VEC_index (const_str, crtl->subsections.section_end_labels, 0);
+
+	  fde->dw_fde_end = ggc_strdup (tmp);
+	}
+    }
+  else
+    {
+      /* Output a label to mark the endpoint of the code generated for this
+         function.  */
+      ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
+				   current_function_funcdef_no);
+      ASM_OUTPUT_LABEL (asm_out_file, label);
+      fde = &fde_table[fde_table_in_use - 1];
+      fde->dw_fde_end = ggc_strdup (label);
+    }
 }
 
 void
@@ -3356,28 +3425,183 @@ dwarf2out_note_section_used (void)
     cold_text_section_used = true;
 }
 
-void
-dwarf2out_switch_text_section (void)
+/* Copy CFI_ORIG to CFI_CLONE.  */
+static void
+copy_cfi (dw_cfi_ref cfi_clone, dw_cfi_ref cfi_orig)
 {
-  dw_fde_ref fde = current_fde ();
-
-  gcc_assert (cfun && fde);
-
-  fde->dw_fde_switched_sections = true;
-  fde->dw_fde_hot_section_label = crtl->subsections.hot_section_label;
-  fde->dw_fde_hot_section_end_label = crtl->subsections.hot_section_end_label;
-  fde->dw_fde_unlikely_section_label = crtl->subsections.cold_section_label;
-  fde->dw_fde_unlikely_section_end_label = crtl->subsections.cold_section_end_label;
-  have_multiple_function_sections = true;
-
-  /* Reset the current label on switching text sections, so that we
-     don't attempt to advance_loc4 between labels in different sections.  */
-  fde->dw_fde_current_label = NULL;
-
-  /* There is no need to mark used sections when not debugging.  */
-  if (cold_text_section != NULL)
-    dwarf2out_note_section_used ();
+  memcpy (cfi_clone, cfi_orig, sizeof (struct dw_cfi_struct));
+  cfi_clone->dw_cfi_next = NULL;
 }
+
+/* Copy the CFI from the previous sections to the current FDE in order to
+   record the state of all the saved registers.  This is used when the
+   function is spread into multiple sections.  */
+static void
+copy_cfi_from_previous_fde (void)
+{
+  dw_fde_ref fde, prev_fde;
+  dw_cfi_ref cfi;
+
+  gcc_assert (fde_table_in_use > 1);
+  
+  /* Get the last FDE.  */
+  fde = &fde_table[fde_table_in_use - 1];
+  fde->dw_fde_cfi = NULL;
+
+  lookup_cfa (&cfa);
+  /* Get the previos FDE.  */
+  prev_fde = &fde_table[fde_table_in_use - 2];
+
+  /* Copy the instructions to get the state of all the saved registers.  */
+  for (cfi = prev_fde->dw_fde_cfi; cfi; cfi = cfi->dw_cfi_next)
+    {
+      dw_cfi_ref clone_cfi;
+
+      if (cfi->dw_cfi_opc == DW_CFA_advance_loc1
+	  || cfi->dw_cfi_opc == DW_CFA_advance_loc2
+	  || cfi->dw_cfi_opc == DW_CFA_advance_loc4
+	  || cfi->dw_cfi_opc == DW_CFA_advance_loc)
+	continue;
+
+      clone_cfi = new_cfi ();
+      copy_cfi (clone_cfi, cfi);
+      add_cfi (&fde->dw_fde_cfi, clone_cfi);
+    }
+}
+
+/*  Add LABEL to every block which is not marked as closed.
+    If lexical block is spread in multiple sections; LABEL is one of
+    the labels which mark the range of these sections.  Callbacks for
+    htab_traverse.  */
+
+static int
+push_new_label (void **slot, void *label)
+{
+  struct block_aux_struct *blk = (struct block_aux_struct *) *slot;
+  struct label_wrapper *lw = (struct label_wrapper *)label;
+  const char *new_label = lw->label;
+
+  if (blk->closed_p)
+    return 1;
+
+  VEC_safe_push (const_str, gc, blk->block_labels, ggc_strdup (new_label));
+
+  /* Continue traversing the hash table.  */
+  return 1;
+}
+
+static void add_labels_to_decl_loc_table (struct label_wrapper *,
+                                          struct label_wrapper *);
+
+/* Switch to a new section.  I indicates the section id which is used
+   to retrieve the labels which mark it's boundaries.  */
+void
+dwarf2out_switch_text_section (unsigned int i)
+{
+  dw_fde_ref fde;
+
+  gcc_assert (cfun);
+
+  if (i > 0)
+    {
+      dw_fde_ref prev_fde;
+      struct label_wrapper label1;
+      struct label_wrapper label2;
+
+      /* If i > 0 then we asked to created multiple sections.
+         We should have at least one section.  */
+      gcc_assert (flag_partition_functions_into_sections
+		  && crtl->subsections.number_of_sections);
+
+      /* Expand the fde table if necessary.  */
+      if (fde_table_in_use == fde_table_allocated)
+	{
+	  fde_table_allocated += FDE_TABLE_INCREMENT;
+	  fde_table =
+	    GGC_RESIZEVEC (dw_fde_node, fde_table, fde_table_allocated);
+	  memset (fde_table + fde_table_in_use, 0,
+		  FDE_TABLE_INCREMENT * sizeof (dw_fde_node));
+	}
+      /* Record the FDE associated with this function.  */
+      current_funcdef_fde = fde_table_in_use;
+
+      /* Add the new FDE at the end of the fde_table.  */
+      fde = &fde_table[fde_table_in_use++];
+      /* Get the previous FDE.  */
+      prev_fde = &fde_table[fde_table_in_use - 2];
+
+      fde->decl = current_function_decl;
+      fde->dw_fde_current_label = NULL;
+      fde->dw_fde_switched_sections = true;
+      gcc_assert (crtl->subsections.section_start_labels
+		  && crtl->subsections.section_end_labels
+		  && (crtl->subsections.number_of_sections > i));
+      fde->dw_fde_begin =
+	VEC_index (const_str, crtl->subsections.section_start_labels, i);
+      fde->dw_fde_end =
+	VEC_index (const_str, crtl->subsections.section_end_labels, i);
+      fde->dw_fde_cfi = NULL;
+      fde->funcdef_number = current_function_funcdef_no;
+      fde->uses_eh_lsda = crtl->uses_eh_lsda;
+      fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
+      fde->nothrow = TREE_NOTHROW (current_function_decl);
+      fde->first_section_p = false;
+      fde->last_section_p = false;
+      fde->drap_reg = INVALID_REGNUM;
+      fde->vdrap_reg = INVALID_REGNUM;
+      /* We need to update the previous FDE which can be the first one
+         in the function.  */
+      if (prev_fde->dw_fde_switched_sections != true)
+	{
+	  gcc_assert (crtl->subsections.section_start_labels
+		      && crtl->subsections.section_end_labels && (i == 1));
+	  prev_fde->dw_fde_begin =
+	    VEC_index (const_str, crtl->subsections.section_start_labels, 0);
+	  prev_fde->dw_fde_end =
+	    VEC_index (const_str, crtl->subsections.section_end_labels, 0);
+	  current_function_func_begin_label =
+	    ggc_strdup ((prev_fde->dw_fde_begin));
+	  prev_fde->dw_fde_switched_sections = true;
+	  prev_fde->first_section_p = true;
+	  prev_fde->last_section_p = false;
+	}
+      /* Copy the dw_fde_cfi field from the previous sections.  */
+      copy_cfi_from_previous_fde ();
+      have_multiple_function_sections = true;
+
+      if (block_labels_table != NULL)
+	{
+	  label1.label = prev_fde->dw_fde_end;
+	  label2.label = fde->dw_fde_begin;
+
+	  /* In case the section is part of a lexical block
+	     we need to add the labels which mark the end of the
+	     previous section and the beginning of the new one to the
+	     block range list.	*/
+	  htab_traverse (block_labels_table, push_new_label, &label1);
+	  htab_traverse (block_labels_table, push_new_label, &label2);
+	}
+      label1.label = prev_fde->dw_fde_end;
+      label2.label = fde->dw_fde_begin;
+      /* Add the labels to any recorded location list.  */
+      add_labels_to_decl_loc_table (&label1, &label2);
+    }
+  else
+    {
+      fde = current_fde ();
+      /* TODO: Fix debug info for hot/cold text sections.  */
+      fde->dw_fde_switched_sections = true;
+      fde->dw_fde_hot_section_label = crtl->subsections.hot_section_label;
+      fde->dw_fde_hot_section_end_label =
+	crtl->subsections.hot_section_end_label;
+      fde->dw_fde_unlikely_section_label =
+	crtl->subsections.cold_section_label;
+      fde->dw_fde_unlikely_section_end_label =
+	crtl->subsections.cold_section_end_label;
+      have_multiple_function_sections = true;
+    }
+}
+
 #endif
 
 /* And now, the subset of the debugging information support code necessary
@@ -4630,6 +4854,20 @@ dw_attr_node;
 DEF_VEC_O(dw_attr_node);
 DEF_VEC_ALLOC_O(dw_attr_node,gc);
 
+/* The information regarding the sections of the DIE.
+   When the DIE has discontinuous code; the labels which mark the range
+   of each section are saved in this structure.  Used in output_aranges
+   function.  */
+
+typedef struct die_sections_def GTY(())
+{
+  /* True if the function has more than one section.  */
+  bool more_than_one_sec_p;
+  VEC(const_str,gc) *section_start_labels;
+  VEC(const_str,gc) *section_end_labels;
+}
+die_sections;
+
 /* The Debugging Information Entry (DIE) structure.  DIEs form a tree.
    The children of each node form a circular list linked by
    die_sib.  die_child points to the node *before* the "first" child node.  */
@@ -4649,6 +4887,8 @@ typedef struct die_struct GTY((chain_circular ("%h.die_sib")))
   /* Die is used and must not be pruned as unused.  */
   int die_perennial_p;
   unsigned int decl_id;
+  /* Information about the sections of the DIE. */
+  die_sections sections_info;
 }
 die_node;
 
@@ -4799,6 +5039,10 @@ struct var_loc_node GTY ((chain_next ("%h.next")))
   const char * GTY (()) label;
   const char * GTY (()) section_label;
   struct var_loc_node * GTY (()) next;
+  /* True if this location mark the beginning of a section.  */
+  bool start_section_p;
+  /* True if this location mark the end of a section.  */
+  bool end_section_p;
 };
 
 /* Variable location list.  */
@@ -4809,9 +5053,10 @@ struct var_loc_list_def GTY (())
   /* Do not mark the last element of the chained list because
      it is marked through the chain.  */
   struct var_loc_node * GTY ((skip ("%h"))) last;
-
   /* DECL_UID of the variable decl.  */
   unsigned int decl_id;
+  /* Save the Decl itself.  */
+  tree decl;
 };
 typedef struct var_loc_list_def var_loc_list;
 
@@ -6640,6 +6885,31 @@ equate_decl_number_to_die (tree decl, dw_die_ref decl_die)
   decl_die->decl_id = decl_id;
 }
 
+/*  Add LABEL to every location that is recorded in decl_loc_table.
+    Callbacks for htab_traverse.  */
+
+static int
+add_new_loc (void **slot, void *label)
+{
+  struct label_wrapper *lw = (struct label_wrapper *)label;
+  const char *new_label = lw->label;
+  tree decl = ((const var_loc_list *) *slot)->decl;
+  struct var_loc_node *newloc;
+
+  newloc = GGC_CNEW (struct var_loc_node);
+  newloc->next = NULL;
+  newloc->label = ggc_strdup (new_label);
+  newloc->var_loc_note = ((const var_loc_list *) *slot)->last->var_loc_note;
+  newloc->start_section_p = true;
+  newloc->end_section_p = false;
+  if (strstr (new_label, "SECTIONE") != 0)
+    newloc->end_section_p = true;
+  add_var_loc_to_decl (decl, newloc);
+
+  /* Continue traversing the hash table.  */
+  return 1;
+}
+
 /* Add a variable location node to the linked list for DECL.  */
 
 static void
@@ -6654,6 +6924,7 @@ add_var_loc_to_decl (tree decl, struct var_loc_node *loc)
     {
       temp = GGC_CNEW (var_loc_list);
       temp->decl_id = decl_id;
+      temp->decl = decl;
       *slot = temp;
     }
   else
@@ -6671,7 +6942,8 @@ add_var_loc_to_decl (tree decl, struct var_loc_node *loc)
 	      && ((NOTE_VAR_LOCATION_STATUS (temp->last->var_loc_note)
 		   == VAR_INIT_STATUS_UNINITIALIZED)
 		  || (NOTE_VAR_LOCATION_STATUS (loc->var_loc_note)
-		      == VAR_INIT_STATUS_UNINITIALIZED))))
+		      == VAR_INIT_STATUS_UNINITIALIZED)))
+         || loc->start_section_p)
 	{
 	  /* Add LOC to the end of list and update LAST.  */
 	  temp->last->next = loc;
@@ -6685,6 +6957,21 @@ add_var_loc_to_decl (tree decl, struct var_loc_node *loc)
       temp->last = loc;
     }
 }
+
+/* Add the LABEL1 and LABEL2 to the location
+   lists recorded in decl_loc_table.  These labels mark section
+   boundaries.  */
+static void
+add_labels_to_decl_loc_table (struct label_wrapper *label1,
+			      struct label_wrapper *label2)
+{
+  if (!decl_loc_table)
+    return;
+
+  htab_traverse (decl_loc_table, add_new_loc, label1);
+  htab_traverse (decl_loc_table, add_new_loc, label2);
+}
+
 
 /* Keep track of the number of spaces used to indent the
    output of the debugging routines that print the structure of
@@ -8433,6 +8720,7 @@ output_aranges (void)
 {
   unsigned i;
   unsigned long aranges_length = size_of_aranges ();
+  dw_die_ref prev_die;
 
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
@@ -8462,20 +8750,20 @@ output_aranges (void)
      the address may end up as 0 if the section is discarded by ld
      --gc-sections, leaving an invalid (0, 0) entry that can be
      confused with the terminator.  */
-  if (text_section_used)
+  if (text_section_used && !COMP_UNIT_HAS_SECTIONS)
     {
       dw2_asm_output_addr (DWARF2_ADDR_SIZE, text_section_label, "Address");
       dw2_asm_output_delta (DWARF2_ADDR_SIZE, text_end_label,
 			    text_section_label, "Length");
     }
-  if (cold_text_section_used)
+  if (cold_text_section_used && !COMP_UNIT_HAS_SECTIONS)
     {
       dw2_asm_output_addr (DWARF2_ADDR_SIZE, cold_text_section_label,
 			   "Address");
       dw2_asm_output_delta (DWARF2_ADDR_SIZE, cold_end_label,
 			    cold_text_section_label, "Length");
     }
-
+  prev_die = NULL;
   for (i = 0; i < arange_table_in_use; i++)
     {
       dw_die_ref die = arange_table[i];
@@ -8485,10 +8773,47 @@ output_aranges (void)
 
       if (die->die_tag == DW_TAG_subprogram)
 	{
+        if (!COMP_UNIT_HAS_SECTIONS || !die->sections_info.more_than_one_sec_p)
+          {
+
 	  dw2_asm_output_addr (DWARF2_ADDR_SIZE, get_AT_low_pc (die),
 			       "Address");
 	  dw2_asm_output_delta (DWARF2_ADDR_SIZE, get_AT_hi_pc (die),
 				get_AT_low_pc (die), "Length");
+          continue;
+          }
+         else
+          {
+               /* If the DIE has discontiguous; output the labels
+                  which mark the range of each section.  */
+              unsigned i = 0;
+              unsigned size;
+
+              /* Skip the DIE if we already seen it.
+                 We inserted the DIE into the aranges table each time we
+                 wanted to record a new range for it (so the table's size
+                 will be accurate), but in practice we use only the first
+                 DIE to output all it's ranges.  */
+              if (prev_die == die)
+                continue;
+
+              size = VEC_length (const_str, die->sections_info.section_start_labels);
+
+              for (i = 0; i < size; i++)
+                {
+                  const char *tmps, *tmpe;
+
+                  tmps =
+                    VEC_index (const_str, die->sections_info.section_start_labels,
+                                     i);
+                  tmpe =
+                    VEC_index (const_str, die->sections_info.section_end_labels,
+                                     i);
+                  dw2_asm_output_addr (DWARF2_ADDR_SIZE, tmps, "Address");
+                  dw2_asm_output_delta (DWARF2_ADDR_SIZE, tmpe,
+                                        tmps, "Length");
+                }
+            }
 	}
       else
 	{
@@ -8509,6 +8834,7 @@ output_aranges (void)
 			       get_AT_unsigned (die, DW_AT_byte_size),
 			       "Length");
 	}
+     prev_die = die;
     }
 
   /* Output the terminator words.  */
@@ -11833,8 +12159,9 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 	    varloc = NOTE_VAR_LOCATION (node->var_loc_note);
 	    descr = loc_by_reference (loc_descriptor (varloc, initialized),
 				      decl);
-	    add_loc_descr_to_loc_list (&list, descr,
-				       node->label, node->next->label, secname);
+            if (!node->end_section_p)
+	      add_loc_descr_to_loc_list (&list, descr,
+	  			         node->label, node->next->label, secname);
 	  }
 
       /* If the variable has a location at the last label
@@ -11846,7 +12173,16 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 	    NOTE_VAR_LOCATION_STATUS (node->var_loc_note);
 
 	  varloc = NOTE_VAR_LOCATION (node->var_loc_note);
-	  if (!current_function_decl)
+
+          if (flag_partition_functions_into_sections
+              && (crtl->subsections.number_of_sections > 0))
+          {
+            /* Emit the end label of the last section.  */
+            endname =
+                ggc_strdup (VEC_last
+                            (const_str, crtl->subsections.section_end_labels));
+          }
+	  else if (!current_function_decl)
 	    endname = text_end_label;
 	  else
 	    {
@@ -12089,6 +12425,121 @@ tree_add_const_value_attribute (dw_die_ref var_die, tree decl)
 	    add_AT_vec (var_die, DW_AT_const_value, size, 1, array);
 	}
     }
+}
+
+/* Convert the CFI instructions for the current function into a
+   location list.  Thecurrent function has multiple sections.  This is
+   used for DW_AT_frame_base when we targeting a dwarf2 consumer that
+   does not support the dwarf3 DW_OP_call_frame_cfa.  OFFSET is a constant
+   to be added to all CFA expressions.  */
+
+static dw_loc_list_ref
+convert_cfa_to_fb_loc_list_multiple_sections (HOST_WIDE_INT offset)
+{
+  dw_fde_ref fde;
+  dw_loc_list_ref list, *list_tail;
+  dw_cfi_ref cfi;
+  dw_cfa_location last_cfa, next_cfa;
+  const char *start_label, *last_label, *section, *last_fde_label;
+  const char *last_function_section_label;
+  int i;
+  int last_fde = fde_table_in_use - 1;
+
+  fde = &fde_table[fde_table_in_use - 1];
+  last_function_section_label = fde->dw_fde_end;
+  last_fde_label = last_function_section_label;
+
+  /* If the function is in discontiguous sections we should start from
+     the first section.  */
+  for (i = fde_table_in_use - 1; i >= 0; i = i - 1)
+    {
+      fde = &fde_table[i];
+
+      if (fde->first_section_p == true)
+	break;
+    }
+
+  section = secname_for_decl (current_function_decl);
+  list_tail = &list;
+  list = NULL;
+
+  next_cfa.reg = INVALID_REGNUM;
+  next_cfa.offset = 0;
+  next_cfa.indirect = 0;
+  next_cfa.base_offset = 0;
+
+  start_label = fde->dw_fde_begin;
+
+  /* ??? Bald assumption that the CIE opcode list does not contain
+     advance opcodes.  */
+  for (cfi = cie_cfi_head; cfi; cfi = cfi->dw_cfi_next)
+    lookup_cfa_1 (cfi, &next_cfa);
+  last_cfa = next_cfa;
+  last_label = start_label;
+  while ((unsigned) i < fde_table_in_use)
+    {
+      fde = &fde_table[i];
+      i++;
+      for (cfi = fde->dw_fde_cfi; cfi; cfi = cfi->dw_cfi_next)
+	switch (cfi->dw_cfi_opc)
+	  {
+	  case DW_CFA_advance_loc1:
+	  case DW_CFA_advance_loc2:
+	  case DW_CFA_advance_loc4:
+	    if (!cfa_equal_p (&last_cfa, &next_cfa))
+	      {
+		*list_tail = new_loc_list (build_cfa_loc (&last_cfa, offset),
+					   start_label, last_label, section,
+					   list == NULL);
+		list_tail = &(*list_tail)->dw_loc_next;
+		last_cfa = next_cfa;
+		start_label = last_label;
+	      }
+	    last_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
+	    last_fde_label = fde->dw_fde_end;
+	    last_fde = i;
+	    break;
+
+	  case DW_CFA_advance_loc:
+	    /* The encoding is complex enough that we should never emit this.  */
+	  case DW_CFA_remember_state:
+	  case DW_CFA_restore_state:
+	    /* We don't handle these two in this function.  It would be possible
+	       if it were to be required.  */
+	    gcc_unreachable ();
+	  default:
+	    lookup_cfa_1 (cfi, &next_cfa);
+	    break;
+	  }
+    }
+  if (!cfa_equal_p (&last_cfa, &next_cfa))
+    {
+      *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
+				 start_label, last_label, section,
+				 list == NULL);
+      list_tail = &(*list_tail)->dw_loc_next;
+      start_label = last_label;
+    }
+
+  *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
+			     start_label, last_fde_label, section,
+			     list == NULL);
+
+  if (strcmp (last_function_section_label, last_fde_label) != 0)
+    {
+      list_tail = &(*list_tail)->dw_loc_next;
+      i = last_fde;
+      while ((unsigned) i < fde_table_in_use)
+	{
+	  fde = &fde_table[i];
+	  *list_tail = new_loc_list (build_cfa_loc (&next_cfa, offset),
+				     fde->dw_fde_begin, fde->dw_fde_end,
+				     section, list == NULL);
+	  list_tail = &(*list_tail)->dw_loc_next;
+	  i++;
+	}
+    }
+  return list;
 }
 
 /* Convert the CFI instructions for the current function into a
@@ -13710,7 +14161,9 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (!old_die || !get_AT (old_die, DW_AT_inline))
 	equate_decl_number_to_die (decl, subr_die);
 
-      if (!flag_reorder_blocks_and_partition)
+      if (!flag_reorder_blocks_and_partition &&
+          ((flag_partition_functions_into_sections == 0) || !cfun
+            || ((crtl->subsections.number_of_sections == 0))))
 	{
 	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_BEGIN_LABEL,
 				       current_function_funcdef_no);
@@ -13722,6 +14175,72 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	  add_pubname (decl, subr_die);
 	  add_arange (decl, subr_die);
 	}
+        else if (flag_partition_functions_into_sections && cfun 
+               && (crtl->subsections.number_of_sections > 0))
+        {
+          const char *tmps =
+            VEC_index (const_str, crtl->subsections.section_start_labels, 0);
+          const char *tmpe =
+            VEC_index (const_str, crtl->subsections.section_end_labels, 0);
+
+          if (crtl->subsections.number_of_sections == 1)
+            {
+              /* No need to use range list if the function has only
+                 one section.  */
+              subr_die->sections_info.more_than_one_sec_p = false;
+              add_AT_lbl_id (subr_die, DW_AT_low_pc, tmps);
+              add_AT_lbl_id (subr_die, DW_AT_high_pc, tmpe);
+              add_arange (decl, subr_die);
+            }
+            else
+            {
+              unsigned i;
+
+              add_AT_addr (subr_die, DW_AT_low_pc, const0_rtx);
+
+              subr_die->sections_info.more_than_one_sec_p = true;
+              if (subr_die->sections_info.section_start_labels == NULL)
+               subr_die->sections_info.section_start_labels = 
+                VEC_alloc (const_str, gc, crtl->subsections.number_of_sections);
+              if (subr_die->sections_info.section_end_labels == NULL)
+                subr_die->sections_info.section_end_labels = 
+                VEC_alloc (const_str, gc, crtl->subsections.number_of_sections);
+ 
+              /* Record the range list of the function.  */
+              add_AT_range_list (subr_die, DW_AT_ranges,
+                                 add_ranges_by_labels (tmps, tmpe));
+
+              for (i = 0; i < crtl->subsections.number_of_sections; i++)
+                {
+                  tmps =
+                    VEC_index (const_str, crtl->subsections.section_start_labels,
+                               i);
+                  tmpe =
+                    VEC_index (const_str, crtl->subsections.section_end_labels,
+                               i);
+
+                  if (i > 0)
+                    {
+                      add_ranges_by_labels (tmps, tmpe);
+                    }
+
+                  VEC_safe_push (const_str, gc,
+                                 subr_die->sections_info.section_start_labels,
+                                 ggc_strdup (tmps));
+                  VEC_safe_push (const_str, gc,
+                                 subr_die->sections_info.section_end_labels,
+                                 ggc_strdup (tmpe));
+
+                  /* Record the arrange of the function.  In order to
+                     adjust the address range table size; each range is
+                     added separately.  The labels are recorded in the DIE
+                     for later use in output_aranges function.  */
+                  add_arange (decl, subr_die);
+                }
+              add_ranges (NULL);
+            }
+          add_pubname (decl, subr_die);
+        }
       else
 	{  /* Do nothing for now; maybe need to duplicate die, one for
 	      hot section and one for cold section, then use the hot/cold
@@ -13758,7 +14277,13 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 consumers that understand it; fall back to "pure" dwarf2 and
 	 convert the CFA data into a location list.  */
       {
-	dw_loc_list_ref list = convert_cfa_to_fb_loc_list (cfa_fb_offset);
+        dw_loc_list_ref list;
+
+        if (flag_partition_functions_into_sections 
+	    && (crtl->subsections.number_of_sections == 0))
+  	  list = convert_cfa_to_fb_loc_list (cfa_fb_offset);
+        else
+          list = convert_cfa_to_fb_loc_list_multiple_sections (cfa_fb_offset);
 	if (list->dw_loc_next)
 	  add_AT_loc_list (subr_die, DW_AT_frame_base, list);
 	else
@@ -14217,35 +14742,127 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
 {
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
 
-  if (BLOCK_FRAGMENT_CHAIN (stmt))
+  if (COMP_UNIT_HAS_SECTIONS)
+    {
+      unsigned i, size;
+      tree chain;
+      unsigned block_num = BLOCK_NUMBER (stmt);
+      struct block_aux_struct *blk;
+      struct block_aux_struct elm;
+      const char *slabel;
+      const char *elabel;
+
+      if (BLOCK_FRAGMENT_CHAIN (stmt))
+	{
+	  elm.block_num = block_num;
+          blk =
+            (struct block_aux_struct *) htab_find (block_labels_table, &elm);
+
+          /* Record the ranges of the lexical block; if it is spread on
+             multiple sections.  */
+	  if (blk)
+	    {
+	      slabel = VEC_index (const_str, blk->block_labels, 0);
+	      elabel = VEC_index (const_str, blk->block_labels, 1);
+              size =  VEC_length (const_str, blk->block_labels);
+
+	      add_AT_range_list (die, DW_AT_ranges,
+				 add_ranges_by_labels (slabel, elabel));
+	      for (i = 2; i < size; i = i + 2)
+		{
+		  slabel = VEC_index (const_str, blk->block_labels, i);
+		  elabel = VEC_index (const_str, blk->block_labels, i + 1);
+		  add_ranges_by_labels (slabel, elabel);
+		}
+	    }
+	  chain = BLOCK_FRAGMENT_CHAIN (stmt);
+	  do
+	    {
+              block_num = BLOCK_NUMBER (chain);
+	      elm.block_num = block_num;
+              blk =
+                (struct block_aux_struct *) htab_find (block_labels_table,
+                                                       &elm);
+
+	      if (blk)
+		{
+                  size = VEC_length (const_str, blk->block_labels);
+		  for (i = 0; i < size; i = i + 2)
+		    {
+		      slabel = VEC_index (const_str, blk->block_labels, i);
+		      elabel = VEC_index (const_str, blk->block_labels, i + 1);
+		      add_ranges_by_labels (slabel, elabel);
+		    }
+		}
+	      chain = BLOCK_FRAGMENT_CHAIN (chain);
+	    }
+	  while (chain);
+	  add_ranges (NULL);
+	}
+      else
+	{
+          block_num = BLOCK_NUMBER (stmt);
+	  elm.block_num = block_num;
+	  blk = (struct block_aux_struct *)htab_find (block_labels_table, &elm);
+          
+	  if (blk)
+	    {
+              size = VEC_length (const_str, blk->block_labels);
+	      if (size > 2)
+		{
+		  slabel = VEC_index (const_str, blk->block_labels, 0);
+		  elabel = VEC_index (const_str, blk->block_labels, 1);
+
+		  add_AT_range_list (die, DW_AT_ranges,
+				     add_ranges_by_labels (slabel, elabel));
+		  for (i = 2; i < size; i = i + 2)
+		    {
+		      slabel = VEC_index (const_str, blk->block_labels, i);
+		      elabel = VEC_index (const_str, blk->block_labels, i + 1);
+		      add_ranges_by_labels (slabel, elabel);
+		    }
+		  add_ranges (NULL);
+		}
+	      else
+		{
+		  slabel = VEC_index (const_str, blk->block_labels, 0);
+		  elabel = VEC_index (const_str, blk->block_labels, 1);
+
+		  add_AT_lbl_id (die, DW_AT_low_pc, slabel);
+		  add_AT_lbl_id (die, DW_AT_high_pc, elabel);
+		}
+	    }
+	}
+    }
+  else if (BLOCK_FRAGMENT_CHAIN (stmt))
     {
       tree chain;
 
       if (is_inlined_entry_point (stmt))
-	{
-	  ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_BEGIN_LABEL,
-				       BLOCK_NUMBER (stmt));
-	  add_AT_lbl_id (die, DW_AT_entry_pc, label);
-	}
+        {
+          ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_BEGIN_LABEL,
+                                       BLOCK_NUMBER (stmt));
+          add_AT_lbl_id (die, DW_AT_entry_pc, label);
+        }
 
       add_AT_range_list (die, DW_AT_ranges, add_ranges (stmt));
 
       chain = BLOCK_FRAGMENT_CHAIN (stmt);
       do
-	{
-	  add_ranges (chain);
-	  chain = BLOCK_FRAGMENT_CHAIN (chain);
-	}
+        {
+          add_ranges (chain);
+          chain = BLOCK_FRAGMENT_CHAIN (chain);
+        }
       while (chain);
       add_ranges (NULL);
     }
   else
     {
       ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_BEGIN_LABEL,
-				   BLOCK_NUMBER (stmt));
+                                   BLOCK_NUMBER (stmt));
       add_AT_lbl_id (die, DW_AT_low_pc, label);
       ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_END_LABEL,
-				   BLOCK_NUMBER (stmt));
+                                   BLOCK_NUMBER (stmt));
       add_AT_lbl_id (die, DW_AT_high_pc, label);
     }
 }
@@ -15724,10 +16341,31 @@ dwarf2out_decl (tree decl)
 
 static void
 dwarf2out_begin_block (unsigned int line ATTRIBUTE_UNUSED,
-		       unsigned int blocknum)
+                       unsigned int blocknum)
 {
-  switch_to_section (current_function_section ());
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+  struct block_aux_struct *blk;
+  PTR *slot;
+
+  ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_BEGIN_LABEL, blocknum);
+  switch_to_section (current_function_section ()); 
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, BLOCK_BEGIN_LABEL, blocknum);
+
+  if (flag_partition_functions_into_sections && cfun)
+    {
+      /* Create a new object to hold info about this lexical block.  */
+      blk =
+        (struct block_aux_struct *)
+        ggc_alloc (sizeof (struct block_aux_struct));
+
+      blk->block_num = blocknum;
+      blk->closed_p = false;
+      blk->block_labels = VEC_alloc (const_str, gc, 1);
+      VEC_safe_push (const_str, gc, blk->block_labels, ggc_strdup (label));
+
+      slot = htab_find_slot (block_labels_table, blk, INSERT);
+      *slot = blk;
+    }
 }
 
 /* Output a marker (i.e. a label) for the end of the generated code for a
@@ -15736,8 +16374,24 @@ dwarf2out_begin_block (unsigned int line ATTRIBUTE_UNUSED,
 static void
 dwarf2out_end_block (unsigned int line ATTRIBUTE_UNUSED, unsigned int blocknum)
 {
-  switch_to_section (current_function_section ());
+  struct block_aux_struct *blk;
+  char label[MAX_ARTIFICIAL_LABEL_BYTES];
+
+  ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_END_LABEL, blocknum);
+  switch_to_section (current_function_section ()); 
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, BLOCK_END_LABEL, blocknum);
+  if (flag_partition_functions_into_sections && cfun)
+    {
+      struct block_aux_struct elm;
+
+      elm.block_num = blocknum;
+      blk = (struct block_aux_struct *)htab_find (block_labels_table, &elm);
+      if (blk)
+        {
+          blk->closed_p = true;
+          VEC_safe_push (const_str, gc, blk->block_labels, ggc_strdup (label));
+        }
+    }
 }
 
 /* Returns nonzero if it is appropriate not to emit any debugging
@@ -16070,6 +16724,26 @@ dwarf2out_undef (unsigned int lineno ATTRIBUTE_UNUSED,
     }
 }
 
+/* A hash function for information about blocks.  */
+
+static hashval_t
+blk_info_hash (const void *blk)
+{
+  return (hashval_t) (((const struct block_aux_struct *) blk)->block_num);
+}
+
+/* Return true if BLK1 and BLK2 (which are really both of type
+   "block_aux_struct *") refer to the same block number.  */
+
+static int
+blk_info_eq (const void *blk1, const void *blk2)
+{
+  const struct block_aux_struct *b1 = (const struct block_aux_struct *)blk1;
+  const struct block_aux_struct *b2 = (const struct block_aux_struct *)blk2;
+
+  return b1->block_num == b2->block_num;
+}
+
 /* Set up for Dwarf output at the start of compilation.  */
 
 static void
@@ -16180,6 +16854,12 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
       cold_text_section = unlikely_text_section ();
       switch_to_section (cold_text_section);
       ASM_OUTPUT_LABEL (asm_out_file, cold_text_section_label);
+    }
+  if (flag_partition_functions_into_sections)
+    {
+       if (block_labels_table == NULL)
+         block_labels_table =
+           htab_create_ggc (1, blk_info_hash, blk_info_eq, NULL);
     }
 }
 
@@ -16526,6 +17206,26 @@ file_table_relative_p (void ** slot, void *param)
   return 1;
 }
 
+/* Clear the labels information saved for each blocks.  Callback for
+   htab_traverse.  */
+
+static int
+clear_block_labels (void **slot, void *label ATTRIBUTE_UNUSED)
+{
+  struct block_aux_struct *blk = (struct block_aux_struct *)*slot;
+
+  if (blk->block_labels != NULL)
+    {
+      VEC_free (const_str, gc, blk->block_labels);
+      blk->block_labels = NULL;
+    }
+  if (blk)
+    ggc_free (blk);
+
+  /* Continue traversing the hash table.  */
+  return 1;
+}
+
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -16644,6 +17344,8 @@ dwarf2out_finish (const char *filename)
     {
       unsigned fde_idx = 0;
 
+     if (!COMP_UNIT_HAS_SECTIONS)
+     {
       /* We need to give .debug_loc and .debug_ranges an appropriate
 	 "base address".  Use zero so that these addresses become
 	 absolute.  Historically, we've emitted the unexpected
@@ -16676,6 +17378,30 @@ dwarf2out_finish (const char *filename)
 	}
 
       add_ranges (NULL);
+    }
+    else
+    {
+      unsigned fde_idx = 0;
+      dw_fde_ref fde;
+
+      add_AT_addr (comp_unit_die, DW_AT_low_pc, const0_rtx);
+      add_AT_addr (comp_unit_die, DW_AT_entry_pc, const0_rtx);
+
+      /* Add ranges list for the compilation unit.  */
+      fde = &fde_table[0];
+      add_AT_range_list (comp_unit_die, DW_AT_ranges,
+                         add_ranges_by_labels (fde->dw_fde_begin,
+                         fde->dw_fde_end));
+
+      for (fde_idx = 1; fde_idx < fde_table_in_use; fde_idx++)
+        {
+          fde = &fde_table[fde_idx];
+
+          add_ranges_by_labels (fde->dw_fde_begin, fde->dw_fde_end);
+        }
+      add_ranges (NULL);
+    }
+
     }
 
   /* Output location list section if necessary.  */
@@ -16762,6 +17488,16 @@ dwarf2out_finish (const char *filename)
      table too.  */
   if (debug_str_hash)
     htab_traverse (debug_str_hash, output_indirect_string, NULL);
+
+  if (block_labels_table)
+   {
+    htab_traverse (block_labels_table,
+                         clear_block_labels,
+                        NULL);
+    htab_delete (block_labels_table);
+    block_labels_table = NULL;
+  }
+
 }
 #else
 
