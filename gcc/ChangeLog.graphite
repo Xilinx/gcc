@@ -1,3 +1,10 @@
+2008-12-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/38084
+	Fix testsuite/gfortran.dg/graphite/id-3.f90.
+	* graphite.c (scopdet_basic_block_info): Fix bug that found some
+	regions more than once.
+
 2008-12-03  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Fix testsuite/gfortran.dg/graphite/id-4.f90.
