@@ -1,3 +1,27 @@
+2008-12-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38291
+	* io/transfer.c (data_transfer_init): Add fbuf_flush inadvertently
+	ommitted.  Add check for invalid use of REC= with ACCESS="stream".  Fix
+	comment.
+
+2008-12-06  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* runtime/main.c (store_exe_path): Don't crash if argv0 is NULL.
+
+2008-12-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38291
+	* io/transfer.c (data_transfer_init): Add checks for POS= valid range.
+	Add check for unit opened with ACCESS="stream". Flush and seek if
+	current stream position does not match. Check ENDFILE on read.
+
+2008-12-04  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/38285
+	* write_float.def (WRITE_FLOAT): Zero the float value for special case
+	only if	scale_factor = 0.
+	
 2008-11-23  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/38234

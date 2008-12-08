@@ -1,3 +1,6 @@
+2008-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: using BACKENDLIBS as merged from trunk r142553
+
 2008-12-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added more of normpat_cmatchpat.
 

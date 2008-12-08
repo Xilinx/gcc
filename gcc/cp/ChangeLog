@@ -1,3 +1,28 @@
+2008-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35336
+	* error.c (dump_expr): Handle BIT_FIELD_REF.
+
+2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/38262
+	* Make-lang.in (cc1plus-dummy, cc1plus): Add BACKENDLIBS,
+	remove GMPLIBS.
+
+2008-12-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37906
+	* decl.c (grok_special_member_properties): Set TYPE_HAS_COMPLEX_DFLT
+	here.
+	* class.c (check_bases_and_members): Rather than assuming any
+	user-declared default constructor is complex here.
+
+2008-12-04  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/38334
+	* typeck.c (get_member_function_from_ptrfunc): Mark the vtbl
+	pointer access with TREE_NO_WARNING.
+
 2008-12-03  Jason Merrill  <jason@redhat.com>
 
 	PR c++/38232
@@ -173,7 +198,7 @@
 	
 2008-11-05  Fabien Chene <fabien.chene@gmail.com>
 
-	PR c++/35219
+	PR c++/32519
 	* cp-tree.h: Fix DECL_NONSTATIC_MEMBER_P to handle member template
 	functions.
 
