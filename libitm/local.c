@@ -100,7 +100,7 @@ alloc_local (void *addr, size_t len)
 }
 
 #define _ITM_LOG_DEF(T)							\
-void REGPARM _ITM_L##T (const _ITM_TYPE_##T *ptr)			\
+void REGPARM _ITM_TYPE_ATTR(T) _ITM_L##T (const _ITM_TYPE_##T *ptr)	\
 {									\
   *(_ITM_TYPE_##T *)alloc_local((void *)ptr, sizeof(_ITM_TYPE_##T)) = *ptr; \
 }

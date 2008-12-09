@@ -29,13 +29,15 @@
 
 
 #define _ITM_READ(R, T) \
-_ITM_TYPE_##T REGPARM _ITM_##R##T(const _ITM_TYPE_##T *ptr)		\
+_ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)					\
+_ITM_##R##T(const _ITM_TYPE_##T *ptr)					\
 {									\
   return gtm_thr.disp->R##T (ptr);					\
 }
 
 #define _ITM_WRITE(W, T) \
-void REGPARM _ITM_##W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)		\
+void REGPARM _ITM_TYPE_ATTR(T)						\
+_ITM_##W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)			\
 {									\
   gtm_thr.disp->W##T (ptr, val);					\
 }

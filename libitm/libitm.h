@@ -46,6 +46,14 @@
 
 #define NORETURN	__attribute__((noreturn))
 #define UNUSED		__attribute__((unused))
+
+#ifndef _ITM_ALL_TARGET_TYPES
+# define _ITM_ALL_TARGET_TYPES(M)
+#endif
+
+#ifndef _ITM_TYPE_ATTR
+# define _ITM_TYPE_ATTR(T)
+#endif
 
 /* The following are externally visible definitions and functions, though
    only very few of these should be called by user code.  */
@@ -157,15 +165,6 @@ typedef float _Complex _ITM_TYPE_CF;
 typedef double _Complex _ITM_TYPE_CD;
 typedef long double _Complex _ITM_TYPE_CE;
 
-/* ??? These are really specific to i386.  Work out some way to handle
-   platform-specific vectors, assuming U8 doesn't fit the bill.  */
-typedef int _ITM_TYPE_M64
-  __attribute__ ((__vector_size__ (8), __may_alias__));
-typedef float _ITM_TYPE_M128
-  __attribute__ ((__vector_size__ (16), __may_alias__));
-typedef float _ITM_TYPE_M256
-  __attribute__ ((__vector_size__ (32), __may_alias__));
-
 #define _ITM_READ(R, T) \
   extern _ITM_TYPE_##T _ITM_##R##T (const _ITM_TYPE_##T *) REGPARM;
 #define _ITM_WRITE(W, T) \
@@ -178,7 +177,7 @@ typedef float _ITM_TYPE_M256
 
 #define _ITM_ALL_TYPES(M) \
   M(U1) M(U2) M(U4) M(U8) M(F) M(D) M(E) \
-  M(CF) M(CD) M(CE) M(M64) M(M128) M(M256)
+  M(CF) M(CD) M(CE) _ITM_ALL_TARGET_TYPES(M)
 
 _ITM_ALL_TYPES(_ITM_ALL_READS)
 _ITM_ALL_TYPES(_ITM_ALL_WRITES)

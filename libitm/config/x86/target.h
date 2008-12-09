@@ -44,3 +44,41 @@ struct gtm_jmpbuf
 #define REGPARM		__attribute__((regparm(2)))
 
 #endif
+
+/* Define platform-specific additions to the library type list.  */
+typedef int _ITM_TYPE_M64
+  __attribute__ ((__vector_size__ (8), __may_alias__));
+typedef float _ITM_TYPE_M128
+  __attribute__ ((__vector_size__ (16), __may_alias__));
+typedef float _ITM_TYPE_M256
+  __attribute__ ((__vector_size__ (32), __may_alias__));
+
+#define _ITM_ALL_TARGET_TYPES(M)	M(M64) M(M128) M(M256)
+
+#define _ITM_ATTR_U1
+#define _ITM_ATTR_U2
+#define _ITM_ATTR_U4
+#define _ITM_ATTR_U8
+#define _ITM_ATTR_F
+#define _ITM_ATTR_D
+#define _ITM_ATTR_E
+#define _ITM_ATTR_CF
+#define _ITM_ATTR_CD
+#define _ITM_ATTR_CE
+#ifdef __MMX__
+# define _ITM_ATTR_M64
+#else
+# define _ITM_ATTR_M64		__attribute__((target("mmx")))
+#endif
+#ifdef __SSE__
+# define _ITM_ATTR_M128
+#else
+# define _ITM_ATTR_M128		__attribute__((target("sse")))
+#endif
+#ifdef __AVX__
+# define _ITM_ATTR_M256
+#else
+# define _ITM_ATTR_M256		__attribute__((target("avx")))
+#endif
+
+#define _ITM_TYPE_ATTR(T)	_ITM_ATTR_##T

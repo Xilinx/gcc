@@ -1,3 +1,14 @@
+2008-12-09  Richard Henderson  <rth@redhat.com>
+
+	* config/x86/target.h (_ITM_ALL_TARGET_TYPES, _ITM_TYPE_ATTR): New.
+	* configure.tgt (i386-*, x86_64-*): Don't force SSE.
+	* dispatch.c (_ITM_##R##T, _ITM_##W##T): Use _ITM_TYPE_ATTR.
+	* libitm.h (_ITM_ALL_TARGET_TYPES, _ITM_TYPE_ATTR): Provide default.
+	(_ITM_TYPE_M64, _ITM_TYPE_M128, _ITM_TYPE_M256): Move to x86 header.
+	(_ITM_ALL_TYPES): Use _ITM_ALL_TARGET_TYPES.
+	* local.c (_ITM_L##T): Use _ITM_TYPE_ATTR.
+	* serial.c (serial_R##T, serial_W##T): Likewise.
+
 2008-11-21  Richard Henderson  <rth@redhat.com>
 
 	* Initial commit.

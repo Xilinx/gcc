@@ -29,11 +29,13 @@
 
 
 #define SERIAL(T) \
-static _ITM_TYPE_##T REGPARM serial_R##T(const _ITM_TYPE_##T *ptr)	\
+static _ITM_TYPE_##T REGPARM _ITM_TYPE_ATTR(T)				\
+serial_R##T(const _ITM_TYPE_##T *ptr)					\
 {									\
   return *ptr;								\
 }									\
-static void REGPARM serial_W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)	\
+static void REGPARM _ITM_TYPE_ATTR(T)					\
+serial_W##T(_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)			\
 {									\
   *ptr = val;								\
 }
