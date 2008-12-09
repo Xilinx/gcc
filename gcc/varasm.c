@@ -449,7 +449,7 @@ emutls_common_1 (void **loc, void *xstmts)
 void
 emutls_finish (void)
 {
-  if (!targetm.emutls.register_common)
+  if (targetm.emutls.register_common)
     {
       tree body = NULL_TREE;
 
@@ -6394,7 +6394,8 @@ default_internal_label (FILE *stream, const char *prefix,
 void
 default_file_start (void)
 {
-  if (targetm.file_start_app_off && !flag_verbose_asm)
+  if (targetm.file_start_app_off
+      && !(flag_verbose_asm || flag_debug_asm || flag_dump_rtl_in_asm))
     fputs (ASM_APP_OFF, asm_out_file);
 
   if (targetm.file_start_file_directive)

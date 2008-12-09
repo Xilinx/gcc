@@ -658,13 +658,8 @@ static bool
 is_gimple_mem_or_call_rhs (tree t)
 {
   /* If we're dealing with a renamable type, either source or dest must be
-     a renamed variable.  Also force a temporary if the type doesn't need
-     to be stored in memory, since it's cheap and prevents erroneous
-     tailcalls (PR 17526).  */
-  if (is_gimple_reg_type (TREE_TYPE (t))
-      || (TYPE_MODE (TREE_TYPE (t)) != BLKmode
-	  && (TREE_CODE (t) != CALL_EXPR
-              || ! aggregate_value_p (t, t))))
+     a renamed variable.  */
+  if (is_gimple_reg_type (TREE_TYPE (t)))
     return is_gimple_val (t);
   else
     return is_gimple_formal_tmp_or_call_rhs (t);
@@ -2354,56 +2349,18 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   else if (POINTER_TYPE_P (TREE_TYPE (CALL_EXPR_FN (*expr_p))))
     parms = TYPE_ARG_TYPES (TREE_TYPE (TREE_TYPE (CALL_EXPR_FN (*expr_p))));
 
-  /* Verify if the type of the argument matches that of the function
-     declaration.  If we cannot verify this or there is a mismatch,
-     mark the call expression so it doesn't get inlined later.  */
   if (fndecl && DECL_ARGUMENTS (fndecl))
-    {
-      for (i = 0, p = DECL_ARGUMENTS (fndecl);
-	   i < nargs;
-	   i++, p = TREE_CHAIN (p))
-	{
-	  /* We cannot distinguish a varargs function from the case
-	     of excess parameters, still deferring the inlining decision
-	     to the callee is possible.  */
-	  if (!p)
-	    break;
-	  if (p == error_mark_node
-	      || CALL_EXPR_ARG (*expr_p, i) == error_mark_node
-	      || !fold_convertible_p (DECL_ARG_TYPE (p),
-				      CALL_EXPR_ARG (*expr_p, i)))
-	    {
-	      CALL_CANNOT_INLINE_P (*expr_p) = 1;
-	      break;
-	    }
-	}
-    }
+    p = DECL_ARGUMENTS (fndecl);
   else if (parms)
-    {
-      for (i = 0, p = parms; i < nargs; i++, p = TREE_CHAIN (p))
-	{
-	  /* If this is a varargs function defer inlining decision
-	     to callee.  */
-	  if (!p)
-	    break;
-	  if (TREE_VALUE (p) == error_mark_node
-	      || CALL_EXPR_ARG (*expr_p, i) == error_mark_node
-	      || TREE_CODE (TREE_VALUE (p)) == VOID_TYPE
-	      || !fold_convertible_p (TREE_VALUE (p),
-				      CALL_EXPR_ARG (*expr_p, i)))
-	    {
-	      CALL_CANNOT_INLINE_P (*expr_p) = 1;
-	      break;
-	    }
-	}
-    }
+    p = parms;
   else
     {
       if (nargs != 0)
 	CALL_CANNOT_INLINE_P (*expr_p) = 1;
-      i = 0;
       p = NULL_TREE;
     }
+  for (i = 0; i < nargs && p; i++, p = TREE_CHAIN (p))
+    ;
 
   /* If the last argument is __builtin_va_arg_pack () and it is not
      passed as a named argument, decrease the number of CALL_EXPR
@@ -7015,7 +6972,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  && code != ASM_EXPR
 		  && code != BIND_EXPR
 		  && code != CATCH_EXPR
-		  && code != COND_EXPR
+		  && (code != COND_EXPR || gimplify_ctxp->allow_rhs_cond_expr)
 		  && code != EH_FILTER_EXPR
 		  && code != GOTO_EXPR
 		  && code != LABEL_EXPR
@@ -7597,6 +7554,10 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
       break;
     }
 
+  if (gimple_referenced_vars (cfun))
+    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
+      add_referenced_var (t);
+
   if (!gimple_seq_empty_p (pre))
     {
       if (gimple_in_ssa_p (cfun))
@@ -7610,10 +7571,6 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
     }
   if (post_stmt)
     gsi_insert_after (gsi_p, post_stmt, GSI_NEW_STMT);
-
-  if (gimple_referenced_vars (cfun))
-    for (t = gimplify_ctxp->temps; t ; t = TREE_CHAIN (t))
-      add_referenced_var (t);
 
   pop_gimplify_context (NULL);
 }

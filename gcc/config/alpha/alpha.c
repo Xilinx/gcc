@@ -2453,7 +2453,7 @@ alpha_emit_conditional_branch (enum rtx_code code)
   if (alpha_compare.fp_p)
     {
       cmp_mode = DFmode;
-      if (flag_unsafe_math_optimizations)
+      if (flag_unsafe_math_optimizations && cmp_code != UNORDERED)
 	{
 	  /* When we are not as concerned about non-finite values, and we
 	     are comparing against zero, we can branch directly.  */
@@ -4466,7 +4466,12 @@ alpha_split_atomic_op (enum rtx_code code, rtx mem, rtx val,
   emit_load_locked (mode, before, mem);
 
   if (code == NOT)
-    x = gen_rtx_AND (mode, gen_rtx_NOT (mode, before), val);
+    {
+      x = gen_rtx_AND (mode, before, val);
+      emit_insn (gen_rtx_SET (VOIDmode, val, x));
+
+      x = gen_rtx_NOT (mode, val);
+    }
   else
     x = gen_rtx_fmt_ee (code, mode, before, val);
   if (after)
@@ -6820,7 +6825,7 @@ alpha_fold_vector_minmax (enum tree_code code, tree op[], tree vtype)
   tree op0 = fold_convert (vtype, op[0]);
   tree op1 = fold_convert (vtype, op[1]);
   tree val = fold_build2 (code, vtype, op0, op1);
-  return fold_convert (long_integer_type_node, val);
+  return fold_build1 (VIEW_CONVERT_EXPR, long_integer_type_node, val);
 }
 
 static tree

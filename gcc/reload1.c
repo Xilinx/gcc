@@ -1,6 +1,6 @@
 /* Reload pseudo regs into hard regs for insns that require hard regs.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3299,7 +3299,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	  {
 	    rtx to_rtx = ep->to_rtx;
 	    offset += ep->offset;
-	    offset = trunc_int_for_mode (offset, GET_MODE (reg));
+	    offset = trunc_int_for_mode (offset, GET_MODE (plus_cst_src));
 
 	    if (GET_CODE (XEXP (plus_cst_src, 0)) == SUBREG)
 	      to_rtx = gen_lowpart (GET_MODE (XEXP (plus_cst_src, 0)),
@@ -4164,6 +4164,9 @@ reload_as_needed (int live_known)
       rtx prev = 0;
       rtx insn = chain->insn;
       rtx old_next = NEXT_INSN (insn);
+#ifdef AUTO_INC_DEC
+      rtx old_prev = PREV_INSN (insn);
+#endif
 
       /* If we pass a label, copy the offsets from the label information
 	 into the current offsets of each elimination.  */
@@ -4387,6 +4390,33 @@ reload_as_needed (int live_known)
 					REGNO (rld[i].reg_rtx));
 		      SET_REGNO_REG_SET (&reg_has_output_reload,
 					 REGNO (XEXP (in_reg, 0)));
+		    }
+		  else if ((code == PRE_INC || code == PRE_DEC
+			    || code == POST_INC || code == POST_DEC))
+		    {
+		      int in_hard_regno;
+		      int in_regno = REGNO (XEXP (in_reg, 0));
+
+		      if (reg_last_reload_reg[in_regno] != NULL_RTX)
+			{
+			  in_hard_regno = REGNO (reg_last_reload_reg[in_regno]);
+			  gcc_assert (TEST_HARD_REG_BIT (reg_reloaded_valid,
+							 in_hard_regno));
+			  for (x = old_prev ? NEXT_INSN (old_prev) : insn;
+			       x != old_next;
+			       x = NEXT_INSN (x))
+			    if (x == reg_reloaded_insn[in_hard_regno])
+			      break;
+			  /* If for some reasons, we didn't set up
+			     reg_last_reload_reg in this insn,
+			     invalidate inheritance from previous
+			     insns for the incremented/decremented
+			     register.  Such registers will be not in
+			     reg_has_output_reload.  */
+			  if (x == old_next)
+			    forget_old_reloads_1 (XEXP (in_reg, 0),
+						  NULL_RTX, NULL);
+			}
 		    }
 		}
 	    }
@@ -6332,6 +6362,7 @@ choose_reload_regs (struct insn_chain *chain)
 		  int nr = hard_regno_nregs[regno][rld[r].mode];
 		  int k;
 		  rld[r].reg_rtx = equiv;
+		  reload_spill_index[r] = regno;
 		  reload_inherited[r] = 1;
 
 		  /* If reg_reloaded_valid is not set for this register,

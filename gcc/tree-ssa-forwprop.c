@@ -613,19 +613,27 @@ forward_propagate_addr_into_variable_array_index (tree offset,
   tree index;
   gimple offset_def, use_stmt = gsi_stmt (*use_stmt_gsi);
 
-  /* Try to find an expression for a proper index.  This is either
-     a multiplication expression by the element size or just the
-     ssa name we came along in case the element size is one.  */
+  /* Get the offset's defining statement.  */
+  offset_def = SSA_NAME_DEF_STMT (offset);
+
+  /* Try to find an expression for a proper index.  This is either a
+     multiplication expression by the element size or just the ssa name we came
+     along in case the element size is one. In that case, however, we do not
+     allow multiplications because they can be computing index to a higher
+     level dimension (PR 37861). */
   if (integer_onep (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)))))
-    index = offset;
+    {
+      if (is_gimple_assign (offset_def)
+	  && gimple_assign_rhs_code (offset_def) == MULT_EXPR)
+	return false;
+
+      index = offset;
+    }
   else
     {
-      /* Get the offset's defining statement.  */
-      offset_def = SSA_NAME_DEF_STMT (offset);
-
       /* The statement which defines OFFSET before type conversion
          must be a simple GIMPLE_ASSIGN.  */
-      if (gimple_code (offset_def) != GIMPLE_ASSIGN)
+      if (!is_gimple_assign (offset_def))
 	return false;
 
       /* The RHS of the statement which defines OFFSET must be a
@@ -719,7 +727,10 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      propagate the ADDR_EXPR into the use of NAME and fold the result.  */
   if (TREE_CODE (lhs) == INDIRECT_REF
       && TREE_OPERAND (lhs, 0) == name
-      && may_propagate_address_into_dereference (def_rhs, lhs))
+      && may_propagate_address_into_dereference (def_rhs, lhs)
+      && (lhsp != gimple_assign_lhs_ptr (use_stmt)
+	  || useless_type_conversion_p (TREE_TYPE (TREE_OPERAND (def_rhs, 0)),
+					TREE_TYPE (rhs))))
     {
       *lhsp = unshare_expr (TREE_OPERAND (def_rhs, 0));
       fold_stmt_inplace (use_stmt);
@@ -802,9 +813,6 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   array_ref = TREE_OPERAND (def_rhs, 0);
   if (TREE_CODE (array_ref) != ARRAY_REF
       || TREE_CODE (TREE_TYPE (TREE_OPERAND (array_ref, 0))) != ARRAY_TYPE
-      /* Avoid accessing hidden multidimensional arrays in this way or VRP
-	 might give out bogus warnings (see PR 37861) */
-      || TREE_CODE (TREE_OPERAND (array_ref, 0)) == INDIRECT_REF
       || !integer_zerop (TREE_OPERAND (array_ref, 1)))
     return false;
 

@@ -652,7 +652,10 @@ output_float_FMT_G_ ## x (st_parameter_dt *dtp, const fnode *f, \
           low = mid + 1;\
         }\
       else\
-        break;\
+	{\
+	  mid++;\
+	  break;\
+	}\
     }\
 \
   if (e < 0)\
@@ -757,7 +760,8 @@ sprintf (buffer, "%+-#" STR(MIN_FIELD_WIDTH) ".*" \
 	    return;\
 	  }\
 	tmp = sign_bit ? -tmp : tmp;\
-	if (f->u.real.d == 0 && f->format == FMT_F)\
+	if (f->u.real.d == 0 && f->format == FMT_F\
+	    && dtp->u.p.scale_factor == 0)\
 	  {\
 	    if (tmp < 0.5)\
 	      tmp = 0.0;\

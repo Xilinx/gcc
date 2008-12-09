@@ -300,7 +300,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
   dtp->u.p.current_unit->bytes_left -= *length;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) *length;
+    dtp->u.p.size_used += (GFC_IO_INT) *length;
 
   return base;
 }
@@ -377,7 +377,7 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
     }
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) nread;
+    dtp->u.p.size_used += (GFC_IO_INT) nread;
 
   if (nread != *nbytes)
     {				/* Short read, this shouldn't happen.  */
@@ -625,7 +625,7 @@ write_block (st_parameter_dt *dtp, int length)
     }
     
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) length;
+    dtp->u.p.size_used += (GFC_IO_INT) length;
 
   dtp->u.p.current_unit->strm_pos += (gfc_offset) length;
 
@@ -1829,11 +1829,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 
   ionml = ((cf & IOPARM_DT_IONML_SET) != 0) ? dtp->u.p.ionml : NULL;
 
-  /* To maintain ABI, &transfer is the start of the private memory area in
-     in st_parameter_dt.  Memory from the beginning of the structure to this
-     point is set by the front end and must not be touched.  The number of
-     bytes to clear must stay within the sizeof q to avoid over-writing.  */
-  memset (&dtp->u.p.transfer, 0, sizeof (dtp->u.q));
+  memset (&dtp->u.p, 0, sizeof (dtp->u.p));
 
   dtp->u.p.ionml = ionml;
   dtp->u.p.mode = read_flag ? READING : WRITING;
@@ -1971,7 +1967,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       return;
     }
 
-  /* Check the record or position number.  */
+  /* Check the record number.  */
 
   if (dtp->u.p.current_unit->flags.access == ACCESS_DIRECT
       && (cf & IOPARM_DT_HAS_REC) == 0)
@@ -1986,6 +1982,15 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
     {
       generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
 		      "Record number not allowed for sequential access "
+		      "data transfer");
+      return;
+    }
+
+  if (dtp->u.p.current_unit->flags.access == ACCESS_STREAM
+      && (cf & IOPARM_DT_HAS_REC) != 0)
+    {
+      generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
+		      "Record number not allowed for stream access "
 		      "data transfer");
       return;
     }
@@ -2077,7 +2082,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the decimal mode.  */
   dtp->u.p.current_unit->decimal_status
 	= !(cf & IOPARM_DT_HAS_DECIMAL) ? DECIMAL_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.decimal, dtp->u.p.decimal_len,
+	  find_option (&dtp->common, dtp->decimal, dtp->decimal_len,
 			decimal_opt, "Bad DECIMAL parameter in data transfer "
 			"statement");
 
@@ -2087,7 +2092,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the sign mode. */
   dtp->u.p.sign_status
 	= !(cf & IOPARM_DT_HAS_SIGN) ? SIGN_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.sign, dtp->u.p.sign_len, sign_opt,
+	  find_option (&dtp->common, dtp->sign, dtp->sign_len, sign_opt,
 			"Bad SIGN parameter in data transfer statement");
   
   if (dtp->u.p.sign_status == SIGN_UNSPECIFIED)
@@ -2096,17 +2101,17 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the blank mode.  */
   dtp->u.p.blank_status
 	= !(cf & IOPARM_DT_HAS_BLANK) ? BLANK_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.blank, dtp->u.p.blank_len,
+	  find_option (&dtp->common, dtp->blank, dtp->blank_len,
 			blank_opt,
 			"Bad BLANK parameter in data transfer statement");
   
   if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
 	dtp->u.p.blank_status = dtp->u.p.current_unit->flags.blank;
-  
+
   /* Check the delim mode.  */
   dtp->u.p.current_unit->delim_status
 	= !(cf & IOPARM_DT_HAS_DELIM) ? DELIM_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.delim, dtp->u.p.delim_len,
+	  find_option (&dtp->common, dtp->delim, dtp->delim_len,
 	  delim_opt, "Bad DELIM parameter in data transfer statement");
   
   if (dtp->u.p.current_unit->delim_status == DELIM_UNSPECIFIED)
@@ -2115,11 +2120,70 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the pad mode.  */
   dtp->u.p.current_unit->pad_status
 	= !(cf & IOPARM_DT_HAS_PAD) ? PAD_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.pad, dtp->u.p.pad_len, pad_opt,
+	  find_option (&dtp->common, dtp->pad, dtp->pad_len, pad_opt,
 			"Bad PAD parameter in data transfer statement");
   
   if (dtp->u.p.current_unit->pad_status == PAD_UNSPECIFIED)
 	dtp->u.p.current_unit->pad_status = dtp->u.p.current_unit->flags.pad;
+  
+  /* Check the POS= specifier: that it is in range and that it is used with a
+     unit that has been connected for STREAM access. F2003 9.5.1.10.  */
+  
+  if (((cf & IOPARM_DT_HAS_POS) != 0))
+    {
+      if (is_stream_io (dtp))
+	{
+
+	  if (dtp->pos <= 0)
+	    {
+	      generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			      "POS=specifier must be positive");
+	      return;
+	    }
+
+	  if (dtp->rec >= dtp->u.p.current_unit->maxrec)
+	    {
+	      generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			      "POS=specifier too large");
+	      return;
+	    }
+
+	  dtp->rec = dtp->pos;
+
+	  if (dtp->u.p.mode == READING)
+	    {
+	      /* Required for compatibility between 4.3 and 4.4 runtime. Check
+	      to see if we might be reading what we wrote before  */
+	      if (dtp->u.p.current_unit->mode == WRITING)
+		{
+		  fbuf_flush (dtp->u.p.current_unit, 1);      
+		  flush(dtp->u.p.current_unit->s);
+		}
+
+	      if (dtp->pos < file_length (dtp->u.p.current_unit->s))
+		dtp->u.p.current_unit->endfile = NO_ENDFILE;
+	    }
+
+	  if (dtp->pos != dtp->u.p.current_unit->strm_pos)
+	    {
+	      fbuf_flush (dtp->u.p.current_unit, 1);
+	      flush (dtp->u.p.current_unit->s);
+	      if (sseek (dtp->u.p.current_unit->s, dtp->pos - 1) == FAILURE)
+		{
+		  generate_error (&dtp->common, LIBERROR_OS, NULL);
+		  return;
+		}
+	      dtp->u.p.current_unit->strm_pos = dtp->pos;
+	    }
+	}
+      else
+	{
+	  generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			  "POS=specifier not allowed, "
+			  "Try OPEN with ACCESS='stream'");
+	  return;
+	}
+    }
 
   /* Sanity checks on the record number.  */
   if ((cf & IOPARM_DT_HAS_REC) != 0)
@@ -2143,10 +2207,10 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       if (dtp->u.p.mode == READING
 	  && dtp->u.p.current_unit->mode == WRITING
 	  && !is_internal_unit (dtp))
-        {
-          fbuf_flush (dtp->u.p.current_unit, 1);      
+	{
+	  fbuf_flush (dtp->u.p.current_unit, 1);      
 	  flush(dtp->u.p.current_unit->s);
-        }
+	}
 
       /* Check whether the record exists to be read.  Only
 	 a partial record needs to exist.  */
@@ -2160,29 +2224,17 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	}
 
       /* Position the file.  */
-      if (!is_stream_io (dtp))
+      if (sseek (dtp->u.p.current_unit->s, (gfc_offset) (dtp->rec - 1)
+		 * dtp->u.p.current_unit->recl) == FAILURE)
 	{
-	  if (sseek (dtp->u.p.current_unit->s, (gfc_offset) (dtp->rec - 1)
-		     * dtp->u.p.current_unit->recl) == FAILURE)
-	    {
-	      generate_error (&dtp->common, LIBERROR_OS, NULL);
-	      return;
-	    }
+	  generate_error (&dtp->common, LIBERROR_OS, NULL);
+	  return;
 	}
-      else
-        {
-	  if (dtp->u.p.current_unit->strm_pos != dtp->rec)
-	    {
-	      fbuf_flush (dtp->u.p.current_unit, 1);
-	      flush (dtp->u.p.current_unit->s);
-	      if (sseek (dtp->u.p.current_unit->s, dtp->rec - 1) == FAILURE)
-	        {
-	          generate_error (&dtp->common, LIBERROR_OS, NULL);
-	          return;
-	        }
-	      dtp->u.p.current_unit->strm_pos = dtp->rec;
-	    }
-        }
+
+      /* This is required to maintain compatibility between
+	 4.3 and 4.4 runtime.  */
+      if (is_stream_io (dtp))
+	dtp->u.p.current_unit->strm_pos = dtp->rec;
 
     }
 
@@ -2858,7 +2910,7 @@ finalize_transfer (st_parameter_dt *dtp)
   GFC_INTEGER_4 cf = dtp->common.flags;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    *dtp->size = (GFC_IO_INT) dtp->u.p.size_used;
+    *dtp->size = dtp->u.p.size_used;
 
   if (dtp->u.p.eor_condition)
     {

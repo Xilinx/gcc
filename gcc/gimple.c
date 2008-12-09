@@ -3127,8 +3127,11 @@ recalculate_side_effects (tree t)
 	}
       break;
 
+    case tcc_constant:
+      /* No side-effects.  */
+      return;
+
     default:
-      /* Can never be used with non-expressions.  */
       gcc_unreachable ();
    }
 }

@@ -2005,6 +2005,29 @@ else
 	AC_MSG_RESULT($gcc_cv_objdump)
 fi
 
+# Figure out what readelf we will be using.
+AS_VAR_SET_IF(gcc_cv_readelf,, [
+if test -f $gcc_cv_binutils_srcdir/configure.in \
+     && test -f ../binutils/Makefile \
+     && test x$build = x$host; then
+	# Single tree build which includes binutils.
+	gcc_cv_readelf=../binutils/readelf$build_exeext
+elif test -x readelf$build_exeext; then
+	gcc_cv_readelf=./readelf$build_exeext
+else
+        AC_PATH_PROG(gcc_cv_readelf, readelf)
+fi])
+
+AC_MSG_CHECKING(what readelf to use)
+if test "$gcc_cv_readelf" = ../binutils/readelf$build_exeext; then
+	# Single tree build which includes binutils.
+	AC_MSG_RESULT(newly built readelf)
+elif test x$gcc_cv_readelf = x; then
+	AC_MSG_RESULT(not found)
+else
+	AC_MSG_RESULT($gcc_cv_readelf)
+fi
+
 # Figure out what assembler alignment features are present.
 gcc_GAS_CHECK_FEATURE([.balign and .p2align], gcc_cv_as_balign_and_p2align,
  [2,6,0],,
@@ -2234,8 +2257,29 @@ gcc_GAS_CHECK_FEATURE([cfi directives], gcc_cv_as_cfi_directive,
     gcc_cv_as_cfi_directive=yes
     ;;
 esac])
+if test $gcc_cv_as_cfi_directive = yes && test x$gcc_cv_readelf != x; then
+gcc_GAS_CHECK_FEATURE([working cfi advance], gcc_cv_as_cfi_advance_working,
+  ,,
+[	.text
+	.cfi_startproc
+	.cfi_adjust_cfa_offset 64
+	.skip 512, 0
+	.cfi_adjust_cfa_offset 128
+	.cfi_endproc],
+[
+changequote(,)dnl
+if $gcc_cv_readelf -wf conftest.o 2>/dev/null \
+    | grep 'DW_CFA_advance_loc[12]:[ 	][ 	]*512[ 	]' >/dev/null; then
+   gcc_cv_as_cfi_advance_working=yes
+fi
+changequote([,])dnl
+])
+else
+  gcc_cv_as_cfi_advance_working=yes
+fi
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_DIRECTIVE,
-  [`if test $gcc_cv_as_cfi_directive = yes; then echo 1; else echo 0; fi`],
+  [`if test $gcc_cv_as_cfi_directive = yes \
+       && test $gcc_cv_as_cfi_advance_working = yes; then echo 1; else echo 0; fi`],
   [Define 0/1 if your assembler supports CFI directives.])
 
 gcc_GAS_CHECK_FEATURE([cfi personality directive],
@@ -3166,7 +3210,7 @@ case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
   | x86_64*-*-* | hppa*-*-* | arm*-*-* \
   | xstormy16*-*-* | cris-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
-  | spu-*-* | fido*-*-*)
+  | spu-*-* | fido*-*-* | m32c-*-*)
     insn="nop"
     ;;
   ia64*-*-* | s390*-*-*)
@@ -3474,7 +3518,7 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
       gcc_cv_libc_provides_ssp,
       [gcc_cv_libc_provides_ssp=no
     case "$target" in
-       *-*-linux*)
+       *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
       if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
 	if test "x$with_sysroot" = x; then
 	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
@@ -3510,6 +3554,12 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	fi
       fi
 	;;
+       *-*-gnu*)
+	 # Avoid complicated tests (see
+	 # <http://gcc.gnu.org/ml/gcc/2008-10/msg00130.html>) and for now
+	 # simply assert that glibc does provide this, which is true for all
+	 # realistically usable GNU/Hurd configurations.
+	 gcc_cv_libc_provides_ssp=yes;;
        *-*-darwin*)
 	 AC_CHECK_FUNC(__stack_chk_fail,[gcc_cv_libc_provides_ssp=yes],
            [echo "no __stack_chk_fail on this target"])

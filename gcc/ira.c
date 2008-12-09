@@ -1695,6 +1695,23 @@ expand_reg_info (int old_size)
     }
 }
 
+/* Return TRUE if there is too high register pressure in the function.
+   It is used to decide when stack slot sharing is worth to do.  */
+static bool
+too_high_register_pressure_p (void)
+{
+  int i;
+  enum reg_class cover_class;
+  
+  for (i = 0; i < ira_reg_class_cover_size; i++)
+    {
+      cover_class = ira_reg_class_cover[i];
+      if (ira_loop_tree_root->reg_pressure[cover_class] > 10000)
+	return true;
+    }
+  return false;
+}
+
 
 
 /* All natural loops.  */
@@ -1708,7 +1725,7 @@ ira (FILE *f)
   bool loops_p;
   int max_regno_before_ira, ira_max_point_before_emit;
   int rebuild_p;
-  int saved_flag_ira_algorithm;
+  int saved_flag_ira_share_spill_slots;
   basic_block bb;
 
   timevar_push (TV_IRA);
@@ -1783,15 +1800,19 @@ ira (FILE *f)
   ira_assert (current_loops == NULL);
   flow_loops_find (&ira_loops);
   current_loops = &ira_loops;
-  saved_flag_ira_algorithm = flag_ira_algorithm;
-  if (optimize && number_of_loops () > (unsigned) IRA_MAX_LOOPS_NUM)
-    flag_ira_algorithm = IRA_ALGORITHM_CB;
       
   if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
     fprintf (ira_dump_file, "Building IRA IR\n");
   loops_p = ira_build (optimize
 		       && (flag_ira_algorithm == IRA_ALGORITHM_REGIONAL
 			   || flag_ira_algorithm == IRA_ALGORITHM_MIXED));
+
+  saved_flag_ira_share_spill_slots = flag_ira_share_spill_slots;
+  if (too_high_register_pressure_p ())
+    /* It is just wasting compiler's time to pack spilled pseudos into
+       stack slots in this case -- prohibit it.  */ 
+    flag_ira_share_spill_slots = FALSE;
+
   ira_color ();
       
   ira_max_point_before_emit = ira_max_point;
@@ -1902,13 +1923,13 @@ ira (FILE *f)
     fprintf (ira_dump_file, "+++Overall after reload %d\n", ira_overall_cost);
   ira_destroy ();
   
+  flag_ira_share_spill_slots = saved_flag_ira_share_spill_slots;
+
   flow_loops_free (&ira_loops);
   free_dominance_info (CDI_DOMINATORS);
   FOR_ALL_BB (bb)
     bb->loop_father = NULL;
   current_loops = NULL;
-
-  flag_ira_algorithm = saved_flag_ira_algorithm;
 
   regstat_free_ri ();
   regstat_free_n_sets_and_refs ();
