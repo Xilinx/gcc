@@ -1,3 +1,8 @@
+2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_graphite_bb): Fix printing to file != dump_file.
+	(print_scop): Ditto.
+
 2008-12-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	PR middle-end/38084
