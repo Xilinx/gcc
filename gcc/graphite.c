@@ -1098,6 +1098,7 @@ new_scop (edge entry, edge exit)
   SCOP_BBS_B (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOPS (scop) = BITMAP_ALLOC (NULL);
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
+  SCOP_ADD_PARAMS (scop) = true;
   SCOP_PARAMS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
   cloog_program_set_names (SCOP_PROG (scop), cloog_names_malloc ());
@@ -2244,6 +2245,8 @@ param_index (tree var, scop_p scop)
     if (p->t == var)
       return i;
 
+  gcc_assert (SCOP_ADD_PARAMS (scop));
+
   nvar = XNEW (struct name_tree);
   nvar->t = var;
   nvar->name = NULL;
@@ -2459,7 +2462,7 @@ find_params_in_bb (scop_p scop, graphite_bb_p gb)
 {
   int i;
   data_reference_p dr;
-  gimple_stmt_iterator gsi;
+  gimple stmt;
   loop_p father = GBB_BB (gb)->loop_father;
 
   for (i = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb), i, dr); i++)
@@ -2473,32 +2476,26 @@ find_params_in_bb (scop_p scop, graphite_bb_p gb)
     }
 
   /* Find parameters in conditional statements.  */ 
-  gsi = gsi_last_bb (GBB_BB (gb));
-  if (!gsi_end_p (gsi))
+  for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gb), i, stmt); i++)
     {
-      gimple stmt = gsi_stmt (gsi);
+      Value one;
+      loop_p loop = father;
 
-      if (gimple_code (stmt) == GIMPLE_COND)
-        {
-          Value one;
-          loop_p loop = father;
+      tree lhs, rhs;
 
-          tree lhs, rhs;
-          
-          lhs = gimple_cond_lhs (stmt);
-          lhs = analyze_scalar_evolution (loop, lhs);
-          lhs = instantiate_scev (block_before_scop (scop), loop, lhs);
+      lhs = gimple_cond_lhs (stmt);
+      lhs = analyze_scalar_evolution (loop, lhs);
+      lhs = instantiate_scev (block_before_scop (scop), loop, lhs);
 
-          rhs = gimple_cond_rhs (stmt);
-          rhs = analyze_scalar_evolution (loop, rhs);
-          rhs = instantiate_scev (block_before_scop (scop), loop, rhs);
+      rhs = gimple_cond_rhs (stmt);
+      rhs = analyze_scalar_evolution (loop, rhs);
+      rhs = instantiate_scev (block_before_scop (scop), loop, rhs);
 
-          value_init (one);
-          scan_tree_for_params (scop, lhs, NULL, 0, one, false);
-          value_set_si (one, 1);
-          scan_tree_for_params (scop, rhs, NULL, 0, one, false);
-          value_clear (one);
-       }
+      value_init (one);
+      scan_tree_for_params (scop, lhs, NULL, 0, one, false);
+      value_set_si (one, 1);
+      scan_tree_for_params (scop, rhs, NULL, 0, one, false);
+      value_clear (one);
     }
 }
 
@@ -2623,6 +2620,8 @@ find_scop_parameters (scop_p scop)
   /* Find the parameters used in data accesses.  */
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     find_params_in_bb (scop, gb);
+
+  SCOP_ADD_PARAMS (scop) = false;
 }
 
 /* Build the context constraints for SCOP: constraints and relations
@@ -5350,6 +5349,7 @@ graphite_transform_loops (void)
 
       build_scop_canonical_schedules (scop);
       build_bb_loops (scop);
+      build_scop_conditions (scop);
       find_scop_parameters (scop);
       build_scop_context (scop);
 
@@ -5365,7 +5365,6 @@ graphite_transform_loops (void)
       if (!build_scop_iteration_domain (scop))
 	continue;
 
-      build_scop_conditions (scop);
       build_scop_data_accesses (scop);
       build_scop_dynamic_schedules (scop);
 

@@ -1,3 +1,17 @@
+2008-12-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/38459
+	* graphite.c (new_scop): Initialize SCOP_ADD_PARAMS.
+	(param_index): Assert if parameter is not know after parameter
+	detection.
+	(find_params_in_bb): Detect params directly in GBB_CONDITIONS.
+	(find_scop_parameters): Mark, that we have finished parameter
+	detection.
+	(graphite_transform_loops): Move condition detection before parameter
+	detection.
+	* graphite.h (struct scop): Add SCOP_ADD_PARAMS.
+	* testsuite/gfortran.dg/graphite/pr38459.f90: New.
+
 2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (graphite_transform_loops): Always call find_transform ()

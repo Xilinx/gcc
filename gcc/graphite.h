@@ -313,6 +313,11 @@ struct scop
 
   /* Cloog representation of this scop.  */
   CloogProgram *program;
+
+  /* Are we allowed to add more params?  This is for debugging purpose.  We
+     can only add new params before generating the bb domains, otherwise they
+     become invalid.  */
+  bool add_params;
 };
 
 #define SCOP_BBS(S) S->bbs
@@ -328,6 +333,7 @@ struct scop
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
+#define SCOP_ADD_PARAMS(S) S->add_params
 #define SCOP_PARAMS(S) S->params
 #define SCOP_OLDIVS(S) S->old_ivs
 #define SCOP_PROG(S) S->program
