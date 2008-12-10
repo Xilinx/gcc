@@ -2412,7 +2412,7 @@ match_dt_element (io_kind k, gfc_dt *dt)
   m = match_etag (&tag_rec, &dt->rec);
   if (m != MATCH_NO)
     return m;
-  m = match_etag (&tag_spos, &dt->rec);
+  m = match_etag (&tag_spos, &dt->pos);
   if (m != MATCH_NO)
     return m;
   m = match_out_tag (&tag_iomsg, &dt->iomsg);
@@ -2478,6 +2478,7 @@ gfc_free_dt (gfc_dt *dt)
   gfc_free_expr (dt->blank);
   gfc_free_expr (dt->decimal);
   gfc_free_expr (dt->extra_comma);
+  gfc_free_expr (dt->pos);
   gfc_free (dt);
 }
 
@@ -2491,7 +2492,7 @@ gfc_resolve_dt (gfc_dt *dt)
 
   RESOLVE_TAG (&tag_format, dt->format_expr);
   RESOLVE_TAG (&tag_rec, dt->rec);
-  RESOLVE_TAG (&tag_spos, dt->rec);
+  RESOLVE_TAG (&tag_spos, dt->pos);
   RESOLVE_TAG (&tag_advance, dt->advance);
   RESOLVE_TAG (&tag_id, dt->id);
   RESOLVE_TAG (&tag_iomsg, dt->iomsg);
@@ -2930,6 +2931,10 @@ if (condition) \
       io_constraint (dt->rec != NULL,
 		     "REC tag at %L is incompatible with internal file",
 		     &dt->rec->where);
+    
+      io_constraint (dt->pos != NULL,
+		     "POS tag at %L is incompatible with internal file",
+		     &dt->pos->where);
 
       io_constraint (unformatted,
 		     "Unformatted I/O not allowed with internal unit at %L",
@@ -3168,7 +3173,7 @@ if (condition) \
 
       io_constraint (dt->format_expr,
 		     "IO spec-list cannot contain both NAMELIST group name "
-		     "and format specification at %L.",
+		     "and format specification at %L",
 		     &dt->format_expr->where);
 
       io_constraint (dt->format_label,
@@ -3177,22 +3182,26 @@ if (condition) \
 
       io_constraint (dt->rec,
 		     "NAMELIST IO is not allowed with a REC= specifier "
-		     "at %L.", &dt->rec->where);
+		     "at %L", &dt->rec->where);
 
       io_constraint (dt->advance,
 		     "NAMELIST IO is not allowed with a ADVANCE= specifier "
-		     "at %L.", &dt->advance->where);
+		     "at %L", &dt->advance->where);
     }
 
   if (dt->rec)
     {
       io_constraint (dt->end,
 		     "An END tag is not allowed with a "
-		     "REC= specifier at %L.", &dt->end_where);
+		     "REC= specifier at %L", &dt->end_where);
 
       io_constraint (dt->format_label == &format_asterisk,
 		     "FMT=* is not allowed with a REC= specifier "
-		     "at %L.", spec_end);
+		     "at %L", spec_end);
+
+      io_constraint (dt->pos,
+		     "POS= is not allowed with REC= specifier "
+		     "at %L", &dt->pos->where);
     }
 
   if (dt->advance)

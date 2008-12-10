@@ -1,3 +1,25 @@
+2008-12-08  Steve Ellcey  <sje@cup.hp.com>
+
+	* decl2.c (mark_used): Remove assemble_external call.
+
+2008-12-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/38390
+	* name-lookup.c (kept_level_p): Don't forget the case of levels
+	  having using directives.
+
+2008-12-08  Richard Henderson  <rth@redhat.com>
+
+	PR 38240
+	* class.c (finish_struct_bits): Use SET_TYPE_MODE.
+	* decl.c (record_unknown_type): Likewise.
+	(start_enum, finish_enum): Likewise.
+
+2008-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35336
+	* error.c (dump_expr): Handle BIT_FIELD_REF.
+
 2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR bootstrap/38262

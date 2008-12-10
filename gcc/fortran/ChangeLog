@@ -1,3 +1,56 @@
+2008-12-09  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/36376
+	PR fortran/37468
+	* lang-specs.h: Pass on -i* options to f951 to (probably) report
+	them as unknown. Duplicate gcc.c (cpp_options), but omit
+	-fpch-preprocess on -save-temps.
+
+2008-12-09  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/36457
+	* lang.opt: Added option idirafter.
+	* cpp.h (gfc_cpp_add_include_path_after): New prototype.
+	* cpp.c (gfc_cpp_handle_option): Recognize and handle OPT_dirafter.
+	(gfc_cpp_add_include_path_after): New, adds user-defined search path
+	after any other paths.
+	* invoke.texi (idirafter): New.
+	(no-range-check): Fixed entry in option-index.
+
+2008-12-09  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/37469
+	* expr.c (find_array_element): Simplify array bounds.
+	Assert that both bounds are constant expressions.
+
+2008-12-09  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/35983
+	* trans-expr.c (gfc_trans_subcomponent_assign):
+	Add se's pre and post blocks to current block.
+	(gfc_trans_structure_assign): Remove specific handling
+	of C_NULL_PTR and C_NULL_FUNPTR.
+
+2008-12-06  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/38425
+	* io.c (check_io_constraints): Check constraints on REC=, POS=, and
+	internal unit with POS=. Fix punctuation on a few error messages.
+
+2008-12-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/38415
+	* expr.c (gfc_check_pointer_assign): Added a check for abstract
+	interfaces in procedure pointer assignments, removed check involving
+	gfc_compare_interfaces until PR38290 is fixed completely.
+
+2008-12-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/38291
+	* io.c (match_dt_element): Use dt->pos in matcher.
+	(gfc_free_dt): Free dt->pos after use.
+	(gfc_resolve_dt): Use dt->pos in resolution of stream position tag.
+
 2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR bootstrap/38262
