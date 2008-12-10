@@ -1629,6 +1629,7 @@ pp_c_cast_expression (c_pretty_printer *pp, tree e)
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
       pp_c_type_cast (pp, TREE_TYPE (e));
       pp_c_cast_expression (pp, TREE_OPERAND (e, 0));
       break;
@@ -2020,6 +2021,7 @@ pp_c_expression (c_pretty_printer *pp, tree e)
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
       pp_c_cast_expression (pp, e);
       break;
 
@@ -2099,6 +2101,12 @@ pp_c_expression (c_pretty_printer *pp, tree e)
 
     case TARGET_EXPR:
       pp_postfix_expression (pp, TREE_OPERAND (e, 1));
+      break;
+
+    case BIND_EXPR:
+      /* We don't yet have a way of dumping statements in a
+         human-readable format.  */
+      pp_string (pp, "({...})");
       break;
 
     default:

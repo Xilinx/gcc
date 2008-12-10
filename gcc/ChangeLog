@@ -1,15 +1,294 @@
+2008-12-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/37170
+	PR target/38448
+	* final.c (output_addr_const) <SYMBOL_REF>: Call assemble_external
+	on the associated SYMBOL_REF_DECL node, if any.
+
+2008-12-09 David Daney <ddaney@caviumnetworks.com>
+
+	* config/mips/sync.md (sync_<optab>_12): Replace
+	MIPS_SYNC_OP_12_NOT_NOP with MIPS_SYNC_OP_12_AND.
+	(sync_old_<optab>_12): Remove third paramater to
+	MIPS_SYNC_OLD_OP_12 macro, replace MIPS_SYNC_OLD_OP_12_NOT_NOP
+	with MIPS_SYNC_OLD_OP_12_AND.
+	(sync_new_<optab>_12): Replace MIPS_SYNC_NEW_OP_12_NOT_NOP
+	with MIPS_SYNC_NEW_OP_12_AND.
+	(sync_nand_12): Replace MIPS_SYNC_OP_12_NOT_NOT with
+	MIPS_SYNC_OP_12_XOR, reduce length attribute to 40.
+	(sync_old_nand_12): Remove third paramater to MIPS_SYNC_OLD_OP_12
+	macro, replace MIPS_SYNC_OLD_OP_12_NOT_NOT with
+	MIPS_SYNC_OLD_OP_12_XOR and reduce length attribute to 40.
+	(sync_new_nand_12): Replace MIPS_SYNC_NEW_OP_12_NOT_NOT with
+	MIPS_SYNC_NEW_OP_12_XOR.
+	* config/mips/mips.h (MIPS_SYNC_OP_12, MIPS_SYNC_OP_12_NOT_NOP,
+	MIPS_SYNC_OP_12_NOT_NOT,MIPS_SYNC_OLD_OP_12_NOT_NOP,
+	MIPS_SYNC_OLD_OP_12_NOT_NOT, MIPS_SYNC_NEW_OP_12,
+	MIPS_SYNC_NEW_OP_12_NOT_NOP, MIPS_SYNC_NEW_OP_12_NOT_NOT,
+	MIPS_SYNC_NAND, MIPS_SYNC_OLD_NAND, MIPS_SYNC_NEW_NAND): Rewritten
+	to implement new __sync_nand semantics.
+	(MIPS_SYNC_OLD_OP_12): Implement new __sync_nand semantics, and
+	remove third parameter.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOP_REG,
+	MIPS_SYNC_OLD_OP_12_NOT_NOT_REG): Removed.
+	(MIPS_SYNC_OP_12_NOT_NOP): Renamed to MIPS_SYNC_OP_12_AND.
+	(MIPS_SYNC_OP_12_NOT_NOT): Renamed to MIPS_SYNC_OP_12_XOR.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOP): Renamed to MIPS_SYNC_OLD_OP_12_AND.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOT): Renamed to MIPS_SYNC_OLD_OP_12_XOR.
+	(MIPS_SYNC_NEW_OP_12_NOT_NOP): Renamed to MIPS_SYNC_NEW_OP_12_AND.
+	(MIPS_SYNC_NEW_OP_12_NOT_NOT): Renamed to MIPS_SYNC_NEW_OP_12_XOR
+
+2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (graphite_transform_loops): Always call find_transform ()
+	in ENABLE_CHECKING.  So we test these code paths, even if we do not
+	generate code.
+
+2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_graphite_bb): Fix printing to file != dump_file.
+
+2008-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38454
+	* function.h (struct function): Add always_inline_functions_inlined.
+	* ipa-inline.c (cgraph_early_inlining): Set it to true.
+	* tree-optimize.c (execute_fixup_cfg): Likewise.
+	* builtins.c (avoid_folding_inline_builtin): New function.
+	(fold_call_expr): Don't optimize always_inline builtins before
+	inlining.
+	(fold_call_stmt): Likewise.
+	(fold_builtin_call_array): Likewise.  Don't call
+	fold_builtin_varargs for BUILT_IN_MD builtins.
+
+	PR tree-optimization/37416
+	* tree-scalar-evolution.c (follow_ssa_edge_in_rhs): Handle NOP_EXPR.
+
+2008-12-09  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/sourcebuild.texi (Test Directives): Fix formatting.
+
+2008-12-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* doc/tm.texi (TARGET_IRA_COVER_CLASSES): Modify description.
+
+	* doc/invoke.texi (-fira-region): Describe new option.
+	(-fira-algorithm): Change the values.
+
+	* ira-conflicts.c (build_conflict_bit_table,
+	build_allocno_conflicts): Use ira_reg_classes_intersect_p.
+	(ira_build_conflicts): Use flag flag_ira_region instead of
+	flag_ira_algorithm.  Prohibit usage of callee-saved likely spilled
+	base registers for allocnos crossing calls.
+
+	* flags.h (enum ira_algorithm): Redefine.
+	(enum ira_region): New.
+	(flag_ira_region): New.
+
+	* cfgloopanal.c (estimate_reg_pressure_cost): Use flag_ira_region
+	instead of flag_ira_algorithm.
+
+	* toplev.c (flag_ira_algorithm): Change the initial value.
+	(flag_ira_region): New.
+
+	* ira-int.h (ira_reg_classes_intersect_p,
+	ira_reg_class_super_classes): New.
+
+	* ira-color.c (update_copy_costs): Use
+	ira_reg_classes_intersect_p.  Use right class to find hard reg
+	index.
+	(update_conflict_hard_regno_costs): Ditto.  Add a new parameter.
+	(assign_hard_reg): Ditto.  Pass additional argument to
+	update_conflict_hard_regno_costs.  Do not uncoalesce for priority
+	coloring.
+	(allocno_priorities, setup_allocno_priorities,
+	allocno_priority_compare_func): Move before color_allocnos.
+	(color_allocnos): Add priority coloring.  Use flag flag_ira_region
+	instead of flag_ira_algorithm.
+	(move_spill_restore): Check classes of the same reg allocno from
+	different regions.
+	(update_curr_costs): Use ira_reg_classes_intersect_p.
+	(ira_reassign_conflict_allocnos): Ditto.
+
+	* opts.c (decode_options): Always set up flag_ira.  Set up
+	flag_ira_algorithm.  Warn CB can not be used for architecture.
+	(common_handle_option): Modify code for -fira-algorithm.  Add code
+	to process -fira-region.
+
+	* ira-lives.c (update_allocno_pressure_excess_length): Process
+	superclasses too.
+	(set_allocno_live, clear_allocno_live, mark_reg_live,
+	mark_reg_dead, process_bb_node_lives): Ditto.
+
+	* ira-emit.c (ira_emit): Fix insn codes.
+	
+	* ira-build.c (propagate_allocno_info): Use flag flag_ira_region
+	instead of flag_ira_algorithm.
+	(allocno_range_compare_func): Ignore classes for priority
+	coloring.
+	(setup_min_max_conflict_allocno_ids): Ditto.
+	(ira_flattening): Use ira_reg_classes_intersect_p.
+
+	* genpreds.c (write_enum_constraint_num): Output
+	CONSTRAINT__LIMIT.
+	
+	* common.opt (fira-algorithm): Modify.
+	(fira-region): New.
+
+	* ira.c (setup_class_hard_regs): Initialize.
+	(setup_cover_and_important_classes): Modify code setting class
+	related info for priority coloring.
+	(setup_class_translate): Ditto.
+	(ira_reg_classes_intersect_p, ira_reg_class_super_classes): New.
+	(setup_reg_class_intersect_union): Rename to
+	setup_reg_class_relations.  Add code for setting up new variables.
+	(find_reg_class_closure): Do not check targetm.ira_cover_classes.
+	(ira): Use flag flag_ira_region instead of flag_ira_algorithm.
+
+	* ira-costs.c (common_classes): New.
+	(print_costs): Use flag flag_ira_region instead of
+	flag_ira_algorithm.
+	(find_allocno_class_costs): Ditto.  Use common_classes.  Translate
+	alt_class.
+	(ira_costs): Allocate/deallocate common_classes.
+	
+	* config/m32c/m32.h (REG_ALLOC_ORDER): Add reg 19.
+	(REG_CLASS_CONTENTS, reg_class, REG_CLASS_NAMES): New entries for
+	R02A_REGS.
+
+	* reload1.c (choose_reload_regs): Use MODE_INT for partial ints in
+	smallest_mode_for_size.
+	
+2008-12-10  Ben Elliston  <bje@au.ibm.com>
+
+	* config/rs6000/linux-unwind.h (get_regs): Constify casts.
+
+2008-12-09  Jan Hubicka  <jh@suse.cz>
+
+	* predict.c (estimate_bb_frequencies): Fix test if profile is present.
+
+2008-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/35468
+	* tree-ssa-ccp.c (fold_stmt_r): Don't fold reads from constant
+	string on LHS.
+
+2008-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38445
+	* tree-ssa-structalias.c (emit_pointer_definition): Only visit
+	names once.
+	(emit_alias_warning): Adjust.
+
+2008-12-09  Andrew Haley  <aph@redhat.com>
+
+	* fixed-value.c (do_fixed_add): Add comment.
+	* tree-ssa-loop-ivopts.c (iv_ca_cost): Likewise.
+	* builtins.c (fold_builtin_sqrt): Likewise.
+
+2008-12-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/38366
+	* function.c (aggregate_value_p): Get fntype from CALL_EXPR in any
+	case.
+	* calls.c (nitialize_argument_information): Add fntype argument 
+	and use it for calls.promote_function_args.
+        (expand_call): Pass fntype to aggregate_value_p if no fndecl
+	available and pass additional fntype to
+	initialize_argument_information.
+	* config/i386/i386.c (ix86_reg_parm_stack_space): Remove cfun part
+	to get function abi type.
+	(init_cumulative_args): Use for abi kind detection fntype, when no
+	fndecl is available.
+
+2008-12-09  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	* config/s390/s390.md (movti, movdi_64, movdi_31,
+	  *movsi_zarch, *movhi, *movqi, *mov<mode>_64, *mov<mode>_31,
+	  *mov<mode>_64dfp, *mov<mode>_64, *mov<mode>_31, mov<mode>): Remove
+	  Q->Q alternative.
+	  (Integer->BLKmode splitter): Removed.
+
+2008-12-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_set_memflags): Process memory
+	references in full insn sequence.
+
+2008-12-09  Jason Merrill  <jason@redhat.com>
+
+	* gimplify.c (gimplify_init_constructor): Revert to using < rather
+	than <= for sparseness test.
+
+	PR c++/38410
+	* gimplify.c (gimplify_init_constructor): Don't write out a static
+	copy of the CONSTRUCTOR for TREE_ADDRESSABLE types or small sparse
+	initializers.
+
+2008-12-09 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/38084
+	Fix testsuite/gfortran.dg/graphite/id-3.f90.
+	* graphite.c (scopdet_basic_block_info): Fix bug that found some
+	regions more than once.
+	* testsuite/gfortran.dg/graphite/id-3.f90: New.
+	* gcc/testsuite/gcc.dg/graphite/pr38084.c: New.
+
+2008-12-09  Ben Elliston  <bje@au.ibm.com>
+
+	* emutls.c (__emutls_get_address): Prototype.
+	(__emutls_register_common): Likewise.
+
+	* config/dfp-bit.c (DFP_TO_INT): Remove unnecessary cast.
+
+2008-12-09  Ben Elliston  <bje@au.ibm.com>
+
+	* config/rs6000/darwin-ldouble.c (fmsub): Remove unused variable, v.
+
+2008-12-08  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/ia64.md (UNSPECV_GOTO_RECEIVER): New constant.
+	(nonlocal_goto_receiver): New instruction.
+
+2008-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/35443
+	* c-pretty-print.c (pp_c_expression): Handle BIND_EXPR.
+
+	PR c/35442
+	* c-pretty-print.c (pp_c_cast_expression, pp_c_expression): Handle
+	VIEW_CONVERT_EXPR the same as CASE_CONVERT.
+
+2008-12-08  Richard Henderson  <rth@redhat.com>
+
+	PR 38240
+	* tree.h (TYPE_MODE): Invoke vector_type_mode when needed.
+	(SET_TYPE_MODE): New.
+	* c-decl.c (parser_xref_tag): Use it.
+	(finish_enum): Likewise.
+	* tree.c (build_pointer_type_for_mode): Likewise.
+	(build_reference_type_for_mode, build_index_type): Likewise.
+	(build_range_type, make_vector_type): Likewise.
+	(build_common_tree_nodes_2): Likewise.
+	* stor-layout.c (compute_record_mode): Likewise.
+	(finalize_type_size, layout_type, make_fract_type): Likewise.
+	(make_accum_type, initialize_sizetypes): Likewise.
+	(vector_type_mode): New.
+	* function.c (allocate_struct_function): Call
+	invoke_set_current_function_hook before querying anything else.
+
+	* config/i386/i386.c (ix86_valid_target_attribute_inner_p): Add avx.
+
 2008-12-08  Luis Machado  <luisgpm@br.ibm.com>
 
 	* alias.c (find_base_term): Synch LO_SUM handling with what
 	find_base_value does.
 
 2008-12-08  Andrew Haley  <aph@redhat.com>
-            Kamaraju Kusumanchi <raju.mailinglists@gmail.com>
+	    Kamaraju Kusumanchi <raju.mailinglists@gmail.com>
 
 	* gimple.h (gimple_build_try): Fix declaration.
 
-	* builtins.c (fold_builtin_sqrt): Don't use a conditional
-	operator.
+	* builtins.c (fold_builtin_sqrt): Don't use a conditional operator.
 	* fixed-value.c (do_fixed_add): Likewise.
 	* tree-ssa-loop-ivopts.c (iv_ca_cost): Likewise.
 
