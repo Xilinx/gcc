@@ -351,6 +351,7 @@
 ;;; selector to normalize a pattern
 ;;; reciever is the pattern to normalize
 ;;; arguments are
+;;; the normal matched stuff
 ;;; the list of src patterns
 ;;; the list of test points
 ;;; the pattern context
@@ -362,7 +363,7 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for normpat any reciever (by failing)
-(defun normpat_anyrecv (recv spatlist testptlist pcn)
+(defun normpat_anyrecv (recv nmatch spatlist testptlist pcn)
   (debug_msg recv "normpat_anyrecv recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
@@ -378,7 +379,7 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; catch-all for normpat any pattern (by failing)
-(defun normpat_anypat (recv spatlist testptlist pcn)
+(defun normpat_anypat (recv nmatch spatlist testptlist pcn)
   (debug_msg recv "normpat_anyrecv recv")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_srcpattern_any))
@@ -395,8 +396,9 @@
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; normalize cmatcher pattern
-(defun normpat_cmatchpat (recv spatlist testptlist pcn)
+(defun normpat_cmatchpat (recv nmatch spatlist testptlist pcn)
   (debug_msg recv "normpat_cmatchpat recv")
+  (debug_msg nmatch "normpat_cmatchpat nmatch")
   (debug_msg spatlist "normpat_cmatchpat spatlist")
   (debug_msg testptlist "normpat_cmatchpat testptlist")
   (debug_msg pcn "normpat_cmatchpat pcn")
@@ -423,8 +425,8 @@
      (let ( (curtestp (instance class_nrep_testp_matcher
 				:nrep_loc sloc
 				:nexpr_ctyp (get_field :amatch_matchbind cmat)
+				:ntsp_test nmatch
 				:ntsp_succp ()
-				:ntsp_test ()
 				:ntsm_matcher cmat
 				:ntsm_binds ()
 				))
@@ -492,7 +494,7 @@
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
-	  (normal_pattern curpat spatlist testptlist pcn)
+	  (normal_pattern curpat nmatx spatlist testptlist pcn)
 	  (debug_msg curcas "normexp_match curcas after normal_pattern")
 	  )
 	)				;end foreach_in_multiple

@@ -1,3 +1,7 @@
+2008-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: normal_pattern takes a nmatch argument...
+	[still incomplete]
+
 2008-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: using BACKENDLIBS as merged from trunk r142553
 
