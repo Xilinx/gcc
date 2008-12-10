@@ -1,3 +1,79 @@
+2008-12-10  Martin Guy <martinwguy@yahoo.it>
+
+	PR target/37668
+	* arm.c (arm_size_rtx_costs, case NEG): Don't fall through if the
+	result will be in an FPU register.
+
+2008-12-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/37170
+	PR target/38448
+	* final.c (output_addr_const) <SYMBOL_REF>: Call assemble_external
+	on the associated SYMBOL_REF_DECL node, if any.
+
+2008-12-09 David Daney <ddaney@caviumnetworks.com>
+
+	* config/mips/sync.md (sync_<optab>_12): Replace
+	MIPS_SYNC_OP_12_NOT_NOP with MIPS_SYNC_OP_12_AND.
+	(sync_old_<optab>_12): Remove third paramater to
+	MIPS_SYNC_OLD_OP_12 macro, replace MIPS_SYNC_OLD_OP_12_NOT_NOP
+	with MIPS_SYNC_OLD_OP_12_AND.
+	(sync_new_<optab>_12): Replace MIPS_SYNC_NEW_OP_12_NOT_NOP
+	with MIPS_SYNC_NEW_OP_12_AND.
+	(sync_nand_12): Replace MIPS_SYNC_OP_12_NOT_NOT with
+	MIPS_SYNC_OP_12_XOR, reduce length attribute to 40.
+	(sync_old_nand_12): Remove third paramater to MIPS_SYNC_OLD_OP_12
+	macro, replace MIPS_SYNC_OLD_OP_12_NOT_NOT with
+	MIPS_SYNC_OLD_OP_12_XOR and reduce length attribute to 40.
+	(sync_new_nand_12): Replace MIPS_SYNC_NEW_OP_12_NOT_NOT with
+	MIPS_SYNC_NEW_OP_12_XOR.
+	* config/mips/mips.h (MIPS_SYNC_OP_12, MIPS_SYNC_OP_12_NOT_NOP,
+	MIPS_SYNC_OP_12_NOT_NOT,MIPS_SYNC_OLD_OP_12_NOT_NOP,
+	MIPS_SYNC_OLD_OP_12_NOT_NOT, MIPS_SYNC_NEW_OP_12,
+	MIPS_SYNC_NEW_OP_12_NOT_NOP, MIPS_SYNC_NEW_OP_12_NOT_NOT,
+	MIPS_SYNC_NAND, MIPS_SYNC_OLD_NAND, MIPS_SYNC_NEW_NAND): Rewritten
+	to implement new __sync_nand semantics.
+	(MIPS_SYNC_OLD_OP_12): Implement new __sync_nand semantics, and
+	remove third parameter.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOP_REG,
+	MIPS_SYNC_OLD_OP_12_NOT_NOT_REG): Removed.
+	(MIPS_SYNC_OP_12_NOT_NOP): Renamed to MIPS_SYNC_OP_12_AND.
+	(MIPS_SYNC_OP_12_NOT_NOT): Renamed to MIPS_SYNC_OP_12_XOR.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOP): Renamed to MIPS_SYNC_OLD_OP_12_AND.
+	(MIPS_SYNC_OLD_OP_12_NOT_NOT): Renamed to MIPS_SYNC_OLD_OP_12_XOR.
+	(MIPS_SYNC_NEW_OP_12_NOT_NOP): Renamed to MIPS_SYNC_NEW_OP_12_AND.
+	(MIPS_SYNC_NEW_OP_12_NOT_NOT): Renamed to MIPS_SYNC_NEW_OP_12_XOR
+
+2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (graphite_transform_loops): Always call find_transform ()
+	in ENABLE_CHECKING.  So we test these code paths, even if we do not
+	generate code.
+
+2008-12-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (print_graphite_bb): Fix printing to file != dump_file.
+
+2008-12-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38454
+	* function.h (struct function): Add always_inline_functions_inlined.
+	* ipa-inline.c (cgraph_early_inlining): Set it to true.
+	* tree-optimize.c (execute_fixup_cfg): Likewise.
+	* builtins.c (avoid_folding_inline_builtin): New function.
+	(fold_call_expr): Don't optimize always_inline builtins before
+	inlining.
+	(fold_call_stmt): Likewise.
+	(fold_builtin_call_array): Likewise.  Don't call
+	fold_builtin_varargs for BUILT_IN_MD builtins.
+
+	PR tree-optimization/37416
+	* tree-scalar-evolution.c (follow_ssa_edge_in_rhs): Handle NOP_EXPR.
+
+2008-12-09  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/sourcebuild.texi (Test Directives): Fix formatting.
+
 2008-12-09  Vladimir Makarov  <vmakarov@redhat.com>
 
 	* doc/tm.texi (TARGET_IRA_COVER_CLASSES): Modify description.
@@ -145,6 +221,9 @@
 	references in full insn sequence.
 
 2008-12-09  Jason Merrill  <jason@redhat.com>
+
+	* gimplify.c (gimplify_init_constructor): Revert to using < rather
+	than <= for sparseness test.
 
 	PR c++/38410
 	* gimplify.c (gimplify_init_constructor): Don't write out a static
