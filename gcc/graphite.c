@@ -1161,6 +1161,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
+  GBB_STATIC_SCHEDULE (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
 }
@@ -1175,6 +1176,11 @@ free_graphite_bb (struct graphite_bb *gbb)
 
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
+
+  /* FIXME: free_data_refs is disabled for the moment, but should be
+     enabled.
+
+     free_data_refs (GBB_DATA_REFS (gbb)); */
 
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
@@ -2574,7 +2580,6 @@ find_params_in_bb (scop_p scop, graphite_bb_p gb)
       irp.loop = father;
       irp.scop = scop;
       for_each_index (&dr->ref, idx_record_params, &irp);
-      free_data_ref (dr);
     }
 
   /* Find parameters in conditional statements.  */ 
