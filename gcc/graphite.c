@@ -244,6 +244,97 @@ free_loop_iv_stack (loop_iv_stack stack)
   VEC_free (iv_stack_entry_p, heap, *stack);
 }
 
+
+
+/* Structure containing the mapping between the CLooG's induction
+   variable and the type of the old induction variable.  */
+typedef struct ivtype_map_elt
+{
+  tree type;
+  const char *cloog_iv;
+} *ivtype_map_elt;
+
+/* Print to stderr the element ELT.  */
+
+static void
+debug_ivtype_elt (ivtype_map_elt elt)
+{
+  fprintf (stderr, "(%s, ", elt->cloog_iv);
+  print_generic_expr (stderr, elt->type, 0);
+  fprintf (stderr, ")\n");
+}
+
+/* Helper function for debug_ivtype_map.  */
+
+static int
+debug_ivtype_map_1 (void **slot, void *s ATTRIBUTE_UNUSED)
+{
+  struct ivtype_map_elt *entry = (struct ivtype_map_elt *) *slot;
+  debug_ivtype_elt (entry);
+  return 1;
+}
+
+/* Print to stderr all the elements of MAP.  */
+
+void
+debug_ivtype_map (htab_t map)
+{
+  htab_traverse (map, debug_ivtype_map_1, NULL);
+}
+
+/* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
+
+static inline ivtype_map_elt
+new_ivtype_map_elt (const char *cloog_iv, tree type)
+{
+  ivtype_map_elt res;
+  
+  res = XNEW (struct ivtype_map_elt);
+  res->cloog_iv = cloog_iv;
+  res->type = type;
+
+  return res;
+}
+
+/* Computes a hash function for database element ELT.  */
+
+static hashval_t
+ivtype_map_elt_info (const void *elt)
+{
+  return htab_hash_pointer (((const struct ivtype_map_elt *) elt)->cloog_iv);
+}
+
+/* Compares database elements E1 and E2.  */
+
+static int
+eq_ivtype_map_elts (const void *e1, const void *e2)
+{
+  const struct ivtype_map_elt *elt1 = (const struct ivtype_map_elt *) e1;
+  const struct ivtype_map_elt *elt2 = (const struct ivtype_map_elt *) e2;
+
+  return (elt1->cloog_iv == elt2->cloog_iv);
+}
+
+
+
+/* Given a CLOOG_IV, returns the type that it should have in GCC
+   land.  */
+
+static tree
+gcc_type_for_cloog_iv (const char *cloog_iv, graphite_bb_p gbb)
+{
+  struct ivtype_map_elt tmp;
+  PTR *slot;
+
+  tmp.cloog_iv = cloog_iv;
+  slot = htab_find_slot (GBB_CLOOG_IV_TYPES (gbb), &tmp, NO_INSERT);
+
+  if (slot && *slot)
+    return ((ivtype_map_elt) *slot)->type;
+
+  return NULL_TREE;
+}
+
 /* Inserts constants derived from the USER_STMT argument list into the
    STACK.  This is needed to map old ivs to constants when loops have
    been eliminated.  */
@@ -254,16 +345,23 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
 {
   struct clast_stmt *t;
   int index = 0;
+  CloogStatement *cs = user_stmt->statement;
+  graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+
   for (t = user_stmt->substitutions; t; t = t->next) 
     {
-      struct clast_term *term = (struct clast_term*) 
+      struct clast_expr *expr = (struct clast_expr *) 
 	((struct clast_assignment *)t)->RHS;
+      struct clast_term *term = (struct clast_term *) expr;
 
       /* FIXME: What should be done with expr_bin, expr_red?  */
-      if (((struct clast_assignment *)t)->RHS->type == expr_term
+      if (expr->type == expr_term
 	  && !term->var)
 	{
-	  tree value = gmp_cst_to_tree (integer_type_node, term->val);
+	  loop_p loop = gbb_loop_at_index (gbb, index);
+	  tree oldiv = oldiv_for_loop (GBB_SCOP (gbb), loop);
+	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
+	  tree value = gmp_cst_to_tree (type, term->val);
 	  loop_iv_stack_insert_constant (stack, index, value);
 	}
       index = index + 1;
@@ -1063,6 +1161,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
+  GBB_CLOOG_IV_TYPES (gbb) = NULL;
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
 }
 
@@ -1073,6 +1172,9 @@ free_graphite_bb (struct graphite_bb *gbb)
 {
   if (GBB_DOMAIN (gbb))
     cloog_matrix_free (GBB_DOMAIN (gbb));
+
+  if (GBB_CLOOG_IV_TYPES (gbb))
+    htab_delete (GBB_CLOOG_IV_TYPES (gbb));
 
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
@@ -3284,9 +3386,10 @@ clast_name_to_gcc (const char *name, VEC (name_tree, heap) *params,
   name_tree t;
   tree iv;
 
-  for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
-    if (!strcmp (name, t->name))
-      return t->t;
+  if (params)
+    for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
+      if (!strcmp (name, t->name))
+	return t->t;
 
   iv = loop_iv_stack_get_iv_from_name (ivstack, name);
   if (iv)
@@ -3305,10 +3408,11 @@ max_precision_type (tree e1, tree e2)
   return TYPE_PRECISION (type1) > TYPE_PRECISION (type2) ? type1 : type2;
 }
 
-/* Converts a Cloog AST expression E back to a GCC expression tree.   */
+/* Converts a Cloog AST expression E back to a GCC expression tree
+   of type TYPE.  */
 
 static tree
-clast_to_gcc_expression (struct clast_expr *e,
+clast_to_gcc_expression (tree type, struct clast_expr *e,
 			 VEC (name_tree, heap) *params,
 			 loop_iv_stack ivstack)
 {
@@ -3321,24 +3425,27 @@ clast_to_gcc_expression (struct clast_expr *e,
 	if (t->var)
 	  {
 	    if (value_one_p (t->val))
- 	      return clast_name_to_gcc (t->var, params, ivstack);
+	      {
+		tree name = clast_name_to_gcc (t->var, params, ivstack);
+		return fold_convert (type, name);
+	      }
 
 	    else if (value_mone_p (t->val))
 	      {
 		tree name = clast_name_to_gcc (t->var, params, ivstack);
-		tree type = TREE_TYPE (name);
+		name = fold_convert (type, name);
 		return fold_build1 (NEGATE_EXPR, type, name);
 	      }
 	    else
 	      {
 		tree name = clast_name_to_gcc (t->var, params, ivstack);
-		tree type = TREE_TYPE (name);
 		tree cst = gmp_cst_to_tree (type, t->val);
+		name = fold_convert (type, name);
 		return fold_build2 (MULT_EXPR, type, cst, name);
 	      }
 	  }
 	else
-	  return gmp_cst_to_tree (integer_type_node, t->val);
+	  return gmp_cst_to_tree (type, t->val);
       }
 
     case expr_red:
@@ -3349,13 +3456,12 @@ clast_to_gcc_expression (struct clast_expr *e,
           {
 	  case clast_red_sum:
 	    if (r->n == 1)
-	      return clast_to_gcc_expression (r->elts[0], params, ivstack);
+	      return clast_to_gcc_expression (type, r->elts[0], params, ivstack);
 
 	    else 
 	      {
-		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		tree type = max_precision_type (tl, tr);
+		tree tl = clast_to_gcc_expression (type, r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (type, r->elts[1], params, ivstack);
 
 		gcc_assert (r->n >= 1
 			    && r->elts[0]->type == expr_term
@@ -3368,13 +3474,12 @@ clast_to_gcc_expression (struct clast_expr *e,
 
 	  case clast_red_min:
 	    if (r->n == 1)
-	      return clast_to_gcc_expression (r->elts[0], params, ivstack);
+	      return clast_to_gcc_expression (type, r->elts[0], params, ivstack);
 
 	    else if (r->n == 2)
 	      {
-		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		tree type = max_precision_type (tl, tr);
+		tree tl = clast_to_gcc_expression (type, r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (type, r->elts[1], params, ivstack);
 		return fold_build2 (MIN_EXPR, type, tl, tr);
 	      }
 
@@ -3385,13 +3490,12 @@ clast_to_gcc_expression (struct clast_expr *e,
 
 	  case clast_red_max:
 	    if (r->n == 1)
-	      return clast_to_gcc_expression (r->elts[0], params, ivstack);
+	      return clast_to_gcc_expression (type, r->elts[0], params, ivstack);
 
 	    else if (r->n == 2)
 	      {
-		tree tl = clast_to_gcc_expression (r->elts[0], params, ivstack);
-		tree tr = clast_to_gcc_expression (r->elts[1], params, ivstack);
-		tree type = max_precision_type (tl, tr);
+		tree tl = clast_to_gcc_expression (type, r->elts[0], params, ivstack);
+		tree tr = clast_to_gcc_expression (type, r->elts[1], params, ivstack);
 		return fold_build2 (MAX_EXPR, type, tl, tr);
 	      }
 
@@ -3410,8 +3514,7 @@ clast_to_gcc_expression (struct clast_expr *e,
       {
 	struct clast_binary *b = (struct clast_binary *) e;
 	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
-	tree tl = clast_to_gcc_expression (lhs, params, ivstack);
-	tree type = TREE_TYPE (tl);
+	tree tl = clast_to_gcc_expression (type, lhs, params, ivstack);
 	tree tr = gmp_cst_to_tree (type, b->RHS);
 
 	switch (b->type)
@@ -3440,6 +3543,72 @@ clast_to_gcc_expression (struct clast_expr *e,
   return NULL_TREE;
 }
 
+/* Returns the type for the expression E.  */
+
+static tree
+gcc_type_for_clast_expr (struct clast_expr *e,
+			 VEC (name_tree, heap) *params,
+			 loop_iv_stack ivstack)
+{
+  switch (e->type)
+    {
+    case expr_term:
+      {
+	struct clast_term *t = (struct clast_term *) e;
+
+	if (t->var)
+	  return TREE_TYPE (clast_name_to_gcc (t->var, params, ivstack));
+	else
+	  return NULL_TREE;
+      }
+
+    case expr_red:
+      {
+        struct clast_reduction *r = (struct clast_reduction *) e;
+
+	if (r->n == 1)
+	  return gcc_type_for_clast_expr (r->elts[0], params, ivstack);
+	else 
+	  {
+	    int i;
+	    for (i = 0; i < r->n; i++)
+	      {
+		tree type = gcc_type_for_clast_expr (r->elts[i], params, ivstack);
+		if (type)
+		  return type;
+	      }
+	    return NULL_TREE;
+	  }
+      }
+
+    case expr_bin:
+      {
+	struct clast_binary *b = (struct clast_binary *) e;
+	struct clast_expr *lhs = (struct clast_expr *) b->LHS;
+	return gcc_type_for_clast_expr (lhs, params, ivstack);
+      }
+
+    default:
+      gcc_unreachable ();
+    }
+
+  return NULL_TREE;
+}
+
+/* Returns the type for the equation CLEQ.  */
+
+static tree
+gcc_type_for_clast_eq (struct clast_equation *cleq,
+		       VEC (name_tree, heap) *params,
+		       loop_iv_stack ivstack)
+{
+  tree type = gcc_type_for_clast_expr (cleq->LHS, params, ivstack);
+  if (type)
+    return type;
+
+  return gcc_type_for_clast_expr (cleq->RHS, params, ivstack);
+}
+
 /* Translates a clast equation CLEQ to a tree.  */
 
 static tree
@@ -3448,9 +3617,9 @@ graphite_translate_clast_equation (scop_p scop,
 				   loop_iv_stack ivstack)
 {
   enum tree_code comp;
-  tree lhs = clast_to_gcc_expression (cleq->LHS, SCOP_PARAMS (scop), ivstack);
-  tree rhs = clast_to_gcc_expression (cleq->RHS, SCOP_PARAMS (scop), ivstack);
-  tree type = max_precision_type (lhs, rhs);
+  tree type = gcc_type_for_clast_eq (cleq, SCOP_PARAMS (scop), ivstack);
+  tree lhs = clast_to_gcc_expression (type, cleq->LHS, SCOP_PARAMS (scop), ivstack);
+  tree rhs = clast_to_gcc_expression (type, cleq->RHS, SCOP_PARAMS (scop), ivstack);
 
   if (cleq->sign == 0)
     comp = EQ_EXPR;
@@ -3498,6 +3667,41 @@ graphite_create_new_guard (scop_p scop, edge entry_edge,
   return exit_edge;
 }
 
+/* Walks a CLAST and returns the first statement in the body of a
+   loop.  */
+
+static struct clast_user_stmt *
+clast_get_body_of_loop (struct clast_stmt *stmt)
+{
+  if (!stmt
+      || CLAST_STMT_IS_A (stmt, stmt_user))
+    return (struct clast_user_stmt *) stmt;
+
+  if (CLAST_STMT_IS_A (stmt, stmt_for))
+    return clast_get_body_of_loop (((struct clast_for *) stmt)->body);
+
+  if (CLAST_STMT_IS_A (stmt, stmt_guard))
+    return clast_get_body_of_loop (((struct clast_guard *) stmt)->then);
+
+  if (CLAST_STMT_IS_A (stmt, stmt_block))
+    return clast_get_body_of_loop (((struct clast_block *) stmt)->body);
+
+  gcc_unreachable ();
+}
+
+/* Returns the induction variable for the loop that gets translated to
+   STMT.  */
+
+static tree
+gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
+{
+  struct clast_user_stmt *stmt = clast_get_body_of_loop ((struct clast_stmt *) stmt_for);
+  const char *cloog_iv = stmt_for->iterator;
+  CloogStatement *cs = stmt->statement;
+  graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+
+  return gcc_type_for_cloog_iv (cloog_iv, gbb);
+}
 
 /* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an induction 
    variable for the new LOOP.  New LOOP is attached to CFG starting at
@@ -3509,15 +3713,20 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 			  struct clast_for *stmt, loop_iv_stack ivstack,
 			  loop_p outer)
 {
-  tree lb = clast_to_gcc_expression (stmt->LB, SCOP_PARAMS (scop), ivstack);
-  tree ub = clast_to_gcc_expression (stmt->UB, SCOP_PARAMS (scop), ivstack);
-  tree type = max_precision_type (lb, ub);
+  tree ttype = gcc_type_for_iv_of_clast_loop (stmt);
+  tree type = ttype == NULL_TREE ? integer_type_node : ttype;
+  VEC (name_tree, heap) *params = SCOP_PARAMS (scop);
+  tree lb_raw = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
+  tree ub_raw = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
+  tree lb = fold_convert (type, lb_raw);
+  tree ub = fold_convert (type, ub_raw);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
   tree ivvar = create_tmp_var (type, "graphiteIV");
   tree iv_before;
-  loop_p loop = create_empty_loop_on_edge (entry_edge, lb, stride, ub, ivvar,
-					   &iv_before, outer ? outer
-					   : entry_edge->src->loop_father);
+  loop_p loop = create_empty_loop_on_edge
+    (entry_edge, lb, stride, ub, ivvar, &iv_before,
+     outer ? outer : entry_edge->src->loop_father);
+
   add_referenced_var (ivvar);
   loop_iv_stack_push_iv (ivstack, iv_before, stmt->iterator);
   return loop;
@@ -3790,9 +3999,7 @@ expand_scalar_variables (basic_block bb, scop_p scop,
     }
 }
 
-/* Rename all the SSA_NAMEs from block BB that appear in IVSTACK in
-   terms of new induction variables.  OLD is the original loop that
-   contained BB.  */
+/* Rename all the SSA_NAMEs from block BB according to the MAP.  */
 
 static void 
 rename_variables (basic_block bb, htab_t map)
@@ -3801,6 +4008,38 @@ rename_variables (basic_block bb, htab_t map)
   
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     rename_variables_in_stmt (gsi_stmt (gsi), map);
+}
+
+/* Rename following the information from MAP the PHI node argument
+   corresponding to the edge E.  In order to allow several renames of
+   that argument, we match the original SSA_NAME on the argument
+   coming from the edge different than E.  */
+
+static void
+rename_variables_from_edge (edge e, gimple phi, htab_t map)
+{
+  int n = e->dest_idx == 0 ? 1 : 0;
+  tree old_name = gimple_phi_arg_def (phi, n);
+  tree new_name = get_new_name_from_old_name (map, old_name);
+
+  gcc_assert (gimple_phi_num_args (phi) == 2
+	      && gimple_phi_arg_edge (phi, e->dest_idx) == e);
+
+  SET_PHI_ARG_DEF (phi, n, new_name);
+}
+
+/* Rename all the phi arguments for the edges comming from the scop
+   according to the MAP.  */
+
+static void
+rename_phis_end_scop (scop_p scop, htab_t map)
+{
+  basic_block after_scop = SCOP_EXIT (scop);
+  edge e = SESE_EXIT (SCOP_REGION (scop));
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_phis (after_scop); !gsi_end_p (gsi); gsi_next (&gsi))
+    rename_variables_from_edge (e, gsi_stmt (gsi), map);
 }
 
 /* Remove condition from BB.  */
@@ -3954,6 +4193,7 @@ copy_bb_and_scalar_dependences (basic_block bb, scop_p scop,
   rename_variables (new_bb, map);
   remove_phi_nodes (new_bb);
   expand_scalar_variables (new_bb, scop, context_loop, map);
+  rename_phis_end_scop (scop, map);
 
   return next_e;
 }
@@ -4509,7 +4749,7 @@ sese_find_uses_to_rename_bb (sese region, basic_block bb,
       sese_find_uses_to_rename_use (region, bb, var, use_blocks, need_phis);
 }
 
-/* Add exit phis for the USE on EXIT.  */
+/* Add exit phis for USE on EXIT.  */
 
 static void
 sese_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
@@ -4519,7 +4759,7 @@ sese_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
   create_new_def_for (gimple_phi_result (phi), phi,
 		      gimple_phi_result_ptr (phi));
   add_phi_arg (phi, use, false_e);
-  add_phi_arg (phi, integer_zero_node, true_e);
+  add_phi_arg (phi, use, true_e);
 }
 
 /* Add phi nodes for VAR that is used in LIVEIN.  Phi nodes are
@@ -4577,6 +4817,123 @@ rewrite_into_sese_closed_ssa (sese region, basic_block where,
   BITMAP_FREE (names_to_rename);
 }
 
+/* Returns the first cloog name used in EXPR.  */
+
+static const char *
+find_cloog_iv_in_expr (struct clast_expr *expr)
+{
+  struct clast_term *term = (struct clast_term *) expr;
+
+  if (expr->type == expr_term
+      && !term->var)
+    return NULL;
+
+  if (expr->type == expr_term)
+    return term->var;
+
+  if (expr->type == expr_red)
+    {
+      int i;
+      struct clast_reduction *red = (struct clast_reduction *) expr;
+
+      for (i = 0; i < red->n; i++)
+	{
+	  const char *res = find_cloog_iv_in_expr ((red)->elts[i]);
+
+	  if (res)
+	    return res;
+	}
+    }
+
+  return NULL;
+}
+
+/* Build for a clast_user_stmt USER_STMT a map between the CLAST
+   induction variables and the corresponding GCC old induction
+   variables.  This information is stored on each GRAPHITE_BB.  */
+
+static void
+compute_cloog_iv_types_1 (graphite_bb_p gbb,
+			  struct clast_user_stmt *user_stmt)
+{
+  struct clast_stmt *t;
+  int index = 0;
+
+  for (t = user_stmt->substitutions; t; t = t->next, index++)
+    {
+      PTR *slot;
+      struct ivtype_map_elt tmp;
+      struct clast_expr *expr = (struct clast_expr *) 
+	((struct clast_assignment *)t)->RHS;
+
+      /* Create an entry (clast_var, type).  */
+      tmp.cloog_iv = find_cloog_iv_in_expr (expr);
+      if (!tmp.cloog_iv)
+	continue;
+
+      slot = htab_find_slot (GBB_CLOOG_IV_TYPES (gbb), &tmp, INSERT);
+
+      if (!*slot)
+	{
+	  loop_p loop = gbb_loop_at_index (gbb, index);
+	  tree oldiv = oldiv_for_loop (GBB_SCOP (gbb), loop);
+	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
+	  *slot = new_ivtype_map_elt (tmp.cloog_iv, type);
+	}
+    }
+}
+
+/* Walk the CLAST tree starting from STMT and build for each
+   clast_user_stmt a map between the CLAST induction variables and the
+   corresponding GCC old induction variables.  This information is
+   stored on each GRAPHITE_BB.  */
+
+static void
+compute_cloog_iv_types (struct clast_stmt *stmt)
+{
+  if (!stmt)
+    return;
+
+  if (CLAST_STMT_IS_A (stmt, stmt_root))
+    goto next;
+
+  if (CLAST_STMT_IS_A (stmt, stmt_user))
+    {
+      CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
+      graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+      GBB_CLOOG_IV_TYPES (gbb) = htab_create (10, ivtype_map_elt_info,
+					      eq_ivtype_map_elts, free);
+      compute_cloog_iv_types_1 (gbb, (struct clast_user_stmt *) stmt);
+      goto next;
+    }
+
+  if (CLAST_STMT_IS_A (stmt, stmt_for))
+    {
+      struct clast_stmt *s = ((struct clast_for *) stmt)->body;
+      compute_cloog_iv_types (s);
+      goto next;
+    }
+
+  if (CLAST_STMT_IS_A (stmt, stmt_guard))
+    {
+      struct clast_stmt *s = ((struct clast_guard *) stmt)->then;
+      compute_cloog_iv_types (s);
+      goto next;
+    }
+
+  if (CLAST_STMT_IS_A (stmt, stmt_block))
+    {
+      struct clast_stmt *s = ((struct clast_block *) stmt)->body;
+      compute_cloog_iv_types (s);
+      goto next;
+    }
+
+  gcc_unreachable ();
+
+ next:
+  compute_cloog_iv_types (stmt->next);
+}
+
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  */
 
@@ -4602,6 +4959,7 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 				if_region->true_region->exit);
   graphite_verify ();
   context_loop = SESE_ENTRY (SCOP_REGION (scop))->src->loop_father;
+  compute_cloog_iv_types (stmt);
   new_scop_exit_edge = translate_clast (scop, context_loop,
 					stmt, if_region->true_region->entry,
 					&ivstack);
