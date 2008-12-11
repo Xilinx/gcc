@@ -276,10 +276,12 @@ DEF_VEC_ALLOC_P (name_tree, heap);
 typedef struct sese
 {
   edge entry, exit;
+  struct pointer_set_t *region_basic_blocks;
 } *sese;
 
 #define SESE_ENTRY(S) (S->entry)
 #define SESE_EXIT(S) (S->exit)
+#define SESE_REGION_BBS(S) (S->region_basic_blocks)
 
 /* A SCOP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */
@@ -332,6 +334,7 @@ struct scop
    but just a boundary.  SCOP_ENTRY is considered part of the scop.  */
 #define SCOP_ENTRY(S) (SESE_ENTRY (SCOP_REGION (S))->dest)
 #define SCOP_EXIT(S) (SESE_EXIT (SCOP_REGION (S))->dest)
+#define SCOP_REGION_BBS(S) (SESE_REGION_BBS (SCOP_REGION (S)))
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest

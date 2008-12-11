@@ -1189,6 +1189,26 @@ free_graphite_bb (struct graphite_bb *gbb)
   XDELETE (gbb);
 }
 
+/* Register basic blocks belonging to a region in a pointer set.  */
+
+static void
+register_bb_in_sese (basic_block entry_bb, basic_block exit_bb, sese region)
+{
+  edge_iterator ei;
+  edge e;
+  basic_block bb = entry_bb;
+
+  FOR_EACH_EDGE (e, ei, bb->succs)
+    {
+      if (!pointer_set_contains (SESE_REGION_BBS (region), e->dest) &&
+	  e->dest->index != exit_bb->index)
+	{	
+	  pointer_set_insert (SESE_REGION_BBS (region), e->dest);
+	  register_bb_in_sese (e->dest, exit_bb, region);
+	}
+    }
+}
+
 /* Creates a new scop starting with ENTRY.  */
 
 static scop_p
@@ -1201,6 +1221,9 @@ new_scop (edge entry, edge exit)
   SCOP_REGION (scop) = XNEW (struct sese);
   SESE_ENTRY (SCOP_REGION (scop)) = entry;
   SESE_EXIT (SCOP_REGION (scop)) = exit;
+  SESE_REGION_BBS (SCOP_REGION (scop)) = pointer_set_create ();
+  register_bb_in_sese (SCOP_ENTRY (scop), SCOP_EXIT (scop),
+		       SCOP_REGION (scop));
   SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
   SCOP_OLDIVS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_BBS_B (scop) = BITMAP_ALLOC (NULL);
@@ -4696,8 +4719,7 @@ move_sese_in_condition (sese region)
 static bool
 bb_in_sese_p (basic_block bb, sese region)
 {
-  return (dominated_by_p (CDI_DOMINATORS, bb, SESE_ENTRY (region)->src)
-	  && dominated_by_p (CDI_POST_DOMINATORS, bb, SESE_EXIT (region)->dest));
+  return pointer_set_contains (SESE_REGION_BBS (region), bb);
 }
 
 /* For USE in BB, if it is used outside of the REGION it is defined in,

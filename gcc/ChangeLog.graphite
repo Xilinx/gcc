@@ -1,3 +1,13 @@
+2008-12-11  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/38446
+	* gcc.dg/graphite/pr38446.c: New.
+	* graphite.c (register_bb_in_sese): New.
+	(bb_in_sese_p): Check if bb belongs to sese region by explicitly
+	looking at the bbs in the region.
+	* graphite.h (sese): Add region_basic_blocks pointer set to
+	structure and initialize at the time of defining new scop.
+
 2008-12-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (new_graphite_bb): Initialize GBB_STATIC_SCHEDULE.
