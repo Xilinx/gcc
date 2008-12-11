@@ -317,8 +317,9 @@ eq_ivtype_map_elts (const void *e1, const void *e2)
 
 
 
-/* Given a CLOOG_IV, returns the type that it should have in GCC
-   land.  */
+/* Given a CLOOG_IV, returns the type that it should have in GCC land.
+   If the information is not available, i.e. in the case one of the
+   transforms created the loop, just return integer_type_node.  */
 
 static tree
 gcc_type_for_cloog_iv (const char *cloog_iv, graphite_bb_p gbb)
@@ -332,7 +333,7 @@ gcc_type_for_cloog_iv (const char *cloog_iv, graphite_bb_p gbb)
   if (slot && *slot)
     return ((ivtype_map_elt) *slot)->type;
 
-  return NULL_TREE;
+  return integer_type_node;
 }
 
 /* Inserts constants derived from the USER_STMT argument list into the
@@ -3741,13 +3742,10 @@ graphite_create_new_loop (scop_p scop, edge entry_edge,
 			  struct clast_for *stmt, loop_iv_stack ivstack,
 			  loop_p outer)
 {
-  tree ttype = gcc_type_for_iv_of_clast_loop (stmt);
-  tree type = ttype == NULL_TREE ? integer_type_node : ttype;
+  tree type = gcc_type_for_iv_of_clast_loop (stmt);
   VEC (name_tree, heap) *params = SCOP_PARAMS (scop);
-  tree lb_raw = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
-  tree ub_raw = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
-  tree lb = fold_convert (type, lb_raw);
-  tree ub = fold_convert (type, ub_raw);
+  tree lb = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
+  tree ub = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
   tree ivvar = create_tmp_var (type, "graphiteIV");
   tree iv_before;

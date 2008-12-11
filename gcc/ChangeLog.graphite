@@ -1,3 +1,10 @@
+2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (gcc_type_for_cloog_iv): By default return
+	integer_type_node.
+	(graphite_create_new_loop): Don't fold_convert the already
+	fold_convert-ed expression.
+
 2008-12-11  Harsha Jagasia  <harsha.jagasia@amd.com>
 
 	PR tree-optimization/38446
