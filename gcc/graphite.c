@@ -2198,6 +2198,8 @@ create_sese_edges (VEC (sd_region, heap) *regions)
 
   unmark_exit_edges (regions);
 
+  fix_loop_structure (NULL);
+
 #ifdef ENABLE_CHECKING
   verify_loop_structure ();
   verify_dominators (CDI_DOMINATORS);
