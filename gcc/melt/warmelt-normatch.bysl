@@ -395,49 +395,67 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; normalize cmatcher pattern
-(defun normpat_cmatchpat (recv nmatch spatlist testptlist pcn)
-  (debug_msg recv "normpat_cmatchpat recv")
-  (debug_msg nmatch "normpat_cmatchpat nmatch")
-  (debug_msg spatlist "normpat_cmatchpat spatlist")
-  (debug_msg testptlist "normpat_cmatchpat testptlist")
-  (debug_msg pcn "normpat_cmatchpat pcn")
+;;; normalize anymatcher pattern
+(defun normpat_anymatchpat (recv nmatch spatlist testptlist pcn)
+  (debug_msg recv "normpat_anymatchpat recv")
+  (debug_msg nmatch "normpat_anymatchpat nmatch")
+  (debug_msg spatlist "normpat_anymatchpat spatlist")
+  (debug_msg testptlist "normpat_anymatchpat testptlist")
+  (debug_msg pcn "normpat_anymatchpat pcn")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
-  (assert_msg "check recv" (is_a recv class_srcpattern_cmatch))
+  (assert_msg "check recv" (is_a recv class_srcpattern_anymatch))
   (let (
 	(sloc (get_field :src_loc recv))
-	(cmat (get_field :spac_operator recv))
+	(mat (get_field :spac_operator recv))
 	(inargs (get_field :spac_inargs recv))
 	(outargs (get_field :spac_outargs recv))
 	(env (unsafe_get_field :pctn_env pcn))
 	(ncx (unsafe_get_field :pctn_normctxt pcn))
 	(bindlist (unsafe_get_field :pctn_bindlist pcn))
 	)
-    (assert_msg "check cmat" (is_a cmat class_cmatcher))
-    (debug_msg inargs "normpat_cmatchpat inargs")
-    (debug_msg cmat "normpat_cmatchpat cmat")
+    (assert_msg "check mat" (is_a mat class_any_matcher))
+    (debug_msg inargs "normpat_anymatchpat inargs")
+    (debug_msg mat "normpat_anymatchpat mat")
     (multicall
      (nins bindins)
      (normalize_tuple inargs env ncx sloc)
-     (debug_msg nins "normpat_cmatchpat nins")
-     (debug_msg bindins "normpat_cmatchpat bindins")
+     (debug_msg nins "normpat_anymatchpat nins")
+     (debug_msg bindins "normpat_anymatchpat bindins")
      (if bindins (list_append2list bindlist bindins))
-     (let ( (curtestp (instance class_nrep_testp_matcher
-				:nrep_loc sloc
-				:nexpr_ctyp (get_field :amatch_matchbind cmat)
-				:ntsp_test nmatch
-				:ntsp_succp ()
-				:ntsm_matcher cmat
-				:ntsm_binds ()
-				))
-	    )
-       (debug_msg curtestp "normpat_cmatchpat curtestp")
+     (let (
+	   (inmatchs (get_field :amatch_in mat))
+	   (outmatchs (get_field :amatch_out mat))
+	   (matbind (get_field :amatch_matchbind mat))
+	   (curtestp (instance class_nrep_testp_matcher
+			       :nrep_loc sloc
+			       :nexpr_ctyp matbind
+			       :ntsp_test nmatch
+			       :ntsp_succp ()
+			       :ntsm_matcher mat
+			       :ntsm_binds bindins
+			       ))
+	   )
+       (debug_msg inargs "normpat_anymatchpat inargs")
+       (debug_msg inmatchs "normpat_anymatchpat inmatchs")
+       (if (!=i (multiple_length inargs) (multiple_length inmatchs))
+	   (error_strv 
+	    sloc 
+	    "formal and actual number of input matching arguments differ for anymatch"
+	    (get_field :named_name mat)))
+       (debug_msg outargs "normpat_anymatchpat outargs")
+       (debug_msg outmatchs "normpat_anymatchpat outmatchs")
+       (if (!=i (multiple_length outargs) (multiple_length outmatchs))
+	   (error_strv 
+	    sloc 
+	    "formal and actual number of output matched arguments differ for anymatch"
+	    (get_field :named_name mat)))
+       (debug_msg curtestp "normpat_anymatchpat curtestp")
        )
-     (assert_msg "normpat_cmatchpat @@NOT IMPLEMENTED@@" ())
-     (compile_warning "normpat_cmatchpat INCOMPLETE" ())
+     (assert_msg "normpat_anymatchpat @@NOT IMPLEMENTED@@" ())
+     (compile_warning "normpat_anymatchpat INCOMPLETE" ())
      )
     ))
-(install_method class_srcpattern_cmatch normal_pattern normpat_cmatchpat)
+(install_method class_srcpattern_anymatch normal_pattern normpat_anymatchpat)
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

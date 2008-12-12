@@ -492,6 +492,17 @@
   :fields (
 	   ))
 
+;; anymatcher composite source pattern
+(defclass class_srcpattern_anymatch
+  :super class_srcpattern_composite
+  :fields (
+	   ))
+;; cmatcher composite source pattern
+(defclass class_srcpattern_cmatch
+  :super class_srcpattern_anymatch
+  :fields (
+	   ))
+
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
 
 ;;get the n-th son of a sexpr
@@ -3813,6 +3824,7 @@
  class_srcfieldpattern
  class_srcpattern_and
  class_srcpattern_any
+ class_srcpattern_anymatch
  class_srcpattern_composite
  class_srcpattern_cmatch
  class_srcpattern_constant

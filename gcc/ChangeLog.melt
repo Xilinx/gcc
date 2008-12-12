@@ -1,3 +1,7 @@
+2008-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added class_srcpattern_anymatch.
+	* melt/warmelt-normatch.bysl: renamed normpat_cmatchpat as
+	normpat_anymatchpat.
 2008-12-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: normal_pattern takes a nmatch argument...
 	[still incomplete]
