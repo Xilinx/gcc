@@ -32,8 +32,8 @@
 
 int main()
 {
-  __gnu_test::explicit_value_constructible test;
-  __gnu_cxx::typelist::apply_generator(test, __gnu_test::atomics_tl(), 
-				       __gnu_test::integral_types::type());
+  __gnu_test::default_constructible test;
+  __gnu_cxx::typelist::apply_generator(test,
+				       __gnu_test::atomic_integrals::type());
   return 0;
 }

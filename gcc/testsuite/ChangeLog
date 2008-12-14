@@ -1,4 +1,155 @@
-2008-12-10 Uros Bizjak <ubizjak@gmail.com>
+2008-12-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38504
+	* gfortran.dg/fmt_int_sign.f90: New test.
+
+2008-12-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/pr38409.c: Fixed commit problem.
+
+2008-12-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse-12.c: Include x86intrin.h.
+	(dg-options): Use -mavx instead of -msse4. Add -maes -mpclmul.
+	* gcc.target/i386/sse-13.c: Include x86intrin.h. Define immintrin.h
+	intrinsics that require immediate arguments.
+	(dg-options): Use -mavx instead of -msse4.
+	* gcc.target/i386/sse-14.c: Include x86intrin.h. Define immintrin.h
+	intrinsics that require immediate arguments.
+	(test_3): New macro.
+	(dg-options): Use -mavx instead of -msse4.
+	* g++.dg/other/i386-2.C: Include x86intrin.h.
+	(dg-options): Use -mavx instead of -msse4.
+	* g++.dg/other/i386-3.C: Include x86intrin.h.
+	(dg-options): Use -mavx instead of -msse4.
+
+2008-12-12  Uros Bizjak <ubizjak@gmail.com>
+
+	PR testsuite/38163
+	* gcc.dg/tree-ssa/loop-3.c: Compile only on nonpic x86 targets.
+	Remove dg-skip-if directive.
+
+2008-12-12  Janis Johnson  <janis187@us.ibm.com>
+
+	PR libgfortran/24685
+	* gfortran.dg/default_format_denormal_2.f90: Change XFAIL to check
+	for size of long double.
+
+	PR objc++/31032
+	* obj-c++.dg/bitfield-1.mm: Remove XFAIL for ICE.
+
+	* gcc.dg/pr35442.c: Ignore a possible warning.
+
+2008-12-12  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/32044
+	* gcc.dg/pr34027-1.c: Change outcome.
+	* gcc.dg/tree-ssa/pr32044.c: New test.
+
+2008-12-12  Janis Johnson  <janis187@us.ibm.com>
+
+	PR target/11594
+	* gcc.dg/20020103-1.c: Remove XFAIL for powerpc.
+
+2008-12-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/38409
+	* gcc.dg/graphite/pr38409.c: New.
+
+2008-12-12 Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/36355
+	* gfortran.dg/matmul_argument_types.f90: New.
+
+2008-12-11  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/29071
+	* gcc.dg/20020919-1.c: Fix a preprocessor check.
+
+2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/38413
+	* gcc.dg/graphite/pr38413.c: New.
+
+2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/37857
+	* gfortran.dg/graphite/pr37857.f90: New.
+
+2008-12-11  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/38446
+	* gcc.dg/graphite/pr38446.c: New.
+
+2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/scop-16.c: Test only scop specific info.
+	* gcc.dg/graphite/scop-17.c: Same.
+	* gcc.dg/graphite/block-5.c: New.
+	* gcc.dg/graphite/block-6.c: New.
+	* gcc.dg/graphite/pr37485.c: Clean dump file after.
+	* gcc.dg/graphite/pr37684.c: Same.
+	* gcc.dg/graphite/block-2.c: Same.
+
+2008-12-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/38459
+	* gfortran.dg/graphite/pr38459.f90: New.
+
+2008-12-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/37852
+	PR middle-end/37883
+	PR middle-end/37928
+	PR middle-end/37980
+	PR middle-end/38038
+	PR middle-end/38039
+	PR middle-end/38073
+	PR middle-end/38083
+	PR middle-end/38125
+	* gcc.dg/graphite/pr37928.c: New.
+	* gcc.dg/graphite/pr37883.c: New.
+	* gcc.dg/graphite/pr38073.c: New.
+	* gcc.dg/graphite/pr38125.c: New.
+	* gfortran.dg/graphite/pr38083.f90: New.
+	* gfortran.dg/graphite/pr37852.f90: New.
+	* gfortran.dg/graphite/pr37980.f90: New.
+	* gfortran.dg/graphite/id-2.f90: New.
+	* gfortran.dg/graphite/id-4.f90: New.
+
+	* gcc.dg/graphite/scop-18.c: Remove reduction, test for
+	the number of detected scops.  Copy exact same test for loop blocking...
+	* gcc.dg/graphite/block-1.c: Fix the number of expected loops
+	to be blocked as reductions are not handled.
+	* gcc.dg/graphite/block-4.c: ...here.  New.
+
+2008-12-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/38464
+	* gcc.dg/vect/costmodel/ppc/costmodel-slp-12.c: Check that three
+	loops are vectorized.
+
+2008-12-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35319
+	* g++.dg/ext/fixed2.C: New test.
+
+2008-12-10  Daniel Berlin  <dberlin@dberlin.org>
+
+	PR tree-optimization/36792
+	* gcc.dg/tree-ssa/ssa-fre-10.c: Update expected results.
+
+2008-12-10  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR middle-end/38271
+	* gcc.dg/torture/pr38271.c: New.
+
+2008-12-10  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37416
+	* gcc.dg/vect/pr36630.c: Expect 1 vectorized loop.
+
+2008-12-10  Uros Bizjak <ubizjak@gmail.com>
 
 	* gcc.dg/20020919-1.c: Correct target selector to alpha*-*-*.
 	* gcc.dg/pr31866.c: Ditto.
@@ -68,6 +219,12 @@
 
 	PR c++/38410
 	* gcc.dg/ctor1.c: New test.
+
+2008-12-09 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	PR middle-end/38084
+	* gfortran.dg/graphite/id-3.f90: New.
+	* gcc.dg/graphite/pr38084.c: New.
 
 2008-12-08  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -6981,7 +7138,7 @@
 	PR c++/35327
 	* g++.dg/parse/crash41.C: New.
 
-2008-06-06  Uros Bizjak <ubizjak@gmail.com>
+2008-06-06  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR rtl-optimization/36438
 	* gcc.target/i386/pr36438.c

@@ -38,18 +38,20 @@ int main()
   return 0;
 }
 
-// { dg-error "within this context" "" { target *-*-* } 349 } 
-// { dg-error "is private" "" { target *-*-* } 1749 }
-// { dg-error "is private" "" { target *-*-* } 1781 }
-// { dg-error "is private" "" { target *-*-* } 1798 }
-// { dg-error "is private" "" { target *-*-* } 1814 }
-// { dg-error "is private" "" { target *-*-* } 1831 }
-// { dg-error "is private" "" { target *-*-* } 1847 }
-// { dg-error "is private" "" { target *-*-* } 1863 }
-// { dg-error "is private" "" { target *-*-* } 1879 }
-// { dg-error "is private" "" { target *-*-* } 1895 }
-// { dg-error "is private" "" { target *-*-* } 1912 }
-// { dg-error "is private" "" { target *-*-* } 1928 }
-// { dg-error "is private" "" { target *-*-* } 1944 }
-// { dg-error "is private" "" { target *-*-* } 1960 }
+// { dg-error "used here" "" { target *-*-* } 549 } 
+// { dg-error "deleted function" "" { target *-*-* } 239 }
+// { dg-error "deleted function" "" { target *-*-* } 257 }
+// { dg-error "deleted function" "" { target *-*-* } 275 }
+// { dg-error "deleted function" "" { target *-*-* } 293 }
+// { dg-error "deleted function" "" { target *-*-* } 311 }
+// { dg-error "deleted function" "" { target *-*-* } 329 }
+// { dg-error "deleted function" "" { target *-*-* } 347 }
+// { dg-error "deleted function" "" { target *-*-* } 365 }
+// { dg-error "deleted function" "" { target *-*-* } 383 }
+// { dg-error "deleted function" "" { target *-*-* } 401 }
+// { dg-error "deleted function" "" { target *-*-* } 419 }
+// { dg-error "deleted function" "" { target *-*-* } 437 }
+// { dg-error "deleted function" "" { target *-*-* } 455 }
+// { dg-error "deleted function" "" { target *-*-* } 473 }
+// { dg-error "deleted function" "" { target *-*-* } 491 }
 // { dg-excess-errors "In member function" }

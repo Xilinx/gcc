@@ -1,5 +1,3 @@
-// { dg-options "-std=gnu++0x" }
-
 // Copyright (C) 2008 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -27,12 +25,20 @@
 // invalidate any other reasons why the executable file might be covered by
 // the GNU General Public License.
 
-#include <cstdatomic>
+// { dg-do compile }
 
-int main()
+#include <cmath>
+
+struct foo
 {
-  // Explicit value constructor.
-  void* v = NULL;
-  std::atomic_address a(v);
-  return 0;
+  foo (double);
+};
+
+bool operator &&(int, const foo &);
+
+// libstdc++/37582
+double
+test01(double x)
+{
+  return std::pow (x, 2.0);
 }
