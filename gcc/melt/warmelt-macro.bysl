@@ -261,7 +261,7 @@
 
 ;;; source get field
 
-;; source unsafe put fields
+;; source put fields
 (defclass class_src_put_fields
   :super class_src
   :fields (suput_obj	     ;the object expression
@@ -2475,6 +2475,46 @@
 	))))
 (install_initial_macro 'unsafe_put_fields mexpand_unsafe_put_fields)
 (export_macro unsafe_put_fields mexpand_unsafe_put_fields)
+
+;;;; the put_fields expander
+(defun mexpand_put_fields (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (fields ())
+	 (fieldnams ())
+	 (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (objsrc (pair_head curpair))
+	 (objexp 
+	  (if (is_a objsrc class_sexpr)
+	      (macroexpand_1 objsrc env mexpander)
+	    objsrc))
+	 )
+    (setq curpair (pair_tail curpair))
+    (let ( (fldlist (make_list discr_list))
+	   )
+      (forever insloop
+	       (if (not (is_pair curpair)) (exit insloop))
+	       (let ( (curfkw (pair_head curpair)) )
+		 (if (is_not_a curfkw class_keyword)
+		     (error_plain loc "expecting heyword in PUT_FIELDS"_))
+		 (setq curpair (pair_tail curpair))
+		 (let ( (curexp (pair_head curpair)) )
+		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+		     (if flda 
+			 (list_append fldlist flda)
+		       ))))
+	       (setq curpair (pair_tail curpair))
+	       )
+      (let ( ( fastup (list_to_multiple fldlist discr_multiple)) )
+	(instance class_src_put_fields
+		  :src_loc loc
+		  :suput_obj objexp
+		  :suput_fields fastup)
+	))))
+(install_initial_macro 'put_fields mexpand_put_fields)
+(export_macro put_fields mexpand_put_fields)
 
 ;;;; the UNSAFE_GET_FIELD macro expander
 (defun mexpand_unsafe_get_field (sexpr env mexpander)

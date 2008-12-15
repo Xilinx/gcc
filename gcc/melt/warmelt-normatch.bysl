@@ -35,7 +35,7 @@
   :fields (pctn_normctxt		;the class_normcontext
 	   pctn_src			;the source expressioon
 	   pctn_env			;the environment
-;; mapping symbols to patternvars
+	   ;; mapping symbols to patternvars
 	   pctn_mapatvar		;objmap of patternvars
 	   pctn_mapatcst		;objmap of patternconst
 	   pctn_bindlist		;binding list
@@ -50,7 +50,7 @@
 ;;; * actype
 ;;; * a normpatcontext
 (defselector scan_pattern class_selector
-)
+  )
 
 
 ;;;;;;;;;;;;;;;;
@@ -60,7 +60,7 @@
   (debug_msg recv "scanpat_nil recv")
   (assert_msg "check nil recv" (null recv))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
-)
+  )
 (install_method discr_nullrecv scan_pattern scanpat_nil)
 
 ;;;;;;;;;;;;;;;;
@@ -74,7 +74,7 @@
     (error_strv psloc 
 		"unimplemented scan_pattern for any " myclassname)
     (assert_msg "catchall scan_pattern unimplemented" ())
-))
+    ))
 (install_method discr_anyrecv scan_pattern scanpat_anyrecv)
 
 ;;;;;;;;;;;;;;;;
@@ -89,7 +89,7 @@
     (error_strv psloc 
 		"unimplemented scan_pattern for pattern " myclassname)
     (assert_msg "catchall scan_pattern unimplemented" ())
-))
+    ))
 (install_method class_srcpattern_any scan_pattern scanpat_anypattern)
 
 ;;;;;;;;;;;;;;;;
@@ -163,7 +163,7 @@
   (assert_msg "check recv" (is_a recv class_srcpattern_jokervar))
   ;; just return
   (return)
-)
+  )
 (install_method class_srcpattern_jokervar scan_pattern scanpat_srcpatjoker)
 
 
@@ -189,7 +189,7 @@
 		       (unsafe_get_field :named_name rectyp))
 	   (warning_strv sloc "got ctype"
 			 (unsafe_get_field :named_name ctyp))
-	  ))
+	   ))
     (assert_msg "check bindlist" (is_list bindlist))
     (cond 
      ( (not (is_object sconst))
@@ -206,8 +206,8 @@
 	(return)
 	))
      (:else
-	(debug_msg mcst "scanpat_srcpatconst got mcst")
-	(return)
+      (debug_msg mcst "scanpat_srcpatconst got mcst")
+      (return)
       ))
     ))
 (install_method class_srcpattern_constant scan_pattern scanpat_srcpatconst)
@@ -292,11 +292,6 @@
      (foreach_in_multiple
       (souts)
       (pout :long ix)
-      (if (null pout)
-	  (progn
-	    (debug_msg discr_nullrecv "scanpat_srcpatcomposite null pout discr_nullrecv")
-	    (debug_msg discr_anyrecv "scanpat_srcpatcomposite null pout discr_anyrecv")
-	    ))
       (debug_msg pout "scanpat_srcpatcomposite pout")
       (scan_pattern pout sloc ctyp pcn)
       )
@@ -318,20 +313,20 @@
   :fields (ntsp_failbp			;backpoint for failure
 	   ntsp_succp			;success point
 	   ntsp_test			;normal tested expression
-))
+	   ))
 
 ;;; testpoint with matcher
 (defclass class_nrep_testp_matcher
   :super class_nrep_testpoint
   :fields (ntsm_matcher			;the matcher
 	   ntsm_binds			;the local bindings
-))
+	   ))
 
 ;; testpoint for is_a
 (defclass class_nrep_testp_isa
   :super class_nrep_testpoint
   :fields (ntsi_class			;tested is a class
-))
+	   ))
 
 ;; testpoint for exact discrim
 (defclass class_nrep_testp_discrim
@@ -343,7 +338,7 @@
 (defclass class_nrep_testp_cond
   :super class_nrep_testpoint
   :fields (ntsc_cond			;the condition
-))
+	   ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -373,7 +368,7 @@
     (error_strv psloc 
 		"unimplemented normal_pattern for any " myclassname)
     (assert_msg "catchall normal_pattern unimplemented" ())
-))
+    ))
 (install_method discr_anyrecv normal_pattern normpat_anyrecv)
 
 ;;;;;;;;;;;;;;;;
@@ -390,7 +385,7 @@
     (error_strv psloc 
 		"unimplemented normal_pattern for pattern of " myclassname)
     (assert_msg "catchall normal_pattern unimplemented on pattern" ())
-))
+    ))
 (install_method class_srcpattern_any normal_pattern normpat_anypat)
 
 ;;;;;;;;;;;;;;;;
@@ -410,6 +405,7 @@
 	(inargs (get_field :spac_inargs recv))
 	(outargs (get_field :spac_outargs recv))
 	(env (unsafe_get_field :pctn_env pcn))
+	(oldenv env)
 	(ncx (unsafe_get_field :pctn_normctxt pcn))
 	(bindlist (unsafe_get_field :pctn_bindlist pcn))
 	)
@@ -435,28 +431,102 @@
 			       :ntsm_binds bindins
 			       ))
 	   )
+       ;; input args
        (debug_msg inargs "normpat_anymatchpat inargs")
        (debug_msg inmatchs "normpat_anymatchpat inmatchs")
-       (if (!=i (multiple_length inargs) (multiple_length inmatchs))
-	   (error_strv 
-	    sloc 
-	    "formal and actual number of input matching arguments differ for anymatch"
-	    (get_field :named_name mat)))
+       (let ( (:long nbinargs  (multiple_length inargs)) )
+	 (if (!=i nbinargs (multiple_length inmatchs))
+	     (error_strv 
+	      sloc 
+	      "formal and actual number of input matching arguments differ for anymatch"
+	      (get_field :named_name mat)))
+	 (if (>i nbinargs 0)
+	     (let ( (newenv (fresh_env env)) )
+	       (foreach_in_multiple
+		(nins)
+		(ncurin :long ix)
+		(debug_msg nins "normpat_anymatchpat nins")
+		(let ( (curmatch (multiple_nth inmatchs ix)) 
+		       (curctype (get_ctype nins env))
+		       )
+		  (assert_msg "check curmatch" 
+			      (is_a curmatch class_formal_binding))
+		  (if (!= curctype (get_field :fbind_type curmatch))
+		      (progn
+			(error_strv sloc
+				    "type mismatch for match argument in matcher"
+				    (get_field :named_name mat))
+			(inform_strv sloc
+				     "mismatched formal name in matcher is"
+				     (get_field :named_name (get_field :binder curmatch)))
+			)
+		    (let ( (newb (instance class_normlet_binding
+					   :letbind_loc sloc
+					   :binder (get_field :binder curmatch)
+					   :letbind_type curctype
+					   :letbind_expr nins)
+				 )
+			   )
+		      (debug_msg newb "normpat_anymatchpat newb")
+		      (put_env newenv newb)
+		      ))))
+	       (setq env newenv)
+	       (put_fields pcn :pctn_env newenv)
+	       )))
+       ;; output args
        (debug_msg outargs "normpat_anymatchpat outargs")
        (debug_msg outmatchs "normpat_anymatchpat outmatchs")
-       (if (!=i (multiple_length outargs) (multiple_length outmatchs))
-	   (error_strv 
-	    sloc 
-	    "formal and actual number of output matched arguments differ for anymatch"
-	    (get_field :named_name mat)))
+       (let ( (:long nboutargs (multiple_length outargs)) ) 
+	 (if (!=i nboutargs (multiple_length outmatchs))
+	     (error_strv 
+	      sloc 
+	      "formal and actual number of output matched arguments differ for anymatch"
+	      (get_field :named_name mat)))
+	 ;; prepend the current testpoint
+	 (list_prepend testptlist curtestp)
+	 ;; prepend the current pattern
+	 (list_prepend spatlist recv)
+	 ;;
+	 (foreach_in_multiple
+	  (outmatchs)
+	  (curmatch :long ix)
+	  (debug_msg curmatch "normpat_anymatchpat curmatch")
+	  (assert_msg "check curmatch" (is_a curmatch class_formal_binding))
+	  (let ( (csym (clone_symbol (get_field :named_name curmatch)))
+		 (curtyp (get_field :fbind_type curmatch))
+		 (cbind (instance class_normlet_binding
+				  :letbind_loc sloc
+				  :binder csym
+				  :letbind_type curtyp
+				  :letbind_expr (compile_warning "what should go here?" ())
+				  ))
+		 (clocc (instance class_nrep_locsymocc
+				  :nrep_loc sloc
+				  :nocc_ctyp curtyp
+				  :nocc_symb csym
+				  :nocc_bind cbind))
+		 )
+	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
+	    (normal_pattern curmatch clocc spatlist testptlist pcn)
+	    (debug_msg curmatch "normpat_anymatchpat curmatch after normal_pattern")
+	    )
+	  )
+	 ;; pop the current pattern
+	 (list_popfirst spatlist)
+	 ;; pop the current testpoint
+	 (list_popfirst testptlist)
+	 )
+       ;; 
        (debug_msg curtestp "normpat_anymatchpat curtestp")
        )
+     (if (!= env oldenv)
+	 (put_fields pcn :pctn_env oldenv))
      (assert_msg "normpat_anymatchpat @@NOT IMPLEMENTED@@" ())
      (compile_warning "normpat_anymatchpat INCOMPLETE" ())
      )
     ))
 (install_method class_srcpattern_anymatch normal_pattern normpat_anymatchpat)
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; normalize a match
@@ -523,7 +593,7 @@
        (compile_warning "@@unimplemented normexp_match" ())
        ))))
 
-  
+
 (install_method class_src_match normal_exp normexp_match)
 
 
@@ -531,12 +601,12 @@
 ;;;; export our classes
 (export_class
  class_patterncontext
-)
+ )
 
 ;;; export our values
 (export_values
-  scan_pattern
-  normal_pattern
+ scan_pattern
+ normal_pattern
  )
 
 ;; eof warmelt-normatch.bysl

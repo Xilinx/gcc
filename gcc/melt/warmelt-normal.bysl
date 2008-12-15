@@ -2263,7 +2263,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize an PUT_FIELDS
 (defun normexp_put_fields (recv env ncx psloc)
-  (assert_msg "check putfields recv" (is_a recv class_src_unsafe_put_fields))
+  (assert_msg "check putfields recv" (is_a recv class_src_put_fields))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normcontext))
   (debug_msg recv "normexp_put_fields recv")

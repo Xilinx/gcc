@@ -1,3 +1,14 @@
+2008-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.bysl: added mexpand_put_fields.
+	* melt/warmelt-normal.bysl: corrected assertion in normexp_put_fields.
+	* melt/warmelt-normatch.bysl: more in normpat_anymatchpat.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2008-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added class_srcpattern_anymatch.
 	* melt/warmelt-normatch.bysl: renamed normpat_cmatchpat as
