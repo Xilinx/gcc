@@ -1,3 +1,8 @@
+2008-12-17  Revital Eres  <eres@il.ibm.com>
+
+	* testsuite/gcc.target/spu/icache-1.c: New testcase.
+	* testsuite/gcc.target/spu/icache-2.c: Likewise.
+
 2008-12-07  Revital Eres  <eres@il.ibm.com>
 
 	* gcc.dg/sections/section.exp: Support debug testcases.

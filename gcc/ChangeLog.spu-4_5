@@ -1,3 +1,51 @@
+2008-12-17  Revital Eres  <eres@il.ibm.com>
+
+	* rtl-factoring.c (compute_init_costs): Insert check for insn.
+	* target.h (legal_breakpoint, dont_create_jumptable): Add new
+	fields to bb_partitioning struct in struct gcc_target.
+	* target-def.h (TARGET_LEGAL_BREAKPOINT,
+	TARGET_DONT_CREATE_JUMPTABLE): New definitions.
+	* bb-reorder.c (split_bb): Extend support for function
+	partitioning.
+	(create_sections): Likewise.
+	* config/spu/spu-protos.h (print_operand_punct_valid_p,
+	final_prescan_insn): Declare.
+	* config/spu/spu.opt (msoftware-icache, micache-branch-limit,
+	micache-linesize): New flags.
+	* config/spu/spu.c (IBRANCH_SEQ, PROLOGUE, EPILOGUE): Add to
+	enum critical_section_type.
+	(TARGET_LEGAL_BREAKPOINT, TARGET_DONT_CREATE_JUMPTABLE):
+	New Defintions.
+	(global_branch_info): New static variable.
+	(output_branch_info, spu_dont_create_jumptable,
+	record_link_elements_liveness, record_branch_info,
+	print_operand_punct_valid_p, final_prescan_insn,
+	spu_legal_breakpoint, bb_contains_prologue_p, is_ibranch_seq_end,
+	branch_info_compare_frequency): New functions.
+	(spu_override_options, print_operand, spu_machine_dependent_reorg,
+	spu_initial_elimination_offset, need_to_save_reg,
+	frame_emit_add_imm, spu_expand_prologue, spu_expand_epilogue,
+	begin_critical_section, end_critical_section,
+	spu_start_new_section, close_critical_sections,
+	classify_immediate): Support software i-cache.
+	(estimate_number_of_external_branches_in_section): New static variable.
+	(get_stub_size): Fix calculation.
+	(start, end): Add new fields to struct critical_sections.
+	(critical_sections): New static variable.
+	(struct branch_info_def): New structure.
+	(MAX_PRIORITY): New definition.
+	* config/spu/spu.h (FINAL_PRESCAN_INSN,
+	PRINT_OPERAND_PUNCT_VALID_P): New Definitions.
+	(ICACHE_MASK_INDEX_REGNUM, ICACHE_TAG_ARR_REGNUM,
+	ICACHE_MASK_TAG_REGNUM, ICACHE_LINESIZE): Likewise.
+	* config/spu/spu.md (indirect_jump): Change to be a
+	define_expand and make the original indirect_jump be renamed
+	to indirect_jump_hw.
+	(tablejump, sibcall, _sibcall_value, _call, _call_value): Likewise.
+	(jump, _return, branches): Support software i-cache.
+	* reg-notes.def (BRANCH_INFO): New reg-note.
+	* stmt.c (expand_case): Support software i-cache.
+	
 2008-12-07  Revital Eres  <eres@il.ibm.com>
 
 	* toplev.c (process_options): Enable

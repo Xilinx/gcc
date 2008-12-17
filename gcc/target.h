@@ -780,6 +780,12 @@ struct gcc_target
     bool (* start_new_section) (int bb_index, unsigned HOST_WIDE_INT bb_size,
                                 unsigned HOST_WIDE_INT estimate_max_section_size, 
                                 unsigned HOST_WIDE_INT last_section_size);
+    /* Return true if INSN is a valid insn to break a basic-block.
+       Otherwise return false.  */
+    bool (* legal_breakpoint) (rtx insn);
+    /* Return true if jumptable should not be created.  Otherwise return
+       false.  */
+    bool (* dont_create_jumptable) (unsigned int table_size);
   } bb_partitioning;
 
   /* Create the __builtin_va_list type.  */

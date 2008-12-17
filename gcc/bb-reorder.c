@@ -1403,7 +1403,7 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
   unsigned HOST_WIDE_INT size = 0;
   unsigned HOST_WIDE_INT prev_size = 0;
   edge e;
-  rtx prev_insn = NULL;
+  rtx legal_insn = NULL;;
   
   /* Loop through all of the basic-block's insns.  */
   FOR_BB_INSNS (bb, insn)
@@ -1420,11 +1420,18 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
 	  
 	  if (size > first_partition_size)
 	    {
-	      if (prev_insn == NULL)
+	      if (legal_insn == NULL)
 		return NULL;
 	      break;
 	    }
-	  prev_insn = insn;
+	    
+	  if (((targetm.bb_partitioning.legal_breakpoint != 0)
+	       && targetm.bb_partitioning.legal_breakpoint (insn))
+	      || (targetm.bb_partitioning.legal_breakpoint == 0))
+	    {
+	      legal_insn = insn;
+	      prev_size = size;  
+	    }
 	}
     }
   
@@ -1432,7 +1439,7 @@ split_bb (basic_block bb, unsigned HOST_WIDE_INT first_partition_size,
   gcc_assert (size > first_partition_size);
 #endif
   
-  e = split_block (bb, prev_insn);
+  e = split_block (bb, legal_insn);
   e->dest->aux = bb->aux;
   bb->aux = e->dest;
   
@@ -1603,7 +1610,12 @@ create_sections (void)
 	fprintf (dump_file,
 		 ";; Trying to add bb %d (" HOST_WIDE_INT_PRINT_DEC
 		 "B) to section %d", bb->index, bb_size, current_section_id);
-      
+     
+      if (targetm.bb_partitioning.start_new_section != 0)
+        start_new_sction_md_p =
+          targetm.bb_partitioning.start_new_section (bb->index, bb_size,
+                                                     estimate_max_section_size,
+                                                     last_section_size);
       if (bb->il.rtl->skip)
 	{
 	  /* The skip field is used to mark if this bb should be added
@@ -1630,12 +1642,6 @@ create_sections (void)
 	((bb->prev_bb != NULL) && (last_section_size != 0)
 	 && BB_PARTITION (bb) != BB_PARTITION (bb->prev_bb)
 	 && flag_reorder_blocks_and_partition);
-      
-      if (targetm.bb_partitioning.start_new_section != 0)
-	start_new_sction_md_p =
-	  targetm.bb_partitioning.start_new_section (bb->index, bb_size,
-						     estimate_max_section_size,
-						     last_section_size);
       
       if (((last_section_size + bb_size) >
 	   estimate_max_section_size) || start_new_section_for_loop_p
@@ -1695,19 +1701,6 @@ create_sections (void)
 	      bb = bb->prev_bb;
 	      continue;
 	    }
-	  if (bb->il.rtl->skip)
-	    {
-	      /* The basic-block should be skipped.  */
-	      last_section_size += bb_size;
-	      if (dump_file)
-		fprintf (dump_file, "\n\tbb %d should be skipped. "
-			 "Add it to section %d (" HOST_WIDE_INT_PRINT_DEC 
-                         "B)\n",
-			 bb->index, current_section_id, last_section_size);
-	      /* Upadte section id.  */
-	      fbb_data[bb->index].section_id = current_section_id;
-	      continue;
-	    }
 
 	  /* Split the basic-block.  Try to insert it's first partition
 	     to the last section such that the section size will not exceed
@@ -1752,16 +1745,9 @@ create_sections (void)
 	    {
 	      /* Failed to create the new basic-block.  Close this section
 		 with the current bb inside and open a new one.  */
-	      last_section_size += bb_size;
-	      if (dump_file)
-		fprintf (dump_file,
-			 "\n;; Failed to split bb. Close section %d ("
-			 HOST_WIDE_INT_PRINT_DEC "B)\n", current_section_id,
-			 last_section_size);
-	      if (bb->next_bb)
-		start_new_section (&current_section_id, bb->next_bb);
-	      last_section_size = 0;
-	      continue;
+	      error ("Failed to create sections;"
+		     " please try again with higher section size.");
+	      return;
 	    }
 	}
       else

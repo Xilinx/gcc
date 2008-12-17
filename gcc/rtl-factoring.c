@@ -1371,7 +1371,9 @@ compute_init_costs (void)
 
   /* Pattern for indirect jump.  */
   rtx_jump = gen_indirect_jump (reg);
-
+  if (GET_CODE (rtx_jump) == JUMP_INSN)
+    rtx_jump = PATTERN (rtx_jump);
+ 
   /* Pattern for storing address.  */
   rtx_store = gen_rtx_SET (VOIDmode, reg, gen_symbol_ref_rtx_for_label (label));
 

@@ -2680,17 +2680,48 @@
 
 ;; jump
 
-(define_insn "indirect_jump"
+(define_insn "indirect_jump_hw"
   [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))]
   ""
   "bi\t%0"
   [(set_attr "type" "br")])
 
+(define_expand "indirect_jump"
+  [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))]
+  ""
+  {
+    if (TARGET_SOFTWARE_ICACHE && (REGNO (operands[0]) != LINK_REGISTER_REGNUM)) 
+      {
+        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+
+        emit_insn (gen_rotm_si (r75, operands[0], GEN_INT (ICACHE_LINESIZE)));
+        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+        emit_insn (gen_andsi3 (r76, operands[0], rmask_tag));
+        emit_insn (gen_ceq_si (r76, r76, r75));
+        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+        emit_insn (gen_selb (r75, r75, operands[0], r76));
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        emit_jump_insn (gen_indirect_jump_hw (r75));
+      }
+    else
+      emit_jump_insn (gen_indirect_jump_hw (operands[0]));
+    DONE;
+  })
+
 (define_insn "jump"
   [(set (pc)
 	(label_ref (match_operand 0 "" "")))]
   ""
-  "br\t%0"
+  "%@br\t%0"
   [(set_attr "type" "br")])
 
 
@@ -3535,7 +3566,7 @@ selb\t%0,%4,%0,%3"
 		      (label_ref (match_operand 0 "" ""))
 		      (pc)))]
   ""
-  "br%b2%b1z\t%2,%0"
+  "%@br%b2%b1z\t%2,%0"
   [(set_attr "type" "br")])
 
 (define_insn ""
@@ -3559,7 +3590,7 @@ selb\t%0,%4,%0,%3"
 		      (pc)
 		      (label_ref (match_operand 0 "" ""))))]
   ""
-  "br%b2%b1z\t%2,%0"
+  "%@br%b2%b1z\t%2,%0"
   [(set_attr "type" "br")])
 
 (define_insn ""
@@ -3846,12 +3877,45 @@ selb\t%0,%4,%0,%3"
     DONE;
   })
 
-(define_insn "tablejump"
+(define_insn "tablejump_hw"
   [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))
    (use (label_ref (match_operand 1 "" "")))]
   ""
   "bi\t%0"
   [(set_attr "type" "br")])
+
+(define_expand "tablejump"
+  [(set (pc) (match_operand:SI 0 "spu_reg_operand" "r"))
+   (use (label_ref (match_operand 1 "" "")))]
+  ""
+  {
+    if (TARGET_SOFTWARE_ICACHE)
+      {
+        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+
+        emit_insn (gen_rotm_si (r75, operands[0], GEN_INT (ICACHE_LINESIZE)));
+        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+        emit_insn (gen_andsi3 (r76, operands[0], rmask_tag));
+        emit_insn (gen_ceq_si (r76, r76, r75));
+        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+        emit_insn (gen_selb (r75, r75, operands[0], r76));
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        emit_jump_insn (gen_tablejump_hw (r75, operands[1]));
+      }
+   else
+     emit_jump_insn (gen_tablejump_hw (operands[0], operands[1]));
+   DONE;
+  })
+
 
 
 ;; call
@@ -3865,11 +3929,39 @@ selb\t%0,%4,%0,%3"
      (use (reg:SI 0))])]
   ""
   {
-    if (! call_operand (operands[0], QImode))
-      XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
+    if (!TARGET_SOFTWARE_ICACHE || !REG_P (operands[0]))
+      {
+        if (! call_operand (operands[0], QImode))
+          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
+      }
+    else
+      {
+        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+        rtx operand = XEXP (operands[0], 0);
+
+        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
+        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
+        emit_insn (gen_ceq_si (r76, r76, r75));
+        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+        emit_insn (gen_selb (r75, r75, operand, r76));
+        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        XEXP (operands[0], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[0], 0)), 75);
+        if (! call_operand (operands[0], QImode))
+          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
+      }
   })
 
-(define_insn "_sibcall"
+(define_insn "_sibcall_hw"
   [(parallel
     [(call (match_operand:QI 0 "call_operand" "R,S")
 	   (match_operand:QI 1 "" "i,i"))
@@ -3877,7 +3969,7 @@ selb\t%0,%4,%0,%3"
   "SIBLING_CALL_P(insn)"
   "@
    bi\t%i0
-   br\t%0"
+   %@br\t%0"
    [(set_attr "type" "br,br")])
 
 (define_expand "sibcall_value"
@@ -3888,11 +3980,39 @@ selb\t%0,%4,%0,%3"
      (use (reg:SI 0))])]
   ""
   {
-    if (! call_operand (operands[1], QImode))
-      XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+    if (!TARGET_SOFTWARE_ICACHE || !REG_P (operands[1]))
+      {
+        if (! call_operand (operands[1], QImode))
+          XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+      }
+    else
+      {
+        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+        rtx operand = XEXP (operands[1], 0);
+
+        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
+        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
+        emit_insn (gen_ceq_si (r76, r76, r75));
+        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+        emit_insn (gen_selb (r75, r75, operand, r76));
+        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        XEXP (operands[1], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[1], 0)), 75);
+        if (! call_operand (operands[1], QImode))
+          XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+      }
   })
 
-(define_insn "_sibcall_value"
+(define_insn "_sibcall_value_hw"
   [(parallel
     [(set (match_operand 0 "" "")
 	  (call (match_operand:QI 1 "call_operand" "R,S")
@@ -3901,7 +4021,7 @@ selb\t%0,%4,%0,%3"
   "SIBLING_CALL_P(insn)"
   "@
    bi\t%i1
-   br\t%1"
+   %@br\t%1"
    [(set_attr "type" "br,br")])
 
 ;; Note that operand 1 is total size of args, in bytes,
@@ -3914,11 +4034,39 @@ selb\t%0,%4,%0,%3"
      (clobber (reg:SI 130))])]
   ""
   {
-    if (! call_operand (operands[0], QImode))
-      XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
+    if ((!TARGET_SOFTWARE_ICACHE) || (!REG_P (XEXP (operands[0], 0))))
+      {
+        if (! call_operand (operands[0], QImode))
+          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));   
+      }
+    else
+      {
+        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+        rtx operand = XEXP (operands[0], 0);
+
+        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
+        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
+        emit_insn (gen_ceq_si (r76, r76, r75));
+        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+        emit_insn (gen_selb (r75, r75, operand, r76));
+        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        XEXP (operands[0], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[0], 0)), 75);
+        if (! call_operand (operands[0], QImode))
+          XEXP (operands[0], 0) = copy_to_mode_reg (Pmode, XEXP (operands[0], 0));
+      }
   })
 
-(define_insn "_call"
+(define_insn "_call_hw"
   [(parallel
     [(call (match_operand:QI 0 "call_operand" "R,S,T")
 	   (match_operand:QI 1 "" "i,i,i"))
@@ -3927,8 +4075,8 @@ selb\t%0,%4,%0,%3"
   ""
   "@
    bisl\t$lr,%i0
-   brsl\t$lr,%0
-   brasl\t$lr,%0"
+   %@brsl\t$lr,%0
+   %@brasl\t$lr,%0"
    [(set_attr "type" "br")])
 
 (define_expand "call_value"
@@ -3940,23 +4088,51 @@ selb\t%0,%4,%0,%3"
      (clobber (reg:SI 130))])]
   ""
   {
-    if (! call_operand (operands[1], QImode))
-      XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
-  })
+    if ((!TARGET_SOFTWARE_ICACHE) || (!REG_P (XEXP (operands[1], 0))))
+    {
+      if (! call_operand (operands[1], QImode))
+        XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+    }
+    else 
+    {
+      rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
+      rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+      rtx r75 = gen_rtx_REG (SImode, 75);
+      rtx r75_ = gen_rtx_REG (TImode, 75);
+      rtx r76 = gen_rtx_REG (SImode, 76);
+      rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
+      rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+      rtx operand = XEXP (operands[1], 0);
 
-(define_insn "_call_value"
-  [(parallel
-    [(set (match_operand 0 "" "")
-	  (call (match_operand:QI 1 "call_operand" "R,S,T")
-		(match_operand:QI 2 "" "i,i,i")))
-     (clobber (reg:SI 0))
+      emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
+      emit_insn (gen_andsi3 (r75, r75, rmask_idx));
+      emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
+      emit_insn (gen_andsi3 (r76, operand, rmask_tag));
+      emit_insn (gen_ceq_si (r76, r76, r75));
+      emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
+      emit_insn (gen_selb (r75, r75, operand, r76));
+      emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+      /* Mark register 76 as used.  */
+      emit_insn (gen_rtx_USE (VOIDmode, r76));
+      XEXP (operands[1], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[1], 0)), 75);
+      if (! call_operand (operands[1], QImode))
+        XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+    }
+})
+
+(define_insn "_call_value_hw"
+   [(parallel
+     [(set (match_operand 0 "" "")
+           (call (match_operand:QI 1 "call_operand" "R,S,T")
+                 (match_operand:QI 2 "" "i,i,i")))
+      (clobber (reg:SI 0))
      (clobber (reg:SI 130))])]
   ""
   "@
    bisl\t$lr,%i1
-   brsl\t$lr,%1
-   brasl\t$lr,%1"
-   [(set_attr "type" "br")])
+   %@brsl\t$lr,%1
+   %@brasl\t$lr,%1"
+[(set_attr "type" "br")])
 
 (define_expand "untyped_call"
   [(parallel [(call (match_operand 0 "" "")

@@ -301,6 +301,23 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
  * buffer.  Users can also specify it in inline asm. */
 #define HBR_REGNUM 130
 
+/* Used for the software i-cache.  Mask value that isolates the tag
+   index from an address in the inline formulation of external branch
+   indirect.  This value must not be modified.  */
+#define ICACHE_MASK_INDEX_REGNUM 77
+
+/* Used for the software i-cache.  Pointer to the tag array used in
+   the inline formulation of external branch indirect.  This value must
+   not be modified.  */
+#define ICACHE_TAG_ARR_REGNUM 78
+
+/* Used for the software i-cache.  Mask value that isolates the tag
+   portion of an address in the inline formulation of external branch
+   indirect.  This value must not be modified.  */
+#define ICACHE_MASK_TAG_REGNUM 79
+
+#define ICACHE_LINESIZE (-1 * (floor_log2 (icache_linesize) - 4))
+
 #define MAX_REGISTER_ARGS    72
 #define FIRST_ARG_REGNUM     3
 #define LAST_ARG_REGNUM      (FIRST_ARG_REGNUM + MAX_REGISTER_ARGS - 1)
@@ -521,6 +538,14 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
  "$112", "$113", "$114", "$115", "$116", "$117", "$118", "$119", "$120", "$121", "$122", "$123", "$124", "$125", "$126", "$127", \
  "$vfp", "$vap", "hbr" \
 }
+
+/* Entry to the insn conditionalizer.  */
+
+#define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS)\
+  final_prescan_insn (INSN, OPVEC, NOPERANDS)
+
+#define PRINT_OPERAND_PUNCT_VALID_P(C)\
+  print_operand_punct_valid_p (C)
 
 #define PRINT_OPERAND(FILE, X, CODE)  print_operand(FILE, X, CODE)
 

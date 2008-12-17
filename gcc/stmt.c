@@ -2358,6 +2358,8 @@ expand_case (tree exp)
 	       /* RANGE may be signed, and really large ranges will show up
 		  as negative numbers.  */
 	       || compare_tree_int (range, 0) < 0
+	       || ((targetm.bb_partitioning.dont_create_jumptable != 0)
+	           && targetm.bb_partitioning.dont_create_jumptable (count))
 #ifndef ASM_OUTPUT_ADDR_DIFF_ELT
 	       || flag_pic
 #endif
