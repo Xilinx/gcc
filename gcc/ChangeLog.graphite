@@ -1,3 +1,12 @@
+2008-12-22  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	PR tree-optimization/38510
+	* gcc.dg/graphite/pr38510.c: New.
+	* graphite.c (recompute_all_dominators): Call mark_irreducible_loops.
+	  (translate_clast): Call recompute_all_dominators before 
+	  graphite_verify.
+	  (gloog): Call recompute_all_dominators before graphite_verify.
+
 2008-12-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/38492

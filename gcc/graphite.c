@@ -2161,6 +2161,7 @@ mark_exit_edges (VEC (sd_region, heap) *regions)
 static inline void
 recompute_all_dominators (void)
 {
+  mark_irreducible_loops ();
   free_dominance_info (CDI_DOMINATORS);
   free_dominance_info (CDI_POST_DOMINATORS);
   calculate_dominance_info (CDI_DOMINATORS);
@@ -4548,6 +4549,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
       insert_guard_phis (scop, last_e->src, exit_true_e, exit_false_e,
 			 liveout_before_guard);
       htab_delete (liveout_before_guard);
+      recompute_all_dominators ();
       graphite_verify ();
 
       return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
@@ -4558,6 +4560,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
       next_e = translate_clast (scop, context_loop,
 				((struct clast_block *) stmt)->body,
 				next_e, ivstack);
+      recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
     }
@@ -5223,6 +5226,7 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
 				 if_region->true_region->exit);
+  recompute_all_dominators ();
   graphite_verify ();
   context_loop = SESE_ENTRY (SCOP_REGION (scop))->src->loop_father;
   compute_cloog_iv_types (stmt);
@@ -5233,12 +5237,14 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   free_loop_iv_stack (&ivstack);
   cloog_clast_free (stmt);
 
+  recompute_all_dominators ();
   graphite_verify ();
   scop_adjust_phis_for_liveouts (scop,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
 				 if_region->true_region->exit);
 
+  recompute_all_dominators ();
   graphite_verify ();
   cleanup_tree_cfg ();
   recompute_all_dominators ();
