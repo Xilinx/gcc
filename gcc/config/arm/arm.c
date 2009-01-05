@@ -3844,6 +3844,7 @@ arm_legitimate_address_p (enum machine_mode mode, rtx x, RTX_CODE outer,
       rtx xop1 = XEXP (x, 1);
 
       return ((arm_address_register_rtx_p (xop0, strict_p)
+	       && GET_CODE(xop1) == CONST_INT
 	       && arm_legitimate_index_p (mode, xop1, outer, strict_p))
 	      || (arm_address_register_rtx_p (xop1, strict_p)
 		  && arm_legitimate_index_p (mode, xop0, outer, strict_p)));
@@ -7000,6 +7001,8 @@ load_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
      though could be easily extended if required.  */
   gcc_assert (nops >= 2 && nops <= 4);
 
+  memset (order, 0, 4 * sizeof (int));
+
   /* Loop over the operands and check that the memory references are
      suitable (i.e. immediate offsets from the same base register).  At
      the same time, extract the target register, and the memory
@@ -7226,6 +7229,8 @@ store_multiple_sequence (rtx *operands, int nops, int *regs, int *base,
   /* Can only handle 2, 3, or 4 insns at present, though could be easily
      extended if required.  */
   gcc_assert (nops >= 2 && nops <= 4);
+
+  memset (order, 0, 4 * sizeof (int));
 
   /* Loop over the operands and check that the memory references are
      suitable (i.e. immediate offsets from the same base register).  At
@@ -9985,7 +9990,7 @@ output_move_double (rtx *operands)
 
   if (code0 == REG)
     {
-      int reg0 = REGNO (operands[0]);
+      unsigned int reg0 = REGNO (operands[0]);
 
       otherops[0] = gen_rtx_REG (SImode, 1 + reg0);
 
@@ -11660,7 +11665,7 @@ arm_output_epilogue (rtx sibling)
 	 (where frame pointer is required to point at first register)
 	 and ARM-non-apcs-frame. Therefore, such change is postponed
 	 until real need arise.  */
-      HOST_WIDE_INT amount;
+      unsigned HOST_WIDE_INT amount;
       int rfe;
       /* Restore stack pointer if necessary.  */
       if (TARGET_ARM && frame_pointer_needed)
@@ -12652,10 +12657,10 @@ arm_expand_prologue (void)
 	    insn = emit_set_insn (gen_rtx_REG (SImode, 3), ip_rtx);
 	  else if (args_to_push == 0)
 	    {
+	      rtx dwarf;
+
 	      gcc_assert(arm_compute_static_chain_stack_bytes() == 4);
 	      saved_regs += 4;
-
-	      rtx dwarf;
 
 	      insn = gen_rtx_PRE_DEC (SImode, stack_pointer_rtx);
 	      insn = emit_set_insn (gen_frame_mem (SImode, insn), ip_rtx);

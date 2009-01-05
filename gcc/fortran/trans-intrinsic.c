@@ -746,6 +746,35 @@ gfc_conv_intrinsic_lib_function (gfc_se * se, gfc_expr * expr)
   se->expr = build_call_array (rettype, fndecl, num_args, args);
 }
 
+
+/* If bounds-checking is enabled, create code to verify at runtime that the
+   string lengths for both expressions are the same (needed for e.g. MERGE).
+   If bounds-checking is not enabled, does nothing.  */
+
+void
+gfc_trans_same_strlen_check (const char* intr_name, locus* where,
+			     tree a, tree b, stmtblock_t* target)
+{
+  tree cond;
+  tree name;
+
+  /* If bounds-checking is disabled, do nothing.  */
+  if (!flag_bounds_check)
+    return;
+
+  /* Compare the two string lengths.  */
+  cond = fold_build2 (NE_EXPR, boolean_type_node, a, b);
+
+  /* Output the runtime-check.  */
+  name = gfc_build_cstring_const (intr_name);
+  name = gfc_build_addr_expr (pchar_type_node, name);
+  gfc_trans_runtime_check (true, false, cond, target, where,
+			   "Unequal character lengths (%ld/%ld) in %s",
+			   fold_convert (long_integer_type_node, a),
+			   fold_convert (long_integer_type_node, b), name);
+}
+
+
 /* The EXPONENT(s) intrinsic function is translated into
        int ret;
        frexp (s, &ret);
@@ -3026,7 +3055,7 @@ gfc_conv_intrinsic_merge (gfc_se * se, gfc_expr * expr)
   tree fsource;
   tree mask;
   tree type;
-  tree len;
+  tree len, len2;
   tree *args;
   unsigned int num_args;
 
@@ -3047,9 +3076,12 @@ gfc_conv_intrinsic_merge (gfc_se * se, gfc_expr * expr)
 	 also have to set the string length for the result.  */
       len = args[0];
       tsource = args[1];
+      len2 = args[2];
       fsource = args[3];
       mask = args[4];
 
+      gfc_trans_same_strlen_check ("MERGE intrinsic", &expr->where, len, len2,
+				   &se->pre);
       se->string_length = len;
     }
   type = TREE_TYPE (tsource);

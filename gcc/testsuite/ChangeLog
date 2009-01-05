@@ -1,3 +1,591 @@
+2009-01-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/compat/struct-layout-1_generate.c (dg-options): Add -mieee
+	for alpha*-*-* targets.
+	* g++.dg/compat/struct-layout-1_generate.c (dg-options): Ditto.
+
+2009-01-05  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38665
+	* gfortran.dg/host_assoc_function_5.f90: New test.
+
+2009-01-04  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38669
+	* gfortran.dg/elemental_dependency_3.f90: New test.
+	* gfortran.dg/elemental_subroutine_7.f90: New test.
+
+2009-01-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/struct-ret-3.c: Include unistd.h.
+	(main): Exit early if system memory page size is
+	larger than 4096 bytes.
+
+2009-01-04  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/38718
+	* gfortran.dg/merge_init_expr.f90: New.
+
+2009-01-04  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38536
+	* gfortran.dg/c_loc_tests_13.f90: New test.
+	* gfortran.dg/c_loc_tests_14.f90: New test.
+
+2009-01-03  Daniel Franke  <franke.daniel@gmail.com>
+
+	* gfortran.dg/func_result_4.f90: New.
+
+2009-01-03  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38594
+	* gfortran.dg/host_assoc_call_3.f90: Make sure that the generic
+	interface still works, in addition to original tests.
+	* gfortran.dg/host_assoc_call_6.f90: New test.
+
+2009-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38705
+	* g++.dg/torture/pr38705.C: New test.
+
+	PR c/38700
+	* gcc.dg/pr38700.c: New test.
+
+2009-01-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist11.C: New test.
+	* g++.dg/cpp0x/initlist12.C: New test.
+
+2009-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/fixed-point/composite-type.c: Update wording of messages.
+	Allow extra informative notes.
+
+2009-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/36489
+	* gcc.dg/pr36489.c: New test.
+
+2008-12-31  Daniel Franke  <franke.daniel@gmail.com>
+
+	* gfortran.dg/mapping_2.f90: Fixed testcase.
+	
+2008-12-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38647
+	* g++.dg/template/function1.C: New test.
+
+	PR c++/38640
+	* g++.dg/cpp0x/decltype15.C: New test.
+
+	PR middle-end/38676
+	* gcc.dg/gomp/pr38676.c: New test.
+
+2008-12-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38645
+	* gcc.dg/pr38645.c: New testcase.
+
+2008-12-30  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/38661
+	* gcc.c-torture/compile/pr38661.c: New testcase.
+	* gcc.c-torture/compile/pr38661-1.c: New testcase.
+
+2008-12-30  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38564
+	* gcc.c-torture/compile/pr38564.c: New testcase.
+
+2008-12-29  Dorit Nuzman  <dorit@il.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/38529
+	* gcc.dg/vect/pr38529.c: New test.
+
+2008-12-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38635
+	* g++.dg/parse/cond4.C: New test.
+
+	PR c++/36191
+	* g++.dg/torture/pr36191.C: New test.
+
+2008-12-15  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* gcc.c-torture/execute/builtins/fprintf.x: Disable test for
+	freestanding targets.
+	* gcc.c-torture/execute/pr37573.x: Disable test for 16-bit targets.
+	* gcc.c-torture/execute/20081117-1.x: Disable test for 16-bit targets.
+	* gcc.c-torture/compile/limits-stringlit.c: Disable test for picochip.
+	* gcc.dg/array-quals-1.c: Disable test for picochip.
+	* lib/target-supports.exp: Add support for freestanding ports and
+	disable picochip for profiling tests.
+
+2008-12-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38637
+	* g++.dg/cpp0x/enum2.C: New test.
+
+2008-12-28  Andrew Pinski  <pinskia@gmail.com>
+
+	PR libobjc/36610
+	* objc/execute/forward-1.m: New test.
+
+2008-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38633
+	* gcc.dg/gomp/pr38633.c: New test.
+	* g++.dg/gomp/pr38633.C: New test.
+
+	PR c++/38639
+	* g++.dg/gomp/pr38639.C: New test.
+
+2008-12-23  Andrew Pinski  <pinskia@gmail.com>
+
+	PR middle-end/38590
+	* gcc.c-torture/compile/pr38590-1.c: New testcase.
+	* gcc.c-torture/compile/pr38590-2.c: New testcase.
+
+2008-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/31150
+	* gcc.c-torture/execute/20081218-1.c: New test.
+
+2008-12-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38602
+	* gfortran.dg/alloc_comp_optional_1.f90: New test.
+
+2008-12-22  Ben Elliston  <bje@au.ibm.com>
+
+	PR c++/38362
+	* g++.dg/ext/altivec-types-1.C (dg-options): Pass -std=c++98.
+
+2008-12-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38398
+	* gfortran.dg/fmt_g0_1.f08: Revise.
+
+2008-12-21  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp: Rewrite.
+
+	* gcc.target/mips/20020620-1.c: Use dg-options instead of
+	dg-mips-options.  Remove target restrictions from dg-do.
+	* gcc.target/mips/mips-ps-1.c: Likewise.
+	* gcc.target/mips/mips-ps-2.c: Likewise.
+	* gcc.target/mips/mips-ps-3.c: Likewise.
+	* gcc.target/mips/mips-ps-4.c: Likewise.
+	* gcc.target/mips/mips-ps-6.c: Likewise.
+
+	* gcc.target/mips/asm-1.c: Use dg-options instead of dg-mips-options.
+	* gcc.target/mips/branch-1.c: Likewise.
+	* gcc.target/mips/clear-cache-2.c: Likewise.
+	* gcc.target/mips/dse-1.c: Likewise.
+	* gcc.target/mips/fix-r4000-1.c: Likewise.
+	* gcc.target/mips/fix-r4000-2.c: Likewise.
+	* gcc.target/mips/fix-r4000-3.c: Likewise.
+	* gcc.target/mips/fix-r4000-4.c: Likewise.
+	* gcc.target/mips/fix-r4000-5.c: Likewise.
+	* gcc.target/mips/fix-r4000-6.c: Likewise.
+	* gcc.target/mips/fix-r4000-7.c: Likewise.
+	* gcc.target/mips/fix-r4000-8.c: Likewise.
+	* gcc.target/mips/fix-r4000-9.c: Likewise.
+	* gcc.target/mips/fix-r4000-10.c: Likewise.
+	* gcc.target/mips/fix-r4000-11.c: Likewise.
+	* gcc.target/mips/fix-r4000-12.c: Likewise.
+	* gcc.target/mips/fix-vr4130-1.c: Likewise.
+	* gcc.target/mips/fix-vr4130-2.c: Likewise.
+	* gcc.target/mips/fix-vr4130-3.c: Likewise.
+	* gcc.target/mips/fix-vr4130-4.c: Likewise.
+	* gcc.target/mips/fpcmp-1.c: Likewise.
+	* gcc.target/mips/fpcmp-2.c: Likewise.
+	* gcc.target/mips/fpr-moves-1.c: Likewise.
+	* gcc.target/mips/fpr-moves-2.c: Likewise.
+	* gcc.target/mips/fpr-moves-3.c: Likewise.
+	* gcc.target/mips/fpr-moves-4.c: Likewise.
+	* gcc.target/mips/fpr-moves-5.c: Likewise.
+	* gcc.target/mips/fpr-moves-6.c: Likewise.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-2.c: Likewise.
+	* gcc.target/mips/madd-1.c: Likewise.
+	* gcc.target/mips/madd-2.c: Likewise.
+	* gcc.target/mips/madd-5.c: Likewise.
+	* gcc.target/mips/madd-6.c: Likewise.
+	* gcc.target/mips/madd-7.c: Likewise.
+	* gcc.target/mips/madd-8.c: Likewise.
+	* gcc.target/mips/maddu-1.c: Likewise.
+	* gcc.target/mips/maddu-2.c: Likewise.
+	* gcc.target/mips/memcpy-1.c: Likewise.
+	* gcc.target/mips/mips-sched-madd.c: Likewise.
+	* gcc.target/mips/msub-1.c: Likewise.
+	* gcc.target/mips/msub-2.c: Likewise.
+	* gcc.target/mips/msub-5.c: Likewise.
+	* gcc.target/mips/msub-6.c: Likewise.
+	* gcc.target/mips/msub-7.c: Likewise.
+	* gcc.target/mips/msub-8.c: Likewise.
+	* gcc.target/mips/msubu-1.c: Likewise.
+	* gcc.target/mips/msubu-2.c: Likewise.
+	* gcc.target/mips/neg-abs-1.c: Likewise.
+	* gcc.target/mips/neg-abs-2.c: Likewise.
+	* gcc.target/mips/no-smartmips-lwxs.c: Likewise.
+	* gcc.target/mips/no-smartmips-ror-1.c: Likewise.
+	* gcc.target/mips/octeon-baddu-1.c: Likewise.
+	* gcc.target/mips/octeon-bbit-2.c: Likewise.
+	* gcc.target/mips/octeon-bbit-3.c: Likewise.
+	* gcc.target/mips/octeon-cins-1.c: Likewise.
+	* gcc.target/mips/octeon-cins-2.c: Likewise.
+	* gcc.target/mips/octeon-dmul-1.c: Likewise.
+	* gcc.target/mips/octeon-dmul-2.c: Likewise.
+	* gcc.target/mips/octeon-exts-1.c: Likewise.
+	* gcc.target/mips/octeon-exts-2.c: Likewise.
+	* gcc.target/mips/octeon-exts-3.c: Likewise.
+	* gcc.target/mips/octeon-exts-4.c: Likewise.
+	* gcc.target/mips/octeon-exts-5.c: Likewise.
+	* gcc.target/mips/octeon-pop-1.c: Likewise.
+	* gcc.target/mips/octeon-seq-1.c: Likewise.
+	* gcc.target/mips/octeon-seq-2.c: Likewise.
+	* gcc.target/mips/octeon-seq-3.c: Likewise.
+	* gcc.target/mips/octeon-seq-4.c: Likewise.
+	* gcc.target/mips/pr26765.c: Likewise.
+	* gcc.target/mips/pr33256.c: Likewise.
+	* gcc.target/mips/pr33635-1.c: Likewise.
+	* gcc.target/mips/pr33755.c: Likewise.
+	* gcc.target/mips/pr34831.c: Likewise.
+	* gcc.target/mips/pr35802.c: Likewise.
+	* gcc.target/mips/pr37362.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-1.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-2.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-3.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-4.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-5.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-6.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-7.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-8.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-9.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-10.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-11.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-12.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-13.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-15.c: Likewise.
+	* gcc.target/mips/r3900-mult.c: Likewise.
+	* gcc.target/mips/rsqrt-4.c: Likewise.
+	* gcc.target/mips/sb1-1.c: Likewise.
+	* gcc.target/mips/scc-2.c: Likewise.
+	* gcc.target/mips/scc-4.c: Likewise.
+	* gcc.target/mips/sdata-1.c: Likewise.
+	* gcc.target/mips/sdata-2.c: Likewise.
+	* gcc.target/mips/sdata-3.c: Likewise.
+	* gcc.target/mips/sdata-4.c: Likewise.
+	* gcc.target/mips/smartmips-lwxs.c: Likewise.
+	* gcc.target/mips/smartmips-ror-1.c: Likewise.
+	* gcc.target/mips/smartmips-ror-2.c: Likewise.
+	* gcc.target/mips/smartmips-ror-3.c: Likewise.
+	* gcc.target/mips/smartmips-ror-4.c: Likewise.
+	* gcc.target/mips/timode-1.c: Likewise.
+	* gcc.target/mips/truncate-1.c: Likewise.
+	* gcc.target/mips/truncate-2.c: Likewise.
+	* gcc.target/mips/vr-mult-1.c: Likewise.
+	* gcc.target/mips/vr-mult-2.c: Likewise.
+
+	* gcc.target/mips/atomic-memory-2.c: Use dg-options instead of
+	dg-mips-options.  Use isa>=2 instead of -mips32.
+
+	* gcc.target/mips/branch-cost-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa>=4 instead of -mips64.
+	* gcc.target/mips/branch-cost-2.c: Likewise.
+
+	* gcc.target/mips/cache-1.c: Use dg-options instead of
+	dg-mips-options.  Add isa>=3 and NOMIPS16 attributes.
+
+	* gcc.target/mips/call-saved-1.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Use isa_rev=0 instead of -mips2.
+	* gcc.target/mips/call-saved-2.c: Likewise.
+	* gcc.target/mips/call-saved-3.c: Likewise.
+
+	* gcc.target/mips/clear-cache-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa_rev>=2 instead of -mips32r2.
+	* gcc.target/mips/ext_ins.c: Likewise.
+
+	* gcc.target/mips/code-readable-1.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Use addressing=absolute too.
+	* gcc.target/mips/code-readable-2.c: Likewise.
+	* gcc.target/mips/code-readable-3.c: Likewise.
+
+	* gcc.target/mips/dmult-1.c: Use dg-options instead of
+	dg-mips-options.  Remove the mips16_attribute directives.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-4.c: Likewise.
+
+	* gcc.target/mips/dpaq_sa_l_w.c: Use dg-options instead of
+	dg-mips-options.  Remove target restrictions from dg-do.
+	Use -mgp32 instead of -mips32r2.
+	* gcc.target/mips/dpsq_sa_l_w.c: Likewise.
+
+	* gcc.target/mips/dsp-ctrl.c: Use dg-options instead of
+	dg-mips-options.  Remove target restrictions from dg-do.
+	Remove the !__mips_dsp code and add -mdsp -mgp32 to dg-options
+	instead.  Add NOMIPS16 attributes.
+
+	* gcc.target/mips/dspr2-MULT.c: Use dg-options instead of
+	dg-mips-options.  Replace -march=mips32r2 with -mgp32.
+	* gcc.target/mips/dspr2-MULTU.c: Likewise.
+
+	* gcc.target/mips/ext-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa_rev>=2 instead of -mips64r2.
+
+	* gcc.target/mips/fix-r10000-1.c: Use dg-options instead of
+	dg-mips-options.  Remove -march=mips4.  
+	* gcc.target/mips/fix-r10000-2.c: Likewise.
+	* gcc.target/mips/fix-r10000-3.c: Likewise.
+	* gcc.target/mips/fix-r10000-4.c: Likewise.
+	* gcc.target/mips/fix-r10000-5.c: Likewise.
+	* gcc.target/mips/fix-r10000-6.c: Likewise.
+	* gcc.target/mips/fix-r10000-7.c: Likewise.
+	* gcc.target/mips/fix-r10000-8.c: Likewise.
+	* gcc.target/mips/fix-r10000-9.c: Likewise.
+	* gcc.target/mips/fix-r10000-10.c: Likewise.
+	* gcc.target/mips/fix-r10000-11.c: Likewise.
+	* gcc.target/mips/fix-r10000-12.c: Likewise.
+	* gcc.target/mips/fix-r10000-13.c: Likewise.
+	* gcc.target/mips/fix-r10000-14.c: Likewise.
+	* gcc.target/mips/fix-r10000-15.c: Likewise.
+
+	* gcc.target/mips/fixed-scalar-type.c: Use dg-options instead
+	of dg-mips-options.  Remove target restrictions from dg-do.
+	Remove -march=mips32r2.
+	* gcc.target/mips/fixed-vector-type.c: Likewise.
+	* gcc.target/mips/mips32-dsp-run.c: Likewise.
+	* gcc.target/mips/mips32-dspr2.c: Likewise.  Add NOMIPS16 attributes.
+
+	* gcc.target/mips/fpr-moves-7.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Remove -msoft-float.
+	* gcc.target/mips/fpr-moves-8.c: Likewise.
+	* gcc.target/mips/int-moves-1.c: Likewise.
+	* gcc.target/mips/int-moves-2.c: Likewise.
+
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-1.c: Use dg-options
+	instead of dg-mips-options.  Use isa>=2 instead of -mips2.
+	Add -mgp32.
+	* gcc.target/mips/gcc-have-sync-compare-and-swap-3.c: Likewise.
+
+	* gcc.target/mips/ins-1.c: Use dg-options instead of
+	dg-mips-options.  Use "isa_rev>=2 -mgp32" instead of -march=mips32r2.
+
+	* gcc.target/mips/loongson-muldiv-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa=loongson instead of -march=loongson2e.
+	* gcc.target/mips/loongson-muldiv-2.c: Likewise.
+
+	* gcc.target/mips/loongson-simd.c: Remove mips_loongson
+	target requirement and use isa=loongson instead.  Add -mhard-float,
+	-mno-mips16 and -flax-vector-conversions.
+
+	* gcc.target/mips/lazy-binding-1.c: Use dg-options instead of
+	dg-mips-options.  Remove target restrictions from dg-do.
+	Add NOMIPS16 attributes.
+
+	* gcc.target/mips/long-calls-pg.c: Use dg-options instead of
+	dg-mips-options.  Remove -march=mips32 and -fno-pic.
+	Add NOMIPS16 attributes.
+
+	* gcc.target/mips/madd-3.c: Use dg-options instead of
+	dg-mips-options.  Use isa_rev>=1 instead of -mips32.
+	* gcc.target/mips/maddu-3.c: Likewise.
+	* gcc.target/mips/msub-3.c: Likewise.
+	* gcc.target/mips/msubu-3.c: Likewise.
+
+	* gcc.target/mips/madd-4.c: Use dg-options instead of
+	dg-mips-options.  Remove -mips32r2.
+	* gcc.target/mips/maddu-4.c: Likewise.
+	* gcc.target/mips/msub-4.c: Likewise.
+	* gcc.target/mips/msubu-4.c: Likewise.
+
+	* gcc.target/mips/mips-3d-1.c: Use dg-options instead of
+	dg-mips-options.  Remove target restrictions from dg-do.
+	Remove -mips64, -mhard-float and -mgp64.
+	* gcc.target/mips/mips-3d-2.c: Likewise.
+	* gcc.target/mips/mips-3d-3.c: Likewise.
+	* gcc.target/mips/mips-3d-4.c: Likewise.
+	* gcc.target/mips/mips-3d-5.c: Likewise.
+	* gcc.target/mips/mips-3d-6.c: Likewise.
+	* gcc.target/mips/mips-3d-7.c: Likewise.
+	* gcc.target/mips/mips-3d-8.c: Likewise.
+	* gcc.target/mips/mips-3d-9.c: Likewise.
+
+	* gcc.target/mips/mips-ps-5.c: Use dg-options instead of
+	dg-mips-options.  Remove -mips64.
+	* gcc.target/mips/mips-ps-type.c: Likewise.
+
+	* gcc.target/mips/mips-ps-7.c: Use dg-options instead of
+	dg-mips-options.  Replace -mips32r2 with -mgp32.
+
+	* gcc.target/mips/mips-ps-type-2.c: Use dg-options instead of
+	dg-mips-options.  Use "isa_rev>=2 -mgp32" instead of -mips32r2.
+
+	* gcc.target/mips/mips16-attributes.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.
+	* gcc.target/mips/mips16-attributes-2.c: Likewise.
+	* gcc.target/mips/r10k-cache-barrier-14.c: Likewise.
+	* gcc.target/mips/scc-3.c: Likewise.
+
+	* gcc.target/mips/mips16-attributes-3.c: Add { dg-options "(-mips16)" }.
+
+	* gcc.target/mips/mips16e-extends.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Use isa_rev>=1 instead of -march=mips32.
+	Add -mlong32.
+
+	* gcc.target/mips/mips32-dsp.c: Use dg-options instead of
+	dg-mips-options.  Replace -march=mips32 with -mgp32.
+
+	* gcc.target/mips/mips32-dsp-type.c: Use dg-options instead of
+	dg-mips-options.  Remove -march=mips32.
+
+	* gcc.target/mips/mips32-dspr2-type.c: Use dg-options instead of
+	dg-mips-options.  Remove -march=mips32r2.
+
+	* gcc.target/mips/mips32r2-mxhc1.c: Use dg-options instead of
+	dg-mips-options.  Add NOMIPS16 attributes.
+
+	* gcc.target/mips/movcc-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa>=4 instead of -mips4.
+	* gcc.target/mips/movcc-2.c: Likewise.
+	* gcc.target/mips/movcc-3.c: Likewise.
+
+	* gcc.target/mips/octeon-bbit-1.c: Use dg-options instead of
+	dg-mips-options.  Declare foo as a NOMIPS16 function.
+	Use foo instead of g.
+
+	* gcc.target/mips/near-far-1.c: Use dg-options instead of
+	dg-mips-options.  Replace the nonpic directives with an
+	addressing=absolute option.
+	* gcc.target/mips/near-far-2.c: Likewise.
+	* gcc.target/mips/near-far-3.c: Likewise.
+	* gcc.target/mips/near-far-4.c: Likewise.
+
+	* gcc.target/mips/nmadd-1.c: Use dg-options instead of
+	dg-mips-options.  Use isa=4 instead of -mips4.
+	* gcc.target/mips/nmadd-2.c: Likewise.
+	* gcc.target/mips/nmadd-3.c: Likewise.
+	* gcc.target/mips/rsqrt-1.c: Likewise.
+	* gcc.target/mips/rsqrt-2.c: Likewise.
+	* gcc.target/mips/rsqrt-3.c: Likewise.
+
+	* gcc.target/mips/save-restore-1.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Use isa_rev>=1 instead of -mips32r2.
+	* gcc.target/mips/save-restore-2.c: Likewise.
+	* gcc.target/mips/save-restore-3.c: Likewise.
+	* gcc.target/mips/save-restore-4.c: Likewise.
+	* gcc.target/mips/save-restore-5.c: Likewise.
+
+	* gcc.target/mips/scc-1.c: Use dg-options instead of
+	dg-mips-options.  Replace the mips16_attribute directives with
+	a (-mips16) dg-option.  Use isa_rev>=1 instead of -mips32.
+
+	* gcc.target/mips/timode-2.c: Remove target restrictions from dg-do.
+	Use -mgp64.
+
+2008-12-21  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/35899
+	* gcc.target/mips/smartmips-lwxs.c: Add -mlong32.
+
+2008-12-21  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/38598
+	* gcc.target/mips/madd-7.c: Add -mlong32.
+	* gcc.target/mips/msub-7.c: Likewise.
+
+2008-12-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38597
+	* g++.dg/cpp0x/auto13.C: New test.
+
+2008-12-20  Jakub Jelinek  <jakub@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/36921
+	* g++.dg/warn/pr36921.C: New.
+
+2008-12-19  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* lib/target-supports.exp: Add *-*-rtems* to list
+	of targets without profiling support.
+
+2008-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38577
+	* g++.dg/template/call6.C: New test.
+
+2008-12-19  Janis Johnson  <janis187@us.ibm.com>
+
+	Revert:
+	2008-12-12  Janis Johnson  <janis187@us.ibm.com>
+	PR libgfortran/24685
+	* gfortran.dg/default_format_denormal_2.f90: Change XFAIL to check
+	for size of long double.
+
+2008-12-18  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR middle-end/38565
+	* testsuite/g++.dg/torture/pr38565.C: New test.
+
+2008-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38427
+	* g++.dg/init/ctor9.C: New test.
+
+2008-12-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38485
+	* g++.dg/parse/defarg13.C: New test.
+
+2008-12-18  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	PR rtl-optimization/37922
+	* g++.dg/torture/pr37922.C: New test.
+
+2008-12-18  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/31822
+	* gfortran.dg/char_pointer_assign_2.f90: Updated expected error
+	message to be more detailed.
+	* gfortran.dg/char_pointer_assign_4.f90: New test.
+	* gfortran.dg/char_pointer_assign_5.f90: New test.
+
+2008-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38533
+	* gcc.dg/tree-ssa/pr38533.c: New test.
+	* gcc.c-torture/execute/pr38533.c: New test.
+
+	PR middle-end/38505
+	* gcc.c-torture/compile/pr38505.c: New test.
+
+2008-12-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto6.C: Test more stuff.
+	* g++.dg/cpp0x/auto12.C: New test.
+
+2008-12-17  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38137
+	* gfortran.dg/merge_char_3.f90: New test.
+
+2008-12-15  Mikael Morin  <mikael.morin@tele2.fr>
+
+	PR fortran/38487
+	* gfortran.dg/elemental_dependency_2.f90: New test.
+
+2008-12-14  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/35937
+	* gfortran.dg/char_length_14.f90: New test.
+
 2008-12-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/38504
@@ -22,6 +610,8 @@
 	(dg-options): Use -mavx instead of -msse4.
 	* g++.dg/other/i386-3.C: Include x86intrin.h.
 	(dg-options): Use -mavx instead of -msse4.
+	* g++.dg/other/i386-5.C: Include x86intrin.h.
+	* g++.dg/other/i386-6.C: Ditto.
 
 2008-12-12  Uros Bizjak <ubizjak@gmail.com>
 
@@ -6735,7 +7325,7 @@
 2008-06-19  Andy Hutchinson  <hutchinsonandy@aim.com>
 
 	* lib/target-supports.exp 
-	(check_effective_target_keeps_null_pointer_checks) : New function.
+	(check_effective_target_keeps_null_pointer_checks): New function.
 	* gcc.dg/tree-ssa/20030730-1.c: Use keeps_null_pointer_checks to 
 	determine correct test response.
 	* gcc.dg/tree-ssa/20030730-2.c: Ditto.

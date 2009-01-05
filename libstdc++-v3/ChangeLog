@@ -1,3 +1,103 @@
+2009-01-05  Ben Elliston  <bje@au.ibm.com>
+
+	* configure.ac: Exchange the order of GLIBCXX_ENABLE_THREADS and
+	GLIBCXX_ENABLE_ATOMIC_BUILTINS macro invocations.
+	* configure: Regenerate.
+
+2009-01-04  Richard Guenther  <rguenther@suse.de>
+
+	PR libstdc++/38720
+	* include/ext/pointer.h (_Relative_pointer_impl): Use an unsigned
+	integer type for storage, arithmetic and comparisons.
+	* testsuite/ext/ext_pointer/1_neg.cc: Adjust line numbers.
+
+2009-01-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38719
+	* include/bits/forward_list.h (_Fwd_list_iterator<>::_M_next,
+	_Fwd_list_const_iterator::_M_next): Fix return type.
+
+2009-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* Revert last commit, reopen and suspend libstdc++/38678.
+
+2009-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38678
+	* include/std/istream (basic_istream<>::_M_read): New.
+	* include/bits/istream.tcc (basic_istream<>::_M_read): Define.
+	(basic_istream<>::read, basic_istream<>::readsome): Use it.
+	* include/std/ostream (basic_ostream<>::_M_write_): New.
+	(basic_ostream<>::_M_write): Adjust.
+	* include/bits/ostream.tcc (basic_ostream<>::_M_write_): Define.
+	* testsuite/27_io/basic_istream/read/char/38678.cc: New.
+	* testsuite/27_io/basic_istream/read/wchar_t/38678.cc: Likewise.
+	* testsuite/27_io/basic_ostream/write/char/38678.cc: Likewise.
+	* testsuite/27_io/basic_ostream/write/wchar_t/38678.cc: Likewise.
+
+2008-12-22  Jonathan Larmour  <jifl@eCosCentric.com>
+
+	* include/ext/concurrence.h: Fix __gthread_cond_t initialisation
+	function macro name.
+
+2008-12-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/stdheader.cc: Add cstdlib.
+	* doc/doxygen/user.cfg.in: Regenerate for doxygen 1.5.7.
+
+2008-12-21  Andrew Pinski  <pinskia@gmail.com>
+
+	PR target/38300
+	* configure: Regenerate.
+
+2008-12-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38596
+	* include/tr1_impl/functional (function<>::target,
+	function<>::target_type): Provide only when __GXX_RTTI is defined.
+	(_Function_base::_M_manager, _Ref_manager<>::_M_manager,
+	_Function_handler<void(_ArgTypes...), _Member _Class::*>::_M_manager):
+	Adjust.
+
+2008-12-19  Ben Elliston  <bje@au.ibm.com>
+
+	* acinclude.m4: Guard a variable test against an empty string.
+	* configure: Regenerate.
+
+2008-12-18  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* testsuite/21_strings/basic_string/element_access/wchar_t/21674.cc:
+	Add xfail on all targets except darwin.
+	* libstdc++-v3/testsuite/21_strings/basic_string/element_access/char/
+	1674.cc: Same.
+	* libstdc++-v3/testsuite/22_locale/ctype/is/char/2.cc: Correct syntax
+	for xfailing on all targets except linux.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-17  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+        * testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Don't xfail test on darwin8 or later.
+
+2008-12-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+        * testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Don't xfail excessive errors on darwin8 or later.
+
+2008-12-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_global/cstdatomic: Remove assert include.
+	* include/debug/debug.h: Consolidate __replacement_assert...
+	* include/parallel/base.h: Consolidate __replacement_assert...
+	* include/bits/c++config: ...here.
+	* include/bits/atomic_0.h: Use it.
+	* include/bits/atomic_2.h: Same.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+
 2008-12-13  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* src/atomic.cc: Revert last change.

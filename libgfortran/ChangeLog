@@ -1,3 +1,38 @@
+2008-12-29  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR fortran/31832
+	* acinclude.m4 (LIBGFOR_CHECK_FOR_BROKEN_POWF): New autoconf check for
+	broken powf.
+	* configure.ac (LIBGFOR_CHECK_FOR_BROKEN_POWF): Use it.
+	* intrinsics/c99_functions.c: Use internal powf implementation if
+	HAVE_BROKEN_POWF is defined.
+	* configure: Rebuilt.
+	* config.h.in: Rebuilt.
+
+2008-12-22  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/37472
+	* io/write_float.def (output_float_FMT_G_): Modify calculation of temp
+	to avoid sensitivity to round-off.
+
+2008-12-21  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38398
+	* io/io.h (st_parameter_dt): Add new bit to keep track of when to
+	suppress blanks for g0 formatting.
+	* io/transfer.c (formatted_transfer_scalar): Always call write_real_g0
+	for g0 formatting.
+	* io.c (write.c): Do not use ES formatting and use new bit to suppress
+	blanks.
+	* io/write_float.def (output_float): Adjust the location of setting the
+	width so that it can be adjusted when suppressing blanks.  Set number of
+	blanks to zero when dtp->u.p.g0_no_blanks is set. Do some minor code
+	clean-up and add some white space for readability.
+	
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
 2008-12-13  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/38504

@@ -1,3 +1,25 @@
+2009-01-01  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* inclhack.def (openbsd_null_definition): Redefine NULL to (void *)0
+	in case of C.
+	* fixincl.x: Regenerate.
+
+2008-12-31  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR target/35460
+	* inclhack.def (openbsd_va_start): Use __builtin_va_start
+	for OpenBSD.
+	* fixincl.x: Regenerate.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-15  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_spu_info): Match PA as well as IA64.
+	* fixincl.x: Regenerate.
+
 2008-09-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* configure.ac: Fix a typo.

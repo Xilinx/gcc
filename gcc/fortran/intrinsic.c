@@ -1974,7 +1974,7 @@ add_functions (void)
   make_generic ("mclock8", GFC_ISYM_MCLOCK8, GFC_STD_GNU);
 
   add_sym_3 ("merge", GFC_ISYM_MERGE, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-	     gfc_check_merge, NULL, gfc_resolve_merge,
+	     gfc_check_merge, gfc_simplify_merge, gfc_resolve_merge,
 	     ts, BT_REAL, dr, REQUIRED, fs, BT_REAL, dr, REQUIRED,
 	     msk, BT_LOGICAL, dl, REQUIRED);
 
@@ -3334,9 +3334,6 @@ do_simplify (gfc_intrinsic_sym *specific, gfc_expr *e)
       result = specific->simplify.cc (a1, specific->ts.type, specific->ts.kind);
       goto finish;
     }
-
-  /* TODO: Warn if -pedantic and initialization expression and arg
-     types not integer or character */
 
   if (arg == NULL)
     result = (*specific->simplify.f1) (a1);

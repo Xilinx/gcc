@@ -3308,16 +3308,39 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_FUNCTION_NAME:
 	case RID_PRETTY_FUNCTION_NAME:
 	case RID_C99_FUNCTION_NAME:
-	  /* The symbols __FUNCTION__, __PRETTY_FUNCTION__, and
-	     __func__ are the names of variables -- but they are
-	     treated specially.  Therefore, they are handled here,
-	     rather than relying on the generic id-expression logic
-	     below.  Grammatically, these names are id-expressions.
+	  {
+	    const char *name;
 
-	     Consume the token.  */
-	  token = cp_lexer_consume_token (parser->lexer);
-	  /* Look up the name.  */
-	  return finish_fname (token->u.value);
+	    /* The symbols __FUNCTION__, __PRETTY_FUNCTION__, and
+	       __func__ are the names of variables -- but they are
+	       treated specially.  Therefore, they are handled here,
+	       rather than relying on the generic id-expression logic
+	       below.  Grammatically, these names are id-expressions.
+
+	       Consume the token.  */
+	    token = cp_lexer_consume_token (parser->lexer);
+
+	    switch (token->keyword)
+	      {
+	      case RID_FUNCTION_NAME:
+		name = "%<__FUNCTION__%>";
+		break;
+	      case RID_PRETTY_FUNCTION_NAME:
+		name = "%<__PRETTY_FUNCTION__%>";
+		break;
+	      case RID_C99_FUNCTION_NAME:
+		name = "%<__func__%>";
+		break;
+	      default:
+		gcc_unreachable ();
+	      }
+
+	    if (cp_parser_non_integral_constant_expression (parser, name))
+	      return error_mark_node;
+
+	    /* Look up the name.  */
+	    return finish_fname (token->u.value);
+	  }
 
 	case RID_VA_ARG:
 	  {
@@ -5953,6 +5976,7 @@ cp_parser_token_starts_cast_expression (cp_token *token)
     case CPP_XOR:
     case CPP_OR:
     case CPP_OR_OR:
+    case CPP_EOF:
       return false;
 
       /* '[' may start a primary-expression in obj-c++.  */
@@ -7397,7 +7421,7 @@ cp_parser_condition (cp_parser* parser)
 	  else
 	    {
 	      /* Consume the `='.  */
-	      cp_lexer_consume_token (parser->lexer);
+	      cp_parser_require (parser, CPP_EQ, "%<=%>");
 	      initializer = cp_parser_initializer_clause (parser, &non_constant_p);
 	    }
 	  if (BRACE_ENCLOSED_INITIALIZER_P (initializer))
@@ -21159,7 +21183,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 						    &is_direct_init,
 						    &is_non_constant_init);
 
-		      if (auto_node && !type_dependent_expression_p (init))
+		      if (auto_node && describable_type (init))
 			{
 			  TREE_TYPE (decl)
 			    = do_auto_deduction (TREE_TYPE (decl), init,

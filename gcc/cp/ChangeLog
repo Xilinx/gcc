@@ -1,3 +1,91 @@
+2009-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38698
+	* typeck2.c (process_init_constructor_union): Handle excess
+	initializers.
+	(process_init_constructor_record): Likewise.
+
+	PR c++/38684
+	* typeck2.c (digest_init_r): Don't use process_init_constructor
+	for non-aggregate classes.
+
+2008-12-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38647
+	* parser.c (cp_parser_primary_expression) <case RID_FUNCTION_NAME>:
+	Return error_mark_node if cp_parser_non_integral_constant_expression
+	returns true.
+
+	PR c++/38640
+	* semantics.c (finish_decltype_type): Handle TEMPLATE_PARM_INDEX.
+
+2008-12-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38635
+	* parser.c (cp_parser_condition): Use cp_parser_require
+	instead of cp_lexer_consume_token to consume =.
+
+	PR c++/38637
+	* decl.c (start_enum): If enumtype is error_mark_node, exit early.
+
+2008-12-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38650
+	* semantics.c (finish_omp_for): Don't add CLEANUP_POINT_EXPR
+	around volatile iteration var in condition and/or increment
+	expression.
+
+2008-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38639
+	* pt.c (tsubst_omp_for_iterator): RECUR on whole init_expr instead of
+	just its type.
+
+2008-12-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38597
+	* name-lookup.c (arg_assoc_type): Handle DECLTYPE_TYPE.
+
+2008-12-20  Jakub Jelinek  <jakub@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/36921
+	* c-common.c (warn_about_parentheses): Remove ARG_UNUSED from
+	arg_left.  Don't warn about X<=Y<=Z if comparison's type isn't
+	integral.
+
+2008-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38577
+	* call.c (build_new_method_call): Handle call being COMPOUND_EXPR
+	or NOP_EXPR.
+
+2008-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38427
+	* init.c (perform_member_init): For value-initialized
+	references call permerror instead of warning and don't emit any
+	INIT_EXPR.
+
+2008-12-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38485
+	* parser.c (cp_parser_token_starts_cast_expression): An EOF
+	can't start a cast-expression.
+
+2008-12-17  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (describable_type): New function.
+	(finish_decltype_type): Use it for dependent exprs.
+	* cp-tree.h: Declare it.
+	* mangle.c (write_type) [DECLTYPE_TYPE]: Set skip_evaluation.
+	(write_expression): If skip_evaluation, use type stubs.
+	* tree.c (cp_tree_equal): Handle PARM_DECLs from different
+	declarations of a function.
+	* init.c (build_new): Do auto deduction if type is describable.
+	* decl.c (cp_finish_decl): Likewise.
+	* parser.c (cp_parser_omp_for_loop): Likewise.
+
 2008-12-10  Jason Merrill  <jason@redhat.com>
 
 	PR c++/35319

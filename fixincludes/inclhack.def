@@ -1756,7 +1756,7 @@ fix = {
 fix = {
     hackname = hpux_spu_info;
     mach     = "*-hp-hpux*";
-    files    = ia64/sys/getppdp.h;
+    files    = "*/sys/getppdp.h";
     select   = "^.*extern.*spu_info.*";
 
     c_fix     = format;
@@ -2516,6 +2516,44 @@ fix = {
     test_text = "char *na_addr\t";
 };
 
+/* 
+ * Fix OpenBSD's NULL definition.
+ */
+fix = {
+  hackname  = openbsd_null_definition;
+  mach      = "*-*-openbsd*";
+  files     = locale.h, stddef.h, stdio.h, string.h,
+  time.h, unistd.h, wchar.h, sys/param.h;
+  select    = "__GNUG__";
+  c_fix = format;
+  c_fix_arg = "#ifndef NULL\n"
+	      "#ifdef __cplusplus\n"
+	      "#ifdef __GNUG__\n"
+	      "#define NULL\t__null\n"
+	      "#else\t /* ! __GNUG__  */\n"
+	      "#define NULL\t0L\n"
+              "#endif\t /* __GNUG__  */\n"
+	      "#else\t /* ! __cplusplus  */\n"
+	      "#define NULL\t((void *)0)\n"
+              "#endif\t /* __cplusplus  */\n"
+              "#endif\t /* !NULL  */";
+
+  c_fix_arg = "^#ifndef[ \t]*NULL\n"
+	      "^#ifdef[ \t]*__GNUG__\n"
+  	      "^#define[ \t]*NULL[ \t]*__null\n"
+  	      "^#else\n"
+              "^#define[ \t]*NULL[ \t]*0L\n"
+              "^#endif\n"
+              "^#endif";
+  test_text = 
+	"#ifndef NULL\n"
+	"#ifdef  __GNUG__\n"
+	"#define NULL    __null\n"
+	"#else\n"
+	"#define NULL    0L\n"
+	"#endif\n"
+	"#endif\n";
+};
 
 /*
  *  obstack.h used casts as lvalues.
@@ -2541,6 +2579,19 @@ fix = {
     test_text = "*((void **) (h)->next_free)++ = (aptr)";
 };
 
+/* 
+ * Fix OpenBSD's va_start define.
+ */
+fix = {
+  hackname  = openbsd_va_start;
+  mach      = "*-*-openbsd*";
+  files     = stdarg.h;
+  select    = '__builtin_stdarg_start';
+  c_fix     = format;
+  c_fix_arg = __builtin_va_start;
+
+  test_text = "#define va_start(v,l)   __builtin_stdarg_start((v),l)";
+};
 
 /*
  *  sys/lc_core.h on some versions of OSF1/4.x pollutes the namespace by

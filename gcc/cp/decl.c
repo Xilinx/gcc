@@ -5496,7 +5496,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      else if (!type_dependent_expression_p (init))
+      else if (describable_type (init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
 	  if (type == error_mark_node)
@@ -10890,6 +10890,9 @@ start_enum (tree name, tree underlying_type, bool scoped_enum_p)
       enumtype = make_node (ENUMERAL_TYPE);
       enumtype = pushtag (name, enumtype, /*tag_scope=*/ts_current);
     }
+
+  if (enumtype == error_mark_node)
+    return enumtype;
 
   if (scoped_enum_p)
     {

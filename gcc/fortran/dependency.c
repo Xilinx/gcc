@@ -422,6 +422,28 @@ gfc_ref_needs_temporary_p (gfc_ref *ref)
 }
 
 
+int
+gfc_is_data_pointer (gfc_expr *e)
+{
+  gfc_ref *ref;
+
+  if (e->expr_type != EXPR_VARIABLE && e->expr_type != EXPR_FUNCTION)
+    return 0;
+
+  /* No subreference if it is a function  */
+  gcc_assert (e->expr_type == EXPR_VARIABLE || !e->ref);
+
+  if (e->symtree->n.sym->attr.pointer)
+    return 1;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
+      return 1;
+
+  return 0;
+}
+
+
 /* Return true if array variable VAR could be passed to the same function
    as argument EXPR without interfering with EXPR.  INTENT is the intent
    of VAR.
@@ -449,19 +471,23 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
 	{
 	  if (elemental == ELEM_DONT_CHECK_VARIABLE)
 	    {
-	      /* Elemental procedures forbid unspecified intents, 
-		 and we don't check dependencies for INTENT_IN args.  */
-	      gcc_assert (intent == INTENT_OUT || intent == INTENT_INOUT);
+	      /* Too many false positive with pointers.  */
+	      if (!gfc_is_data_pointer (var) && !gfc_is_data_pointer (expr))
+		{
+		  /* Elemental procedures forbid unspecified intents, 
+		     and we don't check dependencies for INTENT_IN args.  */
+		  gcc_assert (intent == INTENT_OUT || intent == INTENT_INOUT);
 
-	      /* We are told not to check dependencies. 
-		 We do it, however, and issue a warning in case we find one. 
-		 If a dependency is found in the case 
-		 elemental == ELEM_CHECK_VARIABLE, we will generate
-		 a temporary, so we don't need to bother the user.  */
-	      gfc_warning ("INTENT(%s) actual argument at %L might interfere "
-			   "with actual argument at %L.", 
-			   intent == INTENT_OUT ? "OUT" : "INOUT", 
-			   &var->where, &expr->where);
+		  /* We are told not to check dependencies. 
+		     We do it, however, and issue a warning in case we find one.
+		     If a dependency is found in the case 
+		     elemental == ELEM_CHECK_VARIABLE, we will generate
+		     a temporary, so we don't need to bother the user.  */
+		  gfc_warning ("INTENT(%s) actual argument at %L might "
+			       "interfere with actual argument at %L.", 
+		   	       intent == INTENT_OUT ? "OUT" : "INOUT", 
+		   	       &var->where, &expr->where);
+		}
 	      return 0;
 	    }
 	  else
@@ -664,7 +690,6 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
 {
   gfc_actual_arglist *actual;
   gfc_constructor *c;
-  gfc_ref *ref;
   int n;
 
   gcc_assert (expr1->expr_type == EXPR_VARIABLE);
@@ -700,17 +725,8 @@ gfc_check_dependency (gfc_expr *expr1, gfc_expr *expr2, bool identical)
 
 	  /* If either variable is a pointer, assume the worst.  */
 	  /* TODO: -fassume-no-pointer-aliasing */
-	  if (expr1->symtree->n.sym->attr.pointer)
+	  if (gfc_is_data_pointer (expr1) || gfc_is_data_pointer (expr2))
 	    return 1;
-	  for (ref = expr1->ref; ref; ref = ref->next)
-	    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
-	      return 1;
-
-	  if (expr2->symtree->n.sym->attr.pointer)
-	    return 1;
-	  for (ref = expr2->ref; ref; ref = ref->next)
-	    if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
-	      return 1;
 
 	  /* Otherwise distinct symbols have no dependencies.  */
 	  return 0;
