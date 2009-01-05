@@ -1,7 +1,7 @@
 ;; file warmelt-normatch.bysl -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
-    Copyright 2008 Free Software Foundation, Inc.
+    Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -310,7 +310,7 @@
 ;;;; any testpoints 
 (defclass class_nrep_testpoint
   :super class_nrep_typexpr
-  :fields (ntsp_failbp			;backpoint for failure
+  :fields (ntsp_failp			;backpoint for failure
 	   ntsp_succp			;success point
 	   ntsp_test			;normal tested expression
 	   ))
@@ -351,6 +351,11 @@
 ;;; the list of test points
 ;;; the pattern context
 (defselector normal_pattern class_selector)
+
+(compile_warning "should probably have a add_when_pattern & add_else_pattern methods" ())
+
+;;; selector to add a pattern when
+(defselector add_when_pattern class_selector)
 
 
 ;;; expansion of tuples in cmatcher should be done in warmelt-genobj
@@ -424,7 +429,7 @@
 	   (matbind (get_field :amatch_matchbind mat))
 	   (curtestp (instance class_nrep_testp_matcher
 			       :nrep_loc sloc
-			       :nexpr_ctyp matbind
+			       :nexpr_ctyp (get_field :fbind_type matbind)
 			       :ntsp_test nmatch
 			       :ntsp_succp ()
 			       :ntsm_matcher mat
@@ -492,7 +497,7 @@
 	  (curmatch :long ix)
 	  (debug_msg curmatch "normpat_anymatchpat curmatch")
 	  (assert_msg "check curmatch" (is_a curmatch class_formal_binding))
-	  (let ( (csym (clone_symbol (get_field :named_name curmatch)))
+	  (let ( (csym (clone_symbol (get_field :binder curmatch)))
 		 (curtyp (get_field :fbind_type curmatch))
 		 (cbind (instance class_normlet_binding
 				  :letbind_loc sloc
@@ -551,7 +556,14 @@
      (normal_exp smatsx env ncx sloc)
      (debug_msg nmatx "normexp_match nmatx")
      (debug_msg scases "normexp_match scases")
-     (let ( (ctyp (get_ctype nmatx env)) )
+     (let ( (ctyp (get_ctype nmatx env)) 
+	    (rootpoint (instance class_nrep_testpoint
+				 :nrep_loc sloc
+				 :nexpr_ctyp ctyp
+				 :ntsp_test nmatx
+				 :ntsp_failp ()
+				 :ntsp_succp ()))
+	    )
        (debug_msg ctyp "normexp_match ctyp")
        (foreach_in_multiple
 	(scases)

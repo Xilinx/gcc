@@ -1,3 +1,8 @@
+2009-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added debug_msg in
+	clone_symbol. Updated copyright year.
+	* melt/warmelt-normatch.bysl: added fields in
+	class_nrep_testpoint.  Updated copyright year.
 2008-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added mexpand_put_fields.
 	* melt/warmelt-normal.bysl: corrected assertion in normexp_put_fields.

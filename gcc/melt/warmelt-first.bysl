@@ -2,7 +2,7 @@
 ;; file warmelt-first.bysl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
-    Copyright 2008 Free Software Foundation, Inc.
+    Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1592,7 +1592,7 @@
 		 ( (is_string symb) 
 		   symb)
 		 (:else 
-					;(debug_msg symb "clone_symbol bad symb")
+		  (debug_msg symb "clone_symbol bad symb")
 		  (assert_msg "invalid symb in clone_symbol" ())
 		  (the_null))))
 	 (boxi (mapstring_getstr mapstr synam)) )
