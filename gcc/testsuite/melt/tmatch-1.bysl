@@ -2,6 +2,13 @@
 ;; file  gcc/testsuite/melt/tmatch-1.bysl
 ;; test the match operation
 
+#| run in buildir/gcc
+ ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
+    -fbasilys-compile-script=built-melt-cc-script \
+    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
+    -fbasilys-arg=..../tmatch-1.bysl -fbasilys-debug
+|#
+
 (defun tmatch_aa (x)
   (match x
 	 ( ?(tuple_nth 0 ?(instance class_symbol :named_name ?n))

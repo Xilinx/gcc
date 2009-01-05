@@ -450,13 +450,17 @@
 	       (foreach_in_multiple
 		(nins)
 		(ncurin :long ix)
-		(debug_msg nins "normpat_anymatchpat nins")
+		(debug_msg ncurin "normpat_anymatchpat ncurin")
 		(let ( (curmatch (multiple_nth inmatchs ix)) 
-		       (curctype (get_ctype nins env))
+		       (curctype (get_ctype ncurin env))
+		       (matchtype (get_field :fbind_type curmatch))
 		       )
+		  (debug_msg curmatch "normpat_anymatchpat curmatch")
 		  (assert_msg "check curmatch" 
 			      (is_a curmatch class_formal_binding))
-		  (if (!= curctype (get_field :fbind_type curmatch))
+		  (debug_msg curctype "normpat_anymatchpat curctype")
+		  (debug_msg matchtype "normpat_anymatchpat matchtype")
+		  (if (!= curctype matchtype)
 		      (progn
 			(error_strv sloc
 				    "type mismatch for match argument in matcher"
@@ -464,12 +468,18 @@
 			(inform_strv sloc
 				     "mismatched formal name in matcher is"
 				     (get_field :named_name (get_field :binder curmatch)))
+			(inform_strv sloc
+				     "mismatched input type is"
+				     (get_field :named_name curctype))
+			(inform_strv sloc
+				     "expected match type type is"
+				     (get_field :named_name matchtype))
 			)
 		    (let ( (newb (instance class_normlet_binding
 					   :letbind_loc sloc
 					   :binder (get_field :binder curmatch)
 					   :letbind_type curctype
-					   :letbind_expr nins)
+					   :letbind_expr ncurin)
 				 )
 			   )
 		      (debug_msg newb "normpat_anymatchpat newb")
@@ -601,7 +611,7 @@
        (debug_msg tupvarmap "normexp_match tupvarmap")
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
-       (assert_msg "unimplemented normexp_match" ())
+       (assert_msg "unimplemented yet normexp_match" ())
        (compile_warning "@@unimplemented normexp_match" ())
        ))))
 

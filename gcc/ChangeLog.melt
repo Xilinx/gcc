@@ -1,4 +1,8 @@
 2009-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: debugged some stuff. Added explicit
+	inform message for matched typemispatch.
+	* testsuite/melt/tmatch-1.bysl: added comment to explain how to run it.
+2009-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added debug_msg in
 	clone_symbol. Updated copyright year.
 	* melt/warmelt-normatch.bysl: added fields in
