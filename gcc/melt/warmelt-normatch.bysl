@@ -388,10 +388,26 @@
 	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
 	 )
     (error_strv psloc 
-		"unimplemented normal_pattern for pattern of " myclassname)
+		"unimplemented NORMAL_PATTERN for pattern of " myclassname)
     (assert_msg "catchall normal_pattern unimplemented on pattern" ())
     ))
 (install_method class_srcpattern_any normal_pattern normpat_anypat)
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; normalize instance pattern
+(defun normpat_instancepat (recv nmatch spatlist testptlist pcn)
+  (debug_msg recv "normpat_instancepat recv")
+  (debug_msg nmatch "normpat_instancepat nmatch")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_instance))
+  (let ( (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 )
+    (assert_msg "unimplemented normpat_instancepat" ())
+    )
+  )
+(install_method class_srcpattern_instance normal_pattern normpat_instancepat)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -499,8 +515,10 @@
 	      (get_field :named_name mat)))
 	 ;; prepend the current testpoint
 	 (list_prepend testptlist curtestp)
+	 (debug_msg testptlist "normpat_anymatchpat updated testptlist")
 	 ;; prepend the current pattern
 	 (list_prepend spatlist recv)
+	 (debug_msg spatlist "normpat_anymatchpat updated spatlist")
 	 ;;
 	 (foreach_in_multiple
 	  (outmatchs)
@@ -536,7 +554,7 @@
        )
      (if (!= env oldenv)
 	 (put_fields pcn :pctn_env oldenv))
-     (assert_msg "normpat_anymatchpat @@NOT IMPLEMENTED@@" ())
+     ;(assert_msg "normpat_anymatchpat @@NOT IMPLEMENTED@@" ())
      (compile_warning "normpat_anymatchpat INCOMPLETE" ())
      )
     ))
@@ -605,7 +623,19 @@
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
 	  (normal_pattern curpat nmatx spatlist testptlist pcn)
-	  (debug_msg curcas "normexp_match curcas after normal_pattern")
+	  (let ( (newenv (get_field :pctn_env pcn)) )
+	    (debug_msg newenv "normexp_match newenv")
+	    (debug_msg curcas "normexp_match curcas after normal_pattern")
+	    (debug_msg spatlist "normexp_match spatlist after normal_pattern")
+	    (debug_msg testptlist "normexp_match testptlist after normal_pattern")
+	    (multicall 
+	     (nbody bindsbody)
+	     (normalize_tuple curbody newenv ncx sloc)
+	     (debug_msg nbody "normexp_match nbody")
+	     (debug_msg bindsbody "normexp_match bindsbody")
+	     (compile_warning "@@incomplete normexp_match" ())
+	     )
+	    )
 	  )
 	)				;end foreach_in_multiple
        (debug_msg tupvarmap "normexp_match tupvarmap")

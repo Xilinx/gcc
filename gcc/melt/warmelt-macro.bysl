@@ -1,7 +1,7 @@
 ;; file warmelt-macro.bysl -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
-    Copyright 2008 Free Software Foundation, Inc.
+    Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1449,6 +1449,7 @@
     ;; parse the out formals
     (setq curpair (pair_tail curpair))
     (setq outformals (lambda_arg_bindings (pair_head curpair)))
+    (debug_msg outformals "mexpand_defcmatcher outformals")
     (if (not (is_multiple outformals))
 	(progn
 	  (error_plain loc "bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
