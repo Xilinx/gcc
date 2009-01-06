@@ -841,14 +841,14 @@
 
 ;; cmatcher for the tuple nth argument
 (defcmatcher tuple_nth 
-  (tup :long rk)				;match & ins
-  (comp)				;out
+  (matchedtup :long matchedrk)				;match & ins
+  (outcomp)				;out
   tupnth				;statesymb
   (					;test expansion
-   "(basilys_is_multiple_at_least(((basilys_ptr_t)" tup "), (int)(" rk ")))"
+   "(basilys_is_multiple_at_least(((basilys_ptr_t)" matchedtup "), (int)(" matchedrk ")))"
    )
   (					;fill expansion
-   comp " = basilys_multiple_nth((basilys_ptr_t)(" tup "),(int)(" rk "));"
+   outcomp " = basilys_multiple_nth((basilys_ptr_t)(" matchedtup "),(int)(" matchedrk "));"
    )
   ;; no operator expansion 
 )

@@ -1,4 +1,10 @@
 2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.bysl: bug in normexp_defcmatcher. The
+	generated data was wrong (same in & out matchargs).  so updated
+	copyright.
+	* melt/warmelt-first.bysl: better formal names in tuple_nth
+	cmatcher.
+2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: updated copyright year. added debugmsg in mexpand_defcmatcher.
 	* melt/warmelt-normatch.bysl: adding incomplete normapt_instancepat. still buggy & incomplete.
 	* warmelt-first-0.c: regenerated.
