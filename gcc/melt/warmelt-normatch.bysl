@@ -82,7 +82,7 @@
 ;;; catch-all for scanning any pattern (by failing)
 (defun scanpat_anypattern (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_anypattern recv")
-  (assert_msg "check pcn" (is_a recv class_srcpattern_any))
+  (assert_msg "check recv" (is_a recv class_srcpattern_any))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
@@ -319,7 +319,7 @@
 (defclass class_nrep_testp_matcher
   :super class_nrep_testpoint
   :fields (ntsm_matcher			;the matcher
-	   ntsm_binds			;the local bindings
+	   ntsm_binds			;the local bindings for matching ins & initialized for matching outs
 	   ))
 
 ;; testpoint for is_a
@@ -350,6 +350,9 @@
 ;;; the list of src patterns
 ;;; the list of test points
 ;;; the pattern context
+
+;;;@@@ we should perhaps have an argument which is a closure handling the newly built test
+
 (defselector normal_pattern class_selector)
 
 (compile_warning "should probably have a add_when_pattern & add_else_pattern methods" ())
@@ -398,14 +401,55 @@
 ;;;;;;;;;;;;;;;;
 ;;; normalize instance pattern
 (defun normpat_instancepat (recv nmatch spatlist testptlist pcn)
-  (debug_msg recv "normpat_instancepat recv")
+  (debug_msg recv "normpat_instancepat recv start")
   (debug_msg nmatch "normpat_instancepat nmatch")
+  (debug_msg spatlist "normpat_instancepat spatlist")
+  (debug_msg testptlist "normpat_instancepat testptlist")
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (assert_msg "check recv" (is_a recv class_srcpattern_instance))
   (let ( (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 (sloc (get_field :src_loc recv))
+	 (env (unsafe_get_field :pctn_env pcn))
+	 (patcla (get_field :spat_class recv))
+	 (patfields (get_field :spat_fields recv))
+	 (oldenv env)
+	 (ncx (unsafe_get_field :pctn_normctxt pcn))
+	 (curtestp (instance class_nrep_testp_isa
+			     :nrep_loc sloc
+			     :nexpr_ctyp ctype_value
+			     :ntsp_succp ()
+			     :ntsp_failp ()
+			     :ntsp_test nmatch
+			     :ntsi_class patcla
+			     ))
 	 )
-    (assert_msg "unimplemented normpat_instancepat" ())
+    (debug_msg curtestp "normpat_instancepat curtestp")
+    (list_append spatlist recv)
+    (list_append testptlist curtestp)
+    (foreach_in_multiple
+     (patfields)
+     (curpatf :long ix)
+     (debug_msg curpatf "normpat_instancepath curpatf")
+     (assert_msg "check curpatf" (is_a curpatf class_srcfieldpattern))
+     (let ( (floc (get_field :src_loc curpatf))
+	    (curfld (get_field :spaf_field curpatf))
+	    (cursubpat (get_field :spaf_pattern curpatf))
+	    (nflexp (instance class_nrep_unsafe_get_field
+			      :nrep_loc floc
+			      :nuget_obj nmatch
+			      :nuget_field curfld))
+	    (curfldcla (get_field :fld_ownclass curfld))
+	    )
+       (compile_warning "normpat_instancepath might handle specially when cursubpat is a constant" ())
+       (cond  ( (== curfldcla patcla) ())
+	      ( (subclass_of curfldcla patcla) ())
+	      (:else (error_strv floc "bad field in instance pattern" (get_field :named_name curfld))))
+       (debug_msg nflexp "normpat_instancepath nflexp")
+       (normal_pattern cursubpat nflexp spatlist testptlist pcn)
+       ))
+    (compile_warning "not fully unimplemented normpat_instancepat" ())
     )
+  (debug_msg recv "normpat_instancepat recv end")
   )
 (install_method class_srcpattern_instance normal_pattern normpat_instancepat)
 
@@ -446,11 +490,13 @@
 	   (curtestp (instance class_nrep_testp_matcher
 			       :nrep_loc sloc
 			       :nexpr_ctyp (get_field :fbind_type matbind)
-			       :ntsp_test nmatch
 			       :ntsp_succp ()
+			       :ntsp_failp ()
+			       :ntsp_test nmatch
 			       :ntsm_matcher mat
-			       :ntsm_binds bindins
+			       :ntsm_binds ()
 			       ))
+	   (outbinds ())
 	   )
        ;; input args
        (debug_msg inargs "normpat_anymatchpat inargs")
@@ -531,7 +577,7 @@
 				  :letbind_loc sloc
 				  :binder csym
 				  :letbind_type curtyp
-				  :letbind_expr (compile_warning "what should go here?" ())
+				  :letbind_expr () ;this is really nil, the binding should be cleared
 				  ))
 		 (clocc (instance class_nrep_locsymocc
 				  :nrep_loc sloc
@@ -539,11 +585,18 @@
 				  :nocc_symb csym
 				  :nocc_bind cbind))
 		 )
+	    (debug_msg cbind "normpat_anymatchpat cbind")
+	    (if (is_list outbinds)
+		(list_append outbinds cbind)
+	      (progn
+		(setq outbinds (list1 cbind))
+		(put_fields curtestp :ntsm_binds outbinds)))
 	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
 	    (normal_pattern curmatch clocc spatlist testptlist pcn)
 	    (debug_msg curmatch "normpat_anymatchpat curmatch after normal_pattern")
 	    )
 	  )
+	 (debug_msg outbinds "normpat_anymatchpat outbinds")
 	 ;; pop the current pattern
 	 (list_popfirst spatlist)
 	 ;; pop the current testpoint

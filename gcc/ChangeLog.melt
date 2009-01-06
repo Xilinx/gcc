@@ -1,4 +1,7 @@
 2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added more. Probably should be
+	rethought (see comments there).
+2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.bysl: bug in normexp_defcmatcher. The
 	generated data was wrong (same in & out matchargs).  so updated
 	copyright.
