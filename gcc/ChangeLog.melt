@@ -1,3 +1,5 @@
+2009-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added more.
 2009-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added more. Probably should be
 	rethought (see comments there).

@@ -396,6 +396,29 @@
     ))
 (install_method class_srcpattern_any normal_pattern normpat_anypat)
 
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; normalize variable pattern
+(defun normpat_variablepat (recv nmatch spatlist testptlist pcn)
+  (debug_msg recv "normpat_variablepat recv")
+  (debug_msg nmatch "normpat_variablepat nmatch")
+  (assert_msg "check recv" (is_a recv class_srcpattern_variable))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (compile_warning "unimplemented normpat_variablepat" ())
+  (shortbacktrace_dbg "normpat_variablepat" 15)
+)
+(install_method class_srcpattern_variable normal_pattern normpat_variablepat)
+
+;;; normalize joker pattern
+(defun normpat_jokerpat (recv nmatch spatlist testptlist pcn)
+  (debug_msg recv "normpat_jokerpat recv")
+  (debug_msg nmatch "normpat_jokerpat nmatch")
+  (assert_msg "check recv" (is_a recv class_srcpattern_jokervar))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (compile_warning "unimplemented normpat_jokerpat" ())
+  (shortbacktrace_dbg "normpat_jokerpat" 15)
+)
+(install_method class_srcpattern_jokervar normal_pattern normpat_jokerpat)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
