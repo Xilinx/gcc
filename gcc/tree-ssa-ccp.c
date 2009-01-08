@@ -860,6 +860,10 @@ may_propagate_address_into_dereference (tree addr, tree deref)
   gcc_assert (INDIRECT_REF_P (deref)
 	      && TREE_CODE (addr) == ADDR_EXPR);
 
+  /* Don't propagate if ADDR's operand has incomplete type.  */
+  if (!COMPLETE_TYPE_P (TREE_TYPE (TREE_OPERAND (addr, 0))))
+    return false;
+
   /* If the address is invariant then we do not need to preserve restrict
      qualifications.  But we do need to preserve volatile qualifiers until
      we can annotate the folded dereference itself properly.  */
@@ -2191,6 +2195,9 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 
       t = maybe_fold_stmt_indirect (expr, TREE_OPERAND (expr, 0),
 				    integer_zero_node);
+      /* Avoid folding *"abc" = 5 into 'a' = 5.  */
+      if (wi->is_lhs && t && TREE_CODE (t) == INTEGER_CST)
+	t = NULL_TREE;
       if (!t
 	  && TREE_CODE (TREE_OPERAND (expr, 0)) == ADDR_EXPR)
 	/* If we had a good reason for propagating the address here,
@@ -2219,8 +2226,10 @@ fold_stmt_r (tree *expr_p, int *walk_subtrees, void *data)
 	 Otherwise we'd be wasting time.  */
     case ARRAY_REF:
       /* If we are not processing expressions found within an
-	 ADDR_EXPR, then we can fold constant array references.  */
-      if (!*inside_addr_expr_p)
+	 ADDR_EXPR, then we can fold constant array references.
+	 Don't fold on LHS either, to avoid folding "abc"[0] = 5
+	 into 'a' = 5.  */
+      if (!*inside_addr_expr_p && !wi->is_lhs)
 	t = fold_read_from_constant_string (expr);
       else
 	t = NULL;
@@ -2517,6 +2526,9 @@ ccp_fold_builtin (gimple stmt)
       return NULL_TREE;
     }
 
+  if (arg_idx >= nargs)
+    return NULL_TREE;
+
   /* Try to use the dataflow information gathered by the CCP process.  */
   visited = BITMAP_ALLOC (NULL);
   bitmap_clear (visited);
@@ -2532,7 +2544,7 @@ ccp_fold_builtin (gimple stmt)
   switch (DECL_FUNCTION_CODE (callee))
     {
     case BUILT_IN_STRLEN:
-      if (val[0])
+      if (val[0] && nargs == 1)
 	{
 	  tree new_val =
               fold_convert (TREE_TYPE (gimple_call_lhs (stmt)), val[0]);
@@ -2564,22 +2576,24 @@ ccp_fold_builtin (gimple stmt)
       break;
 
     case BUILT_IN_FPUTS:
-      result = fold_builtin_fputs (gimple_call_arg (stmt, 0),
-                                   gimple_call_arg (stmt, 1),
-				   ignore, false, val[0]);
+      if (nargs == 2)
+	result = fold_builtin_fputs (gimple_call_arg (stmt, 0),
+				     gimple_call_arg (stmt, 1),
+				     ignore, false, val[0]);
       break;
 
     case BUILT_IN_FPUTS_UNLOCKED:
-      result = fold_builtin_fputs (gimple_call_arg (stmt, 0),
-				   gimple_call_arg (stmt, 1),
-                                   ignore, true, val[0]);
+      if (nargs == 2)
+	result = fold_builtin_fputs (gimple_call_arg (stmt, 0),
+				     gimple_call_arg (stmt, 1),
+				     ignore, true, val[0]);
       break;
 
     case BUILT_IN_MEMCPY_CHK:
     case BUILT_IN_MEMPCPY_CHK:
     case BUILT_IN_MEMMOVE_CHK:
     case BUILT_IN_MEMSET_CHK:
-      if (val[2] && is_gimple_val (val[2]))
+      if (val[2] && is_gimple_val (val[2]) && nargs == 4)
 	result = fold_builtin_memory_chk (callee,
                                           gimple_call_arg (stmt, 0),
                                           gimple_call_arg (stmt, 1),
@@ -2591,7 +2605,7 @@ ccp_fold_builtin (gimple stmt)
 
     case BUILT_IN_STRCPY_CHK:
     case BUILT_IN_STPCPY_CHK:
-      if (val[1] && is_gimple_val (val[1]))
+      if (val[1] && is_gimple_val (val[1]) && nargs == 3)
 	result = fold_builtin_stxcpy_chk (callee,
                                           gimple_call_arg (stmt, 0),
                                           gimple_call_arg (stmt, 1),
@@ -2601,7 +2615,7 @@ ccp_fold_builtin (gimple stmt)
       break;
 
     case BUILT_IN_STRNCPY_CHK:
-      if (val[2] && is_gimple_val (val[2]))
+      if (val[2] && is_gimple_val (val[2]) && nargs == 4)
 	result = fold_builtin_strncpy_chk (gimple_call_arg (stmt, 0),
                                            gimple_call_arg (stmt, 1),
                                            gimple_call_arg (stmt, 2),
@@ -2710,10 +2724,19 @@ fold_gimple_assign (gimple_stmt_iterator *si)
     case GIMPLE_BINARY_RHS:
       /* Try to fold pointer addition.  */
       if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR)
-        result = maybe_fold_stmt_addition (
-                   TREE_TYPE (gimple_assign_lhs (stmt)),
-                   gimple_assign_rhs1 (stmt),
-                   gimple_assign_rhs2 (stmt));
+	{
+	  tree type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	  if (TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
+	    {
+	      type = build_pointer_type (TREE_TYPE (TREE_TYPE (type)));
+	      if (!useless_type_conversion_p
+		    (TREE_TYPE (gimple_assign_lhs (stmt)), type))
+		type = TREE_TYPE (gimple_assign_rhs1 (stmt));
+	    }
+	  result = maybe_fold_stmt_addition (type,
+					     gimple_assign_rhs1 (stmt),
+					     gimple_assign_rhs2 (stmt));
+	}
 
       if (!result)
         result = fold_binary (subcode,

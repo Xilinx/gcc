@@ -260,12 +260,63 @@ set_allocno_reg (ira_allocno_t allocno, rtx reg)
     }
 }
 
-/* Return TRUE if move of SRC_ALLOCNO to DEST_ALLOCNO does not change
-   value of the destination.  One possible reason for this is the
-   situation when SRC_ALLOCNO is not modified in the corresponding
-   loop.  */
+/* Return true if there is an entry to given loop not from its parent
+   (or grandparent) block.  For example, it is possible for two
+   adjacent loops inside another loop.  */
 static bool
-not_modified_p (ira_allocno_t src_allocno, ira_allocno_t dest_allocno)
+entered_from_non_parent_p (ira_loop_tree_node_t loop_node)
+{
+  ira_loop_tree_node_t bb_node, src_loop_node, parent;
+  edge e;
+  edge_iterator ei;
+
+  for (bb_node = loop_node->children; bb_node != NULL; bb_node = bb_node->next)
+    if (bb_node->bb != NULL)
+      {
+	FOR_EACH_EDGE (e, ei, bb_node->bb->preds)
+	  if (e->src != ENTRY_BLOCK_PTR
+	      && (src_loop_node = IRA_BB_NODE (e->src)->parent) != loop_node)
+	    {
+	      for (parent = src_loop_node->parent;
+		   parent != NULL;
+		   parent = parent->parent)
+		if (parent == loop_node)
+		  break;
+	      if (parent != NULL)
+		/* That is an exit from a nested loop -- skip it.  */
+		continue;
+	      for (parent = loop_node->parent;
+		   parent != NULL;
+		   parent = parent->parent)
+		if (src_loop_node == parent)
+		  break;
+	      if (parent == NULL)
+		return true;
+	    }
+      }
+  return false;
+}
+
+/* Set up ENTERED_FROM_NON_PARENT_P for each loop region.  */
+static void
+setup_entered_from_non_parent_p (void)
+{
+  unsigned int i;
+  loop_p loop;
+
+  for (i = 0; VEC_iterate (loop_p, ira_loops.larray, i, loop); i++)
+    if (ira_loop_nodes[i].regno_allocno_map != NULL)
+      ira_loop_nodes[i].entered_from_non_parent_p
+	= entered_from_non_parent_p (&ira_loop_nodes[i]);
+}
+
+/* Return TRUE if move of SRC_ALLOCNO (assigned to hard register) to
+   DEST_ALLOCNO (assigned to memory) can be removed beacuse it does
+   not change value of the destination.  One possible reason for this
+   is the situation when SRC_ALLOCNO is not modified in the
+   corresponding loop.  */
+static bool
+store_can_be_removed_p (ira_allocno_t src_allocno, ira_allocno_t dest_allocno)
 {
   int regno, orig_regno;
   ira_allocno_t a;
@@ -278,13 +329,26 @@ not_modified_p (ira_allocno_t src_allocno, ira_allocno_t dest_allocno)
   for (node = ALLOCNO_LOOP_TREE_NODE (src_allocno);
        node != NULL;
        node = node->parent)
-    if ((a = node->regno_allocno_map[orig_regno]) == NULL)
-      break;
-    else if (REGNO (ALLOCNO_REG (a)) == (unsigned) regno)
-      return true;
-    else if (bitmap_bit_p (node->modified_regnos, orig_regno))
-      return false;
-  return node != NULL;
+    {
+      a = node->regno_allocno_map[orig_regno];
+      ira_assert (a != NULL);
+      if (REGNO (ALLOCNO_REG (a)) == (unsigned) regno)
+	/* We achieved the destination and everything is ok.  */
+	return true;
+      else if (bitmap_bit_p (node->modified_regnos, orig_regno))
+	return false;
+      else if (node->entered_from_non_parent_p)
+	/* If there is a path from a destination loop block to the
+	   source loop header containing basic blocks of non-parents
+	   (grandparents) of the source loop, we should have checked
+	   modifications of the pseudo on this path too to decide
+	   about possibility to remove the store.  It could be done by
+	   solving a data-flow problem.  Unfortunately such global
+	   solution would complicate IR flattening.  Therefore we just
+	   prohibit removal of the store in such complicated case.  */
+	return false;
+    }
+  gcc_unreachable ();
 }
 
 /* Generate and attach moves to the edge E.  This looks at the final
@@ -322,7 +386,7 @@ generate_edge_moves (edge e)
 	   change_loop).  */
  	if (ALLOCNO_HARD_REGNO (dest_allocno) < 0
 	    && ALLOCNO_HARD_REGNO (src_allocno) >= 0
-	    && not_modified_p (src_allocno, dest_allocno))
+	    && store_can_be_removed_p (src_allocno, dest_allocno))
 	  {
 	    ALLOCNO_MEM_OPTIMIZED_DEST (src_allocno) = dest_allocno;
 	    ALLOCNO_MEM_OPTIMIZED_DEST_P (dest_allocno) = true;
@@ -863,7 +927,7 @@ add_range_and_copies_from_move_list (move_t list, ira_loop_tree_node_t node,
       IOR_HARD_REG_SET (ALLOCNO_TOTAL_CONFLICT_HARD_REGS (to), hard_regs_live);
       update_costs (from, true, freq);
       update_costs (to, false, freq);
-      cp = ira_add_allocno_copy (from, to, freq, move->insn, NULL);
+      cp = ira_add_allocno_copy (from, to, freq, false, move->insn, NULL);
       if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
 	fprintf (ira_dump_file, "    Adding cp%d:a%dr%d-a%dr%d\n",
 		 cp->num, ALLOCNO_NUM (cp->first),
@@ -961,6 +1025,7 @@ void
 ira_emit (bool loops_p)
 {
   basic_block bb;
+  rtx insn;
   edge_iterator ei;
   edge e;
   ira_allocno_t a;
@@ -983,6 +1048,7 @@ ira_emit (bool loops_p)
   ira_free_bitmap (used_regno_bitmap);
   ira_free_bitmap (renamed_regno_bitmap);
   ira_free_bitmap (local_allocno_bitmap);
+  setup_entered_from_non_parent_p ();
   FOR_EACH_BB (bb)
     {
       at_bb_start[bb->index] = NULL;
@@ -1020,6 +1086,14 @@ ira_emit (bool loops_p)
   ira_free (allocno_last_set_check);
   ira_free (allocno_last_set);
   commit_edge_insertions ();
+  /* Fix insn codes.  It is necessary to do it before reload because
+     reload assumes initial insn codes defined.  The insn codes can be
+     invalidated by CFG infrastructure for example in jump
+     redirection.  */
+  FOR_EACH_BB (bb)
+    FOR_BB_INSNS_REVERSE (bb, insn)
+      if (INSN_P (insn))
+	recog_memoized (insn);
   ira_free (at_bb_end);
   ira_free (at_bb_start);
 }

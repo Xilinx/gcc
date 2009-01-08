@@ -444,6 +444,9 @@ struct rtl_data GTY(())
   /* Nonzero if function stack realignment has been finalized, namely
      stack_realign_needed flag has been set and finalized after reload.  */
   bool stack_realign_finalized;
+
+  /* True if dbr_schedule has already been called for this function.  */
+  bool dbr_scheduled_p;
 };
 
 #define return_label (crtl->x_return_label)
@@ -578,6 +581,7 @@ struct function GTY(())
   unsigned int dont_save_pending_sizes_p : 1;
 
   unsigned int after_inlining : 1;
+  unsigned int always_inline_functions_inlined : 1;
 
   /* Fields below this point are not set for abstract functions; see
      allocate_struct_function.  */

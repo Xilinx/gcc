@@ -257,7 +257,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
--Wswitch  -Wswitch-default  -Wswitch-enum @gol
+-Wswitch  -Wswitch-default  -Wswitch-enum -Wsync-nand @gol
 -Wsystem-headers  -Wtrigraphs  -Wtype-limits  -Wundef  -Wuninitialized @gol
 -Wunknown-pragmas  -Wno-pragmas -Wunreachable-code @gol
 -Wunused  -Wunused-function  -Wunused-label  -Wunused-parameter @gol
@@ -335,10 +335,10 @@ Objective-C and Objective-C++ Dialects}.
 -ffunction-sections -fgcse -fgcse-after-reload -fgcse-las -fgcse-lm @gol
 -fgcse-sm -fif-conversion -fif-conversion2 -findirect-inlining @gol
 -finline-functions -finline-functions-called-once -finline-limit=@var{n} @gol
--finline-small-functions -fipa-cp -fipa-cp-clone -fipa-marix-reorg -fipa-pta @gol 
+-finline-small-functions -fipa-cp -fipa-cp-clone -fipa-matrix-reorg -fipa-pta @gol 
 -fipa-pure-const -fipa-reference -fipa-struct-reorg @gol
 -fipa-type-escape -fira -fira-algorithm=@var{algorithm} @gol
--fira-coalesce -fno-ira-share-save-slots @gol
+-fira-region=@var{region} -fira-coalesce -fno-ira-share-save-slots @gol
 -fno-ira-share-spill-slots -fira-verbose=@var{n} @gol
 -fivopts -fkeep-inline-functions -fkeep-static-consts @gol
 -floop-block -floop-interchange -floop-strip-mine -fgraphite-identity @gol
@@ -452,8 +452,9 @@ Objective-C and Objective-C++ Dialects}.
 -mthumb  -marm @gol
 -mtpcs-frame  -mtpcs-leaf-frame @gol
 -mcaller-super-interworking  -mcallee-super-interworking @gol
--mtp=@var{name}
--mword-relocations}
+-mtp=@var{name} @gol
+-mword-relocations @gol
+-mfix-cortex-m3-ldrd}
 
 @emph{AVR Options}
 @gccoptlist{-mmcu=@var{mcu}  -msize  -minit-stack=@var{n}  -mno-interrupts @gol
@@ -467,7 +468,8 @@ Objective-C and Objective-C++ Dialects}.
 -mno-id-shared-library  -mshared-library-id=@var{n} @gol
 -mleaf-id-shared-library  -mno-leaf-id-shared-library @gol
 -msep-data  -mno-sep-data  -mlong-calls  -mno-long-calls @gol
--mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram}
+-mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram @gol
+-micplb}
 
 @emph{CRIS Options}
 @gccoptlist{-mcpu=@var{cpu}  -march=@var{cpu}  -mtune=@var{cpu} @gol
@@ -667,8 +669,8 @@ Objective-C and Objective-C++ Dialects}.
 -mmemcpy  -mno-memcpy  -mlong-calls  -mno-long-calls @gol
 -mmad  -mno-mad  -mfused-madd  -mno-fused-madd  -nocpp @gol
 -mfix-r4000  -mno-fix-r4000  -mfix-r4400  -mno-fix-r4400 @gol
--mfix-vr4120  -mno-fix-vr4120  -mfix-vr4130  -mno-fix-vr4130 @gol
--mfix-sb1  -mno-fix-sb1 @gol
+-mfix-r10000 -mno-fix-r10000  -mfix-vr4120  -mno-fix-vr4120 @gol
+-mfix-vr4130  -mno-fix-vr4130  -mfix-sb1  -mno-fix-sb1 @gol
 -mflush-func=@var{func}  -mno-flush-func @gol
 -mbranch-cost=@var{num}  -mbranch-likely  -mno-branch-likely @gol
 -mfp-exceptions -mno-fp-exceptions @gol
@@ -2150,7 +2152,7 @@ to filter out those warnings.
 Warn also about the use of an uncasted @code{NULL} as sentinel.  When
 compiling only with GCC this is a valid sentinel, as @code{NULL} is defined
 to @code{__null}.  Although it is a null pointer constant not a null pointer,
-it is guaranteed to of the same size as a pointer.  But this use is
+it is guaranteed to be of the same size as a pointer.  But this use is
 not portable across different compilers.
 
 @item -Wno-non-template-friend @r{(C++ and Objective-C++ only)}
@@ -3126,6 +3128,12 @@ and lacks a @code{case} for one or more of the named codes of that
 enumeration.  @code{case} labels outside the enumeration range also
 provoke warnings when this option is used.
 
+@item -Wsync-nand
+@opindex Wsync-nand
+@opindex Wno-sync-nand
+Warn when @code{__sync_fetch_and_nand} and @code{__sync_nand_and_fetch}
+built-in functions are used.  These functions changed semantics in GCC 4.4.
+
 @item -Wtrigraphs
 @opindex Wtrigraphs
 @opindex Wno-trigraphs
@@ -3678,9 +3686,7 @@ integers are disabled by default in C++ unless
 @opindex Wempty-body
 @opindex Wno-empty-body
 Warn if an empty body occurs in an @samp{if}, @samp{else} or @samp{do
-while} statement.  Additionally, in C++, warn when an empty body occurs
-in a @samp{while} or @samp{for} statement with no whitespacing before
-the semicolon.  This warning is also enabled by @option{-Wextra}.
+while} statement.  This warning is also enabled by @option{-Wextra}.
 
 @item -Wenum-compare @r{(C++ and Objective-C++ only)}
 @opindex Wenum-compare
@@ -5722,17 +5728,25 @@ allocation.  It is a default if @acronym{IRA} has been ported for the
 target.
 
 @item -fira-algorithm=@var{algorithm}
-Use specified algorithm for the integrated register allocator.  The
-@var{algorithm} argument should be one of @code{regional}, @code{CB},
-or @code{mixed}.  The second algorithm specifies Chaitin-Briggs
-coloring, the first one specifies regional coloring based on
-Chaitin-Briggs coloring, and the third one which is the default
-specifies a mix of Chaitin-Briggs and regional algorithms where loops
-with small register pressure are ignored.  The first algorithm can
-give best result for machines with small size and irregular register
-set, the second one is faster and generates decent code and the
-smallest size code, and the mixed algorithm usually give the best
-results in most cases and for most architectures.
+Use specified coloring algorithm for the integrated register
+allocator.  The @var{algorithm} argument should be @code{priority} or
+@code{CB}.  The first algorithm specifies Chow's priority coloring,
+the second one specifies Chaitin-Briggs coloring.  The second
+algorithm can be unimplemented for some architectures.  If it is
+implemented, it is the default because Chaitin-Briggs coloring as a
+rule generates a better code.
+
+@item -fira-region=@var{region}
+Use specified regions for the integrated register allocator.  The
+@var{region} argument should be one of @code{all}, @code{mixed}, or
+@code{one}.  The first value means using all loops as register
+allocation regions, the second value which is the default means using
+all loops except for loops with small register pressure as the
+regions, and third one means using all function as a single region.
+The first value can give best result for machines with small size and
+irregular register set, the third one results in faster and generates
+decent code and the smallest size code, and the default value usually
+give the best results in most cases and for most architectures.
 
 @item -fira-coalesce
 @opindex fira-coalesce
@@ -5989,8 +6003,8 @@ This reduces the level of indirection needed for accessing the elements
 of the matrix. The second optimization is matrix transposing that
 attemps to change the order of the matrix's dimensions in order to 
 improve cache locality.
-Both optimizations need fwhole-program flag. 
-Transposing is enabled only if profiling information is avaliable.
+Both optimizations need the @option{-fwhole-program} flag. 
+Transposing is enabled only if profiling information is available.
 
 
 @item -ftree-sink
@@ -7605,10 +7619,19 @@ be disabled.  The default maximum SCC size is 10000.
 
 @item ira-max-loops-num
 IRA uses a regional register allocation by default.  If a function
-contains loops more than number given by the parameter, non-regional
-register allocator will be used even when option
-@option{-fira-algorithm} is given.  The default value of the parameter
-is 20.
+contains loops more than number given by the parameter, only at most
+given number of the most frequently executed loops will form regions
+for the regional register allocation.  The default value of the
+parameter is 100.
+
+@item ira-max-conflict-table-size
+Although IRA uses a sophisticated algorithm of compression conflict
+table, the table can be still big for huge functions.  If the conflict
+table for a function could be more than size in MB given by the
+parameter, the conflict table is not built and faster, simpler, and
+lower quality register allocation algorithm will be used.  The
+algorithm do not use pseudo-register conflicts.  The default value of
+the parameter is 2000.
 
 @end table
 @end table
@@ -8594,7 +8617,8 @@ example, if a cross-compiler was configured with @samp{configure
 arm-elf}, meaning to compile for an arm processor with elf binaries,
 then you would specify @option{-b arm-elf} to run that cross compiler.
 Because there are other options beginning with @option{-b}, the
-configuration must contain a hyphen.
+configuration must contain a hyphen, or @option{-b} alone should be one
+argument followed by the configuration in the next argument.
 
 @item -V @var{version}
 @opindex V
@@ -8716,6 +8740,13 @@ Put functions, data, and readonly data in @var{text-section},
 @var{data-section}, and @var{readonly-data-section} respectively
 by default.  This can be overridden with the @code{section} attribute.
 @xref{Variable Attributes}.
+
+@item -mfix-cortex-m3-ldrd
+@opindex mfix-cortex-m3-ldrd
+Some Cortex-M3 cores can cause data corruption when @code{ldrd} instructions
+with overlapping destination and base registers are used.  This option avoids
+generating these instructions.  This option is enabled by default when
+@option{-mcpu=cortex-m3} is specified.
 
 @end table
 
@@ -9307,6 +9338,12 @@ Build standalone application for SDRAM. Proper start files and
 link scripts will be used to put the application into SDRAM.
 Loader should initialize SDRAM before loading the application
 into SDRAM. This option defines @code{__BFIN_SDRAM}.
+
+@item -micplb
+@opindex micplb
+Assume that ICPLBs are enabled at runtime.  This has an effect on certain
+anomaly workarounds.  For Linux targets, the default is to assume ICPLBs
+are enabled; for standalone applications the default is off.
 @end table
 
 @node CRIS Options
@@ -11288,7 +11325,7 @@ This model has to be used for Linux kernel code.
 @item -mcmodel=medium
 @opindex mcmodel=medium
 Generate code for the medium model: The program is linked in the lower 2
-GB of the address space and symbols with small size as well.  Symbols
+GB of the address space.  Small symbols are also placed there.  Symbols
 with sizes larger than @option{-mlarge-data-threshold} are put into
 large data or bss sections and can be located above 2GB.  Programs can
 be statically or dynamically linked.
@@ -12833,6 +12870,22 @@ Work around certain R4400 CPU errata:
 A double-word or a variable shift may give an incorrect result if executed
 immediately after starting an integer division.
 @end itemize
+
+@item -mfix-r10000
+@itemx -mno-fix-r10000
+@opindex mfix-r10000
+@opindex mno-fix-r10000
+Work around certain R10000 errata:
+@itemize @minus
+@item
+@code{ll}/@code{sc} sequences may not behave atomically on revisions
+prior to 3.0.  They may deadlock on revisions 2.6 and earlier.
+@end itemize
+
+This option can only be used if the target architecture supports
+branch-likely instructions.  @option{-mfix-r10000} is the default when
+@option{-march=r10000} is used; @option{-mno-fix-r10000} is the default
+otherwise.
 
 @item -mfix-vr4120
 @itemx -mno-fix-vr4120

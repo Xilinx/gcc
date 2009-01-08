@@ -339,16 +339,21 @@ dim_rank_check (gfc_expr *dim, gfc_expr *array, int allow_assumed)
   gfc_array_ref *ar;
   int rank;
 
-  if (dim->expr_type != EXPR_CONSTANT || array->expr_type != EXPR_VARIABLE)
+  if (dim->expr_type != EXPR_CONSTANT
+      || (array->expr_type != EXPR_VARIABLE
+	  && array->expr_type != EXPR_ARRAY))
     return SUCCESS;
 
-  ar = gfc_find_array_ref (array);
   rank = array->rank;
-  if (ar->as->type == AS_ASSUMED_SIZE
-      && !allow_assumed
-      && ar->type != AR_ELEMENT
-      && ar->type != AR_SECTION)
-    rank--;
+  if (array->expr_type == EXPR_VARIABLE)
+    {
+      ar = gfc_find_array_ref (array);
+      if (ar->as->type == AS_ASSUMED_SIZE
+	  && !allow_assumed
+	  && ar->type != AR_ELEMENT
+	  && ar->type != AR_SECTION)
+	rank--;
+    }
 
   if (mpz_cmp_ui (dim->value.integer, 1) < 0
       || mpz_cmp_ui (dim->value.integer, rank) > 0)
@@ -396,8 +401,8 @@ identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
 /* Check whether two character expressions have the same length;
    returns SUCCESS if they have or if the length cannot be determined.  */
 
-static gfc_try
-check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
+gfc_try
+gfc_check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
 {
    long len_a, len_b;
    len_a = len_b = -1;
@@ -423,8 +428,8 @@ check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
    if (len_a == len_b)
      return SUCCESS;
 
-   gfc_error ("Unequal character lengths (%ld and %ld) in %s intrinsic "
-	      "at %L", len_a, len_b, name, &a->where);
+   gfc_error ("Unequal character lengths (%ld/%ld) in %s at %L",
+	      len_a, len_b, name, &a->where);
    return FAILURE;
 }
 
@@ -1794,7 +1799,7 @@ gfc_check_malloc (gfc_expr *size)
 gfc_try
 gfc_check_matmul (gfc_expr *matrix_a, gfc_expr *matrix_b)
 {
-  if ((matrix_a->ts.type != BT_LOGICAL) && !gfc_numeric_ts (&matrix_b->ts))
+  if ((matrix_a->ts.type != BT_LOGICAL) && !gfc_numeric_ts (&matrix_a->ts))
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be numeric "
 		 "or LOGICAL", gfc_current_intrinsic_arg[0],
@@ -1802,12 +1807,21 @@ gfc_check_matmul (gfc_expr *matrix_a, gfc_expr *matrix_b)
       return FAILURE;
     }
 
-  if ((matrix_b->ts.type != BT_LOGICAL) && !gfc_numeric_ts (&matrix_a->ts))
+  if ((matrix_b->ts.type != BT_LOGICAL) && !gfc_numeric_ts (&matrix_b->ts))
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be numeric "
 		 "or LOGICAL", gfc_current_intrinsic_arg[1],
 		 gfc_current_intrinsic, &matrix_b->where);
       return FAILURE;
+    }
+
+  if ((matrix_a->ts.type == BT_LOGICAL && gfc_numeric_ts (&matrix_b->ts))
+      || (gfc_numeric_ts (&matrix_a->ts) && matrix_b->ts.type == BT_LOGICAL))
+    {
+      gfc_error ("Argument types of '%s' intrinsic at %L must match (%s/%s)",
+		 gfc_current_intrinsic, &matrix_a->where,
+		 gfc_typename(&matrix_a->ts), gfc_typename(&matrix_b->ts));
+       return FAILURE;
     }
 
   switch (matrix_a->rank)
@@ -2002,7 +2016,7 @@ gfc_check_merge (gfc_expr *tsource, gfc_expr *fsource, gfc_expr *mask)
     return FAILURE;
 
   if (tsource->ts.type == BT_CHARACTER)
-    return check_same_strlen (tsource, fsource, "MERGE");
+    return gfc_check_same_strlen (tsource, fsource, "MERGE intrinsic");
 
   return SUCCESS;
 }
@@ -3122,14 +3136,15 @@ gfc_check_random_seed (gfc_expr *size, gfc_expr *put, gfc_expr *get)
 {
   unsigned int nargs = 0, kiss_size;
   locus *where = NULL;
-  mpz_t put_size;
+  mpz_t put_size, get_size;
   bool have_gfc_real_16; /* Try and mimic HAVE_GFC_REAL_16 in libgfortran.  */
 
   have_gfc_real_16 = gfc_validate_kind (BT_REAL, 16, true) != -1;
 
-  /* Keep these values in sync with kiss_size in libgfortran/random.c.  */
-  kiss_size = have_gfc_real_16 ? 12 : 8;
-  
+  /* Keep the number of bytes in sync with kiss_size in
+     libgfortran/intrinsics/random.c.  */
+  kiss_size = (have_gfc_real_16 ? 48 : 32) / gfc_default_integer_kind;
+
   if (size != NULL)
     {
       if (size->expr_type != EXPR_VARIABLE
@@ -3172,9 +3187,10 @@ gfc_check_random_seed (gfc_expr *size, gfc_expr *put, gfc_expr *get)
 
       if (gfc_array_size (put, &put_size) == SUCCESS
 	  && mpz_get_ui (put_size) < kiss_size)
-	gfc_error ("Array PUT of intrinsic %s is too small (%i/%i) at %L", 
-		   gfc_current_intrinsic, (int) mpz_get_ui (put_size),
-		   kiss_size, where);
+	gfc_error ("Size of '%s' argument of '%s' intrinsic at %L "
+		   "too small (%i/%i)",
+		   gfc_current_intrinsic_arg[1], gfc_current_intrinsic, where, 
+		   (int) mpz_get_ui (put_size), kiss_size);
     }
 
   if (get != NULL)
@@ -3200,6 +3216,13 @@ gfc_check_random_seed (gfc_expr *size, gfc_expr *put, gfc_expr *get)
 
       if (kind_value_check (get, 2, gfc_default_integer_kind) == FAILURE)
 	return FAILURE;
+
+       if (gfc_array_size (get, &get_size) == SUCCESS
+ 	  && mpz_get_ui (get_size) < kiss_size)
+	gfc_error ("Size of '%s' argument of '%s' intrinsic at %L "
+		   "too small (%i/%i)",
+		   gfc_current_intrinsic_arg[2], gfc_current_intrinsic, where, 
+		   (int) mpz_get_ui (get_size), kiss_size);
     }
 
   /* RANDOM_SEED may not have more than one non-optional argument.  */

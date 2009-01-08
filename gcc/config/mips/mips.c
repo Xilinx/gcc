@@ -292,7 +292,8 @@ struct machine_function GTY(()) {
   /* The current frame information, calculated by mips_compute_frame_info.  */
   struct mips_frame_info frame;
 
-  /* The register to use as the function's global pointer.  */
+  /* The register to use as the function's global pointer, or INVALID_REGNUM
+     if the function doesn't need one.  */
   unsigned int global_pointer;
 
   /* True if mips_adjust_insn_length should ignore an instruction's
@@ -452,7 +453,6 @@ static int mips_base_target_flags;
 bool mips_base_mips16;
 
 /* The ambient values of other global variables.  */
-static int mips_base_delayed_branch; /* flag_delayed_branch */
 static int mips_base_schedule_insns; /* flag_schedule_insns */
 static int mips_base_reorder_blocks_and_partition; /* flag_reorder... */
 static int mips_base_move_loop_invariants; /* flag_move_loop_invariants */
@@ -5331,7 +5331,7 @@ mips_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 	    {
 	      /* [1] Emit code for: off &= -rsize.	*/
 	      t = build2 (BIT_AND_EXPR, TREE_TYPE (off), off,
-			  build_int_cst (NULL_TREE, -rsize));
+			  build_int_cst (TREE_TYPE (off), -rsize));
 	      gimplify_assign (off, t, pre_p);
 	    }
 	  osize = rsize;
@@ -6400,8 +6400,10 @@ mips_expand_synci_loop (rtx begin, rtx end)
   rtx inc, label, cmp, cmp_result;
 
   /* Load INC with the cache line size (rdhwr INC,$1).  */
-  inc = gen_reg_rtx (SImode);
-  emit_insn (gen_rdhwr (inc, const1_rtx));
+  inc = gen_reg_rtx (Pmode);
+  emit_insn (Pmode == SImode
+	     ? gen_rdhwr_synci_step_si (inc)
+	     : gen_rdhwr_synci_step_di (inc));
 
   /* Loop back to here.  */
   label = gen_label_rtx ();
@@ -6909,6 +6911,7 @@ mips_print_operand_reloc (FILE *file, rtx op, enum mips_symbol_context context,
    '#'	Print a nop if in a ".set noreorder" block.
    '/'	Like '#', but do nothing within a delayed-branch sequence.
    '?'	Print "l" if mips_branch_likely is true
+   '~'	Print a nop if mips_branch_likely is true
    '.'	Print the name of the register with a hard-wired zero (zero or $0).
    '@'	Print the name of the assembler temporary register (at or $1).
    '^'	Print the name of the pic call-through register (t9 or $25).
@@ -6983,6 +6986,11 @@ mips_print_operand_punctuation (FILE *file, int ch)
 	putc ('l', file);
       break;
 
+    case '~':
+      if (mips_branch_likely)
+	fputs ("\n\tnop", file);
+      break;
+
     case '.':
       fputs (reg_names[GP_REG_FIRST + 0], file);
       break;
@@ -7026,7 +7034,7 @@ mips_init_print_operand_punct (void)
 {
   const char *p;
 
-  for (p = "()[]<>*#/?.@^+$|-"; *p; p++)
+  for (p = "()[]<>*#/?~.@^+$|-"; *p; p++)
     mips_print_operand_punct[(unsigned char) *p] = true;
 }
 
@@ -8352,8 +8360,8 @@ mips16_cfun_returns_in_fpr_p (void)
 }
 
 /* Return the register that should be used as the global pointer
-   within this function.  Return 0 if the function doesn't need
-   a global pointer.  */
+   within this function.  Return INVALID_REGNUM if the function
+   doesn't need a global pointer.  */
 
 static unsigned int
 mips_global_pointer (void)
@@ -8388,7 +8396,7 @@ mips_global_pointer (void)
 	 -call_nonpic code, no new uses will be introduced during or after
 	 reload.  */
       if (TARGET_ABICALLS_PIC0)
-	return 0;
+	return INVALID_REGNUM;
 
       /* We need to handle the following implicit gp references:
 
@@ -8410,7 +8418,7 @@ mips_global_pointer (void)
 	   external libgcc routine.  */
       if (!crtl->uses_const_pool
 	  && !mips16_cfun_returns_in_fpr_p ())
-	return 0;
+	return INVALID_REGNUM;
     }
 
   /* We need a global pointer, but perhaps we can use a call-clobbered
@@ -8426,48 +8434,85 @@ mips_global_pointer (void)
   return GLOBAL_POINTER_REGNUM;
 }
 
+/* Return true if the current function should treat register REGNO
+   as call-saved.  */
+
+static bool
+mips_cfun_call_saved_reg_p (unsigned int regno)
+{
+  /* call_insns preserve $28 unless they explicitly say otherwise,
+     so call_really_used_regs[] treats $28 as call-saved.  However,
+     we want the ABI property rather than the default call_insn
+     property here.  */
+  return (regno == GLOBAL_POINTER_REGNUM
+	  ? TARGET_CALL_SAVED_GP
+	  : !call_really_used_regs[regno]);
+}
+
+/* Return true if the function body might clobber register REGNO.
+   We know that REGNO is call-saved.  */
+
+static bool
+mips_cfun_might_clobber_call_saved_reg_p (unsigned int regno)
+{
+  /* Some functions should be treated as clobbering all call-saved
+     registers.  */
+  if (crtl->saves_all_registers)
+    return true;
+
+  /* DF handles cases where a register is explicitly referenced in
+     the rtl.  Incoming values are passed in call-clobbered registers,
+     so we can assume that any live call-saved register is set within
+     the function.  */
+  if (df_regs_ever_live_p (regno))
+    return true;
+
+  /* Check for registers that are clobbered by FUNCTION_PROFILER.
+     These clobbers are not explicit in the rtl.  */
+  if (crtl->profile && MIPS_SAVE_REG_FOR_PROFILING_P (regno))
+    return true;
+
+  /* If we're using a call-saved global pointer, the function's
+     prologue will need to set it up.  */
+  if (cfun->machine->global_pointer == regno)
+    return true;
+
+  /* The function's prologue will need to set the frame pointer if
+     frame_pointer_needed.  */
+  if (regno == HARD_FRAME_POINTER_REGNUM && frame_pointer_needed)
+    return true;
+
+  /* If a MIPS16 function returns a value in FPRs, its epilogue
+     will need to call an external libgcc routine.  This yet-to-be
+     generated call_insn will clobber $31.  */
+  if (regno == GP_REG_FIRST + 31 && mips16_cfun_returns_in_fpr_p ())
+    return true;
+
+  return false;
+}
+
 /* Return true if the current function must save register REGNO.  */
 
 static bool
 mips_save_reg_p (unsigned int regno)
 {
-  /* We need to save $gp if TARGET_CALL_SAVED_GP and if we have not
-     chosen a call-clobbered substitute.  */
-  if (TARGET_CALL_SAVED_GP
-      && regno == GLOBAL_POINTER_REGNUM
-      && cfun->machine->global_pointer == regno)
-    return true;
+  if (mips_cfun_call_saved_reg_p (regno))
+    {
+      if (mips_cfun_might_clobber_call_saved_reg_p (regno))
+	return true;
 
-  /* Check call-saved registers.  */
-  if ((crtl->saves_all_registers || df_regs_ever_live_p (regno))
-      && !call_really_used_regs[regno])
-    return true;
+      /* Save both registers in an FPR pair if either one is used.  This is
+	 needed for the case when MIN_FPRS_PER_FMT == 1, which allows the odd
+	 register to be used without the even register.  */
+      if (FP_REG_P (regno)
+	  && MAX_FPRS_PER_FMT == 2
+	  && mips_cfun_might_clobber_call_saved_reg_p (regno + 1))
+	return true;
+    }
 
-  /* Save both registers in an FPR pair if either one is used.  This is
-     needed for the case when MIN_FPRS_PER_FMT == 1, which allows the odd
-     register to be used without the even register.  */
-  if (FP_REG_P (regno)
-      && MAX_FPRS_PER_FMT == 2
-      && df_regs_ever_live_p (regno + 1)
-      && !call_really_used_regs[regno + 1])
-    return true;
-
-  /* We need to save the old frame pointer before setting up a new one.  */
-  if (regno == HARD_FRAME_POINTER_REGNUM && frame_pointer_needed)
-    return true;
-
-  /* Check for registers that must be saved for FUNCTION_PROFILER.  */
-  if (crtl->profile && MIPS_SAVE_REG_FOR_PROFILING_P (regno))
-    return true;
-
-  /* We need to save the incoming return address if it is ever clobbered
-     within the function, if __builtin_eh_return is being used to set a
-     different return address, or if a stub is being used to return a
-     value in FPRs.  */
-  if (regno == GP_REG_FIRST + 31
-      && (df_regs_ever_live_p (regno)
-	  || crtl->calls_eh_return
-	  || mips16_cfun_returns_in_fpr_p ()))
+  /* We need to save the incoming return address if __builtin_eh_return
+     is being used to set a different return address.  */
+  if (regno == GP_REG_FIRST + 31 && crtl->calls_eh_return)
     return true;
 
   return false;
@@ -8653,7 +8698,7 @@ mips_compute_frame_info (void)
 enum mips_loadgp_style
 mips_current_loadgp_style (void)
 {
-  if (!TARGET_USE_GOT || cfun->machine->global_pointer == 0)
+  if (!TARGET_USE_GOT || cfun->machine->global_pointer == INVALID_REGNUM)
     return LOADGP_NONE;
 
   if (TARGET_RTP_PIC)
@@ -8803,7 +8848,7 @@ mips_restore_gp (rtx temp)
 {
   gcc_assert (TARGET_ABICALLS && TARGET_OLDABI);
 
-  if (cfun->machine->global_pointer == 0)
+  if (cfun->machine->global_pointer == INVALID_REGNUM)
     return;
 
   if (TARGET_MIPS16)
@@ -8880,7 +8925,7 @@ static void
 mips_output_cplocal (void)
 {
   if (!TARGET_EXPLICIT_RELOCS
-      && cfun->machine->global_pointer > 0
+      && cfun->machine->global_pointer != INVALID_REGNUM
       && cfun->machine->global_pointer != GLOBAL_POINTER_REGNUM)
     output_asm_insn (".cplocal %+", 0);
 }
@@ -9116,7 +9161,7 @@ mips_expand_prologue (void)
   unsigned int nargs;
   rtx insn;
 
-  if (cfun->machine->global_pointer > 0)
+  if (cfun->machine->global_pointer != INVALID_REGNUM)
     SET_REGNO (pic_offset_table_rtx, cfun->machine->global_pointer);
 
   frame = &cfun->machine->frame;
@@ -9234,7 +9279,7 @@ mips_expand_prologue (void)
 
   /* Initialize the $gp save slot.  */
   if (frame->cprestore_size > 0
-      && cfun->machine->global_pointer != 0)
+      && cfun->machine->global_pointer != INVALID_REGNUM)
     {
       if (TARGET_MIPS16)
 	mips_emit_move (mips_cprestore_slot (MIPS_PROLOGUE_TEMP (Pmode)),
@@ -9842,8 +9887,12 @@ mips_ira_cover_classes (void)
   };
 
   /* Don't allow the register allocators to use LO and HI in MIPS16 mode,
-     which has no MTLO or MTHI instructions.  */
-  return TARGET_MIPS16 ? no_acc_classes : acc_classes;
+     which has no MTLO or MTHI instructions.  Also, using GR_AND_ACC_REGS
+     as a cover class only works well when we keep per-register costs.
+     Using it when not optimizing can cause us to think accumulators
+     have the same cost as GPRs in cases where GPRs are actually much
+     cheaper.  */
+  return TARGET_MIPS16 || !optimize ? no_acc_classes : acc_classes;
 }
 
 /* Return the register class required for a secondary register when
@@ -10142,6 +10191,8 @@ mips_output_conditional_branch (rtx insn, rtx *operands,
   unsigned int length;
   rtx taken, not_taken;
 
+  gcc_assert (LABEL_P (operands[1]));  
+
   length = get_attr_length (insn);
   if (length <= 8)
     {
@@ -10248,6 +10299,17 @@ mips_output_order_conditional_branch (rtx insn, rtx *operands, bool inverted_p)
       break;
     }
   return mips_output_conditional_branch (insn, operands, branch[1], branch[0]);
+}
+
+/* Return the assembly code for __sync_*() loop LOOP.  The loop should support
+   both normal and likely branches, using %? and %~ where appropriate.  */
+
+const char *
+mips_output_sync_loop (const char *loop)
+{
+  /* Use branch-likely instructions to work around the LL/SC R10000 errata.  */
+  mips_branch_likely = TARGET_FIX_R10000;
+  return loop;
 }
 
 /* Return the assembly code for DIV or DDIV instruction DIVISION, which has
@@ -11619,19 +11681,23 @@ static rtx
 mips_prepare_builtin_arg (enum insn_code icode,
 			  unsigned int opno, tree exp, unsigned int argno)
 {
+  tree arg;
   rtx value;
   enum machine_mode mode;
 
-  value = expand_normal (CALL_EXPR_ARG (exp, argno));
+  arg = CALL_EXPR_ARG (exp, argno);
+  value = expand_normal (arg);
   mode = insn_data[icode].operand[opno].mode;
   if (!insn_data[icode].operand[opno].predicate (value, mode))
     {
-      /* Cope with address operands, where MODE is not the mode of
-	 VALUE itself.  */
-      if (GET_MODE (value) == VOIDmode)
-	value = copy_to_mode_reg (mode, value);
-      else
-	value = copy_to_reg (value);
+      /* We need to get the mode from ARG for two reasons:
+
+	   - to cope with address operands, where MODE is the mode of the
+	     memory, rather than of VALUE itself.
+
+	   - to cope with special predicates like pmode_register_operand,
+	     where MODE is VOIDmode.  */
+      value = copy_to_mode_reg (TYPE_MODE (TREE_TYPE (arg)), value);
 
       /* Check the predicate again.  */
       if (!insn_data[icode].operand[opno].predicate (value, mode))
@@ -11675,7 +11741,8 @@ mips_expand_builtin_direct (enum insn_code icode, rtx target, tree exp,
   opno = 0;
   if (has_target_p)
     {
-      ops[opno] = mips_prepare_builtin_target (icode, opno, target);
+      target = mips_prepare_builtin_target (icode, opno, target);
+      ops[opno] = target;
       opno++;
     }
 
@@ -11862,8 +11929,7 @@ mips_expand_builtin_bposge (enum mips_builtin_type builtin_type, rtx target)
 
 static rtx
 mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
-		     enum machine_mode mode ATTRIBUTE_UNUSED,
-		     int ignore ATTRIBUTE_UNUSED)
+		     enum machine_mode mode, int ignore)
 {
   tree fndecl;
   unsigned int fcode, avail;
@@ -11879,7 +11945,7 @@ mips_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
     {
       error ("built-in function %qs not supported for MIPS16",
 	     IDENTIFIER_POINTER (DECL_NAME (fndecl)));
-      return const0_rtx;
+      return ignore ? const0_rtx : CONST0_RTX (mode);
     }
   switch (d->builtin_type)
     {
@@ -13230,7 +13296,7 @@ mips_reorg (void)
   mips16_lay_out_constants ();
   if (mips_r10k_cache_barrier != R10K_CACHE_BARRIER_NONE)
     r10k_insert_cache_barriers ();
-  if (mips_base_delayed_branch)
+  if (flag_delayed_branch)
     dbr_schedule (get_insns ());
   mips_reorg_process_insns ();
   if (!TARGET_MIPS16
@@ -13971,9 +14037,26 @@ mips_override_options (void)
       && mips_matching_cpu_name_p (mips_arch_info->name, "r4400"))
     target_flags |= MASK_FIX_R4400;
 
+  /* Default to working around R10000 errata only if the processor
+     was selected explicitly.  */
+  if ((target_flags_explicit & MASK_FIX_R10000) == 0
+      && mips_matching_cpu_name_p (mips_arch_info->name, "r10000"))
+    target_flags |= MASK_FIX_R10000;
+
+  /* Make sure that branch-likely instructions available when using
+     -mfix-r10000.  The instructions are not available if either:
+
+	1. -mno-branch-likely was passed.
+	2. The selected ISA does not support branch-likely and
+	   the command line does not include -mbranch-likely.  */
+  if (TARGET_FIX_R10000
+      && ((target_flags_explicit & MASK_BRANCHLIKELY) == 0
+          ? !ISA_HAS_BRANCHLIKELY
+          : !TARGET_BRANCHLIKELY))
+    sorry ("%qs requires branch-likely instructions", "-mfix-r10000");
+
   /* Save base state of options.  */
   mips_base_target_flags = target_flags;
-  mips_base_delayed_branch = flag_delayed_branch;
   mips_base_schedule_insns = flag_schedule_insns;
   mips_base_reorder_blocks_and_partition = flag_reorder_blocks_and_partition;
   mips_base_move_loop_invariants = flag_move_loop_invariants;
@@ -13986,9 +14069,6 @@ mips_override_options (void)
      Do all CPP-sensitive stuff in non-MIPS16 mode; we'll switch to
      MIPS16 mode afterwards if need be.  */
   mips_set_mips16_mode (false);
-
-  /* We call dbr_schedule from within mips_reorg.  */
-  flag_delayed_branch = 0;
 }
 
 /* Swap the register information for registers I and I + 1, which

@@ -28,17 +28,17 @@
 
 
 (define_expand "memory_barrier"
-  [(set (mem:BLK (match_dup 0))
-	(unspec:BLK [(mem:BLK (match_dup 0))] UNSPEC_MB))]
+  [(set (match_dup 0)
+	(unspec:BLK [(match_dup 0)] UNSPEC_MB))]
   ""
 {
-  operands[0] = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (DImode));
+  operands[0] = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (Pmode));
   MEM_VOLATILE_P (operands[0]) = 1;
 })
 
-(define_insn "*mb_internal"
+(define_insn "*memory_barrier"
   [(set (match_operand:BLK 0 "" "")
-	(unspec:BLK [(match_operand:BLK 1 "" "")] UNSPEC_MB))]
+	(unspec:BLK [(match_dup 0)] UNSPEC_MB))]
   ""
   "mb"
   [(set_attr "type" "mb")])
@@ -89,8 +89,9 @@
 (define_insn_and_split "sync_nand<mode>"
   [(set (match_operand:I48MODE 0 "memory_operand" "+m")
 	(unspec:I48MODE
-	  [(and:I48MODE (not:I48MODE (match_dup 0))
-	     (match_operand:I48MODE 1 "register_operand" "r"))]
+	  [(not:I48MODE
+	     (and:I48MODE (match_dup 0)
+	       (match_operand:I48MODE 1 "register_operand" "r")))]
 	  UNSPEC_ATOMIC))
    (clobber (match_scratch:I48MODE 2 "=&r"))]
   ""
@@ -129,8 +130,9 @@
 	(match_operand:I48MODE 1 "memory_operand" "+m"))
    (set (match_dup 1)
 	(unspec:I48MODE
-	  [(and:I48MODE (not:I48MODE (match_dup 1))
-	     (match_operand:I48MODE 2 "register_operand" "r"))]
+	  [(not:I48MODE
+	     (and:I48MODE (match_dup 1)
+	       (match_operand:I48MODE 2 "register_operand" "r")))]
 	  UNSPEC_ATOMIC))
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""
@@ -167,12 +169,12 @@
 
 (define_insn_and_split "sync_new_nand<mode>"
   [(set (match_operand:I48MODE 0 "register_operand" "=&r")
-	(and:I48MODE 
-	  (not:I48MODE (match_operand:I48MODE 1 "memory_operand" "+m"))
-	  (match_operand:I48MODE 2 "register_operand" "r")))
+	(not:I48MODE
+	  (and:I48MODE (match_operand:I48MODE 1 "memory_operand" "+m")
+	    (match_operand:I48MODE 2 "register_operand" "r"))))
    (set (match_dup 1)
 	(unspec:I48MODE
-	  [(and:I48MODE (not:I48MODE (match_dup 1)) (match_dup 2))]
+	  [(not:I48MODE (and:I48MODE (match_dup 1) (match_dup 2)))]
 	  UNSPEC_ATOMIC))
    (clobber (match_scratch:I48MODE 3 "=&r"))]
   ""

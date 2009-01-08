@@ -2619,6 +2619,18 @@ gfc_simplify_logical (gfc_expr *e, gfc_expr *k)
 }
 
 
+gfc_expr *
+gfc_simplify_merge (gfc_expr *tsource, gfc_expr *fsource, gfc_expr *mask)
+{
+  if (tsource->expr_type != EXPR_CONSTANT
+      || fsource->expr_type != EXPR_CONSTANT
+      || mask->expr_type != EXPR_CONSTANT)
+    return NULL;
+
+  return gfc_copy_expr (mask->value.logical ? tsource : fsource);
+}
+
+
 /* Selects bewteen current value and extremum for simplify_min_max
    and simplify_minval_maxval.  */
 static void
@@ -2993,6 +3005,7 @@ gfc_simplify_nearest (gfc_expr *x, gfc_expr *s)
   mpfr_set_emin ((mp_exp_t) gfc_real_kinds[kind].min_exponent -
 		mpfr_get_prec(result->value.real) + 1);
   mpfr_set_emax ((mp_exp_t) gfc_real_kinds[kind].max_exponent - 1);
+  mpfr_check_range (result->value.real, 0, GMP_RNDU);
 
   if (mpfr_sgn (s->value.real) > 0)
     {
@@ -3408,9 +3421,6 @@ is_constant_array_expr (gfc_expr *e)
     return true;
 
   if (e->expr_type != EXPR_ARRAY || !gfc_is_constant_expr (e))
-    return false;
-  
-  if (e->value.constructor == NULL)
     return false;
   
   for (c = e->value.constructor; c; c = c->next)

@@ -97,12 +97,11 @@ GLIBCXX_ENABLE_HOSTED
 # Enable compiler support that doesn't require linking.
 GLIBCXX_ENABLE_SJLJ_EXCEPTIONS
 GLIBCXX_ENABLE_PCH($is_hosted)
-GLIBCXX_ENABLE_ATOMIC_BUILTINS
 GLIBCXX_ENABLE_THREADS
+GLIBCXX_ENABLE_ATOMIC_BUILTINS
 
 # Checks for compiler support that doesn't require linking.
 GLIBCXX_CHECK_COMPILER_FEATURES
-GLIBCXX_CHECK_STANDARD_LAYOUT
 
 # Enable all the variable C++ runtime options that don't require linking.
 GLIBCXX_ENABLE_CSTDIO
@@ -181,9 +180,6 @@ if $GLIBCXX_IS_NATIVE; then
 
   # For TLS support.
   GCC_CHECK_TLS
-
-  # For _Unwind_GetIPInfo.
-  GCC_CHECK_UNWIND_GETIPINFO
 
   # For iconv support.
   AM_ICONV
@@ -286,10 +282,11 @@ else
     AC_DEFINE(HAVE_TANL)
     AC_DEFINE(HAVE_TANHL)
   fi
-
-  # Assume we have _Unwind_GetIPInfo for cross-compiles.
-  AC_DEFINE(HAVE_GETIPINFO)
 fi
+
+# Check for _Unwind_GetIPInfo.
+GCC_CHECK_UNWIND_GETIPINFO
+
 
 GCC_LINUX_FUTEX([AC_DEFINE(HAVE_LINUX_FUTEX, 1, [Define if futex syscall is available.])])
 

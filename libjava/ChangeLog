@@ -1,3 +1,79 @@
+2009-01-06  Andrew John Hughes  <gnu_andrew@member.fsf.org>
+
+	Import GNU Classpath (libgcj-snapshot-20090102).
+
+	* libjava/classpath/lib/java/text/RuleBasedCollator$CollationSorter.class,
+	* libjava/classpath/lib/java/text/MessageFormat$MessageFormatElement.class,
+	* libjava/classpath/lib/java/text/MessageFormat.class,
+	* libjava/classpath/lib/java/text/SimpleDateFormat.class,
+	* libjava/classpath/lib/java/text/NumberFormat.class,
+	* libjava/classpath/lib/java/text/RuleBasedCollator$CollationElement.class,
+	* libjava/classpath/lib/java/text/MessageFormat$Field.class,
+	* libjava/classpath/lib/java/text/RuleBasedCollator.class,
+	* libjava/classpath/lib/java/text/NumberFormat$Field.class,
+	* libjava/classpath/lib/gnu/xml/transform/Bindings.class,
+	* libjava/classpath/lib/gnu/java/locale/LocaleData.class,
+	* libjava/classpath/lib/gnu/java/awt/peer/gtk/FreetypeGlyphVector.class,
+	* libjava/classpath/lib/gnu/javax/crypto/jce/key/SecretKeyGeneratorImpl.class,
+	* libjava/gnu/java/awt/peer/gtk/FreetypeGlyphVector.h,
+	* libjava/java/text/MessageFormat.h,
+	* libjava/java/text/RuleBasedCollator$CollationSorter.h,
+	* libjava/java/text/RuleBasedCollator.h,
+	* libjava/java/text/SimpleDateFormat.h:
+	Regenerated.
+
+2008-12-21  Andrew Pinski  <pinskia@gmail.com>
+
+	PR target/38300
+	* configure: Regenerate.
+
+2008-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgcj/38396
+	* configure.ac (use_libgcj_bc): Set to no if not enable_shared.
+	(LIBGCJ_SPEC): Use -lgcj instead of -lgcj_bc even for -static
+	or -static-libgcj.
+	* Makefile.am (ecjx_SOURCES): Add ecjx.cc.
+	(ecjx_LDADD): Don't add libgcj.la when
+	NATIVE && USE_LIBBGCJ_BC.
+	* ecjx.cc: New file.
+	* Makefile.in: Regenerated.
+	* configure: Regenerated.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libgcj/38006
+	* classpath/tools/resource/gnu/classpath/tools/gjdoc/htmldoclet/inherit.png:
+	Set svn:mime-type to application/octet-stream.
+
+2008-12-04  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Add double brackets on darwin[912].
+	* configure: Regenerate.
+
+2008-12-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Expand to darwin10 and later.
+	* configure: Regenerate.
+	* testsuite/lib/libjava.exp: Expand to darwin10 and later.
+
+2008-11-12  Steve Ellcey  <sje@cup.hp.com>
+
+	* configure: Regenerate to get new GCC_CHECK_UNWIND_GETIPINFO.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgcj/33764
+	* configure.ac (INSTALL_BINARIES): New AM_CONDITIONAL.
+	* Makefile.am: If not INSTALL_BINARIES, use noinst_PROGRAMS
+	instead of bin_PROGRAMS for binaries.
+	* configure: Regenerated.
+	* Makefile.in: Regenerated.
+
 2008-11-04  David Edelsohn  <edelsohn@gnu.org>
 
 	* configure.ac: Fix typo.

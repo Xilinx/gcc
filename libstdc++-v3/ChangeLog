@@ -1,3 +1,522 @@
+2009-01-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38466
+	* include/bits/stl_pair.h: Document C++03 pair vs swap.
+
+2009-01-06  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/locale_init.cc (locale::_S_initialize_once): Move construction
+	of classic locale...
+	(locale::classic): Here.
+
+2009-01-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/tr1_impl/regex: Fix bad return statements and typos.
+
+2009-01-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/tr1_impl/regex: Remove unimplemented function definitions.
+	* testsuite/28_regex/init-list.cc: Compile only.
+	* testsuite/tr1/7_regular_expressions/regex/cons/char/
+	c_string_extended.cc: Same.
+	* testsuite/tr1/7_regular_expressions/basic_regex/assign/*: Same.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/*: Same.
+
+2009-01-05  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/38384
+	* crossconfig.m4: Define HAVE_FABSF for hpux crosses.
+        * configure: Regenerate.
+
+2009-01-05  Ben Elliston  <bje@au.ibm.com>
+
+        * configure.ac (GLIBCXX_CHECK_STANDARD_LAYOUT): Remove invocation.
+        * configure: Regenerate.
+
+2009-01-05  Ben Elliston  <bje@au.ibm.com>
+
+	* configure.ac: Exchange the order of GLIBCXX_ENABLE_THREADS and
+	GLIBCXX_ENABLE_ATOMIC_BUILTINS macro invocations.
+	* configure: Regenerate.
+
+2009-01-04  Richard Guenther  <rguenther@suse.de>
+
+	PR libstdc++/38720
+	* include/ext/pointer.h (_Relative_pointer_impl): Use an unsigned
+	integer type for storage, arithmetic and comparisons.
+	* testsuite/ext/ext_pointer/1_neg.cc: Adjust line numbers.
+
+2009-01-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38719
+	* include/bits/forward_list.h (_Fwd_list_iterator<>::_M_next,
+	_Fwd_list_const_iterator::_M_next): Fix return type.
+
+2009-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* Revert last commit, reopen and suspend libstdc++/38678.
+
+2009-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38678
+	* include/std/istream (basic_istream<>::_M_read): New.
+	* include/bits/istream.tcc (basic_istream<>::_M_read): Define.
+	(basic_istream<>::read, basic_istream<>::readsome): Use it.
+	* include/std/ostream (basic_ostream<>::_M_write_): New.
+	(basic_ostream<>::_M_write): Adjust.
+	* include/bits/ostream.tcc (basic_ostream<>::_M_write_): Define.
+	* testsuite/27_io/basic_istream/read/char/38678.cc: New.
+	* testsuite/27_io/basic_istream/read/wchar_t/38678.cc: Likewise.
+	* testsuite/27_io/basic_ostream/write/char/38678.cc: Likewise.
+	* testsuite/27_io/basic_ostream/write/wchar_t/38678.cc: Likewise.
+
+2008-12-22  Jonathan Larmour  <jifl@eCosCentric.com>
+
+	* include/ext/concurrence.h: Fix __gthread_cond_t initialisation
+	function macro name.
+
+2008-12-22  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/stdheader.cc: Add cstdlib.
+	* doc/doxygen/user.cfg.in: Regenerate for doxygen 1.5.7.
+
+2008-12-21  Andrew Pinski  <pinskia@gmail.com>
+
+	PR target/38300
+	* configure: Regenerate.
+
+2008-12-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38596
+	* include/tr1_impl/functional (function<>::target,
+	function<>::target_type): Provide only when __GXX_RTTI is defined.
+	(_Function_base::_M_manager, _Ref_manager<>::_M_manager,
+	_Function_handler<void(_ArgTypes...), _Member _Class::*>::_M_manager):
+	Adjust.
+
+2008-12-19  Ben Elliston  <bje@au.ibm.com>
+
+	* acinclude.m4: Guard a variable test against an empty string.
+	* configure: Regenerate.
+
+2008-12-18  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* testsuite/21_strings/basic_string/element_access/wchar_t/21674.cc:
+	Add xfail on all targets except darwin.
+	* libstdc++-v3/testsuite/21_strings/basic_string/element_access/char/
+	1674.cc: Same.
+	* libstdc++-v3/testsuite/22_locale/ctype/is/char/2.cc: Correct syntax
+	for xfailing on all targets except linux.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-17  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+        * testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Don't xfail test on darwin8 or later.
+
+2008-12-16  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+        * testsuite/26_numerics/headers/cmath/c99_classification_macros_c.cc:
+	Don't xfail excessive errors on darwin8 or later.
+
+2008-12-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_global/cstdatomic: Remove assert include.
+	* include/debug/debug.h: Consolidate __replacement_assert...
+	* include/parallel/base.h: Consolidate __replacement_assert...
+	* include/bits/c++config: ...here.
+	* include/bits/atomic_0.h: Use it.
+	* include/bits/atomic_2.h: Same.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+
+2008-12-13  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/atomic.cc: Revert last change.
+	* include/bits/atomic_2.h: Move cassert include to...
+	* include/c_global/cstdatomic: ...here.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc: Same.
+
+2008-12-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/Makefile.am: Remove -x c++ for atomic build rules.
+	* src/Makefile.in: Regenerate.
+	* src/atomic.cc: Move mutex include before cstdatomic.
+
+2008-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libstdc++/37144
+	* testsuite/util/regression/trait/assoc/type_trait.hpp
+	(regression_test_type_traits): Add const to pair_type_rebind.
+
+2008-12-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/atomic.cc: Correct guards to match mutex.cc.
+
+2008-12-11  Benjamin Kosnik  <bkoz@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* include/c_global/cstdatomic: Update to N2798.
+	(atomic): Remove explicit constructors as per DR 845.
+	* include/bits/atomic_0.h: New. Switchable implementation.
+	* include/bits/atomic_2.h: New. Lock-free implementation.
+	* include/c_compatibility/stdatomic.h: Use foward headers.
+	* include/bits/atomicfwd_cxx.h: New.
+	* include/bits/atomicfwd_c.h: New.
+	* src/atomic.cc: Adjust.
+	* acinclude.m4 (GLIBCXX_CHECK_STANDARD_LAYOUT): Remove,
+	unconditionally use default/deleted syntax.
+	(GLIBCXX_ENABLE_ATOMIC_BUILTINS): Check for 2, 8.
+	* include/Makefile.am (bits_headers): Add atomicfwd_c.h,
+	atomicfwd_cxx.h, atomic_0.h, atomic_2.h.
+	* include/Makefile.in: Regenerate.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* config/abi/pre/gnu.ver: Adjust exports.
+
+	* testsuite/27_io/ios_base/types/fmtflags/bitmask_operators.cc: Adjust.
+	* testsuite/27_io/ios_base/types/openmode/bitmask_operators.cc: Same.
+	* testsuite/27_io/ios_base/types/iostate/bitmask_operators.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic_address/cons/explicit_value.cc: Move to..
+	* testsuite/29_atomics/atomic_address/cons/single_value.cc: ...this.
+	* testsuite/29_atomics/atomic_address/cons/copy_neg.cc
+	* testsuite/29_atomics/atomic_integral/cons/single_value.cc: New.
+	* testsuite/29_atomics/atomic_integral/cons/assign_neg.cc: New.
+	* testsuite/29_atomics/atomic_integral/cons/copy_neg.cc: New.
+	* testsuite/29_atomics/atomic_integral/cons/default.cc: New.
+	* testsuite/29_atomics/atomic_integral/cons/direct_list.cc: New.
+	* testsuite/29_atomics/atomic_integral/cons/copy_list.cc: New.
+	* testsuite/29_atomics/atomic_integral/requirements/
+	standard_layout.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/
+	integral_assignment.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/increment_neg.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise_neg.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/decrement_neg.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/increment.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/decrement.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/bitwise.cc: New.
+	* testsuite/29_atomics/atomic_integral/operators/
+	integral_conversion.cc: New.
+	* testsuite/29_atomics/atomic_flag/cons/assign_neg.cc: Adjust.
+	* testsuite/29_atomics/atomic_flag/cons/copy_neg.cc: Same.
+	* testsuite/29_atomics/atomic_flag/requirements/
+	standard_layout.cc: Same.
+	* testsuite/29_atomics/atomic_flag/
+	atomic_global_fence_compatibility.cc: Kill.
+	* testsuite/29_atomics/headers/cstdatomic/types_std_c++0x.cc: Adjust.
+	* testsuite/29_atomics/headers/cstdatomic/functions_std_c++0x.cc: Same.
+	* testsuite/29_atomics/headers/cstdatomic/macros.cc: Same.
+	* testsuite/29_atomics/headers/stdatomic.h/macros.c: Same.
+	* testsuite/29_atomics/headers/stdatomic.h/types.c: Same.
+	* testsuite/29_atomics/atomic/cons/assign_neg.cc: Same.
+	* testsuite/29_atomics/atomic/cons/explicit_value.cc: Move to...
+	* testsuite/29_atomics/atomic/cons/single_value.cc: ...this.
+	* testsuite/29_atomics/atomic/cons/copy_neg.cc
+	* testsuite/29_atomics/atomic/cons/direct_list.cc: New.
+	* testsuite/29_atomics/atomic/cons/copy_list.cc: New.
+	* testsuite/29_atomics/atomic/requirements/standard_layout.cc: New.
+	* testsuite/29_atomics/atomic/requirements/base_classes.cc: New.
+	* testsuite/29_atomics/atomic/operators/integral_assignment.cc: New.
+	* testsuite/29_atomics/atomic/operators/integral_conversion.cc: New.
+	* testsuite/util/testsuite_hooks.h (bitmask_operators): Move...
+	* testsuite/util/testsuite_common_types.h: ...here.
+	(atomic_integrals_no_bool): New.
+	(atomic_integrals): New.
+	(has_increment_operators, has_decrement_operators)
+	(direct_list_initializable, single_value_constructible)
+	(standard_layout, has_bitwise_operators, integral_convertable)
+	(integral_assignable): Add.
+
+2008-12-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37582
+	* testsuite/26_numerics/headers/cmath/37582.cc: New.
+
+2008-12-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/cmath: Undef remquof / remquol too; add using
+	declarations.
+	* acinclude.m4 [GLIBCXX_CHECK_C99_TR1]: Check remquof / remquol too.
+	* testsuite/tr1/8_c_compatibility/cmath/functions.cc: Adjust.
+	* configure: Regenerate.
+
+2008-12-08  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/bits/forward_list.h: Fixed spurious "forward_swap" in doxy.
+
+2008-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38421
+	* include/tr1/ell_integral.tcc: Avoid __ea, future SPU badname.
+	* doc/xml/manual/appendix_contributing.xml: Add __ea to the list
+	of badnames.
+
+2008-12-05  Tom Tromey  <tromey@redhat.com>
+
+	* include/tr1_impl/functional (_Mu): Fix typo.
+
+2008-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38399
+	* include/bits/locale_facets_nonio.tcc (money_get<>::
+	_M_extract(iter_type, iter_type, ios_base&, ios_base::iostate&,
+	string&)): Fix, reject decimal point when frac_digits <= 0.
+	* testsuite/22_locale/money_get/get/char/38399.cc: New.
+	* testsuite/22_locale/money_get/get/wchar_t/38399.cc: Likewise.
+	* testsuite/22_locale/money_get/get/char/5.cc: Adjust.
+	* testsuite/22_locale/money_get/get/wchar_t/5.cc: Likewise.
+
+2008-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38411
+	* testsuite/22_locale/numpunct/members/char/2.cc: Use is_IS instead
+	of fr_FR.
+	* testsuite/22_locale/numpunct/members/wchar_t/2.cc: Likewise.
+	* testsuite/22_locale/locale/cons/7.cc: Likewise.
+
+2008-12-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38368
+	* config/locale/gnu/numeric_members.cc (numpunct<char>::
+	_M_initialize_numpunct, numpunct<wchar_t>::_M_initialize_numpunct):
+	Fix for THOUSANDS_SEP == '\0' consistently with "C" locale.
+	* config/locale/gnu/monetary_members.cc (moneypunct<char, true>::
+	_M_initialize_moneypunct, moneypunct<char, false>::
+	_M_initialize_moneypunct, moneypunct<wchar_t, true>::
+	_M_initialize_moneypunct, moneypunct<wchar_t, false>::
+	_M_initialize_moneypunct): Fix for __MON_DECIMAL_POINT == '\0' or
+	__MON_THOUSANDS_SEP == '\0' consistently with "C" locale.
+	* testsuite/22_locale/locale/cons/38368.cc: New.
+
+2008-12-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38365 (cont)
+	* src/localename.cc (locale::locale(const locale&, const locale&,
+	category)): Revert last changes.
+	(locale::_Impl::_M_replace_categories(const _Impl*, category)):
+	Fix here instead; rework.
+
+2008-12-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38365
+	* src/localename.cc (locale::locale(const locale&, const locale&,
+	category)): Fix.
+	* testsuite/22_locale/locale/cons/38365.cc: New.
+
+2008-12-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/38080
+	* include/std/iostream: Correct URL.
+	* include/std/streambuf: Same.
+	* include/std/bitset: Same.
+	* include/std/iosfwd: Same.
+	* include/std/fstream: Same.
+	* include/std/istream: Same.
+	* include/std/ostream: Same.
+	* include/std/sstream: Same.
+	* include/bits/basic_ios.h: Same.
+	* include/bits/stl_map.h: Same.
+	* include/bits/stl_set.h: Same.
+	* include/bits/stl_multimap.h: Same.
+	* include/bits/ios_base.h: Same.
+	* include/bits/stl_multiset.h: Same.
+	* include/bits/char_traits.h: Same.
+	* include/bits/stl_relops.h: Same.
+	* testsuite/27_io/ios_base/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/27_io/ios_base/cons/copy_neg.cc: Ditto.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/28870
+	* testsuite/lib/libstdc++.exp: Include new timeout library files.
+	(libstdc++_init): Define tool_timeout.
+	(dg-test): Override DejaGnu proc.
+	(v3_target_compile): Set timeout value from new proc.
+	(v3_target_compile_as_c): Ditto.
+
+2008-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38244 (cont, debug bits)
+	* include/debug/bitset (bitset<>::bitset(const char*, char, char)):
+	Remove, do not implement DR 778.
+
+2008-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38244
+	* include/std/bitset (bitset<>::bitset(const char*, char, char)):
+	Remove, do not implement DR 778.
+	* doc/xml/manual/intro.xml: Remove entry for DR 778.
+	* testsuite/23_containers/bitset/cons/2.cc: Remove.
+	* testsuite/23_containers/bitset/cons/dr396.cc: Tweak.
+	* testsuite/23_containers/bitset/cons/38244.cc: Add.
+
+2008-11-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/num_put/put/char/38210.cc: Tweak.
+	* testsuite/22_locale/num_put/put/wchar_t/38210.cc: Likewise.
+
+2008-11-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38210
+	* include/bits/locale_facets.tcc (num_put<>::do_put(iter_type,
+	ios_base&, char_type, const void*)): Fix.
+	* testsuite/22_locale/num_put/put/char/38210.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/38210.cc: Likewise.
+
+2008-11-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38196
+	* include/bits/locale_facets.tcc (num_put<>::do_put(iter_type,
+	ios_base&, char_type, bool)): Fix.
+	* testsuite/22_locale/num_put/put/char/38196.cc: New.
+	* testsuite/22_locale/num_put/put/wchar_t/38196.cc: Likewise.
+
+2008-11-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1_impl/cinttypes: Remove redundant pragma system_header.
+	* include/tr1_impl/cfenv: Likewise.
+	* include/tr1_impl/cstdint: Likewise.
+
+2008-11-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38000
+	* include/c_global/csignal: Do not use include_next.
+	* include/c_global/cstdlib: Likewise.
+	* include/c_global/cstdio: Likewise.
+	* include/c_global/cstdarg: Likewise.
+	* include/c_global/cctype: Likewise.
+	* include/c_global/cerrno: Likewise.
+	* include/c_global/cmath: Likewise.
+	* include/c_global/clocale: Likewise.
+	* include/c_global/climits: Likewise.
+	* include/c_global/cassert: Likewise.
+	* include/c_global/csetjmp: Likewise.
+	* include/c_global/cwchar: Likewise.
+	* include/c_global/cfloat: Likewise.
+	* include/c_global/cstdbool: Likewise.
+	* include/c_global/cstring: Likewise.
+	* include/c_global/cstddef: Likewise.
+	* include/c_global/cwctype: Likewise.
+	* include/tr1/cstdbool: Likewise.
+	* include/tr1_impl/cinttypes: Do not include <inttypes.h>.
+	* include/c_global/cinttypes: Do it here.
+	* include/tr1/cinttypes: Likewise.
+	* include/tr1_impl/cfenv: Do not include <fenv.h>.
+	* include/c_global/cfenv: Do it here.
+	* include/tr1/cfenv: Likewise.
+	* include/tr1_impl/cstdint: Do not include <stdint.h>.
+	* include/c_global/cstdint: Do it here.
+	* include/tr1/cstdint: Likewise.
+	* include/c_compatibility/fenv.h: Include <tr1_impl/cfenv>.
+	* include/c_compatibility/stdint.h: Include <tr1_impl/cstdint>.
+	* include/c_compatibility/inttypes.h: Include <tr1_impl/cinttypes>.
+
+	* include/c_compatibility/math.h: Minor tweak, add comment.
+
+2008-11-12  Steve Ellcey  <sje@cup.hp.com>
+
+	* configure.ac: Move call to GCC_CHECK_UNWIND_GETIPINFO.
+	* configure: Regenerate to get new GCC_CHECK_UNWIND_GETIPINFO.
+
+2008-11-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37986 (cont)
+	* include/tr1_impl/random (struct _Adaptor): Use only remove_reference
+	on _Engine.
+	(struct _Adaptor<_Engine*, _Distribution>): Add.
+	* testsuite/tr1/5_numerical_facilities/random/variate_generator/
+	37986.cc: Extend.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/37986
+	* include/tr1_impl/random (struct _Adaptor): Use remove_pointer
+	and remove_reference on _Engine.
+	* testsuite/tr1/5_numerical_facilities/random/variate_generator/
+	37986.cc: New.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/ext/ext_pointer/1_neg.cc: Adjust dg-error line numbers.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/vector/ext_pointer/modifiers/erase.cc: Fix.
+	* testsuite/23_containers/vector/ext_pointer/modifiers/element.cc:
+	Likewise.
+
+2008-11-11  Bob Walters  <bob.s.walters@gmail.com>
+
+	* include/bits/forward_list.h: Support non-standard pointer types
+	(_Fwd_list_node_base): Add _Alloc template parameter.
+	(_Fwd_list_node<>): Likewise.
+	(_Fwd_list_iterator<>): Likewise.
+	(_Fwd_list_const_iterator<>): Likewise.
+	(_Fwd_list_node_base::_M_next, _M_transfer_after, _M_reverse_after):
+	Use _Alloc<_Tp>::pointer.
+	(_Fwd_list_iterator<>::_M_node): Use _Node_base::_Pointer.
+	(_Fwd_list_base<>::_M_get_node, _M_create_node, _M_create_node,
+	_M_insert_after, _M_put_node, _M_erase_after): Likewise.
+	(_Fwd_list_const_iterator<>::_M_node): use _Node_base::_Const_pointer.
+	(forward_list<>): Use __static_pointer_cast in place of static_cast,
+	and __const_pointer_cast in place of const_cast.
+	* include/bits/forward_list.tcc
+	(_Fwd_list_node<>::_M_sort_after): Using _Pointer typedefs in place
+	of standard pointers, __static_pointer_cast in place of static_cast.
+	(_Fwd_list_base<>::_Fwd_list_base, _M_insert_after, _M_erase_after):
+	Likewise.
+	(forward_list<>::_M_initialize_dispatch, _M_fill_initialize,
+	splice_after, remove, remove_if, merge): Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/1.cc: New.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/modifiers/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/2.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/3.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/4.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/5.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/6.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/operations/7.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/1.cc:
+	Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/1.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/requirements/
+	explicit_instantiation/3.cc: Likewise.
+	* testsuite/23_containers/forward_list/ext_pointer/1.cc: Likewise.
+
+2008-11-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/ext/extptr_allocator.h: Minor tweaks.
+	* include/ext/pointer.h: Likewise.
+	* include/ext/cast.h: Likewise.
+
+2008-11-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/38067
+	* config/locale/gnu/monetary_members.cc (moneypunct<>::
+	_M_initialize_moneypunct(__c_locale, const char*)): Use correct vector
+	delete for __wcs_ps and __wcs_ns.
+
 2008-11-07  Bob Walters  <bob.s.walters@gmail.com>
 
 	* include/ext/pointer.h: New, add experimental support for non-standard
@@ -10,7 +529,7 @@
 	* include/precompiled/extc++.h: Likewise.
 	* include/Makefile.in: Regenerate.
 	* testsuite/ext/ext_pointer/1.cc: New.
-	* testsuite/ext/ext_pointer/1_neg.cc: Likewise.	
+	* testsuite/ext/ext_pointer/1_neg.cc: Likewise.
 	* testsuite/23_containers/vector/ext_pointer/citerators.cc: New.
 	* testsuite/23_containers/vector/ext_pointer/data_access.cc: Likewise.
 	* testsuite/23_containers/vector/ext_pointer/resize.cc: Likewise.
@@ -88,35 +607,35 @@
 
 2008-11-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
-        * include/bits/shared_ptr.h: Update comparisons to match WP.
-        (_Sp_counted_ptr): Make copy and assignment members deleted.
-        (_Sp_counted_deleter): Remove private copy and assignment members.
-        (__shared_count::_M_less,__weak_count::_M_less,operator<): Replace
-        friend operator< with overloaded _M_less member functions to allow
-        comparison with either shared_count or weak_count.
-        (__shared_ptr::_M_less,__weak_ptr::_M_less): Replace with...
-        (__shared_ptr::owner_before,__weak_ptr::owner_before): New overloads
-        for ownership-based ordering.
-        (operator<(__shared_ptr,__shared_ptr)): Compare stored pointers,
-        make non-friend.
-        (operator==(__shared_ptr,__shared_ptr)): Make non-friend.
-        (operator!=(__shared_ptr,__shared_ptr)): Likewise.
-        (less<__shared_ptr<>>,less<shared_ptr<>>,_Sp_less): Explicitly call
-        pointer specialization.
-        (__weak_ptr::operator<,weak_ptr::operator<=,weak_ptr::operator>,
-        weak_ptr::operator>=): Remove operator< and delete all comparisons.
-        (_Sp_owner_less,owner_less): Predicate for ownership-based ordering.
-        (operator<(shared_ptr,shared_ptr): Overload for derived shared_ptr.
-        (operator==(shared_ptr,shared_ptr): Likewise.
-        (operator!=(shared_ptr,shared_ptr): Likewise.
-        (swap(shared_ptr,shared_ptr)): Fix parameter types.
-        (swap(weak_ptr,weak_ptr)): Add missing overload.
-        * testsuite/20_util/owner_less/cmp.cc: New.
-        * testsuite/20_util/shared_ptr/comparison/cmp.cc: Test other ops.
-        * testsuite/20_util/shared_ptr/comparison/less.cc: New.
-        * testsuite/20_util/shared_ptr/observers/owner_before.cc: New.
-        * testsuite/20_util/weak_ptr/observers/owner_before.cc: New.
-        * testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: New.
+	* include/bits/shared_ptr.h: Update comparisons to match WP.
+	(_Sp_counted_ptr): Make copy and assignment members deleted.
+	(_Sp_counted_deleter): Remove private copy and assignment members.
+	(__shared_count::_M_less,__weak_count::_M_less,operator<): Replace
+	friend operator< with overloaded _M_less member functions to allow
+	comparison with either shared_count or weak_count.
+	(__shared_ptr::_M_less,__weak_ptr::_M_less): Replace with...
+	(__shared_ptr::owner_before,__weak_ptr::owner_before): New overloads
+	for ownership-based ordering.
+	(operator<(__shared_ptr,__shared_ptr)): Compare stored pointers,
+	make non-friend.
+	(operator==(__shared_ptr,__shared_ptr)): Make non-friend.
+	(operator!=(__shared_ptr,__shared_ptr)): Likewise.
+	(less<__shared_ptr<>>,less<shared_ptr<>>,_Sp_less): Explicitly call
+	pointer specialization.
+	(__weak_ptr::operator<,weak_ptr::operator<=,weak_ptr::operator>,
+	weak_ptr::operator>=): Remove operator< and delete all comparisons.
+	(_Sp_owner_less,owner_less): Predicate for ownership-based ordering.
+	(operator<(shared_ptr,shared_ptr): Overload for derived shared_ptr.
+	(operator==(shared_ptr,shared_ptr): Likewise.
+	(operator!=(shared_ptr,shared_ptr): Likewise.
+	(swap(shared_ptr,shared_ptr)): Fix parameter types.
+	(swap(weak_ptr,weak_ptr)): Add missing overload.
+	* testsuite/20_util/owner_less/cmp.cc: New.
+	* testsuite/20_util/shared_ptr/comparison/cmp.cc: Test other ops.
+	* testsuite/20_util/shared_ptr/comparison/less.cc: New.
+	* testsuite/20_util/shared_ptr/observers/owner_before.cc: New.
+	* testsuite/20_util/weak_ptr/observers/owner_before.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: New.
 
 2008-10-31  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -145,7 +664,7 @@
 
 	PR libstdc++/37522
 	* config/os/mingw32/os_defines.h: Define _GLIBCXX_HAVE_BROKEN_VSWPRINTF
-	* include/bits/basic_string.h: Guard string conversions with 
+	* include/bits/basic_string.h: Guard string conversions with
 	!defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF) too.
 	* testsuite/lib/libstdc++.exp (check_v3_target_string_conversions):
 	New.
@@ -196,7 +715,7 @@
 	* include/std/system_error (is_error_code_enum): Specialize for errc.
 	(error_category::error_category): Defaulted and protected.
 	(error_category::~error_category): New, virtual.
-	(error_category::error_category(const error_category&), 
+	(error_category::error_category(const error_category&),
 	error_category::operator=(const error_category&)): Deleted.
 	(get_system_category, get_posix_category): Remove (DR 890).
 	(system_category): External linkage (DR 890).
@@ -205,11 +724,11 @@
 	(error_code::error_code<>(_ErrorCodeEnum)): Use generic_category.
 	(error_code::clear, error_code::operator=<>(_ErrorCodeEnum)): Forward to
 	error_code::assign, use generic_category.
-	(error_condition::error_condition, 
-	error_condition::error_condition<>(_ErrorConditionEnum)): Use 
+	(error_condition::error_condition,
+	error_condition::error_condition<>(_ErrorConditionEnum)): Use
 	generic_category.
-	(error_condition::clear, 
-	error_condition::operator=<>(_ErrorConditionEnum)): Forward to 
+	(error_condition::clear,
+	error_condition::operator=<>(_ErrorConditionEnum)): Forward to
 	error_code::assign, use generic_category.
 	(make_error_code, make_error_condition): Define in namespace std.
 	* include/std/mutex (unique_lock<>::lock, unique_lock<>::try_lock,
@@ -226,21 +745,21 @@
 	* config/os/generic/error_constants.h (posix_errno): Rename to errc, use
 	enum class type. Fix spelling.
 	* config/os/mingw32/error_constants.h (posix_errno): Likewise.
-	* testsuite/19_diagnostics/error_code/cons/1.cc: Use errc and 
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Use errc and
 	generic_category.
 	* testsuite/19_diagnostics/error_code/operators/bool.cc: Use errc.
 	* testsuite/19_diagnostics/error_code/operators/equal.cc: Likewise.
 	* testsuite/19_diagnostics/error_code/operators/not_equal.cc: Likewise.
-	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Update 
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Update
 	dg-error line numbers.
-	* testsuite/19_diagnostics/error_condition/cons/1.cc: Use 
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: Use
 	generic_category.
 	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Use errc.
 	* testsuite/19_diagnostics/error_condition/operators/equal.cc: Likewise.
-	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc: 
+	* testsuite/19_diagnostics/error_condition/operators/not_equal.cc:
 	Likewise.
 	* testsuite/19_diagnostics/headers/system_error/errc_std_c++0x.cc: New.
-	* testsuite/19_diagnostics/headers/system_error/types_std_c++0x.cc: 
+	* testsuite/19_diagnostics/headers/system_error/types_std_c++0x.cc:
 	Remove using tests since errc is not a namespace.
 	* testsuite/19_diagnostics/system_error/cons-1.cc: Use errc.
 	* testsuite/19_diagnostics/system_error/what-4.cc: Likewise.
@@ -249,7 +768,7 @@
 	* testsuite/27_io/basic_ostream/inserters_other/char/error_code.cc:
 	Likewise.
 	* testsuite/30_threads/unique_lock/locking/2.cc: Likewise.
-	
+
 2008-10-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/tr1_impl/hashtable_policy.h (_Hash_node<>::_Hash_node<>
@@ -313,7 +832,7 @@
 	* include/bits/forward_list.h: Factor list construction to dispatch
 	routines.
 	* include/bits/forward_list.tcc: Likewise.
-	* testsuite/23_containers/forward_list/modifiers/2.cc: 
+	* testsuite/23_containers/forward_list/modifiers/2.cc:
 
 2008-10-16  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -444,7 +963,7 @@
 	(operator<<(basic_ostream<>&, const error_code&)): Define here.
 	* include/std/ostream (operator<<(basic_ostream<>&,
 	const error_code&)): Do not define here.
-	* testsuite/19_diagnostics/error_condition/cons/1.cc: New.	
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: New.
 	* testsuite/19_diagnostics/error_condition/operators/bool.cc: Likewise.
 	* testsuite/19_diagnostics/error_condition/operators/bool_neg.cc:
 	Likewise.
@@ -461,10 +980,10 @@
 	* testsuite/util/testsuite_hooks.cc: Avoid uninitialized warning.
 
 2008-10-10  Chris Fairles  <cfairles@gcc.gnu.org>
-  
-	* testsuite/20_util/duration/cons/1.cc: Remove invalid check of 
+
+	* testsuite/20_util/duration/cons/1.cc: Remove invalid check of
 	uninitialized duration.
-        
+
 2008-10-08  Bob Walters  <bob.s.walters@gmail.com>
 
 	* include/bits/stl_vector.h (_Vector_base<>::_Vector_impl::_M_start,
@@ -503,7 +1022,7 @@
 
 2008-09-30  Chris Fairles  <cfairles@gcc.gnu.org>
 
-	* include/std/tuple (tuple<>::swap): Implement swap for tuple as per 
+	* include/std/tuple (tuple<>::swap): Implement swap for tuple as per
 	DR 522 [Ready].
 	* testsuite/20_util/tuple/swap.cc: New.
 
@@ -546,9 +1065,9 @@
 	* testsuite/30_threads/recursive_timed_mutex/cons/assign_neg.cc:
 	Likewise.
 	* testsuite/30_threads/recursive_timed_mutex/cons/copy_neg.cc: Likewise.
-	
+
 2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
-            Steve Ellcey  <sje@cup.hp.com>
+	    Steve Ellcey  <sje@cup.hp.com>
 
 	* configure: Regenerate for new libtool.
 	* aclocal.m4: Ditto.

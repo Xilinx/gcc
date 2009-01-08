@@ -867,7 +867,7 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[9]]*)
+*-*-darwin[[912]]*)
     extra_gij_ldflags=-Wl,-allow_stack_execute
     ;;
 arm*linux*eabi)
@@ -1046,6 +1046,9 @@ AC_SUBST(THREADCXXFLAGS)
 AM_CONDITIONAL(USING_POSIX_THREADS, test "$THREADS" = posix)
 AM_CONDITIONAL(USING_WIN32_THREADS, test "$THREADS" = win32)
 AM_CONDITIONAL(USING_NO_THREADS, test "$THREADS" = none)
+if test "$enable_shared" != yes; then
+  use_libgcj_bc=no
+fi
 AM_CONDITIONAL(USE_LIBGCJ_BC, test "$use_libgcj_bc" = yes)
 
 if test -d sysdep; then true; else mkdir sysdep; fi
@@ -1055,7 +1058,7 @@ AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
 LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
 
@@ -1429,6 +1432,7 @@ AC_SUBST(IEEESPEC)
 AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
 AM_CONDITIONAL(NEEDS_DATA_START, test "$NEEDS_DATA_START" = yes && test "$NATIVE" = yes)
+AM_CONDITIONAL(INSTALL_BINARIES, test -z "${with_multisubdir}")
 AC_SUBST(GCC_UNWIND_INCLUDE)
 
 # Process the option "--enable-version-specific-runtime-libs"

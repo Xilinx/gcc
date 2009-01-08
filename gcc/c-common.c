@@ -2719,7 +2719,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
 
 #define TYPE_OK(node)							    \
   (TYPE_MODE (type) == TYPE_MODE (node)					    \
-   && (c_dialect_cxx () || TYPE_PRECISION (type) == TYPE_PRECISION (node)))
+   && TYPE_PRECISION (type) == TYPE_PRECISION (node))
   if (TYPE_OK (signed_char_type_node))
     return unsignedp ? unsigned_char_type_node : signed_char_type_node;
   if (TYPE_OK (integer_type_node))
@@ -2749,10 +2749,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
     return unsignedp ? unsigned_intQI_type_node : intQI_type_node;
 #undef TYPE_OK
 
-  if (c_dialect_cxx ())
-    return type;
-  else
-    return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
+  return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
 }
 
 /* Build a bit-field integer type for the given WIDTH and UNSIGNEDP.  */
@@ -6547,7 +6544,8 @@ handle_vector_size_attribute (tree *node, tree name, tree args,
       || (!SCALAR_FLOAT_MODE_P (orig_mode)
 	  && GET_MODE_CLASS (orig_mode) != MODE_INT
 	  && !ALL_SCALAR_FIXED_POINT_MODE_P (orig_mode))
-      || !host_integerp (TYPE_SIZE_UNIT (type), 1))
+      || !host_integerp (TYPE_SIZE_UNIT (type), 1)
+      || TREE_CODE (type) == BOOLEAN_TYPE)
     {
       error ("invalid vector type for attribute %qE", name);
       return NULL_TREE;
@@ -8062,7 +8060,7 @@ warn_array_subscript_with_type_char (tree index)
 
 void
 warn_about_parentheses (enum tree_code code,
-			enum tree_code code_left, tree ARG_UNUSED (arg_left),
+			enum tree_code code_left, tree arg_left,
 			enum tree_code code_right, tree arg_right)
 {
   if (!warn_parentheses)
@@ -8119,7 +8117,7 @@ warn_about_parentheses (enum tree_code code,
       /* Check cases like !x | y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
 		 "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
       return;
 
@@ -8152,7 +8150,7 @@ warn_about_parentheses (enum tree_code code,
       /* Check cases like !x & y */
       else if (code_left == TRUTH_NOT_EXPR
 	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
-	warning (OPT_Wparentheses, "suggest parentheses around operand of"
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
 		 "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
       return;
 
@@ -8172,9 +8170,11 @@ warn_about_parentheses (enum tree_code code,
     default:
       if (TREE_CODE_CLASS (code) == tcc_comparison
 	   && ((TREE_CODE_CLASS (code_left) == tcc_comparison
-		&& code_left != NE_EXPR && code_left != EQ_EXPR)
+		&& code_left != NE_EXPR && code_left != EQ_EXPR
+		&& INTEGRAL_TYPE_P (TREE_TYPE (arg_left)))
 	       || (TREE_CODE_CLASS (code_right) == tcc_comparison
-		   && code_right != NE_EXPR && code_right != EQ_EXPR)))
+		   && code_right != NE_EXPR && code_right != EQ_EXPR
+		   && INTEGRAL_TYPE_P (TREE_TYPE (arg_right)))))
 	warning (OPT_Wparentheses, "comparisons like %<X<=Y<=Z%> do not "
 		 "have their mathematical meaning");
       return;

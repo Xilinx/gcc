@@ -4688,7 +4688,7 @@ coerce_template_template_parm (tree parm,
 	   D<int, C> d;
 
 	 i.e. the parameter list of TT depends on earlier parameters.  */
-      if (!dependent_type_p (TREE_TYPE (arg))
+      if (!uses_template_parms (TREE_TYPE (arg))
 	  && !same_type_p
 	        (tsubst (TREE_TYPE (parm), outer_args, complain, in_decl),
 		 TREE_TYPE (arg)))
@@ -5585,6 +5585,7 @@ lookup_template_class (tree d1,
       d1 = DECL_NAME (templ);
     }
   else if (TREE_CODE (d1) == TEMPLATE_DECL
+           && DECL_TEMPLATE_RESULT (d1)
 	   && TREE_CODE (DECL_TEMPLATE_RESULT (d1)) == TYPE_DECL)
     {
       templ = d1;
@@ -10323,12 +10324,22 @@ tsubst_omp_for_iterator (tree t, int i, tree declv, tree initv,
 #define RECUR(NODE)				\
   tsubst_expr ((NODE), args, complain, in_decl,	\
 	       integral_constant_expression_p)
-  tree decl, init, cond, incr;
+  tree decl, init, cond, incr, auto_node;
 
   init = TREE_VEC_ELT (OMP_FOR_INIT (t), i);
   gcc_assert (TREE_CODE (init) == MODIFY_EXPR);
   decl = RECUR (TREE_OPERAND (init, 0));
   init = TREE_OPERAND (init, 1);
+  auto_node = type_uses_auto (TREE_TYPE (decl));
+  if (auto_node && init)
+    {
+      tree init_expr = init;
+      if (TREE_CODE (init_expr) == DECL_EXPR)
+	init_expr = DECL_INITIAL (DECL_EXPR_DECL (init_expr));
+      init_expr = RECUR (init_expr);
+      TREE_TYPE (decl)
+	= do_auto_deduction (TREE_TYPE (decl), init_expr, auto_node);
+    }
   gcc_assert (!type_dependent_expression_p (decl));
 
   if (!CLASS_TYPE_P (TREE_TYPE (decl)))
@@ -10559,8 +10570,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 			     pack expansion where the parameter packs
 			     used in that expansion were of length
 			     zero.  */
-			  init = build_default_init (TREE_TYPE (decl),
-                                                     NULL_TREE);
+			  init = build_value_init (TREE_TYPE (decl));
 			else
 			  init = t;
 		      }
@@ -11599,6 +11609,7 @@ tsubst_copy_and_build (tree t,
           }
 
 	r = build_constructor (init_list_type_node, n);
+	CONSTRUCTOR_IS_DIRECT_INIT (r) = CONSTRUCTOR_IS_DIRECT_INIT (t);
 
 	if (TREE_HAS_CONSTRUCTOR (t))
 	  return finish_compound_literal (type, r);
@@ -15226,7 +15237,8 @@ instantiate_decl (tree d, int defer_ok,
       input_location = saved_loc;
 
       if (at_eof && !pattern_defined
-	  && DECL_EXPLICIT_INSTANTIATION (d))
+	  && DECL_EXPLICIT_INSTANTIATION (d)
+	  && DECL_NOT_REALLY_EXTERN (d))
 	/* [temp.explicit]
 
 	   The definition of a non-exported function template, a

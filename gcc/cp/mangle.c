@@ -1598,6 +1598,7 @@ write_type (tree type)
 	    case BOOLEAN_TYPE:
 	    case INTEGER_TYPE:  /* Includes wchar_t.  */
 	    case REAL_TYPE:
+	    case FIXED_POINT_TYPE:
 	      {
 		/* If this is a typedef, TYPE may not be one of
 		   the standard builtin type nodes, but an alias of one.  Use
@@ -1679,7 +1680,9 @@ write_type (tree type)
                 write_char ('t');
               else
                 write_char ('T');
+	      ++skip_evaluation;
               write_expression (DECLTYPE_TYPE_EXPR (type));
+	      --skip_evaluation;
               write_char ('E');
               break;
 
@@ -1850,6 +1853,59 @@ write_builtin_type (tree type)
 	write_char ('e');
       else
 	gcc_unreachable ();
+      break;
+
+    case FIXED_POINT_TYPE:
+      write_string ("DF");
+      if (GET_MODE_IBIT (TYPE_MODE (type)) > 0)
+	write_unsigned_number (GET_MODE_IBIT (TYPE_MODE (type)));
+      if (type == fract_type_node
+	  || type == sat_fract_type_node
+	  || type == accum_type_node
+	  || type == sat_accum_type_node)
+	write_char ('i');
+      else if (type == unsigned_fract_type_node
+	       || type == sat_unsigned_fract_type_node
+	       || type == unsigned_accum_type_node
+	       || type == sat_unsigned_accum_type_node)
+	write_char ('j');
+      else if (type == short_fract_type_node
+	       || type == sat_short_fract_type_node
+	       || type == short_accum_type_node
+	       || type == sat_short_accum_type_node)
+	write_char ('s');
+      else if (type == unsigned_short_fract_type_node
+	       || type == sat_unsigned_short_fract_type_node
+	       || type == unsigned_short_accum_type_node
+	       || type == sat_unsigned_short_accum_type_node)
+	write_char ('t');
+      else if (type == long_fract_type_node
+	       || type == sat_long_fract_type_node
+	       || type == long_accum_type_node
+	       || type == sat_long_accum_type_node)
+	write_char ('l');
+      else if (type == unsigned_long_fract_type_node
+	       || type == sat_unsigned_long_fract_type_node
+	       || type == unsigned_long_accum_type_node
+	       || type == sat_unsigned_long_accum_type_node)
+	write_char ('m');
+      else if (type == long_long_fract_type_node
+	       || type == sat_long_long_fract_type_node
+	       || type == long_long_accum_type_node
+	       || type == sat_long_long_accum_type_node)
+	write_char ('x');
+      else if (type == unsigned_long_long_fract_type_node
+	       || type == sat_unsigned_long_long_fract_type_node
+	       || type == unsigned_long_long_accum_type_node
+	       || type == sat_unsigned_long_long_accum_type_node)
+	write_char ('y');
+      else
+	sorry ("mangling unknown fixed point type");
+      write_unsigned_number (GET_MODE_FBIT (TYPE_MODE (type)));
+      if (TYPE_SATURATING (type))
+	write_char ('s');
+      else
+	write_char ('n');
       break;
 
     default:
@@ -2085,9 +2141,28 @@ write_member_name (tree member)
 static void
 write_expression (tree expr)
 {
-  enum tree_code code;
+  enum tree_code code = TREE_CODE (expr);
 
-  code = TREE_CODE (expr);
+  /* Inside decltype we can simplify some expressions, since we're only
+     interested in the type.  */
+  if (skip_evaluation)
+    {
+      tree type = describable_type (expr);
+      if (type == NULL_TREE)
+	;
+      else if (TREE_CODE (type) == REFERENCE_TYPE)
+	{
+	  write_string ("sT");
+	  write_type (TREE_TYPE (type));
+	  return;
+	}
+      else
+	{
+	  write_string ("sR");
+	  write_type (type);
+	  return;
+	}
+    }
 
   /* Skip NOP_EXPRs.  They can occur when (say) a pointer argument
      is converted (via qualification conversions) to another
@@ -2273,12 +2348,12 @@ write_expression (tree expr)
 
 	case CAST_EXPR:
 	  write_type (TREE_TYPE (expr));
+	  /* There is no way to mangle a zero-operand cast like
+	     "T()".  */
 	  if (!TREE_OPERAND (expr, 0))
-	    /* "T()" is mangled as "T(void)".  */
-	    write_char ('v');
+	    sorry ("zero-operand casts cannot be mangled due to a defect "
+		   "in the C++ ABI");
 	  else if (list_length (TREE_OPERAND (expr, 0)) > 1)
-	    /* FIXME the above hack for T() needs to be replaced with
-	       something more general.  */
 	    sorry ("mangling function-style cast with more than one argument");
 	  else
 	    write_expression (TREE_VALUE (TREE_OPERAND (expr, 0)));

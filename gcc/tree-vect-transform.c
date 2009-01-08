@@ -5440,11 +5440,6 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    vec_oprnd = VEC_index (tree, result_chain, i);
 
 	  data_ref = build_fold_indirect_ref (dataref_ptr);
-	  /* If accesses through a pointer to vectype do not alias the original
-	     memory reference we have a problem.  This should never happen.  */
-	  gcc_assert (get_alias_set (data_ref) == get_alias_set (gimple_assign_lhs (stmt))
-		      || alias_set_subset_of (get_alias_set (data_ref), 
-					      get_alias_set (gimple_assign_lhs (stmt))));
 
 	  /* Arguments are ready. Create the new vector stmt.  */
 	  new_stmt = gimple_build_assign (data_ref, vec_oprnd);
@@ -6668,11 +6663,6 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    default:
 	      gcc_unreachable ();
 	    }
-	  /* If accesses through a pointer to vectype do not alias the original
-	     memory reference we have a problem.  This should never happen.  */
-	  gcc_assert (get_alias_set (data_ref) == get_alias_set (gimple_assign_rhs1 (stmt))
-		      || alias_set_subset_of (get_alias_set (data_ref),
-					      get_alias_set (gimple_assign_rhs1 (stmt))));
 	  vec_dest = vect_create_destination_var (scalar_dest, vectype);
 	  new_stmt = gimple_build_assign (vec_dest, data_ref);
 	  new_temp = make_ssa_name (vec_dest, new_stmt);
@@ -7057,6 +7047,8 @@ vect_transform_stmt (gimple stmt, gimple_stmt_iterator *gsi,
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   gimple orig_stmt_in_pattern;
   bool done;
+  loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
+  struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
 
   switch (STMT_VINFO_TYPE (stmt_info))
     {
@@ -7140,6 +7132,43 @@ vect_transform_stmt (gimple stmt, gimple_stmt_iterator *gsi,
 	}
     }
 
+  /* Handle inner-loop stmts whose DEF is used in the loop-nest that
+     is being vectorized, but outside the immediately enclosing loop.  */
+  if (vec_stmt
+      && nested_in_vect_loop_p (loop, stmt)
+      && STMT_VINFO_TYPE (stmt_info) != reduc_vec_info_type
+      && (STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_outer
+          || STMT_VINFO_RELEVANT (stmt_info) == vect_used_in_outer_by_reduction))
+    {
+      struct loop *innerloop = loop->inner;
+      imm_use_iterator imm_iter;
+      use_operand_p use_p;
+      tree scalar_dest;
+      gimple exit_phi;
+
+      if (vect_print_dump_info (REPORT_DETAILS))
+       fprintf (vect_dump, "Record the vdef for outer-loop vectorization.");
+
+      /* Find the relevant loop-exit phi-node, and reord the vec_stmt there
+        (to be used when vectorizing outer-loop stmts that use the DEF of
+        STMT).  */
+      if (gimple_code (stmt) == GIMPLE_PHI)
+        scalar_dest = PHI_RESULT (stmt);
+      else
+        scalar_dest = gimple_assign_lhs (stmt);
+
+      FOR_EACH_IMM_USE_FAST (use_p, imm_iter, scalar_dest)
+       {
+         if (!flow_bb_inside_loop_p (innerloop, gimple_bb (USE_STMT (use_p))))
+           {
+             exit_phi = USE_STMT (use_p);
+             STMT_VINFO_VEC_STMT (vinfo_for_stmt (exit_phi)) = vec_stmt;
+           }
+       }
+    }
+
+  /* Handle stmts whose DEF is used outside the loop-nest that is
+     being vectorized.  */
   if (STMT_VINFO_LIVE_P (stmt_info)
       && STMT_VINFO_TYPE (stmt_info) != reduc_vec_info_type)
     {

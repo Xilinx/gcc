@@ -365,13 +365,13 @@ struct scop
 #define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
+#define SCOP_DEP_GRAPH(S) S->dep_graph
 #define SCOP_ADD_PARAMS(S) S->add_params
 #define SCOP_PARAMS(S) S->params
 #define SCOP_OLDIVS(S) S->old_ivs
 #define SCOP_PROG(S) S->program
 #define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
 #define SCOP_LOOPS_MAPPING(S) S->loops_mapping
-#define SCOP_DEP_GRAPH(S) S->dep_graph
 #define SCOP_LIVEOUT_RENAMES(S) S->liveout_renames
 
 extern void debug_scop (scop_p, int);
@@ -434,6 +434,35 @@ oldiv_for_loop (scop_p scop, loop_p loop)
 
   return NULL_TREE;
 }
+
+
+
+/* Associate a POLYHEDRON dependence description to two data
+   references A and B.  */
+struct data_dependence_polyhedron
+{
+  struct data_reference *a;
+  struct data_reference *b;
+  bool reversed_p;
+  bool loop_carried;
+  signed level;
+  CloogDomain *polyhedron;  
+};
+
+#define RDGE_DDP(E)   ((struct data_dependence_polyhedron*) ((E)->data))
+
+typedef struct data_dependence_polyhedron *ddp_p;
+
+DEF_VEC_P(ddp_p);
+DEF_VEC_ALLOC_P(ddp_p,heap);
+
+extern void graphite_dump_dependence_graph (FILE *, struct graph *);
+extern struct graph *graphite_build_rdg_all_levels (scop_p);
+extern struct data_dependence_polyhedron *
+graphite_test_dependence (scop_p, graphite_bb_p, graphite_bb_p,
+			  struct data_reference *, struct data_reference *);
+
+
 
 /* Return the number of gimple loops contained in SCOP.  */
 
@@ -631,30 +660,5 @@ ref_nb_loops (data_reference_p ref)
 
   return nb_loops_around_loop_in_scop (loop, scop) + scop_nb_params (scop) + 2;
 }
-
-/* Associate a POLYHEDRON dependence description to two data
-   references A and B.  */
-struct data_dependence_polyhedron
-{
-  struct data_reference *a;
-  struct data_reference *b;
-  bool reversed_p;
-  bool loop_carried;
-  signed level;
-  CloogDomain *polyhedron;  
-};
-
-#define RDGE_DDP(E)   ((struct data_dependence_polyhedron*) ((E)->data))
-
-typedef struct data_dependence_polyhedron *ddp_p;
-
-DEF_VEC_P(ddp_p);
-DEF_VEC_ALLOC_P(ddp_p,heap);
-
-extern void graphite_dump_dependence_graph (FILE *, struct graph *);
-extern struct graph *graphite_build_rdg_all_levels (scop_p);
-extern struct data_dependence_polyhedron *
-graphite_test_dependence (scop_p, graphite_bb_p, graphite_bb_p,
-			  struct data_reference *, struct data_reference *);
 
 #endif  /* GCC_GRAPHITE_H  */

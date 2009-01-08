@@ -762,11 +762,6 @@ struct df
 
 extern bitmap_obstack df_bitmap_obstack;
 
-/* This is a bitmap copy of regs_invalidated_by_call so that we can
-   easily add it into bitmaps, etc. */ 
-
-extern bitmap df_invalidated_by_call;
-
 
 /* One of these structures is allocated for every basic block.  */
 struct df_scan_bb_info
@@ -959,9 +954,12 @@ extern void df_note_add_problem (void);
 extern void df_simulate_find_defs (rtx, bitmap);
 extern void df_simulate_defs (rtx, bitmap);
 extern void df_simulate_uses (rtx, bitmap);
-extern void df_simulate_artificial_refs_at_end (basic_block, bitmap);
-extern void df_simulate_one_insn (basic_block, rtx, bitmap);
-extern void df_simulate_artificial_refs_at_top (basic_block, bitmap);
+extern void df_simulate_initialize_backwards (basic_block, bitmap);
+extern void df_simulate_one_insn_backwards (basic_block, rtx, bitmap);
+extern void df_simulate_finalize_backwards (basic_block, bitmap);
+extern void df_simulate_initialize_forwards (basic_block, bitmap);
+extern void df_simulate_one_insn_forwards (basic_block, rtx, bitmap);
+extern void df_simulate_finalize_forwards (basic_block, bitmap);
 
 /* Functions defined in df-scan.c.  */
 

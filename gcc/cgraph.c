@@ -936,7 +936,11 @@ cgraph_release_function_body (struct cgraph_node *node)
       DECL_STRUCT_FUNCTION (node->decl) = NULL;
     }
   DECL_SAVED_TREE (node->decl) = NULL;
-  DECL_INITIAL (node->decl) = error_mark_node;
+  /* If the node is abstract and needed, then do not clear DECL_INITIAL
+     of its associated function function declaration because it's
+     needed to emit debug info later.  */
+  if (!node->abstract_and_needed)
+    DECL_INITIAL (node->decl) = error_mark_node;
 }
 
 /* Remove the node from cgraph.  */
@@ -1423,7 +1427,7 @@ cgraph_function_body_availability (struct cgraph_node *node)
     avail = AVAIL_NOT_AVAILABLE;
   else if (node->local.local)
     avail = AVAIL_LOCAL;
-  else if (node->local.externally_visible)
+  else if (!node->local.externally_visible)
     avail = AVAIL_AVAILABLE;
 
   /* If the function can be overwritten, return OVERWRITABLE.  Take

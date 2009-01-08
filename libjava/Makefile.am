@@ -79,11 +79,18 @@ db_pathtail = $(gcjsubdir)/$(db_name)
 
 ## For now, only on native systems.  FIXME.
 if NATIVE
-bin_PROGRAMS = jv-convert gij grmic grmiregistry gcj-dbtool \
+bin_programs = jv-convert gij grmic grmiregistry gcj-dbtool \
 	gappletviewer gjarsigner gkeytool gjar gcjh gjavah gnative2ascii \
 	gorbd grmid gserialver gtnameserv gc-analyze
 if CREATE_GJDOC
-bin_PROGRAMS += gjdoc
+bin_programs += gjdoc
+endif
+
+noinst_PROGRAMS =
+if INSTALL_BINARIES
+bin_PROGRAMS = $(bin_programs)
+else
+noinst_PROGRAMS += $(bin_programs)
 endif
 
 ## It is convenient to actually build and install the default database
@@ -734,7 +741,7 @@ write-entries-to-file-check:
 ## systems.
 if NATIVE
 if MAINTAINER_MODE
-noinst_PROGRAMS = gen-from-JIS
+noinst_PROGRAMS += gen-from-JIS
 
 gen_from_JIS_SOURCES = \
 	gnu/gcj/convert/gen-from-JIS.c \
@@ -861,7 +868,7 @@ gij_LDADD = -L$(here)/.libs libgij.la
 gij_DEPENDENCIES = libgij.la
 
 ## Build an ecjx from a .jar.
-ecjx_SOURCES =
+ecjx_SOURCES = ecjx.cc
 ## We use the BC ABI here so that we don't need to compile ecj.jar.
 ## Hopefully the user has compiled it into his system .db.
 ## However, even if not it will run reasonably quickly.
@@ -881,10 +888,12 @@ else !ENABLE_SHARED
 ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR) -fbootclasspath=$(BOOTCLASSPATH)
 endif !ENABLE_SHARED
 
-ecjx_LDADD = -L$(here)/.libs libgcj.la
+ecjx_LDADD = -L$(here)/.libs
 ecjx_DEPENDENCIES = libgcj.la libgcj.spec
 if USE_LIBGCJ_BC
 ecjx_DEPENDENCIES += libgcj_bc.la
+else
+ecjx_LDADD += libgcj.la
 endif
 
 else !NATIVE

@@ -1,6 +1,6 @@
 /* Parser for C and Objective-C.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    Parser actions based on the old Bison parser; structure somewhat
@@ -148,7 +148,7 @@ typedef struct c_token GTY (())
   ENUM_BITFIELD (rid) keyword : 8;
   /* If this token is a CPP_PRAGMA, this indicates the pragma that
      was seen.  Otherwise it is PRAGMA_NONE.  */
-  ENUM_BITFIELD (pragma_kind) pragma_kind : 7;
+  ENUM_BITFIELD (pragma_kind) pragma_kind : 8;
   /* The value associated with this token, if any.  */
   tree value;
   /* The location at which this token was found.  */
@@ -1605,7 +1605,7 @@ c_parser_enum_specifier (c_parser *parser)
   struct c_typespec ret;
   tree attrs;
   tree ident = NULL_TREE;
-  location_t ident_loc;
+  location_t ident_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ENUM));
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
@@ -1634,7 +1634,7 @@ c_parser_enum_specifier (c_parser *parser)
 	  tree enum_decl;
 	  bool seen_comma;
 	  c_token *token;
-	  location_t comma_loc;
+	  location_t comma_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	  location_t value_loc;
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
@@ -3065,7 +3065,7 @@ c_parser_initelt (c_parser *parser)
 	 has been a single array designator and 2 otherwise.  */
       int des_seen = 0;
       /* Location of a designator.  */
-      location_t des_loc;
+      location_t des_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
       while (c_parser_next_token_is (parser, CPP_OPEN_SQUARE)
 	     || c_parser_next_token_is (parser, CPP_DOT))
 	{
@@ -3090,14 +3090,14 @@ c_parser_initelt (c_parser *parser)
 		  init.original_code = ERROR_MARK;
 		  c_parser_error (parser, "expected identifier");
 		  c_parser_skip_until_found (parser, CPP_COMMA, NULL);
-		  process_init_element (init);
+		  process_init_element (init, false);
 		  return;
 		}
 	    }
 	  else
 	    {
 	      tree first, second;
-	      location_t ellipsis_loc;
+	      location_t ellipsis_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	      /* ??? Following the old parser, [ objc-receiver
 		 objc-message-args ] is accepted as an initializer,
 		 being distinguished from a designator by what follows
@@ -3213,7 +3213,7 @@ c_parser_initelt (c_parser *parser)
 		  init.original_code = ERROR_MARK;
 		  c_parser_error (parser, "expected %<=%>");
 		  c_parser_skip_until_found (parser, CPP_COMMA, NULL);
-		  process_init_element (init);
+		  process_init_element (init, false);
 		  return;
 		}
 	    }
@@ -3243,7 +3243,7 @@ c_parser_initval (c_parser *parser, struct c_expr *after)
 	  && TREE_CODE (init.value) != COMPOUND_LITERAL_EXPR)
 	init = default_function_array_conversion (init);
     }
-  process_init_element (init);
+  process_init_element (init, false);
 }
 
 /* Parse a compound statement (possibly a function body) (C90 6.6.2,

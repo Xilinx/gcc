@@ -3199,7 +3199,7 @@ record_unknown_type (tree type, const char* name)
   TYPE_SIZE (type) = TYPE_SIZE (void_type_node);
   TYPE_ALIGN (type) = 1;
   TYPE_USER_ALIGN (type) = 0;
-  TYPE_MODE (type) = TYPE_MODE (void_type_node);
+  SET_TYPE_MODE (type, TYPE_MODE (void_type_node));
 }
 
 /* A string for which we should create an IDENTIFIER_NODE at
@@ -5496,7 +5496,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  TREE_TYPE (decl) = error_mark_node;
 	  return;
 	}
-      else if (!type_dependent_expression_p (init))
+      else if (describable_type (init))
 	{
 	  type = TREE_TYPE (decl) = do_auto_deduction (type, init, auto_node);
 	  if (type == error_mark_node)
@@ -5504,6 +5504,28 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
+  if (init && TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      if (init == ridpointers[(int)RID_DELETE])
+	{
+	  /* FIXME check this is 1st decl.  */
+	  DECL_DELETED_FN (decl) = 1;
+	  DECL_DECLARED_INLINE_P (decl) = 1;
+	  DECL_INITIAL (decl) = error_mark_node;
+	  init = NULL_TREE;
+	}
+      else if (init == ridpointers[(int)RID_DEFAULT])
+	{
+	  if (!defaultable_fn_p (decl))
+	    {
+	      error ("%qD cannot be defaulted", decl);
+	      DECL_INITIAL (decl) = NULL_TREE;
+	    }
+	  else
+	    DECL_DEFAULTED_FN (decl) = 1;
+	}
+    }
+    
   if (processing_template_decl)
     {
       bool type_dependent_p;
@@ -5765,25 +5787,12 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	{
 	  if (init)
 	    {
-	      if (init == ridpointers[(int)RID_DELETE])
+	      if (init == ridpointers[(int)RID_DEFAULT])
 		{
-		  /* fixme check this is 1st decl */
-		  DECL_DELETED_FN (decl) = 1;
-		  DECL_DECLARED_INLINE_P (decl) = 1;
-		  DECL_INITIAL (decl) = error_mark_node;
-		}
-	      else if (init == ridpointers[(int)RID_DEFAULT])
-		{
-		  if (!defaultable_fn_p (decl))
-		    error ("%qD cannot be defaulted", decl);
-		  else
-		    {
-		      /* An out-of-class default definition is defined at
-			 the point where it is explicitly defaulted.  */
-		      DECL_DEFAULTED_FN (decl) = 1;
-		      if (DECL_INITIAL (decl) == error_mark_node)
-			synthesize_method (decl);
-		    }
+		  /* An out-of-class default definition is defined at
+		     the point where it is explicitly defaulted.  */
+		  if (DECL_INITIAL (decl) == error_mark_node)
+		    synthesize_method (decl);
 		}
 	      else
 		error ("function %q#D is initialized like a variable", decl);
@@ -8053,6 +8062,12 @@ grokdeclarator (const cp_declarator *declarator,
 	       || storage_class == sc_extern
 	       || thread_p)
 	error ("storage class specifiers invalid in parameter declarations");
+
+      if (type_uses_auto (type))
+	{
+	  error ("parameter declared %<auto%>");
+	  type = error_mark_node;
+	}
     }
 
   /* Give error if `virtual' is used outside of class declaration.  */
@@ -8248,21 +8263,22 @@ grokdeclarator (const cp_declarator *declarator,
 		  {
 		    if (!declarator->u.function.late_return_type)
 		      {
-			error ("%qs function uses auto type specifier without"
+			error ("%qs function uses %<auto%> type specifier without"
 			       " late return type", name);
 			return error_mark_node;
 		      }
 		    else if (!is_auto (type))
 		      {
-			error ("%qs function with late return type not using"
-			       " auto type specifier as its type", name);
+			error ("%qs function with late return type has"
+			       " %qT as its type rather than plain %<auto%>",
+			       name, type);
 			return error_mark_node;
 		      }
 		  }
 		else if (declarator->u.function.late_return_type)
 		  {
 		    error ("%qs function with late return type not declared"
-			   " with auto type specifier", name);
+			   " with %<auto%> type specifier", name);
 		    return error_mark_node;
 		  }
 	      }
@@ -9081,15 +9097,6 @@ grokdeclarator (const cp_declarator *declarator,
 	       is called a converting constructor.  */
 	    if (explicitp == 2)
 	      DECL_NONCONVERTING_P (decl) = 1;
-	    else if (DECL_CONSTRUCTOR_P (decl))
-	      {
-		/* A constructor with no parms is not a conversion.
-		   Ignore any compiler-added parms.  */
-		tree arg_types = FUNCTION_FIRST_USER_PARMTYPE (decl);
-
-		if (arg_types == void_list_node)
-		  DECL_NONCONVERTING_P (decl) = 1;
-	      }
 	  }
 	else if (TREE_CODE (type) == METHOD_TYPE)
 	  {
@@ -9838,7 +9845,11 @@ grok_special_member_properties (tree decl)
 	    TYPE_HAS_CONST_INIT_REF (class_type) = 1;
 	}
       else if (sufficient_parms_p (FUNCTION_FIRST_USER_PARMTYPE (decl)))
-	TYPE_HAS_DEFAULT_CONSTRUCTOR (class_type) = 1;
+	{
+	  TYPE_HAS_DEFAULT_CONSTRUCTOR (class_type) = 1;
+	  if (TREE_CODE (decl) == TEMPLATE_DECL || !DECL_DEFAULTED_FN (decl))
+	    TYPE_HAS_COMPLEX_DFLT (class_type) = 1;
+	}
       else if (is_list_ctor (decl))
 	TYPE_HAS_LIST_CTOR (class_type) = 1;
     }
@@ -10883,6 +10894,9 @@ start_enum (tree name, tree underlying_type, bool scoped_enum_p)
       enumtype = pushtag (name, enumtype, /*tag_scope=*/ts_current);
     }
 
+  if (enumtype == error_mark_node)
+    return enumtype;
+
   if (scoped_enum_p)
     {
       SET_SCOPED_ENUM_P (enumtype, 1);
@@ -10904,7 +10918,7 @@ start_enum (tree name, tree underlying_type, bool scoped_enum_p)
           TYPE_MAX_VALUE (enumtype) = TYPE_MAX_VALUE (underlying_type);
           TYPE_SIZE (enumtype) = TYPE_SIZE (underlying_type);
           TYPE_SIZE_UNIT (enumtype) = TYPE_SIZE_UNIT (underlying_type);
-          TYPE_MODE (enumtype) = TYPE_MODE (underlying_type);
+          SET_TYPE_MODE (enumtype, TYPE_MODE (underlying_type));
           TYPE_PRECISION (enumtype) = TYPE_PRECISION (underlying_type);
           TYPE_ALIGN (enumtype) = TYPE_ALIGN (underlying_type);
           TYPE_USER_ALIGN (enumtype) = TYPE_USER_ALIGN (underlying_type);
@@ -11057,7 +11071,7 @@ finish_enum (tree enumtype)
          applied to the underlying type.  */
       TYPE_SIZE (enumtype) = TYPE_SIZE (underlying_type);
       TYPE_SIZE_UNIT (enumtype) = TYPE_SIZE_UNIT (underlying_type);
-      TYPE_MODE (enumtype) = TYPE_MODE (underlying_type);
+      SET_TYPE_MODE (enumtype, TYPE_MODE (underlying_type));
       TYPE_ALIGN (enumtype) = TYPE_ALIGN (underlying_type);
       TYPE_USER_ALIGN (enumtype) = TYPE_USER_ALIGN (underlying_type);
       TYPE_UNSIGNED (enumtype) = TYPE_UNSIGNED (underlying_type);
@@ -11125,7 +11139,7 @@ finish_enum (tree enumtype)
       TYPE_MAX_VALUE (t) = TYPE_MAX_VALUE (enumtype);
       TYPE_SIZE (t) = TYPE_SIZE (enumtype);
       TYPE_SIZE_UNIT (t) = TYPE_SIZE_UNIT (enumtype);
-      TYPE_MODE (t) = TYPE_MODE (enumtype);
+      SET_TYPE_MODE (t, TYPE_MODE (enumtype));
       TYPE_PRECISION (t) = TYPE_PRECISION (enumtype);
       TYPE_ALIGN (t) = TYPE_ALIGN (enumtype);
       TYPE_USER_ALIGN (t) = TYPE_USER_ALIGN (enumtype);

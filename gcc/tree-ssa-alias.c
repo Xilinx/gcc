@@ -188,15 +188,8 @@ struct alias_info
   struct alias_map_d **pointers;
   size_t num_pointers;
 
-  /* Variables that have been written to directly (i.e., not through a
-     pointer dereference).  */
-  struct pointer_set_t *written_vars;
-
-  /* Pointers that have been used in an indirect store operation.  */
-  struct pointer_set_t *dereferenced_ptrs_store;
-
-  /* Pointers that have been used in an indirect load operation.  */
-  struct pointer_set_t *dereferenced_ptrs_load;
+  /* Pointers that have been used in an indirect load/store operation.  */
+  struct pointer_set_t *dereferenced_ptrs;
 };
 
 
@@ -1832,9 +1825,6 @@ compute_may_aliases (void)
 	dump_referenced_vars (dump_file);
     }
 
-  /* Report strict aliasing violations.  */
-  strict_aliasing_warning_backend ();
-
   /* Deallocate memory used by aliasing data structures.  */
   delete_alias_info (ai);
 
@@ -2073,9 +2063,7 @@ init_alias_info (void)
   ai->ssa_names_visited = sbitmap_alloc (num_ssa_names);
   sbitmap_zero (ai->ssa_names_visited);
   ai->processed_ptrs = VEC_alloc (tree, heap, 50);
-  ai->written_vars = pointer_set_create ();
-  ai->dereferenced_ptrs_store = pointer_set_create ();
-  ai->dereferenced_ptrs_load = pointer_set_create ();
+  ai->dereferenced_ptrs = pointer_set_create ();
 
   /* Clear out all memory reference stats.  */
   init_mem_ref_stats ();
@@ -2123,9 +2111,7 @@ delete_alias_info (struct alias_info *ai)
     free (ai->pointers[i]);
   free (ai->pointers);
 
-  pointer_set_destroy (ai->written_vars);
-  pointer_set_destroy (ai->dereferenced_ptrs_store);
-  pointer_set_destroy (ai->dereferenced_ptrs_load);
+  pointer_set_destroy (ai->dereferenced_ptrs);
   free (ai);
 
   delete_mem_ref_stats (cfun);
@@ -2361,23 +2347,18 @@ compute_flow_insensitive_aliasing (struct alias_info *ai)
 	{
 	  struct alias_map_d *v_map;
 	  var_ann_t v_ann;
-	  bool tag_stored_p, var_stored_p;
 	  
 	  v_map = ai->addressable_vars[j];
 	  var = v_map->var;
 	  v_ann = var_ann (var);
 
-	  /* Skip memory tags and variables that have never been
-	     written to.  We also need to check if the variables are
-	     call-clobbered because they may be overwritten by
-	     function calls.  */
-	  tag_stored_p = pointer_set_contains (ai->written_vars, tag)
-	                 || is_call_clobbered (tag);
-	  var_stored_p = pointer_set_contains (ai->written_vars, var)
-	                 || is_call_clobbered (var);
-	  if (!tag_stored_p && !var_stored_p)
-	    continue;
-	     
+	  /* We used to skip variables that have never been written to
+	     if the memory tag has been never written to directly (or
+	     either of them were call clobbered).  This is not enough
+	     though, as this misses writes through the tags aliases.
+	     So, for correctness we need to include any aliased
+	     variable here.  */
+
 	  if (may_alias_p (p_map->var, p_map->set, var, v_map->set, false))
 	    {
 	      /* Add VAR to TAG's may-aliases set.  */
@@ -2618,13 +2599,8 @@ update_alias_info_1 (gimple stmt, struct alias_info *ai)
 	  /* ???  For always executed direct dereferences we can
 	     apply TBAA-pruning to their escape set.  */
 
-	  /* If this is a store operation, mark OP as being
-	     dereferenced to store, otherwise mark it as being
-	     dereferenced to load.  */
-	  if (num_stores > 0)
-	    pointer_set_insert (ai->dereferenced_ptrs_store, var);
-	  else
-	    pointer_set_insert (ai->dereferenced_ptrs_load, var);
+	  /* Mark OP as being dereferenced.  */
+	  pointer_set_insert (ai->dereferenced_ptrs, var);
 
 	  /* Update the frequency estimate for all the dereferences of
 	     pointer OP.  */
@@ -2649,7 +2625,7 @@ update_alias_info_1 (gimple stmt, struct alias_info *ai)
 	  if (is_gimple_call (stmt)
 	      || stmt_escape_type == ESCAPE_STORED_IN_GLOBAL)
 	    {
-	      pointer_set_insert (ai->dereferenced_ptrs_store, var);
+	      pointer_set_insert (ai->dereferenced_ptrs, var);
 	      pi->memory_tag_needed = 1;
 	    }
 	}
@@ -2689,25 +2665,19 @@ update_alias_info_1 (gimple stmt, struct alias_info *ai)
 	 dereferences (e.g., MEMORY_VAR = *PTR) or if a call site has
 	 memory symbols in its argument list, but these cases do not
 	 occur so frequently as to constitute a serious problem.  */
-      if (gimple_stored_syms (stmt))
-	EXECUTE_IF_SET_IN_BITMAP (gimple_stored_syms (stmt), 0, i, bi)
-	  {
-	    tree sym = referenced_var (i);
-	    pointer_set_insert (ai->written_vars, sym);
-	    if (!stmt_dereferences_ptr_p
-		&& stmt_escape_type != ESCAPE_TO_CALL
-		&& stmt_escape_type != ESCAPE_TO_PURE_CONST
-		&& stmt_escape_type != ESCAPE_TO_ASM)
-	      update_mem_sym_stats_from_stmt (sym, stmt, 0, 1);
-	  }
-
       if (!stmt_dereferences_ptr_p
-	  && gimple_loaded_syms (stmt)
 	  && stmt_escape_type != ESCAPE_TO_CALL
 	  && stmt_escape_type != ESCAPE_TO_PURE_CONST
 	  && stmt_escape_type != ESCAPE_TO_ASM)
-	EXECUTE_IF_SET_IN_BITMAP (gimple_loaded_syms (stmt), 0, i, bi)
-	  update_mem_sym_stats_from_stmt (referenced_var (i), stmt, 1, 0);
+	{
+	  if (gimple_stored_syms (stmt))
+	    EXECUTE_IF_SET_IN_BITMAP (gimple_stored_syms (stmt), 0, i, bi)
+	      update_mem_sym_stats_from_stmt (referenced_var (i), stmt, 0, 1);
+
+	  if (gimple_loaded_syms (stmt))
+	    EXECUTE_IF_SET_IN_BITMAP (gimple_loaded_syms (stmt), 0, i, bi)
+	      update_mem_sym_stats_from_stmt (referenced_var (i), stmt, 1, 0);
+	}
     }
 }
 
@@ -2765,7 +2735,7 @@ setup_pointers_and_addressables (struct alias_info *ai)
 	  /* Since we don't keep track of volatile variables, assume that
 	     these pointers are used in indirect store operations.  */
 	  if (TREE_THIS_VOLATILE (var))
-	    pointer_set_insert (ai->dereferenced_ptrs_store, var);
+	    pointer_set_insert (ai->dereferenced_ptrs, var);
 
 	  num_pointers++;
 	}
@@ -2840,8 +2810,7 @@ setup_pointers_and_addressables (struct alias_info *ai)
          array and create a symbol memory tag for them.  */
       if (POINTER_TYPE_P (TREE_TYPE (var)))
 	{
-	  if ((pointer_set_contains (ai->dereferenced_ptrs_store, var)
-	       || pointer_set_contains (ai->dereferenced_ptrs_load, var)))
+	  if (pointer_set_contains (ai->dereferenced_ptrs, var))
 	    {
 	      tree tag, old_tag;
 	      var_ann_t t_ann;
@@ -2867,11 +2836,6 @@ setup_pointers_and_addressables (struct alias_info *ai)
 
 	      /* Associate the tag with pointer VAR.  */
 	      set_symbol_mem_tag (var, tag);
-
-	      /* If pointer VAR has been used in a store operation,
-		 then its memory tag must be marked as written-to.  */
-	      if (pointer_set_contains (ai->dereferenced_ptrs_store, var))
-		pointer_set_insert (ai->written_vars, tag);
 	    }
 	  else
 	    {
@@ -3293,7 +3257,22 @@ get_smt_for (tree ptr, struct alias_info *ai)
   size_t i;
   tree tag;
   tree tag_type = TREE_TYPE (TREE_TYPE (ptr));
-  alias_set_type tag_set = get_alias_set (tag_type);
+  alias_set_type tag_set;
+
+  /* Get the alias set to be used for the pointed-to memory.  If that
+     differs from what we would get from looking at the type adjust
+     the tag_type to void to make sure we get a proper alias set from
+     just looking at the SMT we create.  */
+  tag_set = get_alias_set (tag_type);
+  if (TYPE_REF_CAN_ALIAS_ALL (TREE_TYPE (ptr))
+      /* This is overly conservative but we do not want to assign
+         restrict alias sets here (which if they are not assigned
+         are -2 but still "known").  */
+      || DECL_POINTER_ALIAS_SET_KNOWN_P (ptr))
+    {
+      tag_set = 0;
+      tag_type = void_type_node;
+    }
 
   /* To avoid creating unnecessary memory tags, only create one memory tag
      per alias set class.  Note that it may be tempting to group
@@ -3324,7 +3303,8 @@ get_smt_for (tree ptr, struct alias_info *ai)
 	 artificial variable representing the memory location
 	 pointed-to by PTR.  */
       tag = symbol_mem_tag (ptr);
-      if (tag == NULL_TREE)
+      if (tag == NULL_TREE
+	  || tag_set != get_alias_set (tag))
 	tag = create_memory_tag (tag_type, true);
 
       /* Add PTR to the POINTERS array.  Note that we are not interested in

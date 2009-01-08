@@ -1078,6 +1078,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
+  --with-system-libunwind use installed libunwind
   --with-gxx-include-dir=DIR
                           installation directory for include files
 
@@ -4578,13 +4579,13 @@ if test "${lt_cv_nm_interface+set}" = set; then
 else
   lt_cv_nm_interface="BSD nm"
   echo "int some_variable = 0;" > conftest.$ac_ext
-  (eval echo "\"\$as_me:4581: $ac_compile\"" >&5)
+  (eval echo "\"\$as_me:4582: $ac_compile\"" >&5)
   (eval "$ac_compile" 2>conftest.err)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4584: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+  (eval echo "\"\$as_me:4585: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
   cat conftest.err >&5
-  (eval echo "\"\$as_me:4587: output\"" >&5)
+  (eval echo "\"\$as_me:4588: output\"" >&5)
   cat conftest.out >&5
   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
     lt_cv_nm_interface="MS dumpbin"
@@ -5730,7 +5731,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5733 "configure"' > conftest.$ac_ext
+  echo '#line 5734 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7876,11 +7877,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7879: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7880: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7883: \$? = $ac_status" >&5
+   echo "$as_me:7884: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8215,11 +8216,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8218: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8219: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:8222: \$? = $ac_status" >&5
+   echo "$as_me:8223: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -8320,11 +8321,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8323: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8324: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8327: \$? = $ac_status" >&5
+   echo "$as_me:8328: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8375,11 +8376,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:8378: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:8379: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:8382: \$? = $ac_status" >&5
+   echo "$as_me:8383: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9556,44 +9557,50 @@ x|xyes)
       # to ld, don't add -lc before -lgcc.
       echo "$as_me:$LINENO: checking whether -lc should be explicitly linked in" >&5
 echo $ECHO_N "checking whether -lc should be explicitly linked in... $ECHO_C" >&6
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+if test "${lt_cv_archive_cmds_need_lc+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  $RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+	if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$lt_prog_compiler_wl
-	pic_flag=$lt_prog_compiler_pic
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$allow_undefined_flag
-        allow_undefined_flag=
-        if { (eval echo "$as_me:$LINENO: \"$archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$lt_prog_compiler_wl
+	  pic_flag=$lt_prog_compiler_pic
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$allow_undefined_flag
+	  allow_undefined_flag=
+	  if { (eval echo "$as_me:$LINENO: \"$archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
   (eval $archive_cmds 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }
-        then
-	  archive_cmds_need_lc=no
-        else
-	  archive_cmds_need_lc=yes
-        fi
-        allow_undefined_flag=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      echo "$as_me:$LINENO: result: $archive_cmds_need_lc" >&5
-echo "${ECHO_T}$archive_cmds_need_lc" >&6
+	  then
+	    lt_cv_archive_cmds_need_lc=no
+	  else
+	    lt_cv_archive_cmds_need_lc=yes
+	  fi
+	  allow_undefined_flag=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+
+fi
+echo "$as_me:$LINENO: result: $lt_cv_archive_cmds_need_lc" >&5
+echo "${ECHO_T}$lt_cv_archive_cmds_need_lc" >&6
+      archive_cmds_need_lc=$lt_cv_archive_cmds_need_lc
       ;;
     esac
   fi
@@ -10173,12 +10180,17 @@ linux* | k*bsd*-gnu)
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
   shlibpath_var=LD_LIBRARY_PATH
   shlibpath_overrides_runpath=no
+
   # Some binutils ld are patched to set DT_RUNPATH
-  save_LDFLAGS=$LDFLAGS
-  save_libdir=$libdir
-  eval "libdir=/foo; wl=\"$lt_prog_compiler_wl\"; \
-       LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec\""
-  if test x$gcc_no_link = xyes; then
+  if test "${lt_cv_shlibpath_overrides_runpath+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  lt_cv_shlibpath_overrides_runpath=no
+    save_LDFLAGS=$LDFLAGS
+    save_libdir=$libdir
+    eval "libdir=/foo; wl=\"$lt_prog_compiler_wl\"; \
+	 LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec\""
+    if test x$gcc_no_link = xyes; then
   { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
 echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
    { (exit 1); exit 1; }; }
@@ -10221,7 +10233,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   if  ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null; then
-  shlibpath_overrides_runpath=yes
+  lt_cv_shlibpath_overrides_runpath=yes
 fi
 
 else
@@ -10231,8 +10243,12 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$save_LDFLAGS
-  libdir=$save_libdir
+    LDFLAGS=$save_LDFLAGS
+    libdir=$save_libdir
+
+fi
+
+  shlibpath_overrides_runpath=$lt_cv_shlibpath_overrides_runpath
 
   # This implies no fast_install, which is unacceptable.
   # Some rework will be needed to allow for fast_install
@@ -11227,7 +11243,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11230 "configure"
+#line 11246 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11323,7 +11339,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11326 "configure"
+#line 11342 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13349,11 +13365,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13352: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13368: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13356: \$? = $ac_status" >&5
+   echo "$as_me:13372: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -13448,11 +13464,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13451: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13467: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13455: \$? = $ac_status" >&5
+   echo "$as_me:13471: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13500,11 +13516,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13503: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13519: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13507: \$? = $ac_status" >&5
+   echo "$as_me:13523: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13612,44 +13628,50 @@ x|xyes)
       # to ld, don't add -lc before -lgcc.
       echo "$as_me:$LINENO: checking whether -lc should be explicitly linked in" >&5
 echo $ECHO_N "checking whether -lc should be explicitly linked in... $ECHO_C" >&6
-      $RM conftest*
-      echo "$lt_simple_compile_test_code" > conftest.$ac_ext
+if test "${lt_cv_archive_cmds_need_lc_CXX+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  $RM conftest*
+	echo "$lt_simple_compile_test_code" > conftest.$ac_ext
 
-      if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+	if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); } 2>conftest.err; then
-        soname=conftest
-        lib=conftest
-        libobjs=conftest.$ac_objext
-        deplibs=
-        wl=$lt_prog_compiler_wl_CXX
-	pic_flag=$lt_prog_compiler_pic_CXX
-        compiler_flags=-v
-        linker_flags=-v
-        verstring=
-        output_objdir=.
-        libname=conftest
-        lt_save_allow_undefined_flag=$allow_undefined_flag_CXX
-        allow_undefined_flag_CXX=
-        if { (eval echo "$as_me:$LINENO: \"$archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
+	  soname=conftest
+	  lib=conftest
+	  libobjs=conftest.$ac_objext
+	  deplibs=
+	  wl=$lt_prog_compiler_wl_CXX
+	  pic_flag=$lt_prog_compiler_pic_CXX
+	  compiler_flags=-v
+	  linker_flags=-v
+	  verstring=
+	  output_objdir=.
+	  libname=conftest
+	  lt_save_allow_undefined_flag=$allow_undefined_flag_CXX
+	  allow_undefined_flag_CXX=
+	  if { (eval echo "$as_me:$LINENO: \"$archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1\"") >&5
   (eval $archive_cmds_CXX 2\>\&1 \| $GREP \" -lc \" \>/dev/null 2\>\&1) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }
-        then
-	  archive_cmds_need_lc_CXX=no
-        else
-	  archive_cmds_need_lc_CXX=yes
-        fi
-        allow_undefined_flag_CXX=$lt_save_allow_undefined_flag
-      else
-        cat conftest.err 1>&5
-      fi
-      $RM conftest*
-      echo "$as_me:$LINENO: result: $archive_cmds_need_lc_CXX" >&5
-echo "${ECHO_T}$archive_cmds_need_lc_CXX" >&6
+	  then
+	    lt_cv_archive_cmds_need_lc_CXX=no
+	  else
+	    lt_cv_archive_cmds_need_lc_CXX=yes
+	  fi
+	  allow_undefined_flag_CXX=$lt_save_allow_undefined_flag
+	else
+	  cat conftest.err 1>&5
+	fi
+	$RM conftest*
+
+fi
+echo "$as_me:$LINENO: result: $lt_cv_archive_cmds_need_lc_CXX" >&5
+echo "${ECHO_T}$lt_cv_archive_cmds_need_lc_CXX" >&6
+      archive_cmds_need_lc_CXX=$lt_cv_archive_cmds_need_lc_CXX
       ;;
     esac
   fi
@@ -14084,12 +14106,17 @@ linux* | k*bsd*-gnu)
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -n $libdir'
   shlibpath_var=LD_LIBRARY_PATH
   shlibpath_overrides_runpath=no
+
   # Some binutils ld are patched to set DT_RUNPATH
-  save_LDFLAGS=$LDFLAGS
-  save_libdir=$libdir
-  eval "libdir=/foo; wl=\"$lt_prog_compiler_wl_CXX\"; \
-       LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec_CXX\""
-  if test x$gcc_no_link = xyes; then
+  if test "${lt_cv_shlibpath_overrides_runpath+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  lt_cv_shlibpath_overrides_runpath=no
+    save_LDFLAGS=$LDFLAGS
+    save_libdir=$libdir
+    eval "libdir=/foo; wl=\"$lt_prog_compiler_wl_CXX\"; \
+	 LDFLAGS=\"\$LDFLAGS $hardcode_libdir_flag_spec_CXX\""
+    if test x$gcc_no_link = xyes; then
   { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
 echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
    { (exit 1); exit 1; }; }
@@ -14132,7 +14159,7 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
   if  ($OBJDUMP -p conftest$ac_exeext) 2>/dev/null | grep "RUNPATH.*$libdir" >/dev/null; then
-  shlibpath_overrides_runpath=yes
+  lt_cv_shlibpath_overrides_runpath=yes
 fi
 
 else
@@ -14142,8 +14169,12 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-  LDFLAGS=$save_LDFLAGS
-  libdir=$save_libdir
+    LDFLAGS=$save_LDFLAGS
+    libdir=$save_libdir
+
+fi
+
+  shlibpath_overrides_runpath=$lt_cv_shlibpath_overrides_runpath
 
   # This implies no fast_install, which is unacceptable.
   # Some rework will be needed to allow for fast_install
@@ -14562,7 +14593,7 @@ fi;
     #
     # Fake what AC_TRY_COMPILE does.  XXX Look at redoing this new-style.
     cat > conftest.$ac_ext << EOF
-#line 14565 "configure"
+#line 14596 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -14691,6 +14722,32 @@ echo "${ECHO_T}$enable_libstdcxx_pch" >&6
 
 
 
+  echo "$as_me:$LINENO: checking for thread model used by GCC" >&5
+echo $ECHO_N "checking for thread model used by GCC... $ECHO_C" >&6
+  target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
+  echo "$as_me:$LINENO: result: $target_thread_file" >&5
+echo "${ECHO_T}$target_thread_file" >&6
+
+  if test $target_thread_file != single; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GTHR_DEFAULT 1
+_ACEOF
+
+  fi
+
+  glibcxx_thread_h=gthr-$target_thread_file.h
+
+    gthread_file=${toplevel_srcdir}/gcc/${glibcxx_thread_h}
+  if grep __GTHREADS $gthread_file >/dev/null 2>&1 ; then
+    enable_thread=yes
+  else
+   enable_thread=no
+  fi
+
+
+
+
 
 
   ac_ext=cc
@@ -14708,7 +14765,85 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
   # unnecessary for a builtins test.
 
     cat > conftest.$ac_ext << EOF
-#line 14711 "configure"
+#line 14768 "configure"
+int main()
+{
+  typedef bool atomic_type;
+  atomic_type c1;
+  atomic_type c2;
+  const atomic_type c3(0);
+  __sync_fetch_and_add(&c1, c2);
+  __sync_val_compare_and_swap(&c1, c3, c2);
+  __sync_lock_test_and_set(&c1, c3);
+  __sync_lock_release(&c1);
+  __sync_synchronize();
+  return 0;
+}
+EOF
+
+    echo "$as_me:$LINENO: checking for atomic builtins for bool" >&5
+echo $ECHO_N "checking for atomic builtins for bool... $ECHO_C" >&6
+    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+        enable_atomic_builtinsb=no
+      else
+
+cat >>confdefs.h <<\_ACEOF
+#define _GLIBCXX_ATOMIC_BUILTINS_1 1
+_ACEOF
+
+        enable_atomic_builtinsb=yes
+      fi
+    fi
+    echo "$as_me:$LINENO: result: $enable_atomic_builtinsb" >&5
+echo "${ECHO_T}$enable_atomic_builtinsb" >&6
+    rm -f conftest*
+
+    cat > conftest.$ac_ext << EOF
+#line 14807 "configure"
+int main()
+{
+  typedef short atomic_type;
+  atomic_type c1;
+  atomic_type c2;
+  const atomic_type c3(0);
+  __sync_fetch_and_add(&c1, c2);
+  __sync_val_compare_and_swap(&c1, c3, c2);
+  __sync_lock_test_and_set(&c1, c3);
+  __sync_lock_release(&c1);
+  __sync_synchronize();
+  return 0;
+}
+EOF
+
+    echo "$as_me:$LINENO: checking for atomic builtins for short" >&5
+echo $ECHO_N "checking for atomic builtins for short... $ECHO_C" >&6
+    if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+        enable_atomic_builtinss=no
+      else
+
+cat >>confdefs.h <<\_ACEOF
+#define _GLIBCXX_ATOMIC_BUILTINS_2 1
+_ACEOF
+
+        enable_atomic_builtinss=yes
+      fi
+    fi
+    echo "$as_me:$LINENO: result: $enable_atomic_builtinss" >&5
+echo "${ECHO_T}$enable_atomic_builtinss" >&6
+    rm -f conftest*
+
+    cat > conftest.$ac_ext << EOF
+#line 14846 "configure"
 int main()
 {
   // NB: _Atomic_word not necessarily int.
@@ -14748,10 +14883,10 @@ echo "${ECHO_T}$enable_atomic_builtinsi" >&6
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 14751 "configure"
+#line 14886 "configure"
 int main()
 {
-  typedef bool atomic_type;
+  typedef long long atomic_type;
   atomic_type c1;
   atomic_type c2;
   const atomic_type c3(0);
@@ -14764,27 +14899,28 @@ int main()
 }
 EOF
 
-    echo "$as_me:$LINENO: checking for atomic builtins for bool" >&5
-echo $ECHO_N "checking for atomic builtins for bool... $ECHO_C" >&6
+    echo "$as_me:$LINENO: checking for atomic builtins for long long" >&5
+echo $ECHO_N "checking for atomic builtins for long long... $ECHO_C" >&6
     if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
-        enable_atomic_builtinsb=no
+        enable_atomic_builtinsll=no
       else
 
 cat >>confdefs.h <<\_ACEOF
-#define _GLIBCXX_ATOMIC_BUILTINS_1 1
+#define _GLIBCXX_ATOMIC_BUILTINS_8 1
 _ACEOF
 
-        enable_atomic_builtinsb=yes
+        enable_atomic_builtinsll=yes
       fi
     fi
-    echo "$as_me:$LINENO: result: $enable_atomic_builtinsb" >&5
-echo "${ECHO_T}$enable_atomic_builtinsb" >&6
+    echo "$as_me:$LINENO: result: $enable_atomic_builtinsll" >&5
+echo "${ECHO_T}$enable_atomic_builtinsll" >&6
     rm -f conftest*
+
 
   CXXFLAGS="$old_CXXFLAGS"
   ac_ext=c
@@ -14804,7 +14940,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     atomicity_dir=cpu/generic/atomicity_mutex
     { echo "$as_me:$LINENO: WARNING: No native atomic operations are provided for this platform." >&5
 echo "$as_me: WARNING: No native atomic operations are provided for this platform." >&2;}
-      if test $target_thread_file = single; then
+      if test "x$target_thread_file" = xsingle; then
         { echo "$as_me:$LINENO: WARNING: They cannot be faked when thread support is disabled." >&5
 echo "$as_me: WARNING: They cannot be faked when thread support is disabled." >&2;}
         { echo "$as_me:$LINENO: WARNING: Thread-safety of certain classes is not guaranteed." >&5
@@ -14816,32 +14952,6 @@ echo "$as_me: WARNING: They will be faked using a mutex." >&2;}
 echo "$as_me: WARNING: Performance of certain classes will degrade as a result." >&2;}
       fi
   fi
-
-
-
-  echo "$as_me:$LINENO: checking for thread model used by GCC" >&5
-echo $ECHO_N "checking for thread model used by GCC... $ECHO_C" >&6
-  target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
-  echo "$as_me:$LINENO: result: $target_thread_file" >&5
-echo "${ECHO_T}$target_thread_file" >&6
-
-  if test $target_thread_file != single; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_GTHR_DEFAULT 1
-_ACEOF
-
-  fi
-
-  glibcxx_thread_h=gthr-$target_thread_file.h
-
-    gthread_file=${toplevel_srcdir}/gcc/${glibcxx_thread_h}
-  if grep __GTHREADS $gthread_file >/dev/null 2>&1 ; then
-    enable_thread=yes
-  else
-   enable_thread=no
-  fi
-
 
 
 
@@ -14937,100 +15047,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-
-
-
-  echo "$as_me:$LINENO: checking for ISO C++200x standard layout type support" >&5
-echo $ECHO_N "checking for ISO C++200x standard layout type support... $ECHO_C" >&6
-  if test "${ac_standard_layout+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-
-
-  ac_ext=cc
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-  ac_test_CXXFLAGS="${CXXFLAGS+set}"
-  ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS='-std=gnu++0x'
-
-  cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-struct b
-                  {
-  		    bool t;
-
-		    // Need standard layout relaxation from POD
-		    private:
-  		    b& operator=(const b&);
-  		    b(const b&);
-		    };
-int
-main ()
-{
-b tst1 = { false };
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest.$ac_objext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_standard_layout=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_standard_layout=no
-fi
-rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
-
-  CXXFLAGS="$ac_save_CXXFLAGS"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-fi
-
-  echo "$as_me:$LINENO: result: $ac_standard_layout" >&5
-echo "${ECHO_T}$ac_standard_layout" >&6
-  if test x"$ac_standard_layout" = x"yes"; then
-
-cat >>confdefs.h <<\_ACEOF
-#define _GLIBCXX_USE_STANDARD_LAYOUT 1
-_ACEOF
-
-  fi
 
 
 # Enable all the variable C++ runtime options that don't require linking.
@@ -20964,8 +20980,8 @@ typedef double_t  my_double_t;
 	          remainderf(0.0f, 0.0f);
 	          remainderl(0.0l, 0.0l);
 	          remquo(0.0, 0.0, 0);
-	          remquo(0.0f, 0.0f, 0);
-	          remquo(0.0l, 0.0l, 0);
+	          remquof(0.0f, 0.0f, 0);
+	          remquol(0.0l, 0.0l, 0);
 	          rint(0.0);
 	          rintf(0.0f);
 	          rintl(0.0l);
@@ -41959,96 +41975,6 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
   fi
-
-  # For _Unwind_GetIPInfo.
-
-
-
-  ac_ext=cc
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-  ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS -fno-exceptions"
-  echo "$as_me:$LINENO: checking for _Unwind_GetIPInfo" >&5
-echo $ECHO_N "checking for _Unwind_GetIPInfo... $ECHO_C" >&6
-  if test "${gcc_cv_getipinfo+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-
-  if test x$gcc_no_link = xyes; then
-  { { echo "$as_me:$LINENO: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&5
-echo "$as_me: error: Link tests are not allowed after GCC_NO_EXECUTABLES." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-extern "C" { extern void _Unwind_GetIPInfo(); }
-int
-main ()
-{
-_Unwind_GetIPInfo();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  gcc_cv_getipinfo=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-gcc_cv_getipinfo=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-
-fi
-
-  if test $gcc_cv_getipinfo = yes; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_GETIPINFO 1
-_ACEOF
-
-  fi
-  echo "$as_me:$LINENO: result: $gcc_cv_getipinfo" >&5
-echo "${ECHO_T}$gcc_cv_getipinfo" >&6
-  CXXFLAGS="$ac_save_CXXFLAGS"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
 
   # For iconv support.
 
@@ -81484,6 +81410,10 @@ _ACEOF
 _ACEOF
 
     cat >>confdefs.h <<\_ACEOF
+#define HAVE_FABSF 1
+_ACEOF
+
+    cat >>confdefs.h <<\_ACEOF
 #define HAVE_FREXPF 1
 _ACEOF
 
@@ -104416,13 +104346,48 @@ _ACEOF
 _ACEOF
 
   fi
+fi
 
-  # Assume we have _Unwind_GetIPInfo for cross-compiles.
-  cat >>confdefs.h <<\_ACEOF
+# Check for _Unwind_GetIPInfo.
+
+
+# Check whether --with-system-libunwind or --without-system-libunwind was given.
+if test "${with_system_libunwind+set}" = set; then
+  withval="$with_system_libunwind"
+
+fi;
+  # If system-libunwind was not specifically set, pick a default setting.
+  if test x$with_system_libunwind = x; then
+    case ${target} in
+      ia64-*-hpux*) with_system_libunwind=yes ;;
+      *) with_system_libunwind=no ;;
+    esac
+  fi
+  # Based on system-libunwind and target, do we have ipinfo?
+  if  test x$with_system_libunwind = xyes; then
+    case ${target} in
+      ia64-*-*) have_unwind_getipinfo=no ;;
+      *) have_unwind_getipinfo=yes ;;
+    esac
+  else
+    # Darwin before version 9 does not have _Unwind_GetIPInfo.
+
+    case ${target} in
+      *-*-darwin[3-8]|*-*-darwin[3-8].*) have_unwind_getipinfo=no ;;
+      *) have_unwind_getipinfo=yes ;;
+    esac
+
+  fi
+
+  if test x$have_unwind_getipinfo = xyes; then
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_GETIPINFO 1
 _ACEOF
 
-fi
+  fi
+
+
 
  # Check whether --enable-linux-futex or --disable-linux-futex was given.
 if test "${enable_linux_futex+set}" = set; then

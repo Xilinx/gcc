@@ -4,7 +4,7 @@ AutoGen definitions Makefile.tpl;
 // Makefile.in is generated from Makefile.tpl by 'autogen Makefile.def'.
 // This file was originally written by Nathanael Nerode.
 //
-//   Copyright 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation
+//   Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation
 //
 // This file is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -218,7 +218,6 @@ flags_to_pass = { flag= target_alias ; };
 flags_to_pass = { flag= BISON ; };
 flags_to_pass = { flag= CC_FOR_BUILD ; };
 flags_to_pass = { flag= CFLAGS_FOR_BUILD ; };
-flags_to_pass = { flag= CPPFLAGS_FOR_BUILD ; };
 flags_to_pass = { flag= CXX_FOR_BUILD ; };
 flags_to_pass = { flag= EXPECT ; };
 flags_to_pass = { flag= FLEX ; };
@@ -243,7 +242,6 @@ flags_to_pass = { flag= BOOT_ADAFLAGS ; optional=true ; };
 flags_to_pass = { flag= BOOT_CFLAGS ; };
 flags_to_pass = { flag= BOOT_LDFLAGS ; };
 flags_to_pass = { flag= CFLAGS ; };
-flags_to_pass = { flag= CPPFLAGS ; };
 flags_to_pass = { flag= CXXFLAGS ; };
 flags_to_pass = { flag= LDFLAGS ; };
 flags_to_pass = { flag= LIBCFLAGS ; };
@@ -498,6 +496,7 @@ lang_env_dependencies = { module=libgcc; no_gcc=true; no_c=true; };
 lang_env_dependencies = { module=libiberty; no_c=true; };
 
 dependencies = { module=configure-target-boehm-gc; on=configure-target-qthreads; };
+dependencies = { module=configure-target-boehm-gc; on=all-target-libstdc++-v3; };
 dependencies = { module=configure-target-fastjar; on=configure-target-zlib; };
 dependencies = { module=all-target-fastjar; on=all-target-zlib; };
 dependencies = { module=all-target-fastjar; on=all-target-libiberty; };

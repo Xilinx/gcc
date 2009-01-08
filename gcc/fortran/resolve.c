@@ -1072,6 +1072,87 @@ count_specific_procs (gfc_expr *e)
   return n;
 }
 
+
+/* See if a call to sym could possibly be a not allowed RECURSION because of
+   a missing RECURIVE declaration.  This means that either sym is the current
+   context itself, or sym is the parent of a contained procedure calling its
+   non-RECURSIVE containing procedure.
+   This also works if sym is an ENTRY.  */
+
+static bool
+is_illegal_recursion (gfc_symbol* sym, gfc_namespace* context)
+{
+  gfc_symbol* proc_sym;
+  gfc_symbol* context_proc;
+
+  gcc_assert (sym->attr.flavor == FL_PROCEDURE);
+
+  /* If we've got an ENTRY, find real procedure.  */
+  if (sym->attr.entry && sym->ns->entries)
+    proc_sym = sym->ns->entries->sym;
+  else
+    proc_sym = sym;
+
+  /* If sym is RECURSIVE, all is well of course.  */
+  if (proc_sym->attr.recursive || gfc_option.flag_recursive)
+    return false;
+
+  /* Find the context procdure's "real" symbol if it has entries.  */
+  context_proc = (context->entries ? context->entries->sym
+				   : context->proc_name);
+  if (!context_proc)
+    return true;
+
+  /* A call from sym's body to itself is recursion, of course.  */
+  if (context_proc == proc_sym)
+    return true;
+
+  /* The same is true if context is a contained procedure and sym the
+     containing one.  */
+  if (context_proc->attr.contained)
+    {
+      gfc_symbol* parent_proc;
+
+      gcc_assert (context->parent);
+      parent_proc = (context->parent->entries ? context->parent->entries->sym
+					      : context->parent->proc_name);
+
+      if (parent_proc == proc_sym)
+	return true;
+    }
+
+  return false;
+}
+
+
+/* Resolve a procedure expression, like passing it to a called procedure or as
+   RHS for a procedure pointer assignment.  */
+
+static gfc_try
+resolve_procedure_expression (gfc_expr* expr)
+{
+  gfc_symbol* sym;
+
+  if (expr->expr_type != EXPR_VARIABLE)
+    return SUCCESS;
+  gcc_assert (expr->symtree);
+
+  sym = expr->symtree->n.sym;
+  if (sym->attr.flavor != FL_PROCEDURE
+      || (sym->attr.function && sym->result == sym))
+    return SUCCESS;
+
+  /* A non-RECURSIVE procedure that is used as procedure expression within its
+     own body is in danger of being called recursively.  */
+  if (is_illegal_recursion (sym, gfc_current_ns))
+    gfc_warning ("Non-RECURSIVE procedure '%s' at %L is possibly calling"
+		 " itself recursively.  Declare it RECURSIVE or use"
+		 " -frecursive", sym->name, &expr->where);
+  
+  return SUCCESS;
+}
+
+
 /* Resolve an actual argument list.  Most of the time, this is just
    resolving the expressions in the list.
    The exception is that we sometimes have to decide whether arguments
@@ -1176,15 +1257,6 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  /* Just in case a specific was found for the expression.  */
 	  sym = e->symtree->n.sym;
 
-	  if (sym->attr.entry && sym->ns->entries
-		&& sym->ns == gfc_current_ns
-		&& !sym->ns->entries->sym->attr.recursive)
-	    {
-	      gfc_error ("Reference to ENTRY '%s' at %L is recursive, but procedure "
-			 "'%s' is not declared as RECURSIVE",
-			 sym->name, &e->where, sym->ns->entries->sym->name);
-	    }
-
 	  /* If the symbol is the function that names the current (or
 	     parent) scope, then we really have a variable reference.  */
 
@@ -1211,6 +1283,9 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	      sym->attr.intrinsic = 1;
 	      sym->attr.function = 1;
 	    }
+
+	  if (gfc_resolve_expr (e) == FAILURE)
+	    return FAILURE;
 	  goto argument_list;
 	}
 
@@ -1235,6 +1310,8 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
 	  || sym->attr.intrinsic
 	  || sym->attr.external)
 	{
+	  if (gfc_resolve_expr (e) == FAILURE)
+	    return FAILURE;
 	  goto argument_list;
 	}
 
@@ -1491,7 +1568,8 @@ find_noncopying_intrinsics (gfc_symbol *fnsym, gfc_actual_arglist *actual)
   for (ap = actual; ap; ap = ap->next)
     if (ap->expr
 	&& (expr = gfc_get_noncopying_intrinsic_argument (ap->expr))
-	&& !gfc_check_fncall_dependency (expr, INTENT_IN, fnsym, actual))
+	&& !gfc_check_fncall_dependency (expr, INTENT_IN, fnsym, actual,
+					 NOT_ELEMENTAL))
       ap->expr->inline_noncopying_intrinsic = 1;
 }
 
@@ -1969,12 +2047,10 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
-  int optional_arg = 0;
+  int optional_arg = 0, is_pointer = 0;
   gfc_try retval = SUCCESS;
   gfc_symbol *args_sym;
   gfc_typespec *arg_ts;
-  gfc_ref *parent_ref;
-  gfc_ref *curr_ref;
 
   if (args->expr->expr_type == EXPR_CONSTANT
       || args->expr->expr_type == EXPR_OP
@@ -1992,32 +2068,8 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
      the actual expression could be a part-ref of the expr symbol.  */
   arg_ts = &(args->expr->ts);
 
-  /* Get the parent reference (if any) for the expression.  This happens for
-     cases such as a%b%c.  */
-  parent_ref = args->expr->ref;
-  curr_ref = NULL;
-  if (parent_ref != NULL)
-    {
-      curr_ref = parent_ref->next;
-      while (curr_ref != NULL && curr_ref->next != NULL)
-        {
-	  parent_ref = curr_ref;
-	  curr_ref = curr_ref->next;
-	}
-    }
-
-  /* If curr_ref is non-NULL, we had a part-ref expression.  If the curr_ref
-     is for a REF_COMPONENT, then we need to use it as the parent_ref for
-     the name, etc.  Otherwise, the current parent_ref should be correct.  */
-  if (curr_ref != NULL && curr_ref->type == REF_COMPONENT)
-    parent_ref = curr_ref;
-
-  if (parent_ref == args->expr->ref)
-    parent_ref = NULL;
-  else if (parent_ref != NULL && parent_ref->type != REF_COMPONENT)
-    gfc_internal_error ("Unexpected expression reference type in "
-			"gfc_iso_c_func_interface");
-
+  is_pointer = gfc_is_data_pointer (args->expr);
+    
   if (sym->intmod_sym_id == ISOCBINDING_ASSOCIATED)
     {
       /* If the user gave two args then they are providing something for
@@ -2059,10 +2111,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
       else if (sym->intmod_sym_id == ISOCBINDING_LOC)
         {
           /* Make sure we have either the target or pointer attribute.  */
-	  if (!(args_sym->attr.target)
-	      && !(args_sym->attr.pointer)
-	      && (parent_ref == NULL ||
-		  !parent_ref->u.c.component->attr.pointer))
+	  if (!args_sym->attr.target && !is_pointer)
             {
               gfc_error_now ("Parameter '%s' to '%s' at %L must be either "
                              "a TARGET or an associated pointer",
@@ -2072,10 +2121,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
             }
 
           /* See if we have interoperable type and type param.  */
-          if (verify_c_interop (arg_ts,
-				(parent_ref ? parent_ref->u.c.component->name 
-				 : args_sym->name), 
-                                &(args->expr->where)) == SUCCESS
+          if (verify_c_interop (arg_ts) == SUCCESS
               || gfc_check_any_c_kind (arg_ts) == SUCCESS)
             {
               if (args_sym->attr.target == 1)
@@ -2148,9 +2194,7 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
 			  }
                     }
                 }
-              else if ((args_sym->attr.pointer == 1 ||
-			(parent_ref != NULL 
-			 && parent_ref->u.c.component->attr.pointer))
+              else if (is_pointer
 		       && is_scalar_expr_ptr (args->expr) != SUCCESS)
                 {
                   /* Case 1c, section 15.1.2.5, J3/04-007: an associated
@@ -2252,7 +2296,7 @@ resolve_function (gfc_expr *expr)
       return FAILURE;
     }
 
-  if (sym && sym->attr.flavor == FL_VARIABLE)
+  if (sym && (sym->attr.flavor == FL_VARIABLE || sym->attr.subroutine))
     {
       gfc_error ("'%s' at %L is not a function", sym->name, &expr->where);
       return FAILURE;
@@ -2425,22 +2469,19 @@ resolve_function (gfc_expr *expr)
    * call themselves.  */
   if (expr->value.function.esym && !expr->value.function.esym->attr.recursive)
     {
-      gfc_symbol *esym, *proc;
+      gfc_symbol *esym;
       esym = expr->value.function.esym;
-      proc = gfc_current_ns->proc_name;
-      if (esym == proc)
-      {
-	gfc_error ("Function '%s' at %L cannot call itself, as it is not "
-		   "RECURSIVE", name, &expr->where);
-	t = FAILURE;
-      }
 
-      if (esym->attr.entry && esym->ns->entries && proc->ns->entries
-	  && esym->ns->entries->sym == proc->ns->entries->sym)
+      if (is_illegal_recursion (esym, gfc_current_ns))
       {
-	gfc_error ("Call to ENTRY '%s' at %L is recursive, but function "
-		   "'%s' is not declared as RECURSIVE",
-		   esym->name, &expr->where, esym->ns->entries->sym->name);
+	if (esym->attr.entry && esym->ns->entries)
+	  gfc_error ("ENTRY '%s' at %L cannot be called recursively, as"
+		     " function '%s' is not RECURSIVE",
+		     esym->name, &expr->where, esym->ns->entries->sym->name);
+	else
+	  gfc_error ("Function '%s' at %L cannot be called recursively, as it"
+		     " is not RECURSIVE", esym->name, &expr->where);
+
 	t = FAILURE;
       }
     }
@@ -2718,7 +2759,8 @@ resolve_specific_s0 (gfc_code *c, gfc_symbol *sym)
 
   /* See if we have an intrinsic interface.  */
   if (sym->ts.interface != NULL && !sym->ts.interface->attr.abstract
-      && !sym->ts.interface->attr.subroutine)
+      && !sym->ts.interface->attr.subroutine
+      && sym->ts.interface->attr.intrinsic)
     {
       gfc_intrinsic_sym *isym;
 
@@ -2871,15 +2913,20 @@ resolve_call (gfc_code *c)
 
   if (csym && gfc_current_ns->parent && csym->ns != gfc_current_ns)
     {
-      gfc_find_symbol (csym->name, gfc_current_ns, 1, &sym);
+      gfc_symtree *st;
+      gfc_find_sym_tree (csym->name, gfc_current_ns, 1, &st);
+      sym = st ? st->n.sym : NULL;
       if (sym && csym != sym
 	      && sym->ns == gfc_current_ns
 	      && sym->attr.flavor == FL_PROCEDURE
 	      && sym->attr.contained)
 	{
 	  sym->refs++;
-	  csym = sym;
-	  c->symtree->n.sym = sym;
+	  if (csym->attr.generic)
+	    c->symtree->n.sym = sym;
+	  else
+	    c->symtree = st;
+	  csym = c->symtree->n.sym;
 	}
     }
 
@@ -2889,25 +2936,17 @@ resolve_call (gfc_code *c)
 
   /* Subroutines without the RECURSIVE attribution are not allowed to
    * call themselves.  */
-  if (csym && !csym->attr.recursive)
+  if (csym && is_illegal_recursion (csym, gfc_current_ns))
     {
-      gfc_symbol *proc;
-      proc = gfc_current_ns->proc_name;
-      if (csym == proc)
-      {
-	gfc_error ("SUBROUTINE '%s' at %L cannot call itself, as it is not "
-		   "RECURSIVE", csym->name, &c->loc);
-	t = FAILURE;
-      }
-
-      if (csym->attr.entry && csym->ns->entries && proc->ns->entries
-	  && csym->ns->entries->sym == proc->ns->entries->sym)
-      {
-	gfc_error ("Call to ENTRY '%s' at %L is recursive, but subroutine "
-		   "'%s' is not declared as RECURSIVE",
+      if (csym->attr.entry && csym->ns->entries)
+	gfc_error ("ENTRY '%s' at %L cannot be called recursively, as"
+		   " subroutine '%s' is not RECURSIVE",
 		   csym->name, &c->loc, csym->ns->entries->sym->name);
-	t = FAILURE;
-      }
+      else
+	gfc_error ("SUBROUTINE '%s' at %L cannot be called recursively, as it"
+		   " is not RECURSIVE", csym->name, &c->loc);
+
+      t = FAILURE;
     }
 
   /* Switch off assumed size checking and do this again for certain kinds
@@ -4157,7 +4196,7 @@ resolve_variable (gfc_expr *e)
   if (sym->attr.flavor == FL_PROCEDURE && !sym->attr.function)
     {
       e->ts.type = BT_PROCEDURE;
-      return SUCCESS;
+      goto resolve_procedure;
     }
 
   if (sym->ts.type != BT_UNKNOWN)
@@ -4239,6 +4278,10 @@ resolve_variable (gfc_expr *e)
 	sym->entry_id = current_entry_id + 1;
     }
 
+resolve_procedure:
+  if (t == SUCCESS && resolve_procedure_expression (e) == FAILURE)
+    t = FAILURE;
+
   return t;
 }
 
@@ -4257,7 +4300,12 @@ check_host_association (gfc_expr *e)
   int n;
   bool retval = e->expr_type == EXPR_FUNCTION;
 
-  if (e->symtree == NULL || e->symtree->n.sym == NULL)
+  /*  If the expression is the result of substitution in
+      interface.c(gfc_extend_expr) because there is no way in
+      which the host association can be wrong.  */
+  if (e->symtree == NULL
+	|| e->symtree->n.sym == NULL
+	|| e->user_operator)
     return retval;
 
   old_sym = e->symtree->n.sym;
@@ -4293,6 +4341,11 @@ check_host_association (gfc_expr *e)
 	      gfc_free (e->shape);
 	    }
 
+/* TODO - Replace this gfc_match_rvalue with a straight replacement of
+   actual arglists for function to function substitutions and with a
+   conversion of the reference list to an actual arglist in the case of
+   a variable to function replacement.  This should be quite easy since
+   only integers and vectors can be involved.  */	    
 	  gfc_match_rvalue (&expr);
 	  gfc_clear_error ();
 	  gfc_buffer_error (0);
@@ -9194,6 +9247,7 @@ resolve_symbol (gfc_symbol *sym)
      module function and is not PRIVATE.  */
   if (sym->ts.type == BT_DERIVED
 	&& sym->ts.derived->attr.use_assoc
+	&& sym->ns->proc_name
 	&& sym->ns->proc_name->attr.flavor == FL_MODULE)
     {
       gfc_symbol *ds;
@@ -10179,12 +10233,14 @@ resolve_fntype (gfc_namespace *ns)
     }
 
   if (sym->ts.type == BT_DERIVED && !sym->ts.derived->attr.use_assoc
+      && !sym->attr.contained
       && !gfc_check_access (sym->ts.derived->attr.access,
 			    sym->ts.derived->ns->default_access)
       && gfc_check_access (sym->attr.access, sym->ns->default_access))
     {
-      gfc_error ("PUBLIC function '%s' at %L cannot be of PRIVATE type '%s'",
-		 sym->name, &sym->declared_at, sym->ts.derived->name);
+      gfc_notify_std (GFC_STD_F2003, "Fortran 2003: PUBLIC function '%s' at "
+		      "%L of PRIVATE type '%s'", sym->name,
+		      &sym->declared_at, sym->ts.derived->name);
     }
 
     if (ns->entries)

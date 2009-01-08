@@ -1,6 +1,6 @@
 /* Reload pseudo regs into hard regs for insns that require hard regs.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -557,7 +557,7 @@ compute_use_by_pseudos (HARD_REG_SET *to, regset from)
 	     which might still contain registers that have not
 	     actually been allocated since they have an
 	     equivalence.  */
-	  gcc_assert ((flag_ira && optimize) || reload_completed);
+	  gcc_assert ((flag_ira && ira_conflicts_p) || reload_completed);
 	}
       else
 	add_to_hard_reg_set (to, PSEUDO_REGNO_MODE (regno), r);
@@ -901,7 +901,7 @@ reload (rtx first, int global)
   for (n = 0, i = LAST_VIRTUAL_REGISTER + 1; i < max_regno; i++)
     temp_pseudo_reg_arr[n++] = i;
   
-  if (flag_ira && optimize)
+  if (flag_ira && ira_conflicts_p)
     /* Ask IRA to order pseudo-registers for better stack slot
        sharing.  */
     ira_sort_regnos_for_alter_reg (temp_pseudo_reg_arr, n, reg_max_ref_width);
@@ -1055,7 +1055,7 @@ reload (rtx first, int global)
 
       calculate_needs_all_insns (global);
 
-      if (! flag_ira || ! optimize)
+      if (! flag_ira || ! ira_conflicts_p)
 	/* Don't do it for IRA.  We need this info because we don't
 	   change live_throughout and dead_or_set for chains when IRA
 	   is used.  */
@@ -1614,7 +1614,7 @@ calculate_needs_all_insns (int global)
 				       reg_equiv_memory_loc
 				       [REGNO (SET_DEST (set))]))))
 		{
-		  if (flag_ira && optimize)
+		  if (flag_ira && ira_conflicts_p)
 		    /* Inform IRA about the insn deletion.  */
 		    ira_mark_memory_move_deletion (REGNO (SET_DEST (set)),
 						   REGNO (SET_SRC (set)));
@@ -1723,7 +1723,7 @@ count_pseudo (int reg)
       || REGNO_REG_SET_P (&spilled_pseudos, reg)
       /* Ignore spilled pseudo-registers which can be here only if IRA
 	 is used.  */
-      || (flag_ira && optimize && r < 0))
+      || (flag_ira && ira_conflicts_p && r < 0))
     return;
 
   SET_REGNO_REG_SET (&pseudos_counted, reg);
@@ -1804,7 +1804,7 @@ count_spilled_pseudo (int spilled, int spilled_nregs, int reg)
 
   /* Ignore spilled pseudo-registers which can be here only if IRA is
      used.  */
-  if ((flag_ira && optimize && r < 0)
+  if ((flag_ira && ira_conflicts_p && r < 0)
       || REGNO_REG_SET_P (&spilled_pseudos, reg)
       || spilled + spilled_nregs <= r || r + nregs <= spilled)
     return;
@@ -1876,7 +1876,7 @@ find_reg (struct insn_chain *chain, int order)
 	  if (! ok)
 	    continue;
 
-	  if (flag_ira && optimize)
+	  if (flag_ira && ira_conflicts_p)
 	    {
 	      /* Ask IRA to find a better pseudo-register for
 		 spilling.  */
@@ -2158,7 +2158,7 @@ alter_reg (int i, int from_reg, bool dont_share_p)
       unsigned int min_align = reg_max_ref_width[i] * BITS_PER_UNIT;
       int adjust = 0;
 
-      if (flag_ira && optimize)
+      if (flag_ira && ira_conflicts_p)
 	{
 	  /* Mark the spill for IRA.  */
 	  SET_REGNO_REG_SET (&spilled_pseudos, i);
@@ -2177,7 +2177,8 @@ alter_reg (int i, int from_reg, bool dont_share_p)
 	 enough inherent space and enough total space.
 	 Otherwise, we allocate a new slot, making sure that it has no less
 	 inherent space, and no less total space, then the previous slot.  */
-      else if (from_reg == -1 || (!dont_share_p && flag_ira && optimize))
+      else if (from_reg == -1
+	       || (!dont_share_p && flag_ira && ira_conflicts_p))
 	{
 	  rtx stack_slot;
 
@@ -2202,7 +2203,7 @@ alter_reg (int i, int from_reg, bool dont_share_p)
 				       adjust);
 	    }
 
-	  if (! dont_share_p && flag_ira && optimize)
+	  if (! dont_share_p && flag_ira && ira_conflicts_p)
 	    /* Inform IRA about allocation a new stack slot.  */
 	    ira_mark_new_stack_slot (stack_slot, i, total_size);
 	}
@@ -3299,7 +3300,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	  {
 	    rtx to_rtx = ep->to_rtx;
 	    offset += ep->offset;
-	    offset = trunc_int_for_mode (offset, GET_MODE (reg));
+	    offset = trunc_int_for_mode (offset, GET_MODE (plus_cst_src));
 
 	    if (GET_CODE (XEXP (plus_cst_src, 0)) == SUBREG)
 	      to_rtx = gen_lowpart (GET_MODE (XEXP (plus_cst_src, 0)),
@@ -3904,7 +3905,7 @@ finish_spills (int global)
       spill_reg_order[i] = -1;
 
   EXECUTE_IF_SET_IN_REG_SET (&spilled_pseudos, FIRST_PSEUDO_REGISTER, i, rsi)
-    if (! flag_ira || ! optimize || reg_renumber[i] >= 0)
+    if (! flag_ira || ! ira_conflicts_p || reg_renumber[i] >= 0)
       {
 	/* Record the current hard register the pseudo is allocated to
 	   in pseudo_previous_regs so we avoid reallocating it to the
@@ -3914,7 +3915,7 @@ finish_spills (int global)
 	SET_HARD_REG_BIT (pseudo_previous_regs[i], reg_renumber[i]);
 	/* Mark it as no longer having a hard register home.  */
 	reg_renumber[i] = -1;
-	if (flag_ira && optimize)
+	if (flag_ira && ira_conflicts_p)
 	  /* Inform IRA about the change.  */
 	  ira_mark_allocation_change (i);
 	/* We will need to scan everything again.  */
@@ -3944,7 +3945,7 @@ finish_spills (int global)
 	    }
 	}
 
-      if (! flag_ira || ! optimize)
+      if (! flag_ira || ! ira_conflicts_p)
 	{
 	  /* Retry allocating the spilled pseudos.  For each reg,
 	     merge the various reg sets that indicate which hard regs
@@ -3996,7 +3997,7 @@ finish_spills (int global)
       HARD_REG_SET used_by_pseudos;
       HARD_REG_SET used_by_pseudos2;
 
-      if (! flag_ira || ! optimize)
+      if (! flag_ira || ! ira_conflicts_p)
 	{
 	  /* Don't do it for IRA because IRA and the reload still can
 	     assign hard registers to the spilled pseudos on next
@@ -4164,6 +4165,9 @@ reload_as_needed (int live_known)
       rtx prev = 0;
       rtx insn = chain->insn;
       rtx old_next = NEXT_INSN (insn);
+#ifdef AUTO_INC_DEC
+      rtx old_prev = PREV_INSN (insn);
+#endif
 
       /* If we pass a label, copy the offsets from the label information
 	 into the current offsets of each elimination.  */
@@ -4387,6 +4391,33 @@ reload_as_needed (int live_known)
 					REGNO (rld[i].reg_rtx));
 		      SET_REGNO_REG_SET (&reg_has_output_reload,
 					 REGNO (XEXP (in_reg, 0)));
+		    }
+		  else if ((code == PRE_INC || code == PRE_DEC
+			    || code == POST_INC || code == POST_DEC))
+		    {
+		      int in_hard_regno;
+		      int in_regno = REGNO (XEXP (in_reg, 0));
+
+		      if (reg_last_reload_reg[in_regno] != NULL_RTX)
+			{
+			  in_hard_regno = REGNO (reg_last_reload_reg[in_regno]);
+			  gcc_assert (TEST_HARD_REG_BIT (reg_reloaded_valid,
+							 in_hard_regno));
+			  for (x = old_prev ? NEXT_INSN (old_prev) : insn;
+			       x != old_next;
+			       x = NEXT_INSN (x))
+			    if (x == reg_reloaded_insn[in_hard_regno])
+			      break;
+			  /* If for some reasons, we didn't set up
+			     reg_last_reload_reg in this insn,
+			     invalidate inheritance from previous
+			     insns for the incremented/decremented
+			     register.  Such registers will be not in
+			     reg_has_output_reload.  */
+			  if (x == old_next)
+			    forget_old_reloads_1 (XEXP (in_reg, 0),
+						  NULL_RTX, NULL);
+			}
 		    }
 		}
 	    }
@@ -6054,9 +6085,10 @@ choose_reload_regs (struct insn_chain *chain)
 		    need_mode = mode;
 		  else
 		    need_mode
-		      = smallest_mode_for_size (GET_MODE_BITSIZE (mode)
-						+ byte * BITS_PER_UNIT,
-						GET_MODE_CLASS (mode));
+		      = smallest_mode_for_size
+		        (GET_MODE_BITSIZE (mode) + byte * BITS_PER_UNIT,
+			 GET_MODE_CLASS (mode) == MODE_PARTIAL_INT
+			 ? MODE_INT : GET_MODE_CLASS (mode));
 
 		  if ((GET_MODE_SIZE (GET_MODE (last_reg))
 		       >= GET_MODE_SIZE (need_mode))
@@ -6332,6 +6364,7 @@ choose_reload_regs (struct insn_chain *chain)
 		  int nr = hard_regno_nregs[regno][rld[r].mode];
 		  int k;
 		  rld[r].reg_rtx = equiv;
+		  reload_spill_index[r] = regno;
 		  reload_inherited[r] = 1;
 
 		  /* If reg_reloaded_valid is not set for this register,
@@ -6967,7 +7000,7 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 		  && REG_N_SETS (REGNO (old)) == 1)
 		{
 		  reg_renumber[REGNO (old)] = REGNO (reloadreg);
-		  if (flag_ira && optimize)
+		  if (flag_ira && ira_conflicts_p)
 		    /* Inform IRA about the change.  */
 		    ira_mark_allocation_change (REGNO (old));
 		  alter_reg (REGNO (old), -1, false);
@@ -8508,7 +8541,7 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
 
       /* For the debugging info, say the pseudo lives in this reload reg.  */
       reg_renumber[REGNO (reg)] = REGNO (new_reload_reg);
-      if (flag_ira && optimize)
+      if (flag_ira && ira_conflicts_p)
 	/* Inform IRA about the change.  */
 	ira_mark_allocation_change (REGNO (reg));
       alter_reg (REGNO (reg), -1, false);

@@ -1976,7 +1976,9 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
   if (processing_template_decl)
     {
       result = build_call_list (TREE_TYPE (result), orig_fn, orig_args);
-      KOENIG_LOOKUP_P (result) = koenig_p;
+      /* Don't repeat arg-dependent lookup at instantiation time if this call
+         is not type-dependent.  */
+      KOENIG_LOOKUP_P (result) = 0;
     }
   return result;
 }
@@ -4260,13 +4262,25 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	}
       else
 	init = build2 (MODIFY_EXPR, void_type_node, decl, init);
-      if (cond && TREE_SIDE_EFFECTS (cond) && COMPARISON_CLASS_P (cond))
+      if (cond
+	  && TREE_SIDE_EFFECTS (cond)
+	  && COMPARISON_CLASS_P (cond)
+	  && !processing_template_decl)
 	{
-	  int n = TREE_SIDE_EFFECTS (TREE_OPERAND (cond, 1)) != 0;
-	  tree t = TREE_OPERAND (cond, n);
+	  tree t = TREE_OPERAND (cond, 0);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (cond, 0)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 
-	  if (!processing_template_decl)
-	    TREE_OPERAND (cond, n)
+	  t = TREE_OPERAND (cond, 1);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (cond, 1)
 	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	}
       if (decl == error_mark_node || init == error_mark_node)
@@ -4290,21 +4304,31 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 
   for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INCR (omp_for)); i++)
     {
-      tree incr = TREE_VEC_ELT (OMP_FOR_INCR (omp_for), i);
+      decl = TREE_OPERAND (TREE_VEC_ELT (OMP_FOR_INIT (omp_for), i), 0);
+      incr = TREE_VEC_ELT (OMP_FOR_INCR (omp_for), i);
 
       if (TREE_CODE (incr) != MODIFY_EXPR)
 	continue;
 
       if (TREE_SIDE_EFFECTS (TREE_OPERAND (incr, 1))
-	  && BINARY_CLASS_P (TREE_OPERAND (incr, 1)))
+	  && BINARY_CLASS_P (TREE_OPERAND (incr, 1))
+	  && !processing_template_decl)
 	{
-	  tree t = TREE_OPERAND (incr, 1);
-	  int n = TREE_SIDE_EFFECTS (TREE_OPERAND (t, 1)) != 0;
+	  tree t = TREE_OPERAND (TREE_OPERAND (incr, 1), 0);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (TREE_OPERAND (incr, 1), 0)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 
-	  if (!processing_template_decl)
-	    TREE_OPERAND (t, n)
-	      = fold_build_cleanup_point_expr (TREE_TYPE (TREE_OPERAND (t, n)),
-					       TREE_OPERAND (t, n));
+	  t = TREE_OPERAND (TREE_OPERAND (incr, 1), 1);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (TREE_OPERAND (incr, 1), 1)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	}
 
       if (orig_incr)
@@ -4436,12 +4460,79 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 }
 
+/* Returns decltype((EXPR)) for cases where we can drop the decltype and
+   just return the type even though EXPR is a type-dependent expression.
+   The ABI specifies which cases this applies to, which is a subset of the
+   possible cases.  */
+
+tree
+describable_type (tree expr)
+{
+  tree type = NULL_TREE;
+
+  /* processing_template_decl isn't set when we're called from the mangling
+     code, so bump it now.  */
+  ++processing_template_decl;
+  if (! type_dependent_expression_p (expr)
+      && ! type_unknown_p (expr))
+    {
+      type = TREE_TYPE (expr);
+      if (real_lvalue_p (expr))
+	type = build_reference_type (type);
+    }
+  --processing_template_decl;
+
+  if (type)
+    return type;
+
+  switch (TREE_CODE (expr))
+    {
+    case VAR_DECL:
+    case PARM_DECL:
+    case RESULT_DECL:
+    case FUNCTION_DECL:
+      /* Named rvalue reference becomes lvalue.  */
+      type = build_reference_type (non_reference (TREE_TYPE (expr)));
+      break;
+
+    case NEW_EXPR:
+    case CONST_DECL:
+    case TEMPLATE_PARM_INDEX:
+    case CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+      type = TREE_TYPE (expr);
+      break;
+
+    case INDIRECT_REF:
+      {
+	tree ptrtype = describable_type (TREE_OPERAND (expr, 0));
+	if (ptrtype && POINTER_TYPE_P (ptrtype))
+	  type = build_reference_type (TREE_TYPE (ptrtype));
+      }
+      break;
+
+    default:
+      if (TREE_CODE_CLASS (TREE_CODE (expr)) == tcc_constant)
+	type = TREE_TYPE (expr);
+      break;
+    }
+
+  if (type && type_uses_auto (type))
+    return NULL_TREE;
+  else
+    return type;
+}
+
 /* Implements the C++0x decltype keyword. Returns the type of EXPR,
    suitable for use as a type-specifier.
 
    ID_EXPRESSION_OR_MEMBER_ACCESS_P is true when EXPR was parsed as an
    id-expression or a class member access, FALSE when it was parsed as
    a full expression.  */
+
 tree
 finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 {
@@ -4462,6 +4553,29 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 
   if (type_dependent_expression_p (expr))
     {
+      if (id_expression_or_member_access_p)
+	{
+	  switch (TREE_CODE (expr))
+	    {
+	    case VAR_DECL:
+	    case PARM_DECL:
+	    case RESULT_DECL:
+	    case FUNCTION_DECL:
+	    case CONST_DECL:
+	    case TEMPLATE_PARM_INDEX:
+	      type = TREE_TYPE (expr);
+	      break;
+
+	    default:
+	      break;
+	    }
+	}
+      else
+	type = describable_type (expr);
+
+      if (type && !type_uses_auto (type))
+	return type;
+
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
       DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type)
@@ -4526,6 +4640,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
         case CONST_DECL:
         case PARM_DECL:
         case RESULT_DECL:
+        case TEMPLATE_PARM_INDEX:
           type = TREE_TYPE (expr);
           break;
 

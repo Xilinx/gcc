@@ -2805,6 +2805,15 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	}
       break;
 
+    case INDIRECT_REF:
+      x = TREE_OPERAND (t, 0);
+      if (!is_gimple_reg (x) && !is_gimple_min_invariant (x))
+	{
+	  error ("Indirect reference's operand is not a register or a constant.");
+	  return x;
+	}
+      break;
+
     case ASSERT_EXPR:
       x = fold (ASSERT_EXPR_COND (t));
       if (x == boolean_false_node)
@@ -2815,14 +2824,8 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       break;
 
     case MODIFY_EXPR:
-      x = TREE_OPERAND (t, 0);
-      if (TREE_CODE (x) == BIT_FIELD_REF
-	  && is_gimple_reg (TREE_OPERAND (x, 0)))
-	{
-	  error ("GIMPLE register modified with BIT_FIELD_REF");
-	  return t;
-	}
-      break;
+      error ("MODIFY_EXPR not expected while having tuples.");
+      return *tp;
 
     case ADDR_EXPR:
       {
@@ -3471,6 +3474,12 @@ verify_gimple_assign_binary (gimple stmt)
 
     case LSHIFT_EXPR:
     case RSHIFT_EXPR:
+      if (FIXED_POINT_TYPE_P (rhs1_type)
+	  && INTEGRAL_TYPE_P (rhs2_type)
+	  && useless_type_conversion_p (lhs_type, rhs1_type))
+	return false;
+      /* Fall through.  */
+
     case LROTATE_EXPR:
     case RROTATE_EXPR:
       {
@@ -3492,7 +3501,8 @@ verify_gimple_assign_binary (gimple stmt)
     case VEC_RSHIFT_EXPR:
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
-	    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
 		&& (TREE_CODE (rhs2_type) != VECTOR_TYPE
 		    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2_type))))
@@ -4149,7 +4159,7 @@ verify_eh_throw_stmt_node (void **slot, void *data)
       debug_gimple_stmt (node->stmt);
       eh_error_found = true;
     }
-  return 0;
+  return 1;
 }
 
 
@@ -5835,6 +5845,8 @@ replace_block_vars_by_duplicates (tree block, struct pointer_map_t *vars_map,
   for (tp = &BLOCK_VARS (block); *tp; tp = &TREE_CHAIN (*tp))
     {
       t = *tp;
+      if (TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != CONST_DECL)
+	continue;
       replace_by_duplicate_decl (&t, vars_map, to_context);
       if (t != *tp)
 	{

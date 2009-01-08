@@ -2394,7 +2394,7 @@ compute_antic (void)
 	fprintf (dump_file, "Starting iteration %d\n", num_iterations);
       num_iterations++;
       changed = false;
-      for (i = 0; i < last_basic_block - NUM_FIXED_BLOCKS; i++)
+      for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
 	{
 	  if (TEST_BIT (changed_blocks, postorder[i]))
 	    {
@@ -2425,7 +2425,7 @@ compute_antic (void)
 	    fprintf (dump_file, "Starting iteration %d\n", num_iterations);
 	  num_iterations++;
 	  changed = false;
-	  for (i = 0; i < last_basic_block - NUM_FIXED_BLOCKS; i++)
+	  for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
 	    {
 	      if (TEST_BIT (changed_blocks, postorder[i]))
 		{
@@ -3224,7 +3224,7 @@ do_regular_insertion (basic_block block, basic_block dom)
 	  basic_block bprime;
 	  pre_expr eprime = NULL;
 	  edge_iterator ei;
-	  pre_expr edoubleprime;
+	  pre_expr edoubleprime = NULL;
 
 	  val = get_expr_value_id (expr);
 	  if (bitmap_set_contains_value (PHI_GEN (block), val))
@@ -3644,10 +3644,7 @@ compute_avail (void)
 
 	      add_to_value (get_expr_value_id (e), e);
 	      if (!in_fre)
-		{
-		  bitmap_insert_into_set (TMP_GEN (block), e);
-		  bitmap_value_insert_into_set (maximal_set, e);
-		}
+		bitmap_insert_into_set (TMP_GEN (block), e);
 	      bitmap_value_insert_into_set (AVAIL_OUT (block), e);
 	    }
 
@@ -3716,6 +3713,7 @@ compute_avail (void)
 		    if (is_exception_related (stmt))
 		      continue;
 		  case tcc_binary:
+		  case tcc_comparison:
 		    {
 		      vn_nary_op_t nary;
 		      unsigned int i;

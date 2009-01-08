@@ -1548,7 +1548,8 @@ kept_level_p (void)
   return (current_binding_level->blocks != NULL_TREE
 	  || current_binding_level->keep
 	  || current_binding_level->kind == sk_cleanup
-	  || current_binding_level->names != NULL_TREE);
+	  || current_binding_level->names != NULL_TREE
+	  || current_binding_level->using_directives);
 }
 
 /* Returns the kind of the innermost scope.  */
@@ -4700,6 +4701,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case VECTOR_TYPE:
     case BOOLEAN_TYPE:
     case FIXED_POINT_TYPE:
+    case DECLTYPE_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))

@@ -975,6 +975,46 @@ pp_c_compound_literal (c_pretty_printer *pp, tree e)
     }
 }
 
+/* Pretty-print a COMPLEX_EXPR expression.  */
+
+static void
+pp_c_complex_expr (c_pretty_printer *pp, tree e)
+{
+  /* Handle a few common special cases, otherwise fallback
+     to printing it as compound literal.  */
+  tree type = TREE_TYPE (e);
+  tree realexpr = TREE_OPERAND (e, 0);
+  tree imagexpr = TREE_OPERAND (e, 1);
+
+  /* Cast of an COMPLEX_TYPE expression to a different COMPLEX_TYPE.  */
+  if (TREE_CODE (realexpr) == NOP_EXPR
+      && TREE_CODE (imagexpr) == NOP_EXPR
+      && TREE_TYPE (realexpr) == TREE_TYPE (type)
+      && TREE_TYPE (imagexpr) == TREE_TYPE (type)
+      && TREE_CODE (TREE_OPERAND (realexpr, 0)) == REALPART_EXPR
+      && TREE_CODE (TREE_OPERAND (imagexpr, 0)) == IMAGPART_EXPR
+      && TREE_OPERAND (TREE_OPERAND (realexpr, 0), 0)
+	 == TREE_OPERAND (TREE_OPERAND (imagexpr, 0), 0))
+    {
+      pp_c_type_cast (pp, type);
+      pp_expression (pp, TREE_OPERAND (TREE_OPERAND (realexpr, 0), 0));
+      return;
+    }
+
+  /* Cast of an scalar expression to COMPLEX_TYPE.  */
+  if ((integer_zerop (imagexpr) || real_zerop (imagexpr))
+      && TREE_TYPE (realexpr) == TREE_TYPE (type))
+    {
+      pp_c_type_cast (pp, type);
+      if (TREE_CODE (realexpr) == NOP_EXPR)
+	realexpr = TREE_OPERAND (realexpr, 0);
+      pp_expression (pp, realexpr);
+      return;
+    }
+
+  pp_c_compound_literal (pp, e);
+}
+
 /* constant:
       integer-constant
       floating-constant
@@ -1404,10 +1444,43 @@ pp_c_postfix_expression (c_pretty_printer *pp, tree e)
       }
       break;
 
+    case BIT_FIELD_REF:
+      {
+	tree type = TREE_TYPE (e);
+
+	type = signed_or_unsigned_type_for (TYPE_UNSIGNED (type), type);
+	if (type
+	    && tree_int_cst_equal (TYPE_SIZE (type), TREE_OPERAND (e, 1)))
+	  {
+	    HOST_WIDE_INT bitpos = tree_low_cst (TREE_OPERAND (e, 2), 0);
+	    HOST_WIDE_INT size = tree_low_cst (TYPE_SIZE (type), 0);
+	    if ((bitpos % size) == 0)
+	      {
+		pp_c_left_paren (pp);
+		pp_c_left_paren (pp);
+		pp_type_id (pp, type);
+		pp_c_star (pp);
+		pp_c_right_paren (pp);
+		pp_c_ampersand (pp);
+		pp_expression (pp, TREE_OPERAND (e, 0));
+		pp_c_right_paren (pp);
+		pp_c_left_bracket (pp);
+		pp_wide_integer (pp, bitpos / size);
+		pp_c_right_bracket (pp);
+		break;
+	      }
+	  }
+	pp_unsupported_tree (pp, e);
+      }
+      break;
+
     case COMPLEX_CST:
     case VECTOR_CST:
-    case COMPLEX_EXPR:
       pp_c_compound_literal (pp, e);
+      break;
+
+    case COMPLEX_EXPR:
+      pp_c_complex_expr (pp, e);
       break;
 
     case COMPOUND_LITERAL_EXPR:
@@ -1556,6 +1629,7 @@ pp_c_cast_expression (c_pretty_printer *pp, tree e)
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
       pp_c_type_cast (pp, TREE_TYPE (e));
       pp_c_cast_expression (pp, TREE_OPERAND (e, 0));
       break;
@@ -1912,6 +1986,7 @@ pp_c_expression (c_pretty_printer *pp, tree e)
     case ARRAY_REF:
     case CALL_EXPR:
     case COMPONENT_REF:
+    case BIT_FIELD_REF:
     case COMPLEX_CST:
     case COMPLEX_EXPR:
     case VECTOR_CST:
@@ -1946,6 +2021,7 @@ pp_c_expression (c_pretty_printer *pp, tree e)
     case FLOAT_EXPR:
     case FIX_TRUNC_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
       pp_c_cast_expression (pp, e);
       break;
 
@@ -2025,6 +2101,12 @@ pp_c_expression (c_pretty_printer *pp, tree e)
 
     case TARGET_EXPR:
       pp_postfix_expression (pp, TREE_OPERAND (e, 1));
+      break;
+
+    case BIND_EXPR:
+      /* We don't yet have a way of dumping statements in a
+         human-readable format.  */
+      pp_string (pp, "({...})");
       break;
 
     default:

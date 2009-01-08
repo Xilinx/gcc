@@ -2304,12 +2304,19 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
     case AND:
       if (trueop1 == CONST0_RTX (mode) && ! side_effects_p (op0))
 	return trueop1;
-      /* If we are turning off bits already known off in OP0, we need
-	 not do an AND.  */
       if (GET_CODE (trueop1) == CONST_INT
-	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	  && (nonzero_bits (trueop0, mode) & ~INTVAL (trueop1)) == 0)
-	return op0;
+	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+	{
+	  HOST_WIDE_INT nzop0 = nonzero_bits (trueop0, mode);
+	  HOST_WIDE_INT val1 = INTVAL (trueop1);
+	  /* If we are turning off bits already known off in OP0, we need
+	     not do an AND.  */
+	  if ((nzop0 & ~val1) == 0)
+	    return op0;
+	  /* If we are clearing all the nonzero bits, the result is zero.  */
+	  if ((val1 & nzop0) == 0 && !side_effects_p (op0))
+	    return CONST0_RTX (mode);
+	}
       if (rtx_equal_p (trueop0, trueop1) && ! side_effects_p (op0)
 	  && GET_MODE_CLASS (mode) != MODE_CC)
 	return op0;
@@ -2391,7 +2398,9 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 	 ((A & N) + B) & M -> (A + B) & M
 	 Similarly if (N & M) == 0,
 	 ((A | N) + B) & M -> (A + B) & M
-	 and for - instead of + and/or ^ instead of |.  */
+	 and for - instead of + and/or ^ instead of |.
+         Also, if (N & M) == 0, then
+	 (A +- N) & M -> A & M.  */
       if (GET_CODE (trueop1) == CONST_INT
 	  && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
 	  && ~INTVAL (trueop1)
@@ -2403,6 +2412,10 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 
 	  pmop[0] = XEXP (op0, 0);
 	  pmop[1] = XEXP (op0, 1);
+
+	  if (GET_CODE (pmop[1]) == CONST_INT
+	      && (INTVAL (pmop[1]) & INTVAL (trueop1)) == 0)
+	    return simplify_gen_binary (AND, mode, pmop[0], op1);
 
 	  for (which = 0; which < 2; which++)
 	    {
@@ -3591,10 +3604,6 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
           ops[j + 1] = save;
         }
 
-      /* This is only useful the first time through.  */
-      if (!canonicalized)
-        return NULL_RTX;
-
       changed = 0;
       for (i = n_ops - 1; i > 0; i--)
 	for (j = i - 1; j >= 0; j--)
@@ -3650,9 +3659,14 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
 		    ops[i].neg = lneg;
 		    ops[j].op = NULL_RTX;
 		    changed = 1;
+		    canonicalized = 1;
 		  }
 	      }
 	  }
+
+      /* If nothing changed, fail.  */
+      if (!canonicalized)
+        return NULL_RTX;
 
       /* Pack all the operands to the lower-numbered entries.  */
       for (i = 0, j = 0; j < n_ops; j++)
@@ -3677,24 +3691,6 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
      The combination loop should have ensured that there is exactly
      one CONST_INT, and the sort will have ensured that it is last
      in the array and that any other constant will be next-to-last.  */
-
-  if (GET_CODE (ops[n_ops - 1].op) == CONST_INT)
-    i = n_ops - 2;
-  else
-    i = n_ops - 1;
-
-  if (i >= 1
-      && ops[i].neg
-      && !ops[i - 1].neg
-      && CONSTANT_P (ops[i].op)
-      && GET_CODE (ops[i].op) == GET_CODE (ops[i - 1].op))
-    {
-      ops[i - 1].op = gen_rtx_MINUS (mode, ops[i - 1].op, ops[i].op);
-      ops[i - 1].op = gen_rtx_CONST (mode, ops[i - 1].op);
-      if (i < n_ops - 1)
-	ops[i] = ops[i + 1];
-      n_ops--;
-    }
 
   if (n_ops > 1
       && GET_CODE (ops[n_ops - 1].op) == CONST_INT

@@ -1431,6 +1431,7 @@ new_scop (edge entry, edge exit)
 
   gcc_assert (entry && exit);
 
+  SCOP_DEP_GRAPH (scop) = NULL;
   SCOP_REGION (scop) = new_sese (entry, exit);
   SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
   SCOP_OLDIVS (scop) = VEC_alloc (name_tree, heap, 3);
@@ -1446,7 +1447,6 @@ new_scop (edge entry, edge exit)
 					     free);
   SCOP_LIVEOUT_RENAMES (scop) = htab_create (10, rename_map_elt_info,
 					     eq_rename_map_elts, free);
-  SCOP_DEP_GRAPH (scop) = NULL;
   return scop;
 }
 
@@ -5326,7 +5326,6 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   free_loop_iv_stack (&ivstack);
   cloog_clast_free (stmt);
 
-  recompute_all_dominators ();
   graphite_verify ();
   scop_adjust_phis_for_liveouts (scop,
 				 if_region->region->exit->src,

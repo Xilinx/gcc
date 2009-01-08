@@ -572,9 +572,14 @@ check_classfn (tree ctype, tree function, tree template_parms)
      either were not passed, or they are the same of DECL_TEMPLATE_PARMS.  */
   if (TREE_CODE (function) == TEMPLATE_DECL)
     {
-      gcc_assert (!template_parms
-		  || comp_template_parms (template_parms,
-					  DECL_TEMPLATE_PARMS (function)));
+      if (template_parms
+	  && !comp_template_parms (template_parms,
+				   DECL_TEMPLATE_PARMS (function)))
+	{
+	  error ("template parameter lists provided don't match the "
+		 "template parameters of %qD", function);
+	  return error_mark_node;
+	}
       template_parms = DECL_TEMPLATE_PARMS (function);
     }
 
@@ -803,7 +808,17 @@ grokfield (const cp_declarator *declarator,
 	value = push_template_decl (value);
 
       if (attrlist)
-	cplus_decl_attributes (&value, attrlist, 0);
+	{
+	  int attrflags = 0;
+
+	  /* If this is a typedef that names the class for linkage purposes
+	     (7.1.3p8), apply any attributes directly to the type.  */
+	  if (TAGGED_TYPE_P (TREE_TYPE (value))
+	      && value == TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))))
+	    attrflags = ATTR_FLAG_TYPE_IN_PLACE;
+
+	  cplus_decl_attributes (&value, attrlist, attrflags);
+	}
 
       return value;
     }
@@ -3833,8 +3848,6 @@ mark_used (tree decl)
 
       note_vague_linkage_fn (decl);
     }
-
-  assemble_external (decl);
 
   /* Is it a synthesized method that needs to be synthesized?  */
   if (TREE_CODE (decl) == FUNCTION_DECL

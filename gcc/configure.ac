@@ -1188,14 +1188,8 @@ fi
 
 # For platforms with the unwind ABI which includes an unwind library,
 # libunwind, we can choose to use the system libunwind.
-AC_ARG_WITH(system-libunwind,
-[  --with-system-libunwind use installed libunwind])
-
 # config.gcc also contains tests of with_system_libunwind.
-if test x$with_system_libunwind = xyes; then
-        AC_DEFINE(HAVE_GETIPINFO, 1,
-[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
-fi
+GCC_CHECK_UNWIND_GETIPINFO
 
 # --------------------------------------------------------
 # Build, host, and target specific configuration fragments
@@ -1419,20 +1413,6 @@ if test x$enable___cxa_atexit = xyes || \
       This is essential for fully standards-compliant handling of
       destructors, but requires __cxa_atexit in libc.])
   fi
-fi
-
-use_getipinfo=yes
-if test x$with_system_libunwind = xyes; then
-   if test x$host = x$target; then
-     AC_SEARCH_LIBS(_Unwind_GetIPInfo, unwind,, [use_getipinfo=no])
-   fi
-fi
-GCC_TARGET_TEMPLATE(HAVE_GETIPINFO)
-if test x$use_getipinfo = xyes; then
-   AC_DEFINE(HAVE_GETIPINFO, 1,
-	[Define to 1 if system unwind library has _Unwind_GetIPInfo.])
-else
-   echo "The system unwind library does not support _Unwind_GetIPInfo."
 fi
 
 # Look for a file containing extra machine modes.
@@ -2025,6 +2005,29 @@ else
 	AC_MSG_RESULT($gcc_cv_objdump)
 fi
 
+# Figure out what readelf we will be using.
+AS_VAR_SET_IF(gcc_cv_readelf,, [
+if test -f $gcc_cv_binutils_srcdir/configure.in \
+     && test -f ../binutils/Makefile \
+     && test x$build = x$host; then
+	# Single tree build which includes binutils.
+	gcc_cv_readelf=../binutils/readelf$build_exeext
+elif test -x readelf$build_exeext; then
+	gcc_cv_readelf=./readelf$build_exeext
+else
+        AC_PATH_PROG(gcc_cv_readelf, readelf)
+fi])
+
+AC_MSG_CHECKING(what readelf to use)
+if test "$gcc_cv_readelf" = ../binutils/readelf$build_exeext; then
+	# Single tree build which includes binutils.
+	AC_MSG_RESULT(newly built readelf)
+elif test x$gcc_cv_readelf = x; then
+	AC_MSG_RESULT(not found)
+else
+	AC_MSG_RESULT($gcc_cv_readelf)
+fi
+
 # Figure out what assembler alignment features are present.
 gcc_GAS_CHECK_FEATURE([.balign and .p2align], gcc_cv_as_balign_and_p2align,
  [2,6,0],,
@@ -2101,10 +2104,10 @@ AC_CACHE_CHECK(linker for .hidden support, gcc_cv_ld_hidden,
      gcc_cv_ld_hidden=yes
   fi
 else
+changequote(,)dnl
   gcc_cv_ld_hidden=yes
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
   if echo "$ld_ver" | grep GNU > /dev/null; then
-changequote(,)dnl
     ld_vers=`echo $ld_ver | sed -n \
 	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p'`
     ld_date=`echo $ld_ver | sed -n 's,^.*\([2-9][0-9][0-9][0-9]\)[-]*\([01][0-9]\)[-]*\([0-3][0-9]\).*$,\1\2\3,p'`
@@ -2128,18 +2131,21 @@ changequote(,)dnl
 	  gcc_cv_ld_hidden=no
 	fi
       fi
-changequote([,])dnl
     fi
   else
     case "${target}" in
       hppa64*-*-hpux* | ia64*-*-hpux*)
 	gcc_cv_ld_hidden=yes
 	;;
+      *-*-solaris2.9* | *-*-solaris2.1[0-9]*)
+        gcc_cv_ld_hidden=yes
+	;;
       *)
 	gcc_cv_ld_hidden=no
 	;;
     esac
   fi
+changequote([,])dnl
 fi])
 libgcc_visibility=no
 AC_SUBST(libgcc_visibility)
@@ -2254,8 +2260,30 @@ gcc_GAS_CHECK_FEATURE([cfi directives], gcc_cv_as_cfi_directive,
     gcc_cv_as_cfi_directive=yes
     ;;
 esac])
+if test $gcc_cv_as_cfi_directive = yes && test x$gcc_cv_readelf != x; then
+gcc_GAS_CHECK_FEATURE([working cfi advance], gcc_cv_as_cfi_advance_working,
+  ,,
+[	.text
+	.cfi_startproc
+	.cfi_adjust_cfa_offset 64
+	.skip 512, 0
+	.cfi_adjust_cfa_offset 128
+	.cfi_endproc],
+[
+changequote(,)dnl
+if $gcc_cv_readelf -wf conftest.o 2>/dev/null \
+    | grep 'DW_CFA_advance_loc[12]:[ 	][ 	]*512[ 	]' >/dev/null; then
+   gcc_cv_as_cfi_advance_working=yes
+fi
+changequote([,])dnl
+])
+else
+  # no readelf, err on the side of caution
+  gcc_cv_as_cfi_advance_working=no
+fi
 AC_DEFINE_UNQUOTED(HAVE_GAS_CFI_DIRECTIVE,
-  [`if test $gcc_cv_as_cfi_directive = yes; then echo 1; else echo 0; fi`],
+  [`if test $gcc_cv_as_cfi_directive = yes \
+       && test $gcc_cv_as_cfi_advance_working = yes; then echo 1; else echo 0; fi`],
   [Define 0/1 if your assembler supports CFI directives.])
 
 gcc_GAS_CHECK_FEATURE([cfi personality directive],
@@ -3186,7 +3214,7 @@ case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
   | x86_64*-*-* | hppa*-*-* | arm*-*-* \
   | xstormy16*-*-* | cris-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
-  | spu-*-* | fido*-*-*)
+  | spu-*-* | fido*-*-* | m32c-*-*)
     insn="nop"
     ;;
   ia64*-*-* | s390*-*-*)
@@ -3494,7 +3522,7 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
       gcc_cv_libc_provides_ssp,
       [gcc_cv_libc_provides_ssp=no
     case "$target" in
-       *-*-linux*)
+       *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
       if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
 	if test "x$with_sysroot" = x; then
 	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
@@ -3530,6 +3558,12 @@ AC_CACHE_CHECK(__stack_chk_fail in target C library,
 	fi
       fi
 	;;
+       *-*-gnu*)
+	 # Avoid complicated tests (see
+	 # <http://gcc.gnu.org/ml/gcc/2008-10/msg00130.html>) and for now
+	 # simply assert that glibc does provide this, which is true for all
+	 # realistically usable GNU/Hurd configurations.
+	 gcc_cv_libc_provides_ssp=yes;;
        *-*-darwin*)
 	 AC_CHECK_FUNC(__stack_chk_fail,[gcc_cv_libc_provides_ssp=yes],
            [echo "no __stack_chk_fail on this target"])

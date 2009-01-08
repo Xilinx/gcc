@@ -1,3 +1,339 @@
+2009-01-05  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38472
+	* typeck.c (type_after_usual_arithmetic_conversions): Fix a typo.
+
+2009-01-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38698
+	* typeck2.c (process_init_constructor_union): Handle union with
+	no fields.
+
+	* mangle.c (write_expression): Remove mangling for zero-operand
+	casts.
+
+	PR c++/38701
+	* decl.c (cp_finish_decl): Clear DECL_INITIAL for invalid
+	defaulting.
+
+	PR c++/38702
+	* class.c (defaultable_fn_p): Only operator== can be a copy
+	assignment operator.
+
+2009-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38698
+	* typeck2.c (process_init_constructor_union): Handle excess
+	initializers.
+	(process_init_constructor_record): Likewise.
+
+	PR c++/38684
+	* typeck2.c (digest_init_r): Don't use process_init_constructor
+	for non-aggregate classes.
+
+2008-12-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38647
+	* parser.c (cp_parser_primary_expression) <case RID_FUNCTION_NAME>:
+	Return error_mark_node if cp_parser_non_integral_constant_expression
+	returns true.
+
+	PR c++/38640
+	* semantics.c (finish_decltype_type): Handle TEMPLATE_PARM_INDEX.
+
+2008-12-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38635
+	* parser.c (cp_parser_condition): Use cp_parser_require
+	instead of cp_lexer_consume_token to consume =.
+
+	PR c++/38637
+	* decl.c (start_enum): If enumtype is error_mark_node, exit early.
+
+2008-12-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38650
+	* semantics.c (finish_omp_for): Don't add CLEANUP_POINT_EXPR
+	around volatile iteration var in condition and/or increment
+	expression.
+
+2008-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38639
+	* pt.c (tsubst_omp_for_iterator): RECUR on whole init_expr instead of
+	just its type.
+
+2008-12-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38597
+	* name-lookup.c (arg_assoc_type): Handle DECLTYPE_TYPE.
+
+2008-12-20  Jakub Jelinek  <jakub@redhat.com>
+	    Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/36921
+	* c-common.c (warn_about_parentheses): Remove ARG_UNUSED from
+	arg_left.  Don't warn about X<=Y<=Z if comparison's type isn't
+	integral.
+
+2008-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38577
+	* call.c (build_new_method_call): Handle call being COMPOUND_EXPR
+	or NOP_EXPR.
+
+2008-12-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38427
+	* init.c (perform_member_init): For value-initialized
+	references call permerror instead of warning and don't emit any
+	INIT_EXPR.
+
+2008-12-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38485
+	* parser.c (cp_parser_token_starts_cast_expression): An EOF
+	can't start a cast-expression.
+
+2008-12-17  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (describable_type): New function.
+	(finish_decltype_type): Use it for dependent exprs.
+	* cp-tree.h: Declare it.
+	* mangle.c (write_type) [DECLTYPE_TYPE]: Set skip_evaluation.
+	(write_expression): If skip_evaluation, use type stubs.
+	* tree.c (cp_tree_equal): Handle PARM_DECLs from different
+	declarations of a function.
+	* init.c (build_new): Do auto deduction if type is describable.
+	* decl.c (cp_finish_decl): Likewise.
+	* parser.c (cp_parser_omp_for_loop): Likewise.
+
+2008-12-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35319
+	* mangle.c (write_builtin_type): Add mangling for decimal floating 
+	point and fixed point types.
+	(write_type): Pass FIXED_POINT_TYPE along.
+
+2008-12-09  Mark Mitchell  <mark@codesourcery.com>
+
+	PR c++/37971
+	* class.c (resolve_address_of_overloaded_function): Check
+	accessibility of member functions unless FLAGS indicates
+	otherwise.
+	* call.c (standard_conversion): Adjust flags passed to
+	instantiate_type.
+	(convert_default_arg): Do not perform access checks.
+	* cp-tree.h (tsubst_flags_t): Add tf_no_access_control.
+
+2008-12-08  Steve Ellcey  <sje@cup.hp.com>
+
+	* decl2.c (mark_used): Remove assemble_external call.
+
+2008-12-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/38390
+	* name-lookup.c (kept_level_p): Don't forget the case of levels
+	  having using directives.
+
+2008-12-08  Richard Henderson  <rth@redhat.com>
+
+	PR 38240
+	* class.c (finish_struct_bits): Use SET_TYPE_MODE.
+	* decl.c (record_unknown_type): Likewise.
+	(start_enum, finish_enum): Likewise.
+
+2008-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35336
+	* error.c (dump_expr): Handle BIT_FIELD_REF.
+
+2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/38262
+	* Make-lang.in (cc1plus-dummy, cc1plus): Add BACKENDLIBS,
+	remove GMPLIBS.
+
+2008-12-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37906
+	* decl.c (grok_special_member_properties): Set TYPE_HAS_COMPLEX_DFLT
+	here.
+	* class.c (check_bases_and_members): Rather than assuming any
+	user-declared default constructor is complex here.
+
+2008-12-04  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/38334
+	* typeck.c (get_member_function_from_ptrfunc): Mark the vtbl
+	pointer access with TREE_NO_WARNING.
+
+2008-12-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38232
+	* init.c (build_value_init): Do initial zero-initialization
+	of a class with an implicitly-defined constructor using
+	build_zero_init rather than in build_value_init.
+	(build_value_init_1): Fold into build_value_init.
+
+	PR c++/38256
+	* parser.c (cp_parser_conversion_type_id): Diagnose
+	'operator auto'	here.
+	* decl.c (grokdeclarator): Not here.
+
+	PR c++/38380
+	* decl.c (grokdeclarator): Only set DECL_NONCONVERTING_P
+	on explicit constructors.
+	* pt.c (tsubst_copy_and_build) [CONSTRUCTOR]: Propagate
+	CONSTRUCTOR_IS_DIRECT_INIT.
+
+2008-12-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35782, c++/37860
+	* call.c (build_user_type_conversion_1): Remember
+	list-initialization.
+	(convert_like_real): Likewise.
+	(build_over_call): Don't require the copy constructor
+	for copy-list-initialization.
+	* cp-tree.h (TARGET_EXPR_LIST_INIT_P): New macro.
+
+	PR c++/37234
+	* decl.c (cp_finish_decl): Handle =default and =delete for
+	templates, too.
+
+2008-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38257
+	* parser.c (cp_parser_omp_for_loop): Handle auto.
+	* pt.c (tsubst_omp_for_iterator): Likewise.
+
+2008-11-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38233
+	* init.c (perform_member_init): Fix value-initialization.
+	(build_value_init_1): Add assert to catch cases that will break
+	in the gimplifier.
+	(build_default_init): Remove.
+	* cp-tree.h: Remove its prototype.
+	* pt.c (tsubst_expr) [DECL_EXPR]: Use build_value_init for
+	value-initialization.
+
+	PR c++/38278
+	* parser.c (cp_parser_class_name): Only call 
+	maybe_note_name_used_in_class if we actually found a class name.
+
+2008-11-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28743
+	* decl2.c (check_classfn): Error rather than abort on parameter
+	list mismatch.
+
+2008-11-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28513
+	* parser.c (cp_parser_class_name): Call maybe_note_name_used_in_class.
+
+	PR c++/37540
+	* call.c (build_over_call): Take the address of the function even
+	in a template.
+	(build_new_method_call): Remember the type of the called function
+	in a template.
+
+2008-11-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/37142
+	* pt.c (coerce_template_template_parm): Use the more robust
+	uses_template_parms instead of dependent_type_p.
+
+2008-11-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/35405
+	* pt.c (lookup_template_class): Check pointers before dereferencing
+	them.
+	* error.c (dump_template_decl): Likewise.
+
+2008-11-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36410
+	* decl2.c (grokfield): Pass ATTR_FLAG_TYPE_IN_PLACE for a typedef
+	that names a class for linkage purposes.
+
+	PR c++/37563
+	* parser.c (cp_parser_pseudo_destructor_name): A pseudo-destructor
+	name is not a declaration.
+
+	PR c++/37256
+	* pt.c (instantiate_decl): Don't require a definition of
+	a template that is explicitly instantiated 'extern'.
+
+2008-11-18  Jason Merrill  <jason@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+	
+	PR c++/37962
+	* parser.c (cp_parser_type_id): Complain about auto.
+	* decl.c (grokdeclarator): Complain about parameters and
+	conversion functions declared with auto.
+
+	* call.c (standard_conversion): Use CLASS_TYPE_P instead of
+	MAYBE_CLASS_TYPE_P.
+	* cp-tree.h (TYPE_NON_AGGREGATE_CLASS): Likewise.
+
+2008-11-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36089
+	* init.c (constant_value_1): Handle TREE_LIST init.
+
+2008-11-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/37561
+	* typeck.c (cp_build_unary_op): Don't call get_unwidened.  Use
+	argtype instead of result_type.
+
+2008-11-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38030
+	* semantics.c (finish_call_expr): Don't repeat arg-dep lookup
+	for a non-dependent call.
+
+	PR c++/37740
+	* call.c (build_aggr_conv): Increment i.
+
+2008-11-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37932
+	* typeck2.c (process_init_constructor_record): Update bitfield
+	handling.
+	(check_narrowing): Update bitfield handling, print source type.
+	
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36478
+	Revert:
+	2007-05-07  Mike Stump  <mrs@apple.com>
+	* parser.c (check_empty_body): Add.
+	(cp_parser_iteration_statement): Add call to check_empty_body.
+
+2008-11-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38007
+	* typeck.c (cp_build_modify_expr): Update bitfield handling.
+
+2008-11-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/34269
+	* parser.c (cp_parser_simple_declaration): Don't commit
+	to tentative parse if parse errors were seen.
+
+	PR c++/35334
+	* error.c (dump_expr): Handle COMPLEX_EXPR.
+
+2008-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38021
+	* parser.c (cp_parser_enum_specifier): After parsing :,
+	parse definitely.  Don't return early if type specifier
+	is erroneous.
+
 2008-11-06  David Edelsohn  <edelsohn@gnu.org>
 
 	PR target/26397
@@ -7,7 +343,7 @@
 	
 2008-11-05  Fabien Chene <fabien.chene@gmail.com>
 
-	PR c++/35219
+	PR c++/32519
 	* cp-tree.h: Fix DECL_NONSTATIC_MEMBER_P to handle member template
 	functions.
 

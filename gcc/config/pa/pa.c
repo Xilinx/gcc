@@ -7547,7 +7547,9 @@ output_call (rtx insn, rtx call_dest, int sibcall)
 	  if (seq_length != 0
 	      && GET_CODE (NEXT_INSN (insn)) != JUMP_INSN
 	      && !sibcall
-	      && (!TARGET_PA_20 || indirect_call))
+	      && (!TARGET_PA_20
+		  || indirect_call
+		  || ((TARGET_LONG_ABS_CALL || local_call) && !flag_pic)))
 	    {
 	      /* A non-jump insn in the delay slot.  By definition we can
 		 emit this insn before the call (and in fact before argument
@@ -9281,7 +9283,7 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
 	      offset += 8;
 	    }
 
-	  return gen_rtx_PARALLEL (BLKmode, gen_rtvec_v (ub, loc));
+	  return gen_rtx_PARALLEL (mode, gen_rtvec_v (ub, loc));
 	}
      }
   else

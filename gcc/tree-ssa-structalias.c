@@ -31,14 +31,14 @@
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "output.h"
-#include "errors.h"
-#include "diagnostic.h"
 #include "tree.h"
 #include "c-common.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
 #include "varray.h"
 #include "c-tree.h"
+#include "diagnostic.h"
+#include "toplev.h"
 #include "gimple.h"
 #include "hashtab.h"
 #include "function.h"
@@ -505,16 +505,6 @@ struct constraint_graph
   /* Bitmap of nodes where the bit is set if the node is address
      taken.  Used for variable substitution.  */
   bitmap address_taken;
-
-  /* True if points_to bitmap for this node is stored in the hash
-     table.  */
-  sbitmap pt_used;
-
-  /* Number of incoming edges remaining to be processed by pointer
-     equivalence.
-     Used for variable substitution.  */
-  unsigned int *number_incoming;
-
 
   /* Vector of complex constraints for each graph node.  Complex
      constraints are those involving dereferences or offsets that are
@@ -1101,11 +1091,8 @@ build_pred_graph (void)
   graph->points_to = XCNEWVEC (bitmap, graph->size);
   graph->eq_rep = XNEWVEC (int, graph->size);
   graph->direct_nodes = sbitmap_alloc (graph->size);
-  graph->pt_used = sbitmap_alloc (graph->size);
   graph->address_taken = BITMAP_ALLOC (&predbitmap_obstack);
-  graph->number_incoming = XCNEWVEC (unsigned int, graph->size);
   sbitmap_zero (graph->direct_nodes);
-  sbitmap_zero (graph->pt_used);
 
   for (j = 0; j < FIRST_REF_NODE; j++)
     {
@@ -2008,11 +1995,6 @@ condense_visit (constraint_graph_t graph, struct scc_info *si, unsigned int n)
 	      bitmap_ior_into (graph->points_to[n],
 			       graph->points_to[w]);
 	    }
-	  EXECUTE_IF_IN_NONNULL_BITMAP (graph->preds[n], 0, i, bi)
-	    {
-	      unsigned int rep = si->node_mapping[i];
-	      graph->number_incoming[rep]++;
-	    }
 	}
       SET_BIT (si->deleted, n);
     }
@@ -2041,21 +2023,10 @@ label_visit (constraint_graph_t graph, struct scc_info *si, unsigned int n)
 
       /* Skip unused edges  */
       if (w == n || graph->pointer_label[w] == 0)
-	{
-	  graph->number_incoming[w]--;
-	  continue;
-	}
+	continue;
+
       if (graph->points_to[w])
 	bitmap_ior_into(graph->points_to[n], graph->points_to[w]);
-
-      /* If all incoming edges to w have been processed and
-	 graph->points_to[w] was not stored in the hash table, we can
-	 free it.  */
-      graph->number_incoming[w]--;
-      if (!graph->number_incoming[w] && !TEST_BIT (graph->pt_used, w))
-	{
-	  BITMAP_FREE (graph->points_to[w]);
-	}
     }
   /* Indirect nodes get fresh variables.  */
   if (!TEST_BIT (graph->direct_nodes, n))
@@ -2067,7 +2038,6 @@ label_visit (constraint_graph_t graph, struct scc_info *si, unsigned int n)
 					       graph->points_to[n]);
       if (!label)
 	{
-	  SET_BIT (graph->pt_used, n);
 	  label = pointer_equiv_class++;
 	  equiv_class_add (pointer_equiv_class_table,
 			   label, graph->points_to[n]);
@@ -2193,10 +2163,8 @@ free_var_substitution_info (struct scc_info *si)
   free (graph->loc_label);
   free (graph->pointed_by);
   free (graph->points_to);
-  free (graph->number_incoming);
   free (graph->eq_rep);
   sbitmap_free (graph->direct_nodes);
-  sbitmap_free (graph->pt_used);
   htab_delete (pointer_equiv_class_table);
   htab_delete (location_equiv_class_table);
   bitmap_obstack_release (&iteration_obstack);
@@ -4592,6 +4560,15 @@ intra_create_variable_infos (void)
 	    make_constraint_from (p, nonlocal_id);
 	}
     }
+
+  /* Add a constraint for the incoming static chain parameter.  */
+  if (cfun->static_chain_decl != NULL_TREE)
+    {
+      varinfo_t p, chain_vi = get_vi_for_tree (cfun->static_chain_decl);
+
+      for (p = chain_vi; p; p = p->next)
+	make_constraint_from (p, nonlocal_id);
+    }
 }
 
 /* Structure used to put solution bitmaps in a hashtable so they can
@@ -4671,14 +4648,15 @@ shared_bitmap_add (bitmap pt_vars)
    IS_DEREFED is true if PTR was directly dereferenced, which we use to
    help determine whether we are we are allowed to prune using TBAA.
    If NO_TBAA_PRUNING is true, we do not perform any TBAA pruning of
-   the from set.  */
+   the from set.  Returns the number of pruned variables.  */
 
-static void
+static unsigned
 set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
 		   bool no_tbaa_pruning)
 {
   unsigned int i;
   bitmap_iterator bi;
+  unsigned pruned = 0;
 
   gcc_assert (POINTER_TYPE_P (TREE_TYPE (ptr)));
 
@@ -4711,13 +4689,103 @@ set_uids_in_ptset (tree ptr, bitmap into, bitmap from, bool is_derefed,
 	      if (may_alias_p (SSA_NAME_VAR (ptr), mem_alias_set,
 			       vi->decl, var_alias_set, true))
 	        bitmap_set_bit (into, DECL_UID (vi->decl));
+	      else
+		++pruned;
 	    }
 	}
     }
+
+  return pruned;
 }
 
 
 static bool have_alias_info = false;
+
+/* Emit a note for the pointer initialization point DEF.  */
+
+static void
+emit_pointer_definition (tree ptr, bitmap visited)
+{
+  gimple def = SSA_NAME_DEF_STMT (ptr);
+  if (gimple_code (def) == GIMPLE_PHI)
+    {
+      use_operand_p argp;
+      ssa_op_iter oi;
+
+      FOR_EACH_PHI_ARG (argp, def, oi, SSA_OP_USE)
+	{
+	  tree arg = USE_FROM_PTR (argp);
+	  if (TREE_CODE (arg) == SSA_NAME)
+	    {
+	      if (bitmap_set_bit (visited, SSA_NAME_VERSION (arg)))
+		emit_pointer_definition (arg, visited);
+	    }
+	  else
+	    inform (0, "initialized from %qE", arg);
+	}
+    }
+  else if (!gimple_nop_p (def))
+    inform (gimple_location (def), "initialized from here");
+}
+
+/* Emit a strict aliasing warning for dereferencing the pointer PTR.  */
+
+static void
+emit_alias_warning (tree ptr)
+{
+  gimple use;
+  imm_use_iterator ui;
+  unsigned warned = 0;
+
+  FOR_EACH_IMM_USE_STMT (use, ui, ptr)
+    {
+      tree deref = NULL_TREE;
+
+      if (gimple_has_lhs (use))
+	{
+	  tree lhs = get_base_address (gimple_get_lhs (use));
+	  if (lhs
+	      && INDIRECT_REF_P (lhs)
+	      && TREE_OPERAND (lhs, 0) == ptr)
+	    deref = lhs;
+	}
+      if (gimple_assign_single_p (use))
+	{
+	  tree rhs = get_base_address (gimple_assign_rhs1 (use));
+	  if (rhs
+	      && INDIRECT_REF_P (rhs)
+	      && TREE_OPERAND (rhs, 0) == ptr)
+	    deref = rhs;
+	}
+      else if (is_gimple_call (use))
+	{
+	  unsigned i;
+	  for (i = 0; i < gimple_call_num_args (use); ++i)
+	    {
+	      tree op = get_base_address (gimple_call_arg (use, i));
+	      if (op
+		  && INDIRECT_REF_P (op)
+		  && TREE_OPERAND (op, 0) == ptr)
+		deref = op;
+	    }
+	}
+      if (deref
+	  && !TREE_NO_WARNING (deref))
+	{
+	  TREE_NO_WARNING (deref) = 1;
+	  warning_at (gimple_location (use), OPT_Wstrict_aliasing,
+		      "dereferencing pointer %qD does break strict-aliasing "
+		      "rules", SSA_NAME_VAR (ptr));
+	  ++warned;
+	}
+    }
+  if (warned > 0)
+    {
+      bitmap visited = BITMAP_ALLOC (NULL);
+      emit_pointer_definition (ptr, visited);
+      BITMAP_FREE (visited);
+    }
+}
 
 /* Given a pointer variable P, fill in its points-to set, or return
    false if we can't.
@@ -4763,7 +4831,7 @@ find_what_p_points_to (tree p)
       else
 	{
 	  struct ptr_info_def *pi = get_ptr_info (p);
-	  unsigned int i;
+	  unsigned int i, pruned;
 	  bitmap_iterator bi;
 	  bool was_pt_anything = false;
 	  bitmap finished_solution;
@@ -4815,9 +4883,9 @@ find_what_p_points_to (tree p)
 	  finished_solution = BITMAP_GGC_ALLOC ();
 	  stats.points_to_sets_created++;
 
-	  set_uids_in_ptset (p, finished_solution, vi->solution,
-			     pi->is_dereferenced,
-			     vi->no_tbaa_pruning);
+	  pruned = set_uids_in_ptset (p, finished_solution, vi->solution,
+				      pi->is_dereferenced,
+				      vi->no_tbaa_pruning);
 	  result = shared_bitmap_lookup (finished_solution);
 
 	  if (!result)
@@ -4832,7 +4900,22 @@ find_what_p_points_to (tree p)
 	    }
 
 	  if (bitmap_empty_p (pi->pt_vars))
-	    pi->pt_vars = NULL;
+	    {
+	      pi->pt_vars = NULL;
+	      if (pruned > 0
+		  && pi->is_dereferenced
+		  && warn_strict_aliasing > 0
+		  && !SSA_NAME_IS_DEFAULT_DEF (p))
+		{
+		  if (dump_file && dump_flags & TDF_DETAILS)
+		    {
+		      fprintf (dump_file, "alias warning for ");
+		      print_generic_expr (dump_file, p, 0);
+		      fprintf (dump_file, "\n");
+		    }
+		  emit_alias_warning (p);
+		}
+	    }
 
 	  return true;
 	}
