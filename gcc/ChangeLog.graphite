@@ -1,5 +1,10 @@
 2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* libjava/classpath/lib/gnu/java/awt/peer/gtk/GtkMouseInfoPeer.class: 
+	Fix merge problem: replace with the file from trunk.
+
+2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* Merge from mainline (r141727:143163).
 
 2009-01-07  Sebastian Pop  <sebastian.pop@amd.com>
