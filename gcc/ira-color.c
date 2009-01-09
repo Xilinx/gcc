@@ -3037,11 +3037,13 @@ ira_reuse_stack_slot (int regno, unsigned int inherent_size,
   if (x != NULL_RTX)
     {
       ira_assert (slot->width >= total_size);
+#ifdef ENABLE_IRA_CHECKING
       EXECUTE_IF_SET_IN_BITMAP (&slot->spilled_regs,
 				FIRST_PSEUDO_REGISTER, i, bi)
 	{
 	  ira_assert (! pseudos_have_intersected_live_ranges_p (regno, i));
 	}
+#endif
       SET_REGNO_REG_SET (&slot->spilled_regs, regno);
       if (internal_flag_ira_verbose > 3 && ira_dump_file)
 	{
@@ -3267,7 +3269,7 @@ fast_allocation (void)
 						  * ira_max_point);
   for (i = 0; i < ira_max_point; i++)
     CLEAR_HARD_REG_SET (used_hard_regs[i]);
-  qsort (sorted_allocnos, ira_allocnos_num, sizeof (ira_allocno_t), 
+  qsort (sorted_allocnos, num, sizeof (ira_allocno_t),
 	 allocno_priority_compare_func);
   for (i = 0; i < num; i++)
     {
@@ -3329,7 +3331,7 @@ ira_color (void)
       ALLOCNO_UPDATED_MEMORY_COST (a) = ALLOCNO_MEMORY_COST (a);
       ALLOCNO_UPDATED_COVER_CLASS_COST (a) = ALLOCNO_COVER_CLASS_COST (a);
     }
-  if (optimize)
+  if (ira_conflicts_p)
     color ();
   else
     fast_allocation ();

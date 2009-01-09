@@ -2926,7 +2926,7 @@ bitmap.o : bitmap.c $(CONFIG_H) $(SYSTEM_H)  coretypes.h $(TM_H) $(RTL_H) \
 global.o : global.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(FLAGS_H) reload.h $(FUNCTION_H) $(RECOG_H) $(REGS_H) hard-reg-set.h \
    insn-config.h output.h $(TOPLEV_H) $(TM_P_H) $(MACHMODE_H) tree-pass.h \
-   $(TIMEVAR_H) vecprim.h $(DF_H) $(DBGCNT_H) $(RA_H)
+   $(TIMEVAR_H) vecprim.h $(DF_H) $(DBGCNT_H) $(RA_H) ira.h
 ra-conflict.o : ra-conflict.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(FLAGS_H) reload.h $(FUNCTION_H) $(RECOG_H) $(REGS_H) hard-reg-set.h \
    insn-config.h output.h $(TOPLEV_H) $(TM_P_H) $(MACHMODE_H) tree-pass.h \
@@ -4819,7 +4819,7 @@ update-po: $(CATALOGS:.gmo=.pox)
 # N.B. We do not attempt to copy these into $(srcdir).  The snapshot
 # script does that.
 .po.gmo:
-	-test -d po || mkdir po
+	$(mkinstalldirs) po
 	$(GMSGFMT) --statistics -o $@ $<
 
 # The new .po has to be gone over by hand, so we deposit it into
@@ -4827,7 +4827,7 @@ update-po: $(CATALOGS:.gmo=.pox)
 # If build/po/gcc.pot exists, use it (it was just created),
 # else use the one in srcdir.
 .po.pox:
-	-test -d po || mkdir po
+	$(mkinstalldirs) po
 	$(MSGMERGE) $< `if test -f po/gcc.pot; \
 			then echo po/gcc.pot; \
 			else echo $(srcdir)/po/gcc.pot; fi` -o $@
@@ -4860,7 +4860,7 @@ install-po:
 # The .pot file is left in the build directory.
 gcc.pot: po/gcc.pot
 po/gcc.pot: force
-	-test -d po || mkdir po
+	$(mkinstalldirs) po
 	$(MAKE) srcextra
 	AWK=$(AWK) $(SHELL) $(srcdir)/po/exgettext \
 		$(XGETTEXT) gcc $(srcdir)
