@@ -1,3 +1,8 @@
+2009-01-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* opts.c (decode_options): Enable flag_graphite_identity and
+	flag_loop_block in -O2 and above.
+
 2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* libjava/classpath/lib/gnu/java/awt/peer/gtk/GtkMouseInfoPeer.class: 
