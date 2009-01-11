@@ -4099,6 +4099,50 @@ is_iv (tree name)
 
 static void expand_scalar_variables_stmt (gimple, basic_block, scop_p,
 					  loop_p, htab_t);
+static tree
+expand_scalar_variables_expr (tree, tree, enum tree_code, tree, basic_block,
+			      scop_p, loop_p, htab_t, gimple_stmt_iterator *);
+
+/* Helper function for expand_scalar_variables_expr.  */
+
+static tree
+expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
+				  scop_p scop, loop_p old_loop_father,
+				  htab_t map, gimple_stmt_iterator *gsi)
+{
+  tree var0, var1;
+  gimple def_stmt;
+  enum tree_code subcode;
+      
+  if (is_parameter (scop, op0)
+      || is_iv (op0))
+    return get_new_name_from_old_name (map, op0);
+      
+  def_stmt = SSA_NAME_DEF_STMT (op0);
+      
+  if (gimple_bb (def_stmt) == bb)
+    {
+      /* If the defining statement is in the basic block already
+	 we do not need to create a new expression for it, we
+	 only need to ensure its operands are expanded.  */
+      expand_scalar_variables_stmt (def_stmt, bb, scop,
+				    old_loop_father, map);
+      return get_new_name_from_old_name (map, op0);
+    }
+  else
+    {
+      if (gimple_code (def_stmt) != GIMPLE_ASSIGN
+	  || !bb_in_scop_p (gimple_bb (def_stmt), scop))
+	return get_new_name_from_old_name (map, op0);
+
+      var0 = gimple_assign_rhs1 (def_stmt);
+      subcode = gimple_assign_rhs_code (def_stmt);
+      var1 = gimple_assign_rhs2 (def_stmt);
+
+      return expand_scalar_variables_expr (type, var0, subcode, var1, bb, scop,
+					   old_loop_father, map, gsi);
+    }
+}
 
 /* Constructs a tree which only contains old_ivs and parameters.  Any
    other variables that are defined outside BB will be eliminated by
@@ -4108,21 +4152,62 @@ static void expand_scalar_variables_stmt (gimple, basic_block, scop_p,
 static tree
 expand_scalar_variables_expr (tree type, tree op0, enum tree_code code, 
 			      tree op1, basic_block bb, scop_p scop, 
-			      loop_p old_loop_father, htab_t map)
+			      loop_p old_loop_father, htab_t map,
+			      gimple_stmt_iterator *gsi)
 {
-  if ((TREE_CODE_CLASS (code) == tcc_constant
-       && code == INTEGER_CST)
-      || TREE_CODE_CLASS (code) == tcc_reference)
+  if (TREE_CODE_CLASS (code) == tcc_constant
+      && code == INTEGER_CST)
     return op0;
+
+  /* For data references we have to duplicate also its memory
+     indexing.  */
+  if (TREE_CODE_CLASS (code) == tcc_reference)
+    {
+      switch (code)
+	{
+	case INDIRECT_REF:
+	  {
+	    tree old_name = TREE_OPERAND (op0, 0);
+	    tree expr = expand_scalar_variables_ssa_name
+	      (type, old_name, bb, scop, old_loop_father, map, gsi);
+	    tree new_name = force_gimple_operand_gsi (gsi, expr, true, NULL,
+						      true, GSI_SAME_STMT);
+
+	    set_symbol_mem_tag (SSA_NAME_VAR (new_name),
+				symbol_mem_tag (SSA_NAME_VAR (old_name)));
+	    return fold_build1 (code, type, new_name);
+	  }
+
+	case ARRAY_REF:
+	  {
+	    tree op00 = TREE_OPERAND (op0, 0);
+	    tree op01 = TREE_OPERAND (op0, 1);
+	    tree op02 = TREE_OPERAND (op0, 2);
+	    tree op03 = TREE_OPERAND (op0, 3);
+	    tree base = expand_scalar_variables_expr
+	      (TREE_TYPE (op00), op00, TREE_CODE (op00), NULL, bb, scop,
+	       old_loop_father, map, gsi);
+	    tree subscript = expand_scalar_variables_expr
+	      (TREE_TYPE (op01), op01, TREE_CODE (op01), NULL, bb, scop,
+	       old_loop_father, map, gsi);
+
+	    return build4 (ARRAY_REF, type, base, subscript, op02, op03);
+	  }
+
+	default:
+	  /* The above cases should catch everything.  */
+	  gcc_unreachable ();
+	}
+    }
 
   if (TREE_CODE_CLASS (code) == tcc_unary)
     {
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = 
-	expand_scalar_variables_expr (op0_type, op0, op0_code,
-				      NULL, bb, scop, old_loop_father, map);
-
+	expand_scalar_variables_expr (op0_type, op0, op0_code, NULL, bb, scop,
+				      old_loop_father, map, gsi);
+  
       return fold_build1 (code, type, op0_expr);
     }
 
@@ -4131,52 +4216,20 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = 
-	expand_scalar_variables_expr (op0_type, op0, op0_code,
-				      NULL, bb, scop, old_loop_father, map);
+	expand_scalar_variables_expr (op0_type, op0, op0_code, NULL, bb, scop,
+				      old_loop_father, map, gsi);
       tree op1_type = TREE_TYPE (op1);
       enum tree_code op1_code = TREE_CODE (op1);
       tree op1_expr = 
-	expand_scalar_variables_expr (op1_type, op1, op1_code,
-				      NULL, bb, scop, old_loop_father, map);
+	expand_scalar_variables_expr (op1_type, op1, op1_code, NULL, bb, scop,
+				      old_loop_father, map, gsi);
 
       return fold_build2 (code, type, op0_expr, op1_expr);
     }
 
   if (code == SSA_NAME)
-    {
-      tree var0, var1;
-      gimple def_stmt;
-      enum tree_code subcode;
-      
-      if (is_parameter (scop, op0)
-	  || is_iv (op0))
-	return get_new_name_from_old_name (map, op0);
-      
-      def_stmt = SSA_NAME_DEF_STMT (op0);
-      
-      if (gimple_bb (def_stmt) == bb)
-	{
-	  /* If the defining statement is in the basic block already
-	     we do not need to create a new expression for it, we
-	     only need to ensure its operands are expanded.  */
-	  expand_scalar_variables_stmt (def_stmt, bb, scop,
-					old_loop_father, map);
-	  return get_new_name_from_old_name (map, op0);
-	}
-      else
-	{
-	  if (gimple_code (def_stmt) != GIMPLE_ASSIGN
-	      || !bb_in_scop_p (gimple_bb (def_stmt), scop))
-	    return get_new_name_from_old_name (map, op0);
-
-	  var0 = gimple_assign_rhs1 (def_stmt);
-	  subcode = gimple_assign_rhs_code (def_stmt);
-	  var1 = gimple_assign_rhs2 (def_stmt);
-
-	  return expand_scalar_variables_expr (type, var0, subcode, var1,
-					       bb, scop, old_loop_father, map);
-	}
-    }
+    return expand_scalar_variables_ssa_name (type, op0, bb, scop,
+					     old_loop_father, map, gsi);
 
   gcc_unreachable ();
   return NULL;
@@ -4192,6 +4245,7 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
 {
   ssa_op_iter iter;
   use_operand_p use_p;
+  gimple_stmt_iterator gsi = gsi_after_labels (bb);
 
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
     {
@@ -4199,10 +4253,10 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
-						    scop, old_loop_father, map);
+						    scop, old_loop_father, map,
+						    &gsi);
       if (use_expr != use)
 	{
-	  gimple_stmt_iterator gsi = gsi_after_labels (bb);
 	  tree new_use =
 	    force_gimple_operand_gsi (&gsi, use_expr, true, NULL,
 				      true, GSI_NEW_STMT);
