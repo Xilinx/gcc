@@ -1,3 +1,21 @@
+2009-01-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (expand_scalar_variables_ssa_name): Set the type of
+	an expression to the gimple_expr_type of its assign statement.
+	(expand_scalar_variables_expr): Stop recursion on tcc_constant
+	or tcc_declaration.
+
+2009-01-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/38786
+	* testsuite/gcc.dg/graphite/pr38786.c: New.
+	* graphite.c (expand_scalar_variables_ssa_name): New, outlined from
+	the SSA_NAME case of expand_scalar_variables_expr.
+	(expand_scalar_variables_expr): Also gather the scalar computation
+	used to index the memory access.
+	(expand_scalar_variables_stmt): Pass to expand_scalar_variables_expr
+	the gimple_stmt_iterator where it inserts new code.
+
 2009-01-10  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* testsuite/gcc.dg/graphite/block-3.c: Fix compile error on 32bit.

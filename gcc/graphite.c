@@ -4138,6 +4138,7 @@ expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
       var0 = gimple_assign_rhs1 (def_stmt);
       subcode = gimple_assign_rhs_code (def_stmt);
       var1 = gimple_assign_rhs2 (def_stmt);
+      type = gimple_expr_type (def_stmt);
 
       return expand_scalar_variables_expr (type, var0, subcode, var1, bb, scop,
 					   old_loop_father, map, gsi);
@@ -4156,7 +4157,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 			      gimple_stmt_iterator *gsi)
 {
   if (TREE_CODE_CLASS (code) == tcc_constant
-      && code == INTEGER_CST)
+      || TREE_CODE_CLASS (code) == tcc_declaration)
     return op0;
 
   /* For data references we have to duplicate also its memory
