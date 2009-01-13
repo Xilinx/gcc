@@ -4098,19 +4098,25 @@ is_iv (tree name)
 }
 
 static void expand_scalar_variables_stmt (gimple, basic_block, scop_p,
-					  loop_p, htab_t);
+					  htab_t);
 static tree
 expand_scalar_variables_expr (tree, tree, enum tree_code, tree, basic_block,
-			      scop_p, loop_p, htab_t, gimple_stmt_iterator *);
+			      scop_p, htab_t, gimple_stmt_iterator *);
 
-/* Helper function for expand_scalar_variables_expr.  */
+/* Copies at GSI all the scalar computations on which the ssa_name OP0
+   depends on in the SCOP: these are all the scalar variables used in
+   the definition of OP0, that are defined outside BB and still in the
+   SCOP, i.e. not a parameter of the SCOP.  The expression that is
+   returned contains only induction variables from the generated code:
+   MAP contains the induction variables renaming mapping, and is used
+   to translate the names of induction variables.  */
 
 static tree
-expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
-				  scop_p scop, loop_p old_loop_father,
-				  htab_t map, gimple_stmt_iterator *gsi)
+expand_scalar_variables_ssa_name (tree op0, basic_block bb,
+				  scop_p scop, htab_t map, 
+				  gimple_stmt_iterator *gsi)
 {
-  tree var0, var1;
+  tree var0, var1, type;
   gimple def_stmt;
   enum tree_code subcode;
       
@@ -4125,8 +4131,7 @@ expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
       /* If the defining statement is in the basic block already
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
-      expand_scalar_variables_stmt (def_stmt, bb, scop,
-				    old_loop_father, map);
+      expand_scalar_variables_stmt (def_stmt, bb, scop, map);
       return get_new_name_from_old_name (map, op0);
     }
   else
@@ -4141,20 +4146,22 @@ expand_scalar_variables_ssa_name (tree type, tree op0, basic_block bb,
       type = gimple_expr_type (def_stmt);
 
       return expand_scalar_variables_expr (type, var0, subcode, var1, bb, scop,
-					   old_loop_father, map, gsi);
+					   map, gsi);
     }
 }
 
-/* Constructs a tree which only contains old_ivs and parameters.  Any
-   other variables that are defined outside BB will be eliminated by
-   using their definitions in the constructed tree.  OLD_LOOP_FATHER
-   is the original loop that contained BB.  */
+/* Copies at GSI all the scalar computations on which the expression
+   OP0 CODE OP1 depends on in the SCOP: these are all the scalar
+   variables used in OP0 and OP1, defined outside BB and still defined
+   in the SCOP, i.e. not a parameter of the SCOP.  The expression that
+   is returned contains only induction variables from the generated
+   code: MAP contains the induction variables renaming mapping, and is
+   used to translate the names of induction variables.  */
 
 static tree
 expand_scalar_variables_expr (tree type, tree op0, enum tree_code code, 
 			      tree op1, basic_block bb, scop_p scop, 
-			      loop_p old_loop_father, htab_t map,
-			      gimple_stmt_iterator *gsi)
+			      htab_t map, gimple_stmt_iterator *gsi)
 {
   if (TREE_CODE_CLASS (code) == tcc_constant
       || TREE_CODE_CLASS (code) == tcc_declaration)
@@ -4170,7 +4177,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	  {
 	    tree old_name = TREE_OPERAND (op0, 0);
 	    tree expr = expand_scalar_variables_ssa_name
-	      (type, old_name, bb, scop, old_loop_father, map, gsi);
+	      (old_name, bb, scop, map, gsi);
 	    tree new_name = force_gimple_operand_gsi (gsi, expr, true, NULL,
 						      true, GSI_SAME_STMT);
 
@@ -4187,10 +4194,10 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	    tree op03 = TREE_OPERAND (op0, 3);
 	    tree base = expand_scalar_variables_expr
 	      (TREE_TYPE (op00), op00, TREE_CODE (op00), NULL, bb, scop,
-	       old_loop_father, map, gsi);
+	       map, gsi);
 	    tree subscript = expand_scalar_variables_expr
 	      (TREE_TYPE (op01), op01, TREE_CODE (op01), NULL, bb, scop,
-	       old_loop_father, map, gsi);
+	       map, gsi);
 
 	    return build4 (ARRAY_REF, type, base, subscript, op02, op03);
 	  }
@@ -4205,9 +4212,8 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
     {
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
-      tree op0_expr = 
-	expand_scalar_variables_expr (op0_type, op0, op0_code, NULL, bb, scop,
-				      old_loop_father, map, gsi);
+      tree op0_expr = expand_scalar_variables_expr (op0_type, op0, op0_code,
+						    NULL, bb, scop, map, gsi);
   
       return fold_build1 (code, type, op0_expr);
     }
@@ -4216,33 +4222,34 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
     {
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
-      tree op0_expr = 
-	expand_scalar_variables_expr (op0_type, op0, op0_code, NULL, bb, scop,
-				      old_loop_father, map, gsi);
+      tree op0_expr = expand_scalar_variables_expr (op0_type, op0, op0_code,
+						    NULL, bb, scop, map, gsi);
       tree op1_type = TREE_TYPE (op1);
       enum tree_code op1_code = TREE_CODE (op1);
-      tree op1_expr = 
-	expand_scalar_variables_expr (op1_type, op1, op1_code, NULL, bb, scop,
-				      old_loop_father, map, gsi);
+      tree op1_expr = expand_scalar_variables_expr (op1_type, op1, op1_code,
+						    NULL, bb, scop, map, gsi);
 
       return fold_build2 (code, type, op0_expr, op1_expr);
     }
 
   if (code == SSA_NAME)
-    return expand_scalar_variables_ssa_name (type, op0, bb, scop,
-					     old_loop_father, map, gsi);
+    return expand_scalar_variables_ssa_name (op0, bb, scop, map, gsi);
 
   gcc_unreachable ();
   return NULL;
 }
 
-/* Replicates any uses of non-parameters and non-old-ivs variablesthat
-   are defind outside BB with code that is inserted in BB.
-   OLD_LOOP_FATHER is the original loop that contained STMT.  */
+/* Copies at the beginning of BB all the scalar computations on which
+   STMT depends on in the SCOP: these are all the scalar variables used
+   in STMT, defined outside BB and still defined in the SCOP, i.e. not a
+   parameter of the SCOP.  The expression that is returned contains
+   only induction variables from the generated code: MAP contains the
+   induction variables renaming mapping, and is used to translate the
+   names of induction variables.  */
  
 static void
 expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
-			      loop_p old_loop_father, htab_t map)
+			      htab_t map)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
@@ -4254,8 +4261,7 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
-						    scop, old_loop_father, map,
-						    &gsi);
+						    scop, map, &gsi);
       if (use_expr != use)
 	{
 	  tree new_use =
@@ -4268,21 +4274,23 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
   update_stmt (stmt);
 }
 
-/* Copies the definitions outside of BB of variables that are not
-   induction variables nor parameters.  BB must only contain
-   "external" references to these types of variables.  OLD_LOOP_FATHER
-   is the original loop that contained BB.  */
+/* Copies at the beginning of BB all the scalar computations on which
+   BB depends on in the SCOP: these are all the scalar variables used
+   in BB, defined outside BB and still defined in the SCOP, i.e. not a
+   parameter of the SCOP.  The expression that is returned contains
+   only induction variables from the generated code: MAP contains the
+   induction variables renaming mapping, and is used to translate the
+   names of induction variables.  */
 
 static void 
-expand_scalar_variables (basic_block bb, scop_p scop, 
-			 loop_p old_loop_father, htab_t map)
+expand_scalar_variables (basic_block bb, scop_p scop, htab_t map)
 {
   gimple_stmt_iterator gsi;
   
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
       gimple stmt = gsi_stmt (gsi);
-      expand_scalar_variables_stmt (stmt, bb, scop, old_loop_father, map);
+      expand_scalar_variables_stmt (stmt, bb, scop, map);
       gsi_next (&gsi);
     }
 }
@@ -4459,7 +4467,6 @@ register_scop_liveout_renames (scop_p scop, htab_t rename_map)
  
 static edge
 copy_bb_and_scalar_dependences (basic_block bb, scop_p scop,
-				loop_p context_loop,
 				edge next_e, htab_t map)
 {
   basic_block new_bb = split_edge (next_e);
@@ -4469,7 +4476,7 @@ copy_bb_and_scalar_dependences (basic_block bb, scop_p scop,
   remove_condition (new_bb);
   rename_variables (new_bb, map);
   remove_phi_nodes (new_bb);
-  expand_scalar_variables (new_bb, scop, context_loop, map);
+  expand_scalar_variables (new_bb, scop, map);
   register_scop_liveout_renames (scop, map);
 
   return next_e;
@@ -4641,7 +4648,7 @@ translate_clast (scop_p scop, struct loop *context_loop,
       loop_iv_stack_patch_for_consts (ivstack, (struct clast_user_stmt *) stmt);
       build_iv_mapping (ivstack, map, gbb, scop);
       next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), scop,
-					       context_loop, next_e, map);
+					       next_e, map);
       htab_delete (map);
       loop_iv_stack_remove_constants (ivstack);
       update_ssa (TODO_update_ssa);
