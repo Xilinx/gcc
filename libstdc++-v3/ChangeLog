@@ -1,3 +1,23 @@
+2009-01-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/38384
+	* crossconfig.m4 (hpux): Update for 10.20, 11, 11.20.
+	* configure: Regenerate.
+
+2009-01-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* crossconfig.m4 (linux): Add GCC_CHECK_TLS to define _GLIBCXX_HAVE_TLS.
+	Use GLIBCXX_CHECK_COMPILER_FEATURES to compute SECTION_FLAGS.
+
+2009-01-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/tr1_impl/regex (basic_regex::basic_regex): Use range
+	constructor for _M_pattern.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/char/
+	string.cc: Test construction from different basic_string type.
+	* testsuite/tr1/7_regular_expressions/basic_regex/ctors/wchar_t/
+	string.cc: Likewise.
+
 2009-01-07  Benjamin Kosnik  <bkoz@redhat.com>
 	    Jonathan Larmour  <jifl@eCosCentric.com>
 

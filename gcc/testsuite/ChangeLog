@@ -1,3 +1,193 @@
+2009-01-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/38772
+	* gfortran.dg/fmt_bz_bn_err.f: New test.
+
+2009-01-12  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/powerpc/ppc-spe64-1.c: Add dg-error handler.
+
+2009-01-12  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_powerpc64): New.
+	* gcc.target/powerpc/darwin-longlong.c: Explicitly require 64-bit
+	instruction support.  Do not check for it at runtime.
+
+2009-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35109
+	* g++.dg/lookup/friend11.C: Remove expected error.
+	* g++.dg/lookup/friend14.C: New test.
+	* g++.dg/lookup/friend15.C: New test.
+
+2009-01-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/36019
+	* g++.dg/lookup/hidden-class12.C: New test.
+	* g++.dg/lookup/hidden-class13.C: New test.
+	* g++.dg/lookup/hidden-class14.C: New test.
+	* g++.dg/lookup/hidden-class15.C: New test.
+	* g++.dg/lookup/hidden-class16.C: New test.
+
+2009-01-12  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.dg/struct/wo_prof_single_str_global.c: Mask return value.
+	* gcc.dg/struct/wo_prof_single_str_local.c: Mask return value.
+	* gcc.dg/struct/wo_prof_single_str_pointer.c: Mask return value.
+
+2009-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/31488
+	* g++.dg/other/vararg-3.C: New test.
+
+2009-01-12  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* gcc.target/powerpc/ppc-spe.c: Compile for all EABI targets.
+	Explicitly enable SPE.
+	* gcc.target/powerpc/20030505.c: Likewise.  Add dg-message
+	directive.
+
+	* gcc.target/powerpc/20030218-1.c: Pass -mfloat-gprs=single.
+	Expect -flax-vector-conversions message.  Adjust incompatible
+	types errors.
+	* gcc.target/powerpc/spe1.c: Pass -mspe and -mfloat-gprs=single.
+	Make Foo extern.
+
+	* gcc.dg/cpp/assert4.c: Recognize __PPC__.
+
+	* g++.dg/other/opaque-1.C: Run on targets with SPE.
+
+	* g++.dg/ext/spe-1.C: Pass -mspe and -mfloat-gprs=single.
+	* g++.dg/other/opaque-2.C: Likewise.
+	* g++.dg/other/opaque-3.C: Likewise.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/32041
+	* gcc.dg/pr32041.c: New test.
+	* g++.dg/parse/offsetof9.C: New test.
+
+2009-01-12  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* g++.dg/conversion/simd1.C: Ignore irrelevant warning.
+	* g++.dg/ext/attribute-test-1.C: Likewise.
+	* g++.dg/ext/attribute-test-2.C: Likewise.
+	* g++.dg/ext/attribute-test-3.C: Likewise.
+	* g++.dg/ext/attribute-test-4.C: Likewise.
+
+2009-01-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert3.adb: New test.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38794
+	* g++.dg/parse/typedef9.C: New test.
+
+	PR tree-optimization/38807
+	* gcc.c-torture/compile/pr38807.c: New test.
+
+2009-01-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/ins-2.c: New test.
+
+2009-01-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/38809
+	* gcc.dg/pr38616.c: Only run for targets with -fstack-protector.
+
+2009-01-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36254
+	* g++.dg/warn/Wreturn-type-5.C: New test.
+
+2009-01-11  Matthias Klose  <doko@ubuntu.com>
+
+	PR middle-end/38616
+	* gcc.dg/pr38616.c: New test.
+
+2009-01-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/block-3.c: Fix compile error on 32bit.
+
+2009-01-10  Andrew Pinski  <pinskia@gmail.com>
+
+	PR c++/38648
+	* g++.dg/expr/string-1.C: New test.
+	* g++.dg/expr/string-2.C: New test.
+
+	PR c++/36695
+	* g++.dg/ext/complex4.C: New test.
+	* g++.dg/ext/complex5.C: New test.
+	* g++.dg/init/reference1.C: New test.
+	* g++.dg/init/reference2.C: New test.
+	* g++.dg/init/reference3.C: New test.
+
+2009-01-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38763
+	* gfortran.dg/transfer_null_1.f90: New test.
+
+2009-01-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38765
+	* gfortran.dg/host_assoc_function_6.f90: New test.
+
+2009-01-09  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* lib/target-supports.exp: Add method to determine if the effective
+	target is really a ppc405 after applying all compile options.
+	* gcc.target/powerpc/405-mulhhwu-2.c: Add dg-skip-if not ppc405.
+	* gcc.target/powerpc/405-nmachhw-1.c: Likewise.
+	* gcc.target/powerpc/405-nmaclhw-1.c: Likewise.
+	* gcc.target/powerpc/405-machhwu-1.c: Likewise.
+	* gcc.target/powerpc/405-mullhwu-1.c: Likewise.
+	* gcc.target/powerpc/405-nmacchw-1.c: Likewise.
+	* gcc.target/powerpc/405-mulchwu-1.c: Likewise.
+	* gcc.target/powerpc/405-nmachhw-2.c: Likewise.
+	* gcc.target/powerpc/405-nmaclhw-2.c: Likewise.
+	* gcc.target/powerpc/405-machhwu-2.c: Likewise.
+	* gcc.target/powerpc/405-mulhhw-1.c: Likewise.
+	* gcc.target/powerpc/405-machhw-1.c: Likewise.
+	* gcc.target/powerpc/405-mullhw-1.c: Likewise.
+	* gcc.target/powerpc/405-maclhw-1.c: Likewise.
+	* gcc.target/powerpc/405-dlmzb-strlen-1.c: Likewise.
+	* gcc.target/powerpc/405-mullhwu-2.c: Likewise.
+	* gcc.target/powerpc/405-nmacchw-2.c: Likewise.
+	* gcc.target/powerpc/405-mulchwu-2.c: Likewise.
+	* gcc.target/powerpc/405-mulchw-1.c: Likewise.
+	* gcc.target/powerpc/405-maclhwu-1.c: Likewise.
+	* gcc.target/powerpc/405-macchw-1.c: Likewise.
+	* gcc.target/powerpc/405-mulhhw-2.c: Likewise.
+	* gcc.target/powerpc/405-machhw-2.c: Likewise.
+	* gcc.target/powerpc/405-mullhw-2.c: Likewise.
+	* gcc.target/powerpc/405-maclhw-2.c: Likewise.
+	* gcc.target/powerpc/405-macchwu-1.c: Likewise.
+	* gcc.target/powerpc/405-mulhhwu-1.c: Likewise.
+	* gcc.target/powerpc/405-mulchw-2.c: Likewise.
+	* gcc.target/powerpc/405-maclhwu-2.c: Likewise.
+	* gcc.target/powerpc/405-macchw-2.c: Likewise.
+	* gcc.target/powerpc/405-macchwu-2.c: Likewise.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35335
+	* g++.dg/other/error31.C: New testcase.
+
+	PR c/35742
+	* gcc.dg/pr35742.c: New test.
+
+2009-01-09  John F. Carr  <jfc@mit.edu>
+
+	PR c++/37877
+	* g++.dg/parse/linkage3.C: New test.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38771
+	* gcc.c-torture/compile/pr38771.c: New test.
+
 2009-01-08  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* gcc.dg/pr34856.c: Ignore irrelevant warning.

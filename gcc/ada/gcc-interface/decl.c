@@ -843,7 +843,10 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		    == RECORD_TYPE
 		 && TYPE_IS_PADDING_P (TREE_TYPE (TREE_OPERAND (gnu_expr, 0))))
 		/* Strip useless conversions around the object.  */
-		|| TREE_CODE (gnu_expr) == NOP_EXPR)
+		|| (TREE_CODE (gnu_expr) == NOP_EXPR
+		    && gnat_types_compatible_p
+		       (TREE_TYPE (gnu_expr),
+			TREE_TYPE (TREE_OPERAND (gnu_expr, 0)))))
 	      {
 		gnu_expr = TREE_OPERAND (gnu_expr, 0);
 		gnu_type = TREE_TYPE (gnu_expr);
@@ -3139,8 +3142,18 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		      = DECL_DISCRIMINANT_NUMBER (gnu_old_field);
 		    TREE_THIS_VOLATILE (gnu_field)
 		      = TREE_THIS_VOLATILE (gnu_old_field);
-		    TREE_CHAIN (gnu_field) = gnu_field_list;
-		    gnu_field_list = gnu_field;
+
+		    /* To match the layout crafted in components_to_record, if
+		       this is the _Tag field, put it before any discriminants
+		       instead of after them as for all other fields.  */
+		    if (Chars (gnat_field) == Name_uTag)
+		      gnu_field_list = chainon (gnu_field_list, gnu_field);
+		    else
+		      {
+			TREE_CHAIN (gnu_field) = gnu_field_list;
+			gnu_field_list = gnu_field;
+		      }
+
 		    save_gnu_tree (gnat_field, gnu_field, false);
 		  }
 
@@ -6436,8 +6449,7 @@ components_to_record (tree gnu_record_type, Node_Id component_list,
 					   packed, definition);
 
 	    /* If this is the _Tag field, put it before any discriminants,
-	       instead of after them as is the case for all other fields.
-	       Ignore field of void type if only annotating.  */
+	       instead of after them as is the case for all other fields.  */
 	    if (Chars (gnat_field) == Name_uTag)
 	      gnu_field_list = chainon (gnu_field_list, gnu_field);
 	    else

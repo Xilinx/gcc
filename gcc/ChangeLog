@@ -1,3 +1,137 @@
+2009-01-03  Anatoly Sokolov  <aesok@post.ru>
+
+	PR target/29141
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _tablejump_elpm.
+	* config/avr/libgcc.S (__do_global_ctors, __do_global_dtors): Add
+	variant for devices with 3-byte PC.
+	(__tablejump_elpm__) : New.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/32041
+	* c-parser.c (c_parser_postfix_expression): Allow `->' in
+	offsetof member-designator, handle it as `[0].'.
+
+2009-01-12  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (pa_asm_output_mi_thunk): Use pc-relative branch to thunk
+	function when not using named sections on targets with named sections
+	if branch distance is less than 262132.
+
+2009-01-12  Richard Earnshaw  <rearnsha@arm.com>
+
+	* combine.c (combine_instructions):  Recompute
+	optimize_this_for_speed_p  for each BB in the main combine loop.
+
+2009-01-12  Tomas Bily  <tbily@suse.cz>
+
+	PR middlend/38385
+        * tree-loop-distribution.c (prop_phis): New function.
+        (generate_builtin): Call prop_phis.
+        * testsuite/gcc.dg/tree-ssa/pr38385.c: New file.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38807
+	* tree-ssa-reassoc.c (remove_visited_stmt_chain): Don't look at
+	gimple_visited_p unless stmt is GIMPLE_ASSIGN.
+
+2009-01-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* expmed.c (store_bit_field_1): Properly truncate the paradoxical
+	subreg of op0 to the original op0.
+
+2009-01-11  Laurent GUERBY <laurent@guerby.net>
+
+	* doc/sourcebuild.texi (Source Tree): Move up intl and fixinc.
+	
+2009-01-11  Markus Schoepflin  <markus.schoepflin@comsoft.de>
+
+	PR debug/7055
+	* gcc/mips-tfile.c (parse_def): Fix parsing of def strings
+	starting with digits.
+
+2009-01-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38695
+	* config/arm/arm.c (arm_is_long_call_p): Don't call
+	arm_function_in_section_p if decl isn't a FUNCTION_DECL.
+
+2009-01-09  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* regrename.c (regrename_optimize): Fix dumping.
+	(find_oldest_value_reg): Preserve REG_POINTER.
+	(copy_hardreg_forward_1): Likewise.
+
+2009-01-09  Diego Novillo  <dnovillo@google.com>
+
+	* gimple.h (struct gimple_statement_base)<uid>: Document
+	the restrictions on its use.
+	(gimple_uid): Tidy.
+	(gimple_set_uid): Tidy.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_expand_movmem, ix86_expand_setmem): Add
+	zero guard even if align_bytes != 0 and count is smaller than
+	size_needed.
+
+2008-01-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/38495
+	* ira-emit.c (print_move_list, ira_debug_move_list): New
+	functions.
+	(add_range_and_copies_from_move_list): Print all added ranges.
+	Add ranges to memory optimized destination.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38686
+	PR target/38708
+	* config/i386/i386.c (override_options): Reject
+	-mstringop-strategy=rep_8byte with -m32.
+	(ix86_expand_movmem): For size_needed == 1 set epilogue_size_needed
+	to 1.  Do count comparison against epilogue_size_needed at compile
+	time even when count_exp was constant forced into register.  For
+	size_needed don't jump to epilogue, instead just avoid aligning
+	and invoke the body algorithm.  If need_zero_guard, add zero guard
+	even if count is non-zero, but smaller than size_needed + number of
+	bytes that could be stored for alignment.
+	(ix86_expand_setmem): For size_needed == 1 set epilogue_size_needed
+	to 1.  If need_zero_guard, add zero guard even if count is non-zero,
+	but smaller than size_needed + number of bytes that could be stored
+	for alignment.  Compare size_needed with epilogue_size_needed instead
+	of desired_align - align, don't adjust size_needed, pass
+	epilogue_size_needed to the epilogue expanders.
+
+	PR c/35742
+	* c-pretty-print.c (pp_c_expression): Handle GOTO_EXPR like
+	BIND_EXPR.
+
+2009-01-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (last_address): Change to unsigned.
+	(update_total_code_bytes): Change argument to unsigned.  Don't
+	check if insn addresses are set.
+	(pa_output_function_epilogue): Set last_address to UINT_MAX if insn
+	addresses are not set.
+	(pa_asm_output_mi_thunk): Handle wrap when updating last_address.
+
+2009-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* config/sh/symbian.c: Replace uses of DECL_INLINE with
+	DECL_DECLARED_INLINE_P.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38347
+	* dojump.c (do_jump_by_parts_zero_rtx): Use mode instead of
+	GET_MODE (op0) in operand_subword_force calls.
+
+	PR middle-end/38771
+	* fold-const.c (fold_unary): For COMPOUND_EXPR and COND_EXPR,
+	fold_convert arg0 operands to TREE_TYPE (op0) first.
+
 2009-01-08  Vladimir Makarov  <vmakarov@redhat.com>
 
 	* params.def (ira-max-conflict-table-size): Decrease default value

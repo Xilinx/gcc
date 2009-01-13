@@ -1,3 +1,68 @@
+2009-01-12  Jason Merrill  <jason@redhat.com>
+	    Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/35109
+	* name-lookup.c (lookup_name_real): Keep looking past a hidden 
+	binding.
+
+2009-01-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/36019
+	* pt.c (parameter_of_template_p): New function.
+	* cp-tree.h: Declare it.
+	* name-lookup.c (binding_to_template_parms_of_scope_p): New
+	function.
+	(outer_binding): Take template parameters in account when looking for
+	a name binding.
+
+2009-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/31488
+	* tree.c (pod_type_p): Return 1 for structs created by the back end.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/32041
+	* parser.c (cp_parser_builtin_offsetof): Allow `->' in
+	offsetof member-designator, handle it as `[0].'.
+
+	PR c++/38794
+	* decl.c (start_function): If grokdeclarator hasn't returned
+	FUNCTION_DECL nor error_mark_node, issue diagnostics.
+
+2009-01-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36254
+	* cp-gimplify.c (genericize_if_stmt): Renamed from ...
+	(gimplify_if_stmt): ... this.
+	(cp_gimplify_expr): Don't handle IF_STMT here.
+	(cp_genericize_r): Call genericize_if_stmt for IF_STMT.
+
+2009-01-10  Andrew Pinski  <pinskia@gmail.com>
+
+	PR c++/38648
+	* typeck.c (cp_build_modify_expr): Check for NULL current_function_decl.
+
+	PR c++/36695
+	* typeck2.c (build_functional_cast): Check for reference type and NULL
+	PARMS.
+
+2009-01-09  Steve Ellcey  <sje@cup.hp.com>
+
+	* typeck.c (cp_build_unary_op): Check for ERROR_MARK.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35335
+	* error.c (dump_expr): Handle EXPR_STMT like BIND_EXPR.
+
+2009-01-09  John F. Carr  <jfc@mit.edu>
+
+	PR c++/37877
+	* parser.c (cp_parser_class_specifier): Clear
+	parser->in_unbraced_linkage_specification_p while parsing class
+	specifiers.
+
 2009-01-07  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/38725
