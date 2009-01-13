@@ -1,5 +1,10 @@
 2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* passes.c (init_optimization_passes): Schedule after
+	graphite transforms pass_copy_prop, pass_dce_loop and pass_lim.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (expand_scalar_variables_stmt): Do not pass loop_p.
 	Fix comment.
 	(expand_scalar_variables_ssa_name): Do not pass loop_p.  Fix comment.
