@@ -1,3 +1,140 @@
+2009-01-15  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38636
+	* g++.dg/parse/crash50.C: New test.
+
+2009-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38245
+	* gcc.dg/pr38245-3.c: New test.
+	* gcc.dg/pr38245-3.h: New file.
+	* gcc.dg/pr38245-4.c: New file.
+	* gcc.dg/pr38364.c: New test.
+
+2009-01-14  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp (mips_option_tests(-mips16)): Make the
+	sequence PC-relative.
+
+2009-01-14  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.target/arm/long-calls-1.c: Tolerate the lack of sibling
+	calls and/or PLT markers.
+	* gcc.target/arm/long-calls-2.c: Tolerate the lack of sibling
+	calls and/or PLT markers.
+	* gcc.target/arm/long-calls-3.c: Tolerate the lack of sibling
+	calls and/or PLT markers.
+	* gcc.target/arm/long-calls-4.c: Tolerate the lack of sibling
+	calls and/or PLT markers.
+
+2009-01-14  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_powerpc_spe_nocache):
+	New function.
+	* gcc.target/powerpc/20030218-1.c: Skip if not powerpc_spe_nocache
+	and use consistent CFLAGS.
+	* gcc.target/powerpc/20030505.c: Likewise.
+	* gcc.target/powerpc/20081204-1.c: Likewise.
+	* gcc.target/powerpc/ppc-spe.c: Likewise.
+	* gcc.target/powerpc/spe1.c: Likewise.
+	* g++.dg/ext/spe1.C: Likewise.
+	* g++.dg/other/opaque-1.C: Likewise.
+	* g++.dg/other/opaque-2.C: Likewise.
+	* g++.dg/other/opaque-3.C: Likewise.
+
+2009-01-14  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.dg/vect/vect-105.c: Prevent compiler from hoisting abort
+	out of loop.
+
+2009-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38826
+	PR middle-end/38477
+	* gcc.dg/Wstrict-aliasing-bogus-pta-1.c: New testcase.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/pr38786.c: Fix commit problem.
+
+2009-01-14  Nick Clifton  <nickc@redhat.com>
+
+	PR c++/37862
+	* g++.cp/parse/pr37862.C: New test.
+
+2009-01-14  Julian Brown  <julian@codesourcery.com>
+
+	* gcc.target/arm/eabi1.c (__eabi_uread4, __eabi_uwrite4)
+	(__eabi_uread8, __eabi_uwrite8): Change spellings of declarations
+	to...
+	(__aeabi_uread4, __aeabi_uwrite4, __aeabi_uread8, __aeabi_uwrite8):
+	These.
+
+2009-01-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38774
+	* gcc.dg/torture/pr38774.c: New test.
+
+	PR c++/38795
+	* g++.dg/cpp0x/pr38795.C: New test.
+
+2009-01-13  Daniel Jacobowitz  <dan@codesourcery.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/powerpc/altivec-consts.c: Run if vmx_hw, compile
+	otherwise.  Do not check for AltiVec at runtime.
+	* gcc.target/powerpc/altivec-varargs-1.c: Likewise.
+	* gcc.target/powerpc/altivec-vec-merge.c: Likewise.
+	* gcc.target/powerpc/altivec-1.c: Likewise.
+	* gcc.target/powerpc/altivec-3.c: Likewise.
+	* gcc.target/powerpc/altivec-10.c: Likewise.
+	* gcc.target/powerpc/altivec-12.c: Likewise.
+	* gcc.target/powerpc/altivec-24.c: Likewise.
+	* gcc.target/powerpc/altivec-cell-2.c: Likewise.
+	* gcc.target/powerpc/altivec-cell-3.c: Likewise.
+	* gcc.target/powerpc/altivec-cell-4.c: Likewise.
+	* gcc.target/powerpc/pr35907.c: Likewise.
+	* gcc.target/powerpc/altivec-cell-8.c: Run if cell_hw, compile
+	otherwise.  Do not check for Cell at runtime.
+	* gcc.target/powerpc/altivec_check.h: Delete.
+
+	* g++.dg/ext/altivec-2.C: Do not check for AltiVec at runtime.
+	* g++.dg/ext/altivec-3.C: Run if vmx_hw, compile otherwise.  Do
+	not check for AltiVec at runtime.
+	* g++.dg/ext/altivec-cell-2.C: Likewise.
+	* g++.dg/ext/altivec-cell-3.C: Likewise.
+	* g++.dg/ext/altivec-cell-4.C: Likewise.
+	* g++.dg/eh/simd-2.C: Only use -maltivec if vmx_hw.
+	* g++.dg/eh/check-vect.h (sig_ill_handler): Remove AltiVec runtime
+	check.
+	* g++.dg/ext/altivec_check.h: Delete.
+	
+2009-01-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.target/powerpc/altivec-macros.c: Require a powerpc_altivec_ok
+	effective target.  Adjust line numbers accordingly.
+
+2009-01-13  Mark Mitchell  <mark@codesourcery.com>
+
+	* gcc.target/i386/sse-10.c: Pass -mno-omit-leaf-frame-pointer.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/38786
+	* gcc.dg/graphite/pr38786.c: New.
+
+2009-01-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	Revert:
+	2009-01-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/compat/struct-layout-1_generate.c (dg-options): Add -mieee
+	for alpha*-*-* targets.
+	* g++.dg/compat/struct-layout-1_generate.c (dg-options): Ditto.
+
 2009-01-12  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libfortran/38772

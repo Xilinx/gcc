@@ -905,6 +905,40 @@ proc check_vmx_hw_available { } {
     }]
 }
 
+# Return 1 if the target supports executing AltiVec and Cell PPU
+# instructions, 0 otherwise.  Cache the result.
+
+proc check_effective_target_cell_hw { } {
+    return [check_cached_effective_target cell_hw_available {
+	# Some simulators are known to not support VMX and PPU instructions.
+	if { [istarget powerpc-*-eabi*] } {
+	    expr 0
+	} else {
+	    # Most targets don't require special flags for this test
+	    # case, but Darwin and AIX do.
+	    if { [istarget *-*-darwin*]
+		 || [istarget *-*-aix*] } {
+		set options "-maltivec -mcpu=cell"
+	    } else {
+		set options "-mcpu=cell"
+	    }
+	    check_runtime_nocache cell_hw_available {
+		int main()
+		{
+		#ifdef __MACH__
+		  asm volatile ("vor v0,v0,v0");
+                  asm volatile ("lvlx v0,r0,r0");
+		#else
+		  asm volatile ("vor 0,0,0");
+                  asm volatile ("lvlx 0,0,0");
+	        #endif
+		  return 0;
+		}
+	    } $options
+	}
+    }]
+}
+
 # Return 1 if the target supports executing 64-bit instructions, 0
 # otherwise.  Cache the result.
 
@@ -1496,6 +1530,23 @@ proc check_effective_target_powerpc_ppu_ok { } {
 proc check_effective_target_powerpc_spu { } {
     if [istarget powerpc*-*-linux*] {
 	return [check_effective_target_powerpc_altivec_ok]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if this is a PowerPC SPE target.  The check includes options
+# specified by dg-options for this test, so don't cache the result.
+
+proc check_effective_target_powerpc_spe_nocache { } {
+    if { [istarget powerpc*-*-*] } {
+	return [check_no_compiler_messages_nocache powerpc_spe object {
+	    #ifndef __SPE__
+	    #error not SPE
+	    #else
+	    int dummy;
+	    #endif
+	} [current_compiler_flags]]
     } else {
 	return 0
     }

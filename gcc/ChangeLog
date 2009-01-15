@@ -1,3 +1,137 @@
+2009-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38245
+	* calls.c (expand_call): Add stack arguments to
+	CALL_INSN_FUNCTION_USAGE even for pure calls (when
+	ACCUMULATE_OUTGOING_ARGS) and even for args partially passed
+	in regs and partially in memory or BLKmode arguments.
+	(emit_library_call_value_1): Add stack arguments to
+	CALL_INSN_FUNCTION_USAGE even for pure calls (when
+	ACCUMULATE_OUTGOING_ARGS).
+	* dce.c: Include tm_p.h.
+	(find_call_stack_args): New function.
+	(deletable_insn_p): Call it for CALL_P insns.  Add ARG_STORES
+	argument.
+	(mark_insn): Call find_call_stack_args for CALL_Ps.
+	(prescan_insns_for_dce): Walk insns backwards in bb rather than
+	forwards.  Allocate and free arg_stores bitmap if needed, pass it
+	down to deletable_insn_p, don't mark stores set in arg_stores
+	bitmap, clear the bitmap at the beginning of each bb.
+	* Makefile.in (dce.o): Depend on $(TM_P_H).
+
+2009-01-14  Michael Meissner  <gnu@the-meissners.org>
+
+	PR target/22599
+	* i386.c (print_operand): Add tests for 'D', 'C', 'F', 'f' to make
+	sure the insn is a conditional test (bug 22599).  Reformat a few long
+	lines.
+
+2009-01-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/38431
+	* graphite.c (get_vdef_before_scop, scop_adjust_vphi): New.
+	(scop_adjust_phis_for_liveouts): Call scop_adjust_vphi.
+	(gloog): Do not call cleanup_tree_cfg.
+	(graphite_transform_loops): Call cleanup_tree_cfg after all 
+	scops have been code generated.
+
+2009-01-14  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* testsuite/g++.dg/torture/pr38811.C: New file.
+
+2009-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/gty.texi (Invoking the garbage collector): Added new node
+	and section documenting ggc_collect.
+
+2009-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38826
+	PR middle-end/38477
+	* tree-ssa-structalias.c (emit_alias_warning): Emit the pointer
+	initialization notes only if we actually emitted a warning.
+	(intra_create_variable_infos): Add constraints for a result decl
+	that is passed by hidden reference.
+	(build_pred_graph): Mark all related variables non-direct on
+	address-taking.
+
+2009-01-14  Nick Clifton  <nickc@redhat.com>
+
+	* ira-conflicts.c: Include addresses.h for the definition of
+	base_reg_class.
+	(ira_build_conflicts): Use base_reg_class instead of
+	BASE_REG_CLASS.
+	* Makefile.in: Add a dependency of ira-conflicts.o on
+	addresses.h.
+
+2009-01-13  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/38811
+	* Makefile.in (ira-lives.o): Add except.h.
+
+	* ira-lives.c: Include except.h.
+	(process_bb_node_lives): Process can_throw_internal.
+
+2009-01-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38774
+	* combine.c (simplify_set): When undoing cc_use change, don't do
+	PUT_CODE on the newly created comparison, but instead put back the
+	old comparison.
+
+2009-01-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/invoke.texi (ARM Options): Update lists of -mcpu and -march
+	values.  Remove duplicate arm8 entry.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/38786
+	* graphite.c (expand_scalar_variables_ssa_name): New, outlined from
+	the SSA_NAME case of expand_scalar_variables_expr.
+	Set the type of an expression to the type of its assign	statement.
+	(expand_scalar_variables_expr): Also gather the scalar computation
+	used to index the memory access.  Do not pass loop_p.
+	Fix comment.  Stop recursion on tcc_constant or tcc_declaration.
+	(expand_scalar_variables_stmt): Pass to expand_scalar_variables_expr
+	the gimple_stmt_iterator where it inserts new code.  Do not pass loop_p.
+	(copy_bb_and_scalar_dependences): Do not pass loop_p.
+	(translate_clast): Update call to copy_bb_and_scalar_dependences.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.h (debug_value): Removed.
+	* graphite.c (debug_value): Removed.
+
+2009-01-13  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (output_move_double): Don't synthesize thumb-2 ldrd/strd with
+	two 32-bit instructions.
+
+2009-01-13  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (struct processors): Pass for speed down into cost helper
+	functions.
+	(const_ok_for_op): Handle COMPARE and inequality nodes.
+	(arm_rtx_costs_1): Rewrite.
+	(arm_size_rtx_costs): Update prototype.
+	(arm_rtx_costs): Pass speed down to helper functions.
+	(arm_slowmul_rtx_costs): Rework cost calculations.
+	(arm_fastmul_rtx_costs, arm_xscale_rtx_costs): Likewise.
+	(arm_9e_rtx_costs): Likewise.
+
+2009-01-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_legitimate_address_p): Explicit
+	relocations of local symbols  wider than UNITS_PER_WORD are not valid.
+	(alpha_legitimize_address): Do not split local symbols wider than
+	UNITS_PER_WORD into HIGH/LO_SUM parts.
+
+2009-01-13  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR bootstrap/38580
+	* gcc.c (process_command): Replace call to execvp with calls
+	to pex_one and exit.
+
 2009-01-03  Anatoly Sokolov  <aesok@post.ru>
 
 	PR target/29141
@@ -26,9 +160,9 @@
 2009-01-12  Tomas Bily  <tbily@suse.cz>
 
 	PR middlend/38385
-        * tree-loop-distribution.c (prop_phis): New function.
-        (generate_builtin): Call prop_phis.
-        * testsuite/gcc.dg/tree-ssa/pr38385.c: New file.
+	* tree-loop-distribution.c (prop_phis): New function.
+	(generate_builtin): Call prop_phis.
+	* testsuite/gcc.dg/tree-ssa/pr38385.c: New file.
 
 2009-01-12  Jakub Jelinek  <jakub@redhat.com>
 
@@ -79,8 +213,7 @@
 2008-01-09  Vladimir Makarov  <vmakarov@redhat.com>
 
 	PR rtl-optimization/38495
-	* ira-emit.c (print_move_list, ira_debug_move_list): New
-	functions.
+	* ira-emit.c (print_move_list, ira_debug_move_list): New functions.
 	(add_range_and_copies_from_move_list): Print all added ranges.
 	Add ranges to memory optimized destination.
 
@@ -105,8 +238,7 @@
 	epilogue_size_needed to the epilogue expanders.
 
 	PR c/35742
-	* c-pretty-print.c (pp_c_expression): Handle GOTO_EXPR like
-	BIND_EXPR.
+	* c-pretty-print.c (pp_c_expression): Handle GOTO_EXPR like BIND_EXPR.
 
 2009-01-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
