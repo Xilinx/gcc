@@ -2553,6 +2553,12 @@ build_scop_canonical_schedules (scop_p scop)
   lambda_vector static_schedule = lambda_vector_new (nb_loops + 1);
   VEC (loop_p, heap) *loops_previous = NULL;
 
+  /* We have to start schedules at 0 on the first component and
+     because we cannot compare_prefix_loops against a previous loop,
+     prefix will be equal to zero, and that index will be
+     incremented before copying.  */
+  static_schedule[0] = -1;
+
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
       int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gb));
