@@ -2488,6 +2488,29 @@ build_scop_dynamic_schedules (scop_p scop)
     }
 }
 
+/* Returns the number of loops that are identical at the beginning of
+   the vectors A and B.  */
+
+static int
+compare_prefix_loops (VEC (loop_p, heap) *a, VEC (loop_p, heap) *b)
+{
+  int i;
+  loop_p ea;
+  int lb;
+
+  if (!a || !b)
+    return 0;
+
+  lb = VEC_length (loop_p, b);
+
+  for (i = 0; VEC_iterate (loop_p, a, i, ea); i++)
+    if (i >= lb
+	|| ea != VEC_index (loop_p, b, i))
+      return i;
+
+  return 0;
+}
+
 /* Build for BB the static schedule.
 
    The STATIC_SCHEDULE is defined like this:
@@ -2524,34 +2547,23 @@ build_scop_dynamic_schedules (scop_p scop)
 static void
 build_scop_canonical_schedules (scop_p scop)
 {
-  int i, j;
+  int i;
   graphite_bb_p gb;
-  int nb = scop_nb_loops (scop) + 1;
-
-  SCOP_STATIC_SCHEDULE (scop) = lambda_vector_new (nb);
+  int nb_loops = scop_nb_loops (scop);
+  lambda_vector static_schedule = lambda_vector_new (nb_loops + 1);
+  VEC (loop_p, heap) *loops_previous = NULL;
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
-      int offset = nb_loops_around_gb (gb);
+      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gb));
+      int nb = gbb_nb_loops (gb);
 
-      /* After leaving a loop, it is possible that the schedule is not
-	 set at zero.  This loop reinitializes components located
-	 after OFFSET.  */
-
-      for (j = offset + 1; j < nb; j++)
-	if (SCOP_STATIC_SCHEDULE (scop)[j])
-	  {
-	    memset (&(SCOP_STATIC_SCHEDULE (scop)[j]), 0,
-		    sizeof (int) * (nb - j));
-	    ++SCOP_STATIC_SCHEDULE (scop)[offset];
-	    break;
-	  }
-
-      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (offset + 1);
-      lambda_vector_copy (SCOP_STATIC_SCHEDULE (scop), 
-			  GBB_STATIC_SCHEDULE (gb), offset + 1);
-
-      ++SCOP_STATIC_SCHEDULE (scop)[offset];
+      loops_previous = GBB_LOOPS (gb);
+      memset (&(static_schedule[prefix + 1]), 0, sizeof (int) * (nb_loops - prefix));
+      ++static_schedule[prefix];
+      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb + 1);
+      lambda_vector_copy (static_schedule, 
+			  GBB_STATIC_SCHEDULE (gb), nb + 1);
     }
 }
 
@@ -6065,7 +6077,6 @@ graphite_transform_loops (void)
       if (!build_scop_loop_nests (scop))
 	continue;
 
-      build_scop_canonical_schedules (scop);
       build_bb_loops (scop);
 
       if (!build_scop_conditions (scop))
@@ -6087,6 +6098,7 @@ graphite_transform_loops (void)
 	continue;
 
       add_conditions_to_constraints (scop);
+      build_scop_canonical_schedules (scop);
 
       build_scop_data_accesses (scop);
       build_scop_dynamic_schedules (scop);

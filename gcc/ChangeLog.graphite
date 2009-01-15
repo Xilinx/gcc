@@ -1,3 +1,11 @@
+2009-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (compare_prefix_loops): New.
+	(build_scop_canonical_schedules): Rewritten.
+	(graphite_transform_loops): Move build_scop_canonical_schedules
+	after build_scop_iteration_domain.
+
 2009-01-14  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <tobi.grosser@amd.com>
 
