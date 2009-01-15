@@ -429,7 +429,7 @@
     (foreach_in_multiple
      (patfields)
      (curpatf :long ix)
-     (debug_msg curpatf "normpat_instancepath curpatf")
+     (debug_msg curpatf "normpat_instancepat curpatf")
      (assert_msg "check curpatf" (is_a curpatf class_srcfieldpattern))
      (let ( (floc (get_field :src_loc curpatf))
 	    (curfld (get_field :spaf_field curpatf))
@@ -473,6 +473,7 @@
 	(ncx (unsafe_get_field :pctn_normctxt pcn))
 	(bindlist (unsafe_get_field :pctn_bindlist pcn))
 	(stuffmap (unsafe_get_field :pctn_stuffmap pcn))
+	(matchctype (get_ctype nmatch env))
 	)
     (assert_msg "check mat" (is_a mat class_any_matcher))
     (debug_msg inargs "normpat_anymatchpat inargs")
@@ -489,6 +490,11 @@
 	   (matbind (get_field :amatch_matchbind mat))
 	   (outbinds ())
 	   )
+       ;; check compatibility of ctype
+       (if (!= matchctype (get_field :fbind_type matbind))
+	   (progn
+	     (error_strv sloc "unexpected matched type" (get_field :named_name matchctype))
+	     (inform_strv sloc "expecting type in matcher" (get_field :named_name (get_field :fbind_type matbind)))))
        ;; input args
        (debug_msg inargs "normpat_anymatchpat inargs")
        (debug_msg inmatchs "normpat_anymatchpat inmatchs")
@@ -711,6 +717,7 @@
 			     :pctn_bindlist bindlist
 			     :pctn_stuffmap stuffmap
 			     ))
+	      (npatcont (instance class_container))
 	      )
 	  (scan_pattern curpat curloc ctyp pcn)
 	  (debug_msg mapvar "normexp_match mapvar")
@@ -720,7 +727,10 @@
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
-	  (normal_pattern curpat nmatx pcn)
+	  (normal_pattern curpat nmatx
+			  (lambda (tester) (put_fields npatcont :container_value tester))
+			  pcn)
+	  (debug_msg npatcont "normexp_match npatcont after normal_pattern")
 	  (let ( (newenv (get_field :pctn_env pcn)) )
 	    (debug_msg newenv "normexp_match newenv")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
