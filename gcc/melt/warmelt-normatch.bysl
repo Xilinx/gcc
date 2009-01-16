@@ -34,7 +34,7 @@
   :super class_root
   :fields (pctn_normctxt		;the class_normcontext
 	   pctn_src			;the source match expressioon
-	   pctn_env			;the environment
+	   pctn_env			;the current environment
 	   ;; mapping symbols to patternvars
 	   pctn_mapatvar		;objmap of patternvars
 	   pctn_mapatcst		;objmap of patternconst
@@ -42,6 +42,8 @@
 	   pctn_bindlist		;binding list 
 	   ;; mapping matched stuff with testers
 	   pctn_stuffmap
+	   ;; mapping pattern variables to local occurrences 
+	   pctn_pvarlocmap
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -350,6 +352,14 @@
 	     ntmatch_outlocs		;its output locals
 	     ))
 
+
+;; test for instance
+(defclass class_normtester_instance
+    :super class_normtester_any
+    :fields (ntinst_class		;the class 
+	     ;; a tuple similar to the class's fields
+	     ntinst_fieldlocs		;the tuple of field locals or nil
+	     ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -396,6 +406,10 @@
   (debug_msg nmatch "normpat_variablepat nmatch")
   (assert_msg "check recv" (is_a recv class_srcpattern_variable))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( (stuffmap (get_field :pctn_stuffmap pcn))
+	 (pvarmap (get_field :pctn_pvarlocmap pcn))
+	 )
+    )
   (compile_warning "unimplemented normpat_variablepat" ())
   (shortbacktrace_dbg "normpat_variablepat" 15)
 )
@@ -426,8 +440,53 @@
 	 (patcla (get_field :spat_class recv))
 	 (patfields (get_field :spat_fields recv))
 	 (oldenv env)
-	 (ncx (unsafe_get_field :pctn_normctxt pcn))
+	 (ncx (get_field :pctn_normctxt pcn))
+	 (stuffmap (get_field :pctn_stuffmap pcn))
+	 (tstuff (mapobject_get stuffmap nmatch))
+	 (tester ())
+	 (curhdler hdler)
 	 )
+    (assert_msg "check patcla" (is_a patcla class_class))
+    ;; find the tester in the stuff
+    (forever
+     loopstuff
+     (debug_msg tstuff "normpat_instancepat tstuff")
+     ;; check if tstuff is a class_normtester_instance with good :ntinst_class
+     (cond
+      ( (== (get_field :ntinst_class tstuff) patcla)
+	(setq tester tstuff)
+	(exit loopstuff)
+	)
+      ((is_a tstuff class_normtester_any)
+       (setq tstuff (get_field :ntest_else tstuff))
+       (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+       )
+      (:else
+       (let ( 
+	     (newfieldlocs
+	      (make_multiple 
+	       discr_multiple
+	       (multiple_length (get_field :class_fields patcla))
+	       ))
+	     (newtester 
+	      (instance class_normtester_instance
+			:nrep_loc sloc
+			:nexpr_ctyp ctype_value
+			:ntest_match nmatch
+			:ntest_then ()
+			:ntest_else ()
+			:ntinst_class patcla
+			:ntinst_fieldlocs newfieldlocs
+			))
+	     )
+	 (debug_msg newtester "normpat_instancepat newtester")
+	 (setq tester newtester)
+	 (curhdler newtester)
+	 (exit loopstuff)
+	 )
+       ))
+     )
+    (debug_msg tester "normpat_instancepat tester")
     (foreach_in_multiple
      (patfields)
      (curpatf :long ix)
@@ -441,7 +500,11 @@
 			      :nuget_obj nmatch
 			      :nuget_field curfld))
 	    (curfldcla (get_field :fld_ownclass curfld))
-	    (subhdler (compile_warning "should have a subhdler" ()))
+	    (subhdler 
+	     ;; like in normpat_anymatchpat
+	     ;; put the new tester as the last element of its
+	     ;; ntest_then chain
+	     (compile_warning "should have a subhdler in normpat_instancepat" ()))
 	    )
        (compile_warning "normpat_instancepath might handle specially when cursubpat is a constant" ())
        (cond  ( (== curfldcla patcla) ())
@@ -574,8 +637,9 @@
 		(foreach_in_multiple
 		 (tinargs)
 		 (curinarg :long ix)
-		 (if (!= curinarg (multiple_nth nins ix))
-		     (setq good 0))
+		 (let ( (nthins (multiple_nth nins ix)) )
+		   (if (!= curinarg nthins)
+		       (setq good 0)))
 		 )
 		(if good 
 		    (progn 
@@ -646,11 +710,24 @@
 	  (outmatchs)
 	  (curmatch :long ix)
 	  (let ( (clocc (multiple_nth outlocs ix)) 
-		 (subhdler (compile_warning 
-			    ;; we probably should scan the linked
-			    ;; sequence of test to update the last
-			    ;; test without ntest_then....
-			    "handler should put in the last ntest_then..." ()))
+		 (testercont (instance class_container
+				       :container_value tester))
+		 (subhdler 
+		  ;; put the new tester as the last element of its
+		  ;; ntest_then chain
+		  (lambda (newtester)
+		      (debug_msg newtester "normpat_anymatchpat newtester")
+		    (let ( (curtester (get_field :container_value testercont)) )
+		      (forever 
+		       lastesterloop
+		       (let ( (nextester (get_field :ntest_then curtester)) )
+			 (if (is_a nextester class_normtester_any)
+			     (setq curtester nextester)
+			   (exit lastesterloop))))
+		      (put_fields testercont :container_value curtester)
+		      (put_fields curtester :ntest_then newtester)
+		      (debug_msg curtester "normpat_anymatchpat curtester")
+		    )))
 		 )
 	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
 	    (normal_pattern curmatch clocc subhdler pcn)
@@ -729,6 +806,7 @@
 	      (curbody (unsafe_get_field :scam_body curcas))
 	      (mapvar (make_mapobject discr_mapobjects 13))
 	      (mapcst (make_mapobject discr_mapobjects 11))
+	      (pvarmap (make_mapobject discr_mapobjects 23))
 	      (pcn (instance class_patterncontext
 			     :pctn_normctxt ncx
 			     :pctn_src recv
@@ -737,6 +815,7 @@
 			     :pctn_mapatcst mapcst
 			     :pctn_bindlist bindlist
 			     :pctn_stuffmap stuffmap
+			     :pctn_pvarlocmap pvarmap
 			     ))
 	      (npatcont (instance class_container))
 	      )
