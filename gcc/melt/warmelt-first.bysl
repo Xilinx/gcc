@@ -2841,6 +2841,51 @@
 
 
 
+;; utility to give a "sorted" tuple of attributes in a mapobject
+(defun mapobject_sorted_attribute_tuple (mapo)
+  (let ( 
+	(:long mapcount (mapobject_count mapo)) 
+	(countbox (make_integerbox discr_integer 0))
+	(boxedone (make_integerbox discr_integer 1))
+	(boxedzero (make_integerbox discr_integer 0))
+	(boxedminusone (make_integerbox discr_integer -1))
+	(tupl (make_multiple discr_multiple mapcount))
+	)
+    ;; fill the tupl with (attribute value rank) entries
+    (mapobject_every
+     mapo
+     (lambda (at va)
+       (let ( (:long curcount (get_int countbox)) 
+	      (ent (make_tuple3 discr_multiple 
+				at va 
+				(make_integerbox discr_integer curcount)))
+	      )
+	 (multiple_put_nth tupl curcount ent)
+	 (put_int countbox (+i curcount 1))
+	 )))
+;;; sort the tuple and output in sorted order
+    (let ( (sortupl 
+	    (multiple_sort 
+	     tupl
+	     (lambda (e1 e2)
+	       (let ( (e1at (multiple_nth e1 0))
+		      (e1va (multiple_nth e1 1))
+		      (e1rk (multiple_nth e1 2))
+		      (e2at (multiple_nth e2 0))
+		      (e2va (multiple_nth e2 1))
+		      (e2rk (multiple_nth e2 2))
+		      )
+		 (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		 ))
+	     discr_multiple
+	     ))
+	   )
+      (multiple_map sortupl (lambda (el) (multiple_nth el 0)))
+      )
+    )
+  )
+
+
 
 ;; multiple debug out
 (defun dbgout_mapstring_method (self dbgi :long depth)
@@ -3810,7 +3855,8 @@
  list_map				
  list_to_multiple			
  mapobject_every			
- mapobject_iterate_test			
+ mapobject_iterate_test	
+ mapobject_sorted_attribute_tuple		
  mapstring_every			
  mapstring_iterate_test			
  mapstringval_every			

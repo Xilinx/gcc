@@ -324,18 +324,18 @@
 ;; all the testers share a common superclass
 (defclass class_normtester_any 
   :super class_nrep_typexpr	;inherit fields: nrep_loc & nexpr_ctyp
-  :fields (ntest_match		;normal matched stuff
+  :fields (ntest_match		;normal matched thing
 	   ntest_then		;tester to run if successful
 	   ntest_else		;tester to run if failed
 	   ))
+
 
 ;; final successful tester (always succeed) just evaluate the expression
 (defclass class_normtester_success
   :super class_normtester_any
   :fields (ntsuccess_do		;single expression (usually a normlet)
 	   ))
-
-
+ 
 ;; test for same (ie identical) stuff
 (defclass class_normtester_same
   :super class_normtester_any
@@ -362,6 +362,24 @@
 	     ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; utility to set the newtester to the last of a ntest_then linked list
+(defun set_newtester_lastthen (newtester testercont)
+  (assert_msg "check newtester" (is_a newtester class_normtester_any))
+  (assert_msg "check testercont" (is_a testercont class_container))
+  (debug_msg newtester "set_newtester_lastthen newtester")
+  (let ( (curtester (get_field :container_value testercont)) )
+    (forever 
+     lastesterloop
+     ;; indeed a safe get_field to handle the nil case!
+     (let ( (nextester (get_field :ntest_then curtester)) )
+       (if (is_a nextester class_normtester_any)
+	   (setq curtester nextester)
+	 (exit lastesterloop))))
+    (put_fields testercont :container_value curtester)
+    (put_fields curtester :ntest_then newtester)
+    (debug_msg testercont "set_newtester_lastthen testercont")
+    ))
 
 ;;; expansion of tuples in cmatcher should be done in warmelt-genobj
 
@@ -407,12 +425,74 @@
   (assert_msg "check recv" (is_a recv class_srcpattern_variable))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
   (let ( (stuffmap (get_field :pctn_stuffmap pcn))
-	 (pvarmap (get_field :pctn_pvarlocmap pcn))
+	 (pvarmap (get_field :pctn_pvarlocmap pcn)) 
+	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 (sloc (get_field :src_loc recv))
+	 (patvar (get_field :spat_var recv))
+	 (tstuff (mapobject_get stuffmap nmatch))
+	 (lococc (mapobject_get pvarmap patvar))
+	 (env (get_field :pctn_env pcn))
 	 )
-    )
-  (compile_warning "unimplemented normpat_variablepat" ())
-  (shortbacktrace_dbg "normpat_variablepat" 15)
-)
+    (debug_msg tstuff "normpat_variablepat tstuff")
+    (debug_msg lococc "normpat_variablepat lococc")
+    (if lococc
+	;; patvar already bound, generate a same test if not already found
+	(let (
+	      (tester ())
+	      (curhdler hdler)
+	      )
+	  (assert_msg "check lococc" (is_a lococc class_nrep_locsymocc))
+	  (forever 
+	   loopstuff
+	   (debug_msg tstuff "normpat_variablepat tstuff")
+	   (cond 
+	    ( (== (get_field :ntsame_identical tstuff) lococc)
+	      (setq tester tstuff)
+	      (exit loopstuff)
+	      )
+	    ( (is_a tstuff class_normtester_any)
+	      (setq tstuff (get_field :ntest_else tstuff))
+	      (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+	      )
+	    (:else
+	     (let ( (newtester (instance class_normtester_same
+					 :nrep_loc sloc
+					 :nexpr_ctyp (get_field :nocc_ctyp lococc)
+					 :ntest_match nmatch
+					 :ntest_then ()
+					 :ntest_else ()
+					 :ntsame_identical lococc))
+		    )
+	       (debug_msg newtester "normpat_variablepat newtester")
+	       (setq tester newtester)
+	       (curhdler newtester)
+	       (exit loopstuff)
+	       )
+	     )
+	    )
+	   )
+	  )
+      ;; else patvar unbound, so bound it 
+      (let ( (csym (clone_symbol patvar))
+	     (ctyp (get_ctype nmatch env))
+	     (cbind (instance class_normlet_binding
+			      :letbind_loc sloc
+			      :binder csym
+			      :letbind_type ctyp
+			      :letbind_expr ()
+			      ))
+	     (clocc (instance class_nrep_locsymocc
+			      :nrep_loc sloc
+			      :nocc_ctyp ctyp
+			      :nocc_symb csym
+			      :nocc_bind cbind))
+	     )
+	(debug_msg ctyp "normpat_variablepat ctyp")
+	(debug_msg clocc "normpat_variablepat new clocc")
+	(mapobject_put pvarmap patvar clocc)
+	(debug_msg pvarmap "normpat_variablepat updated pvarmap")
+	))
+    ))
 (install_method class_srcpattern_variable normal_pattern normpat_variablepat)
 
 ;;; normalize joker pattern
@@ -487,6 +567,7 @@
        ))
      )
     (debug_msg tester "normpat_instancepat tester")
+    (debug_msg patcla "normpat_instancepat patcla")
     (foreach_in_multiple
      (patfields)
      (curpatf :long ix)
@@ -500,18 +581,18 @@
 			      :nuget_obj nmatch
 			      :nuget_field curfld))
 	    (curfldcla (get_field :fld_ownclass curfld))
-	    (subhdler 
-	     ;; like in normpat_anymatchpat
-	     ;; put the new tester as the last element of its
-	     ;; ntest_then chain
-	     (compile_warning "should have a subhdler in normpat_instancepat" ()))
+	    (testercont (instance class_container))
+	    (subhdler (lambda (newtester) (set_newtester_lastthen newtester testercont)))
 	    )
-       (compile_warning "normpat_instancepath might handle specially when cursubpat is a constant" ())
+       (debug_msg curfld "normpat_instancepat curfld")
        (cond  ( (== curfldcla patcla) ())
-	      ( (subclass_of curfldcla patcla) ())
+	      ( (subclass_of patcla curfldcla) ())
 	      (:else (error_strv floc "bad field in instance pattern" (get_field :named_name curfld))))
-       (debug_msg nflexp "normpat_instancepath nflexp")
+       (debug_msg nflexp "normpat_instancepat nflexp")
+       (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
        (normal_pattern cursubpat nflexp subhdler pcn)
+       (debug_msg cursubpat "normpat_instancepat after normal_pattern cursubpat")
+       (debug_msg curpatf "normpat_instancepat did curpatf")
        ))
     (compile_warning "not fully unimplemented normpat_instancepat" ())
     )
@@ -710,6 +791,7 @@
 	  (outmatchs)
 	  (curmatch :long ix)
 	  (let ( (clocc (multiple_nth outlocs ix)) 
+		 (curout (multiple_nth outargs ix))
 		 (testercont (instance class_container
 				       :container_value tester))
 		 (subhdler 
@@ -717,21 +799,13 @@
 		  ;; ntest_then chain
 		  (lambda (newtester)
 		      (debug_msg newtester "normpat_anymatchpat newtester")
-		    (let ( (curtester (get_field :container_value testercont)) )
-		      (forever 
-		       lastesterloop
-		       (let ( (nextester (get_field :ntest_then curtester)) )
-			 (if (is_a nextester class_normtester_any)
-			     (setq curtester nextester)
-			   (exit lastesterloop))))
-		      (put_fields testercont :container_value curtester)
-		      (put_fields curtester :ntest_then newtester)
-		      (debug_msg curtester "normpat_anymatchpat curtester")
-		    )))
+		      (set_newtester_lastthen newtester testercont)
+		    ))
 		 )
 	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
-	    (normal_pattern curmatch clocc subhdler pcn)
-	    (debug_msg curmatch "normpat_anymatchpat curmatch after normal_pattern")
+	    (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
+	    (normal_pattern curout clocc subhdler pcn)
+	    (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
 	    )
 	  )
 	 )
@@ -794,7 +868,7 @@
 	     (assert_msg "check no binding" (null nbindmatx))
 	     (setq nbindmatx (list1 cbind))
 	     (setq nmatx clocc)
-	     (inform_plain sloc "matched value is constant")))
+	     (inform_plain sloc "matched thing is constant")))
        (foreach_in_multiple
 	(scases)
 	(curcas :long ix)
@@ -831,9 +905,57 @@
 			  (lambda (tester) (put_fields npatcont :container_value tester))
 			  pcn)
 	  (debug_msg npatcont "normexp_match npatcont after normal_pattern")
-	  (let ( (newenv (get_field :pctn_env pcn)) )
+	  (let ( (newenv (get_field :pctn_env pcn))
+		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
+		 (curtester (get_field :container_value npatcont))
+		 (newsuctester
+		  (instance class_normtester_success
+			    :nrep_loc curloc
+			    ;; the ctype is really the ctype of the
+			    ;; action part of the match case; will be filled later
+			    :nexpr_ctyp ()
+			    ;; we really don't match anything
+			    :ntest_match ()
+			    :ntest_then ()
+			    :ntest_else ()
+			    ;; the success do should be the wrapped
+			    ;; let of the normalized actions
+			    :ntsuccess_do ()
+			    ))
+		 )
 	    (debug_msg newenv "normexp_match newenv")
+	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
+	    (debug_msg curtester "normexp_match curtester after normal_pattern")
+	    (assert_msg "check curtester" (is_a curtester class_normtester_any))
+	    ;; loop on the ntest_then chain to add the success test at
+	    ;; last, ensuring that there is no yet yet success
+	    ;; there...
+	    (forever
+	     lastesterloop
+	     (debug_msg curtester "normexp_match lastesterloop curtester")
+	     (if (is_a curtester class_normtester_success)
+		 (let ( (otherloc (get_field :nrep_loc curtester)) )
+		   (warning_plain curloc "unreachable match case")
+		   (inform_plain otherloc "this is the other successful case")
+		   (exit lastesterloop)
+		   ()))
+	     (let ( (nextester (get_field :ntest_then curtester)) )
+	       (if (is_a nextester class_normtester_any)
+		   (setq curtester nextester)
+		 (exit lastesterloop)))
+	     )
+	    (put_fields npatcont :container_value curtester)
+	    (put_fields curtester :ntest_then newsuctester)
+	    (debug_msg curtester "normexp_match after lastesterloop curtester")
+	    (debug_msg pcn "normexp_match pcn after lastesterloop")
+	    (let ( (sortedvars (mapobject_sorted_attribute_tuple pvarlocmap)) 
+		   )
+	      (debug_msg sortedvars "normexp_match sortedvars")
+	      )
+	    (compile_warning "normexp_match incomplete" ())
+	    ;; we have to make a list of bindings based upon the sortedvars
+	    (assert_msg "unimplemented  normexp_match bind pvarlocs" ())
 	    (multicall 
 	     (nbody bindsbody)
 	     (normalize_tuple curbody newenv ncx sloc)

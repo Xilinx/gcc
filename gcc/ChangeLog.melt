@@ -1,3 +1,7 @@
+2009-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: (mapobject_sorted_attribute_tuple)
+	added new exported function.
+	* melt/warmelt-normatch.bysl: adding more...
 2009-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding instance matching...
 2009-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
