@@ -1,3 +1,11 @@
+2009-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (gloog): Return true when code gen succeeded.
+	(graphite_transform_loops): Do not call cleanup_tree_cfg if
+	the code of the function did not changed.  After cleanup_tree_cfg
+	call rewrite_into_loop_closed_ssa to maintain the loop closed ssa
+	form.
+
 2009-01-19  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (stmt_simple_for_scop_p): Also handle cases when

@@ -5392,9 +5392,9 @@ compute_cloog_iv_types (struct clast_stmt *stmt)
 }
 
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
-   the given SCOP.  */
+   the given SCOP.  Return true if code generation succeeded.  */
 
-static void
+static bool
 gloog (scop_p scop, struct clast_stmt *stmt)
 {
   edge new_scop_exit_edge = NULL;
@@ -5428,6 +5428,7 @@ gloog (scop_p scop, struct clast_stmt *stmt)
 
   recompute_all_dominators ();
   graphite_verify ();
+  return true;
 }
 
 /* Returns the number of data references in SCOP.  */
@@ -6056,6 +6057,7 @@ graphite_transform_loops (void)
 {
   int i;
   scop_p scop;
+  bool transform_done = false;
 
   if (number_of_loops () <= 1)
     return;
@@ -6117,7 +6119,7 @@ graphite_transform_loops (void)
         SCOP_DEP_GRAPH (scop) = graphite_build_rdg_all_levels (scop);
 
       if (graphite_apply_transformations (scop))
-        gloog (scop, find_transform (scop));
+        transform_done = gloog (scop, find_transform (scop));
 #ifdef ENABLE_CHECKING
       else
 	{
@@ -6128,7 +6130,11 @@ graphite_transform_loops (void)
     }
 
   /* Cleanup.  */
-  cleanup_tree_cfg ();
+  if (transform_done)
+    {
+      cleanup_tree_cfg ();
+      rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
+    }
   free_scops (current_scops);
   cloog_finalize ();
   free_original_copy_tables ();
