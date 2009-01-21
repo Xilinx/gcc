@@ -1,4 +1,6 @@
 2009-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: Merged with trunk, BACKENDLIBS corrected.
+2009-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: adding more... & debugged a bit.
 2009-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: (mapobject_sorted_attribute_tuple)

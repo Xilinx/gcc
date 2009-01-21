@@ -1,3 +1,73 @@
+2009-01-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/26693
+	* decl2.c (grokfield): when a typedef appears in a
+	class, create the typedef variant type node for it.
+	(save_template_attributes): Creating typedef variant type node
+	 here is now useless.
+	* decl.c (grokdeclarator): If the typedef'ed struct/class was
+	anonymous, set the proper type name to all its type variants.
+	* name-lookup.c (pushdecl_maybe_friend): Reuse the
+	set_underlying_type function to install typedef variant types.
+	* cp-tree.h (MEMBER_TYPES_NEEDING_ACCESS_CHECK): New template accessor
+	macro.
+	(append_type_to_template_for_access_check): New entry points.
+	* semantics.c (check_accessibility_of_qualified_id):
+	When a typedef that is a member of a class appears in a template,
+	add it to the template. It will be ...
+	* pt.c (instantiate_class_template, instantiate_template ): ... access
+	checked at template instantiation time.
+	(tsubst): Handle the case of being called with NULL args.
+	(resolve_type_name_type): The type name should be the name of the
+	main type variant.
+	(append_type_to_template_for_access_check): New entry point.
+
+2009-01-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/23287
+	* parser.c (cp_parser_unqualified_id): In a template,
+	accept ~identifier.
+	* typeck.c (lookup_destructor): Handle IDENTIFIER_NODE.
+
+2009-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38877
+	* tree.c (lvalue_p_1): Allow non-fields in COMPONENT_REF.
+	* init.c (build_new): Don't call describable_type unless we
+	have an auto.
+
+	PR c++/29470
+	* pt.c (tsubst_decl) [USING_DECL]: Propagate access flags.
+
+	PR c++/38579
+	* search.c (protected_accessible_p): N doesn't vary.
+
+2009-01-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38850
+	* pt.c (tsubst_copy_and_build): Tell finish_call_expr to
+	accept hidden friends.
+
+2009-01-15  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/29388
+	* decl.c (grokdeclarator): Check for a non namespace/class context.
+
+2009-01-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36334
+	PR c++/37646
+	* tree.c (lvalue_p_1): Handle BASELINK.  A COMPONENT_REF to
+	a function isn't necessarily an lvalue. Take tree, not const_tree.
+	(lvalue_p, real_lvalue_p): Take tree, not const_tree.
+	* typeck.c (lvalue_or_else): Likewise.
+	* cp-tree.h: Adjust prototypes.
+
+2009-01-15  Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/38357
+	* pt.c (tsubst): Check for NULL args.
+
 2009-01-15  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/38636

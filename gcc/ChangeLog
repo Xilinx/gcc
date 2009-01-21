@@ -1,3 +1,236 @@
+2009-01-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/26693
+	* c-decl.c: (clone_underlying_type): Move this  ...
+	* c-common.c (set_underlying_type): ... here.
+	Also, make sure the function  properly sets TYPE_STUB_DECL() on
+	the newly created typedef variant type.
+	(is_typedef_decl ): New entry point.
+	* tree.h: Added a new member member_types_needing_access_check to
+	struct tree_decl_non_common.
+	(set_underlying_type): New entry point.
+	(is_typedef_type): Likewise.
+
+2009-01-21  Bingfeng Mei  <bmei@broadcom.com>
+
+	* alias.c (walk_mems_1, walk_mems_2, insn_alias_sets_conflict_p):
+	Check whether two instructions have memory references that
+	belong to conflicting alias sets.  walk_mems_1 and walk_mems_2
+	are helper functions for traversing.
+	* alias.h (insn_alias_sets_confilict_p): New prototypes.
+	* ddg.c (add_inter_loop_mem_dep): Call insn_alias_sets_conflict_p
+	not to draw dependency edge for instructions with non-conflicting
+	alias sets.
+
+2009-01-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/38758
+	* longlong.h: Update copyright years.  Use soft-fp license
+	notice.  Sync __clz_tab declaration with glibc.
+
+2009-01-20  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/30687
+	* doc/extend.texi (syscall_linkage): New.
+	(version_id): Modify.
+
+2009-01-20  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+	Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38747
+	PR tree-optimization/38748
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Disable the VCE
+	conversion if the base address is an indirect reference and the
+	aliasing sets could cause issues.
+
+2009-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* common.opt (fgraphite, fgraphite-identity): Add comment for 
+	explaining why these options are not documented.
+
+2009-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (stmt_simple_for_scop_p): Also handle cases when
+	gimple_call_lhs is NULL.
+
+2008-01-20  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/38868
+	* emit-rtl.c (adjust_address_1): Make sure memref is never
+	overwritten.
+
+2009-01-20  Ben Elliston  <bje@au.ibm.com>
+
+	* libgcov.c (__gcov_execl, __gcov_execlp, __gcov_execle): Remove
+	const qualifier from arg parameter. Remove unnecessary cast to
+	char *.
+	* gcov-io.h (__gcov_execl, __gcov_execlp, __gcov_execle): Remove
+	const qualifier from arg 2.
+
+2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+        * config/darwin.h: Add static-libgfortran to LINK_SPEC.
+
+2009-01-19  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR c/38869
+	* rtl.h (reinit_regs): New prototype.
+	* regclass.c: Include ira.h.
+	(reinit_regs): New.
+	* Makefile.in (regclass.o): Add ira.h.
+	* config/i386/i386.c (ix86_maybe_switch_abi): Use reinit_regs.
+
+2009-01-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/38736
+	* c-common.c (handle_aligned_attribute): Use
+	ATTRIBUTE_ALIGNED_VALUE instead of BIGGEST_ALIGNMENT for
+	default alignment value.
+
+	* c-cppbuiltin.c (c_cpp_builtins): Define __BIGGEST_ALIGNMENT__.
+
+	* defaults.h (ATTRIBUTE_ALIGNED_VALUE): New.
+	* config/i386/i386.h (ATTRIBUTE_ALIGNED_VALUE): Likewise.
+
+	* doc/extend.texi: Update __attribute__ ((aligned)).  Document
+	__BIGGEST_ALIGNMENT__.
+
+	* doc/tm.texi: Document ATTRIBUTE_ALIGNED_VALUE.
+
+2009-01-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38819
+	* tree-flow.h (operation_could_trap_helper_p): Declare.
+	* tree-eh.c (operation_could_trap_helper_p): Export.
+	* tree-ssa-sccvn.h (vn_nary_may_trap): Declare.
+	* tree-ssa-sccvn.c (vn_nary_may_trap): New function.
+	* tree-ssa-pre.c (insert_into_preds_of_block): Check if we
+	are about to insert a possibly trapping instruction and fail
+	in this case.
+
+2009-01-18  Andreas Schwab  <schwab@suse.de>
+
+	* doc/install.texi (Configuration): Remove obsolete paragraph
+	about use of --with-gnu-ld with --with-gnu-as.
+
+2009-01-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* doc/extend.texi, doc/gimple.texi, doc/invoke.texi,
+	doc/md.texi, doc/sourcebuild.texi, doc/tm.texi: Fix typos.
+	Follow spelling conventions.
+
+2009-01-18  Ben Elliston  <bje@au.ibm.com>
+
+	* bitmap.c (bitmap_obstack_alloc_stat): Adjust cast to eliminate
+	C++ warning about implicit conversion from void * to struct
+	bitmap_head_def *.
+	(bitmap_obstack_free): Likewise for bitmap_element *.
+	* Makefile.in (bitmap.o-warn): Remove.
+
+2009-01-17  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.in (BACKENDLIBS):  Reorder to match dependencies.
+
+2009-01-17  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (graphite_trans_scop_block): Do not block single
+	nested loops.
+
+2009-01-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* ebitmap.h (ebitmap_iter_init): Initialize all fields.
+	* ipa-struct-reorg.c (gen_struct_type): Replace known-true
+	test with assertion.
+
+2009-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38835
+	PR middle-end/36227
+	* fold-const.c (fold_binary): Remove PTR + INT -> (INT)(PTR p+ INT)
+	and INT + PTR -> (INT)(PTR p+ INT) folding.
+	* tree-ssa-address.c (create_mem_ref): Properly use POINTER_PLUS_EXPR.
+
+2009-01-16  Adam Nemet  <anemet@caviumnetworks.com>
+
+	PR target/38554
+	* expmed.c (expand_shift): With SHIFT_COUNT_TRUNCATED, don't lift
+	the subreg from a lowpart subreg if it is also casting the value.
+
+2009-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (compare_prefix_loops): New.
+	(build_scop_canonical_schedules): Rewritten.
+	(graphite_transform_loops): Move build_scop_canonical_schedules
+	after build_scop_iteration_domain.
+
+2009-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (add_conditions_to_domain): Add the loops to 
+	the dimension of the iteration domain.  Do copy the domain
+	only when it exists.
+	(build_scop_conditions_1): Do not call add_conditions_to_domain.
+	(add_conditions_to_constraints): New.
+	(can_generate_code_stmt, can_generate_code): Removed.
+	(gloog): Do not call can_generate_code.
+	(graphite_transform_loops): Call add_conditions_to_constraints
+	after building the iteration domain.
+
+2009-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38789
+	* tree-ssa-threadedge.c
+	(record_temporary_equivalences_from_stmts_at_dest): Ignore calls to
+	__builtin_constant_p.
+
+2009-01-16  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* dce.c (delete_unmarked_insns): Reversed the order that insns are
+	examined before deleting them.
+	
+2009-01-16  Richard Earnshaw  <rearnsha@arm.com>
+
+	* function.c (aggregate_value_p): Correctly extract the function
+	type from CALL_EXPR_FN lookup.
+
+2009-01-16  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (picochip_override_options): Revert
+	CFI asm flag disable commited previously.
+
+2009-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (scan_tree_for_params): On substractions negate
+	all the coefficients of the term.
+	(clast_to_gcc_expression_red): New.  Handle reduction expressions
+	of more than two operands.
+	(clast_to_gcc_expression): Call clast_to_gcc_expression_red.
+	(get_vdef_before_scop): Handle also the case of default definitions.
+
+2009-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* caller-save.c (add_used_regs_1, add_used_regs): New functions.
+	(insert_one_insn): Use them instead of REG_DEAD and REG_INC notes.
+	Also use them when walking CALL_INSN_FUNCTION_USAGE.
+
+2009-01-15  H.J. Lu  <hongjiu.lu@intel.com>
+	    Joey Ye  <joey.ye@intel.com>
+
+	PR middle-end/37843
+	* cfgexpand.c (expand_stack_alignment): Don't update stack
+	boundary nor check incoming stack boundary here.
+	(gimple_expand_cfg): Update stack boundary and check incoming
+	stack boundary here.
+
+2009-01-15  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* dce.c (find_call_stack_args, delete_unmarked_insns): Fixed
+	comments.
+	
 2009-01-14  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/38245

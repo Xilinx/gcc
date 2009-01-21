@@ -3179,6 +3179,14 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL \
    && !DECL_TEMPLATE_TEMPLATE_PARM_P (NODE))
 
+/* The chained list of some types that are referenced in templates.
+   These types are those which need to be access checked at
+   template instantiation time.  For the time being, only typedef-ed types defined
+   as class members are put here at parsing time.
+   Other types for which access check could be required at template instantiation
+   time could be added later.  */
+#define MEMBER_TYPES_NEEDING_ACCESS_CHECK(NODE) DECL_ACCESS (NODE)
+
 /* Nonzero if NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
   (TREE_CODE (NODE) == TYPE_DECL || DECL_CLASS_TEMPLATE_P (NODE))
@@ -4539,6 +4547,7 @@ extern tree check_explicit_specialization	(tree, tree, int, int);
 extern tree make_auto				(void);
 extern tree do_auto_deduction			(tree, tree, tree);
 extern tree type_uses_auto			(tree);
+extern void append_type_to_template_for_access_check (tree, tree, tree);
 extern tree splice_late_return_type		(tree, tree);
 extern bool is_auto				(const_tree);
 extern tree process_template_parm		(tree, tree, bool, bool);
@@ -4836,7 +4845,7 @@ extern tree canonical_type_variant		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
-extern cp_lvalue_kind real_lvalue_p		(const_tree);
+extern cp_lvalue_kind real_lvalue_p		(tree);
 extern bool builtin_valid_in_constant_expr_p    (const_tree);
 extern tree build_min				(enum tree_code, tree, ...);
 extern tree build_min_nt			(enum tree_code, ...);
@@ -4984,9 +4993,9 @@ extern tree lookup_anon_field			(tree, tree);
 extern bool invalid_nonstatic_memfn_p		(const_tree, tsubst_flags_t);
 extern tree convert_member_func_to_ptr		(tree, tree);
 extern tree convert_ptrmem			(tree, tree, bool, bool);
-extern int lvalue_or_else			(const_tree, enum lvalue_use,
+extern int lvalue_or_else			(tree, enum lvalue_use,
                                                  tsubst_flags_t);
-extern int lvalue_p				(const_tree);
+extern int lvalue_p				(tree);
 
 /* in typeck2.c */
 extern void require_complete_eh_spec_types	(tree, tree);

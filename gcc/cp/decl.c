@@ -8729,6 +8729,7 @@ grokdeclarator (const cp_declarator *declarator,
 	decl = build_lang_decl (TYPE_DECL, unqualified_id, type);
       else
 	decl = build_decl (TYPE_DECL, unqualified_id, type);
+
       if (id_declarator && declarator->u.id.qualifying_scope) {
 	error ("%Jtypedef name may not be a nested-name-specifier", decl);
 	TREE_TYPE (decl) = error_mark_node;
@@ -8763,12 +8764,11 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TYPE_ANONYMOUS_P (type)
 	  && cp_type_quals (type) == TYPE_UNQUALIFIED)
 	{
-	  tree oldname = TYPE_NAME (type);
 	  tree t;
 
 	  /* Replace the anonymous name with the real name everywhere.  */
 	  for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
-	    if (TYPE_NAME (t) == oldname)
+	    if (ANON_AGGRNAME_P (TYPE_IDENTIFIER (t)))
 	      TYPE_NAME (t) = decl;
 
 	  if (TYPE_LANG_SPECIFIC (type))
@@ -9283,6 +9283,13 @@ grokdeclarator (const cp_declarator *declarator,
 	      pedwarn (input_location, OPT_pedantic, 
 		       "%<inline%> specifier invalid for function %qs "
 		       "declared out of global scope", name);
+	  }
+
+	if (ctype != NULL_TREE
+	    && TREE_CODE (ctype) != NAMESPACE_DECL && !MAYBE_CLASS_TYPE_P (ctype))
+	  {
+	    error ("%q#T is not a class or a namespace", ctype);
+	    ctype = NULL_TREE;
 	  }
 
 	if (ctype == NULL_TREE)
