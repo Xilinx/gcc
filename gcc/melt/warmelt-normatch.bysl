@@ -927,13 +927,23 @@
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
 	    (debug_msg curtester "normexp_match curtester after normal_pattern")
-	    (assert_msg "check curtester" (is_a curtester class_normtester_any))
+	    (if (null curtester)
+		(progn
+		  (debug_msg curcas "normexp_match curcas for null curtester")
+		  ;; curtester is null if the whole case is a joker,
+		  ;; this should be the last case
+		  (if (<i ix (-i (multiple_length scases) 1))
+		      (warning_plain sloc "joker case is not last"))
+		))
+	    (assert_msg "check curtester" (or (null curtester) (is_a curtester class_normtester_any)))
 	    ;; loop on the ntest_then chain to add the success test at
-	    ;; last, ensuring that there is no yet yet success
+	    ;; last, ensuring that there is no yet any success test
 	    ;; there...
 	    (forever
 	     lastesterloop
 	     (debug_msg curtester "normexp_match lastesterloop curtester")
+	     (if (null curtester)
+		 (exit lastesterloop))
 	     (if (is_a curtester class_normtester_success)
 		 (let ( (otherloc (get_field :nrep_loc curtester)) )
 		   (warning_plain curloc "unreachable match case")
@@ -942,27 +952,50 @@
 		   ()))
 	     (let ( (nextester (get_field :ntest_then curtester)) )
 	       (if (is_a nextester class_normtester_any)
-		   (setq curtester nextester)
+		   (progn 
+		     (setq curtester nextester)
+		     (debug_msg curtester "normexp_match curtester becomes"))
 		 (exit lastesterloop)))
 	     )
 	    (put_fields npatcont :container_value curtester)
 	    (put_fields curtester :ntest_then newsuctester)
 	    (debug_msg curtester "normexp_match after lastesterloop curtester")
 	    (debug_msg pcn "normexp_match pcn after lastesterloop")
+	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (let ( (sortedvars (mapobject_sorted_attribute_tuple pvarlocmap)) 
+		   (sortedbindings (make_multiple discr_multiple (multiple_length sortedvars)))
+		   (freshnewenv (fresh_env newenv))
 		   )
 	      (debug_msg sortedvars "normexp_match sortedvars")
+	      ;; we have to make a list of bindings based upon the sortedvars
+	      (foreach_in_multiple
+	       (sortedvars)
+	       (svar :long ix)
+	       (debug_msg svar "normexp_match svar")
+	       (let ( (socc (mapobject_get pvarlocmap svar))
+		      (sbind (instance class_normlet_binding
+				       :binder svar
+				       :letbind_type (get_field :nocc_ctyp socc)
+				       :letbind_loc (get_field :nrep_loc socc)
+				       :letbind_expr socc
+				       ))
+		      )
+		 (debug_msg socc "normexp_match socc")
+		 (debug_msg sbind "normexp_match sbind")
+		 (assert_msg "check socc" (is_a socc class_nrep_locsymocc))
+		 (multiple_put_nth sortedbindings ix sbind)
+		 (put_env freshnewenv sbind)
+		 )
+	       )
+	      (debug_msg freshnewenv "normexp_match freshnewenv")
+	      (multicall 
+	       (nbody bindsbody)
+	       (normalize_tuple curbody freshnewenv ncx sloc)
+	       (debug_msg nbody "normexp_match nbody")
+	       (debug_msg bindsbody "normexp_match bindsbody")
+	       (compile_warning "@@incomplete normexp_match" ())
+	       )
 	      )
-	    (compile_warning "normexp_match incomplete" ())
-	    ;; we have to make a list of bindings based upon the sortedvars
-	    (assert_msg "unimplemented  normexp_match bind pvarlocs" ())
-	    (multicall 
-	     (nbody bindsbody)
-	     (normalize_tuple curbody newenv ncx sloc)
-	     (debug_msg nbody "normexp_match nbody")
-	     (debug_msg bindsbody "normexp_match bindsbody")
-	     (compile_warning "@@incomplete normexp_match" ())
-	     )
 	    )
 	  )
 	)				;end foreach_in_multiple
