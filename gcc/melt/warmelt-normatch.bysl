@@ -1019,10 +1019,9 @@
 		 (debug_msg class_nrep_typexpr "normexp_match class_nrep_typexpr")
 		 (assert_msg "check normtester_success subclass nrep_typexpr"
 			     (subclass_of class_normtester_success class_nrep_typexpr))
-		 (compile_warning "update the put_fields here" ())
 		 (put_fields newsuctester 
 			     :ntsuccess_do wnlet
-			     ; :nexpr_ctyp lastctype
+			     :nexpr_ctyp lastctype
 			     )
 		 (cond ( (null wholectype)
 			 (setq wholectype lastctype))

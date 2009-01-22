@@ -1,9 +1,10 @@
 ;; -*- lisp -*-
-;; exhibits a bug in rev143548
+;; exhibits a bug in rev143548, corrected now...
 
 (defclass my_class :super class_named
 	  :fields (my_data))
 
 ;; when we put fields of a class which us just defined, it does not work well.
+;; this was because the objnum of the newly created class was not set to OBMAG_OBJECT
 (defun testputf (ob x y)
        (put_fields ob :prop_table x  :my_data y))

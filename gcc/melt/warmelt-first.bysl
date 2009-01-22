@@ -494,6 +494,8 @@
 (defprimitive is_not_object (obj) :long
   " (basilys_magic_discr((basilys_ptr_t)(" obj ")) != OBMAG_OBJECT)")
 
+;; primitive returning OBMAG_OBJECT
+(defprimitive object_magic_object () :long "(OBMAG_OBJECT)")
 
 ;; primitive to return the last predefined index
 (defprimitive last_globpredef_index () :long
@@ -3727,6 +3729,7 @@
  obj_len
  obj_num
  object_length
+ object_magic_object
  object_nth_field
  ori
  out_cplugin_compiled_timestamp_err

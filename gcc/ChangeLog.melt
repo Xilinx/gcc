@@ -1,4 +1,22 @@
 2009-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	[bug corrected; class objects should have the good objnum when
+	created]
+	* testsuite/melt/tputf-1.bysl: Updated comment.
+	* melt/warmelt-first.bysl: Added object_magic_object primitive for
+	OBMAG_OBJECT.
+	* melt/warmelt-macro.bysl: (mexpand_defclass) Corrected bug by
+	initializing the objnum of newly created classes.
+	* melt/warmelt-normal.bysl: (normexp_put_fields) Using foreach and
+	added debug_msg there.
+	* melt/warmelt-normatch.bysl: better put_fields in (normexp_match)
+	which is still incomplete.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+2009-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tputf-1.bysl: new testcase, exhibiting a bug.
 	* melt/warmelt-normal.bysl: (normexp_put_fields) added inform
 	messages, still buggy [tputf-1.bysl].

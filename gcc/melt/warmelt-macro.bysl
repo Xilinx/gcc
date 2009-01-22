@@ -1925,6 +1925,8 @@
 	    ))))
      (unsafe_put_fields newclass
 			:class_fields fieldtup)
+     ;; we need to put the object magic to OBJMAG_OBJECT now
+     (put_int newclass (object_magic_object))
      (debug_msg newclass "mexp.defclass newclass" )
      (instance class_src_defclass
 	       :src_loc loc
@@ -3017,6 +3019,7 @@
 ;;;;;;;; for LET
 ;; internal routine to make a letbinding
 (defun mexpand_letbinding (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_letbinding sexpr")
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let (
@@ -3085,7 +3088,10 @@
 		  (pairlist_to_multiple 
 		   (list_first (unsafe_get_field :sexp_contents bindexpr))
 		   discr_multiple
-		   (lambda (b) (mexpand_letbinding b env mexpander))))
+		   (lambda (b) 
+		     (if (is_not_a b class_sexpr)
+			 (error_plain loc "sexpr expected in LET binding"))
+		     (mexpand_letbinding b env mexpander))))
 	  (error_plain loc "missing letbinding-s in LET"_))
       )
     (multiple_every
