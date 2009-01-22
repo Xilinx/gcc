@@ -232,6 +232,12 @@
 	   nciter_chunkafter		;the expansed chunk after
 	   ))
 
+;; normalized tests sequence, used for matches
+(defclass class_nrep_tests
+  :super class_nrep_expr
+  :fields (ntests_testseq		;the tuples of normal tests
+	   ;;;; see file warmelt-normatch.bysl
+))
 
 ;;; procedures
 (defclass class_nrep_anyproc
@@ -2302,18 +2308,26 @@
 		 (precla (box_content clabox))
 		 )
 	    (cond ( (null precla)
+		    (assert_msg "check fcla" (is_a fcla class_class))
 		    (box_put clabox fcla))
 		  ( (== precla fcla)
+		    (assert_msg "check fcla" (is_a fcla class_class))
 		    ()
 		    )
 		  ( (subclass_of precla fcla)
+		    (assert_msg "check precla" (is_a precla class_class))
 		    ()
 		    )
 		  ( (subclass_of fcla precla)
-		    (box_put clabox fcla))
+		    (assert_msg "check fcla" (is_a fcla class_class))
+		    (box_put clabox fcla)
+		    )
 		  (:else
 		   (error_strv sloc "bad field name in PUT_FIELD" (unsafe_get_field :named_name fld))
-		   (inform_strv sloc "expecting field of class" (unsafe_get_field :named_name precla))
+		   (inform_strv sloc "PUT_FIELD expecting field of class" (unsafe_get_field :named_name precla))
+		   (inform_strv sloc "PUT_FIELD got field of class" (get_field :named_name fcla))
+		   (assert_msg "check fcla" (is_a fcla class_class))
+		   (assert_msg "check precla" (is_a precla class_class))
 		   )
 		  )
 	    )

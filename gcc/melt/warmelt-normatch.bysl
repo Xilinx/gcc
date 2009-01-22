@@ -44,6 +44,8 @@
 	   pctn_stuffmap
 	   ;; mapping pattern variables to local occurrences 
 	   pctn_pvarlocmap
+	   ;; list of tests
+	   pctn_tests
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -321,6 +323,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; basically, compile all the tests in sequence, and add gotos...
+(compile_warning "each creation of a test should update pctn_tests" ())
+
 ;; all the testers share a common superclass
 (defclass class_normtester_any 
   :super class_nrep_typexpr	;inherit fields: nrep_loc & nexpr_ctyp
@@ -432,6 +437,7 @@
 	 (tstuff (mapobject_get stuffmap nmatch))
 	 (lococc (mapobject_get pvarmap patvar))
 	 (env (get_field :pctn_env pcn))
+	 (testlist (get_field :pctn_tests pcn))
 	 )
     (debug_msg tstuff "normpat_variablepat tstuff")
     (debug_msg lococc "normpat_variablepat lococc")
@@ -465,6 +471,7 @@
 		    )
 	       (debug_msg newtester "normpat_variablepat newtester")
 	       (setq tester newtester)
+	       (list_append testlist newtester)
 	       (curhdler newtester)
 	       (exit loopstuff)
 	       )
@@ -525,6 +532,7 @@
 	 (tstuff (mapobject_get stuffmap nmatch))
 	 (tester ())
 	 (curhdler hdler)
+	 (testlist (get_field :pctn_tests pcn))
 	 )
     (assert_msg "check patcla" (is_a patcla class_class))
     ;; find the tester in the stuff
@@ -561,6 +569,7 @@
 	     )
 	 (debug_msg newtester "normpat_instancepat newtester")
 	 (setq tester newtester)
+	 (list_append testlist newtester)
 	 (curhdler newtester)
 	 (exit loopstuff)
 	 )
@@ -620,6 +629,7 @@
 	(bindlist (unsafe_get_field :pctn_bindlist pcn))
 	(stuffmap (unsafe_get_field :pctn_stuffmap pcn))
 	(matchctype (get_ctype nmatch env))
+	(testlist (get_field :pctn_tests pcn))
 	)
     (assert_msg "check mat" (is_a mat class_any_matcher))
     (debug_msg inargs "normpat_anymatchpat inargs")
@@ -776,6 +786,7 @@
 		    )
 		(debug_msg newtester "normpat_anymatchpat newtester")
 		(setq tester newtester)
+		(list_append testlist newtester)
 		(curhdler newtester)
 		(exit loopstuff)
 		))
@@ -839,6 +850,8 @@
 	 (stuffmap (make_mapobject discr_mapobjects 
 				   (+i 20 (*i 5 nbcases))))
 	 (bindlist (make_list discr_list))
+	 (testlist (make_list discr_list))
+	 (wholectype ())		;the ctype of the whole match
 	 )
     (debug_msg smatsx "normexp_match smatsx")
     (multicall
@@ -890,6 +903,7 @@
 			     :pctn_bindlist bindlist
 			     :pctn_stuffmap stuffmap
 			     :pctn_pvarlocmap pvarmap
+			     :pctn_tests testlist
 			     ))
 	      (npatcont (instance class_container))
 	      )
@@ -934,7 +948,7 @@
 		  ;; this should be the last case
 		  (if (<i ix (-i (multiple_length scases) 1))
 		      (warning_plain sloc "joker case is not last"))
-		))
+		  ))
 	    (assert_msg "check curtester" (or (null curtester) (is_a curtester class_normtester_any)))
 	    ;; loop on the ntest_then chain to add the success test at
 	    ;; last, ensuring that there is no yet any success test
@@ -959,6 +973,7 @@
 	     )
 	    (put_fields npatcont :container_value curtester)
 	    (put_fields curtester :ntest_then newsuctester)
+	    (list_append testlist newsuctester)
 	    (debug_msg curtester "normexp_match after lastesterloop curtester")
 	    (debug_msg pcn "normexp_match pcn after lastesterloop")
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
@@ -990,9 +1005,34 @@
 	      (debug_msg freshnewenv "normexp_match freshnewenv")
 	      (multicall 
 	       (nbody bindsbody)
-	       (normalize_tuple curbody freshnewenv ncx sloc)
+	       (normalize_tuple curbody freshnewenv ncx curloc)
 	       (debug_msg nbody "normexp_match nbody")
 	       (debug_msg bindsbody "normexp_match bindsbody")
+	       (let ( (wnlet (wrap_normal_letseq nbody bindsbody curloc)) 
+		      (lastnbody (multiple_nth nbody -1))
+		      (lastctype (get_ctype lastnbody freshnewenv))
+		      )
+		 (debug_msg wnlet "normexp_match wnlet")
+		 (debug_msg lastnbody "normexp_match lastnbody")
+		 (debug_msg lastctype "normexp_match lastctype")
+		 (debug_msg class_normtester_success "normexp_match class_normtester_success")
+		 (debug_msg class_nrep_typexpr "normexp_match class_nrep_typexpr")
+		 (assert_msg "check normtester_success subclass nrep_typexpr"
+			     (subclass_of class_normtester_success class_nrep_typexpr))
+		 (compile_warning "update the put_fields here" ())
+		 (put_fields newsuctester 
+			     :ntsuccess_do wnlet
+			     ; :nexpr_ctyp lastctype
+			     )
+		 (cond ( (null wholectype)
+			 (setq wholectype lastctype))
+		       ( (!= wholectype lastctype)
+			 (error_strv curloc "invalid type of match case" 
+				     (get_field :named_name lastctype))
+			 (inform_strv sloc "expected type of match case"
+				      (get_field :named_name wholectype)))
+		       )
+		 )
 	       (compile_warning "@@incomplete normexp_match" ())
 	       )
 	      )
@@ -1002,6 +1042,7 @@
        (debug_msg tupvarmap "normexp_match tupvarmap")
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
+       (debug_msg testlist "normexp_match testlist")
        (assert_msg "unimplemented yet normexp_match" ())
        (compile_warning "@@unimplemented normexp_match" ())
        ))))

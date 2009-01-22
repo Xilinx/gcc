@@ -1,0 +1,9 @@
+;; -*- lisp -*-
+;; exhibits a bug in rev143548
+
+(defclass my_class :super class_named
+	  :fields (my_data))
+
+;; when we put fields of a class which us just defined, it does not work well.
+(defun testputf (ob x y)
+       (put_fields ob :prop_table x  :my_data y))
