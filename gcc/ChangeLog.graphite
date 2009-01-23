@@ -1,5 +1,11 @@
 2009-01-23  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* passes.c (init_optimization_passes): Do not call pass_copy_prop
+	after graphite: pass_copy_prop does not maintain a proper loop closed
+	SSA form.  pass_copy_prop should be fixed.
+
+2009-01-23  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (scop_adjust_phis_for_liveouts): Fix warning.
 
 2009-01-23  Sebastian Pop  <sebastian.pop@amd.com>
