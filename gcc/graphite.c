@@ -5246,7 +5246,8 @@ scop_adjust_phis_for_liveouts (scop_p scop, basic_block bb, edge false_e,
 
   for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
     {
-      unsigned i, false_i;
+      unsigned i;
+      unsigned false_i = 0;
       gimple phi = gsi_stmt (si);
 
       if (!is_gimple_reg (PHI_RESULT (phi)))
