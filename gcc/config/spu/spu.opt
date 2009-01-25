@@ -59,10 +59,6 @@ Target RejectNegative Joined UInteger Var(icache_branch_limit) Init(16)
 Limit the number of external branches in a cache line to control the
 number of stubs within a cache block.  (Default to 16 external branches)
 
-micache-linesize=
-Target RejectNegative Joined UInteger Var(icache_linesize) Init(1000)
-Specify the i-cache line size.  (Default to 1K)
-
 mstdmain
 Target Report Mask(STD_MAIN)
 Use standard main function as entry for startup

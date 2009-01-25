@@ -2329,12 +2329,13 @@
   
 
 (define_insn "rotm_<mode>"
-  [(set (match_operand:VHSI 0 "spu_reg_operand" "=r,r")
-	(lshiftrt:VHSI (match_operand:VHSI 1 "spu_reg_operand" "r,r")
-		       (neg:VHSI (match_operand:VHSI 2 "spu_nonmem_operand" "r,W"))))]
+  [(set (match_operand:VHSI 0 "spu_reg_operand" "=r,r,r")
+	(lshiftrt:VHSI (match_operand:VHSI 1 "spu_reg_operand" "r,r,r")
+		       (neg:VHSI (match_operand:VHSI 2 "spu_nonmem_operand" "r,s,W"))))]
   ""
   "@
    rot<bh>m\t%0,%1,%2
+   rot<bh>mi\t%0,%1,%2
    rot<bh>mi\t%0,%1,-%<nmask>2"
   [(set_attr "type" "fx3")])
  
@@ -2692,22 +2693,42 @@
   {
     if (TARGET_SOFTWARE_ICACHE && (REGNO (operands[0]) != LINK_REGISTER_REGNUM)) 
       {
-        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
         rtx r75 = gen_rtx_REG (SImode, 75);
         rtx r75_ = gen_rtx_REG (TImode, 75);
         rtx r76 = gen_rtx_REG (SImode, 76);
-        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-        emit_insn (gen_rotm_si (r75, operands[0], GEN_INT (ICACHE_LINESIZE)));
-        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-        emit_insn (gen_andsi3 (r76, operands[0], rmask_tag));
-        emit_insn (gen_ceq_si (r76, r76, r75));
-        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-        emit_insn (gen_selb (r75, r75, operands[0], r76));
+        /* Load function pointer.  */
         emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
+
         /* Mark register 76 as used.  */
         emit_insn (gen_rtx_USE (VOIDmode, r76));
         emit_jump_insn (gen_indirect_jump_hw (r75));
@@ -3891,22 +3912,41 @@ selb\t%0,%4,%0,%3"
   {
     if (TARGET_SOFTWARE_ICACHE)
       {
-        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
         rtx r75 = gen_rtx_REG (SImode, 75);
         rtx r75_ = gen_rtx_REG (TImode, 75);
         rtx r76 = gen_rtx_REG (SImode, 76);
-        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-        emit_insn (gen_rotm_si (r75, operands[0], GEN_INT (ICACHE_LINESIZE)));
-        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-        emit_insn (gen_andsi3 (r76, operands[0], rmask_tag));
-        emit_insn (gen_ceq_si (r76, r76, r75));
-        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-        emit_insn (gen_selb (r75, r75, operands[0], r76));
+        /* Load function pointer.  */
         emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
         /* Mark register 76 as used.  */
         emit_insn (gen_rtx_USE (VOIDmode, r76));
         emit_jump_insn (gen_tablejump_hw (r75, operands[1]));
@@ -3936,23 +3976,41 @@ selb\t%0,%4,%0,%3"
       }
     else
       {
-        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
         rtx r75 = gen_rtx_REG (SImode, 75);
         rtx r75_ = gen_rtx_REG (TImode, 75);
         rtx r76 = gen_rtx_REG (SImode, 76);
-        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
-        rtx operand = XEXP (operands[0], 0);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
-        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
-        emit_insn (gen_ceq_si (r76, r76, r75));
-        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-        emit_insn (gen_selb (r75, r75, operand, r76));
-        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Load function pointer.  */
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
         /* Mark register 76 as used.  */
         emit_insn (gen_rtx_USE (VOIDmode, r76));
         XEXP (operands[0], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[0], 0)), 75);
@@ -3987,23 +4045,41 @@ selb\t%0,%4,%0,%3"
       }
     else
       {
-        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
         rtx r75 = gen_rtx_REG (SImode, 75);
         rtx r75_ = gen_rtx_REG (TImode, 75);
         rtx r76 = gen_rtx_REG (SImode, 76);
-        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
-        rtx operand = XEXP (operands[1], 0);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
-        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
-        emit_insn (gen_ceq_si (r76, r76, r75));
-        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-        emit_insn (gen_selb (r75, r75, operand, r76));
-        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Load function pointer.  */
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
         /* Mark register 76 as used.  */
         emit_insn (gen_rtx_USE (VOIDmode, r76));
         XEXP (operands[1], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[1], 0)), 75);
@@ -4041,23 +4117,42 @@ selb\t%0,%4,%0,%3"
       }
     else
       {
-        rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-        rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
         rtx r75 = gen_rtx_REG (SImode, 75);
         rtx r75_ = gen_rtx_REG (TImode, 75);
         rtx r76 = gen_rtx_REG (SImode, 76);
-        rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-        rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
-        rtx operand = XEXP (operands[0], 0);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-        emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
-        emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-        emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-        emit_insn (gen_andsi3 (r76, operand, rmask_tag));
-        emit_insn (gen_ceq_si (r76, r76, r75));
-        emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-        emit_insn (gen_selb (r75, r75, operand, r76));
-        emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
+        /* Load function pointer.  */
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
+
         /* Mark register 76 as used.  */
         emit_insn (gen_rtx_USE (VOIDmode, r76));
         XEXP (operands[0], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[0], 0)), 75);
@@ -4095,37 +4190,56 @@ selb\t%0,%4,%0,%3"
     }
     else 
     {
-      rtx icache_bi_handler_symbol = gen_rtx_SYMBOL_REF (Pmode, "icache_bi_handler");
-      rtx rtag_arr = gen_rtx_REG (SImode, ICACHE_TAG_ARR_REGNUM);
-      rtx r75 = gen_rtx_REG (SImode, 75);
-      rtx r75_ = gen_rtx_REG (TImode, 75);
-      rtx r76 = gen_rtx_REG (SImode, 76);
-      rtx rmask_idx = gen_rtx_REG (SImode, ICACHE_MASK_INDEX_REGNUM);
-      rtx rmask_tag = gen_rtx_REG (SImode, ICACHE_MASK_TAG_REGNUM);
-      rtx operand = XEXP (operands[1], 0);
+        rtx tag_size_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array_size");
+        rtx tag_arr_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_tag_array");
+        rtx icache_handler_sym = gen_rtx_SYMBOL_REF (Pmode, "__icache_ptr___icache_bi_handler");
+        rtx linesize_sym = gen_rtx_SYMBOL_REF (SImode, "__icache_neg_log2_linesize");
+        rtx r75 = gen_rtx_REG (SImode, 75);
+        rtx r75_ = gen_rtx_REG (TImode, 75);
+        rtx r76 = gen_rtx_REG (SImode, 76);
+        rtx r77 = gen_rtx_REG (SImode, 77);
+        rtx r77_ = gen_rtx_REG (TImode, 77);
+        rtx r78 = gen_rtx_REG (SImode, 78);
+        rtx r78_ = gen_rtx_REG (TImode, 78);
+        rtx r79 = gen_rtx_REG (SImode, 79);
+        rtx r79_ = gen_rtx_REG (TImode, 79);
 
-      emit_insn (gen_rotm_si (r75, operand, GEN_INT (ICACHE_LINESIZE)));
-      emit_insn (gen_andsi3 (r75, r75, rmask_idx));
-      emit_insn (gen_spu_lqx (r75_, rtag_arr, r75));
-      emit_insn (gen_andsi3 (r76, operand, rmask_tag));
-      emit_insn (gen_ceq_si (r76, r76, r75));
-      emit_insn (gen_spu_lqa (r75_, icache_bi_handler_symbol));
-      emit_insn (gen_selb (r75, r75, operand, r76));
-      emit_insn (gen_iorsi3 (r76, operand, GEN_INT(0)));
-      /* Mark register 76 as used.  */
-      emit_insn (gen_rtx_USE (VOIDmode, r76));
-      XEXP (operands[1], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[1], 0)), 75);
-      if (! call_operand (operands[1], QImode))
-        XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
+        /* Load function pointer.  */
+        emit_insn (gen_iorsi3 (r76, operands[0], GEN_INT(0)));
+
+        /* Load instruction cache miss handler descriptor.  */
+        emit_insn (gen_spu_lqa (r75_, icache_handler_sym));
+
+        /* Load instruction cache tag array base address and size.  */
+        emit_insn (gen_spu_lqa (r77_, tag_size_sym));
+        emit_insn (gen_spu_lqa (r78_, tag_arr_sym));
+
+        /* Load cache tag for line associated with target IA.  */
+        emit_insn (gen_rotm_si (r79, r76, plus_constant (linesize_sym, 4)));
+        emit_insn (gen_andsi3 (r79, r79, r77));
+        emit_insn (gen_spu_lqx (r79_, r78, r79));
+
+        /* Compare cache tag with tag of target IA.  */
+        emit_insn (gen_rotm_si (r77, r76, linesize_sym));
+        emit_insn (gen_ceq_si (r77, r77, r79));
+
+        /* Transfer control directly or via cache-miss handler.  */
+        emit_insn (gen_selb (r75, r75, r76, r77));
+
+        /* Mark register 76 as used.  */
+        emit_insn (gen_rtx_USE (VOIDmode, r76));
+        XEXP (operands[1], 0) = gen_rtx_REG (GET_MODE (XEXP (operands[1], 0)), 75);
+        if (! call_operand (operands[1], QImode))
+          XEXP (operands[1], 0) = copy_to_mode_reg (Pmode, XEXP (operands[1], 0));
     }
 })
 
 (define_insn "_call_value_hw"
-   [(parallel
-     [(set (match_operand 0 "" "")
-           (call (match_operand:QI 1 "call_operand" "R,S,T")
-                 (match_operand:QI 2 "" "i,i,i")))
-      (clobber (reg:SI 0))
+  [(parallel
+    [(set (match_operand 0 "" "")
+	  (call (match_operand:QI 1 "call_operand" "R,S,T")
+		(match_operand:QI 2 "" "i,i,i")))
+     (clobber (reg:SI 0))
      (clobber (reg:SI 130))])]
   ""
   "@

@@ -301,23 +301,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
  * buffer.  Users can also specify it in inline asm. */
 #define HBR_REGNUM 130
 
-/* Used for the software i-cache.  Mask value that isolates the tag
-   index from an address in the inline formulation of external branch
-   indirect.  This value must not be modified.  */
-#define ICACHE_MASK_INDEX_REGNUM 77
-
-/* Used for the software i-cache.  Pointer to the tag array used in
-   the inline formulation of external branch indirect.  This value must
-   not be modified.  */
-#define ICACHE_TAG_ARR_REGNUM 78
-
-/* Used for the software i-cache.  Mask value that isolates the tag
-   portion of an address in the inline formulation of external branch
-   indirect.  This value must not be modified.  */
-#define ICACHE_MASK_TAG_REGNUM 79
-
-#define ICACHE_LINESIZE (-1 * (floor_log2 (icache_linesize) - 4))
-
 #define MAX_REGISTER_ARGS    72
 #define FIRST_ARG_REGNUM     3
 #define LAST_ARG_REGNUM      (FIRST_ARG_REGNUM + MAX_REGISTER_ARGS - 1)

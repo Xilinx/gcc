@@ -1743,8 +1743,7 @@ create_sections (void)
 	    }
 	  else
 	    {
-	      /* Failed to create the new basic-block.  Close this section
-		 with the current bb inside and open a new one.  */
+              /* Failed to split the basic-block.  */
 	      error ("Failed to create sections;"
 		     " please try again with higher section size.");
 	      return;

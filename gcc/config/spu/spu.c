@@ -147,6 +147,8 @@ static int regno_aligned_for_load (int regno);
 static int store_with_one_insn_p (rtx mem);
 static int mem_is_padded_component_ref (rtx x);
 static bool spu_assemble_integer (rtx x, unsigned int size, int aligned_p);
+static void spu_unique_section (tree decl, int reloc);
+
 static void spu_asm_globalize_label (FILE * file, const char *name);
 static unsigned char spu_rtx_costs (rtx x, int code, int outer_code,
 				    int *total, bool speed);
@@ -321,6 +323,9 @@ const struct attribute_spec spu_attribute_table[];
 #undef TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER spu_assemble_integer
 
+#undef TARGET_ASM_UNIQUE_SECTION
+#define TARGET_ASM_UNIQUE_SECTION  spu_unique_section
+
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P	spu_scalar_mode_supported_p
 
@@ -424,6 +429,8 @@ spu_optimization_options (int level ATTRIBUTE_UNUSED, int size ATTRIBUTE_UNUSED)
   flag_rename_registers = 1;
 }
 
+#define ICACHE_LINESIZE 1024
+
 /* Sometimes certain combinations of command options do not make sense
    on a particular target machine.  You can define a macro
    OVERRIDE_OPTIONS to take account of this. This macro, if defined, is
@@ -455,7 +462,7 @@ spu_override_options (void)
 
   if (TARGET_SOFTWARE_ICACHE)
     {
-      flag_partition_functions_into_sections = icache_linesize;
+      flag_partition_functions_into_sections = ICACHE_LINESIZE;
       flag_function_sections = 1;
       /* A stub is 8 words of information.  */
       spu_stub_size = 32; 
@@ -564,6 +571,84 @@ valid_subreg (rtx op)
     && (GET_MODE_SIZE (im) == GET_MODE_SIZE (om)
 	|| (GET_MODE_SIZE (im) <= 4 && GET_MODE_SIZE (om) <= 4)
 	|| (GET_MODE_SIZE (im) >= 16 && GET_MODE_SIZE (om) >= 16));
+}
+
+/* Override default_unique_section.  */
+static void
+spu_unique_section (tree decl, int reloc ATTRIBUTE_UNUSED)
+{
+  bool one_only = DECL_ONE_ONLY (decl) && !HAVE_COMDAT_GROUP;
+  const char *prefix, *name, *linkonce;
+  char *string;
+
+  switch (categorize_decl_for_section (decl, reloc))
+    {
+    case SECCAT_TEXT:
+      if (TARGET_SOFTWARE_ICACHE)
+        prefix = one_only ? ".t.ia" : ".text.ia";
+      else
+        prefix = one_only ? ".t" : ".text";
+      break;
+    case SECCAT_RODATA:
+    case SECCAT_RODATA_MERGE_STR:
+    case SECCAT_RODATA_MERGE_STR_INIT:
+    case SECCAT_RODATA_MERGE_CONST:
+      prefix = one_only ? ".r" : ".rodata";
+      break;
+    case SECCAT_SRODATA:
+      prefix = one_only ? ".s2" : ".sdata2";
+      break;
+    case SECCAT_DATA:
+      prefix = one_only ? ".d" : ".data";
+      break;
+    case SECCAT_DATA_REL:
+      prefix = one_only ? ".d.rel" : ".data.rel";
+      break;
+    case SECCAT_DATA_REL_LOCAL:
+      prefix = one_only ? ".d.rel.local" : ".data.rel.local";
+      break;
+    case SECCAT_DATA_REL_RO:
+      prefix = one_only ? ".d.rel.ro" : ".data.rel.ro";
+      break;
+    case SECCAT_DATA_REL_RO_LOCAL:
+      prefix = one_only ? ".d.rel.ro.local" : ".data.rel.ro.local";
+      break;
+    case SECCAT_SDATA:
+      prefix = one_only ? ".s" : ".sdata";
+      break;
+    case SECCAT_BSS:
+      prefix = one_only ? ".b" : ".bss";
+      break;
+    case SECCAT_SBSS:
+      prefix = one_only ? ".sb" : ".sbss";
+      break;
+    case SECCAT_TDATA:
+      prefix = one_only ? ".td" : ".tdata";
+      break;
+    case SECCAT_TBSS:
+      prefix = one_only ? ".tb" : ".tbss";
+      break;
+    case SECCAT_EMUTLS_VAR:
+      prefix = targetm.emutls.var_section;
+      break;
+    case SECCAT_EMUTLS_TMPL:
+      prefix = targetm.emutls.tmpl_section;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+  name = targetm.strip_name_encoding (name);
+
+  /* If we're using one_only, then there needs to be a .gnu.linkonce
+     prefix to the section name.  */
+  linkonce = one_only ? ".gnu.linkonce" : "";
+
+  string = ACONCAT ((linkonce, prefix, ".", name, NULL));
+  string = ACONCAT ((linkonce, prefix, ".", name, NULL));
+
+  DECL_SECTION_NAME (decl) = build_string (strlen (string), string);
 }
 
 /* When insv and ext[sz]v ar passed a TI SUBREG, we want to strip it off
@@ -2338,6 +2423,7 @@ typedef struct critical_sections
   /* True if the end of the critical section was recognized.  */
   bool closed_p;
 
+  /* The start and end insns of the critical section.  */
   rtx start;
   rtx end;
 }critical_sections_t;
@@ -2360,14 +2446,62 @@ bb_contains_prologue_p (basic_block bb)
   return false;
 }
 
+static void
+dump_critical_section_type (enum critical_section_type type)
+{
+  if (!dump_file)
+    return;
+  switch (type)
+    {
+    case JUMP_TABLE:
+      fprintf (dump_file, "JUMP_TABLE");
+      break;
+    case PROLOGUE:
+      fprintf (dump_file, "PROLOGUE");
+      break;
+    case EPILOGUE:
+      fprintf (dump_file, "EPILOGUE");
+      break;
+    case IBRANCH_SEQ:
+      fprintf (dump_file, "IBRANCH_SEQ");
+      break;
+    case CRITICAL_DMA_SEQ:
+      fprintf (dump_file, "CRITICAL_DMA_SEQ");
+      break;
+    case CRITICAL_EVENT_MASK:
+      fprintf (dump_file, "CRITICAL_DMA_SEQ");
+      break;
+    }
+}
+
+/* Dump information regarding critical section:
+   TYPE - it's type.
+   START_P - true if INSN indicates the start 
+   of the critical section.  */
+static void
+dump_critical_section_info (enum critical_section_type type, 
+			    bool start_p, rtx insn)
+{
+  if (!dump_file)
+    return;
+  
+  if (start_p)
+    fprintf (dump_file, "\n\t;;start critical section of type ");
+  else
+    fprintf (dump_file, "\t;;end critical section of type ");
+  dump_critical_section_type (type);
+  fprintf (dump_file, "\n\t");
+  print_rtl_single (dump_file, insn);
+  fprintf (dump_file, "\n");
+}
+
+
 /* Return true if INSN begins a critical section.
    Record it's type in TYPE.  */
 static bool
 begin_critical_section (rtx insn, enum critical_section_type *type)
 {
   rtx body, set;
-  rtx r78 = gen_rtx_REG (SImode, 78);
-  rtx r75 = gen_rtx_REG (SImode, 75);
   basic_block bb = BLOCK_FOR_INSN (insn);
 
   if (TARGET_SOFTWARE_ICACHE
@@ -2376,6 +2510,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
     {
       /* After stqd $lr,16($sp) instruction $lr is dead.  */
       *type = PROLOGUE;
+      dump_critical_section_info (PROLOGUE, true, insn);
       return true;
     }
 
@@ -2409,19 +2544,19 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 	      && (INTVAL (op2) > 0))
 	    {
 	      *type = EPILOGUE;
+              dump_critical_section_info (EPILOGUE, true, insn);
 	      return true;
 	    }
 	}
-      /* The interval from lqx r75,r78,r75 to the
+      /* The interval from lqr $76, func_ptr to the
 	 branch indirect is a critical section. */
       if (TARGET_SOFTWARE_ICACHE 
 	  && REG_P (dest) 
-	  && (REGNO (dest) == 75) 
-	  && (GET_CODE (src) == MEM) 
-	  && rtx_referenced_p (r75, src) 
-	  && rtx_referenced_p (r78, src))
+	  && (REGNO (dest) == 76) 
+	  && (REG_P (src)))
 	{
 	  *type = IBRANCH_SEQ;
+          dump_critical_section_info (IBRANCH_SEQ, true, insn);
 	  return true;
 	}
       /* We are looking for this type of instruction:
@@ -2437,6 +2572,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 	    if (tmp && GET_CODE (tmp) == CONST_INT && INTVAL (tmp) == 0)
 	      {
 		*type = CRITICAL_EVENT_MASK;
+                dump_critical_section_info (CRITICAL_EVENT_MASK, true, insn);
 		return true;
 	      }
 	  }
@@ -2444,6 +2580,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
       if (GET_CODE (src) == LABEL_REF)
 	{
 	  *type = JUMP_TABLE;
+          dump_critical_section_info (JUMP_TABLE, true, insn);
 	  return true;
 	}
     }
@@ -2466,6 +2603,7 @@ begin_critical_section (rtx insn, enum critical_section_type *type)
 	    if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 16)
 	      {
 		*type = CRITICAL_DMA_SEQ;
+                dump_critical_section_info (CRITICAL_DMA_SEQ, true, insn);
 		return true;
 	      }
 	  }
@@ -2544,6 +2682,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
       && is_ibranch_seq_end (insn))
     {
       *type = IBRANCH_SEQ;
+      dump_critical_section_info (IBRANCH_SEQ, false, insn);
       return true;
     }
   if (TARGET_SOFTWARE_ICACHE 
@@ -2551,6 +2690,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
       && GET_CODE (PATTERN (insn)) == RETURN)
     {
       *type = EPILOGUE;
+      dump_critical_section_info (EPILOGUE, false, insn);
       return true;
     }
 
@@ -2576,6 +2716,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
 	      && (INTVAL (op2) < 0))
 	    {
 	      *type = PROLOGUE;
+              dump_critical_section_info (PROLOGUE, false, insn);
 	      return true;
 	    }
 	}
@@ -2602,6 +2743,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
 		  && INTVAL (const_val) == 21)
 		{
 		  *type = CRITICAL_DMA_SEQ;
+                  dump_critical_section_info (CRITICAL_DMA_SEQ, false, insn);
 		  return true;
 		}
 	    }
@@ -2626,6 +2768,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
             if (tmp && (GET_CODE (tmp) == CONST_INT) && INTVAL (tmp) == 2)
               {
                 *type = CRITICAL_EVENT_MASK;
+                dump_critical_section_info (CRITICAL_EVENT_MASK, false, insn);
                 return true;
               }
             /* MFC_Cmd 21  */
@@ -2635,6 +2778,7 @@ end_critical_section (rtx insn, enum critical_section_type *type)
 		     && INTVAL (tmp) == 21)
 	      {
 		*type = CRITICAL_DMA_SEQ;
+                dump_critical_section_info (CRITICAL_DMA_SEQ, false, insn);
 		return true;
 		
 	      }
@@ -2820,9 +2964,8 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
       /* Check whether this insn can begin a critical sections.  */
       if (begin_critical_section (insn, &type))
 	{
-	  critical_sections_t *crit;
+	  critical_sections_t crit;
 	  
-	  crit = GGC_NEW (critical_sections_t);
 	  size = bb_size;
 	  
 	  if (type == JUMP_TABLE)
@@ -2837,12 +2980,12 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
 	    }
 	  if (type == JUMP_TABLE)
             has_jump_table = true; 
-	  crit->size = size;
-	  crit->type = type;
-	  crit->start = insn;
-	  crit->closed_p = false;
+	  crit.size = size;
+	  crit.type = type;
+	  crit.start = insn;
+	  crit.closed_p = false;
 	  /* Record the start instruction unless this is the .  */
-	  VEC_safe_push (critical_sections_t, heap, start_sequence, crit);
+	  VEC_safe_push (critical_sections_t, heap, start_sequence, &crit);
 	}
 
       /* Check whether this insn can end a critical sections.  */
@@ -2861,27 +3004,8 @@ spu_start_new_section (int bb_index, unsigned HOST_WIDE_INT bb_size,
     {
       if (dump_file)
 	{
-	  switch (crit1->type)
-	    {
-	    case JUMP_TABLE:
-	      fprintf (dump_file, "\n\t;; JUMP_TABLE");
-	      break;
-	    case PROLOGUE:
-	      fprintf (dump_file, "\n\t;; PROLOGUE");
-              break;
-	    case EPILOGUE:
-	      fprintf (dump_file, "\n\t;; EPILOGUE");
-              break;
-            case IBRANCH_SEQ:
-	      fprintf (dump_file, "\n\t;; IBRANCH_SEQ");
-              break;
-	    case CRITICAL_DMA_SEQ:
-	      fprintf (dump_file, "\n\t;; CRITICAL_DMA_SEQ");
-              break;
-	    case CRITICAL_EVENT_MASK:
-	      fprintf (dump_file, "\n\t;; CRITICAL_DMA_SEQ");
-              break;
-	    }
+          fprintf (dump_file, "\n\t;;");
+          dump_critical_section_type (crit1->type);
 	}
       if (!crit1->closed_p && (crit1->type != JUMP_TABLE))
 	error ("Unexpected start of critical section in basic-block %d.  ",
@@ -3023,6 +3147,10 @@ struct branch_info_def
   int priority;
 };
 
+typedef struct branch_info_def branch_info;
+DEF_VEC_O(branch_info);
+DEF_VEC_ALLOC_O(branch_info,heap);
+
 /* Compare function for qsort, order the structures by frequency element.  */
 static int
 branch_info_compare_frequency (const void *n1, const void *n2)
@@ -3044,15 +3172,15 @@ static void
 record_branch_info (void)
 {
   basic_block bb;
-  struct branch_info_def *branches_priority;
-  int i = 0, j;
-  char *branch_info =
+  int i = 0;
+  char *branch_info_str =
     (char *) alloca (2 + 2 * HOST_BITS_PER_INT / 4 + 1);
   int priority, prev;
-  int stride, differnt_numbers;
+  int stride, num_of_unique_frequencies;
+  struct branch_info_def *branchi1, *branchi2;
+  VEC(branch_info,heap) *branches_priority = NULL;
+  int num_of_branches = 0;
 
-  branches_priority = (struct branch_info_def *)
-    xcalloc (last_basic_block, sizeof (struct branch_info_def));
   FOR_EACH_BB (bb)
     {
       rtx insn, set, src;
@@ -3065,13 +3193,15 @@ record_branch_info (void)
 	      && ((GET_CODE (insn) == JUMP_INSN)
 		  || (GET_CODE (insn) == CALL_INSN)))
 	    {
-              branches_priority[i].insn = insn;
-
+              struct branch_info_def branchi;
+	      
+              branchi.insn = insn;
+	      
 	      if (GET_CODE (insn) == JUMP_INSN)
 		{
 		  if (GET_CODE (PATTERN (insn)) == RETURN)
 		    continue;
-
+		  
 		  set = single_set (insn);
 		  if (set)
 		    {
@@ -3094,8 +3224,11 @@ record_branch_info (void)
 		    }
 		  e = BRANCH_EDGE (bb);
 		  if (e && e->probability)
-                    branches_priority[i].frequency = EDGE_FREQUENCY (e);
-		  i++;
+		    {
+		      branchi.frequency = EDGE_FREQUENCY (e);
+		      VEC_safe_push (branch_info, heap, 
+				     branches_priority, &branchi);  
+		    }
 		}
 	      else
 		{
@@ -3112,48 +3245,63 @@ record_branch_info (void)
 		    continue;
 		  
 		  if (bb->frequency)
-                    branches_priority[i].frequency = bb->frequency;
-		  i++;
+		    {
+		      branchi.frequency = bb->frequency;
+		      VEC_safe_push (branch_info, heap, 
+				     branches_priority, &branchi);
+		    }
 		}
 	    }
 	}
     }
-  if (i <= 0)
+  num_of_branches = VEC_length (branch_info, branches_priority);
+  if (num_of_branches == 0)
     {
-      free (branches_priority);
+      VEC_free (branch_info, heap, branches_priority);
       return;
     }
-
-  qsort (branches_priority, 1, sizeof (struct branch_info_def),
+ 
+  /* Sort the branches according to their frequency.  */ 
+  qsort (VEC_address (branch_info, branches_priority), num_of_branches, 
+	 sizeof (struct branch_info_def),
 	 branch_info_compare_frequency);
   
-  differnt_numbers = 0;
+  /* Count the number of branches with different frequency.  */
+  num_of_unique_frequencies = 0;
   prev = -1;
-  for (j = 0; j < i; j++) 
+  for (i = 0;
+       VEC_iterate (branch_info, branches_priority, i,
+		    branchi1);
+       i++)
     {
-      if (branches_priority[j].frequency != prev)
-        differnt_numbers++;
-      prev = branches_priority[j].frequency;
+      if (branchi1->frequency != prev)
+        num_of_unique_frequencies++;
+      prev = branchi1->frequency;
     }
-  prev = branches_priority[0].frequency;
+  branchi2 = VEC_index (branch_info, branches_priority, 0);
+  /* The first element has the highest frequency.  */
+  prev = branchi2->frequency;
   priority = MAX_PRIORITY;
-  stride = MAX_PRIORITY/differnt_numbers;
-  for (j = 0;j < i; j++)
+  stride = MAX_PRIORITY/num_of_unique_frequencies;
+  /* Prioritize the branches according to their frequencies.  */
+  for (i = 0;
+       VEC_iterate (branch_info, branches_priority, i,
+		    branchi1);
+       i++)
     {
-      if (prev == branches_priority[j].frequency)
-	sprintf (branch_info, "%d,0", priority);
+      if (prev == branchi1->frequency)
+	sprintf (branch_info_str, "%d,0", priority);
       else
 	{
 	  priority -= stride;
-	  sprintf (branch_info, "%d,0", priority);
+	  sprintf (branch_info_str, "%d,0", priority);
 	}
-      add_reg_note (branches_priority[j].insn, REG_BRANCH_INFO,
+      add_reg_note (branchi1->insn, REG_BRANCH_INFO,
 		    gen_rtx_SYMBOL_REF (VOIDmode,
-                                               ggc_strdup (branch_info)));
-      prev = branches_priority[j].frequency;
-      
+					ggc_strdup (branch_info_str)));
+      prev = branchi1->frequency;
     }
-  free (branches_priority);
+  VEC_free (branch_info, heap, branches_priority);
 }
 
 
@@ -6416,7 +6564,7 @@ spu_unwind_word_mode (void)
 static bool
 spu_function_ok_for_sibcall (tree decl, tree exp ATTRIBUTE_UNUSED)
 {
-  return decl && !TARGET_LARGE_MEM;
+  return decl && !TARGET_LARGE_MEM && !TARGET_SOFTWARE_ICACHE;
 }
 
 /* We need to correctly update the back chain pointer and the Available

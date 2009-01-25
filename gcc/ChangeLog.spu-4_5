@@ -1,3 +1,32 @@
+2009-01-25  Revital Eres  <eres@il.ibm.com>
+
+	* bb-reorder.c (create_sections): Fix comment.
+	* config/spu/spu.opt (micache-linesize): Remove.
+	* config/spu/spu.c (critical_sections): Add comment.
+	(TARGET_ASM_UNIQUE_SECTION): Define.
+	(ICACHE_LINESIZE): Define.
+	(spu_override_options): Use ICACHE_LINESIZE.
+	(spu_unique_section, dump_critical_section_type,
+	dump_critical_section_info): New functions.
+	(spu_start_new_section): Use object instead of pointer and call
+	dump_critical_section_type.
+	(branch_info): New typedef.  Add DEF_VEC_O and DEF_VEC_ALLOC_O
+	statements for it.
+	(record_branch_info): Use VEC instead of array for branch_info.
+	(spu_function_ok_for_sibcall): Return false for
+	TARGET_SOFTWARE_ICACHE.
+	(end_critical_section): Dump info regarding the critical section.
+	(begin_critical_section): Likewise and update recognition of
+	IBRANCH_SEQ.
+	* config/spu/spu.h (ICACHE_MASK_INDEX_REGNUM,
+	ICACHE_TAG_ARR_REGNUM, ICACHE_MASK_TAG_REGNUM, ICACHE_LINESIZE):
+	Delete.
+	* config/spu/spu.md (rotm_<mode>): Accept symbolic immediate
+	value for the second input operand.
+	(indirect_jump, tablejump, sibcall, sibcall_value, call,
+	call_value): Change icache inline tag check sequence.
+	(_call_value_hw): Fix indentation.
+
 2008-12-17  Revital Eres  <eres@il.ibm.com>
 
 	* rtl-factoring.c (compute_init_costs): Insert check for insn.
