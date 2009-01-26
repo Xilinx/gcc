@@ -1,3 +1,38 @@
+2009-01-17  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* MAINTAINERS: Make whitespace consistent.
+	Remove Robert Millan from Write After Approval.
+
+2009-01-16  Alan Modra  <amodra@bigpond.net.au>
+
+	* Makefile.def (configure-opcodes): Depend on configure-libiberty.
+	(all-opcodes): Depend on all-libiberty.
+	* Makefile.in: Regenerate.
+
+2009-01-15  Douglas B Rupp  <rupp@gnat.com>
+
+	* configure.ac (ia64*-*-*vms*): Add case with no gdb or ld support.
+	* configure: Regenerate.
+
+2009-01-12  Ramana Radhakrishnan  <ramana.r@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-01-12  Steven G. Kargl  <sgk@troutmask.apl.washington.edu>
+
+	* MAINTAINERS: Add myself to reviewers (Fortran).
+
+2009-01-12  Sebastian Pop <sebastian.pop@amd.com>
+
+	PR tree-optimization/38515
+	* configure.ac (cloog-polylib): Removed.
+	(with_ppl, with_cloog): Test for "no".
+	* configure: Regenerated.
+
+2009-01-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	* MAINTAINERS: Moved myself to reviewers (Fortran).
+
 2009-01-06  Thomas Schwinge  <tschwinge@gnu.org>
 
 	* MAINTAINERS (OS Port Maintainers): Add myself for GNU/Hurd.

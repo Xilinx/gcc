@@ -1,3 +1,203 @@
+2009-01-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* class.c (check_field_decls): Also inherit packed for bitfields
+	regardless of their type.
+
+2009-01-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38930
+	* decl2.c (grokfield): Reverting changes of PR c++/26693
+	(save_template_attributes): Likewise.
+	* decl.c (grokdeclarator): Likewise.
+	* name-lookup.c (pushdecl_maybe_friend): Likewise.
+	* cp-tree.h (MEMBER_TYPES_NEEDING_ACCESS_CHECK): Likewise.
+	(append_type_to_template_for_access_check): Likewise.
+	* semantics.c (check_accessibility_of_qualified_id): Likewise.
+	* pt.c (instantiate_class_template, instantiate_template ): Likewise.
+	(tsubst): Likewise.
+	(resolve_type_name_type): Likewise.
+	(append_type_to_template_for_access_check): Likewise.
+
+2009-01-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/26693
+	* decl2.c (grokfield): when a typedef appears in a
+	class, create the typedef variant type node for it.
+	(save_template_attributes): Creating typedef variant type node
+	 here is now useless.
+	* decl.c (grokdeclarator): If the typedef'ed struct/class was
+	anonymous, set the proper type name to all its type variants.
+	* name-lookup.c (pushdecl_maybe_friend): Reuse the
+	set_underlying_type function to install typedef variant types.
+	* cp-tree.h (MEMBER_TYPES_NEEDING_ACCESS_CHECK): New template accessor
+	macro.
+	(append_type_to_template_for_access_check): New entry points.
+	* semantics.c (check_accessibility_of_qualified_id):
+	When a typedef that is a member of a class appears in a template,
+	add it to the template. It will be ...
+	* pt.c (instantiate_class_template, instantiate_template ): ... access
+	checked at template instantiation time.
+	(tsubst): Handle the case of being called with NULL args.
+	(resolve_type_name_type): The type name should be the name of the
+	main type variant.
+	(append_type_to_template_for_access_check): New entry point.
+
+2009-01-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/23287
+	* parser.c (cp_parser_unqualified_id): In a template,
+	accept ~identifier.
+	* typeck.c (lookup_destructor): Handle IDENTIFIER_NODE.
+
+2009-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38877
+	* tree.c (lvalue_p_1): Allow non-fields in COMPONENT_REF.
+	* init.c (build_new): Don't call describable_type unless we
+	have an auto.
+
+	PR c++/29470
+	* pt.c (tsubst_decl) [USING_DECL]: Propagate access flags.
+
+	PR c++/38579
+	* search.c (protected_accessible_p): N doesn't vary.
+
+2009-01-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38850
+	* pt.c (tsubst_copy_and_build): Tell finish_call_expr to
+	accept hidden friends.
+
+2009-01-15  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/29388
+	* decl.c (grokdeclarator): Check for a non namespace/class context.
+
+2009-01-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/36334
+	PR c++/37646
+	* tree.c (lvalue_p_1): Handle BASELINK.  A COMPONENT_REF to
+	a function isn't necessarily an lvalue. Take tree, not const_tree.
+	(lvalue_p, real_lvalue_p): Take tree, not const_tree.
+	* typeck.c (lvalue_or_else): Likewise.
+	* cp-tree.h: Adjust prototypes.
+
+2009-01-15  Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/38357
+	* pt.c (tsubst): Check for NULL args.
+
+2009-01-15  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38636
+	* name-lookup.c (pushtag): Don't create members to types that are not
+	being created.
+
+2009-01-14  Nick Clifton  <nickc@redhat.com>
+
+	PR c++/37862
+	* parser.c: Pass cp_id_kind computed in
+	cp_parser_postfix_dot_deref_expression to
+	cp_parser_primary_expression.
+
+2009-01-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38795
+	* tree.c (cp_walk_subtrees): Handle REINTERPRET_CAST_EXPR,
+	STATIC_CAST_EXPR, CONST_CAST_EXPR and DYNAMIC_CAST_EXPR the same
+	as CAST_EXPR.
+
+2009-01-12  Jason Merrill  <jason@redhat.com>
+	    Steve Ellcey  <sje@cup.hp.com>
+
+	PR c++/35109
+	* name-lookup.c (lookup_name_real): Keep looking past a hidden 
+	binding.
+
+2009-01-12  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/36019
+	* pt.c (parameter_of_template_p): New function.
+	* cp-tree.h: Declare it.
+	* name-lookup.c (binding_to_template_parms_of_scope_p): New
+	function.
+	(outer_binding): Take template parameters in account when looking for
+	a name binding.
+
+2009-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/31488
+	* tree.c (pod_type_p): Return 1 for structs created by the back end.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/32041
+	* parser.c (cp_parser_builtin_offsetof): Allow `->' in
+	offsetof member-designator, handle it as `[0].'.
+
+	PR c++/38794
+	* decl.c (start_function): If grokdeclarator hasn't returned
+	FUNCTION_DECL nor error_mark_node, issue diagnostics.
+
+2009-01-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/36254
+	* cp-gimplify.c (genericize_if_stmt): Renamed from ...
+	(gimplify_if_stmt): ... this.
+	(cp_gimplify_expr): Don't handle IF_STMT here.
+	(cp_genericize_r): Call genericize_if_stmt for IF_STMT.
+
+2009-01-10  Andrew Pinski  <pinskia@gmail.com>
+
+	PR c++/38648
+	* typeck.c (cp_build_modify_expr): Check for NULL current_function_decl.
+
+	PR c++/36695
+	* typeck2.c (build_functional_cast): Check for reference type and NULL
+	PARMS.
+
+2009-01-09  Steve Ellcey  <sje@cup.hp.com>
+
+	* typeck.c (cp_build_unary_op): Check for ERROR_MARK.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/35335
+	* error.c (dump_expr): Handle EXPR_STMT like BIND_EXPR.
+
+2009-01-09  John F. Carr  <jfc@mit.edu>
+
+	PR c++/37877
+	* parser.c (cp_parser_class_specifier): Clear
+	parser->in_unbraced_linkage_specification_p while parsing class
+	specifiers.
+
+2009-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38725
+	* semantics.c (finish_goto_stmt): Convert destination to
+	void *.
+
+2009-01-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35297
+	PR c++/35477
+	PR c++/35784
+	PR c++/36846
+	PR c++/38276
+	* pt.c (check_default_tmpl_args): Don't complain about
+	out-of-order parameter packs in the enclosing class
+	or parameter packs after default args.
+	(coerce_template_parms): If we have more than one
+	parameter pack, don't flatten argument packs.
+	(template_args_equal): Handle argument packs.
+	(comp_template_args): Don't flatten argument packs.
+	(check_instantiated_arg): Split out from...
+	(check_instantiated_args): Here.  Handle arg packs.
+	(convert_template_argument): Just check that nontype argument
+	packs have the right type.
+
 2009-01-05  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/38472

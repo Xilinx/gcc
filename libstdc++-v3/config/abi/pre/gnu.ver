@@ -1,6 +1,6 @@
 ## Linker script for GNU versioning (GNU ld 2.13.91+ only.)
 ##
-## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the GNU ISO C++ Library.  This library is free
@@ -403,8 +403,7 @@ GLIBCXX_3.4 {
     _ZNKSt9money_putI[cw]St19ostreambuf_iteratorI[cw]St11char_traitsI[cw]EEE*;
 
     # std::numeric_limits
-    # _ZNSt14numeric_limitsI[^g]*;
-    _ZNSt14numeric_limitsI[a-z]E*;
+    _ZNSt14numeric_limitsI[^g]E*;
 
     # std::_Rb_tree
     _ZSt18_Rb_tree_decrementPKSt18_Rb_tree_node_base;
@@ -637,9 +636,6 @@ GLIBCXX_3.4 {
     sqrtf;
     sqrtl;
     copysignf;
-    __signbit;
-    __signbitf;
-    __signbitl;
 
    # GLIBCXX_ABI compatibility only.
     # std::string
@@ -884,9 +880,7 @@ GLIBCXX_3.4.11 {
     _ZSt11__once_call;
     _ZSt15__once_callable;
     _ZSt14__once_functor;
-    _ZSt19__once_functor_lock;
-    _ZSt11__once_lock;
-    _ZSt12__once_mutex;
+    _ZSt23__get_once_functor_lockv;
     __once_proxy;
 
     # condition_variable
@@ -903,21 +897,12 @@ GLIBCXX_3.4.11 {
     _ZNSt22condition_variable_anyD2Ev;
 
     # thread
-    _ZNKSt6thread6get_idEv;
-    _ZNKSt6thread8joinableEv;
     _ZNSt10shared_ptrISt18__thread_data_baseED1Ev;
-    _ZNSt11this_thread5yieldEv;
-    _ZNSt11this_thread6get_idEv;
     _ZNSt12bad_weak_ptrD0Ev;
     _ZNSt12bad_weak_ptrD1Ev;
-    _ZNSt6thread14__start_threadEv;
+    _ZNSt6thread15_M_start_threadEv;
     _ZNSt6thread4joinEv;
-    _ZNSt6thread4swapEOS_;
     _ZNSt6thread6detachEv;
-    _ZNSt6threadC1Ev;
-    _ZNSt6threadC2Ev;
-    _ZNSt6threadD1Ev;
-    _ZNSt6threadD2Ev;
 
     # system_error
     _ZSt15system_category;
@@ -945,7 +930,8 @@ GLIBCXX_3.4.11 {
     _ZSt20__throw_system_errori;
 
     # char16_t and char32_t
-    _ZNSt14numeric_limitsIu8char*;
+    _ZNSt14numeric_limitsIDiE*;
+    _ZNSt14numeric_limitsIDsE*;
 
     # chrono
     _ZNSt6chrono12system_clock12is_monotonicE;

@@ -1,5 +1,9 @@
 2009-01-26  Sebastian Pop  <sebastian.pop@amd.com>
 
+        * Merge from mainline (r143163:143684).
+
+2009-01-26  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (debug_value): Removed.
 	* graphite.h (debug_value): Removed.
 

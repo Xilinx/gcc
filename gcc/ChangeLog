@@ -1,3 +1,711 @@
+2009-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38745
+	* tree-ssa-alias.c (update_alias_info_1): Exclude RESULT_DECL
+	from special handling.
+
+2009-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38745
+	* tree-ssa.c (execute_update_addresses_taken): Do not include
+	variables that cannot possibly be a register in not_reg_needs.
+	Do not clear TREE_ADDRESSABLE on vars that may not become
+	registers.
+	* tree-ssa.c (update_alias_info_1): Include those in the set
+	of addressable vars.
+
+2009-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/38851
+	* Makefile.in (tree-ssa-dse.o): Add langhooks.h.
+	* tree-ssa-dse.c: Include langhooks.h
+	(execute_simple_dse): Remove stores with zero size.
+
+2009-01-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/38957
+	* c-typeck.c (c_finish_return): Handle POINTER_PLUS_EXPR the same way
+	as PLUS_EXPR.
+
+2009-01-24  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/t-linux-eabi (LIB2FUNCS_STATIC_EXTRA): Add
+	config/arm/linux-atomic.c.
+	* config/arm/linux-atomic.c: New.
+
+2009-01-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/linux.h (DBX_REGISTER_NUMBER): Delete.
+	* config/sparc/linux64.h (DBX_REGISTER_NUMBER): Likewise.
+	* config/sparc/sysv4.h (DBX_REGISTER_NUMBER): Likewise.
+
+2009-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/38938
+	* c-opts.c (c_common_handle_option): Update warn_pointer_sign
+	properly.
+
+2009-01-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/38953
+	* graphite.c (graphite_verify): Add a call to verify_loop_closed_ssa.
+	(scop_adjust_phis_for_liveouts): Initialize false_i to zero.
+	(gloog): Split the exit of the scop when the scop exit is a loop exit.
+	(graphite_transform_loops): Only call cleanup_tree_cfg if gloog
+	changed the CFG.
+
+2009-01-24  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/neon.md (neon_type): Move to arm.md.
+	(neon_mov<VSTRUCT>): Add neon_type attribute.
+	* config/arm/arm.md (neon_type): Move to here.
+	(conds): Add "unconditioal" and use as default for NEON insns.
+
+2009-01-24  Ben Elliston  <bje@au.ibm.com>
+
+	* bitmap.h (BITMAP_FREE): Eliminate `implicit conversion from
+	void *' warning from -Wc++-compat.
+	* Makefile.in (dominance.o-warn): Remove.
+
+2008-01-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-optimization/38932
+	* fold-const.c (fold_unary_ignore_overflow): New.
+	* tree.h (fold_unary_ignore_overflow): Declare.
+	* tree-ssa-ccp.c (ccp_fold): Use fold_unary_ignore_overflow.
+	* tree-ssa-sccvn.c (visit_reference_op_load,
+	simplify_unary_expression): Likewise.
+
+2009-01-22  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* c-decl.c (finish_struct): Move code to set DECL_PACKED after
+	DECL_BIT_FIELD is alreay known.  Also inherit packed for bitfields
+	regardless of their type.
+	* c-common.c (handle_packed_attribute): Don't ignore packed on
+	bitfields.
+	* c.opt (Wpacked-bitfield-compat): New warning option.
+	* stor-layout.c (place_field): Warn if offset of a field changed.
+	* doc/extend.texi (packed): Mention the ABI change.
+	* doc/invoke.texi (-Wpacked-bitfield-compat): Document.
+	(Warning Options): Add it to the list.
+
+2009-01-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* c-opts.c (c_common_post_options): Fix a typo in comments.
+
+2009-01-22  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/38615
+	* gimplify.c (gimplify_init_constructor): Fix promotion of const
+	variables to static.
+	* doc/invoke.texi (-fmerge-all-constants): Update description.
+
+2009-01-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38931
+	* config/i386/i386.md (*movsi_1): Use type "mmx" for alternative 2.
+	(*movdi_1_rex64): Use type "mmx" for alternative 5.
+
+2009-01-22  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.h (DATA_ALIGNMENT): Align structures, unions and arrays to
+	a word boundary.
+	(LOCAL_ALIGNMENT): Similarly.
+
+2009-01-22  Mark Shinwell  <shinwell@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (all_architectures): Add iWMMXt2 entry.
+	* config/arm/arm-cores.def: New ARM_CORE entry for iWMMXt2.
+	* config/arm/arm-tune.md: Regenerate.
+	* doc/invoke.texi (ARM Options): Document -mcpu=iwmmxt2 and
+	-march=iwmmxt2.
+
+2009-01-22  Mark Shinwell  <shinwell@codesourcery.com>
+
+	* config/arm/bpabi.h (SUBTARGET_EXTRA_ASM_SPEC): Bump EABI
+	version number to five.
+
+2009-01-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/38930
+	* c-decl.c: (clone_underlying_type): Revert PR c++/26693 changes.
+	* c-common.c (set_underlying_type): Likewise.
+	(is_typedef_decl ): Likewise
+	* tree.h: Likewise
+	(set_underlying_type): Likewise.
+	(is_typedef_type): Likewise.
+
+2009-01-21  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR middle-end/38587
+	* ira-color.c (coalesce_spill_slots): Don't coalesce allocnos
+	crossing setjmps.
+
+2009-01-21  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR bootstrap/37660
+	* config/i386/cygwin.h (SHARED_LIBGCC_SPEC):  New helper macro.
+	(LIBGCC_SPEC):  Don't define.
+	(REAL_LIBGCC_SPEC):  Define instead, using SHARED_LIBGCC_SPEC.
+
+2009-01-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR rtl-optimization/38879
+	* alias.c (base_alias_check): Unaligned access via AND address can
+	alias all surrounding object types except those with sizes equal
+	or wider than the size of unaligned access.
+
+2009-01-21  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/26693
+	* c-decl.c: (clone_underlying_type): Move this ...
+	* c-common.c (set_underlying_type): ... here.
+	Also, make sure the function properly sets TYPE_STUB_DECL() on
+	the newly created typedef variant type.
+	(is_typedef_decl ): New entry point.
+	* tree.h: Added a new member member_types_needing_access_check to
+	struct tree_decl_non_common.
+	(set_underlying_type): New entry point.
+	(is_typedef_type): Likewise.
+
+2009-01-21  Bingfeng Mei  <bmei@broadcom.com>
+
+	* alias.c (walk_mems_1, walk_mems_2, insn_alias_sets_conflict_p):
+	Check whether two instructions have memory references that
+	belong to conflicting alias sets.  walk_mems_1 and walk_mems_2
+	are helper functions for traversing.
+	* alias.h (insn_alias_sets_confilict_p): New prototypes.
+	* ddg.c (add_inter_loop_mem_dep): Call insn_alias_sets_conflict_p
+	not to draw dependency edge for instructions with non-conflicting
+	alias sets.
+
+2009-01-20  Joseph Myers  <joseph@codesourcery.com>
+
+	PR other/38758
+	* longlong.h: Update copyright years.  Use soft-fp license
+	notice.  Sync __clz_tab declaration with glibc.
+
+2009-01-20  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/30687
+	* doc/extend.texi (syscall_linkage): New.
+	(version_id): Modify.
+
+2009-01-20  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38747
+	PR tree-optimization/38748
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Disable the VCE
+	conversion if the base address is an indirect reference and the
+	aliasing sets could cause issues.
+
+2009-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* common.opt (fgraphite, fgraphite-identity): Add comment for 
+	explaining why these options are not documented.
+
+2009-01-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (stmt_simple_for_scop_p): Also handle cases when
+	gimple_call_lhs is NULL.
+
+2008-01-20  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/38868
+	* emit-rtl.c (adjust_address_1): Make sure memref is never
+	overwritten.
+
+2009-01-20  Ben Elliston  <bje@au.ibm.com>
+
+	* libgcov.c (__gcov_execl, __gcov_execlp, __gcov_execle): Remove
+	const qualifier from arg parameter. Remove unnecessary cast to char *.
+	* gcov-io.h (__gcov_execl, __gcov_execlp, __gcov_execle): Remove
+	const qualifier from arg 2.
+
+2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	* config/darwin.h: Add static-libgfortran to LINK_SPEC.
+
+2009-01-19  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR c/38869
+	* rtl.h (reinit_regs): New prototype.
+	* regclass.c: Include ira.h.
+	(reinit_regs): New.
+	* Makefile.in (regclass.o): Add ira.h.
+	* config/i386/i386.c (ix86_maybe_switch_abi): Use reinit_regs.
+
+2009-01-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/38736
+	* c-common.c (handle_aligned_attribute): Use
+	ATTRIBUTE_ALIGNED_VALUE instead of BIGGEST_ALIGNMENT for
+	default alignment value.
+
+	* c-cppbuiltin.c (c_cpp_builtins): Define __BIGGEST_ALIGNMENT__.
+
+	* defaults.h (ATTRIBUTE_ALIGNED_VALUE): New.
+	* config/i386/i386.h (ATTRIBUTE_ALIGNED_VALUE): Likewise.
+
+	* doc/extend.texi: Update __attribute__ ((aligned)).  Document
+	__BIGGEST_ALIGNMENT__.
+
+	* doc/tm.texi: Document ATTRIBUTE_ALIGNED_VALUE.
+
+2009-01-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38819
+	* tree-flow.h (operation_could_trap_helper_p): Declare.
+	* tree-eh.c (operation_could_trap_helper_p): Export.
+	* tree-ssa-sccvn.h (vn_nary_may_trap): Declare.
+	* tree-ssa-sccvn.c (vn_nary_may_trap): New function.
+	* tree-ssa-pre.c (insert_into_preds_of_block): Check if we
+	are about to insert a possibly trapping instruction and fail
+	in this case.
+
+2009-01-18  Andreas Schwab  <schwab@suse.de>
+
+	* doc/install.texi (Configuration): Remove obsolete paragraph
+	about use of --with-gnu-ld with --with-gnu-as.
+
+2009-01-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* doc/extend.texi, doc/gimple.texi, doc/invoke.texi,
+	doc/md.texi, doc/sourcebuild.texi, doc/tm.texi: Fix typos.
+	Follow spelling conventions.
+
+2009-01-18  Ben Elliston  <bje@au.ibm.com>
+
+	* bitmap.c (bitmap_obstack_alloc_stat): Adjust cast to eliminate
+	C++ warning about implicit conversion from void * to struct
+	bitmap_head_def *.
+	(bitmap_obstack_free): Likewise for bitmap_element *.
+	* Makefile.in (bitmap.o-warn): Remove.
+
+2009-01-17  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.in (BACKENDLIBS):  Reorder to match dependencies.
+
+2009-01-17  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (graphite_trans_scop_block): Do not block single
+	nested loops.
+
+2009-01-16  Alexandre Oliva  <aoliva@redhat.com>
+
+	* ebitmap.h (ebitmap_iter_init): Initialize all fields.
+	* ipa-struct-reorg.c (gen_struct_type): Replace known-true
+	test with assertion.
+
+2009-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38835
+	PR middle-end/36227
+	* fold-const.c (fold_binary): Remove PTR + INT -> (INT)(PTR p+ INT)
+	and INT + PTR -> (INT)(PTR p+ INT) folding.
+	* tree-ssa-address.c (create_mem_ref): Properly use POINTER_PLUS_EXPR.
+
+2009-01-16  Adam Nemet  <anemet@caviumnetworks.com>
+
+	PR target/38554
+	* expmed.c (expand_shift): With SHIFT_COUNT_TRUNCATED, don't lift
+	the subreg from a lowpart subreg if it is also casting the value.
+
+2009-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (compare_prefix_loops): New.
+	(build_scop_canonical_schedules): Rewritten.
+	(graphite_transform_loops): Move build_scop_canonical_schedules
+	after build_scop_iteration_domain.
+
+2009-01-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+
+	* graphite.c (add_conditions_to_domain): Add the loops to 
+	the dimension of the iteration domain.  Do copy the domain
+	only when it exists.
+	(build_scop_conditions_1): Do not call add_conditions_to_domain.
+	(add_conditions_to_constraints): New.
+	(can_generate_code_stmt, can_generate_code): Removed.
+	(gloog): Do not call can_generate_code.
+	(graphite_transform_loops): Call add_conditions_to_constraints
+	after building the iteration domain.
+
+2009-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38789
+	* tree-ssa-threadedge.c
+	(record_temporary_equivalences_from_stmts_at_dest): Ignore calls to
+	__builtin_constant_p.
+
+2009-01-16  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* dce.c (delete_unmarked_insns): Reversed the order that insns are
+	examined before deleting them.
+	
+2009-01-16  Richard Earnshaw  <rearnsha@arm.com>
+
+	* function.c (aggregate_value_p): Correctly extract the function
+	type from CALL_EXPR_FN lookup.
+
+2009-01-16  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (picochip_override_options): Revert
+	CFI asm flag disable commited previously.
+
+2009-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <tobi.grosser@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* graphite.c (scan_tree_for_params): On substractions negate
+	all the coefficients of the term.
+	(clast_to_gcc_expression_red): New.  Handle reduction expressions
+	of more than two operands.
+	(clast_to_gcc_expression): Call clast_to_gcc_expression_red.
+	(get_vdef_before_scop): Handle also the case of default definitions.
+
+2009-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* caller-save.c (add_used_regs_1, add_used_regs): New functions.
+	(insert_one_insn): Use them instead of REG_DEAD and REG_INC notes.
+	Also use them when walking CALL_INSN_FUNCTION_USAGE.
+
+2009-01-15  H.J. Lu  <hongjiu.lu@intel.com>
+	    Joey Ye  <joey.ye@intel.com>
+
+	PR middle-end/37843
+	* cfgexpand.c (expand_stack_alignment): Don't update stack
+	boundary nor check incoming stack boundary here.
+	(gimple_expand_cfg): Update stack boundary and check incoming
+	stack boundary here.
+
+2009-01-15  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* dce.c (find_call_stack_args, delete_unmarked_insns): Fixed comments.
+	
+2009-01-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38245
+	* calls.c (expand_call): Add stack arguments to
+	CALL_INSN_FUNCTION_USAGE even for pure calls (when
+	ACCUMULATE_OUTGOING_ARGS) and even for args partially passed
+	in regs and partially in memory or BLKmode arguments.
+	(emit_library_call_value_1): Add stack arguments to
+	CALL_INSN_FUNCTION_USAGE even for pure calls (when
+	ACCUMULATE_OUTGOING_ARGS).
+	* dce.c: Include tm_p.h.
+	(find_call_stack_args): New function.
+	(deletable_insn_p): Call it for CALL_P insns.  Add ARG_STORES
+	argument.
+	(mark_insn): Call find_call_stack_args for CALL_Ps.
+	(prescan_insns_for_dce): Walk insns backwards in bb rather than
+	forwards.  Allocate and free arg_stores bitmap if needed, pass it
+	down to deletable_insn_p, don't mark stores set in arg_stores
+	bitmap, clear the bitmap at the beginning of each bb.
+	* Makefile.in (dce.o): Depend on $(TM_P_H).
+
+2009-01-14  Michael Meissner  <gnu@the-meissners.org>
+
+	PR target/22599
+	* config/i386/i386.c (print_operand): Add tests for 'D', 'C', 'F', 'f'
+	to make sure the insn is a conditional test (bug 22599).  Reformat a
+	few long lines.
+
+2009-01-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/38431
+	* graphite.c (get_vdef_before_scop, scop_adjust_vphi): New.
+	(scop_adjust_phis_for_liveouts): Call scop_adjust_vphi.
+	(gloog): Do not call cleanup_tree_cfg.
+	(graphite_transform_loops): Call cleanup_tree_cfg after all 
+	scops have been code generated.
+
+2009-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* doc/gty.texi (Invoking the garbage collector): Added new node
+	and section documenting ggc_collect.
+
+2009-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38826
+	PR middle-end/38477
+	* tree-ssa-structalias.c (emit_alias_warning): Emit the pointer
+	initialization notes only if we actually emitted a warning.
+	(intra_create_variable_infos): Add constraints for a result decl
+	that is passed by hidden reference.
+	(build_pred_graph): Mark all related variables non-direct on
+	address-taking.
+
+2009-01-14  Nick Clifton  <nickc@redhat.com>
+
+	* ira-conflicts.c: Include addresses.h for the definition of
+	base_reg_class.
+	(ira_build_conflicts): Use base_reg_class instead of BASE_REG_CLASS.
+	* Makefile.in: Add a dependency of ira-conflicts.o on addresses.h.
+
+2009-01-13  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR target/38811
+	* Makefile.in (ira-lives.o): Add except.h.
+
+	* ira-lives.c: Include except.h.
+	(process_bb_node_lives): Process can_throw_internal.
+
+2009-01-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/38774
+	* combine.c (simplify_set): When undoing cc_use change, don't do
+	PUT_CODE on the newly created comparison, but instead put back the
+	old comparison.
+
+2009-01-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/invoke.texi (ARM Options): Update lists of -mcpu and -march
+	values.  Remove duplicate arm8 entry.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/38786
+	* graphite.c (expand_scalar_variables_ssa_name): New, outlined from
+	the SSA_NAME case of expand_scalar_variables_expr.
+	Set the type of an expression to the type of its assign	statement.
+	(expand_scalar_variables_expr): Also gather the scalar computation
+	used to index the memory access.  Do not pass loop_p.
+	Fix comment.  Stop recursion on tcc_constant or tcc_declaration.
+	(expand_scalar_variables_stmt): Pass to expand_scalar_variables_expr
+	the gimple_stmt_iterator where it inserts new code.  Do not pass loop_p.
+	(copy_bb_and_scalar_dependences): Do not pass loop_p.
+	(translate_clast): Update call to copy_bb_and_scalar_dependences.
+
+2009-01-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.h (debug_value): Removed.
+	* graphite.c (debug_value): Removed.
+
+2009-01-13  Richard Earnshaw  <rearnsha@arm.com>
+
+	* config/arm/arm.c (output_move_double): Don't synthesize thumb-2
+	ldrd/strd with two 32-bit instructions.
+
+2009-01-13  Richard Earnshaw  <rearnsha@arm.com>
+
+	* config/arm/arm.c (struct processors): Pass for speed down into
+	cost helper functions.
+	(const_ok_for_op): Handle COMPARE and inequality nodes.
+	(arm_rtx_costs_1): Rewrite.
+	(arm_size_rtx_costs): Update prototype.
+	(arm_rtx_costs): Pass speed down to helper functions.
+	(arm_slowmul_rtx_costs): Rework cost calculations.
+	(arm_fastmul_rtx_costs, arm_xscale_rtx_costs): Likewise.
+	(arm_9e_rtx_costs): Likewise.
+
+2009-01-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_legitimate_address_p): Explicit
+	relocations of local symbols wider than UNITS_PER_WORD are not valid.
+	(alpha_legitimize_address): Do not split local symbols wider than
+	UNITS_PER_WORD into HIGH/LO_SUM parts.
+
+2009-01-13  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR bootstrap/38580
+	* gcc.c (process_command): Replace call to execvp with calls
+	to pex_one and exit.
+
+2009-01-03  Anatoly Sokolov  <aesok@post.ru>
+
+	PR target/29141
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _tablejump_elpm.
+	* config/avr/libgcc.S (__do_global_ctors, __do_global_dtors): Add
+	variant for devices with 3-byte PC.
+	(__tablejump_elpm__) : New.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/32041
+	* c-parser.c (c_parser_postfix_expression): Allow `->' in
+	offsetof member-designator, handle it as `[0].'.
+
+2009-01-12  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (pa_asm_output_mi_thunk): Use pc-relative branch to thunk
+	function when not using named sections on targets with named sections
+	if branch distance is less than 262132.
+
+2009-01-12  Richard Earnshaw  <rearnsha@arm.com>
+
+	* combine.c (combine_instructions):  Recompute
+	optimize_this_for_speed_p  for each BB in the main combine loop.
+
+2009-01-12  Tomas Bily  <tbily@suse.cz>
+
+	PR middlend/38385
+	* tree-loop-distribution.c (prop_phis): New function.
+	(generate_builtin): Call prop_phis.
+	* testsuite/gcc.dg/tree-ssa/pr38385.c: New file.
+
+2009-01-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38807
+	* tree-ssa-reassoc.c (remove_visited_stmt_chain): Don't look at
+	gimple_visited_p unless stmt is GIMPLE_ASSIGN.
+
+2009-01-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* expmed.c (store_bit_field_1): Properly truncate the paradoxical
+	subreg of op0 to the original op0.
+
+2009-01-11  Laurent GUERBY <laurent@guerby.net>
+
+	* doc/sourcebuild.texi (Source Tree): Move up intl and fixinc.
+	
+2009-01-11  Markus Schoepflin  <markus.schoepflin@comsoft.de>
+
+	PR debug/7055
+	* gcc/mips-tfile.c (parse_def): Fix parsing of def strings
+	starting with digits.
+
+2009-01-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38695
+	* config/arm/arm.c (arm_is_long_call_p): Don't call
+	arm_function_in_section_p if decl isn't a FUNCTION_DECL.
+
+2009-01-09  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* regrename.c (regrename_optimize): Fix dumping.
+	(find_oldest_value_reg): Preserve REG_POINTER.
+	(copy_hardreg_forward_1): Likewise.
+
+2009-01-09  Diego Novillo  <dnovillo@google.com>
+
+	* gimple.h (struct gimple_statement_base)<uid>: Document
+	the restrictions on its use.
+	(gimple_uid): Tidy.
+	(gimple_set_uid): Tidy.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_expand_movmem, ix86_expand_setmem): Add
+	zero guard even if align_bytes != 0 and count is smaller than
+	size_needed.
+
+2008-01-09  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/38495
+	* ira-emit.c (print_move_list, ira_debug_move_list): New functions.
+	(add_range_and_copies_from_move_list): Print all added ranges.
+	Add ranges to memory optimized destination.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/38686
+	PR target/38708
+	* config/i386/i386.c (override_options): Reject
+	-mstringop-strategy=rep_8byte with -m32.
+	(ix86_expand_movmem): For size_needed == 1 set epilogue_size_needed
+	to 1.  Do count comparison against epilogue_size_needed at compile
+	time even when count_exp was constant forced into register.  For
+	size_needed don't jump to epilogue, instead just avoid aligning
+	and invoke the body algorithm.  If need_zero_guard, add zero guard
+	even if count is non-zero, but smaller than size_needed + number of
+	bytes that could be stored for alignment.
+	(ix86_expand_setmem): For size_needed == 1 set epilogue_size_needed
+	to 1.  If need_zero_guard, add zero guard even if count is non-zero,
+	but smaller than size_needed + number of bytes that could be stored
+	for alignment.  Compare size_needed with epilogue_size_needed instead
+	of desired_align - align, don't adjust size_needed, pass
+	epilogue_size_needed to the epilogue expanders.
+
+	PR c/35742
+	* c-pretty-print.c (pp_c_expression): Handle GOTO_EXPR like BIND_EXPR.
+
+2009-01-09  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* pa.c (last_address): Change to unsigned.
+	(update_total_code_bytes): Change argument to unsigned.  Don't
+	check if insn addresses are set.
+	(pa_output_function_epilogue): Set last_address to UINT_MAX if insn
+	addresses are not set.
+	(pa_asm_output_mi_thunk): Handle wrap when updating last_address.
+
+2009-01-09  Nick Clifton  <nickc@redhat.com>
+
+	* config/sh/symbian.c: Replace uses of DECL_INLINE with
+	DECL_DECLARED_INLINE_P.
+
+2009-01-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/38347
+	* dojump.c (do_jump_by_parts_zero_rtx): Use mode instead of
+	GET_MODE (op0) in operand_subword_force calls.
+
+	PR middle-end/38771
+	* fold-const.c (fold_unary): For COMPOUND_EXPR and COND_EXPR,
+	fold_convert arg0 operands to TREE_TYPE (op0) first.
+
+2009-01-08  Vladimir Makarov  <vmakarov@redhat.com>
+
+	* params.def (ira-max-conflict-table-size): Decrease default value
+	to 1000.
+
+2009-01-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/37031
+	* lambda-code.c (lambda_collect_parameters): Call pointer_set_destroy
+	on parameter_set.
+	(build_access_matrix): Reserve correct size for AM_MATRIX vector,
+	allocate it using gc instead of heap, use VEC_quick_push instead of
+	VEC_safe_push.
+	* graphite.c (build_access_matrix): Allocate AM_MATRIX vector using gc
+	instead of heap, use VEC_quick_push instead of VEC_safe_push.
+	* tree-data-ref.h (struct access_matrix): Change matrix to gc
+	allocated vector from heap allocated.
+	* lambda.h: Add DEF_VEC_ALLOC_P for gc allocated lambda_vector.
+	* tree-loop-linear.c (linear_transform_loops): Allocate nest
+	vector only after perfect_loop_nest_depth call.
+
+2009-01-08  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	PR tree-optimization/38559
+	* graphite.c (debug_value, copy_constraint,
+	swap_constraint_variables, scale_constraint_variable, ): New.
+	(get_lower_bound, get_upper_bound): Removed.
+	(graphite_trans_bb_strip_mine): Clean up this code that works
+	only for constant number of iterations.  Fully copy upper and
+	lower bound constraints, not only the constant part of them.
+	* graphite.h (debug_value): Declared.
+
+2009-01-08  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/37194
+	* tree-vect-transform.c (vect_estimate_min_profitable_iters):
+	Don't add the cost of cost model guard in prologue to scalar 
+	outside cost in case of known number of iterations.
+
+2009-01-07  Nathan Froyd  <froydnj@codesourcery.com>
+	    Alan Modra  <amodra@bigpond.net.au>
+
+	* config/rs6000/rs6000.c (rs6000_legitimize_address): Check for
+	non-word-aligned REG+CONST addressing.
+
+2009-01-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/38706
+	* config/alpha/alpha.c (alpha_end_function): For TARGET_ABI_OSF, call
+	free_after_compilation when outputting a thunk.
+	(alpha_output_mi_thunk_osf): Assert that we are processing a thunk.
+	Do not call free_after_compilation here.
+
+2009-01-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_target_string): Use ARRAY_SIZE.
+	(ix86_valid_target_attribute_inner_p): Ditto.
+
 2009-01-07  Jan Sjodin  <jan.sjodin@amd.com>
 
 	PR tree-optimization/38492
@@ -94,7 +802,7 @@
 2009-01-06  Jan Hubicka  <jh@suse.cz>
 
 	PR target/38744
-	* i386.c (ix86_expand_call): Use ARRAY_SIZE
+	* config/i386/i386.c (ix86_expand_call): Use ARRAY_SIZE.
 
 2009-01-06  Gerald Pfeifer  <gerald@pfeifer.com>
 
@@ -104,20 +812,21 @@
 2009-01-06  Jan Hubicka  <jh@suse.cz>
 	    Kai Tietz <kai.tietz@onevision.com>
 
-	* i386.md (*msabi_syvabi): Add SSE regs clobbers.
-	* i386.c (ix86_expand_call): Add clobbers.
+	* config/i386/i386.md (*msabi_syvabi): Add SSE regs clobbers.
+	* config/i386/i386.c (ix86_expand_call): Add clobbers.
 
 2009-01-06  Jan Hubicka  <jh@suse.cz>
 	    Kai Tietz <kai.tietz@onevision.com>
 
-	* i386.h (CONDITIONAL_CALL_USAGE): SSE regs are not used for w64 ABI.
-	* i386.c (struct ix86_frame): Add padding0 and nsseregs.
+	* config/i386/i386.h (CONDITIONAL_CALL_USAGE): SSE regs are not used
+	for w64 ABI.
+	* config/i386/i386.c (struct ix86_frame): Add padding0 and nsseregs.
 	(ix86_nsaved_regs): Count only general purpose regs.
 	(ix86_nsaved_sseregs): New.
 	(ix86_compute_frame_layout): Update nsseregs; set preferred alignment
 	to 16 for w64; compute padding and size of sse reg save area.
-	(ix86_emit_save_regs, ix86_emit_save_regs_using_mov): Save only general
-	purpose regs.
+	(ix86_emit_save_regs, ix86_emit_save_regs_using_mov): Save only
+	general purpose regs.
 	(ix86_emit_save_sse_regs_using_mov): New.
 	(ix86_expand_prologue): Save SSE regs if needed.
 	(ix86_emit_restore_regs_using_mov): Use only general purpose regs.
@@ -127,9 +836,9 @@
 2009-01-06  Jan Hubicka  <jh@suse.cz>
 	    Kai Tietz <kai.tietz@onevision.com>
 
-	* i386.h (ACCUMULATE_OUTGOING_ARGS): Enable for MSABI
-	* i386.c (init_cumulative_args): Disallow calls of MSABI functions when
-	accumulate outgoing args is off.
+	* config/i386/i386.h (ACCUMULATE_OUTGOING_ARGS): Enable for MSABI
+	* config/i386/i386.c (init_cumulative_args): Disallow calls of MSABI
+	functions when accumulate outgoing args is off.
 
 2009-01-06  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -182,8 +891,7 @@
 	(ira_build_conflicts): Use ira_conflicts_p.  Check result of
 	building conflict table.
 
-	* ira-color.c (fast_allocation): Use num instead of
-	ira_allocnos_num.
+	* ira-color.c (fast_allocation): Use num instead of ira_allocnos_num.
 	(ira_color): Use ira_conflicts_p.
 	
 	* global.c: Include ira.h.
@@ -208,8 +916,7 @@
 
 	* reload1.c (compute_use_by_pseudos, reload, count_pseudo,
 	count_spilled_pseudo, find_reg, alter_reg, finish_spills,
-	emit_input_reload_insns, delete_output_reload): Use
-	ira_conflicts_p.
+	emit_input_reload_insns, delete_output_reload): Use ira_conflicts_p.
 	
 2009-01-06  Ben Elliston  <bje@au.ibm.com>
 
@@ -225,9 +932,9 @@
 
 	PR tree-optimization/38492
 	* graphite.c (rename_map_elt, debug_rename_elt,
-        debug_rename_map_1, debug_rename_map, new_rename_map_elt,
-        rename_map_elt_info, eq_rename_map_elts,
-        get_new_name_from_old_name, bb_in_sese_p): Moved around.
+	debug_rename_map_1, debug_rename_map, new_rename_map_elt,
+	rename_map_elt_info, eq_rename_map_elts,
+	get_new_name_from_old_name, bb_in_sese_p): Moved around.
 	(sese_find_uses_to_rename_use): Renamed sese_build_livein_liveouts_use.
 	(sese_find_uses_to_rename_bb): Renamed sese_build_livein_liveouts_bb.
 	(sese_build_livein_liveouts): New.
@@ -247,7 +954,7 @@
 	(gloog): Call scop_adjust_phis_for_liveouts.
 
 	* graphite.h (struct sese): Documented.  Added fields liveout,
-        num_ver and livein.
+	num_ver and livein.
 	(SESE_LIVEOUT, SESE_LIVEIN, SESE_LIVEIN_VER, SESE_NUM_VER): New.
 	(new_sese, free_sese, sese_build_livein_liveouts): Declared.
 	(struct scop): Added field liveout_renames.
@@ -338,7 +1045,7 @@
 	* config/mips/sync.md (memory_barrier): Redefine as expander pattern.
 	Remove mem:BLK from insn operands.  Use Pmode scratch register.
 	Set volatile flag on operand 0.
-	(*memory_barrier): New insn pattern.
+	(*mb_internal): New insn pattern.
 
 	* config/alpha/sync.md (*memory_barrier): Rename from *mb_internal.
 

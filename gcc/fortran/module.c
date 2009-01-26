@@ -1,6 +1,6 @@
 /* Handle modules, which amounts to loading and saving symbols and
    their attendant structures.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -4333,11 +4333,10 @@ free_written_common (struct written_common *w)
 /* Write a common block to the module -- recursive helper function.  */
 
 static void
-write_common_0 (gfc_symtree *st)
+write_common_0 (gfc_symtree *st, bool this_module)
 {
   gfc_common_head *p;
   const char * name;
-  const char * lname;
   int flags;
   const char *label;
   struct written_common *w;
@@ -4346,13 +4345,10 @@ write_common_0 (gfc_symtree *st)
   if (st == NULL)
     return;
 
-  write_common_0 (st->left);
+  write_common_0 (st->left, this_module);
 
   /* We will write out the binding label, or the name if no label given.  */
   name = st->n.common->name;
-
-  /* Use the symtree(local)name to check if the common has been written.  */ 
-  lname = st->name;
   p = st->n.common;
   label = p->is_bind_c ? p->binding_label : p->name;
 
@@ -4360,13 +4356,16 @@ write_common_0 (gfc_symtree *st)
   w = written_commons;
   while (w)
     {
-      int c = strcmp (lname, w->name);
+      int c = strcmp (name, w->name);
       c = (c != 0 ? c : strcmp (label, w->label));
       if (c == 0)
 	write_me = false;
 
       w = (c < 0) ? w->left : w->right;
     }
+
+  if (this_module && p->use_assoc)
+    write_me = false;
 
   if (write_me)
     {
@@ -4388,12 +4387,12 @@ write_common_0 (gfc_symtree *st)
 
       /* Record that we have written this common.  */
       w = XCNEW (struct written_common);
-      w->name = lname;
+      w->name = p->name;
       w->label = label;
       gfc_insert_bbt (&written_commons, w, compare_written_commons);
     }
 
-  write_common_0 (st->right);
+  write_common_0 (st->right, this_module);
 }
 
 
@@ -4404,7 +4403,8 @@ static void
 write_common (gfc_symtree *st)
 {
   written_commons = NULL;
-  write_common_0 (st);
+  write_common_0 (st, true);
+  write_common_0 (st, false);
   free_written_common (written_commons);
   written_commons = NULL;
 }

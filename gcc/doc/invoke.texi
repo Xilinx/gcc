@@ -249,7 +249,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wmissing-format-attribute  -Wmissing-include-dirs @gol
 -Wmissing-noreturn  -Wno-mudflap @gol
 -Wno-multichar  -Wnonnull  -Wno-overflow @gol
--Woverlength-strings  -Wpacked  -Wpadded @gol
+-Woverlength-strings  -Wpacked  -Wpacked-bitfield-compat  -Wpadded @gol
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
 -Wredundant-decls @gol
@@ -1387,14 +1387,14 @@ is currently only supported when compiling C or C++.
 
 The compiler can accept several base standards, such as @samp{c89} or
 @samp{c++98}, and GNU dialects of those standards, such as
-@samp{gnu89} or @samp{gnu++98}.  By specifing a base standard, the
+@samp{gnu89} or @samp{gnu++98}.  By specifying a base standard, the
 compiler will accept all programs following that standard and those
 using GNU extensions that do not contradict it.  For example,
 @samp{-std=c89} turns off certain features of GCC that are
 incompatible with ISO C90, such as the @code{asm} and @code{typeof}
 keywords, but not other GNU extensions that do not have a meaning in
 ISO C90, such as omitting the middle term of a @code{?:}
-expression. On the other hand, by specifing a GNU dialect of a
+expression. On the other hand, by specifying a GNU dialect of a
 standard, all features the compiler support are enabled, even when
 those features change the meaning of the base standard and some
 strict-conforming programs may be rejected.  The particular standard
@@ -3974,6 +3974,27 @@ struct bar @{
 @end group
 @end smallexample
 
+@item -Wpacked-bitfield-compat
+@opindex Wpacked-bitfield-compat
+@opindex Wno-packed-bitfield-compat
+The 4.1, 4.2 and 4.3 series of GCC ignore the @code{packed} attribute
+on bit-fields of type @code{char}.  This has been fixed in GCC 4.4 but
+the change can lead to differences in the structure layout.  GCC
+informs you when the offset of such a field has changed in GCC 4.4.
+For example there is no longer a 4-bit padding between field @code{a}
+and @code{b} in this structure:
+
+@smallexample
+struct foo
+@{
+  char a:4;
+  char b:8;
+@} __attribute__ ((packed));
+@end smallexample
+
+This warning is enabled by default.  Use
+@option{-Wno-packed-bitfield-compat} to disable this warning.
+
 @item -Wpadded
 @opindex Wpadded
 @opindex Wno-padded
@@ -5468,8 +5489,9 @@ Attempt to merge identical constants and identical variables.
 This option implies @option{-fmerge-constants}.  In addition to
 @option{-fmerge-constants} this considers e.g.@: even constant initialized
 arrays or initialized constant variables with integral or floating point
-types.  Languages like C or C++ require each non-automatic variable to
-have distinct location, so using this option will result in non-conforming
+types.  Languages like C or C++ require each variable, including multiple
+instances of the same variable in recursive calls, to have distinct locations,
+so using this option will result in non-conforming
 behavior.
 
 @item -fmodulo-sched
@@ -6612,7 +6634,7 @@ compiling and when linking your program.
 The following options are enabled: @code{-fprofile-arcs}, @code{-fprofile-values}, @code{-fvpt}.
 
 If @var{path} is specified, GCC will look at the @var{path} to find
-the profile feeedback data files. See @option{-fprofile-dir}.
+the profile feedback data files. See @option{-fprofile-dir}.
 
 @item -fprofile-use
 @itemx -fprofile-use=@var{path}
@@ -7608,8 +7630,8 @@ optimizing at @option{-O3} and above.  For some sorts of source code
 the enhanced partial redundancy elimination optimization can run away,
 consuming all of the memory available on the host machine.  This
 parameter sets a limit on the length of the sets that are computed,
-which prevents the runaway behaviour.  Setting a value of 0 for
-this paramter will allow an unlimited set length.
+which prevents the runaway behavior.  Setting a value of 0 for
+this parameter will allow an unlimited set length.
 
 @item sccvn-max-scc-size
 Maximum size of a strongly connected component (SCC) during SCCVN
@@ -8880,8 +8902,11 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm620}, @samp{arm7}, @samp{arm7m}, @samp{arm7d}, @samp{arm7dm},
 @samp{arm7di}, @samp{arm7dmi}, @samp{arm70}, @samp{arm700},
 @samp{arm700i}, @samp{arm710}, @samp{arm710c}, @samp{arm7100},
+@samp{arm720},
 @samp{arm7500}, @samp{arm7500fe}, @samp{arm7tdmi}, @samp{arm7tdmi-s},
-@samp{arm8}, @samp{strongarm}, @samp{strongarm110}, @samp{strongarm1100},
+@samp{arm710t}, @samp{arm720t}, @samp{arm740t},
+@samp{strongarm}, @samp{strongarm110}, @samp{strongarm1100},
+@samp{strongarm1110},
 @samp{arm8}, @samp{arm810}, @samp{arm9}, @samp{arm9e}, @samp{arm920},
 @samp{arm920t}, @samp{arm922t}, @samp{arm946e-s}, @samp{arm966e-s},
 @samp{arm968e-s}, @samp{arm926ej-s}, @samp{arm940t}, @samp{arm9tdmi},
@@ -8889,9 +8914,10 @@ assembly code.  Permissible names are: @samp{arm2}, @samp{arm250},
 @samp{arm10e}, @samp{arm1020e}, @samp{arm1022e},
 @samp{arm1136j-s}, @samp{arm1136jf-s}, @samp{mpcore}, @samp{mpcorenovfp},
 @samp{arm1156t2-s}, @samp{arm1176jz-s}, @samp{arm1176jzf-s},
-@samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-r4f}, @samp{cortex-m3},
+@samp{cortex-a8}, @samp{cortex-a9},
+@samp{cortex-r4}, @samp{cortex-r4f}, @samp{cortex-m3},
 @samp{cortex-m1},
-@samp{xscale}, @samp{iwmmxt}, @samp{ep9312}.
+@samp{xscale}, @samp{iwmmxt}, @samp{iwmmxt2}, @samp{ep9312}.
 
 @item -mtune=@var{name}
 @opindex mtune
@@ -8911,10 +8937,11 @@ name to determine what kind of instructions it can emit when generating
 assembly code.  This option can be used in conjunction with or instead
 of the @option{-mcpu=} option.  Permissible names are: @samp{armv2},
 @samp{armv2a}, @samp{armv3}, @samp{armv3m}, @samp{armv4}, @samp{armv4t},
-@samp{armv5}, @samp{armv5t}, @samp{armv5te}, @samp{armv6}, @samp{armv6j},
+@samp{armv5}, @samp{armv5t}, @samp{armv5e}, @samp{armv5te},
+@samp{armv6}, @samp{armv6j},
 @samp{armv6t2}, @samp{armv6z}, @samp{armv6zk}, @samp{armv6-m},
 @samp{armv7}, @samp{armv7-a}, @samp{armv7-r}, @samp{armv7-m},
-@samp{iwmmxt}, @samp{ep9312}.
+@samp{iwmmxt}, @samp{iwmmxt2}, @samp{ep9312}.
 
 @item -mfpu=@var{name}
 @itemx -mfpe=@var{number}
@@ -9079,7 +9106,7 @@ best available method for the selected processor.  The default setting is
 Only generate absolute relocations on word sized values (i.e. R_ARM_ABS32).
 This is enabled by default on targets (uClinux, SymbianOS) where the runtime
 loader imposes this restriction, and when @option{-fpic} or @option{-fPIC}
-is speficied.
+is specified.
 
 @end table
 
@@ -13319,7 +13346,7 @@ Disables warnings about the generation of inefficient code.  These
 warnings can be generated, for example, when compiling code which
 performs byte-level memory operations on the MAC AE type.  The MAC AE has
 no hardware support for byte-level memory operations, so all byte
-load/stores must be synthesised from word load/store operations.  This is
+load/stores must be synthesized from word load/store operations.  This is
 inefficient and a warning will be generated indicating to the programmer
 that they should rewrite the code to avoid byte operations, or to target
 an AE type which has the necessary hardware support.  This option enables
