@@ -365,6 +365,13 @@
 	     ;; a tuple similar to the class's fields
 	     ntinst_fieldlocs		;the tuple of field locals or nil
 	     ))
+
+;;;;;;;;;;;;;;;;
+(defclass class_nrep_match
+  :super class_nrep_typexpr
+  :fields (nmatch_binds			;sequence of bindings
+	   nmatch_tests			;sequence of tests
+	   ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1042,9 +1049,17 @@
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
        (debug_msg testlist "normexp_match testlist")
-       (assert_msg "unimplemented yet normexp_match" ())
-       (compile_warning "@@unimplemented normexp_match" ())
-       ))))
+       (let ( (nmatch (instance class_nrep_match
+				:nrep_loc sloc
+				:nmatch_binds bindlist
+				:nmatch_tests (list_to_multiple testlist)
+				))
+	     )
+	 (debug_msg nmatch "normexp_match nmatch")
+	 (compile_warning "@@unimplemented normexp_match" ())
+	 (error_plain sloc "@@ UNIMPLEMENTED match [normexp_match]")
+	 (return nmatch)
+       )))))
 
 
 (install_method class_src_match normal_exp normexp_match)
@@ -1054,6 +1069,12 @@
 ;;;; export our classes
 (export_class
  class_patterncontext
+ class_normtester_any
+ class_normtester_success
+ class_normtester_same
+ class_normtester_matcher
+ class_normtester_instance
+ class_nrep_match
  )
 
 ;;; export our values

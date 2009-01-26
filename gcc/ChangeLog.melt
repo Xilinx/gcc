@@ -1,3 +1,6 @@
+2009-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: exported more classes, defined
+	class_nrep_match, still incomplete.
 2009-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	[bug corrected; class objects should have the good objnum when
 	created]
