@@ -1,3 +1,8 @@
+2009-01-26  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (debug_value): Removed.
+	* graphite.h (debug_value): Removed.
+
 2009-01-23  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* passes.c (init_optimization_passes): Do not call pass_copy_prop
