@@ -484,7 +484,6 @@ special_function_p (const_tree fndecl, int flags)
 	{
 	case BUILT_IN_TM_COMMIT:
 	case BUILT_IN_TM_ABORT:
-	case BUILT_IN_TM_RETRY:
 	case BUILT_IN_TM_IRREVOKABLE:
 	case BUILT_IN_TM_MEMCPY:
 	case BUILT_IN_TM_MEMMOVE:

@@ -1,3 +1,19 @@
+2009-01-27  Richard Henderson  <rth@redhat.com>
+
+	* c-common.h (RID_TM_RETRY): Remove.
+	* c-common.c (c_common_resword): Remove RID_TM_RETRY.
+	* c-parser.c (c_parser_tm_abort): Rename from c_parser_tm_abort_retry.
+	(c_parser_statement_after_labels): Remove RID_TM_RETRY.
+	* calls.c (special_function_p): Remove BUILT_IN_TM_RETRY.
+	* gtm-builtins.def: Rename all functions to match the Intel ABI.
+	* trans-mem.c (PR_*, A_*, AR_*, MODE_*): New define constants
+	from the Intel ABI.
+	(is_tm_ending_fndecl): Remove BUILT_IN_TM_RETRY.
+	(build_tm_abort_call): New.
+	(TM_START_RESTORE_LIVE_IN, TM_START_ABORT): Remove.
+	(expand_tm_atomic): Update for library changes.
+	* tree.h (build_tm_abort_call): Declare.
+
 2008-11-13  Richard Henderson  <rth@redhat.com>
 
 	* cgraphunit.c (cgraph_function_versioning): Copy assembler name

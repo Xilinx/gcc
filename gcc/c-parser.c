@@ -916,7 +916,7 @@ static struct c_expr c_parser_postfix_expression_after_paren_type (c_parser *,
 static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								struct c_expr);
 static tree c_parser_tm_atomic (c_parser *);
-static tree c_parser_tm_abort_retry (c_parser *);
+static tree c_parser_tm_abort (c_parser *);
 static struct c_expr c_parser_expression (c_parser *);
 static struct c_expr c_parser_expression_conv (c_parser *);
 static tree c_parser_expr_list (c_parser *, bool);
@@ -3737,8 +3737,7 @@ c_parser_statement_after_labels (c_parser *parser)
 	  stmt = c_parser_tm_atomic (parser);
 	  break;
 	case RID_TM_ABORT:
-	case RID_TM_RETRY:
-	  stmt = c_parser_tm_abort_retry (parser);
+	  stmt = c_parser_tm_abort (parser);
 	  goto expect_semicolon;
 	case RID_THROW:
 	  gcc_assert (c_dialect_objc ());
@@ -8258,40 +8257,28 @@ c_parser_tm_atomic (c_parser *parser)
   return stmt;
 }
 
-/* Parse a __tm_abort or __tm_retry statement (GCC Extension).
+/* Parse a __tm_abort statement (GCC Extension).
 
    tm-atomic-statement:
      __tm_atomic;
-   tm-retry-statement:
-     __tm_retry;
 */
 
 static tree
-c_parser_tm_abort_retry (c_parser *parser)
+c_parser_tm_abort (c_parser *parser)
 {
-  enum built_in_function code;
-
-  if (c_parser_next_token_is_keyword (parser, RID_TM_ABORT))
-    code = BUILT_IN_TM_ABORT;
-  else if (c_parser_next_token_is_keyword (parser, RID_TM_RETRY))
-    code = BUILT_IN_TM_RETRY;
-  else
-    gcc_unreachable ();
+  gcc_assert (c_parser_next_token_is_keyword (parser, RID_TM_ABORT));
 
   if (!parser->in_tm_atomic)
     {
       location_t here = c_parser_peek_token (parser)->location;
-      if (code == BUILT_IN_TM_ABORT)
-        error_at (here, "%<__tm_abort%> not within %<__tm_atomic%>");
-      else
-        error_at (here, "%<__tm_retry%> not within %<__tm_atomic%>");
+      error_at (here, "%<__tm_abort%> not within %<__tm_atomic%>");
       c_parser_consume_token (parser);
       return error_mark_node;
     }
 
   c_parser_consume_token (parser);
 
-  return add_stmt (build_call_expr (built_in_decls[code], 0));
+  return add_stmt (build_tm_abort_call ());
 }
 
 /* Parse a single source file.  */

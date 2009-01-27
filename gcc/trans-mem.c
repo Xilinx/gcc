@@ -36,6 +36,34 @@
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
 #define PROB_ALWAYS		(REG_BR_PROB_BASE)
 
+/* These defines must match the enumerations in libitm.h.  */
+#define PR_INSTRUMENTEDCODE	0x0001
+#define PR_UNINSTRUMENTEDCODE	0x0002
+#define PR_HASNOXMMUPDATE	0x0004
+#define PR_HASNOABORT		0x0008
+#define PR_HASNOIRREVOKABLE	0x0020
+#define PR_DOESGOIRREVOKABLE	0x0040
+#define PR_HASNOSIMPLEREADS	0x0080
+#define PR_AWBARRIERSOMITTED	0x0100
+#define PR_RARBARRIERSOMITTED	0x0200
+#define PR_UNDOLOGCODE		0x0400
+#define PR_PREFERUNINSTRUMENTED	0x0800
+#define PR_EXCEPTIONBLOCK	0x1000
+#define PR_HASELSE		0x2000
+
+#define A_RUNINSTRUMENTEDCODE	0x0001
+#define A_RUNUNINSTRUMENTEDCODE	0x0002
+#define A_SAVELIVEVARIABLES	0x0004
+#define A_RESTORELIVEVARIABLES	0x0008
+#define A_ABORTTRANSACTION	0x0010
+
+#define AR_USERABORT		0x0001
+#define AR_USERRETRY		0x0002
+#define AR_TMCONFLICT		0x0004
+#define AR_EXCEPTIONBLOCKABORT	0x0008
+
+#define MODE_SERIALIRREVOCABLE	0x0001
+
 
 /* The representation of a transaction changes several times during the
    lowering process.  In the beginning, in the front-end we have the
@@ -223,7 +251,6 @@ is_tm_ending_fndecl (tree fndecl)
       {
       case BUILT_IN_TM_COMMIT:
       case BUILT_IN_TM_ABORT:
-      case BUILT_IN_TM_RETRY:
       case BUILT_IN_TM_IRREVOKABLE:
 	return true;
       default:
@@ -255,6 +282,15 @@ find_tm_replacement_function (tree fndecl)
   return NULL;
 }
 
+/* Build a GENERIC tree for a user abort.  This is called by front ends
+   while transforming the __tm_abort statement.  */
+
+tree
+build_tm_abort_call (void)
+{
+  return build_call_expr (built_in_decls[BUILT_IN_TM_ABORT], 1,
+			  build_int_cst (integer_type_node, AR_USERABORT));
+}
 
 static void lower_sequence_tm (unsigned *, gimple_seq);
 static void lower_sequence_no_tm (gimple_seq);
@@ -1052,10 +1088,6 @@ expand_block_edges (struct tm_region *region, basic_block bb)
     }
 }
 
-/* ??? Find real values for these bits.  */
-#define TM_START_RESTORE_LIVE_IN	1
-#define TM_START_ABORT			2
-
 static void
 expand_tm_atomic (struct tm_region *region)
 {
@@ -1064,14 +1096,21 @@ expand_tm_atomic (struct tm_region *region)
   gimple_stmt_iterator gsi;
   tree t1, t2;
   gimple g;
+  int flags, subcode;
 
   mark_vops_in_stmt (region->tm_atomic_stmt);
 
   tm_start = built_in_decls[BUILT_IN_TM_START];
   status = make_rename_temp (TREE_TYPE (TREE_TYPE (tm_start)), "tm_state");
 
-  /* ??? Need to put the real input to __tm_start here.  */
-  t2 = build_int_cst (TREE_TYPE (status), 0);
+  /* ??? There are plenty of bits here we're not computing.  */
+  subcode = gimple_tm_atomic_subcode (region->tm_atomic_stmt);
+  flags = PR_INSTRUMENTEDCODE;
+  if ((subcode & GTMA_HAVE_ABORT) == 0)
+    flags |= PR_HASNOABORT;
+  if (subcode & GTMA_MUST_CALL_IRREVOKABLE)
+    flags |= PR_DOESGOIRREVOKABLE;
+  t2 = build_int_cst (TREE_TYPE (status), flags);
   g = gimple_build_call (tm_start, 1, t2);
   gimple_call_set_lhs (g, status);
 
@@ -1091,7 +1130,7 @@ expand_tm_atomic (struct tm_region *region)
       gsi = gsi_last_bb (test_bb);
 
       t1 = make_rename_temp (TREE_TYPE (status), NULL);
-      t2 = build_int_cst (TREE_TYPE (status), TM_START_ABORT);
+      t2 = build_int_cst (TREE_TYPE (status), A_ABORTTRANSACTION);
       g = gimple_build_assign_with_ops (BIT_AND_EXPR, t1, status, t2);
       gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
 

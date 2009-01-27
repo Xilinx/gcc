@@ -4182,12 +4182,6 @@ extern tree remove_attribute (const char *, tree);
 
 extern tree merge_attributes (tree, tree);
 
-/* Return true if X is marked TM_PURE.  */
-extern bool is_tm_pure (tree);
-
-/* Return true if X is marked TM_CALLABLE.  */
-extern bool is_tm_callable (tree);
-
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
 /* Given two Windows decl attributes lists, possibly including
    dllimport, return a list of their union .  */
@@ -5258,6 +5252,11 @@ extern unsigned HOST_WIDE_INT compute_builtin_object_size (tree, int);
 
 /* In expr.c.  */
 extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
+
+/* In trans-mem.c.  */
+extern tree build_tm_abort_call (void);
+extern bool is_tm_pure (tree);
+extern bool is_tm_callable (tree);
 
 /* In tree-inline.c.  */
 
