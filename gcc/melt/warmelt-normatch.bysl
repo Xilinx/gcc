@@ -888,7 +888,9 @@
 	     (assert_msg "check no binding" (null nbindmatx))
 	     (setq nbindmatx (list1 cbind))
 	     (setq nmatx clocc)
-	     (inform_plain sloc "matched thing is constant")))
+	     ))
+       ;; if no binding list, make an empty one
+       (if (null nbindmatx) (setq nbindmatx (make_list discr_list)))
        (foreach_in_multiple
 	(scases)
 	(curcas :long ix)
@@ -1032,6 +1034,10 @@
 			     )
 		 (cond ( (null wholectype)
 			 (setq wholectype lastctype))
+		       ( (== lastctype ctype_void)
+			 (setq wholectype ctype_void))
+		       ( (== wholectype ctype_void)
+			 ())
 		       ( (!= wholectype lastctype)
 			 (error_strv curloc "invalid type of match case" 
 				     (get_field :named_name lastctype))
@@ -1049,16 +1055,41 @@
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
        (debug_msg testlist "normexp_match testlist")
-       (let ( (nmatch (instance class_nrep_match
+       (let ( 
+	     (teststupl (list_to_multiple testlist)) 
+	     (nmatch (instance class_nrep_match
 				:nrep_loc sloc
+				:nexpr_ctyp wholectype
 				:nmatch_binds bindlist
-				:nmatch_tests (list_to_multiple testlist)
+				:nmatch_tests teststupl
 				))
+	     (csym (clone_symbol 'match_))
+	     (clocc  (instance  class_nrep_locsymocc
+				:nrep_loc sloc
+				:nocc_ctyp wholectype
+				:nocc_symb csym)) 
+	     (cbind (instance class_normlet_binding
+			      :letbind_loc sloc
+			      :binder csym
+			      :letbind_type wholectype
+			      :letbind_expr nmatch))
 	     )
+	 ;; put the index of each test 
+	 (foreach_in_multiple
+	  (teststupl)
+	  (curtest :long ix)
+	  (put_int curtest ix)
+	  )
+	 (unsafe_put_fields clocc :nocc_bind cbind)
+	 (debug_msg nbindmatx "normexp_match before append nbindmatx")
+	 (assert_msg "check nbindmatx" (is_list nbindmatx))
+	 (list_append nbindmatx cbind)
 	 (debug_msg nmatch "normexp_match nmatch")
+	 (debug_msg cbind "normexp_match cbind")
+	 (debug_msg nbindmatx "normexp_match final nbindmatx")
 	 (compile_warning "@@unimplemented normexp_match" ())
 	 (error_plain sloc "@@ UNIMPLEMENTED match [normexp_match]")
-	 (return nmatch)
+	 (return clocc nbindmatx)
        )))))
 
 

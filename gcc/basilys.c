@@ -4474,21 +4474,22 @@ basilys_apply (basilysclosure_ptr_t clos_p,
   appldepth_basilys++;
   if (appldepth_basilys > MAXDEPTH_APPLY_BASILYS)
     {
-      basilys_dbgshortbacktrace ("too deep applications", 100);
+      basilys_dbgshortbacktrace ("too deep applications", 200);
       fatal_error ("too deep (%d) basilys applications", appldepth_basilys);
     }
 #endif
   memset (&ufun, 0, sizeof (ufun));
   if (basilys_magic_discr ((basilys_ptr_t) clos_p) != OBMAG_CLOSURE)
-    return NULL;
+    goto end;
   if (basilys_magic_discr ((basilys_ptr_t) (clos_p->rout)) !=
       OBMAG_ROUTINE || !clos_p->rout->routaddr)
-    return NULL;
+    goto end;
   memcpy (&ufun.funad, clos_p->rout->routaddr,
 	  sizeof (clos_p->rout->routaddr));
   gcc_assert (ufun.pfun);
   res =
     (*ufun.pfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
+ end:
 #if ENABLE_CHECKING
   appldepth_basilys--;
 #endif

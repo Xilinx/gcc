@@ -29,9 +29,6 @@
 ;;    compile itself (into generated C file[s])
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(assert_msg "check class_symbol" (is_a class_symbol class_class))
-(debug_msg class_symbol "start of warmelt-normal class_symbol")
-(debug_msg install_initial_macro "at start of warmelt-normal Install_Initial_Macro")
 
 ;;;; ================ normalized representations
 
@@ -805,11 +802,11 @@
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-					; (debug_msg comp "normalize_tuple comp")
+		 ;; (debug_msg comp "normalize_tuple comp")
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
-					; (debug_msg norcomp "normalize_tuple norcomp")
+		  ;(debug_msg norcomp "normalize_tuple norcomp")
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expr))
 		  (if (is_list nbinds)

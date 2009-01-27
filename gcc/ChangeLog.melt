@@ -1,3 +1,8 @@
+2009-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilys_apply): always decrement depth, even when
+	applying non closure...
+	* melt/warmelt-normal.bysl: added debug msg.
+	* melt/warmelt-normatch.bysl: making a normal match...
 2009-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: exported more classes, defined
 	class_nrep_match, still incomplete.
