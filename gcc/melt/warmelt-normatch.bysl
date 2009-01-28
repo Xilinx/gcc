@@ -323,12 +323,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; basically, compile all the tests in sequence, and add gotos...
-(compile_warning "each creation of a test should update pctn_tests" ())
-
 ;; all the testers share a common superclass
 (defclass class_normtester_any 
-  :super class_nrep_typexpr	;inherit fields: nrep_loc & nexpr_ctyp
+  :super class_nrep_expr	;inherit fields: nrep_loc
   :fields (ntest_match		;normal matched thing
 	   ntest_then		;tester to run if successful
 	   ntest_else		;tester to run if failed
@@ -371,6 +368,7 @@
   :super class_nrep_typexpr
   :fields (nmatch_binds			;sequence of bindings
 	   nmatch_tests			;sequence of tests
+	   nmatch_res			;result occ
 	   ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -470,7 +468,6 @@
 	    (:else
 	     (let ( (newtester (instance class_normtester_same
 					 :nrep_loc sloc
-					 :nexpr_ctyp (get_field :nocc_ctyp lococc)
 					 :ntest_match nmatch
 					 :ntest_then ()
 					 :ntest_else ()
@@ -566,7 +563,6 @@
 	     (newtester 
 	      (instance class_normtester_instance
 			:nrep_loc sloc
-			:nexpr_ctyp ctype_value
 			:ntest_match nmatch
 			:ntest_then ()
 			:ntest_else ()
@@ -782,7 +778,6 @@
 		    (newtester 
 		     (instance class_normtester_matcher
 			       :nrep_loc sloc
-			       :nexpr_ctyp matchctype
 			       :ntest_match nmatch
 			       :ntest_then ()
 			       :ntest_else ()
@@ -934,9 +929,6 @@
 		 (newsuctester
 		  (instance class_normtester_success
 			    :nrep_loc curloc
-			    ;; the ctype is really the ctype of the
-			    ;; action part of the match case; will be filled later
-			    :nexpr_ctyp ()
 			    ;; we really don't match anything
 			    :ntest_match ()
 			    :ntest_then ()
@@ -1030,7 +1022,6 @@
 			     (subclass_of class_normtester_success class_nrep_typexpr))
 		 (put_fields newsuctester 
 			     :ntsuccess_do wnlet
-			     :nexpr_ctyp lastctype
 			     )
 		 (cond ( (null wholectype)
 			 (setq wholectype lastctype))
@@ -1074,11 +1065,17 @@
 			      :letbind_type wholectype
 			      :letbind_expr nmatch))
 	     )
+	 (put_fields clocc :nocc_bind cbind)
+	 (put_fields nmatch :nmatch_res clocc)
 	 ;; put the index of each test 
 	 (foreach_in_multiple
 	  (teststupl)
-	  (curtest :long ix)
-	  (put_int curtest ix)
+	  (curtest :long tstix)
+	  (assert_msg "check curtest" (is_object curtest))
+	  (assert_msg "check tstix" (>=i tstix 0))
+	  (messagenum_dbg "normexp_match testindex tstix" tstix)
+	  (put_int curtest tstix)
+	  (debug_msg curtest "normexp_match indexed curtest")
 	  )
 	 (unsafe_put_fields clocc :nocc_bind cbind)
 	 (debug_msg nbindmatx "normexp_match before append nbindmatx")

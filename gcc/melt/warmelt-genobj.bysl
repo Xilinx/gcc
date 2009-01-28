@@ -2795,6 +2795,7 @@
   :obpredef 'DISCR_CLOSURE
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_lambda (nlam gcx)
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check nlam" (is_a nlam class_nrep_lambda))
@@ -3709,7 +3710,20 @@
 (debug_msg class_symbol "at end of warmelt-genobj Class_Symbol")
 (debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-genobj predefined Class_Symbol")
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compilation of matches
+(defun compilobj_nrep_match (nmat gcx)
+  (assert_msg "check nmat" (is_a nmat class_nrep_match))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (debug_msg nmat "compilobj_nrep_match nmat")
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nmat))
+	)
+    (compile_warning "unimplemented compilobj_nrep_match" ())
+    (assert_msg "@@unimplemented compilobj_nrep_match" ())
+))
+(install_method class_nrep_match compile_obj compilobj_nrep_match)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

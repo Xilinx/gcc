@@ -1,3 +1,8 @@
+2009-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.bysl: added stub for compilation of normal
+	matches.
+	* melt/warmelt-normatch.bysl: normtester-s are not typed anymore.
+	class_nrep_match has nmatch_res field, suitably filled.
 2009-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilys_apply): always decrement depth, even when
 	applying non closure...
