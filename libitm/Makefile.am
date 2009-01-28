@@ -20,6 +20,8 @@ AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 
 CCAS = $(CC)
 CCASFLAGS = $(CFLAGS)
+LTCCASCOMPILE = $(LIBTOOL) --mode=compile --tag=CC $(CCAS) \
+	$(AM_CCASFLAGS) $(CCASFLAGS)
 
 toolexeclib_LTLIBRARIES = libitm.la
 nodist_toolexeclib_HEADERS = libitm.spec
@@ -34,4 +36,5 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
 libitm_la_SOURCES = beginend.c dispatch.c local.c query.c retry.c \
-	rwlock.c serial.c sjlj.S useraction.c futex.c
+	rwlock.c serial.c sjlj.S useraction.c futex.c \
+	method-wbetl.c

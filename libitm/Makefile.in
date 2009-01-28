@@ -44,7 +44,7 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/../config.guess \
 	$(srcdir)/../missing $(srcdir)/../mkinstalldirs \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(srcdir)/libitm.spec.in \
-	$(top_srcdir)/configure
+	$(top_srcdir)/configure ChangeLog
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
@@ -79,14 +79,13 @@ toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
 am_libitm_la_OBJECTS = beginend.lo dispatch.lo local.lo query.lo \
-	retry.lo rwlock.lo serial.lo sjlj.lo useraction.lo futex.lo
+	retry.lo rwlock.lo serial.lo sjlj.lo useraction.lo futex.lo \
+	method-wbetl.lo
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
 am__depfiles_maybe = depfiles
 CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
-LTCCASCOMPILE = $(LIBTOOL) --mode=compile $(CCAS) $(AM_CCASFLAGS) \
-	$(CCASFLAGS)
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
@@ -270,6 +269,9 @@ AM_CFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 CCAS = $(CC)
 CCASFLAGS = $(CFLAGS)
+LTCCASCOMPILE = $(LIBTOOL) --mode=compile --tag=CC $(CCAS) \
+	$(AM_CCASFLAGS) $(CCASFLAGS)
+
 toolexeclib_LTLIBRARIES = libitm.la
 nodist_toolexeclib_HEADERS = libitm.spec
 @LIBITM_BUILD_VERSIONED_SHLIB_FALSE@libitm_version_script = 
@@ -279,7 +281,8 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
 libitm_la_SOURCES = beginend.c dispatch.c local.c query.c retry.c \
-	rwlock.c serial.c sjlj.S useraction.c futex.c
+	rwlock.c serial.c sjlj.S useraction.c futex.c \
+	method-wbetl.c
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -378,6 +381,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/futex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-wbetl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/query.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/retry.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rwlock.Plo@am__quote@

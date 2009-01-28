@@ -1,4 +1,4 @@
-/* Copyright (C) 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -8,7 +8,7 @@
    the Free Software Foundation; either version 2.1 of the License, or
    (at your option) any later version.
 
-   Libgomp is distributed in the hope that it will be useful, but WITHOUT ANY
+   Libitm is distributed in the hope that it will be useful, but WITHOUT ANY
    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
    FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
    more details.
@@ -25,19 +25,22 @@
    any other reasons why the executable file might be covered by the GNU
    General Public License.  */
 
-#include "libitm.h"
-
-
-void REGPARM
-GTM_decide_retry_strategy (enum restart_reason r)
+struct gtm_jmpbuf
 {
-  struct gtm_transaction *tx = gtm_thr.tx;
+  unsigned long pc;
+  unsigned long s[7];
+  unsigned long cfa;
+  unsigned long f[8];
+};
 
-  tx->restarts[r + 1]++;
-  tx->restarts[0]++;
+static inline void
+cpu_relax (void)
+{
+  __asm volatile ("" : : : "memory");
+}
 
-  if (tx->restarts[0] > 100)
-    GTM_serialmode (false);
-  else
-    gtm_thr.disp->init (false);
+static inline void
+atomic_write_barrier (void)
+{
+  __asm volatile ("wmb" : : : "memory");
 }

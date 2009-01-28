@@ -100,6 +100,11 @@ GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 	      ? a_runUninstrumentedCode : a_runInstrumentedCode);
     }
 
+  /* ??? Probably want some environment variable to choose the default
+     STM implementation once we have more than one implemented.  */
+  gtm_thr.disp = &wbetl_dispatch;
+  gtm_thr.disp->init (true);
+
   gtm_rwlock_read_lock (&gtm_serial_lock);
 
   return a_runInstrumentedCode | a_saveLiveVariables;
@@ -115,7 +120,7 @@ GTM_rollback_transaction (void)
 }
 
 void REGPARM
-_ITM_rollbackTransaction (const _ITM_srcLocation * loc UNUSED)
+_ITM_rollbackTransaction (_ITM_SRCLOCATION_DEFN_1)
 {
   assert ((gtm_thr.tx->prop & pr_hasNoAbort) == 0);
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
@@ -125,8 +130,7 @@ _ITM_rollbackTransaction (const _ITM_srcLocation * loc UNUSED)
 }
 
 void REGPARM
-_ITM_abortTransaction (_ITM_abortReason reason,
-		       const _ITM_srcLocation *loc UNUSED)
+_ITM_abortTransaction (_ITM_abortReason reason _ITM_SRCLOCATION_DEFN_2)
 {
   struct gtm_transaction *tx;
 
@@ -135,6 +139,7 @@ _ITM_abortTransaction (_ITM_abortReason reason,
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
 
   GTM_rollback_transaction ();
+  gtm_thr.disp->fini ();
 
   if (gtm_thr.tx->state & STATE_SERIAL)
     gtm_rwlock_write_unlock (&gtm_serial_lock);
@@ -145,7 +150,7 @@ _ITM_abortTransaction (_ITM_abortReason reason,
   gtm_thr.tx = tx->prev;
   free_tx (tx);
 
-  GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables);
+  GTM_longjmp (&tx->jb, a_abortTransaction | a_restoreLiveVariables, tx->prop);
 }
 
 static bool
@@ -162,31 +167,40 @@ GTM_trycommit_transaction (void)
 }
 
 bool REGPARM
-_ITM_tryCommitTransaction (const _ITM_srcLocation *loc UNUSED)
+_ITM_tryCommitTransaction (_ITM_SRCLOCATION_DEFN_1)
 {
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
   return GTM_trycommit_transaction ();
 }
 
-void REGPARM
-_ITM_commitTransaction(const _ITM_srcLocation *loc UNUSED)
+void REGPARM NORETURN
+GTM_restart_transaction (enum restart_reason r)
 {
   struct gtm_transaction *tx = gtm_thr.tx;
   uint32_t actions;
 
-  if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
-    {
-      gtm_thr.tx = tx->prev;
-      free_tx (tx);
-      return;
-    }
-
-  GTM_decide_retry_strategy ();
+  GTM_rollback_transaction ();
+  GTM_decide_retry_strategy (r);
 
   actions = a_runInstrumentedCode | a_restoreLiveVariables;
   if ((tx->prop & (pr_doesGoIrrevocable | pr_uninstrumentedCode))
       == (pr_doesGoIrrevocable | pr_uninstrumentedCode))
     actions = a_runUninstrumentedCode | a_restoreLiveVariables;
 
-  GTM_longjmp (&tx->jb, actions);
+  GTM_longjmp (&tx->jb, actions, tx->prop);
+}
+
+void REGPARM
+_ITM_commitTransaction(_ITM_SRCLOCATION_DEFN_1)
+{
+  struct gtm_transaction *tx = gtm_thr.tx;
+
+  if ((tx->state & STATE_ABORTING) || GTM_trycommit_transaction ())
+    {
+      gtm_thr.disp->fini ();
+      gtm_thr.tx = tx->prev;
+      free_tx (tx);
+    }
+  else
+    GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
 }

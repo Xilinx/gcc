@@ -3,18 +3,18 @@
 
    This file is part of the GNU Transactional Memory Library (libitm).
 
-   Libgomp is free software; you can redistribute it and/or modify it
+   Libitm is free software; you can redistribute it and/or modify it
    under the terms of the GNU Lesser General Public License as published by
    the Free Software Foundation; either version 2.1 of the License, or
    (at your option) any later version.
 
-   Libgomp is distributed in the hope that it will be useful, but WITHOUT ANY
+   Libitm is distributed in the hope that it will be useful, but WITHOUT ANY
    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
    FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
    more details.
 
    You should have received a copy of the GNU Lesser General Public License 
-   along with libgomp; see the file COPYING.LIB.  If not, write to the
+   along with libitm; see the file COPYING.LIB.  If not, write to the
    Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
    MA 02110-1301, USA.  */
 
@@ -82,15 +82,3 @@ sys_futex0 (int *addr, int op, int val)
 
 # endif /* __PIC__ */
 #endif /* __LP64__ */
-
-static inline void
-cpu_relax (void)
-{
-  __asm volatile ("rep; nop" : : : "memory");
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-  __sync_synchronize ();
-}

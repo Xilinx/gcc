@@ -241,5 +241,5 @@ else
 fi
 AC_SUBST(link_itm)
 
-AC_CONFIG_FILES(Makefile libitm.spec)
+AC_CONFIG_FILES(Makefile testsuite/Makefile libitm.spec)
 AC_OUTPUT

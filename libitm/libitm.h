@@ -121,6 +121,19 @@ typedef struct
     const char *psource;
 } _ITM_srcLocation;
 
+/* ??? Under discussion whether we should have these.  */
+#if 0
+# define _ITM_SRCLOCATION_DECL_1	const _ITM_srcLocation *
+# define _ITM_SRCLOCATION_DECL_2	, const _ITM_srcLocation *
+# define _ITM_SRCLOCATION_DEFN_1	const _ITM_srcLocation * loc UNUSED
+# define _ITM_SRCLOCATION_DEFN_2	, const _ITM_srcLocation * loc UNUSED
+#else
+# define _ITM_SRCLOCATION_DECL_1	void
+# define _ITM_SRCLOCATION_DECL_2
+# define _ITM_SRCLOCATION_DEFN_1	void
+# define _ITM_SRCLOCATION_DEFN_2
+#endif
+
 typedef void (* _ITM_userUndoFunction)(void *);
 typedef void (* _ITM_userCommitFunction) (void *);
 
@@ -139,18 +152,18 @@ typedef uint32_t _ITM_transactionId_t;	/* Transaction identifier */
 
 extern _ITM_transactionId_t _ITM_getTransactionId(void) REGPARM;
 
-extern uint32_t _ITM_beginTransaction(uint32_t, const _ITM_srcLocation *)
+extern uint32_t _ITM_beginTransaction(uint32_t _ITM_SRCLOCATION_DECL_2)
 	REGPARM;
 
-extern void _ITM_abortTransaction(_ITM_abortReason,
-	const _ITM_srcLocation *) REGPARM NORETURN;
-extern void _ITM_rollbackTransaction (const _ITM_srcLocation *) REGPARM;
+extern void _ITM_abortTransaction(_ITM_abortReason _ITM_SRCLOCATION_DECL_2)
+	REGPARM NORETURN;
+extern void _ITM_rollbackTransaction (_ITM_SRCLOCATION_DECL_1) REGPARM;
 
-extern void _ITM_commitTransaction (const _ITM_srcLocation *) REGPARM;
-extern bool _ITM_tryCommitTransaction(const _ITM_srcLocation *) REGPARM;
+extern void _ITM_commitTransaction (_ITM_SRCLOCATION_DECL_1) REGPARM;
+extern bool _ITM_tryCommitTransaction(_ITM_SRCLOCATION_DECL_1) REGPARM;
 
-extern void _ITM_changeTransactionMode (_ITM_transactionState,
-					const _ITM_srcLocation *) REGPARM;
+extern void _ITM_changeTransactionMode (_ITM_transactionState
+					_ITM_SRCLOCATION_DECL_2) REGPARM;
 
 /* The following typedefs exist to make the macro expansions below work
    properly.  They are not part of any API.  */
@@ -267,6 +280,8 @@ struct gtm_dispatch
 
   bool (*trycommit) (void);
   void (*rollback) (void);
+  void (*init) (bool) REGPARM;
+  void (*fini) (void);
 };
 
 struct gtm_local_undo
@@ -283,10 +298,23 @@ struct gtm_user_action
   void *arg;
 };
 
+struct gtm_method;
+
 #define STATE_READONLY		0x0001
 #define STATE_SERIAL		0x0002
 #define STATE_IRREVOKABLE	0x0004
 #define STATE_ABORTING		0x0008
+
+enum restart_reason
+{
+  RESTART_REALLOCATE,
+  RESTART_LOCKED_READ,
+  RESTART_LOCKED_WRITE,
+  RESTART_VALIDATE_READ,
+  RESTART_VALIDATE_WRITE,
+  RESTART_VALIDATE_COMMIT,
+  NUM_RESTARTS
+};
 
 struct gtm_transaction
 {
@@ -304,7 +332,10 @@ struct gtm_transaction
   struct gtm_user_action *commit_actions;
   struct gtm_user_action *undo_actions;
 
+  struct gtm_method *m;
   struct gtm_transaction *prev;
+
+  uint32_t restarts[NUM_RESTARTS + 1];
 };
 
 #define MAX_FREE_TX	8
@@ -328,17 +359,20 @@ extern unsigned long long gtm_spin_count_var;
 extern uint32_t GTM_begin_transaction(uint32_t, const struct gtm_jmpbuf *)
 	REGPARM;
 
-extern uint32_t GTM_longjmp (const struct gtm_jmpbuf *, uint32_t)
+extern uint32_t GTM_longjmp (const struct gtm_jmpbuf *, uint32_t, uint32_t)
 	REGPARM NORETURN;
 
 extern void GTM_commit_local (void);
 extern void GTM_rollback_local (void);
 
 extern void GTM_serialmode (bool) REGPARM;
-extern void GTM_decide_retry_strategy (void);
+extern void GTM_decide_retry_strategy (enum restart_reason) REGPARM;
+extern void GTM_restart_transaction (enum restart_reason) NORETURN REGPARM;
 
 extern void GTM_run_actions (struct gtm_user_action **) REGPARM;
 extern void GTM_free_actions (struct gtm_user_action **) REGPARM;
+
+extern const struct gtm_dispatch wbetl_dispatch;
 
 #ifdef HAVE_ATTRIBUTE_VISIBILITY
 # pragma GCC visibility pop

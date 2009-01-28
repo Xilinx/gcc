@@ -69,6 +69,14 @@ static void serial_rollback (void)
   abort ();
 }
 
+static void REGPARM serial_init (bool first UNUSED)
+{
+}
+
+static void serial_fini (void)
+{
+}
+
 const static struct gtm_dispatch serial_dispatch = 
 {
 #define _ITM_READ(R, T)		.R##T = serial_R##T,
@@ -89,6 +97,8 @@ const static struct gtm_dispatch serial_dispatch =
 
   .trycommit = serial_trycommit,
   .rollback = serial_rollback,
+  .init = serial_init,
+  .fini = serial_fini,
 };
 
 
@@ -101,7 +111,10 @@ GTM_serialmode (bool initial)
   if (initial)
     gtm_rwlock_write_lock (&gtm_serial_lock);
   else
-    gtm_rwlock_write_upgrade (&gtm_serial_lock);
+    {
+      gtm_rwlock_write_upgrade (&gtm_serial_lock);
+      gtm_thr.disp->fini ();
+    }
 
   gtm_thr.tx->state = STATE_SERIAL | STATE_IRREVOKABLE;
   gtm_thr.disp = &serial_dispatch;
@@ -109,8 +122,8 @@ GTM_serialmode (bool initial)
 
 
 void REGPARM
-_ITM_changeTransactionMode (_ITM_transactionState state,
-			    const _ITM_srcLocation *loc UNUSED)
+_ITM_changeTransactionMode (_ITM_transactionState state
+			    _ITM_SRCLOCATION_DEFN_2)
 {
   assert (state == modeSerialIrrevocable);
   GTM_serialmode (false);

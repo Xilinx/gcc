@@ -1,3 +1,29 @@
+2009-01-27  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.am (LTCCASCOMPILE): Define.
+	(libitm_la_SOURCES): Add methid-wbetl.c.
+	* testsuite/Makefile.am: New
+	* configure.ac: Add testsuite/Makefile.
+	* Makefile.in, testsuite/Makefile.in, configure: Regenerate.
+	* beginend.c (GTM_begin_transaction): Install wbetl_dispatch.
+	(_ITM_abortTransaction): Finalize implementation method; pass
+	transaction properties to longjmp.
+	(GTM_restart_transaction): Split out from ...
+	(_ITM_commitTransaction): ... here.
+	* config/linux/x86/futex_bits.h (cpu_relax, atomic_write_barrier):
+	Move to config/x86/target.h.
+	* config/linux/alpha/futex_bits.h: New.
+	* config/x86/sjlj.S (GTM_longjmp): Fix 64-bit input register.
+	* config/x86/target.h: Disable target types for 32-bit.
+	* config/alpha/sjlj.S, config/alpha/target.h: New.
+	* libitm.h (struct gtm_dispatch): Add init, fini.
+	(enum restart_reason): New.
+	(struct gtm_transaction): Add method and restarts.
+	* retry.c (GTM_decide_retry_strategy): Implement.
+	* serial.c (serial_init, serial_fini): New.
+	(GTM_serialmode): Finialize outgoing method.
+	* method-wbetl.c: New.
+
 2008-12-09  Richard Henderson  <rth@redhat.com>
 
 	* config/x86/target.h (_ITM_ALL_TARGET_TYPES, _ITM_TYPE_ATTR): New.
