@@ -1,6 +1,7 @@
 // { dg-options "-std=gnu++0x" }
+// { dg-do compile }
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -28,20 +29,10 @@
 // the GNU General Public License.
 
 #include <cstdatomic>
-#include <type_traits>
-#include <testsuite_hooks.h>
+#include <testsuite_common_types.h>
 
-int main()
+void test01()
 {
-  bool test __attribute__((unused)) = true;
-
-  typedef std::atomic_flag test_type;
-  
-  // libstdc++/37907
-  // VERIFY( std::is_standard_layout<test_type>::value );
-
-  VERIFY( std::has_trivial_default_constructor<test_type>::value );
-  VERIFY( std::has_trivial_destructor<test_type>::value );
-
-  return 0;
+  __gnu_test::standard_layout test;
+  test.operator()<std::atomic_flag>();
 }

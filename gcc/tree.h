@@ -3412,9 +3412,6 @@ struct tree_target_option GTY(())
 /* Return a tree node that encapsulates the current target options.  */
 extern tree build_target_option_node (void);
 
-extern void set_underlying_type (tree x);
-
-extern bool is_typedef_decl (tree x);
 
 /* Define the overall contents of a tree node.
    It may be any of the structures declared above
@@ -4736,6 +4733,7 @@ extern tree native_interpret_expr (tree, const unsigned char *, int);
 
 extern tree fold (tree);
 extern tree fold_unary (enum tree_code, tree, tree);
+extern tree fold_unary_ignore_overflow (enum tree_code, tree, tree);
 extern tree fold_binary (enum tree_code, tree, tree, tree);
 extern tree fold_ternary (enum tree_code, tree, tree, tree, tree);
 extern tree fold_build1_stat (enum tree_code, tree, tree MEM_STAT_DECL);

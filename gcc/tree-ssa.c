@@ -1496,9 +1496,13 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
             || !gimple_aliases_computed_p (cfun))
 	  return NULL_TREE;
 
+	/* If the load happens as part of a call do not warn about it.  */
+	if (is_gimple_call (data->stmt))
+	  return NULL_TREE;
+
 	vuse = SINGLE_SSA_USE_OPERAND (data->stmt, SSA_OP_VUSE);
 	if (vuse == NULL_USE_OPERAND_P)
-	    return NULL_TREE;
+	  return NULL_TREE;
 
 	op = USE_FROM_PTR (vuse);
 	if (t != SSA_NAME_VAR (op) 
@@ -1731,7 +1735,12 @@ execute_update_addresses_taken (void)
 	  || bitmap_bit_p (addresses_taken, DECL_UID (var)))
 	continue;
 	
-      if (TREE_ADDRESSABLE (var))
+      if (TREE_ADDRESSABLE (var)
+	  /* Do not change TREE_ADDRESSABLE if we need to preserve var as
+	     a non-register.  Otherwise we are confused and forget to
+	     add virtual operands for it.  */
+	  && (!is_gimple_reg_type (TREE_TYPE (var))
+	      || !bitmap_bit_p (not_reg_needs, DECL_UID (var))))
 	{
 	  TREE_ADDRESSABLE (var) = 0;
 	  if (is_gimple_reg (var))
