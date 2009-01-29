@@ -999,6 +999,7 @@ compile_file (void)
 
   output_shared_constant_pool ();
   output_object_blocks ();
+  finish_tm_clone_pairs ();
 
   /* Write out any pending weak symbol declarations.  */
   weak_finish ();

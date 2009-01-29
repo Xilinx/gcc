@@ -31,6 +31,7 @@
 #include "toplev.h"
 #include "flags.h"
 #include "demangle.h"
+#include "output.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -1791,10 +1792,15 @@ ipa_tm_create_version (struct cgraph_node *old_node)
     }
 
   SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
+  SET_DECL_RTL (new_decl, NULL);
   free (tm_name);
   free (alloc);
 
+  record_tm_clone_pair (old_decl, new_decl);
+
   cgraph_call_function_insertion_hooks (new_node);
+  if (new_node->local.externally_visible)
+    cgraph_mark_needed_node (new_node);
 }
 
 /* Clobber all memory state for the new call to irrevokable.  */
@@ -1990,12 +1996,25 @@ ipa_tm_execute (void)
 	}
     }
 
-  /* For all local reachable functions, scan for calls marked in_tm_atomic.  */
+  /* For all local reachable functions...  */
   for (node = cgraph_nodes; node; node = node->next)
     if (node->reachable && node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
-	struct tm_region *regions = ipa_tm_region_init (node);
+	struct tm_region *regions;
+
+	/* ... marked tm_pure, record that fact for the runtime by
+	   indicating that the pure function is its own tm_callable.
+	   No need to do this if the function's address can't be taken.  */
+	if (is_tm_pure (node->decl))
+	  {
+	    if (!node->local.local)
+	      record_tm_clone_pair (node->decl, node->decl);
+	    continue;
+	  }
+
+	/* ... otherwise scan for calls marked in_tm_atomic.  */
+	regions = ipa_tm_region_init (node);
 	if (regions)
 	  {
 	    d = get_cg_data (node);

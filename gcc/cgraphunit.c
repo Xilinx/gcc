@@ -1465,6 +1465,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
    new_version->rtl = new_version->rtl;
    new_version->reachable = true;
    new_version->count = old_version->count;
+   new_version->lowered = true;
 
    /* Clone the old node callees.  Recursive calls are
       also cloned.  */
@@ -1557,7 +1558,6 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   DECL_WEAK (new_version_node->decl) = 0;
   new_version_node->local.externally_visible = 0;
   new_version_node->local.local = 1;
-  new_version_node->lowered = true;
   
   /* Update the call_expr on the edges to call the new version node. */
   update_call_expr (new_version_node);

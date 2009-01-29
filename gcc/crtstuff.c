@@ -150,6 +150,9 @@ extern void __do_global_ctors_1 (void);
 /* Likewise for _Jv_RegisterClasses.  */
 extern void _Jv_RegisterClasses (void *) TARGET_ATTRIBUTE_WEAK;
 
+extern void _ITM_registerTMCloneTable (void *, size_t) TARGET_ATTRIBUTE_WEAK;
+extern void _ITM_deregisterTMCloneTable (void *) TARGET_ATTRIBUTE_WEAK;
+
 #ifdef OBJECT_FORMAT_ELF
 
 /*  Declare a pointer to void function type.  */
@@ -224,6 +227,11 @@ STATIC void *__JCR_LIST__[]
   __attribute__ ((unused, section(JCR_SECTION_NAME), aligned(sizeof(void*))))
   = { };
 #endif /* JCR_SECTION_NAME */
+
+STATIC func_ptr __TMC_LIST__[]
+  __attribute__((unused, section(".tm_clone_table"), aligned(sizeof(void*))))
+  = { };
+extern func_ptr __TMC_END__[] __attribute__((__visibility__ ("hidden")));
 
 #if defined(INIT_SECTION_ASM_OP) || defined(INIT_ARRAY_SECTION_ASM_OP)
 
@@ -314,6 +322,13 @@ __do_global_dtors_aux (void)
   }
 #endif /* !defined(FINI_ARRAY_SECTION_ASM_OP) */
 
+  if (_ITM_deregisterTMCloneTable)
+    {
+      size_t size = (size_t)(__TMC_END__ - __TMC_LIST__) / 2;
+      if (size > 0)
+	_ITM_deregisterTMCloneTable (__TMC_LIST__);
+    }
+
 #ifdef USE_EH_FRAME_REGISTRY
 #ifdef CRT_GET_RFIB_DATA
   /* If we used the new __register_frame_info_bases interface,
@@ -368,6 +383,12 @@ frame_dummy (void)
 	register_classes (__JCR_LIST__);
     }
 #endif /* JCR_SECTION_NAME */
+  if (_ITM_registerTMCloneTable)
+    {
+      size_t size = (size_t)(__TMC_END__ - __TMC_LIST__) / 2;
+      if (size > 0)
+	_ITM_registerTMCloneTable (__TMC_LIST__, size);
+    }
 }
 
 #ifdef INIT_SECTION_ASM_OP
@@ -433,6 +454,13 @@ __do_global_dtors (void)
   func_ptr *p, f;
   for (p = __DTOR_LIST__ + 1; (f = *p); p++)
     f ();
+
+  if (_ITM_deregisterTMCloneTable)
+    {
+      size_t size = (size_t)(__TMC_END__ - __TMC_LIST__) / 2;
+      if (size > 0)
+	_ITM_deregisterTMCloneTable (__TMC_LIST__);
+    }
 
 #ifdef USE_EH_FRAME_REGISTRY
   if (__deregister_frame_info)
@@ -542,6 +570,11 @@ STATIC void *__JCR_END__[1]
 		   aligned(sizeof(void *))))
    = { 0 };
 #endif /* JCR_SECTION_NAME */
+
+func_ptr __TMC_END__[]
+  __attribute__((unused, section(".tm_clone_table"), aligned(sizeof(void *)),
+		 __visibility__ ("hidden")))
+  = { };
 
 #ifdef INIT_ARRAY_SECTION_ASM_OP
 

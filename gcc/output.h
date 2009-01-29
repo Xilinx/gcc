@@ -580,6 +580,9 @@ extern bool unlikely_text_section_p (section *);
 extern void switch_to_section (section *);
 extern void output_section_asm_op (const void *);
 
+extern void record_tm_clone_pair (tree, tree);
+extern void finish_tm_clone_pairs (void);
+
 extern unsigned int default_section_type_flags (tree, const char *, int);
 
 extern bool have_global_bss_p (void);

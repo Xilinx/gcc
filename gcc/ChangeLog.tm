@@ -1,3 +1,21 @@
+2009-01-28  Richard Henderson  <rth@redhat.com>
+
+	* output.h (record_tm_clone_pair, finish_tm_clone_pairs): Declare.
+	* toplev.c (compile_file): Call finish_tm_clone_pairs.
+	* trans-mem.c (ipa_tm_create_version): Call record_tm_clone_pair.
+	(ipa_tm_execute): Likewise.
+	* varasm.c (tm_clone_pairs): New.
+	(record_tm_clone_pair, finish_tm_clone_pairs): New.
+	* crtstuff.c (__TMC_LIST__, __TMC_END__): New.
+	(__do_global_dtors_aux): Deregister clone table.
+	(frame_dummy): Register clone table.
+
+	* cgraphunit.c (cgraph_function_versioning): Move lowered setting...
+	(cgraph_copy_node_for_versioning): ... here.
+	* trans-mem.c (ipa_tm_create_version): Clear DECL_RTL; mark the
+	clone as needed, if externally visible.
+	* testsuite/gcc.dg/tm/ipa-3.c: New.
+
 2009-01-27  Richard Henderson  <rth@redhat.com>
 
 	* c-common.h (RID_TM_RETRY): Remove.

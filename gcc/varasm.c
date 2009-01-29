@@ -5446,6 +5446,41 @@ assemble_alias (tree decl, tree target)
     }
 }
 
+/* Record and output a table of translations from original function
+   to its transaction aware clone.  Note that tm_pure functions are
+   considered to be their own clone.  */
+
+static GTY(()) VEC(tree,gc) *tm_clone_pairs;
+
+void
+record_tm_clone_pair (tree o, tree n)
+{
+  VEC_safe_push (tree, gc, tm_clone_pairs, o);
+  VEC_safe_push (tree, gc, tm_clone_pairs, n);
+}
+
+void
+finish_tm_clone_pairs (void)
+{
+  unsigned i;
+  tree t;
+
+  if (tm_clone_pairs == NULL)
+    return;
+
+  switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
+  assemble_align (POINTER_SIZE);
+
+  for (i = 0; VEC_iterate (tree, tm_clone_pairs, i, t); ++i)
+    {
+      rtx sym = XEXP (DECL_RTL (t), 0);
+      assemble_integer (sym, POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
+    }
+
+  tm_clone_pairs = NULL;
+}
+
+
 /* Emit an assembler directive to set symbol for DECL visibility to
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.  */
 
