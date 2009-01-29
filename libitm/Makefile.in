@@ -78,9 +78,9 @@ am__installdirs = "$(DESTDIR)$(toolexeclibdir)" \
 toolexeclibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
-am_libitm_la_OBJECTS = beginend.lo dispatch.lo local.lo query.lo \
-	retry.lo rwlock.lo serial.lo sjlj.lo useraction.lo futex.lo \
-	method-wbetl.lo
+am_libitm_la_OBJECTS = beginend.lo clone.lo dispatch.lo local.lo \
+	query.lo retry.lo rwlock.lo serial.lo sjlj.lo useraction.lo \
+	futex.lo method-wbetl.lo
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
@@ -280,7 +280,7 @@ libitm_version_info = -version-info $(libtool_VERSION)
 libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
         -no-undefined
 
-libitm_la_SOURCES = beginend.c dispatch.c local.c query.c retry.c \
+libitm_la_SOURCES = beginend.c clone.c dispatch.c local.c query.c retry.c \
 	rwlock.c serial.c sjlj.S useraction.c futex.c \
 	method-wbetl.c
 
@@ -378,6 +378,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/beginend.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dispatch.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/futex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@

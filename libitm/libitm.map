@@ -15,6 +15,11 @@ LIBITM_1.0 {
 	_ITM_tryCommitTransaction;
 	_ITM_versionCompatible;
 
+	_ITM_registerTMCloneTable;
+	_ITM_deregisterTMCloneTable;
+	_ITM_getTMCloneOrIrrevokable;
+	_ITM_getTMCloneSafe;
+
 	_ITM_LB;
 	_ITM_LCD;
 	_ITM_LCE;

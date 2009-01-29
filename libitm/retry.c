@@ -36,8 +36,10 @@ GTM_decide_retry_strategy (enum restart_reason r)
   tx->restarts[r + 1]++;
   tx->restarts[0]++;
 
-  if (tx->restarts[0] > 100)
-    GTM_serialmode (false);
+  if (tx->state & STATE_SERIAL)
+    ;
+  else if (tx->restarts[0] > 100)
+    GTM_serialmode (false, false);
   else
     gtm_thr.disp->init (false);
 }

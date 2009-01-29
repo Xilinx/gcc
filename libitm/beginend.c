@@ -95,7 +95,7 @@ GTM_begin_transaction (uint32_t prop, const struct gtm_jmpbuf *jb)
 
   if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
     {
-      GTM_serialmode (true);
+      GTM_serialmode (true, true);
       return (prop & pr_uninstrumentedCode
 	      ? a_runUninstrumentedCode : a_runInstrumentedCode);
     }
@@ -137,6 +137,9 @@ _ITM_abortTransaction (_ITM_abortReason reason _ITM_SRCLOCATION_DEFN_2)
   assert (reason == userAbort);
   assert ((gtm_thr.tx->prop & pr_hasNoAbort) == 0);
   assert ((gtm_thr.tx->state & STATE_ABORTING) == 0);
+
+  if (gtm_thr.tx->state & STATE_IRREVOKABLE)
+    abort ();
 
   GTM_rollback_transaction ();
   gtm_thr.disp->fini ();
@@ -183,8 +186,7 @@ GTM_restart_transaction (enum restart_reason r)
   GTM_decide_retry_strategy (r);
 
   actions = a_runInstrumentedCode | a_restoreLiveVariables;
-  if ((tx->prop & (pr_doesGoIrrevocable | pr_uninstrumentedCode))
-      == (pr_doesGoIrrevocable | pr_uninstrumentedCode))
+  if ((tx->prop & pr_uninstrumentedCode) && (tx->state & STATE_IRREVOKABLE))
     actions = a_runUninstrumentedCode | a_restoreLiveVariables;
 
   GTM_longjmp (&tx->jb, actions, tx->prop);

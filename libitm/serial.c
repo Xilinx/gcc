@@ -102,22 +102,38 @@ const static struct gtm_dispatch serial_dispatch =
 };
 
 
+/* Put the transaction into serial mode.  */
+
 void REGPARM
-GTM_serialmode (bool initial)
+GTM_serialmode (bool initial, bool irrevokable)
 {
+  const struct gtm_dispatch *old_disp;
+
   if (gtm_thr.tx->state & STATE_SERIAL)
-    return;
+    {
+      if (irrevokable)
+	gtm_thr.tx->state |= STATE_IRREVOKABLE;
+      return;
+    }
+
+  old_disp = gtm_thr.disp;
+  gtm_thr.disp = &serial_dispatch;
 
   if (initial)
     gtm_rwlock_write_lock (&gtm_serial_lock);
   else
     {
       gtm_rwlock_write_upgrade (&gtm_serial_lock);
-      gtm_thr.disp->fini ();
+      if (old_disp->trycommit ())
+	old_disp->fini ();
+      else
+	{
+	  gtm_thr.tx->state = STATE_SERIAL;
+	  GTM_restart_transaction (RESTART_VALIDATE_COMMIT);
+	}
     }
 
-  gtm_thr.tx->state = STATE_SERIAL | STATE_IRREVOKABLE;
-  gtm_thr.disp = &serial_dispatch;
+  gtm_thr.tx->state = STATE_SERIAL | (irrevokable ? STATE_IRREVOKABLE : 0);
 }
 
 
@@ -126,5 +142,5 @@ _ITM_changeTransactionMode (_ITM_transactionState state
 			    _ITM_SRCLOCATION_DEFN_2)
 {
   assert (state == modeSerialIrrevocable);
-  GTM_serialmode (false);
+  GTM_serialmode (false, true);
 }

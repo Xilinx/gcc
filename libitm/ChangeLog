@@ -1,3 +1,15 @@
+2009-01-28  Richard Henderson  <rth@redhat.com>
+
+	* Makefile.am (libitm_la_SOURCES): Add clone.c.
+	* Makefile.in: Rebuild.
+	* beginend.c (_ITM_abortTransaction): Abort if irrevokable.
+	(GTM_restart_transaction): Fix uninstrumented code check.
+	* retry.c (GTM_decide_retry_strategy): Add serial check.
+	* serial.c (GTM_serialmode): Add irrevokable variable.  Don't
+	automatically go irrevokable when in serial mode.
+	* clone.c: New file.
+	* libitm.h, libitm.map: Update.
+
 2009-01-27  Richard Henderson  <rth@redhat.com>
 
 	* Makefile.am (LTCCASCOMPILE): Define.

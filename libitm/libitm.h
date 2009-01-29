@@ -240,6 +240,13 @@ extern void _ITM_addUserUndoAction(_ITM_userUndoFunction, void *) REGPARM;
 extern int _ITM_getThreadnum(void) REGPARM;
 
 extern void _ITM_dropReferences (const void *, size_t) REGPARM;
+
+extern void *_ITM_getTMCloneOrIrrevokable (void *) REGPARM;
+extern void *_ITM_getTMCloneSafe (void *) REGPARM;
+
+extern void _ITM_registerTMCloneTable (void *, size_t);
+extern void _ITM_deregisterTMCloneTable (void *);
+
 
 /* The following are internal implementation functions and definitions.
    To distinguish them from those defined by the Intel ABI, they all
@@ -365,7 +372,7 @@ extern uint32_t GTM_longjmp (const struct gtm_jmpbuf *, uint32_t, uint32_t)
 extern void GTM_commit_local (void);
 extern void GTM_rollback_local (void);
 
-extern void GTM_serialmode (bool) REGPARM;
+extern void GTM_serialmode (bool, bool) REGPARM;
 extern void GTM_decide_retry_strategy (enum restart_reason) REGPARM;
 extern void GTM_restart_transaction (enum restart_reason) NORETURN REGPARM;
 
