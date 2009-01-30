@@ -1,3 +1,23 @@
+2009-01-30  Richard Henderson  <rth@redhat.com>
+
+	* c-common.c (c_common_attribute_table): Add tm_irrevokable.
+	(tm_attribute_mask): Handle it.
+	(handle_tm_fntype_attribute): Likewise.
+	* calls.c (special_function_p): Add BUILT_IN_TM_GETTMCLONE_IRR.
+	* gtm-builtins.def (BUILT_IN_TM_GETTMCLONE_IRR): New.
+	(BUILT_IN_TM_GETTMCLONE_SAFE): New.
+	* trans-mem.c (is_tm_irrevokable, is_tm_safe): New.
+	(requires_barrier): Handle TARGET_MEM_REF.
+	(gimplify_mem_ref_addr): New.
+	(build_tm_load, build_tm_store): Use it.
+	(expand_assign_tm): Early exit for no load or store.
+	(expand_call_tm): Expect indirect calls.
+	(expand_tm_atomic): Look for sharing loop back edges.
+	(ipa_tm_scan_irr_block): Don't consider indirect calls irrevokable.
+	(ipa_tm_insert_gettmclone_call): New.
+	(ipa_tm_transform_calls): Use it.
+	* tree.h (is_tm_safe, is_tm_irrevokable): Declare.
+
 2009-01-28  Richard Henderson  <rth@redhat.com>
 
 	* output.h (record_tm_clone_pair, finish_tm_clone_pairs): Declare.

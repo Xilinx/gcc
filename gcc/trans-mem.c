@@ -185,6 +185,30 @@ is_tm_pure (tree x)
   return false;
 }
 
+/* Return true if X has been marked TM_IRREVOKABLE.  */
+
+bool
+is_tm_irrevokable (tree x)
+{
+  tree attrs = get_attrs_for (x);
+
+  if (attrs)
+    return lookup_attribute ("tm_irrevokable", attrs) != NULL;
+  return false;
+}
+
+/* Return true if X has been marked TM_SAFE.  */
+
+bool
+is_tm_safe (tree x)
+{
+  tree attrs = get_attrs_for (x);
+
+  if (attrs)
+    return lookup_attribute ("tm_safe", attrs) != NULL;
+  return false;
+}
+
 /* Return true if CALL is const, or tm_pure.  */
 
 static bool
@@ -315,6 +339,15 @@ requires_barrier (tree x)
       /* ??? Insert an irrevokable when it comes to vectorized loops,
 	 or handle these somehow.  */
       gcc_unreachable ();
+
+    case TARGET_MEM_REF:
+      x = TMR_SYMBOL (x);
+      if (x == NULL)
+	return true;
+      if (TREE_CODE (x) == PARM_DECL)
+	return false;
+      gcc_assert (TREE_CODE (x) == VAR_DECL);
+      /* FALLTHRU */
 
     case VAR_DECL:
       if (is_global_var (x))
@@ -726,6 +759,15 @@ mark_vops_in_stmt (gimple stmt)
     }
 }
 
+/* Gimplify the address of a TARGET_MEM_REF.  Return the SSA_NAME
+   result, insert the new statements before GSI.  */
+
+static tree
+gimplify_mem_ref_addr (gimple_stmt_iterator *gsi, tree tmr)
+{
+  tree addr = tree_mem_ref_addr (build_pointer_type (TREE_TYPE (tmr)), tmr);
+  return force_gimple_operand_gsi (gsi, addr, true, NULL, true, GSI_SAME_STMT);
+}
 
 /* Construct a memory load in a transactional context.  */
 
@@ -768,7 +810,10 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       code = BUILT_IN_TM_LOAD_4;
     }
 
-  t = build_fold_addr_expr (rhs);
+  if (TREE_CODE (rhs) == TARGET_MEM_REF)
+    t = gimplify_mem_ref_addr (gsi, rhs);
+  else
+    t = build_fold_addr_expr (rhs);
   gcc_assert (is_gimple_operand (t));
 
   gcall = gimple_build_call (built_in_decls[code], 1, t);
@@ -854,7 +899,10 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       rhs = temp;
     }
 
-  t = build_fold_addr_expr (lhs);
+  if (TREE_CODE (lhs) == TARGET_MEM_REF)
+    t = gimplify_mem_ref_addr (gsi, lhs);
+  else
+    t = build_fold_addr_expr (lhs);
   gcall = gimple_build_call (built_in_decls[code], 2, t, rhs);
   gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
   
@@ -873,6 +921,12 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
   bool store_p = requires_barrier (lhs);
   bool load_p = requires_barrier (rhs);
   gimple gcall;
+
+  if (!load_p && !store_p)
+    {
+      gsi_next (gsi);
+      return;
+    }
 
   mark_vops_in_stmt (stmt);
   gsi_remove (gsi, true);
@@ -894,13 +948,11 @@ expand_assign_tm (struct tm_region *region, gimple_stmt_iterator *gsi)
       tm_atomic_subcode_ior (region, GTMA_HAVE_LOAD);
       gcall = build_tm_load (lhs, rhs, gsi);
     }
-  else if (store_p)
+  else
     {
       tm_atomic_subcode_ior (region, GTMA_HAVE_STORE);
       gcall = build_tm_store (lhs, rhs, gsi);
     }
-  else
-    return;
 
   add_stmt_to_tm_region  (region, gcall);
 }
@@ -923,14 +975,10 @@ expand_call_tm (struct tm_region * ARG_UNUSED (region),
     return false;
 
   fn_decl = gimple_call_fndecl (stmt);
+  
+  /* For indirect calls, we already generated a call into the runtime.  */
   if (!fn_decl)
-    {
-      /* ??? The ABI under discussion has us calling into the runtime
-	 to determine if there's a transactional version of this function.
-	 For now, ipa_tm_scan_irr_block considers these to be irrevokable,
-	 which means we should never get here.  */
-      gcc_unreachable ();
-    }
+    return false;
 
   return is_tm_ending_fndecl (fn_decl);
 }
@@ -1054,6 +1102,9 @@ make_tm_edge (basic_block bb, struct tm_region *region)
 }
 
 
+/* Split block BB as necessary for every TM_OPS function we added, and
+   wire up the abnormal back edges implied by the transaction restart.  */
+
 static void
 expand_block_edges (struct tm_region *region, basic_block bb)
 {
@@ -1088,6 +1139,8 @@ expand_block_edges (struct tm_region *region, basic_block bb)
       gsi_next (&gsi);
     }
 }
+
+/* Expand the GIMPLE_TM_ATOMIC statement into the STM library call.  */
 
 static void
 expand_tm_atomic (struct tm_region *region)
@@ -1124,7 +1177,7 @@ expand_tm_atomic (struct tm_region *region)
      call to perform the abort.  */
   if (gimple_tm_atomic_label (region->tm_atomic_stmt))
     {
-      edge e1, e2;
+      edge e;
       basic_block test_bb;
 
       region->entry_block = test_bb = create_empty_bb (atomic_bb);
@@ -1139,16 +1192,35 @@ expand_tm_atomic (struct tm_region *region)
       g = gimple_build_cond (NE_EXPR, t1, t2, NULL, NULL);
       gsi_insert_after (&gsi, g, GSI_CONTINUE_LINKING);
 
-      e1 = FALLTHRU_EDGE (atomic_bb);
-      e2 = make_edge (test_bb, e1->dest, EDGE_FALSE_VALUE);
-      redirect_edge_succ (e1, test_bb);
-      e1->probability = PROB_ALWAYS;
+      e = FALLTHRU_EDGE (atomic_bb);
+      redirect_edge_pred (e, test_bb);
+      e->flags = EDGE_FALSE_VALUE;
+      e->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
 
-      e1 = BRANCH_EDGE (atomic_bb);
-      redirect_edge_pred (e1, test_bb);
-      e1->flags = EDGE_TRUE_VALUE;
-      e1->probability = PROB_VERY_UNLIKELY;
-      e2->probability = PROB_ALWAYS - PROB_VERY_UNLIKELY;
+      e = BRANCH_EDGE (atomic_bb);
+      redirect_edge_pred (e, test_bb);
+      e->flags = EDGE_TRUE_VALUE;
+      e->probability = PROB_VERY_UNLIKELY;
+
+      e = make_edge (atomic_bb, test_bb, EDGE_FALLTHRU);
+    }
+
+  /* If we've no abort, but we do have PHIs at the beginning of the atomic
+     region, that means we've a loop at the beginning of the atomic region
+     that shares the first block.  This can cause problems with the abnormal
+     edges we're about to add for the transaction restart.  Solve this by
+     adding a new empty block to receive the abnormal edges.  */
+  else if (phi_nodes (region->entry_block))
+    {
+      edge e;
+      basic_block empty_bb;
+
+      region->entry_block = empty_bb = create_empty_bb (atomic_bb);
+
+      e = FALLTHRU_EDGE (atomic_bb);
+      redirect_edge_pred (e, empty_bb);
+
+      e = make_edge (atomic_bb, empty_bb, EDGE_FALLTHRU);
     }
 
   /* Record an EH label for the region.  This will be where the 
@@ -1169,11 +1241,8 @@ static unsigned int
 execute_tm_edges (void)
 {
   struct tm_region *region;
-  basic_block bb;
   VEC (basic_block, heap) *queue;
   bitmap blocks;
-  bitmap_iterator iter;
-  unsigned int i;
 
   queue = VEC_alloc (basic_block, heap, 10);
   blocks = BITMAP_ALLOC (&tm_obstack);
@@ -1181,6 +1250,9 @@ execute_tm_edges (void)
   for (region = all_tm_regions; region ; region = region->next)
     if (region->exit_blocks)
       {
+	unsigned int i;
+	bitmap_iterator iter;
+
 	/* Collect the set of blocks in this region.  Do this before
 	   splitting edges, so that we don't have to play with the
 	   dominator tree in the middle.  */
@@ -1188,7 +1260,7 @@ execute_tm_edges (void)
 	VEC_quick_push (basic_block, queue, region->entry_block);
 	do
 	  {
-	    bb = VEC_pop (basic_block, queue);
+	    basic_block bb = VEC_pop (basic_block, queue);
 	    bitmap_set_bit (blocks, bb->index);
 	    if (!bitmap_bit_p (region->exit_blocks, bb->index))
 	      for (bb = first_dom_son (CDI_DOMINATORS, bb);
@@ -1467,7 +1539,7 @@ static bool
 ipa_tm_scan_irr_block (basic_block bb)
 {
   gimple_stmt_iterator gsi;
-  tree fndecl;
+  tree fn;
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
@@ -1478,23 +1550,26 @@ ipa_tm_scan_irr_block (basic_block bb)
 	  if (is_tm_pure_call (stmt))
 	    break;
 
-	  /* ??? For now we consider all non-pure indirect calls
-	     to be irrevokable.  The tm library may provide a 
-	     means to look up a transaction-aware clone from a
-	     function pointer.  */
-	  fndecl = gimple_call_fndecl (stmt);
-	  if (fndecl == NULL)
+	  fn = gimple_call_fn (stmt);
+
+	  /* Functions with the attribute are by definition irrevokable.  */
+	  if (is_tm_irrevokable (fn))
 	    return true;
-	  else
+
+	  /* For direct function calls, go ahead and check for replacement
+	     functions, or transitive irrevokable functions.  For indirect
+	     functions, we'll ask the runtime.  */
+	  if (TREE_CODE (fn) == ADDR_EXPR)
 	    {
 	      struct tm_ipa_cg_data *d;
 
-	      if (is_tm_ending_fndecl (fndecl))
+	      fn = TREE_OPERAND (fn, 0);
+	      if (is_tm_ending_fndecl (fn))
 		break;
-	      if (find_tm_replacement_function (fndecl))
+	      if (find_tm_replacement_function (fn))
 		break;
 
-	      d = get_cg_data (cgraph_node (fndecl));
+	      d = get_cg_data (cgraph_node (fn));
 	      if (d->is_irrevokable)
 		return true;
 	    }
@@ -1830,7 +1905,7 @@ ipa_tm_mark_for_rename (void)
     }
 }
 
-/* Construct a call to TM_IRREVOKABLE and insert it before GSI.  */
+/* Construct a call to TM_IRREVOKABLE and insert it at the beginning of BB.  */
 
 static void
 ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
@@ -1852,63 +1927,130 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 		      g, 0, 0, bb->loop_depth);
 }
 
+/* Construct a call to TM_GETTMCLONE and insert it before GSI.  */
+
+static bool
+ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
+			       struct tm_region *region,
+			       gimple_stmt_iterator *gsi, gimple stmt)
+{
+  tree gettm_fn, ret, old_fn;
+  gimple g;
+  bool safe;
+
+  old_fn = gimple_call_fn (stmt);
+
+  safe = is_tm_safe (old_fn);
+  gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
+			    : BUILT_IN_TM_GETTMCLONE_IRR];
+  ret = create_tmp_var (TREE_TYPE (old_fn), NULL);
+  get_var_ann (ret);
+
+  g = gimple_build_call (gettm_fn, 1, old_fn);
+  ret = make_ssa_name (ret, g);
+  gimple_call_set_lhs (g, ret);
+
+  /* ??? If we need to go irrevokable, we can fail the intermediate
+     commit and restart the transaction.  But representing that means
+     splitting this basic block, which means busting all of the bitmaps
+     we've put together, as well as the dominator tree.  Perhaps we
+     can get away with ignoring it, since the indirect function that
+     we're about to call should also have the back edge.  */
+  if (0 && !safe)
+    {
+      gimple_call_set_in_tm_atomic (g, true);
+      add_stmt_to_tm_region (region, g);
+    }
+  gsi_insert_before (gsi, g, GSI_SAME_STMT);
+
+  cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0, 0, 0);
+
+  gimple_call_set_fn (stmt, ret);
+  update_stmt (stmt);
+
+  return safe;
+}
+
 /* Walk the dominator tree for REGION, beginning at BB.  Install calls to
    tm_irrevokable when IRR_BLOCKS are reached, redirect other calls to the
    generated transactional clone.  */
 
-static void
+static bool
 ipa_tm_transform_calls (struct cgraph_node *node, struct tm_region *region,
 			basic_block bb, bitmap irr_blocks)
 {
   gimple_stmt_iterator gsi;
+  bool need_ssa_rename = false;
 
   if (irr_blocks && bitmap_bit_p (irr_blocks, bb->index))
     {
       ipa_tm_insert_irr_call (node, region, bb);
-      return;
+      return true;
     }
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      if (is_gimple_call (stmt) && !is_tm_pure_call (stmt))
+      struct cgraph_edge *e;
+      struct cgraph_node *new_node;
+      tree fndecl;
+
+      if (!is_gimple_call (stmt))
+	continue;
+      if (is_tm_pure_call (stmt))
+	continue;
+
+      fndecl = gimple_call_fndecl (stmt);
+
+      /* For indirect calls, pass the address through the runtime.  */
+      if (fndecl == NULL)
 	{
-	  tree fndecl = gimple_call_fndecl (stmt);
-	  struct cgraph_edge *e;
-	  struct cgraph_node *new_node;
+	  need_ssa_rename |=
+	    ipa_tm_insert_gettmclone_call (node, region, &gsi, stmt);
+	  continue;
+	}
 
-	  gcc_assert (fndecl != NULL);
+      /* Don't scan past the end of the transaction.  */
+      if (is_tm_ending_fndecl (fndecl))
+	continue;
+      e = cgraph_edge (node, stmt);
 
-	  /* Don't scan past the end of the transaction.  */
-	  if (is_tm_ending_fndecl (fndecl))
-	    continue;
-	  e = cgraph_edge (node, stmt);
+      /* If there is a replacement, use it, otherwise use the clone.  */
+      fndecl = find_tm_replacement_function (fndecl);
+      if (fndecl)
+	new_node = cgraph_node (fndecl);
+      else
+	{
+	  struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+	  new_node = d->clone;
 
-	  /* If there is a replacement, use it, otherwise use the clone.  */
-	  fndecl = find_tm_replacement_function (fndecl);
-	  if (fndecl)
-	    new_node = cgraph_node (fndecl);
-	  else
+	  /* As we've already skipped pure calls and appropriate builtins,
+	     and we've already marked irrevokable blocks, if we can't come
+	     up with a static replacement, then ask the runtime.  */
+	  if (new_node == NULL)
 	    {
-	      struct tm_ipa_cg_data *d = get_cg_data (e->callee);
-	      new_node = d->clone;
-	      fndecl = new_node->decl;
+	      need_ssa_rename |=
+	        ipa_tm_insert_gettmclone_call (node, region, &gsi, stmt);
+	      cgraph_remove_edge (e);
+	      continue;
 	    }
 
-	  /* As we've already skipped pure calls and appropriate
-	     builtins, and we've already marked irrevokable blocks,
-	     this function call had better have a replacement.  */
-	  gcc_assert (new_node != NULL);
-
-	  cgraph_redirect_edge_callee (e, new_node);
-	  gimple_call_set_fndecl (stmt, fndecl);
+	  fndecl = new_node->decl;
 	}
+
+      cgraph_redirect_edge_callee (e, new_node);
+      gimple_call_set_fndecl (stmt, fndecl);
     }
 
   if (!region || !bitmap_bit_p (region->exit_blocks, bb->index))
     for (bb = first_dom_son (CDI_DOMINATORS, bb); bb;
 	 bb = next_dom_son (CDI_DOMINATORS, bb))
-      ipa_tm_transform_calls (node, region, bb, irr_blocks);
+      {
+	need_ssa_rename |=
+	  ipa_tm_transform_calls (node, region, bb, irr_blocks);
+      }
+
+  return need_ssa_rename;
 }
 
 /* Transform the calls within the TM regions within NODE.  */
@@ -1918,6 +2060,7 @@ ipa_tm_transform_tm_atomic (struct cgraph_node *node)
 {
   struct tm_ipa_cg_data *d = get_cg_data (node);
   struct tm_region *region;
+  bool need_ssa_rename = false;
 
   current_function_decl = node->decl;
   push_cfun (DECL_STRUCT_FUNCTION (node->decl));
@@ -1926,10 +2069,13 @@ ipa_tm_transform_tm_atomic (struct cgraph_node *node)
   /* ??? Update the marks for the GIMPLE_TM_ATOMIC node, in particular
      note the MUST_CALL_IRREVOKABLE and don't transform anything.  */
   for (region = d->all_tm_regions; region; region = region->next)
-    ipa_tm_transform_calls (node, region, region->entry_block,
-			    d->irrevokable_blocks_normal);
+    {
+      need_ssa_rename |=
+	ipa_tm_transform_calls (node, region, region->entry_block,
+				d->irrevokable_blocks_normal);
+    }
 
-  if (d->irrevokable_blocks_normal)
+  if (need_ssa_rename)
     {
       ipa_tm_mark_for_rename ();
       update_ssa (TODO_update_ssa_only_virtuals);
@@ -1945,6 +2091,7 @@ static void
 ipa_tm_transform_clone (struct cgraph_node *node)
 {
   struct tm_ipa_cg_data *d = get_cg_data (node);
+  bool need_ssa_rename;
 
   /* If this function makes no calls and has no irrevokable blocks,
      then there's nothing to do.  */
@@ -1956,10 +2103,11 @@ ipa_tm_transform_clone (struct cgraph_node *node)
   push_cfun (DECL_STRUCT_FUNCTION (current_function_decl));
   calculate_dominance_info (CDI_DOMINATORS);
 
-  ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
-			  d->irrevokable_blocks_clone);
+  need_ssa_rename =
+    ipa_tm_transform_calls (d->clone, NULL, single_succ (ENTRY_BLOCK_PTR),
+			    d->irrevokable_blocks_clone);
 
-  if (d->irrevokable_blocks_clone)
+  if (need_ssa_rename)
     {
       ipa_tm_mark_for_rename ();
       update_ssa (TODO_update_ssa_only_virtuals);
@@ -2034,7 +2182,7 @@ ipa_tm_execute (void)
 
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevokable.  Mark these now, so that we need not scan them.  */
-      if (a <= AVAIL_OVERWRITABLE && !is_tm_callable (node->decl))
+      if (is_tm_irrevokable (node->decl))
 	{
 	  ipa_tm_note_irrevokable (node, &worklist);
 	  continue;

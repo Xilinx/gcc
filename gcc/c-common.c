@@ -824,6 +824,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_pure_attribute },
   { "tm_callable",            0, 0, false,  true,  true,
                               handle_tm_fntype_attribute },
+  { "tm_irrevokable",         0, 0, false, true, true,
+                              handle_tm_fntype_attribute },
   { "tm_pure",                0, 0, false, true, true,
                               handle_tm_fntype_attribute },
   { "tm_safe",                0, 0, false,  true,  true,
@@ -6441,7 +6443,8 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
    1 TM_UNKNOWN
    2 TM_PURE
    4 TM_CALLABLE
-   8 TM_SAFE  */
+   8 TM_SAFE
+  16 TM_IRREVOKABLE  */
 
 static unsigned
 tm_attribute_mask (tree name)
@@ -6454,6 +6457,8 @@ tm_attribute_mask (tree name)
     return 4;
   if (is_attribute_p ("tm_safe", name))
     return 8;
+  if (is_attribute_p ("tm_irrevokable", name))
+    return 16;
   return 0;
 }
   
@@ -6481,10 +6486,11 @@ handle_tm_fntype_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 	  const char *old_name;
 	  switch (old_mask)
 	    {
-	    case 1: old_name = "tm_unknown"; break;
-	    case 2: old_name = "tm_pure"; break;
-	    case 4: old_name = "tm_callable"; break;
-	    case 8: old_name = "tm_safe"; break;
+	    case  1: old_name = "tm_unknown"; break;
+	    case  2: old_name = "tm_pure"; break;
+	    case  4: old_name = "tm_callable"; break;
+	    case  8: old_name = "tm_safe"; break;
+	    case 16: old_name = "tm_irrevokable"; break;
 	    default:
 	      gcc_unreachable ();
 	    }

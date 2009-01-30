@@ -5255,8 +5255,10 @@ extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
 
 /* In trans-mem.c.  */
 extern tree build_tm_abort_call (void);
+extern bool is_tm_safe (tree);
 extern bool is_tm_pure (tree);
 extern bool is_tm_callable (tree);
+extern bool is_tm_irrevokable (tree);
 
 /* In tree-inline.c.  */
 
