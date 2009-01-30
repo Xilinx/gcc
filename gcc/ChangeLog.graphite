@@ -1,5 +1,13 @@
 2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
 	
+	* graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
+	eq_loop_to_cloog_loop): Remove.
+	(new_scop, free_scop): Remove SCOP_LOOP2CLOOG_LOOP.
+	* graphite.h (struct scop): Remove loop2cloog_loop.
+	(loop_domain_dim, loop_iteration_vector_dim): Remove.
+
+2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
+	
 	* opts.c (decode_options): Only add graphite options to O2
 	if we compile with graphite enabled.
 

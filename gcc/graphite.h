@@ -332,9 +332,6 @@ struct scop
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
-  /* ???  It looks like a global mapping loop_id -> cloog_loop would work.  */
-  htab_t loop2cloog_loop;
-
   /* Data dependence graph for this SCoP.  */
   struct graph *dep_graph;
 
@@ -370,8 +367,6 @@ struct scop
 #define SCOP_PARAMS(S) S->params
 #define SCOP_OLDIVS(S) S->old_ivs
 #define SCOP_PROG(S) S->program
-#define SCOP_LOOP2CLOOG_LOOP(S) S->loop2cloog_loop
-#define SCOP_LOOPS_MAPPING(S) S->loops_mapping
 #define SCOP_LIVEOUT_RENAMES(S) S->liveout_renames
 
 extern void debug_scop (scop_p, int);
@@ -434,8 +429,6 @@ oldiv_for_loop (scop_p scop, loop_p loop)
   return NULL_TREE;
 }
 
-
-
 /* Associate a POLYHEDRON dependence description to two data
    references A and B.  */
 struct data_dependence_polyhedron
@@ -460,8 +453,6 @@ extern struct graph *graphite_build_rdg_all_levels (scop_p);
 extern struct data_dependence_polyhedron *
 graphite_test_dependence (scop_p, graphite_bb_p, graphite_bb_p,
 			  struct data_reference *, struct data_reference *);
-
-
 
 /* Return the number of gimple loops contained in SCOP.  */
 
@@ -493,36 +484,6 @@ static inline int
 gbb_dim_domain (graphite_bb_p gb)
 {
   return scop_dim_domain (GBB_SCOP (gb));
-}
-
-/* Returns the dimensionality of a loop iteration domain for a given
-   loop, identified by LOOP_NUM, with respect to SCOP.  */
-
-static inline int
-loop_domain_dim (unsigned int loop_num, scop_p scop)
-{
-  struct loop_to_cloog_loop_str tmp, *slot; 
-  htab_t tab = SCOP_LOOP2CLOOG_LOOP (scop);
-
-  tmp.loop_num = loop_num;
-  slot = (struct loop_to_cloog_loop_str *) htab_find (tab, &tmp);
-
-  /* The loop containing the entry of the scop is not always part of
-     the SCoP, and it is not registered in SCOP_LOOP2CLOOG_LOOP.  */
-  if (!slot)
-    return scop_nb_params (scop) + 2;
-
-  return cloog_domain_dim (cloog_loop_domain (slot->cloog_loop)) + 2;
-}
-
-/* Returns the dimensionality of a loop iteration vector in a loop
-   iteration domain for a given loop (identified by LOOP_NUM) with
-   respect to SCOP.  */
-
-static inline int
-loop_iteration_vector_dim (unsigned int loop_num, scop_p scop)
-{
-  return loop_domain_dim (loop_num, scop) - 2 - scop_nb_params (scop);
 }
 
 /* Checks, if SCOP contains LOOP.  */

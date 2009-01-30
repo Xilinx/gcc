@@ -389,43 +389,6 @@ loop_iv_stack_remove_constants (loop_iv_stack stack)
     }
 }
 
-/* Returns a new loop_to_cloog_loop_str structure.  */
-
-static inline struct loop_to_cloog_loop_str *
-new_loop_to_cloog_loop_str (int loop_num,
-                            int loop_position,
-                            CloogLoop *cloog_loop)
-{
-  struct loop_to_cloog_loop_str *result;
-
-  result = XNEW (struct loop_to_cloog_loop_str);
-  result->loop_num = loop_num;
-  result->cloog_loop = cloog_loop;
-  result->loop_position = loop_position;
-
-  return result;
-}
-
-/* Hash function for SCOP_LOOP2CLOOG_LOOP hash table.  */
-
-static hashval_t
-hash_loop_to_cloog_loop (const void *elt)
-{
-  return ((const struct loop_to_cloog_loop_str *) elt)->loop_num;
-}
-
-/* Equality function for SCOP_LOOP2CLOOG_LOOP hash table.  */
-
-static int
-eq_loop_to_cloog_loop (const void *el1, const void *el2)
-{
-  const struct loop_to_cloog_loop_str *elt1, *elt2;
-
-  elt1 = (const struct loop_to_cloog_loop_str *) el1;
-  elt2 = (const struct loop_to_cloog_loop_str *) el2;
-  return elt1->loop_num == elt2->loop_num;
-}
-
 /* Compares two graphite bbs and returns an integer less than, equal to, or
    greater than zero if the first argument is considered to be respectively
    less than, equal to, or greater than the second. 
@@ -1432,9 +1395,6 @@ new_scop (edge entry, edge exit)
   SCOP_PARAMS (scop) = VEC_alloc (name_tree, heap, 3);
   SCOP_PROG (scop) = cloog_program_malloc ();
   cloog_program_set_names (SCOP_PROG (scop), cloog_names_malloc ());
-  SCOP_LOOP2CLOOG_LOOP (scop) = htab_create (10, hash_loop_to_cloog_loop,
-					     eq_loop_to_cloog_loop,
-					     free);
   SCOP_LIVEOUT_RENAMES (scop) = htab_create (10, rename_map_elt_info,
 					     eq_rename_map_elts, free);
   return scop;
@@ -1467,7 +1427,6 @@ free_scop (scop_p scop)
 
   VEC_free (name_tree, heap, SCOP_PARAMS (scop));
   cloog_program_free (SCOP_PROG (scop));
-  htab_delete (SCOP_LOOP2CLOOG_LOOP (scop)); 
   htab_delete (SCOP_LIVEOUT_RENAMES (scop));
   free_sese (SCOP_REGION (scop));
   XDELETE (scop);
