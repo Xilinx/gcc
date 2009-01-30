@@ -2229,8 +2229,10 @@ ipa_tm_execute (void)
       a = cgraph_function_body_availability (node);
       d = get_cg_data (node);
 
-      if (a < AVAIL_AVAILABLE)
+      if (a <= AVAIL_NOT_AVAILABLE)
 	doit = is_tm_callable (node->decl);
+      else if (a <= AVAIL_AVAILABLE && is_tm_callable (node->decl))
+	doit = true;
       else if (!d->is_irrevokable
 	       && d->tm_callers_normal + d->tm_callers_clone > 0)
 	doit = true;
