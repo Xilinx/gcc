@@ -1944,7 +1944,7 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   gettm_fn = built_in_decls[safe ? BUILT_IN_TM_GETTMCLONE_SAFE
 			    : BUILT_IN_TM_GETTMCLONE_IRR];
   ret = create_tmp_var (TREE_TYPE (old_fn), NULL);
-  get_var_ann (ret);
+  add_referenced_var (ret);
 
   g = gimple_build_call (gettm_fn, 1, old_fn);
   ret = make_ssa_name (ret, g);

@@ -1,5 +1,8 @@
 2009-01-30  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Do
+	add_referenced_var on the new temporary.
+
 	* trans-mem.c (ipa_tm_execute): Fix test for when we can
 	expect an external clone symbol.
 
