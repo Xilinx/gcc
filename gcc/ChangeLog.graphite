@@ -1,6 +1,11 @@
+2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
+	
+	* opts.c (decode_options): Only add graphite options to O2
+	if we compile with graphite enabled.
+
 2009-01-26  Sebastian Pop  <sebastian.pop@amd.com>
 
-        * Merge from mainline (r143163:143684).
+	* Merge from mainline (r143163:143684).
 
 2009-01-26  Sebastian Pop  <sebastian.pop@amd.com>
 

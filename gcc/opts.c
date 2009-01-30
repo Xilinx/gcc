@@ -934,8 +934,10 @@ decode_options (unsigned int argc, const char **argv)
   flag_tree_pre = opt2;
   flag_tree_switch_conversion = 1;
   flag_ipa_cp = opt2;
+#ifdef HAVE_cloog
   flag_graphite_identity = opt2;
   flag_loop_block = opt2;
+#endif
 
   /* Allow more virtual operators to increase alias precision.  */
 
