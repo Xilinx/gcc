@@ -1,5 +1,8 @@
 2009-01-30  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (ipa_tm_execute): Fix test for when we can
+	expect an external clone symbol.
+
 	* c-common.c (c_common_attribute_table): Add tm_irrevokable.
 	(tm_attribute_mask): Handle it.
 	(handle_tm_fntype_attribute): Likewise.
