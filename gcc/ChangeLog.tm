@@ -1,5 +1,8 @@
 2009-01-30  Richard Henderson  <rth@redhat.com>
 
+	* trans-mem.c (gimplify_addr): Rename from gimplify_mem_ref_addr;
+	handle any object not just TMR's.
+
 	* trans-mem.c (ipa_tm_insert_gettmclone_call): Do
 	add_referenced_var on the new temporary.
 

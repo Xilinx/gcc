@@ -763,10 +763,13 @@ mark_vops_in_stmt (gimple stmt)
    result, insert the new statements before GSI.  */
 
 static tree
-gimplify_mem_ref_addr (gimple_stmt_iterator *gsi, tree tmr)
+gimplify_addr (gimple_stmt_iterator *gsi, tree x)
 {
-  tree addr = tree_mem_ref_addr (build_pointer_type (TREE_TYPE (tmr)), tmr);
-  return force_gimple_operand_gsi (gsi, addr, true, NULL, true, GSI_SAME_STMT);
+  if (TREE_CODE (x) == TARGET_MEM_REF)
+    x = tree_mem_ref_addr (build_pointer_type (TREE_TYPE (x)), x);
+  else
+    x = build_fold_addr_expr (x);
+  return force_gimple_operand_gsi (gsi, x, true, NULL, true, GSI_SAME_STMT);
 }
 
 /* Construct a memory load in a transactional context.  */
@@ -810,12 +813,7 @@ build_tm_load (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       code = BUILT_IN_TM_LOAD_4;
     }
 
-  if (TREE_CODE (rhs) == TARGET_MEM_REF)
-    t = gimplify_mem_ref_addr (gsi, rhs);
-  else
-    t = build_fold_addr_expr (rhs);
-  gcc_assert (is_gimple_operand (t));
-
+  t = gimplify_addr (gsi, rhs);
   gcall = gimple_build_call (built_in_decls[code], 1, t);
 
   t = TREE_TYPE (TREE_TYPE (built_in_decls[code]));
@@ -899,10 +897,7 @@ build_tm_store (tree lhs, tree rhs, gimple_stmt_iterator *gsi)
       rhs = temp;
     }
 
-  if (TREE_CODE (lhs) == TARGET_MEM_REF)
-    t = gimplify_mem_ref_addr (gsi, lhs);
-  else
-    t = build_fold_addr_expr (lhs);
+  t = gimplify_addr (gsi, lhs);
   gcall = gimple_build_call (built_in_decls[code], 2, t, rhs);
   gsi_insert_before (gsi, gcall, GSI_SAME_STMT);
   
