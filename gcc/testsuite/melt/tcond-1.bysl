@@ -9,6 +9,7 @@
 |#
 
 ;; this exercise a bug in rev143769
+;; the bug is corrected in rev143870 (or before)
 ;; the is_list test is compiled outside of an if.
 ;; gcc compilation of tcond-1.c gives a warning value computed is not used
 (defun tcond_aa (m l)

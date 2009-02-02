@@ -3743,6 +3743,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; selector to compile a matcher
+;; reciever: some indirect instance of class_any_matcher
+;; arguments:
+;;; * normal inargs
+;;; * normal outargs
+;;; * goto then
+;;; * goto else
+;;; * source location
+;;; * list of objinstr
+;;; * the generation context
+;;;   
+(defselector compile_matcher class_selector
+)
+
+(export_values compile_matcher)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compilation of matches
 (defun compilobj_nrep_match (nmat gcx)
   (assert_msg "check nmat" (is_a nmat class_nrep_match))
@@ -3764,6 +3780,12 @@
 		      (mapobject_put matmap  nmat labstr)
 		      labstr
 		      )))
+	(endlabel (let (
+			 (labuf (make_strbuf discr_strbuf))
+			 )
+		    (add2sbuf_string labuf matlabel)
+		    (add2sbuf_strconst labuf "_end")
+		    (strbuf2string discr_verbatimstring labuf)))
 	(ctests (multiple_map
 		 ntests
 		 (lambda (curtest :long testix)
@@ -3786,6 +3808,10 @@
 			      :obgoto_prefix matlabel
 			      :obgoto_rank (make_integerbox discr_integer 0)
 			      ))
+	(oendlabel (instance class_objlabelinstr
+			     :obi_loc nloc
+			     :oblab_prefix endlabel
+			     :oblab_rank ()))
 	)
     (list_append obodyl ofirstgoto)
     (foreach_in_multiple 
@@ -3795,30 +3821,116 @@
      (cond 
       ( (is_list curtest)
 	(list_append2list obodyl curtest)
-	()
 	)
       ( (is_multiple curtest)
 	(foreach_in_multiple
 	 (curtest)
 	 (subtest :long subix)
 	 (list_append obodyl subtest))
-	()
 	)
       ( (is_object curtest)
 	(list_append obodyl curtest)
-	())
+	)
       (:else
        (assert_msg "bad curtest in compilobj_nrep_match" ())
        (error_plain nloc "bad test in MATCH")
-       ()
        )
       )
-     ()
      )
+    (list_append obodyl oendlabel)
+    (debug_msg nres "compilobj_nrep_match compiling nres")
+    (list_append obodyl (compile_obj nres gcx))
     (debug_msg obloc "compilobj_nrep_match return obloc")
     (return obloc)
     ))
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; utility function to return the label instr of a tester
+(defun normtester_labelinstr (nt gcx)
+  (debug_msg nt "normtester_labelinstr start nt")
+  (assert_msg "check gcx" (is_a nt class_genercontext))
+  (if (is_not_a nt class_normtester_any)
+      (progn
+	(debug_msg () "normtester_labelinstr return nil")
+	(return)))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nt))
+	(:long ntestix (get_int nt))
+	(normatch (unsafe_get_field :ntest_normatch nt))
+	(matchmap (unsafe_get_field :gncx_matchmap gcx))
+	)
+    (assert_msg "check normatch" (is_a normatch class_nrep_match))
+    (assert_msg "check valid normatch" 
+		(== (multiple_nth (get_field :nmatch_tests normatch) 
+				  ntestix) 
+		    nt))
+    (let (
+	  (prefix (mapobject_get matchmap normatch))
+	  (labins (instance class_objlabelinstr
+			    :obi_loc nloc
+			    :oblab_prefix prefix
+			    :oblab_rank nt)) 
+	  )
+      (debug_msg labins "normtester_labelinstr result labins")
+      (assert_msg "check prefix" (is_string prefix))
+      (return labins)
+      )))
+
+
+;; utility function to return the goto instr into a tester
+(defun normtester_gotoinstr (nt gcx)
+  (debug_msg nt "normtester_labelinstr start nt")
+  (if (is_not_a nt class_normtester_any)
+      (progn
+	(debug_msg () "normtester_gotoinstr return nil")
+	(return)))
+  (assert_msg "check gcx" (is_a nt class_genercontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc nt))
+	(:long ntestix (get_int nt))
+	(normatch (unsafe_get_field :ntest_normatch nt))
+	(matchmap (unsafe_get_field :gncx_matchmap gcx))
+	)
+    (assert_msg "check normatch" (is_a normatch class_nrep_match))
+    (assert_msg "check valid normatch" 
+		(== (multiple_nth (get_field :nmatch_tests normatch) 
+				  ntestix) 
+		    nt))
+    (let (
+	  (prefix (mapobject_get matchmap normatch))
+	  (goins (instance class_objgotoinstr
+			    :obi_loc nloc
+			    :obgoto_prefix prefix
+			    :obgoto_rank nt)) 
+	  )
+      (debug_msg goins "normtester_gotoinstr result goins")
+      (assert_msg "check prefix" (is_string prefix))
+      (return goins)
+)))
+
+
+;;; utility function to return the goto instr at end of matcher
+(defun endmatch_gotoinstr (nma gcx nloc)
+  (assert_msg "check nma" (is_a nma class_nrep_match))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(matchmap (unsafe_get_field :gncx_matchmap gcx))
+	(prefix (mapobject_get matchmap nma))
+	(labuf (make_strbuf discr_strbuf))
+	)
+    (add2sbuf_string labuf prefix)
+    (add2sbuf_strconst labuf "_end")
+    (let (
+	  (goins (instance 
+		  class_objgotoinstr
+		  :obi_loc nloc
+		  :obgoto_prefix (strbuf2string discr_verbatimstring labuf)
+		  :obgoto_rank ()))
+	  )
+      (return goins)
+)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_normtester_matcher (ntma gcx)
   (debug_msg ntma "compilobj_normtester_matcher ntma")
@@ -3829,16 +3941,26 @@
 	(nmatched (unsafe_get_field :ntest_matched ntma))
 	(nthen (unsafe_get_field :ntest_then ntma))
 	(nelse (unsafe_get_field :ntest_else ntma))
-	(normatch (unsafe_get_field :ntest_normatch ntma))
-	(:long ntestix (get_int ntma))
 	(nmatcher (unsafe_get_field :ntmatch_matcher ntma))
 	(nins (unsafe_get_field :ntmatch_inargs ntma))
 	(nouts (unsafe_get_field :ntmatch_outlocs ntma))
+	(normatch (unsafe_get_field :ntest_normatch ntma))
+	(labins (normtester_labelinstr ntma gcx))
+	(gotothen (normtester_gotoinstr nthen gcx))
+	(gotoelse (normtester_gotoinstr nelse gcx))
+	(olist (make_list discr_list))
 	)
-    (error_plain nloc "unimplemented compilobj_normtester_matcher")
-    (shortbacktrace_dbg "compilobj_normtester_matcher" 15)
+    (if (null gotothen)
+	(setq gotothen (endmatch_gotoinstr normatch gcx nloc)))
+    (if (null gotoelse)
+	(setq gotoelse (endmatch_gotoinstr normatch gcx nloc)))
+    (list_append olist labins)
+    (debug_msg nmatcher "compilobj_normtester_matcher before nmatcher")
+    (compile_matcher nmatcher nins nouts gotothen gotoelse nloc olist gcx)
+    (debug_msg olist "compilobj_normtester_matcher return olist")
+    (return olist)
     )
-)
+  )
 (install_method class_normtester_matcher compile_obj compilobj_normtester_matcher)
 
 ;;;;;;;;;;;;;;;;
@@ -3897,6 +4019,20 @@
     )
 )
 (install_method class_normtester_success compile_obj compilobj_normtester_success)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilmatcher_cmatcher (cmat ins outs thengoto elsegoto nloc olist gcx)
+  (debug_msg cmat "compilmatcher_cmatcher cmat")
+  (debug_msg ins "compilmatcher_cmatcher ins")
+  (debug_msg outs "compilmatcher_cmatcher outs")
+  (debug_msg thengoto "compilmatcher_cmatcher thengoto")
+  (debug_msg elsegoto "compilmatcher_cmatcher elsegoto")
+  (debug_msg nloc "compilmatcher_cmatcher nloc")
+  (assert_msg "check cmat" (is_a cmat class_cmatcher))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (assert_msg "unimplemented compilmatcher_cmatcher" ())
+)
+(install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

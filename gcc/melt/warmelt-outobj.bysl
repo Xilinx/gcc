@@ -1433,10 +1433,12 @@
   (output_location (unsafe_get_field :obi_loc oblab) implbuf depth "objlabel")
   (add2sbuf_strconst implbuf "/*objlabel*/ ")
   (add2sbuf_string implbuf (unsafe_get_field :oblab_prefix oblab))
-  (add2sbuf_longdec implbuf (get_int (unsafe_get_field :oblab_rank oblab)))
+  (let ( (obrank (unsafe_get_field :oblab_rank oblab)) )
+    (if obrank
+	(add2sbuf_longdec implbuf (get_int (unsafe_get_field :oblab_rank oblab)))))
   (add2sbuf_strconst implbuf ": ;")
   (add2sbuf_indentnl implbuf depth)
-)
+  )
 (install_method class_objlabelinstr output_c_code outpucod_objlabelinstr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1448,7 +1450,9 @@
   (output_location (unsafe_get_field :obi_loc obgoto) implbuf depth "objlabel")
   (add2sbuf_strconst implbuf "/*objgoto*/ goto ")
   (add2sbuf_string implbuf (unsafe_get_field :obgoto_prefix obgoto))
-  (add2sbuf_longdec implbuf (get_int (unsafe_get_field :obgoto_rank obgoto)))
+  (let ( (obrank (unsafe_get_field :obgoto_rank obgoto)) )
+    (if obrank
+	(add2sbuf_longdec implbuf (get_int obrank))))
   (add2sbuf_strconst implbuf ";")
   (add2sbuf_indentnl implbuf depth)
 )

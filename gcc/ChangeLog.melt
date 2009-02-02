@@ -1,4 +1,11 @@
 2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.bysl: Added compile_matcher selector.  Added
+	normtester_labelinstr normtester_gotoinstr endmatch_gotoinstr
+	utility functions.
+	* melt/warmelt-outobj.bysl: when outputing goto or label, handle
+	case when rank is nil.
+	* testsuite/melt/tcond-1.bysl: updated comment.
+2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[bug corrected in citeration compilation == tcond-1.bysl ok]
 	* testsuite/melt/tcond-1.bysl: simplified test case.
 	* melt/warmelt-normal.bysl: typo in debug_msg.
