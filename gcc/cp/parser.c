@@ -7844,6 +7844,10 @@ cp_parser_already_scoped_statement (cp_parser* parser)
       /* Avoid calling cp_parser_compound_statement, so that we
 	 don't create a new scope.  Do everything else by hand.  */
       cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
+      /* If the next keyword is `__label__' we have a label declaration.  */
+      while (cp_lexer_next_token_is_keyword (parser->lexer, RID_LABEL))
+	cp_parser_label_declaration (parser);
+      /* Parse an (optional) statement-seq.  */
       cp_parser_statement_seq_opt (parser, NULL_TREE);
       cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
     }
@@ -15993,7 +15997,13 @@ cp_parser_pure_specifier (cp_parser* parser)
   if (!cp_parser_require (parser, CPP_EQ, "%<=%>"))
     return error_mark_node;
   /* Look for the `0' token.  */
-  token = cp_lexer_consume_token (parser->lexer);
+  token = cp_lexer_peek_token (parser->lexer);
+
+  if (token->type == CPP_EOF
+      || token->type == CPP_PRAGMA_EOL)
+    return error_mark_node;
+
+  cp_lexer_consume_token (parser->lexer);
 
   /* Accept = default or = delete in c++0x mode.  */
   if (token->keyword == RID_DEFAULT

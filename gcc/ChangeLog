@@ -1,3 +1,117 @@
+2009-02-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/39058
+	* recog.h (asm_operand_ok): Add constraints argument.
+	* recog.c (asm_operand_ok): Likewise.  If it is set, for digits
+	recurse on matching constraint.
+	(check_asm_operands): Pass constraints as 3rd argument to
+	asm_operand_ok.  Don't look up matching constraint here.
+	* stmt.c (expand_asm_operands): Pass NULL as 3rd argument
+	to asm_operand_ok.
+
+2009-02-02  Ben Elliston  <bje@au.ibm.com>
+
+	* doc/tm.texi (Storage Layout): Fix TARGET_ALIGN_ANON_BITFIELD and
+	TARGET_NARROW_VOLATILE_BITFIELD macro names.
+
+2009-01-31  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* doc/install.texi (hppa*-hp-hpux*): Update binutils and linker
+	information.  Remove some obsolete information.  Reorganize.
+
+	* config/pa/fptr.c: Revert license to GPL 2.
+	* config/pa/milli64.S: Likewise.
+
+2009-01-31  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/38904
+	* mkmap-flat.awk (END):  Use pe_dll command-line arg to pass
+	LIBRARY name in, instead of hard-coding it.
+	* config.gcc (i[34567]86-*-pe | i[34567]86-*-cygwin*):  Add an
+	extra target make frag to tmake_files according to EH model.
+	(i[34567]86-*-mingw* | x86_64-*-mingw*):  Likewise.
+	* config/i386/t-dw2-eh, config/i386/t-sjlj-eh:  Add new target
+	frags that define makefile variable EH_MODEL appropriately.
+	* config/i386/cygming.h (DWARF2_UNWIND_INFO):  Add comment.
+	* config/i386/cygwin.h (LIBGCC_EH_EXTN):  Define to nothing or
+	to "-sjlj" according to type of EH configured.
+	(LIBGCC_SONAME):  Concatenate it to shared library base name.
+	* config/i386/mingw32.h (LIBGCC_EH_EXTN):  Define to "_dw2" or
+	to "_sjlj" according to type of EH configured.
+	(LIBGCC_SONAME):  Concatenate it to shared library base name.
+	* config/i386/t-cygming (SHLIB_SONAME):  Use EH_MODEL.
+	(SHLIB_LINK):  Add missing semicolon to if-else construct.
+	(SHLIB_MKMAP_OPTS):  Pass library name to mkmap-flat.awk as
+	string value of "pe_dll" command-line option.
+	* config/i386/t-cygwin (SHLIB_EH_EXTENSION):  New helper.
+	(SHLIB_SONAME):  Use it when overriding t-cygming default.
+	(SHLIB_IMPLIB):  Override t-cygming default.
+	(SHLIB_MKMAP_OPTS):  Pass library name to mkmap-flat.awk as
+	string value of "pe_dll" command-line option.
+
+2009-01-31  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/38952
+	* config/i386/i386.c (ix86_builtin_setjmp_frame_value): New.
+	(TARGET_BUILTIN_SETJMP_FRAME_VALUE): Override default to point
+	at it.
+
+2009-01-31  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38937
+	* tree-ssa-structalias.c (do_sd_constraint): Do not shortcut
+	computing the transitive closure.
+
+2009-01-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39041
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1):
+	Propagate variable indices only if the types match for this stmt.
+
+2009-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39013
+	* c-decl.c (pop_scope): Set DECL_EXTERNAL for functions declared
+	inline but never defined.
+
+2009-01-30  Wolfgang Gellerich  <gellerich@de,ibm.com>
+
+	* config/s390/s390.md (*insv<mode>_reg_extimm): Removed.
+	(*insv_h_di_reg_extimm): New insn.
+	(*insv_l<mode>_reg_extimm): New insn.
+
+2009-01-30  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (flag_conserve_stack): set
+	PARAM_LARGE_STACK_FRAME and PARAM_STACK_FRAME_GROWTH to zero under
+	fconserve-stack. Reduce call-overhead used by inliner.
+
+2009-01-30  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	PR/38157
+	* common.opt (flag_conserve_stack): Initialised to zero.
+
+2009-01-30  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR/39002
+	* config/i386/i386.c (ix86_can_use_return_insn_p): Check for nsseregs.
+	(ix86_expand_epilogue): Take nsseregs in account to use proper restore
+	method.
+
+2009-01-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* ira-color.c (allocno_reload_assign): Update comments.
+	* regmove.c (regmove_optimize): Likewise.
+
+	* ra.h: Removed.
+
+2009-01-29  Robert Millan  <rmh@aybabtu.com>
+
+	* gcc/config.gcc: Recognize GNU/kOpenSolaris (*-*-kopensolaris*-gnu).
+	* gcc/config/i386/kopensolaris-gnu.h: New file.  Undefine
+	`MD_UNWIND_SUPPORT'.
+	* gcc/config/kopensolaris-gnu.h: New file (based on kfreebsd-gnu.h).
+
 2009-01-29  Kazu Hirata  <kazu@codesourcery.com>
 
 	PR tree-optimization/39007
@@ -106,7 +220,7 @@
 	Remove flag_ira.
 	(finish_spills): Ditto.  Remove code for !flga_ira.
 	
-2009-01-29  Kenneth Zadeck <zadeck@naturalbridge.com>
+2009-01-29  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	PR middle-end/35854
 	* doc/invoke.texi (rtl debug options): Complete rewrite.
@@ -631,7 +745,7 @@
 	(record_temporary_equivalences_from_stmts_at_dest): Ignore calls to
 	__builtin_constant_p.
 
-2009-01-16  Kenneth Zadeck <zadeck@naturalbridge.com>
+2009-01-16  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* dce.c (delete_unmarked_insns): Reversed the order that insns are
 	examined before deleting them.
@@ -641,7 +755,7 @@
 	* function.c (aggregate_value_p): Correctly extract the function
 	type from CALL_EXPR_FN lookup.
 
-2009-01-16  Hariharan Sandanagobalane <hariharan@picochip.com>
+2009-01-16  Hariharan Sandanagobalane  <hariharan@picochip.com>
 
 	* config/picochip/picochip.c (picochip_override_options): Revert
 	CFI asm flag disable commited previously.
@@ -672,7 +786,7 @@
 	(gimple_expand_cfg): Update stack boundary and check incoming
 	stack boundary here.
 
-2009-01-15  Kenneth Zadeck <zadeck@naturalbridge.com>
+2009-01-15  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* dce.c (find_call_stack_args, delete_unmarked_insns): Fixed comments.
 	
@@ -848,7 +962,7 @@
 	* expmed.c (store_bit_field_1): Properly truncate the paradoxical
 	subreg of op0 to the original op0.
 
-2009-01-11  Laurent GUERBY <laurent@guerby.net>
+2009-01-11  Laurent GUERBY  <laurent@guerby.net>
 
 	* doc/sourcebuild.texi (Source Tree): Move up intl and fixinc.
 	
@@ -1100,13 +1214,13 @@
 	Add Robert Clark to the list of testers.
 
 2009-01-06  Jan Hubicka  <jh@suse.cz>
-	    Kai Tietz <kai.tietz@onevision.com>
+	    Kai Tietz  <kai.tietz@onevision.com>
 
 	* config/i386/i386.md (*msabi_syvabi): Add SSE regs clobbers.
 	* config/i386/i386.c (ix86_expand_call): Add clobbers.
 
 2009-01-06  Jan Hubicka  <jh@suse.cz>
-	    Kai Tietz <kai.tietz@onevision.com>
+	    Kai Tietz  <kai.tietz@onevision.com>
 
 	* config/i386/i386.h (CONDITIONAL_CALL_USAGE): SSE regs are not used
 	for w64 ABI.
@@ -1124,7 +1238,7 @@
 	(ix86_expand_epilogue): Save SSE regs if needed.
 
 2009-01-06  Jan Hubicka  <jh@suse.cz>
-	    Kai Tietz <kai.tietz@onevision.com>
+	    Kai Tietz  <kai.tietz@onevision.com>
 
 	* config/i386/i386.h (ACCUMULATE_OUTGOING_ARGS): Enable for MSABI
 	* config/i386/i386.c (init_cumulative_args): Disallow calls of MSABI
@@ -1259,13 +1373,13 @@
 	(gloog): Call recompute_all_dominators before graphite_verify.
 
 2009-01-05  Harsha Jagasia  <harsha.jagasia@amd.com>
-	    Jan Sjodin <jan.sjodin@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
 
 	PR tree-optimization/38500
 	* graphite.c (create_sese_edges): Call fix_loop_structure after
 	splitting blocks.
 
-2009-01-05  Joel Sherrill <joel.sherrill@oarcorp.com>
+2009-01-05  Joel Sherrill  <joel.sherrill@oarcorp.com>
 
 	* config.gcc: Add m32r*-*-rtems*.
 	* config/m32r/rtems.h: New file.
@@ -1391,7 +1505,7 @@
 	* builtins.c (fold_builtin_expect): Only check DECL_WEAK for VAR_DECLs
 	and FUNCTION_DECLs.
 
-2009-01-02  Kenneth Zadeck <zadeck@naturalbridge.com>
+2009-01-02  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	PR rtl-optimization/35805
 	* df-problems.c (df_lr_finalize): Add recursive call to resolve lr
@@ -1423,7 +1537,7 @@
 
 	* doc/extend.texi: Fix '#pragma GCC option' typo.
 
-2009-01-02 Richard Guenther <rguenther@suse.de>
+2009-01-02  Richard Guenther  <rguenther@suse.de>
 
 	* doc/install.texi (--enable-checking): Mention different
 	default for stage1.

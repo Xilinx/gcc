@@ -460,7 +460,7 @@ Common Report Var(flag_compiler_probe_debug)  RejectNegative  Condition(ENABLE_C
 Gives on stderr lot of debugging output for the compiler probe if enabled
 
 fconserve-stack
-Common Var(flag_conserve_stack,0) Optimization
+Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
 
 fcprop-registers

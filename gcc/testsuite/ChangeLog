@@ -1,3 +1,52 @@
+2009-02-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_correct_iso_cpp_string_wchar_protos): New.
+	* g++.dg/ext/builtin10.C: New test.
+
+	PR inline-asm/39058
+	* gcc.target/i386/pr39058.c: New test.
+
+2009-02-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38937
+	* g++.dg/warn/Wstrict-aliasing-bogus-escape.C: New testcase.
+
+2009-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        PR c++/39053
+        * g++.dg/parse/crash52.C: New.
+
+2009-01-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39041
+	* gcc.c-torture/compile/pr39041.c: New testcase.
+
+2009-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39013
+	* gcc.target/i386/pr39013-1.c: New test.
+	* gcc.target/i386/pr39013-2.c: New test.
+
+	PR c++/39028
+	* g++.dg/ext/label12.C: New test.
+
+2009-01-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/33465
+	* g++.dg/parse/error34.C: New.
+	* g++.dg/parse/error35.C: Likewise.
+
+2009-01-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/38655
+	* g++.dg/cpp0x/decltype-38655.C: New.
+
+2009-01-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39002
+	* g++.dg/torture/pr39002.C: New test.
+
 2009-01-29  Kazu Hirata  <kazu@codesourcery.com>
 
 	PR tree-optimization/39007

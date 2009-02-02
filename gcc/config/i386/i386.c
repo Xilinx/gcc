@@ -7138,7 +7138,7 @@ ix86_can_use_return_insn_p (void)
     return 0;
 
   ix86_compute_frame_layout (&frame);
-  return frame.to_allocate == 0 && frame.nregs == 0;
+  return frame.to_allocate == 0 && (frame.nregs + frame.nsseregs) == 0;
 }
 
 /* Value should be nonzero if functions must have frame pointers.
@@ -7495,6 +7495,17 @@ ix86_initial_elimination_offset (int from, int to)
       gcc_assert (from == FRAME_POINTER_REGNUM);
       return frame.stack_pointer_offset - frame.frame_pointer_offset;
     }
+}
+
+/* In a dynamically-aligned function, we can't know the offset from
+   stack pointer to frame pointer, so we must ensure that setjmp
+   eliminates fp against the hard fp (%ebp) rather than trying to
+   index from %esp up to the top of the frame across a gap that is
+   of unknown (at compile-time) size.  */
+static rtx
+ix86_builtin_setjmp_frame_value (void)
+{
+  return stack_realign_fp ? hard_frame_pointer_rtx : virtual_stack_vars_rtx;
 }
 
 /* Fill structure ix86_frame about frame of currently computed function.  */
@@ -8293,14 +8304,14 @@ ix86_expand_epilogue (int style)
      are no registers to restore.  We also use this code when TARGET_USE_LEAVE
      and there is exactly one register to pop. This heuristic may need some
      tuning in future.  */
-  if ((!sp_valid && frame.nregs <= 1)
+  if ((!sp_valid && (frame.nregs + frame.nsseregs) <= 1)
       || (TARGET_EPILOGUE_USING_MOVE
 	  && cfun->machine->use_fast_prologue_epilogue
-	  && (frame.nregs > 1 || frame.to_allocate))
-      || (frame_pointer_needed && !frame.nregs && frame.to_allocate)
+	  && ((frame.nregs + frame.nsseregs) > 1 || frame.to_allocate))
+      || (frame_pointer_needed && !(frame.nregs + frame.nsseregs) && frame.to_allocate)
       || (frame_pointer_needed && TARGET_USE_LEAVE
 	  && cfun->machine->use_fast_prologue_epilogue
-	  && frame.nregs == 1)
+	  && (frame.nregs + frame.nsseregs) == 1)
       || crtl->calls_eh_return)
     {
       /* Restore registers.  We can use ebp or esp to address the memory
@@ -29541,6 +29552,9 @@ ix86_enum_va_list (int idx, const char **pname, tree *ptree)
 
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG ix86_reorg
+
+#undef TARGET_BUILTIN_SETJMP_FRAME_VALUE
+#define TARGET_BUILTIN_SETJMP_FRAME_VALUE ix86_builtin_setjmp_frame_value
 
 #undef TARGET_BUILD_BUILTIN_VA_LIST
 #define TARGET_BUILD_BUILTIN_VA_LIST ix86_build_builtin_va_list
