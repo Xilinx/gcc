@@ -442,6 +442,8 @@
 	    gncx_retloc			;return location
 	    gncx_compicache		;cache map of procedure to compiled routines
 	    gncx_modulcontext		;the module compilation context
+	    gncx_matchmap		;map keyed by normal matchers
+					;giving a unique label prefix
 	    ))
 
 

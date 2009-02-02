@@ -1,0 +1,29 @@
+;; -*- lisp -*-
+;; file tcond-1.bysl
+
+#| run in buildir/gcc
+ ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
+    -fbasilys-compile-script=built-melt-cc-script \
+    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
+    -fbasilys-arg=..../tcond-1.bysl -fbasilys-debug; indent tcond-1.c; ./built-melt-cc-script -n tcond-1.c
+|#
+
+;; this exercise a bug in rev143769
+;; the is_list test is compiled outside of an if.
+;; gcc compilation of tcond-1.c gives a warning value computed is not used
+(defun tcond_aa (m l)
+  (debug_msg m "tcond_aa x")
+  (foreach_in_multiple 
+   (m)
+   (x :long jx)
+   (cond 
+    ( (is_list x)
+      (list_append2list l x))
+   ; ( (is_multiple x)
+   ;   (foreach_in_multiple
+   ;    (x)
+   ;    (comp :long ix)
+   ;    (list_append l comp)))
+    (:else
+     (list_append l x)))
+   ))

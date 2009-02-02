@@ -1,3 +1,16 @@
+2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tcond-1.bysl: added new file, exercising a bug.
+	* melt/warmelt-first.bysl: (class_genercontext) Added
+	gncx_matchmap.
+	* melt/warmelt-normatch.bysl: renamed field ntest_match as
+	ntest_matched. added field ntest_normatch into
+	class_normtester_any. removed nmatch_binds from
+	class_nrep_match. update ntest_normatch field in normexp_match.
+	* melt/warmelt-genobj.bysl: added class_objgotoinstr &
+	class_objlabelinstr. added stubs for compile_obj methods for
+	class_tester_*
+	* melt/warmelt-outobj.bysl: added output_code for
+	class_objgotoinstr & class_objlabelinstr
 2009-01-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: added stub for compilation of normal
 	matches.

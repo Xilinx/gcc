@@ -326,9 +326,10 @@
 ;; all the testers share a common superclass
 (defclass class_normtester_any 
   :super class_nrep_expr	;inherit fields: nrep_loc
-  :fields (ntest_match		;normal matched thing
+  :fields (ntest_matched       	;normal matched thing
 	   ntest_then		;tester to run if successful
 	   ntest_else		;tester to run if failed
+	   ntest_normatch	;the containing normalized match
 	   ))
 
 
@@ -366,8 +367,7 @@
 ;;;;;;;;;;;;;;;;
 (defclass class_nrep_match
   :super class_nrep_typexpr
-  :fields (nmatch_binds			;sequence of bindings
-	   nmatch_tests			;sequence of tests
+  :fields (nmatch_tests			;sequence of tests
 	   nmatch_res			;result occ
 	   ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -468,7 +468,7 @@
 	    (:else
 	     (let ( (newtester (instance class_normtester_same
 					 :nrep_loc sloc
-					 :ntest_match nmatch
+					 :ntest_matched nmatch
 					 :ntest_then ()
 					 :ntest_else ()
 					 :ntsame_identical lococc))
@@ -563,7 +563,7 @@
 	     (newtester 
 	      (instance class_normtester_instance
 			:nrep_loc sloc
-			:ntest_match nmatch
+			:ntest_matched nmatch
 			:ntest_then ()
 			:ntest_else ()
 			:ntinst_class patcla
@@ -778,7 +778,7 @@
 		    (newtester 
 		     (instance class_normtester_matcher
 			       :nrep_loc sloc
-			       :ntest_match nmatch
+			       :ntest_matched nmatch
 			       :ntest_then ()
 			       :ntest_else ()
 			       :ntmatch_matcher mat
@@ -930,7 +930,7 @@
 		  (instance class_normtester_success
 			    :nrep_loc curloc
 			    ;; we really don't match anything
-			    :ntest_match ()
+			    :ntest_matched ()
 			    :ntest_then ()
 			    :ntest_else ()
 			    ;; the success do should be the wrapped
@@ -1016,10 +1016,6 @@
 		 (debug_msg wnlet "normexp_match wnlet")
 		 (debug_msg lastnbody "normexp_match lastnbody")
 		 (debug_msg lastctype "normexp_match lastctype")
-		 (debug_msg class_normtester_success "normexp_match class_normtester_success")
-		 (debug_msg class_nrep_typexpr "normexp_match class_nrep_typexpr")
-		 (assert_msg "check normtester_success subclass nrep_typexpr"
-			     (subclass_of class_normtester_success class_nrep_typexpr))
 		 (put_fields newsuctester 
 			     :ntsuccess_do wnlet
 			     )
@@ -1051,7 +1047,6 @@
 	     (nmatch (instance class_nrep_match
 				:nrep_loc sloc
 				:nexpr_ctyp wholectype
-				:nmatch_binds bindlist
 				:nmatch_tests teststupl
 				))
 	     (csym (clone_symbol 'match_))
@@ -1071,10 +1066,12 @@
 	 (foreach_in_multiple
 	  (teststupl)
 	  (curtest :long tstix)
-	  (assert_msg "check curtest" (is_object curtest))
+	  (debug_msg curtest "normexp_match raw curtest")
+	  (assert_msg "check curtest" (is_a curtest class_normtester_any))
 	  (assert_msg "check tstix" (>=i tstix 0))
 	  (messagenum_dbg "normexp_match testindex tstix" tstix)
 	  (put_int curtest tstix)
+	  (put_fields curtest :ntest_normatch nmatch)
 	  (debug_msg curtest "normexp_match indexed curtest")
 	  )
 	 (unsafe_put_fields clocc :nocc_bind cbind)

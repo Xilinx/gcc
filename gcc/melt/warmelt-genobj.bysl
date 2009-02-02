@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.bysl -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
-    Copyright 2008 Free Software Foundation, Inc.
+    Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -202,6 +202,20 @@
   :fields ( ocomblo_comment		;the comment string
 	    ))
 
+;; unique label instr
+(defclass class_objlabelinstr
+  :super class_objinstr
+  :fields (oblab_prefix			;unique prefix string
+	   oblab_rank			;additional rank
+	   ))
+
+;; unconditional goto label
+(defclass class_objgotoinstr
+  :super class_objinstr
+  :fields (obgoto_prefix		;unique prefix string
+	   obgoto_rank			;additional rank
+	   ))
+
 ;; looping block
 (defclass class_objloop
   :super class_objblock		 ;the body is looped, not the epilogue
@@ -238,6 +252,7 @@
 	   obifp_then
 	   obifp_else
 	   ))
+
 
 ;;; keyword & symbol intern instruction
 (defclass class_objinterncommon
@@ -449,6 +464,7 @@
  class_objgetnamedkeyword
  class_objgetnamedsymbol
  class_objgetslot
+ class_objgotoinstr
  class_objinitclosure
  class_objinitelem
  class_objinitmultiple
@@ -459,6 +475,7 @@
  class_objinterncommon
  class_objinternkeyword
  class_objinternsymbol
+ class_objlabelinstr
  class_objlocatedexpv
  class_objlocv
  class_objloop
@@ -681,6 +698,7 @@
 			 :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
 			 :gncx_compicache compicache
 			 :gncx_modulcontext modctx
+			 :gncx_matchmap (make_mapobject discr_mapobjects 40)
 			 ))
 	  (retloc 
 	   (let ( (retl (get_free_objlocptr gcx '_retval_)) )
@@ -791,6 +809,7 @@
 	      :gncx_freeothermaps (make_mapobject discr_mapobjects 20)
 	      :gncx_compicache compicache
 	      :gncx_modulcontext modctx
+	      :gncx_matchmap (make_mapobject discr_mapobjects 60)
 	      :igncx_procurmodenvlist
 	      (list_map 
 	       procurmodenvlist
@@ -3719,11 +3738,153 @@
   (debug_msg nmat "compilobj_nrep_match nmat")
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
+	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
+	(ntests (unsafe_get_field :nmatch_tests nmat))
+	(nres (unsafe_get_field :nmatch_res nmat))
+	(matmap (unsafe_get_field :gncx_matchmap gcx))
+	(matlabel (let ( (:long nbmat (mapobject_count matmap))
+			 (labuf (make_strbuf discr_strbuf))
+			 )
+		    (add2sbuf_strconst labuf "labmatch_")
+		    (add2sbuf_longdec labuf (+i nbmat 1))
+		    (add2sbuf_strconst labuf "_")
+		    (let ( (labstr (strbuf2string discr_verbatimstring labuf)) )
+		      (mapobject_put matmap  nmat labstr)
+		      labstr
+		      )))
+	(ctests (multiple_map
+		 ntests
+		 (lambda (curtest :long testix)
+		   (debug_msg curtest "compilobj_nrep_match curtest")
+		   (let (
+			 (curcomp (compile_obj curtest gcx))
+			 )
+		     (debug_msg curcomp "compilobj_nrep_match curcomp")
+		     curcomp
+		     )
+		   )))
+	(obodyl (make_list discr_list))
+	(obloc (instance class_objcommentedblock
+			 :obi_loc nloc
+			 :oblo_bodyl obodyl
+			 :ocomblo_comment matlabel
+			 ))
+	(ofirstgoto (instance class_objgotoinstr
+			      :obi_loc nloc
+			      :obgoto_prefix matlabel
+			      :obgoto_rank (make_integerbox discr_integer 0)
+			      ))
 	)
-    (compile_warning "unimplemented compilobj_nrep_match" ())
-    (assert_msg "@@unimplemented compilobj_nrep_match" ())
-))
+    (list_append obodyl ofirstgoto)
+    (foreach_in_multiple 
+     (ctests)
+     (curtest :long testix)
+     (debug_msg curtest "compilobj_nrep_match curtest")
+     (cond 
+      ( (is_list curtest)
+	(list_append2list obodyl curtest)
+	()
+	)
+      ( (is_multiple curtest)
+	(foreach_in_multiple
+	 (curtest)
+	 (subtest :long subix)
+	 (list_append obodyl subtest))
+	()
+	)
+      ( (is_object curtest)
+	(list_append obodyl curtest)
+	())
+      (:else
+       (assert_msg "bad curtest in compilobj_nrep_match" ())
+       (error_plain nloc "bad test in MATCH")
+       ()
+       )
+      )
+     ()
+     )
+    (debug_msg obloc "compilobj_nrep_match return obloc")
+    (return obloc)
+    ))
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_normtester_matcher (ntma gcx)
+  (debug_msg ntma "compilobj_normtester_matcher ntma")
+  (assert_msg "check ntma" (is_a ntma class_normtester_matcher))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntma))
+	(nmatched (unsafe_get_field :ntest_matched ntma))
+	(nthen (unsafe_get_field :ntest_then ntma))
+	(nelse (unsafe_get_field :ntest_else ntma))
+	(normatch (unsafe_get_field :ntest_normatch ntma))
+	(:long ntestix (get_int ntma))
+	(nmatcher (unsafe_get_field :ntmatch_matcher ntma))
+	(nins (unsafe_get_field :ntmatch_inargs ntma))
+	(nouts (unsafe_get_field :ntmatch_outlocs ntma))
+	)
+    (error_plain nloc "unimplemented compilobj_normtester_matcher")
+    (shortbacktrace_dbg "compilobj_normtester_matcher" 15)
+    )
+)
+(install_method class_normtester_matcher compile_obj compilobj_normtester_matcher)
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_normtester_instance (ntmi gcx)
+  (debug_msg ntmi "compilobj_normtester_instance ntmi")
+  (assert_msg "check ntmi" (is_a ntmi class_normtester_instance))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntmi))
+	(nmatched (unsafe_get_field :ntest_matched ntmi))
+	(nthen (unsafe_get_field :ntest_then ntmi))
+	(nelse (unsafe_get_field :ntest_else ntmi))
+	(normatch (unsafe_get_field :ntest_normatch ntmi))
+	(:long ntestix (get_int ntmi))	
+	(ntclass (unsafe_get_field :ntinst_class ntmi))
+	(ntflds (unsafe_get_field :ntinst_fieldlocs ntmi))
+	)
+    (error_plain nloc "unimplemented compilobj_normtester_instance")
+    (shortbacktrace_dbg "compilobj_normtester_instance" 15)
+    )
+)
+(install_method class_normtester_instance compile_obj compilobj_normtester_instance)
+;;;;;;;;;;;;;;;;
+(defun compilobj_normtester_same (ntsa gcx)
+  (debug_msg ntsa "compilobj_normtester_same ntsa")
+  (assert_msg "check ntsa" (is_a ntsa class_normtester_same))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntsa))
+	(nmatched (unsafe_get_field :ntest_matched ntsa))
+	(nthen (unsafe_get_field :ntest_then ntsa))
+	(nelse (unsafe_get_field :ntest_else ntsa))
+	(normatch (unsafe_get_field :ntest_normatch ntsa))
+	(:long ntestix (get_int ntsa))	
+	)
+    (error_plain nloc "unimplemented compilobj_normtester_same")
+    (shortbacktrace_dbg "compilobj_normtester_same" 15)
+    )
+)
+(install_method class_normtester_same compile_obj compilobj_normtester_same)
+;;;;;;;;;;;;;;;;
+(defun compilobj_normtester_success (ntsu gcx)
+  (debug_msg ntsu "compilobj_normtester_success ntsu")
+  (assert_msg "check ntsu" (is_a ntsu class_normtester_success))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(nloc (unsafe_get_field :nrep_loc ntsu))
+	(nmatched (unsafe_get_field :ntest_matched ntsu))
+	(nthen (unsafe_get_field :ntest_then ntsu))
+	(nelse (unsafe_get_field :ntest_else ntsu))
+	(normatch (unsafe_get_field :ntest_normatch ntsu))
+	(:long ntestix (get_int ntsu))	
+	)
+    (error_plain nloc "unimplemented compilobj_normtester_success")
+    (shortbacktrace_dbg "compilobj_normtester_success" 15)
+    )
+)
+(install_method class_normtester_success compile_obj compilobj_normtester_success)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
