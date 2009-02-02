@@ -1,4 +1,16 @@
 2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	[bug corrected in citeration compilation == tcond-1.bysl ok]
+	* testsuite/melt/tcond-1.bysl: simplified test case.
+	* melt/warmelt-normal.bysl: typo in debug_msg.
+	* melt/warmelt-genobj.bysl: Corrected compilation of citeration by
+	missing put_objdest.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+2009-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tcond-1.bysl: added new file, exercising a bug.
 	* melt/warmelt-first.bysl: (class_genercontext) Added
 	gncx_matchmap.

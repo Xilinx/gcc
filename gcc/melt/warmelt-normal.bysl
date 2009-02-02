@@ -3604,7 +3604,7 @@
 		 (citlocmap (make_mapobject discr_mapobjects (+i 10 nbcitbform)))
 		 (citexpander 
 		  (lambda (xtup)
-		    (debug_msg xtup "normexp_citeration exanding xtup")
+		    (debug_msg xtup "normexp_citeration expanding xtup")
 		    (multiple_map 
 		     xtup 
 		     (lambda (curelem :long ix)

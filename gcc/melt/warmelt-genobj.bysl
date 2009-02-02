@@ -1911,8 +1911,20 @@
 	       )
 	   )
 	 (let ( (ocur (compile_obj nexp gcx)) )
-	   (list_append obodl ocur)
-	   )
+	   (debug_msg ocur "compilobj_nrep_citeration raw ocur")
+	   (if (!= cty ctype_void)
+	       (progn
+		 (debug_msg obbva "compilobj_nrep_citeration putobjdest obbva")
+		 (let ( (newocur (put_objdest ocur obbva)) )
+		   (debug_msg newocur "compilobj_nrep_citeration putobjdest newocur")
+		   (if newocur 
+		       (list_append obodl newocur)
+		     (list_append obodl ocur))
+		   ))
+	     (progn
+	       (debug_msg ocur "compilobj_nrep_citeration ocur")
+	       (list_append obodl ocur)
+	       )))
 	 )))
     (debug_msg nbody "compilobj_nrep_citeration nbody")
     (multiple_every
