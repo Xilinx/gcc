@@ -3746,18 +3746,23 @@
 ;; selector to compile a matcher
 ;; reciever: some indirect instance of class_any_matcher
 ;; arguments:
-;;; * normal inargs
-;;; * normal outargs
-;;; * goto then
-;;; * goto else
-;;; * source location
-;;; * list of objinstr
+;;; * the match compilation context
 ;;; * the generation context
 ;;;   
 (defselector compile_matcher class_selector
 )
 
 (export_values compile_matcher)
+(defclass class_matchcompilcontext 
+  :super class_proped
+  :fields (mcx_loc			;the location of the matcher
+	   mcx_normtester		;the normtester
+	   mcx_gotothen			;the goto then part
+	   mcx_gotoelse 		;the goto else part
+	   mcx_olist			;the objcode list to be filled
+	   mcx_prefix			;the prefix
+	   ))
+(export_class class_matchcompilcontext)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compilation of matches
 (defun compilobj_nrep_match (nmat gcx)
@@ -3949,6 +3954,8 @@
 	(gotothen (normtester_gotoinstr nthen gcx))
 	(gotoelse (normtester_gotoinstr nelse gcx))
 	(olist (make_list discr_list))
+	(matchmap (unsafe_get_field :gncx_matchmap gcx))
+	(prefix (mapobject_get matchmap ntma))
 	)
     (if (null gotothen)
 	(setq gotothen (endmatch_gotoinstr normatch gcx nloc)))
@@ -3956,11 +3963,19 @@
 	(setq gotoelse (endmatch_gotoinstr normatch gcx nloc)))
     (list_append olist labins)
     (debug_msg nmatcher "compilobj_normtester_matcher before nmatcher")
-    (compile_matcher nmatcher nins nouts gotothen gotoelse nloc olist gcx)
-    (debug_msg olist "compilobj_normtester_matcher return olist")
-    (return olist)
-    )
-  )
+    (let ( (matcx (instance class_matchcompilcontext
+			    :mcx_loc nloc
+			    :mcx_normtester ntma
+			    :mcx_gotothen gotothen
+			    :mcx_gotoelse gotoelse
+			    :mcx_olist olist
+			    :mcx_prefix prefix)) )
+      (debug_msg matcx "compilobj_normtester_matcher matcx")
+      (compile_matcher nmatcher matcx gcx)
+      (debug_msg olist "compilobj_normtester_matcher return olist")
+      (return olist)
+      )
+    ))
 (install_method class_normtester_matcher compile_obj compilobj_normtester_matcher)
 
 ;;;;;;;;;;;;;;;;
@@ -4021,17 +4036,91 @@
 (install_method class_normtester_success compile_obj compilobj_normtester_success)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun compilmatcher_cmatcher (cmat ins outs thengoto elsegoto nloc olist gcx)
+(defun compilmatcher_cmatcher (cmat mcx gcx)
   (debug_msg cmat "compilmatcher_cmatcher cmat")
-  (debug_msg ins "compilmatcher_cmatcher ins")
-  (debug_msg outs "compilmatcher_cmatcher outs")
-  (debug_msg thengoto "compilmatcher_cmatcher thengoto")
-  (debug_msg elsegoto "compilmatcher_cmatcher elsegoto")
-  (debug_msg nloc "compilmatcher_cmatcher nloc")
   (assert_msg "check cmat" (is_a cmat class_cmatcher))
+  (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
-  (assert_msg "unimplemented compilmatcher_cmatcher" ())
-)
+  (let (
+	(cmins (unsafe_get_field :amatch_in cmat))
+	(cmbind (unsafe_get_field :amatch_matchbind cmat))
+	(cmouts (unsafe_get_field :amatch_out cmat))
+	(cmstate (unsafe_get_field :cmatch_state cmat))
+	(cmexptest (unsafe_get_field :cmatch_exptest cmat))
+	(cmexpfill (unsafe_get_field :cmatch_expfill cmat))
+	;; the normtester
+	(normtester (unsafe_get_field :mcx_normtester mcx))
+	;; the subsitution map
+	(substmap (make_mapobject discr_mapobjects 
+				  (+i 5
+				      (*i 2 (+i (multiple_length cmins)
+						(multiple_length cmouts))))))
+	;; generate a unique state string
+	(uniqstate (let ( (sbuf (make_strbuf discr_strbuf)) )
+		     (add2sbuf_string sbuf (get_field :mcx_prefix mcx))
+		     (add2sbuf_strconst sbuf "__")
+		     (add2sbuf_cident sbuf (get_field :named_name cmstate))
+		     (strbuf2string discr_verbatimstring sbuf)))
+	)
+    ;; map the state to the unique string 
+    (mapobject_put substmap cmstate uniqstate)
+    ;; map the matched thing 
+    (mapobject_put substmap
+		   (get_field :binder cmbind)
+		   (get_field :ntest_matched normtester)
+		   )
+    ;; map each input arguments
+    (multiple_every_both 
+     cmins
+     (get_field :ntmatch_inargs normtester)
+     (lambda (curin formin :long ix)
+       (assert_msg "check formin" (is_a formin class_formal_binding))
+       (mapobject_put substmap
+		      (get_field :binder formin)
+		      curin)
+       ))
+    ;; map each output arguments
+    (multiple_every_both
+     cmouts
+     (get_field :ntmatch_outlocs normtester)
+     (lambda (curout formout :long ix)
+       (assert_msg "check formout" (is_a formout class_formal_binding))
+       (mapobject_put substmap
+		      (get_field :binder formout)
+		      curout)
+       ))
+    (debug_msg substmap "compilmatcher_cmatcher substmap")
+    (let ( 
+	  (expander 
+	   (lambda (tup)
+	     (multiple_map
+	      tup
+	      (lambda (c)
+		(cond 
+		 ( (is_a c class_symbol)
+		   (let ( (r (mapobject_get substmap c)) )
+		     (if (null r)
+			 (error_strv (get_field :mcx_loc mcx)
+				     "invalid symbol to expand for cmatcher" (get_field :named_name c)))
+		     r))
+		 ( (is_object c)
+		   (error_plain (get_field :mcx_loc mcx)
+				"invalid object to expand for cmatcher"))
+		 ( (is_string c)
+		   (make_string discr_verbatimstring c))
+		 (:else
+		  (error_plain (get_field :mcx_loc mcx)
+			       "invalid stuff to expand for cmatcher")))))))
+	  (exptest (expander cmexptest))
+	  (expfill (expander cmexpfill))
+	  )
+      (debug_msg exptest "compilmatcher_cmatcher exptest")
+      (debug_msg expfill  "compilmatcher_cmatcher expfill")
+      (compile_warning "compilmatcher_cmatcher should use the expansions" ())
+      (assert_msg "unimplemented compilmatcher_cmatcher" ())
+      )
+    )
+  )
 (install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
