@@ -1599,6 +1599,12 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
       result.next = NULL;
       result.exits = false;
       result.last = bb;
+
+      /* Mark bbs terminating a SESE region difficult, if they start
+	 a condition.  */
+      if (VEC_length (edge, bb->succs) > 1)
+	result.difficult = true; 
+
       break;
 
     case GBB_SIMPLE:
