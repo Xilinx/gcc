@@ -1,3 +1,27 @@
+2009-02-03  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (bb_in_sese_p, sese_build_livein_liveouts_use,
+	sese_build_livein_liveouts_bb, sese_build_livein_liveouts,
+	register_bb_in_sese, new_sese, free_sese): Moved.
+	(dot_scop_1, build_scop_loop_nests, build_loop_iteration_domains,
+	outermost_loop_in_scop, build_scop_iteration_domain,
+	expand_scalar_variables_ssa_name, get_vdef_before_scop,
+	limit_scops): Use bb_in_sese_p instead of bb_in_scop_p.
+	Use loop_in_sese_p instead of loop_in_scop_p.
+	(new_graphite_bb, new_scop, gloog): Do not initialize SCOP_BBS_B.
+	(free_scop): Do not free SCOP_BBS_B.
+	(nb_loops_around_loop_in_scop, nb_loops_around_gb,
+	ref_nb_loops): Moved here...
+	* graphite.h (ref_nb_loops): ... from here.
+	(struct scop): Remove bbs_b bitmap.
+	(SCOP_BBS_B, bb_in_scop_p, loop_in_scop_p): Removed.
+	* testsuite/gcc.dg/graphite/scop-19.c: New
+
+2009-02-03  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c (scopdet_basic_block_info): Fix bug in scop
+	detection.
+
 2009-01-30  Tobias Grosser  <grosser@fim.uni-passau.de>
 	
 	* graphite.c (new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
