@@ -3854,7 +3854,7 @@
 ;; utility function to return the label instr of a tester
 (defun normtester_labelinstr (nt gcx)
   (debug_msg nt "normtester_labelinstr start nt")
-  (assert_msg "check gcx" (is_a nt class_genercontext))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (if (is_not_a nt class_normtester_any)
       (progn
 	(debug_msg () "normtester_labelinstr return nil")
@@ -3885,12 +3885,12 @@
 
 ;; utility function to return the goto instr into a tester
 (defun normtester_gotoinstr (nt gcx)
-  (debug_msg nt "normtester_labelinstr start nt")
+  (debug_msg nt "normtester_gotoinstr start nt")
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
   (if (is_not_a nt class_normtester_any)
       (progn
 	(debug_msg () "normtester_gotoinstr return nil")
 	(return)))
-  (assert_msg "check gcx" (is_a nt class_genercontext))
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nt))
 	(:long ntestix (get_int nt))
@@ -3955,13 +3955,16 @@
 	(gotoelse (normtester_gotoinstr nelse gcx))
 	(olist (make_list discr_list))
 	(matchmap (unsafe_get_field :gncx_matchmap gcx))
-	(prefix (mapobject_get matchmap ntma))
+	(prefix (mapobject_get matchmap normatch))
 	)
+    (debug_msg matchmap "compilobj_normtester_matcher matchmap")
     (if (null gotothen)
 	(setq gotothen (endmatch_gotoinstr normatch gcx nloc)))
     (if (null gotoelse)
 	(setq gotoelse (endmatch_gotoinstr normatch gcx nloc)))
     (list_append olist labins)
+    (debug_msg prefix "compilobj_normtester_matcher prefix")
+    (assert_msg "check prefix" (is_string prefix))
     (debug_msg nmatcher "compilobj_normtester_matcher before nmatcher")
     (let ( (matcx (instance class_matchcompilcontext
 			    :mcx_loc nloc
@@ -4038,6 +4041,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilmatcher_cmatcher (cmat mcx gcx)
   (debug_msg cmat "compilmatcher_cmatcher cmat")
+  (debug_msg mcx "compilmatcher_cmatcher mcx")
   (assert_msg "check cmat" (is_a cmat class_cmatcher))
   (assert_msg "check mcx" (is_a mcx class_matchcompilcontext))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
@@ -4061,6 +4065,8 @@
 		     (add2sbuf_strconst sbuf "__")
 		     (add2sbuf_cident sbuf (get_field :named_name cmstate))
 		     (strbuf2string discr_verbatimstring sbuf)))
+	;; fetch the olist to add instructions into
+	(olist (get_field :mcx_olist mcx))
 	)
     ;; map the state to the unique string 
     (mapobject_put substmap cmstate uniqstate)
@@ -4071,25 +4077,34 @@
 		   )
     ;; map each input arguments
     (multiple_every_both 
-     cmins
      (get_field :ntmatch_inargs normtester)
+     cmins
      (lambda (curin formin :long ix)
+       (debug_msg curin "compilmatcher_cmatcher curin")
+       (debug_msg formin "compilmatcher_cmatcher formin")
        (assert_msg "check formin" (is_a formin class_formal_binding))
-       (mapobject_put substmap
-		      (get_field :binder formin)
-		      curin)
-       ))
+       (let ( (oin (compile_obj curin gcx)) )
+	 (debug_msg oin "compilmatcher_cmatcher oin")
+	 (mapobject_put substmap
+			(get_field :binder formin)
+			oin)
+	 )))
     ;; map each output arguments
     (multiple_every_both
-     cmouts
      (get_field :ntmatch_outlocs normtester)
+     cmouts
      (lambda (curout formout :long ix)
+       (debug_msg curout "compilmatcher_cmatcher curout")
+       (debug_msg formout "compilmatcher_cmatcher formout")
        (assert_msg "check formout" (is_a formout class_formal_binding))
-       (mapobject_put substmap
-		      (get_field :binder formout)
-		      curout)
+       (let ( (oout (compile_obj curout gcx)) )
+	 (debug_msg oout "compilmatcher_cmatcher oout")
+	 (mapobject_put substmap
+			(get_field :binder formout)
+			oout))
        ))
     (debug_msg substmap "compilmatcher_cmatcher substmap")
+    ;; expand
     (let ( 
 	  (expander 
 	   (lambda (tup)
@@ -4113,14 +4128,56 @@
 			       "invalid stuff to expand for cmatcher")))))))
 	  (exptest (expander cmexptest))
 	  (expfill (expander cmexpfill))
+	  (mloc (get_field :mcx_loc mcx))
+	  (testchunk (instance class_objlocatedexpv
+			       :obv_type ctype_long
+			       :obx_cont exptest
+			       :obcx_loc mloc))
+	  (fillchunk (instance class_objlocatedexpv
+			       :obv_type ctype_void
+			       :obx_cont expfill
+			       :obcx_loc mloc))
 	  )
       (debug_msg exptest "compilmatcher_cmatcher exptest")
       (debug_msg expfill  "compilmatcher_cmatcher expfill")
-      (compile_warning "compilmatcher_cmatcher should use the expansions" ())
-      (assert_msg "unimplemented compilmatcher_cmatcher" ())
-      )
-    )
-  )
+      (let ( 
+	    (othenlist (make_list discr_list))
+	    (othenbody (instance class_objblock
+				 :obi_loc mloc
+				 :oblo_bodyl othenlist
+				 ))
+	    (oelselist (make_list discr_list))
+	    (oelsebody (instance class_objblock
+				 :obi_loc mloc
+				 :oblo_bodyl oelselist
+				 ))
+	    (ocond (instance class_objcond
+			     :obi_loc mloc
+			     :obcond_test testchunk
+			     :obcond_then othenbody
+			     :obcond_else oelsebody
+			     ))
+	    )
+	(list_append olist ocond)
+	(foreach_in_multiple
+	 (cmouts)
+	 (curout :long outix)
+	 (debug_msg curout "compilmatcher_cmatcher curout")
+	 (let ( (locout (compile_obj curout gcx)) 
+		(oclearout (instance class_objclear
+				     :obi_loc mloc
+				     :oclr_vloc locout)) )
+	   (debug_msg oclearout "compilmatcher_cmatcher oclearout")
+	   (list_append othenlist oclearout)
+	   )
+	 )
+	(list_append othenlist fillchunk)
+	(list_append othenlist (get_field :mcx_gotothen mcx))
+	(list_append oelselist (get_field :mcx_gotoelse mcx))
+	(compile_warning "compilmatcher_cmatcher when compiling the else part, should free our locals" ())
+	(debug_msg ocond "compilmatcher_cmatcher final ocond")
+	)
+      )))
 (install_method class_cmatcher compile_matcher compilmatcher_cmatcher)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

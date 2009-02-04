@@ -1,3 +1,6 @@
+2009-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.bysl: coded compilmatcher_cmatcher - yet
+	untested.
 2009-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: Added class_matchcompilcontext, fill
 	it in compilobj_normtester_matcher, compilmatcher_cmatcher is
