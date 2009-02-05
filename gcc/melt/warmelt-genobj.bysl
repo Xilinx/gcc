@@ -3738,8 +3738,6 @@
 (install_method class_nrep_update_current_module_environment_container compile_obj compilobj_nrep_update_current_module_environment_container)
 
 
-(debug_msg class_symbol "at end of warmelt-genobj Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-genobj predefined Class_Symbol")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

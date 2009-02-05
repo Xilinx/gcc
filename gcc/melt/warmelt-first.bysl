@@ -1990,6 +1990,24 @@
 			   (setq curpair curtail))
 		       (exit lisloop)))))))
 
+
+;;; citerator on lists
+(defciterator foreach_in_list 
+  (lis)					;start formals 
+  eachlist				;state
+  (curpair curcomp)			;local formals
+  (					;before expansion
+   "/* start " eachlist "*/\n"
+   "for (" curpair " = basilys_list_first(" lis ");\n"
+   "basilys_magic_discr(" curpair ") == OBMAG_PAIR;\n"
+   curpair " = basilys_pair_tail(" curpair ")) {\n"
+   curcomp " = basilys_pair_head(" curpair ");\n"
+   )
+  (					;after expansion
+   "} /* end " eachlist "*/\n"
+   )
+)
+
 ;;; iterator on a list, if the called f returns nil the iteration is stopped
 (defun list_iterate_test (lis f)
   (if (is_list lis)
@@ -2149,7 +2167,6 @@
 		     (setq ix (+i ix 1)))
 	    ))))
 
-
 ;; citerator on tuple
 (defciterator foreach_in_multiple 
   (tup)					;start formal
@@ -2168,6 +2185,19 @@
    )
   )
 
+(defun multiple_to_list (tup disc transf)
+  (if (null disc) (setq disc discr_list))
+  (if (is_multiple tup)
+      (let ( (lis (make_list disc)) )
+	(foreach_in_multiple 
+	 (tup)
+	 (comp :long ix)
+	 (if (is_closure transf)
+	     (list_append lis (transf comp))
+	   (list_append lis comp)))
+	(return lis)
+	)))
+  
 ;;; full iterator on closures  
 ;;; the function is called with the component and its index
 (defun closure_every (clo f)
@@ -3871,6 +3901,7 @@
  multiple_every_both				
  multiple_iterate_test			
  multiple_map				
+ multiple_to_list
  overwrite_env				
  pairlist_every				
  pairlist_iterate_test			
@@ -3885,10 +3916,9 @@
 
 ;; export the citerators defined above
 (export_values
+ foreach_in_list
  foreach_in_multiple
  foreach_long_upto
  )
 
-(debug_msg class_symbol "at end of warmelt-first our Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "at end of warmelt-first predefined Class_Symbol")
 ;; eof warmelt-first.bysl

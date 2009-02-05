@@ -2295,7 +2295,7 @@
      (normal_exp sobj env ncx sloc)
      (list_append2list nbindlist  nobjbind)
      (foreach_in_multiple 
-      sfields
+      (sfields)
       (fla :long ix) 
       (debug_msg fla "normexp_put_fields fla")
       (debug_msg clabox "normexp_put_fields clabox")

@@ -1,3 +1,16 @@
+2009-02-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added foreach_in_list citerator.
+	* melt/warmelt-normal.bysl: corrected typo.
+	* melt/warmelt-normatch.bysl: added :ntest_locclist in normtesters.
+	normpat_instancepat & normpat_anymatchpat completed almost.
+	* melt/warmelt-genobj.bysl: removed some debug_msg...
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: coded compilmatcher_cmatcher - yet
 	untested.
