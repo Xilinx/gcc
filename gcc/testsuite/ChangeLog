@@ -1,3 +1,96 @@
+2009-02-05  Daniel Berlin  <dberlin@dberlin.org>
+
+	* gcc.c-torture/execute/pr39100.c: New.
+
+2009-02-05  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35435
+	* gcc.dg/tls/diag-6.c: New test.
+
+2009-02-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	AVX Programming Reference (January, 2009)
+	* gcc.target/i386/avx-vpclmulqdq.c: New.
+	* gcc.target/i386/pclmul-avx-check.h: Likewise.
+
+	* gcc.target/i386/i386.exp (check_effective_target_vpclmul): New.
+
+	* gcc.target/i386/pclmulqdq.c (CHECK_H): New.
+	(TEST): Likewise.
+	Include CHECK_H instead of "pclmul-check.h".
+	(pclmul_test): Renamed to ...
+	(TEST): This.
+
+2009-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39095
+	* g++.dg/abi/mangle31.C: New test.
+
+2009-02-03  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/29129
+	* c90-arraydecl-1.c: Do not expect error for [*] in abstract
+	declarator.
+	* vla-6.c: Likewise.  Expect warning not error for [*] lexically
+	inside function prototype but not part of parameter declarator.
+	* vla-11.c: New test.
+
+2009-02-03  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/warn/main-4.C: New test.
+	* g++.old-deja/g++.bugs/900227_01.C: Remove &main warnings.
+
+2009-02-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/36607
+	* g++.dg/expr/cast10.C: New test.
+
+2009-02-03  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35433
+	* gcc.dg/init-bad-6.c: New test.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35318
+	* gcc.c-torture/compile/pr35318.c: New test.
+
+	PR inline-asm/39059
+	* gcc.dg/nofixed-point-2.c: New test.
+	* g++.dg/ext/fixed1.C: Adjust expected diagnostics.
+	* g++.dg/ext/fixed2.C: Likewise.
+	* g++.dg/other/error25.C: Likewise.
+	* g++.dg/lookup/crash7.C: Likewise.
+	* g++.dg/cpp0x/decltype-38655.C: Likewise.
+
+	PR c++/39056
+	* g++.dg/cpp0x/initlist13.C: New test.
+
+2009-02-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR c++/36897
+	* g++.dg/template/func2.C: New test.
+
+	PR c++/37314
+	* g++.dg/template/typename15.C: New.
+	* g++.dg/template/typename16.C: New.
+
+2009-02-03  Janis Johnson  <janis187@us.ibm.com>
+	    Ben Elliston  <bje@au.ibm.com>
+
+	PR c/39034
+	* gcc.dg/dfp/pr39034.c: New test.
+
+2009-02-02  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR testsuite/38263
+	* gcc.dg/ipa/ipacost-2.c: Add -fpie when pic.
+
+2009-02-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39054
+	* g++.dg/parse/dtor14.C: New test.
+
 2009-02-02  Jakub Jelinek  <jakub@redhat.com>
 
 	* lib/target-supports.exp

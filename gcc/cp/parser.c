@@ -3144,6 +3144,12 @@ cp_parser_primary_expression (cp_parser *parser,
     case CPP_WCHAR:
     case CPP_NUMBER:
       token = cp_lexer_consume_token (parser->lexer);
+      if (TREE_CODE (token->u.value) == FIXED_CST)
+	{
+	  error ("%Hfixed-point types not supported in C++",
+		 &token->location);
+	  return error_mark_node;
+	}
       /* Floating-point literals are only allowed in an integral
 	 constant expression if they are cast to an integral or
 	 enumeration type.  */
@@ -3896,7 +3902,9 @@ cp_parser_unqualified_id (cp_parser* parser,
 		/* We couldn't find a type with this name, so just accept
 		   it and check for a match at instantiation time.  */
 		type_decl = cp_parser_identifier (parser);
-		return build_nt (BIT_NOT_EXPR, type_decl);
+		if (type_decl != error_mark_node)
+		  type_decl = build_nt (BIT_NOT_EXPR, type_decl);
+		return type_decl;
 	      }
 	  }
 	/* If an error occurred, assume that the name of the

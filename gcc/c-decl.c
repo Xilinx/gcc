@@ -4389,7 +4389,14 @@ grokdeclarator (const struct c_declarator *declarator,
 	      }
 	    else if (decl_context == FIELD)
 	      {
-		if (pedantic && !flag_isoc99 && !in_system_header)
+		if (array_parm_vla_unspec_p)
+		  /* Field names can in fact have function prototype
+		     scope so [*] is disallowed here through making
+		     the field variably modified, not through being
+		     something other than a declaration with function
+		     prototype scope.  */
+		  size_varies = 1;
+		else if (pedantic && !flag_isoc99 && !in_system_header)
 		  pedwarn (input_location, OPT_pedantic,
 			   "ISO C90 does not support flexible array members");
 
@@ -4401,12 +4408,6 @@ grokdeclarator (const struct c_declarator *declarator,
 	      {
 		if (array_parm_vla_unspec_p)
 		  {
-		    if (! orig_name)
-		      {
-			/* C99 6.7.5.2p4 */
-			error ("%<[*]%> not allowed in other than a declaration");
-		      }
-
 		    itype = build_range_type (sizetype, size_zero_node, NULL_TREE);
 		    size_varies = 1;
 		  }
@@ -4415,12 +4416,14 @@ grokdeclarator (const struct c_declarator *declarator,
 	      {
 		if (array_parm_vla_unspec_p)
 		  {
-		    /* The error is printed elsewhere.  We use this to
-		       avoid messing up with incomplete array types of
-		       the same type, that would otherwise be modified
-		       below.  */
+		    /* C99 6.7.5.2p4 */
+		    warning (0, "%<[*]%> not in a declaration");
+		    /* We use this to avoid messing up with incomplete
+		       array types of the same type, that would
+		       otherwise be modified below.  */
 		    itype = build_range_type (sizetype, size_zero_node,
 					      NULL_TREE);
+		    size_varies = 1;
 		  }
 	      }
 
@@ -7772,6 +7775,8 @@ finish_declspecs (struct c_declspecs *specs)
       if (specs->saturating_p)
 	{
 	  error ("%<_Sat%> is used without %<_Fract%> or %<_Accum%>");
+	  if (!targetm.fixed_point_supported_p ())
+	    error ("fixed-point types not supported for this target");
 	  specs->typespec_word = cts_fract;
 	}
       else if (specs->long_p || specs->short_p
@@ -7894,8 +7899,10 @@ finish_declspecs (struct c_declspecs *specs)
 	specs->type = dfloat128_type_node;
       break;
     case cts_fract:
-       gcc_assert (!specs->complex_p);
-       if (specs->saturating_p)
+      gcc_assert (!specs->complex_p);
+      if (!targetm.fixed_point_supported_p ())
+	specs->type = integer_type_node;
+      else if (specs->saturating_p)
 	{
 	  if (specs->long_long_p)
 	    specs->type = specs->unsigned_p
@@ -7913,7 +7920,7 @@ finish_declspecs (struct c_declspecs *specs)
 	    specs->type = specs->unsigned_p
 			  ? sat_unsigned_fract_type_node
 			  : sat_fract_type_node;
-          }
+	}
       else
 	{
 	  if (specs->long_long_p)
@@ -7932,11 +7939,13 @@ finish_declspecs (struct c_declspecs *specs)
 	    specs->type = specs->unsigned_p
 			  ? unsigned_fract_type_node
 			  : fract_type_node;
-          }
+	}
       break;
     case cts_accum:
-       gcc_assert (!specs->complex_p);
-       if (specs->saturating_p)
+      gcc_assert (!specs->complex_p);
+      if (!targetm.fixed_point_supported_p ())
+	specs->type = integer_type_node;
+      else if (specs->saturating_p)
 	{
 	  if (specs->long_long_p)
 	    specs->type = specs->unsigned_p
@@ -7954,7 +7963,7 @@ finish_declspecs (struct c_declspecs *specs)
 	    specs->type = specs->unsigned_p
 			  ? sat_unsigned_accum_type_node
 			  : sat_accum_type_node;
-          }
+	}
       else
 	{
 	  if (specs->long_long_p)
@@ -7973,7 +7982,7 @@ finish_declspecs (struct c_declspecs *specs)
 	    specs->type = specs->unsigned_p
 			  ? unsigned_accum_type_node
 			  : accum_type_node;
-          }
+	}
       break;
     default:
       gcc_unreachable ();

@@ -1,3 +1,131 @@
+2009-02-05  Daniel Berlin  <dberlin@dberlin.org>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39100
+	* tree-ssa-structalias.c (do_ds_constraint): Actually do what the
+	comment says and add edges.
+
+2009-02-05  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35435
+	* c-common.c (handle_tls_model_attribute): Ignore attribute for
+	non-VAR_DECLs without checking DECL_THREAD_LOCAL_P.
+
+2009-02-04  Tobias Grosser  <grosser@fim.uni-passau.de>	
+
+	* graphite.c (bb_in_sese_p, sese_build_livein_liveouts_use,
+	sese_build_livein_liveouts_bb, sese_build_livein_liveouts,
+	register_bb_in_sese, new_sese, free_sese): Moved.
+	(dot_scop_1, build_scop_loop_nests, build_loop_iteration_domains,
+	outermost_loop_in_scop, build_scop_iteration_domain,
+	expand_scalar_variables_ssa_name, get_vdef_before_scop,
+	limit_scops): Use bb_in_sese_p instead of bb_in_scop_p.
+	Use loop_in_sese_p instead of loop_in_scop_p.
+	(new_graphite_bb, gloog): Do not initialize SCOP_BBS_B.
+	(new_scop, free_scop): Remove SCOP_LOOP2CLOOG_LOOP and SCOP_BBS_B.
+	(scopdet_basic_block_info): Fix bug in scop detection.
+	(new_loop_to_cloog_loop_str, hash_loop_to_cloog_loop,
+	eq_loop_to_cloog_loop): Remove.
+	(nb_loops_around_loop_in_scop, nb_loop
+	ref_nb_loops): Moved here...
+	* graphite.h (ref_nb_loops): ... from here.
+	(struct scop): Remove bbs_b bitmap and loop2cloog_loop.
+	(loop_domain_dim, loop_iteration_vector_dim): Remove.
+	(SCOP_BBS_B, bb_in_scop_p, loop_in_scop_p): Removed.
+	* testsuite/gcc.dg/graphite/scop-19.c: New
+
+2009-02-04  Paolo Bonzini  <bonzini@gnu.org>
+	    Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/37889
+	* rtlanal.c (rtx_addr_can_trap_p_1): Add offset and size arguments.
+	Move offset handling from PLUS to before the switch.  Use new
+	arguments when considering SYMBOL_REFs too.
+	(rtx_addr_can_trap_p): Pass dummy offset and size.
+	(enum may_trap_p_flags): Remove.
+	(may_trap_p_1): Pass size from MEM_SIZE.
+
+	PR rtl-optimization/38921
+	* loop-invariant.c (find_invariant_insn): Use may_trap_or_fault_p.
+	* rtl.h (may_trap_after_code_motion_p): Delete prototype.
+	* rtlanal.c (may_trap_after_code_motion_p): Delete.
+	(may_trap_p, may_trap_or_fault_p): Pass 0/1 as flags.
+
+2009-02-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	AVX Programming Reference (January, 2009)
+	* config/i386/sse.md (*vpclmulqdq): New.
+
+2009-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/38977
+	PR gcov-profile/38292
+	* calls.c (special_function_p): Disregard __builtin_
+	prefix.
+
+2009-02-04  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.c (GO_IF_LEGITIMATE_ADDRESS): Disallow
+	non-indexable addresses even before reload.
+
+2009-02-03  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/29129
+	* c-decl.c (grokdeclarator): Mark [*] arrays in field declarators
+	as having variable size.  Do not give an error for unnamed
+	parameters with [*] declarators.  Give a warning for type names
+	with [*] declarators and mark them as variable size.
+	* c-parser.c (c_parser_sizeof_expression): Do not give an error
+	for sizeof applied to [*] type names.
+
+2009-02-03  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR C++/36607
+	* convert.c (convert_to_integer): Treat OFFSET_TYPE like INTEGER_TYPE.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c (process_command): Update copyright notice dates.
+	* gcov.c (print_version): Likewise.
+	* gcov-dump.c (print_version): Likewise.
+	* mips-tfile.c (main): Likewise.
+	* mips-tdump.c (main): Likewise.
+
+2009-02-03  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35433
+	* c-typeck.c (composite_type): Set TYPE_SIZE and TYPE_SIZE_UNIT
+	for composite type involving a zero-length array type.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/35318
+	* function.c (match_asm_constraints_1): Skip over
+	initial optional % in the constraint.
+
+	PR inline-asm/39059
+	* c-parser.c (c_parser_postfix_expression): If fixed point is not
+	supported, don't accept FIXED_CSTs.
+	* c-decl.c (finish_declspecs): Error if fixed point is not supported
+	and _Sat is used without _Fract/_Accum.  Set specs->type to
+	integer_type_node for cts_fract/cts_accum if fixed point is not
+	supported.
+
+2009-02-02  Catherine Moore  <clm@codesourcery.com>
+
+	* sde.h (SUBTARGET_ARM_SPEC): Don;t assemble -fpic code as
+	-mabicalls.
+
+2009-02-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.h (FILE_HAS_64BIT_SYMBOLS): New macro.
+	(ABI_HAS_64BIT_SYMBOLS): Use it.
+	(DWARF2_ADDR_SIZE): Use it instead of ABI_HAS_64BIT_SYMBOLS.
+
+2009-02-02  Paul Brook  <paul@codesourcery.com>
+
+	* config/arm/arm.md (arm_addsi3): Add r/r/k alternative.
+
 2009-02-02  Jakub Jelinek  <jakub@redhat.com>
 
 	PR inline-asm/39058

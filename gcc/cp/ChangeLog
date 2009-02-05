@@ -1,3 +1,42 @@
+2009-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39095
+	* operators.def: Use COMPONENT_REF code for ->/pt operator again,
+	remove ./dt operator.
+	* mangle.c (write_expression): Handle COMPONENT_REF after handling
+	ADDR_EXPR, for COMPONENT_REF without ARROW_EXPR inside of it
+	write_string ("dt") instead of using operators.def.
+
+2009-02-03  Jason Merrill  <jason@redhat.com>
+
+	* typeck.c (cp_build_unary_op): Only complain about taking address
+	of main if pedantic.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/39059
+	* parser.c (cp_parser_primary_expression): Reject FIXED_CSTs.
+
+	PR c++/39056
+	* typeck2.c (digest_init_r): Don't call process_init_constructor
+	for COMPLEX_TYPE.
+
+2009-02-03  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR c++/36897
+	* pt.c (convert_nontype_argument_function): Expect expr to be an
+	ADDR_EXPR.
+
+	PR c++/37314
+	* typeck.c (merge_types): Call resolve_typename_type if only
+	one type is a typename.
+
+2009-02-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39054
+	* parser.c (cp_parser_unqualified_id): Don't wrap error_mark_node 
+	in BIT_NOT_EXPR.
+
 2009-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
         PR c++/39053

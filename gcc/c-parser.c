@@ -4949,13 +4949,6 @@ c_parser_sizeof_expression (c_parser *parser)
       /* sizeof ( type-name ).  */
       skip_evaluation--;
       in_sizeof--;
-      if (type_name->declarator->kind == cdk_array
-	  && type_name->declarator->u.array.vla_unspec_p)
-	{
-	  /* C99 6.7.5.2p4 */
-	  error_at (expr_loc,
-		    "%<[*]%> not allowed in other than a declaration");
-	}
       return c_expr_sizeof_type (type_name);
     }
   else
@@ -5089,6 +5082,17 @@ c_parser_postfix_expression (c_parser *parser)
   switch (c_parser_peek_token (parser)->type)
     {
     case CPP_NUMBER:
+      expr.value = c_parser_peek_token (parser)->value;
+      expr.original_code = ERROR_MARK;
+      loc = c_parser_peek_token (parser)->location;
+      c_parser_consume_token (parser);
+      if (TREE_CODE (expr.value) == FIXED_CST
+	  && !targetm.fixed_point_supported_p ())
+	{
+	  error_at (loc, "fixed-point types not supported for this target");
+	  expr.value = error_mark_node;
+	}
+      break;
     case CPP_CHAR:
     case CPP_CHAR16:
     case CPP_CHAR32:
