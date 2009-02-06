@@ -332,6 +332,8 @@
 	   ntest_normatch	;the containing normalized match
 	   ;; a list of class_nrep_locsymocc 
 	   ntest_locclist	;the local occurence list inside the test
+	   ;; list of tests going into this one
+	   ntest_comefrom
 	   ))
 
 
@@ -390,6 +392,8 @@
 	 (exit lastesterloop))))
     (put_fields testercont :container_value curtester)
     (put_fields curtester :ntest_then newtester)
+    (let ( (fromnew (get_field :ntest_comefrom newtester)) )
+      (list_append fromnew curtester))
     (debug_msg testercont "set_newtester_lastthen testercont")
     ))
 
@@ -465,7 +469,10 @@
 	      )
 	    ( (is_a tstuff class_normtester_any)
 	      (setq tstuff (get_field :ntest_else tstuff))
-	      (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+	      (setq curhdler (lambda (tester)
+			       (put_fields tstuff :ntest_else tester)
+			       (list_append (get_field :ntest_comefrom tester) tstuff)
+			       ))
 	      )
 	    (:else
 	     (let ( (newtester (instance class_normtester_same
@@ -474,6 +481,7 @@
 					 :ntest_then ()
 					 :ntest_else ()
 					 :ntest_locclist ()
+					 :ntest_comefrom (make_list discr_list)
 					 :ntsame_identical lococc))
 		    )
 	       (debug_msg newtester "normpat_variablepat newtester")
@@ -554,7 +562,11 @@
 	)
       ((is_a tstuff class_normtester_any)
        (setq tstuff (get_field :ntest_else tstuff))
-       (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+       (setq curhdler
+	     (lambda (tester)
+	       (put_fields tstuff :ntest_else tester)
+	       (list_append (get_field :ntest_comefrom tester) tstuff)
+	       ))
        )
       (:else
        (let ( 
@@ -570,6 +582,7 @@
 			:ntest_then ()
 			:ntest_else ()
 			:ntest_locclist (make_list discr_list)
+			:ntest_comefrom (make_list discr_list)
 			:ntinst_class patcla
 			:ntinst_fieldlocs newfieldlocs
 			))
@@ -588,7 +601,7 @@
       (assert_msg "check testbindl" (is_list testloccl))
       (foreach_in_multiple
        (patfields)
-       (curpatf :long ix)
+       (curpatf :long patix)
        (debug_msg curpatf "normpat_instancepat curpatf")
        (assert_msg "check curpatf" (is_a curpatf class_srcfieldpattern))
        (let ( (floc (get_field :src_loc curpatf))
@@ -605,48 +618,55 @@
 	 (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
 	 (let ( (curloccl ())
 		)
+	   (debug_msg testloccl "normpat_instancepat scanning testloccl")
 	   ;; try to find an existing local occurrence for the field
 	   (foreach_in_list 
 	    (testloccl)
-	    (testpair testloccl)
-	    (assert_msg "check testloccl" (is_a testloccl class_nrep_locsymocc))
+	    (testpair testlocsy)
+	    (assert_msg "check testlocsy" (is_a testlocsy class_nrep_locsymocc))
 	    (if (== curfld
-		    (get_field :nuget_field (get_field :letbind_expr (get_field :nocc_bind testloccl))))
-		    (progn
-		      (setq testpair ()) ;to exist from foreach
-		      (setq curloccl testloccl))
-		)
-	    (debug_msg curloccl "normpat_instancepat got curloccl")
-	    ;; if no local occurrence found, add a new one
-	    (if (null curloccl)
-		(let ( 
-		      (newsym (clone_symbol (get_field :named_name curfld))) 
-		      (nflexp (instance class_nrep_unsafe_get_field
-					:nrep_loc floc
-					:nuget_obj nmatch
-					:nuget_field curfld))
-		      (newbind (instance class_normlet_binding
-					 :binder newsym
-					 :letbind_type ctype_value
-					 :letbind_expr nflexp
-					 :letbind_loc floc))
-		      (newlocc (instance class_nrep_locsymocc
-					 :nrep_loc floc
-					 :nocc_ctyp ctype_value
-					 :nocc_symb newsym
-					 :nocc_bind newbind
-					 ))
-		      )
-		  (list_append testloccl newlocc)
-		  (debug_msg newlocc "normpat_instancepat made newlocc")
-		  (setq curloccl newlocc)
-		  ))
-	    (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
-	    (normal_pattern cursubpat curloccl subhdler pcn)
-	    (debug_msg cursubpat "normpat_instancepat after normal_pattern cursubpat")
-	    (debug_msg curpatf "normpat_instancepat did curpatf")
+		    (get_field :nuget_field (get_field :letbind_expr (get_field :nocc_bind testlocsy))))
+		(progn
+		  (setq testpair ())	;to exist from foreach
+		  (setq curloccl testlocsy)))
 	    )
-	   ))))
+	   (debug_msg curloccl "normpat_instancepat got curloccl")
+	   ;; if no local occurrence found, add a new one
+	   (if (null curloccl)
+	       (let ( 
+		     (newsym (clone_symbol (get_field :named_name curfld))) 
+		     (nflexp (instance class_nrep_unsafe_get_field
+				       :nrep_loc floc
+				       :nuget_obj nmatch
+				       :nuget_field curfld))
+		     (newbind (instance class_normlet_binding
+					:binder newsym
+					:letbind_type ctype_value
+					:letbind_expr nflexp
+					:letbind_loc floc))
+		     (newlocc (instance class_nrep_locsymocc
+					:nrep_loc floc
+					:nocc_ctyp ctype_value
+					:nocc_symb newsym
+					:nocc_bind newbind
+					))
+		     )
+		 (multiple_put_nth 
+		  (get_field :ntinst_fieldlocs tester) 
+		  (get_int curfld)
+		  newlocc)
+		 (debug_msg tester "normpat_instancepat updated fieldlocs tester")
+		 (list_append testloccl newlocc)
+		 (debug_msg newlocc "normpat_instancepat made newlocc")
+		 (setq curloccl newlocc)
+		 ))
+	   (debug_msg cursubpat "normpat_instancepat before normal_pattern cursubpat")
+	   (normal_pattern cursubpat curloccl subhdler pcn)
+	   (debug_msg cursubpat "normpat_instancepat after normal_pattern cursubpat")
+	   (debug_msg curpatf "normpat_instancepat did curpatf")
+	   )
+	 )))
+    (debug_msg tester "normpat_instancepat final tester")
     (compile_warning "not fully unimplemented normpat_instancepat" ())
     )
   (debug_msg recv "normpat_instancepat recv end")
@@ -783,14 +803,22 @@
 		      (exit loopstuff))
 		  (progn
 		    (setq tstuff (get_field :ntest_else tstuff))
-		    (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+		    (setq curhdler
+			  (lambda (tester)
+			    (put_fields tstuff :ntest_else tester)
+			    (list_append (get_field :ntest_comefrom tester) tstuff)
+			    ))
 		    ))
 		)
 	      (assert_msg "normpat_anymatchpat incomplete found tstuff" ())
 	      )
 	     ((is_a tstuff class_normtester_any)
 	      (setq tstuff (get_field :ntest_else tstuff))
-	      (setq curhdler (lambda (tester) (put_fields tstuff :ntest_else)))
+	      (setq curhdler
+		    (lambda (tester)
+		      (put_fields tstuff :ntest_else tester)
+		      (list_append (get_field :ntest_comefrom tester) tstuff)
+		      ))
 	      )
 	     (:else
 	      (let
@@ -829,6 +857,7 @@
 			       ;;;; subclass of cmatcher which add
 			       ;;;; additional local stuff...
 			       :ntest_locclist (multiple_to_list outlocs)
+			       :ntest_comefrom (make_list discr_list)
 			       :ntmatch_matcher mat
 			       :ntmatch_inargs nins
 			       :ntmatch_outlocs outlocs
@@ -979,6 +1008,7 @@
 			    :ntest_matched ()
 			    :ntest_then ()
 			    :ntest_else ()
+			    :ntest_comefrom (make_list discr_list)
 			    ;; the success do should be the wrapped
 			    ;; let of the normalized actions
 			    :ntsuccess_do ()
@@ -1020,6 +1050,7 @@
 	     )
 	    (put_fields npatcont :container_value curtester)
 	    (put_fields curtester :ntest_then newsuctester)
+	    (list_append (get_field :ntest_comefrom newsuctester) curtester)
 	    (list_append testlist newsuctester)
 	    (debug_msg curtester "normexp_match after lastesterloop curtester")
 	    (debug_msg pcn "normexp_match pcn after lastesterloop")

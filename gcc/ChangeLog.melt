@@ -1,3 +1,9 @@
+2009-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added ntest_comefrom field.  more
+	code inside normpat_instancepat.
+	* melt/warmelt-genobj.bysl: added normtester_free_objloc_list.
+	more code inside compilobj_normtester_matcher &
+	compilobj_normtester_instance. still incomplete.
 2009-02-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added foreach_in_list citerator.
 	* melt/warmelt-normal.bysl: corrected typo.

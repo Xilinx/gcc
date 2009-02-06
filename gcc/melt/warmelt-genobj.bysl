@@ -3797,6 +3797,7 @@
 			 (curcomp (compile_obj curtest gcx))
 			 )
 		     (debug_msg curcomp "compilobj_nrep_match curcomp")
+		     (assert_msg "check curcomp" curcomp)
 		     curcomp
 		     )
 		   )))
@@ -3817,6 +3818,7 @@
 			     :oblab_rank ()))
 	)
     (list_append obodyl ofirstgoto)
+    (debug_msg ctests "compilobj_nrep_match ctests")
     (foreach_in_multiple 
      (ctests)
      (curtest :long testix)
@@ -3934,6 +3936,33 @@
       (return goins)
 )))
 
+
+;;; utility function to get free objloc for the local occurrences of a tester
+(defun normtester_free_objloc_list (nt gcx)
+  (assert_msg "check nt" (is_a nt class_normtester_any))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  (let ( 
+	(nloclist (unsafe_get_field :ntest_locclist nt))
+	(locmap (unsafe_get_field :gncx_locmap gcx))
+	)
+    (debug_msg nloclist "normtester_free_objloc_list nloclist")
+    (let ( (freelist
+	    (list_map 
+	     nloclist 
+	     (lambda (nloc) 
+	       (assert_msg "check nloc" (is_a nloc class_nrep_locsymocc))
+	       (let ( (oblo
+		       (get_free_objloctyped gcx 
+				     (get_field :nocc_symb nloc)
+				     (get_field :nocc_ctyp nloc)
+				     )) )
+		 (mapobject_put locmap (get_field :nocc_bind nloc) oblo)
+		 oblo
+	       )))) 
+	   )
+      (debug_msg freelist "normtester_free_objloc_list result freelist")
+      (return freelist)
+      )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun compilobj_normtester_matcher (ntma gcx)
   (debug_msg ntma "compilobj_normtester_matcher ntma")
@@ -3954,6 +3983,7 @@
 	(olist (make_list discr_list))
 	(matchmap (unsafe_get_field :gncx_matchmap gcx))
 	(prefix (mapobject_get matchmap normatch))
+	(freelist (normtester_free_objloc_list ntma gcx))
 	)
     (debug_msg matchmap "compilobj_normtester_matcher matchmap")
     (if (null gotothen)
@@ -3961,6 +3991,7 @@
     (if (null gotoelse)
 	(setq gotoelse (endmatch_gotoinstr normatch gcx nloc)))
     (list_append olist labins)
+    (debug_msg freelist "compilobj_normtester_matcher freelist")
     (debug_msg prefix "compilobj_normtester_matcher prefix")
     (assert_msg "check prefix" (is_string prefix))
     (debug_msg nmatcher "compilobj_normtester_matcher before nmatcher")
@@ -3990,14 +4021,50 @@
 	(nthen (unsafe_get_field :ntest_then ntmi))
 	(nelse (unsafe_get_field :ntest_else ntmi))
 	(normatch (unsafe_get_field :ntest_normatch ntmi))
+	(olist (make_list discr_list))
 	(:long ntestix (get_int ntmi))	
 	(ntclass (unsafe_get_field :ntinst_class ntmi))
 	(ntflds (unsafe_get_field :ntinst_fieldlocs ntmi))
+	(labins (normtester_labelinstr ntmi gcx))
+	(gotothen (normtester_gotoinstr nthen gcx))
+	(gotoelse (normtester_gotoinstr nelse gcx))
+	(oclass (compile_obj ntclass gcx))
+	(omatched (compile_obj nmatched gcx))
+	(freelist (normtester_free_objloc_list ntmi gcx))
+	(othenlist (make_list discr_list))
+	(oelselist (make_list discr_list))
+	(otest (instance
+		class_objlocatedexpv
+		:obcx_loc nloc
+		:obx_cont (make_tuple5
+			   discr_multiple
+			   (make_stringconst discr_verbatimstring 
+					     "/*normtesterinst*/ (basilys_is_instance_of((")
+			   omatched
+			   (make_stringconst discr_verbatimstring "), (")
+			   oclass
+			   (make_stringconst discr_verbatimstring ")))"))
+		))
+	(ocond (instance class_objcond
+			 :obi_loc nloc
+			 :obcond_test otest
+			 :obcond_then othenlist
+			 :obcond_else oelselist))
 	)
+    (list_append olist labins)
+    ;; clear the freelist
+    (list_append olist ocond)
+    (compile_warning "@@incomplete compilobj_normtester_instance" ())
+    ;; we have to add into the othenlist the fetch of each field and
+    ;; the gotothen
+    ;; add into the oelselist the gotoelse
+    (list_append oelselist gotoelse)
     (error_plain nloc "unimplemented compilobj_normtester_instance")
     (shortbacktrace_dbg "compilobj_normtester_instance" 15)
+    (debug_msg olist "compilobj_normtester_instance final olist")
+    (return olist)
     )
-)
+  )
 (install_method class_normtester_instance compile_obj compilobj_normtester_instance)
 ;;;;;;;;;;;;;;;;
 (defun compilobj_normtester_same (ntsa gcx)
@@ -4073,6 +4140,8 @@
 		   (get_field :binder cmbind)
 		   (get_field :ntest_matched normtester)
 		   )
+    ;;
+    (debug_msg normtester "compilmatcher_cmatcher normtester")
     ;; map each input arguments
     (multiple_every_both 
      (get_field :ntmatch_inargs normtester)
@@ -4161,11 +4230,15 @@
 	 (cmouts)
 	 (curout :long outix)
 	 (debug_msg curout "compilmatcher_cmatcher curout")
-	 (let ( (locout (compile_obj curout gcx)) 
+	 (assert_msg "check curout" (is_a curout class_formal_binding))
+	 (let ( (locout
+		 (mapobject_get substmap 
+				(unsafe_get_field :binder curout)))
 		(oclearout (instance class_objclear
 				     :obi_loc mloc
 				     :oclr_vloc locout)) )
 	   (debug_msg oclearout "compilmatcher_cmatcher oclearout")
+	   (assert_msg "check locout" (is_object locout))
 	   (list_append othenlist oclearout)
 	   )
 	 )
