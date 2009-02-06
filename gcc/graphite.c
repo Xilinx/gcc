@@ -2916,7 +2916,7 @@ initialize_cloog_names (scop_p scop)
   int i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
   int nb_iterators = scop_max_loop_depth (scop);
-  int nb_scattering= cloog_program_nb_scattdims (SCOP_PROG (scop));
+  int nb_scattering = cloog_program_nb_scattdims (SCOP_PROG (scop));
   char **iterators = XNEWVEC (char *, nb_iterators * 2);
   char **scattering = XNEWVEC (char *, nb_scattering);
   name_tree p;
@@ -5775,12 +5775,12 @@ is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
 
    Example
 
-   for (i = 0; i <= 50; i++=4) 
-     for (k = 0; k <= 100; k++=4) 
-       for (l = 0; l <= 200; l++=4) 
+   for (i = 0; i <= 50; i++) 
+     for (k = 0; k <= 100; k++) 
+       for (l = 0; l <= 200; l++) 
          A
 
-   To strip mine the two inner most loops with stride = 4 call:
+   To strip mine the two innermost loops with stride = 4 call:
 
    graphite_trans_bb_block (A, 4, 2) 
 
