@@ -4021,6 +4021,7 @@
 	(nthen (unsafe_get_field :ntest_then ntmi))
 	(nelse (unsafe_get_field :ntest_else ntmi))
 	(normatch (unsafe_get_field :ntest_normatch ntmi))
+	(nlocclist (unsafe_get_field :ntest_locclist ntmi))
 	(olist (make_list discr_list))
 	(:long ntestix (get_int ntmi))	
 	(ntclass (unsafe_get_field :ntinst_class ntmi))
@@ -4053,13 +4054,47 @@
 	)
     (list_append olist labins)
     ;; clear the freelist
+    (foreach_in_list
+     (freelist)
+     (locpair obloc)
+     (debug_msg obloc "compilobj_normtester_instance obloc")
+     (assert_msg "check obloc" (is_a obloc class_objlocv))
+     (let ( (oclearob (instance class_objclear
+				 :obi_loc nloc
+				 :oclr_vloc obloc
+				 )) )
+       (list_append olist oclearob)
+     ))
+    ;; add the cond
     (list_append olist ocond)
-    (compile_warning "@@incomplete compilobj_normtester_instance" ())
     ;; we have to add into the othenlist the fetch of each field and
     ;; the gotothen
+    (debug_msg ntflds "compilobj_normtester_instance ntflds")
+    (debug_msg nlocclist "compilobj_normtester_instance nlocclist")
+    (foreach_in_multiple
+     (ntflds)
+     (fldoc :long fldix)
+     (if fldoc
+	 (progn
+	   (debug_msg fldoc "compilobj_normtester_instance fldoc")
+	   (assert_msg "check fldoc" (is_a fldoc class_nrep_locsymocc))
+	   (let ( (flovar (compile_obj fldoc gcx))
+		  (flbind (unsafe_get_field :nocc_bind fldoc))
+		  (fldget (unsafe_get_field :letbind_expr flbind))
+		  (ofget (compile_obj fldget gcx))
+		  )
+	     (assert_msg "check flbind" (is_a flbind class_normlet_binding))
+	     (assert_msg "check fldget" (is_a fldget class_nrep_unsafe_get_field))
+	     (put_objdest ofget flovar)
+	     (debug_msg ofget "compilobj_normtester_instance ofget")
+	     (list_append othenlist ofget)
+     ))))
+    ;; also add the gotothen
+    (list_append othenlist gotoelse)
+    ;;
     ;; add into the oelselist the gotoelse
     (list_append oelselist gotoelse)
-    (error_plain nloc "unimplemented compilobj_normtester_instance")
+    (warning_plain nloc "not fully implemented compilobj_normtester_instance")
     (shortbacktrace_dbg "compilobj_normtester_instance" 15)
     (debug_msg olist "compilobj_normtester_instance final olist")
     (return olist)
@@ -4094,13 +4129,22 @@
 	(nmatched (unsafe_get_field :ntest_matched ntsu))
 	(nthen (unsafe_get_field :ntest_then ntsu))
 	(nelse (unsafe_get_field :ntest_else ntsu))
+	(nloclis (unsafe_get_field :ntest_locclist ntsu))
 	(normatch (unsafe_get_field :ntest_normatch ntsu))
+	(nsucdo (unsafe_get_field :ntsuccess_do ntsu))
 	(:long ntestix (get_int ntsu))	
 	)
-    (error_plain nloc "unimplemented compilobj_normtester_success")
-    (shortbacktrace_dbg "compilobj_normtester_success" 15)
-    )
-)
+    (assert_msg "check nil nloclis" (null nloclis))
+    (assert_msg "check nil nthen" (null nthen))
+    (assert_msg "check nil nelse" (null nelse))
+    (debug_msg nsucdo "compilobj_normtester_success nsucdo")
+    (let ( (osucc (compile_obj nsucdo gcx)) )
+      (debug_msg osucc "compilobj_normtester_success osucc")
+      (warning_plain nloc "not fully implemented compilobj_normtester_success") 
+      (shortbacktrace_dbg "compilobj_normtester_success" 15)
+      (return osucc)
+      )
+    ))
 (install_method class_normtester_success compile_obj compilobj_normtester_success)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

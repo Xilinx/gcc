@@ -1063,7 +1063,7 @@
 	      ;; we have to make a list of bindings based upon the sortedvars
 	      (foreach_in_multiple
 	       (sortedvars)
-	       (svar :long ix)
+	       (svar :long svix)
 	       (debug_msg svar "normexp_match svar")
 	       (let ( (socc (mapobject_get pvarlocmap svar))
 		      (sbind (instance class_normlet_binding
@@ -1076,41 +1076,63 @@
 		 (debug_msg socc "normexp_match socc")
 		 (debug_msg sbind "normexp_match sbind")
 		 (assert_msg "check socc" (is_a socc class_nrep_locsymocc))
-		 (multiple_put_nth sortedbindings ix sbind)
+		 (multiple_put_nth sortedbindings svix sbind)
 		 (put_env freshnewenv sbind)
 		 )
 	       )
 	      (debug_msg freshnewenv "normexp_match freshnewenv")
-	      (multicall 
-	       (nbody bindsbody)
-	       (normalize_tuple curbody freshnewenv ncx curloc)
-	       (debug_msg nbody "normexp_match nbody")
-	       (debug_msg bindsbody "normexp_match bindsbody")
-	       (let ( (wnlet (wrap_normal_letseq nbody bindsbody curloc)) 
-		      (lastnbody (multiple_nth nbody -1))
-		      (lastctype (get_ctype lastnbody freshnewenv))
-		      )
-		 (debug_msg wnlet "normexp_match wnlet")
-		 (debug_msg lastnbody "normexp_match lastnbody")
-		 (debug_msg lastctype "normexp_match lastctype")
-		 (put_fields newsuctester 
-			     :ntsuccess_do wnlet
-			     )
-		 (cond ( (null wholectype)
-			 (setq wholectype lastctype))
-		       ( (== lastctype ctype_void)
-			 (setq wholectype ctype_void))
-		       ( (== wholectype ctype_void)
-			 ())
-		       ( (!= wholectype lastctype)
-			 (error_strv curloc "invalid type of match case" 
-				     (get_field :named_name lastctype))
-			 (inform_strv sloc "expected type of match case"
-				      (get_field :named_name wholectype)))
-		       )
+	      (debug_msg sortedbindings "normexp_match sortedbindings")
+	      (assert_msg "check sortedbindings" (is_multiple sortedbindings))
+	      (let ( (subindlist (make_list discr_list)) 
+		     )
+		(foreach_in_multiple
+		 (sortedbindings)
+		 (cursortbind :long sortbix)
+		 (debug_msg cursortbind "normexp_match cursortbind")
+		 (assert_msg "check cursortbind" 
+			     (is_a cursortbind class_normlet_binding))
+		 (list_append subindlist cursortbind)
 		 )
-	       (compile_warning "@@incomplete normexp_match" ())
-	       )
+		(multicall 
+		 (nbody bindsbody)
+		 (normalize_tuple curbody freshnewenv ncx curloc)
+		 (debug_msg nbody "normexp_match nbody")
+		 (debug_msg bindsbody "normexp_match bindsbody")
+		 (assert_msg "check bindsbody" (is_list_or_null bindsbody))
+		 (foreach_in_list
+		  (bindsbody)
+		  (bindbodypair curbindbody)
+		  (debug_msg curbindbody "normexp_match curbindbody")
+		  (list_append subindlist curbindbody)
+		  )
+		 (debug_msg subindlist "normexp_match final subindlist")
+		 (let ( (wnlet (wrap_normal_letseq nbody subindlist curloc)) 
+			(lastnbody (multiple_nth nbody -1))
+			(lastctype (get_ctype lastnbody freshnewenv))
+			)
+		   (debug_msg wnlet "normexp_match wnlet")
+		   (debug_msg lastnbody "normexp_match lastnbody")
+		   (debug_msg lastctype "normexp_match lastctype")
+		   (put_fields newsuctester 
+			       :ntsuccess_do wnlet
+			       )
+		   (cond ( (null wholectype)
+			   (setq wholectype lastctype))
+			 ( (== lastctype ctype_void)
+			   (setq wholectype ctype_void))
+			 ( (== wholectype ctype_void)
+			   ())
+			 ( (!= wholectype lastctype)
+			   (error_strv curloc "invalid type of match case" 
+				       (get_field :named_name lastctype))
+			   (inform_strv sloc "expected type of match case"
+					(get_field :named_name wholectype)))
+			 )
+		   )
+		 )
+;;;
+		(compile_warning "@@incomplete normexp_match" ())
+		)
 	      )
 	    )
 	  )
@@ -1122,10 +1144,10 @@
        (let ( 
 	     (teststupl (list_to_multiple testlist)) 
 	     (nmatch (instance class_nrep_match
-				:nrep_loc sloc
-				:nexpr_ctyp wholectype
-				:nmatch_tests teststupl
-				))
+			       :nrep_loc sloc
+			       :nexpr_ctyp wholectype
+			       :nmatch_tests teststupl
+			       ))
 	     (csym (clone_symbol 'match_))
 	     (clocc  (instance  class_nrep_locsymocc
 				:nrep_loc sloc
@@ -1159,9 +1181,9 @@
 	 (debug_msg cbind "normexp_match cbind")
 	 (debug_msg nbindmatx "normexp_match final nbindmatx")
 	 (compile_warning "@@unimplemented normexp_match" ())
-	 (error_plain sloc "@@ UNIMPLEMENTED match [normexp_match]")
+	 (warning_plain sloc "@@ NOT FULLY UNIMPLEMENTED match [normexp_match]")
 	 (return clocc nbindmatx)
-       )))))
+	 )))))
 
 
 (install_method class_src_match normal_exp normexp_match)

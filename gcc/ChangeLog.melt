@@ -1,4 +1,13 @@
 2009-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy normalization of match]
+	* melt/warmelt-normatch.bysl: normexp_match mixes both
+	sortedbindings & nbodybindings inside the ntsuccess_do of the
+	class_normtester_success.
+	* melt/warmelt-genobj.bysl: incomplete implementation of
+	compilobj_normtester_success, compilobj_normtester_instance.
+	* testsuite/melt/tmatch-1.bysl: added call to have a non-trivial
+	bodybinding.
+2009-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added ntest_comefrom field.  more
 	code inside normpat_instancepat.
 	* melt/warmelt-genobj.bysl: added normtester_free_objloc_list.
