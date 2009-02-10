@@ -202,6 +202,16 @@
   :fields ( ocomblo_comment		;the comment string
 	    ))
 
+
+;; a block for compiling matches. We need to redistribute put_objdest
+;; inside appropriately
+(defclass class_objmultiblock
+  :super class_objblock
+  :fields (omulblo_subcomp		;the tuple of subcomponents
+					;into which redistribute
+					;destination
+	   ))
+
 ;; unique label instr
 (defclass class_objlabelinstr
   :super class_objinstr
@@ -481,6 +491,7 @@
  class_objloop
  class_objmsend
  class_objmultiapply
+ class_objmultiblock
  class_objmultimsend
  class_objnewclosure
  class_objnil
@@ -2593,6 +2604,22 @@
 
 (install_method class_objblock  put_objdest  putobjdest_objblock)
 
+
+;;;;;;;;;;
+(defun putobjdest_objmultiblock (recv desto)
+  (assert_msg "check recv" (is_a recv class_objmultiblock))
+  (debug_msg recv "putobjdest_objmultiblock recv")
+  (debug_msg desto "putobjdest_objmultiblock recv")
+  (let ( (osubcomp (unsafe_get_field :omulblo_subcomp recv)) )
+    (assert_msg "check osubcomp" (is_multiple_or_null osubcomp))
+    (foreach_in_multiple
+     (osubcomp)
+     (cursubcomp :long curix)
+     (debug_msg cursubcomp "putobjdest_objmultiblock cursubcomp")
+     (put_objdest cursubcomp desto))
+    (debug_msg recv "putobjdest_objmultiblock done recv")
+))
+(install_method class_objmultiblock put_objdest putobjdest_objmultiblock)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objloop (recv desto)
   (assert_msg "check recv" (is_a recv class_objloop))
@@ -3771,7 +3798,6 @@
 	(nloc (unsafe_get_field :nrep_loc nmat))
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
 	(ntests (unsafe_get_field :nmatch_tests nmat))
-	(nres (unsafe_get_field :nmatch_res nmat))
 	(matmap (unsafe_get_field :gncx_matchmap gcx))
 	(matlabel (let ( (:long nbmat (mapobject_count matmap))
 			 (labuf (make_strbuf discr_strbuf))
@@ -3784,29 +3810,52 @@
 		      labstr
 		      )))
 	(endlabel (let (
-			 (labuf (make_strbuf discr_strbuf))
-			 )
+			(labuf (make_strbuf discr_strbuf))
+			)
 		    (add2sbuf_string labuf matlabel)
 		    (add2sbuf_strconst labuf "_end")
 		    (strbuf2string discr_verbatimstring labuf)))
-	(ctests (multiple_map
-		 ntests
-		 (lambda (curtest :long testix)
-		   (debug_msg curtest "compilobj_nrep_match curtest")
-		   (let (
-			 (curcomp (compile_obj curtest gcx))
-			 )
-		     (debug_msg curcomp "compilobj_nrep_match curcomp")
-		     (assert_msg "check curcomp" curcomp)
-		     curcomp
-		     )
-		   )))
+	(subcomplist (make_list discr_list))
+	(ctests
+	 (multiple_map
+	  ntests
+	  (lambda (curotest :long testix)
+	    (debug_msg curotest "compilobj_nrep_match curotest")
+	    (let (
+		  (curcomp (compile_obj curotest gcx))
+		  )
+	      (debug_msg curcomp "compilobj_nrep_match curcomp")
+	      (assert_msg "check curcomp" curcomp)
+	      (cond 
+	       ( (is_not_a curotest class_normtester_success)
+		 (void)
+		 )
+	       ( (is_list curcomp)
+		 (let ( (lastlicomp (pair_head (list_last curcomp))) )
+		   (debug_msg lastlicomp "compilobj_nrep_match lastlicomp")
+		   (list_append subcomplist lastlicomp)
+		 ))
+	       ( (is_multiple curcomp)
+		 (let ( (lastupcomp (multiple_nth curcomp -1)) )
+		   (debug_msg lastupcomp "compilobj_nrep_match lastupcomp")
+		   (list_append subcomplist lastupcomp)
+		 ))
+	       ( (is_object curcomp)
+		 (debug_msg curcomp "compilobj_nrep_match obj curcomp")
+		 (list_append subcomplist curcomp)
+		 )
+	       (:else
+		;(void)
+		))
+	      curcomp
+	      )
+	    )))
 	(obodyl (make_list discr_list))
-	(obloc (instance class_objcommentedblock
-			 :obi_loc nloc
-			 :oblo_bodyl obodyl
-			 :ocomblo_comment matlabel
-			 ))
+	(ombloc (instance class_objmultiblock
+			  :obi_loc nloc
+			  :oblo_bodyl obodyl
+			  :omulblo_subcomp ()
+			  ))
 	(ofirstgoto (instance class_objgotoinstr
 			      :obi_loc nloc
 			      :obgoto_prefix matlabel
@@ -3843,10 +3892,10 @@
       )
      )
     (list_append obodyl oendlabel)
-    (debug_msg nres "compilobj_nrep_match compiling nres")
-    (list_append obodyl (compile_obj nres gcx))
-    (debug_msg obloc "compilobj_nrep_match return obloc")
-    (return obloc)
+    (put_fields ombloc 
+		:omulblo_subcomp (list_to_multiple subcomplist discr_multiple))
+    (debug_msg ombloc "compilobj_nrep_match return ombloc")
+    (return ombloc)
     ))
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

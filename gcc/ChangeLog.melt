@@ -1,4 +1,8 @@
 2009-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy normalization of match]
+	* melt/warmelt-normatch.bysl: added more debug_msg.
+	* melt/warmelt-genobj.bysl: added class_objmultiblock.
+2009-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy normalization of match; perhepes match_ symbol cloned carelessly.]
 	* melt/warmelt-normatch.bysl: each creation of a
 	class_nrep_locsymocc should be put in the normcontext's symbol

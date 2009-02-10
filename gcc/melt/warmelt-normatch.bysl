@@ -372,7 +372,6 @@
 (defclass class_nrep_match
   :super class_nrep_typexpr
   :fields (nmatch_tests			;sequence of tests
-	   nmatch_res			;result occ
 	   ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1152,7 +1151,7 @@
 			       :nexpr_ctyp wholectype
 			       :nmatch_tests teststupl
 			       ))
-	     (csym (clone_symbol 'match_))
+	     (csym (clone_symbol 'matchres_))
 	     (clocc  (instance  class_nrep_locsymocc
 				:nrep_loc sloc
 				:nocc_ctyp wholectype
@@ -1163,8 +1162,9 @@
 			      :letbind_type wholectype
 			      :letbind_expr nmatch))
 	     )
+	 (debug_msg csym "normexp_match csym")
 	 (put_fields clocc :nocc_bind cbind)
-	 (put_fields nmatch :nmatch_res clocc)
+	 (debug_msg clocc "normexp_match clocc")
 	 ;; put the clocc in the symbol cache map
 	 (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 	 ;; put the index of each test 
