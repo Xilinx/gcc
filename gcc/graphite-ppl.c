@@ -170,3 +170,101 @@ new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t pcs)
   return matrix;
 }
 
+/* Move the dimension SRC to dimension DEST in the constraint system
+   SYS: the operation is equivalent to removing dimension SRC from
+   SYS, and then adding the dimension SRC as a new dimension at DEST.  
+
+   | "x SRC a b c DEST y" is transformed to
+   | "x a b c DEST SRC y",
+
+   and symetrically
+
+   | "x DEST a b c SRC y" is transformed to
+   | "x SRC DEST a b c y".  */
+
+ppl_Constraint_System_t
+ppl_move_dimension (ppl_Constraint_System_t sys, 
+		    ppl_dimension_type src,
+		    ppl_dimension_type dest)
+{
+  ppl_Constraint_System_const_iterator_t cit, end;
+  ppl_Constraint_System_t res;
+  ppl_Coefficient_t coef;
+
+  ppl_new_Constraint_System (&res);
+  ppl_new_Constraint_System_const_iterator (&cit);
+  ppl_new_Constraint_System_const_iterator (&end);
+  ppl_new_Coefficient (&coef);
+
+  for (ppl_Constraint_System_begin (sys, cit),
+	 ppl_Constraint_System_end (sys, end);
+       !ppl_Constraint_System_const_iterator_equal_test (cit, end);
+       ppl_Constraint_System_const_iterator_increment (cit))
+    {
+      ppl_const_Constraint_t pc;
+      ppl_Linear_Expression_t expr;
+      ppl_Constraint_t cstr;
+      ppl_dimension_type j, dim;
+
+      ppl_new_Linear_Expression (&expr);
+      ppl_Constraint_System_const_iterator_dereference (cit, &pc);
+      ppl_Constraint_space_dimension (pc, &dim);
+
+      ppl_Constraint_inhomogeneous_term (pc, coef);
+      ppl_Linear_Expression_add_to_inhomogeneous (expr, coef);
+
+      ppl_Constraint_coefficient (pc, src, coef);
+      ppl_Linear_Expression_add_to_coefficient (expr, dest, coef);
+
+      if (src < dest)
+	{
+	  for (j = 0; j < src; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j, coef);
+	    }
+
+	  for (j = src; j < dest; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j + 1, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j, coef);
+	    }
+
+	  for (j = dest + 1; j < dim; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j, coef);
+	    }
+	}
+      else
+	{
+	  for (j = 0; j < dest; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j, coef);
+	    }
+
+	  for (j = dest; j < src; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j + 1, coef);
+	    }
+
+	  for (j = src + 1; j < dim; j++)
+	    {
+	      ppl_Constraint_coefficient (pc, j, coef);
+	      ppl_Linear_Expression_add_to_coefficient (expr, j, coef);
+	    }
+	}
+
+      ppl_new_Constraint (&cstr, expr, ppl_Constraint_type (pc));
+      ppl_Constraint_System_insert_Constraint (res, cstr);
+      ppl_delete_Constraint (cstr);
+      ppl_delete_Linear_Expression (expr);
+    }
+
+  ppl_delete_Constraint_System_const_iterator (cit);
+  ppl_delete_Constraint_System_const_iterator (end);
+  ppl_delete_Coefficient (coef);
+  return res;
+}

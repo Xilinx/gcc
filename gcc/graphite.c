@@ -5451,7 +5451,7 @@ nb_data_refs_in_scop (scop_p scop)
   return res;
 }
 
-/* Move the loop at index LOOP and insert it before index NEW_LOOP_POS.
+/* Move the loop at index SRC and insert it before index DEST.
    This transformartion is only valid, if the loop nest between i and k is
    perfectly nested. Therefore we do not need to change the static schedule.
 
@@ -5479,54 +5479,22 @@ nb_data_refs_in_scop (scop_p scop)
    This should be checked before calling this function.  */
 
 static void
-graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
-			     int new_loop_pos)
+graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
 {
-  CloogMatrix *domain;
   int row, j;
   loop_p tmp_loop_p;
+  ppl_Constraint_System_t res;
 
-  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  gcc_assert (src < gbb_nb_loops (gb)
+	      && dest < gbb_nb_loops (gb));
 
-  gcc_assert (loop < gbb_nb_loops (gb)
-	      && new_loop_pos < gbb_nb_loops (gb));
+  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), src);
+  VEC_ordered_remove (loop_p, GBB_LOOPS (gb), src);
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), dest, tmp_loop_p);
 
-  /* Update LOOPS vector.  */
-  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), loop);
-  VEC_ordered_remove (loop_p, GBB_LOOPS (gb), loop);
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), new_loop_pos, tmp_loop_p);
-
-  /* Move the domain columns.  */
-  if (loop < new_loop_pos)
-    for (row = 0; row < domain->NbRows; row++)
-      {
-        Value tmp;
-        value_init (tmp);
-        value_assign (tmp, domain->p[row][loop + 1]);
-   
-        for (j = loop ; j < new_loop_pos - 1; j++)
-          value_assign (domain->p[row][j + 1], domain->p[row][j + 2]);
-
-        value_assign (domain->p[row][new_loop_pos], tmp);
-        value_clear (tmp);
-      }
-  else
-    for (row = 0; row < domain->NbRows; row++)
-      {
-        Value tmp;
-        value_init (tmp);
-        value_assign (tmp, domain->p[row][loop + 1]);
-
-        for (j = loop ; j > new_loop_pos; j--)
-          value_assign (domain->p[row][j + 1], domain->p[row][j]);
-     
-        value_assign (domain->p[row][new_loop_pos + 1], tmp);
-        value_clear (tmp);
-      }
-
-    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
-    cloog_matrix_free (domain);
+  res = ppl_move_dimension (GBB_DOMAIN (gb), src, dest);
+  ppl_delete_Constraint_System (GBB_DOMAIN (gb));
+  GBB_DOMAIN (gb) = res;
 }
 
 /* Get the index of the column representing constants in the DOMAIN

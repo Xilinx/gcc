@@ -1,4 +1,12 @@
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
+	* graphite.c (graphite_trans_bb_move_loop): Remove ping pong,
+	use ppl_move_dimension.
+	* graphite-ppl.c (ppl_move_dimension): New.
+	* graphite-ppl.h (ppl_move_dimension): Declared.
+
+2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Do not include cloog/cloog.h.
 	(print_graphite_bb): Remove ping pong, call PPL print function.
