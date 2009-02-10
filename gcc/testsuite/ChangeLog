@@ -1,3 +1,74 @@
+2009-02-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39109
+	* g++.dg/init/value6.C: New test.
+
+2009-02-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/x86_64/abi/abi-x86_64.exp: Use glob instead of
+	find.
+
+2009-02-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20090209-1.c: New test.
+
+2009-02-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/35147
+	PR c++/37737
+	* g++.dg/cpp0x/vt-35147.C: New.
+	* g++.dg/cpp0x/vt-37737-1.C: Likewise.
+	* g++.dg/cpp0x/vt-37737-2.C: Likewise.
+
+2009-02-06  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35434
+	* gcc.dg/attr-alias-4.c: New test.
+
+2009-02-06  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39035
+	* gcc.dg/dfp/pr39035.c: New test.
+
+2009-02-06  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/36432
+	* gcc.dg/c90-flex-array-2.c, gcc.dg/c99-flex-array-6.c: New tests.
+
+2009-02-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39106
+	* g++.dg/opt/thunk3.C: New test.
+
+2009-02-05  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.c-torture/compile/20080625-1.c: Skip for M32C.
+	* gcc.c-torture/compile/limits-stringlit.c: Likewise.
+	* gcc.dg/cdce1.c: Likewise.
+	* gcc.dg/cpp/_Pragma6.c: Likewise.
+	* g++.dg/cpp/_Pragma1.C: Likewise.
+	* gcc.dg/utf32-2.c: Xfail for M32C.
+	* gcc.dg/utf32-1.c: Likewise.
+	* gcc.dg/utf32-3.c: Likewise.
+	* gcc.dg/Wtype-limits.c: Add expected warning messages for 16-bit
+	targets.
+	* gcc.dg/Wtype-limits-Wextra.c: Likewise.
+	* gcc.dg/utf32-4.c: Only run for 32-bit+ targets.
+	* gcc.dg/Wconversion-5.c: Likewise.
+	* gcc.dg/tree-ssa/data-dep-1.c: Likewise.
+	* gcc.dg/tree-ssa/ldist-3.c: Likewise.
+	* gcc.dg/tree-ssa/ldist-5.c: Likewise.
+	* gcc.dg/utf-inc-init.c: Likewise.
+	* gcc.dg/pr11492.c: Xfail for 16-bit targets.
+	* gcc.dg/utf-array.c: Add expected warning messages for M32C.
+	* gcc.dg/utf-array-short-wchar.c: Likewise.
+	* gcc.dg/tree-ssa/pr33920.c: Expect a warning from all 16-bit targets.
+	* gcc.dg/mallign.c: Use size_t instead of long.
+
+2009-02-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/torture/pr31863.C: Generalize dg-timeout-factor.
+
 2009-02-05  Daniel Berlin  <dberlin@dberlin.org>
 
 	* gcc.c-torture/execute/pr39100.c: New.
@@ -107,8 +178,8 @@
 
 2009-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
-        PR c++/39053
-        * g++.dg/parse/crash52.C: New.
+	PR c++/39053
+	* g++.dg/parse/crash52.C: New.
 
 2009-01-30  Richard Guenther  <rguenther@suse.de>
 
@@ -148,7 +219,8 @@
 2009-01-29  Kenneth Zadeck <zadeck@naturalbridge.com>
 
 	PR middle-end/35854
-	* gcc.dg/lower-subreg-1.c: Renamed dump pass from "subreg" to "subreg1"		
+	* gcc.dg/lower-subreg-1.c: Renamed dump pass from "subreg"
+	to "subreg1".
 	
 2009-01-29  Steve Ellcey  <sje@cup.hp.com>
 
@@ -916,7 +988,8 @@
 	in trunk.
 	* testsuite/gcc.dg/graphite/block-0.c: Update test.
 	* testsuite/gcc.dg/graphite/block-1.c: Same.
-	* testsuite/gcc.dg/graphite/block-2.c: Remove xfail and test for blocking.
+	* testsuite/gcc.dg/graphite/block-2.c: Remove xfail and test
+	for blocking.
 	* testsuite/gcc.dg/graphite/block-4.c: Remove test for strip mine.
 	* testsuite/gcc.dg/graphite/block-3.c: New.
 	* testsuite/gcc.dg/graphite/pr38498.c: New.
@@ -1012,7 +1085,7 @@
 
 2009-01-05  Laurent GUERBY  <laurent@guerby.net>
 
-	* gcc.c-torture/compile/20001226-1.c: Generalize 
+	* gcc.c-torture/compile/20001226-1.c: Generalize
 	dg-timeout-factor.
 	* gcc.c-torture/compile/limits-fnargs.c: Add
 	dg-timeout-factor.

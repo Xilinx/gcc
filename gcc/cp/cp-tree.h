@@ -2270,8 +2270,8 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 
 /* Nonzero if the template arguments is actually a vector of vectors,
    rather than just a vector.  */
-#define TMPL_ARGS_HAVE_MULTIPLE_LEVELS(NODE)		\
-  (NODE && TREE_VEC_ELT (NODE, 0)                       \
+#define TMPL_ARGS_HAVE_MULTIPLE_LEVELS(NODE)		     \
+  (NODE && TREE_VEC_LENGTH (NODE) && TREE_VEC_ELT (NODE, 0)  \
    && TREE_CODE (TREE_VEC_ELT (NODE, 0)) == TREE_VEC)
 
 /* The depth of a template argument vector.  When called directly by
@@ -2491,6 +2491,11 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    constructor call, rather than an ordinary function call.  */
 #define AGGR_INIT_VIA_CTOR_P(NODE) \
   TREE_LANG_FLAG_0 (AGGR_INIT_EXPR_CHECK (NODE))
+
+/* Nonzero if expanding this AGGR_INIT_EXPR should first zero-initialize
+   the object.  */
+#define AGGR_INIT_ZERO_FIRST(NODE) \
+  TREE_LANG_FLAG_2 (AGGR_INIT_EXPR_CHECK (NODE))
 
 /* AGGR_INIT_EXPR accessors.  These are equivalent to the CALL_EXPR
    accessors, except for AGGR_INIT_EXPR_SLOT (which takes the place of
