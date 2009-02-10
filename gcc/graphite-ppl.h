@@ -29,4 +29,5 @@ void new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *,
 ppl_Constraint_System_t ppl_move_dimension (ppl_Constraint_System_t,
 					    ppl_dimension_type,
 					    ppl_dimension_type);
-
+void insert_constraint_into_matrix (CloogMatrix *, int,
+				    ppl_const_Constraint_t);

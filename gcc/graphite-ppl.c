@@ -96,17 +96,25 @@ ppl_Constrain_System_number_of_constraints (ppl_Constraint_System_t pcs)
   return num;
 }
 
+static void
+oppose_constraint (CloogMatrix *m, int row)
+{
+  int k;
+
+  /* Do not oppose the first column: it is the eq/ineq one.
+     Do not oppose the last column: it is the constant. */
+  for (k = 1; k < m->NbColumns - 1; k++)
+    value_oppose (m->p[row][k], m->p[row][k]);
+}
 
 /* Inserts constraint CSTR at row ROW of matrix M.  */
 
-static void
+void
 insert_constraint_into_matrix (CloogMatrix *m, int row,
 			       ppl_const_Constraint_t cstr)
 {
   ppl_Coefficient_t c;
-  ppl_dimension_type i;
-  ppl_dimension_type dim;
-
+  ppl_dimension_type i, dim, nb_cols = m->NbColumns;
 
   ppl_Constraint_space_dimension (cstr, &dim);
   ppl_new_Coefficient (&c);
@@ -117,21 +125,44 @@ insert_constraint_into_matrix (CloogMatrix *m, int row,
       ppl_Coefficient_to_mpz_t (c, m->p[row][i + 1]);
     }
 
+  for (i = dim; i < nb_cols - 1; i++)
+    value_set_si (m->p[row][i + 1], 0);
+
   ppl_Constraint_inhomogeneous_term  (cstr, c);
-  ppl_Coefficient_to_mpz_t (c, m->p[row][m->NbColumns - 1]);
+  ppl_Coefficient_to_mpz_t (c, m->p[row][nb_cols - 1]);
 
   switch (ppl_Constraint_type (cstr))
-  {
+    {
+    case PPL_CONSTRAINT_TYPE_LESS_THAN:
+      oppose_constraint (m, row);
+      value_set_si (m->p[row][0], 1);
+      value_sub_int (m->p[row][nb_cols - 1],
+		     m->p[row][nb_cols - 1], 1);
+      break;
+
+    case PPL_CONSTRAINT_TYPE_GREATER_THAN:
+      value_set_si (m->p[row][0], 1);
+      value_sub_int (m->p[row][nb_cols - 1],
+		     m->p[row][nb_cols - 1], 1);
+      break;
+
+    case PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL:
+      oppose_constraint (m, row);
+      value_set_si (m->p[row][0], 1);
+      break;
+
     case PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL:
       value_set_si (m->p[row][0], 1);
       break;
+
     case PPL_CONSTRAINT_TYPE_EQUAL:
       value_set_si (m->p[row][0], 0);
       break;
+
     default:
       /* Not yet implemented.  */
       gcc_unreachable();
-  }
+    }
 
   ppl_delete_Coefficient (c);
 }

@@ -2623,73 +2623,105 @@ param_index (tree var, scop_p scop)
   return VEC_length (name_tree, SCOP_PARAMS (scop)) - 1;
 }
 
-/* Scan EXPR and translate it to an inequality vector INEQ that will
-   be added, or subtracted, in the constraint domain matrix C at row
-   R.  K is the number of columns for loop iterators in C. */ 
+
+/* When SUBTRACT is true subtract or when SUBTRACT is false add the
+   value K to the dimension D of the linear expression C.  */
 
 static void
-scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
-		      bool subtract)
+add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t c, 
+		  Value k, bool subtract)
 {
-  int cst_col, param_col;
+  Value val;
+  ppl_Coefficient_t coef;
 
+  ppl_new_Coefficient (&coef);
+  ppl_Linear_Expression_coefficient (c, d, coef);
+  value_init (val);
+  ppl_Coefficient_to_mpz_t (coef, val);
+
+  if (subtract)
+    value_subtract (val, val, k);
+  else
+    value_addto (val, val, k);
+
+  ppl_assign_Coefficient_from_mpz_t (coef, val);
+  ppl_Linear_Expression_add_to_coefficient (c, d, coef);
+  value_clear (val);
+  ppl_delete_Coefficient (coef);
+}
+
+/* In the context of scop S, scan E, the right hand side of a scalar
+   evolution function in loop VAR, and translate it to a linear
+   expression C.  When SUBTRACT is true the linear expression
+   corresponding to E is subtracted from the linear expression C.  */
+
+static void
+scan_tree_for_params_right_scev (scop_p s, tree e, int var,
+				 ppl_Linear_Expression_t c,
+				 bool subtract)
+{
+  if (c)
+    {
+      loop_p loop = get_loop (var);
+      ppl_dimension_type l = scop_nb_params (s)
+	+ scop_gimple_loop_depth (s, loop);
+      Value val;
+
+      gcc_assert (TREE_CODE (e) == INTEGER_CST);
+
+      value_init (val);
+      value_set_si (val, int_cst_value (e));
+      add_value_to_dim (l, c, val, subtract);
+      value_clear (val);
+    }
+}
+
+
+/* Scan the integer constant E, and if SUBTRACT is false add it or if
+   SUBTRACT is true subtract it from the inhomogeneous part of the
+   linear expression C.  */
+
+static void
+scan_tree_for_params_int (tree e, ppl_Linear_Expression_t c, bool subtract)
+{
+  Value val;
+  ppl_Coefficient_t coef;
+
+  ppl_new_Coefficient (&coef);
+  ppl_Linear_Expression_inhomogeneous_term (c, coef);
+  value_init (val);
+  ppl_Coefficient_to_mpz_t (coef, val);
+
+  if (subtract)
+    value_sub_int (val, val, int_cst_value (e));
+  else
+    value_add_int (val, val, int_cst_value (e));
+
+  ppl_assign_Coefficient_from_mpz_t (coef, val);
+  ppl_Linear_Expression_add_to_inhomogeneous (c, coef);
+  value_clear (val);
+  ppl_delete_Coefficient (coef);
+}
+
+/* In the context of scop S, scan the expression E and translate it to
+   a linear expression C.  When parsing a symbolic multiplication, K
+   represents the constant multiplier of an expression containing
+   parameters.  When SUBTRACT is true the linear expression
+   corresponding to E is subtracted from the linear expression C.  */
+
+static void
+scan_tree_for_params (scop_p s, tree e, ppl_Linear_Expression_t c,
+		      Value k, bool subtract)
+{
   if (e == chrec_dont_know)
     return;
 
   switch (TREE_CODE (e))
     {
     case POLYNOMIAL_CHREC:
-      {
-	tree left = CHREC_LEFT (e);
-	tree right = CHREC_RIGHT (e);
-	int var = CHREC_VARIABLE (e);
-
-	if (TREE_CODE (right) != INTEGER_CST)
-	  return;
-
-	if (c)
-	  {
-            int loop_col = scop_gimple_loop_depth (s, get_loop (var)) + 1;
-
-            if (subtract)
-              value_sub_int (c->p[r][loop_col], c->p[r][loop_col],
-                             int_cst_value (right));
-            else
-              value_add_int (c->p[r][loop_col], c->p[r][loop_col],
-                             int_cst_value (right));
-	  }
-
-	switch (TREE_CODE (left))
-	  {
-	  case POLYNOMIAL_CHREC:
-	    scan_tree_for_params (s, left, c, r, k, subtract);
-            return;
-
-	  case INTEGER_CST:
-	    /* Constant part.  */
-	    if (c)
-	      {
-                int v = int_cst_value (left);
-                cst_col = c->NbColumns - 1;
-
-                if (v < 0)
-                  {
-                    v = -v;
-                    subtract = subtract ? false : true;
-                  }
-
-                if (subtract)
-                  value_sub_int (c->p[r][cst_col], c->p[r][cst_col], v);
-                else
-                  value_add_int (c->p[r][cst_col], c->p[r][cst_col], v);
-	      }
-	    return;
-
-	  default:
-	    scan_tree_for_params (s, left, c, r, k, subtract);
-	    return;
-	  }
-      }
+      scan_tree_for_params_right_scev (s, CHREC_RIGHT (e), CHREC_VARIABLE (e),
+				       c, subtract);
+      scan_tree_for_params (s, CHREC_LEFT (e), c, k, subtract);
       break;
 
     case MULT_EXPR:
@@ -2704,7 +2736,7 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
 	      value_multiply (k, k, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
 	}
       else
 	{
@@ -2717,61 +2749,46 @@ scan_tree_for_params (scop_p s, tree e, CloogMatrix *c, int r, Value k,
 	      value_multiply (k, k, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, subtract);
 	}
       break;
 
     case PLUS_EXPR:
     case POINTER_PLUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, subtract);
       break;
 
     case MINUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, r, k, !subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, !subtract);
       break;
 
     case NEGATE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, !subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, !subtract);
       break;
 
     case SSA_NAME:
-      param_col = param_index (e, s);
-
-      if (c)
-	{
-          param_col += c->NbColumns - scop_nb_params (s) - 1;
-
-          if (subtract)
-	    value_subtract (c->p[r][param_col], c->p[r][param_col], k);
-          else
-	    value_addto (c->p[r][param_col], c->p[r][param_col], k);
-	}
-      break;
+      {
+	ppl_dimension_type p = param_index (e, s);
+	if (c)
+	  {
+	    ppl_dimension_type dim;
+	    ppl_Linear_Expression_space_dimension (c, &dim);
+	    p = dim - scop_nb_params (s) + p;
+	    add_value_to_dim (p, c, k, subtract);
+	  }
+	break;
+      }
 
     case INTEGER_CST:
       if (c)
-	{
-          int v = int_cst_value (e);
-	  cst_col = c->NbColumns - 1;
-
-          if (v < 0)
-          {
-            v = -v;
-            subtract = subtract ? false : true;
-          }
-                
-          if (subtract)
-            value_sub_int (c->p[r][cst_col], c->p[r][cst_col], v); 
-          else
-            value_add_int (c->p[r][cst_col], c->p[r][cst_col], v);
-	}
+	scan_tree_for_params_int (e, c, subtract);
       break;
 
     CASE_CONVERT:
     case NON_LVALUE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, r, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
       break;
 
     default:
@@ -2813,7 +2830,7 @@ idx_record_params (tree base, tree *idx, void *dta)
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (scop, scev, NULL, 0, one, false);
+      scan_tree_for_params (scop, scev, NULL, one, false);
       value_clear (one);
     }
 
@@ -2857,9 +2874,9 @@ find_params_in_bb (scop_p scop, graphite_bb_p gb)
       rhs = instantiate_scev (block_before_scop (scop), loop, rhs);
 
       value_init (one);
-      scan_tree_for_params (scop, lhs, NULL, 0, one, false);
       value_set_si (one, 1);
-      scan_tree_for_params (scop, rhs, NULL, 0, one, false);
+      scan_tree_for_params (scop, lhs, NULL, one, false);
+      scan_tree_for_params (scop, rhs, NULL, one, false);
       value_clear (one);
     }
 }
@@ -2977,7 +2994,7 @@ find_scop_parameters (scop_p scop)
 
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = instantiate_scev (block_before_scop (scop), loop, nb_iters);
-      scan_tree_for_params (scop, nb_iters, NULL, 0, one, false);
+      scan_tree_for_params (scop, nb_iters, NULL, one, false);
     }
 
   value_clear (one);
@@ -3084,17 +3101,27 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       /* Otherwise nb_iters contains parameters: scan the nb_iters
 	 expression and build its matrix representation.  */
       Value one;
+      ppl_Linear_Expression_t pe;
+      ppl_Constraint_t pc;
+      ppl_dimension_type dim;
 
       row++;
-      value_set_si (cstr->p[row][0], 1);
-      value_set_si (cstr->p[row][loop_col], -1);
-
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = instantiate_scev (block_before_scop (scop), loop, nb_iters);
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (scop, nb_iters, cstr, row, one, false);
+      dim = nb_cols - 2;
+      ppl_new_Linear_Expression_with_dimension (&pe, dim);
+      scan_tree_for_params (scop, nb_iters, pe, one, false);
+      ppl_new_Constraint (&pc, pe, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+      insert_constraint_into_matrix (cstr, row, pc);
+
+      value_set_si (cstr->p[row][0], 1);
+      value_set_si (cstr->p[row][loop_col], -1);
+
+      ppl_delete_Constraint (pc);
+      ppl_delete_Linear_Expression (pe);
       value_clear (one);
     }
   else
@@ -3125,92 +3152,16 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 static void
 add_conditions_to_domain (graphite_bb_p gb)
 {
-  unsigned int i,j;
+  unsigned int i;
   gimple stmt;
   VEC (gimple, heap) *conditions = GBB_CONDITIONS (gb);
-  CloogMatrix *domain; 
   scop_p scop = GBB_SCOP (gb);
-
-  unsigned nb_rows;
-  unsigned nb_cols;
-  unsigned nb_new_rows = 0;
-  unsigned row;
-  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  basic_block before_scop = block_before_scop (scop);
 
   if (VEC_empty (gimple, conditions))
     return;
 
-  if (domain)
-    {
-      nb_rows = domain->NbRows;
-      nb_cols = domain->NbColumns;
-    }
-  else  
-    {
-      nb_rows = 0;
-      nb_cols = nb_loops_around_gb (gb) + scop_nb_params (scop) + 2;
-    }
-
-  /* Count number of necessary new rows to add the conditions to the
-     domain.  */
-  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
-    {
-      switch (gimple_code (stmt))
-        {
-        case GIMPLE_COND:
-          {
-            enum tree_code code = gimple_cond_code (stmt);
-
-            switch (code)
-              {
-              case NE_EXPR:
-              case EQ_EXPR:
-                /* NE and EQ statements are not supported right know. */
-                gcc_unreachable ();
-                break;
-              case LT_EXPR:
-              case GT_EXPR:
-              case LE_EXPR:
-              case GE_EXPR:
-                nb_new_rows++;
-                break;
-              default:
-                gcc_unreachable ();
-                break;
-              }
-          break;
-          }
-        case SWITCH_EXPR:
-          /* Switch statements are not supported right know.  */
-          gcc_unreachable ();
-          break;
-
-        default:
-          gcc_unreachable ();
-          break;
-        }
-    }
-
-
-  /* Enlarge the matrix.  */ 
-  { 
-    CloogMatrix *new_domain;
-    new_domain = cloog_matrix_alloc (nb_rows + nb_new_rows, nb_cols);
-
-    if (domain)
-      {
-	for (i = 0; i < nb_rows; i++)
-	  for (j = 0; j < nb_cols; j++)
-	    value_assign (new_domain->p[i][j], domain->p[i][j]);
-
-	cloog_matrix_free (domain);
-      }
-
-    domain = new_domain;
-  }
-
   /* Add the conditions to the new enlarged domain matrix.  */
-  row = nb_rows;
   for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
     {
       switch (gimple_code (stmt))
@@ -3218,21 +3169,13 @@ add_conditions_to_domain (graphite_bb_p gb)
         case GIMPLE_COND:
           {
             Value one;
-            enum tree_code code;
-            tree left;
-            tree right;
+            tree left, right;
             loop_p loop = GBB_BB (gb)->loop_father;
-
-            left = gimple_cond_lhs (stmt);
-            right = gimple_cond_rhs (stmt);
-
-            left = analyze_scalar_evolution (loop, left);
-            right = analyze_scalar_evolution (loop, right);
-
-            left = instantiate_scev (block_before_scop (scop), loop, left);
-            right = instantiate_scev (block_before_scop (scop), loop, right);
-
-            code = gimple_cond_code (stmt);
+	    ppl_Linear_Expression_t expr;
+	    ppl_Constraint_t cstr;
+	    enum ppl_enum_Constraint_Type type = 0;
+            enum tree_code code = gimple_cond_code (stmt);
+	    ppl_dimension_type dim;
 
             /* The conditions for ELSE-branches are inverted.  */
             if (VEC_index (gimple, gb->condition_cases, i) == NULL)
@@ -3240,89 +3183,60 @@ add_conditions_to_domain (graphite_bb_p gb)
 
             switch (code)
               {
-              case NE_EXPR:
-                /* NE statements are not supported right know. */
-                gcc_unreachable ();
-                break;
-              case EQ_EXPR:
-                value_set_si (domain->p[row][0], 1);
-                value_init (one);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, true);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, false);
-                row++;
-                value_set_si (domain->p[row][0], 1);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, false);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, true);
-                value_clear (one);
-                row++;
-                break;
               case LT_EXPR:
-                value_set_si (domain->p[row][0], 1);
-                value_init (one);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, true);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, false);
-                value_sub_int (domain->p[row][nb_cols - 1],
-                    domain->p[row][nb_cols - 1], 1); 
-                value_clear (one);
-                row++;
+		type = PPL_CONSTRAINT_TYPE_LESS_THAN;
                 break;
+
               case GT_EXPR:
-                value_set_si (domain->p[row][0], 1);
-                value_init (one);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, false);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, true);
-                value_sub_int (domain->p[row][nb_cols - 1],
-                    domain->p[row][nb_cols - 1], 1);
-                value_clear (one);
-                row++;
+		type = PPL_CONSTRAINT_TYPE_GREATER_THAN;
                 break;
+
               case LE_EXPR:
-                value_set_si (domain->p[row][0], 1);
-                value_init (one);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, true);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, false);
-                value_clear (one);
-                row++;
+		type = PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL;
                 break;
+
               case GE_EXPR:
-                value_set_si (domain->p[row][0], 1);
-                value_init (one);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, left, domain, row, one, false);
-                value_set_si (one, 1);
-                scan_tree_for_params (scop, right, domain, row, one, true);
-                value_clear (one);
-                row++;
+		type = PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL;
                 break;
+
               default:
+                /* NE and EQ statements are not supported right now. */
                 gcc_unreachable ();
                 break;
               }
+
+	    value_init (one);
+	    value_set_si (one, 1);
+	    dim = gbb_nb_loops (gb) + scop_nb_params (scop);
+	    ppl_new_Linear_Expression_with_dimension (&expr, dim);
+
+	    left = gimple_cond_lhs (stmt);
+	    left = analyze_scalar_evolution (loop, left);
+	    left = instantiate_scev (before_scop, loop, left);
+
+	    right = gimple_cond_rhs (stmt);
+	    right = analyze_scalar_evolution (loop, right);
+	    right = instantiate_scev (before_scop, loop, right);
+
+	    scan_tree_for_params (scop, left, expr, one, true);
+	    value_set_si (one, 1);
+	    scan_tree_for_params (scop, right, expr, one, false);
+
+	    value_clear (one);
+	    ppl_new_Constraint (&cstr, expr, type);
+	    ppl_Constraint_System_insert_Constraint (GBB_DOMAIN (gb), cstr);
+	    ppl_delete_Constraint (cstr);
+	    ppl_delete_Linear_Expression (expr);
             break;
           }
-        case GIMPLE_SWITCH:
-          /* Switch statements are not supported right know.  */
-          gcc_unreachable ();
-          break;
 
+        case GIMPLE_SWITCH:
+          /* Switch statements are not supported right now.  */
         default:
           gcc_unreachable ();
           break;
         }
     }
-    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
-    cloog_matrix_free (domain);
 }
 
 /* Returns true when PHI defines an induction variable in the loop

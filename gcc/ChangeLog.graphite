@@ -1,5 +1,15 @@
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (scan_tree_for_params, add_conditions_to_domain): Remove
+	ping pong.
+	(add_value_to_dim, scan_tree_for_params_right_scev,
+	scan_tree_for_params_int): New.
+	* graphite-ppl.c (oppose_constraint): New.
+	(insert_constraint_into_matrix): Implement missing cases.
+	* graphite-ppl.h (insert_constraint_into_matrix): Declared.
+
+2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c (graphite_trans_bb_move_loop): Remove unused variables.
 
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
