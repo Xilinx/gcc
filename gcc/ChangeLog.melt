@@ -1,4 +1,9 @@
-2009-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy normalization of match; perhepes match_ symbol cloned carelessly.]
+	* melt/warmelt-normatch.bysl: each creation of a
+	class_nrep_locsymocc should be put in the normcontext's symbol
+	cache map.
+2009-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy normalization of match]
 	* melt/warmelt-normatch.bysl: normexp_match mixes both
 	sortedbindings & nbodybindings inside the ntsuccess_do of the

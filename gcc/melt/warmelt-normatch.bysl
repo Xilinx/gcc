@@ -448,10 +448,12 @@
 	 (tstuff (mapobject_get stuffmap nmatch))
 	 (lococc (mapobject_get pvarmap patvar))
 	 (env (get_field :pctn_env pcn))
+	 (ncx (get_field :pctn_normctxt pcn))
 	 (testlist (get_field :pctn_tests pcn))
 	 )
     (debug_msg tstuff "normpat_variablepat tstuff")
     (debug_msg lococc "normpat_variablepat lococc")
+    (debug_msg patvar "normpat_variablepat patvar")
     (if lococc
 	;; patvar already bound, generate a same test if not already found
 	(let (
@@ -494,23 +496,24 @@
 	    )
 	   )
 	  )
-      ;; else patvar unbound, so bound it 
-      (let ( (csym (clone_symbol patvar))
-	     (ctyp (get_ctype nmatch env))
+      ;; else patvar unbound, so bind it 
+      (let ( (ctyp (get_ctype nmatch env))
 	     (cbind (instance class_normlet_binding
 			      :letbind_loc sloc
-			      :binder csym
+			      :binder patvar
 			      :letbind_type ctyp
-			      :letbind_expr ()
+			      :letbind_expr nmatch
 			      ))
 	     (clocc (instance class_nrep_locsymocc
 			      :nrep_loc sloc
 			      :nocc_ctyp ctyp
-			      :nocc_symb csym
+			      :nocc_symb patvar
 			      :nocc_bind cbind))
 	     )
 	(debug_msg ctyp "normpat_variablepat ctyp")
 	(debug_msg clocc "normpat_variablepat new clocc")
+	;; put the clocc in the symbol cache map
+	(mapobject_put (get_field :nctx_symbcachemap ncx) patvar clocc)
 	(mapobject_put pvarmap patvar clocc)
 	(debug_msg pvarmap "normpat_variablepat updated pvarmap")
 	))
@@ -655,6 +658,8 @@
 		  (get_field :ntinst_fieldlocs tester) 
 		  (get_int curfld)
 		  newlocc)
+		 ;; put the newlocc in the symbol cache map
+		 (mapobject_put (get_field :nctx_symbcachemap ncx) newsym newlocc)
 		 (debug_msg tester "normpat_instancepat updated fieldlocs tester")
 		 (list_append testloccl newlocc)
 		 (debug_msg newlocc "normpat_instancepat made newlocc")
@@ -845,6 +850,8 @@
 						:nocc_symb csym
 						:nocc_bind cbind))
 			       )
+		 ;; put the clocc in the symbol cache map
+			  (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 			  clocc
 			  ))))
 		    (newtester 
@@ -956,6 +963,8 @@
 				  :nocc_bind cbind))
 		 )
 	     (assert_msg "check no binding" (null nbindmatx))
+	     ;; put the clocc in the symbol cache map
+	     (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 	     (setq nbindmatx (list1 cbind))
 	     (setq nmatx clocc)
 	     ))
@@ -1066,20 +1075,15 @@
 	       (svar :long svix)
 	       (debug_msg svar "normexp_match svar")
 	       (let ( (socc (mapobject_get pvarlocmap svar))
-		      (sbind (instance class_normlet_binding
-				       :binder svar
-				       :letbind_type (get_field :nocc_ctyp socc)
-				       :letbind_loc (get_field :nrep_loc socc)
-				       :letbind_expr socc
-				       ))
 		      )
 		 (debug_msg socc "normexp_match socc")
-		 (debug_msg sbind "normexp_match sbind")
 		 (assert_msg "check socc" (is_a socc class_nrep_locsymocc))
-		 (multiple_put_nth sortedbindings svix sbind)
-		 (put_env freshnewenv sbind)
+		 (let ( (sbind (unsafe_get_field :nocc_bind socc)) )
+		   (debug_msg sbind "normexp_match sbind")
+		   (multiple_put_nth sortedbindings svix sbind)
+		   (put_env freshnewenv sbind)
 		 )
-	       )
+	       ))
 	      (debug_msg freshnewenv "normexp_match freshnewenv")
 	      (debug_msg sortedbindings "normexp_match sortedbindings")
 	      (assert_msg "check sortedbindings" (is_multiple sortedbindings))
@@ -1161,6 +1165,8 @@
 	     )
 	 (put_fields clocc :nocc_bind cbind)
 	 (put_fields nmatch :nmatch_res clocc)
+	 ;; put the clocc in the symbol cache map
+	 (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 	 ;; put the index of each test 
 	 (foreach_in_multiple
 	  (teststupl)
