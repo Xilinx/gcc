@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifdef HAVE_cloog
 #include "cloog/cloog.h"
 #include "graphite.h"
+#include "graphite-ppl.h"
 
 static VEC (scop_p, heap) *current_scops;
 
@@ -669,9 +670,15 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 
   if (GBB_DOMAIN (gb))
     {
+      CloogMatrix *matrix;
+
+      matrix = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+
       fprintf (file, "       (domain: \n");
-      cloog_matrix_print (file, GBB_DOMAIN (gb));
+      cloog_matrix_print (file, matrix);
       fprintf (file, "       )\n");
+
+      cloog_matrix_free (matrix);
     }
 
   if (GBB_STATIC_SCHEDULE (gb))
@@ -1261,7 +1268,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_BB (gbb) = bb;
   GBB_SCOP (gbb) = scop;
   GBB_DATA_REFS (gbb) = drs;
-  GBB_DOMAIN (gbb) = NULL;
+  ppl_new_Constraint_System (&GBB_DOMAIN (gbb));
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
@@ -1275,8 +1282,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
 static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
-  if (GBB_DOMAIN (gbb))
-    cloog_matrix_free (GBB_DOMAIN (gbb));
+  ppl_delete_Constraint_System (GBB_DOMAIN (gbb));
 
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
@@ -3113,7 +3119,10 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (gbb_loop (gb) == loop)
-      GBB_DOMAIN (gb) = cloog_matrix_copy (cstr);
+      {
+	ppl_delete_Constraint_System (GBB_DOMAIN (gb));
+	new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), cstr);
+      }
 
   cloog_matrix_free (cstr);
 }
@@ -3126,13 +3135,14 @@ add_conditions_to_domain (graphite_bb_p gb)
   unsigned int i,j;
   gimple stmt;
   VEC (gimple, heap) *conditions = GBB_CONDITIONS (gb);
-  CloogMatrix *domain = GBB_DOMAIN (gb);
+  CloogMatrix *domain; 
   scop_p scop = GBB_SCOP (gb);
 
   unsigned nb_rows;
   unsigned nb_cols;
   unsigned nb_new_rows = 0;
   unsigned row;
+  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
 
   if (VEC_empty (gimple, conditions))
     return;
@@ -3204,7 +3214,6 @@ add_conditions_to_domain (graphite_bb_p gb)
       }
 
     domain = new_domain;
-    GBB_DOMAIN (gb) = new_domain;
   }
 
   /* Add the conditions to the new enlarged domain matrix.  */
@@ -3318,6 +3327,9 @@ add_conditions_to_domain (graphite_bb_p gb)
           break;
         }
     }
+    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
+    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
+    cloog_matrix_free (domain);
 }
 
 /* Returns true when PHI defines an induction variable in the loop
@@ -4773,19 +4785,12 @@ build_cloog_prog (scop_p scop)
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       /* Build new block.  */
-      CloogMatrix *domain = GBB_DOMAIN (gbb);
+      CloogMatrix *domain;
       CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
 					     nb_loops_around_gb (gbb));
       cloog_statement_set_usr (stmt, gbb);
-
-      /* Add empty domain to all bbs, which do not yet have a domain, as they
-         are not part of any loop.  */
-      if (domain == NULL)
-      	{
-          domain = cloog_matrix_alloc (0, scop_nb_params (scop) + 2);
-          GBB_DOMAIN (gbb) = domain;
-	}
+      domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gbb));
 
       /* Build loop list.  */
       {
@@ -5484,9 +5489,11 @@ static void
 graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
 			     int new_loop_pos)
 {
-  CloogMatrix *domain = GBB_DOMAIN (gb);
+  CloogMatrix *domain;
   int row, j;
   loop_p tmp_loop_p;
+
+  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
 
   gcc_assert (loop < gbb_nb_loops (gb)
 	      && new_loop_pos < gbb_nb_loops (gb));
@@ -5523,6 +5530,10 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
         value_assign (domain->p[row][new_loop_pos + 1], tmp);
         value_clear (tmp);
       }
+
+    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
+    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
+    cloog_matrix_free (domain);
 }
 
 /* Get the index of the column representing constants in the DOMAIN
@@ -5621,18 +5632,18 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 {
   int row, col;
 
-  CloogMatrix *domain = GBB_DOMAIN (gb);
-  CloogMatrix *new_domain = cloog_matrix_alloc (domain->NbRows + 3,
-                                                domain->NbColumns + 1);   
+  CloogMatrix *domain;
+  CloogMatrix *new_domain; 
 
   int col_loop_old = loop_depth + 2; 
   int col_loop_strip = col_loop_old - 1;
 
   gcc_assert (loop_depth <= gbb_nb_loops (gb) - 1);
 
+  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  new_domain = cloog_matrix_alloc (domain->NbRows + 3, domain->NbColumns + 1);
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
 
-  GBB_DOMAIN (gb) = new_domain;
 
   for (row = 0; row < domain->NbRows; row++)
     for (col = 0; col < domain->NbColumns; col++)
@@ -5673,6 +5684,9 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 		stride - 1);
 
   cloog_matrix_free (domain);
+  ppl_delete_Constraint_System (GBB_DOMAIN (gb));
+  new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), new_domain); 
+  cloog_matrix_free (new_domain);
 
   /* Update static schedule.  */
   {

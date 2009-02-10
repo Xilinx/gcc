@@ -22,6 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_GRAPHITE_H
 
 #include "tree-data-ref.h"
+#include "graphite-ppl.h"
 
 int ref_nb_loops (data_reference_p);
 
@@ -91,12 +92,7 @@ typedef struct graphite_bb
      - All bbs at the same loop depth have a consecutive ordering (no gaps). */
   lambda_vector static_schedule;
 
-  /* The iteration domain of this bb. It contains this columns:
-     - In/Eq: If this line is a equation or inequation.
-     - For every loop iterator one column.
-     - One column for every parameter in this SCoP.
-     - The constant column to add integers to the (in)equations.
-
+  /* The iteration domain of this bb.
      Example:
 
      for (i = a - 7*b + 8; i <= 3*a + 13*b + 20; i++)
@@ -107,18 +103,16 @@ typedef struct graphite_bb
      Loop iterators: i, j, k 
      Parameters: a, b
       
-     (I)eq   i   j   k   a   b   1
-  
-     1       1   0   0  -1   7   -8    #  i >=  a -  7b +  8
-     1      -1   0   0   3   13  20    #  i <= 3a + 13b + 20
-     1       0   1   0   0   0   -2    #  j >= 2
-     1       2  -1   0   0   0    5    #  j <= 2i + 5
-     1       0   0   1   0   0    0    #  k >= 0 
-     1       0   0  -1   0   0    5    #  k <= 5
+     | i >=  a -  7b +  8
+     | i <= 3a + 13b + 20
+     | j >= 2
+     | j <= 2i + 5
+     | k >= 0 
+     | k <= 5
 
-     The number of loop iterators may change and is not connected to the
-     number of loops, that surrounded this bb in the gimple code. */
-   CloogMatrix *domain;
+     The number of variables in the DOMAIN may change and is not
+     related to the number of loops in the original code.  */
+  ppl_Constraint_System_t domain;
 
   /* Lists containing the restrictions of the conditional statements
      dominating this bb.  This bb can only be executed, if all conditions
@@ -146,7 +140,7 @@ typedef struct graphite_bb
   VEC (gimple, heap) *condition_cases;
 
   /* LOOPS contains for every column in the graphite domain the corresponding
-     gimple loop. If there exists no corresponding gimple loop LOOPS contains
+     gimple loop.  If there exists no corresponding gimple loop LOOPS contains
      NULL. 
   
      Example:
@@ -159,37 +153,37 @@ typedef struct graphite_bb
 
      Original domain:
 
-     (I)eq  i  j  1
-     1      1  0  0   # i >= 0
-     1     -1  0  20  # i <= 20
-     1      0  1  0   # j >= 0
-     1      0 -1  10  # j <= 10
+     |  i >= 0
+     |  i <= 20
+     |  j >= 0
+     |  j <= 10
 
-     Original loops vector:
-     0         1 
-     Loop i    Loop j
+     This is a two dimensional domain with "Loop i" represented in
+     dimension 0, and "Loop j" represented in dimension 1.  Original
+     loops vector:
 
-     After some changes (Exchange i and j, strip-mine i):
-     
-     Domain:
+     | 0         1 
+     | Loop i    Loop j
 
-     (I)eq  j  ii i  k  1
-     1      0  0  1  0  0   # i >= 0
-     1      0  0 -1  0  20  # i <= 20
-     1      1  0  0  0  0   # j >= 0
-     1     -1  0  0  0  10  # j <= 10
-     1      0 -1  1  0  0   # ii <= i
-     1      0  1 -1  0  1   # ii + 1 >= i 
-     1      0 -1  0  2  0   # ii <= 2k
-     1      0  1  0 -2  0   # ii >= 2k 
+     After some changes (Exchange i and j, strip-mine i), the domain
+     is:
+
+     |  i >= 0
+     |  i <= 20
+     |  j >= 0
+     |  j <= 10
+     |  ii <= i
+     |  ii + 1 >= i 
+     |  ii <= 2k
+     |  ii >= 2k 
 
      Iterator vector:
-     0        1        2         3
-     Loop j   NULL     Loop i    NULL
+     | 0        1        2         3
+     | Loop j   NULL     Loop i    NULL
     
-     Means the original loop i is now at column two of the domain and
-     loop j in the original loop nest is now at column 0.  Column 1 and
-     3 are emtpy.  */
+     Means the original loop i is now on dimension 2 of the domain and
+     loop j in the original loop nest is now on dimension 0.
+     Dimensions 1 and 3 represent the newly created loops.  */
   VEC (loop_p, heap) *loops;
 
   lambda_vector compressed_alpha_matrix;
@@ -227,11 +221,11 @@ static inline int
 gbb_nb_loops (const struct graphite_bb *gb)
 {
   scop_p scop = GBB_SCOP (gb);
+  ppl_dimension_type dim;
+  gcc_assert (GBB_DOMAIN (gb) != NULL);
 
-  if (GBB_DOMAIN (gb) == NULL)
-    return 0;
-  
-  return GBB_DOMAIN (gb)->NbColumns - scop_nb_params (scop) - 2;
+  ppl_Constraint_System_space_dimension (GBB_DOMAIN (gb), &dim);
+  return dim - scop_nb_params (scop);
 }
 
 /* Returns the gimple loop, that corresponds to the loop_iterator_INDEX.  
@@ -322,8 +316,6 @@ struct scop
      representation.  */
   VEC (graphite_bb_p, heap) *bbs;
 
-  lambda_vector static_schedule;
-
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
@@ -360,7 +352,6 @@ struct scop
 #define SCOP_ENTRY(S) (SESE_ENTRY (SCOP_REGION (S))->dest)
 #define SCOP_EXIT(S) (SESE_EXIT (SCOP_REGION (S))->dest)
 #define SCOP_REGION_BBS(S) (SESE_REGION_BBS (SCOP_REGION (S)))
-#define SCOP_STATIC_SCHEDULE(S) S->static_schedule
 #define SCOP_LOOPS(S) S->loops
 #define SCOP_LOOP_NEST(S) S->loop_nest
 #define SCOP_DEP_GRAPH(S) S->dep_graph

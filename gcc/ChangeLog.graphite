@@ -1,3 +1,25 @@
+2009-02-10  Tobias Grosser  <grosser@fim.uni-passau>
+
+	* Makefile.in (OBJS-common): Add graphite-ppl.o.
+	(graphite.o): Add dependence on graphite-ppl.h.
+	(graphite-ppl.o): New.
+	(graphite-data-ref.c): Ping pong between PPL data structures
+	and matrices.
+	* graphite-ppl.c: New.
+	* graphite-ppl.h: New.
+	* graphite.c: Include graphite-ppl.h.
+	(print_graphite_bb, add_conditions_to_domain, build_cloog_prog,
+	graphite_trans_bb_move_loop, graphite_trans_bb_strip_mine):
+	Ping pong between PPL data structures and matrices.
+	(new_graphite_bb): Create a PPL constraint system.
+	Call ppl_delete_Constraint_System instead of cloog_matrix_free.
+	(build_loop_iteration_domains): Use PPL functions.
+	* graphite.h: Include graphite-ppl.h.  Fix comments.
+	(graphite_bb): Use a ppl_Constraint_System_t instead of
+	CloogMatrix for representing the domain.
+	(scop): Remove static_schedule.
+	(gbb_nb_loops): Ping pong between PPL data structures and matrices.
+
 2009-02-06  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Fix some comments.

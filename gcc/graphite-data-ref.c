@@ -81,8 +81,8 @@ graphite_initialize_dependence_polyhedron (scop_p scop,
   lambda_vector access_row_vector;
   Value tmp;
 
-  domain1 = (GBB_DOMAIN (gb1));
-  domain2 = (GBB_DOMAIN (gb2));
+  domain1 = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb1));
+  domain2 = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb2));
 
   /* Adding 2 columns: one for the eq/neq column, one for constant
      term.  */
@@ -181,6 +181,9 @@ graphite_initialize_dependence_polyhedron (scop_p scop,
     }
 
   value_clear (tmp);
+
+  cloog_matrix_free (domain1);
+  cloog_matrix_free (domain2);
   return dep_constraints;
 }
 
