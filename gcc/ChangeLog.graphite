@@ -1,3 +1,8 @@
+2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c: Do not include cloog/cloog.h.
+	(print_graphite_bb): Remove ping pong, call PPL print function.
+
 2009-02-10  Tobias Grosser  <grosser@fim.uni-passau>
 
 	* Makefile.in (OBJS-common): Add graphite-ppl.o.

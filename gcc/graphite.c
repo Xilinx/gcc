@@ -56,7 +56,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 
 #ifdef HAVE_cloog
-#include "cloog/cloog.h"
 #include "graphite.h"
 #include "graphite-ppl.h"
 
@@ -670,15 +669,9 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 
   if (GBB_DOMAIN (gb))
     {
-      CloogMatrix *matrix;
-
-      matrix = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
-
       fprintf (file, "       (domain: \n");
-      cloog_matrix_print (file, matrix);
+      ppl_io_fprint_Constraint_System (file, GBB_DOMAIN (gb));
       fprintf (file, "       )\n");
-
-      cloog_matrix_free (matrix);
     }
 
   if (GBB_STATIC_SCHEDULE (gb))
