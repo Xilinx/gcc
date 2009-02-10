@@ -5481,7 +5481,6 @@ nb_data_refs_in_scop (scop_p scop)
 static void
 graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
 {
-  int row, j;
   loop_p tmp_loop_p;
   ppl_Constraint_System_t res;
 

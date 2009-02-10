@@ -1,4 +1,8 @@
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_trans_bb_move_loop): Remove unused variables.
+
+2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
 	* graphite.c (graphite_trans_bb_move_loop): Remove ping pong,
