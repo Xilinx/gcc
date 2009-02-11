@@ -4229,10 +4229,14 @@
     ;; map the state to the unique string 
     (mapobject_put substmap cmstate uniqstate)
     ;; map the matched thing 
-    (mapobject_put substmap
-		   (get_field :binder cmbind)
-		   (get_field :ntest_matched normtester)
-		   )
+    (let ( (nmatched (get_field :ntest_matched normtester)) )
+      (debug_msg nmatched "compilmatcher_cmatcher nmatched")
+      (let ( (obmatched (compile_obj nmatched gcx)) )
+	(debug_msg obmatched "compilmatcher_cmatcher obmatched")
+	(mapobject_put substmap
+		       (get_field :binder cmbind)
+		       obmatched
+		       )))
     ;;
     (debug_msg normtester "compilmatcher_cmatcher normtester")
     ;; map each input arguments

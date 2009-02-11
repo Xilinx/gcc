@@ -1,3 +1,6 @@
+2009-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.bysl: the ntest_matched field should be
+	compiled in compilmatch_cmatcher.
 2009-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy normalization of match]
 	* melt/warmelt-normatch.bysl: added more debug_msg.
