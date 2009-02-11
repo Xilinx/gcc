@@ -1,4 +1,11 @@
 2009-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added export of list3 list3 list5
+	list6.  dbgoutagain_anyobject_method is outputting the rank.
+	* melt/warmelt-genobj.bysl: the labins is generated only in
+	compilobj_nrep_match
+	* melt/warmelt-normatch.bysl: the ntinst_class is a normalized
+	npatcla!
+2009-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	[first time a match is compiled to something...]
 	* melt/warmelt-genobj.bysl: gotothen or gotoelse defaults to gotoend.
 	using explicit blocks.

@@ -550,6 +550,9 @@
 	 (tester ())
 	 (curhdler hdler)
 	 (testlist (get_field :pctn_tests pcn))
+	 ;; we know for sure that patcla is a class_class
+	 ;; hence its normalization does not make any bindings!
+	 (npatcla (normal_exp patcla env ncx sloc))
 	 )
     (assert_msg "check patcla" (is_a patcla class_class))
     ;; find the tester in the stuff
@@ -585,7 +588,7 @@
 			:ntest_else ()
 			:ntest_locclist (make_list discr_list)
 			:ntest_comefrom (make_list discr_list)
-			:ntinst_class patcla
+			:ntinst_class npatcla
 			:ntinst_fieldlocs newfieldlocs
 			))
 	     )

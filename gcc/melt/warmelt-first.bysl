@@ -3040,12 +3040,17 @@
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (:long onum (obj_num self)) 
 	 (:long oserial (obj_serial self))
 	 )  
     (add2sbuf_strconst sbuf " ^^|")
     (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longhex sbuf (obj_hash self))
+    (if onum
+	(progn
+	  (add2sbuf_strconst sbuf "#")
+	  (add2sbuf_longdec sbuf onum)))
     (if oserial 
 	(progn
 	  (add2sbuf_strconst sbuf "##")
@@ -3883,7 +3888,10 @@
  intern_symbol				
  list1					
  list2					
- list3					
+ list3	
+ list4
+ list5
+ list6
  list_append2list			
  list_every				
  list_iterate_test			
