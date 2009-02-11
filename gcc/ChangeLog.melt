@@ -1,4 +1,8 @@
 2009-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	[first time a match is compiled to something...]
+	* melt/warmelt-genobj.bysl: gotothen or gotoelse defaults to gotoend.
+	using explicit blocks.
+2009-02-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: the ntest_matched field should be
 	compiled in compilmatch_cmatcher.
 2009-02-10  Basile Starynkevitch  <basile@starynkevitch.net>

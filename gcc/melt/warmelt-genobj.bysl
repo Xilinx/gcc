@@ -4037,8 +4037,10 @@
     (debug_msg matchmap "compilobj_normtester_matcher matchmap")
     (if (null gotothen)
 	(setq gotothen (endmatch_gotoinstr normatch gcx nloc)))
+    (debug_msg gotothen "compilobj_normtester_matcher fixed gotothen")
     (if (null gotoelse)
 	(setq gotoelse (endmatch_gotoinstr normatch gcx nloc)))
+    (debug_msg gotoelse "compilobj_normtester_matcher fixed gotoelse")
     (list_append olist labins)
     (debug_msg freelist "compilobj_normtester_matcher freelist")
     (debug_msg prefix "compilobj_normtester_matcher prefix")
@@ -4076,13 +4078,22 @@
 	(ntclass (unsafe_get_field :ntinst_class ntmi))
 	(ntflds (unsafe_get_field :ntinst_fieldlocs ntmi))
 	(labins (normtester_labelinstr ntmi gcx))
-	(gotothen (normtester_gotoinstr nthen gcx))
-	(gotoelse (normtester_gotoinstr nelse gcx))
+	(gotothen (or (normtester_gotoinstr nthen gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
+	(gotoelse (or (normtester_gotoinstr nelse gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
 	(oclass (compile_obj ntclass gcx))
 	(omatched (compile_obj nmatched gcx))
 	(freelist (normtester_free_objloc_list ntmi gcx))
 	(othenlist (make_list discr_list))
 	(oelselist (make_list discr_list))
+	(othenblock (instance class_objblock
+			      :obi_loc nloc
+			      :oblo_bodyl othenlist
+			      ))
+	(oelseblock (instance class_objblock
+			      :obi_loc nloc
+			      :oblo_bodyl oelselist))
 	(otest (instance
 		class_objlocatedexpv
 		:obcx_loc nloc
@@ -4098,9 +4109,11 @@
 	(ocond (instance class_objcond
 			 :obi_loc nloc
 			 :obcond_test otest
-			 :obcond_then othenlist
-			 :obcond_else oelselist))
+			 :obcond_then othenblock
+			 :obcond_else oelseblock))
 	)
+    (debug_msg gotothen "compilobj_normtester_instance gotothen")
+    (debug_msg gotoelse "compilobj_normtester_instance gotoelse")
     (list_append olist labins)
     ;; clear the freelist
     (foreach_in_list
@@ -4136,12 +4149,16 @@
 	     (assert_msg "check fldget" (is_a fldget class_nrep_unsafe_get_field))
 	     (put_objdest ofget flovar)
 	     (debug_msg ofget "compilobj_normtester_instance ofget")
+	     (assert_msg "check ofget" (is_object ofget))
 	     (list_append othenlist ofget)
      ))))
     ;; also add the gotothen
-    (list_append othenlist gotoelse)
+    (assert_msg "check gotothen" (is_object gotothen))
+    (list_append othenlist gotothen)
     ;;
     ;; add into the oelselist the gotoelse
+    (debug_msg gotoelse "compilobj_normtester_instance gotoelse")
+    (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
     (warning_plain nloc "not fully implemented compilobj_normtester_instance")
     (shortbacktrace_dbg "compilobj_normtester_instance" 15)
