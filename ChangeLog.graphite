@@ -1,3 +1,9 @@
+2009-02-12  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* configure.ac: Add libpcp.
+	* libpcp: New directory.
+	* Makefile.def: Add libpcp.
+
 2008-08-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* configure.ac: Request PPL version 0.10.

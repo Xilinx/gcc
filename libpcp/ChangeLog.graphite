@@ -1,0 +1,24 @@
+2009-02-12  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* ChangeLog.graphite: New.
+	* configure.ac: New.
+	* configure: Newly generated.
+	* Makefile.in: New.
+	* config.in: Newly generated.
+	* aclocal.m4: Newly generated.
+	* pcp_error.h: New.
+	* pcp_error.cc: New.
+	* pcp_alloc.h: New.
+	* pcp_parser.h: New.
+	* pcp_parser.cc: New.
+	* pcp_set.h: New.
+	* pcp_string_buffer.h: New.
+	* pcp_string_buffer.cc: New.
+	* pcp_emitter.h: New.
+	* pcp_emitter.cc: New.
+	* pcp.h: New.
+	* pcp.cc: New.
+	* pcp_c.h: New.
+	* pcp_c.cc: New.
+	* pcp_dynamic_array.h: New.
+

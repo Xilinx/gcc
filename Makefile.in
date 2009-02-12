@@ -712,6 +712,7 @@ configure-host:  \
     maybe-configure-ld \
     maybe-configure-libcpp \
     maybe-configure-libdecnumber \
+    maybe-configure-libpcp \
     maybe-configure-libgui \
     maybe-configure-libiberty \
     maybe-configure-libtool \
@@ -867,6 +868,9 @@ all-host: maybe-all-libcpp
 @if libdecnumber-no-bootstrap
 all-host: maybe-all-libdecnumber
 @endif libdecnumber-no-bootstrap
+@if libpcp-no-bootstrap
+all-host: maybe-all-libpcp
+@endif libpcp-no-bootstrap
 all-host: maybe-all-libgui
 @if libiberty-no-bootstrap
 all-host: maybe-all-libiberty
@@ -987,6 +991,7 @@ info-host: maybe-info-itcl
 info-host: maybe-info-ld
 info-host: maybe-info-libcpp
 info-host: maybe-info-libdecnumber
+info-host: maybe-info-libpcp
 info-host: maybe-info-libgui
 info-host: maybe-info-libiberty
 info-host: maybe-info-libtool
@@ -1096,6 +1101,7 @@ dvi-host: maybe-dvi-itcl
 dvi-host: maybe-dvi-ld
 dvi-host: maybe-dvi-libcpp
 dvi-host: maybe-dvi-libdecnumber
+dvi-host: maybe-dvi-libpcp
 dvi-host: maybe-dvi-libgui
 dvi-host: maybe-dvi-libiberty
 dvi-host: maybe-dvi-libtool
@@ -1205,6 +1211,7 @@ pdf-host: maybe-pdf-itcl
 pdf-host: maybe-pdf-ld
 pdf-host: maybe-pdf-libcpp
 pdf-host: maybe-pdf-libdecnumber
+pdf-host: maybe-pdf-libpcp
 pdf-host: maybe-pdf-libgui
 pdf-host: maybe-pdf-libiberty
 pdf-host: maybe-pdf-libtool
@@ -1314,6 +1321,7 @@ html-host: maybe-html-itcl
 html-host: maybe-html-ld
 html-host: maybe-html-libcpp
 html-host: maybe-html-libdecnumber
+html-host: maybe-html-libpcp
 html-host: maybe-html-libgui
 html-host: maybe-html-libiberty
 html-host: maybe-html-libtool
@@ -1423,6 +1431,7 @@ TAGS-host: maybe-TAGS-itcl
 TAGS-host: maybe-TAGS-ld
 TAGS-host: maybe-TAGS-libcpp
 TAGS-host: maybe-TAGS-libdecnumber
+TAGS-host: maybe-TAGS-libpcp
 TAGS-host: maybe-TAGS-libgui
 TAGS-host: maybe-TAGS-libiberty
 TAGS-host: maybe-TAGS-libtool
@@ -1532,6 +1541,7 @@ install-info-host: maybe-install-info-itcl
 install-info-host: maybe-install-info-ld
 install-info-host: maybe-install-info-libcpp
 install-info-host: maybe-install-info-libdecnumber
+install-info-host: maybe-install-info-libpcp
 install-info-host: maybe-install-info-libgui
 install-info-host: maybe-install-info-libiberty
 install-info-host: maybe-install-info-libtool
@@ -1641,6 +1651,7 @@ install-pdf-host: maybe-install-pdf-itcl
 install-pdf-host: maybe-install-pdf-ld
 install-pdf-host: maybe-install-pdf-libcpp
 install-pdf-host: maybe-install-pdf-libdecnumber
+install-pdf-host: maybe-install-pdf-libpcp
 install-pdf-host: maybe-install-pdf-libgui
 install-pdf-host: maybe-install-pdf-libiberty
 install-pdf-host: maybe-install-pdf-libtool
@@ -1750,6 +1761,7 @@ install-html-host: maybe-install-html-itcl
 install-html-host: maybe-install-html-ld
 install-html-host: maybe-install-html-libcpp
 install-html-host: maybe-install-html-libdecnumber
+install-html-host: maybe-install-html-libpcp
 install-html-host: maybe-install-html-libgui
 install-html-host: maybe-install-html-libiberty
 install-html-host: maybe-install-html-libtool
@@ -1859,6 +1871,7 @@ installcheck-host: maybe-installcheck-itcl
 installcheck-host: maybe-installcheck-ld
 installcheck-host: maybe-installcheck-libcpp
 installcheck-host: maybe-installcheck-libdecnumber
+installcheck-host: maybe-installcheck-libpcp
 installcheck-host: maybe-installcheck-libgui
 installcheck-host: maybe-installcheck-libiberty
 installcheck-host: maybe-installcheck-libtool
@@ -1968,6 +1981,7 @@ mostlyclean-host: maybe-mostlyclean-itcl
 mostlyclean-host: maybe-mostlyclean-ld
 mostlyclean-host: maybe-mostlyclean-libcpp
 mostlyclean-host: maybe-mostlyclean-libdecnumber
+mostlyclean-host: maybe-mostlyclean-libpcp
 mostlyclean-host: maybe-mostlyclean-libgui
 mostlyclean-host: maybe-mostlyclean-libiberty
 mostlyclean-host: maybe-mostlyclean-libtool
@@ -2077,6 +2091,7 @@ clean-host: maybe-clean-itcl
 clean-host: maybe-clean-ld
 clean-host: maybe-clean-libcpp
 clean-host: maybe-clean-libdecnumber
+clean-host: maybe-clean-libpcp
 clean-host: maybe-clean-libgui
 clean-host: maybe-clean-libiberty
 clean-host: maybe-clean-libtool
@@ -2186,6 +2201,7 @@ distclean-host: maybe-distclean-itcl
 distclean-host: maybe-distclean-ld
 distclean-host: maybe-distclean-libcpp
 distclean-host: maybe-distclean-libdecnumber
+distclean-host: maybe-distclean-libpcp
 distclean-host: maybe-distclean-libgui
 distclean-host: maybe-distclean-libiberty
 distclean-host: maybe-distclean-libtool
@@ -2295,6 +2311,7 @@ maintainer-clean-host: maybe-maintainer-clean-itcl
 maintainer-clean-host: maybe-maintainer-clean-ld
 maintainer-clean-host: maybe-maintainer-clean-libcpp
 maintainer-clean-host: maybe-maintainer-clean-libdecnumber
+maintainer-clean-host: maybe-maintainer-clean-libpcp
 maintainer-clean-host: maybe-maintainer-clean-libgui
 maintainer-clean-host: maybe-maintainer-clean-libiberty
 maintainer-clean-host: maybe-maintainer-clean-libtool
@@ -2458,6 +2475,7 @@ check-host:  \
     maybe-check-ld \
     maybe-check-libcpp \
     maybe-check-libdecnumber \
+    maybe-check-libpcp \
     maybe-check-libgui \
     maybe-check-libiberty \
     maybe-check-libtool \
@@ -2593,6 +2611,7 @@ install-host-nogcc:  \
     maybe-install-ld \
     maybe-install-libcpp \
     maybe-install-libdecnumber \
+    maybe-install-libpcp \
     maybe-install-libgui \
     maybe-install-libiberty \
     maybe-install-libtool \
@@ -2669,6 +2688,7 @@ install-host:  \
     maybe-install-ld \
     maybe-install-libcpp \
     maybe-install-libdecnumber \
+    maybe-install-libpcp \
     maybe-install-libgui \
     maybe-install-libiberty \
     maybe-install-libtool \
@@ -27668,6 +27688,969 @@ maintainer-clean-libdecnumber:
 	  || exit 1
 
 @endif libdecnumber
+
+
+
+.PHONY: configure-libpcp maybe-configure-libpcp
+maybe-configure-libpcp:
+@if gcc-bootstrap
+configure-libpcp: stage_current
+@endif gcc-bootstrap
+@if libpcp
+maybe-configure-libpcp: configure-libpcp
+configure-libpcp: 
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	$(HOST_EXPORTS) \
+	echo Configuring in $(HOST_SUBDIR)/libpcp; \
+	cd "$(HOST_SUBDIR)/libpcp" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption}  \
+	  || exit 1
+@endif libpcp
+
+
+
+.PHONY: configure-stage1-libpcp maybe-configure-stage1-libpcp
+maybe-configure-stage1-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stage1-libpcp: configure-stage1-libpcp
+configure-stage1-libpcp:
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS)  \
+	CFLAGS="$(STAGE1_CFLAGS)"; export CFLAGS; \
+	CXXFLAGS="$(STAGE1_CFLAGS)"; export CXXFLAGS;  \
+	echo Configuring stage 1 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	   \
+	  --disable-intermodule $(STAGE1_CHECKING) 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)" 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stage2-libpcp maybe-configure-stage2-libpcp
+maybe-configure-stage2-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stage2-libpcp: configure-stage2-libpcp
+configure-stage2-libpcp:
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE2_CFLAGS)"; export CFLAGS; \
+	CXXFLAGS="$(STAGE2_CFLAGS)"; export CXXFLAGS;  \
+	echo Configuring stage 2 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stageb2g0-libpcp maybe-configure-stageb2g0-libpcp
+maybe-configure-stageb2g0-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stageb2g0-libpcp: configure-stageb2g0-libpcp
+configure-stageb2g0-libpcp:
+	@[ $(current_stage) = stageb2g0 ] || $(MAKE) stageb2g0-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE2_CFLAGS) -g0"; export CFLAGS; \
+	CXXFLAGS="$(STAGE2_CFLAGS) -g0"; export CXXFLAGS;  \
+	echo Configuring stage b2g0 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stage3-libpcp maybe-configure-stage3-libpcp
+maybe-configure-stage3-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stage3-libpcp: configure-stage3-libpcp
+configure-stage3-libpcp:
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE3_CFLAGS)"; export CFLAGS; \
+	CXXFLAGS="$(STAGE3_CFLAGS)"; export CXXFLAGS;  \
+	echo Configuring stage 3 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stageb3g2-libpcp maybe-configure-stageb3g2-libpcp
+maybe-configure-stageb3g2-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stageb3g2-libpcp: configure-stageb3g2-libpcp
+configure-stageb3g2-libpcp:
+	@[ $(current_stage) = stageb3g2 ] || $(MAKE) stageb3g2-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE3_CFLAGS) -g2"; export CFLAGS; \
+	CXXFLAGS="$(STAGE3_CFLAGS) -g2"; export CXXFLAGS;  \
+	echo Configuring stage b3g2 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stage4-libpcp maybe-configure-stage4-libpcp
+maybe-configure-stage4-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stage4-libpcp: configure-stage4-libpcp
+configure-stage4-libpcp:
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE4_CFLAGS)"; export CFLAGS; \
+	CXXFLAGS="$(STAGE4_CFLAGS)"; export CXXFLAGS;  \
+	echo Configuring stage 4 in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stageprofile-libpcp maybe-configure-stageprofile-libpcp
+maybe-configure-stageprofile-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stageprofile-libpcp: configure-stageprofile-libpcp
+configure-stageprofile-libpcp:
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE2_CFLAGS) -fprofile-generate"; export CFLAGS; \
+	CXXFLAGS="$(STAGE2_CFLAGS) -fprofile-generate"; export CXXFLAGS;  \
+	echo Configuring stage profile in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+.PHONY: configure-stagefeedback-libpcp maybe-configure-stagefeedback-libpcp
+maybe-configure-stagefeedback-libpcp:
+@if libpcp-bootstrap
+maybe-configure-stagefeedback-libpcp: configure-stagefeedback-libpcp
+configure-stagefeedback-libpcp:
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	test ! -f $(HOST_SUBDIR)/libpcp/Makefile || exit 0; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS)  \
+	CFLAGS="$(STAGE3_CFLAGS) -fprofile-use"; export CFLAGS; \
+	CXXFLAGS="$(STAGE3_CFLAGS) -fprofile-use"; export CXXFLAGS;  \
+	echo Configuring stage feedback in $(HOST_SUBDIR)/libpcp ; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(HOST_SUBDIR)/libpcp ; \
+	cd $(HOST_SUBDIR)/libpcp || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(HOST_SUBDIR)/libpcp/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libpcp"; \
+	libsrcdir="$$s/libpcp"; \
+	$(SHELL) $${libsrcdir}/configure \
+	  $(HOST_CONFIGARGS) --build=${build_alias} --host=${host_alias} \
+	  --target=${target_alias} $${srcdiroption} \
+	  --with-build-libsubdir=$(HOST_SUBDIR) \
+	  @stage2_werror_flag@ 
+@endif libpcp-bootstrap
+
+
+
+
+
+.PHONY: all-libpcp maybe-all-libpcp
+maybe-all-libpcp:
+@if gcc-bootstrap
+all-libpcp: stage_current
+@endif gcc-bootstrap
+@if libpcp
+TARGET-libpcp=all
+maybe-all-libpcp: all-libpcp
+all-libpcp: configure-libpcp
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS)  \
+		$(TARGET-libpcp))
+@endif libpcp
+
+
+
+.PHONY: all-stage1-libpcp maybe-all-stage1-libpcp
+.PHONY: clean-stage1-libpcp maybe-clean-stage1-libpcp
+maybe-all-stage1-libpcp:
+maybe-clean-stage1-libpcp:
+@if libpcp-bootstrap
+maybe-all-stage1-libpcp: all-stage1-libpcp
+all-stage1: all-stage1-libpcp
+TARGET-stage1-libpcp = $(TARGET-libpcp)
+all-stage1-libpcp: configure-stage1-libpcp
+	@[ $(current_stage) = stage1 ] || $(MAKE) stage1-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE1_CFLAGS)" CXXFLAGS="$(STAGE1_CFLAGS)" \
+		LIBCFLAGS="$(STAGE1_LIBCFLAGS)" \
+		CFLAGS_FOR_TARGET="$(STAGE1_LIBCFLAGS)" \
+		CXXFLAGS_FOR_TARGET="$(STAGE1_LIBCFLAGS)" $(EXTRA_HOST_FLAGS)   \
+		$(TARGET-stage1-libpcp)
+
+maybe-clean-stage1-libpcp: clean-stage1-libpcp
+clean-stage1: clean-stage1-libpcp
+clean-stage1-libpcp:
+	@if [ $(current_stage) = stage1 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage1-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stage1-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stage2-libpcp maybe-all-stage2-libpcp
+.PHONY: clean-stage2-libpcp maybe-clean-stage2-libpcp
+maybe-all-stage2-libpcp:
+maybe-clean-stage2-libpcp:
+@if libpcp-bootstrap
+maybe-all-stage2-libpcp: all-stage2-libpcp
+all-stage2: all-stage2-libpcp
+TARGET-stage2-libpcp = $(TARGET-libpcp)
+all-stage2-libpcp: configure-stage2-libpcp
+	@[ $(current_stage) = stage2 ] || $(MAKE) stage2-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE2_CFLAGS)" CXXFLAGS="$(STAGE2_CFLAGS)" \
+		LIBCFLAGS="$(STAGE2_LIBCFLAGS)" \
+		CFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS)" \
+		CXXFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS)" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stage2-libpcp)
+
+maybe-clean-stage2-libpcp: clean-stage2-libpcp
+clean-stage2: clean-stage2-libpcp
+clean-stage2-libpcp:
+	@if [ $(current_stage) = stage2 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage2-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stage2-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stageb2g0-libpcp maybe-all-stageb2g0-libpcp
+.PHONY: clean-stageb2g0-libpcp maybe-clean-stageb2g0-libpcp
+maybe-all-stageb2g0-libpcp:
+maybe-clean-stageb2g0-libpcp:
+@if libpcp-bootstrap
+maybe-all-stageb2g0-libpcp: all-stageb2g0-libpcp
+all-stageb2g0: all-stageb2g0-libpcp
+TARGET-stageb2g0-libpcp = $(TARGET-libpcp)
+all-stageb2g0-libpcp: configure-stageb2g0-libpcp
+	@[ $(current_stage) = stageb2g0 ] || $(MAKE) stageb2g0-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE2_CFLAGS) -g0" CXXFLAGS="$(STAGE2_CFLAGS) -g0" \
+		LIBCFLAGS="$(STAGE2_LIBCFLAGS) -g0" \
+		CFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS) -g0" \
+		CXXFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS) -g0" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stageb2g0-libpcp)
+
+maybe-clean-stageb2g0-libpcp: clean-stageb2g0-libpcp
+clean-stageb2g0: clean-stageb2g0-libpcp
+clean-stageb2g0-libpcp:
+	@if [ $(current_stage) = stageb2g0 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stageb2g0-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stageb2g0-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stage3-libpcp maybe-all-stage3-libpcp
+.PHONY: clean-stage3-libpcp maybe-clean-stage3-libpcp
+maybe-all-stage3-libpcp:
+maybe-clean-stage3-libpcp:
+@if libpcp-bootstrap
+maybe-all-stage3-libpcp: all-stage3-libpcp
+all-stage3: all-stage3-libpcp
+TARGET-stage3-libpcp = $(TARGET-libpcp)
+all-stage3-libpcp: configure-stage3-libpcp
+	@[ $(current_stage) = stage3 ] || $(MAKE) stage3-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE3_CFLAGS)" CXXFLAGS="$(STAGE3_CFLAGS)" \
+		LIBCFLAGS="$(STAGE3_LIBCFLAGS)" \
+		CFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS)" \
+		CXXFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS)" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stage3-libpcp)
+
+maybe-clean-stage3-libpcp: clean-stage3-libpcp
+clean-stage3: clean-stage3-libpcp
+clean-stage3-libpcp:
+	@if [ $(current_stage) = stage3 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage3-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stage3-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stageb3g2-libpcp maybe-all-stageb3g2-libpcp
+.PHONY: clean-stageb3g2-libpcp maybe-clean-stageb3g2-libpcp
+maybe-all-stageb3g2-libpcp:
+maybe-clean-stageb3g2-libpcp:
+@if libpcp-bootstrap
+maybe-all-stageb3g2-libpcp: all-stageb3g2-libpcp
+all-stageb3g2: all-stageb3g2-libpcp
+TARGET-stageb3g2-libpcp = $(TARGET-libpcp)
+all-stageb3g2-libpcp: configure-stageb3g2-libpcp
+	@[ $(current_stage) = stageb3g2 ] || $(MAKE) stageb3g2-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE3_CFLAGS) -g2" CXXFLAGS="$(STAGE3_CFLAGS) -g2" \
+		LIBCFLAGS="$(STAGE3_LIBCFLAGS) -g2" \
+		CFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS) -g2" \
+		CXXFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS) -g2" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stageb3g2-libpcp)
+
+maybe-clean-stageb3g2-libpcp: clean-stageb3g2-libpcp
+clean-stageb3g2: clean-stageb3g2-libpcp
+clean-stageb3g2-libpcp:
+	@if [ $(current_stage) = stageb3g2 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stageb3g2-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stageb3g2-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stage4-libpcp maybe-all-stage4-libpcp
+.PHONY: clean-stage4-libpcp maybe-clean-stage4-libpcp
+maybe-all-stage4-libpcp:
+maybe-clean-stage4-libpcp:
+@if libpcp-bootstrap
+maybe-all-stage4-libpcp: all-stage4-libpcp
+all-stage4: all-stage4-libpcp
+TARGET-stage4-libpcp = $(TARGET-libpcp)
+all-stage4-libpcp: configure-stage4-libpcp
+	@[ $(current_stage) = stage4 ] || $(MAKE) stage4-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE4_CFLAGS)" CXXFLAGS="$(STAGE4_CFLAGS)" \
+		LIBCFLAGS="$(STAGE4_CFLAGS)" \
+		CFLAGS_FOR_TARGET="$(STAGE4_CFLAGS)" \
+		CXXFLAGS_FOR_TARGET="$(STAGE4_CFLAGS)" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stage4-libpcp)
+
+maybe-clean-stage4-libpcp: clean-stage4-libpcp
+clean-stage4: clean-stage4-libpcp
+clean-stage4-libpcp:
+	@if [ $(current_stage) = stage4 ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stage4-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stage4-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stageprofile-libpcp maybe-all-stageprofile-libpcp
+.PHONY: clean-stageprofile-libpcp maybe-clean-stageprofile-libpcp
+maybe-all-stageprofile-libpcp:
+maybe-clean-stageprofile-libpcp:
+@if libpcp-bootstrap
+maybe-all-stageprofile-libpcp: all-stageprofile-libpcp
+all-stageprofile: all-stageprofile-libpcp
+TARGET-stageprofile-libpcp = $(TARGET-libpcp)
+all-stageprofile-libpcp: configure-stageprofile-libpcp
+	@[ $(current_stage) = stageprofile ] || $(MAKE) stageprofile-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE2_CFLAGS) -fprofile-generate" CXXFLAGS="$(STAGE2_CFLAGS) -fprofile-generate" \
+		LIBCFLAGS="$(STAGE2_LIBCFLAGS)" \
+		CFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS)" \
+		CXXFLAGS_FOR_TARGET="$(STAGE2_LIBCFLAGS)" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stageprofile-libpcp)
+
+maybe-clean-stageprofile-libpcp: clean-stageprofile-libpcp
+clean-stageprofile: clean-stageprofile-libpcp
+clean-stageprofile-libpcp:
+	@if [ $(current_stage) = stageprofile ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stageprofile-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stageprofile-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+.PHONY: all-stagefeedback-libpcp maybe-all-stagefeedback-libpcp
+.PHONY: clean-stagefeedback-libpcp maybe-clean-stagefeedback-libpcp
+maybe-all-stagefeedback-libpcp:
+maybe-clean-stagefeedback-libpcp:
+@if libpcp-bootstrap
+maybe-all-stagefeedback-libpcp: all-stagefeedback-libpcp
+all-stagefeedback: all-stagefeedback-libpcp
+TARGET-stagefeedback-libpcp = $(TARGET-libpcp)
+all-stagefeedback-libpcp: configure-stagefeedback-libpcp
+	@[ $(current_stage) = stagefeedback ] || $(MAKE) stagefeedback-start
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	$(POSTSTAGE1_HOST_EXPORTS) \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(BASE_FLAGS_TO_PASS) \
+		CFLAGS="$(STAGE3_CFLAGS) -fprofile-use" CXXFLAGS="$(STAGE3_CFLAGS) -fprofile-use" \
+		LIBCFLAGS="$(STAGE3_LIBCFLAGS) -fprofile-use" \
+		CFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS) -fprofile-use" \
+		CXXFLAGS_FOR_TARGET="$(STAGE3_LIBCFLAGS) -fprofile-use" $(EXTRA_HOST_FLAGS) $(POSTSTAGE1_FLAGS_TO_PASS)  \
+		$(TARGET-stagefeedback-libpcp)
+
+maybe-clean-stagefeedback-libpcp: clean-stagefeedback-libpcp
+clean-stagefeedback: clean-stagefeedback-libpcp
+clean-stagefeedback-libpcp:
+	@if [ $(current_stage) = stagefeedback ]; then \
+	  [ -f $(HOST_SUBDIR)/libpcp/Makefile ] || exit 0; \
+	else \
+	  [ -f $(HOST_SUBDIR)/stagefeedback-libpcp/Makefile ] || exit 0; \
+	  $(MAKE) stagefeedback-start; \
+	fi; \
+	cd $(HOST_SUBDIR)/libpcp && \
+	$(MAKE) $(EXTRA_HOST_FLAGS)  \
+		$(POSTSTAGE1_FLAGS_TO_PASS)  \
+		 clean
+@endif libpcp-bootstrap
+
+
+
+
+
+.PHONY: check-libpcp maybe-check-libpcp
+maybe-check-libpcp:
+@if libpcp
+maybe-check-libpcp: check-libpcp
+
+check-libpcp:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(FLAGS_TO_PASS)  check)
+
+@endif libpcp
+
+.PHONY: install-libpcp maybe-install-libpcp
+maybe-install-libpcp:
+@if libpcp
+maybe-install-libpcp: install-libpcp
+
+install-libpcp: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(FLAGS_TO_PASS)  install)
+
+@endif libpcp
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-libpcp info-libpcp
+maybe-info-libpcp:
+@if libpcp
+maybe-info-libpcp: info-libpcp
+
+info-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing info in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          info) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-dvi-libpcp dvi-libpcp
+maybe-dvi-libpcp:
+@if libpcp
+maybe-dvi-libpcp: dvi-libpcp
+
+dvi-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing dvi in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          dvi) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-pdf-libpcp pdf-libpcp
+maybe-pdf-libpcp:
+@if libpcp
+maybe-pdf-libpcp: pdf-libpcp
+
+pdf-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing pdf in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          pdf) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-html-libpcp html-libpcp
+maybe-html-libpcp:
+@if libpcp
+maybe-html-libpcp: html-libpcp
+
+html-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing html in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          html) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-TAGS-libpcp TAGS-libpcp
+maybe-TAGS-libpcp:
+@if libpcp
+maybe-TAGS-libpcp: TAGS-libpcp
+
+TAGS-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing TAGS in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          TAGS) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-install-info-libpcp install-info-libpcp
+maybe-install-info-libpcp:
+@if libpcp
+maybe-install-info-libpcp: install-info-libpcp
+
+install-info-libpcp: \
+    configure-libpcp \
+    info-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-info in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-info) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-install-pdf-libpcp install-pdf-libpcp
+maybe-install-pdf-libpcp:
+@if libpcp
+maybe-install-pdf-libpcp: install-pdf-libpcp
+
+install-pdf-libpcp: \
+    configure-libpcp \
+    pdf-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-pdf in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-pdf) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-install-html-libpcp install-html-libpcp
+maybe-install-html-libpcp:
+@if libpcp
+maybe-install-html-libpcp: install-html-libpcp
+
+install-html-libpcp: \
+    configure-libpcp \
+    html-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing install-html in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          install-html) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-installcheck-libpcp installcheck-libpcp
+maybe-installcheck-libpcp:
+@if libpcp
+maybe-installcheck-libpcp: installcheck-libpcp
+
+installcheck-libpcp: \
+    configure-libpcp 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing installcheck in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          installcheck) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-mostlyclean-libpcp mostlyclean-libpcp
+maybe-mostlyclean-libpcp:
+@if libpcp
+maybe-mostlyclean-libpcp: mostlyclean-libpcp
+
+mostlyclean-libpcp: 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing mostlyclean in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          mostlyclean) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-clean-libpcp clean-libpcp
+maybe-clean-libpcp:
+@if libpcp
+maybe-clean-libpcp: clean-libpcp
+
+clean-libpcp: 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing clean in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          clean) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-distclean-libpcp distclean-libpcp
+maybe-distclean-libpcp:
+@if libpcp
+maybe-distclean-libpcp: distclean-libpcp
+
+distclean-libpcp: 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing distclean in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          distclean) \
+	  || exit 1
+
+@endif libpcp
+
+.PHONY: maybe-maintainer-clean-libpcp maintainer-clean-libpcp
+maybe-maintainer-clean-libpcp:
+@if libpcp
+maybe-maintainer-clean-libpcp: maintainer-clean-libpcp
+
+maintainer-clean-libpcp: 
+	@[ -f ./libpcp/Makefile ] || exit 0; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(HOST_EXPORTS) \
+	for flag in $(EXTRA_HOST_FLAGS) ; do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	echo "Doing maintainer-clean in libpcp" ; \
+	(cd $(HOST_SUBDIR)/libpcp && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	          maintainer-clean) \
+	  || exit 1
+
+@endif libpcp
 
 
 
@@ -52699,6 +53682,11 @@ stage1-start::
 	  mkdir stage1-libdecnumber; \
 	mv stage1-libdecnumber libdecnumber 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stage1-libpcp ] || \
+	  mkdir stage1-libpcp; \
+	mv stage1-libpcp libpcp 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stage1-libiberty ] || \
 	  mkdir stage1-libiberty; \
@@ -52784,6 +53772,11 @@ stage1-end::
 	  cd $(HOST_SUBDIR); mv libdecnumber stage1-libdecnumber  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stage1-libpcp  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stage1-libiberty  ; \
@@ -52926,6 +53919,12 @@ stage2-start::
 	mv stage2-libdecnumber libdecnumber  ; \
 	mv stage1-libdecnumber prev-libdecnumber || test -f stage1-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stage2-libpcp ] || \
+	  mkdir stage2-libpcp; \
+	mv stage2-libpcp libpcp  ; \
+	mv stage1-libpcp prev-libpcp || test -f stage1-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stage2-libiberty ] || \
 	  mkdir stage2-libiberty; \
@@ -53028,6 +54027,12 @@ stage2-end::
 	  mv prev-libdecnumber stage1-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stage2-libpcp ; \
+	  mv prev-libpcp stage1-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stage2-libiberty ; \
@@ -53194,6 +54199,12 @@ stageb2g0-start::
 	mv stageb2g0-libdecnumber libdecnumber  ; \
 	mv stage1-libdecnumber prev-libdecnumber || test -f stage1-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stageb2g0-libpcp ] || \
+	  mkdir stageb2g0-libpcp; \
+	mv stageb2g0-libpcp libpcp  ; \
+	mv stage1-libpcp prev-libpcp || test -f stage1-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stageb2g0-libiberty ] || \
 	  mkdir stageb2g0-libiberty; \
@@ -53296,6 +54307,12 @@ stageb2g0-end::
 	  mv prev-libdecnumber stage1-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stageb2g0-libpcp ; \
+	  mv prev-libpcp stage1-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stageb2g0-libiberty ; \
@@ -53462,6 +54479,12 @@ stage3-start::
 	mv stage3-libdecnumber libdecnumber  ; \
 	mv stage2-libdecnumber prev-libdecnumber || test -f stage2-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stage3-libpcp ] || \
+	  mkdir stage3-libpcp; \
+	mv stage3-libpcp libpcp  ; \
+	mv stage2-libpcp prev-libpcp || test -f stage2-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stage3-libiberty ] || \
 	  mkdir stage3-libiberty; \
@@ -53564,6 +54587,12 @@ stage3-end::
 	  mv prev-libdecnumber stage2-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stage3-libpcp ; \
+	  mv prev-libpcp stage2-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stage3-libiberty ; \
@@ -53784,6 +54813,12 @@ stageb3g2-start::
 	mv stageb3g2-libdecnumber libdecnumber  ; \
 	mv stageb2g0-libdecnumber prev-libdecnumber || test -f stageb2g0-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stageb3g2-libpcp ] || \
+	  mkdir stageb3g2-libpcp; \
+	mv stageb3g2-libpcp libpcp  ; \
+	mv stageb2g0-libpcp prev-libpcp || test -f stageb2g0-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stageb3g2-libiberty ] || \
 	  mkdir stageb3g2-libiberty; \
@@ -53886,6 +54921,12 @@ stageb3g2-end::
 	  mv prev-libdecnumber stageb2g0-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stageb3g2-libpcp ; \
+	  mv prev-libpcp stageb2g0-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stageb3g2-libiberty ; \
@@ -54106,6 +55147,12 @@ stage4-start::
 	mv stage4-libdecnumber libdecnumber  ; \
 	mv stage3-libdecnumber prev-libdecnumber || test -f stage3-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stage4-libpcp ] || \
+	  mkdir stage4-libpcp; \
+	mv stage4-libpcp libpcp  ; \
+	mv stage3-libpcp prev-libpcp || test -f stage3-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stage4-libiberty ] || \
 	  mkdir stage4-libiberty; \
@@ -54208,6 +55255,12 @@ stage4-end::
 	  mv prev-libdecnumber stage3-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stage4-libpcp ; \
+	  mv prev-libpcp stage3-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stage4-libiberty ; \
@@ -54417,6 +55470,12 @@ stageprofile-start::
 	mv stageprofile-libdecnumber libdecnumber  ; \
 	mv stage1-libdecnumber prev-libdecnumber || test -f stage1-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stageprofile-libpcp ] || \
+	  mkdir stageprofile-libpcp; \
+	mv stageprofile-libpcp libpcp  ; \
+	mv stage1-libpcp prev-libpcp || test -f stage1-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stageprofile-libiberty ] || \
 	  mkdir stageprofile-libiberty; \
@@ -54519,6 +55578,12 @@ stageprofile-end::
 	  mv prev-libdecnumber stage1-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stageprofile-libpcp ; \
+	  mv prev-libpcp stage1-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stageprofile-libiberty ; \
@@ -54664,6 +55729,12 @@ stagefeedback-start::
 	mv stagefeedback-libdecnumber libdecnumber  ; \
 	mv stageprofile-libdecnumber prev-libdecnumber || test -f stageprofile-lean 
 @endif libdecnumber
+@if libpcp
+	@cd $(HOST_SUBDIR); [ -d stagefeedback-libpcp ] || \
+	  mkdir stagefeedback-libpcp; \
+	mv stagefeedback-libpcp libpcp  ; \
+	mv stageprofile-libpcp prev-libpcp || test -f stageprofile-lean 
+@endif libpcp
 @if libiberty
 	@cd $(HOST_SUBDIR); [ -d stagefeedback-libiberty ] || \
 	  mkdir stagefeedback-libiberty; \
@@ -54766,6 +55837,12 @@ stagefeedback-end::
 	  mv prev-libdecnumber stageprofile-libdecnumber ; :  ; \
 	fi
 @endif libdecnumber
+@if libpcp
+	@if test -d $(HOST_SUBDIR)/libpcp ; then \
+	  cd $(HOST_SUBDIR); mv libpcp stagefeedback-libpcp ; \
+	  mv prev-libpcp stageprofile-libpcp ; :  ; \
+	fi
+@endif libpcp
 @if libiberty
 	@if test -d $(HOST_SUBDIR)/libiberty ; then \
 	  cd $(HOST_SUBDIR); mv libiberty stagefeedback-libiberty ; \
@@ -55162,6 +56239,16 @@ all-stageb3g2-gcc: all-stageb3g2-libdecnumber
 all-stage4-gcc: all-stage4-libdecnumber
 all-stageprofile-gcc: all-stageprofile-libdecnumber
 all-stagefeedback-gcc: all-stagefeedback-libdecnumber
+all-gcc: all-libpcp
+
+all-stage1-gcc: all-stage1-libpcp
+all-stage2-gcc: all-stage2-libpcp
+all-stageb2g0-gcc: all-stageb2g0-libpcp
+all-stage3-gcc: all-stage3-libpcp
+all-stageb3g2-gcc: all-stageb3g2-libpcp
+all-stage4-gcc: all-stage4-libpcp
+all-stageprofile-gcc: all-stageprofile-libpcp
+all-stagefeedback-gcc: all-stagefeedback-libpcp
 all-gcc: maybe-all-libiberty
 
 all-stage1-gcc: maybe-all-stage1-libiberty
@@ -55266,6 +56353,7 @@ all-gdb: maybe-all-build-bison
 all-gdb: maybe-all-build-byacc
 all-gdb: maybe-all-sim
 all-gdb: maybe-all-libdecnumber
+all-gdb: maybe-all-libpcp
 configure-libgui: maybe-configure-tcl
 configure-libgui: maybe-configure-tk
 all-libgui: maybe-all-tcl

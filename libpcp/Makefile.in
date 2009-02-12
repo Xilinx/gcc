@@ -1,0 +1,139 @@
+# @configure_input@
+# Makefile for libpcp.  Run 'configure' to generate Makefile from Makefile.in
+
+# Copyright (C) 2009 Free Software Foundation, Inc.
+
+#This file is part of GCC.
+
+#GCC is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2, or (at your option)
+#any later version.
+
+#GCC is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#along with GCC; see the file COPYING.  If not, write to
+#the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+#Boston MA 02110-1301, USA.
+
+@SET_MAKE@
+
+srcdir = @srcdir@
+top_builddir = .
+VPATH = @srcdir@
+INSTALL = @INSTALL@
+AR = ar
+ARFLAGS = cru
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOHEADER = @AUTOHEADER@
+CC = @CC@
+CFLAGS = @CFLAGS@
+WARN_CFLAGS = @WARN_CFLAGS@ @WARN_PEDANTIC@ @WERROR@
+CPP = @CPP@
+CPPFLAGS = @CPPFLAGS@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+LDFLAGS = @LDFLAGS@
+LIBICONV = @LIBICONV@
+PACKAGE = @PACKAGE@
+RANLIB = @RANLIB@
+SHELL = @SHELL@
+
+datarootdir = @datarootdir@
+datadir = @datadir@
+exec_prefix = @prefix@
+libdir = @libdir@
+localedir = $(datadir)/locale
+prefix = @prefix@
+
+INCLUDES = -I$(srcdir) -I.
+
+ALL_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(INCLUDES) $(CPPFLAGS)
+
+libpcp_a_OBJS = pcp_c.o pcp_emitter.o pcp_parser.o \
+		     pcp.o pcp_string_buffer.o pcp_error.o
+
+libpcp_a_SOURCES = pcp_emitter.cc pcp_string_buffer.cc \
+	pcp_c.cc pcp_emitter.h pcp_string_buffer.h \
+	pcp_c.h pcp_parser.cc \
+        pcp.cc pcp_gcc_stuff.h pcp_parser.h pcp_error.cc pcp_error.h \
+	pcp_dynamic_array.h pcp.h pcp_set.h pcp_alloc.h
+
+all: libpcp.a
+
+.SUFFIXES:
+.SUFFIXES: .cc .c .o .obj
+
+libpcp.a: $(libpcp_a_OBJS)
+	-rm -f $@
+	$(AR) $(ARFLAGS) $@ $(libpcp_a_OBJS)
+	$(RANLIB) $@
+
+# Rules to rebuild the configuration
+
+Makefile: $(srcdir)/Makefile.in config.status
+	$(SHELL) ./config.status Makefile
+
+config.status: $(srcdir)/configure
+	$(SHELL) ./config.status --recheck
+
+$(srcdir)/configure: $(srcdir)/aclocal.m4
+	cd $(srcdir) && $(AUTOCONF)
+
+$(srcdir)/aclocal.m4: $(srcdir)/../config/stdint.m4 \
+	$(srcdir)/../config/warnings.m4 $(srcdir)/../config/override.m4 \
+	$(srcdir)/configure.ac
+	cd $(srcdir) && $(ACLOCAL) -I ../config
+
+# Dependencies.
+
+# Other miscellaneous targets.
+
+mostlyclean:
+	-rm -f *.o
+
+clean: mostlyclean
+	-rm -rf makedepend$(EXEEXT) libpcp.a $(srcdir)/autom4te.cache
+
+distclean: clean
+	-rm -f config.status config.cache config.log \
+	  configure.lineno configure.status.lineno Makefile localedir.h \
+	  localedir.hs gstdint.h
+
+maintainer-clean: distclean
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+	-rm -f $(srcdir)/configure $(srcdir)/aclocal.m4
+
+check:
+installcheck:
+dvi:
+pdf:
+html:
+info:
+install-info:
+install-pdf:
+install-man:
+install-html:
+install:
+
+.PHONY: installdirs install install-strip mostlyclean clean distclean \
+  maintainer-clean check installcheck dvi pdf html info install-info \
+  install-pdf install-man update-po install-html
+
+CXXCOMPILE = source='$<' object='$@' libtool=no $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c
+
+# Implicit rules
+
+.cc.o:
+	$(CXXCOMPILE) $<
+
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:
