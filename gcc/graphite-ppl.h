@@ -23,11 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 #include <cloog/cloog.h>
 
 CloogMatrix *
-new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t);
-void new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *,
-					      CloogMatrix *);
-ppl_Constraint_System_t ppl_move_dimension (ppl_Constraint_System_t,
-					    ppl_dimension_type,
-					    ppl_dimension_type);
-void insert_constraint_into_matrix (CloogMatrix *, int,
-				    ppl_const_Constraint_t);
+new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t pcs);
+
+void
+new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
+                                         CloogMatrix *matrix);

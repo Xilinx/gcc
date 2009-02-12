@@ -1,3 +1,7 @@
+2009-02-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert last 3 commits.
+
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (scan_tree_for_params, add_conditions_to_domain): Remove
