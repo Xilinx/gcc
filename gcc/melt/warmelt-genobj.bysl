@@ -3815,49 +3815,9 @@
 		    (add2sbuf_string labuf matlabel)
 		    (add2sbuf_strconst labuf "_end")
 		    (strbuf2string discr_verbatimstring labuf)))
+	;; the list of suborders for putobjdest dispatch...
+	;; should be the *last* of each sequence added...
 	(subcomplist (make_list discr_list))
-	(ctests
-	 (progn
-	   (debug_msg ntests "compilobj_nrep_match ntests")
-	   (multiple_map
-	    ntests
-	    (lambda (curotest :long testix)
-	      (messagenum_dbg "compilobj_nrep_match testix=" testix)
-	      (debug_msg curotest "compilobj_nrep_match curotest")
-	      (assert_msg "check curotest" (is_a curotest class_normtester_any))
-	      (assert_msg "check curotest rank" (==i (get_int curotest) testix))
-	      (let (
-		    (labins (normtester_labelinstr curotest gcx))
-		    (curcomp (compile_obj curotest gcx))
-		    )
-		(debug_msg labins "compilobj_nrep_match labins")
-		(list_append subcomplist labins)
-		(debug_msg curcomp "compilobj_nrep_match curcomp")
-		(assert_msg "check curcomp" curcomp)
-		(cond 
-		 ( (is_not_a curotest class_normtester_success)
-		   (void)
-		   )
-		 ( (is_list curcomp)
-		   (let ( (lastlicomp (pair_head (list_last curcomp))) )
-		     (debug_msg lastlicomp "compilobj_nrep_match lastlicomp")
-		     (list_append subcomplist lastlicomp)
-		     ))
-		 ( (is_multiple curcomp)
-		   (let ( (lastupcomp (multiple_nth curcomp -1)) )
-		     (debug_msg lastupcomp "compilobj_nrep_match lastupcomp")
-		     (list_append subcomplist lastupcomp)
-		     ))
-		 ( (is_object curcomp)
-		   (debug_msg curcomp "compilobj_nrep_match obj curcomp")
-		   (list_append subcomplist curcomp)
-		   )
-		 (:else
-					;(void)
-		  ))
-		curcomp
-		)
-	      ))))
 	(obodyl (make_list discr_list))
 	(ombloc (instance class_objmultiblock
 			  :obi_loc nloc
@@ -3875,29 +3835,51 @@
 			     :oblab_rank ()))
 	)
     (list_append obodyl ofirstgoto)
-    (debug_msg ctests "compilobj_nrep_match ctests")
-    (foreach_in_multiple 
-     (ctests)
-     (curtest :long testix)
-     (debug_msg curtest "compilobj_nrep_match curtest")
-     (cond 
-      ( (is_list curtest)
-	(list_append2list obodyl curtest)
-	)
-      ( (is_multiple curtest)
-	(foreach_in_multiple
-	 (curtest)
-	 (subtest :long subix)
-	 (list_append obodyl subtest))
-	)
-      ( (is_object curtest)
-	(list_append obodyl curtest)
-	)
-      (:else
-       (assert_msg "bad curtest in compilobj_nrep_match" ())
-       (error_plain nloc "bad test in MATCH")
+    (debug_msg ntests "compilobj_nrep_match ntests")
+    (foreach_in_multiple
+     (ntests)
+     (curotest :long testix)
+     (messagenum_dbg "compilobj_nrep_match testix=" testix)
+     (debug_msg curotest "compilobj_nrep_match curotest")
+     (assert_msg "check curotest" (is_a curotest class_normtester_any))
+     (assert_msg "check curotest rank" (==i (get_int curotest) testix))
+     (let (
+	   (labins (normtester_labelinstr curotest gcx))
+	   (curcomp (compile_obj curotest gcx))
+	   )
+       (debug_msg labins "compilobj_nrep_match labins")
+       (debug_msg curcomp "compilobj_nrep_match curcomp")
+       (assert_msg "check curcomp" curcomp)
+       ;; add into subcomplist the last of each success test
+       ;; compilation
+       (cond 
+	( (is_list curcomp)
+	  (let ( (lastlicomp (pair_head (list_last curcomp))) )
+	    (debug_msg lastlicomp "compilobj_nrep_match lastlicomp")
+	    (if (is_a curotest class_normtester_success) 
+		(list_append subcomplist lastlicomp))
+	    (list_append2list obodyl curcomp)
+	    ))
+	( (is_multiple curcomp)
+	  (let ( (lastupcomp (multiple_nth curcomp -1)) )
+	    (debug_msg lastupcomp "compilobj_nrep_match lastupcomp")
+	    (if (is_a curotest class_normtester_success) 
+		(list_append subcomplist lastupcomp))
+	    (foreach_in_multiple
+	     (curcomp)
+	     (subtest :long subix)
+	     (list_append obodyl subtest))
+	    ))
+	( (is_object curcomp)
+	  (debug_msg curcomp "compilobj_nrep_match obj curcomp")
+	  (if (is_a curotest class_normtester_success) 
+	      (list_append subcomplist curcomp))
+	  (list_append obodyl curcomp)
+	  )
+	(:else
+	 (assert_msg "unexpected curcomp" ())
+	 ))
        )
-      )
      )
     (list_append obodyl oendlabel)
     (put_fields ombloc 
