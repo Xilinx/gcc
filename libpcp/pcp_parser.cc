@@ -1,29 +1,29 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
-   Contributed by Jan Sjodin <jan.sjodin@amd.com>.
+// Copyright (C) 2009 Free Software Foundation, Inc.
+// Contributed by Jan Sjodin <jan.sjodin@amd.com>.
 
-   This file is part of the Polyhedral Compilatino Package Library (libpcp).
+// This file is part of the Polyhedral Compilation Package Library (libpcp).
 
-   Libpcp is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1 of the License, or
-   (at your option) any later version.
+// Libpcp is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or
+// (at your option) any later version.
 
-   Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-   more details.
+// Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+// more details.
 
-   You should have received a copy of the GNU Lesser General Public License 
-   along with libpcp; see the file COPYING.LIB.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+// You should have received a copy of the GNU Lesser General Public License 
+// along with libpcp; see the file COPYING.LIB.  If not, write to the
+// Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+// MA 02110-1301, USA.  
 
-/* As a special exception, if you link this library with other files, some
-   of which are compiled with GCC, to produce an executable, this library
-   does not by itself cause the resulting executable to be covered by the
-   GNU General Public License.  This exception does not however invalidate
-   any other reasons why the executable file might be covered by the GNU
-   General Public License.  */
+// As a special exception, if you link this library with other files, some
+// of which are compiled with GCC, to produce an executable, this library
+// does not by itself cause the resulting executable to be covered by the
+// GNU General Public License.  This exception does not however invalidate
+// any other reasons why the executable file might be covered by the GNU
+// General Public License.  
 
 #include "pcp_error.h"
 #include "pcp_alloc.h"
@@ -35,7 +35,7 @@
 #include <string.h>
 
 
-/* Parser Token */
+// Parser Token 
 class PcpToken
 {
 public:
@@ -84,59 +84,64 @@ protected:
   static PcpArray<PcpToken*>* delimiters;
   static PcpArray<PcpToken*>* keywords;
   Kind kind;
-  const char *string;
+  const char* string;
   int lineNumber;
 
+  // Set sequence token to SEQUENCETOKEN.
   static void setSequenceToken(PcpToken* sequenceToken)
   {
     PcpToken::sequenceToken = sequenceToken;
   }
 
+  // Set delimiters to DELIMITERS.
   static void setDelimiters(PcpArray<PcpToken*>* delimiters)
   {
     PcpToken::delimiters = delimiters;
   }
 
+  // Get Delimiters
   static PcpArray<PcpToken*>* getDelimiters()
   {
     return PcpToken::delimiters;
   }
 
+  // Set keywords to KEYWORDS.
   static void setKeywords(PcpArray<PcpToken*>* keywords)
   {
     PcpToken::keywords = keywords;
   }
 
+  // Get keywords.
   static PcpArray<PcpToken*>* getKeywords()
   {
     return PcpToken::keywords;
   }
 
-  /* Set kind of TOKEN to KIND.  */
+  // Set kind to KIND.  
   void
   setKind(Kind kind)
   {
     this->kind = kind;
   }
 
-  /* Set string of TOKEN to STRING.  */
+  // Set string to STRING.  
   void
-  setString(const char *string)
+  setString(const char* string)
   {
     this->string = string;
   }
 
-  /* Set line number of TOKEN to LINENumber.  */
+  // Set line number to LINENUMBER.  
   void
   setLineNumber(int lineNumber)
   {
     this->lineNumber = lineNumber;
   }
 
+  // Initialize delimiters to PCP delimiters.
   static void initializeDelimiters()
   {
     PcpDynamicArray<PcpToken*>* delimiters = new PcpDynamicArray<PcpToken*>(7);
-    delimiters->add(new PcpToken(PCP_TOKEN_ARROW, "<-", -1));
     delimiters->add(new PcpToken(PCP_TOKEN_ARROW, "<-", -1));
     delimiters->add(new PcpToken(PCP_TOKEN_OPEN_PAREN, "(", -1));
     delimiters->add(new PcpToken(PCP_TOKEN_CLOSE_PAREN, ")", -1));
@@ -147,6 +152,7 @@ protected:
     PcpToken::setDelimiters(delimiters);
   }
 
+  // Initialize keywords to PCP keywords and operators.
   static void initializeKeywords()
   {
     PcpDynamicArray<PcpToken*>* keywords = new PcpDynamicArray<PcpToken*>(25);
@@ -180,6 +186,7 @@ protected:
 
 public:
 
+  // Get sequence token.
   static PcpToken* getSequenceToken()
   {
     if(PcpToken::sequenceToken == NULL)
@@ -189,13 +196,14 @@ public:
     return PcpToken::sequenceToken;
   }
 
-  /* Get kind of TOKEN.  */
+  // Get kind.  
   Kind
   getKind()
   {
     return this->kind;
   }
 
+  // Get an iterator over the delimiters.
   static PcpIterator<PcpToken*>* getDelimitersIterator()
   {
     PcpArray<PcpToken*>* delimiters = PcpToken::getDelimiters();
@@ -204,6 +212,7 @@ public:
     return PcpToken::getDelimiters()->getIterator();
   }
 
+  // Get an iterator over the keywords.
   static PcpIterator<PcpToken*>* getKeywordsIterator()
   {
     PcpArray<PcpToken*>* keywords = PcpToken::getKeywords();
@@ -212,22 +221,22 @@ public:
     return PcpToken::getKeywords()->getIterator();
   }
 
-  /* Get string of TOKEN.  */
-  const char *
+  // Get string.
+  const char* 
   getString()
   {
     return this->string;
   }
 
-  /* Get line number of TOKEN.  */
+  // Get line number.
   int
   getLineNumber()
   {
     return this->lineNumber;
   }
 
-  /* Get name of TOKEN. This function is for debug purposes.  */
-  const char *
+  // Get name. This function is for debug purposes.  
+  const char* 
   getTokenKindName()
   {
     switch(getKind())
@@ -309,255 +318,256 @@ public:
       }
   }
   
-  /* Return true if TOKEN is a numeral.  */
+  // Return true if this is a numeral.  
   bool
   isNumeral()
   {
-    return getKind() == PCP_TOKEN_NUMERAL;
+    return this->getKind() == PCP_TOKEN_NUMERAL;
   }
 
-  /* Return true if TOKEN is an identifier.  */
+  // Return true if this is an identifier.  
   bool
   isIdentifier()
   {
-    return getKind() == PCP_TOKEN_IDENTIFIER;
+    return this->getKind() == PCP_TOKEN_IDENTIFIER;
   }
   
-  /* Return true if TOKEN is a guard.  */
+  // Return true if this is a guard.  
   bool
   isGuard()
   {
-    return getKind() == PCP_TOKEN_GUARD;
+    return this->getKind() == PCP_TOKEN_GUARD;
   }
   
-  /* Return true if TOKEN is a loop.  */
+  // Return true if this is a loop.  
   bool
   isLoop()
   {
-    return getKind() == PCP_TOKEN_LOOP;
+    return this->getKind() == PCP_TOKEN_LOOP;
   }
 
-  /* Return true if TOKEN is a copy.  */
+  // Return true if this is a copy.  
   bool
   isCopy()
   {
-    return getKind() == PCP_TOKEN_COPY;
+    return this->getKind() == PCP_TOKEN_COPY;
   }
 
-  /* Return true if TOKEN is an equality.  */
+  // Return true if this is an equality.  
   bool
   isEq()
   {
-    return getKind() == PCP_TOKEN_EQ;
+    return this->getKind() == PCP_TOKEN_EQ;
   }
 
-  /* Return true if TOKEN is a greater or equals  */
+  // Return true if this is a greater or equals  
   bool
   isGe()
   {
-    return getKind() == PCP_TOKEN_GE;
+    return this->getKind() == PCP_TOKEN_GE;
   }
 
-  /* Return true if TOKEN is an and.  */
+  // Return true if this is an and.  
   bool
   isAnd()
   {
-    return getKind() == PCP_TOKEN_AND;
+    return this->getKind() == PCP_TOKEN_AND;
   }
 
-  /* Return true if TOKEN is an or.  */
+  // Return true if this is an or.  
   bool
   isOr()
   {
-    return getKind() == PCP_TOKEN_OR;
+    return this->getKind() == PCP_TOKEN_OR;
   }
 
-  /* Return true if TOKEN is a def.  */
+  // Return true if this is a def.  
   bool
   isDef()
   {
-    return getKind() == PCP_TOKEN_DEF;
+    return this->getKind() == PCP_TOKEN_DEF;
   }
 
-  /* Return true if TOKEN is a use. */
+  // Return true if this is a use. 
   bool
   isUse()
   {
-    return getKind() == PCP_TOKEN_USE;
+    return this->getKind() == PCP_TOKEN_USE;
   }
 
-  /* Return true if TOKEN is a maydef.  */
+  // Return true if this is a maydef.  
   bool
   isMaydef()
   {
-    return getKind() == PCP_TOKEN_MAYDEF;
+    return this->getKind() == PCP_TOKEN_MAYDEF;
   }
 
-  /* Return true if TOKEN is an array.  */
+  // Return true if this is an array.  
   bool
   isArray()
   {
-    return getKind() == PCP_TOKEN_ARRAY;
+    return this->getKind() == PCP_TOKEN_ARRAY;
   }
 
-  /* Return true if TOKEN is an iv.  */
+  // Return true if this is an iv.  
   bool
   isIv()
   {
-    return getKind() == PCP_TOKEN_IV;
+    return this->getKind() == PCP_TOKEN_IV;
   }
 
-  /* Return true if TOKEN is a parameter.  */
+  // Return true if this is a parameter.  
   bool
   isParameter()
   {
-    return getKind() == PCP_TOKEN_PARAMETER;
+    return this->getKind() == PCP_TOKEN_PARAMETER;
   }
 
-  /* Return true if TOKEN is a variable.  */
+  // Return true if this is a variable.  
   bool
   isVariable()
   {
-    return getKind() == PCP_TOKEN_VARIABLE;
+    return this->getKind() == PCP_TOKEN_VARIABLE;
   }
 
-  /* Return true if TOKEN is parameters.  */
+  // Return true if this is parameters.  
   bool
   isParameters()
   {
-    return getKind() == PCP_TOKEN_PARAMETERS;
+    return this->getKind() == PCP_TOKEN_PARAMETERS;
   }
 
-  /* Return true if TOKEN is an arrow.  */
+  // Return true if this is an arrow.  
   bool
   isArrow()
   {
-    return getKind() == PCP_TOKEN_ARROW;
+    return this->getKind() == PCP_TOKEN_ARROW;
   }
 
-  /* Return true if TOKEN is a multiply.  */
+  // Return true if this is a multiply.  
   bool
   isMultiply()
   {
-    return getKind() == PCP_TOKEN_MULTIPLY;
+    return this->getKind() == PCP_TOKEN_MULTIPLY;
   }
 
-  /* Return true if TOKEN is an add.  */
+  // Return true if this is an add.  
   bool
   isAdd()
   {
-    return getKind() == PCP_TOKEN_ADD;
+    return this->getKind() == PCP_TOKEN_ADD;
   }
 
-  /* Return true if TOKEN is a subtract.  */
+  // Return true if this is a subtract.  
   bool
   isSubtract()
   {
-    return getKind() == PCP_TOKEN_SUBTRACT;
+    return this->getKind() == PCP_TOKEN_SUBTRACT;
   }
 
-  /* Return true if TOKEN is an open paren.  */
+  // Return true if this is an open paren.  
   bool
   isOpenParen()
   {
-    return getKind() == PCP_TOKEN_OPEN_PAREN;
+    return this->getKind() == PCP_TOKEN_OPEN_PAREN;
   }
 
-  /* Return true if TOKEN is a close paren.  */
+  // Return true if this is a close paren.  
   bool
   isCloseParen()
   {
-    return getKind() == PCP_TOKEN_CLOSE_PAREN;
+    return this->getKind() == PCP_TOKEN_CLOSE_PAREN;
   }
 
-  /* Return true if TOKEN is a comma.  */
+  // Return true if this is a comma.  
   bool
   isComma()
   {
-    return getKind() == PCP_TOKEN_COMMA;
+    return this->getKind() == PCP_TOKEN_COMMA;
   }
 
-  /* Return true if TOKEN is an open brace.  */
+  // Return true if this is an open brace.  
   bool
   isOpenBrace()
   {
-    return getKind() == PCP_TOKEN_OPEN_BRACE;
+    return this->getKind() == PCP_TOKEN_OPEN_BRACE;
   }
 
-  /* Return true if TOKEN is a close brace.  */
+  // Return true if this is a close brace.  
   bool
   isCloseBrace()
   {
-    return getKind() == PCP_TOKEN_CLOSE_BRACE;
+    return this->getKind() == PCP_TOKEN_CLOSE_BRACE;
   }
 
-  /* Return true if TOKEN is a verticalBar.  */
+  // Return true if this is a verticalBar.  
   bool
   isVerticalBar()
   {
-    return getKind() == PCP_TOKEN_VERTICAL_BAR;
+    return this->getKind() == PCP_TOKEN_VERTICAL_BAR;
   }
 
-  /* Return true if TOKEN is a scop.  */
+  // Return true if this is a scop.  
   bool
   isScop()
   {
-    return getKind() == PCP_TOKEN_SCOP;
+    return this->getKind() == PCP_TOKEN_SCOP;
   }
 
-  /* Return true if TOKEN is an input.  */
+  // Return true if this is an input.  
   bool
   isInput()
   {
-    return getKind() == PCP_TOKEN_INPUT;
+    return this->getKind() == PCP_TOKEN_INPUT;
   }
 
-  /* Return true if TOKEN is an floor.  */
+  // Return true if this is an floor.  
   bool
   isFloor()
   {
-    return getKind() == PCP_TOKEN_FLOOR;
+    return this->getKind() == PCP_TOKEN_FLOOR;
   }
-  /* Return true if TOKEN is an ceil.  */
+  // Return true if this is an ceil.  
   bool
   isCeil()
   {
-    return getKind() == PCP_TOKEN_CEIL;
+    return this->getKind() == PCP_TOKEN_CEIL;
   }
-  /* Return true if TOKEN is an min.  */
+  // Return true if this is an min.  
   bool
   isMin()
   {
-    return getKind() == PCP_TOKEN_MIN;
+    return this->getKind() == PCP_TOKEN_MIN;
   }
-  /* Return true if TOKEN is an max.  */
+  // Return true if this is an max.  
   bool
   isMax()
   {
-    return getKind() == PCP_TOKEN_MAX;
+    return this->getKind() == PCP_TOKEN_MAX;
   }
 
-  /* Return true if TOKEN is an output.  */
+  // Return true if this is an output.  
   bool
   isOutput()
   {
-    return getKind() == PCP_TOKEN_OUTPUT;
+    return this->getKind() == PCP_TOKEN_OUTPUT;
   }
 
-  /* Return true if TOKEN is an error.  */
+  // Return true if this is an error.  
   bool
   isError()
   {
-    return getKind() == PCP_TOKEN_ERROR;
+    return this->getKind() == PCP_TOKEN_ERROR;
   }
 
-  /* Return true if TOKEN is a sequence.  */
+  // Return true if this is a sequence.  
   bool
   isSequence()
   {
-    return getKind() == PCP_TOKEN_SEQUENCE;
+    return this->getKind() == PCP_TOKEN_SEQUENCE;
   }
 
+  // Return true if this is a functor (supposed to take arguments).
   bool
   isFunctor()
   {
@@ -598,7 +608,7 @@ public:
     return result;
   }
 
-  /* Create new token of given KIND and STRING.  */
+  // Create new token of given KIND and STRING.  
   PcpToken(Kind kind, const char* string, int lineNumber)
   {
     setKind(kind);
@@ -612,7 +622,7 @@ PcpToken* PcpToken::sequenceToken;
 template <> PcpArray<PcpToken*>* PcpToken::delimiters;
 template <> PcpArray<PcpToken*>* PcpToken::keywords;
 
-/* PCP Tokenizer */
+// PCP Tokenizer 
 
 class PcpTokenizer
 {
@@ -622,71 +632,71 @@ protected:
   const char* source;
   int sourceLength;
 
-  /* Set row in TOKENIZER to ROW.  */
+  // Set row in TOKENIZER to ROW.  
   void
   setRow(int row)
   {
     this->row = row;
   }
   
-  /* Get row in TOKENIZER.  */
+  // Get row in TOKENIZER.  
   int
   getRow()
   {
     return this->row;
   }
   
-  /* Increment row in TOKENIZER by 1.  */
+  // Increment row in TOKENIZER by 1.  
   void
   incrementRow()
   {
     this->setRow(this->getRow() + 1);
   }
   
-  /* Set index of TOKENIZER to INDEX.  */
+  // Set index of TOKENIZER to INDEX.  
   void
   setIndex(int index)
   {
     this->index = index;
   }
   
-  /* Get index of TOKENIZER.  */
+  // Get index of TOKENIZER.  
   int
   getIndex()
   {
     return this->index;
   }
   
-  /* Set source length of TOKENIZER to SOURCE_LENGTH.  */
+  // Set source length of TOKENIZER to SOURCE_LENGTH.  
   void
   setSourceLength(int sourceLength)
   {
     this->sourceLength = sourceLength;
   }
   
-  /* Get source length of TOKENIZER.  */
+  // Get source length of TOKENIZER.  
   int
   getSourceLength()
   {
     return this->sourceLength;
   }
     
-  /* Set source of TOKENIZER to SOURCE.  */
+  // Set source of TOKENIZER to SOURCE.  
   void
-  setSource(const char *source)
+  setSource(const char* source)
   {
     this->source = source;
   }
   
-  /* Get source of TOKENIZER.  */
-  const char *
+  // Get source of TOKENIZER.  
+  const char* 
   getSource()
   {
     return this->source;
   }
     
-  /* Get next char in TOKENIZER with OFFSET from the last consumed
-     charater.  */
+  // Get next char in TOKENIZER with OFFSET from the last consumed
+  //   charater.  
   char
   peekChar(int offset)
   {
@@ -699,50 +709,51 @@ protected:
     return result;
   }
   
-  /* Get the next char in TOKENIZER that has not been consumed.  */
+  // Get the next char in TOKENIZER that has not been consumed.  
   char
   peekNextChar()
   {
     return this->peekChar(0);
   }
   
-  /* Consume the next charachter in TOKENIZER.  */
+  // Consume the next charachter in TOKENIZER.  
   void
   consumeChar()
   {
     this->setIndex(this->getIndex() + 1);
   }
   
-  /* Return true if CHARACHTER is a newline.  */
+  // Return true if CHARACHTER is a newline.  
   bool
   charIsNewline(char character)
   {
     return character == '\n';
   }
   
-  /* Return true if CHARACTER is a whitespace.  */
+  // Return true if CHARACTER is a whitespace.  
   bool
   charIsWhitespace(char character)
   {
-    return(character == '\t' || character == ' '
+    return(character == '\t' 
+	   || character == ' '
 	   || this->charIsNewline(character));
   }
   
-  /* Return true if CHARACTER is end of source.  */
+  // Return true if CHARACTER is end of source.  
   bool
   charIsEndOfSource(char character)
   {
     return character == '\0';
   }
   
-  /* Return true if TOKENIZER has reached end of source.  */
+  // Return true if TOKENIZER has reached end of source.  
   bool
   endOfSource()
   {
     return this->charIsEndOfSource(this->peekNextChar());
   }
   
-  /* Return true if CHARACTER will end a token.  */
+  // Return true if CHARACTER will end a token.  
   bool
   charIsTokenBreak(char character)
   {
@@ -750,22 +761,22 @@ protected:
       || this->charIsEndOfSource(character);
   }
   
-  /* Return true if CHARACTER is a digit.  */
+  // Return true if CHARACTER is a digit.  
   bool
   charIsDigit(char character)
   {
     return(character >= '0' && character <= '9');
   }
   
-  /* Return true if CHARACTER is a letter.  */
+  // Return true if CHARACTER is a letter.  
   bool
   charIsLetter(char character)
   {
     return(character >= 'A' && character <= 'Z')
-      ||(character >= 'a' && character <= 'z');
+      || (character >= 'a' && character <= 'z');
   }
   
-  /* Return true if CHARACTER is a symbol.  */
+  // Return true if CHARACTER is a symbol.  
   bool
   charIsSymbol(char character)
   {
@@ -782,10 +793,12 @@ protected:
       || character == '='
       || character == '>'
       || character == '?'
-      || character == '@' || character == '\\' || character == '_';
+      || character == '@' 
+      || character == '\\' 
+      || character == '_';
   }
   
-  /* Return true if CHARACTER is illegal.  */
+  // Return true if CHARACTER is illegal.  
   bool
   charIsIllegal(char character)
   {
@@ -796,8 +809,8 @@ protected:
       && !this->charIsEndOfSource(character);
   }
   
-  /* Consume all white space character in TOKENIZER until a
-     non-whitespace chararacter is encountered.  */
+  // Consume all white space character in TOKENIZER until a
+  //   non-whitespace chararacter is encountered.  
   void
   skipWhitespaces()
   {
@@ -813,9 +826,9 @@ protected:
       }
   }
   
-  /* Match STRING in TOKENIZER with at OFFSET.  */
+  // Match STRING in TOKENIZER with at OFFSET.  
   bool
-  matchStringAtOffset(int offset, const char *string)
+  matchStringAtOffset(int offset, const char* string)
   {
     int length = strlen(string);
     int index = 0;
@@ -831,15 +844,15 @@ protected:
     return mismatch;
   }
   
-  /* Match STRING in TOKENIZER at curent location.  */
+  // Match STRING in TOKENIZER at curent location.  
   bool
-  matchString(const char *string)
+  matchString(const char* string)
   {
     return this->matchStringAtOffset(0, string);
   }
   
-  /* Match any delimiter in TOKENIZER at given OFFSET.  */
-  PcpToken *
+  // Match any delimiter in TOKENIZER at given OFFSET.  
+  PcpToken* 
   matchDelimiterAtOffset(int offset)
   {
     PcpIterator<PcpToken*>* delimIter = PcpToken::getDelimitersIterator();
@@ -856,14 +869,14 @@ protected:
     return NULL;
   }
   
-  /* Match any delimiter in TOKENIZER.  */
-  PcpToken *
+  // Match any delimiter in TOKENIZER.  
+  PcpToken* 
   matchDelimiter()
   {
     return this->matchDelimiterAtOffset(0);
   }
   
-  /* Return true if a token break exists in TOKEN at given OFFSET.  */
+  // Return true if a token break exists in TOKEN at given OFFSET.  
   bool
   hasTokenBreakAtOffset(int offset)
   {
@@ -874,8 +887,8 @@ protected:
     
   }
   
-  /* Match any keyword in TOKENIZER.  */
-  PcpToken *
+  // Match any keyword in TOKENIZER.  
+  PcpToken* 
   matchKeyword()
   {
     
@@ -883,12 +896,9 @@ protected:
     for(;delimIter->hasNext(); delimIter->next())
       {
 	PcpToken* keyword = delimIter->get();
-	const char *keywordString = keyword->getString();
+	const char* keywordString = keyword->getString();
 	bool mismatch = this->matchString(keywordString);
-	if(!mismatch
-	   && this->hasTokenBreakAtOffset(
-					  strlen
-					  (keywordString)))
+	if(!mismatch && this->hasTokenBreakAtOffset(strlen(keywordString)))
 	  return new PcpToken(keyword->getKind(),
 			      keyword->getString(), 
 			      this->getRow());
@@ -896,11 +906,11 @@ protected:
     return NULL;
   }
   
-  /* Write all characters in TOKENIZER from OFFSET into BUFFER until a token break
-     is found.  */
+  // Write all characters in TOKENIZER from OFFSET into BUFFER until a token 
+  // break is found.  
   void
   fillBufferUntilTokenBreak(int offset,
-			    PcpStringBuffer *buffer)
+			    PcpStringBuffer* buffer)
   {
     int i;
     for(i = offset; !this->hasTokenBreakAtOffset(i);
@@ -910,12 +920,12 @@ protected:
       }
   }
   
-  /* Match a numeral from TOKENIZER.  */
-  PcpToken *
+  // Match a numeral from TOKENIZER.  
+  PcpToken* 
   matchNumeral()
   {
     int i = 0;
-    PcpStringBuffer *buffer = new PcpStringBuffer();
+    PcpStringBuffer* buffer = new PcpStringBuffer();
     char peekChar = this->peekChar(i);
     while(this->charIsDigit(peekChar))
       {
@@ -937,12 +947,12 @@ protected:
     return NULL;
   }
   
-  /* Match an identifier from TOKENIZER. */
-  PcpToken *
+  // Match an identifier from TOKENIZER. 
+  PcpToken* 
   matchIdentifier()
   {
     int i = 0;
-    PcpStringBuffer *buffer = new PcpStringBuffer();
+    PcpStringBuffer* buffer = new PcpStringBuffer();
     char peekChar = this->peekChar(i);
     if(this->charIsLetter(peekChar))
       {
@@ -974,8 +984,8 @@ protected:
   
 public:  
 
-  /* Create new tokenizer with given SOURCE.  */
-  PcpTokenizer(const char *source)
+  // Create new tokenizer with given SOURCE.  
+  PcpTokenizer(const char* source)
   {
     setRow(1);
     setIndex(0);
@@ -983,8 +993,8 @@ public:
     setSourceLength(strlen(source));
   }
 
-  /* Consume TOKEN in TOKENIZER. This increments the index with the
-     token string length.  */
+  // Consume TOKEN in TOKENIZER. This increments the index with the
+  //   token string length.  
   void
   consumeToken(PcpToken* token)
   {
@@ -993,11 +1003,11 @@ public:
   }
 
 
-  /* Get next token from TOKENIZER(without consuming it).  */
-  PcpToken *
+  // Get next token from TOKENIZER(without consuming it).  
+  PcpToken* 
   peekNextToken()
   {
-    PcpToken *token;
+    PcpToken* token;
     if(this->endOfSource())
       return NULL;
     
@@ -1019,11 +1029,11 @@ public:
     return token;
   }
   
-  /* Get and consume the next token from TOKENIZER.  */
-  PcpToken *
+  // Get and consume the next token from TOKENIZER.  
+  PcpToken* 
   getNextToken()
   {
-    PcpToken *token = this->peekNextToken();
+    PcpToken* token = this->peekNextToken();
     this->consumeToken(token);
     return token;
   }
@@ -1033,9 +1043,9 @@ public:
 };
 
 
-/* Report parse error.  */
+// Report parse error.  
 static void
-pcpParseError(const char *error)
+pcpParseError(const char* error)
 {
   printf("Error: %s\n", error);
 }
@@ -1043,20 +1053,20 @@ pcpParseError(const char *error)
 class PcpAst
 {
 protected:
-  PcpToken *name;
-  PcpToken *token;
+  PcpToken* name;
+  PcpToken* token;
   bool hasChildren;
   PcpDynamicArray<PcpAst*>* children;
   PcpDynamicArray<PcpAst*>* annots;
   
-  /* Set children of AST to CHILDREN.  */
+  // Set children of AST to CHILDREN.  
   void
   setChildren(PcpDynamicArray<PcpAst*>* children)
   {
     this->children = children;
   }
   
-  /* Get children of AST.  */
+  // Get children of AST.  
   PcpDynamicArray<PcpAst*>*
   getChildren()
   {
@@ -1076,11 +1086,11 @@ protected:
   }
   
     
-  /* Write AST into BUFFER.  */
+  // Write AST into BUFFER.  
   void
-  toStringInBuffer(PcpStringBuffer *buffer)
+  toStringInBuffer(PcpStringBuffer* buffer)
   {
-    PcpToken *token = this->getToken();
+    PcpToken* token = this->getToken();
     int numChildren = this->getNumChildren();
     int i;
     
@@ -1105,20 +1115,20 @@ protected:
       }
   }
   
-  /* Convert AST to string.  */
-  const char *
+  // Convert AST to string.  
+  const char* 
   toString()
   {
-    PcpStringBuffer *buffer = new PcpStringBuffer();
+    PcpStringBuffer* buffer = new PcpStringBuffer();
     this->toStringInBuffer(buffer);
     return buffer->toString();
   }
 
-  /* Parse functor list surrounded by '{' '}'.  */
+  // Parse functor list surrounded by '{' '}'.  
   static PcpAst* 
   parseStmtList(PcpTokenizer* tokenizer)
   {
-    PcpToken *token = tokenizer->getNextToken();
+    PcpToken* token = tokenizer->getNextToken();
     PcpAst* result = NULL;
     if(!token->isOpenBrace())
       {
@@ -1137,7 +1147,7 @@ protected:
   parseObjectList1(PcpTokenizer* tokenizer, PcpAst* root,
 		   bool isAnnot)
   {
-    PcpToken *peek = tokenizer->peekNextToken();
+    PcpToken* peek = tokenizer->peekNextToken();
     PcpAst* object = NULL;
     
     object = PcpAst::parseObject(tokenizer);
@@ -1169,13 +1179,13 @@ protected:
       }
   }
   
-  /* Parse comma separated object list.  */
-  /* XXX: Must also add parsing of annots that will be added to the object.  */
+  // Parse comma separated object list.  
+  // XXX: Must also add parsing of annots that will be added to the object.  
   static PcpAst* 
   parseObjectList(PcpTokenizer* tokenizer)
   {
-    PcpToken *token = tokenizer->getNextToken();
-    PcpToken *peek;
+    PcpToken* token = tokenizer->getNextToken();
+    PcpToken* peek;
     PcpAst* result = new PcpAst(PcpToken::getSequenceToken());
     result->setHasChildren(true);
     
@@ -1219,20 +1229,20 @@ protected:
     return result;
   }
   
-  /* Parse object. */
+  // Parse object. 
   static PcpAst* 
   parseObject(PcpTokenizer* tokenizer)
   {
-    PcpToken *token = tokenizer->getNextToken();
+    PcpToken* token = tokenizer->getNextToken();
     if(token->isFunctor())
       {
 	PcpAst* result = PcpAst::parseObjectList(tokenizer);
-	PcpToken *peek = tokenizer->peekNextToken();
+	PcpToken* peek = tokenizer->peekNextToken();
 	result->setToken(token);
-	/* We may have a body to parse as well.  */
+	// We may have a body to parse as well.  
 	if(peek != NULL && peek->isOpenBrace())
 	  {
-	    /* Stmt list is a non comma separated object list.  */
+	    // Stmt list is a non comma separated object list.  
 	    PcpAst* body = PcpAst::parseStmtList(tokenizer);
 	    result->addChild(body);
 	  }
@@ -1240,7 +1250,7 @@ protected:
       }
     else if(token->isIdentifier())
       {
-	PcpToken *peek = tokenizer->peekNextToken();
+	PcpToken* peek = tokenizer->peekNextToken();
 	if(peek->isOpenParen())
 	  {
 	    PcpAst* result = PcpAst::parseObjectList(tokenizer);
@@ -1264,11 +1274,11 @@ protected:
       }
   }
   
-  /* Parse "identifier <- object" sequence. */
+  // Parse "identifier <- object" sequence. 
   static PcpAst* 
-  parseBinding(PcpTokenizer* tokenizer, PcpToken *name)
+  parseBinding(PcpTokenizer* tokenizer, PcpToken* name)
   {
-    PcpToken *token = tokenizer->getNextToken();
+    PcpToken* token = tokenizer->getNextToken();
     
     pcpAssert(name != NULL);
     if(token->isArrow())
@@ -1282,22 +1292,21 @@ protected:
     return NULL;
   }
 
-  /* Parse list of functor strings.  */
+  // Parse list of functor strings.  
   static PcpAst* 
-  parseStmtListHelper(PcpTokenizer *tokenizer)
+  parseStmtListHelper(PcpTokenizer* tokenizer)
   {
-    PcpToken *peek = tokenizer->peekNextToken();
+    PcpToken* peek = tokenizer->peekNextToken();
     PcpAst* result = new PcpAst(PcpToken::getSequenceToken());
     PcpAst* object = NULL;
     
     if(peek->isFunctor() || peek->isIdentifier())
       {
-	PcpToken *token;
+	PcpToken* token;
 	object = PcpAst::parseObject(tokenizer);
 	result->addChild(object);
 	token = tokenizer->peekNextToken();
-	while(token != NULL &&(token->isFunctor()
-			       || token->isIdentifier()))
+	while(token != NULL && (token->isFunctor() || token->isIdentifier()))
 	  {
 	    object = PcpAst::parseObject(tokenizer);
 	    result->addChild(object);
@@ -1323,56 +1332,56 @@ public:
   }
 
 
-  /* Get number of childern in AST.  */
+  // Get number of childern in AST.  
   int
   getNumChildren()
   {
     return this->getChildren()->getSize();
   }
 
-  /* Get child with CHILDIndex from AST.  */
-  PcpAst *
+  // Get child with CHILDIndex from AST.  
+  PcpAst* 
   getChild(int childIndex)
   {
     return this->getChildren()->get(childIndex);
   }
   
-  /* Set name of AST to NAME.  */
+  // Set name of AST to NAME.  
   void
-  setName(PcpToken *name)
+  setName(PcpToken* name)
   {
     this->name = name;
   }
   
-  /* Get name of AST.  */
-  PcpToken *
+  // Get name of AST.  
+  PcpToken* 
   getName()
   {
     return this->name;
   }
   
-  /* Set token of AST to TOKEN.  */
+  // Set token of AST to TOKEN.  
   void
-  setToken(PcpToken *token)
+  setToken(PcpToken* token)
   {
     this->token = token;
   }
   
-  /* Get token of AST.  */
-  PcpToken *
+  // Get token of AST.  
+  PcpToken* 
   getToken()
   {
     return this->token;
   }
 
-  /* Set if AST HASChildren.  */
+  // Set if AST HASChildren.  
   void
   setHasChildren(bool hasChildren)
   {
     this->hasChildren = hasChildren;
   }
   
-  /* Return true if AST has children.  */
+  // Return true if AST has children.  
   bool
   getHasChildren()
   {
@@ -1380,20 +1389,20 @@ public:
   }
   
   void
-  addAnnot(PcpAst *annot)
+  addAnnot(PcpAst* annot)
   {
     this->getAnnots()->add(annot);
   }
 
-  /* Add CHILD to AST.  */
+  // Add CHILD to AST.  
   void
-  addChild(PcpAst *child)
+  addChild(PcpAst* child)
   {
     this->getChildren()->add(child);
   }
   
-  /* Create a new token ast from TOKEN.  */
-  PcpAst(PcpToken *token)
+  // Create a new token ast from TOKEN.  
+  PcpAst(PcpToken* token)
   {
     PcpDynamicArray<PcpAst*>* children = new PcpDynamicArray<PcpAst*>(1);
     PcpDynamicArray<PcpAst*>* annots = new PcpDynamicArray<PcpAst*>(1);
@@ -1403,33 +1412,33 @@ public:
     this->setAnnots(annots);
   }  
 
-  /* Parse list of functor strings.  */
+  // Parse list of functor strings.  
   static PcpAst* 
-  parse(PcpTokenizer *tokenizer)
+  parse(PcpTokenizer* tokenizer)
   {
     return PcpAst::parseStmtListHelper(tokenizer);
   }
   
 };
 
-/* Pcp Parser (Token stream to AST)*/
+// Pcp Parser (Token stream to AST)
 
-/* Return true if token is a functor(token that must take
-   arguments).  */
+// Return true if token is a functor(token that must take
+//   arguments).  
 
 class PcpSymtab
 {
 protected:
   PcpDynamicArray<PcpObject*>* entries;
   
-  /* Set entries of SYMTAB to ENTRIES.  */
+  // Set entries of SYMTAB to ENTRIES.  
   void
   setEntries(PcpDynamicArray<PcpObject*>* entries)
   {
     this->entries = entries;
   }
   
-  /* Get entries of SYMTAB.  */
+  // Get entries of SYMTAB.  
   PcpDynamicArray<PcpObject*>*
   getEntries()
   {
@@ -1438,34 +1447,34 @@ protected:
   
 public:
   
-  /* Return object with given NAME in SYMTAB, if it does not exist
-     return NULL.  */
-  PcpObject *
-  lookupName(const char *name)
+  // Return object with given NAME in SYMTAB, if it does not exist
+  //   return NULL.  
+  PcpObject* 
+  lookupName(const char* name)
   {
     PcpIterator<PcpObject*>* symtabIter = this->getEntries()->getIterator();
     for(;symtabIter->hasNext(); symtabIter->next())
       {
-	PcpObject *entry = symtabIter->get();
-	const char *entryName = entry->getName();
+	PcpObject* entry = symtabIter->get();
+	const char* entryName = entry->getName();
 	if(strcmp(name, entryName) == 0)
 	  return entry;
       }
     return NULL;
   }
   
-  /* Lookup TOKEN's string in SYMTAB.  */
-  PcpObject *
-  lookup(PcpToken *token)
+  // Lookup TOKEN's string in SYMTAB.  
+  PcpObject* 
+  lookup(PcpToken* token)
   {
-    const char *name = token->getString();
+    const char* name = token->getString();
     return this->lookupName(name);
   }
   
   
-  /* Insert OBJECT in SYMTAB.  */
+  // Insert OBJECT in SYMTAB.  
   void
-  insert(PcpObject *object)
+  insert(PcpObject* object)
   {
     PcpObject* existingObject = 
       this->lookupName(object->getName());
@@ -1474,7 +1483,7 @@ public:
     this->getEntries()->add(object);
   }
   
-  /* Create new symbol table. */
+  // Create new symbol table. 
   PcpSymtab()
   {
     this->setEntries(new PcpDynamicArray<PcpObject*>(5));
@@ -1482,7 +1491,7 @@ public:
 };
 
 
-/* PCP Ast Parser */
+// PCP Ast Parser 
 
 void
 PcpParser::setSymtab(PcpSymtab* symtab)
@@ -1490,49 +1499,49 @@ PcpParser::setSymtab(PcpSymtab* symtab)
   this->symtab = symtab;
 }
   
-/* Get symbol table in CONTEXT.  */
+// Get symbol table in CONTEXT.  
 PcpSymtab*
 PcpParser::getSymtab()
 {
   return this->symtab;
 }
   
-/* Set parser CONTEXT to add annotations to ADDLineAnnots.  */ 
+// Set parser CONTEXT to add annotations to ADDLineAnnots.   
 void
 PcpParser::setAddLineAnnots(bool addLineAnnots)
 {
   this->addLineAnnots = addLineAnnots;
 }
   
-/* Return if parser CONTEXT should insert line annotations.  */
+// Return if parser CONTEXT should insert line annotations.  
 bool
 PcpParser::getAddLineAnnots()
 {
   return this->addLineAnnots;
 }
 
-/* Set file name in CONTEXT to FILEName.  */
+// Set file name in CONTEXT to FILEName.  
 void
-PcpParser::setFileName(const char *fileName)
+PcpParser::setFileName(const char* fileName)
 {
   this->fileName = fileName;
 }
 
-/* Get file name in CONTEXT.  */
-const char *
+// Get file name in CONTEXT.  
+const char* 
 PcpParser::getFileName()
 {
   return this->fileName;
 }
 
 
-/* Parse NUMERAL and return created constant.  */
-PcpConstant *
+// Parse NUMERAL and return created constant.  
+PcpConstant* 
 PcpParser::parseNumeral(PcpAst* numeral)
 {
   int value;
-  PcpConstant *result;
-  PcpToken *token = numeral->getToken();
+  PcpConstant* result;
+  PcpToken* token = numeral->getToken();
 
   if(!token->isNumeral())
     pcpParseError("Expected numeral");
@@ -1543,14 +1552,13 @@ PcpParser::parseNumeral(PcpAst* numeral)
 }
 
 void
-PcpParser::addLineAnnot(PcpObject *object, PcpAst* ast)
+PcpParser::addLineAnnot(PcpObject* object, PcpAst* ast)
 {
-  if(this->getAddLineAnnots() && 
-     !object->containsAnnotWithTag("lineinfo"))
+  if(this->getAddLineAnnots() && !object->containsAnnotWithTag("lineinfo"))
     {
-      PcpAnnotTermBuilder *termBuilder = new PcpAnnotTermBuilder();
-      const char *filename = this->getFileName();
-      PcpAnnotString *filenameAnnot = new PcpAnnotString(filename);
+      PcpAnnotTermBuilder* termBuilder = new PcpAnnotTermBuilder();
+      const char* filename = this->getFileName();
+      PcpAnnotString* filenameAnnot = new PcpAnnotString(filename);
       PcpAnnotInt* lineNumberAnnot = 
 	new PcpAnnotInt(ast->getToken()->getLineNumber());
       PcpAnnotTerm* lineinfoAnnot = NULL;
@@ -1564,17 +1572,17 @@ PcpParser::addLineAnnot(PcpObject *object, PcpAst* ast)
     }
 }
 
-/* Register OBJECT in SYMTAB with TOKENAst's token string. If
-   TOKENAst is NULL or the string is NULL do nothing. */
+// Register OBJECT in SYMTAB with TOKENAst's token string. If
+//   TOKENAst is NULL or the string is NULL do nothing. 
 void
 PcpParser::parseCommonObjectAttributes(PcpAst* ast,
-				       PcpObject *object)
+				       PcpObject* object)
 {
   PcpSymtab* symtab = this->getSymtab();
-  PcpToken *tokenName = ast->getName();
+  PcpToken* tokenName = ast->getName();
   if(tokenName != NULL && tokenName->getString() != NULL)
     {
-      const char *name = tokenName->getString();
+      const char* name = tokenName->getString();
       object->setName(name);
       symtab->insert(object);
     }
@@ -1582,8 +1590,8 @@ PcpParser::parseCommonObjectAttributes(PcpAst* ast,
   this->addLineAnnot(object, ast);
 }
 
-/* Parse MULTIPLY and return the created pcp multiply object.  */
-PcpArith *
+// Parse MULTIPLY and return the created pcp multiply object.  
+PcpArith* 
 PcpParser::parseMultiply(PcpAst* multiply)
 {
   int numChildren = multiply->getNumChildren();
@@ -1593,10 +1601,10 @@ PcpParser::parseMultiply(PcpAst* multiply)
     {
       PcpSymtab* symtab = this->getSymtab();
       PcpAst* lhsAst = multiply->getChild(0);
-      PcpToken *lhsToken = lhsAst->getToken();
+      PcpToken* lhsToken = lhsAst->getToken();
       PcpAst* rhsAst = multiply->getChild(1);
-      PcpToken *rhsToken = rhsAst->getToken();
-      PcpObject *rhsObject;
+      PcpToken* rhsToken = rhsAst->getToken();
+      PcpObject* rhsObject;
 
       if(!lhsToken->isNumeral())
 	pcpParseError("Expected constant as lhs of multiply");
@@ -1610,7 +1618,7 @@ PcpParser::parseMultiply(PcpAst* multiply)
 	pcpParseError("Expected iv as rhs of multiply");
       else
 	{
-	  PcpArith *multiplyObject =
+	  PcpArith* multiplyObject =
 	    PcpArith::pcpArithBinaryCreate(PcpArithOperator::multiply(),
 					   this->parseNumeral(lhsAst),
 					   rhsObject->toIv());
@@ -1620,16 +1628,16 @@ PcpParser::parseMultiply(PcpAst* multiply)
   return NULL;
 }
 
-/* Parse AST and return the created pcp expression.  */
-PcpExpr *
+// Parse AST and return the created pcp expression.  
+PcpExpr* 
 PcpParser::parseScalarIdentifier(PcpAst* ast)
 {
   PcpSymtab* symtab = this->getSymtab();
-  PcpToken *token = ast->getToken();
-  PcpObject *result = symtab->lookup(token);
+  PcpToken* token = ast->getToken();
+  PcpObject* result = symtab->lookup(token);
   if(ast->getHasChildren()
      || result == NULL
-     ||(!result->isParameter() && !result->isIv()))
+     || (!result->isParameter() && !result->isIv()))
     pcpParseError("Expected scalar value");
   return result->toExpr();
 }
@@ -1658,8 +1666,8 @@ bool PcpParser::pcpTokenIsOperator(PcpToken* operatorToken)
   return !this->parseArithOperator(operatorToken).isUnknown();
 }
 
-/* Parse AST(add or subtract ast) and return the created pcp expression.  */
-PcpExpr *
+// Parse AST(add or subtract ast) and return the created pcp expression.  
+PcpExpr* 
 PcpParser::parseArith(PcpAst* ast)
 {
   int numChildren = ast->getNumChildren();
@@ -1671,8 +1679,7 @@ PcpParser::parseArith(PcpAst* ast)
 
   if(oper.isUnknown())
     pcpParseError("Not a valid operator");
-  if(oper.isSubtract()
-     &&(numChildren > 2 || numChildren < 1))
+  if(oper.isSubtract() && (numChildren > 2 || numChildren < 1))
     pcpParseError("Wrong number of arguments to subtract");
   if(numChildren < 2)
     pcpParseError("Too few arguments to arith");
@@ -1688,12 +1695,12 @@ PcpParser::parseArith(PcpAst* ast)
   return arith;
 }
 
-/* Parse AST and return the created pcp expression.  */
-PcpExpr *
+// Parse AST and return the created pcp expression.  
+PcpExpr* 
 PcpParser::parseLinearExpr(PcpAst* ast)
 {
-  PcpExpr *result;
-  PcpToken *token = ast->getToken();
+  PcpExpr* result;
+  PcpToken* token = ast->getToken();
   if(token->isNumeral())
     result = this->parseNumeral(ast);
   else if(token->isIdentifier())
@@ -1713,14 +1720,14 @@ PcpParser::parseLinearExpr(PcpAst* ast)
   return result;
 }
 
-/* Parse AST and return the created comparison(eq or ge).  */
-PcpBoolExpr *
+// Parse AST and return the created comparison(eq or ge).  
+PcpBoolExpr* 
 PcpParser::parseComparison(PcpAst* ast)
 {
   int numChildren = ast->getNumChildren();
-  PcpToken *token = ast->getToken();
-  PcpExpr *lhs;
-  PcpExpr *rhs;
+  PcpToken* token = ast->getToken();
+  PcpExpr* lhs;
+  PcpExpr* rhs;
 
   if(numChildren != 2)
     pcpParseError("Wrong number of arguments to eq/ge");
@@ -1752,7 +1759,7 @@ bool PcpParser::pcpTokenIsBoolArithOperator(PcpToken* operatorToken)
   return !this->parseBoolArithOperator(operatorToken).isUnknown();
 }
 
-PcpBoolExpr *
+PcpBoolExpr* 
 PcpParser::parseBoolArith(PcpAst* ast)
 {
   int numChildren = ast->getNumChildren();
@@ -1779,11 +1786,11 @@ PcpParser::parseBoolArith(PcpAst* ast)
   return boolArith;
 }
 
-/* Parse ast and return the created pcp boolean expression.  */
-PcpBoolExpr *
+// Parse ast and return the created pcp boolean expression.  
+PcpBoolExpr* 
 PcpParser::parseBoolExpr(PcpAst* ast)
 {
-  PcpToken *token = ast->getToken();
+  PcpToken* token = ast->getToken();
   PcpBoolExpr* result = NULL;
   if(token->isEq() || token->isGe())
     result = this->parseComparison(ast);
@@ -1799,14 +1806,14 @@ PcpParser::parseBoolExpr(PcpAst* ast)
   return result;
 }
 
-/* Parse AST(identifier) and return the corresponding object from
-   SYMTAB. If the identifier does not exist in SYMTAB
-   report as error and return NULL. */
-PcpObject *
+// Parse AST(identifier) and return the corresponding object from
+//   SYMTAB. If the identifier does not exist in SYMTAB
+//   report as error and return NULL. 
+PcpObject* 
 PcpParser::parseIdentifier(PcpAst* ast)
 {
-  PcpObject *result = NULL;
-  PcpToken *token = ast->getToken();
+  PcpObject* result = NULL;
+  PcpToken* token = ast->getToken();
 
   if(!ast->getHasChildren())
     {
@@ -1818,16 +1825,16 @@ PcpParser::parseIdentifier(PcpAst* ast)
   return result;
 }
 
-/* Parse ast(array access ast) and return the created array access.  */
-PcpArrayAccess *
+// Parse ast(array access ast) and return the created array access.  
+PcpArrayAccess* 
 PcpParser::parseArrayAccess(PcpAst* ast)
 {
   int numChildren = ast->getNumChildren();
-  PcpToken *token = ast->getToken();
-  PcpArrayAccessBuilder *builder;
+  PcpToken* token = ast->getToken();
+  PcpArrayAccessBuilder* builder;
   int i;
-  PcpArrayAccess *result;
-  PcpObject *base;
+  PcpArrayAccess* result;
+  PcpObject* base;
 
   if(numChildren < 1)
     {
@@ -1842,7 +1849,7 @@ PcpParser::parseArrayAccess(PcpAst* ast)
 
   for(i = 1; i < numChildren; i++)
     {
-      PcpExpr *subscript =
+      PcpExpr* subscript =
 	this->parseLinearExpr(ast->getChild(i));
       builder->addSubscript(subscript);
     }
@@ -1864,27 +1871,27 @@ PcpParser::parseArrayAccess(PcpAst* ast)
   return result;
 }
 
-/* Return true if TOKEN is empty or an unknown symbol in
-   SYMTAB.  */
+// Return true if TOKEN is empty or an unknown symbol in
+//   SYMTAB.  
 bool
-PcpParser::parseTokenIsUnknownSymbol(PcpToken *token)
+PcpParser::parseTokenIsUnknownSymbol(PcpToken* token)
 {
   PcpSymtab* symtab = this->getSymtab();
-  return(token->getString() != NULL
+  return(token->getString() != NULL 
 	 && token->isIdentifier()
 	 && symtab->lookup(token) == NULL);
 }
 
 
-/* Parse USERStmt and return the created pcp user statement.  */
-PcpUserStmt *
+// Parse USERStmt and return the created pcp user statement.  
+PcpUserStmt* 
 PcpParser::parseUserStmt(PcpAst* userStmt)
 {
-  PcpUserStmt *result;
-  PcpUserStmtBuilder *builder;
+  PcpUserStmt* result;
+  PcpUserStmtBuilder* builder;
   int numChildren = userStmt->getNumChildren();
-  PcpToken *token = userStmt->getToken();
-  const char *tokenName = token->getString();
+  PcpToken* token = userStmt->getToken();
+  const char* tokenName = token->getString();
   int i;
 
   if(!this->parseTokenIsUnknownSymbol(token))
@@ -1899,7 +1906,7 @@ PcpParser::parseUserStmt(PcpAst* userStmt)
 
   for(i = 0; i < numChildren; i++)
     {
-      PcpArrayAccess *access =
+      PcpArrayAccess* access =
 	this->parseArrayAccess(userStmt->getChild(i));
       builder->addAccess(access);
     }
@@ -1908,15 +1915,15 @@ PcpParser::parseUserStmt(PcpAst* userStmt)
   return result;
 }
 
-/* Parse COPY and return the created pcp copy.  */
-PcpCopy *
+// Parse COPY and return the created pcp copy.  
+PcpCopy* 
 PcpParser::parseCopy(PcpAst* copy)
 {
-  PcpToken *token = copy->getToken();
+  PcpToken* token = copy->getToken();
   int numChildren = copy->getNumChildren();
-  PcpArrayAccess *dest;
-  PcpArrayAccess *src;
-  PcpCopy *result;
+  PcpArrayAccess* dest;
+  PcpArrayAccess* src;
+  PcpCopy* result;
 
   if(!token->isCopy())
     {
@@ -1946,14 +1953,14 @@ PcpParser::parseCopy(PcpAst* copy)
   return result;
 }
 
-/* Parse SEQUENCE and return the created pcp statement sequence.  */
-PcpSequence *
+// Parse SEQUENCE and return the created pcp statement sequence.  
+PcpSequence* 
 PcpParser::parseSequence(PcpAst* sequence)
 {
-  PcpToken *token = sequence->getToken();
+  PcpToken* token = sequence->getToken();
   int numChildren = sequence->getNumChildren();
-  PcpSequenceBuilder *builder;
-  PcpSequence *result;
+  PcpSequenceBuilder* builder;
+  PcpSequence* result;
   int i;
 
   if(!token->isSequence())
@@ -1964,22 +1971,22 @@ PcpParser::parseSequence(PcpAst* sequence)
   builder = new PcpSequenceBuilder();
   for(i = 0; i < numChildren; i++)
     {
-      PcpStmt *stmt = this->parseStmt(sequence->getChild(i));
+      PcpStmt* stmt = this->parseStmt(sequence->getChild(i));
       builder->add(stmt);
     }
   result = builder->createSequence();
   return result;
 }
 
-/* Parse GUARD and return the created pcp guard.  */
-PcpGuard *
+// Parse GUARD and return the created pcp guard.  
+PcpGuard* 
 PcpParser::parseGuard(PcpAst* guard)
 {
-  PcpToken *token = guard->getToken();
+  PcpToken* token = guard->getToken();
   int numChildren = guard->getNumChildren();
-  PcpBoolExpr *condition;
-  PcpStmt *body;
-  PcpGuard *result;
+  PcpBoolExpr* condition;
+  PcpStmt* body;
+  PcpGuard* result;
 
   if(!token->isGuard())
     {
@@ -1999,14 +2006,14 @@ PcpParser::parseGuard(PcpAst* guard)
   return result;
 }
 
-/* Parse IV and return the created pcp iv.  */
-PcpIv *
+// Parse IV and return the created pcp iv.  
+PcpIv* 
 PcpParser::parseIv(PcpAst* iv)
 {
-  PcpToken *token = iv->getToken();
+  PcpToken* token = iv->getToken();
   int numChildren = iv->getNumChildren();
-  const char *tokenString = token->getString();
-  PcpIv *result;
+  const char* tokenString = token->getString();
+  PcpIv* result;
 
   if(!token->isIv())
     {
@@ -2028,18 +2035,18 @@ PcpParser::parseIv(PcpAst* iv)
   return result;
 }
 
-/* Parse LOOP and return the created pcp loop.  */
-PcpLoop *
+// Parse LOOP and return the created pcp loop.  
+PcpLoop* 
 PcpParser::parseLoop(PcpAst* loop)
 {
-  PcpToken *token = loop->getToken();
+  PcpToken* token = loop->getToken();
   int numChildren = loop->getNumChildren();
-  PcpIv *iv;
-  PcpExpr *start;
-  PcpBoolExpr *end;
-  PcpConstant *stride;
-  PcpStmt *body;
-  PcpLoop *result;
+  PcpIv* iv;
+  PcpExpr* start;
+  PcpBoolExpr* end;
+  PcpConstant* stride;
+  PcpStmt* body;
+  PcpLoop* result;
 
   if(!token->isLoop())
     {
@@ -2067,12 +2074,12 @@ PcpParser::parseLoop(PcpAst* loop)
 }
 
 
-/* Parse STMT and return the created pcp statement.  */
-PcpStmt *
+// Parse STMT and return the created pcp statement.  
+PcpStmt* 
 PcpParser::parseStmt(PcpAst* stmt)
 {
-  PcpToken *token = stmt->getToken();
-  PcpStmt *result = NULL;
+  PcpToken* token = stmt->getToken();
+  PcpStmt* result = NULL;
   if(token->isCopy())
     result = this->parseCopy(stmt);
   else if(this->parseTokenIsUnknownSymbol(token))
@@ -2094,9 +2101,9 @@ PcpParser::parseStmt(PcpAst* stmt)
 
 void
 PcpParser::parseScopInoutput(PcpAst* inoutput,
-			     PcpScopBuilder *builder)
+			     PcpScopBuilder* builder)
 {
-  PcpToken *token = inoutput->getToken();
+  PcpToken* token = inoutput->getToken();
   int numChildren = inoutput->getNumChildren();
   int i;
 
@@ -2109,17 +2116,17 @@ PcpParser::parseScopInoutput(PcpAst* inoutput,
   for(i = 0; i < numChildren; i++)
     {
       PcpAst* child = inoutput->getChild(i);
-      PcpToken *childToken = child->getToken();
+      PcpToken* childToken = child->getToken();
       if(childToken->isIdentifier())
 	{
-	  PcpObject *object = this->parseIdentifier(child);
+	  PcpObject* object = this->parseIdentifier(child);
 	  if(object == NULL)
 	    pcpParseError("Unknown identifier in scop input/output list");
 	  else if(!object->isVariable())
 	    pcpParseError("Non variable found in scop input/output list");
 	  else
 	    {
-	      PcpVariable *variable = object->toVariable();
+	      PcpVariable* variable = object->toVariable();
 	      builder->addVariable(variable);
 	      if(token->isInput())
 		variable->setIsInput(true);
@@ -2134,9 +2141,9 @@ PcpParser::parseScopInoutput(PcpAst* inoutput,
 
 void
 PcpParser::parseScopParameters(PcpAst* parameters,
-			       PcpScopBuilder *builder)
+			       PcpScopBuilder* builder)
 {
-  PcpToken *token = parameters->getToken();
+  PcpToken* token = parameters->getToken();
   int numChildren = parameters->getNumChildren();
   int i;
 
@@ -2149,17 +2156,17 @@ PcpParser::parseScopParameters(PcpAst* parameters,
   for(i = 0; i < numChildren; i++)
     {
       PcpAst* child = parameters->getChild(i);
-      PcpToken *childToken = child->getToken();
+      PcpToken* childToken = child->getToken();
       if(childToken->isIdentifier())
 	{
-	  PcpObject *object = this->parseIdentifier(child);
+	  PcpObject* object = this->parseIdentifier(child);
 	  if(object == NULL)
 	    pcpParseError("Unknown identifier in scop parameter list");
 	  else if(!object->isParameter())
 	    pcpParseError("Non parameter found in scop parameter list");
 	  else
 	    {
-	      PcpParameter *parameter = object->toParameter();
+	      PcpParameter* parameter = object->toParameter();
 	      builder->addParameter(parameter);
 	    }
 	}
@@ -2168,14 +2175,14 @@ PcpParser::parseScopParameters(PcpAst* parameters,
     }
 }
 
-PcpScop *
+PcpScop* 
 PcpParser::parseScop(PcpAst* scop)
 {
-  PcpScop *result = NULL;
-  PcpToken *token = scop->getToken();
+  PcpScop* result = NULL;
+  PcpToken* token = scop->getToken();
   int numChildren = scop->getNumChildren();
-  PcpScopBuilder *builder;
-  PcpStmt *body;
+  PcpScopBuilder* builder;
+  PcpStmt* body;
   int i;
 
   if(!token->isScop())
@@ -2191,18 +2198,18 @@ PcpParser::parseScop(PcpAst* scop)
 
   builder = new PcpScopBuilder();
 
-  /* Parse everythin except the body.  */
+  // Parse everythin except the body.  
   for(i = 0; i < numChildren - 1; i++)
     {
       PcpAst* child = scop->getChild(i);
-      PcpToken *childToken = child->getToken();
+      PcpToken* childToken = child->getToken();
       if(childToken->isInput() || childToken->isOutput())
 	this->parseScopInoutput(child, builder);
       else if(childToken->isParameters())
 	this->parseScopParameters(child, builder);
     }
 
-  /* Parse body.  */
+  // Parse body.  
   body = this->parseStmt(scop->getChild(numChildren - 1));
   builder->setBody(body);
   result = builder->createScop();
@@ -2210,13 +2217,13 @@ PcpParser::parseScop(PcpAst* scop)
   return result;
 }
 
-PcpArrayType *
+PcpArrayType* 
 PcpParser::parseArrayType(PcpAst* arrayType)
 {
-  PcpToken *token = arrayType->getToken();
+  PcpToken* token = arrayType->getToken();
   int numChildren = arrayType->getNumChildren();
-  PcpArrayTypeBuilder *builder;
-  PcpArrayType *type;
+  PcpArrayTypeBuilder* builder;
+  PcpArrayType* type;
   int i;
 
   if(!token->isArray())
@@ -2231,7 +2238,7 @@ PcpParser::parseArrayType(PcpAst* arrayType)
     {
       PcpAst* child = arrayType->getChild(i);
       PcpToken* childToken = child->getToken();
-      PcpExpr *dim = NULL;
+      PcpExpr* dim = NULL;
       if(childToken->isNumeral())
 	dim = this->parseNumeral(child);
       else if(childToken->isIdentifier())
@@ -2254,15 +2261,15 @@ PcpParser::parseArrayType(PcpAst* arrayType)
   return type;
 }
 
-PcpVariable *
+PcpVariable* 
 PcpParser::parseVariable(PcpAst* array)
 {
-  PcpToken *token = array->getToken();
+  PcpToken* token = array->getToken();
   int numChildren = array->getNumChildren();
-  PcpArrayType *type;
-  PcpVariable *result;
-  PcpToken *nameToken = array->getName();
-  const char *name = nameToken != NULL ? nameToken->getString() : NULL;
+  PcpArrayType* type;
+  PcpVariable* result;
+  PcpToken* nameToken = array->getName();
+  const char* name = nameToken != NULL ? nameToken->getString() : NULL;
   PcpAst* typeAst;
   PcpToken* typeToken;
 
@@ -2303,8 +2310,8 @@ PcpAnnotTerm*
 PcpParser::pcpParseAnnotTerm(PcpAst* termAst)
 {
   int numChildren = termAst->getNumChildren();
-  PcpToken *token = termAst->getToken();
-  PcpAnnotTermBuilder *termBuilder = NULL;
+  PcpToken* token = termAst->getToken();
+  PcpAnnotTermBuilder* termBuilder = NULL;
   int i;
   if(!token->isIdentifier())
     {
@@ -2325,7 +2332,7 @@ PcpParser::pcpParseAnnotTerm(PcpAst* termAst)
 PcpAnnot*
 PcpParser::pcpParseAnnot(PcpAst* annotAst)
 {
-  PcpToken *token = annotAst->getToken();
+  PcpToken* token = annotAst->getToken();
   if(!annotAst->getHasChildren())
     {
       if(token->isNumeral())
@@ -2338,7 +2345,7 @@ PcpParser::pcpParseAnnot(PcpAst* annotAst)
 	{
 	  PcpSymtab* symtab = this->getSymtab();
 	  const char* tokenString = token->getString();
-	  PcpObject *object = symtab->lookup(token);
+	  PcpObject* object = symtab->lookup(token);
 	  if(object != NULL)
 	    return new PcpAnnotObject(object);
 	  else
@@ -2355,14 +2362,14 @@ PcpParser::pcpParseAnnot(PcpAst* annotAst)
 }
 
 void
-PcpParser::parseAnnots(PcpObject *object, PcpAst* objectAst)
+PcpParser::parseAnnots(PcpObject* object, PcpAst* objectAst)
 {
   int numAnnots = objectAst->getNumAnnots();
   int i;
   for(i = 0; i < numAnnots; i++)
     {
       PcpAst* annotAst = objectAst->getAnnot(i);
-      PcpAnnotTerm *annot = pcpParseAnnotTerm(annotAst);
+      PcpAnnotTerm* annot = pcpParseAnnotTerm(annotAst);
       if(annot != NULL)
 	{
 	  object->addAnnot(annot);
@@ -2370,14 +2377,14 @@ PcpParser::parseAnnots(PcpObject *object, PcpAst* objectAst)
     }
 }
 
-PcpParameter *
+PcpParameter* 
 PcpParser::parseParameter(PcpAst* parameter)
 {
-  PcpToken *token = parameter->getToken();
+  PcpToken* token = parameter->getToken();
   int numChildren = parameter->getNumChildren();
-  PcpToken *nameToken = parameter->getName();
-  PcpParameter *result = NULL;
-  const char *name = nameToken != NULL ? nameToken->getString() : NULL;
+  PcpToken* nameToken = parameter->getName();
+  PcpParameter* result = NULL;
+  const char* name = nameToken != NULL ? nameToken->getString() : NULL;
 
   if(!token->isParameter())
     {
@@ -2404,10 +2411,10 @@ PcpParser::parseParameter(PcpAst* parameter)
   return result;
 }
 
-PcpScop *
+PcpScop* 
 PcpParser::pcpAstParseTopLevel(PcpAst* program)
 {
-  PcpToken *token = program->getToken();
+  PcpToken* token = program->getToken();
   int numChildren = program->getNumChildren();
   int i;
 
@@ -2419,9 +2426,9 @@ PcpParser::pcpAstParseTopLevel(PcpAst* program)
   for(i = 0; i < numChildren; i++)
     {
       PcpAst* child = program->getChild(i);
-      PcpToken *childToken = child->getToken();
+      PcpToken* childToken = child->getToken();
 
-      /* We allow parameter, array and scop constructs. */
+      // We allow parameter, array and scop constructs. 
       if(childToken->isVariable())
 	this->parseVariable(child);
       else if(childToken->isArray())
@@ -2445,19 +2452,19 @@ PcpParser::PcpParser()
   this->setFileName("unknown");
   this->setAddLineAnnots(true);
 }
-PcpScop *
-pcp_parse_scop(const char *source)
+PcpScop* 
+pcp_parse_scop(const char* source)
 {
   PcpTokenizer* tokenizer = new PcpTokenizer(source);
   PcpAst* ast = PcpAst::parse(tokenizer);
-  PcpScop *scop;
+  PcpScop* scop;
   PcpParser* parser = new PcpParser();
   scop = parser->pcpAstParseTopLevel(ast);
   return scop;
 }
 
-PcpScop *
-pcp_parse_scop_in_file(const char *filename)
+PcpScop* 
+pcp_parse_scop_in_file(const char* filename)
 {
   char* buffer;
   FILE* file = fopen(filename, "r");

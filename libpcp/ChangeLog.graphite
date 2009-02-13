@@ -1,3 +1,21 @@
+2009-02-13  Jan Sjodin  <jan.sjodin@amd.com>
+	* pcp_error.cc: Made all comments into C++ style. Made all pointer 
+	  types written in a consistent way.
+	* pcp_error.h: Same
+	* pcp_alloc.h: Same
+	* pcp_parser.cc: Same
+	* pcp_set.h: Same
+	* pcp_parser.h: Same
+	* pcp_string_buffer.cc: Same
+	* pcp_string_buffer.h: Same
+	* pcp_emitter.cc: Same
+	* pcp_emitter.h: Same
+	* pcp.cc: Same
+	* pcp.h: Same
+	* pcp_c.cc: Same
+	* pcp_dynamic_array.h: Same
+	* pcp_c.h: Same
+
 2009-02-12  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* ChangeLog.graphite: New.

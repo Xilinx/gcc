@@ -1,31 +1,31 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
-   Contributed by Jan Sjodin <jan.sjodin@amd.com>.
+// Copyright (C) 2009 Free Software Foundation, Inc.
+// Contributed by Jan Sjodin <jan.sjodin@amd.com>.
 
-   This file is part of the Polyhedral Compilatino Package Library (libpcp).
+// This file is part of the Polyhedral Compilation Package Library (libpcp).
 
-   Libpcp is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1 of the License, or
-   (at your option) any later version.
+// Libpcp is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or
+// (at your option) any later version.
 
-   Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-   more details.
+// Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+// more details.
 
-   You should have received a copy of the GNU Lesser General Public License 
-   along with libpcp; see the file COPYING.LIB.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+// You should have received a copy of the GNU Lesser General Public License 
+// along with libpcp; see the file COPYING.LIB.  If not, write to the
+// Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+// MA 02110-1301, USA.  
 
-/* As a special exception, if you link this library with other files, some
-   of which are compiled with GCC, to produce an executable, this library
-   does not by itself cause the resulting executable to be covered by the
-   GNU General Public License.  This exception does not however invalidate
-   any other reasons why the executable file might be covered by the GNU
-   General Public License.  */
+// As a special exception, if you link this library with other files, some
+// of which are compiled with GCC, to produce an executable, this library
+// does not by itself cause the resulting executable to be covered by the
+// GNU General Public License.  This exception does not however invalidate
+// any other reasons why the executable file might be covered by the GNU
+// General Public License.  
 
-/* PCP String Buffer */
+// PCP String Buffer 
 #ifndef _PCP_STRING_BUFFER_
 #define _PCP_STRING_BUFFER_
 
@@ -37,13 +37,13 @@ class PcpStringBuffer
  protected:
   int size;
   int capacity;
-  char *buffer;
+  char* buffer;
 
   virtual void setSize(int size);
   virtual void setCapacity(int capacity);
   virtual int getCapacity();
-  virtual void setBuffer(char *rawBuffer);
-  virtual char *getBuffer();
+  virtual void setBuffer(char* rawBuffer);
+  virtual char* getBuffer();
   virtual void ensureCapacity(int capacity);
 
  public:
@@ -54,13 +54,13 @@ class PcpStringBuffer
   virtual int getSize();
   
   // Convert BUFFER to string.  
-  virtual const char *toString();
+  virtual const char* toString();
   
   // Create a new string buffer.  
   PcpStringBuffer();
   
   // Append STRING to BUFFER.  
-  virtual void append(const char *string);
+  virtual void append(const char* string);
   
   // Append newline to BUFFER.  
   virtual void newline();
@@ -72,11 +72,11 @@ class PcpStringBuffer
   virtual void appendInt(int value);
   
   // Append integer PTR to BUFFER.  
-  virtual void appendPointer(void *ptr);
+  virtual void appendPointer(void* ptr);
   
   // Append BUFFER2 to BUFFER.  
-  virtual void appendBuffer(PcpStringBuffer *buffer2);
+  virtual void appendBuffer(PcpStringBuffer* buffer2);
 
 };
 
-#endif /* _PCP_STRING_BUFFER_ */
+#endif // _PCP_STRING_BUFFER_ 

@@ -1,36 +1,37 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
-   Contributed by Jan Sjodin <jan.sjodin@amd.com>.
+// Copyright (C) 2009 Free Software Foundation, Inc.
+// Contributed by Jan Sjodin <jan.sjodin@amd.com>.
 
-   This file is part of the Polyhedral Compilatino Package Library (libpcp).
+// This file is part of the Polyhedral Compilation Package Library (libpcp).
 
-   Libpcp is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1 of the License, or
-   (at your option) any later version.
+// Libpcp is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or
+// (at your option) any later version.
 
-   Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-   more details.
+// Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+// more details.
 
-   You should have received a copy of the GNU Lesser General Public License 
-   along with libpcp; see the file COPYING.LIB.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+// You should have received a copy of the GNU Lesser General Public License 
+// along with libpcp; see the file COPYING.LIB.  If not, write to the
+// Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+// MA 02110-1301, USA.  
 
-/* As a special exception, if you link this library with other files, some
-   of which are compiled with GCC, to produce an executable, this library
-   does not by itself cause the resulting executable to be covered by the
-   GNU General Public License.  This exception does not however invalidate
-   any other reasons why the executable file might be covered by the GNU
-   General Public License.  */
+// As a special exception, if you link this library with other files, some
+// of which are compiled with GCC, to produce an executable, this library
+// does not by itself cause the resulting executable to be covered by the
+// GNU General Public License.  This exception does not however invalidate
+// any other reasons why the executable file might be covered by the GNU
+// General Public License.  
 
 #include "pcp_error.h"
 #include "pcp_alloc.h"
 #include "pcp.h"
 
-/* PCP Object */
+// PCP Object 
 
+// Initialize 
 void 
 PcpObject::initialize()
 {
@@ -38,41 +39,41 @@ PcpObject::initialize()
   setAnnots(NULL);
 }
 
-/* Set name of OBJECT to NAME.  */
+// Set name to NAME.  
 void
-PcpObject::setName(const char *name)
+PcpObject::setName(const char* name)
 {
   this->name = name;
 }
 
-/* Get name of OBJECT.  */
-const char *
+// Get name.  
+const char* 
 PcpObject::getName()
 {
   return this->name;
 }
 
-/* Set annotation of OBJECT to ANNOT.  */
+// Set annotation to ANNOT.  
 void
-PcpObject::setAnnots(PcpAnnotSet *annots)
+PcpObject::setAnnots(PcpAnnotSet* annots)
 {
   this->annots = annots;
 }
 
-/* Get number of annotations in OBJECT.  */
+// Get number of annotations.  
 int PcpObject::getNumAnnots()
 {
   return this->getAnnots() == NULL ? 0 : this->getAnnots()->getNumAnnots();
 }
 
-/* Get annotation in OBJECT with given INDEX.  */
+// Get annotation with given INDEX.  
 PcpAnnotTerm* PcpObject::getAnnot(int index)
 {
   pcpAssert(this->getAnnots() != NULL);
   return this->getAnnots()->getAnnot(index);
 }
 
-/* Get annotation in OBJECT with given TAG.  */
+// Get annotation with given TAG.  
 PcpAnnotTerm* PcpObject::getAnnotWithTag(const char* tag)
 {
   int numAnnots;
@@ -91,14 +92,14 @@ PcpAnnotTerm* PcpObject::getAnnotWithTag(const char* tag)
   return NULL;
 }
 
-/* Returns true if an annotation with given TAG exists in OBJECT.  */
+// Returns true if an annotation with given TAG exists.  
 bool
 PcpObject::containsAnnotWithTag(const char* tag)
 {
   return this->getAnnotWithTag(tag) != NULL;
 }
 
-/* Add ANNOT to OBJECT.  */
+// Add ANNOT 
 void PcpObject::addAnnot(PcpAnnotTerm* annot)
 {
   PcpAnnotSet* annots = this->getAnnots();
@@ -110,35 +111,35 @@ void PcpObject::addAnnot(PcpAnnotTerm* annot)
   annots->addAnnot(annot);
 }
 
-/* Get annotation of OBJECT.  */
+// Get annotations.  
 PcpAnnotSet*
 PcpObject::getAnnots()
 {
   return this->annots;
 }
 
-/* Return true if OBJECT is an array type.  */
+// Return true if this is an array type.  
 bool
 PcpObject::isArrayType()
 {
   return false;
 }
 
-/* Return true if OBJECT is an expr.  */
+// Return true if this is an expr.  
 bool
 PcpObject::isExpr()
 {
   return false;
 }
 
-/* Return true if OBJECT is an iv.  */
+// Return true if this is an iv.  
 bool
 PcpObject::isIv()
 {
   return false;
 }
 
-/* Return true if OBJECT is a parameter.  */
+// Return true if this is a parameter.  
 bool
 PcpObject::isParameter()
 {
@@ -146,143 +147,143 @@ PcpObject::isParameter()
 }
 
 
-/* Return true if OBJECT is a bool_expr.  */
+// Return true if this is a bool_expr.  
 bool
 PcpObject::isBoolExpr()
 {
   return false;
 }
 
-/* Return true if OBJECT is a variable.  */
+// Return true if this is a variable.  
 bool
 PcpObject::isVariable()
 {
   return false;
 }
 
-/* Return true if OBJECT is an array access.  */
+// Return true if this is an array access.  
 bool
 PcpObject::isArrayAccess()
 {
   return false;
 }
 
-/* Return true if OBJECT is a stmt.  */
+// Return true if this is a stmt.  
 bool
 PcpObject::isStmt()
 {
   return false;
 }
 
-/* Return true if OBJECT is a scop.  */
+// Return true if this is a scop.  
 bool
 PcpObject::isScop()
 {
   return false;
 }
 
-/* Cast OBJECT to array type.  */
-PcpArrayType *
+// Cast this to array type.  
+PcpArrayType* 
 PcpObject::toArrayType()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to expr.  */
-PcpExpr *
+// Cast this to expr.  
+PcpExpr* 
 PcpObject::toExpr()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to parameter.  */
-PcpParameter *
+// Cast this to parameter.  
+PcpParameter* 
 PcpObject::toParameter()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to IV.  */
-PcpIv *
+// Cast this to IV.  
+PcpIv* 
 PcpObject::toIv()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to bool expr.  */
-PcpBoolExpr *
+// Cast this to bool expr.  
+PcpBoolExpr* 
 PcpObject::toBoolExpr()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to variable.  */
-PcpVariable *
+// Cast this to variable.  
+PcpVariable* 
 PcpObject::toVariable()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to array access.  */
-PcpArrayAccess *
+// Cast this to array access.  
+PcpArrayAccess* 
 PcpObject::toArrayAccess()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to stmt.  */
-PcpStmt *
+// Cast this to stmt.  
+PcpStmt* 
 PcpObject::toStmt()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast OBJECT to scop.  */
-PcpScop *
+// Cast this to scop.  
+PcpScop* 
 PcpObject::toScop()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Set annotations array in ANNOTSet to ANNOTS.  */
+// Set annotations array in ANNOTSet to ANNOTS.  
 void 
 PcpAnnotSet::setAnnots(PcpDynamicArray<PcpAnnotTerm*>* annots)
 {
   this->annots = annots;
 }
 
-/* Get annotation array in ANNOTSet.  */
+// Get annotation array in ANNOTSet.  
 PcpDynamicArray<PcpAnnotTerm*>*  
 PcpAnnotSet::getAnnots()
 {
   return this->annots;
 }
 
-/* Get the annotation in ANNOTSet with given INDEX.  */
-PcpAnnotTerm *PcpAnnotSet::getAnnot(int index)
+// Get the annotation in ANNOTSet with given INDEX.  
+PcpAnnotTerm* PcpAnnotSet::getAnnot(int index)
 {
-  PcpAnnotTerm *result = this->getAnnots()->get(index);
+  PcpAnnotTerm* result = this->getAnnots()->get(index);
   return result;
 }
 
-/* Get number of annotations in ANNOTSet.  */
+// Get number of annotations in ANNOTSet.  
 int 
 PcpAnnotSet::getNumAnnots()
 {
   return this->getAnnots()->getSize();
 }
 
-/* Get the annotation with TAG in ANNOTSet.  */
-PcpAnnotTerm *PcpAnnotSet::getAnnotWithTag(const char *tag)
+// Get the annotation with TAG in ANNOTSet.  
+PcpAnnotTerm* PcpAnnotSet::getAnnotWithTag(const char* tag)
 {
   int i;
   int numAnnots = this->getNumAnnots();
@@ -296,10 +297,10 @@ PcpAnnotTerm *PcpAnnotSet::getAnnotWithTag(const char *tag)
   return NULL;
 }
 
-/* Add ANNOT to ANNOTSet. Assert that no previous annotation with the
-   same tag exists.  */
+// Add ANNOT to ANNOTSet. Assert that no previous annotation with the
+//   same tag exists.  
 void 
-PcpAnnotSet::addAnnot(PcpAnnotTerm *annot)
+PcpAnnotSet::addAnnot(PcpAnnotTerm* annot)
 {
   PcpAnnotTerm* existingTerm = this->getAnnotWithTag(annot->getTag());
   if(existingTerm != NULL)
@@ -318,81 +319,81 @@ PcpAnnotSet::PcpAnnotSet()
   this->setAnnots(annots);
 }
 
-/* Return true if ANNOT is an int.  */
+// Return true if ANNOT is an int.  
 bool
 PcpAnnot::isAnnotInt()
 {
   return false;
 }
 
-/* Return true if ANNOT is a string.  */
+// Return true if ANNOT is a string.  
 bool
 PcpAnnot::isAnnotString()
 {
   return false;
 }
 
-/* Return true if ANNOT is an object.  */
+// Return true if ANNOT is an object.  
 bool
 PcpAnnot::isAnnotObject()
 {
   return false;
 }
 
-/* Return true if ANNOT is a term.  */
+// Return true if ANNOT is a term.  
 bool
 PcpAnnot::isAnnotTerm()
 {
   return false;
 }
 
-/* Cast ANNOT to int.  */
-PcpAnnotInt *
+// Cast ANNOT to int.  
+PcpAnnotInt* 
 PcpAnnot::toAnnotInt()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast ANNOT to string.  */
-PcpAnnotString *
+// Cast ANNOT to string.  
+PcpAnnotString* 
 PcpAnnot::toAnnotString()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast ANNOT to object.  */
-PcpAnnotObject *
+// Cast ANNOT to object.  
+PcpAnnotObject* 
 PcpAnnot::toAnnotObject()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast ANNOT to term.  */
-PcpAnnotTerm *
+// Cast ANNOT to term.  
+PcpAnnotTerm* 
 PcpAnnot::toAnnotTerm()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Set value of ANNOTInt to VALUE.  */
+// Set value of ANNOTInt to VALUE.  
 void
 PcpAnnotInt::setValue(int value)
 {
   this->value = value;
 }
 
-/* Get value of ANNOTInt.  */
+// Get value of ANNOTInt.  
 int
 PcpAnnotInt::getValue()
 {
   return this->value;
 }
 
-/* Create annot int with given VALUE.  */
+// Create annot int with given VALUE.  
 PcpAnnotInt::PcpAnnotInt(int value)
 {
   this->setValue(value);
@@ -410,7 +411,7 @@ PcpAnnotInt::toAnnotInt()
   return this;
 }
 
-/* PcpAnnotString */
+// PcpAnnotString 
 bool PcpAnnotString::isAnnotString()
 {
   return true;
@@ -420,27 +421,27 @@ PcpAnnotString* PcpAnnotString::toAnnotString()
   return this;
 }
 
-/* Set string of ANNOTString to STRING.  */
+// Set string of ANNOTString to STRING.  
 void
-PcpAnnotString::setString(const char *string)
+PcpAnnotString::setString(const char* string)
 {
   this->string = string;
 }
 
-/* Get string of ANNOTString.  */
-const char *
+// Get string of ANNOTString.  
+const char* 
 PcpAnnotString::getString()
 {
   return this->string;
 }
 
-/* Create annot string with given STRING.  */
-PcpAnnotString::PcpAnnotString(const char *string)
+// Create annot string with given STRING.  
+PcpAnnotString::PcpAnnotString(const char* string)
 {
   this->setString(string);
 }
 
-/* PCP Annot Object */
+// PCP Annot Object 
 
 bool PcpAnnotObject::isAnnotObject()
 {
@@ -452,353 +453,369 @@ PcpAnnotObject* PcpAnnotObject::toAnnotObject()
   return this;
 }
 
-/* Set object of ANNOTObject to OBJECT.  */
+// Set object to OBJECT.  
 void
-PcpAnnotObject::setObject(PcpObject *object)
+PcpAnnotObject::setObject(PcpObject* object)
 {
   this->object = object;
 }
 
-/* Get object of ANNOTObject.  */
-PcpObject *
+// Get object.
+PcpObject* 
 PcpAnnotObject::getObject()
 {
   return this->object;
 }
 
-/* Create annot object with given OBJECT.  */
-PcpAnnotObject::PcpAnnotObject(PcpObject *object)
+// Create annot object with given OBJECT.  
+PcpAnnotObject::PcpAnnotObject(PcpObject* object)
 {
   this->setObject(object);
 }
 
-/* Pcp Annot Term */
+// Pcp Annot Term 
 
+// Return true if this is an annot term.
 bool PcpAnnotTerm::isAnnotTerm()
 {
   return true;
 }
 
+// Convert this to an annot term.
 PcpAnnotTerm* PcpAnnotTerm::toAnnotTerm()
 {
   return this;
 }
 
-/* Set tag of ANNOTTerm to TAG.  */
+// Set tag to TAG.  
 void
-PcpAnnotTerm::setTag(const char *tag)
+PcpAnnotTerm::setTag(const char* tag)
 {
   this->tag = tag;
 }
 
-/* Get tag of ANNOTTerm.  */
-const char *
+// Get tag.
+const char* 
 PcpAnnotTerm::getTag()
 {
   return this->tag;
 }
 
-/* Return true if ANNOTTerm tag equals TAG.  */
+// Return true if tag equals TAG.  
 bool
 PcpAnnotTerm::tagEquals(const char* tag)
 {
   return strcmp(tag, this->getTag()) == 0;
 }
 
-/* Get number of arguments of ANNOTTerm.  */
+// Get number of arguments.
 int
 PcpAnnotTerm::getNumArguments()
 {
   return this->getArguments()->getSize();
 }
 
-/* Set arguments of ANNOTTerm to ARGUMENTS.  */
+// Set arguments to ARGUMENTS.  
 void
 PcpAnnotTerm::setArguments(PcpArray<PcpAnnot*>* arguments)
 {
   this->arguments = arguments;
 }
 
-/* Get arguments of ANNOTTerm.  */
+// Get arguments.
 PcpArray<PcpAnnot*>*
 PcpAnnotTerm::getArguments()
 {
   return this->arguments;
 }
 
-/* Set ANNOTTerm argument with given INDENT to ANNOT.  */
+// Set argument with given INDENT to ANNOT.  
 void
-PcpAnnotTerm::setArgument(int index, PcpAnnot *annot)
+PcpAnnotTerm::setArgument(int index, PcpAnnot* annot)
 {
   this->getArguments()->set(index, annot);
 }
 
-/* Get ANNOTTerm argument with given INDEX.  */
-PcpAnnot *
+// Get argument with given INDEX.  
+PcpAnnot* 
 PcpAnnotTerm::getArgument(int index)
 {
   return this->getArguments()->get(index);
 }
 
-/* Create ANNOTTerm with TAG, and ARGUMENTS of length NUMArguments.  */
+// Create annot term with TAG, and ARGUMENTS.
 PcpAnnotTerm::PcpAnnotTerm(const char* tag, PcpArray<PcpAnnot*>* arguments)
 {
   this->setTag(tag);
   this->setArguments(arguments);
 }
 
-/* PCP Annot Term Builder */
+// PCP Annot Term Builder 
 
-/* Set tag of BUILDER to TAG.  */
+// Set tag to TAG.  
 void
-PcpAnnotTermBuilder::setTag(const char *tag)
+PcpAnnotTermBuilder::setTag(const char* tag)
 {
   this->tag = tag;
 }
 
-/* Get tag of BUILDER.  */
-const char *
+// Get tag.
+const char* 
 PcpAnnotTermBuilder::getTag()
 {
   return this->tag;
 }
 
-/* Set arguments of BUILDER to ARGUMENTS.  */
+// Set arguments to ARGUMENTS.  
 void
 PcpAnnotTermBuilder::setArguments(PcpDynamicArray<PcpAnnot*>* arguments)
 {
   this->arguments = arguments;
 }
 
-/* Get arguments of BUILDER.  */
+// Get arguments.
 PcpDynamicArray<PcpAnnot*>*
 PcpAnnotTermBuilder::getArguments()
 {
   return this->arguments;
 }
 
-/* Add ARGUMENT to BUILDER. */
+// Add ARGUMENT.
 void
-PcpAnnotTermBuilder::addArgument(PcpAnnot *argument)
+PcpAnnotTermBuilder::addArgument(PcpAnnot* argument)
 {
   this->getArguments()->add(argument);
 }
 
-/* Create new annot term builder.  */
+// Create new annot term builder.  
 PcpAnnotTermBuilder::PcpAnnotTermBuilder()
 {
   this->setTag(NULL);
   this->setArguments(new PcpDynamicArray<PcpAnnot*>(1));
 }
 
-/* Create annot term from BUILDER.  */
-PcpAnnotTerm *
+// Create annot term.
+PcpAnnotTerm* 
 PcpAnnotTermBuilder::createAnnot()
 {
-  PcpAnnotTerm *annotTerm;
+  PcpAnnotTerm* annotTerm;
   annotTerm = new PcpAnnotTerm(this->getTag(), this->getArguments());
   return annotTerm;
 }
 
+// Pcp Array Type
 
+// Return true if this is an array type.
 bool 
 PcpArrayType::isArrayType()
 {
   return true;
 }
 
+// Cast this to array type.
 PcpArrayType*
 PcpArrayType::toArrayType()
 {
   return this;
 }
 
-/* Return the number of dimensions of ARRAYType.  */
+// Return the number of dimensions.
 int
 PcpArrayType::getNumDimensions()
 {
   return this->getDimensions()->getSize();
 }
 
-/* Set the dimensions of ARRAYType to DIMENSIONS.  */
+// Set the dimensions to DIMENSIONS.  
 void
 PcpArrayType::setDimensions(PcpArray<PcpExpr*>* dimensions)
 {
   this->dimensions = dimensions;
 }
 
+// Get dimensions.
 PcpArray<PcpExpr*>* 
 PcpArrayType::getDimensions()
 {
   return this->dimensions;
 }
 
-/* Return the size of dimension of INDEX in ARRAYType.  */
+// Return the size of dimension with given INDEX
 PcpExpr*
 PcpArrayType::getDimension(int index)
 {
   return this->getDimensions()->get(index);
 }
 
+// Get iterator over the dimensions.
 PcpIterator<PcpExpr*>* 
 PcpArrayType::getDimensionsIterator()
 {
   return this->getDimensions()->getIterator();
 }
 
+// Create new array type.
 PcpArrayType::PcpArrayType(PcpArray<PcpExpr*>* dimensions)
 {
   initialize();
   this->setDimensions(dimensions);
 }
 
-/* Set array of BUILDER to ARRAY.  */
+// Pcp Array Type Builder
+
+// Set array to ARRAY.  
 void
 PcpArrayTypeBuilder::setArray(PcpDynamicArray<PcpExpr*>* array)
 {
   this->array = array;
 }
 
-/* Get array of BUILDER.  */
+// Get array.  
 PcpDynamicArray<PcpExpr*>* 
 PcpArrayTypeBuilder::getArray()
 {
   return this->array;
 }
 
-/* Create array type builder.  */
+// Create array type builder.  
 PcpArrayTypeBuilder::PcpArrayTypeBuilder()
 {
   this->setArray(new PcpDynamicArray<PcpExpr*>(2));
 }
 
-/* Add a new dimension with the given SIZE to BUILDER.  */
+// Add a new dimension with the given SIZE.
 void
 PcpArrayTypeBuilder::addDimension(PcpExpr* size)
 {
   this->getArray()->add(size);
 }
 
+// Add a new dimension with given SIZE
 void 
 PcpArrayTypeBuilder::addIntDimension(int size)
 {
   this->addDimension(new PcpConstant(size));
 }
 
-
-/* Create new array type from BUIDER.  */
-PcpArrayType *
+// Create new array type from BUIDER.  
+PcpArrayType* 
 PcpArrayTypeBuilder::createType()
 {
   return new PcpArrayType(this->getArray());
 }
 
+// PcpExpr
+
+// Return true if this is an expr.
 bool PcpExpr::isExpr()
 {
   return true;
 }
 
+// Convert this to an expr. 
 PcpExpr* PcpExpr::toExpr()
 {
   return this;
 }
 
-
-/* PCP Linear Expr */
-/* Return true if EXPR is a pcpParameter, otherwise return false.  */
+// Return true if this is a pcpParameter, otherwise return false.  
 bool
 PcpExpr::isParameter()
 {
   return false;
 }
 
-/* Return true if EXPR is a pcpArith, otherwise return false.  */
+// Return true if this is a pcpArith, otherwise return false.  
 bool
 PcpExpr::isArith()
 {
   return false;
 }
 
-/* Return true if EXPR is a pcpConstant, otherwise return false.  */
+// Return true if this is a pcpConstant, otherwise return false.  
 bool
 PcpExpr::isConstant()
 {
   return false;
 }
 
-/* Return true if EXPR is a pcpIv, otherwise return false.  */
+// Return true if this is a pcpIv, otherwise return false.  
 bool
 PcpExpr::isIv()
 {
   return false;
 }
 
-/* Cast EXPR to pcpParameter.  */
-PcpParameter *
+// Cast this to pcpParameter.  
+PcpParameter* 
 PcpExpr::toParameter()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast EXPR to pcpArith.  */
-PcpArith *
+// Cast this to pcpArith.  
+PcpArith* 
 PcpExpr::toArith()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast EXPR to pcpConstant.  */
-PcpConstant *
+// Cast this to pcpConstant.  
+PcpConstant* 
 PcpExpr::toConstant()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast EXPR to pcpIv.  */
-PcpIv *
+// Cast this to pcpIv.  
+PcpIv* 
 PcpExpr::toIv()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* PCP Bool Expr */
+// PCP Bool Expr 
 
+// Return true if this is a bool expr.
 bool
 PcpBoolExpr::isBoolExpr()
 {
   return true;
 }
 
+// Cast this to a bool expr.
 PcpBoolExpr* PcpBoolExpr::toBoolExpr()
 {
   return this;
 }
 
+// Return true if this is a compare.
 bool
 PcpBoolExpr::isCompare()
 {
   return false;
 }
 
-/* Return true if BOOLExpr is a boolean arithmetic operation.  */
+// Return true if this is a boolean arithmetic operation.  
 bool
 PcpBoolExpr::isBoolArith()
 {
   return false;
 }
 
-PcpCompare *
+// Convert this to a compare.
+PcpCompare* 
 PcpBoolExpr::toCompare()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast BOOLExpr to bool arith, if it is not a boolean arithmetic operator return NULL.  */
+// Cast BOOLExpr to bool arith, if it is not a boolean arithmetic operator return NULL.  
 PcpBoolArith*
 PcpBoolExpr::toBoolArith()
 {
@@ -807,56 +824,65 @@ PcpBoolExpr::toBoolArith()
 }
 
 
-/* PCP Compare */
+// PCP Compare 
 
+// Return true if this is a compare.
 bool
 PcpCompare::isCompare()
 {
   return true;
 }
 
+// Convert this to a compare.
 PcpCompare*
 PcpCompare::toCompare()
 {
   return this;
 }
 
+// Set operator to OPER.
 void
 PcpCompare::setOperator(PcpCompareOperator oper)
 {
   this->oper = oper;
 }
 
+// Get operator.
 PcpCompareOperator
 PcpCompare::getOperator()
 {
   return this->oper;
 }
 
+// Set lhs to LHS.
 void
 PcpCompare::setLhs(PcpExpr* lhs)
 {
   this->lhs = lhs;
 }
 
-PcpExpr *
+// Get lhs.
+PcpExpr* 
 PcpCompare::getLhs()
 {
   return this->lhs;
 }
 
+// Set rhs to RHS.
 void
 PcpCompare::setRhs(PcpExpr* rhs)
 {
   this->rhs = rhs;
 }
 
-PcpExpr *
+// Get rhs.
+PcpExpr* 
 PcpCompare::getRhs()
 {
   return this->rhs;
 }
 
+// Create new compare with given OPER, LHS and RHS
 PcpCompare::PcpCompare(PcpCompareOperator oper,
 		       PcpExpr* lhs,
 		       PcpExpr* rhs)
@@ -867,62 +893,64 @@ PcpCompare::PcpCompare(PcpCompareOperator oper,
   this->setRhs(rhs);
 }
 
-/* PCP Bool Arith */
+// PCP Bool Arith 
 
+// Return true if this is a bool arith
 bool PcpBoolArith::isBoolArith()
 {
   return true;
 }
 
+// Convert this to a bool arith.
 PcpBoolArith* PcpBoolArith::toBoolArith()
 {
   return this;
 }
 
 
-/* Set operator of BOOLArith to OPERATOR.  */
+// Set operator to OPERATOR.  
 void
 PcpBoolArith::setOperator(PcpBoolArithOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator of BOOLArith.  */
+// Get operator.
 PcpBoolArithOperator
 PcpBoolArith::getOperator()
 {
   return this->oper;
 }
 
-/* Get number of operands of BOOLArith.  */
+// Get number of operands.
 int
 PcpBoolArith::getNumOperands()
 {
   return this->getOperands()->getSize();
 }
 
-/* Set operands of BOOLArith to OPERANDS.  */
+// Set operands to OPERANDS.  
 void
 PcpBoolArith::setOperands(PcpArray<PcpBoolExpr*>* operands)
 {
   this->operands = operands;
 }
 
-/* Get operands of BOOLArith.  */
+// Get operands.
 PcpArray<PcpBoolExpr*>*
 PcpBoolArith::getOperands()
 {
   return this->operands;
 }
 
-/* Get operand of BOOLArith with given INDEX.  */
+// Get operand with given INDEX.  
 PcpBoolExpr*
 PcpBoolArith::getOperand(int index)
 {
   return this->getOperands()->get(index);
 }
 
-/* Create new boolean arithmetic operation.  */
+// Create new boolean arithmetic operation.  
 PcpBoolArith::PcpBoolArith(PcpBoolArithOperator oper,
 			   PcpArray<PcpBoolExpr*>* operands)
 {
@@ -931,44 +959,44 @@ PcpBoolArith::PcpBoolArith(PcpBoolArithOperator oper,
   this->setOperands(operands);
 }
 
-/* PCP Bool Arith Builder.  */
+// PCP Bool Arith Builder.  
 
-/* Set operator in BUILDER to OPERATOR.  */
+// Set operator to OPERATOR.  
 void
 PcpBoolArithBuilder::setOperator(PcpBoolArithOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator in BUILDER.  */
+// Get operator.
 PcpBoolArithOperator
 PcpBoolArithBuilder::getOperator()
 {
   return this->oper;
 }
 
-/* Set operands in BUILDER to OPERANDS.  */
+// Set operands to OPERANDS.  
 void
 PcpBoolArithBuilder::setOperands(PcpDynamicArray<PcpBoolExpr*>* operands)
 {
   this->operands = operands;
 }
 
-/* Get operands in BUILDER.  */
+// Get operands.
 PcpDynamicArray<PcpBoolExpr*>*
 PcpBoolArithBuilder::getOperands()
 {
   return this->operands;
 }
 
-/* Add OPERAND to BUILDER.  */
+// Add OPERAND.
 void
 PcpBoolArithBuilder::addOperand(PcpBoolExpr* operand)
 {
   this->getOperands()->add(operand);
 }
 
-/* Create new boolean arithmetic operation builder.  */
+// Create new boolean arithmetic operation builder.  
 PcpBoolArithBuilder::PcpBoolArithBuilder()
 {
   this->setOperator(PcpBoolArithOperator::unknown());
@@ -976,7 +1004,7 @@ PcpBoolArithBuilder::PcpBoolArithBuilder()
 }
 
 
-/* Create new boolean arithmetic operation from BUILDER.  */
+// Create new boolean arithmetic operation.  
 PcpBoolArith*
 PcpBoolArithBuilder::createBoolArith()
 {
@@ -986,7 +1014,7 @@ PcpBoolArithBuilder::createBoolArith()
 }
 
 
-/* Create binary arithmetic operation with OPERATOR, LHS, RHS.  */
+// Create binary arithmetic operation with OPERATOR, LHS, RHS.  
 PcpBoolArith*
 PcpBoolArith::pcpBoolArithBinaryCreate(PcpBoolArithOperator oper,
 				       PcpBoolExpr* lhs,
@@ -999,58 +1027,62 @@ PcpBoolArith::pcpBoolArithBinaryCreate(PcpBoolArithOperator oper,
   return builder->createBoolArith();
 }
 
-/* Set operator of ARITH to OPERATOR.  */
+// Set operator of ARITH to OPERATOR.  
 
+// Return true if this is an arithmetic operation.
 bool PcpArith::isArith()
 {
   return true;
 }
+
+// Cast this to an arithmetic operation.
 PcpArith* PcpArith::toArith()
 {
   return this;
 }
 
+// Set operator to OPER.
 void
 PcpArith::setOperator(PcpArithOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator of ARITH.  */
+// Get operator of ARITH.  
 PcpArithOperator
 PcpArith::getOperator()
 {
   return this->oper;
 }
 
-/* Get number of operands of ARITH.  */
+// Get number of operands.
 int PcpArith::getNumOperands()
 {
   return this->getOperands()->getSize();
 }
 
-/* Set operands of ARITH to OPERANDS.  */
+// Set operands to OPERANDS.  
 void
 PcpArith::setOperands(PcpArray<PcpExpr*>* operands)
 {
   this->operands = operands;
 }
 
-/* Get operands of ARITH.  */
+// Get operands of ARITH.  
 PcpArray<PcpExpr*>*
 PcpArith::getOperands()
 {
   return this->operands;
 }
 
-/* Get operand of ARITH with given INDEX.  */
+// Get operand with given INDEX.  
 PcpExpr* 
 PcpArith::getOperand(int index)
 {
   return this->getOperands()->get(index);
 }
 
-/* Create new arithmetic operation.  */
+// Create new arithmetic operation.  
 PcpArith::PcpArith(PcpArithOperator oper, PcpArray<PcpExpr*>* operands)
 {
   initialize();
@@ -1058,8 +1090,8 @@ PcpArith::PcpArith(PcpArithOperator oper, PcpArray<PcpExpr*>* operands)
   this->setOperands(operands);
 }
 
-/* Create binary arithmetic operation with OPERATOR, LHS, RHS.  */
-PcpArith *
+// Create binary arithmetic operation with OPERATOR, LHS, RHS.  
+PcpArith* 
 PcpArith::pcpArithBinaryCreate(PcpArithOperator oper,
 			       PcpExpr* lhs,
 			       PcpExpr* rhs)
@@ -1074,44 +1106,44 @@ PcpArith::pcpArithBinaryCreate(PcpArithOperator oper,
 }
 
 
-/* PCP Arith Builder.  */
+// PCP Arith Builder.  
 
-/* Set operator in BUILDER to OPERATOR.  */
+// Set operator to OPERATOR.  
 void
 PcpArithBuilder::setOperator(PcpArithOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator in BUILDER.  */
+// Get operator.
 PcpArithOperator
 PcpArithBuilder::getOperator()
 {
   return this->oper;
 }
 
-/* Set operands in BUILDER to OPERANDS.  */
+// Set operands to OPERANDS.  
 void
 PcpArithBuilder::setOperands(PcpDynamicArray<PcpExpr*>* operands)
 {
   this->operands = operands;
 }
 
-/* Get operands in BUILDER.  */
+// Get operands.
 PcpDynamicArray<PcpExpr*>*
 PcpArithBuilder::getOperands()
 {
   return this->operands;
 }
 
-/* Add OPERAND to BUILDER.  */
+// Add OPERAND.
 void
 PcpArithBuilder::addOperand(PcpExpr* operand)
 {
   this->getOperands()->add(operand);
 }
 
-/* Create new arithmetic operation from BUILDER.  */
+// Create new arithmetic operation.
 PcpArith* 
 PcpArithBuilder::createArith()
 {
@@ -1120,126 +1152,131 @@ PcpArithBuilder::createArith()
   return arith;
 }
 
-/* Create new arithmetic operation builder.  */
+// Create new arithmetic operation builder.  
 PcpArithBuilder::PcpArithBuilder()
 {
   this->setOperator(PcpArithOperator::unknown());
   this->setOperands(new PcpDynamicArray<PcpExpr*>(2));
 }
 
-/* PCP Constant */
+// PCP Constant 
 
-/* Set value of CONSTANT to VALUE.  */
+// Set value of CONSTANT to VALUE.  
 void
 PcpConstant::setValue(int value)
 {
   this->value = value;
 }
 
-/* Get value of CONSTANT.  */
+// Get value of CONSTANT.  
 int
 PcpConstant::getValue()
 {
   return this->value;
 }
 
+// Return true if this is a constant.
 bool
 PcpConstant::isConstant()
 {
   return true;
 }
 
+// Cast this to a constant.
 PcpConstant*
 PcpConstant::toConstant()
 {
   return this;
 }
 
-/* Create constant with VALUE.  */
+// Create constant with VALUE.  
 PcpConstant::PcpConstant(int value)
 {
   initialize();
   this->setValue(value);
 }
 
-/* PCP Induction Variable */
+// PCP Induction Variable 
 
+// Return true if this is an iv.
 bool
 PcpIv::isIv()
 {
   return true;
 }
 
+// Convert this to an iv.
 PcpIv*
 PcpIv::toIv()
 {
   return this;
 }
 
-/* Create iv with NAME.  */
+// Create iv with NAME.  
 PcpIv::PcpIv(const char* name)
 {
   initialize();
   this->setName(name);
 }
 
-/* PCP Variable */
+// PCP Variable 
 
+// Return true if this is a variable.
 bool PcpVariable::isVariable()
 {
   return true;
 }
 
+// Cast this to a variable.
 PcpVariable* PcpVariable::toVariable()
 {
   return this;
 }
 
-
-/* Set is input of VAR to ISInput.  */
+// Set is input of to ISINPUT.  
 void
 PcpVariable::setIsInput(bool isInput)
 {
   this->isInput = isInput;
 }
 
-/* Get is input of VAR.  */
+// Get is input
 bool
 PcpVariable::getIsInput()
 {
   return this->isInput;
 }
 
-/* Set is output of VAR to ISOutput.  */
+// Set is output to ISOUTPUT.  
 void
 PcpVariable::setIsOutput(bool isOutput)
 {
   this->isOutput = isOutput;
 }
 
-/* Get is output of VAR.  */
+// Get is output.
 bool
 PcpVariable::getIsOutput()
 {
   return this->isOutput;
 }
 
-/* Set type of VAR to TYPE.  */
+// Set type to TYPE.  
 void
-PcpVariable::setType(PcpArrayType *type)
+PcpVariable::setType(PcpArrayType* type)
 {
   this->type = type;
 }
 
-/* Get tpe of VAR.  */
-PcpArrayType *
+// Get tpe.
+PcpArrayType* 
 PcpVariable::getType()
 {
   return this->type;
 }
 
-/* Create variable given TYPE and NAME.  */
-PcpVariable::PcpVariable(PcpArrayType *type, const char *name)
+// Create variable given TYPE and NAME.  
+PcpVariable::PcpVariable(PcpArrayType* type, const char* name)
 {
   initialize();
   this->setType(type);
@@ -1248,106 +1285,111 @@ PcpVariable::PcpVariable(PcpArrayType *type, const char *name)
   this->setIsOutput(false);
 }
 
-/* PCP Parameter */
+// PCP Parameter 
 
+// Return true if this is a parameter.
 bool PcpParameter::isParameter()
 {
   return true;
 }
 
+// Cast this to a parameter.
 PcpParameter* PcpParameter::toParameter()
 {
   return this;
 }
 
-/* Create parameter with the given NAME.  */
+// Create parameter with the given NAME.  
 PcpParameter::PcpParameter(const char* name)
 {
   initialize();
   this->setName(name);
 }
-/* Array Access.  */
 
+// Array Access.  
+
+// Return true if this is an array access
 bool PcpArrayAccess::isArrayAccess()
 {
   return true;
 }
 
+// Cast this to an array access.
 PcpArrayAccess* 
 PcpArrayAccess::toArrayAccess()
 {
   return this;
 }
 
-/* Set operator of ACCESS to OPERATOR.  */
+// Set operator to OPERATOR.  
 void
 PcpArrayAccess::setOperator(PcpArrayOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator of ACCESS.  */
+// Get operator.
 PcpArrayOperator
 PcpArrayAccess::getOperator()
 {
   return this->oper;
 }
 
-/* Set base of ACCESS to BASE.  */
+// Set base to BASE.  
 void
-PcpArrayAccess::setBase(PcpVariable *base)
+PcpArrayAccess::setBase(PcpVariable* base)
 {
   this->base = base;
 }
 
-/* Get base of ACCESS.  */
-PcpVariable *
+// Get base.
+PcpVariable* 
 PcpArrayAccess::getBase()
 {
   return this->base;
 }
 
-/* Set subscripts of ACCESS to SUBSCRIPTS.  */
+// Set subscripts to SUBSCRIPTS.  
 void
 PcpArrayAccess::setSubscripts(PcpArray<PcpExpr*>* subscripts)
 {
   this->subscripts = subscripts;
 }
 
-/* Get subscripts of ACCESS.  */
+// Get subscripts.
 PcpArray<PcpExpr*>*
 PcpArrayAccess::getSubscripts()
 {
   return this->subscripts;
 }
 
-/* Set ACCESS subscript at INDEX to SUBSCRIPT.  */
+// Set subscript at INDEX to SUBSCRIPT.  
 void
-PcpArrayAccess::setSubscript(int index, PcpExpr *subscript)
+PcpArrayAccess::setSubscript(int index, PcpExpr* subscript)
 {
   this->getSubscripts()->set(index, subscript);
 }
 
-/* Get ACCESS subscript at INDEX.  */
-PcpExpr *
+// Get subscript at INDEX.  
+PcpExpr* 
 PcpArrayAccess::getSubscript(int index)
 {
   return this->getSubscripts()->get(index);
 }
 
-/* Get number of subscripts in ACCESS.  */
+// Get number of subscripts.
 int
 PcpArrayAccess::getNumSubscripts()
 {
-  PcpVariable *variable = this->getBase();
-  PcpArrayType *type = variable->getType();
+  PcpVariable* variable = this->getBase();
+  PcpArrayType* type = variable->getType();
   int typeNumDims = type->getNumDimensions();
   return typeNumDims;
 }
 
-/* Create array access given OPERATOR, BASE and SUBSCRIPTS.  */
+// Create array access given OPERATOR, BASE and SUBSCRIPTS.  
 PcpArrayAccess::PcpArrayAccess(PcpArrayOperator oper, 
-			       PcpVariable *base,
+			       PcpVariable* base,
 			       PcpArray<PcpExpr*>* subscripts)
 {
   initialize();
@@ -1356,113 +1398,113 @@ PcpArrayAccess::PcpArrayAccess(PcpArrayOperator oper,
   this->setSubscripts(subscripts);
 }
 
-/* Return true if ACCESS is use, otherwise return false.  */
+// Return true if this is a use, otherwise return false.  
 bool
 PcpArrayAccess::isUse()
 {
   return this->getOperator().isUse();
 }
 
-/* Return true if ACCESS is def, otherwise return false.  */
+// Return true if this is a def, otherwise return false.  
 bool
 PcpArrayAccess::isDef()
 {
   return this->getOperator().isDef();
 }
 
-/* Return true if ACCESS is maydef, otherwise return false.  */
+// Return true if this is a maydef, otherwise return false.  
 bool
 PcpArrayAccess::isMaydef()
 {
   return this->getOperator().isMaydef();
 }
 
-/* PCP Array Access Builder */
+// PCP Array Access Builder 
 
-/* Set base of BUILDER to BASE.  */
+// Set base to BASE.  
 void
-PcpArrayAccessBuilder::setBase(PcpVariable *base)
+PcpArrayAccessBuilder::setBase(PcpVariable* base)
 {
   this->base = base;
 }
 
-/* Get base of BUILDER.  */
-PcpVariable *
+// Get base.
+PcpVariable* 
 PcpArrayAccessBuilder::getBase()
 {
   return this->base;
 }
 
-/* Set operator of BUIDLER to OPERATOR.  */
+// Set operator to OPERATOR.  
 void
 PcpArrayAccessBuilder::setOperator(PcpArrayOperator oper)
 {
   this->oper = oper;
 }
 
-/* Get operator of BUILDER.  */
+// Get operator.
 PcpArrayOperator
 PcpArrayAccessBuilder::getOperator()
 {
   return this->oper;
 }
 
-/* Set subscript index of BUILDER to SUBSCRIPTIndex.  */
+// Set subscript index to SUBSCRIPTINDEX.  
 void
 PcpArrayAccessBuilder::setSubscriptIndex(int subscriptIndex)
 {
   this->subscriptIndex = subscriptIndex;
 }
 
-/* Get subscript index of BUILDER.  */
+// Get subscript index.  
 int
 PcpArrayAccessBuilder::getSubscriptIndex()
 {
   return this->subscriptIndex;
 }
 
-/* Get subscripts of BUILDER.  */
+// Get subscripts.
 PcpArray<PcpExpr*>*
 PcpArrayAccessBuilder::getSubscripts()
 {
   return this->subscripts;
 }
 
-/* Set BUILDER subscript with given INDEX to SUBSCRIPT.  */
+// Set subscript with given INDEX to SUBSCRIPT.  
 void
-PcpArrayAccessBuilder::setSubscript(int index, PcpExpr *subscript)
+PcpArrayAccessBuilder::setSubscript(int index, PcpExpr* subscript)
 {
   this->getSubscripts()->set(index, subscript);
 }
 
 
-/* Set subscripts of BUILDER to SUBSCRIPTS.  */
+// Set subscripts to SUBSCRIPTS.  
 void
 PcpArrayAccessBuilder::setSubscripts(PcpArray<PcpExpr*>* subscripts)
 {
   this->subscripts = subscripts;
 }
 
-/* Get BUILDER subscript with given INDEX.  */
-PcpExpr *
+// Get subscript with given INDEX.  
+PcpExpr* 
 PcpArrayAccessBuilder::getSubscript(int index)
 {
   return this->getSubscripts()->get(index);
 }
 
-/* Get number of dimensions of base in BUILDER.  */
+// Get number of dimensions of base.
 int
 PcpArrayAccessBuilder::getBaseNumDimensions()
 {
-  PcpVariable *variable = this->getBase();
-  PcpArrayType *type = variable->getType();
+  PcpVariable* variable = this->getBase();
+  PcpArrayType* type = variable->getType();
   int typeNumDims = type->getNumDimensions();
   return typeNumDims;
 }
 
-/* Add SUBSCRIPT to BUILDER.  */
+// Add SUBSCRIPT.  
 void
-PcpArrayAccessBuilder::addSubscript(PcpExpr *subscript)
+PcpArrayAccessBuilder::addSubscript(PcpExpr* subscript)
 {
   int currentIndex = this->getSubscriptIndex();
   int typeNumDims = this->getBaseNumDimensions();
@@ -1473,10 +1515,10 @@ PcpArrayAccessBuilder::addSubscript(PcpExpr *subscript)
 }
 
 
-/* Create new access builder with given BASE.  */
+// Create new access builder with given BASE.  
 PcpArrayAccessBuilder::PcpArrayAccessBuilder(PcpVariable* base)
 {
-  PcpArrayType *type = base->getType();
+  PcpArrayType* type = base->getType();
   PcpArray<PcpExpr*>* subscripts = new PcpArray<PcpExpr*>(type->getNumDimensions());
 
   this->setBase(base);
@@ -1485,8 +1527,8 @@ PcpArrayAccessBuilder::PcpArrayAccessBuilder(PcpVariable* base)
   this->setSubscripts(subscripts);
 }
 
-/* Create array access from BUILDER.  */
-PcpArrayAccess *
+// Create array access.  
+PcpArrayAccess* 
 PcpArrayAccessBuilder::createAccess()
 {
   pcpAssert(!this->getOperator().isUnknown());
@@ -1496,137 +1538,139 @@ PcpArrayAccessBuilder::createAccess()
 			    this->getSubscripts());
 }
 
-/* PCP Stmt */
+// PCP Stmt 
 
+// Return true if this is a statement
 bool
 PcpStmt::isStmt()
 {
   return true;
 }
  
+// Cast this to a statement.
 PcpStmt* PcpStmt::toStmt()
 {
   return this;
 }
 
-
-/* Returns true if STMT is a copy stmt.  */
+// Returns true if this is a copy stmt.  
 bool
 PcpStmt::isCopy()
 {
   return false;
 }
 
-/* Returns true if STMT is a user stmt.  */
+// Returns true if this is a user stmt.  
 bool
 PcpStmt::isUserStmt()
 {
   return false;
 }
 
-/* Returns true if STMT is a loop stmt.  */
+// Returns true if this is a loop stmt.  
 bool
 PcpStmt::isLoop()
 {
   return false;
 }
 
-/* Returns true if STMT is a guard stmt.  */
+// Returns true if this is a guard stmt.  
 bool
 PcpStmt::isGuard()
 {
   return false;
 }
 
-/* Returns true if STMT is a sequence stmt.  */
+// Returns true if this is a sequence stmt.  
 bool
 PcpStmt::isSequence()
 {
   return false;
 }
 
-/* Cast STMT to copy stmt, if STMT is not a copy return NULL.  */
-PcpCopy *
+// Cast this to copy stmt
+PcpCopy* 
 PcpStmt::toCopy()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast SfTMT to user stmt, if STMT is not a user stmt return NULL.  */
-PcpUserStmt *
+// Cast this to user stmt
+PcpUserStmt* 
 PcpStmt::toUserStmt()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast STMT to guard stmt, if STMT is not a guard return NULL.  */
-PcpGuard *
+// Cast this to guard stmt
+PcpGuard* 
 PcpStmt::toGuard()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast STMT to loop stmt, if STMT is not a loop return NULL.  */
-PcpLoop *
+// Cast this to loop stmt
+PcpLoop* 
 PcpStmt::toLoop()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* Cast STMT to sequence stmt, if STMT is not a sequence return NULL.  */
-PcpSequence *
+// Cast this to sequence stmt
+PcpSequence* 
 PcpStmt::toSequence()
 {
   pcpAssert(false);
   return NULL;
 }
 
-/* PCP Copy Stmt */
+// PCP Copy Stmt 
 
+// Return true if this is a copy.
 bool PcpCopy::isCopy()
 {
   return true;
 }
 
+// Cast this to a copy.
 PcpCopy* PcpCopy::toCopy()
 {
   return this;
 }
 
-
-/* Set source of COPY to SRC.  */
+// Set source to SRC.  
 void
-PcpCopy::setSrc(PcpArrayAccess *src)
+PcpCopy::setSrc(PcpArrayAccess* src)
 {
   this->src = src;
 }
 
-/* Get source of COPY.  */
-PcpArrayAccess *
+// Get source.
+PcpArrayAccess* 
 PcpCopy::getSrc()
 {
   return this->src;
 }
 
-/* Set destination of COPY to DEST.  */
+// Set destination to DEST.  
 void
-PcpCopy::setDest(PcpArrayAccess *dest)
+PcpCopy::setDest(PcpArrayAccess* dest)
 {
   this->dest = dest;
 }
 
-/* Get destination of COPY.  */
-PcpArrayAccess *
+// Get destination.
+PcpArrayAccess* 
 PcpCopy::getDest()
 {
   return this->dest;
 }
 
-/* Create new copy statement given DEST and SRC.  */
+// Create new copy statement given DEST and SRC.  
 PcpCopy::PcpCopy(PcpArrayAccess* dest, PcpArrayAccess* src)
 {
   initialize();
@@ -1634,55 +1678,57 @@ PcpCopy::PcpCopy(PcpArrayAccess* dest, PcpArrayAccess* src)
   this->setSrc(src);
 }
 
-/* PCP User Stmt */
+// PCP User Stmt 
 
+// Return true if this is a user stmt.
 bool PcpUserStmt::isUserStmt()
 {
   return true;
 }
 
+// Cast this to a user stmt.
 PcpUserStmt* PcpUserStmt::toUserStmt()
 {
   return this;
 }
 
-/* Get numer of accessses in USERStmt.  */
+// Get numer of accessses in USERStmt.  
 int
 PcpUserStmt::getNumAccesses()
 {
   return this->getArrayAccesses()->getSize();
 }
 
-/* Set array accesses of USERStmt to ACCESSSES.  */
+// Set array accesses of USERStmt to ACCESSSES.  
 void
 PcpUserStmt::setArrayAccesses(PcpArray<PcpArrayAccess*>* accesses)
 {
   this->accesses = accesses;
 }
 
-/* Get array accesses of USERStmt.  */
+// Get array accesses of USERStmt.  
 PcpArray<PcpArrayAccess*>*
 PcpUserStmt::getArrayAccesses()
 {
   return this->accesses;
 }
 
-/* Set array access in USERStmt with given INDEX to ACCESS.  */
+// Set array access in USERStmt with given INDEX to ACCESS.  
 void
-PcpUserStmt::setArrayAccess(int index, PcpArrayAccess *access)
+PcpUserStmt::setArrayAccess(int index, PcpArrayAccess* access)
 {
   this->getArrayAccesses()->set(index, access);
 }
 
-/* Get array access in USERStmt with given INDEX.  */
-PcpArrayAccess *
+// Get array access in USERStmt with given INDEX.  
+PcpArrayAccess* 
 PcpUserStmt::getArrayAccess(int index)
 {
   return this->getArrayAccesses()->get(index);
 }
 
-
-PcpUserStmt::PcpUserStmt(const char *name, 
+// Create new user stmt with given NAME and ACCESSES.
+PcpUserStmt::PcpUserStmt(const char* name, 
 			 PcpArray<PcpArrayAccess*>* accesses)
 {
   this->initialize();
@@ -1690,44 +1736,44 @@ PcpUserStmt::PcpUserStmt(const char *name,
   this->setArrayAccesses(accesses);
 }
 
-/* PCP User Stmt Builder */
+// PCP User Stmt Builder 
 
-/* Set name in BUILDER to NAME.  */
+// Set name to NAME.  
 void
-PcpUserStmtBuilder::setName(const char *name)
+PcpUserStmtBuilder::setName(const char* name)
 {
   this->name = name;
 }
 
-/* Get name in BUILDER.  */
-const char *
+// Get name.
+const char* 
 PcpUserStmtBuilder::getName()
 {
   return this->name;
 }
 
-/* Set accesses in BUILDER to ACCESSES.  */
+// Set accesses to ACCESSES.  
 void
 PcpUserStmtBuilder::setAccesses(PcpDynamicArray<PcpArrayAccess*>* accesses)
 {
   this->accesses = accesses;
 }
 
-/* Get accesses in BUILDER.  */
+// Get accesses.
 PcpDynamicArray<PcpArrayAccess*>*
 PcpUserStmtBuilder::getAccesses()
 {
   return this->accesses;
 }
 
-/* Add ACCESS to BUILDER.  */
+// Add ACCESS.
 void
-PcpUserStmtBuilder::addAccess(PcpArrayAccess *access)
+PcpUserStmtBuilder::addAccess(PcpArrayAccess* access)
 {
   this->getAccesses()->add(access);
 }
 
-/* Create stmt builder.  */
+// Create stmt builder.  
 PcpUserStmtBuilder::PcpUserStmtBuilder()
 {
   this->setName(NULL);
@@ -1735,242 +1781,247 @@ PcpUserStmtBuilder::PcpUserStmtBuilder()
 }
 
 
-/* Create user stmt from BUILDER.  */
-PcpUserStmt *
+// Create user stmt.
+PcpUserStmt* 
 PcpUserStmtBuilder::createUserStmt()
 {
-  PcpUserStmt *userStmt;
+  PcpUserStmt* userStmt;
   pcpAssert(this->getName() != NULL);
   userStmt = new PcpUserStmt(this->getName(),this->getAccesses());
   return userStmt;
 }
 
-/* PCP Sequence */
+// PCP Sequence 
 
+// Return true if this is a sequence.
 bool PcpSequence::isSequence()
 {
   return true;
 }
 
+// Cast this to a sequence.
 PcpSequence* PcpSequence::toSequence()
 {
   return this;
 }
 
-/* Get number of statements in SEQUENCE.  */
+// Get number of statements.
 int
 PcpSequence::getNumStmts()
 {
   return this->getStmts()->getSize();
 }
 
-/* Set stmts in SEQUENCE to STMTS.  */
+// Set stmts to STMTS.  
 void
 PcpSequence::setStmts(PcpArray<PcpStmt*>* stmts)
 {
   this->stmts = stmts;
 }
 
-/* Get stmts in SEQUENCE.  */
+// Get stmts.
 PcpArray<PcpStmt*>*
 PcpSequence::getStmts()
 {
   return this->stmts;
 }
 
-/* Set statement in SEQUENCE with given INDEX to STMT.  */
+// Set statement with given INDEX to STMT.  
 void
-PcpSequence::setStmt(int index, PcpStmt *stmt)
+PcpSequence::setStmt(int index, PcpStmt* stmt)
 {
   this->getStmts()->set(index, stmt);
 }
 
-/* Get statment in SEQUENCE with given INDEX.  */
-PcpStmt *
+// Get statment with given INDEX.  
+PcpStmt* 
 PcpSequence::getStmt(int index)
 {
   return this->getStmts()->get(index);
 }
 
-/* Create Sequence with STMTS of length NUMStmts.  */
+// Create Sequence with STMTS 
 PcpSequence::PcpSequence(PcpArray<PcpStmt*>* stmts)
 {
   initialize();
   this->setStmts(stmts);
 }
 
-/* PCP Sequence Builder */
+// PCP Sequence Builder 
 
-/* Set stmts of BUILDER to STMTS.  */
+// Set stmts to STMTS.  
 void
 PcpSequenceBuilder::setStmts(PcpDynamicArray<PcpStmt*>* stmts)
 {
   this->stmts = stmts;
 }
 
-/* Get stmts of BUILDER.  */
+// Get stmts.
 PcpDynamicArray<PcpStmt*>*
 PcpSequenceBuilder::getStmts()
 {
   return this->stmts;
 }
 
-/* Add STMT to the end of the sequence in BUILDER.  */
+// Add STMT to the end of the sequence.
 void
-PcpSequenceBuilder::add(PcpStmt *stmt)
+PcpSequenceBuilder::add(PcpStmt* stmt)
 {
   this->getStmts()->add(stmt);
 }
 
-/* Create sequence builder.  */
+// Create sequence builder.  
 PcpSequenceBuilder::PcpSequenceBuilder()
 {
   this->setStmts(new PcpDynamicArray<PcpStmt*>(3));
 }
 
-/* Create sequence from BUILDER.  */
-PcpSequence *
+// Create sequence.  
+PcpSequence* 
 PcpSequenceBuilder::createSequence()
 {
-  PcpSequence *sequence;
+  PcpSequence* sequence;
   sequence = new PcpSequence(this->getStmts());
   return sequence;
 }
 
-/* PCP Guard */
+// PCP Guard 
 
+// Return true if this is a guard.
 bool PcpGuard::isGuard()
 {
   return true;
 }
 
+// Cast this to a guard.
 PcpGuard* PcpGuard::toGuard()
 {
   return this;
 }
 
-/* Set condition of GUARD to CONDITION.  */
+// Set condition to CONDITION.  
 void
-PcpGuard::setCondition(PcpBoolExpr *condition)
+PcpGuard::setCondition(PcpBoolExpr* condition)
 {
   this->condition = condition;
 }
 
-/* Get condition of GUARD.  */
-PcpBoolExpr *
+// Get condition.  
+PcpBoolExpr* 
 PcpGuard::getCondition()
 {
   return this->condition;
 }
 
-/* Set body of GUARD to BODY.  */
+// Set body to BODY.  
 void
-PcpGuard::setBody(PcpStmt *body)
+PcpGuard::setBody(PcpStmt* body)
 {
   this->body = body;
 }
 
-/* Get body of GUARD.  */
-PcpStmt *
+// Get body.  
+PcpStmt* 
 PcpGuard::getBody()
 {
   return this->body;
 }
 
-/* Create guard with given CONDITION and BODY.  */
-PcpGuard::PcpGuard(PcpBoolExpr *condition, PcpStmt *body)
+// Create guard with given CONDITION and BODY.  
+PcpGuard::PcpGuard(PcpBoolExpr* condition, PcpStmt* body)
 {
   initialize();
   this->setCondition(condition);
   this->setBody(body);
 }
 
-/* PCP Loop */
+// PCP Loop 
 
-
+// Return true if this is a loop.
 bool PcpLoop::isLoop()
 {
   return true;
 }
 
+// Cast this to a loop.
 PcpLoop* PcpLoop::toLoop()
 {
   return this;
 }
 
-/* Set iv of LOOP to IV.  */
+// Set iv to IV.  
 void
-PcpLoop::setIv(PcpIv *iv)
+PcpLoop::setIv(PcpIv* iv)
 {
   this->iv = iv;
 }
 
-/* Get iv of LOOP.  */
-PcpIv *
+// Get iv.  
+PcpIv* 
 PcpLoop::getIv()
 {
   return this->iv;
 }
 
-/* Set start of LOOP to START.  */
+// Set start to START.  
 void
-PcpLoop::setStart(PcpExpr *start)
+PcpLoop::setStart(PcpExpr* start)
 {
   this->start = start;
 }
 
-/* Get start of LOOP.  */
-PcpExpr *
+// Get start.  
+PcpExpr* 
 PcpLoop::getStart()
 {
   return this->start;
 }
 
-/* Set condition of LOOP to CONDITION.  */
+// Set condition to CONDITION.  
 void
-PcpLoop::setCondition(PcpBoolExpr *condition)
+PcpLoop::setCondition(PcpBoolExpr* condition)
 {
   this->condition = condition;
 }
 
-/* Get condition of LOOP.  */
-PcpBoolExpr *
+// Get condition.  
+PcpBoolExpr* 
 PcpLoop::getCondition()
 {
   return this->condition;
 }
 
-/* Set stride of LOOP to STRIDE.  */
+// Set stride to STRIDE.  
 void
-PcpLoop::setStride(PcpConstant *stride)
+PcpLoop::setStride(PcpConstant* stride)
 {
   this->stride = stride;
 }
 
-/* Get stride of LOOP.  */
-PcpConstant *
+// Get stride.  
+PcpConstant* 
 PcpLoop::getStride()
 {
   return this->stride;
 }
 
-/* Set body of LOOP to BODY.  */
+// Set body to BODY.  
 void
-PcpLoop::setBody(PcpStmt *body)
+PcpLoop::setBody(PcpStmt* body)
 {
   this->body = body;
 }
 
-/* Get body of LOOP.  */
-PcpStmt *
+// Get body.  
+PcpStmt* 
 PcpLoop::getBody()
 {
   return this->body;
 }
 
-/* Create loop as loop(IV, START, CONDITION, STRIDE) { BODY }.  */
-PcpLoop::PcpLoop(PcpIv *iv, PcpExpr *start, PcpBoolExpr *condition,
-		 PcpConstant *stride, PcpStmt *body)
+// Create loop as loop(IV, START, CONDITION, STRIDE) { BODY }.  
+PcpLoop::PcpLoop(PcpIv* iv, PcpExpr* start, PcpBoolExpr* condition,
+		 PcpConstant* stride, PcpStmt* body)
 {
   initialize();
   this->setIv(iv);
@@ -1980,91 +2031,94 @@ PcpLoop::PcpLoop(PcpIv *iv, PcpExpr *start, PcpBoolExpr *condition,
   this->setBody(body);
 }
 
-/* PCP Scop */
+// PCP Scop 
 
+// Return true if this is a scop.
 bool PcpScop::isScop()
 {
   return true;
 }
 
+// Cast this to a scop.
 PcpScop* PcpScop::toScop()
 {
   return this;
 }
 
-/* Get numer of variables of SCOP.  */
+// Get numer of variables.  
 int
 PcpScop::getNumVariables()
 {
   return this->getVariables()->getSize();
 }
 
-/* Set variables of SCOP to VARIABLES.  */
+// Set variables to VARIABLES.  
 void
 PcpScop::setVariables(PcpArray<PcpVariable*>* variables)
 {
   this->variables = variables;
 }
 
-/* Get variables of SCOP.  */
+// Get variables.  
 PcpArray<PcpVariable*>*
 PcpScop::getVariables()
 {
   return this->variables;
 }
 
-/* Get variable of SCOP with given INDEX.  */
-PcpVariable *
+// Get variable with given INDEX.  
+PcpVariable* 
 PcpScop::getVariable(int index)
 {
   return this->getVariables()->get(index);
 }
 
-/* Get number of paramters of SCOP.  */
+// Get number of paramters.  
 int
 PcpScop::getNumParameters()
 {
   return this->getParameters()->getSize();
 }
 
-/* Set paramters of SCOP to PARAMTERS.  */
+// Set paramters to PARAMTERS.  
 void
 PcpScop::setParameters(PcpArray<PcpParameter*>* parameters)
 {
   this->parameters = parameters;
 }
 
-/* Get parameters of SCOP.  */
+// Get parameters.  
 PcpArray<PcpParameter*>*
 PcpScop::getParameters()
 {
   return this->parameters;
 }
 
-/* Get parameter of SCOP with given INDEX.  */
-PcpParameter *
+// Get parameter with given INDEX.  
+PcpParameter* 
 PcpScop::getParameter(int index)
 {
   return this->getParameters()->get(index);
 }
 
-/* Set body of SCOP to BODY.  */
+// Set body to BODY.  
 void
-PcpScop::setBody(PcpStmt *body)
+PcpScop::setBody(PcpStmt* body)
 {
   this->body = body;
 }
 
-/* Get body of SCOP.  */
-PcpStmt *
+// Get body.  
+PcpStmt* 
 PcpScop::getBody()
 {
   return this->body;
 }
 
+// Create new scop given VARIABLES, PARAMETERS and BODY.
 PcpScop::PcpScop(PcpArray<PcpVariable*>* variables,
 		 PcpArray<PcpParameter*>* parameters,
-		 PcpStmt *body)
+		 PcpStmt* body)
 {
   initialize();
   this->setVariables(variables);
@@ -2072,34 +2126,35 @@ PcpScop::PcpScop(PcpArray<PcpVariable*>* variables,
   this->setBody(body);
 }
 
-/* Set varaibles in BUILDER to VARAIBLES.  */
+// Set varaibles to VARAIBLES.  
 void
 PcpScopBuilder::setVariables(PcpDynamicArray<PcpVariable*>* variables)
 {
   this->variables = variables;
 }
 
-/* Get variables in BUILDER.  */
+// Get variables.  
 PcpDynamicArray<PcpVariable*>*
 PcpScopBuilder::getVariables()
 {
   return this->variables;
 }
 
-/* Set parameters in BUILDER to PARAMETERS.  */
+// Set parameters to PARAMETERS.  
 void
 PcpScopBuilder::setParameters(PcpDynamicArray<PcpParameter*>* parameters)
 {
   this->parameters = parameters;
 }
 
-/* Get parameters in BUILDER.  */
+// Get parameters.  
 PcpDynamicArray<PcpParameter*>*
 PcpScopBuilder::getParameters()
 {
   return this->parameters;
 }
 
+// Return true if VARIABLE already exists in the variables array.
 bool
 PcpScopBuilder::containsVariable(PcpVariable* variable)
 {
@@ -2115,36 +2170,36 @@ PcpScopBuilder::containsVariable(PcpVariable* variable)
   return result;
 }
 
-/* Add VARIABLE to BUILDER.  */
+// Add VARIABLE.  
 void
-PcpScopBuilder::addVariable(PcpVariable *variable)
+PcpScopBuilder::addVariable(PcpVariable* variable)
 {
   if(!this->containsVariable(variable))
     this->getVariables()->add(variable);
 }
 
-/* Add PARAMETER to BUILDER.  */
+// Add PARAMETER.  
 void
-PcpScopBuilder::addParameter(PcpParameter *parameter)
+PcpScopBuilder::addParameter(PcpParameter* parameter)
 {
   this->getParameters()->add(parameter);
 }
 
-/* Set body in BUILDER to BODY.  */
+// Set body to BODY.  
 void
-PcpScopBuilder::setBody(PcpStmt *body)
+PcpScopBuilder::setBody(PcpStmt* body)
 {
   this->body = body;
 }
 
-/* Get body in BUILDER.  */
-PcpStmt *
+// Get body.  
+PcpStmt* 
 PcpScopBuilder::getBody()
 {
   return this->body;
 }
 
-/* Create new scop builder.  */
+// Create new scop builder.  
 PcpScopBuilder::PcpScopBuilder()
 {
   this->setVariables(new PcpDynamicArray<PcpVariable*>(5));
@@ -2152,8 +2207,8 @@ PcpScopBuilder::PcpScopBuilder()
   this->setBody(NULL);
 }
 
-/* Create new scop from BUILDER.  */
-PcpScop *
+// Create new scop.  
+PcpScop* 
 PcpScopBuilder::createScop()
 {
   PcpScop* scop = new PcpScop(this->getVariables(),

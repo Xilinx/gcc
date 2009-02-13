@@ -1,45 +1,45 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
-   Contributed by Jan Sjodin <jan.sjodin@amd.com>.
+// Copyright (C) 2009 Free Software Foundation, Inc.
+// Contributed by Jan Sjodin <jan.sjodin@amd.com>.
 
-   This file is part of the Polyhedral Compilatino Package Library (libpcp).
+// This file is part of the Polyhedral Compilation Package Library (libpcp).
 
-   Libpcp is free software; you can redistribute it and/or modify it
-   under the terms of the GNU Lesser General Public License as published by
-   the Free Software Foundation; either version 2.1 of the License, or
-   (at your option) any later version.
+// Libpcp is free software; you can redistribute it and/or modify it
+// under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation; either version 2.1 of the License, or
+// (at your option) any later version.
 
-   Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
-   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
-   more details.
+// Libpcp is distributed in the hope that it will be useful, but WITHOUT ANY
+// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+// FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+// more details.
 
-   You should have received a copy of the GNU Lesser General Public License 
-   along with libpcp; see the file COPYING.LIB.  If not, write to the
-   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-   MA 02110-1301, USA.  */
+// You should have received a copy of the GNU Lesser General Public License 
+// along with libpcp; see the file COPYING.LIB.  If not, write to the
+// Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+// MA 02110-1301, USA.  
 
-/* As a special exception, if you link this library with other files, some
-   of which are compiled with GCC, to produce an executable, this library
-   does not by itself cause the resulting executable to be covered by the
-   GNU General Public License.  This exception does not however invalidate
-   any other reasons why the executable file might be covered by the GNU
-   General Public License.  */
+// As a special exception, if you link this library with other files, some
+// of which are compiled with GCC, to produce an executable, this library
+// does not by itself cause the resulting executable to be covered by the
+// GNU General Public License.  This exception does not however invalidate
+// any other reasons why the executable file might be covered by the GNU
+// General Public License.  
 
 #include "pcp_error.h"
 #include "pcp_alloc.h"
 #include "pcp_emitter.h"
 
-/* PCP Emit Context */
+// PCP Emit Context 
 
-/* Set string buffer of CONTEXT to STRINGBuffer.  */
+// Set string buffer of CONTEXT to STRINGBuffer.  
 void
-PcpEmitter::setStringBuffer(PcpStringBuffer *stringBuffer)
+PcpEmitter::setStringBuffer(PcpStringBuffer* stringBuffer)
 {
   this->stringBuffer = stringBuffer;
 }
 
-/* Get string buffer of CONTEXT.  */
-PcpStringBuffer *
+// Get string buffer of CONTEXT.  
+PcpStringBuffer* 
 PcpEmitter::getStringBuffer()
 {
   return this->stringBuffer;
@@ -72,35 +72,35 @@ PcpEmitter::tagIsFiltered(const char* tag)
   delete iter;
   return false;
 }
-/* Set indent level of CONTEXT to INDENT.  */
+// Set indent level of CONTEXT to INDENT.  
 void
 PcpEmitter::setIndent(int indent)
 {
   this->indent = indent;
 }
 
-/* Get indent level of CONTEXT.  */
+// Get indent level of CONTEXT.  
 int
 PcpEmitter::getIndent()
 {
   return this->indent;
 }
 
-/* Increment indent level of CONTEXT.  */
+// Increment indent level of CONTEXT.  
 void
 PcpEmitter::increment()
 {
   this->setIndent(this->getIndent() + 1);
 }
 
-/* Decrement indent level of CONTEXT.  */
+// Decrement indent level of CONTEXT.  
 void
 PcpEmitter::decrement()
 {
   this->setIndent(this->getIndent() - 1);
 }
 
-/* Write indent spaces.  */
+// Write indent spaces.  
 void
 PcpEmitter::writeIndent()
 {
@@ -110,37 +110,37 @@ PcpEmitter::writeIndent()
     this->getStringBuffer()->append("  ");
 }
 
-/* Write newline.  */
+// Write newline.  
 void
 PcpEmitter::writeNewline()
 {
   this->getStringBuffer()->newline();
 }
 
-/* Write STRING.  */
+// Write STRING.  
 void
-PcpEmitter::writeString(const char *string)
+PcpEmitter::writeString(const char* string)
 {
   this->getStringBuffer()->append(string);
 }
 
-/* Write indented STRING.  */
+// Write indented STRING.  
 void
-PcpEmitter::writeStringIndent(const char *string)
+PcpEmitter::writeStringIndent(const char* string)
 {
   this->writeIndent();
   this->getStringBuffer()->append(string);
 }
 
-/* Write VALUE.  */
+// Write VALUE.  
 void
 PcpEmitter::writeInt(int value)
 {
   this->getStringBuffer()->appendInt(value);
 }
 
-/* Convert CONTEXT to string.  */
-const char *
+// Convert CONTEXT to string.  
+const char* 
 PcpEmitter::stringBufferToString()
 {
   return
@@ -148,9 +148,9 @@ PcpEmitter::stringBufferToString()
 }
 
 
-/* Write OBJECT annots.  */
+// Write OBJECT annots.  
 void
-PcpEmitter::emitObjectAnnots(PcpObject *object)
+PcpEmitter::emitObjectAnnots(PcpObject* object)
 {
   bool first = true;
   PcpAnnotSet* annots = object->getAnnots();
@@ -182,7 +182,7 @@ PcpEmitter::emitObjectAnnots(PcpObject *object)
     }
 }
 
-/* Write ANNOT.  */
+// Write ANNOT.  
 void
 PcpEmitter::emitAnnot(PcpAnnot* annot)
 {
@@ -207,32 +207,32 @@ const char* PcpEmitter::bufferToString()
   return this->stringBufferToString();
 }
 
-/* Write ANNOTInt.  */
+// Write ANNOTInt.  
 void
-PcpEmitter::emitAnnotInt(PcpAnnotInt *annotInt)
+PcpEmitter::emitAnnotInt(PcpAnnotInt* annotInt)
 {
   this->writeInt(annotInt->getValue());
 }
 
-/* Write ANNOTString.  */
+// Write ANNOTString.  
 void
-PcpEmitter::emitAnnotString(PcpAnnotString *annotString)
+PcpEmitter::emitAnnotString(PcpAnnotString* annotString)
 {
   this->writeString(annotString->getString());
 }
 
-/* Write ANNOTObject.  */
+// Write ANNOTObject.  
 void
-PcpEmitter::emitAnnotObject(PcpAnnotObject *annotObject)
+PcpEmitter::emitAnnotObject(PcpAnnotObject* annotObject)
 {
-  PcpObject *object = annotObject->getObject();
+  PcpObject* object = annotObject->getObject();
   pcpAssert(object->getName() != NULL);
   this->writeString(object->getName());
 }
 
-/* Write ANNOTTerm.  */
+// Write ANNOTTerm.  
 void
-PcpEmitter::emitAnnotTerm(PcpAnnotTerm *annotTerm)
+PcpEmitter::emitAnnotTerm(PcpAnnotTerm* annotTerm)
 {
   int numArguments = annotTerm->getNumArguments();
   int i;
@@ -253,9 +253,9 @@ PcpEmitter::emitAnnotTerm(PcpAnnotTerm *annotTerm)
   this->writeString( ")");
 }
 
-/* Write TYPE.  */
+// Write TYPE.  
 void
-PcpEmitter::emitArrayTypeDef(PcpArrayType *type)
+PcpEmitter::emitArrayTypeDef(PcpArrayType* type)
 {
   bool first = true;
   int numDims = type->getNumDimensions();
@@ -274,9 +274,9 @@ PcpEmitter::emitArrayTypeDef(PcpArrayType *type)
   this->writeString(")");
 }
 
-/* Write TYPE.  */
+// Write TYPE.  
 void
-PcpEmitter::emitArrayTypeUse(PcpArrayType *type)
+PcpEmitter::emitArrayTypeUse(PcpArrayType* type)
 {
   const char* name = type->getName();
   if(name != NULL)
@@ -285,9 +285,9 @@ PcpEmitter::emitArrayTypeUse(PcpArrayType *type)
     this->emitArrayTypeDef(type);
 }
 
-/* Write EXPR.  */
+// Write EXPR.  
 void
-PcpEmitter::emitExpr(PcpExpr *expr)
+PcpEmitter::emitExpr(PcpExpr* expr)
 {
   if(expr->isParameter())
     this->emitParameterUse(expr->toParameter());
@@ -344,9 +344,9 @@ PcpEmitter::emitBoolArith(PcpBoolArith* boolArith)
   this->writeString(")");
 }
 
-/* Write BOOLExpr.  */
+// Write BOOLExpr.  
 void
-PcpEmitter::emitBoolExpr(PcpBoolExpr *boolExpr)
+PcpEmitter::emitBoolExpr(PcpBoolExpr* boolExpr)
 {
   if(boolExpr->isCompare())
     this->emitCompare(boolExpr->toCompare());
@@ -370,9 +370,9 @@ PcpEmitter::emitCompareOperator(PcpCompareOperator oper)
   this->writeString(operatorString);
 }
 
-/* Write COMPARE */
+// Write COMPARE 
 void
-PcpEmitter::emitCompare(PcpCompare *compare)
+PcpEmitter::emitCompare(PcpCompare* compare)
 {
   this->emitCompareOperator(compare->getOperator());
   this->writeString("(");
@@ -389,11 +389,11 @@ PcpEmitter::emitObjectNameBindingIndent(PcpObject* object)
   this->emitObjectNameBinding(object);
 }
 
-/* Write CONSTANT declaration.  */
+// Write CONSTANT declaration.  
 void
-PcpEmitter::emitConstantDecl(PcpConstant *constant)
+PcpEmitter::emitConstantDecl(PcpConstant* constant)
 {
-  const char *name = constant->getName();
+  const char* name = constant->getName();
   if(name != NULL)
     {
       this->writeString(name);
@@ -404,20 +404,20 @@ PcpEmitter::emitConstantDecl(PcpConstant *constant)
     }
 }
 
-/* Write CONSTANT use string.  */
+// Write CONSTANT use string.  
 void
-PcpEmitter::emitConstantUse(PcpConstant *constant)
+PcpEmitter::emitConstantUse(PcpConstant* constant)
 {
-  const char *name = constant->getName();
+  const char* name = constant->getName();
   if(name != NULL)
     this->writeString(name);
   else
     this->writeInt(constant->getValue());
 }
 
-/* Write IV declaration.  */
+// Write IV declaration.  
 void
-PcpEmitter::emitIvDecl(PcpIv *iv)
+PcpEmitter::emitIvDecl(PcpIv* iv)
 {
   this->writeString(iv->getName());
   this->writeString(" <- iv(");
@@ -425,16 +425,16 @@ PcpEmitter::emitIvDecl(PcpIv *iv)
   this->writeString(")");
 }
 
-/* Write IV use.  */
+// Write IV use.  
 void
-PcpEmitter::emitIvUse(PcpIv *iv)
+PcpEmitter::emitIvUse(PcpIv* iv)
 {
   this->writeString(iv->getName());
 }
 
-/* Write VAR declaration.  */
+// Write VAR declaration.  
 void
-PcpEmitter::emitVariableDecl(PcpVariable *var)
+PcpEmitter::emitVariableDecl(PcpVariable* var)
 {
   this->writeString(var->getName());
   this->writeString(" <- variable(");
@@ -443,16 +443,16 @@ PcpEmitter::emitVariableDecl(PcpVariable *var)
   this->writeString(")");
 }
 
-/* Write VAR use.  */
+// Write VAR use.  
 void
-PcpEmitter::emitVariableUse(PcpVariable *var)
+PcpEmitter::emitVariableUse(PcpVariable* var)
 {
   this->writeString(var->getName());
 }
 
-/* Write PARAMETER declaration.  */
+// Write PARAMETER declaration.  
 void
-PcpEmitter::emitParameterDecl(PcpParameter *parameter)
+PcpEmitter::emitParameterDecl(PcpParameter* parameter)
 {
   this->writeString(parameter->getName());
   this->writeString(" <- parameter(");
@@ -461,15 +461,15 @@ PcpEmitter::emitParameterDecl(PcpParameter *parameter)
 }
 
 
-/* Write PARAMETER use.  */
+// Write PARAMETER use.  
 void
-PcpEmitter::emitParameterUse(PcpParameter *parameter)
+PcpEmitter::emitParameterUse(PcpParameter* parameter)
 {
   this->writeString(parameter->getName());
 }
 
 
-/* Write ARITH.  */
+// Write ARITH.  
 const char* 
 PcpEmitter::emitGetOperatorString(PcpArithOperator oper)
 {
@@ -488,7 +488,7 @@ PcpEmitter::emitGetOperatorString(PcpArithOperator oper)
 }
 
 void
-PcpEmitter::emitArith(PcpArith *arith)
+PcpEmitter::emitArith(PcpArith* arith)
 {
   const char* operatorString = 
     this->emitGetOperatorString(arith->getOperator());
@@ -512,13 +512,13 @@ PcpEmitter::emitArith(PcpArith *arith)
 
 
 
-/* Write ACCESS.  */
+// Write ACCESS.  
 void
-PcpEmitter::emitArrayAccess(PcpArrayAccess *access)
+PcpEmitter::emitArrayAccess(PcpArrayAccess* access)
 {
   int i;
   int numSubscripts = access->getNumSubscripts();
-  const char *oper = access->isUse() ? "use" :
+  const char* oper = access->isUse() ? "use" :
     access->isDef() ? "def" :
     access->isMaydef() ? "maydef" : "undefinedAccess";
 
@@ -537,9 +537,9 @@ PcpEmitter::emitArrayAccess(PcpArrayAccess *access)
   this->writeString(")");
 }
 
-/* Write COPY.  */
+// Write COPY.  
 void
-PcpEmitter::emitCopy(PcpCopy *copy)
+PcpEmitter::emitCopy(PcpCopy* copy)
 {
   this->emitObjectNameBindingIndent(copy);
   this->writeString("copy(");
@@ -550,14 +550,14 @@ PcpEmitter::emitCopy(PcpCopy *copy)
   this->writeString(")");
 }
 
-/* Write USERSTMT.  */
+// Write USERSTMT.  
 void
-PcpEmitter::emitUserStmt(PcpUserStmt *userStmt)
+PcpEmitter::emitUserStmt(PcpUserStmt* userStmt)
 {
   bool first = true;
   int i;
   int numAccesses = userStmt->getNumAccesses();
-  PcpArrayAccess *access;
+  PcpArrayAccess* access;
 
   this->writeStringIndent(userStmt->getName());
   this->writeString("(");
@@ -576,9 +576,9 @@ PcpEmitter::emitUserStmt(PcpUserStmt *userStmt)
   this->writeString(")");
 }
 
-/* Write SEQUENCE.  */
+// Write SEQUENCE.  
 void
-PcpEmitter::emitSequence(PcpSequence *sequence)
+PcpEmitter::emitSequence(PcpSequence* sequence)
 {
   int i;
   int numStmts = sequence->getNumStmts();
@@ -593,9 +593,9 @@ PcpEmitter::emitSequence(PcpSequence *sequence)
     }
 }
 
-/* Write STMT.  */
+// Write STMT.  
 void
-PcpEmitter::emitStmt(PcpStmt *stmt)
+PcpEmitter::emitStmt(PcpStmt* stmt)
 {
   if(stmt->isCopy())
     this->emitCopy(stmt->toCopy());
@@ -611,9 +611,9 @@ PcpEmitter::emitStmt(PcpStmt *stmt)
     pcpAssert(false);
 }
 
-/* Write GUARD.  */
+// Write GUARD.  
 void
-PcpEmitter::emitGuard(PcpGuard *guard)
+PcpEmitter::emitGuard(PcpGuard* guard)
 {
   this->emitObjectNameBindingIndent(guard);
   this->writeString("guard(");
@@ -632,9 +632,9 @@ PcpEmitter::emitGuard(PcpGuard *guard)
   this->writeStringIndent("}");
 }
 
-/* Write LOOP.  */
+// Write LOOP.  
 void
-PcpEmitter::emitLoop(PcpLoop *loop)
+PcpEmitter::emitLoop(PcpLoop* loop)
 {
   this->emitObjectNameBindingIndent(loop);
   this->writeString("loop(");
@@ -659,9 +659,9 @@ PcpEmitter::emitLoop(PcpLoop *loop)
   this->writeStringIndent("}");
 }
 
-/* Write SCOP inputs.  */
+// Write SCOP inputs.  
 void
-PcpEmitter::emitScopInputs(PcpScop *scop)
+PcpEmitter::emitScopInputs(PcpScop* scop)
 {
   int numVariables = scop->getNumVariables();
   bool first = true;
@@ -670,7 +670,7 @@ PcpEmitter::emitScopInputs(PcpScop *scop)
   this->writeString("inputs(");
   for(i = 0; i < numVariables; i++)
     {
-      PcpVariable *var = scop->getVariable(i);
+      PcpVariable* var = scop->getVariable(i);
 
       if(var->getIsInput())
 	{
@@ -685,9 +685,9 @@ PcpEmitter::emitScopInputs(PcpScop *scop)
   this->writeString(")");
 }
 
-/* Write SCOP outputs into context.  */
+// Write SCOP outputs into context.  
 void
-PcpEmitter::emitScopOutputs(PcpScop *scop)
+PcpEmitter::emitScopOutputs(PcpScop* scop)
 {
   int numVariables = scop->getNumVariables();
   bool first = true;
@@ -697,7 +697,7 @@ PcpEmitter::emitScopOutputs(PcpScop *scop)
 
   for(i = 0; i < numVariables; i++)
     {
-      PcpVariable *var = scop->getVariable(i);
+      PcpVariable* var = scop->getVariable(i);
 
       if(var->getIsOutput())
 	{
@@ -715,9 +715,9 @@ PcpEmitter::emitScopOutputs(PcpScop *scop)
 
 }
 
-/* Write SCOP parameters.  */
+// Write SCOP parameters.  
 void
-PcpEmitter::emitScopParameters(PcpScop *scop)
+PcpEmitter::emitScopParameters(PcpScop* scop)
 {
   int i;
   int numParameters = scop->getNumParameters();
@@ -725,7 +725,7 @@ PcpEmitter::emitScopParameters(PcpScop *scop)
 
   this->writeString("parameters(");
 
-  /* Write parameters.  */
+  // Write parameters.  
   for(i = 0; i < numParameters; i++)
     {
       if(first)
@@ -740,14 +740,14 @@ PcpEmitter::emitScopParameters(PcpScop *scop)
 
 }
 
-/* Write SCOP parameter declarations.  */
+// Write SCOP parameter declarations.  
 void
-PcpEmitter::emitScopParametersDecl(PcpScop *scop)
+PcpEmitter::emitScopParametersDecl(PcpScop* scop)
 {
   int i;
   int numParameters = scop->getNumParameters();
 
-  /* Write parameter declarations.  */
+  // Write parameter declarations.  
   for(i = 0; i < numParameters; i++)
     {
       this->emitParameterDecl(scop->getParameter(i));
@@ -755,14 +755,14 @@ PcpEmitter::emitScopParametersDecl(PcpScop *scop)
     }
 }
 
-/* Write SCOP variable declarations.  */
+// Write SCOP variable declarations.  
 void
-PcpEmitter::emitScopVariables(PcpScop *scop)
+PcpEmitter::emitScopVariables(PcpScop* scop)
 {
   int i;
   int numVariables = scop->getNumVariables();
 
-  /* Write variable declarations.  */
+  // Write variable declarations.  
   for(i = 0; i < numVariables; i++)
     {
       this->emitVariableDecl(scop->getVariable(i));
@@ -771,7 +771,7 @@ PcpEmitter::emitScopVariables(PcpScop *scop)
 }
 
 void
-PcpEmitter::emitTypeDefs(PcpScop *scop)
+PcpEmitter::emitTypeDefs(PcpScop* scop)
 {
   int i;
   int numVariables = scop->getNumVariables();
@@ -792,9 +792,9 @@ PcpEmitter::emitTypeDefs(PcpScop *scop)
     }
 }
 
-/* Write SCOP.  */
+// Write SCOP.  
 void
-PcpEmitter::emitScop(PcpScop *scop)
+PcpEmitter::emitScop(PcpScop* scop)
 {
   this->emitScopParametersDecl(scop);
   this->emitTypeDefs(scop);
@@ -821,81 +821,81 @@ PcpEmitter::emitScop(PcpScop *scop)
   this->writeNewline();
 }
 
-/* Convert ANNOT to string.  */
+// Convert ANNOT to string.  
 
-const char *
-PcpEmitter::pcpAnnotToString(PcpAnnot *annot)
+const char* 
+PcpEmitter::pcpAnnotToString(PcpAnnot* annot)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitAnnot(annot);
   return emitter->bufferToString();
 }
 
-/* Convert ANNOTInt to string.  */
-const char *
-PcpEmitter::pcpAnnotIntToString(PcpAnnotInt *annotInt)
+// Convert ANNOTInt to string.  
+const char* 
+PcpEmitter::pcpAnnotIntToString(PcpAnnotInt* annotInt)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitAnnotInt(annotInt);
   return emitter->bufferToString();
 }
 
-/* Convert ANNOTString to string.  */
-const char *
-PcpEmitter::pcpAnnotStringToString(PcpAnnotString *annotString)
+// Convert ANNOTString to string.  
+const char* 
+PcpEmitter::pcpAnnotStringToString(PcpAnnotString* annotString)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitAnnotString(annotString);
   return emitter->bufferToString();
 }
 
-/* Convert ANNOTObject to string.  */
-const char *
-PcpEmitter::pcpAnnotObjectToString(PcpAnnotObject *annotObject)
+// Convert ANNOTObject to string.  
+const char* 
+PcpEmitter::pcpAnnotObjectToString(PcpAnnotObject* annotObject)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitAnnotObject(annotObject);
   return emitter->bufferToString();
 }
 
-/* Convert ANNOTTerm to string.  */
-const char *
-PcpEmitter::pcpAnnotTermToString(PcpAnnotTerm *annotTerm)
+// Convert ANNOTTerm to string.  
+const char* 
+PcpEmitter::pcpAnnotTermToString(PcpAnnotTerm* annotTerm)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitAnnotTerm(annotTerm);
   return emitter->bufferToString();
 }
 
-/* Convert TYPE to string.  */
-const char *
-PcpEmitter::pcpArrayTypeToString(PcpArrayType *type)
+// Convert TYPE to string.  
+const char* 
+PcpEmitter::pcpArrayTypeToString(PcpArrayType* type)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitArrayTypeDef(type);
   return emitter->bufferToString();
 }
 
-/* Convert EXPR to string.  */
-const char *
-PcpEmitter::pcpExprToString(PcpExpr *expr)
+// Convert EXPR to string.  
+const char* 
+PcpEmitter::pcpExprToString(PcpExpr* expr)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitExpr(expr);
   return emitter->bufferToString();
 }
 
-/* Convert BOOLEXPR to string.  */
-const char *
-PcpEmitter::pcpBoolExprToString(PcpBoolExpr *boolExpr)
+// Convert BOOLEXPR to string.  
+const char* 
+PcpEmitter::pcpBoolExprToString(PcpBoolExpr* boolExpr)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitBoolExpr(boolExpr);
   return emitter->bufferToString();
 }
 
-const char *
-PcpEmitter::pcpCompareToString(PcpCompare *compare)
+const char* 
+PcpEmitter::pcpCompareToString(PcpCompare* compare)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitCompare(compare);
@@ -903,88 +903,88 @@ PcpEmitter::pcpCompareToString(PcpCompare *compare)
 }
 
 
-const char *
-PcpEmitter::pcpBoolArithToString(PcpBoolArith *boolArith)
+const char* 
+PcpEmitter::pcpBoolArithToString(PcpBoolArith* boolArith)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitBoolArith(boolArith);
   return emitter->bufferToString();
 }
 
-/* Convert CONSTANT to declaration string.  */
-const char *
-PcpEmitter::pcpConstantToDeclString(PcpConstant *constant)
+// Convert CONSTANT to declaration string.  
+const char* 
+PcpEmitter::pcpConstantToDeclString(PcpConstant* constant)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitConstantDecl(constant);
   return emitter->bufferToString();
 }
 
-/* Convert CONSTANT to use string.  */
-const char *
-PcpEmitter::pcpConstantToUseString(PcpConstant *constant)
+// Convert CONSTANT to use string.  
+const char* 
+PcpEmitter::pcpConstantToUseString(PcpConstant* constant)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitConstantUse(constant);
   return emitter->bufferToString();
 }
 
-/* Convert IV to declaration string. */
-const char *
-PcpEmitter::pcpIvToDeclString(PcpIv *iv)
+// Convert IV to declaration string. 
+const char* 
+PcpEmitter::pcpIvToDeclString(PcpIv* iv)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitIvDecl(iv);
   return emitter->bufferToString();
 }
 
-/* Convert IV to use string.  */
-const char *
-PcpEmitter::pcpIvToUseString(PcpIv *iv)
+// Convert IV to use string.  
+const char* 
+PcpEmitter::pcpIvToUseString(PcpIv* iv)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitIvUse(iv);
   return emitter->bufferToString();
 }
 
-/* Convert VAR to declaration string.  */
-const char *
-PcpEmitter::pcpVariableToDeclString(PcpVariable *var)
+// Convert VAR to declaration string.  
+const char* 
+PcpEmitter::pcpVariableToDeclString(PcpVariable* var)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitVariableDecl(var);
   return emitter->bufferToString();
 }
 
-/* Convert VAR to use string.  */
-const char *
-PcpEmitter::pcpVariableToUseString(PcpVariable *var)
+// Convert VAR to use string.  
+const char* 
+PcpEmitter::pcpVariableToUseString(PcpVariable* var)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitVariableUse(var);
   return emitter->bufferToString();
 }
 
-/* Convert PARAMETER to declaration string.  */
-const char *
-PcpEmitter::pcpParameterToDeclString(PcpParameter *parameter)
+// Convert PARAMETER to declaration string.  
+const char* 
+PcpEmitter::pcpParameterToDeclString(PcpParameter* parameter)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitParameterDecl(parameter);
   return emitter->bufferToString();
 }
 
-/* Convert PARAMETER to use string.  */
-const char *
-PcpEmitter::pcpParameterToUseString(PcpParameter *parameter)
+// Convert PARAMETER to use string.  
+const char* 
+PcpEmitter::pcpParameterToUseString(PcpParameter* parameter)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitParameterUse(parameter);
   return emitter->bufferToString();
 }
 
-const char *
-PcpEmitter::pcpArithToString(PcpArith *arith)
+const char* 
+PcpEmitter::pcpArithToString(PcpArith* arith)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitArith(arith);
@@ -992,36 +992,36 @@ PcpEmitter::pcpArithToString(PcpArith *arith)
 }
 
 
-/* Convert ACCESS to string.  */
-const char *
-PcpEmitter::pcpArrayAccessToString(PcpArrayAccess *access)
+// Convert ACCESS to string.  
+const char* 
+PcpEmitter::pcpArrayAccessToString(PcpArrayAccess* access)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitArrayAccess(access);
   return emitter->bufferToString();
 }
 
-/* Convert COPY to string.  */
-const char *
-PcpEmitter::pcpCopyToString(PcpCopy *copy)
+// Convert COPY to string.  
+const char* 
+PcpEmitter::pcpCopyToString(PcpCopy* copy)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitCopy(copy);
   return emitter->bufferToString();
 }
 
-/* Convert USERStmt to string.  */
-const char *
-PcpEmitter::pcpUserStmtToString(PcpUserStmt *userStmt)
+// Convert USERStmt to string.  
+const char* 
+PcpEmitter::pcpUserStmtToString(PcpUserStmt* userStmt)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitUserStmt(userStmt);
   return emitter->bufferToString();
 }
 
-/* Convert SEQUENCE to string.  */
-const char *
-PcpEmitter::pcpSequenceToString(PcpSequence *sequence)
+// Convert SEQUENCE to string.  
+const char* 
+PcpEmitter::pcpSequenceToString(PcpSequence* sequence)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitSequence(sequence);
@@ -1029,36 +1029,36 @@ PcpEmitter::pcpSequenceToString(PcpSequence *sequence)
 
 }
 
-/* Convert STMT to string.  */
-const char *
-PcpEmitter::pcpStmtToString(PcpStmt *stmt)
+// Convert STMT to string.  
+const char* 
+PcpEmitter::pcpStmtToString(PcpStmt* stmt)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitStmt(stmt);
   return emitter->bufferToString();
 }
 
-/* Convert GUARD to string.  */
-const char *
-PcpEmitter::pcpGuardToString(PcpGuard *guard)
+// Convert GUARD to string.  
+const char* 
+PcpEmitter::pcpGuardToString(PcpGuard* guard)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitGuard(guard);
   return emitter->bufferToString();
 }
 
-/* Convert LOOP to string.  */
-const char *
-PcpEmitter::pcpLoopToString(PcpLoop *loop)
+// Convert LOOP to string.  
+const char* 
+PcpEmitter::pcpLoopToString(PcpLoop* loop)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->emitLoop(loop);
   return emitter->bufferToString();
 }
 
-/* Convert SCOP into string.  */
-const char *
-PcpEmitter::pcpScopToString(PcpScop *scop)
+// Convert SCOP into string.  
+const char* 
+PcpEmitter::pcpScopToString(PcpScop* scop)
 {
   PcpEmitter* emitter = new PcpEmitter();
   emitter->getTagFilterSet()->insert("lineinfo");
