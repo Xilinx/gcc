@@ -1,3 +1,8 @@
+2009-02-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_trans_bb_move_loop): Remove ping pong,
+	use ppl_move_dimension.
+
 2009-02-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-data-ref.c: Domains are now ppl_Polyhedra_t.
