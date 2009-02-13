@@ -27,7 +27,7 @@
 
 #ifndef _PCP_ALLOC_H_
 #define _PCP_ALLOC_H_
-#include <malloc.h>
+#include <stdlib.h>
 
 #define PCP_NEWVEC(x, n) (malloc(sizeof(x) * n))
 

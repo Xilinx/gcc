@@ -1,4 +1,6 @@
 2009-02-13  Jan Sjodin  <jan.sjodin@amd.com>
+	* pcp_alloc.h: Changed include malloc.h to stdlib.h
+2009-02-13  Jan Sjodin  <jan.sjodin@amd.com>
 	* pcp_error.cc: Made all comments into C++ style. Made all pointer 
 	  types written in a consistent way.
 	* pcp_error.h: Same
