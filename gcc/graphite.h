@@ -112,7 +112,7 @@ typedef struct graphite_bb
 
      The number of variables in the DOMAIN may change and is not
      related to the number of loops in the original code.  */
-  ppl_Constraint_System_t domain;
+  ppl_Polyhedron_t domain;
 
   /* Lists containing the restrictions of the conditional statements
      dominating this bb.  This bb can only be executed, if all conditions
@@ -222,9 +222,8 @@ gbb_nb_loops (const struct graphite_bb *gb)
 {
   scop_p scop = GBB_SCOP (gb);
   ppl_dimension_type dim;
-  gcc_assert (GBB_DOMAIN (gb) != NULL);
 
-  ppl_Constraint_System_space_dimension (GBB_DOMAIN (gb), &dim);
+  ppl_Polyhedron_space_dimension (GBB_DOMAIN (gb), &dim);
   return dim - scop_nb_params (scop);
 }
 

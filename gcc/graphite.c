@@ -667,12 +667,9 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 
   print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
 
-  if (GBB_DOMAIN (gb))
-    {
-      fprintf (file, "       (domain: \n");
-      ppl_io_fprint_Constraint_System (file, GBB_DOMAIN (gb));
-      fprintf (file, "       )\n");
-    }
+  fprintf (file, "       (domain: \n");
+  ppl_io_fprint_Polyhedron (file, GBB_DOMAIN (gb));
+  fprintf (file, "       )\n");
 
   if (GBB_STATIC_SCHEDULE (gb))
     {
@@ -1261,7 +1258,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_BB (gbb) = bb;
   GBB_SCOP (gbb) = scop;
   GBB_DATA_REFS (gbb) = drs;
-  ppl_new_Constraint_System (&GBB_DOMAIN (gbb));
+  ppl_new_NNC_Polyhedron_from_space_dimension (&GBB_DOMAIN (gbb), 0, 0);
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
@@ -1275,7 +1272,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
 static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
-  ppl_delete_Constraint_System (GBB_DOMAIN (gbb));
+  ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
 
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
@@ -3113,8 +3110,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (gbb_loop (gb) == loop)
       {
-	ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-	new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), cstr);
+	ppl_delete_Polyhedron (GBB_DOMAIN (gb));
+	new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), cstr);
       }
 
   cloog_matrix_free (cstr);
@@ -3135,21 +3132,16 @@ add_conditions_to_domain (graphite_bb_p gb)
   unsigned nb_cols;
   unsigned nb_new_rows = 0;
   unsigned row;
-  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gb));
 
   if (VEC_empty (gimple, conditions))
-    return;
+    {
+      cloog_matrix_free (domain);
+      return;
+    }
 
-  if (domain)
-    {
-      nb_rows = domain->NbRows;
-      nb_cols = domain->NbColumns;
-    }
-  else  
-    {
-      nb_rows = 0;
-      nb_cols = nb_loops_around_gb (gb) + scop_nb_params (scop) + 2;
-    }
+  nb_rows = domain->NbRows;
+  nb_cols = domain->NbColumns;
 
   /* Count number of necessary new rows to add the conditions to the
      domain.  */
@@ -3320,8 +3312,8 @@ add_conditions_to_domain (graphite_bb_p gb)
           break;
         }
     }
-    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
+    ppl_delete_Polyhedron (GBB_DOMAIN (gb));
+    new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
     cloog_matrix_free (domain);
 }
 
@@ -4783,7 +4775,7 @@ build_cloog_prog (scop_p scop)
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
 					     nb_loops_around_gb (gbb));
       cloog_statement_set_usr (stmt, gbb);
-      domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gbb));
+      domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gbb));
 
       /* Build loop list.  */
       {
@@ -5486,7 +5478,7 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
   int row, j;
   loop_p tmp_loop_p;
 
-  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gb));
 
   gcc_assert (loop < gbb_nb_loops (gb)
 	      && new_loop_pos < gbb_nb_loops (gb));
@@ -5524,8 +5516,8 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int loop,
         value_clear (tmp);
       }
 
-    ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-    new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
+    ppl_delete_Polyhedron (GBB_DOMAIN (gb));
+    new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), domain);
     cloog_matrix_free (domain);
 }
 
@@ -5633,7 +5625,7 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 
   gcc_assert (loop_depth <= gbb_nb_loops (gb) - 1);
 
-  domain = new_Cloog_Matrix_from_ppl_Constraint_System (GBB_DOMAIN (gb));
+  domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gb));
   new_domain = cloog_matrix_alloc (domain->NbRows + 3, domain->NbColumns + 1);
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
 
@@ -5677,8 +5669,8 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
 		stride - 1);
 
   cloog_matrix_free (domain);
-  ppl_delete_Constraint_System (GBB_DOMAIN (gb));
-  new_Constraint_System_from_Cloog_Matrix (&GBB_DOMAIN (gb), new_domain); 
+  ppl_delete_Polyhedron (GBB_DOMAIN (gb));
+  new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), new_domain); 
   cloog_matrix_free (new_domain);
 
   /* Update static schedule.  */

@@ -58,7 +58,7 @@ cloog_matrix_to_ppl_constraint (CloogMatrix *matrix, int row)
 
 /* Creates a PPL constraint system from MATRIX.  */
 
-void
+static void
 new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
 					 CloogMatrix *matrix)
 {
@@ -74,10 +74,21 @@ new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
     }
 }
 
+/* Creates a PPL Polyhedron from MATRIX.  */
+
+void
+new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *ph,
+				      CloogMatrix *matrix)
+{
+  ppl_Constraint_System_t cs;
+  new_Constraint_System_from_Cloog_Matrix (&cs, matrix);
+  ppl_new_NNC_Polyhedron_recycle_Constraint_System (ph, cs);
+}
+
 /* Counts the number of constraints in PCS.  */
 
 static int
-ppl_Constrain_System_number_of_constraints (ppl_Constraint_System_t pcs)
+ppl_Constrain_System_number_of_constraints (ppl_const_Constraint_System_t pcs)
 {
   ppl_Constraint_System_const_iterator_t cit, end;
   int num = 0;
@@ -138,8 +149,8 @@ insert_constraint_into_matrix (CloogMatrix *m, int row,
 
 /* Creates a CloogMatrix from constraint system PCS.  */
 
-CloogMatrix *
-new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t pcs)
+static CloogMatrix *
+new_Cloog_Matrix_from_ppl_Constraint_System (ppl_const_Constraint_System_t pcs)
 {
   CloogMatrix *matrix;
   ppl_Constraint_System_const_iterator_t cit, end;
@@ -170,3 +181,16 @@ new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t pcs)
   return matrix;
 }
 
+/* Creates a CloogMatrix from constraint system PCS.  */
+
+CloogMatrix *
+new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
+{
+  ppl_const_Constraint_System_t pcs;
+  CloogMatrix *res;
+
+  ppl_Polyhedron_get_constraints (ph, &pcs);
+  res = new_Cloog_Matrix_from_ppl_Constraint_System (pcs);
+
+  return res;
+}

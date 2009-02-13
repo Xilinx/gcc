@@ -1,5 +1,13 @@
 2009-02-12  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-data-ref.c: Domains are now ppl_Polyhedra_t.
+	* graphite.c: Same.
+	* graphite.h: Same.
+	* graphite-ppl.c: Same.
+	* graphite-ppl.h: Same.
+
+2009-02-12  Sebastian Pop  <sebastian.pop@amd.com>
+
 	Revert last 3 commits.
 
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>

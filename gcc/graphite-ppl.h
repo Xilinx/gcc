@@ -23,8 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <cloog/cloog.h>
 
 CloogMatrix *
-new_Cloog_Matrix_from_ppl_Constraint_System (ppl_Constraint_System_t pcs);
+new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 
 void
-new_Constraint_System_from_Cloog_Matrix (ppl_Constraint_System_t *pcs,
-                                         CloogMatrix *matrix);
+new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *, CloogMatrix *);
