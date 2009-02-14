@@ -1,4 +1,9 @@
-2009-02-12  Sebastian Pop  <sebastian.pop@amd.com>
+2009-02-14  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (build_loop_iteration_domains): Remove ping pong.
+	(build_scop_iteration_domain): Same.
+
+2009-02-13  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (scan_tree_for_params, add_conditions_to_domain): Remove
 	ping pong.

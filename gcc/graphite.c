@@ -3036,116 +3036,95 @@ gbb_from_bb (basic_block bb)
   return (graphite_bb_p) bb->aux;
 }
 
-/* Builds the constraint matrix for LOOP in SCOP.  NB_OUTER_LOOPS is the
-   number of loops surrounding LOOP in SCOP.  OUTER_CSTR gives the
-   constraints matrix for the surrounding loops.  */
+/* Builds the constraint matrix for LOOP in SCOP.  OUTER_PH gives the
+   constraints for the surrounding loops.  */
 
 static void
 build_loop_iteration_domains (scop_p scop, struct loop *loop,
-                              CloogMatrix *outer_cstr, int nb_outer_loops)
+                              ppl_Polyhedron_t outer_ph, int nb)
+
 {
-  int i, j, row;
-  CloogMatrix *cstr;
+  int i;
   graphite_bb_p gb;
-
-  int nb_rows = outer_cstr->NbRows + 1;
-  int nb_cols = outer_cstr->NbColumns + 1;
-
-  /* Last column of CSTR is the column of constants.  */
-  int cst_col = nb_cols - 1;
-
-  /* The column for the current loop is just after the columns of
-     other outer loops.  */
-  int loop_col = nb_outer_loops + 1;
-
+  Value one, minus_one, val;
+  ppl_Polyhedron_t ph;
+  ppl_Linear_Expression_t lb_expr, ub_expr;
+  ppl_Constraint_t lb, ub;
+  ppl_Coefficient_t coef;
+  ppl_const_Constraint_System_t pcs;
   tree nb_iters = number_of_latch_executions (loop);
+  ppl_dimension_type dim = nb + 1 + scop_nb_params (scop);
+  ppl_dimension_type *map;
 
-  /* When the number of iterations is a constant or a parameter, we
-     add a constraint for the upper bound of the loop.  So add a row
-     to the constraint matrix before allocating it.  */
-  if (TREE_CODE (nb_iters) == INTEGER_CST
-      || !chrec_contains_undetermined (nb_iters))
-    nb_rows++;
+  value_init (one);
+  value_init (minus_one);
+  value_init (val);
+  value_set_si (one, 1);
+  value_set_si (minus_one, -1);
 
-  cstr = cloog_matrix_alloc (nb_rows, nb_cols);
-
-  /* Copy the outer constraints.  */
-  for (i = 0; i < outer_cstr->NbRows; i++)
-    {
-      /* Copy the eq/ineq and loops columns.  */
-      for (j = 0; j < loop_col; j++)
-        value_assign (cstr->p[i][j], outer_cstr->p[i][j]);
-
-      /* Leave an empty column in CSTR for the current loop, and then
-	 copy the parameter columns.  */
-      for (j = loop_col; j < outer_cstr->NbColumns; j++)
-        value_assign (cstr->p[i][j + 1], outer_cstr->p[i][j]);
-    }
+  ppl_new_Linear_Expression_with_dimension (&lb_expr, dim);
+  ppl_new_Linear_Expression_with_dimension (&ub_expr, dim);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
 
   /* 0 <= loop_i */
-  row = outer_cstr->NbRows;
-  value_set_si (cstr->p[row][0], 1);
-  value_set_si (cstr->p[row][loop_col], 1);
+  ppl_new_Coefficient_from_mpz_t (&coef, one);
+  ppl_Linear_Expression_add_to_coefficient (lb_expr, nb, coef);
+  ppl_new_Constraint (&lb, lb_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
 
   /* loop_i <= nb_iters */
+  ppl_assign_Coefficient_from_mpz_t (coef, minus_one);
+  ppl_Linear_Expression_add_to_coefficient (ub_expr, nb, coef);
+
   if (TREE_CODE (nb_iters) == INTEGER_CST)
     {
-      row++;
-      value_set_si (cstr->p[row][0], 1);
-      value_set_si (cstr->p[row][loop_col], -1);
-
-      value_set_si (cstr->p[row][cst_col],
-		    int_cst_value (nb_iters));
+      value_set_si (val, int_cst_value (nb_iters));
+      ppl_assign_Coefficient_from_mpz_t (coef, val);
+      ppl_Linear_Expression_add_to_inhomogeneous (ub_expr, coef);
+      ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     }
   else if (!chrec_contains_undetermined (nb_iters))
     {
-      /* Otherwise nb_iters contains parameters: scan the nb_iters
-	 expression and build its matrix representation.  */
-      Value one;
-      ppl_Linear_Expression_t expr;
-      ppl_Constraint_t pc;
-      ppl_dimension_type dim;
-
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = instantiate_scev (block_before_scop (scop), loop, nb_iters);
-
-      value_init (one);
-      value_set_si (one, 1);
-      dim = nb_cols - 2;
-      ppl_new_Linear_Expression_with_dimension (&expr, dim);
-      scan_tree_for_params (scop, nb_iters, expr, one, false);
-      ppl_new_Constraint (&pc, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
-
-      row++;
-      insert_constraint_into_matrix (cstr, row, pc);
-      value_set_si (cstr->p[row][0], 1);
-      value_set_si (cstr->p[row][loop_col], -1);
-
-      ppl_delete_Constraint (pc);
-      ppl_delete_Linear_Expression (expr);
-      value_clear (one);
+      scan_tree_for_params (scop, nb_iters, ub_expr, one, false);
+      ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     }
   else
     gcc_unreachable ();
 
-  if (loop->inner && loop_in_sese_p (loop->inner, SCOP_REGION (scop)))
-    build_loop_iteration_domains (scop, loop->inner, cstr, nb_outer_loops + 1);
+  ppl_Polyhedron_get_constraints (outer_ph, &pcs);
+  ppl_Polyhedron_add_constraints (ph, pcs);
 
-  /* Only go to the next loops, if we are not at the outermost layer.  These
-     have to be handled seperately, as we can be sure, that the chain at this
-     layer will be connected.  */
-  if (nb_outer_loops != 0 && loop->next && loop_in_sese_p (loop->next,
-							   SCOP_REGION (scop)))
-    build_loop_iteration_domains (scop, loop->next, outer_cstr, nb_outer_loops);
+  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
+  for (i = 0; i < (int) nb; i++)
+    map[i] = i;
+  for (i = (int) nb; i < (int) dim - 1; i++)
+    map[i] = i + 1;
+  map[dim - 1] = nb;
+
+  ppl_Polyhedron_map_space_dimensions (ph, map, dim);
+  ppl_Polyhedron_add_constraint (ph, lb);
+  ppl_Polyhedron_add_constraint (ph, ub);
+
+  if (loop->inner && loop_in_sese_p (loop->inner, SCOP_REGION (scop)))
+    build_loop_iteration_domains (scop, loop->inner, ph, nb + 1);
+
+  if (nb != 0
+      && loop->next
+      && loop_in_sese_p (loop->next, SCOP_REGION (scop)))
+    build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     if (gbb_loop (gb) == loop)
       {
 	ppl_delete_Polyhedron (GBB_DOMAIN (gb));
-	new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), cstr);
+	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&GBB_DOMAIN (gb), ph);
       }
 
-  cloog_matrix_free (cstr);
+  ppl_delete_Polyhedron (ph);
+  value_clear (one);
+  value_clear (minus_one);
+  value_clear (val);
 }
 
 /* Add conditions to the domain of GB.  */
@@ -3491,7 +3470,6 @@ static bool
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
-  CloogMatrix *outer_cstr;
   int i;
 
   /* Build cloog loop for all loops, that are in the uppermost loop layer of
@@ -3499,13 +3477,10 @@ build_scop_iteration_domain (scop_p scop)
   for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
     if (!loop_in_sese_p (loop_outer (loop), SCOP_REGION (scop)))
       {
-        /* The outermost constraints is a matrix that has:
-           -first column: eq/ineq boolean
-           -last column: a constant
-           -scop_nb_params columns for the parameters used in the scop.  */
-	outer_cstr = cloog_matrix_alloc (0, scop_nb_params (scop) + 2);
-	build_loop_iteration_domains (scop, loop, outer_cstr, 0);
-	cloog_matrix_free (outer_cstr);
+	ppl_Polyhedron_t ph;
+	ppl_new_NNC_Polyhedron_from_space_dimension (&ph, 0, 0);
+	build_loop_iteration_domains (scop, loop, ph, 0);
+	ppl_delete_Polyhedron (ph);
       }
 
   return (i != 0);
