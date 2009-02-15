@@ -293,7 +293,7 @@ shift_poly (ppl_Polyhedron_t ph, ppl_dimension_type x, ppl_dimension_type dim)
   map[dim] = x;
 
   ppl_Polyhedron_map_space_dimensions (res, map, dim + 1);
-
+  free (map);
   ppl_delete_Polyhedron (ph);
   return res;
 }
@@ -308,7 +308,6 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
   ppl_const_Constraint_System_t pcs;
   ppl_Constraint_System_const_iterator_t cit, end;
   ppl_const_Constraint_t cstr;
-  ppl_Constraint_t new_cstr;
   ppl_Linear_Expression_t expr;
   int v;
   ppl_dimension_type dim;
@@ -346,6 +345,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
 	ppl_Constraint_System_const_iterator_dereference (cit, &cstr);
 	ppl_new_Linear_Expression_from_Constraint (&expr, cstr);
 	ppl_Linear_Expression_coefficient (expr, loop, c);
+	ppl_delete_Linear_Expression (expr);
 	ppl_Coefficient_to_mpz_t (c, val);
 	v = value_get_si (val);
 
@@ -363,19 +363,22 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
 
   /* Lower bound of a tile starts at "stride * outer_iv".  */
   {
+    ppl_Constraint_t new_cstr;
     ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
 
     set_coef (expr, loop + 1, 1);
     set_coef (expr, loop, -1 * stride);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
-    ppl_Polyhedron_add_constraint (res, new_cstr);
     ppl_delete_Linear_Expression (expr);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Constraint (new_cstr);
   }
 
   /* Upper bound of a tile stops at "stride * outer_iv + stride - 1",
      or at the old upper bound that is not modified.  */
   {  
+    ppl_Constraint_t new_cstr;
     ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
 
     set_coef (expr, loop + 1, -1);
@@ -383,9 +386,12 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
     set_inhomogeneous (expr, stride - 1);
 
     ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
-    ppl_Polyhedron_add_constraint (res, new_cstr);
     ppl_delete_Linear_Expression (expr);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Constraint (new_cstr);
   }
 
+  value_clear (val);
+  ppl_delete_Coefficient (c);
   return res;
 }

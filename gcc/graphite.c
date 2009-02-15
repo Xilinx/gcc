@@ -1263,6 +1263,7 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
   GBB_STATIC_SCHEDULE (gbb) = NULL;
+  GBB_DYNAMIC_SCHEDULE (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
 }
@@ -1273,6 +1274,9 @@ static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
   ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
+
+  if (GBB_DYNAMIC_SCHEDULE (gbb))
+    cloog_matrix_free (GBB_DYNAMIC_SCHEDULE (gbb));
 
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
@@ -3070,6 +3074,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   ppl_new_Coefficient_from_mpz_t (&coef, one);
   ppl_Linear_Expression_add_to_coefficient (lb_expr, nb, coef);
   ppl_new_Constraint (&lb, lb_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+  ppl_delete_Linear_Expression (lb_expr);
 
   /* loop_i <= nb_iters */
   ppl_assign_Coefficient_from_mpz_t (coef, minus_one);
@@ -3092,6 +3097,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   else
     gcc_unreachable ();
 
+  ppl_delete_Linear_Expression (ub_expr);
   ppl_Polyhedron_get_constraints (outer_ph, &pcs);
   ppl_Polyhedron_add_constraints (ph, pcs);
 
@@ -3103,8 +3109,11 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   map[dim - 1] = nb;
 
   ppl_Polyhedron_map_space_dimensions (ph, map, dim);
+  free (map);
   ppl_Polyhedron_add_constraint (ph, lb);
   ppl_Polyhedron_add_constraint (ph, ub);
+  ppl_delete_Constraint (lb);
+  ppl_delete_Constraint (ub);
 
   if (loop->inner && loop_in_sese_p (loop->inner, SCOP_REGION (scop)))
     build_loop_iteration_domains (scop, loop->inner, ph, nb + 1);
@@ -3121,6 +3130,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&GBB_DOMAIN (gb), ph);
       }
 
+  ppl_delete_Coefficient (coef);
   ppl_delete_Polyhedron (ph);
   value_clear (one);
   value_clear (minus_one);
@@ -4680,6 +4690,7 @@ build_cloog_prog (scop_p scop)
         cloog_loop_set_next (new_loop_list, loop_list);
         cloog_loop_set_domain (new_loop_list,
 			       cloog_domain_matrix2domain (domain));
+	cloog_matrix_free (domain);
         cloog_loop_set_block (new_loop_list, block);
         loop_list = new_loop_list;
       }
