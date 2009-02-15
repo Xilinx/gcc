@@ -5403,157 +5403,20 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
   free (map);
 }
 
-/* Get the index of the column representing constants in the DOMAIN
-   matrix.  */
-
-static int
-const_column_index (CloogMatrix *domain)
-{
-  return domain->NbColumns - 1;
-}
-
-
-/* Get the first index that is positive or negative, determined
-   following the value of POSITIVE, in matrix DOMAIN in COLUMN.  */
-
-static int
-get_first_matching_sign_row_index (CloogMatrix *domain, int column,
-				   bool positive)
-{
-  int row;
-
-  for (row = 0; row < domain->NbRows; row++)
-    {
-      int val = value_get_si (domain->p[row][column]);
-
-      if (val > 0 && positive)
-	return row;
-
-      else if (val < 0 && !positive)
-	return row;
-    }
-
-  gcc_unreachable ();
-}
-
-/* Get the lower bound of COLUMN in matrix DOMAIN.  */
-
-static int
-get_lower_bound_row (CloogMatrix *domain, int column)
-{
-  return get_first_matching_sign_row_index (domain, column, true);
-}
-
-/* Get the upper bound of COLUMN in matrix DOMAIN.  */
-
-static int
-get_upper_bound_row (CloogMatrix *domain, int column)
-{
-  return get_first_matching_sign_row_index (domain, column, false);
-}
-
-/* Copies the OLD_ROW constraint from OLD_DOMAIN to the NEW_DOMAIN at
-   row NEW_ROW.  */
-
-static void
-copy_constraint (CloogMatrix *old_domain, CloogMatrix *new_domain,
-		 int old_row, int new_row)
-{
-  int i;
-
-  gcc_assert (old_domain->NbColumns == new_domain->NbColumns
-	      && old_row < old_domain->NbRows
-	      && new_row < new_domain->NbRows);
-
-  for (i = 0; i < old_domain->NbColumns; i++)
-    value_assign (new_domain->p[new_row][i], old_domain->p[old_row][i]);
-}
-
-/* Swap coefficients of variables X and Y on row R.   */
-
-static void
-swap_constraint_variables (CloogMatrix *domain,
-			   int r, int x, int y)
-{
-  value_swap (domain->p[r][x], domain->p[r][y]);
-}
-
-/* Scale by X the coefficient C of constraint at row R in DOMAIN.  */
-
-static void
-scale_constraint_variable (CloogMatrix *domain,
-			   int r, int c, int x)
-{
-  Value strip_size_value;
-  value_init (strip_size_value);
-  value_set_si (strip_size_value, x);
-  value_multiply (domain->p[r][c], domain->p[r][c], strip_size_value);
-  value_clear (strip_size_value);
-}
-
-/* Strip mines the loop of BB at the position LOOP_DEPTH with STRIDE.
-   Always valid, but not always a performance improvement.  */
+/* Strip mines the loop at dimension LOOP of BB with STRIDE.  This
+   transform is always valid but not always a performance gain.  */
   
 static void
-graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
+graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop, int stride)
 {
-  int row, col;
-
-  CloogMatrix *domain;
-  CloogMatrix *new_domain; 
-
-  int col_loop_old = loop_depth + 2; 
-  int col_loop_strip = col_loop_old - 1;
-
-  gcc_assert (loop_depth <= gbb_nb_loops (gb) - 1);
-
-  domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gb));
-  new_domain = cloog_matrix_alloc (domain->NbRows + 3, domain->NbColumns + 1);
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop_depth, NULL);
-
-
-  for (row = 0; row < domain->NbRows; row++)
-    for (col = 0; col < domain->NbColumns; col++)
-      if (col <= loop_depth)
-	value_assign (new_domain->p[row][col], domain->p[row][col]);
-      else
-	value_assign (new_domain->p[row][col + 1], domain->p[row][col]);
-
-  row = domain->NbRows;
-
-  /* Lower bound of the outer stripped loop.  */
-  copy_constraint (new_domain, new_domain,
-		   get_lower_bound_row (new_domain, col_loop_old), row);
-  swap_constraint_variables (new_domain, row, col_loop_old, col_loop_strip);
-  row++;
-
-  /* Upper bound of the outer stripped loop.  */
-  copy_constraint (new_domain, new_domain,
-		   get_upper_bound_row (new_domain, col_loop_old), row);
-  swap_constraint_variables (new_domain, row, col_loop_old, col_loop_strip);
-  scale_constraint_variable (new_domain, row, col_loop_strip, stride);
-  row++;
-
-  /* Lower bound of a tile starts at "stride * outer_iv".  */
-  row = get_lower_bound_row (new_domain, col_loop_old);
-  value_set_si (new_domain->p[row][0], 1);
-  value_set_si (new_domain->p[row][const_column_index (new_domain)], 0);
-  value_set_si (new_domain->p[row][col_loop_old], 1);
-  value_set_si (new_domain->p[row][col_loop_strip], -1 * stride);
-
-  /* Upper bound of a tile stops at "stride * outer_iv + stride - 1",
-     or at the old upper bound that is not modified.  */
-  row = new_domain->NbRows - 1;
-  value_set_si (new_domain->p[row][0], 1);
-  value_set_si (new_domain->p[row][col_loop_old], -1);
-  value_set_si (new_domain->p[row][col_loop_strip], stride);
-  value_set_si (new_domain->p[row][const_column_index (new_domain)],
-		stride - 1);
-
-  cloog_matrix_free (domain);
+  ppl_Polyhedron_t ph = ppl_strip_loop (GBB_DOMAIN (gb), loop, stride);  
   ppl_delete_Polyhedron (GBB_DOMAIN (gb));
-  new_NNC_Polyhedron_from_Cloog_Matrix (&GBB_DOMAIN (gb), new_domain); 
-  cloog_matrix_free (new_domain);
+  GBB_DOMAIN (gb) = ph;
+
+  gcc_assert (loop <= gbb_nb_loops (gb) - 1);
+
+  /* Update the loops vector.  */
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop, NULL);
 
   /* Update static schedule.  */
   {
@@ -5561,10 +5424,10 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop_depth, int stride)
     int nb_loops = gbb_nb_loops (gb);
     lambda_vector new_schedule = lambda_vector_new (nb_loops + 1);
 
-    for (i = 0; i <= loop_depth; i++)
+    for (i = 0; i <= loop; i++)
       new_schedule[i] = GBB_STATIC_SCHEDULE (gb)[i];  
 
-    for (i = loop_depth + 1; i <= nb_loops - 2; i++)
+    for (i = loop + 1; i <= nb_loops - 2; i++)
       new_schedule[i + 2] = GBB_STATIC_SCHEDULE (gb)[i];  
 
     GBB_STATIC_SCHEDULE (gb) = new_schedule;

@@ -19,8 +19,12 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#include "config.h"
+#include "system.h"
+#include "coretypes.h"
+#include "tm.h"
+#include "ggc.h"
 #include "graphite-ppl.h"
-#include <tsystem.h>
 
 /* Translates row ROW of the CloogMatrix MATRIX to a PPL Constraint.  */
 
@@ -179,7 +183,7 @@ new_Cloog_Matrix_from_ppl_Constraint_System (ppl_const_Constraint_System_t pcs)
   int rows;
   int row = 0;
 
-  rows  = ppl_Constrain_System_number_of_constraints (pcs);
+  rows = ppl_Constrain_System_number_of_constraints (pcs);
   ppl_Constraint_System_space_dimension (pcs, &dim);
   matrix = cloog_matrix_alloc (rows, dim + 2);
   ppl_new_Constraint_System_const_iterator (&cit);
@@ -212,6 +216,176 @@ new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
 
   ppl_Polyhedron_get_constraints (ph, &pcs);
   res = new_Cloog_Matrix_from_ppl_Constraint_System (pcs);
+
+  return res;
+}
+
+/* Set the inhomogeneous term of E to X.  */
+
+static void
+set_inhomogeneous (ppl_Linear_Expression_t e, int x)
+{
+  Value v0, v1;
+  ppl_Coefficient_t c;
+
+  value_init (v0);
+  value_init (v1);
+  ppl_new_Coefficient (&c);
+
+  ppl_Linear_Expression_inhomogeneous_term (e, c);
+  ppl_Coefficient_to_mpz_t (c, v1);
+  value_oppose (v1, v1);
+  value_set_si (v0, x);
+  value_addto (v0, v0, v1);
+  ppl_assign_Coefficient_from_mpz_t (c, v0);
+  ppl_Linear_Expression_add_to_inhomogeneous (e, c);
+
+  value_clear (v0);
+  value_clear (v1);
+  ppl_delete_Coefficient (c);
+}
+
+/* Set E[I] to X.  */
+
+static void
+set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
+{
+  Value v0, v1;
+  ppl_Coefficient_t c;
+
+  value_init (v0);
+  value_init (v1);
+  ppl_new_Coefficient (&c);
+
+  ppl_Linear_Expression_coefficient (e, i, c);
+  ppl_Coefficient_to_mpz_t (c, v1);
+  value_oppose (v1, v1);
+  value_set_si (v0, x);
+  value_addto (v0, v0, v1);
+  ppl_assign_Coefficient_from_mpz_t (c, v0);
+  ppl_Linear_Expression_add_to_coefficient (e, i, c);
+
+  value_clear (v0);
+  value_clear (v1);
+  ppl_delete_Coefficient (c);
+}
+
+/* Places PH in a higher dimension and shifts up all the dimensions
+   above X.  */
+
+static ppl_Polyhedron_t
+shift_poly (ppl_Polyhedron_t ph, ppl_dimension_type x, ppl_dimension_type dim)
+{
+  ppl_Polyhedron_t res;
+  ppl_dimension_type i;
+  ppl_dimension_type *map;
+  ppl_const_Constraint_System_t pcs;
+
+  ppl_new_NNC_Polyhedron_from_space_dimension (&res, dim + 1, 0);
+  ppl_Polyhedron_get_constraints (ph, &pcs);
+  ppl_Polyhedron_add_constraints (res, pcs);
+
+  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + 1);
+  for (i = 0; i < x; i++)
+    map[i] = i;
+  for (i = x; i < dim; i++)
+    map[i] = i + 1;
+  map[dim] = x;
+
+  ppl_Polyhedron_map_space_dimensions (res, map, dim + 1);
+
+  ppl_delete_Polyhedron (ph);
+  return res;
+}
+
+/* Based on the original polyhedron PH, returns a new polyhedron with
+   an extra dimension placed at position LOOP + 1 that slices the
+   dimension LOOP into strips of size STRIDE.  */
+
+ppl_Polyhedron_t
+ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
+{
+  ppl_const_Constraint_System_t pcs;
+  ppl_Constraint_System_const_iterator_t cit, end;
+  ppl_const_Constraint_t cstr;
+  ppl_Constraint_t new_cstr;
+  ppl_Linear_Expression_t expr;
+  int v;
+  ppl_dimension_type dim;
+  ppl_Polyhedron_t res;
+  ppl_Coefficient_t c;
+  Value val;
+
+  value_init (val);
+  ppl_new_Coefficient (&c);
+
+  ppl_Polyhedron_space_dimension (ph, &dim);
+  ppl_Polyhedron_get_constraints (ph, &pcs);
+
+  /* Start from a copy of the constraints.  */
+  ppl_new_NNC_Polyhedron_from_space_dimension (&res, dim + 1, 0);
+  ppl_Polyhedron_add_constraints (res, pcs);
+
+  /* Add an empty dimension for the strip loop.  */
+  res = shift_poly (res, loop, dim);
+
+  /* Identify the constraints that define the lower and upper bounds
+     of the strip-mined loop, and add them to the strip loop.  */
+  {
+    ppl_Polyhedron_t tmp;
+
+    ppl_new_NNC_Polyhedron_from_space_dimension (&tmp, dim + 1, 0);
+    ppl_new_Constraint_System_const_iterator (&cit);
+    ppl_new_Constraint_System_const_iterator (&end);
+
+    for (ppl_Constraint_System_begin (pcs, cit),
+	   ppl_Constraint_System_end (pcs, end);
+	 !ppl_Constraint_System_const_iterator_equal_test (cit, end);
+	 ppl_Constraint_System_const_iterator_increment (cit))
+      {
+	ppl_Constraint_System_const_iterator_dereference (cit, &cstr);
+	ppl_new_Linear_Expression_from_Constraint (&expr, cstr);
+	ppl_Linear_Expression_coefficient (expr, loop, c);
+	ppl_Coefficient_to_mpz_t (c, val);
+	v = value_get_si (val);
+
+	if (0 < v || v < 0)
+	  ppl_Polyhedron_add_constraint (tmp, cstr);
+      }
+    ppl_delete_Constraint_System_const_iterator (cit);
+    ppl_delete_Constraint_System_const_iterator (end);
+
+    tmp = shift_poly (tmp, loop + 1, dim);
+    ppl_Polyhedron_get_constraints (tmp, &pcs);
+    ppl_Polyhedron_add_constraints (res, pcs);
+    ppl_delete_Polyhedron (tmp);
+  }
+
+  /* Lower bound of a tile starts at "stride * outer_iv".  */
+  {
+    ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
+
+    set_coef (expr, loop + 1, 1);
+    set_coef (expr, loop, -1 * stride);
+
+    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Linear_Expression (expr);
+  }
+
+  /* Upper bound of a tile stops at "stride * outer_iv + stride - 1",
+     or at the old upper bound that is not modified.  */
+  {  
+    ppl_new_Linear_Expression_with_dimension (&expr, dim + 1);
+
+    set_coef (expr, loop + 1, -1);
+    set_coef (expr, loop, stride);
+    set_inhomogeneous (expr, stride - 1);
+
+    ppl_new_Constraint (&new_cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
+    ppl_Polyhedron_add_constraint (res, new_cstr);
+    ppl_delete_Linear_Expression (expr);
+  }
 
   return res;
 }
