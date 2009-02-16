@@ -1,6 +1,13 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.c (schedule_to_scattering): Don't use CloogMatrix.
+	(print_graphite_bb): Same.
+	(build_cloog_prog): Same.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.c (build_cloog_prog): Don't use CloogMatrix.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>

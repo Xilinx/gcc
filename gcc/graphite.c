@@ -585,82 +585,98 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
    matrix.  This scattering matrix is used to limit the possible cloog
    output to valid programs in respect to the scheduling function. 
 
-   SCATTERING_DIMENSIONS specifies the dimensionality of the scattering
-   matrix. CLooG 0.14.0 and previous versions require, that all scattering
-   functions of one CloogProgram have the same dimensionality, therefore we
-   allow to specify it. (Should be removed in future versions)  */
+   SCATTERING_DIMENSIONS specifies the number of scattering
+   dimensions.  CLooG 0.15.0 and previous versions require, that all
+   scattering functions of one CloogProgram have the same number of
+   scattering dimensions, therefore we allow to specify it.  This
+   restriction should be removed in future versions of CLooG.
 
-static CloogMatrix *
+   The scattering polyhedron consists of these dimensions: scattering,
+   loop_iterators, parameters.
+
+   Example:
+
+   | scattering_dimensions = 5
+   | used_scattering_dimensions = 3
+   | nb_iterators = 1 
+   | scop_nb_params = 2
+   |
+   | Schedule:
+   |   i
+   | 4 5
+   |
+   | Scattering polyhedron:
+   |
+   | scattering: {s1, s2, s3, s4, s5}
+   | loop_iterators: {i}
+   | parameters: {p1, p2}
+   |
+   | s1  s2  s3  s4  s5  i   p1  p2  1 
+   | 1   0   0   0   0   0   0   0  -4  = 0
+   | 0   1   0   0   0  -1   0   0   0  = 0
+   | 0   0   1   0   0   0   0   0  -5  = 0  */
+
+static ppl_Polyhedron_t
 schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions) 
 {
   int i;
   scop_p scop = GBB_SCOP (gb);
-
   int nb_iterators = gbb_nb_loops (gb);
-
-  /* The cloog scattering matrix consists of these colums:
-     1                        col  = Eq/Inq,
-     scattering_dimensions    cols = Scattering dimensions,
-     nb_iterators             cols = bb's iterators,
-     scop_nb_params        cols = Parameters,
-     1                        col  = Constant 1.
-
-     Example:
-
-     scattering_dimensions = 5
-     max_nb_iterators = 2
-     nb_iterators = 1 
-     scop_nb_params = 2
-
-     Schedule:
-     ? i
-     4 5
-
-     Scattering Matrix:
-     s1  s2  s3  s4  s5  i   p1  p2  1 
-     1   0   0   0   0   0   0   0  -4  = 0
-     0   1   0   0   0  -1   0   0   0  = 0
-     0   0   1   0   0   0   0   0  -5  = 0  */
+  int used_scattering_dimensions = nb_iterators * 2 + 1;
   int nb_params = scop_nb_params (scop);
-  int nb_cols = 1 + scattering_dimensions + nb_iterators + nb_params + 1;
-  int col_const = nb_cols - 1; 
-  int col_iter_offset = 1 + scattering_dimensions;
-
-  CloogMatrix *scat = cloog_matrix_alloc (scattering_dimensions, nb_cols);
-
+  int col_iter_offset = scattering_dimensions;
+  ppl_Polyhedron_t ph;
   ppl_Coefficient_t c;
+  ppl_dimension_type dim = scattering_dimensions + nb_iterators + nb_params;
   Value v;
- 
+
+  gcc_assert (scattering_dimensions >= used_scattering_dimensions);
+
   value_init (v);
-  gcc_assert (scattering_dimensions >= nb_iterators * 2 + 1);
-
-  /* Initialize the identity matrix.  */
-  for (i = 0; i < scattering_dimensions; i++)
-    value_set_si (scat->p[i][i + 1], 1);
-
-  /* Textual order outside the first loop */
   ppl_new_Coefficient (&c);
-  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), 0, c);
-  ppl_Coefficient_to_mpz_t (c, v);
-  value_oppose (v, v);
-  value_assign (scat->p[0][col_const], v);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
 
-  /* For all surrounding loops.  */
-  for (i = 0;  i < nb_iterators; i++)
+  for (i = 0; i < scattering_dimensions; i++)
     {
-      /* Iterations of this loop.  */
-      value_set_si (scat->p[2 * i + 1][col_iter_offset + i], -1);
+      ppl_Constraint_t cstr;
+      ppl_Linear_Expression_t expr;
+
+      ppl_new_Linear_Expression_with_dimension (&expr, dim);
+      value_set_si (v, 1);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_coefficient (expr, i, c);
 
       /* Textual order inside this loop.  */
-      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i + 1, c);
-      ppl_Coefficient_to_mpz_t (c, v);
-      value_oppose (v, v);
-      value_assign (scat->p[2*i + 2][col_const], v);
+      if (i < used_scattering_dimensions
+	  && (i % 2) == 0)
+	{
+	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i / 2, c);
+	  ppl_Coefficient_to_mpz_t (c, v);
+	  value_oppose (v, v);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_inhomogeneous (expr, c);
+	}
+
+      /* Iterations of this loop.  */
+      if (i < used_scattering_dimensions
+	  && (i % 2) == 1)
+	{
+	  int loop = (i - 1) / 2;
+	  value_set_si (v, -1);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_coefficient (expr,
+						    col_iter_offset + loop, c);
+	}
+      
+      ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
+      ppl_Polyhedron_add_constraint (ph, cstr);
+      ppl_delete_Linear_Expression (expr);
+      ppl_delete_Constraint (cstr);
     }
 
   value_clear (v);
   ppl_delete_Coefficient (c);
-  return scat; 
+  return ph;
 }
 
 /* Print the schedules of GB to FILE with INDENT white spaces before.
@@ -669,7 +685,6 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
 void
 print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 {
-  CloogMatrix *scattering;
   int i;
   loop_p loop;
   fprintf (file, "\nGBB (\n");
@@ -712,10 +727,12 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   if (GBB_SCOP (gb)
       && GBB_STATIC_SCHEDULE (gb))
     {
+      ppl_Polyhedron_t scattering;
+
       fprintf (file, "       (scattering: \n");
       scattering = schedule_to_scattering (gb, 2 * gbb_nb_loops (gb) + 1);
-      cloog_matrix_print (file, scattering);
-      cloog_matrix_free (scattering);
+      ppl_io_fprint_Polyhedron (file, scattering);
+      ppl_delete_Polyhedron (scattering);
       fprintf (file, "       )\n");
     }
 
@@ -4729,13 +4746,14 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
         CloogDomainList *new_scattering
 	  = (CloogDomainList *) xmalloc (sizeof (CloogDomainList));
-        CloogMatrix *scat_mat = schedule_to_scattering (gbb, nbs);
+        ppl_Polyhedron_t scat = schedule_to_scattering (gbb, nbs);
+	CloogDomain *dom = new_Cloog_Domain_from_ppl_Polyhedron (scat);
 
         cloog_set_next_domain (new_scattering, scattering);
-        cloog_set_domain (new_scattering,
-			  cloog_domain_matrix2domain (scat_mat));
+	
+        cloog_set_domain (new_scattering, dom);
         scattering = new_scattering;
-        cloog_matrix_free (scat_mat);
+        ppl_delete_Polyhedron (scat);
       }
     }
 
