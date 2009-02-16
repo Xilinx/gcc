@@ -1,3 +1,15 @@
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-data-ref.c (schedule_precedes_p, schedule_same_p): New.
+	(statement_precedes_p): Use schedule_same_p and schedule_precedes_p.
+	* graphite.c (gbb_compare, schedule_to_scattering, print_graphite_bb,
+	free_graphite_bb, build_scop_canonical_schedules,
+	graphite_trans_bb_strip_mine, graphite_trans_scop_block): Static 
+	schedules are now represented using a ppl_Linear_Expression_t.
+	* graphite.h (struct graphite_bb): Same.
+	* graphite-ppl.c (ppl_lexico_compare_linear_expressions): New.
+	* graphite-ppl.h (ppl_lexico_compare_linear_expressions): Declared.
+
 2009-02-15  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c: Free local memory.

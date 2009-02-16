@@ -26,3 +26,5 @@ CloogMatrix *new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 void new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *, CloogMatrix *);
 void insert_constraint_into_matrix (CloogMatrix *, int, ppl_const_Constraint_t);
 ppl_Polyhedron_t ppl_strip_loop (ppl_Polyhedron_t, ppl_dimension_type, int);
+int ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t,
+					   ppl_Linear_Expression_t);

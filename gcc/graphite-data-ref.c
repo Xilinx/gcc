@@ -220,6 +220,56 @@ initialize_data_dependence_polyhedron (bool loop_carried,
   return res;
 }
 
+/* Returns true when the static schedule of A precedes B at LEVEL.  */
+
+static bool
+schedule_precedes_p (graphite_bb_p a, graphite_bb_p b, int level)
+{
+  bool res;
+  ppl_Coefficient_t c;
+  Value v0, v1;
+
+  value_init (v0);
+  value_init (v1);
+  ppl_new_Coefficient (&c);
+
+  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (a), level, c);
+  ppl_Coefficient_to_mpz_t (c, v0);
+  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (b), level, c);
+  ppl_Coefficient_to_mpz_t (c, v1);
+  ppl_delete_Coefficient (c);
+  res = value_lt (v0, v1);
+
+  value_clear (v0);
+  value_clear (v1);
+  return res;
+}
+
+/* Returns true when the static schedule of A is equal to B at LEVEL.  */
+
+static bool
+schedule_same_p (graphite_bb_p a, graphite_bb_p b, int level)
+{
+  bool res;
+  ppl_Coefficient_t c;
+  Value v0, v1;
+
+  value_init (v0);
+  value_init (v1);
+  ppl_new_Coefficient (&c);
+
+  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (a), level, c);
+  ppl_Coefficient_to_mpz_t (c, v0);
+  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (b), level, c);
+  ppl_Coefficient_to_mpz_t (c, v1);
+  ppl_delete_Coefficient (c);
+  res = value_eq (v0, v1);
+
+  value_clear (v0);
+  value_clear (v1);
+  return res;
+}
+
 /* Returns true if statement A, contained in basic block GB_A,
    precedes statement B, contained in basic block GB_B.  The decision
    is based on static schedule of basic blocks and relative position
@@ -235,10 +285,10 @@ statement_precedes_p (graphite_bb_p gb_a,
   gimple_stmt_iterator gsi;
   bool statm_a_found;
 
-  if (GBB_STATIC_SCHEDULE (gb_a)[p] < GBB_STATIC_SCHEDULE (gb_b)[p])
+  if (schedule_precedes_p (gb_a, gb_b, p))
     return true;
 
-  else if (GBB_STATIC_SCHEDULE (gb_a)[p] == GBB_STATIC_SCHEDULE (gb_b)[p])
+  else if (schedule_same_p (gb_a, gb_b, p))
     {
       statm_a_found = false;
 

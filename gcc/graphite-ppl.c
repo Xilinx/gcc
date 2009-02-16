@@ -395,3 +395,50 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
   ppl_delete_Coefficient (c);
   return res;
 }
+
+/* Lexicographically compares two linear expressions A and B and
+   returns negative when A < B, 0 when A == B and positive when A > B.  */
+
+int
+ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t a,
+				       ppl_Linear_Expression_t b)
+{
+  ppl_dimension_type min_length, length1, length2;
+  ppl_dimension_type i;
+  ppl_Coefficient_t c;
+  int res;
+  Value va, vb;
+
+  ppl_Linear_Expression_space_dimension (a, &length1);
+  ppl_Linear_Expression_space_dimension (b, &length2);
+  ppl_new_Coefficient (&c);
+  value_init (va);
+  value_init (vb);
+
+  if (length1 < length2)
+    min_length = length1;
+  else
+    min_length = length2;
+
+  for (i = 0; i < min_length; i++)
+    {
+      ppl_Linear_Expression_coefficient (a, i, c);
+      ppl_Coefficient_to_mpz_t (c, va);
+      ppl_Linear_Expression_coefficient (b, i, c);
+      ppl_Coefficient_to_mpz_t (c, vb);
+      res = value_compare (va, vb);
+
+      if (res == 0)
+	continue;
+
+      value_clear (va);
+      value_clear (vb);
+      ppl_delete_Coefficient (c);
+      return res;
+    }
+
+  value_clear (va);
+  value_clear (vb);
+  ppl_delete_Coefficient (c);
+  return length1 - length2;
+}

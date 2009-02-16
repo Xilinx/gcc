@@ -545,10 +545,8 @@ gbb_compare (const void *p_1, const void *p_2)
   const struct graphite_bb *const gbb_2
     = *(const struct graphite_bb *const*) p_2;
 
-  return lambda_vector_compare (GBB_STATIC_SCHEDULE (gbb_1),
-                                gbb_nb_loops (gbb_1) + 1,
-                                GBB_STATIC_SCHEDULE (gbb_2),
-                                gbb_nb_loops (gbb_2) + 1);
+  return ppl_lexico_compare_linear_expressions (GBB_STATIC_SCHEDULE (gbb_1),
+						GBB_STATIC_SCHEDULE (gbb_2));
 }
 
 /* Sort graphite bbs in SCOP.  */
@@ -630,6 +628,10 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
 
   CloogMatrix *scat = cloog_matrix_alloc (scattering_dimensions, nb_cols);
 
+  ppl_Coefficient_t c;
+  Value v;
+ 
+  value_init (v);
   gcc_assert (scattering_dimensions >= nb_iterators * 2 + 1);
 
   /* Initialize the identity matrix.  */
@@ -637,20 +639,27 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
     value_set_si (scat->p[i][i + 1], 1);
 
   /* Textual order outside the first loop */
-  value_set_si (scat->p[0][col_const], -GBB_STATIC_SCHEDULE (gb)[0]);
+  ppl_new_Coefficient (&c);
+  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), 0, c);
+  ppl_Coefficient_to_mpz_t (c, v);
+  value_oppose (v, v);
+  value_assign (scat->p[0][col_const], v);
 
   /* For all surrounding loops.  */
   for (i = 0;  i < nb_iterators; i++)
     {
-      int schedule = GBB_STATIC_SCHEDULE (gb)[i + 1];
-
       /* Iterations of this loop.  */
       value_set_si (scat->p[2 * i + 1][col_iter_offset + i], -1);
 
       /* Textual order inside this loop.  */
-      value_set_si (scat->p[2 * i + 2][col_const], -schedule);
+      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i + 1, c);
+      ppl_Coefficient_to_mpz_t (c, v);
+      value_oppose (v, v);
+      value_assign (scat->p[2*i + 2][col_const], v);
     }
 
+  value_clear (v);
+  ppl_delete_Coefficient (c);
   return scat; 
 }
 
@@ -674,8 +683,7 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
   if (GBB_STATIC_SCHEDULE (gb))
     {
       fprintf (file, "       (static schedule: ");
-      print_lambda_vector (file, GBB_STATIC_SCHEDULE (gb),
-			   gbb_nb_loops (gb) + 1);
+      ppl_io_fprint_Linear_Expression (file, GBB_STATIC_SCHEDULE (gb));
       fprintf (file, "       )\n");
     }
 
@@ -1277,6 +1285,9 @@ free_graphite_bb (struct graphite_bb *gbb)
 
   if (GBB_DYNAMIC_SCHEDULE (gbb))
     cloog_matrix_free (GBB_DYNAMIC_SCHEDULE (gbb));
+
+  if (GBB_STATIC_SCHEDULE (gbb))
+    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gbb));
 
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
@@ -2548,27 +2559,48 @@ build_scop_canonical_schedules (scop_p scop)
   int i;
   graphite_bb_p gb;
   int nb_loops = scop_nb_loops (scop);
-  lambda_vector static_schedule = lambda_vector_new (nb_loops + 1);
+  ppl_Linear_Expression_t static_schedule;
   VEC (loop_p, heap) *loops_previous = NULL;
+  ppl_Coefficient_t c;
+  Value v;
+
+  value_init (v);
+  ppl_new_Coefficient (&c);
+  ppl_new_Linear_Expression_with_dimension (&static_schedule, nb_loops + 1);
 
   /* We have to start schedules at 0 on the first component and
      because we cannot compare_prefix_loops against a previous loop,
      prefix will be equal to zero, and that index will be
      incremented before copying.  */
-  static_schedule[0] = -1;
+  value_set_si (v, -1);
+  ppl_assign_Coefficient_from_mpz_t (c, v);
+  ppl_Linear_Expression_add_to_coefficient (static_schedule, 0, c);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
     {
+      ppl_Linear_Expression_t common;
       int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gb));
       int nb = gbb_nb_loops (gb);
 
       loops_previous = GBB_LOOPS (gb);
-      memset (&(static_schedule[prefix + 1]), 0, sizeof (int) * (nb_loops - prefix));
-      ++static_schedule[prefix];
-      GBB_STATIC_SCHEDULE (gb) = lambda_vector_new (nb + 1);
-      lambda_vector_copy (static_schedule, 
-			  GBB_STATIC_SCHEDULE (gb), nb + 1);
+      ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
+      ppl_assign_Linear_Expression_from_Linear_Expression (common, static_schedule);
+
+      value_set_si (v, 1);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_coefficient (common, prefix, c);
+      ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule, common);
+
+      ppl_new_Linear_Expression_with_dimension (&GBB_STATIC_SCHEDULE (gb),
+						nb + 1);
+      ppl_assign_Linear_Expression_from_Linear_Expression
+	(GBB_STATIC_SCHEDULE (gb), common);
+      ppl_delete_Linear_Expression (common);
     }
+
+  value_clear (v);
+  ppl_delete_Coefficient (c);
+  ppl_delete_Linear_Expression (static_schedule);
 }
 
 /* Build the LOOPS vector for all bbs in SCOP.  */
@@ -5418,30 +5450,43 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
    transform is always valid but not always a performance gain.  */
   
 static void
-graphite_trans_bb_strip_mine (graphite_bb_p gb, int loop, int stride)
+graphite_trans_bb_strip_mine (graphite_bb_p gb, ppl_dimension_type loop,
+			      int stride)
 {
   ppl_Polyhedron_t ph = ppl_strip_loop (GBB_DOMAIN (gb), loop, stride);  
   ppl_delete_Polyhedron (GBB_DOMAIN (gb));
   GBB_DOMAIN (gb) = ph;
 
-  gcc_assert (loop <= gbb_nb_loops (gb) - 1);
+  gcc_assert ((int) loop <= gbb_nb_loops (gb) - 1);
 
   /* Update the loops vector.  */
   VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop, NULL);
 
   /* Update static schedule.  */
   {
-    int i;
-    int nb_loops = gbb_nb_loops (gb);
-    lambda_vector new_schedule = lambda_vector_new (nb_loops + 1);
+    ppl_dimension_type i, nb_loops = gbb_nb_loops (gb);
+    ppl_Linear_Expression_t new_schedule;
+    ppl_Coefficient_t c;
+
+    ppl_new_Coefficient (&c);
+    ppl_new_Linear_Expression_with_dimension (&new_schedule, nb_loops + 1);
 
     for (i = 0; i <= loop; i++)
-      new_schedule[i] = GBB_STATIC_SCHEDULE (gb)[i];  
+      {
+	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i, c);
+	ppl_Linear_Expression_add_to_coefficient (new_schedule, i, c);
+      }
 
     for (i = loop + 1; i <= nb_loops - 2; i++)
-      new_schedule[i + 2] = GBB_STATIC_SCHEDULE (gb)[i];  
+      {
+	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i, c);
+	ppl_Linear_Expression_add_to_coefficient (new_schedule, i + 2, c);
+      }
 
+    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gb));
     GBB_STATIC_SCHEDULE (gb) = new_schedule;
+
+    ppl_delete_Coefficient (c);
   }
 }
 
@@ -5621,19 +5666,27 @@ graphite_trans_scop_block (scop_p scop)
   int nb_loops;
   bool perfect = true;
   bool transform_done = false;
-
   VEC (graphite_bb_p, heap) *bbs = VEC_alloc (graphite_bb_p, heap, 3);
   int max_schedule = scop_max_loop_depth (scop) + 1;
-  lambda_vector last_schedule = lambda_vector_new (max_schedule);
+  ppl_Linear_Expression_t last_schedule;
+  ppl_Coefficient_t c;
+  Value v0, v1;
 
   if (VEC_length (graphite_bb_p, SCOP_BBS (scop)) == 0)
     return false;
 
+  value_init (v0);
+  value_init (v1);
+  ppl_new_Coefficient (&c);
+
   /* Get the data of the first bb.  */
   gb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0);
   last_nb_loops = gbb_nb_loops (gb);
-  lambda_vector_copy (GBB_STATIC_SCHEDULE (gb), last_schedule,
-                      last_nb_loops + 1);
+
+  ppl_new_Linear_Expression_with_dimension (&last_schedule, max_schedule);
+  ppl_assign_Linear_Expression_from_Linear_Expression
+    (last_schedule, GBB_STATIC_SCHEDULE (gb));
+
   VEC_safe_push (graphite_bb_p, heap, bbs, gb);
   
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
@@ -5646,13 +5699,20 @@ graphite_trans_scop_block (scop_p scop)
 
       /* If the number of loops is unchanged and only the last element of the
          schedule changes, we stay in the loop nest.  */
-      if (nb_loops == last_nb_loops 
-          && (last_schedule [nb_loops + 1]
-              != GBB_STATIC_SCHEDULE (gb)[nb_loops + 1]))
-        {
-          VEC_safe_push (graphite_bb_p, heap, bbs, gb);
-          continue;
-        }
+      if (nb_loops == last_nb_loops)
+	{
+	  ppl_Linear_Expression_coefficient (last_schedule, nb_loops + 1, c);
+	  ppl_Coefficient_to_mpz_t (c, v0);
+	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+					     nb_loops + 1, c);
+	  ppl_Coefficient_to_mpz_t (c, v1);
+
+	  if (value_ne (v0, v1))
+	    {
+	      VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+	      continue;
+	    }
+	}
 
       /* Otherwise, we left the innermost loop. So check, if the last bb was in
          a perfect loop nest and how many loops are contained in this perfect
@@ -5674,12 +5734,23 @@ graphite_trans_scop_block (scop_p scop)
          nest is not perfect.  */
       for (j = last_nb_loops - 1; j >= 0; j--)
         {
-          if (last_schedule [j] != 0
-              || (j <= nb_loops && GBB_STATIC_SCHEDULE (gb)[j] == 1))
-            {
-              j--;
-              break;
-            }
+	  ppl_Linear_Expression_coefficient (last_schedule, j, c);
+	  ppl_Coefficient_to_mpz_t (c, v0);
+	  value_set_si (v1, 0);
+
+          if (value_ne (v0, v1))
+	    {
+	      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+						 j, c);
+	      ppl_Coefficient_to_mpz_t (c, v0);
+	      value_set_si (v1, 1);
+
+	      if (j <= nb_loops && value_eq (v0, v1))
+		{
+		  j--;
+		  break;
+		}
+	    }
         }
       
       j++;
@@ -5702,13 +5773,19 @@ graphite_trans_scop_block (scop_p scop)
 
          But here not, so the loop nest can never be perfect.  */
 
-      perfect = (GBB_STATIC_SCHEDULE (gb)[nb_loops] == 0);
+      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+					 nb_loops, c);
+      ppl_Coefficient_to_mpz_t (c, v0);
+      value_set_si (v1, 0);
+      perfect = value_eq (v0, v1);
 
       /* Update the last_bb infos.  We do not do that for the bbs in the same
          loop, as the data we use is not changed.  */
       last_nb_loops = nb_loops;
-      lambda_vector_copy (GBB_STATIC_SCHEDULE (gb), last_schedule,
-                          nb_loops + 1);
+
+      ppl_assign_Linear_Expression_from_Linear_Expression
+	(last_schedule, GBB_STATIC_SCHEDULE (gb));
+
       VEC_truncate (graphite_bb_p, bbs, 0);
       VEC_safe_push (graphite_bb_p, heap, bbs, gb);
     }
@@ -5716,11 +5793,17 @@ graphite_trans_scop_block (scop_p scop)
   /* Check if the last loop nest was perfect.  It is the same check as above,
      but the comparison with the next bb is missing.  */
   for (j = last_nb_loops - 1; j >= 0; j--)
-    if (last_schedule [j] != 0)
-      {
-	j--;
-	break;
-      }
+    {
+      ppl_Linear_Expression_coefficient (last_schedule, j, c);
+      ppl_Coefficient_to_mpz_t (c, v0);
+      value_set_si (v1, 0);
+
+      if (value_ne (v0, v1))
+	{
+	  j--;
+	  break;
+	}
+    }
 
   j++;
 
@@ -5729,6 +5812,10 @@ graphite_trans_scop_block (scop_p scop)
     transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
   VEC_free (graphite_bb_p, heap, bbs);
 
+  ppl_delete_Linear_Expression (last_schedule);
+  ppl_delete_Coefficient (c);
+  value_clear (v0);
+  value_clear (v1);
   return transform_done;
 }
 

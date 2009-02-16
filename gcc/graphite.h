@@ -90,7 +90,7 @@ typedef struct graphite_bb
    Normalization rules:
      - One SCoP can never contain two bbs with the same schedule timestamp.
      - All bbs at the same loop depth have a consecutive ordering (no gaps). */
-  lambda_vector static_schedule;
+  ppl_Linear_Expression_t static_schedule;
 
   /* The iteration domain of this bb.
      Example:
