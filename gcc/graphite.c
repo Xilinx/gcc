@@ -3293,9 +3293,9 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
   bool res = true;
   int i, j;
   graphite_bb_p gbb;
-  gimple_stmt_iterator gsi;
   basic_block bb_child, bb_iter;
   VEC (basic_block, heap) *dom;
+  gimple stmt;
   
   /* Make sure we are in the SCoP.  */
   if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
@@ -3313,9 +3313,9 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 
   dom = get_dominated_by (CDI_DOMINATORS, bb);
 
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+  stmt = last_stmt (bb);
+  if (stmt)
     {
-      gimple stmt = gsi_stmt (gsi);
       VEC (edge, gc) *edges;
       edge e;
 

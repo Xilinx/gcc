@@ -1,6 +1,12 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.c (build_scop_conditions_1): Conditions are only
+	at the end of a basic block.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.h (struct graphite_bb): Remove compressed_alpha_matrix
 	field.
 	(GBB_ALPHA): Removed.
