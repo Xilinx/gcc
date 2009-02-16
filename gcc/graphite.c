@@ -743,10 +743,6 @@ print_scop (FILE *file, scop_p scop, int verbosity)
   fprintf (file, "\nSCoP_%d_%d (\n",
 	   SCOP_ENTRY (scop)->index, SCOP_EXIT (scop)->index);
 
-  fprintf (file, "       (cloog: \n");
-  cloog_program_print (file, SCOP_PROG (scop));
-  fprintf (file, "       )\n");
-
   if (SCOP_BBS (scop))
     {
       graphite_bb_p gb;
@@ -1413,8 +1409,6 @@ new_scop (edge entry, edge exit)
   SCOP_LOOP_NEST (scop) = VEC_alloc (loop_p, heap, 3);
   SCOP_ADD_PARAMS (scop) = true;
   SCOP_PARAMS (scop) = VEC_alloc (name_tree, heap, 3);
-  SCOP_PROG (scop) = cloog_program_malloc ();
-  cloog_program_set_names (SCOP_PROG (scop), cloog_names_malloc ());
   SCOP_LIVEOUT_RENAMES (scop) = htab_create (10, rename_map_elt_info,
 					     eq_rename_map_elts, free);
   return scop;
@@ -1445,7 +1439,6 @@ free_scop (scop_p scop)
     free (p);
 
   VEC_free (name_tree, heap, SCOP_PARAMS (scop));
-  cloog_program_free (SCOP_PROG (scop));
   htab_delete (SCOP_LIVEOUT_RENAMES (scop));
   free_sese (SCOP_REGION (scop));
   XDELETE (scop);
@@ -2964,22 +2957,24 @@ scop_max_loop_depth (scop_p scop)
    from 0 to scop_nb_loops (scop).  */
 
 static void
-initialize_cloog_names (scop_p scop)
+initialize_cloog_names (scop_p scop, CloogProgram *prog)
 {
   int i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
   char **params = XNEWVEC (char *, nb_params);
   int nb_iterators = scop_max_loop_depth (scop);
-  int nb_scattering = cloog_program_nb_scattdims (SCOP_PROG (scop));
+  int nb_scattering = cloog_program_nb_scattdims (prog);
   char **iterators = XNEWVEC (char *, nb_iterators * 2);
   char **scattering = XNEWVEC (char *, nb_scattering);
   name_tree p;
 
+  cloog_program_set_names (prog, cloog_names_malloc ());
+
   for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
     save_var_name (params, i, p);
 
-  cloog_names_set_nb_parameters (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_nb_parameters (cloog_program_names (prog),
 				 nb_params);
-  cloog_names_set_parameters (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_parameters (cloog_program_names (prog),
 			      params);
 
   for (i = 0; i < nb_iterators; i++)
@@ -2989,9 +2984,9 @@ initialize_cloog_names (scop_p scop)
       snprintf (iterators[i], len, "graphite_iterator_%d", i);
     }
 
-  cloog_names_set_nb_iterators (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_nb_iterators (cloog_program_names (prog),
 				nb_iterators);
-  cloog_names_set_iterators (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_iterators (cloog_program_names (prog),
 			     iterators);
 
   for (i = 0; i < nb_scattering; i++)
@@ -3001,9 +2996,9 @@ initialize_cloog_names (scop_p scop)
       snprintf (scattering[i], len, "s_%d", i);
     }
 
-  cloog_names_set_nb_scattering (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_nb_scattering (cloog_program_names (prog),
 				 nb_scattering);
-  cloog_names_set_scattering (cloog_program_names (SCOP_PROG (scop)),
+  cloog_names_set_scattering (cloog_program_names (prog),
 			      scattering);
 }
 
@@ -3047,7 +3042,7 @@ find_scop_parameters (scop_p scop)
    on parameters.  */
 
 static void
-build_scop_context (scop_p scop)
+build_scop_context (scop_p scop, CloogProgram *prog)
 {
   int nb_params = scop_nb_params (scop);
   CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
@@ -3059,8 +3054,7 @@ build_scop_context (scop_p scop)
 
   value_set_si (matrix->p[0][nb_params + 1], 0);
 
-  cloog_program_set_context (SCOP_PROG (scop),
-			     cloog_domain_matrix2domain (matrix));
+  cloog_program_set_context (prog, cloog_domain_matrix2domain (matrix));
   cloog_matrix_free (matrix);
 }
 
@@ -4691,7 +4685,7 @@ free_scattering (CloogDomainList *scattering)
 /* Build cloog program for SCoP.  */
 
 static void
-build_cloog_prog (scop_p scop)
+build_cloog_prog (scop_p scop, CloogProgram *prog)
 {
   int i;
   int max_nb_loops = scop_max_loop_depth (scop);
@@ -4699,12 +4693,12 @@ build_cloog_prog (scop_p scop)
   CloogLoop *loop_list = NULL;
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
-  CloogProgram *prog = SCOP_PROG (scop);
   int nbs = 2 * max_nb_loops + 1;
   int *scaldims = (int *) xmalloc (nbs * (sizeof (int)));
 
+  build_scop_context (scop, prog);
   cloog_program_set_nb_scattdims (prog, nbs);
-  initialize_cloog_names (scop);
+  initialize_cloog_names (scop, prog);
 
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
@@ -4838,40 +4832,63 @@ debug_clast_stmt (struct clast_stmt *stmt)
   CloogOptions *options = set_cloog_options ();
 
   pprint (stderr, stmt, 0, options);
+  cloog_options_free (options);
 }
 
-/* Find the right transform for the SCOP, and return a Cloog AST
-   representing the new form of the program.  */
+/* Data structure for CLooG program representation.  */
 
-static struct clast_stmt *
-find_transform (scop_p scop)
-{
+typedef struct cloog_prog_clast {
+  CloogProgram *prog;
   struct clast_stmt *stmt;
+} cloog_prog_clast;
+
+/* Translate SCOP to a CLooG program and clast.  These two
+   representations should be freed together: a clast cannot be used
+   without a program.  */
+
+static cloog_prog_clast
+scop_to_clast (scop_p scop)
+{
   CloogOptions *options = set_cloog_options ();
+  cloog_prog_clast pc;
 
   /* Connect new cloog prog generation to graphite.  */
-  build_cloog_prog (scop);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      fprintf (dump_file, "Cloog Input [\n");
-      cloog_program_print (dump_file, SCOP_PROG(scop));
-      fprintf (dump_file, "]\n");
-    }
-
-  SCOP_PROG (scop) = cloog_program_generate (SCOP_PROG (scop), options);
-  stmt = cloog_clast_create (SCOP_PROG (scop), options);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      fprintf (dump_file, "Cloog Output[\n");
-      pprint (dump_file, stmt, 0, options);
-      cloog_program_dump_cloog (dump_file, SCOP_PROG (scop));
-      fprintf (dump_file, "]\n");
-    }
+  pc.prog = cloog_program_malloc ();
+  build_cloog_prog (scop, pc.prog);
+  pc.prog = cloog_program_generate (pc.prog, options);
+  pc.stmt = cloog_clast_create (pc.prog, options);
 
   cloog_options_free (options);
-  return stmt;
+  return pc;
+}
+
+/* Prints to FILE the code generated by CLooG for SCOP.  */
+
+void
+print_generated_program (FILE *file, scop_p scop)
+{
+  CloogOptions *options = set_cloog_options ();
+  cloog_prog_clast pc = scop_to_clast (scop);
+
+  fprintf (file, "       (prog: \n");
+  cloog_program_print (file, pc.prog);
+  fprintf (file, "       )\n");
+
+  fprintf (file, "       (clast: \n");
+  pprint (file, pc.stmt, 0, options);
+  fprintf (file, "       )\n");
+  
+  cloog_options_free (options);
+  cloog_clast_free (pc.stmt);
+  cloog_program_free (pc.prog);
+}
+
+/* Prints to STDERR the code generated by CLooG for SCOP.  */
+
+void
+debug_generated_program (scop_p scop)
+{
+  print_generated_program (stderr, scop);
 }
 
 /* Remove from the CFG the REGION.  */
@@ -5330,13 +5347,15 @@ compute_cloog_iv_types (struct clast_stmt *stmt)
    the given SCOP.  Return true if code generation succeeded.  */
 
 static bool
-gloog (scop_p scop, struct clast_stmt *stmt)
+gloog (scop_p scop)
 {
   edge new_scop_exit_edge = NULL;
   VEC (iv_stack_entry_p, heap) *ivstack = VEC_alloc (iv_stack_entry_p, heap,
 						     10);
   loop_p context_loop;
   ifsese if_region = NULL;
+
+  cloog_prog_clast pc = scop_to_clast (scop);
 
   recompute_all_dominators ();
   graphite_verify ();
@@ -5349,13 +5368,14 @@ gloog (scop_p scop, struct clast_stmt *stmt)
   recompute_all_dominators ();
   graphite_verify ();
   context_loop = SESE_ENTRY (SCOP_REGION (scop))->src->loop_father;
-  compute_cloog_iv_types (stmt);
+  compute_cloog_iv_types (pc.stmt);
 
-  new_scop_exit_edge = translate_clast (scop, context_loop, stmt,
+  new_scop_exit_edge = translate_clast (scop, context_loop, pc.stmt,
 					if_region->true_region->entry,
 					&ivstack);
   free_loop_iv_stack (&ivstack);
-  cloog_clast_free (stmt);
+  cloog_clast_free (pc.stmt);
+  cloog_program_free (pc.prog);
 
   graphite_verify ();
   scop_adjust_phis_for_liveouts (scop,
@@ -5938,7 +5958,6 @@ graphite_transform_loops (void)
 	continue;
 
       find_scop_parameters (scop);
-      build_scop_context (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -5968,12 +5987,13 @@ graphite_transform_loops (void)
         SCOP_DEP_GRAPH (scop) = graphite_build_rdg_all_levels (scop);
 
       if (graphite_apply_transformations (scop))
-        transform_done = gloog (scop, find_transform (scop));
+	transform_done = gloog (scop);
 #ifdef ENABLE_CHECKING
       else
 	{
-	  struct clast_stmt *stmt = find_transform (scop);
-	  cloog_clast_free (stmt);
+	  cloog_prog_clast pc = scop_to_clast (scop);
+	  cloog_clast_free (pc.stmt);
+	  cloog_program_free (pc.prog);
 	}
 #endif
     }

@@ -328,9 +328,6 @@ struct scop
   /* Data dependence graph for this SCoP.  */
   struct graph *dep_graph;
 
-  /* Cloog representation of this scop.  */
-  CloogProgram *program;
-
   /* Are we allowed to add more params?  This is for debugging purpose.  We
      can only add new params before generating the bb domains, otherwise they
      become invalid.  */
@@ -357,7 +354,6 @@ struct scop
 #define SCOP_ADD_PARAMS(S) S->add_params
 #define SCOP_PARAMS(S) S->params
 #define SCOP_OLDIVS(S) S->old_ivs
-#define SCOP_PROG(S) S->program
 #define SCOP_LIVEOUT_RENAMES(S) S->liveout_renames
 
 extern void debug_scop (scop_p, int);
@@ -371,6 +367,9 @@ extern void debug_rename_map (htab_t);
 extern void debug_ivtype_map (htab_t);
 extern void debug_loop_vec (graphite_bb_p);
 extern void debug_oldivs (scop_p);
+extern void print_generated_program (FILE *, scop_p);
+extern void debug_generated_program (scop_p);
+
 
 /* Describes the type of an iv stack entry.  */
 typedef enum {

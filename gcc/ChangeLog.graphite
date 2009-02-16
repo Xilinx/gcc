@@ -1,4 +1,17 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
+	* graphite.c (print_scop): Do not print the CLooG program.
+	(new_scop, free_scop, initialize_cloog_names, build_scop_context,
+	build_cloog_prog, gloog): Don't use SCOP_PROG.
+	(find_transform): Renamed scop_to_clast.
+	(print_generated_program, debug_generated_program): New.
+	(graphite_transform_loops): Adapt to new interface.
+	* graphite.h (struct scop): Remove program field.
+	(SCOP_PROG): Removed.
+	(print_generated_program, debug_generated_program): Declared.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-data-ref.c (schedule_precedes_p, schedule_same_p): New.
 	(statement_precedes_p): Use schedule_same_p and schedule_precedes_p.
