@@ -1,6 +1,13 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.c (build_scop_context): Don't use CloogMatrix.
+	* graphite-ppl.c (new_Cloog_Domain_from_ppl_Polyhedron): New.
+	* graphite-ppl.h (new_Cloog_Domain_from_ppl_Polyhedron): Declared.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.h (struct scop): Move params, old_ivs, loops, loop_nest,
 	liveout_renames, add_params fields...
 	(struct sese): ... here.

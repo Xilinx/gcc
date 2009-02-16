@@ -206,7 +206,7 @@ new_Cloog_Matrix_from_ppl_Constraint_System (ppl_const_Constraint_System_t pcs)
   return matrix;
 }
 
-/* Creates a CloogMatrix from constraint system PCS.  */
+/* Creates a CloogMatrix from polyhedron PH.  */
 
 CloogMatrix *
 new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
@@ -217,6 +217,17 @@ new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
   ppl_Polyhedron_get_constraints (ph, &pcs);
   res = new_Cloog_Matrix_from_ppl_Constraint_System (pcs);
 
+  return res;
+}
+
+/* Creates a CloogDomain from polyhedron PH.  */
+
+CloogDomain *
+new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
+{
+  CloogMatrix *mat = new_Cloog_Matrix_from_ppl_Polyhedron (ph);
+  CloogDomain *res = cloog_domain_matrix2domain (mat);
+  cloog_matrix_free (mat);
   return res;
 }
 

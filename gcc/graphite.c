@@ -3044,18 +3044,13 @@ find_scop_parameters (scop_p scop)
 static void
 build_scop_context (scop_p scop, CloogProgram *prog)
 {
-  int nb_params = scop_nb_params (scop);
-  CloogMatrix *matrix = cloog_matrix_alloc (1, nb_params + 2);
+  ppl_Polyhedron_t ph;
+  CloogDomain *dom;
 
-  /* Insert '0 >= 0' in the context matrix, as it is not allowed to be
-     empty. */
- 
-  value_set_si (matrix->p[0][0], 1);
-
-  value_set_si (matrix->p[0][nb_params + 1], 0);
-
-  cloog_program_set_context (prog, cloog_domain_matrix2domain (matrix));
-  cloog_matrix_free (matrix);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
+  dom = new_Cloog_Domain_from_ppl_Polyhedron (ph);
+  cloog_program_set_context (prog, dom);
+  ppl_delete_Polyhedron (ph);
 }
 
 /* Returns a graphite_bb from BB.  */

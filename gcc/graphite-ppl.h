@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include <cloog/cloog.h>
 
 CloogMatrix *new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
+CloogDomain *new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 void new_NNC_Polyhedron_from_Cloog_Matrix (ppl_Polyhedron_t *, CloogMatrix *);
 void insert_constraint_into_matrix (CloogMatrix *, int, ppl_const_Constraint_t);
 ppl_Polyhedron_t ppl_strip_loop (ppl_Polyhedron_t, ppl_dimension_type, int);
