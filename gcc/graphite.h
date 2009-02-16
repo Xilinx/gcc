@@ -289,6 +289,25 @@ typedef struct sese
   /* For each SSA_NAME version VER in LIVEOUT, LIVEIN[VER] contains
      the set of basic blocks indices that contain a use of VER.  */
   bitmap *livein;
+
+  /* Parameters used within the SCOP.  */
+  VEC (name_tree, heap) *params;
+
+  /* A collection of old induction variables*/ 
+  VEC (name_tree, heap) *old_ivs;
+
+  /* Loops completely contained in the SCOP.  */
+  bitmap loops;
+  VEC (loop_p, heap) *loop_nest;
+
+  /* LIVEOUT_RENAMES registers the rename mapping that has to be
+     applied after code generation.  */
+  htab_t liveout_renames;
+
+  /* Are we allowed to add more params?  This is for debugging purpose.  We
+     can only add new params before generating the bb domains, otherwise they
+     become invalid.  */
+  bool add_params;
 } *sese;
 
 #define SESE_ENTRY(S) (S->entry)
@@ -298,6 +317,13 @@ typedef struct sese
 #define SESE_LIVEIN(S) (S->livein)
 #define SESE_LIVEIN_VER(S, I) (S->livein[I])
 #define SESE_NUM_VER(S) (S->num_ver)
+#define SESE_PARAMS(S) (S->params)
+#define SESE_LOOPS(S) (S->loops)
+#define SESE_LOOP_NEST(S) (S->loop_nest)
+#define SESE_ADD_PARAMS(S) (S->add_params)
+#define SESE_PARAMS(S) (S->params)
+#define SESE_OLDIVS(S) (S->old_ivs)
+#define SESE_LIVEOUT_RENAMES(S) (S->liveout_renames)
 
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
@@ -315,27 +341,8 @@ struct scop
      representation.  */
   VEC (graphite_bb_p, heap) *bbs;
 
-  /* Parameters used within the SCOP.  */
-  VEC (name_tree, heap) *params;
-
-  /* A collection of old induction variables*/ 
-  VEC (name_tree, heap) *old_ivs;
-
-  /* Loops completely contained in the SCOP.  */
-  bitmap loops;
-  VEC (loop_p, heap) *loop_nest;
-
   /* Data dependence graph for this SCoP.  */
   struct graph *dep_graph;
-
-  /* Are we allowed to add more params?  This is for debugging purpose.  We
-     can only add new params before generating the bb domains, otherwise they
-     become invalid.  */
-  bool add_params;
-
-  /* LIVEOUT_RENAMES registers the rename mapping that has to be
-     applied after code generation.  */
-  htab_t liveout_renames;
 };
 
 #define SCOP_BBS(S) S->bbs
@@ -348,13 +355,14 @@ struct scop
 #define SCOP_ENTRY(S) (SESE_ENTRY (SCOP_REGION (S))->dest)
 #define SCOP_EXIT(S) (SESE_EXIT (SCOP_REGION (S))->dest)
 #define SCOP_REGION_BBS(S) (SESE_REGION_BBS (SCOP_REGION (S)))
-#define SCOP_LOOPS(S) S->loops
-#define SCOP_LOOP_NEST(S) S->loop_nest
-#define SCOP_DEP_GRAPH(S) S->dep_graph
-#define SCOP_ADD_PARAMS(S) S->add_params
-#define SCOP_PARAMS(S) S->params
-#define SCOP_OLDIVS(S) S->old_ivs
-#define SCOP_LIVEOUT_RENAMES(S) S->liveout_renames
+#define SCOP_DEP_GRAPH(S) (S->dep_graph)
+#define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
+#define SCOP_LOOPS(S) (SCOP_REGION (S)->loops)
+#define SCOP_LOOP_NEST(S) (SCOP_REGION (S)->loop_nest)
+#define SCOP_ADD_PARAMS(S) (SCOP_REGION (S)->add_params)
+#define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
+#define SCOP_OLDIVS(S) (SCOP_REGION (S)->old_ivs)
+#define SCOP_LIVEOUT_RENAMES(S) (SCOP_REGION (S)->liveout_renames)
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);

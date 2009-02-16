@@ -1,6 +1,15 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.h (struct scop): Move params, old_ivs, loops, loop_nest,
+	liveout_renames, add_params fields...
+	(struct sese): ... here.
+	(SESE_PARAMS, SESE_LOOPS, SESE_LOOP_NEST, SESE_ADD_PARAMS, SESE_PARAMS,
+	SESE_OLDIVS, SESE_LIVEOUT_RENAMES): New.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.c (print_scop): Do not print the CLooG program.
 	(new_scop, free_scop, initialize_cloog_names, build_scop_context,
 	build_cloog_prog, gloog): Don't use SCOP_PROG.
