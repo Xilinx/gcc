@@ -1,6 +1,11 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.c (build_cloog_prog): Don't use CloogMatrix.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.c (build_scop_context): Don't use CloogMatrix.
 	* graphite-ppl.c (new_Cloog_Domain_from_ppl_Polyhedron): New.
 	* graphite-ppl.h (new_Cloog_Domain_from_ppl_Polyhedron): Declared.

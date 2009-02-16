@@ -4698,20 +4698,19 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       /* Build new block.  */
-      CloogMatrix *domain;
       CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
 					     nb_loops_around_gb (gbb));
+
       cloog_statement_set_usr (stmt, gbb);
-      domain = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gbb));
 
       /* Build loop list.  */
       {
         CloogLoop *new_loop_list = cloog_loop_malloc ();
         cloog_loop_set_next (new_loop_list, loop_list);
-        cloog_loop_set_domain (new_loop_list,
-			       cloog_domain_matrix2domain (domain));
-	cloog_matrix_free (domain);
+        cloog_loop_set_domain
+	  (new_loop_list,
+	   new_Cloog_Domain_from_ppl_Polyhedron (GBB_DOMAIN (gbb)));
         cloog_loop_set_block (new_loop_list, block);
         loop_list = new_loop_list;
       }
