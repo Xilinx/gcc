@@ -186,7 +186,6 @@ typedef struct graphite_bb
      Dimensions 1 and 3 represent the newly created loops.  */
   VEC (loop_p, heap) *loops;
 
-  lambda_vector compressed_alpha_matrix;
   VEC (data_reference_p, heap) *data_refs;
   htab_t cloog_iv_types;
 } *gbb_p;
@@ -195,7 +194,6 @@ typedef struct graphite_bb
 #define GBB_SCOP(GBB) GBB->scop
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
-#define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
 #define GBB_DOMAIN(GBB) GBB->domain
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases

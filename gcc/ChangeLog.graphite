@@ -1,6 +1,13 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite.h (struct graphite_bb): Remove compressed_alpha_matrix
+	field.
+	(GBB_ALPHA): Removed.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite-data-ref.c (graphite_test_dependence): Don't use
 	GBB_DYNAMIC_SCHEDULE.
 	* graphite.c (new_graphite_bb): Same.
