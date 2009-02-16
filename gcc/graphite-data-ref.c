@@ -344,25 +344,33 @@ graphite_test_dependence (scop_p scop, graphite_bb_p gb1, graphite_bb_p gb2,
        
 	      row = j + dep_constraints->NbRows - iter_vector_dim;           
 	      value_set_si (temp_matrix->p[row][0], 1);
-	      value_oppose (temp_matrix->p[row][p],
-			    GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-	      value_assign (temp_matrix->p[row]
-			    [nb_loops_around_gb (gb1) + p],
-			    GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
+	      /* There are no longer dynamic schedules.  This function
+		 should use the scattering functions.  
+
+		 value_oppose (temp_matrix->p[row][p],
+		 GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
+		 value_assign (temp_matrix->p[row]
+		 [nb_loops_around_gb (gb1) + p],
+		 GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
+	      */
 	      value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
 
 	      simplified = cloog_domain_matrix2domain (temp_matrix);
 
 	      if (is_empty_polyhedron (simplified))
 		{
-		  value_assign (dep_constraints->p[j + dep_constraints->NbRows 
-						   - 2*iter_vector_dim][p], 
-				GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
-          
-		  value_oppose (dep_constraints->p[j + dep_constraints->NbRows 
-						   - 2 * iter_vector_dim]
-				[nb_loops_around_gb (gb1) + p], 
-				GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
+		  /* There are no longer dynamic schedules.  This
+		     function should use the scattering functions.
+
+		     value_assign (dep_constraints->p[j + dep_constraints->NbRows 
+		     - 2*iter_vector_dim][p], 
+		    GBB_DYNAMIC_SCHEDULE (gb1)->p[j][p - 1]);
+		    
+		    value_oppose (dep_constraints->p[j + dep_constraints->NbRows 
+		    - 2 * iter_vector_dim]
+		    [nb_loops_around_gb (gb1) + p], 
+		    GBB_DYNAMIC_SCHEDULE (gb2)->p[j][p - 1]);
+		  */
 		}
 	      else
 		return initialize_data_dependence_polyhedron (true, simplified, 

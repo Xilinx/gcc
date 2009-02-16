@@ -582,8 +582,9 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
-   matrix.  This scattering matrix is used to limit the possible cloog
-   output to valid programs in respect to the scheduling function. 
+   polyhedron.  The scattering polyhedron is used to add constraints
+   that limit the possible cloog output to valid programs in respect
+   to the scheduling function.
 
    SCATTERING_DIMENSIONS specifies the number of scattering
    dimensions.  CLooG 0.15.0 and previous versions require, that all
@@ -1284,7 +1285,6 @@ new_graphite_bb (scop_p scop, basic_block bb)
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_LOOPS (gbb) = NULL;
   GBB_STATIC_SCHEDULE (gbb) = NULL;
-  GBB_DYNAMIC_SCHEDULE (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
   VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
 }
@@ -1295,9 +1295,6 @@ static void
 free_graphite_bb (struct graphite_bb *gbb)
 {
   ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
-
-  if (GBB_DYNAMIC_SCHEDULE (gbb))
-    cloog_matrix_free (GBB_DYNAMIC_SCHEDULE (gbb));
 
   if (GBB_STATIC_SCHEDULE (gbb))
     ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gbb));
@@ -2478,35 +2475,6 @@ ref_nb_loops (data_reference_p ref)
   return nb_loops_around_loop_in_scop (loop, scop) + scop_nb_params (scop) + 2;
 }
 
-/* Build dynamic schedules for all the BBs. */
-
-static void
-build_scop_dynamic_schedules (scop_p scop)
-{
-  int i, dim, loop_num, row, col;
-  graphite_bb_p gb;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    {
-      loop_num = GBB_BB (gb)->loop_father->num;
-
-      if (loop_num != 0)
-        {
-          dim = nb_loops_around_gb (gb);
-          GBB_DYNAMIC_SCHEDULE (gb) = cloog_matrix_alloc (dim, dim);
-
-          for (row = 0; row < GBB_DYNAMIC_SCHEDULE (gb)->NbRows; row++)
-            for (col = 0; col < GBB_DYNAMIC_SCHEDULE (gb)->NbColumns; col++)
-              if (row == col)
-                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 1);
-              else
-                value_set_si (GBB_DYNAMIC_SCHEDULE (gb)->p[row][col], 0);
-        }
-      else
-        GBB_DYNAMIC_SCHEDULE (gb) = NULL;
-    }
-}
-
 /* Returns the number of loops that are identical at the beginning of
    the vectors A and B.  */
 
@@ -3078,8 +3046,8 @@ gbb_from_bb (basic_block bb)
   return (graphite_bb_p) bb->aux;
 }
 
-/* Builds the constraint matrix for LOOP in SCOP.  OUTER_PH gives the
-   constraints for the surrounding loops.  */
+/* Builds the constraint polyhedra for LOOP in SCOP.  OUTER_PH gives
+   the constraints for the surrounding loops.  */
 
 static void
 build_loop_iteration_domains (scop_p scop, struct loop *loop,
@@ -3189,7 +3157,7 @@ add_conditions_to_domain (graphite_bb_p gb)
   if (VEC_empty (gimple, conditions))
     return;
 
-  /* Add the conditions to the new enlarged domain matrix.  */
+  /* Add the conditions to the new enlarged domain.  */
   for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
     {
       switch (gimple_code (stmt))
@@ -3510,7 +3478,7 @@ add_conditions_to_constraints (scop_p scop)
     add_conditions_to_domain (gbb);
 }
 
-/* Build the current domain matrix: the loops belonging to the current
+/* Build the iteration domains: the loops belonging to the current
    SCOP, and that vary for the execution of the current basic block.
    Returns false if there is no loop in SCOP.  */
 
@@ -5987,7 +5955,6 @@ graphite_transform_loops (void)
       build_scop_canonical_schedules (scop);
 
       build_scop_data_accesses (scop);
-      build_scop_dynamic_schedules (scop);
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{

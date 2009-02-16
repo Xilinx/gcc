@@ -187,7 +187,6 @@ typedef struct graphite_bb
   VEC (loop_p, heap) *loops;
 
   lambda_vector compressed_alpha_matrix;
-  CloogMatrix *dynamic_schedule;
   VEC (data_reference_p, heap) *data_refs;
   htab_t cloog_iv_types;
 } *gbb_p;
@@ -197,7 +196,6 @@ typedef struct graphite_bb
 #define GBB_STATIC_SCHEDULE(GBB) GBB->static_schedule
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 #define GBB_ALPHA(GBB) GBB->compressed_alpha_matrix
-#define GBB_DYNAMIC_SCHEDULE(GBB) GBB->dynamic_schedule
 #define GBB_DOMAIN(GBB) GBB->domain
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases

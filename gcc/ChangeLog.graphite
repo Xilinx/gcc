@@ -1,6 +1,18 @@
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 
+	* graphite-data-ref.c (graphite_test_dependence): Don't use
+	GBB_DYNAMIC_SCHEDULE.
+	* graphite.c (new_graphite_bb): Same.
+	(free_graphite_bb): Same.
+	(build_scop_dynamic_schedules): Removed.
+	(graphite_transform_loops): Don't call it.
+	* graphite.h (struct graphite_bb): Remove dynamic_schedule field.
+	(GBB_DYNAMIC_SCHEDULE): Removed.
+
+2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
 	* graphite.c (schedule_to_scattering): Don't use CloogMatrix.
 	(print_graphite_bb): Same.
 	(build_cloog_prog): Same.
