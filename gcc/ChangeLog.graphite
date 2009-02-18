@@ -1,3 +1,31 @@
+2009-02-18  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau>
+
+	* Makefile.in (OBJS-commmon): Add sese.o.
+	(sese.o): New.
+	(graphite.o): Add sese.h.
+	* graphite.c (bb_in_ss_p, loop_in_sese_p,
+	sese_build_livein_liveouts_use, sese_build_livein_liveouts_bb,
+	sese_build_livein_liveouts, register_bb_in_sese, new_sese, free_sese):
+	Move to sese.
+	(block_before_scop): Add missing return.
+	(new_scop, free_scop): Remove SESE data structures.
+	(scop_record_loop, scan_tree_for_params, find_params_in_bb,
+	find_scop_parameters, build_loop_iteration_domains,
+	add_conditions_to_domain, register_scop_liveout_renames,
+	copy_bb_and_scalar_dependences): Scop -> SESE.
+	
+	(add_conditions_to_domain): SCoP -> SESE and remove check 
+	(scop_contains_non_iv_scalar_phi_nodes): New.
+	(build_scop_conditions_1, build_scop_conditions): Remove check for
+	non iv scalar phi nodes.
+	(print_scop_statistics): New.
+	(graphite_transform_loops): Cleanup.
+
+	* graphite.h: Move to sese & cleanup. 
+	* sese.c: New.
+	* sese.h: New.
+
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau>
 

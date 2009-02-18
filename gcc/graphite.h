@@ -21,8 +21,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GRAPHITE_H
 #define GCC_GRAPHITE_H
 
-#include "tree-data-ref.h"
 #include "graphite-ppl.h"
+#include "tree-data-ref.h"
+#include "sese.h"
 
 int ref_nb_loops (data_reference_p);
 
@@ -33,9 +34,7 @@ DEF_VEC_ALLOC_P (graphite_bb_p, heap);
 DEF_VEC_P(scop_p);
 DEF_VEC_ALLOC_P (scop_p, heap);
 
-static inline int scop_nb_loops (scop_p scop);
 static inline unsigned scop_nb_params (scop_p scop);
-static inline bool scop_contains_loop (scop_p scop, struct loop *loop);
 
 typedef struct graphite_bb
 {
@@ -247,84 +246,6 @@ gbb_loop_index (graphite_bb_p gb, loop_p loop)
   gcc_unreachable();
 }
 
-struct loop_to_cloog_loop_str
-{
-  unsigned int loop_num;
-  unsigned int loop_position; /* The column that represents this loop.  */
-  CloogLoop *cloog_loop;
-};
-
-typedef struct name_tree
-{
-  tree t;
-  const char *name;
-  struct loop *loop;
-} *name_tree;
-
-DEF_VEC_P(name_tree);
-DEF_VEC_ALLOC_P (name_tree, heap);
-
-/* A Single Entry, Single Exit region is a part of the CFG delimited
-   by two edges.  */
-typedef struct sese
-{
-  /* Single ENTRY and single EXIT from the SESE region.  */
-  edge entry, exit;
-
-  /* REGION_BASIC_BLOCKS contains the set of all the basic blocks
-     belonging to the SESE region.  */
-  struct pointer_set_t *region_basic_blocks;
-
-  /* An SSA_NAME version is flagged in the LIVEOUT bitmap if the
-     SSA_NAME is defined inside and used outside the SESE region.  */
-  bitmap liveout;
-
-  /* The overall number of SSA_NAME versions used to index LIVEIN.  */
-  int num_ver;
-
-  /* For each SSA_NAME version VER in LIVEOUT, LIVEIN[VER] contains
-     the set of basic blocks indices that contain a use of VER.  */
-  bitmap *livein;
-
-  /* Parameters used within the SCOP.  */
-  VEC (name_tree, heap) *params;
-
-  /* A collection of old induction variables*/ 
-  VEC (name_tree, heap) *old_ivs;
-
-  /* Loops completely contained in the SCOP.  */
-  bitmap loops;
-  VEC (loop_p, heap) *loop_nest;
-
-  /* LIVEOUT_RENAMES registers the rename mapping that has to be
-     applied after code generation.  */
-  htab_t liveout_renames;
-
-  /* Are we allowed to add more params?  This is for debugging purpose.  We
-     can only add new params before generating the bb domains, otherwise they
-     become invalid.  */
-  bool add_params;
-} *sese;
-
-#define SESE_ENTRY(S) (S->entry)
-#define SESE_EXIT(S) (S->exit)
-#define SESE_REGION_BBS(S) (S->region_basic_blocks)
-#define SESE_LIVEOUT(S) (S->liveout)
-#define SESE_LIVEIN(S) (S->livein)
-#define SESE_LIVEIN_VER(S, I) (S->livein[I])
-#define SESE_NUM_VER(S) (S->num_ver)
-#define SESE_PARAMS(S) (S->params)
-#define SESE_LOOPS(S) (S->loops)
-#define SESE_LOOP_NEST(S) (S->loop_nest)
-#define SESE_ADD_PARAMS(S) (S->add_params)
-#define SESE_PARAMS(S) (S->params)
-#define SESE_OLDIVS(S) (S->old_ivs)
-#define SESE_LIVEOUT_RENAMES(S) (S->liveout_renames)
-
-extern sese new_sese (edge, edge);
-extern void free_sese (sese);
-extern void sese_build_livein_liveouts (sese);
-
 /* A SCOP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */
 struct scop
@@ -353,12 +274,18 @@ struct scop
 #define SCOP_REGION_BBS(S) (SESE_REGION_BBS (SCOP_REGION (S)))
 #define SCOP_DEP_GRAPH(S) (S->dep_graph)
 #define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
-#define SCOP_LOOPS(S) (SCOP_REGION (S)->loops)
 #define SCOP_LOOP_NEST(S) (SCOP_REGION (S)->loop_nest)
-#define SCOP_ADD_PARAMS(S) (SCOP_REGION (S)->add_params)
 #define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
 #define SCOP_OLDIVS(S) (SCOP_REGION (S)->old_ivs)
 #define SCOP_LIVEOUT_RENAMES(S) (SCOP_REGION (S)->liveout_renames)
+
+/* Returns the number of parameters for SCOP.  */
+
+static inline unsigned
+scop_nb_params (scop_p scop)
+{
+  return sese_nb_params (SCOP_REGION (scop));
+}
 
 extern void debug_scop (scop_p, int);
 extern void debug_scops (int);
@@ -373,7 +300,6 @@ extern void debug_loop_vec (graphite_bb_p);
 extern void debug_oldivs (scop_p);
 extern void print_generated_program (FILE *, scop_p);
 extern void debug_generated_program (scop_p);
-
 
 /* Describes the type of an iv stack entry.  */
 typedef enum {
@@ -447,117 +373,4 @@ extern struct graph *graphite_build_rdg_all_levels (scop_p);
 extern struct data_dependence_polyhedron *
 graphite_test_dependence (scop_p, graphite_bb_p, graphite_bb_p,
 			  struct data_reference *, struct data_reference *);
-
-/* Return the number of gimple loops contained in SCOP.  */
-
-static inline int
-scop_nb_loops (scop_p scop)
-{
-  return VEC_length (loop_p, SCOP_LOOP_NEST (scop));
-}
-
-/* Returns the number of parameters for SCOP.  */
-
-static inline unsigned
-scop_nb_params (scop_p scop)
-{
-  return VEC_length (name_tree, SCOP_PARAMS (scop));
-}
-
-/* Return the dimension of the domains for SCOP.  */
-
-static inline int
-scop_dim_domain (scop_p scop)
-{
-  return scop_nb_loops (scop) + scop_nb_params (scop) + 1;
-}
-
-/* Return the dimension of the domains for GB.  */
-
-static inline int
-gbb_dim_domain (graphite_bb_p gb)
-{
-  return scop_dim_domain (GBB_SCOP (gb));
-}
-
-/* Checks, if SCOP contains LOOP.  */
-
-static inline bool
-scop_contains_loop (scop_p scop, struct loop *loop)
-{
-  return bitmap_bit_p (SCOP_LOOPS (scop), loop->num);
-}
-
-/* Returns the index of LOOP in the domain matrix for the SCOP.  */
-
-static inline int
-scop_loop_index (scop_p scop, struct loop *loop)
-{
-  unsigned i;
-  struct loop *l;
-
-  gcc_assert (scop_contains_loop (scop, loop));
-
-  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, l); i++)
-    if (l == loop)
-      return i;
-
-  gcc_unreachable();
-}
-
-/* Return the index of innermost loop that contains the basic block
-   GBB.  */
-
-static inline int
-gbb_inner_most_loop_index (scop_p scop, graphite_bb_p gb)
-{
-  return scop_loop_index(scop, gbb_loop (gb));
-}
-
-/* Return the outermost loop that contains the loop LOOP.  The outer
-   loops are searched until a sibling for the outer loop is found.  */
-
-static struct loop *
-outer_most_loop_1 (scop_p scop, struct loop* loop, struct loop* current_outer)
-{
-  return (!scop_contains_loop (scop, loop)) ? current_outer :
-    (loop->next != NULL) ? loop :
-    outer_most_loop_1 (scop, loop_outer (loop), loop);
-}
-
-/* Return the outermost loop that contains the loop LOOP.  */
-
-static struct loop *
-outer_most_loop (scop_p scop, struct loop *loop)
-{
-  return outer_most_loop_1 (scop, loop, NULL);
-}
-
-/* Return the index of the outermost loop that contains the basic
-   block BB.  */
-
-static inline int
-gbb_outer_most_loop_index (scop_p scop, graphite_bb_p gb)
-{
-  return scop_loop_index (scop, outer_most_loop (scop, gbb_loop (gb)));
-}
-
-/* Return the loop depth of LOOP in SCOP.  */
-
-static inline unsigned int
-scop_gimple_loop_depth (scop_p scop, loop_p loop)
-{
-  unsigned int depth = 0;
-
-  loop = loop_outer (loop);
-
-  while (scop_contains_loop (scop, loop))
-    {
-      depth++;
-      loop = loop_outer (loop);
-    }
-
-  return depth;
-}
-
 #endif  /* GCC_GRAPHITE_H  */
