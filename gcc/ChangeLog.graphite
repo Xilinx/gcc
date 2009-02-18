@@ -1,5 +1,12 @@
 2009-02-18  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite.c: Replace gb -> gbb.
+	* graphite.h: Same.
+	* graphite-data-ref.c: Same.
+
+2009-02-18  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* Makefile.in (OBJS-commmon): Add sese.o.
 	(sese.o): New.
@@ -27,7 +34,7 @@
 	* sese.h: New.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (build_scop_conditions_1): Conditions are only
 	at the end of a basic block.
@@ -40,7 +47,7 @@
 	(GBB_ALPHA): Removed.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-data-ref.c (graphite_test_dependence): Don't use
 	GBB_DYNAMIC_SCHEDULE.
@@ -52,26 +59,26 @@
 	(GBB_DYNAMIC_SCHEDULE): Removed.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (schedule_to_scattering): Don't use CloogMatrix.
 	(print_graphite_bb): Same.
 	(build_cloog_prog): Same.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (build_cloog_prog): Don't use CloogMatrix.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (build_scop_context): Don't use CloogMatrix.
 	* graphite-ppl.c (new_Cloog_Domain_from_ppl_Polyhedron): New.
 	* graphite-ppl.h (new_Cloog_Domain_from_ppl_Polyhedron): Declared.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.h (struct scop): Move params, old_ivs, loops, loop_nest,
 	liveout_renames, add_params fields...
@@ -80,7 +87,7 @@
 	SESE_OLDIVS, SESE_LIVEOUT_RENAMES): New.
 
 2009-02-16  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (print_scop): Do not print the CLooG program.
 	(new_scop, free_scop, initialize_cloog_names, build_scop_context,
@@ -167,7 +174,7 @@
 	* graphite.c (graphite_trans_bb_move_loop): Remove unused variables.
 
 2009-02-10  Sebastian Pop  <sebastian.pop@amd.com>
-	    Tobias Grosser  <grosser@fim.uni-passau>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite.c (graphite_trans_bb_move_loop): Remove ping pong,
 	use ppl_move_dimension.
@@ -179,7 +186,7 @@
 	* graphite.c: Do not include cloog/cloog.h.
 	(print_graphite_bb): Remove ping pong, call PPL print function.
 
-2009-02-10  Tobias Grosser  <grosser@fim.uni-passau>
+2009-02-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* Makefile.in (OBJS-common): Add graphite-ppl.o.
 	(graphite.o): Add dependence on graphite-ppl.h.

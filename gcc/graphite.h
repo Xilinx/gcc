@@ -207,7 +207,7 @@ gbb_loop (struct graphite_bb *gbb)
   return GBB_BB (gbb)->loop_father;
 }
 
-int nb_loops_around_gb (graphite_bb_p);
+int nb_loops_around_gbb (graphite_bb_p);
 
 /* Calculate the number of loops around GB in the current SCOP.  Only
    works if GBB_DOMAIN is built.  */

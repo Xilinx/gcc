@@ -91,14 +91,14 @@ debug_oldivs (scop_p scop)
 /* Debug the loops around basic block GB.  */
 
 void
-debug_loop_vec (graphite_bb_p gb)
+debug_loop_vec (graphite_bb_p gbb)
 {
   int i;
   loop_p loop;
 
   fprintf (stderr, "Loop Vec:");
 
-  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
+  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, loop); i++)
     fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
 
   fprintf (stderr, "\n");
@@ -471,11 +471,11 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
    | 0   0   1   0   0   0   0   0  -5  = 0  */
 
 static ppl_Polyhedron_t
-schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions) 
+schedule_to_scattering (graphite_bb_p gbb, int scattering_dimensions) 
 {
   int i;
-  scop_p scop = GBB_SCOP (gb);
-  int nb_iterators = gbb_nb_loops (gb);
+  scop_p scop = GBB_SCOP (gbb);
+  int nb_iterators = gbb_nb_loops (gbb);
   int used_scattering_dimensions = nb_iterators * 2 + 1;
   int nb_params = scop_nb_params (scop);
   int col_iter_offset = scattering_dimensions;
@@ -504,7 +504,7 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
       if (i < used_scattering_dimensions
 	  && (i % 2) == 0)
 	{
-	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i / 2, c);
+	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i / 2, c);
 	  ppl_Coefficient_to_mpz_t (c, v);
 	  value_oppose (v, v);
 	  ppl_assign_Coefficient_from_mpz_t (c, v);
@@ -537,29 +537,29 @@ schedule_to_scattering (graphite_bb_p gb, int scattering_dimensions)
    VERBOSITY determines how verbose the code pretty printers are.  */
 
 void
-print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
+print_graphite_bb (FILE *file, graphite_bb_p gbb, int indent, int verbosity)
 {
   int i;
   loop_p loop;
   fprintf (file, "\nGBB (\n");
 
-  print_loops_bb (file, GBB_BB (gb), indent+2, verbosity);
+  print_loops_bb (file, GBB_BB (gbb), indent+2, verbosity);
 
   fprintf (file, "       (domain: \n");
-  ppl_io_fprint_Polyhedron (file, GBB_DOMAIN (gb));
+  ppl_io_fprint_Polyhedron (file, GBB_DOMAIN (gbb));
   fprintf (file, "       )\n");
 
-  if (GBB_STATIC_SCHEDULE (gb))
+  if (GBB_STATIC_SCHEDULE (gbb))
     {
       fprintf (file, "       (static schedule: ");
-      ppl_io_fprint_Linear_Expression (file, GBB_STATIC_SCHEDULE (gb));
+      ppl_io_fprint_Linear_Expression (file, GBB_STATIC_SCHEDULE (gbb));
       fprintf (file, "       )\n");
     }
 
-  if (GBB_LOOPS (gb))
+  if (GBB_LOOPS (gbb))
     {
       fprintf (file, "       (contained loops: \n");
-      for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gb), i, loop); i++)
+      for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, loop); i++)
 	if (loop == NULL)
 	  fprintf (file, "       iterator %d   =>  NULL \n", i); 
 	else
@@ -568,23 +568,23 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
       fprintf (file, "       )\n");
     }
 
-  if (GBB_DATA_REFS (gb))
-    dump_data_references (file, GBB_DATA_REFS (gb));
+  if (GBB_DATA_REFS (gbb))
+    dump_data_references (file, GBB_DATA_REFS (gbb));
 
-  if (GBB_CONDITIONS (gb))
+  if (GBB_CONDITIONS (gbb))
     {
       fprintf (file, "       (conditions: \n");
-      dump_gbb_conditions (file, gb);
+      dump_gbb_conditions (file, gbb);
       fprintf (file, "       )\n");
     }
 
-  if (GBB_SCOP (gb)
-      && GBB_STATIC_SCHEDULE (gb))
+  if (GBB_SCOP (gbb)
+      && GBB_STATIC_SCHEDULE (gbb))
     {
       ppl_Polyhedron_t scattering;
 
       fprintf (file, "       (scattering: \n");
-      scattering = schedule_to_scattering (gb, 2 * gbb_nb_loops (gb) + 1);
+      scattering = schedule_to_scattering (gbb, 2 * gbb_nb_loops (gbb) + 1);
       ppl_io_fprint_Polyhedron (file, scattering);
       ppl_delete_Polyhedron (scattering);
       fprintf (file, "       )\n");
@@ -596,9 +596,9 @@ print_graphite_bb (FILE *file, graphite_bb_p gb, int indent, int verbosity)
 /* Print to STDERR the schedules of GB with VERBOSITY level.  */
 
 void
-debug_gbb (graphite_bb_p gb, int verbosity)
+debug_gbb (graphite_bb_p gbb, int verbosity)
 {
-  print_graphite_bb (stderr, gb, 0, verbosity);
+  print_graphite_bb (stderr, gbb, 0, verbosity);
 }
 
 
@@ -616,11 +616,11 @@ print_scop (FILE *file, scop_p scop, int verbosity)
 
   if (SCOP_BBS (scop))
     {
-      graphite_bb_p gb;
+      graphite_bb_p gbb;
       int i;
 
-      for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-	print_graphite_bb (file, gb, 0, verbosity);
+      for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+	print_graphite_bb (file, gbb, 0, verbosity);
     }
 
   fprintf (file, "       (data dependences: \n");
@@ -1279,11 +1279,11 @@ static void
 free_scop (scop_p scop)
 {
   int i;
-  struct graphite_bb *gb;
+  struct graphite_bb *gbb;
   name_tree iv;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    free_graphite_bb (gb);
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    free_graphite_bb (gbb);
 
   VEC_free (graphite_bb_p, heap, SCOP_BBS (scop));
 
@@ -2294,9 +2294,9 @@ nb_loops_around_loop_in_scop (struct loop *l, scop_p scop)
 /* Calculate the number of loops around GB in the current SCOP.  */
 
 int
-nb_loops_around_gb (graphite_bb_p gb)
+nb_loops_around_gbb (graphite_bb_p gbb)
 {
-  return nb_loops_around_loop_in_scop (gbb_loop (gb), GBB_SCOP (gb));
+  return nb_loops_around_loop_in_scop (gbb_loop (gbb), GBB_SCOP (gbb));
 }
 
 /* Returns the dimensionality of an enclosing loop iteration domain
@@ -2373,7 +2373,7 @@ static void
 build_scop_canonical_schedules (scop_p scop)
 {
   int i;
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   ppl_Linear_Expression_t static_schedule;
   VEC (loop_p, heap) *loops_previous = NULL;
   ppl_Coefficient_t c;
@@ -2391,13 +2391,13 @@ build_scop_canonical_schedules (scop_p scop)
   ppl_assign_Coefficient_from_mpz_t (c, v);
   ppl_Linear_Expression_add_to_coefficient (static_schedule, 0, c);
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       ppl_Linear_Expression_t common;
-      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gb));
-      int nb = gbb_nb_loops (gb);
+      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gbb));
+      int nb = gbb_nb_loops (gbb);
 
-      loops_previous = GBB_LOOPS (gb);
+      loops_previous = GBB_LOOPS (gbb);
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression (common, static_schedule);
 
@@ -2406,10 +2406,10 @@ build_scop_canonical_schedules (scop_p scop)
       ppl_Linear_Expression_add_to_coefficient (common, prefix, c);
       ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule, common);
 
-      ppl_new_Linear_Expression_with_dimension (&GBB_STATIC_SCHEDULE (gb),
+      ppl_new_Linear_Expression_with_dimension (&GBB_STATIC_SCHEDULE (gbb),
 						nb + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression
-	(GBB_STATIC_SCHEDULE (gb), common);
+	(GBB_STATIC_SCHEDULE (gbb), common);
       ppl_delete_Linear_Expression (common);
     }
 
@@ -2423,24 +2423,24 @@ build_scop_canonical_schedules (scop_p scop)
 static void
 build_bb_loops (scop_p scop)
 {
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   int i;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       loop_p loop;
       int depth; 
 
-      depth = nb_loops_around_gb (gb) - 1; 
+      depth = nb_loops_around_gbb (gbb) - 1; 
 
-      GBB_LOOPS (gb) = VEC_alloc (loop_p, heap, 3);
-      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gb), depth + 1);
+      GBB_LOOPS (gbb) = VEC_alloc (loop_p, heap, 3);
+      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gbb), depth + 1);
 
-      loop = GBB_BB (gb)->loop_father;  
+      loop = GBB_BB (gbb)->loop_father;  
 
       while (sese_contains_loop (SCOP_REGION(scop), loop))
         {
-          VEC_replace (loop_p, GBB_LOOPS (gb), depth, loop);
+          VEC_replace (loop_p, GBB_LOOPS (gbb), depth, loop);
           loop = loop_outer (loop);
           depth--;
         }
@@ -2667,14 +2667,14 @@ idx_record_params (tree base, tree *idx, void *dta)
    access functions, conditions and loop bounds.  */
 
 static void
-find_params_in_bb (sese sese, graphite_bb_p gb)
+find_params_in_bb (sese sese, graphite_bb_p gbb)
 {
   int i;
   data_reference_p dr;
   gimple stmt;
-  loop_p father = GBB_BB (gb)->loop_father;
+  loop_p father = GBB_BB (gbb)->loop_father;
 
-  for (i = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gb), i, dr); i++)
+  for (i = 0; VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb), i, dr); i++)
     {
       struct irp_data irp;
 
@@ -2684,7 +2684,7 @@ find_params_in_bb (sese sese, graphite_bb_p gb)
     }
 
   /* Find parameters in conditional statements.  */ 
-  for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gb), i, stmt); i++)
+  for (i = 0; VEC_iterate (gimple, GBB_CONDITIONS (gbb), i, stmt); i++)
     {
       Value one;
       loop_p loop = father;
@@ -2804,7 +2804,7 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 static void
 find_scop_parameters (scop_p scop)
 {
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   unsigned i;
   sese sese = SCOP_REGION (scop);
   struct loop *loop;
@@ -2829,8 +2829,8 @@ find_scop_parameters (scop_p scop)
   value_clear (one);
 
   /* Find the parameters used in data accesses.  */
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    find_params_in_bb (sese, gb);
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    find_params_in_bb (sese, gbb);
 
   SESE_ADD_PARAMS (sese) = false;
 }
@@ -2867,7 +2867,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
 {
   int i;
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   Value one, minus_one, val;
   ppl_Polyhedron_t ph;
   ppl_Linear_Expression_t lb_expr, ub_expr;
@@ -2941,11 +2941,11 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       && loop_in_sese_p (loop->next, SCOP_REGION (scop)))
     build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
-    if (gbb_loop (gb) == loop)
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+    if (gbb_loop (gbb) == loop)
       {
-	ppl_delete_Polyhedron (GBB_DOMAIN (gb));
-	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&GBB_DOMAIN (gb), ph);
+	ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
+	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&GBB_DOMAIN (gbb), ph);
       }
 
   ppl_delete_Coefficient (coef);
@@ -2958,12 +2958,12 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 /* Add conditions to the domain of GB.  */
 
 static void
-add_conditions_to_domain (graphite_bb_p gb)
+add_conditions_to_domain (graphite_bb_p gbb)
 {
   unsigned int i;
   gimple stmt;
-  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gb);
-  scop_p scop = GBB_SCOP (gb);
+  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
+  scop_p scop = GBB_SCOP (gbb);
   basic_block before_scop = block_before_scop (scop);
 
   if (VEC_empty (gimple, conditions))
@@ -2978,7 +2978,7 @@ add_conditions_to_domain (graphite_bb_p gb)
           {
             Value one;
             tree left, right;
-            loop_p loop = GBB_BB (gb)->loop_father;
+            loop_p loop = GBB_BB (gbb)->loop_father;
 	    ppl_Linear_Expression_t expr;
 	    ppl_Constraint_t cstr;
 	    enum ppl_enum_Constraint_Type type = 0;
@@ -2986,7 +2986,7 @@ add_conditions_to_domain (graphite_bb_p gb)
 	    ppl_dimension_type dim;
 
             /* The conditions for ELSE-branches are inverted.  */
-            if (VEC_index (gimple, gb->condition_cases, i) == NULL)
+            if (VEC_index (gimple, gbb->condition_cases, i) == NULL)
               code = invert_tree_comparison (code, false);
 
             switch (code)
@@ -3015,7 +3015,7 @@ add_conditions_to_domain (graphite_bb_p gb)
 
 	    value_init (one);
 	    value_set_si (one, 1);
-	    dim = gbb_nb_loops (gb) + scop_nb_params (scop);
+	    dim = gbb_nb_loops (gbb) + scop_nb_params (scop);
 	    ppl_new_Linear_Expression_with_dimension (&expr, dim);
 
 	    left = gimple_cond_lhs (stmt);
@@ -3032,7 +3032,7 @@ add_conditions_to_domain (graphite_bb_p gb)
 
 	    value_clear (one);
 	    ppl_new_Constraint (&cstr, expr, type);
-	    ppl_Polyhedron_add_constraint (GBB_DOMAIN (gb), cstr);
+	    ppl_Polyhedron_add_constraint (GBB_DOMAIN (gbb), cstr);
 	    ppl_delete_Constraint (cstr);
 	    ppl_delete_Linear_Expression (expr);
             break;
@@ -3367,18 +3367,18 @@ build_access_matrix_with_af (tree af, lambda_vector cy,
    succeeded.  */
 
 static bool
-build_access_matrix (data_reference_p ref, graphite_bb_p gb)
+build_access_matrix (data_reference_p ref, graphite_bb_p gbb)
 {
   int i, ndim = DR_NUM_DIMENSIONS (ref);
   struct access_matrix *am = GGC_NEW (struct access_matrix);
 
   AM_MATRIX (am) = VEC_alloc (lambda_vector, gc, ndim);
-  DR_SCOP (ref) = GBB_SCOP (gb);
+  DR_SCOP (ref) = GBB_SCOP (gbb);
 
   for (i = 0; i < ndim; i++)
     {
       lambda_vector v = lambda_vector_new (ref_nb_loops (ref));
-      scop_p scop = GBB_SCOP (gb);
+      scop_p scop = GBB_SCOP (gbb);
       tree af = DR_ACCESS_FN (ref, i);
 
       if (!build_access_matrix_with_af (af, v, scop, ref_nb_loops (ref)))
@@ -3397,13 +3397,13 @@ static void
 build_scop_data_accesses (scop_p scop)
 {
   int i;
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
 
   /* FIXME: Construction of access matrix is disabled until some
      pass, like the data dependence analysis, is using it.  */
   return;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       int j;
       data_reference_p dr;
@@ -3411,10 +3411,10 @@ build_scop_data_accesses (scop_p scop)
       /* Construct the access matrix for each data ref, with respect to
 	 the loop nest of the current BB in the considered SCOP.  */
       for (j = 0;
-	   VEC_iterate (data_reference_p, GBB_DATA_REFS (gb), j, dr);
+	   VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb), j, dr);
 	   j++)
 	{
-	  bool res = build_access_matrix (dr, gb);
+	  bool res = build_access_matrix (dr, gbb);
 
 	  /* FIXME: At this point the DRs should always have an affine
 	     form.  For the moment this fails as build_access_matrix
@@ -4477,7 +4477,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
       /* Build new block.  */
       CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
-					     nb_loops_around_gb (gbb));
+					     nb_loops_around_gbb (gbb));
 
       cloog_statement_set_usr (stmt, gbb);
 
@@ -5203,20 +5203,20 @@ nb_data_refs_in_scop (scop_p scop)
    This should be checked before calling this function.  */
 
 static void
-graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
+graphite_trans_bb_move_loop (graphite_bb_p gbb, int src, int dest)
 {
   loop_p tmp_loop_p;
   ppl_dimension_type dim, *map;
   int i;
 
-  gcc_assert (src < gbb_nb_loops (gb)
-	      && dest < gbb_nb_loops (gb));
+  gcc_assert (src < gbb_nb_loops (gbb)
+	      && dest < gbb_nb_loops (gbb));
 
-  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gb), src);
-  VEC_ordered_remove (loop_p, GBB_LOOPS (gb), src);
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), dest, tmp_loop_p);
+  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gbb), src);
+  VEC_ordered_remove (loop_p, GBB_LOOPS (gbb), src);
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gbb), dest, tmp_loop_p);
 
-  ppl_Polyhedron_space_dimension (GBB_DOMAIN (gb), &dim);
+  ppl_Polyhedron_space_dimension (GBB_DOMAIN (gbb), &dim);
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
 
   for (i = 0; i < (int) dim; i++)
@@ -5234,7 +5234,7 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
 
   map[src] = dest;
 
-  ppl_Polyhedron_map_space_dimensions (GBB_DOMAIN (gb), map, dim);
+  ppl_Polyhedron_map_space_dimensions (GBB_DOMAIN (gbb), map, dim);
   free (map);
 }
 
@@ -5242,21 +5242,21 @@ graphite_trans_bb_move_loop (graphite_bb_p gb, int src, int dest)
    transform is always valid but not always a performance gain.  */
   
 static void
-graphite_trans_bb_strip_mine (graphite_bb_p gb, ppl_dimension_type loop,
+graphite_trans_bb_strip_mine (graphite_bb_p gbb, ppl_dimension_type loop,
 			      int stride)
 {
-  ppl_Polyhedron_t ph = ppl_strip_loop (GBB_DOMAIN (gb), loop, stride);  
-  ppl_delete_Polyhedron (GBB_DOMAIN (gb));
-  GBB_DOMAIN (gb) = ph;
+  ppl_Polyhedron_t ph = ppl_strip_loop (GBB_DOMAIN (gbb), loop, stride);  
+  ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
+  GBB_DOMAIN (gbb) = ph;
 
-  gcc_assert ((int) loop <= gbb_nb_loops (gb) - 1);
+  gcc_assert ((int) loop <= gbb_nb_loops (gbb) - 1);
 
   /* Update the loops vector.  */
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gb), loop, NULL);
+  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gbb), loop, NULL);
 
   /* Update static schedule.  */
   {
-    ppl_dimension_type i, nb_loops = gbb_nb_loops (gb);
+    ppl_dimension_type i, nb_loops = gbb_nb_loops (gbb);
     ppl_Linear_Expression_t new_schedule;
     ppl_Coefficient_t c;
 
@@ -5265,18 +5265,18 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, ppl_dimension_type loop,
 
     for (i = 0; i <= loop; i++)
       {
-	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i, c);
+	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i, c);
 	ppl_Linear_Expression_add_to_coefficient (new_schedule, i, c);
       }
 
     for (i = loop + 1; i <= nb_loops - 2; i++)
       {
-	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb), i, c);
+	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i, c);
 	ppl_Linear_Expression_add_to_coefficient (new_schedule, i + 2, c);
       }
 
-    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gb));
-    GBB_STATIC_SCHEDULE (gb) = new_schedule;
+    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gbb));
+    GBB_STATIC_SCHEDULE (gbb) = new_schedule;
 
     ppl_delete_Coefficient (c);
   }
@@ -5287,7 +5287,7 @@ graphite_trans_bb_strip_mine (graphite_bb_p gb, ppl_dimension_type loop,
    loops will be strip mined.  */
 
 static bool
-strip_mine_profitable_p (graphite_bb_p gb, int stride,
+strip_mine_profitable_p (graphite_bb_p gbb, int stride,
 			 int loop_index)
 {
   bool res = true;
@@ -5296,7 +5296,7 @@ strip_mine_profitable_p (graphite_bb_p gb, int stride,
   loop_p loop;
   long niter_val;
 
-  loop = VEC_index (loop_p, GBB_LOOPS (gb), loop_index);
+  loop = VEC_index (loop_p, GBB_LOOPS (gbb), loop_index);
   exit = single_exit (loop);
 
   niter = find_loop_niter (loop, &exit);
@@ -5385,14 +5385,14 @@ is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
 */
 
 static bool
-graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
+graphite_trans_bb_block (graphite_bb_p gbb, int stride, int loops)
 {
   int i, j;
-  int nb_loops = gbb_nb_loops (gb);
+  int nb_loops = gbb_nb_loops (gbb);
   int start = nb_loops - loops;
-  scop_p scop = GBB_SCOP (gb);
+  scop_p scop = GBB_SCOP (gbb);
 
-  gcc_assert (sese_contains_loop (SCOP_REGION (scop), gbb_loop (gb)));
+  gcc_assert (sese_contains_loop (SCOP_REGION (scop), gbb_loop (gbb)));
 
   for (i = start ; i < nb_loops; i++)
     for (j = i + 1; j < nb_loops; j++)
@@ -5409,20 +5409,20 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
 
   /* Check if strip mining is profitable for every loop.  */
   for (i = 0; i < nb_loops - start; i++)
-    if (!strip_mine_profitable_p (gb, stride, start + i))
+    if (!strip_mine_profitable_p (gbb, stride, start + i))
       return false;
 
   /* Strip mine loops.  */
   for (i = 0; i < nb_loops - start; i++)
-    graphite_trans_bb_strip_mine (gb, start + 2 * i, stride);
+    graphite_trans_bb_strip_mine (gbb, start + 2 * i, stride);
 
   /* Interchange loops.  */
   for (i = 1; i < nb_loops - start; i++)
-    graphite_trans_bb_move_loop (gb, start + 2 * i, start + i);
+    graphite_trans_bb_move_loop (gbb, start + 2 * i, start + i);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "\nLoops containing BB %d will be loop blocked.\n",
-	     GBB_BB (gb)->index);
+	     GBB_BB (gbb)->index);
 
   return true;
 }
@@ -5433,15 +5433,15 @@ graphite_trans_bb_block (graphite_bb_p gb, int stride, int loops)
 static bool
 graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
 {
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   int i;
   bool transform_done = false;
 
   /* TODO: - Calculate the stride size automatically.  */
   int stride_size = 64;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gb); i++)
-    transform_done |= graphite_trans_bb_block (gb, stride_size, loops);
+  for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gbb); i++)
+    transform_done |= graphite_trans_bb_block (gbb, stride_size, loops);
 
   return transform_done;
 }
@@ -5452,7 +5452,7 @@ graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
 static bool
 graphite_trans_scop_block (scop_p scop)
 {
-  graphite_bb_p gb;
+  graphite_bb_p gbb;
   int i, j;
   int last_nb_loops;
   int nb_loops;
@@ -5472,22 +5472,22 @@ graphite_trans_scop_block (scop_p scop)
   ppl_new_Coefficient (&c);
 
   /* Get the data of the first bb.  */
-  gb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0);
-  last_nb_loops = gbb_nb_loops (gb);
+  gbb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0);
+  last_nb_loops = gbb_nb_loops (gbb);
 
   ppl_new_Linear_Expression_with_dimension (&last_schedule, max_schedule);
   ppl_assign_Linear_Expression_from_Linear_Expression
-    (last_schedule, GBB_STATIC_SCHEDULE (gb));
+    (last_schedule, GBB_STATIC_SCHEDULE (gbb));
 
-  VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+  VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
   
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gb); i++)
+  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
     {
       /* We did the first bb before.  */
       if (i == 0)
         continue;
 
-      nb_loops = gbb_nb_loops (gb);
+      nb_loops = gbb_nb_loops (gbb);
 
       /* If the number of loops is unchanged and only the last element of the
          schedule changes, we stay in the loop nest.  */
@@ -5495,13 +5495,13 @@ graphite_trans_scop_block (scop_p scop)
 	{
 	  ppl_Linear_Expression_coefficient (last_schedule, nb_loops + 1, c);
 	  ppl_Coefficient_to_mpz_t (c, v0);
-	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
 					     nb_loops + 1, c);
 	  ppl_Coefficient_to_mpz_t (c, v1);
 
 	  if (value_ne (v0, v1))
 	    {
-	      VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+	      VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
 	      continue;
 	    }
 	}
@@ -5532,7 +5532,7 @@ graphite_trans_scop_block (scop_p scop)
 
           if (value_ne (v0, v1))
 	    {
-	      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+	      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
 						 j, c);
 	      ppl_Coefficient_to_mpz_t (c, v0);
 	      value_set_si (v1, 1);
@@ -5565,7 +5565,7 @@ graphite_trans_scop_block (scop_p scop)
 
          But here not, so the loop nest can never be perfect.  */
 
-      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gb),
+      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
 					 nb_loops, c);
       ppl_Coefficient_to_mpz_t (c, v0);
       value_set_si (v1, 0);
@@ -5576,10 +5576,10 @@ graphite_trans_scop_block (scop_p scop)
       last_nb_loops = nb_loops;
 
       ppl_assign_Linear_Expression_from_Linear_Expression
-	(last_schedule, GBB_STATIC_SCHEDULE (gb));
+	(last_schedule, GBB_STATIC_SCHEDULE (gbb));
 
       VEC_truncate (graphite_bb_p, bbs, 0);
-      VEC_safe_push (graphite_bb_p, heap, bbs, gb);
+      VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
     }
 
   /* Check if the last loop nest was perfect.  It is the same check as above,
