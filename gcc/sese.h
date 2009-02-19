@@ -1,6 +1,7 @@
-/* Gimple Represented as Polyhedra.
-   Copyright (C) 2006, 2007, 2008  Free Software Foundation, Inc.
-   Contributed by Sebastian Pop <sebastian.pop@inria.fr>.
+/* Single entry single exit control flow regions.
+   Copyright (C) 2008, 2009  Free Software Foundation, Inc.
+   Contributed by Jan Sjodin <jan.sjodin@amd.com> and
+   Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
 

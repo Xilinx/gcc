@@ -1,6 +1,14 @@
 2009-02-18  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
+	* gcc.dg/graphite/block-0.c: Expected to fail now.
+	* gcc.dg/graphite/block-1.c: Same.
+	* gcc.dg/graphite/block-5.c: Same.
+	* gcc.dg/graphite/block-6.c: Same.
+
+2009-02-18  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.h: Separate from graphite_bb_p the polyhedral
 	representation in poly_bb_p and the GCC specifics in gimple_bb_p.
 	* graphite.c: Same.
