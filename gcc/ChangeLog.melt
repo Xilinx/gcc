@@ -1,3 +1,9 @@
+2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[generated tmatch-1.c still don't compile]
+	* melt/warmelt-genobj.bysl: added compile_tester selector &
+	class_testercompilcontext & compiltst_anytester catchall function.
+	Added extra tcx argument to compile_tester. Replaced all
+	compile_obj sent to testers by compile_tester.
 2009-02-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.bysl: (compilobj_nrep_match) corrected the
 	making of the objmultiblock.
