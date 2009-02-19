@@ -1,3 +1,125 @@
+2009-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/system_error (system_category): To system_category().
+	(generic_category): To generic_category. DR 890.
+	* src/system_error.cc: Define.
+	* include/bits/functexcept.h: Only one __throw_system_error.
+	* src/functexcept.cc: Same.
+	* include/std/mutex: Fixup for changes above.
+	* testsuite/19_diagnostics/error_condition/cons/1.cc: Same.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Same.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Same.
+	* config/abi/pre/gnu.ver: Clean up exports.
+
+2009-02-17  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/thread: Fix typo.
+	* src/thread.cc (thread::join): Use NULL.
+
+2009-02-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/39168
+	* src/locale_facets.cc (__verify_grouping(const char*, size_t,
+	const string&)): Also check that the value != CHAR_MAX.
+	* include/bits/locale_facets.tcc (__numpunct_cache<>::
+	_M_cache(const locale&), __add_grouping(_CharT*, _CharT,
+	const char*, size_t, const _CharT*, const _CharT*)): Likewise.
+	* include/bits/locale_facets_nonio.tcc (__moneypunct_cache<>::
+	_M_cache(const locale&)): Likewise.
+	* testsuite/22_locale/money_put/put/wchar_t/39168.cc: New.
+	* testsuite/22_locale/money_put/put/char/39168.cc: Likewise.
+	* testsuite/22_locale/money_get/get/wchar_t/39168.cc: Likewise.
+	* testsuite/22_locale/money_get/get/char/39168.cc: Likewise.
+	* testsuite/22_locale/num_get/get/wchar_t/39168.cc: Likewise.
+	* testsuite/22_locale/num_get/get/char/39168.cc: Likewise.
+
+2009-02-13  Chris Fairles  <cfairles@gcc.gnu.org>
+	    Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/thread (_Impl_base): Move _M_id out and into ...
+	(thread): ...here. Call _M_make_routine in body of constructors.
+	Adjust data member usage to reflect changes.
+	(_M_make_routine): From _M_make_shared_data.
+	(_M_start_thread): Add __shared_base_type argument.
+	* src/thread.cc: Fixups for above.
+	* config/abi/pre/gnu.ver: Adjust exports.
+	* testsuite/30_threads/thread/native_handle/typesizes.cc: Enable.
+	* testsuite/30_threads/thread/cons/assign_neg.cc: Adjust line numbers.
+	* testsuite/30_threads/thread/cons/copy_neg.cc: Same.
+
+2009-02-12  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/util/thread/all.h (compare_type_to_native_type_sizes): To...
+	(compare_type_to_native_type): ...this, add alignment check.
+	* testsuite/30_threads/condition_variable_any/native_handle/
+	typesizes.cc: Modify as above.
+	* testsuite/30_threads/mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/timed_mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/thread/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/recursive_mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/condition_variable/native_handle/
+	typesizes.cc: Same.
+	* testsuite/30_threads/recursive_timed_mutex/native_handle/
+	typesizes.cc: Same.
+
+	* testsuite/30_threads/thread/cons/1.cc: Add comments.
+	* testsuite/30_threads/thread/cons/2.cc: Same.
+	* testsuite/30_threads/thread/cons/3.cc: Same.
+	* testsuite/30_threads/thread/cons/4.cc: Same.
+	* testsuite/30_threads/thread/cons/5.cc: Same.
+	* testsuite/30_threads/thread/cons/6.cc: Same.
+	* testsuite/30_threads/thread/cons/7.cc: Same.
+	* testsuite/30_threads/thread/cons/8.cc: Same.
+
+	* testsuite/30_threads/thread/cons/9.cc: New.
+	* testsuite/30_threads/thread/cons/moveable.cc: New.
+
+	* src/condition_variable.cc: Clean up whitespace.
+	* include/std/condition_variable: Same.
+
+2009-02-09  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/condition_variable (condition_variable): Remove
+	_M_internal_mutex. Add private __native_type typedef.
+	* src/condition_variable.cc (condition_variable::notify_one):
+	Remove _M_internal_mutex use. Use typedef.
+	(condition_variable::notify_all): Same.
+	* include/std/mutex (mutex): Add private __native_type typedef. Use it.
+	(recursive_mutex): Same.
+	(timed_mutex): Same.
+	(recursive_timed_mutex): Same.
+	(once_flag): Make __native_type typedef private.
+
+	* include/std/thread (this_thread): Add minimal markup.
+
+	* testsuite/30_threads/condition_variable_any/cons/assign_neg.cc:
+	Adjust line numbers.
+	* testsuite/30_threads/condition_variable_any/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/mutex/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/mutex/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/timed_mutex/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/timed_mutex/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/thread/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/thread/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/recursive_mutex/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/recursive_mutex/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/condition_variable/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/condition_variable/cons/copy_neg.cc: Same.
+	* testsuite/30_threads/recursive_timed_mutex/cons/assign_neg.cc: Same.
+	* testsuite/30_threads/recursive_timed_mutex/cons/copy_neg.cc: Same.
+
+	* testsuite/util/thread/all.h: Testsuite utilities for testing thread.
+	* testsuite/30_threads/condition_variable_any/native_handle/
+	typesizes.cc: New.
+	* testsuite/30_threads/mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/timed_mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/thread/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/recursive_mutex/native_handle/typesizes.cc: Same.
+	* testsuite/30_threads/condition_variable/native_handle/
+	typesizes.cc: Same.
+	* testsuite/30_threads/recursive_timed_mutex/native_handle/
+	typesizes.cc: Same.
+
 2009-02-09  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	PR testsuite/33300

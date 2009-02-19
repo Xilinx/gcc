@@ -1,3 +1,403 @@
+2009-02-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39224
+	* config/i386/i386.c (ix86_return_in_memory): Properly check
+	ABI.
+
+2009-02-18  Jason Merrill  <jason@redhat.com>
+
+	PR target/39179
+	* tree-ssa-ccp.c (get_symbol_constant_value): Don't assume zero
+	value if DECL_EXTERNAL.
+	* tree-sra.c (sra_walk_gimple_assign): Likewise.
+	* target.h (gcc_target::binds_local_p): Clarify "module".
+	* tree.h (TREE_PUBLIC): Clarify "module".
+
+2009-02-17  Xuepeng Guo  <xuepeng.guo@intel.com>
+
+	PR target/38891
+	* config/i386/i386.h (CONDITIONAL_REGISTER_USAGE): Move the hunk of
+	initialization for MS_ABI prior to the hunk of !TARGET_MMX.
+
+2009-02-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39082
+	* c.opt (Wabi): Support C and ObjC.
+	(Wpsabi): New.
+
+	* c-opts.c (c_common_handle_option): Handle OPT_Wabi.
+
+	* config/i386/i386.c (classify_argument): Warn once about the ABI
+	change when passing union with long double.
+
+	* doc/invoke.texi: Update -Wabi for warning psABI changes.
+
+2009-02-18  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35447
+	* c-parser.c (c_parser_compound_statement): Always enter and leave
+	a scope.
+
+2009-02-17  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/34587
+	* config/darwin.h (SUPPORTS_INIT_PRIORITY): Define.
+
+2009-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/36922
+	* tree-data-ref.c (initialize_matrix_A): Handle BIT_NOT_EXPR.
+	* tree-scalar-evolution.c (interpret_rhs_expr, instantiate_scev_1):
+	Likewise.
+
+2009-02-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_override_options): Set flag_dwarf2_cfi_asm
+	to 0 for EABI64.
+
+2009-02-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md (type): Reclassify lui_movf as "unknown".
+
+2009-02-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_gimplify_va_arg_expr): Fix invalid
+	tree sharing.
+
+2009-02-17  Ruan Beihong  <ruanbeihong@gmail.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (CODE_FOR_loongson_biadd): Delete.
+	* config/mips/loongson.md (reduc_uplus_<mode>): Rename to...
+	(loongson_biadd): ...this.
+
+2009-02-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39202
+	* tree-ssa-structalias.c (do_structure_copy): Before collapsing
+	a var make sure to follow existing collapses.
+
+2009-02-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39214
+	* langhooks.c (lhd_print_error_function): Check for NULL block.
+
+2009-02-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39204
+	* tree-ssa-pre.c (phi_translate_1): Lookup the value-number
+	of the PHI arg.
+
+2009-02-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/soft-fp/double.h: Update from glibc CVS.
+
+2009-02-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39207
+	* tree-ssa-structalias.c (find_what_p_points_to): Do not emit
+	strict-aliasing warnings for pointers pointing to NULL.
+
+2009-02-16  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35446
+	* c-parser.c (c_parser_braced_init): Call pop_init_level when
+	skipping until next close brace.
+
+2009-02-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/37049
+	* config/i386/i386.c (ix86_expand_push): Set memory alignment
+	to function argument boundary.
+
+2009-02-16  Hariharan Sandanagobalane  <hariharan@picochip.com>
+
+	* config/picochip/picochip.md (lea_add): Allow any nonimmediate
+	in the lea_add. Reload eventually constraints it properly.
+	* config/picochip/constraints.md : Remove the target constraint
+	"b", since it is not needed anymore.
+
+2009-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* gthr-dce.h: Uglify function parameter and local variable names.
+	* gthr-gnat.h: Likewise.
+	* gthr-mipssde.h: Likewise.
+	* gthr-nks.h: Likewise.
+	* gthr-posix95.h: Likewise.
+	* gthr-posix.h: Likewise.
+	* gthr-rtems.h: Likewise.
+	* gthr-single.h: Likewise.
+	* gthr-solaris.h: Likewise.
+	* gthr-tpf.h: Likewise.
+	* gthr-vxworks.h: Likewise.
+	* gthr-win32.h: Likewise.
+
+2009-02-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39196
+	* config/i386/i386.md: Restrict the new peephole2 to move
+	between MMX/SSE registers.
+
+2009-02-15  Richard Guenther  <rguenther@suse.de>
+
+	Revert
+	2009-02-13  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Enable LFS.
+	* configure: Re-generate.
+	* config.in: Likewise.
+
+2009-02-13  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu_internals.h (spu_sr, spu_sra, spu_srqw,
+	spu_srqwbyte, spu_srqwbytebc): Define.
+	* config/spu/spu-builtins.def (spu_sr, spu_sra, spu_srqw,
+	spu_srqwbyte, spu_srqwbytebc): New overloaded builtins.
+	* config/spu/spu.md ("shrqbybi_<mode>", "shrqbi_<mode>",
+	"shrqby_<mode>"): New insn-and-split patterns.
+	* config/spu/spu.c (expand_builtin_args): Determine and return
+	number of operands using spu_builtin_description data.
+	(spu_expand_builtin_1): Use it.
+
+2009-02-13  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/38056
+	* config/ia64/ia64.c (ia64_function_ok_for_sibcall): Check
+	TARGET_CONST_GP.
+
+2009-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39149
+	* config/i386/i386.c (override_options): Correct warning
+	messages for -malign-loops,  -malign-jumps and
+	-malign-functions.
+
+2009-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39152
+	* config/i386/i386.md: Restrict the new peephole2 to move
+	between the general purpose registers.
+
+2009-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39162
+	* config/i386/i386.c (type_natural_mode): Add a new argument.
+	Return the original mode and warn ABI change if vector size
+	is 32byte.
+	(function_arg_advance): Updated.
+	(function_arg): Likewise.
+	(ix86_function_value): Likewise.
+	(ix86_return_in_memory): Likewise.
+	(ix86_sol10_return_in_memory): Likewise.
+	(ix86_gimplify_va_arg): Likewise.
+	(function_arg_32): Don't warn ABX ABI change here.
+	(function_arg_64): Likewise.
+
+2008-02-13  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* loop-iv.c (implies_p): In the final case, test that operands 0
+	of the two comparisons match.
+
+	* config/bfin/bfin.c (find_prev_insn_start): New function.
+	(bfin_optimize_loop): Use it in some cases instead of PREV_INSN.
+	(find_next_insn_start): Move.
+
+2009-02-13  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Enable LFS.
+	* configure: Re-generate.
+	* config.in: Likewise.
+
+2009-02-13  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/35444
+	* c-parser.c (c_parser_parms_list_declarator): Discard pending
+	sizes on syntax error after some arguments have been parsed.
+
+2009-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* doc/invoke.texi (-fira): Remove.
+
+2009-02-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* caller-save.c: Replace regclass.c with reginfo.c in comments.
+	* recog.c: Likewise.
+	* rtl.h: Likewise.
+
+2009-02-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* longlong.h (sub_ddmmss): New for ia64. Ported from GMP 4.2.
+	(umul_ppmm): Likewise.
+	(count_leading_zeros): Likewise.
+	(count_trailing_zeros): Likewise.
+	(UMUL_TIME): Likewise.
+
+2009-02-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc (ia64*-*-linux*): Add ia64/t-fprules-softfp and
+	soft-fp/t-softfp to tmake_file.
+
+	* config/ia64/ia64.c (ia64_soft_fp_init_libfuncs): New.
+	(ia64_expand_compare): Use HPUX library for TFmode only for HPUX.
+	(ia64_builtins) [IA64_BUILTIN_COPYSIGNQ, IA64_BUILTIN_FABSQ,
+	IA64_BUILTIN_INFQ]: New.
+	(ia64_init_builtins): Initialize __builtin_infq,
+	__builtin_fabsq and __builtin_copysignq if not HPUX.
+	(ia64_expand_builtin): Handle IA64_BUILTIN_COPYSIGNQ,
+	IA64_BUILTIN_FABSQ and IA64_BUILTIN_INFQ.
+
+	* config/ia64/lib1funcs.asm (__divtf3): Define only if
+	SHARED is defined.
+	(__fixtfti): Likewise.
+	(__fixunstfti): Likewise.
+	(__floattitf): Likewise.
+
+	* config/ia64/libgcc-glibc.ver: New.
+	* config/ia64/t-fprules-softfp: Likewise.
+	* config/ia64/sfp-machine.h: Likewise.
+
+	* config/ia64/linux.h (LIBGCC2_HAS_TF_MODE): New.
+	(LIBGCC2_TF_CEXT): Likewise.
+	(TF_SIZE): Likewise.
+	(TARGET_INIT_LIBFUNCS): Likewise.
+
+	* config/ia64/t-glibc (SHLINB_MAPFILES):
+	Add $(srcdir)/config/ia64/libgcc-glibc.ver,
+
+2009-02-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (construct_container): Rewrite processing
+	BLKmode with X86_64_SSE_CLASS.
+
+2009-02-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/39152
+	* config/i386/i386.md: Replace simplify_replace_rtx with
+	replace_rtx in the new peephole2.
+
+2009-02-12  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* doc/invoke.texi (Optimize Options): Stop claiming inlining and
+	loop unrolling do not happen at -O2.
+
+2009-02-12  Michael Matz  <matz@suse.de>
+
+	* gcc.c (ASM_DEBUG_SPEC): Check for -g0.
+
+2009-02-12  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (dwarf2out_finish): Force output of comp_unit_die
+	for -g3.
+
+2009-02-12  Ben Elliston  <bje@au.ibm.com>
+
+	* config/rs6000/rs6000.md (allocate_stack): Use _stack form of
+	patterns when updating the back chain.  Missed in the 2009-02-10
+	change.
+
+2009-02-11  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/extend.texi (Decimal Floating Types): Update identifier of
+	draft TR and list of missing support.
+
+2009-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39154
+	* gimplify.c (omp_notice_variable): If adding GOVD_SEEN
+	bit to variable length decl's flags, add it also to its
+	pointer replacement variable.
+
+2009-02-11  Uros Bizjak  <ubizjak@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39118
+	* config/i386/i386.md (UNSPEC_MEMORY_BLOCKAGE): New constant.
+	(memory_blockage): New expander.
+	(*memory_blockage): New insn pattern.
+	* config/i386/i386.c (ix86_expand_prologue): Use memory_blockage
+	instead of general blockage at the end of function prologue when
+	frame pointer is used to access red zone area.  Do not emit blockage
+	when profiling, it is emitted in generic code.
+	(ix86_expand_epilogue): Emit memory_blockage at the beginning of
+	function epilogue when frame pointer is used to access red zone area.
+
+2009-02-11  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/38824
+	* config/i386/i386.md: Add two new peephole2 to avoid mov followed
+	by arithmetic with memory operands.
+	* config/i386/predicates.md (commutative_operator): New.
+
+2009-02-10  Janis Johnson  <janis187@us.ibm.com>
+
+	* doc/extend.texi (Fixed-Point Types): Break long paragraphs into
+	bulleted lists.
+
+2009-02-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* alias.h (record_alias_subset): Declare.
+	* alias.c (record_alias_subset): Make global.
+
+2009-02-10  Nick Clifton  <nickc@redhat.com>
+
+	* tree-parloops.c: Change license to GPLv3.
+	* ipa-struct-reorg.c: Change license to GPLv3.
+	* ipa-struct-reorg.h: Change license to GPLv3.
+
+2009-02-10  Steve Ellcey  <sje@cup.hp.com>
+
+	PR c/39084
+	* c-decl.c (start_struct): Return NULL on error.
+
+2009-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39124
+	* cfgloopmanip.c (remove_path): Call remove_bbs after
+	cancel_loop_tree, not before it.
+
+	PR target/39139
+	* function.h (struct function): Add has_local_explicit_reg_vars bit.
+	* gimplify.c (gimplify_bind_expr): Set it if local DECL_HARD_REGISTER
+	VAR_DECLs were seen.
+	* tree-ssa-live.c (remove_unused_locals): Recompute
+	cfun->has_local_explicit_reg_vars.
+	* tree-ssa-sink.c (statement_sink_location): Don't sink BLKmode
+	copies or clearings if cfun->has_local_explicit_reg_vars.
+
+2009-02-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39118
+	* config/i386/i386.c (expand_prologue): Emit blockage at the end
+	of function prologue when frame pointer is used to access
+	red zone area.
+
+2009-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39127
+	* gimplify.c (gimple_regimplify_operands): Always look if
+	we need to create a temporary.
+
+2009-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39132
+	* tree-loop-distribution.c (todo): New global var.
+	(generate_memset_zero): Trigger TODO_rebuild_alias.
+	(tree_loop_distribution): Return todo.
+
+2009-02-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39119
+	* config/i386/i386.c (x86_64_reg_class): Remove X86_64_AVX_CLASS.
+	(x86_64_reg_class_name): Removed.
+	(classify_argument): Return 0 if bytes > 32.  Return 0 if the
+	first one isn't X86_64_SSE_CLASS or any other ones aren't
+	X86_64_SSEUP_CLASS when size > 16bytes.  Don't turn
+	X86_64_SSEUP_CLASS into X86_64_SSE_CLASS if the preceded one
+	is X86_64_SSEUP_CLASS.  Set AVX modes to 1 X86_64_SSE_CLASS
+	and 3 X86_64_SSEUP_CLASS.
+	(construct_container): Remove X86_64_AVX_CLASS.  Handle 4
+	registers with 1 X86_64_SSE_CLASS and 3 X86_64_SSEUP_CLASS.
+
 2009-02-10  Ben Elliston  <bje@au.ibm.com>
 
 	* config/rs6000/rs6000.md (allocate_stack): Always use an update
@@ -12,8 +412,8 @@
 2009-02-09  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/38953
-	* graphite.c (if_region_set_false_region): After moving a region 
-	in the false branch of a condition, remove the empty dummy basic block.
+	* graphite.c (if_region_set_false_region): After moving a region in
+	the false branch of a condition, remove the empty dummy basic block.
 	(gloog): Remove wrong fix for PR38953.
 
 2009-02-09  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
@@ -73,8 +473,7 @@
 
 2009-02-06  Nick Clifton  <nickc@redhat.com>
 
-	* config/m32c/m32c.h (PCC_BITFIELD_TYPE_MATTERS): Define to
-	zero.
+	* config/m32c/m32c.h (PCC_BITFIELD_TYPE_MATTERS): Define to zero.
 
 2009-02-06  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -222,7 +621,7 @@
 
 2009-02-02  Catherine Moore  <clm@codesourcery.com>
 
-	* sde.h (SUBTARGET_ARM_SPEC): Don;t assemble -fpic code as -mabicalls.
+	* sde.h (SUBTARGET_ARM_SPEC): Don't assemble -fpic code as -mabicalls.
 
 2009-02-02  Richard Sandiford  <rdsandiford@googlemail.com>
 
@@ -417,8 +816,7 @@
 
 	* regclass.c: Rename reginfo.c.  Change file description.
 	(FORBIDDEN_INC_DEC_CLASSES): Remove.
-	(reg_class_superclasses, forbidden_inc_dec_class, in_inc_dec):
-	Remove.
+	(reg_class_superclasses, forbidden_inc_dec_class, in_inc_dec): Remove.
 	(init_reg_sets_1): Remove code for evaluation of
 	reg_class_superclasses and losing_caller_save_reg_set.
 	(init_regs): Remove init_reg_autoinc.
@@ -552,8 +950,7 @@
 2009-01-28  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/38740
-	* reorg.c (gate_handle_delay_slots): Avoid dbr scheduling
-	if !optimize.
+	* reorg.c (gate_handle_delay_slots): Avoid dbr scheduling if !optimize.
 	* config/mips/mips.c (mips_reorg): Likewise.
 
 2009-01-28  Richard Guenther  <rguenther@suse.de>

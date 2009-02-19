@@ -1,3 +1,30 @@
+2009-02-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc-interface/misc.c (gnat_post_options): Turn off warn_psabi.
+
+2009-02-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/deftarg.c: Remove.
+
+2009-02-10  Olivier Hainque  <hainque@adacore.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (enum alias_set_op): New enumeration.
+	(copy_alias_set): Rename into...
+	(relate_alias_sets): ...this.  Add third parameter OP.  Retrieve the
+	underlying array of unconstrained arrays for the new type as well.
+	If the old and new alias sets don't conflict, make one a subset of
+	the other as per the OP parameter.
+	(gnat_to_gnu_entity): Adjust calls to copy_alias_set.
+	<E_Record_Type>: Do not copy the alias set for derived types.
+	For all types, make the alias set of derived types a superset of
+	that of their parent type.
+	(make_aligning_type): Adjust calls to copy_alias_set.
+	(make_packable_type): Likewise.
+	* gcc-interface/trans.c (gnat_to_gnu)<N_Validate_Unchecked_Conversion>:
+	Check for alias set conflict instead of strict equality to issue the
+	warning.
+
 2009-02-09  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_String_Literal_Subtype>:
@@ -115,7 +142,7 @@
 	* gcc-interface/Makefile.in (*86-solaris2*): Support x86_64 multilib.
 
 2008-11-07  Bechir Zalila  <bechir.zalila@gmail.com>
-            Eric Botcazou  <ebotcazou@adacore.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR ada/34289
 	* lib.ads: (Enable_Switch_Storing): Declare.

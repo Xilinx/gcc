@@ -57,12 +57,14 @@ namespace std
   class thread
   {
   public:
-    typedef __gthread_t 	 	native_handle_type;
+    typedef __gthread_t			native_handle_type;
+    struct _Impl_base;
+    typedef shared_ptr<_Impl_base>	__shared_base_type;
 
     /// thread::id
     class id
     {
-      native_handle_type 	_M_thread;
+      native_handle_type	_M_thread;
 
     public:
       id() : _M_thread() { }
@@ -86,38 +88,31 @@ namespace std
 	operator<<(basic_ostream<_CharT, _Traits>&& __out, thread::id __id);
     };
 
-    struct _Impl_base;
-    typedef shared_ptr<_Impl_base>	__shared_base_type;
-
+    // Simple base type that the templatized, derived class containing
+    // an arbitrary functor can be converted to and called.
     struct _Impl_base
     {
-      id			_M_id;
-	__shared_base_type	_M_this_ptr;
-
-      _Impl_base() = default;
+      __shared_base_type	_M_this_ptr;
 
       virtual ~_Impl_base() = default;
 
-      virtual void 
-      _M_run() = 0;
+      virtual void _M_run() = 0;
     };
 
     template<typename _Callable>
-      class _Impl : public _Impl_base
+      struct _Impl : public _Impl_base
       {
-	_Callable 		_M_func;
+	_Callable		_M_func;
 
-      public:
 	_Impl(_Callable&& __f) : _M_func(std::forward<_Callable>(__f))
 	{ }
 
-	void 
+	void
 	_M_run() { _M_func(); }
       };
 
   private:
-    // NB: Store the base type here.
-    __shared_base_type 		_M_data;
+    id				_M_id;
 
   public:
     thread() = default;
@@ -128,13 +123,11 @@ namespace std
 
     template<typename _Callable>
       explicit thread(_Callable __f)
-      : _M_data(_M_make_shared_data<_Callable>(__f))
-      { _M_start_thread(); }
+      { _M_start_thread(_M_make_routine<_Callable>(__f)); }
 
     template<typename _Callable, typename... _Args>
       thread(_Callable&& __f, _Args&&... __args)
-      : _M_data(_M_make_shared_data(std::bind(__f, __args...)))
-      { _M_start_thread(); }
+      { _M_start_thread(_M_make_routine(std::bind(__f, __args...))); }
 
     ~thread()
     {
@@ -154,11 +147,11 @@ namespace std
 
     void
     swap(thread&& __t)
-    { std::swap(_M_data, __t._M_data); }
+    { std::swap(_M_id, __t._M_id); }
 
     bool
     joinable() const
-    { return _M_data; }
+    { return !(_M_id == id()); }
 
     void
     join();
@@ -168,18 +161,13 @@ namespace std
 
     thread::id
     get_id() const
-    {
-      if (_M_data)
-	return thread::id(_M_data->_M_id._M_thread);
-      else
-	return thread::id();
-    }
+    { return _M_id; }
 
     /** @pre thread is joinable
      */
     native_handle_type
     native_handle()
-    { return _M_data->_M_id._M_thread; }
+    { return _M_id._M_thread; }
 
     // Returns a value that hints at the number of hardware thread contexts.
     static unsigned int
@@ -187,15 +175,16 @@ namespace std
     { return 0; }
 
   private:
+    void
+    _M_start_thread(__shared_base_type);
+
     template<typename _Callable>
       shared_ptr<_Impl<_Callable>>
-      _M_make_shared_data(_Callable&& __f)
+      _M_make_routine(_Callable&& __f)
       {
 	// Create and allocate full data structure, not base.
 	return make_shared<_Impl<_Callable>>(std::forward<_Callable>(__f));
       }
-
-    void _M_start_thread();
   };
 
   inline void
@@ -239,21 +228,25 @@ namespace std
   // 30.2.2 Namespace this_thread.
   namespace this_thread
   {
+    /// get_id
     inline thread::id
     get_id() { return thread::id(__gthread_self()); }
 
 #ifdef _GLIBCXX_USE_SCHED_YIELD
+    /// yield
     inline void
     yield()
     { __gthread_yield(); }
 #endif
 
 #ifdef _GLIBCXX_USE_NANOSLEEP
+    /// sleep_until
     template<typename _Clock, typename _Duration>
       inline void
       sleep_until(const chrono::time_point<_Clock, _Duration>& __atime)
       { sleep_for(__atime - _Clock::now()); }
 
+    /// sleep_for
     template<typename _Rep, typename _Period>
       inline void
       sleep_for(const chrono::duration<_Rep, _Period>& __rtime)

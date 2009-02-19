@@ -1,3 +1,55 @@
+2009-02-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/39219
+	* parser.c (cp_parser_enum_specifier): Apply all attributes.
+
+2009-02-18  Jason Merrill  <jason@redhat.com>
+
+	* cfns.h: Tweak pathname for cfns.gperf.
+
+2009-02-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39070
+	* semantics.c (finish_call_expr): Change koenig_p parm to int.
+	If -1, don't set KOENIG_LOOKUP_P but do keep hidden candidates.
+	* cp-tree.h: Adjust prototype.
+	* pt.c (tsubst_copy_and_build) [CALL_EXPR]: Pass -1.
+
+2009-02-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38950
+	* pt.c (unify)[TEMPLATE_PARM_INDEX]: Convert to the tsubsted type.
+
+2009-02-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39153
+	* decl2.c (cp_write_global_declarations): 
+	Check DECL_DEFAULTED_FN, not DECL_ARTIFICIAL.
+
+	PR c++/30111
+	* init.c (build_value_init_noctor): Split out from...
+	(build_value_init): ...here.
+	(expand_aggr_init_1): Handle value-initialization.
+	* cp-tree.h: Add declaration.
+	* class.c (type_has_user_provided_constructor): 
+	Handle non-class arguments.
+
+2009-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38649
+	* class.c (defaultable_fn_p): Handle ... properly.
+
+	PR c++/36744
+	* tree.c (lvalue_p_1): Condition rvalue ref handling on
+	treat_class_rvalues_as_lvalues, too.
+
+2009-02-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/34397
+	* typeck.c (build_x_array_ref): New.
+	* cp-tree.h: Declare it.
+	* pt.c (tsubst_copy_and_build): Use it for case ARRAY_REF.
+
 2009-02-09  Jason Merrill  <jason@redhat.com>
 
 	PR c++/39109

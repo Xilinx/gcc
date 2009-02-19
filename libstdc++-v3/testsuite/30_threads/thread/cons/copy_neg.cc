@@ -28,9 +28,9 @@ void test01()
   // copy
   typedef std::thread test_type;
   test_type t1;
-  test_type t2(t1);
+  test_type t2(t1); // XXX this is failing for the wrong reason
 }
 
 // { dg-error "here" "" { target *-*-* } 31 }
-// { dg-error "deleted function" "" { target *-*-* } 124 }
+// { dg-error "deleted function" "" { target *-*-* } 119 }
 // { dg-excess-errors "In file included from" }

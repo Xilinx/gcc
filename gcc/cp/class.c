@@ -4090,6 +4090,9 @@ type_has_user_provided_constructor (tree t)
 {
   tree fns;
 
+  if (!CLASS_TYPE_P (t))
+    return false;
+
   if (!TYPE_HAS_USER_CONSTRUCTOR (t))
     return false;
 
@@ -4138,10 +4141,11 @@ defaultable_fn_p (tree fn)
 {
   if (DECL_CONSTRUCTOR_P (fn))
     {
-      if (skip_artificial_parms_for (fn, DECL_ARGUMENTS (fn))
-	  == NULL_TREE)
+      if (FUNCTION_FIRST_USER_PARMTYPE (fn) == void_list_node)
 	return true;
-      else if (copy_fn_p (fn) > 0)
+      else if (copy_fn_p (fn) > 0
+	       && (TREE_CHAIN (FUNCTION_FIRST_USER_PARMTYPE (fn))
+		   == void_list_node))
 	return true;
       else
 	return false;

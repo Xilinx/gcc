@@ -3405,8 +3405,8 @@ do_structure_copy (tree lhsop, tree rhsop)
 	{
 	  if (!do_simple_structure_copy (lhs, rhs, MIN (lhssize, rhssize)))
 	    {
-	      lhs.var = collapse_rest_of_var (lhs.var);
-	      rhs.var = collapse_rest_of_var (rhs.var);
+	      lhs.var = collapse_rest_of_var (get_varinfo_fc (lhs.var)->id);
+	      rhs.var = collapse_rest_of_var (get_varinfo_fc (rhs.var)->id);
 	      lhs.offset = 0;
 	      rhs.offset = 0;
 	      lhs.type = SCALAR;
@@ -4935,6 +4935,7 @@ find_what_p_points_to (tree p)
 	    {
 	      pi->pt_vars = NULL;
 	      if (pruned > 0
+		  && !pi->pt_null
 		  && pi->is_dereferenced
 		  && warn_strict_aliasing > 0
 		  && !SSA_NAME_IS_DEFAULT_DEF (p))
