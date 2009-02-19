@@ -3887,6 +3887,8 @@
        (debug_msg labins "compilobj_nrep_match labins")
        (debug_msg curcomp "compilobj_nrep_match curcomp")
        (assert_msg "check curcomp" curcomp)
+       ;; always add the labins and the curcomp or its element into obodyl
+       (list_append obodyl labins)
        ;; add into subcomplist the last of each success test
        ;; compilation
        (cond 

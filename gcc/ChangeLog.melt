@@ -1,4 +1,8 @@
 2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[generated tmatch-1.c is compiled, but could be wrong]
+	* melt/warmelt-genobj.bysl: always add labins into obodyl inside
+	compilobj_nrep_match.
+2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[generated tmatch-1.c still don't compile]
 	* melt/warmelt-genobj.bysl: added compile_tester selector &
 	class_testercompilcontext & compiltst_anytester catchall function.
