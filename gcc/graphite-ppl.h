@@ -18,9 +18,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
-
-#include <ppl_c.h>
-#include <cloog/cloog.h>
+#ifndef GCC_GRAPHITE_PPL_H
+#define GCC_GRAPHITE_PPL_H
 
 CloogMatrix *new_Cloog_Matrix_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
 CloogDomain *new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t);
@@ -29,3 +28,5 @@ void insert_constraint_into_matrix (CloogMatrix *, int, ppl_const_Constraint_t);
 ppl_Polyhedron_t ppl_strip_loop (ppl_Polyhedron_t, ppl_dimension_type, int);
 int ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t,
 					   ppl_Linear_Expression_t);
+#endif
+

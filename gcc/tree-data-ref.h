@@ -97,8 +97,6 @@ struct dr_alias
   bitmap vops;
 };
 
-typedef struct scop *scop_p;
-
 /* Each vector of the access matrix represents a linear access
    function for a subscript.  First elements correspond to the
    leftmost indices, ie. for a[i][j] the first vector corresponds to
@@ -185,14 +183,10 @@ struct data_reference
   /* Alias information for the data reference.  */
   struct dr_alias alias;
 
-  /* The SCoP in which the data reference was analyzed.  */
-  scop_p scop;
-
   /* Matrix representation for the data access functions.  */
   struct access_matrix *access_matrix;
 };
 
-#define DR_SCOP(DR)                (DR)->scop
 #define DR_STMT(DR)                (DR)->stmt
 #define DR_REF(DR)                 (DR)->ref
 #define DR_BASE_OBJECT(DR)         (DR)->indices.base_object

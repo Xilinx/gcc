@@ -56,8 +56,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 
 #ifdef HAVE_cloog
-#include "graphite.h"
+#include "cloog/cloog.h"
+#include "ppl_c.h"
+#include "sese.h"
 #include "graphite-ppl.h"
+#include "graphite.h"
+#include "graphite-poly.h"
+#include "graphite-data-ref.h"
 
 static VEC (scop_p, heap) *current_scops;
 
@@ -72,14 +77,14 @@ gmp_cst_to_tree (tree type, Value v)
 /* Debug the list of old induction variables for this SCOP.  */
 
 void
-debug_oldivs (scop_p scop)
+debug_oldivs (sese region)
 {
   int i;
   name_tree oldiv;
 
   fprintf (stderr, "Old IVs:");
 
-  for (i = 0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, oldiv); i++)
+  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, oldiv); i++)
     {
       fprintf (stderr, "(");
       print_generic_expr (stderr, oldiv->t, 0);
@@ -91,14 +96,14 @@ debug_oldivs (scop_p scop)
 /* Debug the loops around basic block GB.  */
 
 void
-debug_loop_vec (graphite_bb_p gbb)
+debug_loop_vec (poly_bb_p pbb)
 {
   int i;
   loop_p loop;
 
   fprintf (stderr, "Loop Vec:");
 
-  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, loop); i++)
+  for (i = 0; VEC_iterate (loop_p, PBB_LOOPS (pbb), i, loop); i++)
     fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
 
   fprintf (stderr, "\n");
@@ -318,7 +323,7 @@ eq_ivtype_map_elts (const void *e1, const void *e2)
    transforms created the loop, just return integer_type_node.  */
 
 static tree
-gcc_type_for_cloog_iv (const char *cloog_iv, graphite_bb_p gbb)
+gcc_type_for_cloog_iv (const char *cloog_iv, gimple_bb_p gbb)
 {
   struct ivtype_map_elt tmp;
   PTR *slot;
@@ -343,7 +348,7 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
   struct clast_stmt *t;
   int index = 0;
   CloogStatement *cs = user_stmt->statement;
-  graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+  poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
 
   for (t = user_stmt->substitutions; t; t = t->next) 
     {
@@ -355,8 +360,8 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
       if (expr->type == expr_term
 	  && !term->var)
 	{
-	  loop_p loop = gbb_loop_at_index (gbb, index);
-	  tree oldiv = oldiv_for_loop (GBB_SCOP (gbb), loop);
+	  loop_p loop = pbb_loop_at_index (pbb, index);
+	  tree oldiv = oldiv_for_loop (SCOP_REGION (PBB_SCOP (pbb)), loop);
 	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
 	  tree value = gmp_cst_to_tree (type, term->val);
 	  loop_iv_stack_insert_constant (stack, index, value);
@@ -383,55 +388,6 @@ loop_iv_stack_remove_constants (loop_iv_stack stack)
       else
 	i++;
     }
-}
-
-/* Compares two graphite bbs and returns an integer less than, equal to, or
-   greater than zero if the first argument is considered to be respectively
-   less than, equal to, or greater than the second. 
-   We compare using the lexicographic order of the static schedules.  */
-
-static int 
-gbb_compare (const void *p_1, const void *p_2)
-{
-  const struct graphite_bb *const gbb_1
-    = *(const struct graphite_bb *const*) p_1;
-  const struct graphite_bb *const gbb_2
-    = *(const struct graphite_bb *const*) p_2;
-
-  return ppl_lexico_compare_linear_expressions (GBB_STATIC_SCHEDULE (gbb_1),
-						GBB_STATIC_SCHEDULE (gbb_2));
-}
-
-/* Sort graphite bbs in SCOP.  */
-
-static void
-graphite_sort_gbbs (scop_p scop)
-{
-  VEC (graphite_bb_p, heap) *bbs = SCOP_BBS (scop);
-
-  qsort (VEC_address (graphite_bb_p, bbs),
-         VEC_length (graphite_bb_p, bbs),
-         sizeof (graphite_bb_p), gbb_compare);
-}
-
-/* Dump conditions of a graphite basic block GBB on FILE.  */
-
-static void
-dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
-{
-  int i;
-  gimple stmt;
-  VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
-  
-  if (VEC_empty (gimple, conditions))
-    return;
-
-  fprintf (file, "\tbb %d\t: cond = {", GBB_BB (gbb)->index);
-
-  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
-    print_gimple_stmt (file, stmt, 0, 0);
-
-  fprintf (file, "}\n");
 }
 
 /* Converts the graphite scheduling function into a cloog scattering
@@ -471,11 +427,11 @@ dump_gbb_conditions (FILE *file, graphite_bb_p gbb)
    | 0   0   1   0   0   0   0   0  -5  = 0  */
 
 static ppl_Polyhedron_t
-schedule_to_scattering (graphite_bb_p gbb, int scattering_dimensions) 
+schedule_to_scattering (poly_bb_p pbb, int scattering_dimensions) 
 {
   int i;
-  scop_p scop = GBB_SCOP (gbb);
-  int nb_iterators = gbb_nb_loops (gbb);
+  scop_p scop = PBB_SCOP (pbb);
+  int nb_iterators = pbb_nb_loops (pbb);
   int used_scattering_dimensions = nb_iterators * 2 + 1;
   int nb_params = scop_nb_params (scop);
   int col_iter_offset = scattering_dimensions;
@@ -504,7 +460,7 @@ schedule_to_scattering (graphite_bb_p gbb, int scattering_dimensions)
       if (i < used_scattering_dimensions
 	  && (i % 2) == 0)
 	{
-	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i / 2, c);
+	  ppl_Linear_Expression_coefficient (PBB_STATIC_SCHEDULE (pbb), i / 2, c);
 	  ppl_Coefficient_to_mpz_t (c, v);
 	  value_oppose (v, v);
 	  ppl_assign_Coefficient_from_mpz_t (c, v);
@@ -531,177 +487,6 @@ schedule_to_scattering (graphite_bb_p gbb, int scattering_dimensions)
   value_clear (v);
   ppl_delete_Coefficient (c);
   return ph;
-}
-
-/* Print the schedules of GB to FILE with INDENT white spaces before.
-   VERBOSITY determines how verbose the code pretty printers are.  */
-
-void
-print_graphite_bb (FILE *file, graphite_bb_p gbb, int indent, int verbosity)
-{
-  int i;
-  loop_p loop;
-  fprintf (file, "\nGBB (\n");
-
-  print_loops_bb (file, GBB_BB (gbb), indent+2, verbosity);
-
-  fprintf (file, "       (domain: \n");
-  ppl_io_fprint_Polyhedron (file, GBB_DOMAIN (gbb));
-  fprintf (file, "       )\n");
-
-  if (GBB_STATIC_SCHEDULE (gbb))
-    {
-      fprintf (file, "       (static schedule: ");
-      ppl_io_fprint_Linear_Expression (file, GBB_STATIC_SCHEDULE (gbb));
-      fprintf (file, "       )\n");
-    }
-
-  if (GBB_LOOPS (gbb))
-    {
-      fprintf (file, "       (contained loops: \n");
-      for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, loop); i++)
-	if (loop == NULL)
-	  fprintf (file, "       iterator %d   =>  NULL \n", i); 
-	else
-	  fprintf (file, "       iterator %d   =>  loop %d \n", i,
-		   loop->num);
-      fprintf (file, "       )\n");
-    }
-
-  if (GBB_DATA_REFS (gbb))
-    dump_data_references (file, GBB_DATA_REFS (gbb));
-
-  if (GBB_CONDITIONS (gbb))
-    {
-      fprintf (file, "       (conditions: \n");
-      dump_gbb_conditions (file, gbb);
-      fprintf (file, "       )\n");
-    }
-
-  if (GBB_SCOP (gbb)
-      && GBB_STATIC_SCHEDULE (gbb))
-    {
-      ppl_Polyhedron_t scattering;
-
-      fprintf (file, "       (scattering: \n");
-      scattering = schedule_to_scattering (gbb, 2 * gbb_nb_loops (gbb) + 1);
-      ppl_io_fprint_Polyhedron (file, scattering);
-      ppl_delete_Polyhedron (scattering);
-      fprintf (file, "       )\n");
-    }
-
-  fprintf (file, ")\n");
-}
-
-/* Print to STDERR the schedules of GB with VERBOSITY level.  */
-
-void
-debug_gbb (graphite_bb_p gbb, int verbosity)
-{
-  print_graphite_bb (stderr, gbb, 0, verbosity);
-}
-
-
-/* Print SCOP to FILE.  VERBOSITY determines how verbose the pretty
-   printers are.  */
-
-static void
-print_scop (FILE *file, scop_p scop, int verbosity)
-{
-  if (scop == NULL)
-    return;
-
-  fprintf (file, "\nSCoP_%d_%d (\n",
-	   SCOP_ENTRY (scop)->index, SCOP_EXIT (scop)->index);
-
-  if (SCOP_BBS (scop))
-    {
-      graphite_bb_p gbb;
-      int i;
-
-      for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-	print_graphite_bb (file, gbb, 0, verbosity);
-    }
-
-  fprintf (file, "       (data dependences: \n");
-
-  if (SCOP_DEP_GRAPH (scop))
-    graphite_dump_dependence_graph (file, SCOP_DEP_GRAPH (scop));
-
-  fprintf (file, "       )\n");
-
-  fprintf (file, ")\n");
-}
-
-/* Print all the SCOPs to FILE.  VERBOSITY determines how verbose the
-   code pretty printers are.  */
-
-static void
-print_scops (FILE *file, int verbosity)
-{
-  int i;
-  scop_p scop;
-
-  for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
-    print_scop (file, scop, verbosity);
-}
-
-/* Debug SCOP.  VERBOSITY determines how verbose the code pretty
-   printers are. */
-
-void
-debug_scop (scop_p scop, int verbosity)
-{
-  print_scop (stderr, scop, verbosity);
-}
-
-/* Debug all SCOPs from CURRENT_SCOPS.  VERBOSITY determines how
-   verbose the code pretty printers are.  */
-
-void 
-debug_scops (int verbosity)
-{
-  print_scops (stderr, verbosity);
-}
-
-/* Pretty print to FILE the SCOP in DOT format.  */
-
-static void 
-dot_scop_1 (FILE *file, scop_p scop)
-{
-  edge e;
-  edge_iterator ei;
-  basic_block bb;
-  basic_block entry = SCOP_ENTRY (scop);
-  basic_block exit = SCOP_EXIT (scop);
-    
-  fprintf (file, "digraph SCoP_%d_%d {\n", entry->index,
-	   exit->index);
-
-  FOR_ALL_BB (bb)
-    {
-      if (bb == entry)
-	fprintf (file, "%d [shape=triangle];\n", bb->index);
-
-      if (bb == exit)
-	fprintf (file, "%d [shape=box];\n", bb->index);
-
-      if (bb_in_sese_p (bb, SCOP_REGION (scop))) 
-	fprintf (file, "%d [color=red];\n", bb->index);
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
-    }
-
-  fputs ("}\n\n", file);
-}
-
-/* Display SCOP using dotty.  */
-
-void
-dot_scop (scop_p scop)
-{
-  dot_scop_1 (stderr, scop);
 }
 
 /* Pretty print all SCoPs in DOT format and mark them with different colors.
@@ -867,24 +652,16 @@ dot_all_scops (void)
 /* Returns the outermost loop in SCOP that contains BB.  */
 
 static struct loop *
-outermost_loop_in_scop (scop_p scop, basic_block bb)
+outermost_loop_in_sese (sese region, basic_block bb)
 {
   struct loop *nest;
 
   nest = bb->loop_father;
   while (loop_outer (nest)
-	 && loop_in_sese_p (loop_outer (nest), SCOP_REGION (scop)))
+	 && loop_in_sese_p (loop_outer (nest), region))
     nest = loop_outer (nest);
 
   return nest;
-}
-
-/* Returns the block preceding the entry of SCOP.  */
-
-static basic_block
-block_before_scop (scop_p scop)
-{
-  return block_before_sese (SCOP_REGION (scop));
 }
 
 /* Return true when EXPR is an affine function in LOOP with parameters
@@ -1066,7 +843,7 @@ harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
    generation pass: i.e. induction variables and exit conditions.  */
 
 static bool
-graphite_stmt_p (scop_p scop, basic_block bb,
+graphite_stmt_p (sese region, basic_block bb,
 		 VEC (data_reference_p, heap) *drs)
 {
   gimple_stmt_iterator gsi;
@@ -1093,7 +870,7 @@ graphite_stmt_p (scop_p scop, basic_block bb,
 	  {
 	    tree var = gimple_assign_lhs (stmt);
 	    var = analyze_scalar_evolution (loop, var);
-	    var = instantiate_scev (block_before_scop (scop), loop, var);
+	    var = instantiate_scev (block_before_sese (region), loop, var);
 
 	    if (chrec_contains_undetermined (var))
 	      return true;
@@ -1111,47 +888,27 @@ graphite_stmt_p (scop_p scop, basic_block bb,
 
 /* Store the GRAPHITE representation of BB.  */
 
-static void
-new_graphite_bb (scop_p scop, basic_block bb)
+static gimple_bb_p
+new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
 {
-  struct graphite_bb *gbb;
-  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
-  struct loop *nest = outermost_loop_in_scop (scop, bb);
-  gimple_stmt_iterator gsi;
+  struct gimple_bb *gbb;
 
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    find_data_references_in_stmt (nest, gsi_stmt (gsi), &drs);
-
-  if (!graphite_stmt_p (scop, bb, drs))
-    {
-      free_data_refs (drs);
-      return;
-    }
-
-  gbb = XNEW (struct graphite_bb);
+  gbb = XNEW (struct gimple_bb);
   bb->aux = gbb;
   GBB_BB (gbb) = bb;
-  GBB_SCOP (gbb) = scop;
   GBB_DATA_REFS (gbb) = drs;
-  ppl_new_NNC_Polyhedron_from_space_dimension (&GBB_DOMAIN (gbb), 0, 0);
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
-  GBB_LOOPS (gbb) = NULL;
-  GBB_STATIC_SCHEDULE (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
-  VEC_safe_push (graphite_bb_p, heap, SCOP_BBS (scop), gbb);
+ 
+  return gbb;
 }
 
 /* Frees GBB.  */
 
 static void
-free_graphite_bb (struct graphite_bb *gbb)
+free_gimple_bb (struct gimple_bb *gbb)
 {
-  ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
-
-  if (GBB_STATIC_SCHEDULE (gbb))
-    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gbb));
-
   if (GBB_CLOOG_IV_TYPES (gbb))
     htab_delete (GBB_CLOOG_IV_TYPES (gbb));
 
@@ -1162,7 +919,6 @@ free_graphite_bb (struct graphite_bb *gbb)
 
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
-  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
   GBB_BB (gbb)->aux = 0;
   XDELETE (gbb);
 }
@@ -1255,45 +1011,16 @@ get_new_name_from_old_name (htab_t map, tree old_name)
   return old_name;
 }
 
-/* Creates a new scop starting with ENTRY.  */
-
-static scop_p
-new_scop (edge entry, edge exit)
-{
-  scop_p scop = XNEW (struct scop);
-
-  gcc_assert (entry && exit);
-
-  SCOP_DEP_GRAPH (scop) = NULL;
-  SCOP_REGION (scop) = new_sese (entry, exit);
-  SCOP_BBS (scop) = VEC_alloc (graphite_bb_p, heap, 3);
-  SCOP_OLDIVS (scop) = VEC_alloc (name_tree, heap, 3);
-  SCOP_LIVEOUT_RENAMES (scop) = htab_create (10, rename_map_elt_info,
-					     eq_rename_map_elts, free);
-  return scop;
-}
-
-/* Deletes SCOP.  */
+/* Deletes all gimple bbs in SCOP.  */
 
 static void
-free_scop (scop_p scop)
+remove_gbbs_in_scop (scop_p scop)
 {
   int i;
-  struct graphite_bb *gbb;
-  name_tree iv;
+  poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    free_graphite_bb (gbb);
-
-  VEC_free (graphite_bb_p, heap, SCOP_BBS (scop));
-
-  for (i = 0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, iv); i++)
-    free (iv);
-  VEC_free (name_tree, heap, SCOP_OLDIVS (scop));
-  
-  htab_delete (SCOP_LIVEOUT_RENAMES (scop));
-  free_sese (SCOP_REGION (scop));
-  XDELETE (scop);
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    free_gimple_bb (PBB_BLACK_BOX (pbb));
 }
 
 /* Deletes all scops in SCOPS.  */
@@ -1305,7 +1032,11 @@ free_scops (VEC (scop_p, heap) *scops)
   scop_p scop;
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    free_scop (scop);
+    {
+      remove_gbbs_in_scop (scop);
+      free_sese (SCOP_REGION (scop));
+      free_scop (scop);
+    }
 
   VEC_free (scop_p, heap, scops);
 }
@@ -2058,7 +1789,9 @@ build_graphite_scops (VEC (sd_region, heap) *scop_regions)
     {
       edge entry = find_single_entry_edge (s); 
       edge exit = find_single_exit_edge (s);
-      scop_p scop = new_scop (entry, exit);
+      scop_p scop = new_scop (new_sese (entry, exit));
+      SESE_LIVEOUT_RENAMES (SCOP_REGION (scop)) = htab_create
+	(10, rename_map_elt_info, eq_rename_map_elts, free);
       VEC_safe_push (scop_p, heap, current_scops, scop);
 
       /* Are there overlapping SCoPs?  */
@@ -2089,6 +1822,29 @@ build_scops (void)
   VEC_free (sd_region, heap, tmp_scops);
 }
 
+/* Generates a polyhedral black box only if the bb contains interesting
+   information.  */
+
+static void
+try_generate_gimple_bb (scop_p scop, basic_block bb)
+{
+  sese region = SCOP_REGION (scop); 
+  VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
+  struct loop *nest = outermost_loop_in_sese (region, bb);
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    find_data_references_in_stmt (nest, gsi_stmt (gsi), &drs);
+
+  if (!graphite_stmt_p (region, bb, drs))
+    {
+      free_data_refs (drs);
+      return;
+    }
+
+  new_poly_bb (scop, new_gimple_bb (bb, drs));
+}
+
 /* Gather the basic blocks belonging to the SCOP.  */
 
 static void
@@ -2117,7 +1873,8 @@ build_scop_bbs (scop_p scop)
 	  || !dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop)))
 	continue;
 
-      new_graphite_bb (scop, bb);
+      try_generate_gimple_bb (scop, bb);
+
       SET_BIT (visited, bb->index);
 
       /* First push the blocks that have to be processed last.  Note
@@ -2209,20 +1966,20 @@ graphite_loop_normal_form (loop_p loop)
   return canonicalize_loop_ivs (loop, NULL, nit);
 }
 
-/* Record LOOP as occuring in SCOP.  Returns true when the operation
+/* Record LOOP as occuring in REGION.  Returns true when the operation
    was successful.  */
 
 static bool
-scop_record_loop (scop_p scop, loop_p loop)
+sese_record_loop (sese region, loop_p loop)
 {
   tree induction_var;
   name_tree oldiv;
 
-  if (sese_contains_loop (SCOP_REGION (scop), loop))
+  if (sese_contains_loop (region, loop))
     return true;
 
-  bitmap_set_bit (SESE_LOOPS (SCOP_REGION (scop)), loop->num);
-  VEC_safe_push (loop_p, heap, SCOP_LOOP_NEST (scop), loop);
+  bitmap_set_bit (SESE_LOOPS (region), loop->num);
+  VEC_safe_push (loop_p, heap, SESE_LOOP_NEST (region), loop);
 
   induction_var = graphite_loop_normal_form (loop);
   if (!induction_var)
@@ -2232,71 +1989,73 @@ scop_record_loop (scop_p scop, loop_p loop)
   oldiv->t = induction_var;
   oldiv->name = get_name (SSA_NAME_VAR (oldiv->t));
   oldiv->loop = loop;
-  VEC_safe_push (name_tree, heap, SCOP_OLDIVS (scop), oldiv);
+  VEC_safe_push (name_tree, heap, SESE_OLDIVS (region), oldiv);
   return true;
 }
 
-/* Build the loop nests contained in SCOP.  Returns true when the
+/* Build the loop nests contained in REGION.  Returns true when the
    operation was successful.  */
 
 static bool
-build_scop_loop_nests (scop_p scop)
+build_sese_loop_nests (sese region)
 {
   unsigned i;
   basic_block bb;
   struct loop *loop0, *loop1;
 
   FOR_EACH_BB (bb)
-    if (bb_in_sese_p (bb, SCOP_REGION (scop)))
+    if (bb_in_sese_p (bb, region))
       {
 	struct loop *loop = bb->loop_father;
 
 	/* Only add loops if they are completely contained in the SCoP.  */
 	if (loop->header == bb
-	    && bb_in_sese_p (loop->latch, SCOP_REGION (scop)))
+	    && bb_in_sese_p (loop->latch, region))
 	  {
-	    if (!scop_record_loop (scop, loop))
+	    if (!sese_record_loop (region, loop))
 	      return false;
 	  }
       }
 
-  /* Make sure that the loops in the SCOP_LOOP_NEST are ordered.  It
+  /* Make sure that the loops in the SESE_LOOP_NEST are ordered.  It
      can be the case that an inner loop is inserted before an outer
      loop.  To avoid this, semi-sort once.  */
-  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop0); i++)
+  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop0); i++)
     {
-      if (VEC_length (loop_p, SCOP_LOOP_NEST (scop)) == i + 1)
+      if (VEC_length (loop_p, SESE_LOOP_NEST (region)) == i + 1)
 	break;
 
-      loop1 = VEC_index (loop_p, SCOP_LOOP_NEST (scop), i + 1);
+      loop1 = VEC_index (loop_p, SESE_LOOP_NEST (region), i + 1);
       if (loop0->num > loop1->num)
 	{
-	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i, loop1);
-	  VEC_replace (loop_p, SCOP_LOOP_NEST (scop), i + 1, loop0);
+	  VEC_replace (loop_p, SESE_LOOP_NEST (region), i, loop1);
+	  VEC_replace (loop_p, SESE_LOOP_NEST (region), i + 1, loop0);
 	}
     }
 
   return true;
 }
 
-/* Calculate the number of loops around LOOP in the SCOP.  */
+/* Calculate the number of loops around LOOP in the SCOP.
+   FIXME: The same as sese_loop_depth.  */
 
 static inline int
-nb_loops_around_loop_in_scop (struct loop *l, scop_p scop)
+nb_loops_around_loop_in_sese (struct loop *l, sese region)
 {
   int d = 0;
 
-  for (; loop_in_sese_p (l, SCOP_REGION (scop)); d++, l = loop_outer (l));
+  for (; loop_in_sese_p (l, region); d++, l = loop_outer (l));
 
   return d;
 }
 
 /* Calculate the number of loops around GB in the current SCOP.  */
 
-int
-nb_loops_around_gbb (graphite_bb_p gbb)
+static int
+nb_loops_around_pbb (poly_bb_p pbb)
 {
-  return nb_loops_around_loop_in_scop (gbb_loop (gbb), GBB_SCOP (gbb));
+  return nb_loops_around_loop_in_sese (gbb_loop (PBB_BLACK_BOX (pbb)),
+				       SCOP_REGION (PBB_SCOP (pbb)));
 }
 
 /* Returns the dimensionality of an enclosing loop iteration domain
@@ -2305,12 +2064,12 @@ nb_loops_around_gbb (graphite_bb_p gbb)
    of SCoP parameters + const).  */
 
 int
-ref_nb_loops (data_reference_p ref)
+ref_nb_loops (data_reference_p ref, sese region)
 {
   loop_p loop = loop_containing_stmt (DR_STMT (ref));
-  scop_p scop = DR_SCOP (ref);
 
-  return nb_loops_around_loop_in_scop (loop, scop) + scop_nb_params (scop) + 2;
+  return nb_loops_around_loop_in_sese (loop, region)
+    + sese_nb_params (region) + 2;
 }
 
 /* Returns the number of loops that are identical at the beginning of
@@ -2373,7 +2132,7 @@ static void
 build_scop_canonical_schedules (scop_p scop)
 {
   int i;
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
   ppl_Linear_Expression_t static_schedule;
   VEC (loop_p, heap) *loops_previous = NULL;
   ppl_Coefficient_t c;
@@ -2391,13 +2150,13 @@ build_scop_canonical_schedules (scop_p scop)
   ppl_assign_Coefficient_from_mpz_t (c, v);
   ppl_Linear_Expression_add_to_coefficient (static_schedule, 0, c);
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
       ppl_Linear_Expression_t common;
-      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gbb));
-      int nb = gbb_nb_loops (gbb);
+      int prefix = compare_prefix_loops (loops_previous, PBB_LOOPS (pbb));
+      int nb = pbb_nb_loops (pbb);
 
-      loops_previous = GBB_LOOPS (gbb);
+      loops_previous = PBB_LOOPS (pbb);
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression (common, static_schedule);
 
@@ -2406,10 +2165,10 @@ build_scop_canonical_schedules (scop_p scop)
       ppl_Linear_Expression_add_to_coefficient (common, prefix, c);
       ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule, common);
 
-      ppl_new_Linear_Expression_with_dimension (&GBB_STATIC_SCHEDULE (gbb),
+      ppl_new_Linear_Expression_with_dimension (&PBB_STATIC_SCHEDULE (pbb),
 						nb + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression
-	(GBB_STATIC_SCHEDULE (gbb), common);
+	(PBB_STATIC_SCHEDULE (pbb), common);
       ppl_delete_Linear_Expression (common);
     }
 
@@ -2423,24 +2182,24 @@ build_scop_canonical_schedules (scop_p scop)
 static void
 build_bb_loops (scop_p scop)
 {
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
   int i;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
       loop_p loop;
       int depth; 
 
-      depth = nb_loops_around_gbb (gbb) - 1; 
+      depth = nb_loops_around_pbb (pbb) - 1; 
 
-      GBB_LOOPS (gbb) = VEC_alloc (loop_p, heap, 3);
-      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gbb), depth + 1);
+      PBB_LOOPS (pbb) = VEC_alloc (loop_p, heap, 3);
+      VEC_safe_grow_cleared (loop_p, heap, PBB_LOOPS (pbb), depth + 1);
 
-      loop = GBB_BB (gbb)->loop_father;  
+      loop = GBB_BB (PBB_BLACK_BOX (pbb))->loop_father;  
 
       while (sese_contains_loop (SCOP_REGION(scop), loop))
         {
-          VEC_replace (loop_p, GBB_LOOPS (gbb), depth, loop);
+          VEC_replace (loop_p, PBB_LOOPS (pbb), depth, loop);
           loop = loop_outer (loop);
           depth--;
         }
@@ -2667,7 +2426,7 @@ idx_record_params (tree base, tree *idx, void *dta)
    access functions, conditions and loop bounds.  */
 
 static void
-find_params_in_bb (sese sese, graphite_bb_p gbb)
+find_params_in_bb (sese sese, gimple_bb_p gbb)
 {
   int i;
   data_reference_p dr;
@@ -2729,25 +2488,6 @@ save_var_name (char **nv, int i, name_tree p)
   p->name = nv[i];
 }
 
-/* Return the maximal loop depth in SCOP.  */
-
-static int
-scop_max_loop_depth (scop_p scop)
-{
-  int i;
-  graphite_bb_p gbb;
-  int max_nb_loops = 0;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++) 
-    {    
-      int nb_loops = gbb_nb_loops (gbb);
-      if (max_nb_loops < nb_loops)
-        max_nb_loops = nb_loops;
-    }    
-
-  return max_nb_loops;
-}
-
 /* Initialize Cloog's parameter names from the names used in GIMPLE.
    Initialize Cloog's iterator names, using 'graphite_iterator_%d'
    from 0 to scop_nb_loops (scop).  */
@@ -2755,7 +2495,8 @@ scop_max_loop_depth (scop_p scop)
 static void
 initialize_cloog_names (scop_p scop, CloogProgram *prog)
 {
-  int i, nb_params = VEC_length (name_tree, SCOP_PARAMS (scop));
+  sese region = SCOP_REGION (scop);
+  int i, nb_params = VEC_length (name_tree, SESE_PARAMS (region));
   char **params = XNEWVEC (char *, nb_params);
   int nb_iterators = scop_max_loop_depth (scop);
   int nb_scattering = cloog_program_nb_scattdims (prog);
@@ -2765,7 +2506,7 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 
   cloog_program_set_names (prog, cloog_names_malloc ());
 
-  for (i = 0; VEC_iterate (name_tree, SCOP_PARAMS (scop), i, p); i++)
+  for (i = 0; VEC_iterate (name_tree, SESE_PARAMS (region), i, p); i++)
     save_var_name (params, i, p);
 
   cloog_names_set_nb_parameters (cloog_program_names (prog),
@@ -2804,9 +2545,9 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 static void
 find_scop_parameters (scop_p scop)
 {
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
   unsigned i;
-  sese sese = SCOP_REGION (scop);
+  sese region = SCOP_REGION (scop);
   struct loop *loop;
   Value one;
 
@@ -2822,17 +2563,18 @@ find_scop_parameters (scop_p scop)
 	continue;
 
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
-      nb_iters = instantiate_scev (block_before_scop (scop), loop, nb_iters);
-      scan_tree_for_params (sese, nb_iters, NULL, one, false);
+      nb_iters = instantiate_scev (block_before_sese (SCOP_REGION (scop)), loop,
+						      nb_iters);
+      scan_tree_for_params (region, nb_iters, NULL, one, false);
     }
 
   value_clear (one);
 
   /* Find the parameters used in data accesses.  */
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    find_params_in_bb (sese, gbb);
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    find_params_in_bb (region, PBB_BLACK_BOX (pbb));
 
-  SESE_ADD_PARAMS (sese) = false;
+  SESE_ADD_PARAMS (region) = false;
 }
 
 /* Build the context constraints for SCOP: constraints and relations
@@ -2850,12 +2592,12 @@ build_scop_context (scop_p scop, CloogProgram *prog)
   ppl_delete_Polyhedron (ph);
 }
 
-/* Returns a graphite_bb from BB.  */
+/* Returns a gimple_bb from BB.  */
 
-static inline graphite_bb_p
+static inline gimple_bb_p
 gbb_from_bb (basic_block bb)
 {
-  return (graphite_bb_p) bb->aux;
+  return (gimple_bb_p) bb->aux;
 }
 
 /* Builds the constraint polyhedra for LOOP in SCOP.  OUTER_PH gives
@@ -2867,7 +2609,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
 {
   int i;
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
   Value one, minus_one, val;
   ppl_Polyhedron_t ph;
   ppl_Linear_Expression_t lb_expr, ub_expr;
@@ -2908,7 +2650,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   else if (!chrec_contains_undetermined (nb_iters))
     {
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
-      nb_iters = instantiate_scev (block_before_scop (scop), loop, nb_iters);
+      nb_iters = instantiate_scev (block_before_sese (SCOP_REGION (scop)), loop,
+						      nb_iters);
       scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one, false);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     }
@@ -2941,11 +2684,11 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       && loop_in_sese_p (loop->next, SCOP_REGION (scop)))
     build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    if (gbb_loop (gbb) == loop)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    if (gbb_loop (PBB_BLACK_BOX (pbb)) == loop)
       {
-	ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
-	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&GBB_DOMAIN (gbb), ph);
+	ppl_delete_Polyhedron (PBB_DOMAIN (pbb));
+	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&PBB_DOMAIN (pbb), ph);
       }
 
   ppl_delete_Coefficient (coef);
@@ -2958,13 +2701,14 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 /* Add conditions to the domain of GB.  */
 
 static void
-add_conditions_to_domain (graphite_bb_p gbb)
+add_conditions_to_domain (poly_bb_p pbb)
 {
   unsigned int i;
   gimple stmt;
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
-  scop_p scop = GBB_SCOP (gbb);
-  basic_block before_scop = block_before_scop (scop);
+  scop_p scop = PBB_SCOP (pbb);
+  basic_block before_scop = block_before_sese (SCOP_REGION (scop));
 
   if (VEC_empty (gimple, conditions))
     return;
@@ -3015,7 +2759,7 @@ add_conditions_to_domain (graphite_bb_p gbb)
 
 	    value_init (one);
 	    value_set_si (one, 1);
-	    dim = gbb_nb_loops (gbb) + scop_nb_params (scop);
+	    dim = pbb_nb_loops (pbb) + scop_nb_params (scop);
 	    ppl_new_Linear_Expression_with_dimension (&expr, dim);
 
 	    left = gimple_cond_lhs (stmt);
@@ -3032,7 +2776,7 @@ add_conditions_to_domain (graphite_bb_p gbb)
 
 	    value_clear (one);
 	    ppl_new_Constraint (&cstr, expr, type);
-	    ppl_Polyhedron_add_constraint (GBB_DOMAIN (gbb), cstr);
+	    ppl_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
 	    ppl_delete_Constraint (cstr);
 	    ppl_delete_Linear_Expression (expr);
             break;
@@ -3092,38 +2836,31 @@ static bool
 scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
 {
   int i;
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    if (bb_contains_non_iv_scalar_phi_nodes (GBB_BB (gbb)))
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    if (bb_contains_non_iv_scalar_phi_nodes (GBB_BB (PBB_BLACK_BOX (pbb))))
       return true;
 
   return false;
 }
 
 /* Helper recursive function.  Record in CONDITIONS and CASES all
-   conditions from 'if's and 'switch'es occurring in BB from SCOP.
-
-   Returns false when the conditions contain scalar computations that
-   depend on the condition, i.e. when there are scalar phi nodes on
-   the junction after the condition.  Only the computations occurring
-   on memory can be handled in the polyhedral model: operations that
-   define scalar evolutions in conditions, that can potentially be
-   used to index memory, can't be handled by the polyhedral model.  */
+   conditions from 'if's and 'switch'es occurring in BB from REGION.  */
 
 static void
-build_scop_conditions_1 (VEC (gimple, heap) **conditions,
+build_sese_conditions_1 (VEC (gimple, heap) **conditions,
 			 VEC (gimple, heap) **cases, basic_block bb,
-			 scop_p scop)
+			 sese region)
 {
   int i, j;
-  graphite_bb_p gbb;
+  gimple_bb_p gbb;
   basic_block bb_child, bb_iter;
   VEC (basic_block, heap) *dom;
   gimple stmt;
   
   /* Make sure we are in the SCoP.  */
-  if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+  if (!bb_in_sese_p (bb, region))
     return;
 
   gbb = gbb_from_bb (bb);
@@ -3167,7 +2904,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 		  }
 
 		VEC_safe_push (gimple, heap, *conditions, stmt);
-		build_scop_conditions_1 (conditions, cases, e->dest, scop);
+		build_sese_conditions_1 (conditions, cases, e->dest, region);
 		VEC_pop (gimple, *conditions);
 		VEC_pop (gimple, *cases);
 	      }
@@ -3219,7 +2956,7 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
 		      }
 		  }
 
-		build_scop_conditions_1 (conditions, cases, bb_child, scop);
+		build_sese_conditions_1 (conditions, cases, bb_child, region);
 
 		/* Remove the scanned block from the dominator successors.  */
 		for (j = 0; VEC_iterate (basic_block, dom, j, bb_iter); j++)
@@ -3246,15 +2983,16 @@ build_scop_conditions_1 (VEC (gimple, heap) **conditions,
   VEC_free (basic_block, heap, dom);
 }
 
-/* Record all conditions from SCOP.  */
+/* Record all conditions in REGION.  */
 
 static void 
-build_scop_conditions (scop_p scop)
+build_sese_conditions (sese region)
 {
   VEC (gimple, heap) *conditions = NULL;
   VEC (gimple, heap) *cases = NULL;
 
-  build_scop_conditions_1 (&conditions, &cases, SCOP_ENTRY (scop), scop);
+  build_sese_conditions_1 (&conditions, &cases, SESE_ENTRY (region)->dest,
+			     region);
 
   VEC_free (gimple, heap, conditions);
   VEC_free (gimple, heap, cases);
@@ -3267,10 +3005,10 @@ static void
 add_conditions_to_constraints (scop_p scop)
 {
   int i;
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    add_conditions_to_domain (gbb);
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    add_conditions_to_domain (pbb);
 }
 
 /* Build the iteration domains: the loops belonging to the current
@@ -3281,12 +3019,13 @@ static void
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
+  sese region = SCOP_REGION (scop);
   int i;
 
   /* Build cloog loop for all loops, that are in the uppermost loop layer of
      this SCoP.  */
-  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
-    if (!loop_in_sese_p (loop_outer (loop), SCOP_REGION (scop)))
+  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
+    if (!loop_in_sese_p (loop_outer (loop), region)) 
       {
 	ppl_Polyhedron_t ph;
 	ppl_new_NNC_Polyhedron_from_space_dimension (&ph, 0, 0);
@@ -3303,7 +3042,7 @@ build_scop_iteration_domain (scop_p scop)
 
 static bool
 build_access_matrix_with_af (tree af, lambda_vector cy,
-			     scop_p scop, int ndim)
+			     sese region, int ndim)
 {
   int param_col;
 
@@ -3320,31 +3059,31 @@ build_access_matrix_with_af (tree af, lambda_vector cy,
 	  return false;
 
         outer_loop = get_loop (CHREC_VARIABLE (af));
-        var = nb_loops_around_loop_in_scop (outer_loop, scop);
+        var = nb_loops_around_loop_in_sese (outer_loop, region);
 	cy[var] = int_cst_value (right);
 
 	switch (TREE_CODE (left))
 	  {
 	  case POLYNOMIAL_CHREC:
-	    return build_access_matrix_with_af (left, cy, scop, ndim);
+	    return build_access_matrix_with_af (left, cy, region, ndim);
 
 	  case INTEGER_CST:
 	    cy[ndim - 1] = int_cst_value (left);
 	    return true;
 
 	  default:
-	    return build_access_matrix_with_af (left, cy, scop, ndim);
+	    return build_access_matrix_with_af (left, cy, region, ndim);
 	  }
       }
 
     case PLUS_EXPR:
-      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, scop, ndim);
-      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, scop, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, region, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, region, ndim);
       return true;
       
     case MINUS_EXPR:
-      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, scop, ndim);
-      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, scop, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, region, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, region, ndim);
       return true;
 
     case INTEGER_CST:
@@ -3352,8 +3091,8 @@ build_access_matrix_with_af (tree af, lambda_vector cy,
       return true;
 
     case SSA_NAME:
-      param_col = param_index (af, SCOP_REGION (scop));      
-      cy [ndim - scop_nb_params (scop) + param_col - 1] = 1; 
+      param_col = param_index (af, region);
+      cy [ndim - sese_nb_params (region) + param_col - 1] = 1; 
       return true;
 
     default:
@@ -3367,21 +3106,21 @@ build_access_matrix_with_af (tree af, lambda_vector cy,
    succeeded.  */
 
 static bool
-build_access_matrix (data_reference_p ref, graphite_bb_p gbb)
+build_access_matrix (data_reference_p ref, poly_bb_p pbb)
 {
   int i, ndim = DR_NUM_DIMENSIONS (ref);
   struct access_matrix *am = GGC_NEW (struct access_matrix);
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
 
   AM_MATRIX (am) = VEC_alloc (lambda_vector, gc, ndim);
-  DR_SCOP (ref) = GBB_SCOP (gbb);
 
   for (i = 0; i < ndim; i++)
     {
-      lambda_vector v = lambda_vector_new (ref_nb_loops (ref));
-      scop_p scop = GBB_SCOP (gbb);
+      lambda_vector v = lambda_vector_new (ref_nb_loops (ref, region));
       tree af = DR_ACCESS_FN (ref, i);
 
-      if (!build_access_matrix_with_af (af, v, scop, ref_nb_loops (ref)))
+      if (!build_access_matrix_with_af (af, v, region,
+					ref_nb_loops (ref, region)))
 	return false;
 
       VEC_quick_push (lambda_vector, AM_MATRIX (am), v);
@@ -3397,13 +3136,13 @@ static void
 build_scop_data_accesses (scop_p scop)
 {
   int i;
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
 
   /* FIXME: Construction of access matrix is disabled until some
      pass, like the data dependence analysis, is using it.  */
   return;
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
       int j;
       data_reference_p dr;
@@ -3411,10 +3150,10 @@ build_scop_data_accesses (scop_p scop)
       /* Construct the access matrix for each data ref, with respect to
 	 the loop nest of the current BB in the considered SCOP.  */
       for (j = 0;
-	   VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb), j, dr);
-	   j++)
+	   VEC_iterate (data_reference_p,
+			GBB_DATA_REFS (PBB_BLACK_BOX (pbb)), j, dr); j++)
 	{
-	  bool res = build_access_matrix (dr, gbb);
+	  bool res = build_access_matrix (dr, pbb);
 
 	  /* FIXME: At this point the DRs should always have an affine
 	     form.  For the moment this fails as build_access_matrix
@@ -3473,7 +3212,7 @@ clast_to_gcc_expression (tree, struct clast_expr *, VEC (name_tree, heap) *,
 
 /* Converts a Cloog reduction expression R with reduction operation OP
    to a GCC expression tree of type TYPE.  PARAMS is a vector of
-   parameters of the scop, and IVSTACK contains the stack of induction
+   parameters of the region, and IVSTACK contains the stack of induction
    variables.  */
 
 static tree
@@ -3494,7 +3233,7 @@ clast_to_gcc_expression_red (tree type, enum tree_code op,
 }
 
 /* Converts a Cloog AST expression E back to a GCC expression tree of
-   type TYPE.  PARAMS is a vector of parameters of the scop, and
+   type TYPE.  PARAMS is a vector of parameters of the region, and
    IVSTACK contains the stack of induction variables.  */
 
 static tree
@@ -3657,14 +3396,16 @@ gcc_type_for_clast_eq (struct clast_equation *cleq,
 /* Translates a clast equation CLEQ to a tree.  */
 
 static tree
-graphite_translate_clast_equation (scop_p scop,
+graphite_translate_clast_equation (sese region,
 				   struct clast_equation *cleq,
 				   loop_iv_stack ivstack)
 {
   enum tree_code comp;
-  tree type = gcc_type_for_clast_eq (cleq, SCOP_PARAMS (scop), ivstack);
-  tree lhs = clast_to_gcc_expression (type, cleq->LHS, SCOP_PARAMS (scop), ivstack);
-  tree rhs = clast_to_gcc_expression (type, cleq->RHS, SCOP_PARAMS (scop), ivstack);
+  tree type = gcc_type_for_clast_eq (cleq, SESE_PARAMS (region), ivstack);
+  tree lhs = clast_to_gcc_expression (type, cleq->LHS, SESE_PARAMS (region),
+				      ivstack);
+  tree rhs = clast_to_gcc_expression (type, cleq->RHS, SESE_PARAMS (region),
+				      ivstack);
 
   if (cleq->sign == 0)
     comp = EQ_EXPR;
@@ -3681,7 +3422,7 @@ graphite_translate_clast_equation (scop_p scop,
 /* Creates the test for the condition in STMT.  */
 
 static tree
-graphite_create_guard_cond_expr (scop_p scop, struct clast_guard *stmt, 
+graphite_create_guard_cond_expr (sese region, struct clast_guard *stmt, 
 				 loop_iv_stack ivstack)
 {
   tree cond = NULL;
@@ -3689,7 +3430,7 @@ graphite_create_guard_cond_expr (scop_p scop, struct clast_guard *stmt,
 
   for (i = 0; i < stmt->n; i++)
     {
-      tree eq = graphite_translate_clast_equation (scop, &stmt->eq[i], ivstack);
+      tree eq = graphite_translate_clast_equation (region, &stmt->eq[i], ivstack);
 
       if (cond)
 	cond = fold_build2 (TRUTH_AND_EXPR, TREE_TYPE (eq), cond, eq);
@@ -3703,11 +3444,11 @@ graphite_create_guard_cond_expr (scop_p scop, struct clast_guard *stmt,
 /* Creates a new if region corresponding to Cloog's guard.  */
 
 static edge 
-graphite_create_new_guard (scop_p scop, edge entry_edge,
+graphite_create_new_guard (sese region, edge entry_edge,
 			   struct clast_guard *stmt, 
 			   loop_iv_stack ivstack)
 {
-  tree cond_expr = graphite_create_guard_cond_expr (scop, stmt, ivstack);
+  tree cond_expr = graphite_create_guard_cond_expr (region, stmt, ivstack);
   edge exit_edge = create_empty_if_region_on_edge (entry_edge, cond_expr);
   return exit_edge;
 }
@@ -3743,9 +3484,9 @@ gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
   struct clast_user_stmt *stmt = clast_get_body_of_loop ((struct clast_stmt *) stmt_for);
   const char *cloog_iv = stmt_for->iterator;
   CloogStatement *cs = stmt->statement;
-  graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+  poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
 
-  return gcc_type_for_cloog_iv (cloog_iv, gbb);
+  return gcc_type_for_cloog_iv (cloog_iv, PBB_BLACK_BOX (pbb));
 }
 
 /* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an induction 
@@ -3754,12 +3495,12 @@ gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
    loop of the OUTER_LOOP.  */
 
 static struct loop *
-graphite_create_new_loop (scop_p scop, edge entry_edge,
+graphite_create_new_loop (sese region, edge entry_edge,
 			  struct clast_for *stmt, loop_iv_stack ivstack,
 			  loop_p outer)
 {
   tree type = gcc_type_for_iv_of_clast_loop (stmt);
-  VEC (name_tree, heap) *params = SCOP_PARAMS (scop);
+  VEC (name_tree, heap) *params = SESE_PARAMS (region);
   tree lb = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
   tree ub = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
@@ -3793,13 +3534,13 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
   update_stmt (stmt);
 }
 
-/* Returns true if SSA_NAME is a parameter of SCOP.  */
+/* Returns true if SSA_NAME is a parameter of SESE.  */
 
 static bool
-is_parameter (scop_p scop, tree ssa_name)
+is_parameter (sese region, tree ssa_name)
 {
   int i;
-  VEC (name_tree, heap) *params = SCOP_PARAMS (scop);
+  VEC (name_tree, heap) *params = SESE_PARAMS (region);
   name_tree param;
 
   for (i = 0; VEC_iterate (name_tree, params, i, param); i++)
@@ -3817,30 +3558,30 @@ is_iv (tree name)
   return gimple_code (SSA_NAME_DEF_STMT (name)) == GIMPLE_PHI;
 }
 
-static void expand_scalar_variables_stmt (gimple, basic_block, scop_p,
+static void expand_scalar_variables_stmt (gimple, basic_block, sese,
 					  htab_t);
 static tree
 expand_scalar_variables_expr (tree, tree, enum tree_code, tree, basic_block,
-			      scop_p, htab_t, gimple_stmt_iterator *);
+			      sese, htab_t, gimple_stmt_iterator *);
 
 /* Copies at GSI all the scalar computations on which the ssa_name OP0
-   depends on in the SCOP: these are all the scalar variables used in
+   depends on in the SESE: these are all the scalar variables used in
    the definition of OP0, that are defined outside BB and still in the
-   SCOP, i.e. not a parameter of the SCOP.  The expression that is
+   SESE, i.e. not a parameter of the SESE.  The expression that is
    returned contains only induction variables from the generated code:
    MAP contains the induction variables renaming mapping, and is used
    to translate the names of induction variables.  */
 
 static tree
 expand_scalar_variables_ssa_name (tree op0, basic_block bb,
-				  scop_p scop, htab_t map, 
+				  sese region, htab_t map, 
 				  gimple_stmt_iterator *gsi)
 {
   tree var0, var1, type;
   gimple def_stmt;
   enum tree_code subcode;
       
-  if (is_parameter (scop, op0)
+  if (is_parameter (region, op0)
       || is_iv (op0))
     return get_new_name_from_old_name (map, op0);
       
@@ -3851,13 +3592,13 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       /* If the defining statement is in the basic block already
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
-      expand_scalar_variables_stmt (def_stmt, bb, scop, map);
+      expand_scalar_variables_stmt (def_stmt, bb, region, map);
       return get_new_name_from_old_name (map, op0);
     }
   else
     {
       if (gimple_code (def_stmt) != GIMPLE_ASSIGN
-	  || !bb_in_sese_p (gimple_bb (def_stmt), SCOP_REGION (scop)))
+	  || !bb_in_sese_p (gimple_bb (def_stmt), region))
 	return get_new_name_from_old_name (map, op0);
 
       var0 = gimple_assign_rhs1 (def_stmt);
@@ -3865,22 +3606,22 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       var1 = gimple_assign_rhs2 (def_stmt);
       type = gimple_expr_type (def_stmt);
 
-      return expand_scalar_variables_expr (type, var0, subcode, var1, bb, scop,
+      return expand_scalar_variables_expr (type, var0, subcode, var1, bb, region,
 					   map, gsi);
     }
 }
 
 /* Copies at GSI all the scalar computations on which the expression
-   OP0 CODE OP1 depends on in the SCOP: these are all the scalar
+   OP0 CODE OP1 depends on in the SESE: these are all the scalar
    variables used in OP0 and OP1, defined outside BB and still defined
-   in the SCOP, i.e. not a parameter of the SCOP.  The expression that
+   in the SESE, i.e. not a parameter of the SESE.  The expression that
    is returned contains only induction variables from the generated
    code: MAP contains the induction variables renaming mapping, and is
    used to translate the names of induction variables.  */
 
 static tree
 expand_scalar_variables_expr (tree type, tree op0, enum tree_code code, 
-			      tree op1, basic_block bb, scop_p scop, 
+			      tree op1, basic_block bb, sese region, 
 			      htab_t map, gimple_stmt_iterator *gsi)
 {
   if (TREE_CODE_CLASS (code) == tcc_constant
@@ -3897,7 +3638,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	  {
 	    tree old_name = TREE_OPERAND (op0, 0);
 	    tree expr = expand_scalar_variables_ssa_name
-	      (old_name, bb, scop, map, gsi);
+	      (old_name, bb, region, map, gsi);
 	    tree new_name = force_gimple_operand_gsi (gsi, expr, true, NULL,
 						      true, GSI_SAME_STMT);
 
@@ -3913,10 +3654,10 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	    tree op02 = TREE_OPERAND (op0, 2);
 	    tree op03 = TREE_OPERAND (op0, 3);
 	    tree base = expand_scalar_variables_expr
-	      (TREE_TYPE (op00), op00, TREE_CODE (op00), NULL, bb, scop,
+	      (TREE_TYPE (op00), op00, TREE_CODE (op00), NULL, bb, region,
 	       map, gsi);
 	    tree subscript = expand_scalar_variables_expr
-	      (TREE_TYPE (op01), op01, TREE_CODE (op01), NULL, bb, scop,
+	      (TREE_TYPE (op01), op01, TREE_CODE (op01), NULL, bb, region,
 	       map, gsi);
 
 	    return build4 (ARRAY_REF, type, base, subscript, op02, op03);
@@ -3933,7 +3674,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = expand_scalar_variables_expr (op0_type, op0, op0_code,
-						    NULL, bb, scop, map, gsi);
+						    NULL, bb, region, map, gsi);
   
       return fold_build1 (code, type, op0_expr);
     }
@@ -3943,32 +3684,32 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
       tree op0_expr = expand_scalar_variables_expr (op0_type, op0, op0_code,
-						    NULL, bb, scop, map, gsi);
+						    NULL, bb, region, map, gsi);
       tree op1_type = TREE_TYPE (op1);
       enum tree_code op1_code = TREE_CODE (op1);
       tree op1_expr = expand_scalar_variables_expr (op1_type, op1, op1_code,
-						    NULL, bb, scop, map, gsi);
+						    NULL, bb, region, map, gsi);
 
       return fold_build2 (code, type, op0_expr, op1_expr);
     }
 
   if (code == SSA_NAME)
-    return expand_scalar_variables_ssa_name (op0, bb, scop, map, gsi);
+    return expand_scalar_variables_ssa_name (op0, bb, region, map, gsi);
 
   gcc_unreachable ();
   return NULL;
 }
 
 /* Copies at the beginning of BB all the scalar computations on which
-   STMT depends on in the SCOP: these are all the scalar variables used
-   in STMT, defined outside BB and still defined in the SCOP, i.e. not a
-   parameter of the SCOP.  The expression that is returned contains
+   STMT depends on in the SESE: these are all the scalar variables used
+   in STMT, defined outside BB and still defined in the SESE, i.e. not a
+   parameter of the SESE.  The expression that is returned contains
    only induction variables from the generated code: MAP contains the
    induction variables renaming mapping, and is used to translate the
    names of induction variables.  */
  
 static void
-expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
+expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
 			      htab_t map)
 {
   ssa_op_iter iter;
@@ -3981,7 +3722,7 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
-						    scop, map, &gsi);
+						    region, map, &gsi);
       if (use_expr != use)
 	{
 	  tree new_use =
@@ -3995,22 +3736,22 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, scop_p scop,
 }
 
 /* Copies at the beginning of BB all the scalar computations on which
-   BB depends on in the SCOP: these are all the scalar variables used
-   in BB, defined outside BB and still defined in the SCOP, i.e. not a
-   parameter of the SCOP.  The expression that is returned contains
+   BB depends on in the SESE: these are all the scalar variables used
+   in BB, defined outside BB and still defined in the SESE, i.e. not a
+   parameter of the SESE.  The expression that is returned contains
    only induction variables from the generated code: MAP contains the
    induction variables renaming mapping, and is used to translate the
    names of induction variables.  */
 
 static void 
-expand_scalar_variables (basic_block bb, scop_p scop, htab_t map)
+expand_scalar_variables (basic_block bb, sese region, htab_t map)
 {
   gimple_stmt_iterator gsi;
   
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
       gimple stmt = gsi_stmt (gsi);
-      expand_scalar_variables_stmt (stmt, bb, scop, map);
+      expand_scalar_variables_stmt (stmt, bb, region, map);
       gsi_next (&gsi);
     }
 }
@@ -4073,18 +3814,20 @@ get_false_edge_from_guard_bb (basic_block bb)
 }
 
 /* Inserts in MAP a tuple (OLD_NAME, NEW_NAME) for the induction
-   variables of the loops around GBB in SCOP, i.e. GBB_LOOPS.
+   variables of the loops around GBB in SESE, i.e. GBB_LOOPS.
    NEW_NAME is obtained from IVSTACK.  IVSTACK has the same stack
    ordering as GBB_LOOPS.  */
 
 static void
-build_iv_mapping (loop_iv_stack ivstack, htab_t map, gbb_p gbb, scop_p scop)
+build_iv_mapping (loop_iv_stack ivstack, htab_t map, poly_bb_p pbb,
+		  sese region)
 {
   int i;
   name_tree iv;
   PTR *slot;
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
-  for (i = 0; VEC_iterate (name_tree, SCOP_OLDIVS (scop), i, iv); i++)
+  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
     {
       struct rename_map_elt tmp;
 
@@ -4097,7 +3840,8 @@ build_iv_mapping (loop_iv_stack ivstack, htab_t map, gbb_p gbb, scop_p scop)
       if (!*slot)
 	{
 	  tree new_name = loop_iv_stack_get_iv (ivstack, 
-						gbb_loop_index (gbb, iv->loop));
+						pbb_loop_index (pbb, iv->loop));
+
 	  *slot = new_rename_map_elt (iv->t, new_name);
 	}
     }
@@ -4160,8 +3904,8 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
     }
 }
 
-/* Records in SCOP_LIVEOUT_RENAMES the names that are live out of
-   the SCOP and that appear in the RENAME_MAP.  */
+/* Records in SESE_LIVEOUT_RENAMES the names that are live out of
+   the SESE and that appear in the RENAME_MAP.  */
 
 static void
 register_sese_liveout_renames (sese region, htab_t rename_map)
@@ -4185,7 +3929,7 @@ register_sese_liveout_renames (sese region, htab_t rename_map)
    and returns the next edge following this new block.  */
  
 static edge
-copy_bb_and_scalar_dependences (basic_block bb, scop_p scop,
+copy_bb_and_scalar_dependences (basic_block bb, sese region,
 				edge next_e, htab_t map)
 {
   basic_block new_bb = split_edge (next_e);
@@ -4195,8 +3939,8 @@ copy_bb_and_scalar_dependences (basic_block bb, scop_p scop,
   remove_condition (new_bb);
   rename_variables (new_bb, map);
   remove_phi_nodes (new_bb);
-  expand_scalar_variables (new_bb, scop, map);
-  register_sese_liveout_renames (SCOP_REGION (scop), map);
+  expand_scalar_variables (new_bb, region, map);
+  register_sese_liveout_renames (region, map);
 
   return next_e;
 }
@@ -4220,16 +3964,16 @@ add_loop_exit_phis (void **slot, void *s)
   return 1;
 }
 
-/* Iterate over the SCOP_LIVEOUT_RENAMES (SCOP) and get tuples of the
+/* Iterate over the SESE_LIVEOUT_RENAMES (SESE) and get tuples of the
    form (OLD_NAME, NEW_NAME).  Insert in BB "RES = phi (NEW_NAME)",
-   and finally register in SCOP_LIVEOUT_RENAMES (scop) the tuple
+   and finally register in SESE_LIVEOUT_RENAMES (region) the tuple
    (OLD_NAME, RES).  */
 
 static void
-insert_loop_close_phis (scop_p scop, basic_block bb)
+insert_loop_close_phis (sese region, basic_block bb)
 {
   update_ssa (TODO_update_ssa);
-  htab_traverse (SCOP_LIVEOUT_RENAMES (scop), add_loop_exit_phis, bb);
+  htab_traverse (SESE_LIVEOUT_RENAMES (region), add_loop_exit_phis, bb);
   update_ssa (TODO_update_ssa);
 }
 
@@ -4283,7 +4027,7 @@ add_guard_exit_phis (void **slot, void *s)
   return 1;
 }
 
-/* Iterate over the SCOP_LIVEOUT_RENAMES (SCOP) and get tuples of the
+/* Iterate over the SESE_LIVEOUT_RENAMES (SESE) and get tuples of the
    form (OLD_NAME, NAME1).  If there is a correspondent tuple of
    OLD_NAME in LIVEOUT_BEFORE_GUARD, i.e. (OLD_NAME, NAME2) then
    insert in BB
@@ -4295,11 +4039,11 @@ add_guard_exit_phis (void **slot, void *s)
    | RES = phi (NAME1 (on TRUE_EDGE),
    |            DEFAULT_DEFINITION of NAME1 (on FALSE_EDGE))".
 
-   Finally register in SCOP_LIVEOUT_RENAMES (scop) the tuple
+   Finally register in SESE_LIVEOUT_RENAMES (region) the tuple
    (OLD_NAME, RES).  */
 
 static void
-insert_guard_phis (scop_p scop, basic_block bb, edge true_edge,
+insert_guard_phis (sese region, basic_block bb, edge true_edge,
 		   edge false_edge, htab_t liveout_before_guard)
 {
   struct igp i;
@@ -4309,7 +4053,7 @@ insert_guard_phis (scop_p scop, basic_block bb, edge true_edge,
   i.liveout_before_guard = liveout_before_guard;
 
   update_ssa (TODO_update_ssa);
-  htab_traverse (SCOP_LIVEOUT_RENAMES (scop), add_guard_exit_phis, &i);
+  htab_traverse (SESE_LIVEOUT_RENAMES (region), add_guard_exit_phis, &i);
   update_ssa (TODO_update_ssa);
 }
 
@@ -4335,7 +4079,7 @@ copy_renames (void **slot, void *s)
 }
 
 /* Translates a CLAST statement STMT to GCC representation in the
-   context of a SCOP.
+   context of a SESE.
 
    - NEXT_E is the edge where new generated code should be attached.
    - CONTEXT_LOOP is the loop in which the generated code will be placed
@@ -4345,64 +4089,66 @@ copy_renames (void **slot, void *s)
 */
 
 static edge
-translate_clast (scop_p scop, struct loop *context_loop,
+translate_clast (sese region, struct loop *context_loop,
 		 struct clast_stmt *stmt, edge next_e, loop_iv_stack ivstack)
 {
   if (!stmt)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
-    return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
+    return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
+      gimple_bb_p gbb;
       htab_t map;
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
-      graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+      poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
+      gbb = PBB_BLACK_BOX (pbb);
 
       if (GBB_BB (gbb) == ENTRY_BLOCK_PTR)
 	return next_e;
 
       map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
       loop_iv_stack_patch_for_consts (ivstack, (struct clast_user_stmt *) stmt);
-      build_iv_mapping (ivstack, map, gbb, scop);
-      next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), scop,
+      build_iv_mapping (ivstack, map, pbb, region);
+      next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), region,
 					       next_e, map);
       htab_delete (map);
       loop_iv_stack_remove_constants (ivstack);
       update_ssa (TODO_update_ssa);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
+      return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_for))
     {
       struct loop *loop
-	= graphite_create_new_loop (scop, next_e, (struct clast_for *) stmt,
+	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
 				    ivstack, context_loop ? context_loop
 				    : get_loop (0));
       edge last_e = single_exit (loop);
 
-      next_e = translate_clast (scop, loop, ((struct clast_for *) stmt)->body,
+      next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
 				single_pred_edge (loop->latch), ivstack);
       redirect_edge_succ_nodup (next_e, loop->latch);
 
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
       last_e = single_succ_edge (split_edge (last_e));
-      insert_loop_close_phis (scop, last_e->src);
+      insert_loop_close_phis (region, last_e->src);
 
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
+      return translate_clast (region, context_loop, stmt->next, last_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
     {
       htab_t liveout_before_guard = htab_create (10, rename_map_elt_info,
 						 eq_rename_map_elts, free);
-      edge last_e = graphite_create_new_guard (scop, next_e,
+      edge last_e = graphite_create_new_guard (region, next_e,
 					       ((struct clast_guard *) stmt),
 					       ivstack);
       edge true_e = get_true_edge_from_guard_bb (next_e->dest);
@@ -4410,29 +4156,29 @@ translate_clast (scop_p scop, struct loop *context_loop,
       edge exit_true_e = single_succ_edge (true_e->dest);
       edge exit_false_e = single_succ_edge (false_e->dest);
 
-      htab_traverse (SCOP_LIVEOUT_RENAMES (scop), copy_renames,
+      htab_traverse (SESE_LIVEOUT_RENAMES (region), copy_renames,
 		     liveout_before_guard);
 
-      next_e = translate_clast (scop, context_loop, 
+      next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
 				true_e, ivstack);
-      insert_guard_phis (scop, last_e->src, exit_true_e, exit_false_e,
+      insert_guard_phis (region, last_e->src, exit_true_e, exit_false_e,
 			 liveout_before_guard);
       htab_delete (liveout_before_guard);
       recompute_all_dominators ();
       graphite_verify ();
 
-      return translate_clast (scop, context_loop, stmt->next, last_e, ivstack);
+      return translate_clast (region, context_loop, stmt->next, last_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_block))
     {
-      next_e = translate_clast (scop, context_loop,
+      next_e = translate_clast (region, context_loop,
 				((struct clast_block *) stmt)->body,
 				next_e, ivstack);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (scop, context_loop, stmt->next, next_e, ivstack);
+      return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
     }
 
   gcc_unreachable ();
@@ -4461,7 +4207,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
 {
   int i;
   int max_nb_loops = scop_max_loop_depth (scop);
-  graphite_bb_p gbb;
+  poly_bb_p pbb;
   CloogLoop *loop_list = NULL;
   CloogBlockList *block_list = NULL;
   CloogDomainList *scattering = NULL;
@@ -4472,14 +4218,15 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   cloog_program_set_nb_scattdims (prog, nbs);
   initialize_cloog_names (scop, prog);
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
       /* Build new block.  */
-      CloogStatement *stmt = cloog_statement_alloc (GBB_BB (gbb)->index);
+      CloogStatement *stmt = cloog_statement_alloc
+	(GBB_BB (PBB_BLACK_BOX (pbb))->index);
       CloogBlock *block = cloog_block_alloc (stmt, 0, NULL,
-					     nb_loops_around_gbb (gbb));
+					     nb_loops_around_pbb (pbb));
 
-      cloog_statement_set_usr (stmt, gbb);
+      cloog_statement_set_usr (stmt, pbb);
 
       /* Build loop list.  */
       {
@@ -4487,7 +4234,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         cloog_loop_set_next (new_loop_list, loop_list);
         cloog_loop_set_domain
 	  (new_loop_list,
-	   new_Cloog_Domain_from_ppl_Polyhedron (GBB_DOMAIN (gbb)));
+	   new_Cloog_Domain_from_ppl_Polyhedron (PBB_DOMAIN (pbb)));
         cloog_loop_set_block (new_loop_list, block);
         loop_list = new_loop_list;
       }
@@ -4506,7 +4253,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
         CloogDomainList *new_scattering
 	  = (CloogDomainList *) xmalloc (sizeof (CloogDomainList));
-        ppl_Polyhedron_t scat = schedule_to_scattering (gbb, nbs);
+        ppl_Polyhedron_t scat = schedule_to_scattering (pbb, nbs);
 	CloogDomain *dom = new_Cloog_Domain_from_ppl_Polyhedron (scat);
 
         cloog_set_next_domain (new_scattering, scattering);
@@ -4663,26 +4410,6 @@ debug_generated_program (scop_p scop)
   print_generated_program (stderr, scop);
 }
 
-/* Remove from the CFG the REGION.  */
-
-static inline void
-remove_sese_region (sese region)
-{
-  VEC (basic_block, heap) *bbs = NULL;
-  basic_block entry_bb = SESE_ENTRY (region)->dest;
-  basic_block exit_bb = SESE_EXIT (region)->dest;
-  basic_block bb;
-  int i;
-
-  VEC_safe_push (basic_block, heap, bbs, entry_bb);
-  gather_blocks_in_sese_region (entry_bb, exit_bb, &bbs);
-
-  for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
-    delete_basic_block (bb);
-
-  VEC_free (basic_block, heap, bbs);
-}
-
 typedef struct ifsese {
   sese region;
   sese true_region;
@@ -4809,7 +4536,7 @@ move_sese_in_condition (sese region)
 /* Add exit phis for USE on EXIT.  */
 
 static void
-scop_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
+sese_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
 {
   gimple phi = create_phi_node (use, exit);
 
@@ -4823,7 +4550,7 @@ scop_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
    inserted in block BB.  */
 
 static void
-scop_add_exit_phis_var (basic_block bb, tree var, bitmap livein,
+sese_add_exit_phis_var (basic_block bb, tree var, bitmap livein,
 			edge false_e, edge true_e)
 {
   bitmap def;
@@ -4839,7 +4566,7 @@ scop_add_exit_phis_var (basic_block bb, tree var, bitmap livein,
   compute_global_livein (livein, def);
   BITMAP_FREE (def);
 
-  scop_add_exit_phis_edge (bb, var, false_e, true_e);
+  sese_add_exit_phis_edge (bb, var, false_e, true_e);
 }
 
 /* Insert in the block BB phi nodes for variables defined in REGION
@@ -4854,7 +4581,7 @@ scop_add_exit_phis_var (basic_block bb, tree var, bitmap livein,
 */
 
 static void
-scop_insert_phis_for_liveouts (sese region, basic_block bb,
+sese_insert_phis_for_liveouts (sese region, basic_block bb,
 			       edge false_e, edge true_e)
 {
   unsigned i;
@@ -4863,24 +4590,23 @@ scop_insert_phis_for_liveouts (sese region, basic_block bb,
   update_ssa (TODO_update_ssa);
 
   EXECUTE_IF_SET_IN_BITMAP (SESE_LIVEOUT (region), 0, i, bi)
-    scop_add_exit_phis_var (bb, ssa_name (i), SESE_LIVEIN_VER (region, i),
+    sese_add_exit_phis_var (bb, ssa_name (i), SESE_LIVEIN_VER (region, i),
 			    false_e, true_e);
 
   update_ssa (TODO_update_ssa);
 }
 
-/* Get the definition of NAME before the SCOP.  Keep track of the
+/* Get the definition of NAME before the SESE.  Keep track of the
    basic blocks that have been VISITED in a bitmap.  */
 
 static tree
-get_vdef_before_scop (scop_p scop, tree name, sbitmap visited)
+get_vdef_before_sese (sese region, tree name, sbitmap visited)
 {
   unsigned i;
   gimple def_stmt = SSA_NAME_DEF_STMT (name);
   basic_block def_bb = gimple_bb (def_stmt);
 
-  if (!def_bb
-      || !bb_in_sese_p (def_bb, SCOP_REGION (scop)))
+  if (!def_bb || !bb_in_sese_p (def_bb, region))
     return name;
 
   if (TEST_BIT (visited, def_bb->index))
@@ -4894,7 +4620,7 @@ get_vdef_before_scop (scop_p scop, tree name, sbitmap visited)
       for (i = 0; i < gimple_phi_num_args (def_stmt); i++)
 	{
 	  tree arg = gimple_phi_arg_def (def_stmt, i);
-	  tree res = get_vdef_before_scop (scop, arg, visited);
+	  tree res = get_vdef_before_sese (region, arg, visited);
 	  if (res)
 	    return res;
 	}
@@ -4917,7 +4643,7 @@ get_vdef_before_scop (scop_p scop, tree name, sbitmap visited)
    from the code generated for the SCOP.  */
 
 static void
-scop_adjust_vphi (scop_p scop, gimple phi, edge true_e)
+sese_adjust_vphi (sese region, gimple phi, edge true_e)
 {
   unsigned i;
 
@@ -4939,7 +4665,7 @@ scop_adjust_vphi (scop_p scop, gimple phi, edge true_e)
 
 	visited = sbitmap_alloc (last_basic_block);
 	sbitmap_zero (visited);
-	before_scop_arg = get_vdef_before_scop (scop, false_arg, visited);
+	before_scop_arg = get_vdef_before_sese (region, false_arg, visited);
 	gcc_assert (before_scop_arg != NULL_TREE);
 	SET_PHI_ARG_DEF (phi, i, before_scop_arg);
 	sbitmap_free (visited);
@@ -4961,7 +4687,7 @@ scop_adjust_vphi (scop_p scop, gimple phi, edge true_e)
    LIVEOUT of SCOP_REGION its new name in the generated code.  */
 
 static void
-scop_adjust_phis_for_liveouts (scop_p scop, basic_block bb, edge false_e,
+sese_adjust_phis_for_liveouts (sese region, basic_block bb, edge false_e,
 			       edge true_e)
 {
   gimple_stmt_iterator si;
@@ -4974,7 +4700,7 @@ scop_adjust_phis_for_liveouts (scop_p scop, basic_block bb, edge false_e,
 
       if (!is_gimple_reg (PHI_RESULT (phi)))
 	{
-	  scop_adjust_vphi (scop, phi, true_e);
+	  sese_adjust_vphi (region, phi, true_e);
 	  continue;
 	}
 
@@ -4990,7 +4716,7 @@ scop_adjust_phis_for_liveouts (scop_p scop, basic_block bb, edge false_e,
 	  {
 	    tree old_name = gimple_phi_arg_def (phi, false_i);
 	    tree new_name = get_new_name_from_old_name
-	      (SCOP_LIVEOUT_RENAMES (scop), old_name);
+	      (SESE_LIVEOUT_RENAMES (region), old_name);
 
 	    gcc_assert (old_name != new_name);
 	    SET_PHI_ARG_DEF (phi, i, new_name);
@@ -5034,9 +4760,9 @@ find_cloog_iv_in_expr (struct clast_expr *expr)
    variables.  This information is stored on each GRAPHITE_BB.  */
 
 static void
-compute_cloog_iv_types_1 (graphite_bb_p gbb,
-			  struct clast_user_stmt *user_stmt)
+compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
 {
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   struct clast_stmt *t;
   int index = 0;
 
@@ -5056,8 +4782,8 @@ compute_cloog_iv_types_1 (graphite_bb_p gbb,
 
       if (!*slot)
 	{
-	  loop_p loop = gbb_loop_at_index (gbb, index);
-	  tree oldiv = oldiv_for_loop (GBB_SCOP (gbb), loop);
+	  loop_p loop = pbb_loop_at_index (pbb, index);
+	  tree oldiv = oldiv_for_loop (SCOP_REGION (PBB_SCOP (pbb)), loop);
 	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
 	  *slot = new_ivtype_map_elt (tmp.cloog_iv, type);
 	}
@@ -5081,10 +4807,11 @@ compute_cloog_iv_types (struct clast_stmt *stmt)
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
-      graphite_bb_p gbb = (graphite_bb_p) cloog_statement_usr (cs);
+      poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
+      gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
       GBB_CLOOG_IV_TYPES (gbb) = htab_create (10, ivtype_map_elt_info,
 					      eq_ivtype_map_elts, free);
-      compute_cloog_iv_types_1 (gbb, (struct clast_user_stmt *) stmt);
+      compute_cloog_iv_types_1 (pbb, (struct clast_user_stmt *) stmt);
       goto next;
     }
 
@@ -5125,24 +4852,25 @@ gloog (scop_p scop)
   VEC (iv_stack_entry_p, heap) *ivstack = VEC_alloc (iv_stack_entry_p, heap,
 						     10);
   loop_p context_loop;
+  sese region = SCOP_REGION (scop);
   ifsese if_region = NULL;
 
   cloog_prog_clast pc = scop_to_clast (scop);
 
   recompute_all_dominators ();
   graphite_verify ();
-  if_region = move_sese_in_condition (SCOP_REGION (scop));
-  sese_build_livein_liveouts (SCOP_REGION (scop));
-  scop_insert_phis_for_liveouts (SCOP_REGION (scop),
+  if_region = move_sese_in_condition (region);
+  sese_build_livein_liveouts (region);
+  sese_insert_phis_for_liveouts (region,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
 				 if_region->true_region->exit);
   recompute_all_dominators ();
   graphite_verify ();
-  context_loop = SESE_ENTRY (SCOP_REGION (scop))->src->loop_father;
+  context_loop = SESE_ENTRY (region)->src->loop_father;
   compute_cloog_iv_types (pc.stmt);
 
-  new_scop_exit_edge = translate_clast (scop, context_loop, pc.stmt,
+  new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
 					&ivstack);
   free_loop_iv_stack (&ivstack);
@@ -5150,7 +4878,7 @@ gloog (scop_p scop)
   cloog_program_free (pc.prog);
 
   graphite_verify ();
-  scop_adjust_phis_for_liveouts (scop,
+  sese_adjust_phis_for_liveouts (region,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
 				 if_region->true_region->exit);
@@ -5158,481 +4886,6 @@ gloog (scop_p scop)
   recompute_all_dominators ();
   graphite_verify ();
   return true;
-}
-
-/* Returns the number of data references in SCOP.  */
-
-static int
-nb_data_refs_in_scop (scop_p scop)
-{
-  int i;
-  graphite_bb_p gbb;
-  int res = 0;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    res += VEC_length (data_reference_p, GBB_DATA_REFS (gbb));
-
-  return res;
-}
-
-/* Move the loop at index SRC and insert it before index DEST.
-   This transformartion is only valid, if the loop nest between i and k is
-   perfectly nested. Therefore we do not need to change the static schedule.
-
-   Example:
-
-   for (i = 0; i < 50; i++)
-     for (j ...)
-       for (k = 5; k < 100; k++)
-         A
-
-   To move k before i use:
-
-   graphite_trans_bb_move_loop (A, 2, 0)
-
-   for (k = 5; k < 100; k++)
-     for (i = 0; i < 50; i++)
-       for (j ...)
-         A
-
-   And to move k back:
-
-   graphite_trans_bb_move_loop (A, 0, 2)
-
-   This function does not check the validity of interchanging loops.
-   This should be checked before calling this function.  */
-
-static void
-graphite_trans_bb_move_loop (graphite_bb_p gbb, int src, int dest)
-{
-  loop_p tmp_loop_p;
-  ppl_dimension_type dim, *map;
-  int i;
-
-  gcc_assert (src < gbb_nb_loops (gbb)
-	      && dest < gbb_nb_loops (gbb));
-
-  tmp_loop_p = VEC_index (loop_p, GBB_LOOPS (gbb), src);
-  VEC_ordered_remove (loop_p, GBB_LOOPS (gbb), src);
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gbb), dest, tmp_loop_p);
-
-  ppl_Polyhedron_space_dimension (GBB_DOMAIN (gbb), &dim);
-  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim);
-
-  for (i = 0; i < (int) dim; i++)
-    map[i] = i;
-
-  /* | "x SRC a b c DEST y" is transformed to
-     | "x a b c DEST SRC y".  */
-  for (i = src + 1; i <= dest; i++)
-    map[i] = i - 1;
-
-  /* | "x DEST a b c SRC y" is transformed to
-     | "x SRC DEST a b c y".  */
-  for (i = dest; i < src; i++)
-    map[i] = i + 1;
-
-  map[src] = dest;
-
-  ppl_Polyhedron_map_space_dimensions (GBB_DOMAIN (gbb), map, dim);
-  free (map);
-}
-
-/* Strip mines the loop at dimension LOOP of BB with STRIDE.  This
-   transform is always valid but not always a performance gain.  */
-  
-static void
-graphite_trans_bb_strip_mine (graphite_bb_p gbb, ppl_dimension_type loop,
-			      int stride)
-{
-  ppl_Polyhedron_t ph = ppl_strip_loop (GBB_DOMAIN (gbb), loop, stride);  
-  ppl_delete_Polyhedron (GBB_DOMAIN (gbb));
-  GBB_DOMAIN (gbb) = ph;
-
-  gcc_assert ((int) loop <= gbb_nb_loops (gbb) - 1);
-
-  /* Update the loops vector.  */
-  VEC_safe_insert (loop_p, heap, GBB_LOOPS (gbb), loop, NULL);
-
-  /* Update static schedule.  */
-  {
-    ppl_dimension_type i, nb_loops = gbb_nb_loops (gbb);
-    ppl_Linear_Expression_t new_schedule;
-    ppl_Coefficient_t c;
-
-    ppl_new_Coefficient (&c);
-    ppl_new_Linear_Expression_with_dimension (&new_schedule, nb_loops + 1);
-
-    for (i = 0; i <= loop; i++)
-      {
-	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i, c);
-	ppl_Linear_Expression_add_to_coefficient (new_schedule, i, c);
-      }
-
-    for (i = loop + 1; i <= nb_loops - 2; i++)
-      {
-	ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb), i, c);
-	ppl_Linear_Expression_add_to_coefficient (new_schedule, i + 2, c);
-      }
-
-    ppl_delete_Linear_Expression (GBB_STATIC_SCHEDULE (gbb));
-    GBB_STATIC_SCHEDULE (gbb) = new_schedule;
-
-    ppl_delete_Coefficient (c);
-  }
-}
-
-/* Returns true when the strip mining of LOOP_INDEX by STRIDE is
-   profitable or undecidable.  GB is the statement around which the
-   loops will be strip mined.  */
-
-static bool
-strip_mine_profitable_p (graphite_bb_p gbb, int stride,
-			 int loop_index)
-{
-  bool res = true;
-  edge exit = NULL;
-  tree niter;
-  loop_p loop;
-  long niter_val;
-
-  loop = VEC_index (loop_p, GBB_LOOPS (gbb), loop_index);
-  exit = single_exit (loop);
-
-  niter = find_loop_niter (loop, &exit);
-  if (niter == chrec_dont_know 
-      || TREE_CODE (niter) != INTEGER_CST)
-    return true;
-  
-  niter_val = int_cst_value (niter);
-
-  if (niter_val < stride)
-    {
-      res = false;
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	{
-	  fprintf (dump_file, "\nStrip Mining is not profitable for loop %d:",
-		   loop->num);
-	  fprintf (dump_file, "number of iterations is too low.\n");
-	}
-    }
-  
-  return res;
-}
- 
-/* Determines when the interchange of LOOP_A and LOOP_B belonging to
-   SCOP is legal.  DEPTH is the number of loops around.  */
-
-static bool
-is_interchange_valid (scop_p scop, int loop_a, int loop_b, int depth)
-{
-  bool res;
-  VEC (ddr_p, heap) *dependence_relations;
-  VEC (data_reference_p, heap) *datarefs;
-
-  struct loop *nest = VEC_index (loop_p, SCOP_LOOP_NEST (scop), loop_a);
-  lambda_trans_matrix trans;
-
-  gcc_assert (loop_a < loop_b);
-
-  dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
-  datarefs = VEC_alloc (data_reference_p, heap, 10);
-
-  if (!compute_data_dependences_for_loop (nest, true, &datarefs,
-					  &dependence_relations))
-    return false;
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    dump_ddrs (dump_file, dependence_relations);
-
-  trans = lambda_trans_matrix_new (depth, depth);
-  lambda_matrix_id (LTM_MATRIX (trans), depth);
-
-  lambda_matrix_row_exchange (LTM_MATRIX (trans), 0, loop_b - loop_a);
-
-  if (!lambda_transform_legal_p (trans, depth, dependence_relations))
-    {
-      lambda_matrix_row_exchange (LTM_MATRIX (trans), 0, loop_b - loop_a);
-      res = false;
-    }
-  else
-    res = true;
-
-  free_dependence_relations (dependence_relations);
-  free_data_refs (datarefs);
-  return res;
-}
-
-/* Loop block the LOOPS innermost loops of GB with stride size STRIDE. 
-
-   Example
-
-   for (i = 0; i <= 50; i++) 
-     for (k = 0; k <= 100; k++) 
-       for (l = 0; l <= 200; l++) 
-         A
-
-   To strip mine the two innermost loops with stride = 4 call:
-
-   graphite_trans_bb_block (A, 4, 2) 
-
-   for (i = 0; i <= 50; i++) 
-     for (kk = 0; kk <= 100; kk+=4) 
-       for (ll = 0; ll <= 200; ll+=4) 
-         for (k = kk; k <= min (100, kk + 3); k++) 
-           for (l = ll; l <= min (200, ll + 3); l++) 
-             A
-*/
-
-static bool
-graphite_trans_bb_block (graphite_bb_p gbb, int stride, int loops)
-{
-  int i, j;
-  int nb_loops = gbb_nb_loops (gbb);
-  int start = nb_loops - loops;
-  scop_p scop = GBB_SCOP (gbb);
-
-  gcc_assert (sese_contains_loop (SCOP_REGION (scop), gbb_loop (gbb)));
-
-  for (i = start ; i < nb_loops; i++)
-    for (j = i + 1; j < nb_loops; j++)
-      if (!is_interchange_valid (scop, i, j, nb_loops))
-	{
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file,
-		     "\nInterchange not valid for loops %d and %d:\n", i, j);
-	  return false;
-	}
-      else if (dump_file && (dump_flags & TDF_DETAILS))
-	fprintf (dump_file,
-		 "\nInterchange valid for loops %d and %d:\n", i, j);
-
-  /* Check if strip mining is profitable for every loop.  */
-  for (i = 0; i < nb_loops - start; i++)
-    if (!strip_mine_profitable_p (gbb, stride, start + i))
-      return false;
-
-  /* Strip mine loops.  */
-  for (i = 0; i < nb_loops - start; i++)
-    graphite_trans_bb_strip_mine (gbb, start + 2 * i, stride);
-
-  /* Interchange loops.  */
-  for (i = 1; i < nb_loops - start; i++)
-    graphite_trans_bb_move_loop (gbb, start + 2 * i, start + i);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\nLoops containing BB %d will be loop blocked.\n",
-	     GBB_BB (gbb)->index);
-
-  return true;
-}
-
-/* Loop block LOOPS innermost loops of a loop nest.  BBS represent the
-   basic blocks that belong to the loop nest to be blocked.  */
-
-static bool
-graphite_trans_loop_block (VEC (graphite_bb_p, heap) *bbs, int loops)
-{
-  graphite_bb_p gbb;
-  int i;
-  bool transform_done = false;
-
-  /* TODO: - Calculate the stride size automatically.  */
-  int stride_size = 64;
-
-  for (i = 0; VEC_iterate (graphite_bb_p, bbs, i, gbb); i++)
-    transform_done |= graphite_trans_bb_block (gbb, stride_size, loops);
-
-  return transform_done;
-}
-
-/* Loop block all basic blocks of SCOP.  Return false when the
-   transform is not performed.  */
-
-static bool
-graphite_trans_scop_block (scop_p scop)
-{
-  graphite_bb_p gbb;
-  int i, j;
-  int last_nb_loops;
-  int nb_loops;
-  bool perfect = true;
-  bool transform_done = false;
-  VEC (graphite_bb_p, heap) *bbs = VEC_alloc (graphite_bb_p, heap, 3);
-  int max_schedule = scop_max_loop_depth (scop) + 1;
-  ppl_Linear_Expression_t last_schedule;
-  ppl_Coefficient_t c;
-  Value v0, v1;
-
-  if (VEC_length (graphite_bb_p, SCOP_BBS (scop)) == 0)
-    return false;
-
-  value_init (v0);
-  value_init (v1);
-  ppl_new_Coefficient (&c);
-
-  /* Get the data of the first bb.  */
-  gbb = VEC_index (graphite_bb_p, SCOP_BBS (scop), 0);
-  last_nb_loops = gbb_nb_loops (gbb);
-
-  ppl_new_Linear_Expression_with_dimension (&last_schedule, max_schedule);
-  ppl_assign_Linear_Expression_from_Linear_Expression
-    (last_schedule, GBB_STATIC_SCHEDULE (gbb));
-
-  VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
-  
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb); i++)
-    {
-      /* We did the first bb before.  */
-      if (i == 0)
-        continue;
-
-      nb_loops = gbb_nb_loops (gbb);
-
-      /* If the number of loops is unchanged and only the last element of the
-         schedule changes, we stay in the loop nest.  */
-      if (nb_loops == last_nb_loops)
-	{
-	  ppl_Linear_Expression_coefficient (last_schedule, nb_loops + 1, c);
-	  ppl_Coefficient_to_mpz_t (c, v0);
-	  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
-					     nb_loops + 1, c);
-	  ppl_Coefficient_to_mpz_t (c, v1);
-
-	  if (value_ne (v0, v1))
-	    {
-	      VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
-	      continue;
-	    }
-	}
-
-      /* Otherwise, we left the innermost loop. So check, if the last bb was in
-         a perfect loop nest and how many loops are contained in this perfect
-         loop nest. 
-         
-         Count the number of zeros from the end of the schedule. They are the
-         number of surrounding loops.
-
-         Example:
-         last_bb  2 3 2 0 0 0 0 3
-         bb       2 4 0
-	 <------  j = 4
-        
-         last_bb  2 3 2 0 0 0 0 3
-         bb       2 3 2 0 1
-	 <--  j = 2
-
-         If there is no zero, there were other bbs in outer loops and the loop
-         nest is not perfect.  */
-      for (j = last_nb_loops - 1; j >= 0; j--)
-        {
-	  ppl_Linear_Expression_coefficient (last_schedule, j, c);
-	  ppl_Coefficient_to_mpz_t (c, v0);
-	  value_set_si (v1, 0);
-
-          if (value_ne (v0, v1))
-	    {
-	      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
-						 j, c);
-	      ppl_Coefficient_to_mpz_t (c, v0);
-	      value_set_si (v1, 1);
-
-	      if (j <= nb_loops && value_eq (v0, v1))
-		{
-		  j--;
-		  break;
-		}
-	    }
-        }
-      
-      j++;
-
-      /* Found perfect loop nest.  */
-      if (perfect && last_nb_loops - j >= 2)
-        transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
- 
-      /* Check if we start with a new loop.
-
-         Example:
-  
-         last_bb  2 3 2 0 0 0 0 3
-         bb       2 3 2 0 0 1 0
-        
-         Here we start with the loop "2 3 2 0 0 1" 
-
-         last_bb  2 3 2 0 0 0 0 3
-         bb       2 3 2 0 0 1 
-
-         But here not, so the loop nest can never be perfect.  */
-
-      ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (gbb),
-					 nb_loops, c);
-      ppl_Coefficient_to_mpz_t (c, v0);
-      value_set_si (v1, 0);
-      perfect = value_eq (v0, v1);
-
-      /* Update the last_bb infos.  We do not do that for the bbs in the same
-         loop, as the data we use is not changed.  */
-      last_nb_loops = nb_loops;
-
-      ppl_assign_Linear_Expression_from_Linear_Expression
-	(last_schedule, GBB_STATIC_SCHEDULE (gbb));
-
-      VEC_truncate (graphite_bb_p, bbs, 0);
-      VEC_safe_push (graphite_bb_p, heap, bbs, gbb);
-    }
-
-  /* Check if the last loop nest was perfect.  It is the same check as above,
-     but the comparison with the next bb is missing.  */
-  for (j = last_nb_loops - 1; j >= 0; j--)
-    {
-      ppl_Linear_Expression_coefficient (last_schedule, j, c);
-      ppl_Coefficient_to_mpz_t (c, v0);
-      value_set_si (v1, 0);
-
-      if (value_ne (v0, v1))
-	{
-	  j--;
-	  break;
-	}
-    }
-
-  j++;
-
-  /* Found perfect loop nest.  */
-  if (last_nb_loops - j >= 2)
-    transform_done |= graphite_trans_loop_block (bbs, last_nb_loops - j);
-  VEC_free (graphite_bb_p, heap, bbs);
-
-  ppl_delete_Linear_Expression (last_schedule);
-  ppl_delete_Coefficient (c);
-  value_clear (v0);
-  value_clear (v1);
-  return transform_done;
-}
-
-/* Apply graphite transformations to all the basic blocks of SCOP.  */
-
-static bool
-graphite_apply_transformations (scop_p scop)
-{
-  bool transform_done = false;
-
-  /* Sort the list of bbs.  Keep them always sorted.  */
-  graphite_sort_gbbs (scop);
-
-  if (flag_loop_block)
-    transform_done = graphite_trans_scop_block (scop);
-
-  /* Generate code even if we did not apply any real transformation.
-     This also allows to check the performance for the identity
-     transformation: GIMPLE -> GRAPHITE -> GIMPLE
-     Keep in mind that CLooG optimizes in control, so the loop structure
-     may change, even if we only use -fgraphite-identity.  */ 
-  if (flag_graphite_identity)
-    transform_done = true;
-
-  return transform_done;
 }
 
 /* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
@@ -5667,13 +4920,14 @@ limit_scops (void)
     {
       int j;
       loop_p loop;
+      sese region = SCOP_REGION (scop);
       build_scop_bbs (scop);
 
-      if (!build_scop_loop_nests (scop))
+      if (!build_sese_loop_nests (region))
 	continue;
 
-      for (j = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), j, loop); j++) 
-        if (!loop_in_sese_p (loop_outer (loop), SCOP_REGION (scop)))
+      for (j = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), j, loop); j++) 
+        if (!loop_in_sese_p (loop_outer (loop), region))
           {
 	    sd_region open_scop;
 	    open_scop.entry = loop->header;
@@ -5688,21 +4942,6 @@ limit_scops (void)
   create_sese_edges (tmp_scops);
   build_graphite_scops (tmp_scops);
   VEC_free (sd_region, heap, tmp_scops);
-}
-
-/* Print some statistics about this SCOP to FILE.  */
-
-static void
-print_scop_statistics (FILE *file, scop_p scop)
-{
-  int nbrefs = nb_data_refs_in_scop (scop);
-  fprintf (file, "\n(In SCoP %d -> %d :\n", SCOP_ENTRY (scop)->index,
-	   SCOP_EXIT (scop)->index);
-  fprintf (file, "\nnumber of bbs: %d\n",
-	   VEC_length (graphite_bb_p, SCOP_BBS (scop)));
-  fprintf (file, "\nnumber of loops: %d)\n",
-	   VEC_length (loop_p, SCOP_LOOP_NEST (scop)));
-  fprintf (file, "\nnumber of data refs: %d\n", nbrefs);
 }
 
 /* Perform a set of linear transforms on the loops of the current
@@ -5736,26 +4975,20 @@ graphite_transform_loops (void)
   for (i = 0; VEC_iterate (scop_p, current_scops, i, scop); i++)
     {
       build_scop_bbs (scop);
-      if (!build_scop_loop_nests (scop))
+      if (!build_sese_loop_nests (SCOP_REGION (scop)))
 	continue;
 
       if (scop_contains_non_iv_scalar_phi_nodes (scop))
 	continue;
 
       build_bb_loops (scop);
-      build_scop_conditions (scop);
+      build_sese_conditions (SCOP_REGION (scop));
       find_scop_parameters (scop);
       build_scop_iteration_domain (scop);
       add_conditions_to_constraints (scop);
       build_scop_canonical_schedules (scop);
       build_scop_data_accesses (scop);
       
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	print_scop_statistics (dump_file, scop);
-
-      if (0)
-        SCOP_DEP_GRAPH (scop) = graphite_build_rdg_all_levels (scop);
-
       if (graphite_apply_transformations (scop))
 	transform_done = gloog (scop);
 #ifdef ENABLE_CHECKING

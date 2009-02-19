@@ -140,6 +140,7 @@ new_sese (edge entry, edge exit)
   SESE_LIVEIN (res) = NULL;
   SESE_ADD_PARAMS (res) = true;
   SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
+  SESE_OLDIVS (res) = VEC_alloc (name_tree, heap, 3);
 
   return res;
 }
@@ -150,7 +151,7 @@ void
 free_sese (sese region)
 {
   int i;
-  name_tree p;
+  name_tree p, iv;
 
   for (i = 0; i < SESE_NUM_VER (region); i++)
     BITMAP_FREE (SESE_LIVEIN_VER (region, i));
@@ -170,6 +171,13 @@ free_sese (sese region)
   VEC_free (name_tree, heap, SESE_PARAMS (region));
   VEC_free (loop_p, heap, SESE_LOOP_NEST(region));
   pointer_set_destroy (SESE_REGION_BBS (region));
+
+  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
+    free (iv);
+
+  VEC_free (name_tree, heap, SESE_OLDIVS (region));
+  
+  htab_delete (SESE_LIVEOUT_RENAMES (region));
   XDELETE (region);
 }
 

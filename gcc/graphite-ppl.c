@@ -24,6 +24,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "ggc.h"
+#include "ppl_c.h"
+#include "cloog/cloog.h"
 #include "graphite-ppl.h"
 
 /* Translates row ROW of the CloogMatrix MATRIX to a PPL Constraint.  */

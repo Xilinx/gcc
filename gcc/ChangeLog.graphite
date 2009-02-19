@@ -1,3 +1,18 @@
+2009-02-18  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.h: Separate from graphite_bb_p the polyhedral
+	representation in poly_bb_p and the GCC specifics in gimple_bb_p.
+	* graphite.c: Same.
+	* graphite-data-ref.c: Same.
+	* graphite-data-ref.h: New.
+	* graphite-poly.h: New.
+	* graphite-poly.c: New.
+	* Makefile.in (OBJS-common): Add graphite-poly.o.
+	(graphite-poly.o): New rule.
+	* tree-data-ref.h (struct data_reference): Remove unused now scop field.
+	(DR_SCOP): Removed.
+
 2009-02-18  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 

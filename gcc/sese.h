@@ -103,7 +103,8 @@ sese_contains_loop (sese sese, struct loop *loop)
   return bitmap_bit_p (SESE_LOOPS (sese), loop->num);
 }
 
-/* Returns the loop depth of LOOP in SESE.  */
+/* Returns the loop depth of LOOP in SESE.
+   FIXME: The same as nb_loops_around_loop_in_sese.  */
 
 static inline unsigned int
 sese_loop_depth (sese sese, loop_p loop)
@@ -121,10 +122,12 @@ sese_loop_depth (sese sese, loop_p loop)
   return depth;
 }
 
+/* The number of parameters in REGION. */
+
 static inline unsigned
-sese_nb_params (sese sese)
+sese_nb_params (sese region)
 {
-  return VEC_length (name_tree, SESE_PARAMS (sese));
+  return VEC_length (name_tree, SESE_PARAMS (region));
 }
 
 /* Returns true when BB is in REGION.  */

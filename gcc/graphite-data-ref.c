@@ -1,5 +1,5 @@
-/* Dependence analysis for Graphite.
-   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+/* Graphite polyhedral data dependence analysis.
+   Copyright (C) 2009 Free Software Foundation, Inc.
    Contributed by Konrad Trifunovic <konrad.trifunovic@inria.fr>.
 
 This file is part of GCC.
@@ -41,8 +41,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 
 #ifdef HAVE_cloog
+#include "sese.h"
 #include "cloog/cloog.h"
+#include "ppl_c.h"
+#include "graphite-ppl.h"
 #include "graphite.h"
+#include "graphite-poly.h"
+#include "graphite-data-ref.h"
 
 
 /* Copy M, add a row of zeros at the end of the copy, and return the
@@ -69,20 +74,21 @@ graphite_add_a_null_row (CloogMatrix *m)
 
 static CloogMatrix *
 graphite_initialize_dependence_polyhedron (scop_p scop,
-					   graphite_bb_p gbb1,
-					   graphite_bb_p gbb2,   
+					   poly_bb_p pbb1,
+					   poly_bb_p pbb2,   
 					   struct data_reference *a, 
 					   struct data_reference *b)
 {
   int nb_cols, nb_rows, nb_params, nb_iter1, nb_iter2;
   int row, col, offset;
+  sese region = SCOP_REGION (scop);
   CloogMatrix *domain1, *domain2;
   CloogMatrix *dep_constraints;
   lambda_vector access_row_vector;
   Value tmp;
 
-  domain1 = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gbb1));
-  domain2 = new_Cloog_Matrix_from_ppl_Polyhedron (GBB_DOMAIN (gbb2));
+  domain1 = new_Cloog_Matrix_from_ppl_Polyhedron (PBB_DOMAIN (pbb1));
+  domain2 = new_Cloog_Matrix_from_ppl_Polyhedron (PBB_DOMAIN (pbb2));
 
   /* Adding 2 columns: one for the eq/neq column, one for constant
      term.  */
@@ -150,7 +156,7 @@ graphite_initialize_dependence_polyhedron (scop_p scop,
                       access_row_vector[col + nb_iter1]);
       
       value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1], 
-                    access_row_vector[ref_nb_loops (a) - 1]);
+                    access_row_vector[ref_nb_loops (a, region) - 1]);
       /* TODO: do not forget about parametric part.  */
     }
 
@@ -164,8 +170,8 @@ graphite_initialize_dependence_polyhedron (scop_p scop,
       for (col = 1; col <= nb_iter2; col++)
 	value_set_si (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_iter1 + col], 
 		      -access_row_vector[col]);              
-      
-      for (col = 1; col <= nb_params; col++)
+
+	for (col = 1; col <= nb_params; col++)
         {
           value_set_si (tmp, access_row_vector[col + nb_iter2]);
 
@@ -174,7 +180,7 @@ graphite_initialize_dependence_polyhedron (scop_p scop,
                           tmp);
         }
       
-      value_set_si (tmp, access_row_vector[ref_nb_loops (b) - 1]);
+      value_set_si (tmp, access_row_vector[ref_nb_loops (b, region) - 1]);
       value_subtract (dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
                       dep_constraints->p[row + domain1->NbRows + domain2->NbRows][nb_cols-1],
                       tmp);
@@ -223,7 +229,7 @@ initialize_data_dependence_polyhedron (bool loop_carried,
 /* Returns true when the static schedule of A precedes B at LEVEL.  */
 
 static bool
-schedule_precedes_p (graphite_bb_p a, graphite_bb_p b, int level)
+schedule_precedes_p (poly_bb_p a, poly_bb_p b, int level)
 {
   bool res;
   ppl_Coefficient_t c;
@@ -233,37 +239,12 @@ schedule_precedes_p (graphite_bb_p a, graphite_bb_p b, int level)
   value_init (v1);
   ppl_new_Coefficient (&c);
 
-  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (a), level, c);
+  ppl_Linear_Expression_coefficient (PBB_STATIC_SCHEDULE (a), level, c);
   ppl_Coefficient_to_mpz_t (c, v0);
-  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (b), level, c);
+  ppl_Linear_Expression_coefficient (PBB_STATIC_SCHEDULE (b), level, c);
   ppl_Coefficient_to_mpz_t (c, v1);
   ppl_delete_Coefficient (c);
   res = value_lt (v0, v1);
-
-  value_clear (v0);
-  value_clear (v1);
-  return res;
-}
-
-/* Returns true when the static schedule of A is equal to B at LEVEL.  */
-
-static bool
-schedule_same_p (graphite_bb_p a, graphite_bb_p b, int level)
-{
-  bool res;
-  ppl_Coefficient_t c;
-  Value v0, v1;
-
-  value_init (v0);
-  value_init (v1);
-  ppl_new_Coefficient (&c);
-
-  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (a), level, c);
-  ppl_Coefficient_to_mpz_t (c, v0);
-  ppl_Linear_Expression_coefficient (GBB_STATIC_SCHEDULE (b), level, c);
-  ppl_Coefficient_to_mpz_t (c, v1);
-  ppl_delete_Coefficient (c);
-  res = value_eq (v0, v1);
 
   value_clear (v0);
   value_clear (v1);
@@ -276,34 +257,12 @@ schedule_same_p (graphite_bb_p a, graphite_bb_p b, int level)
    of statements.  */
 
 static bool 
-statement_precedes_p (graphite_bb_p gbb_a,
-                      gimple a,
-                      graphite_bb_p gbb_b,
-                      gimple b,
+statement_precedes_p (poly_bb_p pbb_a,
+                      poly_bb_p pbb_b,
                       unsigned p)
 {
-  gimple_stmt_iterator gsi;
-  bool statm_a_found;
-
-  if (schedule_precedes_p (gbb_a, gbb_b, p))
+  if (schedule_precedes_p (pbb_a, pbb_b, p))
     return true;
-
-  else if (schedule_same_p (gbb_a, gbb_b, p))
-    {
-      statm_a_found = false;
-
-      for (gsi = gsi_start_bb (GBB_BB (gbb_a)); !gsi_end_p (gsi); gsi_next (&gsi))
-        {
-          if (gsi_stmt (gsi) == a)
-            {
-              statm_a_found = true;
-              continue;
-            }
-
-          if (statm_a_found && gsi_stmt (gsi) == b)
-            return true;
-        }
-    }
 
   return false;
 }
@@ -312,27 +271,27 @@ statement_precedes_p (graphite_bb_p gbb_a,
    references A and B. */
 
 struct data_dependence_polyhedron *
-graphite_test_dependence (scop_p scop, graphite_bb_p gbb1, graphite_bb_p gbb2,
+graphite_test_dependence (scop_p scop, poly_bb_p pbb1, poly_bb_p pbb2,
                           struct data_reference *a, struct data_reference *b)
 {
   unsigned i, j, row;
   signed p;
   CloogMatrix *dep_constraints = NULL, *temp_matrix = NULL;
   CloogDomain *simplified;
-  unsigned iter_vector_dim = MIN (nb_loops_around_gbb (gbb1),
-				  nb_loops_around_gbb (gbb2));
+  unsigned iter_vector_dim = MIN (pbb_nb_loops (pbb1),
+				  pbb_nb_loops (pbb2));
 
   for (i = 1; i <= 2 * iter_vector_dim + 1; i++)
     {
-      /* S - gbb1 */
-      /* T - gbb2 */
+      /* S - pbb1 */
+      /* T - pbb2 */
       /* S -> T, T - S >=1 */
       /* p is alternating sequence 0,1,-1,2,-2,... */
       p = (i / 2) * (1 - (i % 2) * 2);
 
       if (p == 0)
-	dep_constraints = graphite_initialize_dependence_polyhedron (scop, gbb1,
-								     gbb2, a, b);
+	dep_constraints = graphite_initialize_dependence_polyhedron (scop, pbb1,
+								     pbb2, a, b);
 
       else if (p > 0)
 	{
@@ -348,10 +307,10 @@ graphite_test_dependence (scop_p scop, graphite_bb_p gbb1, graphite_bb_p gbb2,
 		 should use the scattering functions.  
 
 		 value_oppose (temp_matrix->p[row][p],
-		 GBB_DYNAMIC_SCHEDULE (gbb1)->p[j][p - 1]);
+		 GBB_DYNAMIC_SCHEDULE (pbb1)->p[j][p - 1]);
 		 value_assign (temp_matrix->p[row]
-		 [nb_loops_around_gbb (gbb1) + p],
-		 GBB_DYNAMIC_SCHEDULE (gbb2)->p[j][p - 1]);
+		 [nb_loops_around_pbb (pbb1) + p],
+		 GBB_DYNAMIC_SCHEDULE (pbb2)->p[j][p - 1]);
 	      */
 	      value_set_si (temp_matrix->p[row][temp_matrix->NbColumns - 1], -1);
 
@@ -364,12 +323,12 @@ graphite_test_dependence (scop_p scop, graphite_bb_p gbb1, graphite_bb_p gbb2,
 
 		     value_assign (dep_constraints->p[j + dep_constraints->NbRows 
 		     - 2*iter_vector_dim][p], 
-		    GBB_DYNAMIC_SCHEDULE (gbb1)->p[j][p - 1]);
+		    GBB_DYNAMIC_SCHEDULE (pbb1)->p[j][p - 1]);
 		    
 		    value_oppose (dep_constraints->p[j + dep_constraints->NbRows 
 		    - 2 * iter_vector_dim]
-		    [nb_loops_around_gbb (gbb1) + p], 
-		    GBB_DYNAMIC_SCHEDULE (gbb2)->p[j][p - 1]);
+		    [nb_loops_around_pbb (pbb1) + p], 
+		    GBB_DYNAMIC_SCHEDULE (pbb2)->p[j][p - 1]);
 		  */
 		}
 	      else
@@ -385,7 +344,7 @@ graphite_test_dependence (scop_p scop, graphite_bb_p gbb1, graphite_bb_p gbb2,
 	  simplified = cloog_domain_matrix2domain (temp_matrix);
 
 	  if (!is_empty_polyhedron (simplified)
-	      && statement_precedes_p (gbb1, DR_STMT (a), gbb2, DR_STMT (b), -p))
+	      && statement_precedes_p (pbb1, pbb2, -p))
 	    return initialize_data_dependence_polyhedron (false, simplified,
 							  -p, a, b);
 
@@ -400,34 +359,35 @@ graphite_test_dependence (scop_p scop, graphite_bb_p gbb1, graphite_bb_p gbb2,
 /* Returns the polyhedral data dependence graph for SCOP.  */
 
 struct graph *
-graphite_build_rdg_all_levels (scop_p scop)
+graphite_build_rdg_all_levels (scop_p scop ATTRIBUTE_UNUSED)
 {
+  #if 0
   unsigned i, j, i1, j1;
-  graphite_bb_p gbb1, gbb2;
+  poly_bb_p pbb1, pbb2;
   struct graph *rdg = NULL;
   VEC (gimple, heap) *stmts = VEC_alloc (gimple, heap, 10);
   VEC (ddp_p, heap) *dependences = VEC_alloc (ddp_p, heap, 10); 
   ddp_p dependence_polyhedron;    
 
-  for (i = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), i, gbb1); i++)
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb1); i++)
     {
       gimple_stmt_iterator gsi;
       struct data_reference *a, *b;
 
-      for (gsi = gsi_start_bb (GBB_BB (gbb1)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_bb (GBB_BB (pbb1)); !gsi_end_p (gsi); gsi_next (&gsi))
 	VEC_safe_push (gimple, heap, stmts, gsi_stmt (gsi));
 
       for (i1 = 0; 
-           VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb1), i1, a); 
+           VEC_iterate (data_reference_p, GBB_DATA_REFS (pbb1), i1, a); 
            i1++)
-	for (j = 0; VEC_iterate (graphite_bb_p, SCOP_BBS (scop), j, gbb2); j++)
+	for (j = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), j, pbb2); j++)
 	  for (j1 = 0; 
-               VEC_iterate (data_reference_p, GBB_DATA_REFS (gbb2), j1, b); 
+               VEC_iterate (data_reference_p, GBB_DATA_REFS (pbb2), j1, b); 
                j1++)
 	    if ((!DR_IS_READ (a) || !DR_IS_READ (b)) && dr_may_alias_p (a,b)
 		&& operand_equal_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b), 0))
               {
-                dependence_polyhedron = graphite_test_dependence (scop, gbb1, gbb2, a, b);
+                dependence_polyhedron = graphite_test_dependence (scop, pbb1, pbb2, a, b);
                 if (dependence_polyhedron != NULL)
                   VEC_safe_push (ddp_p, heap, dependences, dependence_polyhedron);
               }
@@ -448,6 +408,8 @@ graphite_build_rdg_all_levels (scop_p scop)
 
   VEC_free (gimple, heap, stmts);
   return rdg;  
+  #endif
+  return NULL;
 }
 
 
