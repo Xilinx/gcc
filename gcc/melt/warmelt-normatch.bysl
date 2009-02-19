@@ -938,6 +938,7 @@
 	 (bindlist (make_list discr_list))
 	 (testlist (make_list discr_list))
 	 (wholectype ())		;the ctype of the whole match
+	 (oldtester ())			 ;the previous tester
 	 )
     (debug_msg smatsx "normexp_match smatsx")
     (multicall
@@ -995,7 +996,7 @@
 			     :pctn_pvarlocmap pvarmap
 			     :pctn_tests testlist
 			     ))
-	      (npatcont (instance class_container))
+	      (ntestcont (instance class_container)) ;container for tester
 	      )
 	  (scan_pattern curpat curloc ctyp pcn)
 	  (debug_msg mapvar "normexp_match mapvar")
@@ -1005,13 +1006,14 @@
 	  (multiple_put_nth tupcstmap ix mapcst)
 	  (multiple_put_nth tupbindlist ix bindlist)
 	  (debug_msg curpat "normexp_match curpat before normal_pattern")
-	  (normal_pattern curpat nmatx
-			  (lambda (tester) (put_fields npatcont :container_value tester))
+	  (normal_pattern 
+	   curpat nmatx
+	   (lambda (tester) (put_fields ntestcont :container_value tester))
 			  pcn)
-	  (debug_msg npatcont "normexp_match npatcont after normal_pattern")
+	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
 	  (let ( (newenv (get_field :pctn_env pcn))
 		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
-		 (curtester (get_field :container_value npatcont))
+		 (curtester (get_field :container_value ntestcont))
 		 (newsuctester
 		  (instance class_normtester_success
 			    :nrep_loc curloc
@@ -1029,6 +1031,7 @@
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
 	    (debug_msg curtester "normexp_match curtester after normal_pattern")
+	    (debug_msg oldtester "normexp_match oldtester after normal_pattern")
 	    (if (null curtester)
 		(progn
 		  (debug_msg curcas "normexp_match curcas for null curtester")
@@ -1059,7 +1062,22 @@
 		     (debug_msg curtester "normexp_match curtester becomes"))
 		 (exit lastesterloop)))
 	     )
-	    (put_fields npatcont :container_value curtester)
+	    ;; if there is an oldtester, add the curtester as its last else case
+	    (forever 
+	     oldtesterloop
+	     (if (null oldtester) (exit oldtesterloop))
+	     (assert_msg "check oldtester" (is_a oldtester class_normtester_any))
+	     (let ( (oldelse (unsafe_get_field :ntest_else oldtester)) )
+	       (if (null oldelse)
+		   (progn
+		     (put_fields oldtester :ntest_else curtester)
+		     (list_append (get_field :ntest_comefrom curtester) oldtester)
+		     (debug_msg oldtester "normexp_match updated oldtester")
+		     (exit oldtesterloop))
+		 (setq oldtester oldelse))
+	       ))
+	    ;; always set the oldtester to the curtester
+	    (setq oldtester curtester)
 	    (put_fields curtester :ntest_then newsuctester)
 	    (list_append (get_field :ntest_comefrom newsuctester) curtester)
 	    (list_append testlist newsuctester)

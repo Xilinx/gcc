@@ -1,4 +1,8 @@
 2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl (normexp_match): added oldtester and
+	chained the various tests thru their else...
+	* testsuite/melt/tmatch-1.bysl: added calls in the various match cases.
+2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[generated tmatch-1.c is compiled, but could be wrong]
 	* melt/warmelt-genobj.bysl: always add labins into obodyl inside
 	compilobj_nrep_match.

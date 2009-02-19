@@ -9,12 +9,12 @@
     -fbasilys-arg=..../tmatch-1.bysl -fbasilys-debug
 |#
 
-(defun tmatch_aa (x f)
+(defun tmatch_aa (x f g)
   (match x
 	 ( ?(tuple_nth 0 ?(instance class_symbol :named_name ?n))
 	    (f n))
 	 ( ?(instance class_named :named_name ?y)
-	  y)
+	  (g y))
 	 ( ?_ 
 	  x)))
 
