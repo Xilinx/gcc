@@ -1,5 +1,13 @@
+2009-02-20  Jan Sjodin  <jan.sjodin@amd.com>
+	* configure.ac: Removed dependence on malloc.h. Added maintainer mode
+	to limit regeneration of generated files.
+	* Makefile.in: Limit regeneration of files by checking maintainer mode.
+	* config.in: Generated.
+	* configure: Generated.
+
 2009-02-13  Jan Sjodin  <jan.sjodin@amd.com>
 	* pcp_alloc.h: Changed include malloc.h to stdlib.h
+
 2009-02-13  Jan Sjodin  <jan.sjodin@amd.com>
 	* pcp_error.cc: Made all comments into C++ style. Made all pointer 
 	  types written in a consistent way.

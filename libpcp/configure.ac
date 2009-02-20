@@ -46,8 +46,20 @@ ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long])
 ACX_PROG_CC_WARNINGS_ARE_ERRORS([manual])
 
 # Checks for header files.
-AC_CHECK_HEADERS(malloc.h stddef.h string.h stdio.h)
+AC_CHECK_HEADERS(stddef.h string.h stdio.h)
 GCC_HEADER_STDINT(gstdint.h)
+
+AC_ARG_ENABLE(maintainer-mode,
+[  --enable-maintainer-mode enable rules only needed by maintainers],,
+enable_maintainer_mode=no)
+
+if test "x$enable_maintainer_mode" = xno; then
+  MAINT='#'
+else
+  MAINT=
+fi
+AC_SUBST(MAINT)
+
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

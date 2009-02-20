@@ -69,7 +69,7 @@ all: libpcp.a
 .SUFFIXES:
 .SUFFIXES: .cc .c .o .obj
 
-libpcp.a: $(libpcp_a_OBJS)
+libpcp.a: $(libpcp_a_OBJS) 
 	-rm -f $@
 	$(AR) $(ARFLAGS) $@ $(libpcp_a_OBJS)
 	$(RANLIB) $@
@@ -79,16 +79,27 @@ libpcp.a: $(libpcp_a_OBJS)
 Makefile: $(srcdir)/Makefile.in config.status
 	$(SHELL) ./config.status Makefile
 
-config.status: $(srcdir)/configure
+config.status: @MAINT@ $(srcdir)/configure
 	$(SHELL) ./config.status --recheck
 
-$(srcdir)/configure: $(srcdir)/aclocal.m4
+$(srcdir)/configure: @MAINT@ $(srcdir)/aclocal.m4
 	cd $(srcdir) && $(AUTOCONF)
 
 $(srcdir)/aclocal.m4: $(srcdir)/../config/stdint.m4 \
 	$(srcdir)/../config/warnings.m4 $(srcdir)/../config/override.m4 \
 	$(srcdir)/configure.ac
 	cd $(srcdir) && $(ACLOCAL) -I ../config
+
+config.h: stamp-h1
+	test -f config.h || (rm -f stamp-h1 && $(MAKE) stamp-h1)
+
+stamp-h1: $(srcdir)/config.in config.status
+	-rm -f stamp-h1
+	$(SHELL) ./config.status config.h
+
+$(srcdir)/config.in: @MAINT@ $(srcdir)/configure
+	cd $(srcdir) && $(AUTOHEADER)
+	-rm -f stamp-h1
 
 # Dependencies.
 
@@ -101,7 +112,7 @@ clean: mostlyclean
 	-rm -rf makedepend$(EXEEXT) libpcp.a $(srcdir)/autom4te.cache
 
 distclean: clean
-	-rm -f config.status config.cache config.log \
+	-rm -f config.h stamp-h1 config.status config.cache config.log \
 	  configure.lineno configure.status.lineno Makefile localedir.h \
 	  localedir.hs gstdint.h
 
