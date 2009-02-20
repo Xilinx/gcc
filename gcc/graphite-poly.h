@@ -165,9 +165,10 @@ struct poly_bb
 #define PBB_BLACK_BOX(PBB) PBB->black_box
 #define PBB_LOOPS(PBB) PBB->loops
 
-void new_poly_bb (scop_p, gimple_bb_p);
-void free_poly_bb (poly_bb_p);
+extern void new_poly_bb (scop_p, gimple_bb_p);
+extern void free_poly_bb (poly_bb_p);
 extern void debug_loop_vec (poly_bb_p);
+extern ppl_Polyhedron_t schedule_to_scattering (poly_bb_p, int);
 
 static inline unsigned scop_nb_params (scop_p);
 
@@ -241,6 +242,15 @@ struct scop
 #define SCOP_OLDIVS(S) (SCOP_REGION (S)->old_ivs)
 #define SCOP_LIVEOUT_RENAMES(S) (SCOP_REGION (S)->liveout_renames)
 
+extern scop_p new_scop (sese);
+extern void free_scop (scop_p);
+extern void free_scops (VEC (scop_p, heap) *);
+extern void dot_all_scops (VEC (scop_p, heap) *);
+extern void print_generated_program (FILE *, scop_p);
+extern void debug_generated_program (scop_p);
+extern int scop_max_loop_depth (scop_p);
+extern bool graphite_apply_transformations (scop_p);
+
 /* Returns the number of parameters for SCOP.  */
 
 static inline unsigned
@@ -249,14 +259,13 @@ scop_nb_params (scop_p scop)
   return sese_nb_params (SCOP_REGION (scop));
 }
 
-extern scop_p new_scop (sese);
-extern void free_scop (scop_p);
-extern void free_scops (VEC (scop_p, heap) *);
-extern void dot_all_scops (VEC (scop_p, heap) *);
-extern void print_generated_program (FILE *, scop_p);
-extern void debug_generated_program (scop_p);
-extern int scop_max_loop_depth (scop_p);
+/* Calculate the number of loops around GB in the current SCOP.  */
 
-bool graphite_apply_transformations (scop_p);
+static inline int
+nb_loops_around_pbb (poly_bb_p pbb)
+{
+  return nb_loops_around_loop_in_sese (gbb_loop (PBB_BLACK_BOX (pbb)),
+				       SCOP_REGION (PBB_SCOP (pbb)));
+}
 
 #endif

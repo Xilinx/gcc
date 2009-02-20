@@ -588,5 +588,104 @@ free_scop (scop_p scop)
   XDELETE (scop);
 }
 
+/* Converts the graphite scheduling function into a cloog scattering
+   polyhedron.  The scattering polyhedron is used to add constraints
+   that limit the possible cloog output to valid programs in respect
+   to the scheduling function.
+
+   SCATTERING_DIMENSIONS specifies the number of scattering
+   dimensions.  CLooG 0.15.0 and previous versions require, that all
+   scattering functions of one CloogProgram have the same number of
+   scattering dimensions, therefore we allow to specify it.  This
+   restriction should be removed in future versions of CLooG.
+
+   The scattering polyhedron consists of these dimensions: scattering,
+   loop_iterators, parameters.
+
+   Example:
+
+   | scattering_dimensions = 5
+   | used_scattering_dimensions = 3
+   | nb_iterators = 1 
+   | scop_nb_params = 2
+   |
+   | Schedule:
+   |   i
+   | 4 5
+   |
+   | Scattering polyhedron:
+   |
+   | scattering: {s1, s2, s3, s4, s5}
+   | loop_iterators: {i}
+   | parameters: {p1, p2}
+   |
+   | s1  s2  s3  s4  s5  i   p1  p2  1 
+   | 1   0   0   0   0   0   0   0  -4  = 0
+   | 0   1   0   0   0  -1   0   0   0  = 0
+   | 0   0   1   0   0   0   0   0  -5  = 0  */
+
+ppl_Polyhedron_t
+schedule_to_scattering (poly_bb_p pbb, int scattering_dimensions) 
+{
+  int i;
+  scop_p scop = PBB_SCOP (pbb);
+  int nb_iterators = pbb_nb_loops (pbb);
+  int used_scattering_dimensions = nb_iterators * 2 + 1;
+  int nb_params = scop_nb_params (scop);
+  int col_iter_offset = scattering_dimensions;
+  ppl_Polyhedron_t ph;
+  ppl_Coefficient_t c;
+  ppl_dimension_type dim = scattering_dimensions + nb_iterators + nb_params;
+  Value v;
+
+  gcc_assert (scattering_dimensions >= used_scattering_dimensions);
+
+  value_init (v);
+  ppl_new_Coefficient (&c);
+  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, dim, 0);
+
+  for (i = 0; i < scattering_dimensions; i++)
+    {
+      ppl_Constraint_t cstr;
+      ppl_Linear_Expression_t expr;
+
+      ppl_new_Linear_Expression_with_dimension (&expr, dim);
+      value_set_si (v, 1);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_coefficient (expr, i, c);
+
+      /* Textual order inside this loop.  */
+      if (i < used_scattering_dimensions
+	  && (i % 2) == 0)
+	{
+	  ppl_Linear_Expression_coefficient (PBB_STATIC_SCHEDULE (pbb), i / 2, c);
+	  ppl_Coefficient_to_mpz_t (c, v);
+	  value_oppose (v, v);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_inhomogeneous (expr, c);
+	}
+
+      /* Iterations of this loop.  */
+      if (i < used_scattering_dimensions
+	  && (i % 2) == 1)
+	{
+	  int loop = (i - 1) / 2;
+	  value_set_si (v, -1);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_coefficient (expr,
+						    col_iter_offset + loop, c);
+	}
+      
+      ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
+      ppl_Polyhedron_add_constraint (ph, cstr);
+      ppl_delete_Linear_Expression (expr);
+      ppl_delete_Constraint (cstr);
+    }
+
+  value_clear (v);
+  ppl_delete_Coefficient (c);
+  return ph;
+}
+
 #endif
 

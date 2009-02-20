@@ -73,56 +73,5 @@ int nb_loops_around_gbb (gimple_bb_p);
 extern void print_gimple_bb (FILE *, gimple_bb_p, int, int);
 extern void debug_gbb (gimple_bb_p, int);
 extern void debug_clast_stmt (struct clast_stmt *);
-extern void debug_rename_map (htab_t);
-extern void debug_ivtype_map (htab_t);
-
-/* Describes the type of an iv stack entry.  */
-typedef enum {
-  iv_stack_entry_unknown = 0,
-  iv_stack_entry_iv,
-  iv_stack_entry_const
-} iv_stack_entry_kind;
-
-/* Data contained in an iv stack entry.  */
-typedef union iv_stack_entry_data_union
-{
-  name_tree iv;
-  tree constant;
-} iv_stack_entry_data;
-
-/* Datatype for loop iv stack entry.  */
-typedef struct iv_stack_entry_struct
-{
-  iv_stack_entry_kind kind;
-  iv_stack_entry_data data;
-} iv_stack_entry;
-
-typedef iv_stack_entry *iv_stack_entry_p;
-
-DEF_VEC_P(iv_stack_entry_p);
-DEF_VEC_ALLOC_P(iv_stack_entry_p,heap);
-
-typedef VEC(iv_stack_entry_p, heap) **loop_iv_stack;
-extern void debug_loop_iv_stack (loop_iv_stack);
-
-/* Return the old induction variable of the LOOP that is in normal
-   form in REGION.  */
-
-static inline tree
-oldiv_for_loop (sese region, loop_p loop)
-{
-  int i;
-  name_tree iv;
-
-  if (!loop)
-    return NULL_TREE;
-
-  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
-    if (iv->loop == loop)
-      return iv->t;
-
-  return NULL_TREE;
-}
-extern void debug_oldivs (sese);
 
 #endif  /* GCC_GRAPHITE_H  */

@@ -92,9 +92,15 @@ typedef struct sese
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
 extern void sese_build_livein_liveouts (sese);
-void sese_build_livein_liveouts (sese);
-int parameter_index_in_region (tree, sese);
-bool build_sese_loop_nests (sese);
+extern void sese_insert_phis_for_liveouts (sese, basic_block, edge, edge);
+extern void sese_adjust_phis_for_liveouts (sese, basic_block, edge, edge);
+extern int parameter_index_in_region (tree, sese);
+extern bool build_sese_loop_nests (sese);
+extern tree oldiv_for_loop (sese, loop_p);
+extern edge copy_bb_and_scalar_dependences (basic_block, sese, edge, htab_t);
+extern struct loop *outermost_loop_in_sese (sese, basic_block);
+extern void insert_loop_close_phis (sese, basic_block);
+extern void insert_guard_phis (sese, basic_block, edge, edge, htab_t);
 
 /* Checks, if SESE contains LOOP.  */
 
@@ -148,12 +154,159 @@ loop_in_sese_p (struct loop *loop, sese r)
 	  && bb_in_sese_p (loop->latch, r));
 }
 
+
+/* Calculate the number of loops around LOOP in the SCOP.
+   FIXME: The same as sese_loop_depth.  */
+
+static inline int
+nb_loops_around_loop_in_sese (struct loop *l, sese region)
+{
+  int d = 0;
+
+  for (; loop_in_sese_p (l, region); d++, l = loop_outer (l));
+
+  return d;
+}
+
 /* Returns the block preceding the entry of a SESE.  */
 
 static inline basic_block
 block_before_sese (sese sese)
 {
   return SESE_ENTRY (sese)->src;
+}
+
+/* A single entry single exit specialized for conditions.  */
+
+typedef struct ifsese {
+  sese region;
+  sese true_region;
+  sese false_region;
+} *ifsese;
+
+extern void if_region_set_false_region (ifsese, sese);
+extern ifsese create_if_region_on_edge (edge, tree);
+extern ifsese move_sese_in_condition (sese);
+extern edge get_true_edge_from_guard_bb (basic_block);
+extern edge get_false_edge_from_guard_bb (basic_block);
+
+static inline edge
+if_region_entry (ifsese if_region)
+{
+  return SESE_ENTRY (if_region->region);
+}
+
+static inline edge
+if_region_exit (ifsese if_region)
+{
+  return SESE_EXIT (if_region->region);
+}
+
+static inline basic_block
+if_region_get_condition_block (ifsese if_region)
+{
+  return if_region_entry (if_region)->dest;
+}
+
+/* Structure containing the mapping between the old names and the new
+   names used after block copy in the new loop context.  */
+typedef struct rename_map_elt
+{
+  tree old_name, new_name;
+} *rename_map_elt;
+
+extern void debug_rename_map (htab_t);
+extern hashval_t rename_map_elt_info (const void *);
+extern int eq_rename_map_elts (const void *, const void *);
+
+/* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
+
+static inline rename_map_elt
+new_rename_map_elt (tree old_name, tree new_name)
+{
+  rename_map_elt res;
+  
+  res = XNEW (struct rename_map_elt);
+  res->old_name = old_name;
+  res->new_name = new_name;
+
+  return res;
+}
+
+/* Describes the type of an iv stack entry.  */
+typedef enum {
+  iv_stack_entry_unknown = 0,
+  iv_stack_entry_iv,
+  iv_stack_entry_const
+} iv_stack_entry_kind;
+
+/* Data contained in an iv stack entry.  */
+typedef union iv_stack_entry_data_union
+{
+  name_tree iv;
+  tree constant;
+} iv_stack_entry_data;
+
+/* Datatype for loop iv stack entry.  */
+typedef struct iv_stack_entry_struct
+{
+  iv_stack_entry_kind kind;
+  iv_stack_entry_data data;
+} iv_stack_entry;
+
+typedef iv_stack_entry *iv_stack_entry_p;
+
+DEF_VEC_P(iv_stack_entry_p);
+DEF_VEC_ALLOC_P(iv_stack_entry_p,heap);
+
+typedef VEC(iv_stack_entry_p, heap) **loop_iv_stack;
+
+extern void debug_oldivs (sese);
+extern void debug_loop_iv_stack (loop_iv_stack);
+extern void loop_iv_stack_insert_constant (loop_iv_stack, int, tree);
+extern tree loop_iv_stack_get_iv_from_name (loop_iv_stack, const char *);
+extern void loop_iv_stack_push_iv (loop_iv_stack, tree, const char *);
+extern tree loop_iv_stack_get_iv (loop_iv_stack, int);
+extern void loop_iv_stack_remove_constants (loop_iv_stack);
+extern void loop_iv_stack_pop (loop_iv_stack);
+extern void free_loop_iv_stack (loop_iv_stack);
+
+/* Structure containing the mapping between the CLooG's induction
+   variable and the type of the old induction variable.  */
+typedef struct ivtype_map_elt
+{
+  tree type;
+  const char *cloog_iv;
+} *ivtype_map_elt;
+
+extern void debug_ivtype_map (htab_t);
+extern hashval_t ivtype_map_elt_info (const void *);
+extern int eq_ivtype_map_elts (const void *, const void *);
+
+/* Constructs a new SCEV_INFO_STR structure for VAR and INSTANTIATED_BELOW.  */
+
+static inline ivtype_map_elt
+new_ivtype_map_elt (const char *cloog_iv, tree type)
+{
+  ivtype_map_elt res;
+  
+  res = XNEW (struct ivtype_map_elt);
+  res->cloog_iv = cloog_iv;
+  res->type = type;
+
+  return res;
+}
+
+/* Free and compute again all the dominators information.  */
+
+static inline void
+recompute_all_dominators (void)
+{
+  mark_irreducible_loops ();
+  free_dominance_info (CDI_DOMINATORS);
+  free_dominance_info (CDI_POST_DOMINATORS);
+  calculate_dominance_info (CDI_DOMINATORS);
+  calculate_dominance_info (CDI_POST_DOMINATORS);
 }
 
 #endif
