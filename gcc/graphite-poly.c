@@ -506,7 +506,7 @@ graphite_trans_scop_block (scop_p scop)
 /* Apply graphite transformations to all the basic blocks of SCOP.  */
 
 bool
-graphite_apply_transformations (scop_p scop)
+apply_poly_transforms (scop_p scop)
 {
   bool transform_done = false;
 
@@ -685,6 +685,23 @@ schedule_to_scattering (poly_bb_p pbb, int scattering_dimensions)
   value_clear (v);
   ppl_delete_Coefficient (c);
   return ph;
+}
+
+
+/* Debug the loops around basic block GB.  */
+
+void
+debug_loop_vec (poly_bb_p pbb)
+{
+  int i;
+  loop_p loop;
+
+  fprintf (stderr, "Loop Vec:");
+
+  for (i = 0; VEC_iterate (loop_p, PBB_LOOPS (pbb), i, loop); i++)
+    fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
+
+  fprintf (stderr, "\n");
 }
 
 #endif

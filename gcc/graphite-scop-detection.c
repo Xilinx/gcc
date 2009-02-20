@@ -1038,6 +1038,169 @@ build_scops (VEC (scop_p, heap) **scops)
   build_graphite_scops (regions, scops);
   limit_scops (scops);
   VEC_free (sd_region, heap, regions);
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nnumber of SCoPs: %d\n", VEC_length (scop_p, *scops));
+}
+
+/* Pretty print all SCoPs in DOT format and mark them with different colors.
+   If there are not enough colors, paint later SCoPs gray.
+   Special nodes:
+   - "*" after the node number: entry of a SCoP,
+   - "#" after the node number: exit of a SCoP,
+   - "()" entry or exit not part of SCoP.  */
+
+static void
+dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
+{
+  basic_block bb;
+  edge e;
+  edge_iterator ei;
+  scop_p scop;
+  const char* color;
+  int i;
+
+  /* Disable debugging while printing graph.  */
+  int tmp_dump_flags = dump_flags;
+  dump_flags = 0;
+
+  fprintf (file, "digraph all {\n");
+
+  FOR_ALL_BB (bb)
+    {
+      int part_of_scop = false;
+
+      /* Use HTML for every bb label.  So we are able to print bbs
+         which are part of two different SCoPs, with two different
+         background colors.  */
+      fprintf (file, "%d [label=<\n  <TABLE BORDER=\"0\" CELLBORDER=\"1\" ",
+                     bb->index);
+      fprintf (file, "CELLSPACING=\"0\">\n");
+
+      /* Select color for SCoP.  */
+      for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+	if (bb_in_sese_p (bb, SCOP_REGION (scop))
+	    || (SCOP_EXIT (scop) == bb)
+	    || (SCOP_ENTRY (scop) == bb))
+	  {
+	    switch (i % 17)
+	      {
+	      case 0: /* red */
+		color = "#e41a1c";
+		break;
+	      case 1: /* blue */
+		color = "#377eb8";
+		break;
+	      case 2: /* green */
+		color = "#4daf4a";
+		break;
+	      case 3: /* purple */
+		color = "#984ea3";
+		break;
+	      case 4: /* orange */
+		color = "#ff7f00";
+		break;
+	      case 5: /* yellow */
+		color = "#ffff33";
+		break;
+	      case 6: /* brown */
+		color = "#a65628";
+		break;
+	      case 7: /* rose */
+		color = "#f781bf";
+		break;
+	      case 8:
+		color = "#8dd3c7";
+		break;
+	      case 9:
+		color = "#ffffb3";
+		break;
+	      case 10:
+		color = "#bebada";
+		break;
+	      case 11:
+		color = "#fb8072";
+		break;
+	      case 12:
+		color = "#80b1d3";
+		break;
+	      case 13:
+		color = "#fdb462";
+		break;
+	      case 14:
+		color = "#b3de69";
+		break;
+	      case 15:
+		color = "#fccde5";
+		break;
+	      case 16:
+		color = "#bc80bd";
+		break;
+	      default: /* gray */
+		color = "#999999";
+	      }
+
+	    fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
+        
+	    if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+	      fprintf (file, " ("); 
+
+	    if (bb == SCOP_ENTRY (scop)
+		&& bb == SCOP_EXIT (scop))
+	      fprintf (file, " %d*# ", bb->index);
+	    else if (bb == SCOP_ENTRY (scop))
+	      fprintf (file, " %d* ", bb->index);
+	    else if (bb == SCOP_EXIT (scop))
+	      fprintf (file, " %d# ", bb->index);
+	    else
+	      fprintf (file, " %d ", bb->index);
+
+	    if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+	      fprintf (file, ")");
+
+	    fprintf (file, "</TD></TR>\n");
+	    part_of_scop  = true;
+	  }
+
+      if (!part_of_scop)
+        {
+          fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+          fprintf (file, " %d </TD></TR>\n", bb->index);
+        }
+
+      fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
+    }
+
+  FOR_ALL_BB (bb)
+    {
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	      fprintf (file, "%d -> %d;\n", bb->index, e->dest->index);
+    }
+
+  fputs ("}\n\n", file);
+
+  /* Enable debugging again.  */
+  dump_flags = tmp_dump_flags;
+}
+
+/* Display all SCoPs using dotty.  */
+
+void
+dot_all_scops (VEC (scop_p, heap) *scops)
+{
+  /* When debugging, enable the following code.  This cannot be used
+     in production compilers because it calls "system".  */
+#if 1
+  FILE *stream = fopen ("/tmp/allscops.dot", "w");
+  gcc_assert (stream);
+
+  dot_all_scops_1 (stream, scops);
+  fclose (stream);
+
+  system ("dotty /tmp/allscops.dot");
+#else
+  dot_all_scops_1 (stderr, scops);
+#endif
 }
 
 #endif

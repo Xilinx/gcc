@@ -1,4 +1,23 @@
 2009-02-20  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (dot_all_scops_1,
+	dot_all_scops): Moved here.
+	* graphite-scop-detection.h (dot_all_scops): Declared here.
+	* graphite.c (graphite_initialize, graphite_finalize): New.
+	(graphite_transform_loops): Cleaned up.
+	* sese.c (debug_oldivs): Moved here.
+	* graphite-poly.c (graphite_apply_transformations): Renamed
+	apply_poly_transforms.
+	(debug_loop_vec): Moved here.
+	* graphite-sese-to-poly.c (build_bb_loops, build_sese_conditions_1,
+	scop_contains_non_iv_scalar_phi_nodes, build_sese_conditions,
+	find_scop_parameters, build_scop_iteration_domain,
+	add_conditions_to_constraints, build_scop_canonical_schedules,
+	build_scop_data_accesses): Now static.
+	(build_poly_scop, check_poly_representation): New.
+
+2009-02-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite.c (graphite_stmt_p, new_gimple_bb, free_gimple_bb,
 	remove_gbbs_in_scop, free_scops, try_generate_gimple_bb,

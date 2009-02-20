@@ -358,6 +358,25 @@ graphite_loop_normal_form (loop_p loop)
   return canonicalize_loop_ivs (loop, NULL, nit);
 }
 
+/* Debug the list of old induction variables for this SCOP.  */
+
+void
+debug_oldivs (sese region)
+{
+  int i;
+  name_tree oldiv;
+
+  fprintf (stderr, "Old IVs:");
+
+  for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, oldiv); i++)
+    {
+      fprintf (stderr, "(");
+      print_generic_expr (stderr, oldiv->t, 0);
+      fprintf (stderr, ", %s, %d)\n", oldiv->name, oldiv->loop->num);
+    }
+  fprintf (stderr, "\n");
+}
+
 /* Record LOOP as occuring in REGION.  Returns true when the operation
    was successful.  */
 
@@ -1450,3 +1469,4 @@ move_sese_in_condition (sese region)
 
   return if_region;
 }
+

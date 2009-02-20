@@ -21,16 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GRAPHITE_SESE_TO_POLY_H
 #define GCC_GRAPHITE_SESE_TO_POLY_H
 
-extern void build_bb_loops (scop_p);
-extern void build_sese_conditions_1 (VEC (gimple, heap) **,
-				     VEC (gimple, heap) **,
-				     basic_block, sese);
-extern bool scop_contains_non_iv_scalar_phi_nodes (scop_p);
-extern void build_sese_conditions (sese);
-extern void find_scop_parameters (scop_p);
-extern void build_scop_iteration_domain (scop_p);
-extern void add_conditions_to_constraints (scop_p);
-extern void build_scop_canonical_schedules (scop_p);
-extern void build_scop_data_accesses (scop_p);
+bool build_poly_scop (scop_p);
+bool check_poly_representation (scop_p);
 
 #endif

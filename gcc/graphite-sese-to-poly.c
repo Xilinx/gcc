@@ -331,7 +331,7 @@ compare_prefix_loops (VEC (loop_p, heap) *a, VEC (loop_p, heap) *b)
    F 2
 */
 
-void
+static void
 build_scop_canonical_schedules (scop_p scop)
 {
   int i;
@@ -382,7 +382,7 @@ build_scop_canonical_schedules (scop_p scop)
 
 /* Build the LOOPS vector for all bbs in SCOP.  */
 
-void
+static void
 build_bb_loops (scop_p scop)
 {
   poly_bb_p pbb;
@@ -672,7 +672,7 @@ find_params_in_bb (sese sese, gimple_bb_p gbb)
 /* Record the parameters used in the SCOP.  A variable is a parameter
    in a scop if it does not vary during the execution of that scop.  */
 
-void
+static void
 find_scop_parameters (scop_p scop)
 {
   poly_bb_p pbb;
@@ -947,7 +947,7 @@ bb_contains_non_iv_scalar_phi_nodes (basic_block bb)
 
 /* Check if SCOP contains non scalar phi nodes.  */
 
-bool
+static bool
 scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
 {
   int i;
@@ -963,7 +963,7 @@ scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
 /* Helper recursive function.  Record in CONDITIONS and CASES all
    conditions from 'if's and 'switch'es occurring in BB from REGION.  */
 
-void
+static void
 build_sese_conditions_1 (VEC (gimple, heap) **conditions,
 			 VEC (gimple, heap) **cases, basic_block bb,
 			 sese region)
@@ -1100,7 +1100,7 @@ build_sese_conditions_1 (VEC (gimple, heap) **conditions,
 
 /* Record all conditions in REGION.  */
 
-void 
+static void 
 build_sese_conditions (sese region)
 {
   VEC (gimple, heap) *conditions = NULL;
@@ -1116,7 +1116,7 @@ build_sese_conditions (sese region)
 /* Traverses all the GBBs of the SCOP and add their constraints to the
    iteration domains.  */
 
-void
+static void
 add_conditions_to_constraints (scop_p scop)
 {
   int i;
@@ -1130,7 +1130,7 @@ add_conditions_to_constraints (scop_p scop)
    SCOP, and that vary for the execution of the current basic block.
    Returns false if there is no loop in SCOP.  */
 
-void 
+static void 
 build_scop_iteration_domain (scop_p scop)
 {
   struct loop *loop;
@@ -1247,7 +1247,7 @@ build_access_matrix (data_reference_p ref, poly_bb_p pbb)
 
 /* Build the access matrices for the data references in the SCOP.  */
 
-void
+static void
 build_scop_data_accesses (scop_p scop)
 {
   int i;
@@ -1278,4 +1278,38 @@ build_scop_data_accesses (scop_p scop)
     }
 }
 
+/* Builds the polyhedral representation for a SESE region.  */
+
+bool
+build_poly_scop (scop_p scop)
+{
+  build_scop_bbs (scop);
+  if (!build_sese_loop_nests (SCOP_REGION (scop))
+      || scop_contains_non_iv_scalar_phi_nodes (scop))
+    return false;
+
+  build_bb_loops (scop);
+  build_sese_conditions (SCOP_REGION (scop));
+  find_scop_parameters (scop);
+  build_scop_iteration_domain (scop);
+  add_conditions_to_constraints (scop);
+  build_scop_canonical_schedules (scop);
+  build_scop_data_accesses (scop);
+
+  return true;
+}
+
+/* Always return false.  Exercise the scop_to_clast function.  */
+
+bool
+check_poly_representation (scop_p scop)
+{
+#ifdef ENABLE_CHECKING
+  cloog_prog_clast pc = scop_to_clast (scop);
+  cloog_clast_free (pc.stmt);
+  cloog_program_free (pc.prog);
+#endif
+
+  return false;
+}
 #endif
