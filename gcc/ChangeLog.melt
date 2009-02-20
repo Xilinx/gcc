@@ -1,3 +1,13 @@
+2009-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl (tuple_nth): as a cmatcher check for
+	multiple at least strictly bigger...
+	* melt/warmelt-genobj.bysl (dispose_objloc) new function, which
+	clears the obl_proc field and avoid freeing twice the same.
+	(dispose_bnd_obj) call the previous one. (compile_tester) selector
+	is supposed to return two values, the secondary one being the
+	destination objcode. (compilobj_nrep_match) uses the secondary one.
+	(compiltst_normtester_same) is still incomplete.
+	* melt/warmelt-outobj.bysl: better output of objlabel & objgoto.
 2009-02-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl (normexp_match): added oldtester and
 	chained the various tests thru their else...

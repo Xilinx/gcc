@@ -849,7 +849,7 @@
   (outcomp)				;out
   tupnth				;statesymb
   (					;test expansion
-   "(basilys_is_multiple_at_least(((basilys_ptr_t)" matchedtup "), (int)(" matchedrk ")))"
+   "(basilys_is_multiple_at_least(((basilys_ptr_t)" matchedtup "), 1+ (int)(" matchedrk ")))"
    )
   (					;fill expansion
    outcomp " = basilys_multiple_nth((basilys_ptr_t)(" matchedtup "),(int)(" matchedrk "));"

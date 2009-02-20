@@ -43,10 +43,11 @@
   :fields ())
 
 ;; object local variable
+;;;; disposed local variables can be reused.
 (defclass class_objlocv
   :super class_objpurevalue
   :fields (obl_off			;offset in frame
-	   obl_proc			;containing procedure
+	   obl_proc			;containing procedure or nil if disposed
 	   obl_cname			;symbolic cname string
 	   ))
 
@@ -1108,7 +1109,10 @@
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
 	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
+	  (debug_msg pfree "get_free_objlocptr pfree")
 	  (assert_msg "get_free_objlocptr check offpfree" (is_integerbox offpfree))
+	  ;; check that pfree has no objnum so was unused 
+	  (assert_msg "check pfree not used" (not (get_int pfree)))
 	  (setq off (get_int offpfree)))
       (let ( (nbvalorout (unsafe_get_field :obrout_nbval orout)) )
 	(setq off (get_int nbvalorout))
@@ -1134,6 +1138,7 @@
 			     :obl_proc orout
 			     :obl_cname namstr)) 
 	     )
+	(debug_msg nloc "get_free_objlocptr new nloc")
 	(return nloc)
 	))))
 
@@ -1150,7 +1155,10 @@
     (assert_msg "check orout" (is_a orout class_routineobj))
     (if (is_a pfree  class_objlocv)
 	(let ( (offpfree (unsafe_get_field :obl_off pfree)) )
+	  (debug_msg pfree "get_free_objloclong pfree")
 	  (assert_msg "check offpfree" (is_integerbox offpfree))
+	  ;; check that pfree has no objnum so was unused 
+	  (assert_msg "check pfree not used" (not (get_int pfree)))
 	  (setq off (get_int offpfree)))
       (let ( (nblongorout (unsafe_get_field :obrout_nblong orout)) )
 	(assert_msg "check nblongorout" (is_integerbox nblongorout))
@@ -1171,7 +1179,9 @@
       (let ( (nloc (instance class_objlocv
 			     :obv_type ctype_long
 			     :obl_off (make_integerbox discr_integer off)
+			     :obl_proc orout
 			     :obl_cname (strbuf2string discr_string nambuf))) )
+	(debug_msg nloc "get_free_objloclong new nloc")
 	(return nloc)
 	))))
 
@@ -1182,9 +1192,9 @@
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check ctyp" (is_a ctyp class_ctype))
   (cond ( (== ctyp ctype_long)
-	  (get_free_objloclong gcx nam))
+	  (return (get_free_objloclong gcx nam)))
 	( (== ctyp ctype_value)
-	  (get_free_objlocptr gcx nam))
+	  (return (get_free_objlocptr gcx nam)))
 	;; return null for the void ctype
 	( (== ctyp ctype_void)
 	  (return (the_null)))
@@ -1204,7 +1214,11 @@
 		   (mapobject_put freemap ctyp freeli)))
 	     (let ( (pfree (list_popfirst freeli)) )
 	       (if (is_a pfree  class_objlocv)
-		   (setq off (get_int (unsafe_get_field :obl_off pfree)))
+		   (progn 
+		     (debug_msg pfree "get_free_objloctyped pfree")
+		     (assert_msg "check pfree was unused" (not (get_int pfree)))
+		     (setq off (get_int (unsafe_get_field :obl_off pfree)))
+		     )
 		 (setq off  (list_length (unsafe_get_field :obrout_others orout))))
 	       (let ( 
 		     (nambuf (make_strbuf discr_strbuf)) 
@@ -1218,14 +1232,46 @@
 		 (add2sbuf_longdec nambuf nbothers)
 		 (let ( (nloc (instance class_objlocv
 					:obv_type ctyp
+					:obl_proc orout
 					:obl_off (make_integerbox discr_integer off)
 					:obl_cname (strbuf2string discr_string nambuf))) )
+		   (debug_msg nloc "getfreeobjloctyped new nloc")
 		   (list_append others nloc)
 		   (return nloc)
 		   )
 		 )))))))
 
 
+
+
+;; function to dispose, i.e. mark as free and reusable, an  objlocation
+(defun dispose_objloc (oldloc gcx)
+  (assert_msg "check oldloc" (is_a oldloc class_objlocv))
+  (assert_msg "check gcx" (is_a gcx class_genercontext))
+  ;; the obl_proc iff it has already been freed
+  (assert_msg "check used oldloc" (unsafe_get_field :obl_proc oldloc))
+  (let ( (oldcty (unsafe_get_field :obv_type oldloc)) )
+    (assert_msg "check oldcty not void" (!= oldcty ctype_void))
+    (assert_msg "check oldcty is ctype" (is_a oldcty class_ctype))
+    (put_fields oldloc :obl_proc ())			;mark the objlocation as freed
+    (debug_msg oldloc "dispose_objloc freed oldloc")
+    (cond ( (== oldcty ctype_value)
+	    (let  ( (freepl (unsafe_get_field :gncx_freeptrlist gcx)) )
+	      (list_append freepl oldloc)))
+	  ( (== oldcty ctype_long)
+	    (let  ( (freenl (unsafe_get_field :gncx_freelonglist gcx)) )
+	      (list_append freenl oldloc)))
+	  (:else
+	   (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
+		  (orout (unsafe_get_field :gncx_objrout gcx))
+		  )
+	     (assert_msg "check freemap" (is_mapobject freemap))
+	     (assert_msg "check orout" (is_a orout class_routineobj))
+	     (let ( (freeli (mapobject_get freemap oldcty)) )
+	       ;; since we are freeing, freeli should exist
+	       (assert_msg "check freeli" (is_list freeli))
+	       (list_append freeli oldloc))))))
+  )
 
 ;; function to dispose, i.e. mark as free, a binding 
 (defun dispose_bnd_obj (bnd gcx)
@@ -1245,25 +1291,8 @@
 	  ))
     (assert_msg "check oldloc" (is_a oldloc class_objlocv))
     ;;(debug_msg oldloc "dispose_bnd_obj oldloc")
+    (dispose_objloc oldloc gcx)
     (mapobject_remove locmap bnd)
-    ;;(debug_msg locmap "dispose_bnd_obj after remove locmap")
-    (let ( (oldcty (unsafe_get_field :obv_type oldloc)) )
-      (cond ( (== oldcty ctype_value)
-	      (let  ( (freepl (unsafe_get_field :gncx_freeptrlist gcx)) )
-		(list_append freepl oldloc)))
-	    ( (== oldcty ctype_long)
-	      (let  ( (freenl (unsafe_get_field :gncx_freelonglist gcx)) )
-		(list_append freenl oldloc)))
-	    (:else
-	     (let ( (freemap (unsafe_get_field :gncx_freeothermaps gcx)) 
-		    (orout (unsafe_get_field :gncx_objrout gcx))
-		    )
-	       (assert_msg "check freemap" (is_mapobject freemap))
-	       (assert_msg "check orout" (is_a orout class_routineobj))
-	       (let ( (freeli (mapobject_get freemap oldcty)) )
-		 ;; since we are freeing, freeli should exist
-		 (assert_msg "check freeli" (is_list freeli))
-		 (list_append freeli oldloc))))))
     (debug_msg bnd "dispose_bnd_obj end bnd")
     ))
 
@@ -3797,6 +3826,7 @@
 ;;;; reciever: the tester
 ;;;; first argument: the generator context gcx
 ;;;; second argument: the tester context tcx
+;;;; return values: primary, the objcode or lists; secondary the destination objcode
 (defselector compile_tester class_selector
  )
 (export_values compile_tester)
@@ -3882,44 +3912,41 @@
      (assert_msg "check curotest rank" (==i (get_int curotest) testix))
      (let (
 	   (labins (normtester_labelinstr curotest gcx))
-	   (curcomp (compile_tester curotest gcx tcx))
 	   )
-       (debug_msg labins "compilobj_nrep_match labins")
-       (debug_msg curcomp "compilobj_nrep_match curcomp")
-       (assert_msg "check curcomp" curcomp)
-       ;; always add the labins and the curcomp or its element into obodyl
-       (list_append obodyl labins)
-       ;; add into subcomplist the last of each success test
-       ;; compilation
-       (cond 
-	( (is_list curcomp)
-	  (let ( (lastlicomp (pair_head (list_last curcomp))) )
-	    (debug_msg lastlicomp "compilobj_nrep_match lastlicomp")
-	    (if (is_a curotest class_normtester_success) 
-		(list_append subcomplist lastlicomp))
-	    (list_append2list obodyl curcomp)
-	    ))
-	( (is_multiple curcomp)
-	  (let ( (lastupcomp (multiple_nth curcomp -1)) )
-	    (debug_msg lastupcomp "compilobj_nrep_match lastupcomp")
-	    (if (is_a curotest class_normtester_success) 
-		(list_append subcomplist lastupcomp))
-	    (foreach_in_multiple
-	     (curcomp)
-	     (subtest :long subix)
-	     (list_append obodyl subtest))
-	    ))
-	( (is_object curcomp)
-	  (debug_msg curcomp "compilobj_nrep_match obj curcomp")
-	  (if (is_a curotest class_normtester_success) 
-	      (list_append subcomplist curcomp))
-	  (list_append obodyl curcomp)
-	  )
-	(:else
-	 (assert_msg "unexpected curcomp" ())
-	 ))
-       )
-     )
+       (multicall
+	(curcomp curobdest) 
+	(compile_tester curotest gcx tcx)
+	(debug_msg labins "compilobj_nrep_match labins")
+	(debug_msg curcomp "compilobj_nrep_match curcomp")
+	(debug_msg curobdest "compilobj_nrep_match curobdest")
+	(debug_msg tcx "compilobj_nrep_match tcx")
+	(assert_msg "check curcomp" curcomp)
+	;; always add the labins and the curcomp or its element into obodyl
+	(list_append obodyl labins)
+	(cond 
+	 ( (is_list curcomp)
+	   (let ( (lastlicomp (pair_head (list_last curcomp))) )
+	     (debug_msg lastlicomp "compilobj_nrep_match lastlicomp")
+	     (list_append2list obodyl curcomp)
+	     ))
+	 ( (is_multiple curcomp)
+	   (let ( (lastupcomp (multiple_nth curcomp -1)) )
+	     (debug_msg lastupcomp "compilobj_nrep_match lastupcomp")
+	     (foreach_in_multiple
+	      (curcomp)
+	      (subtest :long subix)
+	      (list_append obodyl subtest))
+	     ))
+	 ( (is_object curcomp)
+	   (debug_msg curcomp "compilobj_nrep_match obj curcomp")
+	   (list_append obodyl curcomp)
+	   )
+	 (:else
+	  (assert_msg "unexpected curcomp" ())
+	  ))
+	;; add into subcomplist the curobdest if not null
+	(if curobdest (list_append subcomplist curobdest))
+	)))
     (list_append obodyl oendlabel)
     (put_fields ombloc 
 		:omulblo_subcomp (list_to_multiple subcomplist discr_multiple))
@@ -4226,7 +4253,9 @@
 	(:long ntestix (get_int ntsa))	
 	)
     (error_plain nloc "unimplemented compiltst_normtester_same")
-    (shortbacktrace_dbg "compiltst_normtester_same" 15)
+    ;(shortbacktrace_dbg "compiltst_normtester_same" 15)
+    (compile_warning "unimplemented compiltst_normtester_same" ())
+    (assert_msg "unimplemented compiltst_normtester_same" ())
     )
 )
 (install_method class_normtester_same compile_tester compiltst_normtester_same)
@@ -4247,6 +4276,7 @@
 	(normatch (unsafe_get_field :ntest_normatch ntsu))
 	(nsucdo (unsafe_get_field :ntsuccess_do ntsu))
 	(:long ntestix (get_int ntsu))	
+	(gotoend (endmatch_gotoinstr normatch gcx nloc))
 	)
     (assert_msg "check nil nloclis" (null nloclis))
     (assert_msg "check nil nthen" (null nthen))
@@ -4257,9 +4287,14 @@
       (debug_msg osucc "compiltst_normtester_success osucc")
       (warning_plain nloc "not fully implemented compiltst_normtester_success") 
       (shortbacktrace_dbg "compiltst_normtester_success" 15)
-      (return osucc)
-      )
-    ))
+      (compile_warning "not fully implemented compiltst_normtester_success" ())
+      ;; maybe we have to free all the location allocated for this test
+      (if (is_list osucc)
+	  (progn
+	    (list_append osucc gotoend)
+	    (return osucc (list_last osucc)))
+	(return (list2 osucc gotoend) osucc))
+      )))
 (install_method class_normtester_success compile_tester compiltst_normtester_success)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
