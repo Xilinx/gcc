@@ -1,3 +1,26 @@
+2009-02-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c: Split scop detection to a new file.
+	(enum gbb_type, gbb_type, get_bb_type, struct sd_region_p, sd_region,
+	move_sd_regions, loop_affine_expr, exclude_component_ref,
+	is_simple_operand, stmt_simple_for_scop_p, harmful_stmt_in_bb,
+	graphite_cannot_represent_loop_niter, struct scopdet_info,
+	scopdet_basic_block_info, build_scops_1, bb_in_sd_region,
+	find_single_entry_edge, find_single_exit_edge,
+	create_single_entry_edge, sd_region_without_exit,
+	create_single_exit_edge, unmark_exit_edges, mark_exit_edges,
+	create_sese_edges, build_graphite_scops, limit_scops, build_scops):
+	Moved to graphite-scop-detection.c.
+
+	* graphite-scop-detection.c: New.
+	* graphite-scop-detection.h: New.
+	* Makefile.in: Add new rule for graphite-scop-detection.o.
+
+	* sese.c: Include tree-chrec.h tree-data-ref.h tree-scalar-evolution.h.
+	(nb_reductions_in_loop, graphite_loop_normal_form, sese_record_loop,
+	build_sese_loop_nests): Moved here from graphite.c.
+	(param_index): Renamed parameter_index_in_region.
+
 2009-02-18  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 

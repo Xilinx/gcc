@@ -19,6 +19,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#ifndef GCC_SESE_H
+#define GCC_SESE_H
 
 typedef struct name_tree
 {
@@ -90,11 +92,9 @@ typedef struct sese
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
 extern void sese_build_livein_liveouts (sese);
-extern void sese_build_livein_liveouts_use (sese, basic_block, tree);
-void sese_build_livein_liveouts_bb (sese, basic_block);
 void sese_build_livein_liveouts (sese);
-void register_bb_in_sese (basic_block, basic_block, sese);
-int param_index (tree, sese);
+int parameter_index_in_region (tree, sese);
+bool build_sese_loop_nests (sese);
 
 /* Checks, if SESE contains LOOP.  */
 
@@ -155,3 +155,5 @@ block_before_sese (sese sese)
 {
   return SESE_ENTRY (sese)->src;
 }
+
+#endif

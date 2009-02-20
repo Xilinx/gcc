@@ -251,7 +251,8 @@ scop_nb_params (scop_p scop)
 
 extern scop_p new_scop (sese);
 extern void free_scop (scop_p);
-extern void dot_all_scops (void);
+extern void free_scops (VEC (scop_p, heap) *);
+extern void dot_all_scops (VEC (scop_p, heap) *);
 extern void print_generated_program (FILE *, scop_p);
 extern void debug_generated_program (scop_p);
 extern int scop_max_loop_depth (scop_p);

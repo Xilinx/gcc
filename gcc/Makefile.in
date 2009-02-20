@@ -1122,6 +1122,7 @@ OBJS-common = \
 	graphite-data-ref.o \
 	graphite-poly.o \
 	graphite-ppl.o \
+	graphite-scop-detection.o \
 	gtype-desc.o \
 	haifa-sched.o \
 	hooks.o \
@@ -2365,17 +2366,25 @@ tree-data-ref.o: tree-data-ref.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h langhooks.h
 sese.o: sese.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) domwalk.h \
-   pointer-set.h value-prof.h 
+   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
+   domwalk.h pointer-set.h value-prof.h 
 graphite.o: graphite.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) domwalk.h \
-   $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h graphite.h pointer-set.h \
-   value-prof.h graphite-ppl.h sese.h
-graphite-data-ref.o: graphite-data-ref.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
+   $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h graphite.h \
+   pointer-set.h value-prof.h graphite-ppl.h sese.h domwalk.h \
+   graphite-scop-detection.h
+graphite-data-ref.o: graphite-data-ref.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+   $(TM_H) $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) \
+   $(TOPLEV_H) $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) \
+   $(GIMPLE_H) $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h \
+   graphite.h domwalk.h
+graphite-scop-detection.o: graphite-scop-detection.c $(CONFIG_H) $(SYSTEM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
-   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) domwalk.h \
-   $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h graphite.h
+   $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) \
+   $(TREE_DATA_REF_H) $(SCEV_H) tree-pass.h tree-chrec.h graphite.h $(TM_H) \
+   value-prof.h graphite-ppl.h sese.h pointer-set.h domwalk.h coretypes.h \
+   graphite-scop-detection.h
 graphite-poly.o: graphite-poly.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(TREE_H) $(RTL_H) $(BASIC_BLOCK_H) $(DIAGNOSTIC_H) $(TOPLEV_H) \
    $(TREE_FLOW_H) $(TREE_DUMP_H) $(TIMEVAR_H) $(CFGLOOP_H) $(GIMPLE_H) domwalk.h \
