@@ -1,4 +1,4 @@
-/* Translation of CLAST (CLooG AST) to Gimple.
+/* Conversion of SESE regions to Polyhedra.
    Copyright (C) 2009 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
@@ -18,17 +18,19 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#ifndef GCC_GRAPHITE_CLAST_TO_GIMPLE_H
-#define GCC_GRAPHITE_CLAST_TO_GIMPLE_H
+#ifndef GCC_GRAPHITE_SESE_TO_POLY_H
+#define GCC_GRAPHITE_SESE_TO_POLY_H
 
-/* Data structure for CLooG program representation.  */
-
-typedef struct cloog_prog_clast {
-  CloogProgram *prog;
-  struct clast_stmt *stmt;
-} cloog_prog_clast;
-
-cloog_prog_clast scop_to_clast (scop_p);
-bool gloog (scop_p);
+extern void build_bb_loops (scop_p);
+extern void build_sese_conditions_1 (VEC (gimple, heap) **,
+				     VEC (gimple, heap) **,
+				     basic_block, sese);
+extern bool scop_contains_non_iv_scalar_phi_nodes (scop_p);
+extern void build_sese_conditions (sese);
+extern void find_scop_parameters (scop_p);
+extern void build_scop_iteration_domain (scop_p);
+extern void add_conditions_to_constraints (scop_p);
+extern void build_scop_canonical_schedules (scop_p);
+extern void build_scop_data_accesses (scop_p);
 
 #endif

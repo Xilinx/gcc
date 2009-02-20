@@ -1,5 +1,27 @@
 2009-02-20  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite.c (graphite_stmt_p, new_gimple_bb, free_gimple_bb,
+	remove_gbbs_in_scop, free_scops, try_generate_gimple_bb,
+	build_scop_bbs, ref_nb_loops, compare_prefix_loops,
+	build_scop_canonical_schedules, build_bb_loops, add_value_to_dim,
+	scan_tree_for_params_right_scev, scan_tree_for_params_int,
+	scan_tree_for_params, struct irp_data, dx_record_params,
+	find_params_in_bb, find_scop_parameters, gbb_from_bb,
+	build_loop_iteration_domains, add_conditions_to_domain,
+	phi_node_is_iv, bb_contains_non_iv_scalar_phi_nodes,
+	scop_contains_non_iv_scalar_phi_nodes, build_sese_conditions_1,
+	build_sese_conditions, add_conditions_to_constraints,
+	build_scop_iteration_domain, build_access_matrix_with_af,
+	build_access_matrix,
+	build_scop_data_accesses): Moved to graphite-sese-to-poly.c.
+
+	* graphite-sese-to-poly.c: New.
+	* graphite-sese-to-poly.h: New.
+
+	* Makefile.in: Add new rule for graphite-sese-to-poly.o.
+
+2009-02-20  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite.c: Split graphite code generation to a new file.
 	(graphite_verify, gmp_cst_to_tree, clast_name_to_gcc,
 	max_precision_type, clast_to_gcc_expression_red,
