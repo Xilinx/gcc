@@ -1,4 +1,9 @@
 2009-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmatch-1.bysl could be compiled correctly, but lots of
+	intermediate objloc are never disposed...]
+	* melt/warmelt-normatch.bysl: correctly handing toplevel joker test...
+	* testsuite/melt/tmatch-1.bysl: added return.
+2009-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl (tuple_nth): as a cmatcher check for
 	multiple at least strictly bigger...
 	* melt/warmelt-genobj.bysl (dispose_objloc) new function, which

@@ -938,7 +938,7 @@
 	 (bindlist (make_list discr_list))
 	 (testlist (make_list discr_list))
 	 (wholectype ())		;the ctype of the whole match
-	 (oldtester ())			 ;the previous tester
+	 (oldtester ())			;the previous tester
 	 )
     (debug_msg smatsx "normexp_match smatsx")
     (multicall
@@ -1009,7 +1009,7 @@
 	  (normal_pattern 
 	   curpat nmatx
 	   (lambda (tester) (put_fields ntestcont :container_value tester))
-			  pcn)
+	   pcn)
 	  (debug_msg ntestcont "normexp_match ntestcont after normal_pattern")
 	  (let ( (newenv (get_field :pctn_env pcn))
 		 (pvarlocmap (get_field :pctn_pvarlocmap pcn))
@@ -1062,6 +1062,12 @@
 		     (debug_msg curtester "normexp_match curtester becomes"))
 		 (exit lastesterloop)))
 	     )
+	    ;; no curtester for a last joker pattern ....
+	    (if (null curtester)
+		(progn
+		  (setq curtester newsuctester)
+		  (debug_msg curtester "normexp_match no curtester so success")
+		  ))
 	    ;; if there is an oldtester, add the curtester as its last else case
 	    (forever 
 	     oldtesterloop
@@ -1078,8 +1084,13 @@
 	       ))
 	    ;; always set the oldtester to the curtester
 	    (setq oldtester curtester)
-	    (put_fields curtester :ntest_then newsuctester)
-	    (list_append (get_field :ntest_comefrom newsuctester) curtester)
+	    ;; if the curtester is not the new success itself, put the
+	    ;; new success as it then case
+	    (if (!= curtester newsuctester)
+		(progn
+		  (put_fields curtester :ntest_then newsuctester)
+		  (list_append (get_field :ntest_comefrom newsuctester) curtester)))
+	    ;;
 	    (list_append testlist newsuctester)
 	    (debug_msg curtester "normexp_match after lastesterloop curtester")
 	    (debug_msg pcn "normexp_match pcn after lastesterloop")
@@ -1102,8 +1113,8 @@
 		   (debug_msg sbind "normexp_match sbind")
 		   (multiple_put_nth sortedbindings svix sbind)
 		   (put_env freshnewenv sbind)
-		 )
-	       ))
+		   )
+		 ))
 	      (debug_msg freshnewenv "normexp_match freshnewenv")
 	      (debug_msg sortedbindings "normexp_match sortedbindings")
 	      (assert_msg "check sortedbindings" (is_multiple sortedbindings))

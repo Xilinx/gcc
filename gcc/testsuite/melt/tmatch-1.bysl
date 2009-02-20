@@ -16,6 +16,6 @@
 	 ( ?(instance class_named :named_name ?y)
 	  (g y))
 	 ( ?_ 
-	  x)))
+	  (return x))))
 
 ;; eof tmatch-1.bysl
