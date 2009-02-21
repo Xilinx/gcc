@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "pointer-set.h"
 #include "gimple.h"
+#include "params.h"
 
 #ifdef HAVE_cloog
 #include "cloog/cloog.h"
@@ -310,8 +311,7 @@ graphite_trans_loop_block (VEC (poly_bb_p, heap) *bbs, int loops)
   int i;
   bool transform_done = false;
 
-  /* TODO: - Calculate the stride size automatically.  */
-  int stride_size = 64;
+  int stride_size = PARAM_VALUE (PARAM_LOOP_BLOCK_TILE_SIZE);
 
   for (i = 0; VEC_iterate (poly_bb_p, bbs, i, pbb); i++)
     transform_done |= graphite_trans_bb_block (pbb, stride_size, loops);
