@@ -579,7 +579,10 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
       scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
       break;
 
-    default:
+    case REAL_CST:
+      break;
+
+   default:
       gcc_unreachable ();
       break;
     }

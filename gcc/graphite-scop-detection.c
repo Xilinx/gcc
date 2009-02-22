@@ -318,10 +318,22 @@ static gimple
 harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
 {
   gimple_stmt_iterator gsi;
+  gimple stmt;
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     if (!stmt_simple_for_scop_p (scop_entry, gsi_stmt (gsi)))
       return gsi_stmt (gsi);
+
+  stmt = last_stmt (bb);
+  if (stmt && gimple_code (stmt) == GIMPLE_COND)
+    {
+      tree lhs = gimple_cond_lhs (stmt);
+      tree rhs = gimple_cond_rhs (stmt);
+
+      if (TREE_CODE (TREE_TYPE (lhs)) == REAL_TYPE
+	  || TREE_CODE (TREE_TYPE (rhs)) == REAL_TYPE)
+	return stmt;
+    }
 
   return NULL;
 }
