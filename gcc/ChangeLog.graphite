@@ -1,5 +1,14 @@
 2009-02-21  Sebastian Pop  <sebastian.pop@amd.com>
 
+	PR tree-optimization/39260
+	* graphite-scop-detection.c (harmful_stmt_in_bb): Stop a SCoP when 
+	the basic block contains a condition with a real type.
+	* graphite-sese-to-poly.c (scan_tree_for_params): Handle REAL_CST.
+
+	* gcc.dg/graphite/pr39260.c: New.
+
+2009-02-21  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c: Inlcude params.h.
 	(graphite_trans_loop_block): Use PARAM_LOOP_BLOCK_TILE_SIZE for
 	the size of a tile.
