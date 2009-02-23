@@ -1,6 +1,13 @@
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	Revert this change:
+	* graphite-scop-detection.c (stmt_simple_for_scop_p): Analyze
+	scalar evolutions in the scop_entry->loop_father.
+
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite.h (ref_nb_loops): Remove declaration.
 	(struct gimple_bb, gimple_bb_p, GBB_BB, GBB_DATA_REFS, GBB_CONDITIONS,
 	GBB_CONDITION_CASES, GBB_CLOOG_IV_TYPES, gbb_loop, print_gimple_bb,
