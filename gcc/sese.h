@@ -95,14 +95,14 @@ extern void sese_build_livein_liveouts (sese);
 extern void sese_insert_phis_for_liveouts (sese, basic_block, edge, edge);
 extern void sese_adjust_phis_for_liveouts (sese, basic_block, edge, edge);
 extern int parameter_index_in_region (tree, sese);
-extern bool build_sese_loop_nests (sese);
+extern void build_sese_loop_nests (sese);
 extern tree oldiv_for_loop (sese, loop_p);
 extern edge copy_bb_and_scalar_dependences (basic_block, sese, edge, htab_t);
 extern struct loop *outermost_loop_in_sese (sese, basic_block);
 extern void insert_loop_close_phis (sese, basic_block);
 extern void insert_guard_phis (sese, basic_block, edge, edge, htab_t);
 
-/* Checks, if SESE contains LOOP.  */
+/* Check that SESE contains LOOP.  */
 
 static inline bool
 sese_contains_loop (sese sese, struct loop *loop)

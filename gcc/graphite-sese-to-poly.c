@@ -1284,8 +1284,8 @@ bool
 build_poly_scop (scop_p scop)
 {
   build_scop_bbs (scop);
-  if (!build_sese_loop_nests (SCOP_REGION (scop))
-      || scop_contains_non_iv_scalar_phi_nodes (scop))
+  build_sese_loop_nests (SCOP_REGION (scop));
+  if (scop_contains_non_iv_scalar_phi_nodes (scop))
     return false;
 
   build_bb_loops (scop);

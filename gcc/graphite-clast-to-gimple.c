@@ -1063,6 +1063,52 @@ debug_generated_program (scop_p scop)
   print_generated_program (stderr, scop);
 }
 
+/* A LOOP is in normal form for Graphite when it contains only one
+   scalar phi node that defines the main induction variable of the
+   loop, only one increment of the IV, and only one exit condition.  */
+
+static void
+graphite_loop_normal_form (loop_p loop, sese region)
+{
+  struct tree_niter_desc niter;
+  tree nit;
+  gimple_seq stmts;
+  edge exit = single_dom_exit (loop);
+  tree induction_var;
+  name_tree oldiv;
+
+  /* At this point we should know the number of iterations,  */
+  gcc_assert (number_of_iterations_exit (loop, exit, &niter, false)
+	      /* and have eliminated loops with reductions, as code
+		 generation does not deal with scalar reductions.  */
+	      && nb_reductions_in_loop (loop) == 0);
+
+  nit = force_gimple_operand (unshare_expr (niter.niter), &stmts, true,
+			      NULL_TREE);
+  if (stmts)
+    gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
+
+  induction_var = canonicalize_loop_ivs (loop, NULL, nit);
+
+  oldiv = XNEW (struct name_tree);
+  oldiv->t = induction_var;
+  oldiv->name = get_name (SSA_NAME_VAR (oldiv->t));
+  oldiv->loop = loop;
+  VEC_safe_push (name_tree, heap, SESE_OLDIVS (region), oldiv);
+}
+
+/* Converts REGION to loop normal form: one IV per loop.  */
+
+static void
+build_graphite_loop_normal_form (sese region)
+{
+  int i;
+  loop_p loop;
+
+  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
+    graphite_loop_normal_form (loop, region);
+}
+
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  Return true if code generation succeeded.  */
 
@@ -1078,6 +1124,7 @@ gloog (scop_p scop)
 
   cloog_prog_clast pc = scop_to_clast (scop);
 
+  build_graphite_loop_normal_form (region);
   recompute_all_dominators ();
   graphite_verify ();
 

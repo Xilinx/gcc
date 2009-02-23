@@ -338,16 +338,48 @@ harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
   return NULL;
 }
 
-/* Return true when it is not possible to represent the upper bound of
-   LOOP in the polyhedral representation.  */
+/* Returns the number of reduction phi nodes in LOOP.  */
+
+int
+nb_reductions_in_loop (loop_p loop)
+{
+  int res = 0;
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple phi = gsi_stmt (gsi);
+      tree scev;
+      affine_iv iv;
+
+      if (!is_gimple_reg (PHI_RESULT (phi)))
+	continue;
+
+      scev = analyze_scalar_evolution (loop, PHI_RESULT (phi));
+      scev = instantiate_parameters (loop, scev);
+      if (!simple_iv (loop, phi, PHI_RESULT (phi), &iv, true))
+	res++;
+    }
+
+  return res;
+}
+
+/* Return true when it is not possible to represent LOOP in the
+   polyhedral representation.  */
 
 static bool
-graphite_cannot_represent_loop_niter (loop_p loop)
+graphite_cannot_represent_loop (loop_p loop)
 {
   tree niter = number_of_latch_executions (loop);
 
-  return chrec_contains_undetermined (niter)
-    || !scev_is_linear_expression (niter);
+  /* The upper bound of LOOP should be known.  */
+  return (chrec_contains_undetermined (niter)
+
+	  /* Upper bound should be linear.   */
+	  || !scev_is_linear_expression (niter)
+
+	  /* Code generation does not deal with scalar reductions.  */
+	  || nb_reductions_in_loop (loop) > 0);
 }
 
 /* Store information needed by scopdet_* functions.  */
@@ -426,7 +458,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	if (result.last->loop_father != loop)
 	  result.next = NULL;
 
-        if (graphite_cannot_represent_loop_niter (loop))
+        if (graphite_cannot_represent_loop (loop))
           result.difficult = true;
 
         if (sinfo.difficult)
@@ -1014,9 +1046,7 @@ limit_scops (VEC (scop_p, heap) **scops)
       loop_p loop;
       sese region = SCOP_REGION (scop);
       build_scop_bbs (scop);
-
-      if (!build_sese_loop_nests (region))
-	continue;
+      build_sese_loop_nests (region);
 
       for (j = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), j, loop); j++) 
         if (!loop_in_sese_p (loop_outer (loop), region))

@@ -307,57 +307,6 @@ eq_ivtype_map_elts (const void *e1, const void *e2)
 
 
 
-/* Returns the number of reduction phi nodes in LOOP.  */
-
-static int
-nb_reductions_in_loop (loop_p loop)
-{
-  int res = 0;
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
-    {
-      gimple phi = gsi_stmt (gsi);
-      tree scev;
-      affine_iv iv;
-
-      if (!is_gimple_reg (PHI_RESULT (phi)))
-	continue;
-
-      scev = analyze_scalar_evolution (loop, PHI_RESULT (phi));
-      scev = instantiate_parameters (loop, scev);
-      if (!simple_iv (loop, phi, PHI_RESULT (phi), &iv, true))
-	res++;
-    }
-
-  return res;
-}
-
-/* A LOOP is in normal form when it contains only one scalar phi node
-   that defines the main induction variable of the loop, only one
-   increment of the IV, and only one exit condition. */
-
-static tree
-graphite_loop_normal_form (loop_p loop)
-{
-  struct tree_niter_desc niter;
-  tree nit;
-  gimple_seq stmts;
-  edge exit = single_dom_exit (loop);
-
-  gcc_assert (number_of_iterations_exit (loop, exit, &niter, false));
-  nit = force_gimple_operand (unshare_expr (niter.niter), &stmts, true,
-			      NULL_TREE);
-  if (stmts)
-    gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
-
-  /* One IV per loop.  */
-  if (nb_reductions_in_loop (loop) > 0)
-    return NULL_TREE;
-
-  return canonicalize_loop_ivs (loop, NULL, nit);
-}
-
 /* Debug the list of old induction variables for this SCOP.  */
 
 void
@@ -377,37 +326,22 @@ debug_oldivs (sese region)
   fprintf (stderr, "\n");
 }
 
-/* Record LOOP as occuring in REGION.  Returns true when the operation
-   was successful.  */
+/* Record LOOP as occuring in REGION.  */
 
-static bool
+static void
 sese_record_loop (sese region, loop_p loop)
 {
-  tree induction_var;
-  name_tree oldiv;
-
   if (sese_contains_loop (region, loop))
-    return true;
+    return;
 
   bitmap_set_bit (SESE_LOOPS (region), loop->num);
   VEC_safe_push (loop_p, heap, SESE_LOOP_NEST (region), loop);
-
-  induction_var = graphite_loop_normal_form (loop);
-  if (!induction_var)
-    return false;
-
-  oldiv = XNEW (struct name_tree);
-  oldiv->t = induction_var;
-  oldiv->name = get_name (SSA_NAME_VAR (oldiv->t));
-  oldiv->loop = loop;
-  VEC_safe_push (name_tree, heap, SESE_OLDIVS (region), oldiv);
-  return true;
 }
 
 /* Build the loop nests contained in REGION.  Returns true when the
    operation was successful.  */
 
-bool
+void
 build_sese_loop_nests (sese region)
 {
   unsigned i;
@@ -422,10 +356,7 @@ build_sese_loop_nests (sese region)
 	/* Only add loops if they are completely contained in the SCoP.  */
 	if (loop->header == bb
 	    && bb_in_sese_p (loop->latch, region))
-	  {
-	    if (!sese_record_loop (region, loop))
-	      return false;
-	  }
+	  sese_record_loop (region, loop);
       }
 
   /* Make sure that the loops in the SESE_LOOP_NEST are ordered.  It
@@ -443,8 +374,6 @@ build_sese_loop_nests (sese region)
 	  VEC_replace (loop_p, SESE_LOOP_NEST (region), i + 1, loop0);
 	}
     }
-
-  return true;
 }
 
 /* For a USE in BB, if BB is outside REGION, mark the USE in the

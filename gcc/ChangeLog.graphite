@@ -1,4 +1,24 @@
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (nb_reductions_in_loop): Moved here...
+	(graphite_cannot_represent_loop_niter): Renamed
+	graphite_cannot_represent_loop.  Call nb_reductions_in_loop.
+	(limit_scops): build_sese_loop_nests does not return a bool.
+	* graphite-scop-detection.h (nb_reductions_in_loop): Declared.
+	* sese.c (nb_reductions_in_loop): ... from here.
+	(graphite_loop_normal_form): ... from here.
+	(sese_record_loop): Does not fail, so does not return a bool.
+	(build_sese_loop_nests): Same.
+	* sese.h (build_sese_loop_nests): Update declaration.
+	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Moved here...
+	(build_graphite_loop_normal_form): New.
+	(gloog): Call build_graphite_loop_normal_form.
+	* graphite-sese-to-poly.c (build_poly_scop): Don't fail on
+	build_sese_loop_nests.
+
+	* testsuite/gcc.dg/graphite/id-1.c: New.
+
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (scan_tree_for_params): Remove REAL_CST. The
