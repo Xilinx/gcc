@@ -1,6 +1,6 @@
 /* Definitions for C++ parsing and type checking.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -4360,6 +4360,7 @@ extern tree finish_function			(int);
 extern tree start_method			(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern tree finish_method			(tree);
 extern void maybe_register_incomplete_var	(tree);
+extern void maybe_commonize_var			(tree);
 extern void complete_vars			(tree);
 extern void finish_stmt				(void);
 extern void print_other_binding_stack		(struct cp_binding_level *);

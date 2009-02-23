@@ -2,7 +2,9 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-require-cstdint "" }
 
-// Copyright (C) 2008 Free Software Foundation
+// 2008-07-03 Chris Fairles <chris.fairles@gmail.com>
+
+// Copyright (C) 2008, 2009 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -25,31 +27,22 @@
 void
 test01()
 {
-  std::ratio<INTMAX_MAX, INTMAX_MAX> r1;
-  std::ratio<-INTMAX_MAX, INTMAX_MAX> r2;
+  std::ratio_add<std::ratio<INTMAX_MAX, 1>, std::ratio<1>>::type r1;
 }
 
 void
 test02()
-{
-  std::ratio<INTMAX_MIN, 1> r1;
+{  
+  std::ratio_multiply<std::ratio<-INTMAX_MAX, 2>, std::ratio<3, 2>>::type r1;
+  std::ratio_multiply<std::ratio<INTMAX_MAX>, std::ratio<INTMAX_MAX>>::type r2;
 }
 
-void
-test03()
-{
-  std::ratio<1, INTMAX_MIN> r1;
-}
-
-void
-test04()
-{
-  std::ratio<1,0> r1;
-}
-
-// { dg-error "instantiated from here" "" { target *-*-* } 35 }
-// { dg-error "instantiated from here" "" { target *-*-* } 41 }
-// { dg-error "instantiated from here" "" { target *-*-* } 47 }
-// { dg-error "denominator cannot be zero" "" { target *-*-* } 150 }
-// { dg-error "out of range" "" { target *-*-* } 151 }
+// { dg-error "instantiated from here" "" { target *-*-* } 30 }
+// { dg-error "instantiated from here" "" { target *-*-* } 36 }
+// { dg-error "instantiated from here" "" { target *-*-* } 37 }
+// { dg-error "overflow in addition" "" { target *-*-* } 135 }
+// { dg-error "overflow in multiplication" "" { target *-*-* } 103 }
+// { dg-error "overflow in multiplication" "" { target *-*-* } 105 }
+// { dg-error "overflow in multiplication" "" { target *-*-* } 107 }
 // { dg-excess-errors "In instantiation of" }
+// { dg-excess-errors "out of range" }

@@ -1,3 +1,110 @@
+2008-02-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/38914
+	* bound_simplification_2.f90:  New test case.
+	* bound_7.f90:  New test case.
+
+2009-02-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/cpp/include4.c: New test.
+
+2008-02-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39256
+	* gcc.target/i386/abi-2.c: New.
+
+2009-02-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* gcc.c-torture/execute/pr39228.x: New.
+
+2009-02-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/abi-1.c: Use scan-assembler-times "..." 1 instead of
+	scan-assembler to check for xmm0 register.
+
+2009-02-20  Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.target/arm/va_list.c: New test.
+	* g++.dg/abi/arm_va_list.C: Likewise.
+	* lib/target-supports.exp (check_effective_target_arm_eabi): New
+	function.
+	* g++.dg/cpp0x/temp-va-arg-bug.C, g++.dg/other/stdarg1.C,
+	g++.dg/warn/miss-format-1.C, g++.dg/warn/miss-format-3.C,
+	g++.dg/warn/miss-format-4.C, g++.dg/warn/miss-format-5.C,
+	g++.dg/warn/miss-format-6.C, g++.old-deja/g++.other/vaarg2.C,
+	g++.old-deja/g++.other/vaarg3.C, g++.old-deja/g++.other/vaarg4.C,
+	g++.old-deja/g++.pt/builtin.C: Use -Wno-abi on ARM EABI targets.
+
+2009-02-20  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR testsuite/38164
+	* gcc.target/i386/amd64-abi-3.c: Add -fomit-frame-pointer
+	to dg-options.
+
+2009-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39240
+	* gcc.c-torture/execute/pr39240.c: New test.
+
+2009-02-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39225
+	* g++.dg/parse/dtor15.C: New test.
+
+2009-02-19  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.c-torture/execute/20090219-1.c: New.
+
+2009-02-19  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp: Comment !CPU in the isa* pseudo-options.
+	(mips-dg-options): When matching isa* pseudo-options make
+	'value' optional and accept ! entries.  Use $spec instead of
+	$isa_spec in the isa pseudo-option error message.  Only
+	perform the ISA-range check when 'value' is set.  If arch is
+	matching any CPU in the ! entries switch to its generic ISA.
+	* gcc.target/mips/branch-1.c: Pass isa=!octeon.
+	* gcc.target/mips/dmult-1.c: Pass isa=64!octeon rather than -mips64.
+
+2009-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39175
+	* gcc.dg/visibility-20.c: New test.
+	* g++.dg/ext/visibility/visibility-11.C: New test.
+
+2009-02-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/39188
+	* g++.dg/abi/pr39188-1a.C: New.
+	* g++.dg/abi/pr39188-1b.C: Likewise.
+	* g++.dg/abi/pr39188-1.h: Likewise.
+	* g++.dg/abi/pr39188-2a.C: Likewise.
+	* g++.dg/abi/pr39188-2b.C: Likewise.
+	* g++.dg/abi/pr39188-2.h: Likewise.
+	* g++.dg/abi/pr39188-3a.C: Likewise.
+	* g++.dg/abi/pr39188-3b.C: Likewise.
+	* g++.dg/abi/pr39188-3.h: Likewise.
+
+2009-02-19  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/38483
+	* gcc.c-torture/execute/call-trap-1.c,
+	gcc.c-torture/execute/va-arg-trap-1.c, gcc.dg/call-diag-1.c: New
+	tests.
+
+2009-02-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39228
+	* gcc.c-torture/execute/pr39228.c: New test.
+
+2009-02-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39074
+	* gcc.dg/torture/pr39074.c: New testcase.
+	* gcc.dg/torture/pr39074-2.c: Likewise.
+	* gcc.dg/torture/pr39074-3.c: Likewise.
+
 2009-02-18  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c++/39219
@@ -13,6 +120,9 @@
 	and skip on Darwin.
 
 2009-02-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38880
+	* g++.dg/init/const7.C: Remove XFAIL.
 
 	PR target/39179
 	* g++.dg/opt/const6.C: New test.
@@ -266,8 +376,7 @@
 
 2009-02-09  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* gcc.target/x86_64/abi/abi-x86_64.exp: Use glob instead of
-	find.
+	* gcc.target/x86_64/abi/abi-x86_64.exp: Use glob instead of find.
 
 2009-02-09  Eric Botcazou  <ebotcazou@adacore.com>
 
@@ -348,8 +457,7 @@
 	* gcc.target/i386/i386.exp (check_effective_target_vpclmul): New.
 
 	* gcc.target/i386/pclmulqdq.c (CHECK_H): New.
-	(TEST): Likewise.
-	Include CHECK_H instead of "pclmul-check.h".
+	(TEST): Likewise.  Include CHECK_H instead of "pclmul-check.h".
 	(pclmul_test): Renamed to ...
 	(TEST): This.
 

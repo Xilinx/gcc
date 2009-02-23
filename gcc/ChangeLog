@@ -1,8 +1,158 @@
+2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (classify_argument): Don't allow COImode
+	and OImode.
+	(function_arg_advance_32): Don't allow OImode.
+	(function_arg_32): Likewise.
+	(function_value_32): Likewise.
+	(return_in_memory_32): Likewise.
+	(function_arg_64): Remove OImode comment.
+
+2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39261
+	* config/i386/i386.c (ix86_expand_vector_init_one_nonzero): Use
+	ix86_expand_vector_set for V4DImode in 64bit mode only.
+	(ix86_expand_vector_init_one_var): Likewise.
+
+2009-02-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite.c (graphite_trans_loop_block): Adjust tile size to 51.
+
+2009-02-21  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR bootstrap/39257
+	* loop-iv.c: Revert last change.
+	* emit-rtl.c: Likewise.
+
+2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39256
+	* config/i386/i386.c (type_natural_mode): Remove an extra
+	space in the warning message.
+	(function_value_32): Handle 32-byte vector modes.
+	(return_in_memory_32): Likewise.
+
+2009-02-21  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* loop-iv.c (truncate_value): New function.
+	(iv_subreg, get_iv_value, iv_number_of_iterations): Use it instead
+	of lowpart_subreg.
+	(lowpart_subreg): Move to...
+	* emit-rtl.c: ...here.
+
+2009-02-21  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config/i386/winnt.c (i386_pe_asm_output_aligned_decl_common): Revert
+	accidental and undocumented change at revision 140860.
+
+2009-02-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_gimplify_va_arg_expr): Update prototype to
+	take gimple_seq * arguments.
+	(arm_mangle_type): Use CONST_CAST_TREE on type argument passed to
+	types_compatible_p langhook.
+
+2009-02-20  Mark Mitchell  <mark@codesourcery.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/arm.c (arm_builtin_va_list): New function.
+	(arm_expand_builtin_va_start): Likewise.
+	(arm_gimplify_va_arg_expr): Likewise.
+	(TARGET_BUILD_BUILTIN_VA_LIST): Define.
+	(TARGET_BUILD_BUILTIN_VA_START): Likewise.
+	(TARGET_BUILD_BUILTIN_VA_ARG_EXPR): Likewise.
+	(va_list_type): New variable.
+	(arm_mangle_type): Mangle va_list_type appropriately.
+
+2009-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39157
+	* Makefile.in (loop-invariant.o): Depend on $(PARAMS_H).
+	* params.h (LOOP_INVARIANT_MAX_BBS_IN_LOOP): Define.
+	* params.def (loop-invariant-max-bbs-in-loop): New parameter.
+	* opts.c (decode_options): Set loop-invariant-max-bbs-in-loop
+	parameter to 1000 for -O1 by default.
+	* doc/invoke.texi (loop-invariant-max-bbs-in-loop): Document new
+	parameter.
+	* loop-invariant.c: Include params.h.
+	(move_loop_invariants): Don't call move_single_loop_invariants on
+	very large loops.
+
+2009-02-20  Jaka Mocnik  <jaka@xlab.si>
+
+	* calls.c (emit_library_call_value_1): Use slot_offset instead of
+	offset when calculating bounds for indexing stack_usage_map.  Fixes
+	a buffer overflow with certain target setups.
+
+2009-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39240
+	* calls.c (expand_call): Clear try_tail_call if caller and callee
+	disagree in promotion of function return value.
+
+2009-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39175
+	* c-common.c (c_determine_visibility): If visibility changed and
+	DECL_RTL has been already set, call make_decl_rtl to update symbol
+	flags.
+
+2009-02-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/39188
+	* varasm.c (assemble_variable): Don't check DECL_NAME when
+	globalizing a variable.
+
+2009-02-19  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/38483
+	* builtins.c (gimplify_va_arg_expr): Evaluate the va_list
+	expression before any __builtin_trap call.
+	* c-typeck.c (build_function_call): Convert and check function
+	arguments before generating a call to a trap.  Evaluate the
+	function arguments before the trap.
+
+2009-02-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39228
+	* config/i386/i386.md (isinfxf2): Split from isinf<mode>2.
+	(UNSPEC_FXAM_MEM): New unspec.
+	(fxam<mode>2_i387_with_temp): New insn and split pattern.
+	(isinf<mode>2): Use MODEF mode iterator.  Force operand[1] through
+	memory using fxam<mode>2_i387_with_temp to remove excess precision.
+
+2009-02-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39207
+	PR tree-optimization/39074
+	* tree-ssa-structalias.c (storedanything_id, var_storedanything,
+	storedanything_tree): New.
+	(do_ds_constraint): Simplify ANYTHING shortcutting.  Update
+	the STOREDANYTHING solution if the lhs solution contains ANYTHING.
+	(build_succ_graph): Add edges from STOREDANYTHING to all
+	non-direct nodes.
+	(init_base_vars): Initialize STOREDANYTHING.
+	(compute_points_to_sets): Free substitution info after
+	building the succ graph.
+	(ipa_pta_execute): Likewise.
+
+	* tree-ssa-structalias.c (struct variable_info): Add may_have_pointers
+	field.
+	(do_ds_constraint): Do not add to special var or non-pointer
+	field solutions.
+	(type_could_have_pointers): Split out from ...
+	(could_have_pointers): ... here.  For arrays use the element type.
+	(create_variable_info_for): Initialize may_have_pointers.
+	(new_var_info): Likewise.
+	(handle_lhs_call): Make the HEAP variable unknown-sized.
+	(intra_create_variable_infos): Use a type with pointers for
+	PARM_NOALIAS, make it unknown-sized.
+
 2009-02-18  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/39224
-	* config/i386/i386.c (ix86_return_in_memory): Properly check
-	ABI.
+	* config/i386/i386.c (ix86_return_in_memory): Properly check ABI.
 
 2009-02-18  Jason Merrill  <jason@redhat.com>
 
@@ -169,8 +319,7 @@
 
 	PR target/39149
 	* config/i386/i386.c (override_options): Correct warning
-	messages for -malign-loops,  -malign-jumps and
-	-malign-functions.
+	messages for -malign-loops,  -malign-jumps and -malign-functions.
 
 2009-02-13  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -182,8 +331,7 @@
 
 	PR target/39162
 	* config/i386/i386.c (type_natural_mode): Add a new argument.
-	Return the original mode and warn ABI change if vector size
-	is 32byte.
+	Return the original mode and warn ABI change if vector size is 32byte.
 	(function_arg_advance): Updated.
 	(function_arg): Likewise.
 	(ix86_function_value): Likewise.
@@ -262,7 +410,7 @@
 	(TARGET_INIT_LIBFUNCS): Likewise.
 
 	* config/ia64/t-glibc (SHLINB_MAPFILES):
-	Add $(srcdir)/config/ia64/libgcc-glibc.ver,
+	Add $(srcdir)/config/ia64/libgcc-glibc.ver.
 
 2009-02-12  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -708,7 +856,7 @@
 	* c-decl.c (pop_scope): Set DECL_EXTERNAL for functions declared
 	inline but never defined.
 
-2009-01-30  Wolfgang Gellerich  <gellerich@de,ibm.com>
+2009-01-30  Wolfgang Gellerich  <gellerich@de.ibm.com>
 
 	* config/s390/s390.md (*insv<mode>_reg_extimm): Removed.
 	(*insv_h_di_reg_extimm): New insn.
@@ -847,7 +995,7 @@
 	* reload1.c (compute_use_by_pseudos, reload, count_pseudo,
 	count_spilled_pseudo, find_reg, alter_reg, delete_output_reload):
 	Remove flag_ira.
-	(finish_spills): Ditto.  Remove code for !flga_ira.
+	(finish_spills): Ditto.  Remove code for !flag_ira.
 	
 2009-01-29  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
@@ -950,7 +1098,8 @@
 2009-01-28  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/38740
-	* reorg.c (gate_handle_delay_slots): Avoid dbr scheduling if !optimize.
+	* reorg.c (gate_handle_delay_slots): Avoid dbr scheduling
+	if !optimize.
 	* config/mips/mips.c (mips_reorg): Likewise.
 
 2009-01-28  Richard Guenther  <rguenther@suse.de>
@@ -1214,8 +1363,8 @@
 2009-01-20  Joseph Myers  <joseph@codesourcery.com>
 
 	PR other/38758
-	* longlong.h: Update copyright years.  Use soft-fp license
-	notice.  Sync __clz_tab declaration with glibc.
+	* longlong.h: Update copyright years.  Use soft-fp license notice.
+	Sync __clz_tab declaration with glibc.
 
 2009-01-20  Steve Ellcey  <sje@cup.hp.com>
 

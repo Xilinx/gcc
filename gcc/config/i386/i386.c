@@ -4759,7 +4759,7 @@ type_natural_mode (const_tree type, CUMULATIVE_ARGS *cum)
 		      {
 			warnedavx = true;
 			warning (0, "AVX vector argument without AVX "
-				 " enabled changes the ABI");
+				 "enabled changes the ABI");
 		      }
 		    return TYPE_MODE (type);
 		  }
@@ -5115,9 +5115,11 @@ classify_argument (enum machine_mode mode, const_tree type,
     case TImode:
       classes[0] = classes[1] = X86_64_INTEGER_CLASS;
       return 2;
-    case CTImode:
     case COImode:
     case OImode:
+      /* OImode shouldn't be used directly.  */
+      gcc_unreachable ();
+    case CTImode:
       return 0;
     case SFmode:
       if (!(bit_offset % 64))
@@ -5468,6 +5470,10 @@ function_arg_advance_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	}
       break;
 
+    case OImode:
+      /* OImode shouldn't be used directly.  */
+      gcc_unreachable ();
+
     case DFmode:
       if (cum->float_in_sse < 2)
 	break;
@@ -5476,7 +5482,6 @@ function_arg_advance_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 	break;
       /* FALLTHRU */
 
-    case OImode:
     case V8SFmode:
     case V8SImode:
     case V32QImode:
@@ -5673,7 +5678,9 @@ function_arg_32 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
       break;
 
     case OImode:
-      /* In 32bit, we pass OImode in ymm registers.  */
+      /* OImode shouldn't be used directly.  */
+      gcc_unreachable ();
+
     case V8SFmode:
     case V8SImode:
     case V32QImode:
@@ -5738,9 +5745,6 @@ function_arg_64 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
     case V16HImode:
     case V4DFmode:
     case V4DImode:
-      /* In 64bit, we pass TImode in interger registers and OImode on
-	 stack.  */
-
       /* Unnamed 256bit vector mode parameters are passed on stack.  */
       if (!named)
 	return NULL;
@@ -6019,6 +6023,10 @@ function_value_32 (enum machine_mode orig_mode, enum machine_mode mode,
 	   || (VECTOR_MODE_P (mode) && GET_MODE_SIZE (mode) == 16))
     regno = TARGET_SSE ? FIRST_SSE_REG : 0;
 
+  /* 32-byte vector modes in %ymm0.   */
+  else if (VECTOR_MODE_P (mode) && GET_MODE_SIZE (mode) == 32)
+    regno = TARGET_AVX ? FIRST_SSE_REG : 0;
+
   /* Floating point return values in %st(0) (unless -mno-fp-ret-in-387).  */
   else if (X87_FLOAT_MODE_P (mode) && TARGET_FLOAT_RETURNS_IN_80387)
     regno = FIRST_FLOAT_REG;
@@ -6035,6 +6043,9 @@ function_value_32 (enum machine_mode orig_mode, enum machine_mode mode,
 	  || (sse_level == 2 && mode == DFmode))
 	regno = FIRST_SSE_REG;
     }
+
+  /* OImode shouldn't be used directly.  */
+  gcc_assert (mode != OImode);
 
   return gen_rtx_REG (orig_mode, regno);
 }
@@ -6172,6 +6183,10 @@ return_in_memory_32 (const_tree type, enum machine_mode mode)
       /* SSE values are returned in XMM0, except when it doesn't exist.  */
       if (size == 16)
 	return (TARGET_SSE ? 0 : 1);
+
+      /* AVX values are returned in YMM0, except when it doesn't exist.  */
+      if (size == 32)
+	return TARGET_AVX ? 0 : 1;
     }
 
   if (mode == XFmode)
@@ -6179,6 +6194,10 @@ return_in_memory_32 (const_tree type, enum machine_mode mode)
 
   if (size > 12)
     return 1;
+
+  /* OImode shouldn't be used directly.  */
+  gcc_assert (mode != OImode);
+
   return 0;
 }
 
@@ -27120,9 +27139,12 @@ ix86_expand_vector_init_one_nonzero (bool mmx_ok, enum machine_mode mode,
     case V16HImode:
     case V8SImode:
     case V8SFmode:
-    case V4DImode:
     case V4DFmode:
       use_vector_set = TARGET_AVX;
+      break;
+    case V4DImode:
+      /* Use ix86_expand_vector_set in 64bit mode only.  */
+      use_vector_set = TARGET_AVX && TARGET_64BIT;
       break;
     default:
       break;
@@ -27262,8 +27284,11 @@ ix86_expand_vector_init_one_var (bool mmx_ok, enum machine_mode mode,
 	 the general case.  */
       return false;
 
-    case V4DFmode:
     case V4DImode:
+      /* Use ix86_expand_vector_set in 64bit mode only.  */
+      if (!TARGET_64BIT)
+	return false;
+    case V4DFmode:
     case V8SFmode:
     case V8SImode:
     case V16HImode:

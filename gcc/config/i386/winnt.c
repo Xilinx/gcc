@@ -1,7 +1,7 @@
 /* Subroutines for insn-output.c for Windows NT.
    Contributed by Douglas Rupp (drupp@cs.washington.edu)
    Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -508,8 +508,7 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
   
   i386_pe_maybe_record_exported_symbol (decl, name, 1);
 
-  switch_to_section (bss_section);
-  fprintf (stream, "\t.balign %d\n\t.comm \t", ((int) align) / BITS_PER_UNIT);
+  fprintf (stream, "\t.comm\t");
   assemble_name (stream, name);
   fprintf (stream, ", " HOST_WIDE_INT_PRINT_DEC "\t" ASM_COMMENT_START
 	   " " HOST_WIDE_INT_PRINT_DEC "\n",

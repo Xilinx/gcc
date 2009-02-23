@@ -1,5 +1,6 @@
 // { dg-do compile }
 // { dg-options "-std=gnu++0x" }
+// { dg-require-cstdint "" }
 
 // Copyright (C) 2008, 2009 Free Software Foundation
 //
@@ -19,41 +20,36 @@
 // the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 // Boston, MA 02110-1301, USA.
 
-#include <memory>
-
-struct base { virtual ~base() {} };
-struct derived : base {};
+#include <ratio>
 
 void
 test01()
 {
-  std::unique_ptr<derived> p1(new derived);
-  std::unique_ptr<derived> p2(new derived);
-//  p2 = p1;  // should not compile
-  p2 = std::move(p1);
-  std::unique_ptr<base> p3(new base);
-//  p3 = p2;  // should not compile
-  p3 = std::move(p2);
+  std::ratio<INTMAX_MAX, INTMAX_MAX> r1;
+  std::ratio<-INTMAX_MAX, INTMAX_MAX> r2;
 }
 
 void
 test02()
 {
-  std::unique_ptr<int[]> p1(new int(420));
-  std::unique_ptr<int[]> p2 = p1;
+  std::ratio<INTMAX_MIN, 1> r1;
 }
 
 void
 test03()
 {
-  std::unique_ptr<int[2]> p1(new int[3]);
-  std::unique_ptr<int[2]> p2 = p1;
+  std::ratio<1, INTMAX_MIN> r1;
 }
 
-// { dg-error "used here" "" { target *-*-* } 43 }
-// { dg-error "no matching" "" { target *-*-* } 49 }
-// { dg-error "used here" "" { target *-*-* } 50 }
-// { dg-error "candidates are" "" { target *-*-* } 214 }
-// { dg-error "deleted function" "" { target *-*-* } 214 }
-// { dg-error "deleted function" "" { target *-*-* } 360 }
-// { dg-excess-errors "note" }
+void
+test04()
+{
+  std::ratio<1,0> r1;
+}
+
+// { dg-error "instantiated from here" "" { target *-*-* } 35 }
+// { dg-error "instantiated from here" "" { target *-*-* } 41 }
+// { dg-error "instantiated from here" "" { target *-*-* } 47 }
+// { dg-error "denominator cannot be zero" "" { target *-*-* } 158 }
+// { dg-error "out of range" "" { target *-*-* } 159 }
+// { dg-excess-errors "In instantiation of" }
