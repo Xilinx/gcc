@@ -1,3 +1,9 @@
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-sese-to-poly.c (scan_tree_for_params): Remove REAL_CST. The
+	SCoP detection fix is sufficient.
+
 2009-02-21  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/39260
