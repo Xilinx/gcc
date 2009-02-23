@@ -219,8 +219,7 @@ is_simple_operand (loop_p loop, gimple stmt, tree op)
 static bool
 stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 {
-  basic_block bb = gimple_bb (stmt);
-  struct loop *loop = bb->loop_father;
+  struct loop *loop = scop_entry->loop_father;
 
   /* GIMPLE_ASM and GIMPLE_CALL may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
