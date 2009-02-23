@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "gimple.h"
 
-#ifdef HAVE_cloog
+#if 0
 #include "sese.h"
 #include "cloog/cloog.h"
 #include "ppl_c.h"
@@ -361,7 +361,6 @@ graphite_test_dependence (scop_p scop, poly_bb_p pbb1, poly_bb_p pbb2,
 struct graph *
 graphite_build_rdg_all_levels (scop_p scop ATTRIBUTE_UNUSED)
 {
-  #if 0
   unsigned i, j, i1, j1;
   poly_bb_p pbb1, pbb2;
   struct graph *rdg = NULL;
@@ -408,7 +407,6 @@ graphite_build_rdg_all_levels (scop_p scop ATTRIBUTE_UNUSED)
 
   VEC_free (gimple, heap, stmts);
   return rdg;  
-  #endif
   return NULL;
 }
 
@@ -449,7 +447,5 @@ graphite_dump_dependence_graph (FILE *f, struct graph *g)
       fprintf (f, "\n");
     }
 }
-
-#else /* If Cloog is not available: #ifndef HAVE_cloog.  */
 
 #endif

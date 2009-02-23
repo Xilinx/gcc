@@ -24,6 +24,8 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GRAPHITE_DATA_REF_H
 #define GCC_GRAPHITE_DATA_REF_H
 
+#if 0
+
 struct data_dependence_polyhedron
 {
   struct data_reference *a;
@@ -47,4 +49,5 @@ extern struct data_dependence_polyhedron *
 graphite_test_dependence (scop_p scop, poly_bb_p pbb1, poly_bb_p pbb2,
                           struct data_reference *a, struct data_reference *b);
 
+#endif
 #endif

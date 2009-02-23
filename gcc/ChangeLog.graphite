@@ -1,6 +1,11 @@
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-data-ref.[ch]: Disable.
+
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-scop-detection.c (stmt_simple_for_scop_p): Analyze
 	scalar evolutions in the scop_entry->loop_father.
 
