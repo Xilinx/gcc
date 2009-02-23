@@ -28,7 +28,8 @@ typedef struct cloog_prog_clast {
   struct clast_stmt *stmt;
 } cloog_prog_clast;
 
-cloog_prog_clast scop_to_clast (scop_p);
-bool gloog (scop_p);
+extern bool gloog (scop_p);
+extern cloog_prog_clast scop_to_clast (scop_p);
+extern void debug_clast_stmt (struct clast_stmt *);
 
 #endif

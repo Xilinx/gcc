@@ -266,7 +266,7 @@ build_scop_bbs (scop_p scop)
    returned dimensionality is homogeneous (depth of loop nest + number
    of SCoP parameters + const).  */
 
-int
+static int
 ref_nb_loops (data_reference_p ref, sese region)
 {
   loop_p loop = loop_containing_stmt (DR_STMT (ref));

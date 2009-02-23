@@ -309,4 +309,52 @@ recompute_all_dominators (void)
   calculate_dominance_info (CDI_POST_DOMINATORS);
 }
 
+typedef struct gimple_bb
+{
+  basic_block bb;
+
+  /* Lists containing the restrictions of the conditional statements
+     dominating this bb.  This bb can only be executed, if all conditions
+     are true.
+ 
+     Example:
+ 
+     for (i = 0; i <= 20; i++)
+     {
+       A
+ 
+       if (2i <= 8)
+         B
+     }
+ 
+     So for B there is an additional condition (2i <= 8).
+ 
+     List of COND_EXPR and SWITCH_EXPR.  A COND_EXPR is true only if the
+     corresponding element in CONDITION_CASES is not NULL_TREE.  For a
+     SWITCH_EXPR the corresponding element in CONDITION_CASES is a
+     CASE_LABEL_EXPR.  */
+  VEC (gimple, heap) *conditions;
+  VEC (gimple, heap) *condition_cases;
+
+  VEC (data_reference_p, heap) *data_refs;
+  htab_t cloog_iv_types;
+} *gimple_bb_p;
+
+#define GBB_BB(GBB) GBB->bb
+#define GBB_DATA_REFS(GBB) GBB->data_refs
+#define GBB_CONDITIONS(GBB) GBB->conditions
+#define GBB_CONDITION_CASES(GBB) GBB->condition_cases
+#define GBB_CLOOG_IV_TYPES(GBB) GBB->cloog_iv_types
+
+/* Return the loop that contains the basic block GBB.  */
+
+static inline struct loop *
+gbb_loop (struct gimple_bb *gbb)
+{
+  return GBB_BB (gbb)->loop_father;
+}
+
+extern void print_gimple_bb (FILE *, gimple_bb_p, int, int);
+extern void debug_gbb (gimple_bb_p, int);
+
 #endif
