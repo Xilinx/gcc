@@ -273,6 +273,7 @@ PACKAGE_VERSION='Polyhedral Compilation Package Library '
 PACKAGE_STRING='libpcp Polyhedral Compilation Package Library '
 PACKAGE_BUGREPORT='gcc-bugs@gcc.gnu.org'
 
+ac_unique_file="pcp.h"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -1299,6 +1300,7 @@ ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
 
 
 

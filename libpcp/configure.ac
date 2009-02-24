@@ -22,6 +22,7 @@
 
 AC_PREREQ(2.59)
 AC_INIT(libpcp, [Polyhedral Compilation Package Library ], gcc-bugs@gcc.gnu.org, libpcp)
+AC_CONFIG_SRCDIR(pcp.h)
 
 # Checks for programs.
 AC_PROG_MAKE_SET
