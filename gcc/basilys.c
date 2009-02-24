@@ -4447,6 +4447,51 @@ end:
 }
 
 
+basilys_ptr_t
+basilysgc_new_string_tempbasename (basilysobject_ptr_t
+				   discr_p, const char *namstr)
+{
+  int slen = 0;
+  const char *basestr = xstrdup(lbasename(namstr));
+  const char* tempnampath = 0;
+  char *dot = 0;
+  BASILYS_ENTERFRAME (2, NULL);
+#define discrv     curfram__.varptr[0]
+#define strv       curfram__.varptr[1]
+#define obj_discrv  ((struct basilysobject_st*)(discrv))
+#define str_strv  ((struct basilysstring_st*)(strv))
+  if (basestr)
+    dot = strrchr(basestr, '.');
+  if (dot) *dot=0;
+  tempnampath = basilys_tempdir_path(basestr);
+  free(basestr);
+  basestr = 0;
+  strv = 0;
+  if (!tempnampath)
+    goto end;
+  discrv = discr_p;
+  if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
+    goto end;
+  if (obj_discrv->object_magic != OBMAG_STRING)
+    goto end;
+  slen = strlen (tempnampath);
+  strv =
+    basilysgc_allocate (sizeof (struct basilysstring_st),
+			slen + 1);
+  str_strv->discr = obj_discrv;
+  strcpy (str_strv->val, tempnampath);
+end:
+  if (tempnampath)
+    free (tempnampath);
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) strv;
+#undef discrv
+#undef strv
+#undef obj_discrv
+#undef str_strv
+}
+
+
 
 
 #if ENABLE_CHECKING
@@ -4647,7 +4692,10 @@ basilys_tempdir_path (const char *basnam)
 {
   int loopcnt = 0;
   char *cdir = 0;
+  static long countfile;
+  char countbuf[24];
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
+  memset(countbuf, 0, sizeof(countbuf));
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (basilys_tempdir_string && basilys_tempdir_string[0])
     {
@@ -4687,7 +4735,9 @@ basilys_tempdir_path (const char *basnam)
 	fatal_error ("failed to create temporary directory for MELT in %s",
 		     choose_tmpdir ());
     };
-  return concat (tempdir_basilys, "/", basnam, NULL);
+  countfile++;
+  snprintf(countbuf, sizeof(countbuf)-1, "_%ld", countfile);
+  return concat (tempdir_basilys, "/", basnam, countbuf, NULL);
 }
 
 

@@ -472,7 +472,7 @@
 
 ;; primitive to ignore a value
 (defprimitive ignore (v) :void
-  "/*ignore*/(" v ")")
+  "/*ignore*/(void)(" v ")")
 
 ;; primitive to return a void
 (defprimitive void () :void "/*void*/0")
@@ -778,9 +778,21 @@
 (defprimitive strbuf2string (dis sbuf) :value
   "(basilysgc_new_stringdup((basilysobject_ptr_t)(" dis 
   "), basilys_strbuf_str((basilys_ptr_t)(" sbuf "))))")
+
+
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
   "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+;;; compute the naked temporary path for a basename
+(defprimitive make_string_tempbasename (dis str) :value
+  "(basilysgc_new_string_tempbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+
+;;;; compile a C code file as module an load it. First argument is an
+;;;; environment, second argument is the string containing the C file
+;;;; path. Return value is the new environment provided by the loaded
+;;;; module.
+(defprimitive compile_load_dynamic_module (env str) :value
+  "(basilysgc_compile_dyn((basilys_ptr_t)(" env "), basilys_string_str((basilys_ptr_t)(" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -3663,6 +3675,7 @@
  closure_size
  create_keywordstr
  create_symbolstr
+ compile_load_dynamic_module
  discrim
  error_plain
  error_strv
@@ -3719,6 +3732,7 @@
  make_strbuf
  make_string
  make_string_nakedbasename
+ make_string_tempbasename
  make_stringconst
  make_tuple1
  make_tuple2

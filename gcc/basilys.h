@@ -1782,9 +1782,14 @@ basilys_ptr_t basilysgc_new_string (basilysobject_ptr_t discr,
 basilys_ptr_t basilysgc_new_stringdup (basilysobject_ptr_t discr,
 				       const char *str);
 
-/* get the naked nasename of a path, ie from "/foo/bar.gyz" return "bar"; argument is duplicated */
+/* get the naked basename of a path, ie from "/foo/bar.gyz" return
+   "bar"; argument is duplicated */
 basilys_ptr_t basilysgc_new_string_nakedbasename (basilysobject_ptr_t discr,
 						  const char *str);
+/* get the basename of a path inside the temporary directory */
+basilys_ptr_t basilysgc_new_string_tempbasename (basilysobject_ptr_t discr,
+						 const char *namstr);
+
 
 static inline const char *
 basilys_string_str (basilys_ptr_t v)

@@ -1,3 +1,22 @@
+2009-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_new_string_tempbasename): added new
+	declaration.
+	* basilys.c (basilysgc_new_string_tempbasename): added new
+	function.
+	(basilys_tempdir_path): uses a counter to ensure unique file
+	names.
+	* melt/warmelt-first.bysl: addded compile_load_dynamic_module &
+	make_string_tempbasename primitives.
+	* melt/warmelt-genobj.bysl: added debug message in
+	compiltst_normtester_success.
+	* melt/warmelt-outobj.bysl: added runfile command and
+	compile_one_or_more_files function.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2009-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-1.bysl could be compiled correctly, but lots of
 	intermediate objloc are never disposed...]

@@ -4264,6 +4264,7 @@
 ;;;;;;;;;;;;;;;;
 (defun compiltst_normtester_success (ntsu gcx tcx)
   (debug_msg ntsu "compiltst_normtester_success ntsu")
+  (debug_msg tcx "compiltst_normtester_success tcx")
   (assert_msg "check ntsu" (is_a ntsu class_normtester_success))
   (assert_msg "check gcx" (is_a gcx class_genercontext))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
