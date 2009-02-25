@@ -53,7 +53,7 @@ cloog_matrix_to_ppl_constraint (CloogMatrix *matrix, int row)
   ppl_Linear_Expression_add_to_inhomogeneous (expr, coef);
   ppl_delete_Coefficient (coef);
 
-  if (matrix->p[row][0] == 0)
+  if (value_zero_p (matrix->p[row][0]))
     ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
   else
     ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
@@ -454,4 +454,33 @@ ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t a,
   value_clear (vb);
   ppl_delete_Coefficient (c);
   return length1 - length2;
+}
+
+/* Print to FILE the polyhedron PH under its PolyLib matrix form.  */
+
+void
+ppl_print_polyhedron_matrix (FILE *file, ppl_Polyhedron_t ph)
+{
+  CloogMatrix *mat = new_Cloog_Matrix_from_ppl_Polyhedron (ph);
+  cloog_matrix_print (file, mat);
+  cloog_matrix_free (mat);
+}
+
+/* Print to STDERR the polyhedron PH under its PolyLib matrix form.  */
+
+void
+debug_ppl_polyhedron_matrix (ppl_Polyhedron_t ph)
+{
+  ppl_print_polyhedron_matrix (stderr, ph);
+}
+
+/* Read from FILE a polyhedron under PolyLib matrix form and return a
+   PPL polyhedron object.  */
+
+void
+ppl_read_polyhedron_matrix (ppl_Polyhedron_t *ph, FILE *file)
+{
+  CloogMatrix *mat = cloog_matrix_read (file);
+  new_NNC_Polyhedron_from_Cloog_Matrix (ph, mat);
+  cloog_matrix_free (mat);
 }

@@ -157,6 +157,9 @@ struct poly_bb
      Dimensions 1 and 3 represent the newly created loops.  */
   VEC (loop_p, heap) *loops;
 
+  /* The scattering function of the BB defines the transforms that are
+     going to be applied to it.  */
+  ppl_Polyhedron_t scattering;
 };
 
 #define PBB_SCOP(PBB) PBB->scop
@@ -164,11 +167,12 @@ struct poly_bb
 #define PBB_DOMAIN(PBB) PBB->domain
 #define PBB_BLACK_BOX(PBB) PBB->black_box
 #define PBB_LOOPS(PBB) PBB->loops
+#define PBB_SCATTERING(PBB) PBB->scattering
 
 extern void new_poly_bb (scop_p, gimple_bb_p);
 extern void free_poly_bb (poly_bb_p);
 extern void debug_loop_vec (poly_bb_p);
-extern ppl_Polyhedron_t schedule_to_scattering (poly_bb_p, int);
+extern void schedule_to_scattering (poly_bb_p, int);
 
 static inline unsigned scop_nb_params (scop_p);
 
@@ -247,6 +251,10 @@ extern void free_scop (scop_p);
 extern void free_scops (VEC (scop_p, heap) *);
 extern void print_generated_program (FILE *, scop_p);
 extern void debug_generated_program (scop_p);
+extern void print_scattering_function (FILE *, poly_bb_p);
+extern void print_scattering_functions (FILE *, scop_p);
+extern void debug_scattering_function (poly_bb_p);
+extern void debug_scattering_functions (scop_p);
 extern int scop_max_loop_depth (scop_p);
 extern bool apply_poly_transforms (scop_p);
 

@@ -328,6 +328,8 @@ extern int sdb_begin_function_line;
 
 #ifdef BUFSIZ
 extern FILE *asm_out_file;
+extern FILE *graphite_out_file;
+extern FILE *graphite_in_file;
 #endif
 
 /* The first global object in the file.  */

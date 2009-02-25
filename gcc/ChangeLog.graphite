@@ -1,3 +1,35 @@
+2009-02-25  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jan Sjodin  <jan.sjodin@amd.com>
+
+	* output.h (graphite_out_file, graphite_in_file): Declared.
+	* toplev.c (graphite_out_file, graphite_in_file): New.
+	(init_asm_output): Initialize graphite_in_file and graphite_out_file.
+	* graphite-clast-to-gimple.c (build_cloog_prog): Read PBB_SCATTERING.
+	Don't call schedule_to_scattering.
+	* common.opt (fgraphite-write, fgraphite-read): New.
+	* graphite-poly.c: Include output.h.
+	(print_scattering_function, print_scattering_functions,
+	debug_scattering_function, debug_scattering_functions,
+	graphite_write_transforms, graphite_read_transforms,
+	graphite_generate_scattering_fns): New.
+	(apply_poly_transforms): Do not apply transform if flag_graphite_read.
+	Call graphite_generate_scattering_fns, graphite_write_transforms,
+	graphite_read_transforms.
+	(new_poly_bb): Initialize PBB_SCATTERING.
+	(free_poly_bb): Free PBB_SCATTERING.
+	(schedule_to_scattering): Does not return, initialize PBB_SCATTERING.
+	* graphite-poly.h (struct poly_bb): Add field scattering.
+	(PBB_SCATTERING): New.
+	(print_scattering_function, print_scattering_functions,
+	debug_scattering_function, debug_scattering_functions): Declared.
+	* graphite-ppl.c (cloog_matrix_to_ppl_constraint): Matrices contain
+	GMP values, not integers!
+	(ppl_print_polyhedron_matrix, debug_ppl_polyhedron_matrix,
+	ppl_read_polyhedron_matrix): New.
+	* graphite-ppl.h (ppl_print_polyhedron_matrix, debug_ppl_polyhedron_matrix,
+	ppl_read_polyhedron_matrix): Declared.
+	* Makefile.in (graphite-poly.o): Depends on output.h.
+
 2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 

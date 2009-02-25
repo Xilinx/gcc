@@ -914,13 +914,15 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         /* XXX: Replace with cloog_domain_list_alloc(), when available.  */
         CloogDomainList *new_scattering
 	  = (CloogDomainList *) xmalloc (sizeof (CloogDomainList));
-        ppl_Polyhedron_t scat = schedule_to_scattering (pbb, nbs);
-	CloogDomain *dom = new_Cloog_Domain_from_ppl_Polyhedron (scat);
+        ppl_Polyhedron_t scat;
+	CloogDomain *dom;
+
+	scat = PBB_SCATTERING (pbb);
+	dom = new_Cloog_Domain_from_ppl_Polyhedron (scat);
 
         cloog_set_next_domain (new_scattering, scattering);
         cloog_set_domain (new_scattering, dom);
         scattering = new_scattering;
-        ppl_delete_Polyhedron (scat);
       }
     }
 

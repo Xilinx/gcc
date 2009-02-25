@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "tree.h"
 #include "rtl.h"
+#include "output.h"
 #include "basic-block.h"
 #include "diagnostic.h"
 #include "tree-flow.h"
@@ -503,6 +504,86 @@ graphite_trans_scop_block (scop_p scop)
   return transform_done;
 }
 
+/* Prints to FILE the scattering function of PBB.  */
+
+void
+print_scattering_function (FILE *file, poly_bb_p pbb)
+{
+  int max_nb_loops = scop_max_loop_depth (PBB_SCOP (pbb));
+  int nbs = 2 * max_nb_loops + 1;
+  schedule_to_scattering (pbb, nbs);
+  ppl_print_polyhedron_matrix (file, PBB_SCATTERING (pbb));
+}
+
+/* Prints to FILE the scattering functions of every PBB of SCOP.  */
+
+void
+print_scattering_functions (FILE *file, scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    print_scattering_function (file, pbb);
+}
+
+/* Prints to STDERR the scattering function of PBB.  */
+
+void
+debug_scattering_function (poly_bb_p pbb)
+{
+  print_scattering_function (stderr, pbb);
+}
+
+/* Prints to STDERR the scattering functions of every PBB of SCOP.  */
+
+void
+debug_scattering_functions (scop_p scop)
+{
+  print_scattering_functions (stderr, scop);
+}
+
+/* Write to file_name.graphite the transforms for SCOP.  */
+
+static void
+graphite_write_transforms (scop_p scop)
+{
+  print_scattering_functions (graphite_out_file, scop);
+}
+
+/* Read transforms from file_name.graphite and set the transforms on
+   SCOP.  */
+
+static bool
+graphite_read_transforms (scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    {
+      ppl_Polyhedron_t newp;
+      ppl_read_polyhedron_matrix (&newp, graphite_in_file);
+      PBB_SCATTERING (pbb) = newp;
+    }
+  
+  return true;
+}
+
+/* Generates the scattering functions for SCOP.  */
+
+static void
+graphite_generate_scattering_fns (scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+  int max_nb_loops = scop_max_loop_depth (scop);
+  int nbs = 2 * max_nb_loops + 1;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    schedule_to_scattering (pbb, nbs);
+}
+
 /* Apply graphite transformations to all the basic blocks of SCOP.  */
 
 bool
@@ -514,7 +595,8 @@ apply_poly_transforms (scop_p scop)
 
   graphite_sort_pbbs (scop);
 
-  if (flag_loop_block)
+  if (flag_loop_block 
+      && !flag_graphite_read)
     transform_done = graphite_trans_scop_block (scop);
 
   /* Generate code even if we did not apply any real transformation.
@@ -524,6 +606,14 @@ apply_poly_transforms (scop_p scop)
      may change, even if we only use -fgraphite-identity.  */ 
   if (flag_graphite_identity)
     transform_done = true;
+
+  graphite_generate_scattering_fns (scop);
+
+  if (flag_graphite_write)
+    graphite_write_transforms (scop);
+
+  if (flag_graphite_read)
+    transform_done |= graphite_read_transforms (scop);
 
   return transform_done;
 }
@@ -540,6 +630,7 @@ new_poly_bb (scop_p scop, gimple_bb_p black_box)
   ppl_new_NNC_Polyhedron_from_space_dimension (&PBB_DOMAIN (pbb), 0, 0);
   PBB_SCOP (pbb) = scop;
   PBB_BLACK_BOX (pbb) = black_box;
+  PBB_SCATTERING (pbb) = NULL;
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
 }
 
@@ -552,6 +643,9 @@ free_poly_bb (poly_bb_p pbb)
 
   if (PBB_STATIC_SCHEDULE (pbb))
     ppl_delete_Linear_Expression (PBB_STATIC_SCHEDULE (pbb));
+
+  if (PBB_SCATTERING (pbb))
+    ppl_delete_Polyhedron (PBB_SCATTERING (pbb));
 
   VEC_free (loop_p, heap, PBB_LOOPS (pbb));
 
@@ -624,7 +718,7 @@ free_scop (scop_p scop)
    | 0   1   0   0   0  -1   0   0   0  = 0
    | 0   0   1   0   0   0   0   0  -5  = 0  */
 
-ppl_Polyhedron_t
+void
 schedule_to_scattering (poly_bb_p pbb, int scattering_dimensions) 
 {
   int i;
@@ -682,9 +776,13 @@ schedule_to_scattering (poly_bb_p pbb, int scattering_dimensions)
       ppl_delete_Constraint (cstr);
     }
 
+  if (PBB_SCATTERING (pbb))
+    ppl_delete_Polyhedron (PBB_SCATTERING (pbb));
+
+  PBB_SCATTERING (pbb) = ph;
+
   value_clear (v);
   ppl_delete_Coefficient (c);
-  return ph;
 }
 
 
