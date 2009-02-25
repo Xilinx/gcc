@@ -1,3 +1,18 @@
+2009-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[the whole compilation of generated C code in temporary directory
+	stuff should be cleaned and is buggy; -fbasilys=runfile hello.bysl
+	dont work yet; really the name of the generated C code should be
+	unique, not every tempdir_path!]
+	* basilys.h (basilysgc_new_string_tempbasename): removed
+	(basilysgc_new_string_tempname_suffixed): added
+	* basilys.c (basilysgc_new_string_tempbasename): removed
+	(basilysgc_new_string_tempname_suffixed): added
+	(basilys_tempdir_path): compute the basename of its argument and
+	uses a unique counter.
+	(load_checked_dynamic_module_index): check the module file base &
+	suffix...
+	* melt/warmelt-first.bysl: added make_string_tempname_suffixed
+	primitive instead of make_string_tempbasename
 2009-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_new_string_tempbasename): added new
 	declaration.

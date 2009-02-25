@@ -783,9 +783,9 @@
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
   "(basilysgc_new_string_nakedbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
-;;; compute the naked temporary path for a basename
-(defprimitive make_string_tempbasename (dis str) :value
-  "(basilysgc_new_string_tempbasename((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str "))))")
+;;; compute the naked temporary path for a basename with a suffix
+(defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
+  "(basilysgc_new_string_tempname_suffixed((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str ")), (" suff ")))")
 
 ;;;; compile a C code file as module an load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
@@ -3732,7 +3732,7 @@
  make_strbuf
  make_string
  make_string_nakedbasename
- make_string_tempbasename
+ make_string_tempname_suffixed
  make_stringconst
  make_tuple1
  make_tuple2

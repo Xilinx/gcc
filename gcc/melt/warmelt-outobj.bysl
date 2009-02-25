@@ -3085,13 +3085,13 @@
 	     ( (is_string secarg) 
 	       secarg)
 	     ( (is_string arg) 
-	       (make_string_tempbasename discr_string arg))
+	       (make_string_tempname_suffixed discr_string arg ".c"))
 	     (:else
 	      (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
 	      (return)
 	      )))
 	   )
-      (compile_one_or_more_files arg curenv modsrcname)
+      (compile_one_or_more_files arg modsrcname curenv)
       (debug_msg modsrcname "after compilation runfile_command modsrcname")
       ;; the new environment is silently discarded
       (ignore (compile_load_dynamic_module curenv modsrcname))

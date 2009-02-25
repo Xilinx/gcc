@@ -1,5 +1,5 @@
 /* Basile's static analysis (should have a better name) header basilys.h
-   Copyright (C)  2008 Free Software Foundation, Inc.
+   Copyright (C)  2008, 2009 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC.
@@ -1786,9 +1786,9 @@ basilys_ptr_t basilysgc_new_stringdup (basilysobject_ptr_t discr,
    "bar"; argument is duplicated */
 basilys_ptr_t basilysgc_new_string_nakedbasename (basilysobject_ptr_t discr,
 						  const char *str);
-/* get the basename of a path inside the temporary directory */
-basilys_ptr_t basilysgc_new_string_tempbasename (basilysobject_ptr_t discr,
-						 const char *namstr);
+/* get the basename of a path inside the temporary directory with an optional suffix */
+basilys_ptr_t basilysgc_new_string_tempname_suffixed (basilysobject_ptr_t discr,
+						      const char *namstr, const char*suffix);
 
 
 static inline const char *
