@@ -1078,9 +1078,10 @@ graphite_loop_normal_form (loop_p loop, sese region)
   edge exit = single_dom_exit (loop);
   tree induction_var;
   name_tree oldiv;
+  bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
   /* At this point we should know the number of iterations,  */
-  gcc_assert (number_of_iterations_exit (loop, exit, &niter, false)
+  gcc_assert (known_niter
 	      /* and have eliminated loops with reductions, as code
 		 generation does not deal with scalar reductions.  */
 	      && nb_reductions_in_loop (loop) == 0);
