@@ -1,6 +1,12 @@
 2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* tree-flow.h (gather_scalar_reductions): Use struct loop * instead
+	of loop_p.
+
+2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* tree-parloops.c (struct brli, build_reduction_list_info,
 	analyze_reduction_list, gather_scalar_reductions): New.
 	(loop_parallel_p): Build a reduction list containing only

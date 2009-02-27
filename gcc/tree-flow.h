@@ -993,7 +993,7 @@ void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
 tree canonicalize_loop_ivs (struct loop *, htab_t, tree);
 bool parallelize_loops (void);
-void gather_scalar_reductions (loop_p, htab_t);
+void gather_scalar_reductions (struct loop *, htab_t);
 
 bool loop_only_exit_p (const struct loop *, const_edge);
 bool number_of_iterations_exit (struct loop *, edge,
