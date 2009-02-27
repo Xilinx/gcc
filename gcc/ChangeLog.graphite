@@ -1,3 +1,14 @@
+2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* tree-parloops.c (struct brli, build_reduction_list_info,
+	analyze_reduction_list, gather_scalar_reductions): New.
+	(loop_parallel_p): Build a reduction list containing only
+	PHI_RESULT SSA_NAMEs: call gather_scalar_reductions.
+	(gen_parallel_loop): Call the analysis analyze_reduction_list.
+	(parallelize_loops): Now reduction_list is a htab_t of SSA_NAMEs.
+	* tree-flow.h (gather_scalar_reductions): Declared.	
+
 2009-02-26  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/39308

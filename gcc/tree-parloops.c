@@ -242,6 +242,107 @@ name_to_copy_elt_hash (const void *aa)
   return (hashval_t) a->version;
 }
 
+/* Stores information for the htab_traverse helper function
+   build_reduction_list_info.  */
+
+struct brli {
+  loop_vec_info simple_loop_info;
+  htab_t analyzed_reductions;
+};
+
+/*  Create a reduction_info struct, initialize it and insert it to the
+    reduction list.  */
+
+static int
+build_reduction_list_info (void **slot, void *data)
+{
+  struct brli *b = (struct brli *) data;
+  loop_vec_info simple_loop_info = b->simple_loop_info;
+  htab_t analyzed_reductions = b->analyzed_reductions;
+  tree phi_res = (tree) *slot;
+  gimple phi = SSA_NAME_DEF_STMT (phi_res);
+  gimple reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi);
+
+  if (reduc_stmt)
+    {
+      PTR *slot;
+      struct reduction_info *new_reduction;
+
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file,
+		   "Detected reduction. reduction stmt is: \n");
+	  print_gimple_stmt (dump_file, reduc_stmt, 0, 0);
+	  fprintf (dump_file, "\n");
+	}
+
+      new_reduction = XCNEW (struct reduction_info);
+
+      new_reduction->reduc_stmt = reduc_stmt;
+      new_reduction->reduc_phi = phi;
+      new_reduction->reduction_code = gimple_assign_rhs_code (reduc_stmt);
+      slot = htab_find_slot (analyzed_reductions, new_reduction, INSERT);
+      *slot = new_reduction;
+    }
+
+  return 1;
+}
+
+/* Analyze the reduction variables from REDUCTION_LIST and inserts
+   them in the ANALYZED_REDUCTIONS.  */
+
+static bool
+analyze_reduction_list (htab_t reduction_list,
+			htab_t analyzed_reductions,
+			loop_p loop)
+{
+  loop_vec_info simple_loop_info;
+  bool res;
+
+  vect_dump = NULL;
+  simple_loop_info = vect_analyze_loop_form (loop);
+
+  if (simple_loop_info)
+    {
+      struct brli b;
+      b.simple_loop_info = simple_loop_info;
+      b.analyzed_reductions = analyzed_reductions;
+      htab_traverse (reduction_list, build_reduction_list_info, &b);
+      res = true;
+    }
+  else
+    res = false;
+
+  /* Get rid of the information created by the vectorizer functions.  */
+  destroy_loop_vec_info (simple_loop_info, true);
+  return res;
+}
+
+/* Insert in REDUCTION_LIST the PHI_RESULT of all the PHI nodes of
+   LOOP that do not satisfy simple_iv.  */
+
+void
+gather_scalar_reductions (loop_p loop, htab_t reduction_list)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
+    {
+      gimple phi = gsi_stmt (gsi);
+      affine_iv iv;
+      tree res = PHI_RESULT (phi);
+
+      if (!is_gimple_reg (res))
+	continue;
+
+      if (!simple_iv (loop, phi, res, &iv, true))
+	{
+	  void **slot = htab_find_slot (reduction_list, res, INSERT);
+	  *slot = res;
+	}
+    }
+}
+
 /* Returns true if the iterations of LOOP are independent on each other (that
    is, if we can execute them in parallel), and if LOOP satisfies other
    conditions that we need to be able to parallelize it.  Description of number
@@ -258,7 +359,6 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
   lambda_trans_matrix trans;
   bool ret = false;
   gimple_stmt_iterator gsi;
-  loop_vec_info simple_loop_info;
 
   /* Only consider innermost loops with just one exit.  The innermost-loop
      restriction is not necessary, but it makes things simpler.  */
@@ -278,49 +378,7 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
       return false;
     }
 
-  vect_dump = NULL;
-  simple_loop_info = vect_analyze_loop_form (loop);
-
-  for (gsi = gsi_start_phis (loop->header); !gsi_end_p (gsi); gsi_next (&gsi))
-    {
-      gimple phi = gsi_stmt (gsi);
-      gimple reduc_stmt = NULL;
-
-      /* ??? TODO: Change this into a generic function that 
-         recognizes reductions.  */
-      if (!is_gimple_reg (PHI_RESULT (phi)))
-	continue;
-      if (simple_loop_info)
-	reduc_stmt = vect_is_simple_reduction (simple_loop_info, phi);
-
-      /*  Create a reduction_info struct, initialize it and insert it to 
-         the reduction list.  */
-
-      if (reduc_stmt)
-	{
-	  PTR *slot;
-	  struct reduction_info *new_reduction;
-
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    {
-	      fprintf (dump_file,
-		       "Detected reduction. reduction stmt is: \n");
-	      print_gimple_stmt (dump_file, reduc_stmt, 0, 0);
-	      fprintf (dump_file, "\n");
-	    }
-
-	  new_reduction = XCNEW (struct reduction_info);
-
-	  new_reduction->reduc_stmt = reduc_stmt;
-	  new_reduction->reduc_phi = phi;
-	  new_reduction->reduction_code = gimple_assign_rhs_code (reduc_stmt);
-	  slot = htab_find_slot (reduction_list, new_reduction, INSERT);
-	  *slot = new_reduction;
-	}
-    }
-
-  /* Get rid of the information created by the vectorizer functions.  */
-  destroy_loop_vec_info (simple_loop_info, true);
+  gather_scalar_reductions (loop, reduction_list);
 
   for (gsi = gsi_start_phis (exit->dest); !gsi_end_p (gsi); gsi_next (&gsi))
     {
@@ -1671,6 +1729,10 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   edge entry, exit;
   struct clsn_data clsn_data;
   unsigned prob;
+  htab_t analyzed_reductions = htab_create (10, reduction_info_hash,
+					    reduction_info_eq, free);
+  if (!analyze_reduction_list (reduction_list, analyzed_reductions, loop))
+    return;
 
   /* From
 
@@ -1764,11 +1826,11 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   canonicalize_loop_ivs (loop, reduction_list, nit);
 
   /* Ensure that the exit condition is the first statement in the loop.  */
-  transform_to_exit_first_loop (loop, reduction_list, nit);
+  transform_to_exit_first_loop (loop, analyzed_reductions, nit);
 
   /* Generate initializations for reductions.  */
-  if (htab_elements (reduction_list) > 0)  
-    htab_traverse (reduction_list, initialize_reductions, loop);
+  if (htab_elements (analyzed_reductions) > 0)  
+    htab_traverse (analyzed_reductions, initialize_reductions, loop);
 
   /* Eliminate the references to local variables from the loop.  */
   gcc_assert (single_exit (loop));
@@ -1778,15 +1840,16 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   eliminate_local_variables (entry, exit);
   /* In the old loop, move all variables non-local to the loop to a structure
      and back, and create separate decls for the variables used in loop.  */
-  separate_decls_in_region (entry, exit, reduction_list, &arg_struct, 
+  separate_decls_in_region (entry, exit, analyzed_reductions, &arg_struct, 
 			    &new_arg_struct, &clsn_data);
 
   /* Create the parallel constructs.  */
   parallel_head = create_parallel_loop (loop, create_loop_fn (), arg_struct,
 					new_arg_struct, n_threads);
-  if (htab_elements (reduction_list) > 0)   
-    create_call_for_reduction (loop, reduction_list, &clsn_data);
+  if (htab_elements (analyzed_reductions) > 0)   
+    create_call_for_reduction (loop, analyzed_reductions, &clsn_data);
 
+  htab_delete (analyzed_reductions);
   scev_reset ();
 
   /* Cancel the loop (it is simpler to do it here rather than to teach the
@@ -1845,8 +1908,7 @@ parallelize_loops (void)
   if (parallelized_function_p (cfun->decl))
     return false;
 
-  reduction_list = htab_create (10, reduction_info_hash,
-                                reduction_info_eq, free);
+  reduction_list = htab_create (10, htab_hash_pointer, htab_eq_pointer, NULL);
   init_stmt_vec_info_vec ();
 
   FOR_EACH_LOOP (li, loop, 0)
