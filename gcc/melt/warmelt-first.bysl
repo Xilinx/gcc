@@ -791,8 +791,8 @@
 ;;;; environment, second argument is the string containing the C file
 ;;;; path. Return value is the new environment provided by the loaded
 ;;;; module.
-(defprimitive compile_load_dynamic_module (env str) :value
-  "(basilysgc_compile_dyn((basilys_ptr_t)(" env "), basilys_string_str((basilys_ptr_t)(" str "))))")
+(defprimitive load_melt_module (env str) :value
+  "(basilysgc_load_melt_module((basilys_ptr_t)(" env "), basilys_string_str((basilys_ptr_t)(" str "))))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -3675,7 +3675,6 @@
  closure_size
  create_keywordstr
  create_symbolstr
- compile_load_dynamic_module
  discrim
  error_plain
  error_strv
@@ -3719,6 +3718,7 @@
  list_length
  list_popfirst
  list_prepend
+ load_melt_module
  longbacktrace_dbg
  make_box
  make_integerbox

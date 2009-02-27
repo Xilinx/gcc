@@ -2255,15 +2255,23 @@ void basilys_finalize (void);
 /* find a symbol in all the loaded modules */
 void* basilys_dlsym_all(const char*nam);
 
-/* returns malloc-ed path inside a temporary directory, with a given basename  */
-char* basilys_tempdir_path(const char* basnam);
+/* returns malloc-ed path inside a temporary directory, with a given basename & suffix  */
+char* basilys_tempdir_path(const char* basnam, const char* suffix);
 
-/* compile (as a dynamically loadable module) some (usually generated)
-   C code and dynamically load it; the C code should contain a
-   function named start_module_basilys; that function is called with
-   the given modata and returns the module */
+/***
+    Load a MELT module by its name, which is only made of letters,
+    digit, underscores, and + or - chars. 
+   
+    If the module does not exist in binary form (or if the binary form
+    is not in sync with the C source code), find its C source and
+    compile it.
+
+    Then, load the module as a shared object and invoke its
+    start_module_basilys function with the given module data, usually
+    an environment, which returns the new module environment.
+***/
 basilys_ptr_t
-basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *srcfile);
+basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam);
 
 /* load a list of modules from a file whose basename MODLISTBASE is
    given without its suffix '.modlis' */

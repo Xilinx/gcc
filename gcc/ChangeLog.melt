@@ -1,3 +1,14 @@
+2009-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	[runfile of hello.bysl is working]
+	* basilys.h (basilysgc_compile_dyn): removed
+	becomes (basilysgc_load_melt_module).
+	* basilys.h (basilys_tempdir_path): added suffix argument.
+	* basilys.c (tempdir_path) is static. (basilysgc_compile_dyn)
+	removed since renamed as (basilysgc_load_melt_module): new
+	function. (basilys_tempdir_path): has a suffix.
+	* melt/warmelt-first.bysl (compile_load_dynamic_module) renamed
+	as (load_melt_module).
+	* melt/warmelt-outobj.bysl: (runfile) command working.
 2009-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[the whole compilation of generated C code in temporary directory
 	stuff should be cleaned and is buggy; -fbasilys=runfile hello.bysl

@@ -3080,11 +3080,14 @@
     (debug_msg parmodenv "before read runfile_command parmodenv")
     (debug_msg initial_environment "before read runfile_command initial_environment")
     (assert_msg "check curenv" (is_a curenv class_environment))
-    (let ( (modsrcname
+    (let ( (modulnam ()) 
+	   (modsrcname
 	    (cond
 	     ( (is_string secarg) 
+	       (setq modulnam (make_string_nakedbasename discr_string secarg))
 	       secarg)
 	     ( (is_string arg) 
+	       (setq modulnam (make_string_nakedbasename discr_string arg))
 	       (make_string_tempname_suffixed discr_string arg ".c"))
 	     (:else
 	      (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
@@ -3093,8 +3096,9 @@
 	   )
       (compile_one_or_more_files arg modsrcname curenv)
       (debug_msg modsrcname "after compilation runfile_command modsrcname")
+      (debug_msg modulnam "after compilation runfile_command modulnam")
       ;; the new environment is silently discarded
-      (ignore (compile_load_dynamic_module curenv modsrcname))
+      (ignore (load_melt_module curenv modulnam))
       )))
 (install_initial_command  (stringconst2val discr_string "runfile") runfile_command)
 

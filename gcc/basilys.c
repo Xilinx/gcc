@@ -4467,7 +4467,7 @@ basilysgc_new_string_tempname_suffixed (basilysobject_ptr_t
     dot = strrchr(basestr, '.');
   if (dot)
     *dot=0;
-  tempnampath = concat(basilys_tempdir_path(basestr), suffix, NULL);
+  tempnampath = basilys_tempdir_path(basestr, suffix);
   dbgprintf("new_string_tempbasename basestr='%s' tempnampath='%s'", basestr, tempnampath);
   free(basestr);
   basestr = 0;
@@ -4689,23 +4689,18 @@ end:
 }
 
 /* our temporary directory */
-static char *tempdir_basilys;
+/* maybe it should not be static, or have a bigger length */
+static char tempdir_basilys[1024];
 static bool made_tempdir_basilys;
 /* returns malloc-ed path inside a temporary directory, with a given basename  */
 char *
-basilys_tempdir_path (const char *srcnam)
+basilys_tempdir_path (const char *srcnam, const char* suffix)
 {
   int loopcnt = 0;
-  char *cdir = 0;
-  static long countfile;
-  char countbuf[24];
   char *basnam = 0;
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
-  memset(countbuf, 0, sizeof(countbuf));
-  countfile++;
-  snprintf(countbuf, sizeof(countbuf)-1, "_%ld", countfile);
   basnam = lbasename(srcnam);
-  debugeprintf("basilys_tempdir_path srcnam %s basnam %s countbuf %s", srcnam, basnam, countbuf);
+  debugeprintf("basilys_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (basilys_tempdir_string && basilys_tempdir_string[0])
     {
@@ -4716,36 +4711,30 @@ basilys_tempdir_path (const char *srcnam)
 			 basilys_tempdir_string);
 	  made_tempdir_basilys = true;
 	}
-      return concat (basilys_tempdir_string, "/", basnam, countbuf, NULL);
+      return concat (basilys_tempdir_string, "/", basnam, suffix, NULL);
     }
-  if (!tempdir_basilys)
+  if (!tempdir_basilys[0])
     {
-      char tbuf[80];
       /* usually this loop runs only once */
       for (loopcnt = 0; loopcnt < 1000; loopcnt++)
 	{
 	  int n = basilys_lrand () & 0xfffffff;
-	  memset (tbuf, 0, sizeof (tbuf));
-	  if (cdir)
-	    {
-	      free (cdir);
-	      cdir = NULL;
-	    };
-	  snprintf (tbuf, sizeof (tbuf) - 1, "Meltmpd%d-%d", (int) getpid (),
+	  memset(tempdir_basilys, 0, sizeof(tempdir_basilys));
+	  snprintf (tempdir_basilys, sizeof(tempdir_basilys)-1, 
+		     "%s/GccMeltmpd%d-%d", choose_tmpdir (), (int) getpid (),
 		    n);
-	  cdir = concat (choose_tmpdir (), "/", tbuf, NULL);
-	  if (!mkdir (cdir, 0600))
+	  if (!mkdir (tempdir_basilys, 0600))
 	    {
-	      tempdir_basilys = cdir;
 	      made_tempdir_basilys = true;
 	      break;
 	    }
+	  tempdir_basilys[0] = '\0';
 	}
-      if (!tempdir_basilys)
+      if (!tempdir_basilys[0])
 	fatal_error ("failed to create temporary directory for MELT in %s",
 		     choose_tmpdir ());
     };
-  return concat (tempdir_basilys, "/", basnam, countbuf, NULL);
+  return concat (tempdir_basilys, "/", basnam, suffix, NULL);
 }
 
 
@@ -4848,8 +4837,9 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   void **iniframeptr = 0;
   int i = 0, c = 0;
   char hbuf[4];
+  debugeprintf ("load_check_dynamic_module_index dypath=%s", dypath);
   dlh = (void *) lt_dlopenext (dypath);
-  debugeprintf ("dlh=%p dypath=%s", dlh, dypath);
+  debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
   if (!dlh)
     return 0;
   /* we always check that a basilys_md5 exists within the dynamically
@@ -4943,11 +4933,13 @@ basilys_dlsym_all (const char *nam)
 /* compile (as a dynamically loadable module) some (usually generated)
    C code (or a dynamically loaded stuff) and dynamically load it; the
    C code should contain a function named start_module_basilys; that
-   function is called with the given modata and returns the module */
+   function is called with the given modata and returns the module;
+   the modulnam should contain only letter, digits or one of +-_ */
 basilys_ptr_t
-basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
+basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
 {
   char *srcpath = NULL;
+  char *dynpath = NULL;
   FILE *srcfi = NULL;
   int modfilelen = 0;
   char* modfilebase = 0;
@@ -4957,203 +4949,178 @@ basilysgc_compile_dyn (basilys_ptr_t modata_p, const char *modfile)
   int srcpathlen = 0;
   char md5srctab[16];
   char *md5src = NULL;
-  char *plainstuffpath = NULL;
   char *tmpath = NULL;
+  char *dupmodulnam = NULL;
   basilys_module_info_t *moduptr = 0;
   basilys_ptr_t (*startroutp) (basilys_ptr_t);	/* start routine */
   BASILYS_ENTERFRAME (3, NULL);
 #define modulv curfram__.varptr[0]
 #define mdatav curfram__.varptr[1]
   mdatav = modata_p;
-  modfilelen = strlen (modfile);
-  modfilebase = lbasename(modfile);
-  modfilesuffix = strrchr(modfilebase, '.');
-  debugeprintf("basilysgc_compile_dyn modfilebase=%s", modfilebase);
-  /* is the module file is a *.c file - otherwise it is supposed to be
-     a dynamically loadable stuff ie *.so shared object or *.la
-     libtool or *.sl or *.dylib etc..  */
-  isasrc = modfilelen > 2 && modfile[modfilelen - 2] == '.'
-    && modfile[modfilelen - 1] == 'c';
-  debugeprintf ("basilysgc_compile modfile=%s - %s", modfile,
-		isasrc ? "C source" : "dynloadable");
-  if (isasrc)
+  if (!modulnam || !modulnam[0]) {
+    error ("cannot load MELT module, no MELT module name given");
+    goto end;
+  }
+  /* always check the module name */
+  {
+    char* p = 0;
+    for (p=modulnam; *p; p++)
+      if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
+	{
+	  error ("invalid MELT module name %s to load", modulnam);
+	  goto end;
+	}
+  }
+  /* duplicate the module name for safety, i.e. because it was in MELT
+     heap or whatever ... */
+  dupmodulnam = xstrdup(modulnam);
+  /***** first find the source path ******/
+  /* look first in the temporary directory */
+  tmpath = basilys_tempdir_path (dupmodulnam, ".c");
+  if (!access (tmpath, R_OK))
     {
-      /* absolute paths are taken as such */
-      if (IS_ABSOLUTE_PATH (modfile))
-	{
-	  srcpath = xstrdup (modfile);
-	  goto foundsrcpath;
-	}
-      /* relative path to some existing file are taken as such */
-      else if (!access (modfile, R_OK))
-	{
-	  srcpath = xstrdup (modfile);
-	  goto foundsrcpath;
-	}
-      /* check for module file in our tempdir */
-      tmpath = basilys_tempdir_path (modfile);
-      if (!access (tmpath, R_OK))
-	{
-	  srcpath = tmpath;
-	  goto foundsrcpath;
-	}
-      free (tmpath);
-      tmpath = NULL;
-      if (basilys_gensrcdir_string && basilys_gensrcdir_string[0])
-	{
-	  /* check for modfile in the gensrcdir */
-	  tmpath = concat (basilys_gensrcdir_string, "/", modfile, NULL);
-	  if (!access (tmpath, R_OK))
-	    {
-	      srcpath = tmpath;
-	      goto foundsrcpath;
-	    }
-	  free (tmpath);
-	  tmpath = NULL;
-	}
-      /* check for modfile in melt_source_dir */
-      tmpath = concat (melt_source_dir, "/", modfile, NULL);
-      if (!access (tmpath, R_OK))
-	{
-	  srcpath = tmpath;
-	  goto foundsrcpath;
-	}
-      free (tmpath);
-      tmpath = NULL;
-    foundsrcpath:
-      srcpathlen = srcpath ? strlen (srcpath) : 0;
-      debugeprintf("basilysgc_compile_dyn found srcpathlen %d srcpath %s", srcpathlen, srcpath);
-      plainstuffpath = NULL;
-      srcfi = fopen (srcpath, "r");
-      if (!srcfi)
-	fatal_error ("cannot open generated source file %s for MELT : %m",
-		     srcpath);
-      memset (md5srctab, 0, sizeof (md5srctab));
-      if (md5_stream (srcfi, &md5srctab))
-	fatal_error
-	  ("failed to compute md5sum of generated source file %s for MELT",
-	   srcpath);
-      md5src = md5srctab;
-      fclose (srcfi);
-      srcfi = NULL;
-      gcc_assert (modfilelen > 2 && modfile[modfilelen - 2] == '.'
-		  && modfile[modfilelen - 1] == 'c');
-      plainstuffpath = xstrdup (modfile);
-      plainstuffpath[modfilelen - 2] = (char) 0;
+      debugeprintf("basilysgc_load_melt_module found source in tempdir %s", tmpath);
+      srcpath = tmpath;
+      goto foundsrcpath;
     }
-  else
-    {				/* modfile is not a generated C srcfile */
-      plainstuffpath = xstrdup (modfile);
+  free(tmpath);
+  tmpath = NULL;
+  /* look in the generated source dir */
+  tmpath = concat (basilys_gensrcdir_string, "/", dupmodulnam, ".c", NULL);
+  if (!access (tmpath, R_OK))
+    {
+      debugeprintf("basilysgc_load_melt_module found source in gensrcdir %s", tmpath);
+      srcpath = tmpath;
+      goto foundsrcpath;
     }
-  debugeprintf("basilysgc_compile_dyn plainstuffpath %s", plainstuffpath);
+  free (tmpath);
+  tmpath = NULL;
+  /* look into the melt source dir */
+  tmpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
+  if (!access (tmpath, R_OK))
+    {
+      debugeprintf("basilysgc_load_melt_module found source in meltsrcdir %s", tmpath);
+      srcpath = tmpath;
+      goto foundsrcpath;
+    }
+  free (tmpath);
+  tmpath = NULL;
+  /* we didn't found the source */
+  debugeprintf("basilysgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
+  error ("failed to find MELT module %s C source code", dupmodulnam);
+  goto end;
+ foundsrcpath:  /* we found the source file */
+  srcpathlen = strlen (srcpath);
+  debugeprintf("basilysgc_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
+  /* compute the md5 hash of the source code */
+  srcfi = fopen (srcpath, "r");
+  if (!srcfi)
+    /* this really should not happen, we checked with access before
+       that the source file existed! */
+    fatal_error ("cannot open generated source file %s for MELT : %m",
+		 srcpath);
+  memset (md5srctab, 0, sizeof (md5srctab));
+  if (md5_stream (srcfi, &md5srctab))
+    fatal_error
+      ("failed to compute md5sum of generated source file %s for MELT",
+       srcpath);
+  md5src = md5srctab;
+  fclose (srcfi);
+  srcfi = NULL;
   /**
      we have to scan several dynlib directories to find the module;
      when we find a module, we dynamically load it to check that it
      has the right md5 sum (i.e. that its basilys_md5 is correct); if
      no dynlib is found, we have to compile the generated C source.
   **/
-  /* check the plain stuff path directly */
-  BASILYS_LOCATION_HERE
-    ("basilysgc_compile_dyn before load_checked_dylib plain");
-  dlix = load_checked_dynamic_module_index (plainstuffpath, md5src);
-  debugeprintf ("dlix=%d plainstuffpath=%s", dlix, plainstuffpath);
-  if (dlix > 0)
-    goto dylibfound;
-  /* absolute paths should be found if there is no source */
-  if (!srcpath && IS_ABSOLUTE_PATH (plainstuffpath))
-    fatal_error ("failed to load melt dynlib %s (%s)", plainstuffpath,
-		 lt_dlerror ());
   /* if a dynlib directory is given, check it */
   if (basilys_dynlibdir_string && basilys_dynlibdir_string[0])
     {
-      tmpath = concat (basilys_dynlibdir_string, "/", plainstuffpath, NULL);
+      tmpath = concat (basilys_dynlibdir_string, "/", dupmodulnam, NULL);
       BASILYS_LOCATION_HERE
-	("basilysgc_compile_dyn before load_checked_dylib pathed");
+	("basilysgc_load_melt_module before load_checked_dylib pathed");
       dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      debugeprintf ("basilysgc_compile_dyn dlix=%d dynlib tmpath=%s", dlix,
+      debugeprintf ("basilysgc_load_melt_module dlix=%d dynlib tmpath=%s", dlix,
 		    tmpath);
       if (dlix > 0)
 	{
-	  free (plainstuffpath);
-	  plainstuffpath = tmpath;
+	  dynpath = tmpath;
 	  goto dylibfound;
 	};
       free (tmpath);
+      tmpath = NULL;
     }
   /* check in the builtin melt dynamic lib directory */
-  tmpath = concat (melt_dynlib_dir, "/", plainstuffpath, NULL);
+  tmpath = concat (melt_dynlib_dir, "/", dupmodulnam, NULL);
   BASILYS_LOCATION_HERE
-    ("basilysgc_compile_dyn before load_checked_dylib builtin");
+    ("basilysgc_load_melt_module before load_checked_dylib builtin");
   dlix = load_checked_dynamic_module_index (tmpath, md5src);
-  debugeprintf ("basilysgc_compile_dyn dlix=%d meltdynlib tmpath=%s", dlix,
+  debugeprintf ("basilysgc_load_melt_module dlix=%d meltdynlib tmpath=%s", dlix,
 		tmpath);
   if (dlix > 0)
     {
-      free (plainstuffpath);
-      plainstuffpath = tmpath;
+      dynpath = tmpath;
       goto dylibfound;
     };
   free (tmpath);
+  tmpath = NULL;
   /* check in the temporary directory */
-  tmpath = basilys_tempdir_path (plainstuffpath);
+  tmpath = basilys_tempdir_path (dupmodulnam, NULL);
   BASILYS_LOCATION_HERE
-    ("basilysgc_compile_dyn before load_checked_dylib tmpath");
+    ("basilysgc_load_melt_module before load_checked_dylib tmpath");
   dlix = tmpath ? load_checked_dynamic_module_index (tmpath, md5src) : 0;
-  debugeprintf ("basilysgc_compile_dyn dlix=%d tempdir tmpath=%s", dlix,
+  debugeprintf ("basilysgc_load_melt_module dlix=%d tempdir tmpath=%s", dlix,
 		tmpath);
   if (dlix > 0)
     {
-      free (plainstuffpath);
-      plainstuffpath = tmpath;
+      dynpath = tmpath;
       goto dylibfound;
     };
   free (tmpath);
-  
-  debugeprintf ("basilysgc_compile_dyn md5src %p", (void*)md5src);
+  tmpath = NULL;
+  debugeprintf ("basilysgc_load_melt_module md5src %p", (void*)md5src);
   /* if we really have the source, we can afford to check in the current directory */
   if (md5src)
     {
-      tmpath = concat ("./", plainstuffpath, NULL);
-      debugeprintf ("basilysgc_compile_dyn tmpath %s", tmpath);
+      tmpath = concat ("./", dupmodulnam, NULL);
+      debugeprintf ("basilysgc_load_melt_module tmpath %s", tmpath);
       BASILYS_LOCATION_HERE
-	("basilysgc_compile_dyn before load_checked_dylib src");
+	("basilysgc_load_melt_module before load_checked_dylib src");
       dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      debugeprintf ("basilysgc_compile_dyn dlix=%d curdir tmpath=%s", dlix,
+      debugeprintf ("basilysgc_load_melt_module dlix=%d curdir tmpath=%s", dlix,
 		    tmpath);
       if (dlix > 0)
 	{
-	  free (plainstuffpath);
-	  plainstuffpath = tmpath;
+	  dynpath = tmpath;
 	  goto dylibfound;
 	};
       free (tmpath);
     }
-  debugeprintf ("basilysgc_compile_dyn srcpath %s plainstuffpath %s", srcpath, plainstuffpath);
+  debugeprintf ("basilysgc_load_melt_module srcpath %s dynpath %s", srcpath, dynpath);
   /* if we have the srcpath but did'nt found the stuff, try to compile it using the temporary directory */
   if (srcpath)
     {
-      tmpath = basilys_tempdir_path (plainstuffpath);
-      debugeprintf ("basilysgc_compile_dyn before compiling tmpath %s", tmpath);
+      tmpath = basilys_tempdir_path (dupmodulnam, NULL);
+      debugeprintf ("basilysgc_load_melt_module before compiling tmpath %s", tmpath);
       compile_to_dyl (srcpath, tmpath);
       debugeprintf ("basilysgc_compile srcpath=%s compiled to tmpath=%s",
 		    srcpath, tmpath);
       BASILYS_LOCATION_HERE
-	("basilysgc_compile_dyn before load_checked_dylib compiled tmpath");
-      debugeprintf ("basilysgc_compile_dyn dlix=%d tempdirpath tmpath=%s",
-		    dlix, tmpath);
+	("basilysgc_load_melt_module before load_checked_dylib compiled tmpath");
       dlix = load_checked_dynamic_module_index (tmpath, md5src);
+      debugeprintf ("basilysgc_load_melt_module dlix=%d tempdirpath tmpath=%s",
+		    dlix, tmpath);
       if (dlix > 0)
 	{
-	  free (plainstuffpath);
-	  plainstuffpath = tmpath;
+	  dynpath = tmpath;
 	  goto dylibfound;
 	};
     }
   debugeprintf ("failed here dlix=%d", dlix);
   /* catch all situation, failed to find the dynamic stuff */
-  fatal_error ("failed to find dynamic stuff for basilys generated %s (%s)",
-	       modfile, lt_dlerror ());
-dylibfound:
+  fatal_error ("failed to find dynamic stuff for MELT module %s (%s)",
+	       dupmodulnam, lt_dlerror ());
+ dylibfound:
   debugeprintf ("dylibfound dlix=%d", dlix);
   gcc_assert (dlix > 0
 	      && dlix < (int) VEC_length (basilys_module_info_t, modinfvec));
@@ -5169,17 +5136,20 @@ dylibfound:
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:basilysgc_compile_dyn before calling module %s",
-	      basename (__FILE__), __LINE__, modfile);
+	      "%s:%d:basilysgc_load_melt_module before calling module %s",
+	      basename (__FILE__), __LINE__, dupmodulnam);
     curfram__.flocs = locbuf;
   }
 #endif
   modulv = (*startroutp) ((basilys_ptr_t) mdatav);
   gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
-  BASILYS_LOCATION_HERE ("basilysgc_compile_dyn after calling module");
-  debugeprintf ("basilysgc_compile_dyn returns modulv %p", (void *) modulv);
-  /* we never free  plainstuffpath and we never release the shared library! */
+  BASILYS_LOCATION_HERE ("basilysgc_load_melt_module after calling module");
+ end:
+  debugeprintf ("basilysgc_load_melt_module returns modulv %p", (void *) modulv);
+  /* we never free dynpath -since it is stored in moduptr- and we
+     never release the shared library with a dlclose or something! */
   BASILYS_EXITFRAME ();
+  free(dupmodulnam);
   return (basilys_ptr_t) modulv;
 #undef mdatav
 #undef modulv
@@ -5235,8 +5205,7 @@ basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
   free (modlistpath);
   modlistpath = 0;
   /* check in the temporary directory */
-  modlistpath = basilys_tempdir_path (modlistbase);
-  modlistpath = reconcat (modlistpath, MODLIS_SUFFIX, NULL);
+  modlistpath = basilys_tempdir_path (modlistbase, MODLIS_SUFFIX);
   if (!access (modlistpath, R_OK))
     goto loadit;
   free (modlistpath);
@@ -5274,7 +5243,7 @@ loadit:
       if (*pc == '#' || *pc == (char) 0)
 	continue;
       dbgprintf ("in module list %s loading module '%s'", modlistbase, pc);
-      mdatav = basilysgc_compile_dyn ((basilys_ptr_t) mdatav, pc);
+      mdatav = basilysgc_load_melt_module ((basilys_ptr_t) mdatav, pc);
     }
 end:
   BASILYS_EXITFRAME ();
@@ -6980,7 +6949,7 @@ load_basilys_modules_and_do_command (void)
 	}
       else
 	{
-	  modatv = basilysgc_compile_dyn ((basilys_ptr_t) modatv, curmod);
+	  modatv = basilysgc_load_melt_module ((basilys_ptr_t) modatv, curmod);
 	  debugeprintf
 	    ("load_initial_basilys_modules curmod %s loaded modatv %p",
 	     curmod, (void *) modatv);
@@ -7181,7 +7150,7 @@ basilys_finalize (void)
       gdbm_close (gdbm_basilys);
       gdbm_basilys = NULL;
     }
-  if (tempdir_basilys)
+  if (tempdir_basilys[0])
     {
       DIR *tdir = opendir (tempdir_basilys);
       VEC (char_p, heap) * dirvec = 0;
@@ -7200,13 +7169,15 @@ basilys_finalize (void)
       while (!VEC_empty (char_p, dirvec))
 	{
 	  char *tfilnam = VEC_pop (char_p, dirvec);
+	  debugeprintf ("basilys_finalize remove file %s", tfilnam);
 	  remove (tfilnam);
 	  free (tfilnam);
 	};
       VEC_free (char_p, heap, dirvec);
     }
-  if (made_tempdir_basilys)
+  if (made_tempdir_basilys && tempdir_basilys[0])
     {
+      errno = 0;
       if (rmdir (tempdir_basilys))
 	/* @@@ I don't know if it should be a warning or a fatal error -
 	   we are finalizing! */

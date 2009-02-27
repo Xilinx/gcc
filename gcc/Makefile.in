@@ -4952,21 +4952,21 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-scr
 
 MELTBASILYSCCINIT1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translateinit  \
 	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=built-melt-cc-script \
+	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
 MELTBASILYSCCFILE1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translatefile  \
 	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=built-melt-cc-script \
+	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
 
 MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
 	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=built-melt-cc-script \
+	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
 	      -fbasilys-gensrcdir=. \
 	      -fbasilys-tempdir=_tempmeltdir_$$$$ 
 #	      -frandom-seed=$$RANDOM
@@ -4975,8 +4975,12 @@ warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 
 warm%-n.so: warm%.c built-melt-cc-script
+	$(RM) $(basename $@).c 
+	$(LN_S) $< $(basename $@).c
 	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
 warm%-d.so: warm%.c built-melt-cc-script
+	$(RM) $(basename $@).c 
+	$(LN_S) $< $(basename $@).c
 	./built-melt-cc-script -d $< $@
 ###
 ana%.so: ana%.c built-melt-cc-script
