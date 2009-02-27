@@ -25,28 +25,72 @@
 // any other reasons why the executable file might be covered by the GNU
 // General Public License.  
 
-#include <stdio.h>
-#include <stddef.h>
-#include "pcp_error.h"
+#ifndef _PCP_TESTER_H_
+#define _PCP_TESTER_H_
 
-void
-PcpError::assert(bool x, const char* file, int line)
+#include "pcp_dynamic_array.h"
+
+class PcpTester
 {
-  if(!x)
+protected:
+  // Options class
+  class Option
+  {
+  protected:
+    enum Action
     {
-      printf("ASSERT: %s: %d\n", file, line);
-    }
-}
+      PCP_TESTER_OPTION_UNKNOWN,
+      PCP_TESTER_OPTION_IDENTITY,
+      PCP_TESTER_OPTION_HELP
+    };
 
-void
-PcpError::reportError (const char* message)
-{
-  printf("%s", message);
-}
+    Action action;
 
-void
-PcpError::reportErrorNewline(const char* message)
-{
-  PcpError::reportError(message);
-  PcpError::reportError("\n");
-}
+    void setAction(Action action);
+    Action getAction();
+    
+    Option(Action action);
+
+  public:
+    static Option* getIdentity();
+    static Option* getHelp();
+    
+    bool isUnknown();
+    bool isIdentity();
+    bool isHelp();
+
+    Option();
+  };
+
+  // Report expected command syntax.
+  void reportCommandLineInfo();
+
+  // Return true if STRING is an option string (starting with '--')
+  bool isOptionString(const char* string);
+
+  // Parse option.
+  Option* parseOption(const char* optionString);
+
+  // Parse options.
+  PcpArray<Option*>* parseOptions(int argc, char** argv);
+
+  // Parse file name
+  const char* parseFileName(int arc, char** argv);
+
+  // Compare strings
+  bool compareScopStrings(const char* str1, const char* str2);
+
+  // Run identity test
+  bool runIdentity(const char* filename);
+
+  // Start the tester.
+  bool start(const char* filename, PcpArray<Option*>* options);
+
+
+  public:
+  
+  // Entry point to the tester.
+  bool run(int argc, char** argv);
+};
+
+#endif // _PCP_TESTER_H_

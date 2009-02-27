@@ -72,7 +72,6 @@ template <typename T> class PcpArray
   
  void set(int index, T value)
  {
-   printf("Here");
    pcpAssert(this->getSize() > index);
    this->getArray()[index] = value;
  }

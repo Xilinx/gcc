@@ -30,10 +30,6 @@
 
 #include "pcp.h"
 
-PcpScop*  pcp_parse_scop(const char* source);
-
-PcpScop*  pcp_parse_scop_in_file(const char* filename);
-
 class PcpAst;
 class PcpParserContext;
 class PcpSymtab;
@@ -98,21 +94,12 @@ class PcpParser
   PcpAnnotTerm*pcpParseAnnotTerm(PcpAst* termAst);
   PcpAnnot* pcpParseAnnot(PcpAst* annotAst);
   PcpParameter* parseParameter(PcpAst* parameter);
-  
-  
+    
  public:
   PcpScop* pcpAstParseTopLevel(PcpAst* program);
   PcpParser();
-  static PcpScop* pcp_parse_scop2(const char* source)
-  {
-    return pcp_parse_scop(source);
-  }
-
-  static PcpScop* pcp_parse_scop_in_file2(const char* filename)
-  {
-    return pcp_parse_scop_in_file(filename);
-  }
-  void pcp_parser_dummy(void);
+  static PcpScop* parse(const char* source);
+  static PcpScop* parseFile(const char* filename);
 };
 
 #endif // _PCP_PARSER_H_ 

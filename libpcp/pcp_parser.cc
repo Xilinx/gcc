@@ -2452,8 +2452,9 @@ PcpParser::PcpParser()
   this->setFileName("unknown");
   this->setAddLineAnnots(true);
 }
+
 PcpScop* 
-pcp_parse_scop(const char* source)
+PcpParser::parse(const char* source)
 {
   PcpTokenizer* tokenizer = new PcpTokenizer(source);
   PcpAst* ast = PcpAst::parse(tokenizer);
@@ -2464,7 +2465,7 @@ pcp_parse_scop(const char* source)
 }
 
 PcpScop* 
-pcp_parse_scop_in_file(const char* filename)
+PcpParser::parseFile(const char* filename)
 {
   char* buffer;
   FILE* file = fopen(filename, "r");
@@ -2475,25 +2476,25 @@ pcp_parse_scop_in_file(const char* filename)
       pcpParseError("Unable to open file");
       return NULL;
     }
-
+  
   fseek(file , 0 , SEEK_END);
   size = ftell(file);
   rewind(file);
-
+  
   buffer =(char*) PCP_NEWVEC(char, size);
   if(buffer == NULL) 
     {
       pcpParseError("Memory error"); 
       return NULL;
     }
-
+  
   readsize = fread(buffer,1,size,file);
   if(readsize != size) 
     {
       pcpParseError("Unable to read file");
       return NULL;
     }
-  return pcp_parse_scop(buffer);
+  return PcpParser::parse(buffer);
 }
 
 

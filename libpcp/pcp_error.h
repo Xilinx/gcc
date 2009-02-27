@@ -34,6 +34,8 @@ class PcpError
 {
  public:
   static void assert(bool x, const char* file, int line);
+  static void reportError(const char* message);
+  static void reportErrorNewline(const char* message);
 };
 
 #endif // _PCP_ERROR_H_

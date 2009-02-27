@@ -55,7 +55,7 @@ INCLUDES = -I$(srcdir) -I.
 
 ALL_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(INCLUDES) $(CPPFLAGS)
 
-libpcp_a_OBJS = pcp_c.o pcp_emitter.o pcp_parser.o \
+libpcp_a_OBJS = pcp_c.o pcp_emitter.o pcp_parser.o  \
 		     pcp.o pcp_string_buffer.o pcp_error.o
 
 libpcp_a_SOURCES = pcp_emitter.cc pcp_string_buffer.cc \
@@ -64,7 +64,12 @@ libpcp_a_SOURCES = pcp_emitter.cc pcp_string_buffer.cc \
         pcp.cc pcp_gcc_stuff.h pcp_parser.h pcp_error.cc pcp_error.h \
 	pcp_dynamic_array.h pcp.h pcp_set.h pcp_alloc.h
 
-all: libpcp.a
+tester_OBJS = pcp_tester.o
+
+tester_SOURCES = pcp_tester.cc pcp_tester.h 
+
+all: libpcp.a pcp-tester
+
 
 .SUFFIXES:
 .SUFFIXES: .cc .c .o .obj
@@ -73,6 +78,9 @@ libpcp.a: $(libpcp_a_OBJS)
 	-rm -f $@
 	$(AR) $(ARFLAGS) $@ $(libpcp_a_OBJS)
 	$(RANLIB) $@
+
+pcp-tester: $(tester_OBJS) libpcp.a 
+	$(CXXCOMPILEBIN) $(tester_OBJS) libpcp.a -o pcp-tester
 
 # Rules to rebuild the configuration
 
@@ -139,6 +147,9 @@ install:
 
 CXXCOMPILE = source='$<' object='$@' libtool=no $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c
+
+CXXCOMPILEBIN = source='$<' object='$@' libtool=no $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 
 # Implicit rules
 

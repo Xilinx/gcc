@@ -1,3 +1,18 @@
+2009-02-27  Jan Sjodin  <jan.sjodin@amd.com>
+
+	* pcp_tester.h: New.
+	* pcp_tester.cc: New.
+	* pcp_error.h (reportErrorNewline): New.
+	* pcp_error.cc: (reportErrorNewling): New.
+	(reportError): Removed emitting newline after message
+	* pcp_parser.h (pcp_parse_scop, pcp_parse_scop_in_file,
+	pcp_parse_scop2, pcp_parser_scop_in_file2): Removed.
+	(parse, parseFile): New.
+	* pcp_parser.cc (pcp_parse_scop, pcp_parse_scop_in_file): Removed.
+	(parse, parseFile): New.
+	* pcp_dynamic_array.h (set): Removed debug printf
+	* Makefile.in: Added rules to create pcp-tester. 
+
 2009-02-23  David Edelsohn  <dje.gcc@gmail.com>
 
 	* configure.ac (AC_CONFIG_SRCDIR): Define.
