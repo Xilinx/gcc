@@ -479,7 +479,8 @@ new_sese (edge entry, edge exit)
   SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
   SESE_OLDIVS (res) = VEC_alloc (name_tree, heap, 3);
   SESE_LIVEOUT_RENAMES (res) = NULL;
-
+  SESE_REDUCTION_LIST (res) = htab_create (10, htab_hash_pointer,
+					   htab_eq_pointer, NULL);
   return res;
 }
 
@@ -490,6 +491,8 @@ free_sese (sese region)
 {
   int i;
   name_tree p, iv;
+
+  htab_delete (SESE_REDUCTION_LIST (region));
 
   for (i = 0; i < SESE_NUM_VER (region); i++)
     BITMAP_FREE (SESE_LIVEIN_VER (region, i));

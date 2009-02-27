@@ -1,6 +1,16 @@
 2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* sese.c (new_sese): Initialize SESE_REDUCTION_LIST.
+	(free_sese): Free SESE_REDUCTION_LIST.
+	* sese.h (struct sese): Add field reduction_list.
+	(SESE_REDUCTION_LIST): New.
+	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Call
+	canonicalize_loop_ivs on SESE_REDUCTION_LIST.
+
+2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* tree-flow.h (gather_scalar_reductions): Use struct loop * instead
 	of loop_p.
 

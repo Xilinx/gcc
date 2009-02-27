@@ -1076,7 +1076,7 @@ graphite_loop_normal_form (loop_p loop, sese region)
   tree nit;
   gimple_seq stmts;
   edge exit = single_dom_exit (loop);
-  tree induction_var;
+  tree iv;
   name_tree oldiv;
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
 
@@ -1091,10 +1091,11 @@ graphite_loop_normal_form (loop_p loop, sese region)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  induction_var = canonicalize_loop_ivs (loop, NULL, nit);
+  gather_scalar_reductions (loop, SESE_REDUCTION_LIST (region));
+  iv = canonicalize_loop_ivs (loop, SESE_REDUCTION_LIST (region), nit);
 
   oldiv = XNEW (struct name_tree);
-  oldiv->t = induction_var;
+  oldiv->t = iv;
   oldiv->name = get_name (SSA_NAME_VAR (oldiv->t));
   oldiv->loop = loop;
   VEC_safe_push (name_tree, heap, SESE_OLDIVS (region), oldiv);

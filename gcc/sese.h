@@ -72,6 +72,10 @@ typedef struct sese
      can only add new params before generating the bb domains, otherwise they
      become invalid.  */
   bool add_params;
+
+  /* REDUCTION_LIST records the SSA_NAMEs of PHI_RESULTs that are
+     considered to be reductions in one of the loops in the SESE.  */
+  htab_t reduction_list;
 } *sese;
 
 #define SESE_ENTRY(S) (S->entry)
@@ -88,6 +92,7 @@ typedef struct sese
 #define SESE_PARAMS(S) (S->params)
 #define SESE_OLDIVS(S) (S->old_ivs)
 #define SESE_LIVEOUT_RENAMES(S) (S->liveout_renames)
+#define SESE_REDUCTION_LIST(S) (S->reduction_list)
 
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
