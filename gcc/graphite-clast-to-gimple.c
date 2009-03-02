@@ -1092,7 +1092,7 @@ graphite_loop_normal_form (loop_p loop, sese region)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
   gather_scalar_reductions (loop, SESE_REDUCTION_LIST (region));
-  iv = canonicalize_loop_ivs (loop, SESE_REDUCTION_LIST (region), nit);
+  iv = canonicalize_loop_ivs (loop, SESE_REDUCTION_LIST (region), &nit);
 
   oldiv = XNEW (struct name_tree);
   oldiv->t = iv;

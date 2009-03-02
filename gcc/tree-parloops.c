@@ -1387,9 +1387,10 @@ create_loop_fn (void)
    variable that was created.  */
 
 tree
-canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
+canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
 {
-  unsigned precision = TYPE_PRECISION (TREE_TYPE (nit));
+  unsigned precision = TYPE_PRECISION (TREE_TYPE (*nit));
+  unsigned original_precision = precision;
   tree res, type, var_before, val, atype, mtype;
   gimple_stmt_iterator gsi, psi;
   gimple phi, stmt;
@@ -1397,6 +1398,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
   affine_iv iv;
   edge exit = single_dom_exit (loop);
   tree *red;
+  gimple_seq stmts;
 
   for (psi = gsi_start_phis (loop->header);
        !gsi_end_p (psi); gsi_next (&psi))
@@ -1409,6 +1411,14 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
     }
 
   type = lang_hooks.types.type_for_size (precision, 1);
+
+  if (original_precision != precision)
+    {
+      *nit = fold_convert (type, *nit);
+      *nit = force_gimple_operand (*nit, &stmts, true, NULL_TREE);
+      if (stmts)
+	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
+    }
 
   gsi = gsi_last_bb (loop->latch);
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
@@ -1469,7 +1479,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
     }
   gimple_cond_set_code (stmt, LT_EXPR);
   gimple_cond_set_lhs (stmt, var_before);
-  gimple_cond_set_rhs (stmt, nit);
+  gimple_cond_set_rhs (stmt, *nit);
   update_stmt (stmt);
 
   return var_before;
@@ -1823,7 +1833,7 @@ gen_parallel_loop (struct loop *loop, htab_t reduction_list,
   free_original_copy_tables ();
 
   /* Base all the induction variables in LOOP on a single control one.  */
-  canonicalize_loop_ivs (loop, reduction_list, nit);
+  canonicalize_loop_ivs (loop, reduction_list, &nit);
 
   /* Ensure that the exit condition is the first statement in the loop.  */
   transform_to_exit_first_loop (loop, analyzed_reductions, nit);

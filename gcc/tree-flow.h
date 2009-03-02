@@ -991,7 +991,7 @@ unsigned int tree_ssa_prefetch_arrays (void);
 unsigned int remove_empty_loops (void);
 void tree_ssa_iv_optimize (void);
 unsigned tree_predictive_commoning (void);
-tree canonicalize_loop_ivs (struct loop *, htab_t, tree);
+tree canonicalize_loop_ivs (struct loop *, htab_t, tree *);
 bool parallelize_loops (void);
 void gather_scalar_reductions (struct loop *, htab_t);
 
