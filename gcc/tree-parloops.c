@@ -1396,7 +1396,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
   bool ok;
   affine_iv iv;
   edge exit = single_dom_exit (loop);
-  struct reduction_info *red;
+  tree *red;
 
   for (psi = gsi_start_phis (loop->header);
        !gsi_end_p (psi); gsi_next (&psi))
@@ -1429,7 +1429,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree nit)
       ok = simple_iv (loop, phi, res, &iv, true);
 
       if (reduction_list)
-	red = reduction_phi (reduction_list, phi);
+	red = (tree *) htab_find (reduction_list, &res);
       else
 	red = NULL;
 
