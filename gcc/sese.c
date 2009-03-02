@@ -955,6 +955,9 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
   if (code == SSA_NAME)
     return expand_scalar_variables_ssa_name (op0, bb, region, map, gsi);
 
+  if (code == ADDR_EXPR)
+    return op0;
+
   gcc_unreachable ();
   return NULL;
 }

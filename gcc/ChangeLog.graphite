@@ -1,3 +1,7 @@
+2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (expand_scalar_variables_expr): Handle ADDR_EXPR.
+
 2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
