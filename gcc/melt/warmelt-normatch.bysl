@@ -40,7 +40,7 @@
 	   pctn_mapatcst		;objmap of patternconst
 	   ;; binding list for input arguments in matcher
 	   pctn_bindlist		;binding list 
-	   ;; mapping matched stuff with testers
+	   ;; mapping matched stuff with list of normtesters
 	   pctn_stuffmap
 	   ;; mapping pattern variables to local occurrences 
 	   pctn_pvarlocmap
@@ -48,6 +48,8 @@
 	   pctn_tests
 	   ))
 
+;; it seems that stuffmap is never updated, no put inside!
+(compile_warning "pctn_stuffmap is not updated..." ())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to scan a pattern
@@ -373,6 +375,33 @@
   :super class_nrep_typexpr
   :fields (nmatch_tests			;sequence of tests
 	   ))
+
+;;;;;; utility function to register a new normtester
+(defun register_new_normtester (ntest pcn)
+  (debug_msg ntest "register_new_normtester ntest")
+  (debug_msg pcn "register_new_normtester pcn")
+  (assert_msg "check ntest" (is_a ntest class_normtester_any))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( (nmatched (unsafe_get_field :ntest_matched ntest))
+	 (stuffmap (unsafe_get_field :pctn_stuffmap pcn))
+	 )
+    (assert_msg "check nmatched" (is_object nmatched))
+    (assert_msg "check stuffmap" (is_mapobject stuffmap))
+    (let (
+	  (ntlist
+	   (let ( (ntl (mapobject_get stuffmap nmatched)) )
+	     (if (is_list ntl) 
+		 ntl
+	       (let ( (newntl (make_list discr_list)) )
+		 (mapobject_put stuffmap nmatched newntl)
+		 newntl)
+	       )))
+	  )
+      (assert_msg "check ntlist" (is_list ntlist))
+      (list_append ntlist ntest)
+      (debug_msg stuffmap "register_new_normtester updated stuffmap")
+      (return)
+      )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -485,6 +514,7 @@
 					 :ntest_comefrom (make_list discr_list)
 					 :ntsame_identical lococc))
 		    )
+	       (register_new_normtester newtester pcn)
 	       (debug_msg newtester "normpat_variablepat newtester")
 	       (setq tester newtester)
 	       (list_append testlist newtester)
@@ -593,6 +623,7 @@
 			))
 	     )
 	 (debug_msg newtester "normpat_instancepat newtester")
+	 (register_new_normtester newtester pcn)
 	 (setq tester newtester)
 	 (list_append testlist newtester)
 	 (curhdler newtester)
@@ -759,7 +790,7 @@
 				     "mismatched input type is"
 				     (get_field :named_name curctype))
 			(inform_strv sloc
-				     "expected match type type is"
+				     "expected match type is"
 				     (get_field :named_name matchtype))
 			)
 		    (let ( (newb (instance class_normlet_binding
@@ -873,6 +904,7 @@
 			       ))
 		    )
 		(debug_msg newtester "normpat_anymatchpat newtester")
+		(register_new_normtester newtester pcn)
 		(setq tester newtester)
 		(list_append testlist newtester)
 		(curhdler newtester)
@@ -1027,6 +1059,7 @@
 			    :ntsuccess_do ()
 			    ))
 		 )
+	    ;; we don't register the success test
 	    (debug_msg newenv "normexp_match newenv")
 	    (debug_msg pvarlocmap "normexp_match pvarlocmap")
 	    (debug_msg curcas "normexp_match curcas after normal_pattern")
@@ -1176,6 +1209,7 @@
        (debug_msg tupcstmap "normexp_match tupcstmap")
        (debug_msg tupbindlist "normexp_match tupbindlist")
        (debug_msg testlist "normexp_match testlist")
+       (debug_msg stuffmap "normexp_match stuffmap")
        (let ( 
 	     (teststupl (list_to_multiple testlist)) 
 	     (nmatch (instance class_nrep_match

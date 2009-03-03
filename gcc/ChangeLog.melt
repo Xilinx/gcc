@@ -1,3 +1,6 @@
+2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.bysl: added register_new_normtester. the
+	pctn_stuffmap is now filled.
 2009-02-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	[runfile of hello.bysl is working]
 	* basilys.h (basilysgc_compile_dyn): removed
