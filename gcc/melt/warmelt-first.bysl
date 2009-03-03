@@ -2069,6 +2069,28 @@
 		     (setq curpair (pair_tail curpair)))
 	    ))))
 
+
+;; find in a list LIS an element E verifying F E X or E == X if F is null
+(defun list_find (lis x f)
+  (if (is_list lis)
+      (let ( (curpair (list_first lis)) )
+	(if (is_closure f)
+	    (forever lisloop
+		     (if (not (is_pair curpair)) (exit lisloop))
+		     (let ( (curelem (pair_head curpair)) 
+			    (t (f curelem x)) )
+		       (if t (return t))
+		       (setq curpair (pair_tail curpair)))
+		     )
+	  (forever memloop
+		   (if (not (is_pair curpair)) (exit memloop))
+		   (let ( (curelem (pair_head curpair)) )
+		     (if (== curelem x) (return curelem))
+		     (setq curpair (pair_tail curpair)))
+		   )
+	  )
+	)))
+ 
 ;;; translate a list to a multiple - with each element transformed by a function f (default the identity)
 (defun list_to_multiple (lis disc f)
   (if (null disc) (setq disc discr_multiple))
@@ -3714,6 +3736,7 @@
  last_globpredef_index
  list_append
  list_first
+ list_find
  list_last
  list_length
  list_popfirst

@@ -3861,6 +3861,7 @@
 	(nloc (unsafe_get_field :nrep_loc nmat))
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
 	(ntests (unsafe_get_field :nmatch_tests nmat))
+	(stuffmap (unsafe_get_field :nmatch_stuffmap nmat))
 	(matmap (unsafe_get_field :gncx_matchmap gcx))
 	(matlabel (let ( (:long nbmat (mapobject_count matmap))
 			 (labuf (make_strbuf discr_strbuf))
@@ -3900,6 +3901,7 @@
 		       :tcx_nrmatch nmat
 		       :tcx_freelist (make_list discr_list)
 		       ))
+	(donetests (make_list discr_list))
 	)
     (list_append obodyl ofirstgoto)
     (debug_msg ntests "compilobj_nrep_match ntests")
@@ -3912,6 +3914,7 @@
      (assert_msg "check curotest rank" (==i (get_int curotest) testix))
      (let (
 	   (labins (normtester_labelinstr curotest gcx))
+	   (curnmatched (get_field :ntest_matched curotest))
 	   )
        (multicall
 	(curcomp curobdest) 
@@ -3946,7 +3949,58 @@
 	  ))
 	;; add into subcomplist the curobdest if not null
 	(if curobdest (list_append subcomplist curobdest))
-	)))
+	;; 
+	(list_append donetests curotest)
+	;; dispose some stuff
+	(let ( (disposablist (make_list discr_list)) )
+	  (cond
+	   ;; if the current test is a success, we can dispose all the
+	   ;; stuff which has already been tested
+	   ( (is_a curotest class_normtester_success)
+	     (mapobject_every 
+	      stuffmap
+	      (lambda (stuff stutests)
+		(debug_msg stuff "compilobj_nrep_match succ stuff")
+		(debug_msg stutests "compilobj_nrep_match succ stutest")
+		(let ( (remstuff stuff) )
+		  (foreach_in_list 
+		   (stutests)
+		   (testpair curtest)
+		   (if (list_find donetests curtest)
+		       (setq testpair ())
+		     (setq remstuff ()))
+		   )
+		  (if remstuff 
+		      (list_append disposablist remstuff))
+		  )
+		)))
+	   ;; if the current test is not a success and the curnmatched
+	   ;; is an object, we can dispose it if all its stuff has been
+	   ;; tested
+	   ( (is_object curnmatched)
+	     (let ( (stutests (mapobject_get stuffmap curnmatched)) )
+	       (let ( (remstuff curnmatched) )
+		 (foreach_in_list 
+		  (stutests)
+		  (testpair curtest)
+		  (if (list_find donetests curtest)
+		      (setq testpair ())
+		    (setq remstuff ()))
+		  )
+		 (if remstuff 
+		     (list_append disposablist remstuff))
+		 )))) 
+;;; dispose all the stuff in the disposablist
+	  (foreach_in_list
+	   (disposablist)
+	   (dispair dispstuff)
+	   (mapobject_remove stuffmap dispstuff)
+	   (debug_msg dispstuff "compilobj_nrep_match dispstuff")
+	   (let ( (dispobj (compile_obj dispstuff gcx)) )
+	     (debug_msg dispobj "compilobj_nrep_match dispobj")
+	     (assert_msg "check dispobj" (is_a dispobj class_objlocv))
+	     (dispose_objloc dispobj gcx)
+	     ))))))
     (list_append obodyl oendlabel)
     (put_fields ombloc 
 		:omulblo_subcomp (list_to_multiple subcomplist discr_multiple))
@@ -4250,12 +4304,68 @@
 	(nthen (unsafe_get_field :ntest_then ntsa))
 	(nelse (unsafe_get_field :ntest_else ntsa))
 	(normatch (unsafe_get_field :ntest_normatch ntsa))
+	(nidentical (unsafe_get_field :ntsame_identical ntsa))
 	(:long ntestix (get_int ntsa))	
+	(omatched (compile_obj nmatched gcx))
+	(oidentical (compile_obj nidentical gcx))
+	(gotothen (or (normtester_gotoinstr nthen gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
+	(gotoelse (or (normtester_gotoinstr nelse gcx)
+		      (endmatch_gotoinstr normatch gcx nloc)))
+	(freelist (normtester_free_objloc_list ntsa gcx tcx))
+	(othenlist (make_list discr_list))
+	(oelselist (make_list discr_list))
+	(othenblock (instance class_objblock
+			      :obi_loc nloc
+			      :oblo_bodyl othenlist
+			      ))
+	(oelseblock (instance class_objblock
+			      :obi_loc nloc
+			      :oblo_bodyl oelselist))
+	(otest (instance
+		class_objlocatedexpv
+		:obcx_loc nloc
+		:obx_cont (make_tuple5
+			   discr_multiple
+			   (make_stringconst discr_verbatimstring 
+					     "/*same*/ ((")
+			   omatched
+			   (make_stringconst discr_verbatimstring ") == (")
+			   oidentical
+			   (make_stringconst discr_verbatimstring "))"))
+		))
+	(ocond (instance class_objcond
+			 :obi_loc nloc
+			 :obcond_test otest
+			 :obcond_then othenblock
+			 :obcond_else oelseblock))
+	(olist (make_list discr_list))
 	)
+    ;; clear the freelist
+    (foreach_in_list
+     (freelist)
+     (locpair obloc)
+     (debug_msg obloc "compiltst_normtester_same obloc")
+     (assert_msg "check obloc" (is_a obloc class_objlocv))
+     (let ( (oclearob (instance class_objclear
+				 :obi_loc nloc
+				 :oclr_vloc obloc
+				 )) )
+       (list_append olist oclearob)
+     ))
+    ;; add the cond
+    (list_append olist ocond)
     (error_plain nloc "unimplemented compiltst_normtester_same")
+    ;; also add the gotothen
+    (assert_msg "check gotothen" (is_object gotothen))
+    (list_append othenlist gotothen)
+    ;; add into the oelselist the gotoelse
+    (debug_msg gotoelse "compiltst_normtester_instance gotoelse")
+    (assert_msg "check gotoelse" (is_object gotoelse))
+    (list_append oelselist gotoelse)
     ;(shortbacktrace_dbg "compiltst_normtester_same" 15)
     (compile_warning "unimplemented compiltst_normtester_same" ())
-    (assert_msg "unimplemented compiltst_normtester_same" ())
+    (return olist)
     )
 )
 (install_method class_normtester_same compile_tester compiltst_normtester_same)

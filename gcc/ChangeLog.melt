@@ -1,4 +1,11 @@
 2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: added list_find
+	* melt/warmelt-normatch.bysl: added field nmatch_stuffmap in
+	class_nrep_match.
+	* melt/warmelt-genobj.bysl: partly implemented
+	compiltst_normtester_same. Disposing stuff in
+	compilobj_nrep_match [untested].
+2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.bysl: added register_new_normtester. the
 	pctn_stuffmap is now filled.
 2009-02-27  Basile Starynkevitch  <basile@starynkevitch.net>

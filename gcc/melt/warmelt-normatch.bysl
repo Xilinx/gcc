@@ -374,6 +374,8 @@
 (defclass class_nrep_match
   :super class_nrep_typexpr
   :fields (nmatch_tests			;sequence of tests
+	   nmatch_stuffmap		;mapping matched stuff with
+					;list or normal tests
 	   ))
 
 ;;;;;; utility function to register a new normtester
@@ -1216,6 +1218,7 @@
 			       :nrep_loc sloc
 			       :nexpr_ctyp wholectype
 			       :nmatch_tests teststupl
+			       :nmatch_stuffmap stuffmap
 			       ))
 	     (csym (clone_symbol 'matchres_))
 	     (clocc  (instance  class_nrep_locsymocc
