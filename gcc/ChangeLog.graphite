@@ -1,3 +1,10 @@
+2009-03-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (print_pbb_domain, print_pbb, print_scop,
+	debug_pbb_domain, debug_pbb, debug_scop): New.
+	* graphite-poly.h (print_pbb_domain, print_pbb, print_scop,
+	debug_pbb_domain, debug_pbb, debug_scop): Declared.
+
 2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR middle-end/39335

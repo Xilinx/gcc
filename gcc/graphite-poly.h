@@ -173,6 +173,12 @@ extern void new_poly_bb (scop_p, gimple_bb_p);
 extern void free_poly_bb (poly_bb_p);
 extern void debug_loop_vec (poly_bb_p);
 extern void schedule_to_scattering (poly_bb_p, int);
+extern void print_pbb_domain (FILE *, poly_bb_p);
+extern void print_pbb (FILE *, poly_bb_p);
+extern void print_scop (FILE *, scop_p);
+extern void debug_pbb_domain (poly_bb_p);
+extern void debug_pbb (poly_bb_p);
+extern void debug_scop (scop_p);
 
 static inline unsigned scop_nb_params (scop_p);
 

@@ -802,5 +802,61 @@ debug_loop_vec (poly_bb_p pbb)
   fprintf (stderr, "\n");
 }
 
+/* Print to FILE the domain of PBB.  */
+
+void
+print_pbb_domain (FILE *file, poly_bb_p pbb)
+{
+  ppl_print_polyhedron_matrix (file, PBB_DOMAIN (pbb));
+}
+
+/* Print to FILE the domain and scattering function of PBB.  */
+
+void
+print_pbb (FILE *file, poly_bb_p pbb)
+{
+  print_pbb_domain (file, pbb);
+  print_scattering_function (file, pbb);
+}
+
+/* Print to FILE the SCOP.  */
+
+void
+print_scop (FILE *file, scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    {
+      print_pbb (file, pbb);
+    }
+}
+
+/* Print to STDERR the domain of PBB.  */
+
+void
+debug_pbb_domain (poly_bb_p pbb)
+{
+  print_pbb_domain (stderr, pbb);
+}
+
+/* Print to FILE the domain and scattering function of PBB.  */
+
+void
+debug_pbb (poly_bb_p pbb)
+{
+  print_pbb (stderr, pbb);
+}
+
+/* Print to STDERR the SCOP.  */
+
+void
+debug_scop (scop_p scop)
+{
+  print_scop (stderr, scop);
+}
+
+
 #endif
 
