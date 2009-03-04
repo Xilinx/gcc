@@ -111,10 +111,13 @@ graphite_transform_loops (void)
   build_scops (&scops);
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-    if (build_poly_scop (scop)
-	&& (apply_poly_transforms (scop)
-	    || check_poly_representation (scop)))
-      transform_done |= gloog (scop);
+    if (build_poly_scop (scop))
+      {
+	if (apply_poly_transforms (scop))
+	  transform_done |= gloog (scop);
+	else  
+	  check_poly_representation (scop);
+      }
 
   free_scops (scops);
   graphite_finalize (transform_done);

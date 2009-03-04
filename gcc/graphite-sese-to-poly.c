@@ -199,9 +199,10 @@ build_scop_bbs (scop_p scop)
   basic_block *stack = XNEWVEC (basic_block, n_basic_blocks + 1);
   sbitmap visited = sbitmap_alloc (last_basic_block);
   int sp = 0;
+  sese region = SCOP_REGION (scop);
 
   sbitmap_zero (visited);
-  stack[sp++] = SCOP_ENTRY (scop);
+  stack[sp++] = SESE_ENTRY_BB (region);
 
   while (sp)
     {
@@ -214,9 +215,9 @@ build_scop_bbs (scop_p scop)
       /* Scop's exit is not in the scop.  Exclude also bbs, which are
 	 dominated by the SCoP exit.  These are e.g. loop latches.  */
       if (TEST_BIT (visited, bb->index)
-	  || dominated_by_p (CDI_DOMINATORS, bb, SCOP_EXIT (scop))
+	  || dominated_by_p (CDI_DOMINATORS, bb, SESE_EXIT_BB (region))
 	  /* Every block in the scop is dominated by scop's entry.  */
-	  || !dominated_by_p (CDI_DOMINATORS, bb, SCOP_ENTRY (scop)))
+	  || !dominated_by_p (CDI_DOMINATORS, bb, SESE_ENTRY_BB (region)))
 	continue;
 
       try_generate_gimple_bb (scop, bb);
@@ -273,6 +274,105 @@ ref_nb_loops (data_reference_p ref, sese region)
 
   return nb_loops_around_loop_in_sese (loop, region)
     + sese_nb_params (region) + 2;
+}
+
+/* Converts the STATIC_SCHEDULE of PBB into a scattering polyhedron.  
+   We generate SCATTERING_DIMENSIONS scattering dimensions.
+   
+   CLooG 0.15.0 and previous versions require, that all
+   scattering functions of one CloogProgram have the same number of
+   scattering dimensions, therefore we allow to specify it.  This
+   should be removed in future versions of CLooG.
+
+   The scattering polyhedron consists of these dimensions: scattering,
+   loop_iterators, parameters.
+
+   Example:
+
+   | scattering_dimensions = 5
+   | used_scattering_dimensions = 3
+   | nb_iterators = 1 
+   | scop_nb_params = 2
+   |
+   | Schedule:
+   |   i
+   | 4 5
+   |
+   | Scattering polyhedron:
+   |
+   | scattering: {s1, s2, s3, s4, s5}
+   | loop_iterators: {i}
+   | parameters: {p1, p2}
+   |
+   | s1  s2  s3  s4  s5  i   p1  p2  1 
+   | 1   0   0   0   0   0   0   0  -4  = 0
+   | 0   1   0   0   0  -1   0   0   0  = 0
+   | 0   0   1   0   0   0   0   0  -5  = 0  */
+
+static void
+build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
+				   poly_bb_p pbb, int scattering_dimensions) 
+{
+  int i;
+  scop_p scop = PBB_SCOP (pbb);
+  int nb_iterators = pbb_nb_loops (pbb);
+  int used_scattering_dimensions = nb_iterators * 2 + 1;
+  int nb_params = scop_nb_params (scop);
+  ppl_Coefficient_t c;
+  ppl_dimension_type dim = scattering_dimensions + nb_iterators + nb_params;
+  Value v;
+
+  gcc_assert (scattering_dimensions >= used_scattering_dimensions);
+
+  value_init (v);
+  ppl_new_Coefficient (&c);
+  ppl_new_NNC_Polyhedron_from_space_dimension
+    (&PBB_TRANSFORMED_SCATTERING (pbb), dim, 0);
+
+  for (i = 0; i < scattering_dimensions; i++)
+    {
+      ppl_Constraint_t cstr;
+      ppl_Linear_Expression_t expr;
+
+      ppl_new_Linear_Expression_with_dimension (&expr, dim);
+      value_set_si (v, 1);
+      ppl_assign_Coefficient_from_mpz_t (c, v);
+      ppl_Linear_Expression_add_to_coefficient (expr, i, c);
+
+      /* Textual order inside this loop.  */
+      if ((i % 2) == 0)
+	{
+	  ppl_Linear_Expression_coefficient (static_schedule, i / 2, c);
+	  ppl_Coefficient_to_mpz_t (c, v);
+	  value_oppose (v, v);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_inhomogeneous (expr, c);
+	}
+
+      /* Iterations of this loop.  */
+      if ((i % 2) == 1)
+	  
+	{
+	  int loop = (i - 1) / 2;
+	  value_set_si (v, -1);
+	  ppl_assign_Coefficient_from_mpz_t (c, v);
+	  ppl_Linear_Expression_add_to_coefficient (expr,
+						    scattering_dimensions
+						      + loop,
+						    c);
+	}
+      
+      ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
+      ppl_Polyhedron_add_constraint (PBB_TRANSFORMED_SCATTERING (pbb), cstr);
+      ppl_delete_Linear_Expression (expr);
+      ppl_delete_Constraint (cstr);
+    }
+
+  value_clear (v);
+  ppl_delete_Coefficient (c);
+
+  ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&PBB_ORIGINAL_SCATTERING (pbb),
+					      PBB_TRANSFORMED_SCATTERING (pbb));
 }
 
 /* Returns the number of loops that are identical at the beginning of
@@ -332,7 +432,7 @@ compare_prefix_loops (VEC (loop_p, heap) *a, VEC (loop_p, heap) *b)
 */
 
 static void
-build_scop_canonical_schedules (scop_p scop)
+build_scop_scattering (scop_p scop)
 {
   int i;
   poly_bb_p pbb;
@@ -357,21 +457,21 @@ build_scop_canonical_schedules (scop_p scop)
     {
       ppl_Linear_Expression_t common;
       int prefix = compare_prefix_loops (loops_previous, PBB_LOOPS (pbb));
-      int nb = pbb_nb_loops (pbb);
+      int nb_scat_dims = pbb_nb_loops (pbb) * 2 + 1;
 
       loops_previous = PBB_LOOPS (pbb);
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
-      ppl_assign_Linear_Expression_from_Linear_Expression (common, static_schedule);
+      ppl_assign_Linear_Expression_from_Linear_Expression (common,
+							   static_schedule);
 
       value_set_si (v, 1);
       ppl_assign_Coefficient_from_mpz_t (c, v);
       ppl_Linear_Expression_add_to_coefficient (common, prefix, c);
-      ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule, common);
+      ppl_assign_Linear_Expression_from_Linear_Expression (static_schedule,
+							   common);
 
-      ppl_new_Linear_Expression_with_dimension (&PBB_STATIC_SCHEDULE (pbb),
-						nb + 1);
-      ppl_assign_Linear_Expression_from_Linear_Expression
-	(PBB_STATIC_SCHEDULE (pbb), common);
+      build_pbb_scattering_polyhedrons (common, pbb, nb_scat_dims);
+							
       ppl_delete_Linear_Expression (common);
     }
 
@@ -685,7 +785,7 @@ find_scop_parameters (scop_p scop)
   value_set_si (one, 1);
 
   /* Find the parameters used in the loop bounds.  */
-  for (i = 0; VEC_iterate (loop_p, SCOP_LOOP_NEST (scop), i, loop); i++)
+  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
     {
       tree nb_iters = number_of_latch_executions (loop);
 
@@ -693,8 +793,7 @@ find_scop_parameters (scop_p scop)
 	continue;
 
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
-      nb_iters = instantiate_scev (block_before_sese (SCOP_REGION (scop)), loop,
-						      nb_iters);
+      nb_iters = instantiate_scev (block_before_sese (region), loop, nb_iters);
       scan_tree_for_params (region, nb_iters, NULL, one, false);
     }
 
@@ -1293,7 +1392,7 @@ build_poly_scop (scop_p scop)
   find_scop_parameters (scop);
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
-  build_scop_canonical_schedules (scop);
+  build_scop_scattering (scop);
   build_scop_data_accesses (scop);
 
   return true;
@@ -1301,7 +1400,7 @@ build_poly_scop (scop_p scop)
 
 /* Always return false.  Exercise the scop_to_clast function.  */
 
-bool
+void
 check_poly_representation (scop_p scop)
 {
 #ifdef ENABLE_CHECKING
@@ -1309,7 +1408,5 @@ check_poly_representation (scop_p scop)
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);
 #endif
-
-  return false;
 }
 #endif

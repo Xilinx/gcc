@@ -38,56 +38,6 @@ struct poly_bb
 
   scop_p scop;
 
-  /* The static schedule contains the textual order for every loop layer.
-    
-     Example:
-
-     S0
-     for (i ...)
-       {
-         S1
-         for (j ...)
-           {
-             S2
-             S3
-           }
-         S4
-       }
-     S5
-     for (k ...)
-       {
-         S6
-         S7
-         for (l ...)
-           {
-             S8
-           }
-         S9
-       }
-     S10
-
-     Schedules:
-  
-        | Depth       
-     BB | 0  1  2 
-     ------------
-     S0 | 0
-     S1 | 1, 0
-     S2 | 1, 1, 0
-     S3 | 1, 1, 1
-     S4 | 1, 2
-     S5 | 2
-     S6 | 3, 0
-     S7 | 3, 1
-     S8 | 3, 2, 0
-     S9 | 3, 3
-     S10| 4
-
-   Normalization rules:
-     - One SCoP can never contain two bbs with the same schedule timestamp.
-     - All bbs at the same loop depth have a consecutive ordering (no gaps). */
-  ppl_Linear_Expression_t static_schedule;
-
   /* The iteration domain of this bb.
      Example:
 
@@ -157,17 +107,19 @@ struct poly_bb
      Dimensions 1 and 3 represent the newly created loops.  */
   VEC (loop_p, heap) *loops;
 
-  /* The scattering function of the BB defines the transforms that are
-     going to be applied to it.  */
-  ppl_Polyhedron_t scattering;
+  /* The scattering function containing the transformations.  */
+  ppl_Polyhedron_t transformed_scattering;
+
+  /* The original scattering function.  */
+  ppl_Polyhedron_t original_scattering;
 };
 
 #define PBB_SCOP(PBB) PBB->scop
-#define PBB_STATIC_SCHEDULE(PBB) PBB->static_schedule
 #define PBB_DOMAIN(PBB) PBB->domain
 #define PBB_BLACK_BOX(PBB) PBB->black_box
 #define PBB_LOOPS(PBB) PBB->loops
-#define PBB_SCATTERING(PBB) PBB->scattering
+#define PBB_TRANSFORMED_SCATTERING(PBB) PBB->transformed_scattering
+#define PBB_ORIGINAL_SCATTERING(PBB) PBB->original_scattering
 
 extern void new_poly_bb (scop_p, gimple_bb_p);
 extern void free_poly_bb (poly_bb_p);
@@ -182,8 +134,7 @@ extern void debug_scop (scop_p);
 
 static inline unsigned scop_nb_params (scop_p);
 
-/* Calculate the number of loops around GB in the current SCOP.  Only
-   works if GBB_DOMAIN is built.  */
+/* The number of loops around PBB.  */
 
 static inline int
 pbb_nb_loops (const struct poly_bb *pbb)
@@ -193,6 +144,18 @@ pbb_nb_loops (const struct poly_bb *pbb)
 
   ppl_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   return dim - scop_nb_params (scop);
+}
+
+/* The number of scattering dimensions in PBB.  */
+
+static inline int
+pbb_nb_scattering (const struct poly_bb *pbb)
+{
+  scop_p scop = PBB_SCOP (pbb);
+  ppl_dimension_type dim;
+
+  ppl_Polyhedron_space_dimension (PBB_TRANSFORMED_SCATTERING (pbb), &dim);
+  return dim - pbb_nb_loops (pbb) - scop_nb_params (scop);
 }
 
 /* Returns the gimple loop, that corresponds to the loop_iterator_INDEX.  
@@ -237,20 +200,7 @@ struct scop
 
 #define SCOP_BBS(S) S->bbs
 #define SCOP_REGION(S) S->region
-/* SCOP_ENTRY bb dominates all the bbs of the scop.  SCOP_EXIT bb
-   post-dominates all the bbs of the scop.  SCOP_EXIT potentially
-   contains non affine data accesses, side effect statements or
-   difficult constructs, and thus is not considered part of the scop,
-   but just a boundary.  SCOP_ENTRY is considered part of the scop.  */
-#define SCOP_ENTRY(S) (SESE_ENTRY (SCOP_REGION (S))->dest)
-#define SCOP_EXIT(S) (SESE_EXIT (SCOP_REGION (S))->dest)
-#define SCOP_REGION_BBS(S) (SESE_REGION_BBS (SCOP_REGION (S)))
 #define SCOP_DEP_GRAPH(S) (S->dep_graph)
-#define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
-#define SCOP_LOOP_NEST(S) (SCOP_REGION (S)->loop_nest)
-#define SCOP_PARAMS(S) (SCOP_REGION (S)->params)
-#define SCOP_OLDIVS(S) (SCOP_REGION (S)->old_ivs)
-#define SCOP_LIVEOUT_RENAMES(S) (SCOP_REGION (S)->liveout_renames)
 
 extern scop_p new_scop (sese);
 extern void free_scop (scop_p);
@@ -263,6 +213,7 @@ extern void debug_scattering_function (poly_bb_p);
 extern void debug_scattering_functions (scop_p);
 extern int scop_max_loop_depth (scop_p);
 extern bool apply_poly_transforms (scop_p);
+extern int unify_scattering_dimensions (scop_p);
 
 /* Returns the number of parameters for SCOP.  */
 

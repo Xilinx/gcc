@@ -876,6 +876,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
   int *scaldims = (int *) xmalloc (nbs * (sizeof (int)));
 
   build_scop_context (scop, prog);
+  nbs = unify_scattering_dimensions (scop);
   cloog_program_set_nb_scattdims (prog, nbs);
   initialize_cloog_names (scop, prog);
 
@@ -917,7 +918,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         ppl_Polyhedron_t scat;
 	CloogDomain *dom;
 
-	scat = PBB_SCATTERING (pbb);
+	scat = PBB_TRANSFORMED_SCATTERING (pbb);
 	dom = new_Cloog_Domain_from_ppl_Polyhedron (scat);
 
         cloog_set_next_domain (new_scattering, scattering);

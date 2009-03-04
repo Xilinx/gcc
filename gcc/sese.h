@@ -79,7 +79,9 @@ typedef struct sese
 } *sese;
 
 #define SESE_ENTRY(S) (S->entry)
+#define SESE_ENTRY_BB(S) (S->entry->dest)
 #define SESE_EXIT(S) (S->exit)
+#define SESE_EXIT_BB(S) (S->exit->dest)
 #define SESE_REGION_BBS(S) (S->region_basic_blocks)
 #define SESE_LIVEOUT(S) (S->liveout)
 #define SESE_LIVEIN(S) (S->livein)

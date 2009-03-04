@@ -1,3 +1,38 @@
+2009-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (build_cloog_prog): Unify scattering
+	dimensions.
+	* graphite-poly.c (pbb_compare, graphite_sort_pbbs,
+	graphite_trans_bb_move_loop, graphite_trans_bb_strip_mine,
+	strip_mine_profitable_p, is_interchange_valid,
+	graphite_trans_bb_block, graphite_trans_loop_block,
+	graphite_trans_scop_block): Temporary removed.
+	(extend_scattering, unify_scattering_dimensions): New.
+	(print_scattering_function, graphite_read_transforms): PBB_SCATTERING ->
+	PBB_TRANSFORMED_SCATTERING.
+	(graphite_generate_scattering_fns): Removed.
+	(apply_poly_transforms): Cleanup.
+	(free_poly_bb): Add PBB_SCATTERING -> PBB_TRANSFORMED_SCATTERING.
+	(schedule_to_scattering): Moved.
+	(PBB_STATIC_SCHEDULE, PBB_SCATTERING): Removed.
+	(PBB_ORIGINAL_SCATTERING, PBB_TRANSFORMED_SCATTERING): New.
+	(pbb_nb_scattering): New.
+	(SCOP_ENTRY, SCOP_EXIT, SCOP_REGION_BBS, SCOP_DEP_GRAPH, SCOP_PARAMS,
+	SCOP_LOOP_NEST, SCOP_PARAMS, SCOP_OLDIVS, SCOP_LIVEOUT_RENAMES):
+	Removed.
+	* graphite-ppl.c (ppl_insert_dimensions): Extended and renamed from
+	shift_poly.
+	(ppl_strip_loop): PBB_SCATTERING -> PBB_TRANSFORMED_SCATTERING.
+	* graphite-scop-detection.c (dot_all_scops_1):  PBB_SCATTERING
+	-> PBB_TRANSFORMED_SCATTERING. 
+	* graphite-sese-to-poly.c (build_scop_bbs): Remove region.
+	(build_pbb_scattering_polyhedron): Moved from schedule_to_scattering.
+	(build_scop_scattering): Renamed from build_scop_canonical_schedules.
+	(check_poly_representation): Do not return bool.
+	(graphite_transform_loops): Reformat.
+	* sese.h (SESE_ENTRY_BB, SESE_EXIT_BB): New.
+
 2009-03-04  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.c (print_pbb_domain, print_pbb, print_scop,

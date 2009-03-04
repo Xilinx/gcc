@@ -1121,96 +1121,100 @@ dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
 
       /* Select color for SCoP.  */
       for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
-	if (bb_in_sese_p (bb, SCOP_REGION (scop))
-	    || (SCOP_EXIT (scop) == bb)
-	    || (SCOP_ENTRY (scop) == bb))
-	  {
-	    switch (i % 17)
-	      {
-	      case 0: /* red */
-		color = "#e41a1c";
-		break;
-	      case 1: /* blue */
-		color = "#377eb8";
-		break;
-	      case 2: /* green */
-		color = "#4daf4a";
-		break;
-	      case 3: /* purple */
-		color = "#984ea3";
-		break;
-	      case 4: /* orange */
-		color = "#ff7f00";
-		break;
-	      case 5: /* yellow */
-		color = "#ffff33";
-		break;
-	      case 6: /* brown */
-		color = "#a65628";
-		break;
-	      case 7: /* rose */
-		color = "#f781bf";
-		break;
-	      case 8:
-		color = "#8dd3c7";
-		break;
-	      case 9:
-		color = "#ffffb3";
-		break;
-	      case 10:
-		color = "#bebada";
-		break;
-	      case 11:
-		color = "#fb8072";
-		break;
-	      case 12:
-		color = "#80b1d3";
-		break;
-	      case 13:
-		color = "#fdb462";
-		break;
-	      case 14:
-		color = "#b3de69";
-		break;
-	      case 15:
-		color = "#fccde5";
-		break;
-	      case 16:
-		color = "#bc80bd";
-		break;
-	      default: /* gray */
-		color = "#999999";
-	      }
+	{
+	  sese region = SCOP_REGION (scop);
+	  if (bb_in_sese_p (bb, region)
+	      || (SESE_EXIT_BB (region) == bb)
+	      || (SESE_ENTRY_BB (region) == bb))
+	    {
+	      switch (i % 17)
+		{
+		case 0: /* red */
+		  color = "#e41a1c";
+		  break;
+		case 1: /* blue */
+		  color = "#377eb8";
+		  break;
+		case 2: /* green */
+		  color = "#4daf4a";
+		  break;
+		case 3: /* purple */
+		  color = "#984ea3";
+		  break;
+		case 4: /* orange */
+		  color = "#ff7f00";
+		  break;
+		case 5: /* yellow */
+		  color = "#ffff33";
+		  break;
+		case 6: /* brown */
+		  color = "#a65628";
+		  break;
+		case 7: /* rose */
+		  color = "#f781bf";
+		  break;
+		case 8:
+		  color = "#8dd3c7";
+		  break;
+		case 9:
+		  color = "#ffffb3";
+		  break;
+		case 10:
+		  color = "#bebada";
+		  break;
+		case 11:
+		  color = "#fb8072";
+		  break;
+		case 12:
+		  color = "#80b1d3";
+		  break;
+		case 13:
+		  color = "#fdb462";
+		  break;
+		case 14:
+		  color = "#b3de69";
+		  break;
+		case 15:
+		  color = "#fccde5";
+		  break;
+		case 16:
+		  color = "#bc80bd";
+		  break;
+		default: /* gray */
+		  color = "#999999";
+		}
 
-	    fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
-        
-	    if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
-	      fprintf (file, " ("); 
+	      fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"%s\">", color);
 
-	    if (bb == SCOP_ENTRY (scop)
-		&& bb == SCOP_EXIT (scop))
-	      fprintf (file, " %d*# ", bb->index);
-	    else if (bb == SCOP_ENTRY (scop))
-	      fprintf (file, " %d* ", bb->index);
-	    else if (bb == SCOP_EXIT (scop))
-	      fprintf (file, " %d# ", bb->index);
-	    else
-	      fprintf (file, " %d ", bb->index);
+	      if (!bb_in_sese_p (bb, region))
+		fprintf (file, " ("); 
 
-	    if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
-	      fprintf (file, ")");
+	      if (bb == SESE_ENTRY_BB (region)
+		  && bb == SESE_EXIT_BB (region))
+		fprintf (file, " %d*# ", bb->index);
+	      else if (bb == SESE_ENTRY_BB (region))
+		fprintf (file, " %d* ", bb->index);
+	      else if (bb == SESE_EXIT_BB (region))
+		fprintf (file, " %d# ", bb->index);
+	      else
+		fprintf (file, " %d ", bb->index);
 
-	    fprintf (file, "</TD></TR>\n");
-	    part_of_scop  = true;
-	  }
+	      if (!bb_in_sese_p (bb,region)) 
+		fprintf (file, ")");
 
-      if (!part_of_scop)
-        {
-          fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
-          fprintf (file, " %d </TD></TR>\n", bb->index);
-        }
+	      fprintf (file, "</TD></TR>\n");
+	      part_of_scop  = true;
+	    }
 
-      fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
+	  if (!part_of_scop)
+	    {
+	      fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+	      fprintf (file, " %d </TD></TR>\n", bb->index);
+	    }
+	
+
+	  fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
+	}
     }
 
   FOR_ALL_BB (bb)

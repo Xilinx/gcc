@@ -22,6 +22,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_GRAPHITE_SESE_TO_POLY_H
 
 bool build_poly_scop (scop_p);
-bool check_poly_representation (scop_p);
+void check_poly_representation (scop_p);
 
 #endif

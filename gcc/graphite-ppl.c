@@ -283,32 +283,40 @@ set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
   ppl_delete_Coefficient (c);
 }
 
-/* Places PH in a higher dimension and shifts up all the dimensions
-   above X.  */
+/* Insert after X NB_NEW_DIMS empty dimensions into PH. 
+   
+   With x = 3 and nb_new_dims = 4
 
-static ppl_Polyhedron_t
-shift_poly (ppl_Polyhedron_t ph, ppl_dimension_type x, ppl_dimension_type dim)
+   |  d0 d1 d2 d3 d4
+   
+   is transformed to
+   
+   |  d0 d1 d2 x0 x1 x2 x3 d3 d4  */
+
+void
+ppl_insert_dimensions (ppl_Polyhedron_t ph, int x,
+		       int nb_new_dims)
 {
-  ppl_Polyhedron_t res;
-  ppl_dimension_type i;
+  ppl_dimension_type i, dim;
   ppl_dimension_type *map;
-  ppl_const_Constraint_System_t pcs;
+  ppl_dimension_type x_ppl, nb_new_dims_ppl;
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&res, dim + 1, 0);
-  ppl_Polyhedron_get_constraints (ph, &pcs);
-  ppl_Polyhedron_add_constraints (res, pcs);
+  x_ppl = (ppl_dimension_type) x;
+  nb_new_dims_ppl = (ppl_dimension_type) nb_new_dims;
 
-  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + 1);
-  for (i = 0; i < x; i++)
+  ppl_Polyhedron_space_dimension (ph, &dim);
+  ppl_Polyhedron_add_space_dimensions_and_embed (ph, nb_new_dims);
+
+  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + nb_new_dims);
+  for (i = 0; i < x_ppl; i++)
     map[i] = i;
-  for (i = x; i < dim; i++)
-    map[i] = i + 1;
-  map[dim] = x;
+  for (i = x_ppl; i < x_ppl + nb_new_dims_ppl; i++)
+    map[i] = dim + i - x_ppl;
+  for (i = x_ppl + nb_new_dims_ppl ; i < dim + nb_new_dims_ppl; i++)
+    map[i] = i - nb_new_dims_ppl;
 
-  ppl_Polyhedron_map_space_dimensions (res, map, dim + 1);
+  ppl_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
   free (map);
-  ppl_delete_Polyhedron (ph);
-  return res;
 }
 
 /* Based on the original polyhedron PH, returns a new polyhedron with
@@ -339,7 +347,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
   ppl_Polyhedron_add_constraints (res, pcs);
 
   /* Add an empty dimension for the strip loop.  */
-  res = shift_poly (res, loop, dim);
+  ppl_insert_dimensions (res, loop, 1);
 
   /* Identify the constraints that define the lower and upper bounds
      of the strip-mined loop, and add them to the strip loop.  */
@@ -368,7 +376,7 @@ ppl_strip_loop (ppl_Polyhedron_t ph, ppl_dimension_type loop, int stride)
     ppl_delete_Constraint_System_const_iterator (cit);
     ppl_delete_Constraint_System_const_iterator (end);
 
-    tmp = shift_poly (tmp, loop + 1, dim);
+    ppl_insert_dimensions (tmp, loop + 1, 1);
     ppl_Polyhedron_get_constraints (tmp, &pcs);
     ppl_Polyhedron_add_constraints (res, pcs);
     ppl_delete_Polyhedron (tmp);
