@@ -1,3 +1,5 @@
+2009-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: compile-probe.o is dirty so -Wno-error.
 2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: added list_find
 	* melt/warmelt-normatch.bysl: added field nmatch_stuffmap in

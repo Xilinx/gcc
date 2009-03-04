@@ -182,8 +182,10 @@ dfp.o-warn = -Wno-error
 # mips-tfile.c contains -Wcast-qual warnings.
 mips-tfile.o-warn = -Wno-error
 
-## basilys.c contain tricky stuff 
+## basilys.c contains tricky stuff 
 basilys.o-warn = -Wno-error
+## compiler-probe.o stuff
+compiler-probe.o-warn = -Wno-error
 
 # All warnings have to be shut off in stage1 if the compiler used then
 # isn't gcc; configure determines that.  WARN_CFLAGS will be either
