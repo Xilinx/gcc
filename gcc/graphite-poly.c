@@ -213,7 +213,15 @@ apply_poly_transforms (scop_p scop)
 
   /* Not yet implemented.  */
   if (flag_loop_block)
-    transform_done |= false; 
+    sorry ("Loop blocking currently not supported");
+
+  /* Not yet implemented.  */
+  if (flag_loop_interchange)
+    sorry ("Loop interchange currently not supported");
+
+  /* Not yet implemented.  */
+  if (flag_loop_strip_mine)
+    sorry ("Strip mining currently not supported");
 
   if (flag_graphite_write)
     graphite_write_transforms (scop);

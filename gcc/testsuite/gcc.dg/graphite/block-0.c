@@ -1,4 +1,4 @@
-/* { dg-options "-O -floop-block -fdump-tree-graphite-all" } */
+/* { dg-options "-O2 -fdump-tree-graphite-all" } */
 
 #define N 1000
 

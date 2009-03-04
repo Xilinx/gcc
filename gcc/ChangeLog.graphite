@@ -1,4 +1,28 @@
 2009-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* testsuite/gcc.dg/graphite/pr37485.c: Remove -floop-block
+	* testsuite/gcc.dg/graphite/pr37828.c: Same.
+	* testsuite/gcc.dg/graphite/pr37684.c: Same.
+	* testsuite/gcc.dg/graphite/block-0.c: Same.
+	* testsuite/gcc.dg/graphite/block-1.c: Same.
+	* testsuite/gcc.dg/graphite/block-2.c: Same.
+	* testsuite/gcc.dg/graphite/block-3.c: Same.
+	* testsuite/gcc.dg/graphite/block-4.c: Same.
+	* testsuite/gcc.dg/graphite/block-5.c: Same.
+	* testsuite/gcc.dg/graphite/block-6.c: Same.
+	* testsuite/gfortran.dg/graphite/pr38083.f90: Same.
+	* testsuite/gfortran.dg/graphite/block-1.f90: Same.
+	* testsuite/gfortran.dg/graphite/block-3.f90: Same.
+	* testsuite/gfortran.dg/graphite/pr37852.f90: Same.
+	* testsuite/gfortran.dg/graphite/block-4.f90: Same.
+	* testsuite/gfortran.dg/graphite/pr37980.f90: Same.
+	* testsuite/gfortran.dg/graphite/pr38953.f90: Same.
+	* testsuite/gfortran.dg/graphite/pr37857.f90: Same.
+	* opts.c: Remove -floop-block from -O2.
+	* graphite-poly.c: Fail if -floop-block -floop-interchange or
+	-floop-strip-mine are used.
+
+2009-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (build_cloog_prog): Unify scattering
