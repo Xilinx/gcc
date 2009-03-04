@@ -4756,6 +4756,9 @@ coerce_template_template_parms (tree parm_parms,
     {
       parm = TREE_VALUE (TREE_VEC_ELT (parm_parms, nparms - 1));
       
+      if (parm == error_mark_node)
+	return 0;
+
       switch (TREE_CODE (parm))
         {
         case TEMPLATE_DECL:
@@ -13204,9 +13207,18 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 
       FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (arg), i, elt)
 	{
+	  int elt_strict = strict;
 	  if (!BRACE_ENCLOSED_INITIALIZER_P (elt))
-	    elt = TREE_TYPE (elt);
-	  if (unify (tparms, targs, elttype, elt, UNIFY_ALLOW_NONE))
+	    {
+	      tree type = TREE_TYPE (elt);
+	      /* It should only be possible to get here for a call.  */
+	      gcc_assert (elt_strict & UNIFY_ALLOW_OUTER_LEVEL);
+	      elt_strict |= maybe_adjust_types_for_deduction
+		(DEDUCE_CALL, &elttype, &type, elt);
+	      elt = type;
+	    }
+
+	  if (unify (tparms, targs, elttype, elt, elt_strict))
 	    return 1;
 	}
       return 0;
@@ -15283,9 +15295,14 @@ instantiate_decl (tree d, int defer_ok,
   /* In general, we do not instantiate such templates...  */
   if (external_p
       /* ... but we instantiate inline functions so that we can inline
-	 them and ... */
+	 them.  An explicit instantiation declaration prohibits implicit
+	 instantiation of non-inline functions.  With high levels of
+	 optimization, we would normally inline non-inline functions
+	 -- but we're not allowed to do that for "extern template" functions.
+	 Therefore, we check DECL_DECLARED_INLINE_P, rather than
+	 possibly_inlined_p.  And ...  */
       && ! (TREE_CODE (d) == FUNCTION_DECL
-	    && possibly_inlined_p (d))
+	    && DECL_DECLARED_INLINE_P (d))
       /* ... we instantiate static data members whose values are
 	 needed in integral constant expressions.  */
       && ! (TREE_CODE (d) == VAR_DECL

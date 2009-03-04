@@ -1,4 +1,124 @@
-2008-02-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+2009-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39339
+	* gcc.c-torture/execute/pr39339.c: New testcase.
+
+2009-03-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/compile/20090303-1.c,
+	gcc.c-torture/compile/20090303-2.c: New tests.
+
+2009-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/39354
+	* gfortran.dg/gomp/pr39354.f90: New test.
+
+	PR tree-optimization/39343
+	* gcc.dg/pr39343.c: New test.
+
+2009-03-03  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39248
+	* gcc.dg/vect/vect-complex-1.c: Add attribute aligned
+	to the arrays.
+	* gcc.dg/vect/vect-iv-6.c: Don't expect to fail to vectorize
+	on targets without vector misalignment support.
+	* lib/target-supports.exp 
+	(check_effective_target_vect_short_mult): Add 
+	check_effective_target_arm32.
+
+2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/39335
+	* testsuite/gcc.dg/graphite/pr39335_1.c: New.
+	* testsuite/gcc.dg/graphite/pr39335.c: New.
+
+2009-03-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/stackalign/return-4.c: Scan andl/andq instead
+	of andl.
+	* gcc.target/i386/stackalign/return-5.c: Likewise.
+	* gcc.target/i386/stackalign/return-6.c: Likewise.
+
+2009-03-02  Richard Guenther  <rguenther@suse.de>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39318
+	* gfortran.dg/vect/pr39318.f90: New test.
+
+2009-03-01  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/debug/dwarf2/ipa-cp1.c: New testcase.
+
+2009-03-01  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* gcc.dg/debug/dwarf2/inline1.c: New testcase.
+
+2009-03-01  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack12.adb: New test.
+
+2009-02-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/37789
+	* other/pr37789.C: New.
+
+2009-02-26  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/39295
+	* gfortran.dg/interface_25.f90: New test.
+	* gfortran.dg/interface_26.f90: New test.
+
+2009-02-26  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/39292
+	* gfortran.dg/initialization_22.f90: New test.
+
+2009-02-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/39241
+	* gcc.dg/torture/pr39241.c: New.
+
+2009-02-25  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimizations/39259
+	* g++.dg/torture/pr39259.C: New testcase.
+
+2009-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR c++/39242
+	* g++.dg/template/instantiate10.C: New testcase.
+
+2009-02-24  Richard Guenther  <rguenther@suse.de>
+	    Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/39233
+	* gcc.c-torture/execute/pr39233.c: New testcase.
+
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/39260
+	* gcc.dg/graphite/pr39260.c: New.
+
+2009-02-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/init/static-init1.C: Replace int with __PTRDIFF_TYPE__.
+
+2009-02-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/36411
+	* g++.dg/template/void14.C: New.
+
+2009-02-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38880
+	* g++.dg/init/const7.C: Remove XFAIL.
+	* g++.dg/init/static-init1.C: New test.
+
+	* g++.dg/cpp0x/initlist14.C: New test.
+
+2009-02-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/38914
 	* bound_simplification_2.f90:  New test case.
@@ -8,7 +128,7 @@
 
 	* gcc.dg/cpp/include4.c: New test.
 
-2008-02-21  Uros Bizjak  <ubizjak@gmail.com>
+2009-02-21  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/39256
 	* gcc.target/i386/abi-2.c: New.
@@ -729,7 +849,7 @@
 
 	* gcc.target/arm/neon-cond-1.c: New test.
 
-2008-01-23  Paolo Bonzini  <bonzini@gnu.org>
+2009-01-23  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR tree-optimization/38932
 	* gcc.dg/pr38932.c: New.
@@ -819,7 +939,7 @@
 	PR target/38902
 	* gcc.dg/pr38902.c: New.
 
-2008-01-20  Paolo Bonzini  <bonzini@gnu.org>
+2009-01-20  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR target/38868
 	* gfortran.dg/pr38868.f: New testcase.
@@ -936,7 +1056,7 @@
 	PR c++/37646
 	* g++.dg/conversion/memfn2.C: New test.
 
-2008-01-15  Steve Ellcey  <sje@cup.hp.com>
+2009-01-15  Steve Ellcey  <sje@cup.hp.com>
 
 	PR c++/38357
 	* g++.dg/template/crash87.C: New test.

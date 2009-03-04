@@ -3232,6 +3232,7 @@ display_help (void)
   fputs (_("                           Display specific types of command line options\n"), stdout);
   if (! verbose_flag)
     fputs (_("  (Use '-v --help' to display command line options of sub-processes)\n"), stdout);
+  fputs (_("  --version                Display compiler version information\n"), stdout);
   fputs (_("  -dumpspecs               Display all of the built in spec strings\n"), stdout);
   fputs (_("  -dumpversion             Display the version of the compiler\n"), stdout);
   fputs (_("  -dumpmachine             Display the compiler's target processor\n"), stdout);
@@ -6601,7 +6602,10 @@ main (int argc, char **argv)
 
       /* We do not exit here.  Instead we have created a fake input file
 	 called 'help-dummy' which needs to be compiled, and we pass this
-	 on the various sub-processes, along with the --help switch.  */
+	 on the various sub-processes, along with the --help switch.
+	 Ensure their output appears after ours.  */
+      fputc ('\n', stdout);
+      fflush (stdout);
     }
 
   if (verbose_flag)

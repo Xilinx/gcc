@@ -1,4 +1,352 @@
-2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+2009-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39339
+	* tree-sra.c (try_instantiate_multiple_fields): Make it
+	no longer ICE on the above.
+
+2009-03-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* emit-rtl.c (adjust_address_1): Reduce offset to a signed value
+	that fits within Pmode.
+
+2009-03-03  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/10109
+	* tm.texi (LIBCALL_VALUE): Update description.
+
+2009-03-03  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/34443
+	* doc/extend.texi (section): Update description.
+
+2009-03-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/39345
+	* tree-inline.c (remapped_type): New.
+	(can_be_nonlocal): Call remapped_type instead of remap_type.
+
+2009-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/39354
+	* gimplify.c (goa_stabilize_expr): Handle tcc_comparison,
+	TRUTH_ANDIF_EXPR and TRUTH_ORIF_EXPR.
+
+2009-03-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39272
+	* tree.c (tree_nonartificial_location): New function.
+	* tree.h (tree_nonartificial_location): Declare.
+	* builtins.c (expand_builtin_memory_chk): Provide location
+	of the call location for artificial function pieces.
+	(maybe_emit_chk_warning): Likewise.
+	(maybe_emit_sprintf_chk_warning): Likewise.
+	(maybe_emit_free_warning): Likewise.
+	* expr.c (expand_expr_real_1): Likewise.
+
+2009-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39343
+	* tree-ssa-ccp.c (maybe_fold_offset_to_address): Don't check if
+	COMPONENT_REF t has ARRAY_TYPE.
+
+2009-03-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/39335
+	* tree-parloops.c (canonicalize_loop_ivs): Call fold_convert
+	when the type precision of the induction variable should be
+	larger than the type precision of nit.
+	(gen_parallel_loop): Update use of canonicalize_loop_ivs.
+	* graphite.c (graphite_loop_normal_form): Same.
+	* tree-flow.h (canonicalize_loop_ivs): Update declaration.
+
+2009-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (ST?_REG, MM?_REG): New constants.
+	(*call_1_rex64_ms_sysv): Use named constants instead of magic
+	numbers to describe clobbbered registers.
+	(*call_value_0_rex64_ms_sysv): Ditto.
+	* config/i386/mmx.md (emms): Ditto.
+	(femms): Ditto.
+
+2009-03-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_mdebug_abi_name): Fix the handling
+	of ABI_64.
+
+2009-03-02  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (TARGET_SECTION_TYPE_FLAGS): Define.
+	(spu_section_type_flags): New function.
+
+2009-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (CONDITIONAL_REGISTER_USAGE): Do not copy
+	reg_class_contents of FLOAT_REGS into a temporary.
+
+2009-03-02  Richard Guenther  <rguenther@suse.de>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39318
+	* tree-vect-transform.c (vectorizable_call): Transfer the EH region
+	information to the vectorized statement.
+
+2009-03-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (CONDITIONAL_REGISTER_USAGE): Do not shadow "i"
+	variable.  Use defined names instead of magic constants for REX SSE
+	registers.
+
+2009-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39331
+	* omp-low.c (lower_send_shared_vars): Do not receive new
+	values for the reference of DECL_BY_REFERENCE parms or results.
+
+2009-03-01  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* tree.h (BLOCK_NONLOCALIZED_VARS, BLOCK_NUM_NONLOCALIZED_VARS,
+	BLOCK_NONLOCALIZED_VAR): New macros.
+	(tree_block): Add nonlocalized_vars.
+	* dwarf2out.c (gen_formal_parameter_die, gen_variable_die,
+	gen_decl_die): Add origin argument.  Allow generation of die with
+	origin at hand only.
+	(gen_member_die, gen_type_die_with_usage, force_decl_die,
+	declare_in_namespace, gen_namescpace_die, dwarf2out_decl): Update use
+	of gen_*.
+	(gen_block_die): Fix checking for unused blocks.
+	(process_scope_var): Break out from .... ; work with origins only.
+	(decls_for_scope) ... here; process nonlocalized list.
+	(dwarf2out_ignore_block): Look for nonlocalized vars.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Look for nonlocalized
+	vars.
+	(dump_scope_block): Dump them.
+	* tree-inline.c (remap_decls): Handle nonlocalized vars.
+	(remap_block): Likewise.
+	(can_be_nonlocal): New predicate.
+	(copy_bind_expr, copy_gimple_bind): Update use of remap_block.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* optc-gen.awk: No need to duplicate option flags twice.
+	Reuse help texts for duplicate options which do not have
+	any.
+
+	* gcc.c (display_help): Document --version.
+
+	* gcc.c (main): If print_help_list and verbose_flag, ensure
+	driver output comes before subprocess output.
+
+	* optc-gen.awk: Assign all remaining fields to help string,
+	space-separated, for multi-line help in *.opt.
+
+	* doc/invoke.texi (Warning Options): -Wsync-nand is C/C++ only.
+	-Wno-pedantic-ms-format is for MinGW targets only.
+
+	* doc/options.texi (Option file format): Fix bad indentation,
+	restoring dropped sentence.
+
+2009-02-28  Jan Hubicka  <jh@suse.cz>
+
+	* tree-inline.c (tree_function_versioning): Output debug info.
+
+2009-02-28  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* tree-inline.c (setup_one_parameter): Do not copy propagate
+	arguments when not optimizing.
+
+2009-02-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39327
+	* config/i386/sse.md (avx_addsubv8sf3): Correct item bits.
+	(avx_addsubv4df3): Likewise.
+	(*avx_addsubv4sf3): Likewise.
+	(sse3_addsubv4sf3): Likewise.
+	(*avx_addsubv2df3): Likewise.
+	(sse3_addsubv2df3): Likewise.
+	(avx_unpckhps256): Correct item selectors.
+	(avx_unpcklps256): Likewise.
+	(avx_unpckhpd256): Likewise.
+	(avx_unpcklpd256): Likewise.
+
+2009-02-28  Jan Hubicka  <jh@suse.cz>
+
+	* tree-inline.c (expand_call_inline): Avoid duplicate declarations of
+	static vars.
+	(copy_arguments_for_versioning): If var is declared don't declare it.
+	(tree_function_versioning): First setup substitutions and then copy
+	args.
+
+2009-02-27  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* cgraph.h (varpool_output_debug_info): Remove.
+	* cgraphunit.c (varpool_output_debug_info): Remove.
+	* dwarf2out.c (deferred_locations_struct): New struct
+	(deferred_locations): New type.
+	(deferred_locations_list): New static var.
+	(deffer_location): New function.
+	(gen_variable_die): Use it.
+	(decls_for_scope): Output info on local static vars.
+	(dwarf2out_finish): Process deferred locations.
+	* varpool.c (varpool_output_debug_info): Remove.
+
+2009-02-27  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* tree.h (TREE_PROTECTED): Fix comment.
+	(BLOCK_HANDLER_BLOCK): Remove.
+	(struct tree_block): Remove handler_block add body_block.
+	(inlined_function_outer_scope_p): New.
+	(is_body_block): Remove.
+	* dbxout.c (dbxout_block): Remove BLOCK_HANDLER_BLOCK.
+	* dwarf2out.c (is_inlined_entry_point): Remove.
+	(add_high_low_attributes): Use inlined_function_outer_scope_p.
+	(gen_block_die): Use is_inlined_entry_point check.  Remove body block
+	code.
+	* langhooks.h (struct lang_hooks): Remove no_bodu_blocks.
+	* gimplify.c (gimplify_expr): Gimplify body blocks.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Allow removing wrapper
+	block with multiple subblocks.
+	(dump_scope_block): Prettier output; dump more flags and info.
+	(dump_scope_blocks): New.
+	(remove_unused_locals): Use dump_scope_blocks.
+	* tree-flow.h (dump_scope_blocks): Declare.
+	* tree-cfg.c (execute_build_cfg): Dump scope blocks.
+	* stmt.c (is_body_block): Remove.
+	* tree-inline.c (remap_block): Copy BODY_BLOCK info.
+	* langhooks-def.h (LANG_HOOKS_NO_BODY_BLOCKS): Remove.
+
+2009-02-27  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/39308
+	* graphite.c (graphite_loop_normal_form): Do not call 
+	number_of_iterations_exit from a gcc_assert.
+
+2009-02-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc/config/s390/s390.c: (s390_swap_cmp): Look for conditional
+	jumps if COND is NULL.
+	(find_cond_jump): New function.
+	(s390_z10_optimize_cmp): Handling for reg-reg compares added.
+	* gcc/config/s390/s390.md: Remove z10_cobra attribute value.
+
+2009-02-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.h (alpha_expand_mov): Return false if
+	force_const_mem returns NULL_RTX.
+
+2009-02-26  Jan Hubicka  <jh@suse.cz>
+
+	PR debug/39267
+	* cgraph.h (varpool_output_debug_info): Remove.
+	* cgraphunit.c (varpool_output_debug_info): Remove.
+	* dwarf2out.c (deferred_locations_struct): New struct
+	(deferred_locations): New type.
+	(deferred_locations_list): New static var.
+	(deffer_location): New function.
+	(gen_variable_die): Use it.
+	(decls_for_scope): Output info on local static vars.
+	(dwarf2out_finish): Process deferred locations.
+	* varpool.c (varpool_output_debug_info): Remove.
+
+2009-02-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/39241
+	* jump.c (rtx_renumbered_equal_p): Remove 2 superfluous calls
+	to subreg_offset_representable_p.
+
+2009-02-25  Paolo Bonzini  <bonzini@gnu.org>
+
+	* regmove.c (regmove_optimize): Conform to struct rtl_opt_pass
+	execute function prototype.  Get f and nregs from max_reg_num
+	and get_insns.  Remove the first backward pass as it's dead,
+	guard the forward pass by flag_expensive_optimizations.
+	(rest_of_handle_regmove): Delete.
+	(pass_regmove): Replace it with regmove_optimize.
+
+2009-02-25  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/39259
+	* tree-inline.c (initialize_cfun): Remove asserts for calls_setjmp and
+	alls_alloca function flags.
+	(copy_bb): Set calls_setjmp and alls_alloca function flags if such
+	calls are detected.
+
+2009-02-25  Paolo Bonzini  <bonzini@gnu.org>
+
+	* regmove.c (discover_flags_reg, flags_set_1, mark_flags_life_zones,
+	flags_set_1_rtx, flags_set_1_set): Delete.
+	(regmove_optimize): Do not call mark_flags_life_zones.
+
+2009-02-24  Julian Brown  <julian@codesourcery.com>
+
+	PR target/35965
+	* config/arm/arm.c (require_pic_register): Only set
+	cfun->machine->pic_reg once per function.
+
+2009-02-24  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (Link Options): Document an easier way to pass
+	options that take arguments to the GNU linker using -Xlinker and -Wl.
+
+2009-02-24  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/33785
+	* doc/tm.texi (TARGET_C99_FUNCTIONS): Fix description.
+
+2009-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR debug/39285
+	* dwarf2out.c (gen_enumeration_type_die): Handle CONST_DECLs.
+
+2009-02-24  Richard Guenther  <rguenther@suse.de>
+	    Zdenek Dvorak  <ook@ucw.cz>
+
+	PR tree-optimization/39233
+	* tree-ssa-loop-ivopts.c (add_candidate_1): Do not except pointers
+	from converting them to a generic type.
+
+2009-02-23  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/39260
+	* graphite.c (harmful_stmt_in_bb): Stop a SCoP when the basic block
+	contains a condition with a real type.
+	(build_scop_conditions_1): Conditions are always last_stmt of a bb.
+
+2009-02-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38880
+	* varasm.c (initializer_constant_valid_p) [PLUS_EXPR]: Check
+	narrowing_initializer_constant_valid_p.
+	(narrowing_initializer_constant_valid_p): Don't return 
+	null_pointer_node for adding a pointer to itself.
+
+2009-02-23  Jan Hubicka  <jh@suse.cz>
+
+	PR c/12245
+	* ggc.h (htab_create_ggc): Use ggc_free to free hashtable when
+	resizing.
+
+2009-02-23  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/37709
+	* tree.c (block_ultimate_origin): Move here from dwarf2out.
+	* tree.h (block_ultimate_origin): Declare.
+	* dwarf2out.c (block_ultimate_origin): Move to tree.c
+	* tree-ssa-live.c (remove_unused_scope_block_p):
+	Eliminate blocks containig no instructions nor live variables nor
+	nested blocks.
+	(dump_scope_block): New function.
+	(remove_unused_locals): Enable removal of dead blocks by default;
+	enable dumping at TDF_DETAILS.
+
+2009-02-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (classify_argument): Don't allow COImode
 	and OImode.
@@ -8,7 +356,7 @@
 	(return_in_memory_32): Likewise.
 	(function_arg_64): Remove OImode comment.
 
-2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+2009-02-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/39261
 	* config/i386/i386.c (ix86_expand_vector_init_one_nonzero): Use
@@ -25,7 +373,7 @@
 	* loop-iv.c: Revert last change.
 	* emit-rtl.c: Likewise.
 
-2008-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+2009-02-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/39256
 	* config/i386/i386.c (type_natural_mode): Remove an extra
@@ -341,7 +689,7 @@
 	(function_arg_32): Don't warn ABX ABI change here.
 	(function_arg_64): Likewise.
 
-2008-02-13  Bernd Schmidt  <bernd.schmidt@analog.com>
+2009-02-13  Bernd Schmidt  <bernd.schmidt@analog.com>
 
 	* loop-iv.c (implies_p): In the final case, test that operands 0
 	of the two comparisons match.
@@ -901,12 +1249,12 @@
 	recompute_dominator to compute the immediate dominator of the
 	basic block just after the loop.
 
-2008-01-29  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
+2009-01-29  Rainer Orth  <ro@TechFak.Uni-Bielefeld.DE>
 
 	* config/i386/sol2-10.h [!HAVE_AS_IX86_DIFF_SECT_DELTA]
 	(ASM_OUTPUT_DWARF_PCREL): Define.
 
-2008-01-29  Vladimir Makarov  <vmakarov@redhat.com>
+2009-01-29  Vladimir Makarov  <vmakarov@redhat.com>
 
 	* doc/tm.texi (TARGET_IRA_COVER_CLASSES): Modify description.
 	* doc/passes.texi: Remove entries about regclass, local-alloc, and
@@ -1247,7 +1595,7 @@
 	void *' warning from -Wc++-compat.
 	* Makefile.in (dominance.o-warn): Remove.
 
-2008-01-23  Paolo Bonzini  <bonzini@gnu.org>
+2009-01-23  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR tree-optimization/38932
 	* fold-const.c (fold_unary_ignore_overflow): New.
@@ -1391,7 +1739,7 @@
 	* graphite.c (stmt_simple_for_scop_p): Also handle cases when
 	gimple_call_lhs is NULL.
 
-2008-01-20  Paolo Bonzini  <bonzini@gnu.org>
+2009-01-20  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR target/38868
 	* emit-rtl.c (adjust_address_1): Make sure memref is never
@@ -1774,7 +2122,7 @@
 	zero guard even if align_bytes != 0 and count is smaller than
 	size_needed.
 
-2008-01-09  Vladimir Makarov  <vmakarov@redhat.com>
+2009-01-09  Vladimir Makarov  <vmakarov@redhat.com>
 
 	PR rtl-optimization/38495
 	* ira-emit.c (print_move_list, ira_debug_move_list): New functions.

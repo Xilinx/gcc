@@ -66,7 +66,7 @@ m32c port		DJ Delorie		dj@redhat.com
 m32r port		Nick Clifton		nickc@redhat.com
 m68hc11 port		Stephane Carrez		stcarrez@nerim.fr
 m68k port (?)		Jeff Law		law@redhat.com
-m68k port		Andreas Schwab		schwab@suse.de
+m68k port		Andreas Schwab		schwab@linux-m68k.org
 m68k-motorola-sysv port	Philippe De Muyter	phdm@macqel.be
 mcore port		Nick Clifton		nickc@redhat.com
 mips port		Eric Christopher	echristo@apple.com
@@ -311,6 +311,7 @@ Ian Dall					ian@beware.dropbear.id.au
 David Daney					david.daney@caviumnetworks.com
 Bud Davis					jmdavis@link.com
 Benoit Dupont de Dinechin			benoit.dupont-de-dinechin@st.com
+Michael Eager					eager@eagercon.com
 Mohan Embar					gnustuff@thisiscool.com
 Revital Eres					eres@il.ibm.com
 Marc Espie					espie@cvs.openbsd.org

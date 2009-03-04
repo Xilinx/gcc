@@ -859,7 +859,7 @@ enum target_cpu_default
     1,    1,   1,   1,    1,					\
 /*xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7*/			\
      0,   0,   0,   0,   0,   0,   0,   0,			\
-/*mmx0,mmx1,mmx2,mmx3,mmx4,mmx5,mmx6,mmx7*/			\
+/* mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7*/			\
      0,   0,   0,   0,   0,   0,   0,   0,			\
 /*  r8,  r9, r10, r11, r12, r13, r14, r15*/			\
      2,   2,   2,   2,   2,   2,   2,   2,			\
@@ -887,7 +887,7 @@ enum target_cpu_default
     1,   1,    1,   1,    1,					\
 /*xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7*/			\
      1,   1,   1,   1,   1,   1,   1,   1,			\
-/*mmx0,mmx1,mmx2,mmx3,mmx4,mmx5,mmx6,mmx7*/			\
+/* mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7*/			\
      1,   1,   1,   1,   1,   1,   1,   1,			\
 /*  r8,  r9, r10, r11, r12, r13, r14, r15*/			\
      1,   1,   1,   1,   2,   2,   2,   2,			\
@@ -933,47 +933,32 @@ do {									\
       }									\
     j = PIC_OFFSET_TABLE_REGNUM;					\
     if (j != INVALID_REGNUM)						\
-      {									\
-	fixed_regs[j] = 1;						\
-	call_used_regs[j] = 1;						\
-      }									\
+      fixed_regs[j] = call_used_regs[j] = 1;				\
     if (TARGET_64BIT							\
-        && ((cfun && cfun->machine->call_abi == MS_ABI)			\
-            || (!cfun && DEFAULT_ABI == MS_ABI)))			\
+	&& ((cfun && cfun->machine->call_abi == MS_ABI)			\
+	    || (!cfun && DEFAULT_ABI == MS_ABI)))			\
       {									\
-        int i;								\
-        call_used_regs[4 /*RSI*/] = 0;                                  \
-        call_used_regs[5 /*RDI*/] = 0;                                  \
-	for (i = 0; i < 8; i++)						\
-	  call_used_regs[45+i] = 0;					\
-	call_used_regs[27] = call_used_regs[28] = 0;			\
+	call_used_regs[4 /*RSI*/] = 0;					\
+	call_used_regs[5 /*RDI*/] = 0;					\
+	call_used_regs[27 /*XMM6*/] = 0;				\
+	call_used_regs[28 /*XMM7*/] = 0;				\
+	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
+	  call_used_regs[i] = 0;					\
       }									\
     if (! TARGET_MMX)							\
-      {									\
-	int i;								\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (reg_class_contents[(int)MMX_REGS], i))	\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)MMX_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
     if (! TARGET_SSE)							\
-      {									\
-	int i;								\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (reg_class_contents[(int)SSE_REGS], i))	\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
-    if (! TARGET_80387 && ! TARGET_FLOAT_RETURNS_IN_80387)		\
-      {									\
-	int i;								\
-	HARD_REG_SET x;							\
-        COPY_HARD_REG_SET (x, reg_class_contents[(int)FLOAT_REGS]);	\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (x, i)) 				\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)SSE_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
+    if (! (TARGET_80387 || TARGET_FLOAT_RETURNS_IN_80387))		\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)FLOAT_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
     if (! TARGET_64BIT)							\
       {									\
-	int i;								\
 	for (i = FIRST_REX_INT_REG; i <= LAST_REX_INT_REG; i++)		\
 	  reg_names[i] = "";						\
 	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
