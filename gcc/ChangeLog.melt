@@ -1,3 +1,7 @@
+2009-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* configure.ac: added notice when MELT branch configured without
+	enabling basilysmelt.
+	* configure: regenerated.
 2009-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: compile-probe.o is dirty so -Wno-error.
 2009-03-03  Basile Starynkevitch  <basile@starynkevitch.net>

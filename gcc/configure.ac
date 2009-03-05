@@ -4295,4 +4295,13 @@ do
 done
 ], 
 [subdirs='$subdirs'])
+
+## Basile adds a notice if the MELT branch is configured without
+## --enable-basilysmelt
+if test "$enabled_basilysmelt" != "yes" ; then
+   AC_MSG_NOTICE(
+[GCC MELT branch is configured WITHOUT enabling basilysmelt. 
+ Are you sure to want that?])
+fi
+
 AC_OUTPUT

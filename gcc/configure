@@ -25449,6 +25449,16 @@ fi
 
           ac_config_commands="$ac_config_commands default"
 
+
+## Basile adds a notice if the MELT branch is configured without
+## --enable-basilysmelt
+if test "$enabled_basilysmelt" != "yes" ; then
+   { echo "$as_me:$LINENO: GCC MELT branch is configured WITHOUT enabling basilysmelt.
+ Are you sure to want that?" >&5
+echo "$as_me: GCC MELT branch is configured WITHOUT enabling basilysmelt.
+ Are you sure to want that?" >&6;}
+fi
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
