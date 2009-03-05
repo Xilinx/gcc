@@ -1,3 +1,9 @@
+2009-03-05  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* Makefile.in (graphite.o, graphite-sese-to-poly.o,
+	graphite-clast-to-gimple.o,  graphite-data-ref.o,
+	graphite-scop-detection.o, graphite-poly.o): Add graphite-poly.h.
+
 2009-03-04  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* testsuite/gcc.dg/graphite/pr37485.c: Remove -floop-block
@@ -117,7 +123,7 @@
 
 	PR middle-end/39308
 	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Do not call
-        number_of_iterations_exit from a gcc_assert.
+	number_of_iterations_exit from a gcc_assert.
 
 2009-02-25  Sebastian Pop  <sebastian.pop@amd.com>
 	    Jan Sjodin  <jan.sjodin@amd.com>
