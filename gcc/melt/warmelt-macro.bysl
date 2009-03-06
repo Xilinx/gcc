@@ -31,9 +31,6 @@
 
 
 
-(assert_msg "check class_symbol" (is_a class_symbol class_class))
-(debug_msg class_symbol "start of warmelt-macro our Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "start of warmelt-macro predefined Class_Symbol")
 
 ;;****************************************************************
 

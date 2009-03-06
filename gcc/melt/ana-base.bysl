@@ -2,7 +2,7 @@
 ;; file ana-base.bysl
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
-    Copyright 2008 Free Software Foundation, Inc.
+    Copyright 2008, 2009 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -266,9 +266,9 @@
    eachcgrfun "_nd = " eachcgrfun "_nd->next) {\n"
    "tree " eachcgrfun "_dcl = 0;\n"
    "gimple_seq " eachcgrfun "_bdy = 0;\n"
-   "if (flag_basilys_debug) "
-   "{ debugeprintf(\"" eachcgrfun " nd=%p\", (void*)"  eachcgrfun "_nd);"
-   "debug_cgraph_node(" eachcgrfun "_nd);};\n"
+  ; "if (flag_basilys_debug) "
+  ; "{ debugeprintf(\"" eachcgrfun " nd=%p\", (void*)"  eachcgrfun "_nd);"
+  ; "debug_cgraph_node(" eachcgrfun "_nd);};\n"
    eachcgrfun "_dcl = " eachcgrfun "_nd->decl;\n"
    "if (!" eachcgrfun "_dcl) continue;\n"
    "if (TREE_CODE(" eachcgrfun "_dcl) != FUNCTION_DECL) continue;\n"
@@ -297,9 +297,9 @@
    "tree " eachcgrblo "_dcl = 0;\n"
    "basic_block " eachcgrblo "_bb = 0;\n"
    "struct function *" eachcgrblo "_fun = 0;\n"
-   "if (flag_basilys_debug) "
-   "{ debugeprintf(\"" eachcgrblo " nd=%p\", (void*)"  eachcgrblo "_nd);"
-   "debug_cgraph_node(" eachcgrblo "_nd);};\n"
+ ;  "if (flag_basilys_debug) "
+ ;  "{ debugeprintf(\"" eachcgrblo " nd=%p\", (void*)"  eachcgrblo "_nd);"
+ ;  "debug_cgraph_node(" eachcgrblo "_nd);};\n"
    eachcgrblo "_dcl = " eachcgrblo "_nd->decl;\n"
    "if (!" eachcgrblo "_dcl) continue;\n"
    "if (TREE_CODE(" eachcgrblo "_dcl) != FUNCTION_DECL) continue;\n"
@@ -366,49 +366,49 @@
 
 ;; apply a function to every cfun -its decl & bodyseq
 (defun do_each_cfun_body (f)
-  (debug_msg f "do_each_cfun_body f")
+  ;(debug_msg f "do_each_cfun_body f")
   (each_cgraph_fun_body
    () 
    (:tree decl :gimpleseq bdy)
-   (debugtree "do_each_cfun_body decl" decl)
-   (debuggimpleseq "do_each_cfun_body bdy" bdy)
+   ;(debugtree "do_each_cfun_body decl" decl)
+   ;(debuggimpleseq "do_each_cfun_body bdy" bdy)
    (let ( (dclval (make_tree discr_tree decl)) 
 	  (bdyval (make_gimpleseq discr_gimpleseq bdy))
 	  )
-     (debug_msg dclval "do_each_cfun_body inside dclval")
-     (debug_msg bdyval "do_each_cfun_body inside bdyval")
+     ;(debug_msg dclval "do_each_cfun_body inside dclval")
+     ;(debug_msg bdyval "do_each_cfun_body inside bdyval")
      (f dclval bdyval)
      )))
 
 
 ;; apply a function to every cfun -its decl & basicblock
 (defun do_each_cfun_entrybb (f)
-  (debug_msg f "do_each_cfun_bb f")
+  ;(debug_msg f "do_each_cfun_bb f")
   (each_cgraph_fun_entryblock
    () 
    (:tree decl :basicblock bb)
-   (debugtree "do_each_cfun_entrybb decl" decl)
-   (debugbasicblock "do_each_cfun_entrybb bdy" bb)
+   ;(debugtree "do_each_cfun_entrybb decl" decl)
+   ;(debugbasicblock "do_each_cfun_entrybb bdy" bb)
    (let ( (dclval (make_tree discr_tree decl)) 
 	  (bbval (make_basicblock discr_basicblock bb))
 	  )
-     (debug_msg dclval "do_each_cfun_entrybb inside dclval")
-     (debug_msg bbval "do_each_cfun_entrybb inside bbval")
+     ;(debug_msg dclval "do_each_cfun_entrybb inside dclval")
+     ;(debug_msg bbval "do_each_cfun_entrybb inside bbval")
      (f dclval bbval)
      )))
 
 ;;; apply a function to eevery basicblock in the current cfun
 (defun do_each_bb_cfun (f)
-  (debug_msg f "do_each_bb_cfun_start")
+  ;(debug_msg f "do_each_bb_cfun_start")
   (each_bb_cfun 
    ()
    (:basicblock cfbb :tree cfdecl)
    (let ( (cfbbval (make_basicblock discr_basicblock cfbb)) )
-     (debug_msg cfbbval "do_each_bb_cfun cfbbval before")
-     (debugtree "do_each_bb_cfun cfdecl" cfdecl)
+     ;(debug_msg cfbbval "do_each_bb_cfun cfbbval before")
+     ;(debugtree "do_each_bb_cfun cfdecl" cfdecl)
      (f cfbbval cfdecl)
      ))
-  (debug_msg f "do_each_bb_cfun end")
+  ;(debug_msg f "do_each_bb_cfun end")
 )
 
 
@@ -639,15 +639,93 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; our findstdout command -fbasilys=findstdout
-(defun findstdout_command (dispatcher arg secarg moduldata)
-  (debug_msg () "start of findstdout command")
-  (debug_msg () "end of findstdout command")
-  (return dispatcher)			;return non-nil to continue compilation
+;;; small analysis
+
+(defclass class_smallcfun
+  :super class_named
+  :fields (scfun_decl
+	   scfun_entrybb
+	   ))
+
+(defclass class_smallanalysis 
+  :super class_proped
+  :fields (sman_cfuns
+	   ))
+
+;;; our small analysis gate for latessa
+(defun smallana_latessagate (latessapass)
+  (return latessapass)
 )
 
-(install_initial_command 
- (stringconst2val discr_string "findstdout") findstdout_command)
+
+(defun smallana_cfun_entrybb (sman declv entbbv)
+  (debug_msg declv "smallana_cfun_entrybb declv")
+  (debug_msg entbbv "smallana_cfun_entrybb entbbv")
+  (let ( (scf (instance class_smallcfun
+			:scfun_decl declv
+			:scfun_entrybb entbbv)) 
+	 )
+    (list_append (get_field :sman_cfuns sman) scf)
+    (debug_msg sman "smallana_cfun_entrybb sman")
+    ))
+
+;;; apparently only the entrybb loop matter in the latessa pass...
+(defun smallana_latessaexec (latessapass)
+  (debug_msg latessapass "smallana_latessaexec start")
+  (let ( (cfuns (make_list discr_list))
+	 (sman (instance class_smallanalysis
+			 :sman_cfuns cfuns)) 
+	 )
+    (debug_msg sman "smallana_latessaexec sman at start")
+    ;; don't bother do_each_cfun_body here.. it is not done...
+    (do_each_cfun_entrybb 
+     (lambda (declv bbv)
+       (debug_msg declv "smallana_latessaexec eachcfunentrybb declv")
+       (debug_msg bbv "smallana_latessaexec eachcfunentrybb bbv")
+       (smallana_cfun_entrybb sman declv bbv)))
+#|
+    (debug_msg latessapass "smallana_latessaexec after eachentrybb before eachbbcfun")
+    (do_each_bb_cfun
+     (lambda (cfbbv :tree cfdecl)
+       (debug_msg cfbbv "smallana_latessaexec eachbbcfun cfbbv")
+       (let ( (:gimpleseq bbseq
+			  (basicblock_gimpleseq cfbbv))
+	      (:gimpleseq bbphis (basicblock_phinodes cfbbv))
+	      )
+	 (debuggimpleseq "smallana_latessaexec bbseq" bbseq)
+	 (do_each_gimpleseq
+	  (lambda (gimv)
+	    (debug_msg gimv "smallana_latessaexec gimv"))
+	  bbseq
+	  )
+	 (debuggimpleseq "smallana_latessaexec bbphis" bbphis)
+	 (do_each_gimpleseq
+	  (lambda (gphiv)
+	    (debug_msg gphiv "smallana_latessaexec gimv"))
+	  bbphis
+	  )
+	 (do_eachgimple_in_basicblock
+	  (lambda (gbbv)
+	    (debug_msg gbbv "smallana_latessaexec gbbv"))
+	  (basicblock_content cfbbv))
+	 )))
+|#
+    (debug_msg latessapass "smallana_latessaexec end")
+    ))
+
+;;; our small analysis command -fbasilys=smallana
+(defun smallana_command (dispatcher arg secarg moduldata)
+  ;; fill the latessa pass
+  (put_fields basilys_latessa_gccpass
+  :gccpass_gate smallana_latessagate
+  :gccpass_exec smallana_latessaexec)
+  (debug_msg basilys_latessa_gccpass "smallana sets basilys_latessa_gccpass")
+  (return dispatcher)			;return non-nil to continue compilation
+  )
+
+(initial_command_install smallana_command "smallana")
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
@@ -670,5 +748,7 @@
 
 (export_class
  class_analysis_state
+ class_smallcfun
+ class_smallanalysis
 )
 ;; eof ana-base.bysl

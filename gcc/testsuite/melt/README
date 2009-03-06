@@ -2,6 +2,7 @@ This directory gcc/testsuite/melt/ contains various small MELT tests
 
 File ending with *.bysl or *.melt are MELT source files
 
+File ending with *.c are C source files
 -- 
 Basile Starynkevitch <basile@starynkevitch.net> 
 december 2008
