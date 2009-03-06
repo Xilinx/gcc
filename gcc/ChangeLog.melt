@@ -1,3 +1,5 @@
+2009-03-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-matcher.bysl: removed file.
 2009-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* configure.ac: added notice when MELT branch configured without
 	enabling basilysmelt.
