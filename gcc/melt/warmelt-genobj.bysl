@@ -3959,6 +3959,7 @@
 	(list_append donetests curotest)
 	;; dispose some stuff
 	(let ( (disposablist (make_list discr_list)) )
+	  (debug_msg curotest "compilobj_nrep_match disposing curotest")
 	  (cond
 	   ;; if the current test is a success, we can dispose all the
 	   ;; stuff which has already been tested
@@ -3990,6 +3991,10 @@
 	   ;; is an object, we can dispose it if all its stuff has been
 	   ;; tested
 	   ( (is_object curnmatched)
+	     (debug_msg curnmatched
+			"compilobj_nrep_match disposing curnmatched")
+	     (debug_msg omatched
+			"compilobj_nrep_match omatched")
 	     (let ( (stutests (mapobject_get stuffmap curnmatched)) )
 	       (let ( (remstuff curnmatched) )
 		 (foreach_in_list 
@@ -4002,7 +4007,7 @@
 		 (if remstuff 
 		     (list_append disposablist remstuff))
 		 )))) 
-;;; dispose all the stuff in the disposablist
+;;; dispose all the stuff in the disposablist 
 	  (foreach_in_list
 	   (disposablist)
 	   (dispair dispstuff)
@@ -4011,7 +4016,10 @@
 	   (let ( (dispobj (compile_obj dispstuff gcx)) )
 	     (debug_msg dispobj "compilobj_nrep_match dispobj")
 	     (assert_msg "check dispobj" (is_a dispobj class_objlocv))
-	     (dispose_objloc dispobj gcx)
+	     ;; but never dispose omatched itself
+	     (if (!= dispobj omatched)
+		 (dispose_objloc dispobj gcx)
+	       (debug_msg omatched "compilobj_nrep_match dont dispose omatched"))
 	     ))))))
     (list_append obodyl oendlabel)
     (put_fields ombloc 
@@ -4408,9 +4416,6 @@
     (let ( (osucc (compile_obj nsucdo gcx)) 
 	   )
       (debug_msg osucc "compiltst_normtester_success osucc")
-      (warning_plain nloc "not fully implemented compiltst_normtester_success") 
-      (shortbacktrace_dbg "compiltst_normtester_success" 15)
-      (compile_warning "not fully implemented compiltst_normtester_success" ())
       ;; maybe we have to free all the location allocated for this test
       (if (is_list osucc)
 	  (progn

@@ -708,7 +708,6 @@
 	   )
 	 )))
     (debug_msg tester "normpat_instancepat final tester")
-    (compile_warning "not fully unimplemented normpat_instancepat" ())
     )
   (debug_msg recv "normpat_instancepat recv end")
   )
@@ -1257,8 +1256,6 @@
 	 (debug_msg nmatch "normexp_match nmatch")
 	 (debug_msg cbind "normexp_match cbind")
 	 (debug_msg nbindmatx "normexp_match final nbindmatx")
-	 (compile_warning "@@unimplemented normexp_match" ())
-	 (warning_plain sloc "@@ NOT FULLY UNIMPLEMENTED match [normexp_match]")
 	 (return clocc nbindmatx)
 	 )))))
 

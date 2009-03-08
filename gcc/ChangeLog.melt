@@ -1,4 +1,16 @@
 2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[ana-base.bysl has a realistic match inside]
+	* melt/warmelt-normatch.bysl: removed some warnings.
+	* melt/warmelt-genobj.bysl: removed some warnings.  in
+	compilobj_nrep_match never dispose the omatched.
+	* melt/ana-base.bysl: tree_variable_decl seems to work ok.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-2.bysl compiled ok]
 	* melt/warmelt-normatch.bysl: added field nmatch_matched to
 	class_nrep_match and filled it.

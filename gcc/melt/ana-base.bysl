@@ -111,7 +111,7 @@
    )
   treefun				;state symbol
   (; test expansion
-   "((" tr ") && TREECODE(" tr ") == FUNCTION_DECL)"
+   "((" tr ") && TREE_CODE(" tr ") == FUNCTION_DECL)"
    )
   (;; fill expansion
    funame "=NULL; "
@@ -127,7 +127,7 @@
    )
   treevar
   (; test expansion
-   "((" tr ") && TREECODE(" tr ") == VAR_DECL)"
+   "((" tr ") && TREE_CODE(" tr ") == VAR_DECL)"
    )
   (;; fill expansion
    varname "=NULL; "
@@ -699,18 +699,20 @@
 			:scfun_decl declv
 			:scfun_entrybb entbbv)) 
 	 )
-#|
+    ;;; (compile_warning "should have match" ())
     (match 
      (tree_content declv)
      ( ?(tree_function_decl ?funam)
+	(debug_msg declv "smallana_cfun_entrybb decl of function")
        (put_fields scf :named_name (make_stringconst discr_string funam)))
      ( ?(tree_variable_decl ?varnam)
+	(debug_msg declv "smallana_cfun_entrybb decl of variable")
        (put_fields scf :named_name (make_stringconst discr_string varnam))
        )
      ( ?_
+	(debug_msg declv "smallana_cfun_entrybb other decl")
       () )
      )
-|#
     (list_append (get_field :sman_cfuns sman) scf)
     (debug_msg sman "smallana_cfun_entrybb sman")
     ))
