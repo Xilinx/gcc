@@ -1,0 +1,45 @@
+;; -*- lisp -*-
+;; file tmatch-2.bysl
+
+#| run in buildir/gcc
+ ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
+    -fbasilys-compile-script=./built-melt-cc-script \
+    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
+    -fbasilys-arg=..../tmatch-2.bysl -fbasilys-debug
+|#
+
+(defcmatcher even 
+  (:long iev) ; matched
+  (:long ihl) ; output
+  evenstate
+  (; test expansion
+   "/*even*/(((" iev ")&1)==0)"
+   )
+  (;fill expansion
+   ihl "=" iev ">>1;"
+       ))
+
+(defcmatcher odd 
+  (:long iod) ; matched
+  (:long ipre) ; output
+  evenstate
+  (; test expansion
+   "/*odd*/(((" iod ")&1)==1)"
+   )
+  (;fill expansion
+   ipre "=" iod "-1;"
+       ))
+
+(defun tmatch_bb (f x y :long n)
+  (match 
+   n
+   ( ?(even ?h) 
+       (f x h) )
+   ( ?(odd ?p)
+       (f y p) )
+   )
+)
+
+;;; eof tmatch-2.bysl
+  
+  

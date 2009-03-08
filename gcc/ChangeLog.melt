@@ -1,3 +1,7 @@
+2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still buggy on compiling match. Added tmatch-2.bysl]
+	* testsuite/melt/tmatch-2.bysl: new file, failing test...
+	* melt/ana-base.bysl: adding more in snamm analysis.
 2009-03-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmallbuf.c: added new file.
 	* testsuite/melt/README: updated.

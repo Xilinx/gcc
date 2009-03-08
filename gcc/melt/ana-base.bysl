@@ -101,6 +101,40 @@
 (defprimitive tree_content (v) :tree
   "(basilys_tree_content((basilys_ptr_t)(" v ")))")
 
+
+;; pattern (tree_function_decl <funame>) match a tree for a function
+;; declaration
+(defcmatcher tree_function_decl 
+  (:tree tr) 				;matched
+  ;; output 
+  (:cstring funame
+   )
+  treefun				;state symbol
+  (; test expansion
+   "((" tr ") && TREECODE(" tr ") == FUNCTION_DECL)"
+   )
+  (;; fill expansion
+   funame "=NULL; "
+   "if (DECL_NAME(" tr ")) "
+   funame "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); "
+   )
+)
+
+;; similarily pattern (tree_variable_decl <funame>)
+(defcmatcher tree_variable_decl 
+  (:tree tr)
+  (:cstring varname
+   )
+  treevar
+  (; test expansion
+   "((" tr ") && TREECODE(" tr ") == VAR_DECL)"
+   )
+  (;; fill expansion
+   varname "=NULL; "
+   "if (DECL_NAME(" tr ")) "
+   varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
+)
+	   
 (defprimitive is_basicblock (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
 
@@ -665,6 +699,18 @@
 			:scfun_decl declv
 			:scfun_entrybb entbbv)) 
 	 )
+#|
+    (match 
+     (tree_content declv)
+     ( ?(tree_function_decl ?funam)
+       (put_fields scf :named_name (make_stringconst discr_string funam)))
+     ( ?(tree_variable_decl ?varnam)
+       (put_fields scf :named_name (make_stringconst discr_string varnam))
+       )
+     ( ?_
+      () )
+     )
+|#
     (list_append (get_field :sman_cfuns sman) scf)
     (debug_msg sman "smallana_cfun_entrybb sman")
     ))
