@@ -1,4 +1,10 @@
 2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmatch-2.bysl compiled ok]
+	* melt/warmelt-normatch.bysl: added field nmatch_matched to
+	class_nrep_match and filled it.
+	* melt/warmelt-genobj.bysl: don't dispose the nmatched in
+	compilobj_nrep_match.
+2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy on compiling match. Added tmatch-2.bysl]
 	* testsuite/melt/tmatch-2.bysl: new file, failing test...
 	* melt/ana-base.bysl: adding more in snamm analysis.

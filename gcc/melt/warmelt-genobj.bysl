@@ -3862,6 +3862,7 @@
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
 	(ntests (unsafe_get_field :nmatch_tests nmat))
 	(stuffmap (unsafe_get_field :nmatch_stuffmap nmat))
+	(nmatched (get_field :nmatch_matched nmat))
 	(matmap (unsafe_get_field :gncx_matchmap gcx))
 	(matlabel (let ( (:long nbmat (mapobject_count matmap))
 			 (labuf (make_strbuf discr_strbuf))
@@ -3902,9 +3903,14 @@
 		       :tcx_freelist (make_list discr_list)
 		       ))
 	(donetests (make_list discr_list))
+	(omatched 
+	 (progn 
+	   (debug_msg nmatched "compilobj_nrep_match nmatched")
+	   (compile_obj nmatched gcx)))
 	)
     (list_append obodyl ofirstgoto)
     (debug_msg ntests "compilobj_nrep_match ntests")
+    (debug_msg omatched "compilobj_nrep_match omatched")
     (foreach_in_multiple
      (ntests)
      (curotest :long testix)
@@ -3962,6 +3968,7 @@
 	      (lambda (stuff stutests)
 		(debug_msg stuff "compilobj_nrep_match succ stuff")
 		(debug_msg stutests "compilobj_nrep_match succ stutest")
+		(if (!= stuff omatched)
 		(let ( (remstuff stuff) )
 		  (foreach_in_list 
 		   (stutests)
@@ -3972,8 +3979,13 @@
 		   )
 		  (if remstuff 
 		      (list_append disposablist remstuff))
-		  )
-		)))
+		)))))
+	   ;; if the curnmatched is the nmatched, we do nothing
+	   ;; because we cannot dispose it
+	   ( (== curnmatched nmatched)
+	     (debug_msg curnmatched 
+			"compilobj_nrep_match curnmatched == nmatched")
+	     )
 	   ;; if the current test is not a success and the curnmatched
 	   ;; is an object, we can dispose it if all its stuff has been
 	   ;; tested
