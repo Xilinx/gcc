@@ -1,3 +1,50 @@
+2009-03-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39367
+	* init.c (build_new_1): Don't use a VLA type.
+	(build_vec_init): Handle getting a pointer for BASE.
+
+2009-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/37520
+	* cp-tree.h: Check NO_DOT_IN_LABEL before NO_DOLLAR_IN_LABEL
+	when mangling symbols.
+
+2009-03-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/33492
+	* error.c (dump_expr): Don't try to print THROW_EXPRs in full.
+
+2009-03-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	* decl.c (record_builtin_java_type): Use canonicalized integer
+	types.
+
+2009-03-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38908
+	* class.c (is_really_empty_class): New fn.
+	* cp-tree.h: Declare it.
+	* cp-objcp-common.c (cp_expr_size): Use it.
+
+	PR c++/13549
+	* semantics.c (perform_koenig_lookup): Handle TEMPLATE_ID_EXPR.
+	* parser.c (cp_parser_postfix_expression): Call it for 
+	TEMPLATE_ID_EXPR.
+	* tree.c (is_overloaded_fn): Look through TEMPLATE_ID_EXPR.
+	(get_first_fn): Likewise.
+
+	PR c++/9634
+	PR c++/29469
+	PR c++/29607
+	Implement DR 224.
+	* decl.c (make_typename_type): Do look inside currently open classes.
+	* parser.c (cp_parser_lookup_name): Likewise.
+	(cp_parser_template_name): Likewise.
+	* pt.c (dependent_scope_p): New function.
+	* cp-tree.h: Declare it.
+	* class.c (currently_open_class): Return fast if T isn't a class.
+
 2009-02-26  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c++/37789

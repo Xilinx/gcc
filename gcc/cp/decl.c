@@ -2977,12 +2977,6 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
   gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
   gcc_assert (TYPE_P (context));
 
-  /* When the CONTEXT is a dependent type,  NAME could refer to a
-     dependent base class of CONTEXT.  So we cannot peek inside it,
-     even if CONTEXT is a currently open scope.  */
-  if (dependent_type_p (context))
-    return build_typename_type (context, name, fullname, tag_type);
-
   if (!MAYBE_CLASS_TYPE_P (context))
     {
       if (complain & tf_error)
@@ -2990,11 +2984,23 @@ make_typename_type (tree context, tree name, enum tag_types tag_type,
       return error_mark_node;
     }
   
+  /* When the CONTEXT is a dependent type,  NAME could refer to a
+     dependent base class of CONTEXT.  But look inside it anyway
+     if CONTEXT is a currently open scope, in case it refers to a
+     member of the current instantiation or a non-dependent base;
+     lookup will stop when we hit a dependent base.  */
+  if (!dependent_scope_p (context))
+    /* We should only set WANT_TYPE when we're a nested typename type.
+       Then we can give better diagnostics if we find a non-type.  */
+    t = lookup_field (context, name, 0, /*want_type=*/true);
+  else
+    t = NULL_TREE;
+
+  if (!t && dependent_type_p (context)) 
+    return build_typename_type (context, name, fullname, tag_type);
+
   want_template = TREE_CODE (fullname) == TEMPLATE_ID_EXPR;
   
-  /* We should only set WANT_TYPE when we're a nested typename type.
-     Then we can give better diagnostics if we find a non-type.  */
-  t = lookup_field (context, name, 0, /*want_type=*/true);
   if (!t)
     {
       if (complain & tf_error)
@@ -3162,10 +3168,18 @@ record_builtin_java_type (const char* name, int size)
 {
   tree type, decl;
   if (size > 0)
-    type = make_signed_type (size);
+    type = build_nonstandard_integer_type (size, 0);
   else if (size > -32)
-    { /* "__java_char" or ""__java_boolean".  */
-      type = make_unsigned_type (-size);
+    {
+      tree stype;
+      /* "__java_char" or ""__java_boolean".  */
+      type = build_nonstandard_integer_type (-size, 1);
+      /* Get the signed type cached and attached to the unsigned type,
+	 so it doesn't get garbage-collected at "random" times,
+	 causing potential codegen differences out of different UIDs
+	 and different alias set numbers.  */
+      stype = build_nonstandard_integer_type (-size, 0);
+      TREE_CHAIN (type) = stype;
       /*if (size == -1)	TREE_SET_CODE (type, BOOLEAN_TYPE);*/
     }
   else

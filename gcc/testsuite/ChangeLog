@@ -1,3 +1,66 @@
+2009-03-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39367
+	* g++.dg/opt/new1.C: New.
+
+2009-03-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/33492
+	* g++.dg/other/error32.C: New.
+
+2009-03-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39360
+	* gcc.c-torture/compile/pr39360.c: New test.
+
+	PR debug/39372
+	* g++.dg/debug/dwarf2/static-local-var-in-ctor.C: New test.
+
+2009-03-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38908
+	* g++.dg/warn/Wuninitialized-3.C: New test.
+
+2009-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/39379
+	* g++.dg/debug/dwarf2/imported-module-3.C: New test.
+	* g++.dg/debug/dwarf2/imported-module-4.C: New test.
+
+2009-03-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/13549
+	* g++.dg/template/koenig7.C: New test.
+
+2009-03-04  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* g++.dg/torture/predcom-1.C: New test.
+
+2009-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39362
+	* g++.dg/torture/pr39362.C: New testcase.
+
+2009-03-04  Jason Merrill  <jason@redhat.com>
+	    Giovanni Bajo  <giovannibajo@gcc.gnu.org>
+
+	PR c++/9634
+	PR c++/29469
+	PR c++/29607
+	* g++.dg/template/dependent-name5.C: New test.
+
+2009-03-04  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/39357
+	* gcc.dg/vect-iv-6.c (dg-require-effective-target): Change from
+	vect_int to vect_int_mult.
+
+2009-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39358
+	* g++.dg/warn/Wstrict-aliasing-bogus-escape-2.C: New testcase.
+	* g++.dg/warn/Wstrict-aliasing-bogus-escape-3.C: Likewise.
+
 2009-03-04  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/39339
@@ -19,8 +82,7 @@
 2009-03-03  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/39248
-	* gcc.dg/vect/vect-complex-1.c: Add attribute aligned
-	to the arrays.
+	* gcc.dg/vect/vect-complex-1.c: Add attribute aligned to the arrays.
 	* gcc.dg/vect/vect-iv-6.c: Don't expect to fail to vectorize
 	on targets without vector misalignment support.
 	* lib/target-supports.exp 
@@ -62,7 +124,7 @@
 2009-02-26  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c++/37789
-	* other/pr37789.C: New.
+	* g++.dg/other/pr37789.C: New.
 
 2009-02-26  Paul Thomas  <pault@gcc.gnu.org>
 
