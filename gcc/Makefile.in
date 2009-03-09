@@ -2494,6 +2494,7 @@ $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
 	  -DMELT_GENERATED_DIR=\"$(melt_generated_dir)\" \
 	  -DMELT_DYNLIB_DIR=\"$(melt_dynlib_dir)\" \
 	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
+	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modlis)\" \
 	  -c $(BASILYS_C) $(OUTPUT_OPTION)
 endif
 
@@ -4877,6 +4878,12 @@ melt_compile_script=$(libexecsubdir)/melt-cc-script
 melt_build_include_dir= melt-private-build-include
 
 
+## this is the default module list for MELT, containing the list of
+## all modules loaded by MELT (without any suffix or dirname)
+## if not provided, the default -fbasilys-init=@$(melt_default_modlis)
+
+melt_default_modlis=melt-default-modules
+
 ## the C flags (without any gcc -I...stuff) to be included in
 ## compilation of MELT generated C code thru the melt-cc-script do not
 ## put $(INTERNAL_CFLAGS) $(COVERAGE_FLAGS) $(WARN_CFLAGS) $(T_CFLAGS)
@@ -4948,7 +4955,7 @@ melt.encap: run-basilys.d
 	$(MAKE) ana-base.so ana-base-n.so
 	echo melt.encap done
 
-.PHONY: install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3
+.PHONY: install-all-melt install-melt-headers update-warmelt diff-warm-1-2 diff-warm-2-3  diff-warm-4-5 diff-warmelt-2-3 install-melt-dynlib install-melt-cfiles install-melt-meltfiles
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
@@ -5034,6 +5041,23 @@ WARMELT_BASE3= $(patsubst %, %-3, $(WARMELT_BASE))
 WARMELT_BASE3SO= $(patsubst %, %-3.so, $(WARMELT_BASE))
 WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
 WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
+
+
+################
+## the analysis MELT files. They are not needed to bootstrap the MELT
+## translation, but they are needed to make any MELT analysis of a GCC
+## compiled source 
+
+## order is important
+ANAMELT_FILES= ana-base.bysl
+ANAMELT_SRCFILES= $(patsubst %.bysl, $(srcdir)/melt/%.bysl, $(ANAMELT_FILES))
+ANAMELT_SRCARGLIST:=$(shell echo $(realpath $(ANAMELT_SRCFILES))|sed 's: :,:g')
+ANAMELT_BASE= $(basename $(ANAMELT_FILES))
+ANAMELT_BASELIST:=$(shell echo $(ANAMELT_BASE)|sed 's: :,:g')
+
+ANAMELT_BASESO= $(patsubst %, %-3.so, $(ANAMELT_BASE))
+ANAMELT_BASEC= $(patsubst %, %-3.c, $(ANAMELT_BASE))
+ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
 
 ## keep the generated warm*.c files!
 .SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) ana-base.c
@@ -5179,6 +5203,11 @@ warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)
 	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
+warmelt3.modlis: $(WARMELT_BASE2SO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
 warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
@@ -5208,6 +5237,45 @@ ana-%.c: $(srcdir)/melt/ana-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exe
 ana-%.so: ana-%.c built-melt-cc-script
 	echo Melt building $@ from $<
 	./built-melt-cc-script $< $@
+
+
+#### the default list of modules
+$(melt_default_modlis).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
+	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
+####
+#### installing melt generated shared object plugins (at MELT 3rd
+#### stage) and the default melt module list
+install-melt-dynlib: installdirs $(melt_default_modlis).modlis $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+	$(mkinstalldirs) $(melt_dynlib_dir)
+	if [ -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis ]; then \
+	   rm -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis; \
+	   $(INSTALL_DATA) $(melt_default_modlis).modlis $(melt_dynlib_dir)/$(melt_default_modlis).modlis
+	for dynfile in  $(WARMELT_BASE3SO) $(ANAMELT_BASESO); do \
+	   rm -f $(melt_dynlib_dir)/$$dynfile; \
+	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(melt_dynlib_dir)/$$dynfile; \
+	done
+
+
+#### installing melt generated C files (at MELT 3rd stage)
+install-melt-cfiles: installdirs $(WARMELT_BASE3C) $(ANAMELT_BASEC)
+	$(mkinstalldirs) $(melt_generated_dir)
+	for cfile in  $(WARMELT_BASE3C) $(ANAMELT_BASEC); do \
+	  rm -f $(melt_generated_dir)/$$cfile; \
+	  $(INSTALL_DATA) $$cfile $(melt_generated_dir)/$$cfile ; \
+	done
+
+#### install the MELT source files (in Melt)
+install-melt-meltfiles: installdirs $(WARMELT_SRCFILES) $(ANAMELT_SRCFILES)
+	$(mkinstalldirs) $(melt_source_dir)
+	for meltfile in  $(WARMELT_FILES) $(ANAMELT_FILES) ; do \
+	  rm -f $(melt_source_dir)/$$meltfile; \
+	  $(INSTALL_DATA) $(srcdir)/melt/$$meltfile  $(melt_source_dir)/$$meltfile; \
+	done
+
 
 #### this phony target is given manually to copy the generated
 #### warmelt*-3.c into the source directory it should be only
@@ -5285,7 +5353,10 @@ install-melt-cc-script: melt-cc-script.proto
 	$(INSTALL_SCRIPT) tmp-installed-melt-cc-script $(DESTDIR)$(melt_compile_script)
 	-rm -f tmp-installed-melt-cc-script
 
+install-all-melt: install-melt-include-dir install-melt-cc-script \
+	install-melt-dynlib install-melt-cfiles install-melt-meltfiles
 else
 melt-encap:
+install-all-melt:
 endif #BASILYSMELT_OBJ
 ### end of basilys / MELT stuff

@@ -1,3 +1,12 @@
+2009-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[-fbasilys-init has a suitable default so an installed MELT
+	compiler should be able to run with only -fbasilys=...]
+	* doc/melt.texi: documented the @melt-default-modules default
+	value of -fbasilys-init.
+	* basilys.c (load_basilys_modules_and_do_command):
+	basilys_init_string has a built-in default of
+	@melt-default-modules.
+	* Makefile.in: added installation targets for install-melt-all.
 2009-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	[ana-base.bysl has a realistic match inside]
 	* melt/warmelt-normatch.bysl: removed some warnings.

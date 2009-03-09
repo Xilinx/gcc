@@ -103,9 +103,12 @@ along with GCC; see the file COPYING3.   If not see
 #error MELT_COMPILE_SCRIPT  is not defined thru compile flags
 #endif
 
-#if BASILYS_HAS_OBJ_TAB_FIELDS
-#error BASILYS_HAS_OBJ_TAB_FIELDS is no more supported
+#ifndef MELT_DEFAULT_MODLIS
+#error MELT_DEFAULT_MODLIS is not defined thru compile flags
 #endif
+
+/* BASILYS_HAS_OBJ_TAB_FIELDS has gone */
+
 
 /* *INDENT-OFF* */
 static const char melt_private_include_dir[] = MELT_PRIVATE_INCLUDE_DIR;
@@ -6885,8 +6888,9 @@ load_basilys_modules_and_do_command (void)
 #define modatv curfram__.varptr[0]
   debugeprintf ("load_initial_basilys_modules start init=%s command=%s",
 		basilys_init_string, basilys_mode_string);
+  /* if there is no -fbasilys-init use the default list of modules */
   if (!basilys_init_string || !basilys_init_string[0])
-    fatal_error ("no initial basilys modules given");
+    basilys_init_string = "@" MELT_DEFAULT_MODLIS;
   dupmodpath = xstrdup (basilys_init_string);
   if (flag_basilys_debug)
     {

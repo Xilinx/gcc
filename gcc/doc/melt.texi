@@ -260,8 +260,11 @@ sequence. For example, @code{-fbasilys-init=@@mylist:bar} with a file
 alpha
 beta
 @end example
-would have the same effect as @code{-fbasilys-init=alpha:beta:bar}. 
-Notice that modules are seeked in several directories.
+would have the same effect as @code{-fbasilys-init=alpha:beta:bar}.
+Notice that modules are seeked in several directories.  There is a
+default module list called @file{melt-default-modules.modlis} so the
+default value of this flag is
+@code{-fbasilys-init=@@melt-default-modules}.
 
 @item -fbasilys-tempdir=
 @gccoptlist{-fbasilys-tempdir=}
