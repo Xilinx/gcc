@@ -538,7 +538,6 @@ copy_renames (void **slot, void *s)
 
    - NEXT_E is the edge where new generated code should be attached.
    - CONTEXT_LOOP is the loop in which the generated code will be placed
-     (might be NULL).  
    - IVSTACK contains the surrounding loops around the statement to be
      translated.
 */
@@ -581,8 +580,7 @@ translate_clast (sese region, struct loop *context_loop,
     {
       struct loop *loop
 	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
-				    ivstack, context_loop ? context_loop
-				    : get_loop (0));
+				    ivstack, context_loop);
       edge last_e = single_exit (loop);
 
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
