@@ -4917,13 +4917,15 @@ run-basilys.d: run-basilys.h \
 ## copy all the file in the dependency of run-basilys-deps into $(melt_build_include_dir)
 ## but handle the $(srcdir)/config/ files specially by copying them within a config/ directory
 ## and the */*-tree.def files such as ada/ada-tree.def cp/cp-tree.def ... likewise
+## Nicolas Vigier suggested readlink instead of realpath... thanks!
 run-basilys-deps:
 ifdef BASILYSMELT_OBJ
 	$(mkinstalldirs) $(melt_build_include_dir); \
+	rsrcdir=`readlink -f $(srcdir)` ; \
 	for f in $^ ; do \
-          rf=`realpath $$f` ; \
-	  cf=`echo $$rf | sed  "s:$(srcdir)/config/:$(melt_build_include_dir)/config/:"`; \
-	  tf=`echo $$rf | sed  "s:$(srcdir)/:$(melt_build_include_dir)/:"`; \
+          rf=`readlink -f $$f` ; \
+	  cf=`echo $$rf | sed  "s:$$rsrcdir/config/:$(melt_build_include_dir)/config/:"`; \
+	  tf=`echo $$rf | sed  "s:$$rsrcdir/:$(melt_build_include_dir)/:"`; \
 	  if [ "x$$rf" != "x$$cf" ] ;  then  \
 	    $(mkinstalldirs) `dirname $$cf` ; \
 	    cp -p $$rf $$cf ; \

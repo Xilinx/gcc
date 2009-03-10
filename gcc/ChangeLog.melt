@@ -1,3 +1,6 @@
+2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: use readlink instead of realpath; thanks to Nicolas
+	Vigier.
 2009-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[-fbasilys-init has a suitable default so an installed MELT
 	compiler should be able to run with only -fbasilys=...]
