@@ -403,6 +403,7 @@
   :fields (mocx_modulename		;the module name
 	   mocx_expfieldict		;dict of exported fields
 	   mocx_expclassdict		;dict of exported classes
+	   mocx_initialenv		;the initial environment
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1783,9 +1784,9 @@
   (assert_msg "check sym" (is_a sym class_symbol))
   (if (null contenv)
       (progn
-	(if (parent_module_environment)
-	    (warningmsg_strv "exporting patmacro too early with null environment container" 
-			     (unsafe_get_field :named_name sym)))
+	;;(if (parent_module_environment)
+	;;    (warningmsg_strv "exporting patmacro too early with null environment container" 
+	;;		     (unsafe_get_field :named_name sym)))
 	(return)
 	))
   (assert_msg "check contenv" (is_a contenv class_container))

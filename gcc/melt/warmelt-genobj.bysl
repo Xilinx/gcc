@@ -4571,7 +4571,6 @@
 	(list_append othenlist fillchunk)
 	(list_append othenlist (get_field :mcx_gotothen mcx))
 	(list_append oelselist (get_field :mcx_gotoelse mcx))
-	(compile_warning "compilmatcher_cmatcher when compiling the else part, should free our locals" ())
 	(debug_msg ocond "compilmatcher_cmatcher final ocond")
 	)
       )))

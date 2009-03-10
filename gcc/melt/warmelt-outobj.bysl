@@ -2628,7 +2628,8 @@
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")) == OBMAG_ROUTINE);")
     (add2sbuf_indentnl implbuf depth)
-    (add2sbuf_strconst implbuf "basilys_checkmsg(\"putroutconst constnull.")
+    ;;
+    (add2sbuf_strconst implbuf "if (basilys_HAS_INITIAL_ENVIRONMENT) basilys_checkmsg(\"putroutconst constnull.")
     (if (is_string oroutnam) (add2sbuf_string implbuf oroutnam))
     (add2sbuf_strconst implbuf "#")
     (output_c_code ooff declbuf implbuf depth)
@@ -2636,6 +2637,7 @@
     (output_c_code ocval declbuf implbuf depth)
     (add2sbuf_strconst implbuf "));")
     (add2sbuf_indentnl implbuf depth)
+    ;;
     (add2sbuf_strconst implbuf "((basilysroutine_ptr_t)")
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ")->tabval[")
@@ -2869,6 +2871,7 @@
 			  :mocx_modulename modnamstr
 			  :mocx_expfieldict (make_mapstring discr_mapstrings 90)
 			  :mocx_expclassdict (make_mapstring discr_mapstrings 40)
+			  :mocx_initialenv inienv
 			  ))
 	(ncx (create_normcontext modctx)) )
     (debug_msg ncx "compile_list_sexpr initial ncx")
@@ -2885,6 +2888,11 @@
 			     :sucme_comment (make_stringconst discr_string "at very start")
 			     ))
 	   )
+      (if (== inienv initial_environment)
+	  (add2sbuf_strconst declbuf "#define basilys_HAS_INITIAL_ENVIRONMENT 0")
+	  (add2sbuf_strconst declbuf "#define basilys_HAS_INITIAL_ENVIRONMENT 1")
+	  )
+      (add2sbuf_indentnl declbuf 0)
       (list_prepend xlist ucmeb1)
       (debug_msg xlist "after macroexpansion compile_list_sexpr seq")
       (debug_msg inienv "after macroexpansion compile_list_sexpr inienv")

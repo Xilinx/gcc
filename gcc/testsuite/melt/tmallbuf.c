@@ -26,15 +26,14 @@ alloctab (int n)
 }
 
 int
-main (int argc, char **argv)
+main (void)
 {
+  int j;
   int k = 10;
   int *t = NULL;
-  if (argc > 1)
-    k = atoi (argv[1]);
-  if (k < 0)
-    k = 0;
   t = alloctab (k);
+  for (j=0; j<k; j+=2) 
+    t[j] *= 2;
   /* following instruction access t out of bounds */
   t[k + 1] = 2 * k;
   return 0;

@@ -92,6 +92,8 @@
 (defprimitive gimpleseq_content (v) :gimpleseq
   "(basilys_gimpleseq_content((basilys_ptr_t)(" v ")))")
 
+
+
 (defprimitive is_tree (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_TREE)")
 
@@ -101,13 +103,22 @@
 (defprimitive tree_content (v) :tree
   "(basilys_tree_content((basilys_ptr_t)(" v ")))")
 
+(defprimitive inform_at_tree (:tree tr :cstring msg) :void
+  ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
+  ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
+  ;; otherwise no location
+  "inform((DECL_P(" tr ")? DECL_SOURCE_LOCATION(" tr 
+  ") : EXPR_P(" tr ") ? EXPR_LOCATION(" tr ") : UNKNOWN_LOCATION), "
+  msg ");"
+)
 
-;; pattern (tree_function_decl <funame>) match a tree for a function
+;; pattern (tree_function_decl <funame> <initialtree>) match a tree for a function
 ;; declaration
 (defcmatcher tree_function_decl 
   (:tree tr) 				;matched
   ;; output 
   (:cstring funame
+   :tree initialdcl
    )
   treefun				;state symbol
   (; test expansion
@@ -115,8 +126,10 @@
    )
   (;; fill expansion
    funame "=NULL; "
+   initialdcl "=NULL; "
    "if (DECL_NAME(" tr ")) "
    funame "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); "
+   initialdcl  "=DECL_INITIAL(" tr "); "
    )
 )
 
@@ -361,7 +374,7 @@
   (					;before expansion
    "/*start " eachbbcfun "*/\n"
    "basic_block " eachbbcfun  "_bb=NULL;\n"
-   "debugeprintf(\" each_bb_cfun " eachbbcfun " cfun=%p\", cfun);\n"
+   ; "debugeprintf(\" each_bb_cfun " eachbbcfun " cfun=%p\", cfun);\n"
    "if (cfun) {\n"
    " " cfundecl " = cfun->decl;\n"
    " FOR_EACH_BB_FN("eachbbcfun "_bb, cfun) {"
@@ -372,7 +385,7 @@
    "  " cfunbb " = " eachbbcfun "_bb;\n"
    )
   (					;after expansion
-   "debugeprintf(\" each_bb_cfun " eachbbcfun " done cfun=%p\", cfun);\n"
+   ; "debugeprintf(\" each_bb_cfun " eachbbcfun " done cfun=%p\", cfun);\n"
    "}}/*end " eachbbcfun "*/\n"
    )
   )
@@ -695,27 +708,64 @@
 (defun smallana_cfun_entrybb (sman declv entbbv)
   (debug_msg declv "smallana_cfun_entrybb declv")
   (debug_msg entbbv "smallana_cfun_entrybb entbbv")
-  (let ( (scf (instance class_smallcfun
-			:scfun_decl declv
-			:scfun_entrybb entbbv)) 
-	 )
-    ;;; (compile_warning "should have match" ())
+  (let ( (:tree decltree (tree_content declv)) )
+    (compile_warning "match is buggy here" ())
+#|
     (match 
-     (tree_content declv)
-     ( ?(tree_function_decl ?funam)
+     decltree
+     ( ?(tree_function_decl ?funam ?initree)
 	(debug_msg declv "smallana_cfun_entrybb decl of function")
-       (put_fields scf :named_name (make_stringconst discr_string funam)))
-     ( ?(tree_variable_decl ?varnam)
+	(debugtree "smallana_cfun_entrybb initree of function" initree)
+	(let ( (scf (instance class_smallcfun
+			      :named_name (make_stringconst discr_string funam)
+			      :scfun_decl declv
+			      :scfun_entrybb entbbv)) 
+	       )
+	  (list_append (get_field :sman_cfuns sman) scf)))
+     ( ?(tree_variable_decl ?_)
 	(debug_msg declv "smallana_cfun_entrybb decl of variable")
-       (put_fields scf :named_name (make_stringconst discr_string varnam))
-       )
+	(inform_at_tree decltree "smallana: global variable not analyzed")
+	)
      ( ?_
-	(debug_msg declv "smallana_cfun_entrybb other decl")
-      () )
+       (debug_msg declv "smallana_cfun_entrybb other decl")
+       (inform_at_tree decltree "smallana: other declaration not analyzed")
+       () )
      )
-    (list_append (get_field :sman_cfuns sman) scf)
-    (debug_msg sman "smallana_cfun_entrybb sman")
-    ))
+|#
+    )
+  (debug_msg sman "smallana_cfun_entrybb sman")
+  )
+
+
+(defun smallana_bb_cfun (sman cfbbv :tree cfdecl)
+  (debug_msg cfbbv "smallana_bb_cfun cfbbv")
+  (debugtree "smallana_bb_cfun cfdecl" cfdecl)
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (assert_msg "check cfbbv" (is_basicblock cfbbv))
+  (let ( (:gimpleseq bbseq
+		     (basicblock_gimpleseq cfbbv))
+	 (:gimpleseq bbphis (basicblock_phinodes cfbbv))
+	 )
+    ;(debuggimpleseq "smallana_bb_cfun bbseq" bbseq)
+    (debuggimpleseq "smallana_bb_cfun bbphis" bbphis)
+    (do_each_gimpleseq
+     (lambda (gimv)
+       (debug_msg gimv "smallana_bb_cfun gimv"))
+     bbseq
+     )
+    (debuggimpleseq "smallana_bb_cfun bbphis" bbphis)
+    (do_each_gimpleseq
+     (lambda (gphiv)
+       (debug_msg gphiv "smallana_bb_cfun gimv"))
+     bbphis
+     )
+    (do_eachgimple_in_basicblock
+     (lambda (gbbv)
+       (debug_msg gbbv "smallana_bb_cfun gbbv"))
+     (basicblock_content cfbbv))
+    )
+  (debug_msg sman "smallana_bb_cfun end sman")
+  )
 
 ;;; apparently only the entrybb loop matter in the latessa pass...
 (defun smallana_latessaexec (latessapass)
@@ -731,33 +781,17 @@
        (debug_msg declv "smallana_latessaexec eachcfunentrybb declv")
        (debug_msg bbv "smallana_latessaexec eachcfunentrybb bbv")
        (smallana_cfun_entrybb sman declv bbv)))
-#|
-    (debug_msg latessapass "smallana_latessaexec after eachentrybb before eachbbcfun")
+    ;;
+    (debug_msg sman "smallana_latessaexec sman after eachentrybb")
+    ;;
     (do_each_bb_cfun
      (lambda (cfbbv :tree cfdecl)
        (debug_msg cfbbv "smallana_latessaexec eachbbcfun cfbbv")
-       (let ( (:gimpleseq bbseq
-			  (basicblock_gimpleseq cfbbv))
-	      (:gimpleseq bbphis (basicblock_phinodes cfbbv))
-	      )
-	 (debuggimpleseq "smallana_latessaexec bbseq" bbseq)
-	 (do_each_gimpleseq
-	  (lambda (gimv)
-	    (debug_msg gimv "smallana_latessaexec gimv"))
-	  bbseq
-	  )
-	 (debuggimpleseq "smallana_latessaexec bbphis" bbphis)
-	 (do_each_gimpleseq
-	  (lambda (gphiv)
-	    (debug_msg gphiv "smallana_latessaexec gimv"))
-	  bbphis
-	  )
-	 (do_eachgimple_in_basicblock
-	  (lambda (gbbv)
-	    (debug_msg gbbv "smallana_latessaexec gbbv"))
-	  (basicblock_content cfbbv))
-	 )))
-|#
+       (smallana_bb_cfun sman cfbbv cfdecl)
+       ))
+    ;;
+    (debug_msg sman "smallana_latessaexec sman after eachbbcfun")
+    ;;
     (debug_msg latessapass "smallana_latessaexec end")
     ))
 

@@ -1,0 +1,67 @@
+;; -*- lisp -*-
+;; file tmatch-3.bysl
+
+#| run in buildir/gcc
+ ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
+    -fbasilys-compile-script=./built-melt-cc-script \
+    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
+    -fbasilys-arg=..../tmatch-3.bysl -fbasilys-debug
+|#
+
+(defprimitive tree_content (v) :tree
+  "(basilys_tree_content((basilys_ptr_t)(" v ")))")
+
+;; pattern (tree_function_decl <funame>) match a tree for a function
+;; declaration
+(defcmatcher tree_function_decl 
+  (:tree tr) 				;matched
+  ;; output 
+  (:cstring funame
+   :tree initialdcl
+   )
+  treefun				;state symbol
+  (; test expansion
+   "((" tr ") && TREECODE(" tr ") == FUNCTION_DECL)"
+   )
+  (;; fill expansion
+   funame "=NULL; "
+   initialdcl "=NULL; "
+   "if (DECL_NAME(" tr ")) "
+   funame "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); "
+   initialdcl  "=DECL_INITIAL(" tr "); "
+   )
+)
+
+;; similarily pattern (tree_variable_decl <funame>)
+(defcmatcher tree_variable_decl 
+  (:tree tr)
+  (:cstring varname
+   )
+  treevar
+  (; test expansion
+   "((" tr ") && TREECODE(" tr ") == VAR_DECL)"
+   )
+  (;; fill expansion
+   varname "=NULL; "
+   "if (DECL_NAME(" tr ")) "
+   varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
+)
+
+
+(defprimitive debugtree (:cstring msg :tree tr) :void
+  " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
+  "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
+)
+
+(defun tmatch_tree (declv)
+  (match 
+   (tree_content declv)
+   ( ?(tree_function_decl ?funam ?initree)
+      (debugtree "tmatchinitree" initree)
+      )
+   ( ?(tree_variable_decl ?varnam)
+      (put_fields scf :named_name (make_stringconst discr_string varnam))
+      )
+   ( ?_
+     () )
+   ))

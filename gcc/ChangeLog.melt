@@ -1,4 +1,26 @@
 2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[still a bug in compiling match; added tmatch-3.bysl test case;
+	spurious check warnings in warmelt-first.bysl are resolved.]
+	* melt/warmelt-first.bysl: added field mocx_initialenv to
+	class_modulcontext.
+	* melt/warmelt-normatch.bysl: removed compile_warning in
+	normpat_jokerpat.
+	* melt/warmelt-genobj.bysl: removed compile_warning in
+	compilmatcher_cmatcher.
+	* melt/warmelt-outobj.bysl: added generation of
+	basilys_HAS_INITIAL_ENVIRONMENT and dirty trick in check
+	putroutconst constnull to avoid spurious messages..
+	* melt/ana-base.bysl: commented a match which does compile
+	correctly.
+	* testsuite/melt/tmatch-3.bysl: added new file exercising a bug.
+	* testsuite/melt/tmallbuf.c: simplified the example.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: use readlink instead of realpath; thanks to Nicolas
 	Vigier.
 2009-03-09  Basile Starynkevitch  <basile@starynkevitch.net>

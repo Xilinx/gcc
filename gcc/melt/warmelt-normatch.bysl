@@ -558,8 +558,7 @@
   (debug_msg nmatch "normpat_jokerpat nmatch")
   (assert_msg "check recv" (is_a recv class_srcpattern_jokervar))
   (assert_msg "check pcn" (is_a pcn class_patterncontext))
-  (compile_warning "unimplemented normpat_jokerpat" ())
-  (shortbacktrace_dbg "normpat_jokerpat" 15)
+  ;; we need nothing more, a joker pattern is essentially a black hole..
 )
 (install_method class_srcpattern_jokervar normal_pattern normpat_jokerpat)
 
