@@ -693,6 +693,12 @@
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
   "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+;; primitive to add the location info of a mixedloc into a strbuf
+(defprimitive add2sbuf_mixloc (sbuf mixl) :void
+  "/*add2sbufmixloc*/ { if (basilys_magic_discr((basilys_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
+  " basilysgc_strbuf_printf((struct basilysstrbuf_st*)(" sbuf "), \"{%s:%d}\", "
+  "LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mixl ")), "
+  "LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mixl "))); }")
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
@@ -2549,6 +2555,7 @@
 ;; mixloc debug value
 (defun dbgout_mixloc_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self mixloc" (is_mixloc self))
   (let ( (dis (discrim self)) 
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
 	 )
@@ -2565,7 +2572,7 @@
     (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	(progn
 	  (add2sbuf_strconst sbuf ",")
-	  (dbg_out (mixint_val self) dbgi (+i depth 1))
+	  (add2sbuf_mixloc sbuf self)
 	  )
       (add2sbuf_strconst sbuf ",..")
       )
@@ -3682,6 +3689,7 @@
  add2sbuf_indentnl
  add2sbuf_longdec
  add2sbuf_longhex
+ add2sbuf_mixloc
  add2sbuf_routinedescr
  add2sbuf_sbuf
  add2sbuf_strconst

@@ -32,22 +32,6 @@
    )
 )
 
-;; similarily pattern (tree_variable_decl <funame>)
-(defcmatcher tree_variable_decl 
-  (:tree tr)
-  (:cstring varname
-   )
-  treevar
-  (; test expansion
-   "((" tr ") && TREECODE(" tr ") == VAR_DECL)"
-   )
-  (;; fill expansion
-   varname "=NULL; "
-   "if (DECL_NAME(" tr ")) "
-   varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
-)
-
-
 (defprimitive debugtree (:cstring msg :tree tr) :void
   " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
@@ -59,9 +43,4 @@
    ( ?(tree_function_decl ?funam ?initree)
       (debugtree "tmatchinitree" initree)
       )
-   ( ?(tree_variable_decl ?varnam)
-      (put_fields scf :named_name (make_stringconst discr_string varnam))
-      )
-   ( ?_
-     () )
    ))

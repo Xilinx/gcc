@@ -8079,7 +8079,7 @@ basilysgc_ppstrbuf_basicblock (basilys_ptr_t sbuf_p, int indentsp,
   if (gsq)
     {
       basilysgc_add_strbuf_raw ((struct basilysstrbuf_st *) sbufv, "{.");
-      basilysgc_ppstrbuf_gimple_seq ((struct basilysstrbuf_st *) sbufv,
+      basilysgc_ppstrbuf_gimple_seq (sbufv,
 				     indentsp + 1, gsq);
       basilysgc_add_strbuf_raw ((struct basilysstrbuf_st *) sbufv, ".}");
     }

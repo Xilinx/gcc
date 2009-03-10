@@ -1569,7 +1569,7 @@ basilys_location_mixloc (basilys_ptr_t mix)
   struct basilysmixloc_st *smix = (struct basilysmixloc_st *) mix;
   if (basilys_magic_discr (mix) == OBMAG_MIXLOC)
     return smix->locval;
-  return (location_t)0;
+  return (location_t)UNKNOWN_LOCATION;
 }
 
 
