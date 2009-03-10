@@ -1,4 +1,11 @@
 2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmatch-3.bysl compiles ok; we have probably a bug when a symbol
+	is lexically rebound in an inner scope...  perhaps nested
+	foreach_in_multiple with same index variable are miscompiled]
+	* melt/warmelt-normatch.bysl: renamed inner ix as ixm in
+	normpat_anymatchpat.
+	* melt/ana-base.bysl: the match is compiled ok.
+2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[still buggy tmatch-3.bysl]
 	* basilys.h (basilys_location_mixloc): may return UNKNOWN_LOCATION.
 	* basilys.c (basilysgc_ppstrbuf_basicblock): removed bad cast.

@@ -709,8 +709,6 @@
   (debug_msg declv "smallana_cfun_entrybb declv")
   (debug_msg entbbv "smallana_cfun_entrybb entbbv")
   (let ( (:tree decltree (tree_content declv)) )
-    (compile_warning "match is buggy here" ())
-#|
     (match 
      decltree
      ( ?(tree_function_decl ?funam ?initree)
@@ -731,7 +729,6 @@
        (inform_at_tree decltree "smallana: other declaration not analyzed")
        () )
      )
-|#
     )
   (debug_msg sman "smallana_cfun_entrybb sman")
   )

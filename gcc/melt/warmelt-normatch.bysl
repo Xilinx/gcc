@@ -48,8 +48,6 @@
 	   pctn_tests
 	   ))
 
-;; it seems that stuffmap is never updated, no put inside!
-(compile_warning "pctn_stuffmap is not updated..." ())
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to scan a pattern
@@ -547,6 +545,8 @@
 	;; put the clocc in the symbol cache map
 	(mapobject_put (get_field :nctx_symbcachemap ncx) patvar clocc)
 	(mapobject_put pvarmap patvar clocc)
+	(debug_msg patvar "normpat_variablepat updated patvar")
+	(debug_msg clocc "normpat_variablepat updated clocc")
 	(debug_msg pvarmap "normpat_variablepat updated pvarmap")
 	))
     ))
@@ -712,6 +712,8 @@
   )
 (install_method class_srcpattern_instance normal_pattern normpat_instancepat)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; normalize anymatcher pattern
@@ -864,11 +866,11 @@
 		  ( (outlocs
 		     (multiple_map 
 		      outmatchs
-		      (lambda (curmatch :long ix)
-			(debug_msg curmatch "normpat_anymatchpat curmatch")
-			(assert_msg "check curmatch" (is_a curmatch class_formal_binding))
-			(let ( (csym (clone_symbol (get_field :binder curmatch)))
-			       (curtyp (get_field :fbind_type curmatch))
+		      (lambda (curoutmatch :long ix)
+			(debug_msg curoutmatch "normpat_anymatchpat curoutmatch")
+			(assert_msg "check curoutmatch" (is_a curoutmatch class_formal_binding))
+			(let ( (csym (clone_symbol (get_field :binder curoutmatch)))
+			       (curtyp (get_field :fbind_type curoutmatch))
 			       (cbind (instance class_normlet_binding
 						:letbind_loc sloc
 						:binder csym
@@ -919,11 +921,15 @@
        ;;	
        (let ( (outlocs (get_field :ntmatch_outlocs tester)) )
 	 (debug_msg outlocs "normpat_anymatchpat outlocs from tester")
+	 (debug_msg outargs "normpat_anymatchpat outargs before foreach")
+	 (debug_msg outmatchs "normpat_anymatchpat outmatchs before foreach")
 	 (foreach_in_multiple
 	  (outmatchs)
-	  (curmatch :long ix)
-	  (let ( (clocc (multiple_nth outlocs ix)) 
-		 (curout (multiple_nth outargs ix))
+	  (curmatch :long ixm)
+	  (messagenum_dbg "normpat_anymatchpat ixm in outmatchs" ixm)
+	  (debug_msg curmatch "normpat_anymatchpat curmatch in foreach")
+	  (let ( (clocc (multiple_nth outlocs ixm)) 
+		 (curout (multiple_nth outargs ixm))
 		 (testercont (instance class_container
 				       :container_value tester))
 		 (subhdler 
@@ -934,8 +940,8 @@
 		      (set_newtester_lastthen newtester testercont)
 		    ))
 		 )
-	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
 	    (debug_msg curout "normpat_anymatchpat curout before normal_pattern")
+	    (debug_msg clocc "normpat_anymatchpat clocc before normal_pattern")
 	    (normal_pattern curout clocc subhdler pcn)
 	    (debug_msg curmatch "normpat_anymatchpat curout after normal_pattern")
 	    )
