@@ -22,6 +22,10 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_GRAPHITE_POLY_H
 #define GCC_GRAPHITE_POLY_H
 
+typedef struct poly_dr *poly_dr_p;
+DEF_VEC_P(poly_dr_p);
+DEF_VEC_ALLOC_P (poly_dr_p, heap);
+
 typedef struct poly_bb *poly_bb_p;
 DEF_VEC_P(poly_bb_p);
 DEF_VEC_ALLOC_P (poly_bb_p, heap);
@@ -29,6 +33,161 @@ DEF_VEC_ALLOC_P (poly_bb_p, heap);
 typedef struct scop *scop_p;
 DEF_VEC_P(scop_p);
 DEF_VEC_ALLOC_P (scop_p, heap);
+
+typedef ppl_dimension_type graphite_dim_t;
+
+static inline graphite_dim_t pbb_nb_loops (const struct poly_bb*);
+static inline graphite_dim_t pbb_nb_scattering (const struct poly_bb*);
+static inline graphite_dim_t pbb_nb_params (poly_bb_p);
+static inline graphite_dim_t scop_nb_params (scop_p);
+
+/* A data reference can write or read some memory or we
+   just know it may write some memory.  */
+enum POLY_DR_TYPE
+{
+  PDR_READ,
+  /* PDR_MAY_READs are represented using PDR_READS. This does not limit the
+     expressiveness.  */
+  PDR_WRITE,
+  PDR_MAY_WRITE
+};
+
+struct poly_dr
+{
+  poly_bb_p black_box;
+
+  enum POLY_DR_TYPE type;
+
+  /* The access polyhedron contains the polyhedral space this data
+     reference will access.
+
+     The polyhedron contains these dimensions: 
+
+      - The alias set (a):
+      Every memory access is classified in at least one alias set.
+    
+      - The subscripts (s_0, ..., s_n):
+      The memory is accessed using zero or more subscript dimensions.
+
+      - The iteration domain (variables and parameters) 
+
+     Do not hardcode the dimensions. Use the accessors pdr_accessp_*_dim.
+     
+     Example:
+
+     | int A[1335][123];
+     | int *p = malloc ();
+     |
+     | b = ...
+     | for i
+     |   {
+     |     if (unknown_function ())
+     |       p = A;
+     |       ... = p[?][?];
+     | 	   for j
+     |       A[i][j+b] = m; 
+     |   }
+
+     The data access A[i][j+b] in alias set "5" is described like this:
+
+     | i   j   k   a   s0  s1  1
+     | 0   0   0   1   0   0  -5     =  0
+     |-1   0   0   0   1   0   0     =  0
+     | 0  -1  -1   0   0   1   0     =  0
+     | 0   0   0   0   1   0   0     >= 0  # The last four lines describe the
+     | 0   0   0   0   0   1   0     >= 0  # array size.
+     | 0   0   0   0   1   0  -1335  <= 0
+     | 0   0   0   0   0   1  -123   <= 0
+
+     The pointer "*p" in alias set "5" and "7" is described like this:
+
+     | i   k   a   s0  1
+     | 0   0   1   0  -5   =  0
+     | 0   0   1   0  -7   =  0
+     | 0   0   0   1   0   >= 0
+
+     "*p" accesses all of the object allocated with 'malloc'.
+
+     The scalar data access "m" is represented as an array with zero subscript
+     dimensions.
+
+     | i   j   k   a   1
+     | 0   0   0  -1   15  = 0 */
+  ppl_Polyhedron_t accesses;
+};
+
+#define PDR_BB(PDR) (PDR->black_box)
+#define PDR_TYPE(PDR) (PDR->type)
+#define PDR_BASE(PDR) (PDR->base)
+#define PDR_ACCESSES(PDR) (PDR->accesses)
+
+/* The number of subscript dims in PDR.  */
+
+static inline graphite_dim_t
+pdr_accessp_nb_subscripts (poly_dr_p pdr)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+  ppl_dimension_type dim;
+
+  ppl_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
+  return dim - pbb_nb_loops (pbb) - pbb_nb_params (pbb) - 1;
+}
+
+/* The dimension in PDR containing iterator ITER.  */
+
+static inline ppl_dimension_type
+pdr_accessp_nb_iterators (poly_dr_p pdr ATTRIBUTE_UNUSED)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+  return pbb_nb_loops (pbb);
+}
+
+/* The dimension in PDR containing parameter PARAM.  */
+
+static inline ppl_dimension_type
+pdr_accessp_nb_params (poly_dr_p pdr)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+  return pbb_nb_params (pbb);
+}
+
+/* The dimension of the alias set in PDR.  */
+
+static inline ppl_dimension_type
+pdr_accessp_alias_set_dim (poly_dr_p pdr)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+
+  return pbb_nb_loops (pbb) + pbb_nb_params (pbb);
+} 
+
+/* The dimension in PDR containing subscript S.  */
+
+static inline ppl_dimension_type
+pdr_accessp_subscript_dim (poly_dr_p pdr, graphite_dim_t s)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+
+  return pbb_nb_loops (pbb) + pbb_nb_params (pbb) + 1 + s;
+}
+
+/* The dimension in PDR containing iterator ITER.  */
+
+static inline ppl_dimension_type
+pdr_accessp_iterator_dim (poly_dr_p pdr ATTRIBUTE_UNUSED, graphite_dim_t iter)
+{
+  return iter;
+}
+
+/* The dimension in PDR containing parameter PARAM.  */
+
+static inline ppl_dimension_type
+pdr_accessp_param_dim (poly_dr_p pdr, graphite_dim_t param)
+{
+  poly_bb_p pbb = PDR_BB (pdr);
+
+  return pbb_nb_loops (pbb) + param;
+}
 
 /* POLY_BB represents a blackbox in the polyhedral model.  */
 
@@ -114,12 +273,12 @@ struct poly_bb
   ppl_Polyhedron_t original_scattering;
 };
 
-#define PBB_SCOP(PBB) PBB->scop
-#define PBB_DOMAIN(PBB) PBB->domain
-#define PBB_BLACK_BOX(PBB) PBB->black_box
-#define PBB_LOOPS(PBB) PBB->loops
-#define PBB_TRANSFORMED_SCATTERING(PBB) PBB->transformed_scattering
-#define PBB_ORIGINAL_SCATTERING(PBB) PBB->original_scattering
+#define PBB_SCOP(PBB) (PBB->scop)
+#define PBB_DOMAIN(PBB) (PBB->domain)
+#define PBB_BLACK_BOX(PBB) (PBB->black_box)
+#define PBB_LOOPS(PBB) (PBB->loops)
+#define PBB_TRANSFORMED_SCATTERING(PBB) (PBB->transformed_scattering)
+#define PBB_ORIGINAL_SCATTERING(PBB) (PBB->original_scattering)
 
 extern void new_poly_bb (scop_p, gimple_bb_p);
 extern void free_poly_bb (poly_bb_p);
@@ -132,11 +291,9 @@ extern void debug_pbb_domain (poly_bb_p);
 extern void debug_pbb (poly_bb_p);
 extern void debug_scop (scop_p);
 
-static inline unsigned scop_nb_params (scop_p);
-
 /* The number of loops around PBB.  */
 
-static inline int
+static inline graphite_dim_t
 pbb_nb_loops (const struct poly_bb *pbb)
 {
   scop_p scop = PBB_SCOP (pbb);
@@ -148,7 +305,7 @@ pbb_nb_loops (const struct poly_bb *pbb)
 
 /* The number of scattering dimensions in PBB.  */
 
-static inline int
+static inline graphite_dim_t 
 pbb_nb_scattering (const struct poly_bb *pbb)
 {
   scop_p scop = PBB_SCOP (pbb);
@@ -156,6 +313,15 @@ pbb_nb_scattering (const struct poly_bb *pbb)
 
   ppl_Polyhedron_space_dimension (PBB_TRANSFORMED_SCATTERING (pbb), &dim);
   return dim - pbb_nb_loops (pbb) - scop_nb_params (scop);
+}
+
+/* The number of params defined in PBB.  */
+static inline graphite_dim_t
+pbb_nb_params (poly_bb_p pbb)
+{
+  scop_p scop = PBB_SCOP (pbb); 
+
+  return scop_nb_params (scop);
 }
 
 /* Returns the gimple loop, that corresponds to the loop_iterator_INDEX.  
@@ -217,7 +383,7 @@ extern int unify_scattering_dimensions (scop_p);
 
 /* Returns the number of parameters for SCOP.  */
 
-static inline unsigned
+static inline graphite_dim_t
 scop_nb_params (scop_p scop)
 {
   return sese_nb_params (SCOP_REGION (scop));
@@ -225,7 +391,7 @@ scop_nb_params (scop_p scop)
 
 /* Calculate the number of loops around GB in the current SCOP.  */
 
-static inline int
+static inline graphite_dim_t
 nb_loops_around_pbb (poly_bb_p pbb)
 {
   return nb_loops_around_loop_in_sese (gbb_loop (PBB_BLACK_BOX (pbb)),

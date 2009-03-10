@@ -1,3 +1,16 @@
+2009-03-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (unify_scattering_dimensions): Fix types.
+	* graphite-poly.h (poly_dr_p, poly_dr, POLY_DR_TYPE, PDR_BB,
+	PDR_TYPE, PDR_ACCESSES, pdr_accessp_nb_subscripts,
+	pdr_accessp_nb_iterators, pdr_accessp_nb_params,
+	pdr_accessp_alias_set_dim, pdr_accessp_subscript_dim,
+	pdr_accessp_iterator_dim, pdr_accessp_param_dim,
+	pbb_nb_params): New.
+	(pbb_nb_loops, pbb_nb_scattering, scop_nb_params,
+	nb_loops_around_pbb): Adapt return types.
+
 2009-03-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* Makefile.in (graphite.o, graphite-sese-to-poly.o,

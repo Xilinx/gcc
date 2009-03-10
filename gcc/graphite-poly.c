@@ -119,7 +119,7 @@ unify_scattering_dimensions (scop_p scop)
 {
   int i;
   poly_bb_p pbb;
-  int max_scattering = 0;
+  graphite_dim_t max_scattering = 0;
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     max_scattering = MAX (pbb_nb_scattering (pbb), max_scattering);
