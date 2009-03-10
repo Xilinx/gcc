@@ -713,6 +713,52 @@
 (install_method class_srcpattern_instance normal_pattern normpat_instancepat)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; normalize an and of subpatterns
+(defun normpat_andpat (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_andpat recv")
+  (debug_msg nmatch "normpat_andpat nmatch")
+  (debug_msg pcn "normpat_andpat pcn")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_and))
+  (let (
+	(sloc (get_field :src_loc recv))
+	(conjpats (get_field :andpat_conj recv))
+	(curhdler hdler)
+	(testercont (instance class_container))
+	(subhdler (lambda (newtester) (set_newtester_lastthen newtester testercont)))
+	)
+    (foreach_in_multiple 
+     (conjpats)
+     (subpat :long subix)
+     (debug_msg subpat "normpat_andpat subpat")
+     (normal_pattern subpat nmatch curhdler pcn)
+     (setq curhdler
+	   (lambda (newtester) 
+	     (set_newtester_lastthen newtester testercont)))
+     )
+    (assert_msg "normpat_andpat not fully unimplemented" ())
+    (compile_warning "normpat_andpat not fully unimplemented" ())
+    )
+  )
+(install_method class_srcpattern_and normal_pattern normpat_andpat)
+
+;;; normalize an or of subpatterns
+(defun normpat_orpat (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_orpat recv")
+  (debug_msg nmatch "normpat_orpat nmatch")
+  (debug_msg pcn "normpat_orpat pcn")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_or))
+  (assert_msg "normpat_orpat unimplemented" ())
+  (compile_warning "normpat_orpat unimplemented" ())
+)
+(install_method class_srcpattern_or normal_pattern normpat_orpat)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;

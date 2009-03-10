@@ -1741,7 +1741,7 @@ basilys_make_raw_object(basilys_ptr_t klas, int len, const char*clanam) {
 ((basilysobject_ptr_t)(Obj))->obj_vartab[Off] = (basilys_ptr_t)(Val);	\
 }while(0)
 #define basilys_make_raw_object(Klas,Len) ((basilys_ptr_t)basilysgc_new_raw_object(Klas,Len))
-#define basilys_raw_object_create(Newobj,Klas,Len,Clanam) do { 
+#define basilys_raw_object_create(Newobj,Klas,Len,Clanam) do { \
   Newobj = basilys_make_raw_object(Klas,Len,Clanam); } while(0)
 #endif
 

@@ -2576,7 +2576,6 @@
 	  )
       (add2sbuf_strconst sbuf ",..")
       )
-    (compile_warning "need to print the mixedloc" ())
     (add2sbuf_strconst sbuf "]")
     ))
 (install_method discr_mixedloc dbg_output dbgout_mixloc_method)

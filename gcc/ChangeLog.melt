@@ -1,4 +1,12 @@
 2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: missing backslash in basilys_raw_object_create macro
+	when checking is disabled.
+	* melt/warmelt-first.bysl: removed compile_warning about printing
+	mixlocs.
+	* melt/warmelt-normatch.bysl: added normapth of or & and subpatterns.
+	[incomplete].
+	* melt/ana-base.bysl: adding tree_block cmatcher.
+2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmatch-3.bysl compiles ok; we have probably a bug when a symbol
 	is lexically rebound in an inner scope...  perhaps nested
 	foreach_in_multiple with same index variable are miscompiled]

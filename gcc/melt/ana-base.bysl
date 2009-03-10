@@ -138,7 +138,7 @@
   (:tree tr)
   (:cstring varname
    )
-  treevar
+  treevar				;statesym
   (; test expansion
    "((" tr ") && TREE_CODE(" tr ") == VAR_DECL)"
    )
@@ -148,6 +148,21 @@
    varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
 )
 	   
+;; pattern tree_block matches a block
+(defcmatcher tree_block 
+  (:tree tr)
+  (					;output
+   :tree trvars  trsubblocks 	 
+   )
+  treeblock				;statesym
+  (; test expander
+   "((" tr ") && TREE_CODE(" tr ") == BLOCK)"
+   )
+  (; fill expander
+   trvars "= BLOCK_VARS(" tr "); "
+   trsubblocks "=BLOCK_SUBBLOCKS(" tr ");"  
+   ))
+  
 (defprimitive is_basicblock (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
 
@@ -395,6 +410,10 @@
   " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
 )
+
+(defprimitive debugtreecode (:cstring msg :tree tr) :void
+  "debugeprintf(\"debugtreecode %s @%p %s\", " msg ", (void*)" tr ", "
+  "(" tr ")?tree_code_name[TREE_CODE(" tr ")]:\"*niltree*\");")
 
 (defprimitive debuggimple(:cstring msg :gimple g) :void
   " do{debugeprintf(\"debuggimple %s @%p\", " msg ", (void*)" g ");"
@@ -714,6 +733,7 @@
      ( ?(tree_function_decl ?funam ?initree)
 	(debug_msg declv "smallana_cfun_entrybb decl of function")
 	(debugtree "smallana_cfun_entrybb initree of function" initree)
+	(debugtreecode "smallana_cfun_entrybb initree/cod of function" initree)
 	(let ( (scf (instance class_smallcfun
 			      :named_name (make_stringconst discr_string funam)
 			      :scfun_decl declv
