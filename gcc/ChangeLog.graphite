@@ -1,6 +1,12 @@
 2009-03-10  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-ppl.c (ppl_insert_dimensions): Fix stupid mistake
+	of the use of ppl_Polyhedron_map_space_dimensions.
+
+2009-03-10  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (unify_scattering_dimensions): Fix types.
 	* graphite-poly.h (poly_dr_p, poly_dr, POLY_DR_TYPE, PDR_BB,
 	PDR_TYPE, PDR_ACCESSES, pdr_accessp_nb_subscripts,

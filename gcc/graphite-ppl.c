@@ -291,7 +291,10 @@ set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
    
    is transformed to
    
-   |  d0 d1 d2 x0 x1 x2 x3 d3 d4  */
+   |  d0 d1 d2 x0 x1 x2 x3 d3 d4 
+
+   | map = {0, 1, 2, 7, 8, 3, 4, 5, 6}
+*/
 
 void
 ppl_insert_dimensions (ppl_Polyhedron_t ph, int x,
@@ -311,9 +314,9 @@ ppl_insert_dimensions (ppl_Polyhedron_t ph, int x,
   for (i = 0; i < x_ppl; i++)
     map[i] = i;
   for (i = x_ppl; i < x_ppl + nb_new_dims_ppl; i++)
-    map[i] = dim + i - x_ppl;
+    map[dim + i - x_ppl] = i;
   for (i = x_ppl + nb_new_dims_ppl ; i < dim + nb_new_dims_ppl; i++)
-    map[i] = i - nb_new_dims_ppl;
+    map[i - nb_new_dims_ppl] = i;
 
   ppl_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
   free (map);
