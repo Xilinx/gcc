@@ -1,5 +1,26 @@
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts,
+	build_iv_mapping, compute_cloog_iv_types_1, build_cloog_prog): 
+	pbb_loop_at_index -> gbb_loop_at_index.
+	* graphite-poly.c (new_poly_bb, new_scop): New accessors.
+	(debug_loop_vec): Delete.
+	* graphite-poly.h (poly_bb, scop): Change black_box and region to void
+	pointer. Move LOOPS to gimple_bb_p and insert nb_params.
+	(PBB_LOOPS): Removed.
+	(PBB_BLACK_BOX): Insert cast.
+	(pbb_set_black_box): New setter.
+	(pbb_loop_at_index, pbb_loop_index): Removed.
+	(scop_set_region, scop_set_nb_params): New.
+	* graphite-sese-to-poly.c (new_gimple_bb, free_gimple_bb,
+	build_scop_scattering, build_bb_loops,): Add
+	GBB_LOOPS.
+	(build_poly_scop): Use scop_set_nb_params.
+	* sese.h (gimple_bb): Add LOOPS.
+	(GBB_LOOPS, gbb_loop_index, gbb_loop_at_index): New.
+	
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	Revert previous commit.
 
 2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>

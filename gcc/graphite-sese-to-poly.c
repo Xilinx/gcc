@@ -115,6 +115,7 @@ new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
+  GBB_LOOPS (gbb) = NULL;
  
   return gbb;
 }
@@ -132,6 +133,7 @@ free_gimple_bb (struct gimple_bb *gbb)
 
      free_data_refs (GBB_DATA_REFS (gbb)); */
 
+  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
   GBB_BB (gbb)->aux = 0;
@@ -455,11 +457,12 @@ build_scop_scattering (scop_p scop)
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     {
+      gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
       ppl_Linear_Expression_t common;
-      int prefix = compare_prefix_loops (loops_previous, PBB_LOOPS (pbb));
+      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gbb));
       int nb_scat_dims = pbb_nb_loops (pbb) * 2 + 1;
 
-      loops_previous = PBB_LOOPS (pbb);
+      loops_previous = GBB_LOOPS (gbb);
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression (common,
 							   static_schedule);
@@ -492,17 +495,18 @@ build_bb_loops (scop_p scop)
     {
       loop_p loop;
       int depth; 
+      gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
-      depth = nb_loops_around_pbb (pbb) - 1; 
+      loop = GBB_BB (gbb)->loop_father;  
+      depth = sese_loop_depth (SCOP_REGION (scop), loop); 
 
-      PBB_LOOPS (pbb) = VEC_alloc (loop_p, heap, 3);
-      VEC_safe_grow_cleared (loop_p, heap, PBB_LOOPS (pbb), depth + 1);
+      GBB_LOOPS (gbb) = VEC_alloc (loop_p, heap, 3);
+      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gbb), depth + 1);
 
-      loop = GBB_BB (PBB_BLACK_BOX (pbb))->loop_father;  
 
       while (sese_contains_loop (SCOP_REGION(scop), loop))
         {
-          VEC_replace (loop_p, PBB_LOOPS (pbb), depth, loop);
+          VEC_replace (loop_p, GBB_LOOPS (gbb), depth, loop);
           loop = loop_outer (loop);
           depth--;
         }
@@ -1382,14 +1386,16 @@ build_scop_data_accesses (scop_p scop)
 bool
 build_poly_scop (scop_p scop)
 {
+  sese region = SCOP_REGION (scop);
   build_scop_bbs (scop);
-  build_sese_loop_nests (SCOP_REGION (scop));
+  build_sese_loop_nests (region);
   if (scop_contains_non_iv_scalar_phi_nodes (scop))
     return false;
 
   build_bb_loops (scop);
-  build_sese_conditions (SCOP_REGION (scop));
+  build_sese_conditions (region);
   find_scop_parameters (scop);
+  scop_set_nb_params (scop, sese_nb_params (region));
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);

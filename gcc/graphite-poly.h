@@ -193,7 +193,7 @@ pdr_accessp_param_dim (poly_dr_p pdr, graphite_dim_t param)
 
 struct poly_bb 
 {
-  gimple_bb_p black_box;
+  void *black_box;
 
   scop_p scop;
 
@@ -219,53 +219,6 @@ struct poly_bb
      related to the number of loops in the original code.  */
   ppl_Polyhedron_t domain;
 
-  /* LOOPS contains for every column in the graphite domain the corresponding
-     gimple loop.  If there exists no corresponding gimple loop LOOPS contains
-     NULL. 
-  
-     Example:
-
-     Original code:
-
-     for (i = 0; i <= 20; i++) 
-       for (j = 5; j <= 10; j++)
-         A
-
-     Original domain:
-
-     |  i >= 0
-     |  i <= 20
-     |  j >= 0
-     |  j <= 10
-
-     This is a two dimensional domain with "Loop i" represented in
-     dimension 0, and "Loop j" represented in dimension 1.  Original
-     loops vector:
-
-     | 0         1 
-     | Loop i    Loop j
-
-     After some changes (Exchange i and j, strip-mine i), the domain
-     is:
-
-     |  i >= 0
-     |  i <= 20
-     |  j >= 0
-     |  j <= 10
-     |  ii <= i
-     |  ii + 1 >= i 
-     |  ii <= 2k
-     |  ii >= 2k 
-
-     Iterator vector:
-     | 0        1        2         3
-     | Loop j   NULL     Loop i    NULL
-    
-     Means the original loop i is now on dimension 2 of the domain and
-     loop j in the original loop nest is now on dimension 0.
-     Dimensions 1 and 3 represent the newly created loops.  */
-  VEC (loop_p, heap) *loops;
-
   /* The scattering function containing the transformations.  */
   ppl_Polyhedron_t transformed_scattering;
 
@@ -275,12 +228,11 @@ struct poly_bb
 
 #define PBB_SCOP(PBB) (PBB->scop)
 #define PBB_DOMAIN(PBB) (PBB->domain)
-#define PBB_BLACK_BOX(PBB) (PBB->black_box)
-#define PBB_LOOPS(PBB) (PBB->loops)
+#define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
 #define PBB_TRANSFORMED_SCATTERING(PBB) (PBB->transformed_scattering)
 #define PBB_ORIGINAL_SCATTERING(PBB) (PBB->original_scattering)
 
-extern void new_poly_bb (scop_p, gimple_bb_p);
+extern void new_poly_bb (scop_p, void *);
 extern void free_poly_bb (poly_bb_p);
 extern void debug_loop_vec (poly_bb_p);
 extern void schedule_to_scattering (poly_bb_p, int);
@@ -290,6 +242,14 @@ extern void print_scop (FILE *, scop_p);
 extern void debug_pbb_domain (poly_bb_p);
 extern void debug_pbb (poly_bb_p);
 extern void debug_scop (scop_p);
+
+/* Set black box of PBB to BLACKBOX.  */
+
+static inline void
+pbb_set_black_box (poly_bb_p pbb, void *black_box)
+{
+  pbb->black_box = black_box;
+}
 
 /* The number of loops around PBB.  */
 
@@ -316,6 +276,7 @@ pbb_nb_scattering (const struct poly_bb *pbb)
 }
 
 /* The number of params defined in PBB.  */
+
 static inline graphite_dim_t
 pbb_nb_params (poly_bb_p pbb)
 {
@@ -324,36 +285,15 @@ pbb_nb_params (poly_bb_p pbb)
   return scop_nb_params (scop);
 }
 
-/* Returns the gimple loop, that corresponds to the loop_iterator_INDEX.  
-   If there is no corresponding gimple loop, we return NULL.  */
-
-static inline loop_p
-pbb_loop_at_index (poly_bb_p pbb, int index)
-{
-  return VEC_index (loop_p, PBB_LOOPS (pbb), index);
-}
-
-/* Returns the index of LOOP in the loop nest around GB.  */
-
-static inline int
-pbb_loop_index (poly_bb_p pbb, loop_p loop)
-{
-  int i;
-  loop_p l;
-
-  for (i = 0; VEC_iterate (loop_p, PBB_LOOPS (pbb), i, l); i++)
-    if (loop == l)
-      return i;
-
-  gcc_unreachable();
-}
-
 /* A SCOP is a Static Control Part of the program, simple enough to be
    represented in polyhedral form.  */
 struct scop
 {
   /* A SCOP is defined as a SESE region.  */
-  sese region;
+  void *region;
+
+  /* Number of parameters in SCoP.  */
+  graphite_dim_t nb_params;
 
   /* All the basic blocks in this scop that contain memory references
      and that will be represented as statements in the polyhedral
@@ -364,11 +304,11 @@ struct scop
   struct graph *dep_graph;
 };
 
-#define SCOP_BBS(S) S->bbs
-#define SCOP_REGION(S) S->region
+#define SCOP_BBS(S) (S->bbs)
+#define SCOP_REGION(S) ((sese) S->region)
 #define SCOP_DEP_GRAPH(S) (S->dep_graph)
 
-extern scop_p new_scop (sese);
+extern scop_p new_scop (void *);
 extern void free_scop (scop_p);
 extern void free_scops (VEC (scop_p, heap) *);
 extern void print_generated_program (FILE *, scop_p);
@@ -378,24 +318,31 @@ extern void print_scattering_functions (FILE *, scop_p);
 extern void debug_scattering_function (poly_bb_p);
 extern void debug_scattering_functions (scop_p);
 extern int scop_max_loop_depth (scop_p);
-extern bool apply_poly_transforms (scop_p);
 extern int unify_scattering_dimensions (scop_p);
+extern bool apply_poly_transforms (scop_p);
+
+/* Set the region of SCOP to REGION.  */
+
+static inline void 
+scop_set_region (scop_p scop, void *region)
+{
+  scop->region = region;
+}
 
 /* Returns the number of parameters for SCOP.  */
 
 static inline graphite_dim_t
 scop_nb_params (scop_p scop)
 {
-  return sese_nb_params (SCOP_REGION (scop));
+  return scop->nb_params;
 }
 
-/* Calculate the number of loops around GB in the current SCOP.  */
+/* Set the number of params of SCOP to NB_PARAMS.  */
 
-static inline graphite_dim_t
-nb_loops_around_pbb (poly_bb_p pbb)
+static inline void
+scop_set_nb_params (scop_p scop, graphite_dim_t nb_params)
 {
-  return nb_loops_around_loop_in_sese (gbb_loop (PBB_BLACK_BOX (pbb)),
-				       SCOP_REGION (PBB_SCOP (pbb)));
+  scop->nb_params = nb_params;
 }
 
 #endif

@@ -232,14 +232,13 @@ apply_poly_transforms (scop_p scop)
 /* Create a new polyhedral black box.  */
 
 void
-new_poly_bb (scop_p scop, gimple_bb_p black_box)
+new_poly_bb (scop_p scop, void *black_box)
 {
   poly_bb_p pbb = XNEW (struct poly_bb);
 
-  PBB_LOOPS (pbb) = NULL;
   ppl_new_NNC_Polyhedron_from_space_dimension (&PBB_DOMAIN (pbb), 0, 0);
   PBB_SCOP (pbb) = scop;
-  PBB_BLACK_BOX (pbb) = black_box;
+  pbb_set_black_box (pbb, black_box);
   PBB_TRANSFORMED_SCATTERING (pbb) = NULL;
   PBB_ORIGINAL_SCATTERING (pbb) = NULL;
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
@@ -258,20 +257,18 @@ free_poly_bb (poly_bb_p pbb)
   if (PBB_ORIGINAL_SCATTERING (pbb))
     ppl_delete_Polyhedron (PBB_ORIGINAL_SCATTERING (pbb));
 
-  VEC_free (loop_p, heap, PBB_LOOPS (pbb));
-
   XDELETE (pbb);
 }
 
 /* Creates a new SCOP containing REGION.  */
 
 scop_p
-new_scop (sese region)
+new_scop (void *region)
 {
   scop_p scop = XNEW (struct scop);
 
   SCOP_DEP_GRAPH (scop) = NULL;
-  SCOP_REGION (scop) = region;
+  scop_set_region (scop, region);
   SCOP_BBS (scop) = VEC_alloc (poly_bb_p, heap, 3);
 
   return scop;
@@ -291,22 +288,6 @@ free_scop (scop_p scop)
   VEC_free (poly_bb_p, heap, SCOP_BBS (scop));
 
   XDELETE (scop);
-}
-
-/* Debug the loops around basic block GB.  */
-
-void
-debug_loop_vec (poly_bb_p pbb)
-{
-  int i;
-  loop_p loop;
-
-  fprintf (stderr, "Loop Vec:");
-
-  for (i = 0; VEC_iterate (loop_p, PBB_LOOPS (pbb), i, loop); i++)
-    fprintf (stderr, "%d: %d, ", i, loop ? loop->num : -1);
-
-  fprintf (stderr, "\n");
 }
 
 /* Print to FILE the domain of PBB.  */
