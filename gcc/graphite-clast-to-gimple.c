@@ -479,8 +479,9 @@ graphite_create_new_loop (sese region, edge entry_edge,
 }
 
 /* Inserts in MAP a tuple (OLD_NAME, NEW_NAME) for the induction
-   variables of the loops around GBB in SESE.  NEW_NAME is obtained
-   from IVSTACK.  */
+   variables of the loops around GBB in SESE, i.e. GBB_LOOPS.
+   NEW_NAME is obtained from IVSTACK.  IVSTACK has the same stack
+   ordering as GBB_LOOPS.  */
 
 static void
 build_iv_mapping (loop_iv_stack ivstack, htab_t map, poly_bb_p pbb,
@@ -488,27 +489,26 @@ build_iv_mapping (loop_iv_stack ivstack, htab_t map, poly_bb_p pbb,
 {
   int i;
   name_tree iv;
-  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
-  struct rename_map_elt tmp;
   PTR *slot;
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
 
   for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
     {
-      tree old_name, new_name;
+      struct rename_map_elt tmp;
 
       if (!flow_bb_inside_loop_p (iv->loop, GBB_BB (gbb)))
 	continue;
 
-      old_name = iv->t;
-      tmp.old_name = old_name;
+      tmp.old_name = iv->t;
       slot = htab_find_slot (map, &tmp, INSERT);
 
-      if (*slot)
-	free (*slot);
+      if (!*slot)
+	{
+	  tree new_name = loop_iv_stack_get_iv (ivstack, 
+						pbb_loop_index (pbb, iv->loop));
 
-      new_name = loop_iv_stack_get_iv (ivstack,
-				       pbb_loop_index (pbb, iv->loop));
-      *slot = new_rename_map_elt (old_name, new_name);
+	  *slot = new_rename_map_elt (iv->t, new_name);
+	}
     }
 }
 
@@ -540,25 +540,22 @@ copy_renames (void **slot, void *s)
    - CONTEXT_LOOP is the loop in which the generated code will be placed
    - IVSTACK contains the surrounding loops around the statement to be
      translated.
-   - RENAME_MAP contains a set of tuples of new names associated to
-     the original variables names.
 */
 
 static edge
 translate_clast (sese region, struct loop *context_loop,
-		 struct clast_stmt *stmt, edge next_e, loop_iv_stack ivstack,
-		 htab_t rename_map)
+		 struct clast_stmt *stmt, edge next_e, loop_iv_stack ivstack)
 {
   if (!stmt)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
-    return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			    rename_map);
+    return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
       gimple_bb_p gbb;
+      htab_t map;
       CloogStatement *cs = ((struct clast_user_stmt *) stmt)->statement;
       poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
       gbb = PBB_BLACK_BOX (pbb);
@@ -566,16 +563,17 @@ translate_clast (sese region, struct loop *context_loop,
       if (GBB_BB (gbb) == ENTRY_BLOCK_PTR)
 	return next_e;
 
+      map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
       loop_iv_stack_patch_for_consts (ivstack, (struct clast_user_stmt *) stmt);
-      build_iv_mapping (ivstack, rename_map, pbb, region);
+      build_iv_mapping (ivstack, map, pbb, region);
       next_e = copy_bb_and_scalar_dependences (GBB_BB (gbb), region,
-					       next_e, rename_map);
+					       next_e, map);
+      htab_delete (map);
       loop_iv_stack_remove_constants (ivstack);
       update_ssa (TODO_update_ssa);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			      rename_map);
+      return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_for))
@@ -586,18 +584,17 @@ translate_clast (sese region, struct loop *context_loop,
       edge last_e = single_exit (loop);
 
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
-				single_pred_edge (loop->latch), ivstack,
-				rename_map);
+				single_pred_edge (loop->latch), ivstack);
       redirect_edge_succ_nodup (next_e, loop->latch);
 
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
       last_e = single_succ_edge (split_edge (last_e));
       insert_loop_close_phis (region, last_e->src);
+
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
-			      rename_map);
+      return translate_clast (region, context_loop, stmt->next, last_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
@@ -617,26 +614,24 @@ translate_clast (sese region, struct loop *context_loop,
 
       next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
-				true_e, ivstack, rename_map);
+				true_e, ivstack);
       insert_guard_phis (region, last_e->src, exit_true_e, exit_false_e,
 			 liveout_before_guard);
       htab_delete (liveout_before_guard);
       recompute_all_dominators ();
       graphite_verify ();
 
-      return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
-			      rename_map);
+      return translate_clast (region, context_loop, stmt->next, last_e, ivstack);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_block))
     {
       next_e = translate_clast (region, context_loop,
 				((struct clast_block *) stmt)->body,
-				next_e, ivstack, rename_map);
+				next_e, ivstack);
       recompute_all_dominators ();
       graphite_verify ();
-      return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			      rename_map);
+      return translate_clast (region, context_loop, stmt->next, next_e, ivstack);
     }
 
   gcc_unreachable ();
@@ -1129,7 +1124,7 @@ gloog (scop_p scop)
   loop_p context_loop;
   sese region = SCOP_REGION (scop);
   ifsese if_region = NULL;
-  htab_t rename_map;
+
   cloog_prog_clast pc = scop_to_clast (scop);
 
   build_graphite_loop_normal_form (region);
@@ -1150,11 +1145,9 @@ gloog (scop_p scop)
   context_loop = SESE_ENTRY (region)->src->loop_father;
   compute_cloog_iv_types (pc.stmt);
 
-  rename_map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
-					&ivstack, rename_map);
-  htab_delete (rename_map);
+					&ivstack);
   free_loop_iv_stack (&ivstack);
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);

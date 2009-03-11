@@ -1,3 +1,7 @@
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	Revert previous commit.
+
 2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* sese.c (expand_scalar_variables_expr): Handle tcc_comparison.
