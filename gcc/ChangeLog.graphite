@@ -1,3 +1,7 @@
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	Remove forgotten line in revert. 
+
 2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>
 
 	Revert previous commit.

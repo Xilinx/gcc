@@ -592,8 +592,6 @@ translate_clast (sese region, struct loop *context_loop,
       last_e = single_succ_edge (split_edge (last_e));
       insert_loop_close_phis (region, last_e->src);
 
-      rename_variables (last_e->src, rename_map);
-
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, last_e, ivstack);
