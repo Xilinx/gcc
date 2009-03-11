@@ -562,6 +562,31 @@
 )
 (install_method class_srcpattern_jokervar normal_pattern normpat_jokerpat)
 
+
+;; normalize the null 
+(defun normpat_null (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_null recv")
+  (debug_msg nmatch "normpat_null nmatch")
+  (assert_msg "check null recv" (null recv))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let ( 
+	 (psloc (get_field :src_loc (get_field :pctn_src pcn)))
+	 (newtester (instance class_normtester_same
+			      :nrep_loc psloc
+			      :ntest_matched nmatch
+			      :ntest_then ()
+			      :ntest_else ()
+			      :ntest_locclist ()
+			      :ntest_comefrom (make_list discr_list)
+			      :ntsame_identical ()))
+	 )
+    (debug_msg newtester "normpat_null newtester")
+    (register_new_normtester newtester pcn)
+    (debug_msg newtester "normpat_null newtester")
+    (hdler newtester)
+    ))
+(install_method discr_nullrecv normal_pattern normpat_null)
+
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;; normalize instance pattern

@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 int *
-alloctab (int n)
+alloctab (int n, int y)
 {
   int i = 0;
   int *p = NULL;
@@ -21,7 +21,7 @@ alloctab (int n)
     return NULL;
   p = calloc ((size_t) n, sizeof (int));
   for (i = 0; i < n; i++)
-    p[i] = i * 2;
+    p[i] = i * 2 + y;
   return p;
 }
 
@@ -31,7 +31,7 @@ main (void)
   int j;
   int k = 10;
   int *t = NULL;
-  t = alloctab (k);
+  t = alloctab (k, 17);
   for (j=0; j<k; j+=2) 
     t[j] *= 2;
   /* following instruction access t out of bounds */

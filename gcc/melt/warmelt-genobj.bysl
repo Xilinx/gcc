@@ -4076,6 +4076,7 @@
 	(normatch (unsafe_get_field :ntest_normatch nt))
 	(matchmap (unsafe_get_field :gncx_matchmap gcx))
 	)
+    (debug_msg normatch "normtester_gotoinstr normatch")
     (assert_msg "check normatch" (is_a normatch class_nrep_match))
     (assert_msg "check valid normatch" 
 		(== (multiple_nth (get_field :nmatch_tests normatch) 

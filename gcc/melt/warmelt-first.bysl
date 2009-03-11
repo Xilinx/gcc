@@ -676,6 +676,8 @@
   "basilys_dbgshortbacktrace((" msg "), (" maxdepth "))")
 (defprimitive checkval_dbg (val :cstring msg) :value
   "basilys_checked_assignmsg((" val "),(" msg "))")
+(defprimitive debugcstring (:cstring msg str) :void
+  "debugeprintf(\"debugcstring %s '%s'\", " msg ", " str ")")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; STRBUF primitives
@@ -3706,6 +3708,7 @@
  create_keywordstr
  create_symbolstr
  discrim
+ debugcstring
  error_plain
  error_strv
  errormsg_plain

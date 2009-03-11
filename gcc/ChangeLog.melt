@@ -1,3 +1,10 @@
+2009-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmallbuf.c: alloctab has two arguments.
+	* melt/warmelt-first.bysl: added debugcstring.
+	* melt/warmelt-normatch.bysl: added normat_null [incomplete].
+	* melt/warmelt-genobj.bysl: added debug_msg in normtester_gotoinstr.
+	* melt/ana-base.bysl: added tree_parm_decl tree_integer_type cmatchers
+	& each_arg_in_fundecl citerator.
 2009-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: missing backslash in basilys_raw_object_create macro
 	when checking is disabled.

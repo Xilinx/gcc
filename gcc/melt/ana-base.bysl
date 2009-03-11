@@ -112,6 +112,10 @@
   msg ");"
 )
 
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
 ;; pattern (tree_function_decl <funame> <initialtree>) match a tree for a function
 ;; declaration
 (defcmatcher tree_function_decl 
@@ -127,12 +131,13 @@
   (;; fill expansion
    funame "=NULL; "
    initialdcl "=NULL; "
-   "if (DECL_NAME(" tr ")) "
+   "if (DECL_NAME(" tr "))"
    funame "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); "
    initialdcl  "=DECL_INITIAL(" tr "); "
    )
 )
 
+;;;;;;;;;;;;;;;;
 ;; similarily pattern (tree_variable_decl <funame>)
 (defcmatcher tree_variable_decl 
   (:tree tr)
@@ -148,6 +153,7 @@
    varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
 )
 	   
+;;;;;;;;;;;;;;;;
 ;; pattern tree_block matches a block
 (defcmatcher tree_block 
   (:tree tr)
@@ -162,6 +168,50 @@
    trvars "= BLOCK_VARS(" tr "); "
    trsubblocks "=BLOCK_SUBBLOCKS(" tr ");"  
    ))
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_parm_decl matches a formal parameter declaration
+(defcmatcher tree_parm_decl 
+  (:tree tr)
+  (					;output
+   :tree trargtype  
+   :cstring name
+   )
+  treeparmdecl				;statesym
+  (; test expander
+   "((" tr ") && TREE_CODE(" tr ") == PARM_DECL)"
+   )
+  (; fill expander
+   trargtype "= DECL_ARG_TYPE(" tr "); \n"
+   name "= DECL_NAME(" tr ") ? IDENTIFIER_POINTER(DECL_NAME(" tr ")) : NULL;\n"
+   ))
+
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_integer_type
+(defcmatcher tree_integer_type 
+  (:tree tr)
+  (					;output
+   :cstring name
+   :long min max
+   )
+  treeinty				;statesym
+  (; test expander
+   "((" tr ") && TREE_CODE(" tr ") == INTEGER_TYPE)"
+   )
+  (; fill expander
+   "tree " treeinty "_ty=TYPE_NAME(" tr ");\n"
+   "tree " treeinty "_mint=TYPE_MIN_VALUE(" tr ");\n"
+   "tree " treeinty "_maxt=TYPE_MAX_VALUE(" tr ");\n"
+   "if (" treeinty "_ty && TREE_CODE(" treeinty ") == IDENTIFIER)\n" 
+   nam " = IDENTIFIER_POINTER("treeinty "_ty);\n"
+   "if (" treeinty "_mint && TREE_CODE(" treeinty "_mint) == INTEGER_CST)\n"
+   min " = tree_low_cst(" treeinty "_mint);"
+   "if (" treeinty "_maxt && TREE_CODE(" treeinty "_maxt) == INTEGER_CST)\n"
+   max " = tree_low_cst(" treeinty "_maxt);"
+   ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
 (defprimitive is_basicblock (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
@@ -555,6 +605,26 @@
      (f gplval)))
    )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
+;;;; iterate on a function arguments
+(defciterator each_arg_in_fundecl
+  ( :tree fundeclt )			;start formals
+  eachargfundecl
+  ( :tree argdclt )				;local formals
+  ( ;;; before expansion
+   "/*eacharginfunctiondecl*/"
+   "tree " eachargfundecl "_tr=NULL;\n"
+   "if ((" fundeclt ") && TREE_CODE(" fundeclt ") == FUNCTION_DECL)\n"
+   "for (" eachargfundecl "_tr = DECL_ARGUMENTS(" fundeclt "); "
+           eachargfundecl "_tr != NULL;"
+           eachargfundecl "_tr = TREE_CHAIN(" eachargfundecl "_tr)) {\n"
+	   argdclt " = " eachargfundecl "_tr;" 
+   )
+  ( ;;; after expansion
+   "}/*end eacharginfunctiondecl*/ "
+   )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; our simple analysis gate for ipa
 (defun simpana_ipagate (ipapass)
@@ -730,10 +800,29 @@
   (let ( (:tree decltree (tree_content declv)) )
     (match 
      decltree
-     ( ?(tree_function_decl ?funam ?initree)
+     ;; the joker below is acutally nil
+     ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
 	(debug_msg declv "smallana_cfun_entrybb decl of function")
-	(debugtree "smallana_cfun_entrybb initree of function" initree)
-	(debugtreecode "smallana_cfun_entrybb initree/cod of function" initree)
+	(debugtree "smallana_cfun_entrybb treevars of function" treevars)
+	(debugtreecode "smallana_cfun_entrybb treevars/cod of function" treevars)
+
+	(each_arg_in_fundecl
+	 (decltree)
+	 (:tree argdtree)
+	 (debugtreecode  "smallana_cfun_entrybb argdecltree/cod" argdtree)
+	 (match 
+	  argdtree
+	  ( ?(tree_parm_decl ?argdtype ?argname)
+	    (debugtreecode "smallana_cfun_entrybb argdtype/cod" argdtype)
+	    (debugtree "smallana_cfun_entrybb argdtype" argdtype)
+	    (debugcstring "smallana_cfun_entrybb argname" argname)
+	    )
+	  ( ?_ 
+	    (assert_msg "unexpected argdtree" ())
+	    )
+	  )
+	 (debugtree "smallana_cfun_entrybb argdecltree" argdtree)
+	 )
 	(let ( (scf (instance class_smallcfun
 			      :named_name (make_stringconst discr_string funam)
 			      :scfun_decl declv
