@@ -1,3 +1,19 @@
+2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (expand_scalar_variables_expr): Handle tcc_comparison.
+	(register_old_and_new_names): Update the content of the map.
+	When there was already a rename_map_elt in the map at that
+	location, free it.
+	(copy_bb_and_scalar_dependences): Do rename_variables after
+	expand_scalar_variables.
+	* graphite-clast-to-gimple.c (build_iv_mapping): Update the content
+	of the map.  When there was already a rename_map_elt in the
+	map at that location, free it.
+	(translate_clast): Pass the rename_map.  Do not initialize and free
+	a rename_map per stmt_user.
+	(gloog): Initialize and free one rename_map and pass it to
+	translate_clast.
+
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	Remove forgotten line in revert. 
