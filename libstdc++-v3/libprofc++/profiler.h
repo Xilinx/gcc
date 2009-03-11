@@ -48,7 +48,9 @@ bool is_invalid();
 bool is_on();
 bool is_off();
 
-// Instrumentation hooks.
+// Instrumentation hooks.  Do not use them directly in instrumented headers.
+// Instead use the corresponding __profcxx_ wrapper declared below, to enable
+// compile-time on/off switching.
 void trace_hashtable_size_resize(const void*, size_t, size_t);
 void trace_hashtable_size_destruct(const void*, size_t, size_t);
 void trace_hashtable_size_construct(const void*, size_t);
@@ -63,6 +65,13 @@ void trace_vector_to_list_insert(const void*, size_t, size_t);
 void trace_vector_to_list_iterate(const void*, size_t);
 void trace_vector_to_list_invalid_operator(const void*);
 void trace_vector_to_list_resize(const void*, size_t, size_t);
+void trace_map_to_unordered_map_construct(const void*);
+void trace_map_to_unordered_map_invalidate(const void*);
+void trace_map_to_unordered_map_insert(const void*, size_t, size_t);
+void trace_map_to_unordered_map_erase(const void*, size_t, size_t);
+void trace_map_to_unordered_map_iterate(const void*, size_t);
+void trace_map_to_unordered_map_find(const void*, size_t);
+void trace_map_to_unordered_map_destruct(const void*);
 } // namespace cxxprof_runtime
 
 // Master switch turns on all diagnostics.
@@ -73,6 +82,7 @@ void trace_vector_to_list_resize(const void*, size_t, size_t);
 #define _GLIBCXX_PROFILE_VECTOR_TOO_LARGE
 #define _GLIBCXX_PROFILE_INEFFICIENT_HASH
 #define _GLIBCXX_PROFILE_VECTOR_TO_LIST
+#define _GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP
 #endif
 
 // Turn on/off instrumentation for HASHTABLE_TOO_SMALL and HASHTABLE_TOO_LARGE.
@@ -139,6 +149,33 @@ void trace_vector_to_list_resize(const void*, size_t, size_t);
 #define __profcxx_vector_iterate(x...)
 #define __profcxx_vector_invalid_operator(x...)
 #define __profcxx_vector_resize2(x...)
+#endif
+
+// Turn on/off instrumentation for MAP_TO_UNORDERED_MAP.
+#if (defined(_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP) \
+     && !defined(_NO_GLIBCXX_PROFILE_MAP_TO_UNORDERED_MAP))
+#define __profcxx_map_to_unordered_map_construct \
+  cxxprof_runtime::trace_map_to_unordered_map_construct
+#define __profcxx_map_to_unordered_map_destruct \
+  cxxprof_runtime::trace_map_to_unordered_map_destruct
+#define __profcxx_map_to_unordered_map_insert \
+  cxxprof_runtime::trace_map_to_unordered_map_insert
+#define __profcxx_map_to_unordered_map_insert \
+  cxxprof_runtime::trace_map_to_unordered_map_erase
+#define __profcxx_map_to_unordered_map_iterate \
+  cxxprof_runtime::trace_map_to_unordered_map_erase
+#define __profcxx_map_to_unordered_map_invalidate \
+  cxxprof_runtime::trace_map_to_unordered_map_invalidate
+#define __profcxx_map_to_unordered_map_find \
+  cxxprof_runtime::trace_map_to_unordered_map_find
+#else
+#define __profcxx_map_to_unordered_map_construct(x...) 
+#define __profcxx_map_to_unordered_map_destruct(x...)  
+#define __profcxx_map_to_unordered_map_insert(x...)
+#define __profcxx_map_to_unordered_map_erase(x...)
+#define __profcxx_map_to_unordered_map_iterate(x...)
+#define __profcxx_map_to_unordered_map_invalidate(x...)
+#define __profcxx_map_to_unordered_map_find(x...)
 #endif
 
 #endif // PROFCXX_PROFILER_H__

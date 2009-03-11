@@ -167,7 +167,6 @@ void trace_base<object_info, stack_info>::retire_object(object_t object)
         stack_table_byte_size += (sizeof(instruction_address_t) * stack->size()
                                   + sizeof(stack) + sizeof(stack_info));
         cxxprof_runtime::write(stdout, stack);
-        printf(" Adding to stack table.\n");
         stack_table.insert(make_pair(stack, stack_info(info)));
       } else {
         printf("Out of profiler memory: %s.\n", id);

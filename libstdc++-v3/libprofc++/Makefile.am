@@ -31,12 +31,14 @@ headers = \
     profiler.h \
 
 sources = \
-	profiler_node.cc \
+    profiler_node.cc \
     profiler_trace.cc \
     profiler_state.cc \
     profiler_container_size.cc \
     profiler_hashtable_size.cc \
-    profiler_vector_size.cc
+    profiler_vector_size.cc \
+    profiler_vector_to_list.cc \
+    profiler_map_to_unordered_map.cc
 
 libprofc___la_SOURCES = $(sources) $(c_sources)
 libprofc__convenience_la_SOURCES = $(sources) $(c_sources)

@@ -33,7 +33,7 @@
  *  This file is a GNU profile extension to the Standard C++ Library.
  */
 
-// Written by Johannes Singler.
+// Written by Lixia Liu
 
 #ifndef _GLIBCXX_PROFILE_BASE_H
 #define _GLIBCXX_PROFILE_BASE_H 1

@@ -35,6 +35,8 @@
 #ifndef _GLIBCXX_PROFILE_MAP_H
 #define _GLIBCXX_PROFILE_MAP_H 1
 
+//#include <profile/safe_sequence.h>
+//#include <profile/safe_iterator.h>
 #include <utility>
 
 namespace std
@@ -44,33 +46,257 @@ namespace __profile
   template<typename _Key, typename _Tp, typename _Compare = std::less<_Key>,
 	   typename _Allocator = std::allocator<std::pair<const _Key, _Tp> > >
     class map
-    : public _GLIBCXX_STD_PR::map<_Key, _Tp, _Compare, _Allocator>
+    : public _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator>
     {
       typedef _GLIBCXX_STD_D::map<_Key, _Tp, _Compare, _Allocator> _Base;
 
     public:
+      // types:
+      typedef _Key                                  key_type;
+      typedef _Tp                                   mapped_type;
+      typedef std::pair<const _Key, _Tp>            value_type;
+      typedef _Compare                              key_compare;
+      typedef _Allocator                            allocator_type;
+      typedef typename _Base::reference             reference;
+      typedef typename _Base::const_reference       const_reference;
+
+      typedef typename _Base::iterator       iterator;
+      typedef typename _Base::const_iterator       const_iterator;
+
+//       typedef __gnu_profile::_Safe_iterator<typename _Base::iterator, map>
+//                                                     iterator;
+//       typedef __gnu_profile::_Safe_iterator<typename _Base::const_iterator, map>
+//                                                     const_iterator;
+
+      typedef typename _Base::size_type             size_type;
+      typedef typename _Base::difference_type       difference_type;
+      typedef typename _Base::pointer               pointer;
+      typedef typename _Base::const_pointer         const_pointer;
+      typedef std::reverse_iterator<iterator>       reverse_iterator;
+      typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+
+      using _Base::value_compare;
+
+      // 23.3.1.1 construct/copy/destroy:
       explicit map(const _Compare& __comp = _Compare(),
-           const _Allocator& __a = _Allocator())
-      : _Base(__comp, __a) { }
+		   const _Allocator& __a = _Allocator())
+      : _Base(__comp, __a) {
+          __profcxx_map_to_unordered_map_construct(this);
+      }
 
       template<typename _InputIterator>
         map(_InputIterator __first, _InputIterator __last,
-        const _Compare& __comp = _Compare(),
-        const _Allocator& __a = _Allocator())
-    : _Base(__first, __last, __comp, __a) { }
+	    const _Compare& __comp = _Compare(),
+	    const _Allocator& __a = _Allocator())
+	: _Base(__first, __last, __comp, __a) {
+          __profcxx_map_to_unordered_map_construct(this);
+        }
 
       map(const map& __x)
-      : _Base(__x) { }
+      : _Base(__x) {
+          __profcxx_map_to_unordered_map_construct(this);
+      }
 
       map(const _Base& __x)
-      : _Base(__x) { }
+      : _Base(__x) {
+          __profcxx_map_to_unordered_map_construct(this);
+      }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       map(map&& __x)
       : _Base(std::forward<map>(__x))
-      { }
+      { this->_M_swap(__x); }
+
+      map(initializer_list<value_type> __l,
+	  const _Compare& __c = _Compare(),
+	  const allocator_type& __a = allocator_type())
+      : _Base(__l, __c, __a) { }
 #endif
-      ~map() { }
+
+      ~map() {
+          __profcxx_map_to_unordered_map_destruct(this);
+      }
+
+      map&
+      operator=(const map& __x)
+      {
+	*static_cast<_Base*>(this) = __x;
+	return *this;
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      map&
+      operator=(map&& __x)
+      {
+        // NB: DR 675.
+	clear();
+	swap(__x);
+	return *this;
+      }
+
+      map&
+      operator=(initializer_list<value_type> __l)
+      {
+	this->clear();
+	this->insert(__l);
+	return *this;
+      }
+#endif
+
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 133. map missing get_allocator()
+      using _Base::get_allocator;
+
+      // iterators:
+      iterator 
+      begin()
+      { return _Base::begin(); }
+
+      const_iterator
+      begin() const
+      { return _Base::begin(); }
+
+      iterator
+      end()
+      { return _Base::end(); }
+
+      const_iterator
+      end() const
+      { return _Base::end(); }
+
+      reverse_iterator
+      rbegin()
+      { 
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return reverse_iterator(end()); 
+      }
+
+      const_reverse_iterator
+      rbegin() const
+      {
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_reverse_iterator(end());
+      }
+
+      reverse_iterator
+      rend()
+      {
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return reverse_iterator(begin());
+      }
+
+      const_reverse_iterator
+      rend() const
+      {
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_reverse_iterator(begin());
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      const_iterator
+      cbegin() const
+      { return const_iterator(_Base::begin(), this); }
+
+      const_iterator
+      cend() const
+      { return const_iterator(_Base::end(), this); }
+
+      const_reverse_iterator
+      crbegin() const
+      {
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_reverse_iterator(end());
+      }
+
+      const_reverse_iterator
+      crend() const
+      {
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_reverse_iterator(begin());
+      }
+#endif
+
+      // capacity:
+      using _Base::empty;
+      using _Base::size;
+      using _Base::max_size;
+
+      // 23.3.1.2 element access:
+      mapped_type&
+      operator[](const key_type& __k)
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+        return _Base::operator[](__k);
+      }
+
+      mapped_type&
+      at(const key_type& __k)
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+        return _Base::at(__k);
+      }
+
+      // modifiers:
+      std::pair<iterator, bool>
+      insert(const value_type& __x)
+      {
+        __profcxx_map_to_unordered_map_insert(this, size(), 1);
+	typedef typename _Base::iterator _Base_iterator;
+	std::pair<_Base_iterator, bool> __res = _Base::insert(__x);
+	return std::pair<iterator, bool>(iterator(__res.first, this),
+					 __res.second);
+      }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      insert(std::initializer_list<value_type> __list)
+      { _Base::insert(__list); }
+#endif
+
+      iterator
+      insert(iterator __position, const value_type& __x)
+      {
+	return iterator(_Base::insert(__position.base(), __x), this);
+      }
+
+      template<typename _InputIterator>
+        void
+        insert(_InputIterator __first, _InputIterator __last)
+        {
+          size_type size_before = size();
+	  _Base::insert(__first, __last);
+          __profcxx_map_to_unordered_map_insert(this, size_before, 
+                                                size() - size_before);
+	}
+
+      void
+      erase(iterator __position)
+      {
+	_Base::erase(__position.base());
+        __profcxx_map_to_unordered_map_erase(this, size(), 1);
+      }
+
+      size_type
+      erase(const key_type& __x)
+      {
+	iterator __victim = find(__x);
+	if (__victim == end())
+	  return 0;
+	else
+	{
+	  _Base::erase(__victim.base());
+	  return 1;
+	}
+      }
+
+      void
+      erase(iterator __first, iterator __last)
+      {
+	// _GLIBCXX_RESOLVE_LIB_DEFECTS
+	// 151. can't currently clear() empty container
+	while (__first != __last)
+	  this->erase(__first++);
+      }
 
       void
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -79,99 +305,186 @@ namespace __profile
       swap(map& __x)
 #endif
       {
-        _Base::swap(__x);
+	_Base::swap(__x);
+	this->_M_swap(__x);
       }
 
+      void
+      clear()
+      { this->erase(begin(), end()); }
 
-      map&
-      operator=(const map& __x)
+      // observers:
+      using _Base::key_comp;
+      using _Base::value_comp;
+
+      // 23.3.1.3 map operations:
+      iterator
+      find(const key_type& __x)
       {
-        *static_cast<_Base*>(this) = __x;
-        return *this;
+        __profcxx_map_to_unordered_map_find(this, size());
+        return iterator(_Base::find(__x), this);
       }
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-      map&
-      operator=(map&& __x)
+      const_iterator
+      find(const key_type& __x) const
       {
-        // NB: DR 675.
-        _Base::clear();
-        _Base::swap(__x);
-        return *this;
+        __profcxx_map_to_unordered_map_find(this, size());
+        return const_iterator(_Base::find(__x), this);
       }
-#endif
 
-      _Base&
-      _M_base()       { return *this; }
+      size_type
+      count(const key_type& __x) const
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+        return _Base::count(__x);
+      }
+
+      iterator
+      lower_bound(const key_type& __x)
+      { 
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return iterator(_Base::lower_bound(__x), this); 
+      }
+
+      const_iterator
+      lower_bound(const key_type& __x) const
+      { 
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_iterator(_Base::lower_bound(__x), this); 
+      }
+
+      iterator
+      upper_bound(const key_type& __x)
+      { 
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return iterator(_Base::upper_bound(__x), this); 
+      }
+
+      const_iterator
+      upper_bound(const key_type& __x) const
+      { 
+        __profcxx_map_to_unordered_map_invalidate(this);
+        return const_iterator(_Base::upper_bound(__x), this); 
+      }
+
+      std::pair<iterator,iterator>
+      equal_range(const key_type& __x)
+      {
+	typedef typename _Base::iterator _Base_iterator;
+	std::pair<_Base_iterator, _Base_iterator> __res =
+	_Base::equal_range(__x);
+	return std::make_pair(iterator(__res.first, this),
+			      iterator(__res.second, this));
+      }
+
+      std::pair<const_iterator,const_iterator>
+      equal_range(const key_type& __x) const
+      {
+        __profcxx_map_to_unordered_map_find(this, size());
+	typedef typename _Base::const_iterator _Base_const_iterator;
+	std::pair<_Base_const_iterator, _Base_const_iterator> __res =
+	_Base::equal_range(__x);
+	return std::make_pair(const_iterator(__res.first, this),
+			      const_iterator(__res.second, this));
+      }
+
+      _Base& 
+      _M_base() { return *this; }
 
       const _Base&
       _M_base() const { return *this; }
+
     };
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator==(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-           const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() == __rhs._M_base(); }
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    { 
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() == __rhs._M_base(); 
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator!=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-           const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() != __rhs._M_base(); }
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    { 
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() != __rhs._M_base(); 
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator<(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-          const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() < __rhs._M_base(); }
+	      const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    {
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() < __rhs._M_base(); 
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator<=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-           const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() <= __rhs._M_base(); }
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    {
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() <= __rhs._M_base();
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator>=(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-           const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() >= __rhs._M_base(); }
+	       const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    {
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() >= __rhs._M_base();
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline bool
     operator>(const map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-          const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
-    { return __lhs._M_base() > __rhs._M_base(); }
+	      const map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+    {
+      __profcxx_map_to_unordered_map_invalidate(&__lhs);
+      __profcxx_map_to_unordered_map_invalidate(&__rhs);
+      return __lhs._M_base() > __rhs._M_base();
+    }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline void
     swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-     map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { __lhs.swap(__rhs); }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline void
     swap(map<_Key, _Tp, _Compare, _Allocator>&& __lhs,
-     map<_Key, _Tp, _Compare, _Allocator>& __rhs)
+	 map<_Key, _Tp, _Compare, _Allocator>& __rhs)
     { __lhs.swap(__rhs); }
 
   template<typename _Key, typename _Tp,
-       typename _Compare, typename _Allocator>
+	   typename _Compare, typename _Allocator>
     inline void
     swap(map<_Key, _Tp, _Compare, _Allocator>& __lhs,
-     map<_Key, _Tp, _Compare, _Allocator>&& __rhs)
+	 map<_Key, _Tp, _Compare, _Allocator>&& __rhs)
     { __lhs.swap(__rhs); }
 #endif
+
 } // namespace __profile
 } // namespace std
 

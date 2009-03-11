@@ -81,7 +81,8 @@ am__libprofc___la_SOURCES_DIST = profiler_node.cc profiler_trace.cc \
                                  profiler_vector_size.cc \
                                  profiler_state.cc \
                                  profiler_hash_func.cc \
-                                 profiler_vector_to_list.cc
+                                 profiler_vector_to_list.cc \
+                                 profiler_map_to_unordered_map.cc
 am__objects_1 = ${am__libprofc___la_SOURCES_DIST:.cc=.lo} 
 am_libprofc___la_OBJECTS = $(am__objects_1)
 libprofc___la_OBJECTS = $(am_libprofc___la_OBJECTS)
@@ -336,7 +337,8 @@ sources = \
     profiler_vector_size.cc \
     profiler_state.cc \
     profiler_hash_func.cc \
-    profiler_vector_to_list.cc 
+    profiler_vector_to_list.cc \
+    profiler_map_to_unordered_map.cc
 
 libprofc___la_SOURCES = $(sources) $(c_sources)
 libprofc__convenience_la_SOURCES = $(sources) $(c_sources)
@@ -698,6 +700,9 @@ cp-demangle.lo: cp-demangle.c
 	$(LTCOMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
 cp-demangle.o: cp-demangle.c
 	$(C_COMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
+
+profiler_map_to_unordered_map.lo: profiler_map_to_unordered_map.cc profiler_node.h profiler_map_to_unordered_map.h
+	$(LTCOMPILE) -std=c++0x -c $<
 
 profiler_vector_to_list.lo: profiler_vector_to_list.cc profiler_node.h profiler_vector_to_list.h
 	$(LTCOMPILE) -std=c++0x -c $<

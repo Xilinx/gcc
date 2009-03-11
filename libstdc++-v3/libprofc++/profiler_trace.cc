@@ -68,10 +68,12 @@ void trace_vector_size_init();
 void trace_hashtable_size_init();
 void trace_hash_func_init();
 void trace_vector_to_list_init();
+void trace_map_to_unordered_map_init();
 void trace_vector_size_report(FILE* f);
 void trace_hashtable_size_report(FILE* f);
 void trace_hash_func_report(FILE* f);
 void trace_vector_to_list_report(FILE* f);
+void trace_map_to_unordered_map_report(FILE* f);
 
 static size_t env_to_size_t(const char* env_var, size_t default_value)
 {
@@ -116,6 +118,7 @@ static void __profcxx_report(void)
   trace_hashtable_size_report(f);
   trace_hash_func_report(f);
   trace_vector_to_list_report(f);
+  trace_map_to_unordered_map_report(f);
 
   fclose(f);
 }
@@ -157,6 +160,7 @@ void __profcxx_init_unconditional()
       trace_hashtable_size_init();
       trace_hash_func_init();
       trace_vector_to_list_init();
+      trace_map_to_unordered_map_init();
 
       // Go live.
       turn_on();

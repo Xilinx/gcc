@@ -1,3 +1,15 @@
+2009-03-11  Silvius Rus  <rus@google.com>
+	* libprofc++/Makefile.am: Add modules.
+	* libprofc++/Makefile.in: Add modules.
+	* libprofc++/profiler_trace.cc: Add calls to initialization and report
+	for map_to_unordered_map.
+	* libprofc++/profiler.h: Add hooks for trace_map_to_unordered_map.
+	* libprofc++/profiler_map_to_unordered_map.cc: New file.
+	* libprofc++/profiler_map_to_unordered_map.h: New file.
+	* include/profile/base.h: Fix author field.
+	* include/profile/map.h: Update from include/debug/map.h.  Add calls
+	to trace_map_to_unordered_map hooks.
+
 2008-11-10  Silvius Rus  <rus@google.com>
 	* libprofc++/Makefile.in: Add modules.
 	* libprofc++/profiler_vector_size.cc: Refactor.
