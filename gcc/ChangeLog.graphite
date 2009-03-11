@@ -1,3 +1,7 @@
+2009-03-11  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Revert previous commit.
+
 2009-03-10  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* sese.c (register_old_and_new_names): Update the content
@@ -41,7 +45,8 @@
 
 	* Makefile.in (graphite.o, graphite-sese-to-poly.o,
 	graphite-clast-to-gimple.o,  graphite-data-ref.o,
-	graphite-scop-detection.o, graphite-poly.o): Add 	 more headers.
+	graphite-scop-detection.o, graphite-poly.o): Add
+	more headers.
 
 2009-03-05  Tobias Grosser  <grosser@fim.uni-passau.de>
 
