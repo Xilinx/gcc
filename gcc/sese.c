@@ -818,7 +818,7 @@ is_iv (tree name)
 }
 
 static void expand_scalar_variables_stmt (gimple, basic_block, sese,
-					  htab_t);
+					  htab_t, gimple_stmt_iterator *);
 static tree
 expand_scalar_variables_expr (tree, tree, enum tree_code, tree, basic_block,
 			      sese, htab_t, gimple_stmt_iterator *);
@@ -851,7 +851,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       /* If the defining statement is in the basic block already
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
-      expand_scalar_variables_stmt (def_stmt, bb, region, map);
+      expand_scalar_variables_stmt (def_stmt, bb, region, map, gsi);
       return get_new_name_from_old_name (map, op0);
     }
   else
@@ -865,8 +865,8 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       var1 = gimple_assign_rhs2 (def_stmt);
       type = gimple_expr_type (def_stmt);
 
-      return expand_scalar_variables_expr (type, var0, subcode, var1, bb, region,
-					   map, gsi);
+      return expand_scalar_variables_expr (type, var0, subcode, var1, bb,
+					   region, map, gsi);
     }
 }
 
@@ -893,6 +893,15 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
     {
       switch (code)
 	{
+	case REALPART_EXPR:
+	case IMAGPART_EXPR:
+	  {
+	    tree op = TREE_OPERAND (op0, 0);
+	    tree res = expand_scalar_variables_expr
+	      (type, op, TREE_CODE (op), NULL, bb, region, map, gsi);
+	    return fold_build1 (code, type, res);
+	  }
+
 	case INDIRECT_REF:
 	  {
 	    tree old_name = TREE_OPERAND (op0, 0);
@@ -972,11 +981,10 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
  
 static void
 expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
-			      htab_t map)
+			      htab_t map, gimple_stmt_iterator *gsi)
 {
   ssa_op_iter iter;
   use_operand_p use_p;
-  gimple_stmt_iterator gsi = gsi_after_labels (bb);
 
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
     {
@@ -984,11 +992,11 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
       tree type = TREE_TYPE (use);
       enum tree_code code = TREE_CODE (use);
       tree use_expr = expand_scalar_variables_expr (type, use, code, NULL, bb,
-						    region, map, &gsi);
+						    region, map, gsi);
       if (use_expr != use)
 	{
 	  tree new_use =
-	    force_gimple_operand_gsi (&gsi, use_expr, true, NULL,
+	    force_gimple_operand_gsi (gsi, use_expr, true, NULL,
 				      true, GSI_NEW_STMT);
 	  replace_exp (use_p, new_use);
 	}
@@ -1013,7 +1021,7 @@ expand_scalar_variables (basic_block bb, sese region, htab_t map)
   for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi);)
     {
       gimple stmt = gsi_stmt (gsi);
-      expand_scalar_variables_stmt (stmt, bb, region, map);
+      expand_scalar_variables_stmt (stmt, bb, region, map, &gsi);
       gsi_next (&gsi);
     }
 }

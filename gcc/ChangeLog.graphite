@@ -1,3 +1,12 @@
+2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* sese.c (expand_scalar_variables_stmt,
+	expand_scalar_variables_ssa_name): Add a gimple_stmt_iterator parameter.
+	(expand_scalar_variables_expr): Handle REALPART_EXPR and IMAGPART_EXPR.
+	(expand_scalar_variables): Pass to expand_scalar_variables_stmt
+	the gimple_stmt_iterator of the statement to be expanded.
+	* graphite-scop-detection.c (is_simple_operand): Do handle REALPART_EXPR.
+
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (is_simple_operand): Do not handle
@@ -5,7 +14,7 @@
 	* testsuite/gcc.dg/graphite/id-2.c: New.
 
 	* graphite-sese-to-poly.c (build_bb_loops,
-	add_value_to_dim,scan_tree_for_params_right_scev,
+	add_value_to_dim, scan_tree_for_params_right_scev,
 	scan_tree_for_params_int, scan_tree_for_params, idx_record_params,
 	find_params_in_bb, build_loop_iteration_domains,
 	add_conditions_to_domain): Remove subtract.
@@ -18,15 +27,14 @@
 	* graphite-poly.c (new_poly_bb, new_scop): New accessors.
 	(debug_loop_vec): Delete.
 	* graphite-poly.h (poly_bb, scop): Change black_box and region to void
-	pointer. Move LOOPS to gimple_bb_p and insert nb_params.
+	pointer.  Move LOOPS to gimple_bb_p and insert nb_params.
 	(PBB_LOOPS): Removed.
 	(PBB_BLACK_BOX): Insert cast.
 	(pbb_set_black_box): New setter.
 	(pbb_loop_at_index, pbb_loop_index): Removed.
 	(scop_set_region, scop_set_nb_params): New.
 	* graphite-sese-to-poly.c (new_gimple_bb, free_gimple_bb,
-	build_scop_scattering, build_bb_loops,): Add
-	GBB_LOOPS.
+	build_scop_scattering, build_bb_loops): Add GBB_LOOPS.
 	(build_poly_scop): Use scop_set_nb_params.
 	* sese.h (gimple_bb): Add LOOPS.
 	(GBB_LOOPS, gbb_loop_index, gbb_loop_at_index): New.
