@@ -600,9 +600,16 @@ write_decimal (st_parameter_dt *dtp, const fnode *f, const char *source,
   sign = calculate_sign (dtp, n < 0);
   if (n < 0)
     n = -n;
-
   nsign = sign == S_NONE ? 0 : 1;
+  
+  /* conv calls gfc_itoa which sets the negative sign needed
+     by write_integer. The sign '+' or '-' is set below based on sign
+     calculated above, so we just point past the sign in the string
+     before proceeding to avoid double signs in corner cases.
+     (see PR38504)  */
   q = conv (n, itoa_buf, sizeof (itoa_buf));
+  if (*q == '-')
+    q++;
 
   digits = strlen (q);
 
@@ -1003,13 +1010,12 @@ void
 write_real_g0 (st_parameter_dt *dtp, const char *source, int length, int d)
 {
   fnode f ;
-  int org_scale = dtp->u.p.scale_factor;
-  dtp->u.p.scale_factor = 1;
   set_fnode_default (dtp, &f, length);
-  f.format = FMT_ES;
-  f.u.real.d = d;
+  if (d > 0)
+    f.u.real.d = d;
+  dtp->u.p.g0_no_blanks = 1;
   write_float (dtp, &f, source , length);
-  dtp->u.p.scale_factor = org_scale;
+  dtp->u.p.g0_no_blanks = 0;
 }
 
 
@@ -1146,6 +1152,35 @@ namelist_write_newline (st_parameter_dt *dtp)
 #else
       write_character (dtp, "\n", 1, 1);
 #endif
+      return;
+    }
+
+  if (is_array_io (dtp))
+    {
+      gfc_offset record;
+      int finished, length;
+
+      length = (int) dtp->u.p.current_unit->bytes_left;
+	      
+      /* Now that the current record has been padded out,
+	 determine where the next record in the array is. */
+      record = next_array_record (dtp, dtp->u.p.current_unit->ls,
+				  &finished);
+      if (finished)
+	dtp->u.p.current_unit->endfile = AT_ENDFILE;
+      else
+	{
+	  /* Now seek to this record */
+	  record = record * dtp->u.p.current_unit->recl;
+
+	  if (sseek (dtp->u.p.current_unit->s, record) == FAILURE)
+	    {
+	      generate_error (&dtp->common, LIBERROR_INTERNAL_UNIT, NULL);
+	      return;
+	    }
+
+	  dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
+	}
     }
   else
     write_character (dtp, " ", 1, 1);
@@ -1442,20 +1477,8 @@ namelist_write (st_parameter_dt *dtp)
 
   /* Set the delimiter for namelist output.  */
   tmp_delim = dtp->u.p.current_unit->delim_status;
-  switch (tmp_delim)
-    {
-    case (DELIM_QUOTE):
-      dtp->u.p.nml_delim = '"';
-      break;
 
-    case (DELIM_APOSTROPHE):
-      dtp->u.p.nml_delim = '\'';
-      break;
-
-    default:
-      dtp->u.p.nml_delim = '\0';
-      break;
-    }
+  dtp->u.p.nml_delim = tmp_delim == DELIM_APOSTROPHE ? '\'' : '"';
 
   /* Temporarily disable namelist delimters.  */
   dtp->u.p.current_unit->delim_status = DELIM_NONE;
@@ -1479,8 +1502,8 @@ namelist_write (st_parameter_dt *dtp)
 	}
     }
 
-  write_character (dtp, "  /", 1, 3);
   namelist_write_newline (dtp);
+  write_character (dtp, " /", 1, 2);
   /* Restore the original delimiter.  */
   dtp->u.p.current_unit->delim_status = tmp_delim;
 }

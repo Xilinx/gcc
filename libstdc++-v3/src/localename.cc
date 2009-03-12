@@ -1,5 +1,5 @@
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -166,9 +166,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __cat = _S_normalize_category(__cat);  
     _M_impl = new _Impl(*__base._M_impl, 1);  
 
-    try 
+    __try 
       { _M_impl->_M_replace_categories(__add._M_impl, __cat); }
-    catch (...) 
+    __catch (...) 
       { 
 	_M_impl->_M_remove_reference(); 
 	__throw_exception_again;
@@ -186,7 +186,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     __c_locale __cloc;
     locale::facet::_S_create_c_locale(__cloc, __s);
 
-    try
+    __try
       {
 	_M_facets = new const facet*[_M_facets_size];
 	for (size_t __i = 0; __i < _M_facets_size; ++__i)
@@ -254,7 +254,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #endif	  
 	locale::facet::_S_destroy_c_locale(__cloc);
       }
-    catch(...)
+    __catch(...)
       {
 	locale::facet::_S_destroy_c_locale(__cloc);
 	this->~_Impl();
@@ -267,29 +267,43 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   _M_replace_categories(const _Impl* __imp, category __cat)
   {
     category __mask = 1;
-    const bool __have_names = _M_names[0] && __imp->_M_names[0];
-    for (size_t __ix = 0; __ix < _S_categories_size; ++__ix, __mask <<= 1)
+    if (!_M_names[0] || !__imp->_M_names[0])
       {
-	if (__mask & __cat)
+	if (_M_names[0])
 	  {
-	    // Need to replace entry in _M_facets with other locale's info.
-	    _M_replace_category(__imp, _S_facet_categories[__ix]);
-	    // If both have names, go ahead and mangle.
-	    if (__have_names)
+	    delete [] _M_names[0];
+	    _M_names[0] = 0;   // Unnamed.
+	  }
+
+	for (size_t __ix = 0; __ix < _S_categories_size; ++__ix, __mask <<= 1)
+	  {
+	    if (__mask & __cat)
+	      // Need to replace entry in _M_facets with other locale's info.
+	      _M_replace_category(__imp, _S_facet_categories[__ix]);
+	  }
+      }
+    else
+      {
+	if (!_M_names[1])
+	  {
+	    // A full set of _M_names must be prepared, all identical
+	    // to _M_names[0] to begin with. Then, below, a few will
+	    // be replaced by the corresponding __imp->_M_names. I.e.,
+	    // not a "simple" locale anymore (see locale::operator==).
+	    const size_t __len = std::strlen(_M_names[0]) + 1;
+	    for (size_t __i = 1; __i < _S_categories_size; ++__i)
 	      {
-		if (!_M_names[1])
-		  {
-		    // A full set of _M_names must be prepared, all identical
-		    // to _M_names[0] to begin with. Then, below, a few will
-		    // be replaced by the corresponding __imp->_M_names. I.e.,
-		    // not a "simple" locale anymore (see locale::operator==).
-		    const size_t __len = std::strlen(_M_names[0]) + 1;
-		    for (size_t __i = 1; __i < _S_categories_size; ++__i)
-		      {
-			_M_names[__i] = new char[__len];
-			std::memcpy(_M_names[__i], _M_names[0], __len);
-		      }
-		  }
+		_M_names[__i] = new char[__len];
+		std::memcpy(_M_names[__i], _M_names[0], __len);
+	      }
+	  }
+
+	for (size_t __ix = 0; __ix < _S_categories_size; ++__ix, __mask <<= 1)
+	  {
+	    if (__mask & __cat)
+	      {
+		// Need to replace entry in _M_facets with other locale's info.
+		_M_replace_category(__imp, _S_facet_categories[__ix]);
 
 		// FIXME: Hack for libstdc++/29217: the numerical encodings
 		// of the time and collate categories are swapped vs the

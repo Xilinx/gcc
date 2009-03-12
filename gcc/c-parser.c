@@ -1,6 +1,6 @@
 /* Parser for C and Objective-C.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    Parser actions based on the old Bison parser; structure somewhat
@@ -148,7 +148,7 @@ typedef struct c_token GTY (())
   ENUM_BITFIELD (rid) keyword : 8;
   /* If this token is a CPP_PRAGMA, this indicates the pragma that
      was seen.  Otherwise it is PRAGMA_NONE.  */
-  ENUM_BITFIELD (pragma_kind) pragma_kind : 7;
+  ENUM_BITFIELD (pragma_kind) pragma_kind : 8;
   /* The value associated with this token, if any.  */
   tree value;
   /* The location at which this token was found.  */
@@ -1605,7 +1605,7 @@ c_parser_enum_specifier (c_parser *parser)
   struct c_typespec ret;
   tree attrs;
   tree ident = NULL_TREE;
-  location_t ident_loc;
+  location_t ident_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ENUM));
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
@@ -1634,7 +1634,7 @@ c_parser_enum_specifier (c_parser *parser)
 	  tree enum_decl;
 	  bool seen_comma;
 	  c_token *token;
-	  location_t comma_loc;
+	  location_t comma_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	  location_t value_loc;
 	  if (c_parser_next_token_is_not (parser, CPP_NAME))
 	    {
@@ -2578,6 +2578,7 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
 			     "expected %<;%>, %<,%> or %<)%>"))
 	{
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	  get_pending_sizes ();
 	  return NULL;
 	}
       if (c_parser_next_token_is (parser, CPP_ELLIPSIS))
@@ -2605,6 +2606,7 @@ c_parser_parms_list_declarator (c_parser *parser, tree attrs)
 	    {
 	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 					 "expected %<)%>");
+	      get_pending_sizes ();
 	      return NULL;
 	    }
 	}
@@ -3034,6 +3036,7 @@ c_parser_braced_init (c_parser *parser, tree type, bool nested_p)
       ret.value = error_mark_node;
       ret.original_code = ERROR_MARK;
       c_parser_skip_until_found (parser, CPP_CLOSE_BRACE, "expected %<}%>");
+      pop_init_level (0);
       return ret;
     }
   c_parser_consume_token (parser);
@@ -3065,7 +3068,7 @@ c_parser_initelt (c_parser *parser)
 	 has been a single array designator and 2 otherwise.  */
       int des_seen = 0;
       /* Location of a designator.  */
-      location_t des_loc;
+      location_t des_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
       while (c_parser_next_token_is (parser, CPP_OPEN_SQUARE)
 	     || c_parser_next_token_is (parser, CPP_DOT))
 	{
@@ -3090,14 +3093,14 @@ c_parser_initelt (c_parser *parser)
 		  init.original_code = ERROR_MARK;
 		  c_parser_error (parser, "expected identifier");
 		  c_parser_skip_until_found (parser, CPP_COMMA, NULL);
-		  process_init_element (init);
+		  process_init_element (init, false);
 		  return;
 		}
 	    }
 	  else
 	    {
 	      tree first, second;
-	      location_t ellipsis_loc;
+	      location_t ellipsis_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 	      /* ??? Following the old parser, [ objc-receiver
 		 objc-message-args ] is accepted as an initializer,
 		 being distinguished from a designator by what follows
@@ -3213,7 +3216,7 @@ c_parser_initelt (c_parser *parser)
 		  init.original_code = ERROR_MARK;
 		  c_parser_error (parser, "expected %<=%>");
 		  c_parser_skip_until_found (parser, CPP_COMMA, NULL);
-		  process_init_element (init);
+		  process_init_element (init, false);
 		  return;
 		}
 	    }
@@ -3243,7 +3246,7 @@ c_parser_initval (c_parser *parser, struct c_expr *after)
 	  && TREE_CODE (init.value) != COMPOUND_LITERAL_EXPR)
 	init = default_function_array_conversion (init);
     }
-  process_init_element (init);
+  process_init_element (init, false);
 }
 
 /* Parse a compound statement (possibly a function body) (C90 6.6.2,
@@ -3304,7 +3307,13 @@ c_parser_compound_statement (c_parser *parser)
 {
   tree stmt;
   if (!c_parser_require (parser, CPP_OPEN_BRACE, "expected %<{%>"))
-    return error_mark_node;
+    {
+      /* Ensure a scope is entered and left anyway to avoid confusion
+	 if we have just prepared to enter a function body.  */
+      stmt = c_begin_compound_stmt (true);
+      c_end_compound_stmt (stmt, true);
+      return error_mark_node;
+    }
   stmt = c_begin_compound_stmt (true);
   c_parser_compound_statement_nostart (parser);
   return c_end_compound_stmt (stmt, true);
@@ -4583,7 +4592,7 @@ c_parser_binary_expression (c_parser *parser, struct c_expr *after)
   } stack[NUM_PRECS];
   int sp;
   /* Location of the binary operator.  */
-  location_t binary_loc;
+  location_t binary_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
 #define POP								      \
   do {									      \
     switch (stack[sp].op)						      \
@@ -4949,13 +4958,6 @@ c_parser_sizeof_expression (c_parser *parser)
       /* sizeof ( type-name ).  */
       skip_evaluation--;
       in_sizeof--;
-      if (type_name->declarator->kind == cdk_array
-	  && type_name->declarator->u.array.vla_unspec_p)
-	{
-	  /* C99 6.7.5.2p4 */
-	  error_at (expr_loc,
-		    "%<[*]%> not allowed in other than a declaration");
-	}
       return c_expr_sizeof_type (type_name);
     }
   else
@@ -5089,6 +5091,17 @@ c_parser_postfix_expression (c_parser *parser)
   switch (c_parser_peek_token (parser)->type)
     {
     case CPP_NUMBER:
+      expr.value = c_parser_peek_token (parser)->value;
+      expr.original_code = ERROR_MARK;
+      loc = c_parser_peek_token (parser)->location;
+      c_parser_consume_token (parser);
+      if (TREE_CODE (expr.value) == FIXED_CST
+	  && !targetm.fixed_point_supported_p ())
+	{
+	  error_at (loc, "fixed-point types not supported for this target");
+	  expr.value = error_mark_node;
+	}
+      break;
     case CPP_CHAR:
     case CPP_CHAR16:
     case CPP_CHAR32:
@@ -5273,10 +5286,21 @@ c_parser_postfix_expression (c_parser *parser)
 		c_parser_consume_token (parser);
 		while (c_parser_next_token_is (parser, CPP_DOT)
 		       || c_parser_next_token_is (parser,
-						  CPP_OPEN_SQUARE))
+						  CPP_OPEN_SQUARE)
+		       || c_parser_next_token_is (parser,
+						  CPP_DEREF))
 		  {
-		    if (c_parser_next_token_is (parser, CPP_DOT))
+		    if (c_parser_next_token_is (parser, CPP_DEREF))
 		      {
+			loc = c_parser_peek_token (parser)->location;
+			offsetof_ref = build_array_ref (offsetof_ref,
+							integer_zero_node,
+							loc);
+			goto do_dot;
+		      }
+		    else if (c_parser_next_token_is (parser, CPP_DOT))
+		      {
+		      do_dot:
 			c_parser_consume_token (parser);
 			if (c_parser_next_token_is_not (parser,
 							CPP_NAME))

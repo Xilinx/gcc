@@ -1,6 +1,6 @@
 /* Handle modules, which amounts to loading and saving symbols and
    their attendant structures.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -74,6 +74,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "md5.h"
 
 #define MODULE_EXTENSION ".mod"
+
+/* Don't put any single quote (') in MOD_VERSION, 
+   if yout want it to be recognized.  */
+#define MOD_VERSION "0"
 
 
 /* Structure that describes a position within a module file.  */
@@ -3807,12 +3811,14 @@ load_equiv (void)
       }
 
     /* Unused equivalence members have a unique name.  In addition, it
-       must be checked that the symbol is that from the module.  */
+       must be checked that the symbols are from the same module.  */
     unused = true;
     for (eq = head; eq; eq = eq->eq)
       {
 	if (eq->expr->symtree->n.sym->module
-	      && strcmp (module_name, eq->expr->symtree->n.sym->module) == 0
+	      && head->expr->symtree->n.sym->module
+	      && strcmp (head->expr->symtree->n.sym->module,
+			 eq->expr->symtree->n.sym->module) == 0
 	      && !check_unique_name (eq->expr->symtree->name))
 	  {
 	    unused = false;
@@ -3958,13 +3964,6 @@ check_for_ambiguous (gfc_symbol *st_sym, pointer_info *info)
 
   rsym = info->u.rsym.sym;
   if (st_sym == rsym)
-    return false;
-
-  /* Identical derived types are not ambiguous and will be rolled up
-     later.  */
-  if (st_sym->attr.flavor == FL_DERIVED
-	&& rsym->attr.flavor == FL_DERIVED
-	&& gfc_compare_derived_types (st_sym, rsym))
     return false;
 
   /* If the existing symbol is generic from a different module and
@@ -4338,7 +4337,7 @@ free_written_common (struct written_common *w)
 /* Write a common block to the module -- recursive helper function.  */
 
 static void
-write_common_0 (gfc_symtree *st)
+write_common_0 (gfc_symtree *st, bool this_module)
 {
   gfc_common_head *p;
   const char * name;
@@ -4350,7 +4349,7 @@ write_common_0 (gfc_symtree *st)
   if (st == NULL)
     return;
 
-  write_common_0 (st->left);
+  write_common_0 (st->left, this_module);
 
   /* We will write out the binding label, or the name if no label given.  */
   name = st->n.common->name;
@@ -4368,6 +4367,9 @@ write_common_0 (gfc_symtree *st)
 
       w = (c < 0) ? w->left : w->right;
     }
+
+  if (this_module && p->use_assoc)
+    write_me = false;
 
   if (write_me)
     {
@@ -4394,7 +4396,7 @@ write_common_0 (gfc_symtree *st)
       gfc_insert_bbt (&written_commons, w, compare_written_commons);
     }
 
-  write_common_0 (st->right);
+  write_common_0 (st->right, this_module);
 }
 
 
@@ -4405,7 +4407,8 @@ static void
 write_common (gfc_symtree *st)
 {
   written_commons = NULL;
-  write_common_0 (st);
+  write_common_0 (st, true);
+  write_common_0 (st, false);
   free_written_common (written_commons);
   written_commons = NULL;
 }
@@ -4736,8 +4739,18 @@ read_md5_from_module_file (const char * filename, unsigned char md5[16])
     return -1;
 
   /* Read two lines.  */
-  if (fgets (buf, sizeof (buf) - 1, file) == NULL
-      || fgets (buf, sizeof (buf) - 1, file) == NULL)
+  if (fgets (buf, sizeof (buf) - 1, file) == NULL)
+    {
+      fclose (file);
+      return -1;
+    }
+
+  /* The file also needs to be overwritten if the version number changed.  */
+  n = strlen ("GFORTRAN module version '" MOD_VERSION "' created");
+  if (strncmp (buf, "GFORTRAN module version '" MOD_VERSION "' created", n) != 0)
+    return -1;
+ 
+  if (fgets (buf, sizeof (buf) - 1, file) == NULL)
     {
       fclose (file);
       return -1;
@@ -4818,8 +4831,8 @@ gfc_dump_module (const char *name, int dump_flag)
 
   *strchr (p, '\n') = '\0';
 
-  fprintf (module_fp, "GFORTRAN module created from %s on %s\nMD5:", 
-	   gfc_source_file, p);
+  fprintf (module_fp, "GFORTRAN module version '%s' created from %s on %s\n"
+	   "MD5:", MOD_VERSION, gfc_source_file, p);
   fgetpos (module_fp, &md5_pos);
   fputs ("00000000000000000000000000000000 -- "
 	"If you edit this, you'll get what you deserve.\n\n", module_fp);
@@ -4855,11 +4868,19 @@ gfc_dump_module (const char *name, int dump_flag)
       || memcmp (md5_old, md5_new, sizeof (md5_old)) != 0)
     {
       /* Module file have changed, replace the old one.  */
-      unlink (filename);
-      rename (filename_tmp, filename);
+      if (unlink (filename) && errno != ENOENT)
+	gfc_fatal_error ("Can't delete module file '%s': %s", filename,
+			 strerror (errno));
+      if (rename (filename_tmp, filename))
+	gfc_fatal_error ("Can't rename module file '%s' to '%s': %s",
+			 filename_tmp, filename, strerror (errno));
     }
   else
-    unlink (filename_tmp);
+    {
+      if (unlink (filename_tmp))
+	gfc_fatal_error ("Can't delete temporary module file '%s': %s",
+			 filename_tmp, strerror (errno));
+    }
 }
 
 
@@ -5213,12 +5234,27 @@ gfc_use_module (void)
       c = module_char ();
       if (c == EOF)
 	bad_module ("Unexpected end of module");
-      if (start++ < 2)
+      if (start++ < 3)
 	parse_name (c);
       if ((start == 1 && strcmp (atom_name, "GFORTRAN") != 0)
 	  || (start == 2 && strcmp (atom_name, " module") != 0))
 	gfc_fatal_error ("File '%s' opened at %C is not a GFORTRAN module "
 			 "file", filename);
+      if (start == 3)
+	{
+	  if (strcmp (atom_name, " version") != 0
+	      || module_char () != ' '
+	      || parse_atom () != ATOM_STRING)
+	    gfc_fatal_error ("Parse error when checking module version"
+		    	     " for file '%s' opened at %C", filename);
+
+	  if (strcmp (atom_string, MOD_VERSION))
+	    {
+	      gfc_fatal_error ("Wrong module version '%s' (expected '"
+			       MOD_VERSION "') for file '%s' opened"
+			       " at %C", atom_string, filename);
+	    }
+	}
 
       if (c == '\n')
 	line++;

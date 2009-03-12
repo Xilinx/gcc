@@ -1,5 +1,5 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -896,6 +896,15 @@ cgraph_analyze_functions (void)
 	if (!edge->callee->reachable)
 	  cgraph_mark_reachable_node (edge->callee);
 
+      /* If decl is a clone of an abstract function, mark that abstract
+	 function so that we don't release its body. The DECL_INITIAL() of that
+         abstract function declaration will be later needed to output debug info.  */
+      if (DECL_ABSTRACT_ORIGIN (decl))
+	{
+	  struct cgraph_node *origin_node = cgraph_node (DECL_ABSTRACT_ORIGIN (decl));
+	  origin_node->abstract_and_needed = true;
+	}
+
       /* We finalize local static variables during constructing callgraph
          edges.  Process their attributes too.  */
       process_function_and_variable_attributes (first_processed,
@@ -1304,7 +1313,6 @@ cgraph_optimize (void)
 
       varpool_assemble_pending_decls ();
     }
-  varpool_output_debug_info ();
   cgraph_process_new_functions ();
   cgraph_state = CGRAPH_STATE_FINISHED;
 
@@ -1542,10 +1550,11 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   TREE_PUBLIC (new_version_node->decl) = 0;
   DECL_COMDAT (new_version_node->decl) = 0;
   DECL_WEAK (new_version_node->decl) = 0;
+  DECL_VIRTUAL_P (new_version_node->decl) = 0;
   new_version_node->local.externally_visible = 0;
   new_version_node->local.local = 1;
   new_version_node->lowered = true;
-  
+
   /* Update the call_expr on the edges to call the new version node. */
   update_call_expr (new_version_node);
   

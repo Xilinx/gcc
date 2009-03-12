@@ -1,6 +1,6 @@
 /* Exception handling semantics and decomposition for trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -2067,7 +2067,7 @@ verify_eh_edges (gimple stmt)
 
 /* Helper function for operation_could_trap_p and stmt_could_throw_p.  */
 
-static bool
+bool
 operation_could_trap_helper_p (enum tree_code op,
 			       bool fp_operation,
 			       bool honor_trapv,

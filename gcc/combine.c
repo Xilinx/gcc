@@ -1,6 +1,6 @@
 /* Optimize by combining instructions for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -900,7 +900,7 @@ create_log_links (void)
 {
   basic_block bb;
   rtx *next_use, insn;
-  struct df_ref **def_vec, **use_vec;
+  df_ref *def_vec, *use_vec;
 
   next_use = XCNEWVEC (rtx, max_reg_num ());
 
@@ -925,7 +925,7 @@ create_log_links (void)
 
           for (def_vec = DF_INSN_DEFS (insn); *def_vec; def_vec++)
             {
-	      struct df_ref *def = *def_vec;
+	      df_ref def = *def_vec;
               int regno = DF_REF_REGNO (def);
               rtx use_insn;
 
@@ -979,7 +979,7 @@ create_log_links (void)
 
           for (use_vec = DF_INSN_USES (insn); *use_vec; use_vec++)
             {
-	      struct df_ref *use = *use_vec;
+	      df_ref use = *use_vec;
 	      int regno = DF_REF_REGNO (use);
 
               /* Do not consider the usage of the stack pointer
@@ -1112,6 +1112,7 @@ combine_instructions (rtx f, unsigned int nregs)
 
   FOR_EACH_BB (this_basic_block)
     {
+      optimize_this_for_speed_p = optimize_bb_for_speed_p (this_basic_block);
       last_call_luid = 0;
       mem_last_set = -1;
       label_tick++;
@@ -2208,6 +2209,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
   /* Notes that I1, I2 or I3 is a MULT operation.  */
   int have_mult = 0;
   int swap_i2i3 = 0;
+  int changed_i3_dest = 0;
 
   int maxreg;
   rtx temp;
@@ -2895,14 +2897,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  insn_code_number = recog_for_combine (&newpat, i3, &new_i3_notes);
 
 	  if (insn_code_number >= 0)
-	    {
-	      /* If we will be able to accept this, we have made a
-		 change to the destination of I3.  This requires us to
-		 do a few adjustments.  */
-
-	      PATTERN (i3) = newpat;
-	      adjust_for_new_dest (i3);
-	    }
+	    changed_i3_dest = 1;
 	}
     }
 
@@ -3373,6 +3368,16 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     {
       undo_all ();
       return 0;
+    }
+
+  /* If we will be able to accept this, we have made a
+     change to the destination of I3.  This requires us to
+     do a few adjustments.  */
+
+  if (changed_i3_dest)
+    {
+      PATTERN (i3) = newpat;
+      adjust_for_new_dest (i3);
     }
 
   /* We now know that we can do this combination.  Merge the insns and
@@ -5701,6 +5706,7 @@ simplify_set (rtx x)
 	{
 	  int other_changed_previously = other_changed;
 	  unsigned HOST_WIDE_INT mask;
+	  rtx old_cc_use = *cc_use;
 
 	  SUBST (*cc_use, gen_rtx_fmt_ee (new_code, GET_MODE (*cc_use),
 					  dest, const0_rtx));
@@ -5723,7 +5729,7 @@ simplify_set (rtx x)
 	      if ((recog_for_combine (&pat, other_insn, &note) < 0
 		   && ! check_asm_operands (pat)))
 		{
-		  PUT_CODE (*cc_use, old_code);
+		  *cc_use = old_cc_use;
 		  other_changed = 0;
 
 		  op0 = simplify_gen_binary (XOR, GET_MODE (op0),
@@ -5843,6 +5849,7 @@ simplify_set (rtx x)
      zero_extend to avoid the reload that would otherwise be required.  */
 
   if (GET_CODE (src) == SUBREG && subreg_lowpart_p (src)
+      && INTEGRAL_MODE_P (GET_MODE (SUBREG_REG (src)))
       && LOAD_EXTEND_OP (GET_MODE (SUBREG_REG (src))) != UNKNOWN
       && SUBREG_BYTE (src) == 0
       && (GET_MODE_SIZE (GET_MODE (src))
@@ -6995,7 +7002,8 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       if (GET_CODE (rhs) == CONST_INT
 	  && GET_CODE (lhs) == ASHIFT
 	  && GET_CODE (XEXP (lhs, 1)) == CONST_INT
-	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1)))
+	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1))
+	  && INTVAL (rhs) < mode_width)
 	{
 	  new_rtx = make_compound_operation (XEXP (lhs, 0), next_code);
 	  new_rtx = make_extraction (mode, new_rtx,
@@ -7015,6 +7023,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 		&& (OBJECT_P (SUBREG_REG (lhs))))
 	  && GET_CODE (rhs) == CONST_INT
 	  && INTVAL (rhs) < HOST_BITS_PER_WIDE_INT
+	  && INTVAL (rhs) < mode_width
 	  && (new_rtx = extract_left_shift (lhs, INTVAL (rhs))) != 0)
 	new_rtx = make_extraction (mode, make_compound_operation (new_rtx, next_code),
 			       0, NULL_RTX, mode_width - INTVAL (rhs),
@@ -7319,6 +7328,10 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
   if (GET_MODE_SIZE (GET_MODE (x)) < GET_MODE_SIZE (mode)
       && (GET_MODE_MASK (GET_MODE (x)) & ~mask) == 0)
     return gen_lowpart (mode, x);
+
+  /* The arithmetic simplifications here do the wrong thing on vector modes.  */
+  if (VECTOR_MODE_P (mode) || VECTOR_MODE_P (GET_MODE (x)))
+      return gen_lowpart (mode, x);
 
   switch (code)
     {
@@ -9002,11 +9015,6 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
       if (GET_CODE (varop) == CLOBBER)
 	return NULL_RTX;
 
-      /* If we discovered we had to complement VAROP, leave.  Making a NOT
-	 here would cause an infinite loop.  */
-      if (complement_p)
-	break;
-
       /* Convert ROTATERT to ROTATE.  */
       if (code == ROTATERT)
 	{
@@ -9051,6 +9059,11 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	      break;
 	    }
 	}
+
+      /* If we discovered we had to complement VAROP, leave.  Making a NOT
+	 here would cause an infinite loop.  */
+      if (complement_p)
+	break;
 
       /* An arithmetic right shift of a quantity known to be -1 or 0
 	 is a no-op.  */
@@ -9960,7 +9973,7 @@ gen_lowpart_for_combine (enum machine_mode omode, rtx x)
     }
 
  fail:
-  return gen_rtx_CLOBBER (imode, const0_rtx);
+  return gen_rtx_CLOBBER (omode, const0_rtx);
 }
 
 /* Simplify a comparison between *POP0 and *POP1 where CODE is the
@@ -12646,6 +12659,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			  distribute_links (LOG_LINKS (tem));
 
 			  SET_INSN_DELETED (tem);
+			  if (tem == i2)
+			    i2 = NULL_RTX;
 
 #ifdef HAVE_cc0
 			  /* Delete the setter too.  */
@@ -12661,6 +12676,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			      distribute_links (LOG_LINKS (cc0_setter));
 
 			      SET_INSN_DELETED (cc0_setter);
+			      if (cc0_setter == i2)
+				i2 = NULL_RTX;
 			    }
 #endif
 			}

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -710,6 +710,10 @@ enum target_cpu_default
 /* Maximum stack alignment.  */
 #define MAX_STACK_ALIGNMENT MAX_OFILE_ALIGNMENT
 
+/* Alignment value for attribute ((aligned)).  It is a constant since
+   it is the part of the ABI.  We shouldn't change it with -mavx.  */
+#define ATTRIBUTE_ALIGNED_VALUE 128
+
 /* Decide whether a variable of mode MODE should be 128 bit aligned.  */
 #define ALIGN_MODE_128(MODE) \
  ((MODE) == XFmode || SSE_REG_MODE_P (MODE))
@@ -787,6 +791,19 @@ enum target_cpu_default
 #define STACK_SLOT_ALIGNMENT(TYPE, MODE, ALIGN) \
   ix86_local_alignment ((TYPE), (MODE), (ALIGN))
 
+/* If defined, a C expression to compute the alignment for a local
+   variable DECL.
+
+   If this macro is not defined, then
+   LOCAL_ALIGNMENT (TREE_TYPE (DECL), DECL_ALIGN (DECL)) will be used.
+
+   One use of this macro is to increase alignment of medium-size
+   data to make it all fit in fewer cache lines.  */
+
+#define LOCAL_DECL_ALIGNMENT(DECL) \
+  ix86_local_alignment ((DECL), VOIDmode, DECL_ALIGN (DECL))
+
+
 /* If defined, a C expression that gives the alignment boundary, in
    bits, of an argument with the specified mode and type.  If it is
    not defined, `PARM_BOUNDARY' is used for all arguments.  */
@@ -855,7 +872,7 @@ enum target_cpu_default
     1,    1,   1,   1,    1,					\
 /*xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7*/			\
      0,   0,   0,   0,   0,   0,   0,   0,			\
-/*mmx0,mmx1,mmx2,mmx3,mmx4,mmx5,mmx6,mmx7*/			\
+/* mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7*/			\
      0,   0,   0,   0,   0,   0,   0,   0,			\
 /*  r8,  r9, r10, r11, r12, r13, r14, r15*/			\
      2,   2,   2,   2,   2,   2,   2,   2,			\
@@ -883,7 +900,7 @@ enum target_cpu_default
     1,   1,    1,   1,    1,					\
 /*xmm0,xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm7*/			\
      1,   1,   1,   1,   1,   1,   1,   1,			\
-/*mmx0,mmx1,mmx2,mmx3,mmx4,mmx5,mmx6,mmx7*/			\
+/* mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7*/			\
      1,   1,   1,   1,   1,   1,   1,   1,			\
 /*  r8,  r9, r10, r11, r12, r13, r14, r15*/			\
      1,   1,   1,   1,   2,   2,   2,   2,			\
@@ -929,45 +946,36 @@ do {									\
       }									\
     j = PIC_OFFSET_TABLE_REGNUM;					\
     if (j != INVALID_REGNUM)						\
+      fixed_regs[j] = call_used_regs[j] = 1;				\
+    if (TARGET_64BIT							\
+	&& ((cfun && cfun->machine->call_abi == MS_ABI)			\
+	    || (!cfun && DEFAULT_ABI == MS_ABI)))			\
       {									\
-	fixed_regs[j] = 1;						\
-	call_used_regs[j] = 1;						\
+	call_used_regs[SI_REG] = 0;					\
+	call_used_regs[DI_REG] = 0;					\
+	call_used_regs[XMM6_REG] = 0;					\
+	call_used_regs[XMM7_REG] = 0;					\
+	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
+	  call_used_regs[i] = 0;					\
       }									\
     if (! TARGET_MMX)							\
-      {									\
-	int i;								\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (reg_class_contents[(int)MMX_REGS], i))	\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)MMX_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
     if (! TARGET_SSE)							\
-      {									\
-	int i;								\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (reg_class_contents[(int)SSE_REGS], i))	\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
-    if (! TARGET_80387 && ! TARGET_FLOAT_RETURNS_IN_80387)		\
-      {									\
-	int i;								\
-	HARD_REG_SET x;							\
-        COPY_HARD_REG_SET (x, reg_class_contents[(int)FLOAT_REGS]);	\
-        for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
-          if (TEST_HARD_REG_BIT (x, i)) 				\
-	    fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
-      }									\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)SSE_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
+    if (! (TARGET_80387 || TARGET_FLOAT_RETURNS_IN_80387))		\
+      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)			\
+	if (TEST_HARD_REG_BIT (reg_class_contents[(int)FLOAT_REGS], i))	\
+	  fixed_regs[i] = call_used_regs[i] = 1, reg_names[i] = "";	\
     if (! TARGET_64BIT)							\
       {									\
-	int i;								\
 	for (i = FIRST_REX_INT_REG; i <= LAST_REX_INT_REG; i++)		\
 	  reg_names[i] = "";						\
 	for (i = FIRST_REX_SSE_REG; i <= LAST_REX_SSE_REG; i++)		\
 	  reg_names[i] = "";						\
-      }									\
-    if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)				\
-      {									\
-        call_used_regs[4 /*RSI*/] = 0;                                  \
-        call_used_regs[5 /*RDI*/] = 0;                                  \
       }									\
   } while (0)
 
@@ -1078,7 +1086,7 @@ do {									\
    : (MODE) == VOIDmode && (NREGS) != 1 ? VOIDmode			\
    : (MODE) == VOIDmode ? choose_hard_reg_mode ((REGNO), (NREGS), false) \
    : (MODE) == HImode && !TARGET_PARTIAL_REG_STALL ? SImode		\
-   : (MODE) == QImode && (REGNO) >= 4 && !TARGET_64BIT ? SImode 	\
+   : (MODE) == QImode && (REGNO) > BX_REG && !TARGET_64BIT ? SImode 	\
    : (MODE))
 
 /* Specify the registers used for certain standard purposes.
@@ -1315,7 +1323,7 @@ enum reg_class
 
 #define SMALL_REGISTER_CLASSES 1
 
-#define QI_REG_P(X) (REG_P (X) && REGNO (X) < 4)
+#define QI_REG_P(X) (REG_P (X) && REGNO (X) <= BX_REG)
 
 #define GENERAL_REGNO_P(N) \
   ((N) <= STACK_POINTER_REGNUM || REX_INT_REGNO_P (N))
@@ -1507,9 +1515,14 @@ enum reg_class
    be computed and placed into the variable
    `crtl->outgoing_args_size'.  No space will be pushed onto the
    stack for each call; instead, the function prologue should increase the stack
-   frame size by this amount.  */
+   frame size by this amount.  
+   
+   MS ABI seem to require 16 byte alignment everywhere except for function
+   prologue and apilogue.  This is not possible without
+   ACCUMULATE_OUTGOING_ARGS.  */
 
-#define ACCUMULATE_OUTGOING_ARGS TARGET_ACCUMULATE_OUTGOING_ARGS
+#define ACCUMULATE_OUTGOING_ARGS \
+  (TARGET_ACCUMULATE_OUTGOING_ARGS || ix86_cfun_abi () == MS_ABI)
 
 /* If defined, a C expression whose value is nonzero when we want to use PUSH
    instructions to pass outgoing arguments.  */

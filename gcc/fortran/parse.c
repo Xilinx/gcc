@@ -807,6 +807,7 @@ next_statement (void)
   locus old_locus;
   gfc_new_block = NULL;
 
+  gfc_current_ns->old_cl_list = gfc_current_ns->cl_list;
   for (;;)
     {
       gfc_statement_label = NULL;
@@ -1512,6 +1513,10 @@ accept_statement (gfc_statement st)
 static void
 reject_statement (void)
 {
+  /* Revert to the previous charlen chain.  */
+  gfc_free_charlen (gfc_current_ns->cl_list, gfc_current_ns->old_cl_list);
+  gfc_current_ns->cl_list = gfc_current_ns->old_cl_list;
+
   gfc_new_block = NULL;
   gfc_undo_symbols ();
   gfc_clear_warning ();
@@ -2260,8 +2265,9 @@ match_deferred_characteristics (gfc_typespec * ts)
 
   /* Set the function locus correctly.  If we have not found the
      function name, there is an error.  */
-  gfc_match ("function% %n", name);
-  if (m == MATCH_YES && strcmp (name, gfc_current_block ()->name) == 0)
+  if (m == MATCH_YES
+      && gfc_match ("function% %n", name) == MATCH_YES
+      && strcmp (name, gfc_current_block ()->name) == 0)
     {
       gfc_current_block ()->declared_at = gfc_current_locus;
       gfc_commit_symbols ();
@@ -2332,7 +2338,7 @@ loop:
     {
       bool verify_now = false;
 
-      if (st == ST_END_FUNCTION)
+      if (st == ST_END_FUNCTION || st == ST_CONTAINS)
 	verify_now = true;
       else
 	{
@@ -3313,7 +3319,7 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
       gfc_find_sym_tree (sym->name, ns, 0, &st);
 
       if (!st || (st->n.sym->attr.dummy && ns == st->n.sym->ns))
-	continue;
+	goto fixup_contained;
 
       old_sym = st->n.sym;
       if (old_sym->ns == ns
@@ -3347,6 +3353,7 @@ gfc_fixup_sibling_symbols (gfc_symbol *sym, gfc_namespace *siblings)
 	    gfc_free_symbol (old_sym);
 	}
 
+fixup_contained:
       /* Do the same for any contained procedures.  */
       gfc_fixup_sibling_symbols (sym, ns->contained);
     }

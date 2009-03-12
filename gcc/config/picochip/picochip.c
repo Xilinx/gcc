@@ -1,5 +1,5 @@
 /* Subroutines used for code generation on picoChip processors.
-   Copyright (C) 2001,2008   Free Software Foundation, Inc.
+   Copyright (C) 2001,2008, 2009   Free Software Foundation, Inc.
    Contributed by picoChip Designs Ltd. (http://www.picochip.com)
    Maintained by Daniel Towner (daniel.towner@picochip.com) and
    Hariharan Sandanagobalane (hariharan@picochip.com)
@@ -50,7 +50,7 @@ along with GCC; see the file COPYING3.  If not, see
 #include "target-def.h"
 #include "langhooks.h"
 #include "reload.h"
-#include "tree-gimple.h"
+#include "params.h"
 
 #include "picochip-protos.h"
 
@@ -304,6 +304,16 @@ picochip_return_in_memory(const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
 void
 picochip_override_options (void)
 {
+  /* If we are optimizing for stack, dont let inliner to inline functions
+     that could potentially increase stack size.*/
+   if (flag_conserve_stack)
+   {
+     PARAM_VALUE (PARAM_LARGE_STACK_FRAME) = 0;
+     PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) = 0;
+   }
+   /* The function call overhead on picochip is not very high. Let the
+      inliner know so its heuristics become more reasonable. */
+   PARAM_VALUE (PARAM_INLINE_CALL_COST) = 2;
 
   /* Turn off the elimination of unused types. The elaborator
      generates various interesting types to represent constants,
@@ -1190,8 +1200,7 @@ picochip_legitimate_address_register (rtx x, unsigned strict)
 /* Determine whether the given constant is in the range required for
    the given base register. */
 static int
-picochip_const_ok_for_base (enum machine_mode mode, int regno, int offset,
-                            int strict)
+picochip_const_ok_for_base (enum machine_mode mode, int regno, int offset)
 {
   HOST_WIDE_INT corrected_offset;
 
@@ -1199,17 +1208,16 @@ picochip_const_ok_for_base (enum machine_mode mode, int regno, int offset,
     {
       if (GET_MODE_SIZE(mode) <= 4)
       {
-         /* We can allow incorrect offsets if strict is 0. If strict is 1,
-            we are in reload and these memory accesses need to be changed. */
-         if (offset % GET_MODE_SIZE (mode) != 0 && strict == 1)
+         /* We used to allow incorrect offsets if strict is 0. But, this would
+            then rely on reload doing the right thing. We have had problems
+            there before, and on > 4.3 compiler, there are no benefits. */
+         if (offset % GET_MODE_SIZE (mode) != 0)
            return 0;
          corrected_offset = offset / GET_MODE_SIZE (mode);
       }
       else
       {
-         /* We can allow incorrect offsets if strict is 0. If strict is 1,
-            we are in reload and these memory accesses need to be changed. */
-         if (offset % 4 != 0 && strict == 1)
+         if (offset % 4 != 0)
            return 0;
          corrected_offset = offset / 4;
       }
@@ -1262,7 +1270,7 @@ picochip_legitimate_address_p (int mode, rtx x, unsigned strict)
 		 picochip_legitimate_address_register (base, strict) &&
 		 CONST_INT == GET_CODE (offset) &&
 		 picochip_const_ok_for_base (mode, REGNO (base),
-					     INTVAL (offset),strict));
+					     INTVAL (offset)));
 	break;
       }
 
@@ -3915,6 +3923,7 @@ picochip_init_builtins (void)
 {
   tree endlink = void_list_node;
   tree int_endlink = tree_cons (NULL_TREE, integer_type_node, endlink);
+  tree unsigned_endlink = tree_cons (NULL_TREE, unsigned_type_node, endlink);
   tree long_endlink = tree_cons (NULL_TREE, long_integer_type_node, endlink);
   tree int_int_endlink =
     tree_cons (NULL_TREE, integer_type_node, int_endlink);
@@ -3930,7 +3939,7 @@ picochip_init_builtins (void)
   tree long_ftype_int, long_ftype_int_int, long_ftype_int_int_int;
   tree void_ftype_int_long, int_ftype_int_int_int,
     void_ftype_long_int_int_int;
-  tree void_ftype_void, void_ftype_int;
+  tree void_ftype_void, void_ftype_int, unsigned_ftype_unsigned;
 
   /* void func (void) */
   void_ftype_void = build_function_type (void_type_node, endlink);
@@ -3948,6 +3957,9 @@ picochip_init_builtins (void)
 
   /* int func (int) */
   int_ftype_int = build_function_type (integer_type_node, int_endlink);
+
+  /* unsigned int func (unsigned int) */
+  unsigned_ftype_unsigned = build_function_type (unsigned_type_node, unsigned_endlink);
 
   /* int func(int, int) */
   int_ftype_int_int
@@ -3992,18 +4004,18 @@ picochip_init_builtins (void)
 			       NULL_TREE);
 
   /* Initialise the bit reverse function. */
-  add_builtin_function ("__builtin_brev", int_ftype_int,
+  add_builtin_function ("__builtin_brev", unsigned_ftype_unsigned,
 			       PICOCHIP_BUILTIN_BREV, BUILT_IN_MD, NULL,
 			       NULL_TREE);
-  add_builtin_function ("picoBrev", int_ftype_int,
+  add_builtin_function ("picoBrev", unsigned_ftype_unsigned,
 			       PICOCHIP_BUILTIN_BREV, BUILT_IN_MD, NULL,
 			       NULL_TREE);
 
   /* Initialise the byte swap function. */
-  add_builtin_function ("__builtin_byteswap", int_ftype_int,
+  add_builtin_function ("__builtin_byteswap", unsigned_ftype_unsigned,
 			       PICOCHIP_BUILTIN_BYTESWAP, BUILT_IN_MD, NULL,
 			       NULL_TREE);
-  add_builtin_function ("picoByteSwap", int_ftype_int,
+  add_builtin_function ("picoByteSwap", unsigned_ftype_unsigned,
 			       PICOCHIP_BUILTIN_BYTESWAP, BUILT_IN_MD, NULL,
 			       NULL_TREE);
 

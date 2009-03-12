@@ -1,7 +1,7 @@
 // Iostreams base classes -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -58,6 +58,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // 27.4.5  Template class basic_ios
   /**
    *  @brief  Virtual base class for all stream classes.
+   *  @ingroup io
    *
    *  Most of the member functions called dispatched on stream objects
    *  (e.g., @c std::cout.foo(bar);) are consolidated in this class.
@@ -398,7 +399,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  with this stream, calls that buffer's @c pubimbue(loc).
        *
        *  Additional l10n notes are at
-       *  http://gcc.gnu.org/onlinedocs/libstdc++/22_locale/howto.html
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
       */
       locale
       imbue(const locale& __loc);
@@ -418,7 +419,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @endcode
        *
        *  Additional l10n notes are at
-       *  http://gcc.gnu.org/onlinedocs/libstdc++/22_locale/howto.html
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
       */
       char
       narrow(char_type __c, char __dfault) const
@@ -437,7 +438,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @endcode
        *
        *  Additional l10n notes are at
-       *  http://gcc.gnu.org/onlinedocs/libstdc++/22_locale/howto.html
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/localization.html
       */
       char_type
       widen(char __c) const

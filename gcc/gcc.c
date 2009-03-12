@@ -1,6 +1,6 @@
 /* Compiler driver program that can handle many languages.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -17,10 +17,7 @@ for more details.
 
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
-<http://www.gnu.org/licenses/>.
-
-This paragraph is here to try to keep Sun CC from dying.
-The number of chars here seems crucial!!!!  */
+<http://www.gnu.org/licenses/>.  */
 
 /* This program is the user interface to the C compiler and possibly to
 other compilers.  It is used because compilation is a complicated procedure
@@ -680,14 +677,14 @@ proper position among the other output files.  */
      && defined(HAVE_AS_GDWARF2_DEBUG_FLAG) && defined(HAVE_AS_GSTABS_DEBUG_FLAG)
 #  define ASM_DEBUG_SPEC						\
       (PREFERRED_DEBUGGING_TYPE == DBX_DEBUG				\
-       ? "%{gdwarf-2*:--gdwarf2}%{!gdwarf-2*:%{g*:--gstabs}}" ASM_MAP	\
-       : "%{gstabs*:--gstabs}%{!gstabs*:%{g*:--gdwarf2}}" ASM_MAP)
+       ? "%{!g0:%{gdwarf-2*:--gdwarf2}%{!gdwarf-2*:%{g*:--gstabs}}}" ASM_MAP	\
+       : "%{!g0:%{gstabs*:--gstabs}%{!gstabs*:%{g*:--gdwarf2}}}" ASM_MAP)
 # else
 #  if defined(DBX_DEBUGGING_INFO) && defined(HAVE_AS_GSTABS_DEBUG_FLAG)
-#   define ASM_DEBUG_SPEC "%{g*:--gstabs}" ASM_MAP
+#   define ASM_DEBUG_SPEC "%{g*:%{!g0:--gstabs}}" ASM_MAP
 #  endif
 #  if defined(DWARF2_DEBUGGING_INFO) && defined(HAVE_AS_GDWARF2_DEBUG_FLAG)
-#   define ASM_DEBUG_SPEC "%{g*:--gdwarf2}" ASM_MAP
+#   define ASM_DEBUG_SPEC "%{g*:%{!g0:--gdwarf2}}" ASM_MAP
 #  endif
 # endif
 #endif
@@ -826,7 +823,7 @@ static const char *cpp_options =
    output will be used by another program.  */
 static const char *cpp_debug_options = "%{d*}";
 
-/* NB: This is shared amongst all front-ends.  */
+/* NB: This is shared amongst all front-ends, except for Ada.  */
 static const char *cc1_options =
 "%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}}\
  %1 %{!Q:-quiet} -dumpbase %B %{d*} %{m*} %{a*}\
@@ -3235,6 +3232,7 @@ display_help (void)
   fputs (_("                           Display specific types of command line options\n"), stdout);
   if (! verbose_flag)
     fputs (_("  (Use '-v --help' to display command line options of sub-processes)\n"), stdout);
+  fputs (_("  --version                Display compiler version information\n"), stdout);
   fputs (_("  -dumpspecs               Display all of the built in spec strings\n"), stdout);
   fputs (_("  -dumpversion             Display the version of the compiler\n"), stdout);
   fputs (_("  -dumpmachine             Display the compiler's target processor\n"), stdout);
@@ -3374,8 +3372,10 @@ process_command (int argc, const char **argv)
      Use heuristic that all configuration names must have at least
      one dash '-'. This allows us to pass options starting with -b.  */
   if (argc > 1 && argv[1][0] == '-'
-      && (argv[1][1] == 'V' ||
-	 ((argv[1][1] == 'b') && (NULL != strchr(argv[1] + 2,'-')))))
+      && (argv[1][1] == 'V'
+	  || (argv[1][1] == 'b'
+	      && (argv[1][2] == '\0'
+		  || NULL != strchr (argv[1] + 2, '-')))))
     {
       const char *new_version = DEFAULT_TARGET_VERSION;
       const char *new_machine = DEFAULT_TARGET_MACHINE;
@@ -3383,10 +3383,15 @@ process_command (int argc, const char **argv)
       char **new_argv;
       char *new_argv0;
       int baselen;
+      int status = 0;
+      int err = 0;
+      const char *errmsg;
 
       while (argc > 1 && argv[1][0] == '-'
-	     && (argv[1][1] == 'V' ||
-		((argv[1][1] == 'b') && ( NULL != strchr(argv[1] + 2,'-')))))
+	     && (argv[1][1] == 'V'
+		 || (argv[1][1] == 'b'
+		     && (argv[1][2] == '\0'
+			 || NULL != strchr (argv[1] + 2, '-')))))
 	{
 	  char opt = argv[1][1];
 	  const char *arg;
@@ -3423,8 +3428,18 @@ process_command (int argc, const char **argv)
       new_argv = XDUPVEC (char *, argv, argc + 1);
       new_argv[0] = new_argv0;
 
-      execvp (new_argv0, new_argv);
-      fatal ("couldn't run '%s': %s", new_argv0, xstrerror (errno));
+      errmsg = pex_one (PEX_SEARCH, new_argv0, new_argv, progname, NULL,
+			NULL, &status, &err);
+
+      if (errmsg)
+	{
+	  if (err == 0)
+	    fatal ("couldn't run '%s': %s", new_argv0, errmsg);
+	  else
+	    fatal ("couldn't run '%s': %s: %s", new_argv0, errmsg,
+		    xstrerror (err));
+        }
+      exit (status);
     }
 
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
@@ -3627,7 +3642,7 @@ process_command (int argc, const char **argv)
 	  /* translate_options () has turned --version into -fversion.  */
 	  printf (_("%s %s%s\n"), programname, pkgversion_string,
 		  version_string);
-	  printf ("Copyright %s 2008 Free Software Foundation, Inc.\n",
+	  printf ("Copyright %s 2009 Free Software Foundation, Inc.\n",
 		  _("(C)"));
 	  fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
@@ -3851,7 +3866,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  switch (c)
 	    {
 	    case 'b':
-	      if (NULL == strchr(argv[i] + 2, '-'))
+	      if (p[1] && NULL == strchr (argv[i] + 2, '-'))
 		goto normal_switch;
 
 	      /* Fall through.  */
@@ -6593,7 +6608,10 @@ main (int argc, char **argv)
 
       /* We do not exit here.  Instead we have created a fake input file
 	 called 'help-dummy' which needs to be compiled, and we pass this
-	 on the various sub-processes, along with the --help switch.  */
+	 on the various sub-processes, along with the --help switch.
+	 Ensure their output appears after ours.  */
+      fputc ('\n', stdout);
+      fflush (stdout);
     }
 
     if (flag_profile_stdlib_advise)

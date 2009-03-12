@@ -1,6 +1,6 @@
 /* File format for coverage information
    Copyright (C) 1996, 1997, 1998, 2000, 2002,
-   2003, 2004, 2005 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Bob Manson <manson@cygnus.com>.
    Completely remangled by Nathan Sidwell <nathan@codesourcery.com>.
 
@@ -481,9 +481,9 @@ extern void __gcov_ior_profiler (gcov_type *, gcov_type);
 #ifndef inhibit_libc
 /* The wrappers around some library functions..  */
 extern pid_t __gcov_fork (void) ATTRIBUTE_HIDDEN;
-extern int __gcov_execl (const char *, const char *, ...) ATTRIBUTE_HIDDEN;
-extern int __gcov_execlp (const char *, const char *, ...) ATTRIBUTE_HIDDEN;
-extern int __gcov_execle (const char *,  const char *, ...) ATTRIBUTE_HIDDEN;
+extern int __gcov_execl (const char *, char *, ...) ATTRIBUTE_HIDDEN;
+extern int __gcov_execlp (const char *, char *, ...) ATTRIBUTE_HIDDEN;
+extern int __gcov_execle (const char *, char *, ...) ATTRIBUTE_HIDDEN;
 extern int __gcov_execv (const char *, char *const []) ATTRIBUTE_HIDDEN;
 extern int __gcov_execvp (const char *, char *const []) ATTRIBUTE_HIDDEN;
 extern int __gcov_execve (const char *, char  *const [], char *const [])

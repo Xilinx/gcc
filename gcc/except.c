@@ -1,6 +1,6 @@
 /* Implements exception handling.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
@@ -2017,11 +2017,13 @@ sjlj_build_landing_pads (void)
   if (sjlj_find_directly_reachable_regions (lp_info))
     {
       rtx dispatch_label = gen_label_rtx ();
-
+      int align = STACK_SLOT_ALIGNMENT (sjlj_fc_type_node,
+					TYPE_MODE (sjlj_fc_type_node),
+					TYPE_ALIGN (sjlj_fc_type_node));
       crtl->eh.sjlj_fc
 	= assign_stack_local (TYPE_MODE (sjlj_fc_type_node),
 			      int_size_in_bytes (sjlj_fc_type_node),
-			      TYPE_ALIGN (sjlj_fc_type_node));
+			      align);
 
       sjlj_assign_call_site_values (dispatch_label, lp_info);
       sjlj_mark_call_sites (lp_info);
@@ -3332,7 +3334,7 @@ struct rtl_opt_pass pass_convert_to_eh_region_ranges =
 {
  {
   RTL_PASS,
-  "eh-ranges",                          /* name */
+  "eh_ranges",                          /* name */
   NULL,                                 /* gate */
   convert_to_eh_region_ranges,          /* execute */
   NULL,                                 /* sub */

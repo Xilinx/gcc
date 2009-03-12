@@ -1,6 +1,6 @@
 // Vector implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -157,8 +157,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *  @brief A standard container which offers fixed time access to
    *  individual elements in any order.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -181,7 +180,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       __glibcxx_class_requires2(_Tp, _Alloc_value_type, _SameTypeConcept)
       
       typedef _Vector_base<_Tp, _Alloc>			 _Base;
-      typedef vector<_Tp, _Alloc>			 vector_type;
       typedef typename _Base::_Tp_alloc_type		 _Tp_alloc_type;
 
     public:
@@ -190,8 +188,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       typedef typename _Tp_alloc_type::const_pointer     const_pointer;
       typedef typename _Tp_alloc_type::reference         reference;
       typedef typename _Tp_alloc_type::const_reference   const_reference;
-      typedef __gnu_cxx::__normal_iterator<pointer, vector_type> iterator;
-      typedef __gnu_cxx::__normal_iterator<const_pointer, vector_type>
+      typedef __gnu_cxx::__normal_iterator<pointer, vector> iterator;
+      typedef __gnu_cxx::__normal_iterator<const_pointer, vector>
       const_iterator;
       typedef std::reverse_iterator<const_iterator>  const_reverse_iterator;
       typedef std::reverse_iterator<iterator>		 reverse_iterator;
@@ -968,13 +966,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 			     _ForwardIterator __first, _ForwardIterator __last)
         {
 	  pointer __result = this->_M_allocate(__n);
-	  try
+	  __try
 	    {
 	      std::__uninitialized_copy_a(__first, __last, __result,
 					  _M_get_Tp_allocator());
 	      return __result;
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      _M_deallocate(__result, __n);
 	      __throw_exception_again;

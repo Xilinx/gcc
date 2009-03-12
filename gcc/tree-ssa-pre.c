@@ -1,5 +1,5 @@
 /* SSA-PRE for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org> and Steven Bosscher
    <stevenb@suse.de>
@@ -216,11 +216,11 @@ pre_expr_hash (const void *p1)
     case CONSTANT:
       return vn_hash_constant_with_type (PRE_EXPR_CONSTANT (e));
     case NAME:
-      return iterative_hash_expr (PRE_EXPR_NAME (e), 0);
+      return iterative_hash_hashval_t (SSA_NAME_VERSION (PRE_EXPR_NAME (e)), 0);
     case NARY:
-      return vn_nary_op_compute_hash (PRE_EXPR_NARY (e));
+      return PRE_EXPR_NARY (e)->hashcode;
     case REFERENCE:
-      return vn_reference_compute_hash (PRE_EXPR_REFERENCE (e));
+      return PRE_EXPR_REFERENCE (e)->hashcode;
     default:
       abort ();
     }
@@ -337,6 +337,9 @@ typedef struct bitmap_set
 #define FOR_EACH_EXPR_ID_IN_SET(set, id, bi)		\
   EXECUTE_IF_SET_IN_BITMAP((set)->expressions, 0, (id), (bi))
 
+#define FOR_EACH_VALUE_ID_IN_SET(set, id, bi)		\
+  EXECUTE_IF_SET_IN_BITMAP((set)->values, 0, (id), (bi))
+
 /* Mapping from value id to expressions with that value_id.  */
 DEF_VEC_P (bitmap_set_t);
 DEF_VEC_ALLOC_P (bitmap_set_t, heap);
@@ -434,6 +437,7 @@ static tree create_expression_by_pieces (basic_block, pre_expr, gimple_seq *,
 					 gimple, tree);
 static tree find_or_generate_expression (basic_block, pre_expr, gimple_seq *,
 					 gimple);
+static unsigned int get_expr_value_id (pre_expr);
 
 /* We can add and remove elements and entries to and from sets
    and hash tables, so we use alloc pools for them.  */
@@ -559,6 +563,8 @@ add_to_value (unsigned int v, pre_expr e)
 {
   bitmap_set_t set;
 
+  gcc_assert (get_expr_value_id (e) == v);
+
   if (v >= VEC_length (bitmap_set_t, value_expressions))
     {
       VEC_safe_grow_cleared (bitmap_set_t, heap, value_expressions,
@@ -669,33 +675,34 @@ bitmap_set_free (bitmap_set_t set)
 }
 
 
-/* A comparison function for use in qsort to top sort a bitmap set.  Simply
-   subtracts value ids, since they are created with leaves before
-   their parent users (IE topological order).  */
-
-static int
-value_id_compare (const void *pa, const void *pb)
-{
-  const unsigned int vha = get_expr_value_id (*((const pre_expr *)pa));
-  const unsigned int vhb = get_expr_value_id (*((const pre_expr *)pb));
-
-  return vha - vhb;
-}
-
 /* Generate an topological-ordered array of bitmap set SET.  */
 
 static VEC(pre_expr, heap) *
 sorted_array_from_bitmap_set (bitmap_set_t set)
 {
-  unsigned int i;
-  bitmap_iterator bi;
+  unsigned int i, j;
+  bitmap_iterator bi, bj;
   VEC(pre_expr, heap) *result = NULL;
 
-  FOR_EACH_EXPR_ID_IN_SET (set, i, bi)
-    VEC_safe_push (pre_expr, heap, result, expression_for_id (i));
+  FOR_EACH_VALUE_ID_IN_SET (set, i, bi)
+    {
+      /* The number of expressions having a given value is usually
+	 relatively small.  Thus, rather than making a vector of all
+	 the expressions and sorting it by value-id, we walk the values
+	 and check in the reverse mapping that tells us what expressions
+	 have a given value, to filter those in our set.  As a result,
+	 the expressions are inserted in value-id order, which means
+	 topological order.
 
-  qsort (VEC_address (pre_expr, result), VEC_length (pre_expr, result),
-	 sizeof (pre_expr), value_id_compare);
+	 If this is somehow a significant lose for some cases, we can
+	 choose which set to walk based on the set size.  */
+      bitmap_set_t exprset = VEC_index (bitmap_set_t, value_expressions, i);
+      FOR_EACH_EXPR_ID_IN_SET (exprset, j, bj)
+	{
+	  if (bitmap_bit_p (set->expressions, j))
+	    VEC_safe_push (pre_expr, heap, result, expression_for_id (j));
+        }
+    }
 
   return result;
 }
@@ -1088,47 +1095,59 @@ fully_constant_expression (pre_expr e)
 	vn_nary_op_t nary = PRE_EXPR_NARY (e);
 	switch (TREE_CODE_CLASS (nary->opcode))
 	  {
+	  case tcc_expression:
+	    if (nary->opcode == TRUTH_NOT_EXPR)
+	      goto do_unary;
+	    if (nary->opcode != TRUTH_AND_EXPR
+		&& nary->opcode != TRUTH_OR_EXPR
+		&& nary->opcode != TRUTH_XOR_EXPR)
+	      return e;
+	    /* Fallthrough.  */
 	  case tcc_binary:
+	  case tcc_comparison:
 	    {
 	      /* We have to go from trees to pre exprs to value ids to
 		 constants.  */
 	      tree naryop0 = nary->op[0];
 	      tree naryop1 = nary->op[1];
-	      tree const0, const1, result;
-	      if (is_gimple_min_invariant (naryop0))
-		const0 = naryop0;
-	      else
+	      tree result;
+	      if (!is_gimple_min_invariant (naryop0))
 		{
 		  pre_expr rep0 = get_or_alloc_expr_for (naryop0);
 		  unsigned int vrep0 = get_expr_value_id (rep0);
-		  const0 = get_constant_for_value_id (vrep0);
+		  tree const0 = get_constant_for_value_id (vrep0);
+		  if (const0)
+		    naryop0 = fold_convert (TREE_TYPE (naryop0), const0);
 		}
-	      if (is_gimple_min_invariant (naryop1))
-		const1 = naryop1;
-	      else
+	      if (!is_gimple_min_invariant (naryop1))
 		{
 		  pre_expr rep1 = get_or_alloc_expr_for (naryop1);
 		  unsigned int vrep1 = get_expr_value_id (rep1);
-		  const1 = get_constant_for_value_id (vrep1);
+		  tree const1 = get_constant_for_value_id (vrep1);
+		  if (const1)
+		    naryop1 = fold_convert (TREE_TYPE (naryop1), const1);
 		}
-	      result = NULL;
-	      if (const0 && const1)
-		{
-		  tree type1 = TREE_TYPE (nary->op[0]);
-		  tree type2 = TREE_TYPE (nary->op[1]);
-		  const0 = fold_convert (type1, const0);
-		  const1 = fold_convert (type2, const1);
-		  result = fold_binary (nary->opcode, nary->type, const0,
-					const1);
-		}
+	      result = fold_binary (nary->opcode, nary->type,
+				    naryop0, naryop1);
 	      if (result && is_gimple_min_invariant (result))
 		return get_or_alloc_expr_for_constant (result);
+	      /* We might have simplified the expression to a
+		 SSA_NAME for example from x_1 * 1.  But we cannot
+		 insert a PHI for x_1 unconditionally as x_1 might
+		 not be available readily.  */
 	      return e;
 	    }
+	  case tcc_reference:
+	    if (nary->opcode != REALPART_EXPR
+		&& nary->opcode != IMAGPART_EXPR 
+		&& nary->opcode != VIEW_CONVERT_EXPR)
+	      return e;
+	    /* Fallthrough.  */
 	  case tcc_unary:
+do_unary:
 	    {
-	    /* We have to go from trees to pre exprs to value ids to
-	       constants.  */
+	      /* We have to go from trees to pre exprs to value ids to
+		 constants.  */
 	      tree naryop0 = nary->op[0];
 	      tree const0, result;
 	      if (is_gimple_min_invariant (naryop0))
@@ -1146,7 +1165,6 @@ fully_constant_expression (pre_expr e)
 		  const0 = fold_convert (type1, const0);
 		  result = fold_unary (nary->opcode, nary->type, const0);
 		}
-	      
 	      if (result && is_gimple_min_invariant (result))
 		return get_or_alloc_expr_for_constant (result);
 	      return e;
@@ -1689,6 +1707,9 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 	    tree def = PHI_ARG_DEF (phi, e->dest_idx);
 	    pre_expr newexpr;
 
+	    if (TREE_CODE (def) == SSA_NAME)
+	      def = VN_INFO (def)->valnum;
+
 	    /* Handle constant. */
 	    if (is_gimple_min_invariant (def))
 	      return get_or_alloc_expr_for_constant (def);
@@ -1745,9 +1766,8 @@ phi_translate_set (bitmap_set_t dest, bitmap_set_t set, basic_block pred,
       pre_expr translated;
       translated = phi_translate (expr, set, NULL, pred, phiblock);
 
-      /* Don't add constants or empty translations to the cache, since
-	 we won't look them up that way, or use the result, anyway.  */
-      if (translated && !value_id_constant_p (get_expr_value_id (translated)))
+      /* Don't add empty translations to the cache  */
+      if (translated)
 	phi_trans_add (expr, translated, pred);
 
       if (translated != NULL)
@@ -2384,7 +2404,7 @@ compute_antic (void)
 	fprintf (dump_file, "Starting iteration %d\n", num_iterations);
       num_iterations++;
       changed = false;
-      for (i = 0; i < last_basic_block - NUM_FIXED_BLOCKS; i++)
+      for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
 	{
 	  if (TEST_BIT (changed_blocks, postorder[i]))
 	    {
@@ -2415,7 +2435,7 @@ compute_antic (void)
 	    fprintf (dump_file, "Starting iteration %d\n", num_iterations);
 	  num_iterations++;
 	  changed = false;
-	  for (i = 0; i < last_basic_block - NUM_FIXED_BLOCKS; i++)
+	  for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
 	    {
 	      if (TEST_BIT (changed_blocks, postorder[i]))
 		{
@@ -2965,7 +2985,7 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   pre_expr eprime;
   edge_iterator ei;
   tree type = get_expr_type (expr);
-  tree temp, res;
+  tree temp;
   gimple phi;
 
   if (dump_file && (dump_flags & TDF_DETAILS))
@@ -2994,6 +3014,15 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 	}
     }
 
+  /* Make sure we are not inserting trapping expressions.  */
+  FOR_EACH_EDGE (pred, ei, block->preds)
+    {
+      bprime = pred->src;
+      eprime = avail[bprime->index];
+      if (eprime->kind == NARY
+	  && vn_nary_may_trap (PRE_EXPR_NARY (eprime)))
+	return false;
+    }
 
   /* Make the necessary insertions.  */
   FOR_EACH_EDGE (pred, ei, block->preds)
@@ -3020,23 +3049,15 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
 	     should give us back a constant with the right type.
 	  */
 	  tree constant = PRE_EXPR_CONSTANT (eprime);
-	  if (TREE_TYPE (constant) != type)
+	  if (!useless_type_conversion_p (type, TREE_TYPE (constant)))
 	    {
 	      tree builtexpr = fold_convert (type, constant);
-	      if (is_gimple_min_invariant (builtexpr))
-		{
-		  PRE_EXPR_CONSTANT (eprime) = builtexpr;
-		}
-	      else
+	      if (!is_gimple_min_invariant (builtexpr)) 
 		{
 		  tree forcedexpr = force_gimple_operand (builtexpr,
 							  &stmts, true,
 							  NULL);
-		  if (is_gimple_min_invariant (forcedexpr))
-		    {
-		      PRE_EXPR_CONSTANT (eprime) = forcedexpr;
-		    }
-		  else
+		  if (!is_gimple_min_invariant (forcedexpr))
 		    {
 		      if (forcedexpr != builtexpr)
 			{
@@ -3120,8 +3141,12 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
   if (TREE_CODE (type) == COMPLEX_TYPE
       || TREE_CODE (type) == VECTOR_TYPE)
     DECL_GIMPLE_REG_P (temp) = 1;
-
   phi = create_phi_node (temp, block);
+
+  gimple_set_plf (phi, NECESSARY, false);
+  VN_INFO_GET (gimple_phi_result (phi))->valnum = gimple_phi_result (phi);
+  VN_INFO (gimple_phi_result (phi))->value_id = val;
+  VEC_safe_push (gimple, heap, inserted_exprs, phi);
   FOR_EACH_EDGE (pred, ei, block->preds)
     {
       pre_expr ae = avail[pred->src->index];
@@ -3132,20 +3157,6 @@ insert_into_preds_of_block (basic_block block, unsigned int exprnum,
       else
 	add_phi_arg (phi, PRE_EXPR_NAME (avail[pred->src->index]), pred);
     }
-  /* If the PHI node is already available, use it.  */
-  if ((res = vn_phi_lookup (phi)) != NULL_TREE)
-    {
-      gimple_stmt_iterator gsi = gsi_for_stmt (phi);
-      remove_phi_node (&gsi, true);
-      release_defs (phi);
-      add_to_value (val, get_or_alloc_expr_for_name (res));
-      return false;
-    }
-
-  gimple_set_plf (phi, NECESSARY, false);
-  VN_INFO_GET (gimple_phi_result (phi))->valnum = gimple_phi_result (phi);
-  VN_INFO (gimple_phi_result (phi))->value_id = val;
-  VEC_safe_push (gimple, heap, inserted_exprs, phi);
 
   newphi = get_or_alloc_expr_for_name (gimple_phi_result (phi));
   add_to_value (val, newphi);
@@ -3222,7 +3233,7 @@ do_regular_insertion (basic_block block, basic_block dom)
 	  basic_block bprime;
 	  pre_expr eprime = NULL;
 	  edge_iterator ei;
-	  pre_expr edoubleprime;
+	  pre_expr edoubleprime = NULL;
 
 	  val = get_expr_value_id (expr);
 	  if (bitmap_set_contains_value (PHI_GEN (block), val))
@@ -3319,7 +3330,7 @@ do_regular_insertion (basic_block block, basic_block dom)
 			  pre_stats.constified++;
 			}
 		      else
-			info->valnum = PRE_EXPR_NAME (edoubleprime);
+			info->valnum = VN_INFO (PRE_EXPR_NAME (edoubleprime))->valnum;
 		      info->value_id = new_val;
 		    }
 		}
@@ -3642,10 +3653,7 @@ compute_avail (void)
 
 	      add_to_value (get_expr_value_id (e), e);
 	      if (!in_fre)
-		{
-		  bitmap_insert_into_set (TMP_GEN (block), e);
-		  bitmap_value_insert_into_set (maximal_set, e);
-		}
+		bitmap_insert_into_set (TMP_GEN (block), e);
 	      bitmap_value_insert_into_set (AVAIL_OUT (block), e);
 	    }
 
@@ -3714,6 +3722,7 @@ compute_avail (void)
 		    if (is_exception_related (stmt))
 		      continue;
 		  case tcc_binary:
+		  case tcc_comparison:
 		    {
 		      vn_nary_op_t nary;
 		      unsigned int i;

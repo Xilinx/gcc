@@ -1,7 +1,8 @@
 /* More subroutines needed by GCC output code on some machines.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -1830,6 +1831,7 @@ CTYPE
 CONCAT3(__mul,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 {
   MTYPE ac, bd, ad, bc, x, y;
+  CTYPE res;
 
   ac = a * c;
   bd = b * d;
@@ -1886,7 +1888,9 @@ CONCAT3(__mul,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 	}
     }
 
-  return x + I * y;
+  __real__ res = x;
+  __imag__ res = y;
+  return res;
 }
 #endif /* complex multiply */
 
@@ -1897,6 +1901,7 @@ CTYPE
 CONCAT3(__div,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 {
   MTYPE denom, ratio, x, y;
+  CTYPE res;
 
   /* ??? We can get better behavior from logarithmic scaling instead of
      the division.  But that would mean starting to link libgcc against
@@ -1942,7 +1947,9 @@ CONCAT3(__div,MODE,3) (MTYPE a, MTYPE b, MTYPE c, MTYPE d)
 	}
     }
 
-  return x + I * y;
+  __real__ res = x;
+  __imag__ res = y;
+  return res;
 }
 #endif /* complex divide */
 

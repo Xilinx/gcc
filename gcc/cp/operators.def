@@ -5,7 +5,7 @@
    non-overloadable operators (like the `?:' ternary operator).
    Written by Mark Mitchell <mark@codesourcery.com>
 
-   Copyright (C) 2000, 2001, 2002, 2003, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -125,8 +125,7 @@ DEF_SIMPLE_OPERATOR ("&&", TRUTH_ANDIF_EXPR, "aa", 2)
 DEF_SIMPLE_OPERATOR ("||", TRUTH_ORIF_EXPR, "oo", 2)
 DEF_SIMPLE_OPERATOR (",", COMPOUND_EXPR, "cm", 2)
 DEF_SIMPLE_OPERATOR ("->*", MEMBER_REF, "pm", 2)
-DEF_SIMPLE_OPERATOR ("->", ARROW_EXPR, "pt", 2)
-DEF_SIMPLE_OPERATOR (".", COMPONENT_REF, "dt", 2)
+DEF_SIMPLE_OPERATOR ("->", COMPONENT_REF, "pt", 2)
 DEF_SIMPLE_OPERATOR ("[]", ARRAY_REF, "ix", 2)
 DEF_SIMPLE_OPERATOR ("++", POSTINCREMENT_EXPR, "pp", 2)
 DEF_SIMPLE_OPERATOR ("--", POSTDECREMENT_EXPR, "mm", 2)

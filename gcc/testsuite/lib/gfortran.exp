@@ -1,4 +1,5 @@
-# Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+# Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +25,7 @@
 #
 load_lib prune.exp
 load_lib gcc-defs.exp
+load_lib timeout.exp
 load_lib target-libpath.exp
 
 #
@@ -87,6 +89,9 @@ proc gfortran_link_flags { paths } {
 
     if { $gccpath != "" } {
       if [file exists "${gccpath}/libgfortran/.libs/libgfortran.a"] {
+          # Some targets use libgfortran.a%s in their specs, so they need a -B option
+          # for uninstalled testing.
+          append flags "-B${gccpath}/libgfortran/.libs "
           append flags "-L${gccpath}/libgfortran/.libs "
           append ld_library_path ":${gccpath}/libgfortran/.libs"
       }
@@ -193,6 +198,7 @@ proc gfortran_target_compile { source dest type options } {
     }
 
     lappend options "compiler=$GFORTRAN_UNDER_TEST"
+    lappend options "timeout=[timeout_value]"
 
     set options [concat "$ALWAYS_GFORTRANFLAGS" $options]
     set options [dg-additional-files-options $options $source]

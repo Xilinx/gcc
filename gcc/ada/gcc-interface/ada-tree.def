@@ -6,7 +6,7 @@
  *                                                                          *
  *                              Specification                               *
  *                                                                          *
- *            Copyright (C) 1992-2007, Free Software Foundation, Inc.       *
+ *            Copyright (C) 1992-2008, Free Software Foundation, Inc.       *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -40,6 +40,14 @@ DEFTREECODE (UNCONSTRAINED_ARRAY_REF, "unconstrained_array_ref",
 /* An expression that returns an RTL suitable for its type.  Operand 0
    is an expression to be evaluated for side effects only.  */
 DEFTREECODE (NULL_EXPR, "null_expr", tcc_expression, 1)
+
+/* Same as PLUS_EXPR, except that no modulo reduction is applied.
+   This is used for loops and never shows up in the tree.  */
+DEFTREECODE (PLUS_NOMOD_EXPR, "plus_nomod_expr", tcc_binary, 2)
+
+/* Same as MINUS_EXPR, except that no modulo reduction is applied.
+   This is used for loops and never shows up in the tree.  */
+DEFTREECODE (MINUS_NOMOD_EXPR, "minus_nomod_expr", tcc_binary, 2)
 
 /* Same as ADDR_EXPR, except that if the operand represents a bit field,
    return the address of the byte containing the bit.  This is used

@@ -1,6 +1,6 @@
 // <tr1/shared_ptr.h> -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -50,6 +50,9 @@
  *  This is an internal header file, included by other library headers.
  *  You should not attempt to use it directly.
  */
+
+#ifndef _TR1_SHARED_PTR_H
+#define _TR1_SHARED_PTR_H 1
 
 #if defined(_GLIBCXX_INCLUDE_AS_CXX0X)
 #  error TR1 header cannot be included from C++0x header
@@ -110,13 +113,13 @@ namespace tr1
       template<typename _Ptr>
         __shared_count(_Ptr __p) : _M_pi(0)
         {
-	  try
+	  __try
 	    {
 	      typedef typename std::tr1::remove_pointer<_Ptr>::type _Tp;
 	      _M_pi = new _Sp_counted_base_impl<_Ptr, _Sp_deleter<_Tp>, _Lp>(
 	          __p, _Sp_deleter<_Tp>());
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      delete __p;
 	      __throw_exception_again;
@@ -126,11 +129,11 @@ namespace tr1
       template<typename _Ptr, typename _Deleter>
         __shared_count(_Ptr __p, _Deleter __d) : _M_pi(0)
         {
-	  try
+	  __try
 	    {
 	      _M_pi = new _Sp_counted_base_impl<_Ptr, _Deleter, _Lp>(__p, __d);
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      __d(__p); // Call _Deleter on __p.
 	      __throw_exception_again;
@@ -709,11 +712,11 @@ namespace tr1
 	if (expired())
 	  return __shared_ptr<element_type, _Lp>();
 
-	try
+	__try
 	  {
 	    return __shared_ptr<element_type, _Lp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    // Q: How can we get here?
 	    // A: Another thread may have invalidated r after the
@@ -958,11 +961,11 @@ namespace tr1
 	if (this->expired())
 	  return shared_ptr<_Tp>();
 
-	try
+	__try
 	  {
 	    return shared_ptr<_Tp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    return shared_ptr<_Tp>();
 	  }
@@ -1018,3 +1021,5 @@ namespace tr1
 
 }
 }
+
+#endif // _TR1_SHARED_PTR_H

@@ -1,6 +1,6 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -449,7 +449,7 @@ emutls_common_1 (void **loc, void *xstmts)
 void
 emutls_finish (void)
 {
-  if (!targetm.emutls.register_common)
+  if (targetm.emutls.register_common)
     {
       tree body = NULL_TREE;
 
@@ -2161,7 +2161,6 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
   /* First make the assembler name(s) global if appropriate.  */
   sect = get_variable_section (decl, false);
   if (TREE_PUBLIC (decl)
-      && DECL_NAME (decl)
       && (sect->common.flags & SECTION_COMMON) == 0)
     globalize_decl (decl);
 
@@ -4071,8 +4070,8 @@ constructor_static_from_elts_p (const_tree ctor)
 	  && !VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (ctor)));
 }
 
-/* A subroutine of initializer_constant_valid_p.  VALUE is either a
-   MINUS_EXPR or a POINTER_PLUS_EXPR.  This looks for cases of VALUE
+/* A subroutine of initializer_constant_valid_p.  VALUE is a MINUS_EXPR,
+   PLUS_EXPR or POINTER_PLUS_EXPR.  This looks for cases of VALUE
    which are valid when ENDTYPE is an integer of any size; in
    particular, this does not accept a pointer minus a constant.  This
    returns null_pointer_node if the VALUE is an absolute constant
@@ -4125,7 +4124,9 @@ narrowing_initializer_constant_valid_p (tree value, tree endtype)
   /* Both initializers must be known.  */
   if (op0 && op1)
     {
-      if (op0 == op1)
+      if (op0 == op1
+	  && (op0 == null_pointer_node
+	      || TREE_CODE (value) == MINUS_EXPR))
 	return null_pointer_node;
 
       /* Support differences between labels.  */
@@ -4316,12 +4317,10 @@ initializer_constant_valid_p (tree value, tree endtype)
 	}
 
       /* Support narrowing pointer differences.  */
-      if (TREE_CODE (value) == POINTER_PLUS_EXPR)
-	{
-	  ret = narrowing_initializer_constant_valid_p (value, endtype);
-	  if (ret != NULL_TREE)
-	    return ret;
-	}
+      ret = narrowing_initializer_constant_valid_p (value, endtype);
+      if (ret != NULL_TREE)
+	return ret;
+
       break;
 
     case MINUS_EXPR:
@@ -6394,7 +6393,8 @@ default_internal_label (FILE *stream, const char *prefix,
 void
 default_file_start (void)
 {
-  if (targetm.file_start_app_off && !flag_verbose_asm)
+  if (targetm.file_start_app_off
+      && !(flag_verbose_asm || flag_debug_asm || flag_dump_rtl_in_asm))
     fputs (ASM_APP_OFF, asm_out_file);
 
   if (targetm.file_start_file_directive)

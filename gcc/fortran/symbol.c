@@ -1,5 +1,5 @@
 /* Maintain binary trees of symbols.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -219,7 +219,7 @@ gfc_get_default_type (gfc_symbol *sym, gfc_namespace *ns)
 			"implicitly typed variables");
 
   if (letter < 'a' || letter > 'z')
-    gfc_internal_error ("gfc_get_default_type(): Bad symbol");
+    gfc_internal_error ("gfc_get_default_type(): Bad symbol '%s'",sym->name);
 
   if (ns == NULL)
     ns = gfc_current_ns;
@@ -618,7 +618,10 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       break;
 
     case FL_VARIABLE:
+      break;
+
     case FL_NAMELIST:
+      conf2 (result);
       break;
 
     case FL_PROCEDURE:
@@ -672,6 +675,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (function);
       conf2 (subroutine);
       conf2 (threadprivate);
+      conf2 (result);
 
       if (attr->intent != INTENT_UNKNOWN)
 	{
@@ -698,6 +702,7 @@ check_conflict (symbol_attribute *attr, const char *name, locus *where)
       conf2 (threadprivate);
       conf2 (value);
       conf2 (is_bind_c);
+      conf2 (result);
       break;
 
     default:
@@ -3003,6 +3008,24 @@ gfc_free_finalizer_list (gfc_finalizer* list)
 }
 
 
+/* Free the charlen list from cl to end (end is not freed). 
+   Free the whole list if end is NULL.  */
+
+void gfc_free_charlen (gfc_charlen *cl, gfc_charlen *end)
+{
+  gfc_charlen *cl2;
+
+  for (; cl != end; cl = cl2)
+    {
+      gcc_assert (cl);
+
+      cl2 = cl->next;
+      gfc_free_expr (cl->length);
+      gfc_free (cl);
+    }
+}
+
+
 /* Free a namespace structure and everything below it.  Interface
    lists associated with intrinsic operators are not freed.  These are
    taken care of when a specific name is freed.  */
@@ -3010,7 +3033,6 @@ gfc_free_finalizer_list (gfc_finalizer* list)
 void
 gfc_free_namespace (gfc_namespace *ns)
 {
-  gfc_charlen *cl, *cl2;
   gfc_namespace *p, *q;
   gfc_intrinsic_op i;
 
@@ -3028,14 +3050,7 @@ gfc_free_namespace (gfc_namespace *ns)
   free_uop_tree (ns->uop_root);
   free_common_tree (ns->common_root);
   gfc_free_finalizer_list (ns->finalizers);
-
-  for (cl = ns->cl_list; cl; cl = cl2)
-    {
-      cl2 = cl->next;
-      gfc_free_expr (cl->length);
-      gfc_free (cl);
-    }
-
+  gfc_free_charlen (ns->cl_list, NULL);
   free_st_labels (ns->st_labels);
 
   gfc_free_equiv (ns->equiv);
@@ -3182,6 +3197,7 @@ save_symbol (gfc_symbol *sym)
 
   if (sym->attr.in_common
       || sym->attr.dummy
+      || sym->attr.result
       || sym->attr.flavor != FL_VARIABLE)
     return;
   /* Automatic objects are not saved.  */
@@ -3385,8 +3401,7 @@ verify_bind_c_derived_type (gfc_symbol *derived_sym)
       else
 	{
 	  /* Grab the typespec for the given component and test the kind.  */ 
-	  is_c_interop = verify_c_interop (&(curr_comp->ts), curr_comp->name,
-                                           &(curr_comp->loc));
+	  is_c_interop = verify_c_interop (&(curr_comp->ts));
 	  
 	  if (is_c_interop != SUCCESS)
 	    {
@@ -3790,6 +3805,7 @@ copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
       formal_arg->sym->attr = curr_arg->sym->attr;
       formal_arg->sym->ts = curr_arg->sym->ts;
       formal_arg->sym->as = gfc_copy_array_spec (curr_arg->sym->as);
+      copy_formal_args (formal_arg->sym, curr_arg->sym);
 
       /* If this isn't the first arg, set up the next ptr.  For the
         last arg built, the formal_arg->next will never get set to
@@ -4153,6 +4169,7 @@ generate_isocbinding_symbol (const char *mod_name, iso_c_binding_symbol s,
 		tmp_sym->result = tmp_sym;
 		tmp_sym->attr.external = 1;
 		tmp_sym->attr.use_assoc = 0;
+		tmp_sym->attr.pure = 1;
 		tmp_sym->attr.if_source = IFSRC_UNKNOWN;
 		tmp_sym->attr.proc = PROC_UNKNOWN;
 	      }

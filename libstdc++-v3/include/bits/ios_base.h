@@ -1,7 +1,7 @@
 // Iostreams base classes -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -202,6 +202,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // 27.4.2  Class ios_base
   /**
    *  @brief  The base of the I/O class hierarchy.
+   *  @ingroup io
    *
    *  This class defines everything that can be defined about I/O that does
    *  not depend on the type of characters being input or output.  Most
@@ -212,8 +213,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   {
   public:
 
-    // 27.4.2.1.1  Class ios_base::failure
-    /// These are thrown to indicate problems.  Doc me.
+    /** 
+     *  @brief These are thrown to indicate problems with io.
+     *  @ingroup exceptions
+     *
+     *  27.4.2.1.1  Class ios_base::failure
+     */
     class failure : public exception
     {
     public:
@@ -223,7 +228,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       failure(const string& __str) throw();
 
       // This declaration is not useless:
-      // http://gcc.gnu.org/onlinedocs/gcc-3.0.2/gcc_6.html#SEC118
+      // http://gcc.gnu.org/onlinedocs/gcc-4.3.2/gcc/Vague-Linkage.html
       virtual
       ~failure() throw();
 
@@ -376,8 +381,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     /// Perform input and output in binary mode (as opposed to text mode).
     /// This is probably not what you think it is; see
-    /// http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#3 and
-    /// http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#7 for more.
+    /// http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch27s02.html
     static const openmode binary =	_S_bin;
 
     /// Open for input.  Default for @c ifstream and fstream.
@@ -671,7 +675,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
      *  The synchronization referred to is @e only that between the standard
      *  C facilities (e.g., stdout) and the standard C++ objects (e.g.,
      *  cout).  User-declared streams are unaffected.  See
-     *  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for more.
+     *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch28s02.html
     */
     static bool
     sync_with_stdio(bool __sync = true);

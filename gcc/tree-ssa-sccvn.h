@@ -1,5 +1,5 @@
 /* Tree SCC value numbering
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
    This file is part of GCC.
@@ -184,10 +184,10 @@ vn_reference_t vn_reference_insert (tree, tree, VEC (tree, gc) *);
 vn_reference_t vn_reference_insert_pieces (VEC (tree, gc) *,
 					   VEC (vn_reference_op_s, heap) *,
 					   tree, unsigned int);
-tree vn_phi_lookup (gimple);
 
 hashval_t vn_nary_op_compute_hash (const vn_nary_op_t);
 int vn_nary_op_eq (const void *, const void *);
+bool vn_nary_may_trap (vn_nary_op_t);
 hashval_t vn_reference_compute_hash (const vn_reference_t);
 int vn_reference_eq (const void *, const void *);
 unsigned int get_max_value_id (void);
@@ -196,5 +196,4 @@ unsigned int get_constant_value_id (tree);
 unsigned int get_or_alloc_constant_value_id (tree);
 bool value_id_constant_p (unsigned int);
 VEC (tree, gc) *shared_vuses_from_stmt (gimple);
-VEC (tree, gc) *copy_vuses_from_stmt (gimple);
 #endif /* TREE_SSA_SCCVN_H  */

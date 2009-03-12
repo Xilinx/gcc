@@ -24,13 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "match.h"
 
-/* This parameter is the size of the largest array constructor that we
-   will expand to an array constructor without iterators.
-   Constructors larger than this will remain in the iterator form.  */
-
-#define GFC_MAX_AC_EXPAND 65535
-
-
 /**************** Array reference matching subroutines *****************/
 
 /* Copy an array reference structure.  */
@@ -1463,7 +1456,7 @@ gfc_expand_constructor (gfc_expr *e)
   gfc_expr *f;
   gfc_try rc;
 
-  f = gfc_get_array_element (e, GFC_MAX_AC_EXPAND);
+  f = gfc_get_array_element (e, gfc_option.flag_max_array_constructor);
   if (f != NULL)
     {
       gfc_free_expr (f);
@@ -1883,14 +1876,14 @@ spec_size (gfc_array_spec *as, mpz_t *result)
 
 /* Get the number of elements in an array section.  */
 
-static gfc_try
-ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
+gfc_try
+gfc_ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
 {
   mpz_t upper, lower, stride;
   gfc_try t;
 
   if (dimen < 0 || ar == NULL || dimen > ar->dimen - 1)
-    gfc_internal_error ("ref_dimen_size(): Bad dimension");
+    gfc_internal_error ("gfc_ref_dimen_size(): Bad dimension");
 
   switch (ar->dimen_type[dimen])
     {
@@ -1964,7 +1957,7 @@ ref_dimen_size (gfc_array_ref *ar, int dimen, mpz_t *result)
       return t;
 
     default:
-      gfc_internal_error ("ref_dimen_size(): Bad dimen_type");
+      gfc_internal_error ("gfc_ref_dimen_size(): Bad dimen_type");
     }
 
   return t;
@@ -1981,7 +1974,7 @@ ref_size (gfc_array_ref *ar, mpz_t *result)
 
   for (d = 0; d < ar->dimen; d++)
     {
-      if (ref_dimen_size (ar, d, &size) == FAILURE)
+      if (gfc_ref_dimen_size (ar, d, &size) == FAILURE)
 	{
 	  mpz_clear (*result);
 	  return FAILURE;
@@ -2027,7 +2020,7 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
 		if (ref->u.ar.dimen_type[i] != DIMEN_ELEMENT)
 		  dimen--;
 
-	      return ref_dimen_size (&ref->u.ar, i - 1, result);
+	      return gfc_ref_dimen_size (&ref->u.ar, i - 1, result);
 	    }
 	}
 
@@ -2155,7 +2148,7 @@ gfc_array_ref_shape (gfc_array_ref *ar, mpz_t *shape)
 	{
 	  if (ar->dimen_type[i] != DIMEN_ELEMENT)
 	    {
-	      if (ref_dimen_size (ar, i, &shape[d]) == FAILURE)
+	      if (gfc_ref_dimen_size (ar, i, &shape[d]) == FAILURE)
 		goto cleanup;
 	      d++;
 	    }

@@ -1,6 +1,6 @@
 /* Miscellaneous SSA utility functions.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -1071,7 +1071,18 @@ delete_tree_ssa (void)
 static bool
 useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 {
-  /* Qualifiers on value types do not matter.  */
+  /* Do the following before stripping toplevel qualifiers.  */
+  if (POINTER_TYPE_P (inner_type)
+      && POINTER_TYPE_P (outer_type))
+    {
+      /* Do not lose casts to restrict qualified pointers.  */
+      if ((TYPE_RESTRICT (outer_type)
+	   != TYPE_RESTRICT (inner_type))
+	  && TYPE_RESTRICT (outer_type))
+	return false;
+    }
+
+  /* From now on qualifiers on value types do not matter.  */
   inner_type = TYPE_MAIN_VARIANT (inner_type);
   outer_type = TYPE_MAIN_VARIANT (outer_type);
 
@@ -1125,9 +1136,14 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
     {
       /* Don't lose casts between pointers to volatile and non-volatile
 	 qualified types.  Doing so would result in changing the semantics
-	 of later accesses.  */
-      if ((TYPE_VOLATILE (TREE_TYPE (outer_type))
-	   != TYPE_VOLATILE (TREE_TYPE (inner_type)))
+	 of later accesses.  For function types the volatile qualifier
+	 is used to indicate noreturn functions.  */
+      if (TREE_CODE (TREE_TYPE (outer_type)) != FUNCTION_TYPE
+	  && TREE_CODE (TREE_TYPE (outer_type)) != METHOD_TYPE
+	  && TREE_CODE (TREE_TYPE (inner_type)) != FUNCTION_TYPE
+	  && TREE_CODE (TREE_TYPE (inner_type)) != METHOD_TYPE
+	  && (TYPE_VOLATILE (TREE_TYPE (outer_type))
+	      != TYPE_VOLATILE (TREE_TYPE (inner_type)))
 	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
 	return false;
 
@@ -1141,12 +1157,6 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 
       /* We do not care for const qualification of the pointed-to types
 	 as const qualification has no semantic value to the middle-end.  */
-
-      /* Do not lose casts to restrict qualified pointers.  */
-      if ((TYPE_RESTRICT (outer_type)
-	   != TYPE_RESTRICT (inner_type))
-	  && TYPE_RESTRICT (outer_type))
-	return false;
 
       /* Otherwise pointers/references are equivalent if their pointed
 	 to types are effectively the same.  We can strip qualifiers
@@ -1486,9 +1496,13 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
             || !gimple_aliases_computed_p (cfun))
 	  return NULL_TREE;
 
+	/* If the load happens as part of a call do not warn about it.  */
+	if (is_gimple_call (data->stmt))
+	  return NULL_TREE;
+
 	vuse = SINGLE_SSA_USE_OPERAND (data->stmt, SSA_OP_VUSE);
 	if (vuse == NULL_USE_OPERAND_P)
-	    return NULL_TREE;
+	  return NULL_TREE;
 
 	op = USE_FROM_PTR (vuse);
 	if (t != SSA_NAME_VAR (op) 
@@ -1721,7 +1735,12 @@ execute_update_addresses_taken (void)
 	  || bitmap_bit_p (addresses_taken, DECL_UID (var)))
 	continue;
 	
-      if (TREE_ADDRESSABLE (var))
+      if (TREE_ADDRESSABLE (var)
+	  /* Do not change TREE_ADDRESSABLE if we need to preserve var as
+	     a non-register.  Otherwise we are confused and forget to
+	     add virtual operands for it.  */
+	  && (!is_gimple_reg_type (TREE_TYPE (var))
+	      || !bitmap_bit_p (not_reg_needs, DECL_UID (var))))
 	{
 	  TREE_ADDRESSABLE (var) = 0;
 	  if (is_gimple_reg (var))

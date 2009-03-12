@@ -956,14 +956,9 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
      of the exponent in order to take account of the scale factor and
      the d parameter before explict conversion takes place. */
  exp2:
-  if (!isdigit (*p))
-    goto bad_float;
-
-  exponent = *p - '0';
-  p++;
-  w--;
-
-  if (dtp->u.p.blank_status == BLANK_UNSPECIFIED) /* Normal processing of exponent */
+  /* Normal processing of exponent */
+  exponent = 0;
+  if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
     {
       while (w > 0 && isdigit (*p))
         {
@@ -977,7 +972,7 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
       while (w > 0)
         {
           if (*p != ' ')
-  	  goto bad_float;
+	    goto bad_float;
           p++;
           w--;
         }

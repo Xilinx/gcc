@@ -1,6 +1,6 @@
 // Internal header for TR1 unordered_set and unordered_map -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -296,7 +296,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 
       size_type
       max_size() const
-      { return _M_get_Value_allocator().max_size(); }
+      { return _M_node_allocator.max_size(); }
 
       // Observers
       key_equal
@@ -485,13 +485,17 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     _M_allocate_node(const value_type& __v)
     {
       _Node* __n = _M_node_allocator.allocate(1);
-      try
+      __try
 	{
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+	  _M_node_allocator.construct(__n, __v);
+#else
 	  _M_get_Value_allocator().construct(&__n->_M_v, __v);
+#endif
 	  __n->_M_next = 0;
 	  return __n;
 	}
-      catch(...)
+      __catch(...)
 	{
 	  _M_node_allocator.deallocate(__n, 1);
 	  __throw_exception_again;
@@ -507,7 +511,11 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	       _H1, _H2, _Hash, _RehashPolicy, __chc, __cit, __uk>::
     _M_deallocate_node(_Node* __n)
     {
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+      _M_node_allocator.destroy(__n);
+#else
       _M_get_Value_allocator().destroy(&__n->_M_v);
+#endif
       _M_node_allocator.deallocate(__n, 1);
     }
 
@@ -619,12 +627,12 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 						       __distance_fw(__f,
 								     __l)));
 	_M_buckets = _M_allocate_buckets(_M_bucket_count);
-	try
+	__try
 	  {
 	    for (; __f != __l; ++__f)
 	      this->insert(*__f);
 	  }
-	catch(...)
+	__catch(...)
 	  {
 	    clear();
 	    _M_deallocate_buckets(_M_buckets, _M_bucket_count);
@@ -649,7 +657,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       _M_rehash_policy(__ht._M_rehash_policy)
     {
       _M_buckets = _M_allocate_buckets(_M_bucket_count);
-      try
+      __try
 	{
 	  for (size_type __i = 0; __i < __ht._M_bucket_count; ++__i)
 	    {
@@ -664,7 +672,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 		}
 	    }
 	}
-      catch(...)
+      __catch(...)
 	{
 	  clear();
 	  _M_deallocate_buckets(_M_buckets, _M_bucket_count);
@@ -941,7 +949,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       // do a rehash if the allocation throws.
       _Node* __new_node = _M_allocate_node(__v);
 
-      try
+      __try
 	{
 	  if (__do_rehash.first)
 	    {
@@ -956,7 +964,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  ++_M_element_count;
 	  return iterator(__new_node, _M_buckets + __n);
 	}
-      catch(...)
+      __catch(...)
 	{
 	  _M_deallocate_node(__new_node);
 	  __throw_exception_again;
@@ -1234,7 +1242,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
     _M_rehash(size_type __n)
     {
       _Node** __new_array = _M_allocate_buckets(__n);
-      try
+      __try
 	{
 	  for (size_type __i = 0; __i < _M_bucket_count; ++__i)
 	    while (_Node* __p = _M_buckets[__i])
@@ -1248,7 +1256,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	  _M_bucket_count = __n;
 	  _M_buckets = __new_array;
 	}
-      catch(...)
+      __catch(...)
 	{
 	  // A failure here means that a hash function threw an exception.
 	  // We can't restore the previous state without calling the hash

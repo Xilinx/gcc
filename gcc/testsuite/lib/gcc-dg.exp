@@ -1,4 +1,4 @@
-#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006, 2007
+#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008
 #   Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,8 @@ load_lib scanasm.exp
 load_lib scanrtl.exp
 load_lib scantree.exp
 load_lib scanipa.exp
+load_lib timeout.exp
+load_lib timeout-dg.exp
 load_lib prune.exp
 load_lib libgloss.exp
 load_lib target-libpath.exp
@@ -51,6 +53,11 @@ if [info exists TORTURE_OPTIONS] {
 	{ -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions } \
 	{ -O3 -g } \
 	{ -Os } ]
+}
+
+if [info exists ADDITIONAL_TORTURE_OPTIONS] {
+    set DG_TORTURE_OPTIONS \
+	[concat $DG_TORTURE_OPTIONS $ADDITIONAL_TORTURE_OPTIONS]
 }
 
 global GCC_UNDER_TEST
@@ -575,12 +582,14 @@ if { [info procs saved-dg-test] == [list] } {
 	    if [info exists compiler_conditional_xfail_data] {
 		unset compiler_conditional_xfail_data
 	    }
+	    unset_timeout_vars
 	    error $errmsg $saved_info
 	}
 	set additional_files ""
 	set additional_sources ""
 	set additional_prunes ""
 	set shouldfail 0
+	unset_timeout_vars
 	if [info exists compiler_conditional_xfail_data] {
 	    unset compiler_conditional_xfail_data
 	}

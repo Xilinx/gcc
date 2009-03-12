@@ -1,5 +1,6 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+@c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -1105,6 +1106,11 @@ Alignment, in bits, a C conformant malloc implementation has to
 provide.  If not defined, the default value is @code{BITS_PER_WORD}.
 @end defmac
 
+@defmac ATTRIBUTE_ALIGNED_VALUE
+Alignment used by the @code{__attribute__ ((aligned))} construct.  If
+not defined, the default value is @code{BIGGEST_ALIGNMENT}.
+@end defmac
+
 @defmac MINIMUM_ATOMIC_ALIGNMENT
 If defined, the smallest alignment, in bits, that can be given to an
 object that can be referenced in one operation, without disturbing any
@@ -1209,6 +1215,18 @@ This macro is to set alignment of stack slot to the maximum alignment
 of all possible modes which the slot may have.
 @end defmac
 
+@defmac LOCAL_DECL_ALIGNMENT (@var{decl})
+If defined, a C expression to compute the alignment for a local
+variable @var{decl}.
+
+If this macro is not defined, then
+@code{LOCAL_ALIGNMENT (TREE_TYPE (@var{decl}), DECL_ALIGN (@var{decl}))}
+is used.
+
+One use of this macro is to increase alignment of medium-size data to
+make it all fit in fewer cache lines.
+@end defmac
+
 @defmac EMPTY_FIELD_BOUNDARY
 Alignment in bits to be given to a structure bit-field that follows an
 empty field such as @code{int : 0;}.
@@ -1302,14 +1320,14 @@ Like @code{PCC_BITFIELD_TYPE_MATTERS} except that its effect is limited
 to aligning a bit-field within the structure.
 @end defmac
 
-@deftypefn {Target Hook} bool TARGET_ALIGN_ANON_BITFIELDS (void)
+@deftypefn {Target Hook} bool TARGET_ALIGN_ANON_BITFIELD (void)
 When @code{PCC_BITFIELD_TYPE_MATTERS} is true this hook will determine
 whether unnamed bitfields affect the alignment of the containing
 structure.  The hook should return true if the structure should inherit
 the alignment requirements of an unnamed bitfield's type.
 @end deftypefn
 
-@deftypefn {Target Hook} bool TARGET_NARROW_VOLATILE_BITFIELDS (void)
+@deftypefn {Target Hook} bool TARGET_NARROW_VOLATILE_BITFIELD (void)
 This target hook should return @code{true} if accesses to volatile bitfields
 should use the narrowest mode possible.  It should return @code{false} if
 these accesses should use the bitfield container type.
@@ -2841,7 +2859,8 @@ options have been processed. It is then re-examined by every call to
 The default implementation returns @code{IRA_COVER_CLASSES}, if defined,
 otherwise there is no default implementation.  You must define either this
 macro or @code{IRA_COVER_CLASSES} in order to use the integrated register
-allocator for the target.
+allocator with Chaitin-Briggs coloring. If the macro is not defined,
+the only available coloring algorithm is Chow's priority coloring.
 @end deftypefn
 
 @defmac IRA_COVER_CLASSES
@@ -3817,6 +3836,8 @@ registers.
 The value of this macro is the size, in bytes, of the area reserved for
 arguments passed in registers for the function represented by @var{fndecl},
 which can be zero if GCC is calling a library function.
+The argument @var{fndecl} can be the FUNCTION_DECL, or the type itself
+of the function.
 
 This space can be allocated by the caller, or be a part of the
 machine-dependent stack frame: @code{OUTGOING_REG_PARM_STACK_SPACE} says
@@ -4110,6 +4131,15 @@ on the stack.  The compiler knows how to track the amount of stack space
 used for arguments without any special help.
 @end defmac
 
+
+@defmac FUNCTION_ARG_OFFSET (@var{mode}, @var{type})
+If defined, a C expression that is the number of bytes to add to the
+offset of the argument passed in memory.  This is needed for the SPU,
+which passes @code{char} and @code{short} arguments in the preferred
+slot that is in the middle of the quad word instead of starting at the
+top.
+@end defmac
+
 @defmac FUNCTION_ARG_PADDING (@var{mode}, @var{type})
 If defined, a C expression which determines whether, and in which direction,
 to pad out an argument with extra space.  The value should be of type
@@ -4286,20 +4316,12 @@ a new target instead.
 
 @defmac LIBCALL_VALUE (@var{mode})
 A C expression to create an RTX representing the place where a library
-function returns a value of mode @var{mode}.  If the precise function
-being called is known, @var{func} is a tree node
-(@code{FUNCTION_DECL}) for it; otherwise, @var{func} is a null
-pointer.  This makes it possible to use a different value-returning
-convention for specific functions when all their calls are
-known.
+function returns a value of mode @var{mode}.
 
 Note that ``library function'' in this context means a compiler
 support routine, used to perform arithmetic, whose name is known
 specially by the compiler and was not mentioned in the C code being
 compiled.
-
-The definition of @code{LIBRARY_VALUE} need not be concerned aggregate
-data types, because none of the library functions returns such types.
 @end defmac
 
 @defmac FUNCTION_VALUE_REGNO_P (@var{regno})
@@ -5210,9 +5232,9 @@ macro, a reasonable default is used.
 @defmac TARGET_C99_FUNCTIONS
 When this macro is nonzero, GCC will implicitly optimize @code{sin} calls into
 @code{sinf} and similarly for other functions defined by C99 standard.  The
-default is nonzero that should be proper value for most modern systems, however
-number of existing systems lacks support for these functions in the runtime so
-they needs this macro to be redefined to 0.
+default is zero because a number of existing systems lack support for these
+functions in their runtime so this macro needs to be redefined to one on
+systems that do support the C99 runtime.
 @end defmac
 
 @cindex sincos math function, implicit usage
@@ -6374,7 +6396,30 @@ Return a pointer to a store large enough to hold target scheduling context.
 @deftypefn {Target Hook} void TARGET_SCHED_INIT_SCHED_CONTEXT (void *@var{tc}, bool @var{clean_p})
 Initialize store pointed to by @var{tc} to hold target scheduling context.
 It @var{clean_p} is true then initialize @var{tc} as if scheduler is at the
-beginning of the block.  Overwise, make a copy of the current context in
+beginning of the block.  Otherwise, make a copy of the current context in
+@var{tc}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_SET_SCHED_CONTEXT (void *@var{tc})
+Copy target scheduling context pointer to by @var{tc} to the current context.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_CLEAR_SCHED_CONTEXT (void *@var{tc})
+Deallocate internal data in target scheduling context pointed to by @var{tc}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_FREE_SCHED_CONTEXT (void *@var{tc})
+Deallocate a store for target scheduling context pointed to by @var{tc}.
+@end deftypefn
+
+@deftypefn {Target Hook} void * TARGET_SCHED_ALLOC_SCHED_CONTEXT (void)
+Return a pointer to a store large enough to hold target scheduling context.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_SCHED_INIT_SCHED_CONTEXT (void *@var{tc}, bool @var{clean_p})
+Initialize store pointed to by @var{tc} to hold target scheduling context.
+It @var{clean_p} is true then initialize @var{tc} as if scheduler is at the
+beginning of the block.  Otherwise, make a copy of the current context in
 @var{tc}.
 @end deftypefn
 
@@ -9330,7 +9375,7 @@ For targets whose psABI does not provide Thread Local Storage via
 specific relocations and instruction sequences, an emulation layer is
 used.  A set of target hooks allows this emulation layer to be
 configured for the requirements of a particular target.  For instance
-the psABI may infact specify TLS support in terms of an emulation
+the psABI may in fact specify TLS support in terms of an emulation
 layer.
 
 The emulation layer works by creating a control object for every TLS
@@ -10537,6 +10582,12 @@ default is to have no target-specific format overrides. If defined,
 @defmac TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT
 If defined, this macro specifies the number of entries in
 @code{TARGET_OVERRIDES_FORMAT_ATTRIBUTES}.
+@end defmac
+
+@defmac TARGET_OVERRIDES_FORMAT_INIT
+If defined, this macro specifies the optional initialization
+routine for target specific customizations of the system printf
+and scanf formatter settings.
 @end defmac
 
 @deftypefn {Target Hook} bool TARGET_RELAXED_ORDERING

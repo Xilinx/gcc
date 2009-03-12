@@ -1,6 +1,6 @@
 /* Definitions for SPARC running Linux-based GNU systems with ELF.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2005, 2006,
-   2007 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Eddie C. Dost (ecd@skynet.be)
 
 This file is part of GCC.
@@ -101,10 +101,6 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_SPEC \
   "%{V} %{v:%{!V:-V}} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Wa,*:%*} -s \
    %{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_cpu) %(asm_relax)"
-
-/* Same as sparc.h */
-#undef DBX_REGISTER_NUMBER
-#define DBX_REGISTER_NUMBER(REGNO) (REGNO)
 
 #undef ASM_OUTPUT_ALIGNED_LOCAL
 #define ASM_OUTPUT_ALIGNED_LOCAL(FILE, NAME, SIZE, ALIGN)		\

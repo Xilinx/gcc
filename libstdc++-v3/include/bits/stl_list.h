@@ -1,6 +1,6 @@
 // List implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -101,6 +101,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
     {
       ///< User's data.
       _Tp _M_data;
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        _List_node(_Args&&... __args)
+	: _List_node_base(), _M_data(std::forward<_Args>(__args)...) { }
+#endif
     };
 
   /**
@@ -373,8 +379,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *  @brief A standard container with linear time access to elements,
    *  and fixed time insertion/deletion at any point in the sequence.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -459,11 +464,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       _M_create_node(const value_type& __x)
       {
 	_Node* __p = this->_M_get_node();
-	try
+	__try
 	  {
 	    _M_get_Tp_allocator().construct(&__p->_M_data, __x);
 	  }
-	catch(...)
+	__catch(...)
 	  {
 	    _M_put_node(__p);
 	    __throw_exception_again;
@@ -476,12 +481,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
         _M_create_node(_Args&&... __args)
 	{
 	  _Node* __p = this->_M_get_node();
-	  try
+	  __try
 	    {
-	      _M_get_Tp_allocator().construct(&__p->_M_data,
-					      std::forward<_Args>(__args)...);
+	      _M_get_Node_allocator().construct(__p,
+						std::forward<_Args>(__args)...);
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      _M_put_node(__p);
 	      __throw_exception_again;
@@ -807,7 +812,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       /**  Returns the size() of the largest possible %list.  */
       size_type
       max_size() const
-      { return _M_get_Tp_allocator().max_size(); }
+      { return _M_get_Node_allocator().max_size(); }
 
       /**
        *  @brief Resizes the %list to the specified number of elements.
@@ -1423,7 +1428,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       {
         __position._M_node->unhook();
         _Node* __n = static_cast<_Node*>(__position._M_node);
-        _M_get_Tp_allocator().destroy(&__n->_M_data);
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+        _M_get_Node_allocator().destroy(__n);
+#else
+	_M_get_Tp_allocator().destroy(&__n->_M_data);
+#endif
         _M_put_node(__n);
       }
 

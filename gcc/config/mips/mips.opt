@@ -1,6 +1,6 @@
 ; Options for the MIPS port of the compiler
 ;
-; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -111,6 +111,10 @@ Work around certain R4000 errata
 mfix-r4400
 Target Report Mask(FIX_R4400)
 Work around certain R4400 errata
+
+mfix-r10000
+Target Report Mask(FIX_R10000)
+Work around certain R10000 errata
 
 mfix-sb1
 Target Report Var(TARGET_FIX_SB1)
@@ -249,7 +253,7 @@ Target Report RejectNegative Mask(SINGLE_FLOAT)
 Restrict the use of hardware floating-point instructions to 32-bit operations
 
 msmartmips
-Target Report RejectNegative Mask(SMARTMIPS)
+Target Report Mask(SMARTMIPS)
 Use SmartMIPS instructions
 
 msoft-float

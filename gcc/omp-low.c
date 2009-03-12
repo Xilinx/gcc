@@ -760,10 +760,10 @@ use_pointer_for_field (tree decl, omp_context *shared_ctx)
 	  omp_context *up;
 
 	  for (up = shared_ctx->outer; up; up = up->outer)
-	    if (maybe_lookup_decl (decl, up))
+	    if (is_taskreg_ctx (up) && maybe_lookup_decl (decl, up))
 	      break;
 
-	  if (up && is_taskreg_ctx (up))
+	  if (up)
 	    {
 	      tree c;
 
@@ -2821,7 +2821,14 @@ lower_send_shared_vars (gimple_seq *ilist, gimple_seq *olist, omp_context *ctx)
 	  x = build_sender_ref (ovar, ctx);
 	  gimplify_assign (x, var, ilist);
 
-	  if (!TREE_READONLY (var))
+	  if (!TREE_READONLY (var)
+	      /* We don't need to receive a new reference to a result
+	         or parm decl.  In fact we may not store to it as we will
+		 invalidate any pending RSO and generate wrong gimple
+		 during inlining.  */
+	      && !((TREE_CODE (var) == RESULT_DECL
+		    || TREE_CODE (var) == PARM_DECL)
+		   && DECL_BY_REFERENCE (var)))
 	    {
 	      x = build_sender_ref (ovar, ctx);
 	      gimplify_assign (var, x, olist);
@@ -3681,8 +3688,20 @@ expand_omp_for_generic (struct omp_region *region,
       t4 = build_fold_addr_expr (iend0);
       t3 = build_fold_addr_expr (istart0);
       t2 = fold_convert (fd->iter_type, fd->loop.step);
-      t1 = fold_convert (fd->iter_type, fd->loop.n2);
-      t0 = fold_convert (fd->iter_type, fd->loop.n1);
+      if (POINTER_TYPE_P (type)
+	  && TYPE_PRECISION (type) != TYPE_PRECISION (fd->iter_type))
+	{
+	  /* Avoid casting pointers to integer of a different size.  */
+	  tree itype
+	    = lang_hooks.types.type_for_size (TYPE_PRECISION (type), 0);
+	  t1 = fold_convert (fd->iter_type, fold_convert (itype, fd->loop.n2));
+	  t0 = fold_convert (fd->iter_type, fold_convert (itype, fd->loop.n1));
+	}
+      else
+	{
+	  t1 = fold_convert (fd->iter_type, fd->loop.n2);
+	  t0 = fold_convert (fd->iter_type, fd->loop.n1);
+	}
       if (bias)
 	{
 	  t1 = fold_build2 (PLUS_EXPR, fd->iter_type, t1, bias);

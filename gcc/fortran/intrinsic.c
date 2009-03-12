@@ -1,6 +1,6 @@
 /* Build up a list of intrinsic subroutines and functions for the
    name-resolution stage.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -1957,7 +1957,7 @@ add_functions (void)
   make_generic ("maxloc", GFC_ISYM_MAXLOC, GFC_STD_F95);
 
   add_sym_3red ("maxval", GFC_ISYM_MAXVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_maxval,
+		gfc_check_minval_maxval, gfc_simplify_maxval, gfc_resolve_maxval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -1974,7 +1974,7 @@ add_functions (void)
   make_generic ("mclock8", GFC_ISYM_MCLOCK8, GFC_STD_GNU);
 
   add_sym_3 ("merge", GFC_ISYM_MERGE, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-	     gfc_check_merge, NULL, gfc_resolve_merge,
+	     gfc_check_merge, gfc_simplify_merge, gfc_resolve_merge,
 	     ts, BT_REAL, dr, REQUIRED, fs, BT_REAL, dr, REQUIRED,
 	     msk, BT_LOGICAL, dl, REQUIRED);
 
@@ -2023,7 +2023,7 @@ add_functions (void)
   make_generic ("minloc", GFC_ISYM_MINLOC, GFC_STD_F95);
 
   add_sym_3red ("minval", GFC_ISYM_MINVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_minval,
+		gfc_check_minval_maxval, gfc_simplify_minval, gfc_resolve_minval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -3335,9 +3335,6 @@ do_simplify (gfc_intrinsic_sym *specific, gfc_expr *e)
       goto finish;
     }
 
-  /* TODO: Warn if -pedantic and initialization expression and arg
-     types not integer or character */
-
   if (arg == NULL)
     result = (*specific->simplify.f1) (a1);
   else
@@ -3746,6 +3743,7 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
   if (!error_flag)
     gfc_pop_suppress_errors ();
 
+  c->resolved_isym = isym;
   if (isym->resolve.s1 != NULL)
     isym->resolve.s1 (c);
   else

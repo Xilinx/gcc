@@ -1,6 +1,6 @@
 /* Target definitions for GNU compiler for PowerPC running System V.4
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Cygnus Support.
 
    This file is part of GCC.
@@ -585,9 +585,9 @@ extern int fixuplabelno;
 /* Override svr4.h definition.  */
 #undef	ASM_SPEC
 #define	ASM_SPEC "%(asm_cpu) \
-%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
-%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
+%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}}" \
+SVR4_ASM_SPEC \
+"%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
 %{memb|msdata|msdata=eabi: -memb} \
 %{mlittle|mlittle-endian:-mlittle; \
   mbig|mbig-endian      :-mbig;    \
@@ -728,6 +728,9 @@ extern int fixuplabelno;
                : %(link_os_default)     }"
 
 #define LINK_OS_DEFAULT_SPEC ""
+
+#define DRIVER_SELF_SPECS "%{mfpu=none: %<mfpu=* \
+ 	%<msingle-float %<mdouble-float}"
 
 /* Override rs6000.h definition.  */
 #undef	CPP_SPEC

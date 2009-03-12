@@ -1,5 +1,5 @@
 /* This is a software decimal floating point library.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -536,7 +536,7 @@ DFP_TO_INT (DFP_C_TYPE x)
   /* Rescale if the exponent is less than zero.  */
   decNumberToIntegralValue (&n2, &n1, &context);
   /* Get a value to use for the quantize call.  */
-  decNumberFromString (&qval, (char *) "1.", &context);
+  decNumberFromString (&qval, "1.", &context);
   /* Force the exponent to zero.  */
   decNumberQuantize (&n1, &n2, &qval, &context);
   /* Get a string, which at this point will not include an exponent.  */

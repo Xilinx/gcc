@@ -1,6 +1,6 @@
 /* Definitions for code generation pass of GNU compiler.
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -404,6 +404,7 @@ enum block_op_methods
   BLOCK_OP_TAILCALL
 };
 
+extern GTY(()) tree block_clear_fn;
 extern void init_block_move_fn (const char *);
 extern void init_block_clear_fn (const char *);
 
@@ -694,6 +695,11 @@ extern void set_mem_attributes (rtx, tree, int);
    we alter MEM_OFFSET according to T then we should subtract BITPOS
    expecting that it'll be added back in later.  */
 extern void set_mem_attributes_minus_bitpos (rtx, tree, int, HOST_WIDE_INT);
+
+/* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
+   bits aligned for 0 <= OFFSET < ALIGN / BITS_PER_UNIT, or
+   -1 if not known.  */
+extern int get_mem_align_offset (rtx, int);
 
 /* Assemble the static constant template for function entry trampolines.  */
 extern rtx assemble_trampoline_template (void);

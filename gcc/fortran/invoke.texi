@@ -148,7 +148,8 @@ and warnings}.
 
 @item Directory Options
 @xref{Directory Options,,Options for directory search}.
-@gccoptlist{-I@var{dir}  -J@var{dir}  -M@var{dir}  -fintrinsic-modules-path @var{dir}}
+@gccoptlist{-I@var{dir}  -J@var{dir}  -M@var{dir}  @gol
+-fintrinsic-modules-path @var{dir}}
 
 @item Link Options
 @xref{Link Options,,Options for influencing the linking step}.
@@ -162,9 +163,10 @@ and warnings}.
 
 @item Code Generation Options
 @xref{Code Gen Options,,Options for code generation conventions}.
-@gccoptlist{-fno-automatic  -ff2c  -fno-underscoring
+@gccoptlist{-fno-automatic  -ff2c  -fno-underscoring @gol
 -fsecond-underscore @gol
--fbounds-check -fcheck-array-temporaries  -fmax-stack-var-size=@var{n} @gol
+-fbounds-check -fcheck-array-temporaries  -fmax-array-constructor =@var{n} @gol
+-fmax-stack-var-size=@var{n} @gol
 -fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas @gol
 -fblas-matmul-limit=@var{n} -frecursive -finit-local-zero @gol
 -finit-integer=@var{n} -finit-real=@var{<zero|inf|-inf|nan>} @gol
@@ -208,12 +210,12 @@ form is determined by the file extension.
 
 @item -fall-intrinsics
 @opindex @code{fall-intrinsics}
-Accept all of the intrinsic procedures provided in libgfortran 
-without regard to the setting of @option{-std}.  In particular, 
-this option can be quite useful with @option{-std=f95}.  Additionally,
-@command{gfortran} will ignore @option{-Wintrinsics-std} and will never try
-to link to an @code{EXTERNAL} version if the intrinsic is not included in the
-selected standard.
+This option causes all intrinsic procedures (including the GNU-specific
+extensions) to be accepted.  This can be useful with @option{-std=f95} to
+force standard-compliance but get access to the full range of intrinsics
+available with @command{gfortran}.  As a consequence, @option{-Wintrinsics-std}
+will be ignored and no user-defined procedure with the same name as any
+intrinsic will be called except when it is explicitly declared @code{EXTERNAL}.
 
 @item -fd-lines-as-code
 @item -fd-lines-as-comments
@@ -227,17 +229,26 @@ comment lines.
 
 @item -fdefault-double-8
 @opindex @code{fdefault-double-8}
-Set the @code{DOUBLE PRECISION} type to an 8 byte wide type.
+Set the @code{DOUBLE PRECISION} type to an 8 byte wide type.  If
+@option{-fdefault-real-8} is given, @code{DOUBLE PRECISION} would
+instead be promoted to 16 bytes if possible, and @option{-fdefault-double-8}
+can be used to prevent this.  The kind of real constants like @code{1.d0} will
+not be changed by @option{-fdefault-real-8} though, so also
+@option{-fdefault-double-8} does not affect it.
 
 @item -fdefault-integer-8
 @opindex @code{fdefault-integer-8}
 Set the default integer and logical types to an 8 byte wide type.
-Do nothing if this is already the default.
+Do nothing if this is already the default.  This option also affects
+the kind of integer constants like @code{42}.
 
 @item -fdefault-real-8
 @opindex @code{fdefault-real-8}
 Set the default real type to an 8 byte wide type.
-Do nothing if this is already the default.
+Do nothing if this is already the default.  This option also affects
+the kind of non-double real constants like @code{1.0}, and does promote
+the default width of @code{DOUBLE PRECISION} to 16 bytes if possible, unless
+@code{-fdefault-double-8} is given, too.
 
 @item -fdollar-ok
 @opindex @code{fdollar-ok}
@@ -443,6 +454,15 @@ but this can be inhibited with the negated form
 @option{-fno-working-directory}. If the @option{-P} flag is present
 in the command line, this option has no effect, since no @code{#line}
 directives are emitted whatsoever.
+
+@item -idirafter @var{dir}
+@opindex @code{idirafter @var{dir}}
+@cindex preprocessing, include path
+Search @var{dir} for include files, but do it after all directories
+specified with @option{-I} and the standard system directories have
+been exhausted. @var{dir} is treated as a system include directory.
+If dir begins with @code{=}, then the @code{=} will be replaced by
+the sysroot prefix; see @option{--sysroot} and @option{-isysroot}.
 
 @item -imultilib @var{dir}
 @opindex @code{imultilib @var{dir}}
@@ -850,7 +870,7 @@ zero), @samp{overflow} (overflow in a floating point operation),
 (operation produced a denormal value).
 
 Some of the routines in the Fortran runtime library, like
-@samp{CPU_TIME}, are likely to to trigger floating point exceptions when
+@samp{CPU_TIME}, are likely to trigger floating point exceptions when
 @code{ffpe-trap=precision} is used. For this reason, the use of 
 @code{ffpe-trap=precision} is not recommended.
 
@@ -975,7 +995,7 @@ variable override the default specified by @option{-fconvert}.}
 
 
 @item -fno-range-check
-@opindex @code{-fno-range-check}
+@opindex @code{fno-range-check}
 Disable range checking of input values during integer @code{READ} operations.
 For example, GNU Fortran will give an error if an input value is
 outside of the relevant range of [@code{-HUGE()}:@code{HUGE()}]. In other words,
@@ -1172,13 +1192,15 @@ by use of the @option{-ff2c} option.
 Enable generation of run-time checks for array subscripts
 and against the declared minimum and maximum values.  It also
 checks array indices for assumed and deferred
-shape arrays against the actual allocated bounds.
+shape arrays against the actual allocated bounds and ensures that all string
+lengths are equal for character array constructors without an explicit
+typespec.
 
 Some checks require that @option{-fbounds-check} is set for
 the compilation of the main program.
 
-In the future this may also include other forms of checking, e.g., checking
-substring references.
+Note: In the future this may also include other forms of checking, e.g.,
+checking substring references.
 
 
 @item fcheck-array-temporaries
@@ -1189,6 +1211,28 @@ had to be generated. The information generated by this warning is
 sometimes useful in optimization, in order to avoid such temporaries.
 
 Note: The warning is only printed once per location.
+
+
+@item -fmax-array-constructor=@var{n}
+@opindex @code{fmax-array-constructor}
+This option can be used to increase the upper limit permitted in 
+array constructors.  The code below requires this option to expand
+the array at compile time.
+
+@smallexample
+@code{program test}
+@code{implicit none}
+@code{integer j}
+@code{integer, parameter :: n = 100000}
+@code{integer, parameter :: i(n) = (/ (2*j, j = 1, n) /)}
+@code{print '(10(I0,1X))', i}
+@code{end program test}
+@end smallexample
+
+@emph{Caution:  This option can lead to long compile times and excessively
+large object files.}
+
+The default value for @var{n} is 65535.
 
 
 @item -fmax-stack-var-size=@var{n}

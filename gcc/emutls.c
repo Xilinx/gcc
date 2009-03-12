@@ -1,5 +1,5 @@
 /* TLS emulation.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2008 Free Software Foundation, Inc.
    Contributed by Jakub Jelinek <jakub@redhat.com>.
 
 This file is part of GCC.
@@ -53,6 +53,9 @@ struct __emutls_array
   pointer size;
   void **data[];
 };
+
+void *__emutls_get_address (struct __emutls_object *);
+void __emutls_register_common (struct __emutls_object *, word, word, void *);
 
 #ifdef __GTHREADS
 #ifdef __GTHREAD_MUTEX_INIT
@@ -144,8 +147,12 @@ __emutls_get_address (struct __emutls_object *obj)
       static __gthread_once_t once = __GTHREAD_ONCE_INIT;
       __gthread_once (&once, emutls_init);
       __gthread_mutex_lock (&emutls_mutex);
-      offset = ++emutls_size;
-      obj->loc.offset = offset;
+      offset = obj->loc.offset;
+      if (offset == 0)
+	{
+	  offset = ++emutls_size;
+	  obj->loc.offset = offset;
+	}
       __gthread_mutex_unlock (&emutls_mutex);
     }
 

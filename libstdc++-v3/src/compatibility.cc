@@ -1,6 +1,6 @@
 // Compatibility symbols for previous versions -*- C++ -*-
 
-// Copyright (C) 2005, 2006
+// Copyright (C) 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -30,7 +30,8 @@
 
 #include <bits/c++config.h>
 
-#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC)
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC) \
+    && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE)
 #define istreambuf_iterator istreambuf_iteratorXX
 #define basic_fstream basic_fstreamXX
 #define basic_ifstream basic_ifstreamXX
@@ -69,7 +70,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       if (__cerb && __n > 0)
 	{
 	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
-	  try
+	  __try
 	    {
 	      const int_type __eof = traits_type::eof();
 	      __streambuf_type* __sb = this->rdbuf();
@@ -114,12 +115,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      if (traits_type::eq_int_type(__c, __eof))
 		__err |= ios_base::eofbit;
 	    }
-	  catch(__cxxabiv1::__forced_unwind&)
+	  __catch(__cxxabiv1::__forced_unwind&)
 	    {
 	      this->_M_setstate(ios_base::badbit);
 	      __throw_exception_again;
 	    }
-	  catch(...)
+	  __catch(...)
 	    { this->_M_setstate(ios_base::badbit); }
 	  if (__err)
 	    this->setstate(__err);
@@ -141,7 +142,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       if (__cerb && __n > 0)
 	{
 	  ios_base::iostate __err = ios_base::iostate(ios_base::goodbit);
-	  try
+	  __try
 	    {
 	      const int_type __eof = traits_type::eof();
 	      __streambuf_type* __sb = this->rdbuf();
@@ -185,12 +186,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      if (traits_type::eq_int_type(__c, __eof))
 		__err |= ios_base::eofbit;
 	    }
-	  catch(__cxxabiv1::__forced_unwind&)
+	  __catch(__cxxabiv1::__forced_unwind&)
 	    {
 	      this->_M_setstate(ios_base::badbit);
 	      __throw_exception_again;
 	    }
-	  catch(...)
+	  __catch(...)
 	    { this->_M_setstate(ios_base::badbit); }
 	  if (__err)
 	    this->setstate(__err);
@@ -204,7 +205,8 @@ _GLIBCXX_END_NAMESPACE
 
 // NB: These symbols renames should go into the shared library only,
 // and only those shared libraries that support versioning.
-#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC)
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC) \
+    && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE)
 
 /* gcc-3.4.4
 _ZNSt19istreambuf_iteratorIcSt11char_traitsIcEEppEv
@@ -411,7 +413,10 @@ GLIBCXX_3.4)
 #undef _List_node_base
 
 // gcc-4.1.0
-#ifdef _GLIBCXX_LONG_DOUBLE_COMPAT
+// Long double versions of "C" math functions. 
+#if defined (_GLIBCXX_LONG_DOUBLE_COMPAT) \
+    || (defined (__hppa__) && defined (__linux__))
+
 #define _GLIBCXX_MATHL_WRAPPER(name, argdecl, args, ver) \
 extern "C" double						\
 __ ## name ## l_wrapper argdecl					\

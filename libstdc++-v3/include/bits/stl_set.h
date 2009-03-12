@@ -71,8 +71,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *  @brief A standard container made up of unique keys, which can be
    *  retrieved in logarithmic time.
    *
-   *  @ingroup Containers
-   *  @ingroup Assoc_containers
+   *  @ingroup associative_containers
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and an
@@ -432,9 +431,9 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  potentially improve the performance of the insertion process.  A bad
        *  hint would cause no gains in efficiency.
        *
-       *  See http://gcc.gnu.org/onlinedocs/libstdc++/23_containers/howto.html#4
-       *  for more on "hinting".
-       *
+       *  For more on "hinting", see:
+       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt07ch17.html
+       *  
        *  Insertion requires logarithmic time (if the hint is not taken).
        */
       iterator
@@ -442,7 +441,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       { return _M_t._M_insert_unique_(__position, __x); }
 
       /**
-       *  @brief A template function that attempts to insert a range of elements.
+       *  @brief A template function that attempts to insert a range
+       *  of elements.
        *  @param  first  Iterator pointing to the start of the range to be
        *                 inserted.
        *  @param  last  Iterator pointing to the end of the range.

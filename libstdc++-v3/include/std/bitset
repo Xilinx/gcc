@@ -1,6 +1,6 @@
 // <bitset> -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -587,7 +587,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
   /**
    *  @brief  The %bitset class represents a @e fixed-size sequence of bits.
    *
-   *  @ingroup Containers
+   *  @ingroup containers
    *
    *  (Note that %bitset does @e not meet the formal requirements of a
    *  <a href="tables.html#65">container</a>.  Mainly, it lacks iterators.)
@@ -634,7 +634,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *     }
    *  @endcode
    *
-   *  Also see http://gcc.gnu.org/onlinedocs/libstdc++/ext/sgiexts.html#ch23
+   *  Also see:
+   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt12ch33s02.html
    *  for a description of extensions.
    *
    *  Most of the actual code isn't contained in %bitset<> itself, but in the
@@ -801,17 +802,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 				     "not valid"));
 	  _M_copy_from_string(__s, __position, __n, __zero, __one);
 	}
-
-      // _GLIBCXX_RESOLVE_LIB_DEFECTS
-      // 778. std::bitset does not have any constructor taking a string literal
-      explicit
-      bitset(const char* __s, char __zero = '0', char __one = '1')
-      : _Base()
-      {
-	_M_copy_from_ptr<char, char_traits<char> >(__s,
-			       char_traits<char>::length(__s), 0, size_t(-1),
-						   __zero, __one);
-      }
 
       // 23.3.5.2 bitset operations:
       //@{
@@ -1336,7 +1326,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
       typename __istream_type::sentry __sentry(__is);
       if (__sentry)
 	{
-	  try
+	  __try
 	    {
 	      for (size_t __i = _Nb; __i > 0; --__i)
 		{
@@ -1365,12 +1355,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 		    }
 		}
 	    }
-	  catch(__cxxabiv1::__forced_unwind&)
+	  __catch(__cxxabiv1::__forced_unwind&)
 	    {
 	      __is._M_setstate(__ios_base::badbit);		
 	      __throw_exception_again;
 	    }
-	  catch(...)
+	  __catch(...)
 	    { __is._M_setstate(__ios_base::badbit); }
 	}
 

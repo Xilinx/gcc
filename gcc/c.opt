@@ -1,5 +1,6 @@
 ; Options for the C, ObjC, C++ and ObjC++ front ends.
-; Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -112,8 +113,11 @@ C ObjC C++ ObjC++ Joined Separate
 -U<macro>	Undefine <macro>
 
 Wabi
-C++ ObjC++ Var(warn_abi) Warning
+C ObjC C++ ObjC++ Var(warn_abi) Warning
 Warn about things that will change when compiling with an ABI-compliant compiler
+
+Wpsabi
+C ObjC C++ ObjC++ Var(warn_psabi) Init(1) Undocumented
 
 Waddress
 C ObjC C++ ObjC++ Var(warn_address) Warning
@@ -364,6 +368,10 @@ Woverride-init
 C ObjC Var(warn_override_init) Init(-1) Warning
 Warn about overriding initializers without side effects
 
+Wpacked-bitfield-compat
+C ObjC C++ ObjC++ Var(warn_packed_bitfield_compat) Init(-1) Warning
+Warn about packed bit-fields whose offset changed in GCC 4.4
+
 Wparentheses
 C ObjC C++ ObjC++ Var(warn_parentheses) Warning
 Warn about possibly missing parentheses
@@ -427,6 +435,10 @@ Warn about unprototyped function declarations
 Wstrict-selector-match
 ObjC ObjC++ Var(warn_strict_selector_match) Warning
 Warn if type signatures of candidate methods do not match exactly
+
+Wsync-nand
+C C++ Var(warn_sync_nand) Init(1) Warning
+Warn when __sync_fetch_and_nand and __sync_nand_and_fetch built-in functions are used
 
 Wsynth
 C++ ObjC++ Var(warn_synth) Warning

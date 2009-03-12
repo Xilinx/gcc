@@ -63,7 +63,6 @@ void trace_hash_func::destruct(const void* __obj, size_t __chain,
     return;
 
   objs->destruct(__chain, __accesses, __hops);
-  printf("Retiring %p.\n", __obj);
   retire_object(__obj);
 }
 

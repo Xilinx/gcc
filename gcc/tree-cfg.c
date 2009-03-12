@@ -1,5 +1,5 @@
 /* Control flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -221,6 +221,11 @@ execute_build_cfg (void)
 
   build_gimple_cfg (body);
   gimple_set_body (current_function_decl, NULL);
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Scope blocks:\n");
+      dump_scope_blocks (dump_file, dump_flags);
+    }
   return 0;
 }
 
@@ -1791,9 +1796,21 @@ remove_useless_stmts_bind (gimple_stmt_iterator *gsi, struct rus_data *data ATTR
 	  || (TREE_CODE (BLOCK_ABSTRACT_ORIGIN (block))
 	      != FUNCTION_DECL)))
     {
-      gsi_insert_seq_before (gsi, body_seq, GSI_SAME_STMT);
-      gsi_remove (gsi, false);
-      data->repeat = true;
+      tree var = NULL_TREE;
+      /* Even if there are no gimple_bind_vars, there might be other
+	 decls in BLOCK_VARS rendering the GIMPLE_BIND not useless.  */
+      if (block && !BLOCK_NUM_NONLOCALIZED_VARS (block))
+	for (var = BLOCK_VARS (block); var; var = TREE_CHAIN (var))
+	  if (TREE_CODE (var) == IMPORTED_DECL)
+	    break;
+      if (var || (block && BLOCK_NUM_NONLOCALIZED_VARS (block)))
+	gsi_next (gsi);
+      else
+	{
+	  gsi_insert_seq_before (gsi, body_seq, GSI_SAME_STMT);
+	  gsi_remove (gsi, false);
+	  data->repeat = true;
+	}
     }
   else
     gsi_next (gsi);
@@ -2072,14 +2089,9 @@ struct gimple_opt_pass pass_remove_useless_stmts =
 static void
 remove_phi_nodes_and_edges_for_unreachable_block (basic_block bb)
 {
-  gimple_stmt_iterator gsi;
-
   /* Since this block is no longer reachable, we can just delete all
      of its PHI nodes.  */
-  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); )
-    remove_phi_node (&gsi, true);
-
-  set_phi_nodes (bb, NULL);
+  remove_phi_nodes (bb);
 
   /* Remove edges to BB's successors.  */
   while (EDGE_COUNT (bb->succs) > 0)
@@ -2810,6 +2822,15 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	}
       break;
 
+    case INDIRECT_REF:
+      x = TREE_OPERAND (t, 0);
+      if (!is_gimple_reg (x) && !is_gimple_min_invariant (x))
+	{
+	  error ("Indirect reference's operand is not a register or a constant.");
+	  return x;
+	}
+      break;
+
     case ASSERT_EXPR:
       x = fold (ASSERT_EXPR_COND (t));
       if (x == boolean_false_node)
@@ -2820,14 +2841,8 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       break;
 
     case MODIFY_EXPR:
-      x = TREE_OPERAND (t, 0);
-      if (TREE_CODE (x) == BIT_FIELD_REF
-	  && is_gimple_reg (TREE_OPERAND (x, 0)))
-	{
-	  error ("GIMPLE register modified with BIT_FIELD_REF");
-	  return t;
-	}
-      break;
+      error ("MODIFY_EXPR not expected while having tuples.");
+      return *tp;
 
     case ADDR_EXPR:
       {
@@ -3476,6 +3491,12 @@ verify_gimple_assign_binary (gimple stmt)
 
     case LSHIFT_EXPR:
     case RSHIFT_EXPR:
+      if (FIXED_POINT_TYPE_P (rhs1_type)
+	  && INTEGRAL_TYPE_P (rhs2_type)
+	  && useless_type_conversion_p (lhs_type, rhs1_type))
+	return false;
+      /* Fall through.  */
+
     case LROTATE_EXPR:
     case RROTATE_EXPR:
       {
@@ -3497,7 +3518,8 @@ verify_gimple_assign_binary (gimple stmt)
     case VEC_RSHIFT_EXPR:
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
-	    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
 		&& (TREE_CODE (rhs2_type) != VECTOR_TYPE
 		    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2_type))))
@@ -4154,7 +4176,7 @@ verify_eh_throw_stmt_node (void **slot, void *data)
       debug_gimple_stmt (node->stmt);
       eh_error_found = true;
     }
-  return 0;
+  return 1;
 }
 
 
@@ -5840,6 +5862,8 @@ replace_block_vars_by_duplicates (tree block, struct pointer_map_t *vars_map,
   for (tp = &BLOCK_VARS (block); *tp; tp = &TREE_CHAIN (*tp))
     {
       t = *tp;
+      if (TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != CONST_DECL)
+	continue;
       replace_by_duplicate_decl (&t, vars_map, to_context);
       if (t != *tp)
 	{
@@ -6437,9 +6461,14 @@ need_fake_edge_p (gimple t)
       && fndecl
       && DECL_BUILT_IN (fndecl)
       && (call_flags & ECF_NOTHROW)
-      && !(call_flags & ECF_NORETURN)
-      && !(call_flags & ECF_RETURNS_TWICE))
-   return false;
+      && !(call_flags & ECF_RETURNS_TWICE)
+      /* fork() doesn't really return twice, but the effect of
+         wrapping it in __gcov_fork() which calls __gcov_flush()
+	 and clears the counters before forking has the same
+	 effect as returning twice.  Force a fake edge.  */
+      && !(DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	   && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_FORK))
+    return false;
 
   if (is_gimple_call (t)
       && !(call_flags & ECF_NORETURN))

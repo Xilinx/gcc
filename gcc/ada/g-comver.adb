@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2002-2005, AdaCore                     --
+--                     Copyright (C) 2002-2005,2008 AdaCore                 --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -37,7 +37,7 @@
 
 package body GNAT.Compiler_Version is
 
-   Ver_Len_Max : constant := 32;
+   Ver_Len_Max : constant := 64;
    --  This is logically a reference to Gnatvsn.Ver_Len_Max but we cannot
    --  import this directly since run-time units cannot WITH compiler units.
 

@@ -93,7 +93,7 @@ cp-warn = $(STRICT_WARN)
 
 cc1plus-dummy$(exeext): $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-	      $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
+	      $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 cc1plus-checksum.c : cc1plus-dummy$(exeext) build/genchecksum$(build_exeext)
 	build/genchecksum$(build_exeext) cc1plus-dummy$(exeext) > $@
@@ -102,7 +102,7 @@ cc1plus-checksum.o : cc1plus-checksum.c
 
 cc1plus$(exeext): $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-	      $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
+	      $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 # Special build rules.
 $(srcdir)/cp/cfns.h: $(srcdir)/cp/cfns.gperf
@@ -138,8 +138,12 @@ c++.srcman: doc/g++.1
 # check targets.  However, our DejaGNU framework requires 'check-g++' as its
 # entry point.  We feed the former to the latter here.
 check-c++ : check-g++
+check-c++-subtargets : check-g++-subtargets
 # List of targets that can use the generic check- rule and its // variant.
 lang_checks += check-g++
+lang_checks_parallelized += check-g++
+# For description see comment above check_gcc_parallelize in gcc/Makefile.in.
+check_g++_parallelize = old-deja.exp dg.exp
 
 #
 # Install hooks:

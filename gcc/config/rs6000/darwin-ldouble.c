@@ -1,5 +1,5 @@
 /* 128-bit long double support routines for Darwin.
-   Copyright (C) 1993, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1993, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -387,7 +387,7 @@ fmsub (double a, double b, double c)
     FP_DECL_Q(V);
     FP_DECL_D(R);
     double r;
-    long double u, v, x, y, z;
+    long double u, x, y, z;
 
     FP_INIT_ROUNDMODE;
     FP_UNPACK_RAW_D (A, a);

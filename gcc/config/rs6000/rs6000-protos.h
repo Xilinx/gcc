@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -42,6 +42,7 @@ extern void validate_condition_mode (enum rtx_code, enum machine_mode);
 extern bool legitimate_constant_pool_address_p (rtx);
 extern bool legitimate_indirect_address_p (rtx, int);
 extern bool legitimate_indexed_address_p (rtx, int);
+extern bool avoiding_indexed_address_p (enum machine_mode);
 
 extern rtx rs6000_got_register (rtx);
 extern rtx find_addr_reg (rtx);
@@ -180,6 +181,12 @@ extern void rs6000_cpu_cpp_builtins (struct cpp_reader *);
 #if TARGET_MACHO
 char *output_call (rtx, rtx *, int, int);
 #endif
+
+#ifdef NO_DOLLAR_IN_LABEL
+const char * rs6000_xcoff_strip_dollar (const char *);
+#endif
+
+void rs6000_final_prescan_insn (rtx, rtx *operand, int num_operands);
 
 extern bool rs6000_hard_regno_mode_ok_p[][FIRST_PSEUDO_REGISTER];
 #endif  /* rs6000-protos.h */

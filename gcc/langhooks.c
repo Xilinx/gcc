@@ -1,5 +1,5 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
@@ -437,7 +437,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}

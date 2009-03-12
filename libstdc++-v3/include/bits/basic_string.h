@@ -53,8 +53,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  @class basic_string basic_string.h <string>
    *  @brief  Managing sequences of characters and character-like objects.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -459,7 +458,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @param  n  Number of characters to copy.
        *  @param  a  Allocator to use (default is default allocator).
        *
-       *  NB: @a s must have at least @a n characters, '\0' has no special
+       *  NB: @a s must have at least @a n characters, '\\0' has no special
        *  meaning.
        */
       basic_string(const _CharT* __s, size_type __n,
@@ -2141,7 +2140,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  result of the comparison is nonzero returns it, otherwise the shorter
        *  one is ordered first.
        *
-       *  NB: s must have at least n2 characters, '\0' has no special
+       *  NB: s must have at least n2 characters, '\\0' has no special
        *  meaning.
       */
       int
@@ -2562,7 +2561,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 _GLIBCXX_END_NAMESPACE
 
-#if (defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(_GLIBCXX_USE_C99))
+#if (defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(_GLIBCXX_USE_C99) \
+     && !defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF))
 
 #include <ext/string_conversions.h>
 

@@ -205,7 +205,8 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
   if (is_internal_unit (dtp))
     {
       readlen = *length;
-      if (sread (dtp->u.p.current_unit->s, p, &readlen) != 0 || readlen < (size_t) *length)
+      if (unlikely (sread (dtp->u.p.current_unit->s, p, &readlen) != 0
+		    || readlen < (size_t) *length))
 	{
 	  generate_error (&dtp->common, LIBERROR_END, NULL);
 	  return NULL;
@@ -219,7 +220,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
 
   do
     {
-      if (sread (dtp->u.p.current_unit->s, &q, &readlen) != 0)
+      if (unlikely (sread (dtp->u.p.current_unit->s, &q, &readlen) != 0))
         {
 	  generate_error (&dtp->common, LIBERROR_END, NULL);
 	  return NULL;
@@ -229,7 +230,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
 	 EOR below.  */
       if (readlen < 1 && n == 0)
 	{
-	  if (no_error)
+	  if (likely (no_error))
 	    break;
 	  generate_error (&dtp->common, LIBERROR_END, NULL);
 	  return NULL;
@@ -250,7 +251,8 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
 	    {
 	      readlen = 1;
 	      pos = stream_offset (dtp->u.p.current_unit->s);
-	      if (sread (dtp->u.p.current_unit->s, &q, &readlen) != 0)
+	      if (unlikely (sread (dtp->u.p.current_unit->s, &q, &readlen)
+			    != 0))
 	        {
 		  generate_error (&dtp->common, LIBERROR_END, NULL);
 		  return NULL;
@@ -266,7 +268,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
 	     so we can just continue with a short read.  */
 	  if (dtp->u.p.current_unit->pad_status == PAD_NO)
 	    {
-	      if (no_error)
+	      if (likely (no_error))
 		break;
 	      generate_error (&dtp->common, LIBERROR_EOR, NULL);
 	      return NULL;
@@ -298,7 +300,7 @@ read_sf (st_parameter_dt *dtp, int *length, int no_error)
   dtp->u.p.current_unit->bytes_left -= *length;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) *length;
+    dtp->u.p.size_used += (GFC_IO_INT) *length;
 
   return base;
 }
@@ -332,7 +334,7 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
             dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
 	  else
 	    {
-	      if (dtp->u.p.current_unit->pad_status == PAD_NO)
+	      if (unlikely (dtp->u.p.current_unit->pad_status == PAD_NO))
 		{
 		  /* Not enough data left.  */
 		  generate_error (&dtp->common, LIBERROR_EOR, NULL);
@@ -340,7 +342,7 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 		}
 	    }
 
-	  if (dtp->u.p.current_unit->bytes_left == 0)
+	  if (unlikely (dtp->u.p.current_unit->bytes_left == 0))
 	    {
 	      dtp->u.p.current_unit->endfile = AT_ENDFILE;
 	      generate_error (&dtp->common, LIBERROR_END, NULL);
@@ -368,18 +370,18 @@ read_block_form (st_parameter_dt *dtp, void *buf, size_t *nbytes)
   dtp->u.p.current_unit->bytes_left -= (gfc_offset) *nbytes;
 
   nread = *nbytes;
-  if (sread (dtp->u.p.current_unit->s, buf, &nread) != 0)
+  if (unlikely (sread (dtp->u.p.current_unit->s, buf, &nread) != 0))
     {
       generate_error (&dtp->common, LIBERROR_OS, NULL);
       return FAILURE;
     }
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) nread;
+    dtp->u.p.size_used += (GFC_IO_INT) nread;
 
   if (nread != *nbytes)
     {				/* Short read, this shouldn't happen.  */
-      if (dtp->u.p.current_unit->pad_status == PAD_YES)
+      if (likely (dtp->u.p.current_unit->pad_status == PAD_YES))
 	*nbytes = nread;
       else
 	{
@@ -410,7 +412,8 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
     {
       to_read_record = *nbytes;
       have_read_record = to_read_record;
-      if (sread (dtp->u.p.current_unit->s, buf, &have_read_record) != 0)
+      if (unlikely (sread (dtp->u.p.current_unit->s, buf, &have_read_record)
+		    != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return;
@@ -418,7 +421,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 
       dtp->u.p.current_unit->strm_pos += (gfc_offset) have_read_record; 
 
-      if (to_read_record != have_read_record)
+      if (unlikely (to_read_record != have_read_record))
 	{
 	  /* Short read,  e.g. if we hit EOF.  For stream files,
 	   we have to set the end-of-file condition.  */
@@ -445,7 +448,8 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 
       dtp->u.p.current_unit->bytes_left -= to_read_record;
 
-      if (sread (dtp->u.p.current_unit->s, buf, &to_read_record) != 0)
+      if (unlikely (sread (dtp->u.p.current_unit->s, buf, &to_read_record)
+		    != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return;
@@ -459,7 +463,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 	  return;
 	}
 
-      if (short_record)
+      if (unlikely (short_record))
 	{
 	  generate_error (&dtp->common, LIBERROR_SHORT_RECORD, NULL);
 	  return;
@@ -471,7 +475,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
      until the request has been fulfilled or the record has run out
      of continuation subrecords.  */
 
-  if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
+  if (unlikely (dtp->u.p.current_unit->endfile == AT_ENDFILE))
     {
       generate_error (&dtp->common, LIBERROR_END, NULL);
       return;
@@ -509,8 +513,8 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
       dtp->u.p.current_unit->bytes_left_subrecord -= to_read_subrecord;
 
       have_read_subrecord = to_read_subrecord;
-      if (sread (dtp->u.p.current_unit->s, buf + have_read_record,
-		 &have_read_subrecord) != 0)
+      if (unlikely (sread (dtp->u.p.current_unit->s, buf + have_read_record,
+			   &have_read_subrecord) != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return;
@@ -518,7 +522,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 
       have_read_record += have_read_subrecord;
 
-      if (to_read_subrecord != have_read_subrecord)  
+      if (unlikely (to_read_subrecord != have_read_subrecord))
 			
 	{
 	  /* Short read, e.g. if we hit EOF.  This means the record
@@ -532,7 +536,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
 
       if (to_read_record > 0)
 	{
-	  if (dtp->u.p.current_unit->continued)
+	  if (likely (dtp->u.p.current_unit->continued))
 	    {
 	      next_record_r_unf (dtp, 0);
 	      us_read (dtp, 1);
@@ -556,7 +560,7 @@ read_block_direct (st_parameter_dt *dtp, void *buf, size_t *nbytes)
     }
 
   dtp->u.p.current_unit->bytes_left -= have_read_record;
-  if (short_record)
+  if (unlikely (short_record))
     {
       generate_error (&dtp->common, LIBERROR_SHORT_RECORD, NULL);
       return;
@@ -581,9 +585,11 @@ write_block (st_parameter_dt *dtp, int length)
 	{
 	  /* For preconnected units with default record length, set bytes left
 	     to unit record length and proceed, otherwise error.  */
-	  if ((dtp->u.p.current_unit->unit_number == options.stdout_unit
-		|| dtp->u.p.current_unit->unit_number == options.stderr_unit)
-		&& dtp->u.p.current_unit->recl == DEFAULT_RECL)
+	  if (likely ((dtp->u.p.current_unit->unit_number
+		       == options.stdout_unit
+		       || dtp->u.p.current_unit->unit_number
+		       == options.stderr_unit)
+		      && dtp->u.p.current_unit->recl == DEFAULT_RECL))
 	    dtp->u.p.current_unit->bytes_left = dtp->u.p.current_unit->recl;
 	  else
 	    {
@@ -605,7 +611,7 @@ write_block (st_parameter_dt *dtp, int length)
         return NULL;
       }
 
-    if (dtp->u.p.current_unit->endfile == AT_ENDFILE)
+    if (unlikely (dtp->u.p.current_unit->endfile == AT_ENDFILE))
       generate_error (&dtp->common, LIBERROR_END, NULL);
     }
   else
@@ -619,7 +625,7 @@ write_block (st_parameter_dt *dtp, int length)
     }
     
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    dtp->u.p.size_used += (gfc_offset) length;
+    dtp->u.p.size_used += (GFC_IO_INT) length;
 
   dtp->u.p.current_unit->strm_pos += (gfc_offset) length;
 
@@ -642,7 +648,7 @@ write_buf (st_parameter_dt *dtp, void *buf, size_t nbytes)
 
   if (is_stream_io (dtp))
     {
-      if (swrite (dtp->u.p.current_unit->s, buf, &nbytes) != 0)
+      if (unlikely (swrite (dtp->u.p.current_unit->s, buf, &nbytes) != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return FAILURE;
@@ -657,7 +663,7 @@ write_buf (st_parameter_dt *dtp, void *buf, size_t nbytes)
 
   if (dtp->u.p.current_unit->flags.access == ACCESS_DIRECT)
     {
-      if (dtp->u.p.current_unit->bytes_left < (gfc_offset) nbytes)
+      if (unlikely (dtp->u.p.current_unit->bytes_left < (gfc_offset) nbytes))
 	{
 	  generate_error (&dtp->common, LIBERROR_DIRECT_EOR, NULL);
 	  return FAILURE;
@@ -666,7 +672,7 @@ write_buf (st_parameter_dt *dtp, void *buf, size_t nbytes)
       if (buf == NULL && nbytes == 0)
 	return SUCCESS;
 
-      if (swrite (dtp->u.p.current_unit->s, buf, &nbytes) != 0)
+      if (unlikely (swrite (dtp->u.p.current_unit->s, buf, &nbytes) != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return FAILURE;
@@ -703,8 +709,8 @@ write_buf (st_parameter_dt *dtp, void *buf, size_t nbytes)
       dtp->u.p.current_unit->bytes_left_subrecord -=
 	(gfc_offset) to_write_subrecord;
 
-      if (swrite (dtp->u.p.current_unit->s, buf + have_written,
-		  &to_write_subrecord) != 0)
+      if (unlikely (swrite (dtp->u.p.current_unit->s, buf + have_written,
+			    &to_write_subrecord) != 0))
 	{
 	  generate_error (&dtp->common, LIBERROR_OS, NULL);
 	  return FAILURE;
@@ -721,7 +727,7 @@ write_buf (st_parameter_dt *dtp, void *buf, size_t nbytes)
       us_write (dtp, 1);
     }
   dtp->u.p.current_unit->bytes_left -= have_written;
-  if (short_record)
+  if (unlikely (short_record))
     {
       generate_error (&dtp->common, LIBERROR_SHORT_RECORD, NULL);
       return FAILURE;
@@ -973,7 +979,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
       if (f == NULL)
 	{
 	  /* No data descriptors left.  */
-	  if (n > 0)
+	  if (unlikely (n > 0))
 	    generate_error (&dtp->common, LIBERROR_FORMAT,
 		"Insufficient data descriptors in format after reversion");
 	  return;
@@ -1215,12 +1221,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 		break;
 	      case BT_REAL:
 		if (f->u.real.w == 0)
-		  {
-		    if (f->u.real.d == 0)
-		      write_real (dtp, p, kind);
-		    else
-		      write_real_g0 (dtp, p, kind, f->u.real.d);
-		  }
+		  write_real_g0 (dtp, p, kind, f->u.real.d);
 		else
 		  write_d (dtp, f, p, kind);
 		break;
@@ -1671,7 +1672,7 @@ us_read (st_parameter_dt *dtp, int continued)
 
   nr = n;
 
-  if (sread (dtp->u.p.current_unit->s, &i, &n) != 0)
+  if (unlikely (sread (dtp->u.p.current_unit->s, &i, &n) != 0))
     {
       generate_error (&dtp->common, LIBERROR_BAD_US, NULL);
       return;
@@ -1683,14 +1684,14 @@ us_read (st_parameter_dt *dtp, int continued)
       return;  /* end of file */
     }
 
-  if (n != nr)
+  if (unlikely (n != nr))
     {
       generate_error (&dtp->common, LIBERROR_BAD_US, NULL);
       return;
     }
 
   /* Only GFC_CONVERT_NATIVE and GFC_CONVERT_SWAP are valid here.  */
-  if (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE)
+  if (likely (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE))
     {
       switch (nr)
 	{
@@ -1823,11 +1824,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 
   ionml = ((cf & IOPARM_DT_IONML_SET) != 0) ? dtp->u.p.ionml : NULL;
 
-  /* To maintain ABI, &transfer is the start of the private memory area in
-     in st_parameter_dt.  Memory from the beginning of the structure to this
-     point is set by the front end and must not be touched.  The number of
-     bytes to clear must stay within the sizeof q to avoid over-writing.  */
-  memset (&dtp->u.p.transfer, 0, sizeof (dtp->u.q));
+  memset (&dtp->u.p, 0, sizeof (dtp->u.p));
 
   dtp->u.p.ionml = ionml;
   dtp->u.p.mode = read_flag ? READING : WRITING;
@@ -1965,7 +1962,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       return;
     }
 
-  /* Check the record or position number.  */
+  /* Check the record number.  */
 
   if (dtp->u.p.current_unit->flags.access == ACCESS_DIRECT
       && (cf & IOPARM_DT_HAS_REC) == 0)
@@ -2071,7 +2068,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the decimal mode.  */
   dtp->u.p.current_unit->decimal_status
 	= !(cf & IOPARM_DT_HAS_DECIMAL) ? DECIMAL_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.decimal, dtp->u.p.decimal_len,
+	  find_option (&dtp->common, dtp->decimal, dtp->decimal_len,
 			decimal_opt, "Bad DECIMAL parameter in data transfer "
 			"statement");
 
@@ -2081,7 +2078,7 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the sign mode. */
   dtp->u.p.sign_status
 	= !(cf & IOPARM_DT_HAS_SIGN) ? SIGN_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.sign, dtp->u.p.sign_len, sign_opt,
+	  find_option (&dtp->common, dtp->sign, dtp->sign_len, sign_opt,
 			"Bad SIGN parameter in data transfer statement");
   
   if (dtp->u.p.sign_status == SIGN_UNSPECIFIED)
@@ -2090,17 +2087,17 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the blank mode.  */
   dtp->u.p.blank_status
 	= !(cf & IOPARM_DT_HAS_BLANK) ? BLANK_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.blank, dtp->u.p.blank_len,
+	  find_option (&dtp->common, dtp->blank, dtp->blank_len,
 			blank_opt,
 			"Bad BLANK parameter in data transfer statement");
   
   if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
 	dtp->u.p.blank_status = dtp->u.p.current_unit->flags.blank;
-  
+
   /* Check the delim mode.  */
   dtp->u.p.current_unit->delim_status
 	= !(cf & IOPARM_DT_HAS_DELIM) ? DELIM_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.delim, dtp->u.p.delim_len,
+	  find_option (&dtp->common, dtp->delim, dtp->delim_len,
 	  delim_opt, "Bad DELIM parameter in data transfer statement");
   
   if (dtp->u.p.current_unit->delim_status == DELIM_UNSPECIFIED)
@@ -2109,11 +2106,70 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
   /* Check the pad mode.  */
   dtp->u.p.current_unit->pad_status
 	= !(cf & IOPARM_DT_HAS_PAD) ? PAD_UNSPECIFIED :
-	  find_option (&dtp->common, dtp->u.p.pad, dtp->u.p.pad_len, pad_opt,
+	  find_option (&dtp->common, dtp->pad, dtp->pad_len, pad_opt,
 			"Bad PAD parameter in data transfer statement");
   
   if (dtp->u.p.current_unit->pad_status == PAD_UNSPECIFIED)
 	dtp->u.p.current_unit->pad_status = dtp->u.p.current_unit->flags.pad;
+  
+  /* Check the POS= specifier: that it is in range and that it is used with a
+     unit that has been connected for STREAM access. F2003 9.5.1.10.  */
+  
+  if (((cf & IOPARM_DT_HAS_POS) != 0))
+    {
+      if (is_stream_io (dtp))
+	{
+
+	  if (dtp->pos <= 0)
+	    {
+	      generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			      "POS=specifier must be positive");
+	      return;
+	    }
+
+	  if (dtp->pos >= dtp->u.p.current_unit->maxrec)
+	    {
+	      generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			      "POS=specifier too large");
+	      return;
+	    }
+
+	  dtp->rec = dtp->pos;
+
+	  if (dtp->u.p.mode == READING)
+	    {
+	      /* Required for compatibility between 4.3 and 4.4 runtime. Check
+	      to see if we might be reading what we wrote before  */
+	      if (dtp->u.p.current_unit->mode == WRITING)
+		{
+		  fbuf_flush (dtp->u.p.current_unit, 1);      
+		  flush(dtp->u.p.current_unit->s);
+		}
+
+	      if (dtp->pos < file_length (dtp->u.p.current_unit->s))
+		dtp->u.p.current_unit->endfile = NO_ENDFILE;
+	    }
+
+	  if (dtp->pos != dtp->u.p.current_unit->strm_pos)
+	    {
+	      fbuf_flush (dtp->u.p.current_unit, 1);
+	      flush (dtp->u.p.current_unit->s);
+	      if (sseek (dtp->u.p.current_unit->s, dtp->pos - 1) == FAILURE)
+		{
+		  generate_error (&dtp->common, LIBERROR_OS, NULL);
+		  return;
+		}
+	      dtp->u.p.current_unit->strm_pos = dtp->pos;
+	    }
+	}
+      else
+	{
+	  generate_error (&dtp->common, LIBERROR_BAD_OPTION,
+			  "POS=specifier not allowed, "
+			  "Try OPEN with ACCESS='stream'");
+	  return;
+	}
+    }
 
   /* Sanity checks on the record number.  */
   if ((cf & IOPARM_DT_HAS_REC) != 0)
@@ -2137,10 +2193,10 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
       if (dtp->u.p.mode == READING
 	  && dtp->u.p.current_unit->mode == WRITING
 	  && !is_internal_unit (dtp))
-        {
-          fbuf_flush (dtp->u.p.current_unit, 1);      
+	{
+	  fbuf_flush (dtp->u.p.current_unit, 1);      
 	  flush(dtp->u.p.current_unit->s);
-        }
+	}
 
       /* Check whether the record exists to be read.  Only
 	 a partial record needs to exist.  */
@@ -2154,29 +2210,27 @@ data_transfer_init (st_parameter_dt *dtp, int read_flag)
 	}
 
       /* Position the file.  */
-      if (!is_stream_io (dtp))
+      if (sseek (dtp->u.p.current_unit->s, (gfc_offset) (dtp->rec - 1)
+		 * dtp->u.p.current_unit->recl) == FAILURE)
 	{
-	  if (sseek (dtp->u.p.current_unit->s, (gfc_offset) (dtp->rec - 1)
-		     * dtp->u.p.current_unit->recl) == FAILURE)
-	    {
-	      generate_error (&dtp->common, LIBERROR_OS, NULL);
-	      return;
-	    }
+	  generate_error (&dtp->common, LIBERROR_OS, NULL);
+	  return;
 	}
-      else
-        {
-	  if (dtp->u.p.current_unit->strm_pos != dtp->rec)
-	    {
-	      fbuf_flush (dtp->u.p.current_unit, 1);
-	      flush (dtp->u.p.current_unit->s);
-	      if (sseek (dtp->u.p.current_unit->s, dtp->rec - 1) == FAILURE)
-	        {
-	          generate_error (&dtp->common, LIBERROR_OS, NULL);
-	          return;
-	        }
-	      dtp->u.p.current_unit->strm_pos = dtp->rec;
-	    }
-        }
+
+      /* TODO: This is required to maintain compatibility between
+	 4.3 and 4.4 runtime. Remove when ABI changes from 4.3 */
+
+      if (is_stream_io (dtp))
+	dtp->u.p.current_unit->strm_pos = dtp->rec;
+      
+      /* TODO: Un-comment this code when ABI changes from 4.3.
+      if (dtp->u.p.current_unit->flags.access == ACCESS_STREAM)
+	{
+	  generate_error (&dtp->common, LIBERROR_OPTION_CONFLICT,
+		      "Record number not allowed for stream access "
+		      "data transfer");
+	  return;
+	}  */
 
     }
 
@@ -2535,7 +2589,7 @@ write_us_marker (st_parameter_dt *dtp, const gfc_offset buf)
     len = compile_options.record_marker;
 
   /* Only GFC_CONVERT_NATIVE and GFC_CONVERT_SWAP are valid here.  */
-  if (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE)
+  if (likely (dtp->u.p.current_unit->flags.convert == GFC_CONVERT_NATIVE))
     {
       switch (len)
 	{
@@ -2600,7 +2654,7 @@ next_record_w_unf (st_parameter_dt *dtp, int next_subrecord)
   else
     m_write = m;
 
-  if (write_us_marker (dtp, m_write) != 0)
+  if (unlikely (write_us_marker (dtp, m_write) != 0))
     goto io_error;
 
   if (compile_options.record_marker == 0)
@@ -2611,8 +2665,8 @@ next_record_w_unf (st_parameter_dt *dtp, int next_subrecord)
   /* Seek to the head and overwrite the bogus length with the real
      length.  */
 
-  if (sseek (dtp->u.p.current_unit->s, c - m - record_marker)
-      == FAILURE)
+  if (unlikely (sseek (dtp->u.p.current_unit->s, c - m - record_marker)
+		== FAILURE))
     goto io_error;
 
   if (next_subrecord)
@@ -2620,12 +2674,13 @@ next_record_w_unf (st_parameter_dt *dtp, int next_subrecord)
   else
     m_write = m;
 
-  if (write_us_marker (dtp, m_write) != 0)
+  if (unlikely (write_us_marker (dtp, m_write) != 0))
     goto io_error;
 
   /* Seek past the end of the current record.  */
 
-  if (sseek (dtp->u.p.current_unit->s, c + record_marker) == FAILURE)
+  if (unlikely (sseek (dtp->u.p.current_unit->s, c + record_marker)
+		== FAILURE))
     goto io_error;
 
   return;
@@ -2851,7 +2906,7 @@ finalize_transfer (st_parameter_dt *dtp)
   GFC_INTEGER_4 cf = dtp->common.flags;
 
   if ((dtp->common.flags & IOPARM_DT_HAS_SIZE) != 0)
-    *dtp->size = (GFC_IO_INT) dtp->u.p.size_used;
+    *dtp->size = dtp->u.p.size_used;
 
   if (dtp->u.p.eor_condition)
     {

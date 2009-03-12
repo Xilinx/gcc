@@ -1,3 +1,43 @@
+2009-02-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* lex.c (lex_string): Return a CPP_LESS token for missing '>' in a
+	header name.
+	(_cpp_lex_direct): Handle this.
+
+2009-02-15  Richard Guenther  <rguenther@suse.de>
+
+	Revert last change.
+
+2009-02-13  Richard Guenther  <rguenther@suse.de>
+
+	* configure.ac: Enable LFS.
+	* configure: Re-generate.
+	* config.in: Likewise.
+
+2009-01-05  Ben Elliston  <bje@au.ibm.com>
+
+	* Makefile.in (.po.gmo): Use mkinstalldirs, not test -d || mkdir.
+	(.po.pox): Likewise.
+	(po/$(PACKAGE).pot): Likewise.
+
+2008-12-10  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR target/37033
+	* pch.c (cpp_valid_state): Improve message for poisoned symbols.
+	Allow for differences in __GCC_HAVE_DWARF2_CFI_ASM.
+
+2008-11-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lex.c (cpp_token_len): Use 6 as default length.
+
+2008-10-31  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* expr.c (struct op): Add location.
+	(_cpp_parse_expr): Propagate locations throught the stack
+	of expressions.
+	(reduce): Likewise.
+	(check_promotion): Use explicit location in errors.
+
 2008-10-05  Matthew Gingell  <gingell@adacore.com>
 	    Arnaud Charlet  <charlet@adacore.com>
 

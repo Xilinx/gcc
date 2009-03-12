@@ -1,5 +1,6 @@
 /* Top-level control of tree optimizations.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -293,6 +294,7 @@ execute_fixup_cfg (void)
   int todo = gimple_in_ssa_p (cfun) ? TODO_verify_ssa : 0;
 
   cfun->after_inlining = true;
+  cfun->always_inline_functions_inlined = true;
 
   if (cfun->eh)
     FOR_EACH_BB (bb)

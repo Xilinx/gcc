@@ -1,6 +1,6 @@
 /* Target definitions for Darwin (Mac OS X) systems.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007
+   2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -258,6 +258,7 @@ extern GTY(()) int darwin_ms_struct;
 #define LINK_SPEC  \
   "%{static}%{!static:-dynamic} \
    %{fgnu-runtime:%:replace-outfile(-lobjc -lobjc-gnu)}\
+   %{static|static-libgfortran:%:replace-outfile(-lgfortran libgfortran.a%s)}\
    %{!Zdynamiclib: \
      %{Zforce_cpusubtype_ALL:-arch %(darwin_arch) -force_cpusubtype_ALL} \
      %{!Zforce_cpusubtype_ALL:-arch %(darwin_subarch)} \
@@ -996,5 +997,9 @@ extern void darwin_default_min_version (int * argc, char *** argv);
 #define GCC_DRIVER_HOST_INITIALIZATION \
   darwin_default_min_version (&argc, &argv)
 #endif /* CROSS_DIRECTORY_STRUCTURE */
+
+/* The Apple assembler and linker do not support constructor priorities.  */
+#undef SUPPORTS_INIT_PRIORITY
+#define SUPPORTS_INIT_PRIORITY 0
 
 #endif /* CONFIG_DARWIN_H */

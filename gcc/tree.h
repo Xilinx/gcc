@@ -1,6 +1,6 @@
 /* Front-end tree definitions for GNU compiler.
    Copyright (C) 1989, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1195,9 +1195,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
  (CONSTANT_CLASS_P (EXPR) && TREE_OVERFLOW (EXPR))
 
 /* In a VAR_DECL, FUNCTION_DECL, NAMESPACE_DECL or TYPE_DECL,
-   nonzero means name is to be accessible from outside this module.
+   nonzero means name is to be accessible from outside this translation unit.
    In an IDENTIFIER_NODE, nonzero means an external declaration
-   accessible from outside this module was previously seen
+   accessible from outside this translation unit was previously seen
    for this name in an inner scope.  */
 #define TREE_PUBLIC(NODE) ((NODE)->base.public_flag)
 
@@ -1324,8 +1324,7 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* Used in classes in C++.  */
 #define TREE_PRIVATE(NODE) ((NODE)->base.private_flag)
-/* Used in classes in C++.
-   In a BLOCK node, this is BLOCK_HANDLER_BLOCK.  */
+/* Used in classes in C++. */
 #define TREE_PROTECTED(NODE) ((NODE)->base.protected_flag)
 
 /* Nonzero in a _DECL if the use of the name is defined as a
@@ -1969,6 +1968,9 @@ struct varray_head_tag;
 
 /* In a BLOCK node.  */
 #define BLOCK_VARS(NODE) (BLOCK_CHECK (NODE)->block.vars)
+#define BLOCK_NONLOCALIZED_VARS(NODE) (BLOCK_CHECK (NODE)->block.nonlocalized_vars)
+#define BLOCK_NUM_NONLOCALIZED_VARS(NODE) VEC_length (tree, BLOCK_NONLOCALIZED_VARS (NODE))
+#define BLOCK_NONLOCALIZED_VAR(NODE,N) VEC_index (tree, BLOCK_NONLOCALIZED_VARS (NODE), N)
 #define BLOCK_SUBBLOCKS(NODE) (BLOCK_CHECK (NODE)->block.subblocks)
 #define BLOCK_SUPERCONTEXT(NODE) (BLOCK_CHECK (NODE)->block.supercontext)
 /* Note: when changing this, make sure to find the places
@@ -1976,11 +1978,6 @@ struct varray_head_tag;
 #define BLOCK_CHAIN(NODE) TREE_CHAIN (BLOCK_CHECK (NODE))
 #define BLOCK_ABSTRACT_ORIGIN(NODE) (BLOCK_CHECK (NODE)->block.abstract_origin)
 #define BLOCK_ABSTRACT(NODE) (BLOCK_CHECK (NODE)->block.abstract_flag)
-
-/* Nonzero means that this block is prepared to handle exceptions
-   listed in the BLOCK_VARS slot.  */
-#define BLOCK_HANDLER_BLOCK(NODE) \
-  (BLOCK_CHECK (NODE)->block.handler_block_flag)
 
 /* An index number for this block.  These values are not guaranteed to
    be unique across functions -- whether or not they are depends on
@@ -2022,13 +2019,14 @@ struct tree_block GTY(())
 {
   struct tree_common common;
 
-  unsigned handler_block_flag : 1;
   unsigned abstract_flag : 1;
-  unsigned block_num : 30;
+  unsigned block_num : 31;
 
   location_t locus;
 
   tree vars;
+  VEC(tree,gc) *nonlocalized_vars;
+
   tree subblocks;
   tree supercontext;
   tree abstract_origin;
@@ -2050,7 +2048,6 @@ struct tree_block GTY(())
 #define TYPE_UID(NODE) (TYPE_CHECK (NODE)->type.uid)
 #define TYPE_SIZE(NODE) (TYPE_CHECK (NODE)->type.size)
 #define TYPE_SIZE_UNIT(NODE) (TYPE_CHECK (NODE)->type.size_unit)
-#define TYPE_MODE(NODE) (TYPE_CHECK (NODE)->type.mode)
 #define TYPE_VALUES(NODE) (ENUMERAL_TYPE_CHECK (NODE)->type.values)
 #define TYPE_DOMAIN(NODE) (ARRAY_TYPE_CHECK (NODE)->type.values)
 #define TYPE_FIELDS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.values)
@@ -2077,6 +2074,14 @@ struct tree_block GTY(())
 #define TYPE_NEXT_VARIANT(NODE) (TYPE_CHECK (NODE)->type.next_variant)
 #define TYPE_MAIN_VARIANT(NODE) (TYPE_CHECK (NODE)->type.main_variant)
 #define TYPE_CONTEXT(NODE) (TYPE_CHECK (NODE)->type.context)
+
+/* Vector types need to check target flags to determine type.  */
+extern enum machine_mode vector_type_mode (const_tree);
+#define TYPE_MODE(NODE) \
+  (TREE_CODE (TYPE_CHECK (NODE)) == VECTOR_TYPE \
+   ? vector_type_mode (NODE) : (NODE)->type.mode)
+#define SET_TYPE_MODE(NODE, MODE) \
+  (TYPE_CHECK (NODE)->type.mode = (MODE))
 
 /* The "canonical" type for this type node, which can be used to
    compare the type for equality with another type. If two types are
@@ -4022,6 +4027,7 @@ extern HOST_WIDE_INT tree_low_cst (const_tree, int);
 extern int tree_int_cst_msb (const_tree);
 extern int tree_int_cst_sgn (const_tree);
 extern int tree_int_cst_sign_bit (const_tree);
+extern unsigned int tree_int_cst_min_precision (tree, bool);
 extern bool tree_expr_nonnegative_p (tree);
 extern bool tree_expr_nonnegative_warnv_p (tree, bool *);
 extern bool may_negate_without_overflow_p (const_tree);
@@ -4552,24 +4558,24 @@ extern tree get_inner_reference (tree, HOST_WIDE_INT *, HOST_WIDE_INT *,
 				 tree *, enum machine_mode *, int *, int *,
 				 bool);
 
-/* Given an expression EXP that may be a COMPONENT_REF or an ARRAY_REF,
-   look for whether EXP or any nested component-refs within EXP is marked
-   as PACKED.  */
+/* Given an expression EXP that may be a COMPONENT_REF, an ARRAY_REF or an
+   ARRAY_RANGE_REF, look for whether EXP or any nested component-refs within
+   EXP is marked as PACKED.  */
 
 extern bool contains_packed_reference (const_tree exp);
 
 /* Return a tree of sizetype representing the size, in bytes, of the element
-   of EXP, an ARRAY_REF.  */
+   of EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_element_size (tree);
 
 /* Return a tree representing the lower bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_low_bound (tree);
 
 /* Return a tree representing the upper bound of the array mentioned in
-   EXP, an ARRAY_REF.  */
+   EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
 extern tree array_ref_up_bound (tree);
 
@@ -4649,6 +4655,14 @@ function_args_iter_next (function_args_iterator *i)
   i->next = TREE_CHAIN (i->next);
 }
 
+/* We set BLOCK_SOURCE_LOCATION only to inlined function entry points.  */
+
+static inline bool
+inlined_function_outer_scope_p (const_tree block)
+{
+ return BLOCK_SOURCE_LOCATION (block) != UNKNOWN_LOCATION;
+}
+
 /* Loop over all function arguments of FNTYPE.  In each iteration, PTR is set
    to point to the next tree element.  ITER is an instance of
    function_args_iterator used to iterate the arguments.  */
@@ -4702,7 +4716,6 @@ extern void expand_goto (tree);
 extern rtx expand_stack_save (void);
 extern void expand_stack_restore (tree);
 extern void expand_return (tree);
-extern int is_body_block (const_tree);
 
 /* In tree-eh.c */
 extern void using_eh_for_cleanups (void);
@@ -4725,6 +4738,7 @@ extern tree native_interpret_expr (tree, const unsigned char *, int);
 
 extern tree fold (tree);
 extern tree fold_unary (enum tree_code, tree, tree);
+extern tree fold_unary_ignore_overflow (enum tree_code, tree, tree);
 extern tree fold_binary (enum tree_code, tree, tree, tree);
 extern tree fold_ternary (enum tree_code, tree, tree, tree, tree);
 extern tree fold_build1_stat (enum tree_code, tree, tree MEM_STAT_DECL);
@@ -4838,6 +4852,17 @@ extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
 extern bool fold_real_zero_addition_p (const_tree, const_tree, int);
 
+/* Return nonzero if CODE is a tree code that represents a truth value.  */
+static inline bool
+truth_value_p (enum tree_code code)
+{
+  return (TREE_CODE_CLASS (code) == tcc_comparison
+	  || code == TRUTH_AND_EXPR || code == TRUTH_ANDIF_EXPR
+	  || code == TRUTH_OR_EXPR || code == TRUTH_ORIF_EXPR
+	  || code == TRUTH_XOR_EXPR || code == TRUTH_NOT_EXPR);
+}
+
+
 /* In builtins.c */
 extern tree fold_call_expr (tree, bool);
 extern tree fold_builtin_fputs (tree, tree, bool, bool, tree);
@@ -4921,6 +4946,7 @@ extern void set_expr_locus (tree, source_location *);
 
 extern tree *tree_block (tree);
 extern location_t *block_nonartificial_location (tree);
+extern location_t tree_nonartificial_location (tree);
 
 /* In function.c */
 extern void expand_main_function (void);
@@ -5002,6 +5028,7 @@ extern bool gimple_alloca_call_p (const_gimple);
 extern bool alloca_call_p (const_tree);
 extern bool must_pass_in_stack_var_size (enum machine_mode, const_tree);
 extern bool must_pass_in_stack_var_size_or_pad (enum machine_mode, const_tree);
+extern tree block_ultimate_origin (const_tree);
 
 /* In attribs.c.  */
 

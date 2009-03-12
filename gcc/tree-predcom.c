@@ -1,5 +1,5 @@
 /* Predictive commoning.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -1026,9 +1026,6 @@ valid_initializer_p (struct data_reference *ref,
   aff_tree diff, base, step;
   double_int off;
 
-  if (!DR_BASE_ADDRESS (ref))
-    return false;
-
   /* Both REF and ROOT must be accessing the same object.  */
   if (!operand_equal_p (DR_BASE_ADDRESS (ref), DR_BASE_ADDRESS (root), 0))
     return false;
@@ -1115,7 +1112,8 @@ find_looparound_phi (struct loop *loop, dref ref, dref root)
   memset (&init_dr, 0, sizeof (struct data_reference));
   DR_REF (&init_dr) = init_ref;
   DR_STMT (&init_dr) = phi;
-  dr_analyze_innermost (&init_dr);
+  if (!dr_analyze_innermost (&init_dr))
+    return NULL;
 
   if (!valid_initializer_p (&init_dr, ref->distance + 1, root->ref))
     return NULL;
@@ -1376,7 +1374,7 @@ ref_at_iteration (struct loop *loop, tree ref, int iter)
   else
     return NULL_TREE;
 
-  ok = simple_iv (loop, first_stmt (loop->header), idx, &iv, true);
+  ok = simple_iv (loop, loop, idx, &iv, true);
   if (!ok)
     return NULL_TREE;
   iv.base = expand_simple_operations (iv.base);

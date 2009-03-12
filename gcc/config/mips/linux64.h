@@ -1,6 +1,7 @@
 /* Definitions for MIPS running Linux-based GNU systems with ELF format
    using n32/64 abi.
-   Copyright 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -22,9 +23,10 @@ along with GCC; see the file COPYING3.  If not see
    in order to make the other specs easier to write.  */
 #undef DRIVER_SELF_SPECS
 #define DRIVER_SELF_SPECS \
-BASE_DRIVER_SELF_SPECS \
-" %{!EB:%{!EL:%(endian_spec)}}" \
-" %{!mabi=*: -mabi=n32}"
+  BASE_DRIVER_SELF_SPECS, \
+  LINUX_DRIVER_SELF_SPECS \
+  " %{!EB:%{!EL:%(endian_spec)}}" \
+  " %{!mabi=*: -mabi=n32}"
 
 #undef LIB_SPEC
 #define LIB_SPEC "\

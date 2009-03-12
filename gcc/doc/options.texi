@@ -1,4 +1,5 @@
-@c Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+@c Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+@c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -40,6 +41,7 @@ records have two fields: the string @samp{TargetSave}, and a
 declaration type to go in the @code{cl_target_option} structure.
 
 @item
+An option definition record.  These records have the following fields:
 @enumerate
 @item
 the name of the option, with the leading ``-'' removed

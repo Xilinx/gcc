@@ -1,6 +1,6 @@
 /* Search an insn for pseudo regs that must be in hard regs and are not.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1549,9 +1549,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    && reg_mentioned_p (XEXP (note, 0), in)
 	    /* Check that a former pseudo is valid; see find_dummy_reload.  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| (! bitmap_bit_p (flag_ira
-				    ? DF_LR_OUT (ENTRY_BLOCK_PTR)
-				    : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+		|| (! bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
 				    ORIGINAL_REGNO (XEXP (note, 0)))
 		    && hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))] == 1))
 	    && ! refers_to_regno_for_reload_p (regno,
@@ -2029,9 +2027,7 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 	     can ignore the conflict).  We must never introduce writes
 	     to such hardregs, as they would clobber the other live
 	     pseudo.  See PR 20973.  */
-          || (!bitmap_bit_p (flag_ira
-			     ? DF_LR_OUT (ENTRY_BLOCK_PTR)
-			     : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+          || (!bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
 			     ORIGINAL_REGNO (in))
 	      /* Similarly, only do this if we can be sure that the death
 		 note is still valid.  global can assign some hardreg to

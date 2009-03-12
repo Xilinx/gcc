@@ -1,5 +1,5 @@
 # Makefile for GNU Ada Compiler (GNAT).
-#   Copyright (C) 1994-2008 Free Software Foundation, Inc.
+#   Copyright (C) 1994-2009 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -90,6 +90,7 @@ AR_FLAGS = rc
 LS = ls
 RANLIB = @RANLIB@
 RANLIB_FLAGS = @ranlib_flags@
+AWK = @AWK@
 
 SHELL = @SHELL@
 PWD_COMMAND = $${PWDCMD-pwd}
@@ -148,11 +149,12 @@ target=@target@
 xmake_file = @xmake_file@
 tmake_file = @tmake_file@
 host_canonical=@host@
+target_cpu_default=@target_cpu_default@
 #version=`sed -e 's/.*\"\([^ \"]*\)[ \"].*/\1/' < $(srcdir)/version.c`
 #mainversion=`sed -e 's/.*\"\([0-9]*\.[0-9]*\).*/\1/' < $(srcdir)/version.c`
 
 # Directory where sources are, from where we are.
-VPATH = $(srcdir)
+VPATH = $(srcdir)/ada
 
 fsrcdir := $(shell cd $(srcdir);${PWD_COMMAND})
 fsrcpfx := $(shell cd $(srcdir);${PWD_COMMAND})/
@@ -189,19 +191,14 @@ all: all.indirect
 # This tells GNU Make version 3 not to put all variables in the environment.
 .NOEXPORT:
 
-# tmake_file and xmake_file expand to lists with entries of the form
-# $(srcdir)/config/...  but here $(srcdir) is the ada subdirectory so we
-# need to adjust the paths.  There can't be spaces in the subst arguments
-# or we get spurious spaces in the actual list of files to include.
-
 # target overrides
 ifneq ($(tmake_file),)
-include $(subst /config,/../config,$(tmake_file))
+include $(tmake_file)
 endif
 
 # host overrides
 ifneq ($(xmake_file),)
-include $(subst /config,/../config,$(xmake_file))
+include $(xmake_file)
 endif
 
 # Now figure out from those variables how to compile and link.
@@ -236,14 +233,14 @@ TOOLS_LIBS = $(EXTRA_GNATTOOLS_OBJS) targext.o link.o $(LIBGNAT) ../../../libibe
 # Both . and srcdir are used, in that order,
 # so that tm.h and config.h will be found in the compilation
 # subdirectory rather than in the source directory.
-INCLUDES = -I- -I. -I.. -I$(srcdir) -I$(srcdir)/.. -I$(srcdir)/../config \
-	-I$(srcdir)/../../include
+INCLUDES = -I- -I. -I.. -I$(srcdir)/ada -I$(srcdir) -I$(srcdir)/config \
+	-I$(srcdir)/../include
 
-ADA_INCLUDES = -I- -I. -I$(srcdir)
+ADA_INCLUDES = -I- -I. -I$(srcdir)/ada
 
-INCLUDES_FOR_SUBDIR = -I. -I.. -I../.. -I$(fsrcdir) -I$(fsrcdir)/../config \
-	-I$(fsrcdir)/../../include -I$(fsrcdir)/..
-ADA_INCLUDES_FOR_SUBDIR = -I. -I$(fsrcdir) -I$(fsrcdir)/gcc
+INCLUDES_FOR_SUBDIR = -I. -I.. -I../.. -I$(fsrcdir)/ada -I$(fsrcdir)/config \
+	-I$(fsrcdir)/../include -I$(fsrcdir)
+ADA_INCLUDES_FOR_SUBDIR = -I. -I$(fsrcdir)/ada
 
 # Avoid a lot of time thinking about remaking Makefile.in and *.def.
 .SUFFIXES: .in .def
@@ -266,7 +263,7 @@ ADA_INCLUDES_FOR_SUBDIR = -I. -I$(fsrcdir) -I$(fsrcdir)/gcc
 	$(CC) -c $(ALL_ADAFLAGS) $(ADA_INCLUDES) $< $(OUTPUT_OPTION)
 
 # how to regenerate this file
-Makefile: ../config.status $(srcdir)/gcc-interface/Makefile.in $(srcdir)/Makefile.in $(srcdir)/../version.c
+Makefile: ../config.status $(srcdir)/ada/gcc-interface/Makefile.in $(srcdir)/ada/Makefile.in $(srcdir)/version.c
 	cd ..; \
 	LANGUAGES="$(CONFIG_LANGUAGES)" \
 	CONFIG_HEADERS= \
@@ -392,7 +389,7 @@ DUMMY_SOCKETS_TARGET_PAIRS = \
   g-sothco.ads<g-sothco-dummy.ads \
   g-sttsne.ads<g-sttsne-dummy.ads
 
-LIB_VERSION = $(strip $(shell grep ' Library_Version :' $(fsrcpfx)gnatvsn.ads | sed -e 's/.*"\(.*\)".*/\1/'))
+LIB_VERSION = $(strip $(shell grep ' Library_Version :' $(fsrcpfx)ada/gnatvsn.ads | sed -e 's/.*"\(.*\)".*/\1/'))
 
 # $(filter-out PATTERN...,TEXT) removes all PATTERN words from TEXT.
 # $(strip STRING) removes leading and trailing spaces from STRING.
@@ -732,7 +729,7 @@ ifeq ($(strip $(filter-out mips% wrs vx%,$(targ))),)
 endif
 
 ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
-  LIBGNAT_TARGET_PAIRS_32 = \
+  LIBGNAT_TARGET_PAIRS_COMMON = \
   a-intnam.ads<a-intnam-solaris.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-solaris.adb \
@@ -744,35 +741,29 @@ ifeq ($(strip $(filter-out sparc% sun solaris%,$(targ))),)
   s-tasinf.ads<s-tasinf-solaris.ads \
   s-taspri.ads<s-taspri-solaris.ads \
   s-tpopsp.adb<s-tpopsp-solaris.adb \
-  g-soliop.ads<g-soliop-solaris.ads \
+  g-soliop.ads<g-soliop-solaris.ads
+
+  LIBGNAT_TARGET_PAIRS_32 = \
   system.ads<system-solaris-sparc.ads
 
   LIBGNAT_TARGET_PAIRS_64 = \
-  a-intnam.ads<a-intnam-solaris.ads \
-  s-inmaop.adb<s-inmaop-posix.adb \
-  s-intman.adb<s-intman-solaris.adb \
-  s-osinte.adb<s-osinte-solaris.adb \
-  s-osinte.ads<s-osinte-solaris.ads \
-  s-osprim.adb<s-osprim-solaris.adb \
-  s-taprop.adb<s-taprop-solaris.adb \
-  s-tasinf.adb<s-tasinf-solaris.adb \
-  s-tasinf.ads<s-tasinf-solaris.ads \
-  s-taspri.ads<s-taspri-solaris.ads \
-  s-tpopsp.adb<s-tpopsp-solaris.adb \
-  g-soliop.ads<g-soliop-solaris.ads \
   system.ads<system-solaris-sparcv9.ads
 
   ifeq ($(strip $(filter-out sparc sun solaris%,$(targ))),)
     ifeq ($(strip $(MULTISUBDIR)),/sparcv9)
-      LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_64)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
     else
-      LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_32)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
     endif
   else
     ifeq ($(strip $(MULTISUBDIR)),/sparcv7)
-      LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_32)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
     else
-      LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_64)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
     endif
   endif
 
@@ -824,9 +815,16 @@ ifeq ($(strip $(filter-out %86 solaris2%,$(arch) $(osys))),)
   s-tasinf.ads<s-tasinf-solaris.ads \
   s-taspri.ads<s-taspri-solaris.ads \
   s-tpopsp.adb<s-tpopsp-solaris.adb \
-  g-bytswa.adb<g-bytswa-x86.adb \
-  g-soliop.ads<g-soliop-solaris.ads \
-  system.ads<system-solaris-x86.ads
+  g-soliop.ads<g-soliop-solaris.ads
+
+  ifeq ($(strip $(MULTISUBDIR)),/amd64)
+    LIBGNAT_TARGET_PAIRS += \
+    system.ads<system-solaris-x86_64.ads
+  else
+    LIBGNAT_TARGET_PAIRS += \
+    g-bytswa.adb<g-bytswa-x86.adb \
+    system.ads<system-solaris-x86.ads
+  endif
 
   TOOLS_TARGET_PAIRS=mlib-tgt-specific.adb<mlib-tgt-specific-solaris.adb
 
@@ -962,36 +960,37 @@ ifeq ($(strip $(filter-out %86 freebsd%,$(arch) $(osys))),)
 endif
 
 ifeq ($(strip $(filter-out s390% linux%,$(arch) $(osys))),)
+  LIBGNAT_TARGET_PAIRS_COMMON = \
+  a-intnam.ads<a-intnam-linux.ads \
+  s-inmaop.adb<s-inmaop-posix.adb \
+  s-intman.adb<s-intman-posix.adb \
+  s-linux.ads<s-linux.ads \
+  s-osinte.adb<s-osinte-posix.adb \
+  s-osinte.ads<s-osinte-linux.ads \
+  s-osprim.adb<s-osprim-posix.adb \
+  s-taprop.adb<s-taprop-linux.adb \
+  s-tasinf.ads<s-tasinf-linux.ads \
+  s-tasinf.adb<s-tasinf-linux.adb \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
+  s-tpopsp.adb<s-tpopsp-posix-foreign.adb
+
+  LIBGNAT_TARGET_PAIRS_32 = \
+  system.ads<system-linux-s390.ads
+
+  LIBGNAT_TARGET_PAIRS_64 = \
+  system.ads<system-linux-s390x.ads
+
   ifeq ($(strip $(filter-out s390x,$(arch))),)
-    LIBGNAT_TARGET_PAIRS = \
-    a-intnam.ads<a-intnam-linux.ads \
-    s-inmaop.adb<s-inmaop-posix.adb \
-    s-intman.adb<s-intman-posix.adb \
-    s-linux.ads<s-linux.ads \
-    s-osinte.adb<s-osinte-posix.adb \
-    s-osinte.ads<s-osinte-linux.ads \
-    s-osprim.adb<s-osprim-posix.adb \
-    s-taprop.adb<s-taprop-linux.adb \
-    s-tasinf.ads<s-tasinf-linux.ads \
-    s-tasinf.adb<s-tasinf-linux.adb \
-    s-taspri.ads<s-taspri-posix-noaltstack.ads \
-    s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
-    system.ads<system-linux-s390x.ads
+    ifeq ($(strip $(MULTISUBDIR)),/32)
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
+    else
+      LIBGNAT_TARGET_PAIRS = \
+      $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
+    endif
   else
     LIBGNAT_TARGET_PAIRS = \
-    a-intnam.ads<a-intnam-linux.ads \
-    s-inmaop.adb<s-inmaop-posix.adb \
-    s-intman.adb<s-intman-posix.adb \
-    s-linux.ads<s-linux.ads \
-    s-osinte.adb<s-osinte-posix.adb \
-    s-osinte.ads<s-osinte-linux.ads \
-    s-osprim.adb<s-osprim-posix.adb \
-    s-taprop.adb<s-taprop-linux.adb \
-    s-tasinf.ads<s-tasinf-linux.ads \
-    s-tasinf.adb<s-tasinf-linux.adb \
-    s-taspri.ads<s-taspri-posix-noaltstack.ads \
-    s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
-    system.ads<system-linux-s390.ads
+    $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
   endif
 
   TOOLS_TARGET_PAIRS =  \
@@ -1021,8 +1020,20 @@ ifeq ($(strip $(filter-out mips sgi irix%,$(targ))),)
     s-tasinf.ads<s-tasinf-irix.ads \
     s-taspri.ads<s-taspri-posix.ads \
     s-tpopsp.adb<s-tpopsp-posix.adb \
-    s-traceb.adb<s-traceb-mastop.adb \
-    system.ads<system-irix-n32.ads
+    s-traceb.adb<s-traceb-mastop.adb
+
+    ifeq ($(strip $(MULTISUBDIR)),/64)
+      LIBGNAT_TARGET_PAIRS += \
+      system.ads<system-irix-n64.ads
+    else
+      ifeq ($(strip $(MULTISUBDIR)),/32)
+        LIBGNAT_TARGET_PAIRS += \
+        system.ads<system-irix-o32.ads
+      else
+        LIBGNAT_TARGET_PAIRS += \
+        system.ads<system-irix-n32.ads
+      endif
+    endif
 
     THREADSLIB = -lpthread
     GNATLIB_SHARED = gnatlib-shared-default
@@ -1320,7 +1331,7 @@ endif
      ../../vms_help$(exeext) \
      ../../gnat.hlp
   # This command transforms (YYYYMMDD) into YY,MMDD
-  GSMATCH_VERSION := $(shell grep "^ *Gnat_Static_Version_String" $(fsrcpfx)gnatvsn.ads | sed -e 's/.*(\(.*\)).*/\1/' -e 's/\(..\)\(..\)\(....\).*/\2,\3/')
+  GSMATCH_VERSION := $(shell grep "^ *Gnat_Static_Version_String" $(fsrcpfx)ada/gnatvsn.ads | sed -e 's/.*(\(.*\)).*/\1/' -e 's/\(..\)\(..\)\(....\).*/\2,\3/')
   TOOLS_LIBS_LO := --for-linker=sys\\$$\$$library:trace.exe
   LIBRARY_VERSION := $(subst .,_,$(LIB_VERSION))
 endif
@@ -1392,8 +1403,6 @@ ifeq ($(strip $(filter-out cygwin32% mingw32% pe,$(osys))),)
     # ??? This will be replaced by gnatlib-shared-dual-win32 when GNAT
     # auto-import support for array/record will be done.
     GNATLIB_SHARED = gnatlib-shared-win32
-
-    EH_MECHANISM=-gcc
   endif
 
   TOOLS_TARGET_PAIRS= \
@@ -1444,10 +1453,16 @@ ifeq ($(strip $(filter-out mipsel linux%,$(arch) $(osys))),)
   s-taprop.adb<s-taprop-linux.adb \
   s-tasinf.ads<s-tasinf-linux.ads \
   s-tasinf.adb<s-tasinf-linux.adb \
-  s-taspri.ads<s-taspri-posix.ads \
+  s-taspri.ads<s-taspri-posix-noaltstack.ads \
   s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  g-sercom.adb<g-sercom-linux.adb \
   system.ads<system-linux-mipsel.ads
 
+  TOOLS_TARGET_PAIRS =  \
+    mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \
+    indepsw.adb<indepsw-gnu.adb
+
+  EXTRA_GNATRTL_TASKING_OBJS=s-linux.o
   EH_MECHANISM=-gcc
   THREADSLIB = -lpthread
   GNATLIB_SHARED = gnatlib-shared-dual
@@ -1478,7 +1493,7 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
   LIBGNAT_TARGET_PAIRS_64 = \
   system.ads<system-linux-ppc64.ads
 
-  ifeq ($(strip $(MULTISUBDIR)),/64)
+  ifeq ($(strip $(shell $(GCC_FOR_TARGET) $(GNATLIBCFLAGS) -print-multi-os-directory)),../lib64)
     LIBGNAT_TARGET_PAIRS = \
     $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
   else
@@ -1500,7 +1515,7 @@ ifeq ($(strip $(filter-out powerpc% linux%,$(arch) $(osys))),)
 endif
 
 ifeq ($(strip $(filter-out sparc% linux%,$(arch) $(osys))),)
-  LIBGNAT_TARGET_PAIRS_32 = \
+  LIBGNAT_TARGET_PAIRS_COMMON = \
   a-intnam.ads<a-intnam-linux.ads \
   s-inmaop.adb<s-inmaop-posix.adb \
   s-intman.adb<s-intman-posix.adb \
@@ -1512,28 +1527,20 @@ ifeq ($(strip $(filter-out sparc% linux%,$(arch) $(osys))),)
   s-tasinf.ads<s-tasinf-linux.ads \
   s-tasinf.adb<s-tasinf-linux.adb \
   s-taspri.ads<s-taspri-posix-noaltstack.ads \
-  s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
+  s-tpopsp.adb<s-tpopsp-posix-foreign.adb
+
+  LIBGNAT_TARGET_PAIRS_32 = \
   system.ads<system-linux-sparc.ads
 
   LIBGNAT_TARGET_PAIRS_64 = \
-  a-intnam.ads<a-intnam-linux.ads \
-  s-inmaop.adb<s-inmaop-posix.adb \
-  s-intman.adb<s-intman-posix.adb \
-  s-linux.ads<s-linux.ads \
-  s-osinte.adb<s-osinte-posix.adb \
-  s-osinte.ads<s-osinte-linux.ads \
-  s-osprim.adb<s-osprim-posix.adb \
-  s-taprop.adb<s-taprop-linux.adb \
-  s-tasinf.ads<s-tasinf-linux.ads \
-  s-tasinf.adb<s-tasinf-linux.adb \
-  s-taspri.ads<s-taspri-posix-noaltstack.ads \
-  s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
   system.ads<system-linux-sparcv9.ads
 
-  ifeq ($(strip $(MULTISUBDIR)),/64)
-    LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_64)
+  ifeq ($(strip $(shell $(GCC_FOR_TARGET) $(GNATLIBCFLAGS) -print-multi-os-directory)),../lib64)
+    LIBGNAT_TARGET_PAIRS = \
+    $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_64)
   else
-    LIBGNAT_TARGET_PAIRS = $(LIBGNAT_TARGET_PAIRS_32)
+    LIBGNAT_TARGET_PAIRS = \
+    $(LIBGNAT_TARGET_PAIRS_COMMON) $(LIBGNAT_TARGET_PAIRS_32)
   endif
 
   TOOLS_TARGET_PAIRS =  \
@@ -1714,8 +1721,14 @@ ifeq ($(strip $(filter-out darwin%,$(osys))),)
     s-taspri.ads<s-taspri-posix.ads \
     s-tpopsp.adb<s-tpopsp-posix-foreign.adb \
     a-numaux.ads<a-numaux-x86.ads \
-    a-numaux.adb<a-numaux-x86.adb \
-    system.ads<system-darwin-x86.ads
+    a-numaux.adb<a-numaux-x86.adb
+    ifeq ($(strip $(MULTISUBDIR)),/x86_64)
+      LIBGNAT_TARGET_PAIRS += \
+      system.ads<system-darwin-x86_64.ads
+    else
+      LIBGNAT_TARGET_PAIRS += \
+      system.ads<system-darwin-x86.ads
+    endif
   else
     LIBGNAT_TARGET_PAIRS = \
     a-intnam.ads<a-intnam-darwin.ads \
@@ -1790,7 +1803,7 @@ LIBGNAT_OBJS = adaint.o argv.o cio.o cstreams.o ctrl_c.o errno.o exit.o env.o \
 # GNATRTL_NONTASKING_OBJS and GNATRTL_TASKING_OBJS can be found in
 # the following include file:
 
-include $(fsrcdir)/Makefile.rtl
+include $(fsrcdir)/ada/Makefile.rtl
 
 GNATRTL_LINEARALGEBRA_OBJS = a-nlcoar.o a-nllcar.o a-nllrar.o a-nlrear.o \
   a-nucoar.o a-nurear.o i-forbla.o i-forlap.o s-gearop.o
@@ -1975,14 +1988,14 @@ install-gnatlib: ../stamp-gnatlib-$(RTSDIR)
 	$(CHMOD) u+w $(RTSDIR)
 # Copy target independent sources
 	$(foreach f,$(ADA_INCLUDE_SRCS) $(LIBGNAT_SRCS), \
-	  $(LN_S) $(fsrcpfx)$(f) $(RTSDIR) ;) true
+	  $(LN_S) $(fsrcpfx)ada/$(f) $(RTSDIR) ;) true
 # Remove files to be replaced by target dependent sources
 	$(RM) $(foreach PAIR,$(LIBGNAT_TARGET_PAIRS), \
 	                $(RTSDIR)/$(word 1,$(subst <, ,$(PAIR))))
 	$(RM) $(RTSDIR)/*-*-*.ads $(RTSDIR)/*-*-*.adb
 # Copy new target dependent sources
 	$(foreach PAIR,$(LIBGNAT_TARGET_PAIRS), \
-	          $(LN_S) $(fsrcpfx)$(word 2,$(subst <, ,$(PAIR))) \
+	          $(LN_S) $(fsrcpfx)ada/$(word 2,$(subst <, ,$(PAIR))) \
 	                $(RTSDIR)/$(word 1,$(subst <, ,$(PAIR)));)
 # Copy generated target dependent sources
 	$(RM) $(RTSDIR)/s-oscons.ads
@@ -2354,5 +2367,5 @@ force:
 	$(GNATLINK) -v vms_help -o $@ --GCC="$(GCC_LINK)" $(TOOLS_LIBS)
 
 ../../gnat.hlp: ../../vms_help$(exeext)
-	../../vms_help$(exeext) $(fsrcdir)/gnat.help_in \
-	                        $(fsrcdir)/vms_data.ads ../../gnat.hlp
+	../../vms_help$(exeext) $(fsrcdir)/ada/gnat.help_in \
+	                        $(fsrcdir)/ada/vms_data.ads ../../gnat.hlp

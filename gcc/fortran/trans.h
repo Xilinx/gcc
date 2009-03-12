@@ -458,11 +458,18 @@ tree gfc_trans_runtime_error_vararg (bool, locus*, const char*, va_list);
 void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
 			      const char *, ...);
 
+/* Generate a runtime check for same string length.  */
+void gfc_trans_same_strlen_check (const char*, locus*, tree, tree,
+				  stmtblock_t*);
+
 /* Generate a call to free() after checking that its arg is non-NULL.  */
 tree gfc_call_free (tree);
 
 /* Allocate memory after performing a few checks.  */
 tree gfc_call_malloc (stmtblock_t *, tree, tree);
+
+/* Build a memcpy call.  */
+tree gfc_build_memcpy_call (tree, tree, tree);
 
 /* Allocate memory for arrays, with optional status variable.  */
 tree gfc_allocate_array_with_status (stmtblock_t*, tree, tree, tree, gfc_expr*);

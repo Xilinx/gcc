@@ -166,6 +166,9 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Set when function must be output - it is externally visible
      or its address is taken.  */
   unsigned needed : 1;
+  /* Set when decl is an abstract function pointed to by the
+     ABSTRACT_DECL_ORIGIN of a reachable function.  */
+  unsigned abstract_and_needed : 1;
   /* Set when function is reachable by call from other function
      that is either reachable or needed.  */
   unsigned reachable : 1;
@@ -410,7 +413,6 @@ enum availability cgraph_variable_initializer_availability (struct varpool_node 
 bool varpool_assemble_pending_decls (void);
 bool varpool_assemble_decl (struct varpool_node *node);
 bool varpool_analyze_pending_decls (void);
-void varpool_output_debug_info (void);
 void varpool_remove_unreferenced_decls (void);
 void varpool_empty_needed_queue (void);
 

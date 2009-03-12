@@ -316,9 +316,6 @@ struct machine_function GTY(())
   /* True if we may need to perform branch splitting.  */
   bool split_branches_pending_p;
 
-  /* True during final stage of literal pool processing.  */
-  bool decomposed_literal_pool_addresses_ok_p;
-
   /* Some local-dynamic TLS symbol name.  */
   const char *some_ld_name;
 
@@ -1955,15 +1952,10 @@ s390_decompose_address (rtx addr, struct s390_address *out)
 	  ;
         }
 
-      /* Accept chunkified literal pool symbol references.  */
-      else if (cfun && cfun->machine
-	       && cfun->machine->decomposed_literal_pool_addresses_ok_p
-	       && GET_CODE (disp) == MINUS
-               && GET_CODE (XEXP (disp, 0)) == LABEL_REF
-               && GET_CODE (XEXP (disp, 1)) == LABEL_REF)
-        {
-	  ;
-        }
+      /* Accept pool label offsets.  */
+      else if (GET_CODE (disp) == UNSPEC
+	       && XINT (disp, 1) == UNSPEC_POOL_OFFSET)
+	;
 
       /* Accept literal pool references.  */
       else if (GET_CODE (disp) == UNSPEC
@@ -4689,9 +4681,9 @@ s390_expand_atomic (enum machine_mode mode, enum rtx_code code,
 				 NULL_RTX, 1, OPTAB_DIRECT);
       break;
     case MULT: /* NAND */
-      new_rtx = expand_simple_binop (SImode, XOR, new_rtx, ac.modemask,
-				 NULL_RTX, 1, OPTAB_DIRECT);
       new_rtx = expand_simple_binop (SImode, AND, new_rtx, val,
+				 NULL_RTX, 1, OPTAB_DIRECT);
+      new_rtx = expand_simple_binop (SImode, XOR, new_rtx, ac.modemask,
 				 NULL_RTX, 1, OPTAB_DIRECT);
       break;
     default:
@@ -4909,6 +4901,14 @@ s390_output_addr_const_extra (FILE *file, rtx x)
 	return true;
       }
 
+  if (GET_CODE (x) == UNSPEC && XVECLEN (x, 0) == 2)
+    switch (XINT (x, 1))
+      {
+      case UNSPEC_POOL_OFFSET:
+	x = gen_rtx_MINUS (GET_MODE (x), XVECEXP (x, 0, 0), XVECEXP (x, 0, 1));
+	output_addr_const (file, x);
+	return true;
+      }
   return false;
 }
 
@@ -5823,6 +5823,20 @@ s390_add_constant (struct constant_pool *pool, rtx val, enum machine_mode mode)
     }
 }
 
+/* Return an rtx that represents the offset of X from the start of
+   pool POOL.  */
+
+static rtx
+s390_pool_offset (struct constant_pool *pool, rtx x)
+{
+  rtx label;
+
+  label = gen_rtx_LABEL_REF (GET_MODE (x), pool->label);
+  x = gen_rtx_UNSPEC (GET_MODE (x), gen_rtvec (2, x, label),
+		      UNSPEC_POOL_OFFSET);
+  return gen_rtx_CONST (GET_MODE (x), x);
+}
+
 /* Find constant VAL of mode MODE in the constant pool POOL.
    Return an RTX describing the distance from the start of
    the pool to the location of the new constant.  */
@@ -5832,7 +5846,6 @@ s390_find_constant (struct constant_pool *pool, rtx val,
 		    enum machine_mode mode)
 {
   struct constant *c;
-  rtx offset;
   int i;
 
   for (i = 0; i < NR_C_MODES; i++)
@@ -5846,10 +5859,7 @@ s390_find_constant (struct constant_pool *pool, rtx val,
 
   gcc_assert (c);
 
-  offset = gen_rtx_MINUS (Pmode, gen_rtx_LABEL_REF (Pmode, c->label),
-                                 gen_rtx_LABEL_REF (Pmode, pool->label));
-  offset = gen_rtx_CONST (Pmode, offset);
-  return offset;
+  return s390_pool_offset (pool, gen_rtx_LABEL_REF (Pmode, c->label));
 }
 
 /* Check whether INSN is an execute.  Return the label_ref to its
@@ -5897,7 +5907,6 @@ static rtx
 s390_find_execute (struct constant_pool *pool, rtx insn)
 {
   struct constant *c;
-  rtx offset;
 
   for (c = pool->execute; c != NULL; c = c->next)
     if (INSN_UID (insn) == INSN_UID (c->value))
@@ -5905,10 +5914,7 @@ s390_find_execute (struct constant_pool *pool, rtx insn)
 
   gcc_assert (c);
 
-  offset = gen_rtx_MINUS (Pmode, gen_rtx_LABEL_REF (Pmode, c->label),
-				 gen_rtx_LABEL_REF (Pmode, pool->label));
-  offset = gen_rtx_CONST (Pmode, offset);
-  return offset;
+  return s390_pool_offset (pool, gen_rtx_LABEL_REF (Pmode, c->label));
 }
 
 /* For an execute INSN, extract the execute target template.  */
@@ -5989,11 +5995,7 @@ s390_dump_pool (struct constant_pool *pool, bool remote_label)
 	    && GET_CODE (XEXP (value, 0)) == UNSPEC
 	    && XINT (XEXP (value, 0), 1) == UNSPEC_LTREL_OFFSET
 	    && XVECLEN (XEXP (value, 0), 0) == 1)
-	  {
-	    value = gen_rtx_MINUS (Pmode, XVECEXP (XEXP (value, 0), 0, 0),
-				   gen_rtx_LABEL_REF (VOIDmode, pool->label));
-	    value = gen_rtx_CONST (VOIDmode, value);
-	  }
+	  value = s390_pool_offset (pool, XVECEXP (XEXP (value, 0), 0, 0));
 
 	insn = emit_label_after (c->label, insn);
 	INSN_ADDRESSES_NEW (insn, -1);
@@ -6662,7 +6664,6 @@ s390_chunkify_cancel (struct constant_pool *pool_list)
     }
 }
 
-
 /* Output the constant pool entry EXP in mode MODE with alignment ALIGN.  */
 
 void
@@ -6682,6 +6683,7 @@ s390_output_pool_entry (rtx exp, enum machine_mode mode, unsigned int align)
 
     case MODE_INT:
       assemble_integer (exp, GET_MODE_SIZE (mode), align, 1);
+      mark_symbol_refs_as_used (exp);
       break;
 
     default:
@@ -9587,6 +9589,179 @@ s390_optimize_prologue (void)
     }
 }
 
+/* Returns 1 if INSN reads the value of REG for purposes not related
+   to addressing of memory, and 0 otherwise.  */
+static int
+s390_non_addr_reg_read_p (rtx reg, rtx insn)
+{
+  return reg_referenced_p (reg, PATTERN (insn))
+    && !reg_used_in_mem_p (REGNO (reg), PATTERN (insn));
+}
+
+/* Starting from INSN find_cond_jump looks downwards in the insn
+   stream for a single jump insn which is the last user of the
+   condition code set in INSN.  */
+static rtx
+find_cond_jump (rtx insn)
+{
+  for (; insn; insn = NEXT_INSN (insn))
+    {
+      rtx ite, cc;
+
+      if (LABEL_P (insn))
+	break;
+
+      if (!JUMP_P (insn))
+	{
+	  if (reg_mentioned_p (gen_rtx_REG (CCmode, CC_REGNUM), insn))
+	    break;
+	  continue;
+	}
+
+      /* This will be triggered by a return.  */
+      if (GET_CODE (PATTERN (insn)) != SET)
+	break;
+
+      gcc_assert (SET_DEST (PATTERN (insn)) == pc_rtx);
+      ite = SET_SRC (PATTERN (insn));
+
+      if (GET_CODE (ite) != IF_THEN_ELSE)
+	break;
+
+      cc = XEXP (XEXP (ite, 0), 0);
+      if (!REG_P (cc) || !CC_REGNO_P (REGNO (cc)))
+	break;
+
+      if (find_reg_note (insn, REG_DEAD, cc))
+	return insn;
+      break;
+    }
+
+  return NULL_RTX;
+}
+
+/* Swap the condition in COND and the operands in OP0 and OP1 so that
+   the semantics does not change.  If NULL_RTX is passed as COND the
+   function tries to find the conditional jump starting with INSN.  */
+static void
+s390_swap_cmp (rtx cond, rtx *op0, rtx *op1, rtx insn)
+{
+  rtx tmp = *op0;
+
+  if (cond == NULL_RTX)
+    {
+      rtx jump = find_cond_jump (NEXT_INSN (insn));
+      jump = jump ? single_set (jump) : NULL_RTX;
+
+      if (jump == NULL_RTX)
+	return;
+
+      cond = XEXP (XEXP (jump, 1), 0);
+    }
+
+  *op0 = *op1;
+  *op1 = tmp;
+  PUT_CODE (cond, swap_condition (GET_CODE (cond)));
+}
+
+/* On z10, instructions of the compare-and-branch family have the
+   property to access the register occurring as second operand with
+   its bits complemented.  If such a compare is grouped with a second
+   instruction that accesses the same register non-complemented, and
+   if that register's value is delivered via a bypass, then the
+   pipeline recycles, thereby causing significant performance decline.
+   This function locates such situations and exchanges the two
+   operands of the compare.  */
+static void
+s390_z10_optimize_cmp (void)
+{
+  rtx insn, prev_insn, next_insn;
+  int added_NOPs = 0;
+
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      rtx cond, *op0, *op1;
+
+      if (!INSN_P (insn) || INSN_CODE (insn) <= 0)
+	continue;
+
+      if (GET_CODE (PATTERN (insn)) == PARALLEL)
+	{
+	  /* Handle compare and branch and branch on count
+	     instructions.  */
+	  rtx pattern = single_set (insn);
+
+	  if (!pattern
+	      || SET_DEST (pattern) != pc_rtx
+	      || GET_CODE (SET_SRC (pattern)) != IF_THEN_ELSE)
+	    continue;
+
+	  cond = XEXP (SET_SRC (pattern), 0);
+	  op0 = &XEXP (cond, 0);
+	  op1 = &XEXP (cond, 1);
+	}
+      else if (GET_CODE (PATTERN (insn)) == SET)
+	{
+	  rtx src, dest;
+
+	  /* Handle normal compare instructions.  */
+	  src = SET_SRC (PATTERN (insn));
+	  dest = SET_DEST (PATTERN (insn));
+
+	  if (!REG_P (dest)
+	      || !CC_REGNO_P (REGNO (dest))
+	      || GET_CODE (src) != COMPARE)
+	    continue;
+
+	  /* s390_swap_cmp will try to find the conditional
+	     jump when passing NULL_RTX as condition.  */
+	  cond = NULL_RTX;
+	  op0 = &XEXP (src, 0);
+	  op1 = &XEXP (src, 1);
+	}
+      else
+	continue;
+
+      if (!REG_P (*op0) || !REG_P (*op1))
+	continue;
+
+      /* Swap the COMPARE arguments and its mask if there is a
+	 conflicting access in the previous insn.  */
+      prev_insn = PREV_INSN (insn);
+      if (prev_insn != NULL_RTX && INSN_P (prev_insn)
+	  && reg_referenced_p (*op1, PATTERN (prev_insn)))
+	s390_swap_cmp (cond, op0, op1, insn);
+
+      /* Check if there is a conflict with the next insn. If there
+	 was no conflict with the previous insn, then swap the
+	 COMPARE arguments and its mask.  If we already swapped
+	 the operands, or if swapping them would cause a conflict
+	 with the previous insn, issue a NOP after the COMPARE in
+	 order to separate the two instuctions.  */
+      next_insn = NEXT_INSN (insn);
+      if (next_insn != NULL_RTX && INSN_P (next_insn)
+	  && s390_non_addr_reg_read_p (*op1, next_insn))
+	{
+	  if (prev_insn != NULL_RTX && INSN_P (prev_insn)
+	      && s390_non_addr_reg_read_p (*op0, prev_insn))
+	    {
+	      if (REGNO (*op1) == 0)
+		emit_insn_after (gen_nop1 (), insn);
+	      else
+		emit_insn_after (gen_nop (), insn);
+	      added_NOPs = 1;
+	    }
+	  else
+	    s390_swap_cmp (cond, op0, op1, insn);
+	}
+    }
+
+  /* Adjust branches if we added new instructions.  */
+  if (added_NOPs)
+    shorten_branches (get_insns ());
+}
+
+
 /* Perform machine-dependent processing.  */
 
 static void
@@ -9597,9 +9772,6 @@ s390_reorg (void)
   /* Make sure all splits have been performed; splits after
      machine_dependent_reorg might confuse insn length counts.  */
   split_all_insns_noflow ();
-
-  /* From here on decomposed literal pool addresses must be accepted.  */
-  cfun->machine->decomposed_literal_pool_addresses_ok_p = true;
 
   /* Install the main literal pool and the associated base
      register load insns.
@@ -9699,6 +9871,11 @@ s390_reorg (void)
 
   /* Try to optimize prologue and epilogue further.  */
   s390_optimize_prologue ();
+
+  /* Eliminate z10-specific pipeline recycles related to some compare
+     instructions.  */
+  if (s390_tune == PROCESSOR_2097_Z10)
+    s390_z10_optimize_cmp ();
 }
 
 

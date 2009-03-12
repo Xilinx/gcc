@@ -158,7 +158,6 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
-LIBMATHOBJS = @LIBMATHOBJS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
@@ -302,6 +301,7 @@ std_headers = \
 	${std_srcdir}/complex \
 	${std_srcdir}/condition_variable \
 	${std_srcdir}/deque \
+	${std_srcdir}/forward_list \
 	${std_srcdir}/fstream \
 	${std_srcdir}/functional \
 	${std_srcdir}/iomanip \
@@ -343,6 +343,10 @@ bits_builddir = ./bits
 bits_headers = \
         ${bits_srcdir}/algorithmfwd.h \
 	${bits_srcdir}/allocator.h \
+	${bits_srcdir}/atomicfwd_c.h \
+	${bits_srcdir}/atomicfwd_cxx.h \
+	${bits_srcdir}/atomic_0.h \
+	${bits_srcdir}/atomic_2.h \
 	${bits_srcdir}/basic_ios.h \
 	${bits_srcdir}/basic_ios.tcc \
 	${bits_srcdir}/basic_string.h \
@@ -353,6 +357,8 @@ bits_headers = \
 	${bits_srcdir}/concept_check.h \
 	${bits_srcdir}/cpp_type_traits.h \
 	${bits_srcdir}/deque.tcc \
+	${bits_srcdir}/forward_list.h \
+	${bits_srcdir}/forward_list.tcc \
 	${bits_srcdir}/fstream.tcc \
 	${bits_srcdir}/functexcept.h \
 	${bits_srcdir}/functional_hash.h \
@@ -745,10 +751,12 @@ ext_headers = \
 	${ext_srcdir}/atomicity.h \
 	${ext_srcdir}/array_allocator.h \
 	${ext_srcdir}/bitmap_allocator.h \
+	${ext_srcdir}/cast.h \
 	${ext_srcdir}/codecvt_specializations.h \
 	${ext_srcdir}/concurrence.h \
 	${ext_srcdir}/debug_allocator.h \
 	${ext_srcdir}/enc_filebuf.h \
+	${ext_srcdir}/extptr_allocator.h \
 	${ext_srcdir}/stdio_filebuf.h \
 	${ext_srcdir}/stdio_sync_filebuf.h \
 	${ext_srcdir}/functional \
@@ -760,6 +768,7 @@ ext_headers = \
 	${ext_srcdir}/numeric \
 	${ext_srcdir}/numeric_traits.h \
 	${ext_srcdir}/pod_char_traits.h \
+	${ext_srcdir}/pointer.h \
 	${ext_srcdir}/pool_allocator.h \
 	${ext_srcdir}/rb_tree \
 	${ext_srcdir}/rope \

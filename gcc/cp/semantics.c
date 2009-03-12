@@ -4,7 +4,7 @@
    and during the instantiation of template functions.
 
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-		 2008 Free Software Foundation, Inc.
+		 2008, 2009 Free Software Foundation, Inc.
    Written by Mark Mitchell (mmitchell@usa.net) based on code found
    formerly in parse.y and pt.c.
 
@@ -54,7 +54,6 @@ along with GCC; see the file COPYING3.  If not see
    degenerate form of parsing.  */
 
 static tree maybe_convert_cond (tree);
-static tree simplify_aggr_init_exprs_r (tree *, int *, void *);
 static tree finalize_nrv_r (tree *, int *, void *);
 
 
@@ -548,7 +547,12 @@ finish_goto_stmt (tree destination)
     {
       /* The DESTINATION is being used as an rvalue.  */
       if (!processing_template_decl)
-	destination = decay_conversion (destination);
+	{
+	  destination = decay_conversion (destination);
+	  destination = cp_convert (ptr_type_node, destination);
+	  if (error_operand_p (destination))
+	    return NULL_TREE;
+	}
       /* We don't inline calls to functions with computed gotos.
 	 Those functions are typically up to some funny business,
 	 and may be depending on the labels being at particular
@@ -941,8 +945,6 @@ finish_switch_cond (tree cond, tree switch_stmt)
   tree orig_type = NULL;
   if (!processing_template_decl)
     {
-      tree index;
-
       /* Convert the condition to an integer or enumeration type.  */
       cond = build_expr_type_conversion (WANT_INT | WANT_ENUM, cond, true);
       if (cond == NULL_TREE)
@@ -958,18 +960,6 @@ finish_switch_cond (tree cond, tree switch_stmt)
 	     Integral promotions are performed.  */
 	  cond = perform_integral_promotions (cond);
 	  cond = maybe_cleanup_point_expr (cond);
-	}
-
-      if (cond != error_mark_node)
-	{
-	  index = get_unwidened (cond, NULL_TREE);
-	  /* We can't strip a conversion from a signed type to an unsigned,
-	     because if we did, int_fits_type_p would do the wrong thing
-	     when checking case values for being in range,
-	     and it's too hard to do the right thing.  */
-	  if (TYPE_UNSIGNED (TREE_TYPE (cond))
-	      == TYPE_UNSIGNED (TREE_TYPE (index)))
-	    cond = index;
 	}
     }
   if (check_for_bare_parameter_packs (cond))
@@ -1797,6 +1787,13 @@ perform_koenig_lookup (tree fn, tree args)
 {
   tree identifier = NULL_TREE;
   tree functions = NULL_TREE;
+  tree tmpl_args = NULL_TREE;
+
+  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
+    {
+      tmpl_args = TREE_OPERAND (fn, 1);
+      fn = TREE_OPERAND (fn, 0);
+    }
 
   /* Find the name of the overloaded function.  */
   if (TREE_CODE (fn) == IDENTIFIER_NODE)
@@ -1816,7 +1813,8 @@ perform_koenig_lookup (tree fn, tree args)
 
      Do Koenig lookup -- unless any of the arguments are
      type-dependent.  */
-  if (!any_type_dependent_arguments_p (args))
+  if (!any_type_dependent_arguments_p (args)
+      && !any_dependent_template_arguments_p (tmpl_args))
     {
       fn = lookup_arg_dependent (identifier, functions, args);
       if (!fn)
@@ -1824,6 +1822,9 @@ perform_koenig_lookup (tree fn, tree args)
 	fn = unqualified_fn_lookup_error (identifier);
     }
 
+  if (fn && tmpl_args)
+    fn = build_nt (TEMPLATE_ID_EXPR, fn, tmpl_args);
+  
   return fn;
 }
 
@@ -1835,10 +1836,14 @@ perform_koenig_lookup (tree fn, tree args)
    qualified.  For example a call to `X::f' never generates a virtual
    call.)
 
+   KOENIG_P is 1 if we want to perform argument-dependent lookup,
+   -1 if we don't, but we want to accept functions found by previous
+   argument-dependent lookup, and 0 if we want nothing to do with it.
+
    Returns code for the call.  */
 
 tree
-finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
+finish_call_expr (tree fn, tree args, bool disallow_virtual, int koenig_p,
 		  tsubst_flags_t complain)
 {
   tree result;
@@ -1861,7 +1866,7 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
 	  || any_type_dependent_arguments_p (args))
 	{
 	  result = build_nt_call_list (fn, args);
-	  KOENIG_LOOKUP_P (result) = koenig_p;
+	  KOENIG_LOOKUP_P (result) = koenig_p > 0;
 	  if (cfun)
 	    {
 	      do
@@ -1951,7 +1956,7 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
 
       if (!result)
 	/* A call to a namespace-scope function.  */
-	result = build_new_function_call (fn, args, koenig_p, complain);
+	result = build_new_function_call (fn, args, koenig_p != 0, complain);
     }
   else if (TREE_CODE (fn) == PSEUDO_DTOR_EXPR)
     {
@@ -1977,7 +1982,9 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
   if (processing_template_decl)
     {
       result = build_call_list (TREE_TYPE (result), orig_fn, orig_args);
-      KOENIG_LOOKUP_P (result) = koenig_p;
+      /* Don't repeat arg-dependent lookup at instantiation time if this call
+         is not type-dependent.  */
+      KOENIG_LOOKUP_P (result) = 0;
     }
   return result;
 }
@@ -3056,34 +3063,6 @@ finish_offsetof (tree expr)
   return fold_offsetof (expr, NULL_TREE);
 }
 
-/* Called from expand_body via walk_tree.  Replace all AGGR_INIT_EXPRs
-   with equivalent CALL_EXPRs.  */
-
-static tree
-simplify_aggr_init_exprs_r (tree* tp,
-			    int* walk_subtrees,
-			    void* data ATTRIBUTE_UNUSED)
-{
-  /* We don't need to walk into types; there's nothing in a type that
-     needs simplification.  (And, furthermore, there are places we
-     actively don't want to go.  For example, we don't want to wander
-     into the default arguments for a FUNCTION_DECL that appears in a
-     CALL_EXPR.)  */
-  if (TYPE_P (*tp))
-    {
-      *walk_subtrees = 0;
-      return NULL_TREE;
-    }
-  /* Only AGGR_INIT_EXPRs are interesting.  */
-  else if (TREE_CODE (*tp) != AGGR_INIT_EXPR)
-    return NULL_TREE;
-
-  simplify_aggr_init_expr (tp);
-
-  /* Keep iterating.  */
-  return NULL_TREE;
-}
-
 /* Replace the AGGR_INIT_EXPR at *TP with an equivalent CALL_EXPR.  This
    function is broken out from the above for the benefit of the tree-ssa
    project.  */
@@ -3147,6 +3126,15 @@ simplify_aggr_init_expr (tree *tp)
       call_expr = build2 (COMPOUND_EXPR, TREE_TYPE (slot), call_expr, slot);
     }
 
+  if (AGGR_INIT_ZERO_FIRST (aggr_init_expr))
+    {
+      tree init = build_zero_init (type, NULL_TREE,
+				   /*static_storage_p=*/false);
+      init = build2 (INIT_EXPR, void_type_node, slot, init);
+      call_expr = build2 (COMPOUND_EXPR, TREE_TYPE (call_expr),
+			  init, call_expr);
+    }
+
   *tp = call_expr;
 }
 
@@ -3205,11 +3193,6 @@ expand_or_defer_fn (tree fn)
     }
 
   gcc_assert (gimple_body (fn));
-
-  /* Replace AGGR_INIT_EXPRs with appropriate CALL_EXPRs.  */
-  cp_walk_tree_without_duplicates (&DECL_SAVED_TREE (fn),
-				   simplify_aggr_init_exprs_r,
-				   NULL);
 
   /* If this is a constructor or destructor body, we have to clone
      it.  */
@@ -4294,13 +4277,25 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	}
       else
 	init = build2 (MODIFY_EXPR, void_type_node, decl, init);
-      if (cond && TREE_SIDE_EFFECTS (cond) && COMPARISON_CLASS_P (cond))
+      if (cond
+	  && TREE_SIDE_EFFECTS (cond)
+	  && COMPARISON_CLASS_P (cond)
+	  && !processing_template_decl)
 	{
-	  int n = TREE_SIDE_EFFECTS (TREE_OPERAND (cond, 1)) != 0;
-	  tree t = TREE_OPERAND (cond, n);
+	  tree t = TREE_OPERAND (cond, 0);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (cond, 0)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 
-	  if (!processing_template_decl)
-	    TREE_OPERAND (cond, n)
+	  t = TREE_OPERAND (cond, 1);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (cond, 1)
 	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	}
       if (decl == error_mark_node || init == error_mark_node)
@@ -4324,21 +4319,31 @@ finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 
   for (i = 0; i < TREE_VEC_LENGTH (OMP_FOR_INCR (omp_for)); i++)
     {
-      tree incr = TREE_VEC_ELT (OMP_FOR_INCR (omp_for), i);
+      decl = TREE_OPERAND (TREE_VEC_ELT (OMP_FOR_INIT (omp_for), i), 0);
+      incr = TREE_VEC_ELT (OMP_FOR_INCR (omp_for), i);
 
       if (TREE_CODE (incr) != MODIFY_EXPR)
 	continue;
 
       if (TREE_SIDE_EFFECTS (TREE_OPERAND (incr, 1))
-	  && BINARY_CLASS_P (TREE_OPERAND (incr, 1)))
+	  && BINARY_CLASS_P (TREE_OPERAND (incr, 1))
+	  && !processing_template_decl)
 	{
-	  tree t = TREE_OPERAND (incr, 1);
-	  int n = TREE_SIDE_EFFECTS (TREE_OPERAND (t, 1)) != 0;
+	  tree t = TREE_OPERAND (TREE_OPERAND (incr, 1), 0);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (TREE_OPERAND (incr, 1), 0)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 
-	  if (!processing_template_decl)
-	    TREE_OPERAND (t, n)
-	      = fold_build_cleanup_point_expr (TREE_TYPE (TREE_OPERAND (t, n)),
-					       TREE_OPERAND (t, n));
+	  t = TREE_OPERAND (TREE_OPERAND (incr, 1), 1);
+	  if (TREE_SIDE_EFFECTS (t)
+	      && t != decl
+	      && (TREE_CODE (t) != NOP_EXPR
+		  || TREE_OPERAND (t, 0) != decl))
+	    TREE_OPERAND (TREE_OPERAND (incr, 1), 1)
+	      = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	}
 
       if (orig_incr)
@@ -4470,12 +4475,79 @@ finish_static_assert (tree condition, tree message, location_t location,
     }
 }
 
+/* Returns decltype((EXPR)) for cases where we can drop the decltype and
+   just return the type even though EXPR is a type-dependent expression.
+   The ABI specifies which cases this applies to, which is a subset of the
+   possible cases.  */
+
+tree
+describable_type (tree expr)
+{
+  tree type = NULL_TREE;
+
+  /* processing_template_decl isn't set when we're called from the mangling
+     code, so bump it now.  */
+  ++processing_template_decl;
+  if (! type_dependent_expression_p (expr)
+      && ! type_unknown_p (expr))
+    {
+      type = TREE_TYPE (expr);
+      if (real_lvalue_p (expr))
+	type = build_reference_type (type);
+    }
+  --processing_template_decl;
+
+  if (type)
+    return type;
+
+  switch (TREE_CODE (expr))
+    {
+    case VAR_DECL:
+    case PARM_DECL:
+    case RESULT_DECL:
+    case FUNCTION_DECL:
+      /* Named rvalue reference becomes lvalue.  */
+      type = build_reference_type (non_reference (TREE_TYPE (expr)));
+      break;
+
+    case NEW_EXPR:
+    case CONST_DECL:
+    case TEMPLATE_PARM_INDEX:
+    case CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+      type = TREE_TYPE (expr);
+      break;
+
+    case INDIRECT_REF:
+      {
+	tree ptrtype = describable_type (TREE_OPERAND (expr, 0));
+	if (ptrtype && POINTER_TYPE_P (ptrtype))
+	  type = build_reference_type (TREE_TYPE (ptrtype));
+      }
+      break;
+
+    default:
+      if (TREE_CODE_CLASS (TREE_CODE (expr)) == tcc_constant)
+	type = TREE_TYPE (expr);
+      break;
+    }
+
+  if (type && type_uses_auto (type))
+    return NULL_TREE;
+  else
+    return type;
+}
+
 /* Implements the C++0x decltype keyword. Returns the type of EXPR,
    suitable for use as a type-specifier.
 
    ID_EXPRESSION_OR_MEMBER_ACCESS_P is true when EXPR was parsed as an
    id-expression or a class member access, FALSE when it was parsed as
    a full expression.  */
+
 tree
 finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 {
@@ -4496,6 +4568,29 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 
   if (type_dependent_expression_p (expr))
     {
+      if (id_expression_or_member_access_p)
+	{
+	  switch (TREE_CODE (expr))
+	    {
+	    case VAR_DECL:
+	    case PARM_DECL:
+	    case RESULT_DECL:
+	    case FUNCTION_DECL:
+	    case CONST_DECL:
+	    case TEMPLATE_PARM_INDEX:
+	      type = TREE_TYPE (expr);
+	      break;
+
+	    default:
+	      break;
+	    }
+	}
+      else
+	type = describable_type (expr);
+
+      if (type && !type_uses_auto (type))
+	return type;
+
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
       DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (type)
@@ -4560,6 +4655,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
         case CONST_DECL:
         case PARM_DECL:
         case RESULT_DECL:
+        case TEMPLATE_PARM_INDEX:
           type = TREE_TYPE (expr);
           break;
 

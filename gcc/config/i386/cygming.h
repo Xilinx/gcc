@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using a Unix style C library and tools.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2008
+   2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -283,6 +283,8 @@ do {						\
 /* If configured with --disable-sjlj-exceptions, use DWARF2, else
    default to SJLJ.  */
 #if  (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
+/* The logic of this #if must be kept synchronised with the logic
+   for selecting the tmake_eh_file fragment in config.gcc.  */
 #define DWARF2_UNWIND_INFO 1
 #else
 #define DWARF2_UNWIND_INFO 0

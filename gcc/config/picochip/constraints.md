@@ -1,5 +1,5 @@
 ;; GCC machine description for picochip
-;; Copyright (C) 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 ;; Contributed by picoChip Designs Ltd (http://www.picochip.com)
 ;; Maintained by Daniel Towner (dant@picochip.com) and Hariharan
 ;; Sandanagobalane (hariharan@picochip.com)
@@ -54,10 +54,6 @@
  "See if this is an absolute address in memory"
   (and (match_code "mem")
        (match_test "picochip_absolute_memory_operand(op,mode) == 1")))
-
-(define_constraint "b"
- "See if this is an address in memory, non-strict version"
-  (match_test "picochip_legitimate_address_p(mode,op,0) == 1"))
 
 (define_register_constraint "k" "FRAME_REGS"
   "Frame regs")

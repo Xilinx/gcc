@@ -120,7 +120,7 @@ unformatted_backspace (st_parameter_filepos *fpp, gfc_unit *u)
         goto io_error;
 
       /* Only GFC_CONVERT_NATIVE and GFC_CONVERT_SWAP are valid here.  */
-      if (u->flags.convert == GFC_CONVERT_NATIVE)
+      if (likely (u->flags.convert == GFC_CONVERT_NATIVE))
 	{
 	  switch (length)
 	    {
@@ -300,7 +300,7 @@ st_endfile (st_parameter_filepos *fpp)
 	{
 	  st_parameter_dt dtp;
 	  dtp.common = fpp->common;
-	  memset (&dtp.u.p.transfer, 0, sizeof (dtp.u.q));
+	  memset (&dtp.u.p, 0, sizeof (dtp.u.p));
 	  dtp.u.p.current_unit = u;
 	  next_record (&dtp, 1);
 	}

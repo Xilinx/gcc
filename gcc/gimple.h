@@ -1,6 +1,6 @@
 /* Gimple IR definitions.
 
-   Copyright 2007, 2008 Free Software Foundation, Inc.
+   Copyright 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Aldy Hernandez <aldyh@redhat.com>
 
 This file is part of GCC.
@@ -59,9 +59,6 @@ extern const unsigned char gimple_rhs_class_table[];
 extern void gimple_check_failed (const_gimple, const char *, int,          \
                                  const char *, enum gimple_code,           \
 				 enum tree_code) ATTRIBUTE_NORETURN;
-extern void gimple_range_check_failed (const_gimple, const char *, int,    \
-                                       const char *, enum gimple_code,     \
-				       enum gimple_code) ATTRIBUTE_NORETURN;
 
 #define GIMPLE_CHECK(GS, CODE)						\
   do {									\
@@ -300,7 +297,9 @@ struct gimple_statement_base GTY(())
      in there.  */
   unsigned int subcode		: 16;
 
-  /* UID of this statement.  */
+  /* UID of this statement.  This is used by passes that want to
+     assign IDs to statements.  It must be assigned and used by each
+     pass.  By default it should be assumed to contain garbage.  */
   unsigned uid;
 
   /* [ WORD 2 ]
@@ -796,7 +795,7 @@ gimple gimple_build_asm_vec (const char *, VEC(tree,gc) *, VEC(tree,gc) *,
                              VEC(tree,gc) *);
 gimple gimple_build_catch (tree, gimple_seq);
 gimple gimple_build_eh_filter (tree, gimple_seq);
-gimple gimple_build_try (gimple_seq, gimple_seq, unsigned int);
+gimple gimple_build_try (gimple_seq, gimple_seq, enum gimple_try_flags);
 gimple gimple_build_wce (gimple_seq);
 gimple gimple_build_resx (int);
 gimple gimple_build_switch (unsigned, tree, tree, ...);
@@ -1207,7 +1206,7 @@ gimple_plf (gimple stmt, enum plf_mask plf)
 }
 
 
-/* Set the uid of statement  */
+/* Set the UID of statement.  */
 
 static inline void
 gimple_set_uid (gimple g, unsigned uid)
@@ -1216,7 +1215,7 @@ gimple_set_uid (gimple g, unsigned uid)
 }
 
 
-/* Return the uid of statement  */
+/* Return the UID of statement.  */
 
 static inline unsigned
 gimple_uid (const_gimple g)

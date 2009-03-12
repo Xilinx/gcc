@@ -1,6 +1,6 @@
 /* Software floating-point emulation.
    Convert IEEE double to 128bit signed integer
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Uros Bizjak (ubizjak@gmail.com).
 
@@ -31,7 +31,7 @@
 #include "soft-fp.h"
 #include "double.h"
 
-TItype __fixdfti(TFtype a)
+TItype __fixdfti(DFtype a)
 {
   FP_DECL_EX;
   FP_DECL_D(A);

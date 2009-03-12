@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x" }
 // { dg-do compile }
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -38,18 +38,20 @@ int main()
   return 0;
 }
 
-// { dg-error "within this context" "" { target *-*-* } 310 }
-// { dg-error "is private" "" { target *-*-* } 1750 }
-// { dg-error "is private" "" { target *-*-* } 1782 } 
-// { dg-error "is private" "" { target *-*-* } 1799 }
-// { dg-error "is private" "" { target *-*-* } 1816 }
-// { dg-error "is private" "" { target *-*-* } 1832 }
-// { dg-error "is private" "" { target *-*-* } 1848 }
-// { dg-error "is private" "" { target *-*-* } 1864 }
-// { dg-error "is private" "" { target *-*-* } 1880 }
-// { dg-error "is private" "" { target *-*-* } 1896 }
-// { dg-error "is private" "" { target *-*-* } 1913 }
-// { dg-error "is private" "" { target *-*-* } 1929 }
-// { dg-error "is private" "" { target *-*-* } 1945 }
-// { dg-error "is private" "" { target *-*-* } 1961 }
+// { dg-error "used here" "" { target *-*-* } 530 }
+// { dg-error "deleted function" "" { target *-*-* } 244 }
+// { dg-error "deleted function" "" { target *-*-* } 262 }
+// { dg-error "deleted function" "" { target *-*-* } 280 } 
+// { dg-error "deleted function" "" { target *-*-* } 298 }
+// { dg-error "deleted function" "" { target *-*-* } 316 }
+// { dg-error "deleted function" "" { target *-*-* } 334 }
+// { dg-error "deleted function" "" { target *-*-* } 352 }
+// { dg-error "deleted function" "" { target *-*-* } 370 }
+// { dg-error "deleted function" "" { target *-*-* } 388 }
+// { dg-error "deleted function" "" { target *-*-* } 406 }
+// { dg-error "deleted function" "" { target *-*-* } 424 }
+// { dg-error "deleted function" "" { target *-*-* } 442 }
+// { dg-error "deleted function" "" { target *-*-* } 460 }
+// { dg-error "deleted function" "" { target *-*-* } 478 }
+// { dg-error "deleted function" "" { target *-*-* } 496 }
 // { dg-excess-errors "In member function" }

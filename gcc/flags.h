@@ -1,6 +1,6 @@
 /* Compilation switch flag definitions for GCC.
    Copyright (C) 1987, 1988, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
-   2003, 2004, 2005, 2006, 2007
+   2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -209,12 +209,21 @@ extern int flag_dump_rtl_in_asm;
 /* The algorithm used for the integrated register allocator (IRA).  */
 enum ira_algorithm
 {
-  IRA_ALGORITHM_REGIONAL,
   IRA_ALGORITHM_CB,
-  IRA_ALGORITHM_MIXED
+  IRA_ALGORITHM_PRIORITY
 };
 
 extern enum ira_algorithm flag_ira_algorithm;
+
+/* The regions used for the integrated register allocator (IRA).  */
+enum ira_region
+{
+  IRA_REGION_ONE,
+  IRA_REGION_ALL,
+  IRA_REGION_MIXED
+};
+
+extern enum ira_region flag_ira_region;
 
 extern unsigned int flag_ira_verbose;
 

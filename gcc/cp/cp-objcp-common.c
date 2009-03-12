@@ -1,5 +1,5 @@
 /* Some code common to C++ and ObjC++ front ends.
-   Copyright (C) 2004, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Ziemowit Laski  <zlaski@apple.com>
 
 This file is part of GCC.
@@ -101,7 +101,7 @@ cp_expr_size (const_tree exp)
 	     constructed, this is a valid transformation.  */
 	  || CP_AGGREGATE_TYPE_P (type))
 	/* This would be wrong for a type with virtual bases.  */
-	return (is_empty_class (type)
+	return (is_really_empty_class (type)
 		? size_zero_node
 		: CLASSTYPE_SIZE_UNIT (type));
       else

@@ -1,5 +1,5 @@
 /* Register renaming for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -137,8 +137,15 @@ merge_overlapping_regs (basic_block b, HARD_REG_SET *pset,
   struct du_chain *t = chain;
   rtx insn;
   HARD_REG_SET live;
+  df_ref *def_rec;
 
   REG_SET_TO_HARD_REG_SET (live, df_get_live_in (b));
+  for (def_rec = df_get_artificial_defs (b->index); *def_rec; def_rec++)
+    {
+      df_ref def = *def_rec;
+      if (DF_REF_FLAGS (def) & DF_REF_AT_TOP)
+	SET_HARD_REG_BIT (live, DF_REF_REGNO (def));
+    }
   insn = BB_HEAD (b);
   while (t)
     {
@@ -333,12 +340,12 @@ regrename_optimize (void)
 	      continue;
 	    }
 
+	  if (dump_file)
+	    fprintf (dump_file, ", renamed as %s\n", reg_names[best_new_reg]);
+
 	  do_replace (this_du, best_new_reg);
 	  tick[best_new_reg] = ++this_tick;
 	  df_set_regs_ever_live (best_new_reg, true);
-
-	  if (dump_file)
-	    fprintf (dump_file, ", renamed as %s\n", reg_names[best_new_reg]);
 	}
 
       obstack_free (&rename_obstack, first_obj);
@@ -1381,6 +1388,7 @@ find_oldest_value_reg (enum reg_class cl, rtx reg, struct value_data *vd)
 	{
 	  ORIGINAL_REGNO (new_rtx) = ORIGINAL_REGNO (reg);
 	  REG_ATTRS (new_rtx) = REG_ATTRS (reg);
+	  REG_POINTER (new_rtx) = REG_POINTER (reg);
 	  return new_rtx;
 	}
     }
@@ -1679,6 +1687,7 @@ copyprop_hardreg_forward_1 (basic_block bb, struct value_data *vd)
 		    {
 		      ORIGINAL_REGNO (new_rtx) = ORIGINAL_REGNO (src);
 		      REG_ATTRS (new_rtx) = REG_ATTRS (src);
+		      REG_POINTER (new_rtx) = REG_POINTER (src);
 		      if (dump_file)
 			fprintf (dump_file,
 				 "insn %u: replaced reg %u with %u\n",

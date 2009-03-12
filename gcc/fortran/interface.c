@@ -1,5 +1,5 @@
 /* Deal with interfaces.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -491,17 +491,26 @@ compare_type_rank_if (gfc_symbol *s1, gfc_symbol *s2)
   if (s1 == NULL || s2 == NULL)
     return s1 == s2 ? 1 : 0;
 
+  if (s1 == s2)
+    return 1;
+
   if (s1->attr.flavor != FL_PROCEDURE && s2->attr.flavor != FL_PROCEDURE)
     return compare_type_rank (s1, s2);
 
   if (s1->attr.flavor != FL_PROCEDURE || s2->attr.flavor != FL_PROCEDURE)
     return 0;
 
-  /* At this point, both symbols are procedures.  */
-  if ((s1->attr.function == 0 && s1->attr.subroutine == 0)
-      || (s2->attr.function == 0 && s2->attr.subroutine == 0))
-    return 0;
+  /* At this point, both symbols are procedures.  It can happen that
+     external procedures are compared, where one is identified by usage
+     to be a function or subroutine but the other is not.  Check TKR
+     nonetheless for these cases.  */
+  if (s1->attr.function == 0 && s1->attr.subroutine == 0)
+    return s1->attr.external == 1 ? compare_type_rank (s1, s2) : 0;
 
+  if (s2->attr.function == 0 && s2->attr.subroutine == 0)
+    return s2->attr.external == 1 ? compare_type_rank (s1, s2) : 0;
+
+  /* Now the type of procedure has been identified.  */
   if (s1->attr.function != s2->attr.function
       || s1->attr.subroutine != s2->attr.subroutine)
     return 0;
@@ -2411,9 +2420,12 @@ void
 gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
 {
 
-  /* Warn about calls with an implicit interface.  */
+  /* Warn about calls with an implicit interface.  Special case
+     for calling a ISO_C_BINDING becase c_loc and c_funloc
+     are pseudo-unknown.  */
   if (gfc_option.warn_implicit_interface
-      && sym->attr.if_source == IFSRC_UNKNOWN)
+      && sym->attr.if_source == IFSRC_UNKNOWN
+      && ! sym->attr.is_iso_c)
     gfc_warning ("Procedure '%s' called with an implicit interface at %L",
 		 sym->name, where);
 
@@ -2670,6 +2682,7 @@ gfc_extend_expr (gfc_expr *e)
   e->value.function.esym = NULL;
   e->value.function.isym = NULL;
   e->value.function.name = NULL;
+  e->user_operator = 1;
 
   if (gfc_pure (NULL) && !gfc_pure (sym))
     {

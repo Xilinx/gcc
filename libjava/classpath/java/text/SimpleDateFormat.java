@@ -40,6 +40,8 @@ exception statement from your version. */
 
 package java.text;
 
+import gnu.java.lang.CPStringBuilder;
+
 import gnu.java.text.AttributedFormatBuffer;
 import gnu.java.text.FormatBuffer;
 import gnu.java.text.FormatCharacterIterator;
@@ -61,6 +63,8 @@ import java.util.regex.Pattern;
 /**
  * SimpleDateFormat provides convenient methods for parsing and formatting
  * dates using Gregorian calendars (see java.util.GregorianCalendar). 
+ * This class is not thread-safe; external synchronisation should be applied
+ * if an instance is to be accessed from multiple threads.
  */
 public class SimpleDateFormat extends DateFormat 
 {
@@ -139,9 +143,9 @@ public class SimpleDateFormat extends DateFormat
      */
     public String toString()
     {
-      StringBuilder builder;
+      CPStringBuilder builder;
 
-      builder = new StringBuilder(getClass().getName());
+      builder = new CPStringBuilder(getClass().getName());
       builder.append("[field=");
       builder.append(field);
       builder.append(", size=");
@@ -155,13 +159,13 @@ public class SimpleDateFormat extends DateFormat
   }
 
   /**
-   * A list of <code>CompiledField</code>s,
+   * A list of <code>CompiledField</code>s and {@code String}s
    * representing the compiled version of the pattern.
    *
    * @see CompiledField
    * @serial Ignored.
    */
-  private transient ArrayList tokens;
+  private transient ArrayList<Object> tokens;
 
   /**
    * The localised data used in formatting,
@@ -231,10 +235,16 @@ public class SimpleDateFormat extends DateFormat
    */
   private static final long serialVersionUID = 4774881970558875024L;
 
-  // This string is specified in the root of the CLDR.  We set it here
-  // rather than doing a DateFormatSymbols(Locale.US).getLocalPatternChars()
-  // since someone could theoretically change those values (though unlikely).
-  private static final String standardChars = "GyMdkHmsSEDFwWahKzYeugAZ";
+  // This string is specified in the root of the CLDR.
+  private static final String standardChars = "GyMdkHmsSEDFwWahKzYeugAZvcL";
+
+  /**  
+   * Represents the position of the RFC822 timezone pattern character
+   * in the array of localized pattern characters.  In the
+   * U.S. locale, this is 'Z'.  The value is the offset of the current
+   * time from GMT e.g. -0500 would be five hours prior to GMT.
+   */  
+  private static final int RFC822_TIMEZONE_FIELD = 23;
 
   /**
    * Reads the serialized version of this object.
@@ -264,7 +274,7 @@ public class SimpleDateFormat extends DateFormat
       set2DigitYearStart(defaultCenturyStart);
 
     // Set up items normally taken care of by the constructor.
-    tokens = new ArrayList();
+    tokens = new ArrayList<Object>();
     try
       {
 	compileFormat(pattern);
@@ -322,7 +332,7 @@ public class SimpleDateFormat extends DateFormat
 		    // Look for the terminating quote.  However, if we
 		    // see a '', that represents a literal quote and
 		    // we must iterate.
-		    StringBuilder buf = new StringBuilder();
+		    CPStringBuilder buf = new CPStringBuilder();
 		    int oldPos = i + 1;
 		    do
 		      {
@@ -372,7 +382,7 @@ public class SimpleDateFormat extends DateFormat
    */
   public String toString() 
   {
-    StringBuilder output = new StringBuilder(getClass().getName());
+    CPStringBuilder output = new CPStringBuilder(getClass().getName());
     output.append("[tokens=");
     output.append(tokens);
     output.append(", formatData=");
@@ -406,7 +416,7 @@ public class SimpleDateFormat extends DateFormat
     Locale locale = Locale.getDefault();
     calendar = new GregorianCalendar(locale);
     computeCenturyStart();
-    tokens = new ArrayList();
+    tokens = new ArrayList<Object>();
     formatData = new DateFormatSymbols(locale);
     pattern = (formatData.dateFormats[DEFAULT] + ' '
 	       + formatData.timeFormats[DEFAULT]);
@@ -444,7 +454,7 @@ public class SimpleDateFormat extends DateFormat
     super();
     calendar = new GregorianCalendar(locale);
     computeCenturyStart();
-    tokens = new ArrayList();
+    tokens = new ArrayList<Object>();
     formatData = new DateFormatSymbols(locale);
     compileFormat(pattern);
     this.pattern = pattern;
@@ -469,7 +479,7 @@ public class SimpleDateFormat extends DateFormat
     super();
     calendar = new GregorianCalendar();
     computeCenturyStart ();
-    tokens = new ArrayList();
+    tokens = new ArrayList<Object>();
     if (formatData == null)
       throw new NullPointerException("formatData");
     this.formatData = formatData;
@@ -514,7 +524,7 @@ public class SimpleDateFormat extends DateFormat
    */
   public void applyPattern(String pattern)
   {
-    tokens = new ArrayList();
+    tokens.clear();
     compileFormat(pattern);
     this.pattern = pattern;
   }
@@ -554,7 +564,7 @@ public class SimpleDateFormat extends DateFormat
 					   String oldChars, String newChars)
   {
     int len = pattern.length();
-    StringBuilder buf = new StringBuilder(len);
+    CPStringBuilder buf = new CPStringBuilder(len);
     boolean quoted = false;
     for (int i = 0;  i < len;  i++)
       {
@@ -687,11 +697,10 @@ public class SimpleDateFormat extends DateFormat
   private void formatWithAttribute(Date date, FormatBuffer buffer, FieldPosition pos)
   {
     String temp;
-    AttributedCharacterIterator.Attribute attribute;
     calendar.setTime(date);
 
     // go through vector, filling in fields where applicable, else toString
-    Iterator iter = tokens.iterator();
+    Iterator<Object> iter = tokens.iterator();
     while (iter.hasNext())
       {
 	Object o = iter.next();
@@ -802,7 +811,7 @@ public class SimpleDateFormat extends DateFormat
 		buffer.append (zoneID);
 		break;
 	      case RFC822_TIMEZONE_FIELD:
-		buffer.setDefaultAttribute(DateFormat.Field.RFC822_TIME_ZONE);
+		buffer.setDefaultAttribute(DateFormat.Field.TIME_ZONE);
 		int pureMinutes = (calendar.get(Calendar.ZONE_OFFSET) +
 				   calendar.get(Calendar.DST_OFFSET)) / (1000 * 60);
 		String sign = (pureMinutes < 0) ? "-" : "+";
@@ -900,7 +909,6 @@ public class SimpleDateFormat extends DateFormat
 	    char ch = pattern.charAt(fmt_index);
 	    if (ch == '\'')
 	      {
-		int index = pos.getIndex();
 		if (fmt_index < fmt_max - 1
 		    && pattern.charAt(fmt_index + 1) == '\'')
 		  {

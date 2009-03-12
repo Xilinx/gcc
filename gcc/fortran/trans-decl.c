@@ -1,6 +1,6 @@
 /* Backend function setup
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -1174,10 +1174,23 @@ get_proc_pointer_decl (gfc_symbol *sym)
       && sym->ns->proc_name->backend_decl == current_function_decl)
       || sym->attr.contained)
     gfc_add_decl_to_function (decl);
-  else
+  else if (sym->ns->proc_name->attr.flavor != FL_MODULE)
     gfc_add_decl_to_parent_function (decl);
 
   sym->backend_decl = decl;
+
+  /* If a variable is USE associated, it's always external.  */
+  if (sym->attr.use_assoc)
+    {
+      DECL_EXTERNAL (decl) = 1;
+      TREE_PUBLIC (decl) = 1;
+    }
+  else if (sym->module && sym->ns->proc_name->attr.flavor == FL_MODULE)
+    {
+      /* This is the declaration of a module variable.  */
+      TREE_PUBLIC (decl) = 1;
+      TREE_STATIC (decl) = 1;
+    }
 
   if (!sym->attr.use_assoc
 	&& (sym->attr.save != SAVE_NONE || sym->attr.data
@@ -2781,20 +2794,40 @@ gfc_init_default_dt (gfc_symbol * sym, tree body)
 }
 
 
-/* Initialize INTENT(OUT) derived type dummies.  */
+/* Initialize INTENT(OUT) derived type dummies.  As well as giving
+   them their default initializer, if they do not have allocatable
+   components, they have their allocatable components deallocated. */
+
 static tree
 init_intent_out_dt (gfc_symbol * proc_sym, tree body)
 {
   stmtblock_t fnblock;
   gfc_formal_arglist *f;
+  tree tmp;
+  tree present;
 
   gfc_init_block (&fnblock);
   for (f = proc_sym->formal; f; f = f->next)
     if (f->sym && f->sym->attr.intent == INTENT_OUT
-	  && f->sym->ts.type == BT_DERIVED
-	  && !f->sym->ts.derived->attr.alloc_comp
-	  && f->sym->value)
-      body = gfc_init_default_dt (f->sym, body);
+	  && f->sym->ts.type == BT_DERIVED)
+      {
+	if (f->sym->ts.derived->attr.alloc_comp)
+	  {
+	    tmp = gfc_deallocate_alloc_comp (f->sym->ts.derived,
+					     f->sym->backend_decl,
+					     f->sym->as ? f->sym->as->rank : 0);
+
+	    present = gfc_conv_expr_present (f->sym);
+	    tmp = build3 (COND_EXPR, TREE_TYPE (tmp), present,
+			  tmp, build_empty_stmt ());
+
+	    gfc_add_expr_to_block (&fnblock, tmp);
+	  }
+
+	if (!f->sym->ts.derived->attr.alloc_comp
+	      && f->sym->value)
+	  body = gfc_init_default_dt (f->sym, body);
+      }
 
   gfc_add_expr_to_block (&fnblock, body);
   return gfc_finish_block (&fnblock);
@@ -3101,11 +3134,12 @@ gfc_create_module_variable (gfc_symbol * sym)
       gfc_module_add_decl (cur_module, TYPE_STUB_DECL (decl));
     }
 
-  /* Only output variables and array valued, or derived type,
-     parameters.  */
+  /* Only output variables, procedure pointers and array valued,
+     or derived type, parameters.  */
   if (sym->attr.flavor != FL_VARIABLE
 	&& !(sym->attr.flavor == FL_PARAMETER
-	       && (sym->attr.dimension || sym->ts.type == BT_DERIVED)))
+	       && (sym->attr.dimension || sym->ts.type == BT_DERIVED))
+	&& !(sym->attr.flavor == FL_PROCEDURE && sym->attr.proc_pointer))
     return;
 
   if ((sym->attr.in_common || sym->attr.in_equivalence) && sym->backend_decl)
@@ -3482,10 +3516,10 @@ generate_local_decl (gfc_symbol * sym)
   if (sym->attr.flavor == FL_VARIABLE)
     {
       if (!sym->attr.dummy && !sym->ns->proc_name->attr.entry_master)
-        generate_dependency_declarations (sym);
+	generate_dependency_declarations (sym);
 
       if (sym->attr.referenced)
-        gfc_get_symbol_decl (sym);
+	gfc_get_symbol_decl (sym);
       /* INTENT(out) dummy arguments are likely meant to be set.  */
       else if (warn_unused_variable
 	       && sym->attr.dummy
@@ -3502,19 +3536,33 @@ generate_local_decl (gfc_symbol * sym)
 	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark))
 	gfc_warning ("Unused variable '%s' declared at %L", sym->name,
 		     &sym->declared_at);
+
       /* For variable length CHARACTER parameters, the PARM_DECL already
 	 references the length variable, so force gfc_get_symbol_decl
 	 even when not referenced.  If optimize > 0, it will be optimized
 	 away anyway.  But do this only after emitting -Wunused-parameter
 	 warning if requested.  */
-      if (sym->attr.dummy && ! sym->attr.referenced
-	  && sym->ts.type == BT_CHARACTER
-	  && sym->ts.cl->backend_decl != NULL
-	  && TREE_CODE (sym->ts.cl->backend_decl) == VAR_DECL)
+      if (sym->attr.dummy && !sym->attr.referenced
+	    && sym->ts.type == BT_CHARACTER
+	    && sym->ts.cl->backend_decl != NULL
+	    && TREE_CODE (sym->ts.cl->backend_decl) == VAR_DECL)
 	{
 	  sym->attr.referenced = 1;
 	  gfc_get_symbol_decl (sym);
 	}
+
+      /* INTENT(out) dummy arguments with allocatable components are reset
+	 by default and need to be set referenced to generate the code for
+	 automatic lengths.  */
+      if (sym->attr.dummy && !sym->attr.referenced
+	    && sym->ts.type == BT_DERIVED
+	    && sym->ts.derived->attr.alloc_comp
+	    && sym->attr.intent == INTENT_OUT)
+	{
+	  sym->attr.referenced = 1;
+	  gfc_get_symbol_decl (sym);
+	}
+
 
       /* Check for dependencies in the array specification and string
 	length, adding the necessary declarations to the function.  We

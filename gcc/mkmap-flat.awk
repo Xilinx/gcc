@@ -1,5 +1,5 @@
 # Generate a flat list of symbols to export.
-#	Copyright (C) 2007, 2008  Free Software Foundation, Inc.
+#	Copyright (C) 2007, 2008, 2009  Free Software Foundation, Inc.
 #	Contributed by Richard Henderson <rth@cygnus.com>
 #
 # This file is part of GCC.
@@ -93,8 +93,7 @@ $1 == "}" {
 END {
 
   if (pe_dll) {
-    # This matches SHLIB_SONAME in config/i386/t-cygming.
-    print "LIBRARY libgcc_s_1.dll";
+    print "LIBRARY " pe_dll;
     print "EXPORTS";
   }
 

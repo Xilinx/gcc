@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for some
    generic System V Release 4 system.
    Copyright (C) 1991, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com).
 
 This file is part of GCC.
@@ -55,7 +55,8 @@ along with GCC; see the file COPYING3.  If not see
   && strcmp (STR, "Tdata") && strcmp (STR, "Ttext")	\
   && strcmp (STR, "Tbss"))
 
-/* Provide an ASM_SPEC appropriate for svr4.  Here we try to support as
+/* Provide an ASM_SPEC appropriate for svr4.
+   If we're not using GAS, we try to support as
    many of the specialized svr4 assembler options as seems reasonable,
    given that there are certain options which we can't (or shouldn't)
    support directly due to the fact that they conflict with other options
@@ -74,9 +75,16 @@ along with GCC; see the file COPYING3.  If not see
    read its stdin.
 */
 
-#undef  ASM_SPEC
-#define ASM_SPEC \
+#ifdef USE_GAS
+#define SVR4_ASM_SPEC \
+  "%{v:-V} %{Wa,*:%*}"
+#else
+#define SVR4_ASM_SPEC \
   "%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*}"
+#endif
+
+#undef  ASM_SPEC
+#define ASM_SPEC SVR4_ASM_SPEC
 
 #define AS_NEEDS_DASH_FOR_PIPED_INPUT
 

@@ -943,47 +943,6 @@ df_worklist_propagate_backward (struct dataflow *dataflow,
 
 
 /* This will free "pending". */
-static void 
-df_worklist_dataflow_overeager (struct dataflow *dataflow,
-				bitmap pending,
-                                sbitmap considered,
-                                int *blocks_in_postorder,
-				unsigned *bbindex_to_postorder)
-{
-  enum df_flow_dir dir = dataflow->problem->dir;
-  int count = 0;
-
-  while (!bitmap_empty_p (pending))
-    {
-      unsigned bb_index;
-      int index;
-      count++;
-
-      index = bitmap_first_set_bit (pending);
-      bitmap_clear_bit (pending, index);
-
-      bb_index = blocks_in_postorder[index];
-
-      if (dir == DF_FORWARD)
-	df_worklist_propagate_forward (dataflow, bb_index,
-				       bbindex_to_postorder,
-				       pending, considered);
-      else 
-	df_worklist_propagate_backward (dataflow, bb_index,
-					bbindex_to_postorder,
-					pending, considered);
-    }
-
-  BITMAP_FREE (pending);
-
-  /* Dump statistics. */
-  if (dump_file)
-    fprintf (dump_file, "df_worklist_dataflow_overeager:"
-	     "n_basic_blocks %d n_edges %d"
-	     " count %d (%5.2g)\n",
-	     n_basic_blocks, n_edges,
-	     count, count / (float)n_basic_blocks);
-}
 
 static void 
 df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
@@ -1042,23 +1001,10 @@ df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
 
 /* Worklist-based dataflow solver. It uses sbitmap as a worklist,
    with "n"-th bit representing the n-th block in the reverse-postorder order. 
-   This is so-called over-eager algorithm where it propagates
-   changes on demand. This algorithm may visit blocks more than
-   iterative method if there are deeply nested loops. 
-   Worklist algorithm works better than iterative algorithm
-   for CFGs with no nested loops.
-   In practice, the measurement shows worklist algorithm beats 
-   iterative algorithm by some margin overall.  
-   Note that this is slightly different from the traditional textbook worklist solver,
-   in that the worklist is effectively sorted by the reverse postorder.
-   For CFGs with no nested loops, this is optimal. 
-   
-   The overeager algorithm while works well for typical inputs,
-   it could degenerate into excessive iterations given CFGs with high loop nests
-   and unstructured loops. To cap the excessive iteration on such case,
-   we switch to double-queueing when the original algorithm seems to 
-   get into such.
-   */
+   The solver is a double-queue algorithm similar to the "double stack" solver
+   from Cooper, Harvey and Kennedy, "Iterative data-flow analysis, Revisited".
+   The only significant difference is that the worklist in this implementation
+   is always sorted in RPO of the CFG visiting direction.  */
 
 void 
 df_worklist_dataflow (struct dataflow *dataflow,
@@ -1103,26 +1049,10 @@ df_worklist_dataflow (struct dataflow *dataflow,
   if (dataflow->problem->init_fun)
     dataflow->problem->init_fun (blocks_to_consider);
 
-  /* Solve it. Determine the solving algorithm
-     based on a simple heuristic. */
-  if (n_edges > PARAM_VALUE (PARAM_DF_DOUBLE_QUEUE_THRESHOLD_FACTOR)
-      * n_basic_blocks)
-    {
-      /* High average connectivity, meaning dense graph
-         with more likely deep nested loops
-	 or unstructured loops. */
-      df_worklist_dataflow_doublequeue (dataflow, pending, considered,
-					blocks_in_postorder,
-					bbindex_to_postorder);
-    }
-  else 
-    {
-      /* Most inputs fall into this case
-        with relatively flat or structured CFG. */
-      df_worklist_dataflow_overeager (dataflow, pending, considered,
-				      blocks_in_postorder,
-				      bbindex_to_postorder);
-    }
+  /* Solve it.  */
+  df_worklist_dataflow_doublequeue (dataflow, pending, considered,
+				    blocks_in_postorder,
+				    bbindex_to_postorder);
 
   sbitmap_free (considered);
   free (bbindex_to_postorder);
@@ -1725,11 +1655,11 @@ df_set_clean_cfg (void)
 
 /* Return first def of REGNO within BB.  */
 
-struct df_ref *
+df_ref 
 df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
 {
   rtx insn;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
   unsigned int uid;
 
   FOR_BB_INSNS (bb, insn)
@@ -1740,7 +1670,7 @@ df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
       uid = INSN_UID (insn);
       for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 	{
-	  struct df_ref *def = *def_rec;
+	  df_ref def = *def_rec;
 	  if (DF_REF_REGNO (def) == regno)
 	    return def;
 	}
@@ -1751,11 +1681,11 @@ df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
 
 /* Return last def of REGNO within BB.  */
 
-struct df_ref *
+df_ref 
 df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
 {
   rtx insn;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
   unsigned int uid;
 
   FOR_BB_INSNS_REVERSE (bb, insn)
@@ -1766,7 +1696,7 @@ df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
       uid = INSN_UID (insn);
       for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 	{
-	  struct df_ref *def = *def_rec;
+	  df_ref def = *def_rec;
 	  if (DF_REF_REGNO (def) == regno)
 	    return def;
 	}
@@ -1778,11 +1708,11 @@ df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
 /* Finds the reference corresponding to the definition of REG in INSN.
    DF is the dataflow object.  */
 
-struct df_ref *
+df_ref 
 df_find_def (rtx insn, rtx reg)
 {
   unsigned int uid;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
 
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
@@ -1791,7 +1721,7 @@ df_find_def (rtx insn, rtx reg)
   uid = INSN_UID (insn);
   for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
     {
-      struct df_ref *def = *def_rec;
+      df_ref def = *def_rec;
       if (rtx_equal_p (DF_REF_REAL_REG (def), reg))
 	return def;
     }
@@ -1812,11 +1742,11 @@ df_reg_defined (rtx insn, rtx reg)
 /* Finds the reference corresponding to the use of REG in INSN.
    DF is the dataflow object.  */
   
-struct df_ref *
+df_ref 
 df_find_use (rtx insn, rtx reg)
 {
   unsigned int uid;
-  struct df_ref **use_rec;
+  df_ref *use_rec;
 
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
@@ -1825,14 +1755,14 @@ df_find_use (rtx insn, rtx reg)
   uid = INSN_UID (insn);
   for (use_rec = DF_INSN_UID_USES (uid); *use_rec; use_rec++)
     {
-      struct df_ref *use = *use_rec;
+      df_ref use = *use_rec;
       if (rtx_equal_p (DF_REF_REAL_REG (use), reg))
 	return use;
     } 
   if (df->changeable_flags & DF_EQ_NOTES)
     for (use_rec = DF_INSN_UID_EQ_USES (uid); *use_rec; use_rec++)
       {
-	struct df_ref *use = *use_rec;
+	df_ref use = *use_rec;
 	if (rtx_equal_p (DF_REF_REAL_REG (use), reg))
 	  return use; 
       }
@@ -2064,12 +1994,12 @@ df_dump_bottom (basic_block bb, FILE *file)
 
 
 void
-df_refs_chain_dump (struct df_ref **ref_rec, bool follow_chain, FILE *file)
+df_refs_chain_dump (df_ref *ref_rec, bool follow_chain, FILE *file)
 {
   fprintf (file, "{ ");
   while (*ref_rec)
     {
-      struct df_ref *ref = *ref_rec;
+      df_ref ref = *ref_rec;
       fprintf (file, "%c%d(%d)",
 	       DF_REF_REG_DEF_P (ref) ? 'd' : (DF_REF_FLAGS (ref) & DF_REF_IN_NOTE) ? 'e' : 'u',
 	       DF_REF_ID (ref),
@@ -2085,7 +2015,7 @@ df_refs_chain_dump (struct df_ref **ref_rec, bool follow_chain, FILE *file)
 /* Dump either a ref-def or reg-use chain.  */
 
 void
-df_regs_chain_dump (struct df_ref *ref,  FILE *file)
+df_regs_chain_dump (df_ref ref,  FILE *file)
 {
   fprintf (file, "{ ");
   while (ref)
@@ -2094,7 +2024,7 @@ df_regs_chain_dump (struct df_ref *ref,  FILE *file)
 	       DF_REF_REG_DEF_P (ref) ? 'd' : 'u',
 	       DF_REF_ID (ref),
 	       DF_REF_REGNO (ref));
-      ref = ref->next_reg;
+      ref = DF_REF_NEXT_REG (ref);
     }
   fprintf (file, "}");
 }
@@ -2106,7 +2036,7 @@ df_mws_dump (struct df_mw_hardreg **mws, FILE *file)
   while (*mws)
     {
       fprintf (file, "mw %c r[%d..%d]\n", 
-	       ((*mws)->type == DF_REF_REG_DEF) ? 'd' : 'u',
+	       (DF_MWS_REG_DEF_P (*mws)) ? 'd' : 'u',
 	       (*mws)->start_regno, (*mws)->end_regno);
       mws++;
     }
@@ -2185,7 +2115,7 @@ df_regno_debug (unsigned int regno, FILE *file)
 
 
 void
-df_ref_debug (struct df_ref *ref, FILE *file)
+df_ref_debug (df_ref ref, FILE *file)
 {
   fprintf (file, "%c%d ",
 	   DF_REF_REG_DEF_P (ref) ? 'd' : 'u',
@@ -2193,7 +2123,7 @@ df_ref_debug (struct df_ref *ref, FILE *file)
   fprintf (file, "reg %d bb %d insn %d flag 0x%x type 0x%x ",
 	   DF_REF_REGNO (ref),
 	   DF_REF_BBNO (ref),
-	   DF_REF_INSN_INFO (ref) ? INSN_UID (DF_REF_INSN (ref)) : -1,
+	   DF_REF_IS_ARTIFICIAL (ref) ? -1 : DF_REF_INSN_UID (ref),
 	   DF_REF_FLAGS (ref),
 	   DF_REF_TYPE (ref));
   if (DF_REF_LOC (ref))
@@ -2229,7 +2159,7 @@ debug_df_regno (unsigned int regno)
 
 
 void
-debug_df_ref (struct df_ref *ref)
+debug_df_ref (df_ref ref)
 {
   df_ref_debug (ref, stderr);
 }

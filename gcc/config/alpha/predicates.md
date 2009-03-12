@@ -1,5 +1,5 @@
 ;; Predicate definitions for DEC Alpha.
-;; Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -390,7 +390,8 @@
   (ior (match_code "symbol_ref,label_ref")
        (and (match_code "const")
 	    (match_test "GET_CODE (XEXP (op,0)) == PLUS
-			 && GET_CODE (XEXP (XEXP (op,0), 0)) == SYMBOL_REF
+			 && (GET_CODE (XEXP (XEXP (op,0), 0)) == SYMBOL_REF
+			     || GET_CODE (XEXP (XEXP (op,0), 0)) == LABEL_REF)
 			 && GET_CODE (XEXP (XEXP (op,0), 1)) == CONST_INT"))))
 
 ;; Return true if OP is valid for 16-bit DTP relative relocations.

@@ -1031,45 +1031,6 @@ print_operand (FILE *stream, rtx x, int code)
 	  output_address (XEXP (x, 0));
 	  break;
 
-	case CONST:
-	  if (TARGET_SHMEDIA
-	      && (GET_CODE (XEXP (x, 0)) == SIGN_EXTEND
-		  || GET_CODE (XEXP (x, 0)) == ZERO_EXTEND)
-	      && (GET_MODE (XEXP (x, 0)) == DImode
-		  || GET_MODE (XEXP (x, 0)) == SImode)
-	      && GET_CODE (XEXP (XEXP (x, 0), 0)) == TRUNCATE
-	      && GET_MODE (XEXP (XEXP (x, 0), 0)) == HImode)
-	    {
-	      rtx val = XEXP (XEXP (XEXP (x, 0), 0), 0);
-	      rtx val2 = val;
-	      bool nested_expr = false;
-
-	      fputc ('(', stream);
-	      if (GET_CODE (val) == ASHIFTRT)
-		{
-		  fputc ('(', stream);
-		  val2 = XEXP (val, 0);
-		}
-	      if (GET_CODE (val2) == CONST
-		  || GET_RTX_CLASS (GET_CODE (val2)) != RTX_OBJ)
-		{
-		  fputc ('(', stream);
-		  nested_expr = true;
-		}
-	      output_addr_const (stream, val2);
-	      if (nested_expr)
-		fputc (')', stream);
-	      if (GET_CODE (val) == ASHIFTRT)
-		{
-		  fputs (" >> ", stream);
-		  output_addr_const (stream, XEXP (val, 1));
-		  fputc (')', stream);
-		}
-	      fputs (" & 65535)", stream);
-	      break;
-	    }
-
-	  /* Fall through.  */
 	default:
 	  if (TARGET_SH1)
 	    fputc ('#', stream);
@@ -2191,22 +2152,18 @@ sh_file_start (void)
 static bool
 unspec_caller_rtx_p (rtx pat)
 {
-  switch (GET_CODE (pat))
-    {
-    case CONST:
-      return unspec_caller_rtx_p (XEXP (pat, 0));
-    case PLUS:
-    case MINUS:
-      if (unspec_caller_rtx_p (XEXP (pat, 0)))
-	return true;
-      return unspec_caller_rtx_p (XEXP (pat, 1));
-    case UNSPEC:
-      if (XINT (pat, 1) == UNSPEC_CALLER)
-	return true;
-    default:
-      break;
-    }
+  rtx base, offset;
+  int i;
 
+  split_const (pat, &base, &offset);
+  if (GET_CODE (base) == UNSPEC)
+    {
+      if (XINT (base, 1) == UNSPEC_CALLER)
+	return true;
+      for (i = 0; i < XVECLEN (base, 0); i++)
+	if (unspec_caller_rtx_p (XVECEXP (base, 0, i)))
+	  return true;
+    }
   return false;
 }
 
@@ -3830,7 +3787,7 @@ fixup_mova (rtx mova)
     {
       rtx worker = mova;
       rtx lab = gen_label_rtx ();
-      rtx wpat, wpat0, wpat1, wsrc, diff;
+      rtx wpat, wpat0, wpat1, wsrc, target, base, diff;
 
       do
 	{
@@ -3849,9 +3806,9 @@ fixup_mova (rtx mova)
 			   XEXP (XVECEXP (wsrc, 0, 2), 0), lab,
 			   XEXP (wpat1, 0)));
       INSN_CODE (worker) = -1;
-      diff = gen_rtx_MINUS (Pmode, XVECEXP (SET_SRC (PATTERN (mova)), 0, 0),
-			    gen_rtx_LABEL_REF (Pmode, lab));
-      diff = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, diff), UNSPEC_PIC);
+      target = XVECEXP (SET_SRC (PATTERN (mova)), 0, 0);
+      base = gen_rtx_LABEL_REF (Pmode, lab);
+      diff = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, target, base), UNSPEC_SYMOFF);
       SET_SRC (PATTERN (mova)) = gen_rtx_CONST (Pmode, diff);
       INSN_CODE (mova) = -1;
     }
@@ -3869,6 +3826,10 @@ untangle_mova (int *num_mova, rtx *first_mova, rtx new_mova)
 
   if (optimize)
     {
+      /* If NEW_MOVA has no address yet, it will be handled later.  */
+      if (INSN_ADDRESSES_SIZE() <= (unsigned) INSN_UID (new_mova))
+	return -1;
+
       n_addr = INSN_ADDRESSES (INSN_UID (new_mova));
       n_target = INSN_ADDRESSES (INSN_UID (XEXP (MOVA_LABELREF (new_mova), 0)));
       if (n_addr > n_target || n_addr + 1022 < n_target)
@@ -8853,7 +8814,9 @@ nonpic_symbol_mentioned_p (rtx x)
 	  || XINT (x, 1) == UNSPEC_GOTPLT
 	  || XINT (x, 1) == UNSPEC_GOTTPOFF
 	  || XINT (x, 1) == UNSPEC_DTPOFF
-	  || XINT (x, 1) == UNSPEC_PLT))
+	  || XINT (x, 1) == UNSPEC_PLT
+	  || XINT (x, 1) == UNSPEC_SYMOFF
+	  || XINT (x, 1) == UNSPEC_PCREL_SYMOFF))
     return 0;
 
   fmt = GET_RTX_FORMAT (GET_CODE (x));
@@ -10234,6 +10197,108 @@ sh_expand_binop_v2sf (enum rtx_code code, rtx op0, rtx op1, rtx op2)
   emit_insn (gen_binary_sf_op1 (op0, op1, op2, op));
 }
 
+/* Return true if hard register REGNO can hold a value of machine-mode MODE.
+   We can allow any mode in any general register.  The special registers
+   only allow SImode.  Don't allow any mode in the PR.
+
+   We cannot hold DCmode values in the XD registers because alter_reg
+   handles subregs of them incorrectly.  We could work around this by
+   spacing the XD registers like the DR registers, but this would require
+   additional memory in every compilation to hold larger register vectors.
+   We could hold SFmode / SCmode values in XD registers, but that
+   would require a tertiary reload when reloading from / to memory,
+   and a secondary reload to reload from / to general regs; that
+   seems to be a loosing proposition.
+
+   We want to allow TImode FP regs so that when V4SFmode is loaded as TImode,
+   it won't be ferried through GP registers first.  */
+
+bool
+sh_hard_regno_mode_ok (unsigned int regno, enum machine_mode mode)
+{
+  if (SPECIAL_REGISTER_P (regno))
+    return mode == SImode;
+
+  if (regno == FPUL_REG)
+    return (mode == SImode || mode == SFmode);
+
+  if (FP_REGISTER_P (regno) && mode == SFmode)
+    return true;
+
+  if (mode == V2SFmode)
+    {
+      if (((FP_REGISTER_P (regno) && (regno - FIRST_FP_REG) % 2 == 0)
+	   || GENERAL_REGISTER_P (regno)))
+	return true;
+      else
+	return false;
+    }
+
+  if (mode == V4SFmode)
+    {
+      if ((FP_REGISTER_P (regno) && (regno - FIRST_FP_REG) % 4 == 0)
+	  || GENERAL_REGISTER_P (regno))
+	return true;
+      else
+	return false;
+    }
+
+  if (mode == V16SFmode)
+    {
+      if (TARGET_SHMEDIA)
+	{
+	  if (FP_REGISTER_P (regno) && (regno - FIRST_FP_REG) % 16 == 0)
+	    return true;
+	  else
+	    return false;
+	}
+      else
+	return regno == FIRST_XD_REG;
+    }
+
+  if (FP_REGISTER_P (regno))
+    {
+      if (mode == SFmode
+	  || mode == SImode
+	  || ((TARGET_SH2E || TARGET_SHMEDIA) && mode == SCmode)
+	  || ((((TARGET_SH4 || TARGET_SH2A_DOUBLE) && mode == DFmode)
+	       || mode == DCmode
+	       || (TARGET_SHMEDIA
+		   && (mode == DFmode || mode == DImode
+		       || mode == V2SFmode || mode == TImode)))
+	      && ((regno - FIRST_FP_REG) & 1) == 0)
+	  || ((TARGET_SH4 || TARGET_SHMEDIA) && mode == TImode
+	      && ((regno - FIRST_FP_REG) & 3) == 0))
+	return true;
+      else
+	return false;
+    }
+
+  if (XD_REGISTER_P (regno))
+    return mode == DFmode;
+
+  if (TARGET_REGISTER_P (regno))
+    return (mode == DImode || mode == SImode || mode == PDImode);
+
+  if (regno == PR_REG)
+    return mode == SImode;
+
+  if (regno == FPSCR_REG)
+    return mode == PSImode;
+
+  /* FIXME.  This works around PR target/37633 for -O0.  */
+  if (!optimize && TARGET_SHMEDIA32 && GET_MODE_SIZE (mode) > 4)
+    {
+      unsigned int n = GET_MODE_SIZE (mode) / 8;
+
+      if (regno >= FIRST_GENERAL_REG + 10 - n + 1
+	  && regno <= FIRST_GENERAL_REG + 14)
+	return false;
+    }
+
+  return true;
+}
+
 /* Return the class of registers for which a mode change from FROM to TO
    is invalid.  */
 bool
@@ -11224,7 +11289,7 @@ sh_secondary_reload (bool in_p, rtx x, enum reg_class rclass,
 	  return NO_REGS;
 	}
       if (TARGET_SHMEDIA && rclass == GENERAL_REGS
-          && (GET_CODE (x) == LABEL_REF || PIC_DIRECT_ADDR_P (x)))
+          && (GET_CODE (x) == LABEL_REF || PIC_ADDR_P (x)))
         return TARGET_REGS;
     } /* end of input-only processing.  */
 

@@ -1,6 +1,6 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -572,9 +572,14 @@ check_classfn (tree ctype, tree function, tree template_parms)
      either were not passed, or they are the same of DECL_TEMPLATE_PARMS.  */
   if (TREE_CODE (function) == TEMPLATE_DECL)
     {
-      gcc_assert (!template_parms
-		  || comp_template_parms (template_parms,
-					  DECL_TEMPLATE_PARMS (function)));
+      if (template_parms
+	  && !comp_template_parms (template_parms,
+				   DECL_TEMPLATE_PARMS (function)))
+	{
+	  error ("template parameter lists provided don't match the "
+		 "template parameters of %qD", function);
+	  return error_mark_node;
+	}
       template_parms = DECL_TEMPLATE_PARMS (function);
     }
 
@@ -803,7 +808,17 @@ grokfield (const cp_declarator *declarator,
 	value = push_template_decl (value);
 
       if (attrlist)
-	cplus_decl_attributes (&value, attrlist, 0);
+	{
+	  int attrflags = 0;
+
+	  /* If this is a typedef that names the class for linkage purposes
+	     (7.1.3p8), apply any attributes directly to the type.  */
+	  if (TAGGED_TYPE_P (TREE_TYPE (value))
+	      && value == TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))))
+	    attrflags = ATTR_FLAG_TYPE_IN_PLACE;
+
+	  cplus_decl_attributes (&value, attrlist, attrflags);
+	}
 
       return value;
     }
@@ -1349,6 +1364,7 @@ finish_anon_union (tree anon_union_decl)
     {
       /* Use main_decl to set the mangled name.  */
       DECL_NAME (anon_union_decl) = DECL_NAME (main_decl);
+      maybe_commonize_var (anon_union_decl);
       mangle_decl (anon_union_decl);
       DECL_NAME (anon_union_decl) = NULL_TREE;
     }
@@ -1906,6 +1922,8 @@ determine_visibility (tree decl)
 {
   tree class_type = NULL_TREE;
   bool use_template;
+  bool orig_visibility_specified;
+  enum symbol_visibility orig_visibility;
 
   /* Remember that all decls get VISIBILITY_DEFAULT when built.  */
 
@@ -1917,6 +1935,9 @@ determine_visibility (tree decl)
      the underlying function.  That should be set up in
      maybe_clone_body.  */
   gcc_assert (!DECL_CLONED_FUNCTION_P (decl));
+
+  orig_visibility_specified = DECL_VISIBILITY_SPECIFIED (decl);
+  orig_visibility = DECL_VISIBILITY (decl);
 
   if (TREE_CODE (decl) == TYPE_DECL)
     {
@@ -2046,6 +2067,15 @@ determine_visibility (tree decl)
 	  || ! DECL_VISIBILITY_SPECIFIED (decl))
 	constrain_visibility (decl, tvis);
     }
+
+  /* If visibility changed and DECL already has DECL_RTL, ensure
+     symbol flags are updated.  */
+  if ((DECL_VISIBILITY (decl) != orig_visibility
+       || DECL_VISIBILITY_SPECIFIED (decl) != orig_visibility_specified)
+      && ((TREE_CODE (decl) == VAR_DECL && TREE_STATIC (decl))
+	  || TREE_CODE (decl) == FUNCTION_DECL)
+      && DECL_RTL_SET_P (decl))
+    make_decl_rtl (decl);
 }
 
 /* By default, static data members and function members receive
@@ -3472,7 +3502,7 @@ cp_write_global_declarations (void)
       for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
 	{
 	  /* Does it need synthesizing?  */
-	  if (DECL_ARTIFICIAL (decl) && ! DECL_INITIAL (decl)
+	  if (DECL_DEFAULTED_FN (decl) && ! DECL_INITIAL (decl)
 	      && (! DECL_REALLY_EXTERN (decl) || possibly_inlined_p (decl)))
 	    {
 	      /* Even though we're already at the top-level, we push
@@ -3833,8 +3863,6 @@ mark_used (tree decl)
 
       note_vague_linkage_fn (decl);
     }
-
-  assemble_external (decl);
 
   /* Is it a synthesized method that needs to be synthesized?  */
   if (TREE_CODE (decl) == FUNCTION_DECL

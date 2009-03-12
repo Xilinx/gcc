@@ -1,5 +1,5 @@
 /* Decompose multiword subregs.
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>
 		  Ian Lance Taylor <iant@google.com>
 
@@ -1325,7 +1325,7 @@ struct rtl_opt_pass pass_lower_subreg =
 {
  {
   RTL_PASS,
-  "subreg",	                        /* name */
+  "subreg1",	                        /* name */
   gate_handle_lower_subreg,             /* gate */
   rest_of_handle_lower_subreg,          /* execute */
   NULL,                                 /* sub */

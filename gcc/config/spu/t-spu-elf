@@ -1,4 +1,4 @@
-#  Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+#  Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 #
 #  This file is free software; you can redistribute it and/or modify it under
 #  the terms of the GNU General Public License as published by the Free
@@ -14,6 +14,9 @@
 #  along with GCC; see the file COPYING3.  If not see
 #  <http://www.gnu.org/licenses/>.
 
+# Define system directory to match STANDARD_INCLUDE_DIR in spu-elf.h,
+# allowing combined SPU/PPU sysroot builds.
+NATIVE_SYSTEM_HEADER_DIR = /include
 
 # Suppress building libgcc1.a
 LIBGCC1 =

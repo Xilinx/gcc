@@ -1,6 +1,6 @@
 // <system_error> implementation file
 
-// Copyright (C) 2007, 2008
+// Copyright (C) 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -36,15 +36,12 @@
 namespace
 {
   using std::string; 
-
-  struct gnu_error_category : public std::error_category
+  
+  struct generic_error_category : public std::error_category
   {
     virtual const char*
     name() const 
-    { 
-      const char* s = "GNU";
-      return s;
-    }
+    { return "generic"; }
 
     virtual string 
     message(int i) const
@@ -55,17 +52,33 @@ namespace
     }
   };
 
-  const gnu_error_category gnu_category;
+  struct system_error_category : public std::error_category
+  {
+    virtual const char*
+    name() const
+    { return "system"; }
+
+    virtual string
+    message(int i) const
+    {
+      // XXX locale issues: how does one get or set loc.
+      // _GLIBCXX_HAVE_STRERROR_L, strerror_l(i, cloc)
+      return string(strerror(i));
+    }
+  };
+
+  const generic_error_category generic_category_instance;
+  const system_error_category system_category_instance;
 }
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   const error_category& 
-  get_posix_category() { return gnu_category; }
+  system_category() { return system_category_instance; }
 
   const error_category& 
-  get_system_category() { return gnu_category; }
-
+  generic_category() { return generic_category_instance; }
+  
   system_error::~system_error() throw() { }
 
   error_condition 

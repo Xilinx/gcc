@@ -1,5 +1,6 @@
 ! PR rtl-optimization/37243
 ! { dg-do run }
+! { dg-options "-mieee" { target alpha*-*-* } }
 ! Check if register allocator handles IR flattening correctly.
       SUBROUTINE SCHMD(V,M,N,LDV)
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
@@ -34,7 +35,7 @@
       IF (J .GT. N) GO TO 320
       DO 240 K = 1,N
   240 V(K,I) = ZERO
-      CALL DAXPY(N,DUM,V(1,II),1,V(1,I),1)
+      CALL DAXPY(N,DUM,V(1,I),1,V(1,I),1)
   260 CONTINUE
       DUMI = ZERO
       DO 280 K = 1,N

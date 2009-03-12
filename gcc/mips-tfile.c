@@ -3,7 +3,8 @@
    in the form of comments (the mips assembler does not support
    assembly access to debug information).
    Copyright (C) 1991, 1993, 1994, 1995, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Michael Meissner (meissner@cygnus.com).
 
 This file is part of GCC.
@@ -2855,7 +2856,8 @@ parse_def (const char *name_start)
 	{
 	  int ch2;
 	  arg_number = strtol (arg_start, (char **) &arg_end_p1, 0);
-	  if (arg_end_p1 != arg_start || ((ch2 = *arg_end_p1) != ';') || ch2 != ',')
+	  /* It's only a number if followed by ';' or ','. */
+	  if (arg_end_p1 != arg_start && (((ch2 = *arg_end_p1) == ';') || ch2 == ','))
 	    arg_was_number++;
 	}
 
@@ -2911,7 +2913,7 @@ parse_def (const char *name_start)
 		    {
 		      int ch2;
 		      arg_number = strtol (arg_start, (char **) &arg_end_p1, 0);
-		      if (arg_end_p1 != arg_start || ((ch2 = *arg_end_p1) != ';') || ch2 != ',')
+		      if (arg_end_p1 != arg_start && (((ch2 = *arg_end_p1) == ';') || ch2 == ','))
 			arg_was_number++;
 
 		      if (t_ptr == &temp_array[0])
@@ -2985,7 +2987,7 @@ parse_def (const char *name_start)
 		    {
 		      int ch2;
 		      arg_number = strtol (arg_start, (char **) &arg_end_p1, 0);
-		      if (arg_end_p1 != arg_start || ((ch2 = *arg_end_p1) != ';') || ch2 != ',')
+		      if (arg_end_p1 != arg_start && (((ch2 = *arg_end_p1) == ';') || ch2 == ','))
 			arg_was_number++;
 
 		      if (t_ptr == &temp_array[0])
@@ -4779,7 +4781,7 @@ main (int argc, char **argv)
   if (version)
     {
       printf (_("mips-tfile %s%s\n"), pkgversion_string, version_string);
-      fputs ("Copyright (C) 2008 Free Software Foundation, Inc.\n", stdout);
+      fputs ("Copyright (C) 2009 Free Software Foundation, Inc.\n", stdout);
       fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
 	     stdout);

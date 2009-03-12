@@ -1,5 +1,5 @@
 /* SCC value numbering for trees
-   Copyright (C) 2006, 2007, 2008
+   Copyright (C) 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dan@dberlin.org>
 
@@ -258,8 +258,8 @@ vn_get_expr_for (tree name)
     {
     case tcc_reference:
       if (gimple_assign_rhs_code (def_stmt) == VIEW_CONVERT_EXPR
-	  && gimple_assign_rhs_code (def_stmt) == REALPART_EXPR
-	  && gimple_assign_rhs_code (def_stmt) == IMAGPART_EXPR)
+	  || gimple_assign_rhs_code (def_stmt) == REALPART_EXPR
+	  || gimple_assign_rhs_code (def_stmt) == IMAGPART_EXPR)
 	expr = fold_build1 (gimple_assign_rhs_code (def_stmt),
 			    gimple_expr_type (def_stmt),
 			    TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0));
@@ -315,6 +315,9 @@ vn_constant_eq (const void *p1, const void *p2)
 {
   const struct vn_constant_s *vc1 = (const struct vn_constant_s *) p1;
   const struct vn_constant_s *vc2 = (const struct vn_constant_s *) p2;
+
+  if (vc1->hashcode != vc2->hashcode)
+    return false;
 
   return vn_constant_eq_with_type (vc1->constant, vc2->constant);
 }
@@ -386,6 +389,7 @@ vn_reference_op_eq (const void *p1, const void *p2)
 {
   const_vn_reference_op_t const vro1 = (const_vn_reference_op_t) p1;
   const_vn_reference_op_t const vro2 = (const_vn_reference_op_t) p2;
+
   return vro1->opcode == vro2->opcode
     && types_compatible_p (vro1->type, vro2->type)
     && expressions_equal_p (vro1->op0, vro2->op0)
@@ -398,9 +402,14 @@ vn_reference_op_eq (const void *p1, const void *p2)
 static hashval_t
 vn_reference_op_compute_hash (const vn_reference_op_t vro1)
 {
-  return iterative_hash_expr (vro1->op0, vro1->opcode)
-    + iterative_hash_expr (vro1->op1, vro1->opcode)
-    + iterative_hash_expr (vro1->op2, vro1->opcode);
+  hashval_t result = 0;
+  if (vro1->op0)
+    result += iterative_hash_expr (vro1->op0, vro1->opcode);
+  if (vro1->op1)
+    result += iterative_hash_expr (vro1->op1, vro1->opcode);
+  if (vro1->op2)
+    result += iterative_hash_expr (vro1->op2, vro1->opcode);
+  return result;
 }
 
 /* Return the hashcode for a given reference operation P1.  */
@@ -442,6 +451,8 @@ vn_reference_eq (const void *p1, const void *p2)
 
   const_vn_reference_t const vr1 = (const_vn_reference_t) p1;
   const_vn_reference_t const vr2 = (const_vn_reference_t) p2;
+  if (vr1->hashcode != vr2->hashcode)
+    return false;
 
   if (vr1->vuses == vr2->vuses
       && vr1->operands == vr2->operands)
@@ -498,7 +509,7 @@ vuses_to_vec (gimple stmt, VEC (tree, gc) **result)
 /* Copy the VUSE names in STMT into a vector, and return
    the vector.  */
 
-VEC (tree, gc) *
+static VEC (tree, gc) *
 copy_vuses_from_stmt (gimple stmt)
 {
   VEC (tree, gc) *vuses = NULL;
@@ -1183,6 +1194,9 @@ vn_nary_op_eq (const void *p1, const void *p2)
   const_vn_nary_op_t const vno2 = (const_vn_nary_op_t) p2;
   unsigned i;
 
+  if (vno1->hashcode != vno2->hashcode)
+    return false;
+
   if (vno1->opcode != vno2->opcode
       || !types_compatible_p (vno1->type, vno2->type))
     return false;
@@ -1281,6 +1295,10 @@ vn_nary_op_lookup_stmt (gimple stmt, vn_nary_op_t *vnresult)
   vno1.type = TREE_TYPE (gimple_assign_lhs (stmt));
   for (i = 0; i < vno1.length; ++i)
     vno1.op[i] = gimple_op (stmt, i + 1);
+  if (vno1.opcode == REALPART_EXPR
+      || vno1.opcode == IMAGPART_EXPR
+      || vno1.opcode == VIEW_CONVERT_EXPR)
+    vno1.op[0] = TREE_OPERAND (vno1.op[0], 0);
   vno1.hashcode = vn_nary_op_compute_hash (&vno1);
   slot = htab_find_slot_with_hash (current_info->nary, &vno1, vno1.hashcode,
 				   NO_INSERT);
@@ -1385,6 +1403,10 @@ vn_nary_op_insert_stmt (gimple stmt, tree result)
   vno1->type = TREE_TYPE (gimple_assign_lhs (stmt));
   for (i = 0; i < vno1->length; ++i)
     vno1->op[i] = gimple_op (stmt, i + 1);
+  if (vno1->opcode == REALPART_EXPR
+      || vno1->opcode == IMAGPART_EXPR
+      || vno1->opcode == VIEW_CONVERT_EXPR)
+    vno1->op[0] = TREE_OPERAND (vno1->op[0], 0);
   vno1->result = result;
   vno1->hashcode = vn_nary_op_compute_hash (vno1);
   slot = htab_find_slot_with_hash (current_info->nary, vno1, vno1->hashcode,
@@ -1441,6 +1463,9 @@ vn_phi_eq (const void *p1, const void *p2)
   const_vn_phi_t const vp1 = (const_vn_phi_t) p1;
   const_vn_phi_t const vp2 = (const_vn_phi_t) p2;
 
+  if (vp1->hashcode != vp2->hashcode)
+    return false;
+
   if (vp1->block == vp2->block)
     {
       int i;
@@ -1473,7 +1498,7 @@ static VEC(tree, heap) *shared_lookup_phiargs;
    value number if it exists in the hash table.  Return NULL_TREE if
    it does not exist in the hash table. */
 
-tree
+static tree
 vn_phi_lookup (gimple phi)
 {
   void **slot;
@@ -1579,7 +1604,6 @@ set_ssa_val_to (tree from, tree to)
       print_generic_expr (dump_file, from, 0);
       fprintf (dump_file, " to ");
       print_generic_expr (dump_file, to, 0);
-      fprintf (dump_file, "\n");
     }
 
   currval = SSA_VAL (from);
@@ -1587,8 +1611,12 @@ set_ssa_val_to (tree from, tree to)
   if (currval != to  && !operand_equal_p (currval, to, OEP_PURE_SAME))
     {
       SSA_VAL (from) = to;
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, " (changed)\n");
       return true;
     }
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\n");
   return false;
 }
 
@@ -1750,7 +1778,8 @@ visit_reference_op_load (tree lhs, tree op, gimple stmt)
 	  tree tem = valueize_expr (vn_get_expr_for (TREE_OPERAND (val, 0)));
 	  if ((CONVERT_EXPR_P (tem)
 	       || TREE_CODE (tem) == VIEW_CONVERT_EXPR)
-	      && (tem = fold_unary (TREE_CODE (val), TREE_TYPE (val), tem)))
+	      && (tem = fold_unary_ignore_overflow (TREE_CODE (val),
+						    TREE_TYPE (val), tem)))
 	    val = tem;
 	}
       result = val;
@@ -2112,7 +2141,9 @@ simplify_binary_expression (gimple stmt)
   fold_defer_overflow_warnings ();
 
   result = fold_binary (gimple_assign_rhs_code (stmt),
-			TREE_TYPE (gimple_get_lhs (stmt)), op0, op1);
+		        TREE_TYPE (gimple_get_lhs (stmt)), op0, op1);
+  if (result)
+    STRIP_USELESS_TYPE_CONVERSION (result);
 
   fold_undefer_overflow_warnings (result && valid_gimple_rhs_p (result),
 				  stmt, 0);
@@ -2169,8 +2200,8 @@ simplify_unary_expression (gimple stmt)
   if (op0 == orig_op0)
     return NULL_TREE;
 
-  result = fold_unary (gimple_assign_rhs_code (stmt),
-		       gimple_expr_type (stmt), op0);
+  result = fold_unary_ignore_overflow (gimple_assign_rhs_code (stmt),
+				       gimple_expr_type (stmt), op0);
   if (result)
     {
       STRIP_USELESS_TYPE_CONVERSION (result);
@@ -2336,14 +2367,19 @@ visit_use (tree use)
 	      VN_INFO (lhs)->expr = NULL_TREE;
 	    }
 
-	  if (TREE_CODE (lhs) == SSA_NAME
-	      /* We can substitute SSA_NAMEs that are live over
-		 abnormal edges with their constant value.  */
-	      && !(gimple_assign_copy_p (stmt)
-		   && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
-	      && !(simplified
-		   && is_gimple_min_invariant (simplified))
-	      && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (lhs))
+	  if ((TREE_CODE (lhs) == SSA_NAME
+	       /* We can substitute SSA_NAMEs that are live over
+		  abnormal edges with their constant value.  */
+	       && !(gimple_assign_copy_p (stmt)
+		    && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
+	       && !(simplified
+		    && is_gimple_min_invariant (simplified))
+	       && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (lhs))
+	      /* Stores or copies from SSA_NAMEs that are live over
+		 abnormal edges are a problem.  */
+	      || (gimple_assign_single_p (stmt)
+		  && TREE_CODE (gimple_assign_rhs1 (stmt)) == SSA_NAME
+		  && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (gimple_assign_rhs1 (stmt))))
 	    changed = defs_to_varying (stmt);
 	  else if (REFERENCE_CLASS_P (lhs) || DECL_P (lhs))
 	    {
@@ -2375,8 +2411,18 @@ visit_use (tree use)
 		    case GIMPLE_SINGLE_RHS:
 		      switch (TREE_CODE_CLASS (gimple_assign_rhs_code (stmt)))
 			{
-			case tcc_declaration:
 			case tcc_reference:
+			  /* VOP-less references can go through unary case.  */
+			  if ((gimple_assign_rhs_code (stmt) == REALPART_EXPR
+			       || gimple_assign_rhs_code (stmt) == IMAGPART_EXPR
+			       || gimple_assign_rhs_code (stmt) == VIEW_CONVERT_EXPR )
+			      && TREE_CODE (TREE_OPERAND (gimple_assign_rhs1 (stmt), 0)) == SSA_NAME)
+			    {
+			      changed = visit_unary_op (lhs, stmt);
+			      break;
+			    }
+			  /* Fallthrough.  */
+			case tcc_declaration:
 			  changed = visit_reference_op_load
 			      (lhs, gimple_assign_rhs1 (stmt), stmt);
 			  break;
@@ -2631,7 +2677,7 @@ start_over:
 	usep = op_iter_init_use (&iter, defstmt, SSA_OP_ALL_USES);
     }
   else
-    iter.done = true;
+    clear_and_done_ssa_iter (&iter);
 
   while (1)
     {
@@ -3048,4 +3094,51 @@ sort_vuses_heap (VEC (tree,heap) *vuses)
 	   VEC_length (tree, vuses),
 	   sizeof (tree),
 	   operand_build_cmp);
+}
+
+
+/* Return true if the nary operation NARY may trap.  This is a copy
+   of stmt_could_throw_1_p adjusted to the SCCVN IL.  */
+
+bool
+vn_nary_may_trap (vn_nary_op_t nary)
+{
+  tree type;
+  tree rhs2;
+  bool honor_nans = false;
+  bool honor_snans = false;
+  bool fp_operation = false;
+  bool honor_trapv = false;
+  bool handled, ret;
+  unsigned i;
+
+  if (TREE_CODE_CLASS (nary->opcode) == tcc_comparison
+      || TREE_CODE_CLASS (nary->opcode) == tcc_unary
+      || TREE_CODE_CLASS (nary->opcode) == tcc_binary)
+    {
+      type = nary->type;
+      fp_operation = FLOAT_TYPE_P (type);
+      if (fp_operation)
+	{
+	  honor_nans = flag_trapping_math && !flag_finite_math_only;
+	  honor_snans = flag_signaling_nans != 0;
+	}
+      else if (INTEGRAL_TYPE_P (type)
+	       && TYPE_OVERFLOW_TRAPS (type))
+	honor_trapv = true;
+    }
+  rhs2 = nary->op[1];
+  ret = operation_could_trap_helper_p (nary->opcode, fp_operation,
+				       honor_trapv,
+				       honor_nans, honor_snans, rhs2,
+				       &handled);
+  if (handled
+      && ret)
+    return true;
+
+  for (i = 0; i < nary->length; ++i)
+    if (tree_could_trap_p (nary->op[i]))
+      return true;
+
+  return false;
 }

@@ -1,6 +1,6 @@
 /* Definitions for C++ parsing and type checking.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -89,6 +89,7 @@ framework extensions, you must include this file before toplev.h, not after.
       DECL_INITIALIZED_P (in VAR_DECL)
       TYPENAME_IS_CLASS_P (in TYPENAME_TYPE)
       STMT_IS_FULL_EXPR_P (in _STMT)
+      TARGET_EXPR_LIST_INIT_P (in TARGET_EXPR)
    2: IDENTIFIER_OPNAME_P (in IDENTIFIER_NODE)
       ICS_THIS_FLAG (in _CONV)
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (in VAR_DECL)
@@ -316,8 +317,8 @@ typedef struct ptrmem_cst * ptrmem_cst_t;
 #define DECL_MAIN_P(NODE)				\
    (DECL_EXTERN_C_FUNCTION_P (NODE)			\
     && DECL_NAME (NODE) != NULL_TREE			\
-    && MAIN_NAME_P (DECL_NAME (NODE)))                  \
-    && flag_hosted
+    && MAIN_NAME_P (DECL_NAME (NODE))			\
+    && flag_hosted)
 
 /* The overloaded FUNCTION_DECL.  */
 #define OVL_FUNCTION(NODE) \
@@ -1877,7 +1878,7 @@ struct lang_decl GTY(())
   (IDENTIFIER_OPNAME_P (DECL_NAME (NODE))		\
    ? DECL_LANG_SPECIFIC (NODE)->u.f.operator_code : ERROR_MARK)
 
-/* Nonzero if NODE is an assignment operator.  */
+/* Nonzero if NODE is an assignment operator (including += and such).  */
 #define DECL_ASSIGNMENT_OPERATOR_P(NODE) \
   (DECL_LANG_SPECIFIC (NODE)->decl_flags.assignment_operator_p)
 
@@ -1978,8 +1979,7 @@ struct lang_decl GTY(())
 
 /* Nonzero for a DECL means that this member is a non-static member.  */
 #define DECL_NONSTATIC_MEMBER_P(NODE)		\
-  ((TREE_CODE (NODE) == FUNCTION_DECL		\
-    && DECL_NONSTATIC_MEMBER_FUNCTION_P (NODE))	\
+  (DECL_NONSTATIC_MEMBER_FUNCTION_P (NODE)	\
    || TREE_CODE (NODE) == FIELD_DECL)
 
 /* Nonzero for _DECL means that this member object type
@@ -2270,8 +2270,8 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 
 /* Nonzero if the template arguments is actually a vector of vectors,
    rather than just a vector.  */
-#define TMPL_ARGS_HAVE_MULTIPLE_LEVELS(NODE)		\
-  (NODE && TREE_VEC_ELT (NODE, 0)                       \
+#define TMPL_ARGS_HAVE_MULTIPLE_LEVELS(NODE)		     \
+  (NODE && TREE_VEC_LENGTH (NODE) && TREE_VEC_ELT (NODE, 0)  \
    && TREE_CODE (TREE_VEC_ELT (NODE, 0)) == TREE_VEC)
 
 /* The depth of a template argument vector.  When called directly by
@@ -2491,6 +2491,11 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    constructor call, rather than an ordinary function call.  */
 #define AGGR_INIT_VIA_CTOR_P(NODE) \
   TREE_LANG_FLAG_0 (AGGR_INIT_EXPR_CHECK (NODE))
+
+/* Nonzero if expanding this AGGR_INIT_EXPR should first zero-initialize
+   the object.  */
+#define AGGR_INIT_ZERO_FIRST(NODE) \
+  TREE_LANG_FLAG_2 (AGGR_INIT_EXPR_CHECK (NODE))
 
 /* AGGR_INIT_EXPR accessors.  These are equivalent to the CALL_EXPR
    accessors, except for AGGR_INIT_EXPR_SLOT (which takes the place of
@@ -2825,7 +2830,7 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define CLASSTYPE_NON_AGGREGATE(NODE) \
   (LANG_TYPE_CLASS_CHECK (NODE)->non_aggregate)
 #define TYPE_NON_AGGREGATE_CLASS(NODE) \
-  (MAYBE_CLASS_TYPE_P (NODE) && CLASSTYPE_NON_AGGREGATE (NODE))
+  (CLASS_TYPE_P (NODE) && CLASSTYPE_NON_AGGREGATE (NODE))
 
 /* Nonzero if there is a user-defined X::op=(x&) for this class.  */
 #define TYPE_HAS_COMPLEX_ASSIGN_REF(NODE) (LANG_TYPE_CLASS_CHECK (NODE)->has_complex_assign_ref)
@@ -3464,6 +3469,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define TARGET_EXPR_IMPLICIT_P(NODE) \
   TREE_LANG_FLAG_0 (TARGET_EXPR_CHECK (NODE))
 
+/* True if this TARGET_EXPR is the result of list-initialization of a
+   temporary.  */
+#define TARGET_EXPR_LIST_INIT_P(NODE) \
+  TREE_LANG_FLAG_1 (TARGET_EXPR_CHECK (NODE))
+
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
   none_type = 0, /* Not a tag type.  */
@@ -3555,20 +3565,22 @@ typedef enum linkage_kind {
 
 /* Bitmask flags to control type substitution.  */
 typedef enum tsubst_flags_t {
-  tf_none = 0,			/* nothing special */
-  tf_error = 1 << 0,		/* give error messages  */
-  tf_warning = 1 << 1,		/* give warnings too  */
-  tf_ignore_bad_quals = 1 << 2,	/* ignore bad cvr qualifiers */
-  tf_keep_type_decl = 1 << 3,	/* retain typedef type decls
-				   (make_typename_type use) */
-  tf_ptrmem_ok = 1 << 4,	/* pointers to member ok (internal
-				   instantiate_type use) */
-  tf_user = 1 << 5,		/* found template must be a user template
-				   (lookup_template_class use) */
-  tf_conv = 1 << 6,		/* We are determining what kind of
-				   conversion might be permissible,
-				   not actually performing the
-				   conversion.  */
+  tf_none = 0,			 /* nothing special */
+  tf_error = 1 << 0,		 /* give error messages  */
+  tf_warning = 1 << 1,	 	 /* give warnings too  */
+  tf_ignore_bad_quals = 1 << 2,	 /* ignore bad cvr qualifiers */
+  tf_keep_type_decl = 1 << 3,	 /* retain typedef type decls
+				    (make_typename_type use) */
+  tf_ptrmem_ok = 1 << 4,	 /* pointers to member ok (internal
+				    instantiate_type use) */
+  tf_user = 1 << 5,		 /* found template must be a user template
+				    (lookup_template_class use) */
+  tf_conv = 1 << 6,		 /* We are determining what kind of
+				    conversion might be permissible,
+				    not actually performing the
+				    conversion.  */
+  tf_no_access_control = 1 << 7, /* Do not perform access checks, even
+				    when issuing other errors.   */
   /* Convenient substitution flags combinations.  */
   tf_warning_or_error = tf_warning | tf_error
 } tsubst_flags_t;
@@ -3648,20 +3660,8 @@ extern GTY(()) VEC(tree,gc) *local_classes;
    at a particular location, we can index into the string at
    any other location that provides distinguishing characters).  */
 
-/* Define NO_DOLLAR_IN_LABEL in your favorite tm file if your assembler
-   doesn't allow '$' in symbol names.  */
-#ifndef NO_DOLLAR_IN_LABEL
-
-#define JOINER '$'
-
-#define AUTO_TEMP_NAME "_$tmp_"
-#define VFIELD_BASE "$vf"
-#define VFIELD_NAME "_vptr$"
-#define VFIELD_NAME_FORMAT "_vptr$%s"
-#define ANON_AGGRNAME_FORMAT "$_%d"
-
-#else /* NO_DOLLAR_IN_LABEL */
-
+/* Define NO_DOT_IN_LABEL in your favorite tm file if your assembler
+   doesn't allow '.' in symbol names.  */
 #ifndef NO_DOT_IN_LABEL
 
 #define JOINER '.'
@@ -3674,6 +3674,18 @@ extern GTY(()) VEC(tree,gc) *local_classes;
 #define ANON_AGGRNAME_FORMAT "._%d"
 
 #else /* NO_DOT_IN_LABEL */
+
+#ifndef NO_DOLLAR_IN_LABEL
+
+#define JOINER '$'
+
+#define AUTO_TEMP_NAME "_$tmp_"
+#define VFIELD_BASE "$vf"
+#define VFIELD_NAME "_vptr$"
+#define VFIELD_NAME_FORMAT "_vptr$%s"
+#define ANON_AGGRNAME_FORMAT "$_%d"
+
+#else /* NO_DOLLAR_IN_LABEL */
 
 #define IN_CHARGE_NAME "__in_chrg"
 #define AUTO_TEMP_NAME "__tmp_"
@@ -3697,8 +3709,8 @@ extern GTY(()) VEC(tree,gc) *local_classes;
 	     sizeof (ANON_AGGRNAME_PREFIX) - 1))
 #define ANON_AGGRNAME_FORMAT "__anon_%d"
 
-#endif	/* NO_DOT_IN_LABEL */
 #endif	/* NO_DOLLAR_IN_LABEL */
+#endif	/* NO_DOT_IN_LABEL */
 
 #define THIS_NAME "this"
 
@@ -4228,6 +4240,7 @@ extern void finish_struct_1			(tree);
 extern int resolves_to_fixed_type_p		(tree, int *);
 extern void init_class_processing		(void);
 extern int is_empty_class			(tree);
+extern bool is_really_empty_class		(tree);
 extern void pushclass				(tree);
 extern void popclass				(void);
 extern void push_nested_class			(tree);
@@ -4348,6 +4361,7 @@ extern tree finish_function			(int);
 extern tree start_method			(cp_decl_specifier_seq *, const cp_declarator *, tree);
 extern tree finish_method			(tree);
 extern void maybe_register_incomplete_var	(tree);
+extern void maybe_commonize_var			(tree);
 extern void complete_vars			(tree);
 extern void finish_stmt				(void);
 extern void print_other_binding_stack		(struct cp_binding_level *);
@@ -4464,12 +4478,12 @@ extern int is_class_type			(tree, int);
 extern tree get_type_value			(tree);
 extern tree build_zero_init			(tree, tree, bool);
 extern tree build_value_init			(tree);
+extern tree build_value_init_noctor		(tree);
 extern tree build_offset_ref			(tree, tree, bool);
 extern tree build_new				(tree, tree, tree, tree, int,
                                                  tsubst_flags_t);
 extern tree build_vec_init			(tree, tree, tree, bool, int,
                                                  tsubst_flags_t);
-extern tree build_default_init                  (tree, tree);
 extern tree build_delete			(tree, tree,
 						 special_function_kind,
 						 int, int);
@@ -4581,6 +4595,7 @@ extern struct tinst_level *current_instantiation(void);
 extern tree maybe_get_template_decl_from_type_decl (tree);
 extern int processing_template_parmlist;
 extern bool dependent_type_p			(tree);
+extern bool dependent_scope_p			(tree);
 extern bool any_dependent_template_arguments_p  (const_tree);
 extern bool dependent_template_p		(tree);
 extern bool dependent_template_id_p		(tree, tree);
@@ -4597,6 +4612,7 @@ extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
 extern bool explicit_class_specialization_p     (tree);
 extern struct tinst_level *outermost_tinst_level(void);
+extern bool parameter_of_template_p		(tree, tree);
 
 /* in repo.c */
 extern void init_repo				(void);
@@ -4744,7 +4760,7 @@ extern tree finish_stmt_expr_expr		(tree, tree);
 extern tree finish_stmt_expr			(tree, bool);
 extern tree stmt_expr_value_expr		(tree);
 extern tree perform_koenig_lookup		(tree, tree);
-extern tree finish_call_expr			(tree, tree, bool, bool, 
+extern tree finish_call_expr			(tree, tree, bool, int, 
 						 tsubst_flags_t);
 extern tree finish_increment_expr		(tree, enum tree_code);
 extern tree finish_this_expr			(void);
@@ -4808,6 +4824,7 @@ extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);
 extern void finish_static_assert                (tree, tree, location_t,
                                                  bool);
+extern tree describable_type			(tree);
 extern tree finish_decltype_type                (tree, bool);
 extern tree finish_trait_expr			(enum cp_trait_kind, tree, tree);
 
@@ -4828,7 +4845,7 @@ extern tree canonical_type_variant		(tree);
 extern tree copy_binfo				(tree, tree, tree,
 						 tree *, int);
 extern int member_p				(const_tree);
-extern cp_lvalue_kind real_lvalue_p		(const_tree);
+extern cp_lvalue_kind real_lvalue_p		(tree);
 extern bool builtin_valid_in_constant_expr_p    (const_tree);
 extern tree build_min				(enum tree_code, tree, ...);
 extern tree build_min_nt			(enum tree_code, ...);
@@ -4924,6 +4941,7 @@ extern tree build_x_binary_op			(enum tree_code, tree,
 						 enum tree_code, tree,
 						 enum tree_code, bool *,
 						 tsubst_flags_t);
+extern tree build_x_array_ref			(tree, tree, tsubst_flags_t);
 extern tree build_x_unary_op			(enum tree_code, tree,
                                                  tsubst_flags_t);
 extern tree cp_build_unary_op                   (enum tree_code, tree, int, 
@@ -4959,6 +4977,7 @@ extern void cp_apply_type_quals_to_decl		(int, tree);
 extern tree build_ptrmemfunc1			(tree, tree, tree);
 extern void expand_ptrmemfunc_cst		(tree, tree *, tree *);
 extern tree type_after_usual_arithmetic_conversions (tree, tree);
+extern tree common_pointer_type                 (tree, tree);
 extern tree composite_pointer_type		(tree, tree, tree, tree,
 						 const char*, tsubst_flags_t);
 extern tree merge_types				(tree, tree);
@@ -4975,9 +4994,9 @@ extern tree lookup_anon_field			(tree, tree);
 extern bool invalid_nonstatic_memfn_p		(const_tree, tsubst_flags_t);
 extern tree convert_member_func_to_ptr		(tree, tree);
 extern tree convert_ptrmem			(tree, tree, bool, bool);
-extern int lvalue_or_else			(const_tree, enum lvalue_use,
+extern int lvalue_or_else			(tree, enum lvalue_use,
                                                  tsubst_flags_t);
-extern int lvalue_p				(const_tree);
+extern int lvalue_p				(tree);
 
 /* in typeck2.c */
 extern void require_complete_eh_spec_types	(tree, tree);

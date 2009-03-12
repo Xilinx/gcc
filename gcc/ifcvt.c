@@ -1,5 +1,5 @@
 /* If-conversion support.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -3922,10 +3922,10 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
 	  if (INSN_P (insn))
 	    {
 	      unsigned int uid = INSN_UID (insn);
-	      struct df_ref **def_rec;
+	      df_ref *def_rec;
 	      for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 		{
-		  struct df_ref *def = *def_rec;
+		  df_ref def = *def_rec;
 		  bitmap_set_bit (merge_set, DF_REF_REGNO (def));
 		}
 	    }
@@ -3950,13 +3950,13 @@ dead_or_predicable (basic_block test_bb, basic_block merge_bb,
       /* The loop below takes the set of live registers 
          after JUMP, and calculates the live set before EARLIEST. */
       bitmap_copy (test_live, df_get_live_in (other_bb));
-      df_simulate_artificial_refs_at_end (test_bb, test_live);
+      df_simulate_initialize_backwards (test_bb, test_live);
       for (insn = jump; ; insn = prev)
 	{
 	  if (INSN_P (insn))
 	    {
 	      df_simulate_find_defs (insn, test_set);
-	      df_simulate_one_insn (test_bb, insn, test_live);
+	      df_simulate_one_insn_backwards (test_bb, insn, test_live);
 	    }
 	  prev = PREV_INSN (insn);
 	  if (insn == earliest)

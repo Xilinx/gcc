@@ -1,3 +1,39 @@
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* mf-runtime.c (__mf_usage): Update copyright notice dates.
+
+2009-01-23  Jie Zhang  <jie.zhang@analog.com>
+
+	* mf-impl.h (__mf_get_state, __mf_set_state): Don't use
+	__thread when TLS support is emulated.
+	* mf-hooks3.c (__mf_get_state, __mf_set_state): Likewise.
+	* mf-runtime.c (__mf_state_1): Likewise.
+	* configure.ac: Use GCC_CHECK_EMUTLS.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/28870
+	* testsuite/lib/mfdg.exp (dg-test): Use new timeout support.
+	(dg-timeout): Remove.
+	(standard-wait): Remove.
+	* testsuite/lib/libmudflap.exp: Include new timeout library files.
+	(libmudflap_target_compile): Set timeout value from new proc.
+
+2008-11-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/35314
+	* testsuite/libmudflap.c/pass67-frag.c: New test.
+
 2008-10-09  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/37568

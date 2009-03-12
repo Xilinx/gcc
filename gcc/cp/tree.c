@@ -1,6 +1,6 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -44,7 +44,7 @@ static tree build_cplus_array_type_1 (tree, tree);
 static int list_hash_eq (const void *, const void *);
 static hashval_t list_hash_pieces (tree, tree, tree);
 static hashval_t list_hash (const void *);
-static cp_lvalue_kind lvalue_p_1 (const_tree, int);
+static cp_lvalue_kind lvalue_p_1 (tree, int);
 static tree build_target_expr (tree, tree);
 static tree count_trees_r (tree *, int *, void *);
 static tree verify_stmt_tree_r (tree *, int *, void *);
@@ -59,7 +59,7 @@ static tree handle_init_priority_attribute (tree *, tree, tree, int, bool *);
    nonzero, rvalues of class type are considered lvalues.  */
 
 static cp_lvalue_kind
-lvalue_p_1 (const_tree ref,
+lvalue_p_1 (tree ref,
 	    int treat_class_rvalues_as_lvalues)
 {
   cp_lvalue_kind op1_lvalue_kind = clk_none;
@@ -82,7 +82,12 @@ lvalue_p_1 (const_tree ref,
 	  && TREE_CODE (ref) != PARM_DECL
 	  && TREE_CODE (ref) != VAR_DECL
 	  && TREE_CODE (ref) != COMPONENT_REF)
-	return clk_none;
+	{
+	  if (CLASS_TYPE_P (TREE_TYPE (TREE_TYPE (ref))))
+	    return treat_class_rvalues_as_lvalues ? clk_class : clk_none;
+	  else
+	    return clk_none;
+	}
 
       /* lvalue references and named rvalue references are lvalues.  */
       return clk_ordinary;
@@ -110,11 +115,15 @@ lvalue_p_1 (const_tree ref,
       op1_lvalue_kind = lvalue_p_1 (TREE_OPERAND (ref, 0),
 				    treat_class_rvalues_as_lvalues);
       /* Look at the member designator.  */
-      if (!op1_lvalue_kind
-	  /* The "field" can be a FUNCTION_DECL or an OVERLOAD in some
-	     situations.  */
-	  || TREE_CODE (TREE_OPERAND (ref, 1)) != FIELD_DECL)
+      if (!op1_lvalue_kind)
 	;
+      else if (is_overloaded_fn (TREE_OPERAND (ref, 1)))
+	/* The "field" can be a FUNCTION_DECL or an OVERLOAD in some
+	   situations.  If we're seeing a COMPONENT_REF, it's a non-static
+	   member, so it isn't an lvalue. */
+	op1_lvalue_kind = clk_none;
+      else if (TREE_CODE (TREE_OPERAND (ref, 1)) != FIELD_DECL)
+	/* This can be IDENTIFIER_NODE in a template.  */;
       else if (DECL_C_BIT_FIELD (TREE_OPERAND (ref, 1)))
 	{
 	  /* Clear the ordinary bit.  If this object was a class
@@ -195,6 +204,12 @@ lvalue_p_1 (const_tree ref,
       return (DECL_NONSTATIC_MEMBER_FUNCTION_P (ref)
 	      ? clk_none : clk_ordinary);
 
+    case BASELINK:
+      /* We now represent a reference to a single static member function
+	 with a BASELINK.  */
+      return lvalue_p_1 (BASELINK_FUNCTIONS (ref),
+			 treat_class_rvalues_as_lvalues);
+
     case NON_DEPENDENT_EXPR:
       /* We must consider NON_DEPENDENT_EXPRs to be lvalues so that
 	 things like "&E" where "E" is an expression with a
@@ -227,7 +242,7 @@ lvalue_p_1 (const_tree ref,
    computes the C++ definition of lvalue.  */
 
 cp_lvalue_kind
-real_lvalue_p (const_tree ref)
+real_lvalue_p (tree ref)
 {
   return lvalue_p_1 (ref,
 		     /*treat_class_rvalues_as_lvalues=*/0);
@@ -237,7 +252,7 @@ real_lvalue_p (const_tree ref)
    considered lvalues.  */
 
 int
-lvalue_p (const_tree ref)
+lvalue_p (tree ref)
 {
   return
     (lvalue_p_1 (ref, /*class rvalue ok*/ 1) != clk_none);
@@ -477,7 +492,10 @@ force_target_expr (tree type, tree init)
 tree
 get_target_expr (tree init)
 {
-  return build_target_expr_with_type (init, TREE_TYPE (init));
+  if (TREE_CODE (init) == AGGR_INIT_EXPR)
+    return build_target_expr (AGGR_INIT_EXPR_SLOT (init), init);
+  else
+    return build_target_expr_with_type (init, TREE_TYPE (init));
 }
 
 /* If EXPR is a bitfield reference, convert it to the declared type of
@@ -1157,8 +1175,9 @@ is_overloaded_fn (tree x)
     x = TREE_OPERAND (x, 1);
   if (BASELINK_P (x))
     x = BASELINK_FUNCTIONS (x);
-  if (TREE_CODE (x) == TEMPLATE_ID_EXPR
-      || DECL_FUNCTION_TEMPLATE_P (OVL_CURRENT (x))
+  if (TREE_CODE (x) == TEMPLATE_ID_EXPR)
+    x = TREE_OPERAND (x, 0);
+  if (DECL_FUNCTION_TEMPLATE_P (OVL_CURRENT (x))
       || (TREE_CODE (x) == OVERLOAD && OVL_CHAIN (x)))
     return 2;
   return  (TREE_CODE (x) == FUNCTION_DECL
@@ -1184,6 +1203,8 @@ get_first_fn (tree from)
     from = TREE_OPERAND (from, 1);
   if (BASELINK_P (from))
     from = BASELINK_FUNCTIONS (from);
+  if (TREE_CODE (from) == TEMPLATE_ID_EXPR)
+    from = TREE_OPERAND (from, 0);
   return OVL_CURRENT (from);
 }
 
@@ -1857,8 +1878,17 @@ cp_tree_equal (tree t1, tree t2)
 	return false;
       return cp_tree_equal (TREE_OPERAND (t1, 0), TREE_OPERAND (t2, 0));
 
-    case VAR_DECL:
     case PARM_DECL:
+      /* For comparing uses of parameters in late-specified return types
+	 with an out-of-class definition of the function.  */
+      if ((!DECL_CONTEXT (t1) || !DECL_CONTEXT (t2))
+	  && same_type_p (TREE_TYPE (t1), TREE_TYPE (t2))
+	  && DECL_NAME (t1) == DECL_NAME (t2))
+	return true;
+      else
+	return false;
+
+    case VAR_DECL:
     case CONST_DECL:
     case FUNCTION_DECL:
     case TEMPLATE_DECL:
@@ -2118,8 +2148,10 @@ pod_type_p (const_tree t)
   if (TREE_CODE (t) == VECTOR_TYPE)
     return 1; /* vectors are (small) arrays of scalars */
 
-  if (! CLASS_TYPE_P (t))
+  if (! RECORD_OR_UNION_CODE_P (TREE_CODE (t)))
     return 0; /* other non-class type (reference or function) */
+  if (! CLASS_TYPE_P (t))
+    return 1; /* struct created by the back end */
   if (CLASSTYPE_NON_POD_P (t))
     return 0;
   return 1;
@@ -2432,6 +2464,10 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
       break;
 
     case CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
       if (TREE_TYPE (*tp))
 	WALK_SUBTREE (TREE_TYPE (*tp));
 

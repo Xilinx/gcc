@@ -1,5 +1,5 @@
 /* Memory address lowering and addressing mode selection.
-   Copyright (C) 2004, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -619,9 +619,9 @@ create_mem_ref (gimple_stmt_iterator *gsi, tree type, aff_tree *addr,
 	    {
 	      atype = TREE_TYPE (tmp);
 	      parts.base = force_gimple_operand_gsi (gsi,
-			fold_build2 (PLUS_EXPR, atype,
-				     fold_convert (atype, parts.base),
-				     tmp),
+			fold_build2 (POINTER_PLUS_EXPR, atype,
+				     tmp,
+				     fold_convert (sizetype, parts.base)),
 			true, NULL_TREE, true, GSI_SAME_STMT);
 	    }
 	  else

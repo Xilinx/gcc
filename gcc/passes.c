@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -749,7 +749,7 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_dse1);
       NEXT_PASS (pass_rtl_fwprop_addr);
-      NEXT_PASS (pass_regclass_init);
+      NEXT_PASS (pass_reginfo_init);
       NEXT_PASS (pass_inc_dec);
       NEXT_PASS (pass_initialize_regs);
       NEXT_PASS (pass_outof_cfg_layout_mode);
@@ -768,8 +768,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_sms);
       NEXT_PASS (pass_sched);
       NEXT_PASS (pass_subregs_of_mode_init);
-      NEXT_PASS (pass_local_alloc);
-      NEXT_PASS (pass_global_alloc);
       NEXT_PASS (pass_ira);
       NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);
@@ -1289,6 +1287,7 @@ execute_one_pass (struct opt_pass *pass)
   if (initializing_dump
       && dump_file
       && graph_dump_format != no_graph
+      && cfun
       && (cfun->curr_properties & (PROP_cfg | PROP_rtl))
 	  == (PROP_cfg | PROP_rtl))
     {

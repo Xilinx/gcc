@@ -108,8 +108,67 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
   if (shape_empty)
     return;
 
+  if (pad)
+    {
+      pdim = GFC_DESCRIPTOR_RANK (pad);
+      psize = 1;
+      pempty = 0;
+      for (n = 0; n < pdim; n++)
+        {
+          pcount[n] = 0;
+          pstride[n] = pad->dim[n].stride;
+          pextent[n] = pad->dim[n].ubound + 1 - pad->dim[n].lbound;
+          if (pextent[n] <= 0)
+	    {
+	      pempty = 1;
+              pextent[n] = 0;
+	    }
+
+          if (psize == pstride[n])
+            psize *= pextent[n];
+          else
+            psize = 0;
+        }
+      pptr = pad->data;
+    }
+  else
+    {
+      pdim = 0;
+      psize = 1;
+      pempty = 1;
+      pptr = NULL;
+    }
+
   if (unlikely (compile_options.bounds_check))
     {
+      index_type ret_extent, source_extent;
+
+      rs = 1;
+      for (n = 0; n < rdim; n++)
+	{
+	  rs *= shape_data[n];
+	  ret_extent = ret->dim[n].ubound + 1 - ret->dim[n].lbound;
+	  if (ret_extent != shape_data[n])
+	    runtime_error("Incorrect extent in return value of RESHAPE"
+			  " intrinsic in dimension %ld: is %ld,"
+			  " should be %ld", (long int) n+1,
+			  (long int) ret_extent, (long int) shape_data[n]);
+	}
+
+      source_extent = 1;
+      sdim = GFC_DESCRIPTOR_RANK (source);
+      for (n = 0; n < sdim; n++)
+	{
+	  index_type se;
+	  se = source->dim[n].ubound + 1 - source->dim[0].lbound;
+	  source_extent *= se > 0 ? se : 0;
+	}
+
+      if (rs > source_extent && (!pad || pempty))
+	runtime_error("Incorrect size in SOURCE argument to RESHAPE"
+		      " intrinsic: is %ld, should be %ld",
+		      (long int) source_extent, (long int) rs);
+
       if (order)
 	{
 	  int seen[GFC_MAX_DIMENSIONS];
@@ -178,37 +237,6 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
         ssize = 0;
     }
 
-  if (pad)
-    {
-      pdim = GFC_DESCRIPTOR_RANK (pad);
-      psize = 1;
-      pempty = 0;
-      for (n = 0; n < pdim; n++)
-        {
-          pcount[n] = 0;
-          pstride[n] = pad->dim[n].stride;
-          pextent[n] = pad->dim[n].ubound + 1 - pad->dim[n].lbound;
-          if (pextent[n] <= 0)
-	    {
-	      pempty = 1;
-              pextent[n] = 0;
-	    }
-
-          if (psize == pstride[n])
-            psize *= pextent[n];
-          else
-            psize = 0;
-        }
-      pptr = pad->data;
-    }
-  else
-    {
-      pdim = 0;
-      psize = 1;
-      pempty = 1;
-      pptr = NULL;
-    }
-
   if (rsize != 0 && ssize != 0 && psize != 0)
     {
       rsize *= size;
@@ -228,16 +256,16 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
 
   if (sempty)
     {
-      /* Switch immediately to the pad array.  */
+      /* Pretend we are using the pad array the first time around, too.  */
       src = pptr;
-      sptr = NULL;
+      sptr = pptr;
       sdim = pdim;
       for (dim = 0; dim < pdim; dim++)
 	{
 	  scount[dim] = pcount[dim];
 	  sextent[dim] = pextent[dim];
 	  sstride[dim] = pstride[dim];
-	  sstride0 = sstride[0] * size;
+	  sstride0 = pstride[0] * size;
 	}
     }
 

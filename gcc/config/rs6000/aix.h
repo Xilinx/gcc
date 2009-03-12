@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -154,6 +154,9 @@
 /* Profiled library versions are used by linking with special directories.  */
 #define LIB_SPEC "%{pg:-L/lib/profiled -L/usr/lib/profiled}\
 %{p:-L/lib/profiled -L/usr/lib/profiled} %{!shared:%{g*:-lg}} -lc"
+
+/* Static linking with shared libstdc++ requires libsupc++ as well.  */
+#define LIBSTDCXX_STATIC "-lstdc++ -lsupc++"
 
 /* This now supports a natural alignment mode.  */
 /* AIX word-aligns FP doubles but doubleword-aligns 64-bit ints.  */

@@ -71,8 +71,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
    *  @brief A standard container made up of elements, which can be retrieved
    *  in logarithmic time.
    *
-   *  @ingroup Containers
-   *  @ingroup Assoc_containers
+   *  @ingroup associative_containers
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and an
@@ -420,7 +419,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
        *  improve the performance of the insertion process.  A bad hint would
        *  cause no gains in efficiency.
        *
-       *  See http://gcc.gnu.org/onlinedocs/libstdc++/23_containers/howto.html#4
+       *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt07ch17.html
        *  for more on "hinting".
        *
        *  Insertion requires logarithmic time (if the hint is not taken).
