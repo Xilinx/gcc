@@ -947,7 +947,8 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
       return fold_build1 (code, type, op0_expr);
     }
 
-  if (TREE_CODE_CLASS (code) == tcc_binary)
+  if (TREE_CODE_CLASS (code) == tcc_binary
+      || TREE_CODE_CLASS (code) == tcc_comparison)
     {
       tree op0_type = TREE_TYPE (op0);
       enum tree_code op0_code = TREE_CODE (op0);
@@ -1208,8 +1209,10 @@ register_old_and_new_names (htab_t map, tree old_name, tree new_name)
   tmp.old_name = old_name;
   slot = htab_find_slot (map, &tmp, INSERT);
 
-  if (!*slot)
-    *slot = new_rename_map_elt (old_name, new_name);
+  if (*slot)
+    free (*slot);
+
+  *slot = new_rename_map_elt (old_name, new_name);
 }
 
 /* Create a duplicate of the basic block BB.  NOTE: This does not
@@ -1287,9 +1290,9 @@ copy_bb_and_scalar_dependences (basic_block bb, sese region,
   next_e = single_succ_edge (new_bb);
   graphite_copy_stmts_from_block (bb, new_bb, map);
   remove_condition (new_bb);
-  rename_variables (new_bb, map);
   remove_phi_nodes (new_bb);
   expand_scalar_variables (new_bb, region, map);
+  rename_variables (new_bb, map);
   register_sese_liveout_renames (region, map);
 
   return next_e;
