@@ -810,8 +810,13 @@
 	 (decltree)
 	 (:tree argdtree)
 	 (debugtreecode  "smallana_cfun_entrybb argdecltree/cod" argdtree)
+	 (compile_warning "something is wrong here with commented tree_parm_decl" ())
 	 (match 
 	  argdtree
+	;  ( ?(tree_parm_decl ?(tree_integer_type ?typname ?imin ?imax) ?argname)
+	;    (debugcstring "smallana_cfun_entrybb integer argname" argname)
+	;    (debugcstring "smallana_cfun_entrybb integer typname" typname)
+	;    )
 	  ( ?(tree_parm_decl ?argdtype ?argname)
 	    (debugtreecode "smallana_cfun_entrybb argdtype/cod" argdtype)
 	    (debugtree "smallana_cfun_entrybb argdtype" argdtype)

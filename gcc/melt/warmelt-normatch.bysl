@@ -176,6 +176,29 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
+;; scanning an as pattern
+(defun scanpat_srcpatas (recv psloc ctyp pcn)
+  (debug_msg recv "scanpat_srcpatas recv")
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (assert_msg "check recv" (is_a recv class_srcpattern_as))
+  (let ( (sloc (unsafe_get_field :src_loc recv))
+	 (asvar (unsafe_get_field :aspat_varpat recv))
+	 (asubp (unsafe_get_field :aspat_subpat recv))
+	 (mapvar (unsafe_get_field :pctn_mapatvar pcn))
+	 (mvar (mapobject_get mapvar asvar))
+	 )
+    (if (null mvar)
+	(progn
+	  (mapobject_put mapvar asvar recv)
+	  (debug_msg asvar "scanpat_srcpatasr got new asvar")
+	  ))
+    (scan_pattern asubp sloc ctyp pcn)
+    ))
+(install_method class_srcpattern_as scan_pattern scanpat_srcpatas)
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
 ;; scanning a pattern constant
 (defun scanpat_srcpatconst (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_srcpatconst recv")
@@ -551,6 +574,7 @@
 	))
     ))
 (install_method class_srcpattern_variable normal_pattern normpat_variablepat)
+;;;;;;;;;;;;;;;;
 
 ;;; normalize joker pattern
 (defun normpat_jokerpat (recv nmatch hdler pcn)
@@ -561,7 +585,44 @@
   ;; we need nothing more, a joker pattern is essentially a black hole..
 )
 (install_method class_srcpattern_jokervar normal_pattern normpat_jokerpat)
+;;;;;;;;;;;;;;;;
 
+;;; normalize an as pattern
+(defun normpat_aspat  (recv nmatch hdler pcn)
+  (debug_msg recv "normpat_aspat recv")
+  (debug_msg nmatch "normpat_aspat nmatch")
+  (assert_msg "check recv" (is_a recv class_srcpattern_as))
+  (assert_msg "check pcn" (is_a pcn class_patterncontext))
+  (let (
+	(sloc (get_field :src_loc recv))
+	(aspat (get_field :aspat_varpat recv))
+	(subpat (get_field :aspat_subpat recv))
+	(testvarcont (instance class_container))
+	)
+    (debug_msg aspat "normpat_aspat before normalizing aspat")
+    (assert_msg "check aspat" (is_a aspat class_srcpattern_variable))
+    (normal_pattern aspat nmatch
+		    (lambda (tester) (put_fields testvarcont :container_value tester) (hdler tester)) 
+		    pcn)
+    (let ( (testvar (unsafe_get_field :container_value testvarcont)) 
+	   )
+      (debug_msg testvar "normpat_aspat testvar")
+      (debug_msg subpat "normpat_aspat subpat")
+      (normal_pattern 
+       subpat nmatch
+       (if testvar
+	   (lambda (subtester) 
+	     (debug_msg subtester "normpat_aspat subtester with testvar")
+	     (set_newtester_lastthen subtester testvarcont)
+	     )
+	 (lambda (subtester)
+	   (debug_msg subtester "normpat_aspat subtester without testvar")
+	   (hdler subtester)
+	   ))
+       pcn)
+      (debug_msg recv "normpat_aspat end recv")
+      )))
+(install_method class_srcpattern_as normal_pattern normpat_aspat)
 
 ;; normalize the null 
 (defun normpat_null (recv nmatch hdler pcn)

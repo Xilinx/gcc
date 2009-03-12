@@ -4384,8 +4384,6 @@
     (debug_msg gotoelse "compiltst_normtester_instance gotoelse")
     (assert_msg "check gotoelse" (is_object gotoelse))
     (list_append oelselist gotoelse)
-    ;(shortbacktrace_dbg "compiltst_normtester_same" 15)
-    (compile_warning "unimplemented compiltst_normtester_same" ())
     (return olist)
     )
 )
