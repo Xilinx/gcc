@@ -206,7 +206,9 @@ is_simple_operand (loop_p loop, gimple stmt, tree op)
       /* or a memory access that cannot be analyzed by the data
 	 reference analysis.  */
       || ((handled_component_p (op) || INDIRECT_REF_P (op))
-	  && !stmt_simple_memref_p (loop, stmt, op)))
+	  && !stmt_simple_memref_p (loop, stmt, op))
+      /* TODO: Not yet handled in code generation.  */
+      || TREE_CODE (op) == REALPART_EXPR)
     return false;
 
   return exclude_component_ref (op);

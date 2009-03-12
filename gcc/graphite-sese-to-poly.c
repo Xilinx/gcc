@@ -513,12 +513,11 @@ build_bb_loops (scop_p scop)
     }
 }
 
-/* When SUBTRACT is true subtract or when SUBTRACT is false add the
-   value K to the dimension D of the linear expression EXPR.  */
+/* Add the value K to the dimension D of the linear expression EXPR.  */
 
 static void
 add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr, 
-		  Value k, bool subtract)
+		  Value k)
 {
   Value val;
   ppl_Coefficient_t coef;
@@ -528,10 +527,7 @@ add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr,
   value_init (val);
   ppl_Coefficient_to_mpz_t (coef, val);
 
-  if (subtract)
-    value_subtract (val, val, k);
-  else
-    value_addto (val, val, k);
+  value_addto (val, val, k);
 
   ppl_assign_Coefficient_from_mpz_t (coef, val);
   ppl_Linear_Expression_add_to_coefficient (expr, d, coef);
@@ -541,13 +537,11 @@ add_value_to_dim (ppl_dimension_type d, ppl_Linear_Expression_t expr,
 
 /* In the context of scop S, scan E, the right hand side of a scalar
    evolution function in loop VAR, and translate it to a linear
-   expression EXPR.  When SUBTRACT is true the linear expression
-   corresponding to E is subtracted from the linear expression EXPR.  */
+   expression EXPR.  */
 
 static void
 scan_tree_for_params_right_scev (sese s, tree e, int var,
-				 ppl_Linear_Expression_t expr,
-				 bool subtract)
+				 ppl_Linear_Expression_t expr)
 {
   if (expr)
     {
@@ -559,32 +553,27 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
 
       value_init (val);
       value_set_si (val, int_cst_value (e));
-      add_value_to_dim (l, expr, val, subtract);
+      add_value_to_dim (l, expr, val);
       value_clear (val);
     }
 }
 
-/* Scan the integer constant CST, and if SUBTRACT is false add it or
-   if SUBTRACT is true subtract it from the inhomogeneous part of the
+/* Scan the integer constant CST, and add it to the inhomogeneous part of the
    linear expression EXPR.  */
 
 static void
-scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, bool subtract)
+scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr)
 {
   Value val;
   ppl_Coefficient_t coef;
   int v = int_cst_value (cst);
 
-  if (v < 0)
-    {
-      v = -v;
-      subtract = subtract ? false : true;
-    }
-
   value_init (val);
   value_set_si (val, 0);
-  if (subtract)
-    value_sub_int (val, val, v);
+
+  /* Necessary to not get "-1 = 2^n - 1". */
+  if (v < 0)
+    value_sub_int (val, val, -v);
   else
     value_add_int (val, val, v);
 
@@ -598,12 +587,11 @@ scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, bool subtract)
 /* In the context of sese S, scan the expression E and translate it to
    a linear expression C.  When parsing a symbolic multiplication, K
    represents the constant multiplier of an expression containing
-   parameters.  When SUBTRACT is true the linear expression
-   corresponding to E is subtracted from the linear expression C.  */
+   parameters.  */
 
 static void
 scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
-		      Value k, bool subtract)
+		      Value k)
 {
   if (e == chrec_dont_know)
     return;
@@ -611,9 +599,10 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
   switch (TREE_CODE (e))
     {
     case POLYNOMIAL_CHREC:
-      scan_tree_for_params_right_scev (s, CHREC_RIGHT (e), CHREC_VARIABLE (e),
-				       c, subtract);
-      scan_tree_for_params (s, CHREC_LEFT (e), c, k, subtract);
+      scan_tree_for_params_right_scev (s, CHREC_RIGHT (e), CHREC_VARIABLE (e), 
+				       c);
+				       
+      scan_tree_for_params (s, CHREC_LEFT (e), c, k);
       break;
 
     case MULT_EXPR:
@@ -628,7 +617,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      value_multiply (k, k, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
 	}
       else
 	{
@@ -641,24 +630,60 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      value_multiply (k, k, val);
 	      value_clear (val);
 	    }
-	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, subtract);
+	  scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k);
 	}
       break;
 
     case PLUS_EXPR:
     case POINTER_PLUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
+      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k);
       break;
 
     case MINUS_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
-      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, k, !subtract);
-      break;
+      {
+	ppl_Linear_Expression_t tmp_expr = NULL;
+
+        if (c)
+	  {
+	    ppl_dimension_type dim;
+	    ppl_Linear_Expression_space_dimension (c, &dim);
+	    ppl_new_Linear_Expression_with_dimension (&tmp_expr, dim);
+	  }
+
+	scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
+	scan_tree_for_params (s, TREE_OPERAND (e, 1), tmp_expr, k);
+
+	if (c)
+	  {
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_delete_Linear_Expression (tmp_expr);
+	  }
+
+	break;
+      }
 
     case NEGATE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, !subtract);
-      break;
+      {
+	ppl_Linear_Expression_t tmp_expr = NULL;
+
+	if (c)
+	  {
+	    ppl_dimension_type dim;
+	    ppl_Linear_Expression_space_dimension (c, &dim);
+	    ppl_new_Linear_Expression_with_dimension (&tmp_expr, dim);
+	  }
+
+	scan_tree_for_params (s, TREE_OPERAND (e, 0), tmp_expr, k);
+
+	if (c)
+	  {
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (c, tmp_expr);
+	    ppl_delete_Linear_Expression (tmp_expr);
+	  }
+
+	break;
+      }
 
     case SSA_NAME:
       {
@@ -668,19 +693,19 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	    ppl_dimension_type dim;
 	    ppl_Linear_Expression_space_dimension (c, &dim);
 	    p += dim - sese_nb_params (s);
-	    add_value_to_dim (p, c, k, subtract);
+	    add_value_to_dim (p, c, k);
 	  }
 	break;
       }
 
     case INTEGER_CST:
       if (c)
-	scan_tree_for_params_int (e, c, subtract);
+	scan_tree_for_params_int (e, c);
       break;
 
     CASE_CONVERT:
     case NON_LVALUE_EXPR:
-      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k, subtract);
+      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
       break;
 
    default:
@@ -722,7 +747,7 @@ idx_record_params (tree base, tree *idx, void *dta)
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (sese, scev, NULL, one, false);
+      scan_tree_for_params (sese, scev, NULL, one);
       value_clear (one);
     }
 
@@ -767,8 +792,8 @@ find_params_in_bb (sese sese, gimple_bb_p gbb)
 
       value_init (one);
       value_set_si (one, 1);
-      scan_tree_for_params (sese, lhs, NULL, one, false);
-      scan_tree_for_params (sese, rhs, NULL, one, false);
+      scan_tree_for_params (sese, lhs, NULL, one);
+      scan_tree_for_params (sese, rhs, NULL, one);
       value_clear (one);
     }
 }
@@ -798,7 +823,7 @@ find_scop_parameters (scop_p scop)
 
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = instantiate_scev (block_before_sese (region), loop, nb_iters);
-      scan_tree_for_params (region, nb_iters, NULL, one, false);
+      scan_tree_for_params (region, nb_iters, NULL, one);
     }
 
   value_clear (one);
@@ -870,7 +895,7 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       nb_iters = analyze_scalar_evolution (loop, nb_iters);
       nb_iters = instantiate_scev (block_before_sese (SCOP_REGION (scop)), loop,
 						      nb_iters);
-      scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one, false);
+      scan_tree_for_params (SCOP_REGION (scop), nb_iters, ub_expr, one);
       ppl_new_Constraint (&ub, ub_expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
     }
   else
@@ -941,7 +966,7 @@ add_conditions_to_domain (poly_bb_p pbb)
             Value one;
             tree left, right;
             loop_p loop = GBB_BB (gbb)->loop_father;
-	    ppl_Linear_Expression_t expr;
+	    ppl_Linear_Expression_t left_expr, right_expr;
 	    ppl_Constraint_t cstr;
 	    enum ppl_enum_Constraint_Type type = 0;
             enum tree_code code = gimple_cond_code (stmt);
@@ -978,7 +1003,8 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    value_init (one);
 	    value_set_si (one, 1);
 	    dim = pbb_nb_loops (pbb) + scop_nb_params (scop);
-	    ppl_new_Linear_Expression_with_dimension (&expr, dim);
+	    ppl_new_Linear_Expression_with_dimension (&left_expr, dim);
+	    ppl_new_Linear_Expression_with_dimension (&right_expr, dim);
 
 	    left = gimple_cond_lhs (stmt);
 	    left = analyze_scalar_evolution (loop, left);
@@ -988,15 +1014,18 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    right = analyze_scalar_evolution (loop, right);
 	    right = instantiate_scev (before_scop, loop, right);
 
-	    scan_tree_for_params (SCOP_REGION (scop), left, expr, one, true);
+	    scan_tree_for_params (SCOP_REGION (scop), left, left_expr, one);
 	    value_set_si (one, 1);
-	    scan_tree_for_params (SCOP_REGION (scop), right, expr, one, false);
+	    scan_tree_for_params (SCOP_REGION (scop), right, right_expr, one);
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (right_expr,
+								   left_expr);
 
 	    value_clear (one);
-	    ppl_new_Constraint (&cstr, expr, type);
+	    ppl_new_Constraint (&cstr, right_expr, type);
 	    ppl_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
 	    ppl_delete_Constraint (cstr);
-	    ppl_delete_Linear_Expression (expr);
+	    ppl_delete_Linear_Expression (left_expr);
+	    ppl_delete_Linear_Expression (right_expr);
             break;
           }
         case GIMPLE_SWITCH:

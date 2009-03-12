@@ -1,5 +1,17 @@
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-scop-detection.c (is_simple_operand): Do not handle
+	REALPART_EXPR.
+	* testsuite/gcc.dg/graphite/id-2.c: New.
+
+	* graphite-sese-to-poly.c (build_bb_loops,
+	add_value_to_dim,scan_tree_for_params_right_scev,
+	scan_tree_for_params_int, scan_tree_for_params, idx_record_params,
+	find_params_in_bb, build_loop_iteration_domains,
+	add_conditions_to_domain): Remove subtract.
+
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts,
 	build_iv_mapping, compute_cloog_iv_types_1, build_cloog_prog): 
 	pbb_loop_at_index -> gbb_loop_at_index.
