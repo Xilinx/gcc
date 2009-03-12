@@ -65,6 +65,8 @@ extern long basilys_debugskipcount;
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 #define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
       basename(__FILE__), __LINE__, ##__VA_ARGS__)
+#define debugeprintfnonl(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt, \
+      basename(__FILE__), __LINE__, ##__VA_ARGS__)
 #define debugeprintvalue(Msg,Val) do{if (flag_basilys_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\

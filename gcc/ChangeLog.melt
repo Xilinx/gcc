@@ -1,3 +1,7 @@
+2009-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (debugprintfnonl): new macro.
+	* melt/warmelt-macro.bysl: typo for AS macro.
+	* melt/ana-base.bysl: added several gimple patterns.
 2009-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.bysl: added CLASS_SRCPATTERN_AS and AS patmacro.
 	* melt/warmelt-normatch.bysl: added normpat_aspat.

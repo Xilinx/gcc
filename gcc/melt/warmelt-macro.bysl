@@ -2898,9 +2898,8 @@
     (error_plain loc "AS cannot be macro-expanded in expression context")
     (return)
 ))
-
 (install_initial_patmacro 'as patexpand_as mexpand_as)
-(export_patmacro and patexpand_as mexpand_as)
+(export_patmacro as patexpand_as mexpand_as)
 
 
 ;;;; the AND pattern expanser

@@ -68,7 +68,8 @@
 (defprimitive gimple_content (v) :gimple
   "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
 
-(defcmatcher gimple
+;; match a gimple value & extract the gimple of it
+(defcmatcher gimpleval
   (gv)					;match & no ins
   (:gimple g) 				;outs
   gimpsta				;statesymb
@@ -80,6 +81,87 @@
    )
   (					;operator expansion
    "(basilysgc_new_gimple((basilysobject_ptr_t)NULL, (" g ")))"
+   )
+)
+
+;; match a gimple single assign
+(defcmatcher gimple_assign_single
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  (					;test expansion
+   "(" ga " && gimple_assign_single_p (" ga "))"
+   )
+  (					;fill expansion
+   lhs " = gimple_assign_lhs(" ga ");"
+   rhs " = gimple_assign_rhs1(" ga ");"
+   )
+)
+
+
+;; match a gimple cast assign
+(defcmatcher gimple_assign_cast
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  (					;test expansion
+   "(" ga " && gimple_assign_cast_p (" ga "))"
+   )
+  (					;fill expansion
+   lhs " = gimple_assign_lhs(" ga ");"
+   rhs " = gimple_assign_rhs1(" ga ");"
+   )
+)
+
+;; match a gimple copy assign
+(defcmatcher gimple_assign_copy
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  (					;test expansion
+   "(" ga " && gimple_assign_copy_p (" ga "))"
+   )
+  (					;fill expansion
+   lhs " = gimple_assign_lhs(" ga ");"
+   rhs " = gimple_assign_rhs1(" ga ");"
+   )
+)
+
+;; match a gimple copy assign with ssa name
+(defcmatcher gimple_assign_ssa_name_copy
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  (					;test expansion
+   "(" ga " && gimple_assign_ssa_name_copy_p (" ga "))"
+   )
+  (					;fill expansion
+   lhs " = gimple_assign_lhs(" ga ");"
+   rhs " = gimple_assign_rhs1(" ga ");"
+   )
+)
+
+;; match a gimple unary nop assign
+(defcmatcher gimple_assign_unary_nop
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  (					;test expansion
+   "(" ga " && gimple_assign_unary_nop_p (" ga "))"
+   )
+  (					;fill expansion
+   lhs " = gimple_assign_lhs(" ga ");"
+   rhs " = gimple_assign_rhs1(" ga ");"
    )
 )
 
@@ -203,12 +285,12 @@
    "tree " treeinty "_ty=TYPE_NAME(" tr ");\n"
    "tree " treeinty "_mint=TYPE_MIN_VALUE(" tr ");\n"
    "tree " treeinty "_maxt=TYPE_MAX_VALUE(" tr ");\n"
-   "if (" treeinty "_ty && TREE_CODE(" treeinty ") == IDENTIFIER)\n" 
-   nam " = IDENTIFIER_POINTER("treeinty "_ty);\n"
+   "if (" treeinty "_ty && TREE_CODE(" treeinty "_ty) == IDENTIFIER_NODE)\n"
+   name " = IDENTIFIER_POINTER("treeinty "_ty);\n"
    "if (" treeinty "_mint && TREE_CODE(" treeinty "_mint) == INTEGER_CST)\n"
-   min " = tree_low_cst(" treeinty "_mint);"
+   min " = tree_low_cst(" treeinty "_mint,0);"
    "if (" treeinty "_maxt && TREE_CODE(" treeinty "_maxt) == INTEGER_CST)\n"
-   max " = tree_low_cst(" treeinty "_maxt);"
+   max " = tree_low_cst(" treeinty "_maxt,0);"
    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -457,16 +539,14 @@
 
 
 (defprimitive debugtree (:cstring msg :tree tr) :void
-  " do{debugeprintf(\"debugtree %s @%p\", " msg ", (void*)" tr ");"
+  " do{debugeprintfnonl(\"debugtree %s @%p /%s. \", " msg ", (void*)" tr ", "
+  "(" tr ")?tree_code_name[TREE_CODE(" tr ")]:\"*niltree*\");\n"
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
 )
 
-(defprimitive debugtreecode (:cstring msg :tree tr) :void
-  "debugeprintf(\"debugtreecode %s @%p %s\", " msg ", (void*)" tr ", "
-  "(" tr ")?tree_code_name[TREE_CODE(" tr ")]:\"*niltree*\");")
-
 (defprimitive debuggimple(:cstring msg :gimple g) :void
-  " do{debugeprintf(\"debuggimple %s @%p\", " msg ", (void*)" g ");"
+  " do{debugeprintfnonl(\"debuggimple %s @%p /%s. \", " msg ", (void*)" g 
+  ", ("g ")?gimple_code_name[gimple_code(" g ")]: \"*nil*\");"
   "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
 )
 
@@ -804,21 +884,19 @@
      ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
 	(debug_msg declv "smallana_cfun_entrybb decl of function")
 	(debugtree "smallana_cfun_entrybb treevars of function" treevars)
-	(debugtreecode "smallana_cfun_entrybb treevars/cod of function" treevars)
-
 	(each_arg_in_fundecl
 	 (decltree)
 	 (:tree argdtree)
-	 (debugtreecode  "smallana_cfun_entrybb argdecltree/cod" argdtree)
-	 (compile_warning "something is wrong here with commented tree_parm_decl" ())
 	 (match 
 	  argdtree
-	;  ( ?(tree_parm_decl ?(tree_integer_type ?typname ?imin ?imax) ?argname)
-	;    (debugcstring "smallana_cfun_entrybb integer argname" argname)
-	;    (debugcstring "smallana_cfun_entrybb integer typname" typname)
-	;    )
+	  ( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argname)
+	    (debugtree "smallana_cfun_entrybb integer argdtype" argdtype)
+	    (debugcstring "smallana_cfun_entrybb integer argname" argname)
+	    (debugcstring "smallana_cfun_entrybb integer typname" typname)
+	    (messagenum_dbg  "smallana_cfun_entrybb integer imin" imin)
+	    (messagenum_dbg  "smallana_cfun_entrybb integer imax" imax)
+	    )
 	  ( ?(tree_parm_decl ?argdtype ?argname)
-	    (debugtreecode "smallana_cfun_entrybb argdtype/cod" argdtype)
 	    (debugtree "smallana_cfun_entrybb argdtype" argdtype)
 	    (debugcstring "smallana_cfun_entrybb argname" argname)
 	    )
@@ -848,34 +926,65 @@
   )
 
 
+(defun smallana_gimple (sman :gimple g)
+  (debuggimple "smallana_gimple gimple" g)
+  (match 
+   g
+   ( ?(gimple_assign_single ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_single lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_single rhs" rhs)
+      )
+   ( ?(gimple_assign_cast ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_cast lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_cast rhs" rhs)
+      )
+   ( ?(gimple_assign_copy ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_copy lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_copy rhs" rhs)
+      )
+   ( ?(gimple_assign_ssa_name_copy ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_ssa_name_copy lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_ssa_name_copy rhs" rhs)
+      )
+   ( ?(gimple_assign_unary_nop ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_unary_nop lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_unary_nop rhs" rhs)
+      )
+   ( ?_
+     (debuggimple "smallana_gimple other!gimple" g)
+     )
+   )
+  )
+
+(defun smallana_bb (sman :basicblock bb)
+  (debug_msg sman "smallana_bb start sman")
+  (debugbasicblock "smallana_bb bb" bb)
+  (eachgimple_in_basicblock 
+   (bb)
+   (:gimple g)
+   (smallana_gimple sman g)
+   )
+  (debug_msg sman "smallana_bb end sman")
+  )
+
+
 (defun smallana_bb_cfun (sman cfbbv :tree cfdecl)
   (debug_msg cfbbv "smallana_bb_cfun cfbbv")
   (debugtree "smallana_bb_cfun cfdecl" cfdecl)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check cfbbv" (is_basicblock cfbbv))
-  (let ( (:gimpleseq bbseq
-		     (basicblock_gimpleseq cfbbv))
-	 (:gimpleseq bbphis (basicblock_phinodes cfbbv))
+  (match cfdecl
+	 ( ?(as ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
+	    (debugtree "smallana_bb_cfun decltree" decltree)
+	    (debugtree "smallana_bb_cfun treevars of function" treevars)
+	    (debugcstring "smallana_cfun_entrybb funam" funam)
+	    ))
+  (let ( (:basicblock fbb (basicblock_content cfbbv))
 	 )
-    ;(debuggimpleseq "smallana_bb_cfun bbseq" bbseq)
-    (debuggimpleseq "smallana_bb_cfun bbphis" bbphis)
-    (do_each_gimpleseq
-     (lambda (gimv)
-       (debug_msg gimv "smallana_bb_cfun gimv"))
-     bbseq
-     )
-    (debuggimpleseq "smallana_bb_cfun bbphis" bbphis)
-    (do_each_gimpleseq
-     (lambda (gphiv)
-       (debug_msg gphiv "smallana_bb_cfun gimv"))
-     bbphis
-     )
-    (do_eachgimple_in_basicblock
-     (lambda (gbbv)
-       (debug_msg gbbv "smallana_bb_cfun gbbv"))
-     (basicblock_content cfbbv))
+    (debugbasicblock "smallana_bb_cfun fbb" fbb)
+    (smallana_bb sman fbb)
+    (debug_msg sman "smallana_bb_cfun end sman")
     )
-  (debug_msg sman "smallana_bb_cfun end sman")
   )
 
 ;;; apparently only the entrybb loop matter in the latessa pass...
@@ -932,7 +1041,6 @@
  each_in_gimpleseq
  fetch_gdbmstate
  fetch_gdbmstate_constr
- gimple
  install_gcc_pass
  put_gdbmstate
  put_gdbmstate_constr
