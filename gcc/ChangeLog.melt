@@ -1,4 +1,7 @@
 2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/gcc/tmallbuf.c: indented with more newlines.
+	* melt/ana-base.bysl: begin to add abstract interpretation.
+2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	[tmallbuf.c testsuite is parsed by ana-base.bysl]
 	* melt/ana-base.bysl: added several gimple patterns.
 	* testsuite/gcc/tmallbuf.c: indented & simplified.

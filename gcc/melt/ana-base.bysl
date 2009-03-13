@@ -545,6 +545,53 @@
    )
   )
 
+;;;;;;;;;;;;;;;;
+
+(defprimitive is_maptree (map) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPTREES)")
+(defprimitive maptree_size (map) :long
+  "(basilys_size_maptrees((struct basilysmaptrees_st*)(" map ")))")
+;; primitive to get the attribute count of a maptree
+(defprimitive maptree_count (map) :long
+  "(basilys_count_maptrees((struct basilysmaptrees_st*)(" map ")))")
+;; get an entry in a maptree from a C tree
+(defprimitive maptree_get (map :tree bb) :value
+  "(basilys_get_maptrees((" map
+  "), (" bb ")))")
+;; primitive for making a new map of trees
+(defprimitive make_maptree (discr :long len) :value
+  " (basilysgc_new_maptrees( (basilysobject_ptr_t) (" discr "), (" len ")))")
+;; primitive for putting into a map of trees
+(defprimitive maptree_put (map :tree key :value val) :void
+  " basilys_put_maptrees( (struct basilysmaptrees_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+;; primivite for removing from a map of trees
+(defprimitive maptree_remove (map :tree key) :void
+  " basilysgc_remove_maptrees( (struct basilysmaptrees_st*) (" map "), (" key "))")
+
+;; primitive to get the nth tree of a maptree
+(defprimitive maptree_nth_attr (map :long n) :tree
+  "(basilys_nthattr_maptrees((struct basilysmaptrees_st*)(" map "), (int)(" n ")))")
+;; primitive to get the nth value of a mapobject
+(defprimitive maptree_nth_val (map :long n) :value
+  "(basilys_nthval_maptrees((struct basilysmaptrees_st*)(" map "), (int)(" n ")))")
+(defciterator foreach_maptree 
+  (trmap)				; startformals
+  eachmaptr 				;state symbol
+  (:tree tratt :value trval)	;local formals
+  (					;; before expansion
+   "/*eachtrmap*/ int " eachmaptr "_rk=0;\n"
+   "for (" eachmaptr "_rk=0; " 
+   eachmaptr "_rk<basilys_size_maptrees((struct basilysmaptrees_st*)(" trmap ")); " eachmaptr "_rk++) {\n"
+   "tree " eachmaptr "_tr=basilys_nthattr_maptrees((struct basilysmaptrees_st*)(" trmap "), " eachmaptr "_rk);\n"
+   "if (!" eachmaptr "_tr) continue;\n"
+   tratt " = " eachmaptr "_tr;\n"
+   trval " =basilys_nthval_maptrees((struct basilysmaptrees_st*)(" trmap "), " eachmaptr "_rk);\n"
+   )
+  ( ;;after expansion
+   "} /*endeachtrmap*/"
+   )
+  )
+
 
 ;;;; boxed gimple debug
 (defun dbgout_boxgimple_method (self dbgi :long depth)
@@ -629,6 +676,33 @@
     (add2sbuf_indentnl sbuf depth)
     ))
 (install_method discr_mapbasicblocks dbg_output dbgout_mapbasicblock_method)
+
+
+;;;; treemap debug
+(defun dbgout_maptree_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_maptree self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (maptree_count self))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " !bbmap.")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf mapcount)
+    (add2sbuf_strconst sbuf "!{ ")
+    (foreach_maptree
+     (self)
+     (:tree tratt :value trval)
+     (add2sbuf_indentnl sbuf (+i depth 1))
+     (add2sbuf_strconst sbuf "*")
+     (ppstrbuf_tree sbuf (+i depth 1) tratt)
+     (add2sbuf_strconst sbuf " == ")
+     (dbg_out trval dbgi (+i depth 2))
+     )
+    (add2sbuf_strconst sbuf "}!")
+    (add2sbuf_indentnl sbuf depth)
+    ))
+(install_method discr_maptrees dbg_output dbgout_maptree_method)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
@@ -927,15 +1001,42 @@
 	   ))
 
 (defclass class_smallanalysis 
-  :super class_proped
+  :super class_analysis_state
   :fields (sman_cfuns			;list of class_smallcfun-s
+	   sman_cfundict		;dict of class_smallcfun-s
 	   sman_bbtable			;hashtable bb -> class_smallbb
 	   ))
 
-;;; our small analysis gate for latessa
-(defun smallana_latessagate (latessapass)
-  (return latessapass)
+(defclass class_smallabstractenv
+  :super class_proped
+  :fields (abenv_maptree		;a maptree C ident -> abstract values
+	   abenv_parenv			;the parent abstract env
+))
+
+(defun put_abstrenv (abenv :tree tr :value val)
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (assert_msg "check tr" tr)
+  (maptree_put (get_field :abenv_maptree abenv) tr val)
 )
+
+(defun get_abstrenv (abenv :tree tr)
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (maptree_get (get_field :abenv_maptree abenv) tr)
+)
+
+(defun fresh_abstrenv (abpar)
+  (assert_msg "check abpar" (is_a abpar class_smallabstractenv))
+  (let ( (newabenv (instance class_smallabstractenv
+			     :abenv_maptree (make_maptree discr_maptrees 10)
+			     :abenv_parenv abpar)) )
+    (return newabenv)
+))
+
+
+(definstance initial_smallabstractenv class_smallabstractenv
+  :abenv_maptree (make_maptree discr_maptrees 20))
+
+(definstance smallana_cont class_container)
 
 
 (defun smallana_cfun_entbb (sman :tree decltree :basicblock bbent)
@@ -950,6 +1051,7 @@
       (each_arg_in_fundecl
        (decltree)
        (:tree argdtree)
+       (debugtree "smallana_cfun_entbb argdtree" argdtree)
        (match 
 	argdtree
 	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argname)
@@ -970,12 +1072,16 @@
        (debugtree "smallana_cfun_entbb argdecltree" argdtree)
        )
       ;;;;
-      (let ( (scf (instance class_smallcfun
-			    :named_name (make_stringconst discr_string funam)
+      (let ( (fname (make_stringconst discr_string funam)) 
+	    (scf (instance class_smallcfun
+			    :named_name fname
 			    :scfun_decl (make_tree discr_tree decltree)
 			    :scfun_entbb (make_basicblock discr_basicblock bbent)))
 	     )
-	(list_append (get_field :sman_cfuns sman) scf)))
+	(debug_msg fname "smallana_cfun_entbb fname")
+	(list_append (get_field :sman_cfuns sman) scf)
+	(mapstring_putstr (get_field :sman_cfundict sman) fname scf)
+	))
    ( ?(tree_variable_decl ?_)
       (debugtree  "smallana_cfun_entbb decl of variable" decltree)
       (inform_at_tree decltree "smallana: global variable not analyzed")
@@ -1103,12 +1209,37 @@
   (debug_msg sman "smallana_bb_cfun end sman")
   )
 
+(defun smallana_interpret (sman)
+  (debug_msg sman "smallana_interpret sman")
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (let ( (mainf (mapstring_rawget (get_field :sman_cfundict sman) "main")) )
+    (debug_msg mainf "smallana_interpret mainf")
+    (assert_msg "check mainf" (is_a mainf class_smallcfun))
+    )
+)
+
+;;; our small analysis gate for latessa
+;; for some reason, the smallana is triggered twice, and the first run
+;; is enough...
+(defun smallana_latessagate (latessapass)
+  (debug_msg smallana_cont "smallana_latessagate smallana_cont at start")
+  (let ( (oldsman (get_field  :container_value smallana_cont)) )
+    (if oldsman
+	(progn
+	  (debug_msg oldsman "smallana_latessagate already got oldsman")
+	(return ()))
+  (return smallana_cont)
+)))
+
+
 ;;; apparently only the entrybb loop matter in the latessa pass...
 (defun smallana_latessaexec (latessapass)
   (debug_msg latessapass "smallana_latessaexec start")
   (let ( (cfuns (make_list discr_list))
+	 (cfundict (make_mapstring discr_mapstrings 20))
 	 (sman (instance class_smallanalysis
 			 :sman_cfuns cfuns
+			 :sman_cfundict cfundict
 			 :sman_bbtable (make_mapbasicblock discr_mapbasicblocks 20)
 			 )) 
 	 )
@@ -1131,7 +1262,10 @@
     ;;
     (debug_msg sman "smallana_latessaexec sman after eachbbcfun")
     ;;
-    (debug_msg latessapass "smallana_latessaexec end")
+    (smallana_interpret sman)
+    ;;
+    (put_fields  smallana_cont :container_value sman)
+    (debug_msg smallana_cont "smallana_latessaexec final smallana_cont")
     ))
 
 ;;; our small analysis command -fbasilys=smallana
