@@ -1,3 +1,125 @@
+2008-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39431
+	* config/i386/predicates.md (cmpxchg8b_pic_memory_operand): New
+	predicate.
+	* config/i386/sync.md (sync_compare_and_swap<mode>,
+	sync_compare_and_swap_cc<mode>): For DImode with -m32 -fpic check
+	if operands[1] is cmpxchg8b_pic_memory_operand, if not force address
+	into a register.
+	(sync_double_compare_and_swapdi_pic,
+	sync_double_compare_and_swap_ccdi_pic): Require operand 1 to be
+	cmpxchg8b_pic_memory_operand instead of just memory_operand.
+
+2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39445
+	* config/i386/i386.c (ix86_expand_push): Don't set memory
+	alignment.
+
+2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39327
+	* config/i386/sse.md (avx_addsubv8sf3): Correct item bits.
+	(avx_addsubv4df3): Likewise.
+	(*avx_addsubv4sf3): Likewise.
+	(sse3_addsubv4sf3): Likewise.
+
+2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/38824
+	* config/i386/i386.md: Compare REGNO on the new peephole2
+	patterns.
+
+2009-03-12  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR debug/39432
+	* ira-int.h (struct allocno): Fix comment for calls_crossed_num.
+	* ira-conflicts.c (ira_build_conflicts): Prohibit call used
+	registers for allocnos created from user-defined variables.
+
+2009-03-11  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR target/39181
+	* config/spu/spu.c (spu_expand_mov): Handle invalid subregs
+	of non-integer mode as well.
+
+2009-03-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gimplify.c (gimplify_call_expr): Don't set CALL_CANNOT_INLINE_P
+	for functions for which the parameter types are unknown.
+
+2009-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39137
+	* cfgexpand.c (get_decl_align_unit): Use LOCAL_DECL_ALIGNMENT
+	macro.
+	* defaults.h (LOCAL_DECL_ALIGNMENT): Define if not yet defined.
+	* config/i386/i386.h (LOCAL_DECL_ALIGNMENT): Define.
+	* config/i386/i386.c (ix86_local_alignment): For
+	-m32 -mpreferred-stack-boundary=2 use 32-bit alignment for
+	long long variables on the stack to avoid dynamic realignment.
+	Allow the first argument to be a decl rather than type.
+	* doc/tm.texi (LOCAL_DECL_ALIGNMENT): Document.
+
+2009-03-11  Nick Clifton  <nickc@redhat.com>
+
+	PR target/5362
+	* config/mcore/mcore.opt: Remove deprecated m4align and m8align
+	options.
+	Add description to mno-lsim option.
+	* config/mcore/mcore.h: Remove comment about deprecated m4align
+	option.
+	(TARGET_DEFAULT): Remove deprecated MASK_M8ALIGN.
+	* doc/invoke.texi: Add description of mno-lsim and
+	mstack-increment options.
+
+	* config/fr30/fr30.opt: Document the -mno-lsim option.
+	* doc/invoke.texi: Add descriptions of the FR30's -msmall-model
+	and -mno-lsim options.
+
+2009-03-11  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* fold-const.c (fold_comparison): Only call fold_inf_compare
+	if the mode supports infinities.
+
+2009-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR debug/39086
+	* tree-nrv.c (tree_nrv): Don't do this optimization if the front
+	end already did.  Notice GIMPLE_CALL modifications of the result.
+	Don't copy debug information from an ignored decl or a decl from
+	another function.
+
+2009-03-10  Richard Guenther  <rguenther@suse.de>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR middle-end/37850
+	* libgcc2.c (__mulMODE3): Use explicit assignments to form the
+	result.
+	(__divMODE3): Likewise.
+
+2009-03-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39394
+	* gimplify.c (gimplify_type_sizes): Gimplify DECL_SIZE and
+	DECL_SIZE_UNIT of variable length FIELD_DECLs.
+
+2009-03-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* recog.c (verfiy_changes): Disallow renaming of hard regs in
+	inline asms for register asm ("") declarations.
+
+2009-03-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* fold-const.c (fold_unary): Fix comment.
+
+2009-03-07  Jan Hubicka  <jh@suse.cz>
+
+	PR target/39361
+	* tree-inline.c (setup_one_parameter): Do replacement of const argument
+	by constant in SSA form.
+
 2009-03-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR middle-end/38028

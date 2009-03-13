@@ -2355,11 +2355,7 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
   else if (parms)
     p = parms;
   else
-    {
-      if (nargs != 0)
-	CALL_CANNOT_INLINE_P (*expr_p) = 1;
-      p = NULL_TREE;
-    }
+    p = NULL_TREE;
   for (i = 0; i < nargs && p; i++, p = TREE_CHAIN (p))
     ;
 
@@ -7141,6 +7137,8 @@ gimplify_type_sizes (tree type, gimple_seq *list_p)
 	if (TREE_CODE (field) == FIELD_DECL)
 	  {
 	    gimplify_one_sizepos (&DECL_FIELD_OFFSET (field), list_p);
+	    gimplify_one_sizepos (&DECL_SIZE (field), list_p);
+	    gimplify_one_sizepos (&DECL_SIZE_UNIT (field), list_p);
 	    gimplify_type_sizes (TREE_TYPE (field), list_p);
 	  }
       break;

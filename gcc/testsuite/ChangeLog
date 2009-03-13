@@ -1,3 +1,96 @@
+2009-03-12  David Ayers  <ayers@fsfe.org>
+
+	PR libobjc/27466
+	* objc/execute/exceptions/handler-1.m. New test.
+
+2008-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39431
+	* gcc.target/i386/pr39431.c: New test.
+
+2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39445
+	* gcc.target/i386/pr39445.c: New.
+
+	* gcc.target/i386/push-1.c: XFAIL.
+
+2009-03-11  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.dg/inline-33.c: New test.
+
+2009-03-11  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/vect/vect-82.c: Combine dg-do and
+	dg-require-effective-target into dg-skip-if.
+	* gcc.dg/vect/vect-83.c: Likewise.
+
+2009-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39137
+	* gcc.target/i386/stackalign/longlong-1.c: New test.
+	* gcc.target/i386/stackalign/longlong-2.c: New test.
+
+2009-03-11  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.old-deja/g++.jason/thunk2.C: Skip on SPU.
+
+2009-03-11  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.c-torture/execute/ieee/inf-3.c: New test.
+	* gcc.c-torture/execute/ieee/inf-2.c: Fix typo.
+
+2009-03-11  Olivier Hainque  <hainque@adacore.com>
+
+	* gnat.dg/slice_enum.adb: New test.
+
+2009-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR debug/39086
+	* g++.dg/opt/nrv15.C: New test.
+
+2009-03-10  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39422
+	* gcc.dg/vect/costmodel/spu/costmodel-vect-76b.c: Move
+	constant array with static initialization to global memory.
+	* gcc.dg/vect/costmodel/spu/costmodel-vect-76c.c: Likewise.
+
+2009-03-10  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* gcc.c-torture/execute/pr39339.c: Bitfield sizes changed to avoid
+	padding.
+
+2009-03-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39371
+	* g++.dg/opt/switch2.C: Add -w to dg-options.
+	* g++.dg/warn/Wswitch-1.C: Adjust expected warnings.
+	* g++.dg/warn/switch1.C: New test.
+	* g++.dg/other/switch3.C: New test.
+
+	PR tree-optimization/39394
+	* gcc.c-torture/compile/pr39394.c: New test.
+
+2009-03-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.target/s390/20090223-1.c: New testcase.
+
+2009-03-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/39402
+	* gfortran.dg/fmt_f0_1.f90: New test.
+
+2009-03-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/39060
+	* g++.dg/other/new1.C: Adjusted.
+	* g++.dg/parse/crash40.C: Likewise.
+	* g++.dg/parse/defarg12.C: Likewise.
+	* g++.dg/template/error15.C: Likewise.
+
+	* g++.dg/other/pr39060.C: New.
+
 2009-03-07  Jason Merrill  <jason@redhat.com>
 
 	PR c++/39367

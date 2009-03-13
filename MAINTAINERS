@@ -151,7 +151,7 @@ libgomp			Jakub Jelinek		jakub@redhat.com
 libiberty		DJ Delorie		dj@redhat.com
 libiberty		Ian Lance Taylor	ian@airs.com
 libffi testsuite	Andreas Tobler		andreast@gcc.gnu.org
-libobjc			Nicola Pero		n.pero@mi.flashnet.it
+libobjc			Nicola Pero		nicola.pero@meta-innovation.com
 libobjc			Andrew Pinski		pinskia@gmail.com
 loop discovery		Michael Hayes		m.hayes@elec.canterbury.ac.nz
 soft-fp			Joseph Myers		jsm@polyomino.org.uk
@@ -221,7 +221,7 @@ dfp.c, related		Ben Elliston		bje@au.ibm.com
 RTL optimizers		Eric Botcazou		ebotcazou@libertysurf.fr
 auto-vectorizer		Richard Guenther	rguenther@suse.de
 auto-vectorizer		Zdenek Dvorak		ook@ucw.cz
-auto-vectorizer		Dorit Nuzman		dorit@il.ibm.com
+auto-vectorizer		Ira Rosen		irar@il.ibm.com
 loop infrastructure	Zdenek Dvorak		ook@ucw.cz
 OpenMP			Jakub Jelinek		jakub@redhat.com
 
@@ -420,6 +420,7 @@ Dwarakanath Rajagopal				dwarak.rajagopal@amd.com
 Ramana Radhakrishnan				ramana.r@gmail.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
+Joern Rennecke					joern.rennecke@arc.com
 Bernhard Reutner-Fischer			rep.dot.nop@gmail.com
 Tom Rix						trix@redhat.com
 Craig Rodrigues					rodrigc@gcc.gnu.org
@@ -469,10 +470,6 @@ Jie Zhang					jie.zhang@analog.com
 Jon Ziegler					jonz@apple.com
 Roman Zippel					zippel@linux-m68k.org
 Josef Zlomek					josef.zlomek@email.cz
-
-Waiting for paperwork:
-
-Joern Rennecke					joern.rennecke@arc.com
 
 Bug database only accounts
 
