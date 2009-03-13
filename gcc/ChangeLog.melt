@@ -1,4 +1,8 @@
 2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	[tmallbuf.c testsuite is parsed by ana-base.bysl]
+	* melt/ana-base.bysl: added several gimple patterns.
+	* testsuite/gcc/tmallbuf.c: indented & simplified.
+2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl: removed simpanalysis.  removed several
 	do_each* functions, using directly the underlying citerator.
 2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -165,6 +165,176 @@
    )
 )
 
+
+;;;; match a gimple assign with addition ie X = Y + Z
+
+(defcmatcher gimple_assign_plus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasplus
+  (; test
+   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == PLUS_EXPR"
+   )
+  (; fill
+   lhs " = gimple_assign_lhs(" ga ");\n"
+   rhs1 " = gimple_assign_rhs1(" ga ");\n"
+   rhs2 " = gimple_assign_rhs2(" ga ");\n"
+   ))
+
+
+(defcmatcher gimple_assign_pointerplus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasplus
+  (; test
+   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == POINTER_PLUS_EXPR"
+   )
+  (; fill
+   lhs " = gimple_assign_lhs(" ga ");\n"
+   rhs1 " = gimple_assign_rhs1(" ga ");\n"
+   rhs2 " = gimple_assign_rhs2(" ga ");\n"
+   ))
+
+
+;;;; match a gimple assign with multiplication ie X = Y * Z
+
+(defcmatcher gimple_assign_mult
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  (; test
+   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == MULT_EXPR"
+   )
+  (; fill
+   lhs " = gimple_assign_lhs(" ga ");\n"
+   rhs1 " = gimple_assign_rhs1(" ga ");\n"
+   rhs2 " = gimple_assign_rhs2(" ga ");\n"
+   ))
+
+
+
+;;; match a gimple assign binary op
+(defcmatcher gimple_assign_binaryop
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   :long opcode
+   )
+  gasplus
+  (; test
+   ga " && is_gimple_assign(" ga ") && gimple_num_ops(" ga ")>=3"
+   )
+  (; fill
+   lhs " = gimple_assign_lhs(" ga ");\n"
+   rhs1 " = gimple_assign_rhs1(" ga ");\n"
+   rhs2 " = gimple_assign_rhs2(" ga ");\n"
+   opcode " = gimple_assign_rhs_code(" ga ");\n"
+   ))
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond less or equal
+(defcmatcher gimple_cond_lessequal
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   :tree truelab
+   :tree falselab
+   )
+  gimpcondle
+  (; test expansion
+   gc " && gimple_code(" gc ")==GIMPLE_COND "
+      " && gimple_cond_code(" gc ")==LE_EXPR" 
+   )
+  (; fill expansion
+   lhs "= gimple_cond_lhs(" gc ");\n"
+   rhs "= gimple_cond_rhs(" gc ");\n"
+   truelab "= gimple_cond_true_label(" gc ");\n"
+   falselab "= gimple_cond_false_label(" gc ");\n"
+   )
+  )
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond not equal
+(defcmatcher gimple_cond_notequal
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   :tree truelab
+   :tree falselab
+   )
+  gimpcondle
+  (; test expansion
+   gc " && gimple_code(" gc ")==GIMPLE_COND "
+      " && gimple_cond_code(" gc ")==NE_EXPR" 
+   )
+  (; fill expansion
+   lhs "= gimple_cond_lhs(" gc ");\n"
+   rhs "= gimple_cond_rhs(" gc ");\n"
+   truelab "= gimple_cond_true_label(" gc ");\n"
+   falselab "= gimple_cond_false_label(" gc ");\n"
+   )
+  )
+
+;;; match a gimple cond greater
+(defcmatcher gimple_cond_greater
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   :tree truelab
+   :tree falselab
+   )
+  gimpcondle
+  (; test expansion
+   gc " && gimple_code(" gc ")==GIMPLE_COND "
+      " && gimple_cond_code(" gc ")==GT_EXPR" 
+   )
+  (; fill expansion
+   lhs "= gimple_cond_lhs(" gc ");\n"
+   rhs "= gimple_cond_rhs(" gc ");\n"
+   truelab "= gimple_cond_true_label(" gc ");\n"
+   falselab "= gimple_cond_false_label(" gc ");\n"
+   )
+  )
+
+
+;;; match a gimple call to a direct function
+(defcmatcher gimple_call
+  (:gimple gc)
+  (:tree lhs
+	 fndecl
+   )
+  gimpcall
+  (; test 
+   gc " && gimple_code(" gc ")==GIMPLE_CALL"
+   )
+  (; fill
+   lhs " = gimple_call_lhs(" gc ");\n"
+   fndecl " = gimple_call_fndecl(" gc ");\n"
+   ))
+
+;;;;  match a gimple return
+(defcmatcher gimple_return
+  (:gimple gr)
+  (:tree retval
+   )
+  gimpret
+  (; test 
+   gr " && gimple_code(" gr ")==GIMPLE_RETURN"
+   )
+  (; fill
+   retval " = gimple_return_retval(" gr ");\n"
+   ))
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLESEQ)")
 
@@ -623,9 +793,14 @@
   "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
 )
 
+(defprimitive debugtreecodenum  (:cstring msg :long opcod) :void
+  "debugeprintf(\"debugtreecodenum %s #%ld %s\", " msg ", " opcod ", tree_code_name[" opcod "]);")
+
 (defprimitive debuggimple(:cstring msg :gimple g) :void
   " do{debugeprintfnonl(\"debuggimple %s @%p /%s. \", " msg ", (void*)" g 
   ", ("g ")?gimple_code_name[gimple_code(" g ")]: \"*nil*\");"
+  "if (" g " && gimple_location(" g ")) "
+  "  debugeprintf_raw(\"{%s:%d} \", LOCATION_FILE(gimple_location(" g ")), LOCATION_LINE(gimple_location(" g ")));"
   "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
 )
 
@@ -808,6 +983,7 @@
    ( ?_
      (debugtree "smallana_cfun_entbb other decl" decltree)
      (inform_at_tree decltree "smallana: other declaration not analyzed")
+     (assert_msg "smallana_cfun_entbb @@UNIMPLEMENTED DECL" ())
      () )
    )
   (debug_msg sman "smallana_cfun_entbb sman")
@@ -838,8 +1014,56 @@
       (debugtree "smallana_gimple gimple_assign_unary_nop lhs" lhs)
       (debugtree "smallana_gimple gimple_assign_unary_nop rhs" rhs)
       )
+   ( ?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
+      (debugtree "smallana_gimple gimple_assign_plus lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_plus rhs1" rhs1)
+      (debugtree "smallana_gimple gimple_assign_plus rhs2" rhs2)
+      )
+   ( ?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
+      (debugtree "smallana_gimple gimple_assign_pointerplus lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_pointerplus rhs1" rhs1)
+      (debugtree "smallana_gimple gimple_assign_pointerplus rhs2" rhs2)
+      )
+   ( ?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
+      (debugtree "smallana_gimple gimple_assign_mult lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_mult rhs1" rhs1)
+      (debugtree "smallana_gimple gimple_assign_mult rhs2" rhs2)
+      )
+   ( ?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
+      (debugtree "smallana_gimple gimple_assign_binaryop lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_binaryop rhs1" rhs1)
+      (debugtree "smallana_gimple gimple_assign_binaryop rhs2" rhs2)
+      (debugtreecodenum  "smallana_gimple gimple_assign_binaryop opcod" opcod)
+      (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
+      )
+   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smallana_gimple gimple_cond_lessequal lhs" lhs)
+      (debugtree "smallana_gimple gimple_cond_lessequal rhs" rhs)
+      (debugtree "smallana_gimple gimple_cond_lessequal truelab" truelab)
+      (debugtree "smallana_gimple gimple_cond_lessequal falselab" falselab)
+      )
+   ( ?(gimple_cond_notequal ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smallana_gimple gimple_cond_notequal lhs" lhs)
+      (debugtree "smallana_gimple gimple_cond_notequal rhs" rhs)
+      (debugtree "smallana_gimple gimple_cond_notequal truelab" truelab)
+      (debugtree "smallana_gimple gimple_cond_notequal falselab" falselab)
+      )
+   ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smallana_gimple gimple_cond_greater lhs" lhs)
+      (debugtree "smallana_gimple gimple_cond_greater rhs" rhs)
+      (debugtree "smallana_gimple gimple_cond_greater truelab" truelab)
+      (debugtree "smallana_gimple gimple_cond_greater falselab" falselab)
+      )
+   ( ?(gimple_call ?lhs ?fndecl)
+      (debugtree "smallana_gimple gimple_call lhs" lhs)
+      (debugtree "smallana_gimple gimple_call fndecl" fndecl)
+      )
+   ( ?(gimple_return ?retval)
+      (debugtree "smallana_gimple gimple_return retval" retval)
+      )
    ( ?_
      (debuggimple "smallana_gimple other!gimple" g)
+     (assert_msg "smallana_gimple @@ UNIMPLEMENTED GIMPLE" ())
      )
    )
   )
