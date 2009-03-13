@@ -549,6 +549,12 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
       ppl_dimension_type l = sese_loop_depth (s, loop);
       Value val;
 
+      /* We can not deal with parametric strides like:
+ 
+      | p = parameter;
+      |
+      | for i:
+      |   a [i * p] = ...   */
       gcc_assert (TREE_CODE (e) == INTEGER_CST);
 
       value_init (val);

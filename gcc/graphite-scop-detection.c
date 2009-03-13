@@ -152,19 +152,47 @@ move_sd_regions (VEC (sd_region, heap) **source, VEC (sd_region, heap) **target)
   VEC_free (sd_region, heap, *source);
 }
 
-/* Return true when EXPR is an affine function in LOOP with parameters
-   instantiated relative to SCOP_ENTRY.  */
+/* Return true when EXPR can be represented in the polyhedral model.  
+
+   This means an expression can be represented, if it is linear with
+   respect to the loops and the strides are non parametric.  */
 
 static bool
-loop_affine_expr (basic_block scop_entry, struct loop *loop, tree expr)
+graphite_can_represent_scev (tree scev, int loop)
 {
-  int n = loop->num;
+  tree zero; 
+
+  if (chrec_contains_undetermined (scev))
+    return false;
+
+  if (evolution_function_is_invariant_p (scev, loop))
+    return true;
+
+  zero = fold_convert (chrec_type (scev), integer_zero_node);
+  scev = chrec_replace_initial_condition (scev, zero);
+
+  if (evolution_function_is_affine_multivariate_p (scev, loop)
+      && !chrec_contains_symbols (scev))
+    return true;
+
+  return false;
+}
+
+
+/* Return true when EXPR can be represented in the polyhedral model.  
+
+   This means an expression can be represented, if it is linear with
+   respect to the loops and the strides are non parametric.  */
+
+static bool
+graphite_can_represent_expr (basic_block scop_entry, struct loop *loop,
+			     tree expr)
+{
   tree scev = analyze_scalar_evolution (loop, expr);
 
   scev = instantiate_scev (scop_entry, loop, scev);
 
-  return (evolution_function_is_invariant_p (scev, n)
-	  || evolution_function_is_affine_multivariate_p (scev, n));
+  return graphite_can_represent_scev (scev, loop->num);
 }
 
 /* Return false if the tree_code of the operand OP or any of its operands
@@ -192,6 +220,31 @@ exclude_component_ref (tree op)
     }
 
   return true;
+}
+
+/* Return true if we can create an affine data-ref for OP in STMT.  */
+
+static bool
+stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
+{
+  data_reference_p dr;
+  unsigned int i;
+  VEC(tree,heap) *fns;
+  tree t;
+  bool res = true;
+
+  dr = create_data_ref (loop, op, stmt, true);
+  fns = DR_ACCESS_FNS (dr);
+
+  for (i = 0; VEC_iterate (tree, fns, i, t); i++)
+    if (!graphite_can_represent_scev (t, loop->num))
+      {
+	res = false;
+	break;
+      }
+
+  free_data_ref (dr);
+  return res;
 }
 
 /* Return true if the operand OP is simple.  */
@@ -257,7 +310,7 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	  return false;
 
 	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
-	  if (!loop_affine_expr (scop_entry, loop, op))
+	  if (!graphite_can_represent_expr (scop_entry, loop, op))
 	    return false;
 
 	return true;
@@ -272,12 +325,18 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	  case GIMPLE_UNARY_RHS:
 	  case GIMPLE_SINGLE_RHS:
 	    return (is_simple_operand (loop, stmt, gimple_assign_lhs (stmt))
-		    && is_simple_operand (loop, stmt, gimple_assign_rhs1 (stmt)));
+				       
+		    && is_simple_operand (loop, stmt,
+					  gimple_assign_rhs1 (stmt)));
+					  
 
 	  case GIMPLE_BINARY_RHS:
-	    return (is_simple_operand (loop, stmt, gimple_assign_lhs (stmt))
-		    && is_simple_operand (loop, stmt, gimple_assign_rhs1 (stmt))
-		    && is_simple_operand (loop, stmt, gimple_assign_rhs2 (stmt)));
+	    return (is_simple_operand (loop, stmt,
+				       gimple_assign_lhs (stmt))
+		    && is_simple_operand (loop, stmt,
+					  gimple_assign_rhs1 (stmt))
+		    && is_simple_operand (loop, stmt,
+					  gimple_assign_rhs2 (stmt)));
 
 	  case GIMPLE_INVALID_RHS:
 	  default:
@@ -295,7 +354,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	  return false;
 
 	for (i = 0; i < n; i++)
-	  if (!is_simple_operand (loop, stmt, gimple_call_arg (stmt, i)))
+	  if (!is_simple_operand (loop, stmt,
+				  gimple_call_arg (stmt, i)))
 	    return false;
 
 	return true;
@@ -368,7 +428,7 @@ nb_reductions_in_loop (loop_p loop)
    polyhedral representation.  */
 
 static bool
-graphite_cannot_represent_loop (loop_p loop)
+graphite_cannot_represent_loop (basic_block scop_entry, loop_p loop)
 {
   tree niter = number_of_latch_executions (loop);
 
@@ -376,7 +436,7 @@ graphite_cannot_represent_loop (loop_p loop)
   return (chrec_contains_undetermined (niter)
 
 	  /* Upper bound should be linear.   */
-	  || !scev_is_linear_expression (niter)
+	  || !graphite_can_represent_expr (scop_entry, loop, niter)
 
 	  /* Code generation does not deal with scalar reductions.  */
 	  || nb_reductions_in_loop (loop) > 0);
@@ -415,7 +475,8 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
   gimple stmt;
 
   /* XXX: ENTRY_BLOCK_PTR could be optimized in later steps.  */
-  stmt = harmful_stmt_in_bb (ENTRY_BLOCK_PTR, bb);
+  basic_block entry_block = ENTRY_BLOCK_PTR;
+  stmt = harmful_stmt_in_bb (entry_block, bb);
   result.difficult = (stmt != NULL);
   result.last = NULL;
 
@@ -458,7 +519,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	if (result.last->loop_father != loop)
 	  result.next = NULL;
 
-        if (graphite_cannot_represent_loop (loop))
+        if (graphite_cannot_represent_loop (entry_block, loop))
           result.difficult = true;
 
         if (sinfo.difficult)

@@ -412,7 +412,6 @@ extern void compute_all_dependences (VEC (data_reference_p, heap) *,
 extern void create_rdg_vertices (struct graph *, VEC (gimple, heap) *);
 extern bool dr_may_alias_p (const struct data_reference *,
 			    const struct data_reference *);
-extern bool stmt_simple_memref_p (struct loop *, gimple, tree);
 
 /* Return true when the DDR contains two data references that have the
    same access functions.  */

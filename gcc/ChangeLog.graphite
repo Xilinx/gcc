@@ -1,5 +1,18 @@
 2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-scop-detection.c (graphite_can_represent_scev): New.
+	(graphite_can_represent_expr): Renamed from loop_affine_expr
+	and enhanced.
+	(stmt_simple_for_scop_p): Call graphite_can_represent_expr.
+	(graphite_cannot_represent_loop): Add scop_entry to parameters.
+	(scopdet_basic_block_info): Actually define entry_block.
+	(stmt_simple_memref_p): Moved here from ...
+
+	* tree-data-ref.c (stmt_simple_memref_p): here.
+	* tree-data-ref.h (stmt_simple_memref_p): Removed.
+
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* testsuite/gcc.dg/graphite/id-4.c: New.
 
 2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
