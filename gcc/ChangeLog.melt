@@ -1,4 +1,7 @@
 2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.bysl: removed simpanalysis.  removed several
+	do_each* functions, using directly the underlying citerator.
+2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: removed comment from GCC chat...
 	* melt/ana-base.bysl: adding mapbasicblock ...
 2009-03-12  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -439,7 +439,7 @@
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (assert_msg "check self" (is_mapbasicblock self))
   (let ( (dis (discrim self)) 
-	 (:long mapcount (mapstring_count self))
+	 (:long mapcount (mapbasicblock_count self))
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " !bbmap.")
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
@@ -639,54 +639,6 @@
   "if (flag_basilys_debug) debug_bb(" bb ");}while(0) "
 )
 
-;; apply a function to every cfun -its decl & bodyseq
-(defun do_each_cfun_body (f)
-  ;(debug_msg f "do_each_cfun_body f")
-  (each_cgraph_fun_body
-   () 
-   (:tree decl :gimpleseq bdy)
-   ;(debugtree "do_each_cfun_body decl" decl)
-   ;(debuggimpleseq "do_each_cfun_body bdy" bdy)
-   (let ( (dclval (make_tree discr_tree decl)) 
-	  (bdyval (make_gimpleseq discr_gimpleseq bdy))
-	  )
-     ;(debug_msg dclval "do_each_cfun_body inside dclval")
-     ;(debug_msg bdyval "do_each_cfun_body inside bdyval")
-     (f dclval bdyval)
-     )))
-
-
-;; apply a function to every cfun -its decl & basicblock
-(defun do_each_cfun_entrybb (f)
-  ;(debug_msg f "do_each_cfun_bb f")
-  (each_cgraph_fun_entryblock
-   () 
-   (:tree decl :basicblock bb)
-   ;(debugtree "do_each_cfun_entrybb decl" decl)
-   ;(debugbasicblock "do_each_cfun_entrybb bdy" bb)
-   (let ( (dclval (make_tree discr_tree decl)) 
-	  (bbval (make_basicblock discr_basicblock bb))
-	  )
-     ;(debug_msg dclval "do_each_cfun_entrybb inside dclval")
-     ;(debug_msg bbval "do_each_cfun_entrybb inside bbval")
-     (f dclval bbval)
-     )))
-
-;;; apply a function to eevery basicblock in the current cfun
-(defun do_each_bb_cfun (f)
-  ;(debug_msg f "do_each_bb_cfun_start")
-  (each_bb_cfun 
-   ()
-   (:basicblock cfbb :tree cfdecl)
-   (let ( (cfbbval (make_basicblock discr_basicblock cfbb)) )
-     ;(debug_msg cfbbval "do_each_bb_cfun cfbbval before")
-     ;(debugtree "do_each_bb_cfun cfdecl" cfdecl)
-     (f cfbbval cfdecl)
-     ))
-  ;(debug_msg f "do_each_bb_cfun end")
-)
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
 ;;;; iterate on a gimpleseq
@@ -784,154 +736,6 @@
    )
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; our simple analysis gate for ipa
-(defun simpana_ipagate (ipapass)
-  (debug_msg ipapass "simpana_ipagate start")
-  (debug_msg ipapass "simpana_ipagate end")
-  (return ipapass)
-)
-
-;;; apparently only the entrybb loop matter in the ipa pass...
-(defun simpana_ipaexec (ipapass)
-  (debug_msg ipapass "simpana_ipaexec start")
-  (debug_msg (unsafe_get_field :named_name ipapass) "simpana_ipaexec start name")
-  (do_each_cfun_body 
-   (lambda (declv bodyv)
-     (debug_msg declv "simpana_ipaexec eachcfunbdy declv")
-     (debug_msg bodyv "simpana_ipaexec eachcfunbdy bodyv")
-     ))
-  (debug_msg ipapass "simpana_ipaexec after eachbody before eachentrybb")
-  (do_each_cfun_entrybb 
-   (lambda (declv bbv)
-     (debug_msg declv "simpana_ipaexec eachcfunentrybb declv")
-     (debug_msg bbv "simpana_ipaexec eachcfunentrybb bbv")
-     (let ( (:gimpleseq gs (basicblock_gimpleseq bbv))
-	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs)))
-	    )
-       (debug_msg gsv "simpana_ipaexec eachcfunentrybb gsv")
-     )))
-  (debug_msg (unsafe_get_field :named_name ipapass) "simpana_ipaexec end name")
-  (debug_msg ipapass "simpana_ipaexec end")
-)
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; our simple analysis gate for earlyopt
-(defun simpana_earlyoptgate (earlyoptpass)
-  (debug_msg earlyoptpass "simpana_earlyoptgate start")
-  (debug_msg earlyoptpass "simpana_earlyoptgate end")
-  (return earlyoptpass)
-)
-
-;;; apparently only the entrybb loop matter in the earlyopt pass...
-(defun simpana_earlyoptexec (earlyoptpass)
-  (debug_msg earlyoptpass "simpana_earlyoptexec start")
-  (debug_msg (unsafe_get_field :named_name earlyoptpass) "simpana_earlyoptexec start name")
-  (do_each_cfun_body 
-   (lambda (declv bodyv)
-     (debug_msg declv "simpana_earlyoptexec eachcfunbdy declv")
-     (debug_msg bodyv "simpana_earlyoptexec eachcfunbdy bodyv")
-     ))
-  (debug_msg earlyoptpass "simpana_earlyoptexec after eachbody before eachentrybb")
-  (do_each_cfun_entrybb 
-   (lambda (declv bbv)
-     (debug_msg declv "simpana_earlyoptexec eachcfunentrybb declv")
-     (debug_msg bbv "simpana_earlyoptexec eachcfunentrybb bbv")
-     ))
-  (debug_msg (unsafe_get_field :named_name earlyoptpass) "simpana_earlyoptexec end name")
-  (debug_msg earlyoptpass "simpana_earlyoptexec end")
-)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; our simple analysis gate for latessa
-(defun simpana_latessagate (latessapass)
-  (debug_msg latessapass "simpana_latessagate start")
-  (debug_msg latessapass "simpana_latessagate end")
-  (return latessapass)
-)
-
-;;; apparently only the entrybb loop matter in the latessa pass...
-(defun simpana_latessaexec (latessapass)
-  (debug_msg latessapass "simpana_latessaexec start")
-  (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec start name")
-  (do_each_cfun_body 
-   (lambda (declv bodyv)
-     (debug_msg declv "simpana_latessaexec eachcfunbdy declv")
-     (debug_msg bodyv "simpana_latessaexec eachcfunbdy bodyv")
-     ))
-  (debug_msg latessapass "simpana_latessaexec after eachbody before eachentrybb")
-  (do_each_cfun_entrybb 
-   (lambda (declv bbv)
-     (debug_msg declv "simpana_latessaexec eachcfunentrybb declv")
-     (debug_msg bbv "simpana_latessaexec eachcfunentrybb bbv")
-     (let ( (:gimpleseq gs (basicblock_gimpleseq bbv))
-	    (gsv (if gs (make_gimpleseq discr_gimpleseq gs))) 
-	    (:gimpleseq phis (basicblock_phinodes bbv))
-	    (phisv (if phis (make_gimpleseq discr_gimpleseq phis)))
-	    )
-       (debug_msg gsv "simpana_latessaexec eachcfunentrybb gsv")
-       (debug_msg phisv "simpana_latessaexec eachcfunentrybb phisv")
-       ))) 
-  (debug_msg latessapass "simpana_latessaexec after eachentrybb before eachbbcfun")
-  (do_each_bb_cfun
-   (lambda (cfbbv :tree cfdecl)
-     (debug_msg cfbbv "simpana_latessaexec eachbbcfun cfbbv")
-     (let ( (:gimpleseq bbseq
-			(basicblock_gimpleseq cfbbv))
-	    (:gimpleseq bbphis (basicblock_phinodes cfbbv))
-	    )
-       (debuggimpleseq "simpana_latessaexec bbseq" bbseq)
-       (do_each_gimpleseq
-	(lambda (gimv)
-	  (debug_msg gimv "simpana_latessaexec gimv"))
-	bbseq
-	)
-       (debuggimpleseq "simpana_latessaexec bbphis" bbphis)
-       (do_each_gimpleseq
-	(lambda (gphiv)
-	  (debug_msg gphiv "simpana_latessaexec gimv"))
-	bbphis
-	)
-       (do_eachgimple_in_basicblock
-	(lambda (gbbv)
-	  (debug_msg gbbv "simpana_latessaexec gbbv"))
-	(basicblock_content cfbbv))
-       )))
-  (debug_msg (unsafe_get_field :named_name latessapass) "simpana_latessaexec end name")
-  (debug_msg latessapass "simpana_latessaexec end")
-  )
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; our simple analysis command -fbasilys=simpana
-(defun simpana_command (dispatcher arg secarg moduldata)
-  ;(debug_msg moduldata "simpana moduldata")
-  ;; fill the earlyopt pass
-  (unsafe_put_fields basilys_earlyopt_gccpass
-  :gccpass_gate simpana_earlyoptgate
-  :gccpass_exec simpana_earlyoptexec)
-  (debug_msg basilys_earlyopt_gccpass "simpana sets basilys_earlyopt_gccpass")
-  ;; fill the ipa pass
-  (unsafe_put_fields basilys_ipa_gccpass
-  :gccpass_gate simpana_ipagate
-  :gccpass_exec simpana_ipaexec)
-  (debug_msg basilys_ipa_gccpass "simpana sets basilys_ipa_gccpass")
-  ;; fill the latessa pass
-  (unsafe_put_fields basilys_latessa_gccpass
-  :gccpass_gate simpana_latessagate
-  :gccpass_exec simpana_latessaexec)
-  (debug_msg basilys_latessa_gccpass "simpana sets basilys_latessa_gccpass")
-  (return dispatcher)			;return non-nil to continue compilation
-  )
-
-(initial_command_install simpana_command "simpana")
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; small analysis
@@ -939,7 +743,7 @@
 (defclass class_smallcfun
   :super class_named
   :fields (scfun_decl
-	   scfun_entrybb
+	   scfun_entbb
 	   ))
 
 (defclass class_smallbb
@@ -959,55 +763,54 @@
 )
 
 
-(defun smallana_cfun_entrybb (sman declv entbbv)
-  (debug_msg declv "smallana_cfun_entrybb declv")
-  (debug_msg entbbv "smallana_cfun_entrybb entbbv")
-  (let ( (:tree decltree (tree_content declv)) )
-    (match 
-     decltree
-     ;; the joker below is acutally nil
-     ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
-	(debug_msg declv "smallana_cfun_entrybb decl of function")
-	(debugtree "smallana_cfun_entrybb treevars of function" treevars)
-	(each_arg_in_fundecl
-	 (decltree)
-	 (:tree argdtree)
-	 (match 
-	  argdtree
-	  ( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argname)
-	    (debugtree "smallana_cfun_entrybb integer argdtype" argdtype)
-	    (debugcstring "smallana_cfun_entrybb integer argname" argname)
-	    (debugcstring "smallana_cfun_entrybb integer typname" typname)
-	    (messagenum_dbg  "smallana_cfun_entrybb integer imin" imin)
-	    (messagenum_dbg  "smallana_cfun_entrybb integer imax" imax)
-	    )
-	  ( ?(tree_parm_decl ?argdtype ?argname)
-	    (debugtree "smallana_cfun_entrybb argdtype" argdtype)
-	    (debugcstring "smallana_cfun_entrybb argname" argname)
-	    )
-	  ( ?_ 
-	    (assert_msg "unexpected argdtree" ())
-	    )
+(defun smallana_cfun_entbb (sman :tree decltree :basicblock bbent)
+  (debug_msg sman "smallana_cfun_entbb sman")
+  (debugtree "smallana_cfun_entbb start decltree" decltree)
+  (match 
+   decltree
+   ;; the joker below is acutally nil
+   ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
+      (debugtree "smallana_cfun_entbb treevars of function" treevars)
+      ;;;;;
+      (each_arg_in_fundecl
+       (decltree)
+       (:tree argdtree)
+       (match 
+	argdtree
+	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argname)
+	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
+	   (debugcstring "smallana_cfun_entbb integer argname" argname)
+	   (debugcstring "smallana_cfun_entbb integer typname" typname)
+	   (messagenum_dbg  "smallana_cfun_entbb integer imin" imin)
+	   (messagenum_dbg  "smallana_cfun_entbb integer imax" imax)
+	   )
+	( ?(tree_parm_decl ?argdtype ?argname)
+	   (debugtree "smallana_cfun_entbb argdtype" argdtype)
+	   (debugcstring "smallana_cfun_entbb argname" argname)
+	   )
+	( ?_ 
+	  (assert_msg "unexpected argdtree" ())
 	  )
-	 (debugtree "smallana_cfun_entrybb argdecltree" argdtree)
-	 )
-	(let ( (scf (instance class_smallcfun
-			      :named_name (make_stringconst discr_string funam)
-			      :scfun_decl declv
-			      :scfun_entrybb entbbv)) 
-	       )
-	  (list_append (get_field :sman_cfuns sman) scf)))
-     ( ?(tree_variable_decl ?_)
-	(debug_msg declv "smallana_cfun_entrybb decl of variable")
-	(inform_at_tree decltree "smallana: global variable not analyzed")
 	)
-     ( ?_
-       (debug_msg declv "smallana_cfun_entrybb other decl")
-       (inform_at_tree decltree "smallana: other declaration not analyzed")
-       () )
-     )
-    )
-  (debug_msg sman "smallana_cfun_entrybb sman")
+       (debugtree "smallana_cfun_entbb argdecltree" argdtree)
+       )
+      ;;;;
+      (let ( (scf (instance class_smallcfun
+			    :named_name (make_stringconst discr_string funam)
+			    :scfun_decl (make_tree discr_tree decltree)
+			    :scfun_entbb (make_basicblock discr_basicblock bbent)))
+	     )
+	(list_append (get_field :sman_cfuns sman) scf)))
+   ( ?(tree_variable_decl ?_)
+      (debugtree  "smallana_cfun_entbb decl of variable" decltree)
+      (inform_at_tree decltree "smallana: global variable not analyzed")
+      )
+   ( ?_
+     (debugtree "smallana_cfun_entbb other decl" decltree)
+     (inform_at_tree decltree "smallana: other declaration not analyzed")
+     () )
+   )
+  (debug_msg sman "smallana_cfun_entbb sman")
   )
 
 
@@ -1062,23 +865,18 @@
       )))
 
 
-(defun smallana_bb_cfun (sman cfbbv :tree cfdecl)
-  (debug_msg cfbbv "smallana_bb_cfun cfbbv")
+(defun smallana_cfun_bb (sman :tree cfdecl :basicblock fbb)
+  (debug_msg sman "smallana_bb_cfun start sman")
   (debugtree "smallana_bb_cfun cfdecl" cfdecl)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (assert_msg "check cfbbv" (is_basicblock cfbbv))
   (match cfdecl
 	 ( ?(as ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
 	    (debugtree "smallana_bb_cfun decltree" decltree)
 	    (debugtree "smallana_bb_cfun treevars of function" treevars)
 	    (debugcstring "smallana_cfun_entrybb funam" funam)
 	    ))
-  (let ( (:basicblock fbb (basicblock_content cfbbv))
-	 )
-    (debugbasicblock "smallana_bb_cfun fbb" fbb)
-    (smallana_bb sman fbb)
-    (debug_msg sman "smallana_bb_cfun end sman")
-    )
+  (smallana_bb sman fbb)
+  (debug_msg sman "smallana_bb_cfun end sman")
   )
 
 ;;; apparently only the entrybb loop matter in the latessa pass...
@@ -1092,19 +890,20 @@
 	 )
     (debug_msg sman "smallana_latessaexec sman at start")
     ;; don't bother do_each_cfun_body here.. it is not done...
-    (do_each_cfun_entrybb 
-     (lambda (declv bbv)
-       (debug_msg declv "smallana_latessaexec eachcfunentrybb declv")
-       (debug_msg bbv "smallana_latessaexec eachcfunentrybb bbv")
-       (smallana_cfun_entrybb sman declv bbv)))
+    (each_cgraph_fun_entryblock
+     ()
+     (:tree decl :basicblock bbent)
+     (debugtree "smallana exec eachcgraph decl" decl)
+     (smallana_cfun_entbb sman decl bbent)
+     )
     ;;
     (debug_msg sman "smallana_latessaexec sman after eachentrybb")
     ;;
-    (do_each_bb_cfun
-     (lambda (cfbbv :tree cfdecl)
-       (debug_msg cfbbv "smallana_latessaexec eachbbcfun cfbbv")
-       (smallana_bb_cfun sman cfbbv cfdecl)
-       ))
+    (each_bb_cfun
+     ()
+     (:basicblock cfbb :tree cfdecl)
+     (smallana_cfun_bb sman cfdecl cfbb)
+     )
     ;;
     (debug_msg sman "smallana_latessaexec sman after eachbbcfun")
     ;;
