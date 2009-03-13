@@ -1,3 +1,6 @@
+2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.bysl: removed comment from GCC chat...
+	* melt/ana-base.bysl: adding mapbasicblock ...
 2009-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (debugprintfnonl): new macro.
 	* melt/warmelt-macro.bysl: typo for AS macro.

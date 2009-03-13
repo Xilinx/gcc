@@ -1080,33 +1080,12 @@
 (defprimitive make_mixloc (dis val :long num loc) :value
   "(basilysgc_new_mixloc((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
   "(basilysgc_read_file (basilys_string_str((basilys_ptr_t)(" filnam ")), (char*)0))")
 
-
-;;;; from GCC chat on july 1st 2008
-
-;;!   <basile> can I call error("%H", (location_t*)NULL, ...) or should I pass &loc with loc set to NULL?
-;;!   <iant_work> if you pass NULL you will get a SIGSEGV
-;;!   <tromey> yeah, don't pass NULL
-
-;;!   <basile> I'm not sure to understand the %H thing. Does it means
-;;!   replace input_location by the argument, or does it tells just
-;;!   ignore input_location?
-
-;;!   <iant_work> you can think of it as ignoring input_location
-;;!   <iant_work> it does not change input_location
-;;!   <basile> when reading a file myself, how should I add locations?
-;;!   <iant_work> call linemap_line_start at the start of each line
-;;!   <iant_work> each time you want a location_t call LINEMAP_POSITION_FOR_COLUMN
-;;!   <tromey> read libcpp/include/line-map.h
-;;!   <tromey> first do a linemap_add to "enter" your source file
-;;!   <tromey> then add the locations you care about
-;;!   <tromey> when entering your file you probably want LC_RENAME, btw
-;;!   <tromey> if MELT reads multiple lisp source files then you will need multiple linemap_add calls
-;;!   ; ;;;;
 
 ;; to signal an error in a basilys source with some additional string value
 (defprimitive error_strv (loc :cstring msg :value strv) :void

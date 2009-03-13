@@ -301,6 +301,7 @@
 (defprimitive make_basicblock (discr :basicblock bb) :value
   "(basilysgc_new_basicblock((basilysobject_ptr_t)(" discr "),(" bb ")))")
 
+
 (defprimitive basicblock_content (v) :basicblock
   "(basilys_basicblock_content((basilys_ptr_t)(" v ")))")
 
@@ -325,6 +326,55 @@
 (defprimitive ppstrbuf_basicblock (sbuf :long indent :basicblock bb) :void
   "basilysgc_ppstrbuf_basicblock((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" bb "))")
+
+
+;;;;;;;;;;;;;;;;
+
+(defprimitive is_mapbasicblock (map) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPBASICBLOCKS)")
+(defprimitive mapbasicblock_size (map) :long
+  "(basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map ")))")
+;; primitive to get the attribute count of a mapbasicblock
+(defprimitive mapbasicblock_count (map) :long
+  "(basilys_count_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map ")))")
+;; get an entry in a mapbasicblock from a C basicblock
+(defprimitive mapbasicblock_get (map :basicblock bb) :value
+  "(basilys_get_mapbasicblocks((" map
+  "), (" bb ")))")
+;; primitive for making a new map of basicblocks
+(defprimitive make_mapbasicblock (discr :long len) :value
+  " (basilysgc_new_mapbasicblocks( (basilysobject_ptr_t) (" discr "), (" len ")))")
+;; primitive for putting into a map of basicblocks
+(defprimitive mapbasicblock_put (map :basicblock key :value val) :void
+  " basilys_put_mapbasicblocks( (struct basilysmapbasicblocks_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+;; primivite for removing from a map of basicblocks
+(defprimitive mapbasicblock_remove (map :basicblock key) :void
+  " basilysgc_remove_mapbasicblocks( (struct basilysmapbasicblocks_st*) (" map "), (" key "))")
+
+;; primitive to get the nth basicblock of a mapbasicblock
+(defprimitive mapbasicblock_nth_attr (map :long n) :basicblock
+  "(basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map "), (int)(" n ")))")
+;; primitive to get the nth value of a mapobject
+(defprimitive mapbasicblock_nth_val (map :long n) :value
+  "(basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map "), (int)(" n ")))")
+(defciterator foreach_mapbasicblock 
+  (bbmap)				; startformals
+  eachmapbb 				;state symbol
+  (:basicblock bbatt :value bbval)	;local formals
+  (					;; before expansion
+   "/*eachbbmap*/ int " eachmapbb "_rk=0;\n"
+   "for (" eachmapbb "_rk=0; " 
+   eachmapbb "_rk<basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap ")); " eachmapbb "_rk++) {\n"
+   "basic_block " eachmapbb "_bb=basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap "), " eachmapbb "_rk);\n"
+   "if (!" eachmapbb "_bb) continue;\n"
+   bbatt " = " eachmapbb "_bb;\n"
+   bbval " =basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap "), " eachmapbb "_rk);\n"
+   )
+  ( ;;after expansion
+   "} /*endeachbbmap*/"
+   )
+  )
+
 
 ;;;; boxed gimple debug
 (defun dbgout_boxgimple_method (self dbgi :long depth)
@@ -381,6 +431,35 @@
     )
   )
 (install_method discr_basicblock dbg_output dbgout_boxbasicblock_method)
+
+
+
+;;;; basicblockmap debug
+(defun dbgout_mapbasicblock_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_mapbasicblock self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (mapstring_count self))
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
+    (add2sbuf_strconst sbuf " !bbmap.")
+    (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longdec sbuf mapcount)
+    (add2sbuf_strconst sbuf "!{ ")
+    (foreach_mapbasicblock
+     (self)
+     (:basicblock bbatt :value bbval)
+     (add2sbuf_indentnl sbuf (+i depth 1))
+     (add2sbuf_strconst sbuf "*")
+     (ppstrbuf_basicblock sbuf (+i depth 1) bbatt)
+     (add2sbuf_strconst sbuf " == ")
+     (dbg_out bbval dbgi (+i depth 2))
+     )
+    (add2sbuf_strconst sbuf "}!")
+    (add2sbuf_indentnl sbuf depth)
+    ))
+(install_method discr_mapbasicblocks dbg_output dbgout_mapbasicblock_method)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;; G C C      P A S S E S 
 ;; the named_name of passes is builtin in gcc/basilys.c [lowercase]
@@ -863,9 +942,15 @@
 	   scfun_entrybb
 	   ))
 
+(defclass class_smallbb
+  :super class_proped
+  :fields (sbb_bbcont
+	   ))
+
 (defclass class_smallanalysis 
   :super class_proped
-  :fields (sman_cfuns
+  :fields (sman_cfuns			;list of class_smallcfun-s
+	   sman_bbtable			;hashtable bb -> class_smallbb
 	   ))
 
 ;;; our small analysis gate for latessa
@@ -958,14 +1043,23 @@
 
 (defun smallana_bb (sman :basicblock bb)
   (debug_msg sman "smallana_bb start sman")
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
   (debugbasicblock "smallana_bb bb" bb)
-  (eachgimple_in_basicblock 
-   (bb)
-   (:gimple g)
-   (smallana_gimple sman g)
-   )
-  (debug_msg sman "smallana_bb end sman")
-  )
+  (let ( (bbtab (get_field :sman_bbtable sman)) 
+	 )
+    (assert_msg "check bbtab" (is_mapbasicblock bbtab))
+    (let ( (sbb (mapbasicblock_get bbtab bb)) )
+      (if sbb (return))
+      (setq sbb (instance class_smallbb
+			  :sbb_bbcont (make_basicblock discr_basicblock bb)))
+      (mapbasicblock_put bbtab bb sbb)
+      (eachgimple_in_basicblock 
+       (bb)
+       (:gimple g)
+       (smallana_gimple sman g)
+       )
+      (debug_msg sman "smallana_bb end sman")
+      )))
 
 
 (defun smallana_bb_cfun (sman cfbbv :tree cfdecl)
@@ -992,7 +1086,9 @@
   (debug_msg latessapass "smallana_latessaexec start")
   (let ( (cfuns (make_list discr_list))
 	 (sman (instance class_smallanalysis
-			 :sman_cfuns cfuns)) 
+			 :sman_cfuns cfuns
+			 :sman_bbtable (make_mapbasicblock discr_mapbasicblocks 20)
+			 )) 
 	 )
     (debug_msg sman "smallana_latessaexec sman at start")
     ;; don't bother do_each_cfun_body here.. it is not done...
