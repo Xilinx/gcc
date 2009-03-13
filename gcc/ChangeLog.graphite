@@ -1,3 +1,7 @@
+2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* testsuite/gcc.dg/graphite/id-4.c: New.
+
 2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* sese.c (expand_scalar_variables_expr): Handle tcc_comparison.
