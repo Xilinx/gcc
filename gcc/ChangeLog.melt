@@ -1,3 +1,14 @@
+2009-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_new_ppl_constraint_system)
+	(basilysgc_ppstrbuf_ppl_varnamvect): added new declarations.
+	* basilys.c (basilysgc_new_ppl_constraint_system)
+	(cookiestrbuf_basilyswrite, basilys_sbufcookiefuns)
+	(basilys_pplcoefvectp, ppl_basilys_variable_output_function)
+	(basilysgc_ppstrbuf_ppl_varnamvect, basilys_ppl_error_handler):
+	added new stuff for PPL support [using fopencookie GNU function].
+	* melt/warmelt-first.bysl: added discr_ppl_constraint_system.
+	* melt/ana-base.bysl: adding more of trivial abstract interpretation.
+	* testsuite/gcc/tmallbuf.c: updated comment.
 2009-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/gcc/tmallbuf.c: indented with more newlines.
 	* melt/ana-base.bysl: begin to add abstract interpretation.

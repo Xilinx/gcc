@@ -2234,6 +2234,20 @@ void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr);
 void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_block bb);
 
 
+/***************** PARMA POLYHEDRA LIBRARY ****************/
+
+enum { 
+  BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM=0,
+  BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM
+};
+basilys_ptr_t basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, 
+						  bool unsatisfiable);
+
+/** pretty print into a strbuf SBUF_P with indentation INDENTSP the
+    pplvalue PPL_P using the variable name tuple VARNAMVECT_P **/
+void
+basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p);
+
 /**************************** misc *****************************/
 /* a random generator */
 long basilys_lrand (void);

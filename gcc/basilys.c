@@ -6752,6 +6752,7 @@ end:
 #undef genv
 #undef locnamv
 #undef seqv
+#undef strv
 }
 
 static void
@@ -6869,6 +6870,7 @@ end:
 #undef modatav
 #undef arglv
 #undef curargv
+#undef resv
 }
 
 
@@ -7014,6 +7016,8 @@ load_basilys_modules_and_do_command (void)
 }
 
 
+static void basilys_ppl_error_handler(enum ppl_enum_error_code err, const char* descr);
+
 /****
  * Initialize basilys. Called from toplevel.c before pass management.
  ****/
@@ -7077,6 +7081,8 @@ basilys_initialize (void)
   debugeprintf ("basilys_initialize melt_dynlib_dir=%s", melt_dynlib_dir);
   if (!basilys_init_string)
     fatal_error ("no initial basilys modules specified thru -fbasilys-init");
+  if (ppl_set_error_handler(basilys_ppl_error_handler))
+    fatal_error ("failed to set PPL handler");
   load_basilys_modules_and_do_command ();
   debugeprintf ("basilys_initialize ended init=%s command=%s",
 		basilys_init_string, basilys_mode_string);
@@ -8089,6 +8095,212 @@ end:
   BASILYS_EXITFRAME ();
 #undef sbufv
 }
+
+
+
+/***********************************************************************
+ *   P A R M A     P O L Y H E D R A     L I B R A R Y     S T U F F   *
+ ***********************************************************************/
+
+/* make a new PPL empty or unsatisfiable constraint system */
+basilys_ptr_t
+basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
+{
+  int err = 0;
+  BASILYS_ENTERFRAME(2, NULL);
+#define discrv curfram__.varptr[0]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define resv   curfram__.varptr[1]
+#define spec_resv ((struct basilysspecial_st*)(resv))
+  discrv = (void *) discr_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
+    goto end;
+  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
+  spec_resv->discr = discrv;
+  spec_resv->mark = 0;
+  spec_resv->val.sp_pointer = NULL;
+  if (!unsatisfiable)
+    err = ppl_new_Constraint_System(&spec_resv->val.sp_constraint_system);
+  else
+    err = ppl_new_Constraint_System_zero_dim_empty(&spec_resv->val.sp_constraint_system);
+  if (err) 
+    fatal_error("PPL new Constraint System failed in Basilys"); 
+ end:
+  BASILYS_EXITFRAME();
+  return resv;
+#undef discrv
+#undef object_discrv
+#undef resv
+#undef spec_resv
+}
+
+struct basilyscookie_st {
+  basilys_ptr_t* sbufptr;
+  int indent;
+};
+
+static ssize_t cookiestrbuf_basilyswrite(void* cookie, char* buf, size_t sz)
+{
+  char *bufcopy = NULL;
+  ssize_t outsz = 0;
+  BASILYS_ENTERFRAME(2, NULL);
+#define sbufv  curfram__.varptr[0]
+  gcc_assert(cookie != NULL);
+  sbufv = *((struct basilyscookie_st*) cookie)->sbufptr;
+  if (buf && sz>0) {
+    bufcopy = xcalloc(1, sz+2);
+    memcpy(bufcopy, buf, sz);
+    bufcopy[sz] = 0;
+    basilysgc_add_strbuf_raw(sbufv, bufcopy);
+    outsz = strlen(bufcopy);
+    free(bufcopy);
+  }
+  BASILYS_EXITFRAME();
+#undef sbufv
+  return outsz;
+}
+
+static cookie_io_functions_t basilys_sbufcookiefuns= {
+  .write = cookiestrbuf_basilyswrite
+};
+
+/***
+  pretty print into an sbuf a PPL related value; 
+
+recent PPL (ie 0.10.1 has a libpp_c_tests.a library inside
+ppl/interfaces/C/tests/ containing a file print_to_buffer.h which has: 
+   #define DECLARE_PRINT_TO_BUFFER(Type) 				\
+     char* print_ppl_##Type##_t_to_buffer(ppl_##Type##_t p,		\
+                               unsigned indent_depth,			\
+                               unsigned preferred_first_line_length,	\
+                               unsigned preferred_line_length); 
+But since it is not inside libppl_c.a we prefer to use fopencookie...
+***/
+
+static basilys_ptr_t* basilys_pplcoefvectp;
+
+static const char* 
+ppl_basilys_variable_output_function(ppl_dimension_type var)
+{
+  static char buf[80];
+  char *s = 0;
+  BASILYS_ENTERFRAME(2, NULL);
+#define vectv  curfram__.varptr[0]
+#define strv   curfram__.varptr[1]
+  if (basilys_pplcoefvectp)
+    vectv =  *basilys_pplcoefvectp;
+  if (vectv && var>=0)
+    strv = basilys_multiple_nth(vectv, (int)var);
+  if (strv)
+    s = basilys_string_str(strv);
+  memset(buf, 0, sizeof(buf));
+  if (s) 
+    strncpy(buf, s, sizeof(buf)-1);
+  else
+    snprintf(buf, sizeof(buf)-1, "_$_%d", (int)var);
+  BASILYS_EXITFRAME();
+  return buf;
+}
+
+
+void
+basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p)
+{
+  FILE* f = NULL;
+  int mag = 0;
+  struct basilyscookie_st cookie;
+  BASILYS_ENTERFRAME(4, NULL);
+#define sbufv    curfram__.varptr[0]
+#define pplv     curfram__.varptr[1]
+#define varvectv curfram__.varptr[2]
+#define spec_pplv ((struct basilysspecial_st*)(pplv))
+  sbufv = sbuf_p;
+  pplv = ppl_p;
+  varvectv = varnamvect_p;
+  if (!pplv) 
+    goto end;
+  cookie.sbufptr = &sbufv;
+  cookie.indent = indentsp;
+  f = fopencookie((void*)&cookie, "w", basilys_sbufcookiefuns);
+  gcc_assert(f != NULL);
+  ppl_io_set_variable_output_function (ppl_basilys_variable_output_function);
+  mag = basilys_magic_discr(pplv);
+  if (varvectv)
+    basilys_pplcoefvectp = &varvectv;
+  else
+    basilys_pplcoefvectp = NULL;
+  switch (mag) {
+  case OBMAG_SPECPPL_COEFFICIENT:
+    ppl_io_fprint_Coefficient(f, spec_pplv->val.sp_coefficient);
+    break;
+  case OBMAG_SPECPPL_LINEAR_EXPRESSION:
+    ppl_io_fprint_Linear_Expression(f, spec_pplv->val.sp_linear_expression);
+    break;
+  case OBMAG_SPECPPL_CONSTRAINT:
+    ppl_io_fprint_Constraint(f,spec_pplv->val.sp_constraint);
+    break;
+  case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:
+    ppl_io_fprint_Constraint_System(f,spec_pplv->val.sp_constraint_system);
+    break;
+  case OBMAG_SPECPPL_GENERATOR:
+    ppl_io_fprint_Generator(f,spec_pplv->val.sp_generator);
+    break;
+  case OBMAG_SPECPPL_GENERATOR_SYSTEM:
+    ppl_io_fprint_Generator_System(f,spec_pplv->val.sp_generator_system);
+    break;
+  default:
+    fprintf(f, "{{unknown PPL magic %d}}", mag); 
+    break;
+  }
+  fclose(f);
+ end:
+  basilys_pplcoefvectp = (basilys_ptr_t*)0;
+  BASILYS_EXITFRAME();
+#undef sbufv
+#undef pplv
+#undef varvectv
+#undef spec_pplv
+}
+
+
+
+static void basilys_ppl_error_handler(enum ppl_enum_error_code err, const char* descr)
+{
+  switch(err) {
+  case PPL_ERROR_OUT_OF_MEMORY: 
+    error("Basilys PPL out of memory: %s", descr);
+    return;
+  case PPL_ERROR_INVALID_ARGUMENT:
+    error("Basilys PPL invalid argument: %s", descr);
+    return;
+  case PPL_ERROR_DOMAIN_ERROR:
+    error("Basilys PPL domain error: %s", descr);
+    return;
+  case PPL_ERROR_LENGTH_ERROR:
+    error("Basilys PPL length error: %s", descr);
+    return;
+  case PPL_ARITHMETIC_OVERFLOW:
+    error("Basilys PPL arithmetic overflow: %s", descr);
+    return;
+  case PPL_STDIO_ERROR:
+    error("Basilys PPL stdio error: %s", descr);
+    return;
+  case PPL_ERROR_INTERNAL_ERROR:
+    error("Basilys PPL internal error: %s", descr);
+    return;
+  case PPL_ERROR_UNKNOWN_STANDARD_EXCEPTION:
+    error("Basilys PPL unknown exception: %s", descr);
+    return;
+  case PPL_ERROR_UNEXPECTED_ERROR:
+    error("Basilys PPL unexpected error: %s", descr);
+    return;
+  default:
+    fatal_error("Basilys unexpected PPL error #%d - %s", err, descr);
+  }
+}
+
 
 /***********************************************************
  * generate C code for a basilys unit name 

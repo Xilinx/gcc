@@ -6,9 +6,8 @@
    -fbasilys-compile-script=./built-melt-cc-script \
    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
    -fbasilys-init=@warmelt2:ana-base -fbasilys-debug \
-   -Wall .../tmallbuf.c
+   -Wall -O .../tmallbuf.c
 
-  and likewise, with -fbasilys=simpana 
  ***/
 #include <stdlib.h>
 

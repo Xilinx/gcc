@@ -311,6 +311,7 @@
   (:gimple gc)
   (:tree lhs
 	 fndecl
+   :long nbargs
    )
   gimpcall
   (; test 
@@ -319,7 +320,14 @@
   (; fill
    lhs " = gimple_call_lhs(" gc ");\n"
    fndecl " = gimple_call_fndecl(" gc ");\n"
+   nbargs " = gimple_call_num_args(" gc ");\n"
    ))
+
+;;;; fetch the nth argument inside a call
+(defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
+  "(( " gc " && gimple_code(" gc ") == GIMPLE_CALL && (" n ")>=0 "
+  "&& (" n ") < gimple_call_num_args(" gc ")) "
+  " ? gimple_call_arg((" gc "), (" n ")) : (tree)0)")
 
 ;;;;  match a gimple return
 (defcmatcher gimple_return
@@ -426,7 +434,7 @@
 (defcmatcher tree_parm_decl 
   (:tree tr)
   (					;output
-   :tree trargtype  
+   :tree trargtype trdecl
    :cstring name
    )
   treeparmdecl				;statesym
@@ -435,6 +443,7 @@
    )
   (; fill expander
    trargtype "= DECL_ARG_TYPE(" tr "); \n"
+   trdecl "= DECL_NAME(" tr ");\n"
    name "= DECL_NAME(" tr ") ? IDENTIFIER_POINTER(DECL_NAME(" tr ")) : NULL;\n"
    ))
 
@@ -468,6 +477,12 @@
 (defprimitive is_basicblock (v) :long
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
 
+(defprimitive null_basicblock (:basicblock bb) :long
+  "(" bb "== (basic_block)0)")
+
+(defprimitive notnull_basicblock (:basicblock bb) :long
+  "(" bb "!= (basic_block)0)")
+
 (defprimitive make_basicblock (discr :basicblock bb) :value
   "(basilysgc_new_basicblock((basilysobject_ptr_t)(" discr "),(" bb ")))")
 
@@ -497,6 +512,8 @@
   "basilysgc_ppstrbuf_basicblock((basilys_ptr_t)(" sbuf 
   "), (int) (" indent "), (" bb "))")
 
+(defprimitive basicblock_single_succ (:basicblock bb) :basicblock
+  "(single_succ_p(" bb ")?single_succ(" bb "):NULL)")
 
 ;;;;;;;;;;;;;;;;
 
@@ -593,6 +610,23 @@
   )
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Parma Polyhedra Library stuff (aka PPL)
+(defprimitive ppl_new_empty_constraint_system (discr) :value
+  "basilysgc_new_ppl_constraint_system((" 
+  discr "), BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM)")
+
+(defprimitive ppl_new_unsatisfiable_constraint_system (discr) :value
+  "basilysgc_new_ppl_constraint_system((" 
+  discr "), BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM)")
+
+(defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varnamvect) :void
+  "basilysgc_ppstrbuf_ppl_varnamvect ((" sbuf "), (" ppl "), (" indent "), (" varnamvect "))")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; boxed gimple debug
 (defun dbgout_boxgimple_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
@@ -966,22 +1000,22 @@
    )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
-;;;; iterate on a function arguments
-(defciterator each_arg_in_fundecl
+;;;; iterate on a function formal parameters
+(defciterator each_param_in_fundecl
   ( :tree fundeclt )			;start formals
-  eachargfundecl
-  ( :tree argdclt )				;local formals
+  eachparamfun
+  ( :tree paramdclt )				;local formals
   ( ;;; before expansion
-   "/*eacharginfunctiondecl*/"
-   "tree " eachargfundecl "_tr=NULL;\n"
+   "/*eachparaminfunctiondecl*/\n"
+   "tree " eachparamfun "_tr=NULL;\n"
    "if ((" fundeclt ") && TREE_CODE(" fundeclt ") == FUNCTION_DECL)\n"
-   "for (" eachargfundecl "_tr = DECL_ARGUMENTS(" fundeclt "); "
-           eachargfundecl "_tr != NULL;"
-           eachargfundecl "_tr = TREE_CHAIN(" eachargfundecl "_tr)) {\n"
-	   argdclt " = " eachargfundecl "_tr;" 
+   "for (" eachparamfun "_tr = DECL_ARGUMENTS(" fundeclt "); "
+           eachparamfun "_tr != NULL;"
+           eachparamfun "_tr = TREE_CHAIN(" eachparamfun "_tr)) {\n"
+	   paramdclt " = " eachparamfun "_tr;" 
    )
   ( ;;; after expansion
-   "}/*end eacharginfunctiondecl*/ "
+   "}/*end eachparaminfunctiondecl*/ "
    )
 )
 
@@ -1048,21 +1082,22 @@
    ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
       (debugtree "smallana_cfun_entbb treevars of function" treevars)
       ;;;;;
-      (each_arg_in_fundecl
+      (each_param_in_fundecl
        (decltree)
        (:tree argdtree)
        (debugtree "smallana_cfun_entbb argdtree" argdtree)
        (match 
 	argdtree
-	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argname)
+	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
 	   (debugcstring "smallana_cfun_entbb integer argname" argname)
 	   (debugcstring "smallana_cfun_entbb integer typname" typname)
 	   (messagenum_dbg  "smallana_cfun_entbb integer imin" imin)
 	   (messagenum_dbg  "smallana_cfun_entbb integer imax" imax)
 	   )
-	( ?(tree_parm_decl ?argdtype ?argname)
+	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb argdtype" argdtype)
+	   (debugtree "smallana_cfun_entbb argdcl" argdcl)
 	   (debugcstring "smallana_cfun_entbb argname" argname)
 	   )
 	( ?_ 
@@ -1160,7 +1195,7 @@
       (debugtree "smallana_gimple gimple_cond_greater truelab" truelab)
       (debugtree "smallana_gimple gimple_cond_greater falselab" falselab)
       )
-   ( ?(gimple_call ?lhs ?fndecl)
+   ( ?(gimple_call ?lhs ?fndecl ?_)
       (debugtree "smallana_gimple gimple_call lhs" lhs)
       (debugtree "smallana_gimple gimple_call fndecl" fndecl)
       )
@@ -1209,12 +1244,95 @@
   (debug_msg sman "smallana_bb_cfun end sman")
   )
 
+
+(defun smaninterp_cfun (sman abenv cfun)
+  (debug_msg sman "smaninterp_fun sman")
+  (debug_msg cfun "smaninterp_fun cfun")
+  (debug_msg abenv "smaninterp_fun abenv")
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (assert_msg "check cfun" (is_a cfun class_smallcfun))
+  (let ( (:basicblock bbent 
+		      (basicblock_content (get_field :scfun_entbb cfun))) )
+    (smaninterp_basicblock sman abenv bbent)
+    (assert_msg "@@unimplemented smaninterp_fun" ())
+    ))
+
+
+(defun smaninterp_basicblock (sman abenv :basicblock bb)
+  (debug_msg abenv "smaninterp_basicblock abenv")
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (forever 
+   bbloop
+   (debugbasicblock "smaninterp_basicblock bb" bb)
+   (if (null_basicblock bb)
+       (exit bbloop))
+   (eachgimple_in_basicblock 
+    (bb)
+    (:gimple g)
+    (debuggimple "smaninterp_basicblock g" g)
+    (smaninterp_gimple sman abenv g)
+    )
+   (setq bb (basicblock_single_succ bb))
+   (debugbasicblock "smaninterp_basicblock succ bb" bb)
+   )
+  (debug_msg () "smaninterp_basicblock done")
+  (assert_msg "@@unimplemented smaninterp_basicblock" ())
+  )
+
+;;;;;;;;;;;;;;;;
+(defun smaninterp_gimple  (sman abenv :gimple g)
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (debug_msg abenv "smaninterp_gimple abenv")
+  (debuggimple "smaninterp_gimple g" g)
+  (match 
+   g
+   (?(gimple_call ?lhs ?fndecl ?nargs)
+     (debugtree "smaninterp_gimple call lhs" lhs)
+     (debugtree "smaninterp_gimple call fndecl" fndecl)
+     (foreach_long_upto 
+      (0 (-i nargs 1))
+      (:long ix)
+      (let ( (:tree curcallarg (gimple_call_nth_arg g ix)) 
+	     )
+	(debugtree "smaninterp_gimple curcallarg" curcallarg)
+	))
+     (let ( (:long argix 0) )
+       (each_param_in_fundecl 
+	(fndecl)
+	(:tree curparamdcl)
+	(messagenum_dbg  "smaninterp_gimple curparamdecl argix" argix)
+	(debugtree "smaninterp_gimple curparamdecl" curparamdcl)
+	(let ( (:tree curarg (gimple_call_nth_arg g argix)) )
+	  (debugtree "smaninterp_gimple curarg" curarg)
+	  (match 
+	   curparamdcl
+	   (?(tree_parm_decl ?parmtype ?parmdecl ?parmname)
+	     (debugtree "smaninterp_gimple parmtype" parmtype)
+	     (debugtree "smaninterp_gimple parmdecl" parmdecl)
+	     )
+	   )
+	  )
+	(setq argix (+i argix 1))
+	))
+     (assert_msg "unimplemented smaninterp_gimple call" ())
+     )
+   (?_ 
+    (assert_msg "unimplemented smaninterp_gimple" ()))
+   )
+  )
+
 (defun smallana_interpret (sman)
   (debug_msg sman "smallana_interpret sman")
   (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (let ( (mainf (mapstring_rawget (get_field :sman_cfundict sman) "main")) )
+  (let ( (mainf (mapstring_rawget (get_field :sman_cfundict sman) "main")) 
+	 )
     (debug_msg mainf "smallana_interpret mainf")
     (assert_msg "check mainf" (is_a mainf class_smallcfun))
+    (smaninterp_cfun sman initial_smallabstractenv mainf)
+    (debug_msg sman "smallana_interpret end sman")
     )
 )
 
