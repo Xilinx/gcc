@@ -1266,16 +1266,14 @@ dot_all_scops_1 (FILE *file, VEC (scop_p, heap) *scops)
 	      fprintf (file, "</TD></TR>\n");
 	      part_of_scop  = true;
 	    }
-
-	  if (!part_of_scop)
-	    {
-	      fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
-	      fprintf (file, " %d </TD></TR>\n", bb->index);
-	    }
-	
-
-	  fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
 	}
+ 
+      if (!part_of_scop)
+	{
+	  fprintf (file, "    <TR><TD WIDTH=\"50\" BGCOLOR=\"#ffffff\">");
+	  fprintf (file, " %d </TD></TR>\n", bb->index);
+	}
+      fprintf (file, "  </TABLE>>, shape=box, style=\"setlinewidth(0)\"]\n");
     }
 
   FOR_ALL_BB (bb)

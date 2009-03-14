@@ -1,4 +1,9 @@
-2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+2009-03-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (dot_all_scops_1): Close the table
+	once per basic block.
+
+2009-03-13  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (graphite_can_represent_scev): New.
 	(graphite_can_represent_expr): Renamed from loop_affine_expr
@@ -11,7 +16,7 @@
 	* tree-data-ref.c (stmt_simple_memref_p): here.
 	* tree-data-ref.h (stmt_simple_memref_p): Removed.
 
-2009-03-11  Tobias Grosser  <grosser@fim.uni-passau.de>
+2009-03-13  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* testsuite/gcc.dg/graphite/id-4.c: New.
 
