@@ -1,3 +1,18 @@
+2009-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_clone_ppl_constraint_system): added new
+	declaration.
+	* basilys.c (basilysgc_clone_ppl_constraint_system): new function.
+	(ppl_basilys_variable_output_function) handles named ...
+	* melt/warmelt-first.bysl: exporting obj_serial.
+	* melt/ana-base.bysl: added abenv_pplconsys field.  added
+	dbgout_smallabstractenv function to display
+	class_smallabstractenv.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2009-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_new_ppl_constraint_system)
 	(basilysgc_ppstrbuf_ppl_varnamvect): added new declarations.

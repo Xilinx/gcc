@@ -8136,6 +8136,41 @@ basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
 #undef spec_resv
 }
 
+/* clone a PPL constraint system */
+basilys_ptr_t
+basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
+{
+  int err = 0;
+  BASILYS_ENTERFRAME(3, NULL);
+#define pplv   curfram__.varptr[0]
+#define spec_pplv ((struct basilysspecial_st*)(resv))
+#define discrv curfram__.varptr[1]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define resv   curfram__.varptr[2]
+#define spec_resv ((struct basilysspecial_st*)(resv))
+  pplv = ppl_p;
+  resv = NULL;
+  if (basilys_magic_discr ((basilys_ptr_t) (pplv)) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
+    goto end;
+  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
+  spec_resv->discr = spec_pplv->discr;
+  spec_resv->mark = 0;
+  spec_resv->val.sp_pointer = NULL;
+  err = ppl_new_Constraint_System_from_Constraint_System(&spec_resv->val.sp_constraint_system, spec_pplv->val.sp_constraint_system);
+  if (err) 
+    fatal_error("PPL clone Constraint System failed in Basilys");
+ end:
+  BASILYS_EXITFRAME();
+  return resv;
+#undef discrv
+#undef object_discrv
+#undef resv
+#undef spec_resv
+#undef pplv
+#undef spec_pplv
+}
+
+
 struct basilyscookie_st {
   basilys_ptr_t* sbufptr;
   int indent;
@@ -8188,13 +8223,15 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
   char *s = 0;
   BASILYS_ENTERFRAME(2, NULL);
 #define vectv  curfram__.varptr[0]
-#define strv   curfram__.varptr[1]
+#define namv   curfram__.varptr[1]
   if (basilys_pplcoefvectp)
     vectv =  *basilys_pplcoefvectp;
   if (vectv && var>=0)
-    strv = basilys_multiple_nth(vectv, (int)var);
-  if (strv)
-    s = basilys_string_str(strv);
+    namv = basilys_multiple_nth(vectv, (int)var);
+  if (basilys_is_instance_of(namv, BASILYSG (CLASS_NAMED))) 
+    namv = basilys_object_nth_field(namv, FNAMED_NAME);
+  if (namv)
+    s = basilys_string_str(namv);
   memset(buf, 0, sizeof(buf));
   if (s) 
     strncpy(buf, s, sizeof(buf)-1);
@@ -8239,16 +8276,16 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
     ppl_io_fprint_Linear_Expression(f, spec_pplv->val.sp_linear_expression);
     break;
   case OBMAG_SPECPPL_CONSTRAINT:
-    ppl_io_fprint_Constraint(f,spec_pplv->val.sp_constraint);
+    ppl_io_fprint_Constraint(f, spec_pplv->val.sp_constraint);
     break;
   case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:
-    ppl_io_fprint_Constraint_System(f,spec_pplv->val.sp_constraint_system);
+    ppl_io_fprint_Constraint_System(f, spec_pplv->val.sp_constraint_system);
     break;
   case OBMAG_SPECPPL_GENERATOR:
-    ppl_io_fprint_Generator(f,spec_pplv->val.sp_generator);
+    ppl_io_fprint_Generator(f, spec_pplv->val.sp_generator);
     break;
   case OBMAG_SPECPPL_GENERATOR_SYSTEM:
-    ppl_io_fprint_Generator_System(f,spec_pplv->val.sp_generator_system);
+    ppl_io_fprint_Generator_System(f, spec_pplv->val.sp_generator_system);
     break;
   default:
     fprintf(f, "{{unknown PPL magic %d}}", mag); 

@@ -622,7 +622,7 @@
   discr "), BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM)")
 
 (defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varnamvect) :void
-  "basilysgc_ppstrbuf_ppl_varnamvect ((" sbuf "), (" ppl "), (" indent "), (" varnamvect "))")
+  "basilysgc_ppstrbuf_ppl_varnamvect ((" sbuf "), (" indent "), (" ppl "), (" varnamvect "))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
@@ -1045,6 +1045,8 @@
   :super class_proped
   :fields (abenv_maptree		;a maptree C ident -> abstract values
 	   abenv_parenv			;the parent abstract env
+	   abenv_pplconsys		;the PPL constraint system
+	   abenv_vectname		;the vector naming PPL variables
 ))
 
 (defun put_abstrenv (abenv :tree tr :value val)
@@ -1066,6 +1068,55 @@
     (return newabenv)
 ))
 
+
+(defun dbgout_smallabstractenv (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self" (is_a self class_smallabstractenv))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
+	 (:long oserial (obj_serial self))
+	 (:long onum (obj_num self)) 
+	 ) 
+    (add2sbuf_strconst sbuf "|")
+    (add2sbuf_string sbuf (get_field :named_name dis))
+    (add2sbuf_strconst sbuf "/")
+    (add2sbuf_longhex sbuf (obj_hash self))
+    (if onum
+	(progn
+	  (add2sbuf_strconst sbuf "#")
+	  (add2sbuf_longdec sbuf onum)))
+    (if oserial
+	(progn
+	  (add2sbuf_strconst sbuf "##")
+	  (add2sbuf_longdec sbuf oserial)))
+    (add2sbuf_strconst sbuf "{")
+    (let ( (:long offpar (get_int abenv_parenv)) 
+	   (:long offvnam (get_int abenv_vectname)) 
+	   (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
+	   )
+      (if (<i newmaxdepth 0) (setq newmaxdepth 0))
+      (if (need_dbglim depth oldmaxdepth)
+	  (progn
+	    (and (>i depth 0) (>i oldmaxdepth 3)
+		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
+	    (dbgout_fields self dbgi (+i depth 1) 0 offpar)
+	    (add2sbuf_indentnl sbuf depth)
+	    (add2sbuf_strconst sbuf "@ppl.cons.sys@@ ")
+	    (ppl_ppstrbuf sbuf 
+			  (get_field :abenv_pplconsys self)
+			  depth 
+			  (get_field :abenv_vectname self))
+	    (add2sbuf_indentnl sbuf depth)
+	    (if (need_dbglim (+i depth 2) newmaxdepth)
+		(dbgoutagain_fields self dbgi (+i depth 2) offvnam 0)
+	      (add2sbuf_strconst sbuf ".._.."))
+	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
+	    )))
+    (add2sbuf_strconst sbuf "}")
+    )
+  )
+(install_method class_smallabstractenv dbg_output dbgout_smallabstractenv)
 
 (definstance initial_smallabstractenv class_smallabstractenv
   :abenv_maptree (make_maptree discr_maptrees 20))
@@ -1292,14 +1343,9 @@
    (?(gimple_call ?lhs ?fndecl ?nargs)
      (debugtree "smaninterp_gimple call lhs" lhs)
      (debugtree "smaninterp_gimple call fndecl" fndecl)
-     (foreach_long_upto 
-      (0 (-i nargs 1))
-      (:long ix)
-      (let ( (:tree curcallarg (gimple_call_nth_arg g ix)) 
-	     )
-	(debugtree "smaninterp_gimple curcallarg" curcallarg)
-	))
-     (let ( (:long argix 0) )
+     (let ( (:long argix 0) 
+	    (newabsenv (fresh_abstrenv abenv))
+	    )
        (each_param_in_fundecl 
 	(fndecl)
 	(:tree curparamdcl)

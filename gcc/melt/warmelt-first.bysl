@@ -3799,6 +3799,7 @@
  obj_hash
  obj_len
  obj_num
+ obj_serial
  object_length
  object_magic_object
  object_nth_field

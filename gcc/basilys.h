@@ -2240,8 +2240,11 @@ enum {
   BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM=0,
   BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM
 };
+/* create a new constraint system */
 basilys_ptr_t basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, 
 						  bool unsatisfiable);
+/* clone an existing constraint system */
+basilys_ptr_t basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p);
 
 /** pretty print into a strbuf SBUF_P with indentation INDENTSP the
     pplvalue PPL_P using the variable name tuple VARNAMVECT_P **/
