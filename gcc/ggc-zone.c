@@ -477,7 +477,8 @@ static void free_small_page (struct small_page_entry *);
 static void free_large_page (struct large_page_entry *);
 static void release_pages (struct alloc_zone *);
 static void sweep_pages (struct alloc_zone *);
-static bool ggc_collect_1 (struct alloc_zone *, bool);
+/* static bool ggc_collect_1 (struct alloc_zone *, bool); */
+   static bool ggc_collect_1 (struct alloc_zone *zone, bool need_marking, gt_pointer_walker walkrout, void* walkdata);
 static void new_ggc_zone_1 (struct alloc_zone *, const char *);
 
 /* Traverse the page table and find the entry for a page.
@@ -2051,7 +2052,8 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
       for (zone = main_zone.next_zone; zone; zone = zone->next_zone)
 	{
 	  zone->was_collected = false;
-	  marked |= ggc_collect_1 (zone, !marked);
+/*	  marked |= ggc_collect_1 (zone, !marked); */
+	  marked |= ggc_collect_1 (zone, !marked, walkrout, walkdata);
 	}
     }
 

@@ -1,4 +1,9 @@
 2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	with help from Rob Weld <rob1weld@aol.com>
+	[fixed PR39483]
+	* ggc-zone.c (free_small_page): calls ggc_collect_1 with extra
+	walk data.
+2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[fixed PR39470]
 	* compile-probe.c (comprobe_begin_big): calls lrand48, not lrand48_r.
 	* basilys.h (basilys_lrand): wraps lrand48.
