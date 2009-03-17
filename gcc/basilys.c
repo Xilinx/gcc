@@ -512,9 +512,9 @@ basilys_extra_marking (void *xtradata)
   /* first, scan all the modules and mark their frame if it is non null */
   for (ix = 0; VEC_iterate (basilys_module_info_t, modinfvec, ix, mi); ix++)
     {
-      if (!mi->iniframp || !*mi->iniframp || !mi->marker_rout) 
-	continue;
-      (mi->marker_rout) (*mi->iniframp);
+        if ( !mi->marker_rout || !mi->iniframp || !*mi->iniframp) 
+	  continue;
+        (mi->marker_rout) (*mi->iniframp);
     };
   /* then scan all the MELT call frames */
   for (cf = (struct callframe_basilys_st*) xtradata; cf; cf = cf->prev) {
@@ -4768,11 +4768,9 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   char *ourmeltcompilescript = NULL;
   struct pex_time ptime;
   char *argv[4];
-#if ENABLE_CHECKING
   char pwdbuf[500];
   memset(pwdbuf, 0, sizeof(pwdbuf));
   getcwd(pwdbuf, sizeof(pwdbuf)-1);
-#endif
   memset (&ptime, 0, sizeof (ptime));
   /* compute the ourmeltcompilscript */
   debugeprintf ("compile_to_dyl basilys_compile_script_string %s", basilys_compile_script_string);
@@ -8413,6 +8411,10 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   free (dotcpercentnam);
 }
 
+/* Added */
+#undef basilys_assert_failed
+#undef basilys_check_failed
+
 void
 basilys_assert_failed (const char *msg, const char *filnam,
 		       int lineno, const char *fun)
@@ -8544,9 +8546,7 @@ dispatch_execute_basilys (const char *passname)
 	basilys_object_nth_field ((basilys_ptr_t) passv, FGCCPASS_EXEC);
       if (basilys_magic_discr ((basilys_ptr_t) execuv) == OBMAG_CLOSURE)
 	{
-#if ENABLE_CHECKING
 	  long passdbgcounter = basilys_dbgcounter;
-#endif
 	  union basilysparam_un restab[1];
 	  memset (&restab, 0, sizeof (restab));
 	  restab[0].bp_longptr = &todol;

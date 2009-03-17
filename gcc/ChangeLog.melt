@@ -1,4 +1,9 @@
 2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	with help from Rob Weld <rob1weld@aol.com>
+	[perhaps solved PR39484]
+	* basilys.c (basilys_extra_marking): extra marking done right.
+	(basilys_assert_failed) cleaned up when not ENABLE_CHECKING.
+2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	[PR39484 still crashing when ./configure-d on i686-linux with
 	--prefix=/usr]
 	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): added comment on
