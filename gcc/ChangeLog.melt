@@ -1,3 +1,9 @@
+2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[fixed PR39470]
+	* compile-probe.c (comprobe_begin_big): calls lrand48, not lrand48_r.
+	* basilys.h (basilys_lrand): wraps lrand48.
+	* basilys.c (basilys_initialize): calls srand48 not srand48_r.
+	(basilys_lrand): moved to basilys.h.
 2009-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_clone_ppl_constraint_system): added new
 	declaration.

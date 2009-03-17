@@ -189,16 +189,6 @@ static lt_dlhandle proghandle;
 static struct obstack bname_obstack;
 
 
-/* random data for generating hashcodes */
-static struct drand48_data randata;
-
-long
-basilys_lrand (void)
-{
-  long lh = 0;
-  lrand48_r (&randata, &lh);
-  return lh;
-}
 
 
 static inline void
@@ -7052,7 +7042,7 @@ basilys_initialize (void)
   obstack_init (&bname_obstack);
   for (pc = randomseed; *pc; pc++)
     seed ^= (seed << 6) + (*pc);
-  srand48_r ((long) seed, &randata);
+  srand48 (seed);
   gcc_assert (!basilys_curalz);
   {
     size_t wantedwords = MINOR_SIZE_KILOWORD * 4096;

@@ -1138,12 +1138,12 @@ comprobe_begin_big (void)
     return;
   do
     {
-      lrand48_r (&randata, &leftcode);
+      leftcode = lrand48 ();
     }
   while (leftcode == 0);
   do
     {
-      lrand48_r (&randata, &rightcode);
+      rightcode = lrand48 ();
     }
   while (rightcode == 0);
   fprintf (comprobe_replf, "\n!#%x/%X[\n",

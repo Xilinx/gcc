@@ -2253,7 +2253,13 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
 
 /**************************** misc *****************************/
 /* a random generator */
-long basilys_lrand (void);
+static inline long basilys_lrand (void) 
+{
+  /* we used to call lrand48_r using some randata filled at init time,
+     but lrand48_r is less portable than lrand48 */
+  return lrand48();
+}
+
 
 static inline unsigned basilys_nonzerohash (void)
 {
