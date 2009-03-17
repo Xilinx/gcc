@@ -8232,6 +8232,17 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
 }
 
 
+/**
+   we would prefer to use the print to buffer functions of PPL like
+   print_ppl_Constraint_System_t_to_buffer etcc...
+   http://www.cs.unipr.it/pipermail/ppl-devel/2008-October/013001.html
+   - but these are still experimental in PPL 0.10 and are not yet
+   linked in libppl_c.so or libppl.so so to use them we would need to
+   compile the ppl/interfaces/C/tests/print_to_buffer.cc file and
+   include the ppl/interfaces/C/tests/print_to_buffer.h file
+   
+**/
+
 void
 basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p)
 {

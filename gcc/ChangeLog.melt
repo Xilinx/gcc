@@ -1,4 +1,11 @@
 2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	[PR39484 still crashing when ./configure-d on i686-linux with
+	--prefix=/usr]
+	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): added comment on
+	PPL experimental print_ppl_Constraint_System_t_to_buffer which
+	would permit to avoid using fopencookie which is a dirty hack..
+	* ggc-zone.c (ggc_collect_extra_marking): removed useless comment.
+2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	with help from Rob Weld <rob1weld@aol.com>
 	[fixed PR39483]
 	* ggc-zone.c (free_small_page): calls ggc_collect_1 with extra

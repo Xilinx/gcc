@@ -2052,7 +2052,6 @@ ggc_collect_extra_marking (gt_pointer_walker walkrout, void* walkdata)
       for (zone = main_zone.next_zone; zone; zone = zone->next_zone)
 	{
 	  zone->was_collected = false;
-/*	  marked |= ggc_collect_1 (zone, !marked); */
 	  marked |= ggc_collect_1 (zone, !marked, walkrout, walkdata);
 	}
     }
