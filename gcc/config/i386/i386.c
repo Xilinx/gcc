@@ -4273,17 +4273,15 @@ static int
 ix86_function_regparm (const_tree type, const_tree decl)
 {
   tree attr;
-  int regparm = ix86_regparm;
+  int regparm;
 
   static bool error_issued;
 
   if (TARGET_64BIT)
-    {
-      if (ix86_function_type_abi (type) == DEFAULT_ABI)
-        return regparm;
-      return DEFAULT_ABI != SYSV_ABI ? X86_64_REGPARM_MAX : X64_REGPARM_MAX;
-    }
+    return (ix86_function_type_abi (type) == SYSV_ABI
+	    ? X86_64_REGPARM_MAX : X64_REGPARM_MAX);
 
+  regparm = ix86_regparm;
   attr = lookup_attribute ("regparm", TYPE_ATTRIBUTES (type));
   if (attr)
     {
@@ -18617,12 +18615,7 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 		  rtx pop, int sibcall)
 {
   rtx use = NULL, call;
-  enum calling_abi function_call_abi;
 
-  if (callarg2 && INTVAL (callarg2) == -2)
-    function_call_abi = MS_ABI;
-  else
-    function_call_abi = SYSV_ABI;
   if (pop == const0_rtx)
     pop = NULL;
   gcc_assert (!TARGET_64BIT || !pop);
@@ -18678,12 +18671,13 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       pop = gen_rtx_PLUS (Pmode, stack_pointer_rtx, pop);
       pop = gen_rtx_SET (VOIDmode, stack_pointer_rtx, pop);
       call = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, call, pop));
-      gcc_assert (ix86_cfun_abi () != MS_ABI || function_call_abi != SYSV_ABI);
     }
-  /* We need to represent that SI and DI registers are clobbered
-     by SYSV calls.  */
-  if (ix86_cfun_abi () == MS_ABI && function_call_abi == SYSV_ABI)
+  if (TARGET_64BIT
+      && ix86_cfun_abi () == MS_ABI
+      && (!callarg2 || INTVAL (callarg2) != -2))
     {
+      /* We need to represent that SI and DI registers are clobbered
+	 by SYSV calls.  */
       static int clobbered_registers[] = {
 	XMM6_REG, XMM7_REG, XMM8_REG,
 	XMM9_REG, XMM10_REG, XMM11_REG,

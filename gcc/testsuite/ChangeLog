@@ -1,3 +1,88 @@
+2009-03-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto6.C, auto12.C: Update mangling.
+
+2009-03-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/39475
+	* g++.dg/ext/unary_trait_incomplete.C: New.
+
+2009-03-17  Jing Yu  <jingyu@google.com>
+
+	PR middle-end/39378
+	* g++.dg/inherit/thunk10.C: New test.
+
+2009-03-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39482
+	* gcc.target/i386/pr39482.c: New test.
+
+2009-03-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/39471
+	* g++.dg/debug/dwarf2/imported-module-2.C: Expect
+	DW_TAG_imported_module, not just any DW_TAG_imported prefixed tag.
+	* g++.dg/debug/dwarf2/imported-module-3.C: Likewise.
+	* g++.dg/debug/dwarf2/imported-module-4.C: Likewise.
+
+	PR middle-end/39443
+	* gcc.dg/pr39443.c: New test.
+
+	PR debug/39412
+	* gcc.dg/debug/pr39412.c: New test.
+
+2009-03-17  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/38526
+	* lib/target-libpath.exp (set_ld_library_path_env_vars): Save
+	existing GCC_EXEC_PREFIX, set to TEST_GCC_EXEC_PREFIX if that
+	is defined.
+	(restore_ld_library_path_env_vars): Restore GCC_EXEC_PREFIX to
+	its original value, or unset if it was not defined.
+	* gcc.dg/compat/struct-layout-1.exp: Use set/restore library
+	path procs around use of HOSTCC.
+	* g++.dg/compat/struct-layout-1.exp: Ditto.
+	* objc.dg/gnu-encoding/gnu-encoding.exp: Ditto.
+
+2009-03-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/x86_64/abi/callabi/func-indirect.c (main): Return 0.
+
+2009-03-16  Janis Johnson  <janis187@us.ibm.com>
+
+	Revert patch for PR testsuite/37630.
+
+	PR testsuite/37960
+	* gcc.dg/pr11492.c: Replace constant and remove xfail.
+
+	PR testsuite/37630
+	* lib/target-supports.exp (check_effective_target_ieee): New.
+	* gcc.c-torture/execute/ieee/ieee.exp: Use it.
+	* gcc.dg/20001012-1.c: Require ieee.
+
+	PR testsuite/37628
+	* gcc.c-torture/execute/pr35456.x: New, skip test for vax.
+
+2009-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39455
+	* gcc.dg/pr39455.c: New test.
+
+2009-03-13  David Ayers  <ayers@fsfe.org>
+
+	* objc/execute/trivial.m. New test.
+
+2009-03-13  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR target/39137
+	* testsuite/gcc.target/i386/stackalign/longlong-2.c: Skip on darwin.
+
+2009-03-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/39451
+	* gcc.dg/asm-b.c: Use "Q" constraint on %b1/%h1 and "R"
+	constraint on (%2).
+
 2009-03-12  David Ayers  <ayers@fsfe.org>
 
 	PR libobjc/27466

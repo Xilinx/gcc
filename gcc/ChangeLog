@@ -1,3 +1,150 @@
+2009-03-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR middle-end/37805
+	* opts.c (print_specific_help): In addition to `undocumented',
+	accept `separate' and `joined' flags if passed alone.  Describe
+	output by the first matched one of those.
+	(common_handle_option): Skip over empty strings.
+	* gcc.c (display_help): Fix help string for `--help='.
+	* doc/invoke.texi (Option Summary, Overall Options): With
+	`--help=', classes and qualifiers can both be repeated, but
+	only the latter can be negated.  One should not pass only
+	negated qualifiers.  Fix markup and examples.
+
+	Revert
+	2008-10-14  Jakub Jelinek  <jakub@redhat.com>
+	PR middle-end/37805
+	* opts.c (common_handle_option): Don't ICE on -fhelp=joined
+	and -fhelp=separate.
+
+2009-03-17  Jing Yu  <jingyu@google.com>
+
+	PR middle-end/39378
+	* function.h: Move is_thunk from rtl_data structure to function
+	structure.
+	* varasm.c (assemble_start_function): Change is_thunk from crtl to
+	cfun.
+	* config/alpha/alpha.c: Change is_thunk from crtl to cfun.
+	* config/rs6000/rs6000.c: Change is_thunk from crtl to cfun.
+	* config/arm/arm.h: Change is_thunk from crtl to cfun.
+
+2009-03-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39482
+	* config/i386/i386.md (*truncdfsf_mixed): Avoid combining registers
+	from different units in a single alternative.
+	(*truncdfsf_i387): Ditto.
+	(*truncxfsf2_mixed): Ditto.
+	(*truncxfdf2_mixed): Ditto.
+
+2009-03-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (dwarf2out_imported_module_or_decl_1): Allow
+	non-NAMESPACE_DECL IMPORTED_DECL_ASSOCIATED_DECL.
+
+	PR debug/39474
+	* tree-ssa-live.c (remove_unused_locals): Don't remove local
+	unused non-artificial variables when not optimizing.
+
+	PR debug/39471
+	* dwarf2out.c (dwarf2out_imported_module_or_decl_1): Emit
+	DW_TAG_imported_module even if decl is IMPORTED_DECL with
+	NAMESPACE_DECL in its DECL_INITIAL.
+
+	PR middle-end/39443
+	* optabs.c (set_user_assembler_libfunc): New function.
+	* expr.h (set_user_assembler_libfunc): New prototype.
+	* c-common.c: Include libfuncs.h.
+	(set_builtin_user_assembler_name): Call set_user_assembler_libfunc
+	for memcmp, memset, memcpy, memmove and abort.
+	* Makefile.in (c-common.o): Depend on libfuncs.h.
+
+	PR debug/39412
+	* dwarf2out.c (gen_inlined_enumeration_type_die,
+	gen_inlined_structure_type_die, gen_inlined_union_type_die,
+	gen_tagged_type_instantiation_die): Removed.
+	(gen_decl_die): For TYPE_DECL_IS_STUB with non-NULL decl_origin
+	do nothing.
+
+2009-03-17  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/38526
+	* Makefile.in (site.exp): Rename TEST_GCC_EXEC_PREFIX and comment
+	its use.
+	(check-%): Don't set GCC_EXEC_PREFIX when invoking runtest.
+	(check-parallel-%): Ditto.
+	(check-consistency): Ditto.
+
+2009-03-17  Kai Tietz  <kai.tietz@onevision.com>
+
+	* ipa-struct-reorg.c (create_general_new_stmt): Initialize
+	local variable rhs by NULL_TREE.
+
+2009-03-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39477
+	* doc/extend.texi: Correct register behavior for regparm on Intel 386.
+
+2009-03-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39476
+	* config/i386/i386.c (ix86_function_regparm): Rewrite for 64bit.
+
+2009-03-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39473
+	* config/i386/i386.c (ix86_expand_call): Check extra clobbers
+	for ms->sysv ABI calls only in 64bit mode.
+
+	* config/i386/i386.md (untyped_call): Support 32bit.
+
+2009-03-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/extend.texi: Replace x86_65 with x86_64.
+
+2009-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39455
+	* tree-ssa-loop-niter.c (number_of_iterations_lt_to_ne): Fix types
+	mismatches for POINTER_TYPE_P (type).
+	(number_of_iterations_le): Likewise.
+
+2009-03-16  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.c: Removed profiling support.
+	* config/picochip/picochip.md: Removed profiling instruction.
+	* config/picochip/picochip.h: Removed profiling builtin.
+
+2009-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* doc/install.texi (--with-host-libstdcxx): Document.
+
+2009-03-14  Anatoly Sokolov  <aesok@post.ru>
+
+	PR target/34299
+	* config/avr/avr.c (avr_handle_fndecl_attribute): Move code for
+	generate a warning if the function name does not begin with
+	"__vector" and the function has either the 'signal' or 'interrupt'
+	attribute, from here to ...
+	(avr_declare_function_name): ...here. New function.
+	* config/avr/avr.h (ASM_DECLARE_FUNCTION_NAME): Redefine.
+	* config/avr/avr-protos.h (avr_declare_function_name): Declare.
+
+2009-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/39454
+	* cse.c (fold_rtx): Don't modify original const_arg1 when
+	canonicalizing SHIFT_COUNT_TRUNCATED shift count, do it on a
+	separate variable instead.
+	* rtlanal.c (nonzero_bits1) <case ASHIFTRT>: Don't assume anything
+	from out of range shift counts.
+	(num_sign_bit_copies1) <case ASHIFTRT, case ASHIFT>: Similarly.
+
+2008-03-13  Catherine Moore  <clm@codesourcery.com>
+
+	* gcc/config/i386/x-mingw32 (host-mingw32.o): Replace
+	diagnostic.h with $(DIAGNOSTIC_H).
+
 2008-03-12  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/39431
@@ -14,8 +161,7 @@
 2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/39445
-	* config/i386/i386.c (ix86_expand_push): Don't set memory
-	alignment.
+	* config/i386/i386.c (ix86_expand_push): Don't set memory alignment.
 
 2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -28,8 +174,7 @@
 2009-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/38824
-	* config/i386/i386.md: Compare REGNO on the new peephole2
-	patterns.
+	* config/i386/i386.md: Compare REGNO on the new peephole2 patterns.
 
 2009-03-12  Vladimir Makarov  <vmakarov@redhat.com>
 
@@ -52,8 +197,7 @@
 2009-03-11  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/39137
-	* cfgexpand.c (get_decl_align_unit): Use LOCAL_DECL_ALIGNMENT
-	macro.
+	* cfgexpand.c (get_decl_align_unit): Use LOCAL_DECL_ALIGNMENT macro.
 	* defaults.h (LOCAL_DECL_ALIGNMENT): Define if not yet defined.
 	* config/i386/i386.h (LOCAL_DECL_ALIGNMENT): Define.
 	* config/i386/i386.c (ix86_local_alignment): For
@@ -95,8 +239,7 @@
 	    Nathan Froyd  <froydnj@codesourcery.com>
 
 	PR middle-end/37850
-	* libgcc2.c (__mulMODE3): Use explicit assignments to form the
-	result.
+	* libgcc2.c (__mulMODE3): Use explicit assignments to form the result.
 	(__divMODE3): Likewise.
 
 2009-03-09  Jakub Jelinek  <jakub@redhat.com>
@@ -138,8 +281,7 @@
 	of referenced_var_check_and_insert.
 
 	PR debug/39372
-	* dwarf2out.c (add_abstract_origin_attribute): Return
-	origin_die.
+	* dwarf2out.c (add_abstract_origin_attribute): Return origin_die.
 	(gen_variable_die): Emit DW_AT_location on abstract static variable's
 	DIE, don't emit it if abstract origin already has it.
 	* tree-cfg.c (remove_useless_stmts_bind): GIMPLE_BINDs with any
@@ -370,8 +512,7 @@
 2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* optc-gen.awk: No need to duplicate option flags twice.
-	Reuse help texts for duplicate options which do not have
-	any.
+	Reuse help texts for duplicate options which do not have any.
 
 	* gcc.c (display_help): Document --version.
 

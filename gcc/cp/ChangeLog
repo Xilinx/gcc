@@ -1,3 +1,45 @@
+2009-03-17  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (grokfndecl): Set DECL_CONTEXT on parms.
+	(duplicate_decls): Adjust DECL_CONTEXT of newdecl's parms.
+	* pt.c (check_explicit_specialization): Likewise.
+	(tsubst_copy) [PARM_DECL]: Return a dummy parm if we don't have a
+	local specialization.
+	* tree.c (cp_tree_equal) [PARM_DECL]: Check type and index, not name.
+	* decl2.c (parm_index): New fn.
+	* semantics.c (finish_decltype_type): Don't use describable_type.
+	* mangle.c (write_expression): Likewise.  Mangle ALIGNOF_EXPR.
+	Give a sorry for unsupported codes rather than crash.  Mangle
+	conversions with other than 1 operand.  New mangling for PARM_DECL.
+	* operators.def (ALIGNOF_EXPR): Mangle as "az".
+
+2009-03-17  Jing Yu  <jingyu@google.com>
+
+	PR middle-end/39378
+	* method.c (use_thunk): Change is_thunk from crtl to cfun.
+
+2009-03-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/39475
+	* semantics.c (check_trait_type): New.
+	(finish_trait_expr): Use it.
+
+2009-03-17  Jakub Jelinek  <jakub@redhat.com>
+
+	* name-lookup.c (cp_emit_debug_info_for_using): Emit USING_STMTs
+	instead of calling imported_module_or_decl debug hook if
+	building_stmt_tree ().
+	* cp-gimplify.c (cp_gimplify_expr): Don't assert the first operand
+	is a NAMESPACE_DECL.
+
+	PR debug/37890
+	* name-lookup.c (do_namespace_alias): Don't call global_decl debug
+	hook at function scope.
+
+	PR debug/39471
+	* cp-gimplify.c (cp_gimplify_expr): Don't set DECL_NAME
+	on IMPORTED_DECL.
+
 2009-03-09  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/39371

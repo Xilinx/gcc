@@ -1,3 +1,27 @@
+2009-03-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_contributing.xml: Add docbook style
+	sheet version information. Table-ize docbook element examples.
+	* doc/xml/manual/using.xml: Human-readable header
+	markup. Alphabetized. Add new headers.
+	* doc/html: Regenerate.
+
+2009-03-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/xml/faq.xml: Fix link to setup documentation.
+
+2009-03-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (__add_lvalue_reference_helper,
+	__add_rvalue_reference_helper): As an optimization, rewrite
+	condition (avoid is_function).
+
+2009-03-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/39405
+	* testsuite/20_util/shared_ptr/cons/39405.cc: New.
+	* testsuite/tr1/2_general_utilities/shared_ptr/cons/39405.cc: Likewise.
+
 2009-03-12  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/30_threads/condition_variable_any/native_handle/

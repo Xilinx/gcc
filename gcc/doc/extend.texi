@@ -2553,7 +2553,7 @@ defined by shared libraries.
 @cindex @code{ms_abi} attribute
 @cindex @code{sysv_abi} attribute
 
-On 64-bit x86_65-*-* targets, you can use an ABI attribute to indicate
+On 64-bit x86_64-*-* targets, you can use an ABI attribute to indicate
 which calling convention should be used for a function.  The @code{ms_abi}
 attribute tells the compiler to use the Microsoft ABI, while the
 @code{sysv_abi} attribute tells the compiler to use the ABI used on
@@ -2792,7 +2792,7 @@ default).  Lazy binding will send the first call via resolving code in
 the loader, which might assume EAX, EDX and ECX can be clobbered, as
 per the standard calling conventions.  Solaris 8 is affected by this.
 GNU systems with GLIBC 2.1 or higher, and FreeBSD, are believed to be
-safe since the loaders there save all registers.  (Lazy binding can be
+safe since the loaders there save EAX, EDX and ECX.  (Lazy binding can be
 disabled with the linker or the loader if desired, to avoid the
 problem.)
 
