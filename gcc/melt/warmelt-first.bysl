@@ -691,10 +691,10 @@
   "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_STRBUF)")
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), (" str "))")
+  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), (" str "))")
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
 ;; primitive to add the location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   "/*add2sbufmixloc*/ { if (basilys_magic_discr((basilys_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
@@ -704,34 +704,34 @@
 
 ;; primitive to add an indentation or space into a strbuf
 (defprimitive add2sbuf_indent (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 64)")
+  "basilysgc_strbuf_add_indent((basilys_ptr_t)(" sbuf "), (" depth "), 64)")
 
 
 ;; primitive to add an indented newline into a strbuf
 (defprimitive add2sbuf_indentnl (sbuf :long depth) :void
-  "basilysgc_strbuf_add_indent((struct basilysstrbuf_st *)(" sbuf "), (" depth "), 0)")
+  "basilysgc_strbuf_add_indent((basilys_ptr_t)(" sbuf "), (" depth "), 0)")
 
 
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str(" asbuf "))")
+  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_strbuf_str(" asbuf "))")
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
-  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
+  "basilysgc_add_strbuf_cstr((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_cstr((struct basilysstrbuf_st *)(" sbuf "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
+  "basilysgc_add_strbuf_cstr((basilys_ptr_t)(" sbuf "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
-  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf
+  "basilysgc_add_strbuf_ccomment((basilys_ptr_t)(" sbuf
   "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
-  "basilysgc_add_strbuf_ccomment((struct basilysstrbuf_st *)(" sbuf 
+  "basilysgc_add_strbuf_ccomment((basilys_ptr_t)(" sbuf 
   "), basilys_strbuf_str((basilys_ptr_t)(" asbuf ")))")
 
 ;; primitive to add a cstring const, Ccomment encoded, into a strbuf
@@ -741,25 +741,25 @@
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
 (defprimitive add2sbuf_cident (sbuf str) :void
-  "basilysgc_add_strbuf_cident((struct basilysstrbuf_st *)(" sbuf 
+  "basilysgc_add_strbuf_cident((basilys_ptr_t)(" sbuf 
   "), basilys_string_str((basilys_ptr_t)(" str ")))")
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
-  "basilysgc_add_strbuf_cidentprefix((struct basilysstrbuf_st *)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
+  "basilysgc_add_strbuf_cidentprefix((basilys_ptr_t)(" sbuf "), basilys_string_str((basilys_ptr_t)(" str ")), (" preflen "))")
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
-  "basilysgc_add_strbuf_dec((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_dec((basilys_ptr_t)(" sbuf "), (" num "))")
 
 ;; primitive to add a long in hex into a strbuf
 (defprimitive add2sbuf_longhex (sbuf :long num) :void
-  "basilysgc_add_strbuf_hex((struct basilysstrbuf_st *)(" sbuf "), (" num "))")
+  "basilysgc_add_strbuf_hex((basilys_ptr_t)(" sbuf "), (" num "))")
 
 ;; primitive to add a routine descr into a strbuf
 (defprimitive add2sbuf_routinedescr (sbuf rout) :void
-  "basilysgc_add_strbuf((struct basilysstrbuf_st *)(" sbuf "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
+  "basilysgc_add_strbuf((basilys_ptr_t)(" sbuf "), basilys_routine_descrstr((basilys_ptr_t)(" rout ")))")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; STRING primitives
