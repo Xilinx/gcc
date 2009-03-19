@@ -1,4 +1,20 @@
 2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[removed almost all warnings in basilys.?; the fopencookie will be
+	removed next week, using next version of PPL library]
+	* basilys.h: Using basilys_ptr_t as argument type of
+	basilysgc_add_strbuf_raw, basilysgc_add_strbuf,
+	basilysgc_add_strbuf_cstr, basilysgc_add_strbuf_ccomment,
+	basilysgc_add_strbuf_cident, basilysgc_add_strbuf_cidentprefix,
+	basilysgc_add_strbuf_hex, basilysgc_add_strbuf_dec,
+	basilysgc_strbuf_printf, basilysgc_strbuf_add_indent.  
+	* basilys.c (basilysgc_add_strbuf_raw, basilysgc_add_strbuf,
+	basilysgc_add_strbuf_cstr, basilysgc_add_strbuf_ccomment,
+	basilysgc_add_strbuf_cident, basilysgc_add_strbuf_cidentprefix,
+	basilysgc_add_strbuf_hex, basilysgc_add_strbuf_dec,
+	basilysgc_strbuf_printf, basilysgc_strbuf_add_indent): using
+	basilys_ptr_t.
+
+2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[removed warnings in compiler-probe.*]
 	* compiler-probe.h: Cleaned up various #if...
 	* compiler-probe.c: Updated copyright year.

@@ -1925,7 +1925,7 @@ end:
 
 
 void
-basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p, const char *str)
+basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p, const char *str)
 {
 #ifdef ENABLE_CHECKING
   static long addcount;
@@ -2034,7 +2034,7 @@ end:
 }
 
 void
-basilysgc_add_strbuf (struct basilysstrbuf_st *strbuf_p, const char *str)
+basilysgc_add_strbuf (basilys_ptr_t strbuf_p, const char *str)
 {
   char sbuf[80];
   char *cstr = NULL;
@@ -2058,7 +2058,7 @@ basilysgc_add_strbuf (struct basilysstrbuf_st *strbuf_p, const char *str)
 }
 
 void
-basilysgc_add_strbuf_cstr (struct basilysstrbuf_st *strbuf_p, const char *str)
+basilysgc_add_strbuf_cstr (basilys_ptr_t strbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   const char *ps = NULL;
@@ -2106,8 +2106,7 @@ basilysgc_add_strbuf_cstr (struct basilysstrbuf_st *strbuf_p, const char *str)
 
 
 void
-basilysgc_add_strbuf_ccomment (struct basilysstrbuf_st
-			       *strbuf_p, const char *str)
+basilysgc_add_strbuf_ccomment (basilys_ptr_t strbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   const char *ps = NULL;
@@ -2141,8 +2140,7 @@ basilysgc_add_strbuf_ccomment (struct basilysstrbuf_st
 }
 
 void
-basilysgc_add_strbuf_cident (struct basilysstrbuf_st
-			     *strbuf_p, const char *str)
+basilysgc_add_strbuf_cident (basilys_ptr_t strbuf_p, const char *str)
 {
   int slen = str ? strlen (str) : 0;
   char *dupstr = 0;
@@ -2175,8 +2173,7 @@ basilysgc_add_strbuf_cident (struct basilysstrbuf_st
 }
 
 void
-basilysgc_add_strbuf_cidentprefix (struct basilysstrbuf_st
-				   *strbuf_p, const char *str, int preflen)
+basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int preflen)
 {
   const char *ps = 0;
   char *pd = 0;
@@ -2206,7 +2203,7 @@ basilysgc_add_strbuf_cidentprefix (struct basilysstrbuf_st
 
 
 void
-basilysgc_add_strbuf_hex (struct basilysstrbuf_st *strbuf_p, unsigned long l)
+basilysgc_add_strbuf_hex (basilys_ptr_t strbuf_p, unsigned long l)
 {
   if (l == 0UL)
     basilysgc_add_strbuf_raw (strbuf_p, "0");
@@ -2231,9 +2228,9 @@ basilysgc_add_strbuf_hex (struct basilysstrbuf_st *strbuf_p, unsigned long l)
 
 
 void
-basilysgc_add_strbuf_dec (struct basilysstrbuf_st *strbuf_p, long l)
+basilysgc_add_strbuf_dec (basilys_ptr_t strbuf_p, long l)
 {
-  if (l == 0UL)
+  if (l == 0L)
     basilysgc_add_strbuf_raw (strbuf_p, "0");
   else
     {
@@ -2266,7 +2263,7 @@ basilysgc_add_strbuf_dec (struct basilysstrbuf_st *strbuf_p, long l)
 
 
 void
-basilysgc_strbuf_printf (struct basilysstrbuf_st *strbuf_p,
+basilysgc_strbuf_printf (basilys_ptr_t strbuf_p,
 			 const char *fmt, ...)
 {
   char *cstr = NULL;
@@ -2292,8 +2289,7 @@ basilysgc_strbuf_printf (struct basilysstrbuf_st *strbuf_p,
 
 /* add safely into STRBUF either a space or an indented newline if the current line is bigger than the threshold */
 void
-basilysgc_strbuf_add_indent (struct basilysstrbuf_st
-			     *strbuf_p, int depth, int linethresh)
+basilysgc_strbuf_add_indent (basilys_ptr_t strbuf_p, int depth, int linethresh)
 {
   int llln = 0;			/* last line length */
   BASILYS_ENTERFRAME (2, NULL);
@@ -2317,16 +2313,16 @@ basilysgc_strbuf_add_indent (struct basilysstrbuf_st
     gcc_assert (llln >= 0);
   }
   if (linethresh > 0 && llln < linethresh)
-    basilysgc_add_strbuf_raw (strbufv, " ");
+    basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, " ");
   else
     {
       int nbsp = depth;
       static const char spaces32[] = "                                ";
-      basilysgc_add_strbuf_raw (strbufv, "\n");
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, "\n");
       if (nbsp < 0)
 	nbsp = 0;
       if (nbsp > 0 && nbsp % 32 != 0)
-	basilysgc_add_strbuf_raw (strbufv, spaces32 + (32 - nbsp % 32));
+	basilysgc_add_strbuf_raw ((basilys_ptr_t) strbv, spaces32 + (32 - nbsp % 32));
     }
 end:
   BASILYS_EXITFRAME ();
@@ -3882,7 +3878,7 @@ basilysgc_remove_mapstrings (struct basilysmapstrings_st *
       || oldat == HTAB_DELETED_ENTRY)
     goto end;
   if (!basilys_is_young (oldat))
-    ggc_free ((char *) oldat);
+    ggc_free (CONST_CAST(char *, oldat));
   map_mapstringv->entab[ix].e_at = (char *) HTAB_DELETED_ENTRY;
   valuv = map_mapstringv->entab[ix].e_va;
   map_mapstringv->entab[ix].e_va = NULL;
@@ -4462,7 +4458,7 @@ basilysgc_new_string_tempname_suffixed (basilysobject_ptr_t
     *dot=0;
   tempnampath = basilys_tempdir_path(basestr, suffix);
   dbgprintf("new_string_tempbasename basestr='%s' tempnampath='%s'", basestr, tempnampath);
-  free(basestr);
+  free(CONST_CAST(char*,basestr));
   basestr = 0;
   strv = 0;
   if (!tempnampath)
@@ -4480,7 +4476,7 @@ basilysgc_new_string_tempname_suffixed (basilysobject_ptr_t
   strcpy (str_strv->val, tempnampath);
 end:
   if (tempnampath)
-    free (tempnampath);
+    free (CONST_CAST (char*,tempnampath));
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) strv;
 #undef discrv
@@ -4690,9 +4686,9 @@ char *
 basilys_tempdir_path (const char *srcnam, const char* suffix)
 {
   int loopcnt = 0;
-  char *basnam = 0;
+  const char *basnam = 0;
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
-  basnam = lbasename(srcnam);
+  basnam = lbasename (CONST_CAST (char*,srcnam));
   debugeprintf("basilys_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (basilys_tempdir_string && basilys_tempdir_string[0])
@@ -4765,16 +4761,16 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
      source file path)
 
    */
-  char *ourmeltcompilescript = NULL;
+  const char *ourmeltcompilescript = NULL;
   struct pex_time ptime;
-  char *argv[4];
+  const char *argv[4];
   char pwdbuf[500];
   memset(pwdbuf, 0, sizeof(pwdbuf));
   getcwd(pwdbuf, sizeof(pwdbuf)-1);
   memset (&ptime, 0, sizeof (ptime));
   /* compute the ourmeltcompilscript */
   debugeprintf ("compile_to_dyl basilys_compile_script_string %s", basilys_compile_script_string);
-  ourmeltcompilescript = (char *) basilys_compile_script_string;
+  ourmeltcompilescript = CONST_CAST (char *, basilys_compile_script_string);
   if (!ourmeltcompilescript || !ourmeltcompilescript[0])
     ourmeltcompilescript = melt_compile_script;
   debugeprintf ("compile_to_dyl melt ourmeltcompilescript=%s pwd %s",
@@ -4783,12 +4779,13 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
   fflush (stdout);
   fflush (stderr);
   pex = pex_init (PEX_RECORD_TIMES, ourmeltcompilescript, NULL);
-  argv[0] = (char *) ourmeltcompilescript;
-  argv[1] = (char *) srcfile;
-  argv[2] = (char *) dlfile;
-  argv[3] = (char *) 0;
+  argv[0] = ourmeltcompilescript;
+  argv[1] = srcfile;
+  argv[2] = dlfile;
+  argv[3] = NULL;
   errmsg =
-    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, (char **) argv,
+    pex_run (pex, PEX_LAST | PEX_SEARCH, ourmeltcompilescript, 
+	     CONST_CAST (char**, argv),
 	     NULL, NULL, &err);
   if (errmsg)
     fatal_error
@@ -4808,6 +4805,18 @@ compile_to_dyl (const char *srcfile, const char *dlfile)
 
 
 
+/* following code and comment is taken from the gcc/plugin.c file of
+   the plugins branch */
+
+/* We need a union to cast dlsym return value to a function pointer
+   as ISO C forbids assignment between function pointer and 'void *'.
+   Use explicit union instead of __extension__(<union_cast>) for
+   portability.  */
+#define PTR_UNION_TYPE(TOTYPE) union { void *_q; TOTYPE _nq; }
+#define PTR_UNION_AS_VOID_PTR(NAME) (NAME._q)
+#define PTR_UNION_AS_CAST_PTR(NAME) (NAME._nq)
+
+
 
 
 /* load a dynamic library using the filepath DYPATH; if MD5SRC is
@@ -4823,9 +4832,9 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   char *dyncomptimstamp = NULL;
   typedef basilys_ptr_t startroutine_t (basilys_ptr_t);
   typedef void markroutine_t (void *);
-  startroutine_t *startrout = 0;
-  markroutine_t *markrout = 0;
-  void **iniframeptr = 0;
+  PTR_UNION_TYPE(startroutine_t*) startrout_uf = {0};
+  PTR_UNION_TYPE(markroutine_t*) markrout_uf = {0};
+  PTR_UNION_TYPE(void **) iniframe_up = {0};
   int i = 0, c = 0;
   char hbuf[4];
   debugeprintf ("load_check_dynamic_module_index dypath=%s", dypath);
@@ -4849,26 +4858,31 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   debugeprintf ("dyncomptimstamp=%s", dyncomptimstamp);
   if (!dyncomptimstamp)
     goto bad;
-  startrout =
-    (startroutine_t *) lt_dlsym ((lt_dlhandle) dlh, "start_module_melt");
-  if (!startrout)
-    startrout =
-      (startroutine_t *) lt_dlsym ((lt_dlhandle) dlh, "start_module_basilys");
-  if (!startrout)
+
+  PTR_UNION_AS_VOID_PTR(startrout_uf) =
+    lt_dlsym ((lt_dlhandle) dlh, "start_module_melt");
+  if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
+    PTR_UNION_AS_VOID_PTR(startrout_uf) 
+      = lt_dlsym ((lt_dlhandle) dlh, "start_module_basilys");
+  if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
     goto bad;
-  markrout =
-    (markroutine_t *) lt_dlsym ((lt_dlhandle) dlh, "mark_module_melt");
-  if (!markrout)
-    markrout =
-      (markroutine_t *) lt_dlsym ((lt_dlhandle) dlh, "mark_module_basilys");
-  if (!markrout)
+  
+  PTR_UNION_AS_VOID_PTR(markrout_uf) =
+    lt_dlsym ((lt_dlhandle) dlh, "mark_module_melt");
+  if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
+   PTR_UNION_AS_VOID_PTR(markrout_uf) =
+     lt_dlsym ((lt_dlhandle) dlh, "mark_module_basilys");
+  if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
     goto bad;
-  iniframeptr = (void **) lt_dlsym ((lt_dlhandle) dlh, "initial_frame_melt");
-  if (!iniframeptr)
-    iniframeptr =
-      (void **) lt_dlsym ((lt_dlhandle) dlh, "initial_frame_basilys");
-  if (!iniframeptr)
+  
+  PTR_UNION_AS_VOID_PTR(iniframe_up) 
+    = lt_dlsym ((lt_dlhandle) dlh, "initial_frame_melt");
+  if (!PTR_UNION_AS_VOID_PTR(iniframe_up) )
+    PTR_UNION_AS_VOID_PTR(iniframe_up) =
+      lt_dlsym ((lt_dlhandle) dlh, "initial_frame_basilys");
+  if (!PTR_UNION_AS_VOID_PTR(iniframe_up))
     goto bad;
+
   if (md5src)
     {
       for (i = 0; i < 16; i++)
@@ -4889,9 +4903,9 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   {
     basilys_module_info_t minf = { 0, 0, 0, 0 };
     minf.dlh = dlh;
-    minf.iniframp = iniframeptr;
-    minf.marker_rout = markrout;
-    minf.start_rout = startrout;
+    minf.iniframp = PTR_UNION_AS_CAST_PTR (iniframe_up);
+    minf.marker_rout = PTR_UNION_AS_CAST_PTR (markrout_uf);
+    minf.start_rout = PTR_UNION_AS_CAST_PTR (startrout_uf);
     ix = VEC_length (basilys_module_info_t, modinfvec);
     VEC_safe_push (basilys_module_info_t, heap, modinfvec, &minf);
   }
@@ -4932,10 +4946,6 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   char *srcpath = NULL;
   char *dynpath = NULL;
   FILE *srcfi = NULL;
-  int modfilelen = 0;
-  char* modfilebase = 0;
-  char* modfilesuffix = 0;
-  int isasrc = 0;
   int dlix = 0;
   int srcpathlen = 0;
   char md5srctab[16];
@@ -4954,7 +4964,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   }
   /* always check the module name */
   {
-    char* p = 0;
+    const char* p = 0;
     for (p=modulnam; *p; p++)
       if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
 	{
@@ -5119,8 +5129,6 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   debugeprintf ("dylibfound moduptr=%p", (void *) moduptr);
   gcc_assert (moduptr != 0);
   startroutp = moduptr->start_rout;
-  debugeprintf
-    ("basilysgc_compile before calling startrout @%p", (void *) startroutp);
   gcc_assert (moduptr->iniframp != 0 && *moduptr->iniframp == (void *) 0);
 #if ENABLE_CHECKING
   {
@@ -6381,7 +6389,7 @@ basilys_error_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   if (loc)
     {
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cstr)
 	error_at (loc, "Basilys Error[#%ld]: %s - %s", basilys_dbgcounter,
 		  msg, cstr);
@@ -6390,8 +6398,8 @@ basilys_error_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   else
     {
-      char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cfilnam)
 	{
 	  if (cstr)
@@ -6453,18 +6461,18 @@ basilys_warning_str (int opt, basilys_ptr_t mixloc_p, const char *msg,
     }
   if (loc)
     {
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cstr)
-	warning (opt, "%H.Basilys Warning[#%ld]: %s - %s", &loc,
-		 basilys_dbgcounter, msg, cstr);
+	warning_at (loc, opt, "Basilys Warning[#%ld]: %s - %s",
+		    basilys_dbgcounter, msg, cstr);
       else
-	warning (opt, "%H.Basilys Warning[#%ld]: %s", &loc,
-		 basilys_dbgcounter, msg);
+	warning_at (loc, opt, "Basilys Warning[#%ld]: %s", 
+		    basilys_dbgcounter, msg);
     }
   else
     {
-      char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cfilnam)
 	{
 	  if (cstr)
@@ -6528,7 +6536,7 @@ basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   if (loc)
     {
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cstr)
 	inform (loc, "Basilys Inform[#%ld]: %s - %s", basilys_dbgcounter,
 		msg, cstr);
@@ -6537,8 +6545,8 @@ basilys_inform_str (basilys_ptr_t mixloc_p, const char *msg,
     }
   else
     {
-      char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
-      char *cstr = basilys_string_str ((basilys_ptr_t) strv);
+      const char *cfilnam = basilys_string_str ((basilys_ptr_t) finamv);
+      const char *cstr = basilys_string_str ((basilys_ptr_t) strv);
       if (cfilnam)
 	{
 	  if (cstr)
@@ -6629,7 +6637,6 @@ basilysgc_read_from_rawstring (const char *rawstr, const char *locnam,
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
-  int strmagic = 0;
   BASILYS_ENTERFRAME (4, NULL);
 #define genv      curfram__.varptr[0]
 #define valv      curfram__.varptr[1]
@@ -6808,7 +6815,7 @@ do_initial_command (basilys_ptr_t modata_p)
 	char *comma = 0;
 	char *pc = 0;
 	arglv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
-	for (pc = (char *) basilys_arglist_string; pc;
+	for (pc = CONST_CAST(char *, basilys_arglist_string); pc;
 	     pc = comma ? (comma + 1) : 0)
 	  {
 	    comma = strchr (pc, ',');
@@ -7690,7 +7697,7 @@ get_basilys_gdbm (void)
   if (!basilys_gdbmstate_string || !basilys_gdbmstate_string[0])
     return NULL;
   gdbm_basilys =
-    gdbm_open ((char *) basilys_gdbmstate_string, 8192, GDBM_WRCREAT, 0600,
+    gdbm_open (CONST_CAST(char*, basilys_gdbmstate_string), 8192, GDBM_WRCREAT, 0600,
 	       fatal_gdbm);
   if (!gdbm_basilys)
     fatal_error ("failed to lazily open basilys GDBM (%s) - %m",
@@ -7714,7 +7721,7 @@ basilysgc_fetch_gdbmstate_constr (const char *key)
 #define restrv curfram__.varptr[0]
   if (!dbf || !key || !key[0])
     goto end;
-  keydata.dptr = (char *) key;
+  keydata.dptr = CONST_CAST (char *, key);
   keydata.dsize = strlen (key);
   valdata = gdbm_fetch (dbf, keydata);
   if (valdata.dptr != NULL && valdata.dsize >= 0)
@@ -7747,13 +7754,13 @@ basilysgc_fetch_gdbmstate (basilys_ptr_t key_p)
   keymagic = basilys_magic_discr ((basilys_ptr_t) keyv);
   if (keymagic == OBMAG_STRING)
     {
-      keydata.dptr = (char *) basilys_string_str ((basilys_ptr_t) keyv);
+      keydata.dptr = CONST_CAST (char *, basilys_string_str ((basilys_ptr_t) keyv));
       keydata.dsize = strlen (keydata.dptr);
       valdata = gdbm_fetch (dbf, keydata);
     }
   else if (keymagic == OBMAG_STRBUF)
     {
-      keydata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) keyv);
+      keydata.dptr = CONST_CAST(char*, basilys_strbuf_str ((basilys_ptr_t) keyv));
       keydata.dsize = strlen (keydata.dptr);
       valdata = gdbm_fetch (dbf, keydata);
     }
@@ -7765,7 +7772,7 @@ basilysgc_fetch_gdbmstate (basilys_ptr_t key_p)
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) kstrv) == OBMAG_STRING)
 	{
-	  keydata.dptr = (char *) basilys_string_str ((basilys_ptr_t) kstrv);
+	  keydata.dptr = CONST_CAST(char*, basilys_string_str ((basilys_ptr_t) kstrv));
 	  keydata.dsize = strlen (keydata.dptr);
 	  valdata = gdbm_fetch (dbf, keydata);
 	}
@@ -7804,7 +7811,7 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
   datav = data_p;
   if (!dbf || !key || !key[0])
     goto end;
-  keydata.dptr = (char *) key;
+  keydata.dptr = CONST_CAST(char *, key);
   keydata.dsize = strlen (key);
   if (!datav)
     {
@@ -7814,13 +7821,13 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
   datamagic = basilys_magic_discr ((basilys_ptr_t) datav);
   if (datamagic == OBMAG_STRING)
     {
-      valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) datav);
+      valdata.dptr = CONST_CAST(char *, basilys_string_str ((basilys_ptr_t) datav));
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_STRBUF)
     {
-      valdata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) datav);
+      valdata.dptr = CONST_CAST(char*, basilys_strbuf_str ((basilys_ptr_t) datav));
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
@@ -7832,7 +7839,7 @@ basilysgc_put_gdbmstate_constr (const char *key, basilys_ptr_t data_p)
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) dstrv) == OBMAG_STRING)
 	{
-	  valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) dstrv);
+	  valdata.dptr = CONST_CAST (char *, basilys_string_str ((basilys_ptr_t) dstrv));
 	  valdata.dsize = strlen (keydata.dptr);
 	  gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
 	}
@@ -7868,12 +7875,12 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
   keymagic = basilys_magic_discr ((basilys_ptr_t) keyv);
   if (keymagic == OBMAG_STRING)
     {
-      keydata.dptr = basilys_string_str ((basilys_ptr_t) keyv);
+      keydata.dptr = CONST_CAST(char*, basilys_string_str ((basilys_ptr_t) keyv));
       keydata.dsize = strlen (keydata.dptr);
     }
   else if (keymagic == OBMAG_STRBUF)
     {
-      keydata.dptr = basilys_strbuf_str ((basilys_ptr_t) keyv);
+      keydata.dptr = CONST_CAST(char*, basilys_strbuf_str ((basilys_ptr_t) keyv));
       keydata.dsize = strlen (keydata.dptr);
     }
   else if (keymagic == OBMAG_OBJECT
@@ -7884,7 +7891,7 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
       kstrv = basilys_field_object ((basilys_ptr_t) keyv, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) kstrv) == OBMAG_STRING)
 	{
-	  keydata.dptr = basilys_string_str ((basilys_ptr_t) kstrv);
+	  keydata.dptr = CONST_CAST(char*, basilys_string_str ((basilys_ptr_t) kstrv));
 	  keydata.dsize = strlen (keydata.dptr);
 	}
       else
@@ -7900,13 +7907,13 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
   datamagic = basilys_magic_discr ((basilys_ptr_t) datav);
   if (datamagic == OBMAG_STRING)
     {
-      valdata.dptr = (char *) basilys_string_str ((basilys_ptr_t) datav);
+      valdata.dptr = CONST_CAST(char*, basilys_string_str ((basilys_ptr_t) datav));
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
   else if (datamagic == OBMAG_STRBUF)
     {
-      valdata.dptr = (char *) basilys_strbuf_str ((basilys_ptr_t) datav);
+      valdata.dptr = CONST_CAST(char*, basilys_strbuf_str ((basilys_ptr_t) datav));
       valdata.dsize = strlen (keydata.dptr);
       gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
     }
@@ -7918,7 +7925,7 @@ basilysgc_put_gdbmstate (basilys_ptr_t key_p, basilys_ptr_t data_p)
       dstrv = basilys_field_object ((basilys_ptr_t) datav, FNAMED_NAME);
       if (basilys_magic_discr ((basilys_ptr_t) dstrv) == OBMAG_STRING)
 	{
-	  valdata.dptr = basilys_string_str ((basilys_ptr_t) dstrv);
+	  valdata.dptr = CONST_CAST(char*, basilys_string_str ((basilys_ptr_t) dstrv));
 	  valdata.dsize = strlen (keydata.dptr);
 	  gdbm_store (dbf, keydata, valdata, GDBM_REPLACE);
 	}
@@ -7952,7 +7959,7 @@ ppbasilys_flushrout (const char *txt, void *data)
   struct ppbasilysflushdata_st *fldata =
     (struct ppbasilysflushdata_st *) data;
   gcc_assert (fldata->gf_magic == PPBASILYS_MAGIC);
-  basilysgc_add_strbuf ((struct basilysstrbuf_st *) (*fldata->gf_sbufad),
+  basilysgc_add_strbuf ((basilys_ptr_t) (*fldata->gf_sbufad),
 			txt);
 }
 
@@ -7968,7 +7975,7 @@ basilysgc_ppstrbuf_gimple (basilys_ptr_t sbuf_p, int indentsp, gimple gstmt)
     goto end;
   if (!gstmt)
     {
-      basilysgc_add_strbuf ((struct basilysstrbuf_st *) sbufv,
+      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
 			    "%nullgimple%");
       goto end;
     }
@@ -8000,7 +8007,7 @@ basilysgc_ppstrbuf_gimple_seq (basilys_ptr_t sbuf_p, int indentsp,
     goto end;
   if (!gseq)
     {
-      basilysgc_add_strbuf ((struct basilysstrbuf_st *) sbufv,
+      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
 			    "%nullgimpleseq%");
       goto end;
     }
@@ -8031,7 +8038,7 @@ basilysgc_ppstrbuf_tree (basilys_ptr_t sbuf_p, int indentsp, tree tr)
     goto end;
   if (!tr)
     {
-      basilysgc_add_strbuf ((struct basilysstrbuf_st *) sbufv, "%nulltree%");
+      basilysgc_add_strbuf ((basilys_ptr_t) sbufv, "%nulltree%");
       goto end;
     }
   memset (&ppgdat, 0, sizeof (ppgdat));
@@ -8063,22 +8070,22 @@ basilysgc_ppstrbuf_basicblock (basilys_ptr_t sbuf_p, int indentsp,
     goto end;
   if (!bb)
     {
-      basilysgc_add_strbuf ((struct basilysstrbuf_st *) sbufv,
+      basilysgc_add_strbuf ((basilys_ptr_t) sbufv,
 			    "%nullbasicblock%");
       goto end;
     }
-  basilysgc_strbuf_printf ((struct basilysstrbuf_st *) sbufv,
+  basilysgc_strbuf_printf ((basilys_ptr_t) sbufv,
 			   "basicblock ix%d", bb->index);
   gsq = bb_seq (bb);
   if (gsq)
     {
-      basilysgc_add_strbuf_raw ((struct basilysstrbuf_st *) sbufv, "{.");
-      basilysgc_ppstrbuf_gimple_seq (sbufv,
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, "{.");
+      basilysgc_ppstrbuf_gimple_seq ((basilys_ptr_t) sbufv,
 				     indentsp + 1, gsq);
-      basilysgc_add_strbuf_raw ((struct basilysstrbuf_st *) sbufv, ".}");
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, ".}");
     }
   else
-    basilysgc_add_strbuf_raw ((struct basilysstrbuf_st *) sbufv, ";");
+    basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, ";");
 end:
   BASILYS_EXITFRAME ();
 #undef sbufv
@@ -8106,7 +8113,7 @@ basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
   if (object_discrv->object_magic != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
   resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
-  spec_resv->discr = discrv;
+  spec_resv->discr = (basilysobject_ptr_t) discrv;
   spec_resv->mark = 0;
   spec_resv->val.sp_pointer = NULL;
   if (!unsatisfiable)
@@ -8117,7 +8124,7 @@ basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
     fatal_error("PPL new Constraint System failed in Basilys"); 
  end:
   BASILYS_EXITFRAME();
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef discrv
 #undef object_discrv
 #undef resv
@@ -8149,7 +8156,7 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
     fatal_error("PPL clone Constraint System failed in Basilys");
  end:
   BASILYS_EXITFRAME();
-  return resv;
+  return (basilys_ptr_t)resv;
 #undef discrv
 #undef object_discrv
 #undef resv
@@ -8173,10 +8180,10 @@ static ssize_t cookiestrbuf_basilyswrite(void* cookie, char* buf, size_t sz)
   gcc_assert(cookie != NULL);
   sbufv = *((struct basilyscookie_st*) cookie)->sbufptr;
   if (buf && sz>0) {
-    bufcopy = xcalloc(1, sz+2);
+    bufcopy = (char*) xcalloc(1, sz+2);
     memcpy(bufcopy, buf, sz);
     bufcopy[sz] = 0;
-    basilysgc_add_strbuf_raw(sbufv, bufcopy);
+    basilysgc_add_strbuf_raw((basilys_ptr_t)sbufv, bufcopy);
     outsz = strlen(bufcopy);
     free(bufcopy);
   }
@@ -8208,18 +8215,18 @@ static const char*
 ppl_basilys_variable_output_function(ppl_dimension_type var)
 {
   static char buf[80];
-  char *s = 0;
+  const char *s = 0;
   BASILYS_ENTERFRAME(2, NULL);
 #define vectv  curfram__.varptr[0]
 #define namv   curfram__.varptr[1]
   if (basilys_pplcoefvectp)
     vectv =  *basilys_pplcoefvectp;
-  if (vectv && var>=0)
-    namv = basilys_multiple_nth(vectv, (int)var);
-  if (basilys_is_instance_of(namv, BASILYSG (CLASS_NAMED))) 
-    namv = basilys_object_nth_field(namv, FNAMED_NAME);
+  if (vectv)
+    namv = basilys_multiple_nth((basilys_ptr_t) vectv, (int)var);
+  if (basilys_is_instance_of((basilys_ptr_t) namv, BASILYSG (CLASS_NAMED))) 
+    namv = basilys_object_nth_field((basilys_ptr_t) namv, FNAMED_NAME);
   if (namv)
-    s = basilys_string_str(namv);
+    s = basilys_string_str((basilys_ptr_t)namv);
   memset(buf, 0, sizeof(buf));
   if (s) 
     strncpy(buf, s, sizeof(buf)-1);
@@ -8257,14 +8264,14 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
   varvectv = varnamvect_p;
   if (!pplv) 
     goto end;
-  cookie.sbufptr = &sbufv;
+  cookie.sbufptr = (basilys_ptr_t*)&sbufv;
   cookie.indent = indentsp;
   f = fopencookie((void*)&cookie, "w", basilys_sbufcookiefuns);
   gcc_assert(f != NULL);
   ppl_io_set_variable_output_function (ppl_basilys_variable_output_function);
-  mag = basilys_magic_discr(pplv);
+  mag = basilys_magic_discr((basilys_ptr_t) pplv);
   if (varvectv)
-    basilys_pplcoefvectp = &varvectv;
+    basilys_pplcoefvectp = (basilys_ptr_t*)&varvectv;
   else
     basilys_pplcoefvectp = NULL;
   switch (mag) {

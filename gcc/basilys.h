@@ -2176,49 +2176,48 @@ struct basilysstrbuf_st *basilysgc_new_strbuf (basilysobject_ptr_t discr_p,
 					       const char *str);
 
 /* add into STRBUF the static string STR (which is not in the basilys heap) */
-void basilysgc_add_strbuf_raw (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p,
 			       const char *str);
 
 /* add safely into STRBUF the string STR (which is first copied, so
    can be in the basilys heap) */
-void basilysgc_add_strbuf (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf (basilys_ptr_t strbuf_p,
 			   const char *str);
 /* add safely into STRBUF the string STR encoded as a C string with
    backslash escapes */
-void basilysgc_add_strbuf_cstr (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf_cstr (basilys_ptr_t strbuf_p,
 				const char *str);
 /* add safely into STRBUF the string STR encoded as the interior of a
    C comment with slash star and star slash replaced by slash plus and
    plus slash */
-void basilysgc_add_strbuf_ccomment (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf_ccomment (basilys_ptr_t strbuf_p,
 				    const char *str);
 
 /* add safely into STRBUF the string STR (which is copied at first)
    encoded as a C identifier; ie non-alphanum begine encoded as an
    underscore */
-void basilysgc_add_strbuf_cident (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf_cident (basilys_ptr_t strbuf_p,
 				  const char *str);
 
 /* add safely into STRBUF the initial prefix of string STR (which is
    copied at first), with a length of at most PREFLEN encoded as a C
    identifier; ie non-alphanum begine encoded as an underscore */
 void
-basilysgc_add_strbuf_cidentprefix (struct basilysstrbuf_st
-				   *strbuf_p, const char *str, int preflen);
+basilysgc_add_strbuf_cidentprefix (basilys_ptr_t strbuf_p, const char *str, int preflen);
 
 /* add safely into STRBUF the hex encoded number L */
-void basilysgc_add_strbuf_hex (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_add_strbuf_hex (basilys_ptr_t strbuf_p,
 			       unsigned long l);
 /* add safely into STRBUF the decimal encoded number L */
-void basilysgc_add_strbuf_dec (struct basilysstrbuf_st *strbuf_p, long l);
+void basilysgc_add_strbuf_dec (basilys_ptr_t strbuf_p, long l);
 
 /* add safely into STRBUF a printf like stuff with FMT */
 void
-basilysgc_strbuf_printf (struct basilysstrbuf_st *strbuf_p, const char *fmt,
+basilysgc_strbuf_printf (basilys_ptr_t strbuf_p, const char *fmt,
 			 ...) ATTRIBUTE_PRINTF (2, 3);
 
 /* add safely into STRBUF either a space or an indented newline if the current line is bigger than the threshold */
-void basilysgc_strbuf_add_indent (struct basilysstrbuf_st *strbuf_p,
+void basilysgc_strbuf_add_indent (basilys_ptr_t strbuf_p,
 				  int indeptn, int linethresh);
 
 /* pretty print into an sbuf a gimple */
