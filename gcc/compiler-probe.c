@@ -1,5 +1,5 @@
 /* Compiler probe
-   Copyright (C) 2007,2008 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC.
@@ -120,7 +120,7 @@ static htab_t proberequest_htable;
 
 
 /* filename are e.g. unix paths */
-typedef char *filename_t;
+typedef const char *filename_t;
 /* hash table for filenames contain entries like */
 struct filenamehentry_st
 {
@@ -164,7 +164,7 @@ static struct
 {
   int size;			/* allocated size */
   int last;			/* last used index */
-  char **tab;
+  const char ** tab;
 } files_varr;
 
 struct displaychoice_st
@@ -238,9 +238,9 @@ eq_proberequest (const void *dx, const void *dy)
 static void
 del_proberequest (void *d)
 {
-  struct proberequesthentry_st *p = (const struct proberequesthentry_st *) d;
+  struct proberequesthentry_st *p = (struct proberequesthentry_st *) d;
   gcc_assert (p && p->verb);
-  free ((void *) p->verb);
+  free (CONST_CAST(char*,p->verb));
   p->verb = NULL;
 }
 
@@ -252,15 +252,15 @@ del_proberequest (void *d)
 static hashval_t
 hash_filename (const void *d)
 {
-  const struct filenamehentry_st *p = (struct filenamehentry_st *) d;
+  const struct filenamehentry_st *p = (const struct filenamehentry_st *) d;
   return htab_hash_string (p->file);
 }
 
 static int
 eq_filename (const void *dx, const void *dy)
 {
-  const struct filenamehentry_st *px = (struct filenamehentry_st *) dx;
-  const struct filenamehentry_st *py = (struct filenamehentry_st *) dy;
+  const struct filenamehentry_st *px = (const struct filenamehentry_st *) dx;
+  const struct filenamehentry_st *py = (const struct filenamehentry_st *) dy;
   return !strcmp (px->file, py->file);
 }
 
@@ -269,7 +269,7 @@ del_filename (void *d)
 {
   struct filenamehentry_st *p = (struct filenamehentry_st *) d;
   gcc_assert (p && p->file && p->rank > 0);
-  free ((void *) p->file);
+  free (CONST_CAST (char*, p->file));
   p->file = NULL;
 }
 
@@ -626,7 +626,7 @@ comprobe_unregister (const char *verb)
 {
   gcc_assert (verb && *verb);
   /* #warning to be written comprobe_unregister */
-  gcc_unreachable ();
+  fatal_error("comprobe_unregister %s @@ NOT IMPLEMENTED YET", verb);
 }
 
 
@@ -709,7 +709,7 @@ create_probe_process (void)
   pid_t probpid;
   /* the pipes from probe to gcc, and from gcc to probe */
   int pip2gcc[2], pip2probe[2];
-  const char *progarg[5];
+  char const* progarg[5];
   if (comprobe_pid > 0 && comprobe_replf && comprobe_reqfd >= 0)
     return;
   /* we do not use the pex_* routines from liberty.h because the
@@ -759,12 +759,11 @@ create_probe_process (void)
       for (ifd = STDERR_FILENO + 1; ifd < 64; ifd++)
 	(void) close (ifd);
       /* use sh -c for the compiler probe command */
-      memset (progarg, 0, sizeof (progarg));
       progarg[0] = "sh";
       progarg[1] = "-c";
       progarg[2] = compiler_probe_string;
       progarg[3] = (char *) 0;
-      execv ("/bin/sh", (char *const *) progarg);
+      execv ("/bin/sh",  CONST_CAST(char**,progarg));
       perror_exit ("comprobe child process failed to exec /bin/sh");
     }
 #undef perror_exit
@@ -1180,8 +1179,8 @@ stop_reqfun (struct comprobe_whatpos_st *wp ATTRIBUTE_UNUSED,
 static int
 cmp_displaychoice_ptr (const void *x, const void *y)
 {
-  displaychoice_ptr_t dx = *(displaychoice_ptr_t *) x;
-  displaychoice_ptr_t dy = *(displaychoice_ptr_t *) y;
+  const displaychoice_ptr_t dx = *(const displaychoice_ptr_t *) x;
+  const displaychoice_ptr_t dy = *(const displaychoice_ptr_t *) y;
   return strcmp (dx->di_msg, dy->di_msg);
 }
 
@@ -1247,9 +1246,6 @@ static void gimple_starting_displayer (struct comprobe_whatpos_st *wp,
 				       HOST_WIDE_INT data,
 				       HOST_WIDE_INT navig);
 
-static void tree_ending_displayer (struct comprobe_whatpos_st *wp,
-				   struct comprobe_infodisplay_st *di,
-				   HOST_WIDE_INT data, HOST_WIDE_INT navig);
 
 static void
 display_tree (tree tr, struct comprobe_infodisplay_st *di)
@@ -1438,6 +1434,7 @@ tree_starting_displayer (struct comprobe_whatpos_st *wp,
     }
 }
 
+#if 0 /* unused function */
 static void
 tree_ending_displayer (struct comprobe_whatpos_st *wp,
 		       struct comprobe_infodisplay_st *di,
@@ -1468,7 +1465,7 @@ tree_ending_displayer (struct comprobe_whatpos_st *wp,
 	 (int) nbtree, di->idis_infp->infp_num);
     }
 }
-
+#endif
 
 static void
 bb_starting_displayer (struct comprobe_whatpos_st *wp,
@@ -1594,11 +1591,7 @@ fill_infodialog (struct comprobe_whatpos_st *wp, infodisplay_ptr_t disp,
     {
       comprobe_begin_big_printf ("PROB_dialogcontent dia:%d\n",
 				 disp->idis_num);
-      debugeprintf ("fill_infodialog ch before di_fun %p",
-		    (void *) ch->di_fun);
       (*ch->di_fun) (wp, disp, ch->di_data, chix);
-      debugeprintf ("fill_infodialog ch after di_fun %p",
-		    (void *) ch->di_fun);
       comprobe_end_big ();
       if (disp->idis_navig
 	  && VEC_length (displaychoice_ptr_t, disp->idis_navig) > 0)
@@ -1823,7 +1816,7 @@ comprobe_initialize (void)
   unique_bb_htable = htab_create (3001, hash_info_bb, eq_info_bb, NULL);
   unique_gimple_htable =
     htab_create (6173, hash_info_gimple, eq_info_gimple, NULL);
-  files_varr.tab = XNEWVEC (char *, 100);
+  files_varr.tab = XNEWVEC (char const*, 100);
   files_varr.size = 100;
   files_varr.last = 0;
   memset (files_varr.tab, 0, sizeof (char **) * files_varr.size);
@@ -1884,7 +1877,7 @@ comprobe_file_rank (const char *filename)
   if (!filename || !comprobe_replf)
     return 0;
   memset (&slot, 0, sizeof (slot));
-  slot.file = (char *) filename;
+  slot.file = filename;
   slotptr = (struct filenamehentry_st **)
     htab_find_slot (filename_htable, &slot, INSERT);
   if (!slotptr)
@@ -1900,21 +1893,21 @@ comprobe_file_rank (const char *filename)
 	{
 	  int newsiz = ((5 * files_varr.last) / 4 + 50) | 0x1f;
 	  int ix;
-	  char **newarr = XNEWVEC (char *, newsiz);
+	  const char **newarr = XNEWVEC (const char *, newsiz);
 	  newarr[0] = 0;
 	  for (ix = files_varr.last; ix > 0; ix--)
-	    newarr[ix] = files_varr.tab[ix];
+	    newarr[ix] = CONST_CAST(char*,files_varr.tab[ix]);
 	  for (ix = files_varr.last + 1; ix < newsiz; ix++)
 	    newarr[ix] = (char *) 0;
 	  memset (files_varr.tab, 0, sizeof (char *) * files_varr.size);
 	  XDELETEVEC (files_varr.tab);
-	  files_varr.tab = newarr;
+	  files_varr.tab = CONST_CAST(const char**, newarr);
 	}
       /* dont use index 0 */
       filerank = ++files_varr.last;
-      files_varr.tab[filerank] = (char *) dupfilename;
+      files_varr.tab[filerank] = (const char *) dupfilename;
       gcc_assert (filerank > 0);
-      newslot->file = (char *) dupfilename;
+      newslot->file = (const char *) dupfilename;
       newslot->rank = filerank;
       *slotptr = newslot;
       debugeprintf ("new file rank filerank%d file %s newslot %p", filerank,
@@ -1998,7 +1991,7 @@ comprobe_infopoint_rank (int filerank, int lineno)
 
 /** convenience function for iterating **/
 static bool
-get_gimple_position_seq (gimple_seq sq, char **pfilename, int *plineno,
+get_gimple_position_seq (gimple_seq sq, const char **pfilename, int *plineno,
 			 int end)
 {
   gimple_stmt_iterator gsi;
@@ -2029,7 +2022,7 @@ get_gimple_position_seq (gimple_seq sq, char **pfilename, int *plineno,
  * if the END flag is set, return the last position
  ***/
 bool
-comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno,
+comprobe_get_gimple_position (gimple g, const char **pfilename, int *plineno,
 			      int end)
 {
   location_t loc = 0;
@@ -2104,7 +2097,7 @@ comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno,
 }
 
 bool
-comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end ATTRIBUTE_UNUSED)
+comprobe_get_tree_position (tree t, const char **pfilename, int *plineno, int end ATTRIBUTE_UNUSED)
 {
   location_t loc = 0;
   if (!t)
@@ -2124,7 +2117,7 @@ comprobe_get_tree_position (tree t, char **pfilename, int *plineno, int end ATTR
 int
 comprobe_file_rank_of_gimple (gimple g, int *plineno)
 {
-  char *filename = 0;
+  const char *filename = 0;
   int lineno = 0, filerank = 0;
   if (!g)
     return 0;
@@ -2139,7 +2132,7 @@ comprobe_file_rank_of_gimple (gimple g, int *plineno)
 int
 comprobe_file_rank_of_tree (tree tr, int *plineno)
 {
-  char *filename = 0;
+  const char *filename = 0;
   int lineno = 0, filerank = 0;
   if (!tr)
     return 0;
@@ -2191,10 +2184,9 @@ added_infopoint_display_gimple (gimple g, const char *dmesg)
 static void
 add_infopoint_bodyseq (gimple_seq sq)
 {
-  gimple_stmt_iterator gsi = { 0 };
+  gimple_stmt_iterator gsi;
   int rk = 0;
-  bool gotpos = false;
-  char *filename = 0;
+  const char *filename = 0;
   int lineno = 0;
   int filrk = 0, infrk = 0;
   int stix = 0;
@@ -2286,7 +2278,7 @@ comprobe_basic_block_of_unique_index (comprobe_ix_t ix)
 static void
 add_infopoint_basic_block (basic_block bb)
 {
-  gimple_stmt_iterator gsi = { 0 };
+  gimple_stmt_iterator gsi;
   int stmtcnt = 0;
   comprobe_ix_t bbix = 0;
   bool bbgotpos = false;
@@ -2302,7 +2294,7 @@ add_infopoint_basic_block (basic_block bb)
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      char *filename = 0;
+      const char *filename = 0;
       int lineno = 0;
       int filrk = 0, infrk = 0;
       static char msgbuf[64];
@@ -2341,7 +2333,7 @@ add_infopoint_basic_block (basic_block bb)
   for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      char *filename = 0;
+      const char *filename = 0;
       int lineno = 0;
       int filrk = 0, infrk = 0;
       static char msgbuf[64];

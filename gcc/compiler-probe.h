@@ -171,7 +171,10 @@ typedef HOST_WIDE_INT comprobe_ix_t;
  * if the END flag is set, return the last position
  ***/
 enum { POS_START = 0, POS_END };
-bool comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end);
+bool comprobe_get_gimple_position (gimple g, const char **pfilename, int *plineno, int end);
+
+/* likewise for trees*/
+bool comprobe_get_tree_position (tree t, const char **pfilename, int *plineno, int end);
 
 /***
  * return a unique positive file rank for the location of a gimple, if
@@ -179,14 +182,23 @@ bool comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int
  * *plineno to the line number
  **/
 int comprobe_file_rank_of_gimple (gimple g, int *plineno);
+/***
+ * return a unique positive file rank for the location of a tree, if
+ * any (else 0); may send a PROB_file request to the probe and set the
+ * *plineno to the line number
+ **/
+int comprobe_file_rank_of_tree (tree tr, int *plineno);
+
 
 /****
- * we manage a unique mapping between gimples and indexes thru our hash
- * table; to get the index of a tree and vice versa the tree of an
- * index
+ * we manage a unique mapping between gimples and indexes thru our
+ * hash table; to get the index of a tree or gimple and vice versa the
+ * tree or gimple of an index
  ***/
 comprobe_ix_t comprobe_unique_index_of_gimple (gimple g);
+comprobe_ix_t comprobe_unique_index_of_tree (tree tr);
 gimple comprobe_gimple_of_unique_index (comprobe_ix_t ix);
+tree comprobe_tree_of_unique_index (comprobe_ix_t ix);
 
 #endif /*TREE_CODE */
 
@@ -399,53 +411,7 @@ void comprobe_unregister (const char *verb);
 
 typedef HOST_WIDE_INT comprobe_ix_t;
 
-/***************************************************************************
- * additional tree specific routines are declared only if we know
- * about trees because this file has been included after tree.h
- *******/
-#ifdef GCC_TREE_H    /* GCC_TREE_H is the guarding macro of tree.h */
 
-/***
- * return true if a (GIMPLE/SSA) tree TR has a position 
- * and in that case fill the PFILENAME and PLINENO
- * if the END flag is set, return the last position
- ***/
-enum { POS_START = 0, POS_END };
-bool comprobe_get_gimple_position (gimple g, char **pfilename, int *plineno, int end);
-
-/***
- * return a unique positive file rank for the location of a tree, if
- * any (else 0); may send a PROB_file request to the probe and set the
- * *plineno to the line number
- **/
-int comprobe_file_rank_of_tree (tree tr, int *plineno);
-
-/****
- * we manage a unique mapping between trees and indexes thru our hash
- * table; to get the index of a tree and vice versa the tree of an
- * index
- ***/
-comprobe_ix_t comprobe_unique_index_of_tree (tree tr);
-tree comprobe_tree_of_unique_index (comprobe_ix_t ix);
-
-#endif /*GCC_TREE_H */
-
-
-
-
-/************************************************************************
- * additional basic block specific routines are declared only if
- * we know about basic blocks because "basic-block.h" have been included
- ************************************************************************/
-#ifdef BASIC_BLOCK		/* an important macro of basic-block */
-/****
- * we manage a unique mapping between basic blocks and indexes thru
- * our hash table; to get the index of a basic block and vice versa
- * the basic block of an index
- ***/
-comprobe_ix_t comprobe_unique_index_of_basic_block (basic_block bb);
-basic_block comprobe_basic_block_of_unique_index (comprobe_ix_t ix);
-#endif
 
 #else /* compiler probe disabled */
 
@@ -469,8 +435,12 @@ basic_block comprobe_basic_block_of_unique_index (comprobe_ix_t ix);
 #define comprobe_unique_index_of_tree(T) (0 && (T) == (tree)0)
 #define comprobe_tree_of_unique_index(I) NULL_TREE
 #define comprobe_filerank(P)  (0 && (P) == (const char*)0)
-#define comprobe_get_position(T,PF,PL,E) (FALSE \
+#define comprobe_get_tree_position(T,PF,PL,E) (FALSE \
 					  && (T)!=(tree)0 \
+					  && (PF)!=(char**0) \
+					  && (PL) != (int*)0 && (E))
+#define comprobe_get_gimple_position(G,PF,PL,E) (FALSE \
+					  && (T)!=(gimple)0 \
 					  && (PF)!=(char**0) \
 					  && (PL) != (int*)0 && (E))
 #define  comprobe_infopoint_add_displayer(IRK,DMESG,DROUT,DATA) while(0 && \

@@ -1,4 +1,12 @@
-2009-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	[removed warnings in compiler-probe.*]
+	* compiler-probe.h: Cleaned up various #if...
+	* compiler-probe.c: Updated copyright year.
+	(del_proberequest, hash_filename, eq_filename, del_filename,
+	create_probe_process) Cleanups for
+	warnings. (tree_ending_displayer) removed by commenting it.
+
+2009-03-17 Basile Starynkevitch <basile@starynkevitch.net>
 	with help from Rob Weld <rob1weld@aol.com>
 	[perhaps solved PR39484]
 	* basilys.c (basilys_extra_marking): extra marking done right.
