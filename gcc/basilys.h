@@ -482,14 +482,11 @@ GTY (())
 
 /* when OBMAG_ROUTINE */
 #define BASILYS_ROUTDESCR_LEN 96
-#define BASILYS_ROUTADDR_LEN  (1 + (2*sizeof (basilysroutfun_t *))/ sizeof (long))
 
-struct basilysroutine_st
-GTY (())
-{
+struct basilysroutine_st GTY (()) {
   basilysobject_ptr_t discr;
   char routdescr[BASILYS_ROUTDESCR_LEN];
-  long GTY ((skip)) routaddr[BASILYS_ROUTADDR_LEN];
+  basilysroutfun_t* GTY ((skip)) routfunad;
   basilys_ptr_t routdata;
   unsigned nbval;
   basilys_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
@@ -497,19 +494,21 @@ GTY (())
 
 /* unsafely set inside the basilysroutine_st pointed by Rptr the
    routine function pointer to Rout */
-#define BASILYS_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {			\
-  (*(basilysroutfun_t**)((struct basilysroutine_st*)(Rptr))->routaddr)	\
-     = (Rout);								\
+#define BASILYS_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
+  ((struct basilysroutine_st*)(Rptr))->routfunad	\
+     = (Rout);						\
 } while(0)
 
 
-#define BASILYS_ROUTINE_STRUCT(N) {				\
-  basilysobject_ptr_t discr;					\
-  char routdescr[BASILYS_ROUTDESCR_LEN];			\
-  long routaddr[1+2*sizeof(basilysroutfun_t *)/sizeof(long)];	\
-  basilys_ptr_t routdata;					\
-  unsigned nbval;						\
-  basilys_ptr_t tabval[N];					\
+
+
+#define BASILYS_ROUTINE_STRUCT(N) {		\
+  basilysobject_ptr_t discr;			\
+  char routdescr[BASILYS_ROUTDESCR_LEN];	\
+  basilysroutfun_t* routfunad;			\
+  basilys_ptr_t routdata;			\
+  unsigned nbval;				\
+  basilys_ptr_t tabval[N];			\
   long _gap; }
 
 

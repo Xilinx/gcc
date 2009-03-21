@@ -1,4 +1,11 @@
 2009-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: struct basilysroutine_st has now a real
+	basilysroutfun_t* function pointer called routfunad instead of
+	routaddr.  BASILYS_ROUTINE_STRUCT updated appropriately.
+	* basilys.c (basilys_extra_marking, basilysgc_new_routine)
+	(basilys_apply): uses routfunad instead of routaddr.
+
+2009-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: adding BASILYS_ROUTINE_SET_ROUTCODE macro.
 	* melt/warmelt-first.bysl: cast a basilys_ptr_t inside
 	add2sbuf_mixloc primitive.

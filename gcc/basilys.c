@@ -521,7 +521,7 @@ basilys_extra_marking (void *xtradata)
     if (cf->clos) {
       basilysroutfun_t*funp = 0;
       gcc_assert(cf->clos->rout);
-      funp = *((basilysroutfun_t**) cf->clos->rout->routaddr);
+      funp = cf->clos->rout->routfunad;
       gcc_assert(funp);
       /* call the function specially with the MARKGCC special parameter descriptor */
       funp(cf->clos, (basilys_ptr_t)cf, BASILYSPAR_MARKGGC, 
@@ -826,7 +826,7 @@ forwarded_copy (basilys_ptr_t p)
 	strncpy (dst->routdescr, src->routdescr, BASILYS_ROUTDESCR_LEN);
 	dst->routdescr[BASILYS_ROUTDESCR_LEN - 1] = 0;
 	dst->nbval = src->nbval;
-	memcpy (dst->routaddr, src->routaddr, sizeof (dst->routaddr));
+	dst->routfunad = src->routfunad;
 	for (ix = (int) nbv; ix >= 0; ix--)
 	  dst->tabval[ix] = src->tabval[ix];
 	dst->routdata = src->routdata;
@@ -1790,11 +1790,6 @@ basilysgc_new_routine (basilysobject_ptr_t discr_p,
 		       unsigned len, const char *descr,
 		       basilysroutfun_t * proc)
 {
-  union
-  {
-    long fad[1 + sizeof (basilysroutfun_t *) / sizeof (long)];
-    basilysroutfun_t *fproc;
-  } un;
   BASILYS_ENTERFRAME (2, NULL);
 #define newroutv curfram__.varptr[0]
 #define discrv  curfram__.varptr[1]
@@ -1811,9 +1806,7 @@ basilysgc_new_routine (basilysobject_ptr_t discr_p,
 			len * sizeof (void *));
   rou_newroutv->discr = (basilysobject_ptr_t) discrv;
   rou_newroutv->nbval = len;
-  memset (&un, 0, sizeof (un));
-  un.fproc = proc;
-  memcpy (rou_newroutv->routaddr, un.fad, sizeof (rou_newroutv->routaddr));
+  rou_newroutv->routfunad = proc;
   strncpy (rou_newroutv->routdescr, descr, BASILYS_ROUTDESCR_LEN - 1);
   rou_newroutv->routdescr[BASILYS_ROUTDESCR_LEN - 1] = (char) 0;
 end:
@@ -4502,12 +4495,7 @@ basilys_apply (basilysclosure_ptr_t clos_p,
 	       const char *xresdescr_, union basilysparam_un *xrestab_)
 {
   basilys_ptr_t res = NULL;
-  union
-  {
-    long funad[BASILYS_ROUTADDR_LEN];
-    basilysroutfun_t *pfun;
-  }
-  ufun;
+  basilysroutfun_t*routfun = 0;
 #if ENABLE_CHECKING
   applcount_basilys++;
   appldepth_basilys++;
@@ -4517,17 +4505,12 @@ basilys_apply (basilysclosure_ptr_t clos_p,
       fatal_error ("too deep (%d) basilys applications", appldepth_basilys);
     }
 #endif
-  memset (&ufun, 0, sizeof (ufun));
   if (basilys_magic_discr ((basilys_ptr_t) clos_p) != OBMAG_CLOSURE)
     goto end;
   if (basilys_magic_discr ((basilys_ptr_t) (clos_p->rout)) !=
-      OBMAG_ROUTINE || !clos_p->rout->routaddr)
+      OBMAG_ROUTINE || !(routfun = clos_p->rout->routfunad))
     goto end;
-  memcpy (&ufun.funad, clos_p->rout->routaddr,
-	  sizeof (clos_p->rout->routaddr));
-  gcc_assert (ufun.pfun);
-  res =
-    (*ufun.pfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
+  res = (*routfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
  end:
 #if ENABLE_CHECKING
   appldepth_basilys--;
