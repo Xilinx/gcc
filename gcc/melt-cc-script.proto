@@ -1,7 +1,7 @@
 #! /bin/sh
 #:! line starting with #:! are removed from this melt-cc-script.proto 
 #:! -*- bash -*-
-#    Copyright (C) 2008 Free Software Foundation, Inc.
+#    Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 #    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 # 
 # This file :MELT_SCRIPT: is part of GCC.
@@ -38,15 +38,16 @@ fi
 ## script invoked by cc1 with two arguments : the generated C source to compile
 ## and the naked (without suffix) dynamically-loadable stuff to generate
 
-## for commodity, we pass -D -U -I to gcc, and -F to set the cflags,
+## for commodity, we pass -D -U -I -O* to gcc, and -F to set the cflags,
 ## -C to set the compiler, and -x & -v for debugging and -n to omit
 ## line info, -d for dynamic object structures
-while getopts "D:I:U:F:C:xvnd" flag ; do
+while getopts "D:I:U:F:C:O:xvnd" flag ; do
     : the $flag 
     case "$flag" in
 	D) melt_cflags="$melt_cflags -D$OPTARG";;
 	U) melt_cflags="$melt_cflags -U$OPTARG";;
 	I) melt_cflags="$melt_cflags -U$OPTARG";;
+	O) melt_cflags="$melt_cflags -O$OPTARG";;
 	F) melt_cflags="$melt_cflags $OPTARG";;
 	C) melt_cc="$OPTARG";;
 	n)  melt_cflags="$melt_cflags -DMELTGCC_NOLINENUMBERING";;
@@ -82,9 +83,9 @@ esac
 
 : ${TMPDIR=/tmp}
 
-if which tempfile > /dev/null; then
+if which tempfile > /dev/null 2>&1; then
     datf=`tempfile  -p bdat`
-elif which mktemp > /dev/null; then
+elif which mktemp > /dev/null 2>&1; then
     datf=`mktemp -t bdat.XXXXXXXX`
 else
     datf=$TMPDIR/bdat$$-$RANDOM
@@ -92,8 +93,7 @@ fi
 
 rm -f $datf $datf.c $datf.*
 
-pwd
-echo melt_cc= $melt_cc melt_cflags= $melt_cflags melt_headerdir= $melt_headerdir  csource= $csource nakedynstuff= $nakedynstuff datf= $datf
+#pwd
 
 # generate the temporary timestamp & md5s file
 md5src=`md5sum $csource`     
@@ -103,21 +103,10 @@ trap "rm -f $datf.* $datf $nakedynstuff.o" EXIT
 date "+const char basilys_compiled_timestamp[]=\"%c $csource\";" > $datf.c
 echo "const char basilys_md5[]=\"$md5src\";" >> $datf.c
 
-head $datf.c
-
 case `uname` in
-Linux|SunOS|Solaris) 
-# we have temporarily a build of foo-n.so from foo.c without linenumbering
-#	echo Compiling $csource without line numbering
-#	time $melt_cc -Wall -fPIC -shared $melt_cflags -DMELTGCC_NOLINENUMBERING  -I "$melt_headerdir" $csource $datf.c -o $nakedynstuff-n.so
-#	echo
-	echo
-	echo Compiling $csource with $melt_cflags
-	time $melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
+Linux|SunOS|Solaris)
+	$melt_cc -Wall -fPIC $melt_cflags -I "$melt_headerdir" $csource -c -o $nakedynstuff.o
 	$melt_cc -Wall -fPIC -shared $melt_cflags -I "$melt_headerdir"  $datf.c $nakedynstuff.o  -o $nakedynstuff.so
-	echo
-	echo
-	ls -lt    $nakedynstuff.so  $csource
 	;;
 *) 
 	libtool --mode=compile -prefer-pic $melt_cc $melt_cflags $csource  -I "$melt_headerdir" -o $nakedynstuff.lo;
@@ -127,5 +116,5 @@ Linux|SunOS|Solaris)
 	;;
 esac
 
-echo done $0 $* '@@@@'
-echo
+#echo done $0 $* '@@@@'
+#echo

@@ -495,6 +495,14 @@ GTY (())
   basilys_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
 };
 
+/* unsafely set inside the basilysroutine_st pointed by Rptr the
+   routine function pointer to Rout */
+#define BASILYS_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {			\
+  (*(basilysroutfun_t**)((struct basilysroutine_st*)(Rptr))->routaddr)	\
+     = (Rout);								\
+} while(0)
+
+
 #define BASILYS_ROUTINE_STRUCT(N) {				\
   basilysobject_ptr_t discr;					\
   char routdescr[BASILYS_ROUTDESCR_LEN];			\

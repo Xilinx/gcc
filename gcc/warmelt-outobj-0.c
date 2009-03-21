@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Thu Mar 19 11:42:08 2009 */
+/* generated on Sat Mar 21 12:17:33 2009 */
 
 #include "run-basilys.h"
 
@@ -4747,11 +4747,11 @@ BASILYS_LOCATION("warmelt-outobj.bysl:407:/ block");
      #endif /*ENABLE_CHECKING*/
      ;
     
-    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( "*(basilysroutfun_t **) (cdat->"));
+    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( "BASILYS_ROUTINE_SET_ROUTCODE(&cdat->"));
     
     basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), basilys_string_str((basilys_ptr_t)(/*_.CNAM__V8*/ curfptr[6])));
     
-    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( ".routaddr) = "));
+    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( ", "));
     BASILYS_LOCATION("warmelt-outobj.bysl:472:/ getslot");
     { basilys_ptr_t slot=0;
      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.IPRO__V9*/ curfptr[8]), 1, "NAMED_NAME");/*_.NAMED_NAME__V32*/ curfptr[16] = slot; };
@@ -4759,7 +4759,7 @@ BASILYS_LOCATION("warmelt-outobj.bysl:407:/ block");
     
     basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), basilys_string_str((basilys_ptr_t)(/*_.NAMED_NAME__V32*/ curfptr[16])));
     
-    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( ";"));
+    basilysgc_add_strbuf((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), ( ");"));
     
     basilysgc_strbuf_add_indent((basilys_ptr_t)(/*_.SBUF__V3*/ curfptr[2]), (1), 0);
     BASILYS_LOCATION("warmelt-outobj.bysl:466:/ block");
@@ -35606,7 +35606,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_3__CLASS_SYMBOL));
   cdat->drout_5__OUTDECLINIT_ROOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_5__OUTDECLINIT_ROOT.routdescr, "OUTDECLINIT_ROOT @warmelt-outobj.bysl:36",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_5__OUTDECLINIT_ROOT.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_5__OUTDECLINIT_ROOT.routaddr) = rout_1_OUTDECLINIT_ROOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_5__OUTDECLINIT_ROOT, rout_1_OUTDECLINIT_ROOT);
  
  /*iniclos dclo_6__OUTDECLINIT_ROOT*/
  /*_.VALCLO___V126*/ curfptr[125] = (void*)&cdat->dclo_6__OUTDECLINIT_ROOT;
@@ -35657,7 +35657,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_11__OUTPUT_C_DECLIN
   cdat->drout_13__OUTPUCOD_OBJINIELEM.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_13__OUTPUCOD_OBJINIELEM.routdescr, "OUTPUCOD_OBJINIELEM @warmelt-outobj.bysl:43",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_13__OUTPUCOD_OBJINIELEM.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_13__OUTPUCOD_OBJINIELEM.routaddr) = rout_2_OUTPUCOD_OBJINIELEM;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_13__OUTPUCOD_OBJINIELEM, rout_2_OUTPUCOD_OBJINIELEM);
  
  /*iniclos dclo_14__OUTPUCOD_OBJINIELEM*/
  /*_.VALCLO___V134*/ curfptr[133] = (void*)&cdat->dclo_14__OUTPUCOD_OBJINIELEM;
@@ -35695,7 +35695,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_17__OUTPUT_C_CODE))
   cdat->drout_19__OUTCINITFILL_ROOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_19__OUTCINITFILL_ROOT.routdescr, "OUTCINITFILL_ROOT @warmelt-outobj.bysl:54",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_19__OUTCINITFILL_ROOT.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_19__OUTCINITFILL_ROOT.routaddr) = rout_3_OUTCINITFILL_ROOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_19__OUTCINITFILL_ROOT, rout_3_OUTCINITFILL_ROOT);
  
  /*iniclos dclo_20__OUTCINITFILL_ROOT*/
  /*_.VALCLO___V140*/ curfptr[139] = (void*)&cdat->dclo_20__OUTCINITFILL_ROOT;
@@ -35720,7 +35720,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_21__OUTPUT_C_INITFI
   cdat->drout_23__OUTCINITPREDEF_ROOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_23__OUTCINITPREDEF_ROOT.routdescr, "OUTCINITPREDEF_ROOT @warmelt-outobj.bysl:62",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_23__OUTCINITPREDEF_ROOT.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_23__OUTCINITPREDEF_ROOT.routaddr) = rout_4_OUTCINITPREDEF_ROOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_23__OUTCINITPREDEF_ROOT, rout_4_OUTCINITPREDEF_ROOT);
  
  /*iniclos dclo_24__OUTCINITPREDEF_ROOT*/
  /*_.VALCLO___V144*/ curfptr[143] = (void*)&cdat->dclo_24__OUTCINITPREDEF_ROOT;
@@ -35745,7 +35745,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_25__OUTPUT_C_INITPR
   cdat->drout_27__OUTPUT_PREDEF.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_27__OUTPUT_PREDEF.routdescr, "OUTPUT_PREDEF @warmelt-outobj.bysl:69",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_27__OUTPUT_PREDEF.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_27__OUTPUT_PREDEF.routaddr) = rout_5_OUTPUT_PREDEF;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_27__OUTPUT_PREDEF, rout_5_OUTPUT_PREDEF);
  
  /*iniclos dclo_28__OUTPUT_PREDEF*/
  /*_.VALCLO___V148*/ curfptr[147] = (void*)&cdat->dclo_28__OUTPUT_PREDEF;
@@ -35770,7 +35770,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__OBPREDEF));
   cdat->drout_31__OUTPUCOD_PREDEF.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_31__OUTPUCOD_PREDEF.routdescr, "OUTPUCOD_PREDEF @warmelt-outobj.bysl:88",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_31__OUTPUCOD_PREDEF.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_31__OUTPUCOD_PREDEF.routaddr) = rout_6_OUTPUCOD_PREDEF;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_31__OUTPUCOD_PREDEF, rout_6_OUTPUCOD_PREDEF);
  
  /*iniclos dclo_32__OUTPUCOD_PREDEF*/
  /*_.VALCLO___V152*/ curfptr[151] = (void*)&cdat->dclo_32__OUTPUCOD_PREDEF;
@@ -35795,7 +35795,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__CLASS_OBJPREDEF
   cdat->drout_35__OUTPUCOD_NIL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_35__OUTPUCOD_NIL.routdescr, "OUTPUCOD_NIL @warmelt-outobj.bysl:95",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_35__OUTPUCOD_NIL.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_35__OUTPUCOD_NIL.routaddr) = rout_7_OUTPUCOD_NIL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_35__OUTPUCOD_NIL, rout_7_OUTPUCOD_NIL);
  
  /*iniclos dclo_36__OUTPUCOD_NIL*/
  /*_.VALCLO___V156*/ curfptr[155] = (void*)&cdat->dclo_36__OUTPUCOD_NIL;
@@ -35820,7 +35820,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__CLASS_OBJNIL));
   cdat->drout_39__OUTDECLINIT_OBJINITOBJECT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_39__OUTDECLINIT_OBJINITOBJECT.routdescr, "OUTDECLINIT_OBJINITOBJECT @warmelt-outobj.bysl:101",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_39__OUTDECLINIT_OBJINITOBJECT.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_39__OUTDECLINIT_OBJINITOBJECT.routaddr) = rout_8_OUTDECLINIT_OBJINITOBJECT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_39__OUTDECLINIT_OBJINITOBJECT, rout_8_OUTDECLINIT_OBJINITOBJECT);
  
  /*iniclos dclo_40__OUTDECLINIT_OBJINITOBJECT*/
  /*_.VALCLO___V160*/ curfptr[159] = (void*)&cdat->dclo_40__OUTDECLINIT_OBJINITOBJECT;
@@ -35845,7 +35845,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__CLASS_OBJINITOB
   cdat->drout_43__OUTCINITFILL_OBJINITOBJECT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_43__OUTCINITFILL_OBJINITOBJECT.routdescr, "OUTCINITFILL_OBJINITOBJECT @warmelt-outobj.bysl:111",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_43__OUTCINITFILL_OBJINITOBJECT.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_43__OUTCINITFILL_OBJINITOBJECT.routaddr) = rout_9_OUTCINITFILL_OBJINITOBJECT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_43__OUTCINITFILL_OBJINITOBJECT, rout_9_OUTCINITFILL_OBJINITOBJECT);
  
  /*iniclos dclo_44__OUTCINITFILL_OBJINITOBJECT*/
  /*_.VALCLO___V168*/ curfptr[167] = (void*)&cdat->dclo_44__OUTCINITFILL_OBJINITOBJECT;
@@ -35870,7 +35870,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_45__CLASS_NREP_DATA
   cdat->drout_47__OUTCINITPREDEF_OBJINITOBJECT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_47__OUTCINITPREDEF_OBJINITOBJECT.routdescr, "OUTCINITPREDEF_OBJINITOBJECT @warmelt-outobj.bysl:231",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_47__OUTCINITPREDEF_OBJINITOBJECT.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_47__OUTCINITPREDEF_OBJINITOBJECT.routaddr) = rout_10_OUTCINITPREDEF_OBJINITOBJECT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_47__OUTCINITPREDEF_OBJINITOBJECT, rout_10_OUTCINITPREDEF_OBJINITOBJECT);
  
  /*iniclos dclo_48__OUTCINITPREDEF_OBJINITOBJECT*/
  /*_.VALCLO___V172*/ curfptr[171] = (void*)&cdat->dclo_48__OUTCINITPREDEF_OBJINITOBJECT;
@@ -35895,7 +35895,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_49__CLASS_NREP_NIL)
   cdat->drout_51__OUTDECLINIT_OBJINITMULTIPLE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_51__OUTDECLINIT_OBJINITMULTIPLE.routdescr, "OUTDECLINIT_OBJINITMULTIPLE @warmelt-outobj.bysl:311",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_51__OUTDECLINIT_OBJINITMULTIPLE.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_51__OUTDECLINIT_OBJINITMULTIPLE.routaddr) = rout_11_OUTDECLINIT_OBJINITMULTIPLE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_51__OUTDECLINIT_OBJINITMULTIPLE, rout_11_OUTDECLINIT_OBJINITMULTIPLE);
  
  /*iniclos dclo_52__OUTDECLINIT_OBJINITMULTIPLE*/
  /*_.VALCLO___V176*/ curfptr[175] = (void*)&cdat->dclo_52__OUTDECLINIT_OBJINITMULTIPLE;
@@ -35920,7 +35920,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_53__CLASS_OBJINITMU
   cdat->drout_55__OUTCINITFILL_OBJINITMULTIPLE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_55__OUTCINITFILL_OBJINITMULTIPLE.routdescr, "OUTCINITFILL_OBJINITMULTIPLE @warmelt-outobj.bysl:321",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_55__OUTCINITFILL_OBJINITMULTIPLE.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_55__OUTCINITFILL_OBJINITMULTIPLE.routaddr) = rout_12_OUTCINITFILL_OBJINITMULTIPLE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_55__OUTCINITFILL_OBJINITMULTIPLE, rout_12_OUTCINITFILL_OBJINITMULTIPLE);
  
  /*iniclos dclo_56__OUTCINITFILL_OBJINITMULTIPLE*/
  /*_.VALCLO___V180*/ curfptr[179] = (void*)&cdat->dclo_56__OUTCINITFILL_OBJINITMULTIPLE;
@@ -35932,7 +35932,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_53__CLASS_OBJINITMU
   cdat->drout_57__OUTDECLINIT_OBJINITCLOSURE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_57__OUTDECLINIT_OBJINITCLOSURE.routdescr, "OUTDECLINIT_OBJINITCLOSURE @warmelt-outobj.bysl:353",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_57__OUTDECLINIT_OBJINITCLOSURE.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_57__OUTDECLINIT_OBJINITCLOSURE.routaddr) = rout_13_OUTDECLINIT_OBJINITCLOSURE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_57__OUTDECLINIT_OBJINITCLOSURE, rout_13_OUTDECLINIT_OBJINITCLOSURE);
  
  /*iniclos dclo_58__OUTDECLINIT_OBJINITCLOSURE*/
  /*_.VALCLO___V182*/ curfptr[181] = (void*)&cdat->dclo_58__OUTDECLINIT_OBJINITCLOSURE;
@@ -35957,7 +35957,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_59__CLASS_OBJINITCL
   cdat->drout_61__OUTCINITFILL_OBJINITCLOSURE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_61__OUTCINITFILL_OBJINITCLOSURE.routdescr, "OUTCINITFILL_OBJINITCLOSURE @warmelt-outobj.bysl:362",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_61__OUTCINITFILL_OBJINITCLOSURE.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_61__OUTCINITFILL_OBJINITCLOSURE.routaddr) = rout_14_OUTCINITFILL_OBJINITCLOSURE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_61__OUTCINITFILL_OBJINITCLOSURE, rout_14_OUTCINITFILL_OBJINITCLOSURE);
  
  /*iniclos dclo_62__OUTCINITFILL_OBJINITCLOSURE*/
  /*_.VALCLO___V186*/ curfptr[185] = (void*)&cdat->dclo_62__OUTCINITFILL_OBJINITCLOSURE;
@@ -35969,7 +35969,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_59__CLASS_OBJINITCL
   cdat->drout_63__OUTDECLINIT_OBJINITROUTINE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_63__OUTDECLINIT_OBJINITROUTINE.routdescr, "OUTDECLINIT_OBJINITROUTINE @warmelt-outobj.bysl:397",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_63__OUTDECLINIT_OBJINITROUTINE.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_63__OUTDECLINIT_OBJINITROUTINE.routaddr) = rout_15_OUTDECLINIT_OBJINITROUTINE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_63__OUTDECLINIT_OBJINITROUTINE, rout_15_OUTDECLINIT_OBJINITROUTINE);
  
  /*iniclos dclo_64__OUTDECLINIT_OBJINITROUTINE*/
  /*_.VALCLO___V188*/ curfptr[187] = (void*)&cdat->dclo_64__OUTDECLINIT_OBJINITROUTINE;
@@ -35994,7 +35994,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_65__CLASS_OBJINITRO
   cdat->drout_67__OUTCINITFILL_OBJINITROUTINE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_67__OUTCINITFILL_OBJINITROUTINE.routdescr, "OUTCINITFILL_OBJINITROUTINE @warmelt-outobj.bysl:407",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_67__OUTCINITFILL_OBJINITROUTINE.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_67__OUTCINITFILL_OBJINITROUTINE.routaddr) = rout_16_OUTCINITFILL_OBJINITROUTINE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_67__OUTCINITFILL_OBJINITROUTINE, rout_16_OUTCINITFILL_OBJINITROUTINE);
  
  /*iniclos dclo_68__OUTCINITFILL_OBJINITROUTINE*/
  /*_.VALCLO___V192*/ curfptr[191] = (void*)&cdat->dclo_68__OUTCINITFILL_OBJINITROUTINE;
@@ -36045,7 +36045,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_73__CLASS_NREP_ROUT
   cdat->drout_75__OUTDECLINIT_OBJINITSTRING.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_75__OUTDECLINIT_OBJINITSTRING.routdescr, "OUTDECLINIT_OBJINITSTRING @warmelt-outobj.bysl:486",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_75__OUTDECLINIT_OBJINITSTRING.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_75__OUTDECLINIT_OBJINITSTRING.routaddr) = rout_17_OUTDECLINIT_OBJINITSTRING;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_75__OUTDECLINIT_OBJINITSTRING, rout_17_OUTDECLINIT_OBJINITSTRING);
  
  /*iniclos dclo_76__OUTDECLINIT_OBJINITSTRING*/
  /*_.VALCLO___V200*/ curfptr[199] = (void*)&cdat->dclo_76__OUTDECLINIT_OBJINITSTRING;
@@ -36070,7 +36070,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_77__CLASS_OBJINITST
   cdat->drout_79__OUTCINITFILL_OBJINITSTRING.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_79__OUTCINITFILL_OBJINITSTRING.routdescr, "OUTCINITFILL_OBJINITSTRING @warmelt-outobj.bysl:496",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_79__OUTCINITFILL_OBJINITSTRING.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_79__OUTCINITFILL_OBJINITSTRING.routaddr) = rout_18_OUTCINITFILL_OBJINITSTRING;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_79__OUTCINITFILL_OBJINITSTRING, rout_18_OUTCINITFILL_OBJINITSTRING);
  
  /*iniclos dclo_80__OUTCINITFILL_OBJINITSTRING*/
  /*_.VALCLO___V204*/ curfptr[203] = (void*)&cdat->dclo_80__OUTCINITFILL_OBJINITSTRING;
@@ -36082,7 +36082,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_77__CLASS_OBJINITST
   cdat->drout_81__OUTPUCOD_ANYDISCR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_81__OUTPUCOD_ANYDISCR.routdescr, "OUTPUCOD_ANYDISCR @warmelt-outobj.bysl:530",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_81__OUTPUCOD_ANYDISCR.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_81__OUTPUCOD_ANYDISCR.routaddr) = rout_19_OUTPUCOD_ANYDISCR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_81__OUTPUCOD_ANYDISCR, rout_19_OUTPUCOD_ANYDISCR);
  
  /*iniclos dclo_82__OUTPUCOD_ANYDISCR*/
  /*_.VALCLO___V206*/ curfptr[205] = (void*)&cdat->dclo_82__OUTPUCOD_ANYDISCR;
@@ -36107,7 +36107,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_83__DISCR_ANYRECV))
   cdat->drout_85__OUTPUCOD_NULL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_85__OUTPUCOD_NULL.routdescr, "OUTPUCOD_NULL @warmelt-outobj.bysl:539",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_85__OUTPUCOD_NULL.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_85__OUTPUCOD_NULL.routaddr) = rout_20_OUTPUCOD_NULL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_85__OUTPUCOD_NULL, rout_20_OUTPUCOD_NULL);
  
  /*iniclos dclo_86__OUTPUCOD_NULL*/
  /*_.VALCLO___V210*/ curfptr[209] = (void*)&cdat->dclo_86__OUTPUCOD_NULL;
@@ -36132,7 +36132,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_87__DISCR_NULLRECV)
   cdat->drout_89__OUTPUCOD_CATCHALL_ROOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_89__OUTPUCOD_CATCHALL_ROOT.routdescr, "OUTPUCOD_CATCHALL_ROOT @warmelt-outobj.bysl:545",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_89__OUTPUCOD_CATCHALL_ROOT.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_89__OUTPUCOD_CATCHALL_ROOT.routaddr) = rout_21_OUTPUCOD_CATCHALL_ROOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_89__OUTPUCOD_CATCHALL_ROOT, rout_21_OUTPUCOD_CATCHALL_ROOT);
  
  /*iniclos dclo_90__OUTPUCOD_CATCHALL_ROOT*/
  /*_.VALCLO___V214*/ curfptr[213] = (void*)&cdat->dclo_90__OUTPUCOD_CATCHALL_ROOT;
@@ -36157,7 +36157,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__DISPLAYDEBUGMSG
   cdat->drout_93__OUTPUT_RAW_LOCATION.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_93__OUTPUT_RAW_LOCATION.routdescr, "OUTPUT_RAW_LOCATION @warmelt-outobj.bysl:558",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_93__OUTPUT_RAW_LOCATION.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_93__OUTPUT_RAW_LOCATION.routaddr) = rout_22_OUTPUT_RAW_LOCATION;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_93__OUTPUT_RAW_LOCATION, rout_22_OUTPUT_RAW_LOCATION);
  
  /*iniclos dclo_94__OUTPUT_RAW_LOCATION*/
  /*_.VALCLO___V166*/ curfptr[165] = (void*)&cdat->dclo_94__OUTPUT_RAW_LOCATION;
@@ -36169,7 +36169,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__DISPLAYDEBUGMSG
   cdat->drout_95__OUTPUT_LOCATION.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_95__OUTPUT_LOCATION.routdescr, "OUTPUT_LOCATION @warmelt-outobj.bysl:589",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_95__OUTPUT_LOCATION.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_95__OUTPUT_LOCATION.routaddr) = rout_23_OUTPUT_LOCATION;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_95__OUTPUT_LOCATION, rout_23_OUTPUT_LOCATION);
  
  /*iniclos dclo_96__OUTPUT_LOCATION*/
  /*_.VALCLO___V164*/ curfptr[163] = (void*)&cdat->dclo_96__OUTPUT_LOCATION;
@@ -36181,7 +36181,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_91__DISPLAYDEBUGMSG
   cdat->drout_97__OUTPUT_CURFRAME_DECLSTRUCT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_97__OUTPUT_CURFRAME_DECLSTRUCT.routdescr, "OUTPUT_CURFRAME_DECLSTRUCT @warmelt-outobj.bysl:619",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_97__OUTPUT_CURFRAME_DECLSTRUCT.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_97__OUTPUT_CURFRAME_DECLSTRUCT.routaddr) = rout_24_OUTPUT_CURFRAME_DECLSTRUCT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_97__OUTPUT_CURFRAME_DECLSTRUCT, rout_24_OUTPUT_CURFRAME_DECLSTRUCT);
  
  /*iniclos dclo_98__OUTPUT_CURFRAME_DECLSTRUCT*/
  /*_.VALCLO___V219*/ curfptr[218] = (void*)&cdat->dclo_98__OUTPUT_CURFRAME_DECLSTRUCT;
@@ -36219,7 +36219,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_101__LIST_EVERY));
   cdat->drout_103__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_103__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:690",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_103__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_103__LAMBDA_.routaddr) = rout_25_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_103__LAMBDA_, rout_25_LAMBDA_);
  
  /*iniobj dsym_104__CLASS_OBJLOCV*/
  if (!/*_.VALDATA___V224*/ curfptr[223]) /*_.VALDATA___V224*/ curfptr[223] = (void*)&cdat->dsym_104__CLASS_OBJLOCV;
@@ -36252,7 +36252,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_106__CLASS_CTYPE));
   cdat->drout_108__OUTPUCOD_MARKER.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_108__OUTPUCOD_MARKER.routdescr, "OUTPUCOD_MARKER @warmelt-outobj.bysl:714",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_108__OUTPUCOD_MARKER.nbval = 10;
- *(basilysroutfun_t **) (cdat->drout_108__OUTPUCOD_MARKER.routaddr) = rout_26_OUTPUCOD_MARKER;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_108__OUTPUCOD_MARKER, rout_26_OUTPUCOD_MARKER);
  
  /*iniclos dclo_109__OUTPUCOD_MARKER*/
  /*_.VALCLO___V230*/ curfptr[229] = (void*)&cdat->dclo_109__OUTPUCOD_MARKER;
@@ -36290,7 +36290,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_112__CTYPE_VALUE));
   cdat->drout_114__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_114__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:735",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_114__LAMBDA_.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_114__LAMBDA_.routaddr) = rout_27_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_114__LAMBDA_, rout_27_LAMBDA_);
  
  /*iniobj dsym_115__CLASS_OBJVALUE*/
  if (!/*_.VALDATA___V235*/ curfptr[234]) /*_.VALDATA___V235*/ curfptr[234] = (void*)&cdat->dsym_115__CLASS_OBJVALUE;
@@ -36310,7 +36310,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_115__CLASS_OBJVALUE
   cdat->drout_117__OUTPUT_CURFRAME_DECLSTRUCT_INIT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_117__OUTPUT_CURFRAME_DECLSTRUCT_INIT.routdescr, "OUTPUT_CURFRAME_DECLSTRUCT_INIT @warmelt-outobj.bysl:768",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_117__OUTPUT_CURFRAME_DECLSTRUCT_INIT.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_117__OUTPUT_CURFRAME_DECLSTRUCT_INIT.routaddr) = rout_28_OUTPUT_CURFRAME_DECLSTRUCT_INIT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_117__OUTPUT_CURFRAME_DECLSTRUCT_INIT, rout_28_OUTPUT_CURFRAME_DECLSTRUCT_INIT);
  
  /*iniclos dclo_118__OUTPUT_CURFRAME_DECLSTRUCT_INIT*/
  /*_.VALCLO___V238*/ curfptr[237] = (void*)&cdat->dclo_118__OUTPUT_CURFRAME_DECLSTRUCT_INIT;
@@ -36322,7 +36322,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_115__CLASS_OBJVALUE
   cdat->drout_119__OUTPUCOD_PROCROUTINE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_119__OUTPUCOD_PROCROUTINE.routdescr, "OUTPUCOD_PROCROUTINE @warmelt-outobj.bysl:832",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_119__OUTPUCOD_PROCROUTINE.nbval = 13;
- *(basilysroutfun_t **) (cdat->drout_119__OUTPUCOD_PROCROUTINE.routaddr) = rout_29_OUTPUCOD_PROCROUTINE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_119__OUTPUCOD_PROCROUTINE, rout_29_OUTPUCOD_PROCROUTINE);
  
  /*iniclos dclo_120__OUTPUCOD_PROCROUTINE*/
  /*_.VALCLO___V242*/ curfptr[241] = (void*)&cdat->dclo_120__OUTPUCOD_PROCROUTINE;
@@ -36373,14 +36373,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_125__MULTIPLE_EVERY
   cdat->drout_127__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_127__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:894",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_127__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_127__LAMBDA_.routaddr) = rout_30_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_127__LAMBDA_, rout_30_LAMBDA_);
  
  /*inirout drout_128__LAMBDA_*/
  /*_.VALROUT___V241*/ curfptr[240] = (void*)&cdat->drout_128__LAMBDA_;
   cdat->drout_128__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_128__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:915",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_128__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_128__LAMBDA_.routaddr) = rout_31_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_128__LAMBDA_, rout_31_LAMBDA_);
  
  /*iniobj dsym_129__CLASS_OBJPUREVALUE*/
  if (!/*_.VALDATA___V249*/ curfptr[248]) /*_.VALDATA___V249*/ curfptr[248] = (void*)&cdat->dsym_129__CLASS_OBJPUREVALUE;
@@ -36400,7 +36400,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_OBJPUREV
   cdat->drout_131__OUTPUT_CURFRAME_CDAT_STRUCT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_131__OUTPUT_CURFRAME_CDAT_STRUCT.routdescr, "OUTPUT_CURFRAME_CDAT_STRUCT @warmelt-outobj.bysl:956",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_131__OUTPUT_CURFRAME_CDAT_STRUCT.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_131__OUTPUT_CURFRAME_CDAT_STRUCT.routaddr) = rout_32_OUTPUT_CURFRAME_CDAT_STRUCT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_131__OUTPUT_CURFRAME_CDAT_STRUCT, rout_32_OUTPUT_CURFRAME_CDAT_STRUCT);
  
  /*iniclos dclo_132__OUTPUT_CURFRAME_CDAT_STRUCT*/
  /*_.VALCLO___V253*/ curfptr[252] = (void*)&cdat->dclo_132__OUTPUT_CURFRAME_CDAT_STRUCT;
@@ -36412,14 +36412,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_OBJPUREV
   cdat->drout_133__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_133__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:961",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_133__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_133__LAMBDA_.routaddr) = rout_33_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_133__LAMBDA_, rout_33_LAMBDA_);
  
  /*inirout drout_134__OUTPUT_CURFRAME_CDAT_FILL*/
  /*_.VALROUT___V254*/ curfptr[253] = (void*)&cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL;
   cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL.routdescr, "OUTPUT_CURFRAME_CDAT_FILL @warmelt-outobj.bysl:972",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL.routaddr) = rout_34_OUTPUT_CURFRAME_CDAT_FILL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_134__OUTPUT_CURFRAME_CDAT_FILL, rout_34_OUTPUT_CURFRAME_CDAT_FILL);
  
  /*iniclos dclo_135__OUTPUT_CURFRAME_CDAT_FILL*/
  /*_.VALCLO___V257*/ curfptr[256] = (void*)&cdat->dclo_135__OUTPUT_CURFRAME_CDAT_FILL;
@@ -36431,21 +36431,21 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_OBJPUREV
   cdat->drout_136__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_136__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:984",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_136__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_136__LAMBDA_.routaddr) = rout_35_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_136__LAMBDA_, rout_35_LAMBDA_);
  
  /*inirout drout_137__LAMBDA_*/
  /*_.VALROUT___V256*/ curfptr[255] = (void*)&cdat->drout_137__LAMBDA_;
   cdat->drout_137__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_137__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:993",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_137__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_137__LAMBDA_.routaddr) = rout_36_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_137__LAMBDA_, rout_36_LAMBDA_);
  
  /*inirout drout_138__OUTPUCOD_INITIALROUTINE*/
  /*_.VALROUT___V258*/ curfptr[257] = (void*)&cdat->drout_138__OUTPUCOD_INITIALROUTINE;
   cdat->drout_138__OUTPUCOD_INITIALROUTINE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_138__OUTPUCOD_INITIALROUTINE.routdescr, "OUTPUCOD_INITIALROUTINE @warmelt-outobj.bysl:1011",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_138__OUTPUCOD_INITIALROUTINE.nbval = 15;
- *(basilysroutfun_t **) (cdat->drout_138__OUTPUCOD_INITIALROUTINE.routaddr) = rout_37_OUTPUCOD_INITIALROUTINE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_138__OUTPUCOD_INITIALROUTINE, rout_37_OUTPUCOD_INITIALROUTINE);
  
  /*iniclos dclo_139__OUTPUCOD_INITIALROUTINE*/
  /*_.VALCLO___V262*/ curfptr[261] = (void*)&cdat->dclo_139__OUTPUCOD_INITIALROUTINE;
@@ -36457,28 +36457,28 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_OBJPUREV
   cdat->drout_140__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_140__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1064",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_140__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_140__LAMBDA_.routaddr) = rout_38_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_140__LAMBDA_, rout_38_LAMBDA_);
  
  /*inirout drout_141__LAMBDA_*/
  /*_.VALROUT___V260*/ curfptr[259] = (void*)&cdat->drout_141__LAMBDA_;
   cdat->drout_141__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_141__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1077",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_141__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_141__LAMBDA_.routaddr) = rout_39_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_141__LAMBDA_, rout_39_LAMBDA_);
  
  /*inirout drout_142__LAMBDA_*/
  /*_.VALROUT___V261*/ curfptr[260] = (void*)&cdat->drout_142__LAMBDA_;
   cdat->drout_142__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_142__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1101",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_142__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_142__LAMBDA_.routaddr) = rout_40_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_142__LAMBDA_, rout_40_LAMBDA_);
  
  /*inirout drout_143__OUTPUCOD_GETARG*/
  /*_.VALROUT___V263*/ curfptr[262] = (void*)&cdat->drout_143__OUTPUCOD_GETARG;
   cdat->drout_143__OUTPUCOD_GETARG.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_143__OUTPUCOD_GETARG.routdescr, "OUTPUCOD_GETARG @warmelt-outobj.bysl:1151",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_143__OUTPUCOD_GETARG.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_143__OUTPUCOD_GETARG.routaddr) = rout_41_OUTPUCOD_GETARG;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_143__OUTPUCOD_GETARG, rout_41_OUTPUCOD_GETARG);
  
  /*iniclos dclo_144__OUTPUCOD_GETARG*/
  /*_.VALCLO___V264*/ curfptr[263] = (void*)&cdat->dclo_144__OUTPUCOD_GETARG;
@@ -36516,7 +36516,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_147__CLASS_FORMAL_B
   cdat->drout_149__OUTPUCOD_OBJLOCV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_149__OUTPUCOD_OBJLOCV.routdescr, "OUTPUCOD_OBJLOCV @warmelt-outobj.bysl:1217",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_149__OUTPUCOD_OBJLOCV.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_149__OUTPUCOD_OBJLOCV.routaddr) = rout_42_OUTPUCOD_OBJLOCV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_149__OUTPUCOD_OBJLOCV, rout_42_OUTPUCOD_OBJLOCV);
  
  /*iniclos dclo_150__OUTPUCOD_OBJLOCV*/
  /*_.VALCLO___V270*/ curfptr[269] = (void*)&cdat->dclo_150__OUTPUCOD_OBJLOCV;
@@ -36541,7 +36541,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__CTYPE_LONG));
   cdat->drout_153__OUTPUCOD_OBJCLOCCV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_153__OUTPUCOD_OBJCLOCCV.routdescr, "OUTPUCOD_OBJCLOCCV @warmelt-outobj.bysl:1247",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_153__OUTPUCOD_OBJCLOCCV.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_153__OUTPUCOD_OBJCLOCCV.routaddr) = rout_43_OUTPUCOD_OBJCLOCCV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_153__OUTPUCOD_OBJCLOCCV, rout_43_OUTPUCOD_OBJCLOCCV);
  
  /*iniclos dclo_154__OUTPUCOD_OBJCLOCCV*/
  /*_.VALCLO___V274*/ curfptr[273] = (void*)&cdat->dclo_154__OUTPUCOD_OBJCLOCCV;
@@ -36566,7 +36566,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_155__CLASS_OBJCLOCC
   cdat->drout_157__OUTPUCOD_OBJCONSTV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_157__OUTPUCOD_OBJCONSTV.routdescr, "OUTPUCOD_OBJCONSTV @warmelt-outobj.bysl:1264",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_157__OUTPUCOD_OBJCONSTV.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_157__OUTPUCOD_OBJCONSTV.routaddr) = rout_44_OUTPUCOD_OBJCONSTV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_157__OUTPUCOD_OBJCONSTV, rout_44_OUTPUCOD_OBJCONSTV);
  
  /*iniclos dclo_158__OUTPUCOD_OBJCONSTV*/
  /*_.VALCLO___V278*/ curfptr[277] = (void*)&cdat->dclo_158__OUTPUCOD_OBJCONSTV;
@@ -36591,7 +36591,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_159__CLASS_OBJCONST
   cdat->drout_161__OUTPUT_CODE_INSTRUCTIONS_LIST.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_161__OUTPUT_CODE_INSTRUCTIONS_LIST.routdescr, "OUTPUT_CODE_INSTRUCTIONS_LIST @warmelt-outobj.bysl:1282",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_161__OUTPUT_CODE_INSTRUCTIONS_LIST.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_161__OUTPUT_CODE_INSTRUCTIONS_LIST.routaddr) = rout_45_OUTPUT_CODE_INSTRUCTIONS_LIST;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_161__OUTPUT_CODE_INSTRUCTIONS_LIST, rout_45_OUTPUT_CODE_INSTRUCTIONS_LIST);
  
  /*iniclos dclo_162__OUTPUT_CODE_INSTRUCTIONS_LIST*/
  /*_.VALCLO___V283*/ curfptr[282] = (void*)&cdat->dclo_162__OUTPUT_CODE_INSTRUCTIONS_LIST;
@@ -36603,14 +36603,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_159__CLASS_OBJCONST
   cdat->drout_163__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_163__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1287",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_163__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_163__LAMBDA_.routaddr) = rout_46_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_163__LAMBDA_, rout_46_LAMBDA_);
  
  /*inirout drout_164__OUTPUCOD_OBJBLOCK*/
  /*_.VALROUT___V284*/ curfptr[283] = (void*)&cdat->drout_164__OUTPUCOD_OBJBLOCK;
   cdat->drout_164__OUTPUCOD_OBJBLOCK.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_164__OUTPUCOD_OBJBLOCK.routdescr, "OUTPUCOD_OBJBLOCK @warmelt-outobj.bysl:1299",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_164__OUTPUCOD_OBJBLOCK.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_164__OUTPUCOD_OBJBLOCK.routaddr) = rout_47_OUTPUCOD_OBJBLOCK;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_164__OUTPUCOD_OBJBLOCK, rout_47_OUTPUCOD_OBJBLOCK);
  
  /*iniclos dclo_165__OUTPUCOD_OBJBLOCK*/
  /*_.VALCLO___V285*/ curfptr[284] = (void*)&cdat->dclo_165__OUTPUCOD_OBJBLOCK;
@@ -36648,7 +36648,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_168__DISCR_INTEGER)
   cdat->drout_170__OUTPUCOD_OBJCITERBLOCK.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_170__OUTPUCOD_OBJCITERBLOCK.routdescr, "OUTPUCOD_OBJCITERBLOCK @warmelt-outobj.bysl:1323",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_170__OUTPUCOD_OBJCITERBLOCK.nbval = 11;
- *(basilysroutfun_t **) (cdat->drout_170__OUTPUCOD_OBJCITERBLOCK.routaddr) = rout_48_OUTPUCOD_OBJCITERBLOCK;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_170__OUTPUCOD_OBJCITERBLOCK, rout_48_OUTPUCOD_OBJCITERBLOCK);
  
  /*iniclos dclo_171__OUTPUCOD_OBJCITERBLOCK*/
  /*_.VALCLO___V293*/ curfptr[292] = (void*)&cdat->dclo_171__OUTPUCOD_OBJCITERBLOCK;
@@ -36686,21 +36686,21 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_174__CLASS_CITERATO
   cdat->drout_176__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_176__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1343",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_176__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_176__LAMBDA_.routaddr) = rout_49_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_176__LAMBDA_, rout_49_LAMBDA_);
  
  /*inirout drout_177__LAMBDA_*/
  /*_.VALROUT___V292*/ curfptr[291] = (void*)&cdat->drout_177__LAMBDA_;
   cdat->drout_177__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_177__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1354",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_177__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_177__LAMBDA_.routaddr) = rout_50_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_177__LAMBDA_, rout_50_LAMBDA_);
  
  /*inirout drout_178__OUTPUCOD_OBJCOMMENTINSTR*/
  /*_.VALROUT___V298*/ curfptr[297] = (void*)&cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR;
   cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR.routdescr, "OUTPUCOD_OBJCOMMENTINSTR @warmelt-outobj.bysl:1373",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR.routaddr) = rout_51_OUTPUCOD_OBJCOMMENTINSTR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_178__OUTPUCOD_OBJCOMMENTINSTR, rout_51_OUTPUCOD_OBJCOMMENTINSTR);
  
  /*iniclos dclo_179__OUTPUCOD_OBJCOMMENTINSTR*/
  /*_.VALCLO___V299*/ curfptr[298] = (void*)&cdat->dclo_179__OUTPUCOD_OBJCOMMENTINSTR;
@@ -36738,7 +36738,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_182__DISCR_STRBUF))
   cdat->drout_184__OUTPUCOD_OBJCOMMENTEDBLOCK.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_184__OUTPUCOD_OBJCOMMENTEDBLOCK.routdescr, "OUTPUCOD_OBJCOMMENTEDBLOCK @warmelt-outobj.bysl:1392",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_184__OUTPUCOD_OBJCOMMENTEDBLOCK.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_184__OUTPUCOD_OBJCOMMENTEDBLOCK.routaddr) = rout_52_OUTPUCOD_OBJCOMMENTEDBLOCK;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_184__OUTPUCOD_OBJCOMMENTEDBLOCK, rout_52_OUTPUCOD_OBJCOMMENTEDBLOCK);
  
  /*iniclos dclo_185__OUTPUCOD_OBJCOMMENTEDBLOCK*/
  /*_.VALCLO___V305*/ curfptr[304] = (void*)&cdat->dclo_185__OUTPUCOD_OBJCOMMENTEDBLOCK;
@@ -36763,7 +36763,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_186__CLASS_OBJCOMME
   cdat->drout_188__OUTPUCOD_OBJLABELINSTR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_188__OUTPUCOD_OBJLABELINSTR.routdescr, "OUTPUCOD_OBJLABELINSTR @warmelt-outobj.bysl:1430",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_188__OUTPUCOD_OBJLABELINSTR.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_188__OUTPUCOD_OBJLABELINSTR.routaddr) = rout_53_OUTPUCOD_OBJLABELINSTR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_188__OUTPUCOD_OBJLABELINSTR, rout_53_OUTPUCOD_OBJLABELINSTR);
  
  /*iniclos dclo_189__OUTPUCOD_OBJLABELINSTR*/
  /*_.VALCLO___V309*/ curfptr[308] = (void*)&cdat->dclo_189__OUTPUCOD_OBJLABELINSTR;
@@ -36788,7 +36788,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_190__CLASS_OBJLABEL
   cdat->drout_192__OUTPUCOD_OBJGOTOINSTR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_192__OUTPUCOD_OBJGOTOINSTR.routdescr, "OUTPUCOD_OBJGOTOINSTR @warmelt-outobj.bysl:1448",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_192__OUTPUCOD_OBJGOTOINSTR.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_192__OUTPUCOD_OBJGOTOINSTR.routaddr) = rout_54_OUTPUCOD_OBJGOTOINSTR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_192__OUTPUCOD_OBJGOTOINSTR, rout_54_OUTPUCOD_OBJGOTOINSTR);
  
  /*iniclos dclo_193__OUTPUCOD_OBJGOTOINSTR*/
  /*_.VALCLO___V313*/ curfptr[312] = (void*)&cdat->dclo_193__OUTPUCOD_OBJGOTOINSTR;
@@ -36813,7 +36813,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_194__CLASS_OBJGOTOI
   cdat->drout_196__ADD2SBUF_CLONSYM.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_196__ADD2SBUF_CLONSYM.routdescr, "ADD2SBUF_CLONSYM @warmelt-outobj.bysl:1464",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_196__ADD2SBUF_CLONSYM.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_196__ADD2SBUF_CLONSYM.routaddr) = rout_55_ADD2SBUF_CLONSYM;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_196__ADD2SBUF_CLONSYM, rout_55_ADD2SBUF_CLONSYM);
  
  /*iniclos dclo_197__ADD2SBUF_CLONSYM*/
  /*_.VALCLO___V317*/ curfptr[316] = (void*)&cdat->dclo_197__ADD2SBUF_CLONSYM;
@@ -36838,7 +36838,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_198__CLASS_CLONEDSY
   cdat->drout_200__OUTPUCOD_OBJLOOP.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_200__OUTPUCOD_OBJLOOP.routdescr, "OUTPUCOD_OBJLOOP @warmelt-outobj.bysl:1475",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_200__OUTPUCOD_OBJLOOP.nbval = 13;
- *(basilysroutfun_t **) (cdat->drout_200__OUTPUCOD_OBJLOOP.routaddr) = rout_56_OUTPUCOD_OBJLOOP;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_200__OUTPUCOD_OBJLOOP, rout_56_OUTPUCOD_OBJLOOP);
  
  /*iniclos dclo_201__OUTPUCOD_OBJLOOP*/
  /*_.VALCLO___V323*/ curfptr[322] = (void*)&cdat->dclo_201__OUTPUCOD_OBJLOOP;
@@ -36863,21 +36863,21 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_202__CLASS_OBJLOOP)
   cdat->drout_204__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_204__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1495",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_204__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_204__LAMBDA_.routaddr) = rout_57_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_204__LAMBDA_, rout_57_LAMBDA_);
  
  /*inirout drout_205__LAMBDA_*/
  /*_.VALROUT___V322*/ curfptr[321] = (void*)&cdat->drout_205__LAMBDA_;
   cdat->drout_205__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_205__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1517",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_205__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_205__LAMBDA_.routaddr) = rout_58_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_205__LAMBDA_, rout_58_LAMBDA_);
  
  /*inirout drout_206__OUTPUCOD_OBJEXIT*/
  /*_.VALROUT___V326*/ curfptr[325] = (void*)&cdat->drout_206__OUTPUCOD_OBJEXIT;
   cdat->drout_206__OUTPUCOD_OBJEXIT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_206__OUTPUCOD_OBJEXIT.routdescr, "OUTPUCOD_OBJEXIT @warmelt-outobj.bysl:1532",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_206__OUTPUCOD_OBJEXIT.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_206__OUTPUCOD_OBJEXIT.routaddr) = rout_59_OUTPUCOD_OBJEXIT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_206__OUTPUCOD_OBJEXIT, rout_59_OUTPUCOD_OBJEXIT);
  
  /*iniclos dclo_207__OUTPUCOD_OBJEXIT*/
  /*_.VALCLO___V327*/ curfptr[326] = (void*)&cdat->dclo_207__OUTPUCOD_OBJEXIT;
@@ -36902,7 +36902,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_208__CLASS_OBJEXIT)
   cdat->drout_210__OUTPUCOD_OBJCOMPUTE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_210__OUTPUCOD_OBJCOMPUTE.routdescr, "OUTPUCOD_OBJCOMPUTE @warmelt-outobj.bysl:1550",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_210__OUTPUCOD_OBJCOMPUTE.nbval = 13;
- *(basilysroutfun_t **) (cdat->drout_210__OUTPUCOD_OBJCOMPUTE.routaddr) = rout_60_OUTPUCOD_OBJCOMPUTE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_210__OUTPUCOD_OBJCOMPUTE, rout_60_OUTPUCOD_OBJCOMPUTE);
  
  /*iniclos dclo_211__OUTPUCOD_OBJCOMPUTE*/
  /*_.VALCLO___V334*/ curfptr[333] = (void*)&cdat->dclo_211__OUTPUCOD_OBJCOMPUTE;
@@ -36927,28 +36927,28 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_212__CLASS_OBJCOMPU
   cdat->drout_214__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_214__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1562",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_214__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_214__LAMBDA_.routaddr) = rout_61_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_214__LAMBDA_, rout_61_LAMBDA_);
  
  /*inirout drout_215__LAMBDA_*/
  /*_.VALROUT___V332*/ curfptr[331] = (void*)&cdat->drout_215__LAMBDA_;
   cdat->drout_215__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_215__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1571",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_215__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_215__LAMBDA_.routaddr) = rout_62_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_215__LAMBDA_, rout_62_LAMBDA_);
  
  /*inirout drout_216__LAMBDA_*/
  /*_.VALROUT___V333*/ curfptr[332] = (void*)&cdat->drout_216__LAMBDA_;
   cdat->drout_216__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_216__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1578",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_216__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_216__LAMBDA_.routaddr) = rout_63_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_216__LAMBDA_, rout_63_LAMBDA_);
  
  /*inirout drout_217__OUTPUCOD_OBJCOND*/
  /*_.VALROUT___V337*/ curfptr[336] = (void*)&cdat->drout_217__OUTPUCOD_OBJCOND;
   cdat->drout_217__OUTPUCOD_OBJCOND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_217__OUTPUCOD_OBJCOND.routdescr, "OUTPUCOD_OBJCOND @warmelt-outobj.bysl:1589",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_217__OUTPUCOD_OBJCOND.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_217__OUTPUCOD_OBJCOND.routaddr) = rout_64_OUTPUCOD_OBJCOND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_217__OUTPUCOD_OBJCOND, rout_64_OUTPUCOD_OBJCOND);
  
  /*iniclos dclo_218__OUTPUCOD_OBJCOND*/
  /*_.VALCLO___V338*/ curfptr[337] = (void*)&cdat->dclo_218__OUTPUCOD_OBJCOND;
@@ -36973,7 +36973,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_219__CLASS_OBJCOND)
   cdat->drout_221__OUTPUCOD_OBJCPPIF.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_221__OUTPUCOD_OBJCPPIF.routdescr, "OUTPUCOD_OBJCPPIF @warmelt-outobj.bysl:1631",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_221__OUTPUCOD_OBJCPPIF.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_221__OUTPUCOD_OBJCPPIF.routaddr) = rout_65_OUTPUCOD_OBJCPPIF;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_221__OUTPUCOD_OBJCPPIF, rout_65_OUTPUCOD_OBJCPPIF);
  
  /*iniclos dclo_222__OUTPUCOD_OBJCPPIF*/
  /*_.VALCLO___V342*/ curfptr[341] = (void*)&cdat->dclo_222__OUTPUCOD_OBJCPPIF;
@@ -36998,7 +36998,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_223__CLASS_OBJCPPIF
   cdat->drout_225__OUTPUCOD_OBJINTERNSYMBOL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_225__OUTPUCOD_OBJINTERNSYMBOL.routdescr, "OUTPUCOD_OBJINTERNSYMBOL @warmelt-outobj.bysl:1663",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_225__OUTPUCOD_OBJINTERNSYMBOL.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_225__OUTPUCOD_OBJINTERNSYMBOL.routaddr) = rout_66_OUTPUCOD_OBJINTERNSYMBOL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_225__OUTPUCOD_OBJINTERNSYMBOL, rout_66_OUTPUCOD_OBJINTERNSYMBOL);
  
  /*iniclos dclo_226__OUTPUCOD_OBJINTERNSYMBOL*/
  /*_.VALCLO___V346*/ curfptr[345] = (void*)&cdat->dclo_226__OUTPUCOD_OBJINTERNSYMBOL;
@@ -37036,7 +37036,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_229__CLASS_NREP_DAT
   cdat->drout_231__OUTPUCOD_OBJINTERNKEYWORD.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_231__OUTPUCOD_OBJINTERNKEYWORD.routdescr, "OUTPUCOD_OBJINTERNKEYWORD @warmelt-outobj.bysl:1687",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_231__OUTPUCOD_OBJINTERNKEYWORD.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_231__OUTPUCOD_OBJINTERNKEYWORD.routaddr) = rout_67_OUTPUCOD_OBJINTERNKEYWORD;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_231__OUTPUCOD_OBJINTERNKEYWORD, rout_67_OUTPUCOD_OBJINTERNKEYWORD);
  
  /*iniclos dclo_232__OUTPUCOD_OBJINTERNKEYWORD*/
  /*_.VALCLO___V352*/ curfptr[351] = (void*)&cdat->dclo_232__OUTPUCOD_OBJINTERNKEYWORD;
@@ -37074,7 +37074,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_235__CLASS_NREP_DAT
   cdat->drout_237__OUTPUCOD_OBJGETNAMEDSYMBOL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_237__OUTPUCOD_OBJGETNAMEDSYMBOL.routdescr, "OUTPUCOD_OBJGETNAMEDSYMBOL @warmelt-outobj.bysl:1710",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_237__OUTPUCOD_OBJGETNAMEDSYMBOL.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_237__OUTPUCOD_OBJGETNAMEDSYMBOL.routaddr) = rout_68_OUTPUCOD_OBJGETNAMEDSYMBOL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_237__OUTPUCOD_OBJGETNAMEDSYMBOL, rout_68_OUTPUCOD_OBJGETNAMEDSYMBOL);
  
  /*iniclos dclo_238__OUTPUCOD_OBJGETNAMEDSYMBOL*/
  /*_.VALCLO___V358*/ curfptr[357] = (void*)&cdat->dclo_238__OUTPUCOD_OBJGETNAMEDSYMBOL;
@@ -37099,7 +37099,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_239__CLASS_OBJGETNA
   cdat->drout_241__OUTPUCOD_OBJGETNAMEDKEYWORD.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_241__OUTPUCOD_OBJGETNAMEDKEYWORD.routdescr, "OUTPUCOD_OBJGETNAMEDKEYWORD @warmelt-outobj.bysl:1748",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_241__OUTPUCOD_OBJGETNAMEDKEYWORD.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_241__OUTPUCOD_OBJGETNAMEDKEYWORD.routaddr) = rout_69_OUTPUCOD_OBJGETNAMEDKEYWORD;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_241__OUTPUCOD_OBJGETNAMEDKEYWORD, rout_69_OUTPUCOD_OBJGETNAMEDKEYWORD);
  
  /*iniclos dclo_242__OUTPUCOD_OBJGETNAMEDKEYWORD*/
  /*_.VALCLO___V362*/ curfptr[361] = (void*)&cdat->dclo_242__OUTPUCOD_OBJGETNAMEDKEYWORD;
@@ -37124,7 +37124,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_243__CLASS_OBJGETNA
   cdat->drout_245__OUTPUCOD_OBJAPPLY.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_245__OUTPUCOD_OBJAPPLY.routdescr, "OUTPUCOD_OBJAPPLY @warmelt-outobj.bysl:1783",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_245__OUTPUCOD_OBJAPPLY.nbval = 20;
- *(basilysroutfun_t **) (cdat->drout_245__OUTPUCOD_OBJAPPLY.routaddr) = rout_70_OUTPUCOD_OBJAPPLY;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_245__OUTPUCOD_OBJAPPLY, rout_70_OUTPUCOD_OBJAPPLY);
  
  /*iniclos dclo_246__OUTPUCOD_OBJAPPLY*/
  /*_.VALCLO___V369*/ curfptr[368] = (void*)&cdat->dclo_246__OUTPUCOD_OBJAPPLY;
@@ -37162,7 +37162,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_249__DISCR_LIST));
   cdat->drout_251__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_251__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1809",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_251__LAMBDA_.nbval = 8;
- *(basilysroutfun_t **) (cdat->drout_251__LAMBDA_.routaddr) = rout_71_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_251__LAMBDA_, rout_71_LAMBDA_);
  
  /*iniobj dsym_252__CLASS_OBJINSTR*/
  if (!/*_.VALDATA___V374*/ curfptr[373]) /*_.VALDATA___V374*/ curfptr[373] = (void*)&cdat->dsym_252__CLASS_OBJINSTR;
@@ -37195,21 +37195,21 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_254__GET_CTYPE));
   cdat->drout_256__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_256__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1842",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_256__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_256__LAMBDA_.routaddr) = rout_72_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_256__LAMBDA_, rout_72_LAMBDA_);
  
  /*inirout drout_257__LAMBDA_*/
  /*_.VALROUT___V368*/ curfptr[367] = (void*)&cdat->drout_257__LAMBDA_;
   cdat->drout_257__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_257__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1857",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_257__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_257__LAMBDA_.routaddr) = rout_73_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_257__LAMBDA_, rout_73_LAMBDA_);
  
  /*inirout drout_258__OUTPUCOD_OBJMSEND*/
  /*_.VALROUT___V378*/ curfptr[377] = (void*)&cdat->drout_258__OUTPUCOD_OBJMSEND;
   cdat->drout_258__OUTPUCOD_OBJMSEND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_258__OUTPUCOD_OBJMSEND.routdescr, "OUTPUCOD_OBJMSEND @warmelt-outobj.bysl:1877",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_258__OUTPUCOD_OBJMSEND.nbval = 19;
- *(basilysroutfun_t **) (cdat->drout_258__OUTPUCOD_OBJMSEND.routaddr) = rout_74_OUTPUCOD_OBJMSEND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_258__OUTPUCOD_OBJMSEND, rout_74_OUTPUCOD_OBJMSEND);
  
  /*iniclos dclo_259__OUTPUCOD_OBJMSEND*/
  /*_.VALCLO___V382*/ curfptr[381] = (void*)&cdat->dclo_259__OUTPUCOD_OBJMSEND;
@@ -37234,28 +37234,28 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_260__CLASS_OBJMSEND
   cdat->drout_262__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_262__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1906",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_262__LAMBDA_.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_262__LAMBDA_.routaddr) = rout_75_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_262__LAMBDA_, rout_75_LAMBDA_);
  
  /*inirout drout_263__LAMBDA_*/
  /*_.VALROUT___V380*/ curfptr[379] = (void*)&cdat->drout_263__LAMBDA_;
   cdat->drout_263__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_263__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1938",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_263__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_263__LAMBDA_.routaddr) = rout_76_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_263__LAMBDA_, rout_76_LAMBDA_);
  
  /*inirout drout_264__LAMBDA_*/
  /*_.VALROUT___V381*/ curfptr[380] = (void*)&cdat->drout_264__LAMBDA_;
   cdat->drout_264__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_264__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:1949",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_264__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_264__LAMBDA_.routaddr) = rout_77_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_264__LAMBDA_, rout_77_LAMBDA_);
  
  /*inirout drout_265__OUTPUCOD_OBJMULTIAPPLY*/
  /*_.VALROUT___V385*/ curfptr[384] = (void*)&cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY;
   cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY.routdescr, "OUTPUCOD_OBJMULTIAPPLY @warmelt-outobj.bysl:1968",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY.nbval = 28;
- *(basilysroutfun_t **) (cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY.routaddr) = rout_78_OUTPUCOD_OBJMULTIAPPLY;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_265__OUTPUCOD_OBJMULTIAPPLY, rout_78_OUTPUCOD_OBJMULTIAPPLY);
  
  /*iniclos dclo_266__OUTPUCOD_OBJMULTIAPPLY*/
  /*_.VALCLO___V392*/ curfptr[391] = (void*)&cdat->dclo_266__OUTPUCOD_OBJMULTIAPPLY;
@@ -37280,49 +37280,49 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_267__CLASS_OBJMULTI
   cdat->drout_269__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_269__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2015",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_269__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_269__LAMBDA_.routaddr) = rout_79_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_269__LAMBDA_, rout_79_LAMBDA_);
  
  /*inirout drout_270__LAMBDA_*/
  /*_.VALROUT___V387*/ curfptr[386] = (void*)&cdat->drout_270__LAMBDA_;
   cdat->drout_270__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_270__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2025",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_270__LAMBDA_.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_270__LAMBDA_.routaddr) = rout_80_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_270__LAMBDA_, rout_80_LAMBDA_);
  
  /*inirout drout_271__LAMBDA_*/
  /*_.VALROUT___V388*/ curfptr[387] = (void*)&cdat->drout_271__LAMBDA_;
   cdat->drout_271__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_271__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2057",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_271__LAMBDA_.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_271__LAMBDA_.routaddr) = rout_81_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_271__LAMBDA_, rout_81_LAMBDA_);
  
  /*inirout drout_272__LAMBDA_*/
  /*_.VALROUT___V389*/ curfptr[388] = (void*)&cdat->drout_272__LAMBDA_;
   cdat->drout_272__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_272__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2085",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_272__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_272__LAMBDA_.routaddr) = rout_82_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_272__LAMBDA_, rout_82_LAMBDA_);
  
  /*inirout drout_273__LAMBDA_*/
  /*_.VALROUT___V390*/ curfptr[389] = (void*)&cdat->drout_273__LAMBDA_;
   cdat->drout_273__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_273__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2100",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_273__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_273__LAMBDA_.routaddr) = rout_83_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_273__LAMBDA_, rout_83_LAMBDA_);
  
  /*inirout drout_274__LAMBDA_*/
  /*_.VALROUT___V391*/ curfptr[390] = (void*)&cdat->drout_274__LAMBDA_;
   cdat->drout_274__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_274__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2111",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_274__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_274__LAMBDA_.routaddr) = rout_84_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_274__LAMBDA_, rout_84_LAMBDA_);
  
  /*inirout drout_275__OUTPUCOD_OBJMULTIMSEND*/
  /*_.VALROUT___V395*/ curfptr[394] = (void*)&cdat->drout_275__OUTPUCOD_OBJMULTIMSEND;
   cdat->drout_275__OUTPUCOD_OBJMULTIMSEND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_275__OUTPUCOD_OBJMULTIMSEND.routdescr, "OUTPUCOD_OBJMULTIMSEND @warmelt-outobj.bysl:2131",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_275__OUTPUCOD_OBJMULTIMSEND.nbval = 28;
- *(basilysroutfun_t **) (cdat->drout_275__OUTPUCOD_OBJMULTIMSEND.routaddr) = rout_85_OUTPUCOD_OBJMULTIMSEND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_275__OUTPUCOD_OBJMULTIMSEND, rout_85_OUTPUCOD_OBJMULTIMSEND);
  
  /*iniclos dclo_276__OUTPUCOD_OBJMULTIMSEND*/
  /*_.VALCLO___V402*/ curfptr[401] = (void*)&cdat->dclo_276__OUTPUCOD_OBJMULTIMSEND;
@@ -37347,49 +37347,49 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_277__CLASS_OBJMULTI
   cdat->drout_279__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_279__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2165",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_279__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_279__LAMBDA_.routaddr) = rout_86_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_279__LAMBDA_, rout_86_LAMBDA_);
  
  /*inirout drout_280__LAMBDA_*/
  /*_.VALROUT___V397*/ curfptr[396] = (void*)&cdat->drout_280__LAMBDA_;
   cdat->drout_280__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_280__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2183",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_280__LAMBDA_.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_280__LAMBDA_.routaddr) = rout_87_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_280__LAMBDA_, rout_87_LAMBDA_);
  
  /*inirout drout_281__LAMBDA_*/
  /*_.VALROUT___V398*/ curfptr[397] = (void*)&cdat->drout_281__LAMBDA_;
   cdat->drout_281__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_281__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2214",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_281__LAMBDA_.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_281__LAMBDA_.routaddr) = rout_88_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_281__LAMBDA_, rout_88_LAMBDA_);
  
  /*inirout drout_282__LAMBDA_*/
  /*_.VALROUT___V399*/ curfptr[398] = (void*)&cdat->drout_282__LAMBDA_;
   cdat->drout_282__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_282__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2243",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_282__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_282__LAMBDA_.routaddr) = rout_89_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_282__LAMBDA_, rout_89_LAMBDA_);
  
  /*inirout drout_283__LAMBDA_*/
  /*_.VALROUT___V400*/ curfptr[399] = (void*)&cdat->drout_283__LAMBDA_;
   cdat->drout_283__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_283__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2256",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_283__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_283__LAMBDA_.routaddr) = rout_90_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_283__LAMBDA_, rout_90_LAMBDA_);
  
  /*inirout drout_284__LAMBDA_*/
  /*_.VALROUT___V401*/ curfptr[400] = (void*)&cdat->drout_284__LAMBDA_;
   cdat->drout_284__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_284__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2267",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_284__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_284__LAMBDA_.routaddr) = rout_91_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_284__LAMBDA_, rout_91_LAMBDA_);
  
  /*inirout drout_285__OUTPUCOD_OBJCLEAR*/
  /*_.VALROUT___V405*/ curfptr[404] = (void*)&cdat->drout_285__OUTPUCOD_OBJCLEAR;
   cdat->drout_285__OUTPUCOD_OBJCLEAR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_285__OUTPUCOD_OBJCLEAR.routdescr, "OUTPUCOD_OBJCLEAR @warmelt-outobj.bysl:2285",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_285__OUTPUCOD_OBJCLEAR.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_285__OUTPUCOD_OBJCLEAR.routaddr) = rout_92_OUTPUCOD_OBJCLEAR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_285__OUTPUCOD_OBJCLEAR, rout_92_OUTPUCOD_OBJCLEAR);
  
  /*iniclos dclo_286__OUTPUCOD_OBJCLEAR*/
  /*_.VALCLO___V406*/ curfptr[405] = (void*)&cdat->dclo_286__OUTPUCOD_OBJCLEAR;
@@ -37414,7 +37414,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_287__CLASS_OBJCLEAR
   cdat->drout_289__OUTPUCOD_OBJRAWALLOCOBJ.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_289__OUTPUCOD_OBJRAWALLOCOBJ.routdescr, "OUTPUCOD_OBJRAWALLOCOBJ @warmelt-outobj.bysl:2300",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_289__OUTPUCOD_OBJRAWALLOCOBJ.nbval = 9;
- *(basilysroutfun_t **) (cdat->drout_289__OUTPUCOD_OBJRAWALLOCOBJ.routaddr) = rout_93_OUTPUCOD_OBJRAWALLOCOBJ;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_289__OUTPUCOD_OBJRAWALLOCOBJ, rout_93_OUTPUCOD_OBJRAWALLOCOBJ);
  
  /*iniclos dclo_290__OUTPUCOD_OBJRAWALLOCOBJ*/
  /*_.VALCLO___V411*/ curfptr[410] = (void*)&cdat->dclo_290__OUTPUCOD_OBJRAWALLOCOBJ;
@@ -37439,14 +37439,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_291__CLASS_OBJRAWAL
   cdat->drout_293__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_293__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2323",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_293__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_293__LAMBDA_.routaddr) = rout_94_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_293__LAMBDA_, rout_94_LAMBDA_);
  
  /*inirout drout_294__OUTPUCOD_OBJNEWCLOSURE*/
  /*_.VALROUT___V414*/ curfptr[413] = (void*)&cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE;
   cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE.routdescr, "OUTPUCOD_OBJNEWCLOSURE @warmelt-outobj.bysl:2334",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE.nbval = 8;
- *(basilysroutfun_t **) (cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE.routaddr) = rout_95_OUTPUCOD_OBJNEWCLOSURE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_294__OUTPUCOD_OBJNEWCLOSURE, rout_95_OUTPUCOD_OBJNEWCLOSURE);
  
  /*iniclos dclo_295__OUTPUCOD_OBJNEWCLOSURE*/
  /*_.VALCLO___V416*/ curfptr[415] = (void*)&cdat->dclo_295__OUTPUCOD_OBJNEWCLOSURE;
@@ -37471,14 +37471,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_296__CLASS_OBJNEWCL
   cdat->drout_298__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_298__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2348",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_298__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_298__LAMBDA_.routaddr) = rout_96_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_298__LAMBDA_, rout_96_LAMBDA_);
  
  /*inirout drout_299__OUTPUCOD_OBJTOUCH*/
  /*_.VALROUT___V419*/ curfptr[418] = (void*)&cdat->drout_299__OUTPUCOD_OBJTOUCH;
   cdat->drout_299__OUTPUCOD_OBJTOUCH.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_299__OUTPUCOD_OBJTOUCH.routdescr, "OUTPUCOD_OBJTOUCH @warmelt-outobj.bysl:2364",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_299__OUTPUCOD_OBJTOUCH.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_299__OUTPUCOD_OBJTOUCH.routaddr) = rout_97_OUTPUCOD_OBJTOUCH;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_299__OUTPUCOD_OBJTOUCH, rout_97_OUTPUCOD_OBJTOUCH);
  
  /*iniclos dclo_300__OUTPUCOD_OBJTOUCH*/
  /*_.VALCLO___V420*/ curfptr[419] = (void*)&cdat->dclo_300__OUTPUCOD_OBJTOUCH;
@@ -37503,7 +37503,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_301__CLASS_OBJTOUCH
   cdat->drout_303__OUTPUCOD_OBJPUTUPLE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_303__OUTPUCOD_OBJPUTUPLE.routdescr, "OUTPUCOD_OBJPUTUPLE @warmelt-outobj.bysl:2389",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_303__OUTPUCOD_OBJPUTUPLE.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_303__OUTPUCOD_OBJPUTUPLE.routaddr) = rout_98_OUTPUCOD_OBJPUTUPLE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_303__OUTPUCOD_OBJPUTUPLE, rout_98_OUTPUCOD_OBJPUTUPLE);
  
  /*iniclos dclo_304__OUTPUCOD_OBJPUTUPLE*/
  /*_.VALCLO___V424*/ curfptr[423] = (void*)&cdat->dclo_304__OUTPUCOD_OBJPUTUPLE;
@@ -37528,7 +37528,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_305__CLASS_OBJPUTUP
   cdat->drout_307__OUTPUCOD_OBJGETSLOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_307__OUTPUCOD_OBJGETSLOT.routdescr, "OUTPUCOD_OBJGETSLOT @warmelt-outobj.bysl:2424",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_307__OUTPUCOD_OBJGETSLOT.nbval = 9;
- *(basilysroutfun_t **) (cdat->drout_307__OUTPUCOD_OBJGETSLOT.routaddr) = rout_99_OUTPUCOD_OBJGETSLOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_307__OUTPUCOD_OBJGETSLOT, rout_99_OUTPUCOD_OBJGETSLOT);
  
  /*iniclos dclo_308__OUTPUCOD_OBJGETSLOT*/
  /*_.VALCLO___V429*/ curfptr[428] = (void*)&cdat->dclo_308__OUTPUCOD_OBJGETSLOT;
@@ -37566,14 +37566,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_311__CLASS_FIELD));
   cdat->drout_313__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_313__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2446",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_313__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_313__LAMBDA_.routaddr) = rout_100_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_313__LAMBDA_, rout_100_LAMBDA_);
  
  /*inirout drout_314__OUTPUCOD_OBJPUTSLOT*/
  /*_.VALROUT___V434*/ curfptr[433] = (void*)&cdat->drout_314__OUTPUCOD_OBJPUTSLOT;
   cdat->drout_314__OUTPUCOD_OBJPUTSLOT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_314__OUTPUCOD_OBJPUTSLOT.routdescr, "OUTPUCOD_OBJPUTSLOT @warmelt-outobj.bysl:2455",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_314__OUTPUCOD_OBJPUTSLOT.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_314__OUTPUCOD_OBJPUTSLOT.routaddr) = rout_101_OUTPUCOD_OBJPUTSLOT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_314__OUTPUCOD_OBJPUTSLOT, rout_101_OUTPUCOD_OBJPUTSLOT);
  
  /*iniclos dclo_315__OUTPUCOD_OBJPUTSLOT*/
  /*_.VALCLO___V435*/ curfptr[434] = (void*)&cdat->dclo_315__OUTPUCOD_OBJPUTSLOT;
@@ -37611,7 +37611,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_318__CLASS_NREP));
   cdat->drout_320__OUTPUCOD_OBJPUTCLOSUROUT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_320__OUTPUCOD_OBJPUTCLOSUROUT.routdescr, "OUTPUCOD_OBJPUTCLOSUROUT @warmelt-outobj.bysl:2515",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_320__OUTPUCOD_OBJPUTCLOSUROUT.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_320__OUTPUCOD_OBJPUTCLOSUROUT.routaddr) = rout_102_OUTPUCOD_OBJPUTCLOSUROUT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_320__OUTPUCOD_OBJPUTCLOSUROUT, rout_102_OUTPUCOD_OBJPUTCLOSUROUT);
  
  /*iniclos dclo_321__OUTPUCOD_OBJPUTCLOSUROUT*/
  /*_.VALCLO___V441*/ curfptr[440] = (void*)&cdat->dclo_321__OUTPUCOD_OBJPUTCLOSUROUT;
@@ -37636,7 +37636,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_322__CLASS_OBJPUTCL
   cdat->drout_324__OUTPUCOD_OBJPUTCLOSEDV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_324__OUTPUCOD_OBJPUTCLOSEDV.routdescr, "OUTPUCOD_OBJPUTCLOSEDV @warmelt-outobj.bysl:2543",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_324__OUTPUCOD_OBJPUTCLOSEDV.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_324__OUTPUCOD_OBJPUTCLOSEDV.routaddr) = rout_103_OUTPUCOD_OBJPUTCLOSEDV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_324__OUTPUCOD_OBJPUTCLOSEDV, rout_103_OUTPUCOD_OBJPUTCLOSEDV);
  
  /*iniclos dclo_325__OUTPUCOD_OBJPUTCLOSEDV*/
  /*_.VALCLO___V445*/ curfptr[444] = (void*)&cdat->dclo_325__OUTPUCOD_OBJPUTCLOSEDV;
@@ -37661,7 +37661,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_326__CLASS_OBJPUTCL
   cdat->drout_328__OUTPUCOD_OBJPUTCLOSEDNOTNULLV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_328__OUTPUCOD_OBJPUTCLOSEDNOTNULLV.routdescr, "OUTPUCOD_OBJPUTCLOSEDNOTNULLV @warmelt-outobj.bysl:2578",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_328__OUTPUCOD_OBJPUTCLOSEDNOTNULLV.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_328__OUTPUCOD_OBJPUTCLOSEDNOTNULLV.routaddr) = rout_104_OUTPUCOD_OBJPUTCLOSEDNOTNULLV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_328__OUTPUCOD_OBJPUTCLOSEDNOTNULLV, rout_104_OUTPUCOD_OBJPUTCLOSEDNOTNULLV);
  
  /*iniclos dclo_329__OUTPUCOD_OBJPUTCLOSEDNOTNULLV*/
  /*_.VALCLO___V449*/ curfptr[448] = (void*)&cdat->dclo_329__OUTPUCOD_OBJPUTCLOSEDNOTNULLV;
@@ -37686,7 +37686,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_330__CLASS_OBJPUTCL
   cdat->drout_332__OUTPUCOD_OBJPUTROUTCONST.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_332__OUTPUCOD_OBJPUTROUTCONST.routdescr, "OUTPUCOD_OBJPUTROUTCONST @warmelt-outobj.bysl:2617",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_332__OUTPUCOD_OBJPUTROUTCONST.nbval = 4;
- *(basilysroutfun_t **) (cdat->drout_332__OUTPUCOD_OBJPUTROUTCONST.routaddr) = rout_105_OUTPUCOD_OBJPUTROUTCONST;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_332__OUTPUCOD_OBJPUTROUTCONST, rout_105_OUTPUCOD_OBJPUTROUTCONST);
  
  /*iniclos dclo_333__OUTPUCOD_OBJPUTROUTCONST*/
  /*_.VALCLO___V453*/ curfptr[452] = (void*)&cdat->dclo_333__OUTPUCOD_OBJPUTROUTCONST;
@@ -37711,7 +37711,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_334__CLASS_OBJPUTRO
   cdat->drout_336__OUTPUCOD_OBJPUTROUTCONSTNOTNULL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_336__OUTPUCOD_OBJPUTROUTCONSTNOTNULL.routdescr, "OUTPUCOD_OBJPUTROUTCONSTNOTNULL @warmelt-outobj.bysl:2654",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_336__OUTPUCOD_OBJPUTROUTCONSTNOTNULL.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_336__OUTPUCOD_OBJPUTROUTCONSTNOTNULL.routaddr) = rout_106_OUTPUCOD_OBJPUTROUTCONSTNOTNULL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_336__OUTPUCOD_OBJPUTROUTCONSTNOTNULL, rout_106_OUTPUCOD_OBJPUTROUTCONSTNOTNULL);
  
  /*iniclos dclo_337__OUTPUCOD_OBJPUTROUTCONSTNOTNULL*/
  /*_.VALCLO___V457*/ curfptr[456] = (void*)&cdat->dclo_337__OUTPUCOD_OBJPUTROUTCONSTNOTNULL;
@@ -37736,7 +37736,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_338__CLASS_OBJPUTRO
   cdat->drout_340__OUTPUCOD_OBJPUTXTRARESULT.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_340__OUTPUCOD_OBJPUTXTRARESULT.routdescr, "OUTPUCOD_OBJPUTXTRARESULT @warmelt-outobj.bysl:2687",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_340__OUTPUCOD_OBJPUTXTRARESULT.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_340__OUTPUCOD_OBJPUTXTRARESULT.routaddr) = rout_107_OUTPUCOD_OBJPUTXTRARESULT;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_340__OUTPUCOD_OBJPUTXTRARESULT, rout_107_OUTPUCOD_OBJPUTXTRARESULT);
  
  /*iniclos dclo_341__OUTPUCOD_OBJPUTXTRARESULT*/
  /*_.VALCLO___V461*/ curfptr[460] = (void*)&cdat->dclo_341__OUTPUCOD_OBJPUTXTRARESULT;
@@ -37761,7 +37761,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_342__CLASS_OBJPUTXT
   cdat->drout_344__OUTPUCOD_OBJEXPV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_344__OUTPUCOD_OBJEXPV.routdescr, "OUTPUCOD_OBJEXPV @warmelt-outobj.bysl:2722",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_344__OUTPUCOD_OBJEXPV.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_344__OUTPUCOD_OBJEXPV.routaddr) = rout_108_OUTPUCOD_OBJEXPV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_344__OUTPUCOD_OBJEXPV, rout_108_OUTPUCOD_OBJEXPV);
  
  /*iniclos dclo_345__OUTPUCOD_OBJEXPV*/
  /*_.VALCLO___V466*/ curfptr[465] = (void*)&cdat->dclo_345__OUTPUCOD_OBJEXPV;
@@ -37786,14 +37786,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_346__CLASS_OBJEXPV)
   cdat->drout_348__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_348__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2730",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_348__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_348__LAMBDA_.routaddr) = rout_109_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_348__LAMBDA_, rout_109_LAMBDA_);
  
  /*inirout drout_349__OUTPUCOD_OBJLOCATEDEXPV*/
  /*_.VALROUT___V469*/ curfptr[468] = (void*)&cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV;
   cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV.routdescr, "OUTPUCOD_OBJLOCATEDEXPV @warmelt-outobj.bysl:2736",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV.routaddr) = rout_110_OUTPUCOD_OBJLOCATEDEXPV;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_349__OUTPUCOD_OBJLOCATEDEXPV, rout_110_OUTPUCOD_OBJLOCATEDEXPV);
  
  /*iniclos dclo_350__OUTPUCOD_OBJLOCATEDEXPV*/
  /*_.VALCLO___V471*/ curfptr[470] = (void*)&cdat->dclo_350__OUTPUCOD_OBJLOCATEDEXPV;
@@ -37818,14 +37818,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_351__CLASS_OBJLOCAT
   cdat->drout_353__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_353__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2748",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_353__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_353__LAMBDA_.routaddr) = rout_111_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_353__LAMBDA_, rout_111_LAMBDA_);
  
  /*inirout drout_354__OUTPUCOD_VERBATIMSTRING*/
  /*_.VALROUT___V474*/ curfptr[473] = (void*)&cdat->drout_354__OUTPUCOD_VERBATIMSTRING;
   cdat->drout_354__OUTPUCOD_VERBATIMSTRING.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_354__OUTPUCOD_VERBATIMSTRING.routdescr, "OUTPUCOD_VERBATIMSTRING @warmelt-outobj.bysl:2754",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_354__OUTPUCOD_VERBATIMSTRING.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_354__OUTPUCOD_VERBATIMSTRING.routaddr) = rout_112_OUTPUCOD_VERBATIMSTRING;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_354__OUTPUCOD_VERBATIMSTRING, rout_112_OUTPUCOD_VERBATIMSTRING);
  
  /*iniclos dclo_355__OUTPUCOD_VERBATIMSTRING*/
  /*_.VALCLO___V475*/ curfptr[474] = (void*)&cdat->dclo_355__OUTPUCOD_VERBATIMSTRING;
@@ -37850,7 +37850,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_356__DISCR_VERBATIM
   cdat->drout_358__OUTPUCOD_STRING.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_358__OUTPUCOD_STRING.routdescr, "OUTPUCOD_STRING @warmelt-outobj.bysl:2765",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_358__OUTPUCOD_STRING.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_358__OUTPUCOD_STRING.routaddr) = rout_113_OUTPUCOD_STRING;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_358__OUTPUCOD_STRING, rout_113_OUTPUCOD_STRING);
  
  /*iniclos dclo_359__OUTPUCOD_STRING*/
  /*_.VALCLO___V479*/ curfptr[478] = (void*)&cdat->dclo_359__OUTPUCOD_STRING;
@@ -37862,7 +37862,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_356__DISCR_VERBATIM
   cdat->drout_360__OUTPUCOD_INTEGER.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_360__OUTPUCOD_INTEGER.routdescr, "OUTPUCOD_INTEGER @warmelt-outobj.bysl:2777",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_360__OUTPUCOD_INTEGER.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_360__OUTPUCOD_INTEGER.routaddr) = rout_114_OUTPUCOD_INTEGER;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_360__OUTPUCOD_INTEGER, rout_114_OUTPUCOD_INTEGER);
  
  /*iniclos dclo_361__OUTPUCOD_INTEGER*/
  /*_.VALCLO___V481*/ curfptr[480] = (void*)&cdat->dclo_361__OUTPUCOD_INTEGER;
@@ -37874,7 +37874,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_356__DISCR_VERBATIM
   cdat->drout_362__OUTPUCOD_FINALRETURN.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_362__OUTPUCOD_FINALRETURN.routdescr, "OUTPUCOD_FINALRETURN @warmelt-outobj.bysl:2784",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_362__OUTPUCOD_FINALRETURN.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_362__OUTPUCOD_FINALRETURN.routaddr) = rout_115_OUTPUCOD_FINALRETURN;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_362__OUTPUCOD_FINALRETURN, rout_115_OUTPUCOD_FINALRETURN);
  
  /*iniclos dclo_363__OUTPUCOD_FINALRETURN*/
  /*_.VALCLO___V483*/ curfptr[482] = (void*)&cdat->dclo_363__OUTPUCOD_FINALRETURN;
@@ -37899,7 +37899,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_364__CLASS_OBJFINAL
   cdat->drout_366__SORTED_NAMED_DICT_TUPLE.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_366__SORTED_NAMED_DICT_TUPLE.routdescr, "SORTED_NAMED_DICT_TUPLE @warmelt-outobj.bysl:2795",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_366__SORTED_NAMED_DICT_TUPLE.nbval = 8;
- *(basilysroutfun_t **) (cdat->drout_366__SORTED_NAMED_DICT_TUPLE.routaddr) = rout_116_SORTED_NAMED_DICT_TUPLE;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_366__SORTED_NAMED_DICT_TUPLE, rout_116_SORTED_NAMED_DICT_TUPLE);
  
  /*iniclos dclo_367__SORTED_NAMED_DICT_TUPLE*/
  /*_.VALCLO___V489*/ curfptr[488] = (void*)&cdat->dclo_367__SORTED_NAMED_DICT_TUPLE;
@@ -37924,7 +37924,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_368__MAPSTRING_EVER
   cdat->drout_370__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_370__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2803",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_370__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_370__LAMBDA_.routaddr) = rout_117_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_370__LAMBDA_, rout_117_LAMBDA_);
  
  /*iniobj dsym_371__LIST_TO_MULTIPLE*/
  if (!/*_.VALDATA___V492*/ curfptr[491]) /*_.VALDATA___V492*/ curfptr[491] = (void*)&cdat->dsym_371__LIST_TO_MULTIPLE;
@@ -37944,7 +37944,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_371__LIST_TO_MULTIP
   cdat->drout_373__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_373__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2807",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_373__LAMBDA_.nbval = 0;
- *(basilysroutfun_t **) (cdat->drout_373__LAMBDA_.routaddr) = rout_118_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_373__LAMBDA_, rout_118_LAMBDA_);
  
  /*iniobj dsym_374__DISCR_MULTIPLE*/
  if (!/*_.VALDATA___V494*/ curfptr[493]) /*_.VALDATA___V494*/ curfptr[493] = (void*)&cdat->dsym_374__DISCR_MULTIPLE;
@@ -37964,7 +37964,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_374__DISCR_MULTIPLE
   cdat->drout_376__OUTPUT_EXPORTED_OFFSETS.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_376__OUTPUT_EXPORTED_OFFSETS.routdescr, "OUTPUT_EXPORTED_OFFSETS @warmelt-outobj.bysl:2819",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_376__OUTPUT_EXPORTED_OFFSETS.nbval = 8;
- *(basilysroutfun_t **) (cdat->drout_376__OUTPUT_EXPORTED_OFFSETS.routaddr) = rout_119_OUTPUT_EXPORTED_OFFSETS;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_376__OUTPUT_EXPORTED_OFFSETS, rout_119_OUTPUT_EXPORTED_OFFSETS);
  
  /*iniclos dclo_377__OUTPUT_EXPORTED_OFFSETS*/
  /*_.VALCLO___V499*/ curfptr[498] = (void*)&cdat->dclo_377__OUTPUT_EXPORTED_OFFSETS;
@@ -37989,14 +37989,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_378__CLASS_MODULCON
   cdat->drout_380__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_380__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2831",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_380__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_380__LAMBDA_.routaddr) = rout_120_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_380__LAMBDA_, rout_120_LAMBDA_);
  
  /*inirout drout_381__LAMBDA_*/
  /*_.VALROUT___V498*/ curfptr[497] = (void*)&cdat->drout_381__LAMBDA_;
   cdat->drout_381__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_381__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2845",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_381__LAMBDA_.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_381__LAMBDA_.routaddr) = rout_121_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_381__LAMBDA_, rout_121_LAMBDA_);
  
  /*iniobj dsym_382__CLASS_CLASS*/
  if (!/*_.VALDATA___V502*/ curfptr[501]) /*_.VALDATA___V502*/ curfptr[501] = (void*)&cdat->dsym_382__CLASS_CLASS;
@@ -38016,7 +38016,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_382__CLASS_CLASS));
   cdat->drout_384__COMPILE_LIST_SEXPR.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_384__COMPILE_LIST_SEXPR.routdescr, "COMPILE_LIST_SEXPR @warmelt-outobj.bysl:2861",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_384__COMPILE_LIST_SEXPR.nbval = 35;
- *(basilysroutfun_t **) (cdat->drout_384__COMPILE_LIST_SEXPR.routaddr) = rout_122_COMPILE_LIST_SEXPR;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_384__COMPILE_LIST_SEXPR, rout_122_COMPILE_LIST_SEXPR);
  
  /*iniclos dclo_385__COMPILE_LIST_SEXPR*/
  /*_.VALCLO___V508*/ curfptr[507] = (void*)&cdat->dclo_385__COMPILE_LIST_SEXPR;
@@ -38145,7 +38145,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_402__CLASS_NREP_INI
   cdat->drout_404__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_404__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2903",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_404__LAMBDA_.nbval = 7;
- *(basilysroutfun_t **) (cdat->drout_404__LAMBDA_.routaddr) = rout_123_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_404__LAMBDA_, rout_123_LAMBDA_);
  
  /*iniobj dsym_405__CLASS_LOCATED*/
  if (!/*_.VALDATA___V527*/ curfptr[526]) /*_.VALDATA___V527*/ curfptr[526] = (void*)&cdat->dsym_405__CLASS_LOCATED;
@@ -38230,7 +38230,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_415__DISCR_MAPOBJEC
   cdat->drout_417__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_417__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2942",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_417__LAMBDA_.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_417__LAMBDA_.routaddr) = rout_124_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_417__LAMBDA_, rout_124_LAMBDA_);
  
  /*iniobj dsym_418__COMPILE2OBJ_PROCEDURE*/
  if (!/*_.VALDATA___V539*/ curfptr[538]) /*_.VALDATA___V539*/ curfptr[538] = (void*)&cdat->dsym_418__COMPILE2OBJ_PROCEDURE;
@@ -38263,14 +38263,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_420__COMPILE2OBJ_IN
   cdat->drout_422__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_422__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:2975",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_422__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_422__LAMBDA_.routaddr) = rout_125_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_422__LAMBDA_, rout_125_LAMBDA_);
  
  /*inirout drout_423__INSTALL_INITIAL_COMMAND*/
  /*_.VALROUT___V543*/ curfptr[542] = (void*)&cdat->drout_423__INSTALL_INITIAL_COMMAND;
   cdat->drout_423__INSTALL_INITIAL_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_423__INSTALL_INITIAL_COMMAND.routdescr, "INSTALL_INITIAL_COMMAND @warmelt-outobj.bysl:2990",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_423__INSTALL_INITIAL_COMMAND.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_423__INSTALL_INITIAL_COMMAND.routaddr) = rout_126_INSTALL_INITIAL_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_423__INSTALL_INITIAL_COMMAND, rout_126_INSTALL_INITIAL_COMMAND);
  
  /*iniclos dclo_424__INSTALL_INITIAL_COMMAND*/
  /*_.VALCLO___V544*/ curfptr[543] = (void*)&cdat->dclo_424__INSTALL_INITIAL_COMMAND;
@@ -38295,7 +38295,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__INITIAL_SYSTEM
   cdat->drout_427__INITIAL_COMMAND_INSTALL.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_427__INITIAL_COMMAND_INSTALL.routdescr, "INITIAL_COMMAND_INSTALL @warmelt-outobj.bysl:2997",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_427__INITIAL_COMMAND_INSTALL.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_427__INITIAL_COMMAND_INSTALL.routaddr) = rout_127_INITIAL_COMMAND_INSTALL;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_427__INITIAL_COMMAND_INSTALL, rout_127_INITIAL_COMMAND_INSTALL);
  
  /*iniclos dclo_428__INITIAL_COMMAND_INSTALL*/
  /*_.VALCLO___V548*/ curfptr[547] = (void*)&cdat->dclo_428__INITIAL_COMMAND_INSTALL;
@@ -38307,7 +38307,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__INITIAL_SYSTEM
   cdat->drout_429__READSEQ_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_429__READSEQ_COMMAND.routdescr, "READSEQ_COMMAND @warmelt-outobj.bysl:3005",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_429__READSEQ_COMMAND.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_429__READSEQ_COMMAND.routaddr) = rout_128_READSEQ_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_429__READSEQ_COMMAND, rout_128_READSEQ_COMMAND);
  
  /*iniclos dclo_430__READSEQ_COMMAND*/
  /*_.VALCLO___V550*/ curfptr[549] = (void*)&cdat->dclo_430__READSEQ_COMMAND;
@@ -38319,7 +38319,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_425__INITIAL_SYSTEM
   cdat->drout_431__COMPILE_ONE_OR_MORE_FILES.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_431__COMPILE_ONE_OR_MORE_FILES.routdescr, "COMPILE_ONE_OR_MORE_FILES @warmelt-outobj.bysl:3023",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_431__COMPILE_ONE_OR_MORE_FILES.nbval = 5;
- *(basilysroutfun_t **) (cdat->drout_431__COMPILE_ONE_OR_MORE_FILES.routaddr) = rout_129_COMPILE_ONE_OR_MORE_FILES;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_431__COMPILE_ONE_OR_MORE_FILES, rout_129_COMPILE_ONE_OR_MORE_FILES);
  
  /*iniclos dclo_432__COMPILE_ONE_OR_MORE_FILES*/
  /*_.VALCLO___V552*/ curfptr[551] = (void*)&cdat->dclo_432__COMPILE_ONE_OR_MORE_FILES;
@@ -38344,7 +38344,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__LIST_APPEND2LI
   cdat->drout_435__COMPILEFILE_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_435__COMPILEFILE_COMMAND.routdescr, "COMPILEFILE_COMMAND @warmelt-outobj.bysl:3051",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_435__COMPILEFILE_COMMAND.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_435__COMPILEFILE_COMMAND.routaddr) = rout_130_COMPILEFILE_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_435__COMPILEFILE_COMMAND, rout_130_COMPILEFILE_COMMAND);
  
  /*iniclos dclo_436__COMPILEFILE_COMMAND*/
  /*_.VALCLO___V556*/ curfptr[555] = (void*)&cdat->dclo_436__COMPILEFILE_COMMAND;
@@ -38356,7 +38356,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__LIST_APPEND2LI
   cdat->drout_437__RUNFILE_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_437__RUNFILE_COMMAND.routdescr, "RUNFILE_COMMAND @warmelt-outobj.bysl:3079",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_437__RUNFILE_COMMAND.nbval = 6;
- *(basilysroutfun_t **) (cdat->drout_437__RUNFILE_COMMAND.routaddr) = rout_131_RUNFILE_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_437__RUNFILE_COMMAND, rout_131_RUNFILE_COMMAND);
  
  /*iniclos dclo_438__RUNFILE_COMMAND*/
  /*_.VALCLO___V558*/ curfptr[557] = (void*)&cdat->dclo_438__RUNFILE_COMMAND;
@@ -38368,7 +38368,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__LIST_APPEND2LI
   cdat->drout_439__COMPILEINIT_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_439__COMPILEINIT_COMMAND.routdescr, "COMPILEINIT_COMMAND @warmelt-outobj.bysl:3115",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_439__COMPILEINIT_COMMAND.nbval = 10;
- *(basilysroutfun_t **) (cdat->drout_439__COMPILEINIT_COMMAND.routaddr) = rout_132_COMPILEINIT_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_439__COMPILEINIT_COMMAND, rout_132_COMPILEINIT_COMMAND);
  
  /*iniclos dclo_440__COMPILEINIT_COMMAND*/
  /*_.VALCLO___V561*/ curfptr[560] = (void*)&cdat->dclo_440__COMPILEINIT_COMMAND;
@@ -38380,14 +38380,14 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__LIST_APPEND2LI
   cdat->drout_441__LAMBDA_.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_441__LAMBDA_.routdescr, "LAMBDA_ @warmelt-outobj.bysl:3135",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_441__LAMBDA_.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_441__LAMBDA_.routaddr) = rout_133_LAMBDA_;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_441__LAMBDA_, rout_133_LAMBDA_);
  
  /*inirout drout_442__SHOWMDATA_COMMAND*/
  /*_.VALROUT___V562*/ curfptr[561] = (void*)&cdat->drout_442__SHOWMDATA_COMMAND;
   cdat->drout_442__SHOWMDATA_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_442__SHOWMDATA_COMMAND.routdescr, "SHOWMDATA_COMMAND @warmelt-outobj.bysl:3161",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_442__SHOWMDATA_COMMAND.nbval = 1;
- *(basilysroutfun_t **) (cdat->drout_442__SHOWMDATA_COMMAND.routaddr) = rout_134_SHOWMDATA_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_442__SHOWMDATA_COMMAND, rout_134_SHOWMDATA_COMMAND);
  
  /*iniclos dclo_443__SHOWMDATA_COMMAND*/
  /*_.VALCLO___V563*/ curfptr[562] = (void*)&cdat->dclo_443__SHOWMDATA_COMMAND;
@@ -38399,7 +38399,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_433__LIST_APPEND2LI
   cdat->drout_444__SHOWVAR_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_444__SHOWVAR_COMMAND.routdescr, "SHOWVAR_COMMAND @warmelt-outobj.bysl:3172",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_444__SHOWVAR_COMMAND.nbval = 3;
- *(basilysroutfun_t **) (cdat->drout_444__SHOWVAR_COMMAND.routaddr) = rout_135_SHOWVAR_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_444__SHOWVAR_COMMAND, rout_135_SHOWVAR_COMMAND);
  
  /*iniclos dclo_445__SHOWVAR_COMMAND*/
  /*_.VALCLO___V565*/ curfptr[564] = (void*)&cdat->dclo_445__SHOWVAR_COMMAND;
@@ -38437,7 +38437,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_448__CLASS_VALUE_BI
   cdat->drout_450__HELP_COMMAND.discr = (basilysobject_ptr_t)(((void*)(BASILYSG(DISCR_ROUTINE))));
   strncpy(cdat->drout_450__HELP_COMMAND.routdescr, "HELP_COMMAND @warmelt-outobj.bysl:3189",  BASILYS_ROUTDESCR_LEN - 1);
   cdat->drout_450__HELP_COMMAND.nbval = 2;
- *(basilysroutfun_t **) (cdat->drout_450__HELP_COMMAND.routaddr) = rout_136_HELP_COMMAND;
+ BASILYS_ROUTINE_SET_ROUTCODE(&cdat->drout_450__HELP_COMMAND, rout_136_HELP_COMMAND);
  
  /*iniclos dclo_451__HELP_COMMAND*/
  /*_.VALCLO___V571*/ curfptr[570] = (void*)&cdat->dclo_451__HELP_COMMAND;

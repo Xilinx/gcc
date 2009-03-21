@@ -698,7 +698,7 @@
 ;; primitive to add the location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   "/*add2sbufmixloc*/ { if (basilys_magic_discr((basilys_ptr_t)(" mixl ")) == OBMAG_MIXLOC) "
-  " basilysgc_strbuf_printf((struct basilysstrbuf_st*)(" sbuf "), \"{%s:%d}\", "
+  " basilysgc_strbuf_printf((basilys_ptr_t)(" sbuf "), \"{%s:%d}\", "
   "LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mixl ")), "
   "LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mixl "))); }")
 

@@ -1,3 +1,16 @@
+2009-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: adding BASILYS_ROUTINE_SET_ROUTCODE macro.
+	* melt/warmelt-first.bysl: cast a basilys_ptr_t inside
+	add2sbuf_mixloc primitive.
+	* melt/warmelt-outobj.bysl: generating BASILYS_ROUTINE_SET_ROUTCODE.
+	* melt-cc-script.proto: removed all the noise like echo, pwd...
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.bysl: changed casts in sbuf primitives to
 	(basilys_ptr_t) to follow previous change on sbuf functions in
@@ -8,7 +21,7 @@
 	* warmelt-normatch-0.c: regenerated.
 	* warmelt-genobj-0.c: regenerated.
 	* warmelt-outobj-0.c: regenerated.
-	
+
 2009-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	[removed almost all warnings in basilys.?; the fopencookie will be
 	removed next week, using next version of PPL library]

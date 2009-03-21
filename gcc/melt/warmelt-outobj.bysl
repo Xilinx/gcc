@@ -466,11 +466,11 @@
 	(progn
 	  (debug_msg ipro "outcinitfill_objinitroutine ipro")
 	  (assert_msg "check ipro" (is_a ipro class_named))
-	  (add2sbuf_strconst sbuf "*(basilysroutfun_t **) (cdat->")
+	  (add2sbuf_strconst sbuf "BASILYS_ROUTINE_SET_ROUTCODE(&cdat->")
 	  (add2sbuf_string sbuf cnam)
-	  (add2sbuf_strconst sbuf ".routaddr) = ")
+	  (add2sbuf_strconst sbuf ", ")
 	  (add2sbuf_string sbuf (unsafe_get_field :named_name ipro))
-	  (add2sbuf_strconst sbuf ";")
+	  (add2sbuf_strconst sbuf ");")
 	  (add2sbuf_indentnl sbuf 1)
 	  )
       (progn
