@@ -195,13 +195,13 @@ void
 read_l (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
   char *p;
-  size_t w;
+  int w;
 
   w = f->u.w;
 
-  p = gfc_alloca (w);
+  p = read_block_form (dtp, &w);
 
-  if (read_block_form (dtp, p, &w) == FAILURE)
+  if (p == NULL)
     return;
 
   while (*p == ' ')
@@ -238,28 +238,26 @@ read_l (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 }
 
 
-static inline gfc_char4_t
-read_utf8 (st_parameter_dt *dtp, size_t *nbytes) 
+static gfc_char4_t
+read_utf8 (st_parameter_dt *dtp, int *nbytes) 
 {
   static const uchar masks[6] = { 0x7F, 0x1F, 0x0F, 0x07, 0x02, 0x01 };
   static const uchar patns[6] = { 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC };
-  static uchar buffer[6];
-  size_t i, nb, nread;
+  int i, nb, nread;
   gfc_char4_t c;
-  int status;
   char *s;
 
   *nbytes = 1;
-  s = (char *) &buffer[0];
-  status = read_block_form (dtp, s, nbytes);
-  if (status == FAILURE)
+
+  s = read_block_form (dtp, nbytes);
+  if (s == NULL)
     return 0;
 
   /* If this is a short read, just return.  */
   if (*nbytes == 0)
     return 0;
 
-  c = buffer[0];
+  c = (uchar) s[0];
   if (c < 0x80)
     return c;
 
@@ -274,9 +272,8 @@ read_utf8 (st_parameter_dt *dtp, size_t *nbytes)
   c = (c & masks[nb-1]);
   nread = nb - 1;
 
-  s = (char *) &buffer[1];
-  status = read_block_form (dtp, s, &nread);
-  if (status == FAILURE)
+  s = read_block_form (dtp, &nread);
+  if (s == NULL)
     return 0;
   /* Decode the bytes read.  */
   for (i = 1; i < nb; i++)
@@ -309,14 +306,14 @@ read_utf8 (st_parameter_dt *dtp, size_t *nbytes)
 
 
 static void
-read_utf8_char1 (st_parameter_dt *dtp, char *p, int len, size_t width)
+read_utf8_char1 (st_parameter_dt *dtp, char *p, int len, int width)
 {
   gfc_char4_t c;
   char *dest;
-  size_t nbytes;
+  int nbytes;
   int i, j;
 
-  len = ((int) width < len) ? len : (int) width;
+  len = (width < len) ? len : width;
 
   dest = (char *) p;
 
@@ -339,21 +336,19 @@ read_utf8_char1 (st_parameter_dt *dtp, char *p, int len, size_t width)
 }
 
 static void
-read_default_char1 (st_parameter_dt *dtp, char *p, int len, size_t width)
+read_default_char1 (st_parameter_dt *dtp, char *p, int len, int width)
 {
   char *s;
-  int m, n, status;
+  int m, n;
 
-  s = gfc_alloca (width);
-
-  status = read_block_form (dtp, s, &width);
+  s = read_block_form (dtp, &width);
   
-  if (status == FAILURE)
+  if (s == NULL)
     return;
-  if (width > (size_t) len)
+  if (width > len)
      s += (width - len);
 
-  m = ((int) width > len) ? len : (int) width;
+  m = (width > len) ? len : width;
   memcpy (p, s, m);
 
   n = len - width;
@@ -363,13 +358,13 @@ read_default_char1 (st_parameter_dt *dtp, char *p, int len, size_t width)
 
 
 static void
-read_utf8_char4 (st_parameter_dt *dtp, void *p, int len, size_t width)
+read_utf8_char4 (st_parameter_dt *dtp, void *p, int len, int width)
 {
   gfc_char4_t *dest;
-  size_t nbytes;
+  int nbytes;
   int i, j;
 
-  len = ((int) width < len) ? len : (int) width;
+  len = (width < len) ? len : width;
 
   dest = (gfc_char4_t *) p;
 
@@ -391,19 +386,17 @@ read_utf8_char4 (st_parameter_dt *dtp, void *p, int len, size_t width)
 
 
 static void
-read_default_char4 (st_parameter_dt *dtp, char *p, int len, size_t width)
+read_default_char4 (st_parameter_dt *dtp, char *p, int len, int width)
 {
   char *s;
   gfc_char4_t *dest;
-  int m, n, status;
+  int m, n;
 
-  s = gfc_alloca (width);
-
-  status = read_block_form (dtp, s, &width);
+  s = read_block_form (dtp, &width);
   
-  if (status == FAILURE)
+  if (s == NULL)
     return;
-  if (width > (size_t) len)
+  if (width > len)
      s += (width - len);
 
   m = ((int) width > len) ? len : (int) width;
@@ -425,7 +418,7 @@ void
 read_a (st_parameter_dt *dtp, const fnode *f, char *p, int length)
 {
   int wi;
-  size_t w;
+  int w;
 
   wi = f->u.w;
   if (wi == -1) /* '(A)' edit descriptor  */
@@ -451,13 +444,11 @@ read_a (st_parameter_dt *dtp, const fnode *f, char *p, int length)
 void
 read_a_char4 (st_parameter_dt *dtp, const fnode *f, char *p, int length)
 {
-  int wi;
-  size_t w;
+  int w;
 
-  wi = f->u.w;
-  if (wi == -1) /* '(A)' edit descriptor  */
-    wi = length;
-  w = wi;
+  w = f->u.w;
+  if (w == -1) /* '(A)' edit descriptor  */
+    w = length;
 
   /* Read in w characters, treating comma as not a separator.  */
   dtp->u.p.sf_read_comma = 0;
@@ -532,17 +523,14 @@ read_decimal (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
   GFC_UINTEGER_LARGEST value, maxv, maxv_10;
   GFC_INTEGER_LARGEST v;
   int w, negative; 
-  size_t wu;
   char c, *p;
 
-  wu = f->u.w;
+  w = f->u.w;
 
-  p = gfc_alloca (wu);
+  p = read_block_form (dtp, &w);
 
-  if (read_block_form (dtp, p, &wu) == FAILURE)
+  if (p == NULL)
     return;
-
-  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -636,16 +624,13 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
   GFC_INTEGER_LARGEST v;
   int w, negative;
   char c, *p;
-  size_t wu;
 
-  wu = f->u.w;
+  w = f->u.w;
 
-  p = gfc_alloca (wu);
+  p = read_block_form (dtp, &w);
 
-  if (read_block_form (dtp, p, &wu) == FAILURE)
+  if (p == NULL)
     return;
-
-  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -783,7 +768,6 @@ read_radix (st_parameter_dt *dtp, const fnode *f, char *dest, int length,
 void
 read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
-  size_t wu;
   int w, seen_dp, exponent;
   int exponent_sign, val_sign;
   int ndigits;
@@ -795,14 +779,12 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 
   val_sign = 1;
   seen_dp = 0;
-  wu = f->u.w;
+  w = f->u.w;
 
-  p = gfc_alloca (wu);
+  p = read_block_form (dtp, &w);
 
-  if (read_block_form (dtp, p, &wu) == FAILURE)
+  if (p == NULL)
     return;
-
-  w = wu;
 
   p = eat_leading_spaces (&w, p);
   if (w == 0)
@@ -983,7 +965,13 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
         {
           if (*p == ' ')
             {
-	      if (dtp->u.p.blank_status == BLANK_ZERO) *p = '0';
+	      if (dtp->u.p.blank_status == BLANK_ZERO) 
+                {
+                  exponent = 10 * exponent;
+                  p++;
+                  w--;
+                  continue;
+                }
 	      if (dtp->u.p.blank_status == BLANK_NULL)
                 {
                   p++;
@@ -1043,14 +1031,17 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
     {
       if (*digits == ' ')
         {
-	  if (dtp->u.p.blank_status == BLANK_ZERO) *digits = '0';
-	  if (dtp->u.p.blank_status == BLANK_NULL)
+	  if (dtp->u.p.blank_status == BLANK_ZERO) *p = '0';
+	  else if (dtp->u.p.blank_status == BLANK_NULL)
             {
               digits++;
               continue;
-            } 
+            }
+          else
+            *p = ' ';
         }
-      *p = *digits;
+      else
+        *p = *digits;
       p++;
       digits++;
     }
