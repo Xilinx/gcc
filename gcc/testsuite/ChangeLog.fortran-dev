@@ -1,0 +1,6 @@
+2009-03-22  Daniel Franke  <franke.daniel@gmail.com>
+
+        PR fortran/37203
+	* gfortran.dg/reshape_order_5.f90: New.
+	* gfortran.dg/reshape_shape_1.f90: New.
+

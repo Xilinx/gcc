@@ -3467,16 +3467,10 @@ gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
   gfc_expr *e;
 
   /* Check that argument expression types are OK.  */
-  if (!is_constant_array_expr (source))
-    return NULL;
-
-  if (!is_constant_array_expr (shape_exp))
-    return NULL;
-
-  if (!is_constant_array_expr (pad))
-    return NULL;
-
-  if (!is_constant_array_expr (order_exp))
+  if (!is_constant_array_expr (source)
+      || !is_constant_array_expr (shape_exp)
+      || !is_constant_array_expr (pad)
+      || !is_constant_array_expr (order_exp))
     return NULL;
 
   /* Proceed with simplification, unpacking the array.  */
@@ -3491,40 +3485,16 @@ gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
       if (e == NULL)
 	break;
 
-      if (gfc_extract_int (e, &shape[rank]) != NULL)
-	{
-	  gfc_error ("Integer too large in shape specification at %L",
-		     &e->where);
-	  gfc_free_expr (e);
-	  goto bad_reshape;
-	}
+      gfc_extract_int (e, &shape[rank]);
 
-      if (rank >= GFC_MAX_DIMENSIONS)
-	{
-	  gfc_error ("Too many dimensions in shape specification for RESHAPE "
-		     "at %L", &e->where);
-	  gfc_free_expr (e);
-	  goto bad_reshape;
-	}
-
-      if (shape[rank] < 0)
-	{
-	  gfc_error ("Shape specification at %L cannot be negative",
-		     &e->where);
-	  gfc_free_expr (e);
-	  goto bad_reshape;
-	}
+      gcc_assert (rank >= 0 && rank < GFC_MAX_DIMENSIONS);
+      gcc_assert (shape[rank] >= 0);
 
       gfc_free_expr (e);
       rank++;
     }
 
-  if (rank == 0)
-    {
-      gfc_error ("Shape specification at %L cannot be the null array",
-		 &shape_exp->where);
-      goto bad_reshape;
-    }
+  gcc_assert (rank > 0);
 
   /* Now unpack the order array if present.  */
   if (order_exp == NULL)
@@ -3540,41 +3510,14 @@ gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
       for (i = 0; i < rank; i++)
 	{
 	  e = gfc_get_array_element (order_exp, i);
-	  if (e == NULL)
-	    {
-	      gfc_error ("ORDER parameter of RESHAPE at %L is not the same "
-			 "size as SHAPE parameter", &order_exp->where);
-	      goto bad_reshape;
-	    }
+	  gcc_assert (e);
 
-	  if (gfc_extract_int (e, &order[i]) != NULL)
-	    {
-	      gfc_error ("Error in ORDER parameter of RESHAPE at %L",
-			 &e->where);
-	      gfc_free_expr (e);
-	      goto bad_reshape;
-	    }
-
-	  if (order[i] < 1 || order[i] > rank)
-	    {
-	      gfc_error ("ORDER parameter of RESHAPE at %L is out of range",
-			 &e->where);
-	      gfc_free_expr (e);
-	      goto bad_reshape;
-	    }
-
-	  order[i]--;
-
-	  if (x[order[i]])
-	    {
-	      gfc_error ("Invalid permutation in ORDER parameter at %L",
-			 &e->where);
-	      gfc_free_expr (e);
-	      goto bad_reshape;
-	    }
-
+	  gfc_extract_int (e, &order[i]);
 	  gfc_free_expr (e);
 
+	  gcc_assert (order[i] >= 1 && order[i] <= rank);
+	  order[i]--;
+	  gcc_assert (x[order[i]] == 0);
 	  x[order[i]] = 1;
 	}
     }
@@ -3622,18 +3565,13 @@ gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
 	e = gfc_get_array_element (source, j);
       else
 	{
+	  gcc_assert (npad > 0);
+
 	  j = j - nsource;
-
-	  if (npad == 0)
-	    {
-	      gfc_error ("PAD parameter required for short SOURCE parameter "
-			 "at %L", &source->where);
-	      goto bad_reshape;
-	    }
-
 	  j = j % npad;
 	  e = gfc_get_array_element (pad, j);
 	}
+      gcc_assert (e);
 
       if (head == NULL)
 	head = tail = gfc_get_constructor ();
@@ -3642,9 +3580,6 @@ gfc_simplify_reshape (gfc_expr *source, gfc_expr *shape_exp,
 	  tail->next = gfc_get_constructor ();
 	  tail = tail->next;
 	}
-
-      if (e == NULL)
-	goto bad_reshape;
 
       tail->where = e->where;
       tail->expr = e;
@@ -3677,11 +3612,6 @@ inc:
   e->rank = rank;
 
   return e;
-
-bad_reshape:
-  gfc_free_constructor (head);
-  mpz_clear (index);
-  return &gfc_bad_expr;
 }
 
 
