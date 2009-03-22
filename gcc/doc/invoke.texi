@@ -4621,7 +4621,7 @@ Dump after the RTL instruction combination pass.
 
 @item -fdump-rtl-compgotos
 @opindex fdump-rtl-compgotos
-Dump after dumplicating the computed gotos.
+Dump after duplicating the computed gotos.
 
 @item -fdump-rtl-ce1
 @itemx -fdump-rtl-ce2
@@ -6149,7 +6149,7 @@ Matrix flattening tries to replace a m-dimensional matrix
 with its equivalent n-dimensional matrix, where n < m.
 This reduces the level of indirection needed for accessing the elements
 of the matrix. The second optimization is matrix transposing that
-attemps to change the order of the matrix's dimensions in order to 
+attempts to change the order of the matrix's dimensions in order to
 improve cache locality.
 Both optimizations need the @option{-fwhole-program} flag. 
 Transposing is enabled only if profiling information is available.
@@ -11354,7 +11354,7 @@ or @code{remainder} built-in functions: see @ref{Other Builtins} for details.
 @item -mrecip
 @opindex mrecip
 This option will enable GCC to use RCPSS and RSQRTSS instructions (and their
-vectorized variants RCPPS and RSQRTPS) with an additional Newton-Rhapson step
+vectorized variants RCPPS and RSQRTPS) with an additional Newton-Raphson step
 to increase precision instead of DIVSS and SQRTSS (and their vectorized
 variants) for single precision floating point arguments.  These instructions
 are generated only when @option{-funsafe-math-optimizations} is enabled
@@ -12452,7 +12452,7 @@ simulator library (@file{libsim.a)} from the linker command line.
 @item -mstack-increment=@var{size}
 @opindex mstack-increment
 Set the maximum amount for a single stack increment operation.  Large
-values can increase the speed of progrqams which contain functions
+values can increase the speed of programs which contain functions
 that need a large amount of stack space, but they can also trigger a
 segmentation fault if the stack is extended too much.  The default
 value is 0x1000.
@@ -14298,8 +14298,8 @@ On System V.4 and embedded PowerPC systems, if @option{-meabi} is used,
 compile code the same as @option{-msdata=eabi}, otherwise compile code the
 same as @option{-msdata=sysv}.
 
-@item -msdata-data
-@opindex msdata-data
+@item -msdata=data
+@opindex msdata=data
 On System V.4 and embedded PowerPC systems, put small global
 data in the @samp{.sdata} section.  Put small uninitialized global
 data in the @samp{.sbss} section.  Do not use register @code{r13}
@@ -15714,12 +15714,25 @@ Use it to conform to a non-default application binary interface.
 
 @item -fno-common
 @opindex fno-common
-In C, allocate even uninitialized global variables in the data section of the
-object file, rather than generating them as common blocks.  This has the
-effect that if the same variable is declared (without @code{extern}) in
-two different compilations, you will get an error when you link them.
-The only reason this might be useful is if you wish to verify that the
-program will work on other systems which always work this way.
+In C code, controls the placement of uninitialized global variables.
+Unix C compilers have traditionally permitted multiple definitions of
+such variables in different compilation units by placing the variables
+in a common block.  
+This is the behavior specified by @option{-fcommon}, and is the default 
+for GCC on most targets.  
+On the other hand, this behavior is not required by ISO C, and on some
+targets may carry a speed or code size penalty on variable references.
+The @option{-fno-common} option specifies that the compiler should place 
+uninitialized global variables in the data section of the object file,
+rather than generating them as common blocks.
+This has the effect that if the same variable is declared 
+(without @code{extern}) in two different compilations,
+you will get a multiple-definition error when you link them.
+In this case, you must compile with @option{-fcommon} instead.  
+Compiling with @option{-fno-common} is useful on targets for which 
+it provides better performance, or if you wish to verify that the
+program will work on other systems which always treat uninitialized
+variable declarations this way.
 
 @item -fno-ident
 @opindex fno-ident

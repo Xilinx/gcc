@@ -77,6 +77,8 @@ typedef struct cp_token GTY (())
      KEYWORD is RID_MAX) iff this name was looked up and found to be
      ambiguous.  An error has already been reported.  */
   BOOL_BITFIELD ambiguous_p : 1;
+  /* The location at which this token was found.  */
+  location_t location;
   /* The value associated with this token, if any.  */
   union cp_token_value {
     /* Used for CPP_NESTED_NAME_SPECIFIER and CPP_TEMPLATE_ID.  */
@@ -84,8 +86,6 @@ typedef struct cp_token GTY (())
     /* Use for all other tokens.  */
     tree GTY((tag ("0"))) value;
   } GTY((desc ("(%1.type == CPP_TEMPLATE_ID) || (%1.type == CPP_NESTED_NAME_SPECIFIER)"))) u;
-  /* The location at which this token was found.  */
-  location_t location;
 } cp_token;
 
 /* We use a stack of token pointer for saving token sets.  */
@@ -95,8 +95,7 @@ DEF_VEC_ALLOC_P (cp_token_position,heap);
 
 static cp_token eof_token =
 {
-  CPP_EOF, RID_MAX, 0, PRAGMA_NONE, false, 0, { NULL },
-  0
+  CPP_EOF, RID_MAX, 0, PRAGMA_NONE, false, 0, 0, { NULL }
 };
 
 /* The cp_lexer structure represents the C++ lexer.  It is responsible
@@ -10883,7 +10882,6 @@ cp_parser_explicit_specialization (cp_parser* parser)
   if (!begin_specialization ())
     {
       end_specialization ();
-      cp_parser_skip_to_end_of_block_or_statement (parser);
       return;
     }
 
@@ -13269,6 +13267,13 @@ cp_parser_direct_declarator (cp_parser* parser,
 						 &non_constant_p);
 	      if (!non_constant_p)
 		bounds = fold_non_dependent_expr (bounds);
+	      else if (processing_template_decl)
+		{
+		  /* Remember this wasn't a constant-expression.  */
+		  bounds = build_nop (TREE_TYPE (bounds), bounds);
+		  TREE_SIDE_EFFECTS (bounds) = 1;
+		}
+
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs
 		 in function scopes.  */
@@ -21014,7 +21019,7 @@ cp_parser_omp_for_cond (cp_parser *parser, tree decl)
   enum tree_code op;
   cp_token *token;
 
-  if (lhs != decl)
+  if (decl && lhs != decl)
     {
       cp_parser_skip_to_end_of_statement (parser);
       return error_mark_node;
@@ -21416,16 +21421,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 
       cond = NULL;
       if (cp_lexer_next_token_is_not (parser->lexer, CPP_SEMICOLON))
-	{
-	  /* If decl is an iterator, preserve LHS and RHS of the relational
-	     expr until finish_omp_for.  */
-	  if (decl
-	      && (type_dependent_expression_p (decl)
-		  || CLASS_TYPE_P (TREE_TYPE (decl))))
-	    cond = cp_parser_omp_for_cond (parser, decl);
-	  else
-	    cond = cp_parser_condition (parser);
-	}
+	cond = cp_parser_omp_for_cond (parser, decl);
       cp_parser_require (parser, CPP_SEMICOLON, "%<;%>");
 
       incr = NULL;
