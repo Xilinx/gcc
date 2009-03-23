@@ -1,3 +1,8 @@
+2009-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): 
+	TEMPORARY KLUDGE to avoid fopencookie.
+	See http://www.cs.unipr.it/pipermail/ppl-devel/2009-March/014162.html.
+	Requires a very recent PPL snapshot.
 2009-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: struct basilysroutine_st has now a real
 	basilysroutfun_t* function pointer called routfunad instead of

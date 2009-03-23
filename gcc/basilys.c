@@ -8149,47 +8149,13 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
 }
 
 
-struct basilyscookie_st {
-  basilys_ptr_t* sbufptr;
-  int indent;
-};
-
-static ssize_t cookiestrbuf_basilyswrite(void* cookie, char* buf, size_t sz)
-{
-  char *bufcopy = NULL;
-  ssize_t outsz = 0;
-  BASILYS_ENTERFRAME(2, NULL);
-#define sbufv  curfram__.varptr[0]
-  gcc_assert(cookie != NULL);
-  sbufv = *((struct basilyscookie_st*) cookie)->sbufptr;
-  if (buf && sz>0) {
-    bufcopy = (char*) xcalloc(1, sz+2);
-    memcpy(bufcopy, buf, sz);
-    bufcopy[sz] = 0;
-    basilysgc_add_strbuf_raw((basilys_ptr_t)sbufv, bufcopy);
-    outsz = strlen(bufcopy);
-    free(bufcopy);
-  }
-  BASILYS_EXITFRAME();
-#undef sbufv
-  return outsz;
-}
-
-static cookie_io_functions_t basilys_sbufcookiefuns= {
-  .write = cookiestrbuf_basilyswrite
-};
 
 /***
   pretty print into an sbuf a PPL related value; 
 
-recent PPL (ie 0.10.1 has a libpp_c_tests.a library inside
-ppl/interfaces/C/tests/ containing a file print_to_buffer.h which has: 
-   #define DECLARE_PRINT_TO_BUFFER(Type) 				\
-     char* print_ppl_##Type##_t_to_buffer(ppl_##Type##_t p,		\
-                               unsigned indent_depth,			\
-                               unsigned preferred_first_line_length,	\
-                               unsigned preferred_line_length); 
-But since it is not inside libppl_c.a we prefer to use fopencookie...
+recent PPL (ie 0.10.1) has a 
+  ppl_io_asprint_##Type (char** strp, ppl_const_##Type##_t x);
+which mallocs a string buffer, print x inside it, and return it in *STRP
 ***/
 
 static basilys_ptr_t* basilys_pplcoefvectp;
@@ -8220,23 +8186,16 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
 }
 
 
-/**
-   we would prefer to use the print to buffer functions of PPL like
-   print_ppl_Constraint_System_t_to_buffer etcc...
-   http://www.cs.unipr.it/pipermail/ppl-devel/2008-October/013001.html
-   - but these are still experimental in PPL 0.10 and are not yet
-   linked in libppl_c.so or libppl.so so to use them we would need to
-   compile the ppl/interfaces/C/tests/print_to_buffer.cc file and
-   include the ppl/interfaces/C/tests/print_to_buffer.h file
-   
-**/
-
+/* call the ppl_io_asprint_##Type (char** strp, ppl_const_##Type##_t
+   x); maybe they will be a ppl_*_to_buffer function with an indent
+   number */
+/* @@@ THIS IS A TEMPORARY KLUDGE / Basile, march 23th 2009 */
+#warning using unstable PPL asprint functions "http://www.cs.unipr.it/pipermail/ppl-devel/2009-March/014162.html"
 void
 basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p)
 {
-  FILE* f = NULL;
   int mag = 0;
-  struct basilyscookie_st cookie;
+  char *ppstr = NULL;
   BASILYS_ENTERFRAME(4, NULL);
 #define sbufv    curfram__.varptr[0]
 #define pplv     curfram__.varptr[1]
@@ -8247,10 +8206,6 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
   varvectv = varnamvect_p;
   if (!pplv) 
     goto end;
-  cookie.sbufptr = (basilys_ptr_t*)&sbufv;
-  cookie.indent = indentsp;
-  f = fopencookie((void*)&cookie, "w", basilys_sbufcookiefuns);
-  gcc_assert(f != NULL);
   ppl_io_set_variable_output_function (ppl_basilys_variable_output_function);
   mag = basilys_magic_discr((basilys_ptr_t) pplv);
   if (varvectv)
@@ -8259,28 +8214,59 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
     basilys_pplcoefvectp = NULL;
   switch (mag) {
   case OBMAG_SPECPPL_COEFFICIENT:
-    ppl_io_fprint_Coefficient(f, spec_pplv->val.sp_coefficient);
+    if (ppl_io_asprint_Coefficient(&ppstr, 
+				   spec_pplv->val.sp_coefficient))
+      fatal_error("failed to ppl_io_asprint_Coefficient");
     break;
   case OBMAG_SPECPPL_LINEAR_EXPRESSION:
-    ppl_io_fprint_Linear_Expression(f, spec_pplv->val.sp_linear_expression);
+    if (ppl_io_asprint_Linear_Expression(&ppstr,
+					 spec_pplv->val.sp_linear_expression))
+      fatal_error("failed to ppl_io_asprint_Linear_Expression");
     break;
   case OBMAG_SPECPPL_CONSTRAINT:
-    ppl_io_fprint_Constraint(f, spec_pplv->val.sp_constraint);
+    if (ppl_io_asprint_Constraint(&ppstr, 
+				  spec_pplv->val.sp_constraint))
+      fatal_error("failed to ppl_io_asprint_Constraint");
     break;
   case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:
-    ppl_io_fprint_Constraint_System(f, spec_pplv->val.sp_constraint_system);
+    if (ppl_io_asprint_Constraint_System(&ppstr, 
+					 spec_pplv->val.sp_constraint_system))
+      fatal_error("failed to ppl_io_asprint_Constraint_System");
     break;
   case OBMAG_SPECPPL_GENERATOR:
-    ppl_io_fprint_Generator(f, spec_pplv->val.sp_generator);
+    if (ppl_io_asprint_Generator(&ppstr, spec_pplv->val.sp_generator))
+      fatal_error("failed to ppl_io_asprint_Generator");
     break;
   case OBMAG_SPECPPL_GENERATOR_SYSTEM:
-    ppl_io_fprint_Generator_System(f, spec_pplv->val.sp_generator_system);
+    if (ppl_io_asprint_Generator_System(&ppstr, 
+					spec_pplv->val.sp_generator_system))
+      fatal_error("failed to ppl_io_asprint_Generator_System");
     break;
   default:
-    fprintf(f, "{{unknown PPL magic %d}}", mag); 
+    {
+      char errmsg[64];
+      memset(errmsg, 0, sizeof(errmsg));
+      snprintf(errmsg, sizeof(errmsg)-1, "{{unknown PPL magic %d}}", mag); 
+      ppstr = xstrdup(errmsg);
+    }
     break;
   }
-  fclose(f);
+  if (!ppstr) 
+    fatal_error("ppl_io_asprint_* gives a null string pointer");
+  /* in the resulting ppstr, replace each newline with appropriate
+     indentation */
+  {
+    char*bl = NULL;		/* current begin of line */
+    char*nl = NULL;		/* current newline = end of line */
+    for (bl = ppstr; (nl = bl?strchr(bl, '\n'):NULL), bl; bl = nl?(nl+1):NULL) {
+      if (nl) 
+	*nl = (char)0;
+      basilysgc_add_strbuf_raw((basilys_ptr_t) sbufv, bl);
+      if (nl) 
+	basilysgc_strbuf_add_indent((basilys_ptr_t) sbufv, indentsp, 0);
+    }
+  }
+  free(ppstr);
  end:
   basilys_pplcoefvectp = (basilys_ptr_t*)0;
   BASILYS_EXITFRAME();
