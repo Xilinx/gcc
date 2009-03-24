@@ -8153,9 +8153,11 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
 /***
   pretty print into an sbuf a PPL related value; 
 
-recent PPL (ie 0.10.1) has a 
-  ppl_io_asprint_##Type (char** strp, ppl_const_##Type##_t x);
-which mallocs a string buffer, print x inside it, and return it in *STRP
+recent PPL (ie 0.10.1) has a ppl_io_asprint_##Type (char** strp,
+  ppl_const_##Type##_t x); which mallocs a string buffer, print x
+  inside it, and return it in *STRP but this is supposed to
+  change. Seee
+  http://www.cs.unipr.it/pipermail/ppl-devel/2009-March/014162.html
 ***/
 
 static basilys_ptr_t* basilys_pplcoefvectp;
@@ -8170,17 +8172,46 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
 #define namv   curfram__.varptr[1]
   if (basilys_pplcoefvectp)
     vectv =  *basilys_pplcoefvectp;
+  memset(buf, 0, sizeof(buf));
   if (vectv)
     namv = basilys_multiple_nth((basilys_ptr_t) vectv, (int)var);
   if (basilys_is_instance_of((basilys_ptr_t) namv, BASILYSG (CLASS_NAMED))) 
     namv = basilys_object_nth_field((basilys_ptr_t) namv, FNAMED_NAME);
   if (namv)
-    s = basilys_string_str((basilys_ptr_t)namv);
-  memset(buf, 0, sizeof(buf));
+    s = basilys_string_str((basilys_ptr_t) namv);
+  if (!s && basilys_magic_discr((basilys_ptr_t) namv) == OBMAG_TREE) {
+    tree trnam = basilys_tree_content((basilys_ptr_t) namv);
+    if (trnam) {
+      switch (TREE_CODE(trnam)) {
+      case IDENTIFIER_NODE:
+	s = IDENTIFIER_POINTER(trnam);
+	break;
+      case VAR_DECL:
+      case PARM_DECL:
+      case TYPE_DECL:
+      case FIELD_DECL:
+      case LABEL_DECL:
+      case CONST_DECL:
+      case RESULT_DECL:
+	if (DECL_NAME(trnam))
+	  s = IDENTIFIER_POINTER(DECL_NAME(trnam));
+	break;
+      case SSA_NAME:
+	snprintf(buf, sizeof(buf)-1, "%s.%d", 
+		 get_name(trnam), SSA_NAME_VERSION(trnam));
+	goto end;
+      default:
+	snprintf(buf, sizeof(buf)-1, "@%p!%s", 
+		 (void*)trnam, tree_code_name[TREE_CODE(trnam)]);
+	goto end;
+      }
+    }
+  }
   if (s) 
     strncpy(buf, s, sizeof(buf)-1);
-  else
+  else if (!buf[0])
     snprintf(buf, sizeof(buf)-1, "_$_%d", (int)var);
+ end:
   BASILYS_EXITFRAME();
   return buf;
 }
