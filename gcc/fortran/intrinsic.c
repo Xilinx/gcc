@@ -3600,12 +3600,9 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
   flag = 0;
 
   for (actual = expr->value.function.actual; actual; actual = actual->next)
-    if (actual->expr != NULL) {
-      gfc_simplify_expr (actual->expr, 0);
-
+    if (actual->expr != NULL)
       flag |= (actual->expr->ts.type != BT_INTEGER
 	       && actual->expr->ts.type != BT_CHARACTER);
-    }
 
   name = expr->symtree->n.sym->name;
 

@@ -2163,10 +2163,10 @@ gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
       have_array_size = gfc_array_size (array, &array_size) == SUCCESS;
       have_vector_size = gfc_array_size (vector, &vector_size) == SUCCESS;
 
-      if (have_array_size
+      if (have_vector_size
 	  && (mask->expr_type == EXPR_ARRAY
 	      || (mask->expr_type == EXPR_CONSTANT
-		  && have_vector_size)))
+		  && have_array_size)))
 	{
 	  int mask_true_values = 0;
 
@@ -2202,8 +2202,10 @@ gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
 	    }
 	}
 
-      mpz_clear (array_size);
-      mpz_clear (vector_size);
+      if (have_array_size)
+	mpz_clear (array_size);
+      if (have_vector_size)
+	mpz_clear (vector_size);
     }
 
   return SUCCESS;
