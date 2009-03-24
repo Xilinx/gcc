@@ -1,3 +1,7 @@
+2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	Reverted the patch from 2009-03-19.
+
 2009-03-19  Tobias Grosser  <grosser@fim.uni-passau.de>
 	
 	* graphite-poly.c (new_poly_bb, free_poly_bb): Initialize/free
@@ -12,7 +16,7 @@
 	(build_pbb_drs, build_scop_drs): New.
 	(build_poly_scop): call build_scop_drs.
 
-2009-03-14  Sebastian Pop  <sebastian.pop@amd.com>
+2009-03-13  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-scop-detection.c (dot_all_scops_1): Close the table
 	once per basic block.

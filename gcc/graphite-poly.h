@@ -219,9 +219,6 @@ struct poly_bb
      related to the number of loops in the original code.  */
   ppl_Polyhedron_t domain;
 
-  /* The data references we access.  */
-  VEC (poly_dr_p, heap) *drs;
-
   /* The scattering function containing the transformations.  */
   ppl_Polyhedron_t transformed_scattering;
 
@@ -229,10 +226,9 @@ struct poly_bb
   ppl_Polyhedron_t original_scattering;
 };
 
-#define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
 #define PBB_SCOP(PBB) (PBB->scop)
 #define PBB_DOMAIN(PBB) (PBB->domain)
-#define PBB_DRS(PBB) (PBB->drs)
+#define PBB_BLACK_BOX(PBB) ((gimple_bb_p) PBB->black_box)
 #define PBB_TRANSFORMED_SCATTERING(PBB) (PBB->transformed_scattering)
 #define PBB_ORIGINAL_SCATTERING(PBB) (PBB->original_scattering)
 

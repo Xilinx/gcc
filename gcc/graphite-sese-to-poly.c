@@ -264,6 +264,20 @@ build_scop_bbs (scop_p scop)
   sbitmap_free (visited);
 }
 
+/* Returns the dimensionality of an enclosing loop iteration domain
+   with respect to enclosing SCoP for a given data reference REF.  The
+   returned dimensionality is homogeneous (depth of loop nest + number
+   of SCoP parameters + const).  */
+
+static int
+ref_nb_loops (data_reference_p ref, sese region)
+{
+  loop_p loop = loop_containing_stmt (DR_STMT (ref));
+
+  return nb_loops_around_loop_in_sese (loop, region)
+    + sese_nb_params (region) + 2;
+}
+
 /* Converts the STATIC_SCHEDULE of PBB into a scattering polyhedron.  
    We generate SCATTERING_DIMENSIONS scattering dimensions.
    
@@ -1273,93 +1287,133 @@ build_scop_iteration_domain (scop_p scop)
       }
 }
 
-/* Build data accesses for DR in PBB.  */
+/* Initializes an equation CY of the access matrix using the
+   information for a subscript from AF, relatively to the loop
+   indexes from LOOP_NEST and parameter indexes from PARAMS.  NDIM is
+   the dimension of the array access, i.e. the number of
+   subscripts.  Returns true when the operation succeeds.  */
 
-static void
-build_poly_dr (data_reference_p dr, poly_bb_p pbb)
+static bool
+build_access_matrix_with_af (tree af, lambda_vector cy,
+			     sese region, int ndim)
 {
-  Value v;
-  ppl_Polyhedron_t accesses;
-  int i, dr_nb_subscripts = DR_NUM_DIMENSIONS (dr);
+  int param_col;
 
-  scop_p scop = PBB_SCOP (pbb);
-  sese region = SCOP_REGION (scop);
-  ppl_dimension_type dom_nb_dims = scop_nb_params (scop) + pbb_nb_loops (pbb);
-  ppl_dimension_type accessp_nb_dims = dom_nb_dims + 1 + dr_nb_subscripts;
-  ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
-					       
-  value_init (v);
-
-  /* Set alias set to 1 for all accesses.
-     TODO: Set alias set depending on the memory base of the dr.  */
-  {
-    ppl_Linear_Expression_t alias;
-    ppl_Coefficient_t c;
-    ppl_Constraint_t cstr;
-    
-    ppl_new_Coefficient (&c);
-    ppl_new_Linear_Expression_with_dimension (&alias, accessp_nb_dims);
-    value_set_si (v, 1);
-    add_value_to_dim (dom_nb_dims, alias, v);
-
-    value_set_si (v, -1);
-    ppl_assign_Coefficient_from_mpz_t (c, v);
-    ppl_Linear_Expression_add_to_inhomogeneous (alias, c);
-
-    ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
-    ppl_Polyhedron_add_constraint (accesses, cstr);
-
-    ppl_delete_Linear_Expression (alias);
-    ppl_delete_Constraint (cstr); 
-  }
-  
-  for (i = 0; i < dr_nb_subscripts; i++)
+  switch (TREE_CODE (af))
     {
-      ppl_Linear_Expression_t fn, access;
-      ppl_Constraint_t cstr;
+    case POLYNOMIAL_CHREC:
+      {
+        struct loop *outer_loop;
+	tree left = CHREC_LEFT (af);
+	tree right = CHREC_RIGHT (af);
+	int var;
 
-      ppl_new_Linear_Expression_with_dimension (&fn, dom_nb_dims);
-      ppl_new_Linear_Expression_with_dimension (&access, accessp_nb_dims);
+	if (TREE_CODE (right) != INTEGER_CST)
+	  return false;
 
-      value_set_si (v, 1);
-      scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
-      ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
+        outer_loop = get_loop (CHREC_VARIABLE (af));
+        var = nb_loops_around_loop_in_sese (outer_loop, region);
+	cy[var] = int_cst_value (right);
 
-      add_value_to_dim (dom_nb_dims + 1 + i, access, v);
-      ppl_new_Constraint (&cstr, access, PPL_CONSTRAINT_TYPE_EQUAL);
-      ppl_Polyhedron_add_constraint (accesses, cstr);
+	switch (TREE_CODE (left))
+	  {
+	  case POLYNOMIAL_CHREC:
+	    return build_access_matrix_with_af (left, cy, region, ndim);
 
-      ppl_delete_Linear_Expression (fn);
-      ppl_delete_Linear_Expression (access);
-      ppl_delete_Constraint (cstr); 
+	  case INTEGER_CST:
+	    cy[ndim - 1] = int_cst_value (left);
+	    return true;
+
+	  default:
+	    return build_access_matrix_with_af (left, cy, region, ndim);
+	  }
+      }
+
+    case PLUS_EXPR:
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, region, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, region, ndim);
+      return true;
+      
+    case MINUS_EXPR:
+      build_access_matrix_with_af (TREE_OPERAND (af, 0), cy, region, ndim);
+      build_access_matrix_with_af (TREE_OPERAND (af, 1), cy, region, ndim);
+      return true;
+
+    case INTEGER_CST:
+      cy[ndim - 1] = int_cst_value (af);
+      return true;
+
+    case SSA_NAME:
+      param_col = parameter_index_in_region (af, region);
+      cy [ndim - sese_nb_params (region) + param_col - 1] = 1; 
+      return true;
+
+    default:
+      /* FIXME: access_fn can have parameters.  */
+      return false;
+    }
+}
+
+/* Initialize the access matrix in the data reference REF with respect
+   to the loop nesting LOOP_NEST.  Return true when the operation
+   succeeded.  */
+
+static bool
+build_access_matrix (data_reference_p ref, poly_bb_p pbb)
+{
+  int i, ndim = DR_NUM_DIMENSIONS (ref);
+  struct access_matrix *am = GGC_NEW (struct access_matrix);
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
+
+  AM_MATRIX (am) = VEC_alloc (lambda_vector, gc, ndim);
+
+  for (i = 0; i < ndim; i++)
+    {
+      lambda_vector v = lambda_vector_new (ref_nb_loops (ref, region));
+      tree af = DR_ACCESS_FN (ref, i);
+
+      if (!build_access_matrix_with_af (af, v, region,
+					ref_nb_loops (ref, region)))
+	return false;
+
+      VEC_quick_push (lambda_vector, AM_MATRIX (am), v);
     }
 
-  value_clear (v);
+  DR_ACCESS_MATRIX (ref) = am;
+  return true;
 }
 
-/* Build the data references for PBB.  */
+/* Build the access matrices for the data references in the SCOP.  */
 
 static void
-build_pbb_drs (poly_bb_p pbb)
-{
-  int j;
-  data_reference_p dr;
-  VEC (data_reference_p, heap) *gbb_drs = GBB_DATA_REFS (PBB_BLACK_BOX (pbb));
-
-  for (j = 0; VEC_iterate (data_reference_p, gbb_drs, j, dr); j++)
-    build_poly_dr (dr, pbb);
-}
-
-/* Build data references in SCOP.  */
-
-static void
-build_scop_drs (scop_p scop)
+build_scop_data_accesses (scop_p scop)
 {
   int i;
   poly_bb_p pbb;
 
+  /* FIXME: Construction of access matrix is disabled until some
+     pass, like the data dependence analysis, is using it.  */
+  return;
+
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    build_pbb_drs (pbb);
+    {
+      int j;
+      data_reference_p dr;
+
+      /* Construct the access matrix for each data ref, with respect to
+	 the loop nest of the current BB in the considered SCOP.  */
+      for (j = 0;
+	   VEC_iterate (data_reference_p,
+			GBB_DATA_REFS (PBB_BLACK_BOX (pbb)), j, dr); j++)
+	{
+	  bool res = build_access_matrix (dr, pbb);
+
+	  /* FIXME: At this point the DRs should always have an affine
+	     form.  For the moment this fails as build_access_matrix
+	     does not build matrices with parameters.  */
+	  gcc_assert (res);
+	}
+    }
 }
 
 /* Builds the polyhedral representation for a SESE region.  */
@@ -1380,10 +1434,7 @@ build_poly_scop (scop_p scop)
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
-
-  /* Disabled as breaking in libgfortran.  */
-  if (0)
-    build_scop_drs (scop);
+  build_scop_data_accesses (scop);
 
   return true;
 }
