@@ -1,5 +1,17 @@
 2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* cfgloopmanip.c (create_empty_loop_on_edge): Generate the loop exit
+	condition at the end of the loop.
+	* graphite.c (graphite_initialize, graphite_finalize): Print to
+	dump_file the compiled function.
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Update use
+	of create_empty_loop_on_edge.
+	(translate_clast): Update the code generation of loops for the new
+	shape of loops.
+	* cfgloop.h (create_empty_loop_on_edge): Update declaration.
+
+2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	Reverted the patch from 2009-03-19.
 
 2009-03-19  Tobias Grosser  <grosser@fim.uni-passau.de>

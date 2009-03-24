@@ -79,6 +79,9 @@ graphite_initialize (void)
   initialize_original_copy_tables ();
   cloog_initialize ();
 
+  if (dump_file && dump_flags)
+    dump_function_to_file (current_function_decl, dump_file, dump_flags);
+
   return true;
 }
 
@@ -92,6 +95,9 @@ graphite_finalize (bool transform_done)
 
   cloog_finalize ();
   free_original_copy_tables ();
+
+  if (dump_file && dump_flags)
+    dump_function_to_file (current_function_decl, dump_file, dump_flags);
 }
 
 /* Perform a set of linear transforms on the loops of the current

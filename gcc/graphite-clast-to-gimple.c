@@ -467,10 +467,10 @@ graphite_create_new_loop (sese region, edge entry_edge,
   tree lb = clast_to_gcc_expression (type, stmt->LB, params, ivstack);
   tree ub = clast_to_gcc_expression (type, stmt->UB, params, ivstack);
   tree stride = gmp_cst_to_tree (type, stmt->stride);
-  tree ivvar = create_tmp_var (type, "graphiteIV");
-  tree iv_before;
+  tree ivvar = create_tmp_var (type, "graphite_IV");
+  tree iv_before, iv_after;
   loop_p loop = create_empty_loop_on_edge
-    (entry_edge, lb, stride, ub, ivvar, &iv_before,
+    (entry_edge, lb, stride, ub, ivvar, &iv_before, &iv_after,
      outer ? outer : entry_edge->src->loop_father);
 
   add_referenced_var (ivvar);
@@ -584,11 +584,13 @@ translate_clast (sese region, struct loop *context_loop,
 	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
 				    ivstack, context_loop);
       edge last_e = single_exit (loop);
+      edge to_body = single_succ_edge (loop->header);
+      basic_block after = to_body->dest;
 
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
-				single_pred_edge (loop->latch), ivstack,
+				single_succ_edge (loop->header), ivstack,
 				rename_map);
-      redirect_edge_succ_nodup (next_e, loop->latch);
+      redirect_edge_succ_nodup (next_e, after);
 
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
