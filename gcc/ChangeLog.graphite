@@ -1,5 +1,9 @@
 2009-03-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-sese-to-poly.c (build_scop_scattering): Fix compile.
+
+2009-03-25  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-sese-to-poly.c (compare_prefix_loops): Removed.
 	(build_scop_scattering): Do not use compare_prefix_loops any more.
 	(nb_common_loops): New.

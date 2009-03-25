@@ -415,6 +415,7 @@ build_scop_scattering (scop_p scop)
 {
   int i;
   poly_bb_p pbb;
+  gimple_bb_p previous_gbb = NULL;
   ppl_Linear_Expression_t static_schedule;
   ppl_Coefficient_t c;
   Value v;
@@ -439,8 +440,7 @@ build_scop_scattering (scop_p scop)
       int nb_scat_dims = pbb_nb_loops (pbb) * 2 + 1;
 
       if (previous_gbb)
-	prefix = nb_common_loops (SCOP_REGION (scop), previous_gbb,
-				  PBB_BLACK_BOX (pbb));
+	prefix = nb_common_loops (SCOP_REGION (scop), previous_gbb, gbb);
       else
 	prefix = 0;
 
