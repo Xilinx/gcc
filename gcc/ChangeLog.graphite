@@ -1,5 +1,10 @@
 2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* sese.c (get_new_name_from_old_name): Renamed get_rename.
+	(register_old_and_new_names): Renamed set_rename.
+
+2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-scop-detection.h (nb_reductions_in_loop): Revert removal
 	of the decl from the previous commit.
 

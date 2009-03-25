@@ -686,10 +686,10 @@ sese_adjust_vphi (sese region, gimple phi, edge true_e)
       }
 }
 
-/* Returns the new name associated to OLD_NAME in MAP.  */
+/* Returns the name associated to OLD_NAME in MAP.  */
 
 static tree
-get_new_name_from_old_name (htab_t map, tree old_name)
+get_rename (htab_t map, tree old_name)
 {
   struct rename_map_elt tmp;
   PTR *slot;
@@ -701,6 +701,23 @@ get_new_name_from_old_name (htab_t map, tree old_name)
     return ((rename_map_elt) *slot)->new_name;
 
   return old_name;
+}
+
+/* Register in MAP the rename tuple (old_name, new_name).  */
+
+static void
+set_rename (htab_t map, tree old_name, tree new_name)
+{
+  struct rename_map_elt tmp;
+  PTR *slot;
+
+  tmp.old_name = old_name;
+  slot = htab_find_slot (map, &tmp, INSERT);
+
+  if (*slot)
+    free (*slot);
+
+  *slot = new_rename_map_elt (old_name, new_name);
 }
 
 /* Adjusts the phi nodes in the block BB for variables defined in
@@ -746,8 +763,8 @@ sese_adjust_phis_for_liveouts (sese region, basic_block bb, edge false_e,
 	if (gimple_phi_arg_edge (phi, i) == true_e)
 	  {
 	    tree old_name = gimple_phi_arg_def (phi, false_i);
-	    tree new_name = get_new_name_from_old_name
-	      (SESE_LIVEOUT_RENAMES (region), old_name);
+	    tree new_name = get_rename (SESE_LIVEOUT_RENAMES (region),
+					  old_name);
 
 	    gcc_assert (old_name != new_name);
 	    SET_PHI_ARG_DEF (phi, i, new_name);
@@ -785,7 +802,7 @@ rename_variables_in_stmt (gimple stmt, htab_t map)
   FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_USE)
     {
       tree use = USE_FROM_PTR (use_p);
-      tree new_name = get_new_name_from_old_name (map, use);
+      tree new_name = get_rename (map, use);
 
       replace_exp (use_p, new_name);
     }
@@ -842,7 +859,7 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
       
   if (is_parameter (region, op0)
       || is_iv (op0))
-    return get_new_name_from_old_name (map, op0);
+    return get_rename (map, op0);
       
   def_stmt = SSA_NAME_DEF_STMT (op0);
       
@@ -852,13 +869,13 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
       expand_scalar_variables_stmt (def_stmt, bb, region, map, gsi);
-      return get_new_name_from_old_name (map, op0);
+      return get_rename (map, op0);
     }
   else
     {
       if (gimple_code (def_stmt) != GIMPLE_ASSIGN
 	  || !bb_in_sese_p (gimple_bb (def_stmt), region))
-	return get_new_name_from_old_name (map, op0);
+	return get_rename (map, op0);
 
       var0 = gimple_assign_rhs1 (def_stmt);
       subcode = gimple_assign_rhs_code (def_stmt);
@@ -1131,7 +1148,7 @@ struct igp {
 static tree
 default_liveout_before_guard (htab_t liveout_before_guard, tree old_name)
 {
-  tree res = get_new_name_from_old_name (liveout_before_guard, old_name);
+  tree res = get_rename (liveout_before_guard, old_name);
 
   if (res == old_name)
     {
@@ -1198,23 +1215,6 @@ insert_guard_phis (sese region, basic_block bb, edge true_edge,
   update_ssa (TODO_update_ssa);
 }
 
-/* Register in MAP the tuple (old_name, new_name).  */
-
-static void
-register_old_and_new_names (htab_t map, tree old_name, tree new_name)
-{
-  struct rename_map_elt tmp;
-  PTR *slot;
-
-  tmp.old_name = old_name;
-  slot = htab_find_slot (map, &tmp, INSERT);
-
-  if (*slot)
-    free (*slot);
-
-  *slot = new_rename_map_elt (old_name, new_name);
-}
-
 /* Create a duplicate of the basic block BB.  NOTE: This does not
    preserve SSA form.  */
 
@@ -1249,11 +1249,8 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
       /* Create new names for all the definitions created by COPY and
 	 add replacement mappings for each new name.  */
       FOR_EACH_SSA_DEF_OPERAND (def_p, copy, op_iter, SSA_OP_DEF)
-	{
-	  tree old_name = DEF_FROM_PTR (def_p);
-	  tree new_name = create_new_def_for (old_name, copy, def_p);
-	  register_old_and_new_names (map, old_name, new_name);
-	}
+	set_rename (map, DEF_FROM_PTR (def_p),
+		    create_new_def_for (DEF_FROM_PTR (def_p), copy, def_p));
     }
 }
 
@@ -1268,13 +1265,8 @@ register_sese_liveout_renames (sese region, htab_t rename_map)
   for (i = 0; i < SESE_NUM_VER (region); i++)
     if (bitmap_bit_p (SESE_LIVEOUT (region), i)
 	&& is_gimple_reg (ssa_name (i)))
-      {
-	tree old_name = ssa_name (i);
-	tree new_name = get_new_name_from_old_name (rename_map, old_name);
-
-	register_old_and_new_names (SESE_LIVEOUT_RENAMES (region),
-				    old_name, new_name);
-      }
+      set_rename (SESE_LIVEOUT_RENAMES (region), ssa_name (i),
+		  get_rename (rename_map, ssa_name (i)));
 }
 
 /* Copies BB and includes in the copied BB all the statements that can
