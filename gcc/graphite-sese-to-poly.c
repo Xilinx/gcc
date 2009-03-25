@@ -384,17 +384,22 @@ static int
 compare_prefix_loops (VEC (loop_p, heap) *a, VEC (loop_p, heap) *b)
 {
   int i;
-  loop_p ea;
-  int lb;
+  loop_p loop;
+  int lb, la;
 
   if (!a || !b)
     return 0;
 
   lb = VEC_length (loop_p, b);
-
-  for (i = 0; VEC_iterate (loop_p, a, i, ea); i++)
+  for (i = 0; VEC_iterate (loop_p, a, i, loop); i++)
     if (i >= lb
-	|| ea != VEC_index (loop_p, b, i))
+	|| loop != VEC_index (loop_p, b, i))
+      return i;
+
+  la = VEC_length (loop_p, a);
+  for (i = 0; VEC_iterate (loop_p, b, i, loop); i++)
+    if (i >= la
+	|| loop != VEC_index (loop_p, b, i))
       return i;
 
   return 0;

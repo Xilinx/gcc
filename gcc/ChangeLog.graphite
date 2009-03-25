@@ -1,5 +1,9 @@
 2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-sese-to-poly.c (compare_prefix_loops): Fix compare.
+
+2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* cfgloopmanip.c (create_empty_loop_on_edge): Generate the loop exit
 	condition at the end of the loop.
 	* graphite.c (graphite_initialize, graphite_finalize): Print to
