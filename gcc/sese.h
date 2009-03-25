@@ -433,6 +433,18 @@ gbb_loop_index (gimple_bb_p gbb, loop_p loop)
   gcc_unreachable();
 }
 
+/* The number of common loops in REGION for GBB1 and GBB2.  */
+
+static inline int
+nb_common_loops (sese region, gimple_bb_p gbb1, gimple_bb_p gbb2)
+{
+  loop_p l1 = gbb_loop (gbb1);
+  loop_p l2 = gbb_loop (gbb2);
+  loop_p common = find_common_loop (l1, l2);
+  
+  return sese_loop_depth (region, common);
+}
+
 extern void print_gimple_bb (FILE *, gimple_bb_p, int, int);
 extern void debug_gbb (gimple_bb_p, int);
 

@@ -377,34 +377,6 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 					      PBB_TRANSFORMED_SCATTERING (pbb));
 }
 
-/* Returns the number of loops that are identical at the beginning of
-   the vectors A and B.  */
-
-static int
-compare_prefix_loops (VEC (loop_p, heap) *a, VEC (loop_p, heap) *b)
-{
-  int i;
-  loop_p loop;
-  int lb, la;
-
-  if (!a || !b)
-    return 0;
-
-  lb = VEC_length (loop_p, b);
-  for (i = 0; VEC_iterate (loop_p, a, i, loop); i++)
-    if (i >= lb
-	|| loop != VEC_index (loop_p, b, i))
-      return i;
-
-  la = VEC_length (loop_p, a);
-  for (i = 0; VEC_iterate (loop_p, b, i, loop); i++)
-    if (i >= la
-	|| loop != VEC_index (loop_p, b, i))
-      return i;
-
-  return 0;
-}
-
 /* Build for BB the static schedule.
 
    The STATIC_SCHEDULE is defined like this:
@@ -444,7 +416,6 @@ build_scop_scattering (scop_p scop)
   int i;
   poly_bb_p pbb;
   ppl_Linear_Expression_t static_schedule;
-  VEC (loop_p, heap) *loops_previous = NULL;
   ppl_Coefficient_t c;
   Value v;
 
@@ -464,10 +435,16 @@ build_scop_scattering (scop_p scop)
     {
       gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
       ppl_Linear_Expression_t common;
-      int prefix = compare_prefix_loops (loops_previous, GBB_LOOPS (gbb));
+      int prefix;
       int nb_scat_dims = pbb_nb_loops (pbb) * 2 + 1;
 
-      loops_previous = GBB_LOOPS (gbb);
+      if (previous_gbb)
+	prefix = nb_common_loops (SCOP_REGION (scop), previous_gbb,
+				  PBB_BLACK_BOX (pbb));
+      else
+	prefix = 0;
+
+      previous_gbb = PBB_BLACK_BOX (pbb);
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression (common,
 							   static_schedule);
@@ -486,7 +463,7 @@ build_scop_scattering (scop_p scop)
   value_clear (v);
   ppl_delete_Coefficient (c);
   ppl_delete_Linear_Expression (static_schedule);
-}
+} 
 
 /* Build the LOOPS vector for all bbs in SCOP.  */
 
