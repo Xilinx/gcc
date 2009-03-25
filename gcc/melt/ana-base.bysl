@@ -1373,7 +1373,7 @@
 	( ?(tree_integer_cst ?k)
 	   (messagenum_dbg  "sman_propagate_constraints_call curarg const.int. k" k)
 	   ;; add the constraint {parmdecl == k}
-	   (list_append 
+	   (list_append pplvarslist parmdeclval)
 	   )
 	( ?_
 	  (assert_msg "sman_propagate_constraints_call unimplemented curarg tree" ())))

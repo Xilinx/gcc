@@ -136,12 +136,7 @@ union basilysparam_un
 #define BPAR_PTR          'P'
 #define BPARSTR_PTR       "P"
 
-  /* for passing a pair-list of rest arguments, we pass likewise the
-     address of a local */
-#define BPAR_RESTPTR      'R'
-#define BPARSTR_RESTPTR   "R"
-  basilys_ptr_t *bp_rptr;	/* letter R */
-
+/* we no longer have BPAR_RESTPTR as 'R' */
 
   tree bp_tree;			/* letter t */
   tree *bp_treeptr;		/* for extra results */
@@ -178,6 +173,31 @@ union basilysparam_un
   const char **bp_cstringptr;		/* for results */
 #define BPAR_CSTRING         'S'
 #define BPARSTR_CSTRING      "S"
+
+  /* PPL coefficients */
+  ppl_Coefficient_t bp_ppl_coefficient;
+  ppl_Coefficient_t* bp_ppl_coefficientptr;
+#define BPAR_PPL_COEFFICIENT 'C'
+#define BPARSTR_PPL_COEFFICIENT "C"
+
+  /* PPL constraints */
+  ppl_Constraint_t bp_ppl_constraint;
+  ppl_Constraint_t* bp_ppl_constraintptr;
+#define BPAR_PPL_CONSTRAINT 'D'
+#define BPARSTR_PPL_CONSTRAINT "D"
+
+  /* PPL constraint systems */
+  ppl_Constraint_System_t bp_ppl_constraint_system;
+  ppl_Constraint_System_t* bp_ppl_constraint_systemptr;
+#define BPAR_PPL_CONSTRAINT_SYSTEM 'E'
+#define BPARSTR_PPL_CONSTRAINT_SYSTEM "E"
+
+  /* PPL linear expressions */
+  ppl_Linear_Expression_t bp_ppl_linear_expression;
+  ppl_Linear_Expression_t* bp_ppl_linear_expressionptr;
+#define BPAR_PPL_LINEAR_EXPRESSION 'E'
+#define BPARSTR_PPL_LINEAR_EXPRESSION "E"
+
 };
 
 /*** the closures contain routines which are called by applying
@@ -2494,6 +2514,18 @@ enum basilys_globalix_en
   BGLOB_CTYPE_VOID,
   /* ctype of constant cstrings */
   BGLOB_CTYPE_CSTRING,
+  /* ctype of PPL coefficients */
+  BGLOB_CTYPE_PPL_COEFFICIENT,
+  /* ctype of PPL linear expressions */
+  BGLOB_CTYPE_PPL_LINEAR_EXPRESSION,
+  /* ctype of PPL constraints */
+  BGLOB_CTYPE_PPL_CONSTRAINT,
+  /* ctype of PPL constraint systems */
+  BGLOB_CTYPE_PPL_CONSTRAINT_SYSTEM,
+  /* @@unimplemented ctype of PPL generators */
+  BGLOB_CTYPE_PPL_GENERATOR,
+  /* @@unimplemented ctype of PPL generator systems */
+  BGLOB_CTYPE_PPL_GENERATOR_SYSTEM,
   /* the initial system data */
   BGLOB_INITIAL_SYSTEM_DATA,
   /* the atom for true */

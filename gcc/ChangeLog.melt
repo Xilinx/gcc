@@ -1,3 +1,28 @@
+2009-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding most PPL related ctypes except PPL generators]
+	* basilys.h (BGLOB_CTYPE_PPL_COEFFICIENT)
+	(BGLOB_CTYPE_PPL_LINEAR_EXPRESSION, BGLOB_CTYPE_PPL_CONSTRAINT)
+	(BGLOB_CTYPE_PPL_CONSTRAINT_SYSTEM, BPAR_PPL_COEFFICIENT)
+	(BPARSTR_PPL_COEFFICIENT, BPAR_PPL_CONSTRAINT)
+	(BPARSTR_PPL_CONSTRAINT, BPAR_PPL_CONSTRAINT_SYSTEM)
+	(BPARSTR_PPL_CONSTRAINT_SYSTEM, BPAR_PPL_LINEAR_EXPRESSION)
+	(BPARSTR_PPL_LINEAR_EXPRESSION) added new ctypes.
+	(BGLOB_CTYPE_PPL_GENERATOR, BGLOB_CTYPE_PPL_GENERATOR_SYSTEM)
+	reserved for future use.
+	* melt/warmelt-first.bysl: added ctype_ppl_coefficient
+	ctype_ppl_linear_expression ctype_ppl_constraint
+	ctype_ppl_constraint_system and corresponding keywords
+	:ppl_coefficient :ppl_linear_expression :ppl_constraint
+	:ppl_constraint_system
+	* melt/warmelt-normal.bysl: added new ctype predefs.
+	* melt/ana-base.bysl: still adding constraints.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-03-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: reordered warm%-n.so ana%-d.so etc....
 	* basilys.c (ppl_basilys_variable_output_function): handles a

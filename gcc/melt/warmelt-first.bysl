@@ -1518,6 +1518,59 @@
   )
 (install_ctype_descr ctype_edge "GCC edge")
 
+;;; the ctype for PPL coefficients
+(definstance ctype_ppl_coefficient class_ctype
+  :predef CTYPE_PPL_COEFFICIENT
+  :named_name (stringconst2val discr_namestring "CTYPE_PPL_COEFFICIENT")
+  :ctype_keyword ':ppl_coefficient
+  :ctype_cname  (stringconst2val discr_namestring "ppl_Coefficient_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_COEFFICIENT")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_COEFFICIENT")
+  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_coefficient")
+  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_coefficientptr")
+)
+(install_ctype_descr ctype_ppl_coefficient "PPL coefficient")
+
+;;;; PPL linear expressions
+(definstance ctype_ppl_linear_expression class_ctype
+  :predef CTYPE_PPL_LINEAR_EXPRESSION
+  :named_name (stringconst2val discr_namestring "CTYPE_PPL_LINEAR_EXPRESSION")
+  :ctype_keyword ':ppl_linear_expression
+  :ctype_cname  (stringconst2val discr_namestring "ppl_Linear_Expression_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_LINEAR_EXPRESSION")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_LINEAR_EXPRESSION")
+  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_linear_expression")
+  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_linear_expressionptr")
+)
+(install_ctype_descr ctype_ppl_linear_expression "PPL linear expression")
+
+;;; the ctype for PPL constraints
+(definstance ctype_ppl_constraint class_ctype
+  :predef CTYPE_PPL_CONSTRAINT
+  :named_name (stringconst2val discr_namestring "CTYPE_PPL_CONSTRAINT")
+  :ctype_keyword ':ppl_constraint
+  :ctype_cname  (stringconst2val discr_namestring "ppl_Constraint_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_CONSTRAINT")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_CONSTRAINT")
+  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_constraint")
+  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_constraintptr")
+)
+(install_ctype_descr ctype_ppl_constraint "PPL constraint")
+
+;;; the ctype for PPL constraint_systems
+(definstance ctype_ppl_constraint_system class_ctype
+  :predef CTYPE_PPL_CONSTRAINT_SYSTEM
+  :named_name (stringconst2val discr_namestring "CTYPE_PPL_CONSTRAINT_SYSTEM")
+  :ctype_keyword ':ppl_constraint_system
+  :ctype_cname  (stringconst2val discr_namestring "ppl_Constraint_System_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_CONSTRAINT_SYSTEM")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_CONSTRAINT_SYSTEM")
+  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_constraint_system")
+  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_constraint_systemptr")
+)
+(install_ctype_descr ctype_ppl_constraint_system "PPL constraint_system")
+
+;;;;;;;;;;;;;;;;
 ;; the C type for void
 (definstance ctype_void class_ctype
   :predef CTYPE_VOID
@@ -3852,7 +3905,11 @@
  ctype_edge                   
  ctype_gimple
  ctype_gimpleseq
- ctype_long                           
+ ctype_long   
+ ctype_ppl_coefficient
+ ctype_ppl_linear_expression
+ ctype_ppl_constraint
+ ctype_ppl_constraint_system
  ctype_tree                           
  ctype_value                          
  ctype_void  
