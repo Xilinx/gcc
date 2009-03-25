@@ -1,3 +1,53 @@
+2009-03-25  Alexander Monakov  <amonakov@ispras.ru>
+
+        * gcc.target/ia64/20090324-1.c: New test.
+
+2009-03-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/27898
+	* gcc.dg/pr27898.c: New test.
+
+	PR tree-optimization/32139
+	* gcc.c-torture/compile/pr32139.c: New test.
+
+2009-03-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28274
+	* g++.dg/parse/defarg14.C: New test.
+
+2009-03-24  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/39528
+	* gfortran.dg/read_repeat.f90: New test.
+
+2009-03-24  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39529
+	* gcc.dg/vect/pr39529.c: New test.
+
+2009-03-24  Dodji Seketeli  <dodji@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/39524
+	* g++.dg/debug/dwarf2/imported-decl-1.C: New test.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* gcc.dg/gomp/pr39495-2.c: Remove xfails.
+
+2009-03-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto12.C: Add variadic test.
+	
+	PR c++/39526
+	* g++.dg/warn/Wshadow-4.C: New test.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39516
+	* gfortran.dg/pr39516.f: New test.
+
 2009-03-22  Hans-Peter Nilsson  <hp@axis.com>
 
 	* lib/target-libpath.exp (set_ld_library_path_env_vars):

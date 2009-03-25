@@ -3499,9 +3499,9 @@ typedef struct dw_loc_descr_struct GTY(())
 {
   dw_loc_descr_ref dw_loc_next;
   enum dwarf_location_atom dw_loc_opc;
+  int dw_loc_addr;
   dw_val_node dw_loc_oprnd1;
   dw_val_node dw_loc_oprnd2;
-  int dw_loc_addr;
 }
 dw_loc_descr_node;
 
@@ -13977,6 +13977,14 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       equate_decl_number_to_die (decl, var_die);
       return;
     }
+
+  /* If the compiler emitted a definition for the DECL declaration
+     and if we already emitted a DIE for it, don't emit a second
+     DIE for it again.  */
+  if (old_die
+      && declaration
+      && old_die->die_parent == context_die)
+    return;
 
   var_die = new_die (DW_TAG_variable, context_die, decl);
 

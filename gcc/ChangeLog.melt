@@ -1,4 +1,9 @@
 2009-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	[while merging with trunk r145061]
+	* basilys.h (ppl_Coefficient_t, ppl_Linear_Expression_t)
+	(ppl_Constraint_t, ppl_Constraint_System_t, ppl_Generator_t)
+	(ppl_Generator_System_t): typedef copied from <ppl_c.h>.
+2009-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding most PPL related ctypes except PPL generators]
 	* basilys.h (BGLOB_CTYPE_PPL_COEFFICIENT)
 	(BGLOB_CTYPE_PPL_LINEAR_EXPRESSION, BGLOB_CTYPE_PPL_CONSTRAINT)

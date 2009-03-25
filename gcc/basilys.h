@@ -48,6 +48,16 @@ along with GCC; see the file COPYING3.   If not see
 
  *****/
 
+/* these really are types inside <ppl_c.h>, which for some reason I
+   don't want to #include here. */
+
+typedef struct ppl_Coefficient_tag *ppl_Coefficient_t;
+typedef struct ppl_Linear_Expression_tag *ppl_Linear_Expression_t;
+typedef struct ppl_Constraint_tag *ppl_Constraint_t;
+typedef struct ppl_Constraint_System_tag *ppl_Constraint_System_t;
+typedef struct ppl_Generator_tag *ppl_Generator_t;
+typedef struct ppl_Generator_System_tag *ppl_Generator_System_t;
+
 /* declared in toplev.h which we want to avoid #include-ing */
 extern void fatal_error (const char *, ...);
 
@@ -612,15 +622,12 @@ union special_basilys_un
   /* stdio file */ FILE *sp_file;
   /*mpfr_ptr= */ void *sp_mpfr;
   /* malloced pointer to mpfr_t */
-  /*ppl_Coefficient_t= */ struct ppl_Coefficient_tag *sp_coefficient;
-  /*ppl_Linear_Expression_t= */ struct ppl_Linear_Expression_tag
-   *sp_linear_expression;
-  /*ppl_Constraint_t= */ struct ppl_Constraint_tag *sp_constraint;
-  /*ppl_Constraint_System_t= */ struct ppl_Constraint_System_tag
-   *sp_constraint_system;
-  /*ppl_Generator_t= */ struct ppl_Generator_tag *sp_generator;
-  /*ppl_Generator_System_t= */ struct ppl_Generator_System_tag
-   *sp_generator_system;
+  ppl_Coefficient_t sp_coefficient;
+  ppl_Linear_Expression_t sp_linear_expression;
+  ppl_Constraint_t sp_constraint;
+  ppl_Constraint_System_t sp_constraint_system;
+  ppl_Generator_t sp_generator;
+  ppl_Generator_System_t sp_generator_system;
 };
 
 /* PPL special have to be explicitly deleted; hence we need a hook

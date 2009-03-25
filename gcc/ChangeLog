@@ -1,3 +1,90 @@
+2009-03-25  Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* config/arm/rtems-elf.h: Remove LINK_GCC_C_SEQUENCE_SPEC.
+	* config/rs6000/t-rtems: Remove MULTILIB_EXTRA_OPTS.
+
+2009-03-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39497
+	* Makefile.in (dfp.o-warn): Use -fno-strict-aliasing instead
+	of -Wno-error.
+
+2009-03-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	* config/ia64/ia64.c (ia64_set_sched_flags): Zero spec_info->mask when
+	neither of haifa/selective schedulers are working.
+
+2009-03-25  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/invoke.texi (Debugging Options): Fix description of
+	-fno-merge-debug-strings.
+
+2009-03-24  Hans-Peter Nilsson  <hp@axis.com>
+
+	* config/cris/libgcc.ver: New version-script.
+	* config/cris/t-linux (SHLIB_MAPFILES): Use it.
+
+	* configure.ac <GAS features, nop mnemonic>: Add pattern
+	crisv32-*-* for "nop".
+	<GAS features, Thread-local storage>: Add item for CRIS and
+	CRIS v32.
+	* configure: Regenerate.
+
+2009-03-24  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/39529
+	* tree-vect-transform.c (vect_create_data_ref_ptr): Call
+	mark_sym_for_renaming for the tag copied to the new vector
+	pointer.
+
+2009-03-24  Arthur Loiret  <aloiret@debian.org>
+
+	* config.host (alpha*-*-linux*): Use driver-alpha.o and
+	alpha/x-alpha.
+	* config/alpha/linux.h (host_detect_local_cpu): Declare, add to
+	EXTRA_SPEC_FUNCTIONS.
+	(MCPU_MTUNE_NATIVE_SPECS, DRIVER_SELF_SPECS): New macros.
+	* config/alpha/driver-alpha.c, config/alpha/x-alpha: New.
+	* doc/invoke.texi (DEC Alpha Options): Document 'native' value for
+	-march and -mtune options.
+
+2009-03-24  Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* config/m68k/t-rtems: Add m5329 multilib.
+
+2009-03-24  Dodji Seketeli  <dodji@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/39524
+	* dwarf2out.c (gen_variable_die): Avoid adding duplicate declaration
+	nodes.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* c-parser.c (c_parser_omp_for_loop): Call c_parser_binary_expression
+	instead of c_parser_expression_conv, if original_code isn't one of the
+	4 allowed comparison codes, fail.
+
+2009-03-23  Richard Guenther  <rguenther@suse.de>
+
+	* cgraph.h (struct cgraph_node): Reorder fields for 64-bit hosts.
+	* tree.h (struct tree_type): Likewise.
+	* reload.h (struct insn_chain): Likewise.
+	* dwarf2out.c (struct dw_loc_descr_struct): Likewise.
+	* function.h (struct function): Likewise.
+	* tree-ssa-structalias.c (struct equiv_class_label): Likewise.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/39516
+	* lambda-code.c (perfect_nestify): Fix type of the uboundvar variable.
+
+2009-03-23 Bingfeng Mei  <bmei@broadcom.com>
+
+	* config.gcc (need_64bit_hwint): Make clear that need_64bit_hwint 
+	should be set true if BITS_PER_WORD of target is bigger than 32
+
 2009-03-22  Hans-Peter Nilsson  <hp@axis.com>
 
 	* config/cris/linux.h (CRIS_LINK_SUBTARGET_SPEC):
@@ -377,8 +464,8 @@
 2009-03-07  Jan Hubicka  <jh@suse.cz>
 
 	PR target/39361
-	* tree-inline.c (setup_one_parameter): Do replacement of const argument
-	by constant in SSA form.
+	* tree-inline.c (setup_one_parameter): Do replacement of const
+	argument by constant in SSA form.
 
 2009-03-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
