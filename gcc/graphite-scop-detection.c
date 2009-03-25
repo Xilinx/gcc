@@ -1308,4 +1308,32 @@ dot_all_scops (VEC (scop_p, heap) *scops)
 #endif
 }
 
+/* Display all SCoPs using dotty.  */
+
+void
+dot_scop (scop_p scop)
+{
+  VEC (scop_p, heap) *scops = NULL;
+
+  if (scop)
+    VEC_safe_push (scop_p, heap, scops, scop);
+
+  /* When debugging, enable the following code.  This cannot be used
+     in production compilers because it calls "system".  */
+#if 1
+  {
+    FILE *stream = fopen ("/tmp/allscops.dot", "w");
+    gcc_assert (stream);
+
+    dot_all_scops_1 (stream, scops);
+    fclose (stream);
+  }
+  system ("dotty /tmp/allscops.dot");
+#else
+  dot_all_scops_1 (stderr, scops);
+#endif
+
+  VEC_free (scop_p, heap, scops);
+}
+
 #endif

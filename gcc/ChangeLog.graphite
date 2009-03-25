@@ -1,5 +1,10 @@
 2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-scop-detection.c (dot_scop): New.
+	* graphite-scop-detection.h (dot_scop): Declared.
+
+2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (compare_prefix_loops): Fix compare.
 
 2009-03-24  Sebastian Pop  <sebastian.pop@amd.com>
