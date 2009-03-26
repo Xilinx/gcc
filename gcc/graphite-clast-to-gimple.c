@@ -1143,7 +1143,7 @@ gloog (scop_p scop)
     (10, rename_map_elt_info, eq_rename_map_elts, free);
 
   if_region = move_sese_in_condition (region);
-  sese_build_livein_liveouts (region);
+  sese_build_liveouts (region);
   sese_insert_phis_for_liveouts (region,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,

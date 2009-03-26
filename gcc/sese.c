@@ -377,10 +377,10 @@ build_sese_loop_nests (sese region)
 }
 
 /* For a USE in BB, if BB is outside REGION, mark the USE in the
-   SESE_LIVEIN and SESE_LIVEOUT sets.  */
+   SESE_LIVEOUT set.  */
 
 static void
-sese_build_livein_liveouts_use (sese region, basic_block bb, tree use)
+sese_build_liveouts_use (sese region, basic_block bb, tree use)
 {
   unsigned ver;
   basic_block def_bb;
@@ -390,15 +390,12 @@ sese_build_livein_liveouts_use (sese region, basic_block bb, tree use)
 
   ver = SSA_NAME_VERSION (use);
   def_bb = gimple_bb (SSA_NAME_DEF_STMT (use));
+
   if (!def_bb
       || !bb_in_sese_p (def_bb, region)
       || bb_in_sese_p (bb, region))
     return;
 
-  if (!SESE_LIVEIN_VER (region, ver))
-    SESE_LIVEIN_VER (region, ver) = BITMAP_ALLOC (NULL);
-
-  bitmap_set_bit (SESE_LIVEIN_VER (region, ver), bb->index);
   bitmap_set_bit (SESE_LIVEOUT (region), ver);
 }
 
@@ -406,7 +403,7 @@ sese_build_livein_liveouts_use (sese region, basic_block bb, tree use)
    used in BB that is outside of the REGION.  */
 
 static void
-sese_build_livein_liveouts_bb (sese region, basic_block bb)
+sese_build_liveouts_bb (sese region, basic_block bb)
 {
   gimple_stmt_iterator bsi;
   edge e;
@@ -416,27 +413,25 @@ sese_build_livein_liveouts_bb (sese region, basic_block bb)
 
   FOR_EACH_EDGE (e, ei, bb->succs)
     for (bsi = gsi_start_phis (e->dest); !gsi_end_p (bsi); gsi_next (&bsi))
-      sese_build_livein_liveouts_use (region, bb,
-				      PHI_ARG_DEF_FROM_EDGE (gsi_stmt (bsi), e));
+      sese_build_liveouts_use (region, bb,
+			       PHI_ARG_DEF_FROM_EDGE (gsi_stmt (bsi), e));
 
   for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
     FOR_EACH_SSA_TREE_OPERAND (var, gsi_stmt (bsi), iter, SSA_OP_ALL_USES)
-      sese_build_livein_liveouts_use (region, bb, var);
+      sese_build_liveouts_use (region, bb, var);
 }
 
-/* Build the SESE_LIVEIN and SESE_LIVEOUT for REGION.  */
+/* Build the SESE_LIVEOUT for REGION.  */
 
 void
-sese_build_livein_liveouts (sese region)
+sese_build_liveouts (sese region)
 {
   basic_block bb;
 
   SESE_LIVEOUT (region) = BITMAP_ALLOC (NULL);
-  SESE_NUM_VER (region) = num_ssa_names;
-  SESE_LIVEIN (region) = XCNEWVEC (bitmap, SESE_NUM_VER (region));
 
   FOR_EACH_BB (bb)
-    sese_build_livein_liveouts_bb (region, bb);
+    sese_build_liveouts_bb (region, bb);
 }
 
 /* Register basic blocks belonging to a region in a pointer set.  */
@@ -473,8 +468,6 @@ new_sese (edge entry, edge exit)
   SESE_LOOPS (res) = BITMAP_ALLOC (NULL);
   SESE_LOOP_NEST (res) = VEC_alloc (loop_p, heap, 3);
   SESE_LIVEOUT (res) = NULL;
-  SESE_NUM_VER (res) = 0;
-  SESE_LIVEIN (res) = NULL;
   SESE_ADD_PARAMS (res) = true;
   SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
   SESE_OLDIVS (res) = VEC_alloc (name_tree, heap, 3);
@@ -493,12 +486,6 @@ free_sese (sese region)
   name_tree p, iv;
 
   htab_delete (SESE_REDUCTION_LIST (region));
-
-  for (i = 0; i < SESE_NUM_VER (region); i++)
-    BITMAP_FREE (SESE_LIVEIN_VER (region, i));
-
-  if (SESE_LIVEIN (region))
-    free (SESE_LIVEIN (region));
 
   if (SESE_LIVEOUT (region))
     BITMAP_FREE (SESE_LIVEOUT (region));
@@ -560,29 +547,6 @@ sese_add_exit_phis_edge (basic_block exit, tree use, edge false_e, edge true_e)
   add_phi_arg (phi, use, true_e);
 }
 
-/* Add phi nodes for VAR that is used in LIVEIN.  Phi nodes are
-   inserted in block BB.  */
-
-static void
-sese_add_exit_phis_var (basic_block bb, tree var, bitmap livein,
-			edge false_e, edge true_e)
-{
-  bitmap def;
-  basic_block def_bb = gimple_bb (SSA_NAME_DEF_STMT (var));
-
-  if (is_gimple_reg (var))
-    bitmap_clear_bit (livein, def_bb->index);
-  else
-    bitmap_set_bit (livein, def_bb->index);
-
-  def = BITMAP_ALLOC (NULL);
-  bitmap_set_bit (def, def_bb->index);
-  compute_global_livein (livein, def);
-  BITMAP_FREE (def);
-
-  sese_add_exit_phis_edge (bb, var, false_e, true_e);
-}
-
 /* Insert in the block BB phi nodes for variables defined in REGION
    and used outside the REGION.  The code generation moves REGION in
    the else clause of an "if (1)" and generates code in the then
@@ -604,8 +568,7 @@ sese_insert_phis_for_liveouts (sese region, basic_block bb,
   update_ssa (TODO_update_ssa);
 
   EXECUTE_IF_SET_IN_BITMAP (SESE_LIVEOUT (region), 0, i, bi)
-    sese_add_exit_phis_var (bb, ssa_name (i), SESE_LIVEIN_VER (region, i),
-			    false_e, true_e);
+    sese_add_exit_phis_edge (bb, ssa_name (i), false_e, true_e);
 
   update_ssa (TODO_update_ssa);
 }
@@ -1260,9 +1223,9 @@ graphite_copy_stmts_from_block (basic_block bb, basic_block new_bb, htab_t map)
 static void
 register_sese_liveout_renames (sese region, htab_t rename_map)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < SESE_NUM_VER (region); i++)
+  for (i = 0; i < num_ssa_names; i++)
     if (bitmap_bit_p (SESE_LIVEOUT (region), i)
 	&& is_gimple_reg (ssa_name (i)))
       set_rename (SESE_LIVEOUT_RENAMES (region), ssa_name (i),

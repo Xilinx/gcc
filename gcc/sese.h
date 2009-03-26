@@ -47,13 +47,6 @@ typedef struct sese
      SSA_NAME is defined inside and used outside the SESE region.  */
   bitmap liveout;
 
-  /* The overall number of SSA_NAME versions used to index LIVEIN.  */
-  int num_ver;
-
-  /* For each SSA_NAME version VER in LIVEOUT, LIVEIN[VER] contains
-     the set of basic blocks indices that contain a use of VER.  */
-  bitmap *livein;
-
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
@@ -84,9 +77,6 @@ typedef struct sese
 #define SESE_EXIT_BB(S) (S->exit->dest)
 #define SESE_REGION_BBS(S) (S->region_basic_blocks)
 #define SESE_LIVEOUT(S) (S->liveout)
-#define SESE_LIVEIN(S) (S->livein)
-#define SESE_LIVEIN_VER(S, I) (S->livein[I])
-#define SESE_NUM_VER(S) (S->num_ver)
 #define SESE_PARAMS(S) (S->params)
 #define SESE_LOOPS(S) (S->loops)
 #define SESE_LOOP_NEST(S) (S->loop_nest)
@@ -98,7 +88,7 @@ typedef struct sese
 
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
-extern void sese_build_livein_liveouts (sese);
+extern void sese_build_liveouts (sese);
 extern void sese_insert_phis_for_liveouts (sese, basic_block, edge, edge);
 extern void sese_adjust_phis_for_liveouts (sese, basic_block, edge, edge);
 extern int parameter_index_in_region (tree, sese);

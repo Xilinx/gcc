@@ -1,3 +1,22 @@
+2009-03-26  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (gloog): Call sese_build_liveouts.
+	* sese.c (sese_build_liveouts_use): Renamed from
+	sese_build_livein_liveouts_use. Remove liveins.
+	(sese_build_liveouts_bb): Renamed from sese_build_livein_liveouts_bb.
+	Call sese_build_liveouts_use.
+	(sese_build_liveouts): Renamed from sese_build_livein_liveouts.
+	Call sese_build_liveouts_bb.
+	(new_sese, free_sese): Remove liveins.
+	(sese_add_exit_phis_var): Deleted.
+	(sese_insert_phis_for_liveouts): Call sese_add_exit_phis_edge
+	directly.
+	(graphite_copy_stmts_from_block): Remove SESE_NUM_VER.
+
+	* sese.h (sese): Remove num_ver and livein.
+	(SESE_LIVEIN, SESE_LIVEIN_VER, SESE_NUM_VER): Removed.
+
 2009-03-25  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (build_scop_scattering): Fix compile.
