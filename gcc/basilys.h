@@ -48,8 +48,9 @@ along with GCC; see the file COPYING3.   If not see
 
  *****/
 
-/* these really are types inside <ppl_c.h>, which for some reason I
-   don't want to #include here. */
+/* these really are types declared inside <ppl_c.h>, which for some
+   reason I don't want to #include here, because the generated
+   gtype-desc.c needs them. */
 
 typedef struct ppl_Coefficient_tag *ppl_Coefficient_t;
 typedef struct ppl_Linear_Expression_tag *ppl_Linear_Expression_t;
@@ -2273,16 +2274,41 @@ enum {
   BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM=0,
   BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM
 };
-/* create a new constraint system */
+/* create a new boxed PPL constraint system */
 basilys_ptr_t basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, 
 						  bool unsatisfiable);
-/* clone an existing constraint system */
+/* box clone an existing PPL constraint system */
 basilys_ptr_t basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p);
+
+/* make a new boxed PPL linear expression  */
+basilys_ptr_t basilysgc_new_ppl_linear_expression(basilys_ptr_t discr_p);
+
+/* clear any boxed special by appropriately deleting inside */
+void basilys_clear_special(basilys_ptr_t val_p);
 
 /** pretty print into a strbuf SBUF_P with indentation INDENTSP the
     pplvalue PPL_P using the variable name tuple VARNAMVECT_P **/
 void
 basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p);
+
+
+/* utility to make a ppl_Coefficient_t out of a constant tree */
+ppl_Coefficient_t basilys_make_ppl_coefficient_from_tree(tree tr);
+
+/* utility to make a ppl_Coefficient_t from a long number */
+ppl_Coefficient_t basilys_make_ppl_coefficient_from_long(long l);
+
+/* utility to make a ppl_Linear_Expression_t */
+ppl_Linear_Expression_t basilys_make_ppl_linear_expression(void);
+
+/* utility to make a ppl_Constraint ; the constraint type is a string
+   "==" or ">" "<" ">=" "<=" because we don't want enums in
+   MELT... */
+ppl_Constraint_t basilys_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*constyp);
+
+/* insert a raw PPL constraint into a boxed constraint system */
+void
+basilys_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, basilys_ptr_t ppl_p);
 
 /**************************** misc *****************************/
 /* a random generator */

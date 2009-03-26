@@ -1,3 +1,20 @@
+2009-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_new_ppl_linear_expression)
+	(basilys_clear_special, basilys_make_ppl_coefficient_from_tree)
+	(basilys_make_ppl_coefficient_from_long)
+	(basilys_make_ppl_linear_expression)
+	(basilys_make_ppl_constraint_cstrtype)
+	(basilys_insert_ppl_constraint_in_boxed_system): added
+	declarations.
+	* basilys.c (basilysgc_new_ppl_linear_expression)
+	(basilys_clear_special, basilys_make_ppl_coefficient_from_tree)
+	(basilys_make_ppl_coefficient_from_long)
+	(basilys_make_ppl_linear_expression)
+	(basilys_make_ppl_constraint_cstrtype)
+	(basilys_insert_ppl_constraint_in_boxed_system): Added new
+	functions.
+	* ana-base.bysl: added several ppl primitives and use them for
+	passing equality constraint.
 2009-03-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	[while merging with trunk r145061]
 	* basilys.h (ppl_Coefficient_t, ppl_Linear_Expression_t)

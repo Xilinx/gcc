@@ -6731,6 +6731,7 @@ end:
 #undef locnamv
 #undef seqv
 #undef strv
+#undef valv
 }
 
 static void
@@ -8080,7 +8081,55 @@ end:
  *   P A R M A     P O L Y H E D R A     L I B R A R Y     S T U F F   *
  ***********************************************************************/
 
-/* make a new PPL empty or unsatisfiable constraint system */
+/* utility to make a ppl_Coefficient_t out of a constant tree */
+ppl_Coefficient_t
+basilys_make_ppl_coefficient_from_tree(tree tr)
+{
+  HOST_WIDE_INT lo=0, hi=0;
+  ppl_Coefficient_t coef=NULL;
+  mpz_t mp;
+  if (!tr) return NULL;
+  switch (TREE_CODE(tr)) {
+  case INTEGER_CST:
+    mpz_init(mp);
+    lo = TREE_INT_CST_LOW(tr);
+    hi = TREE_INT_CST_HIGH(tr);
+    if (hi==0 && lo>=0) 
+      mpz_set_ui(mp, lo);
+    else if (hi== -1 && lo<0)
+      mpz_set_si(mp, lo);
+    else {
+      mpz_t mp2;
+      mpz_init_set_ui (mp2, lo);
+      mpz_set_si(mp, hi);
+      mpz_mul_2exp(mp, mp, HOST_BITS_PER_WIDE_INT);
+      mpz_add(mp, mp, mp2);
+      mpz_clear(mp2);
+    };
+    if (ppl_new_Coefficient_from_mpz_t (&coef, mp))
+      fatal_error("ppl_new_Coefficient_from_mpz_t failed");
+    mpz_clear(mp);
+    return coef;
+  default:
+    break;
+  }
+  return NULL;
+}
+
+/* utility to make a ppl_Coefficient_t from a long number */
+ppl_Coefficient_t
+basilys_make_ppl_coefficient_from_long(long l)
+{
+  ppl_Coefficient_t coef=NULL;
+  mpz_t mp;
+  mpz_init_set_si (mp, l);
+  if (ppl_new_Coefficient_from_mpz_t (&coef, mp))
+    fatal_error("ppl_new_Coefficient_from_mpz_t failed");
+  mpz_clear(mp);
+  return coef;
+}
+
+/* make a new boxed PPL empty or unsatisfiable constraint system */
 basilys_ptr_t
 basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
 {
@@ -8114,7 +8163,7 @@ basilysgc_new_ppl_constraint_system(basilys_ptr_t discr_p, bool unsatisfiable)
 #undef spec_resv
 }
 
-/* clone a PPL constraint system */
+/* box clone a PPL constraint system */
 basilys_ptr_t
 basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
 {
@@ -8148,6 +8197,119 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
 #undef spec_pplv
 }
 
+/* insert a raw PPL constraint into a boxed constraint system */
+void
+basilys_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, basilys_ptr_t ppl_p) 
+{
+  BASILYS_ENTERFRAME(3, NULL);
+#define pplv   curfram__.varptr[0]
+#define spec_pplv ((struct basilysspecial_st*)(pplv))
+  pplv = ppl_p;
+  if (!pplv || !cons 
+      || basilys_magic_discr((basilys_ptr_t)pplv) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
+    goto end;
+  if (spec_pplv->val.sp_constraint_system
+      && ppl_Constraint_System_insert_Constraint (spec_pplv->val.sp_constraint_system,
+						  cons))
+    fatal_error("failed to ppl_Constraint_System_insert_Constraint");
+ end:
+  BASILYS_EXITFRAME();
+#undef pplv
+#undef spec_pplv
+}
+
+
+/* utility to make a ppl_Linear_Expression_t */
+ppl_Linear_Expression_t 
+basilys_make_ppl_linear_expression(void)
+{
+  ppl_Linear_Expression_t liex = NULL;
+  if (ppl_new_Linear_Expression(&liex))
+    fatal_error("basilys_make_ppl_linear_expression failed");
+  return liex;
+}
+
+/* utility to make a ppl_Constraint ; the constraint type is a string
+   "==" or "!=" ">" "<" ">=" "<=" because we don't want enums in
+   MELT... */
+ppl_Constraint_t 
+basilys_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*constyp) {
+  ppl_Constraint_t cons = NULL;
+  if (!liex || !constyp) return NULL;
+  if (!strcmp(constyp, "==")
+      && !ppl_new_Constraint(&cons, liex,
+			     PPL_CONSTRAINT_TYPE_EQUAL)) 
+    return cons;
+  else if (!strcmp(constyp, ">")
+	   && !ppl_new_Constraint(&cons, liex, 
+				  PPL_CONSTRAINT_TYPE_GREATER_THAN))
+    return cons;
+  else if (!strcmp(constyp, "<")
+	   && !ppl_new_Constraint(&cons, liex, 
+				  PPL_CONSTRAINT_TYPE_LESS_THAN))
+    return cons;
+  else if (!strcmp(constyp, ">=")
+	   && !ppl_new_Constraint(&cons, liex, 
+				  PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL))
+    return cons;
+  else if (!strcmp(constyp, "<=")
+	   && !ppl_new_Constraint(&cons, liex, 
+				  PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL))
+    return cons;
+  return NULL;
+}
+
+/* make a new boxed PPL linear expression  */
+basilys_ptr_t
+basilysgc_new_ppl_linear_expression(basilys_ptr_t discr_p)
+{
+  int err = 0;
+  BASILYS_ENTERFRAME(2, NULL);
+#define discrv curfram__.varptr[0]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define resv   curfram__.varptr[1]
+#define spec_resv ((struct basilysspecial_st*)(resv))
+  discrv = (void *) discr_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_SPECPPL_LINEAR_EXPRESSION)
+    goto end;
+  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
+  spec_resv->discr = (basilysobject_ptr_t) discrv;
+  spec_resv->mark = 0;
+  spec_resv->val.sp_pointer = NULL;
+  err = ppl_new_Linear_Expression(&spec_resv->val.sp_linear_expression);
+  if (err) 
+    fatal_error("PPL new Linear Expression failed in Basilys"); 
+ end:
+  BASILYS_EXITFRAME();
+  return (basilys_ptr_t)resv;
+#undef discrv
+#undef object_discrv
+#undef resv
+#undef spec_resv
+}
+
+
+void basilys_clear_special(basilys_ptr_t val_p)
+{
+  BASILYS_ENTERFRAME(1, NULL);
+#define valv curfram__.varptr[0]
+#define spec_valv ((struct basilysspecial_st*)valv)
+  valv = val_p;
+  if (!valv) goto end;
+  switch(basilys_magic_discr((basilys_ptr_t) valv)) {
+  case ALL_OBMAG_SPECIAL_CASES:
+      delete_special(spec_valv);
+      break;
+  default:
+    break;
+  }
+ end:
+  BASILYS_EXITFRAME();
+#undef valv
+#undef spec_valv
+}
 
 
 /***
