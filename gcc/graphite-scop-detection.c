@@ -446,8 +446,8 @@ graphite_cannot_represent_loop (basic_block scop_entry, loop_p loop)
 
 struct scopdet_info
 {
-  /* Where the last open scop would stop if the current BB is harmful.  */
-  basic_block last;
+  /* Exit of the open scop would stop if the current BB is harmful.  */
+  basic_block exit;
 
   /* Where the next scop would start if the current BB is harmful.  */
   basic_block next;
@@ -478,37 +478,39 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
   basic_block entry_block = ENTRY_BLOCK_PTR;
   stmt = harmful_stmt_in_bb (entry_block, bb);
   result.difficult = (stmt != NULL);
-  result.last = NULL;
+  result.exit = NULL;
 
   switch (type)
     {
     case GBB_LAST:
       result.next = NULL;
       result.exits = false;
-      result.last = bb;
 
       /* Mark bbs terminating a SESE region difficult, if they start
 	 a condition.  */
-      if (VEC_length (edge, bb->succs) > 1)
+      if (!single_succ_p (bb))
 	result.difficult = true; 
+      else
+	result.exit = single_succ (bb);
 
       break;
 
     case GBB_SIMPLE:
       result.next = single_succ (bb);
       result.exits = false;
-      result.last = bb;
+      result.exit = single_succ (bb);
       break;
 
     case GBB_LOOP_SING_EXIT_HEADER:
       {
         VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap,3);
         struct scopdet_info sinfo;
+	edge exit_e = single_exit (bb->loop_father);
 
         sinfo = build_scops_1 (bb, &regions, loop);
 	
-        result.last = single_exit (bb->loop_father)->src;
-        result.next = single_exit (bb->loop_father)->dest;
+        result.exit = exit_e->dest;
+        result.next = exit_e->dest;
 
         /* If we do not dominate result.next, remove it.  It's either
            the EXIT_BLOCK_PTR, or another bb dominates it and will
@@ -516,7 +518,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
         if (!dominated_by_p (CDI_DOMINATORS, result.next, bb))
 	  result.next = NULL;
 
-	if (result.last->loop_father != loop)
+	if (exit_e->src->loop_father != loop)
 	  result.next = NULL;
 
         if (graphite_cannot_represent_loop (entry_block, loop))
@@ -566,7 +568,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	    }
 
         result.next = NULL; 
-        result.last = NULL;
+        result.exit = NULL;
         result.difficult = true;
         result.exits = false;
         move_sd_regions (&regions, scops);
@@ -580,7 +582,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	VEC (basic_block, heap) *dominated;
 	int i;
 	basic_block dom_bb;
-	basic_block last_bb = NULL;
+	basic_block last_exit = NULL;
 	edge e;
 	result.exits = false;
  
@@ -613,12 +615,10 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	      {
 		/* Check, if edge leads directly to the end of this
 		   condition.  */
-		if (!last_bb)
-		  {
-		    last_bb = e->dest;
-		  }
+		if (!last_exit)
+		  last_exit = e->dest;
 
-		if (e->dest != last_bb)
+		if (e->dest != last_exit)
 		  result.difficult = true;
 
 		continue;
@@ -633,35 +633,38 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	    sinfo = build_scops_1 (e->dest, &regions, loop);
 
 	    result.exits |= sinfo.exits;
-	    result.last = sinfo.last;
 	    result.difficult |= sinfo.difficult; 
 
 	    /* Checks, if all branches end at the same point. 
 	       If that is true, the condition stays joinable.
 	       Have a look at the example above.  */
-	    if (sinfo.last && single_succ_p (sinfo.last))
+	    if (sinfo.exit)
 	      {
-		basic_block next_tmp = single_succ (sinfo.last);
-                  
-		if (!last_bb)
-		    last_bb = next_tmp;
+		if (!last_exit)
+		  last_exit = sinfo.exit;
 
-		if (next_tmp != last_bb)
+		if (sinfo.exit != last_exit)
 		  result.difficult = true;
 	      }
 	    else
 	      result.difficult = true;
 	  }
 
-	/* If the condition is joinable.  */
+	if (!last_exit)
+	  result.difficult = true;
+
+	/* Join the branches of the condition if possible.  */
 	if (!result.exits && !result.difficult)
 	  {
 	    /* Only return a next pointer if we dominate this pointer.
 	       Otherwise it will be handled by the bb dominating it.  */ 
-	    if (dominated_by_p (CDI_DOMINATORS, last_bb, bb) && last_bb != bb)
-	      result.next = last_bb;
+	    if (dominated_by_p (CDI_DOMINATORS, last_exit, bb)
+		&& last_exit != bb)
+	      result.next = last_exit;
 	    else
 	      result.next = NULL; 
+
+	    result.exit = last_exit;
 
 	    VEC_free (sd_region, heap, regions);
 	    break;
@@ -692,7 +695,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
                                      
 	    result.exits |= sinfo.exits; 
 	    result.difficult = true;
-	    result.last = NULL;
+	    result.exit = NULL;
 	  }
 
 	VEC_free (basic_block, heap, dominated);
@@ -724,10 +727,10 @@ build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
   result.exits = false;
   result.difficult = false;
   result.next = NULL;
-  result.last = NULL;
+  result.exit = NULL;
   open_scop.entry = NULL;
   open_scop.exit = NULL;
-  sinfo.last = NULL;
+  sinfo.exit = NULL;
 
   /* Loop over the dominance tree.  If we meet a difficult bb, close
      the current SCoP.  Loop and condition header start a new layer,
@@ -759,22 +762,12 @@ build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
   /* Try to close open_scop, if we are still in an open SCoP.  */
   if (in_scop)
     {
-      int i;
-      edge e;
-
-	for (i = 0; VEC_iterate (edge, sinfo.last->succs, i, e); i++)
-	  if (dominated_by_p (CDI_POST_DOMINATORS, sinfo.last, e->dest))
-            open_scop.exit = e->dest;
-
-        if (!open_scop.exit && open_scop.entry != sinfo.last)
-	  open_scop.exit = sinfo.last;
-
-	if (open_scop.exit)
-	  VEC_safe_push (sd_region, heap, *scops, &open_scop);
-      
+      open_scop.exit = sinfo.exit;
+      gcc_assert (open_scop.exit);
+      VEC_safe_push (sd_region, heap, *scops, &open_scop);
     }
 
-  result.last = sinfo.last;
+  result.exit = sinfo.exit;
   return result;
 }
 
