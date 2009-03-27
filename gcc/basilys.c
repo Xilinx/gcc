@@ -1918,12 +1918,12 @@ end:
 
 
 void
-basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p, const char *str)
+basilysgc_add_strbuf_raw_len (basilys_ptr_t strbuf_p, const char *str, int slen)
 {
 #ifdef ENABLE_CHECKING
   static long addcount;
 #endif
-  int slen = 0, blen = 0;
+  int blen = 0;
   BASILYS_ENTERFRAME (2, NULL);
 #define strbufv  curfram__.varptr[0]
 #define buf_strbufv  ((struct basilysstrbuf_st*)(strbufv))
@@ -1933,7 +1933,8 @@ basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p, const char *str)
   if (basilys_magic_discr ((basilys_ptr_t) (strbufv)) != OBMAG_STRBUF)
     goto end;
   gcc_assert (!basilys_is_young (str));
-  slen = strlen (str);
+  if (slen<0)
+    slen = strlen (str);
   blen = basilys_primtab[buf_strbufv->buflenix];
   gcc_assert (blen > 0);
 #ifdef ENABLE_CHECKING
@@ -2024,6 +2025,12 @@ end:
   BASILYS_EXITFRAME ();
 #undef strbufv
 #undef buf_strbufv
+}
+
+void
+basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p, const char *str)
+{
+  basilysgc_add_strbuf_raw_len(strbuf_p, str, -1);
 }
 
 void
@@ -7935,16 +7942,29 @@ struct ppbasilysflushdata_st
   int gf_magic;			/* always  PPBASILYS_MAGIC */
   basilys_ptr_t *gf_sbufad;	/* adress of pointer to sbuf */
   pretty_printer gf_pp;
+  int gf_indent;		/* current indentation */
 };
 
 static void
 ppbasilys_flushrout (const char *txt, void *data)
 {
+  const char *bl = 0, *nl = 0;
   struct ppbasilysflushdata_st *fldata =
     (struct ppbasilysflushdata_st *) data;
   gcc_assert (fldata->gf_magic == PPBASILYS_MAGIC);
-  basilysgc_add_strbuf ((basilys_ptr_t) (*fldata->gf_sbufad),
-			txt);
+  gcc_assert (txt != NULL);
+  for (bl = txt; bl; bl = nl?(nl+1):0) {
+    int linelen = 0;
+    nl = strchr(bl, '\n');
+    if (nl && nl[1]==0) 
+      break;
+    linelen = nl?(nl-bl):strlen(bl);
+    basilysgc_add_strbuf_raw_len ((basilys_ptr_t) (*fldata->gf_sbufad),
+				  bl, linelen);
+    if (nl) 
+      basilysgc_strbuf_add_indent((basilys_ptr_t) (*fldata->gf_sbufad), 
+				  fldata->gf_indent, 72);
+  }
 }
 
 /* pretty print into an sbuf a gimple */
@@ -7966,6 +7986,7 @@ basilysgc_ppstrbuf_gimple (basilys_ptr_t sbuf_p, int indentsp, gimple gstmt)
   memset (&ppgdat, 0, sizeof (ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
   ppgdat.gf_magic = PPBASILYS_MAGIC;
+  ppgdat.gf_indent = indentsp;
   pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
 			 (void *) &ppgdat);
   dump_gimple_stmt (&ppgdat.gf_pp, gstmt, indentsp,
@@ -7998,6 +8019,7 @@ basilysgc_ppstrbuf_gimple_seq (basilys_ptr_t sbuf_p, int indentsp,
   memset (&ppgdat, 0, sizeof (ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
   ppgdat.gf_magic = PPBASILYS_MAGIC;
+  ppgdat.gf_indent = indentsp;
   pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
 			 (void *) &ppgdat);
   dump_gimple_seq (&ppgdat.gf_pp, gseq, indentsp,
@@ -8028,6 +8050,7 @@ basilysgc_ppstrbuf_tree (basilys_ptr_t sbuf_p, int indentsp, tree tr)
   memset (&ppgdat, 0, sizeof (ppgdat));
   ppgdat.gf_sbufad = (basilys_ptr_t *) & sbufv;
   ppgdat.gf_magic = PPBASILYS_MAGIC;
+  ppgdat.gf_indent = indentsp;
   pp_construct_routdata (&ppgdat.gf_pp, NULL, 72, ppbasilys_flushrout,
 			 (void *) &ppgdat);
   dump_generic_node (&ppgdat.gf_pp, tr, indentsp,

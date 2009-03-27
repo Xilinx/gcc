@@ -1,4 +1,20 @@
 2009-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilysgc_add_strbuf_raw_len): new function.
+	* basilys.h (basilysgc_add_strbuf_raw_len): added new function.
+	(basilysgc_add_strbuf_raw): made wrapper to above.
+	(struct ppbasilysflushdata_st): added gf_ident field.
+	(ppbasilys_flushrout): use above basilysgc_add_strbuf_raw_len and
+	handle indentation.
+	(basilysgc_ppstrbuf_gimple, basilysgc_ppstrbuf_tree) take care of
+	indentation.
+	* melt/warmelt-outobj.bysl: removed debug_msg of discr_string.
+	* melt/ana-base.bysl: added gimple_cond_true & gimple_cond_false
+	cmatchers & push_cfun_decl & pop_cfun primitives. Cleaner ppl
+	debugprint. added sman_cfuntreemap field. many @@unimplemented
+	asserts replaced by @$@unimplemented. Renamed smallana_latessagate
+	& smallana_latessaexec as smallanapass_gate & smallanapass_exec,
+	they are now in basilys_ipa_gccpass.
+2009-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl: Added several ppl wrappers. Equality
 	constraints seems ok...
 2009-03-26  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -2770,7 +2770,7 @@
   )
 (install_method discr_string output_c_code outpucod_string)
 
-(debug_msg discr_string "discr_string @@toplev warmbasilys")
+;(debug_msg discr_string "discr_string @@toplev warmbasilys")
 
 
 ;;; output an integer

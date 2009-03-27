@@ -2214,6 +2214,11 @@ struct basilysstrbuf_st *basilysgc_new_strbuf (basilysobject_ptr_t discr_p,
 void basilysgc_add_strbuf_raw (basilys_ptr_t strbuf_p,
 			       const char *str);
 
+/* add into STRBUF the static string STR (which is not in the basilys
+   heap) of length SLEN or strlen(STR) if SLEN<0 */
+void basilysgc_add_strbuf_raw_len (basilys_ptr_t strbuf_p,
+				   const char *str, int slen);
+
 /* add safely into STRBUF the string STR (which is first copied, so
    can be in the basilys heap) */
 void basilysgc_add_strbuf (basilys_ptr_t strbuf_p,

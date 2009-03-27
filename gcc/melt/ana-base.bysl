@@ -305,6 +305,33 @@
    )
   )
 
+;; match a gimple cond true
+(defcmatcher gimple_cond_true
+  (:gimple gc)
+  (:tree truelab falselab)
+  gimpcondtr
+  (;test
+   gc " && gimple_code(" gc ")==GIMPLE_COND "
+      " && gimple_cond_true_p(" gc ")")
+  (;fill
+   truelab "= gimple_cond_true_label(" gc ");\n"
+   falselab "= gimple_cond_false_label(" gc ");\n"
+   ))
+
+
+;; match a gimple cond false
+(defcmatcher gimple_cond_false
+  (:gimple gc)
+  (:tree truelab falselab)
+  gimpcondtr
+  (;test
+   gc " && gimple_code(" gc ")==GIMPLE_COND "
+      " && gimple_cond_false_p(" gc ")")
+  (;fill
+   truelab "= gimple_cond_true_label(" gc ");\n"
+   falselab "= gimple_cond_false_label(" gc ");\n"
+   ))
+
 
 ;;; match a gimple call to a direct function
 (defcmatcher gimple_call
@@ -624,7 +651,13 @@
    )
   )
 
-
+;;;;;;;;;;;;;;;;
+;;; primitive to push the cfun asociated with a function declaration
+;;; this is required otherwise dump of gimple crashes
+(defprimitive push_cfun_decl (:tree fundecl) :void
+"push_cfun(DECL_STRUCT_FUNCTION(" fundecl "))")
+(defprimitive pop_cfun () :void
+"pop_cfun()")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Parma Polyhedra Library stuff (aka PPL)
@@ -700,7 +733,7 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " ?/")
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
-    (add2sbuf_strconst sbuf "/{ ")
+    (add2sbuf_strconst sbuf "/{")
     (ppstrbuf_gimple sbuf depth (gimple_content self))
     (add2sbuf_strconst sbuf "}/ ")
     )
@@ -714,7 +747,7 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " ?/")
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
-    (add2sbuf_strconst sbuf "/{ ")
+    (add2sbuf_strconst sbuf "/{")
     (ppstrbuf_gimple_seq sbuf depth (gimpleseq_content self))
     (add2sbuf_strconst sbuf "}/ ")
     )
@@ -728,7 +761,7 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " ?/")
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
-    (add2sbuf_strconst sbuf "/{ ")
+    (add2sbuf_strconst sbuf "/{")
     (ppstrbuf_tree sbuf depth (tree_content self))
     (add2sbuf_strconst sbuf "}/ ")
     )
@@ -742,7 +775,7 @@
 	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) ) 
     (add2sbuf_strconst sbuf " ?/")
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
-    (add2sbuf_strconst sbuf "/{ ")
+    (add2sbuf_strconst sbuf "/{")
     (ppstrbuf_basicblock sbuf depth (basicblock_content self))
     (add2sbuf_strconst sbuf "}/ ")
     )
@@ -762,7 +795,7 @@
     (if (is_a dis class_named) (add2sbuf_string sbuf (unsafe_get_field :named_name dis)))
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf mapcount)
-    (add2sbuf_strconst sbuf "!{ ")
+    (add2sbuf_strconst sbuf "!{")
     (foreach_mapbasicblock
      (self)
      (:basicblock bbatt :value bbval)
@@ -964,7 +997,7 @@
 (defprimitive debugtree (:cstring msg :tree tr) :void
   " do{debugeprintfnonl(\"debugtree %s @%p /%s. \", " msg ", (void*)" tr ", "
   "(" tr ")?tree_code_name[TREE_CODE(" tr ")]:\"*niltree*\");\n"
-  "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
+  "if (flag_basilys_debug && " tr ") debug_tree(" tr ");}while(0) "
 )
 
 (defprimitive debugtreecodenum  (:cstring msg :long opcod) :void
@@ -975,17 +1008,17 @@
   ", ("g ")?gimple_code_name[gimple_code(" g ")]: \"*nil*\");"
   "if (" g " && gimple_location(" g ")) "
   "  debugeprintf_raw(\"{%s:%d} \", LOCATION_FILE(gimple_location(" g ")), LOCATION_LINE(gimple_location(" g ")));"
-  "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
+  "if (flag_basilys_debug && " g ") debug_gimple_stmt(" g ");}while(0) "
 )
 
-(defprimitive debuggimpleseq(:cstring msg :gimpleseq g) :void
-  " do{debugeprintf(\"debuggimpleseq %s @%p\", " msg ", (void*)" g ");"
-  "if (flag_basilys_debug) debug_gimple_seq(" g ");}while(0) "
+(defprimitive debuggimpleseq(:cstring msg :gimpleseq gs) :void
+  " do{debugeprintf(\"debuggimpleseq %s @%p\", " msg ", (void*)" gs ");"
+  "if (flag_basilys_debug && " gs ") debug_gimple_seq(" gs ");}while(0) "
 )
 
 (defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
   " do{debugeprintf(\"debugbasicblock %s @%p\", " msg ", (void*)" bb ");"
-  "if (flag_basilys_debug) debug_bb(" bb ");}while(0) "
+  "if (flag_basilys_debug && " bb ") debug_bb(" bb ");}while(0) "
 )
 
 
@@ -1104,6 +1137,7 @@
   :super class_analysis_state
   :fields (sman_cfuns			;list of class_smallcfun-s
 	   sman_cfundict		;dict of class_smallcfun-s
+	   sman_cfuntreemap		;treemap of class_smallcfun-s
 	   sman_bbtable			;hashtable bb -> class_smallbb
 	   ))
 
@@ -1167,15 +1201,16 @@
 	    (and (>i depth 0) (>i oldmaxdepth 3)
 		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
 	    (dbgout_fields self dbgi (+i depth 1) 0 offpar)
-	    (add2sbuf_indentnl sbuf depth)
-	    (add2sbuf_strconst sbuf "@ppl.cons.sys@@ ")
+	    ;(add2sbuf_indentnl sbuf depth)
+	    (add2sbuf_strconst sbuf "@ppl.cons.sys@[")
 	    (ppl_ppstrbuf sbuf 
 			  (get_field :abenv_pplconsys self)
 			  depth 
 			  (get_field :abenv_vectname self))
+	    (add2sbuf_strconst sbuf "]@")
 	    (add2sbuf_indentnl sbuf depth)
 	    (if (need_dbglim (+i depth 2) newmaxdepth)
-		(dbgoutagain_fields self dbgi (+i depth 2) offvnam 0)
+		(dbgout_fields self dbgi (+i depth 2) offvnam -1)
 	      (add2sbuf_strconst sbuf ".._.."))
 	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
 	    )))
@@ -1198,6 +1233,7 @@
    ;; the joker below is acutally nil
    ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
       (debugtree "smallana_cfun_entbb treevars of function" treevars)
+      (push_cfun_decl decltree)
       ;;;;;
       (each_param_in_fundecl
        (decltree)
@@ -1218,7 +1254,8 @@
 	   (debugcstring "smallana_cfun_entbb argname" argname)
 	   )
 	( ?_ 
-	  (assert_msg "unexpected argdtree" ())
+	  ;; (assert_msg "unexpected argdtree" ())	  
+	  (shortbacktrace_dbg "unexpected tree in smallana_cfun_entbb" 12)
 	  )
 	)
        (debugtree "smallana_cfun_entbb argdecltree" argdtree)
@@ -1233,7 +1270,10 @@
 	(debug_msg fname "smallana_cfun_entbb fname")
 	(list_append (get_field :sman_cfuns sman) scf)
 	(mapstring_putstr (get_field :sman_cfundict sman) fname scf)
-	))
+	(maptree_put (get_field :sman_cfuntreemap sman) decltree scf)
+	)
+      (pop_cfun)
+      )
    ( ?(tree_variable_decl ?_)
       (debugtree  "smallana_cfun_entbb decl of variable" decltree)
       (inform_at_tree decltree "smallana: global variable not analyzed")
@@ -1241,7 +1281,8 @@
    ( ?_
      (debugtree "smallana_cfun_entbb other decl" decltree)
      (inform_at_tree decltree "smallana: other declaration not analyzed")
-     (assert_msg "smallana_cfun_entbb @@UNIMPLEMENTED DECL" ())
+     ;; (assert_msg "smallana_cfun_entbb @$@UNIMPLEMENTED DECL" ())
+     (shortbacktrace_dbg "smallana_cfun_entbb unexepcted declree" 14)
      () )
    )
   (debug_msg sman "smallana_cfun_entbb sman")
@@ -1292,6 +1333,7 @@
       (debugtree "smallana_gimple gimple_assign_binaryop rhs1" rhs1)
       (debugtree "smallana_gimple gimple_assign_binaryop rhs2" rhs2)
       (debugtreecodenum  "smallana_gimple gimple_assign_binaryop opcod" opcod)
+      ;;(shortbacktrace_dbg "smallana_gimple gimple_assign_binaryop unexpected" 15)
       (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
       )
    ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
@@ -1299,29 +1341,40 @@
       (debugtree "smallana_gimple gimple_cond_lessequal rhs" rhs)
       (debugtree "smallana_gimple gimple_cond_lessequal truelab" truelab)
       (debugtree "smallana_gimple gimple_cond_lessequal falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_lessequal" 15)
       )
    ( ?(gimple_cond_notequal ?lhs ?rhs ?truelab ?falselab)
       (debugtree "smallana_gimple gimple_cond_notequal lhs" lhs)
       (debugtree "smallana_gimple gimple_cond_notequal rhs" rhs)
       (debugtree "smallana_gimple gimple_cond_notequal truelab" truelab)
       (debugtree "smallana_gimple gimple_cond_notequal falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_notequal" 15)
       )
    ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
       (debugtree "smallana_gimple gimple_cond_greater lhs" lhs)
       (debugtree "smallana_gimple gimple_cond_greater rhs" rhs)
       (debugtree "smallana_gimple gimple_cond_greater truelab" truelab)
       (debugtree "smallana_gimple gimple_cond_greater falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_greater" 15)
+      )
+   ( ?(gimple_cond_true ?truelab ?falselab)
+      (debugtree "smallana_gimple gimple_cond_true truelab" truelab)
+      (debugtree "smallana_gimple gimple_cond_true falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_true" 15)
       )
    ( ?(gimple_call ?lhs ?fndecl ?_)
       (debugtree "smallana_gimple gimple_call lhs" lhs)
       (debugtree "smallana_gimple gimple_call fndecl" fndecl)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_call" 15)
       )
    ( ?(gimple_return ?retval)
       (debugtree "smallana_gimple gimple_return retval" retval)
+      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_return" 15)
       )
    ( ?_
      (debuggimple "smallana_gimple other!gimple" g)
-     (assert_msg "smallana_gimple @@ UNIMPLEMENTED GIMPLE" ())
+     ;;(shortbacktrace_dbg "smallana_gimple unexpected gimple" 15)
+     (assert_msg "smallana_gimple @$@ UNIMPLEMENTED GIMPLE" ())
      )
    )
   )
@@ -1370,9 +1423,14 @@
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (assert_msg "check cfun" (is_a cfun class_smallcfun))
   (let ( (:basicblock bbent 
-		      (basicblock_content (get_field :scfun_entbb cfun))) )
+		      (basicblock_content (get_field :scfun_entbb cfun)))
+	 (:tree fundecl (tree_content (get_field :scfun_decl cfun)))
+	 )
+    (push_cfun_decl fundecl)
     (smaninterp_basicblock sman abenv bbent)
-    (assert_msg "@@unimplemented smaninterp_fun" ())
+    ;(assert_msg "@$@unimplemented smaninterp_fun" ())
+    (shortbacktrace_dbg "@$@unimplemented smaninterp_fun" 15)
+    (pop_cfun)
     ))
 
 
@@ -1389,13 +1447,14 @@
     (bb)
     (:gimple g)
     (debuggimple "smaninterp_basicblock g" g)
-    (smaninterp_gimple sman abenv g)
+    (smaninterp_gimple sman abenv g bb)
     )
    (setq bb (basicblock_single_succ bb))
    (debugbasicblock "smaninterp_basicblock succ bb" bb)
    )
   (debug_msg () "smaninterp_basicblock done")
-  (assert_msg "@@unimplemented smaninterp_basicblock" ())
+  ;(assert_msg "@$@unimplemented smaninterp_basicblock" ())
+  (shortbacktrace_dbg "@$@unimplemented smaninterp_basicblock" 15)
   )
 
 
@@ -1449,7 +1508,7 @@
 	   (list_append pplvarslist parmdeclval)
 	   )
 	( ?_
-	  (assert_msg "sman_propagate_constraints_call unimplemented curarg tree" ())))
+	  (assert_msg "sman_propagate_constraints_call @$@unimplemented curarg tree" ())))
        ))
     (put_fields newabenv 
 		:abenv_pplconsys pplconsysval
@@ -1459,13 +1518,20 @@
   )
 
 ;;;;;;;;;;;;;;;;
-(defun smaninterp_gimple  (sman abenv :gimple g)
+(defun smaninterp_gimple  (sman abenv :gimple g :basicblock bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (debug_msg abenv "smaninterp_gimple abenv")
   (debuggimple "smaninterp_gimple g" g)
+  (debugbasicblock "smaninterp_gimple bb" bb)
+;; we really should count the number of times we are calling
+;; smaninterp_gimple and returns immediately with a warning if calling
+;; too often/too deeply. The point is that an small analysis of a
+;; buggy program could make the compiler loop.
+  (compile_warning "we should check that we don't call too often or too deeply in smaninterp_gimple" ())
   (match 
    g
+   ;; handle calls
    (?(gimple_call ?lhs ?fndecl ?nargs)
      (debugtree "smaninterp_gimple call lhs" lhs)
      (debugtree "smaninterp_gimple call fndecl" fndecl)
@@ -1501,11 +1567,63 @@
        (debug_msg tupvarbind "smaninterp_gimple tupvarbind")
        (sman_propagate_constraints_call abenv newabenv tupvarbind)
        (debug_msg newabenv "smaninterp_gimple newabenv propagated")
+       (debugtree "smaninterp_gimple call should go into fndecl" fndecl)
+       (debug_msg sman "smaninterp_gimple sman")
+       (let (
+	     (calledcfun (maptree_get (get_field :sman_cfuntreemap sman) fndecl)) )
+	 (debug_msg calledcfun "smaninterp_gimple calledcfun")
+	 (if calledcfun
+	     (smaninterp_cfun sman newabenv calledcfun)
+	   )
+	 )
+       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple call" 15)
+       ;(assert_msg "@$@unimplemented smaninterp_gimple call" ())
        )
-     (assert_msg "unimplemented smaninterp_gimple call" ())
      )
+   ;; handle conditional <=
+   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smaninterp_gimple cond<= lhs" lhs)
+      (debugtree "smaninterp_gimple cond<= rhs" rhs)
+      (debugtree "smaninterp_gimple cond<= truelab" truelab)
+      (debugtree "smaninterp_gimple cond<= falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
+      ;(assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
+      )
+   ;; handle conditional <=
+   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smaninterp_gimple cond<= lhs" lhs)
+      (debugtree "smaninterp_gimple cond<= rhs" rhs)
+      (debugtree "smaninterp_gimple cond<= truelab" truelab)
+      (debugtree "smaninterp_gimple cond<= falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
+      ;(assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
+      )
+   ;; handle conditional <=
+   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
+      (debugtree "smaninterp_gimple cond<= lhs" lhs)
+      (debugtree "smaninterp_gimple cond<= rhs" rhs)
+      (debugtree "smaninterp_gimple cond<= truelab" truelab)
+      (debugtree "smaninterp_gimple cond<= falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
+      ;(assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
+      )
+   ;; handle conditional true
+   ( ?(gimple_cond_true ?truelab ?falselab)
+      (debugtree "smaninterp_gimple condtrue truelab" truelab)
+      (debugtree "smaninterp_gimple condtrue falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
+      ;(assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
+      )
+   ;; handle conditional false
+   ( ?(gimple_cond_false ?truelab ?falselab)
+      (debugtree "smaninterp_gimple condfalse truelab" truelab)
+      (debugtree "smaninterp_gimple condfalse falselab" falselab)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
+      ;(assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
+      )
+   ;; default 
    (?_ 
-    (assert_msg "unimplemented smaninterp_gimple" ()))
+    (assert_msg "@$@unimplemented smaninterp_gimple" ()))
    )
   )
 
@@ -1524,29 +1642,32 @@
 ;;; our small analysis gate for latessa
 ;; for some reason, the smallana is triggered twice, and the first run
 ;; is enough...
-(defun smallana_latessagate (latessapass)
-  (debug_msg smallana_cont "smallana_latessagate smallana_cont at start")
+(defun smallanapass_gate (latessapass)
+  (debug_msg smallana_cont "smallanapass_gate smallana_cont at start")
   (let ( (oldsman (get_field  :container_value smallana_cont)) )
     (if oldsman
 	(progn
-	  (debug_msg oldsman "smallana_latessagate already got oldsman")
-	(return ()))
-  (return smallana_cont)
-)))
+	  (shortbacktrace_dbg "smallanapass_gate already got oldsman" 20)
+	  (debug_msg oldsman "smallanapass_gate already got oldsman")
+	  (return ()))
+      (return smallana_cont)
+      )))
 
 
 ;;; apparently only the entrybb loop matter in the latessa pass...
-(defun smallana_latessaexec (latessapass)
-  (debug_msg latessapass "smallana_latessaexec start")
+(defun smallanapass_exec (latessapass)
+  (debug_msg latessapass "smallanapass_exec start")
   (let ( (cfuns (make_list discr_list))
 	 (cfundict (make_mapstring discr_mapstrings 20))
+	 (cfuntreemap (make_maptree discr_maptrees 20))
 	 (sman (instance class_smallanalysis
 			 :sman_cfuns cfuns
 			 :sman_cfundict cfundict
+			 :sman_cfuntreemap cfuntreemap
 			 :sman_bbtable (make_mapbasicblock discr_mapbasicblocks 20)
 			 )) 
 	 )
-    (debug_msg sman "smallana_latessaexec sman at start")
+    (debug_msg sman "smallanapass_exec sman at start")
     ;; don't bother do_each_cfun_body here.. it is not done...
     (each_cgraph_fun_entryblock
      ()
@@ -1555,7 +1676,7 @@
      (smallana_cfun_entbb sman decl bbent)
      )
     ;;
-    (debug_msg sman "smallana_latessaexec sman after eachentrybb")
+    (debug_msg sman "smallanapass_exec sman after eachentrybb")
     ;;
     (each_bb_cfun
      ()
@@ -1563,20 +1684,20 @@
      (smallana_cfun_bb sman cfdecl cfbb)
      )
     ;;
-    (debug_msg sman "smallana_latessaexec sman after eachbbcfun")
+    (debug_msg sman "smallanapass_exec sman after eachbbcfun")
     ;;
     (smallana_interpret sman)
     ;;
     (put_fields  smallana_cont :container_value sman)
-    (debug_msg smallana_cont "smallana_latessaexec final smallana_cont")
+    (debug_msg smallana_cont "smallanapass_exec final smallana_cont")
     ))
 
 ;;; our small analysis command -fbasilys=smallana
 (defun smallana_command (dispatcher arg secarg moduldata)
-  ;; fill the latessa pass
-  (put_fields basilys_latessa_gccpass
-  :gccpass_gate smallana_latessagate
-  :gccpass_exec smallana_latessaexec)
+  ;; fill the ipa pass
+  (put_fields basilys_ipa_gccpass
+  :gccpass_gate smallanapass_gate
+  :gccpass_exec smallanapass_exec)
   (debug_msg basilys_latessa_gccpass "smallana sets basilys_latessa_gccpass")
   (return dispatcher)			;return non-nil to continue compilation
   )
