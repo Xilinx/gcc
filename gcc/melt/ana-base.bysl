@@ -657,15 +657,15 @@
 (defprimitive ppl_delete_Constraint (:ppl_constraint cons) :void
   "{ if (" cons ") ppl_delete_Constraint(" cons "); " cons "=NULL;}")
 
-(defprimitive ppl_Linear_Expression_coefficient 
+(defprimitive ppl_Linear_Expression_add_to_coefficient 
   (:ppl_linear_expression liex 
    :long vardim
    :ppl_coefficient coef) :void
-"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_coefficient((" liex "), (" vardim "), (" coef ")); }")
+"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_add_to_coefficient((" liex "), (" vardim "), (" coef ")); else debugeprintf(\"failed ppl_Linear_Expression_coefficient\");}")
 
-(defprimitive ppl_Linear_Expression_inhomogeneous_term
+(defprimitive ppl_Linear_Expression_add_to_inhomogeneous
   (:ppl_linear_expression liex :ppl_coefficient coef) :void
-"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_inhomogeneous_term((" liex "), (" coef ")); }")
+"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_add_to_inhomogeneous((" liex "), (" coef ")); }")
 
 (defprimitive make_ppl_constraint 
   (:ppl_linear_expression liex
@@ -679,6 +679,17 @@
   (:ppl_constraint cons :value sysv) :void
   "basilys_insert_ppl_constraint_in_boxed_system((" cons "), (" sysv "))")
 
+(defprimitive debug_ppl_coefficient
+  (:cstring msg :ppl_coefficient coef) :void
+"if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Coefficient(&s, " coef "); debugeprintf(\"debug_ppl_coefficient %s @%p %s\", " msg ", (void*)" coef ", s); free(s);}")
+
+(defprimitive debug_ppl_linear_expression
+  (:cstring msg :ppl_linear_expression liex) :void
+"if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Linear_Expression(&s, " liex "); debugeprintf(\"debug_ppl_linear_expression %s @%p %s\", " msg ", (void*)" liex ", s); free(s);}")
+
+(defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
+  "if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Constraint(&s, " cons "); debugeprintf(\"debug_ppl_constraint %s @%p %s\", " msg ", (void*)" cons ", s); free(s);}")
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1409,6 +1420,7 @@
        (debugtree "sman_propagate_constraints_call parmtype" parmtype)
        (debugtree "sman_propagate_constraints_call parmdecl" parmdecl)
        (debugtree "sman_propagate_constraints_call curarg" curarg)
+       (messagenum_dbg  "sman_propagate_constraints_call nbpplvars" nbpplvars)
        (match 
 	curarg
 	( ?(tree_integer_cst ?k)
@@ -1419,9 +1431,13 @@
 		 (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
 		 (:ppl_linear_expression liex (make_ppl_linear_expression))
 		 )
-	     (ppl_Linear_Expression_coefficient liex nbpplvars coefm1)
-	     (ppl_Linear_Expression_inhomogeneous_term liex coefarg)
+	     (debug_ppl_coefficient "sman_propagate_constraints_call coefarg" coefarg)
+	     (messagenum_dbg  "sman_propagate_constraints_call nbpplvars" nbpplvars)
+	     (ppl_Linear_Expression_add_to_coefficient liex nbpplvars coefm1)
+	     (ppl_Linear_Expression_add_to_inhomogeneous liex coefarg)
+	     (debug_ppl_linear_expression "sman_propagate_constraints_call liex" liex)
 	     (let ( (:ppl_constraint cons (make_ppl_constraint liex "==")) )
+	       (debug_ppl_constraint "sman_propagate_constraints_call cons" cons)
 	       (insert_ppl_constraint_in_boxed_system cons pplconsysval)
 	       (ppl_delete_Constraint cons)
 	       )
