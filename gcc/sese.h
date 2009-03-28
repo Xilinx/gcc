@@ -107,25 +107,6 @@ sese_contains_loop (sese sese, struct loop *loop)
   return bitmap_bit_p (SESE_LOOPS (sese), loop->num);
 }
 
-/* Returns the loop depth of LOOP in SESE.
-   FIXME: The same as nb_loops_around_loop_in_sese.  */
-
-static inline unsigned int
-sese_loop_depth (sese sese, loop_p loop)
-{
-  unsigned int depth = 0;
-
-  loop = loop_outer (loop);
-
-  while (sese_contains_loop (sese, loop))
-    {
-      depth++;
-      loop = loop_outer (loop);
-    }
-
-  return depth;
-}
-
 /* The number of parameters in REGION. */
 
 static inline unsigned
@@ -142,27 +123,55 @@ bb_in_sese_p (basic_block bb, sese region)
   return pointer_set_contains (SESE_REGION_BBS (region), bb);
 }
 
-/* Returns true when LOOP is in the SESE region R.  */
+/* Returns true when LOOP is in REGION.  */
 
 static inline bool 
-loop_in_sese_p (struct loop *loop, sese r)
+loop_in_sese_p (struct loop *loop, sese region)
 {
-  return (bb_in_sese_p (loop->header, r)
-	  && bb_in_sese_p (loop->latch, r));
+  return (bb_in_sese_p (loop->header, region)
+	  && bb_in_sese_p (loop->latch, region));
 }
 
+/* Returns the loop depth of LOOP in REGION.  The loop depth
+   is the same as the normal loop depth, but limited by a region.
 
-/* Calculate the number of loops around LOOP in the SCOP.
-   FIXME: The same as sese_loop_depth.  */
+   Example:
 
-static inline int
-nb_loops_around_loop_in_sese (struct loop *l, sese region)
+   loop_0
+     loop_1
+       {
+         S0 
+            <- region start
+         S1
+
+         loop_2
+           S2
+
+         S3
+            <- region end
+       } 
+
+    loop_0 does not exist in the region -> invalid
+    loop_1 exists, but is not completely contained in the region -> depth 0
+    loop_2 is completely contained -> depth 1  */
+
+static inline unsigned int
+sese_loop_depth (sese region, loop_p loop)
 {
-  int d = 0;
+  unsigned int depth = 0;
 
-  for (; loop_in_sese_p (l, region); d++, l = loop_outer (l));
+  gcc_assert ((!loop_in_sese_p (loop, region)
+	       && (SESE_ENTRY_BB (region)->loop_father == loop
+	           || SESE_EXIT(region)->src->loop_father == loop))
+              || loop_in_sese_p (loop, region));
 
-  return d;
+  while (loop_in_sese_p (loop, region))
+    {
+      depth++;
+      loop = loop_outer (loop);
+    }
+
+  return depth;
 }
 
 /* Returns the block preceding the entry of a SESE.  */

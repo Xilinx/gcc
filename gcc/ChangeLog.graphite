@@ -1,3 +1,12 @@
+2009-03-28  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-sese-to-poly.c (ref_nb_loops, build_access_matrix_with_af,
+	build_access_matrix, build_scop_data_accesses): Remove access function
+	building. (We get a new version soon).
+	(build_bb_loops, scan_tree_for_params_right_scev): Update.
+	* sese.h (nb_loops_around_loop_in_sese): Remove.
+	(sese_loop_depth): Do not use SESE_LOOP_NEST any more.
+
 2009-03-27  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
