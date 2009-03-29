@@ -131,6 +131,18 @@ typedef struct array_loop_spec
 }
 array_loop_spec;
 
+/* A stucture to build a hash table for format data.  */
+
+#define FORMAT_HASH_SIZE 16 
+
+typedef struct format_hash_entry
+{
+  char *key;
+  gfc_charlen_type key_len;
+  struct format_data *hashed_fmt;
+}
+format_hash_entry;
+
 /* Representation of a namelist object in libgfortran
 
    Namelist Records
@@ -152,7 +164,6 @@ array_loop_spec;
 
 typedef struct namelist_type
 {
-
   /* Object type, stored as GFC_DTYPE_xxxx.  */
   bt type;
 
@@ -623,6 +634,9 @@ typedef struct gfc_unit
 
   int file_len;
   char *file;
+
+  /* The format hash table.  */
+  struct format_hash_entry format_hash_table[FORMAT_HASH_SIZE];
   
   /* Formatting buffer.  */
   struct fbuf *fbuf;
@@ -844,8 +858,17 @@ internal_proto(unget_format);
 extern void format_error (st_parameter_dt *, const fnode *, const char *);
 internal_proto(format_error);
 
-extern void free_format_data (st_parameter_dt *);
+extern void free_format_data (struct format_data *);
 internal_proto(free_format_data);
+
+extern void free_format_hash_table (gfc_unit *);
+internal_proto(free_format_hash_table);
+
+extern void init_format_hash (st_parameter_dt *);
+internal_proto(init_format_hash);
+
+extern void free_format_hash (st_parameter_dt *);
+internal_proto(free_format_hash);
 
 /* transfer.c */
 

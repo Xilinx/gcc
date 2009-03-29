@@ -915,17 +915,359 @@ require_type (st_parameter_dt *dtp, bt expected, bt actual, const fnode *f)
 }
 
 
-/* This subroutine is the main loop for a formatted data transfer
+/* This function is in the main loop for a formatted data transfer
    statement.  It would be natural to implement this as a coroutine
    with the user program, but C makes that awkward.  We loop,
    processing format elements.  When we actually have to transfer
    data instead of just setting flags, we return control to the user
-   program which calls a subroutine that supplies the address and type
+   program which calls a function that supplies the address and type
    of the next element, then comes back here to process it.  */
 
 static void
-formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
-			   size_t size)
+formatted_transfer_scalar_read (st_parameter_dt *dtp, bt type, void *p, int kind,
+				size_t size)
+{
+  int pos, bytes_used;
+  const fnode *f;
+  format_token t;
+  int n;
+  int consume_data_flag;
+
+  /* Change a complex data item into a pair of reals.  */
+
+  n = (p == NULL) ? 0 : ((type != BT_COMPLEX) ? 1 : 2);
+  if (type == BT_COMPLEX)
+    {
+      type = BT_REAL;
+      size /= 2;
+    }
+
+  /* If there's an EOR condition, we simulate finalizing the transfer
+     by doing nothing.  */
+  if (dtp->u.p.eor_condition)
+    return;
+
+  /* Set this flag so that commas in reads cause the read to complete before
+     the entire field has been read.  The next read field will start right after
+     the comma in the stream.  (Set to 0 for character reads).  */
+  dtp->u.p.sf_read_comma =
+    dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA ? 0 : 1;
+
+  for (;;)
+    {
+      /* If reversion has occurred and there is another real data item,
+	 then we have to move to the next record.  */
+      if (dtp->u.p.reversion_flag && n > 0)
+	{
+	  dtp->u.p.reversion_flag = 0;
+	  next_record (dtp, 0);
+	}
+
+      consume_data_flag = 1;
+      if ((dtp->common.flags & IOPARM_LIBRETURN_MASK) != IOPARM_LIBRETURN_OK)
+	break;
+
+      f = next_format (dtp);
+      if (f == NULL)
+	{
+	  /* No data descriptors left.  */
+	  if (unlikely (n > 0))
+	    generate_error (&dtp->common, LIBERROR_FORMAT,
+		"Insufficient data descriptors in format after reversion");
+	  return;
+	}
+
+      t = f->format;
+
+      bytes_used = (int)(dtp->u.p.current_unit->recl
+		   - dtp->u.p.current_unit->bytes_left);
+
+      if (is_stream_io(dtp))
+	bytes_used = 0;
+
+      switch (t)
+	{
+	case FMT_I:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_INTEGER, type, f))
+	    return;
+	  read_decimal (dtp, f, p, kind);
+	  break;
+
+	case FMT_B:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (compile_options.allow_std < GFC_STD_GNU
+              && require_type (dtp, BT_INTEGER, type, f))
+	    return;
+	  read_radix (dtp, f, p, kind, 2);
+	  break;
+
+	case FMT_O:
+	  if (n == 0)
+	    goto need_read_data; 
+	  if (compile_options.allow_std < GFC_STD_GNU
+              && require_type (dtp, BT_INTEGER, type, f))
+	    return;
+	  read_radix (dtp, f, p, kind, 8);
+	  break;
+
+	case FMT_Z:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (compile_options.allow_std < GFC_STD_GNU
+              && require_type (dtp, BT_INTEGER, type, f))
+	    return;
+	  read_radix (dtp, f, p, kind, 16);
+	  break;
+
+	case FMT_A:
+	  if (n == 0)
+	    goto need_read_data;
+
+	  /* It is possible to have FMT_A with something not BT_CHARACTER such
+	     as when writing out hollerith strings, so check both type
+	     and kind before calling wide character routines.  */
+	  if (type == BT_CHARACTER && kind == 4)
+	    read_a_char4 (dtp, f, p, size);
+	  else
+	    read_a (dtp, f, p, size);
+	  break;
+
+	case FMT_L:
+	  if (n == 0)
+	    goto need_read_data;
+	  read_l (dtp, f, p, kind);
+	  break;
+
+	case FMT_D:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_REAL, type, f))
+	    return;
+	  read_f (dtp, f, p, kind);
+	  break;
+
+	case FMT_E:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_REAL, type, f))
+	    return;
+	  read_f (dtp, f, p, kind);
+	  break;
+
+	case FMT_EN:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_REAL, type, f))
+	    return;
+	  read_f (dtp, f, p, kind);
+	  break;
+
+	case FMT_ES:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_REAL, type, f))
+	    return;
+	  read_f (dtp, f, p, kind);
+	  break;
+
+	case FMT_F:
+	  if (n == 0)
+	    goto need_read_data;
+	  if (require_type (dtp, BT_REAL, type, f))
+	    return;
+	  read_f (dtp, f, p, kind);
+	  break;
+
+	case FMT_G:
+	  if (n == 0)
+	    goto need_read_data;
+	  switch (type)
+	    {
+	      case BT_INTEGER:
+		read_decimal (dtp, f, p, kind);
+		break;
+	      case BT_LOGICAL:
+		read_l (dtp, f, p, kind);
+		break;
+	      case BT_CHARACTER:
+		if (kind == 4)
+		  read_a_char4 (dtp, f, p, size);
+		else
+		  read_a (dtp, f, p, size);
+		break;
+	      case BT_REAL:
+		read_f (dtp, f, p, kind);
+		break;
+	      default:
+		internal_error (&dtp->common, "formatted_transfer(): Bad type");
+	    }
+	  break;
+
+	case FMT_STRING:
+	  consume_data_flag = 0;
+	  format_error (dtp, f, "Constant string in input format");
+	  return;
+
+	/* Format codes that don't transfer data.  */
+	case FMT_X:
+	case FMT_TR:
+	  consume_data_flag = 0;
+	  dtp->u.p.skips += f->u.n;
+	  pos = bytes_used + dtp->u.p.skips - 1;
+	  dtp->u.p.pending_spaces = pos - dtp->u.p.max_pos + 1;
+	  read_x (dtp, f->u.n);
+	  break;
+
+	case FMT_TL:
+	case FMT_T:
+	  consume_data_flag = 0;
+
+	  if (f->format == FMT_TL)
+	    {
+	      /* Handle the special case when no bytes have been used yet.
+	         Cannot go below zero. */
+	      if (bytes_used == 0)
+		{
+		  dtp->u.p.pending_spaces -= f->u.n;
+		  dtp->u.p.skips -= f->u.n;
+		  dtp->u.p.skips = dtp->u.p.skips < 0 ? 0 : dtp->u.p.skips;
+		}
+
+	      pos = bytes_used - f->u.n;
+	    }
+	  else /* FMT_T */
+	    pos = f->u.n - 1;
+
+	  /* Standard 10.6.1.1: excessive left tabbing is reset to the
+	     left tab limit.  We do not check if the position has gone
+	     beyond the end of record because a subsequent tab could
+	     bring us back again.  */
+	  pos = pos < 0 ? 0 : pos;
+
+	  dtp->u.p.skips = dtp->u.p.skips + pos - bytes_used;
+	  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces
+				    + pos - dtp->u.p.max_pos;
+	  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces < 0
+				    ? 0 : dtp->u.p.pending_spaces;
+	  if (dtp->u.p.skips == 0)
+	    break;
+
+	  /* Adjust everything for end-of-record condition */
+	  if (dtp->u.p.sf_seen_eor && !is_internal_unit (dtp))
+	    {
+              dtp->u.p.current_unit->bytes_left -= dtp->u.p.sf_seen_eor;
+              dtp->u.p.skips -= dtp->u.p.sf_seen_eor;
+	      bytes_used = pos;
+	      dtp->u.p.sf_seen_eor = 0;
+	    }
+	  if (dtp->u.p.skips < 0)
+	    {
+              if (is_internal_unit (dtp))  
+                move_pos_offset (dtp->u.p.current_unit->s, dtp->u.p.skips);
+              else
+                fbuf_seek (dtp->u.p.current_unit, dtp->u.p.skips, SEEK_CUR);
+	      dtp->u.p.current_unit->bytes_left -= (gfc_offset) dtp->u.p.skips;
+	      dtp->u.p.skips = dtp->u.p.pending_spaces = 0;
+	    }
+	  else
+	    read_x (dtp, dtp->u.p.skips);
+	  break;
+
+	case FMT_S:
+	  consume_data_flag = 0;
+	  dtp->u.p.sign_status = SIGN_S;
+	  break;
+
+	case FMT_SS:
+	  consume_data_flag = 0;
+	  dtp->u.p.sign_status = SIGN_SS;
+	  break;
+
+	case FMT_SP:
+	  consume_data_flag = 0;
+	  dtp->u.p.sign_status = SIGN_SP;
+	  break;
+
+	case FMT_BN:
+	  consume_data_flag = 0 ;
+	  dtp->u.p.blank_status = BLANK_NULL;
+	  break;
+
+	case FMT_BZ:
+	  consume_data_flag = 0;
+	  dtp->u.p.blank_status = BLANK_ZERO;
+	  break;
+
+	case FMT_DC:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->decimal_status = DECIMAL_COMMA;
+	  break;
+
+	case FMT_DP:
+	  consume_data_flag = 0;
+	  dtp->u.p.current_unit->decimal_status = DECIMAL_POINT;
+	  break;
+
+	case FMT_P:
+	  consume_data_flag = 0;
+	  dtp->u.p.scale_factor = f->u.k;
+	  break;
+
+	case FMT_DOLLAR:
+	  consume_data_flag = 0;
+	  dtp->u.p.seen_dollar = 1;
+	  break;
+
+	case FMT_SLASH:
+	  consume_data_flag = 0;
+	  dtp->u.p.skips = dtp->u.p.pending_spaces = 0;
+	  next_record (dtp, 0);
+	  break;
+
+	case FMT_COLON:
+	  /* A colon descriptor causes us to exit this loop (in
+	     particular preventing another / descriptor from being
+	     processed) unless there is another data item to be
+	     transferred.  */
+	  consume_data_flag = 0;
+	  if (n == 0)
+	    return;
+	  break;
+
+	default:
+	  internal_error (&dtp->common, "Bad format node");
+	}
+
+      /* Adjust the item count and data pointer.  */
+
+      if ((consume_data_flag > 0) && (n > 0))
+	{
+	  n--;
+	  p = ((char *) p) + size;
+	}
+
+      dtp->u.p.skips = 0;
+
+      pos = (int)(dtp->u.p.current_unit->recl - dtp->u.p.current_unit->bytes_left);
+      dtp->u.p.max_pos = (dtp->u.p.max_pos > pos) ? dtp->u.p.max_pos : pos;
+    }
+
+  return;
+
+  /* Come here when we need a data descriptor but don't have one.  We
+     push the current format node back onto the input, then return and
+     let the user program call us back with the data.  */
+ need_read_data:
+  unget_format (dtp, f);
+}
+
+
+static void
+formatted_transfer_scalar_write (st_parameter_dt *dtp, bt type, void *p, int kind,
+				 size_t size)
 {
   int pos, bytes_used;
   const fnode *f;
@@ -1021,57 +1363,34 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_INTEGER, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_decimal (dtp, f, p, kind);
-	  else
-	    write_i (dtp, f, p, kind);
-
+	  write_i (dtp, f, p, kind);
 	  break;
 
 	case FMT_B:
 	  if (n == 0)
 	    goto need_data;
-
 	  if (compile_options.allow_std < GFC_STD_GNU
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_radix (dtp, f, p, kind, 2);
-	  else
-	    write_b (dtp, f, p, kind);
-
+	  write_b (dtp, f, p, kind);
 	  break;
 
 	case FMT_O:
 	  if (n == 0)
 	    goto need_data; 
-
 	  if (compile_options.allow_std < GFC_STD_GNU
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_radix (dtp, f, p, kind, 8);
-	  else
-	    write_o (dtp, f, p, kind);
-
+	  write_o (dtp, f, p, kind);
 	  break;
 
 	case FMT_Z:
 	  if (n == 0)
 	    goto need_data;
-
 	  if (compile_options.allow_std < GFC_STD_GNU
               && require_type (dtp, BT_INTEGER, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_radix (dtp, f, p, kind, 16);
-	  else
-	    write_z (dtp, f, p, kind);
-
+	  write_z (dtp, f, p, kind);
 	  break;
 
 	case FMT_A:
@@ -1081,31 +1400,16 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	  /* It is possible to have FMT_A with something not BT_CHARACTER such
 	     as when writing out hollerith strings, so check both type
 	     and kind before calling wide character routines.  */
-	  if (dtp->u.p.mode == READING)
-	    {
-	      if (type == BT_CHARACTER && kind == 4)
-		read_a_char4 (dtp, f, p, size);
-	      else
-		read_a (dtp, f, p, size);
-	    }
+	  if (type == BT_CHARACTER && kind == 4)
+	    write_a_char4 (dtp, f, p, size);
 	  else
-	    {
-	      if (type == BT_CHARACTER && kind == 4)
-		write_a_char4 (dtp, f, p, size);
-	      else
-		write_a (dtp, f, p, size);
-	    }
+	    write_a (dtp, f, p, size);
 	  break;
 
 	case FMT_L:
 	  if (n == 0)
 	    goto need_data;
-
-	  if (dtp->u.p.mode == READING)
-	    read_l (dtp, f, p, kind);
-	  else
-	    write_l (dtp, f, p, kind);
-
+	  write_l (dtp, f, p, kind);
 	  break;
 
 	case FMT_D:
@@ -1113,12 +1417,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_REAL, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_f (dtp, f, p, kind);
-	  else
-	    write_d (dtp, f, p, kind);
-
+	  write_d (dtp, f, p, kind);
 	  break;
 
 	case FMT_E:
@@ -1126,11 +1425,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_REAL, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_f (dtp, f, p, kind);
-	  else
-	    write_e (dtp, f, p, kind);
+	  write_e (dtp, f, p, kind);
 	  break;
 
 	case FMT_EN:
@@ -1138,12 +1433,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_REAL, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_f (dtp, f, p, kind);
-	  else
-	    write_en (dtp, f, p, kind);
-
+	  write_en (dtp, f, p, kind);
 	  break;
 
 	case FMT_ES:
@@ -1151,12 +1441,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_REAL, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_f (dtp, f, p, kind);
-	  else
-	    write_es (dtp, f, p, kind);
-
+	  write_es (dtp, f, p, kind);
 	  break;
 
 	case FMT_F:
@@ -1164,41 +1449,14 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	    goto need_data;
 	  if (require_type (dtp, BT_REAL, type, f))
 	    return;
-
-	  if (dtp->u.p.mode == READING)
-	    read_f (dtp, f, p, kind);
-	  else
-	    write_f (dtp, f, p, kind);
-
+	  write_f (dtp, f, p, kind);
 	  break;
 
 	case FMT_G:
 	  if (n == 0)
 	    goto need_data;
-	  if (dtp->u.p.mode == READING)
-	    switch (type)
-	      {
-	      case BT_INTEGER:
-		read_decimal (dtp, f, p, kind);
-		break;
-	      case BT_LOGICAL:
-		read_l (dtp, f, p, kind);
-		break;
-	      case BT_CHARACTER:
-		if (kind == 4)
-		  read_a_char4 (dtp, f, p, size);
-		else
-		  read_a (dtp, f, p, size);
-		break;
-	      case BT_REAL:
-		read_f (dtp, f, p, kind);
-		break;
-	      default:
-		goto bad_type;
-	      }
-	  else
-	    switch (type)
-	      {
+	  switch (type)
+	    {
 	      case BT_INTEGER:
 		write_i (dtp, f, p, kind);
 		break;
@@ -1218,20 +1476,13 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 		  write_d (dtp, f, p, kind);
 		break;
 	      default:
-	      bad_type:
 		internal_error (&dtp->common,
 				"formatted_transfer(): Bad type");
-	      }
-
+	    }
 	  break;
 
 	case FMT_STRING:
 	  consume_data_flag = 0;
-	  if (dtp->u.p.mode == READING)
-	    {
-	      format_error (dtp, f, "Constant string in input format");
-	      return;
-	    }
 	  write_constant_string (dtp, f);
 	  break;
 
@@ -1247,16 +1498,11 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	     that trailing blanks are suppressed, unless we are doing a
 	     non-advancing write in which case we want to output the blanks
 	     now.  */
-	  if (dtp->u.p.mode == WRITING
-	      && dtp->u.p.advance_status == ADVANCE_NO)
+	  if (dtp->u.p.advance_status == ADVANCE_NO)
 	    {
 	      write_x (dtp, dtp->u.p.skips, dtp->u.p.pending_spaces);
 	      dtp->u.p.skips = dtp->u.p.pending_spaces = 0;
 	    }
-
-	  if (dtp->u.p.mode == READING)
-	    read_x (dtp, f->u.n);
-
 	  break;
 
 	case FMT_TL:
@@ -1278,12 +1524,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 	      pos = bytes_used - f->u.n;
 	    }
 	  else /* FMT_T */
-	    {
-	      if (dtp->u.p.mode == READING)
-		pos = f->u.n - 1;
-	      else
-		pos = f->u.n - dtp->u.p.pending_spaces - 1;
-	    }
+	    pos = f->u.n - dtp->u.p.pending_spaces - 1;
 
 	  /* Standard 10.6.1.1: excessive left tabbing is reset to the
 	     left tab limit.  We do not check if the position has gone
@@ -1296,36 +1537,6 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
 				    + pos - dtp->u.p.max_pos;
 	  dtp->u.p.pending_spaces = dtp->u.p.pending_spaces < 0
 				    ? 0 : dtp->u.p.pending_spaces;
-
-	  if (dtp->u.p.skips == 0)
-	    break;
-
-	  /* Writes occur just before the switch on f->format, above, so that
-	     trailing blanks are suppressed.  */
-	  if (dtp->u.p.mode == READING)
-	    {
-	      /* Adjust everything for end-of-record condition */
-	      if (dtp->u.p.sf_seen_eor && !is_internal_unit (dtp))
-		{
-                  dtp->u.p.current_unit->bytes_left -= dtp->u.p.sf_seen_eor;
-                  dtp->u.p.skips -= dtp->u.p.sf_seen_eor;
-		  bytes_used = pos;
-		  dtp->u.p.sf_seen_eor = 0;
-		}
-	      if (dtp->u.p.skips < 0)
-		{
-                  if (is_internal_unit (dtp))  
-                    move_pos_offset (dtp->u.p.current_unit->s, dtp->u.p.skips);
-                  else
-                    fbuf_seek (dtp->u.p.current_unit, dtp->u.p.skips, SEEK_CUR);
-		  dtp->u.p.current_unit->bytes_left
-		    -= (gfc_offset) dtp->u.p.skips;
-		  dtp->u.p.skips = dtp->u.p.pending_spaces = 0;
-		}
-	      else
-		read_x (dtp, dtp->u.p.skips);
-	    }
-
 	  break;
 
 	case FMT_S:
@@ -1396,17 +1607,13 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
       /* Adjust the item count and data pointer.  */
 
       if ((consume_data_flag > 0) && (n > 0))
-      {
-	n--;
-	p = ((char *) p) + size;
-      }
-
-      if (dtp->u.p.mode == READING)
-	dtp->u.p.skips = 0;
+	{
+	  n--;
+	  p = ((char *) p) + size;
+	}
 
       pos = (int)(dtp->u.p.current_unit->recl - dtp->u.p.current_unit->bytes_left);
       dtp->u.p.max_pos = (dtp->u.p.max_pos > pos) ? dtp->u.p.max_pos : pos;
-
     }
 
   return;
@@ -1418,6 +1625,7 @@ formatted_transfer_scalar (st_parameter_dt *dtp, bt type, void *p, int kind,
   unget_format (dtp, f);
 }
 
+
 static void
 formatted_transfer (st_parameter_dt *dtp, bt type, void *p, int kind,
 		    size_t size, size_t nelems)
@@ -1428,14 +1636,25 @@ formatted_transfer (st_parameter_dt *dtp, bt type, void *p, int kind,
   tmp = (char *) p;
   size_t stride = type == BT_CHARACTER ?
 		  size * GFC_SIZE_OF_CHAR_KIND(kind) : size;
-  /* Big loop over all the elements.  */
-  for (elem = 0; elem < nelems; elem++)
+  if (dtp->u.p.mode == READING)
     {
-      dtp->u.p.item_count++;
-      formatted_transfer_scalar (dtp, type, tmp + stride*elem, kind, size);
+      /* Big loop over all the elements.  */
+      for (elem = 0; elem < nelems; elem++)
+	{
+	  dtp->u.p.item_count++;
+	  formatted_transfer_scalar_read (dtp, type, tmp + stride*elem, kind, size);
+	}
+    }
+  else
+    {
+      /* Big loop over all the elements.  */
+      for (elem = 0; elem < nelems; elem++)
+	{
+	  dtp->u.p.item_count++;
+	  formatted_transfer_scalar_write (dtp, type, tmp + stride*elem, kind, size);
+	}
     }
 }
-
 
 
 /* Data transfer entry points.  The type of the data entity is
@@ -3056,7 +3275,8 @@ void
 st_read_done (st_parameter_dt *dtp)
 {
   finalize_transfer (dtp);
-  free_format_data (dtp);
+  if (is_internal_unit (dtp))
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
@@ -3107,7 +3327,8 @@ st_write_done (st_parameter_dt *dtp)
 	break;
       }
 
-  free_format_data (dtp);
+  if (is_internal_unit (dtp))
+    free_format_data (dtp->u.p.fmt);
   free_ionml (dtp);
   if (dtp->u.p.current_unit != NULL)
     unlock_unit (dtp->u.p.current_unit);
