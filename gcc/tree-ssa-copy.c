@@ -892,7 +892,7 @@ copy_prop_visit_phi_node (gimple phi)
 	 memory reference of all the other arguments.  */
       if (phi_val.value == NULL_TREE)
 	{
-	  phi_val.value = arg;
+	  phi_val.value = arg_val->value ? arg_val->value : arg;
 	  continue;
 	}
 
@@ -908,7 +908,8 @@ copy_prop_visit_phi_node (gimple phi)
 	}
     }
 
-  if (phi_val.value && set_copy_of_val (lhs, phi_val.value))
+  if (phi_val.value &&  may_propagate_copy (lhs, phi_val.value)
+      && set_copy_of_val (lhs, phi_val.value))
     retval = (phi_val.value != lhs) ? SSA_PROP_INTERESTING : SSA_PROP_VARYING;
   else
     retval = SSA_PROP_NOT_INTERESTING;

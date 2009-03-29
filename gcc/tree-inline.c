@@ -3153,7 +3153,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   tree modify_dest;
   location_t saved_location;
   struct cgraph_edge *cg_edge;
-  const char *reason;
+  cgraph_inline_failed_t reason;
   basic_block return_block;
   edge e;
   gimple_stmt_iterator gsi, stmt_gsi;
@@ -3218,7 +3218,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
       cgraph_create_edge (id->dst_node, dest, stmt,
 			  bb->count, CGRAPH_FREQ_BASE,
 			  bb->loop_depth)->inline_failed
-	= N_("originally indirect function call not considered for inlining");
+	= CIF_ORIGINALLY_INDIRECT_CALL;
       if (dump_file)
 	{
 	   fprintf (dump_file, "Created new direct edge to %s",
@@ -3241,18 +3241,19 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 	  /* Avoid warnings during early inline pass. */
 	  && cgraph_global_info_ready)
 	{
-	  sorry ("inlining failed in call to %q+F: %s", fn, reason);
+	  sorry ("inlining failed in call to %q+F: %s", fn,
+		 cgraph_inline_failed_string (reason));
 	  sorry ("called from here");
 	}
       else if (warn_inline && DECL_DECLARED_INLINE_P (fn)
 	       && !DECL_IN_SYSTEM_HEADER (fn)
-	       && strlen (reason)
+	       && reason != CIF_UNSPECIFIED
 	       && !lookup_attribute ("noinline", DECL_ATTRIBUTES (fn))
 	       /* Avoid warnings during early inline pass. */
 	       && cgraph_global_info_ready)
 	{
 	  warning (OPT_Winline, "inlining failed in call to %q+F: %s",
-		   fn, reason);
+		   fn, cgraph_inline_failed_string (reason));
 	  warning (OPT_Winline, "called from here");
 	}
       goto egress;
@@ -4268,6 +4269,29 @@ tree_versionable_function_p (tree fndecl)
   return true;
 }
 
+/* Create a new name for omp child function.  Returns an identifier.  */
+
+static GTY(()) unsigned int clone_fn_id_num;
+
+static tree
+clone_function_name (tree decl)
+{
+  tree name = DECL_ASSEMBLER_NAME (decl);
+  size_t len = IDENTIFIER_LENGTH (name);
+  char *tmp_name, *prefix;
+
+  prefix = XALLOCAVEC (char, len + strlen ("_clone") + 1);
+  memcpy (prefix, IDENTIFIER_POINTER (name), len);
+  strcpy (prefix + len, "_clone");
+#ifndef NO_DOT_IN_LABEL
+  prefix[len] = '.';
+#elif !defined NO_DOLLAR_IN_LABEL
+  prefix[len] = '$';
+#endif
+  ASM_FORMAT_PRIVATE_NAME (tmp_name, prefix, clone_fn_id_num++);
+  return get_identifier (tmp_name);
+}
+
 /* Create a copy of a function's tree.
    OLD_DECL and NEW_DECL are FUNCTION_DECL tree nodes
    of the original function and the new copied function
@@ -4315,7 +4339,7 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Generate a new name for the new version. */
   if (!update_clones)
     {
-      DECL_NAME (new_decl) =  create_tmp_var_name (NULL);
+      DECL_NAME (new_decl) = clone_function_name (old_decl);
       SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
       SET_DECL_RTL (new_decl, NULL_RTX);
       id.statements_to_fold = pointer_set_create ();
@@ -4520,3 +4544,5 @@ tree_can_inline_p (tree caller, tree callee)
   /* Allow the backend to decide if inlining is ok.  */
   return targetm.target_option.can_inline_p (caller, callee);
 }
+
+#include "gt-tree-inline.h"

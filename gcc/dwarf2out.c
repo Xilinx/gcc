@@ -3231,7 +3231,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_end = NULL;
   fde->dw_fde_cfi = NULL;
   fde->funcdef_number = current_function_funcdef_no;
-  fde->nothrow = TREE_NOTHROW (current_function_decl);
+  fde->nothrow = crtl->nothrow;
   fde->uses_eh_lsda = crtl->uses_eh_lsda;
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
   fde->drap_reg = INVALID_REGNUM;
@@ -5599,6 +5599,8 @@ dwarf_attr_name (unsigned int attr)
       return "DW_AT_encoding";
     case DW_AT_external:
       return "DW_AT_external";
+    case DW_AT_explicit:
+      return "DW_AT_explicit";
     case DW_AT_frame_base:
       return "DW_AT_frame_base";
     case DW_AT_friend:
@@ -11317,7 +11319,7 @@ reference_to_unused (tree * tp, int * walk_subtrees,
 	   && (!DECL_EXTERNAL (*tp) || DECL_DECLARED_INLINE_P (*tp)))
     {
       struct cgraph_node *node = cgraph_node (*tp);
-      if (!node->output)
+      if (node->process || TREE_ASM_WRITTEN (*tp))
 	return *tp;
     }
   else if (TREE_CODE (*tp) == STRING_CST && !TREE_ASM_WRITTEN (*tp))
@@ -13610,6 +13612,11 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (!old_die || !get_AT (old_die, DW_AT_inline))
 	{
 	  add_AT_flag (subr_die, DW_AT_declaration, 1);
+
+	  /* If this is an explicit function declaration then generate
+	     a DW_AT_explicit attribute.  */
+          if (lang_hooks.decls.function_decl_explicit_p (decl))
+	    add_AT_flag (subr_die, DW_AT_explicit, 1);
 
 	  /* The first time we see a member function, it is in the context of
 	     the class to which it belongs.  We make sure of this by emitting

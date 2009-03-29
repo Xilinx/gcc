@@ -1,3 +1,86 @@
+2009-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34656
+	* trans-stmt.c (gfc_trans_simple_do, gfc_trans_do):
+	Add GFC_RTCHECK_DO support.
+	* option.c (gfc_handle_runtime_check_option): Enable GFC_RTCHECK_DO.
+	* invoke.texi (-fcheck): Document "do" option.
+
+2009-03-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38538
+	* trans-array.c (get_elemental_fcn_charlen): Remove.
+	(get_array_charlen): New function to replace previous.
+
+2009-03-28  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38765
+	* parse.c (parse_derived): Do not break on finding pointer,
+	allocatable or private components.
+
+2009-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/32626
+	* option.c (gfc_handle_runtime_check_option): Enable recursion check.
+	* trans-decl.c (gfc_generate_function_code): Add recursion check.
+	* invoke.texi (-fcheck): Add recursive option.
+
+2009-03-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/38432
+	* resolve.c (gfc_resolve_iterator): Add zero-loop warning.
+
+2009-03-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.h (gfc_option_t): Add rtcheck.
+	* lang.opt: New option -fcheck.
+	* libgfortran.h: Add GFC_RTCHECK_* constants.
+	* invoke.texi: Document -fcheck.
+	* options.c (gfc_handle_runtime_check_option): New function.
+	(gfc_init_options,gfc_post_options,gfc_handle_option):
+	Add -fcheck option.
+
+2009-03-27  Richard Guenther  <rguenther@suse.de>
+
+	* trans-array.c (gfc_conv_descriptor_data_addr): Use
+	gfc_build_addr_expr instead of build_fold_addr_expr.
+	(gfc_trans_allocate_array_storage, gfc_trans_array_constructor_value,
+	gfc_trans_constant_array_constructor, gfc_conv_array_data,
+	gfc_conv_expr_descriptor, gfc_conv_array_parameter): Likewise.
+	* trans-expr.c (gfc_conv_missing_dummy, gfc_conv_variable,
+	gfc_conv_function_val, gfc_conv_operator_assign,
+	gfc_conv_subref_array_arg, gfc_conv_function_call,
+	gfc_conv_expr_reference, gfc_trans_scalar_assign): Likewise.
+	* trans-intrinsic.c (gfc_conv_intrinsic_exponent,
+	gfc_conv_intrinsic_ctime, gfc_conv_intrinsic_fdate,
+	gfc_conv_intrinsic_ttynam, gfc_conv_intrinsic_minmax_char,
+	gfc_conv_intrinsic_fraction, gfc_conv_intrinsic_spacing,
+	gfc_conv_intrinsic_rrspacing, gfc_conv_intrinsic_set_exponent,
+	gfc_conv_intrinsic_array_transfer, gfc_conv_intrinsic_transfer,
+	gfc_conv_intrinsic_si_kind, gfc_conv_intrinsic_trim): Likewise.
+	* trans-io.c (gfc_trans_io_runtime_check, set_parameter_ref,
+	gfc_convert_array_to_string, gfc_trans_open, gfc_trans_close,
+	build_filepos, gfc_trans_inquire, gfc_trans_wait,
+	nml_get_addr_expr, transfer_namelist_element, build_dt,
+	gfc_trans_dt_end, transfer_array_component, transfer_expr,
+	transfer_array_desc, gfc_trans_transfer): Likewise.
+	* trans-stmt.c (gfc_trans_allocate, gfc_trans_deallocate): Likewise.
+	* trans.c (gfc_build_addr_expr): Mark the base of the address
+	TREE_ADDRESSABLE.
+
+2009-03-27  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.h (enum init_local_real.): Add GFC_INIT_REAL_SNAN.
+	(gfc_expr): Add is_snan.
+	* trans-const.c (gfc_conv_mpfr_to_tree): Support SNaN.
+	(gfc_conv_constant_to_tree): Update call to gfc_conv_mpfr_to_tree.
+	* trans-const.h (gfc_conv_mpfr_to_tree): Update prototype.
+	* resolve.c (build_default_init_expr): Update call.
+	* target-memory.c (encode_float): Ditto.
+	* trans-intrinsic.c (gfc_conv_intrinsic_aint,gfc_conv_intrinsic_mod,
+
 2009-03-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* lang.opt: Unify help texts for -I, -Wconversion, -d, -fopenmp,

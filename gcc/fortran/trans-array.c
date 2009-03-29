@@ -1,5 +1,5 @@
 /* Array translation routines
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -194,7 +194,7 @@ gfc_conv_descriptor_data_addr (tree desc)
   gcc_assert (DATA_FIELD == 0);
 
   t = fold_build3 (COMPONENT_REF, TREE_TYPE (field), desc, field, NULL_TREE);
-  return build_fold_addr_expr (t);
+  return gfc_build_addr_expr (NULL_TREE, t);
 }
 
 tree
@@ -533,7 +533,7 @@ gfc_trans_allocate_array_storage (stmtblock_t * pre, stmtblock_t * post,
 	  tmp = build_array_type (gfc_get_element_type (TREE_TYPE (desc)),
 				  tmp);
 	  tmp = gfc_create_var (tmp, "A");
-	  tmp = build_fold_addr_expr (tmp);
+	  tmp = gfc_build_addr_expr (NULL_TREE, tmp);
 	  gfc_conv_descriptor_data_set (pre, desc, tmp);
 	}
       else
@@ -1058,7 +1058,7 @@ gfc_trans_array_ctor_element (stmtblock_t * pblock, tree desc,
 	  gfc_trans_string_copy (&se->pre, esize, tmp, expr->ts.kind,
 				 se->string_length, se->expr, expr->ts.kind);
 	}
-      if (flag_bounds_check && !typespec_chararray_ctor)
+      if ((gfc_option.rtcheck & GFC_RTCHECK_BOUNDS) && !typespec_chararray_ctor)
 	{
 	  if (first_len)
 	    {
@@ -1281,8 +1281,8 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 	      tmp = gfc_conv_descriptor_data_get (desc);
 	      tmp = build_fold_indirect_ref (tmp);
 	      tmp = gfc_build_array_ref (tmp, *poffset, NULL);
-	      tmp = build_fold_addr_expr (tmp);
-	      init = build_fold_addr_expr (init);
+	      tmp = gfc_build_addr_expr (NULL_TREE, tmp);
+	      init = gfc_build_addr_expr (NULL_TREE, init);
 
 	      size = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (type));
 	      bound = build_int_cst (NULL_TREE, n * size);
@@ -1683,7 +1683,7 @@ gfc_trans_constant_array_constructor (gfc_loopinfo * loop,
   info = &ss->data.info;
 
   info->descriptor = tmp;
-  info->data = build_fold_addr_expr (tmp);
+  info->data = gfc_build_addr_expr (NULL_TREE, tmp);
   info->offset = gfc_index_zero_node;
 
   for (i = 0; i < info->dimen; i++)
@@ -1761,8 +1761,8 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss, locus * where)
   typespec_chararray_ctor = (ss->expr->ts.cl
 			     && ss->expr->ts.cl->length_from_typespec);
 
-  if (flag_bounds_check && ss->expr->ts.type == BT_CHARACTER
-      && !typespec_chararray_ctor)
+  if ((gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
+      && ss->expr->ts.type == BT_CHARACTER && !typespec_chararray_ctor)
     {  
       first_len_val = gfc_create_var (gfc_charlen_type_node, "len");
       first_len = true;
@@ -1880,7 +1880,7 @@ gfc_trans_array_constructor (gfc_loopinfo * loop, gfc_ss * ss, locus * where)
     gcc_assert (INTEGER_CST_P (offset));
 #if 0
   /* Disable bound checking for now because it's probably broken.  */
-  if (flag_bounds_check)
+  if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
     {
       gcc_unreachable ();
     }
@@ -2136,7 +2136,7 @@ gfc_conv_array_data (tree descriptor)
       else
         {
           /* Descriptorless arrays.  */
-	  return build_fold_addr_expr (descriptor);
+	  return gfc_build_addr_expr (NULL_TREE, descriptor);
         }
     }
   else
@@ -2233,7 +2233,7 @@ gfc_trans_array_bound_check (gfc_se * se, tree descriptor, tree index, int n,
   char *msg;
   const char * name = NULL;
 
-  if (!flag_bounds_check)
+  if (!(gfc_option.rtcheck & GFC_RTCHECK_BOUNDS))
     return index;
 
   index = gfc_evaluate_now (index, &se->pre);
@@ -2469,7 +2469,7 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
       gfc_conv_expr_type (&indexse, ar->start[n], gfc_array_index_type);
       gfc_add_block_to_block (&se->pre, &indexse.pre);
 
-      if (flag_bounds_check)
+      if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
 	{
 	  /* Check array bounds.  */
 	  tree cond;
@@ -3015,7 +3015,7 @@ gfc_conv_ss_startstride (gfc_loopinfo * loop)
     }
 
   /* The rest is just runtime bound checking.  */
-  if (flag_bounds_check)
+  if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
     {
       stmtblock_t block;
       tree lbound, ubound;
@@ -4332,7 +4332,8 @@ gfc_trans_dummy_array_bias (gfc_symbol * sym, tree tmpdesc, tree body)
       && TREE_CODE (sym->ts.cl->backend_decl) == VAR_DECL)
     gfc_conv_string_length (sym->ts.cl, NULL, &block);
 
-  checkparm = (sym->as->type == AS_EXPLICIT && flag_bounds_check);
+  checkparm = (sym->as->type == AS_EXPLICIT
+	       && (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS));
 
   no_repack = !(GFC_DECL_PACKED_ARRAY (tmpdesc)
                 || GFC_DECL_PARTIAL_PACKED_ARRAY (tmpdesc));
@@ -4702,45 +4703,100 @@ gfc_get_dataptr_offset (stmtblock_t *block, tree parm, tree desc, tree offset,
 }
 
 
-/* gfc_conv_expr_descriptor needs the character length of elemental
-   functions before the function is called so that the size of the
-   temporary can be obtained.  The only way to do this is to convert
-   the expression, mapping onto the actual arguments.  */
+/* gfc_conv_expr_descriptor needs the string length an expression
+   so that the size of the temporary can be obtained.  This is done
+   by adding up the string lengths of all the elements in the
+   expression.  Function with non-constant expressions have their
+   string lengths mapped onto the actual arguments using the
+   interface mapping machinery in trans-expr.c.  */
 static void
-get_elemental_fcn_charlen (gfc_expr *expr, gfc_se *se)
+get_array_charlen (gfc_expr *expr, gfc_se *se)
 {
   gfc_interface_mapping mapping;
   gfc_formal_arglist *formal;
   gfc_actual_arglist *arg;
   gfc_se tse;
 
-  formal = expr->symtree->n.sym->formal;
-  arg = expr->value.function.actual;
-  gfc_init_interface_mapping (&mapping);
-
-  /* Set se = NULL in the calls to the interface mapping, to suppress any
-     backend stuff.  */
-  for (; arg != NULL; arg = arg->next, formal = formal ? formal->next : NULL)
+  if (expr->ts.cl->length
+	&& gfc_is_constant_expr (expr->ts.cl->length))
     {
-      if (!arg->expr)
-	continue;
-      if (formal->sym)
-	gfc_add_interface_mapping (&mapping, formal->sym, NULL, arg->expr);
+      if (!expr->ts.cl->backend_decl)
+	gfc_conv_string_length (expr->ts.cl, expr, &se->pre);
+      return;
     }
 
-  gfc_init_se (&tse, NULL);
+  switch (expr->expr_type)
+    {
+    case EXPR_OP:
+      get_array_charlen (expr->value.op.op1, se);
 
-  /* Build the expression for the character length and convert it.  */
-  gfc_apply_interface_mapping (&mapping, &tse, expr->ts.cl->length);
+      /* For parentheses the expression ts.cl is identical.  */
+      if (expr->value.op.op == INTRINSIC_PARENTHESES)
+	return;
 
-  gfc_add_block_to_block (&se->pre, &tse.pre);
-  gfc_add_block_to_block (&se->post, &tse.post);
-  tse.expr = fold_convert (gfc_charlen_type_node, tse.expr);
-  tse.expr = fold_build2 (MAX_EXPR, gfc_charlen_type_node, tse.expr,
-			  build_int_cst (gfc_charlen_type_node, 0));
-  expr->ts.cl->backend_decl = tse.expr;
-  gfc_free_interface_mapping (&mapping);
+     expr->ts.cl->backend_decl =
+		gfc_create_var (gfc_charlen_type_node, "sln");
+
+      if (expr->value.op.op2)
+	{
+	  get_array_charlen (expr->value.op.op2, se);
+
+	  /* Add the string lengths and assign them to the expression
+	     string length backend declaration.  */
+	  gfc_add_modify (&se->pre, expr->ts.cl->backend_decl,
+			  fold_build2 (PLUS_EXPR, gfc_charlen_type_node,
+				expr->value.op.op1->ts.cl->backend_decl,
+				expr->value.op.op2->ts.cl->backend_decl));
+	}
+      else
+	gfc_add_modify (&se->pre, expr->ts.cl->backend_decl,
+			expr->value.op.op1->ts.cl->backend_decl);
+      break;
+
+    case EXPR_FUNCTION:
+      if (expr->value.function.esym == NULL
+	    || expr->ts.cl->length->expr_type == EXPR_CONSTANT)
+	{
+	  gfc_conv_string_length (expr->ts.cl, expr, &se->pre);
+	  break;
+	}
+
+      /* Map expressions involving the dummy arguments onto the actual
+	 argument expressions.  */
+      gfc_init_interface_mapping (&mapping);
+      formal = expr->symtree->n.sym->formal;
+      arg = expr->value.function.actual;
+
+      /* Set se = NULL in the calls to the interface mapping, to suppress any
+	 backend stuff.  */
+      for (; arg != NULL; arg = arg->next, formal = formal ? formal->next : NULL)
+	{
+	  if (!arg->expr)
+	    continue;
+	  if (formal->sym)
+	  gfc_add_interface_mapping (&mapping, formal->sym, NULL, arg->expr);
+	}
+
+      gfc_init_se (&tse, NULL);
+
+      /* Build the expression for the character length and convert it.  */
+      gfc_apply_interface_mapping (&mapping, &tse, expr->ts.cl->length);
+
+      gfc_add_block_to_block (&se->pre, &tse.pre);
+      gfc_add_block_to_block (&se->post, &tse.post);
+      tse.expr = fold_convert (gfc_charlen_type_node, tse.expr);
+      tse.expr = fold_build2 (MAX_EXPR, gfc_charlen_type_node, tse.expr,
+			      build_int_cst (gfc_charlen_type_node, 0));
+      expr->ts.cl->backend_decl = tse.expr;
+      gfc_free_interface_mapping (&mapping);
+      break;
+
+    default:
+      gfc_conv_string_length (expr->ts.cl, expr, &se->pre);
+      break;
+    }
 }
+
 
 
 /* Convert an array for passing as an actual argument.  Expressions and
@@ -4836,7 +4892,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	    {
 	      /* We pass full arrays directly.  This means that pointers and
 		 allocatable arrays should also work.  */
-	      se->expr = build_fold_addr_expr (desc);
+	      se->expr = gfc_build_addr_expr (NULL_TREE, desc);
 	    }
 	  else
 	    {
@@ -4867,7 +4923,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 
 	  /* For pointer assignments pass the descriptor directly.  */
 	  se->ss = secss;
-	  se->expr = build_fold_addr_expr (se->expr);
+	  se->expr = gfc_build_addr_expr (NULL_TREE, se->expr);
 	  gfc_conv_expr (se, expr);
 	  return;
 	}
@@ -4878,7 +4934,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 	  need_tmp = 1;
 	  if (expr->ts.type == BT_CHARACTER
 		&& expr->ts.cl->length->expr_type != EXPR_CONSTANT)
-	    get_elemental_fcn_charlen (expr, se);
+	    get_array_charlen (expr, se);
 
 	  info = NULL;
 	}
@@ -4938,8 +4994,9 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
       loop.temp_ss->type = GFC_SS_TEMP;
       loop.temp_ss->next = gfc_ss_terminator;
 
-      if (expr->ts.type == BT_CHARACTER && !expr->ts.cl->backend_decl)
-	gfc_conv_string_length (expr->ts.cl, expr, &se->pre);
+      if (expr->ts.type == BT_CHARACTER
+	    && !expr->ts.cl->backend_decl)
+	get_array_charlen (expr, se);
 
       loop.temp_ss->data.temp.type = gfc_typenode_for_spec (&expr->ts);
 
@@ -5189,7 +5246,7 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
     {
       /* Get a pointer to the new descriptor.  */
       if (se->want_pointer)
-	se->expr = build_fold_addr_expr (desc);
+	se->expr = gfc_build_addr_expr (NULL_TREE, desc);
       else
 	se->expr = desc;
     }
@@ -5255,7 +5312,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
           if (sym->attr.dummy || POINTER_TYPE_P (TREE_TYPE (tmp)))
             se->expr = tmp;
           else
-	    se->expr = build_fold_addr_expr (tmp);
+	    se->expr = gfc_build_addr_expr (NULL_TREE, tmp);
 	  return;
         }
       if (sym->attr.allocatable)
@@ -5275,7 +5332,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
     {
       /* Result of the enclosing function.  */
       gfc_conv_expr_descriptor (se, expr, ss);
-      se->expr = build_fold_addr_expr (se->expr);
+      se->expr = gfc_build_addr_expr (NULL_TREE, se->expr);
 
       if (g77 && TREE_TYPE (TREE_TYPE (se->expr)) != NULL_TREE
 	      && GFC_DESCRIPTOR_TYPE_P (TREE_TYPE (TREE_TYPE (se->expr))))
@@ -5329,7 +5386,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, int g77,
 
       se->expr = ptr;
 
-      if (gfc_option.flag_check_array_temporaries)
+      if (gfc_option.rtcheck & GFC_RTCHECK_ARRAY_TEMPS)
 	{
 	  char * msg;
 

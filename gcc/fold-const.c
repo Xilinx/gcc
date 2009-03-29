@@ -103,8 +103,6 @@ static tree associate_trees (tree, tree, enum tree_code, tree);
 static tree const_binop (enum tree_code, tree, tree, int);
 static enum comparison_code comparison_to_compcode (enum tree_code);
 static enum tree_code compcode_to_comparison (enum comparison_code);
-static tree combine_comparisons (enum tree_code, enum tree_code,
-				 enum tree_code, tree, tree, tree);
 static int operand_equal_for_comparison_p (tree, tree, tree);
 static int twoval_comparison_p (tree, tree *, tree *, int *);
 static tree eval_subst (tree, tree, tree, tree, tree);
@@ -7937,11 +7935,10 @@ fold_view_convert_expr (tree type, tree expr)
 }
 
 /* Build an expression for the address of T.  Folds away INDIRECT_REF
-   to avoid confusing the gimplify process.  When IN_FOLD is true
-   avoid modifications of T.  */
+   to avoid confusing the gimplify process.  */
 
-static tree
-build_fold_addr_expr_with_type_1 (tree t, tree ptrtype, bool in_fold)
+tree
+build_fold_addr_expr_with_type (tree t, tree ptrtype)
 {
   /* The size of the object is not relevant when talking about its address.  */
   if (TREE_CODE (t) == WITH_SIZE_EXPR)
@@ -7956,56 +7953,20 @@ build_fold_addr_expr_with_type_1 (tree t, tree ptrtype, bool in_fold)
       if (TREE_TYPE (t) != ptrtype)
 	t = build1 (NOP_EXPR, ptrtype, t);
     }
-  else if (!in_fold)
-    {
-      tree base = t;
-
-      while (handled_component_p (base))
-	base = TREE_OPERAND (base, 0);
-
-      if (DECL_P (base))
-	TREE_ADDRESSABLE (base) = 1;
-
-      t = build1 (ADDR_EXPR, ptrtype, t);
-    }
   else
     t = build1 (ADDR_EXPR, ptrtype, t);
 
   return t;
 }
 
-/* Build an expression for the address of T with type PTRTYPE.  This
-   function modifies the input parameter 'T' by sometimes setting the
-   TREE_ADDRESSABLE flag.  */
-
-tree
-build_fold_addr_expr_with_type (tree t, tree ptrtype)
-{
-  return build_fold_addr_expr_with_type_1 (t, ptrtype, false);
-}
-
-/* Build an expression for the address of T.  This function modifies
-   the input parameter 'T' by sometimes setting the TREE_ADDRESSABLE
-   flag.  When called from fold functions, use fold_addr_expr instead.  */
+/* Build an expression for the address of T.  */
 
 tree
 build_fold_addr_expr (tree t)
 {
-  return build_fold_addr_expr_with_type_1 (t, 
-					   build_pointer_type (TREE_TYPE (t)),
-					   false);
-}
-
-/* Same as build_fold_addr_expr, builds an expression for the address
-   of T, but avoids touching the input node 't'.  Fold functions
-   should use this version.  */
-
-static tree
-fold_addr_expr (tree t)
-{
   tree ptrtype = build_pointer_type (TREE_TYPE (t));
 
-  return build_fold_addr_expr_with_type_1 (t, ptrtype, true);
+  return build_fold_addr_expr_with_type (t, ptrtype);
 }
 
 /* Fold a unary expression of code CODE and type TYPE with operand
@@ -8245,7 +8206,7 @@ fold_unary (enum tree_code code, tree type, tree op0)
 	  if (! offset && bitpos == 0
 	      && TYPE_MAIN_VARIANT (TREE_TYPE (type))
 		  == TYPE_MAIN_VARIANT (TREE_TYPE (base)))
-	    return fold_convert (type, fold_addr_expr (base));
+	    return fold_convert (type, build_fold_addr_expr (base));
         }
 
       if (TREE_CODE (op0) == MODIFY_EXPR
@@ -9155,9 +9116,9 @@ fold_comparison (enum tree_code code, tree type, tree op0, tree op1)
 		       && operand_equal_p (offset0, offset1, 0))))
 	{
 	  if (indirect_base0)
-	    base0 = fold_addr_expr (base0);
+	    base0 = build_fold_addr_expr (base0);
 	  if (indirect_base1)
-	    base1 = fold_addr_expr (base1);
+	    base1 = build_fold_addr_expr (base1);
 	  return fold_build2 (code, type, base0, base1);
 	}
     }
@@ -9590,10 +9551,15 @@ fold_mult_zconjz (tree type, tree expr)
    0 <= N < M as is common.  In general, the precise value of P is unknown.
    M is chosen as large as possible such that constant N can be determined.
 
-   Returns M and sets *RESIDUE to N.  */
+   Returns M and sets *RESIDUE to N.
+
+   If ALLOW_FUNC_ALIGN is true, do take functions' DECL_ALIGN_UNIT into
+   account.  This is not always possible due to PR 35705.
+ */
 
 static unsigned HOST_WIDE_INT
-get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue)
+get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue,
+				 bool allow_func_align)
 {
   enum tree_code code;
 
@@ -9623,7 +9589,8 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue)
 	    }
 	}
 
-      if (DECL_P (expr) && TREE_CODE (expr) != FUNCTION_DECL)
+      if (DECL_P (expr)
+	  && (allow_func_align || TREE_CODE (expr) != FUNCTION_DECL))
 	return DECL_ALIGN_UNIT (expr);
     }
   else if (code == POINTER_PLUS_EXPR)
@@ -9634,7 +9601,8 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue)
       
       op0 = TREE_OPERAND (expr, 0);
       STRIP_NOPS (op0);
-      modulus = get_pointer_modulus_and_residue (op0, residue);
+      modulus = get_pointer_modulus_and_residue (op0, residue,
+						 allow_func_align);
 
       op1 = TREE_OPERAND (expr, 1);
       STRIP_NOPS (op1);
@@ -11274,7 +11242,8 @@ fold_binary (enum tree_code code, tree type, tree op0, tree op1)
 	  unsigned HOST_WIDE_INT modulus, residue;
 	  unsigned HOST_WIDE_INT low = TREE_INT_CST_LOW (arg1);
 
-	  modulus = get_pointer_modulus_and_residue (arg0, &residue);
+	  modulus = get_pointer_modulus_and_residue (arg0, &residue,
+						     integer_onep (arg1));
 
 	  /* This works because modulus is a power of 2.  If this weren't the
 	     case, we'd have to replace it by its greatest power-of-2
@@ -15829,7 +15798,7 @@ split_address_to_core_and_offset (tree exp,
       core = get_inner_reference (TREE_OPERAND (exp, 0), &bitsize, pbitpos,
 				  poffset, &mode, &unsignedp, &volatilep,
 				  false);
-      core = fold_addr_expr (core);
+      core = build_fold_addr_expr (core);
     }
   else
     {

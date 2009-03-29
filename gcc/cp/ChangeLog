@@ -1,3 +1,54 @@
+2009-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39554
+	* parser.c (cp_parser_postfix_expression): Don't call
+	warning_if_disallowed_function_p.
+
+2009-03-27  Jan Hubicka  <jh@suse.cz>
+
+	* except.c (choose_personality_routine): Set terminate_node to abort
+	for java exceptions.
+
+2009-03-27  Dodji Seketeli  <dodji@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/37959
+	* cp-objcp-common.h (LANG_HOOKS_FUNCTION_DECL_EXPLICIT_P): Define.
+	(cp_function_decl_explicit_p): New prototype.
+	* cp-objcp-common.c (cp_function_decl_explicit_p): New function.
+
+2009-03-27  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c++/38638
+	* parser.c (cp_parser_elaborated_type_specifier): If we have a
+	typename tag and don't have either a TYPE_DECL or a
+	TEMPLATE_ID_EXPR, set the type to NULL.
+
+2009-03-27  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/37647
+	* decl.c (grokdeclarator): Reject [con|de]stuctors in a non-class
+	scope.
+
+2009-03-27  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/29727
+	* decl.c (check_array_designated_initializer): Handle error_mark_node.
+
+2009-03-27  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/35652
+	* typeck.c (cp_pointer_sum): Adjust call to pointer_int_sum.
+
+2009-03-26  Andrew Haley  <aph@redhat.com>
+
+	PR C++/39380
+	* decl2.c (possibly_inlined_p): If java exceptions are in use
+	don't inline a decl unless it is explicitly marked inline.
+	* lex.c: (pragma_java_exceptions): New variable.
+	(handle_pragma_java_exceptions): Set pragma_java_exceptions.
+	* cp-tree.h (pragma_java_exceptions): Declare new variable.
+
 2009-03-24  Jason Merrill  <jason@redhat.com>
 
 	PR c++/28274

@@ -478,6 +478,21 @@ verify_phi_args (gimple phi, basic_block bb, basic_block *definition_block)
 			     op_p, phi, e->flags & EDGE_ABNORMAL, NULL);
 	}
 
+      if (TREE_CODE (op) == ADDR_EXPR)
+	{
+	  tree base = TREE_OPERAND (op, 0);
+	  while (handled_component_p (base))
+	    base = TREE_OPERAND (base, 0);
+	  if ((TREE_CODE (base) == VAR_DECL
+	       || TREE_CODE (base) == PARM_DECL
+	       || TREE_CODE (base) == RESULT_DECL)
+	      && !TREE_ADDRESSABLE (base))
+	    {
+	      error ("address taken, but ADDRESSABLE bit not set");
+	      err = true;
+	    }
+	}
+
       if (e->dest != bb)
 	{
 	  error ("wrong edge %d->%d for PHI argument",
@@ -1589,6 +1604,11 @@ warn_uninitialized_vars (bool warn_possibly_uninitialized)
 	  walk_gimple_op (gsi_stmt (gsi), warn_uninitialized_var, &wi);
 	}
     }
+
+  /* Post-dominator information can not be reliably updated. Free it
+     after the use.  */
+
+  free_dominance_info (CDI_POST_DOMINATORS);
   return 0;
 }
 

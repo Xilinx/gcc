@@ -4823,9 +4823,6 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 				    koenig_p,
 				    tf_warning_or_error);
 
-            if (warn_disallowed_functions)
-              warn_if_disallowed_function_p (postfix_expression);
-
 	    /* The POSTFIX_EXPRESSION is certainly no longer an id.  */
 	    idk = CP_ID_KIND_NONE;
 	  }
@@ -11588,7 +11585,11 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 	type = make_typename_type (parser->scope, decl,
 				   typename_type,
 				   /*complain=*/tf_error);
-      else
+      /* If the `typename' keyword is in effect and DECL is not a type
+	 decl. Then type is non existant.   */
+      else if (tag_type == typename_type && TREE_CODE (decl) != TYPE_DECL)
+        type = NULL_TREE; 
+      else 
 	type = TREE_TYPE (decl);
     }
 

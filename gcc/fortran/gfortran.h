@@ -527,6 +527,7 @@ typedef enum
   GFC_INIT_REAL_OFF = 0,
   GFC_INIT_REAL_ZERO,
   GFC_INIT_REAL_NAN,
+  GFC_INIT_REAL_SNAN,
   GFC_INIT_REAL_INF,
   GFC_INIT_REAL_NEG_INF
 }
@@ -1547,8 +1548,10 @@ typedef struct gfc_expr
   locus where;
 
   /* True if the expression is a call to a function that returns an array,
-     and if we have decided not to allocate temporary data for that array.  */
-  unsigned int inline_noncopying_intrinsic : 1, is_boz : 1;
+     and if we have decided not to allocate temporary data for that array.
+     is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
+     denotes a signalling not-a-number.  */
+  unsigned int inline_noncopying_intrinsic : 1, is_boz : 1, is_snan : 1;
 
   /* Sometimes, when an error has been emitted, it is necessary to prevent
       it from recurring.  */
@@ -2005,7 +2008,6 @@ typedef struct
   int flag_automatic;
   int flag_backslash;
   int flag_backtrace;
-  int flag_check_array_temporaries;
   int flag_allow_leading_underscore;
   int flag_dump_core;
   int flag_external_blas;
@@ -2026,6 +2028,7 @@ typedef struct
   int flag_align_commons;
 
   int fpe;
+  int rtcheck;
 
   int warn_std;
   int allow_std;

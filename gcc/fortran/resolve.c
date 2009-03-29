@@ -4918,6 +4918,26 @@ gfc_resolve_iterator (gfc_iterator *iter, bool real_ok)
       || iter->step->ts.type != iter->var->ts.type)
     gfc_convert_type (iter->step, &iter->var->ts, 2);
 
+  if (iter->start->expr_type == EXPR_CONSTANT
+      && iter->end->expr_type == EXPR_CONSTANT
+      && iter->step->expr_type == EXPR_CONSTANT)
+    {
+      int sgn, cmp;
+      if (iter->start->ts.type == BT_INTEGER)
+	{
+	  sgn = mpz_cmp_ui (iter->step->value.integer, 0);
+	  cmp = mpz_cmp (iter->end->value.integer, iter->start->value.integer);
+	}
+      else
+	{
+	  sgn = mpfr_sgn (iter->step->value.real);
+	  cmp = mpfr_cmp (iter->end->value.real, iter->start->value.real);
+	}
+      if ((sgn > 0 && cmp < 0) || (sgn < 0 && cmp > 0))
+	gfc_warning ("DO loop at %L will be executed zero times",
+		     &iter->step->where);
+    }
+
   return SUCCESS;
 }
 
@@ -7357,6 +7377,9 @@ build_default_init_expr (gfc_symbol *sym)
       mpfr_init (init_expr->value.real);
       switch (gfc_option.flag_init_real)
 	{
+	case GFC_INIT_REAL_SNAN:
+	  init_expr->is_snan = 1;
+	  /* Fall through.  */
 	case GFC_INIT_REAL_NAN:
 	  mpfr_set_nan (init_expr->value.real);
 	  break;
@@ -7385,6 +7408,9 @@ build_default_init_expr (gfc_symbol *sym)
       mpfr_init (init_expr->value.complex.i);
       switch (gfc_option.flag_init_real)
 	{
+	case GFC_INIT_REAL_SNAN:
+	  init_expr->is_snan = 1;
+	  /* Fall through.  */
 	case GFC_INIT_REAL_NAN:
 	  mpfr_set_nan (init_expr->value.complex.r);
 	  mpfr_set_nan (init_expr->value.complex.i);

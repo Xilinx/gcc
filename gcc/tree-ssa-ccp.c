@@ -208,6 +208,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "target.h"
 #include "toplev.h"
+#include "dbgcnt.h"
 
 
 /* Possible lattice values.  */
@@ -320,52 +321,45 @@ get_default_value (tree var)
 {
   tree sym = SSA_NAME_VAR (var);
   prop_value_t val = { UNINITIALIZED, NULL_TREE };
-  tree cst_val;
-  
-  if (!is_gimple_reg (var))
+  gimple stmt;
+
+  stmt = SSA_NAME_DEF_STMT (var);
+
+  if (gimple_nop_p (stmt))
     {
-      /* Short circuit for regular CCP.  We are not interested in any
-	 non-register when DO_STORE_CCP is false.  */
-      val.lattice_val = VARYING;
+      /* Variables defined by an empty statement are those used
+	 before being initialized.  If VAR is a local variable, we
+	 can assume initially that it is UNDEFINED, otherwise we must
+	 consider it VARYING.  */
+      if (is_gimple_reg (sym) && TREE_CODE (sym) != PARM_DECL)
+	val.lattice_val = UNDEFINED;
+      else
+	val.lattice_val = VARYING;
     }
-  else if ((cst_val = get_symbol_constant_value (sym)) != NULL_TREE)
+  else if (is_gimple_assign (stmt)
+	   /* Value-returning GIMPLE_CALL statements assign to
+	      a variable, and are treated similarly to GIMPLE_ASSIGN.  */
+	   || (is_gimple_call (stmt)
+	       && gimple_call_lhs (stmt) != NULL_TREE)
+	   || gimple_code (stmt) == GIMPLE_PHI)
     {
-      /* Globals and static variables declared 'const' take their
-	 initial value.  */
-      val.lattice_val = CONSTANT;
-      val.value = cst_val;
+      tree cst;
+      if (gimple_assign_single_p (stmt)
+	  && DECL_P (gimple_assign_rhs1 (stmt))
+	  && (cst = get_symbol_constant_value (gimple_assign_rhs1 (stmt))))
+	{
+	  val.lattice_val = CONSTANT;
+	  val.value = cst;
+	}
+      else
+	/* Any other variable defined by an assignment or a PHI node
+	   is considered UNDEFINED.  */
+	val.lattice_val = UNDEFINED;
     }
   else
     {
-      gimple stmt = SSA_NAME_DEF_STMT (var);
-
-      if (gimple_nop_p (stmt))
-	{
-	  /* Variables defined by an empty statement are those used
-	     before being initialized.  If VAR is a local variable, we
-	     can assume initially that it is UNDEFINED, otherwise we must
-	     consider it VARYING.  */
-	  if (is_gimple_reg (sym) && TREE_CODE (sym) != PARM_DECL)
-	    val.lattice_val = UNDEFINED;
-	  else
-	    val.lattice_val = VARYING;
-	}
-      else if (is_gimple_assign (stmt)
-               /* Value-returning GIMPLE_CALL statements assign to
-                  a variable, and are treated similarly to GIMPLE_ASSIGN.  */
-               || (is_gimple_call (stmt)
-                   && gimple_call_lhs (stmt) != NULL_TREE)
-	       || gimple_code (stmt) == GIMPLE_PHI)
-        {
-	  /* Any other variable defined by an assignment or a PHI node
-	     is considered UNDEFINED.  */
-	  val.lattice_val = UNDEFINED;
-	}
-      else
-	{
-	  /* Otherwise, VAR will never take on a constant value.  */
-	  val.lattice_val = VARYING;
-	}
+      /* Otherwise, VAR will never take on a constant value.  */
+      val.lattice_val = VARYING;
     }
 
   return val;
@@ -501,6 +495,7 @@ likely_value (gimple stmt)
   bool has_constant_operand, has_undefined_operand, all_undefined_operands;
   tree use;
   ssa_op_iter iter;
+  unsigned i;
 
   enum gimple_code code = gimple_code (stmt);
 
@@ -516,33 +511,11 @@ likely_value (gimple stmt)
   if (gimple_has_volatile_ops (stmt))
     return VARYING;
 
-  /* If we are not doing store-ccp, statements with loads
-     and/or stores will never fold into a constant.  */
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
-    return VARYING;
-
-  /* Note that only a GIMPLE_SINGLE_RHS assignment can satisfy
-     is_gimple_min_invariant, so we do not consider calls or
-     other forms of assignment.  */
-  if (gimple_assign_single_p (stmt)
-      && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
-    return CONSTANT;
-
-  if (code == GIMPLE_COND
-      && is_gimple_min_invariant (gimple_cond_lhs (stmt))
-      && is_gimple_min_invariant (gimple_cond_rhs (stmt)))
-    return CONSTANT;
-
-  if (code == GIMPLE_SWITCH
-      && is_gimple_min_invariant (gimple_switch_index (stmt)))
-    return CONSTANT;
-
   /* Arrive here for more complex cases.  */
-
   has_constant_operand = false;
   has_undefined_operand = false;
   all_undefined_operands = true;
-  FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_USE | SSA_OP_VUSE)
+  FOR_EACH_SSA_TREE_OPERAND (use, stmt, iter, SSA_OP_USE)
     {
       prop_value_t *val = get_value (use);
 
@@ -552,6 +525,17 @@ likely_value (gimple stmt)
 	all_undefined_operands = false;
 
       if (val->lattice_val == CONSTANT)
+	has_constant_operand = true;
+    }
+
+  /* There may be constants in regular rhs operands.  */
+  for (i = is_gimple_call (stmt) + gimple_has_lhs (stmt);
+       i < gimple_num_ops (stmt); ++i)
+    {
+      tree op = gimple_op (stmt, i);
+      if (!op || TREE_CODE (op) == SSA_NAME)
+	continue;
+      if (is_gimple_min_invariant (op))
 	has_constant_operand = true;
     }
 
@@ -585,11 +569,11 @@ likely_value (gimple stmt)
   if (has_undefined_operand)
     return VARYING;
 
+  /* We do not consider virtual operands here -- load from read-only
+     memory may have only VARYING virtual operands, but still be
+     constant.  */
   if (has_constant_operand
-      /* We do not consider virtual operands here -- load from read-only
-	 memory may have only VARYING virtual operands, but still be
-	 constant.  */
-      || ZERO_SSA_OPERANDS (stmt, SSA_OP_USE))
+      || gimple_references_memory_p (stmt))
     return CONSTANT;
 
   return VARYING;
@@ -605,9 +589,6 @@ surely_varying_stmt_p (gimple stmt)
   if (gimple_has_volatile_ops (stmt))
     return true;
 
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
-    return true;
-
   /* If it is a call and does not return a value or is not a
      builtin and not an indirect call, it is varying.  */
   if (is_gimple_call (stmt))
@@ -618,6 +599,10 @@ surely_varying_stmt_p (gimple stmt)
 	      && !DECL_BUILT_IN (fndecl)))
 	return true;
     }
+
+  /* Any other store operation is not interesting.  */
+  else if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_VIRTUAL_DEFS))
+    return true;
 
   /* Anything other than assignments and conditional jumps are not
      interesting for CCP.  */
@@ -657,10 +642,7 @@ ccp_initialize (void)
 	      /* If the statement will not produce a constant, mark
 		 all its outputs VARYING.  */
 	      FOR_EACH_SSA_TREE_OPERAND (def, stmt, iter, SSA_OP_ALL_DEFS)
-		{
-		  if (is_varying)
-		    set_value_varying (def);
-		}
+		set_value_varying (def);
 	    }
           prop_set_simulate_again (stmt, !is_varying);
 	}
@@ -685,6 +667,24 @@ ccp_initialize (void)
     }
 }
 
+/* Debug count support. Reset the values of ssa names
+   VARYING when the total number ssa names analyzed is
+   beyond the debug count specified.  */
+
+static void
+do_dbg_cnt (void)
+{
+  unsigned i;
+  for (i = 0; i < num_ssa_names; i++)
+    {
+      if (!dbg_cnt (ccp))
+        {
+          const_val[i].lattice_val = VARYING;
+          const_val[i].value = NULL_TREE;
+        }
+    }
+}
+
 
 /* Do final substitution of propagated values, cleanup the flowgraph and
    free allocated storage.  
@@ -694,8 +694,11 @@ ccp_initialize (void)
 static bool
 ccp_finalize (void)
 {
+  bool something_changed;
+
+  do_dbg_cnt ();
   /* Perform substitutions based on the known constant values.  */
-  bool something_changed = substitute_and_fold (const_val, false);
+  something_changed = substitute_and_fold (const_val, false);
 
   free (const_val);
   const_val = NULL;
@@ -953,6 +956,16 @@ ccp_fold (gimple stmt)
 			return fold_unary (VIEW_CONVERT_EXPR,
 					   TREE_TYPE (rhs), val->value);
 		    }
+		  else if (TREE_CODE (rhs) == INDIRECT_REF
+			   && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
+		    {
+		      prop_value_t *val = get_value (TREE_OPERAND (rhs, 0));
+		      if (val->lattice_val == CONSTANT
+			  && TREE_CODE (val->value) == ADDR_EXPR
+			  && useless_type_conversion_p (TREE_TYPE (rhs),
+							TREE_TYPE (TREE_TYPE (val->value))))
+			rhs = TREE_OPERAND (val->value, 0);
+		    }
 		  return fold_const_aggregate_ref (rhs);
 		}
               else if (kind == tcc_declaration)
@@ -1143,6 +1156,9 @@ fold_const_aggregate_ref (tree t)
   tree base, ctor, idx, field;
   unsigned HOST_WIDE_INT cnt;
   tree cfield, cval;
+
+  if (TREE_CODE_CLASS (TREE_CODE (t)) == tcc_declaration)
+    return get_symbol_constant_value (t);
 
   switch (TREE_CODE (t))
     {

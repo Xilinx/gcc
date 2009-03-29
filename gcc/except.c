@@ -271,7 +271,7 @@ enum reachable_code
 
 struct reachable_info;
 static enum reachable_code reachable_next_level (struct eh_region *, tree,
-						 struct reachable_info *);
+						 struct reachable_info *, bool);
 
 static int action_record_eq (const void *, const void *);
 static hashval_t action_record_hash (const void *);
@@ -821,6 +821,17 @@ current_function_has_exception_handlers (void)
 static void
 duplicate_eh_regions_0 (eh_region o, int *min, int *max)
 {
+  int i;
+
+  if (o->aka)
+    {
+      i = bitmap_first_set_bit (o->aka);
+      if (i < *min)
+	*min = i;
+      i = bitmap_last_set_bit (o->aka);
+      if (i > *max)
+	*max = i;
+    }
   if (o->region_number < *min)
     *min = o->region_number;
   if (o->region_number > *max)
@@ -852,7 +863,18 @@ duplicate_eh_regions_1 (eh_region old, eh_region outer, int eh_offset)
   *n = *old;
   n->outer = outer;
   n->next_peer = NULL;
-  gcc_assert (!old->aka);
+  if (old->aka)
+    {
+      unsigned i;
+      bitmap_iterator bi;
+      n->aka = BITMAP_GGC_ALLOC ();
+
+      EXECUTE_IF_SET_IN_BITMAP (old->aka, 0, i, bi)
+      {
+	bitmap_set_bit (n->aka, i + eh_offset);
+	VEC_replace (eh_region, cfun->eh->region_array, i + eh_offset, n);
+      }
+    }
 
   n->region_number += eh_offset;
   VEC_replace (eh_region, cfun->eh->region_array, n->region_number, n);
@@ -883,8 +905,11 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
   int i, min_region, max_region, eh_offset, cfun_last_region_number;
   int num_regions;
 
-  if (!ifun->eh->region_tree)
+  if (!ifun->eh)
     return 0;
+#ifdef ENABLE_CHECKING
+  verify_eh_tree (ifun);
+#endif
 
   /* Find the range of region numbers to be copied.  The interface we 
      provide here mandates a single offset to find new number from old,
@@ -905,23 +930,18 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
   eh_offset = cfun_last_region_number + 1 - min_region;
 
   /* If we've not yet created a region array, do so now.  */
-  VEC_safe_grow (eh_region, gc, cfun->eh->region_array,
-		 cfun_last_region_number + 1 + num_regions);
-  cfun->eh->last_region_number = max_region + eh_offset;
-
-  /* We may have just allocated the array for the first time.
-     Make sure that element zero is null.  */
-  VEC_replace (eh_region, cfun->eh->region_array, 0, 0);
-
-  /* Zero all entries in the range allocated.  */
-  memset (VEC_address (eh_region, cfun->eh->region_array)
-	  + cfun_last_region_number + 1, 0, num_regions * sizeof (eh_region));
+  cfun->eh->last_region_number = cfun_last_region_number + num_regions;
+  VEC_safe_grow_cleared (eh_region, gc, cfun->eh->region_array,
+			 cfun->eh->last_region_number + 1);
 
   /* Locate the spot at which to insert the new tree.  */
   if (outer_region > 0)
     {
       outer = VEC_index (eh_region, cfun->eh->region_array, outer_region);
-      splice = &outer->inner;
+      if (outer)
+	splice = &outer->inner;
+      else
+	splice = &cfun->eh->region_tree;
     }
   else
     {
@@ -930,6 +950,20 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
     }
   while (*splice)
     splice = &(*splice)->next_peer;
+
+  if (!ifun->eh->region_tree)
+    {
+      if (outer)
+	for (i = cfun_last_region_number + 1;
+	     i <= cfun->eh->last_region_number; i++)
+	  {
+	    VEC_replace (eh_region, cfun->eh->region_array, i, outer);
+	    if (outer->aka == NULL)
+	      outer->aka = BITMAP_GGC_ALLOC ();
+	    bitmap_set_bit (outer->aka, i);
+	  }
+      return eh_offset;
+    }
 
   /* Copy all the regions in the subtree.  */
   if (copy_region > 0)
@@ -960,9 +994,9 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
      the prev_try short-cuts for ERT_CLEANUP regions.  */
   prev_try = NULL;
   if (outer_region > 0)
-    for (prev_try = VEC_index (eh_region, cfun->eh->region_array, outer_region);
-         prev_try && prev_try->type != ERT_TRY;
-	 prev_try = prev_try->outer)
+    for (prev_try =
+	 VEC_index (eh_region, cfun->eh->region_array, outer_region);
+	 prev_try && prev_try->type != ERT_TRY; prev_try = prev_try->outer)
       if (prev_try->type == ERT_MUST_NOT_THROW
 	  || (prev_try->type == ERT_ALLOWED_EXCEPTIONS
 	      && !prev_try->u.allowed.type_list))
@@ -978,7 +1012,23 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
   for (i = cfun_last_region_number + 1;
        VEC_iterate (eh_region, cfun->eh->region_array, i, cur); ++i)
     {
+      /* All removed EH that is toplevel in input function is now
+         in outer EH of output function.  */
       if (cur == NULL)
+	{
+	  gcc_assert (VEC_index
+		      (eh_region, ifun->eh->region_array,
+		       i - eh_offset) == NULL);
+	  if (outer)
+	    {
+	      VEC_replace (eh_region, cfun->eh->region_array, i, outer);
+	      if (outer->aka == NULL)
+		outer->aka = BITMAP_GGC_ALLOC ();
+	      bitmap_set_bit (outer->aka, i);
+	    }
+	  continue;
+	}
+      if (i != cur->region_number)
 	continue;
 
 #define REMAP(REG) \
@@ -1014,6 +1064,9 @@ duplicate_eh_regions (struct function *ifun, duplicate_eh_regions_map map,
 
 #undef REMAP
     }
+#ifdef ENABLE_CHECKING
+  verify_eh_tree (cfun);
+#endif
 
   return eh_offset;
 }
@@ -1660,7 +1713,7 @@ sjlj_find_directly_reachable_regions (struct sjlj_lp_info *lp_info)
       rc = RNL_NOT_CAUGHT;
       for (; region; region = region->outer)
 	{
-	  rc = reachable_next_level (region, type_thrown, NULL);
+	  rc = reachable_next_level (region, type_thrown, NULL, false);
 	  if (rc != RNL_NOT_CAUGHT)
 	    break;
 	}
@@ -2316,7 +2369,6 @@ struct reachable_info
   tree types_allowed;
   void (*callback) (struct eh_region *, void *);
   void *callback_data;
-  bool saw_any_handlers;
 };
 
 /* A subroutine of reachable_next_level.  Return true if TYPE, or a
@@ -2359,8 +2411,6 @@ add_reachable_handler (struct reachable_info *info,
   if (! info)
     return;
 
-  info->saw_any_handlers = true;
-
   if (crtl->eh.built_landing_pads)
     info->callback (lp_region, info->callback_data);
   else
@@ -2374,7 +2424,8 @@ add_reachable_handler (struct reachable_info *info,
 
 static enum reachable_code
 reachable_next_level (struct eh_region *region, tree type_thrown,
-		      struct reachable_info *info)
+		      struct reachable_info *info,
+		      bool maybe_resx)
 {
   switch (region->type)
     {
@@ -2510,15 +2561,16 @@ reachable_next_level (struct eh_region *region, tree type_thrown,
 
     case ERT_MUST_NOT_THROW:
       /* Here we end our search, since no exceptions may propagate.
-	 If we've touched down at some landing pad previous, then the
-	 explicit function call we generated may be used.  Otherwise
-	 the call is made by the runtime.
+        
+         Local landing pads of ERT_MUST_NOT_THROW instructions are reachable
+	 only via locally handled RESX instructions.  
 
-         Before inlining, do not perform this optimization.  We may
-	 inline a subroutine that contains handlers, and that will
-	 change the value of saw_any_handlers.  */
+	 When we inline a function call, we can bring in new handlers.  In order
+	 to avoid ERT_MUST_NOT_THROW landing pads from being deleted as unreachable
+	 assume that such handlers exists prior for any inlinable call prior
+	 inlining decisions are fixed.  */
 
-      if ((info && info->saw_any_handlers) || !cfun->after_inlining)
+      if (maybe_resx)
 	{
 	  add_reachable_handler (info, region, region);
 	  return RNL_CAUGHT;
@@ -2539,7 +2591,7 @@ reachable_next_level (struct eh_region *region, tree type_thrown,
 /* Invoke CALLBACK on each region reachable from REGION_NUMBER.  */
 
 void
-foreach_reachable_handler (int region_number, bool is_resx,
+foreach_reachable_handler (int region_number, bool is_resx, bool inlinable_call,
 			   void (*callback) (struct eh_region *, void *),
 			   void *callback_data)
 {
@@ -2552,6 +2604,8 @@ foreach_reachable_handler (int region_number, bool is_resx,
   info.callback_data = callback_data;
 
   region = VEC_index (eh_region, cfun->eh->region_array, region_number);
+  if (!region)
+    return;
 
   type_thrown = NULL_TREE;
   if (is_resx)
@@ -2570,7 +2624,8 @@ foreach_reachable_handler (int region_number, bool is_resx,
 
   while (region)
     {
-      if (reachable_next_level (region, type_thrown, &info) >= RNL_CAUGHT)
+      if (reachable_next_level (region, type_thrown, &info,
+      				inlinable_call || is_resx) >= RNL_CAUGHT)
 	break;
       /* If we have processed one cleanup, there is no point in
 	 processing any more of them.  Each cleanup will have an edge
@@ -2622,7 +2677,7 @@ reachable_handlers (rtx insn)
       region_number = INTVAL (XEXP (note, 0));
     }
 
-  foreach_reachable_handler (region_number, is_resx,
+  foreach_reachable_handler (region_number, is_resx, false,
 			     (crtl->eh.built_landing_pads
 			      ? arh_to_landing_pad
 			      : arh_to_label),
@@ -2635,12 +2690,14 @@ reachable_handlers (rtx insn)
    within the function.  */
 
 bool
-can_throw_internal_1 (int region_number, bool is_resx)
+can_throw_internal_1 (int region_number, bool is_resx, bool inlinable_call)
 {
   struct eh_region *region;
   tree type_thrown;
 
   region = VEC_index (eh_region, cfun->eh->region_array, region_number);
+  if (!region)
+    return false;
 
   type_thrown = NULL_TREE;
   if (is_resx)
@@ -2656,7 +2713,8 @@ can_throw_internal_1 (int region_number, bool is_resx)
      regions, which also do not require processing internally.  */
   for (; region; region = region->outer)
     {
-      enum reachable_code how = reachable_next_level (region, type_thrown, 0);
+      enum reachable_code how = reachable_next_level (region, type_thrown, 0,
+      						      inlinable_call || is_resx);
       if (how == RNL_BLOCKED)
 	return false;
       if (how != RNL_NOT_CAUGHT)
@@ -2677,7 +2735,7 @@ can_throw_internal (const_rtx insn)
   if (JUMP_P (insn)
       && GET_CODE (PATTERN (insn)) == RESX
       && XINT (PATTERN (insn), 0) > 0)
-    return can_throw_internal_1 (XINT (PATTERN (insn), 0), true);
+    return can_throw_internal_1 (XINT (PATTERN (insn), 0), true, false);
 
   if (NONJUMP_INSN_P (insn)
       && GET_CODE (PATTERN (insn)) == SEQUENCE)
@@ -2688,19 +2746,21 @@ can_throw_internal (const_rtx insn)
   if (!note || INTVAL (XEXP (note, 0)) <= 0)
     return false;
 
-  return can_throw_internal_1 (INTVAL (XEXP (note, 0)), false);
+  return can_throw_internal_1 (INTVAL (XEXP (note, 0)), false, false);
 }
 
 /* Determine if the given INSN can throw an exception that is
    visible outside the function.  */
 
 bool
-can_throw_external_1 (int region_number, bool is_resx)
+can_throw_external_1 (int region_number, bool is_resx, bool inlinable_call)
 {
   struct eh_region *region;
   tree type_thrown;
 
   region = VEC_index (eh_region, cfun->eh->region_array, region_number);
+  if (!region)
+    return true;
 
   type_thrown = NULL_TREE;
   if (is_resx)
@@ -2714,7 +2774,8 @@ can_throw_external_1 (int region_number, bool is_resx)
   /* If the exception is caught or blocked by any containing region,
      then it is not seen by any calling function.  */
   for (; region ; region = region->outer)
-    if (reachable_next_level (region, type_thrown, NULL) >= RNL_CAUGHT)
+    if (reachable_next_level (region, type_thrown, NULL,
+    	inlinable_call || is_resx) >= RNL_CAUGHT)
       return false;
 
   return true;
@@ -2731,7 +2792,7 @@ can_throw_external (const_rtx insn)
   if (JUMP_P (insn)
       && GET_CODE (PATTERN (insn)) == RESX
       && XINT (PATTERN (insn), 0) > 0)
-    return can_throw_external_1 (XINT (PATTERN (insn), 0), true);
+    return can_throw_external_1 (XINT (PATTERN (insn), 0), true, false);
 
   if (NONJUMP_INSN_P (insn)
       && GET_CODE (PATTERN (insn)) == SEQUENCE)
@@ -2752,7 +2813,7 @@ can_throw_external (const_rtx insn)
   if (INTVAL (XEXP (note, 0)) <= 0)
     return false;
 
-  return can_throw_external_1 (INTVAL (XEXP (note, 0)), false);
+  return can_throw_external_1 (INTVAL (XEXP (note, 0)), false, false);
 }
 
 /* Set TREE_NOTHROW and crtl->all_throwers_are_sibcalls.  */
@@ -2762,13 +2823,7 @@ set_nothrow_function_flags (void)
 {
   rtx insn;
 
-  /* If we don't know that this implementation of the function will
-     actually be used, then we must not set TREE_NOTHROW, since
-     callers must not assume that this function does not throw.  */
-  if (DECL_REPLACEABLE_P (current_function_decl))
-    return 0;
-
-  TREE_NOTHROW (current_function_decl) = 1;
+  crtl->nothrow = 1;
 
   /* Assume crtl->all_throwers_are_sibcalls until we encounter
      something that can throw an exception.  We specifically exempt
@@ -2778,13 +2833,19 @@ set_nothrow_function_flags (void)
 
   crtl->all_throwers_are_sibcalls = 1;
 
+  /* If we don't know that this implementation of the function will
+     actually be used, then we must not set TREE_NOTHROW, since
+     callers must not assume that this function does not throw.  */
+  if (TREE_NOTHROW (current_function_decl))
+    return 0;
+
   if (! flag_exceptions)
     return 0;
 
   for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
     if (can_throw_external (insn))
       {
-        TREE_NOTHROW (current_function_decl) = 0;
+        crtl->nothrow = 0;
 
 	if (!CALL_P (insn) || !SIBLING_CALL_P (insn))
 	  {
@@ -2797,7 +2858,7 @@ set_nothrow_function_flags (void)
        insn = XEXP (insn, 1))
     if (can_throw_external (insn))
       {
-        TREE_NOTHROW (current_function_decl) = 0;
+        crtl->nothrow = 0;
 
 	if (!CALL_P (insn) || !SIBLING_CALL_P (insn))
 	  {
@@ -2805,6 +2866,10 @@ set_nothrow_function_flags (void)
 	    return 0;
 	  }
       }
+  if (crtl->nothrow
+      && (cgraph_function_body_availability (cgraph_node (current_function_decl))
+          >= AVAIL_AVAILABLE))
+    TREE_NOTHROW (current_function_decl) = 1;
   return 0;
 }
 

@@ -3223,7 +3223,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
    of pointer PTROP and integer INTOP.  */
 
 tree
-pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
+pointer_int_sum (location_t location, enum tree_code resultcode,
+		 tree ptrop, tree intop)
 {
   tree size_exp, ret;
 
@@ -3232,19 +3233,19 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
@@ -3306,6 +3307,31 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
     intop = fold_build1 (NEGATE_EXPR, sizetype, intop);
+
+  if (TREE_CODE (intop) == INTEGER_CST)
+    {
+      tree offset_node;
+      tree string_cst = string_constant (ptrop, &offset_node);
+
+      if (string_cst != 0 
+	  && !(offset_node && TREE_CODE (offset_node) != INTEGER_CST))
+	{
+	  HOST_WIDE_INT max = TREE_STRING_LENGTH (string_cst);
+	  HOST_WIDE_INT offset;
+	  if (offset_node == 0)
+	    offset = 0;
+	  else if (! host_integerp (offset_node, 0))
+	    offset = -1;
+	  else
+	    offset = tree_low_cst (offset_node, 0);
+
+	  offset = offset + tree_low_cst (intop, 0);
+	  if (offset < 0 || offset > max)
+	    warning_at (location, 0,
+			"offset %<%wd%> outside bounds of constant string",
+			tree_low_cst (intop, 0));
+	}
+    }
 
   ret = fold_build2 (POINTER_PLUS_EXPR, result_type, ptrop, intop);
 
@@ -5962,7 +5988,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       error ("requested alignment is not a power of 2");
       *no_add_attrs = true;
     }
-  else if (i > HOST_BITS_PER_INT - 2)
+  else if (i >= HOST_BITS_PER_INT - BITS_PER_UNIT_LOG)
     {
       error ("requested alignment is too large");
       *no_add_attrs = true;
@@ -5984,7 +6010,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       else if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
 	*type = build_variant_type_copy (*type);
 
-      TYPE_ALIGN (*type) = (1 << i) * BITS_PER_UNIT;
+      TYPE_ALIGN (*type) = (1U << i) * BITS_PER_UNIT;
       TYPE_USER_ALIGN (*type) = 1;
     }
   else if (! VAR_OR_FUNCTION_DECL_P (decl)
@@ -5994,7 +6020,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       *no_add_attrs = true;
     }
   else if (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_ALIGN (decl) > (1 << i) * BITS_PER_UNIT)
+	   && DECL_ALIGN (decl) > (1U << i) * BITS_PER_UNIT)
     {
       if (DECL_USER_ALIGN (decl))
 	error ("alignment for %q+D was previously specified as %d "
@@ -6007,7 +6033,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
     }
   else
     {
-      DECL_ALIGN (decl) = (1 << i) * BITS_PER_UNIT;
+      DECL_ALIGN (decl) = (1U << i) * BITS_PER_UNIT;
       DECL_USER_ALIGN (decl) = 1;
     }
 
