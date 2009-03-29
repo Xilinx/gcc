@@ -1,3 +1,9 @@
+2009-03-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38654
+	* io/read.c (read_f): Reworked to speed up floating point parsing.
+	(convert_real): Use pointer-casting instead of memcpy and temporaries.
+
 2009-03-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
         PR libfortran/37754

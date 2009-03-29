@@ -33,6 +33,7 @@ Boston, MA 02110-1301, USA.  */
 #include <errno.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <assert.h>
 
 typedef unsigned char uchar;
 
@@ -141,38 +142,30 @@ convert_real (st_parameter_dt *dtp, void *dest, const char *buffer, int length)
   switch (length)
     {
     case 4:
-      {
-	GFC_REAL_4 tmp =
+      *((GFC_REAL_4*) dest) =
 #if defined(HAVE_STRTOF)
-	  strtof (buffer, NULL);
+	strtof (buffer, NULL);
 #else
-	  (GFC_REAL_4) strtod (buffer, NULL);
+	(GFC_REAL_4) strtod (buffer, NULL);
 #endif
-	memcpy (dest, (void *) &tmp, length);
-      }
       break;
+
     case 8:
-      {
-	GFC_REAL_8 tmp = strtod (buffer, NULL);
-	memcpy (dest, (void *) &tmp, length);
-      }
+      *((GFC_REAL_8*) dest) = strtod (buffer, NULL);
       break;
+
 #if defined(HAVE_GFC_REAL_10) && defined (HAVE_STRTOLD)
     case 10:
-      {
-	GFC_REAL_10 tmp = strtold (buffer, NULL);
-	memcpy (dest, (void *) &tmp, length);
-      }
+      *((GFC_REAL_10*) dest) = strtold (buffer, NULL);
       break;
 #endif
+
 #if defined(HAVE_GFC_REAL_16) && defined (HAVE_STRTOLD)
     case 16:
-      {
-	GFC_REAL_16 tmp = strtold (buffer, NULL);
-	memcpy (dest, (void *) &tmp, length);
-      }
+      *((GFC_REAL_16*) dest) = strtold (buffer, NULL);
       break;
 #endif
+
     default:
       internal_error (&dtp->common, "Unsupported real kind during IO");
     }
@@ -769,71 +762,82 @@ void
 read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 {
   int w, seen_dp, exponent;
-  int exponent_sign, val_sign;
-  int ndigits;
-  int edigits;
-  int i;
-  char *p, *buffer;
-  char *digits;
-  char scratch[SCRATCH_SIZE];
+  int exponent_sign;
+  const char *p;
+  char *buffer;
+  char *out;
+  int seen_int_digit; /* Seen a digit before the decimal point?  */
+  int seen_dec_digit; /* Seen a digit after the decimal point?  */
 
-  val_sign = 1;
   seen_dp = 0;
+  seen_int_digit = 0;
+  seen_dec_digit = 0;
+  exponent_sign = 1;
+  exponent = 0;
   w = f->u.w;
 
+  /* Read in the next block.  */
   p = read_block_form (dtp, &w);
-
   if (p == NULL)
     return;
-
-  p = eat_leading_spaces (&w, p);
+  p = eat_leading_spaces (&w, (char*) p);
   if (w == 0)
     goto zero;
 
-  /* Optional sign */
+  /* In this buffer we're going to re-format the number cleanly to be parsed
+     by convert_real in the end; this assures we're using strtod from the
+     C library for parsing and thus probably get the best accuracy possible.
+     This process may add a '+0.0' in front of the number as well as change the
+     exponent because of an implicit decimal point or the like.  Thus allocating
+     strlen ("+0.0e-1000") == 10 characters plus one for NUL more than the
+     original buffer had should be enough.  */
+  buffer = gfc_alloca (w + 11);
+  out = buffer;
 
+  /* Optional sign */
   if (*p == '-' || *p == '+')
     {
       if (*p == '-')
-        val_sign = -1;
-      p++;
-      w--;
+	*(out++) = '-';
+      ++p;
+      --w;
     }
 
-  exponent_sign = 1;
-  p = eat_leading_spaces (&w, p);
+  p = eat_leading_spaces (&w, (char*) p);
   if (w == 0)
     goto zero;
 
-  /* A digit, a '.' or a exponent character ('e', 'E', 'd' or 'D')
-     is required at this point */
-
-  if (!isdigit (*p) && *p != '.' && *p != ',' && *p != 'd' && *p != 'D'
-      && *p != 'e' && *p != 'E')
-    goto bad_float;
-
-  /* Remember the position of the first digit.  */
-  digits = p;
-  ndigits = 0;
-
-  /* Scan through the string to find the exponent.  */
+  /* Process the mantissa string.  */
   while (w > 0)
     {
       switch (*p)
 	{
 	case ',':
-	  if (dtp->u.p.current_unit->decimal_status == DECIMAL_COMMA
-               && *p == ',')
-	    *p = '.';
-	  else
+	  if (dtp->u.p.current_unit->decimal_status != DECIMAL_COMMA)
 	    goto bad_float;
-	  /* Fall through */
+	  /* Fall through.  */
 	case '.':
 	  if (seen_dp)
 	    goto bad_float;
+	  if (!seen_int_digit)
+	    *(out++) = '0';
+	  *(out++) = '.';
 	  seen_dp = 1;
-	  /* Fall through */
+	  break;
 
+	case ' ':
+	  if (dtp->u.p.blank_status == BLANK_ZERO)
+	    {
+	      *(out++) = '0';
+	      goto found_digit;
+	    }
+	  else if (dtp->u.p.blank_status == BLANK_NULL)
+	    break;
+	  else
+	    /* XXX: Should we check instead that there are only trailing
+	       blanks here, as is done below for exponents?  */
+	    goto done;
+	  /* Fall through.  */
 	case '0':
 	case '1':
 	case '2':
@@ -844,65 +848,160 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
 	case '7':
 	case '8':
 	case '9':
-	case ' ':
-	  ndigits++;
-	  p++;
-	  w--;
+	  *(out++) = *p;
+found_digit:
+	  if (!seen_dp)
+	    seen_int_digit = 1;
+	  else
+	    seen_dec_digit = 1;
 	  break;
 
 	case '-':
-	  exponent_sign = -1;
-	  /* Fall through */
-
 	case '+':
-	  p++;
-	  w--;
-	  goto exp2;
+	  goto exponent;
 
-	case 'd':
 	case 'e':
-	case 'D':
 	case 'E':
-	  p++;
-	  w--;
-	  goto exp1;
+	case 'd':
+	case 'D':
+	  ++p;
+	  --w;
+	  goto exponent;
 
 	default:
 	  goto bad_float;
 	}
-    }
 
-  /* No exponent has been seen, so we use the current scale factor */
-  exponent = -dtp->u.p.scale_factor;
+      ++p;
+      --w;
+    }
+  
+  /* No exponent has been seen, so we use the current scale factor.  */
+  exponent = - dtp->u.p.scale_factor;
   goto done;
 
- bad_float:
-  generate_error (&dtp->common, LIBERROR_READ_VALUE,
-		  "Bad value during floating point read");
-  next_record (dtp, 1);
+  /* At this point the start of an exponent has been found.  */
+exponent:
+  p = eat_leading_spaces (&w, (char*) p);
+  if (*p == '-' || *p == '+')
+    {
+      if (*p == '-')
+	exponent_sign = -1;
+      ++p;
+      --w;
+    }
+
+  /* At this point a digit string is required.  We calculate the value
+     of the exponent in order to take account of the scale factor and
+     the d parameter before explict conversion takes place.  */
+
+  if (w == 0)
+    goto bad_float;
+
+  if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
+    {
+      while (w > 0 && isdigit (*p))
+	{
+	  exponent *= 10;
+	  exponent += *p - '0';
+	  ++p;
+	  --w;
+	}
+	
+      /* Only allow trailing blanks.  */
+      while (w > 0)
+	{
+	  if (*p != ' ')
+	    goto bad_float;
+	  ++p;
+	  --w;
+	}
+    }    
+  else  /* BZ or BN status is enabled.  */
+    {
+      while (w > 0)
+	{
+	  if (*p == ' ')
+	    {
+	      if (dtp->u.p.blank_status == BLANK_ZERO)
+		exponent *= 10;
+	      else
+		assert (dtp->u.p.blank_status == BLANK_NULL);
+	    }
+	  else if (!isdigit (*p))
+	    goto bad_float;
+	  else
+	    {
+	      exponent *= 10;
+	      exponent += *p - '0';
+	    }
+
+	  ++p;
+	  --w;
+	}
+    }
+
+  exponent *= exponent_sign;
+
+done:
+  /* Use the precision specified in the format if no decimal point has been
+     seen.  */
+  if (!seen_dp)
+    exponent -= f->u.real.d;
+
+  /* Output a trailing '0' after decimal point if not yet found.  */
+  if (seen_dp && !seen_dec_digit)
+    *(out++) = '0';
+
+  /* Print out the exponent to finish the reformatted number.  Maximum 4
+     digits for the exponent.  */
+  if (exponent != 0)
+    {
+      int dig;
+
+      *(out++) = 'e';
+      if (exponent < 0)
+	{
+	  *(out++) = '-';
+	  exponent = - exponent;
+	}
+
+      assert (exponent < 10000);
+      for (dig = 3; dig >= 0; --dig)
+	{
+	  out[dig] = (char) ('0' + exponent % 10);
+	  exponent /= 10;
+	}
+      out += 4;
+    }
+  *(out++) = '\0';
+
+  /* Do the actual conversion.  */
+  convert_real (dtp, dest, buffer, length);
+
   return;
 
-  /* The value read is zero */
- zero:
+  /* The value read is zero.  */
+zero:
   switch (length)
     {
       case 4:
-	*((GFC_REAL_4 *) dest) = 0;
+	*((GFC_REAL_4 *) dest) = 0.0;
 	break;
 
       case 8:
-	*((GFC_REAL_8 *) dest) = 0;
+	*((GFC_REAL_8 *) dest) = 0.0;
 	break;
 
 #ifdef HAVE_GFC_REAL_10
       case 10:
-	*((GFC_REAL_10 *) dest) = 0;
+	*((GFC_REAL_10 *) dest) = 0.0;
 	break;
 #endif
 
 #ifdef HAVE_GFC_REAL_16
       case 16:
-	*((GFC_REAL_16 *) dest) = 0;
+	*((GFC_REAL_16 *) dest) = 0.0;
 	break;
 #endif
 
@@ -911,149 +1010,11 @@ read_f (st_parameter_dt *dtp, const fnode *f, char *dest, int length)
     }
   return;
 
-  /* At this point the start of an exponent has been found */
- exp1:
-  while (w > 0 && *p == ' ')
-    {
-      w--;
-      p++;
-    }
-
-  switch (*p)
-    {
-    case '-':
-      exponent_sign = -1;
-      /* Fall through */
-
-    case '+':
-      p++;
-      w--;
-      break;
-    }
-
-  if (w == 0)
-    goto bad_float;
-
-  /* At this point a digit string is required.  We calculate the value
-     of the exponent in order to take account of the scale factor and
-     the d parameter before explict conversion takes place. */
- exp2:
-  /* Normal processing of exponent */
-  exponent = 0;
-  if (dtp->u.p.blank_status == BLANK_UNSPECIFIED)
-    {
-      while (w > 0 && isdigit (*p))
-        {
-          exponent = 10 * exponent + *p - '0';
-          p++;
-          w--;
-        }
-        
-      /* Only allow trailing blanks */
-
-      while (w > 0)
-        {
-          if (*p != ' ')
-	    goto bad_float;
-          p++;
-          w--;
-        }
-    }    
-  else  /* BZ or BN status is enabled */
-    {
-      while (w > 0)
-        {
-          if (*p == ' ')
-            {
-	      if (dtp->u.p.blank_status == BLANK_ZERO) 
-                {
-                  exponent = 10 * exponent;
-                  p++;
-                  w--;
-                  continue;
-                }
-	      if (dtp->u.p.blank_status == BLANK_NULL)
-                {
-                  p++;
-                  w--;
-                  continue;
-                }
-            }
-          else if (!isdigit (*p))
-            goto bad_float;
-
-          exponent = 10 * exponent + *p - '0';
-          p++;
-          w--;
-        }
-    }
-
-  exponent = exponent * exponent_sign;
-
- done:
-  /* Use the precision specified in the format if no decimal point has been
-     seen.  */
-  if (!seen_dp)
-    exponent -= f->u.real.d;
-
-  if (exponent > 0)
-    {
-      edigits = 2;
-      i = exponent;
-    }
-  else
-    {
-      edigits = 3;
-      i = -exponent;
-    }
-
-  while (i >= 10)
-    {
-      i /= 10;
-      edigits++;
-    }
-
-  i = ndigits + edigits + 1;
-  if (val_sign < 0)
-    i++;
-
-  if (i < SCRATCH_SIZE) 
-    buffer = scratch;
-  else
-    buffer = get_mem (i);
-
-  /* Reformat the string into a temporary buffer.  As we're using atof it's
-     easiest to just leave the decimal point in place.  */
-  p = buffer;
-  if (val_sign < 0)
-    *(p++) = '-';
-  for (; ndigits > 0; ndigits--)
-    {
-      if (*digits == ' ')
-        {
-	  if (dtp->u.p.blank_status == BLANK_ZERO) *p = '0';
-	  else if (dtp->u.p.blank_status == BLANK_NULL)
-            {
-              digits++;
-              continue;
-            }
-          else
-            *p = ' ';
-        }
-      else
-        *p = *digits;
-      p++;
-      digits++;
-    }
-  *(p++) = 'e';
-  sprintf (p, "%d", exponent);
-
-  /* Do the actual conversion.  */
-  convert_real (dtp, dest, buffer, length);
-
-  if (buffer != scratch)
-     free_mem (buffer);
-
+bad_float:
+  generate_error (&dtp->common, LIBERROR_READ_VALUE,
+		  "Bad value during floating point read");
+  next_record (dtp, 1);
+  return;
 }
 
 
