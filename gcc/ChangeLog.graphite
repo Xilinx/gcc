@@ -1,5 +1,9 @@
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* tree-ssa-loop.c: Include forgotten toplev.h
+
+2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-poly.c: (apply_poly_transforms): sorry -> gcc_unreachable.
 	* testsuite/gcc.dg/graphite/pr37883.c: Remove -floop-*
 	* testsuite/gcc.dg/graphite/pr37928.c: Same
