@@ -7958,7 +7958,7 @@ ppbasilys_flushrout (const char *txt, void *data)
     nl = strchr(bl, '\n');
     if (nl && nl[1]==0) 
       break;
-    linelen = nl?(nl-bl):strlen(bl);
+    linelen = nl?((int)(nl-bl)):((int)(strlen(bl)));
     basilysgc_add_strbuf_raw_len ((basilys_ptr_t) (*fldata->gf_sbufad),
 				  bl, linelen);
     if (nl) 
@@ -8191,9 +8191,10 @@ basilys_ptr_t
 basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
 {
   int err = 0;
+  ppl_Constraint_System_t oldconsys = NULL, newconsys = NULL;
   BASILYS_ENTERFRAME(3, NULL);
 #define pplv   curfram__.varptr[0]
-#define spec_pplv ((struct basilysspecial_st*)(resv))
+#define spec_pplv ((struct basilysspecial_st*)(pplv))
 #define discrv curfram__.varptr[1]
 #define object_discrv ((basilysobject_ptr_t)(discrv))
 #define resv   curfram__.varptr[2]
@@ -8202,13 +8203,16 @@ basilysgc_clone_ppl_constraint_system (basilys_ptr_t ppl_p)
   resv = NULL;
   if (basilys_magic_discr ((basilys_ptr_t) (pplv)) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
+  oldconsys =  spec_pplv->val.sp_constraint_system;
   resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
   spec_resv->discr = spec_pplv->discr;
   spec_resv->mark = 0;
   spec_resv->val.sp_pointer = NULL;
-  err = ppl_new_Constraint_System_from_Constraint_System(&spec_resv->val.sp_constraint_system, spec_pplv->val.sp_constraint_system);
+  if (oldconsys)
+    err = ppl_new_Constraint_System_from_Constraint_System(&newconsys, oldconsys);
   if (err) 
     fatal_error("PPL clone Constraint System failed in Basilys");
+  spec_resv->val.sp_constraint_system = newconsys;
  end:
   BASILYS_EXITFRAME();
   return (basilys_ptr_t)resv;

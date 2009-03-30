@@ -2075,6 +2075,7 @@
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
 		 ))
 	       (add2sbuf_strconst implbuf ";")
+	       (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	       )
 	     ))
 	  ))

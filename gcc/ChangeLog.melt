@@ -1,4 +1,8 @@
 2009-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): cleaned up.
+	* melt/warmelt-outobj.bysl: added indent in multicall output.
+	* melt/ana-base.bysl: adding sman_add_constraint.
+2009-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): removed warning
 	since ppl_io_asprint_##Type functions are no more deprecated in
 	PPL.
