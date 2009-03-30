@@ -8403,10 +8403,7 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
 
 
 /* call the ppl_io_asprint_##Type (char** strp, ppl_const_##Type##_t
-   x); maybe they will be a ppl_*_to_buffer function with an indent
-   number */
-/* @@@ THIS IS A TEMPORARY KLUDGE / Basile, march 23th 2009 */
-#warning using unstable PPL asprint functions "http://www.cs.unipr.it/pipermail/ppl-devel/2009-March/014162.html"
+   x); these functions are now stable in PPL */
 void
 basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p)
 {
