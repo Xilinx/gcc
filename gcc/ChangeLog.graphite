@@ -1,3 +1,17 @@
+2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-poly.c: (apply_poly_transforms): sorry -> gcc_unreachable.
+	* testsuite/gcc.dg/graphite/pr37883.c: Remove -floop-*
+	* testsuite/gcc.dg/graphite/pr37928.c: Same
+	* testsuite/gcc.dg/graphite/pr38409.c: Same
+	* testsuite/gcc.dg/graphite/pr38498.c: Same
+	* testsuite/gcc.dg/graphite/pr38559.c: Same
+	* testsuite/gcc.dg/graphite/pr39335.c: Same
+	* testsuite/gcc.dg/graphite/pr39335_1.c: Same
+	* testsuite/gfortran.dg/graphite/block-2.f: Same
+	* tree-ssa-loop.c (gate_graphite_transforms): Always fail if called
+	with -floop-*.
+
 2009-03-28  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (ref_nb_loops, build_access_matrix_with_af,

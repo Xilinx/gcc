@@ -211,17 +211,14 @@ apply_poly_transforms (scop_p scop)
   if (flag_graphite_identity)
     transform_done = true;
 
-  /* Not yet implemented.  */
   if (flag_loop_block)
-    sorry ("Loop blocking currently not supported");
+    gcc_unreachable (); /* Not yet supported.  */
 
-  /* Not yet implemented.  */
   if (flag_loop_interchange)
-    sorry ("Loop interchange currently not supported");
+    gcc_unreachable (); /* Not yet supported.  */
 
-  /* Not yet implemented.  */
   if (flag_loop_strip_mine)
-    sorry ("Strip mining currently not supported");
+    gcc_unreachable (); /* Not yet supported.  */
 
   if (flag_graphite_write)
     graphite_write_transforms (scop);

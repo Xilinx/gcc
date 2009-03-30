@@ -309,6 +309,9 @@ gate_graphite_transforms (void)
       || flag_graphite_identity)
     flag_graphite = 1;
 
+  if (flag_loop_block || flag_loop_interchange || flag_loop_strip_mine)
+    sorry ("loop blocking, strip mining and interchange not implemented");
+
   return flag_graphite != 0;
 }
 
