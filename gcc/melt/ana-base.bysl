@@ -502,6 +502,28 @@
    ))
 
 
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_decl matches any declaration
+(defcmatcher tree_decl 
+  (:tree tr)
+  (					;output
+   :tree trdecl
+   :cstring name
+   :long uid
+   )
+  treedecl				;statesym
+  (; test expander
+   "((" tr ") && DECL_P(" tr ") )"
+   )
+  (; fill expander
+   "tree " treedecl "_name = DECL_NAME(" tr ");"
+   trdecl "= " treedecl "_name;\n"
+   name "= (" treedecl "_name) ? IDENTIFIER_POINTER(" treedecl "_name) : NULL;\n"
+   uid "= DECL_UID(" tr ");\n"
+   ))
+
+
 ;;;;;;;;;;;;;;;;
 ;;; pattern tree_integer_type
 (defcmatcher tree_integer_type 
@@ -1591,7 +1613,8 @@
   )
 
 ;;;;;;;;;;;;;;;;
-(defun sman_add_cmp_constraint (sman abenv :tree lhs rhs :cstring cons)
+;; pass both the relation and the opposite relation when changing signs
+(defun sman_add_cmp_constraint (sman abenv :tree lhs rhs :cstring rel opprel)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (debug_msg abenv "sman_add_cmp_constraint abenv")
@@ -1599,11 +1622,15 @@
   (debugtree "sman_add_cmp_constraint rhs" rhs)
   (let ( (:long lvix -1) 		;left var index
 	 (:long rvix -1)		;right var index
+	 (consysv (get_field :abenv_pplconsys abenv))
 	 )
 ;;; handle the left hand side lhs
     (match 
      lhs
-     (?(tree_ssa_name ?lvar ?lvalu ?lversion ?ldefg)
+     (?(tree_ssa_name 
+	?(as ?ldeclvar ?(tree_decl ?lvar ?lname ?luid)) 
+	?lvalu ?lversion ?ldefg)
+       (debugtree "sman_add_cmp_constraint ssa_name ldeclvar" ldeclvar)
        (debugtree "sman_add_cmp_constraint ssa_name lvar" lvar)
        (debugtree "sman_add_cmp_constraint ssa_name lvalu" lvalu)
        (messagenum_dbg "sman_add_cmp_constraint lversion" lversion)
@@ -1622,7 +1649,7 @@
        ()
        )
      (?(tree_integer_cst ?lk)
-       (assert_msg "should handle lhs integer in sman_add_cmp_constraint" ())
+       ()				;this is ok
        )
      (?_
       (assert_msg "unexpected lhs in sman_add_cmp_constraint" ()))
@@ -1647,20 +1674,71 @@
        ()
        )
      (?(tree_integer_cst ?rk)
-       (assert_msg "should handle rhs integer in sman_add_cmp_constraint" ())
+       ()				;this is ok
        )
      (?_
       (assert_msg "unexpected rhs in sman_add_cmp_constraint" ()))
      )					;end match rhs
     (cond
      ( (and (>=i lvix 0) (<i rvix 0)) ;left is variable, right is constant
+       (let (
+	     (:ppl_linear_expression liex (make_ppl_linear_expression))
+	     (:ppl_coefficient coefright (ppl_coefficient_from_tree rhs))
+	     (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
+	     )
+	 (ppl_Linear_Expression_add_to_coefficient liex lvix coefm1)
+	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefright)
+	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
+	   (debug_ppl_constraint "sman_add_cmp_constraint leftvar constraint" newcons)
+	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (ppl_delete_Coefficient coefm1)
+	   (ppl_delete_Coefficient coefright)
+	   (ppl_delete_Linear_Expression liex)
+	   (ppl_delete_Constraint newcons)
+	   )
+	 )
+       )
+     ( (and (<i lvix 0) (>=i rvix 0)) ;left is constant, right is variable
+       (let ( (:ppl_coefficient coefleft (ppl_coefficient_from_tree lhs))
+	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
+	      (:ppl_linear_expression liex (make_ppl_linear_expression))
+	      )
+	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
+	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefleft)
+	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
+	   (debug_ppl_constraint "sman_add_cmp_constraint rightvar constraint" newcons)
+	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (ppl_delete_Coefficient coefm1)
+	   (ppl_delete_Coefficient coefleft)
+	   (ppl_delete_Linear_Expression liex)
+	   (ppl_delete_Constraint newcons)
+	   )
+	 )
+       ()
+       )
+     ( (and (>=i lvix 0) (>=i rvix 0)) ;both left & right are variable
+       (let ( (:ppl_coefficient coef1 (ppl_coefficient_from_long 1))
+	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
+	      (:ppl_linear_expression liex (make_ppl_linear_expression))
+	      )
+	 (ppl_Linear_Expression_add_to_coefficient liex lvix coef1)
+	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
+	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex rel)) )
+	   (debug_ppl_constraint "sman_add_cmp_constraint bothvar constraint" newcons)
+	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (ppl_delete_Coefficient coefm1)
+	   (ppl_delete_Coefficient coef1)
+	   (ppl_delete_Linear_Expression liex)
+	   (ppl_delete_Constraint newcons)
+	   )
+	 )
        ()
        )
      (:else
       (assert_msg "unexpected left & right in sman_add_cmp_constraint" ())
       ))
     )
-  (assert_msg "sman_add_cmp_constraint @$@unimplemented" ())
+  (debug_msg abenv "sman_add_cmp_constraint updated abenv")
   )
 
 ;;;;;;;;;;;;;;;;
@@ -1737,7 +1815,8 @@
 	    (closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
 	    )
 	(debug_msg closys "smaninterp_gimple cond<= closys")
-	(sman_add_cmp_constraint sman abenv lhs rhs "<=")
+	(sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
+	(compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
 	)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )

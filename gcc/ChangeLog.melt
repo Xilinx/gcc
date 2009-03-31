@@ -1,4 +1,6 @@
 2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.bysl: added sman_add_cmp_constraint.
+2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	[:long secondary results handled ok in multicall so
 	tmultilong.bysl compiles ok]
 	* melt/warmelt-outobj.bysl: added missing & [adressof] in output
