@@ -1,3 +1,8 @@
+2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	[:long secondary results are mishandled in multicall]
+	* melt/ana-base.bysl: renamed sman_add_constraint as
+	sman_add_cmp_constraint.
+	* testsuite/melt/tmultilong.bysl: new testcase file for MELT.
 2009-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_ppstrbuf_ppl_varnamvect): cleaned up.
 	* melt/warmelt-outobj.bysl: added indent in multicall output.

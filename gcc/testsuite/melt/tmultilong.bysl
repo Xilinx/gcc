@@ -1,0 +1,18 @@
+;; file tmultilong.bysl
+;; -*- lisp -*-
+
+;; this tests that a :long argument is ok in multicall
+#|
+
+ ./cc1 -Wno-shadow -fbasilys=runfile \
+  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
+  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
+  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmultilong.bysl
+
+|#
+(defun tmultilong (f x)
+  (multicall 
+   (r :long n)
+   (f x)
+   (if n r)
+   ))

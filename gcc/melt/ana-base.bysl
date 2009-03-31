@@ -1591,12 +1591,12 @@
   )
 
 ;;;;;;;;;;;;;;;;
-(defun sman_add_constraint (sman abenv :tree lhs rhs :cstring cons)
+(defun sman_add_cmp_constraint (sman abenv :tree lhs rhs :cstring cons)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debug_msg abenv "sman_add_constraint abenv")
-  (debugtree "sman_add_constraint lhs" lhs)
-  (debugtree "sman_add_constraint rhs" rhs)
+  (debug_msg abenv "sman_add_cmp_constraint abenv")
+  (debugtree "sman_add_cmp_constraint lhs" lhs)
+  (debugtree "sman_add_cmp_constraint rhs" rhs)
   (let ( (:long lvix -1) 		;left var index
 	 (:long rvix -1)		;right var index
 	 )
@@ -1604,53 +1604,63 @@
     (match 
      lhs
      (?(tree_ssa_name ?lvar ?lvalu ?lversion ?ldefg)
-       (debugtree "sman_add_constraint ssa_name lvar" lvar)
-       (debugtree "sman_add_constraint ssa_name lvalu" lvalu)
-       (messagenum_dbg "sman_add_constraint lversion" lversion)
-       (debuggimple "sman_add_constraint ssa_name ldefg" ldefg)
+       (debugtree "sman_add_cmp_constraint ssa_name lvar" lvar)
+       (debugtree "sman_add_cmp_constraint ssa_name lvalu" lvalu)
+       (messagenum_dbg "sman_add_cmp_constraint lversion" lversion)
+       (debuggimple "sman_add_cmp_constraint ssa_name ldefg" ldefg)
        (multicall
 	(boxtr :long trix)
 	(find_tree_smallabstractenv abenv lvar)
-	(debug_msg boxtr "sman_add_constraint ssa_name boxtr")
+	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
 	(if boxtr 
 	    (progn (setq lvix trix) ())
-	  (assert_msg "sman_add_constraint dont know what to do lvar" ()))
+	  (progn 
+	    (assert_msg "sman_add_cmp_constraint dont know what to do lvar" ())
+	    ()
+	    ))
 	)
        ()
        )
      (?(tree_integer_cst ?lk)
-       (assert_msg "should handle lhs integer in sman_add_constraint" ())
+       (assert_msg "should handle lhs integer in sman_add_cmp_constraint" ())
        )
      (?_
-      (assert_msg "unexpected lhs in sman_add_constraint" ()))
+      (assert_msg "unexpected lhs in sman_add_cmp_constraint" ()))
      )				    ;end match lhs
 ;;; handle the right hand side rhs
     (match 
      rhs
      (?(tree_ssa_name ?rvar ?rvalu ?rversion ?rdefg)
-       (debugtree "sman_add_constraint ssa_name rvar" rvar)
-       (debugtree "sman_add_constraint ssa_name rvalu" rvalu)
-       (messagenum_dbg "sman_add_constraint rversion" rversion)
-       (debuggimple "sman_add_constraint ssa_name rdefg" rdefg)
+       (debugtree "sman_add_cmp_constraint ssa_name rvar" rvar)
+       (debugtree "sman_add_cmp_constraint ssa_name rvalu" rvalu)
+       (messagenum_dbg "sman_add_cmp_constraint rversion" rversion)
+       (debuggimple "sman_add_cmp_constraint ssa_name rdefg" rdefg)
        (multicall
 	(boxtr :long trix)
 	(find_tree_smallabstractenv abenv rvar)
-	(debug_msg boxtr "sman_add_constraint ssa_name boxtr")
+	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
 	(if 
 	    boxtr 
 	    (progn (setq rvix trix) ())
-	  (assert_msg "sman_add_constraint dont know what to do rvar" ()))
+	  (assert_msg "sman_add_cmp_constraint dont know what to do rvar" ()))
 	)
        ()
        )
      (?(tree_integer_cst ?rk)
-       (assert_msg "should handle rhs integer in sman_add_constraint" ())
+       (assert_msg "should handle rhs integer in sman_add_cmp_constraint" ())
        )
      (?_
-      (assert_msg "unexpected rhs in sman_add_constraint" ()))
+      (assert_msg "unexpected rhs in sman_add_cmp_constraint" ()))
      )					;end match rhs
+    (cond
+     ( (and (>=i lvix 0) (<i rvix 0)) ;left is variable, right is constant
+       ()
+       )
+     (:else
+      (assert_msg "unexpected left & right in sman_add_cmp_constraint" ())
+      ))
     )
-  (assert_msg "sman_add_constraint @$@unimplemented" ())
+  (assert_msg "sman_add_cmp_constraint @$@unimplemented" ())
   )
 
 ;;;;;;;;;;;;;;;;
@@ -1727,7 +1737,7 @@
 	    (closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
 	    )
 	(debug_msg closys "smaninterp_gimple cond<= closys")
-	(sman_add_constraint sman abenv lhs rhs "<=")
+	(sman_add_cmp_constraint sman abenv lhs rhs "<=")
 	)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )
