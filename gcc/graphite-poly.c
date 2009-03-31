@@ -238,6 +238,7 @@ new_poly_bb (scop_p scop, void *black_box)
   pbb_set_black_box (pbb, black_box);
   PBB_TRANSFORMED_SCATTERING (pbb) = NULL;
   PBB_ORIGINAL_SCATTERING (pbb) = NULL;
+  PBB_DRS (pbb) = VEC_alloc (poly_dr_p, heap, 3);
   VEC_safe_push (poly_bb_p, heap, SCOP_BBS (scop), pbb);
 }
 
@@ -254,6 +255,7 @@ free_poly_bb (poly_bb_p pbb)
   if (PBB_ORIGINAL_SCATTERING (pbb))
     ppl_delete_Polyhedron (PBB_ORIGINAL_SCATTERING (pbb));
 
+  VEC_free (poly_dr_p, heap, PBB_DRS (pbb));
   XDELETE (pbb);
 }
 
@@ -313,9 +315,7 @@ print_scop (FILE *file, scop_p scop)
   poly_bb_p pbb;
 
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    {
-      print_pbb (file, pbb);
-    }
+    print_pbb (file, pbb);
 }
 
 /* Print to STDERR the domain of PBB.  */

@@ -1255,6 +1255,95 @@ build_scop_iteration_domain (scop_p scop)
       }
 }
 
+/* Build data accesses for DR in PBB.  */
+
+static void
+build_poly_dr (data_reference_p dr, poly_bb_p pbb)
+{
+  Value v;
+  ppl_Polyhedron_t accesses;
+  int i, dr_nb_subscripts = DR_NUM_DIMENSIONS (dr);
+
+  scop_p scop = PBB_SCOP (pbb);
+  sese region = SCOP_REGION (scop);
+  ppl_dimension_type dom_nb_dims = scop_nb_params (scop) + pbb_nb_loops (pbb);
+  ppl_dimension_type accessp_nb_dims = dom_nb_dims + 1 + dr_nb_subscripts;
+  ppl_new_NNC_Polyhedron_from_space_dimension (&accesses, accessp_nb_dims, 0);
+					       
+  value_init (v);
+
+  /* Set alias set to 1 for all accesses.
+     TODO: Set alias set depending on the memory base of the dr.  */
+  {
+    ppl_Linear_Expression_t alias;
+    ppl_Coefficient_t c;
+    ppl_Constraint_t cstr;
+    
+    ppl_new_Coefficient (&c);
+    ppl_new_Linear_Expression_with_dimension (&alias, accessp_nb_dims);
+    value_set_si (v, 1);
+    add_value_to_dim (dom_nb_dims, alias, v);
+
+    value_set_si (v, -1);
+    ppl_assign_Coefficient_from_mpz_t (c, v);
+    ppl_Linear_Expression_add_to_inhomogeneous (alias, c);
+
+    ppl_new_Constraint (&cstr, alias, PPL_CONSTRAINT_TYPE_EQUAL);
+    ppl_Polyhedron_add_constraint (accesses, cstr);
+
+    ppl_delete_Linear_Expression (alias);
+    ppl_delete_Constraint (cstr); 
+  }
+  
+  for (i = 0; i < dr_nb_subscripts; i++)
+    {
+      ppl_Linear_Expression_t fn, access;
+      ppl_Constraint_t cstr;
+
+      ppl_new_Linear_Expression_with_dimension (&fn, dom_nb_dims);
+      ppl_new_Linear_Expression_with_dimension (&access, accessp_nb_dims);
+
+      value_set_si (v, 1);
+      scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
+      ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
+
+      add_value_to_dim (dom_nb_dims + 1 + i, access, v);
+      ppl_new_Constraint (&cstr, access, PPL_CONSTRAINT_TYPE_EQUAL);
+      ppl_Polyhedron_add_constraint (accesses, cstr);
+
+      ppl_delete_Linear_Expression (fn);
+      ppl_delete_Linear_Expression (access);
+      ppl_delete_Constraint (cstr); 
+    }
+
+  value_clear (v);
+}
+
+/* Build the data references for PBB.  */
+
+static void
+build_pbb_drs (poly_bb_p pbb)
+{
+  int j;
+  data_reference_p dr;
+  VEC (data_reference_p, heap) *gbb_drs = GBB_DATA_REFS (PBB_BLACK_BOX (pbb));
+
+  for (j = 0; VEC_iterate (data_reference_p, gbb_drs, j, dr); j++)
+    build_poly_dr (dr, pbb);
+}
+
+/* Build data references in SCOP.  */
+
+static void
+build_scop_drs (scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    build_pbb_drs (pbb);
+}
+
 /* Builds the polyhedral representation for a SESE region.  */
 
 bool
@@ -1273,6 +1362,8 @@ build_poly_scop (scop_p scop)
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
+  if (0)
+    build_scop_drs (scop);
 
   return true;
 }

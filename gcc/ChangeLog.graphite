@@ -1,9 +1,20 @@
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-	* tree-ssa-loop.c: Include forgotten toplev.h
+	* graphite-poly.c (new_poly_bb, free_poly_bb): Initialize/free
+	poly_drs vector.
+	(print_scop): Style.
+	* graphite-poly.h (poly_bb): Add drs vector.
+	(PBB_DRS): Add accessor.
+	* graphite-sese-to-poly.c (build_poly_dr): New.
+	(build_pbb_drs, build_scop_drs): New.
+	(build_poly_scop): call build_scop_drs (Disabled at the moment).
 
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* tree-ssa-loop.c: Include forgotten toplev.h
+
+2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
+	
 	* graphite-poly.c: (apply_poly_transforms): sorry -> gcc_unreachable.
 	* testsuite/gcc.dg/graphite/pr37883.c: Remove -floop-*
 	* testsuite/gcc.dg/graphite/pr37928.c: Same
