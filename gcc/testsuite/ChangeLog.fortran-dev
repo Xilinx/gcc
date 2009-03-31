@@ -1,5 +1,9 @@
 2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
 
+	* reshape_zerosize_2.f90: New.
+
+2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
+
 	PR fortran/25104
 	PR fortran/29962
 	* gfortran.dg/dot_product_1.f03: New.

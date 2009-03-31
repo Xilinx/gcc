@@ -1,5 +1,10 @@
 2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
 
+	* simplify.c (gfc_simplify_reshape): Fixed reshaping of empty arrays
+	without padding.
+
+2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
+
 	PR fortran/25104
 	PR fortran/29962
 	* intrinsic.h (gfc_simplify_dot_product): New prototype.
