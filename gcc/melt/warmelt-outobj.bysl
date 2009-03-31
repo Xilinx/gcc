@@ -2071,7 +2071,7 @@
 		  )
 		(:else
 		 (add2sbuf_string implbuf (unsafe_get_field :ctype_resfield curestyp))
-		 (add2sbuf_strconst implbuf " = ")
+		 (add2sbuf_strconst implbuf " =  & ")
 		 (output_c_code cures declbuf implbuf (get_int boxdepthp1))
 		 ))
 	       (add2sbuf_strconst implbuf ";")

@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-macro-3.c - DO NOT EDIT */
-/* generated on Wed Mar 25 15:29:09 2009 */
+/* generated on Tue Mar 31 09:55:42 2009 */
 
 #include "run-basilys.h"
 
@@ -7240,7 +7240,8 @@ BASILYS_LOCATION("warmelt-macro.bysl:911:/ block");
             argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V15*/ curfptr[14];BASILYS_LOCATION("warmelt-macro.bysl:944:/ multiapply.arg");
             argtab[3].bp_aptr = (basilys_ptr_t*) &/*_.PCTX__V4*/ curfptr[3];
             BASILYS_LOCATION("warmelt-macro.bysl:944:/ multiapply.xres");
-            restab[0].bp_aptr = (basilys_ptr_t*) &/*_.PATS__V49*/ curfptr[48];BASILYS_LOCATION("warmelt-macro.bysl:944:/ multiapply.appl");
+            restab[0].bp_aptr = (basilys_ptr_t*) &/*_.PATS__V49*/ curfptr[48];
+            BASILYS_LOCATION("warmelt-macro.bysl:944:/ multiapply.appl");
             /*_.ARGS__V48*/ curfptr[47] =  basilys_apply ((basilysclosure_ptr_t)((/*!PATMACEXPAND_FOR_MATCHER*/ curfrout->tabval[9])), (basilys_ptr_t)(/*_.PAIR_TAIL__V46*/ curfptr[31]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
             }
            ;
@@ -7467,7 +7468,8 @@ BASILYS_LOCATION("warmelt-macro.bysl:911:/ block");
                 argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V15*/ curfptr[14];BASILYS_LOCATION("warmelt-macro.bysl:964:/ multiapply.arg");
                 argtab[3].bp_aptr = (basilys_ptr_t*) &/*_.PCTX__V4*/ curfptr[3];
                 BASILYS_LOCATION("warmelt-macro.bysl:964:/ multiapply.xres");
-                restab[0].bp_aptr = (basilys_ptr_t*) &/*_.PATS__V67*/ curfptr[48];BASILYS_LOCATION("warmelt-macro.bysl:964:/ multiapply.appl");
+                restab[0].bp_aptr = (basilys_ptr_t*) &/*_.PATS__V67*/ curfptr[48];
+                BASILYS_LOCATION("warmelt-macro.bysl:964:/ multiapply.appl");
                 /*_.ARGS__V66*/ curfptr[47] =  basilys_apply ((basilysclosure_ptr_t)((/*!PATMACEXPAND_FOR_MATCHER*/ curfrout->tabval[9])), (basilys_ptr_t)(/*_.PAIR_TAIL__V64*/ curfptr[50]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
                 }
                ;
@@ -17581,14 +17583,22 @@ BASILYS_LOCATION("warmelt-macro.bysl:1841:/ block");
    argtab[0].bp_aptr = (basilys_ptr_t*) &/*_.ENV__V3*/ curfptr[2];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.arg");
    argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.MEXPANDER__V4*/ curfptr[3];
    BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[0].bp_aptr = (basilys_ptr_t*) &/*_.LOC__V13*/ curfptr[12];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[1].bp_aptr = (basilys_ptr_t*) &/*_.SUPERNAM__V14*/ curfptr[13];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[2].bp_aptr = (basilys_ptr_t*) &/*_.SUPERBIND__V15*/ curfptr[14];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[3].bp_aptr = (basilys_ptr_t*) &/*_.SUPERCLASS__V16*/ curfptr[15];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[4].bp_aptr = (basilys_ptr_t*) &/*_.PREDEF__V17*/ curfptr[16];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[5].bp_aptr = (basilys_ptr_t*) &/*_.FIELDNAMS__V18*/ curfptr[17];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[6].bp_aptr = (basilys_ptr_t*) &/*_.FIELDSLOC__V19*/ curfptr[18];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
-   restab[7].bp_aptr = (basilys_ptr_t*) &/*_.DOCSTR__V20*/ curfptr[19];BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.appl");
+   restab[0].bp_aptr = (basilys_ptr_t*) &/*_.LOC__V13*/ curfptr[12];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[1].bp_aptr = (basilys_ptr_t*) &/*_.SUPERNAM__V14*/ curfptr[13];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[2].bp_aptr = (basilys_ptr_t*) &/*_.SUPERBIND__V15*/ curfptr[14];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[3].bp_aptr = (basilys_ptr_t*) &/*_.SUPERCLASS__V16*/ curfptr[15];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[4].bp_aptr = (basilys_ptr_t*) &/*_.PREDEF__V17*/ curfptr[16];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[5].bp_aptr = (basilys_ptr_t*) &/*_.FIELDNAMS__V18*/ curfptr[17];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[6].bp_aptr = (basilys_ptr_t*) &/*_.FIELDSLOC__V19*/ curfptr[18];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.xres");
+   restab[7].bp_aptr = (basilys_ptr_t*) &/*_.DOCSTR__V20*/ curfptr[19];
+   BASILYS_LOCATION("warmelt-macro.bysl:1845:/ multiapply.appl");
    /*_.SYMB__V12*/ curfptr[11] =  basilys_apply ((basilysclosure_ptr_t)((/*!SCAN_DEFCLASS*/ curfrout->tabval[3])), (basilys_ptr_t)(/*_.SEXPR__V2*/ curfptr[1]), (BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), restab);
    }
   ;

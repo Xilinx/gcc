@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
-/* generated on Wed Mar 25 15:29:22 2009 */
+/* generated on Tue Mar 31 09:55:56 2009 */
 
 #include "run-basilys.h"
 
@@ -4138,7 +4138,8 @@ BASILYS_LOCATION("warmelt-normatch.bysl:286:/ block");
     argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V33*/ curfptr[32];BASILYS_LOCATION("warmelt-normatch.bysl:316:/ multiapply.arg");
     argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V13*/ curfptr[12];
     BASILYS_LOCATION("warmelt-normatch.bysl:316:/ multiapply.xres");
-    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V46*/ curfptr[41];BASILYS_LOCATION("warmelt-normatch.bysl:316:/ multiapply.appl");
+    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V46*/ curfptr[41];
+    BASILYS_LOCATION("warmelt-normatch.bysl:316:/ multiapply.appl");
     /*_.NINS__V45*/ curfptr[40] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[6])), (basilys_ptr_t)(/*_.SINS__V19*/ curfptr[14]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
     }
    ;
@@ -12120,7 +12121,8 @@ BASILYS_LOCATION("warmelt-normatch.bysl:852:/ block");
     argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V22*/ curfptr[21];BASILYS_LOCATION("warmelt-normatch.bysl:874:/ multiapply.arg");
     argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.SLOC__V16*/ curfptr[14];
     BASILYS_LOCATION("warmelt-normatch.bysl:874:/ multiapply.xres");
-    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V35*/ curfptr[34];BASILYS_LOCATION("warmelt-normatch.bysl:874:/ multiapply.appl");
+    restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDINS__V35*/ curfptr[34];
+    BASILYS_LOCATION("warmelt-normatch.bysl:874:/ multiapply.appl");
     /*_.NINS__V34*/ curfptr[33] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[7])), (basilys_ptr_t)(/*_.INARGS__V18*/ curfptr[17]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
     }
    ;
@@ -17265,7 +17267,8 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
             argtab[1].bp_aptr = (basilys_ptr_t*) &/*_.NCX__V4*/ curfptr[3];BASILYS_LOCATION("warmelt-normatch.bysl:1303:/ multiapply.arg");
             argtab[2].bp_aptr = (basilys_ptr_t*) &/*_.CURLOC__V61*/ curfptr[41];
             BASILYS_LOCATION("warmelt-normatch.bysl:1303:/ multiapply.xres");
-            restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDSBODY__V179*/ curfptr[178];BASILYS_LOCATION("warmelt-normatch.bysl:1303:/ multiapply.appl");
+            restab[0].bp_aptr = (basilys_ptr_t*) &/*_.BINDSBODY__V179*/ curfptr[178];
+            BASILYS_LOCATION("warmelt-normatch.bysl:1303:/ multiapply.appl");
             /*_.NBODY__V178*/ curfptr[177] =  basilys_apply ((basilysclosure_ptr_t)((/*!NORMALIZE_TUPLE*/ curfrout->tabval[27])), (basilys_ptr_t)(/*_.CURBODY__V63*/ curfptr[48]), (BPARSTR_PTR BPARSTR_PTR BPARSTR_PTR ""), argtab, (BPARSTR_PTR ""), restab);
             }
            ;
