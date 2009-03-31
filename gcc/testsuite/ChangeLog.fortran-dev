@@ -1,3 +1,11 @@
+2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/25104
+	PR fortran/29962
+	* gfortran.dg/dot_product_1.f03: New.
+	* gfortran.dg/matmul_8.f03: New.
+	* gfortran.dg/transpose_3.f03: New.
+
 2009-03-29  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/38654
