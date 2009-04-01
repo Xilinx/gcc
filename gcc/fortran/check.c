@@ -339,6 +339,9 @@ dim_rank_check (gfc_expr *dim, gfc_expr *array, int allow_assumed)
   gfc_array_ref *ar;
   int rank;
 
+  if (dim == NULL)
+    return SUCCESS;
+
   if (dim->expr_type != EXPR_CONSTANT
       || (array->expr_type != EXPR_VARIABLE
 	  && array->expr_type != EXPR_ARRAY))
@@ -1512,14 +1515,11 @@ gfc_check_lbound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
-  if (dim != NULL)
-    {
-      if (dim_check (dim, 1, false) == FAILURE)
-	return FAILURE;
+  if (dim_check (dim, 1, false) == FAILURE)
+    return FAILURE;
 
-      if (dim_rank_check (dim, array, 1) == FAILURE)
-	return FAILURE;
-    }
+  if (dim_rank_check (dim, array, 1) == FAILURE)
+    return FAILURE;
 
   if (kind_check (kind, 2, BT_INTEGER) == FAILURE)
     return FAILURE;
@@ -1905,10 +1905,10 @@ gfc_check_minloc_maxloc (gfc_actual_arglist *ap)
       ap->next->next->expr = m;
     }
 
-  if (d && dim_check (d, 1, false) == FAILURE)
+  if (dim_check (d, 1, false) == FAILURE)
     return FAILURE;
 
-  if (d && dim_rank_check (d, a, 0) == FAILURE)
+  if (dim_rank_check (d, a, 0) == FAILURE)
     return FAILURE;
 
   if (m != NULL && type_check (m, 2, BT_LOGICAL) == FAILURE)
@@ -1961,10 +1961,10 @@ check_reduction (gfc_actual_arglist *ap)
       ap->next->next->expr = m;
     }
 
-  if (d && dim_check (d, 1, false) == FAILURE)
+  if (dim_check (d, 1, false) == FAILURE)
     return FAILURE;
 
-  if (d && dim_rank_check (d, a, 0) == FAILURE)
+  if (dim_rank_check (d, a, 0) == FAILURE)
     return FAILURE;
 
   if (m != NULL && type_check (m, 2, BT_LOGICAL) == FAILURE)
@@ -2700,14 +2700,11 @@ gfc_check_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
-  if (dim != NULL)
-    {
-      if (dim_check (dim, 1, true) == FAILURE)
-	return FAILURE;
+  if (dim_check (dim, 1, true) == FAILURE)
+    return FAILURE;
 
-      if (dim_rank_check (dim, array, 0) == FAILURE)
-	return FAILURE;
-    }
+  if (dim_rank_check (dim, array, 0) == FAILURE)
+    return FAILURE;
 
   if (kind_check (kind, 2, BT_INTEGER) == FAILURE)
     return FAILURE;
@@ -3043,14 +3040,11 @@ gfc_check_ubound (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
-  if (dim != NULL)
-    {
-      if (dim_check (dim, 1, false) == FAILURE)
-	return FAILURE;
+  if (dim_check (dim, 1, false) == FAILURE)
+    return FAILURE;
 
-      if (dim_rank_check (dim, array, 0) == FAILURE)
-	return FAILURE;
-    }
+  if (dim_rank_check (dim, array, 0) == FAILURE)
+    return FAILURE;
 
   if (kind_check (kind, 2, BT_INTEGER) == FAILURE)
     return FAILURE;

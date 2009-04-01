@@ -1,3 +1,12 @@
+2009-04-01  Daniel Franke  <franke.daniel@gmail.com>
+
+	* check.c (dim_rank_check): Return SUCCESS if DIM=NULL.
+	(gfc_check_lbound): Removed (now) redundant check for DIM=NULL.
+	(gfc_check_minloc_maxloc): Likewise.
+	(check_reduction): Likewise.
+	(gfc_check_size): Likewise.
+	(gfc_check_ubound): Likewise.
+
 2009-03-31  Daniel Franke  <franke.daniel@gmail.com>
 
 	* simplify.c (gfc_simplify_reshape): Fixed reshaping of empty arrays
