@@ -193,74 +193,70 @@ try_generate_gimple_bb (scop_p scop, basic_block bb)
   new_poly_bb (scop, new_gimple_bb (bb, drs));
 }
 
+/* Returns true if all predecessors of BB, that are not dominated by BB, are
+   marked in MAP.  The predecessors dominated by BB are loop latches and will 
+   be handled after BB.  */
+
+static bool
+all_non_dominated_preds_marked_p (basic_block bb, sbitmap map)
+{
+  edge e;
+  edge_iterator ei; 
+
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if (!TEST_BIT (map, e->src->index)
+	&& !dominated_by_p (CDI_DOMINATORS, e->src, bb))
+	return false;
+
+  return true;
+}
+
+/* Recursive helper function for build_scops_bbs.  */
+
+static void
+build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
+{
+  sese region = SCOP_REGION (scop);
+  VEC (basic_block, heap) *dom;
+
+  if (TEST_BIT (visited, bb->index)
+      || !bb_in_region (bb, SESE_ENTRY_BB (region), SESE_EXIT_BB (region)))
+    return;
+
+  try_generate_gimple_bb (scop, bb);
+  SET_BIT (visited, bb->index); 
+
+  dom = get_dominated_by (CDI_DOMINATORS, bb);
+
+  if (dom == NULL)
+    return;
+  
+  while (!VEC_empty (basic_block, dom))
+    {
+      int i;
+      basic_block dom_bb;
+
+      for (i = 0; VEC_iterate (basic_block, dom, i, dom_bb); i++)
+	if (all_non_dominated_preds_marked_p (dom_bb, visited))
+	  {
+	    build_scop_bbs_1 (scop, visited, dom_bb);
+	    VEC_unordered_remove (basic_block, dom, i);
+	    break;
+	  }
+    }
+}
+
 /* Gather the basic blocks belonging to the SCOP.  */
 
 void
 build_scop_bbs (scop_p scop)
 {
-  basic_block *stack = XNEWVEC (basic_block, n_basic_blocks + 1);
   sbitmap visited = sbitmap_alloc (last_basic_block);
-  int sp = 0;
   sese region = SCOP_REGION (scop);
 
   sbitmap_zero (visited);
-  stack[sp++] = SESE_ENTRY_BB (region);
+  build_scop_bbs_1 (scop, visited, SESE_ENTRY_BB (region));
 
-  while (sp)
-    {
-      basic_block bb = stack[--sp];
-      int depth = loop_depth (bb->loop_father);
-      int num = bb->loop_father->num;
-      edge_iterator ei;
-      edge e;
-
-      /* Scop's exit is not in the scop.  Exclude also bbs, which are
-	 dominated by the SCoP exit.  These are e.g. loop latches.  */
-      if (TEST_BIT (visited, bb->index)
-	  || dominated_by_p (CDI_DOMINATORS, bb, SESE_EXIT_BB (region))
-	  /* Every block in the scop is dominated by scop's entry.  */
-	  || !dominated_by_p (CDI_DOMINATORS, bb, SESE_ENTRY_BB (region)))
-	continue;
-
-      try_generate_gimple_bb (scop, bb);
-
-      SET_BIT (visited, bb->index);
-
-      /* First push the blocks that have to be processed last.  Note
-	 that this means that the order in which the code is organized
-	 below is important: do not reorder the following code.  */
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) < depth)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num != num)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num == num
-	    && EDGE_COUNT (e->dest->preds) > 1)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) == depth
-	    && e->dest->loop_father->num == num
-	    && EDGE_COUNT (e->dest->preds) == 1)
-	  stack[sp++] = e->dest;
-
-      FOR_EACH_EDGE (e, ei, bb->succs)
-	if (! TEST_BIT (visited, e->dest->index)
-	    && (int) loop_depth (e->dest->loop_father) > depth)
-	  stack[sp++] = e->dest;
-    }
-
-  free (stack);
   sbitmap_free (visited);
 }
 

@@ -1,3 +1,12 @@
+2009-04-01  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (bb_in_sed_region): Use bb_in_region.
+	* graphite-sese-to-poly.c (all_non_dominated_preds_marked_p): New.
+	(build_scop_bbs_1): New.
+	(build_scop_bbs): Rewrite.
+	* sese.h (bb_in_region): New.
+
 2009-03-29  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-poly.c (new_poly_bb, free_poly_bb): Initialize/free

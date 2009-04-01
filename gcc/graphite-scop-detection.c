@@ -776,10 +776,7 @@ build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
 static bool
 bb_in_sd_region (basic_block bb, sd_region *region)
 {
-  return dominated_by_p (CDI_DOMINATORS, bb, region->entry)
-	 && !(dominated_by_p (CDI_DOMINATORS, bb, region->exit)
-	      && !dominated_by_p (CDI_DOMINATORS, region->entry,
-				  region->exit));
+  return bb_in_region (bb, region->entry, region->exit);
 }
 
 /* Returns the single entry edge of REGION, if it does not exits NULL.  */
