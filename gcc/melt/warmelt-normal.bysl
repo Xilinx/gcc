@@ -600,6 +600,7 @@
 (defprimitive global_DISCR_STRING              () :value "(void*)BASILYSG(DISCR_STRING)")
 (defprimitive global_DISCR_TREE                () :value "(void*)BASILYSG(DISCR_TREE)")
 (defprimitive global_DISCR_VERBATIMSTRING      () :value "(void*)BASILYSG(DISCR_VERBATIMSTRING)")
+(defprimitive global_DISCR_STRBUF              () :value "(void*)BASILYSG(DISCR_STRBUF)")
 (defprimitive global_INITIAL_SYSTEM_DATA       () :value "(void*)BASILYSG(INITIAL_SYSTEM_DATA)")
 
 
@@ -659,6 +660,7 @@
   (mapobject_put predefmap (global_DISCR_ROUTINE)                  'DISCR_ROUTINE)
   (mapobject_put predefmap (global_DISCR_SEQCLASS)                 'DISCR_SEQCLASS)
   (mapobject_put predefmap (global_DISCR_SEQFIELD)                 'DISCR_SEQFIELD)
+  (mapobject_put predefmap (global_DISCR_STRBUF)                   'DISCR_STRBUF)
   (mapobject_put predefmap (global_DISCR_STRING)                   'DISCR_STRING)
   (mapobject_put predefmap (global_DISCR_TREE)                     'DISCR_TREE)
   (mapobject_put predefmap (global_DISCR_VERBATIMSTRING)           'DISCR_VERBATIMSTRING)

@@ -1810,6 +1810,11 @@ basilys_object_nth_field(basilys_ptr_t ob, int rk)
 }
 
 /* allocate a new string (or null if bad DISCR or null STR) initialized from
+   _static_ (non gc-ed) memory STR with len SLEN or strlen(STR) if <0  */
+basilys_ptr_t basilysgc_new_string_raw_len (basilysobject_ptr_t discr,
+					    const char *str, int slen);
+
+/* allocate a new string (or null if bad DISCR or null STR) initialized from
    _static_ (non gc-ed) memory STR  */
 basilys_ptr_t basilysgc_new_string (basilysobject_ptr_t discr,
 				    const char *str);
@@ -2598,6 +2603,8 @@ enum basilys_globalix_en
   BGLOB_DISCR_MAPEDGES,
   /* the initial discriminant of basicblock map-s */
   BGLOB_DISCR_MAPBASICBLOCKS,
+  /* the initial discriminant of stringbuffers */
+  BGLOB_DISCR_STRBUF,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,

@@ -1,3 +1,15 @@
+2009-04-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding macrostrings]
+	* basilys.h: added basilysgc_new_string_raw_len &
+	BGLOB_DISCR_STRBUF.
+	* basilys.c (readmacrostringsequence): added new function.
+	(readhashescape) calls it when #{.
+	* melt/warmelt-first.bysl: discr_strbuf is predef-ined.
+	* melt/warmelt-macro.bysl: added flatten_for_c_code_expansion &
+	call it from parse_pairlist_c_code_expansion.
+	* melt/warmelt-normal.bysl: added DISCR_STRBUF predef in predefmap.
+	* melt/ana-base.bysl: moved some debugstuff.
+	* testsuite/melt/tmacrostring.bysl: new file.
 2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl: added sman_add_cmp_constraint.
 2009-03-31  Basile Starynkevitch  <basile@starynkevitch.net>

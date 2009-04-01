@@ -1205,6 +1205,7 @@
 
 ;;; the discriminant for strbuf
 (definstance discr_strbuf class_discr
+  :predef DISCR_STRBUF
   :obj_num OBMAG_STRBUF  
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_STRBUF"))

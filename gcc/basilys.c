@@ -4313,9 +4313,8 @@ basilys_is_subclass_of (basilysobject_ptr_t subclass_p,
 
 
 basilys_ptr_t
-basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
+basilysgc_new_string_raw_len (basilysobject_ptr_t discr_p, const char *str, int slen)
 {
-  int slen = 0;
   BASILYS_ENTERFRAME (2, NULL);
 #define discrv     curfram__.varptr[0]
 #define strv       curfram__.varptr[1]
@@ -4324,7 +4323,8 @@ basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
   strv = 0;
   if (!str)
     goto end;
-  slen = strlen (str);
+  if (slen<0)
+    slen = strlen (str);
   discrv = discr_p;
   if (basilys_magic_discr ((basilys_ptr_t) discrv) != OBMAG_OBJECT)
     goto end;
@@ -4332,7 +4332,7 @@ basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
     goto end;
   strv = basilysgc_allocate (sizeof (struct basilysstring_st), slen + 1);
   str_strv->discr = obj_discrv;
-  strcpy (str_strv->val, str);
+  memcpy (str_strv->val, str, slen);
 end:
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) strv;
@@ -4340,6 +4340,12 @@ end:
 #undef strv
 #undef obj_discrv
 #undef str_strv
+}
+
+basilys_ptr_t
+basilysgc_new_string (basilysobject_ptr_t discr_p, const char *str)
+{
+  return basilysgc_new_string_raw_len(discr_p, str, -1);
 }
 
 basilys_ptr_t
@@ -5344,6 +5350,8 @@ readagain:
       rd->rsrcloc =
 	linemap_line_start (line_table, rd->rlineno, strlen (linbuf) + 1);
       rd->rcol = 0;
+      if (comh == COMMENT_NO) 
+	return rdcurc();
       goto readagain;
     }
   else if (c == ';' && comh == COMMENT_SKIP)
@@ -6006,6 +6014,154 @@ readstring (struct reading_st *rd)
 #undef str_strv
 }
 
+/**
+   macrostring so #{if ($A>0) printf("%s", $B);}# is parsed as would
+   be parsed the s-expr ("if (" A ">0) printf(\"%s\", " B ");")
+
+   read a macrostring sequence starting with #{ and ending with }#
+   perhaps spanning several lines in the source no escape characters
+   are handled (in particular no backslash escapes) except the dollar
+   sign $ and then ending }# 
+
+   A $ followed by alphabetical caracters (or as in C by underscores
+   or digits, provided the first is not a digit) is handled as a
+   symbol. If it is immediately followed by an hash # the # is
+   skipped
+
+**/
+static basilys_ptr_t
+readmacrostringsequence (struct reading_st *rd) 
+{
+  int lineno = rd->rlineno;
+  location_t loc = 0;
+  BASILYS_ENTERFRAME (6, NULL);
+#define readv    curfram__.varptr[0]
+#define strv     curfram__.varptr[1]
+#define symbv    curfram__.varptr[2]
+#define seqv     curfram__.varptr[3]
+#define sbufv    curfram__.varptr[4]
+  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+  seqv = basilysgc_new_list (BASILYSGOB (DISCR_LIST));
+  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+  for(;;) {
+    if (!rdcurc()) {
+      /* reached end of line */
+      skipspace_getc(rd, COMMENT_NO);
+      continue;
+    }
+    if (rdeof()) 
+      READ_ERROR("reached end of file in macrostring sequence started line %d", lineno);
+    debugeprintf("macrostring startloop rdcur:%s", &rdcurc());
+    debugeprintf("macrostring startloop sbuf@%pL%d:%s", sbufv, 
+		 basilys_strbuf_usedlength((basilys_ptr_t)sbufv),
+		 basilys_strbuf_str((basilys_ptr_t) sbufv));
+    if (rdcurc()=='}' && rdfollowc(1)=='#') {
+      rdnext(); 
+      rdnext();
+      if (sbufv && basilys_strbuf_usedlength((basilys_ptr_t)sbufv)>0) {
+	strv = basilysgc_new_stringdup (BASILYSGOB(DISCR_STRING),
+					basilys_strbuf_str((basilys_ptr_t) sbufv));
+	debugeprintf("macrostring end appending str:%s", basilys_string_str((basilys_ptr_t)strv));
+	basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
+	sbufv = NULL;
+	strv = NULL;
+      }
+      break;
+    }
+    else if (rdcurc()=='$') {
+      /* $ followed by letters or underscore makes a symbol */
+      if (ISALPHA(rdfollowc(1)) || rdfollowc(1)=='_') {
+	int lnam = 1;
+	char tinybuf[64];
+	/* if there is any sbuf, make a string of it and add the
+	   string into the sequence */
+	if (sbufv && basilys_strbuf_usedlength((basilys_ptr_t)sbufv)>0) {
+	  strv = basilysgc_new_stringdup(BASILYSGOB(DISCR_STRING),
+					 basilys_strbuf_str((basilys_ptr_t) sbufv));
+	  basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
+	  debugeprintf("macrostring var appending str:%s", basilys_string_str((basilys_ptr_t)strv));
+	  sbufv = NULL;
+	  strv = NULL;
+	}
+	while (ISALNUM(rdfollowc(lnam)) || rdfollowc(lnam) == '_') 
+	  lnam++;
+	if (lnam< (int)sizeof(tinybuf)-2) {
+	  memset(tinybuf, 0, sizeof(tinybuf));
+	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
+	  tinybuf[lnam] = (char)0;
+	  debugeprintf("macrostring tinysymb lnam.%d <%s>", lnam, tinybuf);
+	  symbv = basilysgc_named_symbol(tinybuf, BASILYS_CREATE);
+	}
+	else {
+	  char *nambuf = (char*) xcalloc(lnam+2, 1);
+	  memcpy(nambuf, &rdfollowc(1), lnam-1);
+	  nambuf[lnam] = (char)0;
+	  symbv = basilysgc_named_symbol(nambuf, BASILYS_CREATE);
+	  debugeprintf("macrostring bigsymb <%s>", tinybuf);
+	  free(nambuf);
+	}
+	rd->rcol += lnam;
+	/* skip the hash # if just after the symbol */
+	if (rdcurc() == '#') 
+	  rdnext();
+	/* append the symbol */
+	basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) symbv);
+	symbv = NULL;
+      }
+      /* $. is silently skipped */
+      else if (rdfollowc(1) == '.') {
+	rdnext(); 
+	rdnext();
+      }
+      /* $$ is handled as a single dollar $ */
+      else if (rdfollowc(1) == '$') {
+	if (!sbufv)
+	  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, "$", 1);
+	rdnext();
+	rdnext();
+      }
+      /* $# is handled as a single hash # */
+      else if (rdfollowc(1) == '#') {
+	if (!sbufv)
+	  sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+	basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, "#", 1);
+	rdnext();
+	rdnext();
+      }
+      /* any other dollar something is an error */
+      else READ_ERROR("unexpected dollar escape in macrostring %.4s",
+		      &rdcurc());
+    }
+    else if ( ISALNUM(rdcurc()) || ISSPACE(rdcurc()) ) { 
+      /* handle efficiently the common case of alphanum and spaces */
+      int nbc = 0;
+      if (!sbufv)
+	sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+      while (ISALNUM(rdfollowc(nbc)) || ISSPACE(rdfollowc(nbc))) 
+	nbc++;
+      basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, &rdcurc(), nbc);
+      rd->rcol += nbc;
+    }
+    else { /* the current char is not a dollar $ */
+      if (!sbufv)
+	sbufv = basilysgc_new_strbuf(BASILYSGOB(DISCR_STRBUF), (char*)0);
+      basilysgc_add_strbuf_raw_len((basilys_ptr_t)sbufv, &rdcurc(), 1);
+      rdnext();
+    }
+  }
+  debugeprintvalue("readmacrostringsequence seqv", seqv);
+  readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
+  debugeprintvalue("readmacrostringsequence readv", readv);
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) readv;
+#undef readv
+#undef strv
+#undef symbv
+#undef seqv
+#undef sbufv
+}
+
 
 static basilys_ptr_t
 readhashescape (struct reading_st *rd)
@@ -6152,6 +6308,14 @@ readhashescape (struct reading_st *rd)
       else
 	readv = readval (rd, &gotcomp);
     }
+  /* #{ is a macrostringsequence; it is terminated by }# and each
+      occurrence of $ followed by alphanum char is considered as a
+      MELT symbol, the other caracters are considered as string
+      chunks; the entire read is a sequence */
+  else if (c == '{') {
+      rdnext ();
+      readv = readmacrostringsequence(rd);
+  }
   else
     READ_ERROR ("MELT: invalid escape %.20s", &rdcurc ());
   BASILYS_EXITFRAME ();

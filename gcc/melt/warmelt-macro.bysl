@@ -1229,26 +1229,47 @@
 
 ;;;;;;;;;;;;;;;;
 ;;;;;; parse a pairlist as a C code expansion, return a tuple
+
+(defun flatten_for_c_code_expansion (loc comp flatlist)
+  (cond 
+   ( (is_a comp class_symbol)
+     (list_append flatlist comp)
+     )
+   ( (is_string comp)
+     (list_append flatlist (make_string discr_verbatimstring comp))
+     )
+   ( (is_list comp)
+     (foreach_in_list
+      (comp)
+      (curpair curcomp)
+	(flatten_for_c_code_expansion loc curcomp flatlist)))
+   ( (is_a comp class_sexpr)
+     (let ( (subloc (get_field :loca_location comp)) )
+       (foreach_in_list 
+	((get_field :sexp_contents comp))
+	(curpair curcomp)
+	(flatten_for_c_code_expansion subloc curcomp flatlist)
+	))
+     )
+   (:else
+    (error_strv loc "unexepected component for C chunk of discriminant " 
+		(get_field :named_name (discrim comp)))
+    )
+   ))
+
 (defun parse_pairlist_c_code_expansion (loc curpair)
-  (let ( (:long nbcomp (pair_listlength curpair))
-	 (etuple (make_multiple discr_multiple nbcomp))
-	 (:long ix 0) )
-    (forever comploop
-	     (if (not (is_pair curpair)) (exit comploop))
-	     (let ( (curhead  (pair_head curpair)) )
-	       ;; change string to verbatimstring to ease later expansion
-	       ;; and check that each component is e string or a symbol
-	       (cond ( (== (discrim curhead) discr_string)
-		       (setq curhead (make_string discr_verbatimstring curhead))
-		       ())
-		     ( (!= (discrim curhead) class_symbol)
-		       (error_plain loc "invalid expansion component in C code expansion"_)
-		       ()))
-	       (multiple_put_nth etuple ix curhead)
-	       (setq curpair (pair_tail curpair))
-	       (setq ix (+i ix 1))))
-    (return etuple)
-    ))
+  (let ( (flatlist (make_list discr_list)) )
+    (forever 
+     comploop
+     (if (not (is_pair curpair)) (exit comploop))
+     (flatten_for_c_code_expansion loc (pair_head curpair) flatlist)
+     (setq curpair (pair_tail curpair))
+     )
+    (let ( (tupexp (list_to_multiple flatlist discr_multiple)) )
+      (debug_msg tupexp "parse_pairlist_c_code_expansion tupexp")
+      (assert_msg "check tupexp" (is_multiple tupexp))
+      (return tupexp)
+      )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers

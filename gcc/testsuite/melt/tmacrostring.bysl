@@ -1,0 +1,22 @@
+;; -*- lisp -*-
+;; file tmacrostring.bysl
+
+;;; this tests the macrostring read syntax
+#| 
+  ./cc1 -Wno-shadow -fbasilys=runfile \
+  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
+  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
+  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmacrostring.bysl
+|#
+
+(defprimitive say (:cstring s) :void
+  #{ /*saying*/ printf("saying: %s\n", $s); 
+     fflush(stdout);
+  }#
+)
+
+(defun doit () (say "hello world"))
+
+(doit)
+
+
