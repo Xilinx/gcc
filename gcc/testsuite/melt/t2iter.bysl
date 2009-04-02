@@ -1,0 +1,23 @@
+;; -*- lisp -*-
+
+;; it could be possible that the local bindings of iterators are
+;; flowing outside; this is wrong of course
+
+;; TO BE TESTED
+
+(defun t2iter (tu)
+  (foreach_in_multiple 
+   (tu)
+   (comp :long ix)
+   (debug_msg comp "t2iter first loop")
+   (assert_msg "check first comp" comp)
+   )
+  (foreach_in_multiple 
+   (tu)
+   (comp :long ix)
+   (debug_msg comp "t2iter second loop")
+   (assert_msg "check second comp" comp)
+   )
+  )
+
+(t2iter (make_tuple3 discr_multiple 'a 'b 'c))

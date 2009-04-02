@@ -1,3 +1,9 @@
+2009-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	[I am adding the t2iter.bysl test because I suspect a binding
+	issue with citerators]
+	* melt/warmelt-macro.bysl: added check_c_expansion and call it in
+	every C expansion locus.
+	* testsuite/melt/t2iter.bysl: new test [unchecked].
 2009-04-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding macrostrings]
 	* basilys.h: added basilysgc_new_string_raw_len &

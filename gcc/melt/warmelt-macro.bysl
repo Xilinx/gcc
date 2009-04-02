@@ -1257,6 +1257,7 @@
     )
    ))
 
+;; parse a pair list into a C code expansion, perhaps flattening it
 (defun parse_pairlist_c_code_expansion (loc curpair)
   (let ( (flatlist (make_list discr_list)) )
     (forever 
@@ -1271,6 +1272,27 @@
       (return tupexp)
       )))
 
+;; utility to check that a C expansion has good symbols; every symbol
+;; should be in the substitution map
+(defun check_c_expansion (etuple loc substmap)
+  (foreach_in_multiple
+   (etuple)
+   (ecomp :long ix)
+   (cond 
+    ( (is_a ecomp class_symbol)
+      (if (null (mapobject_get substmap ecomp))
+	  (error_strv loc "unexpected symbol in C expansion"
+		      (get_field :named_name ecomp)))
+      ()
+      )
+    ( (is_string ecomp)
+      ()
+      )
+    (:else 
+     (warning_strv loc "unexpected C expansion component of " 
+		   (get_field :named_name (discrim ecomp)))
+     ()
+     ))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; macro expansers
 ;; the defprimitive expander
@@ -1312,6 +1334,8 @@
 	  (setq curpair (pair_tail curpair))
 	  (let (
 		(etuple (parse_pairlist_c_code_expansion loc curpair))
+		(substmap (make_mapobject discr_mapobjects
+					  (+i 5 (*i 2 (multiple_length btup)))))
 		(sdefpri
 		 (instance class_src_defprimitive
 			   :src_loc loc
@@ -1332,6 +1356,15 @@
 			   :pbind_primitive primit
 			   ))
 		)
+	    ;; fill the substmap according to btup to check the C expansion
+	    (foreach_in_multiple
+	     (btup)
+	     (curbind :long bix)
+	     (assert_msg "check curbind" (is_a curbind class_formal_binding))
+	     (mapobject_put substmap (get_field :binder curbind) curbind)
+	     )
+	    (check_c_expansion etuple loc substmap)
+	    ;;
 	    (warn_if_redefined symb env loc)
 	    (put_env env pbind)
 	    (debug_msg sdefpri "mexpand_defprimitive result sdefpri")
@@ -1414,7 +1447,31 @@
 			    :sdef_name symb
 			    :sformal_args bstartup
 			    :sciterdef_citerator citer))
+	   (substmap (make_mapobject 
+		      discr_mapobjects
+		      (+i 7 (+i (*i 2 (multiple_length bstartup))
+				(*i 2 (multiple_length blocvtup))))))
 	   )
+      ;; fill the substmap
+      (debug_msg srcit "srcit citer")
+      (mapobject_put substmap statsymb statsymb)
+      (debug_msg bstartup "bstartup citer")
+      (foreach_in_multiple
+       (bstartup)
+       (cursbind :long bsix)
+       (assert_msg "check start cursbind" (is_a cursbind class_formal_binding))
+       (mapobject_put substmap (get_field :binder cursbind) cursbind))
+      (debug_msg blocvtup "blocvtup citer")
+      (foreach_in_multiple
+       (blocvtup)
+       (curlbind :long blix)
+       (debug_msg curlbind "curlbind local citer")
+       (assert_msg "check local curlbind" (is_a curlbind class_any_binding))
+       (mapobject_put substmap (get_field :binder curlbind) curlbind))
+      ;;; check the expansions
+      (check_c_expansion expbef loc substmap)
+      (check_c_expansion expaft loc substmap)
+      ;; fill the citerator binding
       (unsafe_put_fields citbind :cbind_citerdef srcit)
       (put_env env citbind)
       (debug_msg citer "parsed citerator citer")
@@ -1552,7 +1609,29 @@
 	  (cmbind (instance class_cmatcher_binding
 			    :binder symb
 			    :cmbind_matcher cmatch))
+	  (substmap 
+	   (make_mapobject 
+	    discr_mapobjects
+	    (+i 7 (*i 2 (+i (multiple_length informals)
+			    (multiple_length outformals))))))
 	  )
+      ;; fill the substmap
+      (mapobject_put substmap statesym statesym)
+      (mapobject_put substmap (get_field :binder matchformal) matchformal)
+      (foreach_in_multiple
+       (informals)
+       (curibind :long ibix)
+       (assert_msg "check input curibind" (is_a curibind class_formal_binding))
+       (mapobject_put substmap (get_field :binder curibind) curibind))
+      (foreach_in_multiple
+       (outformals)
+       (curobind :long obix)
+       (assert_msg "check output curbind" (is_a curobind class_formal_binding))
+       (mapobject_put substmap (get_field :binder curobind) curobind))
+      ;; check the expansions
+      (check_c_expansion exptest loc substmap)
+      (check_c_expansion expfill loc substmap)
+      (check_c_expansion expoper loc substmap)
       (debug_msg sdefcmatch "mexpand_defcmatcher sdefcmatch")
       (put_env env cmbind)
       (return sdefcmatch)
