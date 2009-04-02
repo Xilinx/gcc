@@ -550,7 +550,8 @@ dump_type_prefix (tree t, int flags)
 	tree sub = TREE_TYPE (t);
 
 	dump_type_prefix (sub, flags);
-	if (TREE_CODE (sub) == ARRAY_TYPE)
+	if (TREE_CODE (sub) == ARRAY_TYPE
+	    || TREE_CODE (sub) == FUNCTION_TYPE)
 	  {
 	    pp_cxx_whitespace (cxx_pp);
 	    pp_cxx_left_paren (cxx_pp);
@@ -585,12 +586,10 @@ dump_type_prefix (tree t, int flags)
       pp_base (cxx_pp)->padding = pp_before;
       break;
 
-      /* Can only be reached through function pointer -- this would not be
-	 correct if FUNCTION_DECLs used it.  */
+      /* This can be reached without a pointer when dealing with
+	 templates, e.g. std::is_function.  */
     case FUNCTION_TYPE:
       dump_type_prefix (TREE_TYPE (t), flags);
-      pp_maybe_space (cxx_pp);
-      pp_cxx_left_paren (cxx_pp);
       break;
 
     case METHOD_TYPE:
@@ -654,17 +653,19 @@ dump_type_suffix (tree t, int flags)
     case POINTER_TYPE:
     case REFERENCE_TYPE:
     case OFFSET_TYPE:
-      if (TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE)
+      if (TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE
+	  || TREE_CODE (TREE_TYPE (t)) == FUNCTION_TYPE)
 	pp_cxx_right_paren (cxx_pp);
       dump_type_suffix (TREE_TYPE (t), flags);
       break;
 
-      /* Can only be reached through function pointer.  */
     case FUNCTION_TYPE:
     case METHOD_TYPE:
       {
 	tree arg;
-	pp_cxx_right_paren (cxx_pp);
+	if (TREE_CODE (t) == METHOD_TYPE)
+	  /* Can only be reached through a pointer.  */
+	  pp_cxx_right_paren (cxx_pp);
 	arg = TYPE_ARG_TYPES (t);
 	if (TREE_CODE (t) == METHOD_TYPE)
 	  arg = TREE_CHAIN (arg);
@@ -677,7 +678,7 @@ dump_type_suffix (tree t, int flags)
 	  pp_cxx_cv_qualifier_seq
 	    (cxx_pp, TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (t))));
 	else
-	  pp_cxx_cv_qualifier_seq(cxx_pp, t);
+	  pp_cxx_cv_qualifier_seq (cxx_pp, t);
 	dump_exception_spec (TYPE_RAISES_EXCEPTIONS (t), flags);
 	dump_type_suffix (TREE_TYPE (t), flags);
 	break;
@@ -2666,39 +2667,6 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
 #undef next_int
 }
 
-/* Callback from cpp_error for PFILE to print diagnostics arising from
-   interpreting strings.  The diagnostic is of type LEVEL; MSG is the
-   translated message and AP the arguments.  */
-
-void
-cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
-	      const char *msg, va_list *ap)
-{
-  diagnostic_info diagnostic;
-  diagnostic_t dlevel;
-  switch (level)
-    {
-    case CPP_DL_WARNING:
-    case CPP_DL_WARNING_SYSHDR:
-      dlevel = DK_WARNING;
-      break;
-    case CPP_DL_PEDWARN:
-      dlevel = DK_PEDWARN;
-      break;
-    case CPP_DL_ERROR:
-      dlevel = DK_ERROR;
-      break;
-    case CPP_DL_ICE:
-      dlevel = DK_ICE;
-      break;
-    default:
-      gcc_unreachable ();
-    }
-  diagnostic_set_info_translated (&diagnostic, msg, ap,
-				  input_location, dlevel);
-  report_diagnostic (&diagnostic);
-}
-
 /* Warn about the use of C++0x features when appropriate.  */
 void
 maybe_warn_cpp0x (const char* str)

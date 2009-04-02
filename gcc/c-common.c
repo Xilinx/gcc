@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "varray.h"
 #include "expr.h"
 #include "c-common.h"
-#include "diagnostic.h"
 #include "tm_p.h"
 #include "obstack.h"
 #include "cpplib.h"
@@ -42,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "c-tree.h"
 #include "toplev.h"
+#include "diagnostic.h"
 #include "tree-iterator.h"
 #include "hashtab.h"
 #include "tree-mudflap.h"
@@ -69,11 +69,21 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 #define PID_TYPE "int"
 #endif
 
-#ifndef CHAR16_TYPE
+/* If GCC knows the exact uint_least16_t and uint_least32_t types from
+   <stdint.h>, use them for char16_t and char32_t.  Otherwise, use
+   these guesses; getting the wrong type of a given width will not
+   affect C++ name mangling because in C++ these are distinct types
+   not typedefs.  */
+
+#ifdef UINT_LEAST16_TYPE
+#define CHAR16_TYPE UINT_LEAST16_TYPE
+#else
 #define CHAR16_TYPE "short unsigned int"
 #endif
 
-#ifndef CHAR32_TYPE
+#ifdef UINT_LEAST32_TYPE
+#define CHAR32_TYPE UINT_LEAST32_TYPE
+#else
 #define CHAR32_TYPE "unsigned int"
 #endif
 
@@ -109,6 +119,116 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 			: "long long unsigned int"))
 #endif
 
+/* There are no default definitions of these <stdint.h> types.  */
+
+#ifndef SIG_ATOMIC_TYPE
+#define SIG_ATOMIC_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT8_TYPE
+#define INT8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT16_TYPE
+#define INT16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT32_TYPE
+#define INT32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT64_TYPE
+#define INT64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT8_TYPE
+#define UINT8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT16_TYPE
+#define UINT16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT32_TYPE
+#define UINT32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT64_TYPE
+#define UINT64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST8_TYPE
+#define INT_LEAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST16_TYPE
+#define INT_LEAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST32_TYPE
+#define INT_LEAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST64_TYPE
+#define INT_LEAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST8_TYPE
+#define UINT_LEAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST16_TYPE
+#define UINT_LEAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST32_TYPE
+#define UINT_LEAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST64_TYPE
+#define UINT_LEAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST8_TYPE
+#define INT_FAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST16_TYPE
+#define INT_FAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST32_TYPE
+#define INT_FAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST64_TYPE
+#define INT_FAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST8_TYPE
+#define UINT_FAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST16_TYPE
+#define UINT_FAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST32_TYPE
+#define UINT_FAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST64_TYPE
+#define UINT_FAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INTPTR_TYPE
+#define INTPTR_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINTPTR_TYPE
+#define UINTPTR_TYPE ((const char *) NULL)
+#endif
+
 /* The following symbols are subsumed in the c_global_trees array, and
    listed here individually for documentation purposes.
 
@@ -131,8 +251,6 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 	tree unsigned_char_type_node;
 	tree signed_char_type_node;
 	tree wchar_type_node;
-	tree signed_wchar_type_node;
-	tree unsigned_wchar_type_node;
 
 	tree char16_type_node;
 	tree char32_type_node;
@@ -497,6 +615,10 @@ tree (*make_fname_decl) (tree, int);
    This is a count, since unevaluated expressions can nest.  */
 int skip_evaluation;
 
+/* Whether lexing has been completed, so subsequent preprocessor
+   errors should use the compiler's input_location.  */
+bool done_lexing = false;
+
 /* Information about how a function name is generated.  */
 struct fname_var_t
 {
@@ -518,6 +640,7 @@ const struct fname_var_t fname_vars[] =
   {NULL, 0, 0},
 };
 
+static tree c_fully_fold_internal (tree expr, bool, bool *, bool *);
 static tree check_case_value (tree);
 static bool check_case_bounds (tree, tree, tree *, tree *);
 
@@ -1119,6 +1242,407 @@ fix_string_type (tree value)
   return value;
 }
 
+/* Fully fold EXPR, an expression that was not folded (beyond integer
+   constant expressions and null pointer constants) when being built
+   up.  If IN_INIT, this is in a static initializer and certain
+   changes are made to the folding done.  Clear *MAYBE_CONST if
+   MAYBE_CONST is not NULL and EXPR is definitely not a constant
+   expression because it contains an evaluated operator (in C99) or an
+   operator outside of sizeof returning an integer constant (in C90)
+   not permitted in constant expressions, or because it contains an
+   evaluated arithmetic overflow.  (*MAYBE_CONST should typically be
+   set to true by callers before calling this function.)  Return the
+   folded expression.  Function arguments have already been folded
+   before calling this function, as have the contents of SAVE_EXPR,
+   TARGET_EXPR, BIND_EXPR, VA_ARG_EXPR, OBJ_TYPE_REF and
+   C_MAYBE_CONST_EXPR.  */
+
+tree
+c_fully_fold (tree expr, bool in_init, bool *maybe_const)
+{
+  tree ret;
+  tree eptype = NULL_TREE;
+  bool dummy = true;
+  bool maybe_const_itself = true;
+
+  /* This function is not relevant to C++ because C++ folds while
+     parsing, and may need changes to be correct for C++ when C++
+     stops folding while parsing.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  if (!maybe_const)
+    maybe_const = &dummy;
+  if (TREE_CODE (expr) == EXCESS_PRECISION_EXPR)
+    {
+      eptype = TREE_TYPE (expr);
+      expr = TREE_OPERAND (expr, 0);
+    }
+  ret = c_fully_fold_internal (expr, in_init, maybe_const,
+			       &maybe_const_itself);
+  if (eptype)
+    ret = fold_convert (eptype, ret);
+  *maybe_const &= maybe_const_itself;
+  return ret;
+}
+
+/* Internal helper for c_fully_fold.  EXPR and IN_INIT are as for
+   c_fully_fold.  *MAYBE_CONST_OPERANDS is cleared because of operands
+   not permitted, while *MAYBE_CONST_ITSELF is cleared because of
+   arithmetic overflow (for C90, *MAYBE_CONST_OPERANDS is carried from
+   both evaluated and unevaluated subexpressions while
+   *MAYBE_CONST_ITSELF is carried from only evaluated
+   subexpressions).  */
+
+static tree
+c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
+		       bool *maybe_const_itself)
+{
+  tree ret = expr;
+  enum tree_code code = TREE_CODE (expr);
+  enum tree_code_class kind = TREE_CODE_CLASS (code);
+  location_t loc = EXPR_LOCATION (expr);
+  tree op0, op1, op2, op3;
+  tree orig_op0, orig_op1, orig_op2;
+  bool op0_const = true, op1_const = true, op2_const = true;
+  bool op0_const_self = true, op1_const_self = true, op2_const_self = true;
+  bool nowarning = TREE_NO_WARNING (expr);
+
+  /* This function is not relevant to C++ because C++ folds while
+     parsing, and may need changes to be correct for C++ when C++
+     stops folding while parsing.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  /* Constants, declarations, statements, errors, SAVE_EXPRs and
+     anything else not counted as an expression cannot usefully be
+     folded further at this point.  */
+  if (!IS_EXPR_CODE_CLASS (kind)
+      || kind == tcc_statement
+      || code == SAVE_EXPR)
+    return expr;
+
+  /* Operands of variable-length expressions (function calls) have
+     already been folded, as have __builtin_* function calls, and such
+     expressions cannot occur in constant expressions.  */
+  if (kind == tcc_vl_exp)
+    {
+      *maybe_const_operands = false;
+      ret = fold (expr);
+      goto out;
+    }
+
+  if (code == C_MAYBE_CONST_EXPR)
+    {
+      tree pre = C_MAYBE_CONST_EXPR_PRE (expr);
+      tree inner = C_MAYBE_CONST_EXPR_EXPR (expr);
+      if (C_MAYBE_CONST_EXPR_NON_CONST (expr))
+	*maybe_const_operands = false;
+      if (C_MAYBE_CONST_EXPR_INT_OPERANDS (expr))
+	*maybe_const_itself = false;
+      if (pre && !in_init)
+	ret = build2 (COMPOUND_EXPR, TREE_TYPE (expr), pre, inner);
+      else
+	ret = inner;
+      goto out;
+    }
+
+  /* Assignment, increment, decrement, function call and comma
+     operators, and statement expressions, cannot occur in constant
+     expressions if evaluated / outside of sizeof.  (Function calls
+     were handled above, though VA_ARG_EXPR is treated like a function
+     call here, and statement expressions are handled through
+     C_MAYBE_CONST_EXPR to avoid folding inside them.)  */
+  switch (code)
+    {
+    case MODIFY_EXPR:
+    case PREDECREMENT_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case COMPOUND_EXPR:
+      *maybe_const_operands = false;
+      break;
+
+    case VA_ARG_EXPR:
+    case TARGET_EXPR:
+    case BIND_EXPR:
+    case OBJ_TYPE_REF:
+      *maybe_const_operands = false;
+      ret = fold (expr);
+      goto out;
+
+    default:
+      break;
+    }
+
+  /* Fold individual tree codes as appropriate.  */
+  switch (code)
+    {
+    case COMPOUND_LITERAL_EXPR:
+      /* Any non-constancy will have been marked in a containing
+	 C_MAYBE_CONST_EXPR; there is no more folding to do here.  */
+      goto out;
+
+    case COMPONENT_REF:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      op1 = TREE_OPERAND (expr, 1);
+      op2 = TREE_OPERAND (expr, 2);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (op0 != orig_op0)
+	ret = build3 (COMPONENT_REF, TREE_TYPE (expr), op0, op1, op2);
+      if (ret != expr)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      goto out;
+
+    case ARRAY_REF:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op2 = TREE_OPERAND (expr, 2);
+      op3 = TREE_OPERAND (expr, 3);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      op1 = c_fully_fold_internal (op1, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      op1 = decl_constant_value_for_optimization (op1);
+      if (op0 != orig_op0 || op1 != orig_op1)
+	ret = build4 (ARRAY_REF, TREE_TYPE (expr), op0, op1, op2, op3);
+      if (ret != expr)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_SIDE_EFFECTS (ret) = TREE_SIDE_EFFECTS (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      ret = fold (ret);
+      goto out;
+
+    case COMPOUND_EXPR:
+    case MODIFY_EXPR:
+    case PREDECREMENT_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+    case MULT_EXPR:
+    case POINTER_PLUS_EXPR:
+    case TRUNC_DIV_EXPR:
+    case CEIL_DIV_EXPR:
+    case FLOOR_DIV_EXPR:
+    case TRUNC_MOD_EXPR:
+    case RDIV_EXPR:
+    case EXACT_DIV_EXPR:
+    case LSHIFT_EXPR:
+    case RSHIFT_EXPR:
+    case BIT_IOR_EXPR:
+    case BIT_XOR_EXPR:
+    case BIT_AND_EXPR:
+    case LT_EXPR:
+    case LE_EXPR:
+    case GT_EXPR:
+    case GE_EXPR:
+    case EQ_EXPR:
+    case NE_EXPR:
+    case COMPLEX_EXPR:
+    case TRUTH_AND_EXPR:
+    case TRUTH_OR_EXPR:
+    case TRUTH_XOR_EXPR:
+    case UNORDERED_EXPR:
+    case ORDERED_EXPR:
+    case UNLT_EXPR:
+    case UNLE_EXPR:
+    case UNGT_EXPR:
+    case UNGE_EXPR:
+    case UNEQ_EXPR:
+      /* Binary operations evaluating both arguments (increment and
+	 decrement are binary internally in GCC).  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (code != MODIFY_EXPR
+	  && code != PREDECREMENT_EXPR
+	  && code != PREINCREMENT_EXPR
+	  && code != POSTDECREMENT_EXPR
+	  && code != POSTINCREMENT_EXPR)
+	op0 = decl_constant_value_for_optimization (op0);
+      /* The RHS of a MODIFY_EXPR was fully folded when building that
+	 expression for the sake of conversion warnings.  */
+      if (code != MODIFY_EXPR)
+	op1 = c_fully_fold_internal (op1, in_init, maybe_const_operands,
+				     maybe_const_itself);
+      op1 = decl_constant_value_for_optimization (op1);
+      if (op0 != orig_op0 || op1 != orig_op1 || in_init)
+	ret = in_init
+	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+      else
+	ret = fold (expr);
+      goto out;
+
+    case INDIRECT_REF:
+    case FIX_TRUNC_EXPR:
+    case FLOAT_EXPR:
+    CASE_CONVERT:
+    case NON_LVALUE_EXPR:
+    case NEGATE_EXPR:
+    case BIT_NOT_EXPR:
+    case TRUTH_NOT_EXPR:
+    case ADDR_EXPR:
+    case CONJ_EXPR:
+    case REALPART_EXPR:
+    case IMAGPART_EXPR:
+      /* Unary operations.  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (code != ADDR_EXPR && code != REALPART_EXPR && code != IMAGPART_EXPR)
+	op0 = decl_constant_value_for_optimization (op0);
+      if (op0 != orig_op0 || in_init)
+	ret = in_init
+	  ? fold_build1_initializer (code, TREE_TYPE (expr), op0)
+	  : fold_build1 (code, TREE_TYPE (expr), op0);
+      else
+	ret = fold (expr);
+      if (code == INDIRECT_REF
+	  && ret != expr
+	  && TREE_CODE (ret) == INDIRECT_REF)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_SIDE_EFFECTS (ret) = TREE_SIDE_EFFECTS (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      goto out;
+
+    case TRUTH_ANDIF_EXPR:
+    case TRUTH_ORIF_EXPR:
+      /* Binary operations not necessarily evaluating both
+	 arguments.  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+      op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      if (op0 != orig_op0 || op1 != orig_op1 || in_init)
+	ret = in_init
+	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+      else
+	ret = fold (expr);
+      *maybe_const_operands &= op0_const;
+      *maybe_const_itself &= op0_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && (code == TRUTH_ANDIF_EXPR
+		? op0 == truthvalue_false_node
+		: op0 == truthvalue_true_node)))
+	*maybe_const_operands &= op1_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && (code == TRUTH_ANDIF_EXPR
+		? op0 == truthvalue_false_node
+		: op0 == truthvalue_true_node)))
+	*maybe_const_itself &= op1_const_self;
+      goto out;
+
+    case COND_EXPR:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      orig_op2 = op2 = TREE_OPERAND (expr, 2);
+      op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+      op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      op2 = c_fully_fold_internal (op2, in_init, &op2_const, &op2_const_self);
+      if (op0 != orig_op0 || op1 != orig_op1 || op2 != orig_op2)
+	ret = fold_build3 (code, TREE_TYPE (expr), op0, op1, op2);
+      else
+	ret = fold (expr);
+      *maybe_const_operands &= op0_const;
+      *maybe_const_itself &= op0_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_false_node))
+	*maybe_const_operands &= op1_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_false_node))
+	*maybe_const_itself &= op1_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_true_node))
+	*maybe_const_operands &= op2_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_true_node))
+	*maybe_const_itself &= op2_const_self;
+      goto out;
+
+    case EXCESS_PRECISION_EXPR:
+      /* Each case where an operand with excess precision may be
+	 encountered must remove the EXCESS_PRECISION_EXPR around
+	 inner operands and possibly put one around the whole
+	 expression or possibly convert to the semantic type (which
+	 c_fully_fold does); we cannot tell at this stage which is
+	 appropriate in any particular case.  */
+      gcc_unreachable ();
+
+    default:
+      /* Various codes may appear through folding built-in functions
+	 and their arguments.  */
+      goto out;
+    }
+
+ out:
+  /* Some folding may introduce NON_LVALUE_EXPRs; all lvalue checks
+     have been done by this point, so remove them again.  */
+  nowarning |= TREE_NO_WARNING (ret);
+  STRIP_TYPE_NOPS (ret);
+  if (nowarning && !TREE_NO_WARNING (ret))
+    {
+      if (!CAN_HAVE_LOCATION_P (ret))
+	ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
+      TREE_NO_WARNING (ret) = 1;
+    }
+  if (ret != expr)
+    protected_set_expr_location (ret, loc);
+  return ret;
+}
+
+/* If not optimizing, EXP is not a VAR_DECL, or EXP has array type,
+   return EXP.  Otherwise, return either EXP or its known constant
+   value (if it has one), but return EXP if EXP has mode BLKmode.  ???
+   Is the BLKmode test appropriate?  */
+
+tree
+decl_constant_value_for_optimization (tree exp)
+{
+  tree ret;
+
+  /* This function is only used by C, for c_fully_fold and other
+     optimization, and may not be correct for C++.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  if (!optimize
+      || TREE_CODE (exp) != VAR_DECL
+      || TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE
+      || DECL_MODE (exp) == BLKmode)
+    return exp;
+
+  ret = decl_constant_value (exp);
+  /* Avoid unwanted tree sharing between the initializer and current
+     function's body where the tree can be modified e.g. by the
+     gimplifier.  */
+  if (ret != exp && TREE_STATIC (exp))
+    ret = unshare_expr (ret);
+  return ret;
+}
+
 /* Print a warning if a constant expression had overflow in folding.
    Invoke this function on every expression that the language
    requires to be a constant expression.
@@ -1797,6 +2321,21 @@ tree
 convert_and_check (tree type, tree expr)
 {
   tree result;
+  tree expr_for_warning;
+
+  /* Convert from a value with possible excess precision rather than
+     via the semantic type, but do not warn about values not fitting
+     exactly in the semantic type.  */
+  if (TREE_CODE (expr) == EXCESS_PRECISION_EXPR)
+    {
+      tree orig_type = TREE_TYPE (expr);
+      expr = TREE_OPERAND (expr, 0);
+      expr_for_warning = convert (orig_type, expr);
+      if (orig_type == type)
+	return expr_for_warning;
+    }
+  else
+    expr_for_warning = expr;
 
   if (TREE_TYPE (expr) == type)
     return expr;
@@ -1804,7 +2343,7 @@ convert_and_check (tree type, tree expr)
   result = convert (type, expr);
 
   if (!skip_evaluation && !TREE_OVERFLOW_P (expr) && result != error_mark_node)
-    warnings_for_convert_and_check (type, expr, result);
+    warnings_for_convert_and_check (type, expr_for_warning, result);
 
   return result;
 }
@@ -3340,6 +3879,27 @@ pointer_int_sum (location_t location, enum tree_code resultcode,
   return ret;
 }
 
+/* Wrap a SAVE_EXPR around EXPR, if appropriate.  Like save_expr, but
+   for C folds the inside expression and wraps a C_MAYBE_CONST_EXPR
+   around the SAVE_EXPR if needed so that c_fully_fold does not need
+   to look inside SAVE_EXPRs.  */
+
+tree
+c_save_expr (tree expr)
+{
+  bool maybe_const = true;
+  if (c_dialect_cxx ())
+    return save_expr (expr);
+  expr = c_fully_fold (expr, false, &maybe_const);
+  expr = save_expr (expr);
+  if (!maybe_const)
+    {
+      expr = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (expr), NULL, expr);
+      C_MAYBE_CONST_EXPR_NON_CONST (expr) = 1;
+    }
+  return expr;
+}
+
 /* Return whether EXPR is a declaration whose address can never be
    NULL.  */
 
@@ -3464,6 +4024,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
     case NEGATE_EXPR:
     case ABS_EXPR:
     case FLOAT_EXPR:
+    case EXCESS_PRECISION_EXPR:
       /* These don't change whether an object is nonzero or zero.  */
       return c_common_truthvalue_conversion (location, TREE_OPERAND (expr, 0));
 
@@ -3482,12 +4043,23 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 
     case COND_EXPR:
       /* Distribute the conversion into the arms of a COND_EXPR.  */
-      return fold_build3 (COND_EXPR, truthvalue_type_node,
-		TREE_OPERAND (expr, 0),
-		c_common_truthvalue_conversion (location,
-						TREE_OPERAND (expr, 1)),
-		c_common_truthvalue_conversion (location,
-						TREE_OPERAND (expr, 2)));
+      if (c_dialect_cxx ())
+	return fold_build3 (COND_EXPR, truthvalue_type_node,
+			    TREE_OPERAND (expr, 0),
+			    c_common_truthvalue_conversion (location,
+							    TREE_OPERAND (expr,
+									  1)),
+			    c_common_truthvalue_conversion (location,
+							    TREE_OPERAND (expr,
+									  2)));
+      else
+	/* Folding will happen later for C.  */
+	return build3 (COND_EXPR, truthvalue_type_node,
+		       TREE_OPERAND (expr, 0),
+		       c_common_truthvalue_conversion (location,
+						       TREE_OPERAND (expr, 1)),
+		       c_common_truthvalue_conversion (location,
+						       TREE_OPERAND (expr, 2)));
 
     CASE_CONVERT:
       /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
@@ -3518,7 +4090,7 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 
   if (TREE_CODE (TREE_TYPE (expr)) == COMPLEX_TYPE)
     {
-      tree t = save_expr (expr);
+      tree t = c_save_expr (expr);
       return (build_binary_op
 	      (EXPR_LOCATION (expr),
 	       (TREE_SIDE_EFFECTS (expr)
@@ -4081,6 +4653,16 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
     mudflap_init ();
 }
 
+/* Like get_identifier, but avoid warnings about null arguments when
+   the argument may be NULL for targets where GCC lacks stdint.h type
+   information.  */
+
+static inline tree
+c_get_ident (const char *id)
+{
+  return get_identifier (id);
+}
+
 /* Build tree nodes and builtin functions common to both C and C++ language
    frontends.  */
 
@@ -4320,6 +4902,7 @@ c_common_nodes_and_builtins (void)
   wchar_type_node = get_identifier (MODIFIED_WCHAR_TYPE);
   wchar_type_node = TREE_TYPE (identifier_global_value (wchar_type_node));
   wchar_type_size = TYPE_PRECISION (wchar_type_node);
+  underlying_wchar_type_node = wchar_type_node;
   if (c_dialect_cxx ())
     {
       if (TYPE_UNSIGNED (wchar_type_node))
@@ -4327,11 +4910,6 @@ c_common_nodes_and_builtins (void)
       else
 	wchar_type_node = make_signed_type (wchar_type_size);
       record_builtin_type (RID_WCHAR, "wchar_t", wchar_type_node);
-    }
-  else
-    {
-      signed_wchar_type_node = c_common_signed_type (wchar_type_node);
-      unsigned_wchar_type_node = c_common_unsigned_type (wchar_type_node);
     }
 
   /* This is for wide string constants.  */
@@ -4377,6 +4955,88 @@ c_common_nodes_and_builtins (void)
     TREE_TYPE (identifier_global_value (get_identifier (INTMAX_TYPE)));
   uintmax_type_node =
     TREE_TYPE (identifier_global_value (get_identifier (UINTMAX_TYPE)));
+
+  if (SIG_ATOMIC_TYPE)
+    sig_atomic_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (SIG_ATOMIC_TYPE)));
+  if (INT8_TYPE)
+    int8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT8_TYPE)));
+  if (INT16_TYPE)
+    int16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT16_TYPE)));
+  if (INT32_TYPE)
+    int32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT32_TYPE)));
+  if (INT64_TYPE)
+    int64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT64_TYPE)));
+  if (UINT8_TYPE)
+    uint8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT8_TYPE)));
+  if (UINT16_TYPE)
+    uint16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT16_TYPE)));
+  if (UINT32_TYPE)
+    c_uint32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT32_TYPE)));
+  if (UINT64_TYPE)
+    c_uint64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT64_TYPE)));
+  if (INT_LEAST8_TYPE)
+    int_least8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST8_TYPE)));
+  if (INT_LEAST16_TYPE)
+    int_least16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST16_TYPE)));
+  if (INT_LEAST32_TYPE)
+    int_least32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST32_TYPE)));
+  if (INT_LEAST64_TYPE)
+    int_least64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST64_TYPE)));
+  if (UINT_LEAST8_TYPE)
+    uint_least8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST8_TYPE)));
+  if (UINT_LEAST16_TYPE)
+    uint_least16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST16_TYPE)));
+  if (UINT_LEAST32_TYPE)
+    uint_least32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST32_TYPE)));
+  if (UINT_LEAST64_TYPE)
+    uint_least64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST64_TYPE)));
+  if (INT_FAST8_TYPE)
+    int_fast8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST8_TYPE)));
+  if (INT_FAST16_TYPE)
+    int_fast16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST16_TYPE)));
+  if (INT_FAST32_TYPE)
+    int_fast32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST32_TYPE)));
+  if (INT_FAST64_TYPE)
+    int_fast64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST64_TYPE)));
+  if (UINT_FAST8_TYPE)
+    uint_fast8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST8_TYPE)));
+  if (UINT_FAST16_TYPE)
+    uint_fast16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST16_TYPE)));
+  if (UINT_FAST32_TYPE)
+    uint_fast32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST32_TYPE)));
+  if (UINT_FAST64_TYPE)
+    uint_fast64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST64_TYPE)));
+  if (INTPTR_TYPE)
+    intptr_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INTPTR_TYPE)));
+  if (UINTPTR_TYPE)
+    uintptr_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINTPTR_TYPE)));
 
   default_function_type = build_function_type (integer_type_node, NULL_TREE);
   ptrdiff_type_node
@@ -5039,43 +5699,6 @@ finish_label_address_expr (tree label, location_t loc)
 
   return result;
 }
-
-/* Hook used by expand_expr to expand language-specific tree codes.  */
-/* The only things that should go here are bits needed to expand
-   constant initializers.  Everything else should be handled by the
-   gimplification routines.  */
-
-rtx
-c_expand_expr (tree exp, rtx target, enum machine_mode tmode,
-	       int modifiera /* Actually enum expand_modifier.  */,
-	       rtx *alt_rtl)
-{
-  enum expand_modifier modifier = (enum expand_modifier) modifiera;
-  switch (TREE_CODE (exp))
-    {
-    case COMPOUND_LITERAL_EXPR:
-      {
-	/* Initialize the anonymous variable declared in the compound
-	   literal, then return the variable.  */
-	tree decl = COMPOUND_LITERAL_EXPR_DECL (exp);
-	emit_local_var (decl);
-	return expand_expr_real (decl, target, tmode, modifier, alt_rtl);
-      }
-
-    default:
-      gcc_unreachable ();
-    }
-}
-
-/* Hook used by staticp to handle language-specific tree codes.  */
-
-tree
-c_staticp (tree exp)
-{
-  return (TREE_CODE (exp) == COMPOUND_LITERAL_EXPR
-	  && TREE_STATIC (COMPOUND_LITERAL_EXPR_DECL (exp))
-	  ? exp : NULL);
-}
 
 
 /* Given a boolean expression ARG, return a tree representing an increment
@@ -5117,8 +5740,8 @@ boolean_increment (enum tree_code code, tree arg)
   return val;
 }
 
-/* Built-in macros for stddef.h, that require macros defined in this
-   file.  */
+/* Built-in macros for stddef.h and stdint.h, that require macros
+   defined in this file.  */
 void
 c_stddef_cpp_builtins(void)
 {
@@ -5130,6 +5753,60 @@ c_stddef_cpp_builtins(void)
   builtin_define_with_value ("__UINTMAX_TYPE__", UINTMAX_TYPE, 0);
   builtin_define_with_value ("__CHAR16_TYPE__", CHAR16_TYPE, 0);
   builtin_define_with_value ("__CHAR32_TYPE__", CHAR32_TYPE, 0);
+  if (SIG_ATOMIC_TYPE)
+    builtin_define_with_value ("__SIG_ATOMIC_TYPE__", SIG_ATOMIC_TYPE, 0);
+  if (INT8_TYPE)
+    builtin_define_with_value ("__INT8_TYPE__", INT8_TYPE, 0);
+  if (INT16_TYPE)
+    builtin_define_with_value ("__INT16_TYPE__", INT16_TYPE, 0);
+  if (INT32_TYPE)
+    builtin_define_with_value ("__INT32_TYPE__", INT32_TYPE, 0);
+  if (INT64_TYPE)
+    builtin_define_with_value ("__INT64_TYPE__", INT64_TYPE, 0);
+  if (UINT8_TYPE)
+    builtin_define_with_value ("__UINT8_TYPE__", UINT8_TYPE, 0);
+  if (UINT16_TYPE)
+    builtin_define_with_value ("__UINT16_TYPE__", UINT16_TYPE, 0);
+  if (UINT32_TYPE)
+    builtin_define_with_value ("__UINT32_TYPE__", UINT32_TYPE, 0);
+  if (UINT64_TYPE)
+    builtin_define_with_value ("__UINT64_TYPE__", UINT64_TYPE, 0);
+  if (INT_LEAST8_TYPE)
+    builtin_define_with_value ("__INT_LEAST8_TYPE__", INT_LEAST8_TYPE, 0);
+  if (INT_LEAST16_TYPE)
+    builtin_define_with_value ("__INT_LEAST16_TYPE__", INT_LEAST16_TYPE, 0);
+  if (INT_LEAST32_TYPE)
+    builtin_define_with_value ("__INT_LEAST32_TYPE__", INT_LEAST32_TYPE, 0);
+  if (INT_LEAST64_TYPE)
+    builtin_define_with_value ("__INT_LEAST64_TYPE__", INT_LEAST64_TYPE, 0);
+  if (UINT_LEAST8_TYPE)
+    builtin_define_with_value ("__UINT_LEAST8_TYPE__", UINT_LEAST8_TYPE, 0);
+  if (UINT_LEAST16_TYPE)
+    builtin_define_with_value ("__UINT_LEAST16_TYPE__", UINT_LEAST16_TYPE, 0);
+  if (UINT_LEAST32_TYPE)
+    builtin_define_with_value ("__UINT_LEAST32_TYPE__", UINT_LEAST32_TYPE, 0);
+  if (UINT_LEAST64_TYPE)
+    builtin_define_with_value ("__UINT_LEAST64_TYPE__", UINT_LEAST64_TYPE, 0);
+  if (INT_FAST8_TYPE)
+    builtin_define_with_value ("__INT_FAST8_TYPE__", INT_FAST8_TYPE, 0);
+  if (INT_FAST16_TYPE)
+    builtin_define_with_value ("__INT_FAST16_TYPE__", INT_FAST16_TYPE, 0);
+  if (INT_FAST32_TYPE)
+    builtin_define_with_value ("__INT_FAST32_TYPE__", INT_FAST32_TYPE, 0);
+  if (INT_FAST64_TYPE)
+    builtin_define_with_value ("__INT_FAST64_TYPE__", INT_FAST64_TYPE, 0);
+  if (UINT_FAST8_TYPE)
+    builtin_define_with_value ("__UINT_FAST8_TYPE__", UINT_FAST8_TYPE, 0);
+  if (UINT_FAST16_TYPE)
+    builtin_define_with_value ("__UINT_FAST16_TYPE__", UINT_FAST16_TYPE, 0);
+  if (UINT_FAST32_TYPE)
+    builtin_define_with_value ("__UINT_FAST32_TYPE__", UINT_FAST32_TYPE, 0);
+  if (UINT_FAST64_TYPE)
+    builtin_define_with_value ("__UINT_FAST64_TYPE__", UINT_FAST64_TYPE, 0);
+  if (INTPTR_TYPE)
+    builtin_define_with_value ("__INTPTR_TYPE__", INTPTR_TYPE, 0);
+  if (UINTPTR_TYPE)
+    builtin_define_with_value ("__UINTPTR_TYPE__", UINTPTR_TYPE, 0);
 }
 
 static void
@@ -7585,6 +8262,68 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
 #undef catenate_messages
 }
 
+/* Callback from cpp_error for PFILE to print diagnostics from the
+   preprocessor.  The diagnostic is of type LEVEL, at location
+   LOCATION unless this is after lexing and the compiler's location
+   should be used instead, with column number possibly overridden by
+   COLUMN_OVERRIDE if not zero; MSG is the translated message and AP
+   the arguments.  Returns true if a diagnostic was emitted, false
+   otherwise.  */
+
+bool
+c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
+	     location_t location, unsigned int column_override,
+	     const char *msg, va_list *ap)
+{
+  diagnostic_info diagnostic;
+  diagnostic_t dlevel;
+  int save_warn_system_headers = warn_system_headers;
+  bool ret;
+
+  switch (level)
+    {
+    case CPP_DL_WARNING_SYSHDR:
+      if (flag_no_output)
+	return false;
+      warn_system_headers = 1;
+      /* Fall through.  */
+    case CPP_DL_WARNING:
+      if (flag_no_output)
+	return false;
+      dlevel = DK_WARNING;
+      break;
+    case CPP_DL_PEDWARN:
+      if (flag_no_output && !flag_pedantic_errors)
+	return false;
+      dlevel = DK_PEDWARN;
+      break;
+    case CPP_DL_ERROR:
+      dlevel = DK_ERROR;
+      break;
+    case CPP_DL_ICE:
+      dlevel = DK_ICE;
+      break;
+    case CPP_DL_NOTE:
+      dlevel = DK_NOTE;
+      break;
+    case CPP_DL_FATAL:
+      dlevel = DK_FATAL;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+  if (done_lexing)
+    location = input_location;
+  diagnostic_set_info_translated (&diagnostic, msg, ap,
+				  location, dlevel);
+  if (column_override)
+    diagnostic_override_column (&diagnostic, column_override);
+  ret = report_diagnostic (&diagnostic);
+  if (level == CPP_DL_WARNING_SYSHDR)
+    warn_system_headers = save_warn_system_headers;
+  return ret;
+}
+
 /* Walk a gimplified function and warn for functions whose return value is
    ignored and attribute((warn_unused_result)) is set.  This is done before
    inlining, so we don't have to worry about that.  */
@@ -8468,6 +9207,78 @@ warn_for_sign_compare (location_t location,
         warning_at (location, OPT_Wsign_compare,
                  "comparison of promoted ~unsigned with unsigned");
     }
+}
+
+/* Setup a TYPE_DECL node as a typedef representation.
+
+   X is a TYPE_DECL for a typedef statement.  Create a brand new
+   ..._TYPE node (which will be just a variant of the existing
+   ..._TYPE node with identical properties) and then install X
+   as the TYPE_NAME of this brand new (duplicate) ..._TYPE node.
+
+   The whole point here is to end up with a situation where each
+   and every ..._TYPE node the compiler creates will be uniquely
+   associated with AT MOST one node representing a typedef name.
+   This way, even though the compiler substitutes corresponding
+   ..._TYPE nodes for TYPE_DECL (i.e. "typedef name") nodes very
+   early on, later parts of the compiler can always do the reverse
+   translation and get back the corresponding typedef name.  For
+   example, given:
+
+	typedef struct S MY_TYPE;
+	MY_TYPE object;
+
+   Later parts of the compiler might only know that `object' was of
+   type `struct S' if it were not for code just below.  With this
+   code however, later parts of the compiler see something like:
+
+	struct S' == struct S
+	typedef struct S' MY_TYPE;
+	struct S' object;
+
+    And they can then deduce (from the node for type struct S') that
+    the original object declaration was:
+
+		MY_TYPE object;
+
+    Being able to do this is important for proper support of protoize,
+    and also for generating precise symbolic debugging information
+    which takes full account of the programmer's (typedef) vocabulary.
+
+    Obviously, we don't want to generate a duplicate ..._TYPE node if
+    the TYPE_DECL node that we are now processing really represents a
+    standard built-in type.  */
+
+void
+set_underlying_type (tree x)
+{
+  if (x == error_mark_node)
+    return;
+  if (DECL_IS_BUILTIN (x))
+    {
+      if (TYPE_NAME (TREE_TYPE (x)) == 0)
+	TYPE_NAME (TREE_TYPE (x)) = x;
+    }
+  else if (TREE_TYPE (x) != error_mark_node
+	   && DECL_ORIGINAL_TYPE (x) == NULL_TREE)
+    {
+      tree tt = TREE_TYPE (x);
+      DECL_ORIGINAL_TYPE (x) = tt;
+      tt = build_variant_type_copy (tt);
+      TYPE_STUB_DECL (tt) = TYPE_STUB_DECL (DECL_ORIGINAL_TYPE (x));
+      TYPE_NAME (tt) = x;
+      TREE_USED (tt) = TREE_USED (x);
+      TREE_TYPE (x) = tt;
+    }
+}
+
+/* Returns true if X is a typedef decl.  */
+
+bool
+is_typedef_decl (tree x)
+{
+  return (x && TREE_CODE (x) == TYPE_DECL
+          && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
 }
 
 #include "gt-c-common.h"

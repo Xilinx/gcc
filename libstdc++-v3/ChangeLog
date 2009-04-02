@@ -1,3 +1,40 @@
+2009-04-02  Dodji Seketeli  <dodji@redhat.com>
+
+	* include/ext/bitmap_allocator.h: the typedefs should be made public
+	if we want them to be accessible. This has been revealed by the patch
+	that fixes PR c++/26693 in g++.
+
+2009-04-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/post/powerpc64-linux-gnu/32/baseline_symbols.txt:
+	Regenerated.
+	* config/abi/post/powerpc64-linux-gnu/baseline_symbols.txt:
+	Regenerated.
+	* config/abi/post/i386-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/powerpc-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/i486-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/s390-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/ia64-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/s390x-linux-gnu/baseline_symbols.txt: Regenerated.
+	* config/abi/post/x86_64-linux-gnu/32/baseline_symbols.txt:
+	Regenerated.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Regenerated.
+
+2009-03-31  Jason Merrill  <jason@redhat.com>
+
+	* libsupc++/unwind-cxx.h: Correct __cxa_call_terminate prototype.
+
+	PR libstdc++/39310
+	* include/tr1_impl/type_traits (is_function): Add partial
+	specializations with function cv-quals.
+	(__is_function_helper): Remove.
+	(is_member_pointer): Don't define in terms of is_member_*_pointer.
+
+2009-03-30  Ian Lance Taylor  <iant@google.com>
+
+	* include/backward/hashtable.h (clear): Return quickly if the
+	table is empty.
+
 2009-03-27  Ian Lance Taylor  <iant@google.com>
 
 	* include/backward/hashtable.h (_S_num_primes): Change to 29.
@@ -754,21 +791,12 @@
 	on HPUX.
 	* configure: Regenerate.
 
-2009-01-22  Dodji Seketeli  <dodji@redhat.com>
-
-	* include/ext/bitmap_allocator.h: Reverting changes related to PR
-	c++/26693.
-
 2009-01-21  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/29_atomics/headers/stdatomic.h/functions.c: Remove
 	atomic_flag_fence.
 
 2009-01-21  Dodji Seketeli  <dodji@redhat.com>
-
-	* include/ext/bitmap_allocator.h: the typedefs should be made public
-	if we want them to be accessible. This has been revealed by the patch
-	that fixes PR c++/26693 in g++.
 
 2009-01-20  Benjamin Kosnik  <bkoz@redhat.com>
 	    Uros Bizjak  <ubizjak@gmail.com>

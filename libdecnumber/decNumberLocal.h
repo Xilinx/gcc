@@ -44,8 +44,16 @@
 
   #include <stdlib.h>	      /* for abs			      */
   #include <string.h>	      /* for memset, strcpy		      */
+  #include "dconfig.h"        /* for WORDS_BIGENDIAN		      */
 
   /* Conditional code flag -- set this to match hardware platform     */
+  /* 1=little-endian, 0=big-endian                                   */
+  #if WORDS_BIGENDIAN
+  #define DECLITEND 0
+  #else
+  #define DECLITEND 1
+  #endif
+
   #if !defined(DECLITEND)
   #define DECLITEND 1	      /* 1=little-endian, 0=big-endian	      */
   #endif
@@ -107,6 +115,7 @@
   extern const uByte  DECSTICKYTAB[10]; /* re-round digits if sticky  */
   extern const uInt   DECPOWERS[10];	/* powers of ten table	      */
   /* The following are included from decDPD.h			      */
+  #include "decDPDSymbols.h"
   extern const uShort DPD2BIN[1024];	/* DPD -> 0-999 	      */
   extern const uShort BIN2DPD[1000];	/* 0-999 -> DPD 	      */
   extern const uInt   DPD2BINK[1024];	/* DPD -> 0-999000	      */
@@ -342,6 +351,7 @@
   #define DFISSNAN(df)	  ((DFWORD(df, 0)&0x7e000000)==0x7e000000)
 
   /* Shared lookup tables					      */
+#include "decCommonSymbols.h"
   extern const uInt   DECCOMBMSD[64];	/* Combination field -> MSD   */
   extern const uInt   DECCOMBFROM[48];	/* exp+msd -> Combination     */
 

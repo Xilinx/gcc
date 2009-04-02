@@ -1,3 +1,26 @@
+2009-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* system-linux-alpha.ads (Functions_Return_By_DSP): Remove.
+	* system-linux-mips.ads (Functions_Return_By_DSP): Likewise.
+	* system-linux-mipsel.ads (Functions_Return_By_DSP): Likewise.
+	* system-linux-s390.ads (Functions_Return_By_DSP): Likewise.
+	* system-linux-s390x.ads (Functions_Return_By_DSP): Likewise.
+	* system-linux-sparc.ads (Functions_Return_By_DSP): Likewise.
+	* system-linux-sparcv9.ads (Functions_Return_By_DSP): Likewise.
+
+2009-03-30  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc-interface/decl.c (maybe_pad_type): Use TREE_OVERFLOW instead
+	of TREE_CONSTANT_OVERFLOW.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR rtl-optimization/323
+	* gcc-interface/misc.c (gnat_post_options): Set
+	flag_excess_precision_cmdline.  Give an error for
+	-fexcess-precision=standard for processors where the option is
+	significant.
+
 2009-03-27  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR c/39323

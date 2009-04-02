@@ -1,3 +1,70 @@
+2009-04-01  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39027
+	* include/cpplib.h (CPP_N_DEFAULT): Define.
+	* expr.c (interpret_float_suffix): Recognize d or D for double,
+	return new value for default.
+	(cpp_classify_number): Issue pedwarn for use of d or D in suffix.
+
+	PR c/33466
+	* expr.c (interpret_float_suffix): Reject invalid suffix that uses
+	letters from decimal float and fixed-point suffixes.
+
+2009-03-31  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/15638
+	* files.c (_cpp_find_file): Call open_file_failed after diagnosing
+	invalid PCH.
+	(open_file_failed): Make error for missing file fatal.
+	* include/cpplib.h (CPP_DL_FATAL): Define.
+
+2009-03-30  Sergiy Vyshnevetskiy  <serg@vostok.net>
+
+	PR preprocessor/31932:
+	* internal.h: Don't mention HAVE_ICONV_H.
+	* configure, config.in: Rebuild.
+	* configure.ac: Don't check for iconv.h.
+
+2009-03-30  Tom Tromey  <tromey@redhat.com>
+
+	PR preprocessor/39512:
+	* line-map.c (linemap_init): Initialize 'reallocator' field.
+
+2009-03-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/39558
+	* macro.c (cpp_get_token): If macro_to_expand returns NULL
+	and used some tokens, add CPP_PADDING before next token.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/34695
+	* makedepend.c: Remove.
+	* Makefile.in (makedepend_OBJS, makedepend$(EXEEXT)): Remove.
+	(all, clean, TAGS_SOURCES, include): Remove makedepend handling.
+	* directives.c (cpp_errors): Remove.
+	* errors.c (print_location, _cpp_begin_message, v_message):
+	Remove.
+	(cpp_error, cpp_error_with_line): Always use error callback.
+	(cpp_error, cpp_error_with_line, cpp_errno): Return bool.
+	* include/cpplib.h (cpp_options): Remove pedantic_errors,
+	inhibit_warnings, warn_system_headers, inhibit_errors,
+	warnings_are_errors, client_diagnostic.
+	(cpp_callbacks): Add extra arguments to error callback; make it
+	return bool.
+	(cpp_finish): Return void.
+	(cpp_destroy): Remove inaccurate comment about return value.
+	(cpp_errors, CPP_DL_EXTRACT, CPP_DL_WARNING_P): Remove.
+	(CPP_DL_NOTE): Define.
+	* include/line-map.h (linemap_print_containing_files): Remove.
+	* init.c (cpp_finish): Do not check for or return number of
+	errors.
+	* internal.h (cpp_reader): Remove errors field.
+	* line-map.c (linemap_print_containing_files): Remove.
+	* macro.c (_cpp_create_definition): Use CPP_DL_NOTE for message
+	about previous definition.  Only emit it if previous diagnostic
+	was emitted.
+
 2009-03-28  Joseph Myers  <joseph@codesourcery.com>
 
 	* Makefile.in (po/$(PACKAGE).pot): Use $(mkinstalldirs) not

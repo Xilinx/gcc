@@ -1,3 +1,158 @@
+2009-03-31  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/15638
+	* cpp.c (cb_cpp_error): Handle CPP_DL_FATAL.
+
+2009-03-30  Steven G. Kargl  <kargls@comcast.net>
+
+	PR fortran/38389
+	* trans-stmt.c(gfc_trans_allocate): Add translation of ERRMSG.
+	(gfc_trans_deallocate): Add translation of ERRMSG.  Remove stale
+	comments.  Minor whitespace cleanup.
+	* resolve.c(is_scalar_expr_ptr): Whitespace cleanup.
+	(resolve_deallocate_expr (gfc_expr *e): Update error message.
+	(resolve_allocate_expr):  Remove dead code.  Update error message.
+	Move error checking to ...
+	(resolve_allocate_deallocate): ... here.  Add additional error
+	checking for STAT, ERRMSG, and allocate-objects.
+	* match.c(gfc_match_allocate,gfc_match_deallocate):  Parse ERRMSG.
+	Check for redundant uses of STAT and ERRMSG.  Reword error message
+	and add checking for pointer, allocatable, and proc_pointer attributes.
+
+2009-03-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/22571
+	PR fortran/26227
+	PR fortran/24886
+	* symbol.c : Add gfc_global_ns_list.
+	* decl.c (add_global_entry): Set the namespace ('ns') field.
+	* gfortran.h : Add the resolved field to gfc_namespace. Add the
+	namespace ('ns') field to gfc_gsymbol.  Add flag_whole_file to
+	gfc_option_t.  Add the prototype for gfc_free_dt_list.
+	* lang.opt : Add the whole-file option.
+	* invoke.texi : Document the whole-file option.
+	* resolve.c (resolve_global_procedure): If the fwhole-file
+	option is set, reorder gsymbols to ensure that translation is
+	in the right order.  Resolve the gsymbol's namespace if that
+	has not occurred and then check interfaces.
+	(resolve_function): Move call to resolve_global_procedure.
+	(resolve_call): The same.
+	(resolve_codes): Store the current labels_obstack.
+	(gfc_resolve) : Return if the namespace is already resolved.
+	trans-decl.c (gfc_get_extern_function_decl): If the whole_file
+	option is selected, use the backend_decl of a gsymbol, if it is
+	available.
+	parse.c (add_global_procedure, add_global_program): If the flag
+	whole-file is set, add the namespace to the gsymbol.
+	(gfc_parse_file): On -fwhole-file, put procedure namespaces on
+	the global namespace list.  Rearrange to do resolution of all
+	the procedures in a file, followed by their translation.
+	* options.c (gfc_init_options): Add -fwhole-file.
+	(gfc_handle_option): The same.
+
+2009-03-30  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* f95-lang.c (gfc_init_builtin_functions): Define BUILT_IN_HUGE_VAL
+	family of intrinsics instead of BUILT_IN_INF family.
+	* trans-intrinsics.c (gfc_conv_intrinsic_nearest): Use
+	BUILT_IN_HUGE_VAL instead of BUILT_IN_INF.
+
+2009-03-30  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-types.c (gfc_sym_type, gfc_return_by_reference): For
+	sym->attr.result check sym->ns->proc_name->attr.is_bind_c.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR rtl-optimization/323
+	* options.c (gfc_post_options): Set
+	flag_excess_precision_cmdline.  Give an error for
+	-fexcess-precision=standard for processors where the option is
+	significant.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/34695
+	* cpp.c (cb_cpp_error): New.
+	(gfc_cpp_post_options): Don't set cpp_option->inhibit_warnings.
+	Don't check cpp_errors (cpp_in).
+	(gfc_cpp_init_0): Set cb->error.
+
+2009-03-29  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/38823
+	* gfortran.h: Add ARITH_PROHIBIT to arith enum.
+	expr.c (gfc_match_init_expr): Add global variable init_flag to
+	flag matching an initialization expression.
+	(check_intrinsic_op): Move no longer reachable error message to ...
+	* arith.c (arith_power): ... here.  Remove gfc_ prefix in
+	gfc_arith_power.  Use init_flag.  Allow constant folding of x**y
+	when y is REAL or COMPLEX.
+	(eval_intrinsic): Remove restriction that y in x**y must be INTEGER
+	for constant folding.
+	* gfc_power: Update gfc_arith_power to arith_power
+
+2009-03-29  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37423
+	* gfortran.h (struct gfc_typebound_proc): Added new flag `deferred' and
+	added a comment explaining DEFERRED binding handling.
+	* decl.c (match_binding_attributes): Really match DEFERRED attribute.
+	(match_procedure_in_type): Really match PROCEDURE(interface) syntax
+	and do some validity checks for DEFERRED and this construct.
+	* module.c (binding_overriding): New string constant for DEFERRED.
+	(mio_typebound_proc): Module-IO DEFERRED flag.
+	* resolve.c (check_typebound_override): Ensure that a non-DEFERRED
+	binding is not overridden by a DEFERRED one.
+	(resolve_typebound_procedure): Allow abstract interfaces as targets
+	for DEFERRED bindings.
+	(ensure_not_abstract_walker), (ensure_not_abstract): New methods.
+	(resolve_fl_derived): Use new `ensure_not_abstract' method for
+	non-ABSTRACT types extending ABSTRACT ones to ensure each DEFERRED
+	binding is overridden.
+	(check_typebound_baseobject): New method.
+	(resolve_compcall), (resolve_typebound_call): Check base-object of
+	the type-bound procedure call.
+	* gfc-internals.texi (Type-bound procedures): Document a little bit
+	about internal handling of DEFERRED bindings.
+
+2008-03-29  Tobias Schlüter  <tobi@gcc.gnu.org>
+
+	PR fortran/38507
+	* gfortran.h (gfc_st_label): Fix comment.
+	(gfc_exec_op): Add statement code EXEC_END_BLOCK for end of block.
+	* parse.c (accept_statement): Use EXEC_END_BLOCK for END IF and
+	END SELECT with labels.
+	(check_do_closure): Fix formatting.
+	(parse_do_block): Fix typo in error message.
+	* resolve.c (code_stack): Remove tail member.  Update comment to
+	new use of reachable_labels.
+	(reachable_labels): Rename to ...
+	(find_reachable_labels): ... this.  Overhaul.  Update preceding
+	comment.
+	(resolve_branch): Fix comment preceding function.  Rewrite.
+	(resolve_code): Update call to find_reachable_labels.  Add code to
+	deal with EXEC_END_BLOCK.
+	* st.c (gfc_free_statement): Add code to deal with EXEC_END_BLOCK.
+	Add 2009 to copyright years.
+	* trans.c (gfc_trans_code): Likewise on both counts.
+
+2009-03-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38917
+	* expr.c (gfc_check_assign): Allow pointer components when
+	checking for NULL.
+
+	PR fortran/38918
+	* resolve.c (check_data_variable): Treat pointer arrays with
+	scalars.
+
+2009-03-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38915
+	* trans-expr.c (gfc_trans_assignment_1): Ensure temporaries
+	have a string_length.
+
 2009-03-28  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/34656

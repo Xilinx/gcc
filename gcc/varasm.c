@@ -869,11 +869,18 @@ default_function_rodata_section (tree decl)
 
       if (DECL_ONE_ONLY (decl) && HAVE_COMDAT_GROUP)
         {
-	  size_t len = strlen (name) + 3;
-	  char* rname = (char *) alloca (len);
+	  const char *dot;
+	  size_t len;
+	  char* rname;
+
+	  dot = strchr (name + 1, '.');
+	  if (!dot)
+	    dot = name;
+	  len = strlen (dot) + 8;
+	  rname = (char *) alloca (len);
 
 	  strcpy (rname, ".rodata");
-	  strcat (rname, name + 5);
+	  strcat (rname, dot);
 	  return get_section (rname, SECTION_LINKONCE, decl);
 	}
       /* For .gnu.linkonce.t.foo we want to use .gnu.linkonce.r.foo.  */
@@ -2249,7 +2256,7 @@ incorporeal_function_p (tree decl)
 	return true;
 
       name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-      if (strncmp (name, "__builtin_", strlen ("__builtin_")) == 0)
+      if (is_builtin_name (name))
 	return true;
     }
   return false;
@@ -2315,12 +2322,14 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
 	 locally emitted, inlined or otherwise not-really-extern, but
 	 for declarations that can be weak, it happens to be
 	 match.  */
-      && !TREE_STATIC (decl))
-    weak_decls = tree_cons (NULL, decl, weak_decls);
+      && !TREE_STATIC (decl)
+      && tree_find_value (weak_decls, decl) == NULL_TREE)
+      weak_decls = tree_cons (NULL, decl, weak_decls);
 
 #ifdef ASM_OUTPUT_EXTERNAL
-  pending_assemble_externals = tree_cons (0, decl,
-					  pending_assemble_externals);
+  if (tree_find_value (pending_assemble_externals, decl) == NULL_TREE)
+    pending_assemble_externals = tree_cons (NULL, decl,
+					    pending_assemble_externals);
 #endif
 }
 
