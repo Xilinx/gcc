@@ -6032,6 +6032,10 @@ readstring (struct reading_st *rd)
 static basilys_ptr_t
 readmacrostringsequence (struct reading_st *rd) 
 {
+#if ENABLE_CHECKING
+  static long _herecallcount;
+  long callcount = ++_herecallcount;
+#endif
   int lineno = rd->rlineno;
   location_t loc = 0;
   BASILYS_ENTERFRAME (6, NULL);
@@ -6150,9 +6154,9 @@ readmacrostringsequence (struct reading_st *rd)
       rdnext();
     }
   }
-  debugeprintvalue("readmacrostringsequence seqv", seqv);
+  debugmsgval("readmacrostringsequence seqv", seqv, callcount);
   readv = makesexpr (rd, lineno, (basilys_ptr_t) seqv, loc);
-  debugeprintvalue("readmacrostringsequence readv", readv);
+  debugmsgval("readmacrostringsequence readv", readv, callcount);
   BASILYS_EXITFRAME ();
   return (basilys_ptr_t) readv;
 #undef readv
@@ -7766,6 +7770,30 @@ basilys_dbgeprint (void *p)
   basilys_debug_out (&dps, (basilys_ptr_t) p, 0);
   putc ('\n', stderr);
   fflush (stderr);
+}
+
+
+void basilysgc_debugmsgval(void* val_p, const char*msg, long count)
+{ 
+  BASILYS_ENTERFRAME(2,NULL);
+#define valv   curfram__.varptr[0]
+#define dbgfv  curfram__.varptr[1]
+  valv = val_p;
+  dbgfv = 
+    basilys_object_nth_field ((basilys_ptr_t)
+			      BASILYSGOB (INITIAL_SYSTEM_DATA),
+			      FSYSDAT_DEBUGMSG);
+  {
+    union basilysparam_un argtab[2];
+    memset(argtab, 0, sizeof(argtab));
+    argtab[0].bp_cstring = msg;
+    argtab[1].bp_long = count;
+    (void) basilys_apply ((basilysclosure_ptr_t) dbgfv, (basilys_ptr_t)valv, 
+			  BPARSTR_CSTRING BPARSTR_LONG, argtab, "", NULL);
+  }
+  BASILYS_EXITFRAME();
+#undef valv
+#undef dbgfv
 }
 
 void

@@ -1141,7 +1141,7 @@
 		(:else 
 		 (debug_msg curarg "unexpected argument in formal arglist")
 		 (let ( (discrarg  (discrim curarg) ))
-		   (error_strv argloc "unexepected argument in formal arglist"_
+		   (error_strv argloc "unexpected argument in formal arglist"_
 			       (unsafe_get_field :named_name discrarg))
 		   )
 		 ()
@@ -1231,7 +1231,14 @@
 ;;;;;; parse a pairlist as a C code expansion, return a tuple
 
 (defun flatten_for_c_code_expansion (loc comp flatlist)
-  (cond 
+  (assert_msg "check flatlist" (is_list flatlist))
+  ;;(debug_msg comp "flatten_for_c_code_expansion comp")
+  ;;(debug_msg flatlist "flatten_for_c_code_expansion initial flatlist")
+  (cond    
+   ( (null comp)
+     ;;(shortbacktrace_dbg "flatten_for_c_code_expansion null comp" 15)
+     (error_plain loc "null component for C chunk" )
+     (return))
    ( (is_a comp class_symbol)
      (list_append flatlist comp)
      )
@@ -1242,30 +1249,46 @@
      (foreach_in_list
       (comp)
       (curpair curcomp)
-	(flatten_for_c_code_expansion loc curcomp flatlist)))
+      ;;(debug_msg curcomp "flatten_for_c_code_expansion curcomp in list")
+      (flatten_for_c_code_expansion loc curcomp flatlist)
+      ;;(debug_msg curcomp "flatten_for_c_code_expansion done curcomp list")
+      )
+     )
    ( (is_a comp class_sexpr)
-     (let ( (subloc (get_field :loca_location comp)) )
+     (let ( (subloc (get_field :loca_location comp)) 
+	    (subcontent (get_field :sexp_contents comp))
+	    )
        (foreach_in_list 
-	((get_field :sexp_contents comp))
-	(curpair curcomp)
-	(flatten_for_c_code_expansion subloc curcomp flatlist)
+	(subcontent)
+	(cursubpair cursubcomp)
+	;;(debug_msg cursubcomp "flatten_for_c_code_expansion cursubcomp in sexp")
+	(flatten_for_c_code_expansion subloc cursubcomp flatlist)
+	;;(debug_msg cursubcomp "flatten_for_c_code_expansion done cursubcomp sexp")
 	))
      )
    (:else
-    (error_strv loc "unexepected component for C chunk of discriminant " 
+    (shortbacktrace_dbg "flatten_for_c_code_expansion strange comp" 15)
+    (error_strv loc "unexpected component for C chunk of discriminant " 
 		(get_field :named_name (discrim comp)))
     )
-   ))
+   )
+  ;;(debug_msg flatlist "flatten_for_c_code_expansion final flatlist")
+  )
 
 ;; parse a pair list into a C code expansion, perhaps flattening it
 (defun parse_pairlist_c_code_expansion (loc curpair)
+  (debug_msg loc "parse_pairlist_c_code_expansion loc")
+  (debug_msg curpair "parse_pairlist_c_code_expansion curpair")
   (let ( (flatlist (make_list discr_list)) )
     (forever 
      comploop
      (if (not (is_pair curpair)) (exit comploop))
-     (flatten_for_c_code_expansion loc (pair_head curpair) flatlist)
+     (let ( (pairhd (pair_head curpair)) )
+       (debug_msg pairhd "parse_pairlist_c_code_expansion loop pairhd")
+       (flatten_for_c_code_expansion loc pairhd flatlist))
      (setq curpair (pair_tail curpair))
      )
+    (debug_msg flatlist "parse_pairlist_c_code_expansion flatlist")
     (let ( (tupexp (list_to_multiple flatlist discr_multiple)) )
       (debug_msg tupexp "parse_pairlist_c_code_expansion tupexp")
       (assert_msg "check tupexp" (is_multiple tupexp))
@@ -1275,10 +1298,14 @@
 ;; utility to check that a C expansion has good symbols; every symbol
 ;; should be in the substitution map
 (defun check_c_expansion (etuple loc substmap)
+  (debug_msg etuple "check_c_expansion etuple")
+  (debug_msg loc "check_c_expansion loc")
   (foreach_in_multiple
    (etuple)
    (ecomp :long ix)
    (cond 
+   ( (null ecomp)
+     (error_plain loc "null component in C expansion"))  
     ( (is_a ecomp class_symbol)
       (if (null (mapobject_get substmap ecomp))
 	  (error_strv loc "unexpected symbol in C expansion"
@@ -1363,6 +1390,7 @@
 	     (assert_msg "check curbind" (is_a curbind class_formal_binding))
 	     (mapobject_put substmap (get_field :binder curbind) curbind)
 	     )
+	    (debug_msg primit "defprimitive primit")
 	    (check_c_expansion etuple loc substmap)
 	    ;;
 	    (warn_if_redefined symb env loc)

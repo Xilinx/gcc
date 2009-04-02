@@ -1,4 +1,15 @@
 2009-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (debugmsgval_at): new function.
+	(basilysgc_debugmsgval): new declaration.
+	(debugmsgval): new macro. (FSYSDAT_DEBUGMSG) new enum.
+	* basilys.c (readmacrostringsequence): use debugmsgval.
+	(basilysgc_debugmsgval) new function using FSYSDAT_DEBUGMSG.
+	* melt/warmelt-first.bysl: moved debugmsg function. added
+	sysdata_debugmsg field.
+	* melt/warmelt-macro.bysl: renamed locals in foreach_in_list in
+	flatten_for_c_code_expansion. We still have a bug with binding in
+	citerators, and this is a workaround.
+2009-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	[I am adding the t2iter.bysl test because I suspect a binding
 	issue with citerators]
 	* melt/warmelt-macro.bysl: added check_c_expansion and call it in

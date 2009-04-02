@@ -210,6 +210,7 @@
 	   sysdata_exit_finalizer       ;;closure to be called after the passes, at finalization
 	   sysdata_meltattr_definer	;;closure to be called for melt attributes
 	   sysdata_patmacro_exporter	;closure to export a patmacro
+	   sysdata_debugmsg		;closure for debugmsg
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -1918,6 +1919,53 @@
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;; debug message function
+(defprimitive the_dbgcounter () :long "basilys_dbgcounter")
+(defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
+
+(defun displaydebugmsg (val :cstring msgstr :long count)
+  ;; don't work yet, because internal test for debugging...
+  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	 (sbuf (make_strbuf discr_strbuf)) 
+	 (occmap (make_mapobject discr_mapobjects 50))
+	 (boxedmaxdepth (make_integerbox discr_integer 14))
+	 (dbgi (instance class_debuginfo
+			 :dbgi_sbuf sbuf
+			 :dbgi_occmap occmap
+			 :dbgi_maxdepth boxedmaxdepth))
+	 )
+    (outnum_err "!*#" dbgcounter "/")
+    (outnum_err "" (-i (the_framedepth) 1) ":")
+    (outcstring_err msgstr)
+    (if (>i count 0) (outnum_err " !" count ": "))
+    (dbg_output val dbgi 0)
+    (outstrbuf_err sbuf)
+    (outnewline_err)
+    ))
+
+
+;;;;
+(defun debugmsg (val :cstring msgstr :long count)
+  (if (need_dbg 0) 
+      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
+	     (sbuf (make_strbuf discr_strbuf)) 
+	     (occmap (make_mapobject discr_mapobjects 53))
+	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
+	     (dbgi (instance class_debuginfo
+			     :dbgi_sbuf sbuf
+			     :dbgi_occmap occmap
+			     :dbgi_maxdepth boxedmaxdepth))
+	     )
+	(outnum_dbg "!!!***###" dbgcounter "/")
+	(outnum_dbg "" (-i (the_framedepth) 1) ":")
+	(outcstring_dbg msgstr)
+	(if (>i count 0) (outnum_dbg " !" count ": "))
+	(dbg_out val dbgi 0)
+	(outstrbuf_dbg sbuf)
+	(outnewline_dbg)
+	)))
+
 ;;;;;;;;;;;;;;;;;;;; initial system data 
 (definstance initial_system_data class_system_data
   :predef INITIAL_SYSTEM_DATA
@@ -1936,6 +1984,7 @@
   :sysdata_pass_dict (make_mapstring discr_mapstrings 100) ;stringmap for gcc passes
   :sysdata_exit_finalizer init_exitfinalizer
   :sysdata_patmacro_exporter initpatmacro_exporter ; patmacro exporter in module
+  :sysdata_debugmsg debugmsg
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3372,51 +3421,6 @@
 	  ))
     ))
 (install_method class_ctype dbg_outputagain dbgoutagain_ctype_method)
-
-;;;;;;;;;;;;;;;;;;;;;;;; debug message function
-(defprimitive the_dbgcounter () :long "basilys_dbgcounter")
-(defprimitive increment_dbgcounter () :void "(void) ++basilys_dbgcounter")
-
-(defun displaydebugmsg (val :cstring msgstr :long count)
-  ;; don't work yet, because internal test for debugging...
-  (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
-	 (sbuf (make_strbuf discr_strbuf)) 
-	 (occmap (make_mapobject discr_mapobjects 50))
-	 (boxedmaxdepth (make_integerbox discr_integer 14))
-	 (dbgi (instance class_debuginfo
-			 :dbgi_sbuf sbuf
-			 :dbgi_occmap occmap
-			 :dbgi_maxdepth boxedmaxdepth))
-	 )
-    (outnum_err "!*#" dbgcounter "/")
-    (outnum_err "" (-i (the_framedepth) 1) ":")
-    (outcstring_err msgstr)
-    (if (>i count 0) (outnum_err " !" count ": "))
-    (dbg_output val dbgi 0)
-    (outstrbuf_err sbuf)
-    (outnewline_err)
-    ))
-
-
-(defun debugmsg (val :cstring msgstr :long count)
-  (if (need_dbg 0) 
-      (let ( (:long dbgcounter (progn (increment_dbgcounter) (the_dbgcounter)))
-	     (sbuf (make_strbuf discr_strbuf)) 
-	     (occmap (make_mapobject discr_mapobjects 53))
-	     (boxedmaxdepth (make_integerbox discr_integer 10)) ;;;; @@@ DEBUGDEPTH
-	     (dbgi (instance class_debuginfo
-			     :dbgi_sbuf sbuf
-			     :dbgi_occmap occmap
-			     :dbgi_maxdepth boxedmaxdepth))
-	     )
-	(outnum_dbg "!!!***###" dbgcounter "/")
-	(outnum_dbg "" (-i (the_framedepth) 1) ":")
-	(outcstring_dbg msgstr)
-	(if (>i count 0) (outnum_dbg " !" count ": "))
-	(dbg_out val dbgi 0)
-	(outstrbuf_dbg sbuf)
-	(outnewline_dbg)
-	)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

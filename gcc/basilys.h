@@ -2702,6 +2702,7 @@ enum
   FSYSDAT_EXIT_FINALIZER,	/* closure to call at exit */
   FSYSDAT_MELTATTR_DEFINER,	/* closure for melt attributes */
   FSYSDAT_PATMACRO_EXPORTER,    /* closure to export patmacro */
+  FSYSDAT_DEBUGMSG,		/* closure for debugmsg */
   FSYSDAT__LAST
 };
 
@@ -2968,6 +2969,21 @@ debugvalue_at (const char *fil, int lin, const char *msg, void *val)
 
 #define debugvalue(Msg,Val) debugvalue_at(__FILE__, __LINE__, (Msg), (Val))
 
+void basilysgc_debugmsgval(void* val, const char*msg, long count);
+
+static inline void
+debugmsgval_at (const char*fil, int lin, const char* msg, void*val, long count) {
+  if (flag_basilys_debug)
+    {
+      fprintf (stderr, "!@%s:%d:\n",
+	       basename (fil), lin);
+      basilysgc_debugmsgval(val, msg, count);
+    }
+}
+
+#define debugmsgval(Msg,Val,Count) do {					\
+    debugmsgval_at(__FILE__,__LINE__,(Msg),(Val),(Count)); } while(0)
+
 static inline void
 debugbacktrace_at (const char *fil, int lin, const char *msg, int depth)
 {
@@ -3026,6 +3042,7 @@ void basilys_cbreak_at(const char*msg, const char*fil, int lin);
 #define basilys_cbreak(Msg) ((void)(Msg))
 #define basilys_trace_start(Msg,Cnt) do{}while(0)
 #define basilys_trace_end(Msg,Cnt) do{}while(0)
+#define debugmsgval(Msg,Val,Count) do {}while(0)
 #endif /*ENABLE_CHECKING*/
 
 
