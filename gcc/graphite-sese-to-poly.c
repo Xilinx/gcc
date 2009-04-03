@@ -987,11 +987,11 @@ add_conditions_to_domain (poly_bb_p pbb)
 	    scan_tree_for_params (SCOP_REGION (scop), left, left_expr, one);
 	    value_set_si (one, 1);
 	    scan_tree_for_params (SCOP_REGION (scop), right, right_expr, one);
-	    ppl_subtract_Linear_Expression_from_Linear_Expression (right_expr,
-								   left_expr);
+	    ppl_subtract_Linear_Expression_from_Linear_Expression (left_expr,
+								   right_expr);
 
 	    value_clear (one);
-	    ppl_new_Constraint (&cstr, right_expr, type);
+	    ppl_new_Constraint (&cstr, left_expr, type);
 	    ppl_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
 	    ppl_delete_Constraint (cstr);
 	    ppl_delete_Linear_Expression (left_expr);
@@ -1046,7 +1046,6 @@ bb_contains_non_iv_scalar_phi_nodes (basic_block bb)
   return true;
 }
 
-
 /* Check if SCOP contains non scalar phi nodes.  */
 
 static bool
@@ -1062,142 +1061,91 @@ scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
   return false;
 }
 
-/* Helper recursive function.  Record in CONDITIONS and CASES all
-   conditions from 'if's and 'switch'es occurring in BB from REGION.  */
+/* Flag in MAP all the BBs in SCOP.  */
 
 static void
-build_sese_conditions_1 (VEC (gimple, heap) **conditions,
-			 VEC (gimple, heap) **cases, basic_block bb,
-			 sese region)
+flag_bb_in_region (sbitmap map, sese region)
 {
-  int i, j;
-  gimple_bb_p gbb;
-  basic_block bb_child, bb_iter;
-  VEC (basic_block, heap) *dom;
-  gimple stmt;
-  
-  /* Make sure we are in the SCoP.  */
-  if (!bb_in_sese_p (bb, region))
-    return;
+  basic_block bb;
 
-  gbb = gbb_from_bb (bb);
+  FOR_EACH_BB (bb)
+    if (bb_in_region (bb, SESE_ENTRY_BB (region), SESE_EXIT_BB (region)))
+      SET_BIT (map, bb->index);
+}
+
+/* Structure used to pass data to dom_walk.  */
+
+struct bsc
+{
+  VEC (gimple, heap) **conditions, **cases;
+};
+
+/* Returns non NULL when BB has a single predecessor and the last
+   statement of that predecessor is a COND_EXPR.  */
+
+static gimple
+single_pred_cond (basic_block bb)
+{
+  if (single_pred_p (bb))
+    {
+      edge e = single_pred_edge (bb);
+      basic_block pred = e->src;
+      gimple stmt = last_stmt (pred);
+
+      if (stmt && gimple_code (stmt) == GIMPLE_COND)
+	return stmt;
+    }
+  return NULL;
+}
+
+/* Call-back for dom_walk executed before visiting the dominated
+   blocks.  */
+
+static void
+build_sese_conditions_before (struct dom_walk_data *dw_data,
+			      basic_block bb)
+{
+  struct bsc *data = (struct bsc *) dw_data->global_data;
+  VEC (gimple, heap) **conditions = data->conditions;
+  VEC (gimple, heap) **cases = data->cases;
+  gimple_bb_p gbb = gbb_from_bb (bb);
+  gimple stmt = single_pred_cond (bb);
+
+  if (stmt)
+    {
+      edge e = single_pred_edge (bb);
+
+      VEC_safe_push (gimple, heap, *conditions, stmt);
+
+      if (e->flags & EDGE_TRUE_VALUE)
+	VEC_safe_push (gimple, heap, *cases, stmt);
+      else 
+	VEC_safe_push (gimple, heap, *cases, NULL);
+    }
+
   if (gbb)
     {
       GBB_CONDITIONS (gbb) = VEC_copy (gimple, heap, *conditions);
       GBB_CONDITION_CASES (gbb) = VEC_copy (gimple, heap, *cases);
     }
+}
 
-  dom = get_dominated_by (CDI_DOMINATORS, bb);
+/* Call-back for dom_walk executed after visiting the dominated
+   blocks.  */
 
-  stmt = last_stmt (bb);
-  if (stmt)
+static void
+build_sese_conditions_after (struct dom_walk_data *dw_data,
+			     basic_block bb)
+{
+  struct bsc *data = (struct bsc *) dw_data->global_data;
+  VEC (gimple, heap) **conditions = data->conditions;
+  VEC (gimple, heap) **cases = data->cases;
+
+  if (single_pred_cond (bb))
     {
-      VEC (edge, gc) *edges;
-      edge e;
-
-      switch (gimple_code (stmt))
-	{
-	case GIMPLE_COND:
-	  edges = bb->succs;
-	  for (i = 0; VEC_iterate (edge, edges, i, e); i++)
-	    if ((dominated_by_p (CDI_DOMINATORS, e->dest, bb))
-		&& VEC_length (edge, e->dest->preds) == 1)
-	      {
-		/* Remove the scanned block from the dominator successors.  */
-		for (j = 0; VEC_iterate (basic_block, dom, j, bb_iter); j++)
-		  if (bb_iter == e->dest)
-		    {
-		      VEC_unordered_remove (basic_block, dom, j);
-		      break;
-		    }
-
-		/* Recursively scan the then or else part.  */
-		if (e->flags & EDGE_TRUE_VALUE)
-		  VEC_safe_push (gimple, heap, *cases, stmt);
-		else 
-		  {
-		    gcc_assert (e->flags & EDGE_FALSE_VALUE);
-		    VEC_safe_push (gimple, heap, *cases, NULL);
-		  }
-
-		VEC_safe_push (gimple, heap, *conditions, stmt);
-		build_sese_conditions_1 (conditions, cases, e->dest, region);
-		VEC_pop (gimple, *conditions);
-		VEC_pop (gimple, *cases);
-	      }
-	  break;
-
-	case GIMPLE_SWITCH:
-	  {
-	    unsigned i;
-	    gimple_stmt_iterator gsi_search_gimple_label;
-
-	    for (i = 0; i < gimple_switch_num_labels (stmt); ++i)
-	      {
-		basic_block bb_iter;
-		size_t k;
-		size_t n_cases = VEC_length (gimple, *conditions);
-		unsigned n = gimple_switch_num_labels (stmt);
-
-		bb_child = label_to_block
-		  (CASE_LABEL (gimple_switch_label (stmt, i)));
-
-		for (k = 0; k < n; k++)
-		  if (i != k
-		      && label_to_block 
-		      (CASE_LABEL (gimple_switch_label (stmt, k))) == bb_child)
-		    break;
-
-		/* Switches with multiple case values for the same
-		   block are not handled.  */
-		if (k != n
-		    /* Switch cases with more than one predecessor are
-		       not handled.  */
-		    || VEC_length (edge, bb_child->preds) != 1)
-		  gcc_unreachable ();
-
-		/* Recursively scan the corresponding 'case' block.  */
-		for (gsi_search_gimple_label = gsi_start_bb (bb_child);
-		     !gsi_end_p (gsi_search_gimple_label);
-		     gsi_next (&gsi_search_gimple_label))
-		  {
-		    gimple label = gsi_stmt (gsi_search_gimple_label);
-
-		    if (gimple_code (label) == GIMPLE_LABEL)
-		      {
-			tree t = gimple_label_label (label);
-
-			gcc_assert (t == gimple_switch_label (stmt, i));
-			VEC_replace (gimple, *cases, n_cases, label);
-			break;
-		      }
-		  }
-
-		build_sese_conditions_1 (conditions, cases, bb_child, region);
-
-		/* Remove the scanned block from the dominator successors.  */
-		for (j = 0; VEC_iterate (basic_block, dom, j, bb_iter); j++)
-		  if (bb_iter == bb_child)
-		    {
-		      VEC_unordered_remove (basic_block, dom, j);
-		      break;
-		    }
-	      }
-
-	    VEC_pop (gimple, *conditions);
-	    VEC_pop (gimple, *cases);
-	    break;
-	  }
-
-	default:
-	  break;
-      }
-  }
-
-  /* Scan all immediate dominated successors.  */
-  for (i = 0; VEC_iterate (basic_block, dom, i, bb_child); i++)
-
-  VEC_free (basic_block, heap, dom);
+      VEC_pop (gimple, *conditions);
+      VEC_pop (gimple, *cases);
+    }
 }
 
 /* Record all conditions in REGION.  */
@@ -1205,12 +1153,36 @@ build_sese_conditions_1 (VEC (gimple, heap) **conditions,
 static void 
 build_sese_conditions (sese region)
 {
-  VEC (gimple, heap) *conditions = NULL;
-  VEC (gimple, heap) *cases = NULL;
+  struct dom_walk_data walk_data;
+  VEC (gimple, heap) *conditions = VEC_alloc (gimple, heap, 3);
+  VEC (gimple, heap) *cases = VEC_alloc (gimple, heap, 3);
+  sbitmap map = sbitmap_alloc (last_basic_block);
+  struct bsc data;
 
-  build_sese_conditions_1 (&conditions, &cases, SESE_ENTRY (region)->dest,
-			   region);
+  sbitmap_zero (map);
+  flag_bb_in_region (map, region);
 
+  data.conditions = &conditions;
+  data.cases = &cases;
+
+  walk_data.walk_stmts_backward = false;
+  walk_data.dom_direction = CDI_DOMINATORS;
+  walk_data.initialize_block_local_data = NULL;
+  walk_data.before_dom_children_before_stmts = build_sese_conditions_before;
+  walk_data.before_dom_children_walk_stmts = NULL;
+  walk_data.before_dom_children_after_stmts = NULL;
+  walk_data.after_dom_children_before_stmts = build_sese_conditions_after;
+  walk_data.after_dom_children_walk_stmts = NULL;
+  walk_data.after_dom_children_after_stmts = NULL;
+  walk_data.global_data = &data;
+  walk_data.block_local_data_size = 0;
+  walk_data.interesting_blocks = map;
+
+  init_walk_dominator_tree (&walk_data);
+  walk_dominator_tree (&walk_data, SESE_ENTRY_BB (region));
+  fini_walk_dominator_tree (&walk_data);
+
+  sbitmap_free (map);
   VEC_free (gimple, heap, conditions);
   VEC_free (gimple, heap, cases);
 }

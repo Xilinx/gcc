@@ -1,3 +1,12 @@
+2009-04-03  Tobias Grosser  <grosser@fim.uni-passau.de>
+	    Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.h (print_iteration_domain): New.
+	* graphite-sese-to-poly.c (add_conditions_to_domain): Fixed bug.
+	(build_sese_conditions_1, build_sese_conditions_after,
+	build_sese_conditions_before): New.
+	(build_sese_conditions): Rewritten.
+
 2009-04-03  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
@@ -54,7 +63,7 @@
 
 	* graphite-sese-to-poly.c: Fix typos.
 
-2009-04-01  Sebastian Pop  <sebastian.pop@amd.com>
+2009-04-03  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-poly.c (print_scattering_function, print_pbb_domain):
 	Extended.
@@ -64,7 +73,7 @@
 2009-04-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-scop-detection.c (bb_in_sed_region): Use bb_in_region.
+	* graphite-scop-detection.c (bb_in_sd_region): Use bb_in_region.
 	* graphite-sese-to-poly.c (all_non_dominated_preds_marked_p): New.
 	(build_scop_bbs_1): New.
 	(build_scop_bbs): Rewrite.
