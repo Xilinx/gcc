@@ -221,12 +221,12 @@
 (defclass class_nrep_citeration
   :super class_nrep_expr
   :fields (nciter_citerator		;the citerator
-	   nciter_locbindings		;the local bindings
 	   nciter_chunkbefore		;the expansed chunk before
+	   nciter_chunkafter		;the expansed chunk after
 	   nciter_body			;the normalized body
 	   nciter_statocc		;the state local occurrence
+	   nciter_locbindings		;the local bindings
 	   nciter_bodbindings		;normalized body bindings
-	   nciter_chunkafter		;the expansed chunk after
 	   ))
 
 ;; normalized tests sequence, used for matches
@@ -514,6 +514,10 @@
  class_nrep_update_current_module_environment_container
  )					;end of export normal classes
 
+
+
+;;;;;;; primitive for extra warnings
+(defprimitive has_extra_warnings () :long "(extra_warnings)")
 
 
 
@@ -2026,6 +2030,14 @@
 	      (sbinder (unsafe_get_field :sletb_binder sb))
 	      (sbexpr (unsafe_get_field :sletb_expr sb)) 
 	      )
+	 ;; issue an inform message if the let binding overrides a previous one
+	 (and
+	  (has_extra_warnings)
+	  (find_env env sbinder)
+	  (inform_strv sbloc "this LET binding hides another one in enclosing scope - "
+			  (get_field :named_name  sbinder))
+	     )
+	 ;;; normalize the binding's expression
 	 (multicall
 	  (nbdexpr nbindings)
 	  (normal_exp sbexpr newenv ncx sbloc)
@@ -2079,7 +2091,7 @@
       bindlist
       (lambda (cbnd) 
 	(assert_msg "normexp_let check cbnd" (is_a cbnd class_normlet_binding))))
-;;; remove every locallly bound symbol from the symbol cache map
+;;; remove every locally bound symbol from the symbol cache map
      (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
        (list_every bindlist 
 		   (lambda (bnd)
@@ -3502,8 +3514,13 @@
 	 (sbody (unsafe_get_field :sciter_body recv))
 	 (nbndtup (make_multiple discr_multiple (multiple_length svbind)))
 	 (bodyenv (fresh_env env))
+	 ;; we need to remove or add stuff from the symbol cache map, as normexp_let does
+	 (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
+	 ;; the list of symbol to remove at end from the above map
+	 (uncachelist (make_list discr_list))
 	 )
     (assert_msg "check soper" (is_a soper class_citerator))
+    ;; normalize the iterator input arguments
     (multicall
      (nargs nbindings)
      (normalize_tuple sargs env ncx sloc)
@@ -3580,7 +3597,12 @@
 		    (multiple_put_nth nlocbindtup ix nlvbind)
 		    (multiple_put_nth nsymocctup ix clocc)
 		    (debug_msg nlvbind "normexp_citeration nlvbind")
-		    (put_env bodyenv nlvbind)
+		    ;;(put_env bodyenv nlvbind)
+		    ;; update the curvsym in the symbol cache map to
+		    ;; ensure that it will be normalized as the same
+		    ;; local symbol occurence
+		    (mapobject_put sycmap curvsym clocc)
+		    (list_append uncachelist curvsym)
 		    )
 		(progn
 		  (error_strv sloc "local formal and actual type mismatch in citerator" (unsafe_get_field :named_name soper))
@@ -3588,7 +3610,7 @@
 			       (unsafe_get_field :named_name (unsafe_get_field :binder curvbind)))
 		  ))
 	      )
-	    ;; was::	    (put_env bodyenv curvbind)
+	    (put_env bodyenv curvbind)
 	    ))
 	 (debug_msg nlocbindtup "normexp_citeration nlocbindtup")
 	 (debug_msg nsymocctup "normexp_citeration nsymocctup")
@@ -3679,6 +3701,10 @@
 				      :nocc_bind cbind))
 		     )
 		(list_append nbindings cbind)
+		;; remove all required stuff from the symbol cache
+		(list_every 
+		 uncachelist
+		 (lambda (csy) (mapobject_remove sycmap csy)))
 		(debug_msg nciter "normexp_citeration nciter")
 		(debug_msg clocc "normexp_citeration result clocc")
 		(debug_msg nbindings "normexp_citeration result nbindings")

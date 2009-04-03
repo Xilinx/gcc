@@ -4,20 +4,33 @@
 ;; flowing outside; this is wrong of course
 
 ;; TO BE TESTED
+#| 
+  ./cc1 -Wno-shadow -fbasilys=runfile \
+  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
+  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
+  -fbasilys-init="@warmelt2"  -fbasilys-arg=t2iter.bysl
+|#
 
-(defun t2iter (tu)
+(defun t2iter (tu f g)
+  (debug_msg tu "t2iter start")
   (foreach_in_multiple 
    (tu)
-   (comp :long ix)
-   (debug_msg comp "t2iter first loop")
-   (assert_msg "check first comp" comp)
+   (tcomp :long tix)
+   (debug_msg tcomp "t2iter first loop comp")
+   (if (>i tix 1) 
+       (f tcomp))
+   (assert_msg "check first comp" tcomp)
    )
+  (debug_msg tu "t2iter middle")
   (foreach_in_multiple 
    (tu)
-   (comp :long ix)
-   (debug_msg comp "t2iter second loop")
-   (assert_msg "check second comp" comp)
+   (tcomp :long tix)
+   (debug_msg tcomp "t2iter second loop comp")
+   (if (>i tix 2) 
+       (g tcomp))
+   (assert_msg "check second comp" tcomp)
    )
+  (debug_msg tu "t2iter end")
   )
 
 (t2iter (make_tuple3 discr_multiple 'a 'b 'c))

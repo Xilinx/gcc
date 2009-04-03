@@ -1,3 +1,17 @@
+2009-04-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	[binding issue with citerators seems to be solved / t2iter.bysl test]
+	* melt/warmelt-normal.bysl: added has_extra_warnings and use it to
+	catch hiding let bindings.
+	(normexp_citeration) add uncachelist etc.. Don't forget to update
+	the :nctx_symbcachemap when adding bindings, including removing
+	stuff from it.
+	* testsuite/melt/t2iter.bysl: updated but passes.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 2009-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (debugmsgval_at): new function.
 	(basilysgc_debugmsgval): new declaration.
