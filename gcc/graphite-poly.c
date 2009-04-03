@@ -135,7 +135,20 @@ unify_scattering_dimensions (scop_p scop)
 void
 print_scattering_function (FILE *file, poly_bb_p pbb)
 {
-  ppl_print_polyhedron_matrix (file, PBB_TRANSFORMED_SCATTERING (pbb));
+  fprintf (file, "scattering bb_%d (\n", GBB_BB (PBB_BLACK_BOX (pbb))->index);
+
+  if (PBB_TRANSFORMED_SCATTERING (pbb))
+    ppl_print_polyhedron_matrix (file, PBB_TRANSFORMED_SCATTERING (pbb));
+
+  fprintf (file, ")\n");
+}
+
+/* Prints to FILE the iteration domain of PBB.  */
+
+void
+print_iteration_domain (FILE *file, poly_bb_p pbb)
+{
+  print_pbb_domain (file, pbb);
 }
 
 /* Prints to FILE the scattering functions of every PBB of SCOP.  */
@@ -294,7 +307,62 @@ free_scop (scop_p scop)
 void
 print_pbb_domain (FILE *file, poly_bb_p pbb)
 {
-  ppl_print_polyhedron_matrix (file, PBB_DOMAIN (pbb));
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
+
+  fprintf (file, "domains bb_%d (", GBB_BB (gbb)->index);
+
+  if (PBB_DOMAIN (pbb))
+    ppl_print_polyhedron_matrix (file, PBB_DOMAIN (pbb));
+
+  fprintf (file, ")\n");
+}
+
+/* Dump the cases of a graphite basic block GBB on FILE.  */
+
+static void
+dump_gbb_cases (FILE *file, gimple_bb_p gbb)
+{
+  int i;
+  gimple stmt;
+  VEC (gimple, heap) *cases;
+  
+  if (!gbb)
+    return;
+
+  cases = GBB_CONDITION_CASES (gbb);
+  if (VEC_empty (gimple, cases))
+    return;
+
+  fprintf (file, "cases bb_%d (", GBB_BB (gbb)->index);
+
+  for (i = 0; VEC_iterate (gimple, cases, i, stmt); i++)
+    print_gimple_stmt (file, stmt, 0, 0);
+
+  fprintf (file, ")\n");
+}
+
+/* Dump conditions of a graphite basic block GBB on FILE.  */
+
+static void
+dump_gbb_conditions (FILE *file, gimple_bb_p gbb)
+{
+  int i;
+  gimple stmt;
+  VEC (gimple, heap) *conditions;
+  
+  if (!gbb)
+    return;
+
+  conditions = GBB_CONDITIONS (gbb);
+  if (VEC_empty (gimple, conditions))
+    return;
+
+  fprintf (file, "conditions bb_%d (", GBB_BB (gbb)->index);
+
+  for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
+    print_gimple_stmt (file, stmt, 0, 0);
+
+  fprintf (file, ")\n");
 }
 
 /* Print to FILE the domain and scattering function of PBB.  */
@@ -302,6 +370,8 @@ print_pbb_domain (FILE *file, poly_bb_p pbb)
 void
 print_pbb (FILE *file, poly_bb_p pbb)
 {
+  dump_gbb_conditions (file, PBB_BLACK_BOX (pbb));
+  dump_gbb_cases (file, PBB_BLACK_BOX (pbb));
   print_pbb_domain (file, pbb);
   print_scattering_function (file, pbb);
 }
