@@ -377,8 +377,20 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 static gimple
 harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
 {
+  gimple_stmt_iterator psi;
   gimple_stmt_iterator gsi;
   gimple stmt;
+
+  if (single_pred_p (bb))
+    for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
+      {
+	gimple phi = gsi_stmt (psi);
+
+	if (!is_gimple_reg (PHI_RESULT (phi)))
+	  continue;
+
+	return phi;
+      }
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     if (!stmt_simple_for_scop_p (scop_entry, gsi_stmt (gsi)))
@@ -1063,6 +1075,20 @@ build_graphite_scops (VEC (sd_region, heap) *regions,
     }
 }
 
+/* Returns true when BB contains only close phi nodes.  */
+
+static bool
+contains_only_close_phi_nodes (basic_block bb)
+{
+  gimple_stmt_iterator gsi;
+
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+    if (gimple_code (gsi_stmt (gsi)) != GIMPLE_LABEL)
+      return false;
+
+  return true;
+}
+
 /* We limit all SCoPs to SCoPs, that are completely surrounded by a loop. 
 
    Example:
@@ -1105,6 +1131,13 @@ limit_scops (VEC (scop_p, heap) **scops)
 	    sd_region open_scop;
 	    open_scop.entry = loop->header;
 	    open_scop.exit = single_exit (loop)->dest;
+
+	    /* This is a hack on top of the limit_scops hack.  The
+	       limit_scops hack should disappear all together.  */
+	    if (single_succ_p (open_scop.exit)
+		&& contains_only_close_phi_nodes (open_scop.exit))
+	      open_scop.exit = single_succ_edge (open_scop.exit)->dest;
+
 	    VEC_safe_push (sd_region, heap, regions, &open_scop);
 	  }
     }
@@ -1117,6 +1150,93 @@ limit_scops (VEC (scop_p, heap) **scops)
   VEC_free (sd_region, heap, regions);
 }
 
+/* Transforms LOOP to the canonical loop closed SSA form.  */
+
+static void
+canonicalize_loop_closed_ssa (loop_p loop)
+{
+  edge e = single_exit (loop);
+  basic_block bb;
+
+  if (!e)
+    return;
+
+  bb = e->dest;
+
+  if (VEC_length (edge, bb->preds) == 1)
+    split_block_after_labels (bb);
+  else
+    {
+      gimple_stmt_iterator psi;
+      basic_block close = split_edge (e);
+
+      e = single_succ_edge (close);
+
+      for (psi = gsi_start_phis (bb); !gsi_end_p (psi); gsi_next (&psi))
+	{
+	  gimple phi = gsi_stmt (psi);
+	  unsigned i;
+
+	  for (i = 0; i < gimple_phi_num_args (phi); i++)
+	    if (gimple_phi_arg_edge (phi, i) == e)
+	      {
+		use_operand_p use_p;
+		tree arg = gimple_phi_arg_def (phi, i);
+		gimple close_phi = create_phi_node (arg, close);
+		tree res =
+		  create_new_def_for (gimple_phi_result (close_phi), close_phi,
+				      gimple_phi_result_ptr (close_phi));
+
+		add_phi_arg (close_phi, arg,
+			     gimple_phi_arg_edge (close_phi, 0));
+
+		use_p = gimple_phi_arg_imm_use_ptr (phi, i);
+		replace_exp (use_p, res);
+		update_stmt (phi);
+	      }
+	}
+    }
+}
+
+/* Converts the current loop closed SSA form to a canonical form
+   expected by the Graphite code generation.
+
+   The loop closed SSA form has the following invariant: a variable
+   defined in a loop that is used outside the loop appears only in the
+   phi nodes in the destination of the loop exit.  These phi nodes are
+   called close phi nodes.
+
+   The canonical loop closed SSA form contains the extra invariants:
+
+   - when the loop contains only one exit, the close phi nodes contain
+   only one argument.  That implies that the basic block that contains
+   the close phi nodes has only one predecessor, that is a basic block
+   in the loop.
+
+   - the basic block containing the close phi nodes does not contain
+   other statements.
+*/
+
+static void
+canonicalize_loop_closed_ssa_form (void)
+{
+  loop_iterator li;
+  loop_p loop;
+
+#ifdef ENABLE_CHECKING
+  verify_loop_closed_ssa ();
+#endif
+
+  FOR_EACH_LOOP (li, loop, 0)
+    canonicalize_loop_closed_ssa (loop);
+
+  update_ssa (TODO_update_ssa);
+
+#ifdef ENABLE_CHECKING
+  verify_loop_closed_ssa ();
+#endif
+}
+
 /* Find Static Control Parts (SCoP) in the current function and pushes
    them to SCOPS.  */
 
@@ -1126,6 +1246,7 @@ build_scops (VEC (scop_p, heap) **scops)
   struct loop *loop = current_loops->tree_root;
   VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
 
+  canonicalize_loop_closed_ssa_form ();
   build_scops_1 (single_succ (ENTRY_BLOCK_PTR), &regions, loop);
   create_sese_edges (regions);
   build_graphite_scops (regions, scops);
