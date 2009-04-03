@@ -1180,16 +1180,19 @@ canonicalize_loop_closed_ssa (loop_p loop)
 	  for (i = 0; i < gimple_phi_num_args (phi); i++)
 	    if (gimple_phi_arg_edge (phi, i) == e)
 	      {
+		tree res, arg = gimple_phi_arg_def (phi, i);
 		use_operand_p use_p;
-		tree arg = gimple_phi_arg_def (phi, i);
-		gimple close_phi = create_phi_node (arg, close);
-		tree res =
-		  create_new_def_for (gimple_phi_result (close_phi), close_phi,
-				      gimple_phi_result_ptr (close_phi));
+		gimple close_phi;
 
+		if (TREE_CODE (arg) != SSA_NAME)
+		  continue;
+
+		close_phi = create_phi_node (arg, close);
+		res = create_new_def_for (gimple_phi_result (close_phi),
+					  close_phi,
+					  gimple_phi_result_ptr (close_phi));
 		add_phi_arg (close_phi, arg,
 			     gimple_phi_arg_edge (close_phi, 0));
-
 		use_p = gimple_phi_arg_imm_use_ptr (phi, i);
 		replace_exp (use_p, res);
 		update_stmt (phi);
