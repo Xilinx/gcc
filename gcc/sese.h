@@ -43,10 +43,6 @@ typedef struct sese
      belonging to the SESE region.  */
   struct pointer_set_t *region_basic_blocks;
 
-  /* An SSA_NAME version is flagged in the LIVEOUT bitmap if the
-     SSA_NAME is defined inside and used outside the SESE region.  */
-  bitmap liveout;
-
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
@@ -57,18 +53,10 @@ typedef struct sese
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
 
-  /* LIVEOUT_RENAMES registers the rename mapping that has to be
-     applied after code generation.  */
-  htab_t liveout_renames;
-
   /* Are we allowed to add more params?  This is for debugging purpose.  We
      can only add new params before generating the bb domains, otherwise they
      become invalid.  */
   bool add_params;
-
-  /* REDUCTION_LIST records the SSA_NAMEs of PHI_RESULTs that are
-     considered to be reductions in one of the loops in the SESE.  */
-  htab_t reduction_list;
 } *sese;
 
 #define SESE_ENTRY(S) (S->entry)
@@ -76,28 +64,24 @@ typedef struct sese
 #define SESE_EXIT(S) (S->exit)
 #define SESE_EXIT_BB(S) (S->exit->dest)
 #define SESE_REGION_BBS(S) (S->region_basic_blocks)
-#define SESE_LIVEOUT(S) (S->liveout)
 #define SESE_PARAMS(S) (S->params)
 #define SESE_LOOPS(S) (S->loops)
 #define SESE_LOOP_NEST(S) (S->loop_nest)
 #define SESE_ADD_PARAMS(S) (S->add_params)
 #define SESE_PARAMS(S) (S->params)
 #define SESE_OLDIVS(S) (S->old_ivs)
-#define SESE_LIVEOUT_RENAMES(S) (S->liveout_renames)
-#define SESE_REDUCTION_LIST(S) (S->reduction_list)
 
 extern sese new_sese (edge, edge);
 extern void free_sese (sese);
-extern void sese_build_liveouts (sese);
 extern void sese_insert_phis_for_liveouts (sese, basic_block, edge, edge);
-extern void sese_adjust_phis_for_liveouts (sese, basic_block, edge, edge);
+extern void sese_adjust_liveout_phis (sese, htab_t, basic_block, edge, edge);
 extern int parameter_index_in_region (tree, sese);
 extern void build_sese_loop_nests (sese);
 extern tree oldiv_for_loop (sese, loop_p);
 extern edge copy_bb_and_scalar_dependences (basic_block, sese, edge, htab_t);
 extern struct loop *outermost_loop_in_sese (sese, basic_block);
-extern void insert_loop_close_phis (sese, basic_block);
-extern void insert_guard_phis (sese, basic_block, edge, edge, htab_t);
+extern void insert_loop_close_phis (htab_t, loop_p);
+extern void insert_guard_phis (basic_block, edge, edge, htab_t, htab_t);
 
 /* Check that SESE contains LOOP.  */
 
@@ -162,7 +146,7 @@ sese_loop_depth (sese region, loop_p loop)
 
   gcc_assert ((!loop_in_sese_p (loop, region)
 	       && (SESE_ENTRY_BB (region)->loop_father == loop
-	           || SESE_EXIT(region)->src->loop_father == loop))
+	           || SESE_EXIT (region)->src->loop_father == loop))
               || loop_in_sese_p (loop, region));
 
   while (loop_in_sese_p (loop, region))
@@ -220,6 +204,9 @@ typedef struct rename_map_elt
 {
   tree old_name, new_name;
 } *rename_map_elt;
+
+DEF_VEC_P(rename_map_elt);
+DEF_VEC_ALLOC_P (rename_map_elt, heap);
 
 extern void debug_rename_map (htab_t);
 extern hashval_t rename_map_elt_info (const void *);

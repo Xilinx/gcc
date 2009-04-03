@@ -426,7 +426,7 @@ build_scop_scattering (scop_p scop)
       else
 	prefix = 0;
 
-      previous_gbb = PBB_BLACK_BOX (pbb);
+      previous_gbb = gbb;
       ppl_new_Linear_Expression_with_dimension (&common, prefix + 1);
       ppl_assign_Linear_Expression_from_Linear_Expression (common,
 							   static_schedule);
@@ -1209,7 +1209,7 @@ build_sese_conditions (sese region)
   VEC (gimple, heap) *cases = NULL;
 
   build_sese_conditions_1 (&conditions, &cases, SESE_ENTRY (region)->dest,
-			     region);
+			   region);
 
   VEC_free (gimple, heap, conditions);
   VEC_free (gimple, heap, cases);

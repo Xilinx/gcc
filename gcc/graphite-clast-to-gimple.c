@@ -587,15 +587,20 @@ translate_clast (sese region, struct loop *context_loop,
       edge to_body = single_succ_edge (loop->header);
       basic_block after = to_body->dest;
 
+      /* Create a basic block for loop close phi nodes.  */
+      last_e = single_succ_edge (split_edge (last_e));
+
+      /* Translate the body of the loop.  */
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
 				single_succ_edge (loop->header), ivstack,
 				rename_map);
       redirect_edge_succ_nodup (next_e, after);
-
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
-      last_e = single_succ_edge (split_edge (last_e));
-      insert_loop_close_phis (region, last_e->src);
+
+      /* Remove from rename_map all the tuples containing variables
+	 defined in loop's body.  */
+      insert_loop_close_phis (rename_map, loop);
 
       recompute_all_dominators ();
       graphite_verify ();
@@ -605,8 +610,6 @@ translate_clast (sese region, struct loop *context_loop,
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
     {
-      htab_t liveout_before_guard = htab_create (10, rename_map_elt_info,
-						 eq_rename_map_elts, free);
       edge last_e = graphite_create_new_guard (region, next_e,
 					       ((struct clast_guard *) stmt),
 					       ivstack);
@@ -614,16 +617,16 @@ translate_clast (sese region, struct loop *context_loop,
       edge false_e = get_false_edge_from_guard_bb (next_e->dest);
       edge exit_true_e = single_succ_edge (true_e->dest);
       edge exit_false_e = single_succ_edge (false_e->dest);
+      htab_t before_guard = htab_create (10, rename_map_elt_info,
+					 eq_rename_map_elts, free);
 
-      htab_traverse (SESE_LIVEOUT_RENAMES (region), copy_renames,
-		     liveout_before_guard);
-
+      htab_traverse (rename_map, copy_renames, before_guard);
       next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
 				true_e, ivstack, rename_map);
-      insert_guard_phis (region, last_e->src, exit_true_e, exit_false_e,
-			 liveout_before_guard);
-      htab_delete (liveout_before_guard);
+      insert_guard_phis (last_e->src, exit_true_e, exit_false_e,
+			 before_guard, rename_map);
+
       recompute_all_dominators ();
       graphite_verify ();
 
@@ -1086,6 +1089,7 @@ graphite_loop_normal_form (loop_p loop, sese region)
   tree iv;
   name_tree oldiv;
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
+  htab_t reduction_list;
 
   /* At this point we should know the number of iterations,  */
   gcc_assert (known_niter
@@ -1098,8 +1102,10 @@ graphite_loop_normal_form (loop_p loop, sese region)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  gather_scalar_reductions (loop, SESE_REDUCTION_LIST (region));
-  iv = canonicalize_loop_ivs (loop, SESE_REDUCTION_LIST (region), &nit);
+  reduction_list = htab_create (10, htab_hash_pointer, htab_eq_pointer, NULL);
+  gather_scalar_reductions (loop, reduction_list);
+  iv = canonicalize_loop_ivs (loop, reduction_list, &nit);
+  htab_delete (reduction_list);
 
   oldiv = XNEW (struct name_tree);
   oldiv->t = iv;
@@ -1139,15 +1145,12 @@ gloog (scop_p scop)
   recompute_all_dominators ();
   graphite_verify ();
 
-  SESE_LIVEOUT_RENAMES (region) = htab_create
-    (10, rename_map_elt_info, eq_rename_map_elts, free);
-
   if_region = move_sese_in_condition (region);
-  sese_build_liveouts (region);
   sese_insert_phis_for_liveouts (region,
 				 if_region->region->exit->src,
 				 if_region->false_region->exit,
 				 if_region->true_region->exit);
+
   recompute_all_dominators ();
   graphite_verify ();
   context_loop = SESE_ENTRY (region)->src->loop_father;
@@ -1157,19 +1160,18 @@ gloog (scop_p scop)
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
 					&ivstack, rename_map);
+  graphite_verify ();
+  sese_adjust_liveout_phis (region, rename_map,
+			    if_region->region->exit->src,
+			    if_region->false_region->exit,
+			    if_region->true_region->exit);
+  recompute_all_dominators ();
+  graphite_verify ();
+
   htab_delete (rename_map);
   free_loop_iv_stack (&ivstack);
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);
-
-  graphite_verify ();
-  sese_adjust_phis_for_liveouts (region,
-				 if_region->region->exit->src,
-				 if_region->false_region->exit,
-				 if_region->true_region->exit);
-
-  recompute_all_dominators ();
-  graphite_verify ();
   return true;
 }
 

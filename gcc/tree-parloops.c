@@ -1439,7 +1439,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
       ok = simple_iv (loop, phi, res, &iv, true);
 
       if (reduction_list)
-	red = (tree *) htab_find (reduction_list, &res);
+	red = (tree *) htab_find (reduction_list, res);
       else
 	red = NULL;
 
