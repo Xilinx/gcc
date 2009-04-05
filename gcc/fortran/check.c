@@ -879,23 +879,55 @@ gfc_check_cshift (gfc_expr *array, gfc_expr *shift, gfc_expr *dim)
   if (type_check (shift, 1, BT_INTEGER) == FAILURE)
     return FAILURE;
 
-  if (array->rank == 1)
+  if (dim_check (dim, 2, true) == FAILURE)
+    return FAILURE;
+
+  if (dim_rank_check (dim, array, false) == FAILURE)
+    return FAILURE;
+
+  if (array->rank == 1 || shift->rank == 0)
     {
       if (scalar_check (shift, 1) == FAILURE)
 	return FAILURE;
     }
-  else if (shift->rank != array->rank - 1 && shift->rank != 0)
+  else if (shift->rank == array->rank - 1)
     {
-      gfc_error ("SHIFT argument at %L of CSHIFT must have rank %d or be a "
-		 "scalar", &shift->where, array->rank - 1);
+      int d;
+      if (!dim)
+	d = 1;
+      else if (dim->expr_type == EXPR_CONSTANT)
+	gfc_extract_int (dim, &d);
+      else
+	d = -1;
+
+      if (d > 0)
+	{
+	  int i, j;
+	  for (i = 0, j = 0; i < array->rank; i++)
+	    if (i != d - 1)
+	      {
+		if (!identical_dimen_shape (array, i, shift, j))
+		  {
+		    gfc_error ("'%s' argument of '%s' intrinsic at %L has "
+			       "invalid shape in dimension %d (%ld/%ld)",
+			       gfc_current_intrinsic_arg[1],
+			       gfc_current_intrinsic, &shift->where, i + 1,
+			       mpz_get_si (array->shape[i]),
+			       mpz_get_si (shift->shape[j]));
+		    return FAILURE;
+		  }
+
+		j += 1;
+	      }
+	}
+    }
+  else
+    {
+      gfc_error ("'%s' argument of intrinsic '%s' at %L of must have rank "
+		 "%d or be a scalar", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &shift->where, array->rank - 1);
       return FAILURE;
     }
-
-  /* TODO: Add shape conformance check between array (w/o dimension dim)
-     and shift. */
-
-  if (dim_check (dim, 2, true) == FAILURE)
-    return FAILURE;
 
   return SUCCESS;
 }
@@ -1045,54 +1077,84 @@ gfc_check_eoshift (gfc_expr *array, gfc_expr *shift, gfc_expr *boundary,
   if (type_check (shift, 1, BT_INTEGER) == FAILURE)
     return FAILURE;
 
-  if (array->rank == 1)
+  if (dim_check (dim, 3, true) == FAILURE)
+    return FAILURE;
+
+  if (dim_rank_check (dim, array, false) == FAILURE)
+    return FAILURE;
+
+  if (array->rank == 1 || shift->rank == 0)
     {
-      if (scalar_check (shift, 2) == FAILURE)
+      if (scalar_check (shift, 1) == FAILURE)
 	return FAILURE;
     }
-  else if (shift->rank != array->rank - 1 && shift->rank != 0)
+  else if (shift->rank == array->rank - 1)
     {
-      gfc_error ("SHIFT argument at %L of EOSHIFT must have rank %d or be a "
-		 "scalar", &shift->where, array->rank - 1);
+      int d;
+      if (!dim)
+	d = 1;
+      else if (dim->expr_type == EXPR_CONSTANT)
+	gfc_extract_int (dim, &d);
+      else
+	d = -1;
+
+      if (d > 0)
+	{
+	  int i, j;
+	  for (i = 0, j = 0; i < array->rank; i++)
+	    if (i != d - 1)
+	      {
+		if (!identical_dimen_shape (array, i, shift, j))
+		  {
+		    gfc_error ("'%s' argument of '%s' intrinsic at %L has "
+			       "invalid shape in dimension %d (%ld/%ld)",
+			       gfc_current_intrinsic_arg[1],
+			       gfc_current_intrinsic, &shift->where, i + 1,
+			       mpz_get_si (array->shape[i]),
+			       mpz_get_si (shift->shape[j]));
+		    return FAILURE;
+		  }
+
+		j += 1;
+	      }
+	}
+    }
+  else
+    {
+      gfc_error ("'%s' argument of intrinsic '%s' at %L of must have rank "
+		 "%d or be a scalar", gfc_current_intrinsic_arg[1],
+		 gfc_current_intrinsic, &shift->where, array->rank - 1);
       return FAILURE;
     }
-
-  /* TODO: Add shape conformance check between array (w/o dimension dim)
-     and shift. */
 
   if (boundary != NULL)
     {
       if (same_type_check (array, 0, boundary, 2) == FAILURE)
 	return FAILURE;
 
-      if (array->rank == 1)
+      if (array->rank == 1 || boundary->rank == 0)
 	{
 	  if (scalar_check (boundary, 2) == FAILURE)
 	    return FAILURE;
 	}
-      else if (boundary->rank != array->rank - 1 && boundary->rank != 0)
+      else if (boundary->rank == array->rank - 1)
 	{
-	  gfc_error ("BOUNDARY argument at %L of EOSHIFT must have rank %d or be "
-		     "a scalar", &boundary->where, array->rank - 1);
+	  if (gfc_check_conformance (shift, boundary,
+				     "arguments '%s' and '%s' for "
+				     "intrinsic %s",
+				     gfc_current_intrinsic_arg[1],
+				     gfc_current_intrinsic_arg[2],
+				     gfc_current_intrinsic ) == FAILURE)
+	    return FAILURE;
+	}
+      else
+	{
+	  gfc_error ("'%s' argument of intrinsic '%s' at %L of must have "
+		     "rank %d or be a scalar", gfc_current_intrinsic_arg[1],
+		     gfc_current_intrinsic, &shift->where, array->rank - 1);
 	  return FAILURE;
 	}
-
-      if (shift->rank == boundary->rank)
-	{
-	  int i;
-	  for (i = 0; i < shift->rank; i++)
-	    if (! identical_dimen_shape (shift, i, boundary, i))
-	      {
-		gfc_error ("Different shape in dimension %d for SHIFT and "
-			   "BOUNDARY arguments of EOSHIFT at %L", shift->rank,
-			   &boundary->where);
-		return FAILURE;
-	      }
-	}
     }
-
-  if (dim_check (dim, 4, true) == FAILURE)
-    return FAILURE;
 
   return SUCCESS;
 }

@@ -1,5 +1,11 @@
 2009-04-05  Daniel Franke  <franke.daniel@gmail.com>
 
+	PR fortran/36874
+	* check.c (gfc_check_cshift): Added missing shape-conformance checks.
+	(gfc_check_eoshift): Likewise.
+
+2009-04-05  Daniel Franke  <franke.daniel@gmail.com>
+
 	* gfortran.h (gfc_check_conformance): Modified prototype to printf-style.
 	* expr.c (gfc_check_conformance): Accept error-message chunks in 
 	printf-style. Changed all callers.
