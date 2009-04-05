@@ -1719,13 +1719,11 @@ check_rest (bt type, int kind, gfc_actual_arglist *arglist)
 	}
 
       for (tmp = arglist, m=1; tmp != arg; tmp = tmp->next, m++)
-        {
-	  char buffer[80];
-	  snprintf (buffer, 80, "arguments 'a%d' and 'a%d' for intrinsic '%s'",
-		    m, n, gfc_current_intrinsic);
-	  if (gfc_check_conformance (buffer, tmp->expr, x) == FAILURE)
+	if (gfc_check_conformance (tmp->expr, x,
+				   "arguments 'a%d' and 'a%d' for "
+				   "intrinsic '%s'", m, n,
+				   gfc_current_intrinsic) == FAILURE)
 	    return FAILURE;
-	}
     }
 
   return SUCCESS;
@@ -1914,15 +1912,13 @@ gfc_check_minloc_maxloc (gfc_actual_arglist *ap)
   if (m != NULL && type_check (m, 2, BT_LOGICAL) == FAILURE)
     return FAILURE;
 
-  if (m != NULL)
-    {
-      char buffer[80];
-      snprintf (buffer, 80, "arguments '%s' and '%s' for intrinsic %s",
-		gfc_current_intrinsic_arg[0], gfc_current_intrinsic_arg[2],
-		gfc_current_intrinsic);
-      if (gfc_check_conformance (buffer, a, m) == FAILURE)
-	return FAILURE;
-    }
+  if (m != NULL
+      && gfc_check_conformance (a, m,
+				"arguments '%s' and '%s' for intrinsic %s",
+				gfc_current_intrinsic_arg[0],
+				gfc_current_intrinsic_arg[2],
+				gfc_current_intrinsic ) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }
@@ -1970,15 +1966,13 @@ check_reduction (gfc_actual_arglist *ap)
   if (m != NULL && type_check (m, 2, BT_LOGICAL) == FAILURE)
     return FAILURE;
 
-  if (m != NULL)
-    {
-      char buffer[80];
-      snprintf (buffer, 80, "arguments '%s' and '%s' for intrinsic %s",
-		gfc_current_intrinsic_arg[0], gfc_current_intrinsic_arg[2],
-		gfc_current_intrinsic);
-      if (gfc_check_conformance (buffer, a, m) == FAILURE)
-	return FAILURE;
-    }
+  if (m != NULL
+      && gfc_check_conformance (a, m,
+				"arguments '%s' and '%s' for intrinsic %s",
+				gfc_current_intrinsic_arg[0],
+				gfc_current_intrinsic_arg[2],
+				gfc_current_intrinsic) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }
@@ -2133,18 +2127,17 @@ gfc_check_null (gfc_expr *mold)
 gfc_try
 gfc_check_pack (gfc_expr *array, gfc_expr *mask, gfc_expr *vector)
 {
-  char buffer[80];
-
   if (array_check (array, 0) == FAILURE)
     return FAILURE;
 
   if (type_check (mask, 1, BT_LOGICAL) == FAILURE)
     return FAILURE;
 
-  snprintf (buffer, 80, "arguments '%s' and '%s' for intrinsic '%s'",
-	    gfc_current_intrinsic_arg[0], gfc_current_intrinsic_arg[1],
-	    gfc_current_intrinsic);
-  if (gfc_check_conformance (buffer, array, mask) == FAILURE)
+  if (gfc_check_conformance (array, mask,
+			     "arguments '%s' and '%s' for intrinsic '%s'",
+			     gfc_current_intrinsic_arg[0],
+			     gfc_current_intrinsic_arg[1],
+			     gfc_current_intrinsic) == FAILURE)
     return FAILURE;
 
   if (vector != NULL)
