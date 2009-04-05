@@ -54,6 +54,7 @@ extern enum rs6000_sdata_type rs6000_sdata;
 
 #define	TARGET_BITFIELD_TYPE	(! TARGET_NO_BITFIELD_TYPE)
 #define	TARGET_BIG_ENDIAN	(! TARGET_LITTLE_ENDIAN)
+#define	TARGET_PROTOTYPE	target_prototype
 #define	TARGET_NO_PROTOTYPE	(! TARGET_PROTOTYPE)
 #define	TARGET_NO_TOC		(! TARGET_TOC)
 #define	TARGET_NO_EABI		(! TARGET_EABI)
@@ -588,7 +589,7 @@ extern int fixuplabelno;
 %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}}" \
 SVR4_ASM_SPEC \
 "%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
-%{memb|msdata|msdata=eabi: -memb} \
+%{memb|msdata=eabi: -memb} \
 %{mlittle|mlittle-endian:-mlittle; \
   mbig|mbig-endian      :-mbig;    \
   mcall-aixdesc |		   \

@@ -169,13 +169,6 @@
 #endif
 
 
-/* Define to the type of elements in the array set by `getgroups'. Usually
-   this is either `int' or `gid_t'. */
-#ifndef USED_FOR_TARGET
-#undef GETGROUPS_T
-#endif
-
-
 /* Define if the zone collector is in use */
 #ifndef USED_FOR_TARGET
 #undef GGC_ZONE
@@ -375,6 +368,12 @@
 /* Define if your assembler supports thread-local storage. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_AS_TLS
+#endif
+
+
+/* Define if your assembler supports arg info for __tls_get_addr. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_AS_TLS_MARKERS
 #endif
 
 
@@ -1553,12 +1552,6 @@
 #endif
 
 
-/* Define to `int' if <sys/types.h> doesn't define. */
-#ifndef USED_FOR_TARGET
-#undef gid_t
-#endif
-
-
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus
@@ -1580,12 +1573,6 @@
 /* Define to `int' if <sys/types.h> does not define. */
 #ifndef USED_FOR_TARGET
 #undef ssize_t
-#endif
-
-
-/* Define to `int' if <sys/types.h> doesn't define. */
-#ifndef USED_FOR_TARGET
-#undef uid_t
 #endif
 
 

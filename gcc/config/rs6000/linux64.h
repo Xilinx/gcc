@@ -99,7 +99,7 @@ extern int dot_symbols;
 	    }							\
 	  if (TARGET_PROTOTYPE)					\
 	    {							\
-	      TARGET_PROTOTYPE = 0;				\
+	      target_prototype = 0;				\
 	      error (INVALID_64BIT, "prototype");		\
 	    }							\
 	  if ((target_flags & MASK_POWERPC64) == 0)		\
@@ -134,6 +134,10 @@ extern int dot_symbols;
 #undef	ASM_SPEC
 #undef	LINK_OS_LINUX_SPEC
 
+/* FIXME: This will quite possibly choose the wrong dynamic linker.  */
+#undef	LINK_OS_GNU_SPEC
+#define	LINK_OS_GNU_SPEC LINK_OS_LINUX_SPEC
+
 #ifndef	RS6000_BI_ARCH
 #define	ASM_DEFAULT_SPEC "-mppc64"
 #define	ASM_SPEC	 "%(asm_spec64) %(asm_spec_common)"
@@ -152,7 +156,7 @@ extern int dot_symbols;
 
 #define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
 %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
-%{memb} %{!memb: %{msdata: -memb} %{msdata=eabi: -memb}} \
+%{memb} %{!memb: %{msdata=eabi: -memb}} \
 %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
     %{mcall-freebsd: -mbig} \
     %{mcall-i960-old: -mlittle} \

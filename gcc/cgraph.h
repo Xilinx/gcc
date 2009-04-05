@@ -143,9 +143,6 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Pointer to the next clone.  */
   struct cgraph_node *next_clone;
   struct cgraph_node *prev_clone;
-  /* Pointer to a single unique cgraph node for this function.  If the
-     function is to be output, this is the copy that will survive.  */
-  struct cgraph_node *master_clone;
   /* For functions with many calls sites it holds map from call expression
      to the edge to speed up cgraph_edge function.  */
   htab_t GTY((param_is (struct cgraph_edge))) call_site_hash;
@@ -163,6 +160,10 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Ordering of all cgraph nodes.  */
   int order;
 
+  /* unique id for profiling. pid is not suitable because of different
+     number of cfg nodes with -fprofile-generate and -fprofile-use */
+  int pid;
+
   /* Set when function must be output - it is externally visible
      or its address is taken.  */
   unsigned needed : 1;
@@ -177,8 +178,8 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
   /* Set once the function has been instantiated and its callee
      lists created.  */
   unsigned analyzed : 1;
-  /* Set when function is scheduled to be assembled.  */
-  unsigned output : 1;
+  /* Set when function is scheduled to be processed by local passes.  */
+  unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
 
@@ -186,11 +187,14 @@ struct cgraph_node GTY((chain_next ("%h.next"), chain_prev ("%h.previous")))
      into clone before compiling so the function in original form can be
      inlined later.  This pointer points to the clone.  */
   tree inline_decl;
-
-  /* unique id for profiling. pid is not suitable because of different
-     number of cfg nodes with -fprofile-generate and -fprofile-use */
-  int pid;
 };
+
+#define DEFCIFCODE(code, string)	CIF_ ## code,
+/* Reasons for inlining failures.  */
+typedef enum {
+#include "cif-code.def"
+  CIF_N_REASONS
+} cgraph_inline_failed_t;
 
 struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller")))
 {
@@ -202,9 +206,9 @@ struct cgraph_edge GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_call
   struct cgraph_edge *next_callee;
   gimple call_stmt;
   PTR GTY ((skip (""))) aux;
-  /* When NULL, inline this call.  When non-NULL, points to the explanation
-     why function was not inlined.  */
-  const char *inline_failed;
+  /* When equal to CIF_OK, inline this call.  Otherwise, points to the
+     explanation why function was not inlined.  */
+  cgraph_inline_failed_t inline_failed;
   /* Expected number of executions: calculated in profile.c.  */
   gcov_type count;
   /* Expected frequency of executions within the function. 
@@ -334,9 +338,8 @@ bool cgraph_function_possibly_inlined_p (tree);
 void cgraph_unnest_node (struct cgraph_node *);
 
 enum availability cgraph_function_body_availability (struct cgraph_node *);
-bool cgraph_is_master_clone (struct cgraph_node *);
-struct cgraph_node *cgraph_master_clone (struct cgraph_node *);
 void cgraph_add_new_function (tree, bool);
+const char* cgraph_inline_failed_string (cgraph_inline_failed_t);
 
 /* In cgraphunit.c  */
 void cgraph_finalize_function (tree, bool);
@@ -345,7 +348,7 @@ void cgraph_finalize_compilation_unit (void);
 void cgraph_optimize (void);
 void cgraph_mark_needed_node (struct cgraph_node *);
 void cgraph_mark_reachable_node (struct cgraph_node *);
-bool cgraph_inline_p (struct cgraph_edge *, const char **reason);
+bool cgraph_inline_p (struct cgraph_edge *, cgraph_inline_failed_t *reason);
 bool cgraph_preserve_function_body_p (tree);
 void verify_cgraph (void);
 void verify_cgraph_node (struct cgraph_node *);
@@ -403,6 +406,7 @@ extern GTY(()) struct varpool_node *varpool_nodes;
 struct varpool_node *varpool_node (tree);
 struct varpool_node *varpool_node_for_asm (tree asmname);
 void varpool_mark_needed_node (struct varpool_node *);
+void debug_varpool (void);
 void dump_varpool (FILE *);
 void dump_varpool_node (FILE *, struct varpool_node *);
 
@@ -454,7 +458,6 @@ varpool_next_static_initializer (struct varpool_node *node)
 
 /* In ipa-inline.c  */
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
-bool cgraph_default_inline_p (struct cgraph_node *, const char **);
 unsigned int compute_inline_parameters (struct cgraph_node *);
 
 

@@ -84,6 +84,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-mudflap.h"
 #include "tree-pass.h"
 #include "gimple.h"
+#include "tree-ssa-alias.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -280,6 +281,11 @@ enum ira_region flag_ira_region = IRA_REGION_MIXED;
 /* Set the default value for -fira-verbose.  */
 
 unsigned int flag_ira_verbose = 5;
+
+/* Set the default for excess precision.  */
+
+enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
+enum excess_precision flag_excess_precision = EXCESS_PRECISION_DEFAULT;
 
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
@@ -2033,11 +2039,51 @@ backend_init (void)
   backend_init_target ();
 }
 
+/* Initialize excess precision settings.  */
+static void
+init_excess_precision (void)
+{
+  /* Adjust excess precision handling based on the target options.  If
+     the front end cannot handle it, flag_excess_precision_cmdline
+     will already have been set accordingly in the post_options
+     hook.  */
+  gcc_assert (flag_excess_precision_cmdline != EXCESS_PRECISION_DEFAULT);
+  flag_excess_precision = flag_excess_precision_cmdline;
+  if (flag_unsafe_math_optimizations)
+    flag_excess_precision = EXCESS_PRECISION_FAST;
+  if (flag_excess_precision == EXCESS_PRECISION_STANDARD)
+    {
+      int flt_eval_method = TARGET_FLT_EVAL_METHOD;
+      switch (flt_eval_method)
+	{
+	case -1:
+	case 0:
+	  /* Either the target acts unpredictably (-1) or has all the
+	     operations required not to have excess precision (0).  */
+	  flag_excess_precision = EXCESS_PRECISION_FAST;
+	  break;
+	case 1:
+	case 2:
+	  /* In these cases, predictable excess precision makes
+	     sense.  */
+	  break;
+	default:
+	  /* Any other implementation-defined FLT_EVAL_METHOD values
+	     require the compiler to handle the associated excess
+	     precision rules in excess_precision_type.  */
+	  gcc_unreachable ();
+	}
+    }
+}
+
 /* Initialize things that are both lang-dependent and target-dependent.
    This function can be called more than once if target parameters change.  */
 static void
 lang_dependent_init_target (void)
 {
+  /* This determines excess precision settings.  */
+  init_excess_precision ();
+
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  It also depends on the HAVE_xxx macros
      generated from the target machine description.  */
@@ -2125,6 +2171,8 @@ dump_memory_report (bool final)
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();
   dump_ggc_loc_statistics (final);
+  dump_alias_stats (stderr);
+  dump_pta_stats (stderr);
 }
 
 /* Clean up: close opened files, etc.  */

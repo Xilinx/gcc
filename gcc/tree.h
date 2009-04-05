@@ -105,14 +105,6 @@ extern const enum tree_code_class tree_code_type[];
 #define DECL_P(CODE)\
         (TREE_CODE_CLASS (TREE_CODE (CODE)) == tcc_declaration)
 
-/* Nonzero if CODE represents a memory tag.  */
-
-#define MTAG_P(CODE) \
-  (TREE_CODE (CODE) == NAME_MEMORY_TAG		\
-   || TREE_CODE (CODE) == SYMBOL_MEMORY_TAG	\
-   || TREE_CODE (CODE) == MEMORY_PARTITION_TAG)
-
-
 /* Nonzero if DECL represents a VAR_DECL or FUNCTION_DECL.  */
 
 #define VAR_OR_FUNCTION_DECL_P(DECL)\
@@ -933,7 +925,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 #define TYPE_CHECK(T)		TREE_CLASS_CHECK (T, tcc_type)
 #define DECL_MINIMAL_CHECK(T)   CONTAINS_STRUCT_CHECK (T, TS_DECL_MINIMAL)
-#define TREE_MEMORY_TAG_CHECK(T)       CONTAINS_STRUCT_CHECK (T, TS_MEMORY_TAG)
 #define DECL_COMMON_CHECK(T)    CONTAINS_STRUCT_CHECK (T, TS_DECL_COMMON)
 #define DECL_WRTL_CHECK(T)      CONTAINS_STRUCT_CHECK (T, TS_DECL_WRTL)
 #define DECL_WITH_VIS_CHECK(T)  CONTAINS_STRUCT_CHECK (T, TS_DECL_WITH_VIS)
@@ -1185,9 +1176,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    there was an overflow in folding.  */
 
 #define TREE_OVERFLOW(NODE) (CST_CHECK (NODE)->base.public_flag)
-
-/* ??? This is an obsolete synonym for TREE_OVERFLOW.  */
-#define TREE_CONSTANT_OVERFLOW(NODE) TREE_OVERFLOW(NODE)
 
 /* TREE_OVERFLOW can only be true for EXPR of CONSTANT_CLASS_P.  */
 
@@ -1590,6 +1578,12 @@ extern void protected_set_expr_location (tree, location_t);
 
 #define EXIT_EXPR_COND(NODE)	     TREE_OPERAND (EXIT_EXPR_CHECK (NODE), 0)
 
+/* COMPOUND_LITERAL_EXPR accessors.  */
+#define COMPOUND_LITERAL_EXPR_DECL_EXPR(NODE)		\
+  TREE_OPERAND (COMPOUND_LITERAL_EXPR_CHECK (NODE), 0)
+#define COMPOUND_LITERAL_EXPR_DECL(NODE)			\
+  DECL_EXPR_DECL (COMPOUND_LITERAL_EXPR_DECL_EXPR (NODE))
+
 /* SWITCH_EXPR accessors. These give access to the condition, body and
    original condition type (before any compiler conversions)
    of the switch statement, respectively.  */
@@ -1610,7 +1604,6 @@ extern void protected_set_expr_location (tree, location_t);
 #define TMR_STEP(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 3))
 #define TMR_OFFSET(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 4))
 #define TMR_ORIGINAL(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 5))
-#define TMR_TAG(NODE) (TREE_OPERAND (TARGET_MEM_REF_CHECK (NODE), 6))
 
 /* The operands of a BIND_EXPR.  */
 #define BIND_EXPR_VARS(NODE) (TREE_OPERAND (BIND_EXPR_CHECK (NODE), 0))
@@ -2286,6 +2279,7 @@ struct tree_type GTY(())
   unsigned user_align : 1;
 
   unsigned int align;
+  alias_set_type alias_set;
   tree pointer_to;
   tree reference_to;
   union tree_type_symtab {
@@ -2302,7 +2296,6 @@ struct tree_type GTY(())
   tree binfo;
   tree context;
   tree canonical;
-  alias_set_type alias_set;
   /* Points to a structure whose details depend on the language in use.  */
   struct lang_type *lang_specific;
 };
@@ -2435,12 +2428,10 @@ struct tree_binfo GTY (())
 	(TREE_CODE (DECL) == VAR_DECL					\
 	 || TREE_CODE (DECL) == PARM_DECL				\
 	 || TREE_CODE (DECL) == RESULT_DECL				\
-	 || MTAG_P (DECL)						\
 	 || (TREE_CODE (DECL) == SSA_NAME				\
 	     && (TREE_CODE (SSA_NAME_VAR (DECL)) == VAR_DECL		\
 		 || TREE_CODE (SSA_NAME_VAR (DECL)) == PARM_DECL	\
-		 || TREE_CODE (SSA_NAME_VAR (DECL)) == RESULT_DECL	\
-		 || MTAG_P (SSA_NAME_VAR (DECL)))))
+		 || TREE_CODE (SSA_NAME_VAR (DECL)) == RESULT_DECL)))
 
 
 
@@ -2494,49 +2485,6 @@ struct tree_decl_minimal GTY(())
   tree name;
   tree context;
 };
-
-/* When computing aliasing information, we represent the memory pointed-to
-   by pointers with artificial variables called "memory tags" (MT).  There
-   are two kinds of tags, namely symbol and name:
-
-   Symbol tags (SMT) are used in flow-insensitive alias analysis, they
-   represent all the pointed-to locations and variables pointed-to by
-   the same pointer symbol.  Usually, this set is computed using
-   type-based analysis (i.e., alias set classes), but this may not
-   always be the case.
-
-   Name tags (NMT) are used in flow-sensitive points-to alias
-   analysis, they represent the variables and memory locations
-   pointed-to by a specific SSA_NAME pointer.
-
-   In general, given a pointer P with a symbol tag SMT, the alias set
-   of SMT should be the union of all the alias sets of the NMTs of
-   every SSA_NAME for P.  */
-struct tree_memory_tag GTY(())
-{
-  struct tree_decl_minimal common;
-
-  bitmap GTY ((skip)) aliases;
-
-  /* True if this tag has global scope.  */
-  unsigned int is_global : 1;
-};
-
-#define MTAG_GLOBAL(NODE) (TREE_MEMORY_TAG_CHECK (NODE)->mtag.is_global)
-#define MTAG_ALIASES(NODE) (TREE_MEMORY_TAG_CHECK (NODE)->mtag.aliases)
-
-/* Memory Partition Tags (MPTs) group memory symbols under one
-   common name for the purposes of placing memory PHI nodes.  */
-
-struct tree_memory_partition_tag GTY(())
-{
-  struct tree_memory_tag common;
-  
-  /* Set of symbols grouped under this MPT.  */
-  bitmap symbols;
-};
-
-#define MPT_SYMBOLS(NODE)	(MEMORY_PARTITION_TAG_CHECK (NODE)->mpt.symbols)
 
 
 /* For any sort of a ..._DECL node, this points to the original (abstract)
@@ -2726,10 +2674,9 @@ struct tree_decl_common GTY(())
   unsigned gimple_reg_flag : 1;
   /* In a DECL with pointer type, set if no TBAA should be done.  */
   unsigned no_tbaa_flag : 1;
-  /* Padding so that 'align' can be on a 32-bit boundary.  */
+  /* Padding so that 'off_align' can be on a 32-bit boundary.  */
   unsigned decl_common_unused : 2;
 
-  unsigned int align : 24;
   /* DECL_OFFSET_ALIGN, used only for FIELD_DECLs.  */
   unsigned int off_align : 8;
 
@@ -2737,6 +2684,9 @@ struct tree_decl_common GTY(())
   tree initial;
   tree attributes;
   tree abstract_origin;
+
+  /* DECL_ALIGN.  It should have the same size as TYPE_ALIGN.  */
+  unsigned int align;
 
   alias_set_type pointer_alias_set;
   /* Points to a structure whose details depend on the language in use.  */
@@ -2923,11 +2873,6 @@ struct tree_parm_decl GTY(())
   /* Used to indicate that this DECL has weak linkage.  */
 #define DECL_WEAK(NODE) (DECL_WITH_VIS_CHECK (NODE)->decl_with_vis.weak_flag)
 
-/* Internal to the gimplifier.  Indicates that the value is a formal
-   temporary controlled by the gimplifier.  */
-#define DECL_GIMPLE_FORMAL_TEMP_P(DECL) \
-  DECL_WITH_VIS_CHECK (DECL)->decl_with_vis.gimple_formal_temp
-
 /* Used to indicate that the DECL is a dllimport.  */
 #define DECL_DLLIMPORT_P(NODE) (DECL_WITH_VIS_CHECK (NODE)->decl_with_vis.dllimport_flag)
 
@@ -3039,7 +2984,6 @@ struct tree_decl_with_vis GTY(())
  unsigned thread_local:1;
  unsigned common_flag:1;
  unsigned in_text_section : 1;
- unsigned gimple_formal_temp : 1;
  unsigned dllimport_flag : 1;
  unsigned based_on_restrict_p : 1;
  /* Used by C++.  Might become a generic decl flag.  */
@@ -3057,7 +3001,7 @@ struct tree_decl_with_vis GTY(())
 
  /* Belongs to VAR_DECL exclusively.  */
  ENUM_BITFIELD(tls_model) tls_model : 3;
- /* 12 unused bits. */
+ /* 13 unused bits. */
 };
 
 /* In a VAR_DECL that's static,
@@ -3449,9 +3393,7 @@ union tree_node GTY ((ptr_alias (union lang_tree_node),
   struct tree_binfo GTY ((tag ("TS_BINFO"))) binfo;
   struct tree_statement_list GTY ((tag ("TS_STATEMENT_LIST"))) stmt_list;
   struct tree_constructor GTY ((tag ("TS_CONSTRUCTOR"))) constructor;
-  struct tree_memory_tag GTY ((tag ("TS_MEMORY_TAG"))) mtag;
   struct tree_omp_clause GTY ((tag ("TS_OMP_CLAUSE"))) omp_clause;
-  struct tree_memory_partition_tag GTY ((tag ("TS_MEMORY_PARTITION_TAG"))) mpt;
   struct tree_optimization_option GTY ((tag ("TS_OPTIMIZATION"))) optimization;
   struct tree_target_option GTY ((tag ("TS_TARGET_OPTION"))) target_option;
 };
@@ -3943,10 +3885,10 @@ extern tree build4_stat (enum tree_code, tree, tree, tree, tree,
 extern tree build5_stat (enum tree_code, tree, tree, tree, tree, tree,
 			 tree MEM_STAT_DECL);
 #define build5(c,t1,t2,t3,t4,t5,t6) build5_stat (c,t1,t2,t3,t4,t5,t6 MEM_STAT_INFO)
-extern tree build7_stat (enum tree_code, tree, tree, tree, tree, tree,
-			 tree, tree, tree MEM_STAT_DECL);
-#define build7(c,t1,t2,t3,t4,t5,t6,t7,t8) \
-  build7_stat (c,t1,t2,t3,t4,t5,t6,t7,t8 MEM_STAT_INFO)
+extern tree build6_stat (enum tree_code, tree, tree, tree, tree, tree,
+			 tree, tree MEM_STAT_DECL);
+#define build6(c,t1,t2,t3,t4,t5,t6,t7) \
+  build6_stat (c,t1,t2,t3,t4,t5,t6,t7 MEM_STAT_INFO)
 
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
@@ -4032,6 +3974,7 @@ extern bool tree_expr_nonnegative_p (tree);
 extern bool tree_expr_nonnegative_warnv_p (tree, bool *);
 extern bool may_negate_without_overflow_p (const_tree);
 extern tree strip_array_types (tree);
+extern tree excess_precision_type (tree);
 
 /* Construct various nodes representing fract or accum data types.  */
 
@@ -4377,6 +4320,10 @@ extern tree tree_cons_stat (tree, tree, tree MEM_STAT_DECL);
 /* Return the last tree node in a chain.  */
 
 extern tree tree_last (tree);
+
+/* Return the node in a chain whose TREE_VALUE is x, NULL if not found.  */
+
+extern tree tree_find_value (tree, tree);
 
 /* Reverse the order of elements in a chain, and return the new head.  */
 
@@ -4828,6 +4775,7 @@ extern tree build_fold_indirect_ref (tree);
 extern tree fold_indirect_ref (tree);
 extern tree constant_boolean_node (int, tree);
 extern tree build_low_bits_mask (tree, unsigned);
+extern tree div_if_zero_remainder (enum tree_code, const_tree, const_tree);
 
 extern bool tree_swap_operands_p (const_tree, const_tree, bool);
 extern enum tree_code swap_tree_comparison (enum tree_code);
@@ -4851,6 +4799,8 @@ extern bool tree_call_nonnegative_warnv_p (tree, tree, tree, tree, bool *);
 extern bool tree_expr_nonzero_warnv_p (tree, bool *);
 
 extern bool fold_real_zero_addition_p (const_tree, const_tree, int);
+extern tree combine_comparisons (enum tree_code, enum tree_code,
+				 enum tree_code, tree, tree, tree);
 
 /* Return nonzero if CODE is a tree code that represents a truth value.  */
 static inline bool
@@ -4889,6 +4839,7 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern int get_pointer_alignment (tree, unsigned int);
+extern bool is_builtin_name(const char*);
 extern int get_object_alignment (tree, unsigned int, unsigned int);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);

@@ -761,6 +761,7 @@ gfc_trans_simple_do (gfc_code * code, stmtblock_t *pblock, tree dovar,
   tree type;
   tree cond;
   tree tmp;
+  tree saved_dovar = NULL;
   tree cycle_label;
   tree exit_label;
   
@@ -768,6 +769,13 @@ gfc_trans_simple_do (gfc_code * code, stmtblock_t *pblock, tree dovar,
 
   /* Initialize the DO variable: dovar = from.  */
   gfc_add_modify (pblock, dovar, from);
+  
+  /* Save value for do-tinkering checking. */
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    {
+      saved_dovar = gfc_create_var (type, ".saved_dovar");
+      gfc_add_modify (pblock, saved_dovar, dovar);
+    }
 
   /* Cycle and exit statements are implemented with gotos.  */
   cycle_label = gfc_build_label_decl (NULL_TREE);
@@ -790,6 +798,14 @@ gfc_trans_simple_do (gfc_code * code, stmtblock_t *pblock, tree dovar,
       gfc_add_expr_to_block (&body, tmp);
     }
 
+  /* Check whether someone has modified the loop variable. */
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    {
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, dovar, saved_dovar);
+      gfc_trans_runtime_check (true, false, tmp, &body, &code->loc,
+			       "Loop variable has been modified");
+    }
+
   /* Evaluate the loop condition.  */
   cond = fold_build2 (EQ_EXPR, boolean_type_node, dovar, to);
   cond = gfc_evaluate_now (cond, &body);
@@ -797,6 +813,9 @@ gfc_trans_simple_do (gfc_code * code, stmtblock_t *pblock, tree dovar,
   /* Increment the loop variable.  */
   tmp = fold_build2 (PLUS_EXPR, type, dovar, step);
   gfc_add_modify (&body, dovar, tmp);
+
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    gfc_add_modify (&body, saved_dovar, dovar);
 
   /* The loop exit.  */
   tmp = build1_v (GOTO_EXPR, exit_label);
@@ -864,6 +883,7 @@ gfc_trans_do (gfc_code * code)
 {
   gfc_se se;
   tree dovar;
+  tree saved_dovar = NULL;
   tree from;
   tree to;
   tree step;
@@ -902,6 +922,14 @@ gfc_trans_do (gfc_code * code)
   gfc_add_block_to_block (&block, &se.pre);
   step = gfc_evaluate_now (se.expr, &block);
 
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    {
+      tmp = fold_build2 (EQ_EXPR, boolean_type_node, step,
+			 fold_convert (type, integer_zero_node));
+      gfc_trans_runtime_check (true, false, tmp, &block, &code->loc,
+			       "DO step value is zero");
+    }
+
   /* Special case simple loops.  */
   if (TREE_CODE (type) == INTEGER_TYPE
       && (integer_onep (step)
@@ -924,6 +952,13 @@ gfc_trans_do (gfc_code * code)
 
   /* Initialize the DO variable: dovar = from.  */
   gfc_add_modify (&block, dovar, from);
+
+  /* Save value for do-tinkering checking. */
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    {
+      saved_dovar = gfc_create_var (type, ".saved_dovar");
+      gfc_add_modify (&block, saved_dovar, dovar);
+    }
 
   /* Initialize loop count and jump to exit label if the loop is empty.
      This code is executed before we enter the loop body. We generate:
@@ -1011,9 +1046,20 @@ gfc_trans_do (gfc_code * code)
       gfc_add_expr_to_block (&body, tmp);
     }
 
+  /* Check whether someone has modified the loop variable. */
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    {
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, dovar, saved_dovar);
+      gfc_trans_runtime_check (true, false, tmp, &body, &code->loc,
+			       "Loop variable has been modified");
+    }
+
   /* Increment the loop variable.  */
   tmp = fold_build2 (PLUS_EXPR, type, dovar, step);
   gfc_add_modify (&body, dovar, tmp);
+
+  if (gfc_option.rtcheck & GFC_RTCHECK_DO)
+    gfc_add_modify (&body, saved_dovar, dovar);
 
   /* End with the loop condition.  Loop until countm1 == 0.  */
   cond = fold_build2 (EQ_EXPR, boolean_type_node, countm1,
@@ -2258,10 +2304,10 @@ compute_inner_temp_size (gfc_expr *expr1, gfc_expr *expr2,
       loop.array_parameter = 1;
 
       /* Calculate the bounds of the scalarization.  */
-      save_flag = flag_bounds_check;
-      flag_bounds_check = 0;
+      save_flag = gfc_option.rtcheck;
+      gfc_option.rtcheck &= !GFC_RTCHECK_BOUNDS;
       gfc_conv_ss_startstride (&loop);
-      flag_bounds_check = save_flag;
+      gfc_option.rtcheck = save_flag;
       gfc_conv_loop_setup (&loop, &expr2->where);
 
       /* Figure out how many elements we need.  */
@@ -3886,20 +3932,21 @@ gfc_trans_allocate (gfc_code * code)
   if (!code->ext.alloc_list)
     return NULL_TREE;
 
+  pstat = stat = error_label = tmp = NULL_TREE;
+
   gfc_start_block (&block);
 
-  if (code->expr)
+  /* Either STAT= and/or ERRMSG is present.  */
+  if (code->expr || code->expr2)
     {
       tree gfc_int4_type_node = gfc_get_int_type (4);
 
       stat = gfc_create_var (gfc_int4_type_node, "stat");
-      pstat = build_fold_addr_expr (stat);
+      pstat = gfc_build_addr_expr (NULL_TREE, stat);
 
       error_label = gfc_build_label_decl (NULL_TREE);
       TREE_USED (error_label) = 1;
     }
-  else
-    pstat = stat = error_label = NULL_TREE;
 
   for (al = code->ext.alloc_list; al != NULL; al = al->next)
     {
@@ -3925,7 +3972,7 @@ gfc_trans_allocate (gfc_code * code)
 			     fold_convert (TREE_TYPE (se.expr), tmp));
 	  gfc_add_expr_to_block (&se.pre, tmp);
 
-	  if (code->expr)
+	  if (code->expr || code->expr2)
 	    {
 	      tmp = build1_v (GOTO_EXPR, error_label);
 	      parm = fold_build2 (NE_EXPR, boolean_type_node,
@@ -3948,7 +3995,7 @@ gfc_trans_allocate (gfc_code * code)
       gfc_add_expr_to_block (&block, tmp);
     }
 
-  /* Assign the value to the status variable.  */
+  /* STAT block.  */
   if (code->expr)
     {
       tmp = build1_v (LABEL_EXPR, error_label);
@@ -3960,29 +4007,45 @@ gfc_trans_allocate (gfc_code * code)
       gfc_add_modify (&block, se.expr, tmp);
     }
 
+  /* ERRMSG block.  */
+  if (code->expr2)
+    {
+      /* A better error message may be possible, but not required.  */
+      const char *msg = "Attempt to allocate an allocated object";
+      tree errmsg, slen, dlen;
+
+      gfc_init_se (&se, NULL);
+      gfc_conv_expr_lhs (&se, code->expr2);
+
+      errmsg = gfc_create_var (pchar_type_node, "ERRMSG");
+
+      gfc_add_modify (&block, errmsg,
+		gfc_build_addr_expr (pchar_type_node,
+			gfc_build_localized_cstring_const (msg)));
+
+      slen = build_int_cst (gfc_charlen_type_node, ((int) strlen (msg)));
+      dlen = gfc_get_expr_charlen (code->expr2);
+      slen = fold_build2 (MIN_EXPR, TREE_TYPE (slen), dlen, slen);
+
+      dlen = build_call_expr (built_in_decls[BUILT_IN_MEMCPY], 3,
+		gfc_build_addr_expr (pvoid_type_node, se.expr), errmsg, slen);
+
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, stat,
+			 build_int_cst (TREE_TYPE (stat), 0));
+
+      tmp = build3_v (COND_EXPR, tmp, dlen, build_empty_stmt ());
+
+      gfc_add_expr_to_block (&block, tmp);
+    }
+
   return gfc_finish_block (&block);
 }
 
 
-/* Translate a DEALLOCATE statement.
-   There are two cases within the for loop:
-   (1) deallocate(a1, a2, a3) is translated into the following sequence
-       _gfortran_deallocate(a1, 0B)
-       _gfortran_deallocate(a2, 0B)
-       _gfortran_deallocate(a3, 0B)
-       where the STAT= variable is passed a NULL pointer.
-   (2) deallocate(a1, a2, a3, stat=i) is translated into the following
-       astat = 0
-       _gfortran_deallocate(a1, &stat)
-       astat = astat + stat
-       _gfortran_deallocate(a2, &stat)
-       astat = astat + stat
-       _gfortran_deallocate(a3, &stat)
-       astat = astat + stat
-    In case (1), we simply return at the end of the for loop.  In case (2)
-    we set STAT= astat.  */
+/* Translate a DEALLOCATE statement.  */
+
 tree
-gfc_trans_deallocate (gfc_code * code)
+gfc_trans_deallocate (gfc_code *code)
 {
   gfc_se se;
   gfc_alloc *al;
@@ -3990,26 +4053,27 @@ gfc_trans_deallocate (gfc_code * code)
   tree apstat, astat, pstat, stat, tmp;
   stmtblock_t block;
 
+  pstat = apstat = stat = astat = tmp = NULL_TREE;
+
   gfc_start_block (&block);
 
-  /* Set up the optional STAT= */
-  if (code->expr)
+  /* Count the number of failed deallocations.  If deallocate() was
+     called with STAT= , then set STAT to the count.  If deallocate
+     was called with ERRMSG, then set ERRMG to a string.  */
+  if (code->expr || code->expr2)
     {
       tree gfc_int4_type_node = gfc_get_int_type (4);
 
-      /* Variable used with the library call.  */
       stat = gfc_create_var (gfc_int4_type_node, "stat");
-      pstat = build_fold_addr_expr (stat);
+      pstat = gfc_build_addr_expr (NULL_TREE, stat);
 
       /* Running total of possible deallocation failures.  */
       astat = gfc_create_var (gfc_int4_type_node, "astat");
-      apstat = build_fold_addr_expr (astat);
+      apstat = gfc_build_addr_expr (NULL_TREE, astat);
 
       /* Initialize astat to 0.  */
       gfc_add_modify (&block, astat, build_int_cst (TREE_TYPE (astat), 0));
     }
-  else
-    pstat = apstat = stat = astat = NULL_TREE;
 
   for (al = code->ext.alloc_list; al != NULL; al = al->next)
     {
@@ -4023,8 +4087,7 @@ gfc_trans_deallocate (gfc_code * code)
       se.descriptor_only = 1;
       gfc_conv_expr (&se, expr);
 
-      if (expr->ts.type == BT_DERIVED
-	    && expr->ts.derived->attr.alloc_comp)
+      if (expr->ts.type == BT_DERIVED && expr->ts.derived->attr.alloc_comp)
         {
 	  gfc_ref *ref;
 	  gfc_ref *last = NULL;
@@ -4035,7 +4098,7 @@ gfc_trans_deallocate (gfc_code * code)
 	  /* Do not deallocate the components of a derived type
 	     ultimate pointer component.  */
 	  if (!(last && last->u.c.component->attr.pointer)
-		   && !(!last && expr->symtree->n.sym->attr.pointer))
+		&& !(!last && expr->symtree->n.sym->attr.pointer))
 	    {
 	      tmp = gfc_deallocate_alloc_comp (expr->ts.derived, se.expr,
 					       expr->rank);
@@ -4058,7 +4121,7 @@ gfc_trans_deallocate (gfc_code * code)
 
       /* Keep track of the number of failed deallocations by adding stat
 	 of the last deallocation to the running total.  */
-      if (code->expr)
+      if (code->expr || code->expr2)
 	{
 	  apstat = fold_build2 (PLUS_EXPR, TREE_TYPE (stat), astat, stat);
 	  gfc_add_modify (&se.pre, astat, apstat);
@@ -4069,13 +4132,44 @@ gfc_trans_deallocate (gfc_code * code)
 
     }
 
-  /* Assign the value to the status variable.  */
+  /* Set STAT.  */
   if (code->expr)
     {
       gfc_init_se (&se, NULL);
       gfc_conv_expr_lhs (&se, code->expr);
       tmp = convert (TREE_TYPE (se.expr), astat);
       gfc_add_modify (&block, se.expr, tmp);
+    }
+
+  /* Set ERRMSG.  */
+  if (code->expr2)
+    {
+      /* A better error message may be possible, but not required.  */
+      const char *msg = "Attempt to deallocate an unallocated object";
+      tree errmsg, slen, dlen;
+
+      gfc_init_se (&se, NULL);
+      gfc_conv_expr_lhs (&se, code->expr2);
+
+      errmsg = gfc_create_var (pchar_type_node, "ERRMSG");
+
+      gfc_add_modify (&block, errmsg,
+		gfc_build_addr_expr (pchar_type_node,
+                        gfc_build_localized_cstring_const (msg)));
+
+      slen = build_int_cst (gfc_charlen_type_node, ((int) strlen (msg)));
+      dlen = gfc_get_expr_charlen (code->expr2);
+      slen = fold_build2 (MIN_EXPR, TREE_TYPE (slen), dlen, slen);
+
+      dlen = build_call_expr (built_in_decls[BUILT_IN_MEMCPY], 3,
+		gfc_build_addr_expr (pvoid_type_node, se.expr), errmsg, slen);
+
+      tmp = fold_build2 (NE_EXPR, boolean_type_node, astat,
+			 build_int_cst (TREE_TYPE (astat), 0));
+
+      tmp = build3_v (COND_EXPR, tmp, dlen, build_empty_stmt ());
+
+      gfc_add_expr_to_block (&block, tmp);
     }
 
   return gfc_finish_block (&block);

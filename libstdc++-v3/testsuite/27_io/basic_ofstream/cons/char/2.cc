@@ -1,4 +1,4 @@
-// Copyright (C) 2000, 2001, 2003 Free Software Foundation, Inc.
+// Copyright (C) 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -16,36 +16,13 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
-// 27.8.1.10 ofstream member functions
-// @require@ %-*.tst
-// @diff@ %-*.tst %-*.txt
+// { dg-do compile }
+// { dg-options "-std=gnu++0x" }
 
-// { dg-require-fileio "" }
-
-#include <ostream>
 #include <fstream>
-#include <testsuite_hooks.h>
 
-const char name_02[] = "ofstream_members-1.txt";
-
-// http://gcc.gnu.org/ml/libstdc++/2000-07/msg00004.html
-void test02()
+void test01()
 {
-  bool test __attribute__((unused)) = true;
-  const int more_than_max_open_files = 8200;
-  
-  for(int i = 0; ++i < more_than_max_open_files;)
-    {
-      std::ofstream ifs(name_02);
-      VERIFY( static_cast<bool>(ifs) );
-    }
+  const std::string name = "ofstream_name.txt";
+  std::ofstream ofs(name);
 }
-
-int main()
-{
-  test02();
-  return 0;
-}
-
-
-

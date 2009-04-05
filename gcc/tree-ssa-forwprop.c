@@ -147,6 +147,14 @@ along with GCC; see the file COPYING3.  If not see
 
      ptr2 = &x[index];
 
+  Or
+    ssa = (int) decl
+    res = ssa & 1
+
+  Provided that decl has known alignment >= 2, will get turned into
+
+    res = 0
+
   We also propagate casts into SWITCH_EXPR and COND_EXPR conditions to
   allow us to remove the cast and {NOT_EXPR,NEG_EXPR} into a subsequent
   {NOT_EXPR,NEG_EXPR}.
@@ -586,8 +594,6 @@ tidy_after_forward_propagate_addr (gimple stmt)
 
   if (TREE_CODE (gimple_assign_rhs1 (stmt)) == ADDR_EXPR)
      recompute_tree_invariant_for_addr_expr (gimple_assign_rhs1 (stmt));
-
-  mark_symbols_for_renaming (stmt);
 }
 
 /* DEF_RHS contains the address of the 0th element in an array.
@@ -610,8 +616,13 @@ forward_propagate_addr_into_variable_array_index (tree offset,
 						  tree def_rhs,
 						  gimple_stmt_iterator *use_stmt_gsi)
 {
-  tree index;
+  tree index, tunit;
   gimple offset_def, use_stmt = gsi_stmt (*use_stmt_gsi);
+  tree tmp;
+
+  tunit = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)));
+  if (!host_integerp (tunit, 1))
+    return false;
 
   /* Get the offset's defining statement.  */
   offset_def = SSA_NAME_DEF_STMT (offset);
@@ -621,7 +632,7 @@ forward_propagate_addr_into_variable_array_index (tree offset,
      along in case the element size is one. In that case, however, we do not
      allow multiplications because they can be computing index to a higher
      level dimension (PR 37861). */
-  if (integer_onep (TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)))))
+  if (integer_onep (tunit))
     {
       if (is_gimple_assign (offset_def)
 	  && gimple_assign_rhs_code (offset_def) == MULT_EXPR)
@@ -640,18 +651,42 @@ forward_propagate_addr_into_variable_array_index (tree offset,
 	 multiplication of an object by the size of the array elements. 
 	 This implicitly verifies that the size of the array elements
 	 is constant.  */
-     offset = gimple_assign_rhs1 (offset_def);
-     if (gimple_assign_rhs_code (offset_def) != MULT_EXPR
-	 || TREE_CODE (gimple_assign_rhs2 (offset_def)) != INTEGER_CST
-	 || !simple_cst_equal (gimple_assign_rhs2 (offset_def),
-			       TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (def_rhs)))))
+     if (gimple_assign_rhs_code (offset_def) == MULT_EXPR
+	 && TREE_CODE (gimple_assign_rhs2 (offset_def)) == INTEGER_CST
+	 && tree_int_cst_equal (gimple_assign_rhs2 (offset_def), tunit))
+       {
+	 /* The first operand to the MULT_EXPR is the desired index.  */
+	 index = gimple_assign_rhs1 (offset_def);
+       }
+     /* If we have idx * tunit + CST * tunit re-associate that.  */
+     else if ((gimple_assign_rhs_code (offset_def) == PLUS_EXPR
+	       || gimple_assign_rhs_code (offset_def) == MINUS_EXPR)
+	      && TREE_CODE (gimple_assign_rhs1 (offset_def)) == SSA_NAME
+	      && TREE_CODE (gimple_assign_rhs2 (offset_def)) == INTEGER_CST
+	      && (tmp = div_if_zero_remainder (EXACT_DIV_EXPR,
+					       gimple_assign_rhs2 (offset_def),
+					       tunit)) != NULL_TREE)
+       {
+	 gimple offset_def2 = SSA_NAME_DEF_STMT (gimple_assign_rhs1 (offset_def));
+	 if (is_gimple_assign (offset_def2)
+	     && gimple_assign_rhs_code (offset_def2) == MULT_EXPR
+	     && TREE_CODE (gimple_assign_rhs2 (offset_def2)) == INTEGER_CST
+	     && tree_int_cst_equal (gimple_assign_rhs2 (offset_def2), tunit))
+	   {
+	     index = fold_build2 (gimple_assign_rhs_code (offset_def),
+				  TREE_TYPE (offset),
+				  gimple_assign_rhs1 (offset_def2), tmp);
+	   }
+	 else
+	   return false;
+       }
+     else
 	return false;
-
-      /* The first operand to the MULT_EXPR is the desired index.  */
-      index = offset;
     }
 
   /* Replace the pointer addition with array indexing.  */
+  index = force_gimple_operand_gsi (use_stmt_gsi, index, true, NULL_TREE,
+				    true, GSI_SAME_STMT);
   gimple_assign_set_rhs_from_tree (use_stmt_gsi, unshare_expr (def_rhs));
   use_stmt = gsi_stmt (*use_stmt_gsi);
   TREE_OPERAND (TREE_OPERAND (gimple_assign_rhs1 (use_stmt), 0), 1)
@@ -820,19 +855,20 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
   array_ref = TREE_OPERAND (def_rhs, 0);
   if (TREE_CODE (array_ref) != ARRAY_REF
       || TREE_CODE (TREE_TYPE (TREE_OPERAND (array_ref, 0))) != ARRAY_TYPE
-      || !integer_zerop (TREE_OPERAND (array_ref, 1)))
+      || TREE_CODE (TREE_OPERAND (array_ref, 1)) != INTEGER_CST)
     return false;
 
   rhs2 = gimple_assign_rhs2 (use_stmt);
-  /* Try to optimize &x[0] p+ C where C is a multiple of the size
-     of the elements in X into &x[C/element size].  */
+  /* Try to optimize &x[C1] p+ C2 where C2 is a multiple of the size
+     of the elements in X into &x[C1 + C2/element size].  */
   if (TREE_CODE (rhs2) == INTEGER_CST)
     {
       tree new_rhs = maybe_fold_stmt_addition (gimple_expr_type (use_stmt),
-					       array_ref, rhs2);
+					       def_rhs, rhs2);
       if (new_rhs)
 	{
-	  gimple_assign_set_rhs_from_tree (use_stmt_gsi, new_rhs);
+	  gimple_assign_set_rhs_from_tree (use_stmt_gsi,
+					   unshare_expr (new_rhs));
 	  use_stmt = gsi_stmt (*use_stmt_gsi);
 	  update_stmt (use_stmt);
 	  tidy_after_forward_propagate_addr (use_stmt);
@@ -845,6 +881,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
      array elements, then the result is converted into the proper
      type for the arithmetic.  */
   if (TREE_CODE (rhs2) == SSA_NAME
+      && integer_zerop (TREE_OPERAND (array_ref, 1))
       && useless_type_conversion_p (TREE_TYPE (name), TREE_TYPE (def_rhs))
       /* Avoid problems with IVopts creating PLUS_EXPRs with a
 	 different type than their operands.  */
@@ -892,17 +929,23 @@ forward_propagate_addr_expr (tree name, tree rhs)
 	  continue;
 	}
 
-      push_stmt_changes (&use_stmt);
-
       {
 	gimple_stmt_iterator gsi = gsi_for_stmt (use_stmt);
+	push_stmt_changes (&use_stmt);
 	result = forward_propagate_addr_expr_1 (name, rhs, &gsi,
 						single_use_p);
-	use_stmt = gsi_stmt (gsi);
+	/* If the use has moved to a different statement adjust
+	   the update machinery.  */
+	if (use_stmt != gsi_stmt (gsi))
+	  {
+	    pop_stmt_changes (&use_stmt);
+	    use_stmt = gsi_stmt (gsi);
+	    update_stmt (use_stmt);
+	  }
+	else
+	  pop_stmt_changes (&use_stmt);
       }
       all &= result;
-
-      pop_stmt_changes (&use_stmt);
 
       /* Remove intermediate now unused copy and conversion chains.  */
       use_rhs = gimple_assign_rhs1 (use_stmt);
@@ -1124,6 +1167,45 @@ simplify_gimple_switch (gimple stmt)
     }
 }
 
+/* Run bitwise and assignments throug the folder.  If the first argument is an
+   ssa name that is itself a result of a typecast of an ADDR_EXPR to an
+   integer, feed the ADDR_EXPR to the folder rather than the ssa name.
+*/
+
+static void
+simplify_bitwise_and (gimple_stmt_iterator *gsi, gimple stmt)
+{
+  tree res;
+  tree arg1 = gimple_assign_rhs1 (stmt);
+  tree arg2 = gimple_assign_rhs2 (stmt);
+
+  if (TREE_CODE (arg2) != INTEGER_CST)
+    return;
+
+  if (TREE_CODE (arg1) == SSA_NAME && !SSA_NAME_IS_DEFAULT_DEF (arg1))
+    {
+      gimple def = SSA_NAME_DEF_STMT (arg1);
+
+      if (gimple_assign_cast_p (def)
+	  && INTEGRAL_TYPE_P (gimple_expr_type (def)))
+	{
+	  tree op = gimple_assign_rhs1 (def);
+
+	  if (TREE_CODE (op) == ADDR_EXPR)
+	    arg1 = op;
+	}
+    }
+
+  res = fold_binary (BIT_AND_EXPR, TREE_TYPE (gimple_assign_lhs (stmt)),
+		     arg1, arg2);
+  if (res && is_gimple_min_invariant (res))
+    {
+      gimple_assign_set_rhs_from_tree (gsi, res);
+      update_stmt (stmt);
+    }
+  return;
+}
+
 /* Main entry point for the forward propagation optimizer.  */
 
 static unsigned int
@@ -1205,6 +1287,11 @@ tree_ssa_forward_propagate_single_use_vars (void)
 		    }
 		  else
 		    gsi_next (&gsi);
+		}
+	      else if (gimple_assign_rhs_code (stmt) == BIT_AND_EXPR)
+		{
+		  simplify_bitwise_and (&gsi, stmt);
+		  gsi_next (&gsi);
 		}
 	      else
 		gsi_next (&gsi);

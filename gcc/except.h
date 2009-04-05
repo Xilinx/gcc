@@ -19,6 +19,8 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#include "sbitmap.h"
+#include "vecprim.h"
 
 struct function;
 
@@ -44,9 +46,9 @@ extern void for_each_eh_label (void (*) (rtx));
 extern void for_each_eh_region (void (*) (struct eh_region *));
 
 /* Determine if the given INSN can throw an exception.  */
-extern bool can_throw_internal_1 (int, bool);
+extern bool can_throw_internal_1 (int, bool, bool);
 extern bool can_throw_internal (const_rtx);
-extern bool can_throw_external_1 (int, bool);
+extern bool can_throw_external_1 (int, bool, bool);
 extern bool can_throw_external (const_rtx);
 
 /* Set TREE_NOTHROW and cfun->all_throwers_are_sibcalls.  */
@@ -61,6 +63,7 @@ extern void init_eh_for_function (void);
 
 extern rtx reachable_handlers (rtx);
 extern void maybe_remove_eh_handler (rtx);
+void remove_eh_region (int);
 
 extern void convert_from_eh_region_ranges (void);
 extern unsigned int convert_to_eh_region_ranges (void);
@@ -94,10 +97,11 @@ extern struct eh_region *gen_eh_region_allowed (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_must_not_throw (struct eh_region *);
 extern int get_eh_region_number (struct eh_region *);
 extern bool get_eh_region_may_contain_throw (struct eh_region *);
+extern tree get_eh_region_no_tree_label (int);
 extern tree get_eh_region_tree_label (struct eh_region *);
 extern void set_eh_region_tree_label (struct eh_region *, tree);
 
-extern void foreach_reachable_handler (int, bool,
+extern void foreach_reachable_handler (int, bool, bool,
 				       void (*) (struct eh_region *, void *),
 				       void *);
 
@@ -174,3 +178,6 @@ struct throw_stmt_node GTY(())
 
 extern struct htab *get_eh_throw_stmt_table (struct function *);
 extern void set_eh_throw_stmt_table (struct function *, struct htab *);
+extern void remove_unreachable_regions (sbitmap, sbitmap);
+extern VEC(int,heap) * label_to_region_map (void);
+extern int num_eh_regions (void);

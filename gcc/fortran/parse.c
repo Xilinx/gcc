@@ -1,5 +1,6 @@
 /* Main parser.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -1464,16 +1465,23 @@ accept_statement (gfc_statement st)
 
       /* If the statement is the end of a block, lay down a special code
 	 that allows a branch to the end of the block from within the
-	 construct.  */
+	 construct.  IF and SELECT are treated differently from DO
+	 (where EXEC_NOP is added inside the loop) for two
+	 reasons:
+         1. END DO has a meaning in the sense that after a GOTO to
+	    it, the loop counter must be increased.
+         2. IF blocks and SELECT blocks can consist of multiple
+	    parallel blocks (IF ... ELSE IF ... ELSE ... END IF).
+	    Putting the label before the END IF would make the jump
+	    from, say, the ELSE IF block to the END IF illegal.  */
 
     case ST_ENDIF:
     case ST_END_SELECT:
       if (gfc_statement_label != NULL)
 	{
-	  new_st.op = EXEC_NOP;
+	  new_st.op = EXEC_END_BLOCK;
 	  add_statement ();
 	}
-
       break;
 
       /* The end-of-program unit statements do not get the special
@@ -1978,27 +1986,18 @@ endType:
       /* Look for allocatable components.  */
       if (c->attr.allocatable
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.alloc_comp))
-	{
-	  sym->attr.alloc_comp = 1;
-	  break;
-	}
+	sym->attr.alloc_comp = 1;
 
       /* Look for pointer components.  */
       if (c->attr.pointer
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.pointer_comp))
-	{
-	  sym->attr.pointer_comp = 1;
-	  break;
-	}
+	sym->attr.pointer_comp = 1;
 
       /* Look for private components.  */
       if (sym->component_access == ACCESS_PRIVATE
 	  || c->attr.access == ACCESS_PRIVATE
 	  || (c->ts.type == BT_DERIVED && c->ts.derived->attr.private_comp))
-	{
-	  sym->attr.private_comp = 1;
-	  break;
-	}
+	sym->attr.private_comp = 1;
     }
 
   if (!seen_component)
@@ -2825,7 +2824,6 @@ check_do_closure (void)
 
   if (p->ext.end_do_label == gfc_statement_label)
     {
-
       if (p == gfc_state_stack)
 	return 1;
 
@@ -2903,7 +2901,7 @@ loop:
 	name, but in that case we must have seen ST_ENDDO first).
 	We only complain about this in pedantic mode.  */
      if (gfc_current_block () != NULL)
-	gfc_error_now ("named block DO at %L requires matching ENDDO name",
+	gfc_error_now ("Named block DO at %L requires matching ENDDO name",
 		       &gfc_current_block()->declared_at);
 
       break;
@@ -3717,6 +3715,7 @@ add_global_procedure (int sub)
       s->type = sub ? GSYM_SUBROUTINE : GSYM_FUNCTION;
       s->where = gfc_current_locus;
       s->defined = 1;
+      s->ns = gfc_current_ns;
     }
 }
 
@@ -3739,6 +3738,7 @@ add_global_program (void)
       s->type = GSYM_PROGRAM;
       s->where = gfc_current_locus;
       s->defined = 1;
+      s->ns = gfc_current_ns;
     }
 }
 
@@ -3752,6 +3752,7 @@ gfc_parse_file (void)
   gfc_state_data top, s;
   gfc_statement st;
   locus prog_locus;
+  gfc_namespace *next;
 
   gfc_start_source_files ();
 
@@ -3769,6 +3770,10 @@ gfc_parse_file (void)
 
   if (setjmp (eof_buf))
     return FAILURE;	/* Come here on unexpected EOF */
+
+  /* Prepare the global namespace that will contain the
+     program units.  */
+  gfc_global_ns_list = next = NULL;
 
   seen_program = 0;
 
@@ -3796,6 +3801,8 @@ loop:
       accept_statement (st);
       add_global_program ();
       parse_progunit (ST_NONE);
+      if (gfc_option.flag_whole_file)
+	goto prog_units;
       break;
 
     case ST_SUBROUTINE:
@@ -3803,6 +3810,8 @@ loop:
       push_state (&s, COMP_SUBROUTINE, gfc_new_block);
       accept_statement (st);
       parse_progunit (ST_NONE);
+      if (gfc_option.flag_whole_file)
+	goto prog_units;
       break;
 
     case ST_FUNCTION:
@@ -3810,6 +3819,8 @@ loop:
       push_state (&s, COMP_FUNCTION, gfc_new_block);
       accept_statement (st);
       parse_progunit (ST_NONE);
+      if (gfc_option.flag_whole_file)
+	goto prog_units;
       break;
 
     case ST_BLOCK_DATA:
@@ -3836,9 +3847,12 @@ loop:
       push_state (&s, COMP_PROGRAM, gfc_new_block);
       main_program_symbol (gfc_current_ns, "MAIN__");
       parse_progunit (st);
+      if (gfc_option.flag_whole_file)
+	goto prog_units;
       break;
     }
 
+  /* Handle the non-program units.  */
   gfc_current_ns->code = s.head;
 
   gfc_resolve (gfc_current_ns);
@@ -3864,7 +3878,56 @@ loop:
   gfc_done_2 ();
   goto loop;
 
-done:
+prog_units:
+  /* The main program and non-contained procedures are put
+     in the global namespace list, so that they can be processed
+     later and all their interfaces resolved.  */
+  gfc_current_ns->code = s.head;
+  if (next)
+    next->sibling = gfc_current_ns;
+  else
+    gfc_global_ns_list = gfc_current_ns;
+
+  next = gfc_current_ns;
+
+  pop_state ();
+  goto loop;
+
+  done:
+
+  if (!gfc_option.flag_whole_file)
+    goto termination;
+
+  /* Do the resolution.  */ 
+  gfc_current_ns = gfc_global_ns_list;
+  for (; gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
+    {
+      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
+      gfc_resolve (gfc_current_ns);
+    }
+
+  /* Do the parse tree dump.  */ 
+  gfc_current_ns = gfc_option.dump_parse_tree ? gfc_global_ns_list : NULL;
+  for (; gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
+    {
+      gfc_dump_parse_tree (gfc_current_ns, stdout);
+      fputs ("-----------------------------------------\n\n", stdout);
+    }
+
+  gfc_current_ns = gfc_global_ns_list;
+  gfc_get_errors (NULL, &errors);
+
+  /* Do the translation.  This could be in a different order to
+     resolution if there are forward references in the file.  */
+  for (; !errors && gfc_current_ns; gfc_current_ns = gfc_current_ns->sibling)
+    {
+      gfc_current_locus = gfc_current_ns->proc_name->declared_at;
+      gfc_generate_code (gfc_current_ns);
+    }
+
+termination:
+  gfc_free_dt_list ();
+
   gfc_end_source_files ();
   return SUCCESS;
 

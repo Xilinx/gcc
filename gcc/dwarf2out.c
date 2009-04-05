@@ -3231,7 +3231,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_end = NULL;
   fde->dw_fde_cfi = NULL;
   fde->funcdef_number = current_function_funcdef_no;
-  fde->nothrow = TREE_NOTHROW (current_function_decl);
+  fde->nothrow = crtl->nothrow;
   fde->uses_eh_lsda = crtl->uses_eh_lsda;
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
   fde->drap_reg = INVALID_REGNUM;
@@ -3499,9 +3499,9 @@ typedef struct dw_loc_descr_struct GTY(())
 {
   dw_loc_descr_ref dw_loc_next;
   enum dwarf_location_atom dw_loc_opc;
+  int dw_loc_addr;
   dw_val_node dw_loc_oprnd1;
   dw_val_node dw_loc_oprnd2;
-  int dw_loc_addr;
 }
 dw_loc_descr_node;
 
@@ -5172,7 +5172,7 @@ static void gen_type_die (tree, dw_die_ref);
 static void gen_block_die (tree, dw_die_ref, int);
 static void decls_for_scope (tree, dw_die_ref, int);
 static int is_redundant_typedef (const_tree);
-static void gen_namespace_die (tree);
+static void gen_namespace_die (tree, dw_die_ref);
 static void gen_decl_die (tree, tree, dw_die_ref);
 static dw_die_ref force_decl_die (tree);
 static dw_die_ref force_type_die (tree);
@@ -5599,6 +5599,8 @@ dwarf_attr_name (unsigned int attr)
       return "DW_AT_encoding";
     case DW_AT_external:
       return "DW_AT_external";
+    case DW_AT_explicit:
+      return "DW_AT_explicit";
     case DW_AT_frame_base:
       return "DW_AT_frame_base";
     case DW_AT_friend:
@@ -11317,7 +11319,7 @@ reference_to_unused (tree * tp, int * walk_subtrees,
 	   && (!DECL_EXTERNAL (*tp) || DECL_DECLARED_INLINE_P (*tp)))
     {
       struct cgraph_node *node = cgraph_node (*tp);
-      if (!node->output)
+      if (node->process || TREE_ASM_WRITTEN (*tp))
 	return *tp;
     }
   else if (TREE_CODE (*tp) == STRING_CST && !TREE_ASM_WRITTEN (*tp))
@@ -13611,6 +13613,11 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	{
 	  add_AT_flag (subr_die, DW_AT_declaration, 1);
 
+	  /* If this is an explicit function declaration then generate
+	     a DW_AT_explicit attribute.  */
+          if (lang_hooks.decls.function_decl_explicit_p (decl))
+	    add_AT_flag (subr_die, DW_AT_explicit, 1);
+
 	  /* The first time we see a member function, it is in the context of
 	     the class to which it belongs.  We make sure of this by emitting
 	     the class first.  The next time is the definition, which is
@@ -13977,6 +13984,14 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
       equate_decl_number_to_die (decl, var_die);
       return;
     }
+
+  /* If the compiler emitted a definition for the DECL declaration
+     and if we already emitted a DIE for it, don't emit a second
+     DIE for it again.  */
+  if (old_die
+      && declaration
+      && old_die->die_parent == context_die)
+    return;
 
   var_die = new_die (DW_TAG_variable, context_die, decl);
 
@@ -15093,18 +15108,19 @@ declare_in_namespace (tree thing, dw_die_ref context_die)
 /* Generate a DIE for a namespace or namespace alias.  */
 
 static void
-gen_namespace_die (tree decl)
+gen_namespace_die (tree decl, dw_die_ref context_die)
 {
-  dw_die_ref context_die = setup_namespace_context (decl, comp_unit_die);
+  dw_die_ref namespace_die;
 
   /* Namespace aliases have a DECL_ABSTRACT_ORIGIN of the namespace
      they are an alias of.  */
   if (DECL_ABSTRACT_ORIGIN (decl) == NULL)
     {
       /* Output a real namespace or module.  */
-      dw_die_ref namespace_die
-	= new_die (is_fortran () ? DW_TAG_module : DW_TAG_namespace,
-		   context_die, decl);
+      context_die = setup_namespace_context (decl, comp_unit_die);
+      namespace_die = new_die (is_fortran ()
+			       ? DW_TAG_module : DW_TAG_namespace,
+			       context_die, decl);
       /* For Fortran modules defined in different CU don't add src coords.  */
       if (namespace_die->die_tag == DW_TAG_module && DECL_EXTERNAL (decl))
 	add_name_attribute (namespace_die, dwarf2_name (decl, 0));
@@ -15122,9 +15138,11 @@ gen_namespace_die (tree decl)
       dw_die_ref origin_die
 	= force_decl_die (DECL_ABSTRACT_ORIGIN (decl));
 
+      if (DECL_CONTEXT (decl) == NULL_TREE
+	  || TREE_CODE (DECL_CONTEXT (decl)) == NAMESPACE_DECL)
+	context_die = setup_namespace_context (decl, comp_unit_die);
       /* Now create the namespace alias DIE.  */
-      dw_die_ref namespace_die
-	= new_die (DW_TAG_imported_declaration, context_die, decl);
+      namespace_die = new_die (DW_TAG_imported_declaration, context_die, decl);
       add_name_and_src_coords_attributes (namespace_die, decl);
       add_AT_die_ref (namespace_die, DW_AT_import, origin_die);
       equate_decl_number_to_die (decl, namespace_die);
@@ -15313,7 +15331,7 @@ gen_decl_die (tree decl, tree origin, dw_die_ref context_die)
 
     case NAMESPACE_DECL:
     case IMPORTED_DECL:
-      gen_namespace_die (decl);
+      gen_namespace_die (decl, context_die);
       break;
 
     default:

@@ -210,6 +210,7 @@ struct dump_file_info
 #define PROP_rtl		(1 << 7)
 #define PROP_alias		(1 << 8)
 #define PROP_gimple_lomp	(1 << 9)	/* lowered OpenMP directives */
+#define PROP_cfglayout	 	(1 << 10)	/* cfglayout mode on RTL */
 
 #define PROP_trees \
   (PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh | PROP_gimple_lomp)
@@ -285,7 +286,10 @@ struct dump_file_info
 #define TODO_mark_first_instance	(1 << 19)
 
 /* Rebuild aliasing info.  */
-#define TODO_rebuild_alias                (1 << 20)
+#define TODO_rebuild_alias              (1 << 20)
+
+/* Rebuild the addressable-vars bitmap and do register promotion.  */
+#define TODO_update_address_taken	(1 << 21)
 
 #define TODO_update_ssa_any		\
     (TODO_update_ssa			\
@@ -309,6 +313,8 @@ extern struct gimple_opt_pass pass_tree_profile;
 extern struct gimple_opt_pass pass_early_tree_profile;
 extern struct gimple_opt_pass pass_cleanup_cfg;
 extern struct gimple_opt_pass pass_referenced_vars;
+extern struct gimple_opt_pass pass_cleanup_eh;
+extern struct gimple_opt_pass pass_fixup_cfg;
 extern struct gimple_opt_pass pass_sra;
 extern struct gimple_opt_pass pass_sra_early;
 extern struct gimple_opt_pass pass_tail_recursion;
@@ -371,7 +377,6 @@ extern struct gimple_opt_pass pass_forwprop;
 extern struct gimple_opt_pass pass_phiprop;
 extern struct gimple_opt_pass pass_tree_ifcombine;
 extern struct gimple_opt_pass pass_dse;
-extern struct gimple_opt_pass pass_simple_dse;
 extern struct gimple_opt_pass pass_nrv;
 extern struct gimple_opt_pass pass_mark_used_blocks;
 extern struct gimple_opt_pass pass_rename_ssa_copies;
@@ -386,8 +391,9 @@ extern struct gimple_opt_pass pass_uncprop;
 extern struct gimple_opt_pass pass_return_slot;
 extern struct gimple_opt_pass pass_reassoc;
 extern struct gimple_opt_pass pass_rebuild_cgraph_edges;
+extern struct gimple_opt_pass pass_remove_cgraph_callee_edges;
 extern struct gimple_opt_pass pass_build_cgraph_edges;
-extern struct gimple_opt_pass pass_reset_cc_flags;
+extern struct gimple_opt_pass pass_local_pure_const;
 
 /* IPA Passes */
 extern struct ipa_opt_pass pass_ipa_inline;
@@ -523,6 +529,7 @@ extern void execute_pass_list (struct opt_pass *);
 extern void execute_ipa_pass_list (struct opt_pass *);
 extern void print_current_pass (FILE *);
 extern void debug_pass (void);
+extern bool function_called_by_processed_nodes_p (void);
 
 /* Set to true if the pass is called the first time during compilation of the
    current function.  Note that using this information in the optimization

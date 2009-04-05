@@ -465,7 +465,10 @@ enum calling_abi
   MS_ABI = 1
 };
 
-/* The default abi form used by target.  */
+/* The abi used by target.  */
+extern enum calling_abi ix86_abi;
+
+/* The default abi used by target.  */
 #define DEFAULT_ABI SYSV_ABI
 
 /* Subtargets may reset this to 1 in order to enable 96-bit long double
@@ -608,6 +611,20 @@ enum target_cpu_default
 #define TARGET_FLT_EVAL_METHOD \
   (TARGET_MIX_SSE_I387 ? -1 : TARGET_SSE_MATH ? 0 : 2)
 
+/* Whether to allow x87 floating-point arithmetic on MODE (one of
+   SFmode, DFmode and XFmode) in the current excess precision
+   configuration.  */
+#define X87_ENABLE_ARITH(MODE) \
+  (flag_excess_precision == EXCESS_PRECISION_FAST || (MODE) == XFmode)
+
+/* Likewise, whether to allow direct conversions from integer mode
+   IMODE (HImode, SImode or DImode) to MODE.  */
+#define X87_ENABLE_FLOAT(MODE, IMODE)			\
+  (flag_excess_precision == EXCESS_PRECISION_FAST	\
+   || (MODE) == XFmode					\
+   || ((MODE) == DFmode && (IMODE) == SImode)		\
+   || (IMODE) == HImode)
+
 /* target machine storage layout */
 
 #define SHORT_TYPE_SIZE 16
@@ -653,7 +670,7 @@ enum target_cpu_default
 
 /* Boundary (in *bits*) on which stack pointer should be aligned.  */
 #define STACK_BOUNDARY \
- (TARGET_64BIT && DEFAULT_ABI == MS_ABI ? 128 : BITS_PER_WORD)
+ (TARGET_64BIT && ix86_abi == MS_ABI ? 128 : BITS_PER_WORD)
 
 /* Stack boundary of the main function guaranteed by OS.  */
 #define MAIN_STACK_BOUNDARY (TARGET_64BIT ? 128 : 32)
@@ -949,7 +966,7 @@ do {									\
       fixed_regs[j] = call_used_regs[j] = 1;				\
     if (TARGET_64BIT							\
 	&& ((cfun && cfun->machine->call_abi == MS_ABI)			\
-	    || (!cfun && DEFAULT_ABI == MS_ABI)))			\
+	    || (!cfun && ix86_abi == MS_ABI)))				\
       {									\
 	call_used_regs[SI_REG] = 0;					\
 	call_used_regs[DI_REG] = 0;					\
@@ -1609,7 +1626,7 @@ typedef struct ix86_args {
   int maybe_vaarg;		/* true for calls to possibly vardic fncts.  */
   int float_in_sse;		/* 1 if in 32-bit mode SFmode (2 for DFmode) should
 				   be passed in SSE registers.  Otherwise 0.  */
-  int call_abi;			/* Set to SYSV_ABI for sysv abi. Otherwise
+  enum calling_abi call_abi;	/* Set to SYSV_ABI for sysv abi. Otherwise
  				   MS_ABI for ms abi.  */
 } CUMULATIVE_ARGS;
 
@@ -2428,7 +2445,7 @@ struct machine_function GTY(())
   int tls_descriptor_call_expanded_p;
   /* This value is used for amd64 targets and specifies the current abi
      to be used. MS_ABI means ms abi. Otherwise SYSV_ABI means sysv abi.  */
-  int call_abi;
+   enum calling_abi call_abi;
 };
 
 #define ix86_stack_locals (cfun->machine->stack_locals)

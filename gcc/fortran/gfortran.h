@@ -199,7 +199,7 @@ gfc_intrinsic_op;
 /* Arithmetic results.  */
 typedef enum
 { ARITH_OK = 1, ARITH_OVERFLOW, ARITH_UNDERFLOW, ARITH_NAN,
-  ARITH_DIV0, ARITH_INCOMMENSURATE, ARITH_ASYMMETRIC
+  ARITH_DIV0, ARITH_INCOMMENSURATE, ARITH_ASYMMETRIC, ARITH_PROHIBIT
 }
 arith;
 
@@ -527,6 +527,7 @@ typedef enum
   GFC_INIT_REAL_OFF = 0,
   GFC_INIT_REAL_ZERO,
   GFC_INIT_REAL_NAN,
+  GFC_INIT_REAL_SNAN,
   GFC_INIT_REAL_INF,
   GFC_INIT_REAL_NEG_INF
 }
@@ -953,10 +954,9 @@ gfc_omp_clauses;
 #define gfc_get_omp_clauses() XCNEW (gfc_omp_clauses)
 
 
-/* The gfc_st_label structure is a doubly linked list attached to a
-   namespace that records the usage of statement labels within that
-   space.  */
-/* TODO: Make format/statement specifics a union.  */
+/* The gfc_st_label structure is a BBT attached to a namespace that
+   records the usage of statement labels within that space.  */
+
 typedef struct gfc_st_label
 {
   BBT_HEADER(gfc_st_label);
@@ -1019,7 +1019,7 @@ typedef struct gfc_typebound_proc
 
   union
   {
-    struct gfc_symtree* specific;
+    struct gfc_symtree* specific; /* The interface if DEFERRED.  */
     gfc_tbp_generic* generic;
   }
   u;
@@ -1038,6 +1038,7 @@ typedef struct gfc_typebound_proc
 
   unsigned nopass:1; /* Whether we have NOPASS (PASS otherwise).  */
   unsigned non_overridable:1;
+  unsigned deferred:1;
   unsigned is_generic:1;
   unsigned function:1, subroutine:1;
   unsigned error:1; /* Ignore it, when an error occurred during resolution.  */
@@ -1305,10 +1306,14 @@ typedef struct gfc_namespace
 
   /* Set to 1 if namespace is an interface body with "IMPORT" used.  */
   int has_import_set;
+
+  /* Set to 1 if resolved has been called for this namespace.  */
+  int resolved;
 }
 gfc_namespace;
 
 extern gfc_namespace *gfc_current_ns;
+extern gfc_namespace *gfc_global_ns_list;
 
 /* Global symbols are symbols of global scope. Currently we only use
    this to detect collisions already when parsing.
@@ -1327,6 +1332,7 @@ typedef struct gfc_gsymbol
 
   int defined, used;
   locus where;
+  gfc_namespace *ns;
 }
 gfc_gsymbol;
 
@@ -1547,8 +1553,10 @@ typedef struct gfc_expr
   locus where;
 
   /* True if the expression is a call to a function that returns an array,
-     and if we have decided not to allocate temporary data for that array.  */
-  unsigned int inline_noncopying_intrinsic : 1, is_boz : 1;
+     and if we have decided not to allocate temporary data for that array.
+     is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
+     denotes a signalling not-a-number.  */
+  unsigned int inline_noncopying_intrinsic : 1, is_boz : 1, is_snan : 1;
 
   /* Sometimes, when an error has been emitted, it is necessary to prevent
       it from recurring.  */
@@ -1858,7 +1866,8 @@ gfc_forall_iterator;
 /* Executable statements that fill gfc_code structures.  */
 typedef enum
 {
-  EXEC_NOP = 1, EXEC_ASSIGN, EXEC_LABEL_ASSIGN, EXEC_POINTER_ASSIGN,
+  EXEC_NOP = 1, EXEC_END_BLOCK, EXEC_ASSIGN, EXEC_LABEL_ASSIGN,
+  EXEC_POINTER_ASSIGN,
   EXEC_GOTO, EXEC_CALL, EXEC_COMPCALL, EXEC_ASSIGN_CALL, EXEC_RETURN,
   EXEC_ENTRY, EXEC_PAUSE, EXEC_STOP, EXEC_CONTINUE, EXEC_INIT_ASSIGN,
   EXEC_IF, EXEC_ARITHMETIC_IF, EXEC_DO, EXEC_DO_WHILE, EXEC_SELECT,
@@ -2005,7 +2014,6 @@ typedef struct
   int flag_automatic;
   int flag_backslash;
   int flag_backtrace;
-  int flag_check_array_temporaries;
   int flag_allow_leading_underscore;
   int flag_dump_core;
   int flag_external_blas;
@@ -2024,8 +2032,10 @@ typedef struct
   int flag_init_character;
   char flag_init_character_value;
   int flag_align_commons;
+  int flag_whole_file;
 
   int fpe;
+  int rtcheck;
 
   int warn_std;
   int allow_std;
@@ -2350,6 +2360,8 @@ void gfc_traverse_user_op (gfc_namespace *, void (*)(gfc_user_op *));
 void gfc_save_all (gfc_namespace *);
 
 void gfc_symbol_state (void);
+void gfc_free_dt_list (void);
+
 
 gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);

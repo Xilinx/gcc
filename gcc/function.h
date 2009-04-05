@@ -441,6 +441,11 @@ struct rtl_data GTY(())
 
   /* True if dbr_schedule has already been called for this function.  */
   bool dbr_scheduled_p;
+
+  /* True if current function can not throw.  Unlike
+     TREE_NOTHROW (current_function_decl) it is set even for overwritable
+     function where currently compiled version of it is nothrow.  */
+  bool nothrow;
 };
 
 #define return_label (crtl->x_return_label)
@@ -501,9 +506,6 @@ struct function GTY(())
      pointer.  */
   tree nonlocal_goto_save_area;
 
-  /* Function sequence number for profiling, debugging, etc.  */
-  int funcdef_no;
-
   /* List of function local variables, functions, types and constants.  */
   tree local_decls;
 
@@ -520,6 +522,9 @@ struct function GTY(())
 
   /* Last statement uid.  */
   int last_stmt_uid;
+
+  /* Function sequence number for profiling, debugging, etc.  */
+  int funcdef_no;
 
   /* Line number of the start of the function for debugging purposes.  */
   location_t function_start_locus;

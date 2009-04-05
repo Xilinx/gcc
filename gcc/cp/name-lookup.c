@@ -778,12 +778,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
       if ((TREE_CODE (x) == FUNCTION_DECL)
 	  && DECL_EXTERN_C_P (x)
           /* We should ignore declarations happening in system headers.  */
+	  && !DECL_ARTIFICIAL (x)
 	  && !DECL_IN_SYSTEM_HEADER (x))
 	{
 	  cxx_binding *function_binding =
 	      lookup_extern_c_fun_binding_in_all_ns (x);
-	  if (function_binding
-              && !DECL_IN_SYSTEM_HEADER (function_binding->value))
+	  tree previous = (function_binding
+			   ? function_binding->value
+			   : NULL_TREE);
+	  if (previous
+	      && !DECL_ARTIFICIAL (previous)
+              && !DECL_IN_SYSTEM_HEADER (previous)
+	      && DECL_CONTEXT (previous) != DECL_CONTEXT (x))
 	    {
 	      tree previous = function_binding->value;
 
@@ -810,11 +816,16 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 		    }
 		}
+	      else
+		{
+		  pedwarn (input_location, 0,
+			   "declaration of %q#D with C language linkage", x);
+		  pedwarn (input_location, 0,
+			   "conflicts with previous declaration %q+#D",
+			   previous);
+		}
 	    }
 	}
-
-      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
-	check_default_args (x);
 
       check_template_shadow (x);
 
@@ -826,11 +837,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  SET_DECL_LANGUAGE (x, lang_c);
 	}
 
+      t = x;
       if (DECL_NON_THUNK_FUNCTION_P (x) && ! DECL_FUNCTION_MEMBER_P (x))
 	{
 	  t = push_overloaded_decl (x, PUSH_LOCAL, is_friend);
-	  if (t != x)
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	  if (!namespace_bindings_p ())
 	    /* We do not need to create a binding for this name;
 	       push_overloaded_decl will have already done so if
@@ -842,33 +852,30 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  t = push_overloaded_decl (x, PUSH_GLOBAL, is_friend);
 	  if (t == x)
 	    add_decl_to_level (x, NAMESPACE_LEVEL (CP_DECL_CONTEXT (t)));
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	}
+
+      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
+	check_default_args (x);
+
+      if (t != x || DECL_FUNCTION_TEMPLATE_P (t))
+	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 
       /* If declaring a type as a typedef, copy the type (unless we're
 	 at line 0), and install this TYPE_DECL as the new type's typedef
-	 name.  See the extensive comment in ../c-decl.c (pushdecl).  */
+	 name.  See the extensive comment of set_underlying_type ().  */
       if (TREE_CODE (x) == TYPE_DECL)
 	{
 	  tree type = TREE_TYPE (x);
-	  if (DECL_IS_BUILTIN (x))
-	    {
-	      if (TYPE_NAME (type) == 0)
-		TYPE_NAME (type) = x;
-	    }
-	  else if (type != error_mark_node && TYPE_NAME (type) != x
-		   /* We don't want to copy the type when all we're
-		      doing is making a TYPE_DECL for the purposes of
-		      inlining.  */
-		   && (!TYPE_NAME (type)
-		       || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x)))
-	    {
-	      DECL_ORIGINAL_TYPE (x) = type;
-	      type = build_variant_type_copy (type);
-	      TYPE_STUB_DECL (type) = TYPE_STUB_DECL (DECL_ORIGINAL_TYPE (x));
-	      TYPE_NAME (type) = x;
-	      TREE_TYPE (x) = type;
-	    }
+
+	  if (DECL_IS_BUILTIN (x)
+	      || (TREE_TYPE (x) != error_mark_node
+		  && TYPE_NAME (type) != x
+		  /* We don't want to copy the type when all we're
+		     doing is making a TYPE_DECL for the purposes of
+		     inlining.  */
+		  && (!TYPE_NAME (type)
+		      || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x))))
+	    set_underlying_type (x);
 
 	  if (type != error_mark_node
 	      && TYPE_NAME (type)
@@ -1031,7 +1038,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		    }
 		}
 
-	      if (warn_shadow && !err)
+	      if (warn_shadow && !err
+		  /* Don't complain about the parms we push and then pop
+		     while tentatively parsing a function declarator.  */
+		  && !(TREE_CODE (x) == PARM_DECL && DECL_CONTEXT (x) == NULL_TREE))
 		{
 		  warning (OPT_Wshadow, "declaration of %q#D shadows a parameter", x);
 		  warning (OPT_Wshadow, "%Jshadowed declaration is here", oldlocal);

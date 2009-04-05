@@ -1221,6 +1221,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
   char s[GFC_MAX_SYMBOL_LEN + 23]; /* "_gfortran_f2c_specific" and '\0'.  */
   tree name;
   tree mangled_name;
+  gfc_gsymbol *gsym;
 
   if (sym->backend_decl)
     return sym->backend_decl;
@@ -1232,6 +1233,41 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 
   if (sym->attr.proc_pointer)
     return get_proc_pointer_decl (sym);
+
+  /* See if this is an external procedure from the same file.  If so,
+     return the backend_decl.  */
+  gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->name);
+
+  if (gfc_option.flag_whole_file
+	&& !sym->backend_decl
+	&& gsym && gsym->ns
+	&& ((gsym->type == GSYM_SUBROUTINE) || (gsym->type == GSYM_FUNCTION))
+	&& gsym->ns->proc_name->backend_decl)
+    {
+      /* If the namespace has entries, the proc_name is the
+	 entry master.  Find the entry and use its backend_decl.
+	 otherwise, use the proc_name backend_decl.  */
+      if (gsym->ns->entries)
+	{
+	  gfc_entry_list *entry = gsym->ns->entries;
+
+	  for (; entry; entry = entry->next)
+	    {
+	      if (strcmp (gsym->name, entry->sym->name) == 0)
+		{
+	          sym->backend_decl = entry->sym->backend_decl;
+		  break;
+		}
+	    }
+	}
+      else
+	{
+	  sym->backend_decl = gsym->ns->proc_name->backend_decl;
+	}
+
+      if (sym->backend_decl)
+	return sym->backend_decl;
+    }
 
   if (sym->attr.intrinsic)
     {
@@ -3679,6 +3715,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   stmtblock_t block;
   stmtblock_t body;
   tree result;
+  tree recurcheckvar = NULL;
   gfc_symbol *sym;
   int rank;
 
@@ -3777,7 +3814,8 @@ gfc_generate_function_code (gfc_namespace * ns)
 
       array = tree_cons (NULL_TREE,
 			 build_int_cst (integer_type_node,
-					flag_bounds_check), array);
+					(gfc_option.rtcheck
+					 & GFC_RTCHECK_BOUNDS)), array);
 
       array = tree_cons (NULL_TREE,
 			 build_int_cst (integer_type_node,
@@ -3843,6 +3881,22 @@ gfc_generate_function_code (gfc_namespace * ns)
 			     build_int_cst (integer_type_node,
 					    gfc_option.max_subrecord_length));
       gfc_add_expr_to_block (&body, tmp);
+    }
+
+   if ((gfc_option.rtcheck & GFC_RTCHECK_RECURSION) && !sym->attr.recursive)
+     {
+       char * msg;
+
+       asprintf (&msg, "Recursive call to nonrecursive procedure '%s'",
+		 sym->name);
+       recurcheckvar = gfc_create_var (boolean_type_node, "is_recursive");
+       TREE_STATIC (recurcheckvar) = 1;
+       DECL_INITIAL (recurcheckvar) = boolean_false_node;
+       gfc_add_expr_to_block (&block, recurcheckvar);
+       gfc_trans_runtime_check (true, false, recurcheckvar, &block,
+				&sym->declared_at, msg);
+       gfc_add_modify (&block, recurcheckvar, boolean_true_node);
+       gfc_free (msg);
     }
 
   if (TREE_TYPE (DECL_RESULT (fndecl)) != void_type_node
@@ -3923,6 +3977,9 @@ gfc_generate_function_code (gfc_namespace * ns)
   else
     gfc_add_expr_to_block (&block, tmp);
 
+ /* Reset recursion-check variable.  */
+ if ((gfc_option.rtcheck & GFC_RTCHECK_RECURSION) && !sym->attr.recursive)
+   gfc_add_modify (&block, recurcheckvar, boolean_false_node);
 
   /* Add all the decls we created during processing.  */
   decl = saved_function_decls;

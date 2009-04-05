@@ -219,6 +219,8 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega8hva",   ARCH_AVR4, "__AVR_ATmega8HVA__" },
   { "atmega4hvd",   ARCH_AVR4, "__AVR_ATmega4HVD__" },
   { "atmega8hvd",   ARCH_AVR4, "__AVR_ATmega8HVD__" },
+  { "atmega8c1",    ARCH_AVR4, "__AVR_ATmega8C1__" },
+  { "atmega8m1",    ARCH_AVR4, "__AVR_ATmega8M1__" },
   { "at90pwm1",     ARCH_AVR4, "__AVR_AT90PWM1__" },
   { "at90pwm2",     ARCH_AVR4, "__AVR_AT90PWM2__" },
   { "at90pwm2b",    ARCH_AVR4, "__AVR_AT90PWM2B__" },
@@ -266,6 +268,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at90can64",    ARCH_AVR5, "__AVR_AT90CAN64__" },
   { "at90pwm216",   ARCH_AVR5, "__AVR_AT90PWM216__" },
   { "at90pwm316",   ARCH_AVR5, "__AVR_AT90PWM316__" },
+  { "atmega16c1",   ARCH_AVR5, "__AVR_ATmega16C1__" },
   { "atmega32c1",   ARCH_AVR5, "__AVR_ATmega32C1__" },
   { "atmega64c1",   ARCH_AVR5, "__AVR_ATmega64C1__" },
   { "atmega16m1",   ARCH_AVR5, "__AVR_ATmega16M1__" },
@@ -305,7 +308,6 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { NULL,           ARCH_UNKNOWN, NULL }
 };
 
-int avr_case_values_threshold = 30000;
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -384,10 +386,6 @@ avr_override_options (void)
 
   avr_current_arch = &avr_arch_types[t->arch];
   avr_extra_arch_macro = t->macro;
-
-  if (optimize && !TARGET_NO_TABLEJUMP)
-    avr_case_values_threshold = 
-      (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 
   tmp_reg_rtx  = gen_rtx_REG (QImode, TMP_REGNO);
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
@@ -6109,6 +6107,13 @@ avr_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
     }
   else
     return false;
+}
+
+/* Worker function for CASE_VALUES_THRESHOLD.  */
+
+unsigned int avr_case_values_threshold (void)
+{
+  return (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 }
 
 #include "gt-avr.h"

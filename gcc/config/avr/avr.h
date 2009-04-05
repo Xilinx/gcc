@@ -734,9 +734,7 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
 
 #define CASE_VECTOR_MODE HImode
 
-extern int avr_case_values_threshold;
-
-#define CASE_VALUES_THRESHOLD avr_case_values_threshold
+#define CASE_VALUES_THRESHOLD avr_case_values_threshold ()
 
 #undef WORD_REGISTER_OPERATIONS
 
@@ -890,8 +888,11 @@ mmcu=*:-mmcu=%*}"
   mmcu=attiny327|\
   mmcu=at90can*|\
   mmcu=at90pwm*|\
+  mmcu=atmega8c1|\
+  mmcu=atmega16c1|\
   mmcu=atmega32c1|\
   mmcu=atmega64c1|\
+  mmcu=atmega8m1|\
   mmcu=atmega16m1|\
   mmcu=atmega32m1|\
   mmcu=atmega64m1|\
@@ -972,6 +973,8 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=atmega88p:crtm88p.o%s} \
 %{mmcu=atmega8515:crtm8515.o%s} \
 %{mmcu=atmega8535:crtm8535.o%s} \
+%{mmcu=atmega8c1:crtm8c1.o%s} \
+%{mmcu=atmega8m1:crtm8m1.o%s} \
 %{mmcu=at90pwm1:crt90pwm1.o%s} \
 %{mmcu=at90pwm2:crt90pwm2.o%s} \
 %{mmcu=at90pwm2b:crt90pwm2b.o%s} \
@@ -1020,6 +1023,7 @@ mmcu=*:-mmcu=%*}"
 %{mmcu=at90can64:crtcan64.o%s} \
 %{mmcu=at90pwm216:crt90pwm216.o%s} \
 %{mmcu=at90pwm316:crt90pwm316.o%s} \
+%{mmcu=atmega16c1:crtm16c1.o%s} \
 %{mmcu=atmega32c1:crtm32c1.o%s} \
 %{mmcu=atmega64c1:crtm64c1.o%s} \
 %{mmcu=atmega16m1:crtm16m1.o%s} \

@@ -977,6 +977,11 @@ finish_record_type (tree record_type, tree fieldlist, int rep_level,
   if (code == QUAL_UNION_TYPE)
     nreverse (fieldlist);
 
+  /* If the type is discriminated, it can be used to access all its
+     constrained subtypes, so force structural equality checks.  */
+  if (CONTAINS_PLACEHOLDER_P (size))
+    SET_TYPE_STRUCTURAL_EQUALITY (record_type);
+
   if (rep_level < 2)
     {
       /* If this is a padding record, we never want to make the size smaller
@@ -1707,7 +1712,7 @@ create_field_decl (tree field_name, tree field_type, tree record_type,
      we get the alignment from the type, indicate if this is from an explicit
      user request, which prevents stor-layout from lowering it later on.  */
   {
-    int bit_align
+    unsigned int bit_align
       = (DECL_BIT_FIELD (field_decl) ? 1
 	 : packed && TYPE_MODE (field_type) != BLKmode ? BITS_PER_UNIT : 0);
 

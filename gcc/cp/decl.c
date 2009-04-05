@@ -3967,13 +3967,16 @@ shadow_tag (cp_decl_specifier_seq *declspecs)
 
 tree
 groktypename (cp_decl_specifier_seq *type_specifiers,
-	      const cp_declarator *declarator)
+	      const cp_declarator *declarator,
+	      bool is_template_arg)
 {
   tree attrs;
   tree type;
+  enum decl_context context
+    = is_template_arg ? TEMPLATE_TYPE_ARG : TYPENAME;
   attrs = type_specifiers->attributes;
   type_specifiers->attributes = NULL_TREE;
-  type = grokdeclarator (declarator, type_specifiers, TYPENAME, 0, &attrs);
+  type = grokdeclarator (declarator, type_specifiers, context, 0, &attrs);
   if (attrs && type != error_mark_node)
     {
       if (CLASS_TYPE_P (type))
@@ -4419,9 +4422,15 @@ check_array_designated_initializer (const constructor_elt *ce)
     {
       /* The parser only allows identifiers as designated
 	 initializers.  */
-      gcc_assert (TREE_CODE (ce->index) == IDENTIFIER_NODE);
-      error ("name %qD used in a GNU-style designated "
-	     "initializer for an array", ce->index);
+      if (ce->index == error_mark_node)
+	error ("name used in a GNU-style designated "
+	       "initializer for an array");
+      else
+	{
+	  gcc_assert (TREE_CODE (ce->index) == IDENTIFIER_NODE);
+	  error ("name %qD used in a GNU-style designated "
+		 "initializer for an array", ce->index);
+	}
       return false;
     }
 
@@ -7179,13 +7188,22 @@ compute_array_index_type (tree name, tree size)
       type = TREE_TYPE (size);
     }
 
-  if (value_dependent_expression_p (size))
+  /* We can only call value_dependent_expression_p on integral constant
+     expressions; the parser adds a dummy NOP_EXPR with TREE_SIDE_EFFECTS
+     set if this isn't one.  */
+  if (processing_template_decl
+      && (TREE_SIDE_EFFECTS (size) || value_dependent_expression_p (size)))
     {
-      /* We cannot do any checking for a value-dependent SIZE. Just
-	 build the index type and mark that it requires structural
-	 equality checks.  */
+      /* We cannot do any checking for a SIZE that isn't known to be
+	 constant. Just build the index type and mark that it requires
+	 structural equality checks.  */
       itype = build_index_type (build_min (MINUS_EXPR, sizetype,
 					   size, integer_one_node));
+      if (!TREE_SIDE_EFFECTS (size))
+	{
+	  TYPE_DEPENDENT_P (itype) = 1;
+	  TYPE_DEPENDENT_P_VALID (itype) = 1;
+	}
       SET_TYPE_STRUCTURAL_EQUALITY (itype);
       return itype;
     }
@@ -7588,6 +7606,7 @@ grokdeclarator (const cp_declarator *declarator,
   bool type_was_error_mark_node = false;
   bool parameter_pack_p = declarator? declarator->parameter_pack_p : false;
   bool set_no_warning = false;
+  bool template_type_arg = false;
 
   signed_p = declspecs->specs[(int)ds_signed];
   unsigned_p = declspecs->specs[(int)ds_unsigned];
@@ -7602,6 +7621,8 @@ grokdeclarator (const cp_declarator *declarator,
     funcdef_flag = true, decl_context = FIELD;
   else if (decl_context == BITFIELD)
     bitfield = 1, decl_context = FIELD;
+  else if (decl_context == TEMPLATE_TYPE_ARG)
+    template_type_arg = true, decl_context = TYPENAME;
 
   if (initialized > 1)
     funcdef_flag = true;
@@ -8461,6 +8482,12 @@ grokdeclarator (const cp_declarator *declarator,
 	      memfn_quals = TYPE_UNQUALIFIED;
 	    }
 
+	  if (TREE_CODE (type) == FUNCTION_TYPE
+	      && cp_type_quals (type) != TYPE_UNQUALIFIED)
+	    error ("cannot declare %s to qualified function type %qT",
+		   declarator->kind == cdk_reference ? "reference" : "pointer",
+		   type);
+
 	  if (declarator->kind == cdk_reference)
 	    {
 	      /* In C++0x, the type we are creating a reference to might be
@@ -8796,12 +8823,11 @@ grokdeclarator (const cp_declarator *declarator,
 	  && TYPE_ANONYMOUS_P (type)
 	  && cp_type_quals (type) == TYPE_UNQUALIFIED)
 	{
-	  tree oldname = TYPE_NAME (type);
 	  tree t;
 
 	  /* Replace the anonymous name with the real name everywhere.  */
 	  for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
-	    if (TYPE_NAME (t) == oldname)
+	    if (ANON_AGGRNAME_P (TYPE_IDENTIFIER (t)))
 	      TYPE_NAME (t) = decl;
 
 	  if (TYPE_LANG_SPECIFIC (type))
@@ -8933,15 +8959,17 @@ grokdeclarator (const cp_declarator *declarator,
 	}
       else if (memfn_quals)
 	{
-	  if (ctype == NULL_TREE)
-	    {
-	      if (TREE_CODE (type) != METHOD_TYPE)
-		error ("invalid qualifiers on non-member function type");
-	      else
-		ctype = TYPE_METHOD_BASETYPE (type);
-	    }
+	  if (ctype == NULL_TREE
+	      && TREE_CODE (type) == METHOD_TYPE)
+	    ctype = TYPE_METHOD_BASETYPE (type);
+
 	  if (ctype)
 	    type = build_memfn_type (type, ctype, memfn_quals);
+	  /* Core issue #547: need to allow this in template type args.  */
+	  else if (template_type_arg && TREE_CODE (type) == FUNCTION_TYPE)
+	    type = cp_build_qualified_type (type, memfn_quals);
+	  else
+	    error ("invalid qualifiers on non-member function type");
 	}
 
       return type;
@@ -9330,6 +9358,14 @@ grokdeclarator (const cp_declarator *declarator,
 	      {
 		error ("virtual non-class function %qs", name);
 		virtualp = 0;
+	      }
+	    else if (sfk == sfk_constructor
+		     || sfk == sfk_destructor)
+	      {
+		error (funcdef_flag
+		       ? "%qs defined in a non-class scope"
+		       : "%qs declared in a non-class scope", name);
+		sfk = sfk_none;
 	      }
 	  }
 	else if (TREE_CODE (type) == FUNCTION_TYPE && staticp < 2
@@ -10749,6 +10785,9 @@ xref_basetypes (tree ref, tree base_list)
   TYPE_BINFO (ref) = binfo;
   BINFO_OFFSET (binfo) = size_zero_node;
   BINFO_TYPE (binfo) = ref;
+
+  /* Apply base-class info set up to the variants of this type.  */
+  fixup_type_variants (ref);
 
   if (max_bases)
     {

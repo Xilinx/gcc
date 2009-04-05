@@ -30,6 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "langhooks-def.h"
 #include "cxx-pretty-print.h"
+#include "pointer-set.h"
 
 #define pp_separate_with_comma(PP) pp_cxx_separate_with (PP, ',')
 
@@ -74,7 +75,7 @@ static void dump_exception_spec (tree, int);
 static void dump_template_argument (tree, int);
 static void dump_template_argument_list (tree, int);
 static void dump_template_parameter (tree, int);
-static void dump_template_bindings (tree, tree);
+static void dump_template_bindings (tree, tree, VEC(tree,gc) *);
 static void dump_scope (tree, int);
 static void dump_template_parms (tree, int, int);
 
@@ -227,9 +228,11 @@ dump_template_parameter (tree parm, int flags)
    TREE_VEC.  */
 
 static void
-dump_template_bindings (tree parms, tree args)
+dump_template_bindings (tree parms, tree args, VEC(tree,gc)* typenames)
 {
   int need_comma = 0;
+  int i;
+  tree t;
 
   while (parms)
     {
@@ -266,6 +269,21 @@ dump_template_bindings (tree parms, tree args)
 	}
 
       parms = TREE_CHAIN (parms);
+    }
+
+  for (i = 0; VEC_iterate (tree, typenames, i, t); ++i)
+    {
+      if (need_comma)
+	pp_separate_with_comma (cxx_pp);
+      dump_type (t, TFF_PLAIN_IDENTIFIER);
+      pp_cxx_whitespace (cxx_pp);
+      pp_equal (cxx_pp);
+      pp_cxx_whitespace (cxx_pp);
+      t = tsubst (t, args, tf_none, NULL_TREE);
+      /* Strip typedefs.  We can't just use TFF_CHASE_TYPEDEF because
+	 pp_simple_type_specifier doesn't know about it.  */
+      t = canonical_type_variant (t);
+      dump_type (t, TFF_PLAIN_IDENTIFIER);
     }
 }
 
@@ -376,6 +394,12 @@ dump_type (tree t, int flags)
       break;
     }
     case TYPENAME_TYPE:
+      if (! (flags & TFF_CHASE_TYPEDEF)
+	  && DECL_ORIGINAL_TYPE (TYPE_NAME (t)))
+	{
+	  dump_decl (TYPE_NAME (t), TFF_PLAIN_IDENTIFIER);
+	  break;
+	}
       pp_cxx_cv_qualifier_seq (cxx_pp, t);
       pp_cxx_identifier (cxx_pp,
 			 TYPENAME_IS_ENUM_P (t) ? "enum"
@@ -550,7 +574,8 @@ dump_type_prefix (tree t, int flags)
 	tree sub = TREE_TYPE (t);
 
 	dump_type_prefix (sub, flags);
-	if (TREE_CODE (sub) == ARRAY_TYPE)
+	if (TREE_CODE (sub) == ARRAY_TYPE
+	    || TREE_CODE (sub) == FUNCTION_TYPE)
 	  {
 	    pp_cxx_whitespace (cxx_pp);
 	    pp_cxx_left_paren (cxx_pp);
@@ -585,12 +610,10 @@ dump_type_prefix (tree t, int flags)
       pp_base (cxx_pp)->padding = pp_before;
       break;
 
-      /* Can only be reached through function pointer -- this would not be
-	 correct if FUNCTION_DECLs used it.  */
+      /* This can be reached without a pointer when dealing with
+	 templates, e.g. std::is_function.  */
     case FUNCTION_TYPE:
       dump_type_prefix (TREE_TYPE (t), flags);
-      pp_maybe_space (cxx_pp);
-      pp_cxx_left_paren (cxx_pp);
       break;
 
     case METHOD_TYPE:
@@ -654,17 +677,19 @@ dump_type_suffix (tree t, int flags)
     case POINTER_TYPE:
     case REFERENCE_TYPE:
     case OFFSET_TYPE:
-      if (TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE)
+      if (TREE_CODE (TREE_TYPE (t)) == ARRAY_TYPE
+	  || TREE_CODE (TREE_TYPE (t)) == FUNCTION_TYPE)
 	pp_cxx_right_paren (cxx_pp);
       dump_type_suffix (TREE_TYPE (t), flags);
       break;
 
-      /* Can only be reached through function pointer.  */
     case FUNCTION_TYPE:
     case METHOD_TYPE:
       {
 	tree arg;
-	pp_cxx_right_paren (cxx_pp);
+	if (TREE_CODE (t) == METHOD_TYPE)
+	  /* Can only be reached through a pointer.  */
+	  pp_cxx_right_paren (cxx_pp);
 	arg = TYPE_ARG_TYPES (t);
 	if (TREE_CODE (t) == METHOD_TYPE)
 	  arg = TREE_CHAIN (arg);
@@ -677,7 +702,7 @@ dump_type_suffix (tree t, int flags)
 	  pp_cxx_cv_qualifier_seq
 	    (cxx_pp, TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (t))));
 	else
-	  pp_cxx_cv_qualifier_seq(cxx_pp, t);
+	  pp_cxx_cv_qualifier_seq (cxx_pp, t);
 	dump_exception_spec (TYPE_RAISES_EXCEPTIONS (t), flags);
 	dump_type_suffix (TREE_TYPE (t), flags);
 	break;
@@ -1073,6 +1098,52 @@ dump_template_decl (tree t, int flags)
     }
 }
 
+/* find_typenames looks through the type of the function template T
+   and returns a VEC containing any typedefs or TYPENAME_TYPEs it finds.  */
+
+struct find_typenames_t
+{
+  struct pointer_set_t *p_set;
+  VEC (tree,gc) *typenames;
+};
+
+static tree
+find_typenames_r (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED, void *data)
+{
+  struct find_typenames_t *d = (struct find_typenames_t *)data;
+  tree mv = NULL_TREE;
+
+  if (TYPE_P (*tp) && is_typedef_decl (TYPE_NAME (*tp)))
+    /* Add the type of the typedef without any additional cv-quals.  */
+    mv = TREE_TYPE (TYPE_NAME (*tp));
+  else if (TREE_CODE (*tp) == TYPENAME_TYPE)
+    /* Add the typename without any cv-qualifiers.  */
+    mv = TYPE_MAIN_VARIANT (*tp);
+
+  if (mv && (mv == *tp || !pointer_set_insert (d->p_set, mv)))
+    VEC_safe_push (tree, gc, d->typenames, mv);
+
+  /* Search into class template arguments, which cp_walk_subtrees
+     doesn't do.  */
+  if (CLASS_TYPE_P (*tp) && CLASSTYPE_TEMPLATE_INFO (*tp))
+    cp_walk_tree (&CLASSTYPE_TI_ARGS (*tp), find_typenames_r,
+		  data, d->p_set);
+
+  return NULL_TREE;
+}
+
+static VEC(tree,gc) *
+find_typenames (tree t)
+{
+  struct find_typenames_t ft;
+  ft.p_set = pointer_set_create ();
+  ft.typenames = NULL;
+  cp_walk_tree (&TREE_TYPE (DECL_TEMPLATE_RESULT (t)),
+		find_typenames_r, &ft, ft.p_set);
+  pointer_set_destroy (ft.p_set);
+  return ft.typenames;
+}
+
 /* Pretty print a function decl. There are several ways we want to print a
    function declaration. The TFF_ bits in FLAGS tells us how to behave.
    As error can only apply the '#' flag once to give 0 and 1 for V, there
@@ -1089,6 +1160,7 @@ dump_function_decl (tree t, int flags)
   int show_return = flags & TFF_RETURN_TYPE || flags & TFF_DECL_SPECIFIERS;
   int do_outer_scope = ! (flags & TFF_UNQUALIFIED_NAME);
   tree exceptions;
+  VEC(tree,gc) *typenames = NULL;
 
   flags &= ~TFF_UNQUALIFIED_NAME;
   if (TREE_CODE (t) == TEMPLATE_DECL)
@@ -1109,6 +1181,7 @@ dump_function_decl (tree t, int flags)
 	{
 	  template_parms = DECL_TEMPLATE_PARMS (tmpl);
 	  t = tmpl;
+	  typenames = find_typenames (t);
 	}
     }
 
@@ -1176,7 +1249,7 @@ dump_function_decl (tree t, int flags)
       pp_cxx_left_bracket (cxx_pp);
       pp_cxx_identifier (cxx_pp, "with");
       pp_cxx_whitespace (cxx_pp);
-      dump_template_bindings (template_parms, template_args);
+      dump_template_bindings (template_parms, template_args, typenames);
       pp_cxx_right_bracket (cxx_pp);
     }
 }
@@ -2666,39 +2739,6 @@ cp_printer (pretty_printer *pp, text_info *text, const char *spec,
 #undef next_int
 }
 
-/* Callback from cpp_error for PFILE to print diagnostics arising from
-   interpreting strings.  The diagnostic is of type LEVEL; MSG is the
-   translated message and AP the arguments.  */
-
-void
-cp_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
-	      const char *msg, va_list *ap)
-{
-  diagnostic_info diagnostic;
-  diagnostic_t dlevel;
-  switch (level)
-    {
-    case CPP_DL_WARNING:
-    case CPP_DL_WARNING_SYSHDR:
-      dlevel = DK_WARNING;
-      break;
-    case CPP_DL_PEDWARN:
-      dlevel = DK_PEDWARN;
-      break;
-    case CPP_DL_ERROR:
-      dlevel = DK_ERROR;
-      break;
-    case CPP_DL_ICE:
-      dlevel = DK_ICE;
-      break;
-    default:
-      gcc_unreachable ();
-    }
-  diagnostic_set_info_translated (&diagnostic, msg, ap,
-				  input_location, dlevel);
-  report_diagnostic (&diagnostic);
-}
-
 /* Warn about the use of C++0x features when appropriate.  */
 void
 maybe_warn_cpp0x (const char* str)

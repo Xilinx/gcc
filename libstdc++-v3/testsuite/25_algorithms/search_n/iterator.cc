@@ -1,4 +1,5 @@
-// Copyright (C) 2004 Free Software Foundation, Inc.
+// Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -16,6 +17,8 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
+// { dg-options "-DTEST_DEPTH=10" { target simulator } }
+
 // 25 algorithms, search_n
 
 #include <algorithm>
@@ -23,7 +26,10 @@
 #include <testsuite_hooks.h>
 #include <testsuite_iterators.h>
 
+#ifndef TEST_DEPTH
 #define TEST_DEPTH 14
+#endif
+
 int array1[11] = {0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0};
 int array2[TEST_DEPTH];
 

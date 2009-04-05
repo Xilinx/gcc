@@ -94,10 +94,6 @@ Wdisabled-optimization
 Common Var(warn_disabled_optimization) Warning
 Warn when an optimization pass is disabled
 
-Wdisallowed-function-list=
-Common RejectNegative Joined Warning
-Warn on calls to these functions
-
 Werror
 Common Var(warnings_are_errors)
 Treat all warnings as errors
@@ -494,6 +490,10 @@ Enable exception handling
 fexpensive-optimizations
 Common Report Var(flag_expensive_optimizations) Optimization
 Perform a number of minor, expensive optimizations
+
+fexcess-precision=
+Common Joined RejectNegative
+-fexcess-precision=[fast|standard]	Specify handling of excess floating-point precision
 
 ffast-math
 Common
@@ -1036,10 +1036,6 @@ Common RejectNegative Joined UInteger
 fsection-anchors
 Common Report Var(flag_section_anchors) Optimization
 Access data in the same section from shared anchor points
-
-frtl-abstract-sequences
-Common Report Var(flag_rtl_seqabstr) Optimization
-Perform sequence abstraction optimization on RTL
 
 fsee
 Common Report Var(flag_see) Init(0)

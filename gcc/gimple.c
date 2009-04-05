@@ -1380,7 +1380,8 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
       /* Walk the RHS operands.  A formal temporary LHS may use a
 	 COMPONENT_REF RHS.  */
       if (wi)
-	wi->val_only = !is_gimple_formal_tmp_var (gimple_assign_lhs (stmt));
+	wi->val_only = !is_gimple_reg (gimple_assign_lhs (stmt))
+                       || !gimple_assign_single_p (stmt);
 
       for (i = 1; i < gimple_num_ops (stmt); i++)
 	{
@@ -1901,7 +1902,7 @@ gimple_set_bb (gimple stmt, basic_block bb)
 	  LABEL_DECL_UID (t) = uid = cfun->cfg->last_label_uid++;
 	  if (old_len <= (unsigned) uid)
 	    {
-	      unsigned new_len = 3 * uid / 2;
+	      unsigned new_len = 3 * uid / 2 + 1;
 
 	      VEC_safe_grow_cleared (basic_block, gc, label_to_block_map,
 				     new_len);
@@ -2208,13 +2209,12 @@ gimple_copy (gimple stmt)
 
       if (gimple_has_mem_ops (stmt))
 	{
-	  gimple_set_vdef_ops (copy, NULL);
-	  gimple_set_vuse_ops (copy, NULL);
-	  copy->gsmem.membase.stores = NULL;
-	  copy->gsmem.membase.loads = NULL;
+	  gimple_set_vdef (copy, gimple_vdef (stmt));
+	  gimple_set_vuse (copy, gimple_vuse (stmt));
 	}
 
-      update_stmt (copy);
+      /* SSA operands need to be updated.  */
+      gimple_set_modified (copy, true);
     }
 
   return copy;
@@ -2455,46 +2455,6 @@ dump_gimple_statistics (void)
 }
 
 
-/* Deep copy SYMS into the set of symbols stored by STMT.  If SYMS is
-   NULL or empty, the storage used is freed up.  */
-
-void
-gimple_set_stored_syms (gimple stmt, bitmap syms, bitmap_obstack *obs)
-{
-  gcc_assert (gimple_has_mem_ops (stmt));
-
-  if (syms == NULL || bitmap_empty_p (syms))
-    BITMAP_FREE (stmt->gsmem.membase.stores);
-  else
-    {
-      if (stmt->gsmem.membase.stores == NULL)
-	stmt->gsmem.membase.stores = BITMAP_ALLOC (obs);
-
-      bitmap_copy (stmt->gsmem.membase.stores, syms);
-    }
-}
-
-
-/* Deep copy SYMS into the set of symbols loaded by STMT.  If SYMS is
-   NULL or empty, the storage used is freed up.  */
-
-void
-gimple_set_loaded_syms (gimple stmt, bitmap syms, bitmap_obstack *obs)
-{
-  gcc_assert (gimple_has_mem_ops (stmt));
-
-  if (syms == NULL || bitmap_empty_p (syms))
-    BITMAP_FREE (stmt->gsmem.membase.loads);
-  else
-    {
-      if (stmt->gsmem.membase.loads == NULL)
-	stmt->gsmem.membase.loads = BITMAP_ALLOC (obs);
-
-      bitmap_copy (stmt->gsmem.membase.loads, syms);
-    }
-}
-
-
 /* Return the number of operands needed on the RHS of a GIMPLE
    assignment for an expression with tree code CODE.  */
 
@@ -2559,37 +2519,13 @@ is_gimple_operand (const_tree op)
   return op && get_gimple_rhs_class (TREE_CODE (op)) == GIMPLE_SINGLE_RHS;
 }
 
-
-/* Return true if T is a GIMPLE RHS for an assignment to a temporary.  */
-
-bool
-is_gimple_formal_tmp_rhs (tree t)
-{
-  if (is_gimple_lvalue (t) || is_gimple_val (t))
-    return true;
-
-  return get_gimple_rhs_class (TREE_CODE (t)) != GIMPLE_INVALID_RHS;
-}
-
 /* Returns true iff T is a valid RHS for an assignment to a renamed
    user -- or front-end generated artificial -- variable.  */
 
 bool
 is_gimple_reg_rhs (tree t)
 {
-  /* If the RHS of the MODIFY_EXPR may throw or make a nonlocal goto
-     and the LHS is a user variable, then we need to introduce a formal
-     temporary.  This way the optimizers can determine that the user
-     variable is only modified if evaluation of the RHS does not throw.
-
-     Don't force a temp of a non-renamable type; the copy could be
-     arbitrarily expensive.  Instead we will generate a VDEF for
-     the assignment.  */
-
-  if (is_gimple_reg_type (TREE_TYPE (t)) && tree_could_throw_p (t))
-    return false;
-
-  return is_gimple_formal_tmp_rhs (t);
+  return get_gimple_rhs_class (TREE_CODE (t)) != GIMPLE_INVALID_RHS;
 }
 
 /* Returns true iff T is a valid RHS for an assignment to an un-renamed
@@ -2603,7 +2539,7 @@ is_gimple_mem_rhs (tree t)
   if (is_gimple_reg_type (TREE_TYPE (t)))
     return is_gimple_val (t);
   else
-    return is_gimple_formal_tmp_rhs (t);
+    return is_gimple_val (t) || is_gimple_lvalue (t);
 }
 
 /*  Return true if T is a valid LHS for a GIMPLE assignment expression.  */
@@ -2889,11 +2825,14 @@ is_gimple_reg (tree t)
   if (TREE_CODE (t) == SSA_NAME)
     t = SSA_NAME_VAR (t);
 
-  if (MTAG_P (t))
-    return false;
-
   if (!is_gimple_variable (t))
     return false;
+
+  /* Complex and vector values must have been put into SSA-like form.
+     That is, no assignments to the individual components.  */
+  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+    return DECL_GIMPLE_REG_P (t);
 
   if (!is_gimple_reg_type (TREE_TYPE (t)))
     return false;
@@ -2921,44 +2860,9 @@ is_gimple_reg (tree t)
   if (TREE_CODE (t) == VAR_DECL && DECL_HARD_REGISTER (t))
     return false;
 
-  /* Complex and vector values must have been put into SSA-like form.
-     That is, no assignments to the individual components.  */
-  if (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
-      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
-    return DECL_GIMPLE_REG_P (t);
-
   return true;
 }
 
-
-/* Returns true if T is a GIMPLE formal temporary variable.  */
-
-bool
-is_gimple_formal_tmp_var (tree t)
-{
-  if (TREE_CODE (t) == SSA_NAME)
-    return true;
-
-  return TREE_CODE (t) == VAR_DECL && DECL_GIMPLE_FORMAL_TEMP_P (t);
-}
-
-/* Returns true if T is a GIMPLE formal temporary register variable.  */
-
-bool
-is_gimple_formal_tmp_reg (tree t)
-{
-  /* The intent of this is to get hold of a value that won't change.
-     An SSA_NAME qualifies no matter if its of a user variable or not.  */
-  if (TREE_CODE (t) == SSA_NAME)
-    return true;
-
-  /* We don't know the lifetime characteristics of user variables.  */
-  if (!is_gimple_formal_tmp_var (t))
-    return false;
-
-  /* Finally, it must be capable of being placed in a register.  */
-  return is_gimple_reg (t);
-}
 
 /* Return true if T is a GIMPLE variable whose address is not needed.  */
 
@@ -3006,6 +2910,8 @@ is_gimple_asm_val (tree t)
 bool
 is_gimple_min_lval (tree t)
 {
+  if (!(t = CONST_CAST_TREE (strip_invariant_refs (t))))
+    return false;
   return (is_gimple_id (t) || TREE_CODE (t) == INDIRECT_REF);
 }
 
@@ -3177,6 +3083,9 @@ gimple_call_copy_skip_args (gimple stmt, bitmap args_to_skip)
   if (gimple_call_lhs (stmt))
     gimple_call_set_lhs (new_stmt, gimple_call_lhs (stmt));
 
+  gimple_set_vuse (new_stmt, gimple_vuse (stmt));
+  gimple_set_vdef (new_stmt, gimple_vdef (stmt));
+
   gimple_set_block (new_stmt, gimple_block (stmt));
   if (gimple_has_location (stmt))
     gimple_set_location (new_stmt, gimple_location (stmt));
@@ -3188,7 +3097,101 @@ gimple_call_copy_skip_args (gimple stmt, bitmap args_to_skip)
   gimple_call_set_return_slot_opt (new_stmt, gimple_call_return_slot_opt_p (stmt));
   gimple_call_set_from_thunk (new_stmt, gimple_call_from_thunk_p (stmt));
   gimple_call_set_va_arg_pack (new_stmt, gimple_call_va_arg_pack_p (stmt));
+
+  gimple_set_modified (new_stmt, true);
+
   return new_stmt;
+}
+
+
+/* Data structure used to count the number of dereferences to PTR
+   inside an expression.  */
+struct count_ptr_d
+{
+  tree ptr;
+  unsigned num_stores;
+  unsigned num_loads;
+};
+
+/* Helper for count_uses_and_derefs.  Called by walk_tree to look for
+   (ALIGN/MISALIGNED_)INDIRECT_REF nodes for the pointer passed in DATA.  */
+
+static tree
+count_ptr_derefs (tree *tp, int *walk_subtrees, void *data)
+{
+  struct walk_stmt_info *wi_p = (struct walk_stmt_info *) data;
+  struct count_ptr_d *count_p = (struct count_ptr_d *) wi_p->info;
+
+  /* Do not walk inside ADDR_EXPR nodes.  In the expression &ptr->fld,
+     pointer 'ptr' is *not* dereferenced, it is simply used to compute
+     the address of 'fld' as 'ptr + offsetof(fld)'.  */
+  if (TREE_CODE (*tp) == ADDR_EXPR)
+    {
+      *walk_subtrees = 0;
+      return NULL_TREE;
+    }
+
+  if (INDIRECT_REF_P (*tp) && TREE_OPERAND (*tp, 0) == count_p->ptr)
+    {
+      if (wi_p->is_lhs)
+	count_p->num_stores++;
+      else
+	count_p->num_loads++;
+    }
+
+  return NULL_TREE;
+}
+
+/* Count the number of direct and indirect uses for pointer PTR in
+   statement STMT.  The number of direct uses is stored in
+   *NUM_USES_P.  Indirect references are counted separately depending
+   on whether they are store or load operations.  The counts are
+   stored in *NUM_STORES_P and *NUM_LOADS_P.  */
+
+void
+count_uses_and_derefs (tree ptr, gimple stmt, unsigned *num_uses_p,
+		       unsigned *num_loads_p, unsigned *num_stores_p)
+{
+  ssa_op_iter i;
+  tree use;
+
+  *num_uses_p = 0;
+  *num_loads_p = 0;
+  *num_stores_p = 0;
+
+  /* Find out the total number of uses of PTR in STMT.  */
+  FOR_EACH_SSA_TREE_OPERAND (use, stmt, i, SSA_OP_USE)
+    if (use == ptr)
+      (*num_uses_p)++;
+
+  /* Now count the number of indirect references to PTR.  This is
+     truly awful, but we don't have much choice.  There are no parent
+     pointers inside INDIRECT_REFs, so an expression like
+     '*x_1 = foo (x_1, *x_1)' needs to be traversed piece by piece to
+     find all the indirect and direct uses of x_1 inside.  The only
+     shortcut we can take is the fact that GIMPLE only allows
+     INDIRECT_REFs inside the expressions below.  */
+  if (is_gimple_assign (stmt)
+      || gimple_code (stmt) == GIMPLE_RETURN
+      || gimple_code (stmt) == GIMPLE_ASM
+      || is_gimple_call (stmt))
+    {
+      struct walk_stmt_info wi;
+      struct count_ptr_d count;
+
+      count.ptr = ptr;
+      count.num_stores = 0;
+      count.num_loads = 0;
+
+      memset (&wi, 0, sizeof (wi));
+      wi.info = &count;
+      walk_gimple_op (stmt, count_ptr_derefs, &wi);
+
+      *num_stores_p = count.num_stores;
+      *num_loads_p = count.num_loads;
+    }
+
+  gcc_assert (*num_uses_p >= *num_loads_p + *num_stores_p);
 }
 
 #include "gt-gimple.h"

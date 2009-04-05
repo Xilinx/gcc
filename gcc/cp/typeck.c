@@ -4031,7 +4031,7 @@ cp_pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      pointer_int_sum() anyway.  */
   complete_type (TREE_TYPE (res_type));
 
-  return pointer_int_sum (resultcode, ptrop,
+  return pointer_int_sum (input_location, resultcode, ptrop,
 			  fold_if_not_in_template (intop));
 }
 
@@ -7237,6 +7237,9 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
   tree type = TREE_TYPE (decl);
 
   if (type == error_mark_node)
+    return;
+
+  if (TREE_CODE (decl) == TYPE_DECL)
     return;
 
   if (TREE_CODE (type) == FUNCTION_TYPE

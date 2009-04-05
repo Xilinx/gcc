@@ -663,6 +663,10 @@ A @code{typeof}-construct can be used anywhere a typedef name could be
 used.  For example, you can use it in a declaration, in a cast, or inside
 of @code{sizeof} or @code{typeof}.
 
+The operand of @code{typeof} is evaluated for its side effects if and
+only if it is an expression of variably modified type or the name of
+such a type.
+
 @code{typeof} is often useful in conjunction with the
 statements-within-expressions feature.  Here is how the two together can
 be used to define a safe ``maximum'' macro that operates on any
@@ -2398,7 +2402,7 @@ This attribute is ignored for R8C target.
 
 @item interrupt
 @cindex interrupt handler functions
-Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k,
+Use this attribute on the ARM, AVR, CRX, M32C, M32R/D, m68k, MIPS
 and Xstormy16 ports to indicate that the specified function is an
 interrupt handler.  The compiler will generate function entry and exit
 sequences suitable for use in an interrupt handler when this attribute
@@ -2420,6 +2424,42 @@ Permissible values for this parameter are: IRQ, FIQ, SWI, ABORT and UNDEF@.
 
 On ARMv7-M the interrupt type is ignored, and the attribute means the function
 may be called with a word aligned stack pointer.
+
+On MIPS targets, you can use the following attributes to modify the behavior
+of an interrupt handler:
+@table @code
+@item use_shadow_register_set
+@cindex @code{use_shadow_register_set} attribute
+Assume that the handler uses a shadow register set, instead of
+the main general-purpose registers.
+
+@item keep_interrupts_masked
+@cindex @code{keep_interrupts_masked} attribute
+Keep interrupts masked for the whole function.  Without this attribute,
+GCC tries to reenable interrupts for as much of the function as it can.
+
+@item use_debug_exception_return
+@cindex @code{use_debug_exception_return} attribute
+Return using the @code{deret} instruction.  Interrupt handlers that don't
+have this attribute return using @code{eret} instead.
+@end table
+
+You can use any combination of these attributes, as shown below:
+@smallexample
+void __attribute__ ((interrupt)) v0 ();
+void __attribute__ ((interrupt, use_shadow_register_set)) v1 ();
+void __attribute__ ((interrupt, keep_interrupts_masked)) v2 ();
+void __attribute__ ((interrupt, use_debug_exception_return)) v3 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     keep_interrupts_masked)) v4 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     use_debug_exception_return)) v5 ();
+void __attribute__ ((interrupt, keep_interrupts_masked,
+		     use_debug_exception_return)) v6 ();
+void __attribute__ ((interrupt, use_shadow_register_set,
+		     keep_interrupts_masked,
+		     use_debug_exception_return)) v7 ();
+@end smallexample
 
 @item interrupt_handler
 @cindex interrupt handler functions on the Blackfin, m68k, H8/300 and SH processors
@@ -3069,7 +3109,7 @@ Do/do not align destination of inlined string operations.
 @itemx no-recip
 @cindex @code{target("recip")} attribute
 Enable/disable the generation of RCPSS, RCPPS, RSQRTSS and RSQRTPS
-instructions followed an additional Newton-Rhapson step instead of
+instructions followed an additional Newton-Raphson step instead of
 doing a floating point division.
 
 @item arch=@var{ARCH}
@@ -3861,7 +3901,7 @@ struct foo
 @emph{Note:} The 4.1, 4.2 and 4.3 series of GCC ignore the
 @code{packed} attribute on bit-fields of type @code{char}.  This has
 been fixed in GCC 4.4 but the change can lead to differences in the
-structure layout.  See the documention of
+structure layout.  See the documentation of
 @option{-Wpacked-bitfield-compat} for more information.
 
 @item section ("@var{section-name}")
@@ -6635,9 +6675,8 @@ depending on the arguments' types.  For example:
 
 You can use the built-in function @code{__builtin_choose_expr} to
 evaluate code depending on the value of a constant expression.  This
-built-in function returns @var{exp1} if @var{const_exp}, which is a
-constant expression that must be able to be determined at compile time,
-is nonzero.  Otherwise it returns 0.
+built-in function returns @var{exp1} if @var{const_exp}, which is an
+integer constant expression, is nonzero.  Otherwise it returns 0.
 
 This built-in function is analogous to the @samp{? :} operator in C,
 except that the expression returned has its type unaltered by promotion
@@ -6716,7 +6755,11 @@ static const int table[] = @{
 
 @noindent
 This is an acceptable initializer even if @var{EXPRESSION} is not a
-constant expression.  GCC must be more conservative about evaluating the
+constant expression, including the case where
+@code{__builtin_constant_p} returns 1 because @var{EXPRESSION} can be
+folded to a constant but @var{EXPRESSION} contains operands that would
+not otherwize be permitted in a static initializer (for example,
+@code{0 && foo ()}).  GCC must be more conservative about evaluating the
 built-in in this case, because it has no opportunity to perform
 optimization.
 
@@ -7780,6 +7823,11 @@ The following floating point built-in functions are made available in the
 @table @code
 @item __float128 __builtin_infq (void)
 Similar to @code{__builtin_inf}, except the return type is @code{__float128}.
+@findex __builtin_infq
+
+@item __float128 __builtin_huge_valq (void)
+Similar to @code{__builtin_huge_val}, except the return type is @code{__float128}.
+@findex __builtin_huge_valq
 @end table
 
 The following built-in functions are made available by @option{-mmmx}.

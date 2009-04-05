@@ -2,7 +2,7 @@
 # Process this file with autoconf to generate a configuration script.
 
 # Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-# 2007, 2008 Free Software Foundation, Inc.
+# 2007, 2008, 2009 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -1022,26 +1022,6 @@ fi
 AC_CHECK_TYPE(ssize_t, int)
 AC_CHECK_TYPE(caddr_t, char *)
 
-# Try to determine the array type of the second argument of getgroups
-# for the target system (int or gid_t).
-AC_TYPE_GETGROUPS
-if test "${target}" = "${build}"; then
-  TARGET_GETGROUPS_T=$ac_cv_type_getgroups
-else
-  case "${target}" in
-	# This condition may need some tweaking.  It should include all
-	# targets where the array type of the second argument of getgroups
-	# is int and the type of gid_t is not equivalent to int.
-	*-*-sunos* | *-*-ultrix*)
-		TARGET_GETGROUPS_T=int
-		;;
-	*)
-		TARGET_GETGROUPS_T=gid_t
-		;;
-  esac
-fi
-AC_SUBST(TARGET_GETGROUPS_T)
-
 gcc_AC_FUNC_MMAP_BLACKLIST
 
 case "${host}" in
@@ -1742,7 +1722,7 @@ AC_SUBST(inhibit_libc)
 
 # When building gcc with a cross-compiler, we need to adjust things so
 # that the generator programs are still built with the native compiler.
-# Also, we cannot run fixincludes or fix-header.
+# Also, we cannot run fixincludes.
 
 # These are the normal (build=host) settings:
 CC_FOR_BUILD='$(CC)'		AC_SUBST(CC_FOR_BUILD)
@@ -1750,28 +1730,11 @@ BUILD_CFLAGS='$(ALL_CFLAGS)'	AC_SUBST(BUILD_CFLAGS)
 BUILD_LDFLAGS='$(LDFLAGS)'	AC_SUBST(BUILD_LDFLAGS)
 STMP_FIXINC=stmp-fixinc		AC_SUBST(STMP_FIXINC)
 
-# Possibly disable fixproto, on a per-target basis.
-case ${use_fixproto} in
-  no)
-    STMP_FIXPROTO=
-    ;;
-  yes)
-    STMP_FIXPROTO=stmp-fixproto
-    ;;
-esac
-AC_SUBST(STMP_FIXPROTO)
-
 # And these apply if build != host, or we are generating coverage data
 if test x$build != x$host || test "x$coverage_flags" != x
 then
     BUILD_CFLAGS='$(INTERNAL_CFLAGS) $(T_CFLAGS) $(CFLAGS_FOR_BUILD)'
     BUILD_LDFLAGS='$(LDFLAGS_FOR_BUILD)'
-
-    if test "x$TARGET_SYSTEM_ROOT" = x; then
-	if test "x$STMP_FIXPROTO" != x; then
-	  STMP_FIXPROTO=stmp-install-fixproto
-	fi
-    fi
 fi
 
 # Expand extra_headers to include complete path.
@@ -2444,6 +2407,17 @@ foo:	.long	25
 	tls_first_minor=13
 	tls_as_opt=--fatal-warnings
 	;;
+  cris-*-*|crisv32-*-*)
+    conftest_s='
+	.section ".tdata","awT",@progbits
+x:      .long   25
+        .text
+	move.d x:IE,$r10
+	nop'
+	tls_first_major=2
+	tls_first_minor=20
+	tls_as_opt=--fatal-warnings
+	;;
   frv*-*-*)
     conftest_s='
 	.section ".tdata","awT",@progbits
@@ -2782,7 +2756,7 @@ fi
 AC_MSG_CHECKING(linker -Bstatic/-Bdynamic option)
 gcc_cv_ld_static_dynamic=no
 if test $in_tree_ld = yes ; then
-  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 10; then
+  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 10 -o "$gcc_cv_gld_major_version" -gt 2; then
     gcc_cv_ld_static_dynamic=yes
   fi
 elif test x$gcc_cv_ld != x; then
@@ -3154,6 +3128,12 @@ LCF0:
       [.gnu_attribute 4,1],,
       [AC_DEFINE(HAVE_AS_GNU_ATTRIBUTE, 1,
 	  [Define if your assembler supports .gnu_attribute.])])
+
+    gcc_GAS_CHECK_FEATURE([tls marker support],
+      gcc_cv_as_powerpc_tls_markers, [2,20,0],,
+      [ bl __tls_get_addr(x@tlsgd)],,
+      [AC_DEFINE(HAVE_AS_TLS_MARKERS, 1,
+	  [Define if your assembler supports arg info for __tls_get_addr.])])
     ;;
 
   mips*-*-*)
@@ -3213,7 +3193,7 @@ esac
 case "$target" in
   i?86*-*-* | mips*-*-* | alpha*-*-* | powerpc*-*-* | sparc*-*-* | m68*-*-* \
   | x86_64*-*-* | hppa*-*-* | arm*-*-* \
-  | xstormy16*-*-* | cris-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
+  | xstormy16*-*-* | cris-*-* | crisv32-*-* | xtensa*-*-* | bfin-*-* | score*-*-* \
   | spu-*-* | fido*-*-* | m32c-*-*)
     insn="nop"
     ;;
@@ -3931,6 +3911,7 @@ AC_SUBST(tm_p_include_list)
 AC_SUBST(xm_file_list)
 AC_SUBST(xm_include_list)
 AC_SUBST(xm_defines)
+AC_SUBST(use_gcc_stdint)
 AC_SUBST(c_target_objs)
 AC_SUBST(cxx_target_objs)
 AC_SUBST(fortran_target_objs)

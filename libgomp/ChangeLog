@@ -1,3 +1,24 @@
+2009-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/39591
+	* testsuite/libgomp.c/pr39591-1.c: New test.
+	* testsuite/libgomp.c/pr39591-2.c: New test.
+	* testsuite/libgomp.c/pr39591-3.c: New test.
+
+2009-03-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-5.c: Cleanup cpuid usage.
+	* testsuite/libgomp.c/atomic-6.c: Ditto.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* testsuite/libgomp.c/loop-12.c: New test.
+	* testsuite/libgomp.c/loop-11.c: New test.
+	* testsuite/libgomp.c++/loop-11.C: New test.
+	* testsuite/libgomp.c++/loop-12.C: New test.
+	* testsuite/libgomp.c++/for-8.C: New test.
+
 2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure: Regenerate.
@@ -16,7 +37,7 @@
 
 2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
 
-        * testsuite/lib/libgomp.exp: Add -B option for targets that
+	* testsuite/lib/libgomp.exp: Add -B option for targets that
 	use libgfortran.a%s in their specs.
 
 2009-01-07  Jakub Jelinek  <jakub@redhat.com>

@@ -1,3 +1,213 @@
+2009-04-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (dump_template_bindings): Look through typedefs in
+	typename results.
+	(dump_type) [TYPENAME_TYPE]: Print the typedef name if any.
+	(find_typenames_r): Also collect typedefs.
+	* pt.c (unify): Strip typedefs.
+
+	PR c++/39608
+	* semantics.c (finish_id_expression): Don't assume a dependent
+	member of the current instantiation isn't a valid integral
+	constant expression.  Check dependent_scope_p.
+	* pt.c (dependent_scope_p): Check TYPE_P.
+	(tsubst_copy): If args is null, just return.
+
+2009-04-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (find_typenames, find_typenames_r): New fns.
+	(dump_function_decl): Call find_typenames.
+	(dump_template_bindings): Print typenames as well.
+	* pt.c (tsubst): Non-static.
+	* cp-tree.h: Declare it.
+
+2009-04-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/26693
+	* decl2.c (grokfield): when a typedef appears in a
+	class, create the typedef variant type node for it.
+	(save_template_attributes): Creating typedef variant type node
+	 here is now useless.
+	* decl.c (grokdeclarator): If the typedef'ed struct/class was
+	anonymous, set the proper type name to all its type variants.
+	(xref_basetypes) : Fixup the variant types after setting
+	TYPE_BINFO on REF.
+	* name-lookup.c (pushdecl_maybe_friend): Reuse the
+	set_underlying_type function to install typedef variant types.
+	* cp-tree.h (MEMBER_TYPES_NEEDING_ACCESS_CHECK): New template accessor
+	macro.
+	(append_type_to_template_for_access_check): New entry points.
+	* semantics.c (check_accessibility_of_qualified_id):
+	When a typedef that is a member of a class appears in a template,
+	add it to the template. It will be ...
+	* class.c (finish_struct_bits): Split type variant fixup into ...
+	(fixup_type_variants): A new entry point.
+	* pt.c (instantiate_class_template, instantiate_template ): ... access
+	checked at template instantiation time.
+	(resolve_type_name_type): The type name should be the name of the
+	main type variant.
+	(retrieve_specialization): Specializations of template typedefs aren't
+	to looked up in DECL_TEMPLATE_INSTANTIATIONS (tmpl).
+	(append_type_to_template_for_access_check): New entry point.
+	(tsubst_decl): For typedefs, build the variant type from the correct
+	original type.
+	(get_class_bindings): Fix function comment.
+	(perform_typedefs_access_check): New entry point.
+
+2009-03-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34691
+	* name-lookup.c (pushdecl_maybe_friend): Diagnose mismatched
+	extern "C" declarations.
+
+	C++ DR 613
+	* semantics.c (finish_non_static_data_member): Allow such references
+	without an associated object in sizeof/decltype/alignof.
+
+	* ptree.c (cxx_print_decl): Pretty-print full name of
+	function/template.
+	(cxx_print_type): Pretty-print full name of class.
+
+	* decl.c (grokdeclarator): Reject pointer to qualified function
+	type.
+
+	PR c++/37806, core issue 547
+	* typeck.c (cp_apply_type_quals_to_decl): Don't apply any quals
+	to a typedef.
+	* tree.c (cp_build_qualified_type_real): Don't apply restrict to a 
+	function type.
+	* decl.h (enum decl_context): Add TEMPLATE_TYPE_ARG.
+	* decl.c (groktypename): Add is_template_arg parameter.
+	(grokdeclarator): Allow function cv-quals on a template type arg.
+	* parser.c (cp_parser_new_type_id, cp_parser_type_id): Add
+	is_template_arg argument in calls to groktypename.
+	* cp-tree.h: Adjust prototype.
+	* error.c (dump_type_prefix, dump_type_suffix): Fix plain 
+	FUNCTION_TYPE printing.
+	
+	* mangle.c (write_expression): Mangle dependent name as
+	source-name.
+
+	PR c++/38030, 38850, 39070
+	* pt.c (type_dependent_expression_p_push): New fn.
+	(tsubst_copy_and_build) [CALL_EXPR]: Only do arg-dep lookup when the
+	substitution makes the call non-dependent.  Preserve koenig_p.
+	* parser.c (cp_parser_postfix_expression): Only do arg-dep lookup
+	for non-dependent calls.
+	* semantics.c (finish_call_expr): Revert earlier changes.
+	* cp-tree.h: Revert change to finish_call_expr prototype.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR preprocessor/34695
+	* cp-tree.h (cp_cpp_error): Remove.
+	* error.c (cp_cpp_error): Remove.
+	* parser.c (cp_lexer_new_main): Set done_lexing instead of
+	client_diagnostic and error callback.
+
+2009-03-28  Paolo Bonzini  <bonzini@gnu.org>
+
+	* cp/cp-objcp-common.h (LANG_HOOKS_STATICP): Remove.
+	* cp/cp-objcp-common.c (cxx_staticp): Remove.
+	* cp/cp-tree.h (cxx_staticp): Remove.
+
+2009-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39554
+	* parser.c (cp_parser_postfix_expression): Don't call
+	warning_if_disallowed_function_p.
+
+2009-03-27  Jan Hubicka  <jh@suse.cz>
+
+	* except.c (choose_personality_routine): Set terminate_node to abort
+	for java exceptions.
+
+2009-03-27  Dodji Seketeli  <dodji@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/37959
+	* cp-objcp-common.h (LANG_HOOKS_FUNCTION_DECL_EXPLICIT_P): Define.
+	(cp_function_decl_explicit_p): New prototype.
+	* cp-objcp-common.c (cp_function_decl_explicit_p): New function.
+
+2009-03-27  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR c++/38638
+	* parser.c (cp_parser_elaborated_type_specifier): If we have a
+	typename tag and don't have either a TYPE_DECL or a
+	TEMPLATE_ID_EXPR, set the type to NULL.
+
+2009-03-27  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/37647
+	* decl.c (grokdeclarator): Reject [con|de]stuctors in a non-class
+	scope.
+
+2009-03-27  Simon Martin  <simartin@users.sourceforge.net>
+
+	PR c++/29727
+	* decl.c (check_array_designated_initializer): Handle error_mark_node.
+
+2009-03-27  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/35652
+	* typeck.c (cp_pointer_sum): Adjust call to pointer_int_sum.
+
+2009-03-26  Andrew Haley  <aph@redhat.com>
+
+	PR C++/39380
+	* decl2.c (possibly_inlined_p): If java exceptions are in use
+	don't inline a decl unless it is explicitly marked inline.
+	* lex.c: (pragma_java_exceptions): New variable.
+	(handle_pragma_java_exceptions): Set pragma_java_exceptions.
+	* cp-tree.h (pragma_java_exceptions): Declare new variable.
+
+2009-03-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28274
+	* name-lookup.c (pushdecl_maybe_friend): Check default args later.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* semantics.c (handle_omp_for_class_iterator): Swap cond operands and
+	code if iter is the second operand.
+	* parser.c (cp_parser_binary_expression): Add no_toplevel_fold_p
+	argument.  If it is set, don't build the toplevel expression with
+	build_x_binary_op, but build2.
+	(cp_parser_assignment_expression,  cp_parser_omp_for_incr): Adjust
+	callers.
+	(cp_parser_omp_for_cond): Don't assume the first operand of the
+	comparison must be decl.
+
+2009-03-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37729
+	* pt.c (make_fnparm_pack): Split out from...
+	(instantiate_decl): ...here.
+	(tsubst_pack_expansion): Handle being called in a late-specified
+	return type.
+
+	PR c++/39526
+	* name-lookup.c (pushdecl_maybe_friend): Don't warn about shadowing
+	a parm with a parm.
+
+2009-03-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28879
+	* parser.c (cp_parser_direct_declarator): In a template, wrap 
+	non-constant expression in NOP_EXPR with TREE_SIDE_EFFECTS set.
+	* pt.c (tsubst): Preserve it in a partial instantiation.
+	(dependent_type_p_r): Don't check value_dependent_expression_p.
+	* decl.c (compute_array_index_type): Don't check
+	value_dependent_expression_p if TREE_SIDE_EFFECTS.
+
+	C++ core issue 703
+	* typeck2.c (check_narrowing): Don't complain about loss of 
+	precision when converting a floating-point constant.
+
 2009-03-19  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c/39495
