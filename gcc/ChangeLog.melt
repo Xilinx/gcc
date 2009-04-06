@@ -1,3 +1,12 @@
+2009-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	[adding PPL polyhedron]
+	* basilys.h (ppl_Polyhedron_t, BPARSTR_PPL_POLYHEDRON)
+	(OBMAG_SPECPPL_POLYHEDRON, BGLOB_CTYPE_PPL_POLYHEDRON) added.
+	* basilys.c (delete_special, readsimplelong)
+	(basilysgc_ppstrbuf_ppl_varnamvect): handling polyhedron.
+	* melt/warmelt-first.bysl: added ctype_ppl_polyhedron
+	* melt/warmelt-normal.bysl: added global_CTYPE_PPL_POLYHEDRON.
+	* melt/ana-base.bysl: added foreach_basicblock_succ_edge ...
 2009-04-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	[binding issue with citerators seems to be solved / t2iter.bysl test]
 	* melt/warmelt-normal.bysl: added has_extra_warnings and use it to

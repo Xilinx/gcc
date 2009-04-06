@@ -1572,6 +1572,19 @@
 )
 (install_ctype_descr ctype_ppl_constraint_system "PPL constraint_system")
 
+;;; the ctype for PPL polyhedra (=polyhedrons)
+(definstance ctype_ppl_polyhedron class_ctype
+  :predef CTYPE_PPL_POLYHEDRON
+  :named_name (stringconst2val discr_namestring "CTYPE_PPL_POLYHEDRON")
+  :ctype_keyword ':ppl_polyhedron
+  :ctype_cname  (stringconst2val discr_namestring "ppl_Polyhedron_t")
+  :ctype_parchar (stringconst2val discr_namestring "BPAR_PPL_POLYHEDRON")
+  :ctype_parstring (stringconst2val discr_namestring "BPARSTR_PPL_POLYHEDRON")
+  :ctype_argfield (stringconst2val discr_namestring "bp_ppl_polyhedron")
+  :ctype_resfield (stringconst2val discr_namestring "bp_ppl_polyhedronptr")
+)
+(install_ctype_descr ctype_ppl_polyhedron "PPL polyhedron")
+
 ;;;;;;;;;;;;;;;;
 ;; the C type for void
 (definstance ctype_void class_ctype

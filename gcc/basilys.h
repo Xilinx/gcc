@@ -58,6 +58,7 @@ typedef struct ppl_Constraint_tag *ppl_Constraint_t;
 typedef struct ppl_Constraint_System_tag *ppl_Constraint_System_t;
 typedef struct ppl_Generator_tag *ppl_Generator_t;
 typedef struct ppl_Generator_System_tag *ppl_Generator_System_t;
+typedef struct ppl_Polyhedron_tag *ppl_Polyhedron_t;
 
 /* declared in toplev.h which we want to avoid #include-ing */
 extern void fatal_error (const char *, ...);
@@ -143,9 +144,9 @@ union basilysparam_un
 {
   /* for basilys value pointers, we pass the address of a local, to be
      compatible with our copying garbage collector */
-  basilys_ptr_t *bp_aptr;	/* letter P */
-#define BPAR_PTR          'P'
-#define BPARSTR_PTR       "P"
+  basilys_ptr_t *bp_aptr;	/* letter p */
+#define BPAR_PTR          'p'
+#define BPARSTR_PTR       "p"
 
 /* we no longer have BPAR_RESTPTR as 'R' */
 
@@ -182,32 +183,39 @@ union basilysparam_un
   /* readonly constant strings - not in GP nor in heap */
   const char *bp_cstring;			/* letter S */
   const char **bp_cstringptr;		/* for results */
-#define BPAR_CSTRING         'S'
-#define BPARSTR_CSTRING      "S"
+#define BPAR_CSTRING         's'
+#define BPARSTR_CSTRING      "s"
 
+  /* PPL and special stuff are getting the upper case letters */
   /* PPL coefficients */
   ppl_Coefficient_t bp_ppl_coefficient;
   ppl_Coefficient_t* bp_ppl_coefficientptr;
-#define BPAR_PPL_COEFFICIENT 'C'
-#define BPARSTR_PPL_COEFFICIENT "C"
+#define BPAR_PPL_COEFFICIENT 'A'
+#define BPARSTR_PPL_COEFFICIENT "A"
 
   /* PPL constraints */
   ppl_Constraint_t bp_ppl_constraint;
   ppl_Constraint_t* bp_ppl_constraintptr;
-#define BPAR_PPL_CONSTRAINT 'D'
-#define BPARSTR_PPL_CONSTRAINT "D"
+#define BPAR_PPL_CONSTRAINT 'B'
+#define BPARSTR_PPL_CONSTRAINT "B"
 
   /* PPL constraint systems */
   ppl_Constraint_System_t bp_ppl_constraint_system;
   ppl_Constraint_System_t* bp_ppl_constraint_systemptr;
-#define BPAR_PPL_CONSTRAINT_SYSTEM 'E'
-#define BPARSTR_PPL_CONSTRAINT_SYSTEM "E"
+#define BPAR_PPL_CONSTRAINT_SYSTEM 'C'
+#define BPARSTR_PPL_CONSTRAINT_SYSTEM "C"
 
   /* PPL linear expressions */
   ppl_Linear_Expression_t bp_ppl_linear_expression;
   ppl_Linear_Expression_t* bp_ppl_linear_expressionptr;
-#define BPAR_PPL_LINEAR_EXPRESSION 'E'
-#define BPARSTR_PPL_LINEAR_EXPRESSION "E"
+#define BPAR_PPL_LINEAR_EXPRESSION 'D'
+#define BPARSTR_PPL_LINEAR_EXPRESSION "D"
+
+  /* PPL polyhedrons */
+  ppl_Polyhedron_t bl_ppl_polyhedron;
+  ppl_Polyhedron_t* bp_ppl_polyhedronptr;
+#define BPAR_PPL_POLYHEDRON            'E'
+#define BPARSTR_PPL_POLYHEDRON         "E"
 
 };
 
@@ -344,6 +352,7 @@ enum obmag_en    {
   OBMAG_SPECPPL_CONSTRAINT_SYSTEM,
   OBMAG_SPECPPL_GENERATOR,
   OBMAG_SPECPPL_GENERATOR_SYSTEM,
+  OBMAG_SPECPPL_POLYHEDRON,
   OBMAG__LAST
 };
 
@@ -629,6 +638,7 @@ union special_basilys_un
   ppl_Constraint_System_t sp_constraint_system;
   ppl_Generator_t sp_generator;
   ppl_Generator_System_t sp_generator_system;
+  ppl_Polyhedron_t sp_polyhedron;
 };
 
 /* PPL special have to be explicitly deleted; hence we need a hook
@@ -913,7 +923,9 @@ GTY ((desc ("%0.u_discr->object_magic")))
 	  tag ("OBMAG_SPECPPL_CONSTRAINT"),
 	  tag ("OBMAG_SPECPPL_CONSTRAINT_SYSTEM"),
 	  tag ("OBMAG_SPECPPL_GENERATOR"),
-	  tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"))) u_special;
+	  tag ("OBMAG_SPECPPL_GENERATOR_SYSTEM"),
+	  tag ("OBMAG_SPECPPL_POLYHEDRON"))
+    ) u_special;
   struct basilysstring_st GTY ((tag ("OBMAG_STRING"))) u_string;
   struct basilysstrbuf_st GTY ((tag ("OBMAG_STRBUF"))) u_strbuf;
   struct basilystree_st GTY ((tag ("OBMAG_TREE"))) u_tree;
@@ -2569,6 +2581,8 @@ enum basilys_globalix_en
   BGLOB_CTYPE_PPL_GENERATOR,
   /* @@unimplemented ctype of PPL generator systems */
   BGLOB_CTYPE_PPL_GENERATOR_SYSTEM,
+  /* @@unimplemented ctype of PPL polyhedrons */
+  BGLOB_CTYPE_PPL_POLYHEDRON,
   /* the initial system data */
   BGLOB_INITIAL_SYSTEM_DATA,
   /* the atom for true */

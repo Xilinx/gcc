@@ -668,6 +668,23 @@
    )
   )
 
+(defciterator foreach_basicblock_succ_edge
+  (:basicblock bb)
+  eachbbsucc
+  (:edge e)
+  #{
+  /* eachbbsucc start */
+   int $eachbbsucc#_nbsuc = $bb ? EDGE_COUNT($bb->succs) : 0;
+   int $eachbbsucc#_ix = 0;
+   for ($eachbbsucc#_ix=0; 
+	$eachbbsucc#_ix < eachbbsucc#_nbsuc;  
+	$eachbbsucc#_ix++) {
+     $e = EDGE_SUCC(($bb), $eachbbsucc#_ix);
+     if (!$e) continue;
+   }#
+   #{  /* eachbbsucc end */ }  }#
+)
+
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_maptree (map) :long
@@ -1816,7 +1833,9 @@
 	(debug_msg closys "smaninterp_gimple cond<= closys")
 	(sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
 	(debugbasicblock "smaninterp_gimple cond<= bb" bb)
-	;(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
+	;; find the true branch and interpret it
+	
+	(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
 	(compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
 	)
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())

@@ -175,15 +175,16 @@ static lt_dlhandle proghandle;
 /* *INDENT-ON* */
 
 /* to code case ALL_OBMAG_SPECIAL_CASES: */
-#define ALL_OBMAG_SPECIAL_CASES	       	\
+#define ALL_OBMAG_SPECIAL_CASES			\
          OBMAG_SPEC_FILE:			\
-    case OBMAG_SPEC_MPFR:			\
     case OBMAG_SPECPPL_COEFFICIENT:   		\
     case OBMAG_SPECPPL_LINEAR_EXPRESSION:	\
     case OBMAG_SPECPPL_CONSTRAINT:		\
     case OBMAG_SPECPPL_CONSTRAINT_SYSTEM:	\
     case OBMAG_SPECPPL_GENERATOR:		\
-    case OBMAG_SPECPPL_GENERATOR_SYSTEM
+    case OBMAG_SPECPPL_GENERATOR_SYSTEM:	\
+    case OBMAG_SPECPPL_POLYHEDRON:		\
+    case OBMAG_SPEC_MPFR
 
 /* Obstack used for reading names */
 static struct obstack bname_obstack;
@@ -240,6 +241,11 @@ delete_special (struct basilysspecial_st *sp)
       if (sp->val.sp_generator_system)
 	ppl_delete_Generator_System (sp->val.sp_generator_system);
       sp->val.sp_generator_system = NULL;
+      break;
+    case OBMAG_SPECPPL_POLYHEDRON:
+      if (sp->val.sp_polyhedron)
+	ppl_delete_Polyhedron (sp->val.sp_polyhedron);
+      sp->val.sp_polyhedron = NULL;
       break;
     default:
       break;
@@ -5472,6 +5478,7 @@ readsimplelong (struct reading_st *rd)
       NUMNAM (OBMAG_SPECPPL_CONSTRAINT_SYSTEM);
       NUMNAM (OBMAG_SPECPPL_GENERATOR);
       NUMNAM (OBMAG_SPECPPL_GENERATOR_SYSTEM);
+      NUMNAM (OBMAG_SPECPPL_POLYHEDRON);
       /** the fields' ranks of basilys.h have been removed in rev126278 */
 #undef NUMNAM
       if (r < 0)
@@ -8650,6 +8657,11 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
     if (ppl_io_asprint_Generator_System(&ppstr, 
 					spec_pplv->val.sp_generator_system))
       fatal_error("failed to ppl_io_asprint_Generator_System");
+    break;
+  case OBMAG_SPECPPL_POLYHEDRON:
+    if (ppl_io_asprint_Polyhedron(&ppstr, 
+					spec_pplv->val.sp_polyhedron))
+      fatal_error("failed to ppl_io_asprint_Polyhedron");
     break;
   default:
     {
