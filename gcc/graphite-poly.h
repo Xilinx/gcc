@@ -246,6 +246,10 @@ extern void print_scop (FILE *, scop_p);
 extern void debug_pbb_domain (poly_bb_p);
 extern void debug_pbb (poly_bb_p);
 extern void debug_scop (scop_p);
+extern void print_iteration_domain (FILE *, poly_bb_p);
+extern void print_iteration_domains (FILE *, scop_p);
+extern void debug_iteration_domain (poly_bb_p);
+extern void debug_iteration_domains (scop_p);
 
 /* Set black box of PBB to BLACKBOX.  */
 
@@ -321,7 +325,6 @@ extern void print_scattering_function (FILE *, poly_bb_p);
 extern void print_scattering_functions (FILE *, scop_p);
 extern void debug_scattering_function (poly_bb_p);
 extern void debug_scattering_functions (scop_p);
-extern void print_iteration_domain (FILE *, poly_bb_p);
 extern int scop_max_loop_depth (scop_p);
 extern int unify_scattering_dimensions (scop_p);
 extern bool apply_poly_transforms (scop_p);

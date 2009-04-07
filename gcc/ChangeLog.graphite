@@ -1,3 +1,13 @@
+2009-04-07  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (extend_scattering): Fix indenting.  Free cstr.
+	(print_iteration_domains, debug_iteration_domain,
+	debug_iteration_domains): New.
+	* graphite-poly.h (print_iteration_domains, debug_iteration_domain,
+	debug_iteration_domains): Declared.
+	* graphite-sese-to-poly.c (build_pbb_scattering_polyhedrons): Fix
+	indenting.
+
 2009-04-03  Tobias Grosser  <grosser@fim.uni-passau.de>
 	    Sebastian Pop  <sebastian.pop@amd.com>
 

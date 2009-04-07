@@ -85,7 +85,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
   gcc_assert (nb_added_dims >= 0);
 
   nb_old_dims = pbb_nb_scattering (pbb) + pbb_nb_loops (pbb)
-	    + scop_nb_params (PBB_SCOP (pbb));
+    + scop_nb_params (PBB_SCOP (pbb));
   nb_new_dims = nb_old_dims + nb_added_dims;
 
   ppl_insert_dimensions (PBB_TRANSFORMED_SCATTERING (pbb),
@@ -106,6 +106,7 @@ extend_scattering (poly_bb_p pbb, int max_scattering)
       ppl_Linear_Expression_add_to_coefficient (expr, i, coef);
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (PBB_TRANSFORMED_SCATTERING (pbb), cstr);
+      ppl_delete_Constraint (cstr);
       ppl_delete_Coefficient (coef);
       ppl_delete_Linear_Expression (expr);
     }
@@ -163,12 +164,32 @@ print_scattering_functions (FILE *file, scop_p scop)
     print_scattering_function (file, pbb);
 }
 
+/* Prints to FILE the iteration domains of every PBB of SCOP.  */
+
+void
+print_iteration_domains (FILE *file, scop_p scop)
+{
+  int i;
+  poly_bb_p pbb;
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    print_iteration_domain (file, pbb);
+}
+
 /* Prints to STDERR the scattering function of PBB.  */
 
 void
 debug_scattering_function (poly_bb_p pbb)
 {
   print_scattering_function (stderr, pbb);
+}
+
+/* Prints to STDERR the iteration domain of PBB.  */
+
+void
+debug_iteration_domain (poly_bb_p pbb)
+{
+  print_iteration_domain (stderr, pbb);
 }
 
 /* Prints to STDERR the scattering functions of every PBB of SCOP.  */
@@ -178,6 +199,15 @@ debug_scattering_functions (scop_p scop)
 {
   print_scattering_functions (stderr, scop);
 }
+
+/* Prints to STDERR the iteration domains of every PBB of SCOP.  */
+
+void
+debug_iteration_domains (scop_p scop)
+{
+  print_iteration_domains (stderr, scop);
+}
+
 
 /* Write to file_name.graphite the transforms for SCOP.  */
 

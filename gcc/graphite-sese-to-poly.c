@@ -295,7 +295,7 @@ build_scop_bbs (scop_p scop)
 
 static void
 build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
-				   poly_bb_p pbb, int scattering_dimensions) 
+				  poly_bb_p pbb, int scattering_dimensions) 
 {
   int i;
   scop_p scop = PBB_SCOP (pbb);
@@ -335,15 +335,13 @@ build_pbb_scattering_polyhedrons (ppl_Linear_Expression_t static_schedule,
 
       /* Iterations of this loop.  */
       if ((i % 2) == 1)
-	  
 	{
 	  int loop = (i - 1) / 2;
+
 	  value_set_si (v, -1);
 	  ppl_assign_Coefficient_from_mpz_t (c, v);
-	  ppl_Linear_Expression_add_to_coefficient (expr,
-						    scattering_dimensions
-						      + loop,
-						    c);
+	  ppl_Linear_Expression_add_to_coefficient
+	    (expr, scattering_dimensions + loop, c);
 	}
       
       ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_EQUAL);
