@@ -94,6 +94,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "compiler-probe.h"
 #include "tree-pass.h"
 #include "gimple.h"
+#include "tree-ssa-alias.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -2199,6 +2200,8 @@ dump_memory_report (bool final)
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();
   dump_ggc_loc_statistics (final);
+  dump_alias_stats (stderr);
+  dump_pta_stats (stderr);
 }
 
 /* Clean up: close opened files, etc.  */

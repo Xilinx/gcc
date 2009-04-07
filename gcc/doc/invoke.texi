@@ -315,7 +315,7 @@ Objective-C and Objective-C++ Dialects}.
 -print-multi-directory  -print-multi-lib @gol
 -print-prog-name=@var{program}  -print-search-dirs  -Q @gol
 -print-sysroot -print-sysroot-headers-suffix @gol
--save-temps  -time}
+-save-temps -save-temps=cwd -save-temps=obj -time}
 
 @item Optimization Options
 @xref{Optimize Options,,Options that Control Optimization}.
@@ -5173,6 +5173,7 @@ And for @var{n} over four, @option{-fsched-verbose} also includes
 dependence info.
 
 @item -save-temps
+@itemx -save-temps=cwd
 @opindex save-temps
 Store the usual ``temporary'' intermediate files permanently; place them
 in the current directory and name them based on the source file.  Thus,
@@ -5186,6 +5187,39 @@ When used in combination with the @option{-x} command line option,
 input source file with the same extension as an intermediate file.
 The corresponding intermediate file may be obtained by renaming the
 source file before using @option{-save-temps}.
+
+If you invoke GCC in parallel, compiling several different source
+files that share a common base name in different subdirectories or the
+same source file compiled for multiple output destinations, it is
+likely that the different parallel compilers will interfere with each
+other, and overwrite the temporary files.  For instance:
+
+@smallexample
+gcc -save-temps -o outdir1/foo.o indir1/foo.c&
+gcc -save-temps -o outdir2/foo.o indir2/foo.c&
+@end smallexample
+
+may result in @file{foo.i} and @file{foo.o} being written to
+simultaneously by both compilers.
+
+@item -save-temps=obj
+@opindex save-temps=obj
+Store the usual ``temporary'' intermediate files permanently.  If the
+@option{-o} option is used, the temporary files are based on the
+object file.  If the @option{-o} option is not used, the
+@option{-save-temps=obj} switch behaves like @option{-save-temps}.
+
+For example:
+
+@smallexample
+gcc -save-temps=obj -c foo.c
+gcc -save-temps=obj -c bar.c -o dir/xbar.o
+gcc -save-temps=obj foobar.c -o dir2/yfoobar
+@end smallexample
+
+would create @file{foo.i}, @file{foo.s}, @file{dir/xbar.i},
+@file{dir/xbar.s}, @file{dir2/yfoobar.i}, @file{dir2/yfoobar.s}, and
+@file{dir2/yfoobar.o}.
 
 @item -time
 @opindex time
@@ -7554,32 +7588,6 @@ Maximum number of basic blocks on path that cse considers.  The default is 10.
 
 @item max-cse-insns
 The maximum instructions CSE process before flushing. The default is 1000.
-
-@item max-aliased-vops
-
-Maximum number of virtual operands per function allowed to represent
-aliases before triggering the alias partitioning heuristic.  Alias
-partitioning reduces compile times and memory consumption needed for
-aliasing at the expense of precision loss in alias information.  The
-default value for this parameter is 100 for -O1, 500 for -O2 and 1000
-for -O3.
-
-Notice that if a function contains more memory statements than the
-value of this parameter, it is not really possible to achieve this
-reduction.  In this case, the compiler will use the number of memory
-statements as the value for @option{max-aliased-vops}.
-
-@item avg-aliased-vops
-
-Average number of virtual operands per statement allowed to represent
-aliases before triggering the alias partitioning heuristic.  This
-works in conjunction with @option{max-aliased-vops}.  If a function
-contains more than @option{max-aliased-vops} virtual operators, then
-memory symbols will be grouped into memory partitions until either the
-total number of virtual operators is below @option{max-aliased-vops}
-or the average number of virtual operators per memory statement is
-below @option{avg-aliased-vops}.  The default value for this parameter
-is 1 for -O1 and -O2, and 3 for -O3.
 
 @item ggc-min-expand
 

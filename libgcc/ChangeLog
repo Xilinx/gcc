@@ -1,3 +1,11 @@
+2009-04-07  Alan Modra  <amodra@bigpond.net.au>
+
+	* config.host: Reorder and merge to match config.gcc change.
+
+2009-04-03  Alan Modra  <amodra@bigpond.net.au>
+
+	* config.host (powerpc-*-linux*altivec*, powerpc-*-linux*spe): Delete.
+
 2009-03-28  Joseph Myers  <joseph@codesourcery.com>
 
 	* config.host (arm-*-coff*, armel-*-coff*, arm-semi-aof,

@@ -706,8 +706,9 @@ extern bitmap vect_memsyms_to_rename;
    in tree-vect-loop-manip.c.  */
 extern void slpeel_make_loop_iterate_ntimes (struct loop *, tree);
 extern bool slpeel_can_duplicate_loop_p (const struct loop *, const_edge);
-extern void vect_loop_versioning (loop_vec_info);
-extern void vect_do_peeling_for_loop_bound (loop_vec_info, tree *);
+extern void vect_loop_versioning (loop_vec_info, bool, tree *, gimple_seq *);
+extern void vect_do_peeling_for_loop_bound (loop_vec_info, tree *,
+					    tree, gimple_seq);
 extern void vect_do_peeling_for_alignment (loop_vec_info);
 extern LOC find_loop_location (struct loop *);
 extern bool vect_can_advance_ivs_p (loop_vec_info);
@@ -757,7 +758,7 @@ extern bool vect_analyze_data_ref_accesses (loop_vec_info);
 extern bool vect_prune_runtime_alias_test_list (loop_vec_info);
 extern bool vect_analyze_data_refs (loop_vec_info);
 extern tree vect_create_data_ref_ptr (gimple, struct loop *, tree, tree *,
-                                      gimple *, bool, bool *, tree);
+                                      gimple *, bool, bool *);
 extern tree bump_vector_ptr (tree, gimple, gimple_stmt_iterator *, gimple, tree);
 extern tree vect_create_destination_var (tree, tree);
 extern bool vect_strided_store_supported (tree);

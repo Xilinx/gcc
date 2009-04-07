@@ -1,3 +1,227 @@
+2009-04-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35146
+	* g++.dg/template/fnspec1.C: New.
+
+2009-04-06  Laurent GUERBY  <laurent@guerby.net>
+
+        * lib/gnat.exp: Handle multilib.
+	
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* gfortran.dg/dependency_23.f90: New test.
+
+2009-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/28868
+	* gcc.dg/tree-ssa/ssa-fre-21.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-sccvn-1.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-sccvn-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sccvn-4.c: Likewise.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.dg/pragma-isr-trapa2.c: Skip test for FPU-less architectures.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/sh/sh4a-memmovua.c: Include string.h instead of stdlib.h.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/sh/sh4a-bitmovua.c (y0): Rename to y_0 to avoid a clash
+	with the built-in y0, and the subsequent warning.
+	(y1): Likewise, rename to y_1.
+
+2009-04-06  Janus Weil  <janus@gcc.gnu.org>
+
+       PR fortran/39414
+       * gfortran.dg/proc_decl_21.f90: New.
+
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/36091
+        * gfortran.dg/forall_13.f90: Add -fbounds-check option.
+
+2009-04-06  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gfortran.dg/namelist_51.f90, gfortran.dg/utf8_2.f03,
+	gfortran.dg/namelist_48.f90, gfortran.dg/read_repeat.f90,
+	gfortran.dg/streamio_9.f90, gfortran.dg/widechar_IO_1.f90,
+	gfortran.dg/namelist_50.f90, gfortran.dg/namelist_52.f90,
+	gfortran.dg/utf8_1.f03, gfortran.dg/namelist_56.f90,
+	gfortran.dg/namelist_49.f90: Gate test on effective_target
+	fd_truncate.
+	* gfortran.dg/widechar_IO_3.f90: Ditto.  Fix typo in comment.
+
+2009-04-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38654
+	* gfortran.dg/read_float_2.f03
+	* gfortran.dg/read_float_3.f90
+
+2009-04-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39648
+	* gcc.c-torture/compile/pr39648.c: New testcase.
+
+2009-04-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/14912
+	* g++.dg/template/error39.C: New.
+
+2009-04-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/29458
+	* gfortran.dg/implied_do_1.f90: New.
+
+2009-04-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39577
+	* gfortran.dg/recursive_check_8.f90: New.
+	* gfortran.dg/recursive_check_9.f90: New.
+	* gfortran.dg/recursive_check_10.f90: New.
+	* gfortran.dg/recursive_check_11.f90: New.
+	* gfortran.dg/recursive_check_12.f90: New.
+	* gfortran.dg/recursive_check_13.f90: New.
+	* gfortran.dg/recursive_check_14.f90: New.
+
+2009-04-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* g++.dg/template/error38.C: Add more tests.
+
+2009-04-04  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/37614
+	* gfortran.dg/common_align_2.f90: New test.
+
+2009-04-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/8781
+	PR tree-optimization/37892
+	* g++.dg/tree-ssa/pr8781.C: New testcase.
+	* gcc.dg/tree-ssa/ssa-pre-25.c: Likewise.
+
+2009-04-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39636
+	* gcc.c-torture/compile/pr39636.c: New testcase.
+
+2009-04-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/39607
+	* g++.dg/opt/pr39607.C: New.
+
+2009-04-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39594
+	* gfortran.dg/common_12.f90: New.
+
+2009-04-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39608
+	* g++.dg/template/const2.C: New test.
+
+2009-04-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/2480
+	PR tree-optimization/23086
+	* gcc.dg/tree-ssa/pr2480.c: New testcase.
+	* gcc.dg/tree-ssa/pr23086.c: Likewise.
+
+2009-04-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/34743
+	* gcc.dg/pr38984.c: Remove XFAIL, adjust.
+	* gcc.dg/tree-ssa/20070302-1.c: Remove XFAIL.
+	* gcc.dg/tree-ssa/alias-18.c: Likewise.
+	* gcc.dg/tree-ssa/sra-3.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-49.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-53.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-57.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-61.c: Likewise.
+
+2009-04-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/13146
+	PR tree-optimization/23940
+	PR tree-optimization/33237
+	PR middle-end/33974
+	PR middle-end/34093
+	PR tree-optimization/36201
+	PR tree-optimization/36230
+	PR tree-optimization/38049
+	PR tree-optimization/38207
+	PR tree-optimization/38230
+	PR tree-optimization/38301
+	PR tree-optimization/38585
+	PR middle-end/38895
+	PR tree-optimization/38985
+	PR tree-optimization/39299
+	* gcc.dg/pr19633-1.c: Adjust.
+	* gcc.dg/torture/pta-callused-1.c: Likewise.
+	* gcc.dg/torture/pr39074-2.c: Likewise.
+	* gcc.dg/torture/pr39074.c: Likewise.
+	* gcc.dg/torture/pta-ptrarith-3.c: New testcase.
+	* gcc.dg/torture/pr30375.c: Adjust.
+	* gcc.dg/torture/pr33563.c: Likewise.
+	* gcc.dg/torture/pr33870.c: Likewise.
+	* gcc.dg/torture/pr33560.c: Likewise.
+	* gcc.dg/torture/pta-structcopy-1.c: New testcase.
+	* gcc.dg/torture/ssa-pta-fn-1.c: Likewise.
+	* gcc.dg/tree-ssa/alias-15.c: Remove.
+	* gcc.dg/tree-ssa/ssa-dce-4.c: New testcase.
+	* gcc.dg/tree-ssa/pr26421.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-fre-10.c: XFAIL.
+	* gcc.dg/tree-ssa/ssa-dce-5.c: New testcase.
+	* gcc.dg/tree-ssa/pr23382.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-fre-20.c: New testcase.
+	* gcc.dg/tree-ssa/alias-16.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-fre-13.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-14.c: Likewise.
+	* gcc.dg/tree-ssa/alias-18.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-15.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-lim-3.c: Likewise.
+	* gcc.dg/tree-ssa/alias-19.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-1.c: New testcase.
+	* gcc.dg/tree-ssa/pr13146.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-23.c: Likewise.
+	* gcc.dg/tree-ssa/pta-ptrarith-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-18.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-pre-24.c: New XFAILed testcase.
+	* gcc.dg/tree-ssa/ssa-fre-19.c: New testcase.
+	* gcc.dg/tree-ssa/alias-20.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-dse-12.c: Likewise.
+	* gcc.dg/tree-ssa/pr38895.c: Likewise.
+	* gcc.dg/uninit-B.c: XFAIL.
+	* gcc.dg/vect/no-vfa-vect-43.c: Adjust.
+	* gcc.dg/uninit-pr19430.c: XFAIL.
+	* g++.dg/tree-ssa/pr13146.C: New testcase.
+	* g++.dg/opt/pr36187.C: Adjust.
+	* g++.dg/torture/20090329-1.C: New testcase.
+
+2009-04-02  Chao-ying Fu  <fu@mips.com>
+
+	* gcc.target/mips/interrupt_handler.c: New test.
+
+2009-04-02  David Ayers  <ayers@fsfe.org>
+
+	PR objc/18456
+	* objc.dg/bad-receiver-type-2.m: New test contributed by
+	Alexander Mamberg.
+
+2009-04-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* g++.dg/template/error38.C: New test.
+
+2009-04-02  Janis Johnson  <janis187@us.ibm.com>
+
+	PR tree-optimization/31677
+        * gcc.dg/memcpy-1.c: Add compiler option.
+
 2009-04-02  Ira Rosen  <irar@il.ibm.com>
 
 	PR tree-optimization/39595
