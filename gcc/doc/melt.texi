@@ -762,7 +762,26 @@ inside a symbol otherwise). For instance, @code{?x} means
 @code{#} is special. In particular, @code{#|} starts multiline
 comments; @code{#\space} is the integer code of the space character;
 @code{#b10} is a binary number (i.e. two), @code{#o12} is octal (ie
-ten), @code{#xffff} is hexadecimal number (ie 65535).
+ten), @code{#xffff} is hexadecimal number (ie 65535). @code{#@{}
+starts macrostrings.
+
+@item macro strings
+@cindex macro string in MELT
+To avoid escaping many C-like caracters in C code chunks used for
+primitives, c-iterators, c-matchers etc.. an alternative multi-line
+lexical construct exist: the macro string started with @code{#@{} and
+ending with @code{@}#} possibly on a different line with @code{$}
+escapes like in C. For example, the @code{ #@{if ($A>0) printf("%s",
+$B);@}# } macrostring is parsed exactly as the 5-elements s-expression
+@code{ ("if (" A ">0) printf(\"%s\", " B ");")}. In a macrostring, all
+caracters are taken as is, except the dollar sign @code{$}; the
+macro-string itself is always read as an S-expr. When a dollar is
+followed by alphanumerical (or underscore) caracters like a C
+identifier, it is parsed as a symbol. If it is followed by an hash
+@code{#} caracter, that hash-character is skipped and terminate the
+symbol. The @code{$.} sequence is skipped and ignored, the
+double-dollar @code{$$} is read as a single dollar, the @code{$#} is
+read as a single hash @code{#}.
 
 @item braces 
 @code{@{} and @code{@}} are special.

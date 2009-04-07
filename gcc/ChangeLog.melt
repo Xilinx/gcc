@@ -1,9 +1,39 @@
+2009-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	[split file melt/ana-base.bysl into ana-base.bysl &
+	ana-simple.bysl]
+	* basilys.h (basilys_make_ppl_NNC_Polyhedron_from_Constraint_System)
+	(basilysgc_new_ppl_polyhedron, SAME_PPL_POLHYEDRON)
+	(CLONED_PPL_POLHYEDRON): added declarations.
+	(basilys_ppl_coefficient_content)
+	(basilys_ppl_coefficient_put_content)
+	(basilys_ppl_linear_expression_content)
+	(basilys_ppl_linear_expression_put_content)
+	(basilys_ppl_constraint_content)
+	(basilys_ppl_constraint_put_content)
+	(basilys_ppl_constraint_system_content)
+	(basilys_ppl_constraint_system_put_content)
+	(basilys_ppl_generator_content, basilys_ppl_generator_put_content)
+	(basilys_ppl_generator_system_content)
+	(basilys_ppl_generator_system_put_content)
+	(basilys_ppl_polyhedron_content)
+	(basilys_ppl_polyhedron_put_content): Added new inline functions.
+	* basilys.c (readmacrostringsequence) Made better error message for
+	macrostring.
+	(basilys_make_ppl_NNC_Polyhedron_from_Constraint_System)
+	(basilysgc_new_ppl_polyhedron): Added new functions.
+	(delete_special, readsimplelong)
+	(basilysgc_ppstrbuf_ppl_varnamvect): handling polyhedron.
+	* melt/warmelt-macro.bysl: added debug_msg.
+	* melt/ana-base.bysl: Moved all analysis stuff into ana-simple.bysl.
+	All C chunks use the macrostrings.
+	* melt/ana-simple.bysl: Added new file.
+	* Makefile.in: adding ana-simple.bysl & removed _templ* dir.
+	* doc/melt.texi: documented macrostrings.
+
 2009-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	[adding PPL polyhedron]
 	* basilys.h (ppl_Polyhedron_t, BPARSTR_PPL_POLYHEDRON)
 	(OBMAG_SPECPPL_POLYHEDRON, BGLOB_CTYPE_PPL_POLYHEDRON) added.
-	* basilys.c (delete_special, readsimplelong)
-	(basilysgc_ppstrbuf_ppl_varnamvect): handling polyhedron.
 	* melt/warmelt-first.bysl: added ctype_ppl_polyhedron
 	* melt/warmelt-normal.bysl: added global_CTYPE_PPL_POLYHEDRON.
 	* melt/ana-base.bysl: added foreach_basicblock_succ_edge ...

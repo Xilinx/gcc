@@ -6141,8 +6141,8 @@ readmacrostringsequence (struct reading_st *rd)
 	rdnext();
       }
       /* any other dollar something is an error */
-      else READ_ERROR("unexpected dollar escape in macrostring %.4s",
-		      &rdcurc());
+      else READ_ERROR("unexpected dollar escape in macrostring %.4s started line %d",
+		      &rdcurc(), lineno);
     }
     else if ( ISALNUM(rdcurc()) || ISSPACE(rdcurc()) ) { 
       /* handle efficiently the common case of alphanum and spaces */
@@ -8444,6 +8444,51 @@ basilys_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, basilys_ptr
 #undef spec_pplv
 }
 
+/* utility to make a NNC [=not necessarily closed] ppl_Polyhedron_t
+   out of a constraint system */
+ppl_Polyhedron_t 
+basilys_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys)
+{
+  ppl_Polyhedron_t poly = NULL;
+  if (ppl_new_NNC_Polyhedron_from_Constraint_System(&poly, consys))
+    fatal_error("basilys_make_ppl_NNC_Polyhedron_from_Constraint_System failed");
+  return poly;
+}
+
+/* make a new boxed PPL polyhedron; if cloned is true, the poly is
+   copied otherwise taken as is */
+basilys_ptr_t
+basilysgc_new_ppl_polyhedron(basilys_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned)
+{
+  BASILYS_ENTERFRAME(2, NULL);
+#define discrv curfram__.varptr[0]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define resv   curfram__.varptr[1]
+#define spec_resv ((struct basilysspecial_st*)(resv))
+  discrv = (void *) discr_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_SPECPPL_POLYHEDRON)
+    goto end;
+  resv = basilysgc_allocate (sizeof (struct basilysspecial_st), 0);
+  spec_resv->discr = (basilysobject_ptr_t) discrv;
+  spec_resv->mark = 0;
+  spec_resv->val.sp_pointer = NULL;
+  if (cloned && poly)
+    {
+      if (ppl_new_NNC_Polyhedron_from_NNC_Polyhedron(&spec_resv->val.sp_polyhedron, poly))
+	fatal_error("failed to ppl_new_NNC_Polyhedron_from_NNC_Polyhedron");
+    }
+  else
+    spec_resv->val.sp_polyhedron = poly;
+ end:
+  BASILYS_EXITFRAME();
+  return (basilys_ptr_t)resv;
+#undef discrv
+#undef object_discrv
+#undef resv
+#undef spec_resv
+}
 
 /* utility to make a ppl_Linear_Expression_t */
 ppl_Linear_Expression_t 

@@ -1570,6 +1570,7 @@
     (setq statesym (pair_head curpair))
     (if (is_not_a statesym class_symbol)
 	(progn
+	  (debug_msg statesym "mexpand_defcmatcher bad statesym")
 	  (error_plain loc "bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	  (return)))
     (debug_msg statesym "mexpand_defcmatcher statesym")
@@ -1578,6 +1579,7 @@
     (let ( (sexptest (pair_head curpair)) )
       (if (and sexptest (is_not_a sexptest class_sexpr))
 	  (progn
+	    (debug_msg sexptest "mexpand_defcmatcher bad sexptest")
 	    (error_plain loc "bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	    (return))
 	(if sexptest

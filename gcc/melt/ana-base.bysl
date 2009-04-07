@@ -35,16 +35,18 @@
 ;;; primitive to access the gdbmstate
 
 (defprimitive fetch_gdbmstate_constr (:cstring keystr) :value
-  "(basilysgc_fetch_gdbmstate_const((" keystr ")))")
+  #{ (basilysgc_fetch_gdbmstate_const(($keystr))) }# )
 
 (defprimitive fetch_gdbmstate (key) :value
-  "(basilysgc_fetch_gdbmstate((" key ")))")
+   #{ (basilysgc_fetch_gdbmstate(($key))) }# )
 
 (defprimitive put_gdbmstate_constr (:cstring keystr :value data) :void
-  "basilysgc_put_gdbmstate_const((" keystr "), (basilys_ptr_t) (" data "))")
+  #{ basilysgc_put_gdbmstate_const(($keystr), (basilys_ptr_t) ($data)); 
+  }# )
 
 (defprimitive put_gdbmstate (key data) :void
-  "basilysgc_put_gdbmstate((basilys_ptr_t)(" key "), (basilys_ptr_t)(" data "))")
+  #{ basilysgc_put_gdbmstate((basilys_ptr_t)($key), (basilys_ptr_t)($data)); 
+  }# )
 
 (defun install_gcc_pass (pass)
   (assert_msg "check pass" (is_a pass class_gcc_pass))
@@ -60,47 +62,46 @@
 ;;;;; gimple & tree related primitives
 
 (defprimitive is_gimple (v) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLE)")
+   #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_GIMPLE)}# )
 
 (defprimitive make_gimple (discr :gimple g) :value
-  "(basilysgc_new_gimple((basilysobject_ptr_t)(" discr "),(" g ")))")
+  #{(basilysgc_new_gimple((basilysobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive gimple_content (v) :gimple
-  "(basilys_gimple_content((basilys_ptr_t)(" v ")))")
+  #{(basilys_gimple_content((basilys_ptr_t)($v)))}# )
 
 (defprimitive ==g (:gimple g1 g2) :long
-  "((" g1 ") == (" g2 "))")
+  #{(($g1) == ($g2))}#)
 
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
   (:gimple g) 				;outs
   gimpsta				;statesymb
-  (					;test expansion
-  "(basilys_magic_discr((basilys_ptr_t)(" gv ")) == OBMAG_GIMPLE)"
-  )
-  (					;fill expansion
-   g " = basilys_gimple_content(((basilys_ptr_t)(" gv ")));"
-   )
-  (					;operator expansion
-   "(basilysgc_new_gimple((basilysobject_ptr_t)NULL, (" g ")))"
-   )
+  ;; test expansion
+  #{ (basilys_magic_discr((basilys_ptr_t)($gv)) == OBMAG_GIMPLE) }#
+  ;; fill expansion
+  #{ $g = basilys_gimple_content(((basilys_ptr_t)($gv)));
+  }#
+  ;; operator expansion
+  #{ (basilysgc_new_gimple((basilysobject_ptr_t)NULL, ($g))) }#
 )
 
 ;; match a gimple single assign
 (defcmatcher gimple_assign_single
   (:gimple ga)				;match
+  ;; outputs
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
-  )					;outs
+  )					
   gimpasg
-  (					;test expansion
-   "(" ga " && gimple_assign_single_p (" ga "))"
-   )
-  (					;fill expansion
-   lhs " = gimple_assign_lhs(" ga ");"
-   rhs " = gimple_assign_rhs1(" ga ");"
-   )
+  ;; test expansion
+  #{($ga && gimple_assign_single_p ($ga))}#
+  ;;fill expansion
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+   }#
 )
 
 
@@ -111,13 +112,13 @@
    :tree rhs				;first right operand
   )					;outs
   gimpasg
-  (					;test expansion
-   "(" ga " && gimple_assign_cast_p (" ga "))"
-   )
-  (					;fill expansion
-   lhs " = gimple_assign_lhs(" ga ");"
-   rhs " = gimple_assign_rhs1(" ga ");"
-   )
+  ;;test expansion
+  #{($ga && gimple_assign_cast_p ($ga))}#
+  ;;fill expansion
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+  }#
 )
 
 ;; match a gimple copy assign
@@ -127,13 +128,13 @@
    :tree rhs				;first right operand
   )					;outs
   gimpasg
-  (					;test expansion
-   "(" ga " && gimple_assign_copy_p (" ga "))"
-   )
-  (					;fill expansion
-   lhs " = gimple_assign_lhs(" ga ");"
-   rhs " = gimple_assign_rhs1(" ga ");"
-   )
+  ;;test expansion
+  #{($ga && gimple_assign_copy_p ($ga))}#
+  ;;fill expansion
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+  }#
 )
 
 ;; match a gimple copy assign with ssa name
@@ -143,13 +144,13 @@
    :tree rhs				;first right operand
   )					;outs
   gimpasg
-  (					;test expansion
-   "(" ga " && gimple_assign_ssa_name_copy_p (" ga "))"
-   )
-  (					;fill expansion
-   lhs " = gimple_assign_lhs(" ga ");"
-   rhs " = gimple_assign_rhs1(" ga ");"
-   )
+  ;;test expansion
+   #{($ga && gimple_assign_ssa_name_copy_p ($ga))}#
+  ;;fill expansion
+   #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+   }#
 )
 
 ;; match a gimple unary nop assign
@@ -159,13 +160,13 @@
    :tree rhs				;first right operand
   )					;outs
   gimpasg
-  (					;test expansion
-   "(" ga " && gimple_assign_unary_nop_p (" ga "))"
-   )
-  (					;fill expansion
-   lhs " = gimple_assign_lhs(" ga ");"
-   rhs " = gimple_assign_rhs1(" ga ");"
-   )
+  ;;test expansion
+  #{($ga && gimple_assign_unary_nop_p ($ga))}#
+  ;;fill expansion
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+  }#
 )
 
 
@@ -178,14 +179,14 @@
    :tree rhs2
    )
   gasplus
-  (; test
-   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == PLUS_EXPR"
-   )
-  (; fill
-   lhs " = gimple_assign_lhs(" ga ");\n"
-   rhs1 " = gimple_assign_rhs1(" ga ");\n"
-   rhs2 " = gimple_assign_rhs2(" ga ");\n"
-   ))
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == PLUS_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
 
 
 (defcmatcher gimple_assign_pointerplus
@@ -195,14 +196,15 @@
    :tree rhs2
    )
   gasplus
-  (; test
-   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == POINTER_PLUS_EXPR"
-   )
-  (; fill
-   lhs " = gimple_assign_lhs(" ga ");\n"
-   rhs1 " = gimple_assign_rhs1(" ga ");\n"
-   rhs2 " = gimple_assign_rhs2(" ga ");\n"
-   ))
+  ;; test
+  #{ $ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == POINTER_PLUS_EXPR }#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+  }# )
 
 
 ;;;; match a gimple assign with multiplication ie X = Y * Z
@@ -214,14 +216,14 @@
    :tree rhs2
    )
   gasmult
-  (; test
-   ga " && is_gimple_assign(" ga ") && gimple_expr_code(" ga ") == MULT_EXPR"
-   )
-  (; fill
-   lhs " = gimple_assign_lhs(" ga ");\n"
-   rhs1 " = gimple_assign_rhs1(" ga ");\n"
-   rhs2 " = gimple_assign_rhs2(" ga ");\n"
-   ))
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MULT_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
 
 
 
@@ -234,15 +236,15 @@
    :long opcode
    )
   gasplus
-  (; test
-   ga " && is_gimple_assign(" ga ") && gimple_num_ops(" ga ")>=3"
-   )
-  (; fill
-   lhs " = gimple_assign_lhs(" ga ");\n"
-   rhs1 " = gimple_assign_rhs1(" ga ");\n"
-   rhs2 " = gimple_assign_rhs2(" ga ");\n"
-   opcode " = gimple_assign_rhs_code(" ga ");\n"
-   ))
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_num_ops($ga)>3)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   $opcode = gimple_assign_rhs_code($ga);
+   }# )
 
 ;;;;;;;;;;;;;;;;
 ;;; match a gimple cond less or equal
@@ -254,17 +256,16 @@
    :tree falselab
    )
   gimpcondle
-  (; test expansion
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_code(" gc ")==LE_EXPR" 
-   )
-  (; fill expansion
-   lhs "= gimple_cond_lhs(" gc ");\n"
-   rhs "= gimple_cond_rhs(" gc ");\n"
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   )
-  )
+  ;; test expansion
+  #{($gc && gimple_code($gc)==GIMPLE_COND 
+     && gimple_cond_code($gc)==LE_EXPR)}#
+  ;; fill expansion
+  #{
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+  }# )
 
 ;;; match a gimple cond less 
 (defcmatcher gimple_cond_less
@@ -275,17 +276,17 @@
    :tree falselab
    )
   gimpcondle
-  (; test expansion
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_code(" gc ")==LT_EXPR" 
-   )
-  (; fill expansion
-   lhs "= gimple_cond_lhs(" gc ");\n"
-   rhs "= gimple_cond_rhs(" gc ");\n"
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   )
-  )
+  ; test expansion
+  #{($gc && gimple_code($gc)==GIMPLE_COND
+     && gimple_cond_code($gc)==LT_EXPR)}#
+  ;; fill expansion
+  #{
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+  }# )
+
 ;;;;;;;;;;;;;;;;
 ;;; match a gimple cond not equal
 (defcmatcher gimple_cond_notequal
@@ -296,17 +297,16 @@
    :tree falselab
    )
   gimpcondle
-  (; test expansion
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_code(" gc ")==NE_EXPR" 
-   )
-  (; fill expansion
-   lhs "= gimple_cond_lhs(" gc ");\n"
-   rhs "= gimple_cond_rhs(" gc ");\n"
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   )
-  )
+  ;; test expansion
+  #{($gc && gimple_code($gc)==GIMPLE_COND 
+     && gimple_cond_code($gc)==NE_EXPR)}#
+  ;; fill expansion
+  #{
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+  }# )
 
 ;;; match a gimple cond greater
 (defcmatcher gimple_cond_greater
@@ -317,30 +317,30 @@
    :tree falselab
    )
   gimpcondle
-  (; test expansion
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_code(" gc ")==GT_EXPR" 
-   )
-  (; fill expansion
-   lhs "= gimple_cond_lhs(" gc ");\n"
-   rhs "= gimple_cond_rhs(" gc ");\n"
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   )
-  )
+  ;; test expansion
+  #{($gc && gimple_code($gc)==GIMPLE_COND 
+      && gimple_cond_code($gc)==GT_EXPR)}#
+  ;; fill expansion
+  #{
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+  }# )
 
 ;; match a gimple cond true
 (defcmatcher gimple_cond_true
   (:gimple gc)
   (:tree truelab falselab)
   gimpcondtr
-  (;test
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_true_p(" gc ")")
-  (;fill
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   ))
+  ;;test
+  #{($gc && gimple_code($gc)==GIMPLE_COND 
+     && gimple_cond_true_p($gc))}#
+  ;;fill
+  #{
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+  }# )
 
 
 ;; match a gimple cond false
@@ -348,14 +348,14 @@
   (:gimple gc)
   (:tree truelab falselab)
   gimpcondtr
-  (;test
-   gc " && gimple_code(" gc ")==GIMPLE_COND "
-      " && gimple_cond_false_p(" gc ")")
-  (;fill
-   truelab "= gimple_cond_true_label(" gc ");\n"
-   falselab "= gimple_cond_false_label(" gc ");\n"
-   ))
-
+  ;;test
+  #{($gc && gimple_code($gc)==GIMPLE_COND
+	 && gimple_cond_false_p($gc))}#
+  ;;fill
+  #{
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+   }# )
 
 ;;; match a gimple call to a direct function
 (defcmatcher gimple_call
@@ -365,20 +365,20 @@
    :long nbargs
    )
   gimpcall
-  (; test 
-   gc " && gimple_code(" gc ")==GIMPLE_CALL"
-   )
-  (; fill
-   lhs " = gimple_call_lhs(" gc ");\n"
-   fndecl " = gimple_call_fndecl(" gc ");\n"
-   nbargs " = gimple_call_num_args(" gc ");\n"
-   ))
+  ;; test 
+  #{($gc && gimple_code($gc)==GIMPLE_CALL)}#
+  ;; fill
+  #{
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $nbargs = gimple_call_num_args($gc);
+  }# )
 
 ;;;; fetch the nth argument inside a call
 (defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
-  "(( " gc " && gimple_code(" gc ") == GIMPLE_CALL && (" n ")>=0 "
-  "&& (" n ") < gimple_call_num_args(" gc ")) "
-  " ? gimple_call_arg((" gc "), (" n ")) : (tree)0)")
+  #{(($gc && gimple_code($gc) == GIMPLE_CALL && ($n)>=0 
+      && ($n) < gimple_call_num_args($gc)) 
+     ? gimple_call_arg(($gc), ($n)) : (tree)0)}# )
 
 ;;;;  match a gimple return
 (defcmatcher gimple_return
@@ -386,45 +386,45 @@
   (:tree retval
    )
   gimpret
-  (; test 
-   gr " && gimple_code(" gr ")==GIMPLE_RETURN"
-   )
-  (; fill
-   retval " = gimple_return_retval(" gr ");\n"
-   ))
+  ;; test 
+  #{($gr && gimple_code($gr)==GIMPLE_RETURN)}#
+  ;; fill
+  #{
+   $retval = gimple_return_retval($gr);
+  }# )
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_GIMPLESEQ)")
+  #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_GIMPLESEQ)}# )
 
 (defprimitive make_gimpleseq (discr :gimpleseq g) :value
-  "(basilysgc_new_gimpleseq((basilysobject_ptr_t)(" discr "),(" g ")))")
+  #{(basilysgc_new_gimpleseq((basilysobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive gimpleseq_content (v) :gimpleseq
-  "(basilys_gimpleseq_content((basilys_ptr_t)(" v ")))")
+  #{(basilys_gimpleseq_content((basilys_ptr_t)($v)))}# )
 
 
 
 (defprimitive is_tree (v) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_TREE)")
+  #{(basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_TREE)}# )
 
 (defprimitive make_tree (discr :tree g) :value
-  "(basilysgc_new_tree((basilysobject_ptr_t)(" discr "),(" g ")))")
+  #{(basilysgc_new_tree((basilysobject_ptr_t)($discr),($g)))}# )
 
 (defprimitive tree_content (v) :tree
-  "(basilys_tree_content((basilys_ptr_t)(" v ")))")
+  #{(basilys_tree_content((basilys_ptr_t)($v)))}# )
 
 (defprimitive ==t (:tree t1 t2) :long
-  "((" t1 ") == (" t2 "))")
+  #{(($t1) == ($t2))}# )
 
 (defprimitive inform_at_tree (:tree tr :cstring msg) :void
   ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
   ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
   ;; otherwise no location
-  "inform((DECL_P(" tr ")? DECL_SOURCE_LOCATION(" tr 
-  ") : EXPR_P(" tr ") ? EXPR_LOCATION(" tr ") : UNKNOWN_LOCATION), "
-  msg ");"
-)
+  #{ inform((DECL_P($tr)? DECL_SOURCE_LOCATION($tr)
+	    : EXPR_P($tr) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+  $msg );
+  }# )
 
 
 
@@ -439,16 +439,16 @@
    :tree initialdcl
    )
   treefun				;state symbol
-  (; test expansion
-   "((" tr ") && TREE_CODE(" tr ") == FUNCTION_DECL)"
-   )
-  (;; fill expansion
-   funame "=NULL; "
-   initialdcl "=NULL; "
-   "if (DECL_NAME(" tr "))"
-   funame "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); "
-   initialdcl  "=DECL_INITIAL(" tr "); "
-   )
+  ;; test expansion
+  #{ (($tr) && TREE_CODE($tr) == FUNCTION_DECL) }#
+  ;; fill expansion
+  #{
+   $funame = NULL; 
+   $initialdcl = NULL; 
+   if (DECL_NAME($tr))
+     $funame = IDENTIFIER_POINTER(DECL_NAME($tr)); 
+   $initialdcl = DECL_INITIAL($tr); 
+  }#
 )
 
 ;;;;;;;;;;;;;;;;
@@ -458,14 +458,14 @@
   (:cstring varname
    )
   treevar				;statesym
-  (; test expansion
-   "((" tr ") && TREE_CODE(" tr ") == VAR_DECL)"
-   )
-  (;; fill expansion
-   varname "=NULL; "
-   "if (DECL_NAME(" tr ")) "
-   varname "= IDENTIFIER_POINTER(DECL_NAME(" tr ")); ")
-)
+  ;; test expansion
+  #{ (($tr) && TREE_CODE($tr) == VAR_DECL) }#
+  ;; fill expansion
+  #{
+   $varname =NULL;
+   if (DECL_NAME($tr))
+     $varname = IDENTIFIER_POINTER(DECL_NAME($tr));
+   }# )
 	   
 ;;;;;;;;;;;;;;;;
 ;; pattern tree_block matches a block
@@ -475,13 +475,13 @@
    :tree trvars  trsubblocks 	 
    )
   treeblock				;statesym
-  (; test expander
-   "((" tr ") && TREE_CODE(" tr ") == BLOCK)"
-   )
-  (; fill expander
-   trvars "= BLOCK_VARS(" tr "); "
-   trsubblocks "=BLOCK_SUBBLOCKS(" tr ");"  
-   ))
+  ;; test expander
+   #{(($tr) && TREE_CODE($tr) == BLOCK)}#
+  ;; fill expander
+   #{
+   $trvars = BLOCK_VARS($tr);
+   $trsubblocks =BLOCK_SUBBLOCKS($tr);
+   }# )
 
 ;;;;;;;;;;;;;;;;
 ;;; pattern tree_parm_decl matches a formal parameter declaration
@@ -492,14 +492,14 @@
    :cstring name
    )
   treeparmdecl				;statesym
-  (; test expander
-   "((" tr ") && TREE_CODE(" tr ") == PARM_DECL)"
-   )
-  (; fill expander
-   trargtype "= DECL_ARG_TYPE(" tr "); \n"
-   trdecl "= DECL_NAME(" tr ");\n"
-   name "= DECL_NAME(" tr ") ? IDENTIFIER_POINTER(DECL_NAME(" tr ")) : NULL;\n"
-   ))
+  ;; test expander
+   #{(($tr) && TREE_CODE($tr) == PARM_DECL)}#
+  ;; fill expander
+   #{
+   $trargtype = DECL_ARG_TYPE($tr);
+   $trdecl = DECL_NAME($tr);
+   $name = DECL_NAME($tr) ? IDENTIFIER_POINTER(DECL_NAME($tr)) : NULL;
+   }# )
 
 
 
@@ -513,15 +513,15 @@
    :long uid
    )
   treedecl				;statesym
-  (; test expander
-   "((" tr ") && DECL_P(" tr ") )"
-   )
-  (; fill expander
-   "tree " treedecl "_name = DECL_NAME(" tr ");"
-   trdecl "= " treedecl "_name;\n"
-   name "= (" treedecl "_name) ? IDENTIFIER_POINTER(" treedecl "_name) : NULL;\n"
-   uid "= DECL_UID(" tr ");\n"
-   ))
+  ;; test expander
+  #{(($tr) && DECL_P($tr))}#
+  ;; fill expander
+  #{
+   tree  $treedecl#_name = DECL_NAME($tr);
+   $trdecl = $treedecl#_name;
+   $name = ($treedecl#_name) ? IDENTIFIER_POINTER($treedecl#_name) : NULL;
+   $uid = DECL_UID($tr);
+   }# )
 
 
 ;;;;;;;;;;;;;;;;
@@ -533,35 +533,35 @@
    :long min max
    )
   treeinty				;statesym
-  (; test expander
-   "((" tr ") && TREE_CODE(" tr ") == INTEGER_TYPE)"
-   )
-  (; fill expander
-   "tree " treeinty "_ty=TYPE_NAME(" tr ");\n"
-   "tree " treeinty "_mint=TYPE_MIN_VALUE(" tr ");\n"
-   "tree " treeinty "_maxt=TYPE_MAX_VALUE(" tr ");\n"
-   "if (" treeinty "_ty && TREE_CODE(" treeinty "_ty) == IDENTIFIER_NODE)\n"
-   name " = IDENTIFIER_POINTER("treeinty "_ty);\n"
-   "if (" treeinty "_mint && TREE_CODE(" treeinty "_mint) == INTEGER_CST)\n"
-   min " = tree_low_cst(" treeinty "_mint,0);"
-   "if (" treeinty "_maxt && TREE_CODE(" treeinty "_maxt) == INTEGER_CST)\n"
-   max " = tree_low_cst(" treeinty "_maxt,0);"
-   ))
+  ;; test expander
+   #{ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
+  ;; fill expander
+   #{
+   tree $treeinty#_ty=TYPE_NAME($tr);
+   tree $treeinty#_mint=TYPE_MIN_VALUE($tr);
+   tree $treeinty#_maxt=TYPE_MAX_VALUE($tr);
+   $min = 0L; 
+   $max = 0L;
+   if ($treeinty#_ty && TREE_CODE($treeinty#_ty) == IDENTIFIER_NODE)
+   $name = IDENTIFIER_POINTER($treeinty#_ty);
+   if ($treeinty#_mint && TREE_CODE($treeinty#_mint) == INTEGER_CST)
+     $min = tree_low_cst($treeinty#_mint,0);
+   if ($treeinty#_maxt && TREE_CODE($treeinty#_maxt) == INTEGER_CST)
+     $max = tree_low_cst($treeinty#_maxt,0);
+   }# )
 
 
 ;;; pattern tree_integer_cst
 (defcmatcher tree_integer_cst
   (:tree tr)
   (					;output
-   :long n
-	 )
+   :long n )
   treeintk
-  (; test expander
-   "((" tr ") && TREE_CODE(" tr ") == INTEGER_CST)"
-   )
-  (; fill expander
-   n " = tree_low_cst((" tr "), 0);"
-     ))
+  ;; test expander
+  #{ (($tr) && TREE_CODE($tr) == INTEGER_CST) }#
+  ;; fill expander
+  #{ $n  = tree_low_cst(($tr), 0);
+  }#  )
 
 
 ;;;; matcher for patter ssa_name
@@ -569,103 +569,109 @@
   (:tree tr)
   (:tree tvar tvalu :long vers :gimple defstmt)
   treessa
-  (; test expander
-   "((" tr ") && TREE_CODE(" tr ") == SSA_NAME)"
-   )
-  (; fill expander
-   tvar "= SSA_NAME_VAR(" tr ");\n"
-   tvalu "= SSA_NAME_VALUE(" tr ");\n"
-   vers "= SSA_NAME_VERSION(" tr ");\n"
-   defstmt "= SSA_NAME_DEF_STMT(" tr ");\n"
-   ))
+  ;; test expander
+  #{ (($tr) && TREE_CODE($tr) == SSA_NAME) }#
+  ;; fill expander
+  #{
+   $tvar = SSA_NAME_VAR($tr);
+   $tvalu = SSA_NAME_VALUE($tr);
+   $vers = SSA_NAME_VERSION($tr);
+   $defstmt = SSA_NAME_DEF_STMT($tr);
+  }# )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
 (defprimitive is_basicblock (v) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" v ")) == OBMAG_BASICBLOCK)")
+ #{ (basilys_magic_discr((basilys_ptr_t)($v)) == OBMAG_BASICBLOCK)}# )
 
 (defprimitive null_basicblock (:basicblock bb) :long
-  "(" bb "== (basic_block)0)")
+ #{($bb == (basic_block)0)}# )
 
 (defprimitive notnull_basicblock (:basicblock bb) :long
-  "(" bb "!= (basic_block)0)")
+ #{($bb != (basic_block)0)}# )
 
 (defprimitive make_basicblock (discr :basicblock bb) :value
-  "(basilysgc_new_basicblock((basilysobject_ptr_t)(" discr "),(" bb ")))")
+ #{(basilysgc_new_basicblock((basilysobject_ptr_t)($discr),($bb)))}# )
 
 
 (defprimitive basicblock_content (v) :basicblock
-  "(basilys_basicblock_content((basilys_ptr_t)(" v ")))")
+ #{(basilys_basicblock_content((basilys_ptr_t)($v)))}# )
 
 (defprimitive basicblock_gimpleseq (v) :gimpleseq
-  "(basilys_basicblock_gimpleseq((basilys_ptr_t)(" v ")))")
+  #{(basilys_basicblock_gimpleseq((basilys_ptr_t)($v)))}# )
   
 (defprimitive basicblock_phinodes (v) :gimpleseq
-  "(basilys_basicblock_phinodes((basilys_ptr_t)(" v ")))")
+  #{(basilys_basicblock_phinodes((basilys_ptr_t)($v)))}# )
   
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
-  "basilysgc_ppstrbuf_gimple((basilys_ptr_t)(" sbuf 
-  "), (int) (" indent "), (" g "))")
+  #{ basilysgc_ppstrbuf_gimple((basilys_ptr_t)($sbuf), 
+			       (int) ($indent), ($g)) }# )
 
 (defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimpleseq gseq) :void
-  "basilysgc_ppstrbuf_gimple_seq((basilys_ptr_t)(" sbuf 
-  "), (int) (" indent "), (" gseq "))")
+  #{ basilysgc_ppstrbuf_gimple_seq((basilys_ptr_t)($sbuf),
+				   (int) ($indent), ($gseq)) }# )
 
 (defprimitive ppstrbuf_tree (sbuf :long indent :tree t) :void
-  "basilysgc_ppstrbuf_tree((basilys_ptr_t)(" sbuf 
-  "), (int) (" indent "), (" t "))")
+  #{ basilysgc_ppstrbuf_tree((basilys_ptr_t)($sbuf), 
+			     (int) ($indent), ($t)) }# )
 
 (defprimitive ppstrbuf_basicblock (sbuf :long indent :basicblock bb) :void
-  "basilysgc_ppstrbuf_basicblock((basilys_ptr_t)(" sbuf 
-  "), (int) (" indent "), (" bb "))")
+  #{ basilysgc_ppstrbuf_basicblock((basilys_ptr_t)($sbuf),
+				   (int) ($indent), ($bb)) }# )
 
 (defprimitive basicblock_single_succ (:basicblock bb) :basicblock
-  "(single_succ_p(" bb ")?single_succ(" bb "):NULL)")
+  #{(single_succ_p($bb)?single_succ($bb):NULL)}# )
 
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPBASICBLOCKS)")
+  #{(basilys_magic_discr((basilys_ptr_t)($map)) == OBMAG_MAPBASICBLOCKS)}# )
 (defprimitive mapbasicblock_size (map) :long
-  "(basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map ")))")
+  #{(basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)($map)))}#)
 ;; primitive to get the attribute count of a mapbasicblock
 (defprimitive mapbasicblock_count (map) :long
-  "(basilys_count_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map ")))")
+  #{(basilys_count_mapbasicblocks((struct basilysmapbasicblocks_st*)($map)))}#)
 ;; get an entry in a mapbasicblock from a C basicblock
 (defprimitive mapbasicblock_get (map :basicblock bb) :value
-  "(basilys_get_mapbasicblocks((" map
-  "), (" bb ")))")
+  #{(basilys_get_mapbasicblocks(($map), ($bb)))}#)
 ;; primitive for making a new map of basicblocks
 (defprimitive make_mapbasicblock (discr :long len) :value
-  " (basilysgc_new_mapbasicblocks( (basilysobject_ptr_t) (" discr "), (" len ")))")
+  #{(basilysgc_new_mapbasicblocks( (basilysobject_ptr_t) ($discr),
+				   ($len)))}#)
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basicblock key :value val) :void
-  " basilys_put_mapbasicblocks( (struct basilysmapbasicblocks_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+  #{basilys_put_mapbasicblocks( (struct basilysmapbasicblocks_st *)
+				($map), ($key), (basilys_ptr_t) ($val))}#)
 ;; primivite for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basicblock key) :void
-  " basilysgc_remove_mapbasicblocks( (struct basilysmapbasicblocks_st*) (" map "), (" key "))")
+ #{basilysgc_remove_mapbasicblocks( (struct basilysmapbasicblocks_st*) ($map), ($key))}#)
 
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basicblock
-  "(basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map "), (int)(" n ")))")
+ #{(basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)($map), 
+				   (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapbasicblock_nth_val (map :long n) :value
-  "(basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)(" map "), (int)(" n ")))")
+ #{(basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)($map),
+				  (int)($n)))}#)
 (defciterator foreach_mapbasicblock 
   (bbmap)				; startformals
   eachmapbb 				;state symbol
   (:basicblock bbatt :value bbval)	;local formals
-  (					;; before expansion
-   "/*eachbbmap*/ int " eachmapbb "_rk=0;\n"
-   "for (" eachmapbb "_rk=0; " 
-   eachmapbb "_rk<basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap ")); " eachmapbb "_rk++) {\n"
-   "basic_block " eachmapbb "_bb=basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap "), " eachmapbb "_rk);\n"
-   "if (!" eachmapbb "_bb) continue;\n"
-   bbatt " = " eachmapbb "_bb;\n"
-   bbval " =basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)(" bbmap "), " eachmapbb "_rk);\n"
-   )
-  ( ;;after expansion
-   "} /*endeachbbmap*/"
-   )
+  ;; before expansion
+  #{
+   /*eachbbmap*/ int  $eachmapbb#_rk=0;
+   for ( $eachmapbb#_rk=0;  
+	 $eachmapbb#_rk<basilys_size_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap));  
+	 $eachmapbb#_rk++) {
+   basic_block $eachmapbb#_bb=basilys_nthattr_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap), $eachmapbb#_rk);
+   if (!$eachmapbb#_bb) continue;
+   $bbatt = $eachmapbb#_bb;
+   $bbval = basilys_nthval_mapbasicblocks((struct basilysmapbasicblocks_st*)($bbmap ), $eachmapbb#_rk);
+   }#
+  ;;after expansion
+   #{
+   } /*endeachbbmap*/
+   }#
   )
 
 (defciterator foreach_basicblock_succ_edge
@@ -688,125 +694,208 @@
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_maptree (map) :long
-  "(basilys_magic_discr((basilys_ptr_t)(" map ")) == OBMAG_MAPTREES)")
+  #{ (basilys_magic_discr((basilys_ptr_t)($map)) == OBMAG_MAPTREES) }#)
 (defprimitive maptree_size (map) :long
-  "(basilys_size_maptrees((struct basilysmaptrees_st*)(" map ")))")
+ #{ (basilys_size_maptrees((struct basilysmaptrees_st*)($map))) }#)
 ;; primitive to get the attribute count of a maptree
 (defprimitive maptree_count (map) :long
-  "(basilys_count_maptrees((struct basilysmaptrees_st*)(" map ")))")
+  #{ (basilys_count_maptrees((struct basilysmaptrees_st*)($map))) }# )
 ;; get an entry in a maptree from a C tree
 (defprimitive maptree_get (map :tree bb) :value
-  "(basilys_get_maptrees((" map
-  "), (" bb ")))")
+  #{(basilys_get_maptrees(($map), ($bb)))}#)
 ;; primitive for making a new map of trees
 (defprimitive make_maptree (discr :long len) :value
-  " (basilysgc_new_maptrees( (basilysobject_ptr_t) (" discr "), (" len ")))")
+ #{(basilysgc_new_maptrees((basilysobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of trees
 (defprimitive maptree_put (map :tree key :value val) :void
-  " basilys_put_maptrees( (struct basilysmaptrees_st *) (" map "), (" key "), (basilys_ptr_t) (" val "))")
+  #{basilys_put_maptrees( (struct basilysmaptrees_st *) ($map), 
+			  ($key), (basilys_ptr_t) ($val))}#)
 ;; primivite for removing from a map of trees
 (defprimitive maptree_remove (map :tree key) :void
-  " basilysgc_remove_maptrees( (struct basilysmaptrees_st*) (" map "), (" key "))")
+  #{basilysgc_remove_maptrees( (struct basilysmaptrees_st*) ($map), ($key))}#)
 
 ;; primitive to get the nth tree of a maptree
 (defprimitive maptree_nth_attr (map :long n) :tree
-  "(basilys_nthattr_maptrees((struct basilysmaptrees_st*)(" map "), (int)(" n ")))")
+  #{(basilys_nthattr_maptrees((struct basilysmaptrees_st*)($map), (int)($n)))}#)
 ;; primitive to get the nth value of a mapobject
 (defprimitive maptree_nth_val (map :long n) :value
-  "(basilys_nthval_maptrees((struct basilysmaptrees_st*)(" map "), (int)(" n ")))")
+  #{(basilys_nthval_maptrees((struct basilysmaptrees_st*)($map), (int)($n)))}# )
+;; iterator inside maptree
 (defciterator foreach_maptree 
   (trmap)				; startformals
   eachmaptr 				;state symbol
   (:tree tratt :value trval)	;local formals
-  (					;; before expansion
-   "/*eachtrmap*/ int " eachmaptr "_rk=0;\n"
-   "for (" eachmaptr "_rk=0; " 
-   eachmaptr "_rk<basilys_size_maptrees((struct basilysmaptrees_st*)(" trmap ")); " eachmaptr "_rk++) {\n"
-   "tree " eachmaptr "_tr=basilys_nthattr_maptrees((struct basilysmaptrees_st*)(" trmap "), " eachmaptr "_rk);\n"
-   "if (!" eachmaptr "_tr) continue;\n"
-   tratt " = " eachmaptr "_tr;\n"
-   trval " =basilys_nthval_maptrees((struct basilysmaptrees_st*)(" trmap "), " eachmaptr "_rk);\n"
-   )
-  ( ;;after expansion
-   "} /*endeachtrmap*/"
-   )
+  ;; before expansion
+  #{
+   /*eachtrmap*/ int $eachmaptr#_rk=0;
+   for ($eachmaptr#_rk=0;
+        $eachmaptr#_rk<basilys_size_maptrees((struct basilysmaptrees_st*)($trmap));
+	$eachmaptr#_rk++) {
+   tree $eachmaptr#_tr=basilys_nthattr_maptrees((struct basilysmaptrees_st*)($trmap), $eachmaptr#_rk);
+   if (!$eachmaptr#_tr) continue;
+   $tratt = $eachmaptr#_tr;
+   $trval =basilys_nthval_maptrees((struct basilysmaptrees_st*)($trmap), 
+				   $eachmaptr#_rk);
+   }#
+  ;;after expansion
+   #{
+   } /*endeachtrmap*/
+   }#
   )
 
 ;;;;;;;;;;;;;;;;
 ;;; primitive to push the cfun asociated with a function declaration
 ;;; this is required otherwise dump of gimple crashes
 (defprimitive push_cfun_decl (:tree fundecl) :void
-"push_cfun(DECL_STRUCT_FUNCTION(" fundecl "))")
+#{ push_cfun(DECL_STRUCT_FUNCTION($fundecl)) }#) 
 (defprimitive pop_cfun () :void
 "pop_cfun()")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Parma Polyhedra Library stuff (aka PPL)
 (defprimitive ppl_new_empty_constraint_system (discr) :value
-  "basilysgc_new_ppl_constraint_system((" 
-  discr "), BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM)")
+ #{ basilysgc_new_ppl_constraint_system(($discr), 
+					BASILYS_PPL_EMPTY_CONSTRAINT_SYSTEM)}# )
 
 (defprimitive ppl_clone_constraint_system (pplv) :value
-  "basilysgc_clone_ppl_constraint_system(" pplv ")")
+ #{ basilysgc_clone_ppl_constraint_system($pplv) }#)
 
 (defprimitive ppl_new_unsatisfiable_constraint_system (discr) :value
-  "basilysgc_new_ppl_constraint_system((" 
-  discr "), BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM)")
+  #{ basilysgc_new_ppl_constraint_system(($discr), 
+					 BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM) }#)
 
-(defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varnamvect) :void
-  "basilysgc_ppstrbuf_ppl_varnamvect ((" sbuf "), (" indent "), (" ppl "), (" varnamvect "))")
+(defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
+  #{ basilysgc_ppstrbuf_ppl_varnamvect (($sbuf), ($indent), ($ppl), ($varvect))}#)
 
 (defprimitive ppl_coefficient_from_tree (:tree tr) :ppl_coefficient
-  "(basilys_make_ppl_coefficient_from_tree(" tr "))")
+  #{ (basilys_make_ppl_coefficient_from_tree($tr)) }#)
 
 (defprimitive ppl_coefficient_from_long (:long l) :ppl_coefficient
-  "(basilys_make_ppl_coefficient_from_long(" l "))")
+   #{(basilys_make_ppl_coefficient_from_long($l))}#)
 
 (defprimitive ppl_delete_Coefficient (:ppl_coefficient coef) :void
-  "{ if (" coef ") ppl_delete_Coefficient(" coef "); " coef "=NULL;}")
+  #{ { if ($coef) ppl_delete_Coefficient($coef); 
+       $coef =NULL;} 
+       }#)
 
 (defprimitive make_ppl_linear_expression () :ppl_linear_expression
-  "basilys_make_ppl_linear_expression()")
+  #{ basilys_make_ppl_linear_expression() }#)
 
 (defprimitive ppl_delete_Linear_Expression (:ppl_linear_expression liex) :void
-"{ if (" liex ") ppl_delete_Linear_Expression(" liex "); " liex "=NULL;}")
+#{ { if ($liex) 
+     ppl_delete_Linear_Expression($liex); 
+   $liex =NULL;} 
+ }#)
 
 (defprimitive ppl_delete_Constraint (:ppl_constraint cons) :void
-  "{ if (" cons ") ppl_delete_Constraint(" cons "); " cons "=NULL;}")
+  #{ { if ($cons) 
+      ppl_delete_Constraint($cons); 
+    $cons =NULL;}
+    }#)
 
 (defprimitive ppl_Linear_Expression_add_to_coefficient 
   (:ppl_linear_expression liex 
    :long vardim
    :ppl_coefficient coef) :void
-"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_add_to_coefficient((" liex "), (" vardim "), (" coef ")); else debugeprintf(\"failed ppl_Linear_Expression_coefficient\");}")
+#{ 
+   { if (($liex) && ($coef)) 
+       ppl_Linear_Expression_add_to_coefficient(($liex), ($vardim), ($coef)); 
+     else debugeprintf("failed ppl_Linear_Expression_coefficient");}
+  }#)
 
 (defprimitive ppl_Linear_Expression_add_to_inhomogeneous
   (:ppl_linear_expression liex :ppl_coefficient coef) :void
-"{ if ((" liex ") && (" coef ")) ppl_Linear_Expression_add_to_inhomogeneous((" liex "), (" coef ")); }")
+#{
+  { if (($liex) && ($coef)) 
+       ppl_Linear_Expression_add_to_inhomogeneous(($liex), ($coef)); }
+}#)
 
 (defprimitive make_ppl_constraint 
   (:ppl_linear_expression liex
    :cstring constyp) :ppl_constraint
-"basilys_make_ppl_constraint_cstrtype((" liex "), (" constyp "))")
+#{ basilys_make_ppl_constraint_cstrtype(($liex), ($constyp)) }#)
 
 (defprimitive clear_special (v) :void
-  "basilys_clear_special(" v ")")
+ #{ basilys_clear_special($v); 
+ }#)
 
 (defprimitive insert_ppl_constraint_in_boxed_system 
   (:ppl_constraint cons :value sysv) :void
-  "basilys_insert_ppl_constraint_in_boxed_system((" cons "), (" sysv "))")
+ #{basilys_insert_ppl_constraint_in_boxed_system(($cons), ($sysv))}#)
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
-"if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Coefficient(&s, " coef "); debugeprintf(\"debug_ppl_coefficient %s @%p %s\", " msg ", (void*)" coef ", s); free(s);}")
+#{ 
+  if (flag_basilys_debug) 
+    {char*s=0; 
+     ppl_io_asprint_Coefficient(&s, $coef); 
+     debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
+     free(s);}
+}#)
 
 (defprimitive debug_ppl_linear_expression
   (:cstring msg :ppl_linear_expression liex) :void
-"if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Linear_Expression(&s, " liex "); debugeprintf(\"debug_ppl_linear_expression %s @%p %s\", " msg ", (void*)" liex ", s); free(s);}")
+ #{
+ if (flag_basilys_debug) 
+   {char*s=0; 
+    ppl_io_asprint_Linear_Expression(&s, $liex); 
+    debugeprintf("debug_ppl_linear_expression %s @%p %s", 
+		 $msg, (void*)$liex, s); free(s);}
+ }#)
 
 (defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
-  "if (flag_basilys_debug) {char*s=0; ppl_io_asprint_Constraint(&s, " cons "); debugeprintf(\"debug_ppl_constraint %s @%p %s\", " msg ", (void*)" cons ", s); free(s);}")
-  
+ #{
+ if (flag_basilys_debug)
+ {char*s=0; 
+  ppl_io_asprint_Constraint(&s, $cons); 
+  debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
+  free(s);}
+ }#)
+
+(defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
+#{ if (flag_basilys_debug) { 
+     char*s = 0; ppl_io_asprint_Polyhedron(&s, $poly);
+     debugeprintf("debug_ppl_polyhedron %s @%p %s", $msg, $poly, s);
+     free(s); } 
+}#)
+
+(defprimitive ppl_NNC_Polyhedron_from_Constraint_System
+  (:ppl_constraint_system consys) :ppl_polyhedron
+#{ basilys_make_ppl_NNC_Polyhedron_from_Constraint_System($consys) }#
+)
+
+(defprimitive make_ppl_polyhedron_same(discr :ppl_polyhedron poly) :value
+#{ basilysgc_new_ppl_polyhedron($discr, $poly, SAME_PPL_POLHYEDRON) }#
+)
+
+(defprimitive make_ppl_polyhedron_cloned(discr :ppl_polyhedron poly) :value
+#{ basilysgc_new_ppl_polyhedron($discr, $poly, CLONED_PPL_POLHYEDRON) }#
+)
+
+(defprimitive ppl_delete_Polyhedron (:ppl_polyhedron poly) :void
+ #{ { if ($poly) ppl_delete_Polyhedron($poly); $poly=NULL;} }#
+)
+
+(defprimitive ppl_Polyhedron_is_empty (:ppl_polyhedron poly) :long
+ #{ $poly && ppl_Polyhedron_is_empty($poly) }#
+)
+
+(defprimitive ppl_coefficient_content (pplv) :ppl_coefficient
+  #{ basilys_ppl_coefficient_content($pplv) }#
+)
+
+(defprimitive ppl_constraint_content (pplv) :ppl_constraint
+  #{ basilys_ppl_constraint_content($pplv) }#
+)
+
+(defprimitive ppl_constraint_system_content (pplv) :ppl_constraint_system
+  #{ basilys_ppl_constraint_system_content($pplv) }#
+)
+
+(defprimitive ppl_polyhedron_content (pplv) :ppl_polyhedron
+  #{ basilys_ppl_polyhedron_content($pplv) }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; DEBUG OUTPUT 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1079,14 +1168,17 @@
 
 ;; debug_tree is ok even for nil trees
 (defprimitive debugtree (:cstring msg :tree tr) :void
-  " do{debugeprintfnonl(\"debugtree %s @%p /%s \", " msg ", (void*)" tr ", "
-  "(" tr ")?tree_code_name[TREE_CODE(" tr ")]:\"*niltree*\");\n"
-  "if (flag_basilys_debug) debug_tree(" tr ");}while(0) "
+  #{
+  do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
+		       ($tr)?tree_code_name[TREE_CODE($tr)]:"*niltree*");
+  if (flag_basilys_debug) debug_tree($tr);}while(0)
+  }#
 )
 
 (defprimitive debugtreecodenum  (:cstring msg :long opcod) :void
-  "debugeprintf(\"debugtreecodenum %s #%ld %s\", " msg ", " opcod ", tree_code_name[" opcod "]);")
-
+  #{ debugeprintf("debugtreecodenum %s #%ld %s", $msg, 
+		  $opcod, tree_code_name[$opcod]);
+}#)
 
 ;; debug_gimple_stmt is ok even for nil gimples
 (defprimitive debuggimple(:cstring msg :gimple g) :void
@@ -1190,794 +1282,153 @@
   ( :tree fundeclt )			;start formals
   eachparamfun
   ( :tree paramdclt )				;local formals
-  ( ;;; before expansion
-   "/*eachparaminfunctiondecl*/\n"
-   "tree " eachparamfun "_tr=NULL;\n"
-   "if ((" fundeclt ") && TREE_CODE(" fundeclt ") == FUNCTION_DECL)\n"
-   "for (" eachparamfun "_tr = DECL_ARGUMENTS(" fundeclt "); "
-           eachparamfun "_tr != NULL;"
-           eachparamfun "_tr = TREE_CHAIN(" eachparamfun "_tr)) {\n"
-	   paramdclt " = " eachparamfun "_tr;" 
-   )
-  ( ;;; after expansion
-   "}/*end eachparaminfunctiondecl*/ "
-   )
-)
+  ;;; before expansion
+  #{
+   /*eachparaminfunctiondecl*/
+   tree $eachparamfun#_tr=NULL;
+   if (($fundeclt) && TREE_CODE($fundeclt) == FUNCTION_DECL)
+     for ($eachparamfun#_tr = DECL_ARGUMENTS($fundeclt);
+          $eachparamfun#_tr != NULL;
+          $eachparamfun#_tr = TREE_CHAIN($eachparamfun#_tr)) {
+ 	    $paramdclt = $eachparamfun#_tr;
+  }#
+  ;;; after expansion
+  #{
+   }/*end eachparaminfunctiondecl*/
+  }# )
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; small analysis
-
-(defclass class_smallcfun
-  :super class_named
-  :fields (scfun_decl
-	   scfun_entbb
-	   ))
-
-(defclass class_smallbb
-  :super class_proped
-  :fields (sbb_bbcont
-	   ))
-
-(defclass class_smallanalysis 
-  :super class_analysis_state
-  :fields (sman_cfuns			;list of class_smallcfun-s
-	   sman_cfundict		;dict of class_smallcfun-s
-	   sman_cfuntreemap		;treemap of class_smallcfun-s
-	   sman_bbtable			;hashtable bb -> class_smallbb
-	   ))
-
-(defclass class_smallabstractenv
-  :super class_proped
-  :fields (abenv_maptree		;a maptree C ident -> abstract values
-	   abenv_parenv			;the parent abstract env
-	   abenv_pplconsys		;the PPL constraint system
-	   abenv_vectrees		;the vector naming PPL variables as trees
-))
-
-(defun put_abstrenv (abenv :tree tr :value val)
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (assert_msg "check tr" tr)
-  (maptree_put (get_field :abenv_maptree abenv) tr val)
-)
-
-(defun get_abstrenv (abenv :tree tr)
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (maptree_get (get_field :abenv_maptree abenv) tr)
-)
-
-(defun fresh_abstrenv (abpar)
-  (assert_msg "check abpar" (is_a abpar class_smallabstractenv))
-  (let ( (newabenv (instance class_smallabstractenv
-			     :abenv_maptree (make_maptree discr_maptrees 10)
-			     :abenv_parenv abpar)) )
-    (return newabenv)
-))
-
-;;; find a tree inside a small abstract env - return primarily the
-;;; boxed tree and secondly its index
-(defun find_tree_smallabstractenv (abenv :tree tr)
-  (debug_msg abenv "find_tree_smallabstractenv abenv")
-  (debugtree "find_tree_smallabstractenv tr" tr)
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (let ( (:long ix -1)
-	 (btree ()) 
-	 (varvect (get_field :abenv_vectrees abenv))
-	 (:long curix 0)
-	 (:long vectlen (multiple_length varvect))
-	 )
-    (forever 
-     loop
-     (if (>=i curix vectlen) (exit loop))
-     (let ( (curcomp (multiple_nth varvect curix)) )
-       (if (==t (tree_content curcomp) tr)
-	   (progn
-	     (debug_msg curcomp "find_tree_smallabstractenv return curcomp")
-	     (return curcomp curix))
-	 )
-       (setq curix (+i curix 1))
-       )))
-  (debug_msg () "find_tree_smallabstractenv return NIL")
-  (return)
-  )
-
-(defun dbgout_smallabstractenv (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
-  (assert_msg "check self" (is_a self class_smallabstractenv))
-  (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi)) 
-	 (:long oserial (obj_serial self))
-	 (:long onum (obj_num self)) 
-	 ) 
-    (add2sbuf_strconst sbuf "|")
-    (add2sbuf_string sbuf (get_field :named_name dis))
-    (add2sbuf_strconst sbuf "/")
-    (add2sbuf_longhex sbuf (obj_hash self))
-    (if onum
-	(progn
-	  (add2sbuf_strconst sbuf "#")
-	  (add2sbuf_longdec sbuf onum)))
-    (if oserial
-	(progn
-	  (add2sbuf_strconst sbuf "##")
-	  (add2sbuf_longdec sbuf oserial)))
-    (add2sbuf_strconst sbuf "{")
-    (let ( (:long offpar (get_int abenv_parenv)) 
-	   (:long offvnam (get_int abenv_vectrees)) 
-	   (:long oldmaxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	   (:long newmaxdepth  (-i (/i oldmaxdepth 2) 1))
-	   )
-      (if (<i newmaxdepth 0) (setq newmaxdepth 0))
-      (if (need_dbglim depth oldmaxdepth)
-	  (progn
-	    (and (>i depth 0) (>i oldmaxdepth 3)
-		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
-	    (dbgout_fields self dbgi (+i depth 1) 0 offpar)
-	    ;(add2sbuf_indentnl sbuf depth)
-	    (add2sbuf_strconst sbuf "@ppl.cons.sys@[")
-	    (ppl_ppstrbuf sbuf 
-			  (get_field :abenv_pplconsys self)
-			  depth 
-			  (get_field :abenv_vectrees self))
-	    (add2sbuf_strconst sbuf "]@")
-	    (add2sbuf_indentnl sbuf depth)
-	    (if (need_dbglim (+i depth 2) newmaxdepth)
-		(dbgout_fields self dbgi (+i depth 2) offvnam -1)
-	      (add2sbuf_strconst sbuf ".._.."))
-	    (put_int (unsafe_get_field :dbgi_maxdepth dbgi) oldmaxdepth)
-	    )))
-    (add2sbuf_strconst sbuf "}")
-    )
-  )
-(install_method class_smallabstractenv dbg_output dbgout_smallabstractenv)
-
-(definstance initial_smallabstractenv class_smallabstractenv
-  :abenv_maptree (make_maptree discr_maptrees 20))
-
-(definstance smallana_cont class_container)
-
-
-(defun smallana_cfun_entbb (sman :tree decltree :basicblock bbent)
-  (debug_msg sman "smallana_cfun_entbb sman")
-  (debugtree "smallana_cfun_entbb start decltree" decltree)
-  (match 
-   decltree
-   ;; the joker below is acutally nil
-   ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
-      (debugtree "smallana_cfun_entbb treevars of function" treevars)
-      (push_cfun_decl decltree)
-      ;;;;;
-      (each_param_in_fundecl
-       (decltree)
-       (:tree argdtree)
-       (debugtree "smallana_cfun_entbb argdtree" argdtree)
-       (match 
-	argdtree
-	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argdcl ?argname)
-	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
-	   (debugcstring "smallana_cfun_entbb integer argname" argname)
-	   (debugcstring "smallana_cfun_entbb integer typname" typname)
-	   (messagenum_dbg  "smallana_cfun_entbb integer imin" imin)
-	   (messagenum_dbg  "smallana_cfun_entbb integer imax" imax)
-	   )
-	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
-	   (debugtree "smallana_cfun_entbb argdtype" argdtype)
-	   (debugtree "smallana_cfun_entbb argdcl" argdcl)
-	   (debugcstring "smallana_cfun_entbb argname" argname)
-	   )
-	( ?_ 
-	  ;; (assert_msg "unexpected argdtree" ())	  
-	  (shortbacktrace_dbg "unexpected tree in smallana_cfun_entbb" 12)
-	  )
-	)
-       (debugtree "smallana_cfun_entbb argdecltree" argdtree)
-       )
-      ;;;;
-      (let ( (fname (make_stringconst discr_string funam)) 
-	    (scf (instance class_smallcfun
-			    :named_name fname
-			    :scfun_decl (make_tree discr_tree decltree)
-			    :scfun_entbb (make_basicblock discr_basicblock bbent)))
-	     )
-	(debug_msg fname "smallana_cfun_entbb fname")
-	(list_append (get_field :sman_cfuns sman) scf)
-	(mapstring_putstr (get_field :sman_cfundict sman) fname scf)
-	(maptree_put (get_field :sman_cfuntreemap sman) decltree scf)
-	)
-      (pop_cfun)
-      )
-   ( ?(tree_variable_decl ?_)
-      (debugtree  "smallana_cfun_entbb decl of variable" decltree)
-      (inform_at_tree decltree "smallana: global variable not analyzed")
-      )
-   ( ?_
-     (debugtree "smallana_cfun_entbb other decl" decltree)
-     (inform_at_tree decltree "smallana: other declaration not analyzed")
-     ;; (assert_msg "smallana_cfun_entbb @$@UNIMPLEMENTED DECL" ())
-     (shortbacktrace_dbg "smallana_cfun_entbb unexepcted declree" 14)
-     () )
-   )
-  (debug_msg sman "smallana_cfun_entbb sman")
-  )
-
-
-(defun smallana_gimple (sman :gimple g)
-  (debuggimple "smallana_gimple gimple" g)
-  (match 
-   g
-   ( ?(gimple_assign_single ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_single lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_single rhs" rhs)
-      )
-   ( ?(gimple_assign_cast ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_cast lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_cast rhs" rhs)
-      )
-   ( ?(gimple_assign_copy ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_copy lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_copy rhs" rhs)
-      )
-   ( ?(gimple_assign_ssa_name_copy ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_ssa_name_copy lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_ssa_name_copy rhs" rhs)
-      )
-   ( ?(gimple_assign_unary_nop ?lhs ?rhs)
-      (debugtree "smallana_gimple gimple_assign_unary_nop lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_unary_nop rhs" rhs)
-      )
-   ( ?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_plus lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_plus rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_plus rhs2" rhs2)
-      )
-   ( ?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_pointerplus lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_pointerplus rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_pointerplus rhs2" rhs2)
-      )
-   ( ?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
-      (debugtree "smallana_gimple gimple_assign_mult lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_mult rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_mult rhs2" rhs2)
-      )
-   ( ?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
-      (debugtree "smallana_gimple gimple_assign_binaryop lhs" lhs)
-      (debugtree "smallana_gimple gimple_assign_binaryop rhs1" rhs1)
-      (debugtree "smallana_gimple gimple_assign_binaryop rhs2" rhs2)
-      (debugtreecodenum  "smallana_gimple gimple_assign_binaryop opcod" opcod)
-      ;;(shortbacktrace_dbg "smallana_gimple gimple_assign_binaryop unexpected" 15)
-      (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
-      )
-   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smallana_gimple gimple_cond_lessequal lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_lessequal rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_lessequal truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_lessequal falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_lessequal" 15)
-      )
-   ( ?(gimple_cond_notequal ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smallana_gimple gimple_cond_notequal lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_notequal rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_notequal truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_notequal falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_notequal" 15)
-      )
-   ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smallana_gimple gimple_cond_greater lhs" lhs)
-      (debugtree "smallana_gimple gimple_cond_greater rhs" rhs)
-      (debugtree "smallana_gimple gimple_cond_greater truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_greater falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_greater" 15)
-      )
-   ( ?(gimple_cond_true ?truelab ?falselab)
-      (debugtree "smallana_gimple gimple_cond_true truelab" truelab)
-      (debugtree "smallana_gimple gimple_cond_true falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_cond_true" 15)
-      )
-   ( ?(gimple_call ?lhs ?fndecl ?_)
-      (debugtree "smallana_gimple gimple_call lhs" lhs)
-      (debugtree "smallana_gimple gimple_call fndecl" fndecl)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_call" 15)
-      )
-   ( ?(gimple_return ?retval)
-      (debugtree "smallana_gimple gimple_return retval" retval)
-      (shortbacktrace_dbg "@$@unimplemented smallana_gimple gimple_return" 15)
-      )
-   ( ?_
-     (debuggimple "smallana_gimple other!gimple" g)
-     ;;(shortbacktrace_dbg "smallana_gimple unexpected gimple" 15)
-     (assert_msg "smallana_gimple @$@ UNIMPLEMENTED GIMPLE" ())
-     )
-   )
-  )
-
-(defun smallana_bb (sman :basicblock bb)
-  (debug_msg sman "smallana_bb start sman")
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (debugbasicblock "smallana_bb bb" bb)
-  (let ( (bbtab (get_field :sman_bbtable sman)) 
-	 )
-    (assert_msg "check bbtab" (is_mapbasicblock bbtab))
-    (let ( (sbb (mapbasicblock_get bbtab bb)) )
-      (if sbb (return))
-      (setq sbb (instance class_smallbb
-			  :sbb_bbcont (make_basicblock discr_basicblock bb)))
-      (mapbasicblock_put bbtab bb sbb)
-      (eachgimple_in_basicblock 
-       (bb)
-       (:gimple g)
-       (smallana_gimple sman g)
-       )
-      (debug_msg sman "smallana_bb end sman")
-      )))
-
-
-(defun smallana_cfun_bb (sman :tree cfdecl :basicblock fbb)
-  (debug_msg sman "smallana_bb_cfun start sman")
-  (debugtree "smallana_bb_cfun cfdecl" cfdecl)
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (match cfdecl
-	 ( ?(as ?decltree ?(tree_function_decl ?funam ?(tree_block ?treevars ?_)))
-	    (debugtree "smallana_bb_cfun decltree" decltree)
-	    (debugtree "smallana_bb_cfun treevars of function" treevars)
-	    (debugcstring "smallana_cfun_entrybb funam" funam)
-	    ))
-  (smallana_bb sman fbb)
-  (debug_msg sman "smallana_bb_cfun end sman")
-  )
-
-
-(defun smaninterp_cfun (sman abenv cfun)
-  (debug_msg sman "smaninterp_fun sman")
-  (debug_msg cfun "smaninterp_fun cfun")
-  (debug_msg abenv "smaninterp_fun abenv")
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (assert_msg "check cfun" (is_a cfun class_smallcfun))
-  (let ( (:basicblock bbent 
-		      (basicblock_content (get_field :scfun_entbb cfun)))
-	 (:tree fundecl (tree_content (get_field :scfun_decl cfun)))
-	 )
-    (push_cfun_decl fundecl)
-    (smaninterp_basicblock sman abenv bbent)
-    ;(assert_msg "@$@unimplemented smaninterp_fun" ())
-    (shortbacktrace_dbg "@$@unimplemented smaninterp_fun" 15)
-    (pop_cfun)
-    ))
-
-
-(defun smaninterp_basicblock (sman abenv :basicblock bb)
-  (debug_msg abenv "smaninterp_basicblock abenv")
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (forever 
-   bbloop
-   (debugbasicblock "smaninterp_basicblock bb" bb)
-   (if (null_basicblock bb)
-       (exit bbloop))
-   (eachgimple_in_basicblock 
-    (bb)
-    (:gimple g)
-    (debuggimple "smaninterp_basicblock g" g)
-    (smaninterp_gimple sman abenv g bb)
-    )
-   (setq bb (basicblock_single_succ bb))
-   (debugbasicblock "smaninterp_basicblock succ bb" bb)
-   )
-  (debug_msg () "smaninterp_basicblock done")
-  ;(assert_msg "@$@unimplemented smaninterp_basicblock" ())
-  (shortbacktrace_dbg "@$@unimplemented smaninterp_basicblock" 15)
-  )
-
-
-;;;;;;;;;;;;;;;;
-(defun sman_propagate_constraints_call (abenv newabenv tupvarbind)
-  (debug_msg tupvarbind "sman_propagate_constraints_call tupvarbind")
-  (assert_msg "check newabenv" (is_a newabenv class_smallabstractenv))
-  (let ( (pplvarslist (make_list discr_list)) 
-	 (pplconsysval (ppl_new_empty_constraint_system discr_ppl_constraint_system))
-	 (:long nbpplvars 0)
-	 )
-    (debug_msg pplconsysval "sman_propagate_constraints_call pplconsysval")
-    (foreach_in_multiple
-     (tupvarbind)
-     (curvarbind :long bindix)
-     (debug_msg curvarbind "sman_propagate_constraints_call curvarbind")
-     (let ( (:tree parmtype (tree_content (multiple_nth curvarbind 0)))
-	    (parmdeclval (multiple_nth curvarbind 1))
-	    (:tree parmdecl (tree_content parmdeclval))
-	    (:tree curarg (tree_content (multiple_nth curvarbind 2)))
-	    )
-       (debugtree "sman_propagate_constraints_call parmtype" parmtype)
-       (debugtree "sman_propagate_constraints_call parmdecl" parmdecl)
-       (debugtree "sman_propagate_constraints_call curarg" curarg)
-       (messagenum_dbg  "sman_propagate_constraints_call nbpplvars" nbpplvars)
-       (match 
-	curarg
-	( ?(tree_integer_cst ?k)
-	   (messagenum_dbg  "sman_propagate_constraints_call curarg const.int. k" k)
-	   ;; add the constraint {parmdecl == k}
-	   (let (
-		 (:ppl_coefficient coefarg (ppl_coefficient_from_tree curarg)) 
-		 (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
-		 (:ppl_linear_expression liex (make_ppl_linear_expression))
-		 )
-	     (debug_ppl_coefficient "sman_propagate_constraints_call coefarg" coefarg)
-	     (messagenum_dbg  "sman_propagate_constraints_call nbpplvars" nbpplvars)
-	     (ppl_Linear_Expression_add_to_coefficient liex nbpplvars coefm1)
-	     (ppl_Linear_Expression_add_to_inhomogeneous liex coefarg)
-	     (debug_ppl_linear_expression "sman_propagate_constraints_call liex" liex)
-	     (let ( (:ppl_constraint cons (make_ppl_constraint liex "==")) )
-	       (debug_ppl_constraint "sman_propagate_constraints_call cons" cons)
-	       (insert_ppl_constraint_in_boxed_system cons pplconsysval)
-	       (ppl_delete_Constraint cons)
-	       )
-	     (ppl_delete_Coefficient coefm1)
-	     (ppl_delete_Coefficient coefarg)
-	     (ppl_delete_Linear_Expression liex)
-	     )
-	   (setq  nbpplvars (+i nbpplvars 1)) 
-	   (list_append pplvarslist parmdeclval)
-	   )
-	( ?_
-	  (assert_msg "sman_propagate_constraints_call @$@unimplemented curarg tree" ())))
-       ))
-    (put_fields newabenv 
-		:abenv_pplconsys pplconsysval
-		:abenv_vectrees (list_to_multiple pplvarslist))
-    )
-  (debug_msg newabenv "sman_propagate_constraints_call final newabenv")
-  )
-
-;;;;;;;;;;;;;;;;
-;; pass both the relation and the opposite relation when changing signs
-(defun sman_add_cmp_constraint (sman abenv :tree lhs rhs :cstring rel opprel)
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debug_msg abenv "sman_add_cmp_constraint abenv")
-  (debugtree "sman_add_cmp_constraint lhs" lhs)
-  (debugtree "sman_add_cmp_constraint rhs" rhs)
-  (let ( (:long lvix -1) 		;left var index
-	 (:long rvix -1)		;right var index
-	 (consysv (get_field :abenv_pplconsys abenv))
-	 )
-;;; handle the left hand side lhs
-    (match 
-     lhs
-     (?(tree_ssa_name 
-	?(as ?ldeclvar ?(tree_decl ?lvar ?lname ?luid)) 
-	?lvalu ?lversion ?ldefg)
-       (debugtree "sman_add_cmp_constraint ssa_name ldeclvar" ldeclvar)
-       (debugtree "sman_add_cmp_constraint ssa_name lvar" lvar)
-       (debugtree "sman_add_cmp_constraint ssa_name lvalu" lvalu)
-       (messagenum_dbg "sman_add_cmp_constraint lversion" lversion)
-       (debuggimple "sman_add_cmp_constraint ssa_name ldefg" ldefg)
-       (multicall
-	(boxtr :long trix)
-	(find_tree_smallabstractenv abenv lvar)
-	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
-	(if boxtr 
-	    (progn (setq lvix trix) ())
-	  (progn 
-	    (assert_msg "sman_add_cmp_constraint dont know what to do lvar" ())
-	    ()
-	    ))
-	)
-       ()
-       )
-     (?(tree_integer_cst ?lk)
-       ()				;this is ok
-       )
-     (?_
-      (assert_msg "unexpected lhs in sman_add_cmp_constraint" ()))
-     )				    ;end match lhs
-;;; handle the right hand side rhs
-    (match 
-     rhs
-     (?(tree_ssa_name ?rvar ?rvalu ?rversion ?rdefg)
-       (debugtree "sman_add_cmp_constraint ssa_name rvar" rvar)
-       (debugtree "sman_add_cmp_constraint ssa_name rvalu" rvalu)
-       (messagenum_dbg "sman_add_cmp_constraint rversion" rversion)
-       (debuggimple "sman_add_cmp_constraint ssa_name rdefg" rdefg)
-       (multicall
-	(boxtr :long trix)
-	(find_tree_smallabstractenv abenv rvar)
-	(debug_msg boxtr "sman_add_cmp_constraint ssa_name boxtr")
-	(if 
-	    boxtr 
-	    (progn (setq rvix trix) ())
-	  (assert_msg "sman_add_cmp_constraint dont know what to do rvar" ()))
-	)
-       ()
-       )
-     (?(tree_integer_cst ?rk)
-       ()				;this is ok
-       )
-     (?_
-      (assert_msg "unexpected rhs in sman_add_cmp_constraint" ()))
-     )					;end match rhs
-    (cond
-     ( (and (>=i lvix 0) (<i rvix 0)) ;left is variable, right is constant
-       (let (
-	     (:ppl_linear_expression liex (make_ppl_linear_expression))
-	     (:ppl_coefficient coefright (ppl_coefficient_from_tree rhs))
-	     (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
-	     )
-	 (ppl_Linear_Expression_add_to_coefficient liex lvix coefm1)
-	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefright)
-	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
-	   (debug_ppl_constraint "sman_add_cmp_constraint leftvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
-	   (ppl_delete_Coefficient coefm1)
-	   (ppl_delete_Coefficient coefright)
-	   (ppl_delete_Linear_Expression liex)
-	   (ppl_delete_Constraint newcons)
-	   )
-	 )
-       )
-     ( (and (<i lvix 0) (>=i rvix 0)) ;left is constant, right is variable
-       (let ( (:ppl_coefficient coefleft (ppl_coefficient_from_tree lhs))
-	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
-	      (:ppl_linear_expression liex (make_ppl_linear_expression))
-	      )
-	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
-	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefleft)
-	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
-	   (debug_ppl_constraint "sman_add_cmp_constraint rightvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
-	   (ppl_delete_Coefficient coefm1)
-	   (ppl_delete_Coefficient coefleft)
-	   (ppl_delete_Linear_Expression liex)
-	   (ppl_delete_Constraint newcons)
-	   )
-	 )
-       ()
-       )
-     ( (and (>=i lvix 0) (>=i rvix 0)) ;both left & right are variable
-       (let ( (:ppl_coefficient coef1 (ppl_coefficient_from_long 1))
-	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
-	      (:ppl_linear_expression liex (make_ppl_linear_expression))
-	      )
-	 (ppl_Linear_Expression_add_to_coefficient liex lvix coef1)
-	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
-	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex rel)) )
-	   (debug_ppl_constraint "sman_add_cmp_constraint bothvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
-	   (ppl_delete_Coefficient coefm1)
-	   (ppl_delete_Coefficient coef1)
-	   (ppl_delete_Linear_Expression liex)
-	   (ppl_delete_Constraint newcons)
-	   )
-	 )
-       ()
-       )
-     (:else
-      (assert_msg "unexpected left & right in sman_add_cmp_constraint" ())
-      ))
-    )
-  (debug_msg abenv "sman_add_cmp_constraint updated abenv")
-  )
-
-;;;;;;;;;;;;;;;;
-(defun smaninterp_gimple  (sman abenv :gimple g :basicblock bb)
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debug_msg abenv "smaninterp_gimple abenv")
-  (debuggimple "smaninterp_gimple g" g)
-  (debugbasicblock "smaninterp_gimple bb" bb)
-;; we really should count the number of times we are calling
-;; smaninterp_gimple and returns immediately with a warning if calling
-;; too often/too deeply. The point is that an small analysis of a
-;; buggy program could make the compiler loop.
-  (compile_warning "we should check that we don't call too often or too deeply in smaninterp_gimple" ())
-  (match 
-   g
-   ;; handle calls
-   (?(gimple_call ?lhs ?fndecl ?nargs)
-     (debugtree "smaninterp_gimple call lhs" lhs)
-     (debugtree "smaninterp_gimple call fndecl" fndecl)
-     (let ( (:long argix 0) 
-	    (newabenv (fresh_abstrenv abenv))
-	    (tupvarbind (make_multiple discr_multiple nargs))
-	    )
-       (each_param_in_fundecl 
-	(fndecl)
-	(:tree curparamdcl)
-	(messagenum_dbg  "smaninterp_gimple curparamdecl argix" argix)
-	(debugtree "smaninterp_gimple curparamdecl" curparamdcl)
-	(let ( (:tree curarg (gimple_call_nth_arg g argix)) )
-	  (debugtree "smaninterp_gimple curarg" curarg)
-	  (match 
-	   curparamdcl
-	   (?(tree_parm_decl ?parmtype ?parmdecl ?parmname)
-	     (debugtree "smaninterp_gimple parmtype" parmtype)
-	     (debugtree "smaninterp_gimple parmdecl" parmdecl)
-	     (debugcstring "smaninterp_gimple parmname" parmname)
-	     (multiple_put_nth tupvarbind argix
-			       (make_tuple3 discr_multiple 
-					    (make_tree discr_tree parmtype)
-					    (make_tree discr_tree parmdecl)
-					    (make_tree discr_tree curarg)))
-	     )
-	   (?_ 
-	    (assert_msg "inexpected curparamdcl" ())
-	    )
-	   )
-	  (setq argix (+i argix 1))
-	  ))
-       (debug_msg tupvarbind "smaninterp_gimple tupvarbind")
-       (sman_propagate_constraints_call abenv newabenv tupvarbind)
-       (debug_msg newabenv "smaninterp_gimple newabenv propagated")
-       (debugtree "smaninterp_gimple call should go into fndecl" fndecl)
-       (debug_msg sman "smaninterp_gimple sman")
-       (let (
-	     (calledcfun (maptree_get (get_field :sman_cfuntreemap sman) fndecl)) )
-	 (debug_msg calledcfun "smaninterp_gimple calledcfun")
-	 (if calledcfun
-	     (smaninterp_cfun sman newabenv calledcfun)
-	   )
-	 )
-       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple call" 15)
-       ;(assert_msg "@$@unimplemented smaninterp_gimple call" ())
-       )
-     )
-   ;; handle conditional <=
-   ( ?(gimple_cond_lessequal ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smaninterp_gimple cond<= lhs" lhs)
-      (debugtree "smaninterp_gimple cond<= rhs" rhs)
-      (debugtree "smaninterp_gimple cond<= truelab" truelab)
-      (debugtree "smaninterp_gimple cond<= falselab" falselab)
-      (let (
-	    (closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
-	    )
-	(debug_msg closys "smaninterp_gimple cond<= closys")
-	(sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
-	(debugbasicblock "smaninterp_gimple cond<= bb" bb)
-	;; find the true branch and interpret it
-	
-	(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
-	(compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
-	)
-      (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
-      )
-   ;; handle conditional <
-   ( ?(gimple_cond_less ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smaninterp_gimple cond< lhs" lhs)
-      (debugtree "smaninterp_gimple cond< rhs" rhs)
-      (debugtree "smaninterp_gimple cond< truelab" truelab)
-      (debugtree "smaninterp_gimple cond< falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<" 15)
-      (assert_msg "@$@unimplemented smaninterp_gimple cond<" ())
-      )
-   ;; handle conditional >
-   ( ?(gimple_cond_greater ?lhs ?rhs ?truelab ?falselab)
-      (debugtree "smaninterp_gimple cond> lhs" lhs)
-      (debugtree "smaninterp_gimple cond> rhs" rhs)
-      (debugtree "smaninterp_gimple cond> truelab" truelab)
-      (debugtree "smaninterp_gimple cond> falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond>" 15)
-      (assert_msg "@$@unimplemented smaninterp_gimple cond>" ())
-      )
-   ;; handle conditional true
-   ( ?(gimple_cond_true ?truelab ?falselab)
-      (debugtree "smaninterp_gimple condtrue truelab" truelab)
-      (debugtree "smaninterp_gimple condtrue falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
-      ;(assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
-      )
-   ;; handle conditional false
-   ( ?(gimple_cond_false ?truelab ?falselab)
-      (debugtree "smaninterp_gimple condfalse truelab" truelab)
-      (debugtree "smaninterp_gimple condfalse falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
-      ;(assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
-      )
-   ;; default 
-   (?_ 
-    (assert_msg "@$@unimplemented smaninterp_gimple" ()))
-   )
-  )
-
-(defun smallana_interpret (sman)
-  (debug_msg sman "smallana_interpret sman")
-  (assert_msg "check sman" (is_a sman class_smallanalysis))
-  (let ( (mainf (mapstring_rawget (get_field :sman_cfundict sman) "main")) 
-	 )
-    (debug_msg mainf "smallana_interpret mainf")
-    (assert_msg "check mainf" (is_a mainf class_smallcfun))
-    (smaninterp_cfun sman initial_smallabstractenv mainf)
-    (debug_msg sman "smallana_interpret end sman")
-    )
-)
-
-;;; our small analysis gate for latessa
-;; for some reason, the smallana is triggered twice, and the first run
-;; is enough...
-(defun smallanapass_gate (latessapass)
-  (debug_msg smallana_cont "smallanapass_gate smallana_cont at start")
-  (let ( (oldsman (get_field  :container_value smallana_cont)) )
-    (if oldsman
-	(progn
-	  (shortbacktrace_dbg "smallanapass_gate already got oldsman" 20)
-	  (debug_msg oldsman "smallanapass_gate already got oldsman")
-	  (return ()))
-      (return smallana_cont)
-      )))
-
-
-;;; apparently only the entrybb loop matter in the latessa pass...
-(defun smallanapass_exec (latessapass)
-  (debug_msg latessapass "smallanapass_exec start")
-  (let ( (cfuns (make_list discr_list))
-	 (cfundict (make_mapstring discr_mapstrings 20))
-	 (cfuntreemap (make_maptree discr_maptrees 20))
-	 (sman (instance class_smallanalysis
-			 :sman_cfuns cfuns
-			 :sman_cfundict cfundict
-			 :sman_cfuntreemap cfuntreemap
-			 :sman_bbtable (make_mapbasicblock discr_mapbasicblocks 20)
-			 )) 
-	 )
-    (debug_msg sman "smallanapass_exec sman at start")
-    ;; don't bother do_each_cfun_body here.. it is not done...
-    (each_cgraph_fun_entryblock
-     ()
-     (:tree decl :basicblock bbent)
-     (debugtree "smallana exec eachcgraph decl" decl)
-     (smallana_cfun_entbb sman decl bbent)
-     )
-    ;;
-    (debug_msg sman "smallanapass_exec sman after eachentrybb")
-    ;;
-    (each_bb_cfun
-     ()
-     (:basicblock cfbb :tree cfdecl)
-     (smallana_cfun_bb sman cfdecl cfbb)
-     )
-    ;;
-    (debug_msg sman "smallanapass_exec sman after eachbbcfun")
-    ;;
-    (smallana_interpret sman)
-    ;;
-    (put_fields  smallana_cont :container_value sman)
-    (debug_msg smallana_cont "smallanapass_exec final smallana_cont")
-    ))
-
-;;; our small analysis command -fbasilys=smallana
-(defun smallana_command (dispatcher arg secarg moduldata)
-  ;; fill the ipa pass
-  (put_fields basilys_ipa_gccpass
-  :gccpass_gate smallanapass_gate
-  :gccpass_exec smallanapass_exec)
-  (debug_msg basilys_latessa_gccpass "smallana sets basilys_latessa_gccpass")
-  (return dispatcher)			;return non-nil to continue compilation
-  )
-
-(initial_command_install smallana_command "smallana")
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
+ ==g
+ ==t
+ basicblock_content
+ basicblock_gimpleseq
+ basicblock_phinodes
+ basicblock_single_succ 
  basilys_earlyopt_gccpass
  basilys_ipa_gccpass
  basilys_lateopt_gccpass
  basilys_latessa_gccpass
  basilys_lowering_gccpass
+ clear_special 
+ debug_ppl_coefficient
+ debug_ppl_constraint
+ debug_ppl_linear_expression
+ debug_ppl_polyhedron 
+ debugbasicblock
+ debuggimple
+ debuggimpleseq
+ debugtree
+ debugtreecodenum
+ each_bb_cfun
  each_cgraph_fun_body
  each_cgraph_fun_entryblock
  each_in_gimpleseq
+ each_param_in_fundecl
+ eachgimple_in_basicblock
  fetch_gdbmstate
  fetch_gdbmstate_constr
+ foreach_basicblock_succ_edge
+ foreach_mapbasicblock
+ foreach_maptree
+ gimple_assign_binaryop
+ gimple_assign_cast
+ gimple_assign_copy
+ gimple_assign_mult 
+ gimple_assign_plus 
+ gimple_assign_pointerplus
+ gimple_assign_single
+ gimple_assign_ssa_name_copy 
+ gimple_assign_unary_nop
+ gimple_call
+ gimple_call_nth_arg  
+ gimple_cond_false
+ gimple_cond_greater
+ gimple_cond_less 
+ gimple_cond_lessequal
+ gimple_cond_notequal
+ gimple_cond_true 
+ gimple_content
+ gimple_return
+ gimpleseq_content 
+ gimpleval
+ inform_at_tree
+ insert_ppl_constraint_in_boxed_system 
  install_gcc_pass
+ is_basicblock
+ is_gimple
+ is_gimpleseq  
+ is_mapbasicblock 
+ is_maptree
+ is_tree  
+ make_basicblock
+ make_gimple
+ make_gimpleseq
+ make_mapbasicblock
+ make_maptree
+ make_ppl_constraint 
+ make_ppl_linear_expression  
+ make_ppl_polyhedron_cloned
+ make_ppl_polyhedron_same 
+ make_tree  
+ mapbasicblock_count
+ mapbasicblock_get
+ mapbasicblock_nth_attr
+ mapbasicblock_nth_val 
+ mapbasicblock_put
+ mapbasicblock_remove  
+ mapbasicblock_size 
+ maptree_count
+ maptree_get
+ maptree_nth_attr
+ maptree_nth_val
+ maptree_put
+ maptree_remove
+ maptree_size
+ notnull_basicblock
+ null_basicblock
+ pop_cfun
+ ppl_Linear_Expression_add_to_coefficient
+ ppl_Linear_Expression_add_to_inhomogeneous
+ ppl_NNC_Polyhedron_from_Constraint_System  
+ ppl_Polyhedron_is_empty 
+ ppl_clone_constraint_system
+ ppl_coefficient_content 
+ ppl_coefficient_from_long
+ ppl_coefficient_from_tree 
+ ppl_constraint_content 
+ ppl_constraint_system_content 
+ ppl_delete_Coefficient  
+ ppl_delete_Constraint  
+ ppl_delete_Linear_Expression 
+ ppl_delete_Polyhedron  
+ ppl_new_empty_constraint_system
+ ppl_new_unsatisfiable_constraint_system 
+ ppl_polyhedron_content
+ ppl_ppstrbuf 
+ ppstrbuf_basicblock 
+ ppstrbuf_gimple
+ ppstrbuf_gimple_seq
+ ppstrbuf_tree
+ push_cfun_decl
  put_gdbmstate
  put_gdbmstate_constr
  reveach_in_gimpleseq
+ tree_block
+ tree_content 
+ tree_decl
+ tree_function_decl 
+ tree_integer_cst
+ tree_integer_type
+ tree_parm_decl
+ tree_ssa_name 
+ tree_variable_decl 
 )
 
 (export_class
  class_analysis_state
- class_smallcfun
- class_smallanalysis
 )
 ;; eof ana-base.bysl

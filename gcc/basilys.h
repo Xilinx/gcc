@@ -2332,6 +2332,147 @@ ppl_Constraint_t basilys_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t li
 void
 basilys_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, basilys_ptr_t ppl_p);
 
+/* utility to make a NNC [=not necessarily closed] ppl_Polyhedron_t
+   out of a constraint system */
+ppl_Polyhedron_t basilys_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys);
+
+/* make a new boxed PPL polyhedron; if cloned is true, the poly is
+   copied otherwise taken as is */
+basilys_ptr_t
+basilysgc_new_ppl_polyhedron(basilys_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned);
+enum { SAME_PPL_POLHYEDRON=0, CLONED_PPL_POLHYEDRON=1 };
+
+/* get the content of a boxed PPL coefficient */
+static inline ppl_Coefficient_t 
+basilys_ppl_coefficient_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_COEFFICIENT) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_coefficient;
+}
+
+/* put the content of a boxed PPL coefficient */
+static inline void
+basilys_ppl_coefficient_put_content(basilys_ptr_t ppl_p, ppl_Coefficient_t coef)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_COEFFICIENT) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_coefficient = coef;
+}
+
+/* get the content of a boxed PPL linear expression */
+static inline ppl_Linear_Expression_t 
+basilys_ppl_linear_expression_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_LINEAR_EXPRESSION) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_linear_expression;
+}
+
+/* put the content of a boxed PPL linear expression */
+static inline void 
+basilys_ppl_linear_expression_put_content(basilys_ptr_t ppl_p, ppl_Linear_Expression_t liex)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_LINEAR_EXPRESSION) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_linear_expression = liex;
+}
+
+/* get the content of a boxed PPL constraint */
+static inline ppl_Constraint_t 
+basilys_ppl_constraint_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_constraint;
+}
+
+/* putt the content of a boxed PPL constraint */
+static inline void
+basilys_ppl_constraint_put_content(basilys_ptr_t ppl_p, ppl_Constraint_t cons)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_constraint = cons;
+}
+
+/* get the content of a boxed PPL constraint system */
+static inline ppl_Constraint_System_t 
+basilys_ppl_constraint_system_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_constraint_system;
+}
+
+/* put the content of a boxed PPL constraint system */
+static inline void
+basilys_ppl_constraint_system_put_content(basilys_ptr_t ppl_p, ppl_Constraint_System_t consys)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_CONSTRAINT_SYSTEM) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_constraint_system = consys;
+}
+
+
+/* get the content of a boxed PPL generator */
+static inline ppl_Generator_t 
+basilys_ppl_generator_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_generator;
+}
+
+
+/* put the content of a boxed PPL generator */
+static inline void 
+basilys_ppl_generator_put_content(basilys_ptr_t ppl_p,  ppl_Generator_t gen)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_generator = gen;
+}
+
+
+/* get the content of a boxed PPL generator system */
+static inline ppl_Generator_System_t 
+basilys_ppl_generator_system_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR_SYSTEM) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_generator_system;
+}
+
+/* put the content of a boxed PPL generator system */
+static inline void
+basilys_ppl_generator_system_put_content(basilys_ptr_t ppl_p, ppl_Generator_System_t gensys)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_GENERATOR_SYSTEM) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_generator_system = gensys;
+}
+
+
+/* get the content of a boxed PPL polyhedron */
+static inline ppl_Polyhedron_t
+basilys_ppl_polyhedron_content(basilys_ptr_t ppl_p)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_POLYHEDRON) 
+    return NULL;
+  return ((struct basilysspecial_st *)ppl_p)->val.sp_polyhedron;
+}
+
+/* put the content of a boxed PPL polyhedron */
+static inline void
+basilys_ppl_polyhedron_put_content(basilys_ptr_t ppl_p, ppl_Polyhedron_t poly)
+{
+  if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_POLYHEDRON) 
+    return;
+  ((struct basilysspecial_st *)ppl_p)->val.sp_polyhedron = poly;
+}
+
+
 /**************************** misc *****************************/
 /* a random generator */
 static inline long basilys_lrand (void) 
