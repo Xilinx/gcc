@@ -910,7 +910,110 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   value_clear (val);
 }
 
-/* Add conditions to the domain of GB.  */
+/* Returns a linear expression for tree T evaluated in PBB.  */
+
+static ppl_Linear_Expression_t
+create_linear_expr_from_tree (poly_bb_p pbb, tree t)
+{
+  Value one;
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
+  loop_p loop = GBB_BB (gbb)->loop_father;
+  ppl_Linear_Expression_t res;
+  ppl_dimension_type dim;
+  scop_p scop = PBB_SCOP (pbb);
+  basic_block before_scop = block_before_sese (SCOP_REGION (scop));
+
+  value_init (one);
+  value_set_si (one, 1);
+  dim = pbb_nb_loops (pbb) + scop_nb_params (scop);
+  ppl_new_Linear_Expression_with_dimension (&res, dim);
+
+  t = analyze_scalar_evolution (loop, t);
+  t = instantiate_scev (before_scop, loop, t);
+  scan_tree_for_params (SCOP_REGION (scop), t, res, one);
+
+  value_clear (one);
+ 
+  return res; 
+}
+
+/* Returns the ppl constraint type from the gimple tree code CODE.  */
+
+static enum ppl_enum_Constraint_Type
+ppl_constraint_type_from_tree_code (enum tree_code code)
+{
+  switch (code)
+    {
+    case LT_EXPR:
+      return PPL_CONSTRAINT_TYPE_LESS_THAN;
+
+    case GT_EXPR:
+      return PPL_CONSTRAINT_TYPE_GREATER_THAN;
+
+    case LE_EXPR:
+      return PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL;
+
+    case GE_EXPR:
+      return PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL;
+
+    case EQ_EXPR:
+      return PPL_CONSTRAINT_TYPE_EQUAL;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Add conditional statement STMT to PS.  It is evaluated in PBB and
+   CODE is used as the comparison operator.  This allows us to invert the
+   condition or to handle inequalities.  */
+
+static void
+add_condition_to_domain (ppl_Pointset_Powerset_NNC_Polyhedron_t ps, gimple stmt,
+			 poly_bb_p pbb, enum tree_code code)
+{
+  ppl_Linear_Expression_t left, right;
+  ppl_Constraint_t cstr;
+  enum ppl_enum_Constraint_Type type;
+
+  type = ppl_constraint_type_from_tree_code (code);
+
+  left = create_linear_expr_from_tree (pbb, gimple_cond_lhs (stmt));
+  right = create_linear_expr_from_tree (pbb, gimple_cond_rhs (stmt));
+  ppl_subtract_Linear_Expression_from_Linear_Expression (left, right);
+
+  ppl_new_Constraint (&cstr, left, type);
+  ppl_Pointset_Powerset_NNC_Polyhedron_add_constraint (ps, cstr); 
+
+  ppl_delete_Constraint (cstr);
+  ppl_delete_Linear_Expression (left);
+  ppl_delete_Linear_Expression (right);
+}
+
+/* Add conditional statement STMT to pbb.  CODE is used as the comparision
+   operator.  This allows us to invert the condition or to handle
+   inequalities.  */
+
+static void
+add_condition_to_pbb (poly_bb_p pbb, gimple stmt, enum tree_code code)
+{
+  if (code == NE_EXPR)
+    {
+      ppl_Pointset_Powerset_NNC_Polyhedron_t left = PBB_DOMAIN (pbb); 
+      ppl_Pointset_Powerset_NNC_Polyhedron_t right;
+ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (
+  &right, left);
+      add_condition_to_domain (left, stmt, pbb, LT_EXPR);
+      add_condition_to_domain (right, stmt, pbb, GT_EXPR);
+      ppl_Pointset_Powerset_NNC_Polyhedron_concatenate_assign (left,
+							       right);
+      ppl_delete_Pointset_Powerset_NNC_Polyhedron (right);
+    }
+  else
+    add_condition_to_domain (PBB_DOMAIN (pbb), stmt, pbb, GT_EXPR);
+}
+
+/* Add conditions to the domain of PBB.  */
 
 static void
 add_conditions_to_domain (poly_bb_p pbb)
@@ -919,91 +1022,32 @@ add_conditions_to_domain (poly_bb_p pbb)
   gimple stmt;
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   VEC (gimple, heap) *conditions = GBB_CONDITIONS (gbb);
-  scop_p scop = PBB_SCOP (pbb);
-  basic_block before_scop = block_before_sese (SCOP_REGION (scop));
 
   if (VEC_empty (gimple, conditions))
     return;
 
-  /* Add the conditions to the new enlarged domain.  */
   for (i = 0; VEC_iterate (gimple, conditions, i, stmt); i++)
-    {
-      switch (gimple_code (stmt))
-        {
-        case GIMPLE_COND:
-          {
-            Value one;
-            tree left, right;
-            loop_p loop = GBB_BB (gbb)->loop_father;
-	    ppl_Linear_Expression_t left_expr, right_expr;
-	    ppl_Constraint_t cstr;
-	    enum ppl_enum_Constraint_Type type = 0;
-            enum tree_code code = gimple_cond_code (stmt);
-	    ppl_dimension_type dim;
+    switch (gimple_code (stmt))
+      {
+      case GIMPLE_COND:
+	  {
+	    enum tree_code code = gimple_cond_code (stmt);
 
-            /* The conditions for ELSE-branches are inverted.  */
-            if (VEC_index (gimple, gbb->condition_cases, i) == NULL)
-              code = invert_tree_comparison (code, false);
+	    /* The conditions for ELSE-branches are inverted.  */
+	    if (VEC_index (gimple, gbb->condition_cases, i) == NULL)
+	      code = invert_tree_comparison (code, false);
+	    
+	    add_condition_to_pbb (pbb, stmt, code);
+	    break;
+	  }
 
-            switch (code)
-              {
-              case LT_EXPR:
-		type = PPL_CONSTRAINT_TYPE_LESS_THAN;
-                break;
+      case GIMPLE_SWITCH:
+	/* Switch statements are not supported right now - fall throught.  */
 
-              case GT_EXPR:
-		type = PPL_CONSTRAINT_TYPE_GREATER_THAN;
-                break;
-
-              case LE_EXPR:
-		type = PPL_CONSTRAINT_TYPE_LESS_OR_EQUAL;
-                break;
-
-              case GE_EXPR:
-		type = PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL;
-                break;
-
-              default:
-                /* NE and EQ statements are not supported right now. */
-                gcc_unreachable ();
-                break;
-              }
-
-	    value_init (one);
-	    value_set_si (one, 1);
-	    dim = pbb_nb_loops (pbb) + scop_nb_params (scop);
-	    ppl_new_Linear_Expression_with_dimension (&left_expr, dim);
-	    ppl_new_Linear_Expression_with_dimension (&right_expr, dim);
-
-	    left = gimple_cond_lhs (stmt);
-	    left = analyze_scalar_evolution (loop, left);
-	    left = instantiate_scev (before_scop, loop, left);
-
-	    right = gimple_cond_rhs (stmt);
-	    right = analyze_scalar_evolution (loop, right);
-	    right = instantiate_scev (before_scop, loop, right);
-
-	    scan_tree_for_params (SCOP_REGION (scop), left, left_expr, one);
-	    value_set_si (one, 1);
-	    scan_tree_for_params (SCOP_REGION (scop), right, right_expr, one);
-	    ppl_subtract_Linear_Expression_from_Linear_Expression (left_expr,
-								   right_expr);
-
-	    value_clear (one);
-	    ppl_new_Constraint (&cstr, left_expr, type);
-	    ppl_Pointset_Powerset_NNC_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
-	    ppl_delete_Constraint (cstr);
-	    ppl_delete_Linear_Expression (left_expr);
-	    ppl_delete_Linear_Expression (right_expr);
-            break;
-          }
-        case GIMPLE_SWITCH:
-          /* Switch statements are not supported right know.  */
-        default:
-          gcc_unreachable ();
-          break;
-        }
-    }
+      default:
+	gcc_unreachable ();
+	break;
+      }
 }
 
 /* Returns true when PHI defines an induction variable in the loop

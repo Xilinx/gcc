@@ -1,5 +1,15 @@
 2009-04-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-scop-detection.c (stmt_simple_for_scop_p): Allow NE_EXPR
+	and EQ_EXPR.
+	* graphite-sese-to-poly.c (create_linear_expr_from_tree): New.
+	(add_condition_to_domain): New.
+	(add_condition_to_pbb): New.
+	(add_conditions_to_domain): Cleanup and handle of NE_EXPR and EQ_EXPR.
+	* testsuite/gcc.dg/graphite/scop-3.c: Update number of detected SCoPs.
+
+2009-04-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-clast-to-gimple.c (build_cloog_prog): ppl_Polyhedron ->
 	ppl_Pointset_Powerset.
 	* graphite-poly.c (new_poly_bb, free_poly_bb): Same.

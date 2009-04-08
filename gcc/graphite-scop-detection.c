@@ -296,14 +296,13 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	ssa_op_iter op_iter;
         enum tree_code code = gimple_cond_code (stmt);
 
-        /* We can only handle this kind of conditional expressions.  
-           For inequalities like "if (i != 3 * k)" we need unions of
-           polyhedrons.  Expressions like  "if (a)" or "if (a == 15)" need
-           them for the else branch.  */
+        /* We can handle this kind of conditional expressions.  */
         if (!(code == LT_EXPR
 	      || code == GT_EXPR
-              || code == LE_EXPR
-	      || code == GE_EXPR))
+	      || code == LE_EXPR
+	      || code == GE_EXPR
+	      || code == EQ_EXPR
+	      || code == NE_EXPR))
           return false;
 
 	if (!scop_entry)
