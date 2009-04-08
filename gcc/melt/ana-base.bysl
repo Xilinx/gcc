@@ -1082,28 +1082,24 @@
   ()					; startformals
   eachcgrfun 				;state symbol
   (:tree funtree :gimpleseq funbody)	;local formals
-  (					;; before expansion
-   "struct cgraph_node *" eachcgrfun "_nd=0; "
-   "for (" eachcgrfun "_nd = cgraph_nodes; "
-   eachcgrfun "_nd != 0; "
-   eachcgrfun "_nd = " eachcgrfun "_nd->next) {\n"
-   "tree " eachcgrfun "_dcl = 0;\n"
-   "gimple_seq " eachcgrfun "_bdy = 0;\n"
-  ; "if (flag_basilys_debug) "
-  ; "{ debugeprintf(\"" eachcgrfun " nd=%p\", (void*)"  eachcgrfun "_nd);"
-  ; "debug_cgraph_node(" eachcgrfun "_nd);};\n"
-   eachcgrfun "_dcl = " eachcgrfun "_nd->decl;\n"
-   "if (!" eachcgrfun "_dcl) continue;\n"
-   "if (TREE_CODE(" eachcgrfun "_dcl) != FUNCTION_DECL) continue;\n"
-   eachcgrfun "_bdy = gimple_body(" eachcgrfun "_dcl);\n"
-   "if (!" eachcgrfun "_bdy) continue;\n"
-   funtree " = " eachcgrfun "_dcl;\n"
-   funbody " = " eachcgrfun "_bdy;\n"
-   )
-  ( ;;after expansion
-   "}"
-   )
-  )
+  ;; before expansion
+  #{
+   struct cgraph_node *$eachcgrfun#_nd = NULL; 
+   for ($eachcgrfun#_nd = cgraph_nodes; 
+	$eachcgrfun#_nd != NULL; 
+	$eachcgrfun#_nd = $eachcgrfun#_nd->next) {
+     tree $eachcgrfun#_dcl = 0;
+     gimple_seq  $eachcgrfun#_bdy = 0;
+     $eachcgrfun#_dcl =  $eachcgrfun#_nd->decl;
+     if (!$eachcgrfun#_dcl) continue;
+     if (TREE_CODE($eachcgrfun#_dcl) != FUNCTION_DECL) continue;
+     $eachcgrfun#_bdy = gimple_body($eachcgrfun#_dcl);
+     if (!$eachcgrfun#_bdy) continue;
+     $funtree = $eachcgrfun#_dcl;
+     $funbody = $eachcgrfun#_bdy;
+  }#
+   ;;after expansion
+   #{ } }#  )
 
 
 ;;; iterate on every cgraph_node which is a function with a CFG and an
@@ -1112,31 +1108,27 @@
   ()					;startformals
   eachcgrblo				;state symbol
   (:tree funtree :basicblock funbb)	;local formals
-  (					;before expansion
-   "struct cgraph_node *" eachcgrblo "_nd=0; "
-   "for (" eachcgrblo "_nd = cgraph_nodes; "
-   eachcgrblo "_nd != 0; "
-   eachcgrblo "_nd = " eachcgrblo "_nd->next) {\n"
-   "tree " eachcgrblo "_dcl = 0;\n"
-   "basic_block " eachcgrblo "_bb = 0;\n"
-   "struct function *" eachcgrblo "_fun = 0;\n"
- ;  "if (flag_basilys_debug) "
- ;  "{ debugeprintf(\"" eachcgrblo " nd=%p\", (void*)"  eachcgrblo "_nd);"
- ;  "debug_cgraph_node(" eachcgrblo "_nd);};\n"
-   eachcgrblo "_dcl = " eachcgrblo "_nd->decl;\n"
-   "if (!" eachcgrblo "_dcl) continue;\n"
-   "if (TREE_CODE(" eachcgrblo "_dcl) != FUNCTION_DECL) continue;\n"
-   eachcgrblo "_fun = DECL_STRUCT_FUNCTION("eachcgrblo "_dcl);\n"
-   "if (!"eachcgrblo "_fun) continue;\n"
-   eachcgrblo "_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION(" eachcgrblo "_fun);\n"
-   "if (!" eachcgrblo "_bb) continue;\n"
-   funtree " = " eachcgrblo "_dcl;\n"
-   funbb " = " eachcgrblo "_bb;\n"
-   )
-  (					;after expansion
-   "}"
-   )
-)
+  ;;before expansion
+  #{
+   struct cgraph_node *$eachcgrblo#_nd = NULL; 
+   for ($eachcgrblo#_nd = cgraph_nodes; 
+   $eachcgrblo#_nd != NULL; 
+   $eachcgrblo#_nd = $eachcgrblo#_nd->next) {
+   tree  $eachcgrblo#_dcl = NULL;
+   basic_block  $eachcgrblo#_bb = NULL;
+   struct function *$eachcgrblo#_fun = NULL;
+   $eachcgrblo#_dcl = $eachcgrblo#_nd->decl;
+   if (! $eachcgrblo#_dcl) continue;
+   if (TREE_CODE($eachcgrblo#_dcl) != FUNCTION_DECL) continue;
+   $eachcgrblo#_fun = DECL_STRUCT_FUNCTION($eachcgrblo#_dcl);
+   if (!$eachcgrblo#_fun) continue;
+   $eachcgrblo#_bb = ENTRY_BLOCK_PTR_FOR_FUNCTION($eachcgrblo#_fun);
+   if (! $eachcgrblo#_bb) continue;
+   $funtree = $eachcgrblo#_dcl;
+   $funbb = $eachcgrblo#_bb;
+  }#
+  ;;after expansion
+  #{ } }# )
 
 
 ;;; iterate on evey basicblock of the current cfun
@@ -1147,24 +1139,19 @@
    :basicblock cfunbb 
    :tree cfundecl
    )	
-  (					;before expansion
-   "/*start " eachbbcfun "*/\n"
-   "basic_block " eachbbcfun  "_bb=NULL;\n"
-   ; "debugeprintf(\" each_bb_cfun " eachbbcfun " cfun=%p\", cfun);\n"
-   "if (cfun) {\n"
-   " " cfundecl " = cfun->decl;\n"
-   " FOR_EACH_BB_FN("eachbbcfun "_bb, cfun) {"
-   "  if (flag_basilys_debug) { debugeprintf(\"each_bb_cfun " 
-   eachbbcfun  "_bb =%p\", (void*)" eachbbcfun "_bb);\n"
-   "    debug_bb(" eachbbcfun "_bb);};\n"
-   "  if (!" eachbbcfun "_bb) continue;\n"
-   "  " cfunbb " = " eachbbcfun "_bb;\n"
-   )
-  (					;after expansion
-   ; "debugeprintf(\" each_bb_cfun " eachbbcfun " done cfun=%p\", cfun);\n"
-   "}}/*end " eachbbcfun "*/\n"
-   )
-  )
+  ;;before expansion
+  #{
+   /* start $eachbbcfun */
+   basic_block  $eachbbcfun#_bb = NULL;
+   if (cfun) {
+     $cfundecl  = cfun->decl;
+    FOR_EACH_BB_FN($eachbbcfun#_bb, cfun) {
+      if (!$eachbbcfun#_bb) continue;
+      $cfunbb  = $eachbbcfun#_bb;
+ }#
+ ;;after expansion
+ #{ }} /* end $eachbbcfun */  
+ }# )
 
 ;; debug_tree is ok even for nil trees
 (defprimitive debugtree (:cstring msg :tree tr) :void
@@ -1182,22 +1169,23 @@
 
 ;; debug_gimple_stmt is ok even for nil gimples
 (defprimitive debuggimple(:cstring msg :gimple g) :void
-  " do{debugeprintfnonl(\"debuggimple %s @%p /%s \", " msg ", (void*)" g 
-  ", ("g ")?gimple_code_name[gimple_code(" g ")]: \"*nil*\");"
-  "if (" g " && gimple_location(" g ")) "
-  "  debugeprintf_raw(\"{%s:%d} \", LOCATION_FILE(gimple_location(" g ")), LOCATION_LINE(gimple_location(" g ")));"
-  "if (flag_basilys_debug) debug_gimple_stmt(" g ");}while(0) "
-)
+  #{ do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g, 
+			 ($g)?gimple_code_name[gimple_code($g)]: "*nil*");
+  if ($g && gimple_location($g))
+    debugeprintf_raw("{%s:%d} ", LOCATION_FILE(gimple_location($g)), 
+		     LOCATION_LINE(gimple_location($g)));
+  if (flag_basilys_debug) debug_gimple_stmt($g);} while(0)
+}# )
 
 (defprimitive debuggimpleseq(:cstring msg :gimpleseq gs) :void
-  " do{debugeprintf(\"debuggimpleseq %s @%p\", " msg ", (void*)" gs ");"
-  "if (flag_basilys_debug && " gs ") debug_gimple_seq(" gs ");}while(0) "
-)
+  #{ do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
+  if (flag_basilys_debug && $gs) debug_gimple_seq($gs);}while(0) 
+  }#)
 
 (defprimitive debugbasicblock(:cstring msg :basicblock bb) :void
-  " do{debugeprintf(\"debugbasicblock %s @%p\", " msg ", (void*)" bb ");"
-  "if (flag_basilys_debug && " bb ") debug_bb(" bb ");}while(0) "
-)
+  #{ do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
+  if (flag_basilys_debug && $bb) debug_bb($bb);}while(0) 
+}#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
@@ -1206,33 +1194,35 @@
   (:gimpleseq gseq)			;start formals
   eachgimplseq
   (:gimple g)				;local formals
-  ( ;;; before expansion
-   "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
-   "if (" gseq ") for (gsi_" eachgimplseq " = gsi_start (" gseq
-        "); !gsi_end_p (gsi_" eachgimplseq ");"
-   " gsi_next (&gsi_" eachgimplseq ")) {\n"
-    g " = gsi_stmt (gsi_" eachgimplseq ");"
-   )
-  ( ;;; after expansion
-   "}"
-   )
-)
+  ;;; before expansion
+  #{
+   gimple_stmt_iterator gsi_$eachgimplseq;
+   if ($gseq) 
+     for (gsi_$eachgimplseq = gsi_start ($gseq);
+	  !gsi_end_p (gsi_$eachgimplseq);
+	  gsi_next (&gsi_$eachgimplseq)) {
+    $g  = gsi_stmt (gsi_$eachgimplseq);
+   }#
+  ;;; after expansion
+  #{ } }# )
+
 
 ;;;; reverseiterate on a gimpleseq
 (defciterator reveach_in_gimpleseq
   (:gimpleseq gseq)			;start formals
   eachgimplseq
   (:gimple g)				;local formals
-  ( ;;; before expansion
-   "gimple_stmt_iterator gsi_" eachgimplseq ";\n"
-   "if (" gseq ") for (gsi_" eachgimplseq " = gsi_last (" gseq "); !gsi_end_p (gsi_" eachgimplseq ");"
-   " gsi_prev (&gsi_" eachgimplseq ")) {\n"
-    g " = gsi_stmt (gsi_" eachgimplseq ");"
-   )
-  ( ;;; after expansion
-   "}"
-   )
-)
+  ;;; before expansion
+  #{
+   gimple_stmt_iterator gsi_$eachgimplseq;
+   if ($gseq) 
+     for (gsi_$eachgimplseq = gsi_last ($gseq); 
+          !gsi_end_p (gsi_$eachgimplseq);
+	  gsi_prev (&gsi_$eachgimplseq)) {
+    $g = gsi_stmt (gsi_$eachgimplseq);
+  }#
+  ;;; after expansion
+  #{ } }# )
 
 ;; apply a function to each boxed gimple in a gimple seq
 (defun do_each_gimpleseq (f :gimpleseq gseq)
@@ -1257,17 +1247,19 @@
   (:basicblock bb)			;start formals
   eachgimpbb
   (:gimple g)				;local formals
-  ( ;;; before expansion
-   "/* " eachgimpbb "*/ gimple_stmt_iterator gsi_" eachgimpbb ";\n"
-   "if (" bb ") for (gsi_" eachgimpbb " = gsi_start_bb (" bb
-        "); !gsi_end_p (gsi_" eachgimpbb ");"
-   " gsi_next (&gsi_" eachgimpbb ")) {\n"
-    g " = gsi_stmt (gsi_" eachgimpbb ");"
-   )
-  ( ;;; after expansion
-   "} /* end " eachgimpbb "*/"
-   )
-)
+  ;;; before expansion
+  #{
+   /* start $eachgimpbb */ 
+   gimple_stmt_iterator gsi_$eachgimpbb;
+   if ($bb) 
+     for (gsi_$eachgimpbb = gsi_start_bb ($bb);
+          !gsi_end_p (gsi_$eachgimpbb);
+          gsi_next (&gsi_$eachgimpbb)) {
+       $g = gsi_stmt (gsi_$eachgimpbb);
+  }#
+  ;;; after expansion
+  #{ } /* end $eachgimpbb */ }#  )
+  
 
 (defun do_eachgimple_in_basicblock (f :basicblock bb)
   (eachgimple_in_basicblock 

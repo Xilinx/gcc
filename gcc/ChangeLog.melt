@@ -1,3 +1,6 @@
+2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.bysl: cleaned up by using macrostrings in every C chunk.
+
 2009-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	[split file melt/ana-base.bysl into ana-base.bysl &
 	ana-simple.bysl]
