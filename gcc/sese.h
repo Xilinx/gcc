@@ -39,10 +39,6 @@ typedef struct sese
   /* Single ENTRY and single EXIT from the SESE region.  */
   edge entry, exit;
 
-  /* REGION_BASIC_BLOCKS contains the set of all the basic blocks
-     belonging to the SESE region.  */
-  struct pointer_set_t *region_basic_blocks;
-
   /* Parameters used within the SCOP.  */
   VEC (name_tree, heap) *params;
 
@@ -63,7 +59,6 @@ typedef struct sese
 #define SESE_ENTRY_BB(S) (S->entry->dest)
 #define SESE_EXIT(S) (S->exit)
 #define SESE_EXIT_BB(S) (S->exit->dest)
-#define SESE_REGION_BBS(S) (S->region_basic_blocks)
 #define SESE_PARAMS(S) (S->params)
 #define SESE_LOOPS(S) (S->loops)
 #define SESE_LOOP_NEST(S) (S->loop_nest)
@@ -99,12 +94,43 @@ sese_nb_params (sese region)
   return VEC_length (name_tree, SESE_PARAMS (region));
 }
 
-/* Returns true when BB is in REGION.  */
+/* Checks whether BB is contained in the region delimited by ENTRY and
+   EXIT blocks.  */
+
+static inline bool
+bb_in_region (basic_block bb, basic_block entry, basic_block exit)
+{
+#ifdef ENABLE_CHECKING
+  {
+    edge e;
+    edge_iterator ei;
+
+    /* Check that there are no edges coming in the region: all the
+       predecessors of EXIT are dominated by ENTRY.  */
+    FOR_EACH_EDGE (e, ei, exit->preds)
+      dominated_by_p (CDI_DOMINATORS, e->src, entry);
+ 
+    /* Check that there are no edges going out of the region: the
+       entry is post-dominated by the exit.  FIXME: This cannot be
+       checked right now as the CDI_POST_DOMINATORS are needed.  */
+  }
+#endif
+
+  return dominated_by_p (CDI_DOMINATORS, bb, entry)
+	 && !(dominated_by_p (CDI_DOMINATORS, bb, exit)
+	      && !dominated_by_p (CDI_DOMINATORS, entry, exit));
+}
+
+/* Checks whether BB is contained in the region delimited by ENTRY and
+   EXIT blocks.  */
 
 static inline bool
 bb_in_sese_p (basic_block bb, sese region)
 {
-  return pointer_set_contains (SESE_REGION_BBS (region), bb);
+  basic_block entry = SESE_ENTRY_BB (region);
+  basic_block exit = SESE_EXIT_BB (region);
+
+  return bb_in_region (bb, entry, exit);
 }
 
 /* Returns true when LOOP is in REGION.  */
@@ -429,33 +455,6 @@ nb_common_loops (sese region, gimple_bb_p gbb1, gimple_bb_p gbb2)
   loop_p common = find_common_loop (l1, l2);
   
   return sese_loop_depth (region, common);
-}
-
-/* Checks whether BB is contained in the region delimited by ENTRY and
-   EXIT blocks.  */
-
-static inline bool
-bb_in_region (basic_block bb, basic_block entry, basic_block exit)
-{
-#ifdef ENABLE_CHECKING
-  {
-    edge e;
-    edge_iterator ei;
-
-    /* Check that there are no edges coming in the region: all the
-       predecessors of EXIT are dominated by ENTRY.  */
-    FOR_EACH_EDGE (e, ei, exit->preds)
-      dominated_by_p (CDI_DOMINATORS, e->src, entry);
- 
-    /* Check that there are no edges going out of the region: the
-       entry is post-dominated by the exit.  FIXME: This cannot be
-       checked right now as the CDI_POST_DOMINATORS are needed.  */
-  }
-#endif
-
-  return dominated_by_p (CDI_DOMINATORS, bb, entry)
-	 && !(dominated_by_p (CDI_DOMINATORS, bb, exit)
-	      && !dominated_by_p (CDI_DOMINATORS, entry, exit));
 }
 
 extern void print_gimple_bb (FILE *, gimple_bb_p, int, int);

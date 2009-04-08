@@ -434,26 +434,6 @@ sese_build_liveouts (sese region, bitmap liveouts)
     sese_build_liveouts_bb (region, liveouts, bb);
 }
 
-/* Register basic blocks belonging to a region in a pointer set.  */
-
-static void
-register_bb_in_sese (basic_block entry_bb, basic_block exit_bb, sese region)
-{
-  edge_iterator ei;
-  edge e;
-  basic_block bb = entry_bb;
-
-  FOR_EACH_EDGE (e, ei, bb->succs)
-    {
-      if (!pointer_set_contains (SESE_REGION_BBS (region), e->dest) &&
-	  e->dest->index != exit_bb->index)
-	{	
-	  pointer_set_insert (SESE_REGION_BBS (region), e->dest);
-	  register_bb_in_sese (e->dest, exit_bb, region);
-	}
-    }
-}
-
 /* Builds a new SESE region from edges ENTRY and EXIT.  */
 
 sese
@@ -463,8 +443,6 @@ new_sese (edge entry, edge exit)
 
   SESE_ENTRY (res) = entry;
   SESE_EXIT (res) = exit;
-  SESE_REGION_BBS (res) = pointer_set_create ();
-  register_bb_in_sese (entry->dest, exit->dest, res);
   SESE_LOOPS (res) = BITMAP_ALLOC (NULL);
   SESE_LOOP_NEST (res) = VEC_alloc (loop_p, heap, 3);
   SESE_ADD_PARAMS (res) = true;
@@ -490,7 +468,6 @@ free_sese (sese region)
 
   VEC_free (name_tree, heap, SESE_PARAMS (region));
   VEC_free (loop_p, heap, SESE_LOOP_NEST(region));
-  pointer_set_destroy (SESE_REGION_BBS (region));
 
   for (i = 0; VEC_iterate (name_tree, SESE_OLDIVS (region), i, iv); i++)
     free (iv);

@@ -220,7 +220,7 @@ build_scop_bbs_1 (scop_p scop, sbitmap visited, basic_block bb)
   VEC (basic_block, heap) *dom;
 
   if (TEST_BIT (visited, bb->index)
-      || !bb_in_region (bb, SESE_ENTRY_BB (region), SESE_EXIT_BB (region)))
+      || !bb_in_sese_p (bb, region))
     return;
 
   try_generate_gimple_bb (scop, bb);
@@ -1107,12 +1107,12 @@ scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
 /* Flag in MAP all the BBs in SCOP.  */
 
 static void
-flag_bb_in_region (sbitmap map, sese region)
+flag_bb_in_sese (sbitmap map, sese region)
 {
   basic_block bb;
 
   FOR_EACH_BB (bb)
-    if (bb_in_region (bb, SESE_ENTRY_BB (region), SESE_EXIT_BB (region)))
+    if (bb_in_sese_p (bb, region))
       SET_BIT (map, bb->index);
 }
 
@@ -1203,7 +1203,7 @@ build_sese_conditions (sese region)
   struct bsc data;
 
   sbitmap_zero (map);
-  flag_bb_in_region (map, region);
+  flag_bb_in_sese (map, region);
 
   data.conditions = &conditions;
   data.cases = &cases;
