@@ -1,4 +1,9 @@
 2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in: Renamed melt_default_modlis variable as
+	melt_default_modules_list. Added install-all-melt in install
+	target.
+
+2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilys_initialize): don't fail if
 	basilys_init_string is null, because the default module list is
 	then taken.

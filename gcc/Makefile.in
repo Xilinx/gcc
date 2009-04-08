@@ -4025,7 +4025,7 @@ maintainer-clean:
 # broken is small.
 install: install-common $(INSTALL_HEADERS) \
     install-cpp install-man install-info install-@POSUB@ \
-    install-driver
+    install-driver install-all-melt
 
 # Handle cpp installation.
 install-cpp: installdirs cpp$(exeext)
@@ -4705,7 +4705,7 @@ melt_build_include_dir= melt-private-build-include
 ## all modules loaded by MELT (without any suffix or dirname)
 ## if not provided, the default -fbasilys-init=@$(melt_default_modlis)
 
-melt_default_modlis=melt-default-modules
+melt_default_modules_list=melt-default-modules
 
 ## the C flags (without any gcc -I...stuff) to be included in
 ## compilation of MELT generated C code thru the melt-cc-script do not
@@ -4778,8 +4778,8 @@ melt.encap: run-basilys.d
 	$(MAKE) warmelt-outobj-3.so
 	echo melt.encap making $(ANAMELT_BASESO)
 	$(MAKE) $(ANAMELT_BASESO)
-	echo making $(melt_default_modlis).modlis
-	$(MAKE) $(melt_default_modlis).modlis
+	echo making $(melt_default_modules_list).modlis
+	$(MAKE) $(melt_default_modules_list).modlis
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
@@ -5076,7 +5076,7 @@ ana-%.so: ana-%.c built-melt-cc-script
 
 
 #### the default list of modules
-$(melt_default_modlis).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+$(melt_default_modules_list).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 	date +"#$@ generated %c" > $@-tmp
 	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
 	for f in  $(ANAMELT_BASE); do echo $$f >> $@-tmp; done
@@ -5085,11 +5085,10 @@ $(melt_default_modlis).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 ####
 #### installing melt generated shared object plugins (at MELT 3rd
 #### stage) and the default melt module list
-install-melt-dynlib: installdirs $(melt_default_modlis).modlis $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
+install-melt-dynlib: installdirs $(melt_default_modules_list).modlis $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 	$(mkinstalldirs) $(melt_dynlib_dir)
-	if [ -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis ]; then \
-	   rm -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis; fi; \
-	$(INSTALL_DATA) $(melt_default_modlis).modlis $(melt_dynlib_dir)/$(melt_default_modlis).modlis
+	rm -f  $(melt_dynlib_dir)/$(melt_default_modules_list).modlis	
+	$(INSTALL_DATA) $(melt_default_modules_list).modlis $(melt_dynlib_dir)/$(melt_default_modules_list).modlis
 	for dynfile in  $(WARMELT_BASE3SO) $(ANAMELT_BASESO); do \
 	   rm -f $(melt_dynlib_dir)/$$dynfile; \
 	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(melt_dynlib_dir)/$$dynfile; \
