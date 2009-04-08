@@ -1,5 +1,10 @@
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gfortran.dg/graphite/interchange-1.c: New.
+	* testsuite/gfortran.dg/graphite/interchange-2.c: New.
+
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Do not build
 	the reduction_list.
 	* tree-parloops.c (rewrite_phi_with_iv): New.
