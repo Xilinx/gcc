@@ -4810,19 +4810,15 @@ MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
 
 
 warm%-n.so: warm%.c built-melt-cc-script
-	$(RM) $(basename $@).c 
-	$(LN_S) $< $(basename $@).c
-	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
+	./built-melt-cc-script -n $< $@
 warm%-d.so: warm%.c built-melt-cc-script
-	$(RM) $(basename $@).c 
-	$(LN_S) $< $(basename $@).c
 	./built-melt-cc-script -d $< $@
 warm%.so: warm%.c built-melt-cc-script
 	./built-melt-cc-script $< $@
 ###
 
 ana%-n.so: ana%.c built-melt-cc-script
-	./built-melt-cc-script -DMELTGCC_NOLINENUMBERING $< $@
+	./built-melt-cc-script -n $< $@
 ana%-d.so : ana%.c built-melt-cc-script
 	./built-melt-cc-script -d $< $@
 ana%.so: ana%.c built-melt-cc-script
@@ -4891,9 +4887,6 @@ ANAMELT_BASEROW:=$(shell echo $(ANAMELT_BASE)|sed 's/ /:/g')
 .SECONDARY:$(WARMELT_BASE1C) $(WARMELT_BASE2C) $(WARMELT_BASE3C) $(ANAMELT_BASEC)
 
 ## temporary
-warmelt-%.so: warmelt-%.c built-melt-cc-script
-	echo Melt building $@ from $<
-	./built-melt-cc-script $< $@
 
 warmelt0.modlis: $(WARMELT_BASE0DSO)
 	date +"#$@ generated %c" > $@-tmp

@@ -1,4 +1,12 @@
 2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_modulelist): also look inside
+	melt_dynlib_dir.
+	* Makefile.in: don't need to symlink warm*.c to warm*-n.c because
+	the ./built-melt-cc-script handles that.  Calls
+	./built-melt-cc-script with -n instead of
+	-DMELTGCC_NOLINENUMBERING
+
+2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: Renamed melt_default_modlis variable as
 	melt_default_modules_list. Added install-all-melt in install
 	target.

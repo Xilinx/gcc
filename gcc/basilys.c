@@ -4469,7 +4469,7 @@ basilysgc_new_string_tempname_suffixed (basilysobject_ptr_t
   if (dot)
     *dot=0;
   tempnampath = basilys_tempdir_path(basestr, suffix);
-  dbgprintf("new_string_tempbasename basestr='%s' tempnampath='%s'", basestr, tempnampath);
+  dbgprintf ("new_string_tempbasename basestr='%s' tempnampath='%s'", basestr, tempnampath);
   free(CONST_CAST(char*,basestr));
   basestr = 0;
   strv = 0;
@@ -4691,7 +4691,7 @@ basilys_tempdir_path (const char *srcnam, const char* suffix)
   const char *basnam = 0;
   extern char *choose_tmpdir (void);	/* from libiberty/choose-temp.c */
   basnam = lbasename (CONST_CAST (char*,srcnam));
-  debugeprintf("basilys_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
+  debugeprintf ("basilys_tempdir_path srcnam %s basnam %s suffix %s", srcnam, basnam, suffix);
   gcc_assert (basnam && (ISALNUM (basnam[0]) || basnam[0] == '_'));
   if (basilys_tempdir_string && basilys_tempdir_string[0])
     {
@@ -4982,7 +4982,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = basilys_tempdir_path (dupmodulnam, ".c");
   if (!access (tmpath, R_OK))
     {
-      debugeprintf("basilysgc_load_melt_module found source in tempdir %s", tmpath);
+      debugeprintf ("basilysgc_load_melt_module found source in tempdir %s", tmpath);
       srcpath = tmpath;
       goto foundsrcpath;
     }
@@ -4992,7 +4992,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = concat (basilys_gensrcdir_string, "/", dupmodulnam, ".c", NULL);
   if (!access (tmpath, R_OK))
     {
-      debugeprintf("basilysgc_load_melt_module found source in gensrcdir %s", tmpath);
+      debugeprintf ("basilysgc_load_melt_module found source in gensrcdir %s", tmpath);
       srcpath = tmpath;
       goto foundsrcpath;
     }
@@ -5002,19 +5002,19 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
   if (!access (tmpath, R_OK))
     {
-      debugeprintf("basilysgc_load_melt_module found source in meltsrcdir %s", tmpath);
+      debugeprintf ("basilysgc_load_melt_module found source in meltsrcdir %s", tmpath);
       srcpath = tmpath;
       goto foundsrcpath;
     }
   free (tmpath);
   tmpath = NULL;
   /* we didn't found the source */
-  debugeprintf("basilysgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
+  debugeprintf ("basilysgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
   error ("failed to find MELT module %s C source code", dupmodulnam);
   goto end;
  foundsrcpath:  /* we found the source file */
   srcpathlen = strlen (srcpath);
-  debugeprintf("basilysgc_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
+  debugeprintf ("basilysgc_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
   /* compute the md5 hash of the source code */
   srcfi = fopen (srcpath, "r");
   if (!srcfi)
@@ -5170,6 +5170,7 @@ basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
   memset (linbuf, 0, sizeof (linbuf));
 #define mdatav curfram__.varptr[0]
   mdatav = modata_p;
+  debugeprintf ("basilysgc_load_modulelist start modlistbase %s", modlistbase);
   /* first check directly for the file */
   modlistpath = concat (modlistbase, MODLIS_SUFFIX, NULL);
   if (IS_ABSOLUTE_PATH (modlistpath) || !access (modlistpath, R_OK))
@@ -5191,6 +5192,13 @@ basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
       if (!access (modlistpath, R_OK))
 	goto loadit;
     }
+  free (modlistpath);
+  modlistpath = 0;
+  /* check for module list in melt_dynlib_dir */
+  modlistpath = concat (melt_dynlib_dir,
+			"/", modlistbase, MODLIS_SUFFIX, NULL);
+  if (!access (modlistpath, R_OK))
+    goto loadit;
   free (modlistpath);
   modlistpath = 0;
   /* check for module list in gensrcdir */
@@ -5216,6 +5224,7 @@ basilysgc_load_modulelist (basilys_ptr_t modata_p, const char *modlistbase)
   if (!modlistpath)
     goto end;
 loadit:
+  debugeprintf ("basilysgc_load_modulelist loadit modlistpath %s", modlistpath);
   filmod = fopen (modlistpath, "r");
   dbgprintf ("reading module list '%s'", modlistpath);
   if (!filmod)
@@ -6062,8 +6071,8 @@ readmacrostringsequence (struct reading_st *rd)
     }
     if (rdeof()) 
       READ_ERROR("reached end of file in macrostring sequence started line %d", lineno);
-    debugeprintf("macrostring startloop rdcur:%s", &rdcurc());
-    debugeprintf("macrostring startloop sbuf@%pL%d:%s", sbufv, 
+    debugeprintf ("macrostring startloop rdcur:%s", &rdcurc());
+    debugeprintf ("macrostring startloop sbuf@%pL%d:%s", sbufv, 
 		 basilys_strbuf_usedlength((basilys_ptr_t)sbufv),
 		 basilys_strbuf_str((basilys_ptr_t) sbufv));
     if (rdcurc()=='}' && rdfollowc(1)=='#') {
@@ -6072,7 +6081,7 @@ readmacrostringsequence (struct reading_st *rd)
       if (sbufv && basilys_strbuf_usedlength((basilys_ptr_t)sbufv)>0) {
 	strv = basilysgc_new_stringdup (BASILYSGOB(DISCR_STRING),
 					basilys_strbuf_str((basilys_ptr_t) sbufv));
-	debugeprintf("macrostring end appending str:%s", basilys_string_str((basilys_ptr_t)strv));
+	debugeprintf ("macrostring end appending str:%s", basilys_string_str((basilys_ptr_t)strv));
 	basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
 	sbufv = NULL;
 	strv = NULL;
@@ -6090,7 +6099,7 @@ readmacrostringsequence (struct reading_st *rd)
 	  strv = basilysgc_new_stringdup(BASILYSGOB(DISCR_STRING),
 					 basilys_strbuf_str((basilys_ptr_t) sbufv));
 	  basilysgc_append_list((basilys_ptr_t) seqv, (basilys_ptr_t) strv);
-	  debugeprintf("macrostring var appending str:%s", basilys_string_str((basilys_ptr_t)strv));
+	  debugeprintf ("macrostring var appending str:%s", basilys_string_str((basilys_ptr_t)strv));
 	  sbufv = NULL;
 	  strv = NULL;
 	}
@@ -6100,7 +6109,7 @@ readmacrostringsequence (struct reading_st *rd)
 	  memset(tinybuf, 0, sizeof(tinybuf));
 	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
 	  tinybuf[lnam] = (char)0;
-	  debugeprintf("macrostring tinysymb lnam.%d <%s>", lnam, tinybuf);
+	  debugeprintf ("macrostring tinysymb lnam.%d <%s>", lnam, tinybuf);
 	  symbv = basilysgc_named_symbol(tinybuf, BASILYS_CREATE);
 	}
 	else {
@@ -6108,7 +6117,7 @@ readmacrostringsequence (struct reading_st *rd)
 	  memcpy(nambuf, &rdfollowc(1), lnam-1);
 	  nambuf[lnam] = (char)0;
 	  symbv = basilysgc_named_symbol(nambuf, BASILYS_CREATE);
-	  debugeprintf("macrostring bigsymb <%s>", tinybuf);
+	  debugeprintf ("macrostring bigsymb <%s>", tinybuf);
 	  free(nambuf);
 	}
 	rd->rcol += lnam;
@@ -8630,11 +8639,11 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
 	  s = IDENTIFIER_POINTER(DECL_NAME(trnam));
 	break;
       case SSA_NAME:
-	snprintf(buf, sizeof(buf)-1, "%s.%d", 
+	snprintf (buf, sizeof(buf)-1, "%s.%d", 
 		 get_name(trnam), SSA_NAME_VERSION(trnam));
 	goto end;
       default:
-	snprintf(buf, sizeof(buf)-1, "@%p!%s", 
+	snprintf (buf, sizeof(buf)-1, "@%p!%s", 
 		 (void*)trnam, tree_code_name[TREE_CODE(trnam)]);
 	goto end;
       }
@@ -8643,7 +8652,7 @@ ppl_basilys_variable_output_function(ppl_dimension_type var)
   if (s) 
     strncpy(buf, s, sizeof(buf)-1);
   else if (!buf[0])
-    snprintf(buf, sizeof(buf)-1, "_$_%d", (int)var);
+    snprintf (buf, sizeof(buf)-1, "_$_%d", (int)var);
  end:
   BASILYS_EXITFRAME();
   return buf;
@@ -8712,7 +8721,7 @@ basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_p
     {
       char errmsg[64];
       memset(errmsg, 0, sizeof(errmsg));
-      snprintf(errmsg, sizeof(errmsg)-1, "{{unknown PPL magic %d}}", mag); 
+      snprintf (errmsg, sizeof(errmsg)-1, "{{unknown PPL magic %d}}", mag); 
       ppstr = xstrdup(errmsg);
     }
     break;
