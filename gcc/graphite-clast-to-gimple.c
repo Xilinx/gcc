@@ -1089,7 +1089,6 @@ graphite_loop_normal_form (loop_p loop, sese region)
   tree iv;
   name_tree oldiv;
   bool known_niter = number_of_iterations_exit (loop, exit, &niter, false);
-  htab_t reduction_list;
 
   /* At this point we should know the number of iterations,  */
   gcc_assert (known_niter
@@ -1102,10 +1101,7 @@ graphite_loop_normal_form (loop_p loop, sese region)
   if (stmts)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
-  reduction_list = htab_create (10, htab_hash_pointer, htab_eq_pointer, NULL);
-  gather_scalar_reductions (loop, reduction_list);
-  iv = canonicalize_loop_ivs (loop, reduction_list, &nit);
-  htab_delete (reduction_list);
+  iv = canonicalize_loop_ivs (loop, NULL, &nit);
 
   oldiv = XNEW (struct name_tree);
   oldiv->t = iv;

@@ -1380,6 +1380,71 @@ create_loop_fn (void)
   return decl;
 }
 
+/* Rewrite the phi node at position PSI in function of the main
+   induction variable MAIN_IV and insert the generated code at GSI.
+   REDUCTION_LIST lists the reductions of the LOOP.  */
+
+static void
+rewrite_phi_with_iv (loop_p loop, htab_t reduction_list,
+		     gimple_stmt_iterator *psi,
+		     gimple_stmt_iterator *gsi,
+		     tree main_iv)
+{
+  affine_iv iv;
+  gimple stmt, phi = gsi_stmt (*psi);
+  tree atype, mtype, val, res = PHI_RESULT (phi);
+
+  if (!is_gimple_reg (res) || res == main_iv)
+    {
+      gsi_next (psi);
+      return;
+    }
+
+  if (!simple_iv (loop, phi, res, &iv, true))
+    {
+      if (reduction_list)
+	gcc_assert (htab_find (reduction_list, res));
+
+      gsi_next (psi);
+      return;
+    }
+
+  remove_phi_node (psi, false);
+
+  atype = TREE_TYPE (res);
+  mtype = POINTER_TYPE_P (atype) ? sizetype : atype;
+  val = fold_build2 (MULT_EXPR, mtype, unshare_expr (iv.step),
+		     fold_convert (mtype, main_iv));
+  val = fold_build2 (POINTER_TYPE_P (atype)
+		     ? POINTER_PLUS_EXPR : PLUS_EXPR,
+		     atype, unshare_expr (iv.base), val);
+  val = force_gimple_operand_gsi (gsi, val, false, NULL_TREE, true,
+				  GSI_SAME_STMT);
+  stmt = gimple_build_assign (res, val);
+  gsi_insert_before (gsi, stmt, GSI_SAME_STMT);
+  SSA_NAME_DEF_STMT (res) = stmt;
+}
+
+/* Rewrite all the phi nodes of LOOP in function of the main induction
+   variable MAIN_IV.  REDUCTION_LIST lists all the reduction variables.  */
+
+static void
+rewrite_all_phi_nodes_with_iv (loop_p loop, htab_t reduction_list, tree main_iv)
+{
+  unsigned i;
+  basic_block *bbs = get_loop_body_in_dom_order (loop);
+  gimple_stmt_iterator psi;
+
+  for (i = 0; i < loop->num_nodes; i++)
+    {
+      basic_block bb = bbs[i];
+      gimple_stmt_iterator gsi = gsi_after_labels (bb);
+
+      for (psi = gsi_start_phis (bb); !gsi_end_p (psi); )
+	rewrite_phi_with_iv (loop, reduction_list, &psi, &gsi, main_iv);
+    }
+}
+
 /* Bases all the induction variables in LOOP on a single induction variable
    (unsigned with base 0 and step 1), whose final value is compared with
    NIT.  The induction variable is incremented in the loop latch.  
@@ -1391,20 +1456,17 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
 {
   unsigned precision = TYPE_PRECISION (TREE_TYPE (*nit));
   unsigned original_precision = precision;
-  tree res, type, var_before, val, atype, mtype;
+  tree type, var_before;
   gimple_stmt_iterator gsi, psi;
-  gimple phi, stmt;
-  bool ok;
-  affine_iv iv;
+  gimple stmt;
   edge exit = single_dom_exit (loop);
-  tree *red;
   gimple_seq stmts;
 
   for (psi = gsi_start_phis (loop->header);
        !gsi_end_p (psi); gsi_next (&psi))
     {
-      phi = gsi_stmt (psi);
-      res = PHI_RESULT (phi);
+      gimple phi = gsi_stmt (psi);
+      tree res = PHI_RESULT (phi);
 
       if (is_gimple_reg (res) && TYPE_PRECISION (TREE_TYPE (res)) > precision)
 	precision = TYPE_PRECISION (TREE_TYPE (res));
@@ -1424,48 +1486,7 @@ canonicalize_loop_ivs (struct loop *loop, htab_t reduction_list, tree *nit)
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, true, &var_before, NULL);
 
-  gsi = gsi_after_labels (loop->header);
-  for (psi = gsi_start_phis (loop->header); !gsi_end_p (psi); )
-    {
-      phi = gsi_stmt (psi);
-      res = PHI_RESULT (phi);
-
-      if (!is_gimple_reg (res) || res == var_before)
-	{
-	  gsi_next (&psi);
-	  continue;
-	}
-
-      ok = simple_iv (loop, phi, res, &iv, true);
-
-      if (reduction_list)
-	red = (tree *) htab_find (reduction_list, res);
-      else
-	red = NULL;
-
-      /* We preserve the reduction phi nodes.  */
-      if (!ok && red)
-	{
-	  gsi_next (&psi);
-	  continue;
-	}
-      else
-	gcc_assert (ok);
-      remove_phi_node (&psi, false);
-
-      atype = TREE_TYPE (res);
-      mtype = POINTER_TYPE_P (atype) ? sizetype : atype;
-      val = fold_build2 (MULT_EXPR, mtype, unshare_expr (iv.step),
-			 fold_convert (mtype, var_before));
-      val = fold_build2 (POINTER_TYPE_P (atype)
-			 ? POINTER_PLUS_EXPR : PLUS_EXPR,
-			 atype, unshare_expr (iv.base), val);
-      val = force_gimple_operand_gsi (&gsi, val, false, NULL_TREE, true,
-				      GSI_SAME_STMT);
-      stmt = gimple_build_assign (res, val);
-      gsi_insert_before (&gsi, stmt, GSI_SAME_STMT);
-      SSA_NAME_DEF_STMT (res) = stmt;
-    }
+  rewrite_all_phi_nodes_with_iv (loop, reduction_list, var_before);
 
   stmt = last_stmt (exit->src);
   /* Make the loop exit if the control condition is not satisfied.  */

@@ -1,5 +1,13 @@
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (graphite_loop_normal_form): Do not build
+	the reduction_list.
+	* tree-parloops.c (rewrite_phi_with_iv): New.
+	(rewrite_all_phi_nodes_with_iv): New.
+	(canonicalize_loop_ivs): Call them.
+
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (try_generate_gimple_bb): Use
 	graphite_find_data_references_in_stmt.
 	* tree-data-ref.c (graphite_find_data_references_in_stmt): New.
