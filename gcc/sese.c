@@ -1115,6 +1115,10 @@ add_loop_exit_phis (void **slot, void *data)
   a = (alep_p) data;
   loop = a->loop;
   new_name = entry->new_name;
+
+  if (TREE_CODE (new_name) != SSA_NAME)
+    return 1;
+
   def_in_loop_p = defined_in_loop_p (new_name, loop);
   old_close_phi = alive_after_loop (entry->old_name);
   used_outside_p = (old_close_phi != NULL);

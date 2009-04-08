@@ -1,5 +1,9 @@
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* sese.c (add_loop_exit_phis): Don't fail on non SSA_NAME renames.
+
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (build_scop_bbs_1): Use bb_in_sese_p
 	instead of bb_in_region.
 	(flag_bb_in_region): Same.  Renamed flag_bb_in_sese.
