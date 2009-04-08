@@ -1,4 +1,12 @@
 2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_melt_module): handle specially module
+	names like warmelt-first-0.d or some other single letter suffix.
+	* melt-cc-script.proto: added generation of basilys_csource
+	string.
+	* Makefile.in: uses warmelt-first-0.d.so instead of
+	warmelt-first-0-d.so etc...
+
+2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_load_modulelist): also look inside
 	melt_dynlib_dir.
 	* Makefile.in: don't need to symlink warm*.c to warm*-n.c because

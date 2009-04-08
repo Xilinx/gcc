@@ -4949,6 +4949,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   char *dynpath = NULL;
   FILE *srcfi = NULL;
   int dlix = 0;
+  int specialsuffix = 0; /* set for .d or .n suffix */
   int srcpathlen = 0;
   char md5srctab[16];
   char *md5src = NULL;
@@ -4964,19 +4965,35 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
     error ("cannot load MELT module, no MELT module name given");
     goto end;
   }
+  if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
+    error ("bad MELT module name %s to load", modulnam);
   /* always check the module name */
   {
     const char* p = 0;
     for (p=modulnam; *p; p++)
+      {
+	/* special hack for names like warmelt-first-0.d or
+	   warmelt-foo-1.n */
+	if (p[0] == '.' && ISALNUM(p[1]) && !p[2])
+	  {
+	    specialsuffix = 1;
+	    break;
+	  };
       if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
 	{
 	  error ("invalid MELT module name %s to load", modulnam);
 	  goto end;
 	}
+      }
   }
   /* duplicate the module name for safety, i.e. because it was in MELT
      heap or whatever ... */
   dupmodulnam = xstrdup(modulnam);
+  if (specialsuffix) {
+    int modulnamlen = strlen(modulnam);
+    gcc_assert (modulnamlen>2);
+    dupmodulnam[modulnamlen-2] = '\0';
+  }
   /***** first find the source path ******/
   /* look first in the temporary directory */
   tmpath = basilys_tempdir_path (dupmodulnam, ".c");
