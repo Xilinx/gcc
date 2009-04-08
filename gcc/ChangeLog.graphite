@@ -1,3 +1,8 @@
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (limit_scops): Deal only with single exit
+	loops.
+
 2009-04-08  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (stmt_simple_for_scop_p): Allow NE_EXPR

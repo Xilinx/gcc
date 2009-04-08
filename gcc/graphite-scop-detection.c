@@ -1125,7 +1125,8 @@ limit_scops (VEC (scop_p, heap) **scops)
       build_sese_loop_nests (region);
 
       for (j = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), j, loop); j++) 
-        if (!loop_in_sese_p (loop_outer (loop), region))
+        if (!loop_in_sese_p (loop_outer (loop), region)
+	    && single_exit (loop))
           {
 	    sd_region open_scop;
 	    open_scop.entry = loop->header;
