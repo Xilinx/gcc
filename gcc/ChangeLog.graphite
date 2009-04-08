@@ -1,5 +1,10 @@
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (initialize_cloog_names): Change cloog
+	names into more meaningful names.
+
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* testsuite/gfortran.dg/graphite/interchange-1.c: New.
 	* testsuite/gfortran.dg/graphite/interchange-2.c: New.
 

@@ -832,9 +832,9 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 
   for (i = 0; i < nb_iterators; i++)
     {
-      int len = 18 + 16;
+      int len = 4 + 16;
       iterators[i] = XNEWVEC (char, len);
-      snprintf (iterators[i], len, "graphite_iterator_%d", i);
+      snprintf (iterators[i], len, "git_%d", i);
     }
 
   cloog_names_set_nb_iterators (cloog_program_names (prog),
@@ -844,9 +844,9 @@ initialize_cloog_names (scop_p scop, CloogProgram *prog)
 
   for (i = 0; i < nb_scattering; i++)
     {
-      int len = 2 + 16;
+      int len = 5 + 16;
       scattering[i] = XNEWVEC (char, len);
-      snprintf (scattering[i], len, "s_%d", i);
+      snprintf (scattering[i], len, "scat_%d", i);
     }
 
   cloog_names_set_nb_scattering (cloog_program_names (prog),
