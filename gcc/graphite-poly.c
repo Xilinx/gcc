@@ -276,7 +276,8 @@ new_poly_bb (scop_p scop, void *black_box)
 {
   poly_bb_p pbb = XNEW (struct poly_bb);
 
-  ppl_new_NNC_Polyhedron_from_space_dimension (&PBB_DOMAIN (pbb), 0, 0);
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_space_dimension (
+    &PBB_DOMAIN (pbb), 0, 0);
   PBB_SCOP (pbb) = scop;
   pbb_set_black_box (pbb, black_box);
   PBB_TRANSFORMED_SCATTERING (pbb) = NULL;
@@ -290,7 +291,7 @@ new_poly_bb (scop_p scop, void *black_box)
 void
 free_poly_bb (poly_bb_p pbb)
 {
-  ppl_delete_Polyhedron (PBB_DOMAIN (pbb));
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron (PBB_DOMAIN (pbb));
 
   if (PBB_TRANSFORMED_SCATTERING (pbb))
     ppl_delete_Polyhedron (PBB_TRANSFORMED_SCATTERING (pbb));
@@ -342,7 +343,7 @@ print_pbb_domain (FILE *file, poly_bb_p pbb)
   fprintf (file, "domains bb_%d (", GBB_BB (gbb)->index);
 
   if (PBB_DOMAIN (pbb))
-    ppl_print_polyhedron_matrix (file, PBB_DOMAIN (pbb));
+    ppl_print_powerset_matrix (file, PBB_DOMAIN (pbb));
 
   fprintf (file, ")\n");
 }

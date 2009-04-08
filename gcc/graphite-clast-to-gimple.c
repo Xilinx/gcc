@@ -905,7 +905,7 @@ build_cloog_prog (scop_p scop, CloogProgram *prog)
         cloog_loop_set_next (new_loop_list, loop_list);
         cloog_loop_set_domain
 	  (new_loop_list,
-	   new_Cloog_Domain_from_ppl_Polyhedron (PBB_DOMAIN (pbb)));
+	   new_Cloog_Domain_from_ppl_Pointset_Powerset (PBB_DOMAIN (pbb)));
         cloog_loop_set_block (new_loop_list, block);
         loop_list = new_loop_list;
       }

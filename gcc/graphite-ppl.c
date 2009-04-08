@@ -233,6 +233,40 @@ new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
   return res;
 }
 
+/* Creates a CloogDomain from a pointset powerset PS.  */
+CloogDomain *
+new_Cloog_Domain_from_ppl_Pointset_Powerset (
+  ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+{
+
+  CloogDomain *res = NULL;
+  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+
+  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (ps, it),
+       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (ps, end);
+       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+    {
+      ppl_const_Polyhedron_t ph;
+      CloogDomain *tmp;
+
+      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      tmp = new_Cloog_Domain_from_ppl_Polyhedron (ph);
+
+      if (res == NULL)
+	res = tmp;
+      else
+	res = cloog_domain_union (res, tmp);
+    }
+  
+  gcc_assert (res != NULL);
+
+  return res;
+}
+
 /* Set the inhomogeneous term of E to X.  */
 
 static void
@@ -470,11 +504,32 @@ ppl_lexico_compare_linear_expressions (ppl_Linear_Expression_t a,
 /* Print to FILE the polyhedron PH under its PolyLib matrix form.  */
 
 void
-ppl_print_polyhedron_matrix (FILE *file, ppl_Polyhedron_t ph)
+ppl_print_polyhedron_matrix (FILE *file, ppl_const_Polyhedron_t ph)
 {
   CloogMatrix *mat = new_Cloog_Matrix_from_ppl_Polyhedron (ph);
   cloog_matrix_print (file, mat);
   cloog_matrix_free (mat);
+}
+
+/* Print to FILE the powerset PS in its PolyLib matrix form.  */
+void
+ppl_print_powerset_matrix (FILE *file, ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+{
+  ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
+
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&it);
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_iterator (&end);
+
+  for (ppl_Pointset_Powerset_NNC_Polyhedron_iterator_begin (ps, it),
+       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_end (ps, end);
+       !ppl_Pointset_Powerset_NNC_Polyhedron_iterator_equal_test (it, end);
+       ppl_Pointset_Powerset_NNC_Polyhedron_iterator_increment (it))
+    {
+      ppl_const_Polyhedron_t ph;
+
+      ppl_Pointset_Powerset_NNC_Polyhedron_iterator_dereference (it, &ph);
+      ppl_print_polyhedron_matrix (file, ph);
+    }
 }
 
 /* Print to STDERR the polyhedron PH under its PolyLib matrix form.  */

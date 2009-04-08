@@ -217,7 +217,7 @@ struct poly_bb
 
      The number of variables in the DOMAIN may change and is not
      related to the number of loops in the original code.  */
-  ppl_Polyhedron_t domain;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t domain;
 
   /* The data references we access.  */
   VEC (poly_dr_p, heap) *drs;
@@ -267,7 +267,7 @@ pbb_nb_loops (const struct poly_bb *pbb)
   scop_p scop = PBB_SCOP (pbb);
   ppl_dimension_type dim;
 
-  ppl_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PBB_DOMAIN (pbb), &dim);
   return dim - scop_nb_params (scop);
 }
 

@@ -1,3 +1,20 @@
+2009-04-08  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-clast-to-gimple.c (build_cloog_prog): ppl_Polyhedron ->
+	ppl_Pointset_Powerset.
+	* graphite-poly.c (new_poly_bb, free_poly_bb): Same.
+	* graphite-poly.h (poly_bb): poly_bb.domain Same.
+	(pbb_nb_loops): Same.
+	* graphite-sese-to-poly.c (build_loop_iteration_domains,
+	add_conditions_to_domain): Same.
+	* graphite-ppl.c (new_Cloog_Domain_from_ppl_Pointset_Powerset): New.
+	(ppl_print_polyhedron_matrix): ppl_Polyhedron_t ->
+	ppl_const_Polyhedron_t.
+	(ppl_print_powerset_matrix): New.
+	* graphite-ppl.h (new_Cloog_Domain_from_ppl_Pointset_Powerset,
+	ppl_print_powerset_matrix): New.
+	(ppl_print_polyhedron_matrix): Updated.
+
 2009-04-07  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* tree-scalar-evolution.c (analyze_scalar_evolution_1): Fix comment.

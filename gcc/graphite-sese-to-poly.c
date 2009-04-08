@@ -898,8 +898,9 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     if (gbb_loop (PBB_BLACK_BOX (pbb)) == loop)
       {
-	ppl_delete_Polyhedron (PBB_DOMAIN (pbb));
-	ppl_new_NNC_Polyhedron_from_NNC_Polyhedron (&PBB_DOMAIN (pbb), ph);
+	ppl_delete_Pointset_Powerset_NNC_Polyhedron (PBB_DOMAIN (pbb));
+	ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (
+	  &PBB_DOMAIN (pbb), ph);
       }
 
   ppl_delete_Coefficient (coef);
@@ -990,7 +991,7 @@ add_conditions_to_domain (poly_bb_p pbb)
 
 	    value_clear (one);
 	    ppl_new_Constraint (&cstr, left_expr, type);
-	    ppl_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
+	    ppl_Pointset_Powerset_NNC_Polyhedron_add_constraint (PBB_DOMAIN (pbb), cstr);
 	    ppl_delete_Constraint (cstr);
 	    ppl_delete_Linear_Expression (left_expr);
 	    ppl_delete_Linear_Expression (right_expr);
