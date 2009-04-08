@@ -4778,6 +4778,8 @@ melt.encap: run-basilys.d
 	$(MAKE) warmelt-outobj-3.so
 	echo melt.encap making $(ANAMELT_BASESO)
 	$(MAKE) $(ANAMELT_BASESO)
+	echo making $(melt_default_modlis).modlis
+	$(MAKE) $(melt_default_modlis).modlis
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
@@ -5086,8 +5088,8 @@ $(melt_default_modlis).modlis:  $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 install-melt-dynlib: installdirs $(melt_default_modlis).modlis $(WARMELT_BASE3SO) $(ANAMELT_BASESO)
 	$(mkinstalldirs) $(melt_dynlib_dir)
 	if [ -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis ]; then \
-	   rm -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis; \
-	   $(INSTALL_DATA) $(melt_default_modlis).modlis $(melt_dynlib_dir)/$(melt_default_modlis).modlis
+	   rm -f  $(melt_dynlib_dir)/$(melt_default_modlis).modlis; fi; \
+	$(INSTALL_DATA) $(melt_default_modlis).modlis $(melt_dynlib_dir)/$(melt_default_modlis).modlis
 	for dynfile in  $(WARMELT_BASE3SO) $(ANAMELT_BASESO); do \
 	   rm -f $(melt_dynlib_dir)/$$dynfile; \
 	   $(INSTALL_PROGRAM) -m 755 $$dynfile $(melt_dynlib_dir)/$$dynfile; \
@@ -5190,7 +5192,7 @@ install-melt-cc-script: melt-cc-script.proto
 install-all-melt: install-melt-include-dir install-melt-cc-script \
 	install-melt-dynlib install-melt-cfiles install-melt-meltfiles
 else
-melt-encap:
+melt.encap:
 install-all-melt:
 endif #BASILYSMELT_OBJ
 ### end of basilys / MELT stuff

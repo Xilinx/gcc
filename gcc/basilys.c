@@ -7240,8 +7240,8 @@ basilys_initialize (void)
   debugeprintf ("basilys_initialize melt_generated_dir=%s",
 		melt_generated_dir);
   debugeprintf ("basilys_initialize melt_dynlib_dir=%s", melt_dynlib_dir);
-  if (!basilys_init_string)
-    fatal_error ("no initial basilys modules specified thru -fbasilys-init");
+  debugeprintf ("basilys_initialize basilys_init_string=%s", basilys_init_string);
+  /* if basilys_init_string is null, a suitable default is taken */
   if (ppl_set_error_handler(basilys_ppl_error_handler))
     fatal_error ("failed to set PPL handler");
   load_basilys_modules_and_do_command ();

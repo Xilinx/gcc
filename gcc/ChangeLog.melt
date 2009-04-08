@@ -1,4 +1,11 @@
 2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilys_initialize): don't fail if
+	basilys_init_string is null, because the default module list is
+	then taken.
+	* Makefile.in: the $(melt_default_modlis).modlis is always installed.
+	when BASILYSMELT is disabled, melt.encap is an empty target.
+
+2009-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.bysl: cleaned up by using macrostrings in every C chunk.
 
 2009-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
