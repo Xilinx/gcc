@@ -1,5 +1,12 @@
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-sese-to-poly.c (try_generate_gimple_bb): Use
+	graphite_find_data_references_in_stmt.
+	* tree-data-ref.c (graphite_find_data_references_in_stmt): New.
+	* tree-data-ref.h (graphite_find_data_references_in_stmt): Declared.
+
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* sese.c (add_loop_exit_phis): Don't fail on non SSA_NAME renames.
 
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
