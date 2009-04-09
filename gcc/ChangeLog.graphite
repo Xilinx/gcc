@@ -1,3 +1,13 @@
+2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-poly.c (new_poly_dr, free_poly_dr): New.
+	(free_poly_bb): Also free poly_drs.
+	* graphite-poly.h (new_poly_dr, free_poly_dr): New.
+	(poly_dr): Polyhedron to Pointset_Powerset.
+	(pdr_accessp_nb_subscripts): Same.
+	* graphite-sese-to-poly.c (build_poly_dr): Same. And actually build
+	poly_drs.
+
 2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-clast-to-gimple.c (initialize_cloog_names): Change cloog

@@ -113,13 +113,17 @@ struct poly_dr
 
      | i   j   k   a   1
      | 0   0   0  -1   15  = 0 */
-  ppl_Polyhedron_t accesses;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses;
 };
 
 #define PDR_BB(PDR) (PDR->black_box)
 #define PDR_TYPE(PDR) (PDR->type)
 #define PDR_BASE(PDR) (PDR->base)
 #define PDR_ACCESSES(PDR) (PDR->accesses)
+
+void new_poly_dr (poly_bb_p, ppl_Pointset_Powerset_NNC_Polyhedron_t,
+		  enum POLY_DR_TYPE);
+void free_poly_dr (poly_dr_p);
 
 /* The number of subscript dims in PDR.  */
 
@@ -129,7 +133,7 @@ pdr_accessp_nb_subscripts (poly_dr_p pdr)
   poly_bb_p pbb = PDR_BB (pdr);
   ppl_dimension_type dim;
 
-  ppl_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (PDR_ACCESSES (pdr), &dim);
   return dim - pbb_nb_loops (pbb) - pbb_nb_params (pbb) - 1;
 }
 

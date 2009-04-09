@@ -269,6 +269,32 @@ apply_poly_transforms (scop_p scop)
   return transform_done;
 }
 
+/* Create a new polyhedral data reference and add it to PBB. It is defined by
+   its ACCESSES, its TYPE*/
+
+void
+new_poly_dr (poly_bb_p pbb, ppl_Pointset_Powerset_NNC_Polyhedron_t accesses,
+	     enum POLY_DR_TYPE type)
+{
+  poly_dr_p pdr = XNEW (struct poly_dr);
+
+  PDR_BB (pdr) = pbb;
+  PDR_ACCESSES (pdr) = accesses;
+  PDR_TYPE (pdr) = type;
+
+  VEC_safe_push (poly_dr_p, heap, PBB_DRS (pbb), pdr);
+}
+
+/* Free polyhedral data reference PDR.  */
+
+void
+free_poly_dr (poly_dr_p pdr)
+{
+  ppl_delete_Pointset_Powerset_NNC_Polyhedron (PDR_ACCESSES (pdr));
+
+  XDELETE (pdr);
+}
+
 /* Create a new polyhedral black box.  */
 
 void
@@ -291,6 +317,9 @@ new_poly_bb (scop_p scop, void *black_box)
 void
 free_poly_bb (poly_bb_p pbb)
 {
+  int i;
+  poly_dr_p pdr;
+  
   ppl_delete_Pointset_Powerset_NNC_Polyhedron (PBB_DOMAIN (pbb));
 
   if (PBB_TRANSFORMED_SCATTERING (pbb))
@@ -298,6 +327,10 @@ free_poly_bb (poly_bb_p pbb)
 
   if (PBB_ORIGINAL_SCATTERING (pbb))
     ppl_delete_Polyhedron (PBB_ORIGINAL_SCATTERING (pbb));
+
+  if (PBB_DRS (pbb))
+    for (i = 0; VEC_iterate (poly_dr_p, PBB_DRS (pbb), i, pdr); i++)
+      free_poly_dr (pdr);
 
   VEC_free (poly_dr_p, heap, PBB_DRS (pbb));
   XDELETE (pbb);

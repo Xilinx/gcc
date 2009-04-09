@@ -1273,6 +1273,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
 {
   Value v;
   ppl_Polyhedron_t accesses;
+  ppl_Pointset_Powerset_NNC_Polyhedron_t accesses_ps;
   int i, dr_nb_subscripts = DR_NUM_DIMENSIONS (dr);
 
   scop_p scop = PBB_SCOP (pbb);
@@ -1328,6 +1329,16 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
     }
 
   value_clear (v);
+
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (&accesses_ps,
+								accesses);
+
+  ppl_delete_Polyhedron (accesses);
+
+  if (DR_IS_READ (dr))
+    new_poly_dr (pbb, accesses_ps, PDR_READ);
+  else
+    new_poly_dr (pbb, accesses_ps, PDR_WRITE);
 }
 
 /* Build the data references for PBB.  */
