@@ -4809,24 +4809,26 @@ MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
 #	      -frandom-seed=$$RANDOM
 
 
-warm%.n.so: warm%.c built-melt-cc-script
+## all the warm*.so need ./built-melt-cc-script to be built, but we
+## don't add a dependency to avoid them being rebuilt at install time.
+##
+warmelt-%-0.d.so: $(srcdir)/warmelt-%-0.c 
+	$(RM) $(notdir $<)
+	$(LN_S) $<  $(notdir $<)
+	./built-melt-cc-script -d $(notdir $<) $@
+warm%.n.so: warm%.c 
 	./built-melt-cc-script -n $< $@
-warm%.so: warm%.c built-melt-cc-script
+warm%.so: warm%.c 
 	./built-melt-cc-script $< $@
 ###
 
-ana%.n.so: ana%.c built-melt-cc-script
+ana%.n.so: ana%.c 
 	./built-melt-cc-script -n $< $@
-ana%.d.so : ana%.c built-melt-cc-script
+ana%.d.so : ana%.c 
 	./built-melt-cc-script -d $< $@
-ana%.so: ana%.c built-melt-cc-script
+ana%.so: ana%.c 
 	./built-melt-cc-script $< $@
 
-##
-warmelt-%-0.d.so: $(srcdir)/warmelt-%-0.c built-melt-cc-script
-	$(RM) $(notdir $<)
-	$(LN_S) $<  $(notdir $<)
-	./built-melt-cc-script $< $@
 
 ## the warmelt files - order is important!
 WARMELT_FILES= \
@@ -5002,11 +5004,6 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_B
 	ls -l $@
 
 
-warmelt-%-2.so: warmelt-%-2.c built-melt-cc-script
-	./built-melt-cc-script $< $@
-
-warmelt-%-2.n.so: warmelt-%-2.c built-melt-cc-script
-	./built-melt-cc-script -n $< $@
 
 warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
 	@echo generating $@ using $(WARMELT_BASE1SO)
@@ -5016,8 +5013,10 @@ warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO) 
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-## apparently, this dependency is explicitly needed...
+## apparently, these dependencies are explicitly needed... because
+## melt.encap target is making explicitly these
 warmelt-normatch-2.so: warmelt-normatch-2.c
+warmelt-outobj-3.so: warmelt-outobj-3.c
 
 warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	date +"#$@ generated %c" > $@-tmp
