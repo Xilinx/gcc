@@ -1,4 +1,4 @@
-;; File warmelt-genobj.bysl -*- Lisp -*-
+;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2008, 2009 Free Software Foundation, Inc.
@@ -21,7 +21,7 @@
     <http://www.gnu.org/licenses/>.
 ")
 
-;; the copyright notice above apply both to warmelt-genobj.bysl and 
+;; the copyright notice above apply both to warmelt-genobj.melt and 
 ;; to the generated file  warmelt-genobj*.c
 
 ;;    This file is the fifth part of a bootstrapping compiler for the
@@ -4577,4 +4577,4 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; eof warmelt-genobj.bysl
+;;; eof warmelt-genobj.melt

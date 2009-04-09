@@ -1,12 +1,12 @@
 ;; -*- lisp -*-
-;; file  gcc/testsuite/melt/tmatch-1.bysl
+;; file  gcc/testsuite/melt/tmatch-1.melt
 ;; test the match operation
 
 #| run in buildir/gcc
  ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
     -fbasilys-compile-script=./built-melt-cc-script \
     -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
-    -fbasilys-arg=..../tmatch-1.bysl -fbasilys-debug
+    -fbasilys-arg=..../tmatch-1.melt -fbasilys-debug
 |#
 
 (defun tmatch_aa (x f g)
@@ -18,4 +18,4 @@
 	 ( ?_ 
 	  (return x))))
 
-;; eof tmatch-1.bysl
+;; eof tmatch-1.melt

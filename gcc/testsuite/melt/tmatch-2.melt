@@ -1,11 +1,11 @@
 ;; -*- lisp -*-
-;; file tmatch-2.bysl
+;; file tmatch-2.melt
 
 #| run in buildir/gcc
  ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
     -fbasilys-compile-script=./built-melt-cc-script \
     -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
-    -fbasilys-arg=..../tmatch-2.bysl -fbasilys-debug
+    -fbasilys-arg=..../tmatch-2.melt -fbasilys-debug
 |#
 
 (defcmatcher even 
@@ -40,6 +40,6 @@
    )
 )
 
-;;; eof tmatch-2.bysl
+;;; eof tmatch-2.melt
   
   

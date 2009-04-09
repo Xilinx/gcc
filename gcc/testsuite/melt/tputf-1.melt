@@ -1,5 +1,6 @@
 ;; -*- lisp -*-
 ;; exhibits a bug in rev143548, corrected now...
+;; file tputf-1.melt
 
 (defclass my_class :super class_named
 	  :fields (my_data))

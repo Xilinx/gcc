@@ -1,12 +1,12 @@
 ;; -*- lisp -*-
-;; file tmacrostring.bysl
+;; file tmacrostring.melt
 
 ;;; this tests the macrostring read syntax
 #| 
   ./cc1 -Wno-shadow -fbasilys=runfile \
   -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
   -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmacrostring.bysl
+  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmacrostring.melt
 |#
 
 (defprimitive say (:cstring s) :void

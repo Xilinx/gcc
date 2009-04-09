@@ -11,7 +11,9 @@ appropriate -fPIC and -I options (and using some melt-private-headers
 directory containing the required *.h files from GCC source tree
 needed to compile the MELT generated C code).
 
-The MELT source files -a lisp like code- are *.bysl (sorry for the messy suffix).
+The MELT source files -a lisp like code- are *.melt and used to be
+.bysl before April 9th 2009 (MELT branch rev 145716)
+
 
 
 See the gcc/doc/melt.texi  file.

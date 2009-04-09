@@ -1,4 +1,4 @@
-;; file warmelt-outobj.bysl -*- Lisp -*-
+;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2008, 2009 Free Software Foundation, Inc.
@@ -21,7 +21,7 @@
     <http://www.gnu.org/licenses/>.
 ")
 
-;; the copyright notice above apply both to warmelt-outobj.bysl and 
+;; the copyright notice above apply both to warmelt-outobj.melt and 
 ;; to the generated file  warmelt-outobj*.c
 
 ;;    This file is the sixth part of a bootstrapping compiler for the
@@ -3204,9 +3204,7 @@
  )
 ;;;;;;;;;;;;;;;;
 
-(debug_msg initial_system_data "toplevel initial_system_data")
+;(debug_msg initial_system_data "toplevel initial_system_data")
 
-(debug_msg class_symbol "at end of warmelt-outobj Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-outobj predefined Class_Symbol")
 
-;;; eof warmelt-outobj.bysl
+;;; eof warmelt-outobj.melt

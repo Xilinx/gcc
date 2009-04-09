@@ -1,5 +1,5 @@
 ;; -*- Lisp -*-
-;; file warmelt-first.bysl
+;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2008, 2009 Free Software Foundation, Inc.
@@ -22,7 +22,7 @@
     <http://www.gnu.org/licenses/>.
 ")
 
-;; the copyright notice above apply both to warmelt-first.bysl and 
+;; the copyright notice above apply both to warmelt-first.melt and 
 ;; to the generated file  warmelt-first*.c
 
 ;;    This file is the first part of a bootstrapping compiler for the
@@ -4040,4 +4040,4 @@
  foreach_long_upto
  )
 
-;; eof warmelt-first.bysl
+;; eof warmelt-first.melt

@@ -8,7 +8,7 @@
   ./cc1 -Wno-shadow -fbasilys=runfile \
   -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
   -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-  -fbasilys-init="@warmelt2"  -fbasilys-arg=t2iter.bysl
+  -fbasilys-init="@warmelt2"  -fbasilys-arg=t2iter.melt
 |#
 
 (defun t2iter (tu f g)

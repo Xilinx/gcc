@@ -4684,7 +4684,7 @@ MELTINDENT= indent -gnu -l90
 melt_private_include_dir=$(libexecsubdir)/melt-private-include/
 
 
-## this is the installation directory of melt sources (*.bysl files, MELT dialect)
+## this is the installation directory of melt sources (*.melt files, MELT dialect)
 melt_source_dir=$(libexecsubdir)/melt-source/
 
 ## this is the installation directory of melt generated code (*.c files, generated C code)
@@ -4832,14 +4832,14 @@ ana%.so: ana%.c
 
 ## the warmelt files - order is important!
 WARMELT_FILES= \
-	 warmelt-first.bysl  \
-	 warmelt-macro.bysl  \
-	 warmelt-normal.bysl \
-	 warmelt-normatch.bysl \
-	 warmelt-genobj.bysl \
-	 warmelt-outobj.bysl 
+	 warmelt-first.melt  \
+	 warmelt-macro.melt  \
+	 warmelt-normal.melt \
+	 warmelt-normatch.melt \
+	 warmelt-genobj.melt \
+	 warmelt-outobj.melt 
 
-WARMELT_SRCFILES= $(patsubst %.bysl, $(srcdir)/melt/%.bysl, $(WARMELT_FILES))
+WARMELT_SRCFILES= $(patsubst %.melt, $(srcdir)/melt/%.melt, $(WARMELT_FILES))
 WARMELT_SRCARGLIST:=$(shell echo $(realpath $(WARMELT_SRCFILES))|sed 's: :,:g')
 WARMELT_BASE= $(basename $(WARMELT_FILES))
 WARMELT_BASELIST:=$(shell echo $(WARMELT_BASE)|sed 's: :,:g')
@@ -4875,8 +4875,8 @@ WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 ## compiled source 
 
 ## order is important
-ANAMELT_FILES= ana-base.bysl ana-simple.bysl
-ANAMELT_SRCFILES= $(patsubst %.bysl, $(srcdir)/melt/%.bysl, $(ANAMELT_FILES))
+ANAMELT_FILES= ana-base.melt ana-simple.melt
+ANAMELT_SRCFILES= $(patsubst %.melt, $(srcdir)/melt/%.melt, $(ANAMELT_FILES))
 ANAMELT_SRCARGLIST:=$(shell echo $(realpath $(ANAMELT_SRCFILES))|sed 's: :,:g')
 ANAMELT_BASE= $(basename $(ANAMELT_FILES))
 ANAMELT_BASELIST:=$(shell echo $(ANAMELT_BASE)|sed 's: :,:g')
@@ -4907,7 +4907,7 @@ warmelt1.modlis: $(WARMELT_BASE1SO)
 ### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
 ### using wamelt-first-1.so
 
-warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0DSO)
+warmelt-first-1.c: $(srcdir)/melt/warmelt-first.melt warmelt0.modlis   cc1$(exeext)  $(WARMELT_BASE0DSO)
 	-rm -f $@
 	@echo generating warmelt-first using $(WARMELT_BASE0) 
 	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0DROW)
@@ -4916,7 +4916,7 @@ warmelt-first-1.c: $(srcdir)/melt/warmelt-first.bysl warmelt0.modlis   cc1$(exee
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.bysl cc1$(exeext) \
+warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.melt cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-0.d.so  \
 	 warmelt-normal-0.d.so \
@@ -4930,7 +4930,7 @@ warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.bysl cc1$(exeext) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.bysl cc1$(exeext) \
+warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.melt cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-0.d.so \
@@ -4945,7 +4945,7 @@ warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.bysl cc1$(exeext) \
 	ls -l $@
 
 
-warmelt-normatch-1.c: $(srcdir)/melt/warmelt-normatch.bysl cc1$(exeext) \
+warmelt-normatch-1.c: $(srcdir)/melt/warmelt-normatch.melt cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-1.so \
@@ -4959,7 +4959,7 @@ warmelt-normatch-1.c: $(srcdir)/melt/warmelt-normatch.bysl cc1$(exeext) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.bysl cc1$(exeext) \
+warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.melt cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-1.so \
@@ -4973,7 +4973,7 @@ warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.bysl cc1$(exeext) \
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.bysl cc1$(exeext) \
+warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.melt cc1$(exeext) \
 	 warmelt-first-1.so  \
 	 warmelt-macro-1.so  \
 	 warmelt-normal-1.so \
@@ -4993,7 +4993,7 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE2); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
+warmelt-first-2.c: $(srcdir)/melt/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo test showmdata using $(WARMELT_BASE1SO)
 	$(MELTBASILYSCCSHOW1) -fbasilys-init="@warmelt1"
@@ -5005,7 +5005,7 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.bysl warmelt1.modlis $(WARMELT_B
 
 
 
-warmelt-%-2.c: $(srcdir)/melt/warmelt-%.bysl warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
+warmelt-%-2.c: $(srcdir)/melt/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt1" \
@@ -5024,7 +5024,7 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
 ####
-warmelt-%-3.c: $(srcdir)/melt/warmelt-%.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
+warmelt-%-3.c: $(srcdir)/melt/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
@@ -5036,7 +5036,7 @@ warmelt3.modlis: $(WARMELT_BASE2SO)
 	for f in  $(WARMELT_BASE3); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
-warmelt-first-3.c: $(srcdir)/melt/warmelt-first.bysl warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
+warmelt-first-3.c: $(srcdir)/melt/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt2" \
@@ -5054,7 +5054,7 @@ diff-warmelt-2-3: $(WARMELT_BASE3SO)
 
 
 ####
-ana-base.c: $(srcdir)/melt/ana-base.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
+ana-base.c: $(srcdir)/melt/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
@@ -5062,7 +5062,7 @@ ana-base.c: $(srcdir)/melt/ana-base.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  cc
 	      -fbasilys-secondarg=$@
 	ls -l $@
 
-ana-simple.c:  $(srcdir)/melt/ana-simple.bysl  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   cc1$(exeext) 
+ana-simple.c:  $(srcdir)/melt/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2:ana-base" \

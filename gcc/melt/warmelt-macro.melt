@@ -1,4 +1,4 @@
-;; file warmelt-macro.bysl -*- Lisp -*-
+;; file warmelt-macro.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2008, 2009 Free Software Foundation, Inc.
@@ -21,7 +21,7 @@
     <http://www.gnu.org/licenses/>.
 ")
 
-;; the copyright notice above apply both to warmelt-macro.bysl and 
+;; the copyright notice above apply both to warmelt-macro.melt and 
 ;; to the generated file or warmelt-macro*.c
 
 ;;    This file is the second part of a bootstrapping compiler for the
@@ -4084,8 +4084,4 @@
  patternexpand_pairlist_as_tuple
  )			  ;end of functions for source representations
 
-(debug_msg class_symbol "at end of warmelt-macro Class_Symbol")
-(debug_msg (fetch_predefined CLASS_SYMBOL) "end of warmelt-macro predefined Class_Symbol")
-(debug_msg install_initial_macro "at end of warmelt-macro Install_Initial_Macro")
-(debug_msg (closure_routine install_initial_macro) "at end of warmelt-macro Install_Initial_Macro routine")
-;; eof warmelt-macro.bysl
+;; eof warmelt-macro.melt

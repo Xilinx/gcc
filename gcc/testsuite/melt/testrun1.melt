@@ -1,4 +1,4 @@
-;; file testrun1.bysl  -*- Lisp -*-
+;; file testrun1.melt  -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Copyright 2008 Free Software Foundation, Inc.
 ;;    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
@@ -20,7 +20,7 @@
 ;;    <http://www.gnu.org/licenses/>.
 
 ;;;;;;
-;;    This file is a runnable test; it shares code with warmelt*.bysl
+;;    This file is a runnable test; it shares code with warmelt*.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 

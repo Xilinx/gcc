@@ -2618,9 +2618,9 @@ enum basilys_globalix_en
   /************************* wired predefined */
   /****@@@ MAYBE SHOULD GO IN A SEPARATE FILE??? ***/
   /***
-   * don't forget to fill these objects in warmelt*.bysl file and to
+   * don't forget to fill these objects in warmelt*.melt file and to
    * define the appropriate global_* primitives near
-   * create_normcontext function in warmelt-normal.bysl
+   * create_normcontext function in warmelt-normal.melt
    * e.g. (defprimitive global_DISCR_NULLRECV ....)
    ***/
   /* the pseudo discriminant using for sending to null pointers */
@@ -2839,7 +2839,7 @@ enum
 };
 
 /* fields inside the system data - keep in sync with the
-   class_system_data definition in MELT file warmelt-first.bysl */
+   class_system_data definition in MELT file warmelt-first.melt */
 enum
 {
   FSYSDAT_CMD_FUNDICT = FNAMED__LAST,	/* the stringdict of commands */

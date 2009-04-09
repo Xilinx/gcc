@@ -19,7 +19,7 @@ A working knowledge of Scheme or Lisp is presupposed.
 
 MELT was formerly known as Basilys, hence many functions or variables
 have basilys in their name, and the conventional file extensions for
-MELT source files is @code{.bysl}
+MELT source files is @code{.melt} (and used to be @code{.bysl}).
 
 See the @uref{http://gcc.gnu.org/wiki/MiddleEndLispTranslator,,MELT wiki page}
 

@@ -1,4 +1,49 @@
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	[renamed all *.bysl files into *.melt files which is the preferred
+	suffix for MELT code]
+	* basilys.h: replaced .bysl by .melt in comments.
+	* Makefile.in: replaced .bysl by .melt
+	* melt/testrun1.bysl moved into testsuite/melt/testrun1.melt
+	* melt/test1.bysl moved into testsuite/melt/test1.melt
+	* melt/ana-base.bysl renamed as melt/ana-base.melt
+	* melt/ana-simple.bysl renamed as melt/ana-simple.melt
+	* melt/warmelt-first.bysl renamed as melt/warmelt-first.melt
+	* melt/warmelt-macro.bysl renamed as melt/warmelt-macro.melt
+	* melt/warmelt-normal.bysl renamed as melt/warmelt-normal.melt
+	* melt/warmelt-normatch.bysl renamed as melt/warmelt-normatch.melt
+	* melt/warmelt-genobj.bysl renamed as melt/warmelt-genobj.melt
+	* melt/warmelt-outobj.bysl renamed as melt/warmelt-outobj.melt
+	* testsuite/melt/t2iter.bysl renamed as testsuite/melt/t2iter.melt
+	* testsuite/melt/tcond-1.bysl renamed as testsuite/melt/tcond-1.melt
+	* testsuite/melt/test1.bysl renamed as testsuite/melt/test1.melt
+	* testsuite/melt/testrun1.bysl renamed as testsuite/melt/testrun1.melt
+	* testsuite/melt/tmacrostring.bysl renamed as testsuite/melt/tmacrostring.melt
+	* testsuite/melt/tmatch-1.bysl renamed as testsuite/melt/tmatch-1.melt
+	* testsuite/melt/tmatch-2.bysl renamed as testsuite/melt/tmatch-2.melt
+	* testsuite/melt/tmatch-3.bysl renamed as testsuite/melt/tmatch-3.melt
+	* testsuite/melt/tmultilong.bysl renamed as testsuite/melt/tmultilong.melt
+	* testsuite/melt/tputf-1.bysl renamed as testsuite/melt/tputf-1.melt
+
+	* gcc/melt/ana-base.melt: new renamed file
+	* gcc/melt/ana-simple.melt: new renamed file
+	* gcc/melt/warmelt-first.melt: new renamed file
+	* gcc/melt/warmelt-genobj.melt: new renamed file
+	* gcc/melt/warmelt-macro.melt: new renamed file
+	* gcc/melt/warmelt-normal.melt: new renamed file
+	* gcc/melt/warmelt-normatch.melt: new renamed file
+	* gcc/melt/warmelt-outobj.melt: new renamed file
+	* gcc/testsuite/melt/t2iter.melt: new renamed file
+	* gcc/testsuite/melt/tcond-1.melt: new renamed file
+	* gcc/testsuite/melt/test1.melt: new renamed file
+	* gcc/testsuite/melt/testrun1.melt: new renamed file
+	* gcc/testsuite/melt/tmacrostring.melt: new renamed file
+	* gcc/testsuite/melt/tmatch-1.melt: new renamed file
+	* gcc/testsuite/melt/tmatch-2.melt: new renamed file
+	* gcc/testsuite/melt/tmatch-3.melt: new renamed file
+	* gcc/testsuite/melt/tmultilong.melt: new renamed file
+	* gcc/testsuite/melt/tputf-1.melt: new renamed file
+
+2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: removed built-melt-cc-script from warm*.so &
 	ana*.so dependencies to avoid rebuilding them at install time.
 	Explicitly added warmelt-outobj-3.so: warmelt-outobj-3.c

@@ -1,5 +1,5 @@
 ;; -*- Lisp -*-
-;; file ana-simple.bysl
+;; file ana-simple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2009 Free Software Foundation, Inc.
@@ -788,3 +788,4 @@
 
 (initial_command_install smallana_command "smallana")
 
+;; eof ana-simple.melt

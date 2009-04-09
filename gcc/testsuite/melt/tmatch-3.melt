@@ -1,11 +1,11 @@
 ;; -*- lisp -*-
-;; file tmatch-3.bysl
+;; file tmatch-3.melt
 
 #| run in buildir/gcc
  ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
     -fbasilys-compile-script=./built-melt-cc-script \
     -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
-    -fbasilys-arg=..../tmatch-3.bysl -fbasilys-debug
+    -fbasilys-arg=..../tmatch-3.melt -fbasilys-debug
 |#
 
 (defprimitive tree_content (v) :tree

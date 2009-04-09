@@ -1,5 +1,5 @@
 ;; -*- Lisp -*-
-;; file ana-base.bysl
+;; file ana-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "
     Copyright 2008, 2009 Free Software Foundation, Inc.
@@ -22,7 +22,7 @@
     <http://www.gnu.org/licenses/>.
 ")
 
-;; the copyright notice above apply both to ana-base.bysl and 
+;; the copyright notice above apply both to ana-base.melt and 
 ;; to the generated file  ana-base*.c
 
 ;; a class containing the analysis state
@@ -1072,7 +1072,7 @@
 ;;; to some C stuff.
 
 ;;; Be careful to not declare any iterator related stuff in
-;;; warmelt*.bysl file, because we want to be able to bootstrap
+;;; warmelt*.melt file, because we want to be able to bootstrap
 ;;; Basilys/MELT (ie to generate the warmelt*.c files) even when GCC
 ;;; internal representation changes a little.
 
@@ -1423,4 +1423,4 @@
 (export_class
  class_analysis_state
 )
-;; eof ana-base.bysl
+;; eof ana-base.melt
