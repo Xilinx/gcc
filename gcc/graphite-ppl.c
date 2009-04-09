@@ -234,6 +234,7 @@ new_Cloog_Domain_from_ppl_Polyhedron (ppl_const_Polyhedron_t ph)
 }
 
 /* Creates a CloogDomain from a pointset powerset PS.  */
+
 CloogDomain *
 new_Cloog_Domain_from_ppl_Pointset_Powerset (
   ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
@@ -512,8 +513,10 @@ ppl_print_polyhedron_matrix (FILE *file, ppl_const_Polyhedron_t ph)
 }
 
 /* Print to FILE the powerset PS in its PolyLib matrix form.  */
+
 void
-ppl_print_powerset_matrix (FILE *file, ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+ppl_print_powerset_matrix (FILE *file,
+			   ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
 {
   ppl_Pointset_Powerset_NNC_Polyhedron_iterator_t it, end;
 
@@ -538,6 +541,14 @@ void
 debug_ppl_polyhedron_matrix (ppl_Polyhedron_t ph)
 {
   ppl_print_polyhedron_matrix (stderr, ph);
+}
+
+/* Print to STDERR the powerset PS in its PolyLib matrix form.  */
+
+void
+debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t ps)
+{
+  ppl_print_powerset_matrix (stderr, ps);
 }
 
 /* Read from FILE a polyhedron under PolyLib matrix form and return a

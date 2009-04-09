@@ -1005,7 +1005,7 @@ ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (
   &right, left);
       add_condition_to_domain (left, stmt, pbb, LT_EXPR);
       add_condition_to_domain (right, stmt, pbb, GT_EXPR);
-      ppl_Pointset_Powerset_NNC_Polyhedron_concatenate_assign (left,
+      ppl_Pointset_Powerset_NNC_Polyhedron_upper_bound_assign (left,
 							       right);
       ppl_delete_Pointset_Powerset_NNC_Polyhedron (right);
     }

@@ -1,4 +1,12 @@
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+	
+	* graphite-ppl.c (debug_ppl_powerset_matrix): New.
+	* graphite-ppl.h (debug_ppl_powerset_matrix): New.
+	* graphite-sese-to-poly.c (add_condition_to_pbb): Use upper_bound_assign
+	to calculate unions.
+	* testsuite/gcc.dg/graphite/id-6.c: New.
+
+2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (canonicalize_loop_closed_ssa): Do not
 	handle abnormal edges.
