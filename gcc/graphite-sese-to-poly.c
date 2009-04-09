@@ -1001,8 +1001,8 @@ add_condition_to_pbb (poly_bb_p pbb, gimple stmt, enum tree_code code)
     {
       ppl_Pointset_Powerset_NNC_Polyhedron_t left = PBB_DOMAIN (pbb); 
       ppl_Pointset_Powerset_NNC_Polyhedron_t right;
-ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (
-  &right, left);
+      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron
+	(&right, left);
       add_condition_to_domain (left, stmt, pbb, LT_EXPR);
       add_condition_to_domain (right, stmt, pbb, GT_EXPR);
       ppl_Pointset_Powerset_NNC_Polyhedron_upper_bound_assign (left,
@@ -1010,7 +1010,7 @@ ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron (
       ppl_delete_Pointset_Powerset_NNC_Polyhedron (right);
     }
   else
-    add_condition_to_domain (PBB_DOMAIN (pbb), stmt, pbb, GT_EXPR);
+    add_condition_to_domain (PBB_DOMAIN (pbb), stmt, pbb, code);
 }
 
 /* Add conditions to the domain of PBB.  */

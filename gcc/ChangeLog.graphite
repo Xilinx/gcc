@@ -1,3 +1,9 @@
+2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-sese-to-poly.c (add_condition_to_pbb): Pass code to
+	add_condition_to_domain not GT_EXPR.
+
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 	
 	* graphite-ppl.c (debug_ppl_powerset_matrix): New.
