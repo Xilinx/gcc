@@ -42,6 +42,12 @@
 	* gcc/testsuite/melt/tmatch-3.melt: new renamed file
 	* gcc/testsuite/melt/tmultilong.melt: new renamed file
 	* gcc/testsuite/melt/tputf-1.melt: new renamed file
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
 
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in: removed built-melt-cc-script from warm*.so &
