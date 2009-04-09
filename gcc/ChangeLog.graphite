@@ -1,5 +1,10 @@
 2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-scop-detection.c (canonicalize_loop_closed_ssa): Do not
+	handle abnormal edges.
+
+2009-04-09  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-poly.c (new_poly_dr, free_poly_dr): New.
 	(free_poly_bb): Also free poly_drs.
 	* graphite-poly.h (new_poly_dr, free_poly_dr): New.

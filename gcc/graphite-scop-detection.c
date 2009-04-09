@@ -1158,7 +1158,7 @@ canonicalize_loop_closed_ssa (loop_p loop)
   edge e = single_exit (loop);
   basic_block bb;
 
-  if (!e)
+  if (!e || e->flags & EDGE_ABNORMAL)
     return;
 
   bb = e->dest;
