@@ -1,4 +1,7 @@
 2009-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-simple.melt: replacing abenv_consys field by abenv_poly...
+
+2009-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (load_basilys_modules_and_do_command): correctly
 	default basilys_init_string & debugprint it.
 	* Makefile.in: -DMELT_DEFAULT_MODLIS is corrected when compiling

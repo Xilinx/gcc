@@ -48,7 +48,7 @@
   :super class_proped
   :fields (abenv_maptree		;a maptree C ident -> abstract values
 	   abenv_parenv			;the parent abstract env
-	   abenv_pplconsys		;the PPL constraint system
+	   abenv_pplpoly		;the PPL polyhedron
 	   abenv_vectrees		;the vector naming PPL variables as trees
 ))
 
@@ -133,7 +133,7 @@
 	    ;(add2sbuf_indentnl sbuf depth)
 	    (add2sbuf_strconst sbuf "@ppl.cons.sys@[")
 	    (ppl_ppstrbuf sbuf 
-			  (get_field :abenv_pplconsys self)
+			  (get_field :abenv_pplpoly self)
 			  depth 
 			  (get_field :abenv_vectrees self))
 	    (add2sbuf_strconst sbuf "]@")
@@ -426,8 +426,9 @@
 	     (debug_ppl_linear_expression "sman_propagate_constraints_call liex" liex)
 	     (let ( (:ppl_constraint cons (make_ppl_constraint liex "==")) )
 	       (debug_ppl_constraint "sman_propagate_constraints_call cons" cons)
-	       (insert_ppl_constraint_in_boxed_system cons pplconsysval)
-	       (ppl_delete_Constraint cons)
+	       (compile_warning "a revoir ici" ())
+	       ;(insert_ppl_constraint_in_boxed_system cons pplconsysval)
+	       ;(ppl_delete_Constraint cons)
 	       )
 	     (ppl_delete_Coefficient coefm1)
 	     (ppl_delete_Coefficient coefarg)
@@ -439,8 +440,9 @@
 	( ?_
 	  (assert_msg "sman_propagate_constraints_call @$@unimplemented curarg tree" ())))
        ))
+    (compile_warning "should fill the newabenv pplpoly" ())
     (put_fields newabenv 
-		:abenv_pplconsys pplconsysval
+		;:abenv_pplconsys pplconsysval
 		:abenv_vectrees (list_to_multiple pplvarslist))
     )
   (debug_msg newabenv "sman_propagate_constraints_call final newabenv")
@@ -456,7 +458,7 @@
   (debugtree "sman_add_cmp_constraint rhs" rhs)
   (let ( (:long lvix -1) 		;left var index
 	 (:long rvix -1)		;right var index
-	 (consysv (get_field :abenv_pplconsys abenv))
+	 (polyv (get_field :abenv_pplpoly abenv))
 	 )
 ;;; handle the left hand side lhs
     (match 
@@ -524,7 +526,7 @@
 	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefright)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint leftvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (insert_ppl_constraint_in_boxed_system newcons polyv)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coefright)
 	   (ppl_delete_Linear_Expression liex)
@@ -541,7 +543,7 @@
 	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefleft)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint rightvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (insert_ppl_constraint_in_boxed_system newcons polyv)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coefleft)
 	   (ppl_delete_Linear_Expression liex)
@@ -559,7 +561,7 @@
 	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex rel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint bothvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons consysv)
+	   (insert_ppl_constraint_in_boxed_system newcons polyv)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coef1)
 	   (ppl_delete_Linear_Expression liex)
@@ -645,17 +647,15 @@
       (debugtree "smaninterp_gimple cond<= truelab" truelab)
       (debugtree "smaninterp_gimple cond<= falselab" falselab)
       (let (
-	    (closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
+	    ;(closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
 	    )
-	(debug_msg closys "smaninterp_gimple cond<= closys")
+	;(debug_msg closys "smaninterp_gimple cond<= closys")
 	(sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
 	(debugbasicblock "smaninterp_gimple cond<= bb" bb)
 	;; find the true branch and interpret it
-	(let ( (:ppl_constraint_system 
-		consys 
-		(ppl_constraint_system_content (get_field :abenv_pplconsys abenv))) 
-	       (:ppl_polyhedron poly (ppl_NNC_Polyhedron_from_Constraint_System consys))
-				
+	(let ( 
+	      (:ppl_polyhedron poly 
+			       (ppl_polyhedron_content (get_field :abenv_pplpoly abenv)))
 	       )
 	  (debug_ppl_polyhedron "smaninterp_gimple cond<= poly" poly)
 	  (if (ppl_Polyhedron_is_empty poly)
@@ -666,7 +666,7 @@
 	      (assert_msg "@$@unimplemented possible smaninterp_gimple cond<= true branch" ())
 	      )
 	    )
-	  (ppl_delete_Polyhedron poly)
+	  ;(ppl_delete_Polyhedron poly)
 	  )
 	(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
 	(compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
