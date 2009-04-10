@@ -302,8 +302,7 @@ new_poly_bb (scop_p scop, void *black_box)
 {
   poly_bb_p pbb = XNEW (struct poly_bb);
 
-  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_space_dimension (
-    &PBB_DOMAIN (pbb), 0, 0);
+  PBB_DOMAIN (pbb) = NULL;
   PBB_SCOP (pbb) = scop;
   pbb_set_black_box (pbb, black_box);
   PBB_TRANSFORMED_SCATTERING (pbb) = NULL;

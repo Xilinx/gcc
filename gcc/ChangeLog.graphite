@@ -1,4 +1,16 @@
-2009-04-08  Sebastian Pop  <sebastian.pop@amd.com>
+2009-04-09  Sebastian Pop  <sebastian.pop@amd.com>
+	    Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-poly.c (new_poly_bb): Do not initialize PBB_DOMAIN
+	with a zero dimension polyhedron.
+	(find_scop_parameters): Move the call to scop_set_nb_params here.
+	(build_loop_iteration_domains): Store in loop->aux the iteration
+	domain polyhedron.
+	(build_scop_iteration_domain): Fix PBB_DOMAIN for bbs not surrounded
+	by any loop in scop.
+	(build_poly_scop): Do not call scop_set_nb_params.
+
+2009-04-09  Sebastian Pop  <sebastian.pop@amd.com>
 	    Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-sese-to-poly.c (add_condition_to_pbb): Pass code to

@@ -800,6 +800,7 @@ find_scop_parameters (scop_p scop)
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     find_params_in_bb (region, PBB_BLACK_BOX (pbb));
 
+  scop_set_nb_params (scop, sese_nb_params (region));
   SESE_ADD_PARAMS (region) = false;
 }
 
@@ -820,7 +821,6 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
 
 {
   int i;
-  poly_bb_p pbb;
   Value one, minus_one, val;
   ppl_Polyhedron_t ph;
   ppl_Linear_Expression_t lb_expr, ub_expr;
@@ -895,13 +895,8 @@ build_loop_iteration_domains (scop_p scop, struct loop *loop,
       && loop_in_sese_p (loop->next, SCOP_REGION (scop)))
     build_loop_iteration_domains (scop, loop->next, outer_ph, nb);
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    if (gbb_loop (PBB_BLACK_BOX (pbb)) == loop)
-      {
-	ppl_delete_Pointset_Powerset_NNC_Polyhedron (PBB_DOMAIN (pbb));
-	ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron (
-	  &PBB_DOMAIN (pbb), ph);
-      }
+  ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
+    ((ppl_Pointset_Powerset_NNC_Polyhedron_t *) &loop->aux, ph);
 
   ppl_delete_Coefficient (coef);
   ppl_delete_Polyhedron (ph);
@@ -1253,17 +1248,32 @@ build_scop_iteration_domain (scop_p scop)
   struct loop *loop;
   sese region = SCOP_REGION (scop);
   int i;
+  ppl_Polyhedron_t ph;
+  poly_bb_p pbb;
 
-  /* Build cloog loop for all loops, that are in the uppermost loop layer of
-     this SCoP.  */
+  ppl_new_NNC_Polyhedron_from_space_dimension (&ph, scop_nb_params (scop), 0);
   for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
     if (!loop_in_sese_p (loop_outer (loop), region)) 
+      build_loop_iteration_domains (scop, loop, ph, 0);
+
+  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
+    if (gbb_loop (PBB_BLACK_BOX (pbb))->aux)
+      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_Pointset_Powerset_NNC_Polyhedron
+	(&PBB_DOMAIN (pbb), (ppl_const_Pointset_Powerset_NNC_Polyhedron_t)
+	 gbb_loop (PBB_BLACK_BOX (pbb))->aux);
+    else
+      ppl_new_Pointset_Powerset_NNC_Polyhedron_from_NNC_Polyhedron
+	(&PBB_DOMAIN (pbb), ph);
+
+  for (i = 0; VEC_iterate (loop_p, SESE_LOOP_NEST (region), i, loop); i++)
+    if (loop->aux)
       {
-	ppl_Polyhedron_t ph;
-	ppl_new_NNC_Polyhedron_from_space_dimension (&ph, 0, 0);
-	build_loop_iteration_domains (scop, loop, ph, 0);
-	ppl_delete_Polyhedron (ph);
+	ppl_delete_Pointset_Powerset_NNC_Polyhedron 
+	  ((ppl_Pointset_Powerset_NNC_Polyhedron_t) loop->aux);
+	loop->aux = NULL;
       }
+
+  ppl_delete_Polyhedron (ph);
 }
 
 /* Build data accesses for DR in PBB.  */
@@ -1380,7 +1390,7 @@ build_poly_scop (scop_p scop)
   build_bb_loops (scop);
   build_sese_conditions (region);
   find_scop_parameters (scop);
-  scop_set_nb_params (scop, sese_nb_params (region));
+
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
