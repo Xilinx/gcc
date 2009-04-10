@@ -317,6 +317,7 @@ gfc_expr *gfc_simplify_sinh (gfc_expr *);
 gfc_expr *gfc_simplify_size (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sngl (gfc_expr *);
 gfc_expr *gfc_simplify_spacing (gfc_expr *);
+gfc_expr *gfc_simplify_spread (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_sqrt (gfc_expr *);
 gfc_expr *gfc_simplify_sum (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_tan (gfc_expr *);
@@ -327,6 +328,7 @@ gfc_expr *gfc_simplify_transfer (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_transpose (gfc_expr *);
 gfc_expr *gfc_simplify_trim (gfc_expr *);
 gfc_expr *gfc_simplify_ubound (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_unpack (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_verify (gfc_expr *, gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_xor (gfc_expr *, gfc_expr *);
 
