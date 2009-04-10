@@ -188,6 +188,23 @@
    $rhs2 = gimple_assign_rhs2($ga);
    }# )
 
+;;;; match a gimple assign with substraction ie X = Y - Z
+(defcmatcher gimple_assign_minus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasplus
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MINUS_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
 
 (defcmatcher gimple_assign_pointerplus
   (:gimple ga)				;match
@@ -218,6 +235,182 @@
   gasmult
   ;; test
   #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MULT_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+
+
+;;;; match a gimple assign with trunc division ie X = Y /trunc Z
+(defcmatcher gimple_assign_trunc_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with ceil division ie X = Y /ceil Z
+(defcmatcher gimple_assign_ceil_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with floor division ie X = Y /floor Z
+(defcmatcher gimple_assign_floor_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+
+;;;; match a gimple assign with round division ie X = Y /round Z
+(defcmatcher gimple_assign_round_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with real division ie X = Y /real Z
+(defcmatcher gimple_assign_rdiv
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == RDIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with exact division ie X = Y /exact Z
+(defcmatcher gimple_assign_exact_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == EXACT_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+
+;;;;;;;;;;;;;;;;
+;;;; match a gimple assign with trunc remainder ie X = Y %trunc Z
+(defcmatcher gimple_assign_trunc_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_MOD_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with ceil remainder ie X = Y %ceil Z
+(defcmatcher gimple_assign_ceil_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_MOD_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+;;;; match a gimple assign with floor remainder ie X = Y %floor Z
+(defcmatcher gimple_assign_floor_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_MOD_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# )
+
+
+;;;; match a gimple assign with round remainder ie X = Y %round Z
+(defcmatcher gimple_assign_round_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_MOD_EXPR)}#
   ;; fill
   #{
    $lhs = gimple_assign_lhs($ga);
@@ -1328,12 +1521,22 @@
  foreach_maptree
  gimple_assign_binaryop
  gimple_assign_cast
+ gimple_assign_ceil_div
+ gimple_assign_ceil_mod
  gimple_assign_copy
+ gimple_assign_exact_div
+ gimple_assign_floor_div
+ gimple_assign_floor_mod
  gimple_assign_mult 
  gimple_assign_plus 
  gimple_assign_pointerplus
+ gimple_assign_rdiv
+ gimple_assign_round_div
+ gimple_assign_round_mod
  gimple_assign_single
  gimple_assign_ssa_name_copy 
+ gimple_assign_trunc_div
+ gimple_assign_trunc_mod
  gimple_assign_unary_nop
  gimple_call
  gimple_call_nth_arg  

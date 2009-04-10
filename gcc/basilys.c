@@ -7079,7 +7079,10 @@ load_basilys_modules_and_do_command (void)
 		basilys_init_string, basilys_mode_string);
   /* if there is no -fbasilys-init use the default list of modules */
   if (!basilys_init_string || !basilys_init_string[0])
+  {
     basilys_init_string = "@" MELT_DEFAULT_MODLIS;
+    debugeprintf("basilys_init_string set to default %s", basilys_init_string);
+  }
   dupmodpath = xstrdup (basilys_init_string);
   if (flag_basilys_debug)
     {

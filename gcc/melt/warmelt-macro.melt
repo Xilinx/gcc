@@ -797,6 +797,7 @@
 				 (return resc)))
 			     ( (is_a val class_funmatcher)
 			       (compile_warning "macroexpand_1 should handle funmatcher" ())
+			       (assert_msg "@$@UNIMPLEMENTED macroexpand_1 funmatcher" ())
 			       )
 			     (:else
 			      (error_strv sloc "macroexpand_1 bad valued operation symbol"_

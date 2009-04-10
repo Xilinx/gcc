@@ -1,3 +1,25 @@
+2009-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (load_basilys_modules_and_do_command): correctly
+	default basilys_init_string & debugprint it.
+	* Makefile.in: -DMELT_DEFAULT_MODLIS is corrected when compiling
+	basilys.c
+	* testsuite/melt/tmallbuf.c: simplified comment for running.
+	* melt/warmelt-macro.melt: catch unimplemented funmatcher
+	macroexpansion.
+	* melt/warmelt-outobj.melt: use strncpy not strcpy to fill strings
+	for robustness.
+	* melt/ana-base.melt: added gimple_assign_ceil_div
+	gimple_assign_ceil_mod gimple_assign_exact_div
+	gimple_assign_floor_div gimple_assign_floor_mod gimple_assign_rdiv
+	gimple_assign_round_div gimple_assign_round_mod
+	gimple_assign_trunc_div gimple_assign_trunc_mod cmatchers.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	[renamed all *.bysl files into *.melt files which is the preferred
 	suffix for MELT code]

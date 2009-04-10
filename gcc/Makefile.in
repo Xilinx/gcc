@@ -2491,7 +2491,7 @@ $(BASILYSMELT_OBJ):  $(BASILYS_C)  \
 	  -DMELT_GENERATED_DIR=\"$(melt_generated_dir)\" \
 	  -DMELT_DYNLIB_DIR=\"$(melt_dynlib_dir)\" \
 	  -DMELT_COMPILE_SCRIPT=\"$(melt_compile_script)\" \
-	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modlis)\" \
+	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
 	  -c $(BASILYS_C) $(OUTPUT_OPTION)
 endif
 
@@ -4703,7 +4703,7 @@ melt_build_include_dir= melt-private-build-include
 
 ## this is the default module list for MELT, containing the list of
 ## all modules loaded by MELT (without any suffix or dirname)
-## if not provided, the default -fbasilys-init=@$(melt_default_modlis)
+## if not provided, the default -fbasilys-init=@$(melt_default_modules_list)
 
 melt_default_modules_list=melt-default-modules
 

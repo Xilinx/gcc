@@ -5,7 +5,7 @@
    -fbasilys-dynlibdir=. \
    -fbasilys-compile-script=./built-melt-cc-script \
    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-   -fbasilys-init=@warmelt2:ana-base -fbasilys-debug \
+   -fbasilys-debug \
    -Wall -O .../tmallbuf.c
 
  ***/
