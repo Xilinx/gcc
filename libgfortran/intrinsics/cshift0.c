@@ -35,7 +35,7 @@ Boston, MA 02110-1301, USA.  */
 
 static void
 cshift0 (gfc_array_char * ret, const gfc_array_char * array,
-	 ssize_t shift, int which, index_type size)
+	 ssize_t shift, int which)
 {
   /* r.* indicates the return array.  */
   index_type rstride[GFC_MAX_DIMENSIONS];
@@ -57,11 +57,13 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
   index_type arraysize;
 
   index_type type_size;
+  index_type size;
 
   if (which < 1 || which > GFC_DESCRIPTOR_RANK (array))
     runtime_error ("Argument 'DIM' is out of range in call to 'CSHIFT'");
 
   arraysize = size0 ((array_t *) array);
+  size = GFC_DESCRIPTOR_SIZE(array);
 
   if (ret->data == NULL)
     {
@@ -71,14 +73,17 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
       ret->dtype = array->dtype;
       for (i = 0; i < GFC_DESCRIPTOR_RANK (array); i++)
         {
-          ret->dim[i].lbound = 0;
-          ret->dim[i].ubound = array->dim[i].ubound - array->dim[i].lbound;
+	  index_type ub, str;
+
+	  ub = GFC_DESCRIPTOR_EXTENT(array,i) - 1;
 
           if (i == 0)
-            ret->dim[i].stride = 1;
+            str = 1;
           else
-            ret->dim[i].stride = (ret->dim[i-1].ubound + 1)
-				 * ret->dim[i-1].stride;
+            str = GFC_DESCRIPTOR_EXTENT(ret,i-1)
+	      * GFC_DESCRIPTOR_STRIDE(ret,i-1);
+
+	  GFC_DIMENSION_SET(ret->dim[i], 0, ub, str);
         }
 
       if (arraysize > 0)
@@ -283,20 +288,20 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
     {
       if (dim == which)
         {
-          roffset = ret->dim[dim].stride * size;
+          roffset = GFC_DESCRIPTOR_STRIDE_BYTES(ret,dim);
           if (roffset == 0)
             roffset = size;
-          soffset = array->dim[dim].stride * size;
+          soffset = GFC_DESCRIPTOR_STRIDE_BYTES(array,dim);
           if (soffset == 0)
             soffset = size;
-          len = array->dim[dim].ubound + 1 - array->dim[dim].lbound;
+	  len = GFC_DESCRIPTOR_EXTENT(array,dim);
         }
       else
         {
           count[n] = 0;
-          extent[n] = array->dim[dim].ubound + 1 - array->dim[dim].lbound;
-          rstride[n] = ret->dim[dim].stride * size;
-          sstride[n] = array->dim[dim].stride * size;
+	  extent[n] = GFC_DESCRIPTOR_EXTENT(array,dim);
+          rstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(ret,dim);
+          sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,dim);
           n++;
         }
     }
@@ -389,8 +394,7 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
   cshift0_##N (gfc_array_char *ret, const gfc_array_char *array,	      \
 	       const GFC_INTEGER_##N *pshift, const GFC_INTEGER_##N *pdim)    \
   {									      \
-    cshift0 (ret, array, *pshift, pdim ? *pdim : 1,			      \
-	     GFC_DESCRIPTOR_SIZE (array));				      \
+    cshift0 (ret, array, *pshift, pdim ? *pdim : 1);			      \
   }									      \
 									      \
   extern void cshift0_##N##_char (gfc_array_char *, GFC_INTEGER_4,	      \
@@ -405,9 +409,9 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
 		      const gfc_array_char *array,			      \
 		      const GFC_INTEGER_##N *pshift,			      \
 		      const GFC_INTEGER_##N *pdim,			      \
-		      GFC_INTEGER_4 array_length)			      \
+		      GFC_INTEGER_4 array_length __attribute__((unused)))     \
   {									      \
-    cshift0 (ret, array, *pshift, pdim ? *pdim : 1, array_length);	      \
+    cshift0 (ret, array, *pshift, pdim ? *pdim : 1);			      \
   }									      \
 									      \
   extern void cshift0_##N##_char4 (gfc_array_char *, GFC_INTEGER_4,	      \
@@ -422,10 +426,9 @@ cshift0 (gfc_array_char * ret, const gfc_array_char * array,
 		       const gfc_array_char *array,			      \
 		       const GFC_INTEGER_##N *pshift,			      \
 		       const GFC_INTEGER_##N *pdim,			      \
-		       GFC_INTEGER_4 array_length)			      \
+		       GFC_INTEGER_4 array_length __attribute__((unused)))    \
   {									      \
-    cshift0 (ret, array, *pshift, pdim ? *pdim : 1,			      \
-	     array_length * sizeof (gfc_char4_t));			      \
+    cshift0 (ret, array, *pshift, pdim ? *pdim : 1);			      \
   }
 
 DEFINE_CSHIFT (1);

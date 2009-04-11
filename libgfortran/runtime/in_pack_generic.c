@@ -152,8 +152,8 @@ internal_pack (gfc_array_char * source)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = source->dim[n].stride;
-      extent[n] = source->dim[n].ubound + 1 - source->dim[n].lbound;
+      stride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      extent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (extent[n] <= 0)
         {
           /* Do nothing.  */

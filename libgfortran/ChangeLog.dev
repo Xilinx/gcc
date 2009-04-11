@@ -1,3 +1,56 @@
+2009-04-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37377
+	* libgfortran.h:  Introduce new macros GFC_DIMENSION_LBOUND,
+	GFC_DIMENSION_UBOUND,GFC_DIMENSION_STRIDE, GFC_DIMENSION_EXTENT,
+	GFC_DIMENSION_SET, GFC_DESCRIPTOR_LBOUND, GFC_DESCRIPTOR_UBOUND,
+	GFC_DESCRIPTOR_EXTENT, GFC_DESCRIPTOR_EXTENT_BYTES,
+	GFC_DESCRIPTOR_STRIDE, GFC_DESCRIPTOR_STRIDE_BYTES
+	* runtime/in_pack_generic.c (internal_pack):  Use new macros
+	for array descriptor access.
+	* runtime/in_unpack_generic.c (internal_unpack):  Likewise.
+	* intrinsics/dtime.c (dtime_sub):  Likewise.
+	* intrinsics/cshift0 (cshift0):  Remove argument size,
+	calculate directly from the array descriptor.  Use new macros
+	for array descriptor access.
+	* cshift0_##N:  Remove shift argument in call to cshift0.
+	* cshift0_##N_char:  Mark array_length as unused.  Remove
+	array_length in call to cshift0.
+	* cshift0_##N_char4:  Likewise.
+	* intrisics/etime.c:  Use new macros for array descriptor access.
+	* intrinsics/stat.c (stat_i4_sub_0):  Likewise.
+	(stat_i8_sub_0):  Likewise.
+	(fstat_i4_sub):  Likewise.
+	(fstat_i8_sub):  Likewise.
+	* intrinsics/date_and_time.c (date_and_time):  Likewise.
+	(secnds):  Likewise.
+	(itime_i4):  Likewise.
+	(itime_i8):  Likewise.
+	(idate_i4):  Likewise.
+	(idate_i8):  Likewise.
+	(gmtime_i4):  Likewise.
+	(gmtime_i8):  Likewise.
+	(ltime_i4):  Likewise.
+	(litme_i8):  Likewise.
+	* intrinsics/associated.c (associated):  Likewise.
+	* intrinsics/eoshift0.c (eoshift0):  Likewise.
+	* intriniscs/size.c (size0):  Likewise.
+	* intrinsics/random.c (arandom_r4):  Likewise.
+	(arandom_r8):  Likewise.
+	(arandom_r10):  Likewise.
+	(arandom_r16):  Likewise.
+	(random_seed_i4):  Likewise.
+	(random_seed_i8):  Likewise.
+	* io/list_read.c (nml_parse_qualifier):  Likewise.
+	(nml_touch_nodes):  Likewise.
+	(nml_read_obj):  Likewise.
+	(get_name):  Likewise.
+	* io/transfer.c (transfer_array):  Likewise.
+	(init_loop_spec):  Likewise.
+	(st_set_nml_var_dim):  Likewise.
+	* io/write.c (nml_write_obj):  Likewise.
+	(obj_loop):  Likewise.
+
 2009-03-29  Daniel Kraft  <d@domob.eu>
 
 	PR fortran/38654
