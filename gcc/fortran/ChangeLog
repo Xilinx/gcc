@@ -1,3 +1,141 @@
+2009-04-11  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37746
+	* gfortran.h (struct gfc_charlen): New field `passed_length' to store
+	the actual passed string length for dummy arguments.
+	* trans-decl.c (gfc_create_string_length): Formatting fixes and added
+	assertion, moved a local variable into the innermost block it is needed.
+	(create_function_arglist): Removed TODO about the check being
+	implemented and initialize cl->passed_length here.
+	(add_argument_checking): New method.
+	(gfc_generate_function_code): Call the argument checking method.
+
+2009-04-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39692
+	* symbol.c (check_conflict): Reject procedure pointers for -std=f95.
+
+2009-04-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	* resolve.c (resolve_global_procedure): Enable whole-file checking for
+	procedures that are declared later in the file.
+	
+2009-04-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR middle-end/39701
+	* trans.c (gfc_allocate_with_status): Fix type mismatches
+	on "pstat == 0".
+
+2009-04-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/38709
+	* expr.c (find_array_section): Leave early on zero-sized arrays.
+
+2009-04-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36704
+	* decl.c (add_hidden_procptr_result): New function for handling
+	procedure pointer return values by adding a hidden result variable.
+	(variable_decl,match_procedure_decl,gfc_match_function_decl,
+	gfc_match_subroutine,gfc_match_end,attr_decl1): Handle procedure pointer
+	return values.
+	* parse.c (parse_interface): Add EXTERNAL attribute only after
+	FUNCTION/SUBROUTINE declaration is complete.
+	* primary.c (replace_hidden_procptr_result): New function for replacing
+	function symbol by hidden result variable.
+	(gfc_match_rvalue,match_variable): Replace symbol by hidden result
+	variable.
+	* resolve.c (resolve_contained_fntype,resolve_function,resolve_variable,
+	resolve_symbol): Allow for procedure pointer function results.
+	(resolve_fl_procedure): Conflict detection moved here from
+	'check_conflict'.
+	* symbol.c (gfc_check_function_type): Allow for procedure pointer
+	function results.
+	(check_conflict): Move some conflict detection to resolution stage.
+	* trans-types.c (gfc_sym_type,gfc_get_function_type): Handle hidden
+	result variables.
+
+2009-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* trans-types.c (gfc_init_types): Ensure gfc_integer_types doesn't
+	contain TYPE_STRING_FLAG types.
+
+2009-04-08  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/39670
+	* invoke.texi (fdollar-ok): Fix typo.
+	
+2009-04-08  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/39670
+	* invoke.texi (fdollar-ok): Clarify limitations.
+
+2009-04-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* trans-array.c (gfc_trans_deferred_array): Return if this
+	is a result variable.
+
+2009-04-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/38152
+	* trans-decl.c (gfc_get_symbol_decl): Correctly set decl location for
+	procedure pointer decls.
+
+2009-04-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/38290
+	* expr.c (gfc_check_pointer_assign): Enable interface check for
+	procedure pointers.
+	* gfortran.h: Add copy_formal_args_intr.
+	* interface.c (gfc_compare_interfaces): Call gfc_compare_intr_interfaces
+	if second argument is an intrinsic.
+	(compare_intr_interfaces): Correctly set attr.function, attr.subroutine
+	and ts.
+	(compare_parameter): Call gfc_compare_interfaces also for intrinsics.
+	* resolve.c (resolve_specific_f0,resolve_specific_s0): Don't resolve
+	intrinsic interfaces here. Must happen earlier.
+	(resolve_symbol): Resolution of intrinsic interfaces moved here from
+	resolve_specific_..., and formal args are now copied from intrinsic
+	interfaces.
+	* symbol.c (copy_formal_args_intr): New function to copy the formal
+	arguments from an intinsic procedure.
+
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* dependency.c (ref_same_as_full_array): New function.
+	(gfc_dep_resolver): Call it.
+
+2009-04-06  Janus Weil  <janus@gcc.gnu.org>
+
+       PR fortran/39414
+       * decl.c (match_procedure_decl): Fix double declaration problems with
+       PROCEDURE statements.
+       * symbol.c (gfc_add_type): Ditto.
+
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+        PR fortran/36091
+        * trans-array.c (gfc_conv_array_ref): If the symbol has the
+	temporary attribute use the array_spec for the bounds.
+	* gfortran.h : Add the temporary field to the structure
+	'symbol_attribute'.
+	* trans-stmt.c (forall_make_variable_temp): Set the symbol's
+	temporary attribute.
+
+2009-04-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/29458
+	* trans-array.c (gfc_trans_array_constructor_value): Shadow
+	implied do-loop variable to avoid spurious middle-end warnings.
+
+2009-04-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39577
+	* trans-decl.c (gfc_generate_function_code): Move recursive
+	check to the right position.
+
 2009-04-04  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/37614

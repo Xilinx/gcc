@@ -621,7 +621,7 @@ typedef struct
 {
   /* Variable attributes.  */
   unsigned allocatable:1, dimension:1, external:1, intrinsic:1,
-    optional:1, pointer:1, target:1, value:1, volatile_:1,
+    optional:1, pointer:1, target:1, value:1, volatile_:1, temporary:1,
     dummy:1, result:1, assign:1, threadprivate:1, not_always_present:1,
     implied_index:1, subref_array_pointer:1, proc_pointer:1;
 
@@ -794,6 +794,7 @@ typedef struct gfc_charlen
   struct gfc_charlen *next;
   bool length_from_typespec; /* Length from explicit array ctor typespec?  */
   tree backend_decl;
+  tree passed_length; /* Length argument explicitelly passed.  */
 
   int resolved;
 }
@@ -2369,7 +2370,8 @@ gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*, const char*, bool);
 
-void copy_formal_args (gfc_symbol *dest, gfc_symbol *src);
+void copy_formal_args (gfc_symbol *, gfc_symbol *);
+void copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 

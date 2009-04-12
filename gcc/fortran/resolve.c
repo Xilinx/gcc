@@ -344,7 +344,7 @@ resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
 	  if (sym->result == sym)
 	    gfc_error ("Contained function '%s' at %L has no IMPLICIT type",
 		       sym->name, &sym->declared_at);
-	  else
+	  else if (!sym->result->attr.proc_pointer)
 	    gfc_error ("Result '%s' of contained function '%s' at %L has "
 		       "no IMPLICIT type", sym->result->name, sym->name,
 		       &sym->result->declared_at);
@@ -1610,8 +1610,7 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
   if (gfc_option.flag_whole_file
 	&& gsym->type != GSYM_UNKNOWN
 	&& gsym->ns
-	&& gsym->ns->proc_name
-	&& gsym->ns->proc_name->formal)
+	&& gsym->ns->proc_name)
     {
       /* Make sure that translation for the gsymbol occurs before
 	 the procedure currently being resolved.  */
@@ -1741,23 +1740,6 @@ static match
 resolve_specific_f0 (gfc_symbol *sym, gfc_expr *expr)
 {
   match m;
-
-  /* See if we have an intrinsic interface.  */
-
-  if (sym->ts.interface != NULL && sym->ts.interface->attr.intrinsic)
-    {
-      gfc_intrinsic_sym *isym;
-      isym = gfc_find_function (sym->ts.interface->name);
-
-      /* Existence of isym should be checked already.  */
-      gcc_assert (isym);
-
-      sym->ts.type = isym->ts.type;
-      sym->ts.kind = isym->ts.kind;
-      sym->attr.function = 1;
-      sym->attr.proc = PROC_EXTERNAL;
-      goto found;
-    }
 
   if (sym->attr.external || sym->attr.if_source == IFSRC_IFBODY)
     {
@@ -2547,7 +2529,8 @@ resolve_function (gfc_expr *expr)
   if (expr->ts.type == BT_UNKNOWN)
     {
       if (expr->symtree->n.sym->result
-	    && expr->symtree->n.sym->result->ts.type != BT_UNKNOWN)
+	    && expr->symtree->n.sym->result->ts.type != BT_UNKNOWN
+	    && !expr->symtree->n.sym->result->attr.proc_pointer)
 	expr->ts = expr->symtree->n.sym->result->ts;
     }
 
@@ -2794,24 +2777,6 @@ static match
 resolve_specific_s0 (gfc_code *c, gfc_symbol *sym)
 {
   match m;
-
-  /* See if we have an intrinsic interface.  */
-  if (sym->ts.interface != NULL && !sym->ts.interface->attr.abstract
-      && !sym->ts.interface->attr.subroutine
-      && sym->ts.interface->attr.intrinsic)
-    {
-      gfc_intrinsic_sym *isym;
-
-      isym = gfc_find_function (sym->ts.interface->name);
-
-      /* Existence of isym should be checked already.  */
-      gcc_assert (isym);
-
-      sym->ts.type = isym->ts.type;
-      sym->ts.kind = isym->ts.kind;
-      sym->attr.subroutine = 1;
-      goto found;
-    }
 
   if(sym->attr.is_iso_c)
     {
@@ -4231,7 +4196,11 @@ resolve_variable (gfc_expr *e)
     return FAILURE;
 
   sym = e->symtree->n.sym;
-  if (sym->attr.flavor == FL_PROCEDURE && !sym->attr.function)
+  if (sym->attr.flavor == FL_PROCEDURE
+      && (!sym->attr.function
+	  || (sym->attr.function && sym->result
+	      && sym->result->attr.proc_pointer
+	      && !sym->result->attr.function)))
     {
       e->ts.type = BT_PROCEDURE;
       goto resolve_procedure;
@@ -8069,18 +8038,41 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 	}
     }
   
-  if (sym->attr.save == SAVE_EXPLICIT && !sym->attr.proc_pointer)
+  if (!sym->attr.proc_pointer)
     {
-      gfc_error ("PROCEDURE attribute conflicts with SAVE attribute "
-		 "in '%s' at %L", sym->name, &sym->declared_at);
-      return FAILURE;
-    }
-
-  if (sym->attr.intent && !sym->attr.proc_pointer)
-    {
-      gfc_error ("PROCEDURE attribute conflicts with INTENT attribute "
-		 "in '%s' at %L", sym->name, &sym->declared_at);
-      return FAILURE;
+      if (sym->attr.save == SAVE_EXPLICIT)
+	{
+	  gfc_error ("PROCEDURE attribute conflicts with SAVE attribute "
+		     "in '%s' at %L", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+      if (sym->attr.intent)
+	{
+	  gfc_error ("PROCEDURE attribute conflicts with INTENT attribute "
+		     "in '%s' at %L", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+      if (sym->attr.subroutine && sym->attr.result)
+	{
+	  gfc_error ("PROCEDURE attribute conflicts with RESULT attribute "
+		     "in '%s' at %L", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+      if (sym->attr.external && sym->attr.function
+	  && ((sym->attr.if_source == IFSRC_DECL && !sym->attr.procedure)
+	      || sym->attr.contained))
+	{
+	  gfc_error ("EXTERNAL attribute conflicts with FUNCTION attribute "
+		     "in '%s' at %L", sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+      if (strcmp ("ppr@", sym->name) == 0)
+	{
+	  gfc_error ("Procedure pointer result '%s' at %L "
+		     "is missing the pointer attribute",
+		     sym->ns->proc_name->name, &sym->declared_at);
+	  return FAILURE;
+	}
     }
 
   return SUCCESS;
@@ -9201,10 +9193,33 @@ resolve_symbol (gfc_symbol *sym)
       if (sym->ts.interface->attr.if_source || sym->ts.interface->attr.intrinsic)
 	{
 	  gfc_symbol *ifc = sym->ts.interface;
-	  sym->ts = ifc->ts;
-	  sym->ts.interface = ifc;
-	  sym->attr.function = ifc->attr.function;
-	  sym->attr.subroutine = ifc->attr.subroutine;
+
+	  if (ifc->attr.intrinsic)
+	    {
+	      gfc_intrinsic_sym *isym = gfc_find_function (sym->ts.interface->name);
+	      if (isym)
+		{
+		  sym->attr.function = 1;
+		  sym->ts = isym->ts;
+		  sym->ts.interface = ifc;
+		}
+	      else
+		{
+		  isym = gfc_find_subroutine (sym->ts.interface->name);
+		  gcc_assert (isym);
+		  sym->attr.subroutine = 1;
+		}
+	      copy_formal_args_intr (sym, isym);
+	    }
+	  else
+	    {
+	      sym->ts = ifc->ts;
+	      sym->ts.interface = ifc;
+	      sym->attr.function = ifc->attr.function;
+	      sym->attr.subroutine = ifc->attr.subroutine;
+	      copy_formal_args (sym, ifc);
+	    }
+
 	  sym->attr.allocatable = ifc->attr.allocatable;
 	  sym->attr.pointer = ifc->attr.pointer;
 	  sym->attr.pure = ifc->attr.pure;
@@ -9212,7 +9227,6 @@ resolve_symbol (gfc_symbol *sym)
 	  sym->attr.dimension = ifc->attr.dimension;
 	  sym->attr.recursive = ifc->attr.recursive;
 	  sym->attr.always_explicit = ifc->attr.always_explicit;
-	  copy_formal_args (sym, ifc);
 	  /* Copy array spec.  */
 	  sym->as = gfc_copy_array_spec (ifc->as);
 	  if (sym->as)
@@ -9323,11 +9337,14 @@ resolve_symbol (gfc_symbol *sym)
 	      /* Result may be in another namespace.  */
 	      resolve_symbol (sym->result);
 
-	      sym->ts = sym->result->ts;
-	      sym->as = gfc_copy_array_spec (sym->result->as);
-	      sym->attr.dimension = sym->result->attr.dimension;
-	      sym->attr.pointer = sym->result->attr.pointer;
-	      sym->attr.allocatable = sym->result->attr.allocatable;
+	      if (!sym->result->attr.proc_pointer)
+		{
+		  sym->ts = sym->result->ts;
+		  sym->as = gfc_copy_array_spec (sym->result->as);
+		  sym->attr.dimension = sym->result->attr.dimension;
+		  sym->attr.pointer = sym->result->attr.pointer;
+		  sym->attr.allocatable = sym->result->attr.allocatable;
+		}
 	    }
 	}
     }
