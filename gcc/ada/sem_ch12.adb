@@ -32,6 +32,7 @@ with Fname;    use Fname;
 with Fname.UF; use Fname.UF;
 with Freeze;   use Freeze;
 with Hostparm;
+with Itypes;   use Itypes;
 with Lib;      use Lib;
 with Lib.Load; use Lib.Load;
 with Lib.Xref; use Lib.Xref;
@@ -43,6 +44,7 @@ with Rident;   use Rident;
 with Restrict; use Restrict;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch6;  use Sem_Ch6;
@@ -422,15 +424,19 @@ package body Sem_Ch12 is
    --  illegal circular instantiation.
 
    function Denotes_Formal_Package
-     (Pack    : Entity_Id;
-      On_Exit : Boolean := False) return Boolean;
+     (Pack     : Entity_Id;
+      On_Exit  : Boolean := False;
+      Instance : Entity_Id := Empty) return Boolean;
    --  Returns True if E is a formal package of an enclosing generic, or
    --  the actual for such a formal in an enclosing instantiation. If such
    --  a package is used as a formal in an nested generic, or as an actual
    --  in a nested instantiation, the visibility of ITS formals should not
    --  be modified. When called from within Restore_Private_Views, the flag
    --  On_Exit is true, to indicate that the search for a possible enclosing
-   --  instance should ignore the current one.
+   --  instance should ignore the current one. In that case Instance denotes
+   --  the declaration for which this is an actual. This declaration may be
+   --  an instantiation in the source, or the internal instantiation that
+   --  corresponds to the actual for a formal package.
 
    function Find_Actual_Type
      (Typ       : Entity_Id;
@@ -1810,7 +1816,7 @@ package body Sem_Ch12 is
          Find_Type (Subtype_Mark (N));
          T := Entity (Subtype_Mark (N));
 
-         --  Verify that there is no redundant null exclusion.
+         --  Verify that there is no redundant null exclusion
 
          if Null_Exclusion_Present (N) then
             if not Is_Access_Type (T) then
@@ -2739,6 +2745,7 @@ package body Sem_Ch12 is
       New_N       : Node_Id;
       Result_Type : Entity_Id;
       Save_Parent : Node_Id;
+      Typ         : Entity_Id;
 
    begin
       --  Create copy of generic unit, and save for instantiation. If the unit
@@ -2787,7 +2794,23 @@ package body Sem_Ch12 is
             Set_Etype (Id, Result_Type);
          else
             Find_Type (Result_Definition (Spec));
-            Set_Etype (Id, Entity (Result_Definition (Spec)));
+            Typ := Entity (Result_Definition (Spec));
+
+            --  If a null exclusion is imposed on the result type, then create
+            --  a null-excluding itype (an access subtype) and use it as the
+            --  function's Etype.
+
+            if Is_Access_Type (Typ)
+              and then Null_Exclusion_Present (Spec)
+            then
+               Set_Etype  (Id,
+                 Create_Null_Excluding_Itype
+                   (T           => Typ,
+                    Related_Nod => Spec,
+                    Scope_Id    => Defining_Unit_Name (Spec)));
+            else
+               Set_Etype (Id, Typ);
+            end if;
          end if;
 
       else
@@ -3435,14 +3458,16 @@ package body Sem_Ch12 is
 
       Validate_Categorization_Dependency (N, Act_Decl_Id);
 
-      --  Check restriction, but skip this if something went wrong in the above
-      --  analysis, indicated by Act_Decl_Id being void.
+      --  There used to be a check here to prevent instantiations in local
+      --  contexts if the No_Local_Allocators restriction was active. This
+      --  check was removed by a binding interpretation in AI-95-00130/07,
+      --  but we retain the code for documentation purposes.
 
-      if Ekind (Act_Decl_Id) /= E_Void
-        and then not Is_Library_Level_Entity (Act_Decl_Id)
-      then
-         Check_Restriction (No_Local_Allocators, N);
-      end if;
+      --  if Ekind (Act_Decl_Id) /= E_Void
+      --    and then not Is_Library_Level_Entity (Act_Decl_Id)
+      --  then
+      --     Check_Restriction (No_Local_Allocators, N);
+      --  end if;
 
       if Inline_Now then
          Inline_Instance_Body (N, Gen_Unit, Act_Decl);
@@ -6109,12 +6134,46 @@ package body Sem_Ch12 is
    ----------------------------
 
    function Denotes_Formal_Package
-     (Pack    : Entity_Id;
-      On_Exit : Boolean := False) return Boolean
+     (Pack     : Entity_Id;
+      On_Exit  : Boolean := False;
+      Instance : Entity_Id := Empty) return Boolean
    is
       Par  : Entity_Id;
       Scop : constant Entity_Id := Scope (Pack);
       E    : Entity_Id;
+
+      function Is_Actual_Of_Previous_Formal (P : Entity_Id) return Boolean;
+      --  The package in question may be an actual for a previous formal
+      --  package P of the current instance, so examine its actuals as well.
+
+      ----------------------------------
+      -- Is_Actual_Of_Previous_Formal --
+      ----------------------------------
+
+      function Is_Actual_Of_Previous_Formal (P : Entity_Id) return Boolean is
+         E1 : Entity_Id;
+
+      begin
+         E1 := First_Entity (E);
+         while Present (E1) and then  E1 /= Instance loop
+            if Ekind (E1) = E_Package
+              and then Nkind (Parent (E1)) = N_Package_Renaming_Declaration
+            then
+               if Renamed_Object (E1) = Pack then
+                  return True;
+
+               elsif Renamed_Object (E1) = P then
+                  return False;
+               end if;
+            end if;
+
+            Next_Entity (E1);
+         end loop;
+
+         return False;
+      end Is_Actual_Of_Previous_Formal;
+
+   --  Start of processing for Denotes_Formal_Package
 
    begin
       if On_Exit then
@@ -6155,6 +6214,10 @@ package body Sem_Ch12 is
 
             elsif Renamed_Object (E) = Pack then
                return True;
+
+            elsif Is_Actual_Of_Previous_Formal (E) then
+               return True;
+
             end if;
 
             Next_Entity (E);
@@ -8307,10 +8370,11 @@ package body Sem_Ch12 is
 
             Decl_Node :=
               Make_Object_Declaration (Loc,
-                Defining_Identifier => New_Copy (Formal_Id),
-                Constant_Present    => True,
-                Object_Definition   => New_Copy_Tree (Def),
-                Expression          => Actual);
+                Defining_Identifier    => New_Copy (Formal_Id),
+                Constant_Present       => True,
+                Null_Exclusion_Present => Null_Exclusion_Present (Formal),
+                Object_Definition      => New_Copy_Tree (Def),
+                Expression             => Actual);
 
             Set_Corresponding_Generic_Association (Decl_Node, Act_Assoc);
 
@@ -8376,11 +8440,12 @@ package body Sem_Ch12 is
 
             Decl_Node :=
               Make_Object_Declaration (Sloc (Formal),
-                Defining_Identifier => New_Copy (Formal_Id),
-                Constant_Present    => True,
-                Object_Definition   => New_Copy (Def),
-                Expression          => New_Copy_Tree
-                                         (Default_Expression (Formal)));
+                Defining_Identifier    => New_Copy (Formal_Id),
+                Constant_Present       => True,
+                Null_Exclusion_Present => Null_Exclusion_Present (Formal),
+                Object_Definition      => New_Copy (Def),
+                Expression             => New_Copy_Tree
+                                            (Default_Expression (Formal)));
 
             Append (Decl_Node, List);
             Set_Analyzed (Expression (Decl_Node), False);
@@ -8407,10 +8472,11 @@ package body Sem_Ch12 is
 
                Decl_Node :=
                  Make_Object_Declaration (Loc,
-                   Defining_Identifier => New_Copy (Formal_Id),
-                   Constant_Present    => True,
-                   Object_Definition   => New_Copy (Def),
-                   Expression          =>
+                   Defining_Identifier    => New_Copy (Formal_Id),
+                   Constant_Present       => True,
+                   Null_Exclusion_Present => Null_Exclusion_Present (Formal),
+                   Object_Definition      => New_Copy (Def),
+                   Expression             =>
                      Make_Attribute_Reference (Sloc (Formal_Id),
                        Attribute_Name => Name_First,
                        Prefix         => New_Copy (Def)));
@@ -11118,7 +11184,9 @@ package body Sem_Ch12 is
             elsif Nkind (Parent (E)) /= N_Package_Renaming_Declaration then
                null;
 
-            elsif Denotes_Formal_Package (Renamed_Object (E), True) then
+            elsif
+              Denotes_Formal_Package (Renamed_Object (E), True, Pack_Id)
+            then
                Set_Is_Hidden (E, False);
 
             else

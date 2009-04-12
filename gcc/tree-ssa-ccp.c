@@ -281,7 +281,15 @@ get_symbol_constant_value (tree sym)
 	{
 	  STRIP_USELESS_TYPE_CONVERSION (val);
 	  if (is_gimple_min_invariant (val))
-	    return val;
+	    {
+	      if (TREE_CODE (val) == ADDR_EXPR)
+		{
+		  tree base = get_base_address (TREE_OPERAND (val, 0));
+		  if (base && TREE_CODE (base) == VAR_DECL)
+		    add_referenced_var (base);
+		}
+	      return val;
+	    }
 	}
       /* Variables declared 'const' without an initializer
 	 have zero as the initializer if they may not be
@@ -949,12 +957,14 @@ ccp_fold (gimple stmt)
 
               if (kind == tcc_reference)
 		{
-		  if (TREE_CODE (rhs) == VIEW_CONVERT_EXPR
+		  if ((TREE_CODE (rhs) == VIEW_CONVERT_EXPR
+		       || TREE_CODE (rhs) == REALPART_EXPR
+		       || TREE_CODE (rhs) == IMAGPART_EXPR)
 		      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 		    {
 		      prop_value_t *val = get_value (TREE_OPERAND (rhs, 0));
 		      if (val->lattice_val == CONSTANT)
-			return fold_unary (VIEW_CONVERT_EXPR,
+			return fold_unary (TREE_CODE (rhs),
 					   TREE_TYPE (rhs), val->value);
 		    }
 		  else if (TREE_CODE (rhs) == INDIRECT_REF
@@ -1241,6 +1251,12 @@ fold_const_aggregate_ref (tree t)
 	if (tree_int_cst_equal (cfield, idx))
 	  {
 	    STRIP_USELESS_TYPE_CONVERSION (cval);
+	    if (TREE_CODE (cval) == ADDR_EXPR)
+	      {
+		tree base = get_base_address (TREE_OPERAND (cval, 0));
+		if (base && TREE_CODE (base) == VAR_DECL)
+		  add_referenced_var (base);
+	      }
 	    return cval;
 	  }
       break;
@@ -1284,6 +1300,12 @@ fold_const_aggregate_ref (tree t)
 	    && ! DECL_BIT_FIELD (cfield))
 	  {
 	    STRIP_USELESS_TYPE_CONVERSION (cval);
+	    if (TREE_CODE (cval) == ADDR_EXPR)
+	      {
+		tree base = get_base_address (TREE_OPERAND (cval, 0));
+		if (base && TREE_CODE (base) == VAR_DECL)
+		  add_referenced_var (base);
+	      }
 	    return cval;
 	  }
       break;
@@ -2092,13 +2114,46 @@ maybe_fold_stmt_addition (tree res_type, tree op0, tree op1)
   tree ptd_type;
   tree t;
 
-  /* It had better be a constant.  */
-  if (TREE_CODE (op1) != INTEGER_CST)
-    return NULL_TREE;
   /* The first operand should be an ADDR_EXPR.  */
   if (TREE_CODE (op0) != ADDR_EXPR)
     return NULL_TREE;
   op0 = TREE_OPERAND (op0, 0);
+
+  /* It had better be a constant.  */
+  if (TREE_CODE (op1) != INTEGER_CST)
+    {
+      /* Or op0 should now be A[0] and the non-constant offset defined
+	 via a multiplication by the array element size.  */
+      if (TREE_CODE (op0) == ARRAY_REF
+	  && integer_zerop (TREE_OPERAND (op0, 1))
+	  && TREE_CODE (op1) == SSA_NAME
+	  && host_integerp (TYPE_SIZE_UNIT (TREE_TYPE (op0)), 1))
+	{
+	  gimple offset_def = SSA_NAME_DEF_STMT (op1);
+	  if (!is_gimple_assign (offset_def))
+	    return NULL_TREE;
+
+	  if (gimple_assign_rhs_code (offset_def) == MULT_EXPR
+	      && TREE_CODE (gimple_assign_rhs2 (offset_def)) == INTEGER_CST
+	      && tree_int_cst_equal (gimple_assign_rhs2 (offset_def),
+				     TYPE_SIZE_UNIT (TREE_TYPE (op0))))
+	    return build1 (ADDR_EXPR, res_type,
+			   build4 (ARRAY_REF, TREE_TYPE (op0),
+				   TREE_OPERAND (op0, 0),
+				   gimple_assign_rhs1 (offset_def),
+				   TREE_OPERAND (op0, 2),
+				   TREE_OPERAND (op0, 3)));
+	  else if (integer_onep (TYPE_SIZE_UNIT (TREE_TYPE (op0)))
+		   && gimple_assign_rhs_code (offset_def) != MULT_EXPR)
+	    return build1 (ADDR_EXPR, res_type,
+			   build4 (ARRAY_REF, TREE_TYPE (op0),
+				   TREE_OPERAND (op0, 0),
+				   op1,
+				   TREE_OPERAND (op0, 2),
+				   TREE_OPERAND (op0, 3)));
+	}
+      return NULL_TREE;
+    }
 
   /* If the first operand is an ARRAY_REF, expand it so that we can fold
      the offset into it.  */
@@ -3270,7 +3325,10 @@ execute_fold_all_builtins (void)
 	  push_stmt_changes (gsi_stmt_ptr (&i));
 
           if (!update_call_from_tree (&i, result))
-	    gimplify_and_update_call_from_tree (&i, result);
+	    {
+	      gimplify_and_update_call_from_tree (&i, result);
+	      todoflags |= TODO_update_address_taken;
+	    }
 
 	  stmt = gsi_stmt (i);
 	  pop_stmt_changes (gsi_stmt_ptr (&i));

@@ -46,6 +46,7 @@ with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sinfo;    use Sinfo;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
@@ -851,12 +852,23 @@ package body Exp_Ch5 is
             --  conversions ???
 
             else
-               --  Copy the bounds and reset the Analyzed flag, because the
-               --  bounds of the index type itself may be universal, and must
-               --  must be reaanalyzed to acquire the proper type for Gigi.
+               --  Copy the bounds
 
                Cleft_Lo  := New_Copy_Tree (Left_Lo);
                Cright_Lo := New_Copy_Tree (Right_Lo);
+
+               --  If the types do not match we add an implicit conversion
+               --  here to ensure proper match
+
+               if Etype (Left_Lo) /= Etype (Right_Lo) then
+                  Cright_Lo :=
+                    Unchecked_Convert_To (Etype (Left_Lo), Cright_Lo);
+               end if;
+
+               --  Reset the Analyzed flag, because the bounds of the index
+               --  type itself may be universal, and must must be reaanalyzed
+               --  to acquire the proper type for the back end.
+
                Set_Analyzed (Cleft_Lo, False);
                Set_Analyzed (Cright_Lo, False);
 
@@ -2802,8 +2814,6 @@ package body Exp_Ch5 is
                                 Expression =>
                                   New_Copy_Tree (Return_Obj_Expr)));
 
-                        SS_Allocator := New_Copy_Tree (Heap_Allocator);
-
                      else
                         --  If the function returns a class-wide type we cannot
                         --  use the return type for the allocator. Instead we
@@ -2813,12 +2823,14 @@ package body Exp_Ch5 is
                         if Is_Class_Wide_Type (Return_Obj_Typ) then
                            Heap_Allocator :=
                              Make_Allocator (Loc,
-                               New_Reference_To
-                                 (Etype (Return_Obj_Expr), Loc));
+                               Expression =>
+                                 New_Reference_To
+                                   (Etype (Return_Obj_Expr), Loc));
                         else
                            Heap_Allocator :=
                              Make_Allocator (Loc,
-                               New_Reference_To (Return_Obj_Typ, Loc));
+                               Expression =>
+                                 New_Reference_To (Return_Obj_Typ, Loc));
                         end if;
 
                         --  If the object requires default initialization then
@@ -2827,19 +2839,20 @@ package body Exp_Ch5 is
                         --  then the object will be default initialized twice.
 
                         Set_No_Initialization (Heap_Allocator);
-
-                        SS_Allocator := New_Copy_Tree (Heap_Allocator);
                      end if;
 
                      --  If the No_Allocators restriction is active, then only
                      --  an allocator for secondary stack allocation is needed.
+                     --  It's OK for such allocators to have Comes_From_Source
+                     --  set to False, because gigi knows not to flag them as
+                     --  being a violation of No_Implicit_Heap_Allocations.
 
                      if Restriction_Active (No_Allocators) then
                         SS_Allocator   := Heap_Allocator;
                         Heap_Allocator := Make_Null (Loc);
 
-                     --  Otherwise the heap allocator may be needed, so we
-                     --  make another allocator for secondary stack allocation.
+                     --  Otherwise the heap allocator may be needed, so we make
+                     --  another allocator for secondary stack allocation.
 
                      else
                         SS_Allocator := New_Copy_Tree (Heap_Allocator);
@@ -2849,7 +2862,7 @@ package body Exp_Ch5 is
                         --  allocator (that is, it will only be executed on
                         --  behalf of callers that call the function as
                         --  initialization for such an allocator). This
-                        --  prevents errors when No_Implicit_Heap_Allocation
+                        --  prevents errors when No_Implicit_Heap_Allocations
                         --  is in force.
 
                         Set_Comes_From_Source (Heap_Allocator, True);
@@ -3306,19 +3319,31 @@ package body Exp_Ch5 is
    -- Expand_N_Loop_Statement --
    -----------------------------
 
-   --  1. Deal with while condition for C/Fortran boolean
-   --  2. Deal with loops with a non-standard enumeration type range
-   --  3. Deal with while loops where Condition_Actions is set
-   --  4. Insert polling call if required
+   --  1. Remove null loop entirely
+   --  2. Deal with while condition for C/Fortran boolean
+   --  3. Deal with loops with a non-standard enumeration type range
+   --  4. Deal with while loops where Condition_Actions is set
+   --  5. Insert polling call if required
 
    procedure Expand_N_Loop_Statement (N : Node_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
       Isc  : constant Node_Id    := Iteration_Scheme (N);
 
    begin
+      --  Delete null loop
+
+      if Is_Null_Loop (N) then
+         Rewrite (N, Make_Null_Statement (Loc));
+         return;
+      end if;
+
+      --  Deal with condition for C/Fortran Boolean
+
       if Present (Isc) then
          Adjust_Condition (Condition (Isc));
       end if;
+
+      --  Generate polling call
 
       if Is_Non_Empty_List (Statements (N)) then
          Generate_Poll_Call (First (Statements (N)));
@@ -3557,14 +3582,21 @@ package body Exp_Ch5 is
       Lab_Node    : Node_Id;
 
    begin
-      --  Call postconditions procedure if procedure with active postconditions
+      --  Call _Postconditions procedure if procedure with active
+      --  postconditions. Here, we use the Postcondition_Proc attribute, which
+      --  is needed for implicitly-generated returns. Functions never
+      --  have implicitly-generated returns, and there's no room for
+      --  Postcondition_Proc in E_Function, so we look up the identifier
+      --  Name_uPostconditions for function returns (see
+      --  Expand_Simple_Function_Return).
 
       if Ekind (Scope_Id) = E_Procedure
         and then Has_Postconditions (Scope_Id)
       then
+         pragma Assert (Present (Postcondition_Proc (Scope_Id)));
          Insert_Action (N,
            Make_Procedure_Call_Statement (Loc,
-             Name => Make_Identifier (Loc, Name_uPostconditions)));
+             Name => New_Reference_To (Postcondition_Proc (Scope_Id), Loc)));
       end if;
 
       --  If it is a return from a procedure do no extra steps
@@ -3606,8 +3638,7 @@ package body Exp_Ch5 is
 
          Call :=
            Make_Procedure_Call_Statement (Loc,
-             Name => New_Reference_To
-                       (RTE (RE_Complete_Rendezvous), Loc));
+             Name => New_Reference_To (RTE (RE_Complete_Rendezvous), Loc));
          Insert_Before (N, Call);
          --  why not insert actions here???
          Analyze (Call);
@@ -3892,6 +3923,10 @@ package body Exp_Ch5 is
                Set_Ekind (Acc_Typ, E_Access_Type);
 
                Set_Associated_Storage_Pool (Acc_Typ, RTE (RE_SS_Pool));
+
+               --  This is an allocator for the secondary stack, and it's fine
+               --  to have Comes_From_Source set False on it, as gigi knows not
+               --  to flag it as a violation of No_Implicit_Heap_Allocations.
 
                Alloc_Node :=
                  Make_Allocator (Loc,

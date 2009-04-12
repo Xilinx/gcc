@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -291,28 +290,21 @@ extern char *__gnat_get_code_loc (struct sigcontext *);
 extern void __gnat_set_code_loc (struct sigcontext *, char *);
 extern size_t __gnat_machine_state_length (void);
 
-/* __gnat_adjust_context_for_raise - see comments along with the default
-   version later in this file.  */
-
 #define HAVE_GNAT_ADJUST_CONTEXT_FOR_RAISE
 
 void
-__gnat_adjust_context_for_raise (int signo, void *context)
+__gnat_adjust_context_for_raise (int signo, void *ucontext)
 {
-  struct sigcontext * sigcontext = (struct sigcontext *) context;
+  struct sigcontext *sigcontext = (struct sigcontext *) ucontext;
 
-  /* The fallback code fetches the faulting insn address from sc_pc, so
-     adjust that when need be.  For SIGFPE, the required adjustment depends
-     on the trap shadow situation (see man ieee).  */
+  /* The unwinder expects the signal context to contain the address of the
+     faulting instruction.  For SIGFPE, this depends on the trap shadow
+     situation (see man ieee).  We nonetheless always compensate for it,
+     considering that PC designates the instruction following the one that
+     trapped.  This is not necessarily true but corresponds to what we have
+     always observed.  */
   if (signo == SIGFPE)
-    {
-      /* ??? We never adjust here, considering that sc_pc always
-	 designates the instruction following the one which trapped.
-	 This is not necessarily true but corresponds to what we have
-	 always observed.  */
-    }
-  else
-    sigcontext->sc_pc ++;
+    sigcontext->sc_pc--;
 }
 
 static void
@@ -1790,8 +1782,9 @@ getpid (void)
 }
 #endif
 
-/* VxWorks expects the field excCnt to be zeroed when a signal is handled.
-   The VxWorks version of longjmp does this; GCC's builtin_longjmp doesn't.  */
+/* VxWorks 653 vThreads expects the field excCnt to be zeroed when a signal is.
+   handled. The VxWorks version of longjmp does this; GCC's builtin_longjmp
+   doesn't.  */
 void
 __gnat_clear_exception_count (void)
 {
@@ -1829,20 +1822,35 @@ __gnat_map_signal (int sig)
       exception = &storage_error;
       msg = "SIGBUS: possible stack overflow";
       break;
-#else
-#ifdef __RTP__
-    /* In RTP mode a SIGSEGV is most likely due to a stack overflow,
-       since stack checking uses the probing mechanism.  */
+#elif (_WRS_VXWORKS_MAJOR == 6)
     case SIGILL:
       exception = &constraint_error;
       msg = "SIGILL";
       break;
+#ifdef __RTP__
+    /* In RTP mode a SIGSEGV is most likely due to a stack overflow,
+       since stack checking uses the probing mechanism.  */
     case SIGSEGV:
       exception = &storage_error;
       msg = "SIGSEGV: possible stack overflow";
       break;
+    case SIGBUS:
+      exception = &program_error;
+      msg = "SIGBUS";
+      break;
 #else
-    /* In kernel mode a SIGILL is most likely due to a stack overflow,
+      /* VxWorks 6 kernel mode with probing. SIGBUS for guard page hit */
+    case SIGSEGV:
+      exception = &program_error;
+      msg = "SIGSEGV";
+      break;
+    case SIGBUS:
+      exception = &storage_error;
+      msg = "SIGBUS: possible stack overflow";
+      break;
+#endif
+#else
+    /* VxWorks 5: a SIGILL is most likely due to a stack overflow,
        since stack checking uses the stack limit mechanism.  */
     case SIGILL:
       exception = &storage_error;
@@ -1852,7 +1860,6 @@ __gnat_map_signal (int sig)
       exception = &program_error;
       msg = "SIGSEGV";
       break;
-#endif
     case SIGBUS:
       exception = &program_error;
       msg = "SIGBUS";
@@ -2084,6 +2091,76 @@ __gnat_install_handler(void)
   __gnat_handler_installed = 1;
 }
 
+/******************/
+/* Darwin Section */
+/******************/
+
+#elif defined(__APPLE__)
+
+#include <signal.h>
+
+static void __gnat_error_handler (int sig, siginfo_t * si, void * uc);
+
+static void
+__gnat_error_handler (int sig, siginfo_t * si, void * uc)
+{
+  struct Exception_Data *exception;
+  const char *msg;
+
+  switch (sig)
+    {
+    case SIGSEGV:
+      /* FIXME: we need to detect the case of a *real* SIGSEGV.  */
+      exception = &storage_error;
+      msg = "stack overflow or erroneous memory access";
+      break;
+
+    case SIGBUS:
+      exception = &constraint_error;
+      msg = "SIGBUS";
+      break;
+
+    case SIGFPE:
+      exception = &constraint_error;
+      msg = "SIGFPE";
+      break;
+
+    default:
+      exception = &program_error;
+      msg = "unhandled signal";
+    }
+
+  Raise_From_Signal_Handler (exception, msg);
+}
+
+void
+__gnat_install_handler (void)
+{
+  struct sigaction act;
+
+  /* Set up signal handler to map synchronous signals to appropriate
+     exceptions.  Make sure that the handler isn't interrupted by another
+     signal that might cause a scheduling event!  */
+
+  act.sa_flags = SA_NODEFER | SA_RESTART | SA_SIGINFO;
+  act.sa_sigaction = __gnat_error_handler;
+  sigemptyset (&act.sa_mask);
+
+  /* Do not install handlers if interrupt state is "System".  */
+  if (__gnat_get_interrupt_state (SIGABRT) != 's')
+    sigaction (SIGABRT, &act, NULL);
+  if (__gnat_get_interrupt_state (SIGFPE) != 's')
+    sigaction (SIGFPE,  &act, NULL);
+  if (__gnat_get_interrupt_state (SIGILL) != 's')
+    sigaction (SIGILL,  &act, NULL);
+  if (__gnat_get_interrupt_state (SIGSEGV) != 's')
+    sigaction (SIGSEGV, &act, NULL);
+  if (__gnat_get_interrupt_state (SIGBUS) != 's')
+    sigaction (SIGBUS,  &act, NULL);
+
+  __gnat_handler_installed = 1;
+}
+
 #else
 
 /* For all other versions of GNAT, the handler does nothing.  */
@@ -2155,8 +2232,9 @@ __gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED,
 				 void *ucontext ATTRIBUTE_UNUSED)
 {
   /* We used to compensate here for the raised from call vs raised from signal
-     exception discrepancy with the GCC ZCX scheme, but this is now dealt with
-     generically (except for the Alpha and IA-64), see GCC PR other/26208.
+     exception discrepancy with the GCC ZCX scheme, but this now can be dealt
+     with generically in the unwinder (see GCC PR other/26208).  Only the VMS
+     ports still do the compensation described in the few lines below.
 
      *** Call vs signal exception discrepancy with GCC ZCX scheme ***
 

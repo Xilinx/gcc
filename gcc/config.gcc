@@ -1074,7 +1074,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 			tmake_file="${tmake_file} i386/t-linux64"
 			need_64bit_hwint=yes
 			case X"${with_cpu}" in
-			Xgeneric|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+			Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
 				;;
 			X)
 				if test x$with_cpu_64 = x; then
@@ -1083,7 +1083,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 				;;
 			*)
 				echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-				echo "generic core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
+				echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
 				exit 1
 				;;
 			esac
@@ -1189,7 +1189,7 @@ i[34567]86-*-solaris2*)
 		need_64bit_hwint=yes
 		use_gcc_stdint=wrap
 		case X"${with_cpu}" in
-		Xgeneric|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
+		Xgeneric|Xatom|Xcore2|Xnocona|Xx86-64|Xamdfam10|Xbarcelona|Xk8|Xopteron|Xathlon64|Xathlon-fx)
 			;;
 		X)
 			if test x$with_cpu_64 = x; then
@@ -1198,7 +1198,7 @@ i[34567]86-*-solaris2*)
 			;;
 		*)
 			echo "Unsupported CPU used in --with-cpu=$with_cpu, supported values:" 1>&2
-			echo "generic core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
+			echo "generic atom core2 nocona x86-64 amdfam10 barcelona k8 opteron athlon64 athlon-fx" 1>&2
 			exit 1
 			;;
 		esac
@@ -1230,7 +1230,7 @@ i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae)
 	esac
 	;;
 i[34567]86-*-pe | i[34567]86-*-cygwin*)
-	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/cygwin.h"
+	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/cygwin.h i386/cygwin-stdint.h"
 	xm_file=i386/xm-cygwin.h
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$sjlj = x0; then
@@ -1248,9 +1248,10 @@ i[34567]86-*-pe | i[34567]86-*-cygwin*)
 	if test x$enable_threads = xyes; then
 		thread_file='posix'
 	fi
+	use_gcc_stdint=wrap
 	;;
 i[34567]86-*-mingw* | x86_64-*-mingw*)
-	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h"
+	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h i386/mingw-stdint.h"
 	xm_file=i386/xm-mingw32.h
 	# This has to match the logic for DWARF2_UNWIND_INFO in gcc/config/i386/cygming.h
 	if test x$sjlj = x0; then
@@ -1265,6 +1266,7 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	c_target_objs="${c_target_objs} msformat-c.o"
 	cxx_target_objs="${cxx_target_objs} winnt-cxx.o msformat-c.o"
 	default_use_cxa_atexit=yes
+	use_gcc_stdint=wrap
 	case ${enable_threads} in
 	  "" | yes | win32)
 	  thread_file='win32'
@@ -1711,22 +1713,6 @@ picochip-*)
 #	tmake_file="${tmake_file} rs6000/t-fprules rs6000/t-fprules-fpbit "
 #	extra_headers=
 #	;;
-powerpc64-*-linux*)
-	tm_file="${tm_file} dbxelf.h elfos.h svr4.h freebsd-spec.h rs6000/sysv4.h"
-	test x$with_cpu != x || cpu_is_64bit=yes
-	test x$cpu_is_64bit != xyes || tm_file="${tm_file} rs6000/default64.h"
-	tm_file="rs6000/biarch64.h ${tm_file} rs6000/linux64.h glibc-stdint.h"
-	if test x${enable_secureplt} = xyes; then
-		tm_file="rs6000/secureplt.h ${tm_file}"
-	fi
-	extra_options="${extra_options} rs6000/sysv4.opt rs6000/linux64.opt"
-	tmake_file="t-dfprules rs6000/t-fprules ${tmake_file} rs6000/t-ppccomm rs6000/t-linux64 rs6000/t-fprules-softfp soft-fp/t-softfp"
-	;;
-powerpc64-*-gnu*)
-	tm_file="${tm_file} elfos.h svr4.h freebsd-spec.h gnu.h rs6000/sysv4.h rs6000/default64.h rs6000/linux64.h rs6000/gnu.h glibc-stdint.h"
-	extra_options="${extra_options} rs6000/sysv4.opt rs6000/linux64.opt"
-	tmake_file="t-slibgcc-elf-ver t-gnu"
-	;;
 powerpc-*-darwin*)
 	extra_options="${extra_options} rs6000/darwin.opt"
 	extra_parts="crt2.o"
@@ -1805,17 +1791,26 @@ powerpc-*-rtems*)
 	extra_options="${extra_options} rs6000/sysv4.opt"
 	tmake_file="rs6000/t-fprules rs6000/t-fprules-fpbit rs6000/t-rtems t-rtems rs6000/t-ppccomm"
 	;;
-powerpc-*-linux*)
+powerpc-*-linux* | powerpc64-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h svr4.h freebsd-spec.h rs6000/sysv4.h"
 	extra_options="${extra_options} rs6000/sysv4.opt"
-	tmake_file="t-dfprules rs6000/t-fprules rs6000/t-fprules-softfp soft-fp/t-softfp rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
+	tmake_file="t-dfprules rs6000/t-fprules rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
 	maybe_biarch=yes
 	case ${target} in
+	    powerpc64-*-linux*spe* | powerpc64-*-linux*paired*)
+	    	echo "*** Configuration ${target} not supported" 1>&2
+		exit 1
+		;;
 	    powerpc-*-linux*spe* | powerpc-*-linux*paired*)
-		maybe_biarch= ;;
+		maybe_biarch=
+		;;
+	    powerpc64-*-linux*)
+	    	test x$with_cpu != x || cpu_is_64bit=yes
+		maybe_biarch=always
+		;;
 	esac
 	case ${maybe_biarch}:${enable_targets}:${cpu_is_64bit} in
-	    yes:*powerpc64* | yes:all:* | yes:*:yes)
+	    always:* | yes:*powerpc64* | yes:all:* | yes:*:yes)
 		if test x$cpu_is_64bit = xyes; then
 		    tm_file="${tm_file} rs6000/default64.h"
 		fi
@@ -1827,6 +1822,7 @@ powerpc-*-linux*)
 		tm_file="${tm_file} rs6000/linux.h glibc-stdint.h"
 		;;
 	esac
+	tmake_file="${tmake_file} rs6000/t-fprules-softfp soft-fp/t-softfp"
 	case ${target} in
 	    powerpc*-*-linux*altivec*)
 		tm_file="${tm_file} rs6000/linuxaltivec.h" ;;
@@ -1838,6 +1834,11 @@ powerpc-*-linux*)
 	if test x${enable_secureplt} = xyes; then
 		tm_file="rs6000/secureplt.h ${tm_file}"
 	fi
+	;;
+powerpc64-*-gnu*)
+	tm_file="${tm_file} elfos.h svr4.h freebsd-spec.h gnu.h rs6000/sysv4.h rs6000/default64.h rs6000/linux64.h rs6000/gnu.h glibc-stdint.h"
+	extra_options="${extra_options} rs6000/sysv4.opt rs6000/linux64.opt"
+	tmake_file="t-slibgcc-elf-ver t-gnu"
 	;;
 powerpc-*-gnu-gnualtivec*)
 	tm_file="${cpu_type}/${cpu_type}.h elfos.h svr4.h freebsd-spec.h gnu.h rs6000/sysv4.h rs6000/linux.h rs6000/linuxaltivec.h rs6000/gnu.h glibc-stdint.h"
@@ -1905,43 +1906,48 @@ powerpc-xilinx-eabi*)
 	use_gcc_stdint=wrap
   	;;
 rs6000-ibm-aix4.[3456789]* | powerpc-ibm-aix4.[3456789]*)
-	tm_file="rs6000/biarch64.h ${tm_file} rs6000/aix.h rs6000/aix43.h rs6000/xcoff.h"
+	tm_file="rs6000/biarch64.h ${tm_file} rs6000/aix.h rs6000/aix43.h rs6000/xcoff.h rs6000/aix-stdint.h"
 	tmake_file=rs6000/t-aix43
 	extra_options="${extra_options} rs6000/aix64.opt"
 	use_collect2=yes
 	thread_file='aix'
+	use_gcc_stdint=provide
 	extra_headers=
 	;;
 rs6000-ibm-aix5.1.* | powerpc-ibm-aix5.1.*)
-	tm_file="rs6000/biarch64.h ${tm_file} rs6000/aix.h rs6000/aix51.h rs6000/xcoff.h"
+	tm_file="rs6000/biarch64.h ${tm_file} rs6000/aix.h rs6000/aix51.h rs6000/xcoff.h rs6000/aix-stdint.h"
 	extra_options="${extra_options} rs6000/aix64.opt"
 	tmake_file=rs6000/t-aix43
 	use_collect2=yes
 	thread_file='aix'
+	use_gcc_stdint=wrap
 	extra_headers=
 	;;
 rs6000-ibm-aix5.2.* | powerpc-ibm-aix5.2.*)
-	tm_file="${tm_file} rs6000/aix.h rs6000/aix52.h rs6000/xcoff.h"
+	tm_file="${tm_file} rs6000/aix.h rs6000/aix52.h rs6000/xcoff.h rs6000/aix-stdint.h"
 	tmake_file=rs6000/t-aix52
 	extra_options="${extra_options} rs6000/aix64.opt"
 	use_collect2=yes
 	thread_file='aix'
+	use_gcc_stdint=wrap
 	extra_headers=
 	;;
 rs6000-ibm-aix5.3.* | powerpc-ibm-aix5.3.*)
-	tm_file="${tm_file} rs6000/aix.h rs6000/aix53.h rs6000/xcoff.h"
+	tm_file="${tm_file} rs6000/aix.h rs6000/aix53.h rs6000/xcoff.h rs6000/aix-stdint.h"
 	tmake_file=rs6000/t-aix52
 	extra_options="${extra_options} rs6000/aix64.opt"
 	use_collect2=yes
 	thread_file='aix'
+	use_gcc_stdint=wrap
 	extra_headers=altivec.h
 	;;
 rs6000-ibm-aix[6789].* | powerpc-ibm-aix[6789].*)
-	tm_file="${tm_file} rs6000/aix.h rs6000/aix61.h rs6000/xcoff.h"
+	tm_file="${tm_file} rs6000/aix.h rs6000/aix61.h rs6000/xcoff.h rs6000/aix-stdint.h"
 	tmake_file=rs6000/t-aix52
 	extra_options="${extra_options} rs6000/aix64.opt"
 	use_collect2=yes
 	thread_file='aix'
+	use_gcc_stdint=wrap
 	extra_headers=altivec.h
 	;;
 s390-*-linux*)
@@ -2139,6 +2145,8 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 	if test x${enable_incomplete_targets} = xyes ; then
 		tm_defines="$tm_defines SUPPORT_SH1=1 SUPPORT_SH2E=1 SUPPORT_SH4=1 SUPPORT_SH4_SINGLE=1 SUPPORT_SH2A=1 SUPPORT_SH2A_SINGLE=1 SUPPORT_SH5_32MEDIA=1 SUPPORT_SH5_32MEDIA_NOFPU=1 SUPPORT_SH5_64MEDIA=1 SUPPORT_SH5_64MEDIA_NOFPU=1"
 	fi
+	tm_file="$tm_file ./sysroot-suffix.h"
+	tmake_file="$tmake_file t-sysroot-suffix"
 	;;
 sh-*-rtems*)
 	tmake_file="sh/t-sh sh/t-elf t-rtems sh/t-rtems"
@@ -2799,7 +2807,7 @@ case "${target}" in
 				esac
 				# OK
 				;;
-			"" | amdfam10 | barcelona | k8 | opteron | athlon64 | athlon-fx | nocona | core2 | generic)
+			"" | amdfam10 | barcelona | k8 | opteron | athlon64 | athlon-fx | nocona | core2 | atom | generic)
 				# OK
 				;;
 			*)

@@ -257,9 +257,10 @@ vn_get_expr_for (tree name)
   switch (TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)))
     {
     case tcc_reference:
-      if (gimple_assign_rhs_code (def_stmt) == VIEW_CONVERT_EXPR
-	  || gimple_assign_rhs_code (def_stmt) == REALPART_EXPR
-	  || gimple_assign_rhs_code (def_stmt) == IMAGPART_EXPR)
+      if ((gimple_assign_rhs_code (def_stmt) == VIEW_CONVERT_EXPR
+	   || gimple_assign_rhs_code (def_stmt) == REALPART_EXPR
+	   || gimple_assign_rhs_code (def_stmt) == IMAGPART_EXPR)
+	  && TREE_CODE (gimple_assign_rhs1 (def_stmt)) == SSA_NAME)
 	expr = fold_build1 (gimple_assign_rhs_code (def_stmt),
 			    gimple_expr_type (def_stmt),
 			    TREE_OPERAND (gimple_assign_rhs1 (def_stmt), 0));
@@ -757,6 +758,23 @@ vn_reference_fold_indirect (VEC (vn_reference_op_s, heap) **ops,
 
   /* Get ops for the addressed object.  */
   op = VEC_index (vn_reference_op_s, *ops, i);
+  /* ???  If this is our usual typeof &ARRAY vs. &ARRAY[0] problem, work
+     around it to avoid later ICEs.  */
+  if (TREE_CODE (TREE_TYPE (TREE_OPERAND (op->op0, 0))) == ARRAY_TYPE
+      && TREE_CODE (TREE_TYPE (TREE_TYPE (op->op0))) != ARRAY_TYPE)
+    {
+      vn_reference_op_s aref;
+      tree dom;
+      aref.type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (op->op0)));
+      aref.opcode = ARRAY_REF;
+      aref.op0 = integer_zero_node;
+      if ((dom = TYPE_DOMAIN (TREE_TYPE (TREE_OPERAND (op->op0, 0))))
+	  && TYPE_MIN_VALUE (dom))
+	aref.op0 = TYPE_MIN_VALUE (dom);
+      aref.op1 = NULL_TREE;
+      aref.op2 = NULL_TREE;
+      VEC_safe_push (vn_reference_op_s, heap, mem, &aref);
+    }
   copy_reference_ops_from_ref (TREE_OPERAND (op->op0, 0), &mem);
 
   /* Do the replacement - we should have at least one op in mem now.  */
@@ -816,7 +834,10 @@ valueize_refs (VEC (vn_reference_op_s, heap) *orig)
 	  if (i > 0 && TREE_CODE (vro->op0) == ADDR_EXPR
 	      && VEC_index (vn_reference_op_s,
 			    orig, i - 1)->opcode == INDIRECT_REF)
-	    vn_reference_fold_indirect (&orig, &i);
+	    {
+	      vn_reference_fold_indirect (&orig, &i);
+	      continue;
+	    }
 	}
       if (vro->op1 && TREE_CODE (vro->op1) == SSA_NAME)
 	vro->op1 = SSA_VAL (vro->op1);

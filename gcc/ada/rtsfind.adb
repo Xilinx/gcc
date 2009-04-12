@@ -112,18 +112,16 @@ package body Rtsfind is
 
    --  When a unit is implicitly loaded as a result of a call to RTE, it is
    --  necessary to create an implicit WITH to ensure that the object is
-   --  correctly loaded by the binder. Such WITH statements are only required
-   --  when the request is from the extended main unit (if a client needs a
-   --  WITH, that will be taken care of when the client is compiled).
-
-   --  We always attach the WITH to the main unit. This is not perfectly
-   --  accurate in terms of elaboration requirements, but it is close enough,
-   --  since the units that are accessed using rtsfind do not have delicate
-   --  elaboration requirements.
+   --  correctly loaded by the binder. We originally added such WITH clauses
+   --  only if the extended main unit required them, and added them only to the
+   --  extended main unit. They are currently added to whatever unit first
+   --  needs them, which is not necessarily the main unit. This works because
+   --  if the main unit requires some runtime unit also required by some other
+   --  unit, the other unit's implicit WITH will force a correct elaboration
+   --  order. This method is necessary for SofCheck Inspector.
 
    --  The flag Withed in the unit table record is initially set to False. It
-   --  is set True if a WITH has been generated for the main unit for the
-   --  corresponding unit.
+   --  is set True if a WITH has been generated for the corresponding unit.
 
    -----------------------
    -- Local Subprograms --
@@ -596,9 +594,9 @@ package body Rtsfind is
 
       procedure Save_Private_Visibility;
       --  If the current unit is the body of child unit or the spec of a
-      --  private child unit, the private declarations of the parent (s)
-      --  are visible. If the unit to be loaded is another public sibling,
-      --  its compilation will affect the visibility of the common ancestors.
+      --  private child unit, the private declarations of the parent(s) are
+      --  visible. If the unit to be loaded is another public sibling, its
+      --  compilation will affect the visibility of the common ancestors.
       --  Indicate those that must be restored.
 
       procedure Restore_Private_Visibility;
@@ -666,13 +664,6 @@ package body Rtsfind is
       U.Uname  := Get_Unit_Name (U_Id);
       U.Withed := False;
 
-      declare
-         Loaded : Boolean;
-         pragma Warnings (Off, Loaded);
-      begin
-         Loaded := Is_Loaded (U.Uname);
-      end;
-
       --  Now do the load call, note that setting Error_Node to Empty is
       --  a signal to Load_Unit that we will regard a failure to find the
       --  file as a fatal error, and that it should not output any kind
@@ -730,7 +721,7 @@ package body Rtsfind is
 
          if not Analyzed (Cunit (U.Unum)) then
 
-            --  If the unit is already loaded through a limited_with clauses,
+            --  If the unit is already loaded through a limited_with clause,
             --  the relevant entities must already be available. We do not
             --  want to load and analyze the unit because this would create
             --  a real semantic dependence when the purpose of the limited_with
@@ -1072,18 +1063,13 @@ package body Rtsfind is
          end if;
       end if;
 
-      --  See if we have to generate a WITH for this entity. We generate
-      --  a WITH if the current unit is part of the extended main code
-      --  unit, and if we have not already added the with. The WITH is
-      --  added to the appropriate unit (the current one). We do not need
-      --  to generate a WITH for a call issued from RTE_Available.
+      --  See if we have to generate a WITH for this entity. We generate a WITH
+      --  if we have not already added the with. The WITH is added to the
+      --  appropriate unit (the current one). We do not need to generate a WITH
+      --  for a call issued from RTE_Available.
 
    <<Found>>
-      if (not U.Withed)
-        and then
-          In_Extended_Main_Code_Unit (Cunit_Entity (Current_Sem_Unit))
-        and then not RTE_Available_Call
-      then
+      if not U.Withed and then not RTE_Available_Call then
          U.Withed := True;
 
          declare

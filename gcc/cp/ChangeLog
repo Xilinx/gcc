@@ -1,3 +1,75 @@
+2009-04-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28301
+	* parser.c (cp_parser_skip_to_end_of_block_or_statement): Return
+	if we see a close brace without an open brace.
+
+2008-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* parser.c (cp_parser_class_specifier): Remove the unused
+	has_trailing_semicolon.
+
+2009-04-10  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR  c++/20118
+	* parser.c (cp_parser_check_template_parameters): Take a
+	cp_declarator parameter.
+	(cp_parser_elaborated_type_specifier): Update to
+	cp_parser_check_template_parameters.
+	(cp_parser_class_head): Likewise.
+	(cp_parser_check_declarator_template_parameters): Likewise.
+	(cp_parser_check_template_parameters): Handle first the non-error
+	conditions. Give more accurate diagnostics if a declarator is
+	given. 
+
+2009-04-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (dump_aggr_type): Chase template typedefs if
+	-fno-pretty-templates.
+
+2009-04-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39637
+	* parser.c (cp_parser_enumerator_definition): Make sure the
+	initializer of the enumerator doesn't contain any bare parameter pack.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34691
+	* name-lookup.c	(merge_functions): Keep multiple extern "C" functions.
+	* call.c (joust): Complain about mismatched default arguments
+	in extern "C" functions.
+	* class.c (resolve_address_of_overloaded_function): Handle multiple
+	extern "C" functions.
+	* pt.c (resolve_overloaded_unification): Likewise.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (dump_function_decl): Don't pretty-print templates
+	if -fno-pretty-templates.
+	(count_non_default_template_args): Print all args if
+	-fno-pretty-templates.
+
+2009-04-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35146
+	* pt.c (fn_type_unification): For DEDUCE_EXACT check that
+	the deduced template arguments give us the parameter types
+	we're looking for.
+
+2009-04-05  Giovanni Bajo <giovannibajo@libero.it>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/14912
+	* error.c (count_non_default_template_args): New fn.
+	(dump_template_parms): Call it.
+	(dump_template_argument_list): Call it.  Add parms parm.
+	(dump_template_argument): Adjust call to dump_template_argument_list.
+	(dump_type, dump_decl): Likewise.
+	(dump_template_bindings): Refactor logic.
+
 2009-04-03  Jason Merrill  <jason@redhat.com>
 
 	PR c++/25185

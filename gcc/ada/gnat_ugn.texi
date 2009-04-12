@@ -2372,9 +2372,6 @@ The use of @option{-gnatN} activates  inlining optimization
 that is performed by the front end of the compiler. This inlining does
 not require that the code generation be optimized. Like @option{-gnatn},
 the use of this switch generates additional dependencies.
-Note that
-@option{-gnatN} automatically implies @option{-gnatn} so it is not necessary
-to specify both options.
 
 When using a gcc-based back end (in practice this means using any version
 of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
@@ -3867,6 +3864,10 @@ it will be ignored.
 @cindex @option{-gnatb} (@command{gcc})
 Generate brief messages to @file{stderr} even if verbose mode set.
 
+@item -gnatB
+@cindex @option{-gnatB} (@command{gcc})
+Assume no invalid (bad) values except for 'Valid attribute use.
+
 @item -gnatc
 @cindex @option{-gnatc} (@command{gcc})
 Check syntax and semantics only (no code generation attempted).
@@ -3881,8 +3882,13 @@ debug options. Certain debug options are relevant to applications
 programmers, and these are documented at appropriate points in this
 users guide.
 
+@ifclear vms
 @item -gnatD
-@cindex @option{-gnatD} (@command{gcc})
+@cindex @option{-gnatD[nn]} (@command{gcc})
+@end ifclear
+@ifset vms
+@item /XDEBUG /LXDEBUG=nnn
+@end ifset
 Create expanded source files for source level debugging. This switch
 also suppress generation of cross-reference information
 (see @option{-gnatx}).
@@ -3948,8 +3954,13 @@ Note that @option{^-gnatg^/GNAT_INTERNAL^} implies
 so that all standard warnings and all standard style options are turned on.
 All warnings and style error messages are treated as errors.
 
-@item -gnatG
-@cindex @option{-gnatG} (@command{gcc})
+@ifclear vms
+@item -gnatG=nn
+@cindex @option{-gnatG[nn]} (@command{gcc})
+@end ifclear
+@ifset vms
+@item /EXPAND_SOURCE, /LEXPAND_SOURCE=nnn
+@end ifset
 List generated expanded code in source form.
 
 @item ^-gnath^/HELP^
@@ -3994,9 +4005,13 @@ source output.
 @item -gnatm=@var{n}
 @cindex @option{-gnatm} (@command{gcc})
 Limit number of detected error or warning messages to @var{n}
-where @var{n} is in the range 1..999_999. The default setting if
-no switch is given is 9999. Compilation is terminated if this
-limit is exceeded. The equal sign here is optional.
+where @var{n} is in the range 1..999999. The default setting if
+no switch is given is 9999. If the number of warnings reaches this
+limit, then a message is output and further warnings are suppressed,
+but the compilation is continued. If the number of error messages
+reaches this limit, then a message is output and the compilation
+is abandoned. The equal sign here is optional. A value of zero
+means that no limit applies.
 
 @item -gnatn
 @cindex @option{-gnatn} (@command{gcc})
@@ -4010,14 +4025,12 @@ Activate front end inlining for subprograms for which
 pragma @code{Inline} is specified. This inlining is performed
 by the front end and will be visible in the
 @option{-gnatG} output.
-In some cases, this has proved more effective than the back end
-inlining resulting from the use of
-@option{-gnatn}.
-Note that
-@option{-gnatN} automatically implies
-@option{-gnatn} so it is not necessary
-to specify both options. There are a few cases that the back-end inlining
-catches that cannot be dealt with in the front-end.
+
+When using a gcc-based back end (in practice this means using any version
+of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
+@option{-gnatN} is deprecated, and the use of @option{-gnatn} is preferred.
+Historically front end inlining was more extensive than the gcc back end
+inlining, but that is no longer the case.
 
 @item -gnato
 @cindex @option{-gnato} (@command{gcc})
@@ -4489,15 +4502,24 @@ format message or full listing (which as usual is written to
 The @code{m} stands for maximum.
 @end ifclear
 @var{n} is a decimal integer in the
-range of 1 to 999 and limits the number of error messages to be
-generated. For example, using @option{-gnatm2} might yield
+range of 1 to 999999 and limits the number of error or warning
+messages to be generated. For example, using
+@option{-gnatm2} might yield
 
 @smallexample
 e.adb:3:04: Incorrect spelling of keyword "function"
 e.adb:5:35: missing ".."
-fatal error: maximum errors reached
+fatal error: maximum number of errors detected
 compilation abandoned
 @end smallexample
+
+@noindent
+The default setting if
+no switch is given is 9999. If the number of warnings reaches this
+limit, then a message is output and further warnings are suppressed,
+but the compilation is continued. If the number of error messages
+reaches this limit, then a message is output and the compilation
+is abandoned. A value of zero means that no limit applies.
 
 @noindent
 Note that the equal sign is optional, so the switches
@@ -5586,6 +5608,12 @@ statements (where a wild jump might result from an invalid value),
 and subscripts on the left hand side (where memory corruption could
 occur as a result of an invalid value).
 
+The @option{-gnatB} switch tells the compiler to assume that all
+values are valid (that is, within their declared subtype range)
+except in the context of a use of the Valid attribute. This means
+the compiler can generate more efficient code, since the range
+of values is better known at compile time.
+
 The @option{-gnatV^@var{x}^^} switch allows more control over the validity
 checking mode.
 @ifclear vms
@@ -6048,6 +6076,11 @@ rule uses normal Ada rules for comparing strings, ignoring casing
 of letters, except that if there is a trailing numeric suffix, then
 the value of this suffix is used in the ordering (e.g.@: Junk2 comes
 before Junk10).
+
+@item ^O^OVERRIDING_INDICATORS^
+@emph{Check that overriding subprograms are explicitly marked as such.}
+The declaration of a primitive operation of a type extension that overrides
+an inherited operation must carry an overriding indicator.
 
 @item ^p^PRAGMA^
 @emph{Check pragma casing.}
@@ -6701,12 +6734,14 @@ see @ref{Inlining of Subprograms}.
 
 @item -gnatN
 @cindex @option{-gnatN} (@command{gcc})
-The front end inlining activated by this switch is generally more extensive,
-and quite often more effective than the standard @option{-gnatn} inlining mode.
-It will also generate additional dependencies.
-Note that
-@option{-gnatN} automatically implies @option{-gnatn} so it is not necessary
-to specify both options.
+This switch activates front-end inlining which also
+generates additional dependencies.
+
+When using a gcc-based back end (in practice this means using any version
+of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
+@option{-gnatN} is deprecated, and the use of @option{-gnatn} is preferred.
+Historically front end inlining was more extensive than the gcc back end
+inlining, but that is no longer the case.
 @end table
 
 @node Auxiliary Output Control
@@ -6771,7 +6806,7 @@ switches in the body of the @code{Debug} unit in the compiler source
 file @file{debug.adb}.
 @end ifclear
 
-@item -gnatG
+@item -gnatG[=nn]
 @cindex @option{-gnatG} (@command{gcc})
 This switch causes the compiler to generate auxiliary output containing
 a pseudo-source listing of the generated expanded code. Like most Ada
@@ -6785,6 +6820,11 @@ Ada (e.g.@: the use of controlled types), where simple Ada statements can
 generate a lot of run-time code. By using @option{-gnatG} you can identify
 these cases, and consider whether it may be desirable to modify the coding
 approach to improve efficiency.
+
+The optional parameter @code{nn} if present after -gnatG specifies an
+alternative maximum line length that overrides the normal default of 72.
+This value is in the range 40-999999, values less than 40 being silently
+reset to 40. The equal sign is optional.
 
 The format of the output is very similar to standard Ada source, and is
 easily understood by an Ada programmer. The following special syntactic
@@ -6869,7 +6909,7 @@ representation in base 2-16 (for example, the result of compile time
 evaluation of the expression 1.0/27.0).
 @end table
 
-@item -gnatD
+@item -gnatD[=nn]
 @cindex @option{-gnatD} (@command{gcc})
 When used in conjunction with @option{-gnatG}, this switch causes
 the expanded source, as described above for
@@ -6896,6 +6936,11 @@ If the switch @option{-gnatL} is used in conjunction with
 @cindex @option{-gnatL} (@command{gcc})
 @option{-gnatDG}, then the original source lines are interspersed
 in the expanded source (as comment lines with the original line number).
+
+The optional parameter @code{nn} if present after -gnatD specifies an
+alternative maximum line length that overrides the normal default of 72.
+This value is in the range 40-999999, values less than 40 being silently
+reset to 40. The equal sign is optional.
 
 @item -gnatr
 @cindex @option{-gnatr} (@command{gcc})
@@ -7777,9 +7822,15 @@ supported on cross environments only.
 
 @item ^-m^/ERROR_LIMIT=^@var{n}
 @cindex @option{^-m^/ERROR_LIMIT^} (@command{gnatbind})
-Limit number of detected errors to @var{n}, where @var{n} is
-in the range 1..999_999. The default value if no switch is
-given is 9999. Binding is terminated if the limit is exceeded.
+Limit number of detected errors or warnings to @var{n}, where @var{n} is
+in the range 1..999999. The default value if no switch is
+given is 9999. If the number of warnings reaches this limit, then a
+message is output and further warnings are suppressed, the bind
+continues in this case. If the number of errors reaches this
+limit, then a message is output and the bind is abandoned.
+A value of zero means that no limit is enforced. The equal
+sign is optional.
+
 @ifset unw
 Furthermore, under Windows, the sources pointed to by the libraries path
 set in the registry are not searched for.
@@ -20321,8 +20372,8 @@ a generic instantiation a full source location is a chain from the location
 of this construct in the generic unit to the place where this unit is
 instantiated.
 
-@cindex @option{^-m^/DIAGNOSIS_LIMIT^} (@command{gnatcheck})
-@item ^-m@i{nnn}^/DIAGNOSIS_LIMIT=@i{nnn}^
+@cindex @option{^-m^/DIAGNOSTIC_LIMIT^} (@command{gnatcheck})
+@item ^-m@i{nnn}^/DIAGNOSTIC_LIMIT=@i{nnn}^
 Maximum number of diagnoses to be sent to Stdout, @i{nnn} from o@dots{}1000,
 the default value is 500. Zero means that there is no limitation on
 the number of diagnostic messages to be printed into Stdout.
@@ -22015,6 +22066,11 @@ units located outside the current directory, you have to provide
 the source search path when calling @command{gnatstub}, see the description
 of @command{gnatstub} switches below.
 
+By default, all the program unit body stubs generated by @code{gnatstub}
+raise the predefined @code{Program_Error} exception, which will catch
+accidental calls of generated stubs. This behavior can be changed with
+option @option{^--no-exception^/NO_EXCEPTION^} (see below).
+
 @menu
 * Running gnatstub::
 * Switches for gnatstub::
@@ -22140,7 +22196,12 @@ structures used by @command{gnatstub}) after creating the body stub.
 @cindex @option{^-l^/LINE_LENGTH^} (@command{gnatstub})
 Same as @option{^-gnatyM^/MAX_LINE_LENGTH=^@var{n}}
 
-@item ^-o^/BODY=^@var{body-name}
+@item ^--no-exception^/NO_EXCEPTION^
+@cindex @option{^--no-exception^/NO_EXCEPTION^} (@command{gnatstub})
+Avoind raising PROGRAM_ERROR in the generated bodies of program unit stubs.
+This is not always possible for function stubs.
+
+@item ^-o ^/BODY=^@var{body-name}
 @cindex @option{^-o^/BODY^} (@command{gnatstub})
 Body file name.  This should be set if the argument file name does not
 follow

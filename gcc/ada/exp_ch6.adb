@@ -54,6 +54,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
@@ -4079,7 +4080,34 @@ package body Exp_Ch6 is
                Loc := Sloc (Last_Stm);
             end if;
 
-            Append_To (S, Make_Simple_Return_Statement (Loc));
+            declare
+               Rtn : constant Node_Id := Make_Simple_Return_Statement (Loc);
+
+            begin
+               --  Append return statement, and set analyzed manually. We
+               --  can't call Analyze on this return since the scope is wrong.
+
+               --  Note: it almost works to push the scope and then do the
+               --  analyze call, but something goes wrong in some weird cases
+               --  and it is not worth worrying about ???
+
+               Append_To (S, Rtn);
+               Set_Analyzed (Rtn);
+
+               --  Call _Postconditions procedure if appropriate. We need to
+               --  do this explicitly because we did not analyze the generated
+               --  return statement above, so the call did not get inserted.
+
+               if Ekind (Spec_Id) = E_Procedure
+                 and then Has_Postconditions (Spec_Id)
+               then
+                  pragma Assert (Present (Postcondition_Proc (Spec_Id)));
+                  Insert_Action (Rtn,
+                    Make_Procedure_Call_Statement (Loc,
+                      Name =>
+                        New_Reference_To (Postcondition_Proc (Spec_Id), Loc)));
+               end if;
+            end;
          end if;
       end Add_Return;
 
@@ -4281,8 +4309,7 @@ package body Exp_Ch6 is
       end;
 
       --  For a procedure, we add a return for all possible syntactic ends
-      --  of the subprogram. Note that reanalysis is not necessary in this
-      --  case since it would require a lot of work and accomplish nothing.
+      --  of the subprogram.
 
       if Ekind (Spec_Id) = E_Procedure
         or else Ekind (Spec_Id) = E_Generic_Procedure
@@ -4978,11 +5005,18 @@ package body Exp_Ch6 is
          --  is handled separately further below.
 
          New_Allocator :=
-           Make_Allocator (Loc, New_Reference_To (Result_Subt, Loc));
-
-         Set_Storage_Pool      (New_Allocator, Storage_Pool (Allocator));
-         Set_Procedure_To_Call (New_Allocator, Procedure_To_Call (Allocator));
+           Make_Allocator (Loc,
+             Expression => New_Reference_To (Result_Subt, Loc));
          Set_No_Initialization (New_Allocator);
+
+         --  Copy attributes to new allocator. Note that the new allocator
+         --  logically comes from source if the original one did, so copy the
+         --  relevant flag. This ensures proper treatment of the restriction
+         --  No_Implicit_Heap_Allocations in this case.
+
+         Set_Storage_Pool      (New_Allocator, Storage_Pool      (Allocator));
+         Set_Procedure_To_Call (New_Allocator, Procedure_To_Call (Allocator));
+         Set_Comes_From_Source (New_Allocator, Comes_From_Source (Allocator));
 
          Rewrite (Allocator, New_Allocator);
 

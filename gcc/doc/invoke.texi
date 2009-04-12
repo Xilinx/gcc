@@ -188,6 +188,7 @@ in the following sections.
 -fno-implement-inlines  -fms-extensions @gol
 -fno-nonansi-builtins  -fno-operator-names @gol
 -fno-optional-diags  -fpermissive @gol
+-fno-pretty-templates @gol
 -frepo  -fno-rtti  -fstats  -ftemplate-depth-@var{n} @gol
 -fno-threadsafe-statics -fuse-cxa-atexit  -fno-weak  -nostdinc++ @gol
 -fno-default-inline  -fvisibility-inlines-hidden @gol
@@ -1833,6 +1834,19 @@ a name having multiple meanings within a class.
 Downgrade some diagnostics about nonconformant code from errors to
 warnings.  Thus, using @option{-fpermissive} will allow some
 nonconforming code to compile.
+
+@item -fno-pretty-templates
+@opindex fno-pretty-templates
+When an error message refers to a specialization of a function
+template, the compiler will normally print the signature of the
+template followed by the template arguments and any typedefs or
+typenames in the signature (e.g. @code{void f(T) [with T = int]}
+rather than @code{void f(int)}) so that it's clear which template is
+involved.  When an error message refers to a specialization of a class
+template, the compiler will omit any template arguments which match
+the default template arguments for that template.  If either of these
+behaviors make it harder to understand the error message rather than
+easier, using @option{-fno-pretty-templates} will disable them.
 
 @item -frepo
 @opindex frepo
@@ -5358,7 +5372,13 @@ the compiler to use information gained from all of the files when compiling
 each of them.
 
 Not all optimizations are controlled directly by a flag.  Only
-optimizations that have a flag are listed.
+optimizations that have a flag are listed in this section.
+
+Depending on the target and how GCC was configured, a slightly different 
+set of optimizations may be enabled at each @option{-O} level than 
+those listed here.  You can invoke GCC with @samp{-Q --help=optimizers} 
+to find out the exact set of optimizations that are enabled at each level.
+@xref{Overall Options}, for examples.
 
 @table @gcctabopt
 @item -O
@@ -5868,17 +5888,22 @@ Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fdelete-null-pointer-checks
 @opindex fdelete-null-pointer-checks
-Use global dataflow analysis to identify and eliminate useless checks
-for null pointers.  The compiler assumes that dereferencing a null
-pointer would have halted the program.  If a pointer is checked after
-it has already been dereferenced, it cannot be null.
+Assume that programs cannot safely dereference null pointers, and that
+no code or data element resides there.  This enables simple constant
+folding optimizations at all optimization levels.  In addition, other
+optimization passes in GCC use this flag to control global dataflow
+analyses that eliminate useless checks for null pointers; these assume
+that if a pointer is checked after it has already been dereferenced,
+it cannot be null.
 
-In some environments, this assumption is not true, and programs can
-safely dereference null pointers.  Use
-@option{-fno-delete-null-pointer-checks} to disable this optimization
+Note however that in some environments this assumption is not true.
+Use @option{-fno-delete-null-pointer-checks} to disable this optimization
 for programs which depend on that behavior.
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Some targets, especially embedded ones, disable this option at all levels.
+Otherwise it is enabled at all levels: @option{-O0}, @option{-O1},
+@option{-O2}, @option{-O3}, @option{-Os}.  Passes that use the information
+are enabled independently at different optimization levels.
 
 @item -fexpensive-optimizations
 @opindex fexpensive-optimizations
@@ -10981,6 +11006,9 @@ Improved version of Intel Pentium4 CPU with 64-bit extensions, MMX, SSE,
 SSE2 and SSE3 instruction set support.
 @item core2
 Intel Core2 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
+instruction set support.
+@item atom
+Intel Atom CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
 instruction set support.
 @item k6
 AMD K6 CPU with MMX instruction set support.

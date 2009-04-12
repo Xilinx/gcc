@@ -695,6 +695,11 @@ extern int flag_enforce_eh_specs;
 
 extern int flag_threadsafe_statics;
 
+/* Nonzero if we want to pretty-print template specializations as the
+   template signature followed by the arguments.  */
+
+extern int flag_pretty_templates;
+
 /* Nonzero means warn about implicit declarations.  */
 
 extern int warn_implicit;
@@ -858,21 +863,6 @@ extern void finish_file	(void);
 /* Nonzero if a label has been added to the statement list.  */
 #define STATEMENT_LIST_HAS_LABEL(NODE) \
   TREE_LANG_FLAG_3 (STATEMENT_LIST_CHECK (NODE))
-
-/* C_MAYBE_CONST_EXPR accessors.  */
-#define C_MAYBE_CONST_EXPR_PRE(NODE)			\
-  TREE_OPERAND (C_MAYBE_CONST_EXPR_CHECK (NODE), 0)
-#define C_MAYBE_CONST_EXPR_EXPR(NODE)			\
-  TREE_OPERAND (C_MAYBE_CONST_EXPR_CHECK (NODE), 1)
-#define C_MAYBE_CONST_EXPR_INT_OPERANDS(NODE)		\
-  TREE_LANG_FLAG_0 (C_MAYBE_CONST_EXPR_CHECK (NODE))
-#define C_MAYBE_CONST_EXPR_NON_CONST(NODE)		\
-  TREE_LANG_FLAG_1 (C_MAYBE_CONST_EXPR_CHECK (NODE))
-#define EXPR_INT_CONST_OPERANDS(EXPR)			\
-  (INTEGRAL_TYPE_P (TREE_TYPE (EXPR))			\
-   && (TREE_CODE (EXPR) == INTEGER_CST			\
-       || (TREE_CODE (EXPR) == C_MAYBE_CONST_EXPR	\
-	   && C_MAYBE_CONST_EXPR_INT_OPERANDS (EXPR))))
 
 /* C_MAYBE_CONST_EXPR accessors.  */
 #define C_MAYBE_CONST_EXPR_PRE(NODE)			\

@@ -1,3 +1,2564 @@
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.ads, sem_warn.adb (Check_Low_Bound_Tested): Catch more cases
+	for warning suppression.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Use_One_Type): If the two use_type clauses are
+	identical, there is no redudancy to check.
+
+2009-04-10  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch5.adb (Expand_N_Extended_Return_Statement): Delete redundant
+	calls initializing SS_Allocator (which is initialized in following
+	code).
+	(Expand_Simple_Function_Return): Add comment about False value for
+	Comes_From_Source on secondary-stack allocator.
+
+	* exp_ch9.adb (Build_Entry_Family_Name): Add comment.
+	(Build_Entry_Name): Add comment.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, einfo.adb (Low_Bound_Tested): New name for Low_Bound_Known
+
+	* sem_prag.adb (Analyze_Pragma, case Check): Remove check for lower
+	bound tested, since this is now done more generally in Sem_Res.
+
+	* sem_res.adb (Resolve_Comparison_Op): Add call to
+	Check_Lower_Bound_Tested.
+	(Resolve_Equality_Op): Add call to Check_Lower_Bound_Tested
+
+	* sem_warn.ads, sem_warn.adb (Check_Low_Bound_Tested): New procedure
+	(Low_Bound_Tested): New name for Low_Bound_Known flag
+
+	* exp_ch5.adb: Minor reformatting
+
+	* exp_ch4.adb:
+	Add comments on copying the Comes_From_Source flag for allocators
+
+	* sinfo.ads:
+	Add comments on copying the Comes_From_Source flag for allocators
+
+	* exp_ch6.adb (Make_Build_In_Place_Call_In_Allocator): Copy
+	Comes_From_Source flag from old allocator to new one.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.ads: Address missing documentation query
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr.adb:
+	Add new Linker attributes Max_Command_Line_Length, Response_File_Format
+	and Response_File_Switches.
+
+	* prj-nmsc.adb (Process_Linker): Process new attributes
+	Max_Command_Line_Length, Response_File_Format and
+	Response_File_Switches.
+
+	* prj.ads (Response_File_Format): New enumeration type
+	(Project_Configuration): New componants Max_Command_Line_Length,
+	Resp_File_Format and Resp_File_Options.
+
+	* snames.ads-tmpl: Add new standard names for linking response files
+	for gprbuild: GNU, None, Object_List, Option_List,
+	Max_Command_Line_Length, Response_File_Format and
+	Response_File_Switches.
+
+2009-04-10  Geert Bosch  <bosch@adacore.com>
+
+	* system-aix.ads, system-darwin-ppc.ads, system-darwin-x86.ads,
+	system-freebsd-x86.ads, system-hpux.ads, system-hpux-ia64.ads,
+	system-irix-n32.ads, system-irix-o32.ads, system-linux-alpha.ads,
+	system-linux-hppa.ads, system-linux-ia64.ads, system-linux-ppc.ads,
+	system-linux-s390.ads, system-linux-s390x.ads, system-linux-sh4.ads,
+	system-linux-sparc.ads, system-linux-x86_64.ads, system-linux-x86.ads,
+	system-mingw.ads, system-solaris-sparc.ads, system-solaris-sparcv9.ads,
+	system-solaris-x86.ads, system-tru64.ads, system-vms_64.ads,
+	system-vms.ads, system-vms-ia64.ads, system-vms-zcx.ads,
+	system-vxworks-arm.ads, system-vxworks-m68k.ads,
+	system-vxworks-mips.ads, system-vxworks-ppc.ads,
+	system-vxworks-sparcv9.ads, system-vxworks-x86.ads
+	(Backend_Overflow_Checks): Set to True.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_attr.adb: Minor reformatting
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_prag.adb (Check_Precondition_Postcondition): Within a generic,
+	analyze the expression for a postcondition, even if the compiler mode
+	is Generate_Code.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aux.adb: Minor reformatting
+
+2009-04-10  Ed Falis  <falis@adacore.com>
+
+	* init.c: Change VxWorks 6 stack overflow checking for kernel apps.
+
+	* system-vxworks-ppc.ads, system-vxworks-x86.ads: Update header.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch6.ads (Check_Subtype_Conformant): Add ??? comment for
+	undocumented formal.
+	Minor reformatting
+
+	* a-direio.ads: Fix typo in comment
+
+	* sem_ch3.adb, g-dirope.adb, sem_type.adb, sem_ch12.adb, sem_case.adb,
+	errout.adb, sem_ch4.adb, sem_ch11.adb, exp_dist.adb, sem_ch13.adb:
+	Use uniform phrasing for comment at start of subprogram body.
+
+	* xsnamest.adb: Add note to explain why we use specific names for the
+	newly generated files instead of generating snames.{ads,adb,h} directly
+
+2009-04-10  Sergey Rybin  <rybin@adacore.com>
+
+	* vms_data.ads:
+	Add qualifier for new gnatstub option '--no-exception'
+
+	* gnat_ugn.texi:
+	Add the description of the new gnatstub option '--no-exception'
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* rtsfind.adb: Minor reformatting
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_disp.adb: Minor reformatting.
+	Add comment pointing to RM clause for the case of warning against a
+	(failed) attempt at declaring a primitive operation elsewhere than in a
+	package spec.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch12.adb (Denotes_Formal_Package): Check whether the package is
+	an actual for a previous formal package of the current instance.
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* rtsfind.adb (RTE): Put implicit with_clauses on whatever unit needs
+	them first, rather than on the extended main unit.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Check_Discriminant_Conformance): If discriminant
+	specification of full view carries a null exclusion indicator, create
+	an itype for it, to check for conformance with partial view.
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* rtsfind.ads: Minor code change: make RE_Unit_Table constant.
+
+	* rtsfind.adb: Minor comment changes, and remove useless code.
+
+	* sinfo.ads: Add ??? comment.
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* vms_data.ads: Add missing GNAT SYNC VMS qualifiers -main= and -U
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_attr.adb (Expand_N_Attribute_Reference, case 'Tag): If the tagged
+	type is a synchronized type, retrieve tag information from the
+	corresponding record, which has the dispatch table link.
+
+2009-04-10  Jerome Lambourg  <lambourg@adacore.com>
+
+	* g-comlin.adb (Group_Analysis): Take care of switches that might be
+	decomposed afterwards, but are present as-is in the command line
+	configuration, and thus should be kept as-is.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Document that postconditions are tested on implicit
+	returns.
+
+	* sem_aux.adb: Minor reformatting
+
+2009-04-10  Gary Dismukes  <dismukes@adacore.com>
+
+	* itypes.adb (Create_Null_Excluding_Itype): Apply Base_Type when
+	setting Etype.
+	
+	* par-ch3.adb (P_Access_Type_Definition): Set new attribute
+	Null_Exclusion_In_Return_Present when an access-to-function type has a
+	result type with an explicit not null.
+
+	* sem_ch3.adb (Access_Subprogram_Definition): If a null exclusion is
+	given on the result type, then create a null-excluding itype for the
+	function.
+
+	* sem_ch6.adb (Analyze_Return_Type): Create a null-excluding itype in
+	the case where a null exclusion is imposed on a named access type.
+	(Analyze_Subprogram_Specification): Push and pop the scope of the
+	function around the call to Analyze_Return_Type in the case of no
+	formals, for consistency with handling when formals are present
+	(Process_Formals does this). Ensures that any itype created for the
+	return type will be associated with the proper scope.
+
+	* sem_ch12.adb (Analyze_Generic_Subprogram_Declaration): If a null
+	exclusion is given on a generic function's result type, then create a
+	null-excluding itype for the generic function.
+	(Instantiate_Object): Set Null_Exclusion_Present of a constant created
+	for an actual for a formal in object according to the setting on the
+	formal. Ensures null exclusion checks are done when the association is
+	elaborated.
+
+	* sinfo.ads: Add new flag Null_Exclusion_In_Return_Present on
+	N_Access_Function_Definition.
+
+	* sinfo.adb: Add Get_ and Set_ operations for
+	Null_Exclusion_In_Return_Present.
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* exp_ch5.adb, exp_ch6.adb, sem_ch6.adb: Move the code that creates a
+	call to the _Postconditions procedure in the case of implicit returns
+	from analysis to expansion. This eliminates some duplicated code. Use
+	the Postcondition_Proc to find the identity of this procedure during
+	expansion.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb: Minor code clean up.
+
+	* einfo.ads, sem_attr.adb: Minor comment fixes.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch8.adb: Minor reformatting
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, einfo.adb (Postcondition_Proc): New attribute for
+	procedures.
+
+	* sem_ch6.adb: Minor code clean up.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* mlib-tgt-specific-xi.adb: Minor reformatting
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* einfo.ads: Minor comment fixes
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* snames.ads-tmpl: Remove names that are no longer used in the
+	Project Manager.
+	Mark specifically those that are used only in gprbuild
+
+2009-04-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* init.c: Adjust EH support code on Alpha/Tru64.
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* sem_ch6.adb (Process_PPCs): Add a call to the _Postconditions
+	procedure on every path that could return implicitly (not via a return
+	statement) from a procedure.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch9.adb (Build_Master_Entity): An extended return statement is a
+	valid scope for a task declarations and therefore for a master id.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aux.adb: Minor reformatting
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* scn.adb (Obsolescent_Check_Flag): New Boolean flag, initialized to
+	True.
+	(Obsolescent_Check): Do nothing if Obsolescent_Check_Flag is False
+	(Set_Obsolescent_Check): New procedure to change the value of
+	Obsolescent_Check_Flag.
+
+	* scn.ads (Set_Obsolescent_Check): New procedure to control
+	Obsolescent_Check.
+
+	* sinput-l.adb (Load_File): Do not check for pragma Restrictions on
+	obsolescent features while preprocessing.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* xsnamest.adb: Use XUtil to have uniform line endings (UNIX style) in
+	generated files on all platforms.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aux.adb: Minor reformatting
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Access_Definition): Handle properly the case of a
+	protected function with formals that returns an anonymous access type.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_disp.adb: Minor reformatting
+
+2009-04-10  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* seh_init.c: Do not use the 32-bit specific implementation of
+	__gnat_install_SEH_handler on 64-bit Windows target (64-bit specific
+	version TBD).
+
+2009-04-10  Jose Ruiz  <ruiz@adacore.com>
+
+	* mlib-tgt-specific-xi.adb (Get_Target_Prefix): Target_Name may contain
+	a '/' at the end so we better use the complete target name to determine
+	whether it is a PowerPC 55xx target.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_eval.adb: Minor reformatting
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* snames.h, snames.ads, snames.adb: Remove files, now generated from
+	templates.
+
+	* snames.h-tmpl, snames.ads-tmpl, snames.adb-tmpl: Templates for the
+	above.
+
+	* xsnamest.adb: New file.
+
+	* gcc-interface/Make-lang.in: New target for automated generation of
+	snames.ads, snames.adb and snames.h
+
+2009-04-10  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/Makefile.in, gcc-interface/utils.c: Include "rtl.h" to
+	avoid compile time warnings.
+	Do not add gcc/config in include search list while compiling the RTS.
+	Pragma Thread_Local_Storage is available on any target.
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* sem.ads, par.adb, sem_ch6.adb, sem_ch8.adb: Minor comment fixes.
+
+2009-04-10  Tristan Gingold  <gingold@adacore.com>
+
+	* init.c: Install signal handler on Darwin.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb: Minor reformatting
+
+	* exp_util.adb (Make_Non_Empty_Check): New function
+	(Silly_Boolean_Array_Not_Test): Add call to Make_Non_Empty_Check
+	(Silly_Boolean_Array_Xor_Test): Use Make_Non_Empty_Check
+
+2009-04-10  Arnaud Charlet  <charlet@adacore.com>
+
+	* make.adb, gnatlink.adb: Rename JGNAT toolchain.
+
+2009-04-10  Jose Ruiz  <ruiz@adacore.com>
+
+	* mlib-tgt-specific-xi.adb (Get_Target_Prefix): Insert the appropriate
+	tool prefix for AVR and PowerPC 55xx targets.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb (Within_Postcondition): New function
+	(Check_Unset_Reference): Use Within_Postcondition to stop bad warning
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb: Minor reformatting
+
+	* make.adb: Minor reformatting.
+
+2009-04-10  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch7.adb (Find_Final_List): When creating a finalization-chain
+	entity and the scope is a subprogram, retrieve the Sloc of the
+	subprogram's body rather than using the sloc of the spec, for better
+	line-stepping behavior in gdb.
+	(Wrap_Transient_Declaration): For the Sloc of nodes created with a list
+	controller, use the Sloc of the first declaration of the containing list
+	rather than that of the node that triggered creation of the list
+	controller.
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Check_Naming_Schemes): Initialize local variable Casing
+	to avoid gcc warning.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* g-comlin.adb: Add ??? comment
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_warn.adb (Check_Unused_Withs): Do not emit message about
+	unreferenced entities for a package with no visible declarations.
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch9.adb: Minor reformatting
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_prag.adb: Minor reformatting
+
+2009-04-10  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb:
+	(Check_Library_Attributes): For a project qualified as a library project
+	that is not a library project, indicate in the error message which
+	attributes are missing (Library_Dir and/or Library_Name).
+
+2009-04-10  Bob Duff  <duff@adacore.com>
+
+	* exp_ch5.adb, exp_ch9.adb: Avoid use of No_Position in Sloc of
+	generated nodes, because it might confuse various circuits in the FE.
+
+2009-04-10  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma, case Task_Name): Do not expand argument
+	of pragma. It will be recopied and analyzed when used in call to
+	Create_Task.
+
+	* sem_res.adb (Resolve_Call): Clarify use of secondary stack within
+	initialization operations and recognize use of it in procedure calls
+	within init_procs.
+
+	* exp_ch9.adb (Make_Task_Create_Call): Copy full tree of Task_Name
+	argument, because it may have side-effects.
+
+	* exp_ch2.adb: Remove obsolete comments on default functions
+
+2009-04-10  Jose Ruiz  <ruiz@adacore.com>
+
+	* adaint.c (RTX section): Do for RTX the same thing as we do for
+	Windows (include ctype.h and define a fallback ISALPHA if IN_RTS).
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aux.ads, sem_aux.adb (Nearest_Current_Scope): New function.
+
+	* sem_res.adb (Resolve_Call): Fix test for
+	Suppress_Value_Tracking_On_Call (was wrong for the case of a call from
+	a non-dynamic scope).
+
+2009-04-10  Robert Dewar  <dewar@adacore.com>
+
+	* make.adb: Add comment.
+	Minor reformatting
+
+2009-04-10  Nicolas Setton  <setton@adacore.com>
+
+	* s-osprim-darwin.adb: New file.
+
+	* s-osinte-darwin.adb, s-osinte-darwin.ads: Fix binding to timespec.
+
+2009-04-10  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket.ads: Add comment clarifying alignment requirement for Fd_Set
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* adadecode.h: Change copyright header to refer to version
+	3 of the GNU General Public License with version 3.1 of the
+	GCC Runtime Library Exception and to point readers at the
+	COPYING3 and COPYING3.RUNTIME files and the FSF's license web
+	page.
+	* 9drpc.adb: Likewise.
+	* a-assert.adb: Likewise.
+	* a-astaco.adb: Likewise.
+	* a-calari.adb: Likewise.
+	* a-calcon.adb: Likewise.
+	* a-calcon.ads: Likewise.
+	* a-caldel.ads: Likewise.
+	* a-calend-vms.adb: Likewise.
+	* a-calend-vms.ads: Likewise.
+	* a-calend.adb: Likewise.
+	* a-calend.ads: Likewise.
+	* a-calfor.adb: Likewise.
+	* a-catizo.adb: Likewise.
+	* a-cdlili.adb: Likewise.
+	* a-cdlili.ads: Likewise.
+	* a-cgaaso.adb: Likewise.
+	* a-cgaaso.ads: Likewise.
+	* a-cgarso.adb: Likewise.
+	* a-cgcaso.adb: Likewise.
+	* a-chacon.adb: Likewise.
+	* a-chacon.ads: Likewise.
+	* a-chahan.adb: Likewise.
+	* a-chahan.ads: Likewise.
+	* a-chlat9.ads: Likewise.
+	* a-chtgke.adb: Likewise.
+	* a-chtgke.ads: Likewise.
+	* a-chtgop.adb: Likewise.
+	* a-chtgop.ads: Likewise.
+	* a-chzla1.ads: Likewise.
+	* a-chzla9.ads: Likewise.
+	* a-cidlli.adb: Likewise.
+	* a-cidlli.ads: Likewise.
+	* a-cihama.adb: Likewise.
+	* a-cihama.ads: Likewise.
+	* a-cihase.adb: Likewise.
+	* a-cihase.ads: Likewise.
+	* a-ciorma.adb: Likewise.
+	* a-ciorma.ads: Likewise.
+	* a-ciormu.adb: Likewise.
+	* a-ciormu.ads: Likewise.
+	* a-ciorse.adb: Likewise.
+	* a-ciorse.ads: Likewise.
+	* a-clrefi.adb: Likewise.
+	* a-clrefi.ads: Likewise.
+	* a-cohama.adb: Likewise.
+	* a-cohama.ads: Likewise.
+	* a-cohase.adb: Likewise.
+	* a-cohase.ads: Likewise.
+	* a-cohata.ads: Likewise.
+	* a-coinve.adb: Likewise.
+	* a-coinve.ads: Likewise.
+	* a-colien.adb: Likewise.
+	* a-colien.ads: Likewise.
+	* a-colire.adb: Likewise.
+	* a-colire.ads: Likewise.
+	* a-comlin.adb: Likewise.
+	* a-comlin.ads: Likewise.
+	* a-convec.adb: Likewise.
+	* a-convec.ads: Likewise.
+	* a-coorma.adb: Likewise.
+	* a-coorma.ads: Likewise.
+	* a-coormu.adb: Likewise.
+	* a-coormu.ads: Likewise.
+	* a-coorse.adb: Likewise.
+	* a-coorse.ads: Likewise.
+	* a-coprnu.adb: Likewise.
+	* a-coprnu.ads: Likewise.
+	* a-crbltr.ads: Likewise.
+	* a-crbtgk.adb: Likewise.
+	* a-crbtgk.ads: Likewise.
+	* a-crbtgo.adb: Likewise.
+	* a-crbtgo.ads: Likewise.
+	* a-crdlli.adb: Likewise.
+	* a-crdlli.ads: Likewise.
+	* a-cwila1.ads: Likewise.
+	* a-cwila9.ads: Likewise.
+	* a-decima.adb: Likewise.
+	* a-decima.ads: Likewise.
+	* a-diocst.adb: Likewise.
+	* a-diocst.ads: Likewise.
+	* a-direct.adb: Likewise.
+	* a-direct.ads: Likewise.
+	* a-direio.adb: Likewise.
+	* a-direio.ads: Likewise.
+	* a-dirval-mingw.adb: Likewise.
+	* a-dirval-vms.adb: Likewise.
+	* a-dirval.adb: Likewise.
+	* a-dirval.ads: Likewise.
+	* a-dynpri.adb: Likewise.
+	* a-einuoc.adb: Likewise.
+	* a-einuoc.ads: Likewise.
+	* a-elchha.adb: Likewise.
+	* a-elchha.ads: Likewise.
+	* a-envvar.adb: Likewise.
+	* a-excach.adb: Likewise.
+	* a-except-2005.adb: Likewise.
+	* a-except-2005.ads: Likewise.
+	* a-except.adb: Likewise.
+	* a-except.ads: Likewise.
+	* a-excpol-abort.adb: Likewise.
+	* a-excpol.adb: Likewise.
+	* a-exctra.adb: Likewise.
+	* a-exctra.ads: Likewise.
+	* a-exetim-mingw.adb: Likewise.
+	* a-exetim-mingw.ads: Likewise.
+	* a-exexda.adb: Likewise.
+	* a-exexpr-gcc.adb: Likewise.
+	* a-exexpr.adb: Likewise.
+	* a-exextr.adb: Likewise.
+	* a-exstat.adb: Likewise.
+	* a-filico.adb: Likewise.
+	* a-filico.ads: Likewise.
+	* a-finali.adb: Likewise.
+	* a-finali.ads: Likewise.
+	* a-interr.ads: Likewise.
+	* a-intnam-aix.ads: Likewise.
+	* a-intnam-darwin.ads: Likewise.
+	* a-intnam-dummy.ads: Likewise.
+	* a-intnam-freebsd.ads: Likewise.
+	* a-intnam-hpux.ads: Likewise.
+	* a-intnam-irix.ads: Likewise.
+	* a-intnam-linux.ads: Likewise.
+	* a-intnam-lynxos.ads: Likewise.
+	* a-intnam-mingw.ads: Likewise.
+	* a-intnam-rtems.ads: Likewise.
+	* a-intnam-solaris.ads: Likewise.
+	* a-intnam-tru64.ads: Likewise.
+	* a-intnam-vms.ads: Likewise.
+	* a-intnam-vxworks.ads: Likewise.
+	* a-intsig.adb: Likewise.
+	* a-intsig.ads: Likewise.
+	* a-ngcefu.adb: Likewise.
+	* a-ngcoar.adb: Likewise.
+	* a-ngcoty.adb: Likewise.
+	* a-ngcoty.ads: Likewise.
+	* a-ngelfu.adb: Likewise.
+	* a-ngrear.adb: Likewise.
+	* a-ngrear.ads: Likewise.
+	* a-nudira.adb: Likewise.
+	* a-nudira.ads: Likewise.
+	* a-nuflra.adb: Likewise.
+	* a-nuflra.ads: Likewise.
+	* a-numaux-darwin.adb: Likewise.
+	* a-numaux-darwin.ads: Likewise.
+	* a-numaux-libc-x86.ads: Likewise.
+	* a-numaux-vxworks.ads: Likewise.
+	* a-numaux-x86.adb: Likewise.
+	* a-numaux-x86.ads: Likewise.
+	* a-numaux.ads: Likewise.
+	* a-rbtgso.adb: Likewise.
+	* a-rbtgso.ads: Likewise.
+	* a-reatim.ads: Likewise.
+	* a-retide.adb: Likewise.
+	* a-retide.ads: Likewise.
+	* a-rttiev.adb: Likewise.
+	* a-rttiev.ads: Likewise.
+	* a-secain.adb: Likewise.
+	* a-secain.ads: Likewise.
+	* a-sequio.adb: Likewise.
+	* a-sequio.ads: Likewise.
+	* a-shcain.adb: Likewise.
+	* a-shcain.ads: Likewise.
+	* a-siocst.adb: Likewise.
+	* a-siocst.ads: Likewise.
+	* a-slcain.adb: Likewise.
+	* a-slcain.ads: Likewise.
+	* a-ssicst.adb: Likewise.
+	* a-ssicst.ads: Likewise.
+	* a-stboha.adb: Likewise.
+	* a-stmaco.ads: Likewise.
+	* a-storio.adb: Likewise.
+	* a-strbou.adb: Likewise.
+	* a-strbou.ads: Likewise.
+	* a-stream.ads: Likewise.
+	* a-strfix.adb: Likewise.
+	* a-strhas.adb: Likewise.
+	* a-strmap.adb: Likewise.
+	* a-strmap.ads: Likewise.
+	* a-strsea.adb: Likewise.
+	* a-strsea.ads: Likewise.
+	* a-strsup.adb: Likewise.
+	* a-strsup.ads: Likewise.
+	* a-strunb.adb: Likewise.
+	* a-strunb.ads: Likewise.
+	* a-ststio.adb: Likewise.
+	* a-ststio.ads: Likewise.
+	* a-stunau.adb: Likewise.
+	* a-stunau.ads: Likewise.
+	* a-stunha.adb: Likewise.
+	* a-stwibo.adb: Likewise.
+	* a-stwibo.ads: Likewise.
+	* a-stwifi.adb: Likewise.
+	* a-stwiha.adb: Likewise.
+	* a-stwima.adb: Likewise.
+	* a-stwima.ads: Likewise.
+	* a-stwise.adb: Likewise.
+	* a-stwise.ads: Likewise.
+	* a-stwisu.adb: Likewise.
+	* a-stwisu.ads: Likewise.
+	* a-stwiun.adb: Likewise.
+	* a-stwiun.ads: Likewise.
+	* a-stzbou.adb: Likewise.
+	* a-stzbou.ads: Likewise.
+	* a-stzfix.adb: Likewise.
+	* a-stzhas.adb: Likewise.
+	* a-stzmap.adb: Likewise.
+	* a-stzmap.ads: Likewise.
+	* a-stzsea.adb: Likewise.
+	* a-stzsea.ads: Likewise.
+	* a-stzsup.adb: Likewise.
+	* a-stzsup.ads: Likewise.
+	* a-stzunb.adb: Likewise.
+	* a-stzunb.ads: Likewise.
+	* a-suteio.adb: Likewise.
+	* a-suteio.ads: Likewise.
+	* a-swbwha.adb: Likewise.
+	* a-swmwco.ads: Likewise.
+	* a-swunau.adb: Likewise.
+	* a-swunau.ads: Likewise.
+	* a-swuwha.adb: Likewise.
+	* a-swuwti.adb: Likewise.
+	* a-swuwti.ads: Likewise.
+	* a-sytaco.adb: Likewise.
+	* a-sytaco.ads: Likewise.
+	* a-szbzha.adb: Likewise.
+	* a-szmzco.ads: Likewise.
+	* a-szunau.adb: Likewise.
+	* a-szunau.ads: Likewise.
+	* a-szuzha.adb: Likewise.
+	* a-szuzti.adb: Likewise.
+	* a-szuzti.ads: Likewise.
+	* a-tags.adb: Likewise.
+	* a-tags.ads: Likewise.
+	* a-tasatt.ads: Likewise.
+	* a-taside.adb: Likewise.
+	* a-taside.ads: Likewise.
+	* a-taster.adb: Likewise.
+	* a-teioed.adb: Likewise.
+	* a-teioed.ads: Likewise.
+	* a-textio.adb: Likewise.
+	* a-textio.ads: Likewise.
+	* a-tiboio.adb: Likewise.
+	* a-ticoau.adb: Likewise.
+	* a-ticoau.ads: Likewise.
+	* a-ticoio.adb: Likewise.
+	* a-ticoio.ads: Likewise.
+	* a-tideau.adb: Likewise.
+	* a-tideau.ads: Likewise.
+	* a-tideio.adb: Likewise.
+	* a-tideio.ads: Likewise.
+	* a-tienau.adb: Likewise.
+	* a-tienau.ads: Likewise.
+	* a-tienio.adb: Likewise.
+	* a-tienio.ads: Likewise.
+	* a-tifiio.adb: Likewise.
+	* a-tifiio.ads: Likewise.
+	* a-tiflau.adb: Likewise.
+	* a-tiflau.ads: Likewise.
+	* a-tiflio.adb: Likewise.
+	* a-tiflio.ads: Likewise.
+	* a-tigeau.adb: Likewise.
+	* a-tigeau.ads: Likewise.
+	* a-tiinau.adb: Likewise.
+	* a-tiinau.ads: Likewise.
+	* a-tiinio.adb: Likewise.
+	* a-tiinio.ads: Likewise.
+	* a-timoau.adb: Likewise.
+	* a-timoau.ads: Likewise.
+	* a-timoio.adb: Likewise.
+	* a-timoio.ads: Likewise.
+	* a-tiocst.adb: Likewise.
+	* a-tiocst.ads: Likewise.
+	* a-titest.adb: Likewise.
+	* a-wichun.adb: Likewise.
+	* a-wichun.ads: Likewise.
+	* a-witeio.adb: Likewise.
+	* a-witeio.ads: Likewise.
+	* a-wtcoau.adb: Likewise.
+	* a-wtcoau.ads: Likewise.
+	* a-wtcoio.adb: Likewise.
+	* a-wtcstr.adb: Likewise.
+	* a-wtcstr.ads: Likewise.
+	* a-wtdeau.adb: Likewise.
+	* a-wtdeau.ads: Likewise.
+	* a-wtdeio.adb: Likewise.
+	* a-wtdeio.ads: Likewise.
+	* a-wtedit.adb: Likewise.
+	* a-wtedit.ads: Likewise.
+	* a-wtenau.adb: Likewise.
+	* a-wtenau.ads: Likewise.
+	* a-wtenio.adb: Likewise.
+	* a-wtenio.ads: Likewise.
+	* a-wtfiio.adb: Likewise.
+	* a-wtfiio.ads: Likewise.
+	* a-wtflau.adb: Likewise.
+	* a-wtflau.ads: Likewise.
+	* a-wtflio.adb: Likewise.
+	* a-wtflio.ads: Likewise.
+	* a-wtgeau.adb: Likewise.
+	* a-wtgeau.ads: Likewise.
+	* a-wtinau.adb: Likewise.
+	* a-wtinau.ads: Likewise.
+	* a-wtinio.adb: Likewise.
+	* a-wtmoau.adb: Likewise.
+	* a-wtmoau.ads: Likewise.
+	* a-wtmoio.adb: Likewise.
+	* a-wtmoio.ads: Likewise.
+	* a-wttest.adb: Likewise.
+	* a-wwboio.adb: Likewise.
+	* a-zchuni.adb: Likewise.
+	* a-zchuni.ads: Likewise.
+	* a-ztcoau.adb: Likewise.
+	* a-ztcoau.ads: Likewise.
+	* a-ztcoio.adb: Likewise.
+	* a-ztcstr.adb: Likewise.
+	* a-ztcstr.ads: Likewise.
+	* a-ztdeau.adb: Likewise.
+	* a-ztdeau.ads: Likewise.
+	* a-ztdeio.adb: Likewise.
+	* a-ztdeio.ads: Likewise.
+	* a-ztedit.adb: Likewise.
+	* a-ztedit.ads: Likewise.
+	* a-ztenau.adb: Likewise.
+	* a-ztenau.ads: Likewise.
+	* a-ztenio.adb: Likewise.
+	* a-ztenio.ads: Likewise.
+	* a-ztexio.adb: Likewise.
+	* a-ztexio.ads: Likewise.
+	* a-ztfiio.adb: Likewise.
+	* a-ztfiio.ads: Likewise.
+	* a-ztflau.adb: Likewise.
+	* a-ztflau.ads: Likewise.
+	* a-ztflio.adb: Likewise.
+	* a-ztflio.ads: Likewise.
+	* a-ztgeau.adb: Likewise.
+	* a-ztgeau.ads: Likewise.
+	* a-ztinau.adb: Likewise.
+	* a-ztinau.ads: Likewise.
+	* a-ztinio.adb: Likewise.
+	* a-ztmoau.adb: Likewise.
+	* a-ztmoau.ads: Likewise.
+	* a-ztmoio.adb: Likewise.
+	* a-ztmoio.ads: Likewise.
+	* a-zttest.adb: Likewise.
+	* a-zzboio.adb: Likewise.
+	* adadecode.c: Likewise.
+	* adaint.c: Likewise.
+	* adaint.h: Likewise.
+	* alloc.ads: Likewise.
+	* argv.c: Likewise.
+	* arit64.c: Likewise.
+	* atree.adb: Likewise.
+	* atree.ads: Likewise.
+	* aux-io.c: Likewise.
+	* cal.c: Likewise.
+	* casing.adb: Likewise.
+	* casing.ads: Likewise.
+	* cio.c: Likewise.
+	* csets.adb: Likewise.
+	* csets.ads: Likewise.
+	* cstreams.c: Likewise.
+	* ctrl_c.c: Likewise.
+	* debug.adb: Likewise.
+	* debug.ads: Likewise.
+	* dec.ads: Likewise.
+	* einfo.adb: Likewise.
+	* einfo.ads: Likewise.
+	* elists.adb: Likewise.
+	* elists.ads: Likewise.
+	* env.c: Likewise.
+	* env.h: Likewise.
+	* errno.c: Likewise.
+	* exit.c: Likewise.
+	* fe.h: Likewise.
+	* final.c: Likewise.
+	* fname.adb: Likewise.
+	* fname.ads: Likewise.
+	* g-allein.ads: Likewise.
+	* g-alleve.adb: Likewise.
+	* g-alleve.ads: Likewise.
+	* g-altcon.adb: Likewise.
+	* g-altcon.ads: Likewise.
+	* g-altive.ads: Likewise.
+	* g-alveop.adb: Likewise.
+	* g-alveop.ads: Likewise.
+	* g-alvety.ads: Likewise.
+	* g-alvevi.ads: Likewise.
+	* g-arrspl.adb: Likewise.
+	* g-arrspl.ads: Likewise.
+	* g-calend.ads: Likewise.
+	* g-comlin.adb: Likewise.
+	* g-debpoo.adb: Likewise.
+	* g-debpoo.ads: Likewise.
+	* g-eacodu-vms.adb: Likewise.
+	* g-eacodu.adb: Likewise.
+	* g-excact.adb: Likewise.
+	* g-excact.ads: Likewise.
+	* g-locfil.adb: Likewise.
+	* g-os_lib.ads: Likewise.
+	* g-rannum.adb: Likewise.
+	* g-rannum.ads: Likewise.
+	* g-regist.adb: Likewise.
+	* g-regist.ads: Likewise.
+	* g-signal.adb: Likewise.
+	* g-signal.ads: Likewise.
+	* g-soccon.ads: Likewise.
+	* g-string.adb: Likewise.
+	* g-string.ads: Likewise.
+	* g-strspl.ads: Likewise.
+	* g-timsta.adb: Likewise.
+	* g-timsta.ads: Likewise.
+	* g-trasym-vms-alpha.adb: Likewise.
+	* g-trasym-vms-ia64.adb: Likewise.
+	* g-utf_32.adb: Likewise.
+	* g-utf_32.ads: Likewise.
+	* g-wistsp.ads: Likewise.
+	* g-zstspl.ads: Likewise.
+	* gmem.c: Likewise.
+	* gnatvsn.adb: Likewise.
+	* gnatvsn.ads: Likewise.
+	* gsocket.h: Likewise.
+	* hostparm.ads: Likewise.
+	* i-c.adb: Likewise.
+	* i-cexten.ads: Likewise.
+	* i-cobol.adb: Likewise.
+	* i-cobol.ads: Likewise.
+	* i-cpoint.adb: Likewise.
+	* i-cpoint.ads: Likewise.
+	* i-cpp.adb: Likewise.
+	* i-cpp.ads: Likewise.
+	* i-cstrea-vms.adb: Likewise.
+	* i-cstrea.adb: Likewise.
+	* i-cstrea.ads: Likewise.
+	* i-cstrin.adb: Likewise.
+	* i-cstrin.ads: Likewise.
+	* i-forbla-darwin.adb: Likewise.
+	* i-forbla-unimplemented.ads: Likewise.
+	* i-forbla.adb: Likewise.
+	* i-forbla.ads: Likewise.
+	* i-forlap.ads: Likewise.
+	* i-fortra.adb: Likewise.
+	* i-pacdec.adb: Likewise.
+	* i-pacdec.ads: Likewise.
+	* i-vxwoio.adb: Likewise.
+	* i-vxwoio.ads: Likewise.
+	* indepsw-aix.adb: Likewise.
+	* indepsw-gnu.adb: Likewise.
+	* indepsw-mingw.adb: Likewise.
+	* indepsw.adb: Likewise.
+	* indepsw.ads: Likewise.
+	* init.c: Likewise.
+	* initialize.c: Likewise.
+	* interfac.ads: Likewise.
+	* krunch.adb: Likewise.
+	* krunch.ads: Likewise.
+	* lib-list.adb: Likewise.
+	* lib-sort.adb: Likewise.
+	* lib.adb: Likewise.
+	* lib.ads: Likewise.
+	* link.c: Likewise.
+	* math_lib.adb: Likewise.
+	* memtrack.adb: Likewise.
+	* mingw32.h: Likewise.
+	* mkdir.c: Likewise.
+	* namet-sp.adb: Likewise.
+	* namet-sp.ads: Likewise.
+	* namet.adb: Likewise.
+	* namet.ads: Likewise.
+	* nlists.adb: Likewise.
+	* nlists.ads: Likewise.
+	* opt.adb: Likewise.
+	* opt.ads: Likewise.
+	* output.adb: Likewise.
+	* output.ads: Likewise.
+	* raise-gcc.c: Likewise.
+	* raise.c: Likewise.
+	* raise.h: Likewise.
+	* repinfo.adb: Likewise.
+	* repinfo.ads: Likewise.
+	* repinfo.h: Likewise.
+	* rident.ads: Likewise.
+	* s-addima.adb: Likewise.
+	* s-addima.ads: Likewise.
+	* s-addope.adb: Likewise.
+	* s-addope.ads: Likewise.
+	* s-arit64.adb: Likewise.
+	* s-arit64.ads: Likewise.
+	* s-assert.adb: Likewise.
+	* s-assert.ads: Likewise.
+	* s-asthan-vms-alpha.adb: Likewise.
+	* s-asthan.adb: Likewise.
+	* s-asthan.ads: Likewise.
+	* s-atacco.adb: Likewise.
+	* s-atacco.ads: Likewise.
+	* s-auxdec-empty.adb: Likewise.
+	* s-auxdec-empty.ads: Likewise.
+	* s-auxdec-vms_64.ads: Likewise.
+	* s-auxdec.adb: Likewise.
+	* s-auxdec.ads: Likewise.
+	* s-bitops.adb: Likewise.
+	* s-bitops.ads: Likewise.
+	* s-boarop.ads: Likewise.
+	* s-carsi8.adb: Likewise.
+	* s-carsi8.ads: Likewise.
+	* s-carun8.adb: Likewise.
+	* s-carun8.ads: Likewise.
+	* s-casi16.adb: Likewise.
+	* s-casi16.ads: Likewise.
+	* s-casi32.adb: Likewise.
+	* s-casi32.ads: Likewise.
+	* s-casi64.adb: Likewise.
+	* s-casi64.ads: Likewise.
+	* s-casuti.ads: Likewise.
+	* s-caun16.adb: Likewise.
+	* s-caun16.ads: Likewise.
+	* s-caun32.adb: Likewise.
+	* s-caun32.ads: Likewise.
+	* s-caun64.adb: Likewise.
+	* s-caun64.ads: Likewise.
+	* s-chepoo.ads: Likewise.
+	* s-crc32.adb: Likewise.
+	* s-crc32.ads: Likewise.
+	* s-crtl.ads: Likewise.
+	* s-direio.adb: Likewise.
+	* s-direio.ads: Likewise.
+	* s-dsaser.ads: Likewise.
+	* s-except.adb: Likewise.
+	* s-except.ads: Likewise.
+	* s-exctab.adb: Likewise.
+	* s-exctab.ads: Likewise.
+	* s-exnint.adb: Likewise.
+	* s-exnint.ads: Likewise.
+	* s-exnllf.adb: Likewise.
+	* s-exnllf.ads: Likewise.
+	* s-exnlli.adb: Likewise.
+	* s-exnlli.ads: Likewise.
+	* s-expint.adb: Likewise.
+	* s-expint.ads: Likewise.
+	* s-explli.adb: Likewise.
+	* s-explli.ads: Likewise.
+	* s-expllu.adb: Likewise.
+	* s-expllu.ads: Likewise.
+	* s-expmod.adb: Likewise.
+	* s-expmod.ads: Likewise.
+	* s-expuns.adb: Likewise.
+	* s-expuns.ads: Likewise.
+	* s-fatflt.ads: Likewise.
+	* s-fatgen.adb: Likewise.
+	* s-fatgen.ads: Likewise.
+	* s-fatlfl.ads: Likewise.
+	* s-fatllf.ads: Likewise.
+	* s-fatsfl.ads: Likewise.
+	* s-ficobl.ads: Likewise.
+	* s-fileio.adb: Likewise.
+	* s-fileio.ads: Likewise.
+	* s-filofl.ads: Likewise.
+	* s-finimp.adb: Likewise.
+	* s-finimp.ads: Likewise.
+	* s-finroo.adb: Likewise.
+	* s-finroo.ads: Likewise.
+	* s-fishfl.ads: Likewise.
+	* s-fore.adb: Likewise.
+	* s-fore.ads: Likewise.
+	* s-fvadfl.ads: Likewise.
+	* s-fvaffl.ads: Likewise.
+	* s-fvagfl.ads: Likewise.
+	* s-gearop.adb: Likewise.
+	* s-gearop.ads: Likewise.
+	* s-gecobl.adb: Likewise.
+	* s-gecobl.ads: Likewise.
+	* s-gecola.adb: Likewise.
+	* s-gecola.ads: Likewise.
+	* s-gerebl.adb: Likewise.
+	* s-gerebl.ads: Likewise.
+	* s-gerela.adb: Likewise.
+	* s-gerela.ads: Likewise.
+	* s-geveop.adb: Likewise.
+	* s-geveop.ads: Likewise.
+	* s-gloloc.adb: Likewise.
+	* s-gloloc.ads: Likewise.
+	* s-hibaen.ads: Likewise.
+	* s-imenne.adb: Likewise.
+	* s-imenne.ads: Likewise.
+	* s-imgbiu.adb: Likewise.
+	* s-imgbiu.ads: Likewise.
+	* s-imgboo.adb: Likewise.
+	* s-imgboo.ads: Likewise.
+	* s-imgcha.adb: Likewise.
+	* s-imgcha.ads: Likewise.
+	* s-imgdec.adb: Likewise.
+	* s-imgdec.ads: Likewise.
+	* s-imgenu.adb: Likewise.
+	* s-imgenu.ads: Likewise.
+	* s-imgint.adb: Likewise.
+	* s-imgint.ads: Likewise.
+	* s-imgllb.adb: Likewise.
+	* s-imgllb.ads: Likewise.
+	* s-imglld.adb: Likewise.
+	* s-imglld.ads: Likewise.
+	* s-imglli.adb: Likewise.
+	* s-imglli.ads: Likewise.
+	* s-imgllu.adb: Likewise.
+	* s-imgllu.ads: Likewise.
+	* s-imgllw.adb: Likewise.
+	* s-imgllw.ads: Likewise.
+	* s-imgrea.adb: Likewise.
+	* s-imgrea.ads: Likewise.
+	* s-imguns.adb: Likewise.
+	* s-imguns.ads: Likewise.
+	* s-imgwch.adb: Likewise.
+	* s-imgwch.ads: Likewise.
+	* s-imgwiu.adb: Likewise.
+	* s-imgwiu.ads: Likewise.
+	* s-inmaop-dummy.adb: Likewise.
+	* s-inmaop-vms.adb: Likewise.
+	* s-inmaop.ads: Likewise.
+	* s-interr-hwint.adb: Likewise.
+	* s-interr-sigaction.adb: Likewise.
+	* s-interr-vms.adb: Likewise.
+	* s-interr.adb: Likewise.
+	* s-interr.ads: Likewise.
+	* s-intman-dummy.adb: Likewise.
+	* s-intman-mingw.adb: Likewise.
+	* s-intman-posix.adb: Likewise.
+	* s-intman-solaris.adb: Likewise.
+	* s-intman-vms.adb: Likewise.
+	* s-intman-vms.ads: Likewise.
+	* s-intman-vxworks.adb: Likewise.
+	* s-intman-vxworks.ads: Likewise.
+	* s-intman.ads: Likewise.
+	* s-io.adb: Likewise.
+	* s-io.ads: Likewise.
+	* s-linux-alpha.ads: Likewise.
+	* s-linux-hppa.ads: Likewise.
+	* s-linux.ads: Likewise.
+	* s-maccod.ads: Likewise.
+	* s-mantis.adb: Likewise.
+	* s-mantis.ads: Likewise.
+	* s-mastop-irix.adb: Likewise.
+	* s-mastop.adb: Likewise.
+	* s-mastop.ads: Likewise.
+	* s-memcop.ads: Likewise.
+	* s-memory-mingw.adb: Likewise.
+	* s-memory.adb: Likewise.
+	* s-memory.ads: Likewise.
+	* s-os_lib.ads: Likewise.
+	* s-oscons-tmplt.c: Likewise.
+	* s-osinte-aix.adb: Likewise.
+	* s-osinte-darwin.adb: Likewise.
+	* s-osinte-freebsd.adb: Likewise.
+	* s-osinte-irix.adb: Likewise.
+	* s-osinte-lynxos-3.adb: Likewise.
+	* s-osinte-rtems.ads: Likewise.
+	* s-osinte-tru64.adb: Likewise.
+	* s-osinte-vxworks-kernel.adb: Likewise.
+	* s-osinte-vxworks.adb: Likewise.
+	* s-osprim-mingw.adb: Likewise.
+	* s-osprim-posix.adb: Likewise.
+	* s-osprim-solaris.adb: Likewise.
+	* s-osprim-unix.adb: Likewise.
+	* s-osprim-vms.adb: Likewise.
+	* s-osprim-vms.ads: Likewise.
+	* s-osprim-vxworks.adb: Likewise.
+	* s-osprim.ads: Likewise.
+	* s-pack03.adb: Likewise.
+	* s-pack03.ads: Likewise.
+	* s-pack05.adb: Likewise.
+	* s-pack05.ads: Likewise.
+	* s-pack06.adb: Likewise.
+	* s-pack06.ads: Likewise.
+	* s-pack07.adb: Likewise.
+	* s-pack07.ads: Likewise.
+	* s-pack09.adb: Likewise.
+	* s-pack09.ads: Likewise.
+	* s-pack10.adb: Likewise.
+	* s-pack10.ads: Likewise.
+	* s-pack11.adb: Likewise.
+	* s-pack11.ads: Likewise.
+	* s-pack12.adb: Likewise.
+	* s-pack12.ads: Likewise.
+	* s-pack13.adb: Likewise.
+	* s-pack13.ads: Likewise.
+	* s-pack14.adb: Likewise.
+	* s-pack14.ads: Likewise.
+	* s-pack15.adb: Likewise.
+	* s-pack15.ads: Likewise.
+	* s-pack17.adb: Likewise.
+	* s-pack17.ads: Likewise.
+	* s-pack18.adb: Likewise.
+	* s-pack18.ads: Likewise.
+	* s-pack19.adb: Likewise.
+	* s-pack19.ads: Likewise.
+	* s-pack20.adb: Likewise.
+	* s-pack20.ads: Likewise.
+	* s-pack21.adb: Likewise.
+	* s-pack21.ads: Likewise.
+	* s-pack22.adb: Likewise.
+	* s-pack22.ads: Likewise.
+	* s-pack23.adb: Likewise.
+	* s-pack23.ads: Likewise.
+	* s-pack24.adb: Likewise.
+	* s-pack24.ads: Likewise.
+	* s-pack25.adb: Likewise.
+	* s-pack25.ads: Likewise.
+	* s-pack26.adb: Likewise.
+	* s-pack26.ads: Likewise.
+	* s-pack27.adb: Likewise.
+	* s-pack27.ads: Likewise.
+	* s-pack28.adb: Likewise.
+	* s-pack28.ads: Likewise.
+	* s-pack29.adb: Likewise.
+	* s-pack29.ads: Likewise.
+	* s-pack30.adb: Likewise.
+	* s-pack30.ads: Likewise.
+	* s-pack31.adb: Likewise.
+	* s-pack31.ads: Likewise.
+	* s-pack33.adb: Likewise.
+	* s-pack33.ads: Likewise.
+	* s-pack34.adb: Likewise.
+	* s-pack34.ads: Likewise.
+	* s-pack35.adb: Likewise.
+	* s-pack35.ads: Likewise.
+	* s-pack36.adb: Likewise.
+	* s-pack36.ads: Likewise.
+	* s-pack37.adb: Likewise.
+	* s-pack37.ads: Likewise.
+	* s-pack38.adb: Likewise.
+	* s-pack38.ads: Likewise.
+	* s-pack39.adb: Likewise.
+	* s-pack39.ads: Likewise.
+	* s-pack40.adb: Likewise.
+	* s-pack40.ads: Likewise.
+	* s-pack41.adb: Likewise.
+	* s-pack41.ads: Likewise.
+	* s-pack42.adb: Likewise.
+	* s-pack42.ads: Likewise.
+	* s-pack43.adb: Likewise.
+	* s-pack43.ads: Likewise.
+	* s-pack44.adb: Likewise.
+	* s-pack44.ads: Likewise.
+	* s-pack45.adb: Likewise.
+	* s-pack45.ads: Likewise.
+	* s-pack46.adb: Likewise.
+	* s-pack46.ads: Likewise.
+	* s-pack47.adb: Likewise.
+	* s-pack47.ads: Likewise.
+	* s-pack48.adb: Likewise.
+	* s-pack48.ads: Likewise.
+	* s-pack49.adb: Likewise.
+	* s-pack49.ads: Likewise.
+	* s-pack50.adb: Likewise.
+	* s-pack50.ads: Likewise.
+	* s-pack51.adb: Likewise.
+	* s-pack51.ads: Likewise.
+	* s-pack52.adb: Likewise.
+	* s-pack52.ads: Likewise.
+	* s-pack53.adb: Likewise.
+	* s-pack53.ads: Likewise.
+	* s-pack54.adb: Likewise.
+	* s-pack54.ads: Likewise.
+	* s-pack55.adb: Likewise.
+	* s-pack55.ads: Likewise.
+	* s-pack56.adb: Likewise.
+	* s-pack56.ads: Likewise.
+	* s-pack57.adb: Likewise.
+	* s-pack57.ads: Likewise.
+	* s-pack58.adb: Likewise.
+	* s-pack58.ads: Likewise.
+	* s-pack59.adb: Likewise.
+	* s-pack59.ads: Likewise.
+	* s-pack60.adb: Likewise.
+	* s-pack60.ads: Likewise.
+	* s-pack61.adb: Likewise.
+	* s-pack61.ads: Likewise.
+	* s-pack62.adb: Likewise.
+	* s-pack62.ads: Likewise.
+	* s-pack63.adb: Likewise.
+	* s-pack63.ads: Likewise.
+	* s-parame-ae653.ads: Likewise.
+	* s-parame-hpux.ads: Likewise.
+	* s-parame-rtems.adb: Likewise.
+	* s-parame-vms-alpha.ads: Likewise.
+	* s-parame-vms-ia64.ads: Likewise.
+	* s-parame-vms-restrict.ads: Likewise.
+	* s-parame-vxworks.adb: Likewise.
+	* s-parame-vxworks.ads: Likewise.
+	* s-parame.adb: Likewise.
+	* s-parame.ads: Likewise.
+	* s-parint.adb: Likewise.
+	* s-parint.ads: Likewise.
+	* s-pooglo.adb: Likewise.
+	* s-pooglo.ads: Likewise.
+	* s-pooloc.adb: Likewise.
+	* s-pooloc.ads: Likewise.
+	* s-poosiz.adb: Likewise.
+	* s-poosiz.ads: Likewise.
+	* s-powtab.ads: Likewise.
+	* s-proinf-irix-athread.adb: Likewise.
+	* s-proinf-irix-athread.ads: Likewise.
+	* s-proinf.adb: Likewise.
+	* s-proinf.ads: Likewise.
+	* s-purexc.ads: Likewise.
+	* s-rannum.adb: Likewise.
+	* s-rannum.ads: Likewise.
+	* s-restri.adb: Likewise.
+	* s-restri.ads: Likewise.
+	* s-rident.ads: Likewise.
+	* s-rpc.adb: Likewise.
+	* s-rpc.ads: Likewise.
+	* s-scaval.adb: Likewise.
+	* s-scaval.ads: Likewise.
+	* s-secsta.adb: Likewise.
+	* s-secsta.ads: Likewise.
+	* s-sequio.adb: Likewise.
+	* s-sequio.ads: Likewise.
+	* s-shasto.adb: Likewise.
+	* s-shasto.ads: Likewise.
+	* s-soflin.adb: Likewise.
+	* s-soflin.ads: Likewise.
+	* s-solita.adb: Likewise.
+	* s-solita.ads: Likewise.
+	* s-sopco3.adb: Likewise.
+	* s-sopco3.ads: Likewise.
+	* s-sopco4.adb: Likewise.
+	* s-sopco4.ads: Likewise.
+	* s-sopco5.adb: Likewise.
+	* s-sopco5.ads: Likewise.
+	* s-stache.adb: Likewise.
+	* s-stache.ads: Likewise.
+	* s-stalib.adb: Likewise.
+	* s-stalib.ads: Likewise.
+	* s-stausa.adb: Likewise.
+	* s-stausa.ads: Likewise.
+	* s-stchop-limit.ads: Likewise.
+	* s-stchop-rtems.adb: Likewise.
+	* s-stchop-vxworks.adb: Likewise.
+	* s-stchop.adb: Likewise.
+	* s-stchop.ads: Likewise.
+	* s-stoele.adb: Likewise.
+	* s-stoele.ads: Likewise.
+	* s-stopoo.adb: Likewise.
+	* s-stopoo.ads: Likewise.
+	* s-stratt.adb: Likewise.
+	* s-stratt.ads: Likewise.
+	* s-strcom.adb: Likewise.
+	* s-strcom.ads: Likewise.
+	* s-string.adb: Likewise.
+	* s-string.ads: Likewise.
+	* s-strops.adb: Likewise.
+	* s-strops.ads: Likewise.
+	* s-strxdr.adb: Likewise.
+	* s-ststop.adb: Likewise.
+	* s-ststop.ads: Likewise.
+	* s-taasde.adb: Likewise.
+	* s-taasde.ads: Likewise.
+	* s-tadeca.adb: Likewise.
+	* s-tadeca.ads: Likewise.
+	* s-tadert.adb: Likewise.
+	* s-tadert.ads: Likewise.
+	* s-taenca.adb: Likewise.
+	* s-taenca.ads: Likewise.
+	* s-taprob.ads: Likewise.
+	* s-taprop-dummy.adb: Likewise.
+	* s-taprop-hpux-dce.adb: Likewise.
+	* s-taprop-irix.adb: Likewise.
+	* s-taprop-linux.adb: Likewise.
+	* s-taprop-lynxos.adb: Likewise.
+	* s-taprop-mingw.adb: Likewise.
+	* s-taprop-posix.adb: Likewise.
+	* s-taprop-solaris.adb: Likewise.
+	* s-taprop-tru64.adb: Likewise.
+	* s-taprop-vms.adb: Likewise.
+	* s-taprop-vxworks.adb: Likewise.
+	* s-taprop.ads: Likewise.
+	* s-tarest.adb: Likewise.
+	* s-tarest.ads: Likewise.
+	* s-tasdeb.adb: Likewise.
+	* s-tasdeb.ads: Likewise.
+	* s-tasinf-irix.ads: Likewise.
+	* s-tasinf-linux.adb: Likewise.
+	* s-tasinf-linux.ads: Likewise.
+	* s-tasinf-mingw.adb: Likewise.
+	* s-tasinf-mingw.ads: Likewise.
+	* s-tasinf-solaris.adb: Likewise.
+	* s-tasinf-solaris.ads: Likewise.
+	* s-tasinf-tru64.ads: Likewise.
+	* s-tasinf.adb: Likewise.
+	* s-tasinf.ads: Likewise.
+	* s-tasini.adb: Likewise.
+	* s-tasini.ads: Likewise.
+	* s-taskin.adb: Likewise.
+	* s-taskin.ads: Likewise.
+	* s-taspri-dummy.ads: Likewise.
+	* s-taspri-hpux-dce.ads: Likewise.
+	* s-taspri-mingw.ads: Likewise.
+	* s-taspri-solaris.ads: Likewise.
+	* s-taspri-tru64.ads: Likewise.
+	* s-taspri-vms.ads: Likewise.
+	* s-taspri-vxworks.ads: Likewise.
+	* s-tasque.adb: Likewise.
+	* s-tasque.ads: Likewise.
+	* s-tasren.adb: Likewise.
+	* s-tasren.ads: Likewise.
+	* s-tasres.ads: Likewise.
+	* s-tassta.adb: Likewise.
+	* s-tassta.ads: Likewise.
+	* s-tasuti.adb: Likewise.
+	* s-tasuti.ads: Likewise.
+	* s-tfsetr-default.adb: Likewise.
+	* s-tfsetr-vxworks.adb: Likewise.
+	* s-tpinop.adb: Likewise.
+	* s-tpinop.ads: Likewise.
+	* s-tpoben.adb: Likewise.
+	* s-tpoben.ads: Likewise.
+	* s-tpobop.adb: Likewise.
+	* s-tpobop.ads: Likewise.
+	* s-tpopde-vms.adb: Likewise.
+	* s-tpopde-vms.ads: Likewise.
+	* s-tpopsp-lynxos.adb: Likewise.
+	* s-tpopsp-posix-foreign.adb: Likewise.
+	* s-tpopsp-posix.adb: Likewise.
+	* s-tpopsp-solaris.adb: Likewise.
+	* s-tpopsp-vxworks.adb: Likewise.
+	* s-tporft.adb: Likewise.
+	* s-tposen.adb: Likewise.
+	* s-tposen.ads: Likewise.
+	* s-traceb.adb: Likewise.
+	* s-traceb.ads: Likewise.
+	* s-traces-default.adb: Likewise.
+	* s-traces.adb: Likewise.
+	* s-traces.ads: Likewise.
+	* s-traent-vms.adb: Likewise.
+	* s-traent-vms.ads: Likewise.
+	* s-traent.adb: Likewise.
+	* s-traent.ads: Likewise.
+	* s-trafor-default.adb: Likewise.
+	* s-trafor-default.ads: Likewise.
+	* s-tratas-default.adb: Likewise.
+	* s-tratas.adb: Likewise.
+	* s-tratas.ads: Likewise.
+	* s-unstyp.ads: Likewise.
+	* s-utf_32.adb: Likewise.
+	* s-utf_32.ads: Likewise.
+	* s-vaflop-vms-alpha.adb: Likewise.
+	* s-vaflop.adb: Likewise.
+	* s-vaflop.ads: Likewise.
+	* s-valboo.adb: Likewise.
+	* s-valboo.ads: Likewise.
+	* s-valcha.adb: Likewise.
+	* s-valcha.ads: Likewise.
+	* s-valdec.adb: Likewise.
+	* s-valdec.ads: Likewise.
+	* s-valenu.adb: Likewise.
+	* s-valenu.ads: Likewise.
+	* s-valint.adb: Likewise.
+	* s-valint.ads: Likewise.
+	* s-vallld.adb: Likewise.
+	* s-vallld.ads: Likewise.
+	* s-vallli.adb: Likewise.
+	* s-vallli.ads: Likewise.
+	* s-valllu.adb: Likewise.
+	* s-valllu.ads: Likewise.
+	* s-valrea.adb: Likewise.
+	* s-valrea.ads: Likewise.
+	* s-valuns.adb: Likewise.
+	* s-valuns.ads: Likewise.
+	* s-valuti.adb: Likewise.
+	* s-valuti.ads: Likewise.
+	* s-valwch.adb: Likewise.
+	* s-valwch.ads: Likewise.
+	* s-veboop.adb: Likewise.
+	* s-veboop.ads: Likewise.
+	* s-vector.ads: Likewise.
+	* s-vercon.adb: Likewise.
+	* s-vercon.ads: Likewise.
+	* s-vmexta.adb: Likewise.
+	* s-vmexta.ads: Likewise.
+	* s-vxwext-kernel.ads: Likewise.
+	* s-vxwext-rtp.adb: Likewise.
+	* s-vxwext-rtp.ads: Likewise.
+	* s-vxwext.ads: Likewise.
+	* s-vxwork-arm.ads: Likewise.
+	* s-vxwork-m68k.ads: Likewise.
+	* s-vxwork-mips.ads: Likewise.
+	* s-vxwork-ppc.ads: Likewise.
+	* s-vxwork-sparcv9.ads: Likewise.
+	* s-vxwork-x86.ads: Likewise.
+	* s-wchcnv.adb: Likewise.
+	* s-wchcnv.ads: Likewise.
+	* s-wchcon.adb: Likewise.
+	* s-wchcon.ads: Likewise.
+	* s-wchjis.adb: Likewise.
+	* s-wchjis.ads: Likewise.
+	* s-wchstw.adb: Likewise.
+	* s-wchstw.ads: Likewise.
+	* s-wchwts.adb: Likewise.
+	* s-wchwts.ads: Likewise.
+	* s-widboo.adb: Likewise.
+	* s-widboo.ads: Likewise.
+	* s-widcha.adb: Likewise.
+	* s-widcha.ads: Likewise.
+	* s-widenu.adb: Likewise.
+	* s-widenu.ads: Likewise.
+	* s-widlli.adb: Likewise.
+	* s-widlli.ads: Likewise.
+	* s-widllu.adb: Likewise.
+	* s-widllu.ads: Likewise.
+	* s-widwch.adb: Likewise.
+	* s-widwch.ads: Likewise.
+	* s-win32.ads: Likewise.
+	* s-winext.ads: Likewise.
+	* s-wwdcha.adb: Likewise.
+	* s-wwdcha.ads: Likewise.
+	* s-wwdenu.adb: Likewise.
+	* s-wwdenu.ads: Likewise.
+	* s-wwdwch.adb: Likewise.
+	* s-wwdwch.ads: Likewise.
+	* scans.adb: Likewise.
+	* scans.ads: Likewise.
+	* seh_init.c: Likewise.
+	* sfn_scan.adb: Likewise.
+	* sinfo.adb: Likewise.
+	* sinfo.ads: Likewise.
+	* sinput.adb: Likewise.
+	* sinput.ads: Likewise.
+	* snames.adb: Likewise.
+	* snames.ads: Likewise.
+	* socket.c: Likewise.
+	* stand.adb: Likewise.
+	* stand.ads: Likewise.
+	* stringt.adb: Likewise.
+	* stringt.ads: Likewise.
+	* sysdep.c: Likewise.
+	* system-aix.ads: Likewise.
+	* system-darwin-ppc.ads: Likewise.
+	* system-darwin-x86.ads: Likewise.
+	* system-darwin-x86_64.ads: Likewise.
+	* system-freebsd-x86.ads: Likewise.
+	* system-hpux-ia64.ads: Likewise.
+	* system-hpux.ads: Likewise.
+	* system-irix-n32.ads: Likewise.
+	* system-irix-n64.ads: Likewise.
+	* system-irix-o32.ads: Likewise.
+	* system-linux-alpha.ads: Likewise.
+	* system-linux-hppa.ads: Likewise.
+	* system-linux-ia64.ads: Likewise.
+	* system-linux-mips.ads: Likewise.
+	* system-linux-mipsel.ads: Likewise.
+	* system-linux-ppc.ads: Likewise.
+	* system-linux-ppc64.ads: Likewise.
+	* system-linux-s390.ads: Likewise.
+	* system-linux-s390x.ads: Likewise.
+	* system-linux-sh4.ads: Likewise.
+	* system-linux-sparc.ads: Likewise.
+	* system-linux-sparcv9.ads: Likewise.
+	* system-linux-x86.ads: Likewise.
+	* system-linux-x86_64.ads: Likewise.
+	* system-lynxos-ppc.ads: Likewise.
+	* system-lynxos-x86.ads: Likewise.
+	* system-mingw-x86_64.ads: Likewise.
+	* system-mingw.ads: Likewise.
+	* system-rtems.ads: Likewise.
+	* system-solaris-sparc.ads: Likewise.
+	* system-solaris-sparcv9.ads: Likewise.
+	* system-solaris-x86.ads: Likewise.
+	* system-solaris-x86_64.ads: Likewise.
+	* system-tru64.ads: Likewise.
+	* system-vms-ia64.ads: Likewise.
+	* system-vms-zcx.ads: Likewise.
+	* system-vms.ads: Likewise.
+	* system-vms_64.ads: Likewise.
+	* system-vxworks-arm.ads: Likewise.
+	* system-vxworks-m68k.ads: Likewise.
+	* system-vxworks-mips.ads: Likewise.
+	* system-vxworks-ppc.ads: Likewise.
+	* system-vxworks-sparcv9.ads: Likewise.
+	* system-vxworks-x86.ads: Likewise.
+	* system.ads: Likewise.
+	* table.adb: Likewise.
+	* table.ads: Likewise.
+	* targext.c: Likewise.
+	* targparm.ads: Likewise.
+	* tree_in.adb: Likewise.
+	* tree_in.ads: Likewise.
+	* tree_io.adb: Likewise.
+	* tree_io.ads: Likewise.
+	* types.adb: Likewise.
+	* types.ads: Likewise.
+	* uintp.adb: Likewise.
+	* uintp.ads: Likewise.
+	* uname.adb: Likewise.
+	* uname.ads: Likewise.
+	* urealp.adb: Likewise.
+	* urealp.ads: Likewise.
+	* vx_stack_info.c: Likewise.
+	* widechar.adb: Likewise.
+	* widechar.ads: Likewise.
+	* exp_attr.adb: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* sem.adb: Likewise.
+	* sem_attr.ads: Likewise.
+	* freeze.adb: Likewise.
+	* freeze.ads: Likewise.
+	* errout.ads: Likewise.
+	* erroutc.adb: Likewise.
+	* exp_ch11.ads: Likewise.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config-lang.in: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* gcc-interface/trans.c: Likewise.
+	* gnathtml.pl: Likewise.
+	* gcc-interface/ada.h: Likewise.  Remove runtime exception.
+	* gcc-interface/gigi.h: Likewise.
+	* gcc-interface/misc.c: Likewise.
+	* gcc-interface/targtyps.c: Likewise.
+
+2009-04-09  Nicolas Setton  <setton@adacore.com>
+
+	* s-osinte-darwin.ads: Fix wrong binding to struc timeval.
+
+	* s-osinte-darwin.adb (To_Timeval): Adapt to fixed implementation of
+	struct_timeval.
+
+2009-04-09  Bob Duff  <duff@adacore.com>
+
+	* exp_ch5.adb, exp_ch9.adb: Correct miscellaneous Slocs in
+	internally-generated nodes related to select statements to avoid
+	confusing the debugger.
+
+2009-04-09  Pascal Obry  <obry@adacore.com>
+
+	* make.adb: Ensure that all linker arguments are duplicated.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch5.adb: Minor reformatting
+
+2009-04-09  Vincent Celier  <celier@adacore.com>
+
+	* vms_data.ads:
+	Change GNAT CHECK qualifier /DIAGNOSIS_LIMIT to /DIAGNOSTIC_LIMIT
+	New qualifier /LEXPAND_SOURCE=nnn for -gnatGnnn
+	New qualifier /LXDEBUG=nnn for -gnatDnnn
+	For H820-010
+
+	* gnat_ugn.texi:
+	Update documentation for VMS qualifiers equivalent to -gnatGnn and
+	-gnatDnn
+
+2009-04-09  Nicolas Setton  <setton@adacore.com>
+
+	* s-osinte-darwin.ads: (Pad_Type): Make this an array of unsigned_long,
+	to match layout of siginfo_t in sys/signal.h.
+
+	* gcc-interface/Makefile.in: Add section for x86_64 darwin.
+
+2009-04-09  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket.ads: (Fd_Set): Use Interfaces.C.long alignment.
+
+2009-04-09  Nicolas Setton  <setton@adacore.com>
+
+	* s-oscons-tmplt.c: Allow long lines in the generated spec.
+	Add generation of Darwin-specific constants needed when binding to the
+	pthread library.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+        * checks.adb:
+        (Insert_Valid_Check): Avoid unnecessary generation of junk declaration
+        when no invalid values exist, Avoid duplicate read of atomic variable.
+
+        * cstand.adb (Build_Signed_Integer_Type): Set Is_Known_Valid
+        (Standard_Unsigned): Set Is_Known_Valid
+
+        * sem_ch3.adb (Analyze_Subtype_Declaration): Copy Is_Known_Valid on
+	subtype declaration if no constraint.
+        (Set_Modular_Size): Set Is_Known_Valid if appropriate
+        (Build_Derived_Numeric_Type): Copy Is_Known_Valid if no constraint
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* switch-c.adb, gnat_ugn.texi, vms_data.ads, switch.adb,
+	switch.ads: for numeric switches, an optional equal sign is always
+	allowed.
+
+2009-04-09  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Get_Unit): Do not consider Casing on platform where
+	the case of file names is not significant.
+
+2009-04-09  Vincent Celier  <celier@adacore.com>
+
+	* errout.adb: Remove dependency on package Style
+
+	* style.ads, styleg.adb, styleg.ads (RM_Column_Check): Remove function,
+	moved to Stylesw.
+	
+	* stylesw.ads, stylesw.adb (RM_Column_Check): New function, moved from
+	Styleg.
+
+	* errutil.adb, par.adb: Import Stylesw
+
+2009-04-09  Arnaud Charlet  <charlet@adacore.com>
+
+	* opt.ads: Fix typos.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.adb: Minor reformatting
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* gcc-interface/Make-lang.in, style.ads, style.adb: Reorganize style
+	units.
+
+	* styleg-c.ads, styleg-c.adb: Removed, no longer used.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* g-comver.adb: Minor reformatting.
+
+2009-04-09  Thomas Quinot  <quinot@adacore.com>
+
+	* lib-load.ads (Load_Unit): Update documentation.
+
+2009-04-09  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-load.adb (Load_Unit): When loading the parent of a child unit
+	named in a with_clause, retain the with_clause to preserve a
+	limited_with indication.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch7.adb, sem_ch10.adb, sem_prag.adb, sem_ch12.adb, sem_util.adb,
+	exp_ch13.adb, sem_ch6.adb, exp_disp.adb, sem_ch8.adb, sem_warn.adb,
+	sem_cat.adb: Code clean up: use Is_Package_Or_Generic_Package where
+	possible to replace an OR of two separate tests.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* binderr.adb, errout.adb, errutil.adb: New circuitry for handling
+	Maximum_Messages.
+	
+	* erroutc.adb, erroutc.ads (Warnings_Suppressed): Now tests global
+	warning status as well.
+	
+	* opt.ads (Maximum_Messages): New name for Maximum_Errors.
+	
+	* switch-b.adb, switch-c.adb: Change name Maximum_Errors to
+	Maximum_Messages.
+	
+	* bindusg.adb, usage.adb: Update line for -gnatm switch
+
+	* gnat_ugn.texi: Update documentation for -gnatmnn compiler switch and
+	-mnn binder switch.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch10.adb: Minor reformatting.
+
+2009-04-09  Bob Duff  <duff@adacore.com>
+
+	* exp_ch11.adb (Expand_Exception_Handlers, Prepend_Call_To_Handler):
+	Set Sloc of generated nodes for calls to Undefer_Aborts and
+	Save_Occurrence to No_Location, so the debugger ignores them and
+	therefore does not jump back and forth when single stepping.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* switch-b.adb: Minor reformatting.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* sem_aggr.adb, exp_ch5.adb, sem_ch3.adb, exp_atag.adb, layout.adb,
+	sem_dist.adb, exp_ch7.adb, sem_ch5.adb, sem_type.adb, exp_imgv.adb,
+	exp_util.adb, sem_aux.adb, sem_aux.ads, exp_attr.adb, exp_ch9.adb,
+	sem_ch7.adb, inline.adb, fe.h, sem_ch9.adb, exp_code.adb, einfo.adb,
+	einfo.ads, exp_pakd.adb, checks.adb, sem_ch12.adb, exp_smem.adb,
+	tbuild.adb, freeze.adb, sem_util.adb, sem_res.adb, sem_attr.adb,
+	exp_dbug.adb, sem_case.adb, exp_tss.adb, exp_ch4.adb, exp_ch6.adb,
+	sem_smem.adb, sem_ch4.adb, sem_mech.adb, sem_ch6.adb, exp_disp.adb,
+	sem_ch8.adb, exp_aggr.adb, sem_eval.adb, sem_cat.adb, exp_dist.adb,
+	sem_ch13.adb, exp_strm.adb, lib-xref.adb, sem_disp.adb, exp_ch3.adb:
+	Reorganize einfo/sem_aux, moving routines from einfo to sem_aux
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.adb (Silly_Boolean_Array_Xor_Test): Simplify existing code.
+
+	* atree.h: Add Elist26
+
+	* gnat_ugn.texi: Complete documentation deprecating -gnatN for non-gcc
+	backends.
+
+2009-04-09  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Export_DT): Addition of a new argument (Index); used to
+	retrieve from the Dispatch_Table_Wrappers list the external name.
+	Addition of documentation.
+	(Make_Secondary_DT): Addition of a new argument (Suffix_Index) that is
+	used to export secondary dispatch tables (in the previous version of
+	the frontend only primary dispatch tables were exported). Addition of
+	documentation.
+	(Import_DT): New subprogram (internal of Make_Tags). Used to import a
+	dispatch table of a given tagged type. 
+	(Make_Tags): Modified to import secondary dispatch tables.
+
+	* sem_ch3.adb (Analyze_Object_Declaration): Code cleanup.
+	(Constant_Redeclaration): Code cleanup.
+
+	* einfo.ads (Dispatch_Table_Wrapper): Renamed to
+	Dispatch_Table_Wrappers.  Update documentation.
+
+	* einfo.adb (Dispatch_Table_Wrapper, Set_Dispatch_Table_Wrapper):
+	Renamed to Dispatch_Table_Wrappers.
+
+	* sem_util.adb (Collect_Interface_Components): Improve handling of
+	private types.
+
+	* atree.ads (Elist26, Set_Elist26): New subprograms
+
+	* atree.adb (Elist26, Set_Elist26): New subprograms
+
+2009-04-09  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Build_Derived_Record_Type): Fix typo.
+	(Derive_Progenitor_Subprograms): Handle interfaces in subtypes of
+	tagged types.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* s-direio.adb: Minor reformatting
+
+	* exp_ch4.adb (Expand_Concatenate): Avoid overflow checks for String
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Improve handling of overflow cases
+
+2009-04-09  Pascal Obry  <obry@adacore.com>
+
+	* a-cihama.adb, a-cihama.ads, a-coinve.adb, a-coinve.ads,
+	s-tpoben.adb, s-tpoben.ads, s-finimp.adb, s-finimp.ads,
+	a-convec.adb, a-convec.ads, a-finali.adb, a-finali.ads,
+	a-filico.ads: Add some missing overriding keywords.
+
+2009-04-09  Pascal Obry  <obry@adacore.com>
+
+	* a-cihama.adb, a-cihama.ads, a-coinve.adb, a-coorma.ads, a-cihase.adb,
+	a-cihase.ads, a-cohama.adb, a-cohama.ads, a-coorse.adb, a-coorse.ads,
+	a-coormu.adb, a-coormu.ads, a-cohase.adb, a-cohase.ads: Minor
+	reformatting.
+
+2009-04-09  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Check_Overriding_Indicator): Do not generate warning on
+	missing overriding indicator if the new declaration is not seen as
+	primitive.
+
+2009-04-09  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Add circuitry to properly handle
+	overflows in computation of bounds.
+
+2009-04-09  Pascal Obry  <obry@adacore.com>
+
+	* a-cihama.adb, a-cgcaso.adb, a-cihase.adb, a-cohase.adb: Fix some
+	typos in comment.
+
+2009-04-09  Robert Dewar  <dewar@adacore.com>
+
+	* sem_attr.adb (Check_Stream_Attribute): Check violation of
+	restriction No_Streams
+
+	* gnat_rm.texi: Clarify No_Streams restriction
+
+	* g-socket.adb: Minor reformatting.
+
+2009-04-09  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket.ads: Mark Initialize and Finalize as obsolesent interfaces.
+
+2009-04-09  Geert Bosch  <bosch@adacore.com>
+
+	* exp_fixd.adb (Build_Conversion): Accept new optional Trunc argument.
+	(Set_Result): Likewise.
+	(Expand_Convert_Float_To_Fixed): Have Set_Result truncate the
+	conversion, as required by RM 4.6(31).
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Enable_Overflow_Check): Do not enable if overflow checks
+	suppressed.
+	
+	* exp_ch4.adb (Expand_Concatenate): Make sure checks are off for all
+	resolution steps.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch12.adb (Analyze_Package_Instantiation): Remove test for
+	No_Local_Allocators restriction preventing local instantiation.
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_eval.adb: Minor comment fix
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* g-socket.adb, g-socket.ads (GNAT.Sockets.Sockets_Library_Controller):
+	New limited controlled type used to automate the initialization and
+	finalization of the sockets implementation.
+	(GNAT.Sockets.Initialize, Finalize): Make these no-ops
+
+2009-04-08  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr.adb: New read-only project-level attribute Project_Dir
+
+	* prj-proc.adb (Add_Attributes): New parameter Project_Dir, value of
+	read-only attribute of the same name.
+	(Process_Declarative_Items): Call Add_Attributes with Project_Dir
+	(Recursive_Process): Ditto
+
+	* snames.adb: Add new standard name Project_Dir
+
+	* snames.ads: Add new standard name Project_Dir
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* checks.adb: Minor reformatting
+
+2009-04-08  Vincent Celier  <celier@adacore.com>
+
+	* vms_data.ads: Add documentation for new style keyword
+	OVERRIDING_INDICATORS
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb (Check_Completion.Post_Error): Post error on spec if the
+	spec is in the current unit.
+
+2009-04-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Is_Protected_Self_Reference): Add guard to check for
+	presence of entity.
+
+	* usage.adb, gnat_ugn.texi: add info on -gnatyO: overriding indicators
+
+2009-04-08  Vincent Celier  <celier@adacore.com>
+
+	* vms_data.ads: Add VMS equivalent for -gnatyO (OVERRIDING_INDICATORS)
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* checks.ads: Minor reformatting
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Update documentation of pragma Obsolescent
+	
+	* sem_prag.adb (Analyze_Pragma, case Obsolescent): Allow identifiers to
+	be omitted, and allow Entity parameter to be omitted.
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_util.adb: Minor comment fix
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* g-socket.ads: Fix bad syntax in pragma Obsolescent
+
+	* par-ch2.adb (Scan_Pragma_Argument_Association): Check for error of
+	argument with no identifier following one that has an identifier. Was
+	missed in some cases.
+
+	* sem_prag.adb (Analyze_Pragma, case Check_Policy): Allow Policy
+	identifier.
+	(Analyze_Pragma, case Obsolescent): Allow Message, Version identifiers
+
+	* snames.adb: Add Name_Policy
+
+	* snames.ads: Add Name_Policy
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Minor reformatting
+
+	* par-ch2.adb: Minor reformatting
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* exp_attr.adb, sem_attr.adb, sem_util.adb: Code clean up.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* sem_cat.adb (Check_Categorization_Dependencies): Handle Preelaborate
+	properly in the presence of Remote_Types or Remote_Call_Interface.
+
+	* sem_util.adb: Add comment.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* ug_words: Add /ASSUME_VALID for -gnatB
+
+	* vms_data.ads: Add /ASSUME_VALID for -gnatB
+
+	* sem_cat.adb: Add clarifying commment
+
+	* a-direio.ads (Bytes): Make sure value is non-zero
+
+2009-04-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Is_Variable): If the prefix is an explicit dereference
+	that does not come from source, check for a rewritten function call in
+	prefixed notation before other forms of rewriting.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* Makefile.rtl: Remove s-strops and s-sopco? from the run time, since
+	these are now obsolescent units used only for bootrapping with an
+	older compiler.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Add documentation for pragma Thread_Local_Storage
+
+	* sem_ch3.adb: Minor comment updates
+
+2009-04-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* inline.adb (Back_End_Cannot_Inline): restrict warning to subprograms
+	that come from source.
+
+2009-04-08  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/gigi.h (enum attr_type): Add ATTR_THREAD_LOCAL_STORAGE.
+	* gcc-interface/decl.c (prepend_attributes): New case
+	Pragma_Thread_Local_Storage.
+	* gcc-interface/utils.c (process_attributes): New case
+	ATTR_THREAD_LOCAL_STORAGE.
+
+2009-04-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* inline.adb (Back_End_Cannot_Inline): Do not mark a body as inlineable
+	by the back-end if it contains a call to a subprogram without a
+	previous spec that is declared in the same unit.
+
+	* errout.ads: Update comments on uses of dirs
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Make sure nodes are properly typed
+
+2009-04-08  Tristan Gingold  <gingold@adacore.com>
+
+	* sem_prag.adb: Restrict pragma Thread_Local_Storage to library level
+	variables.
+	Set Has_Gigi_Rep_Item flag to TLS variables (to ease gigi work).
+
+2009-04-08  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb:
+	(Add_Source): Add the mapping of the unit name to source file name in
+	the Unit_Sources_HT hash table, if the unit name is not null.
+
+	* prj.adb (Reset): Reset hash table Tree.Unit_Sources_HT
+
+	* prj.ads (Unit_Sources_Htable): New hash table instantiation
+	(Project_Tree_Data): New component Unit_Sources_HT
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch8.adb: Minor reformatting.
+	Minor code reorganization.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* snames.h, einfo.adb, einfo.ads, sem_prag.adb, snames.adb,
+	snames.ads, freeze.adb, par-prag.adb: Add implementation of
+	pragma Thread_Local_Storage, setting new flag
+	Has_Pragma_Thread_Local_Storage in corresponding entities.
+
+2009-04-08  Emmanuel Briot  <briot@adacore.com>
+
+	* prj.ads: Update comment on switches file
+
+	* prj-nmsc.adb: Code clean up. Use renaming clauses.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Further fixes to bounds handling
+
+2009-04-08  Thomas Quinot  <quinot@adacore.com>
+
+	* ali-util.adb: Minor comment fix
+
+2009-04-08  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Analyze_Use_Type): Improve error message when clause
+	appears in a context clause, and the enclosing package is mentioned in
+	a limited_with_clause.
+	(Use_One_Type): Reject clause if type is still incomplete.
+
+2009-04-08  Emmanuel Briot  <briot@adacore.com>
+
+	* prj-nmsc.adb (Check_File, Process_Sources_In_Multi_Language_Mode):
+	avoid copies of Source_Data variables when possible, since these
+	involve calls to memcpy() which are done too many times.
+
+2009-04-08  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Clean up code
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Add missing conversion to index
+	type for the case of concatenating a constrained array indexed by an
+	enumeration type.
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Check_Conformance): when checking conformance of an
+	operation that overrides an abstract operation inherited from an
+	interface, return False if only one of the controlling formals is an
+	access parameter.
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Analyze_Object_Renaming): additional error messages
+	mandated by AI05-105.
+
+2009-04-07  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Get_Mains): Warn if a main is an empty string
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* usage.adb: Minor fix in usage message.
+
+	* sem_ch10.adb (Remove_Homonyms): Fix subtype of formal in body to
+	match declaration; the correct subtype is Node_Id, not Entity_Id,
+	because the expected node kind is an identifier, not a defining
+	identifier.
+
+	* switch-c.adb: Minor reformatting.
+
+	* uintp.adb: Minor reformatting.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch13.adb: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* sem_warn.adb (Check_Infinite_Loop_Warning.Test_Ref): Add defence
+	against missing parent.
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* xoscons.adb: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* rtsfind.ads: Remove obsolete string concatenation entries
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): Redo handling of bounds
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Check_Body_Required): Handle properly imported
+	subprograms.
+
+2009-04-07  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch13.adb (Expand_N_Attribute_Definition_Clause, case
+	Attribute_Address): When Init_Or_Norm_Scalars is True and the object
+	is of a scalar or string type then suppress the setting of the
+	expression to Empty.
+
+	* freeze.adb (Warn_Overlay): Also emit the warnings about default
+	initialization for the cases of scalar and string objects when
+	Init_Or_Norm_Scalars is True.
+
+2009-04-07  Bob Duff  <duff@adacore.com>
+
+	* s-secsta.ads, g-pehage.ads, s-fileio.ads: Minor comment fixes
+
+2009-04-07  Bob Duff  <duff@adacore.com>
+
+	* gnat_rm.texi, s-fileio.adb (System.File_IO.Open): New feature: A
+	Form parameter of Text_Translation=No allows binary mode for Text_IO
+	files.
+
+	* gnat_rm.texi: Document Form parameter Text_Translation=xxx.
+
+2009-04-07  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch5.adb (Expand_Assign_Array): Add implicit conversion when
+	processing the bounds for bit packed arrays or VM target machines.
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* g-sothco.ads (Int_Access): Remove extraneous access type (use
+	anonymous access instead).
+	(Get_Socket_From_Set): Fix incorrectly reverted formals
+	Last and Socket to match the underlying C routine.
+
+	* g-socket.adb, g-socket.ads
+	(Get): Use named parameter associations instead of positional ones in
+	call go Get_Socket_From_Set, since this routine has two formals of the
+	same type.
+	(Image): New procedure.
+
+	* g-socthi-vms.adb, g-socthi-vms.ads, g-socthi-vxworks.adb,
+	g-socthi-vxworks.ads, g-socthi-mingw.ads, g-socthi.adb, g-socthi.ads:
+	(C_Ioctl, Syscall_Ioctl): use "access C.int" instead of "Int_Access"
+	for type of Arg formal.
+
+	* sem_warn.adb: Minor reformatting
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Has_Tagged_Component): Fix typo in loop that iterates
+	over record components.
+
+2009-04-07  Nicolas Roche  <roche@adacore.com>
+
+	* gsocket.h:
+	Don't include resolvLib.h on VxWorks 6 (kernel and rtp). This library
+	has disappeared between VxWorks 6.4 and VxWorks 6.5
+	In RTP mode use time.h instead of times.h
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Op_Concat): Improve lower bound handling
+
+2009-04-07  Kevin Pouget  <pouget@adacore.com>
+
+	* exp_dist.adb: Modify Build_From_Any_Fonction procedure to correct
+	expanded code for constrained types.
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch4.adb (Analyze_Overloaded_Selected_Component): implement
+	AI05-105: in an object renaming declaration, anonymousness is a name
+	resolution rule.
+
+	* sem_ch8.adb (Analyze_Object_Renaming): Ditto.
+
+2009-04-07  Arnaud Charlet  <charlet@adacore.com>
+
+	* g-comlin.adb (Expansion): Fix old regression: also return directory
+	names when matching.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb:
+	(Expand_N_Op_Concat): Call Expand_Concatenate for all cases
+	(Expand_Concatenate): New name for Expand_Concatenate_String which has
+	been rewritten to handle all types.
+	(Expand_Concatenate_Other): Remove
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-xref.adb (Generate_Reference): A default subprogram in an
+	instance appears within the tree for the instance, but generates an
+	implicit reference in the ALI.
+
+2009-04-07  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Build_Derived_Record_Type): When processing a tagged
+	derived type that has discriminants, propagate the list of interfaces
+	to the corresponding new base type. In addition, propagate also
+	attribute Limited_Present (found working in this patch).
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb: Rewrite concatenation expansion.
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Restore_Scope_Stack): First_Private_Entity is only
+	relevant to packages.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* sem_attr.adb: Minor reformatting
+
+	* sem_ch6.adb: Minor reformatting
+
+2009-04-07  Tristan Gingold  <gingold@adacore.com>
+
+	* socket.c: Add more protections against S_resolvLib_ macros.
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_attr.adb: Minor reformatting
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (New_Overloaded_Entity): New predicate
+	Is_Overriding_Alias to handle properly types that inherit two homonym
+	operations that have distinct dispatch table entries.
+
+2009-04-07  Emmanuel Briot  <briot@adacore.com>
+
+	* s-regexp.adb (Create_Mapping): Ignore excaped open parenthesis when
+	looking for the end of a parenthesis group
+
+2009-04-07  Tristan Gingold  <gingold@adacore.com>
+
+	* gsocket.h Don't #include resolvLib.h if __RTP__ is defined.
+
+	* socket.c Don't use resolvLib_ macros if not defined.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* g-socket.adb: Minor reformatting.
+
+	* g-socthi-mingw.adb: Minor reformatting
+
+	* g-sothco.ads: Minor reformatting
+
+	* exp_ch4.adb:
+	(Expand_Concatenate_String): Complete rewrite to generate efficient code
+	inline instead of relying on external library routines.
+
+	* s-strops.ads, s-sopco5.ads, s-sopco5.adb, s-sopco4.ads, s-sopco4.adb,
+	s-sopco3.ads, s-sopco3.adb, s-strops.adb: Note that this unit is now
+	obsolescent
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_attr.adb:
+	(Eval_Attribute): for attributes of array objects that are not strings,
+	attributes are not static if nominal subtype of object is unconstrained.
+
+2009-04-07  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (New_Overloaded_Entity): If two implicit homonym
+	operations for a type T in an instance do not override each other,
+	when T is derived from a formal private type, the corresponding
+	operations inherited by a type derived from T outside
+	of the instance do not override each other either.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	(Osint.Fail): Change calling sequence to have one string arg
+	(Make.Make_Failed): Same change
+	All callers are adjusted to use concatenation
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch4.adb: Fix documentation typo
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* tbuild.ads: Minor reformatting
+
+2009-04-07  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Make_DT): Avoid the generation of the OSD_Table
+	when compiling under ZFP runtime.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* g-comlin.adb: Minor reformatting
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* socket.c, g-socthi-vms.adb, g-socthi-vms.ads, g-socthi-vxworks.adb,
+	g-socthi-vxworks.ads, g-socthi-mingw.adb, g-socthi-mingw.ads,
+	g-socthi.adb, g-socthi.ads, g-socket.adb, g-socket.ads, g-sothco.ads:
+	Remove dynamic allocation of Fd_Set in Socket_Set_Type objects.
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Document -gnatDnn/-gnatGnn
+
+	* opt.ads (Sprint_Line_Limit): New parameter
+	
+	* sprint.adb: Usa Sprint_Line_Limit instead of Line_Limit throughout
+	
+	* switch-c.adb: Recognize -gnatDnnn and -gnatGnnn switches
+	
+	* usage.adb: Output information for -gnatGnn -gnatDnn
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* make.adb: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* mlib-tgt-specific-vms-alpha.adb: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* mlib-tgt-specific-vms-ia64.adb: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb:
+	Remove Assume_Valid parameter from In_Subrange_Of calls
+	
+	* sem_eval.adb:
+	(Is_Subrange_Of): Remove Assume_Valid parameter, not needed
+	(Is_In_Range): Remove incorrect use of Assume_Valid
+	(Is_Out_Of_Range): Remove incorrect use of Assume_Valid
+	
+	* sem_eval.ads:
+	(Is_Subrange_Of): Remove Assume_Valid parameter, not needed
+	(Is_In_Range): Documentation cleanup
+	(Is_Out_Of_Range): Documentation cleanup
+
+	* gnat_rm.texi:
+	Add documentation for Assume_No_Invalid_Values pragma
+
+	* sem_ch12.adb: Minor reformatting
+
+	* sem_ch6.adb: (Check_Conformance): Avoid cascaded errors
+
+	* sem_prag.adb: Improve error message.
+
+	* gnatchop.adb, osint.ads, sinput.adb, sinput.ads, styleg.adb:
+	LF/CR no longer recognized as line terminator
+
+	* switch.ads: Minor documentation improvement
+
+	* vms_data.ads: Minor reformatting
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* checks.adb (Determine_Range): Add Assume_Valid parameter
+	
+	* checks.ads (Determine_Range): Add Assume_Valid parameter
+	
+	* errout.adb (Error_Msg_NEL): Use Suppress_Loop_Warnings rather than
+	 Is_Null_Loop to suppress warnings in a loop body.
+	
+	* exp_ch4.adb:
+	(Rewrite_Comparison): Major rewrite to accomodate invalid values
+	
+	* exp_ch5.adb:
+	(Expand_N_Loop_Statement): Delete loop known not to execute
+	
+	* opt.ads:
+	(Assume_No_Invalid_Values): Now set to False, and as documented, this
+	 fully enables the proper handling of invalid values.
+	
+	* sem_attr.adb:
+	New calling sequence for Is_In_Range
+	
+	* sem_ch5.adb:
+	(Analyze_Iteration_Scheme): Accomodate possible invalid values
+	 in determining if a loop range is null.
+	
+	* sem_eval.adb:
+	(Is_In_Range): Add Assume_Valid parameter
+	(Is_Out_Of_Range): Add Assume_Valid_Parameter
+	(Compile_Time_Compare): Major rewrite to accomodate invalid values and
+	 also to do more accurate and complete range analysis, catching more
+	 cases.
+	
+	* sem_eval.ads:
+	(Is_In_Range): Add Assume_Valid parameter
+	(Is_Out_Of_Range): Add Assume_Valid_Parameter
+	
+	* sem_util.adb:
+	New calling sequence for Is_In_Range
+	
+	* sinfo.adb:
+	(Suppress_Loop_Warnings): New flag
+	
+	* sinfo.ads:
+	(Is_Null_Loop): Update documentation
+	(Suppress_Loop_Warnings): New flag
+	
+	* gnat_ugn.texi: Document -gnatB switch
+
+2009-04-07  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnatvsn.ads: Bump version number.
+
+2009-04-07  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch3.adb: Minor rewording (comments)
+
+2009-04-07  Robert Dewar  <dewar@adacore.com>
+
+	* exp_disp.adb: Minor reformatting
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: Test the
+	underlying type.
+	* gcc-interface/trans.c (lvalue_required_p): Likewise.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Attribute_to_gnu) <Max_Size_In_Storage_Elmts>:
+	Do not convert the result.  Remove obsolete comment.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (establish_gnat_vms_condition_handler): Clear
+	DECL_CONTEXT.
+	(Subprogram_Body_to_gnu): Fix pasto.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/gigi.h (standard_datatypes): Remove ADT_void_type_decl.
+	(void_type_decl_node): Remove.
+	(init_gigi_decls): Likewise.
+	(gnat_install_builtins): Declare.
+	(record_builtin_type): Likewise.
+	(create_type_stub_decl): Likewise.
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Void>: Use void_type.
+	(gnat_to_gnu_entity) <E_Array_Type>: Make fat and thin pointer types
+	artificial.
+	<E_Array_Subtype>: Use the index types, not only their name, in the
+	record giving the names of the bounds, if any.
+	For a packed array type, make it artificial only if the base type
+	was artificial as well.  Remove redundant statement.
+	(gnat_to_gnu_entity) <E_Incomplete_Type>: Do not create TYPE_DECL for
+	dummy types.
+	Use create_type_stub_decl to build the TYPE_STUB_DECL of types.
+	(rest_of_type_decl_compilation_no_defer): Likewise.
+	* gcc-interface/misc.c (gnat_printable_name): Add missing guard.
+	* gcc-interface/utils.c (make_dummy_type): Always create TYPE_STUB_DECL
+	and use create_type_stub_decl to build it.
+	(gnat_pushdecl): Rewrite condition.
+	(gnat_install_builtins): Remove bogus declaration.
+	(record_builtin_type): New function.
+	(finish_record_type): Use create_type_stub_decl to build TYPE_STUB_DECL
+	of types.
+	(create_type_stub_decl): New function.
+	(create_type_decl): Assert that the type is not dummy.  If the type
+	hasn't been named yet, equate the TYPE_STUB_DECL to the created node.
+	(build_vms_descriptor32): Do not create TYPE_DECL for the descriptor.
+	(build_vms_descriptor): Likewise.
+	(init_gigi_decls): Delete and move bulk of code to...
+	* gcc-interface/trans.c (gigi): ...here.  Use record_builtin_type.
+	(emit_range_check): Add gnat_node parameter.
+	(emit_index_check): Likewise.
+	(emit_check): Likewise.
+	(build_unary_op_trapv): Likewise.
+	(build_binary_op_trapv): Likewise.
+	(convert_with_check): Likewise.
+	(Attribute_to_gnu): Adjust calls for above changes.
+	(call_to_gnu): Likewise.
+	(gnat_to_gnu): Likewise.
+	(assoc_to_constructor): Likewise.
+	(pos_to_constructor): Likewise.
+	(Sloc_to_locus): Set BUILTINS_LOCATION for Standard_Location nodes.
+	(process_type): Do not create TYPE_DECL for dummy types.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity): Reorder local variables.
+	* gcc-interface/trans.c: Fix formatting throughout.  Fix comments.
+	* gcc-interface/utils.c: Fix comments.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (compile_time_known_address_p): Rewrite and
+	move around.
+	(gnat_to_gnu_type): Move around.
+	(get_unpadded_type): Likewise.
+	* gcc-interface/utils.c (update_pointer_to): Use synthetic macro.
+	Tidy comments.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (check_for_eliminated_entity): New function.
+	(Attribute_to_gnu): Invoke it for Access- and Address-like attributes.
+	(call_to_gnu): Invoke it instead of manually checking.
+
 2009-04-04  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/utils.c (finish_record_type): Force structural equality

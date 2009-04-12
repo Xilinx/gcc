@@ -12301,9 +12301,27 @@ fn_type_unification (tree fn,
        the corresponding deduced argument values.  If the
        substitution results in an invalid type, as described above,
        type deduction fails.  */
-    if (tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE)
-	== error_mark_node)
-      return 1;
+    {
+      tree substed = tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE);
+      if (substed == error_mark_node)
+	return 1;
+
+      /* If we're looking for an exact match, check that what we got
+	 is indeed an exact match.  It might not be if some template
+	 parameters are used in non-deduced contexts.  */
+      if (strict == DEDUCE_EXACT)
+	{
+	  tree sarg
+	    = skip_artificial_parms_for (fn, TYPE_ARG_TYPES (substed));
+	  tree arg = args;
+	  if (return_type)
+	    sarg = tree_cons (NULL_TREE, TREE_TYPE (substed), sarg);
+	  for (; arg && sarg;
+	       arg = TREE_CHAIN (arg), sarg = TREE_CHAIN (sarg))
+	    if (!same_type_p (TREE_VALUE (arg), TREE_VALUE (sarg)))
+	      return 1;
+	}
+    }
 
   return result;
 }
@@ -12661,6 +12679,7 @@ resolve_overloaded_unification (tree tparms,
 {
   tree tempargs = copy_node (targs);
   int good = 0;
+  tree goodfn = NULL_TREE;
   bool addr_p;
 
   if (TREE_CODE (arg) == ADDR_EXPR)
@@ -12706,8 +12725,13 @@ resolve_overloaded_unification (tree tparms,
 	  if (subargs)
 	    {
 	      elem = tsubst (TREE_TYPE (fn), subargs, tf_none, NULL_TREE);
-	      good += try_one_overload (tparms, targs, tempargs, parm,
-					elem, strict, sub_strict, addr_p);
+	      if (try_one_overload (tparms, targs, tempargs, parm,
+				    elem, strict, sub_strict, addr_p)
+		  && (!goodfn || !decls_match (goodfn, elem)))
+		{
+		  goodfn = elem;
+		  ++good;
+		}
 	    }
 	  --processing_template_decl;
 	}
@@ -12720,9 +12744,14 @@ resolve_overloaded_unification (tree tparms,
     return false;
   else
     for (; arg; arg = OVL_NEXT (arg))
-      good += try_one_overload (tparms, targs, tempargs, parm,
-				TREE_TYPE (OVL_CURRENT (arg)),
-				strict, sub_strict, addr_p);
+      if (try_one_overload (tparms, targs, tempargs, parm,
+			    TREE_TYPE (OVL_CURRENT (arg)),
+			    strict, sub_strict, addr_p)
+	  && (!goodfn || !decls_match (goodfn, OVL_CURRENT (arg))))
+	{
+	  goodfn = OVL_CURRENT (arg);
+	  ++good;
+	}
 
   /* [temp.deduct.type] A template-argument can be deduced from a pointer
      to function or pointer to member function argument if the set of

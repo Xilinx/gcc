@@ -445,10 +445,10 @@ package body Make is
    Link_With_Shared_Libgcc : Argument_List_Access :=
                                No_Shared_Libgcc_Switch'Access;
 
-   procedure Make_Failed (S1 : String; S2 : String := ""; S3 : String := "");
-   --  Delete all temp files created by Gnatmake and call Osint.Fail,
-   --  with the parameter S1, S2 and S3 (see osint.ads).
-   --  This is called from the Prj hierarchy and the MLib hierarchy.
+   procedure Make_Failed (S : String);
+   --  Delete all temp files created by Gnatmake and call Osint.Fail, with the
+   --  parameter S (see osint.ads). This is called from the Prj hierarchy and
+   --  the MLib hierarchy.
 
    --------------------------
    -- Obsolete Executables --
@@ -1305,8 +1305,7 @@ package body Make is
                            "it to Global_Compilation_Switches.",
                            Element.Location);
                         Errutil.Finalize;
-                        Make_Failed
-                          ("*** illegal switch """, Argv, """");
+                        Make_Failed ("*** illegal switch """ & Argv & """");
                      end if;
                   end;
                end if;
@@ -1360,7 +1359,7 @@ package body Make is
       Display (Gnatbind.all, Bind_Args (Args'First .. Bind_Last));
 
       if Gnatbind_Path = null then
-         Make_Failed ("error, unable to locate ", Gnatbind.all);
+         Make_Failed ("error, unable to locate " & Gnatbind.all);
       end if;
 
       GNAT.OS_Lib.Spawn
@@ -1888,7 +1887,7 @@ package body Make is
                         return;
                      end if;
 
-                     --  Do the same check for each of the withed units.
+                     --  Do the same check for each of the withed units
 
                      W_Check :
                      for W in Units.Table (U).First_With
@@ -3132,7 +3131,7 @@ package body Make is
          Display (Gcc.all, Comp_Args (Args'First .. Comp_Last));
 
          if Gcc_Path = null then
-            Make_Failed ("error, unable to locate ", Gcc.all);
+            Make_Failed ("error, unable to locate " & Gcc.all);
          end if;
 
          return
@@ -3413,11 +3412,11 @@ package body Make is
                           and then Arguments_Project = No_Project
                           and then not External_Unit_Compilation_Allowed
                         then
-                           Make_Failed ("external source (",
-                                        Get_Name_String (Source_File),
-                                        ") is not part of any project;"
-                                        & " cannot be compiled without" &
-                                        " gnatmake switch -x");
+                           Make_Failed ("external source ("
+                                        & Get_Name_String (Source_File)
+                                        & ") is not part of any project;"
+                                        & " cannot be compiled without"
+                                        & " gnatmake switch -x");
                         end if;
 
                         --  Is this the first file we have to compile?
@@ -3923,12 +3922,11 @@ package body Make is
                if not Is_Regular_File (Path) then
                   if Debug.Debug_Flag_F then
                      Make_Failed
-                       ("cannot find configuration pragmas file ",
-                        File_Name (Path));
+                       ("cannot find configuration pragmas file "
+                        & File_Name (Path));
                   else
                      Make_Failed
-                       ("cannot find configuration pragmas file ",
-                        Path);
+                       ("cannot find configuration pragmas file " & Path);
                   end if;
                end if;
 
@@ -3968,12 +3966,12 @@ package body Make is
                if not Is_Regular_File (Path) then
                   if Debug.Debug_Flag_F then
                      Make_Failed
-                       ("cannot find configuration pragmas file ",
-                        File_Name (Path));
+                       ("cannot find configuration pragmas file "
+                        & File_Name (Path));
 
                   else
                      Make_Failed
-                       ("cannot find configuration pragmas file ", Path);
+                       ("cannot find configuration pragmas file " & Path);
                   end if;
                end if;
 
@@ -4114,10 +4112,10 @@ package body Make is
 
             --  Never display -gnatea nor -gnatez
 
-            if Args (J).all /= "-gnatea" and then
-              Args (J).all /= "-gnatez"
+            if Args (J).all /= "-gnatea"
+                 and then
+               Args (J).all /= "-gnatez"
             then
-
                --  Do not display the mapping file argument automatically
                --  created when using a project file.
 
@@ -4383,8 +4381,7 @@ package body Make is
 
                if Proj = No_Project then
                   Make_Failed
-                    ("""" & Main &
-                     """ is not a source of any project");
+                    ("""" & Main & """ is not a source of any project");
 
                else
                   --  If there is directory information, check that
@@ -4416,8 +4413,7 @@ package body Make is
                      --  Fail if the file cannot be found
 
                      if Real_Path = null then
-                        Make_Failed
-                          ("file """ & Main & """ does not exist");
+                        Make_Failed ("file """ & Main & """ does not exist");
                      end if;
 
                      declare
@@ -4924,7 +4920,7 @@ package body Make is
 
                      if not At_Least_One_Main then
                         Make_Failed
-                          ("no Ada mains; use -B to build foreign main");
+                          ("no Ada mains, use -B to build foreign main");
                      end if;
                   end;
 
@@ -5105,9 +5101,9 @@ package body Make is
             --  We fail if we cannot find the main source file
 
             if Main_Unit_File_Name = "" then
-               Make_Failed ('"' & Main_Source_File_Name,
-                            """ is not a unit of project ",
-                            Project_File_Name.all & ".");
+               Make_Failed ('"' & Main_Source_File_Name
+                            & """ is not a unit of project "
+                            & Project_File_Name.all & ".");
             else
                --  Remove any directory information from the main
                --  source file name.
@@ -5400,10 +5396,7 @@ package body Make is
                --  JVM machine since ".class" files are generated instead.
 
                Check_Object_Consistency := False;
-
-               Gcc := new String'("jgnat");
-               Gnatbind := new String'("jgnatbind");
-               Gnatlink := new String'("jgnatlink");
+               Gcc := new String'("jvm-gnatcompile");
 
             when Targparm.CLI_Target =>
                Gcc := new String'("dotnet-gnatcompile");
@@ -5445,10 +5438,10 @@ package body Make is
                                                         No_Path_Information
                      then
                         Make_Failed
-                          ("no object files to build library for project """,
-                           Get_Name_String
-                             (Project_Tree.Projects.Table (Proj).Name),
-                           """");
+                          ("no object files to build library for project """
+                           & Get_Name_String
+                              (Project_Tree.Projects.Table (Proj).Name)
+                           & """");
                         Project_Tree.Projects.Table
                           (Proj).Need_To_Build_Lib := False;
 
@@ -6455,9 +6448,17 @@ package body Make is
                      then
                         Skip := True;
 
+                     --  Here we capture and duplicate the linker argument. We
+                     --  need to do the duplication since the arguments will
+                     --  get normalized. Not doing so will result in calling
+                     --  normalized two times for the same set of arguments if
+                     --  gnatmake is passed multiple mains. This can result in
+                     --  the wrong argument being passed to the linker.
+
                      else
                         Last_Arg := Last_Arg + 1;
-                        Args (Last_Arg) := Linker_Switches.Table (J);
+                        Args (Last_Arg) :=
+                          new String'(Linker_Switches.Table (J).all);
                      end if;
                   end loop;
 
@@ -6559,9 +6560,9 @@ package body Make is
                   --  as an immediate source of the main project file.
 
                   if Main_Unit_File_Name = "" then
-                     Make_Failed ('"' & Main_Source_File_Name,
-                                  """ is not a unit of project ",
-                                  Project_File_Name.all & ".");
+                     Make_Failed ('"' & Main_Source_File_Name
+                                  & """ is not a unit of project "
+                                  & Project_File_Name.all & ".");
 
                   else
                      --  Remove any directory information from the main
@@ -7005,7 +7006,8 @@ package body Make is
          end if;
 
          if Main_Project = No_Project then
-            Make_Failed ("""", Project_File_Name.all, """ processing failed");
+            Make_Failed
+              ("""" & Project_File_Name.all & """ processing failed");
          end if;
 
          Create_Mapping_File := True;
@@ -7422,7 +7424,7 @@ package body Make is
       Display (Gnatlink.all, Link_Args);
 
       if Gnatlink_Path = null then
-         Make_Failed ("error, unable to locate ", Gnatlink.all);
+         Make_Failed ("error, unable to locate " & Gnatlink.all);
       end if;
 
       GNAT.OS_Lib.Spawn (Gnatlink_Path.all, Link_Args, Success);
@@ -7518,10 +7520,10 @@ package body Make is
    -- Make_Failed --
    -----------------
 
-   procedure Make_Failed (S1 : String; S2 : String := ""; S3 : String := "") is
+   procedure Make_Failed (S : String) is
    begin
       Delete_All_Temp_Files;
-      Osint.Fail (S1, S2, S3);
+      Osint.Fail (S);
    end Make_Failed;
 
    --------------------
@@ -7729,7 +7731,7 @@ package body Make is
             Make_Failed ("object directory path name missing after -D");
 
          elsif not Is_Directory (Argv) then
-            Make_Failed ("cannot find object directory """, Argv, """");
+            Make_Failed ("cannot find object directory """ & Argv & """");
 
          else
             Add_Lib_Search_Dir (Argv);
@@ -7950,7 +7952,7 @@ package body Make is
            or else (Argv'Length > 10 and then Argv (1 .. 10) = "-GNATLINK=")
            or else (Argv'Length > 10 and then Argv (1 .. 10) = "-GNATBIND=")
          then
-            Make_Failed ("option ", Argv, " should start with '--'");
+            Make_Failed ("option " & Argv & " should start with '--'");
 
          --  -I-
 
@@ -7962,7 +7964,8 @@ package body Make is
          elsif (Argv'Length = 3 and then Argv (3) = '-')
            or else (Argv'Length = 4 and then Argv (4) = '-')
          then
-            Make_Failed ("trailing ""-"" at the end of ", Argv, " forbidden.");
+            Make_Failed
+              ("trailing ""-"" at the end of " & Argv & " forbidden.");
 
          --  -Idir
 
@@ -8048,7 +8051,7 @@ package body Make is
          elsif Argv'Last > 2 and then Argv (2) = 'C' then
             if And_Save then
                if Argv (3) /= '=' or else Argv'Last <= 3 then
-                  Make_Failed ("illegal switch ", Argv);
+                  Make_Failed ("illegal switch " & Argv);
                end if;
 
                Gnatmake_Mapping_File := new String'(Argv (4 .. Argv'Last));

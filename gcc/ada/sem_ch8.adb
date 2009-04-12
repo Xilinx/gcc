@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,6 +46,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch4;  use Sem_Ch4;
@@ -53,6 +54,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
+with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
 with Sem_Type; use Sem_Type;
@@ -401,8 +403,8 @@ package body Sem_Ch8 is
    --  references the package in question.
 
    procedure Attribute_Renaming (N : Node_Id);
-   --  Analyze renaming of attribute as function. The renaming declaration N
-   --  is rewritten as a function body that returns the attribute reference
+   --  Analyze renaming of attribute as subprogram. The renaming declaration N
+   --  is rewritten as a subprogram body that returns the attribute reference
    --  applied to the formals of the function.
 
    procedure Check_Frozen_Renaming (N : Node_Id; Subp : Entity_Id);
@@ -447,8 +449,8 @@ package body Sem_Ch8 is
    --  private with on E.
 
    procedure Find_Expanded_Name (N : Node_Id);
-   --  Selected component is known to be expanded name. Verify legality
-   --  of selector given the scope denoted by prefix.
+   --  Selected component is known to be expanded name. Verify legality of
+   --  selector given the scope denoted by prefix.
 
    function Find_Renamed_Entity
      (N         : Node_Id;
@@ -767,7 +769,46 @@ package body Sem_Ch8 is
                 (Related_Nod => N,
                  N           => Access_Definition (N));
 
-         Analyze_And_Resolve (Nam, T);
+         Analyze (Nam);
+
+         --  Ada 2005 AI05-105: if the declaration has an anonymous access
+         --  type, the renamed object must also have an anonymous type, and
+         --  this is a name resolution rule. This was implicit in the last
+         --  part of the first sentence in 8.5.1.(3/2), and is made explicit
+         --  by this recent AI.
+
+         if not Is_Overloaded (Nam) then
+            if Ekind (Etype (Nam)) /= Ekind (T) then
+               Error_Msg_N
+                 ("expect anonymous access type in object renaming", N);
+            end if;
+         else
+            declare
+               I   : Interp_Index;
+               It  : Interp;
+               Typ : Entity_Id := Empty;
+
+            begin
+               Get_First_Interp (Nam, I, It);
+               while Present (It.Typ) loop
+                  if No (Typ) then
+                     if Ekind (It.Typ) = Ekind (T)
+                       and then Covers (T, It.Typ)
+                     then
+                        Typ := It.Typ;
+                        Set_Etype (Nam, Typ);
+                        Set_Is_Overloaded (Nam, False);
+                     end if;
+                  else
+                     Error_Msg_N ("ambiguous expression in renaming", N);
+                  end if;
+
+                  Get_Next_Interp (I, It);
+               end loop;
+            end;
+         end if;
+
+         Resolve (Nam, T);
 
          --  Ada 2005 (AI-231): "In the case where the type is defined by an
          --  access_definition, the renamed entity shall be of an access-to-
@@ -779,6 +820,23 @@ package body Sem_Ch8 is
          then
             Error_Msg_N ("(Ada 2005): the renamed object is not "
                          & "access-to-constant (RM 8.5.1(6))", N);
+
+         elsif not Constant_Present (Access_Definition (N))
+           and then Is_Access_Constant (Etype (Nam))
+         then
+            Error_Msg_N ("(Ada 2005): the renamed object is not "
+                         & "access-to-variable (RM 8.5.1(6))", N);
+         end if;
+
+         if Is_Access_Subprogram_Type (Etype (Nam)) then
+            Check_Subtype_Conformant
+              (Designated_Type (T), Designated_Type (Etype (Nam)));
+
+         elsif not Subtypes_Statically_Match
+                     (Designated_Type (T), Designated_Type (Etype (Nam)))
+         then
+            Error_Msg_N
+              ("subtype of renamed object does not statically match", N);
          end if;
       end if;
 
@@ -2458,7 +2516,7 @@ package body Sem_Ch8 is
 
    procedure Analyze_Use_Type (N : Node_Id) is
       E  : Entity_Id;
-      Id : Entity_Id;
+      Id : Node_Id;
 
    begin
       Set_Hidden_By_Use_Clause (N, No_Elist);
@@ -2486,6 +2544,51 @@ package body Sem_Ch8 is
                then
                   Check_In_Previous_With_Clause (N, Prefix (Id));
                end if;
+            end if;
+
+         else
+            --  If the use_type_clause appears in a compilation unit context,
+            --  check whether it comes from a unit that may appear in a
+            --  limited_with_clause, for a better error message.
+
+            if Nkind (Parent (N)) = N_Compilation_Unit
+              and then Nkind (Id) /= N_Identifier
+            then
+               declare
+                  Item : Node_Id;
+                  Pref : Node_Id;
+
+                  function Mentioned (Nam : Node_Id) return Boolean;
+                  --  Check whether the prefix of expanded name for the type
+                  --  appears in the prefix of some limited_with_clause.
+
+                  ---------------
+                  -- Mentioned --
+                  ---------------
+
+                  function Mentioned (Nam : Node_Id) return Boolean is
+                  begin
+                     return Nkind (Name (Item)) = N_Selected_Component
+                              and then
+                            Chars (Prefix (Name (Item))) = Chars (Nam);
+                  end Mentioned;
+
+               begin
+                  Pref := Prefix (Id);
+                  Item := First (Context_Items (Parent (N)));
+
+                  while Present (Item) and then Item /= N loop
+                     if Nkind (Item) = N_With_Clause
+                       and then Limited_Present (Item)
+                       and then Mentioned (Pref)
+                     then
+                        Change_Error_Text
+                          (Get_Msg_Id, "premature usage of incomplete type");
+                     end if;
+
+                     Next (Item);
+                  end loop;
+               end;
             end if;
          end if;
 
@@ -2547,11 +2650,11 @@ package body Sem_Ch8 is
    begin
       Generate_Definition (New_S);
 
-      --  This procedure is called in the context of subprogram renaming,
-      --  and thus the attribute must be one that is a subprogram. All of
-      --  those have at least one formal parameter, with the singular
-      --  exception of AST_Entry (which is a real oddity, it is odd that
-      --  this can be renamed at all!)
+      --  This procedure is called in the context of subprogram renaming, and
+      --  thus the attribute must be one that is a subprogram. All of those
+      --  have at least one formal parameter, with the singular exception of
+      --  AST_Entry (which is a real oddity, it is odd that this can be renamed
+      --  at all!)
 
       if not Is_Non_Empty_List (Parameter_Specifications (Spec)) then
          if Aname /= Name_AST_Entry then
@@ -2586,22 +2689,22 @@ package body Sem_Ch8 is
                 Chars => Chars (Defining_Identifier (Param_Spec))));
 
             --  The expressions in the attribute reference are not freeze
-            --   points. Neither is the attribute as a whole, see below.
+            --  points. Neither is the attribute as a whole, see below.
 
             Set_Must_Not_Freeze (Last (Expr_List));
             Next (Param_Spec);
          end loop;
       end if;
 
-      --  Immediate error if too many formals. Other mismatches in numbers
-      --  of number of types of parameters are detected when we analyze the
-      --  body of the subprogram that we construct.
+      --  Immediate error if too many formals. Other mismatches in number or
+      --  types of parameters are detected when we analyze the body of the
+      --  subprogram that we construct.
 
       if Form_Num > 2 then
          Error_Msg_N ("too many formals for attribute", N);
 
-      --  Error if the attribute reference has expressions that look
-      --  like formal parameters.
+      --  Error if the attribute reference has expressions that look like
+      --  formal parameters.
 
       elsif Present (Expressions (Nam)) then
          Error_Msg_N ("illegal expressions in attribute reference", Nam);
@@ -2628,10 +2731,10 @@ package body Sem_Ch8 is
          end if;
       end if;
 
-      --  AST_Entry is an odd case. It doesn't really make much sense to
-      --  allow it to be renamed, but that's the DEC rule, so we have to
-      --  do it right. The point is that the AST_Entry call should be made
-      --  now, and what the function will return is the returned value.
+      --  AST_Entry is an odd case. It doesn't really make much sense to allow
+      --  it to be renamed, but that's the DEC rule, so we have to do it right.
+      --  The point is that the AST_Entry call should be made now, and what the
+      --  function will return is the returned value.
 
       --  Note that there is no Expr_List in this case anyway
 
@@ -3281,10 +3384,10 @@ package body Sem_Ch8 is
       --  Saves start of homonym chain
 
       Nvis_Entity : Boolean;
-      --  Set True to indicate that at there is at least one entity on the
-      --  homonym chain which, while not visible, is visible enough from the
-      --  user point of view to warrant an error message of "not visible"
-      --  rather than undefined.
+      --  Set True to indicate that there is at least one entity on the homonym
+      --  chain which, while not visible, is visible enough from the user point
+      --  of view to warrant an error message of "not visible" rather than
+      --  undefined.
 
       Nvis_Is_Private_Subprg : Boolean := False;
       --  Ada 2005 (AI-262): Set True to indicate that a form of Beaujolais
@@ -6613,7 +6716,11 @@ package body Sem_Ch8 is
 
                Next_Entity (E);
 
-               if not Full_Vis then
+               if not Full_Vis
+                 and then Is_Package_Or_Generic_Package (S)
+               then
+                  --  We are in the visible part of the package scope
+
                   exit when E = First_Private_Entity (S);
                end if;
             end loop;
@@ -6650,8 +6757,7 @@ package body Sem_Ch8 is
                Full_Vis := True;
 
             elsif Is_Package_Or_Generic_Package (S)
-              and then (In_Private_Part (S)
-                         or else In_Package_Body (S))
+              and then (In_Private_Part (S) or else In_Package_Body (S))
             then
                Full_Vis := True;
 
@@ -7003,7 +7109,10 @@ package body Sem_Ch8 is
       Set_Redundant_Use (Id,
         Is_Known_Used or else Is_Potentially_Use_Visible (T));
 
-      if In_Open_Scopes (Scope (T)) then
+      if Ekind (T) = E_Incomplete_Type then
+         Error_Msg_N ("premature usage of incomplete type", Id);
+
+      elsif In_Open_Scopes (Scope (T)) then
          null;
 
       --  A limited view cannot appear in a use_type clause. However, an
@@ -7110,6 +7219,15 @@ package body Sem_Ch8 is
                        and then
                      Nkind (Parent (Clause2)) = N_Compilation_Unit
                   then
+
+                     --  If the unit is a subprogram body that acts as spec,
+                     --  the context clause is shared with the constructed
+                     --  subprogram spec. Clearly there is no redundancy.
+
+                     if Clause1 = Clause2 then
+                        return;
+                     end if;
+
                      Unit1 := Unit (Parent (Clause1));
                      Unit2 := Unit (Parent (Clause2));
 

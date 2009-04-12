@@ -39,6 +39,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -4050,7 +4051,7 @@ package body Sem_Ch13 is
                   end if;
                end Same_Rep;
 
-            --  Start processing for Record_Case
+            --  Start of processing for Record_Case
 
             begin
                if Has_Discriminants (T1) then

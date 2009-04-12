@@ -41,6 +41,7 @@
 --  Elaborate_Body. It is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
+with System.OS_Constants;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -516,7 +517,7 @@ private
 
    type timespec is record
       tv_sec  : time_t;
-      tv_nsec : int32_t;
+      tv_nsec : long;
    end record;
    pragma Convention (C, timespec);
 
@@ -524,7 +525,7 @@ private
    CLOCK_REALTIME : constant clockid_t := 0;
 
    type struct_timeval is record
-      tv_sec  : int32_t;
+      tv_sec  : time_t;
       tv_usec : int32_t;
    end record;
    pragma Convention (C, struct_timeval);
@@ -532,7 +533,7 @@ private
    --
    --  Darwin specific signal implementation
    --
-   type Pad_Type is array (1 .. 7) of unsigned;
+   type Pad_Type is array (1 .. 7) of unsigned_long;
    type siginfo_t is record
       si_signo  : int;               --  signal number
       si_errno  : int;               --  errno association
@@ -564,41 +565,39 @@ private
    --
    type pthread_t is new System.Address;
 
-   type pthread_lock_t is new long;
-
    type pthread_attr_t is record
       sig    : long;
-      opaque : padding (1 .. 36);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_ATTR_SIZE);
    end record;
    pragma Convention (C, pthread_attr_t);
 
    type pthread_mutexattr_t is record
       sig    : long;
-      opaque : padding (1 .. 8);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_MUTEXATTR_SIZE);
    end record;
    pragma Convention (C, pthread_mutexattr_t);
 
    type pthread_mutex_t is record
       sig    : long;
-      opaque : padding (1 .. 40);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_MUTEX_SIZE);
    end record;
    pragma Convention (C, pthread_mutex_t);
 
    type pthread_condattr_t is record
       sig    : long;
-      opaque : padding (1 .. 4);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_CONDATTR_SIZE);
    end record;
    pragma Convention (C, pthread_condattr_t);
 
    type pthread_cond_t is record
       sig    : long;
-      opaque : padding (1 .. 24);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_COND_SIZE);
    end record;
    pragma Convention (C, pthread_cond_t);
 
    type pthread_once_t is record
       sig    : long;
-      opaque : padding (1 .. 4);
+      opaque : padding (1 .. System.OS_Constants.PTHREAD_ONCE_SIZE);
    end record;
    pragma Convention (C, pthread_once_t);
 

@@ -450,7 +450,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ld gas gdb gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
-  i[[3456789]]86-*-darwin* | x86_64-*-darwin9*)
+  i[[3456789]]86-*-darwin* | x86_64-*-darwin[[912]]*)
     noconfigdirs="$noconfigdirs ld gas gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
@@ -1264,7 +1264,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   # Check GMP actually works
   AC_MSG_CHECKING([for correct version of gmp.h])
   AC_TRY_COMPILE([#include "gmp.h"],[
-  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1)
+  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 2)
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); have_gmp=no])
@@ -1272,11 +1272,11 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   if test x"$have_gmp" = xyes; then
     saved_LIBS="$LIBS"
     LIBS="$LIBS $gmplibs"
-    dnl MPFR 2.3.0 is acceptable, but MPFR 2.3.2 is better.
+    dnl MPFR 2.3.1 is acceptable, but MPFR 2.3.2 is better.
     AC_MSG_CHECKING([for correct version of mpfr.h])
     AC_TRY_LINK([#include <gmp.h>
     #include <mpfr.h>],[
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,0)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,1)
     choke me
     #endif
     mpfr_t n;
@@ -1300,7 +1300,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   CFLAGS="$saved_CFLAGS"
 
   if test x$have_gmp != xyes; then
-    AC_MSG_ERROR([Building GCC requires GMP 4.1+ and MPFR 2.3.2+.
+    AC_MSG_ERROR([Building GCC requires GMP 4.2+ and MPFR 2.3.2+.
 Try the --with-gmp and/or --with-mpfr options to specify their locations.
 Copies of these libraries' source code can be found at their respective
 hosting sites as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
@@ -2726,10 +2726,10 @@ case " $build_configdirs " in
   *" texinfo "*) MAKEINFO='$$r/$(BUILD_SUBDIR)/texinfo/makeinfo/makeinfo' ;;
   *)
 changequote(,)
-    # For an installed makeinfo, we require it to be from texinfo 4.6 or
+    # For an installed makeinfo, we require it to be from texinfo 4.7 or
     # higher, else we use the "missing" dummy.
     if ${MAKEINFO} --version \
-       | egrep 'texinfo[^0-9]*(4\.([6-9]|[1-9][0-9])|[5-9]|[1-9][0-9])' >/dev/null 2>&1; then
+       | egrep 'texinfo[^0-9]*(4\.([7-9]|[1-9][0-9])|[5-9]|[1-9][0-9])' >/dev/null 2>&1; then
       :
     else
       MAKEINFO="$MISSING makeinfo"

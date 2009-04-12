@@ -47,7 +47,7 @@ with Sinput;   use Sinput;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
-with Style;
+with Stylesw;  use Stylesw;
 with Uname;    use Uname;
 
 package body Errout is
@@ -278,7 +278,7 @@ package body Errout is
          return;
       end if;
 
-      --  Start processing of new message
+      --  Start of processing for new message
 
       Sindex := Get_Source_File_Index (Flag_Location);
       Test_Style_Warning_Serious_Msg (Msg);
@@ -328,10 +328,19 @@ package body Errout is
          Warn_On_Instance := Is_Warning_Msg;
       end if;
 
-      --  Ignore warning message that is suppressed. Note that style
-      --  checks are not considered warning messages for this purpose
+      --  Ignore warning message that is suppressed for this location. Note
+      --  that style checks are not considered warning messages for this
+      --  purpose.
 
       if Is_Warning_Msg and then Warnings_Suppressed (Orig_Loc) then
+         return;
+
+      --  For style messages, check too many messages so far
+
+      elsif Is_Style_Msg
+        and then Maximum_Messages /= 0
+        and then Warnings_Detected >= Maximum_Messages
+      then
          return;
       end if;
 
@@ -1034,10 +1043,18 @@ package body Errout is
          end if;
       end if;
 
-      --  Terminate if max errors reached
+      --  If too many warnings turn off warnings
 
-      if Total_Errors_Detected + Warnings_Detected = Maximum_Errors then
-         raise Unrecoverable_Error;
+      if Maximum_Messages /= 0 then
+         if Warnings_Detected = Maximum_Messages then
+            Warning_Mode := Suppress;
+         end if;
+
+         --  If too many errors abandon compilation
+
+         if Total_Errors_Detected = Maximum_Messages then
+            raise Unrecoverable_Error;
+         end if;
       end if;
    end Error_Msg_Internal;
 
@@ -1090,7 +1107,9 @@ package body Errout is
             return;
          end if;
 
-         --  Suppress if inside loop that is known to be null
+         --  Suppress if inside loop that is known to be null or is probably
+         --  null (case where loop executes only if invalid values present).
+         --  In either case warnings in the loop are likely to be junk.
 
          declare
             P : Node_Id;
@@ -1098,7 +1117,9 @@ package body Errout is
          begin
             P := Parent (N);
             while Present (P) loop
-               if Nkind (P) = N_Loop_Statement and then Is_Null_Loop (P) then
+               if Nkind (P) = N_Loop_Statement
+                 and then Suppress_Loop_Warnings (P)
+               then
                   return;
                end if;
 
@@ -1552,13 +1573,21 @@ package body Errout is
 
       procedure Write_Max_Errors is
       begin
-         if Maximum_Errors /= 0
-           and then Total_Errors_Detected + Warnings_Detected = Maximum_Errors
-         then
-            Set_Standard_Error;
-            Write_Str ("fatal error: maximum errors reached");
-            Write_Eol;
-            Set_Standard_Output;
+         if Maximum_Messages /= 0 then
+            if Warnings_Detected >= Maximum_Messages then
+               Set_Standard_Error;
+               Write_Line ("maximum number of warnings output");
+               Write_Line ("any further warnings suppressed");
+               Set_Standard_Output;
+            end if;
+
+            --  If too many errors print message
+
+            if Total_Errors_Detected >= Maximum_Messages then
+               Set_Standard_Error;
+               Write_Line ("fatal error: maximum number of errors detected");
+               Set_Standard_Output;
+            end if;
          end if;
       end Write_Max_Errors;
 
@@ -2109,7 +2138,7 @@ package body Errout is
 
    procedure Set_Msg_Insertion_Column is
    begin
-      if Style.RM_Column_Check then
+      if RM_Column_Check then
          Set_Msg_Str (" in column ");
          Set_Msg_Int (Int (Error_Msg_Col) + 1);
       end if;

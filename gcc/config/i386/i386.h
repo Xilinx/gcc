@@ -15,8 +15,13 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 /* The purpose of this file is to define the characteristics of the i386,
@@ -231,6 +236,7 @@ extern const struct processor_costs ix86_size_cost;
 #define TARGET_GENERIC64 (ix86_tune == PROCESSOR_GENERIC64)
 #define TARGET_GENERIC (TARGET_GENERIC32 || TARGET_GENERIC64)
 #define TARGET_AMDFAM10 (ix86_tune == PROCESSOR_AMDFAM10)
+#define TARGET_ATOM (ix86_tune == PROCESSOR_ATOM)
 
 /* Feature tests against the various tunings.  */
 enum ix86_tune_indices {
@@ -295,6 +301,7 @@ enum ix86_tune_indices {
   X86_TUNE_USE_VECTOR_FP_CONVERTS,
   X86_TUNE_USE_VECTOR_CONVERTS,
   X86_TUNE_FUSE_CMP_AND_BRANCH,
+  X86_TUNE_OPT_AGU,
 
   X86_TUNE_LAST
 };
@@ -382,6 +389,7 @@ extern unsigned char ix86_tune_features[X86_TUNE_LAST];
 	ix86_tune_features[X86_TUNE_USE_VECTOR_CONVERTS]
 #define TARGET_FUSE_CMP_AND_BRANCH \
 	ix86_tune_features[X86_TUNE_FUSE_CMP_AND_BRANCH]
+#define TARGET_OPT_AGU ix86_tune_features[X86_TUNE_OPT_AGU]
 
 /* Feature tests against the various architecture variations.  */
 enum ix86_arch_indices {
@@ -567,6 +575,7 @@ enum target_cpu_default
   TARGET_CPU_DEFAULT_prescott,
   TARGET_CPU_DEFAULT_nocona,
   TARGET_CPU_DEFAULT_core2,
+  TARGET_CPU_DEFAULT_atom,
 
   TARGET_CPU_DEFAULT_geode,
   TARGET_CPU_DEFAULT_k6,
@@ -2272,6 +2281,7 @@ enum processor_type
   PROCESSOR_GENERIC32,
   PROCESSOR_GENERIC64,
   PROCESSOR_AMDFAM10,
+  PROCESSOR_ATOM,
   PROCESSOR_max
 };
 
@@ -2328,7 +2338,6 @@ extern enum reg_class const regclass_map[FIRST_PSEUDO_REGISTER];
 
 extern rtx ix86_compare_op0;	/* operand 0 for comparisons */
 extern rtx ix86_compare_op1;	/* operand 1 for comparisons */
-extern rtx ix86_compare_emitted;
 
 /* To properly truncate FP values into integers, we need to set i387 control
    word.  We can't emit proper mode switching code before reload, as spills

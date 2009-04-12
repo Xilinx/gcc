@@ -1,3 +1,891 @@
+2009-04-11  Jan Hubicka  <jh@suse.cz>
+
+	* tree-ssa-pre.c (eliminate): Fix call of update_stmt.
+
+2009-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39732
+	* tree-inline.c (declare_return_variable): Mark DECL_BY_REFERENCE
+	return variables as TREE_ADDRESSABLE.
+
+2009-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39713
+	* tree-ssa-sccvn.c (vn_get_expr_for): Make sure built
+	reference trees have SSA_NAME operands.
+
+2009-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR c/39712
+	* c-gimplify.c (c_gimplify_expr): Adjust check for mismatched
+	address expressions.
+
+2009-04-11  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config/i386/cygwin-stdint.h (INT_LEAST32_TYPE):  Update to
+	match changes in Cygwin 1.7
+	(UINT_LEAST32_TYPE, INT_FAST16_TYPE, INT_FAST32_TYPE,
+	UINT_FAST16_TYPE, UINT_FAST32_TYPE):  Likewise.
+
+2009-04-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-optimization/39701
+	* doc/invoke.texi (Optimization Options): Document change in
+	meaning and initialization of -fdelete-null-pointer-checks.
+
+2009-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/39701
+	* common.opt (-fdelete-null-pointer-checks): Initialize to 1.
+
+	* opts.c (decode_options): Don't set flag_delete_null_pointer_checks
+	here.
+
+	* doc/invoke.texi: Update -fdelete-null-pointer-checks.
+
+2009-04-10  Chao-ying Fu  <fu@mips.com>
+
+	* doc/tm.texi (Instruction Output): Document
+	TARGET_ASM_FINAL_POSTSCAN_INSN.
+	* target.h (final_postscan_insn): New field in asm_out.
+	* target-def.h (TARGET_ASM_FINAL_POSTSCAN_INSN): New define.
+	(TARGET_ASM_OUT): Add TARGET_ASM_FINAL_POSTSCAN_INSN.
+	* final.c (final_scan_insn): Call
+	targetm.asm_out.final_postscan_insn after outputting
+	an asm macro and a normal instruction.
+
+	* config/mips/mips.h (FINAL_PRESCAN_INSN): New define.
+	* config/mips/mips-protos.h (mips_final_prescan_insn): Declare.
+	* config/mips/mips.c (mips_at_reg_p): New for_each_rtx callback.
+	(mips_final_prescan_insn, mips_final_postscan_insn): New functions.
+	(TARGET_ASM_FINAL_POSTSCAN_INSN): New define.
+
+2009-04-10  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR middle-end/39701
+	* fold-const.c (tree_single_nonzero_warnv_p): Pass non-static
+	variables as non-NULL even with -fdelete-null-pointer-checks.
+
+2009-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/rs6000/darwin-vecsave.asm: Remove extra "*/".
+
+2009-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39678
+	* config/i386/i386.c (classify_argument): Handle SCmode with
+	(bit_offset % 64) != 0.
+
+2009-04-09  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (Optimize Options): Add cross-reference to
+	-Q --help=optimizers examples.
+
+2009-04-10  Ben Elliston  <bje@au.ibm.com>
+
+	PR target/36800
+	* config/rs6000/rs6000.c (rs6000_gimplify_va_arg): Do not set
+	regalign for the reg == fpr and TDmode case.
+
+2009-04-09  David Ayers  <ayers@fsfe.org>
+
+	PR objc/29200
+	* objc/objc-act.c (warn_with_method): Remove helper function.
+	(check_duplicates): Call warning and inform directly.
+	(really_start_method): Likewise.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expmed.c (expand_divmod): Always use a comparison for a division
+	by a large unsigned integer.
+
+	* fold-const.c (tree_single_nonzero_warnv_p): Always treat decls
+	for things others than variables or functions as nonzero.
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* unwind-compat.c: Change copyright header to refer to version
+	3 of the GNU General Public License with version 3.1 of the
+	GCC Runtime Library Exception and to point readers at the
+	COPYING3 and COPYING3.RUNTIME files and the FSF's license web page.
+	* config/alpha/crtfastmath.c: Likewise.
+	* config/alpha/linux-unwind.h: Likewise.
+	* config/alpha/qrnnd.asm: Likewise.
+	* config/alpha/vms-crt0-64.c: Likewise.
+	* config/alpha/vms-crt0.c: Likewise.
+	* config/alpha/vms-dwarf2.asm: Likewise.
+	* config/alpha/vms-dwarf2eh.asm: Likewise.
+	* config/alpha/vms-psxcrt0-64.c: Likewise.
+	* config/alpha/vms-psxcrt0.c: Likewise.
+	* config/alpha/vms_tramp.asm: Likewise.
+	* config/arc/initfini.c: Likewise.
+	* config/arc/lib1funcs.asm: Likewise.
+	* config/arm/bpabi-v6m.S: Likewise.
+	* config/arm/bpabi.S: Likewise.
+	* config/arm/bpabi.c: Likewise.
+	* config/arm/crti.asm: Likewise.
+	* config/arm/crtn.asm: Likewise.
+	* config/arm/ieee754-df.S: Likewise.
+	* config/arm/ieee754-sf.S: Likewise.
+	* config/arm/lib1funcs.asm: Likewise.
+	* config/arm/libunwind.S: Likewise.
+	* config/arm/linux-atomic.c: Likewise.
+	* config/arm/mmintrin.h: Likewise.
+	* config/arm/pr-support.c: Likewise.
+	* config/arm/unaligned-funcs.c: Likewise.
+	* config/arm/unwind-arm.c: Likewise.
+	* config/arm/unwind-arm.h: Likewise.
+	* config/avr/libgcc.S: Likewise.
+	* config/bfin/crti.s: Likewise.
+	* config/bfin/crtlibid.s: Likewise.
+	* config/bfin/crtn.s: Likewise.
+	* config/bfin/lib1funcs.asm: Likewise.
+	* config/bfin/linux-unwind.h: Likewise.
+	* config/cris/arit.c: Likewise.
+	* config/cris/cris_abi_symbol.c: Likewise.
+	* config/darwin-64.c: Likewise.
+	* config/darwin-crt2.c: Likewise.
+	* config/darwin-crt3.c: Likewise.
+	* config/darwin.h: Likewise.
+	* config/dbxelf.h: Likewise.
+	* config/dfp-bit.c: Likewise.
+	* config/dfp-bit.h: Likewise.
+	* config/elfos.h: Likewise.
+	* config/fixed-bit.c: Likewise.
+	* config/fixed-bit.h: Likewise.
+	* config/fp-bit.c: Likewise.
+	* config/fp-bit.h: Likewise.
+	* config/fr30/crti.asm: Likewise.
+	* config/fr30/crtn.asm: Likewise.
+	* config/fr30/lib1funcs.asm: Likewise.
+	* config/freebsd-spec.h: Likewise.
+	* config/frv/cmovd.c: Likewise.
+	* config/frv/cmovh.c: Likewise.
+	* config/frv/cmovw.c: Likewise.
+	* config/frv/frvbegin.c: Likewise.
+	* config/frv/frvend.c: Likewise.
+	* config/frv/lib1funcs.asm: Likewise.
+	* config/glibc-stdint.h: Likewise.
+	* config/h8300/clzhi2.c: Likewise.
+	* config/h8300/crti.asm: Likewise.
+	* config/h8300/crtn.asm: Likewise.
+	* config/h8300/ctzhi2.c: Likewise.
+	* config/h8300/fixunssfsi.c: Likewise.
+	* config/h8300/lib1funcs.asm: Likewise.
+	* config/h8300/parityhi2.c: Likewise.
+	* config/h8300/popcounthi2.c: Likewise.
+	* config/i386/ammintrin.h: Likewise.
+	* config/i386/att.h: Likewise.
+	* config/i386/avxintrin.h: Likewise.
+	* config/i386/biarch64.h: Likewise.
+	* config/i386/bmmintrin.h: Likewise.
+	* config/i386/cpuid.h: Likewise.
+	* config/i386/cross-stdarg.h: Likewise.
+	* config/i386/crtfastmath.c: Likewise.
+	* config/i386/crtprec.c: Likewise.
+	* config/i386/cygming-crtbegin.c: Likewise.
+	* config/i386/cygming-crtend.c: Likewise.
+	* config/i386/cygwin.asm: Likewise.
+	* config/i386/emmintrin.h: Likewise.
+	* config/i386/gmm_malloc.h: Likewise.
+	* config/i386/gthr-win32.c: Likewise.
+	* config/i386/i386.h: Likewise.
+	* config/i386/immintrin.h: Likewise.
+	* config/i386/linux-unwind.h: Likewise.
+	* config/i386/linux64.h: Likewise.
+	* config/i386/mm3dnow.h: Likewise.
+	* config/i386/mmintrin-common.h: Likewise.
+	* config/i386/mmintrin.h: Likewise.
+	* config/i386/nmmintrin.h: Likewise.
+	* config/i386/pmm_malloc.h: Likewise.
+	* config/i386/pmmintrin.h: Likewise.
+	* config/i386/smmintrin.h: Likewise.
+	* config/i386/sol2-c1.asm: Likewise.
+	* config/i386/sol2-ci.asm: Likewise.
+	* config/i386/sol2-cn.asm: Likewise.
+	* config/i386/sol2-gc1.asm: Likewise.
+	* config/i386/tmmintrin.h: Likewise.
+	* config/i386/unix.h: Likewise.
+	* config/i386/w32-unwind.h: Likewise.
+	* config/i386/wmmintrin.h: Likewise.
+	* config/i386/x86-64.h: Likewise.
+	* config/i386/x86intrin.h: Likewise.
+	* config/i386/xmmintrin.h: Likewise.
+	* config/ia64/crtbegin.asm: Likewise.
+	* config/ia64/crtend.asm: Likewise.
+	* config/ia64/crtfastmath.c: Likewise.
+	* config/ia64/crti.asm: Likewise.
+	* config/ia64/crtn.asm: Likewise.
+	* config/ia64/fde-glibc.c: Likewise.
+	* config/ia64/lib1funcs.asm: Likewise.
+	* config/ia64/linux-unwind.h: Likewise.
+	* config/ia64/quadlib.c: Likewise.
+	* config/ia64/unwind-ia64.c: Likewise.
+	* config/linux.h: Likewise.
+	* config/m32c/m32c-lib1.S: Likewise.
+	* config/m32c/m32c-lib2-trapv.c: Likewise.
+	* config/m32c/m32c-lib2.c: Likewise.
+	* config/m32r/initfini.c: Likewise.
+	* config/m68hc11/larith.asm: Likewise.
+	* config/m68hc11/m68hc11-crt0.S: Likewise.
+	* config/m68k/cf.md: Likewise.
+	* config/m68k/crti.s: Likewise.
+	* config/m68k/crtn.s: Likewise.
+	* config/m68k/lb1sf68.asm: Likewise.
+	* config/m68k/linux-unwind.h: Likewise.
+	* config/mcore/crti.asm: Likewise.
+	* config/mcore/crtn.asm: Likewise.
+	* config/mcore/lib1.asm: Likewise.
+	* config/mips/linux-unwind.h: Likewise.
+	* config/mips/loongson.h: Likewise.
+	* config/mips/mips16.S: Likewise.
+	* config/mmix/crti.asm: Likewise.
+	* config/mmix/crtn.asm: Likewise.
+	* config/pa/fptr.c: Likewise.
+	* config/pa/hpux-unwind.h: Likewise.
+	* config/pa/lib2funcs.asm: Likewise.
+	* config/pa/linux-atomic.c: Likewise.
+	* config/pa/linux-unwind.h: Likewise.
+	* config/pa/milli64.S: Likewise.
+	* config/pa/quadlib.c: Likewise.
+	* config/pa/stublib.c: Likewise.
+	* config/picochip/libgccExtras/adddi3.asm: Likewise.
+	* config/picochip/libgccExtras/ashlsi3.asm: Likewise.
+	* config/picochip/libgccExtras/ashlsi3.c: Likewise.
+	* config/picochip/libgccExtras/ashrsi3.asm: Likewise.
+	* config/picochip/libgccExtras/ashrsi3.c: Likewise.
+	* config/picochip/libgccExtras/cmpsi2.asm: Likewise.
+	* config/picochip/libgccExtras/divmod15.asm: Likewise.
+	* config/picochip/libgccExtras/divmodhi4.asm: Likewise.
+	* config/picochip/libgccExtras/divmodsi4.asm: Likewise.
+	* config/picochip/libgccExtras/longjmp.asm: Likewise.
+	* config/picochip/libgccExtras/lshrsi3.asm: Likewise.
+	* config/picochip/libgccExtras/lshrsi3.c: Likewise.
+	* config/picochip/libgccExtras/parityhi2.asm: Likewise.
+	* config/picochip/libgccExtras/popcounthi2.asm: Likewise.
+	* config/picochip/libgccExtras/setjmp.asm: Likewise.
+	* config/picochip/libgccExtras/subdi3.asm: Likewise.
+	* config/picochip/libgccExtras/ucmpsi2.asm: Likewise.
+	* config/picochip/libgccExtras/udivmodhi4.asm: Likewise.
+	* config/picochip/libgccExtras/udivmodsi4.asm: Likewise.
+	* config/rs6000/750cl.h: Likewise.
+	* config/rs6000/altivec.h: Likewise.
+	* config/rs6000/biarch64.h: Likewise.
+	* config/rs6000/crtresfpr.asm: Likewise.
+	* config/rs6000/crtresgpr.asm: Likewise.
+	* config/rs6000/crtresxfpr.asm: Likewise.
+	* config/rs6000/crtresxgpr.asm: Likewise.
+	* config/rs6000/crtsavfpr.asm: Likewise.
+	* config/rs6000/crtsavgpr.asm: Likewise.
+	* config/rs6000/darwin-asm.h: Likewise.
+	* config/rs6000/darwin-fallback.c: Likewise.
+	* config/rs6000/darwin-fpsave.asm: Likewise.
+	* config/rs6000/darwin-ldouble.c: Likewise.
+	* config/rs6000/darwin-tramp.asm: Likewise.
+	* config/rs6000/darwin-unwind.h: Likewise.
+	* config/rs6000/darwin-vecsave.asm: Likewise.
+	* config/rs6000/darwin-world.asm: Likewise.
+	* config/rs6000/e500crtres32gpr.asm: Likewise.
+	* config/rs6000/e500crtres64gpr.asm: Likewise.
+	* config/rs6000/e500crtres64gprctr.asm: Likewise.
+	* config/rs6000/e500crtrest32gpr.asm: Likewise.
+	* config/rs6000/e500crtrest64gpr.asm: Likewise.
+	* config/rs6000/e500crtresx32gpr.asm: Likewise.
+	* config/rs6000/e500crtresx64gpr.asm: Likewise.
+	* config/rs6000/e500crtsav32gpr.asm: Likewise.
+	* config/rs6000/e500crtsav64gpr.asm: Likewise.
+	* config/rs6000/e500crtsav64gprctr.asm: Likewise.
+	* config/rs6000/e500crtsavg32gpr.asm: Likewise.
+	* config/rs6000/e500crtsavg64gpr.asm: Likewise.
+	* config/rs6000/e500crtsavg64gprctr.asm: Likewise.
+	* config/rs6000/eabi-ci.asm: Likewise.
+	* config/rs6000/eabi-cn.asm: Likewise.
+	* config/rs6000/eabi.asm: Likewise.
+	* config/rs6000/linux-unwind.h: Likewise.
+	* config/rs6000/linux64.h: Likewise.
+	* config/rs6000/paired.h: Likewise.
+	* config/rs6000/paired.md: Likewise.
+	* config/rs6000/ppc64-fp.c: Likewise.
+	* config/rs6000/ppu_intrinsics.h: Likewise.
+	* config/rs6000/rs6000.h: Likewise.
+	* config/rs6000/si2vmx.h: Likewise.
+	* config/rs6000/sol-ci.asm: Likewise.
+	* config/rs6000/sol-cn.asm: Likewise.
+	* config/rs6000/spe.h: Likewise.
+	* config/rs6000/spu2vmx.h: Likewise.
+	* config/rs6000/sysv4.h: Likewise.
+	* config/rs6000/tramp.asm: Likewise.
+	* config/rs6000/vec_types.h: Likewise.
+	* config/s390/linux-unwind.h: Likewise.
+	* config/s390/tpf-unwind.h: Likewise.
+	* config/score/crti.asm: Likewise.
+	* config/score/crtn.asm: Likewise.
+	* config/sh/crt1.asm: Likewise.
+	* config/sh/crti.asm: Likewise.
+	* config/sh/crtn.asm: Likewise.
+	* config/sh/divtab-sh4-300.c: Likewise.
+	* config/sh/divtab-sh4.c: Likewise.
+	* config/sh/divtab.c: Likewise.
+	* config/sh/lib1funcs-4-300.asm: Likewise.
+	* config/sh/lib1funcs-Os-4-200.asm: Likewise.
+	* config/sh/lib1funcs.asm: Likewise.
+	* config/sh/lib1funcs.h: Likewise.
+	* config/sh/linux-atomic.asm: Likewise.
+	* config/sh/linux-unwind.h: Likewise.
+	* config/sh/shmedia.h: Likewise.
+	* config/sh/sshmedia.h: Likewise.
+	* config/sh/ushmedia.h: Likewise.
+	* config/sparc/crtfastmath.c: Likewise.
+	* config/sparc/linux-unwind.h: Likewise.
+	* config/sparc/sol2-c1.asm: Likewise.
+	* config/sparc/sol2-ci.asm: Likewise.
+	* config/sparc/sol2-cn.asm: Likewise.
+	* config/spu/divmodti4.c: Likewise.
+	* config/spu/divv2df3.c: Likewise.
+	* config/spu/float_disf.c: Likewise.
+	* config/spu/float_unsdidf.c: Likewise.
+	* config/spu/float_unsdisf.c: Likewise.
+	* config/spu/float_unssidf.c: Likewise.
+	* config/spu/mfc_multi_tag_release.c: Likewise.
+	* config/spu/mfc_multi_tag_reserve.c: Likewise.
+	* config/spu/mfc_tag_release.c: Likewise.
+	* config/spu/mfc_tag_reserve.c: Likewise.
+	* config/spu/mfc_tag_table.c: Likewise.
+	* config/spu/multi3.c: Likewise.
+	* config/spu/spu_internals.h: Likewise.
+	* config/spu/spu_intrinsics.h: Likewise.
+	* config/spu/spu_mfcio.h: Likewise.
+	* config/spu/vec_types.h: Likewise.
+	* config/spu/vmx2spu.h: Likewise.
+	* config/stormy16/stormy16-lib2.c: Likewise.
+	* config/svr4.h: Likewise.
+	* config/sync.c: Likewise.
+	* config/v850/lib1funcs.asm: Likewise.
+	* config/vxlib-tls.c: Likewise.
+	* config/vxlib.c: Likewise.
+	* config/vxworks-dummy.h: Likewise.
+	* config/xtensa/crti.asm: Likewise.
+	* config/xtensa/crtn.asm: Likewise.
+	* config/xtensa/ieee754-df.S: Likewise.
+	* config/xtensa/ieee754-sf.S: Likewise.
+	* config/xtensa/lib1funcs.asm: Likewise.
+	* config/xtensa/lib2funcs.S: Likewise.
+	* config/xtensa/linux-unwind.h: Likewise.
+	* config/xtensa/unwind-dw2-xtensa.c: Likewise.
+	* config/xtensa/unwind-dw2-xtensa.h: Likewise.
+	* coretypes.h: Likewise.
+	* crtstuff.c: Likewise.
+	* defaults.h: Likewise.
+	* dwarf2.h: Likewise.
+	* emutls.c: Likewise.
+	* gbl-ctors.h: Likewise.
+	* gcov-io.h: Likewise.
+	* ginclude/float.h: Likewise.
+	* ginclude/iso646.h: Likewise.
+	* ginclude/stdarg.h: Likewise.
+	* ginclude/stdbool.h: Likewise.
+	* ginclude/stddef.h: Likewise.
+	* ginclude/stdfix.h: Likewise.
+	* ginclude/stdint-gcc.h: Likewise.
+	* ginclude/tgmath.h: Likewise.
+	* gthr-aix.h: Likewise.
+	* gthr-dce.h: Likewise.
+	* gthr-gnat.c: Likewise.
+	* gthr-gnat.h: Likewise.
+	* gthr-lynx.h: Likewise.
+	* gthr-mipssde.h: Likewise.
+	* gthr-nks.h: Likewise.
+	* gthr-posix.c: Likewise.
+	* gthr-posix.h: Likewise.
+	* gthr-posix95.h: Likewise.
+	* gthr-rtems.h: Likewise.
+	* gthr-single.h: Likewise.
+	* gthr-solaris.h: Likewise.
+	* gthr-tpf.h: Likewise.
+	* gthr-vxworks.h: Likewise.
+	* gthr-win32.h: Likewise.
+	* gthr.h: Likewise.
+	* libgcc2.c: Likewise.
+	* libgcc2.h: Likewise.
+	* libgcov.c: Likewise.
+	* tsystem.h: Likewise.
+	* typeclass.h: Likewise.
+	* unwind-c.c: Likewise.
+	* unwind-compat.h: Likewise.
+	* unwind-dw2-fde-compat.c: Likewise.
+	* unwind-dw2-fde-darwin.c: Likewise.
+	* unwind-dw2-fde-glibc.c: Likewise.
+	* unwind-dw2-fde.c: Likewise.
+	* unwind-dw2-fde.h: Likewise.
+	* unwind-dw2.c: Likewise.
+	* unwind-dw2.h: Likewise.
+	* unwind-generic.h: Likewise.
+	* unwind-pe.h: Likewise.
+	* unwind-sjlj.c: Likewise.
+	* unwind.inc: Likewise.
+	* config/arm/neon-gen.ml: Change generated copyright header to
+	refer to version 3 of the GNU General Public License with
+	version 3.1 of the GCC Runtime Library Exception and to point
+	readers at the COPYING3 and COPYING3.RUNTIME files and the
+	FSF's license web page.
+	* config/arm/arm_neon.h: Regenerate.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/cris/cris.md: Change copyright header to refer to version
+	3 of the GNU General Public License.
+	* doc/install.texi2html: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* config/vax/linux.h: Likewise.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* config/i386/i386.md (cmpcc): New.
+	* config/i386/sync.md (sync_compare_and_swap*): Set FLAGS_REG.
+	(sync_compare_and_swap_cc*): Delete.
+
+	* config/s390/s390.c (s390_compare_emitted): Remove.
+	(s390_emit_compare): Handle MODE_CC s390_compare_op0 like
+	s390_compare_emitted used to be handled.  Assert that modes match.
+	(s390_emit_compare_and_swap): Use s390_emit_compare, do not
+	refer to sync_compare_and_swap_ccsi.
+	* config/s390/s390.h (s390_compare_emitted): Remove.
+	* config/s390/s390.md (seq): Look for MODE_CC s390_compare_op0
+	instead of s390_compare_emitted.
+	(stack_protect_test, sync_compare_and_swap_cc): Set s390_compare_op0
+	instead of s390_compare_emitted.
+	* config/s390/s390.md (cmpcc): New.
+	(sync_compare_and_swapqi, sync_compare_and_swaphi): Clobber
+	CC_REGNUM, do not pretend it's set.
+	(sync_compare_and_swap_cc*): Delete.
+	* config/s390/predicates.md (cc_reg_operand): New.
+
+	* expr.c (sync_compare_and_swap_cc): Delete.
+	* optabs.h (sync_compare_and_swap_cc): Delete.
+	* optabs.c (prepare_cmp_insn): Ignore which specific CCmode
+	is being used with can_compare_p.
+	(emit_cmp_and_jump_insn_1): Likewise when looking in the optab.
+	(find_cc_set): New.
+	(expand_bool_compare_and_swap): Do not use sync_compare_and_swap_cc,
+	look for a MODE_CC set instead.  Use emit_store_flag.
+	(expand_compare_and_swap_loop): Likewise, with some additional
+	complication to avoid a force_reg when useless.  Use
+	emit_cmp_and_jump_insns.
+	* genopinit.c (optabs): Delete sync_compare_and_swap_cc.
+	* doc/md.texi (sync_compare_and_swap_cc): Merge with
+	sync_compare_and_swap documentation.
+
+2009-04-09  Jan Hubicka  <jh@suse.cz>
+
+	* except.c (find_prev_try): Break out from ....
+	(duplicate_eh_regions): ... here; properly update prev_try pointers
+	when duplication part of tree.
+	(dump_eh_tree): Improve dumping.
+	(verify_eh_region): New.
+	(verify_eh_tree): Use it.
+
+2009-04-06  Richard Guenther  <rguenther@suse.de>
+
+	* c-gimplify.c (c_gimplify_expr): Fix the invalid GENERIC
+	&ARRAY addresses by adjusting their types and prepending
+	a conversion.
+	* tree-cfg.c (verify_gimple_assign_single): Verify that
+	addresses are correct.
+
+2009-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-ccp.c (maybe_fold_stmt_addition): Move non-constant
+	indices into an array reference if possible.
+	* tree-ssa-forwprop.c (tree_ssa_forward_propagate_single_use_vars):
+	Fold POINTER_PLUS_EXPR statements with invariant address.
+
+2009-04-09  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/39634
+	* config.gcc (powerpc64-*-linux*): Always build biarch.
+
+2009-04-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39613
+	* c-typeck.c (do_case): If case label is not an INTEGER_CST, fold
+	it and pedwarn if this results in an INTEGER_CST.
+
+2009-04-08  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* doc/install.texi: Update minimum GMP version.  Remove obsolete
+	text in MPFR section.
+
+2009-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (class_scope_p): New static inline.
+	(class_or_namespace_scope_p): Use it.
+	(gen_variable_die): Use DW_TAG_member tag for static data member
+	declarations instead of DW_TAG_variable.
+
+	PR middle-end/39573
+	* omp-low.c (expand_omp_taskreg): Finalize taskreg static local_decls
+	variables.
+
+2009-04-08  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (valueize_refs): Do not continue to
+	valueize random data.
+
+2009-04-08  David Edelsohn  <edelsohn@gnu.org>
+
+	* config.gcc (aix tm_file):  Add aix-stdint.h.
+	(aix tm clause use_gcc_stdint):  Set to wrap.
+	* config/rs6000/aix-stdint.h:  New file.
+	
+2009-04-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/36291
+	* tree-dfa.c (add_referenced_var): Do not recurse into
+	global initializers.
+	* tree-ssa-ccp.c (get_symbol_constant_value): Add newly
+	exposed variables.
+	(fold_const_aggregate_ref): Likewise.
+
+2009-04-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	* recog.c (ordered_comparison_operator): New.
+	* gensupport.c (std_preds): Add it.
+	* doc/md.texi (Machine-Independent Predicates): Document it.
+
+2009-04-08  Jan Hubicka  <jh@suse.cz>
+
+	* tree-eh.c (cleanup_eh): When not optimizing, do not try EH merging.
+	* function.h (rtl_eh): Remove exception_handler_label_map.
+	* except.c (ehl_hash, ehl_eq, add_ehl_entry,
+	remove_exception_handler_label, for_each_eh_label_1): Remove.
+	(rtl_remove_unreachable_regions): Remove.
+	(convert_from_eh_region_ranges): Do not remove unreachable regions.
+	(find_exception_handler_labels): Don't build the hashtable.
+	(maybe_remove_eh_handler): Remove.
+	(for_each_eh_label): Rewrite to walk the tree.
+	(rest_of_handle_eh): Do not cleanup cfg prior EH construction.
+	* except.h (maybe_remove_eh_handler): Remove.
+	* passes.c (init_optimization_passes): Schedule second EH cleanup
+	before out-of-ssa.
+	* cfgrtl.c (rtl_delete_block, rtl_merge_blocks,
+	cfg_layout_merge_blocks): Do not call maybe_remove_eh_handler.
+
+2009-04-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	* genoutput.c (validate_optab_operands): New.
+	(gen_insn, gen_expand): Call it.
+
+	* genflags.c (gen_insn): Detect misused iterators.
+	(main): Pass line_no to gen_insn, exit with status 1 on error.
+
+	* genextract.c (line_no): Make global.
+	(VEC_safe_set_locstr): Change assertion to error message.
+	(main): Exit with status 1 on error.
+
+2009-04-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39614
+	PR c/39673
+	* c-common.h (C_MAYBE_CONST_EXPR_PRE, C_MAYBE_CONST_EXPR_EXPR,
+	C_MAYBE_CONST_EXPR_INT_OPERANDS, C_MAYBE_CONST_EXPR_NON_CONST,
+	EXPR_INT_CONST_OPERANDS): Remove duplicate definitions.
+	* c-convert.c (convert): Do not call fold on results of conversion
+	functions when the result is a C_MAYBE_CONST_EXPR.
+	* c-parser.c (c_parser_postfix_expression): Do not fold condition
+	of __builtin_choose_expr.
+	* c-typeck.c (remove_c_maybe_const_expr): New.
+	(build_unary_op, build_conditional_expr, build_compound_expr,
+	build_binary_op, c_objc_common_truthvalue_conversion): Call
+	remove_c_maybe_const_expr on any input C_MAYBE_CONST_EXPR with
+	integer operands.
+
+2009-04-08 Bingfeng Mei <bmei@broadcom.com>
+
+	* fold-const.c (const_binop): Combine two VECTOR_CST under operation 
+	CODE to produce a new one. Add a prototype to use fold_convert_const
+
+2009-04-08  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	PR bootstrap/39660
+	* config/i386/host-mingw32.c (mingw32_gt_pch_use_address): Don't
+	mix declarations and code.
+
+2009-04-08  Ben Elliston  <bje@au.ibm.com>
+
+	* gcc.c: Replace `CC' with `GCC' throughout.
+
+2009-04-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/invoke.texi: Document Atom support.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* c-common.h, c-common.c: Add flag_pretty_templates.
+	* c-opts.c (c_common_handle_option): Set it.
+	* c.opt: Add -fno-pretty-templates.
+	* doc/invoke.texi (C++ Dialect Options): Likewise.
+
+2009-04-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/ia64/ia64.c (ia64_builtins): Add IA64_BUILTIN_HUGE_VALQ.
+	(ia64_init_builtins): Handle IA64_BUILTIN_HUGE_VALQ.
+	(ia64_expand_builtin): Likewise.
+
+2009-04-07  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-ssa-alias.c (refs_may_alias_p_1): Check for
+	is_gimple_min_invariant rather than CONSTANT_CLASS_P so that invariant
+	ADDR_EXPRS are include too.
+
+2009-04-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Non-aliased
+	decls are only used if passes as parameters or if they are
+	local statics and the call is not to a builtin.
+	(call_may_clobber_ref_p_1): Likewise.
+
+2009-04-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expr.c (do_store_flag): Remove last argument.  Simplify code
+	to avoid duplication of tests already done by can_compare_p.
+	(expand_expr_real_1): Adjust caller.
+
+2009-04-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* optabs.c (can_compare_p): Test the predicate of a
+	cbranch and cstore pattern.
+
+2009-04-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* expr.c (convert_move): Use emit_store_flag instead of
+	"emulating" it.
+
+2009-04-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* config/i386/i386.c (ix86_compare_emitted): Remove.
+	(ix86_expand_compare, ix86_expand_branch): Handle MODE_CC
+	ix86_compare_op0 like ix86_compare_emitted used to be handled.
+	* config/i386/i386.h (ix86_compare_emitted): Remove.
+	* config/i386/i386.md (stack_protect_test): Set ix86_compare_op0
+	instead of ix86_compare_emitted.
+	* config/i386/sync.md (sync_compare_and_swap_cc): Likewise.
+
+2009-04-07  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config.gcc (sh-*-*): Add sysroot-suffix.h to tm_file.
+	Add t-sysroot-suffix to tmake_file.
+	* config/print-sysroot-suffix.sh: New file.
+	* config/t-sysroot-suffix: New file.
+
+2009-04-07  Ben Elliston  <bje@au.ibm.com>
+
+	* libgcc2.c (INFINITY): Use __builtin_huge_val, not __builtin_inf,
+	as the latter produces a warning when the target does not support
+	infinity.
+
+2009-04-07  Ben Elliston  <bje@au.ibm.com>
+
+	* dfp.c: Replace type punning assignments with memcpy throughout.
+	* Makefile.in (dfp.o-warn): Remove.
+	
+2009-04-07  Alan Modra  <amodra@bigpond.net.au>
+
+	PR target/39634
+	* config.gcc: Merge powerpc-*-linux* and powerpc64-*-linux*.
+	Include soft-fp/t-softfp after rs6000/t-linux64.
+
+2009-04-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* stor-layout.c (set_sizetype): Use the full precision of their
+	machine mode for bitsize types.
+
+2009-04-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md: Revert 2 accidental checkins.
+
+2009-04-06  Joey Ye  <joey.ye@intel.com>
+	    Xuepeng Guo <xuepeng.guo@intel.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	Atom pipeline model, tuning and insn selection.
+	* config.gcc (atom): Add atom config options and target.
+
+	* config/i386/atom.md: New.
+
+	* config/i386/i386.c (atom_cost): New cost.
+	(m_ATOM): New macro flag.
+	(initial_ix86_tune_features): Set m_ATOM.
+	(x86_accumulate_outgoing_args): Likewise.
+	(x86_arch_always_fancy_math_387): Likewise.
+	(processor_target): Add Atom cost.
+	(cpu_names): Add Atom cpu name.
+	(override_options): Set Atom ISA.
+	(ix86_issue_rate): New case PROCESSOR_ATOM.
+	(ix86_adjust_cost): Likewise.
+
+	* config/i386/i386.h (TARGET_ATOM): New target macro.
+	(ix86_tune_indices): Add X86_TUNE_OPT_AGU.
+	(TARGET_OPT_AGU): New target option.
+	(target_cpu_default): Add TARGET_CPU_DEFAULT_atom.
+	(processor_type): Add PROCESSOR_ATOM.
+
+	* config/i386/i386.md (cpu): Add new value "atom".
+	(use_carry, movu): New attr.
+	(atom.md): Include atom.md.
+	(adddi3_carry_rex64): Set attr "use_carry".
+	(addqi3_carry): Likewise.
+	(addhi3_carry): Likewise.
+	(addsi3_carry): Likewise.
+	(*addsi3_carry_zext): Likewise.
+	(subdi3_carry_rex64): Likewise.
+	(subqi3_carry): Likewise.
+	(subhi3_carry): Likewise.
+	(subsi3_carry): Likewise.
+	(x86_movdicc_0_m1_rex64): Likewise.
+	(*x86_movdicc_0_m1_se): Likewise.
+	(x86_movsicc_0_m1): Likewise.
+	(*x86_movsicc_0_m1_se): Likewise.
+	(*adddi_1_rex64): Emit add insn as much as possible.
+	(*addsi_1): Likewise.
+	(return_internal): Set atom_unit.
+	(return_internal_long): Likewise.
+	(return_pop_internal): Likewise.
+	(*rcpsf2_sse): Set atom_sse_attr attr.
+	(*qrt<mode>2_sse): Likewise.
+	(*prefetch_sse): Likewise.
+
+	* config/i386/i386-c.c (ix86_target_macros_internal): New case
+	PROCESSOR_ATOM.
+	(ix86_target_macros_internal): Likewise.
+
+	* config/i386/sse.md (cpu): Set attr "atom_sse_attr".
+	(*prefetch_sse_rex): Likewise.
+	(sse_rcpv4sf2): Likewise.
+	(sse_vmrcpv4sf2): Likewise.
+	(sse_sqrtv4sf2): Likewise.
+	(<sse>_vmsqrt<mode>2): Likewise.
+	(sse_ldmxcsr): Likewise.
+	(sse_stmxcsr): Likewise.
+	(*sse_sfence): Likewise.
+	(sse2_clflush): Likewise.
+	(*sse2_mfence): Likewise.
+	(*sse2_lfence): Likewise.
+	(avx_movup<avxmodesuffixf2c><avxmodesuffix>): Set attr "movu".
+	(<sse>_movup<ssemodesuffixf2c>): Likewise.
+	(avx_movdqu<avxmodesuffix>): Likewise.
+	(avx_lddqu<avxmodesuffix>): Likewise.
+	(sse2_movntv2di): Change attr "type" to "ssemov".
+	(sse2_movntsi): Likewise.
+	(rsqrtv8sf2): Change attr "type" to "sseadd".
+	(sse3_addsubv2df3): Set attr "atom_unit".
+	(sse3_h<plusminus_insn>v4sf3): Likewise.
+	(*sse2_pmaddwd): Likewise.
+	(*vec_extractv2di_1_rex64): Likewise.
+	(*vec_extractv2di_1_avx): Likewise.
+	(sse2_psadbw): Likewise.
+	(ssse3_phaddwv8hi3): Likewise.
+	(ssse3_phaddwv4hi3): Likewise.
+	(ssse3_phadddv4si3): Likewise.
+	(ssse3_phadddv2si3): Likewise.
+	(ssse3_phaddswv8hi3): Likewise.
+	(ssse3_phaddswv4hi3): Likewise.
+	(ssse3_phsubwv8hi3): Likewise.
+	(ssse3_phsubwv4hi3): Likewise.
+	(ssse3_phsubdv4si3): Likewise.
+	(ssse3_phsubdv2si3): Likewise.
+	(ssse3_phsubswv8hi3): Likewise.
+	(ssse3_phsubswv4hi3): Likewise.
+	(ssse3_pmaddubsw128): Likewise.
+	(sse3_pmaddubsw: Likewise.
+	(ssse3_palignrti): Likewise.
+	(ssse3_palignrdi): Likewise.
+
+2009-04-06  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (Specific): Fix two cross-references to MinGW.
+
+2009-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/28868
+	* tree-ssa-pre.c (inserted_phi_names): New bitmap to keep track
+	of which PHI results we inserted.
+	(insert_into_preds_of_block): Record inserted PHIs.
+	(eliminate): Eliminate redundant PHI nodes.
+	(init_pre): Init inserted_phi_names.
+
+2009-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39643
+	* tree-ssa-ccp.c (ccp_fold): Fold REALPART_EXPRs and
+	IMAGPART_EXPRs of complex constants.
+	(execute_fold_all_builtins): If we folded a call queue
+	TODO_update_address_taken.
+
+2009-04-06  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/39659
+	* except.c (remove_unreachable_regions): Propagate may_contain_throw
+	flag.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/sh/lib1funcs.asm (ic_invalidate): Move ICBI out of the
+	delay slot.
+	(ic_invalidate_array): Likewise.
+
+2009-04-06  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* calls.c (emit_library_call_value_1): Fix a problem with parameter
+	alignment for library calls.
+
+2009-04-06  Danny Smith  <dannysmith@users.sourceforge.net>
+
+	* config.gcc (mingw32 tm_file):  Add mingw-stdint.h.
+	(mingw32 tm clause use_gcc_stdint):  Set to wrap.
+	* config/i386/mingw-stdint.h:  New file.
+
+2009-04-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39648
+	* tree-ssa-sccvn.c (vn_reference_fold_indirect): Work around
+	our &A vs. &A[0] IL deficiencies.
+
+2009-04-04  Jan Hubicka  <jh@suse.cz>
+
+	* except.c (sjlj_find_directly_reachable_regions): Be ready for
+	removed toplevel regions.
+	(sjlj_mark_call_sites): Likewise.
+
+2009-04-04  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* config.gcc (cygwin tm_file):  Add cygwin-stdint.h.
+	(cygwin tm clause use_gcc_stdint):  Set to wrap.
+	* config/i386/cygwin-stdint.h:  New file.
+
+2009-04-04  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (tree-ssa-copy.o): Add $(CFGLOOP_H) dependency.
+	* tree-ssa-copy.c (init_copy_prop): Do not propagate through
+	single-argument PHIs if we are in loop-closed SSA form.
+	* tree-vect-loop-manip.c (slpeel_add_loop_guard): Pass extra guards
+	for the pre-condition.
+	(slpeel_tree_peel_loop_to_edge): Likewise.
+	(vect_build_loop_niters): Take an optional sequence to append stmts.
+	(vect_generate_tmps_on_preheader): Likewise.
+	(vect_do_peeling_for_loop_bound): Take extra guards for the
+	pre-condition.
+	(vect_do_peeling_for_alignment): Adjust.  Unconditionally apply
+	the cost model check.
+	(vect_loop_versioning): Take stmt and stmt list to put pre-condition
+	guards if we are going to peel.  Do not apply versioning in that case.
+	* tree-vectorizer.h (vect_loop_versioning): Adjust declaration.
+	(vect_do_peeling_for_loop_bound): Likewise.
+	* tree-vect-loop.c (vect_transform_loop): If we are peeling for
+	loop bound only record extra pre-conditions, do not apply loop
+	versioning.
+
 2009-04-04  Richard Guenther  <rguenther@suse.de>
 
 	* tree-ssa-operands.c (pop_stmt_changes): Remove automatic
@@ -103,7 +991,9 @@
 
 	PR rtl-optimization/39607
 	PR rtl-optimization/39631
-	Revert
+
+	Revert:
+	
 	2009-03-30  Vladimir Makarov  <vmakarov@redhat.com>
 	* reload.c (push_reload, find_dummy_reload): Use df_get_live_out
 	instead of DF_LR_OUT.
@@ -302,8 +1192,7 @@
 	(record_equivalences_from_stmt): Likewise.
 	(avail_expr_hash): Likewise.
 	(avail_expr_eq): Likewise.
-	* tree-ssa-propagate.c (update_call_from_tree): Properly
-	update VOPs.
+	* tree-ssa-propagate.c (update_call_from_tree): Properly update VOPs.
 	(stmt_makes_single_load): Likewise.
 	(stmt_makes_single_store): Likewise.
 	* tree-ssa-alias.c: Rewrite completely.
@@ -626,8 +1515,7 @@
 	(PARAM_AVG_ALIASED_VOPS): Likewise.
 	* tree-ssanames.c (init_ssanames): Allocate SYMS_TO_RENAME.
 	(duplicate_ssa_name_ptr_info): No need to copy the shared bitmaps.
-	* tree-ssa-operands.c: Simplify for new virtual operand
-	representation.
+	* tree-ssa-operands.c: Simplify for new virtual operand representation.
 	(operand_build_cmp, copy_virtual_operands,
 	create_ssa_artificial_load_stmt, add_to_addressable_set,
 	gimple_add_to_addresses_taken): Remove public functions.
@@ -782,7 +1670,8 @@
 	Also, make sure the function properly sets TYPE_STUB_DECL() on
 	the newly created typedef variant type.
 	* c-common.h (is_typedef_decl, set_underlying_type): Declare ...
-	* c-common.c (is_typedef_decl, set_underlying_type): ... new entry points.
+	* c-common.c (is_typedef_decl, set_underlying_type): ... new entry
+	points.
 
 2009-04-02  Richard Guenther  <rguenther@suse.de>
 
@@ -815,30 +1704,30 @@
 	* config/i386/i386.c (legitimate_constant_p): Recognize
 	all one vector constant.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/vax.c: Add #includes to silence warnings.
 	Change #include order to silence two warnings.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/linux.h (TARGET_DEFAULT): Add the MASK_QMATH flag bit.
 	(ASM_SPEC): Pass -k to the assembler for PIC code.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config.gcc: Add vax-*-linux* to the switch.
 	* gcc/config/vax/linux.h: New file. (TARGET_VERSION,
 	TARGET_OS_CPP_BUILTINS, TARGET_DEFAULT, CPP_SPEC, LINK_SPEC): Define.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/vax.c (vax_output_int_move, adjacent_operands_p):
 	Use predicate macros instead of GET_CODE() == foo.
 	* gcc/config/vax/vax.md (movsi_2, movstrictqi, and<mode>3, ashrsi3,
 	ashlsi3, rotrsi3, <unnamed>): Likewise.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/builtins.md (jbbssiqi, jbbssihi, jbbssisi, jbbcciqi,
 	jbbccihi, jbbccisi): Remova trailing whitespace.
@@ -851,14 +1740,14 @@
 	* gcc/config/vax/vax.h: Likewise.
 	* gcc/config/vax/vax.md (nonlocal_goto): Likewise.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/vax.c (vax_float_literal, vax_output_int_move)
 	(indirectable_address_p, adjacent_operands_p): Add spaces around
 	braces.
 	* gcc/config/vax/vax-protos.h (adjacent_operands_p): Likewise.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/vax.c (legitimate_constant_address_p,
 	legitimate_constant_p, indirectable_address_p, nonindexed_address_p,
@@ -866,7 +1755,7 @@
 	vax_mode_dependent_address_p): Update comments to match functions
 	modified by the recent int->bool conversion.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/builtins.md: Update copyright message.
 	* gcc/config/vax/constraints.md: Likewise.
@@ -878,7 +1767,7 @@
 	* gcc/config/vax/vax.md: Likewise.
 	* gcc/config/vax/vax.opt: Likewise.
 
-2009-04-01	Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
+2009-04-01  Jan-Benedict Glaw <jbglaw@jbglaw-dev.homezone.telefonica.de>
 
 	* gcc/config/vax/builtins.md (ffssi2, ffssi2_internal,
 	sync_lock_test_and_set<mode>, sync_lock_release<mode>): Fix indention.
@@ -889,20 +1778,22 @@
 	* gcc/config/vax/vax.md (movsi, movsi_2, mov<mode>, call_value,
 	untyped_call): Likewise.
 
-2009-04-01	Matt Thomas <matt@3am-software.com>
+2009-04-01  Matt Thomas <matt@3am-software.com>
 
-	* config/vax/predicates.md: New file. (symbolic_operand,
-	local_symbolic_operand, external_symbolic_operand,
+	* config/vax/predicates.md: New file.
+	(symbolic_operand, local_symbolic_operand, external_symbolic_operand,
 	external_const_operand, nonsymbolic_operand, external_memory_operand,
 	indirect_memory_operand, indexed_memory_operand,
 	illegal_blk_memory_operand, illegal_addsub_di_memory_operand,
 	nonimmediate_addsub_di_operand, general_addsub_di_operand): New
 	predicate.
-	* config/vax/constraints.md: New file. (Z0, U06,  U08, U16, CN6, S08,
-	S16, I, J, K, L, M, N, O, G, Q, B, R, T): New constraint.
-	* config/vax/builtins.md: New file. (ffssi2, ffssi2_internal,
-	sync_lock_test_and_set<mode>, jbbssiqi, jbbssihi, jbbssisi,
-	sync_lock_release<mode>, jbbcciqi, jbbccihi, jbbccisi): Define.
+	* config/vax/constraints.md: New file.
+	(Z0, U06,  U08, U16, CN6, S08, S16, I, J, K, L, M, N, O, G, Q, B, R, T):
+	New constraint.
+	* config/vax/builtins.md: New file.
+	(ffssi2, ffssi2_internal, sync_lock_test_and_set<mode>, jbbssiqi,
+	jbbssihi, jbbssisi, sync_lock_release<mode>, jbbcciqi, jbbccihi,
+	jbbccisi): Define.
 	* config/vax/vax.opt (mqmath): Add option.
 	* config/vax/vax.md (isfx): Extend with DI.
 	(VAXintQH, VAXintQHSD): Define.
@@ -956,6 +1847,10 @@
 	ASM_OUTPUT_DWARF_PCREL): Define.
 	(ASM_SPEC): Change definition to allow PIC generation.
 
+2009-04-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* doc/sourcebuild.texi: Update front-end requirements.
+
 2009-04-01  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/39226
@@ -998,7 +1893,8 @@
 
 2009-04-01  Rafael Avila de Espindola  <espindola@google.com>
 
-       * varasm.c (default_function_rodata_section): Declare DOT as const char*.
+	* varasm.c (default_function_rodata_section): Declare DOT as
+	const char*.
 
 2009-04-01  Kai Tietz  <kai.tietz@onevision.com>
 	    Andrey Galkin <agalkin@hypercom.com>
@@ -1043,8 +1939,7 @@
 2009-03-31  Joseph Myers  <joseph@codesourcery.com>
 
 	* c-common.c (c_get_ident): New.
-	(c_common_nodes_and_builtins): Call it for type names that may be
-	NULL.
+	(c_common_nodes_and_builtins): Call it for type names that may be NULL.
 
 2009-04-01  Ben Elliston  <bje@au.ibm.com>
 
@@ -1196,7 +2091,7 @@
 
 2009-03-31  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
-        PR target/27237
+	PR target/27237
 	* doc/invoke.texi (ARM Options): Update documentation for -mthumb.
 	
 2009-03-31  Richard Guenther  <rguenther@suse.de>
@@ -1398,8 +2293,8 @@
 
 2009-03-30  Paolo Bonzini  <bonzini@gnu.org>
 
-        * combine.c (simplify_comparison): Use have_insn_for.
-        * dojump.c (do_jump): Likewise.
+	* combine.c (simplify_comparison): Use have_insn_for.
+	* dojump.c (do_jump): Likewise.
 
 2009-03-30  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -1426,10 +2321,10 @@
 
 2009-03-30  Paolo Bonzini  <bonzini@gnu.org>
 
-        * cfglayout.c (pass_into_cfg_layout_mode, pass_outof_cfg_layout_mode):
-        Provide/destroy PROP_cfglayout respectively.
-        * gcse.c (pass_jump_bypass, pass_gcse): Require it.
-        * tree-pass.h (PROP_cfglayout): New.
+	* cfglayout.c (pass_into_cfg_layout_mode, pass_outof_cfg_layout_mode):
+	Provide/destroy PROP_cfglayout respectively.
+	* gcse.c (pass_jump_bypass, pass_gcse): Require it.
+	* tree-pass.h (PROP_cfglayout): New.
 
 2009-03-30  Paolo Bonzini  <bonzini@gnu.org>
 

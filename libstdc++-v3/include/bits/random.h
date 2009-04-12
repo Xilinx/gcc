@@ -5,7 +5,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /**
  * @file bits/random.h
@@ -75,17 +70,20 @@ namespace std
 
     // XXX need constexpr
     template<typename _UIntType, size_t __w,
-	     bool = __w <static_cast<size_t>
-			 (std::numeric_limits<_UIntType>::digits)>
+	     bool = __w < static_cast<size_t>
+			  (std::numeric_limits<_UIntType>::digits)>
       struct _ShiftMin1
-      { 
+      {
 	static const _UIntType __value =
-	  __gnu_cxx::__numeric_traits<_UIntType>::max;
+	  __gnu_cxx::__numeric_traits<_UIntType>::__max;
       };
 
     template<typename _UIntType, size_t __w>
       struct _ShiftMin1<_UIntType, __w, true>
-      { static const _UIntType __value = _UIntType(1) << __w - _UIntType(1); };
+      {
+	static const _UIntType __value =
+	  (_UIntType(1) << __w) - _UIntType(1);
+      };
 
     template<typename _Tp, _Tp __a, _Tp __c, _Tp __m, bool>
       struct _Mod;
@@ -208,7 +206,7 @@ namespace std
       static const result_type increment    = __c;
       /** The modulus. */
       static const result_type modulus      = __m;
-      static const result_type default_seed = 1UL;
+      static const result_type default_seed = 1u;
 
       /**
        * @brief Constructs a %linear_congruential_engine random number
@@ -233,7 +231,7 @@ namespace std
 
       /**
        * @brief Reseeds the %linear_congruential_engine random number generator
-       *        engine sequence to the seed @g __s.
+       *        engine sequence to the seed @p __s.
        *
        * @param __s The new seed.
        */
@@ -260,7 +258,7 @@ namespace std
        */
       result_type
       min() const
-      { return (__detail::__mod<_UIntType, 1, 0, __m>(__c) == 0) ? 1 : 0; }
+      { return __c == 0u ? 1u : 0u; }
 
       /**
        * @brief Gets the largest possible value in the output range.
@@ -269,7 +267,7 @@ namespace std
        */
       result_type
       max() const
-      { return __m - 1; }
+      { return __m - 1u; }
 
       /**
        * @brief Discard a sequence of random numbers.
@@ -316,9 +314,9 @@ namespace std
 	       _UIntType1 __m1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const linear_congruential_engine<_UIntType1, __a1, __c1,
-		   __m1>& __lcr);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::linear_congruential_engine<_UIntType1,
+		   __a1, __c1, __m1>&);
 
       /**
        * @brief Sets the state of the engine by reading its textual
@@ -337,20 +335,11 @@ namespace std
 	       _UIntType1 __m1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   linear_congruential_engine<_UIntType1,
-					      __a1, __c1, __m1>& __lcr);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::linear_congruential_engine<_UIntType1, __a1,
+		   __c1, __m1>&);
 
     private:
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, true_type)
-	{ return seed(static_cast<unsigned long>(__g)); }
-
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, false_type);
-
       _UIntType _M_x;
     };
 
@@ -403,18 +392,15 @@ namespace std
 		    "mersenne_twister_engine template arguments out of bounds");
       static_assert(__w >= __l,
 		    "mersenne_twister_engine template arguments out of bounds");
-      static_assert(__w <= static_cast<size_t>(numeric_limits<_UIntType>::digits), 
+      static_assert(__w <=
+		    static_cast<size_t>(numeric_limits<_UIntType>::digits),
 		    "mersenne_twister_engine template arguments out of bounds");
-
-#if 0
-      // XXX
       static_assert(__a <= __detail::_ShiftMin1<_UIntType, __w>::__value,
 		    "mersenne_twister_engine template arguments out of bounds");
       static_assert(__b <= __detail::_ShiftMin1<_UIntType, __w>::__value,
 		    "mersenne_twister_engine template arguments out of bounds");
       static_assert(__c <= __detail::_ShiftMin1<_UIntType, __w>::__value,
 		    "mersenne_twister_engine template arguments out of bounds");
-#endif
 
     public:
       /** The type of the generated random value. */
@@ -434,7 +420,7 @@ namespace std
       static const result_type tempering_c               = __c;
       static const size_t      tempering_l               = __l;
       static const size_t      initialization_multiplier = __f;
-      static const result_type default_seed = 5489UL;
+      static const result_type default_seed = 5489u;
 
       // constructors and member function
       explicit
@@ -527,9 +513,10 @@ namespace std
 	       _UIntType1 __c1, size_t __l1, _UIntType1 __f1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const mersenne_twister_engine<_UIntType1, __w1, __n1, __m1, __r1,
-		   __a1, __u1, __d1, __s1, __b1, __t1, __c1, __l1, __f1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::mersenne_twister_engine<_UIntType1, __w1, __n1,
+		   __m1, __r1, __a1, __u1, __d1, __s1, __b1, __t1, __c1,
+		   __l1, __f1>&);
 
       /**
        * @brief Extracts the current state of a % mersenne_twister_engine
@@ -552,20 +539,12 @@ namespace std
 	       _UIntType1 __c1, size_t __l1, _UIntType1 __f1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   mersenne_twister_engine<_UIntType1, __w1, __n1, __m1, __r1,
-		   __a1, __u1, __d1, __s1, __b1, __t1, __c1, __l1, __f1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::mersenne_twister_engine<_UIntType1, __w1, __n1, __m1,
+		   __r1, __a1, __u1, __d1, __s1, __b1, __t1, __c1,
+		   __l1, __f1>&);
 
     private:
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, true_type)
-	{ return seed(static_cast<unsigned long>(__g)); }
-
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, false_type);
-
       _UIntType _M_x[state_size];
       size_t    _M_p;
     };
@@ -605,7 +584,7 @@ namespace std
       static const size_t      word_size    = __w;
       static const size_t      short_lag    = __s;
       static const size_t      long_lag     = __r;
-      static const result_type default_seed = 19780503;
+      static const result_type default_seed = 19780503u;
 
       /**
        * @brief Constructs an explicitly seeded % subtract_with_carry_engine
@@ -665,7 +644,7 @@ namespace std
        */
       result_type
       max() const
-      { return _S_modulus - 1U; }
+      { return __detail::_ShiftMin1<_UIntType, __w>::__value; }
 
       /**
        * @brief Discard a sequence of random numbers.
@@ -716,9 +695,9 @@ namespace std
       template<typename _UIntType1, size_t __w1, size_t __s1, size_t __r1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const subtract_with_carry_engine<_UIntType1, __w1, __s1,
-		   __r1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::subtract_with_carry_engine<_UIntType1, __w1,
+		   __s1, __r1>&);
 
       /**
        * @brief Extracts the current state of a % subtract_with_carry_engine
@@ -734,22 +713,11 @@ namespace std
       template<typename _UIntType1, size_t __w1, size_t __s1, size_t __r1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   subtract_with_carry_engine<_UIntType1, __w1, __s1, __r1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::subtract_with_carry_engine<_UIntType1, __w1,
+		   __s1, __r1>&);
 
     private:
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, true_type)
-	{ return seed(static_cast<unsigned long>(__g)); }
-
-      template<typename _Gen>
-	void
-	seed(_Gen& __g, false_type);
-
-      static const size_t _S_modulus
-	= __detail::_Shift<_UIntType, __w>::__value;
-
       _UIntType  _M_x[long_lag];
       _UIntType  _M_carry;
       size_t     _M_p;
@@ -931,9 +899,9 @@ namespace std
       template<typename _RandomNumberEngine1, size_t __p1, size_t __r1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const discard_block_engine<_RandomNumberEngine1,
-		   __p1, __r1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::discard_block_engine<_RandomNumberEngine1,
+		   __p1, __r1>&);
 
       /**
        * @brief Extracts the current state of a % subtract_with_carry_engine
@@ -949,9 +917,9 @@ namespace std
       template<typename _RandomNumberEngine1, size_t __p1, size_t __r1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   discard_block_engine<_RandomNumberEngine1,
-		   __p1, __r1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::discard_block_engine<_RandomNumberEngine1,
+		   __p1, __r1>&);
 
     private:
       _RandomNumberEngine _M_b;
@@ -966,9 +934,10 @@ namespace std
     class independent_bits_engine
     {
       static_assert(__w > 0U
-		 && __w <= static_cast<size_t>(numeric_limits<_UIntType>::digits),
-		    "template arguments out of bounds"
-		    " in independent_bits_engine");
+		    && __w <=
+		    static_cast<size_t>(numeric_limits<_UIntType>::digits),
+		    "template arguments out of bounds "
+		    "in independent_bits_engine");
 
     public:
       /** The type of the generated random value. */
@@ -1122,7 +1091,7 @@ namespace std
       template<typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
 	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   independent_bits_engine<_RandomNumberEngine,
+		   std::independent_bits_engine<_RandomNumberEngine,
 		   __w, _UIntType>& __x)
 	{
 	  __is >> __x._M_b;
@@ -1147,7 +1116,7 @@ namespace std
 	   typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
     operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const independent_bits_engine<_RandomNumberEngine,
+	       const std::independent_bits_engine<_RandomNumberEngine,
 	       __w, _UIntType>& __x)
     {
       __os << __x.base();
@@ -1225,8 +1194,8 @@ namespace std
       { _M_initialize(); }
 
       /**
-       * @brief Reseeds the %shuffle_order_engine object with the default seed for
-       *        the underlying base class generator engine.
+       * @brief Reseeds the %shuffle_order_engine object with the default seed
+                for the underlying base class generator engine.
        */
       void
       seed()
@@ -1330,9 +1299,9 @@ namespace std
       template<typename _RandomNumberEngine1, size_t __k1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const shuffle_order_engine<_RandomNumberEngine1,
-		   __k1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::shuffle_order_engine<_RandomNumberEngine1,
+		   __k1>&);
 
       /**
        * @brief Extracts the current state of a % subtract_with_carry_engine
@@ -1348,9 +1317,8 @@ namespace std
       template<typename _RandomNumberEngine1, size_t __k1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   shuffle_order_engine<_RandomNumberEngine1,
-		   __k1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::shuffle_order_engine<_RandomNumberEngine1, __k1>&);
 
     private:
       void _M_initialize()
@@ -1566,10 +1534,6 @@ namespace std
 	b() const
 	{ return _M_b; }
 
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_a == __p2._M_a) && (__p1._M_b == __p2._M_b); }
-
       private:
 	_IntType _M_a;
 	_IntType _M_b;
@@ -1684,16 +1648,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two uniform integer distributions have
-   *        the same parameters.
-   */
-  template<typename _IntType>
-    bool
-    operator==(const uniform_int_distribution<_IntType>& __d1,
-	       const uniform_int_distribution<_IntType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %uniform_int_distribution random number
    *        distribution @p __x into the output stream @p os.
    *
@@ -1705,8 +1659,8 @@ namespace std
    */
   template<typename _IntType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const uniform_int_distribution<_IntType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::uniform_int_distribution<_IntType>&);
 
   /**
    * @brief Extracts a %uniform_int_distribution random number distribution
@@ -1719,8 +1673,8 @@ namespace std
    */
   template<typename _IntType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       uniform_int_distribution<_IntType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::uniform_int_distribution<_IntType>&);
 
 
   /**
@@ -1756,10 +1710,6 @@ namespace std
 	result_type
 	b() const
 	{ return _M_b; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_a == __p2._M_a) && (__p1._M_b == __p2._M_b); }
 
       private:
 	_RealType _M_a;
@@ -1853,16 +1803,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two uniform real distributions have
-   *        the same parameters.
-   */
-  template<typename _IntType>
-    bool
-    operator==(const uniform_real_distribution<_IntType>& __d1,
-	       const uniform_real_distribution<_IntType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %uniform_real_distribution random number
    *        distribution @p __x into the output stream @p __os.
    *
@@ -1874,8 +1814,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const uniform_real_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::uniform_real_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %uniform_real_distribution random number distribution
@@ -1888,8 +1828,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       uniform_real_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::uniform_real_distribution<_RealType>&);
 
   /* @} */ // group std_random_distributions_uniform
 
@@ -1932,11 +1872,6 @@ namespace std
 	_RealType
 	stddev() const
 	{ return _M_stddev; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_mean == __p2._M_mean)
-	      && (__p1._M_stddev == __p2._M_stddev); }
 
       private:
 	_RealType _M_mean;
@@ -2020,15 +1955,6 @@ namespace std
 		   const param_type& __p);
 
       /**
-       * @brief Return true if two normal distributions have
-       *        the same parameters.
-       */
-      template<typename _RealType1>
-	friend bool
-	operator==(const normal_distribution<_RealType1>& __d1,
-		   const normal_distribution<_RealType1>& __d2);
-
-      /**
        * @brief Inserts a %normal_distribution random number distribution
        * @p __x into the output stream @p __os.
        *
@@ -2040,8 +1966,8 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const normal_distribution<_RealType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::normal_distribution<_RealType1>&);
 
       /**
        * @brief Extracts a %normal_distribution random number distribution
@@ -2055,8 +1981,8 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   normal_distribution<_RealType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::normal_distribution<_RealType1>&);
 
     private:
       param_type  _M_param;
@@ -2096,10 +2022,6 @@ namespace std
 	_RealType
 	s() const
 	{ return _M_s; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_m == __p2._M_m) && (__p1._M_s == __p2._M_s); }
 
       private:
 	_RealType _M_m;
@@ -2179,16 +2101,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two lognormal distributions have
-   *        the same parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const lognormal_distribution<_RealType>& __d1,
-	       const lognormal_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %lognormal_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2200,8 +2112,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const lognormal_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::lognormal_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %lognormal_distribution random number distribution
@@ -2215,8 +2127,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       lognormal_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::lognormal_distribution<_RealType>&);
 
 
   /**
@@ -2244,10 +2156,6 @@ namespace std
 	_RealType
 	n() const
 	{ return _M_n; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_n == __p2._M_n; }
 
       private:
 	_RealType _M_n;
@@ -2321,16 +2229,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two Chi-squared distributions have
-   *        the same parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const chi_squared_distribution<_RealType>& __d1,
-	       const chi_squared_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %chi_squared_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2342,8 +2240,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const chi_squared_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::chi_squared_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %chi_squared_distribution random number distribution
@@ -2357,15 +2255,15 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       chi_squared_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::chi_squared_distribution<_RealType>&);
 
 
   /**
    * @brief A cauchy_distribution random number distribution.
    *
    * The formula for the normal probability mass function is
-   * @f$ p(x|a,b) = \( \pi b \( 1 + \( \frac{x-a}{b} \)^2 \) \)^{-1} @f$
+   * @f$ p(x|a,b) = (\pi b (1 + (\frac{x-a}{b})^2))^{-1} @f$
    */
   template<typename _RealType = double>
     class cauchy_distribution
@@ -2391,10 +2289,6 @@ namespace std
 	_RealType
 	b() const
 	{ return _M_b; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_a == __p2._M_a) && (__p1._M_b == __p2._M_b); }
 
       private:
 	_RealType _M_a;
@@ -2474,16 +2368,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two Cauchy distributions have
-   *        the same parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const cauchy_distribution<_RealType>& __d1,
-	       const cauchy_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %cauchy_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2495,8 +2379,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const cauchy_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::cauchy_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %cauchy_distribution random number distribution
@@ -2510,8 +2394,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       cauchy_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::cauchy_distribution<_RealType>&);
 
 
   /**
@@ -2519,8 +2403,8 @@ namespace std
    *
    * The formula for the normal probability mass function is
    * @f$ p(x|m,n) = \frac{\Gamma((m+n)/2)}{\Gamma(m/2)\Gamma(n/2)}
-   *                \(\frac{m}{n}\)^{m/2} x^{(m/2)-1}
-   *                \( 1 + \frac{mx}{n} \)^{-(m+n)/2} @f$
+   *                (\frac{m}{n})^{m/2} x^{(m/2)-1}
+   *                (1 + \frac{mx}{n})^{-(m+n)/2} @f$
    */
   template<typename _RealType = double>
     class fisher_f_distribution
@@ -2546,10 +2430,6 @@ namespace std
 	_RealType
 	n() const
 	{ return _M_n; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_m == __p2._M_m) && (__p1._M_n == __p2._M_n); }
 
       private:
 	_RealType _M_m;
@@ -2629,16 +2509,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two Fisher f distributions have
-   *        the same parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const fisher_f_distribution<_RealType>& __d1,
-	       const fisher_f_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %fisher_f_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2650,8 +2520,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const fisher_f_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::fisher_f_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %fisher_f_distribution random number distribution
@@ -2665,8 +2535,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       fisher_f_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::fisher_f_distribution<_RealType>&);
 
 
   /**
@@ -2674,7 +2544,7 @@ namespace std
    *
    * The formula for the normal probability mass function is
    * @f$ p(x|n) = \frac{1}{\sqrt(n\pi)} \frac{\Gamma((n+1)/2)}{\Gamma(n/2)}
-   *              \( 1 + \frac{x^2}{n} \) ^{-(n+1)/2} @f$
+   *              (1 + \frac{x^2}{n}) ^{-(n+1)/2} @f$
    */
   template<typename _RealType = double>
     class student_t_distribution
@@ -2695,10 +2565,6 @@ namespace std
 	_RealType
 	n() const
 	{ return _M_n; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_n == __p2._M_n; }
 
       private:
 	_RealType _M_n;
@@ -2777,16 +2643,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two Student t distributions have
-   *        the same parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const student_t_distribution<_RealType>& __d1,
-	       const student_t_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %student_t_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2798,8 +2654,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const student_t_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::student_t_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %student_t_distribution random number distribution
@@ -2813,8 +2669,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       student_t_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::student_t_distribution<_RealType>&);
 
   /* @} */ // group std_random_distributions_normal
 
@@ -2850,10 +2706,6 @@ namespace std
       double
       p() const
       { return _M_p; }
-
-      friend bool
-      operator==(const param_type& __p1, const param_type& __p2)
-      { return __p1._M_p == __p2._M_p; }
 
     private:
       double _M_p;
@@ -2953,15 +2805,6 @@ namespace std
   };
 
   /**
-   * @brief Return true if two Bernoulli distributions have
-   *        the same parameters.
-   */
-  bool
-  operator==(const bernoulli_distribution& __d1,
-	     const bernoulli_distribution& __d2)
-  { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %bernoulli_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -2973,8 +2816,8 @@ namespace std
    */
   template<typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const bernoulli_distribution& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::bernoulli_distribution&);
 
   /**
    * @brief Extracts a %bernoulli_distribution random number distribution
@@ -2988,7 +2831,7 @@ namespace std
   template<typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
     operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       bernoulli_distribution& __x)
+	       std::bernoulli_distribution& __x)
     {
       double __p;
       __is >> __p;
@@ -3023,8 +2866,8 @@ namespace std
 	: _M_t(__t), _M_p(__p)
 	{
 	  _GLIBCXX_DEBUG_ASSERT((_M_t >= _IntType(0))
-			     && (_M_p >= 0.0)
-			     && (_M_p <= 1.0));
+				&& (_M_p >= 0.0)
+				&& (_M_p <= 1.0));
 	  _M_initialize();
 	}
 
@@ -3035,10 +2878,6 @@ namespace std
 	double
 	p() const
 	{ return _M_p; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_t == __p2._M_t) && (__p1._M_p == __p2._M_p); }
 
       private:
 	void
@@ -3117,17 +2956,6 @@ namespace std
       max() const
       { return _M_param.t(); }
 
-      /**
-       * @brief Return true if two binomial distributions have
-       *        the same parameters.
-       */
-      template<typename _IntType1>
-	friend bool
-	operator==(const binomial_distribution<_IntType1>& __d1,
-		   const binomial_distribution<_IntType1>& __d2)
-	{ return (__d1.param() == __d2.param())
-	      && (__d1._M_nd == __d2._M_nd); }
-
       template<typename _UniformRandomNumberGenerator>
 	result_type
 	operator()(_UniformRandomNumberGenerator& __urng)
@@ -3151,8 +2979,8 @@ namespace std
       template<typename _IntType1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const binomial_distribution<_IntType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::binomial_distribution<_IntType1>&);
 
       /**
        * @brief Extracts a %binomial_distribution random number distribution
@@ -3167,8 +2995,8 @@ namespace std
       template<typename _IntType1,
 	       typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   binomial_distribution<_IntType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::binomial_distribution<_IntType1>&);
 
     private:
       template<typename _UniformRandomNumberGenerator>
@@ -3215,10 +3043,6 @@ namespace std
 	double
 	p() const
 	{ return _M_p; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_p == __p2._M_p; }
 
       private:
 	void
@@ -3300,16 +3124,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two geometric distributions have
-   *        the same parameters.
-   */
-  template<typename _IntType>
-    bool
-    operator==(const geometric_distribution<_IntType>& __d1,
-	       const geometric_distribution<_IntType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %geometric_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -3322,8 +3136,8 @@ namespace std
   template<typename _IntType,
 	   typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const geometric_distribution<_IntType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::geometric_distribution<_IntType>&);
 
   /**
    * @brief Extracts a %geometric_distribution random number distribution
@@ -3337,8 +3151,8 @@ namespace std
   template<typename _IntType,
 	   typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       geometric_distribution<_IntType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::geometric_distribution<_IntType>&);
 
 
   /**
@@ -3373,10 +3187,6 @@ namespace std
 	double
 	p() const
 	{ return _M_p; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_k == __p2._M_k) && (__p1._M_p == __p2._M_p); }
 
       private:
 	_IntType _M_k;
@@ -3458,16 +3268,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two negative binomial distributions have
-   *        the same parameters.
-   */
-  template<typename _IntType>
-    bool
-    operator==(const negative_binomial_distribution<_IntType>& __d1,
-	       const negative_binomial_distribution<_IntType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %negative_binomial_distribution random
    *        number distribution @p __x into the output stream @p __os.
    *
@@ -3480,8 +3280,8 @@ namespace std
    */
   template<typename _IntType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const negative_binomial_distribution<_IntType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::negative_binomial_distribution<_IntType>&);
 
   /**
    * @brief Extracts a %negative_binomial_distribution random number
@@ -3495,8 +3295,8 @@ namespace std
    */
   template<typename _IntType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       negative_binomial_distribution<_IntType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::negative_binomial_distribution<_IntType>&);
 
   /* @} */ // group std_random_distributions_bernoulli
 
@@ -3538,10 +3338,6 @@ namespace std
 	double
 	mean() const
 	{ return _M_mean; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_mean == __p2._M_mean; }
 
       private:
 	// Hosts either log(mean) or the threshold of the simple method.
@@ -3621,17 +3417,6 @@ namespace std
 		   const param_type& __p);
 
       /**
-       * @brief Return true if two Poisson distributions have the same
-       *        parameters.
-       */
-      template<typename _IntType1>
-	friend bool
-	operator==(const poisson_distribution<_IntType1>& __d1,
-		   const poisson_distribution<_IntType1>& __d2)
-	{ return (__d1.param() == __d2.param())
-	      && (__d1._M_nd == __d2._M_nd); }
-
-      /**
        * @brief Inserts a %poisson_distribution random number distribution
        * @p __x into the output stream @p __os.
        *
@@ -3643,8 +3428,8 @@ namespace std
        */
       template<typename _IntType1, typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const poisson_distribution<_IntType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::poisson_distribution<_IntType1>&);
 
       /**
        * @brief Extracts a %poisson_distribution random number distribution
@@ -3658,8 +3443,8 @@ namespace std
        */
       template<typename _IntType1, typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   poisson_distribution<_IntType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::poisson_distribution<_IntType1>&);
 
     private:
       param_type _M_param;
@@ -3704,10 +3489,6 @@ namespace std
 	_RealType
 	lambda() const
 	{ return _M_lambda; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_lambda == __p2._M_lambda; }
 
       private:
 	_RealType _M_lambda;
@@ -3796,16 +3577,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two exponential distributions have the same
-   *        parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const exponential_distribution<_RealType>& __d1,
-	       const exponential_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %exponential_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -3817,8 +3588,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const exponential_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::exponential_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %exponential_distribution random number distribution
@@ -3832,8 +3603,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       exponential_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::exponential_distribution<_RealType>&);
 
 
   /**
@@ -3871,11 +3642,6 @@ namespace std
 	_RealType
 	beta() const
 	{ return _M_beta; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_alpha == __p2._M_alpha)
-	      && (__p1._M_beta == __p2._M_beta); }
 
       private:
 	void
@@ -3970,16 +3736,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two gamma distributions have the same
-   *        parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const gamma_distribution<_RealType>& __d1,
-	       const gamma_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %gamma_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -3991,8 +3747,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const gamma_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::gamma_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %gamma_distribution random number distribution
@@ -4005,8 +3761,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       gamma_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::gamma_distribution<_RealType>&);
 
 
   /**
@@ -4040,10 +3796,6 @@ namespace std
 	_RealType
 	b() const
 	{ return _M_b; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_a == __p2._M_a) && (__p1._M_b == __p2._M_b); }
 
       private:
 	_RealType _M_a;
@@ -4132,16 +3884,6 @@ namespace std
     };
 
   /**
-   * @brief Return true if two Weibull distributions have the same
-   *        parameters.
-   */
-  template<typename _RealType>
-    bool
-    operator==(const weibull_distribution<_RealType>& __d1,
-	       const weibull_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %weibull_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -4153,8 +3895,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const weibull_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::weibull_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %weibull_distribution random number distribution
@@ -4168,8 +3910,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       weibull_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::weibull_distribution<_RealType>&);
 
 
   /**
@@ -4203,10 +3945,6 @@ namespace std
 	_RealType
 	b() const
 	{ return _M_b; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_a == __p2._M_a) && (__p1._M_b == __p2._M_b); }
 
       private:
 	_RealType _M_a;
@@ -4289,15 +4027,6 @@ namespace std
     };
 
   /**
-   *
-   */
-  template<typename _RealType>
-    bool
-    operator==(const extreme_value_distribution<_RealType>& __d1,
-	       const extreme_value_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
-
-  /**
    * @brief Inserts a %extreme_value_distribution random number distribution
    * @p __x into the output stream @p __os.
    *
@@ -4309,8 +4038,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_ostream<_CharT, _Traits>&
-    operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-	       const extreme_value_distribution<_RealType>& __x);
+    operator<<(std::basic_ostream<_CharT, _Traits>&,
+	       const std::extreme_value_distribution<_RealType>&);
 
   /**
    * @brief Extracts a %extreme_value_distribution random number
@@ -4324,8 +4053,8 @@ namespace std
    */
   template<typename _RealType, typename _CharT, typename _Traits>
     std::basic_istream<_CharT, _Traits>&
-    operator>>(std::basic_istream<_CharT, _Traits>& __is,
-	       extreme_value_distribution<_RealType>& __x);
+    operator>>(std::basic_istream<_CharT, _Traits>&,
+	       std::extreme_value_distribution<_RealType>&);
 
 
   /**
@@ -4369,10 +4098,6 @@ namespace std
 	std::vector<double>
 	probabilities() const
 	{ return _M_prob; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return __p1._M_prob == __p2._M_prob; }
 
       private:
 	void
@@ -4472,8 +4197,8 @@ namespace std
        */
       template<typename _IntType1, typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const discrete_distribution<_IntType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::discrete_distribution<_IntType1>&);
 
       /**
        * @brief Extracts a %discrete_distribution random number distribution
@@ -4488,21 +4213,12 @@ namespace std
        */
       template<typename _IntType1, typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   discrete_distribution<_IntType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::discrete_distribution<_IntType1>&);
 
     private:
       param_type _M_param;
     };
-
-  /**
-   *
-   */
-  template<typename _IntType>
-    bool
-    operator==(const discrete_distribution<_IntType>& __d1,
-	       const discrete_distribution<_IntType>& __d2)
-    { return __d1.param() == __d2.param(); }
 
 
   /**
@@ -4544,11 +4260,6 @@ namespace std
 	std::vector<double>
 	densities() const
 	{ return _M_den; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_int == __p2._M_int)
-	      && (__p1._M_den == __p2._M_den); }
 
       private:
 	void
@@ -4662,8 +4373,8 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const piecewise_constant_distribution<_RealType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::piecewise_constant_distribution<_RealType1>&);
 
       /**
        * @brief Extracts a %piecewise_constan_distribution random
@@ -4678,21 +4389,12 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   piecewise_constant_distribution<_RealType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::piecewise_constant_distribution<_RealType1>&);
 
     private:
       param_type _M_param;
     };
-
-  /**
-   *
-   */
-  template<typename _RealType>
-    bool
-    operator==(const piecewise_constant_distribution<_RealType>& __d1,
-	       const piecewise_constant_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
 
 
   /**
@@ -4734,11 +4436,6 @@ namespace std
 	std::vector<double>
 	densities() const
 	{ return _M_den; }
-
-	friend bool
-	operator==(const param_type& __p1, const param_type& __p2)
-	{ return (__p1._M_int == __p2._M_int)
-	      && (__p1._M_den == __p2._M_den); }
 
       private:
 	void
@@ -4854,8 +4551,8 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_ostream<_CharT, _Traits>&
-	operator<<(std::basic_ostream<_CharT, _Traits>& __os,
-		   const piecewise_linear_distribution<_RealType1>& __x);
+	operator<<(std::basic_ostream<_CharT, _Traits>&,
+		   const std::piecewise_linear_distribution<_RealType1>&);
 
       /**
        * @brief Extracts a %piecewise_linear_distribution random number
@@ -4870,21 +4567,13 @@ namespace std
        */
       template<typename _RealType1, typename _CharT, typename _Traits>
 	friend std::basic_istream<_CharT, _Traits>&
-	operator>>(std::basic_istream<_CharT, _Traits>& __is,
-		   piecewise_linear_distribution<_RealType1>& __x);
+	operator>>(std::basic_istream<_CharT, _Traits>&,
+		   std::piecewise_linear_distribution<_RealType1>&);
 
     private:
       param_type _M_param;
     };
 
-  /**
-   *
-   */
-  template<typename _RealType>
-    bool
-    operator==(const piecewise_linear_distribution<_RealType>& __d1,
-	       const piecewise_linear_distribution<_RealType>& __d2)
-    { return __d1.param() == __d2.param(); }
 
   /* @} */ // group std_random_distributions_poisson
 
@@ -4934,7 +4623,7 @@ namespace std
 
   private:
     ///
-    vector<result_type> _M_v;
+    std::vector<result_type> _M_v;
   };
 
   /* @} */ // group std_random_utilities

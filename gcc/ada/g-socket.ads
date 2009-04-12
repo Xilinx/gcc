@@ -52,7 +52,10 @@ with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
+with Interfaces.C;
+
 with System.OS_Constants;
+with System.Storage_Elements;
 
 package GNAT.Sockets is
 
@@ -376,25 +379,37 @@ package GNAT.Sockets is
    --  including through this renaming.
 
    procedure Initialize;
+   pragma Obsolescent
+     (Entity  => Initialize,
+      Message => "explicit initialization is no longer required");
    --  Initialize must be called before using any other socket routines.
    --  Note that this operation is a no-op on UNIX platforms, but applications
    --  should make sure to call it if portability is expected: some platforms
    --  (such as Windows) require initialization before any socket operation.
+   --  This is now a no-op (initialization and finalization are done
+   --  automatically).
 
    procedure Initialize (Process_Blocking_IO : Boolean);
    pragma Obsolescent
-     (Entity => Initialize,
-      "passing a parameter to Initialize is not supported anymore");
+     (Entity  => Initialize,
+      Message => "passing a parameter to Initialize is no longer supported");
    --  Previous versions of GNAT.Sockets used to require the user to indicate
    --  whether socket I/O was process- or thread-blocking on the platform.
    --  This property is now determined automatically when the run-time library
    --  is built. The old version of Initialize, taking a parameter, is kept
    --  for compatibility reasons, but this interface is obsolete (and if the
    --  value given is wrong, an exception will be raised at run time).
+   --  This is now a no-op (initialization and finalization are done
+   --  automatically).
 
    procedure Finalize;
+   pragma Obsolescent
+     (Entity  => Finalize,
+      Message => "explicit finalization is no longer required");
    --  After Finalize is called it is not possible to use any routines
    --  exported in by this package. This procedure is idempotent.
+   --  This is now a no-op (initialization and finalization are done
+   --  automatically).
 
    type Socket_Type is private;
    --  Sockets are used to implement a reliable bi-directional point-to-point,
@@ -963,9 +978,9 @@ package GNAT.Sockets is
 
    type Socket_Set_Type is limited private;
    --  This type allows to manipulate sets of sockets. It allows to wait for
-   --  events on multiple endpoints at one time. This is an access type on a
-   --  system dependent structure. To avoid memory leaks it is highly
-   --  recommended to clean the access value with procedure Empty.
+   --  events on multiple endpoints at one time. This type used to contain
+   --  a pointer to dynamically allocated storage, but this is not the case
+   --  anymore, and no special precautions are required to avoid memory leaks.
 
    procedure Clear (Item : in out Socket_Set_Type; Socket : Socket_Type);
    --  Remove Socket from Item
@@ -974,7 +989,7 @@ package GNAT.Sockets is
    --  Copy Source into Target as Socket_Set_Type is limited private
 
    procedure Empty (Item : in out Socket_Set_Type);
-   --  Remove all Sockets from Item and deallocate internal data
+   --  Remove all Sockets from Item
 
    procedure Get (Item : in out Socket_Set_Type; Socket : out Socket_Type);
    --  Extract a Socket from socket set Item. Socket is set to
@@ -990,6 +1005,9 @@ package GNAT.Sockets is
 
    procedure Set (Item : in out Socket_Set_Type; Socket : Socket_Type);
    --  Insert Socket into Item
+
+   function Image (Item : Socket_Set_Type) return String;
+   --  Return a printable image of Item, for debugging purposes
 
    --  The select(2) system call waits for events to occur on any of a set of
    --  file descriptors. Usually, three independent sets of descriptors are
@@ -1053,8 +1071,7 @@ package GNAT.Sockets is
    procedure Abort_Selector (Selector : Selector_Type);
    --  Send an abort signal to the selector
 
-   type Fd_Set_Access is private;
-   No_Fd_Set_Access : constant Fd_Set_Access;
+   type Fd_Set is private;
    --  ??? This type must not be used directly, it needs to be visible because
    --  it is used in the visible part of GNAT.Sockets.Thin_Common. This is
    --  really an inversion of abstraction. The private part of GNAT.Sockets
@@ -1076,14 +1093,20 @@ private
 
    pragma Volatile (Selector_Type);
 
-   type Fd_Set is null record;
+   type Fd_Set is
+     new System.Storage_Elements.Storage_Array (1 .. SOSC.SIZEOF_fd_set);
+   for Fd_Set'Alignment use Interfaces.C.long'Alignment;
+   --  Set conservative alignment so that our Fd_Sets are always adequately
+   --  aligned for the underlying data type (which is implementation defined
+   --  and may be an array of C long integers).
+
    type Fd_Set_Access is access all Fd_Set;
    pragma Convention (C, Fd_Set_Access);
    No_Fd_Set_Access : constant Fd_Set_Access := null;
 
    type Socket_Set_Type is record
-      Last : Socket_Type       := No_Socket;
-      Set  : Fd_Set_Access;
+      Last : Socket_Type := No_Socket;
+      Set  : aliased Fd_Set;
    end record;
 
    subtype Inet_Addr_Comp_Type is Natural range 0 .. 255;

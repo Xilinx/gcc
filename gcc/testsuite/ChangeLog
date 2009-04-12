@@ -1,3 +1,336 @@
+2009-04-11  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/37746
+	* gfortran.dg/bounds_check_strlen_1.f90: New test.
+	* gfortran.dg/bounds_check_strlen_2.f90: New test.
+	* gfortran.dg/bounds_check_strlen_3.f90: New test.
+	* gfortran.dg/bounds_check_strlen_4.f90: New test.
+	* gfortran.dg/bounds_check_strlen_5.f90: New test.
+	* gfortran.dg/bounds_check_strlen_6.f90: New test.
+	* gfortran.dg/bounds_check_strlen_7.f90: New test.
+	* gfortran.fortran-torture/execute/intrinsic_index.f90: Fix wrong
+	expected string length that failed with -fbounds-check now.
+	* gfortran.fortran-torture/execute/intrinsic_trim.f90: Ditto.
+
+2009-04-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39692
+	* gfortran.dg/proc_ptr_14.f90: New.
+
+2009-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39732
+	* g++.dg/torture/pr39732.C: New testcase.
+
+2009-04-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	* gfortran.dg/whole_file_5.f90: New.
+	* gfortran.dg/whole_file_6.f90: New.
+
+2009-04-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39713
+	* g++.dg/torture/pr39713.C: New testcase.
+
+2009-04-10  Richard Guenther  <rguenther@suse.de>
+
+	PR c/39712
+	* gcc.dg/pr39712.c: New testcase.
+
+2009-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/28301
+	* g++.dg/cpp0x/enum2.C: Updated.
+	* g++.dg/debug/pr22514.C: Likewise.
+	* g++.dg/parse/enum2.C: Likewise.
+	* g++.dg/parse/enum3.C: Likewise.
+	* g++.dg/template/crash79.C: Likewise.
+	* g++.old-deja/g++.jason/cond.C: Likewise.
+
+2009-04-10  Chao-ying Fu  <fu@mips.com>
+
+	* gcc.target/mips/interrupt_handler.c: Change from compile to
+	assemble.
+
+2009-04-10  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* objc/execute/forward-1.x: Fix x86_64 entry typos.
+
+2009-04-10  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/38709
+	* gfortran.dg/zero_sized_6.f90: New.
+
+2009-04-10  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR  c++/20118
+	* g++.dg/parse/pr20118.C: New.
+	* g++.dg/template/spec16.C: Update.
+
+2009-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/35621
+	* gcc.target/i386/avx-vpabsb-1.c: Add -fno-strict-aliasing.
+	* gcc.target/i386/avx-vpabsb-1.c: Likewise.
+	* gcc.target/i386/avx-vpabsd-1.c: Likewise.
+	* gcc.target/i386/avx-vpabsw-1.c: Likewise.
+	* gcc.target/i386/avx-vpalignr-1.c: Likewise.
+	* gcc.target/i386/avx-vphaddd-1.c: Likewise.
+	* gcc.target/i386/avx-vphaddsw-1.c: Likewise.
+	* gcc.target/i386/avx-vphaddw-1.c: Likewise.
+	* gcc.target/i386/avx-vphsubd-1.c: Likewise.
+	* gcc.target/i386/avx-vphsubsw-1.c: Likewise.
+	* gcc.target/i386/avx-vphsubw-1.c: Likewise.
+	* gcc.target/i386/avx-vpmaddubsw-1.c: Likewise.
+	* gcc.target/i386/avx-vpmulhrsw-1.c: Likewise.
+	* gcc.target/i386/avx-vpshufb-1.c: Likewise.
+	* gcc.target/i386/avx-vpsignb-1.c: Likewise.
+	* gcc.target/i386/avx-vpsignd-1.c: Likewise.
+	* gcc.target/i386/avx-vpsignw-1.c: Likewise.
+
+2009-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39678
+	* g++.dg/torture/pr39678.C: New.
+	* gcc.dg/compat/struct-complex-2.h: Likewise.
+	* gcc.dg/compat/struct-complex-2_main.c: Likewise.
+	* gcc.dg/compat/struct-complex-2_x.c: Likewise.
+	* gcc.dg/compat/struct-complex-2_y.c: Likewise.
+	* gcc.dg/torture/pr39678.c: Likewise.
+	* gcc.target/i386/pr39678.c: Likewise.
+
+	* gcc.dg/compat/struct-complex-1_x.c: Add -Wno-psabi.
+	* gcc.dg/compat/struct-complex-1_y.c: Likewise.
+
+	* gcc.target/x86_64/abi/test_passing_structs.c: Include
+	<complex.h>.  Add tests for structure with complex float.
+
+2009-04-10  Ben Elliston  <bje@au.ibm.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	PR target/36800
+	* gcc.dg/dfp/pr36800.c: New.
+
+2009-04-09  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+	    Rafael Avila de Espindola  <espindola@google.com>
+
+	* gcc.misc-tests/help.exp: New file.
+	* lib/options.exp: New file.
+
+2009-04-09  Janis Johnson  <janis187@us.ibm.com>
+
+	PR libobjc/36610
+	* objc/execute/forward-1.x: New.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.dg/pr27150-1.c: Change to a link test.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/lookup/using2.C: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* gcc.dg/fixed-point/fixed-point.exp: Likewise.
+	* gcc.dg/struct/struct-reorg.exp: Likewise.
+	* gcc.target/spu/tag_manager.c: Likewise.
+
+2009-04-09  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/39696
+	* ssa-ccp-25.c: Adjust pattern.
+
+2009-04-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/36704
+	* gfortran.dg/external_procedures_1.f90: Modified.
+	* gfortran.dg/proc_ptr_result_1.f90: New.
+	* gfortran.dg/proc_ptr_result_2.f90: New.
+	* gfortran.dg/proc_ptr_result_3.f90: New.
+
+2009-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/vect/vect-54.c: Make constant input data file-scope
+	to prevent constant propagation.
+	* gcc.dg/vect/vect-56.c: Likewise.
+	* gcc.dg/vect/vect-58.c: Likewise.
+	* gcc.dg/vect/vect-60.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-57.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-61.c: Likewise.
+	* gcc.dg/tree-prof/stringop-2.c: Adjust expected outcome.
+
+2009-04-09  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-ccp-25.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-ccp-26.c: Likewise.
+
+2009-04-09  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39613
+	* gcc.dg/case-const-1.c, gcc.dg/case-const-2.c, gcc.dg/case-const-3.c:
+	New tests.
+
+2009-04-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c99-stdint-1.c: Fix cut-and-paste mistakes in test.
+	* gcc.dg/c99-stdint-7.c, gcc.dg/c99-stdint-8.c: New tests.
+
+2009-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* g++.dg/debug/dwarf2/static-data-member1.C: New test.
+
+2009-04-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* g++.dg/template/error40.C: Add another test.
+
+2009-04-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39614
+	PR c/39673
+	* gcc.c-torture/compile/pr39614-1.c,
+	gcc.c-torture/compile/pr39614-2.c,
+	gcc.c-torture/compile/pr39614-3.c,
+	gcc.c-torture/compile/pr39614-4.c,
+	gcc.c-torture/compile/pr39614-5.c,
+	gcc.c-torture/compile/pr39673-1.c,
+	gcc.c-torture/compile/pr39673-2.c: New tests.
+	* gcc.dg/gnu89-const-expr-2.c, gcc.dg/gnu99-const-expr-2.c: Test
+	more cases.
+	* gcc.dg/overflow-warn-1.c, gcc.dg/overflow-warn-2.c,
+	gcc.dg/overflow-warn-3.c, gcc.dg/overflow-warn-4.c: Update
+	expected errors.
+
+2009-04-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PRc++/39637
+	* g++.dg/cpp0x/variadic-crash2.C: New test.
+
+2009-04-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* gfortran.dg/alloc_comp_result_1.f90: New test.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34691
+	* g++.dg/overload/extern-C-1.C: New.
+
+2009-04-07  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	PR testsuite/39325
+	* gcc.misc-tests/linkage.exp: Use -m64 for 64-bit *86*-darwin.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* g++.dg/template/error40.C: New.
+
+2009-04-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/38152
+	* gfortran.dg/proc_ptr_13.f90: Add "-g" option.
+
+2009-04-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/subp_elim_errors.ad[sb]: New test.
+
+2009-04-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/38290
+	* gfortran.dg/proc_decl_1.f90: Modified.
+	* gfortran.dg/proc_ptr_11.f90: Extended.
+	* gfortran.dg/proc_ptr_13.f90: Modified.
+
+2009-04-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35146
+	* g++.dg/template/fnspec1.C: New.
+
+2009-04-06  Laurent GUERBY  <laurent@guerby.net>
+
+	* lib/gnat.exp: Handle multilib.
+	
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* gfortran.dg/dependency_23.f90: New test.
+
+2009-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/28868
+	* gcc.dg/tree-ssa/ssa-fre-21.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-sccvn-1.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-sccvn-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sccvn-4.c: Likewise.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.dg/pragma-isr-trapa2.c: Skip test for FPU-less architectures.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/sh/sh4a-memmovua.c: Include string.h instead of stdlib.h.
+
+2009-04-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/sh/sh4a-bitmovua.c (y0): Rename to y_0 to avoid a clash
+	with the built-in y0, and the subsequent warning.
+	(y1): Likewise, rename to y_1.
+
+2009-04-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39414
+	* gfortran.dg/proc_decl_21.f90: New.
+
+2009-04-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/36091
+	* gfortran.dg/forall_13.f90: Add -fbounds-check option.
+
+2009-04-06  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gfortran.dg/namelist_51.f90, gfortran.dg/utf8_2.f03,
+	gfortran.dg/namelist_48.f90, gfortran.dg/read_repeat.f90,
+	gfortran.dg/streamio_9.f90, gfortran.dg/widechar_IO_1.f90,
+	gfortran.dg/namelist_50.f90, gfortran.dg/namelist_52.f90,
+	gfortran.dg/utf8_1.f03, gfortran.dg/namelist_56.f90,
+	gfortran.dg/namelist_49.f90: Gate test on effective_target
+	fd_truncate.
+	* gfortran.dg/widechar_IO_3.f90: Ditto.  Fix typo in comment.
+
+2009-04-05  Daniel Kraft  <d@domob.eu>
+
+	PR fortran/38654
+	* gfortran.dg/read_float_2.f03
+	* gfortran.dg/read_float_3.f90
+
+2009-04-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/39648
+	* gcc.c-torture/compile/pr39648.c: New testcase.
+
+2009-04-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/14912
+	* g++.dg/template/error39.C: New.
+
+2009-04-05  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/29458
+	* gfortran.dg/implied_do_1.f90: New.
+
+2009-04-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/39577
+	* gfortran.dg/recursive_check_8.f90: New.
+	* gfortran.dg/recursive_check_9.f90: New.
+	* gfortran.dg/recursive_check_10.f90: New.
+	* gfortran.dg/recursive_check_11.f90: New.
+	* gfortran.dg/recursive_check_12.f90: New.
+	* gfortran.dg/recursive_check_13.f90: New.
+	* gfortran.dg/recursive_check_14.f90: New.
+
 2009-04-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/25185
@@ -131,7 +464,7 @@
 2009-04-02  Janis Johnson  <janis187@us.ibm.com>
 
 	PR tree-optimization/31677
-        * gcc.dg/memcpy-1.c: Add compiler option.
+	* gcc.dg/memcpy-1.c: Add compiler option.
 
 2009-04-02  Ira Rosen  <irar@il.ibm.com>
 
@@ -414,7 +747,7 @@
 	* gfortran.dg/typebound_proc_11.f03: New test.
 	* gfortran.dg/abstract_type_5.f03: New test.
 
-2008-03-29  Tobias Schl�ter  <tobi@gcc.gnu.org>
+2008-03-29  Tobias Schlüter  <tobi@gcc.gnu.org>
 
 	PR fortran/38507
 	* gfortran.dg/do_4.f: New.

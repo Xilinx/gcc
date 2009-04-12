@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -158,14 +156,14 @@ package Opt is
    --  GNAT
    --  Enable assertions made using pragma Assert
 
-   Assume_No_Invalid_Values : Boolean := True;
-   --  ??? true for now, enable by setting to false later
+   Assume_No_Invalid_Values : Boolean := False;
    --  GNAT
    --  Normally, in accordance with (RM 13.9.1 (9-11)) the front end assumes
    --  that values could have invalid representations, unless it can clearly
    --  prove that the values are valid. If this switch is set (by -gnatB or by
    --  pragma Assume_No_Invalid_Values (Off)), then the compiler assumes values
-   --  are valid and in range of their representations.
+   --  are valid and in range of their representations. This feature is now
+   --  fully enabled in the compiler.
 
    Back_Annotate_Rep_Info : Boolean := False;
    --  GNAT
@@ -806,10 +804,11 @@ package Opt is
    --  File name of mapping between unit names, file names and path names.
    --  (given by switch -gnatem)
 
-   Maximum_Errors : Int := 9999;
+   Maximum_Messages : Int := 9999;
    --  GNAT, GNATBIND
-   --  Maximum default number of errors before compilation is terminated.
-   --  Can be overridden using -gnatm (GNAT) or -m (GNATBIND) switch.
+   --  Maximum default number of errors before compilation is terminated, or in
+   --  the case of GNAT, maximum number of warnings before further warnings are
+   --  suppressed. Can be overridden by -gnatm (GNAT) or -m (GNATBIND) switch.
 
    Maximum_File_Name_Length : Int;
    --  GNAT, GNATBIND
@@ -1023,6 +1022,10 @@ package Opt is
    --  Set to True if a shared libgnat is requested by using the -shared
    --  option for GNATBIND and to False when using the -static option. The
    --  value of this flag is set by Gnatbind.Scan_Bind_Arg.
+
+   Sprint_Line_Limit : Nat := 72;
+   --  Limit values for chopping long lines in Sprint output, can be reset
+   --  by use of NNN parameter with -gnatG or -gnatD switches.
 
    Stack_Checking_Enabled : Boolean;
    --  GNAT
@@ -1425,8 +1428,8 @@ package Opt is
 
    Assume_No_Invalid_Values_Config : Boolean;
    --  GNAT
-   --  This is the value of the configuration switch for assuming no invalid
-   --  values enabled mode mode, as possibly set by the command line switch
+   --  This is the value of the configuration switch for assuming "no invalid
+   --  values enabled" mode, as possibly set by the command line switch
    --  -gnatB, and possibly modified by the use of the configuration pragma
    --  Assume_No_Invalid_Values.
 

@@ -155,7 +155,9 @@ begin
    --  Line for -gnatD switch
 
    Write_Switch_Char ("D");
-   Write_Line ("Debug expanded generated code rather than source code");
+   Write_Line ("Debug expanded generated code (max line length = 72)");
+   Write_Switch_Char ("Dnn");
+   Write_Line ("Debug expanded generated code (max line length = nn)");
 
    --  Line for -gnatec switch
 
@@ -212,10 +214,12 @@ begin
    Write_Switch_Char ("g");
    Write_Line ("GNAT implementation mode (used for compiling GNAT units)");
 
-   --  Line for -gnatG switch
+   --  Lines for -gnatG switch
 
    Write_Switch_Char ("G");
-   Write_Line ("Output generated expanded code in source form");
+   Write_Line ("Output generated expanded code (max line length = 72)");
+   Write_Switch_Char ("Gnn");
+   Write_Line ("Output generated expanded code (max line length = nn)");
 
    --  Line for -gnath switch
 
@@ -257,7 +261,7 @@ begin
    --  Line for -gnatm switch
 
    Write_Switch_Char ("mnn");
-   Write_Line ("Limit number of detected errors to nn (1-999999)");
+   Write_Line ("Limit number of detected errors/warnings to nn (1-999999)");
 
    --  Line for -gnatn switch
 
@@ -521,6 +525,7 @@ begin
    Write_Line ("        Mnn  check line length <= nn characters");
    Write_Line ("        N    turn off all checks");
    Write_Line ("        o    check subprogram bodies in alphabetical order");
+   Write_Line ("        O    check overriding indicators");
    Write_Line ("        p    check pragma casing");
    Write_Line ("        r    check casing for identifier references");
    Write_Line ("        s    check separate subprogram specs present");

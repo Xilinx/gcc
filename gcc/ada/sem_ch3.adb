@@ -49,6 +49,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Case; use Sem_Case;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
@@ -140,7 +141,7 @@ package body Sem_Ch3 is
       Derived_Type : Entity_Id);
    --  Subsidiary procedure to Build_Derived_Type. For a derived enumeration
    --  type, we must create a new list of literals. Types derived from
-   --  Character and Wide_Character are special-cased.
+   --  Character and [Wide_]Wide_Character are special-cased.
 
    procedure Build_Derived_Numeric_Type
      (N            : Node_Id;
@@ -602,7 +603,7 @@ package body Sem_Ch3 is
    --  given kind of type (index constraint to an array type, for example).
 
    procedure Modular_Type_Declaration (T : Entity_Id; Def : Node_Id);
-   --  Create new modular type. Verify that modulus is in  bounds and is
+   --  Create new modular type. Verify that modulus is in bounds and is
    --  a power of two (implementation restriction).
 
    procedure New_Concatenation_Op (Typ : Entity_Id);
@@ -725,11 +726,12 @@ package body Sem_Ch3 is
      (Related_Nod : Node_Id;
       N           : Node_Id) return Entity_Id
    is
-      Loc        : constant Source_Ptr := Sloc (Related_Nod);
-      Anon_Type  : Entity_Id;
-      Anon_Scope : Entity_Id;
-      Desig_Type : Entity_Id;
-      Decl       : Entity_Id;
+      Loc                 : constant Source_Ptr := Sloc (Related_Nod);
+      Anon_Type           : Entity_Id;
+      Anon_Scope          : Entity_Id;
+      Desig_Type          : Entity_Id;
+      Decl                : Entity_Id;
+      Enclosing_Prot_Type : Entity_Id := Empty;
 
    begin
       if Is_Entry (Current_Scope)
@@ -766,9 +768,23 @@ package body Sem_Ch3 is
          --  is associated with one of the protected operations, and must
          --  be available in the scope that encloses the protected declaration.
          --  Otherwise the type is in the scope enclosing the subprogram.
+         --  If the function has formals, The return type of a subprogram
+         --  declaration is analyzed in the scope of the subprogram (see
+         --  Process_Formals) and thus the protected type, if present, is
+         --  the scope of the current function scope.
 
          if Ekind (Current_Scope) = E_Protected_Type then
-            Anon_Scope := Scope (Scope (Defining_Entity (Related_Nod)));
+            Enclosing_Prot_Type := Current_Scope;
+
+         elsif Ekind (Current_Scope) = E_Function
+           and then Ekind (Scope (Current_Scope)) = E_Protected_Type
+         then
+            Enclosing_Prot_Type := Scope (Current_Scope);
+         end if;
+
+         if Present (Enclosing_Prot_Type) then
+            Anon_Scope := Scope (Enclosing_Prot_Type);
+
          else
             Anon_Scope := Scope (Defining_Entity (Related_Nod));
          end if;
@@ -946,8 +962,8 @@ package body Sem_Ch3 is
       elsif Nkind (Related_Nod) = N_Function_Specification
         and then not From_With_Type (Anon_Type)
       then
-         if Ekind (Current_Scope) = E_Protected_Type then
-            Build_Itype_Reference (Anon_Type, Parent (Current_Scope));
+         if Present (Enclosing_Prot_Type) then
+            Build_Itype_Reference (Anon_Type, Parent (Enclosing_Prot_Type));
 
          elsif Is_List_Member (Parent (Related_Nod))
            and then Nkind (Parent (N)) /= N_Parameter_Specification
@@ -1102,7 +1118,27 @@ package body Sem_Ch3 is
 
          else
             Analyze (Result_Definition (T_Def));
-            Set_Etype (Desig_Type, Entity (Result_Definition (T_Def)));
+
+            declare
+               Typ : constant Entity_Id := Entity (Result_Definition (T_Def));
+
+            begin
+               --  If a null exclusion is imposed on the result type, then
+               --  create a null-excluding itype (an access subtype) and use
+               --  it as the function's Etype.
+
+               if Is_Access_Type (Typ)
+                 and then Null_Exclusion_In_Return_Present (T_Def)
+               then
+                  Set_Etype  (Desig_Type,
+                    Create_Null_Excluding_Itype
+                      (T           => Typ,
+                       Related_Nod => T_Def,
+                       Scope_Id    => Current_Scope));
+               else
+                  Set_Etype (Desig_Type, Typ);
+               end if;
+            end;
          end if;
 
          if not (Is_Type (Etype (Desig_Type))) then
@@ -2416,17 +2452,6 @@ package body Sem_Ch3 is
       if Constant_Present (N)
         and then No (E)
       then
-         --  We exclude forward references to tags
-
-         if Is_Imported (Defining_Identifier (N))
-           and then
-             (T = RTE (RE_Tag)
-               or else
-                 (Present (Full_View (T))
-                   and then Full_View (T) = RTE (RE_Tag)))
-         then
-            null;
-
          --  A deferred constant may appear in the declarative part of the
          --  following constructs:
 
@@ -2444,7 +2469,7 @@ package body Sem_Ch3 is
          --  return statements are flagged as invalid contexts because they do
          --  not have a declarative part and so cannot accommodate the pragma.
 
-         elsif Ekind (Current_Scope) = E_Return_Statement then
+         if Ekind (Current_Scope) = E_Return_Statement then
             Error_Msg_N
               ("invalid context for deferred constant declaration (RM 7.4)",
                N);
@@ -3392,6 +3417,7 @@ package body Sem_Ch3 is
                Set_Scalar_Range         (Id, Scalar_Range       (T));
                Set_Machine_Radix_10     (Id, Machine_Radix_10   (T));
                Set_Is_Constrained       (Id, Is_Constrained     (T));
+               Set_Is_Known_Valid       (Id, Is_Known_Valid     (T));
                Set_RM_Size              (Id, RM_Size            (T));
 
             when Enumeration_Kind =>
@@ -3400,6 +3426,7 @@ package body Sem_Ch3 is
                Set_Scalar_Range         (Id, Scalar_Range       (T));
                Set_Is_Character_Type    (Id, Is_Character_Type  (T));
                Set_Is_Constrained       (Id, Is_Constrained     (T));
+               Set_Is_Known_Valid       (Id, Is_Known_Valid     (T));
                Set_RM_Size              (Id, RM_Size            (T));
 
             when Ordinary_Fixed_Point_Kind =>
@@ -3408,6 +3435,7 @@ package body Sem_Ch3 is
                Set_Small_Value          (Id, Small_Value        (T));
                Set_Delta_Value          (Id, Delta_Value        (T));
                Set_Is_Constrained       (Id, Is_Constrained     (T));
+               Set_Is_Known_Valid       (Id, Is_Known_Valid     (T));
                Set_RM_Size              (Id, RM_Size            (T));
 
             when Float_Kind =>
@@ -3420,12 +3448,14 @@ package body Sem_Ch3 is
                Set_Ekind                (Id, E_Signed_Integer_Subtype);
                Set_Scalar_Range         (Id, Scalar_Range       (T));
                Set_Is_Constrained       (Id, Is_Constrained     (T));
+               Set_Is_Known_Valid       (Id, Is_Known_Valid     (T));
                Set_RM_Size              (Id, RM_Size            (T));
 
             when Modular_Integer_Kind =>
                Set_Ekind                (Id, E_Modular_Integer_Subtype);
                Set_Scalar_Range         (Id, Scalar_Range       (T));
                Set_Is_Constrained       (Id, Is_Constrained     (T));
+               Set_Is_Known_Valid       (Id, Is_Known_Valid     (T));
                Set_RM_Size              (Id, RM_Size            (T));
 
             when Class_Wide_Kind =>
@@ -4962,7 +4992,7 @@ package body Sem_Ch3 is
       Rang_Expr     : Node_Id;
 
    begin
-      --  Since types Standard.Character and Standard.Wide_Character do
+      --  Since types Standard.Character and Standard.[Wide_]Wide_Character do
       --  not have explicit literals lists we need to process types derived
       --  from them specially. This is handled by Derived_Standard_Character.
       --  If the parent type is a generic type, there are no literals either,
@@ -5215,6 +5245,7 @@ package body Sem_Ch3 is
       Set_Size_Info      (Implicit_Base,                 Parent_Base);
       Set_First_Rep_Item (Implicit_Base, First_Rep_Item (Parent_Base));
       Set_Parent         (Implicit_Base, Parent (Derived_Type));
+      Set_Is_Known_Valid (Implicit_Base, Is_Known_Valid (Parent_Base));
 
       --  Set RM Size for discrete type or decimal fixed-point type
       --  Ordinary fixed-point is excluded, why???
@@ -5268,6 +5299,8 @@ package body Sem_Ch3 is
          if Has_Infinities (Parent_Type) then
             Set_Includes_Infinities (Scalar_Range (Derived_Type));
          end if;
+
+         Set_Is_Known_Valid (Derived_Type, Is_Known_Valid (Parent_Type));
       end if;
 
       Set_Is_Descendent_Of_Address (Derived_Type,
@@ -5282,6 +5315,9 @@ package body Sem_Ch3 is
 
          Set_Non_Binary_Modulus
            (Implicit_Base, Non_Binary_Modulus (Parent_Base));
+
+         Set_Is_Known_Valid
+           (Implicit_Base, Is_Known_Valid (Parent_Base));
 
       elsif Is_Floating_Point_Type (Parent_Type) then
 
@@ -5772,10 +5808,10 @@ package body Sem_Ch3 is
 
    --  The representation clauses for T can specify a completely different
    --  record layout from R's. Hence the same component can be placed in two
-   --  very different positions in objects of type T and R. If R and are tagged
-   --  types, representation clauses for T can only specify the layout of non
-   --  inherited components, thus components that are common in R and T have
-   --  the same position in objects of type R and T.
+   --  very different positions in objects of type T and R. If R and T are
+   --  tagged types, representation clauses for T can only specify the layout
+   --  of non inherited components, thus components that are common in R and T
+   --  have the same position in objects of type R and T.
 
    --  This has two implications. The first is that the entire tree for R's
    --  declaration needs to be copied for T in the untagged case, so that T
@@ -6392,10 +6428,12 @@ package body Sem_Ch3 is
               Type_Definition     =>
                 Make_Derived_Type_Definition (Loc,
                   Abstract_Present      => Abstract_Present (Type_Def),
+                  Limited_Present       => Limited_Present (Type_Def),
                   Subtype_Indication    =>
                     New_Occurrence_Of (Parent_Base, Loc),
                   Record_Extension_Part =>
-                    Relocate_Node (Record_Extension_Part (Type_Def))));
+                    Relocate_Node (Record_Extension_Part (Type_Def)),
+                  Interface_List        => Interface_List (Type_Def)));
 
          Set_Parent (New_Decl, Parent (N));
          Mark_Rewrite_Insertion (New_Decl);
@@ -8272,6 +8310,30 @@ package body Sem_Ch3 is
       ----------------
 
       procedure Post_Error is
+
+         procedure Missing_Body;
+         --  Output missing body message
+
+         ------------------
+         -- Missing_Body --
+         ------------------
+
+         procedure Missing_Body is
+         begin
+            --  Spec is in same unit, so we can post on spec
+
+            if In_Same_Source_Unit (Body_Id, E) then
+               Error_Msg_N ("missing body for &", E);
+
+            --  Spec is in a separate unit, so we have to post on the body
+
+            else
+               Error_Msg_NE ("missing body for & declared#!", Body_Id, E);
+            end if;
+         end Missing_Body;
+
+      --  Start of processing for Post_Error
+
       begin
          if not Comes_From_Source (E) then
 
@@ -8361,19 +8423,18 @@ package body Sem_Ch3 is
                         Check_Type_Conformant (Candidate, E);
 
                      else
-                        Error_Msg_NE ("missing body for & declared#!",
-                           Body_Id, E);
+                        Missing_Body;
                      end if;
                   end;
+
                else
-                  Error_Msg_NE ("missing body for & declared#!",
-                     Body_Id, E);
+                  Missing_Body;
                end if;
             end if;
          end if;
       end Post_Error;
 
-   --  Start processing for Check_Completion
+   --  Start of processing for Check_Completion
 
    begin
       E := First_Entity (Current_Scope);
@@ -9303,19 +9364,10 @@ package body Sem_Ch3 is
             Error_Msg_N ("ALIASED required (see declaration#)", N);
          end if;
 
-         --  Allow incomplete declaration of tags (used to handle forward
-         --  references to tags). The check on Ada_Tags avoids circularities
-         --  when rebuilding the compiler.
-
-         if RTU_Loaded (Ada_Tags)
-           and then T = RTE (RE_Tag)
-         then
-            null;
-
          --  Check that placement is in private part and that the incomplete
          --  declaration appeared in the visible part.
 
-         elsif Ekind (Current_Scope) = E_Package
+         if Ekind (Current_Scope) = E_Package
            and then not In_Private_Part (Current_Scope)
          then
             Error_Msg_Sloc := Sloc (Prev);
@@ -11471,8 +11523,8 @@ package body Sem_Ch3 is
       --  Step 2: Add primitives of progenitors that are not implemented by
       --  parents of Tagged_Type
 
-      if Present (Interfaces (Tagged_Type)) then
-         Iface_Elmt := First_Elmt (Interfaces (Tagged_Type));
+      if Present (Interfaces (Base_Type (Tagged_Type))) then
+         Iface_Elmt := First_Elmt (Interfaces (Base_Type (Tagged_Type)));
          while Present (Iface_Elmt) loop
             Iface := Node (Iface_Elmt);
 
@@ -13191,7 +13243,7 @@ package body Sem_Ch3 is
          end if;
       end Tag_Mismatch;
 
-   --  Start processing for Find_Type_Name
+   --  Start of processing for Find_Type_Name
 
    begin
       --  Find incomplete declaration, if one was given
@@ -14874,6 +14926,12 @@ package body Sem_Ch3 is
 
          else
             Init_Esize (T, System_Max_Binary_Modulus_Power);
+         end if;
+
+         if not Non_Binary_Modulus (T)
+           and then Esize (T) = RM_Size (T)
+         then
+            Set_Is_Known_Valid (T);
          end if;
       end Set_Modular_Size;
 

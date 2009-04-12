@@ -33,6 +33,7 @@ with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Prag; use Sem_Prag;
 with Sem_Util; use Sem_Util;
 with Sem_Warn; use Sem_Warn;
@@ -657,9 +658,11 @@ package body Lib.Xref is
          and then Sloc (E) > No_Location
          and then Sloc (N) > No_Location
 
-         --  We ignore references from within an instance
+         --  We ignore references from within an instance, except for default
+         --  subprograms, for which we generate an implicit reference.
 
-         and then Instantiation_Location (Sloc (N)) = No_Location
+         and then
+           (Instantiation_Location (Sloc (N)) = No_Location or else Typ = 'i')
 
          --  Ignore dummy references
 

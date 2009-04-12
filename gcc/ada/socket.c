@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 2003-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 2003-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -57,13 +56,13 @@ extern int  __gnat_create_signalling_fds (int *fds);
 extern int  __gnat_read_signalling_fd (int rsig);
 extern int  __gnat_write_signalling_fd (int wsig);
 extern void  __gnat_close_signalling_fd (int sig);
-extern void __gnat_free_socket_set (fd_set *);
 extern void __gnat_last_socket_in_set (fd_set *, int *);
 extern void __gnat_get_socket_from_set (fd_set *, int *, int *);
 extern void __gnat_insert_socket_in_set (fd_set *, int);
 extern int __gnat_is_socket_in_set (fd_set *, int);
 extern fd_set *__gnat_new_socket_set (fd_set *);
 extern void __gnat_remove_socket_from_set (fd_set *, int);
+extern void __gnat_reset_socket_set (fd_set *set);
 extern int  __gnat_get_h_errno (void);
 
 /* Disable the sending of SIGPIPE for writes on a broken stream */
@@ -266,14 +265,6 @@ __gnat_safe_getservbyport (int port, const char *proto,
 }
 #endif
 
-/* Free socket set. */
-
-void
-__gnat_free_socket_set (fd_set *set)
-{
-  __gnat_free (set);
-}
-
 /* Find the largest socket in the socket set SET. This is needed for
    `select'.  LAST is the maximum value for the largest socket. This hint is
    used to avoid scanning very large socket sets.  On return, LAST is the
@@ -334,34 +325,19 @@ __gnat_is_socket_in_set (fd_set *set, int socket)
   return FD_ISSET (socket, set);
 }
 
-/* Allocate a new socket set and set it as empty.  */
-
-fd_set *
-__gnat_new_socket_set (fd_set *set)
-{
-  fd_set *new;
-
-#ifdef VMS
-extern void *__gnat_malloc32 (__SIZE_TYPE__);
-  new = (fd_set *) __gnat_malloc32 (sizeof (fd_set));
-#else
-  new = (fd_set *) __gnat_malloc (sizeof (fd_set));
-#endif
-
-  if (set)
-    memcpy (new, set, sizeof (fd_set));
-  else
-    FD_ZERO (new);
-
-  return new;
-}
-
 /* Remove SOCKET from the socket set SET. */
 
 void
 __gnat_remove_socket_from_set (fd_set *set, int socket)
 {
   FD_CLR (socket, set);
+}
+
+/* Reset SET */
+void
+__gnat_reset_socket_set (fd_set *set)
+{
+  FD_ZERO (set);
 }
 
 /* Get the value of the last host error */
@@ -375,22 +351,49 @@ __gnat_get_h_errno (void) {
     case 0:
       return 0;
 
+#ifdef S_resolvLib_HOST_NOT_FOUND
     case S_resolvLib_HOST_NOT_FOUND:
+#endif
+#ifdef S_hostLib_HOST_NOT_FOUND
+    case S_hostLib_HOST_NOT_FOUND:
+#endif
     case S_hostLib_UNKNOWN_HOST:
       return HOST_NOT_FOUND;
 
+#ifdef S_resolvLib_TRY_AGAIN
     case S_resolvLib_TRY_AGAIN:
       return TRY_AGAIN;
+#endif
+#ifdef S_hostLib_TRY_AGAIN
+    case S_hostLib_TRY_AGAIN:
+      return TRY_AGAIN;
+#endif
 
+#ifdef S_resolvLib_NO_RECOVERY
     case S_resolvLib_NO_RECOVERY:
+#endif
+#ifdef S_resolvLib_BUFFER_2_SMALL
     case S_resolvLib_BUFFER_2_SMALL:
+#endif
+#ifdef S_resolvLib_INVALID_PARAMETER
     case S_resolvLib_INVALID_PARAMETER:
+#endif
+#ifdef S_resolvLib_INVALID_ADDRESS
     case S_resolvLib_INVALID_ADDRESS:
+#endif
+#ifdef S_hostLib_NO_RECOVERY
+    case S_hostLib_NO_RECOVERY:
+#endif
+#ifdef S_hostLib_NETDB_INTERNAL
+    case S_hostLib_NETDB_INTERNAL:
+#endif
     case S_hostLib_INVALID_PARAMETER:
       return NO_RECOVERY;
 
+#ifdef S_resolvLib_NO_DATA
     case S_resolvLib_NO_DATA:
       return NO_DATA;
+#endif
 
     default:
       return -1;

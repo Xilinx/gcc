@@ -35,6 +35,7 @@ with Namet;    use Namet;
 with Opt;      use Opt;
 with Output;   use Output;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
@@ -2415,7 +2416,7 @@ package body Sem_Type is
          end if;
       end Check_Right_Argument;
 
-   --  Start processing for Intersect_Types
+   --  Start of processing for Intersect_Types
 
    begin
       if Etype (L) = Any_Type or else Etype (R) = Any_Type then
