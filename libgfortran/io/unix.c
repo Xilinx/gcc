@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -7,27 +7,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* Unix stream I/O module */
 
@@ -149,31 +144,6 @@ typedef struct
   int special_file;		/* =1 if the fd refers to a special file */
 }
 unix_stream;
-
-
-/*move_pos_offset()--  Move the record pointer right or left
- *relative to current position */
-
-int
-move_pos_offset (stream* st, int pos_off)
-{
-  unix_stream * str = (unix_stream*)st;
-  if (pos_off < 0)
-    {
-      str->logical_offset += pos_off;
-
-      if (str->ndirty > str->logical_offset)
-	{
-	  if (str->ndirty + pos_off > 0)
-	    str->ndirty += pos_off;
-	  else
-            str->ndirty = 0;
-	}
-
-    return pos_off;
-  }
-  return 0;
-}
 
 
 /* fix_fd()-- Given a file descriptor, make sure it is not one of the
@@ -344,7 +314,12 @@ raw_close (unix_stream * s)
 {
   int retval;
   
-  retval = close (s->fd);
+  if (s->fd != STDOUT_FILENO
+      && s->fd != STDERR_FILENO
+      && s->fd != STDIN_FILENO)
+    retval = close (s->fd);
+  else
+    retval = 0;
   free_mem (s);
   return retval;
 }
@@ -356,7 +331,7 @@ raw_init (unix_stream * s)
   s->st.write = (void *) raw_write;
   s->st.seek = (void *) raw_seek;
   s->st.tell = (void *) raw_tell;
-  s->st.truncate = (void *) raw_truncate;
+  s->st.trunc = (void *) raw_truncate;
   s->st.close = (void *) raw_close;
   s->st.flush = (void *) raw_flush;
 
@@ -565,7 +540,7 @@ buf_init (unix_stream * s)
   s->st.write = (void *) buf_write;
   s->st.seek = (void *) buf_seek;
   s->st.tell = (void *) buf_tell;
-  s->st.truncate = (void *) buf_truncate;
+  s->st.trunc = (void *) buf_truncate;
   s->st.close = (void *) buf_close;
   s->st.flush = (void *) buf_flush;
 
@@ -768,7 +743,7 @@ open_internal (char *base, int length, gfc_offset offset)
   s->st.close = (void *) mem_close;
   s->st.seek = (void *) mem_seek;
   s->st.tell = (void *) mem_tell;
-  s->st.truncate = (void *) mem_truncate;
+  s->st.trunc = (void *) mem_truncate;
   s->st.read = (void *) mem_read;
   s->st.write = (void *) mem_write;
   s->st.flush = (void *) mem_flush;

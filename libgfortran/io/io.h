@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -7,7 +7,7 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
@@ -15,17 +15,14 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with other files,
-   some of which are compiled with GCC, to produce an executable,
-   this library does not by itself cause the resulting executable
-   to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef GFOR_IO_H
 #define GFOR_IO_H
@@ -53,7 +50,8 @@ typedef struct stream
   ssize_t (*write) (struct stream *, const void *, ssize_t);
   off_t (*seek) (struct stream *, off_t, int);
   off_t (*tell) (struct stream *);
-  int (*truncate) (struct stream *, off_t);
+  /* Avoid keyword truncate due to AIX namespace collision.  */
+  int (*trunc) (struct stream *, off_t);
   int (*flush) (struct stream *);
   int (*close) (struct stream *);
 }
@@ -87,7 +85,7 @@ stell (stream * s)
 static inline int
 struncate (stream * s, off_t length)
 {
-  return s->truncate (s, length);
+  return s->trunc (s, length);
 }
 
 static inline int
@@ -500,9 +498,9 @@ typedef struct st_parameter_dt
 	  /* A flag used to identify when a non-standard expanded namelist read
 	     has occurred.  */
 	  int expanded_read;
-	  /* Storage area for values except for strings.  Must be large
-	     enough to hold a complex value (two reals) of the largest
-	     kind.  */
+	  /* Storage area for values except for strings.  Must be
+	     large enough to hold a complex value (two reals) of the
+	     largest kind.  */
 	  char value[32];
 	  GFC_IO_INT size_used;
 	} p;
@@ -708,9 +706,6 @@ fnode;
 
 
 /* unix.c */
-
-extern int move_pos_offset (stream *, int);
-internal_proto(move_pos_offset);
 
 extern int compare_files (stream *, stream *);
 internal_proto(compare_files);
