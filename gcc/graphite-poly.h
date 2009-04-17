@@ -99,10 +99,17 @@ struct poly_dr
      | 0   0   0   0   1   0  -1335  <= 0
      | 0   0   0   0   0   1  -123   <= 0
 
-     The pointer "*p" in alias set "5" and "7" is described like this:
+     The pointer "*p" in alias set "5" and "7" is described as a union of
+     polyhedron:
+
 
      | i   k   a   s0  1
      | 0   0   1   0  -5   =  0
+     | 0   0   0   1   0   >= 0
+
+     "or"
+
+     | i   k   a   s0  1
      | 0   0   1   0  -7   =  0
      | 0   0   0   1   0   >= 0
 
