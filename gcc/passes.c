@@ -319,7 +319,7 @@ struct rtl_opt_pass pass_postreload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   PROP_rtl,                             /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -368,7 +368,7 @@ get_pass_for_id (int id)
    to do this depth first, and independent of whether the pass is
    enabled or not.  */
 
-static void
+void
 register_one_dump_file (struct opt_pass *pass)
 {
   char *dot_name, *flag_name, *glob_name;
@@ -1207,14 +1207,14 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   execute_todo (ipa_pass->function_transform_todo_flags_start);
 
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
   todo_after = ipa_pass->function_transform (node);
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   /* Run post-pass cleanup and verification.  */
@@ -1281,7 +1281,7 @@ execute_one_pass (struct opt_pass *pass)
 #endif
 
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
@@ -1292,7 +1292,7 @@ execute_one_pass (struct opt_pass *pass)
     }
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   do_per_function (update_properties_after_pass, pass);

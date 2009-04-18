@@ -220,6 +220,10 @@ package Snames is
    Name_Put_Line                       : constant Name_Id := N + $;
    Name_To                             : constant Name_Id := N + $;
 
+   --  Name used by the integrated preprocessor
+
+   Name_Defined                        : constant Name_Id := N + $;
+
    --  Names for packages that are treated specially by the compiler
 
    Name_Exception_Traces               : constant Name_Id := N + $;
@@ -1093,6 +1097,7 @@ package Snames is
    Name_Metrics                          : constant Name_Id := N + $;
    Name_Naming                           : constant Name_Id := N + $;
    Name_None                             : constant Name_Id := N + $;
+   Name_Object_File_Suffix               : constant Name_Id := N + $;
    Name_Object_Generated                 : constant Name_Id := N + $;
    Name_Object_List                      : constant Name_Id := N + $;
    Name_Objects_Linked                   : constant Name_Id := N + $;
@@ -1130,6 +1135,7 @@ package Snames is
    Name_Toolchain_Description            : constant Name_Id := N + $;
    Name_Toolchain_Version                : constant Name_Id := N + $;
    Name_Runtime_Library_Dir              : constant Name_Id := N + $;
+   Name_Runtime_Source_Dir               : constant Name_Id := N + $;
 
    --  Other miscellaneous names used in front end
 

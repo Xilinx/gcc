@@ -31,9 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 with System.Case_Util;
 with System.CRTL;
@@ -846,12 +844,8 @@ package body System.OS_Lib is
 
    procedure Delete_File (Name : Address; Success : out Boolean) is
       R : Integer;
-
-      function unlink (A : Address) return Integer;
-      pragma Import (C, unlink, "unlink");
-
    begin
-      R := unlink (Name);
+      R := System.CRTL.unlink (Name);
       Success := (R = 0);
    end Delete_File;
 
@@ -2246,7 +2240,7 @@ package body System.OS_Lib is
       Success  : out Boolean)
    is
       function rename (From, To : Address) return Integer;
-      pragma Import (C, rename, "rename");
+      pragma Import (C, rename, "__gnat_rename");
       R : Integer;
    begin
       R := rename (Old_Name, New_Name);

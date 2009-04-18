@@ -39,8 +39,9 @@
 #include <dirent.h>
 
 /*  Constants used for the form parameter encoding values  */
-#define Encoding_UTF8 0
-#define Encoding_8bits 1
+#define Encoding_UTF8 0         /* UTF-8 */
+#define Encoding_8bits 1        /* Standard 8bits, CP_ACP on Windows. */
+#define Encoding_Unspecified 2  /* Based on GNAT_CODE_PAGE env variable. */
 
 typedef long OS_Time; /* Type corresponding to GNAT.OS_Lib.OS_Time */
 
@@ -70,6 +71,11 @@ extern int    __gnat_open_new_temp		   (char *, int);
 extern int    __gnat_mkdir			   (char *);
 extern int    __gnat_stat			   (char *,
 						    struct stat *);
+extern int    __gnat_unlink                        (char *);
+extern int    __gnat_rename                        (char *, char *);
+extern int    __gnat_chdir                         (char *);
+extern int    __gnat_rmdir                         (char *);
+
 extern FILE  *__gnat_fopen			   (char *, char *, int);
 extern FILE  *__gnat_freopen			   (char *, char *, FILE *,
 				                    int);

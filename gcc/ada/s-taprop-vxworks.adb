@@ -833,18 +833,6 @@ package body System.Task_Primitives.Operations is
 
       Install_Signal_Handlers;
 
-      Lock_RTS;
-
-      for J in Known_Tasks'Range loop
-         if Known_Tasks (J) = null then
-            Known_Tasks (J) := Self_ID;
-            Self_ID.Known_Tasks_Index := J;
-            exit;
-         end if;
-      end loop;
-
-      Unlock_RTS;
-
       --  If stack checking is enabled, set the stack limit for this task
 
       if Set_Stack_Limit_Hook /= null then
@@ -1394,6 +1382,12 @@ package body System.Task_Primitives.Operations is
       --  Initialize the lock used to synchronize chain of all ATCBs
 
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
+
+      --  Make environment task known here because it doesn't go through
+      --  Activate_Tasks, which does it for all other tasks.
+
+      Known_Tasks (Known_Tasks'First) := Environment_Task;
+      Environment_Task.Known_Tasks_Index := Known_Tasks'First;
 
       Enter_Task (Environment_Task);
    end Initialize;

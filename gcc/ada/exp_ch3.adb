@@ -814,22 +814,26 @@ package body Exp_Ch3 is
          Analyze (Decl);
          Set_Has_Master_Entity (Scope (T));
 
-         --  Now mark the containing scope as a task master
+         --  Now mark the containing scope as a task master. Masters
+         --  associated with return statements are already marked at
+         --  this stage (see Analyze_Subprogram_Body).
 
-         Par := P;
-         while Nkind (Par) /= N_Compilation_Unit loop
-            Par := Parent (Par);
+         if Ekind (Current_Scope) /= E_Return_Statement then
+            Par := P;
+            while Nkind (Par) /= N_Compilation_Unit loop
+               Par := Parent (Par);
 
             --  If we fall off the top, we are at the outer level, and the
             --  environment task is our effective master, so nothing to mark.
 
-            if Nkind_In
-                (Par, N_Task_Body, N_Block_Statement, N_Subprogram_Body)
-            then
-               Set_Is_Task_Master (Par, True);
-               exit;
-            end if;
-         end loop;
+               if Nkind_In
+                   (Par, N_Task_Body, N_Block_Statement, N_Subprogram_Body)
+               then
+                  Set_Is_Task_Master (Par, True);
+                  exit;
+               end if;
+            end loop;
+         end if;
       end if;
 
       --  Now define the renaming of the master_id
@@ -2057,9 +2061,9 @@ package body Exp_Ch3 is
          --       return O.Iface_Comp'Position;
          --    end Fxx;
 
-         ------------------------------
-         -- Build_Offset_To_Top_Body --
-         ------------------------------
+         ----------------------------------
+         -- Build_Offset_To_Top_Function --
+         ----------------------------------
 
          procedure Build_Offset_To_Top_Function (Iface_Comp : Entity_Id) is
             Body_Node : Node_Id;
@@ -2390,9 +2394,8 @@ package body Exp_Ch3 is
                           and then Convention (Prim) = Convention_CPP
                           and then not Present (Interface_Alias (Prim))
                         then
-                           Register_Primitive (Loc,
-                             Prim    => Prim,
-                             Ins_Nod => Last (Init_Tags_List));
+                           Append_List_To (Init_Tags_List,
+                             Register_Primitive (Loc, Prim => Prim));
                         end if;
 
                         Next_Elmt (E);
@@ -3004,7 +3007,9 @@ package body Exp_Ch3 is
          --  If it is a type derived from a type with unknown discriminants,
          --  we cannot build an initialization procedure for it.
 
-         if Has_Unknown_Discriminants (Rec_Id) then
+         if Has_Unknown_Discriminants (Rec_Id)
+           or else Has_Unknown_Discriminants (Etype (Rec_Id))
+         then
             return False;
          end if;
 
@@ -3887,6 +3892,16 @@ package body Exp_Ch3 is
          Par_Subtype := Process_Subtype (New_Copy_Tree (Indic), Def);
       end if;
 
+      --  If this is an extension of a type with unknown discriminants, use
+      --  full view to provide proper discriminants to gigi.
+
+      if Has_Unknown_Discriminants (Par_Subtype)
+        and then Is_Private_Type (Par_Subtype)
+        and then Present (Full_View (Par_Subtype))
+      then
+         Par_Subtype := Full_View (Par_Subtype);
+      end if;
+
       Set_Parent_Subtype (T, Par_Subtype);
 
       Comp_Decl :=
@@ -3949,15 +3964,13 @@ package body Exp_Ch3 is
 
          --  Create a class-wide master because a Master_Id must be generated
          --  for access-to-limited-class-wide types whose root may be extended
-         --  with task components, and for access-to-limited-interfaces because
-         --  they can be used to reference tasks implementing such interface.
+         --  with task components.
+
+         --  Note: This code covers access-to-limited-interfaces because they
+         --        can be used to reference tasks implementing them.
 
          elsif Is_Class_Wide_Type (Designated_Type (Def_Id))
-           and then (Is_Limited_Type (Designated_Type (Def_Id))
-                       or else
-                        (Is_Interface (Designated_Type (Def_Id))
-                           and then
-                             Is_Limited_Interface (Designated_Type (Def_Id))))
+           and then Is_Limited_Type (Designated_Type (Def_Id))
            and then Tasking_Allowed
 
             --  Do not create a class-wide master for types whose convention is
@@ -4144,7 +4157,6 @@ package body Exp_Ch3 is
       Expr_Q   : Node_Id;
       Id_Ref   : Node_Id;
       New_Ref  : Node_Id;
-      BIP_Call : Boolean := False;
 
       Init_After : Node_Id := N;
       --  Node after which the init proc call is to be inserted. This is
@@ -4408,21 +4420,25 @@ package body Exp_Ch3 is
          if Is_Delayed_Aggregate (Expr_Q) then
             Convert_Aggr_In_Object_Decl (N);
 
+         --  Ada 2005 (AI-318-02): If the initialization expression is a call
+         --  to a build-in-place function, then access to the declared object
+         --  must be passed to the function. Currently we limit such functions
+         --  to those with constrained limited result subtypes, but eventually
+         --  plan to expand the allowed forms of functions that are treated as
+         --  build-in-place.
+
+         elsif Ada_Version >= Ada_05
+           and then Is_Build_In_Place_Function_Call (Expr_Q)
+         then
+            Make_Build_In_Place_Call_In_Object_Declaration (N, Expr_Q);
+
+            --  The previous call expands the expression initializing the
+            --  built-in-place object into further code that will be analyzed
+            --  later. No further expansion needed here.
+
+            return;
+
          else
-            --  Ada 2005 (AI-318-02): If the initialization expression is a
-            --  call to a build-in-place function, then access to the declared
-            --  object must be passed to the function. Currently we limit such
-            --  functions to those with constrained limited result subtypes,
-            --  but eventually we plan to expand the allowed forms of functions
-            --  that are treated as build-in-place.
-
-            if Ada_Version >= Ada_05
-              and then Is_Build_In_Place_Function_Call (Expr_Q)
-            then
-               Make_Build_In_Place_Call_In_Object_Declaration (N, Expr_Q);
-               BIP_Call := True;
-            end if;
-
             --  In most cases, we must check that the initial value meets any
             --  constraint imposed by the declared type. However, there is one
             --  very important exception to this rule. If the entity has an
@@ -4570,7 +4586,6 @@ package body Exp_Ch3 is
 
             if Needs_Finalization (Typ)
               and then not Is_Inherently_Limited_Type (Typ)
-              and then not BIP_Call
             then
                Insert_Actions_After (Init_After,
                  Make_Adjust_Call (
@@ -5729,6 +5744,27 @@ package body Exp_Ch3 is
                end if;
             end if;
 
+            --  If the type has unknown discriminants, propagate dispatching
+            --  information to its underlying record view, which does not get
+            --  its own dispatch table.
+
+            if Is_Derived_Type (Def_Id)
+              and then Has_Unknown_Discriminants (Def_Id)
+              and then Present (Underlying_Record_View (Def_Id))
+            then
+               declare
+                  Rep : constant Entity_Id :=
+                           Underlying_Record_View (Def_Id);
+               begin
+                  Set_Access_Disp_Table
+                    (Rep, Access_Disp_Table       (Def_Id));
+                  Set_Dispatch_Table_Wrappers
+                    (Rep, Dispatch_Table_Wrappers (Def_Id));
+                  Set_Primitive_Operations
+                    (Rep, Primitive_Operations    (Def_Id));
+               end;
+            end if;
+
             --  Make sure that the primitives Initialize, Adjust and Finalize
             --  are Frozen before other TSS subprograms. We don't want them
             --  Frozen inside.
@@ -6855,8 +6891,7 @@ package body Exp_Ch3 is
            and then Is_Variable_Size_Record (Etype (Comp_Typ))
            and then Chars (Tag_Comp) /= Name_uTag
          then
-            pragma Assert
-              (Present (DT_Offset_To_Top_Func (Tag_Comp)));
+            pragma Assert (Present (DT_Offset_To_Top_Func (Tag_Comp)));
 
             --  Issue error if Set_Dynamic_Offset_To_Top is not available in a
             --  configurable run-time environment.
@@ -7524,7 +7559,7 @@ package body Exp_Ch3 is
                        Null_Exclusion_Present =>
                          Null_Exclusion_Present (Parent (Formal)),
                        Parameter_Type =>
-                         New_Reference_To (Etype (Formal), Loc),
+                         New_Occurrence_Of (Etype (Formal), Loc),
                        Expression =>
                          New_Copy_Tree (Expression (Parent (Formal)))),
                      Formal_List);

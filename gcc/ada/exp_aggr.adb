@@ -506,6 +506,8 @@ package body Exp_Aggr is
    --    9. There cannot be any discriminated record components, since the
    --       back end cannot handle this complex case.
 
+   --   10. No controlled actions need to be generated for components.
+
    function Backend_Processing_Possible (N : Node_Id) return Boolean is
       Typ : constant Entity_Id := Etype (N);
       --  Typ is the correct constrained array subtype of the aggregate
@@ -580,9 +582,9 @@ package body Exp_Aggr is
    --  Start of processing for Backend_Processing_Possible
 
    begin
-      --  Checks 2 (array must not be bit packed)
+      --  Checks 2 (array not bit packed) and 10 (no controlled actions)
 
-      if Is_Bit_Packed_Array (Typ) then
+      if Is_Bit_Packed_Array (Typ) or else Needs_Finalization (Typ) then
          return False;
       end if;
 
@@ -1226,10 +1228,10 @@ package body Exp_Aggr is
             if Present (Comp_Type)
               and then Needs_Finalization (Comp_Type)
               and then not Is_Limited_Type (Comp_Type)
-              and then
-                (not Is_Array_Type (Comp_Type)
-                   or else not Is_Controlled (Component_Type (Comp_Type))
-                   or else Nkind (Expr) /= N_Aggregate)
+              and then not
+                (Is_Array_Type (Comp_Type)
+                   and then Is_Controlled (Component_Type (Comp_Type))
+                   and then Nkind (Expr) = N_Aggregate)
             then
                Append_List_To (L,
                  Make_Adjust_Call (
@@ -2548,6 +2550,9 @@ package body Exp_Aggr is
             --  in the limited case, the ancestor part must be either a
             --  function call (possibly qualified, or wrapped in an unchecked
             --  conversion) or aggregate (definitely qualified).
+            --  The ancestor part can also be a function call (that may be
+            --  transformed into an explicit dereference) or a qualification
+            --  of one such.
 
             elsif Is_Limited_Type (Etype (A))
               and then Nkind (Unqualify (A)) /= N_Function_Call --  aggregate?
@@ -2555,6 +2560,7 @@ package body Exp_Aggr is
                 (Nkind (Unqualify (A)) /= N_Unchecked_Type_Conversion
                    or else
                  Nkind (Expression (Unqualify (A))) /= N_Function_Call)
+              and then Nkind (Unqualify (A)) /= N_Explicit_Dereference
             then
                Ancestor_Is_Expression := True;
 
@@ -3418,6 +3424,7 @@ package body Exp_Aggr is
 
    procedure Convert_To_Assignments (N : Node_Id; Typ : Entity_Id) is
       Loc  : constant Source_Ptr := Sloc (N);
+      T    : Entity_Id;
       Temp : Entity_Id;
 
       Instr       : Node_Id;
@@ -3506,10 +3513,10 @@ package body Exp_Aggr is
                  Is_Controlled (Typ) or else Has_Controlled_Component (Typ));
       end if;
 
-      --  If the aggregate is non-limited, create a temporary. If it is
-      --  limited and the context is an assignment, this is a subaggregate
-      --  for an enclosing aggregate being expanded. It must be built in place,
-      --  so use the target of the current assignment.
+      --  If the aggregate is non-limited, create a temporary. If it is limited
+      --  and the context is an assignment, this is a subaggregate for an
+      --  enclosing aggregate being expanded. It must be built in place, so use
+      --  the target of the current assignment.
 
       if Is_Limited_Type (Typ)
         and then Nkind (Parent (N)) = N_Assignment_Statement
@@ -3522,18 +3529,29 @@ package body Exp_Aggr is
       else
          Temp := Make_Defining_Identifier (Loc, New_Internal_Name ('A'));
 
+         --  If the type inherits unknown discriminants, use the view with
+         --  known discriminants if available.
+
+         if Has_Unknown_Discriminants (Typ)
+            and then Present (Underlying_Record_View (Typ))
+         then
+            T := Underlying_Record_View (Typ);
+         else
+            T := Typ;
+         end if;
+
          Instr :=
            Make_Object_Declaration (Loc,
              Defining_Identifier => Temp,
-             Object_Definition   => New_Occurrence_Of (Typ, Loc));
+             Object_Definition   => New_Occurrence_Of (T, Loc));
 
          Set_No_Initialization (Instr);
          Insert_Action (N, Instr);
-         Initialize_Discriminants (Instr, Typ);
+         Initialize_Discriminants (Instr, T);
          Target_Expr := New_Occurrence_Of (Temp, Loc);
-         Insert_Actions (N, Build_Record_Aggr_Code (N, Typ, Target_Expr));
+         Insert_Actions (N, Build_Record_Aggr_Code (N, T, Target_Expr));
          Rewrite (N, New_Occurrence_Of (Temp, Loc));
-         Analyze_And_Resolve (N, Typ);
+         Analyze_And_Resolve (N, T);
       end if;
    end Convert_To_Assignments;
 
@@ -4947,8 +4965,8 @@ package body Exp_Aggr is
 
       --  STEP 3
 
-      --  Delay expansion for nested aggregates it will be taken care of
-      --  when the parent aggregate is expanded
+      --  Delay expansion for nested aggregates: it will be taken care of
+      --  when the parent aggregate is expanded.
 
       Parent_Node := Parent (N);
       Parent_Kind := Nkind (Parent_Node);
@@ -4979,7 +4997,7 @@ package body Exp_Aggr is
 
       --  STEP 4
 
-      --  Look if in place aggregate expansion is possible
+      --  Look if in place aggregate expansion is possible.
 
       --  For object declarations we build the aggregate in place, unless
       --  the array is bit-packed or the component is controlled.
@@ -5018,8 +5036,8 @@ package body Exp_Aggr is
               and then In_Place_Assign_OK);
       end if;
 
-      --  If  this is an array of tasks, it will be expanded into build-in-
-      --  -place assignments. Build an activation chain for the tasks now
+      --  If this is an array of tasks, it will be expanded into build-in-place
+      --  assignments. Build an activation chain for the tasks now.
 
       if Has_Task (Etype (N)) then
          Build_Activation_Chain_Entity (N);
@@ -5114,8 +5132,8 @@ package body Exp_Aggr is
          Set_No_Initialization (Tmp_Decl, True);
 
          --  If we are within a loop, the temporary will be pushed on the
-         --  stack at each iteration. If the aggregate is the expression for
-         --  an allocator, it will be immediately copied to the heap and can
+         --  stack at each iteration. If the aggregate is the expression for an
+         --  allocator, it will be immediately copied to the heap and can
          --  be reclaimed at once. We create a transient scope around the
          --  aggregate for this purpose.
 
@@ -5128,9 +5146,9 @@ package body Exp_Aggr is
          Insert_Action (N, Tmp_Decl);
       end if;
 
-      --  Construct and insert the aggregate code. We can safely suppress
-      --  index checks because this code is guaranteed not to raise CE
-      --  on index checks. However we should *not* suppress all checks.
+      --  Construct and insert the aggregate code. We can safely suppress index
+      --  checks because this code is guaranteed not to raise CE on index
+      --  checks. However we should *not* suppress all checks.
 
       declare
          Target : Node_Id;

@@ -376,6 +376,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* DBX_DEBUGGING_INFO  */
@@ -408,6 +409,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,	         /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* XCOFF_DEBUGGING_INFO  */
@@ -3593,7 +3595,7 @@ dbxout_block (tree block, int depth, tree args)
   while (block)
     {
       /* Ignore blocks never expanded or otherwise marked as real.  */
-      if (TREE_ASM_WRITTEN (block))
+      if (TREE_USED (block) && TREE_ASM_WRITTEN (block))
 	{
 	  int did_output;
 	  int blocknum = BLOCK_NUMBER (block);

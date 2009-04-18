@@ -55,8 +55,8 @@ package System.CRTL is
 
    type size_t is mod 2 ** Standard'Address_Size;
 
-   type Filename_Encoding is (UTF8, ASCII_8bits);
-   for Filename_Encoding use (UTF8 => 0, ASCII_8bits => 1);
+   type Filename_Encoding is (UTF8, ASCII_8bits, Unspecified);
+   for Filename_Encoding use (UTF8 => 0, ASCII_8bits => 1, Unspecified => 2);
    pragma Convention (C, Filename_Encoding);
    --  Describes the filename's encoding
 
@@ -90,7 +90,7 @@ package System.CRTL is
    function fopen
      (filename : chars;
       mode     : chars;
-      encoding : Filename_Encoding := UTF8) return FILEs;
+      encoding : Filename_Encoding := Unspecified) return FILEs;
    pragma Import (C, fopen, "__gnat_fopen");
 
    function fputc (C : int; stream : FILEs) return int;
@@ -106,7 +106,7 @@ package System.CRTL is
      (filename : chars;
       mode     : chars;
       stream   : FILEs;
-      encoding : Filename_Encoding := UTF8) return FILEs;
+      encoding : Filename_Encoding := Unspecified) return FILEs;
    pragma Import (C, freopen, "__gnat_freopen");
 
    function fseek
@@ -164,8 +164,11 @@ package System.CRTL is
    procedure rewind (stream : FILEs);
    pragma Import (C, rewind, "rewind");
 
-   procedure rmdir (dir_name : String);
-   pragma Import (C, rmdir, "rmdir");
+   function rmdir (dir_name : String) return int;
+   pragma Import (C, rmdir, "__gnat_rmdir");
+
+   function chdir (dir_name : String) return int;
+   pragma Import (C, chdir, "__gnat_chdir");
 
    function setvbuf
      (stream : FILEs;
@@ -185,7 +188,7 @@ package System.CRTL is
    pragma Import (C, ungetc, "ungetc");
 
    function unlink (filename : chars) return int;
-   pragma Import (C, unlink, "unlink");
+   pragma Import (C, unlink, "__gnat_unlink");
 
    function open (filename : chars; oflag : int) return int;
    pragma Import (C, open, "open");

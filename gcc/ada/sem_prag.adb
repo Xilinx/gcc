@@ -3531,13 +3531,14 @@ package body Sem_Prag is
             end loop;
 
          --  When the convention is Java or CIL, we also allow Import to be
-         --  given for packages, generic packages, exceptions, and record
-         --  components.
+         --  given for packages, generic packages, exceptions, record
+         --  components, and access to subprograms.
 
          elsif (C = Convention_Java or else C = Convention_CIL)
            and then
              (Is_Package_Or_Generic_Package (Def_Id)
                or else Ekind (Def_Id) = E_Exception
+               or else Ekind (Def_Id) = E_Access_Subprogram_Type
                or else Nkind (Parent (Def_Id)) = N_Component_Declaration)
          then
             Set_Imported (Def_Id);
@@ -3931,16 +3932,17 @@ package body Sem_Prag is
                   --  For all cases except external names on CLI target,
                   --  commas, spaces and slashes are dubious (in CLI, we use
                   --  spaces and commas in external names to specify assembly
-                  --  version and public key).
+                  --  version and public key, while slashes can be used in
+                  --  names to mark nested classes).
 
                   or else ((not Ext_Name_Case or else VM_Target /= CLI_Target)
                              and then (Get_Character (C) = ' '
                                          or else
                                        Get_Character (C) = ','
                                          or else
-                                       Get_Character (C) = '/'
-                                         or else
                                        Get_Character (C) = '\'))
+                 or else (VM_Target /= CLI_Target
+                           and then Get_Character (C) = '/')
                then
                   Error_Msg
                     ("?interface name contains illegal character",
@@ -9226,9 +9228,10 @@ package body Sem_Prag is
             --  Cases where we must follow a declaration
 
             else
-               if Nkind (Decl) not in N_Declaration
+               if         Nkind (Decl) not in N_Declaration
                  and then Nkind (Decl) not in N_Later_Decl_Item
                  and then Nkind (Decl) not in N_Generic_Declaration
+                 and then Nkind (Decl) not in N_Renaming_Declaration
                then
                   Error_Pragma
                     ("pragma% misplaced, "
@@ -9364,14 +9367,14 @@ package body Sem_Prag is
                else
                   if not Rep_Item_Too_Late (Typ, N) then
                      if VM_Target = No_VM then
-                        Set_Is_Packed (Base_Type (Typ));
+                        Set_Is_Packed            (Base_Type (Typ));
+                        Set_Has_Pragma_Pack      (Base_Type (Typ));
+                        Set_Has_Non_Standard_Rep (Base_Type (Typ));
+
                      elsif not GNAT_Mode then
                         Error_Pragma
                           ("?pragma% ignored in this configuration");
                      end if;
-
-                     Set_Has_Pragma_Pack      (Base_Type (Typ));
-                     Set_Has_Non_Standard_Rep (Base_Type (Typ));
                   end if;
                end if;
 
@@ -9380,13 +9383,13 @@ package body Sem_Prag is
             else pragma Assert (Is_Record_Type (Typ));
                if not Rep_Item_Too_Late (Typ, N) then
                   if VM_Target = No_VM then
-                     Set_Is_Packed (Base_Type (Typ));
+                     Set_Is_Packed            (Base_Type (Typ));
+                     Set_Has_Pragma_Pack      (Base_Type (Typ));
+                     Set_Has_Non_Standard_Rep (Base_Type (Typ));
+
                   elsif not GNAT_Mode then
                      Error_Pragma ("?pragma% ignored in this configuration");
                   end if;
-
-                  Set_Has_Pragma_Pack      (Base_Type (Typ));
-                  Set_Has_Non_Standard_Rep (Base_Type (Typ));
                end if;
             end if;
          end Pack;

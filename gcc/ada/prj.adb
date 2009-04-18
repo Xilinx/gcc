@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Unchecked_Deallocation;
 
 with Debug;
 with Output;   use Output;
@@ -159,6 +160,9 @@ package body Prj is
       Table_Name           => "Makegpr.Temp_Files");
    --  Table to store the path name of all the created temporary files, so that
    --  they can be deleted at the end, or when the program is interrupted.
+
+   procedure Free (Project : in out Project_Data);
+   --  Free memory allocated for Project
 
    -------------------
    -- Add_To_Buffer --
@@ -705,11 +709,18 @@ package body Prj is
    -----------------
 
    function Object_Name
-     (Source_File_Name : File_Name_Type)
+     (Source_File_Name   : File_Name_Type;
+      Object_File_Suffix : Name_Id := No_Name)
       return File_Name_Type
    is
    begin
-      return Extend_Name (Source_File_Name, Object_Suffix);
+      if Object_File_Suffix = No_Name then
+         return Extend_Name
+           (Source_File_Name, Object_Suffix);
+      else
+         return Extend_Name
+           (Source_File_Name, Get_Name_String (Object_File_Suffix));
+      end if;
    end Object_Name;
 
    ----------------------
@@ -826,17 +837,71 @@ package body Prj is
       end if;
    end Register_Default_Naming_Scheme;
 
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Project : in out Project_Data) is
+   begin
+      Free (Project.Dir_Path);
+      Free (Project.Include_Path);
+      Free (Project.Ada_Include_Path);
+      Free (Project.Objects_Path);
+      Free (Project.Ada_Objects_Path);
+   end Free;
+
+   ----------
+   -- Free --
+   ----------
+
+   procedure Free (Tree : in out Project_Tree_Ref) is
+      procedure Unchecked_Free is new Ada.Unchecked_Deallocation
+        (Project_Tree_Data, Project_Tree_Ref);
+   begin
+      if Tree /= null then
+         Language_Data_Table.Free (Tree.Languages_Data);
+         Name_List_Table.Free (Tree.Name_Lists);
+         String_Element_Table.Free (Tree.String_Elements);
+         Variable_Element_Table.Free (Tree.Variable_Elements);
+         Array_Element_Table.Free (Tree.Array_Elements);
+         Array_Table.Free (Tree.Arrays);
+         Package_Table.Free (Tree.Packages);
+         Project_List_Table.Free (Tree.Project_Lists);
+         Source_Data_Table.Free (Tree.Sources);
+         Alternate_Language_Table.Free (Tree.Alt_Langs);
+         Unit_Table.Free (Tree.Units);
+         Units_Htable.Reset (Tree.Units_HT);
+         Files_Htable.Reset (Tree.Files_HT);
+         Source_Paths_Htable.Reset (Tree.Source_Paths_HT);
+         Unit_Sources_Htable.Reset (Tree.Unit_Sources_HT);
+
+         for P in Project_Table.First ..
+           Project_Table.Last (Tree.Projects)
+         loop
+            Free (Tree.Projects.Table (P));
+         end loop;
+
+         Project_Table.Free (Tree.Projects);
+
+         --  Private part
+
+         Naming_Table.Free (Tree.Private_Part.Namings);
+         Path_File_Table.Free (Tree.Private_Part.Path_Files);
+         Source_Path_Table.Free (Tree.Private_Part.Source_Paths);
+         Object_Path_Table.Free (Tree.Private_Part.Object_Paths);
+
+         --  Naming data (nothing to free ?)
+         null;
+
+         Unchecked_Free (Tree);
+      end if;
+   end Free;
+
    -----------
    -- Reset --
    -----------
 
    procedure Reset (Tree : Project_Tree_Ref) is
-
-      --  Def_Lang : constant Name_Node :=
-      --             (Name => Name_Ada,
-      --              Next => No_Name_List);
-      --  Why is the above commented out ???
-
    begin
       Prj.Env.Initialize;
 
@@ -850,7 +915,6 @@ package body Prj is
       Array_Table.Init              (Tree.Arrays);
       Package_Table.Init            (Tree.Packages);
       Project_List_Table.Init       (Tree.Project_Lists);
-      Project_Table.Init            (Tree.Projects);
       Source_Data_Table.Init        (Tree.Sources);
       Alternate_Language_Table.Init (Tree.Alt_Langs);
       Unit_Table.Init               (Tree.Units);
@@ -858,6 +922,16 @@ package body Prj is
       Files_Htable.Reset            (Tree.Files_HT);
       Source_Paths_Htable.Reset     (Tree.Source_Paths_HT);
       Unit_Sources_Htable.Reset     (Tree.Unit_Sources_HT);
+
+      if not Project_Table."=" (Tree.Projects.Table, null) then
+         for P in Project_Table.First ..
+           Project_Table.Last (Tree.Projects)
+         loop
+            Free (Tree.Projects.Table (P));
+         end loop;
+      end if;
+
+      Project_Table.Init            (Tree.Projects);
 
       --  Private part table
 

@@ -1,3 +1,34 @@
+2009-04-18  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/39782
+	* io/transfer.c (data_transfer_init): Don't flush before seek.
+	(finalize_transfer): Remove extra flush.
+
+2009-04-17  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* io/io.h (is_preconnected): Remove prototype.
+	* io/unix.c (is_preconnected): Remove function.
+
+2009-04-17  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* configure.ac: Test for -ffunction-sections -fdata-sections and
+	set SECTION_FLAGS accordingly.
+	* configure: Regenerate.
+
+	* Makefile.am: Add SECTION_FLAGS to AM_CFLAGS.
+	* Makefile.in: Regenerate.
+
+2009-04-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/38668
+	* io/transfer.c (finalize_transfer): Don't flush for advance='no'.
+
+2009-04-15 Danny Smith  <dannysmith@clear.net.nz>
+
+       * io/write.c (itoa) : Rename back to gfc_itoa.
+       (write_i): Adjust call to write_decimal.
+       (write_integer):  Use gfc_itoa.
+
 2009-04-10  Janne Blomqvist  <jb@gcc.gnu.org>
 
         * io/io.h (move_pos_offset): Remove prototype.

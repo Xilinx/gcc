@@ -1,5 +1,5 @@
 /* Mudflap: narrow-pointer bounds-checking by tree rewriting.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Frank Ch. Eigler <fche@redhat.com>
    and Graydon Hoare <graydon@redhat.com>
@@ -634,7 +634,7 @@ mf_build_check_statement_for (tree base, tree limit,
 
   /* Build the conditional jump.  'cond' is just a temporary so we can
      simply build a void COND_EXPR.  We do need labels in both arms though.  */
-  g = gimple_build_cond (NE_EXPR, cond, integer_zero_node, NULL_TREE,
+  g = gimple_build_cond (NE_EXPR, cond, boolean_false_node, NULL_TREE,
 			 NULL_TREE);
   gimple_set_location (g, location);
   gimple_seq_add_stmt (&seq, g);
@@ -664,9 +664,9 @@ mf_build_check_statement_for (tree base, tree limit,
   /* u is a string, so it is already a gimple value.  */
   u = mf_file_function_line_tree (location);
   /* NB: we pass the overall [base..limit] range to mf_check.  */
-  v = fold_build2 (PLUS_EXPR, integer_type_node,
+  v = fold_build2 (PLUS_EXPR, mf_uintptr_type,
 		   fold_build2 (MINUS_EXPR, mf_uintptr_type, mf_limit, mf_base),
-		   integer_one_node);
+		   build_int_cst (mf_uintptr_type, 1));
   v = force_gimple_operand (v, &stmts, true, NULL_TREE);
   gimple_seq_add_seq (&seq, stmts);
   g = gimple_build_call (mf_check_fndecl, 4, mf_base, v, dirflag, u);
@@ -1346,7 +1346,7 @@ struct gimple_opt_pass pass_mudflap_1 =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   PROP_gimple_any,                      /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1365,7 +1365,7 @@ struct gimple_opt_pass pass_mudflap_2 =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   PROP_gimple_leh,                      /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

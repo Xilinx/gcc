@@ -6130,12 +6130,12 @@ package body Sem_Ch8 is
 
       Prev_Use   : Node_Id := Empty;
       Redundant  : Node_Id := Empty;
-      --  The Use_Clause which is actually redundant. In the simplest case
-      --  it is Pack itself, but when we compile a body we install its
-      --  context before that of its spec, in which case it is the use_clause
-      --  in the spec that will appear to be redundant, and we want the
-      --  warning to be placed on the body. Similar complications appear when
-      --  the redundancy is between a child unit and one of its ancestors.
+      --  The Use_Clause which is actually redundant. In the simplest case it
+      --  is Pack itself, but when we compile a body we install its context
+      --  before that of its spec, in which case it is the use_clause in the
+      --  spec that will appear to be redundant, and we want the warning to be
+      --  placed on the body. Similar complications appear when the redundancy
+      --  is between a child unit and one of its ancestors.
 
    begin
       Set_Redundant_Use (Clause, True);
@@ -6149,12 +6149,12 @@ package body Sem_Ch8 is
 
       if not Is_Compilation_Unit (Current_Scope) then
 
-         --  If the use_clause is in an inner scope, it is made redundant
-         --  by some clause in the current context, with one exception:
-         --  If we're compiling a nested package body, and the use_clause
-         --  comes from the corresponding spec, the clause is not necessarily
-         --  fully redundant, so we should not warn.  If a warning was
-         --  warranted, it would have been given when the spec was processed.
+         --  If the use_clause is in an inner scope, it is made redundant by
+         --  some clause in the current context, with one exception: If we're
+         --  compiling a nested package body, and the use_clause comes from the
+         --  corresponding spec, the clause is not necessarily fully redundant,
+         --  so we should not warn. If a warning was warranted, it would have
+         --  been given when the spec was processed.
 
          if Nkind (Parent (Decl)) = N_Package_Specification then
             declare
@@ -6249,12 +6249,12 @@ package body Sem_Ch8 is
       elsif Nkind (Unit (Cunit (Current_Sem_Unit))) = N_Package_Declaration
         and then Present (Parent_Spec (Unit (Cunit (Current_Sem_Unit))))
       then
-         --  Use_clause is in child unit of current unit, and the child
-         --  unit appears in the context of the body of the parent, so it
-         --  has been installed first, even though it is the redundant one.
-         --  Depending on their placement in the context, the visible or the
-         --  private parts of the two units, either might appear as redundant,
-         --  but the message has to be on the current unit.
+         --  Use_clause is in child unit of current unit, and the child unit
+         --  appears in the context of the body of the parent, so it has been
+         --  installed first, even though it is the redundant one. Depending on
+         --  their placement in the context, the visible or the private parts
+         --  of the two units, either might appear as redundant, but the
+         --  message has to be on the current unit.
 
          if Get_Source_Unit (Cur_Use) = Current_Sem_Unit then
             Redundant := Cur_Use;
@@ -6367,9 +6367,9 @@ package body Sem_Ch8 is
       if Ekind (S) = E_Void then
          null;
 
-      --  Set scope depth if not a non-concurrent type, and we have not
-      --  yet set the scope depth. This means that we have the first
-      --  occurrence of the scope, and this is where the depth is set.
+      --  Set scope depth if not a non-concurrent type, and we have not yet set
+      --  the scope depth. This means that we have the first occurrence of the
+      --  scope, and this is where the depth is set.
 
       elsif (not Is_Type (S) or else Is_Concurrent_Type (S))
         and then not Scope_Depth_Set (S)
@@ -6427,9 +6427,9 @@ package body Sem_Ch8 is
          Write_Eol;
       end if;
 
-      --  Deal with copying flags from the previous scope to this one. This
-      --  is not necessary if either scope is standard, or if the new scope
-      --  is a child unit.
+      --  Deal with copying flags from the previous scope to this one. This is
+      --  not necessary if either scope is standard, or if the new scope is a
+      --  child unit.
 
       if S /= Standard_Standard
         and then Scope (S) /= Standard_Standard
@@ -6708,8 +6708,18 @@ package body Sem_Ch8 is
             E := First_Entity (S);
             while Present (E) loop
                if Is_Child_Unit (E) then
-                  Set_Is_Immediately_Visible (E,
-                    Is_Visible_Child_Unit (E) or else In_Open_Scopes (E));
+                  if not From_With_Type (E) then
+                     Set_Is_Immediately_Visible (E,
+                       Is_Visible_Child_Unit (E) or else In_Open_Scopes (E));
+
+                  else
+                     pragma Assert
+                       (Nkind (Parent (E)) = N_Defining_Program_Unit_Name
+                          and then
+                        Nkind (Parent (Parent (E))) = N_Package_Specification);
+                     Set_Is_Immediately_Visible (E,
+                       Limited_View_Installed (Parent (Parent (E))));
+                  end if;
                else
                   Set_Is_Immediately_Visible (E, True);
                end if;
@@ -7115,10 +7125,10 @@ package body Sem_Ch8 is
       elsif In_Open_Scopes (Scope (T)) then
          null;
 
-      --  A limited view cannot appear in a use_type clause. However, an
-      --  access type whose designated type is limited has the flag but
-      --  is not itself a limited view unless we only have a limited view
-      --  of its enclosing package.
+      --  A limited view cannot appear in a use_type clause. However, an access
+      --  type whose designated type is limited has the flag but is not itself
+      --  a limited view unless we only have a limited view of its enclosing
+      --  package.
 
       elsif From_With_Type (T)
         and then From_With_Type (Scope (T))
@@ -7133,6 +7143,14 @@ package body Sem_Ch8 is
 
       elsif not Redundant_Use (Id) then
          Set_In_Use (T);
+
+         --  If T is tagged, primitive operators on class-wide operands
+         --  are also available.
+
+         if Is_Tagged_Type (T) then
+            Set_In_Use (Class_Wide_Type (T));
+         end if;
+
          Set_Current_Use_Clause (T, Parent (Id));
          Op_List := Collect_Primitive_Operations (T);
 
@@ -7163,8 +7181,8 @@ package body Sem_Ch8 is
          --  as use visible. The analysis then reinstalls the spec along with
          --  its context. The use clause P.T is now recognized as redundant,
          --  but in the wrong context. Do not emit a warning in such cases.
-         --  Do not emit a warning either if we are in an instance, there
-         --  is no redundancy between an outer use_clause and one that appears
+         --  Do not emit a warning either if we are in an instance, there is
+         --  no redundancy between an outer use_clause and one that appears
          --  within the generic.
 
         and then not Spec_Reloaded_For_Body
@@ -7210,10 +7228,10 @@ package body Sem_Ch8 is
                --  Start of processing for Use_Clause_Known
 
                begin
-                  --  If both current use type clause and the use type
-                  --  clause for the type are at the compilation unit level,
-                  --  one of the units must be an ancestor of the other, and
-                  --  the warning belongs on the descendant.
+                  --  If both current use type clause and the use type clause
+                  --  for the type are at the compilation unit level, one of
+                  --  the units must be an ancestor of the other, and the
+                  --  warning belongs on the descendant.
 
                   if Nkind (Parent (Clause1)) = N_Compilation_Unit
                        and then
@@ -7230,6 +7248,35 @@ package body Sem_Ch8 is
 
                      Unit1 := Unit (Parent (Clause1));
                      Unit2 := Unit (Parent (Clause2));
+
+                     --  If both clauses are on same unit, or one is the body
+                     --  of the other, or one of them is in a subunit, report
+                     --  redundancy on the later one.
+
+                     if Unit1 = Unit2 then
+                        Error_Msg_Sloc := Sloc (Current_Use_Clause (T));
+                        Error_Msg_NE
+                          ("& is already use-visible through previous "
+                           & "use_type_clause #?", Clause1, T);
+                        return;
+
+                     elsif Nkind (Unit1) = N_Subunit then
+                        Error_Msg_Sloc := Sloc (Current_Use_Clause (T));
+                        Error_Msg_NE
+                          ("& is already use-visible through previous "
+                           & "use_type_clause #?", Clause1, T);
+                        return;
+
+                     elsif Nkind_In (Unit2, N_Package_Body, N_Subprogram_Body)
+                       and then Nkind (Unit1) /= Nkind (Unit2)
+                       and then Nkind (Unit1) /= N_Subunit
+                     then
+                        Error_Msg_Sloc := Sloc (Clause1);
+                        Error_Msg_NE
+                          ("& is already use-visible through previous "
+                           & "use_type_clause #?", Current_Use_Clause (T), T);
+                        return;
+                     end if;
 
                      --  There is a redundant use type clause in a child unit.
                      --  Determine which of the units is more deeply nested.

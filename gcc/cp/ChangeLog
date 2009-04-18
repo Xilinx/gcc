@@ -1,3 +1,55 @@
+2009-04-16  Ian Lance Taylor  <iant@google.com>
+
+	* cp-tree.h (enum tsubst_flags): Rename from enum tsubst_flags_t.
+	(tsubst_flags_t): Change typedef from enum type to int.
+
+2009-04-16  Le-Chun Wu  <lcwu@google.com>
+
+	* decl.c (check_initializer): Use TYPE_VECTOR_OPAQUE
+	instead of targetm.vector_opaque_p.
+
+2009-04-15  Le-Chun Wu  <lcwu@google.com>
+
+	PR c++/39551
+	* call.c (build_over_call): Set TREE_NO_WARNING on the
+	compiler-generated INDIRECT_REF expression.
+	* cvt.c (convert_to_void): Emit warning when stripping off
+	INDIRECT_REF.
+
+2009-04-14  Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_parser_type_specifier_seq): Move call to
+	invoke_plugin_callbacks ...
+	(cp_parser_type_specifier_seq): ... here.
+
+2009-04-14  Le-Chun Wu  <lcwu@google.com>
+
+	* Make-lang.in: Modify dependencies of files including plugin.h.
+	* decl.c (finish_function): Call invoke_plugin_callbacks.
+	* parser.c (cp_parser_type_specifier): Call invoke_plugin_callbacks.
+
+2009-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39763
+	* name-lookup.c (pushdecl_maybe_friend): Avoid all warnings
+	about shadowing by tentative parms.
+
+2009-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39480
+	* call.c (build_over_call): Don't call memcpy if the target is
+	the same as the source.
+
+2009-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39750
+	* pt.c (uses_template_parms): Handle CONSTRUCTOR.
+
+2009-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39742
+	* call.c (joust): Don't crash on variadic fn.
+
 2009-04-10  Jason Merrill  <jason@redhat.com>
 
 	PR c++/28301

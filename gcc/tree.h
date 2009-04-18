@@ -586,6 +586,9 @@ struct tree_common GTY(())
        STMT_IN_SSA_EDGE_WORKLIST in
            all expressions (tree-ssa-propagate.c)
 
+	TYPE_VECTOR_OPAQUE in
+	   VECTOR_TYPE
+
    visited:
 
        TREE_VISITED in
@@ -2220,6 +2223,11 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* Set precision to n when we have 2^n sub-parts of the vector.  */
 #define SET_TYPE_VECTOR_SUBPARTS(VECTOR_TYPE, X) \
   (VECTOR_TYPE_CHECK (VECTOR_TYPE)->type.precision = exact_log2 (X))
+
+/* Nonzero in an IDENTIFIER_NODE if the name is a local alias, whose
+   uses are to be substituted for uses of the TREE_CHAINed identifier.  */
+#define TYPE_VECTOR_OPAQUE(NODE) \
+  (VECTOR_TYPE_CHECK (NODE)->base.deprecated_flag)
 
 /* Indicates that objects of this type must be initialized by calling a
    function when they are created.  */
@@ -3938,6 +3946,7 @@ extern tree build_reference_type_for_mode (tree, enum machine_mode, bool);
 extern tree build_reference_type (tree);
 extern tree build_vector_type_for_mode (tree, enum machine_mode);
 extern tree build_vector_type (tree innertype, int nunits);
+extern tree build_opaque_vector_type (tree innertype, int nunits);
 extern tree build_type_no_quals (tree);
 extern tree build_index_type (tree);
 extern tree build_index_2_type (tree, tree);
@@ -4252,7 +4261,6 @@ extern tree convert (tree, tree);
 extern unsigned int expr_align (const_tree);
 extern tree expr_first (tree);
 extern tree expr_last (tree);
-extern tree expr_only (tree);
 extern tree size_in_bytes (const_tree);
 extern HOST_WIDE_INT int_size_in_bytes (const_tree);
 extern HOST_WIDE_INT max_int_size_in_bytes (const_tree);
@@ -4647,7 +4655,6 @@ extern tree create_artificial_label (void);
 extern const char *get_name (tree);
 extern bool stdarg_p (tree);
 extern bool prototype_p (tree);
-extern int function_args_count (tree);
 extern bool auto_var_in_fn_p (const_tree, const_tree);
 
 /* In gimplify.c */
@@ -5192,7 +5199,6 @@ extern tree tree_mem_ref_addr (tree, tree);
 extern void copy_mem_ref_info (tree, tree);
 
 /* In tree-vrp.c */
-extern bool ssa_name_nonzero_p (const_tree);
 extern bool ssa_name_nonnegative_p (const_tree);
 
 /* In tree-object-size.c.  */

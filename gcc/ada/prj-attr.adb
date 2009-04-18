@@ -116,6 +116,7 @@ package body Prj.Attr is
    "Satoolchain_description#" &
    "Saobject_generated#" &
    "Saobjects_linked#" &
+   "SVtarget#" &
 
    --  Configuration - Libraries
 
@@ -140,6 +141,7 @@ package body Prj.Attr is
    "LVshared_library_minimum_switches#" &
    "LVlibrary_version_switches#" &
    "Saruntime_library_dir#" &
+   "Saruntime_source_dir#" &
 
    --  package Naming
 
@@ -172,6 +174,7 @@ package body Prj.Attr is
    "Larequired_switches#" &
    "Lapic_option#" &
    "Sapath_syntax#" &
+   "Saobject_file_suffix#" &
 
    --  Configuration - Mapping files
 

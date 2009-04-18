@@ -3795,9 +3795,19 @@ package body Exp_Ch6 is
             --  its value is captured in a renaming declaration. Otherwise
             --  declare a local constant initialized with the actual.
 
+            --  We also use a renaming declaration for expressions of an array
+            --  type that is not bit-packed, both for efficiency reasons and to
+            --  respect the semantics of the call: in most cases the original
+            --  call will pass the parameter by reference, and thus the inlined
+            --  code will have the same semantics.
+
             if Ekind (F) = E_In_Parameter
               and then not Is_Limited_Type (Etype (A))
               and then not Is_Tagged_Type  (Etype (A))
+              and then
+               (not Is_Array_Type (Etype (A))
+                 or else not Is_Object_Reference (A)
+                 or else Is_Bit_Packed_Array (Etype (A)))
             then
                Decl :=
                  Make_Object_Declaration (Loc,
@@ -3847,9 +3857,9 @@ package body Exp_Ch6 is
             Set_Is_Internal (Temp);
 
             --  For the unconstrained case, the generated temporary has the
-            --  same constrained declaration as the result variable.
-            --  It may eventually be possible to remove that temporary and
-            --  use the result variable directly.
+            --  same constrained declaration as the result variable. It may
+            --  eventually be possible to remove that temporary and use the
+            --  result variable directly.
 
             if Is_Unc then
                Decl :=
@@ -3909,7 +3919,7 @@ package body Exp_Ch6 is
       end if;
 
       --  Analyze Blk with In_Inlined_Body set, to avoid spurious errors on
-      --  conflicting private views that Gigi would ignore. If this is
+      --  conflicting private views that Gigi would ignore. If this is a
       --  predefined unit, analyze with checks off, as is done in the non-
       --  inlined run-time units.
 
@@ -3972,9 +3982,9 @@ package body Exp_Ch6 is
    begin
       Expand_Call (N);
 
-      --  If the return value of a foreign compiled function is
-      --  VAX Float then expand the return (adjusts the location
-      --  of the return value on Alpha/VMS, noop everywhere else).
+      --  If the return value of a foreign compiled function is VAX Float, then
+      --  expand the return (adjusts the location of the return value on
+      --  Alpha/VMS, no-op everywhere else).
       --  Comes_From_Source intercepts recursive expansion.
 
       if Vax_Float (Etype (N))
@@ -4001,11 +4011,11 @@ package body Exp_Ch6 is
    -- Expand_N_Subprogram_Body --
    ------------------------------
 
-   --  Add poll call if ATC polling is enabled, unless the body will be
-   --  inlined by the back-end.
+   --  Add poll call if ATC polling is enabled, unless the body will be inlined
+   --  by the back-end.
 
    --  Add dummy push/pop label nodes at start and end to clear any local
-   --  exception indications if local-exception-to-goto optimization active.
+   --  exception indications if local-exception-to-goto optimization is active.
 
    --  Add return statement if last statement in body is not a return statement
    --  (this makes things easier on Gigi which does not want to have to handle
@@ -4037,8 +4047,8 @@ package body Exp_Ch6 is
       procedure Add_Return (S : List_Id);
       --  Append a return statement to the statement sequence S if the last
       --  statement is not already a return or a goto statement. Note that
-      --  the latter test is not critical, it does not matter if we add a
-      --  few extra returns, since they get eliminated anyway later on.
+      --  the latter test is not critical, it does not matter if we add a few
+      --  extra returns, since they get eliminated anyway later on.
 
       ----------------
       -- Add_Return --
@@ -4084,11 +4094,11 @@ package body Exp_Ch6 is
                Rtn : constant Node_Id := Make_Simple_Return_Statement (Loc);
 
             begin
-               --  Append return statement, and set analyzed manually. We
-               --  can't call Analyze on this return since the scope is wrong.
+               --  Append return statement, and set analyzed manually. We can't
+               --  call Analyze on this return since the scope is wrong.
 
                --  Note: it almost works to push the scope and then do the
-               --  analyze call, but something goes wrong in some weird cases
+               --  Analyze call, but something goes wrong in some weird cases
                --  and it is not worth worrying about ???
 
                Append_To (S, Rtn);
@@ -4114,9 +4124,9 @@ package body Exp_Ch6 is
    --  Start of processing for Expand_N_Subprogram_Body
 
    begin
-      --  Set L to either the list of declarations if present, or
-      --  to the list of statements if no declarations are present.
-      --  This is used to insert new stuff at the start.
+      --  Set L to either the list of declarations if present, or to the list
+      --  of statements if no declarations are present. This is used to insert
+      --  new stuff at the start.
 
       if Is_Non_Empty_List (Declarations (N)) then
          L := Declarations (N);
@@ -4174,11 +4184,13 @@ package body Exp_Ch6 is
 
       --  Need poll on entry to subprogram if polling enabled. We only do this
       --  for non-empty subprograms, since it does not seem necessary to poll
-      --  for a dummy null subprogram. Do not add polling point if calls to
-      --  this subprogram will be inlined by the back-end, to avoid repeated
-      --  polling points in nested inlinings.
+      --  for a dummy null subprogram.
 
       if Is_Non_Empty_List (L) then
+
+         --  Do not add a polling call if the subprogram is to be inlined by
+         --  the back-end, to avoid repeated calls with multiple inlinings.
+
          if Is_Inlined (Spec_Id)
            and then Front_End_Inlining
            and then Optimization_Level > 1
@@ -4189,18 +4201,18 @@ package body Exp_Ch6 is
          end if;
       end if;
 
-      --  If this is a Pure function which has any parameters whose root
-      --  type is System.Address, reset the Pure indication, since it will
-      --  likely cause incorrect code to be generated as the parameter is
-      --  probably a pointer, and the fact that the same pointer is passed
-      --  does not mean that the same value is being referenced.
+      --  If this is a Pure function which has any parameters whose root type
+      --  is System.Address, reset the Pure indication, since it will likely
+      --  cause incorrect code to be generated as the parameter is probably
+      --  a pointer, and the fact that the same pointer is passed does not mean
+      --  that the same value is being referenced.
 
       --  Note that if the programmer gave an explicit Pure_Function pragma,
       --  then we believe the programmer, and leave the subprogram Pure.
 
-      --  This code should probably be at the freeze point, so that it
-      --  happens even on a -gnatc (or more importantly -gnatt) compile
-      --  so that the semantic tree has Is_Pure set properly ???
+      --  This code should probably be at the freeze point, so that it happens
+      --  even on a -gnatc (or more importantly -gnatt) compile, so that the
+      --  semantic tree has Is_Pure set properly ???
 
       if Is_Pure (Spec_Id)
         and then Is_Subprogram (Spec_Id)
@@ -4286,8 +4298,8 @@ package body Exp_Ch6 is
          Set_Discriminals (Parent (Base_Type (Scope (Spec_Id))));
       end if;
 
-      --  Returns_By_Ref flag is normally set when the subprogram is frozen
-      --  but subprograms with no specs are not frozen.
+      --  Returns_By_Ref flag is normally set when the subprogram is frozen but
+      --  subprograms with no specs are not frozen.
 
       declare
          Typ  : constant Entity_Id := Etype (Spec_Id);
@@ -4308,8 +4320,8 @@ package body Exp_Ch6 is
          end if;
       end;
 
-      --  For a procedure, we add a return for all possible syntactic ends
-      --  of the subprogram.
+      --  For a procedure, we add a return for all possible syntactic ends of
+      --  the subprogram.
 
       if Ekind (Spec_Id) = E_Procedure
         or else Ekind (Spec_Id) = E_Generic_Procedure
@@ -4342,13 +4354,13 @@ package body Exp_Ch6 is
       --       raise Program_Error;
       --    end;
 
-      --  This approach is necessary because the raise must be signalled
-      --  to the caller, not handled by any local handler (RM 6.4(11)).
+      --  This approach is necessary because the raise must be signalled to the
+      --  caller, not handled by any local handler (RM 6.4(11)).
 
-      --  Note: we do not need to analyze the constructed sequence here,
-      --  since it has no handler, and an attempt to analyze the handled
-      --  statement sequence twice is risky in various ways (e.g. the
-      --  issue of expanding cleanup actions twice).
+      --  Note: we do not need to analyze the constructed sequence here, since
+      --  it has no handler, and an attempt to analyze the handled statement
+      --  sequence twice is risky in various ways (e.g. the issue of expanding
+      --  cleanup actions twice).
 
       elsif Has_Missing_Return (Spec_Id) then
          declare
@@ -4736,22 +4748,6 @@ package body Exp_Ch6 is
       end if;
    end Is_Build_In_Place_Function_Call;
 
-   ---------------------------------------
-   -- Is_Build_In_Place_Function_Return --
-   ---------------------------------------
-
-   function Is_Build_In_Place_Function_Return (N : Node_Id) return Boolean is
-   begin
-      if Nkind_In (N, N_Simple_Return_Statement,
-                      N_Extended_Return_Statement)
-      then
-         return Is_Build_In_Place_Function
-                  (Return_Applies_To (Return_Statement_Entity (N)));
-      else
-         return False;
-      end if;
-   end Is_Build_In_Place_Function_Return;
-
    -----------------------
    -- Freeze_Subprogram --
    -----------------------
@@ -4911,9 +4907,8 @@ package body Exp_Ch6 is
                      Register_Predefined_DT_Entry (Subp);
                   end if;
 
-                  Register_Primitive (Loc,
-                    Prim    => Subp,
-                    Ins_Nod => N);
+                  Insert_Actions_After (N,
+                    Register_Primitive (Loc, Prim => Subp));
                end if;
             end if;
          end;
@@ -5593,7 +5588,7 @@ package body Exp_Ch6 is
          --  in current scope). The Next_Entity links of the two entities also
          --  have to be swapped since the entities are part of the return
          --  scope's entity list and the list structure would otherwise be
-         --  corrupted.
+         --  corrupted. Finally, the homonym chain must be preserved as well.
 
          declare
             Renaming_Def_Id  : constant Entity_Id :=
@@ -5607,6 +5602,7 @@ package body Exp_Ch6 is
 
             Set_Next_Entity (Renaming_Def_Id, Next_Entity (Obj_Def_Id));
             Set_Next_Entity (Obj_Def_Id, Next_Entity_Temp);
+            Set_Homonym     (Renaming_Def_Id, Homonym (Obj_Def_Id));
 
             Exchange_Entities (Renaming_Def_Id, Obj_Def_Id);
          end;

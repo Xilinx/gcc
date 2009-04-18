@@ -415,6 +415,12 @@ package Opt is
    --  to make a single long message, and then this message is split up into
    --  multiple lines not exceeding the specified length. Set by -gnatj=nn.
 
+   Exception_Handler_Encountered : Boolean := False;
+   --  GNAT
+   --  This flag is set true if the parser encounters an exception handler.
+   --  It is used to set Warn_On_Exception_Propagation True if the restriction
+   --  No_Exception_Propagation is set.
+
    Exception_Locations_Suppressed : Boolean := False;
    --  GNAT
    --  This flag is set True if a Suppress_Exception_Locations configuration
@@ -902,13 +908,20 @@ package Opt is
    Optimization_Level : Int;
    pragma Import (C, Optimization_Level, "optimize");
    --  Constant reflecting the optimization level (0,1,2,3 for -O0,-O1,-O2,-O3)
+   --  See jmissing.c and aamissing.c for definitions for dotnet/jgnat and
+   --  GNAAMP back ends.
+
+   Optimize_Size : Int;
+   pragma Import (C, Optimize_Size, "optimize_size");
+   --  Constant reflecting setting of -Os (optimize for size). Set to nonzero
+   --  in -Os mode and set to zero otherwise. See jmissing.c and aamissing.c
+   --  for definitions of "optimize_size" for dotnet/jgnat and GNAAMP backends
 
    Output_File_Name_Present : Boolean := False;
    --  GNATBIND, GNAT, GNATMAKE, GPRMAKE
-   --  Set to True when the output C file name is given with option -o
-   --  for GNATBIND, when the object file name is given with option
-   --  -gnatO for GNAT or when the executable is given with option -o
-   --  for GNATMAKE or GPRMAKE.
+   --  Set to True when the output C file name is given with option -o for
+   --  GNATBIND, when the object file name is given with option -gnatO for GNAT
+   --  or when the executable is given with option -o for GNATMAKE or GPRMAKE.
 
    Output_Linker_Option_List : Boolean := False;
    --  GNATBIND
@@ -1309,7 +1322,15 @@ package Opt is
    --  Set to True to generate warnings for non-local exception raises and also
    --  handlers that can never handle a local raise. This warning is only ever
    --  generated if pragma Restrictions (No_Exception_Propagation) is set. The
-   --  default is not to generate the warnings even if the restriction is set.
+   --  default is not to generate the warnings except that if the source has
+   --  at least one exception handler, and this restriction is set, and the
+   --  warning was not explicitly turned off, then it is turned on by default.
+
+   No_Warn_On_Non_Local_Exception : Boolean := False;
+   --  GNAT
+   --  This is set to True if the above warning is explicitly suppressed. We
+   --  use this to avoid turning it on by default when No_Exception_Propagation
+   --  restriction is set and an exception handler is present.
 
    Warn_On_Obsolescent_Feature : Boolean := False;
    --  GNAT

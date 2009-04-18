@@ -25,6 +25,7 @@
 
 with Atree;    use Atree;
 with Checks;   use Checks;
+with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
@@ -976,15 +977,14 @@ package body Exp_Ch4 is
             Rewrite (Exp, New_Copy (Expression (Exp)));
          end if;
       else
-         --  First check against the type of the qualified expression
-         --
-         --  NOTE: The commented call should be correct, but for some reason
-         --  causes the compiler to bomb (sigsegv) on ACVC test c34007g, so for
-         --  now we just perform the old (incorrect) test against the
-         --  designated subtype with no sliding in the else part of the if
-         --  statement below. ???
-         --
-         --  Apply_Constraint_Check (Exp, T, No_Sliding => True);
+         --  If we have:
+         --    type A is access T1;
+         --    X : A := new T2'(...);
+         --  T1 and T2 can be different subtypes, and we might need to check
+         --  both constraints. First check against the type of the qualified
+         --  expression.
+
+         Apply_Constraint_Check (Exp, T, No_Sliding => True);
 
          --  A check is also needed in cases where the designated subtype is
          --  constrained and differs from the subtype given in the qualified
@@ -996,14 +996,6 @@ package body Exp_Ch4 is
          then
             Apply_Constraint_Check
               (Exp, DesigT, No_Sliding => False);
-
-         --  The nonsliding check should really be performed (unconditionally)
-         --  against the subtype of the qualified expression, but that causes a
-         --  problem with c34007g (see above), so for now we retain this.
-
-         else
-            Apply_Constraint_Check
-              (Exp, DesigT, No_Sliding => True);
          end if;
 
          --  For an access to unconstrained packed array, GIGI needs to see an
@@ -2757,9 +2749,10 @@ package body Exp_Ch4 is
                 Right_Opnd => Make_Artyp_Literal (1))));
 
       --  Note that calculation of the high bound may cause overflow in some
-      --  very weird cases, so in the general case we need an overflow check
-      --  on the high bound. We can avoid this for the common case of string
-      --  types since we chose a wider range for the arithmetic type.
+      --  very weird cases, so in the general case we need an overflow check on
+      --  the high bound. We can avoid this for the common case of string types
+      --  and other types whose index is Positive, since we chose a wider range
+      --  for the arithmetic type.
 
       if Istyp /= Standard_Positive then
          Activate_Overflow_Check (High_Bound);
@@ -2812,6 +2805,80 @@ package body Exp_Ch4 is
       end if;
 
       --  Now we will generate the assignments to do the actual concatenation
+
+      --  There is one case in which we will not do this, namely when all the
+      --  following conditions are met:
+
+      --    The result type is Standard.String
+
+      --    There are nine or fewer retained (non-null) operands
+
+      --    The optimization level is -O0
+
+      --    The corresponding System.Concat_n.Str_Concat_n routine is
+      --    available in the run time.
+
+      --    The debug flag gnatd.c is not set
+
+      --  If all these conditions are met then we generate a call to the
+      --  relevant concatenation routine. The purpose of this is to avoid
+      --  undesirable code bloat at -O0.
+
+      if Atyp = Standard_String
+        and then NN in 2 .. 9
+        and then (Opt.Optimization_Level = 0 or else Debug_Flag_Dot_CC)
+        and then not Debug_Flag_Dot_C
+      then
+         declare
+            RR : constant array (Nat range 2 .. 9) of RE_Id :=
+                   (RE_Str_Concat_2,
+                    RE_Str_Concat_3,
+                    RE_Str_Concat_4,
+                    RE_Str_Concat_5,
+                    RE_Str_Concat_6,
+                    RE_Str_Concat_7,
+                    RE_Str_Concat_8,
+                    RE_Str_Concat_9);
+
+         begin
+            if RTE_Available (RR (NN)) then
+               declare
+                  Opnds : constant List_Id :=
+                            New_List (New_Occurrence_Of (Ent, Loc));
+
+               begin
+                  for J in 1 .. NN loop
+                     if Is_List_Member (Operands (J)) then
+                        Remove (Operands (J));
+                     end if;
+
+                     if Base_Type (Etype (Operands (J))) = Ctyp then
+                        Append_To (Opnds,
+                          Make_Aggregate (Loc,
+                            Component_Associations => New_List (
+                              Make_Component_Association (Loc,
+                                Choices => New_List (
+                                  Make_Integer_Literal (Loc, 1)),
+                                Expression => Operands (J)))));
+
+                     else
+                        Append_To (Opnds, Operands (J));
+                     end if;
+                  end loop;
+
+                  Insert_Action (Cnode,
+                    Make_Procedure_Call_Statement (Loc,
+                      Name => New_Reference_To (RTE (RR (NN)), Loc),
+                      Parameter_Associations => Opnds));
+
+                  Result := New_Reference_To (Ent, Loc);
+                  goto Done;
+               end;
+            end if;
+         end;
+      end if;
+
+      --  Not special case so generate the assignments
 
       Known_Non_Null_Operand_Seen := False;
 
@@ -2935,6 +3002,12 @@ package body Exp_Ch4 is
       --  constrain. Such occurrences can be rewritten as aliased objects
       --  and their unrestricted access used instead of the coextension.
 
+      function Size_In_Storage_Elements (E : Entity_Id) return Node_Id;
+      --  Given a constrained array type E, returns a node representing the
+      --  code to compute the size in storage elements for the given type.
+      --  This is done without using the attribute (which malfunctions for
+      --  large sizes ???)
+
       ---------------------------------------
       -- Complete_Coextension_Finalization --
       ---------------------------------------
@@ -3031,8 +3104,10 @@ package body Exp_Ch4 is
 
                      --  Retrieve the declaration of the body
 
-                     Decl := Parent (Parent (
-                               Corresponding_Body (Parent (Parent (S)))));
+                     Decl :=
+                       Parent
+                         (Parent
+                            (Corresponding_Body (Parent (Parent (S)))));
                      exit;
                   end if;
 
@@ -3161,6 +3236,61 @@ package body Exp_Ch4 is
          Analyze_And_Resolve (N, PtrT);
       end Rewrite_Coextension;
 
+      ------------------------------
+      -- Size_In_Storage_Elements --
+      ------------------------------
+
+      function Size_In_Storage_Elements (E : Entity_Id) return Node_Id is
+      begin
+         --  Logically this just returns E'Max_Size_In_Storage_Elements.
+         --  However, the reason for the existence of this function is
+         --  to construct a test for sizes too large, which means near the
+         --  32-bit limit on a 32-bit machine, and precisely the trouble
+         --  is that we get overflows when sizes are greater than 2**31.
+
+         --  So what we end up doing for array types is to use the expression:
+
+         --    number-of-elements * component_type'Max_Size_In_Storage_Elements
+
+         --  which avoids this problem. All this is a big bogus, but it does
+         --  mean we catch common cases of trying to allocate arrays that
+         --  are too large, and which in the absence of a check results in
+         --  undetected chaos ???
+
+         declare
+            Len : Node_Id;
+            Res : Node_Id;
+
+         begin
+            for J in 1 .. Number_Dimensions (E) loop
+               Len :=
+                 Make_Attribute_Reference (Loc,
+                   Prefix         => New_Occurrence_Of (E, Loc),
+                   Attribute_Name => Name_Length,
+                   Expressions    => New_List (
+                     Make_Integer_Literal (Loc, J)));
+
+               if J = 1 then
+                  Res := Len;
+
+               else
+                  Res :=
+                    Make_Op_Multiply (Loc,
+                      Left_Opnd  => Res,
+                      Right_Opnd => Len);
+               end if;
+            end loop;
+
+            return
+              Make_Op_Multiply (Loc,
+                Left_Opnd  => Len,
+                Right_Opnd =>
+                  Make_Attribute_Reference (Loc,
+                    Prefix => New_Occurrence_Of (Component_Type (E), Loc),
+                    Attribute_Name => Name_Max_Size_In_Storage_Elements));
+         end;
+      end Size_In_Storage_Elements;
+
    --  Start of processing for Expand_N_Allocator
 
    begin
@@ -3272,9 +3402,51 @@ package body Exp_Ch4 is
          Complete_Coextension_Finalization;
       end if;
 
+      --  Check for size too large, we do this because the back end misses
+      --  proper checks here and can generate rubbish allocation calls when
+      --  we are near the limit. We only do this for the 32-bit address case
+      --  since that is from a practical point of view where we see a problem.
+
+      if System_Address_Size = 32
+        and then not Storage_Checks_Suppressed (PtrT)
+        and then not Storage_Checks_Suppressed (Dtyp)
+        and then not Storage_Checks_Suppressed (Etyp)
+      then
+         --  The check we want to generate should look like
+
+         --  if Etyp'Max_Size_In_Storage_Elements > 3.5 gigabytes then
+         --    raise Storage_Error;
+         --  end if;
+
+         --  where 3.5 gigabytes is a constant large enough to accomodate any
+         --  reasonable request for. But we can't do it this way because at
+         --  least at the moment we don't compute this attribute right, and
+         --  can silently give wrong results when the result gets large. Since
+         --  this is all about large results, that's bad, so instead we only
+         --  apply the check for constrained arrays, and manually compute the
+         --  value of the attribute ???
+
+         if Is_Array_Type (Etyp) and then Is_Constrained (Etyp) then
+            Insert_Action (N,
+              Make_Raise_Storage_Error (Loc,
+                Condition =>
+                  Make_Op_Gt (Loc,
+                    Left_Opnd  => Size_In_Storage_Elements (Etyp),
+                    Right_Opnd =>
+                      Make_Integer_Literal (Loc,
+                        Intval => Uint_7 * (Uint_2 ** 29))),
+                Reason    => SE_Object_Too_Large));
+         end if;
+      end if;
+
       --  Handle case of qualified expression (other than optimization above)
+      --  First apply constraint checks, because the bounds or discriminants
+      --  in the aggregate might not match the subtype mark in the allocator.
 
       if Nkind (Expression (N)) = N_Qualified_Expression then
+         Apply_Constraint_Check
+           (Expression (Expression (N)), Etype (Expression (N)));
+
          Expand_Allocator_Expression (N);
          return;
       end if;
@@ -3609,11 +3781,7 @@ package body Exp_Ch4 is
                      --  on the global final list which is singly-linked.
                      --  Work needed for access discriminants in Ada 2005 ???
 
-                     if Ekind (PtrT) = E_Anonymous_Access_Type
-                       and then
-                         Nkind (Associated_Node_For_Itype (PtrT))
-                     not in N_Subprogram_Specification
-                     then
+                     if Ekind (PtrT) = E_Anonymous_Access_Type then
                         Attach_Level := Uint_1;
                      else
                         Attach_Level := Uint_2;

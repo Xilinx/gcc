@@ -1858,17 +1858,6 @@ set_mem_attributes (rtx ref, tree t, int objectp)
   set_mem_attributes_minus_bitpos (ref, t, objectp, 0);
 }
 
-/* Set MEM to the decl that REG refers to.  */
-
-void
-set_mem_attrs_from_reg (rtx mem, rtx reg)
-{
-  MEM_ATTRS (mem)
-    = get_mem_attrs (MEM_ALIAS_SET (mem), REG_EXPR (reg),
-		     GEN_INT (REG_OFFSET (reg)),
-		     MEM_SIZE (mem), MEM_ALIGN (mem), GET_MODE (mem));
-}
-
 /* Set the alias set of MEM to SET.  */
 
 void
@@ -2392,7 +2381,7 @@ struct rtl_opt_pass pass_unshare_all_rtl =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

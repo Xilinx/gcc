@@ -430,46 +430,6 @@ package Atree is
    --  Source to be Empty, in which case Relocate_Node simply returns
    --  Empty as the result.
 
-   function New_Copy_Tree
-     (Source    : Node_Id;
-      Map       : Elist_Id   := No_Elist;
-      New_Sloc  : Source_Ptr := No_Location;
-      New_Scope : Entity_Id  := Empty) return Node_Id;
-   --  Given a node that is the root of a subtree, Copy_Tree copies the entire
-   --  syntactic subtree, including recursively any descendents whose parent
-   --  field references a copied node (descendents not linked to a copied node
-   --  by the parent field are not copied, instead the copied tree references
-   --  the same descendent as the original in this case, which is appropriate
-   --  for non-syntactic fields such as Etype). The parent pointers in the
-   --  copy are properly set. Copy_Tree (Empty/Error) returns Empty/Error.
-   --  The one exception to the rule of not copying semantic fields is that
-   --  any implicit types attached to the subtree are duplicated, so that
-   --  the copy contains a distinct set of implicit type entities. The Map
-   --  argument, if set to a non-empty Elist, specifies a set of mappings
-   --  to be applied to entities in the tree. The map has the form:
-   --
-   --     old entity 1
-   --     new entity to replace references to entity 1
-   --     old entity 2
-   --     new entity to replace references to entity 2
-   --     ...
-   --
-   --  The call destroys the contents of Map in this case
-   --
-   --  The parameter New_Sloc, if set to a value other than No_Location, is
-   --  used as the Sloc value for all nodes in the new copy. If New_Sloc is
-   --  set to its default value No_Location, then the Sloc values of the
-   --  nodes in the copy are simply copied from the corresponding original.
-   --
-   --  The Comes_From_Source indication is unchanged if New_Sloc is set to
-   --  the default No_Location value, but is reset if New_Sloc is given, since
-   --  in this case the result clearly is neither a source node or an exact
-   --  copy of a source node.
-   --
-   --  The parameter New_Scope, if set to a value other than Empty, is the
-   --  value to use as the Scope for any Itypes that are copied. The most
-   --  typical value for this parameter, if given, is Current_Scope.
-
    function Copy_Separate_Tree (Source : Node_Id) return Node_Id;
    --  Given a node that is the root of a subtree, Copy_Separate_Tree copies
    --  the entire syntactic subtree, including recursively any descendants
@@ -3113,6 +3073,95 @@ package Atree is
       pragma Pack (Node_Record);
       for Node_Record'Size use 8*32;
       for Node_Record'Alignment use 4;
+
+      function E_To_N is new Unchecked_Conversion (Entity_Kind, Node_Kind);
+      function N_To_E is new Unchecked_Conversion (Node_Kind, Entity_Kind);
+
+      --  Default value used to initialize default nodes. Note that some of the
+      --  fields get overwritten, and in particular, Nkind always gets reset.
+
+      Default_Node : Node_Record := (
+         Is_Extension      => False,
+         Pflag1            => False,
+         Pflag2            => False,
+         In_List           => False,
+         Unused_1          => False,
+         Rewrite_Ins       => False,
+         Analyzed          => False,
+         Comes_From_Source => False,
+         --  modified by Set_Comes_From_Source_Default
+         Error_Posted      => False,
+         Flag4             => False,
+
+         Flag5             => False,
+         Flag6             => False,
+         Flag7             => False,
+         Flag8             => False,
+         Flag9             => False,
+         Flag10            => False,
+         Flag11            => False,
+         Flag12            => False,
+
+         Flag13            => False,
+         Flag14            => False,
+         Flag15            => False,
+         Flag16            => False,
+         Flag17            => False,
+         Flag18            => False,
+
+         Nkind             => N_Unused_At_Start,
+
+         Sloc              => No_Location,
+         Link              => Empty_List_Or_Node,
+         Field1            => Empty_List_Or_Node,
+         Field2            => Empty_List_Or_Node,
+         Field3            => Empty_List_Or_Node,
+         Field4            => Empty_List_Or_Node,
+         Field5            => Empty_List_Or_Node);
+
+      --  Default value used to initialize node extensions (i.e. the second
+      --  and third and fourth components of an extended node). Note we are
+      --  cheating a bit here when it comes to Node12, which really holds
+      --  flags an (for the third component), the convention. But it works
+      --  because Empty, False, Convention_Ada, all happen to be all zero bits.
+
+      Default_Node_Extension : constant Node_Record := (
+         Is_Extension      => True,
+         Pflag1            => False,
+         Pflag2            => False,
+         In_List           => False,
+         Unused_1          => False,
+         Rewrite_Ins       => False,
+         Analyzed          => False,
+         Comes_From_Source => False,
+         Error_Posted      => False,
+         Flag4             => False,
+
+         Flag5             => False,
+         Flag6             => False,
+         Flag7             => False,
+         Flag8             => False,
+         Flag9             => False,
+         Flag10            => False,
+         Flag11            => False,
+         Flag12            => False,
+
+         Flag13            => False,
+         Flag14            => False,
+         Flag15            => False,
+         Flag16            => False,
+         Flag17            => False,
+         Flag18            => False,
+
+         Nkind             => E_To_N (E_Void),
+
+         Field6            => Empty_List_Or_Node,
+         Field7            => Empty_List_Or_Node,
+         Field8            => Empty_List_Or_Node,
+         Field9            => Empty_List_Or_Node,
+         Field10           => Empty_List_Or_Node,
+         Field11           => Empty_List_Or_Node,
+         Field12           => Empty_List_Or_Node);
 
       --  The following defines the extendable array used for the nodes table
       --  Nodes with extensions use five consecutive entries in the array

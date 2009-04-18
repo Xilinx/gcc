@@ -164,14 +164,29 @@ package body Exp_Disp is
             --  Handle full type declarations and derivations of library
             --  level tagged types
 
-            elsif (Nkind (D) = N_Full_Type_Declaration
-                     or else Nkind (D) = N_Derived_Type_Definition)
+            elsif Nkind_In (D, N_Full_Type_Declaration,
+                               N_Derived_Type_Definition)
               and then Is_Library_Level_Tagged_Type (Defining_Entity (D))
               and then Ekind (Defining_Entity (D)) /= E_Record_Subtype
               and then not Is_Private_Type (Defining_Entity (D))
             then
-               Insert_List_After_And_Analyze (Last (Target_List),
-                 Make_DT (Defining_Entity (D)));
+               --  We do not generate dispatch tables for the internal type
+               --  created for a type extension with unknown discriminants
+               --  The needed information is shared with the source type,
+               --  See Expand_N_Record_Extension.
+
+               if not Comes_From_Source (Defining_Entity (D))
+                 and then
+                   Has_Unknown_Discriminants (Etype (Defining_Entity (D)))
+                 and then
+                   not Comes_From_Source (First_Subtype (Defining_Entity (D)))
+               then
+                  null;
+
+               else
+                  Insert_List_After_And_Analyze (Last (Target_List),
+                    Make_DT (Defining_Entity (D)));
+               end if;
 
             --  Handle private types of library level tagged types. We must
             --  exchange the private and full-view to ensure the correct
@@ -3941,27 +3956,29 @@ package body Exp_Disp is
       then
          declare
             Save      : constant Boolean := Freezing_Library_Level_Tagged_Type;
+            Prim      : Entity_Id;
             Prim_Elmt : Elmt_Id;
             Frnodes   : List_Id;
 
          begin
             Freezing_Library_Level_Tagged_Type := True;
+
             Prim_Elmt := First_Elmt (Primitive_Operations (Typ));
             while Present (Prim_Elmt) loop
-               Frnodes := Freeze_Entity (Node (Prim_Elmt), Loc);
+               Prim    := Node (Prim_Elmt);
+               Frnodes := Freeze_Entity (Prim, Loc);
 
                declare
-                  Subp : constant Entity_Id := Node (Prim_Elmt);
                   F : Entity_Id;
 
                begin
-                  F := First_Formal (Subp);
+                  F := First_Formal (Prim);
                   while Present (F) loop
-                     Check_Premature_Freezing (Subp, Etype (F));
+                     Check_Premature_Freezing (Prim, Etype (F));
                      Next_Formal (F);
                   end loop;
 
-                  Check_Premature_Freezing (Subp, Etype (Subp));
+                  Check_Premature_Freezing (Prim, Etype (Prim));
                end;
 
                if Present (Frnodes) then
@@ -3970,6 +3987,7 @@ package body Exp_Disp is
 
                Next_Elmt (Prim_Elmt);
             end loop;
+
             Freezing_Library_Level_Tagged_Type := Save;
          end;
       end if;
@@ -5145,6 +5163,7 @@ package body Exp_Disp is
                   if Is_Imported (Prim)
                     or else Present (Interface_Alias (Prim))
                     or else Is_Predefined_Dispatching_Operation (Prim)
+                    or else Is_Eliminated (Prim)
                   then
                      null;
 
@@ -6269,17 +6288,16 @@ package body Exp_Disp is
    -- Register_Primitive --
    ------------------------
 
-   procedure Register_Primitive
+   function Register_Primitive
      (Loc     : Source_Ptr;
-      Prim    : Entity_Id;
-      Ins_Nod : Node_Id)
+      Prim    : Entity_Id) return List_Id
    is
       DT_Ptr        : Entity_Id;
       Iface_Prim    : Entity_Id;
       Iface_Typ     : Entity_Id;
       Iface_DT_Ptr  : Entity_Id;
       Iface_DT_Elmt : Elmt_Id;
-      L             : List_Id;
+      L             : constant List_Id := New_List;
       Pos           : Uint;
       Tag           : Entity_Id;
       Tag_Typ       : Entity_Id;
@@ -6290,7 +6308,7 @@ package body Exp_Disp is
       pragma Assert (not Restriction_Active (No_Dispatching_Calls));
 
       if not RTE_Available (RE_Tag) then
-         return;
+         return L;
       end if;
 
       if not Present (Interface_Alias (Prim)) then
@@ -6304,7 +6322,7 @@ package body Exp_Disp is
             DT_Ptr :=
               Node (Next_Elmt (First_Elmt (Access_Disp_Table (Tag_Typ))));
 
-            Insert_After (Ins_Nod,
+            Append_To (L,
               Build_Set_Predefined_Prim_Op_Address (Loc,
                 Tag_Node     => New_Reference_To (DT_Ptr, Loc),
                 Position     => Pos,
@@ -6320,7 +6338,7 @@ package body Exp_Disp is
               and then RTE_Record_Component_Available (RE_Size_Func)
             then
                DT_Ptr := Node (First_Elmt (Access_Disp_Table (Tag_Typ)));
-               Insert_After (Ins_Nod,
+               Append_To (L,
                  Build_Set_Size_Function (Loc,
                    Tag_Node  => New_Reference_To (DT_Ptr, Loc),
                    Size_Func => Prim));
@@ -6330,7 +6348,7 @@ package body Exp_Disp is
             pragma Assert (Pos /= Uint_0 and then Pos <= DT_Entry_Count (Tag));
 
             DT_Ptr := Node (First_Elmt (Access_Disp_Table (Tag_Typ)));
-            Insert_After (Ins_Nod,
+            Append_To (L,
               Build_Set_Prim_Op_Address (Loc,
                 Typ          => Tag_Typ,
                 Tag_Node     => New_Reference_To (DT_Ptr, Loc),
@@ -6359,12 +6377,6 @@ package body Exp_Disp is
          if not Is_Ancestor (Iface_Typ, Tag_Typ)
            and then Present (Thunk_Code)
          then
-            --  Comment needed on why checks are suppressed. This is not just
-            --  efficiency, but fundamental functionality (see 1.295 RH, which
-            --  still does not answer this question) ???
-
-            Insert_Action (Ins_Nod, Thunk_Code, Suppress => All_Checks);
-
             --  Generate the code necessary to fill the appropriate entry of
             --  the secondary dispatch table of Prim's controlling type with
             --  Thunk_Id's address.
@@ -6376,7 +6388,8 @@ package body Exp_Disp is
             Iface_Prim := Interface_Alias (Prim);
             Pos        := DT_Position (Iface_Prim);
             Tag        := First_Tag_Component (Iface_Typ);
-            L          := New_List;
+
+            Prepend_To (L, Thunk_Code);
 
             if Is_Predefined_Dispatching_Operation (Prim)
               or else Is_Predefined_Dispatching_Alias (Prim)
@@ -6407,8 +6420,6 @@ package body Exp_Disp is
                        Make_Attribute_Reference (Loc,
                          Prefix => New_Reference_To (Alias (Prim), Loc),
                          Attribute_Name  => Name_Unrestricted_Access))));
-
-               Insert_Actions_After (Ins_Nod, L);
 
             else
                pragma Assert (Pos /= Uint_0
@@ -6441,10 +6452,11 @@ package body Exp_Disp is
                          Prefix => New_Reference_To (Alias (Prim), Loc),
                          Attribute_Name => Name_Unrestricted_Access))));
 
-               Insert_Actions_After (Ins_Nod, L);
             end if;
          end if;
       end if;
+
+      return L;
    end Register_Primitive;
 
    -------------------------
@@ -7178,6 +7190,10 @@ package body Exp_Disp is
            and then Null_Present (Parent (Prim))
          then
             Write_Str (" is null;");
+         end if;
+
+         if Is_Eliminated (Ultimate_Alias (Prim)) then
+            Write_Str (" (eliminated)");
          end if;
 
          Write_Eol;

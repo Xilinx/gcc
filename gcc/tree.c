@@ -7970,6 +7970,19 @@ build_vector_type (tree innertype, int nunits)
   return make_vector_type (innertype, nunits, VOIDmode);
 }
 
+/* Similarly, but takes the inner type and number of units, which must be
+   a power of two.  */
+
+tree
+build_opaque_vector_type (tree innertype, int nunits)
+{
+  tree t;
+  innertype = build_distinct_type_copy (innertype);
+  t = make_vector_type (innertype, nunits, VOIDmode);
+  TYPE_VECTOR_OPAQUE (t) = true;
+  return t;
+}
+
 
 /* Build RESX_EXPR with given REGION_NUMBER.  */
 tree
@@ -9056,26 +9069,6 @@ prototype_p (tree fntype)
 
   t = TYPE_ARG_TYPES (fntype);
   return (t != NULL_TREE);
-}
-
-/* Return the number of arguments that a function has.  */
-
-int
-function_args_count (tree fntype)
-{
-  function_args_iterator args_iter;
-  tree t;
-  int num = 0;
-
-  if (fntype)
-    {
-      FOREACH_FUNCTION_ARGS(fntype, t, args_iter)
-	{
-	  num++;
-	}
-    }
-
-  return num;
 }
 
 /* If BLOCK is inlined from an __attribute__((__artificial__))

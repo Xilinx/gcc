@@ -621,10 +621,15 @@ package Sinfo is
    --    A flag present in the N_Assignment_Statement node. It is used only
    --    if the type being assigned is an array type, and is set if analysis
    --    determines that it is definitely safe to do the copy backwards, i.e.
-   --    starting at the highest addressed element. Note that if neither of the
-   --    flags Forwards_OK or Backwards_OK is set, it means that the front end
-   --    could not determine that either direction is definitely safe, and a
-   --    runtime check may be required if the backend cannot figure it out.
+   --    starting at the highest addressed element. This is the case if either
+   --    the operands do not overlap, or they may overlap, but if they do,
+   --    then the left operand is at a higher address than the right operand.
+   --
+   --    Note: If neither of the flags Forwards_OK or Backwards_OK is set, it
+   --    means that the front end could not determine that either direction is
+   --    definitely safe, and a runtime check may be required if the backend
+   --    cannot figure it out. If both flags Forwards_OK and Backwards_OK are
+   --    set, it means that the front end can assure no overlap of operands.
 
    --  Body_To_Inline (Node3-Sem)
    --    present in subprogram declarations. Denotes analyzed but unexpanded
@@ -806,7 +811,7 @@ package Sinfo is
    --    See also the description of Do_Range_Check for this case. The only
    --    attribute references which use this flag are Pred and Succ, where it
    --    means that the result should be checked for going outside the base
-   --    range.
+   --    range. Note that this flag is not set for modular types.
 
    --  Do_Range_Check (Flag9-Sem)
    --    This flag is set on an expression which appears in a context where a
@@ -971,7 +976,7 @@ package Sinfo is
 
    --  Expansion_Delayed (Flag11-Sem)
    --    Set on aggregates and extension aggregates that need a top-down rather
-   --    than bottom up expansion. Typically aggregate expansion happens bottom
+   --    than bottom-up expansion. Typically aggregate expansion happens bottom
    --    up. For nested aggregates the expansion is delayed until the enclosing
    --    aggregate itself is expanded, e.g. in the context of a declaration. To
    --    delay it we set this flag. This is done to avoid creating a temporary
@@ -1023,10 +1028,15 @@ package Sinfo is
    --    A flag present in the N_Assignment_Statement node. It is used only
    --    if the type being assigned is an array type, and is set if analysis
    --    determines that it is definitely safe to do the copy forwards, i.e.
-   --    starting at the lowest addressed element. Note that if neither of the
-   --    flags Forwards_OK or Backwards_OK is set, it means that the front end
-   --    could not determine that either direction is definitely safe, and a
-   --    runtime check is required.
+   --    starting at the lowest addressed element. This is the case if either
+   --    the operands do not overlap, or they may overlap, but if they do,
+   --    then the left operand is at a lower address than the right operand.
+   --
+   --    Note: If neither of the flags Forwards_OK or Backwards_OK is set, it
+   --    means that the front end could not determine that either direction is
+   --    definitely safe, and a runtime check may be required if the backend
+   --    cannot figure it out. If both flags Forwards_OK and Backwards_OK are
+   --    set, it means that the front end can assure no overlap of operands.
 
    --  From_At_End (Flag4-Sem)
    --    This flag is set on an N_Raise_Statement node if it corresponds to

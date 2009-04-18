@@ -1135,7 +1135,27 @@ package body Sem_Ch3 is
                       (T           => Typ,
                        Related_Nod => T_Def,
                        Scope_Id    => Current_Scope));
+
                else
+                  if From_With_Type (Typ) then
+                     Error_Msg_NE
+                      ("illegal use of incomplete type&",
+                         Result_Definition (T_Def), Typ);
+
+                  elsif Ekind (Current_Scope) = E_Package
+                    and then In_Private_Part (Current_Scope)
+                  then
+                     if Ekind (Typ) = E_Incomplete_Type then
+                        Append_Elmt (Desig_Type, Private_Dependents (Typ));
+
+                     elsif Is_Class_Wide_Type (Typ)
+                       and then Ekind (Etype (Typ)) = E_Incomplete_Type
+                     then
+                        Append_Elmt
+                          (Desig_Type, Private_Dependents (Etype (Typ)));
+                     end if;
+                  end if;
+
                   Set_Etype (Desig_Type, Typ);
                end if;
             end;
@@ -3326,6 +3346,21 @@ package body Sem_Ch3 is
             end if;
          end if;
 
+      --  A consequence of 3.9.4 (6/2) and 7.3 (7.2/2) is that a private
+      --  extension with a synchronized parent must be explicitly declared
+      --  synchronized, because the full view will be a synchronized type.
+      --  This must be checked before the check for limited types below,
+      --  to ensure that types declared limited are not allowed to extend
+      --  synchronized interfaces.
+
+      elsif Is_Interface (Parent_Type)
+        and then Is_Synchronized_Interface (Parent_Type)
+        and then not Synchronized_Present (N)
+      then
+         Error_Msg_NE
+           ("private extension of& must be explicitly synchronized",
+             N, Parent_Type);
+
       elsif Limited_Present (N) then
          Set_Is_Limited_Record (T);
 
@@ -3571,11 +3606,13 @@ package body Sem_Ch3 is
 
                --  A Pure library_item must not contain the declaration of a
                --  named access type, except within a subprogram, generic
-               --  subprogram, task unit, or protected unit (RM 10.2.1(16)).
+               --  subprogram, task unit, or protected unit, or if it has
+               --  a specified Storage_Size of zero (RM05-10.2.1(15.4-15.5)).
 
                if Comes_From_Source (Id)
                  and then In_Pure_Unit
                  and then not In_Subprogram_Task_Protected_Unit
+                 and then not No_Pool_Assigned (Id)
                then
                   Error_Msg_N
                     ("named access types not allowed in pure unit", N);
@@ -3997,12 +4034,27 @@ package body Sem_Ch3 is
          --  subtype. Freeze_Entity will use this preallocated freeze node when
          --  it freezes the entity.
 
-         if B /= T then
+         --  This does not apply if the base type is a generic type, whose
+         --  declaration is independent of the current derived definition.
+
+         if B /= T
+           and then not Is_Generic_Type (B)
+         then
             Ensure_Freeze_Node (B);
             Set_First_Subtype_Link (Freeze_Node (B), T);
          end if;
 
-         if not From_With_Type (T) then
+         --  A type that is imported through a limited_with clause cannot
+         --  generate any code, and thus need not be frozen. However, an
+         --  access type with an imported designated type needs a finalization
+         --  list, which may be referenced in some other package that has
+         --  non-limited visibility on the designated type. Thus we must
+         --  create the finalization list at the point the access type is
+         --  frozen, to prevent unsatisfied references at link time.
+
+         if not From_With_Type (T)
+           or else Is_Access_Type (T)
+         then
             Set_Has_Delayed_Freeze (T);
          end if;
       end;
@@ -5008,22 +5060,35 @@ package body Sem_Ch3 is
             Hi : Node_Id;
 
          begin
-            Lo :=
-               Make_Attribute_Reference (Loc,
-                 Attribute_Name => Name_First,
-                 Prefix => New_Reference_To (Derived_Type, Loc));
-            Set_Etype (Lo, Derived_Type);
+            if Nkind (Indic) /= N_Subtype_Indication then
+               Lo :=
+                  Make_Attribute_Reference (Loc,
+                    Attribute_Name => Name_First,
+                    Prefix         => New_Reference_To (Derived_Type, Loc));
+               Set_Etype (Lo, Derived_Type);
 
-            Hi :=
-               Make_Attribute_Reference (Loc,
-                 Attribute_Name => Name_Last,
-                 Prefix => New_Reference_To (Derived_Type, Loc));
-            Set_Etype (Hi, Derived_Type);
+               Hi :=
+                  Make_Attribute_Reference (Loc,
+                    Attribute_Name => Name_Last,
+                    Prefix         => New_Reference_To (Derived_Type, Loc));
+               Set_Etype (Hi, Derived_Type);
 
-            Set_Scalar_Range (Derived_Type,
-               Make_Range (Loc,
-                 Low_Bound => Lo,
-                 High_Bound => Hi));
+               Set_Scalar_Range (Derived_Type,
+                  Make_Range (Loc,
+                    Low_Bound  => Lo,
+                    High_Bound => Hi));
+            else
+
+               --   Analyze subtype indication and verify compatibility
+               --   with parent type.
+
+               if Base_Type (Process_Subtype (Indic, N)) /=
+                  Base_Type (Parent_Type)
+               then
+                  Error_Msg_N
+                    ("illegal constraint for formal discrete type", N);
+               end if;
+            end if;
          end;
 
       else
@@ -5415,6 +5480,7 @@ package body Sem_Ch3 is
       Is_Completion : Boolean;
       Derive_Subps  : Boolean := True)
    is
+      Loc         : constant Source_Ptr := Sloc (N);
       Der_Base    : Entity_Id;
       Discr       : Entity_Id;
       Full_Decl   : Node_Id := Empty;
@@ -5457,8 +5523,70 @@ package body Sem_Ch3 is
 
    begin
       if Is_Tagged_Type (Parent_Type) then
-         Build_Derived_Record_Type
-           (N, Parent_Type, Derived_Type, Derive_Subps);
+
+         --  A type extension of a type with unknown discriminants is an
+         --  indefinite type that the back-end cannot handle directly.
+         --  We treat it as a private type, and build a completion that is
+         --  derived from the full view of the parent, and hopefully has
+         --  known discriminants.  The implementation of more complex chains
+         --  of derivation with unknown discriminants is left to the more
+         --  enterprising reader.
+
+         if Has_Unknown_Discriminants (Parent_Type)
+           and then Present (Full_View (Parent_Type))
+           and then not In_Open_Scopes (Par_Scope)
+           and then not Is_Completion
+           and then Expander_Active
+         then
+            declare
+               Full_Der : constant Entity_Id :=
+                            Make_Defining_Identifier (Loc,
+                              Chars => New_Internal_Name ('T'));
+               Decl     : Node_Id;
+               New_Ext  : constant Node_Id :=
+                            Copy_Separate_Tree
+                              (Record_Extension_Part (Type_Definition (N)));
+
+            begin
+               Build_Derived_Record_Type
+                 (N, Parent_Type, Derived_Type, Derive_Subps);
+
+               --  Build anonymous completion, as a derivation from the full
+               --  view of the parent.
+
+               Decl :=
+                 Make_Full_Type_Declaration (Loc,
+                   Defining_Identifier => Full_Der,
+                   Type_Definition     =>
+                     Make_Derived_Type_Definition (Loc,
+                       Subtype_Indication =>
+                         New_Copy_Tree
+                           (Subtype_Indication (Type_Definition (N))),
+                       Record_Extension_Part => New_Ext));
+               Set_Has_Private_Declaration (Full_Der);
+               Set_Has_Private_Declaration (Derived_Type);
+
+               Install_Private_Declarations (Par_Scope);
+               Install_Visible_Declarations (Par_Scope);
+               Insert_Before (N, Decl);
+               Analyze (Decl);
+               Uninstall_Declarations (Par_Scope);
+
+               --  Freeze the underlying record view, to prevent generation
+               --  of useless dispatching information, which is simply shared
+               --  with the real derived type.
+
+               Set_Is_Frozen (Full_Der);
+               Set_Underlying_Record_View (Derived_Type, Full_Der);
+            end;
+
+         --  if discriminants are known, build derived record
+
+         else
+            Build_Derived_Record_Type
+              (N, Parent_Type, Derived_Type, Derive_Subps);
+         end if;
+
          return;
 
       elsif Has_Discriminants (Parent_Type) then
@@ -5491,8 +5619,8 @@ package body Sem_Ch3 is
                      Build_Underlying_Full_View (N, Derived_Type, Parent_Type);
 
                   elsif Is_Constrained (Full_View (Parent_Type)) then
-                     Set_Underlying_Full_View (Derived_Type,
-                       Full_View (Parent_Type));
+                     Set_Underlying_Full_View
+                       (Derived_Type, Full_View (Parent_Type));
                   end if;
 
                else
@@ -7205,10 +7333,11 @@ package body Sem_Ch3 is
       Set_Etype         (Derived_Type,           Parent_Base);
       Set_Has_Task      (Derived_Type, Has_Task (Parent_Base));
 
-      Set_Size_Info     (Derived_Type,                Parent_Type);
-      Set_RM_Size       (Derived_Type, RM_Size       (Parent_Type));
-      Set_Convention    (Derived_Type, Convention    (Parent_Type));
-      Set_Is_Controlled (Derived_Type, Is_Controlled (Parent_Type));
+      Set_Size_Info      (Derived_Type,                 Parent_Type);
+      Set_RM_Size        (Derived_Type, RM_Size        (Parent_Type));
+      Set_Convention     (Derived_Type, Convention     (Parent_Type));
+      Set_Is_Controlled  (Derived_Type, Is_Controlled  (Parent_Type));
+      Set_Is_Tagged_Type (Derived_Type, Is_Tagged_Type (Parent_Type));
 
       --  The derived type inherits the representation clauses of the parent.
       --  However, for a private type that is completed by a derivation, there
@@ -8690,6 +8819,33 @@ package body Sem_Ch3 is
             Is_Protected := True;
          end if;
 
+         if Is_Synchronized_Interface (Iface_Id) then
+
+            --  A consequence of 3.9.4 (6/2) and 7.3 (7.2/2) is that a private
+            --  extension derived from a synchronized interface must explicitly
+            --  be declared synchronized, because the full view will be a
+            --  synchronized type.
+
+            if Nkind (N) = N_Private_Extension_Declaration then
+               if not Synchronized_Present (N) then
+                  Error_Msg_NE
+                    ("private extension of& must be explicitly synchronized",
+                      N, Iface_Id);
+               end if;
+
+            --  However, by 3.9.4(16/2), a full type that is a record extension
+            --  is never allowed to derive from a synchronized interface (note
+            --  that interfaces must be excluded from this check, because those
+            --  are represented by derived type definitions in some cases).
+
+            elsif Nkind (Type_Definition (N)) = N_Derived_Type_Definition
+              and then not Interface_Present (Type_Definition (N))
+            then
+               Error_Msg_N ("record extension cannot derive from synchronized"
+                             & " interface", Error_Node);
+            end if;
+         end if;
+
          --  Check that the characteristics of the progenitor are compatible
          --  with the explicit qualifier in the declaration.
          --  The check only applies to qualifiers that come from source.
@@ -8712,6 +8868,7 @@ package body Sem_Ch3 is
                 or else Protected_Present (Iface_Def)
                 or else Synchronized_Present (Iface_Def))
               and then Nkind (N) /= N_Private_Extension_Declaration
+              and then not Error_Posted (N)
             then
                Error_Msg_NE
                  ("progenitor& must be limited interface",
@@ -12605,19 +12762,21 @@ package body Sem_Ch3 is
                   null;
 
                elsif Protected_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) limited interface cannot "
-                     & "inherit from protected interface", Indic);
+                  Error_Msg_NE
+                    ("descendant of& must be declared"
+                       & " as a protected interface",
+                         N, Parent_Type);
 
                elsif Synchronized_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) limited interface cannot "
-                     & "inherit from synchronized interface", Indic);
+                  Error_Msg_NE
+                    ("descendant of& must be declared"
+                       & " as a synchronized interface",
+                         N, Parent_Type);
 
                elsif Task_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) limited interface cannot "
-                     & "inherit from task interface", Indic);
+                  Error_Msg_NE
+                    ("descendant of& must be declared as a task interface",
+                       N, Parent_Type);
 
                else
                   Error_Msg_N
@@ -12636,20 +12795,21 @@ package body Sem_Ch3 is
                   null;
 
                elsif Protected_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) non-limited interface cannot "
-                     & "inherit from protected interface", Indic);
+                  Error_Msg_NE
+                    ("descendant of& must be declared"
+                       & " as a protected interface",
+                         N, Parent_Type);
 
                elsif Synchronized_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) non-limited interface cannot "
-                     & "inherit from synchronized interface", Indic);
+                  Error_Msg_NE
+                    ("descendant of& must be declared"
+                       & " as a synchronized interface",
+                         N, Parent_Type);
 
                elsif Task_Present (Iface_Def) then
-                  Error_Msg_N
-                    ("(Ada 2005) non-limited interface cannot "
-                     & "inherit from task interface", Indic);
-
+                  Error_Msg_NE
+                    ("descendant of& must be declared as a task interface",
+                       N, Parent_Type);
                else
                   null;
                end if;
@@ -13446,6 +13606,9 @@ package body Sem_Ch3 is
                   Error_Msg_NE (
                     "full declaration of } must be a record extension",
                     Prev, Id);
+
+                  --  Set some attributes to produce a usable full view
+
                   Set_Is_Tagged_Type (Id);
                   Set_Primitive_Operations (Id, New_Elmt_List);
                end if;
@@ -16792,6 +16955,10 @@ package body Sem_Ch3 is
                  Class_Wide_Kind   |
                  E_Incomplete_Type =>
                Constrain_Discriminated_Type (Def_Id, S, Related_Nod);
+
+               if Ekind (Def_Id) = E_Incomplete_Type then
+                  Set_Private_Dependents (Def_Id, New_Elmt_List);
+               end if;
 
             when Private_Kind =>
                Constrain_Discriminated_Type (Def_Id, S, Related_Nod);

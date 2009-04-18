@@ -479,6 +479,12 @@ package body System.Task_Primitives.Operations is
 
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
 
+      --  Make environment task known here because it doesn't go through
+      --  Activate_Tasks, which does it for all other tasks.
+
+      Known_Tasks (Known_Tasks'First) := Environment_Task;
+      Environment_Task.Known_Tasks_Index := Known_Tasks'First;
+
       Enter_Task (Environment_Task);
 
       --  Install the abort-signal handler
@@ -900,18 +906,6 @@ package body System.Task_Primitives.Operations is
 
       --  We need the above code even if we do direct fetch of Task_Id in Self
       --  for the main task on Sun, x86 Solaris and for gcc 2.7.2.
-
-      Lock_RTS;
-
-      for J in Known_Tasks'Range loop
-         if Known_Tasks (J) = null then
-            Known_Tasks (J) := Self_ID;
-            Self_ID.Known_Tasks_Index := J;
-            exit;
-         end if;
-      end loop;
-
-      Unlock_RTS;
    end Enter_Task;
 
    --------------
@@ -1824,7 +1818,16 @@ package body System.Task_Primitives.Operations is
             S.State := False;
          else
             S.Waiting := True;
-            Result := cond_wait (S.CV'Access, S.L'Access);
+
+            loop
+               --  loop in case pthread_cond_wait returns earlier than
+               --  expected (e.g. in case of EINTR caused by a signal).
+
+               Result := cond_wait (S.CV'Access, S.L'Access);
+               pragma Assert (Result = 0 or else Result = EINTR);
+
+               exit when not S.Waiting;
+            end loop;
          end if;
 
          Result := mutex_unlock (S.L'Access);

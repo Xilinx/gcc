@@ -45,8 +45,11 @@ package body Prepcomp is
 
    Source_Index_Of_Preproc_Data_File : Source_File_Index := No_Source_File;
 
-   --  The following variable should be a constant, but this is not
-   --  possible. Warnings are Off because it is never assigned a value.
+   --  The following variable should be a constant, but this is not possible
+   --  because its type GNAT.Dynamic_Tables.Instance has a component P of
+   --  unitialized private type GNAT.Dynamic_Tables.Table_Private and there
+   --  are no exported values for this private type. Warnings are Off because
+   --  it is never assigned a value.
 
    pragma Warnings (Off);
    No_Mapping : Prep.Symbol_Table.Instance;
@@ -122,8 +125,7 @@ package body Prepcomp is
    --  Table to store the dependencies on preprocessing files
 
    procedure Add_Command_Line_Symbols;
-   --  Add the command line symbol definitions, if any, to the
-   --  Prep.Mapping table.
+   --  Add the command line symbol definitions, if any, to Prep.Mapping table
 
    procedure Skip_To_End_Of_Line;
    --  Ignore errors and scan up to the next end of line or the end of file
@@ -663,7 +665,7 @@ package body Prepcomp is
             --  Initialize the preprocessor and set the characteristics of the
             --  scanner for a definition file.
 
-            Prep.Initialize
+            Prep.Setup_Hooks
               (Error_Msg         => Errout.Error_Msg'Access,
                Scan              => Scn.Scanner.Scan'Access,
                Set_Ignore_Errors => Errout.Set_Ignore_Errors'Access,
@@ -742,7 +744,7 @@ package body Prepcomp is
 
          Check_Command_Line_Symbol_Definition
            (Definition => Symbol_Definitions (Index).all,
-            Data => Symbol_Data);
+            Data       => Symbol_Data);
          Found := False;
 
          --  If there is already a definition for this symbol, replace the old

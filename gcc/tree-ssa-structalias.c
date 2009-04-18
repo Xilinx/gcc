@@ -3052,6 +3052,14 @@ get_constraint_for_component_ref (tree t, VEC(ce_s, heap) **results,
       else
 	result->offset = bitpos;
     }
+  else if (result->type == ADDRESSOF)
+    {
+      /* We can end up here for component references on a
+         VIEW_CONVERT_EXPR <>(&foobar).  */
+      result->type = SCALAR;
+      result->var = anything_id;
+      result->offset = 0;
+    }
   else
     gcc_unreachable ();
 }
@@ -5745,7 +5753,7 @@ struct gimple_opt_pass pass_build_alias =
   NULL,                     /* sub */
   NULL,                     /* next */
   0,                        /* static_pass_number */
-  0,                        /* tv_id */
+  TV_NONE,                  /* tv_id */
   PROP_cfg | PROP_ssa,      /* properties_required */
   PROP_alias,               /* properties_provided */
   0,                        /* properties_destroyed */

@@ -35,16 +35,19 @@ Common Report Joined
 Common
 Alias for --help=target
 
-;; The following three entries are to work around the gcc driver
+;; The following four entries are to work around the gcc driver
 ;; program's insatiable desire to turn options starting with a
 ;; double dash (--) into options starting with a dash f (-f).
 fhelp
-Common
+Common Var(help_flag)
 
 fhelp=
 Common Joined
 
 ftarget-help
+Common
+
+fversion
 Common
 
 -param
@@ -853,6 +856,14 @@ Generate position-independent code if possible (small mode)
 fpie
 Common Report Var(flag_pie,1) VarExists
 Generate position-independent code for executables if possible (small mode)
+
+fplugin=
+Common Joined RejectNegative
+Specify a plugin to load
+
+fplugin-arg-
+Common Joined RejectNegative
+-fplugin-arg-<name>-<key>[=<value>] Specify argument <key>=<value> for plugin <name>
 
 fpredictive-commoning
 Common Report Var(flag_predictive_commoning) Optimization
