@@ -1,3 +1,8 @@
+2009-04-20  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (stmt_simple_for_scop_p): Do not
+	handle EQ_EXPR and NE_EXPR.
+
 2009-04-17  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-poly.h (poly_dr): Fix comment.
