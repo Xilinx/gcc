@@ -90,6 +90,11 @@ procedure Gnat1drv is
    --  Called when we are not generating code, to check if -gnatR was requested
    --  and if so, explain that we will not be honoring the request.
 
+   procedure Check_Library_Items;
+   --  For debugging -- checks the behavior of Walk_Library_Items
+   pragma Warnings (Off, Check_Library_Items);
+   --  In case the call below is commented out
+
    --------------------
    -- Check_Bad_Body --
    --------------------
@@ -251,6 +256,35 @@ procedure Gnat1drv is
       end if;
    end Check_Rep_Info;
 
+   -------------------------
+   -- Check_Library_Items --
+   -------------------------
+
+   --  Walk_Library_Items has plenty of assertions, so all we need to do is
+   --  call it, just for these assertions, not actually doing anything else.
+
+   procedure Check_Library_Items is
+
+      procedure Action (Item : Node_Id);
+      --  Action passed to Walk_Library_Items to do nothing
+
+      ------------
+      -- Action --
+      ------------
+
+      procedure Action (Item : Node_Id) is
+      begin
+         null;
+      end Action;
+
+      procedure Walk is new Sem.Walk_Library_Items (Action);
+
+   --  Start of processing for Check_Library_Items
+
+   begin
+      Walk;
+   end Check_Library_Items;
+
 --  Start of processing for Gnat1drv
 
 begin
@@ -339,6 +373,12 @@ begin
          List_Representation_Info_Mechanisms := True;
       end if;
 
+      --  Force Target_Strict_Alignment true if debug flag -gnatd.a is set
+
+      if Debug_Flag_Dot_A then
+         Ttypes.Target_Strict_Alignment := True;
+      end if;
+
       --  Disable static allocation of dispatch tables if -gnatd.t or if layout
       --  is enabled. The front end's layout phase currently treats types that
       --  have discriminant-dependent arrays as not being static even when a
@@ -393,8 +433,7 @@ begin
          if Targparm.GCC_ZCX_Support_On_Target then
             Exception_Mechanism := Back_End_Exceptions;
          else
-            Osint.Fail
-              ("Zero Cost Exceptions not supported on this target");
+            Osint.Fail ("Zero Cost Exceptions not supported on this target");
          end if;
       end if;
 
@@ -573,9 +612,9 @@ begin
          Back_End_Mode := Skip;
       end if;
 
-      --  At this stage Call_Back_End is set to indicate if the backend should
-      --  be called to generate code. If it is not set, then code generation
-      --  has been turned off, even though code was requested by the original
+      --  At this stage Back_End_Mode is set to indicate if the backend should
+      --  be called to generate code. If it is Skip, then code generation has
+      --  been turned off, even though code was requested by the original
       --  command. This is not an error from the user point of view, but it is
       --  an error from the point of view of the gcc driver, so we must exit
       --  with an error status.
@@ -700,6 +739,14 @@ begin
       Sinput.Lock;
       Namet.Lock;
       Stringt.Lock;
+
+      --  ???Check_Library_Items under control of a debug flag, because it
+      --  currently does not work if the -gnatn switch (back end inlining) is
+      --  used.
+
+      if Debug_Flag_Dot_WW then
+         Check_Library_Items;
+      end if;
 
       --  Here we call the back end to generate the output code
 

@@ -1,12 +1,12 @@
 # libgcc host-specific configuration file.
 # Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-# 2008 Free Software Foundation, Inc.
+# 2008, 2009 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
 #GCC is free software; you can redistribute it and/or modify it under
 #the terms of the GNU General Public License as published by the Free
-#Software Foundation; either version 2, or (at your option) any later
+#Software Foundation; either version 3, or (at your option) any later
 #version.
 
 #GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -15,9 +15,8 @@
 #for more details.
 
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to the Free
-#Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-#02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 # This is the libgcc host-specific configuration file
 # where a configuration type is mapped to different system-specific
@@ -150,11 +149,8 @@ case ${host} in
   # machine-specific sections may refine and add to this
   # configuration.
   ;;
-*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
-  # Must come before *-*-gnu* (because of *-*-linux-gnu* systems).
+*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu*)
   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
-  ;;
-*-*-gnu*)
   ;;
 *-*-netbsd*)
   ;;
@@ -176,11 +172,9 @@ case ${host} in
 	then tmake_file=${cpu_type}/t-$rest
 	fi
 	;;
-alpha*-*-linux*)
+alpha*-*-linux* | alpha*-*-gnu*)
 	tmake_file="${tmake_file} alpha/t-crtfm"
 	extra_parts="$extra_parts crtfastmath.o"
-	;;
-alpha*-*-gnu*)
 	;;
 alpha*-*-freebsd*)
 	;;
@@ -195,10 +189,6 @@ alpha64-dec-*vms*)
 alpha*-dec-*vms*)
 	;;
 arc-*-elf*)
-	;;
-arm-*-coff* | armel-*-coff*)
-	;;
-arm-semi-aof | armel-semi-aof)
 	;;
 arm-wrs-vxworks)
 	;;
@@ -260,8 +250,6 @@ h8300-*-rtems*)
 	;;
 h8300-*-elf*)
 	;;
-h8300-*-*)
-	;;
 hppa*64*-*-linux*)
 	;;
 hppa*-*-linux*)
@@ -281,8 +269,6 @@ i[34567]86-*-elf*)
 	;;
 x86_64-*-elf*)
 	;;
-i[34567]86-*-aout*)
-	;;
 i[34567]86-*-freebsd*)
 	;;
 x86_64-*-freebsd*)
@@ -297,17 +283,13 @@ i[34567]86-*-openbsd2.*|i[34567]86-*openbsd3.[0123])
 	;;
 i[34567]86-*-openbsd*)
 	;;
-i[34567]86-*-coff*)
-	;;
-i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu)
+i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i[34567]86-*-gnu*)
 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm"
 	;;
 x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	tmake_file="${tmake_file} i386/t-crtpc i386/t-crtfm"
-	;;
-i[34567]86-*-gnu*)
 	;;
 i[34567]86-pc-msdosdjgpp*)
 	;;
@@ -325,6 +307,17 @@ i[34567]86-*-nto-qnx*)
 i[34567]86-*-rtems*)
 	;;
 i[34567]86-*-solaris2*)
+	tmake_file="${tmake_file} i386/t-sol2"
+	case ${host} in
+	*-*-solaris2.1[0-9]*)
+		# Solaris 2.10 provides crt1.o, crti.o, crtn.o, and gcrt1.o as
+		# part of the base system.
+		extra_parts="gmon.o crtbegin.o crtend.o"
+		;;
+	*)
+		extra_parts="crt1.o crti.o crtn.o gcrt1.o gmon.o crtbegin.o crtend.o"
+		;;
+	esac
 	;;
 i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae)
 	;;
@@ -346,13 +339,13 @@ ia64*-*-freebsd*)
 	;;
 ia64*-*-linux*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
-	tmake_file="ia64/t-ia64"
+	tmake_file="ia64/t-ia64 t-softfp ia64/t-fprules-softfp ia64/t-softfp-compat"
 	;;
 ia64*-*-hpux*)
 	;;
 iq2000*-*-elf*)
         ;;
-m32r-*-elf*)
+m32r-*-elf*|m32r-*-rtems*)
  	;;
 m32rle-*-elf*)
 	;;
@@ -364,10 +357,6 @@ m68hc11-*-*|m6811-*-*)
         ;;
 m68hc12-*-*|m6812-*-*)
         ;;
-m68k-*-aout*)
-	;;
-m68k-*-coff*)
-	;;
 m68k-*-elf*)
 	;;
 m68k*-*-netbsdelf*)
@@ -402,6 +391,8 @@ mipsisa32r2-*-elf* | mipsisa32r2el-*-elf*)
 	;;
 mipsisa64-*-elf* | mipsisa64el-*-elf*)
 	;;
+mipsisa64r2-*-elf* | mipsisa64r2el-*-elf*)
+	;;
 mipsisa64sr71k-*-elf*)
         ;;
 mipsisa64sb1-*-elf* | mipsisa64sb1el-*-elf*)
@@ -424,18 +415,10 @@ mmix-knuth-mmixware)
 	;;
 mn10300-*-*)
 	;;
-pdp11-*-bsd)
-        ;;
 pdp11-*-*)
 	;;
 picochip-*-*)
         ;;
-powerpc64-*-linux*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128"
-	;;
-powerpc64-*-gnu*)
-	tmake_file="${tmake_file} rs6000/t-ldbl128"
-	;;
 powerpc-*-darwin*)
 	;;
 powerpc64-*-darwin*)
@@ -458,14 +441,11 @@ powerpc-*-eabi*)
 	;;
 powerpc-*-rtems*)
 	;;
-powerpc-*-linux*altivec*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128"
+powerpc-*-linux* | powerpc64-*-linux*)
+	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128 t-softfp"
 	;;
-powerpc-*-linux*spe*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128"
-	;;
-powerpc-*-linux*)
-	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-ldbl128"
+powerpc64-*-gnu*)
+	tmake_file="${tmake_file} rs6000/t-ldbl128 t-softfp"
 	;;
 powerpc-*-gnu-gnualtivec*)
 	tmake_file="${tmake_file} rs6000/t-ldbl128"
@@ -482,8 +462,6 @@ powerpcle-*-elf*)
 powerpcle-*-eabisim*)
 	;;
 powerpcle-*-eabi*)
-	;;
-rs6000-ibm-aix4.[12]* | powerpc-ibm-aix4.[12]*)
 	;;
 rs6000-ibm-aix4.[3456789]* | powerpc-ibm-aix4.[3456789]*)
 	;;
@@ -513,8 +491,6 @@ sh-*-symbianelf* | sh[12346l]*-*-symbianelf* | \
 sh-*-rtems*)
 	;;
 sh-wrs-vxworks)
-	;;
-sh-*-*)
 	;;
 sparc-*-netbsdelf*)
 	;;
@@ -567,7 +543,7 @@ xtensa*-*-linux*)
 am33_2.0-*-linux*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
 	;;
-m32c-*-elf*)
+m32c-*-elf*|m32c-*-rtems*)
  	;;
 *)
 	echo "*** Configuration ${host} not supported" 1>&2
@@ -576,16 +552,19 @@ m32c-*-elf*)
 esac
 
 case ${host} in
-i[34567]86-*-linux* | x86_64-*-linux*)
+i[34567]86-*-linux* | x86_64-*-linux* | \
+  i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | \
+  i[34567]86-*-gnu*)
 	tmake_file="${tmake_file} t-tls"
 	;;
 esac
 
 case ${host} in
 i[34567]86-*-darwin* | x86_64-*-darwin* | \
+  i[34567]86-*-kfreebsd*-gnu | x86_64-*-kfreebsd*-gnu | \
   i[34567]86-*-linux* | x86_64-*-linux*)
 	if test "${host_address}" = 32; then
-		tmake_file="${tmake_file} i386/${host_address}/t-fprules-softfp"
+		tmake_file="${tmake_file} t-softfp i386/${host_address}/t-fprules-softfp"
 	fi
 	;;
 esac

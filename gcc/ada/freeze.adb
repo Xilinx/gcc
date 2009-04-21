@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -44,6 +44,7 @@ with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch7;  use Sem_Ch7;
@@ -1436,6 +1437,9 @@ package body Freeze is
       Formal : Entity_Id;
       Atype  : Entity_Id;
 
+      Has_Default_Initialization : Boolean := False;
+      --  This flag gets set to true for a variable with default initialization
+
       procedure Check_Current_Instance (Comp_Decl : Node_Id);
       --  Check that an Access or Unchecked_Access attribute with a prefix
       --  which is the current instance type can only be applied when the type
@@ -2479,36 +2483,17 @@ package body Freeze is
                         Error_Msg_Qual_Level := 0;
                      end if;
 
-                     --  Ada 2005 (AI-326): Check wrong use of tag incomplete
-                     --  types with unknown discriminants. For example:
-
-                     --    type T (<>) is tagged;
-                     --    procedure P (X : access T); -- ERROR
-                     --    procedure P (X : T);        -- ERROR
-
                      if not From_With_Type (F_Type) then
                         if Is_Access_Type (F_Type) then
                            F_Type := Designated_Type (F_Type);
                         end if;
-
-                        if Ekind (F_Type) = E_Incomplete_Type
-                          and then Is_Tagged_Type (F_Type)
-                          and then not Is_Class_Wide_Type (F_Type)
-                          and then No (Full_View (F_Type))
-                          and then Unknown_Discriminants_Present
-                                     (Parent (F_Type))
-                          and then No (Stored_Constraint (F_Type))
-                        then
-                           Error_Msg_N
-                             ("(Ada 2005): invalid use of unconstrained tagged"
-                              & " incomplete type", E);
 
                         --  If the formal is an anonymous_access_to_subprogram
                         --  freeze the  subprogram type as well, to prevent
                         --  scope anomalies in gigi, because there is no other
                         --  clear point at which it could be frozen.
 
-                        elsif Is_Itype (Etype (Formal))
+                        if Is_Itype (Etype (Formal))
                           and then Ekind (F_Type) = E_Subprogram_Type
                         then
                            Freeze_And_Append (F_Type, Loc, Result);
@@ -2518,7 +2503,7 @@ package body Freeze is
                      Next_Formal (Formal);
                   end loop;
 
-                  --  Case of function
+                  --  Case of function: similar checks on return type
 
                   if Ekind (E) = E_Function then
 
@@ -2590,36 +2575,17 @@ package body Freeze is
                         end if;
                      end if;
 
-                     if Is_Array_Type (Etype (E))
-                       and then not Is_Constrained (Etype (E))
+                     if Is_Array_Type (R_Type)
+                       and then not Is_Constrained (R_Type)
                        and then not Is_Imported (E)
                        and then Has_Foreign_Convention (E)
                        and then Warn_On_Export_Import
                        and then not Has_Warnings_Off (E)
-                       and then not Has_Warnings_Off (Etype (E))
+                       and then not Has_Warnings_Off (R_Type)
                      then
                         Error_Msg_N
                           ("?foreign convention function& should not " &
                            "return unconstrained array!", E);
-
-                     --  Ada 2005 (AI-326): Check wrong use of tagged
-                     --  incomplete type
-
-                     --    type T is tagged;
-                     --    function F (X : Boolean) return T; -- ERROR
-
-                     --  The type must be declared in the current scope for the
-                     --  use to be legal, and the full view must be available
-                     --  when the construct that mentions it is frozen.
-
-                     elsif Ekind (Etype (E)) = E_Incomplete_Type
-                       and then Is_Tagged_Type (Etype (E))
-                       and then No (Full_View (Etype (E)))
-                       and then not Is_Value_Type (Etype (E))
-                     then
-                        Error_Msg_N
-                          ("(Ada 2005): invalid use of tagged incomplete type",
-                            E);
                      end if;
                   end if;
                end;
@@ -2714,8 +2680,37 @@ package body Freeze is
                       (Needs_Simple_Initialization (Etype (E))
                         and then not Is_Internal (E)))
                then
+                  Has_Default_Initialization := True;
                   Check_Restriction
                     (No_Default_Initialization, Declaration_Node (E));
+               end if;
+
+               --  Check that a Thread_Local_Storage variable does not have
+               --  default initialization, and any explicit initialization must
+               --  either be the null constant or a static constant.
+
+               if Has_Pragma_Thread_Local_Storage (E) then
+                  declare
+                     Decl : constant Node_Id := Declaration_Node (E);
+                  begin
+                     if Has_Default_Initialization
+                       or else
+                         (Has_Init_Expression (Decl)
+                            and then
+                             (No (Expression (Decl))
+                                or else not
+                                  (Is_Static_Expression (Expression (Decl))
+                                     or else
+                                   Nkind (Expression (Decl)) = N_Null)))
+                     then
+                        Error_Msg_NE
+                          ("Thread_Local_Storage variable& is "
+                           & "improperly initialized", Decl, E);
+                        Error_Msg_NE
+                          ("\only allowed initialization is explicit "
+                           & "NULL or static expression", Decl, E);
+                     end if;
+                  end;
                end if;
 
                --  For imported objects, set Is_Public unless there is also an
@@ -3477,62 +3472,36 @@ package body Freeze is
 
          --  For access subprogram, freeze types of all formals, the return
          --  type was already frozen, since it is the Etype of the function.
+         --  Formal types can be tagged Taft amendment types, but otherwise
+         --  they cannot be incomplete.
 
          elsif Ekind (E) = E_Subprogram_Type then
             Formal := First_Formal (E);
+
             while Present (Formal) loop
+               if Ekind (Etype (Formal)) = E_Incomplete_Type
+                 and then No (Full_View (Etype (Formal)))
+                 and then not Is_Value_Type (Etype (Formal))
+               then
+                  if Is_Tagged_Type (Etype (Formal)) then
+                     null;
+                  else
+                     Error_Msg_NE
+                       ("invalid use of incomplete type&", E, Etype (Formal));
+                  end if;
+               end if;
+
                Freeze_And_Append (Etype (Formal), Loc, Result);
                Next_Formal (Formal);
             end loop;
 
             Freeze_Subprogram (E);
 
-            --  Ada 2005 (AI-326): Check wrong use of tag incomplete type
-
-            --    type T is tagged;
-            --    type Acc is access function (X : T) return T; -- ERROR
-
-            if Ekind (Etype (E)) = E_Incomplete_Type
-              and then Is_Tagged_Type (Etype (E))
-              and then No (Full_View (Etype (E)))
-              and then not Is_Value_Type (Etype (E))
-            then
-               Error_Msg_N
-                 ("(Ada 2005): invalid use of tagged incomplete type", E);
-            end if;
-
          --  For access to a protected subprogram, freeze the equivalent type
          --  (however this is not set if we are not generating code or if this
          --  is an anonymous type used just for resolution).
 
          elsif Is_Access_Protected_Subprogram_Type (E) then
-
-            --  AI-326: Check wrong use of tagged incomplete types
-
-            --    type T is tagged;
-            --    type As3D is access protected
-            --      function (X : Float) return T; -- ERROR
-
-            declare
-               Etyp : Entity_Id;
-
-            begin
-               Etyp := Etype (Directly_Designated_Type (E));
-
-               if Is_Class_Wide_Type (Etyp) then
-                  Etyp := Etype (Etyp);
-               end if;
-
-               if Ekind (Etyp) = E_Incomplete_Type
-                 and then Is_Tagged_Type (Etyp)
-                 and then No (Full_View (Etyp))
-                 and then not Is_Value_Type (Etype (E))
-               then
-                  Error_Msg_N
-                    ("(Ada 2005): invalid use of tagged incomplete type", E);
-               end if;
-            end;
-
             if Present (Equivalent_Type (E)) then
                Freeze_And_Append (Equivalent_Type (E), Loc, Result);
             end if;
@@ -5509,13 +5478,19 @@ package body Freeze is
       end if;
 
       --  We only give the warning for non-imported entities of a type for
-      --  which a non-null base init proc is defined (or for access types which
-      --  have implicit null initialization).
+      --  which a non-null base init proc is defined, or for objects of access
+      --  types with implicit null initialization, or when Initialize_Scalars
+      --  applies and the type is scalar or a string type (the latter being
+      --  tested for because predefined String types are initialized by inline
+      --  code rather than by an init_proc).
 
       if Present (Expr)
-        and then (Has_Non_Null_Base_Init_Proc (Typ)
-                    or else Is_Access_Type (Typ))
         and then not Is_Imported (Ent)
+        and then (Has_Non_Null_Base_Init_Proc (Typ)
+                    or else Is_Access_Type (Typ)
+                    or else (Init_Or_Norm_Scalars
+                              and then (Is_Scalar_Type (Typ)
+                                         or else Is_String_Type (Typ))))
       then
          if Nkind (Expr) = N_Attribute_Reference
            and then Is_Entity_Name (Prefix (Expr))

@@ -1,6 +1,6 @@
 /* Build up a list of intrinsic subroutines and functions for the
    name-resolution stage.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -1781,6 +1781,13 @@ add_functions (void)
 
   make_generic ("lbound", GFC_ISYM_LBOUND, GFC_STD_F95);
 
+  add_sym_1 ("leadz", GFC_ISYM_LEADZ, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_leadz, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("leadz", GFC_ISYM_LEADZ, GFC_STD_F2008);
+
   add_sym_2 ("len", GFC_ISYM_LEN, CLASS_INQUIRY, ACTUAL_YES,
 	     BT_INTEGER, di, GFC_STD_F77,
 	     gfc_check_len_lentrim, gfc_simplify_len, gfc_resolve_len,
@@ -1950,7 +1957,7 @@ add_functions (void)
   make_generic ("maxloc", GFC_ISYM_MAXLOC, GFC_STD_F95);
 
   add_sym_3red ("maxval", GFC_ISYM_MAXVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_maxval,
+		gfc_check_minval_maxval, gfc_simplify_maxval, gfc_resolve_maxval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -1967,7 +1974,7 @@ add_functions (void)
   make_generic ("mclock8", GFC_ISYM_MCLOCK8, GFC_STD_GNU);
 
   add_sym_3 ("merge", GFC_ISYM_MERGE, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-	     gfc_check_merge, NULL, gfc_resolve_merge,
+	     gfc_check_merge, gfc_simplify_merge, gfc_resolve_merge,
 	     ts, BT_REAL, dr, REQUIRED, fs, BT_REAL, dr, REQUIRED,
 	     msk, BT_LOGICAL, dl, REQUIRED);
 
@@ -2016,7 +2023,7 @@ add_functions (void)
   make_generic ("minloc", GFC_ISYM_MINLOC, GFC_STD_F95);
 
   add_sym_3red ("minval", GFC_ISYM_MINVAL, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
-		gfc_check_minval_maxval, NULL, gfc_resolve_minval,
+		gfc_check_minval_maxval, gfc_simplify_minval, gfc_resolve_minval,
 		ar, BT_REAL, dr, REQUIRED, dm, BT_INTEGER, ii, OPTIONAL,
 		msk, BT_LOGICAL, dl, OPTIONAL);
 
@@ -2387,6 +2394,13 @@ add_functions (void)
 	     x, BT_REAL, dr, REQUIRED);
 
   make_generic ("tiny", GFC_ISYM_TINY, GFC_STD_F95);
+
+  add_sym_1 ("trailz", GFC_ISYM_TRAILZ, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
+	     gfc_check_i, gfc_simplify_trailz, NULL,
+	     i, BT_INTEGER, di, REQUIRED);
+
+  make_generic ("trailz", GFC_ISYM_TRAILZ, GFC_STD_F2008);
 
   add_sym_3 ("transfer", GFC_ISYM_TRANSFER, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
 	     gfc_check_transfer, gfc_simplify_transfer, gfc_resolve_transfer,
@@ -3321,9 +3335,6 @@ do_simplify (gfc_intrinsic_sym *specific, gfc_expr *e)
       goto finish;
     }
 
-  /* TODO: Warn if -pedantic and initialization expression and arg
-     types not integer or character */
-
   if (arg == NULL)
     result = (*specific->simplify.f1) (a1);
   else
@@ -3584,7 +3595,8 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
     return (do_simplify (expr->value.function.isym, expr) == FAILURE)
 	   ? MATCH_ERROR : MATCH_YES;
 
-  gfc_suppress_error = !error_flag;
+  if (!error_flag)
+    gfc_push_suppress_errors ();
   flag = 0;
 
   for (actual = expr->value.function.actual; actual; actual = actual->next)
@@ -3597,7 +3609,8 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
   isym = specific = gfc_find_function (name);
   if (isym == NULL)
     {
-      gfc_suppress_error = 0;
+      if (!error_flag)
+	gfc_pop_suppress_errors ();
       return MATCH_NO;
     }
 
@@ -3607,7 +3620,11 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
       && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Function '%s' "
 			 "as initialization expression at %L", name,
 			 &expr->where) == FAILURE)
-    return MATCH_ERROR;
+    {
+      if (!error_flag)
+	gfc_pop_suppress_errors ();
+      return MATCH_ERROR;
+    }
 
   gfc_current_intrinsic_where = &expr->where;
 
@@ -3619,7 +3636,8 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
       if (gfc_check_min_max (expr->value.function.actual) == SUCCESS)
 	goto got_specific;
 
-      gfc_suppress_error = 0;
+      if (!error_flag)
+	gfc_pop_suppress_errors ();
       return MATCH_NO;
     }
 
@@ -3627,7 +3645,7 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
      incarnations.  If the generic name is also a specific, we check
      that name last, so that any error message will correspond to the
      specific.  */
-  gfc_suppress_error = 1;
+  gfc_push_suppress_errors ();
 
   if (isym->generic)
     {
@@ -3637,15 +3655,19 @@ gfc_intrinsic_func_interface (gfc_expr *expr, int error_flag)
 	  if (specific == isym)
 	    continue;
 	  if (check_specific (specific, expr, 0) == SUCCESS)
-	    goto got_specific;
+	    {
+	      gfc_pop_suppress_errors ();
+	      goto got_specific;
+	    }
 	}
     }
 
-  gfc_suppress_error = !error_flag;
+  gfc_pop_suppress_errors ();
 
   if (check_specific (isym, expr, error_flag) == FAILURE)
     {
-      gfc_suppress_error = 0;
+      if (!error_flag)
+	gfc_pop_suppress_errors ();
       return MATCH_NO;
     }
 
@@ -3655,7 +3677,9 @@ got_specific:
   expr->value.function.isym = specific;
   gfc_intrinsic_symbol (expr->symtree->n.sym);
 
-  gfc_suppress_error = 0;
+  if (!error_flag)
+    gfc_pop_suppress_errors ();
+
   if (do_simplify (specific, expr) == FAILURE)
     return MATCH_ERROR;
 
@@ -3695,7 +3719,8 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
   if (isym == NULL)
     return MATCH_NO;
 
-  gfc_suppress_error = !error_flag;
+  if (!error_flag)
+    gfc_push_suppress_errors ();
 
   init_arglist (isym);
 
@@ -3715,8 +3740,10 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
 
   /* The subroutine corresponds to an intrinsic.  Allow errors to be
      seen at this point.  */
-  gfc_suppress_error = 0;
+  if (!error_flag)
+    gfc_pop_suppress_errors ();
 
+  c->resolved_isym = isym;
   if (isym->resolve.s1 != NULL)
     isym->resolve.s1 (c);
   else
@@ -3737,7 +3764,8 @@ gfc_intrinsic_sub_interface (gfc_code *c, int error_flag)
   return MATCH_YES;
 
 fail:
-  gfc_suppress_error = 0;
+  if (!error_flag)
+    gfc_pop_suppress_errors ();
   return MATCH_NO;
 }
 

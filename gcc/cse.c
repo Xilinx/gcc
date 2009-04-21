@@ -1,6 +1,6 @@
 /* Common subexpression elimination for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -603,7 +603,8 @@ static bool set_live_p (rtx, rtx, int *);
 static int cse_change_cc_mode (rtx *, void *);
 static void cse_change_cc_mode_insn (rtx, rtx);
 static void cse_change_cc_mode_insns (rtx, rtx, rtx);
-static enum machine_mode cse_cc_succs (basic_block, rtx, rtx, bool);
+static enum machine_mode cse_cc_succs (basic_block, basic_block, rtx, rtx,
+				       bool);
 
 
 #undef RTL_HOOKS_GEN_LOWPART
@@ -1362,17 +1363,6 @@ lookup_as_function (rtx x, enum rtx_code code)
 {
   struct table_elt *p
     = lookup (x, SAFE_HASH (x, VOIDmode), GET_MODE (x));
-
-  /* If we are looking for a CONST_INT, the mode doesn't really matter, as
-     long as we are narrowing.  So if we looked in vain for a mode narrower
-     than word_mode before, look for word_mode now.  */
-  if (p == 0 && code == CONST_INT
-      && GET_MODE_SIZE (GET_MODE (x)) < GET_MODE_SIZE (word_mode))
-    {
-      x = copy_rtx (x);
-      PUT_MODE (x, word_mode);
-      p = lookup (x, SAFE_HASH (x, VOIDmode), word_mode);
-    }
 
   if (p == 0)
     return 0;
@@ -2339,14 +2329,14 @@ hash_rtx_cb (const_rtx x, enum machine_mode mode,
 	      goto repeat;
 	    }
           
-	  hash += hash_rtx_cb (XEXP (x, i), 0, do_not_record_p,
+	  hash += hash_rtx_cb (XEXP (x, i), VOIDmode, do_not_record_p,
                                hash_arg_in_memory_p,
                                have_reg_qty, cb);
 	  break;
 
 	case 'E':
 	  for (j = 0; j < XVECLEN (x, i); j++)
-	    hash += hash_rtx_cb (XVECEXP (x, i, j), 0, do_not_record_p,
+	    hash += hash_rtx_cb (XVECEXP (x, i, j), VOIDmode, do_not_record_p,
                                  hash_arg_in_memory_p,
                                  have_reg_qty, cb);
 	  break;
@@ -3170,33 +3160,15 @@ fold_rtx (rtx x, rtx insn)
     {
     case RTX_UNARY:
       {
-	int is_const = 0;
-
 	/* We can't simplify extension ops unless we know the
 	   original mode.  */
 	if ((code == ZERO_EXTEND || code == SIGN_EXTEND)
 	    && mode_arg0 == VOIDmode)
 	  break;
 
-	/* If we had a CONST, strip it off and put it back later if we
-	   fold.  */
-	if (const_arg0 != 0 && GET_CODE (const_arg0) == CONST)
-	  is_const = 1, const_arg0 = XEXP (const_arg0, 0);
-
 	new_rtx = simplify_unary_operation (code, mode,
 					const_arg0 ? const_arg0 : folded_arg0,
 					mode_arg0);
-	/* NEG of PLUS could be converted into MINUS, but that causes
-	   expressions of the form
-	   (CONST (MINUS (CONST_INT) (SYMBOL_REF)))
-	   which many ports mistakenly treat as LEGITIMATE_CONSTANT_P.
-	   FIXME: those ports should be fixed.  */
-	if (new_rtx != 0 && is_const
-	    && GET_CODE (new_rtx) == PLUS
-	    && (GET_CODE (XEXP (new_rtx, 0)) == SYMBOL_REF
-		|| GET_CODE (XEXP (new_rtx, 0)) == LABEL_REF)
-	    && GET_CODE (XEXP (new_rtx, 1)) == CONST_INT)
-	  new_rtx = gen_rtx_CONST (mode, new_rtx);
       }
       break;
 
@@ -3492,6 +3464,7 @@ fold_rtx (rtx x, rtx insn)
 	      int is_shift
 		= (code == ASHIFT || code == ASHIFTRT || code == LSHIFTRT);
 	      rtx y, inner_const, new_const;
+	      rtx canon_const_arg1 = const_arg1;
 	      enum rtx_code associate_code;
 
 	      if (is_shift
@@ -3499,8 +3472,9 @@ fold_rtx (rtx x, rtx insn)
 		      || INTVAL (const_arg1) < 0))
 		{
 		  if (SHIFT_COUNT_TRUNCATED)
-		    const_arg1 = GEN_INT (INTVAL (const_arg1)
-					  & (GET_MODE_BITSIZE (mode) - 1));
+		    canon_const_arg1 = GEN_INT (INTVAL (const_arg1)
+						& (GET_MODE_BITSIZE (mode)
+						   - 1));
 		  else
 		    break;
 		}
@@ -3559,7 +3533,8 @@ fold_rtx (rtx x, rtx insn)
 	      associate_code = (is_shift || code == MINUS ? PLUS : code);
 
 	      new_const = simplify_binary_operation (associate_code, mode,
-						     const_arg1, inner_const);
+						     canon_const_arg1,
+						     inner_const);
 
 	      if (new_const == 0)
 		break;
@@ -3658,6 +3633,8 @@ equiv_constant (rtx x)
 
   if (GET_CODE (x) == SUBREG)
     {
+      enum machine_mode mode = GET_MODE (x);
+      enum machine_mode imode = GET_MODE (SUBREG_REG (x));
       rtx new_rtx;
 
       /* See if we previously assigned a constant value to this SUBREG.  */
@@ -3666,10 +3643,25 @@ equiv_constant (rtx x)
           || (new_rtx = lookup_as_function (x, CONST_FIXED)) != 0)
         return new_rtx;
 
+      /* If we didn't and if doing so makes sense, see if we previously
+	 assigned a constant value to the enclosing word mode SUBREG.  */
+      if (GET_MODE_SIZE (mode) < GET_MODE_SIZE (word_mode)
+	  && GET_MODE_SIZE (word_mode) < GET_MODE_SIZE (imode))
+	{
+	  int byte = SUBREG_BYTE (x) - subreg_lowpart_offset (mode, word_mode);
+	  if (byte >= 0 && (byte % UNITS_PER_WORD) == 0)
+	    {
+	      rtx y = gen_rtx_SUBREG (word_mode, SUBREG_REG (x), byte);
+	      new_rtx = lookup_as_function (y, CONST_INT);
+	      if (new_rtx)
+		return gen_lowpart (mode, new_rtx);
+	    }
+	}
+
+      /* Otherwise see if we already have a constant for the inner REG.  */
       if (REG_P (SUBREG_REG (x))
 	  && (new_rtx = equiv_constant (SUBREG_REG (x))) != 0)
-        return simplify_subreg (GET_MODE (x), SUBREG_REG (x),
-				GET_MODE (SUBREG_REG (x)), SUBREG_BYTE (x));
+        return simplify_subreg (mode, new_rtx, imode, SUBREG_BYTE (x));
 
       return 0;
     }
@@ -4494,7 +4486,8 @@ cse_insn (rtx insn)
 	  enum machine_mode wider_mode;
 
 	  for (wider_mode = GET_MODE_WIDER_MODE (mode);
-	       GET_MODE_BITSIZE (wider_mode) <= BITS_PER_WORD
+	       wider_mode != VOIDmode
+	       && GET_MODE_BITSIZE (wider_mode) <= BITS_PER_WORD
 	       && src_related == 0;
 	       wider_mode = GET_MODE_WIDER_MODE (wider_mode))
 	    {
@@ -6007,11 +6000,11 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
 	 edge pointing to that bb.  */
       if (bb_has_eh_pred (bb))
 	{
-	  struct df_ref **def_rec;
+	  df_ref *def_rec;
 
 	  for (def_rec = df_get_artificial_defs (bb->index); *def_rec; def_rec++)
 	    {
-	      struct df_ref *def = *def_rec;
+	      df_ref def = *def_rec;
 	      if (DF_REF_FLAGS (def) & DF_REF_AT_TOP)
 		invalidate (DF_REF_REG (def), GET_MODE (DF_REF_REG (def)));
 	    }
@@ -6587,13 +6580,17 @@ cse_change_cc_mode_insns (rtx start, rtx end, rtx newreg)
    permitted to change the mode of CC_SRC to a compatible mode.  This
    returns VOIDmode if no equivalent assignments were found.
    Otherwise it returns the mode which CC_SRC should wind up with.
+   ORIG_BB should be the same as BB in the outermost cse_cc_succs call,
+   but is passed unmodified down to recursive calls in order to prevent
+   endless recursion.
 
    The main complexity in this function is handling the mode issues.
    We may have more than one duplicate which we can eliminate, and we
    try to find a mode which will work for multiple duplicates.  */
 
 static enum machine_mode
-cse_cc_succs (basic_block bb, rtx cc_reg, rtx cc_src, bool can_change_mode)
+cse_cc_succs (basic_block bb, basic_block orig_bb, rtx cc_reg, rtx cc_src,
+	      bool can_change_mode)
 {
   bool found_equiv;
   enum machine_mode mode;
@@ -6624,7 +6621,9 @@ cse_cc_succs (basic_block bb, rtx cc_reg, rtx cc_src, bool can_change_mode)
 	continue;
 
       if (EDGE_COUNT (e->dest->preds) != 1
-	  || e->dest == EXIT_BLOCK_PTR)
+	  || e->dest == EXIT_BLOCK_PTR
+	  /* Avoid endless recursion on unreachable blocks.  */
+	  || e->dest == orig_bb)
 	continue;
 
       end = NEXT_INSN (BB_END (e->dest));
@@ -6729,7 +6728,7 @@ cse_cc_succs (basic_block bb, rtx cc_reg, rtx cc_src, bool can_change_mode)
 	{
 	  enum machine_mode submode;
 
-	  submode = cse_cc_succs (e->dest, cc_reg, cc_src, false);
+	  submode = cse_cc_succs (e->dest, orig_bb, cc_reg, cc_src, false);
 	  if (submode != VOIDmode)
 	    {
 	      gcc_assert (submode == mode);
@@ -6857,7 +6856,7 @@ cse_condition_code_reg (void)
 	 the basic block.  */
 
       orig_mode = GET_MODE (cc_src);
-      mode = cse_cc_succs (bb, cc_reg, cc_src, true);
+      mode = cse_cc_succs (bb, bb, cc_reg, cc_src, true);
       if (mode != VOIDmode)
 	{
 	  gcc_assert (mode == GET_MODE (cc_src));
@@ -6998,4 +6997,3 @@ struct rtl_opt_pass pass_cse2 =
   TODO_verify_flow                      /* todo_flags_finish */
  }
 };
-

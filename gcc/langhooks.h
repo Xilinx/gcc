@@ -159,6 +159,9 @@ struct lang_hooks_for_decls
   /* Returns the chain of decls so far in the current scope level.  */
   tree (*getdecls) (void);
 
+  /* Returns true if DECL is explicit member function.  */
+  bool (*function_decl_explicit_p) (tree);
+
   /* Returns true when we should warn for an unused global DECL.
      We will already have checked that it has static binding.  */
   bool (*warn_unused_global) (const_tree);
@@ -290,10 +293,6 @@ struct lang_hooks
      Returns -1 if the language does nothing special for it.  */
   alias_set_type (*get_alias_set) (tree);
 
-  /* Called by expand_expr for language-specific tree codes.
-     Fourth argument is actually an enum expand_modifier.  */
-  rtx (*expand_expr) (tree, rtx, enum machine_mode, int, rtx *);
-
   /* Function to finish handling an incomplete decl at the end of
      compilation.  Default hook is does nothing.  */
   void (*finish_incomplete_decl) (tree);
@@ -302,9 +301,6 @@ struct lang_hooks
      it; it should not be allocated in a register.  Return true if
      successful.  */
   bool (*mark_addressable) (tree);
-
-  /* Hook called by staticp for language-specific tree codes.  */
-  tree (*staticp) (tree);
 
   /* Replace the DECL_LANG_SPECIFIC data, which may be NULL, of the
      DECL_NODE with a newly GC-allocated copy.  */
@@ -316,11 +312,6 @@ struct lang_hooks
      Otherwise, set it to the ERROR_MARK_NODE to ensure that the
      assembler does not talk about it.  */
   void (*set_decl_assembler_name) (tree);
-
-  /* Nonzero if this front end does not generate a dummy BLOCK between
-     the outermost scope of the function and the FUNCTION_DECL.  See
-     is_body_block in stmt.c, and its callers.  */
-  bool no_body_blocks;
 
   /* The front end can add its own statistics to -fmem-report with
      this hook.  It should output to stderr.  */

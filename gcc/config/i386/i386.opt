@@ -1,6 +1,6 @@
 ; Options for the IA-32 and AMD64 ports of the compiler.
 
-; Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -30,6 +30,10 @@ unsigned char tune
 ;; -mfpath=
 TargetSave
 unsigned char fpmath
+
+;; CPU schedule model
+TargetSave
+unsigned char schedule
 
 ;; branch cost
 TargetSave
@@ -224,6 +228,10 @@ mtune=
 Target RejectNegative Joined Var(ix86_tune_string)
 Schedule code for given CPU
 
+mabi=
+Target RejectNegative Joined Var(ix86_abi_string)
+Generate code that conforms to the given ABI
+
 mveclibabi=
 Target RejectNegative Joined Var(ix86_veclibabi_string)
 Vector library ABI to use
@@ -338,3 +346,7 @@ Support AES built-in functions and code generation
 mpclmul
 Target Report Mask(ISA_PCLMUL) Var(ix86_isa_flags) VarExists Save
 Support PCLMUL built-in functions and code generation
+
+msse2avx
+Target Report Var(ix86_sse2avx)
+Encode SSE instructions with VEX prefix

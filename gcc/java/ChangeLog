@@ -1,3 +1,67 @@
+2009-04-18  Ian Lance Taylor  <iant@google.com>
+
+	* verify-impl.c (verify_instructions_0): Add cast to enum type.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+        * builtins.c (compareAndSwapLong_builtin,
+        compareAndSwapInt_builtin, compareAndSwapObject_builtin,
+        VMSupportsCS8_builtin): Do not look at sync_compare_and_swap_cc.
+
+2009-03-31  Richard Guenther  <rguenther@suse.de>
+
+	* java-gimplify.c (java_gimplify_expr): Do not manually gimplify
+	the first operand of binary and comaprison expressions.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR rtl-optimization/323
+	* lang.c (java_post_options): Set flag_excess_precision_cmdline.
+	Give an error for -fexcess-precision=standard for processors where
+	the option is significant.
+
+2009-03-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* lang.opt: Unify help text for -Wdeprecated.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2009-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38835
+	PR middle-end/36227
+	* builtins.c (build_addr_sum): Use POINTER_PLUS_EXPR.
+
+2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/38262
+	* Make-lang.in (jc1): Add BACKENDLIBS, remove GMPLIBS.
+
+2008-11-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/37068
+	* jcf-parse.c (java_emit_static_constructor): Don't call
+	cgraph_build_static_cdtor.  Rewrite.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-java-subtargets): New target.
+
+2008-10-16  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/35483
+	* Make-lang.in (class.o): Depend on $(TM_P_H).
+	(expr.o): Same.
+	* class.c: Include tm_p.h.
+	* expr.c: Include tm_p.h.
+
+2008-10-14  Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constant_data_ref): Make sure we only build
+	one copy of the decl for the constant pool.
+
 2008-09-22  Andrew Haley  <aph@redhat.com>
 
 	* expr.c (rules): Add new rule for

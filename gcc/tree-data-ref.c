@@ -1,5 +1,6 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -551,6 +552,7 @@ split_constant_offset_1 (tree type, tree op0, enum tree_code code, tree op1,
 	enum machine_mode pmode;
 	int punsignedp, pvolatilep;
 
+	op0 = TREE_OPERAND (op0, 0);
 	if (!handled_component_p (op0))
 	  return false;
 
@@ -666,9 +668,9 @@ canonicalize_base_object_address (tree addr)
 }
 
 /* Analyzes the behavior of the memory reference DR in the innermost loop that
-   contains it.  */
+   contains it. Returns true if analysis succeed or false otherwise.  */
 
-void
+bool
 dr_analyze_innermost (struct data_reference *dr)
 {
   gimple stmt = DR_STMT (dr);
@@ -692,26 +694,27 @@ dr_analyze_innermost (struct data_reference *dr)
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "failed: bit offset alignment.\n");
-      return;
+      return false;
     }
 
   base = build_fold_addr_expr (base);
-  if (!simple_iv (loop, stmt, base, &base_iv, false))
+  if (!simple_iv (loop, loop_containing_stmt (stmt), base, &base_iv, false))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "failed: evolution of base is not affine.\n");
-      return;
+      return false;
     }
   if (!poffset)
     {
       offset_iv.base = ssize_int (0);
       offset_iv.step = ssize_int (0);
     }
-  else if (!simple_iv (loop, stmt, poffset, &offset_iv, false))
+  else if (!simple_iv (loop, loop_containing_stmt (stmt),
+		       poffset, &offset_iv, false))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	fprintf (dump_file, "failed: evolution of offset is not affine.\n");
-      return;
+      return false;
     }
 
   init = ssize_int (pbitpos / BITS_PER_UNIT);
@@ -734,6 +737,8 @@ dr_analyze_innermost (struct data_reference *dr)
 
   if (dump_file && (dump_flags & TDF_DETAILS))
     fprintf (dump_file, "success.\n");
+
+  return true;
 }
 
 /* Determines the base object and the list of indices of memory reference
@@ -787,34 +792,15 @@ dr_analyze_indices (struct data_reference *dr, struct loop *nest)
 static void
 dr_analyze_alias (struct data_reference *dr)
 {
-  gimple stmt = DR_STMT (dr);
   tree ref = DR_REF (dr);
-  tree base = get_base_address (ref), addr, smt = NULL_TREE;
-  ssa_op_iter it;
-  tree op;
-  bitmap vops;
+  tree base = get_base_address (ref), addr;
 
-  if (DECL_P (base))
-    smt = base;
-  else if (INDIRECT_REF_P (base))
+  if (INDIRECT_REF_P (base))
     {
       addr = TREE_OPERAND (base, 0);
       if (TREE_CODE (addr) == SSA_NAME)
-	{
-	  smt = symbol_mem_tag (SSA_NAME_VAR (addr));
-	  DR_PTR_INFO (dr) = SSA_NAME_PTR_INFO (addr);
-	}
+	DR_PTR_INFO (dr) = SSA_NAME_PTR_INFO (addr);
     }
-
-  DR_SYMBOL_TAG (dr) = smt;
-
-  vops = BITMAP_ALLOC (NULL);
-  FOR_EACH_SSA_TREE_OPERAND (op, stmt, it, SSA_OP_VIRTUAL_USES)
-    {
-      bitmap_set_bit (vops, DECL_UID (SSA_NAME_VAR (op)));
-    }
-
-  DR_VOPS (dr) = vops;
 }
 
 /* Returns true if the address of DR is invariant.  */
@@ -837,7 +823,6 @@ dr_address_invariant_p (struct data_reference *dr)
 void
 free_data_ref (data_reference_p dr)
 {
-  BITMAP_FREE (DR_VOPS (dr));
   VEC_free (tree, heap, DR_ACCESS_FNS (dr));
   free (dr);
 }
@@ -882,8 +867,6 @@ create_data_ref (struct loop *nest, tree memref, gimple stmt, bool is_read)
       print_generic_expr (dump_file, DR_ALIGNED_TO (dr), TDF_SLIM);
       fprintf (dump_file, "\n\tbase_object: ");
       print_generic_expr (dump_file, DR_BASE_OBJECT (dr), TDF_SLIM);
-      fprintf (dump_file, "\n\tsymbol tag: ");
-      print_generic_expr (dump_file, DR_SYMBOL_TAG (dr), TDF_SLIM);
       fprintf (dump_file, "\n");
     }
 
@@ -1233,23 +1216,21 @@ dr_may_alias_p (const struct data_reference *a, const struct data_reference *b)
   const_tree type_a, type_b;
   const_tree decl_a = NULL_TREE, decl_b = NULL_TREE;
 
-  /* If the sets of virtual operands are disjoint, the memory references do not
-     alias.  */
-  if (!bitmap_intersect_p (DR_VOPS (a), DR_VOPS (b)))
-    return false;
-
   /* If the accessed objects are disjoint, the memory references do not
      alias.  */
   if (disjoint_objects_p (DR_BASE_OBJECT (a), DR_BASE_OBJECT (b)))
     return false;
 
+  /* Query the alias oracle.  */
+  if (!refs_may_alias_p (DR_REF (a), DR_REF (b)))
+    return false;
+
   if (!addr_a || !addr_b)
     return true;
 
-  /* If the references are based on different static objects, they cannot alias
-     (PTA should be able to disambiguate such accesses, but often it fails to,
-     since currently we cannot distinguish between pointer and offset in pointer
-     arithmetics).  */
+  /* If the references are based on different static objects, they cannot
+     alias (PTA should be able to disambiguate such accesses, but often
+     it fails to).  */
   if (TREE_CODE (addr_a) == ADDR_EXPR
       && TREE_CODE (addr_b) == ADDR_EXPR)
     return TREE_OPERAND (addr_a, 0) == TREE_OPERAND (addr_b, 0);
@@ -1893,6 +1874,14 @@ initialize_matrix_A (lambda_matrix A, tree chrec, unsigned index, int mult)
 	return chrec_convert (chrec_type (chrec), op, NULL);
       }
 
+    case BIT_NOT_EXPR:
+      {
+	/* Handle ~X as -1 - X.  */
+	tree op = initialize_matrix_A (A, TREE_OPERAND (chrec, 0), index, mult);
+	return chrec_fold_op (MINUS_EXPR, chrec_type (chrec),
+			      build_int_cst (TREE_TYPE (chrec), -1), op);
+      }
+
     case INTEGER_CST:
       return chrec;
 
@@ -2289,7 +2278,7 @@ analyze_subscript_affine_affine (tree chrec_a,
 
 		  /* If the overlap occurs outside of the bounds of the
 		     loop, there is no dependence.  */
-		  if (x1 > niter || y1 > niter)
+		  if (x1 >= niter || y1 >= niter)
 		    {
 		      *overlaps_a = conflict_fn_no_dependence ();
 		      *overlaps_b = conflict_fn_no_dependence ();
@@ -3311,13 +3300,14 @@ bool
 stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
 {
   data_reference_p dr;
+  bool res = true;
 
   dr = create_data_ref (loop, op, stmt, true);
   if (!access_functions_are_affine_or_constant_p (dr, loop))
-    return false;
+    res = false;
 
   free_data_ref (dr);
-  return true;
+  return res;
 }
 
 /* Initializes an equation for an OMEGA problem using the information
@@ -4036,7 +4026,7 @@ get_references_in_stmt (gimple stmt, VEC (data_ref_loc, heap) **references)
 	  && gimple_asm_volatile_p (stmt)))
     clobbers_memory = true;
 
-  if (ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
+  if (!gimple_vuse (stmt))
     return clobbers_memory;
 
   if (stmt_code == GIMPLE_ASSIGN)
@@ -4344,7 +4334,6 @@ analyze_all_data_dependences (struct loop *loop)
 	{
 	  unsigned nb_top_relations = 0;
 	  unsigned nb_bot_relations = 0;
-	  unsigned nb_basename_differ = 0;
 	  unsigned nb_chrec_relations = 0;
 	  struct data_dependence_relation *ddr;
 
@@ -4354,15 +4343,7 @@ analyze_all_data_dependences (struct loop *loop)
 		nb_top_relations++;
 	  
 	      else if (DDR_ARE_DEPENDENT (ddr) == chrec_known)
-		{
-		  struct data_reference *a = DDR_A (ddr);
-		  struct data_reference *b = DDR_B (ddr);
-
-		  if (!bitmap_intersect_p (DR_VOPS (a), DR_VOPS (b)))
-		    nb_basename_differ++;
-		  else
-		    nb_bot_relations++;
-		}
+		nb_bot_relations++;
 	  
 	      else 
 		nb_chrec_relations++;
@@ -4925,7 +4906,7 @@ stores_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
       gimple_stmt_iterator bsi;
 
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
-	if (!ZERO_SSA_OPERANDS (gsi_stmt (bsi), SSA_OP_VDEF))
+	if (gimple_vdef (gsi_stmt (bsi)))
 	  VEC_safe_push (gimple, heap, *stmts, gsi_stmt (bsi));
     }
 

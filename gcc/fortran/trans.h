@@ -1,6 +1,6 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Paul Brook
 
 This file is part of GCC.
@@ -458,11 +458,18 @@ tree gfc_trans_runtime_error_vararg (bool, locus*, const char*, va_list);
 void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
 			      const char *, ...);
 
+/* Generate a runtime check for same string length.  */
+void gfc_trans_same_strlen_check (const char*, locus*, tree, tree,
+				  stmtblock_t*);
+
 /* Generate a call to free() after checking that its arg is non-NULL.  */
 tree gfc_call_free (tree);
 
 /* Allocate memory after performing a few checks.  */
 tree gfc_call_malloc (stmtblock_t *, tree, tree);
+
+/* Build a memcpy call.  */
+tree gfc_build_memcpy_call (tree, tree, tree);
 
 /* Allocate memory for arrays, with optional status variable.  */
 tree gfc_allocate_array_with_status (stmtblock_t*, tree, tree, tree, gfc_expr*);
@@ -759,5 +766,12 @@ extern const char gfc_msg_bounds[];
 extern const char gfc_msg_fault[];
 extern const char gfc_msg_wrong_return[];
 
+#define OMPWS_WORKSHARE_FLAG	1	/* Set if in a workshare construct.  */
+#define OMPWS_CURR_SINGLEUNIT	2	/* Set if current gfc_code in workshare
+					   construct is not workshared.  */
+#define OMPWS_SCALARIZER_WS	4	/* Set if scalarizer should attempt
+					   to create parallel loops.  */
+#define OMPWS_NOWAIT		8	/* Use NOWAIT on OMP_FOR.  */
+extern int ompws_flags;
 
 #endif /* GFC_TRANS_H */

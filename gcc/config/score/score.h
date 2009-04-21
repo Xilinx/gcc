@@ -1,5 +1,5 @@
 /* score.h for Sunplus S+CORE processor
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Sunnorth.
 
    This file is part of GCC.
@@ -215,6 +215,8 @@
 
 /* Default definitions for size_t and ptrdiff_t.  */
 #define SIZE_TYPE                       "unsigned int"
+
+#define UINTPTR_TYPE			"long unsigned int"
 
 /* Register Usage
 
@@ -437,6 +439,18 @@ enum reg_class
    choose a class which is "minimal", meaning that no smaller class
    also contains the register.  */
 #define REGNO_REG_CLASS(REGNO)         score_reg_class (REGNO)
+
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+#define IRA_COVER_CLASSES					\
+{								\
+  G32_REGS, CE_REGS, SP_REGS, LIM_REG_CLASSES			\
+}
 
 /* A macro whose definition is the name of the class to which a
    valid base register must belong.  A base register is one used in

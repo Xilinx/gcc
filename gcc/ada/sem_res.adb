@@ -50,6 +50,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Aggr; use Sem_Aggr;
 with Sem_Attr; use Sem_Attr;
 with Sem_Cat;  use Sem_Cat;
@@ -59,6 +60,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
+with Sem_Elim; use Sem_Elim;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
 with Sem_Intr; use Sem_Intr;
@@ -5042,27 +5044,37 @@ package body Sem_Res is
 
       --  Create a transient scope if the resulting type requires it
 
-      --  There are 4 notable exceptions: in init procs, the transient scope
-      --  overhead is not needed and even incorrect due to the actual expansion
-      --  of adjust calls; the second case is enumeration literal pseudo calls;
-      --  the third case is intrinsic subprograms (Unchecked_Conversion and
-      --  source information functions) that do not use the secondary stack
-      --  even though the return type is unconstrained; the fourth case is a
-      --  call to a build-in-place function, since such functions may allocate
-      --  their result directly in a target object, and cases where the result
-      --  does get allocated in the secondary stack are checked for within the
-      --  specialized Exp_Ch6 procedures for expanding build-in-place calls.
+      --  There are several notable exceptions:
 
-      --  If this is an initialization call for a type whose initialization
-      --  uses the secondary stack, we also need to create a transient scope
-      --  for it, precisely because we will not do it within the init proc
-      --  itself.
+      --  a) In init procs, the transient scope overhead is not needed, and is
+      --  even incorrect when the call is a nested initialization call for a
+      --  component whose expansion may generate adjust calls. However, if the
+      --  call is some other procedure call within an initialization procedure
+      --  (for example a call to Create_Task in the init_proc of the task
+      --  run-time record) a transient scope must be created around this call.
 
-      --  If the subprogram is marked Inline_Always, then even if it returns
+      --  b) Enumeration literal pseudo-calls need no transient scope
+
+      --  c) Intrinsic subprograms (Unchecked_Conversion and source info
+      --  functions) do not use the secondary stack even though the return
+      --  type may be unconstrained.
+
+      --  d) Calls to a build-in-place function, since such functions may
+      --  allocate their result directly in a target object, and cases where
+      --  the result does get allocated in the secondary stack are checked for
+      --  within the specialized Exp_Ch6 procedures for expanding those
+      --  build-in-place calls.
+
+      --  e) If the subprogram is marked Inline_Always, then even if it returns
       --  an unconstrained type the call does not require use of the secondary
       --  stack. However, inlining will only take place if the body to inline
       --  is already present. It may not be available if e.g. the subprogram is
       --  declared in a child instance.
+
+      --  If this is an initialization call for a type whose construction
+      --  uses the secondary stack, and it is not a nested call to initialize
+      --  a component, we do need to create a transient scope for it. We
+      --  check for this by traversing the type in Check_Initialization_Call.
 
       if Is_Inlined (Nam)
         and then Has_Pragma_Inline_Always (Nam)
@@ -5071,13 +5083,19 @@ package body Sem_Res is
       then
          null;
 
+      elsif Ekind (Nam) = E_Enumeration_Literal
+        or else Is_Build_In_Place_Function (Nam)
+        or else Is_Intrinsic_Subprogram (Nam)
+      then
+         null;
+
       elsif Expander_Active
         and then Is_Type (Etype (Nam))
         and then Requires_Transient_Scope (Etype (Nam))
-        and then not Is_Build_In_Place_Function (Nam)
-        and then Ekind (Nam) /= E_Enumeration_Literal
-        and then not Within_Init_Proc
-        and then not Is_Intrinsic_Subprogram (Nam)
+        and then
+          (not Within_Init_Proc
+            or else
+              (not Is_Init_Proc (Nam) and then Ekind (Nam) /= E_Function))
       then
          Establish_Transient_Scope (N, Sec_Stack => True);
 
@@ -5149,7 +5167,8 @@ package body Sem_Res is
 
       if Inside_Freezing_Actions = 0
         and then (not Is_Library_Level_Entity (Nam)
-                   or else Suppress_Value_Tracking_On_Call (Current_Scope))
+                   or else Suppress_Value_Tracking_On_Call
+                             (Nearest_Dynamic_Scope (Current_Scope)))
         and then (Comes_From_Source (Nam)
                    or else (Present (Alias (Nam))
                              and then Comes_From_Source (Alias (Nam))))
@@ -5213,6 +5232,9 @@ package body Sem_Res is
         and then Present (Controlling_Argument (N))
       then
          Generate_Reference (Nam, Subp, 'R');
+
+      --  Normal case, not a dispatching call
+
       else
          Generate_Reference (Nam, Subp);
       end if;
@@ -5233,6 +5255,10 @@ package body Sem_Res is
       elsif Is_RTE (Nam, RE_Abort_Task) then
          Check_Potentially_Blocking_Operation (N);
       end if;
+
+      --  Issue an error for a call to an eliminated subprogram
+
+      Check_For_Eliminated_Subprogram (Subp, Nam);
 
       --  All done, evaluate call and deal with elaboration issues
 
@@ -5375,6 +5401,7 @@ package body Sem_Res is
             Check_Unset_Reference (L);
             Check_Unset_Reference (R);
             Generate_Operator_Reference (N, T);
+            Check_Low_Bound_Tested (N);
             Eval_Relational_Op (N);
          end if;
       end if;
@@ -6117,6 +6144,7 @@ package body Sem_Res is
          Check_Unset_Reference (L);
          Check_Unset_Reference (R);
          Generate_Operator_Reference (N, T);
+         Check_Low_Bound_Tested (N);
 
          --  If this is an inequality, it may be the implicit inequality
          --  created for a user-defined operation, in which case the corres-

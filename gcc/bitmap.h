@@ -1,6 +1,6 @@
 /* Functions to support general ended bitmaps.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -183,6 +183,7 @@ extern void bitmap_obstack_free (bitmap);
 #define dump_bitmap(file, bitmap) bitmap_print (file, bitmap, "", "\n")
 #define bitmap_zero(a) bitmap_clear (a)
 extern unsigned bitmap_first_set_bit (const_bitmap);
+extern unsigned bitmap_last_set_bit (const_bitmap);
 
 /* Compute bitmap hash (for purposes of hashing etc.)  */
 extern hashval_t bitmap_hash(const_bitmap);
@@ -194,8 +195,8 @@ extern hashval_t bitmap_hash(const_bitmap);
 #define BITMAP_GGC_ALLOC() bitmap_gc_alloc ()
 
 /* Do any cleanup needed on a bitmap when it is no longer used.  */
-#define BITMAP_FREE(BITMAP)			\
-	((void)(bitmap_obstack_free (BITMAP), (BITMAP) = NULL))
+#define BITMAP_FREE(BITMAP) \
+       ((void) (bitmap_obstack_free ((bitmap) BITMAP), (BITMAP) = (bitmap) NULL))
 
 /* Iterator for bitmaps.  */
 

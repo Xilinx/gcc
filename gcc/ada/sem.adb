@@ -6,18 +6,18 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License along  --
+-- with this program; see file COPYING3.  If not see                        --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -27,6 +27,7 @@
 with Atree;    use Atree;
 with Debug;    use Debug;
 with Debug_A;  use Debug_A;
+with Elists;   use Elists;
 with Errout;   use Errout;
 with Expander; use Expander;
 with Fname;    use Fname;
@@ -34,6 +35,7 @@ with HLO;      use HLO;
 with Lib;      use Lib;
 with Lib.Load; use Lib.Load;
 with Nlists;   use Nlists;
+with Output;   use Output;
 with Sem_Attr; use Sem_Attr;
 with Sem_Ch2;  use Sem_Ch2;
 with Sem_Ch3;  use Sem_Ch3;
@@ -52,6 +54,7 @@ with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Stand;    use Stand;
 with Uintp;    use Uintp;
+with Uname;    use Uname;
 
 with Unchecked_Deallocation;
 
@@ -60,10 +63,29 @@ pragma Warnings (Off, Sem_Util);
 
 package body Sem is
 
+   Debug_Unit_Walk : Boolean renames Debug_Flag_Dot_WW;
+   --  Controls debugging printouts for Walk_Library_Items
+
    Outer_Generic_Scope : Entity_Id := Empty;
    --  Global reference to the outer scope that is generic. In a non
    --  generic context, it is empty. At the moment, it is only used
    --  for avoiding freezing of external references in generics.
+
+   Comp_Unit_List : Elist_Id := No_Elist;
+   --  Used by Walk_Library_Items. This is a list of N_Compilation_Unit nodes
+   --  processed by Semantics, in an appropriate order. Initialized to
+   --  No_Elist, because it's too early to call New_Elmt_List; we will set it
+   --  to New_Elmt_List on first use.
+
+   Ignore_Comp_Units : Boolean := False;
+   --  If True, we suppress appending compilation units onto the
+   --  Comp_Unit_List.
+
+   procedure Write_Unit_Info
+     (Unit_Num : Unit_Number_Type;
+      Item     : Node_Id;
+      Prefix   : String := "");
+   --  Print out debugging information about the unit
 
    -------------
    -- Analyze --
@@ -1332,9 +1354,23 @@ package body Sem is
          Restore_Scope_Stack;
       end Do_Analyze;
 
+      Already_Analyzed : constant Boolean := Analyzed (Comp_Unit);
+
    --  Start of processing for Semantics
 
    begin
+      if Debug_Unit_Walk then
+         if Already_Analyzed then
+            Write_Str ("(done)");
+         end if;
+
+         Write_Unit_Info
+           (Get_Cunit_Unit_Number (Comp_Unit),
+            Unit (Comp_Unit),
+            Prefix => "--> ");
+         Indent;
+      end if;
+
       Compiler_State   := Analyzing;
       Current_Sem_Unit := Get_Cunit_Unit_Number (Comp_Unit);
 
@@ -1347,11 +1383,11 @@ package body Sem is
       --  Cleaner might be to do the kludge at the point of excluding the
       --  pragma (do not exclude for renamings ???)
 
-      GNAT_Mode :=
-        GNAT_Mode
-          or else Is_Predefined_File_Name
-                    (Unit_File_Name (Current_Sem_Unit),
-                     Renamings_Included => False);
+      if Is_Predefined_File_Name
+           (Unit_File_Name (Current_Sem_Unit), Renamings_Included => False)
+      then
+         GNAT_Mode := True;
+      end if;
 
       if Generic_Main then
          Expander_Mode_Save_And_Set (False);
@@ -1384,7 +1420,47 @@ package body Sem is
             New_Nodes_OK := 0;
          end if;
 
+         --  Do analysis, and then append the compilation unit onto the
+         --  Comp_Unit_List, if appropriate. This is done after analysis, so
+         --  if this unit depends on some others, they have already been
+         --  appended. We ignore bodies, except for the main unit itself. We
+         --  have also to guard against ill-formed subunits that have an
+         --  improper context.
+
          Do_Analyze;
+
+         if Ignore_Comp_Units then
+            null;
+
+         elsif Present (Comp_Unit)
+           and then Nkind (Unit (Comp_Unit)) in N_Proper_Body
+           and then not In_Extended_Main_Source_Unit (Comp_Unit)
+         then
+            null;
+
+         else
+            pragma Assert (not Ignore_Comp_Units);
+
+            --  Initialize if first time
+
+            if No (Comp_Unit_List) then
+               Comp_Unit_List := New_Elmt_List;
+            end if;
+
+            Append_Elmt (Comp_Unit, Comp_Unit_List);
+
+            if Debug_Unit_Walk then
+               Write_Str ("Appending ");
+               Write_Unit_Info
+                 (Get_Cunit_Unit_Number (Comp_Unit), Unit (Comp_Unit));
+            end if;
+
+            --  Ignore all units after main unit
+
+            if Comp_Unit = Cunit (Main_Unit) then
+               Ignore_Comp_Units := True;
+            end if;
+         end if;
       end if;
 
       --  Save indication of dynamic elaboration checks for ALI file
@@ -1404,5 +1480,238 @@ package body Sem is
 
       Restore_Opt_Config_Switches (Save_Config_Switches);
       Expander_Mode_Restore;
+
+      if Debug_Unit_Walk then
+         Outdent;
+
+         if Already_Analyzed then
+            Write_Str ("(done)");
+         end if;
+
+         Write_Unit_Info
+           (Get_Cunit_Unit_Number (Comp_Unit),
+            Unit (Comp_Unit),
+            Prefix => "<-- ");
+      end if;
    end Semantics;
+
+   ------------------------
+   -- Walk_Library_Items --
+   ------------------------
+
+   procedure Walk_Library_Items is
+      type Unit_Number_Set is array (Main_Unit .. Last_Unit) of Boolean;
+      Seen : Unit_Number_Set := (others => False);
+
+      procedure Do_Action (CU : Node_Id; Item : Node_Id);
+      --  Calls Action, with some validity checks
+
+      ---------------
+      -- Do_Action --
+      ---------------
+
+      procedure Do_Action (CU : Node_Id; Item : Node_Id) is
+      begin
+         --  This calls Action at the end. All the preceding code is just
+         --  assertions and debugging output.
+
+         pragma Assert (No (CU) or else Nkind (CU) = N_Compilation_Unit);
+
+         case Nkind (Item) is
+            when N_Generic_Subprogram_Declaration     |
+              N_Generic_Package_Declaration           |
+              N_Package_Declaration                   |
+              N_Subprogram_Declaration                |
+              N_Subprogram_Renaming_Declaration       |
+              N_Package_Renaming_Declaration          |
+              N_Generic_Function_Renaming_Declaration |
+              N_Generic_Package_Renaming_Declaration  |
+              N_Generic_Procedure_Renaming_Declaration =>
+               null;  --  Specs are OK
+
+            when N_Package_Body | N_Subprogram_Body =>
+               --  A body must be the main unit
+
+               pragma Assert (CU = Cunit (Main_Unit));
+               null;
+
+            --  All other cases cannot happen
+
+            when N_Function_Instantiation |
+              N_Procedure_Instantiation   |
+              N_Package_Instantiation     =>
+               pragma Assert (False, "instantiation");
+               null;
+
+            when N_Subunit =>
+               pragma Assert (False, "subunit");
+               null;
+
+            when others =>
+               pragma Assert (False);
+               null;
+         end case;
+
+         if Present (CU) then
+            pragma Assert (Item /= Stand.Standard_Package_Node);
+            pragma Assert (Item = Unit (CU));
+
+            declare
+               Unit_Num : constant Unit_Number_Type :=
+                            Get_Cunit_Unit_Number (CU);
+            begin
+               if Debug_Unit_Walk then
+                  Write_Unit_Info (Unit_Num, Item);
+               end if;
+
+               --  This assertion is commented out because it fails in some
+               --  circumstances related to library-level generic
+               --  instantiations. We need to investigate why.
+               --  ???pragma Assert (not Seen (Unit_Num));
+
+               Seen (Unit_Num) := True;
+            end;
+
+         else
+            --  Must be Standard
+
+            pragma Assert (Item = Stand.Standard_Package_Node);
+
+            if Debug_Unit_Walk then
+               Write_Line ("Standard");
+            end if;
+         end if;
+
+         Action (Item);
+      end Do_Action;
+
+      --  Local Declarations
+
+      Cur : Elmt_Id := First_Elmt (Comp_Unit_List);
+
+   --  Start of processing for Walk_Library_Items
+
+   begin
+      if Debug_Unit_Walk then
+         Write_Line ("Walk_Library_Items:");
+         Indent;
+      end if;
+
+      --  Do Standard first, then walk the Comp_Unit_List
+
+      Do_Action (Empty, Standard_Package_Node);
+
+      while Present (Cur) loop
+         declare
+            CU : constant Node_Id := Node (Cur);
+            N  : constant Node_Id := Unit (CU);
+
+         begin
+            pragma Assert (Nkind (CU) = N_Compilation_Unit);
+
+            case Nkind (N) is
+
+               --  If it's a body, then ignore it, unless it's an instance (in
+               --  which case we do the spec), or it's the main unit (in which
+               --  case we do it). Note that it could be both, in which case we
+               --  do the spec first.
+
+               when N_Package_Body | N_Subprogram_Body =>
+                  declare
+                     Entity : Node_Id := N;
+
+                  begin
+                     if Nkind (N) = N_Subprogram_Body then
+                        Entity := Specification (Entity);
+                     end if;
+
+                     Entity := Defining_Unit_Name (Entity);
+
+                     if Nkind (Entity) not in N_Entity then
+
+                        --  Must be N_Defining_Program_Unit_Name
+
+                        Entity := Defining_Identifier (Entity);
+                     end if;
+
+                     if Is_Generic_Instance (Entity) then
+                        declare
+                           Spec_Unit : constant Node_Id := Library_Unit (CU);
+                        begin
+                           Do_Action (Spec_Unit, Unit (Spec_Unit));
+                        end;
+                     end if;
+                  end;
+
+                  if CU = Cunit (Main_Unit) then
+
+                     --  Must come last
+
+                     pragma Assert (No (Next_Elmt (Cur)));
+
+                     Do_Action (CU, N);
+                  end if;
+
+               --  It's a spec, so just do it
+
+               when others =>
+                  Do_Action (CU, N);
+            end case;
+         end;
+
+         Next_Elmt (Cur);
+      end loop;
+
+      if Debug_Unit_Walk then
+         if Seen /= (Seen'Range => True) then
+            Write_Eol;
+            Write_Line ("Ignored units:");
+
+            Indent;
+
+            for Unit_Num in Seen'Range loop
+               if not Seen (Unit_Num) then
+                  Write_Unit_Info (Unit_Num, Unit (Cunit (Unit_Num)));
+               end if;
+            end loop;
+
+            Outdent;
+         end if;
+      end if;
+
+      if Debug_Unit_Walk then
+         Outdent;
+         Write_Line ("end Walk_Library_Items.");
+      end if;
+   end Walk_Library_Items;
+
+   ---------------------
+   -- Write_Unit_Info --
+   ---------------------
+
+   procedure Write_Unit_Info
+     (Unit_Num : Unit_Number_Type;
+      Item     : Node_Id;
+      Prefix   : String := "")
+   is
+   begin
+      Write_Str (Prefix);
+      Write_Unit_Name (Unit_Name (Unit_Num));
+      Write_Str (", unit ");
+      Write_Int (Int (Unit_Num));
+      Write_Str (", ");
+      Write_Int (Int (Item));
+      Write_Str ("=");
+      Write_Str (Node_Kind'Image (Nkind (Item)));
+
+      if Item /= Original_Node (Item) then
+         Write_Str (", orig = ");
+         Write_Int (Int (Original_Node (Item)));
+         Write_Str ("=");
+         Write_Str (Node_Kind'Image (Nkind (Original_Node (Item))));
+      end if;
+
+      Write_Eol;
+   end Write_Unit_Info;
+
 end Sem;

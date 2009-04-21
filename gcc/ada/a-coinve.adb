@@ -6,27 +6,25 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
 --                                                                          --
--- This unit has originally being developed by Matthew J Heaney.            --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
+--                                                                          --
+-- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Generic_Array_Sort;
@@ -385,7 +383,7 @@ package body Ada.Containers.Indefinite_Vectors is
    -- "=" --
    ---------
 
-   function "=" (Left, Right : Vector) return Boolean is
+   overriding function "=" (Left, Right : Vector) return Boolean is
    begin
       if Left'Address = Right'Address then
          return True;
@@ -996,14 +994,13 @@ package body Ada.Containers.Indefinite_Vectors is
       -- Sort --
       ----------
 
-      procedure Sort (Container : in out Vector)
-      is
-         procedure Sort is
-            new Generic_Array_Sort
-             (Index_Type   => Index_Type,
-              Element_Type => Element_Access,
-              Array_Type   => Elements_Array,
-              "<"          => Is_Less);
+      procedure Sort (Container : in out Vector) is
+
+         procedure Sort is new Generic_Array_Sort
+           (Index_Type   => Index_Type,
+            Element_Type => Element_Access,
+            Array_Type   => Elements_Array,
+            "<"          => Is_Less);
 
       --  Start of processing for Sort
 
@@ -1045,7 +1042,7 @@ package body Ada.Containers.Indefinite_Vectors is
       New_Item  : Element_Type;
       Count     : Count_Type := 1)
    is
-      N : constant Int := Int (Count);
+      N               : constant Int := Int (Count);
 
       First           : constant Int := Int (Index_Type'First);
       New_Last_As_Int : Int'Base;
@@ -1053,7 +1050,7 @@ package body Ada.Containers.Indefinite_Vectors is
       New_Length      : UInt;
       Max_Length      : constant UInt := UInt (Count_Type'Last);
 
-      Dst : Elements_Access;
+      Dst             : Elements_Access;
 
    begin
       if Before < Index_Type'First then
@@ -1507,7 +1504,7 @@ package body Ada.Containers.Indefinite_Vectors is
       Before    : Extended_Index;
       Count     : Count_Type := 1)
    is
-      N : constant Int := Int (Count);
+      N               : constant Int := Int (Count);
 
       First           : constant Int := Int (Index_Type'First);
       New_Last_As_Int : Int'Base;
@@ -1515,7 +1512,7 @@ package body Ada.Containers.Indefinite_Vectors is
       New_Length      : UInt;
       Max_Length      : constant UInt := UInt (Count_Type'Last);
 
-      Dst : Elements_Access;
+      Dst             : Elements_Access;
 
    begin
       if Before < Index_Type'First then

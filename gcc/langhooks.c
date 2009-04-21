@@ -1,5 +1,5 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
@@ -105,6 +105,9 @@ lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
 bool
 lhd_post_options (const char ** ARG_UNUSED (pfilename))
 {
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
   return false;
 }
 
@@ -115,14 +118,6 @@ lhd_print_tree_nothing (FILE * ARG_UNUSED (file),
 			tree ARG_UNUSED (node),
 			int ARG_UNUSED (indent))
 {
-}
-
-/* Called from staticp.  */
-
-tree
-lhd_staticp (tree ARG_UNUSED (exp))
-{
-  return NULL;
 }
 
 /* Called from check_global_declarations.  */
@@ -214,17 +209,6 @@ alias_set_type
 lhd_get_alias_set (tree ARG_UNUSED (t))
 {
   return -1;
-}
-
-/* This is the default expand_expr function.  */
-
-rtx
-lhd_expand_expr (tree ARG_UNUSED (t), rtx ARG_UNUSED (r),
-		 enum machine_mode ARG_UNUSED (mm),
-		 int ARG_UNUSED (em),
-		 rtx * ARG_UNUSED (a))
-{
-  gcc_unreachable ();
 }
 
 /* This is the default decl_printable_name function.  */
@@ -437,7 +421,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		  while (block && TREE_CODE (block) == BLOCK)
 		    block = BLOCK_SUPERCONTEXT (block);
 
-		  if (TREE_CODE (block) == FUNCTION_DECL)
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
 		    fndecl = block;
 		  abstract_origin = NULL;
 		}

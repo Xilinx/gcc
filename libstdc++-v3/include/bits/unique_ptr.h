@@ -1,11 +1,11 @@
 // unique_ptr implementation -*- C++ -*-
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file unique_ptr.h
  *  This is an internal header file, included by other library headers.
@@ -46,6 +41,11 @@
 #include <tuple>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   * @addtogroup pointer_abstractions
+   * @{
+   */
 
   /// Primary template, default_delete.
   template<typename _Tp> 
@@ -80,21 +80,20 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       }
     };
 
-  /// 20.6.11.2 unique_ptr for single objects.
+  /// 20.7.12.2 unique_ptr for single objects.
   template <typename _Tp, typename _Tp_Deleter = default_delete<_Tp> > 
     class unique_ptr
     {
-      typedef unique_ptr<_Tp, _Tp_Deleter>   __this_type;
       typedef std::tuple<_Tp*, _Tp_Deleter>  __tuple_type;
-      typedef __tuple_type __this_type::*    __unspecified_bool_type;
-      typedef _Tp* __this_type::*            __unspecified_pointer_type;
+      typedef __tuple_type unique_ptr::*     __unspecified_bool_type;
+      typedef _Tp* unique_ptr::*             __unspecified_pointer_type;
 
     public:
-      typedef _Tp*                    pointer;
+      typedef _Tp*               pointer;
       typedef _Tp                element_type;      
       typedef _Tp_Deleter        deleter_type;
 
-      // constructors
+      // Constructors.
       unique_ptr()
       : _M_t(pointer(), deleter_type())
       { static_assert(!std::is_pointer<deleter_type>::value,
@@ -117,8 +116,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { static_assert(!std::is_reference<deleter_type>::value, 
 		      "rvalue deleter bound to reference"); }
 
-      // move constructors
-      unique_ptr(unique_ptr && __u) 
+      // Move constructors.
+      unique_ptr(unique_ptr&& __u) 
       : _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter())) { }
 
       template<typename _Up, typename _Up_Deleter> 
@@ -126,10 +125,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
         : _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
 	{ }
 
-      // destructor
+      // Destructor.
       ~unique_ptr() { reset(); }
     
-      // assignment
+      // Assignment.
       unique_ptr&
       operator=(unique_ptr&& __u)
       { 
@@ -154,7 +153,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return *this;
       }
 
-      // observers
+      // Observers.
       typename std::add_lvalue_reference<element_type>::type operator*() const
       {
 	_GLIBCXX_DEBUG_ASSERT(get() != 0);
@@ -183,9 +182,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return std::get<1>(_M_t); }
 
       operator __unspecified_bool_type () const
-      { return get() == 0 ? 0 : &__this_type::_M_t; }
+      { return get() == 0 ? 0 : &unique_ptr::_M_t; }
 
-      // modifiers
+      // Modifiers.
       pointer
       release() 
       {
@@ -211,7 +210,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	swap(_M_t, __u._M_t);
       }
 
-      // disable copy from lvalue
+      // Disable copy from lvalue.
       unique_ptr(const unique_ptr&) = delete;
 
       template<typename _Up, typename _Up_Deleter> 
@@ -226,24 +225,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __tuple_type _M_t;
   };
  
-  /// 20.6.11.3 unique_ptr for array objects with a runtime length
+  /// 20.7.12.3 unique_ptr for array objects with a runtime length
   // [unique.ptr.runtime]
   // _GLIBCXX_RESOLVE_LIB_DEFECTS
   // DR 740 - omit specialization for array objects with a compile time length
   template<typename _Tp, typename _Tp_Deleter> 
     class unique_ptr<_Tp[], _Tp_Deleter>
     {
-      typedef unique_ptr<_Tp[], _Tp_Deleter>  __this_type;
-      typedef std::tuple<_Tp*, _Tp_Deleter>   __tuple_type;
-      typedef __tuple_type __this_type::*     __unspecified_bool_type;
-      typedef _Tp* __this_type::*             __unspecified_pointer_type;
+      typedef std::tuple<_Tp*, _Tp_Deleter>  __tuple_type;
+      typedef __tuple_type unique_ptr::*     __unspecified_bool_type;
+      typedef _Tp* unique_ptr::*             __unspecified_pointer_type;
 
     public:
-      typedef _Tp*                    pointer;
+      typedef _Tp*               pointer;
       typedef _Tp                element_type;      
       typedef _Tp_Deleter        deleter_type;
 
-      // constructors
+      // Constructors.
       unique_ptr()
       : _M_t(pointer(), deleter_type())
       { static_assert(!std::is_pointer<deleter_type>::value,
@@ -266,7 +264,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { static_assert(!std::is_reference<deleter_type>::value, 
 		      "rvalue deleter bound to reference"); }
 
-      // move constructors
+      // Move constructors.
       unique_ptr(unique_ptr&& __u) 
       : _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter())) { }
 
@@ -275,10 +273,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	: _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
 	{ }
 
-      // destructor
+      // Destructor.
       ~unique_ptr() { reset(); }
 
-      // assignment
+      // Assignment.
       unique_ptr&
       operator=(unique_ptr&& __u)
       {
@@ -303,7 +301,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return *this;
       }
 
-      // observers
+      // Observers.
       typename std::add_lvalue_reference<element_type>::type 
       operator[](size_t __i) const 
       {
@@ -326,9 +324,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return std::get<1>(_M_t); }    
 
       operator __unspecified_bool_type () const 
-      { return get() == 0 ? 0 : &__this_type::_M_t; }
+      { return get() == 0 ? 0 : &unique_ptr::_M_t; }
     
-      // modifiers
+      // Modifiers.
       pointer
       release() 
       {
@@ -358,11 +356,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	swap(_M_t, __u._M_t);
       }
 
-      // disable copy from lvalue
+      // Disable copy from lvalue.
       unique_ptr(const unique_ptr&) = delete;
       unique_ptr& operator=(const unique_ptr&) = delete;
 
-      // disable construction from convertible pointer types
+      // Disable construction from convertible pointer types.
       // (N2315 - 20.6.5.3.1)
       template<typename _Up>
         unique_ptr(_Up*, typename
@@ -444,6 +442,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator>=(const unique_ptr<_Tp, _Tp_Deleter>& __x,
 	       const unique_ptr<_Up, _Up_Deleter>& __y)
     { return !(__x.get() < __y.get()); }
+
+  // @} group pointer_abstractions
 
 _GLIBCXX_END_NAMESPACE
 

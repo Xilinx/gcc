@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -142,6 +142,8 @@ extern GTY(()) int spu_tune;
 
 #define DEFAULT_SIGNED_CHAR 0
 
+#define STDINT_LONG32 0
+
 
 /* Register Basics */
 
@@ -251,6 +253,8 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define STACK_GROWS_DOWNWARD
 
+#define FRAME_GROWS_DOWNWARD 1
+
 #define STARTING_FRAME_OFFSET (0)
 
 #define STACK_POINTER_OFFSET 32
@@ -312,8 +316,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define FRAME_POINTER_REQUIRED 0
 
-#define INITIAL_FRAME_POINTER_OFFSET(DEPTH) ((DEPTH) = 0)
-
 #define ELIMINABLE_REGS  \
   {{ARG_POINTER_REGNUM,	 STACK_POINTER_REGNUM},				\
   {ARG_POINTER_REGNUM,	 HARD_FRAME_POINTER_REGNUM},			\
@@ -353,6 +355,14 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 	 : (MODE) == BLKmode ? ((int_size_in_bytes(TYPE)+15) / 16) \
          : (MODE) == VOIDmode ? 1 \
 	 : HARD_REGNO_NREGS(CUM,MODE))
+
+
+/* The SPU ABI wants 32/64-bit types at offset 0 in the quad-word on the
+   stack.  8/16-bit types should be at offsets 3/2 respectively.  */
+#define FUNCTION_ARG_OFFSET(MODE, TYPE)					\
+(((TYPE) && INTEGRAL_TYPE_P (TYPE) && GET_MODE_SIZE (MODE) < 4)		\
+ ? (4 - GET_MODE_SIZE (MODE))						\
+ : 0)
 
 #define FUNCTION_ARG_PADDING(MODE,TYPE) upward
 

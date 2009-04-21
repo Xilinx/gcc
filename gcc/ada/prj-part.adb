@@ -515,9 +515,10 @@ package body Prj.Part is
 
          if Path_Name = "" then
             Prj.Com.Fail
-              ("project file """,
-               Project_File_Name,
-               """ not found in " & Project_Path);
+              ("project file """
+               & Project_File_Name
+               & """ not found in "
+               & Project_Path);
             Project := Empty_Node;
             return;
          end if;
@@ -1737,7 +1738,7 @@ package body Prj.Part is
 
       --  And restore the comment state that was saved
 
-      Tree.Restore (Project_Comment_State);
+      Tree.Restore_And_Free (Project_Comment_State);
    end Parse_Single_Project;
 
    -----------------------

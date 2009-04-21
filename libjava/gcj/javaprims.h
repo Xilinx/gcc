@@ -1,8 +1,8 @@
 // javaprims.h - Main external header file for libgcj.  -*- c++ -*-
 
 
-/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation
+/* Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+   2008, 2009 Free Software Foundation
 
    This file is part of libgcj.
 
@@ -142,6 +142,7 @@ extern "Java"
     namespace lang
     {
       class AbstractMethodError;
+      class AbstractStringBuffer;
       class Appendable;
       class ArithmeticException;
       class ArrayIndexOutOfBoundsException;
@@ -239,6 +240,8 @@ extern "Java"
       class ThreadDeath;
       class ThreadGroup;
       class ThreadLocal;
+      class ThreadLocalMap;
+      class ThreadLocalMap$Entry;
       class Throwable;
       class Throwable$StaticData;
       class TypeNotPresentException;
@@ -519,6 +522,7 @@ extern "Java"
       class ResourceBundle;
       class ResourceBundle$1;
       class ResourceBundle$BundleKey;
+      class Scanner;
       class ServiceConfigurationError;
       class ServiceLoader;
       class ServiceLoader$1;
@@ -850,6 +854,7 @@ extern "Java"
       }
     }
   }
+  // end of output of the `classes.pl' script.
 }
   
 typedef struct java::lang::Object* jobject;
@@ -860,15 +865,6 @@ struct _Jv_JNIEnv;
 
 typedef struct _Jv_Field *jfieldID;
 typedef struct _Jv_Method *jmethodID;
-
-enum _Jv_jobjectRefType
-{
-  JNIInvalidRefType    = 0,
-  JNILocalRefType      = 1,
-  JNIGlobalRefType     = 2,
-  JNIWeakGlobalRefType = 3
-};
-typedef enum _Jv_jobjectRefType jobjectRefType;
 
 extern "C" jobject _Jv_AllocObject (jclass) __attribute__((__malloc__));
 extern "C" jobject _Jv_AllocObjectNoFinalizer (jclass) __attribute__((__malloc__));
@@ -923,7 +919,7 @@ struct _Jv_VMInitArgs
   jboolean ignoreUnrecognized;
 };
 
-extern jint _Jv_CreateJavaVM (struct _Jv_VMInitArgs*);
+extern "C" jint _Jv_CreateJavaVM (struct _Jv_VMInitArgs*);
 
 void
 _Jv_ThreadRun (java::lang::Thread* thread);

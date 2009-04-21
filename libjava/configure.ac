@@ -77,6 +77,63 @@ AC_ARG_ENABLE(gconf-peer,
     [gconf_enabled=no]
 )
 
+AC_ARG_WITH([antlr-jar],
+            [AS_HELP_STRING([--with-antlr-jar=file],[Use ANTLR from the specified jar file])],
+            [
+             ANTLR_JAR=$withval
+            ],
+            [
+             ANTLR_JAR=
+            ])
+
+AC_MSG_CHECKING([for antlr.jar])
+if test "x$ANTLR_JAR" = x; then
+    for antlr_lib_home in `ls -d /usr/local/share/antlr* 2> /dev/null` \
+	/usr/share/antlr/lib /usr/share/java /usr/lib;
+    do
+	if test -f "$antlr_lib_home/antlr.jar"; then
+	    # FIXME: version check for antlr needed without using a VM
+	    ANTLR_JAR="$antlr_lib_home/antlr.jar"
+	    break
+	fi
+    done
+    if test "x$ANTLR_JAR" = x; then
+	AC_MSG_RESULT([not found])
+    else
+	AC_MSG_RESULT($ANTLR_JAR)
+    fi
+else
+    if test -f "${ANTLR_JAR}"; then
+	AC_MSG_RESULT($ANTLR_JAR)
+    else
+	AC_MSG_ERROR([antlr jar file not found: $ANTLR_JAR])
+    fi
+fi
+AC_SUBST(ANTLR_JAR)
+
+AC_ARG_ENABLE([gjdoc],
+              [AS_HELP_STRING(--disable-gjdoc,compile GJDoc (disabled by --disable-gjdoc) [default=yes])],
+              [case "${enableval}" in
+                yes) BUILD_GJDOC=yes ;;
+                no) BUILD_GJDOC=no ;;
+                *) BUILD_GJDOC=yes ;;
+              esac],
+              [BUILD_GJDOC=maybe])
+
+AC_MSG_CHECKING([whether to build gjdoc])
+if test "x$BUILD_GJDOC" = xmaybe; then
+    if test -f "${ANTLR_JAR}"; then
+	BUILD_GJDOC=yes
+	AC_MSG_RESULT(yes)
+    else
+	BUILD_GJDOC=no
+	AC_MSG_RESULT([no, antlr.jar not found])
+    fi
+else
+    AC_MSG_RESULT($BUILD_GJDOC)
+fi
+AM_CONDITIONAL(CREATE_GJDOC, test "x${BUILD_GJDOC}" = xyes)
+
 AC_ARG_ENABLE(java-maintainer-mode,
 	AS_HELP_STRING([--enable-java-maintainer-mode],
 	[allow rebuilding of .class and .h files]))
@@ -386,7 +443,6 @@ test -f libgcj.spec || touch libgcj.spec
 
 # Set up to configure Classpath.
 # FIXME: no supported way to pass args in autoconf.
-ac_configure_args="$ac_configure_args --with-fastjar=$JAR"
 # Disable tool wrappers to avoid ltdl.h configure check.
 ac_configure_args="$ac_configure_args --disable-tool-wrappers"
 ac_configure_args="$ac_configure_args --disable-load-library"
@@ -425,12 +481,14 @@ else
     ac_configure_args="$ac_configure_args --with-escher=$with_escher"
   fi
 fi
+if test "x$BUILD_GJDOC" = xno; then
+  ac_configure_args="$ac_configure_args --disable-gjdoc"
+fi
 # -Werror causes unavoidable problems in code using alsa.
 ac_configure_args="$ac_configure_args --disable-regen-headers"
 ac_configure_args="$ac_configure_args --disable-Werror"
 dnl --with-gcj=$GCJ
 dnl --with-javah=$GCJH
-dnl gjdoc?
 dnl gtk-cairo -- just export here...
 dnl --enable-regen-headers?
 
@@ -617,6 +675,9 @@ if AC_TRY_EVAL(ac_compile); then
     enable_sjlj_exceptions=yes
   elif grep _Unwind_Resume conftest.s >/dev/null 2>&1 ; then
     enable_sjlj_exceptions=no
+  elif grep __cxa_end_cleanup conftest.s >/dev/null 2>&1 ; then
+    # ARM EH ABI.
+    enable_sjlj_exceptions=no
   fi
 fi
 CXXFLAGS="$old_CXXFLAGS"
@@ -772,6 +833,10 @@ AC_CONFIG_LINKS(gnu/java/nio/natVMSelector.cc:gnu/java/nio/natVMSelector${PLATFO
 test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
 AC_CONFIG_LINKS(gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc)
 
+# Likewise for natVMSecureRandom.cc
+test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
+AC_CONFIG_LINKS(gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc)
+
 case "${host}" in
     *mingw*)
       SYSTEMSPEC="-lgdi32 -lws2_32"
@@ -809,7 +874,7 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
-*-*-darwin[[9]]*)
+*-*-darwin[[912]]*)
     extra_gij_ldflags=-Wl,-allow_stack_execute
     ;;
 arm*linux*eabi)
@@ -880,7 +945,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- posix | posix95 | pthreads)
+ aix | posix | posix95 | pthreads)
     THREADS=posix
     case "$host" in
      *-*-linux*)
@@ -988,6 +1053,9 @@ AC_SUBST(THREADCXXFLAGS)
 AM_CONDITIONAL(USING_POSIX_THREADS, test "$THREADS" = posix)
 AM_CONDITIONAL(USING_WIN32_THREADS, test "$THREADS" = win32)
 AM_CONDITIONAL(USING_NO_THREADS, test "$THREADS" = none)
+if test "$enable_shared" != yes; then
+  use_libgcj_bc=no
+fi
 AM_CONDITIONAL(USE_LIBGCJ_BC, test "$use_libgcj_bc" = yes)
 
 if test -d sysdep; then true; else mkdir sysdep; fi
@@ -997,7 +1065,7 @@ AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
 LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
 
@@ -1325,6 +1393,7 @@ if test ! -f gnu/classpath/Configuration.java; then
       -e "s,@JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION@,false," \
       -e "s,@GTK_CAIRO_ENABLED@,false," \
       -e "s,@ECJ_JAR@,," \
+      -e "s,@WANT_NATIVE_BIG_INTEGER@,false," \
 	< $srcdir/classpath/gnu/classpath/Configuration.java.in \
 	> gnu/classpath/Configuration.java
   # We do not want to redirect the output of the grep below to /dev/null,
@@ -1370,6 +1439,7 @@ AC_SUBST(IEEESPEC)
 AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
 AM_CONDITIONAL(NEEDS_DATA_START, test "$NEEDS_DATA_START" = yes && test "$NATIVE" = yes)
+AM_CONDITIONAL(INSTALL_BINARIES, test -z "${with_multisubdir}")
 AC_SUBST(GCC_UNWIND_INCLUDE)
 
 # Process the option "--enable-version-specific-runtime-libs"
@@ -1572,8 +1642,11 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin* | i?86-*-darwin9* | x86_64-*-darwin9*)
+ powerpc*-*-darwin* | i?86-*-darwin[[912]]* | x86_64-*-darwin[[912]]*)
     SIGNAL_HANDLER=include/darwin-signal.h
+    ;;
+ powerpc*-*-aix*)
+    SIGNAL_HANDLER=include/aix-signal.h
     ;;
  *)
     SIGNAL_HANDLER=include/default-signal.h
@@ -1671,7 +1744,7 @@ AC_ARG_ENABLE([aot-compile-rpm],
   esac],
   [AOT_RPM_ENABLED=no]
 )
-AM_CONDITIONAL(INSTALL_AOT_RPM, test "x${AOT_RPM_ENABLED}" == xyes)
+AM_CONDITIONAL(INSTALL_AOT_RPM, test "x${AOT_RPM_ENABLED}" = xyes)
 
 AC_ARG_ENABLE([java-home],
   [AS_HELP_STRING([--enable-java-home],
@@ -1683,10 +1756,10 @@ AC_ARG_ENABLE([java-home],
   esac],
   [JAVA_HOME_ENABLED=no]
 )
-AM_CONDITIONAL(CREATE_JAVA_HOME, test "x${JAVA_HOME_ENABLED}" == xyes)
+AM_CONDITIONAL(CREATE_JAVA_HOME, test "x${JAVA_HOME_ENABLED}" = xyes)
 
 # Only do these checks if java-home above is enabled.
-if test "x${JAVA_HOME_ENABLED}" == xyes
+if test "x${JAVA_HOME_ENABLED}" = xyes
 then
 
   AC_ARG_WITH([gcc-suffix],
@@ -1736,8 +1809,7 @@ then
   AC_SUBST(BUILD_VERSION)
   AC_MSG_RESULT(Java version: ${JAVA_VERSION})
 
-  jre_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}/jre
-  sdk_dir=java-${JAVA_VERSION}-${origin_name}-${JAVA_VERSION}.${BUILD_VERSION}${arch_suffix}
+  jre_dir=jre
   jre_lnk=jre-${JAVA_VERSION}-${origin_name}
   sdk_lnk=java-${JAVA_VERSION}-${origin_name}
 
@@ -1749,15 +1821,12 @@ then
   AC_SUBST(JVM_JAR_ROOT_DIR)
   AC_MSG_RESULT(JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR})
 
-  JVM_JAR_DIR=${jvm_jar_dir}/${sdk_dir}
+  JVM_JAR_DIR=${jvm_jar_dir}
   AC_SUBST(JVM_JAR_DIR)
   AC_MSG_RESULT(JVM JAR directory: ${JVM_JAR_DIR})
 
   JRE_DIR=${jre_dir}
   AC_SUBST(JRE_DIR)
-
-  SDK_DIR=${sdk_dir}
-  AC_SUBST(SDK_DIR)
 
   JRE_LNK=${jre_lnk}
   AC_SUBST(JRE_LNK)
@@ -1765,15 +1834,15 @@ then
   SDK_LNK=${sdk_lnk}
   AC_SUBST(SDK_LNK)
 
-  SDK_BIN_DIR=${jvm_root_dir}/${sdk_dir}/bin
+  SDK_BIN_DIR=${jvm_root_dir}/bin
   AC_SUBST(SDK_BIN_DIR)
   AC_MSG_RESULT(SDK tools directory: ${SDK_BIN_DIR})
 
-  SDK_LIB_DIR=${jvm_root_dir}/${sdk_dir}/lib
+  SDK_LIB_DIR=${jvm_root_dir}/lib
   AC_SUBST(SDK_LIB_DIR)
   AC_MSG_RESULT(SDK jar directory: ${SDK_LIB_DIR})
 
-  SDK_INCLUDE_DIR=${jvm_root_dir}/${sdk_dir}/include
+  SDK_INCLUDE_DIR=${jvm_root_dir}/include
   AC_SUBST(SDK_INCLUDE_DIR)
   AC_MSG_RESULT(SDK include directory: ${SDK_INCLUDE_DIR})
 
@@ -1795,7 +1864,7 @@ then
   AC_SUBST(GCJ_BIN_DIR)
   AC_MSG_RESULT(GCJ tools directory: ${GCJ_BIN_DIR})
 
-  echo host is ${host}
+  AC_MSG_RESULT(host is ${host})
   if test "x${host_cpu}" = "x"
   then
     case ${host} in
@@ -1803,6 +1872,8 @@ then
         host_cpu=x86;;
       i486-* | i586-* | i686-*)
         host_cpu=i386;;
+      x86_64-*)
+        host_cpu=amd64;;
       *)
         host_cpu=${host_cpu};;
     esac

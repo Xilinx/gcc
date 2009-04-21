@@ -6,24 +6,17 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
  * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
- *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * Public License  distributed  with GNAT;  see file  COPYING3.  If not see *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -345,6 +338,7 @@ enum attr_type
   ATTR_LINK_SECTION,
   ATTR_LINK_CONSTRUCTOR,
   ATTR_LINK_DESTRUCTOR,
+  ATTR_THREAD_LOCAL_STORAGE,
   ATTR_WEAK_EXTERNAL
 };
 
@@ -363,9 +357,8 @@ extern const struct attribute_spec gnat_internal_attribute_table[];
 /* Define the entries in the standard data array.  */
 enum standard_datatypes
 {
-/* Various standard data types and nodes.  */
+  /* The longest floating-point type.  */
   ADT_longest_float_type,
-  ADT_void_type_decl,
 
   /* The type of an exception.  */
   ADT_except_type,
@@ -418,7 +411,6 @@ extern GTY(()) tree gnat_std_decls[(int) ADT_LAST];
 extern GTY(()) tree gnat_raise_decls[(int) LAST_REASON_CODE + 1];
 
 #define longest_float_type_node gnat_std_decls[(int) ADT_longest_float_type]
-#define void_type_decl_node gnat_std_decls[(int) ADT_void_type_decl]
 #define except_type_node gnat_std_decls[(int) ADT_except_type]
 #define ptr_void_type_node gnat_std_decls[(int) ADT_ptr_void_type]
 #define void_ftype gnat_std_decls[(int) ADT_void_ftype]
@@ -468,8 +460,8 @@ extern tree get_block_jmpbuf_decl (void);
 extern void gnat_pushdecl (tree decl, Node_Id gnat_node);
 
 extern void gnat_init_decl_processing (void);
-extern void init_gigi_decls (tree long_long_float_type, tree exception_type);
 extern void gnat_init_gcc_eh (void);
+extern void gnat_install_builtins (void);
 
 /* Return an integer type with the number of bits of precision given by
    PRECISION.  UNSIGNEDP is nonzero if the type is unsigned; otherwise
@@ -522,6 +514,9 @@ extern bool present_gnu_tree (Entity_Id gnat_entity);
 /* Initialize tables for above routines.  */
 extern void init_gnat_to_gnu (void);
 
+/* Record TYPE as a builtin type for Ada.  NAME is the name of the type.  */
+extern void record_builtin_type (const char *name, tree type);
+
 /* Given a record type RECORD_TYPE and a chain of FIELD_DECL nodes FIELDLIST,
    finish constructing the record or union type.  If REP_LEVEL is zero, this
    record has no representation clause and so will be entirely laid out here.
@@ -569,12 +564,16 @@ extern tree copy_type (tree type);
 extern tree create_index_type (tree min, tree max, tree index,
 			       Node_Id gnat_node);
 
-/* Return a TYPE_DECL node. TYPE_NAME gives the name of the type (a character
-   string) and TYPE is a ..._TYPE node giving its data type.
-   ARTIFICIAL_P is true if this is a declaration that was generated
-   by the compiler.  DEBUG_INFO_P is true if we need to write debugging
-   information about this type.  GNAT_NODE is used for the position of
-   the decl.  */
+/* Return a TYPE_DECL node suitable for the TYPE_STUB_DECL field of a type.
+   TYPE_NAME gives the name of the type and TYPE is a ..._TYPE node giving
+   its data type.  */
+extern tree create_type_stub_decl (tree type_name, tree type);
+
+/* Return a TYPE_DECL node.  TYPE_NAME gives the name of the type and TYPE
+   is a ..._TYPE node giving its data type.  ARTIFICIAL_P is true if this
+   is a declaration that was generated by the compiler.  DEBUG_INFO_P is
+   true if we need to write debug information about this type.  GNAT_NODE
+   is used for the position of the decl.  */
 extern tree create_type_decl (tree type_name, tree type,
                               struct attrib *attr_list,
                               bool artificial_p, bool debug_info_p,

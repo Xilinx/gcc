@@ -1,5 +1,6 @@
 /* Data references and dependences detectors. 
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
 This file is part of GCC.
@@ -87,7 +88,6 @@ struct dr_alias
 {
   /* The alias information that should be used for new pointers to this
      location.  SYMBOL_TAG is either a DECL or a SYMBOL_MEMORY_TAG.  */
-  tree symbol_tag;
   struct ptr_info_def *ptr_info;
 
   /* The set of virtual operands corresponding to this memory reference,
@@ -128,13 +128,13 @@ typedef struct scop *scop_p;
 */
 struct access_matrix
 {
-  int loop_nest_num;
+  VEC (loop_p, heap) *loop_nest;
   int nb_induction_vars;
   VEC (tree, heap) *parameters;
-  VEC (lambda_vector, heap) *matrix;
+  VEC (lambda_vector, gc) *matrix;
 };
 
-#define AM_LOOP_NEST_NUM(M) (M)->loop_nest_num
+#define AM_LOOP_NEST(M) (M)->loop_nest
 #define AM_NB_INDUCTION_VARS(M) (M)->nb_induction_vars
 #define AM_PARAMETERS(M) (M)->parameters
 #define AM_MATRIX(M) (M)->matrix
@@ -149,8 +149,14 @@ struct access_matrix
 static inline int
 am_vector_index_for_loop (struct access_matrix *access_matrix, int loop_num)
 {
-  gcc_assert (loop_num >= AM_LOOP_NEST_NUM (access_matrix));
-  return loop_num - AM_LOOP_NEST_NUM (access_matrix);
+  int i;
+  loop_p l;
+
+  for (i = 0; VEC_iterate (loop_p, AM_LOOP_NEST (access_matrix), i, l); i++)
+    if (l->num == loop_num)
+      return i;
+
+  gcc_unreachable();
 }
 
 int access_matrix_get_index_for_parameter (tree, struct access_matrix *);
@@ -197,9 +203,7 @@ struct data_reference
 #define DR_OFFSET(DR)              (DR)->innermost.offset
 #define DR_INIT(DR)                (DR)->innermost.init
 #define DR_STEP(DR)                (DR)->innermost.step
-#define DR_SYMBOL_TAG(DR)          (DR)->alias.symbol_tag
 #define DR_PTR_INFO(DR)            (DR)->alias.ptr_info
-#define DR_VOPS(DR)		   (DR)->alias.vops
 #define DR_ALIGNED_TO(DR)          (DR)->innermost.aligned_to
 #define DR_ACCESS_MATRIX(DR)       (DR)->access_matrix
 
@@ -284,14 +288,6 @@ struct data_dependence_relation
   struct data_reference *a;
   struct data_reference *b;
 
-  /* When the dependence relation is affine, it can be represented by
-     a distance vector.  */
-  bool affine_p;
-
-  /* Set to true when the dependence relation is on the same data
-     access.  */
-  bool self_reference_p;
-
   /* A "yes/no/maybe" field for the dependence relation:
      
      - when "ARE_DEPENDENT == NULL_TREE", there exist a dependence
@@ -313,18 +309,26 @@ struct data_dependence_relation
   /* The analyzed loop nest.  */
   VEC (loop_p, heap) *loop_nest;
 
-  /* An index in loop_nest for the innermost loop that varies for
-     this data dependence relation.  */
-  unsigned inner_loop;
-
   /* The classic direction vector.  */
   VEC (lambda_vector, heap) *dir_vects;
 
   /* The classic distance vector.  */
   VEC (lambda_vector, heap) *dist_vects;
 
+  /* An index in loop_nest for the innermost loop that varies for
+     this data dependence relation.  */
+  unsigned inner_loop;
+
   /* Is the dependence reversed with respect to the lexicographic order?  */
   bool reversed_p;
+
+  /* When the dependence relation is affine, it can be represented by
+     a distance vector.  */
+  bool affine_p;
+
+  /* Set to true when the dependence relation is on the same data
+     access.  */
+  bool self_reference_p;
 };
 
 typedef struct data_dependence_relation *ddr_p;
@@ -375,7 +379,7 @@ DEF_VEC_O (data_ref_loc);
 DEF_VEC_ALLOC_O (data_ref_loc, heap);
 
 bool get_references_in_stmt (gimple, VEC (data_ref_loc, heap) **);
-void dr_analyze_innermost (struct data_reference *);
+bool dr_analyze_innermost (struct data_reference *);
 extern bool compute_data_dependences_for_loop (struct loop *, bool,
 					       VEC (data_reference_p, heap) **,
 					       VEC (ddr_p, heap) **);
@@ -581,7 +585,7 @@ bool lambda_transform_legal_p (lambda_trans_matrix, int,
 void lambda_collect_parameters (VEC (data_reference_p, heap) *,
 				VEC (tree, heap) **);
 bool lambda_compute_access_matrices (VEC (data_reference_p, heap) *,
-				     VEC (tree, heap) *, int);
+				     VEC (tree, heap) *, VEC (loop_p, heap) *);
 
 /* In tree-data-ref.c  */
 void split_constant_offset (tree , tree *, tree *);

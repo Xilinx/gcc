@@ -1,3 +1,21 @@
+2009-04-10  Arnaud Charlet  <charlet@adacore.com>
+
+	* Makefile.in (stamp-tools): Add handling of snames.ad[sb]
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* configure.ac: Likewise.
+
+2009-02-26  Andreas Schwab  <schwab@suse.de>
+
+	PR ada/39172
+	* Makefile.in (fsrcdir): Point to gcc directory, not gcc/ada.
+	(INCLUDES_FOR_SUBDIR): Adjust.
+	(ADA_INCLUDES_FOR_SUBDIR): Adjust.
+
 2008-08-01  Paolo Bonzini  <bonzini@gnu.org>
 
 	* configure.ac (warn_cflags): Substitute.
@@ -105,8 +123,8 @@
 
 2005-02-02  Nathanael Nerode  <neroden@gcc.gnu.org>
 
-        * Makefile.in: Remove use of cc_set_by_configure; just use
-        plain old CC from the top level in this case.
+	* Makefile.in: Remove use of cc_set_by_configure; just use
+	plain old CC from the top level in this case.
 
 2005-01-30  Nathanael Nerode  <neroden@gcc.gnu.org>
 	Merge from mainline at tag libada-gnattools-merge-20050129:
@@ -115,7 +133,7 @@
 
 2004-12-13  Nathanael Nerode  <neroden@gcc.gnu.org>
 
-        * Makefile.in: Reinstate stamp-gnatlib check.
+	* Makefile.in: Reinstate stamp-gnatlib check.
 
 2004-12-02  Nathanael Nerode  <neroden@gcc.gnu.org>
 
@@ -146,4 +164,3 @@ Copyright 2004, 2005 Free Software Foundation, Inc.
 
 This ChangeLog is free software; the Free Software Foundation gives
 unlimited permission to copy, distribute, and modify it.
-

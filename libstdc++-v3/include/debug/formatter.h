@@ -1,11 +1,11 @@
 // Debug-mode error formatting implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file debug/formatter.h
  *  This file is a GNU debug extension to the Standard C++ Library.
@@ -34,6 +29,7 @@
 #ifndef _GLIBCXX_DEBUG_FORMATTER_H
 #define _GLIBCXX_DEBUG_FORMATTER_H 1
 
+#include <bits/c++config.h>
 #include <typeinfo>
 #include <debug/debug.h>
 
@@ -350,9 +346,9 @@ namespace __gnu_debug
     { _M_text = __text; return *this; }
 
     const _Error_formatter&
-    _M_message(_Debug_msg_id __id) const;
+    _M_message(_Debug_msg_id __id) const throw ();
 
-    void
+    _GLIBCXX_NORETURN void
     _M_error() const;
 
   private:
@@ -363,7 +359,7 @@ namespace __gnu_debug
 
     template<typename _Tp>
       void
-      _M_format_word(char*, int, const char*, _Tp) const;
+      _M_format_word(char*, int, const char*, _Tp) const throw ();
 
     void
     _M_print_word(const char* __word) const;
@@ -372,7 +368,7 @@ namespace __gnu_debug
     _M_print_string(const char* __string) const;
 
     void
-    _M_get_max_length() const;
+    _M_get_max_length() const throw ();
 
     enum { __max_parameters = 9 };
 

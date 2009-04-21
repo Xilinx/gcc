@@ -1,5 +1,5 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -134,6 +134,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "tree-pass.h"
 #include "output.h"
+#include "coverage.h"
 
 static void cgraph_expand_all_functions (void);
 static void cgraph_mark_functions_to_output (void);
@@ -426,7 +427,7 @@ cgraph_process_new_functions (void)
 	case CGRAPH_STATE_EXPANSION:
 	  /* Functions created during expansion shall be compiled
 	     directly.  */
-	  node->output = 0;
+	  node->process = 0;
 	  cgraph_expand_function (node);
 	  break;
 
@@ -452,12 +453,12 @@ cgraph_process_new_functions (void)
 static void
 cgraph_reset_node (struct cgraph_node *node)
 {
-  /* If node->output is set, then we have already begun whole-unit analysis.
+  /* If node->process is set, then we have already begun whole-unit analysis.
      This is *not* testing for whether we've already emitted the function.
      That case can be sort-of legitimately seen with real function redefinition
      errors.  I would argue that the front end should never present us with
      such a case, but don't enforce that for now.  */
-  gcc_assert (!node->output);
+  gcc_assert (!node->process);
 
   /* Reset our data structures so we can analyze the function again.  */
   memset (&node->local, 0, sizeof (node->local));
@@ -896,6 +897,15 @@ cgraph_analyze_functions (void)
 	if (!edge->callee->reachable)
 	  cgraph_mark_reachable_node (edge->callee);
 
+      /* If decl is a clone of an abstract function, mark that abstract
+	 function so that we don't release its body. The DECL_INITIAL() of that
+         abstract function declaration will be later needed to output debug info.  */
+      if (DECL_ABSTRACT_ORIGIN (decl))
+	{
+	  struct cgraph_node *origin_node = cgraph_node (DECL_ABSTRACT_ORIGIN (decl));
+	  origin_node->abstract_and_needed = true;
+	}
+
       /* We finalize local static variables during constructing callgraph
          edges.  Process their attributes too.  */
       process_function_and_variable_attributes (first_processed,
@@ -969,6 +979,8 @@ cgraph_finalize_compilation_unit (void)
   cgraph_analyze_functions ();
   timevar_pop (TV_CGRAPH);
 }
+
+
 /* Figure out what functions we want to assemble.  */
 
 static void
@@ -981,7 +993,7 @@ cgraph_mark_functions_to_output (void)
       tree decl = node->decl;
       struct cgraph_edge *e;
 
-      gcc_assert (!node->output);
+      gcc_assert (!node->process);
 
       for (e = node->callers; e; e = e->next_caller)
 	if (e->inline_failed)
@@ -996,7 +1008,7 @@ cgraph_mark_functions_to_output (void)
 	      || (e && node->reachable))
 	  && !TREE_ASM_WRITTEN (decl)
 	  && !DECL_EXTERNAL (decl))
-	node->output = 1;
+	node->process = 1;
       else
 	{
 	  /* We should've reclaimed all functions that are not needed.  */
@@ -1029,6 +1041,7 @@ cgraph_expand_function (struct cgraph_node *node)
   gcc_assert (!node->global.inlined_to);
 
   announce_function (decl);
+  node->process = 0;
 
   gcc_assert (node->lowered);
 
@@ -1052,7 +1065,7 @@ cgraph_expand_function (struct cgraph_node *node)
 /* Return true when CALLER_DECL should be inlined into CALLEE_DECL.  */
 
 bool
-cgraph_inline_p (struct cgraph_edge *e, const char **reason)
+cgraph_inline_p (struct cgraph_edge *e, cgraph_inline_failed_t *reason)
 {
   *reason = e->inline_failed;
   return !e->inline_failed;
@@ -1084,16 +1097,16 @@ cgraph_expand_all_functions (void)
   /* Garbage collector may remove inline clones we eliminate during
      optimization.  So we must be sure to not reference them.  */
   for (i = 0; i < order_pos; i++)
-    if (order[i]->output)
+    if (order[i]->process)
       order[new_order_pos++] = order[i];
 
   for (i = new_order_pos - 1; i >= 0; i--)
     {
       node = order[i];
-      if (node->output)
+      if (node->process)
 	{
 	  gcc_assert (node->reachable);
-	  node->output = 0;
+	  node->process = 0;
 	  cgraph_expand_function (node);
 	}
     }
@@ -1142,7 +1155,7 @@ cgraph_output_in_order (void)
 
   for (pf = cgraph_nodes; pf; pf = pf->next)
     {
-      if (pf->output)
+      if (pf->process)
 	{
 	  i = pf->order;
 	  gcc_assert (nodes[i].kind == ORDER_UNDEFINED);
@@ -1182,7 +1195,7 @@ cgraph_output_in_order (void)
       switch (nodes[i].kind)
 	{
 	case ORDER_FUNCTION:
-	  nodes[i].u.f->output = 0;
+	  nodes[i].u.f->process = 0;
 	  cgraph_expand_function (nodes[i].u.f);
 	  break;
 
@@ -1228,6 +1241,15 @@ ipa_passes (void)
   gimple_register_cfg_hooks ();
   bitmap_obstack_initialize (NULL);
   execute_ipa_pass_list (all_ipa_passes);
+
+  /* Generate coverage variables and constructors.  */
+  coverage_finish ();
+
+  /* Process new functions added.  */
+  set_cfun (NULL);
+  current_function_decl = NULL;
+  cgraph_process_new_functions ();
+
   bitmap_obstack_release (NULL);
 }
 
@@ -1304,7 +1326,6 @@ cgraph_optimize (void)
 
       varpool_assemble_pending_decls ();
     }
-  varpool_output_debug_info ();
   cgraph_process_new_functions ();
   cgraph_state = CGRAPH_STATE_FINISHED;
 
@@ -1360,6 +1381,7 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   resdecl = build_decl (RESULT_DECL, NULL_TREE, void_type_node);
   DECL_ARTIFICIAL (resdecl) = 1;
   DECL_RESULT (decl) = resdecl;
+  DECL_CONTEXT (resdecl) = decl;
 
   allocate_struct_function (decl, false);
 
@@ -1542,10 +1564,11 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
   TREE_PUBLIC (new_version_node->decl) = 0;
   DECL_COMDAT (new_version_node->decl) = 0;
   DECL_WEAK (new_version_node->decl) = 0;
+  DECL_VIRTUAL_P (new_version_node->decl) = 0;
   new_version_node->local.externally_visible = 0;
   new_version_node->local.local = 1;
   new_version_node->lowered = true;
-  
+
   /* Update the call_expr on the edges to call the new version node. */
   update_call_expr (new_version_node);
   

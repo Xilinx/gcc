@@ -1,4 +1,4 @@
-/* Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Andy Vaught
    Write float code factoring to this file by Jerry DeLisle   
    F2003 I/O support contributed by Jerry DeLisle
@@ -7,27 +7,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 
@@ -119,6 +114,22 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 	sign = calculate_sign (dtp, sign_bit);
       else
 	sign = calculate_sign (dtp, 0);
+
+      /* Handle special cases.  */
+      if (w == 0)
+	w = d + 2;
+
+      /* For this one we choose to not output a decimal point.
+	 F95 10.5.1.2.1  */
+      if (w == 1 && ft == FMT_F)
+	{
+	  out = write_block (dtp, w);
+	  if (out == NULL)
+	    return;
+	  *out = '0';
+	  return;
+	}
+	      
     }
 
   /* Normalize the fractional component.  */
@@ -317,15 +328,6 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
   else
     edigits = 0;
 
-  /* Pick a field size if none was specified.  */
-  if (w <= 0)
-    w = nbefore + nzero + nafter + (sign != S_NONE ? 2 : 1);
-
-  /* Create the ouput buffer.  */
-  out = write_block (dtp, w);
-  if (out == NULL)
-    return;
-
   /* Zero values always output as positive, even if the value was negative
      before rounding.  */
   for (i = 0; i < ndigits; i++)
@@ -343,10 +345,25 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 	sign = calculate_sign (dtp, 0);
     }
 
+  /* Pick a field size if none was specified.  */
+  if (w <= 0)
+    w = nbefore + nzero + nafter + (sign != S_NONE ? 2 : 1);
+  
   /* Work out how much padding is needed.  */
   nblanks = w - (nbefore + nzero + nafter + edigits + 1);
   if (sign != S_NONE)
     nblanks--;
+
+  if (dtp->u.p.g0_no_blanks)
+    {
+      w -= nblanks;
+      nblanks = 0;
+    }
+
+  /* Create the ouput buffer.  */
+  out = write_block (dtp, w);
+  if (out == NULL)
+    return;
 
   /* Check the value fits in the specified field width.  */
   if (nblanks < 0 || edigits == -1)
@@ -403,6 +420,7 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
       digits += i;
       out += nbefore;
     }
+
   /* Output the decimal point.  */
   *(out++) = dtp->u.p.current_unit->decimal_status == DECIMAL_POINT ? '.' : ',';
 
@@ -445,12 +463,14 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 #endif
       memcpy (out, buffer, edigits);
     }
+
   if (dtp->u.p.no_leading_blank)
     {
       out += edigits;
       memset( out , ' ' , nblanks );
       dtp->u.p.no_leading_blank = 0;
     }
+
 #undef STR
 #undef STR1
 #undef MIN_FIELD_WIDTH
@@ -590,7 +610,7 @@ output_float_FMT_G_ ## x (st_parameter_dt *dtp, const fnode *f, \
   int save_scale_factor, nb = 0;\
 \
   save_scale_factor = dtp->u.p.scale_factor;\
-  newf = get_mem (sizeof (fnode));\
+  newf = (fnode *) get_mem (sizeof (fnode));\
 \
   exp_d = calculate_exp_ ## x (d);\
   if ((m > 0.0 && m < 0.1 - 0.05 / exp_d) || (m >= exp_d - 0.5 ) ||\
@@ -615,8 +635,8 @@ output_float_FMT_G_ ## x (st_parameter_dt *dtp, const fnode *f, \
       GFC_REAL_ ## x temp;\
       mid = (low + high) / 2;\
 \
-      temp = 0.1 * calculate_exp_ ## x (mid) - 0.5\
-	     * calculate_exp_ ## x (mid - d - 1);\
+      temp = (calculate_exp_ ## x (mid) - \
+	      5 * calculate_exp_ ## x (mid - d - 1)) / 10;\
 \
       if (m < temp)\
         { \
@@ -636,7 +656,10 @@ output_float_FMT_G_ ## x (st_parameter_dt *dtp, const fnode *f, \
           low = mid + 1;\
         }\
       else\
-        break;\
+	{\
+	  mid++;\
+	  break;\
+	}\
     }\
 \
   if (e < 0)\
@@ -661,7 +684,7 @@ output_float_FMT_G_ ## x (st_parameter_dt *dtp, const fnode *f, \
 \
   free_mem(newf);\
 \
-  if (nb > 0)\
+  if (nb > 0 && !dtp->u.p.g0_no_blanks)\
     { \
       p = write_block (dtp, nb);\
       if (p == NULL)\
@@ -741,12 +764,13 @@ sprintf (buffer, "%+-#" STR(MIN_FIELD_WIDTH) ".*" \
 	    return;\
 	  }\
 	tmp = sign_bit ? -tmp : tmp;\
-	if (f->u.real.d == 0 && f->format == FMT_F)\
+	if (f->u.real.d == 0 && f->format == FMT_F\
+	    && dtp->u.p.scale_factor == 0)\
 	  {\
 	    if (tmp < 0.5)\
 	      tmp = 0.0;\
 	    else if (tmp < 1.0)\
-	      tmp = tmp + 0.5;\
+	      tmp = 1.0;\
 	  }\
 	zero_flag = (tmp == 0.0);\
 \

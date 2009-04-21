@@ -1,5 +1,5 @@
 /* Default initializers for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -236,6 +236,10 @@
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL NULL
 #endif
 
+#ifndef TARGET_ASM_FINAL_POSTSCAN_INSN
+#define TARGET_ASM_FINAL_POSTSCAN_INSN NULL
+#endif
+
 #ifndef TARGET_ASM_RECORD_GCC_SWITCHES
 #define TARGET_ASM_RECORD_GCC_SWITCHES NULL
 #endif
@@ -291,7 +295,8 @@
 			TARGET_ASM_RECORD_GCC_SWITCHES,		\
 			TARGET_ASM_RECORD_GCC_SWITCHES_SECTION,	\
 			TARGET_ASM_OUTPUT_ANCHOR,		\
-			TARGET_ASM_OUTPUT_DWARF_DTPREL}
+			TARGET_ASM_OUTPUT_DWARF_DTPREL,		\
+			TARGET_ASM_FINAL_POSTSCAN_INSN}
 
 /* Scheduler hooks.  All of these default to null pointers, which
    haifa-sched.c looks for and handles.  */
@@ -471,10 +476,6 @@
 
 #ifndef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P hook_bool_mode_false
-#endif
-
-#ifndef TARGET_VECTOR_OPAQUE_P
-#define TARGET_VECTOR_OPAQUE_P hook_bool_const_tree_false
 #endif
 
 /* In hooks.c.  */
@@ -881,7 +882,6 @@
   TARGET_VALID_POINTER_MODE,                    \
   TARGET_SCALAR_MODE_SUPPORTED_P,		\
   TARGET_VECTOR_MODE_SUPPORTED_P,               \
-  TARGET_VECTOR_OPAQUE_P,			\
   TARGET_RTX_COSTS,				\
   TARGET_ADDRESS_COST,				\
   TARGET_ALLOCATE_INITIAL_VALUE,		\

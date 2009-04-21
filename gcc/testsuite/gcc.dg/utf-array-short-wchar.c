@@ -5,8 +5,8 @@
 
 #include <wchar.h>
 
-typedef short unsigned int	char16_t;
-typedef unsigned int		char32_t;
+typedef __CHAR16_TYPE__ char16_t;
+typedef __CHAR32_TYPE__ char32_t;
 
 const char	s_0[]	= "ab";
 const char	s_1[]	= u"ab";	/* { dg-error "from wide string" } */
@@ -31,9 +31,9 @@ const char32_t	s32_3[]	= L"ab";	/* { dg-error "from incompatible" } */
 
 const char32_t	s32_4[0] = U"ab";	/* { dg-warning "chars is too long" } */
 const char32_t	s32_5[1] = U"ab";	/* { dg-warning "chars is too long" } */
-const char32_t	s32_6[2] = U"ab";
-const char32_t	s32_7[3] = U"ab";
-const char32_t	s32_8[4] = U"ab";
+const char32_t	s32_6[2] = U"ab";	/* { dg-warning "chars is too long" "" { target "m32c-*-*" } } */
+const char32_t	s32_7[3] = U"ab";	/* { dg-warning "chars is too long" "" { target "m32c-*-*" } } */
+const char32_t	s32_8[4] = U"ab";	/* { dg-warning "chars is too long" "" { target "m32c-*-*" } } */
 
 const wchar_t	sw_0[]	= "ab";		/* { dg-error "from non-wide" } */
 const wchar_t	sw_1[]	= u"ab";

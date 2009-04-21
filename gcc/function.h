@@ -1,6 +1,6 @@
 /* Structure for saving state for a nested function.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -155,8 +155,6 @@ struct rtl_eh GTY(())
 
   rtx sjlj_fc;
   rtx sjlj_exit_after;
-
-  htab_t GTY ((param_is (struct ehl_map_entry))) exception_handler_label_map;
 
   VEC(tree,gc) *ttype_data;
   varray_type ehspec_data;
@@ -378,12 +376,6 @@ struct rtl_data GTY(())
   /* Nonzero if function being compiled has an asm statement.  */
   bool has_asm_statement;
 
-  /* Nonzero if the current function is a thunk, i.e., a lightweight
-     function implemented by the output_mi_thunk hook) that just
-     adjusts one of its arguments and forwards to another
-     function.  */
-  bool is_thunk;
-
   /* This bit is used by the exception handling logic.  It is set if all
      calls (if any) are sibling calls.  Such functions do not have to
      have EH tables generated, as they cannot throw.  A call to such a
@@ -444,6 +436,14 @@ struct rtl_data GTY(())
   /* Nonzero if function stack realignment has been finalized, namely
      stack_realign_needed flag has been set and finalized after reload.  */
   bool stack_realign_finalized;
+
+  /* True if dbr_schedule has already been called for this function.  */
+  bool dbr_scheduled_p;
+
+  /* True if current function can not throw.  Unlike
+     TREE_NOTHROW (current_function_decl) it is set even for overwritable
+     function where currently compiled version of it is nothrow.  */
+  bool nothrow;
 };
 
 #define return_label (crtl->x_return_label)
@@ -504,9 +504,6 @@ struct function GTY(())
      pointer.  */
   tree nonlocal_goto_save_area;
 
-  /* Function sequence number for profiling, debugging, etc.  */
-  int funcdef_no;
-
   /* List of function local variables, functions, types and constants.  */
   tree local_decls;
 
@@ -523,6 +520,9 @@ struct function GTY(())
 
   /* Last statement uid.  */
   int last_stmt_uid;
+
+  /* Function sequence number for profiling, debugging, etc.  */
+  int funcdef_no;
 
   /* Line number of the start of the function for debugging purposes.  */
   location_t function_start_locus;
@@ -578,6 +578,7 @@ struct function GTY(())
   unsigned int dont_save_pending_sizes_p : 1;
 
   unsigned int after_inlining : 1;
+  unsigned int always_inline_functions_inlined : 1;
 
   /* Fields below this point are not set for abstract functions; see
      allocate_struct_function.  */
@@ -592,6 +593,16 @@ struct function GTY(())
 
   /* Nonzero if pass_tree_profile was run on this function.  */
   unsigned int after_tree_profile : 1;
+
+  /* Nonzero if this function has local DECL_HARD_REGISTER variables.
+     In this case code motion has to be done more carefully.  */
+  unsigned int has_local_explicit_reg_vars : 1;
+
+  /* Nonzero if the current function is a thunk, i.e., a lightweight
+     function implemented by the output_mi_thunk hook) that just
+     adjusts one of its arguments and forwards to another
+     function.  */
+  unsigned int is_thunk : 1;
 };
 
 /* If va_list_[gf]pr_size is set to this, it means we don't know how
@@ -666,8 +677,6 @@ extern rtx get_arg_pointer_save_area (void);
 
 /* Returns the name of the current function.  */
 extern const char *current_function_name (void);
-/* Returns the assembler name (raw, mangled) of the current function.  */
-extern const char *current_function_assembler_name (void);
 
 extern void do_warn_unused_parameter (tree);
 

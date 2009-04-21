@@ -1,4 +1,4 @@
-;; Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 ;; This file is free software; you can redistribute it and/or modify it under
 ;; the terms of the GNU General Public License as published by the Free
@@ -155,6 +155,8 @@
  (UNSPEC_DFTSV		 51)
  (UNSPEC_FLOAT_EXTEND	 52)
  (UNSPEC_FLOAT_TRUNCATE	 53)
+ (UNSPEC_SP_SET         54)
+ (UNSPEC_SP_TEST        55) 
 ])
 
 (include "predicates.md")
@@ -2399,6 +2401,27 @@
     emit_insn (gen_subsi3(operands[5], GEN_INT(7), operands[2]));
   })
 
+(define_insn_and_split "shrqbybi_<mode>"
+  [(set (match_operand:DTI 0 "spu_reg_operand" "=r,r")
+	(lshiftrt:DTI (match_operand:DTI 1 "spu_reg_operand" "r,r")
+		      (and:SI (match_operand:SI 2 "spu_nonmem_operand" "r,I")
+			      (const_int -8))))
+   (clobber (match_scratch:SI 3 "=&r,X"))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup:DTI 0)
+	(lshiftrt:DTI (match_dup:DTI 1)
+		      (and:SI (neg:SI (and:SI (match_dup:SI 3) (const_int -8)))
+			      (const_int -8))))]
+  {
+    if (GET_CODE (operands[2]) == CONST_INT)
+      operands[3] = GEN_INT (7 - INTVAL (operands[2]));
+    else
+      emit_insn (gen_subsi3 (operands[3], GEN_INT (7), operands[2]));
+  }
+  [(set_attr "type" "shuf")])
+
 (define_insn "rotqmbybi_<mode>"
   [(set (match_operand:DTI 0 "spu_reg_operand" "=r,r")
 	(lshiftrt:DTI (match_operand:DTI 1 "spu_reg_operand" "r,r")
@@ -2411,6 +2434,26 @@
    rotqmbyi\t%0,%1,-%H2"
   [(set_attr "type" "shuf")])
 
+(define_insn_and_split "shrqbi_<mode>"
+  [(set (match_operand:DTI 0 "spu_reg_operand" "=r,r")
+	(lshiftrt:DTI (match_operand:DTI 1 "spu_reg_operand" "r,r")
+		      (and:SI (match_operand:SI 2 "spu_nonmem_operand" "r,I")
+			      (const_int 7))))
+   (clobber (match_scratch:SI 3 "=&r,X"))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup:DTI 0)
+	(lshiftrt:DTI (match_dup:DTI 1)
+		      (and:SI (neg:SI (match_dup:SI 3)) (const_int 7))))]
+  {
+    if (GET_CODE (operands[2]) == CONST_INT)
+      operands[3] = GEN_INT (-INTVAL (operands[2]));
+    else
+      emit_insn (gen_subsi3 (operands[3], GEN_INT (0), operands[2]));
+  }
+  [(set_attr "type" "shuf")])
+
 (define_insn "rotqmbi_<mode>"
   [(set (match_operand:DTI 0 "spu_reg_operand" "=r,r")
 	(lshiftrt:DTI (match_operand:DTI 1 "spu_reg_operand" "r,r")
@@ -2420,6 +2463,26 @@
   "@
    rotqmbi\t%0,%1,%2
    rotqmbii\t%0,%1,-%E2"
+  [(set_attr "type" "shuf")])
+
+(define_insn_and_split "shrqby_<mode>"
+  [(set (match_operand:DTI 0 "spu_reg_operand" "=r,r")
+	(lshiftrt:DTI (match_operand:DTI 1 "spu_reg_operand" "r,r")
+		      (mult:SI (match_operand:SI 2 "spu_nonmem_operand" "r,I")
+			       (const_int 8))))
+   (clobber (match_scratch:SI 3 "=&r,X"))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (match_dup:DTI 0)
+	(lshiftrt:DTI (match_dup:DTI 1)
+		      (mult:SI (neg:SI (match_dup:SI 3)) (const_int 8))))]
+  {
+    if (GET_CODE (operands[2]) == CONST_INT)
+      operands[3] = GEN_INT (-INTVAL (operands[2]));
+    else
+      emit_insn (gen_subsi3 (operands[3], GEN_INT (0), operands[2]));
+  }
   [(set_attr "type" "shuf")])
 
 (define_insn "rotqmby_<mode>"
@@ -5188,4 +5251,51 @@ DONE;
   DONE;
 }")
 
+(define_insn "stack_protect_set"
+  [(set (match_operand:SI 0 "spu_mem_operand" "=m")
+        (unspec:SI [(match_operand:SI 1 "spu_mem_operand" "m")] UNSPEC_SP_SET))
+   (set (match_scratch:SI 2 "=&r") (const_int 0))]
+  ""
+  "lq%p1\t%2,%1\;stq%p0\t%2,%0\;xor\t%2,%2,%2"
+  [(set_attr "length" "12")
+   (set_attr "type" "multi1")]
+)
+
+(define_expand "stack_protect_test"
+  [(match_operand 0 "spu_mem_operand" "")
+   (match_operand 1 "spu_mem_operand" "")
+   (match_operand 2 "" "")]
+  ""
+{
+  rtx compare_result;
+  rtx bcomp, loc_ref;
+
+  compare_result = gen_reg_rtx (SImode);
+
+  emit_insn (gen_stack_protect_test_si (compare_result,
+                                        operands[0],
+                                        operands[1]));
+
+  bcomp = gen_rtx_NE (SImode, compare_result, const0_rtx);
+
+  loc_ref = gen_rtx_LABEL_REF (VOIDmode, operands[2]);
+
+  emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx,
+                                   gen_rtx_IF_THEN_ELSE (VOIDmode, bcomp,
+                                                         loc_ref, pc_rtx)));
+
+  DONE;
+})
+
+(define_insn "stack_protect_test_si"
+  [(set (match_operand:SI 0 "spu_reg_operand" "=&r")
+        (unspec:SI [(match_operand:SI 1 "spu_mem_operand" "m")
+                    (match_operand:SI 2 "spu_mem_operand" "m")]
+                   UNSPEC_SP_TEST))
+   (set (match_scratch:SI 3 "=&r") (const_int 0))]
+  ""
+  "lq%p1\t%0,%1\;lq%p2\t%3,%2\;ceq\t%0,%0,%3\;xor\t%3,%3,%3"
+  [(set_attr "length" "16")
+   (set_attr "type" "multi1")]
+)
 

@@ -1,6 +1,7 @@
 /* Generate code to initialize optabs from machine description.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -233,7 +234,6 @@ static const char * const optabs[] =
   "sync_new_xor_optab[$A] = CODE_FOR_$(sync_new_xor$I$a$)",
   "sync_new_nand_optab[$A] = CODE_FOR_$(sync_new_nand$I$a$)",
   "sync_compare_and_swap[$A] = CODE_FOR_$(sync_compare_and_swap$I$a$)",
-  "sync_compare_and_swap_cc[$A] = CODE_FOR_$(sync_compare_and_swap_cc$I$a$)",
   "sync_lock_test_and_set[$A] = CODE_FOR_$(sync_lock_test_and_set$I$a$)",
   "sync_lock_release[$A] = CODE_FOR_$(sync_lock_release$I$a$)",
   "optab_handler (vec_set_optab, $A)->insn_code = CODE_FOR_$(vec_set$a$)",

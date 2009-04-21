@@ -1,6 +1,6 @@
 /* Part of CPP library.  File handling.
    Copyright (C) 1986, 1987, 1989, 1992, 1993, 1994, 1995, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994.
    Based on CCCP program by Paul Rubin, June 1986
@@ -10,7 +10,7 @@
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -19,8 +19,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -488,7 +488,6 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
 	      return file;
 	    }
 
-	  open_file_failed (pfile, file, angle_brackets);
 	  if (invalid_pch)
 	    {
 	      cpp_error (pfile, CPP_DL_ERROR,
@@ -497,6 +496,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
 		cpp_error (pfile, CPP_DL_ERROR,
 			   "use -Winvalid-pch for more information");
 	    }
+	  open_file_failed (pfile, file, angle_brackets);
 	  break;
 	}
 
@@ -942,7 +942,7 @@ open_file_failed (cpp_reader *pfile, _cpp_file *file, int angle_brackets)
       if (CPP_OPTION (pfile, deps.style) && ! print_dep)
 	cpp_errno (pfile, CPP_DL_WARNING, file->path);
       else
-	cpp_errno (pfile, CPP_DL_ERROR, file->path);
+	cpp_errno (pfile, CPP_DL_FATAL, file->path);
     }
 }
 

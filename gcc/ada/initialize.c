@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -44,6 +43,9 @@
 #ifdef IN_RTS
 #include "tconfig.h"
 #include "tsystem.h"
+/* We don't have libiberty, so use malloc.  */
+#define xmalloc(S) malloc (S)
+#define xrealloc(V,S) realloc (V,S)
 #else
 #include "config.h"
 #include "system.h"
@@ -56,10 +58,14 @@
 /******************************************/
 
 #if defined (__MINGW32__)
+#include "mingw32.h"
 #include <windows.h>
 
 extern void __gnat_init_float (void);
 extern void __gnat_install_SEH_handler (void *);
+
+extern int gnat_argc;
+extern char **gnat_argv;
 
 #ifndef RTX
 /* Do not define for RTX since it is only used for creating child processes
@@ -67,14 +73,118 @@ extern void __gnat_install_SEH_handler (void *);
 extern void __gnat_plist_init (void);
 #endif
 
+#ifdef GNAT_UNICODE_SUPPORT
+
+#define EXPAND_ARGV_RATE 128
+
+static void
+append_arg (int *index, LPWSTR value, char ***argv, int *last)
+{
+  int size;
+
+  if (*last <= *index)
+    {
+      *last += EXPAND_ARGV_RATE;
+      *argv = (char **) xrealloc (*argv, (*last) * sizeof (char *));
+    }
+
+  size = WS2SC (NULL, value, 0);
+  (*argv)[*index] = (char *) xmalloc (size + 1);
+  WS2SC ((*argv)[*index], value, size);
+
+  (*index)++;
+}
+#endif
+
 void
-__gnat_initialize (void *eh)
+__gnat_initialize (void *eh ATTRIBUTE_UNUSED)
 {
    /* Initialize floating-point coprocessor. This call is needed because
       the MS libraries default to 64-bit precision instead of 80-bit
       precision, and we require the full precision for proper operation,
       given that we have set Max_Digits etc with this in mind */
    __gnat_init_float ();
+
+#ifdef GNAT_UNICODE_SUPPORT
+   /* Set current code page for filenames handling. */
+   {
+     char *codepage = getenv ("GNAT_CODE_PAGE");
+
+     /* Default code page is UTF-8.  */
+     CurrentCodePage = CP_UTF8;
+
+     if (codepage != NULL)
+       {
+	 if (strcmp (codepage, "CP_ACP") == 0)
+	   CurrentCodePage = CP_ACP;
+	 else if (strcmp (codepage, "CP_UTF8") == 0)
+	   CurrentCodePage = CP_UTF8;
+       }
+   }
+
+   /* Adjust gnat_argv to support Unicode characters. */
+   {
+     LPWSTR *wargv;
+     int wargc;
+     int k;
+     int last;
+     int argc_expanded = 0;
+     TCHAR result [MAX_PATH];
+
+     wargv = CommandLineToArgvW (GetCommandLineW(), &wargc);
+
+     if (wargv != NULL)
+       {
+	 /* Set gnat_argv with arguments encoded in UTF-8. */
+	 last = wargc + 1;
+	 gnat_argv = (char **) xmalloc ((last) * sizeof (char *));
+
+	 /* argv[0] is the executable full path-name. */
+
+	 SearchPath (NULL, wargv[0], _T(".exe"), MAX_PATH, result, NULL);
+	 append_arg (&argc_expanded, result, &gnat_argv, &last);
+
+	 for (k=1; k<wargc; k++)
+	   {
+	     /* Check for wildcard expansion. */
+	     if (_tcsstr (wargv[k], _T("?")) != 0 ||
+		 _tcsstr (wargv[k], _T("*")) != 0)
+	       {
+		 /* Wilcards are present, append all corresponding matches. */
+		 WIN32_FIND_DATA FileData;
+		 HANDLE hDir = FindFirstFile (wargv[k], &FileData);
+
+		 if (hDir == INVALID_HANDLE_VALUE)
+		   {
+		     /* No match, append arg as-is. */
+		     append_arg (&argc_expanded, wargv[k], &gnat_argv, &last);
+		   }
+		 else
+		   {
+		     /* Append first match and all remaining ones.  */
+
+		     do {
+		       append_arg (&argc_expanded,
+				   FileData.cFileName, &gnat_argv, &last);
+		     } while (FindNextFile (hDir, &FileData));
+
+		     FindClose (hDir);
+		   }
+	       }
+	     else
+	       {
+		 /*  No wildcard. Store parameter as-is. */
+		 append_arg (&argc_expanded, wargv[k], &gnat_argv, &last);
+	       }
+	   }
+
+	 LocalFree (wargv);
+	 gnat_argc = argc_expanded;
+	 gnat_argv = (char **) xrealloc
+	   (gnat_argv, argc_expanded * sizeof (char *));
+       }
+   }
+#endif
 
    /* Note that we do not activate this for the compiler itself to avoid a
       bootstrap path problem.  Older version of gnatbind will generate a call

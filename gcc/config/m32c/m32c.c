@@ -1,5 +1,5 @@
 /* Target Code for R8C/M16C/M32C
-   Copyright (C) 2005, 2006, 2007
+   Copyright (C) 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -947,6 +947,11 @@ m32c_const_ok_for_constraint_p (HOST_WIDE_INT value,
   if (memcmp (str, "Imb", 3) == 0)
     {
       int b = exact_log2 ((value ^ 0xff) & 0xff);
+      return (b >= 0 && b <= 7);
+    }
+  if (memcmp (str, "ImB", 3) == 0)
+    {
+      int b = exact_log2 ((value ^ 0xffff) & 0xffff);
       return (b >= 0 && b <= 7);
     }
   if (memcmp (str, "Ilw", 3) == 0)
@@ -2696,8 +2701,13 @@ m32c_print_operand_punct_valid_p (int c)
 void
 m32c_print_operand_address (FILE * stream, rtx address)
 {
-  gcc_assert (GET_CODE (address) == MEM);
-  m32c_print_operand (stream, XEXP (address, 0), 0);
+  if (GET_CODE (address) == MEM)
+    address = XEXP (address, 0);
+  else
+    /* cf: gcc.dg/asm-4.c.  */
+    gcc_assert (GET_CODE (address) == REG);
+
+  m32c_print_operand (stream, address, 0);
 }
 
 /* Implements ASM_OUTPUT_REG_PUSH.  Control registers are pushed

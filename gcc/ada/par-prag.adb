@@ -264,7 +264,6 @@ begin
 
    if Present (Pragma_Argument_Associations (Pragma_Node)) then
       Arg_Node := Arg1;
-
       while Arg_Node /= Empty loop
          Arg_Count := Arg_Count + 1;
 
@@ -1187,6 +1186,7 @@ begin
            Pragma_Task_Info                     |
            Pragma_Task_Name                     |
            Pragma_Task_Storage                  |
+           Pragma_Thread_Local_Storage          |
            Pragma_Time_Slice                    |
            Pragma_Title                         |
            Pragma_Unchecked_Union               |

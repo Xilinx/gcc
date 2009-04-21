@@ -1,11 +1,11 @@
-// <bits/shared_ptr.h> -*- C++ -*-
+// shared_ptr and weak_ptr implementation -*- C++ -*-
 
-// Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 //  shared_count.hpp
 //  Copyright (c) 2001, 2002, 2003 Peter Dimov and Multi Media Ltd.
@@ -51,6 +46,9 @@
  *  You should not attempt to use it directly.
  */
 
+#ifndef _SHARED_PTR_H
+#define _SHARED_PTR_H 1
+
 #ifndef __GXX_EXPERIMENTAL_CXX0X__
 # include <c++0x_warning.h>
 #endif
@@ -59,8 +57,13 @@
 #  error C++0x header cannot be included from TR1 header
 #endif
 
-namespace std
-{
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  /**
+   * @addtogroup pointer_abstractions
+   * @{
+   */
+
   // counted ptr with no deleter or allocator support
   template<typename _Ptr, _Lock_policy _Lp>
     class _Sp_counted_ptr
@@ -82,9 +85,8 @@ namespace std
       _M_get_deleter(const std::type_info& __ti)
       { return 0; }
       
-    private:
-      _Sp_counted_ptr(const _Sp_counted_ptr&);
-      _Sp_counted_ptr& operator=(const _Sp_counted_ptr&);
+      _Sp_counted_ptr(const _Sp_counted_ptr&) = delete;
+      _Sp_counted_ptr& operator=(const _Sp_counted_ptr&) = delete;
       
     protected:
       _Ptr             _M_ptr;  // copy constructor must not throw
@@ -142,10 +144,6 @@ namespace std
       virtual void*
       _M_get_deleter(const std::type_info& __ti)
       { return __ti == typeid(_Deleter) ? &_M_del._M_del : 0; }
-      
-    private:
-      _Sp_counted_deleter(const _Sp_counted_deleter&);
-      _Sp_counted_deleter& operator=(const _Sp_counted_deleter&);
       
     protected:
       _My_Deleter      _M_del;  // copy constructor must not throw
@@ -227,11 +225,11 @@ namespace std
       template<typename _Ptr>
         __shared_count(_Ptr __p) : _M_pi(0)
         {
-          try
+          __try
             {
               _M_pi = new _Sp_counted_ptr<_Ptr, _Lp>(__p);
             }
-          catch(...)
+          __catch(...)
             {
               delete __p;
               __throw_exception_again;
@@ -246,12 +244,12 @@ namespace std
           typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
           typedef std::allocator<_Sp_cd_type> _Alloc2;
           _Alloc2 __a2;
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d);
             }
-          catch(...)
+          __catch(...)
             {
               __d(__p); // Call _Deleter on __p.
               if (_M_pi)
@@ -266,12 +264,12 @@ namespace std
           typedef _Sp_counted_deleter<_Ptr, _Deleter, _Alloc, _Lp> _Sp_cd_type;
           typedef typename _Alloc::template rebind<_Sp_cd_type>::other _Alloc2;
           _Alloc2 __a2(__a);
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cd_type(__p, __d, __a);
             }
-          catch(...)
+          __catch(...)
             {
               __d(__p); // Call _Deleter on __p.
               if (_M_pi)
@@ -287,13 +285,13 @@ namespace std
           typedef _Sp_counted_ptr_inplace<_Tp, _Alloc, _Lp> _Sp_cp_type;
           typedef typename _Alloc::template rebind<_Sp_cp_type>::other _Alloc2;
           _Alloc2 __a2(__a);
-          try
+          __try
             {
               _M_pi = __a2.allocate(1);
               ::new(static_cast<void*>(_M_pi)) _Sp_cp_type(__a,
                     std::forward<_Args>(__args)...);
             }
-          catch(...)
+          __catch(...)
             {
               if (_M_pi)
         	__a2.deallocate(static_cast<_Sp_cp_type*>(_M_pi), 1);
@@ -365,18 +363,23 @@ namespace std
       _M_unique() const // nothrow
       { return this->_M_get_use_count() == 1; }
 
-      friend inline bool
-      operator==(const __shared_count& __a, const __shared_count& __b)
-      { return __a._M_pi == __b._M_pi; }
-  
-      friend inline bool
-      operator<(const __shared_count& __a, const __shared_count& __b)
-      { return std::less<_Sp_counted_base<_Lp>*>()(__a._M_pi, __b._M_pi); }
-  
       void*
       _M_get_deleter(const std::type_info& __ti) const
       { return _M_pi ? _M_pi->_M_get_deleter(__ti) : 0; }
 
+      bool
+      _M_less(const __shared_count& __rhs) const
+      { return std::less<_Sp_counted_base<_Lp>*>()(this->_M_pi, __rhs._M_pi); }
+
+      bool
+      _M_less(const __weak_count<_Lp>& __rhs) const
+      { return std::less<_Sp_counted_base<_Lp>*>()(this->_M_pi, __rhs._M_pi); }
+
+      // friend function injected into enclosing namespace and found by ADL
+      friend inline bool
+      operator==(const __shared_count& __a, const __shared_count& __b)
+      { return __a._M_pi == __b._M_pi; }
+  
     private:
       friend class __weak_count<_Lp>;
 
@@ -468,13 +471,18 @@ namespace std
       _M_get_use_count() const // nothrow
       { return _M_pi != 0 ? _M_pi->_M_get_use_count() : 0; }
 
+      bool
+      _M_less(const __weak_count& __rhs) const
+      { return std::less<_Sp_counted_base<_Lp>*>()(this->_M_pi, __rhs._M_pi); }
+
+      bool
+      _M_less(const __shared_count<_Lp>& __rhs) const
+      { return std::less<_Sp_counted_base<_Lp>*>()(this->_M_pi, __rhs._M_pi); }
+
+      // friend function injected into enclosing namespace and found by ADL
       friend inline bool
-      operator==(const __weak_count<_Lp>& __a, const __weak_count<_Lp>& __b)
+      operator==(const __weak_count& __a, const __weak_count& __b)
       { return __a._M_pi == __b._M_pi; }
-      
-      friend inline bool
-      operator<(const __weak_count<_Lp>& __a, const __weak_count<_Lp>& __b)
-      { return std::less<_Sp_counted_base<_Lp>*>()(__a._M_pi, __b._M_pi); }
 
     private:
       friend class __shared_count<_Lp>;
@@ -536,13 +544,6 @@ namespace std
     { }
 
 
-  /**
-   *  @class __shared_ptr 
-   *
-   *  A smart pointer with reference-counted copy semantics.
-   *  The object pointed to is deleted when the last shared_ptr pointing to
-   *  it is destroyed or reset.
-   */
   template<typename _Tp, _Lock_policy _Lp>
     class __shared_ptr
     {
@@ -838,6 +839,16 @@ namespace std
 	_M_refcount._M_swap(__other._M_refcount);
       }
 
+      template<typename _Tp1>
+        bool
+        owner_before(__shared_ptr<_Tp1, _Lp> const& __rhs) const
+        { return _M_refcount._M_less(__rhs._M_refcount); }
+
+      template<typename _Tp1>
+        bool
+        owner_before(__weak_ptr<_Tp1, _Lp> const& __rhs) const
+        { return _M_refcount._M_less(__rhs._M_refcount); }
+
     protected:
       // This constructor is non-standard, it is used by allocate_shared.
       template<typename _Alloc, typename... _Args>
@@ -862,36 +873,69 @@ namespace std
       _M_get_deleter(const std::type_info& __ti) const
       { return _M_refcount._M_get_deleter(__ti); }
 
-      template<typename _Tp1, _Lock_policy _Lp1>
-        bool
-        _M_less(const __shared_ptr<_Tp1, _Lp1>& __rhs) const
-        { return _M_refcount < __rhs._M_refcount; }
-
       template<typename _Tp1, _Lock_policy _Lp1> friend class __shared_ptr;
       template<typename _Tp1, _Lock_policy _Lp1> friend class __weak_ptr;
 
       template<typename _Del, typename _Tp1, _Lock_policy _Lp1>
         friend _Del* get_deleter(const __shared_ptr<_Tp1, _Lp1>&);
 
-      // Friends injected into enclosing namespace and found by ADL:
-      template<typename _Tp1>
-        friend inline bool
-        operator==(const __shared_ptr& __a, const __shared_ptr<_Tp1, _Lp>& __b)
-        { return __a.get() == __b.get(); }
-
-      template<typename _Tp1>
-        friend inline bool
-        operator!=(const __shared_ptr& __a, const __shared_ptr<_Tp1, _Lp>& __b)
-        { return __a.get() != __b.get(); }
-
-      template<typename _Tp1>
-        friend inline bool
-        operator<(const __shared_ptr& __a, const __shared_ptr<_Tp1, _Lp>& __b)
-        { return __a._M_less(__b); }
-
       _Tp*         	   _M_ptr;         // Contained pointer.
       __shared_count<_Lp>  _M_refcount;    // Reference counter.
     };
+
+  // 20.8.13.2.7 shared_ptr comparisons
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator==(const __shared_ptr<_Tp1, _Lp>& __a,
+        const __shared_ptr<_Tp2, _Lp>& __b)
+    { return __a.get() == __b.get(); }
+
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator!=(const __shared_ptr<_Tp1, _Lp>& __a,
+        const __shared_ptr<_Tp2, _Lp>& __b)
+    { return __a.get() != __b.get(); }
+
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator<(const __shared_ptr<_Tp1, _Lp>& __a,
+        const __shared_ptr<_Tp2, _Lp>& __b)
+    { return __a.get() < __b.get(); }
+
+  template<typename _Sp>
+    struct _Sp_less : public binary_function<_Sp, _Sp, bool>
+    {
+      bool
+      operator()(const _Sp& __lhs, const _Sp& __rhs) const
+      {
+        return std::less<typename _Sp::element_type*>()(__lhs.get(),
+            __rhs.get());
+      }
+    };
+
+  template<typename _Tp, _Lock_policy _Lp>
+    struct less<__shared_ptr<_Tp, _Lp>>
+    : public _Sp_less<__shared_ptr<_Tp, _Lp>>
+    { };
+
+  // XXX LessThanComparable<_Tp> concept should provide >, >= and <=
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>(const __shared_ptr<_Tp, _Lp>& __a,
+        const __shared_ptr<_Tp, _Lp>& __b)
+    { return __a.get() > __b.get(); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>=(const __shared_ptr<_Tp, _Lp>& __a,
+        const __shared_ptr<_Tp, _Lp>& __b)
+    { return __a.get() >= __b.get(); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator<=(const __shared_ptr<_Tp, _Lp>& __a,
+        const __shared_ptr<_Tp, _Lp>& __b)
+    { return __a.get() <= __b.get(); }
 
   // 2.2.3.8 shared_ptr specialized algorithms.
   template<typename _Tp, _Lock_policy _Lp>
@@ -1026,11 +1070,11 @@ namespace std
 	if (expired())
 	  return __shared_ptr<element_type, _Lp>();
 
-	try
+	__try
 	  {
 	    return __shared_ptr<element_type, _Lp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    // Q: How can we get here?
 	    // A: Another thread may have invalidated r after the
@@ -1053,7 +1097,17 @@ namespace std
       bool
       expired() const // never throws
       { return _M_refcount._M_get_use_count() == 0; }
-      
+
+      template<typename _Tp1>
+        bool
+        owner_before(const __shared_ptr<_Tp1, _Lp>& __rhs) const
+        { return _M_refcount._M_less(__rhs._M_refcount); }
+
+      template<typename _Tp1>
+        bool
+        owner_before(const __weak_ptr<_Tp1, _Lp>& __rhs) const
+        { return _M_refcount._M_less(__rhs._M_refcount); }
+
       void
       reset() // never throws
       { __weak_ptr().swap(*this); }
@@ -1065,6 +1119,16 @@ namespace std
 	_M_refcount._M_swap(__s._M_refcount);
       }
 
+      // comparisons
+      template<typename _Tp1>
+        bool operator<(const __weak_ptr<_Tp1, _Lp>&) const = delete;
+      template<typename _Tp1>
+        bool operator<=(const __weak_ptr<_Tp1, _Lp>&) const = delete;
+      template<typename _Tp1>
+        bool operator>(const __weak_ptr<_Tp1, _Lp>&) const = delete;
+      template<typename _Tp1>
+        bool operator>=(const __weak_ptr<_Tp1, _Lp>&) const = delete;
+
     private:
       // Used by __enable_shared_from_this.
       void
@@ -1074,31 +1138,48 @@ namespace std
 	_M_refcount = __refcount;
       }
 
-      template<typename _Tp1>
-        bool
-        _M_less(const __weak_ptr<_Tp1, _Lp>& __rhs) const
-        { return _M_refcount < __rhs._M_refcount; }
-
       template<typename _Tp1, _Lock_policy _Lp1> friend class __shared_ptr;
       template<typename _Tp1, _Lock_policy _Lp1> friend class __weak_ptr;
       friend class __enable_shared_from_this<_Tp, _Lp>;
       friend class enable_shared_from_this<_Tp>;
 
-      // Friend injected into namespace and found by ADL.
-      template<typename _Tp1>
-        friend inline bool
-        operator<(const __weak_ptr& __lhs, const __weak_ptr<_Tp1, _Lp>& __rhs)
-        { return __lhs._M_less(__rhs); }
-
       _Tp*       	 _M_ptr;         // Contained pointer.
       __weak_count<_Lp>  _M_refcount;    // Reference counter.
     };
 
-  // 2.2.4.7 weak_ptr specialized algorithms.
+  // 20.8.13.3.7 weak_ptr specialized algorithms.
   template<typename _Tp, _Lock_policy _Lp>
     inline void
     swap(__weak_ptr<_Tp, _Lp>& __a, __weak_ptr<_Tp, _Lp>& __b)
     { __a.swap(__b); }
+
+  /// owner_less
+  template<typename _Tp> struct owner_less;
+
+  template<typename _Tp, typename _Tp1>
+    struct _Sp_owner_less : public binary_function<_Tp, _Tp, bool>
+    {
+      bool
+      operator()(const _Tp& __lhs, const _Tp& __rhs) const
+      { return __lhs.owner_before(__rhs); }
+      bool
+      operator()(const _Tp& __lhs, const _Tp1& __rhs) const
+      { return __lhs.owner_before(__rhs); }
+      bool
+      operator()(const _Tp1& __lhs, const _Tp& __rhs) const
+      { return __lhs.owner_before(__rhs); }
+    };
+
+  template<typename _Tp, _Lock_policy _Lp>
+    struct owner_less<__shared_ptr<_Tp, _Lp>>
+    : public _Sp_owner_less<__shared_ptr<_Tp, _Lp>, __weak_ptr<_Tp, _Lp>>
+    { };
+
+  template<typename _Tp, _Lock_policy _Lp>
+    struct owner_less<__weak_ptr<_Tp, _Lp>>
+    : public _Sp_owner_less<__weak_ptr<_Tp, _Lp>, __shared_ptr<_Tp, _Lp>>
+    {
+    };
 
 
   template<typename _Tp, _Lock_policy _Lp>
@@ -1143,10 +1224,12 @@ namespace std
       mutable __weak_ptr<_Tp, _Lp>  _M_weak_this;
     };
 
-
-  /// shared_ptr
-  // The actual shared_ptr, with forwarding constructors and
-  // assignment operators.
+  /**
+   *  @brief A smart pointer with reference-counted copy semantics. 
+   *  
+   *  The object pointed to is deleted when the last shared_ptr pointing to
+   *  it is destroyed or reset.
+   */
   template<typename _Tp>
     class shared_ptr
     : public __shared_ptr<_Tp>
@@ -1262,22 +1345,44 @@ namespace std
         allocate_shared(_Alloc __a, _Args&&... __args);
     };
 
-  // 20.7.12.2.9 shared_ptr specialized algorithms.
+  // 20.8.13.2.7 shared_ptr comparisons
+  template<typename _Tp1, typename _Tp2>
+    inline bool
+    operator==(const shared_ptr<_Tp1>& __a, const shared_ptr<_Tp2>& __b)
+    { return __a.get() == __b.get(); }
+
+  template<typename _Tp1, typename _Tp2>
+    inline bool
+    operator!=(const shared_ptr<_Tp1>& __a, const shared_ptr<_Tp2>& __b)
+    { return __a.get() != __b.get(); }
+
+  template<typename _Tp1, typename _Tp2>
+    inline bool
+    operator<(const shared_ptr<_Tp1>& __a, const shared_ptr<_Tp2>& __b)
+    { return __a.get() < __b.get(); }
+
+  template<typename _Tp>
+    struct less<shared_ptr<_Tp>>
+    : public _Sp_less<shared_ptr<_Tp>>
+    { };
+
+  // 20.8.13.2.9 shared_ptr specialized algorithms.
   template<typename _Tp>
     inline void
-    swap(__shared_ptr<_Tp>& __a, __shared_ptr<_Tp>& __b)
+    swap(shared_ptr<_Tp>& __a, shared_ptr<_Tp>& __b)
     { __a.swap(__b); }
 
   template<typename _Tp>
     inline void
-    swap(__shared_ptr<_Tp>&& __a, __shared_ptr<_Tp>& __b)
+    swap(shared_ptr<_Tp>&& __a, shared_ptr<_Tp>& __b)
     { __a.swap(__b); }
 
   template<typename _Tp>
     inline void
-    swap(__shared_ptr<_Tp>& __a, __shared_ptr<_Tp>&& __b)
+    swap(shared_ptr<_Tp>& __a, shared_ptr<_Tp>&& __b)
     { __a.swap(__b); }
 
+  // 20.8.13.2.10 shared_ptr casts.
   template<typename _Tp, typename _Tp1>
     inline shared_ptr<_Tp>
     static_pointer_cast(const shared_ptr<_Tp1>& __r)
@@ -1298,9 +1403,11 @@ namespace std
     }
 
 
-  /// weak_ptr
-  // The actual weak_ptr, with forwarding constructors and
-  // assignment operators.
+  /** 
+   *  @brief A smart pointer with weak semantics.
+   *  
+   *  With forwarding constructors and assignment operators.
+   */
   template<typename _Tp>
     class weak_ptr
     : public __weak_ptr<_Tp>
@@ -1340,11 +1447,11 @@ namespace std
 	if (this->expired())
 	  return shared_ptr<_Tp>();
 
-	try
+	__try
 	  {
 	    return shared_ptr<_Tp>(*this);
 	  }
-	catch(const bad_weak_ptr&)
+	__catch(const bad_weak_ptr&)
 	  {
 	    return shared_ptr<_Tp>();
 	  }
@@ -1353,9 +1460,38 @@ namespace std
 	                       : shared_ptr<_Tp>(*this);
 #endif
       }
+
+      // comparisons
+      template<typename _Tp1>
+        bool operator<(const weak_ptr<_Tp1>&) const = delete;
+      template<typename _Tp1>
+        bool operator<=(const weak_ptr<_Tp1>&) const = delete;
+      template<typename _Tp1>
+        bool operator>(const weak_ptr<_Tp1>&) const = delete;
+      template<typename _Tp1>
+        bool operator>=(const weak_ptr<_Tp1>&) const = delete;
     };
 
-  /// enable_shared_from_this
+  // 20.8.13.3.7 weak_ptr specialized algorithms.
+  template<typename _Tp>
+    inline void
+    swap(weak_ptr<_Tp>& __a, weak_ptr<_Tp>& __b)
+    { __a.swap(__b); }
+
+  /// owner_less
+  template<typename _Tp>
+    struct owner_less<shared_ptr<_Tp>>
+    : public _Sp_owner_less<shared_ptr<_Tp>, weak_ptr<_Tp>>
+    { };
+
+  template<typename _Tp>
+    struct owner_less<weak_ptr<_Tp>>
+    : public _Sp_owner_less<weak_ptr<_Tp>, shared_ptr<_Tp>>
+    { };
+
+  /** 
+   *  @brief Base class allowing use of member function shared_from_this.
+   */
   template<typename _Tp>
     class enable_shared_from_this
     {
@@ -1415,7 +1551,7 @@ namespace std
               std::forward<_Args>(__args)...);
     }
 
-  /** @brief  Create an object that is owned by a shared_ptr. 
+  /** @brief  Create an object that is owned by a shared_ptr.
    *  @param  __a     An allocator.
    *  @param  __args  Arguments for the @a _Tp object's constructor.
    *  @return A shared_ptr that owns the newly created object.
@@ -1448,4 +1584,8 @@ namespace std
               std::forward<_Args>(__args)...);
     }
 
-}
+  // @} group pointer_abstractions
+
+_GLIBCXX_END_NAMESPACE
+
+#endif // _SHARED_PTR_H

@@ -1,6 +1,6 @@
 ## Makefile for the include subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+## Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
@@ -9,7 +9,7 @@
 ## This file is part of the GNU ISO C++ Library.  This library is free
 ## software; you can redistribute it and/or modify it under the
 ## terms of the GNU General Public License as published by the
-## Free Software Foundation; either version 2, or (at your option)
+## Free Software Foundation; either version 3, or (at your option)
 ## any later version.
 
 ## This library is distributed in the hope that it will be useful,
@@ -18,9 +18,8 @@
 ## GNU General Public License for more details.
 
 ## You should have received a copy of the GNU General Public License along
-## with this library; see the file COPYING.  If not, write to the Free
-## Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-## USA.
+## with this library; see the file COPYING3.  If not see
+## <http://www.gnu.org/licenses/>.
 
 include $(top_srcdir)/fragment.am
 
@@ -36,6 +35,7 @@ std_headers = \
 	${std_srcdir}/complex \
 	${std_srcdir}/condition_variable \
 	${std_srcdir}/deque \
+	${std_srcdir}/forward_list \
 	${std_srcdir}/fstream \
 	${std_srcdir}/functional \
 	${std_srcdir}/iomanip \
@@ -77,6 +77,10 @@ bits_builddir = ./bits
 bits_headers = \
         ${bits_srcdir}/algorithmfwd.h \
 	${bits_srcdir}/allocator.h \
+	${bits_srcdir}/atomicfwd_c.h \
+	${bits_srcdir}/atomicfwd_cxx.h \
+	${bits_srcdir}/atomic_0.h \
+	${bits_srcdir}/atomic_2.h \
 	${bits_srcdir}/basic_ios.h \
 	${bits_srcdir}/basic_ios.tcc \
 	${bits_srcdir}/basic_string.h \
@@ -87,6 +91,8 @@ bits_headers = \
 	${bits_srcdir}/concept_check.h \
 	${bits_srcdir}/cpp_type_traits.h \
 	${bits_srcdir}/deque.tcc \
+	${bits_srcdir}/forward_list.h \
+	${bits_srcdir}/forward_list.tcc \
 	${bits_srcdir}/fstream.tcc \
 	${bits_srcdir}/functexcept.h \
 	${bits_srcdir}/functional_hash.h \
@@ -109,6 +115,8 @@ bits_headers = \
 	${bits_srcdir}/ostream.tcc \
 	${bits_srcdir}/ostream_insert.h \
 	${bits_srcdir}/postypes.h \
+	${bits_srcdir}/random.h \
+	${bits_srcdir}/random.tcc \
 	${bits_srcdir}/stream_iterator.h \
 	${bits_srcdir}/streambuf_iterator.h \
 	${bits_srcdir}/shared_ptr.h \
@@ -481,10 +489,12 @@ ext_headers = \
 	${ext_srcdir}/atomicity.h \
 	${ext_srcdir}/array_allocator.h \
 	${ext_srcdir}/bitmap_allocator.h \
+	${ext_srcdir}/cast.h \
 	${ext_srcdir}/codecvt_specializations.h \
 	${ext_srcdir}/concurrence.h \
 	${ext_srcdir}/debug_allocator.h \
 	${ext_srcdir}/enc_filebuf.h \
+	${ext_srcdir}/extptr_allocator.h \
 	${ext_srcdir}/stdio_filebuf.h \
 	${ext_srcdir}/stdio_sync_filebuf.h \
 	${ext_srcdir}/functional \
@@ -496,6 +506,7 @@ ext_headers = \
 	${ext_srcdir}/numeric \
 	${ext_srcdir}/numeric_traits.h \
 	${ext_srcdir}/pod_char_traits.h \
+	${ext_srcdir}/pointer.h \
 	${ext_srcdir}/pool_allocator.h \
 	${ext_srcdir}/rb_tree \
 	${ext_srcdir}/rope \
@@ -560,6 +571,8 @@ tr1_headers = \
 	${tr1_srcdir}/poly_laguerre.tcc \
 	${tr1_srcdir}/legendre_function.tcc \
 	${tr1_srcdir}/random \
+	${tr1_srcdir}/random.h \
+	${tr1_srcdir}/random.tcc \
 	${tr1_srcdir}/regex \
 	${tr1_srcdir}/riemann_zeta.tcc \
 	${tr1_srcdir}/shared_ptr.h \
@@ -598,8 +611,6 @@ tr1_impl_headers = \
 	${tr1_impl_srcdir}/functional_hash.h \
 	${tr1_impl_srcdir}/hashtable \
 	${tr1_impl_srcdir}/hashtable_policy.h \
-	${tr1_impl_srcdir}/random \
-	${tr1_impl_srcdir}/random.tcc \
 	${tr1_impl_srcdir}/regex \
 	${tr1_impl_srcdir}/type_traits \
 	${tr1_impl_srcdir}/unordered_map \
@@ -696,7 +707,6 @@ debug_headers = \
 	${debug_srcdir}/map.h \
 	${debug_srcdir}/multimap.h \
 	${debug_srcdir}/multiset.h \
-	${debug_srcdir}/safe_association.h \
 	${debug_srcdir}/safe_base.h \
 	${debug_srcdir}/safe_iterator.h \
 	${debug_srcdir}/safe_iterator.tcc \
@@ -820,7 +830,7 @@ pch1_source = ${glibcxx_srcdir}/include/precompiled/stdc++.h
 pch1_output_builddir = ${host_builddir}/stdc++.h.gch
 pch1_output_anchor = ${host_builddir}/stdc++.h
 pch1_output_installdir = ${host_installdir}/stdc++.h.gch
-pch1a_output = ${pch1_output_builddir}/O0g.gch
+pch1a_output = ${pch1_output_builddir}/O2ggnu++0x.gch
 pch1b_output = ${pch1_output_builddir}/O2g.gch
 pch1_output = ${pch1a_output} ${pch1b_output}
 
@@ -1089,7 +1099,8 @@ ${host_builddir}/gthr-default.h: ${toplevel_srcdir}/gcc/${glibcxx_thread_h} \
 # Build two precompiled C++ includes, stdc++.h.gch/*.gch
 ${pch1a_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
 	-mkdir -p ${pch1_output_builddir}
-	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O0 -g ${pch1_source} -o $@
+	$(CXX) $(PCHFLAGS) $(AM_CPPFLAGS) -O2 -g -std=gnu++0x ${pch1_source} \
+	-o $@
 
 ${pch1b_output}: ${allstamped} ${host_builddir}/c++config.h ${pch1_source}
 	-mkdir -p ${pch1_output_builddir}

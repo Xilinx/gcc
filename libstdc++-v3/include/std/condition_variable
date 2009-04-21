@@ -1,11 +1,11 @@
 // <condition_variable> -*- C++ -*-
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file condition_variable
  *  This is a Standard C++ Library header.
@@ -45,41 +40,51 @@
 
 #if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
 
-namespace std 
+namespace std
 {
+  /**
+   * @defgroup condition_variables Condition Variables
+   * @ingroup concurrency
+   *
+   * Classes for condition_variable support.
+   * @{
+   */
+
   /// condition_variable
   class condition_variable
   {
-    typedef chrono::system_clock __clock_t;
+    typedef chrono::system_clock	__clock_t;
+    typedef __gthread_cond_t		__native_type;
+    __native_type			_M_cond;
 
   public:
-    typedef __gthread_cond_t* native_handle_type;
+    typedef __native_type* 		native_handle_type;
 
-    condition_variable();
-    ~condition_variable();
+    condition_variable() throw ();
+    ~condition_variable() throw ();
 
     condition_variable(const condition_variable&) = delete;
     condition_variable& operator=(const condition_variable&) = delete;
 
-    void 
+    void
     notify_one();
 
-    void 
+    void
     notify_all();
 
-    void 
+    void
     wait(unique_lock<mutex>& __lock);
 
     template<typename _Predicate>
-      void 
+      void
       wait(unique_lock<mutex>& __lock, _Predicate __p)
       {
 	while (!__p())
 	  wait(__lock);
       }
-  
+
     template<typename _Duration>
-      bool 
+      bool
       wait_until(unique_lock<mutex>& __lock,
 		 const chrono::time_point<__clock_t, _Duration>& __atime)
       { return __wait_until_impl(__lock, __atime); }
@@ -92,7 +97,7 @@ namespace std
 	// DR 887 - Sync unknown clock to known clock.
 	typename _Clock::time_point __c_entry = _Clock::now();
 	__clock_t::time_point __s_entry = __clock_t::now();
-	chrono::nanoseconds __delta = __atime - __c_entry;	
+	chrono::nanoseconds __delta = __atime - __c_entry;
 	__clock_t::time_point __s_atime = __s_entry + __delta;
 
 	return __wait_until_impl(__lock, __s_atime);
@@ -104,10 +109,10 @@ namespace std
 		 const chrono::time_point<_Clock, _Duration>& __atime,
 		 _Predicate __p)
       {
-	while(!__p())
-	  if(!wait_until(__lock, __atime))
+	while (!__p())
+	  if (!wait_until(__lock, __atime))
 	    return __p();
-	
+
 	return true;
       }
 
@@ -124,35 +129,32 @@ namespace std
 	       _Predicate __p)
       { return wait_until(__lock, __clock_t::now() + __rtime, std::move(__p)); }
 
-    native_handle_type 
-    native_handle() 
+    native_handle_type
+    native_handle()
     { return &_M_cond; }
 
   private:
-    __gthread_cond_t _M_cond;
-    mutex _M_internal_mutex;
-
     template<typename _Clock, typename _Duration>
       bool
       __wait_until_impl(unique_lock<mutex>& __lock,
 			const chrono::time_point<_Clock, _Duration>& __atime)
       {
 	chrono::time_point<__clock_t, chrono::seconds> __s =
-          chrono::time_point_cast<chrono::seconds>(__atime);
-	
+	  chrono::time_point_cast<chrono::seconds>(__atime);
+
 	chrono::nanoseconds __ns =
-          chrono::duration_cast<chrono::nanoseconds>(__atime - __s);
-	
-        __gthread_time_t __ts =
-          {
-            static_cast<std::time_t>(__s.time_since_epoch().count()),
-            static_cast<long>(__ns.count())
-          };
-	
-        __gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(),
-                                 &__ts);
-	
-        return _Clock::now() < __atime;
+	  chrono::duration_cast<chrono::nanoseconds>(__atime - __s);
+
+	__gthread_time_t __ts =
+	  {
+	    static_cast<std::time_t>(__s.time_since_epoch().count()),
+	    static_cast<long>(__ns.count())
+	  };
+
+	__gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(),
+				 &__ts);
+
+	return _Clock::now() < __atime;
       }
   };
 
@@ -160,41 +162,44 @@ namespace std
   // Like above, only mutex may not have try_lock.
   class condition_variable_any
   {
-  public:
-    typedef __gthread_cond_t* native_handle_type;
+    typedef __gthread_cond_t		__native_type;
+    __native_type			_M_cond;
 
-    condition_variable_any();
-    ~condition_variable_any();
-    
+  public:
+    typedef __native_type* 		native_handle_type;
+
+    condition_variable_any() throw ();
+    ~condition_variable_any() throw ();
+
     condition_variable_any(const condition_variable_any&) = delete;
     condition_variable_any& operator=(const condition_variable_any&) = delete;
 
-    void 
+    void
     notify_one();
 
-    void 
+    void
     notify_all();
 
     template<typename _Lock>
-      void 
+      void
       wait(_Lock& __lock);
 
     template<typename _Lock, typename _Predicate>
-      void 
+      void
       wait(_Lock& __lock, _Predicate __p);
 
     template<typename _Lock, typename _Clock, typename _Duration>
-      bool 
+      bool
       wait_until(_Lock& __lock,
 		 const chrono::time_point<_Clock, _Duration>& __atime);
 
-    template<typename _Lock, typename _Clock, 
+    template<typename _Lock, typename _Clock,
 	     typename _Duration, typename _Predicate>
-      bool 
+      bool
       wait_until(_Lock& __lock,
 		 const chrono::time_point<_Clock, _Duration>& __atime,
 		 _Predicate __p);
-    
+
     template<typename _Lock, typename _Rep, typename _Period>
       bool
       wait_for(_Lock& __lock, const chrono::duration<_Rep, _Period>& __rtime);
@@ -202,16 +207,15 @@ namespace std
     template<typename _Lock, typename _Rep,
 	     typename _Period, typename _Predicate>
       bool
-      wait_for(_Lock& __lock, 
+      wait_for(_Lock& __lock,
 	       const chrono::duration<_Rep, _Period>& __rtime, _Predicate __p);
 
-    native_handle_type 
+    native_handle_type
     native_handle()
     { return &_M_cond; }
-
-  private:
-    __gthread_cond_t _M_cond;
   };
+
+  // @} group condition_variables
 }
 
 #endif // _GLIBCXX_HAS_GTHREADS && _GLIBCXX_USE_C99_STDINT_TR1

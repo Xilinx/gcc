@@ -169,14 +169,14 @@ package body Lib.Load is
              Chars => Chars (Selector_Name (Name (With_Node))));
          Du_Name :=
            Make_Defining_Program_Unit_Name (No_Location,
-             Name => New_Copy_Tree (Prefix (Name (With_Node))),
+             Name => Copy_Separate_Tree (Prefix (Name (With_Node))),
              Defining_Identifier => Cunit_Entity);
 
          Set_Is_Child_Unit (Cunit_Entity);
 
          End_Lab :=
            Make_Designator (No_Location,
-             Name => New_Copy_Tree (Prefix (Name (With_Node))),
+             Name => Copy_Separate_Tree (Prefix (Name (With_Node))),
              Identifier => New_Occurrence_Of (Cunit_Entity, No_Location));
       end if;
 
@@ -358,6 +358,8 @@ package body Lib.Load is
    begin
       --  If renamings are allowed and we have a child unit name, then we
       --  must first load the parent to deal with finding the real name.
+      --  Retain the with_clause that names the child, so that if it is
+      --  limited, the parent is loaded under the same condition.
 
       if Renamings and then Is_Child_Name (Load_Name) then
          Unump :=
@@ -366,7 +368,8 @@ package body Lib.Load is
               Required   => Required,
               Subunit    => False,
               Renamings  => True,
-              Error_Node => Error_Node);
+              Error_Node => Error_Node,
+              With_Node  => With_Node);
 
          if Unump = No_Unit then
             return No_Unit;
@@ -711,12 +714,12 @@ package body Lib.Load is
                   --  it may very likely be the case that there is also pragma
                   --  Restriction forbidding its usage. This is typically the
                   --  case when building a configurable run time, where the
-                  --  usage of certain run-time units is restricted by
-                  --  means of both the corresponding pragma Restriction (such
-                  --  as No_Calendar), and by not including the unit. Hence,
-                  --  we check whether this predefined unit is forbidden, so
-                  --  that the message about the restriction violation is
-                  --  generated, if needed.
+                  --  usage of certain run-time units is restricted by means
+                  --  of both the corresponding pragma Restriction (such as
+                  --  No_Calendar), and by not including the unit. Hence, we
+                  --  check whether this predefined unit is forbidden, so that
+                  --  the message about the restriction violation is generated,
+                  --  if needed.
 
                   Check_Restricted_Unit (Load_Name, Error_Node);
 

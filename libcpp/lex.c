@@ -1,5 +1,6 @@
 /* CPP Library - lexical analysis.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Per Bothner, 1994-95.
    Based on CCCP program by Paul Rubin, June 1986
    Adapted to ANSI C, Richard Stallman, Jan 1987
@@ -7,7 +8,7 @@
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -16,8 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -55,6 +56,7 @@ static int skip_line_comment (cpp_reader *);
 static void skip_whitespace (cpp_reader *, cppchar_t);
 static void lex_string (cpp_reader *, cpp_token *, const uchar *);
 static void save_comment (cpp_reader *, cpp_token *, const uchar *, cppchar_t);
+static void store_comment (cpp_reader *, cpp_token *);
 static void create_literal (cpp_reader *, cpp_token *, const uchar *,
 			    unsigned int, enum cpp_ttype);
 static bool warn_in_comment (cpp_reader *, _cpp_line_note *);
@@ -612,7 +614,9 @@ create_literal (cpp_reader *pfile, cpp_token *token, const uchar *base,
 /* Lexes a string, character constant, or angle-bracketed header file
    name.  The stored string contains the spelling, including opening
    quote and leading any leading 'L', 'u' or 'U'.  It returns the type
-   of the literal, or CPP_OTHER if it was not properly terminated.
+   of the literal, or CPP_OTHER if it was not properly terminated, or
+   CPP_LESS for an unterminated header name which must be relexed as
+   normal tokens.
 
    The spelling is NUL-terminated, but it is not guaranteed that this
    is the first NUL since embedded NULs are preserved.  */
@@ -651,6 +655,14 @@ lex_string (cpp_reader *pfile, cpp_token *token, const uchar *base)
       else if (c == '\n')
 	{
 	  cur--;
+	  /* Unmatched quotes always yield undefined behavior, but
+	     greedy lexing means that what appears to be an unterminated
+	     header name may actually be a legitimate sequence of tokens.  */
+	  if (terminator == '>')
+	    {
+	      token->type = CPP_LESS;
+	      return;
+	    }
 	  type = CPP_OTHER;
 	  break;
 	}
@@ -668,6 +680,51 @@ lex_string (cpp_reader *pfile, cpp_token *token, const uchar *base)
 
   pfile->buffer->cur = cur;
   create_literal (pfile, token, base, cur - base, type);
+}
+
+/* Return the comment table. The client may not make any assumption
+   about the ordering of the table.  */
+cpp_comment_table *
+cpp_get_comments (cpp_reader *pfile)
+{
+  return &pfile->comments;
+}
+
+/* Append a comment to the end of the comment table. */
+static void 
+store_comment (cpp_reader *pfile, cpp_token *token) 
+{
+  int len;
+
+  if (pfile->comments.allocated == 0)
+    {
+      pfile->comments.allocated = 256; 
+      pfile->comments.entries = (cpp_comment *) xmalloc
+	(pfile->comments.allocated * sizeof (cpp_comment));
+    }
+
+  if (pfile->comments.count == pfile->comments.allocated)
+    {
+      pfile->comments.allocated *= 2;
+      pfile->comments.entries = (cpp_comment *) xrealloc
+	(pfile->comments.entries,
+	 pfile->comments.allocated * sizeof (cpp_comment));
+    }
+
+  len = token->val.str.len;
+
+  /* Copy comment. Note, token may not be NULL terminated. */
+  pfile->comments.entries[pfile->comments.count].comment = 
+    (char *) xmalloc (sizeof (char) * (len + 1));
+  memcpy (pfile->comments.entries[pfile->comments.count].comment,
+	  token->val.str.text, len);
+  pfile->comments.entries[pfile->comments.count].comment[len] = '\0';
+
+  /* Set source location. */
+  pfile->comments.entries[pfile->comments.count].sloc = token->src_loc;
+
+  /* Increment the count of entries in the comment table. */
+  pfile->comments.count++;
 }
 
 /* The stored comment includes the comment start and any terminator.  */
@@ -709,6 +766,9 @@ save_comment (cpp_reader *pfile, cpp_token *token, const unsigned char *from,
       buffer[clen - 2] = '*';
       buffer[clen - 1] = '/';
     }
+
+  /* Finally store this comment for use by clients of libcpp. */
+  store_comment (pfile, token);
 }
 
 /* Allocate COUNT tokens for RUN.  */
@@ -1132,7 +1192,8 @@ _cpp_lex_direct (cpp_reader *pfile)
       if (pfile->state.angled_headers)
 	{
 	  lex_string (pfile, result, buffer->cur - 1);
-	  break;
+	  if (result->type != CPP_LESS)
+	    break;
 	}
 
       result->type = CPP_LESS;
@@ -1183,7 +1244,7 @@ _cpp_lex_direct (cpp_reader *pfile)
 	      result->flags |= DIGRAPH;
 	      result->type = CPP_HASH;
 	      if (*buffer->cur == '%' && buffer->cur[1] == ':')
-		buffer->cur += 2, result->type = CPP_PASTE;
+		buffer->cur += 2, result->type = CPP_PASTE, result->val.arg_no = 0;
 	    }
 	  else if (*buffer->cur == '>')
 	    {
@@ -1264,7 +1325,7 @@ _cpp_lex_direct (cpp_reader *pfile)
     case '=': IF_NEXT_IS ('=', CPP_EQ_EQ, CPP_EQ); break;
     case '!': IF_NEXT_IS ('=', CPP_NOT_EQ, CPP_NOT); break;
     case '^': IF_NEXT_IS ('=', CPP_XOR_EQ, CPP_XOR); break;
-    case '#': IF_NEXT_IS ('#', CPP_PASTE, CPP_HASH); break;
+    case '#': IF_NEXT_IS ('#', CPP_PASTE, CPP_HASH); result->val.arg_no = 0; break;
 
     case '?': result->type = CPP_QUERY; break;
     case '~': result->type = CPP_COMPL; break;
@@ -1313,7 +1374,7 @@ cpp_token_len (const cpp_token *token)
 
   switch (TOKEN_SPELL (token))
     {
-    default:		len = 4;				break;
+    default:		len = 6;				break;
     case SPELL_LITERAL:	len = token->val.str.len;		break;
     case SPELL_IDENT:	len = NODE_LEN (token->val.node) * 10;	break;
     }
@@ -1511,7 +1572,9 @@ _cpp_equiv_tokens (const cpp_token *a, const cpp_token *b)
       {
       default:			/* Keep compiler happy.  */
       case SPELL_OPERATOR:
-	return 1;
+	/* arg_no is used to track where multiple consecutive ##
+	   tokens were originally located.  */
+	return (a->type != CPP_PASTE || a->val.arg_no == b->val.arg_no);
       case SPELL_NONE:
 	return (a->type != CPP_MACRO_ARG || a->val.arg_no == b->val.arg_no);
       case SPELL_IDENT:
@@ -1825,6 +1888,11 @@ cpp_token_val_index (cpp_token *tok)
       return CPP_TOKEN_FLD_NODE;
     case SPELL_LITERAL:
       return CPP_TOKEN_FLD_STR;
+    case SPELL_OPERATOR:
+      if (tok->type == CPP_PASTE)
+	return CPP_TOKEN_FLD_ARG_NO;
+      else
+	return CPP_TOKEN_FLD_NONE;
     case SPELL_NONE:
       if (tok->type == CPP_MACRO_ARG)
 	return CPP_TOKEN_FLD_ARG_NO;

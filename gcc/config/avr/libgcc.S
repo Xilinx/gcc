@@ -1,31 +1,26 @@
 /*  -*- Mode: Asm -*-  */
-/* Copyright (C) 1998, 1999, 2000, 2007, 2008 
+/* Copyright (C) 1998, 1999, 2000, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Denis Chertykov <denisc@overta.ru>
 
 This file is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 This file is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #define __zero_reg__ r1
 #define __tmp_reg__ r0
@@ -793,38 +788,112 @@ __do_clear_bss:
 #ifdef L_ctors
 	.section .init6,"ax",@progbits
 	.global	__do_global_ctors
+#if defined(__AVR_HAVE_RAMPZ__)
+__do_global_ctors:
+	ldi	r17, hi8(__ctors_start)
+	ldi	r16, hh8(__ctors_start)
+	ldi	r28, lo8(__ctors_end)
+	ldi	r29, hi8(__ctors_end)
+	ldi	r20, hh8(__ctors_end)
+	rjmp	.L__do_global_ctors_start
+.L__do_global_ctors_loop:
+	sbiw	r28, 2
+	sbc     r20, __zero_reg__
+	mov_h	r31, r29
+	mov_l	r30, r28
+	out     __RAMPZ__, r20
+	XCALL	__tablejump_elpm__
+.L__do_global_ctors_start:
+	cpi	r28, lo8(__ctors_start)
+	cpc	r29, r17
+	cpc	r20, r16
+	brne	.L__do_global_ctors_loop
+#else
 __do_global_ctors:
 	ldi	r17, hi8(__ctors_start)
 	ldi	r28, lo8(__ctors_end)
 	ldi	r29, hi8(__ctors_end)
-	rjmp	.do_global_ctors_start
-.do_global_ctors_loop:
+	rjmp	.L__do_global_ctors_start
+.L__do_global_ctors_loop:
 	sbiw	r28, 2
 	mov_h	r31, r29
 	mov_l	r30, r28
 	XCALL	__tablejump__
-.do_global_ctors_start:
+.L__do_global_ctors_start:
 	cpi	r28, lo8(__ctors_start)
 	cpc	r29, r17
-	brne	.do_global_ctors_loop
+	brne	.L__do_global_ctors_loop
+#endif /* defined(__AVR_HAVE_RAMPZ__) */
 #endif /* L_ctors */
 
 #ifdef L_dtors
 	.section .fini6,"ax",@progbits
 	.global	__do_global_dtors
+#if defined(__AVR_HAVE_RAMPZ__)
+__do_global_dtors:
+	ldi	r17, hi8(__dtors_end)
+	ldi	r16, hh8(__dtors_end)
+	ldi	r28, lo8(__dtors_start)
+	ldi	r29, hi8(__dtors_start)
+	ldi	r20, hh8(__dtors_start)
+	rjmp	.L__do_global_dtors_start
+.L__do_global_dtors_loop:
+	sbiw	r28, 2
+	sbc     r20, __zero_reg__
+	mov_h	r31, r29
+	mov_l	r30, r28
+	out     __RAMPZ__, r20
+	XCALL	__tablejump_elpm__
+.L__do_global_dtors_start:
+	cpi	r28, lo8(__dtors_end)
+	cpc	r29, r17
+	cpc	r20, r16
+	brne	.L__do_global_dtors_loop
+#else
 __do_global_dtors:
 	ldi	r17, hi8(__dtors_end)
 	ldi	r28, lo8(__dtors_start)
 	ldi	r29, hi8(__dtors_start)
-	rjmp	.do_global_dtors_start
-.do_global_dtors_loop:
+	rjmp	.L__do_global_dtors_start
+.L__do_global_dtors_loop:
 	mov_h	r31, r29
 	mov_l	r30, r28
 	XCALL	__tablejump__
 	adiw	r28, 2
-.do_global_dtors_start:
+.L__do_global_dtors_start:
 	cpi	r28, lo8(__dtors_end)
 	cpc	r29, r17
-	brne	.do_global_dtors_loop
+	brne	.L__do_global_dtors_loop
+#endif /* defined(__AVR_HAVE_RAMPZ__) */
 #endif /* L_dtors */
+
+#ifdef L_tablejump_elpm
+	.global __tablejump_elpm__
+	.func	__tablejump_elpm__
+__tablejump_elpm__:
+#if defined (__AVR_HAVE_ELPM__)
+#if defined (__AVR_HAVE_LPMX__)
+	elpm	__tmp_reg__, Z+
+	elpm	r31, Z
+	mov	r30, __tmp_reg__
+#if defined (__AVR_HAVE_EIJMP_EICALL__)
+	eijmp
+#else
+	ijmp
+#endif
+
+#else
+	elpm
+	adiw	r30, 1
+	push	r0
+	elpm
+	push	r0
+#if defined (__AVR_HAVE_EIJMP_EICALL__)
+        push    __zero_reg__
+#endif
+	ret
+#endif
+#endif /* defined (__AVR_HAVE_ELPM__) */
+	.endfunc
+#endif /* defined (L_tablejump_elpm) */
 

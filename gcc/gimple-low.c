@@ -1,6 +1,7 @@
 /* GIMPLE lowering pass.  Converts High GIMPLE into Low GIMPLE.
 
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -133,6 +134,7 @@ lower_function_body (void)
     {
       x = gimple_build_return (NULL);
       gimple_set_location (x, cfun->function_end_locus);
+      gimple_set_block (x, DECL_INITIAL (current_function_decl));
       gsi_insert_after (&i, x, GSI_CONTINUE_LINKING);
     }
 
@@ -207,7 +209,7 @@ struct gimple_opt_pass pass_lower_cf =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_gimple_any,			/* properties_required */
   PROP_gimple_lcf,			/* properties_provided */
   0,					/* properties_destroyed */
@@ -215,6 +217,80 @@ struct gimple_opt_pass pass_lower_cf =
   TODO_dump_func			/* todo_flags_finish */
  }
 };
+
+
+/* Verify if the type of the argument matches that of the function
+   declaration.  If we cannot verify this or there is a mismatch,
+   mark the call expression so it doesn't get inlined later.  */
+
+static void
+check_call_args (gimple stmt)
+{
+  tree fndecl, parms, p;
+  unsigned int i, nargs;
+
+  if (gimple_call_cannot_inline_p (stmt))
+    return;
+
+  nargs = gimple_call_num_args (stmt);
+
+  /* Get argument types for verification.  */
+  fndecl = gimple_call_fndecl (stmt);
+  parms = NULL_TREE;
+  if (fndecl)
+    parms = TYPE_ARG_TYPES (TREE_TYPE (fndecl));
+  else if (POINTER_TYPE_P (TREE_TYPE (gimple_call_fn (stmt))))
+    parms = TYPE_ARG_TYPES (TREE_TYPE (TREE_TYPE (gimple_call_fn (stmt))));
+
+  /* Verify if the type of the argument matches that of the function
+     declaration.  If we cannot verify this or there is a mismatch,
+     mark the call expression so it doesn't get inlined later.  */
+  if (fndecl && DECL_ARGUMENTS (fndecl))
+    {
+      for (i = 0, p = DECL_ARGUMENTS (fndecl);
+	   i < nargs;
+	   i++, p = TREE_CHAIN (p))
+	{
+	  /* We cannot distinguish a varargs function from the case
+	     of excess parameters, still deferring the inlining decision
+	     to the callee is possible.  */
+	  if (!p)
+	    break;
+	  if (p == error_mark_node
+	      || gimple_call_arg (stmt, i) == error_mark_node
+	      || !fold_convertible_p (DECL_ARG_TYPE (p),
+				      gimple_call_arg (stmt, i)))
+	    {
+	      gimple_call_set_cannot_inline (stmt, true);
+	      break;
+	    }
+	}
+    }
+  else if (parms)
+    {
+      for (i = 0, p = parms; i < nargs; i++, p = TREE_CHAIN (p))
+	{
+	  /* If this is a varargs function defer inlining decision
+	     to callee.  */
+	  if (!p)
+	    break;
+	  if (TREE_VALUE (p) == error_mark_node
+	      || gimple_call_arg (stmt, i) == error_mark_node
+	      || TREE_CODE (TREE_VALUE (p)) == VOID_TYPE
+	      || !fold_convertible_p (TREE_VALUE (p),
+				      gimple_call_arg (stmt, i)))
+	    {
+	      gimple_call_set_cannot_inline (stmt, true);
+	      break;
+	    }
+	}
+    }
+  else
+    {
+      if (nargs != 0)
+	gimple_call_set_cannot_inline (stmt, true);
+    }
+}
 
 
 /* Lower sequence SEQ.  Unlike gimplification the statements are not relowered
@@ -319,6 +395,7 @@ lower_stmt (gimple_stmt_iterator *gsi, struct lower_data *data)
 	    lower_builtin_setjmp (gsi);
 	    return;
 	  }
+	check_call_args (stmt);
       }
       break;
 
@@ -659,6 +736,7 @@ lower_gimple_return (gimple_stmt_iterator *gsi, struct lower_data *data)
  found:
   t = gimple_build_goto (tmp_rs.label);
   gimple_set_location (t, gimple_location (stmt));
+  gimple_set_block (t, gimple_block (stmt));
   gsi_insert_before (gsi, t, GSI_SAME_STMT);
   gsi_remove (gsi, false);
 }
@@ -736,6 +814,7 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   t = implicit_built_in_decls[BUILT_IN_SETJMP_SETUP];
   g = gimple_build_call (t, 2, gimple_call_arg (stmt, 0), arg);
   gimple_set_location (g, gimple_location (stmt));
+  gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 0' and insert.  */
@@ -744,12 +823,13 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
       g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
 						   integer_zero_node));
       gimple_set_location (g, gimple_location (stmt));
+      gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }
 
   /* Build 'goto CONT_LABEL' and insert.  */
   g = gimple_build_goto (cont_label);
-  gsi_insert_before (gsi, g, TSI_SAME_STMT);
+  gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'NEXT_LABEL:' and insert.  */
   g = gimple_build_label (next_label);
@@ -760,6 +840,7 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
   t = implicit_built_in_decls[BUILT_IN_SETJMP_RECEIVER];
   g = gimple_build_call (t, 1, arg);
   gimple_set_location (g, gimple_location (stmt));
+  gimple_set_block (g, gimple_block (stmt));
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   /* Build 'DEST = 1' and insert.  */
@@ -768,6 +849,7 @@ lower_builtin_setjmp (gimple_stmt_iterator *gsi)
       g = gimple_build_assign (dest, fold_convert (TREE_TYPE (dest),
 						   integer_one_node));
       gimple_set_location (g, gimple_location (stmt));
+      gimple_set_block (g, gimple_block (stmt));
       gsi_insert_before (gsi, g, GSI_SAME_STMT);
     }
 
@@ -868,7 +950,7 @@ struct gimple_opt_pass pass_mark_used_blocks =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

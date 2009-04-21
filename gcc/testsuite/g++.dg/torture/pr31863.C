@@ -1,4 +1,5 @@
 /* { dg-do link } */
+/* { dg-timeout-factor 2.0 } */
 
 namespace Loki
 {

@@ -1,6 +1,6 @@
 /* Build expressions with type checking for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -248,12 +248,13 @@ original_type (tree t)
   return cp_build_qualified_type (t, quals);
 }
 
-/* T1 and T2 are arithmetic or enumeration types.  Return the type
-   that will result from the "usual arithmetic conversions" on T1 and
-   T2 as described in [expr].  */
+/* Return the common type for two arithmetic types T1 and T2 under the
+   usual arithmetic conversions.  The default conversions have already
+   been applied, and enumerated types converted to their compatible
+   integer types.  */
 
-tree
-type_after_usual_arithmetic_conversions (tree t1, tree t2)
+static tree
+cp_common_type (tree t1, tree t2)
 {
   enum tree_code code1 = TREE_CODE (t1);
   enum tree_code code2 = TREE_CODE (t2);
@@ -306,13 +307,6 @@ type_after_usual_arithmetic_conversions (tree t1, tree t2)
     return build_type_attribute_variant (t1, attributes);
   if (code2 == REAL_TYPE && code1 != REAL_TYPE)
     return build_type_attribute_variant (t2, attributes);
-
-  /* Perform the integral promotions.  */
-  if (code1 != REAL_TYPE)
-    {
-      t1 = type_promotes_to (t1);
-      t2 = type_promotes_to (t2);
-    }
 
   /* Both real or both integers; use the one with greater precision.  */
   if (TYPE_PRECISION (t1) > TYPE_PRECISION (t2))
@@ -391,6 +385,31 @@ type_after_usual_arithmetic_conversions (tree t1, tree t2)
 	 compelling reason to choose one or the other.  */
       return build_type_attribute_variant (t1, attributes);
     }
+}
+
+/* T1 and T2 are arithmetic or enumeration types.  Return the type
+   that will result from the "usual arithmetic conversions" on T1 and
+   T2 as described in [expr].  */
+
+tree
+type_after_usual_arithmetic_conversions (tree t1, tree t2)
+{
+  gcc_assert (ARITHMETIC_TYPE_P (t1)
+	      || TREE_CODE (t1) == VECTOR_TYPE
+	      || UNSCOPED_ENUM_P (t1));
+  gcc_assert (ARITHMETIC_TYPE_P (t2)
+	      || TREE_CODE (t2) == VECTOR_TYPE
+	      || UNSCOPED_ENUM_P (t2));
+
+  /* Perform the integral promotions.  We do not promote real types here.  */
+  if (INTEGRAL_OR_ENUMERATION_TYPE_P (t1)
+      && INTEGRAL_OR_ENUMERATION_TYPE_P (t2))
+    {
+      t1 = type_promotes_to (t1);
+      t2 = type_promotes_to (t2);
+    }
+
+  return cp_common_type (t1, t2);
 }
 
 /* Subroutine of composite_pointer_type to implement the recursive
@@ -618,6 +637,20 @@ merge_types (tree t1, tree t2)
 
   code1 = TREE_CODE (t1);
   code2 = TREE_CODE (t2);
+  if (code1 != code2)
+    {
+      gcc_assert (code1 == TYPENAME_TYPE || code2 == TYPENAME_TYPE);
+      if (code1 == TYPENAME_TYPE)
+	{
+          t1 = resolve_typename_type (t1, /*only_current_p=*/true);
+	  code1 = TREE_CODE (t1);
+	}
+      else
+	{
+          t2 = resolve_typename_type (t2, /*only_current_p=*/true);
+	  code2 = TREE_CODE (t2);
+	}
+    }
 
   switch (code1)
     {
@@ -744,39 +777,42 @@ merge_types (tree t1, tree t2)
     return cp_build_type_attribute_variant (t1, attributes);
 }
 
-/* Return the common type of two types.
-   We assume that comptypes has already been done and returned 1;
-   if that isn't so, this may crash.
+/* Wrapper around cp_common_type that is used by c-common.c and other
+   front end optimizations that remove promotions.  
 
-   This is the type for the result of most arithmetic operations
-   if the operands have the given two types.  */
+   Return the common type for two arithmetic types T1 and T2 under the
+   usual arithmetic conversions.  The default conversions have already
+   been applied, and enumerated types converted to their compatible
+   integer types.  */
 
 tree
 common_type (tree t1, tree t2)
 {
-  enum tree_code code1;
-  enum tree_code code2;
+  /* If one type is nonsense, use the other  */
+  if (t1 == error_mark_node)
+    return t2;
+  if (t2 == error_mark_node)
+    return t1;
 
-  /* If one type is nonsense, bail.  */
-  if (t1 == error_mark_node || t2 == error_mark_node)
-    return error_mark_node;
+  return cp_common_type (t1, t2);
+}
 
-  code1 = TREE_CODE (t1);
-  code2 = TREE_CODE (t2);
+/* Return the common type of two pointer types T1 and T2.  This is the
+   type for the result of most arithmetic operations if the operands
+   have the given two types.
+ 
+   We assume that comp_target_types has already been done and returned
+   nonzero; if that isn't so, this may crash.  */
 
-  if ((ARITHMETIC_TYPE_P (t1) || UNSCOPED_ENUM_P (t1)
-       || code1 == VECTOR_TYPE)
-      && (ARITHMETIC_TYPE_P (t2) || UNSCOPED_ENUM_P (t2)
-	  || code2 == VECTOR_TYPE))
-    return type_after_usual_arithmetic_conversions (t1, t2);
+tree
+common_pointer_type (tree t1, tree t2)
+{
+  gcc_assert ((TYPE_PTR_P (t1) && TYPE_PTR_P (t2))
+              || (TYPE_PTRMEM_P (t1) && TYPE_PTRMEM_P (t2))
+              || (TYPE_PTRMEMFUNC_P (t1) && TYPE_PTRMEMFUNC_P (t2)));
 
-  else if ((TYPE_PTR_P (t1) && TYPE_PTR_P (t2))
-	   || (TYPE_PTRMEM_P (t1) && TYPE_PTRMEM_P (t2))
-	   || (TYPE_PTRMEMFUNC_P (t1) && TYPE_PTRMEMFUNC_P (t2)))
-    return composite_pointer_type (t1, t2, error_mark_node, error_mark_node,
-				   "conversion", tf_warning_or_error);
-  else
-    gcc_unreachable ();
+  return composite_pointer_type (t1, t2, error_mark_node, error_mark_node,
+                                 "conversion", tf_warning_or_error);
 }
 
 /* Compare two exception specifier types for exactness or subsetness, if
@@ -1472,7 +1508,7 @@ cxx_sizeof_or_alignof_expr (tree e, enum tree_code op, bool complain)
 bool
 invalid_nonstatic_memfn_p (const_tree expr, tsubst_flags_t complain)
 {
-  if (TREE_CODE (TREE_TYPE (expr)) == METHOD_TYPE)
+  if (DECL_NONSTATIC_MEMBER_FUNCTION_P (expr))
     {
       if (complain & tf_error)
         error ("invalid use of non-static member function");
@@ -2079,8 +2115,8 @@ build_class_member_access_expr (tree object, tree member,
   return result;
 }
 
-/* Return the destructor denoted by OBJECT.SCOPE::~DTOR_NAME, or, if
-   SCOPE is NULL, by OBJECT.~DTOR_NAME.  */
+/* Return the destructor denoted by OBJECT.SCOPE::DTOR_NAME, or, if
+   SCOPE is NULL, by OBJECT.DTOR_NAME, where DTOR_NAME is ~type.  */
 
 static tree
 lookup_destructor (tree object, tree scope, tree dtor_name)
@@ -2095,7 +2131,21 @@ lookup_destructor (tree object, tree scope, tree dtor_name)
 	     scope, dtor_type);
       return error_mark_node;
     }
-  if (!DERIVED_FROM_P (dtor_type, TYPE_MAIN_VARIANT (object_type)))
+  if (TREE_CODE (dtor_type) == IDENTIFIER_NODE)
+    {
+      /* In a template, names we can't find a match for are still accepted
+	 destructor names, and we check them here.  */
+      if (check_dtor_name (object_type, dtor_type))
+	dtor_type = object_type;
+      else
+	{
+	  error ("object type %qT does not match destructor name ~%qT",
+		 object_type, dtor_type);
+	  return error_mark_node;
+	}
+      
+    }
+  else if (!DERIVED_FROM_P (dtor_type, TYPE_MAIN_VARIANT (object_type)))
     {
       error ("the type being destroyed is %qT, but the destructor refers to %qT",
 	     TYPE_MAIN_VARIANT (object_type), dtor_type);
@@ -2405,8 +2455,8 @@ build_x_indirect_ref (tree expr, const char *errorstring,
 
 /* Helper function called from c-common.  */
 tree
-build_indirect_ref (tree ptr, const char *errorstring, 
-		    location_t loc __attribute__ ((__unused__)))
+build_indirect_ref (location_t loc __attribute__ ((__unused__)),
+		    tree ptr, const char *errorstring)
 {
   return cp_build_indirect_ref (ptr, errorstring, tf_warning_or_error);
 }
@@ -2768,6 +2818,10 @@ get_member_function_from_ptrfunc (tree *instance_ptrptr, tree function)
       vtbl = build1 (NOP_EXPR, build_pointer_type (vtbl_ptr_type_node),
 		     instance_ptr);
       vtbl = cp_build_indirect_ref (vtbl, NULL, tf_warning_or_error);
+      /* If the object is not dynamic the access invokes undefined
+	 behavior.  As it is not executed in this case silence the
+	 spurious warnings it may provoke.  */
+      TREE_NO_WARNING (vtbl) = 1;
 
       /* Finally, extract the function pointer from the vtable.  */
       e2 = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (vtbl), vtbl,
@@ -2803,6 +2857,28 @@ build_function_call (tree function, tree params)
   return cp_build_function_call (function, params, tf_warning_or_error);
 }
 
+/* Used by the C-common bits.  */
+tree
+build_function_call_vec (tree function, VEC(tree,gc) *params,
+			 VEC(tree,gc) *origtypes ATTRIBUTE_UNUSED)
+{
+  tree p;
+  tree *pp;
+  unsigned int i;
+  tree t;
+
+  /* FIXME: Should just change cp_build_function_call to use a
+     VEC.  */
+  p = NULL_TREE;
+  pp = &p;
+  for (i = 0; VEC_iterate (tree, params, i, t); ++i)
+    {
+      *pp = build_tree_list (NULL, t);
+      pp = &TREE_CHAIN (*pp);
+    }
+  return cp_build_function_call (function, p, tf_warning_or_error);
+}
+
 tree
 cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
 {
@@ -2816,7 +2892,8 @@ cp_build_function_call (tree function, tree params, tsubst_flags_t complain)
 
   /* For Objective-C, convert any calls via a cast to OBJC_TYPE_REF
      expressions, like those used for ObjC messenger dispatches.  */
-  function = objc_rewrite_function_call (function, params);
+  if (params != NULL_TREE)
+    function = objc_rewrite_function_call (function, TREE_VALUE (params));
 
   /* build_c_cast puts on a NOP_EXPR to make the result not an lvalue.
      Strip such NOP_EXPRs, since FUNCTION is used in non-lvalue context.  */
@@ -3136,11 +3213,39 @@ build_x_binary_op (enum tree_code code, tree arg1, enum tree_code arg1_code,
       && !error_operand_p (arg2)
       && (code != LSHIFT_EXPR
 	  || !CLASS_TYPE_P (TREE_TYPE (arg1))))
-    warn_about_parentheses (code, arg1_code, arg2_code);
+    warn_about_parentheses (code, arg1_code, orig_arg1, arg2_code, orig_arg2);
 
   if (processing_template_decl && expr != error_mark_node)
     return build_min_non_dep (code, expr, orig_arg1, orig_arg2);
 
+  return expr;
+}
+
+/* Build and return an ARRAY_REF expression.  */
+
+tree
+build_x_array_ref (tree arg1, tree arg2, tsubst_flags_t complain)
+{
+  tree orig_arg1 = arg1;
+  tree orig_arg2 = arg2;
+  tree expr;
+
+  if (processing_template_decl)
+    {
+      if (type_dependent_expression_p (arg1)
+	  || type_dependent_expression_p (arg2))
+	return build_min_nt (ARRAY_REF, arg1, arg2,
+			     NULL_TREE, NULL_TREE);
+      arg1 = build_non_dependent_expr (arg1);
+      arg2 = build_non_dependent_expr (arg2);
+    }
+
+  expr = build_new_op (ARRAY_REF, LOOKUP_NORMAL, arg1, arg2, NULL_TREE,
+		       /*overloaded_p=*/NULL, complain);
+
+  if (processing_template_decl && expr != error_mark_node)
+    return build_min_non_dep (ARRAY_REF, expr, orig_arg1, orig_arg2,
+			      NULL_TREE, NULL_TREE);
   return expr;
 }
 
@@ -3303,7 +3408,7 @@ cp_build_binary_op (location_t location,
       if (code0 == POINTER_TYPE && code1 == POINTER_TYPE
 	  && same_type_ignoring_top_level_qualifiers_p (TREE_TYPE (type0),
 							TREE_TYPE (type1)))
-	return pointer_diff (op0, op1, common_type (type0, type1));
+	return pointer_diff (op0, op1, common_pointer_type (type0, type1));
       /* In all other cases except pointer - int, the usual arithmetic
 	 rules apply.  */
       else if (!(code0 == POINTER_TYPE && code1 == INTEGER_TYPE))
@@ -3349,7 +3454,7 @@ cp_build_binary_op (location_t location,
 	{
 	  enum tree_code tcode0 = code0, tcode1 = code1;
 
-	  warn_for_div_by_zero (op1);
+	  warn_for_div_by_zero (location, op1);
 
 	  if (tcode0 == COMPLEX_TYPE || tcode0 == VECTOR_TYPE)
 	    tcode0 = TREE_CODE (TREE_TYPE (TREE_TYPE (op0)));
@@ -3385,7 +3490,7 @@ cp_build_binary_op (location_t location,
 
     case TRUNC_MOD_EXPR:
     case FLOOR_MOD_EXPR:
-      warn_for_div_by_zero (op1);
+      warn_for_div_by_zero (location, op1);
 
       if (code0 == INTEGER_TYPE && code1 == INTEGER_TYPE)
 	{
@@ -3805,7 +3910,7 @@ cp_build_binary_op (location_t location,
   if (!result_type
       && arithmetic_types_p
       && (shorten || common || short_compare))
-    result_type = common_type (type0, type1);
+    result_type = cp_common_type (type0, type1);
 
   if (!result_type)
     {
@@ -3949,7 +4054,7 @@ cp_pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      pointer_int_sum() anyway.  */
   complete_type (TREE_TYPE (res_type));
 
-  return pointer_int_sum (resultcode, ptrop,
+  return pointer_int_sum (input_location, resultcode, ptrop,
 			  fold_if_not_in_template (intop));
 }
 
@@ -4163,7 +4268,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
   tree val;
   const char *invalid_op_diag;
 
-  if (arg == error_mark_node)
+  if (error_operand_p (arg))
     return error_mark_node;
 
   if ((invalid_op_diag
@@ -4326,12 +4431,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 
       {
 	tree inc;
-	tree declared_type;
-	tree result_type = TREE_TYPE (arg);
+	tree declared_type = unlowered_expr_type (arg);
 
-	declared_type = unlowered_expr_type (arg);
-
-	arg = get_unwidened (arg, 0);
 	argtype = TREE_TYPE (arg);
 
 	/* ARM $5.2.5 last annotation says this should be forbidden.  */
@@ -4405,7 +4506,7 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	  val = build2 (code, TREE_TYPE (arg), arg, inc);
 
 	TREE_SIDE_EFFECTS (val) = 1;
-	return cp_convert (result_type, val);
+	return val;
       }
 
     case ADDR_EXPR:
@@ -4423,12 +4524,15 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 	  arg = build1 (CONVERT_EXPR, type, arg);
 	  return arg;
 	}
-      else if (DECL_MAIN_P (arg))
+      else if (pedantic && DECL_MAIN_P (arg))
         {
           /* ARM $3.4 */
-          if (complain & tf_error)
-            permerror (input_location, "ISO C++ forbids taking address of function %<::main%>");
-          else
+	  /* Apparently a lot of autoconf scripts for C++ packages do this,
+	     so only complain if -pedantic.  */
+          if (complain & (flag_pedantic_errors ? tf_error : tf_warning))
+            pedwarn (input_location, OPT_pedantic,
+		     "ISO C++ forbids taking address of function %<::main%>");
+          else if (flag_pedantic_errors)
             return error_mark_node;
         }
 
@@ -4642,7 +4746,8 @@ cp_build_unary_op (enum tree_code code, tree xarg, int noconvert,
 
 /* Hook for the c-common bits that build a unary op.  */
 tree
-build_unary_op (enum tree_code code, tree xarg, int noconvert)
+build_unary_op (location_t location ATTRIBUTE_UNUSED,
+		enum tree_code code, tree xarg, int noconvert)
 {
   return cp_build_unary_op (code, xarg, noconvert, tf_warning_or_error);
 }
@@ -5757,7 +5862,9 @@ cp_build_c_cast (tree type, tree expr, tsubst_flags_t complain)
 
 /* For use from the C common bits.  */
 tree
-build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs)
+build_modify_expr (location_t location ATTRIBUTE_UNUSED,
+		   tree lhs, enum tree_code modifycode, tree rhs,
+		   tree rhs_origtype ATTRIBUTE_UNUSED)
 {
   return cp_build_modify_expr (lhs, modifycode, rhs, tf_warning_or_error);
 }
@@ -5777,7 +5884,6 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
   tree newrhs = rhs;
   tree lhstype = TREE_TYPE (lhs);
   tree olhstype = lhstype;
-  tree olhs = NULL_TREE;
   bool plain_assign = (modifycode == NOP_EXPR);
 
   /* Avoid duplicate error messages from operands that had errors.  */
@@ -5940,7 +6046,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 			|| MAYBE_CLASS_TYPE_P (lhstype)));
 
 	  lhs = stabilize_reference (lhs);
-	  newrhs = cp_build_binary_op (EXPR_LOCATION (lhs),
+	  newrhs = cp_build_binary_op (input_location,
 				       modifycode, lhs, rhs,
 				       complain);
 	  if (newrhs == error_mark_node)
@@ -5981,35 +6087,11 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	return error_mark_node;
     }
 
-  /* If storing into a structure or union member, it has probably been
-     given type `int'.  Compute the type that would go with the actual
-     amount of storage the member occupies.  */
+  /* If storing into a structure or union member, it may have been given a
+     lowered bitfield type.  We need to convert to the declared type first,
+     so retrieve it now.  */
 
-  if (TREE_CODE (lhs) == COMPONENT_REF
-      && (TREE_CODE (lhstype) == INTEGER_TYPE
-	  || TREE_CODE (lhstype) == REAL_TYPE
-	  || TREE_CODE (lhstype) == ENUMERAL_TYPE))
-    {
-      lhstype = TREE_TYPE (get_unwidened (lhs, 0));
-
-      /* If storing in a field that is in actuality a short or narrower
-	 than one, we must store in the field in its actual type.  */
-
-      if (lhstype != TREE_TYPE (lhs))
-	{
-	  /* Avoid warnings converting integral types back into enums for
-	     enum bit fields.  */
-	  if (TREE_CODE (lhstype) == INTEGER_TYPE
-	      && TREE_CODE (olhstype) == ENUMERAL_TYPE)
-	    {
-	      if (TREE_SIDE_EFFECTS (lhs))
-		lhs = stabilize_reference (lhs);
-	      olhs = lhs;
-	    }
-	  lhs = copy_node (lhs);
-	  TREE_TYPE (lhs) = lhstype;
-	}
-    }
+  olhstype = unlowered_expr_type (lhs);
 
   /* Convert new value to destination type.  */
 
@@ -6027,7 +6109,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	}
 
       /* Allow array assignment in compiler-generated code.  */
-      if (! DECL_ARTIFICIAL (current_function_decl))
+      if (!current_function_decl || !DECL_ARTIFICIAL (current_function_decl))
 	{
           /* This routine is used for both initialization and assignment.
              Make sure the diagnostic message differentiates the context.  */
@@ -6049,22 +6131,18 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
     }
 
   if (modifycode == INIT_EXPR)
-    newrhs = convert_for_initialization (lhs, lhstype, newrhs, LOOKUP_NORMAL,
+    newrhs = convert_for_initialization (lhs, olhstype, newrhs, LOOKUP_NORMAL,
 					 "initialization", NULL_TREE, 0,
                                          complain);
   else
+    newrhs = convert_for_assignment (olhstype, newrhs, "assignment",
+				     NULL_TREE, 0, complain);
+
+  if (!same_type_p (lhstype, olhstype))
+    newrhs = cp_convert_and_check (lhstype, newrhs);
+
+  if (modifycode != INIT_EXPR)
     {
-      /* Avoid warnings on enum bit fields.  */
-      if (TREE_CODE (olhstype) == ENUMERAL_TYPE
-	  && TREE_CODE (lhstype) == INTEGER_TYPE)
-	{
-	  newrhs = convert_for_assignment (olhstype, newrhs, "assignment",
-					   NULL_TREE, 0, complain);
-	  newrhs = convert_force (lhstype, newrhs, 0);
-	}
-      else
-	newrhs = convert_for_assignment (lhstype, newrhs, "assignment",
-					 NULL_TREE, 0, complain);
       if (TREE_CODE (newrhs) == CALL_EXPR
 	  && TYPE_NEEDS_CONSTRUCTING (lhstype))
 	newrhs = build_cplus_new (lhstype, newrhs);
@@ -6096,21 +6174,7 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
   if (!plain_assign)
     TREE_NO_WARNING (result) = 1;
 
-  /* If we got the LHS in a different type for storing in,
-     convert the result back to the nominal type of LHS
-     so that the value we return always has the same type
-     as the LHS argument.  */
-
-  if (olhstype == TREE_TYPE (result))
-    return result;
-  if (olhs)
-    {
-      result = build2 (COMPOUND_EXPR, olhstype, result, olhs);
-      TREE_NO_WARNING (result) = 1;
-      return result;
-    }
-  return convert_for_assignment (olhstype, result, "assignment",
-				 NULL_TREE, 0, complain);
+  return result;
 }
 
 tree
@@ -7199,6 +7263,9 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
   if (type == error_mark_node)
     return;
 
+  if (TREE_CODE (decl) == TYPE_DECL)
+    return;
+
   if (TREE_CODE (type) == FUNCTION_TYPE
       && type_quals != TYPE_UNQUALIFIED)
     {
@@ -7358,7 +7425,7 @@ non_reference (tree t)
    how the lvalue is being used and so selects the error message.  */
 
 int
-lvalue_or_else (const_tree ref, enum lvalue_use use, tsubst_flags_t complain)
+lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 {
   int win = lvalue_p (ref);
 

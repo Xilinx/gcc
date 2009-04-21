@@ -6,8 +6,19 @@
 
 PROCEDURE(REAL), POINTER :: ptr
 PROCEDURE(REAL), SAVE    :: noptr    ! { dg-error "attribute conflicts with" }
+REAL :: x
 
-ptr => cos(4.0)        ! { dg-error "Invalid character" }
+ abstract interface
+   subroutine bar(a)
+     integer :: a
+   end subroutine bar
+ end interface
+
+ptr => cos(4.0)        ! { dg-error "Invalid procedure pointer assignment" }
+ptr => x               ! { dg-error "Invalid procedure pointer assignment" }
+ptr => sin(x)          ! { dg-error "Invalid procedure pointer assignment" }
+
+ptr => bar             ! { dg-error "is invalid in procedure pointer assignment" }
 
 ALLOCATE(ptr)          ! { dg-error "must be ALLOCATABLE" }
 

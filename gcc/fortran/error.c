@@ -30,11 +30,31 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gfortran.h"
 
-int gfc_suppress_error = 0;
+static int suppress_errors = 0;
 
 static int terminal_width, buffer_flag, errors, warnings;
 
 static gfc_error_buf error_buffer, warning_buffer, *cur_error_buffer;
+
+
+/* Go one level deeper suppressing errors.  */
+
+void
+gfc_push_suppress_errors (void)
+{
+  gcc_assert (suppress_errors >= 0);
+  ++suppress_errors;
+}
+
+
+/* Leave one level of error suppressing.  */
+
+void
+gfc_pop_suppress_errors (void)
+{
+  gcc_assert (suppress_errors > 0);
+  --suppress_errors;
+}
 
 
 /* Per-file error initialization.  */
@@ -287,14 +307,6 @@ show_locus (locus *loc, int c1, int c2)
 
   offset = 0;
 
-  /* When the loci is not associated with a column, it will have a
-     value of zero.  We adjust this to 1 so that it will appear.  */
-     
-  if (c1 == 0)
-    c1 = 1;
-  if (c2 == 0)
-    c2 = 1;
-
   /* If the two loci would appear in the same column, we shift
      '2' one column to the right, so as to print '12' rather than
      just '1'.  We do this here so it will be accounted for in the
@@ -341,7 +353,7 @@ show_locus (locus *loc, int c1, int c2)
   c1 -= offset;
   c2 -= offset;
 
-  for (i = 1; i <= cmax; i++)
+  for (i = 0; i <= cmax; i++)
     {
       if (i == c1)
 	error_char ('1');
@@ -764,7 +776,7 @@ gfc_notify_std (int std, const char *nocmsgid, ...)
   if ((gfc_option.allow_std & std) != 0 && !warning)
     return SUCCESS;
 
-  if (gfc_suppress_error)
+  if (suppress_errors)
     return warning ? SUCCESS : FAILURE;
 
   cur_error_buffer = warning ? &warning_buffer : &error_buffer;
@@ -850,7 +862,7 @@ gfc_error (const char *nocmsgid, ...)
 {
   va_list argp;
 
-  if (gfc_suppress_error)
+  if (suppress_errors)
     return;
 
   error_buffer.flag = 1;

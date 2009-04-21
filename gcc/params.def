@@ -1,5 +1,5 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
@@ -223,11 +223,7 @@ DEFPARAM(PARAM_MAX_GCSE_MEMORY,
 	 "max-gcse-memory",
 	 "The maximum amount of memory to be allocated by GCSE",
 	 50 * 1024 * 1024, 0, 0)
-/* The number of repetitions of copy/const prop and PRE to run.  */
-DEFPARAM(PARAM_MAX_GCSE_PASSES,
-	"max-gcse-passes",
-	"The maximum number of passes to make when doing GCSE",
-	1, 1, 0)
+
 /* This is the threshold ratio when to perform partial redundancy
    elimination after reload. We perform partial redundancy elimination
    when the following holds:
@@ -537,16 +533,6 @@ DEFPARAM(PARAM_MAX_RELOAD_SEARCH_INSNS,
 	 "The maximum number of instructions to search backward when looking for equivalent reload",
 	 100, 0, 0)
 
-DEFPARAM(PARAM_MAX_ALIASED_VOPS,
-         "max-aliased-vops",
-	 "The maximum number of virtual operators that a function is allowed to have before triggering memory partitioning heuristics",
-	 100, 0, 0)
-
-DEFPARAM(PARAM_AVG_ALIASED_VOPS,
-    	 "avg-aliased-vops",
-	 "The average number of virtual operators that memory statements are allowed to have before triggering memory partitioning heuristics",
-	 1, 0, 0)
-
 DEFPARAM(PARAM_MAX_SCHED_REGION_BLOCKS,
 	 "max-sched-region-blocks",
 	 "The maximum number of blocks in a region to be considered for interblock scheduling",
@@ -745,16 +731,15 @@ DEFPARAM (PARAM_SCCVN_MAX_SCC_SIZE,
 	  "Maximum size of a SCC before SCCVN stops processing a function",
 	  10000, 10, 0)
 
-
-DEFPARAM (PARAM_DF_DOUBLE_QUEUE_THRESHOLD_FACTOR,
-	  "df-double-queue-threshold-factor",
-	  "Multiplier used for determining the double-queueing threshold",
-	  2, 0, 0)
-
 DEFPARAM (PARAM_IRA_MAX_LOOPS_NUM,
 	  "ira-max-loops-num",
 	  "max loops number for regional RA",
-	  50, 0, 0)
+	  100, 0, 0)
+
+DEFPARAM (PARAM_IRA_MAX_CONFLICT_TABLE_SIZE,
+	  "ira-max-conflict-table-size",
+	  "max size of conflict table in MB",
+	  1000, 0, 0)
 
 /* Switch initialization conversion will refuse to create arrays that are
    bigger than this parameter times the number of switch branches.  */
@@ -764,6 +749,13 @@ DEFPARAM (PARAM_SWITCH_CONVERSION_BRANCH_RATIO,
 	  "The maximum ratio between array size and switch branches for "
 	  "a switch conversion to take place",
 	  8, 1, 0)
+
+/* Avoid doing loop invariant motion on very large loops.  */
+
+DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
+	  "loop-invariant-max-bbs-in-loop",
+	  "max basic blocks number in loop for loop invariant motion",
+	  10000, 0, 0)
 
 /*
 Local variables:

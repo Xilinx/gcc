@@ -40,6 +40,7 @@ with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch13; use Sem_Ch13;
@@ -2426,6 +2427,16 @@ package body Sem_Aggr is
          Ancestor_Typ := Etype (Ancestor);
          Loc          := Sloc (Ancestor);
 
+         --  For a private type with unknown discriminants, use the underlying
+         --  record view if it is available.
+
+         if Has_Unknown_Discriminants (Ancestor_Typ)
+           and then Present (Full_View (Ancestor_Typ))
+           and then Present (Underlying_Record_View (Full_View (Ancestor_Typ)))
+         then
+            Ancestor_Typ := Underlying_Record_View (Full_View (Ancestor_Typ));
+         end if;
+
          Ancestor_Is_Subtyp :=
            Is_Entity_Name (Ancestor) and then Is_Type (Entity (Ancestor));
 
@@ -2867,7 +2878,11 @@ package body Sem_Aggr is
             Positional_Expr := Empty;
          end if;
 
-         if Has_Discriminants (Typ) then
+         if Has_Unknown_Discriminants (Typ)
+           and then Present (Underlying_Record_View (Typ))
+         then
+            Discrim := First_Discriminant (Underlying_Record_View (Typ));
+         elsif Has_Discriminants (Typ) then
             Discrim := First_Discriminant (Typ);
          else
             Discrim := Empty;
@@ -2947,7 +2962,10 @@ package body Sem_Aggr is
       --  this may be a problem. What should be done in this case is
       --  to reuse itypes as much as possible.
 
-      if Has_Discriminants (Typ) then
+      if Has_Discriminants (Typ)
+        or else (Has_Unknown_Discriminants (Typ)
+                   and then Present (Underlying_Record_View (Typ)))
+      then
          Build_Constrained_Itype : declare
             Loc         : constant Source_Ptr := Sloc (N);
             Indic       : Node_Id;
@@ -2963,10 +2981,23 @@ package body Sem_Aggr is
                Next (New_Assoc);
             end loop;
 
-            Indic :=
-              Make_Subtype_Indication (Loc,
-                Subtype_Mark => New_Occurrence_Of (Base_Type (Typ), Loc),
-                Constraint  => Make_Index_Or_Discriminant_Constraint (Loc, C));
+            if Has_Unknown_Discriminants (Typ)
+              and then Present (Underlying_Record_View (Typ))
+            then
+               Indic :=
+                 Make_Subtype_Indication (Loc,
+                   Subtype_Mark =>
+                     New_Occurrence_Of (Underlying_Record_View (Typ), Loc),
+                   Constraint  =>
+                     Make_Index_Or_Discriminant_Constraint (Loc, C));
+            else
+               Indic :=
+                 Make_Subtype_Indication (Loc,
+                   Subtype_Mark =>
+                     New_Occurrence_Of (Base_Type (Typ), Loc),
+                   Constraint  =>
+                     Make_Index_Or_Discriminant_Constraint (Loc, C));
+            end if;
 
             Def_Id := Create_Itype (Ekind (Typ), N);
 
@@ -3043,7 +3074,7 @@ package body Sem_Aggr is
                end if;
             end if;
 
-            Parent_Typ  := Base_Type (Typ);
+            Parent_Typ := Base_Type (Typ);
             while Parent_Typ /= Root_Typ loop
                Prepend_Elmt (Parent_Typ, To => Parent_Typ_List);
                Parent_Typ := Etype (Parent_Typ);
@@ -3069,11 +3100,22 @@ package body Sem_Aggr is
                end if;
             end loop;
 
-            --  Now collect components from all other ancestors
+            --  Now collect components from all other ancestors, beginning
+            --  with the current type. If the type has unknown discriminants
+            --  use the component list of the underlying_record_view, which
+            --  needs to be used for the subsequent expansion of the aggregate
+            --  into assignments.
 
             Parent_Elmt := First_Elmt (Parent_Typ_List);
             while Present (Parent_Elmt) loop
                Parent_Typ := Node (Parent_Elmt);
+
+               if Has_Unknown_Discriminants (Parent_Typ)
+                 and then Present (Underlying_Record_View (Typ))
+               then
+                  Parent_Typ := Underlying_Record_View (Parent_Typ);
+               end if;
+
                Record_Def := Type_Definition (Parent (Base_Type (Parent_Typ)));
                Gather_Components (Empty,
                  Component_List (Record_Extension_Part (Record_Def)),
@@ -3089,8 +3131,17 @@ package body Sem_Aggr is
 
             if Null_Present (Record_Def) then
                null;
-            else
+
+            elsif not Has_Unknown_Discriminants (Typ) then
                Gather_Components (Base_Type (Typ),
+                 Component_List (Record_Def),
+                 Governed_By   => New_Assoc_List,
+                 Into          => Components,
+                 Report_Errors => Errors_Found);
+
+            else
+               Gather_Components
+                 (Base_Type (Underlying_Record_View (Typ)),
                  Component_List (Record_Def),
                  Governed_By   => New_Assoc_List,
                  Into          => Components,

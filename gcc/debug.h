@@ -1,5 +1,6 @@
 /* Debug hooks for GCC.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
@@ -125,6 +126,8 @@ struct gcc_debug_hooks
      text sections.  */
   void (* switch_text_section) (void);
 
+  void (* set_name) (tree, tree);
+
   /* This is 1 if the debug writer wants to see start and end commands for the
      main source files, and 0 otherwise.  */
   int start_end_main_source_file;
@@ -139,6 +142,7 @@ extern void debug_nothing_int_charstar (unsigned int, const char *);
 extern void debug_nothing_int (unsigned int);
 extern void debug_nothing_int_int (unsigned int, unsigned int);
 extern void debug_nothing_tree (tree);
+extern void debug_nothing_tree_tree (tree, tree);
 extern void debug_nothing_tree_int (tree, int);
 extern void debug_nothing_tree_tree_tree_bool (tree, tree, tree, bool);
 extern bool debug_true_const_tree (const_tree);

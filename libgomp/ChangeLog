@@ -1,3 +1,189 @@
+2009-04-20  Vasilis Liaskovitis  <vliaskov@gmail.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/35423
+	* testsuite/libgomp.fortran/workshare2.f90: New test.
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* iter.c: Change copyright header to refer to version 3 of the
+	GNU General Public License with version 3.1 of the GCC Runtime
+	Library Exception and to point readers at the COPYING3 and
+	COPYING3.RUNTIME files and the FSF's license web page.
+	* alloc.c: Likewise.
+	* barrier.c: Likewise.
+	* config/bsd/proc.c: Likewise.
+	* config/linux/affinity.c: Likewise.
+	* config/linux/alpha/futex.h: Likewise.
+	* config/linux/bar.c: Likewise.
+	* config/linux/bar.h: Likewise.
+	* config/linux/ia64/futex.h: Likewise.
+	* config/linux/ia64/mutex.h: Likewise.
+	* config/linux/lock.c: Likewise.
+	* config/linux/mips/futex.h: Likewise.
+	* config/linux/mutex.c: Likewise.
+	* config/linux/mutex.h: Likewise.
+	* config/linux/powerpc/futex.h: Likewise.
+	* config/linux/proc.c: Likewise.
+	* config/linux/ptrlock.c: Likewise.
+	* config/linux/ptrlock.h: Likewise.
+	* config/linux/s390/futex.h: Likewise.
+	* config/linux/sem.c: Likewise.
+	* config/linux/sem.h: Likewise.
+	* config/linux/sparc/futex.h: Likewise.
+	* config/linux/wait.h: Likewise.
+	* config/linux/x86/futex.h: Likewise.
+	* config/mingw32/proc.c: Likewise.
+	* config/mingw32/time.c: Likewise.
+	* config/posix/affinity.c: Likewise.
+	* config/posix/bar.c: Likewise.
+	* config/posix/bar.h: Likewise.
+	* config/posix/lock.c: Likewise.
+	* config/posix/mutex.h: Likewise.
+	* config/posix/proc.c: Likewise.
+	* config/posix/ptrlock.h: Likewise.
+	* config/posix/sem.c: Likewise.
+	* config/posix/sem.h: Likewise.
+	* config/posix/time.c: Likewise.
+	* config/posix95/lock.c: Likewise.
+	* critical.c: Likewise.
+	* env.c: Likewise.
+	* error.c: Likewise.
+	* fortran.c: Likewise.
+	* iter_ull.c: Likewise.
+	* libgomp.h: Likewise.
+	* libgomp_f.h.in: Likewise.
+	* libgomp_g.h: Likewise.
+	* loop.c: Likewise.
+	* loop_ull.c: Likewise.
+	* omp.h.in: Likewise.
+	* omp_lib.f90.in: Likewise.
+	* omp_lib.h.in: Likewise.
+	* ordered.c: Likewise.
+	* parallel.c: Likewise.
+	* sections.c: Likewise.
+	* single.c: Likewise.
+	* task.c: Likewise.
+	* team.c: Likewise.
+	* work.c: Likewise.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/config/default.exp: Change copyright header to refer to
+	version 3 of the GNU General Public License and to point readers
+	at the COPYING3 file and the FSF's license web page.
+
+2009-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39573
+	* libgomp.c++/pr39573.C: New test.
+
+2009-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR other/39591
+	* testsuite/libgomp.c/pr39591-1.c: New test.
+	* testsuite/libgomp.c/pr39591-2.c: New test.
+	* testsuite/libgomp.c/pr39591-3.c: New test.
+
+2009-03-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-5.c: Cleanup cpuid usage.
+	* testsuite/libgomp.c/atomic-6.c: Ditto.
+
+2009-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/39495
+	* testsuite/libgomp.c/loop-12.c: New test.
+	* testsuite/libgomp.c/loop-11.c: New test.
+	* testsuite/libgomp.c++/loop-11.C: New test.
+	* testsuite/libgomp.c++/loop-12.C: New test.
+	* testsuite/libgomp.c++/for-8.C: New test.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2009-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39154
+	* testsuite/libgomp.c/pr39154.c: New test.
+
+2009-01-30  Ian Lance Taylor  <iant@google.com>
+
+	* acinclude.m4 (LIBCOMP_CHECK_LINKER_FEATURES): Set
+	libgomp_ld_is_gold.  Get gold version number.
+	(LIBGOMP_ENABLE_SYMVERS): Gold always support symbol versioning.
+	* configure: Rebuild.
+
+2009-01-19  Iain Sandoe  <iain.sandoe@sandoe-acoustics.co.uk>
+
+	* testsuite/lib/libgomp.exp: Add -B option for targets that
+	use libgfortran.a%s in their specs.
+
+2009-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libgomp/38086
+	* acinclude.m4 (HAVE_AS_SYMVER_DIRECTIVE): New check.
+	* libgomp.h (LIBGOMP_GNU_SYMBOL_VERSIONING): Undefine if
+	HAVE_AS_SYMVER_DIRECTIVE is not defined.
+	* configure: Regenerated.
+	* config.h.in: Likewise.
+
+2008-12-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38650
+	* testsuite/libgomp.c/pr38650.c: New test.
+	* testsuite/libgomp.c++/pr38650.C: New test.
+
+2008-12-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* testsuite/libgomp.c/collapse-1.c (main): Add private(k) clause.
+
+2008-12-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* testsuite/libgomp.c/atomic-6.c: Add -mieee for alpha*-*-* targets.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/36802
+	* testsuite/libgomp.c/pr36802-1.c: New test.
+	* testsuite/libgomp.c/pr36802-2.c: New test.
+	* testsuite/libgomp.c/pr36802-3.c: New test.
+
+2008-12-01  Janis Johnson  <janis187@us.ibm.com>
+
+	PR libgomp/38270
+	* config/linux/powerpc/mutex.h: New.
+
+2008-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/38257
+	* testsuite/libgomp.c++/for-7.C: New test.
+
+	PR c++/38348
+	* testsuite/libgomp.c++/for-6.C: New test.
+
+2008-11-26  Janis Johnson  <janis187@us.ibm.com>
+
+	PR testsuite/28870
+	* testsuite/lib/libgomp.exp: Include new timeout library files.
+	(libgomp_target_compile): Set timeout value from new proc.
+
+2008-11-13  Steve Ellcey  <sje@cup.hp.com>
+
+	PR libgomp/37938
+	* config/linux/ia64/mutex.h: New.
+
+2008-11-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR libgomp/37935
+	* libgomp.texi (Runtime library routines, environment variables):
+	Update for OpenMP version 3.0.
+
 2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
 	    Steve Ellcey  <sje@cup.hp.com>
 
@@ -26,7 +212,7 @@
 
 2008-08-21  Nathan Froyd  <froydnj@codesourcery.com>
 
-	* testsuite/libgomp.exp (libgomp_init): Only set things that
+	* testsuite/lib/libgomp.exp (libgomp_init): Only set things that
 	depend on blddir if blddir exists.
 	(libgomp_target_compile): Likewise.
 	* testsuite/libgomp.c++/c++.exp: Likewise.

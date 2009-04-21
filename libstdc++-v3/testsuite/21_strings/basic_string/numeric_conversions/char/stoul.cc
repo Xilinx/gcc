@@ -1,12 +1,14 @@
 // { dg-options "-std=gnu++0x" }
+// { dg-require-string-conversions "" }
+
 // 2008-06-15  Paolo Carlini  <paolo.carlini@oracle.com>
 
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,9 +17,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 21.4 Numeric Conversions [string.conversions]
 
@@ -29,8 +30,6 @@
 void
 test01()
 {
-#ifdef _GLIBCXX_USE_C99
-
   bool test __attribute__((unused)) = false;
   using namespace std;
 
@@ -144,8 +143,6 @@ test01()
     }
   VERIFY( test );
   VERIFY( ul1 == numeric_limits<unsigned long>::max() );
-
-#endif
 }
 
 int main()

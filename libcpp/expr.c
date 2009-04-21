@@ -1,11 +1,11 @@
 /* Parse C expressions for cpplib.
    Copyright (C) 1987, 1992, 1994, 1995, 1997, 1998, 1999, 2000, 2001,
-   2002, 2004, 2008 Free Software Foundation.
+   2002, 2004, 2008, 2009 Free Software Foundation.
    Contributed by Per Bothner, 1994.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -32,6 +31,7 @@ struct op
 {
   const cpp_token *token;	/* The token forming op (for diagnostics).  */
   cpp_num value;		/* The value logically "right" of op.  */
+  source_location loc;          /* The location of this value.         */
   enum cpp_ttype op;
 };
 
@@ -82,89 +82,106 @@ static void check_promotion (cpp_reader *, const struct op *);
 static unsigned int
 interpret_float_suffix (const uchar *s, size_t len)
 {
-  size_t f, l, w, q, i, d;
-  size_t r, k, u, h;
+  size_t flags;
+  size_t f, d, l, w, q, i;
 
-  f = l = w = q = i = d = 0;
-  r = k = u = h = 0;
+  flags = 0;
+  f = d = l = w = q = i = 0;
 
+  /* Process decimal float suffixes, which are two letters starting
+     with d or D.  Order and case are significant.  */
+  if (len == 2 && (*s == 'd' || *s == 'D'))
+    {
+      bool uppercase = (*s == 'D');
+      switch (s[1])
+      {
+      case 'f': return (!uppercase ? (CPP_N_DFLOAT | CPP_N_SMALL): 0); break;
+      case 'F': return (uppercase ? (CPP_N_DFLOAT | CPP_N_SMALL) : 0); break;
+      case 'd': return (!uppercase ? (CPP_N_DFLOAT | CPP_N_MEDIUM): 0); break;
+      case 'D': return (uppercase ? (CPP_N_DFLOAT | CPP_N_MEDIUM) : 0); break;
+      case 'l': return (!uppercase ? (CPP_N_DFLOAT | CPP_N_LARGE) : 0); break;
+      case 'L': return (uppercase ? (CPP_N_DFLOAT | CPP_N_LARGE) : 0); break;
+      default:
+	/* Additional two-character suffixes beginning with D are not
+	   for decimal float constants.  */
+	break;
+      }
+    }
+
+  /* Recognize a fixed-point suffix.  */
+  switch (s[len-1])
+    {
+    case 'k': case 'K': flags = CPP_N_ACCUM; break;
+    case 'r': case 'R': flags = CPP_N_FRACT; break;
+    default: break;
+    }
+
+  /* Continue processing a fixed-point suffix.  The suffix is case
+     insensitive except for ll or LL.  Order is significant.  */
+  if (flags)
+    {
+      if (len == 1)
+	return flags;
+      len--;
+
+      if (*s == 'u' || *s == 'U')
+	{
+	  flags |= CPP_N_UNSIGNED;
+	  if (len == 1)
+	    return flags;
+	  len--;
+	  s++;
+        }
+
+      switch (*s)
+      {
+      case 'h': case 'H':
+	if (len == 1)
+	  return flags |= CPP_N_SMALL;
+	break;
+      case 'l':
+	if (len == 1)
+	  return flags |= CPP_N_MEDIUM;
+	if (len == 2 && s[1] == 'l')
+	  return flags |= CPP_N_LARGE;
+	break;
+      case 'L':
+	if (len == 1)
+	  return flags |= CPP_N_MEDIUM;
+	if (len == 2 && s[1] == 'L')
+	  return flags |= CPP_N_LARGE;
+	break;
+      default:
+	break;
+      }
+      /* Anything left at this point is invalid.  */
+      return 0;
+    }
+
+  /* In any remaining valid suffix, the case and order don't matter.  */
   while (len--)
     switch (s[len])
       {
-      case 'r': case 'R': r++; break;
-      case 'k': case 'K': k++; break;
-      case 'u': case 'U': u++; break;
-      case 'h': case 'H': h++; break;
-      case 'f': case 'F':
-	if (d > 0)
-	  return 0;
-	f++;
-	break;
-      case 'l': case 'L':
-	if (d > 0)
-	  return 0;
-	l++;
-	/* If there are two Ls, they must be adjacent and the same case.  */
-	if (l == 2 && s[len] != s[len + 1])
-	  return 0;
-	break;
-      case 'w': case 'W':
-	if (d > 0)
-	  return 0;
-	w++;
-	break;
-      case 'q': case 'Q':
-	if (d > 0)
-	  return 0;
-	q++;
-	break;
+      case 'f': case 'F': f++; break;
+      case 'd': case 'D': d++; break;
+      case 'l': case 'L': l++; break;
+      case 'w': case 'W': w++; break;
+      case 'q': case 'Q': q++; break;
       case 'i': case 'I':
       case 'j': case 'J': i++; break;
-      case 'd': case 'D': d++; break;
       default:
 	return 0;
       }
 
-  if (r + k > 1 || h > 1 || l > 2 || u > 1)
-    return 0;
-
-  if (r == 1)
-    {
-      if (f || i || d || w || q)
-	return 0;
-
-      return (CPP_N_FRACT
-	      | (u ? CPP_N_UNSIGNED : 0)
-	      | (h ? CPP_N_SMALL :
-		 l == 2 ? CPP_N_LARGE :
-		 l == 1 ? CPP_N_MEDIUM :  0));
-    }
-
-  if (k == 1)
-    {
-      if (f || i || d || w || q)
-	return 0;
-
-      return (CPP_N_ACCUM
-	      | (u ? CPP_N_UNSIGNED : 0)
-	      | (h ? CPP_N_SMALL :
-		 l == 2 ? CPP_N_LARGE :
-		 l == 1 ? CPP_N_MEDIUM :  0));
-    }
-
-  if (f + l + w + q > 1 || i > 1 || h + u > 0)
-    return 0;
-
-  /* Allow dd, df, dl suffixes for decimal float constants.  */
-  if (d && ((d + f + l != 2) || i))
+  if (f + d + l + w + q > 1 || i > 1)
     return 0;
 
   return ((i ? CPP_N_IMAGINARY : 0)
 	  | (f ? CPP_N_SMALL :
+	     d ? CPP_N_MEDIUM :
 	     l ? CPP_N_LARGE :
 	     w ? CPP_N_MD_W :
-	     q ? CPP_N_MD_Q : CPP_N_MEDIUM)
-	  | (d ? CPP_N_DFLOAT : 0));
+	     q ? CPP_N_MD_Q : CPP_N_DEFAULT));
 }
 
 /* Subroutine of cpp_classify_number.  S points to an integer suffix
@@ -351,6 +368,13 @@ cpp_classify_number (cpp_reader *pfile, const cpp_token *token)
 		   "traditional C rejects the \"%.*s\" suffix",
 		   (int) (limit - str), str);
 
+      /* A suffix for double is a GCC extension via decimal float support.
+	 If the suffix also specifies an imaginary value we'll catch that
+	 later.  */
+      if ((result == CPP_N_MEDIUM) && CPP_PEDANTIC (pfile))
+	cpp_error (pfile, CPP_DL_PEDWARN,
+		   "suffix for double constant is a GCC extension");
+
       /* Radix must be 10 for decimal floats.  */
       if ((result & CPP_N_DFLOAT) && radix != 10)
         {
@@ -395,10 +419,12 @@ cpp_classify_number (cpp_reader *pfile, const cpp_token *token)
 	}
 
       if ((result & CPP_N_WIDTH) == CPP_N_LARGE
-	  && ! CPP_OPTION (pfile, c99)
 	  && CPP_OPTION (pfile, warn_long_long))
-	cpp_error (pfile, CPP_DL_PEDWARN,
-		   "use of C99 long long integer constant");
+	cpp_error (pfile, 
+		   CPP_OPTION (pfile, c99) ? CPP_DL_WARNING : CPP_DL_PEDWARN,
+		   CPP_OPTION (pfile, cplusplus) 
+		   ? "use of C++0x long long integer constant"
+		   : "use of C99 long long integer constant");
 
       result |= CPP_N_INTEGER;
     }
@@ -875,6 +901,7 @@ _cpp_parse_expr (cpp_reader *pfile, bool is_if)
       lex_count++;
       op.token = cpp_get_token (pfile);
       op.op = op.token->type;
+      op.loc = op.token->src_loc;
 
       switch (op.op)
 	{
@@ -978,6 +1005,7 @@ _cpp_parse_expr (cpp_reader *pfile, bool is_if)
 
       top->op = op.op;
       top->token = op.token;
+      top->loc = op.token->src_loc;
     }
 
   /* The controlling macro expression is only valid if we called lex 3
@@ -1031,6 +1059,7 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	case CPP_NOT:
 	case CPP_COMPL:
 	  top[-1].value = num_unary_op (pfile, top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_PLUS:
@@ -1040,6 +1069,7 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	case CPP_COMMA:
 	  top[-1].value = num_binary_op (pfile, top[-1].value,
 					 top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_GREATER:
@@ -1048,12 +1078,14 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	case CPP_LESS_EQ:
 	  top[-1].value
 	    = num_inequality_op (pfile, top[-1].value, top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_EQ_EQ:
 	case CPP_NOT_EQ:
 	  top[-1].value
 	    = num_equality_op (pfile, top[-1].value, top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_AND:
@@ -1061,16 +1093,19 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	case CPP_XOR:
 	  top[-1].value
 	    = num_bitwise_op (pfile, top[-1].value, top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_MULT:
 	  top[-1].value = num_mul (pfile, top[-1].value, top->value);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_DIV:
 	case CPP_MOD:
 	  top[-1].value = num_div_op (pfile, top[-1].value,
 				      top->value, top->op);
+	  top[-1].loc = top->loc;
 	  break;
 
 	case CPP_OR_OR:
@@ -1082,6 +1117,7 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	  top->value.high = 0;
 	  top->value.unsignedp = false;
 	  top->value.overflow = false;
+	  top->loc = top[1].loc;
 	  continue;
 
 	case CPP_AND_AND:
@@ -1093,16 +1129,20 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	  top->value.high = 0;
 	  top->value.unsignedp = false;
 	  top->value.overflow = false;
+	  top->loc = top[1].loc;
 	  continue;
 
 	case CPP_OPEN_PAREN:
 	  if (op != CPP_CLOSE_PAREN)
 	    {
-	      cpp_error (pfile, CPP_DL_ERROR, "missing ')' in expression");
+	      cpp_error_with_line (pfile, CPP_DL_ERROR, 
+				   top->token->src_loc,
+				   0, "missing ')' in expression");
 	      return 0;
 	    }
 	  top--;
 	  top->value = top[1].value;
+	  top->loc = top[1].loc;
 	  return top;
 
 	case CPP_COLON:
@@ -1111,9 +1151,13 @@ reduce (cpp_reader *pfile, struct op *top, enum cpp_ttype op)
 	    {
 	      pfile->state.skip_eval--;
 	      top->value = top[1].value;
+	      top->loc = top[1].loc;
 	    }
 	  else
-	    top->value = top[2].value;
+	    {
+	      top->value = top[2].value;
+	      top->loc = top[2].loc;
+	    }
 	  top->value.unsignedp = (top[1].value.unsignedp
 				  || top[2].value.unsignedp);
 	  continue;
@@ -1168,12 +1212,12 @@ check_promotion (cpp_reader *pfile, const struct op *op)
   if (op->value.unsignedp)
     {
       if (!num_positive (op[-1].value, CPP_OPTION (pfile, precision)))
-	cpp_error (pfile, CPP_DL_WARNING,
-		   "the left operand of \"%s\" changes sign when promoted",
-		   cpp_token_as_text (pfile, op->token));
+	cpp_error_with_line (pfile, CPP_DL_WARNING, op[-1].loc, 0,
+			     "the left operand of \"%s\" changes sign when promoted",
+			     cpp_token_as_text (pfile, op->token));
     }
   else if (!num_positive (op->value, CPP_OPTION (pfile, precision)))
-    cpp_error (pfile, CPP_DL_WARNING,
+    cpp_error_with_line (pfile, CPP_DL_WARNING, op->loc, 0,
 	       "the right operand of \"%s\" changes sign when promoted",
 	       cpp_token_as_text (pfile, op->token));
 }

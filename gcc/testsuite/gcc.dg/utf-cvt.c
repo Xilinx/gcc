@@ -4,8 +4,8 @@
 /* { dg-excess-errors "short and int are 16bit" { target { "avr-*-*" } } } */
 /* { dg-options "-std=gnu99 -Wall -Wconversion -Wsign-conversion" } */
 
-typedef short unsigned int	char16_t;
-typedef unsigned int		char32_t;
+typedef __CHAR16_TYPE__ char16_t;
+typedef __CHAR32_TYPE__ char32_t;
 
 extern void f_c (char);
 extern void fsc (signed char);
@@ -50,8 +50,8 @@ void m (char16_t c0, char32_t c1)
     f_i (c1);	/* { dg-warning "change the sign" } */
     fsi (c1);	/* { dg-warning "change the sign" } */
     fui (c1);
-    f_l (c1);	/* { dg-warning "change the sign" "" { target { ilp32 } } } */
-    fsl (c1);	/* { dg-warning "change the sign" "" { target { ilp32 } } } */
+    f_l (c1);	/* { dg-warning "change the sign" "" { target { llp64 || ilp32 } } } */
+    fsl (c1);	/* { dg-warning "change the sign" "" { target { llp64 || ilp32 } } } */
     ful (c1);
     f_ll (c1);
     fsll (c1);

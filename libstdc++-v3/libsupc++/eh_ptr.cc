@@ -1,11 +1,11 @@
 // -*- C++ -*- Implement the members of exception_ptr.
-// Copyright (C) 2008 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
 // GCC is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or (at your option)
+// the Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // GCC is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with GCC; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 #include <bits/c++config.h>
 
@@ -84,8 +79,8 @@ std::__exception_ptr::exception_ptr::_M_addref() throw()
 {
   if (_M_exception_object)
     {
-      __cxa_exception *eh =
-        __get_exception_header_from_obj (_M_exception_object);
+      __cxa_refcounted_exception *eh =
+	__get_refcounted_exception_header_from_obj (_M_exception_object);
       __sync_add_and_fetch (&eh->referenceCount, 1);
     }
 }
@@ -96,12 +91,12 @@ std::__exception_ptr::exception_ptr::_M_release() throw()
 {
   if (_M_exception_object)
     {
-      __cxa_exception *eh =
-        __get_exception_header_from_obj (_M_exception_object);
+      __cxa_refcounted_exception *eh =
+	__get_refcounted_exception_header_from_obj (_M_exception_object);
       if (__sync_sub_and_fetch (&eh->referenceCount, 1) == 0)
         {
-          if (eh->exceptionDestructor)
-            eh->exceptionDestructor (_M_exception_object);
+	  if (eh->exc.exceptionDestructor)
+	    eh->exc.exceptionDestructor (_M_exception_object);
 
           __cxa_free_exception (_M_exception_object);
           _M_exception_object = 0;
@@ -118,7 +113,7 @@ std::__exception_ptr::exception_ptr::_M_get() const throw()
 
 
 void
-std::__exception_ptr::exception_ptr::_M_safe_bool_dummy()
+std::__exception_ptr::exception_ptr::_M_safe_bool_dummy() throw ()
 {
 }
 
@@ -191,22 +186,22 @@ __gxx_dependent_exception_cleanup (_Unwind_Reason_Code code,
 {
   // This cleanup is set only for dependents.
   __cxa_dependent_exception *dep = __get_dependent_exception_from_ue (exc);
-  __cxa_exception *header =
-    __get_exception_header_from_obj (dep->primaryException);
+  __cxa_refcounted_exception *header =
+    __get_refcounted_exception_header_from_obj (dep->primaryException);
 
   // We only want to be called through _Unwind_DeleteException.
   // _Unwind_DeleteException in the HP-UX IA64 libunwind library
   // returns _URC_NO_REASON and not _URC_FOREIGN_EXCEPTION_CAUGHT
   // like the GCC _Unwind_DeleteException function does.
   if (code != _URC_FOREIGN_EXCEPTION_CAUGHT && code != _URC_NO_REASON)
-    __terminate (header->terminateHandler);
+    __terminate (header->exc.terminateHandler);
 
   __cxa_free_dependent_exception (dep);
 
   if (__sync_sub_and_fetch (&header->referenceCount, 1) == 0)
     {
-      if (header->exceptionDestructor)
-        header->exceptionDestructor (header + 1);
+      if (header->exc.exceptionDestructor)
+	header->exc.exceptionDestructor (header + 1);
 
       __cxa_free_exception (header + 1);
     }
@@ -217,7 +212,8 @@ void
 std::rethrow_exception(std::exception_ptr ep)
 {
   void *obj = ep._M_get();
-  __cxa_exception *eh = __get_exception_header_from_obj (obj);
+  __cxa_refcounted_exception *eh
+    = __get_refcounted_exception_header_from_obj (obj);
 
   __cxa_dependent_exception *dep = __cxa_allocate_dependent_exception ();
   dep->primaryException = obj;

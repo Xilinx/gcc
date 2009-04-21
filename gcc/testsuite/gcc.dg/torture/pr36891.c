@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-options "-ffast-math" } */
+/* { dg-options "-ffast-math -msse" { target { { i?86-*-* x86_64-*-* } && ilp32 } } } */
 
 #define __vector __attribute__((vector_size(16) ))
 __vector float f(void);
@@ -15,3 +16,6 @@ void RRB( __vector float vdist, __vector float vx)
    g(pullx);
   }
 }
+
+/* Ignore a warning that is irrelevant to the purpose of this test.  */
+/* { dg-prune-output ".*GCC vector returned by reference.*" } */

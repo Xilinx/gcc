@@ -6,24 +6,17 @@
  *                                                                          *
  *                           C Implementation File                          *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
  * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
  * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
- *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * Public License  distributed  with GNAT;  see file  COPYING3.  If not see *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -98,8 +91,6 @@ static const char *gnat_dwarf_name	(tree, int);
 static tree gnat_return_tree		(tree);
 static int gnat_eh_type_covers		(tree, tree);
 static void gnat_parse_file		(int);
-static rtx gnat_expand_expr		(tree, rtx, enum machine_mode, int,
-					 rtx *);
 static void internal_error_function	(const char *, va_list *);
 static tree gnat_type_max_size		(const_tree);
 
@@ -131,8 +122,6 @@ static tree gnat_type_max_size		(const_tree);
 #define LANG_HOOKS_FINISH_INCOMPLETE_DECL gnat_finish_incomplete_decl
 #undef  LANG_HOOKS_GET_ALIAS_SET
 #define LANG_HOOKS_GET_ALIAS_SET	gnat_get_alias_set
-#undef  LANG_HOOKS_EXPAND_EXPR
-#define LANG_HOOKS_EXPAND_EXPR		gnat_expand_expr
 #undef  LANG_HOOKS_MARK_ADDRESSABLE
 #define LANG_HOOKS_MARK_ADDRESSABLE	gnat_mark_addressable
 #undef  LANG_HOOKS_PRINT_DECL
@@ -337,8 +326,18 @@ gnat_init_options (unsigned int argc, const char **argv)
 bool
 gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  if (flag_excess_precision_cmdline == EXCESS_PRECISION_STANDARD
+      && TARGET_FLT_EVAL_METHOD_NON_DEFAULT)
+    sorry ("-fexcess-precision=standard for Ada");
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
+
   /* ??? The warning machinery is outsmarted by Ada.  */
   warn_unused_parameter = 0;
+
+  /* No psABI change warnings for Ada.  */
+  warn_psabi = 0;
 
   /* Force eliminate_unused_debug_types to 0 unless an explicit positive
      -f has been passed.  This forces the default to 0 for Ada, which might
@@ -600,52 +599,13 @@ gnat_printable_name (tree decl, int verbosity)
 
   __gnat_decode (coded_name, ada_name, 0);
 
-  if (verbosity == 2)
+  if (verbosity == 2 && !DECL_IS_BUILTIN (decl))
     {
       Set_Identifier_Casing (ada_name, (char *) DECL_SOURCE_FILE (decl));
-      ada_name = Name_Buffer;
+      return ggc_strdup (Name_Buffer);
     }
-
-  return (const char *) ada_name;
-}
-
-/* Expands GNAT-specific GCC tree nodes.  The only ones we support
-   here are  and NULL_EXPR.  */
-
-static rtx
-gnat_expand_expr (tree exp, rtx target, enum machine_mode tmode,
-		  int modifier, rtx *alt_rtl)
-{
-  tree type = TREE_TYPE (exp);
-  tree new;
-
-  /* Update EXP to be the new expression to expand.  */
-  switch (TREE_CODE (exp))
-    {
-#if 0
-    case ALLOCATE_EXPR:
-      return
-	allocate_dynamic_stack_space
-	  (expand_expr (TREE_OPERAND (exp, 0), NULL_RTX, TYPE_MODE (sizetype),
-			EXPAND_NORMAL),
-	   NULL_RTX, tree_low_cst (TREE_OPERAND (exp, 1), 1));
-#endif
-
-    case UNCONSTRAINED_ARRAY_REF:
-      /* If we are evaluating just for side-effects, just evaluate our
-	 operand.  Otherwise, abort since this code should never appear
-	 in a tree to be evaluated (objects aren't unconstrained).  */
-      if (target == const0_rtx || TREE_CODE (type) == VOID_TYPE)
-	return expand_expr (TREE_OPERAND (exp, 0), const0_rtx,
-			    VOIDmode, modifier);
-
-      /* ... fall through ... */
-
-    default:
-      gcc_unreachable ();
-    }
-
-  return expand_expr_real (new, target, tmode, modifier, alt_rtl);
+  else
+    return ada_name;
 }
 
 /* Do nothing (return the tree node passed).  */

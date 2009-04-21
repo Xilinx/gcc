@@ -1,6 +1,6 @@
 /* Expand the basic unary and binary arithmetic operations, for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -3980,8 +3980,12 @@ int
 can_compare_p (enum rtx_code code, enum machine_mode mode,
 	       enum can_compare_purpose purpose)
 {
+  rtx test;
+  test = gen_rtx_fmt_ee (code, mode, const0_rtx, const0_rtx);
   do
     {
+      int icode;
+
       if (optab_handler (cmp_optab, mode)->insn_code != CODE_FOR_nothing)
 	{
 	  if (purpose == ccp_jump)
@@ -3993,15 +3997,19 @@ can_compare_p (enum rtx_code code, enum machine_mode mode,
 	    return 1;
 	}
       if (purpose == ccp_jump
-	  && optab_handler (cbranch_optab, mode)->insn_code != CODE_FOR_nothing)
-	return 1;
+          && (icode = optab_handler (cbranch_optab, mode)->insn_code) != CODE_FOR_nothing
+          && insn_data[icode].operand[0].predicate (test, mode))
+        return 1;
+      if (purpose == ccp_store_flag
+          && (icode = optab_handler (cstore_optab, mode)->insn_code) != CODE_FOR_nothing
+          && insn_data[icode].operand[1].predicate (test, mode))
+        return 1;
       if (purpose == ccp_cmov
 	  && optab_handler (cmov_optab, mode)->insn_code != CODE_FOR_nothing)
 	return 1;
-      if (purpose == ccp_store_flag
-	  && optab_handler (cstore_optab, mode)->insn_code != CODE_FOR_nothing)
-	return 1;
+
       mode = GET_MODE_WIDER_MODE (mode);
+      PUT_MODE (test, mode);
     }
   while (mode != VOIDmode);
 
@@ -4135,11 +4143,15 @@ prepare_cmp_insn (rtx *px, rtx *py, enum rtx_code *pcomparison, rtx size,
 
   *px = x;
   *py = y;
-  if (can_compare_p (*pcomparison, mode, purpose))
+  if (GET_MODE_CLASS (mode) == MODE_CC)
+    {
+      gcc_assert (can_compare_p (*pcomparison, CCmode, purpose));
+      return;
+    }
+  else if (can_compare_p (*pcomparison, mode, purpose))
     return;
 
   /* Handle a lib call just for the mode we are using.  */
-
   libfunc = optab_libfunc (cmp_optab, mode);
   if (libfunc && !SCALAR_FLOAT_MODE_P (mode))
     {
@@ -4223,12 +4235,13 @@ emit_cmp_and_jump_insn_1 (rtx x, rtx y, enum machine_mode mode,
   /* Try combined insns first.  */
   do
     {
+      enum machine_mode optab_mode = mclass == MODE_CC ? CCmode : wider_mode;
       enum insn_code icode;
       PUT_MODE (test, wider_mode);
 
       if (label)
 	{
-	  icode = optab_handler (cbranch_optab, wider_mode)->insn_code;
+	  icode = optab_handler (cbranch_optab, optab_mode)->insn_code;
 
 	  if (icode != CODE_FOR_nothing
 	      && insn_data[icode].operand[0].predicate (test, wider_mode))
@@ -4241,7 +4254,7 @@ emit_cmp_and_jump_insn_1 (rtx x, rtx y, enum machine_mode mode,
 	}
 
       /* Handle some compares against zero.  */
-      icode = (int) optab_handler (tst_optab, wider_mode)->insn_code;
+      icode = (int) optab_handler (tst_optab, optab_mode)->insn_code;
       if (y == CONST0_RTX (mode) && icode != CODE_FOR_nothing)
 	{
 	  x = prepare_operand (icode, x, 0, mode, wider_mode, unsignedp);
@@ -4253,7 +4266,7 @@ emit_cmp_and_jump_insn_1 (rtx x, rtx y, enum machine_mode mode,
 
       /* Handle compares for which there is a directly suitable insn.  */
 
-      icode = (int) optab_handler (cmp_optab, wider_mode)->insn_code;
+      icode = (int) optab_handler (cmp_optab, optab_mode)->insn_code;
       if (icode != CODE_FOR_nothing)
 	{
 	  x = prepare_operand (icode, x, 0, mode, wider_mode, unsignedp);
@@ -6072,6 +6085,24 @@ init_one_libfunc (const char *name)
   return XEXP (DECL_RTL (decl), 0);
 }
 
+/* Adjust the assembler name of libfunc NAME to ASMSPEC.  */
+
+rtx
+set_user_assembler_libfunc (const char *name, const char *asmspec)
+{
+  tree id, decl;
+  void **slot;
+  hashval_t hash;
+
+  id = get_identifier (name);
+  hash = htab_hash_string (name);
+  slot = htab_find_slot_with_hash (libfunc_decls, id, hash, NO_INSERT);
+  gcc_assert (slot);
+  decl = (tree) *slot;
+  set_user_assembler_name (decl, asmspec);
+  return XEXP (DECL_RTL (decl), 0);
+}
+
 /* Call this to reset the function entry for one optab (OPTABLE) in mode
    MODE to NAME, which should be either 0 or a string constant.  */
 void
@@ -6373,7 +6404,6 @@ init_optabs (void)
       sync_new_xor_optab[i] = CODE_FOR_nothing;
       sync_new_nand_optab[i] = CODE_FOR_nothing;
       sync_compare_and_swap[i] = CODE_FOR_nothing;
-      sync_compare_and_swap_cc[i] = CODE_FOR_nothing;
       sync_lock_test_and_set[i] = CODE_FOR_nothing;
       sync_lock_release[i] = CODE_FOR_nothing;
 
@@ -6658,7 +6688,7 @@ debug_optab_libfuncs (void)
 	rtx l;
 
 	o = &optab_table[i];
-	l = optab_libfunc (o, j);
+	l = optab_libfunc (o, (enum machine_mode) j);
 	if (l)
 	  {
 	    gcc_assert (GET_CODE (l) == SYMBOL_REF);
@@ -6678,7 +6708,8 @@ debug_optab_libfuncs (void)
 	  rtx l;
 
 	  o = &convert_optab_table[i];
-	  l = convert_optab_libfunc (o, j, k);
+	  l = convert_optab_libfunc (o, (enum machine_mode) j,
+				     (enum machine_mode) k);
 	  if (l)
 	    {
 	      gcc_assert (GET_CODE (l) == SYMBOL_REF);
@@ -6944,6 +6975,21 @@ expand_val_compare_and_swap (rtx mem, rtx old_val, rtx new_val, rtx target)
   return expand_val_compare_and_swap_1 (mem, old_val, new_val, target, icode);
 }
 
+/* Helper function to find the MODE_CC set in a sync_compare_and_swap
+   pattern.  */
+
+static void
+find_cc_set (rtx x, const_rtx pat, void *data)
+{
+  if (REG_P (x) && GET_MODE_CLASS (GET_MODE (x)) == MODE_CC
+      && GET_CODE (pat) == SET)
+    {
+      rtx *p_cc_reg = (rtx *) data;
+      gcc_assert (!*p_cc_reg);
+      *p_cc_reg = x;
+    }
+}
+
 /* Expand a compare-and-swap operation and store true into the result if
    the operation was successful and false otherwise.  Return the result.
    Unlike other routines, TARGET is not optional.  */
@@ -6953,84 +6999,46 @@ expand_bool_compare_and_swap (rtx mem, rtx old_val, rtx new_val, rtx target)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
-  rtx subtarget, label0, label1;
+  rtx subtarget, seq, cc_reg;
 
   /* If the target supports a compare-and-swap pattern that simultaneously
      sets some flag for success, then use it.  Otherwise use the regular
      compare-and-swap and follow that immediately with a compare insn.  */
-  icode = sync_compare_and_swap_cc[mode];
-  switch (icode)
+  icode = sync_compare_and_swap[mode];
+  if (icode == CODE_FOR_nothing)
+    return NULL_RTX;
+
+  do
     {
-    default:
+      start_sequence ();
       subtarget = expand_val_compare_and_swap_1 (mem, old_val, new_val,
-						 NULL_RTX, icode);
-      if (subtarget != NULL_RTX)
-	break;
-
-      /* FALLTHRU */
-    case CODE_FOR_nothing:
-      icode = sync_compare_and_swap[mode];
-      if (icode == CODE_FOR_nothing)
-	return NULL_RTX;
-
-      /* Ensure that if old_val == mem, that we're not comparing
-	 against an old value.  */
-      if (MEM_P (old_val))
-	old_val = force_reg (mode, old_val);
-
-      subtarget = expand_val_compare_and_swap_1 (mem, old_val, new_val,
-						 NULL_RTX, icode);
+					         NULL_RTX, icode);
+      cc_reg = NULL_RTX;
       if (subtarget == NULL_RTX)
-	return NULL_RTX;
-
-      emit_cmp_insn (subtarget, old_val, EQ, const0_rtx, mode, true);
-    }
-
-  /* If the target has a sane STORE_FLAG_VALUE, then go ahead and use a
-     setcc instruction from the beginning.  We don't work too hard here,
-     but it's nice to not be stupid about initial code gen either.  */
-  if (STORE_FLAG_VALUE == 1)
-    {
-      icode = setcc_gen_code[EQ];
-      if (icode != CODE_FOR_nothing)
 	{
-	  enum machine_mode cmode = insn_data[icode].operand[0].mode;
-	  rtx insn;
-
-	  subtarget = target;
-	  if (!insn_data[icode].operand[0].predicate (target, cmode))
-	    subtarget = gen_reg_rtx (cmode);
-
-	  insn = GEN_FCN (icode) (subtarget);
-	  if (insn)
-	    {
-	      emit_insn (insn);
-	      if (GET_MODE (target) != GET_MODE (subtarget))
-		{
-	          convert_move (target, subtarget, 1);
-		  subtarget = target;
-		}
-	      return subtarget;
-	    }
+	  end_sequence ();
+	  return NULL_RTX;
 	}
+
+      if (have_insn_for (COMPARE, CCmode))
+	note_stores (PATTERN (get_last_insn ()), find_cc_set, &cc_reg);
+      seq = get_insns ();
+      end_sequence ();
+
+      /* We might be comparing against an old value.  Try again. :-(  */
+      if (!cc_reg && MEM_P (old_val))
+	{
+	  seq = NULL_RTX;
+	  old_val = force_reg (mode, old_val);
+        }
     }
+  while (!seq);
 
-  /* Without an appropriate setcc instruction, use a set of branches to
-     get 1 and 0 stored into target.  Presumably if the target has a
-     STORE_FLAG_VALUE that isn't 1, then this will get cleaned up by ifcvt.  */
-
-  label0 = gen_label_rtx ();
-  label1 = gen_label_rtx ();
-
-  emit_jump_insn (bcc_gen_fctn[EQ] (label0));
-  emit_move_insn (target, const0_rtx);
-  emit_jump_insn (gen_jump (label1));
-  emit_barrier ();
-  emit_label (label0);
-  emit_move_insn (target, const1_rtx);
-  emit_label (label1);
-
-  return target;
+  emit_insn (seq);
+  if (cc_reg)
+    return emit_store_flag (target, EQ, cc_reg, const0_rtx, VOIDmode, 0, 1);
+  else
+    return emit_store_flag (target, EQ, subtarget, old_val, VOIDmode, 1, 1);
 }
 
 /* This is a helper function for the other atomic operations.  This function
@@ -7047,7 +7055,7 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
-  rtx label, cmp_reg, subtarget;
+  rtx label, cmp_reg, subtarget, cc_reg;
 
   /* The loop we want to generate looks like
 
@@ -7074,37 +7082,32 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
   /* If the target supports a compare-and-swap pattern that simultaneously
      sets some flag for success, then use it.  Otherwise use the regular
      compare-and-swap and follow that immediately with a compare insn.  */
-  icode = sync_compare_and_swap_cc[mode];
-  switch (icode)
+  icode = sync_compare_and_swap[mode];
+  if (icode == CODE_FOR_nothing)
+    return false;
+
+  subtarget = expand_val_compare_and_swap_1 (mem, old_reg, new_reg,
+					     cmp_reg, icode);
+  if (subtarget == NULL_RTX)
+    return false;
+
+  cc_reg = NULL_RTX;
+  if (have_insn_for (COMPARE, CCmode))
+    note_stores (PATTERN (get_last_insn ()), find_cc_set, &cc_reg);
+  if (cc_reg)
     {
-    default:
-      subtarget = expand_val_compare_and_swap_1 (mem, old_reg, new_reg,
-						 cmp_reg, icode);
-      if (subtarget != NULL_RTX)
-	{
-	  gcc_assert (subtarget == cmp_reg);
-	  break;
-	}
-
-      /* FALLTHRU */
-    case CODE_FOR_nothing:
-      icode = sync_compare_and_swap[mode];
-      if (icode == CODE_FOR_nothing)
-	return false;
-
-      subtarget = expand_val_compare_and_swap_1 (mem, old_reg, new_reg,
-						 cmp_reg, icode);
-      if (subtarget == NULL_RTX)
-	return false;
+      cmp_reg = cc_reg;
+      old_reg = const0_rtx;
+    }
+  else
+    {
       if (subtarget != cmp_reg)
 	emit_move_insn (cmp_reg, subtarget);
-
-      emit_cmp_insn (cmp_reg, old_reg, EQ, const0_rtx, mode, true);
     }
 
   /* ??? Mark this jump predicted not taken?  */
-  emit_jump_insn (bcc_gen_fctn[NE] (label));
-
+  emit_cmp_and_jump_insns (cmp_reg, old_reg, NE, const0_rtx, GET_MODE (cmp_reg), 1,
+			   label);
   return true;
 }
 
@@ -7182,12 +7185,13 @@ expand_sync_operation (rtx mem, rtx val, enum rtx_code code)
       t1 = t0;
       if (code == NOT)
 	{
-	  t1 = expand_simple_unop (mode, NOT, t1, NULL_RTX, true);
-	  code = AND;
+	  t1 = expand_simple_binop (mode, AND, t1, val, NULL_RTX,
+				    true, OPTAB_LIB_WIDEN);
+	  t1 = expand_simple_unop (mode, code, t1, NULL_RTX, true);
 	}
-      t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
-				true, OPTAB_LIB_WIDEN);
-
+      else
+	t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
+				  true, OPTAB_LIB_WIDEN);
       insn = get_insns ();
       end_sequence ();
 
@@ -7315,9 +7319,17 @@ expand_sync_fetch_operation (rtx mem, rtx val, enum rtx_code code,
 		}
 
 	      if (code == NOT)
-		target = expand_simple_unop (mode, NOT, target, NULL_RTX, true);
-	      target = expand_simple_binop (mode, code, target, val, NULL_RTX,
-					    true, OPTAB_LIB_WIDEN);
+		{
+		  target = expand_simple_binop (mode, AND, target, val,
+						NULL_RTX, true,
+						OPTAB_LIB_WIDEN);
+		  target = expand_simple_unop (mode, code, target,
+					       NULL_RTX, true);
+		}
+	      else
+		target = expand_simple_binop (mode, code, target, val,
+					      NULL_RTX, true,
+					      OPTAB_LIB_WIDEN);
 	    }
 
 	  return target;
@@ -7340,11 +7352,13 @@ expand_sync_fetch_operation (rtx mem, rtx val, enum rtx_code code,
       t1 = t0;
       if (code == NOT)
 	{
-	  t1 = expand_simple_unop (mode, NOT, t1, NULL_RTX, true);
-	  code = AND;
+	  t1 = expand_simple_binop (mode, AND, t1, val, NULL_RTX,
+				    true, OPTAB_LIB_WIDEN);
+	  t1 = expand_simple_unop (mode, code, t1, NULL_RTX, true);
 	}
-      t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
-				true, OPTAB_LIB_WIDEN);
+      else
+	t1 = expand_simple_binop (mode, code, t1, val, NULL_RTX,
+				  true, OPTAB_LIB_WIDEN);
       if (after)
 	emit_move_insn (target, t1);
 

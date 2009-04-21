@@ -1,5 +1,5 @@
 /* Definitions for C++ name lookup routines.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
@@ -778,12 +778,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
       if ((TREE_CODE (x) == FUNCTION_DECL)
 	  && DECL_EXTERN_C_P (x)
           /* We should ignore declarations happening in system headers.  */
+	  && !DECL_ARTIFICIAL (x)
 	  && !DECL_IN_SYSTEM_HEADER (x))
 	{
 	  cxx_binding *function_binding =
 	      lookup_extern_c_fun_binding_in_all_ns (x);
-	  if (function_binding
-              && !DECL_IN_SYSTEM_HEADER (function_binding->value))
+	  tree previous = (function_binding
+			   ? function_binding->value
+			   : NULL_TREE);
+	  if (previous
+	      && !DECL_ARTIFICIAL (previous)
+              && !DECL_IN_SYSTEM_HEADER (previous)
+	      && DECL_CONTEXT (previous) != DECL_CONTEXT (x))
 	    {
 	      tree previous = function_binding->value;
 
@@ -810,11 +816,16 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 		      POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
 		    }
 		}
+	      else
+		{
+		  pedwarn (input_location, 0,
+			   "declaration of %q#D with C language linkage", x);
+		  pedwarn (input_location, 0,
+			   "conflicts with previous declaration %q+#D",
+			   previous);
+		}
 	    }
 	}
-
-      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
-	check_default_args (x);
 
       check_template_shadow (x);
 
@@ -826,11 +837,10 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  SET_DECL_LANGUAGE (x, lang_c);
 	}
 
+      t = x;
       if (DECL_NON_THUNK_FUNCTION_P (x) && ! DECL_FUNCTION_MEMBER_P (x))
 	{
 	  t = push_overloaded_decl (x, PUSH_LOCAL, is_friend);
-	  if (t != x)
-	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	  if (!namespace_bindings_p ())
 	    /* We do not need to create a binding for this name;
 	       push_overloaded_decl will have already done so if
@@ -842,33 +852,30 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	  t = push_overloaded_decl (x, PUSH_GLOBAL, is_friend);
 	  if (t == x)
 	    add_decl_to_level (x, NAMESPACE_LEVEL (CP_DECL_CONTEXT (t)));
-	  POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 	}
+
+      if (TREE_CODE (x) == FUNCTION_DECL || DECL_FUNCTION_TEMPLATE_P (x))
+	check_default_args (x);
+
+      if (t != x || DECL_FUNCTION_TEMPLATE_P (t))
+	POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
 
       /* If declaring a type as a typedef, copy the type (unless we're
 	 at line 0), and install this TYPE_DECL as the new type's typedef
-	 name.  See the extensive comment in ../c-decl.c (pushdecl).  */
+	 name.  See the extensive comment of set_underlying_type ().  */
       if (TREE_CODE (x) == TYPE_DECL)
 	{
 	  tree type = TREE_TYPE (x);
-	  if (DECL_IS_BUILTIN (x))
-	    {
-	      if (TYPE_NAME (type) == 0)
-		TYPE_NAME (type) = x;
-	    }
-	  else if (type != error_mark_node && TYPE_NAME (type) != x
-		   /* We don't want to copy the type when all we're
-		      doing is making a TYPE_DECL for the purposes of
-		      inlining.  */
-		   && (!TYPE_NAME (type)
-		       || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x)))
-	    {
-	      DECL_ORIGINAL_TYPE (x) = type;
-	      type = build_variant_type_copy (type);
-	      TYPE_STUB_DECL (type) = TYPE_STUB_DECL (DECL_ORIGINAL_TYPE (x));
-	      TYPE_NAME (type) = x;
-	      TREE_TYPE (x) = type;
-	    }
+
+	  if (DECL_IS_BUILTIN (x)
+	      || (TREE_TYPE (x) != error_mark_node
+		  && TYPE_NAME (type) != x
+		  /* We don't want to copy the type when all we're
+		     doing is making a TYPE_DECL for the purposes of
+		     inlining.  */
+		  && (!TYPE_NAME (type)
+		      || TYPE_NAME (type) != DECL_ABSTRACT_ORIGIN (x))))
+	    set_underlying_type (x);
 
 	  if (type != error_mark_node
 	      && TYPE_NAME (type)
@@ -1001,13 +1008,18 @@ pushdecl_maybe_friend (tree x, bool is_friend)
 	      && TREE_PUBLIC (x))
 	    TREE_PUBLIC (name) = 1;
 
+	  /* Don't complain about the parms we push and then pop
+	     while tentatively parsing a function declarator.  */
+	  if (TREE_CODE (x) == PARM_DECL && DECL_CONTEXT (x) == NULL_TREE)
+	    /* Ignore.  */;
+
 	  /* Warn if shadowing an argument at the top level of the body.  */
-	  if (oldlocal != NULL_TREE && !DECL_EXTERNAL (x)
-	      /* Inline decls shadow nothing.  */
-	      && !DECL_FROM_INLINE (x)
-	      && TREE_CODE (oldlocal) == PARM_DECL
-	      /* Don't check the `this' parameter.  */
-	      && !DECL_ARTIFICIAL (oldlocal))
+	  else if (oldlocal != NULL_TREE && !DECL_EXTERNAL (x)
+		   /* Inline decls shadow nothing.  */
+		   && !DECL_FROM_INLINE (x)
+		   && TREE_CODE (oldlocal) == PARM_DECL
+		   /* Don't check the `this' parameter.  */
+		   && !DECL_ARTIFICIAL (oldlocal))
 	    {
 	      bool err = false;
 
@@ -1548,7 +1560,8 @@ kept_level_p (void)
   return (current_binding_level->blocks != NULL_TREE
 	  || current_binding_level->keep
 	  || current_binding_level->kind == sk_cleanup
-	  || current_binding_level->names != NULL_TREE);
+	  || current_binding_level->names != NULL_TREE
+	  || current_binding_level->using_directives);
 }
 
 /* Returns the kind of the innermost scope.  */
@@ -3352,7 +3365,8 @@ do_namespace_alias (tree alias, tree name_space)
   pushdecl (alias);
 
   /* Emit debug info for namespace alias.  */
-  (*debug_hooks->global_decl) (alias);
+  if (!building_stmt_tree ())
+    (*debug_hooks->global_decl) (alias);
 }
 
 /* Like pushdecl, only it places X in the current namespace,
@@ -3500,7 +3514,6 @@ do_using_directive (tree name_space)
   if (!toplevel_bindings_p ())
     {
       push_using_directive (name_space);
-      context = current_scope ();
     }
   else
     {
@@ -3508,12 +3521,12 @@ do_using_directive (tree name_space)
       add_using_namespace (current_namespace, name_space, 0);
       if (current_namespace != global_namespace)
 	context = current_namespace;
-    }
 
-  /* Emit debugging info.  */
-  if (!processing_template_decl)
-    (*debug_hooks->imported_module_or_decl) (name_space, NULL_TREE,
-					     context, false);
+      /* Emit debugging info.  */
+      if (!processing_template_decl)
+	(*debug_hooks->imported_module_or_decl) (name_space, NULL_TREE,
+						 context, false);
+    }
 }
 
 /* Deal with a using-directive seen by the parser.  Currently we only
@@ -3559,7 +3572,7 @@ pushdecl_top_level_1 (tree x, tree *init, bool is_friend)
   push_to_top_level ();
   x = pushdecl_namespace_level (x, is_friend);
   if (init)
-    finish_decl (x, *init, NULL_TREE);
+    finish_decl (x, *init, NULL_TREE, NULL_TREE);
   pop_from_top_level ();
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, x);
 }
@@ -3612,10 +3625,9 @@ merge_functions (tree s1, tree s2)
 	  /* If the function from S2 is already in S1, there is no
 	     need to add it again.  For `extern "C"' functions, we
 	     might have two FUNCTION_DECLs for the same function, in
-	     different namespaces; again, we only need one of them.  */
-	  if (fn1 == fn2
-	      || (DECL_EXTERN_C_P (fn1) && DECL_EXTERN_C_P (fn2)
-		  && DECL_NAME (fn1) == DECL_NAME (fn2)))
+	     different namespaces, but let's leave them in in case
+	     they have different default arguments.  */
+	  if (fn1 == fn2)
 	    break;
 	}
 
@@ -3984,9 +3996,34 @@ qualified_lookup_using_namespace (tree name, tree scope,
   POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, result->value != error_mark_node);
 }
 
+/* Subroutine of outer_binding.
+   Returns TRUE if BINDING is a binding to a template parameter of SCOPE,
+   FALSE otherwise.  */
+
+static bool
+binding_to_template_parms_of_scope_p (cxx_binding *binding,
+				      cxx_scope *scope)
+{
+  tree binding_value;
+
+  if (!binding || !scope)
+    return false;
+
+  binding_value = binding->value ?  binding->value : binding->type;
+
+  return (scope
+	  && scope->this_entity
+	  && get_template_info (scope->this_entity)
+	  && parameter_of_template_p (binding_value,
+				      TI_TEMPLATE (get_template_info \
+						    (scope->this_entity))));
+}
+
 /* Return the innermost non-namespace binding for NAME from a scope
-   containing BINDING, or, if BINDING is NULL, the current scope.  If
-   CLASS_P is false, then class bindings are ignored.  */
+   containing BINDING, or, if BINDING is NULL, the current scope.
+   Please note that for a given template, the template parameters are
+   considered to be in the scope containing the current scope.
+   If CLASS_P is false, then class bindings are ignored.  */
 
 cxx_binding *
 outer_binding (tree name,
@@ -4034,6 +4071,16 @@ outer_binding (tree name,
 		return class_binding;
 	      }
 	  }
+	/* If we are in a member template, the template parms of the member
+	   template are considered to be inside the scope of the containing
+	   class, but within G++ the class bindings are all pushed between the
+	   template parms and the function body.  So if the outer binding is
+	   a template parm for the current scope, return it now rather than
+	   look for a class binding.  */
+	if (outer_scope && outer_scope->kind == sk_template_parms
+	    && binding_to_template_parms_of_scope_p (outer, scope))
+	  return outer;
+
 	scope = scope->level_chain;
       }
 
@@ -4134,16 +4181,25 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 	  {
 	    if (hidden_name_p (binding))
 	      {
-		/* A non namespace-scope binding can only be hidden if
-		   we are in a local class, due to friend declarations.
+		/* A non namespace-scope binding can only be hidden in the
+		   presence of a local class, due to friend declarations.
+
 		   In particular, consider:
 
+		   struct C;
 		   void f() {
 		     struct A {
 		       friend struct B;
-		       void g() { B* b; } // error: B is hidden
-		     }
+		       friend struct C;
+		       void g() {
+		         B* b; // error: B is hidden
+			 C* c; // OK, finds ::C
+		       } 
+		     };
+		     B *b;  // error: B is hidden
+		     C *c;  // OK, finds ::C
 		     struct B {};
+		     B *bb; // OK
 		   }
 
 		   The standard says that "B" is a local class in "f"
@@ -4159,21 +4215,19 @@ lookup_name_real (tree name, int prefer_type, int nonclass, bool block_p,
 		   the name specified is an unqualified name, a prior
 		   declaration is looked up without considering scopes
 		   that are outside the innermost enclosing non-class
-		   scope. For a friend class declaration, if there is no
-		   prior declaration, the class that is specified 
-		   belongs to the innermost enclosing non-class scope,
-		   but if it is subsequently referenced, its name is not
-		   found by name lookup until a matching declaration is
-		   provided in the innermost enclosing nonclass scope.
-		*/
-		gcc_assert (current_class_type &&
-			    LOCAL_CLASS_P (current_class_type));
+		   scope. For a friend function declaration, if there is
+		   no prior declaration, the program is ill-formed. For a
+		   friend class declaration, if there is no prior
+		   declaration, the class that is specified belongs to the
+		   innermost enclosing non-class scope, but if it is
+		   subsequently referenced, its name is not found by name
+		   lookup until a matching declaration is provided in the
+		   innermost enclosing nonclass scope.
 
-		/* This binding comes from a friend declaration in the local
-		   class. The standard (11.4.8) states that the lookup can
-		   only succeed if there is a non-hidden declaration in the
-		   current scope, which is not the case here.  */
-		POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, NULL_TREE);
+		   So just keep looking for a non-hidden binding.
+		*/
+		gcc_assert (TREE_CODE (binding) == TYPE_DECL);
+		continue;
 	      }
 	    val = binding;
 	    break;
@@ -4717,6 +4771,7 @@ arg_assoc_type (struct arg_lookup *k, tree type)
     case VECTOR_TYPE:
     case BOOLEAN_TYPE:
     case FIXED_POINT_TYPE:
+    case DECLTYPE_TYPE:
       return false;
     case RECORD_TYPE:
       if (TYPE_PTRMEMFUNC_P (type))
@@ -5082,6 +5137,9 @@ pushtag (tree name, tree type, tag_scope scope)
 
       if (b->kind == sk_class)
 	{
+	  if (!TYPE_BEING_DEFINED (current_class_type))
+	    POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+
 	  if (!PROCESSING_REAL_TEMPLATE_DECL_P ())
 	    /* Put this TYPE_DECL on the TYPE_FIELDS list for the
 	       class.  But if it's a member template class, we want
@@ -5356,7 +5414,12 @@ cp_emit_debug_info_for_using (tree t, tree context)
   /* FIXME: Handle TEMPLATE_DECLs.  */
   for (t = OVL_CURRENT (t); t; t = OVL_NEXT (t))
     if (TREE_CODE (t) != TEMPLATE_DECL)
-      (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
+      {
+	if (building_stmt_tree ())
+	  add_stmt (build_stmt (USING_STMT, t));
+	else
+	  (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
+      }
 }
 
 #include "gt-cp-name-lookup.h"

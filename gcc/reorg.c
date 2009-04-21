@@ -1,6 +1,6 @@
 /* Perform instruction reorganizations for delay slot filling.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu).
    Hacked by Michael Tiemann (tiemann@cygnus.com).
@@ -318,7 +318,10 @@ insn_sets_resource_p (rtx insn, struct resources *res,
   struct resources insn_sets;
 
   CLEAR_RESOURCE (&insn_sets);
-  mark_set_resources (insn, &insn_sets, 0, include_delayed_effects);
+  mark_set_resources (insn, &insn_sets, 0,
+		      (include_delayed_effects
+		       ? MARK_SRC_DEST_CALL
+		       : MARK_SRC_DEST));
   return resource_conflicts_p (&insn_sets, res);
 }
 
@@ -4038,6 +4041,7 @@ dbr_schedule (rtx first)
   }
 
 #endif
+  crtl->dbr_scheduled_p = true;
 }
 #endif /* DELAY_SLOTS */
 
@@ -4045,7 +4049,8 @@ static bool
 gate_handle_delay_slots (void)
 {
 #ifdef DELAY_SLOTS
-  return flag_delayed_branch;
+  /* At -O0 dataflow info isn't updated after RA.  */
+  return optimize > 0 && flag_delayed_branch && !crtl->dbr_scheduled_p;
 #else
   return 0;
 #endif

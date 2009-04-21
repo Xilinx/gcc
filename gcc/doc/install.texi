@@ -45,7 +45,7 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
 
 @c IMPORTANT: whenever you modify this file, run `install.texi2html' to
@@ -302,25 +302,43 @@ Necessary (only on some platforms) to untar the source code.  Many
 systems' @command{tar} programs will also work, only try GNU
 @command{tar} if you have problems.
 
-@item GNU Multiple Precision Library (GMP) version 4.1 (or later)
+@item GNU Multiple Precision Library (GMP) version 4.2 (or later)
 
 Necessary to build GCC@.  If you do not have it installed in your
 library search path, you will have to configure with the
-@option{--with-gmp} configure option.  See also
-@option{--with-gmp-lib} and @option{--with-gmp-include}.
+@option{--with-gmp} configure option.  See also @option{--with-gmp-lib}
+and @option{--with-gmp-include}.  Alternatively, if a GMP source
+distribution is found in a subdirectory of your GCC sources named
+@file{gmp}, it will be built together with GCC@.
 
-@item MPFR Library version 2.3.0 (or later)
+@item MPFR Library version 2.3.2 (or later)
 
 Necessary to build GCC@.  It can be downloaded from
-@uref{http://www.mpfr.org/}.  The version of MPFR that is bundled with
-GMP 4.1.x contains numerous bugs.  Although GCC may appear to function
-with the buggy versions of MPFR, there are a few bugs that will not be
-fixed when using this version.  It is strongly recommended to upgrade
-to the recommended version of MPFR.
+@uref{http://www.mpfr.org/}.  The @option{--with-mpfr} configure
+option should be used if your MPFR Library is not installed in your
+default library search path.  See also @option{--with-mpfr-lib} and
+@option{--with-mpfr-include}.  Alternatively, if a MPFR source
+distribution is found in a subdirectory of your GCC sources named
+@file{mpfr}, it will be built together with GCC@.
 
-The @option{--with-mpfr} configure option should be used if your MPFR
-Library is not installed in your default library search path.  See
-also @option{--with-mpfr-lib} and @option{--with-mpfr-include}.
+@item Parma Polyhedra Library (PPL) version 0.10
+
+Necessary to build GCC with the Graphite loop optimizations.
+It can be downloaded from @uref{http://www.cs.unipr.it/ppl/Download/}.
+
+The @option{--with-ppl} configure option should be used if PPL is not
+installed in your default library search path.
+
+@item CLooG-PPL version 0.15
+
+Necessary to build GCC with the Graphite loop optimizations.  It can
+be downloaded from @uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/}.
+The code in @file{cloog-ppl-0.15.tar.gz} comes from a branch of CLooG
+available from @uref{http://repo.or.cz/w/cloog-ppl.git}.  CLooG-PPL
+should be configured with @option{--with-ppl}.
+
+The @option{--with-cloog} configure option should be used if CLooG is
+not installed in your default library search path.
 
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
@@ -442,6 +460,17 @@ the GCC-specific entry point.  You can download a suitable jar from
 @uref{ftp://sourceware.org/pub/java/}, or by running the script
 @command{contrib/download_ecj}.
 
+@item antlr.jar version 2.7.1 (or later)
+@itemx antlr binary
+
+If you wish to build the @command{gjdoc} binary in libjava, you will
+need to have a @file{antlr.jar} library available. The library is
+searched in system locations but can be configured with
+@option{--with-antlr-jar=} instead.  When configuring with
+@option{--enable-java-maintainer-mode}, you will need to have one of
+the executables named @command{cantlr}, @command{runantlr} or
+@command{antlr} in your path.
+
 @end table
 
 @html
@@ -495,6 +524,12 @@ a separate one.  In the latter case, add symbolic links to any
 components of the binutils you intend to build alongside the compiler
 (@file{bfd}, @file{binutils}, @file{gas}, @file{gprof}, @file{ld},
 @file{opcodes}, @dots{}) to the directory containing the GCC sources.
+
+Likewise, the GMP and MPFR libraries can be automatically built together
+with GCC.  Unpack the GMP and/or MPFR source distributions in the
+directory containing the GCC sources and rename their directories to
+@file{gmp} and @file{mpfr}, respectively (or use symbolic links with the
+same name).
 
 @html
 <hr />
@@ -612,7 +647,7 @@ provide a configure target when configuring a native compiler.
 @item
 @var{target} must be specified as @option{--target=@var{target}}
 when configuring a cross compiler; examples of valid targets would be
-m68k-coff, sh-elf, etc.
+m68k-elf, sh-elf, etc.
 
 @item
 Specifying just @var{target} instead of @option{--target=@var{target}}
@@ -685,8 +720,9 @@ manual.)
 
 @item --with-gxx-include-dir=@var{dirname}
 Specify
-the installation directory for G++ header files.  The default is
-@file{@var{prefix}/include/c++/@var{version}}.
+the installation directory for G++ header files.  The default depends
+on other configuration options, and differs between cross and native
+configurations.
 
 @end table
 
@@ -846,10 +882,6 @@ whether you use the GNU assembler.  On any other system,
 @item @samp{sparc64-@var{any}-solaris2.@var{any}}
 @end itemize
 
-On the systems listed above (except for the HP-PA, the SPARC, for ISC on
-the 386, if you use the GNU assembler, you should also use the GNU linker
-(and specify @option{--with-gnu-ld}).
-
 @item @anchor{with-as}--with-as=@var{pathname}
 Specify that the compiler should use the assembler pointed to by
 @var{pathname}, rather than the one found by the standard rules to find
@@ -949,6 +981,57 @@ single-float, biendian, softfloat.
 aix64, pthread, softfloat, powercpu, powerpccpu, powerpcos, biendian,
 sysv, aix.
 
+@end table
+
+@item --with-multilib-list=@var{list}
+@itemx --without-multilib-list
+Specify what multilibs to build.
+Currently only implemented for sh*-*-*.
+
+@var{list} is a comma separated list of CPU names.  These must be of the
+form @code{sh*} or @code{m*} (in which case they match the compiler option
+for that processor).  The list should not contain any endian options -
+these are handled by @option{--with-endian}.
+
+If @var{list} is empty, then there will be no multilibs for extra
+processors.  The multilib for the secondary endian remains enabled.
+
+As a special case, if an entry in the list starts with a @code{!}
+(exclamation point), then it is added to the list of excluded multilibs.
+Entries of this sort should be compatible with @samp{MULTILIB_EXCLUDES}
+(once the leading @code{!} has been stripped).
+
+If @option{--with-multilib-list} is not given, then a default set of
+multilibs is selected based on the value of @option{--target}.  This is
+usually the complete set of libraries, but some targets imply a more
+specialized subset.
+
+Example 1: to configure a compiler for SH4A only, but supporting both
+endians, with little endian being the default:
+@smallexample
+--with-cpu=sh4a --with-endian=little,big --with-multilib-list=
+@end smallexample
+
+Example 2: to configure a compiler for both SH4A and SH4AL-DSP, but with
+only little endian SH4AL:
+@smallexample
+--with-cpu=sh4a --with-endian=little,big --with-multilib-list=sh4al,!mb/m4al
+@end smallexample
+
+@item --with-endian=@var{endians}
+Specify what endians to use.
+Currently only implemented for sh*-*-*.
+
+@var{endians} may be one of the following:
+@table @code
+@item big
+Use big endian exclusively.
+@item little
+Use little endian exclusively.
+@item big,little
+Use big endian by default.  Provide a multilib for little endian.
+@item little,big
+Use little endian by default.  Provide a multilib for big endian.
 @end table
 
 @item --enable-threads
@@ -1282,7 +1365,8 @@ consistency checks of the requested complexity.  This does not change the
 generated code, but adds error checking within the compiler.  This will
 slow down the compiler and may only work properly if you are building
 the compiler with GCC@.  This is @samp{yes} by default when building
-from SVN or snapshots, but @samp{release} for releases.  More control
+from SVN or snapshots, but @samp{release} for releases.  The default
+for building the stage1 compiler is @samp{yes}.  More control
 over the checks may be had by specifying @var{list}.  The categories of
 checks available are @samp{yes} (most common checks
 @samp{assert,misc,tree,gc,rtlflag,runtime}), @samp{no} (no checks at
@@ -1300,6 +1384,19 @@ To disable all checking, @samp{--disable-checking} or
 assertions will make the compiler and runtime slightly faster but
 increase the risk of undetected internal errors causing wrong code to be
 generated.
+
+@item --disable-stage1-checking
+@item --enable-stage1-checking
+@itemx --enable-stage1-checking=@var{list}
+If no @option{--enable-checking} option is specified the stage1
+compiler will be built with @samp{yes} checking enabled, otherwise
+the stage1 checking flags are the same as specified by
+@option{--enable-checking}.  To build the stage1 compiler with
+different checking options use @option{--enable-stage1-checking}.
+The list of checking options is the same as for @option{--enable-checking}.
+If your system is too slow or too small to bootstrap a released compiler
+with checking for stage1 enabled, you can use @samp{--disable-stage1-checking}
+to disable checking for the stage1 compiler.
 
 @item --enable-coverage
 @itemx --enable-coverage=@var{level}
@@ -1404,6 +1501,35 @@ GCC, you can explicitly specify the directory where they are installed
 @option{--with-mpfr-include=@var{mpfrinstalldir}/include}.  If these
 shorthand assumptions are not correct, you can use the explicit
 include and lib options directly.
+
+@item --with-ppl=@var{pathname}
+@itemx --with-ppl-include=@var{pathname}
+@itemx --with-ppl-lib=@var{pathname}
+@itemx --with-cloog=@var{pathname}
+@itemx --with-cloog-include=@var{pathname}
+@itemx --with-cloog-lib=@var{pathname}
+If you do not have PPL (the Parma Polyhedra Library) and the CLooG
+libraries installed in a standard location and you want to build GCC,
+you can explicitly specify the directory where they are installed
+(@samp{--with-ppl=@var{pplinstalldir}},
+@samp{--with-cloog=@var{clooginstalldir}}). The
+@option{--with-ppl=@var{pplinstalldir}} option is shorthand for
+@option{--with-ppl-lib=@var{pplinstalldir}/lib} and
+@option{--with-ppl-include=@var{pplinstalldir}/include}.  Likewise the
+@option{--with-cloog=@var{clooginstalldir}} option is shorthand for
+@option{--with-cloog-lib=@var{clooginstalldir}/lib} and
+@option{--with-cloog-include=@var{clooginstalldir}/include}.  If these
+shorthand assumptions are not correct, you can use the explicit
+include and lib options directly.
+
+@item --with-host-libstdcxx=@var{linker-args}
+If you are linking with a static copy of PPL, you can use this option
+to specify how the linker should find the standard C++ library used
+internally by PPL.  Typical values of @var{linker-args} might be
+@samp{-lstdc++} or @samp{-Wl,-Bstatic,-lstdc++,-Bdynamic -lm}.  If you are
+linking with a shared copy of PPL, you probably do not need this
+option; shared library dependencies will cause the linker to search
+for the standard C++ library automatically.
 
 @item --with-debug-prefix-map=@var{map}
 Convert source directory names using @option{-fdebug-prefix-map} when
@@ -2545,8 +2671,6 @@ information are.
 @uref{#arc-x-elf,,arc-*-elf}
 @item
 @uref{#arm-x-elf,,arm-*-elf}
-@uref{#arm-x-coff,,arm-*-coff}
-@uref{#arm-x-aout,,arm-*-aout}
 @item
 @uref{#avr,,avr}
 @item
@@ -2648,7 +2772,7 @@ information are.
 @item
 @uref{#x-x-interix,,*-*-interix}
 @item
-@uref{#x-x-mingw,,*-*-mingw}
+@uref{#x-x-mingw32,,*-*-mingw32}
 @item
 @uref{#os2,,OS/2}
 @item
@@ -2723,14 +2847,6 @@ the system header file @file{/usr/include/stamp.h}.  If you install a
 new version of DEC Unix, you should rebuild GCC to pick up the new version
 stamp.
 
-Note that since the Alpha is a 64-bit architecture, cross-compilers from
-32-bit machines will not generate code as efficient as that generated
-when the compiler is running on a 64-bit machine because many
-optimizations that depend on being able to represent a word on the
-target in an integral value on the host cannot be performed.  Building
-cross-compilers on the Alpha for 32-bit machines has only been tested in
-a few cases and may not work properly.
-
 @samp{make compare} may fail on old versions of DEC Unix unless you add
 @option{-save-temps} to @code{BOOT_CFLAGS}.  On these systems, the name
 of the assembler input file is stored in the object file, and that makes
@@ -2774,21 +2890,6 @@ ARM-family processors.  Subtargets that use the ELF object format
 require GNU binutils 2.13 or newer.  Such subtargets include:
 @code{arm-*-freebsd}, @code{arm-*-netbsdelf}, @code{arm-*-*linux}
 and @code{arm-*-rtems}.
-
-@html
-<hr />
-@end html
-@heading @anchor{arm-x-coff}arm-*-coff
-ARM-family processors.  Note that there are two different varieties
-of PE format subtarget supported: @code{arm-wince-pe} and
-@code{arm-pe} as well as a standard COFF target @code{arm-*-coff}.
-
-@html
-<hr />
-@end html
-@heading @anchor{arm-x-aout}arm-*-aout
-ARM-family processors.  These targets support the AOUT file format:
-@code{arm-*-aout}, @code{arm-*-netbsd}.
 
 @html
 <hr />
@@ -2986,17 +3087,27 @@ longer a multiple of 2 bytes.
 @heading @anchor{hppa-hp-hpux}hppa*-hp-hpux*
 Support for HP-UX version 9 and older was discontinued in GCC 3.4.
 
-We require using gas/binutils on all hppa platforms;
-you may encounter a variety of problems if you try to use the HP assembler.
+We require using gas/binutils on all hppa platforms.  Version 2.19 or
+later is recommended.
 
-Specifically, @option{-g} does not work on HP-UX (since that system
-uses a peculiar debugging format which GCC does not know about), unless
-you use GAS and GDB@.  It may be helpful to configure GCC with the
+It may be helpful to configure GCC with the
 @uref{./configure.html#with-gnu-as,,@option{--with-gnu-as}} and
 @option{--with-as=@dots{}} options to ensure that GCC can find GAS@.
 
-If you wish to use the pa-risc 2.0 architecture support with a 32-bit
-runtime, you must use gas/binutils 2.11 or newer.
+The HP assembler should not be used with GCC.  It is rarely tested and may
+not work.  It shouldn't be used with any languages other than C due to its
+many limitations.
+
+Specifically, @option{-g} does not work (HP-UX uses a peculiar debugging
+format which GCC does not know about).  It also inserts timestamps
+into each object file it creates, causing the 3-stage comparison test to
+fail during a bootstrap.  You should be able to continue by saying
+@samp{make all-host all-target} after getting the failure from @samp{make}.
+
+Various GCC features are not supported.  For example, it does not support weak
+symbols or alias definitions.  As a result, explicit template instantiations
+are required when using C++.  This makes it difficult if not impossible to
+build many C++ applications.
 
 There are two default scheduling models for instructions.  These are
 PROCESSOR_7100LC and PROCESSOR_8000.  They are selected from the pa-risc
@@ -3019,17 +3130,6 @@ in a number of ways.  With HP cc, @env{UNIX_STD} can be set to @samp{95}
 or @samp{98}.  Another way is to add an appropriate set of predefines
 to @env{CC}.  The description for the @option{munix=} option contains
 a list of the predefines used with each standard.
-
-As of GCC 4.1, @env{DWARF2} exception handling is available on HP-UX@.
-It is now the default.  This exposed a bug in the handling of data
-relocations in the GAS assembler.  The handling of 64-bit data relocations
-was seriously broken, affecting debugging and exception support on all
-@samp{hppa64-*-*} targets.  Under some circumstances, 32-bit data relocations
-could also be handled incorrectly.  This problem is fixed in GAS version
-2.16.91 20051125.
-
-GCC versions prior to 4.1 incorrectly passed and returned complex
-values.  They are now passed in the same manner as aggregates.
 
 More specific information to @samp{hppa*-hp-hpux*} targets follows.
 
@@ -3056,15 +3156,6 @@ and Latin-America.
 @uref{http://europe.itrc.hp.com/service/home/home.do,,} Europe.
 @end itemize
 
-The HP assembler on these systems has some problems.  Most notably the
-assembler inserts timestamps into each object file it creates, causing
-the 3-stage comparison test to fail during a bootstrap.
-You should be able to continue by saying @samp{make all-host all-target}
-after getting the failure from @samp{make}.
-
-GCC 4.0 requires CVS binutils as of April 28, 2004 or later.  Earlier
-versions require binutils 2.8 or later.
-
 The C++ ABI has changed incompatibly in GCC 4.0.  COMDAT subspaces are
 used for one-only code and data.  This resolves many of the previous
 problems in using C++ on this target.  However, the ABI is not compatible
@@ -3078,11 +3169,13 @@ with the one implemented under HP-UX 11 using secondary definitions.
 GCC 3.0 and up support HP-UX 11.  GCC 2.95.x is not supported and cannot
 be used to compile GCC 3.0 and up.
 
+The libffi and libjava libraries haven't been ported to 64-bit HP-UX@
+and don't build.
+
 Refer to @uref{binaries.html,,binaries} for information about obtaining
 precompiled GCC binaries for HP-UX@.  Precompiled binaries must be obtained
 to build the Ada language as it can't be bootstrapped using C@.  Ada is
-only available for the 32-bit PA-RISC runtime.  The libffi and libjava
-haven't been ported to HP-UX and don't build.
+only available for the 32-bit PA-RISC runtime.
 
 Starting with GCC 3.4 an ISO C compiler is required to bootstrap.  The
 bundled compiler supports only traditional C; you will need either HP's
@@ -3108,8 +3201,7 @@ installation prefixes must be used if both are to be installed on
 the same system.  The @samp{hppa[1-2]*-hp-hpux11*} target generates code
 for the 32-bit PA-RISC runtime architecture and uses the HP linker.
 The @samp{hppa64-hp-hpux11*} target generates 64-bit code for the
-PA-RISC 2.0 architecture.  The HP and GNU linkers are both supported
-for this target.
+PA-RISC 2.0 architecture.
 
 The script config.guess now selects the target type based on the compiler
 detected during configuration.  You must define @env{PATH} or @env{CC} so
@@ -3137,20 +3229,6 @@ result, it's not possible to switch linkers in the middle of a GCC build.
 This has been reported to sometimes occur in unified builds of binutils
 and GCC@.
 
-GCC 3.0 through 3.2 require binutils 2.11 or above.  GCC 3.3 through
-GCC 4.0 require binutils 2.14 or later.
-
-Although the HP assembler can be used for an initial build, it shouldn't
-be used with any languages other than C and perhaps Fortran due to its
-many limitations.  For example, it does not support weak symbols or alias
-definitions.  As a result, explicit template instantiations are required
-when using C++.  This makes it difficult if not impossible to build many
-C++ applications.  You can't generate debugging information when using
-the HP assembler.  Finally, bootstrapping fails in the final
-comparison of object modules due to the time stamps that it inserts into
-the modules.  The bootstrap can be continued from this point with
-@samp{make all-host all-target}.
-
 A recent linker patch must be installed for the correct operation of
 GCC 3.3 and later.  @code{PHSS_26559} and @code{PHSS_24304} are the
 oldest linker patches that are known to work.  They are for HP-UX
@@ -3175,32 +3253,24 @@ options, including program core dumps.  Binutils 2.14 corrects a
 problem on the 64-bit port resulting from HP's non-standard use of
 the .init and .fini sections for array initializers and finalizers.
 
-There are a number of issues to consider in selecting which linker to
-use with the 64-bit port.  The GNU 64-bit linker can only create dynamic
-binaries.  The @option{-static} option causes linking with archive
-libraries but doesn't produce a truly static binary.  Dynamic binaries
-still require final binding by the dynamic loader to resolve a set of
-dynamic-loader-defined symbols.  The default behavior of the HP linker
-is the same as the GNU linker.  However, it can generate true 64-bit
-static binaries using the @option{+compat} option.
+Although the HP and GNU linkers are both supported for the
+@samp{hppa64-hp-hpux11*} target, it is strongly recommended that the
+HP linker be used for link editing on this target.
 
-The HP 64-bit linker doesn't support linkonce semantics.  As a
-result, C++ programs have many more sections than they should.
+At this time, the GNU linker does not support the creation of long
+branch stubs.  As a result, it can't successfully link binaries
+containing branch offsets larger than 8 megabytes.  In addition,
+there are problems linking shared libraries, linking executables
+with @option{-static}, and with dwarf2 unwind and exception support.
+It also doesn't provide stubs for internal calls to global functions
+in shared libraries, so these calls can't be overloaded.
 
-The GNU 64-bit linker has some issues with shared library support
-and exceptions.  As a result, we only support libgcc in archive
-format.  For similar reasons, dwarf2 unwind and exception support
-are disabled.  The GNU linker also has problems creating binaries
-with @option{-static}.  It doesn't provide stubs for internal
-calls to global functions in shared libraries, so these calls
-can't be overloaded.
+The HP dynamic loader does not support GNU symbol versioning, so symbol
+versioning is not supported.  It may be necessary to disable symbol
+versioning with @option{--disable-symvers} when using GNU ld.
 
-Thread support is not implemented in GCC 3.0 through 3.2, so the
-@option{--enable-threads} configure option does not work.  In 3.3
-and later, POSIX threads are supported.  The optional DCE thread
-library is not supported.
-
-This port still is undergoing significant development.
+POSIX threads are the default.  The optional DCE thread library is not
+supported, so @option{--enable-threads=dce} does not work.
 
 @html
 <hr />
@@ -3275,6 +3345,7 @@ removed and the system libunwind library will always be used.
 @end html
 @heading @anchor{x-ibm-aix}*-ibm-aix*
 Support for AIX version 3 and older was discontinued in GCC 3.4.
+Support for AIX version 4.2 and older was discontinued in GCC 4.5.
 
 ``out of memory'' bootstrap failures may indicate a problem with
 process resource limits (ulimit).  Hard limits are configured in the
@@ -3395,9 +3466,6 @@ GCC does not produce the same floating-point formats that the assembler
 expects.  If one encounters this problem, set the @env{LANG}
 environment variable to @samp{C} or @samp{En_US}.
 
-By default, GCC for AIX 4.1 and above produces code that can be used on
-both Power or PowerPC processors.
-
 A default can be specified with the @option{-mcpu=@var{cpu_type}}
 switch and using the configure option @option{--with-cpu-@var{cpu_type}}.
 
@@ -3440,7 +3508,7 @@ applications.  There are no standard Unix configurations.
 <hr />
 @end html
 @heading @anchor{m68k-x-x}m68k-*-*
-By default, @samp{m68k-*-aout}, @samp{m68k-*-coff*},
+By default,
 @samp{m68k-*-elf*}, @samp{m68k-*-rtems},  @samp{m68k-*-uclinux} and
 @samp{m68k-*-linux}
 build libraries for both M680x0 and ColdFire processors.  If you only
@@ -3653,6 +3721,10 @@ information about using GCC on IRIX platforms.
 You can specify a default version for the @option{-mcpu=@var{cpu_type}}
 switch by using the configure option @option{--with-cpu-@var{cpu_type}}.
 
+You will need
+@uref{ftp://ftp.kernel.org/pub/linux/devel/binutils,,binutils 2.15}
+or newer for a working GCC@.
+
 @html
 <hr />
 @end html
@@ -3681,9 +3753,7 @@ PowerPC system in big endian mode, running System V.4.
 @end html
 @heading @anchor{powerpc-x-linux-gnu}powerpc*-*-linux-gnu*
 
-You will need
-@uref{ftp://ftp.kernel.org/pub/linux/devel/binutils,,binutils 2.15}
-or newer for a working GCC@.
+PowerPC system in big endian mode running Linux.
 
 @html
 <hr />
@@ -4100,7 +4170,7 @@ and which C libraries are used.
 Linux API emulation layer in the Win32 subsystem.
 @item Interix @uref{#x-x-interix,,*-*-interix}: The Interix subsystem 
 provides native support for POSIX.
-@item MinGW @uref{#x-x-mingw,,*-*-mingw}: MinGW is a native GCC port for 
+@item MinGW @uref{#x-x-mingw32,,*-*-mingw32}: MinGW is a native GCC port for 
 the Win32 subsystem that provides a subset of POSIX.
 @item MKS i386-pc-mks: NuTCracker from MKS.  See 
 @uref{http://www.mkssoftware.com/} for more information.

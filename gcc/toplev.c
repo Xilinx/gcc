@@ -84,6 +84,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-mudflap.h"
 #include "tree-pass.h"
 #include "gimple.h"
+#include "tree-ssa-alias.h"
+#include "plugin.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -271,13 +273,20 @@ int flag_next_runtime = 0;
 
 enum tls_model flag_tls_default = TLS_MODEL_GLOBAL_DYNAMIC;
 
-/* Set the default algorithm for the integrated register allocator.  */
+/* Set the default region and algorithm for the integrated register
+   allocator.  */
 
-enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_MIXED;
+enum ira_algorithm flag_ira_algorithm = IRA_ALGORITHM_CB;
+enum ira_region flag_ira_region = IRA_REGION_MIXED;
 
 /* Set the default value for -fira-verbose.  */
 
 unsigned int flag_ira_verbose = 5;
+
+/* Set the default for excess precision.  */
+
+enum excess_precision flag_excess_precision_cmdline = EXCESS_PRECISION_DEFAULT;
+enum excess_precision flag_excess_precision = EXCESS_PRECISION_DEFAULT;
 
 /* Nonzero means change certain warnings into errors.
    Usually these are warnings about failure to conform to some standard.  */
@@ -984,11 +993,6 @@ compile_file (void)
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
 
-  /* This must occur after the loop to output deferred functions.
-     Else the coverage initializer would not be emitted if all the
-     functions in this compilation unit were deferred.  */
-  coverage_finish ();
-
   /* Likewise for mudflap static object registrations.  */
   if (flag_mudflap)
     mudflap_finish_file ();
@@ -1154,6 +1158,8 @@ print_version (FILE *file, const char *indent)
 	   file == stderr ? _(fmt4) : fmt4,
 	   indent, *indent != 0 ? " " : "",
 	   PARAM_VALUE (GGC_MIN_EXPAND), PARAM_VALUE (GGC_MIN_HEAPSIZE));
+
+  print_plugins_versions (file, indent);
 }
 
 #ifdef ASM_COMMENT_START
@@ -1497,6 +1503,15 @@ default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
 
   switch (*spec)
     {
+    case 'E':
+      t = va_arg (*text->args_ptr, tree);
+      if (TREE_CODE (t) == IDENTIFIER_NODE)
+	{
+	  pp_string (pp, IDENTIFIER_POINTER (t));
+	  return true;
+	}
+      break;
+
     case 'D':
       t = va_arg (*text->args_ptr, tree);
       if (DECL_DEBUG_EXPR_IS_FROM (t) && DECL_DEBUG_EXPR (t))
@@ -1707,7 +1722,8 @@ process_options (void)
   if (flag_graphite
       || flag_loop_block
       || flag_loop_interchange
-      || flag_loop_strip_mine)
+      || flag_loop_strip_mine
+      || flag_graphite_identity)
     sorry ("Graphite loop optimizations cannot be used");
 #endif
 
@@ -2030,11 +2046,51 @@ backend_init (void)
   backend_init_target ();
 }
 
+/* Initialize excess precision settings.  */
+static void
+init_excess_precision (void)
+{
+  /* Adjust excess precision handling based on the target options.  If
+     the front end cannot handle it, flag_excess_precision_cmdline
+     will already have been set accordingly in the post_options
+     hook.  */
+  gcc_assert (flag_excess_precision_cmdline != EXCESS_PRECISION_DEFAULT);
+  flag_excess_precision = flag_excess_precision_cmdline;
+  if (flag_unsafe_math_optimizations)
+    flag_excess_precision = EXCESS_PRECISION_FAST;
+  if (flag_excess_precision == EXCESS_PRECISION_STANDARD)
+    {
+      int flt_eval_method = TARGET_FLT_EVAL_METHOD;
+      switch (flt_eval_method)
+	{
+	case -1:
+	case 0:
+	  /* Either the target acts unpredictably (-1) or has all the
+	     operations required not to have excess precision (0).  */
+	  flag_excess_precision = EXCESS_PRECISION_FAST;
+	  break;
+	case 1:
+	case 2:
+	  /* In these cases, predictable excess precision makes
+	     sense.  */
+	  break;
+	default:
+	  /* Any other implementation-defined FLT_EVAL_METHOD values
+	     require the compiler to handle the associated excess
+	     precision rules in excess_precision_type.  */
+	  gcc_unreachable ();
+	}
+    }
+}
+
 /* Initialize things that are both lang-dependent and target-dependent.
    This function can be called more than once if target parameters change.  */
 static void
 lang_dependent_init_target (void)
 {
+  /* This determines excess precision settings.  */
+  init_excess_precision ();
+
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  It also depends on the HAVE_xxx macros
      generated from the target machine description.  */
@@ -2122,6 +2178,8 @@ dump_memory_report (bool final)
   dump_bitmap_statistics ();
   dump_vec_loc_statistics ();
   dump_ggc_loc_statistics (final);
+  dump_alias_stats (stderr);
+  dump_pta_stats (stderr);
 }
 
 /* Clean up: close opened files, etc.  */
@@ -2190,6 +2248,9 @@ do_compile (void)
 	compile_file ();
 
       finalize ();
+
+      /* Invoke registered plugin callbacks.  */
+      invoke_plugin_callbacks (PLUGIN_FINISH_UNIT, NULL);
     }
 
   /* Stop timing and print the times.  */
@@ -2204,18 +2265,28 @@ do_compile (void)
    It is not safe to call this function more than once.  */
 
 int
-toplev_main (unsigned int argc, const char **argv)
+toplev_main (int argc, char **argv)
 {
-  save_argv = argv;
+  expandargv (&argc, &argv);
+
+  save_argv = (const char **) argv;
 
   /* Initialization of GCC's environment, and diagnostics.  */
   general_init (argv[0]);
 
   /* Parse the options and do minimal processing; basically just
      enough to default flags appropriately.  */
-  decode_options (argc, argv);
+  decode_options (argc, (const char **) argv);
 
   init_local_tick ();
+
+  initialize_plugins ();
+
+  if (version_flag)
+    print_version (stderr, "");
+
+  if (help_flag)
+    print_plugins_help (stderr, "");
 
   /* Exit early if we can (e.g. -help).  */
   if (!exit_after_options)
@@ -2224,6 +2295,10 @@ toplev_main (unsigned int argc, const char **argv)
   if (warningcount || errorcount) 
     print_ignored_options ();
 
+  /* Invoke registered plugin callbacks if any.  */
+  invoke_plugin_callbacks (PLUGIN_FINISH, NULL);
+
+  finalize_plugins ();
   if (errorcount || sorrycount)
     return (FATAL_EXIT_CODE);
 

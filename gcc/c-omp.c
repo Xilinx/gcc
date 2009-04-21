@@ -1,7 +1,7 @@
 /* This file contains routines to construct GNU OpenMP constructs, 
    called from parsing in the C and C++ front ends.
 
-   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>,
 		  Diego Novillo <dnovillo@redhat.com>.
 
@@ -124,7 +124,7 @@ c_finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
 
   /* Take and save the address of the lhs.  From then on we'll reference it
      via indirection.  */
-  addr = build_unary_op (ADDR_EXPR, lhs, 0);
+  addr = build_unary_op (input_location, ADDR_EXPR, lhs, 0);
   if (addr == error_mark_node)
     return error_mark_node;
   addr = save_expr (addr);
@@ -137,12 +137,12 @@ c_finish_omp_atomic (enum tree_code code, tree lhs, tree rhs)
       tree var = create_tmp_var_raw (TREE_TYPE (addr), NULL);
       addr = build4 (TARGET_EXPR, TREE_TYPE (addr), var, addr, NULL, NULL);
     }
-  lhs = build_indirect_ref (addr, NULL, EXPR_LOCATION (addr));
+  lhs = build_indirect_ref (input_location, addr, NULL);
 
   /* There are lots of warnings, errors, and conversions that need to happen
      in the course of interpreting a statement.  Use the normal mechanisms
      to do this, and then take it apart again.  */
-  x = build_modify_expr (lhs, code, rhs);
+  x = build_modify_expr (input_location, lhs, code, rhs, NULL_TREE);
   if (x == error_mark_node)
     return error_mark_node;
   gcc_assert (TREE_CODE (x) == MODIFY_EXPR);  
@@ -242,7 +242,7 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
       if (!INTEGRAL_TYPE_P (TREE_TYPE (decl))
 	  && TREE_CODE (TREE_TYPE (decl)) != POINTER_TYPE)
 	{
-	  error ("%Hinvalid type for iteration variable %qE", &elocus, decl);
+	  error_at (elocus, "invalid type for iteration variable %qE", decl);
 	  fail = true;
 	}
 
@@ -255,20 +255,19 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	  init = DECL_INITIAL (decl);
 	  if (init == NULL)
 	    {
-	      error ("%H%qE is not initialized", &elocus, decl);
+	      error_at (elocus, "%qE is not initialized", decl);
 	      init = integer_zero_node;
 	      fail = true;
 	    }
 
-	  init = build_modify_expr (decl, NOP_EXPR, init);
-	  SET_EXPR_LOCATION (init, elocus);
+	  init = build_modify_expr (elocus, decl, NOP_EXPR, init, NULL_TREE);
 	}
       gcc_assert (TREE_CODE (init) == MODIFY_EXPR);
       gcc_assert (TREE_OPERAND (init, 0) == decl);
 
       if (cond == NULL_TREE)
 	{
-	  error ("%Hmissing controlling predicate", &elocus);
+	  error_at (elocus, "missing controlling predicate");
 	  fail = true;
 	}
       else
@@ -281,7 +280,8 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	  if (TREE_CODE (cond) == LT_EXPR
 	      || TREE_CODE (cond) == LE_EXPR
 	      || TREE_CODE (cond) == GT_EXPR
-	      || TREE_CODE (cond) == GE_EXPR)
+	      || TREE_CODE (cond) == GE_EXPR
+	      || TREE_CODE (cond) == NE_EXPR)
 	    {
 	      tree op0 = TREE_OPERAND (cond, 0);
 	      tree op1 = TREE_OPERAND (cond, 1);
@@ -325,18 +325,34 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 		  TREE_OPERAND (cond, 0) = decl;
 		  cond_ok = true;
 		}
+
+	      if (TREE_CODE (cond) == NE_EXPR)
+		{
+		  if (!INTEGRAL_TYPE_P (TREE_TYPE (decl)))
+		    cond_ok = false;
+		  else if (operand_equal_p (TREE_OPERAND (cond, 1),
+					    TYPE_MIN_VALUE (TREE_TYPE (decl)),
+					    0))
+		    TREE_SET_CODE (cond, GT_EXPR);
+		  else if (operand_equal_p (TREE_OPERAND (cond, 1),
+					    TYPE_MAX_VALUE (TREE_TYPE (decl)),
+					    0))
+		    TREE_SET_CODE (cond, LT_EXPR);
+		  else
+		    cond_ok = false;
+		}
 	    }
 
 	  if (!cond_ok)
 	    {
-	      error ("%Hinvalid controlling predicate", &elocus);
+	      error_at (elocus, "invalid controlling predicate");
 	      fail = true;
 	    }
 	}
 
       if (incr == NULL_TREE)
 	{
-	  error ("%Hmissing increment expression", &elocus);
+	  error_at (elocus, "missing increment expression");
 	  fail = true;
 	}
       else
@@ -358,7 +374,8 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 		break;
 
 	      incr_ok = true;
-	      if (POINTER_TYPE_P (TREE_TYPE (decl)))
+	      if (POINTER_TYPE_P (TREE_TYPE (decl))
+		  && TREE_OPERAND (incr, 1))
 		{
 		  tree t = fold_convert (sizetype, TREE_OPERAND (incr, 1));
 
@@ -402,7 +419,7 @@ c_finish_omp_for (location_t locus, tree declv, tree initv, tree condv,
 	    }
 	  if (!incr_ok)
 	    {
-	      error ("%Hinvalid increment expression", &elocus);
+	      error_at (elocus, "invalid increment expression");
 	      fail = true;
 	    }
 	}

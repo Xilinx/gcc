@@ -122,7 +122,7 @@ package GNAT.Sockets.Thin_Common is
       Sa_Family : Sockaddr_Length_And_Family;
       --  Address family (and address length on some platforms)
 
-      Sa_Data   : C.char_array (1 .. 14) := (others => C.nul);
+      Sa_Data : C.char_array (1 .. 14) := (others => C.nul);
       --  Family-specific data
       --  Note that some platforms require that all unused (reserved) bytes
       --  in addresses be initialized to 0 (e.g. VxWorks).
@@ -169,14 +169,15 @@ package GNAT.Sockets.Thin_Common is
       Sin_Family : Sockaddr_Length_And_Family;
       --  Address family (and address length on some platforms)
 
-      Sin_Port   : C.unsigned_short;
+      Sin_Port : C.unsigned_short;
       --  Port in network byte order
 
-      Sin_Addr   : In_Addr;
+      Sin_Addr : In_Addr;
       --  IPv4 address
 
-      Sin_Zero   : C.char_array (1 .. 8) := (others => C.nul);
+      Sin_Zero : C.char_array (1 .. 8) := (others => C.nul);
       --  Padding
+      --
       --  Note that some platforms require that all unused (reserved) bytes
       --  in addresses be initialized to 0 (e.g. VxWorks).
    end record;
@@ -246,17 +247,10 @@ package GNAT.Sockets.Thin_Common is
    -- Socket sets management --
    ----------------------------
 
-   type Int_Access is access all C.int;
-   pragma Convention (C, Int_Access);
-   --  Access to C integers
-
-   procedure Free_Socket_Set (Set : Fd_Set_Access);
-   --  Free system-dependent socket set
-
    procedure Get_Socket_From_Set
-     (Set    : Fd_Set_Access;
-      Socket : Int_Access;
-      Last   : Int_Access);
+     (Set    : access Fd_Set;
+      Last   : access C.int;
+      Socket : access C.int);
    --  Get last socket in Socket and remove it from the socket set. The
    --  parameter Last is a maximum value of the largest socket. This hint is
    --  used to avoid scanning very large socket sets. After a call to
@@ -264,35 +258,30 @@ package GNAT.Sockets.Thin_Common is
    --  socket set.
 
    procedure Insert_Socket_In_Set
-     (Set    : Fd_Set_Access;
+     (Set    : access Fd_Set;
       Socket : C.int);
    --  Insert socket in the socket set
 
    function  Is_Socket_In_Set
-     (Set    : Fd_Set_Access;
+     (Set    : access constant Fd_Set;
       Socket : C.int) return C.int;
    --  Check whether Socket is in the socket set, return a non-zero
    --  value if it is, zero if it is not.
 
    procedure Last_Socket_In_Set
-     (Set    : Fd_Set_Access;
-      Last   : Int_Access);
+     (Set  : access Fd_Set;
+      Last : access C.int);
    --  Find the largest socket in the socket set. This is needed for select().
    --  When Last_Socket_In_Set is called, parameter Last is a maximum value of
    --  the largest socket. This hint is used to avoid scanning very large
    --  socket sets. After the call, Last is set back to the real largest socket
    --  in the socket set.
 
-   function  New_Socket_Set
-     (Set : Fd_Set_Access) return Fd_Set_Access;
-   --  Allocate a new socket set which is a system-dependent structure and
-   --  initialize by copying Set if it is non-null, by making it empty
-   --  otherwise.
-
-   procedure Remove_Socket_From_Set
-     (Set    : Fd_Set_Access;
-      Socket : C.int);
+   procedure Remove_Socket_From_Set (Set : access Fd_Set; Socket : C.int);
    --  Remove socket from the socket set
+
+   procedure Reset_Socket_Set (Set : access Fd_Set);
+   --  Make Set empty
 
    ------------------------------------------
    -- Pairs of signalling file descriptors --
@@ -312,13 +301,17 @@ package GNAT.Sockets.Thin_Common is
    --  Indices into an Fd_Pair value providing access to each of the connected
    --  file descriptors.
 
-private
+   function Inet_Pton
+     (Af  : C.int;
+      Cp  : C.Strings.chars_ptr;
+      Inp : System.Address) return C.int;
 
-   pragma Import (C, Free_Socket_Set, "__gnat_free_socket_set");
+private
    pragma Import (C, Get_Socket_From_Set, "__gnat_get_socket_from_set");
    pragma Import (C, Is_Socket_In_Set, "__gnat_is_socket_in_set");
    pragma Import (C, Last_Socket_In_Set, "__gnat_last_socket_in_set");
-   pragma Import (C, New_Socket_Set, "__gnat_new_socket_set");
    pragma Import (C, Insert_Socket_In_Set, "__gnat_insert_socket_in_set");
    pragma Import (C, Remove_Socket_From_Set, "__gnat_remove_socket_from_set");
+   pragma Import (C, Reset_Socket_Set, "__gnat_reset_socket_set");
+   pragma Import (C, Inet_Pton, SOSC.Inet_Pton_Linkname);
 end GNAT.Sockets.Thin_Common;

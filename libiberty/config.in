@@ -139,6 +139,9 @@
 /* Define to 1 if you have the `memcpy' function. */
 #undef HAVE_MEMCPY
 
+/* Define to 1 if you have the `memmem' function. */
+#undef HAVE_MEMMEM
+
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
 
@@ -424,6 +427,12 @@
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
 #undef WORDS_BIGENDIAN
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

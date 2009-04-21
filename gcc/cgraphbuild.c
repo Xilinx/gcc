@@ -1,5 +1,5 @@
 /* Callgraph construction.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -78,44 +78,18 @@ record_reference (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
-/* Give initial reasons why inlining would fail on all calls from
-   NODE.  Those get either nullified or usually overwritten by more precise
-   reason later.  */
-
-static void
-initialize_inline_failed (struct cgraph_node *node)
-{
-  struct cgraph_edge *e;
-
-  for (e = node->callers; e; e = e->next_caller)
-    {
-      gcc_assert (!e->callee->global.inlined_to);
-      gcc_assert (e->inline_failed);
-      if (node->local.redefined_extern_inline)
-	e->inline_failed = N_("redefined extern inline functions are not "
-			   "considered for inlining");
-      else if (!node->local.inlinable)
-	e->inline_failed = N_("function not inlinable");
-      else if (gimple_call_cannot_inline_p (e->call_stmt))
-	e->inline_failed = N_("mismatched arguments");
-      else
-	e->inline_failed = N_("function not considered for inlining");
-    }
-}
-
 /* Computes the frequency of the call statement so that it can be stored in
    cgraph_edge.  BB is the basic block of the call statement.  */
 int
 compute_call_stmt_bb_frequency (basic_block bb)
 {
   int entry_freq = ENTRY_BLOCK_PTR->frequency;
-  int freq;
+  int freq = bb->frequency;
 
   if (!entry_freq)
-    entry_freq = 1;
+    entry_freq = 1, freq++;
 
-  freq = (!bb->frequency && !entry_freq ? CGRAPH_FREQ_BASE
-	      : bb->frequency * CGRAPH_FREQ_BASE / entry_freq);
+  freq = freq * CGRAPH_FREQ_BASE / entry_freq;
   if (freq > CGRAPH_FREQ_MAX)
     freq = CGRAPH_FREQ_MAX;
 
@@ -195,7 +169,6 @@ build_cgraph_edges (void)
     }
 
   pointer_set_destroy (visited_nodes);
-  initialize_inline_failed (node);
   return 0;
 }
 
@@ -209,7 +182,7 @@ struct gimple_opt_pass pass_build_cgraph_edges =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -255,8 +228,8 @@ rebuild_cgraph_edges (void)
 			      bb->loop_depth);
 
       }
-  initialize_inline_failed (node);
   gcc_assert (!node->global.inlined_to);
+
   return 0;
 }
 
@@ -270,8 +243,35 @@ struct gimple_opt_pass pass_rebuild_cgraph_edges =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  0,					/* todo_flags_finish */
+ }
+};
+
+
+static unsigned int
+remove_cgraph_callee_edges (void)
+{
+  cgraph_node_remove_callees (cgraph_node (current_function_decl));
+  return 0;
+}
+
+struct gimple_opt_pass pass_remove_cgraph_callee_edges =
+{
+ {
+  GIMPLE_PASS,
+  NULL,					/* name */
+  NULL,					/* gate */
+  remove_cgraph_callee_edges,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_NONE,				/* tv_id */
+  0,					/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */

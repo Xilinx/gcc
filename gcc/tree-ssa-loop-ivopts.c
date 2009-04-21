@@ -1,6 +1,6 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -219,14 +219,11 @@ struct ivopts_data
   /* The currently optimized loop.  */
   struct loop *current_loop;
 
-  /* Are we optimizing for speed?  */
-  bool speed;
+  /* Numbers of iterations for all exits of the current loop.  */
+  struct pointer_map_t *niters;
 
   /* Number of registers used in it.  */
   unsigned regs_used;
-
-  /* Numbers of iterations for all exits of the current loop.  */
-  struct pointer_map_t *niters;
 
   /* The size of version_info array allocated.  */
   unsigned version_info_size;
@@ -237,9 +234,6 @@ struct ivopts_data
   /* The bitmap of indices in version_info whose value was changed.  */
   bitmap relevant;
 
-  /* The maximum invariant id.  */
-  unsigned max_inv_id;
-
   /* The uses of induction variables.  */
   VEC(iv_use_p,heap) *iv_uses;
 
@@ -249,9 +243,15 @@ struct ivopts_data
   /* A bitmap of important candidates.  */
   bitmap important_candidates;
 
+  /* The maximum invariant id.  */
+  unsigned max_inv_id;
+
   /* Whether to consider just related and important candidates when replacing a
      use.  */
   bool consider_all_candidates;
+
+  /* Are we optimizing for speed?  */
+  bool speed;
 };
 
 /* An assignment of iv candidates to uses.  */
@@ -632,7 +632,7 @@ static bool
 idx_contains_abnormal_ssa_name_p (tree base, tree *index,
 				  void *data ATTRIBUTE_UNUSED)
 {
-  if (TREE_CODE (base) == ARRAY_REF)
+  if (TREE_CODE (base) == ARRAY_REF || TREE_CODE (base) == ARRAY_RANGE_REF)
     {
       if (abnormal_ssa_name_p (TREE_OPERAND (base, 2)))
 	return false;
@@ -884,7 +884,7 @@ determine_biv_step (gimple phi)
   if (!is_gimple_reg (name))
     return NULL_TREE;
 
-  if (!simple_iv (loop, phi, name, &iv, true))
+  if (!simple_iv (loop, loop, name, &iv, true))
     return NULL_TREE;
 
   return integer_zerop (iv.step) ? NULL_TREE : iv.step;
@@ -990,7 +990,7 @@ find_givs_in_stmt_scev (struct ivopts_data *data, gimple stmt, affine_iv *iv)
   if (TREE_CODE (lhs) != SSA_NAME)
     return false;
 
-  if (!simple_iv (loop, stmt, lhs, iv, true))
+  if (!simple_iv (loop, loop_containing_stmt (stmt), lhs, iv, true))
     return false;
   iv->base = expand_simple_operations (iv->base);
 
@@ -1356,8 +1356,13 @@ idx_find_step (tree base, tree *idx, void *data)
      reference out of the loop (in order to take its address in strength
      reduction).  In order for this to work we need both lower bound
      and step to be loop invariants.  */
-  if (TREE_CODE (base) == ARRAY_REF)
+  if (TREE_CODE (base) == ARRAY_REF || TREE_CODE (base) == ARRAY_RANGE_REF)
     {
+      /* Moreover, for a range, the size needs to be invariant as well.  */
+      if (TREE_CODE (base) == ARRAY_RANGE_REF
+	  && !expr_invariant_in_loop_p (loop, TYPE_SIZE (TREE_TYPE (base))))
+	return false;
+
       step = array_ref_element_size (base);
       lbound = array_ref_low_bound (base);
 
@@ -1381,7 +1386,7 @@ idx_find_step (tree base, tree *idx, void *data)
   if (integer_zerop (iv->step))
     return true;
 
-  if (TREE_CODE (base) == ARRAY_REF)
+  if (TREE_CODE (base) == ARRAY_REF || TREE_CODE (base) == ARRAY_RANGE_REF)
     {
       step = array_ref_element_size (base);
 
@@ -1418,7 +1423,7 @@ idx_record_use (tree base, tree *idx,
 {
   struct ivopts_data *data = (struct ivopts_data *) vdata;
   find_interesting_uses_op (data, *idx);
-  if (TREE_CODE (base) == ARRAY_REF)
+  if (TREE_CODE (base) == ARRAY_REF || TREE_CODE (base) == ARRAY_RANGE_REF)
     {
       find_interesting_uses_op (data, array_ref_element_size (base));
       find_interesting_uses_op (data, array_ref_low_bound (base));
@@ -1558,7 +1563,7 @@ may_be_nonaddressable_p (tree expr)
 	 non-addressability may be uncovered again, causing ADDR_EXPRs
 	 of inappropriate objects to be built.  */
       if (is_gimple_reg (TREE_OPERAND (expr, 0))
-	  || is_gimple_min_invariant (TREE_OPERAND (expr, 0)))
+	  || !is_gimple_addressable (TREE_OPERAND (expr, 0)))
 	return true;
 
       /* ... fall through ... */
@@ -1918,6 +1923,7 @@ strip_offset_1 (tree expr, bool inside_addr, bool top_compref,
       return fold_convert (orig_type, expr);
 
     case ARRAY_REF:
+    case ARRAY_RANGE_REF:
       if (!inside_addr)
 	return orig_expr;
 
@@ -2065,9 +2071,7 @@ add_candidate_1 (struct ivopts_data *data,
     {
       orig_type = TREE_TYPE (base);
       type = generic_type_for (orig_type);
-      /* Don't convert the base to the generic type for pointers as the generic
-	 type is an integer type with the same size as the pointer type.  */
-      if (type != orig_type && !POINTER_TYPE_P (orig_type))
+      if (type != orig_type)
 	{
 	  base = fold_convert (type, base);
 	  step = fold_convert (type, step);
@@ -2222,9 +2226,11 @@ add_old_iv_candidates (struct ivopts_data *data, struct iv *iv)
   add_candidate (data, iv->base, iv->step, true, NULL);
 
   /* The same, but with initial value zero.  */
-  add_candidate (data,
-		 build_int_cst (TREE_TYPE (iv->base), 0),
-		 iv->step, true, NULL);
+  if (POINTER_TYPE_P (TREE_TYPE (iv->base)))
+    add_candidate (data, size_int (0), iv->step, true, NULL);
+  else
+    add_candidate (data, build_int_cst (TREE_TYPE (iv->base), 0),
+		   iv->step, true, NULL);
 
   phi = SSA_NAME_DEF_STMT (iv->ssa_name);
   if (gimple_code (phi) == GIMPLE_PHI)
@@ -3836,7 +3842,12 @@ may_eliminate_iv (struct ivopts_data *data,
     return false;
 
   cand_value_at (loop, cand, use->stmt, nit, &bnd);
+
   *bound = aff_combination_to_tree (&bnd);
+  /* It is unlikely that computing the number of iterations using division
+     would be more profitable than keeping the original induction variable.  */
+  if (expression_expensive_p (*bound))
+    return false;
   return true;
 }
 
@@ -4347,7 +4358,12 @@ iv_ca_add_use (struct ivopts_data *data, struct iv_ca *ivs,
 static comp_cost
 iv_ca_cost (struct iv_ca *ivs)
 {
-  return (ivs->bad_uses ? infinite_cost : ivs->cost);
+  /* This was a conditional expression but it triggered a bug in
+     Sun C 5.5.  */
+  if (ivs->bad_uses)
+    return infinite_cost;
+  else
+    return ivs->cost;
 }
 
 /* Returns true if all dependences of CP are among invariants in IVS.  */
@@ -5180,7 +5196,7 @@ idx_remove_ssa_names (tree base, tree *idx,
   if (TREE_CODE (*idx) == SSA_NAME)
     *idx = SSA_NAME_VAR (*idx);
 
-  if (TREE_CODE (base) == ARRAY_REF)
+  if (TREE_CODE (base) == ARRAY_REF || TREE_CODE (base) == ARRAY_RANGE_REF)
     {
       op = &TREE_OPERAND (base, 2);
       if (*op
@@ -5206,63 +5222,6 @@ unshare_and_remove_ssa_names (tree ref)
   return ref;
 }
 
-/* Extract the alias analysis info for the memory reference REF.  There are
-   several ways how this information may be stored and what precisely is
-   its semantics depending on the type of the reference, but there always is
-   somewhere hidden one _DECL node that is used to determine the set of
-   virtual operands for the reference.  The code below deciphers this jungle
-   and extracts this single useful piece of information.  */
-
-static tree
-get_ref_tag (tree ref, tree orig)
-{
-  tree var = get_base_address (ref);
-  tree aref = NULL_TREE, tag, sv;
-  HOST_WIDE_INT offset, size, maxsize;
-
-  for (sv = orig; handled_component_p (sv); sv = TREE_OPERAND (sv, 0))
-    {
-      aref = get_ref_base_and_extent (sv, &offset, &size, &maxsize);
-      if (ref)
-	break;
-    }
-
-  if (!var)
-    return NULL_TREE;
-
-  if (TREE_CODE (var) == INDIRECT_REF)
-    {
-      /* If the base is a dereference of a pointer, first check its name memory
-	 tag.  If it does not have one, use its symbol memory tag.  */
-      var = TREE_OPERAND (var, 0);
-      if (TREE_CODE (var) != SSA_NAME)
-	return NULL_TREE;
-
-      if (SSA_NAME_PTR_INFO (var))
-	{
-	  tag = SSA_NAME_PTR_INFO (var)->name_mem_tag;
-	  if (tag)
-	    return tag;
-	}
- 
-      var = SSA_NAME_VAR (var);
-      tag = symbol_mem_tag (var);
-      gcc_assert (tag != NULL_TREE);
-      return tag;
-    }
-  else
-    { 
-      if (!DECL_P (var))
-	return NULL_TREE;
-
-      tag = symbol_mem_tag (var);
-      if (tag)
-	return tag;
-
-      return var;
-    }
-}
-
 /* Copies the reference information from OLD_REF to NEW_REF.  */
 
 static void
@@ -5271,10 +5230,7 @@ copy_ref_info (tree new_ref, tree old_ref)
   if (TREE_CODE (old_ref) == TARGET_MEM_REF)
     copy_mem_ref_info (new_ref, old_ref);
   else
-    {
-      TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
-      TMR_TAG (new_ref) = get_ref_tag (old_ref, TMR_ORIGINAL (new_ref));
-    }
+    TMR_ORIGINAL (new_ref) = unshare_and_remove_ssa_names (old_ref);
 }
 
 /* Rewrites USE (address that is an iv) using candidate CAND.  */
@@ -5315,11 +5271,15 @@ rewrite_use_compare (struct ivopts_data *data,
     {
       tree var = var_at_stmt (data->current_loop, cand, use->stmt);
       tree var_type = TREE_TYPE (var);
+      gimple_seq stmts;
 
       compare = iv_elimination_compare (data, use);
       bound = unshare_expr (fold_convert (var_type, bound));
-      op = force_gimple_operand_gsi (&bsi, bound, true, NULL_TREE,
-				     true, GSI_SAME_STMT);
+      op = force_gimple_operand (bound, &stmts, true, NULL_TREE);
+      if (stmts)
+	gsi_insert_seq_on_edge_immediate (
+		loop_preheader_edge (data->current_loop),
+		stmts);
 
       gimple_cond_set_lhs (use->stmt, var);
       gimple_cond_set_code (use->stmt, compare);

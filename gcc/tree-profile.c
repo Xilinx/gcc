@@ -208,6 +208,8 @@ static tree
 prepare_instrumented_value (gimple_stmt_iterator *gsi, histogram_value value)
 {
   tree val = value->hvalue.value;
+  if (POINTER_TYPE_P (TREE_TYPE (val)))
+    val = fold_convert (sizetype, val);
   return force_gimple_operand_gsi (gsi, fold_convert (gcov_type_node, val),
 				   true, NULL_TREE, true, GSI_SAME_STMT);
 }
@@ -492,7 +494,7 @@ struct gimple_opt_pass pass_tree_profile =
   0,					/* static_pass_number */
   TV_BRANCH_PROB,			/* tv_id */
   PROP_gimple_leh | PROP_cfg,		/* properties_required */
-  PROP_gimple_leh | PROP_cfg,		/* properties_provided */
+  0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_verify_stmts | TODO_dump_func	/* todo_flags_finish */

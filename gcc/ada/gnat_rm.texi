@@ -102,6 +102,7 @@ Implementation Defined Pragmas
 * Pragma Ada_2005::
 * Pragma Annotate::
 * Pragma Assert::
+* Pragma Assume_No_Invalid_Values::
 * Pragma Ast_Entry::
 * Pragma C_Pass_By_Copy::
 * Pragma Check::
@@ -193,6 +194,7 @@ Implementation Defined Pragmas
 * Pragma Task_Info::
 * Pragma Task_Name::
 * Pragma Task_Storage::
+* Pragma Thread_Local_Storage::
 * Pragma Time_Slice::
 * Pragma Title::
 * Pragma Unchecked_Union::
@@ -277,6 +279,7 @@ The Implementation of Standard I/O
 * Wide_Text_IO::
 * Wide_Wide_Text_IO::
 * Stream_IO::
+* Text Translation::
 * Shared Files::
 * Filenames encoding::
 * Open Modes::
@@ -681,8 +684,7 @@ compiler system.
 @noindent
 Ada defines a set of pragmas that can be used to supply additional
 information to the compiler.  These language defined pragmas are
-implemented in GNAT and work as described in the Ada Reference
-Manual.
+implemented in GNAT and work as described in the Ada Reference Manual.
 
 In addition, Ada allows implementations to define additional pragmas
 whose meaning is defined by the implementation.  GNAT provides a number
@@ -703,6 +705,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Ada_2005::
 * Pragma Annotate::
 * Pragma Assert::
+* Pragma Assume_No_Invalid_Values::
 * Pragma Ast_Entry::
 * Pragma C_Pass_By_Copy::
 * Pragma Check::
@@ -794,6 +797,7 @@ consideration, the use of these pragmas should be minimized.
 * Pragma Task_Info::
 * Pragma Task_Name::
 * Pragma Task_Storage::
+* Pragma Thread_Local_Storage::
 * Pragma Time_Slice::
 * Pragma Title::
 * Pragma Unchecked_Union::
@@ -996,6 +1000,57 @@ effect on the program.  However, the expressions are analyzed for
 semantic correctness whether or not assertions are enabled, so turning
 assertions on and off cannot affect the legality of a program.
 
+@node Pragma Assume_No_Invalid_Values
+@unnumberedsec Pragma Assume_No_Invalid_Values
+@findex Assume_No_Invalid_Values
+@cindex Invalid representations
+@cindex Invalid values
+@noindent
+Syntax:
+@smallexample @c ada
+pragma Assume_No_Invalid_Values (On | Off);
+@end smallexample
+
+@noindent
+This is a configuration pragma that controls the assumptions made by the
+compiler about the occurrence of invalid representations (invalid values)
+in the code.
+
+The default behavior (corresponding to an Off argument for this pragma), is
+to assume that values may in general be invalid unless the compiler can
+prove they are valid. Consider the following example:
+
+@smallexample @c ada
+V1 : Integer range 1 .. 10;
+V2 : Integer range 11 .. 20;
+...
+for J in V2 .. V1 loop
+   ...
+end loop;
+@end smallexample
+
+@noindent
+if V1 and V2 have valid values, then the loop is known at compile
+time not to execute since the lower bound must be greater than the
+upper bound. However in default mode, no such assumption is made,
+and the loop may execute. If @code{Assume_No_Invalid_Values (On)}
+is given, the compiler will assume that any occurrence of a variable
+other than in an explicit @code{'Valid} test always has a valid
+value, and the loop above will be optimized away.
+
+The use of @code{Assume_No_Invalid_Values (On)} is appropriate if
+you know your code is free of uninitialized variables and other
+possible sources of invalid representations, and may result in
+more efficient code. A program that accesses an invalid representation
+with this pragma in effect is erroneous, so no guarantees can be made
+about its behavior.
+
+It is peculiar though permissible to use this pragma in conjunction
+with validity checking (-gnatVa). In such cases, accessing invalid
+values will generally give an exception, though formally the program
+is erroneous so there are no guarantees that this will always be the
+case, and it is recommended that these two options not be used together.
+
 @node Pragma Ast_Entry
 @unnumberedsec Pragma Ast_Entry
 @cindex OpenVMS
@@ -1124,7 +1179,9 @@ are mentioned in @code{with} clauses).
 @noindent
 Syntax:
 @smallexample @c ada
-pragma Check_Policy ([Name =>] Identifier, POLICY_IDENTIFIER);
+pragma Check_Policy
+ ([Name   =>] Identifier,
+  [Policy =>] POLICY_IDENTIFIER);
 
 POLICY_IDENTIFIER ::= On | Off | Check | Ignore
 @end smallexample
@@ -2810,7 +2867,9 @@ maskable interrupts, in place of the normal return instruction.
 Syntax:
 
 @smallexample @c ada
-pragma Interrupt_State (Name => value, State => SYSTEM | RUNTIME | USER);
+pragma Interrupt_State
+ ([Name  =>] value,
+  [State =>] SYSTEM | RUNTIME | USER);
 @end smallexample
 
 @noindent
@@ -3229,9 +3288,9 @@ pragma Main
  (MAIN_OPTION [, MAIN_OPTION]);
 
 MAIN_OPTION ::=
-  [STACK_SIZE              =>] static_integer_EXPRESSION
-| [TASK_STACK_SIZE_DEFAULT =>] static_integer_EXPRESSION
-| [TIME_SLICING_ENABLED    =>] static_boolean_EXPRESSION
+  [Stack_Size              =>] static_integer_EXPRESSION
+| [Task_Stack_Size_Default =>] static_integer_EXPRESSION
+| [Time_Slicing_Enabled    =>] static_boolean_EXPRESSION
 @end smallexample
 
 @noindent
@@ -3412,17 +3471,26 @@ will always generate an invalid value if one exists.
 Syntax:
 
 @smallexample @c ada
-pragma Obsolescent
-  [(Entity => NAME [, static_string_EXPRESSION [,Ada_05]])];
+pragma Obsolescent;
+
+pragma Obsolescent (
+  [Message =>] static_string_EXPRESSION
+[,[Version =>] Ada_05]]);
+
+pragma Obsolescent (
+  [Entity  =>] NAME
+[,[Message =>] static_string_EXPRESSION
+[,[Version =>] Ada_05]] );
 @end smallexample
 
 @noindent
 This pragma can occur immediately following a declaration of an entity,
-including the case of a record component, and usually the Entity name
-must match the name of the entity declared by this declaration.
-Alternatively, the pragma can immediately follow an
-enumeration type declaration, where the entity argument names one of the
-enumeration literals.
+including the case of a record component. If no Entity argument is present,
+then this declaration is the one to which the pragma applies. If an Entity
+parameter is present, it must either match the name of the entity in this
+declaration, or alternatively, the pragma can immediately follow an enumeration
+type declaration, where the Entity argument names one of the enumeration
+literals.
 
 This pragma is used to indicate that the named entity
 is considered obsolescent and should not be used. Typically this is
@@ -3431,13 +3499,12 @@ existing subprograms or other entities. The pragma can be used at an
 intermediate stage when the entity is still present, but will be
 removed later.
 
-The effect of this pragma is to output a warning message on
-a call to a program thus marked that the
-subprogram is obsolescent if the appropriate warning option in the
-compiler is activated. If the string parameter is present, then a second
-warning message is given containing this text.
-In addition, a call to such a program is considered a violation of
-pragma Restrictions (No_Obsolescent_Features).
+The effect of this pragma is to output a warning message on a reference to
+an entity thus marked that the subprogram is obsolescent if the appropriate
+warning option in the compiler is activated. If the Message parameter is
+present, then a second warning message is given containing this text. In
+addition, a reference to the eneity is considered to be a violation of pragma
+Restrictions (No_Obsolescent_Features).
 
 This pragma can also be used as a program unit pragma for a package,
 in which case the entity name is the name of the package, and the
@@ -3446,7 +3513,7 @@ obsolescent. In this case a client @code{with}'ing such a package
 violates the restriction, and the @code{with} statement is
 flagged with warnings if the warning option is set.
 
-If the optional third parameter is present (which must be exactly
+If the Version parameter is present (which must be exactly
 the identifier Ada_05, no other argument is allowed), then the
 indication of obsolescence applies only when compiling in Ada 2005
 mode. This is primarily intended for dealing with the situations
@@ -3458,23 +3525,23 @@ The following examples show typical uses of this pragma:
 
 @smallexample @c ada
 package p is
-   pragma Obsolescent
-     (Entity => p, "use pp instead of p");
+   pragma Obsolescent (p, Message => "use pp instead of p");
 end p;
 
 package q is
    procedure q2;
-   pragma Obsolescent
-     (Entity => q2, "use q2new instead");
+   pragma Obsolescent ("use q2new instead");
 
    type R is new integer;
    pragma Obsolescent
-     (Entity => R, "use RR in Ada 2005", Ada_05);
+     (Entity  => R,
+      Message => "use RR in Ada 2005",
+      Version => Ada_05);
 
    type M is record
       F1 : Integer;
       F2 : Integer;
-      pragma Obsolescent (Entity => F2);
+      pragma Obsolescent;
       F3 : Integer;
    end record;
 
@@ -3489,11 +3556,10 @@ end;
 @end smallexample
 
 @noindent
-In an earlier version of GNAT, the Entity parameter was not required,
-and this form is still accepted for compatibility purposes. If the
-Entity parameter is omitted, then the pragma applies to the declaration
-immediately preceding the pragma (this form cannot be used for the
-enumeration literal case).
+Note that, as for all pragmas, if you use a pragma argument identifier,
+then all subsequent parameters must also use a pragma argument identifier.
+So if you specify "Entity =>" for the Entity argument, and a Message
+argument is present, it must be preceded by "Message =>".
 
 @node Pragma Optimize_Alignment
 @unnumberedsec Pragma Optimize_Alignment
@@ -3680,8 +3746,11 @@ pragma Postcondition (
 The @code{Postcondition} pragma allows specification of automatic
 postcondition checks for subprograms. These checks are similar to
 assertions, but are automatically inserted just prior to the return
-statements of the subprogram with which they are associated.
-Furthermore, the boolean expression which is the condition which
+statements of the subprogram with which they are associated (including
+implicit returns at the end of procedure bodies and associated
+exception handlers).
+
+In addition, the boolean expression which is the condition which
 must be true may contain references to function'Result in the case
 of a function to refer to the returned value.
 
@@ -4191,19 +4260,19 @@ to apply to all files.
 
 @smallexample @c ada
 pragma Source_File_Name
-  (Spec_File_Name => STRING_LITERAL
-   [,Casing => CASING_SPEC]
-   [,Dot_Replacement => STRING_LITERAL]);
+  (  [Spec_File_Name  =>] STRING_LITERAL
+   [,[Casing          =>] CASING_SPEC]
+   [,[Dot_Replacement =>] STRING_LITERAL]);
 
 pragma Source_File_Name
-  (Body_File_Name => STRING_LITERAL
-   [,Casing => CASING_SPEC]
-   [,Dot_Replacement => STRING_LITERAL]);
+  (  [Body_File_Name  =>] STRING_LITERAL
+   [,[Casing          =>] CASING_SPEC]
+   [,[Dot_Replacement =>] STRING_LITERAL]);
 
 pragma Source_File_Name
-  (Subunit_File_Name => STRING_LITERAL
-   [,Casing => CASING_SPEC]
-   [,Dot_Replacement => STRING_LITERAL]);
+  (  [Subunit_File_Name =>] STRING_LITERAL
+   [,[Casing            =>] CASING_SPEC]
+   [,[Dot_Replacement   =>] STRING_LITERAL]);
 
 CASING_SPEC ::= Lowercase | Uppercase | Mixedcase
 @end smallexample
@@ -4609,6 +4678,35 @@ means that either no guard area is created or a minimal guard area is
 created, depending on the target.  This pragma can appear anywhere a
 @code{Storage_Size} attribute definition clause is allowed for a task
 type.
+
+@node Pragma Thread_Local_Storage
+@unnumberedsec Pragma Thread_Local_Storage
+@findex Thread_Local_Storage
+@cindex Task specific storage
+@cindex TLS (Thread Local Storage)
+Syntax:
+
+@smallexample @c ada
+pragma Thread_Local_Storage ([Entity =>] LOCAL_NAME);
+@end smallexample
+
+@noindent
+This pragma specifies that the specified entity, which must be
+a variable declared in a library level package, is to be marked as
+"Thread Local Storage" (@code{TLS}). On systems supporting this (which
+include Solaris, GNU/Linux and VxWorks 6), this causes each thread
+(and hence each Ada task) to see a distinct copy of the variable.
+
+The variable may not have default initialization, and if there is
+an explicit initialization, it must be either @code{null} for an
+access variable, or a static expression for a scalar variable.
+This provides a low level mechanism similar to that provided by
+the @code{Ada.Task_Attributes} package, but much more efficient
+and is also useful in writing interface code that will interact
+with foreign threads.
+
+If this pragma is used on a system where @code{TLS} is not supported,
+then an error message will be generated and the program will be rejected.
 
 @node Pragma Time_Slice
 @unnumberedsec Pragma Time_Slice
@@ -5099,9 +5197,9 @@ also be used as a configuration pragma.
 The fourth form, with an On|Off parameter and a string, is used to
 control individual messages, based on their text. The string argument
 is a pattern that is used to match against the text of individual
-warning messages (not including the initial "warnings: " tag).
+warning messages (not including the initial "warning: " tag).
 
-The pattern may contain asterisks which match zero or more characters in
+The pattern may contain asterisks, which match zero or more characters in
 the message. For example, you can use
 @code{pragma Warnings (Off, "*bits of*unused")} to suppress the warning
 message @code{warning: 960 bits of "a" unused}. No other regular
@@ -8505,11 +8603,18 @@ user-defined storage pool.
 @item No_Streams
 @findex No_Streams
 This restriction ensures at compile/bind time that there are no
-stream objects created (and therefore no actual stream operations).
+stream objects created and no use of stream attributes.
 This restriction does not forbid dependences on the package
 @code{Ada.Streams}. So it is permissible to with
 @code{Ada.Streams} (or another package that does so itself)
-as long as no actual stream objects are created.
+as long as no actual stream objects are created and no
+stream attributes are used.
+
+Note that the use of restriction allows optimization of tagged types,
+since they do not need to worry about dispatching stream operations.
+To take maximum advantage of this space-saving optimization, any
+unit declaring a tagged type should be compiled with the restriction,
+though this is not required.
 
 @item No_Task_Attributes_Package
 @findex No_Task_Attributes_Package
@@ -10373,7 +10478,7 @@ On a typical 32-bit architecture, the X component will be four bytes, and
 require four-byte alignment, and the Y component will be one byte. In this
 case @code{R'Value_Size} will be 40 (bits) since this is the minimum size
 required to store a value of this type, and for example, it is permissible
-to have a component of type R in an outer record whose component size is
+to have a component of type R in an outer array whose component size is
 specified to be 48 bits. However, @code{R'Object_Size} will be 64 (bits),
 since it must be rounded up so that this value is a multiple of the
 alignment (4 bytes = 32 bits).
@@ -12116,6 +12221,7 @@ these additional facilities are also described in this chapter.
 * Wide_Text_IO::
 * Wide_Wide_Text_IO::
 * Stream_IO::
+* Text Translation::
 * Shared Files::
 * Filenames encoding::
 * Open Modes::
@@ -12192,11 +12298,13 @@ The format of a FORM string in GNAT is:
 @noindent
 where letters may be in upper or lower case, and there are no spaces
 between values.  The order of the entries is not important.  Currently
-there are two keywords defined.
+the following keywords defined.
 
 @smallexample
+TEXT_TRANSLATION=[YES|NO]
 SHARED=[YES|NO]
 WCEM=[n|h|u|s|e|8|b]
+ENCODING=[UTF8|8BITS]
 @end smallexample
 
 @noindent
@@ -12896,6 +13004,20 @@ The stream attributes applied to a stream file transfer data in the
 manner described for stream attributes.
 @end itemize
 
+@node Text Translation
+@section Text Translation
+
+@noindent
+@samp{Text_Translation=@var{xxx}} may be used as the Form parameter
+passed to Text_IO.Create and Text_IO.Open:
+@samp{Text_Translation=@var{Yes}} is the default, which means to
+translate LF to/from CR/LF on Windows systems.
+@samp{Text_Translation=@var{No}} disables this translation; i.e. it
+uses binary mode. For output files, @samp{Text_Translation=@var{No}}
+may be used to create Unix-style files on
+Windows. @samp{Text_Translation=@var{xxx}} has no effect on Unix
+systems.
+
 @node Shared Files
 @section Shared Files
 
@@ -12975,9 +13097,19 @@ string, the filename must be a standard 8bits string.
 @end itemize
 
 In the absence of a @samp{encoding=@var{xxx}} form parameter, the
-value UTF-8 is used. This encoding form parameter is only supported on
-the Windows platform. On the other Operating Systems the runtime is
-supporting UTF-8 natively.
+encoding is controlled by the @samp{GNAT_CODE_PAGE} environment
+variable. And if not set @samp{utf8} is assumed.
+
+@table @samp
+@item CP_ACP
+The current system Windows ANSI code page.
+@item CP_UTF8
+UTF-8 encoding
+@end table
+
+This encoding form parameter is only supported on the Windows
+platform. On the other Operating Systems the run-time is supporting
+UTF-8 natively.
 
 @node Open Modes
 @section Open Modes

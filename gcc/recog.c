@@ -1,6 +1,6 @@
 /* Subroutines used by or related to instruction recognition.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -77,7 +77,7 @@ static rtx split_insn (rtx);
    This should be 0 if you are generating rtl, such as if you are calling
    the functions in optabs.c and expmed.c (most of the time).
    This should be 1 if all valid insns need to be recognized,
-   such as in regclass.c and final.c and reload.c.
+   such as in reginfo.c and final.c and reload.c.
 
    init_recog and init_recog_no_volatile are responsible for setting this.  */
 
@@ -156,10 +156,7 @@ check_asm_operands (rtx x)
       const char *c = constraints[i];
       if (c[0] == '%')
 	c++;
-      if (ISDIGIT ((unsigned char) c[0]) && c[1] == '\0')
-	c = constraints[c[0] - '0'];
-
-      if (! asm_operand_ok (operands[i], c))
+      if (! asm_operand_ok (operands[i], c, constraints))
 	return 0;
     }
 
@@ -381,6 +378,16 @@ verify_changes (int num)
 	{
 	  if (! memory_address_p (GET_MODE (object), XEXP (object, 0)))
 	    break;
+	}
+      else if (REG_P (changes[i].old)
+	       && asm_noperands (PATTERN (object)) > 0
+	       && REG_EXPR (changes[i].old) != NULL_TREE
+	       && DECL_ASSEMBLER_NAME_SET_P (REG_EXPR (changes[i].old))
+	       && DECL_REGISTER (REG_EXPR (changes[i].old)))
+	{
+	  /* Don't allow changes of hard register operands to inline
+	     assemblies if they have been defined as register asm ("x").  */
+	  break;
 	}
       else if (insn_invalid_p (object))
 	{
@@ -1312,6 +1319,32 @@ indirect_operand (rtx op, enum machine_mode mode)
 	  && general_operand (XEXP (op, 0), Pmode));
 }
 
+/* Return 1 if this is an ordered comparison operator (not including
+   ORDERED and UNORDERED).  */
+
+int
+ordered_comparison_operator (rtx op, enum machine_mode mode)
+{
+  if (mode != VOIDmode && GET_MODE (op) != mode)
+    return false;
+  switch (GET_CODE (op))
+    {
+    case EQ:
+    case NE:
+    case LT:
+    case LTU:
+    case LE:
+    case LEU:
+    case GT:
+    case GTU:
+    case GE:
+    case GEU:
+      return true;
+    default:
+      return false;
+    }
+}
+
 /* Return 1 if this is a comparison operator.  This allows the use of
    MATCH_OPERATOR to recognize all the branch insns.  */
 
@@ -1547,7 +1580,7 @@ decode_asm_operands (rtx body, rtx *operands, rtx **operand_locs,
    Return > 0 if ok, = 0 if bad, < 0 if inconclusive.  */
 
 int
-asm_operand_ok (rtx op, const char *constraint)
+asm_operand_ok (rtx op, const char *constraint, const char **constraints)
 {
   int result = 0;
 
@@ -1575,15 +1608,29 @@ asm_operand_ok (rtx op, const char *constraint)
 
 	case '0': case '1': case '2': case '3': case '4':
 	case '5': case '6': case '7': case '8': case '9':
-	  /* For best results, our caller should have given us the
-	     proper matching constraint, but we can't actually fail
-	     the check if they didn't.  Indicate that results are
-	     inconclusive.  */
-	  do
-	    constraint++;
-	  while (ISDIGIT (*constraint));
-	  if (! result)
-	    result = -1;
+	  /* If caller provided constraints pointer, look up
+	     the maching constraint.  Otherwise, our caller should have
+	     given us the proper matching constraint, but we can't
+	     actually fail the check if they didn't.  Indicate that
+	     results are inconclusive.  */
+	  if (constraints)
+	    {
+	      char *end;
+	      unsigned long match;
+
+	      match = strtoul (constraint, &end, 10);
+	      if (!result)
+		result = asm_operand_ok (op, constraints[match], NULL);
+	      constraint = (const char *) end;
+	    }
+	  else
+	    {
+	      do
+		constraint++;
+	      while (ISDIGIT (*constraint));
+	      if (! result)
+		result = -1;
+	    }
 	  continue;
 
 	case 'p':
@@ -3039,7 +3086,7 @@ peephole2_optimize (void)
 
       /* Start up propagation.  */
       bitmap_copy (live, DF_LR_OUT (bb));
-      df_simulate_artificial_refs_at_end (bb, live);
+      df_simulate_initialize_backwards (bb, live);
       bitmap_copy (peep2_insn_data[MAX_INSNS_PER_PEEP2].live_before, live);
 
       for (insn = BB_END (bb); ; insn = prev)
@@ -3059,7 +3106,7 @@ peephole2_optimize (void)
 		  && peep2_insn_data[peep2_current].insn == NULL_RTX)
 		peep2_current_count++;
 	      peep2_insn_data[peep2_current].insn = insn;
-	      df_simulate_one_insn (bb, insn, live);
+	      df_simulate_one_insn_backwards (bb, insn, live);
 	      COPY_REG_SET (peep2_insn_data[peep2_current].live_before, live);
 
 	      if (RTX_FRAME_RELATED_P (insn))
@@ -3218,7 +3265,7 @@ peephole2_optimize (void)
 			    peep2_current_count++;
 			  peep2_insn_data[i].insn = x;
 			  df_insn_rescan (x);
-			  df_simulate_one_insn (bb, x, live);
+			  df_simulate_one_insn_backwards (bb, x, live);
 			  bitmap_copy (peep2_insn_data[i].live_before, live);
 			}
 		      x = PREV_INSN (x);
@@ -3453,7 +3500,7 @@ struct rtl_opt_pass pass_split_all_insns =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3483,7 +3530,7 @@ struct rtl_opt_pass pass_split_after_reload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3527,7 +3574,7 @@ struct rtl_opt_pass pass_split_before_regstack =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3565,7 +3612,7 @@ struct rtl_opt_pass pass_split_before_sched2 =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3597,7 +3644,7 @@ struct rtl_opt_pass pass_split_for_shorten_branches =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3605,5 +3652,3 @@ struct rtl_opt_pass pass_split_for_shorten_branches =
   TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
  }
 };
-
-

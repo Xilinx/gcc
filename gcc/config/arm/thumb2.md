@@ -259,8 +259,8 @@
 ;; word aligned.
 (define_insn "pic_load_dot_plus_four"
   [(set (match_operand:SI 0 "register_operand" "=r")
-	(unspec:SI [(const (plus:SI (pc) (const_int 4)))
-		    (use (match_operand 1 "" ""))]
+	(unspec:SI [(const_int 4)
+		    (match_operand 1 "" "")]
 		   UNSPEC_PIC_BASE))]
   "TARGET_THUMB2"
   "*
@@ -949,7 +949,7 @@
 				 (label_ref (match_operand 2 "" ""))))
 		(label_ref (match_operand 3 "" ""))))
 	      (clobber (reg:CC CC_REGNUM))
-	      (clobber (match_scratch:SI 4 "=r"))
+	      (clobber (match_scratch:SI 4 "=&r"))
 	      (use (label_ref (match_dup 2)))])]
   "TARGET_THUMB2 && !flag_pic"
   "* return thumb2_output_casesi(operands);"
@@ -966,7 +966,7 @@
 				 (label_ref (match_operand 2 "" ""))))
 		(label_ref (match_operand 3 "" ""))))
 	      (clobber (reg:CC CC_REGNUM))
-	      (clobber (match_scratch:SI 4 "=r"))
+	      (clobber (match_scratch:SI 4 "=&r"))
 	      (clobber (match_scratch:SI 5 "=r"))
 	      (use (label_ref (match_dup 2)))])]
   "TARGET_THUMB2 && flag_pic"

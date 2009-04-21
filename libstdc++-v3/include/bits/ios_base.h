@@ -1,13 +1,13 @@
 // Iostreams base classes -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file ios_base.h
  *  This is an internal header file, included by other library headers.
@@ -202,6 +197,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   // 27.4.2  Class ios_base
   /**
    *  @brief  The base of the I/O class hierarchy.
+   *  @ingroup io
    *
    *  This class defines everything that can be defined about I/O that does
    *  not depend on the type of characters being input or output.  Most
@@ -212,8 +208,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   {
   public:
 
-    // 27.4.2.1.1  Class ios_base::failure
-    /// These are thrown to indicate problems.  Doc me.
+    /** 
+     *  @brief These are thrown to indicate problems with io.
+     *  @ingroup exceptions
+     *
+     *  27.4.2.1.1  Class ios_base::failure
+     */
     class failure : public exception
     {
     public:
@@ -223,7 +223,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       failure(const string& __str) throw();
 
       // This declaration is not useless:
-      // http://gcc.gnu.org/onlinedocs/gcc-3.0.2/gcc_6.html#SEC118
+      // http://gcc.gnu.org/onlinedocs/gcc-4.3.2/gcc/Vague-Linkage.html
       virtual
       ~failure() throw();
 
@@ -376,8 +376,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     /// Perform input and output in binary mode (as opposed to text mode).
     /// This is probably not what you think it is; see
-    /// http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#3 and
-    /// http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#7 for more.
+    /// http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch27s02.html
     static const openmode binary =	_S_bin;
 
     /// Open for input.  Default for @c ifstream and fstream.
@@ -498,7 +497,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     _M_call_callbacks(event __ev) throw();
 
     void
-    _M_dispose_callbacks(void);
+    _M_dispose_callbacks(void) throw();
 
     // 27.4.2.5  Members for iword/pword storage
     struct _Words
@@ -527,7 +526,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     locale		_M_ios_locale;
 
     void
-    _M_init();
+    _M_init() throw ();
 
   public:
 
@@ -671,7 +670,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
      *  The synchronization referred to is @e only that between the standard
      *  C facilities (e.g., stdout) and the standard C++ objects (e.g.,
      *  cout).  User-declared streams are unaffected.  See
-     *  http://gcc.gnu.org/onlinedocs/libstdc++/27_io/howto.html#8 for more.
+     *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch28s02.html
     */
     static bool
     sync_with_stdio(bool __sync = true);
@@ -686,7 +685,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
      *  with imbue_event.
     */
     locale
-    imbue(const locale& __loc);
+    imbue(const locale& __loc) throw ();
 
     /**
      *  @brief  Locale access
@@ -783,7 +782,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     virtual ~ios_base();
 
   protected:
-    ios_base();
+    ios_base() throw ();
 
   // _GLIBCXX_RESOLVE_LIB_DEFECTS
   // 50.  Copy constructor and assignment operator of ios_base

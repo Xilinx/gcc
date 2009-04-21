@@ -1,5 +1,5 @@
 /* Branch prediction routines for the GNU compiler.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -654,7 +654,7 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
   rtx *pnote;
   rtx note;
   int best_probability = PROB_EVEN;
-  int best_predictor = END_PREDICTORS;
+  enum br_predictor best_predictor = END_PREDICTORS;
   int combined_probability = REG_BR_PROB_BASE / 2;
   int d;
   bool first_match = false;
@@ -677,7 +677,7 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
   for (note = REG_NOTES (insn); note; note = XEXP (note, 1))
     if (REG_NOTE_KIND (note) == REG_BR_PRED)
       {
-	int predictor = INTVAL (XEXP (XEXP (note, 0), 0));
+	enum br_predictor predictor = INTVAL (XEXP (XEXP (note, 0), 0));
 	int probability = INTVAL (XEXP (XEXP (note, 0), 1));
 
 	found = true;
@@ -723,7 +723,7 @@ combine_predictions_for_insn (rtx insn, basic_block bb)
     {
       if (REG_NOTE_KIND (*pnote) == REG_BR_PRED)
 	{
-	  int predictor = INTVAL (XEXP (XEXP (*pnote, 0), 0));
+	  enum br_predictor predictor = INTVAL (XEXP (XEXP (*pnote, 0), 0));
 	  int probability = INTVAL (XEXP (XEXP (*pnote, 0), 1));
 
 	  dump_prediction (dump_file, predictor, probability, bb,
@@ -765,7 +765,7 @@ static void
 combine_predictions_for_bb (basic_block bb)
 {
   int best_probability = PROB_EVEN;
-  int best_predictor = END_PREDICTORS;
+  enum br_predictor best_predictor = END_PREDICTORS;
   int combined_probability = REG_BR_PROB_BASE / 2;
   int d;
   bool first_match = false;
@@ -813,15 +813,40 @@ combine_predictions_for_bb (basic_block bb)
 	 by predictor with smallest index.  */
       for (pred = (struct edge_prediction *) *preds; pred; pred = pred->ep_next)
 	{
-	  int predictor = pred->ep_predictor;
+	  enum br_predictor predictor = pred->ep_predictor;
 	  int probability = pred->ep_probability;
 
 	  if (pred->ep_edge != first)
 	    probability = REG_BR_PROB_BASE - probability;
 
 	  found = true;
+	  /* First match heuristics would be widly confused if we predicted
+	     both directions.  */
 	  if (best_predictor > predictor)
-	    best_probability = probability, best_predictor = predictor;
+	    {
+              struct edge_prediction *pred2;
+	      int prob = probability;
+
+              for (pred2 = (struct edge_prediction *) *preds; pred2; pred2 = pred2->ep_next)
+	       if (pred2 != pred && pred2->ep_predictor == pred->ep_predictor)
+	         {
+	           int probability2 = pred->ep_probability;
+
+		   if (pred2->ep_edge != first)
+		     probability2 = REG_BR_PROB_BASE - probability2;
+
+		   if ((probability < REG_BR_PROB_BASE / 2) != 
+		       (probability2 < REG_BR_PROB_BASE / 2))
+		     break;
+
+		   /* If the same predictor later gave better result, go for it! */
+		   if ((probability >= REG_BR_PROB_BASE / 2 && (probability2 > probability))
+		       || (probability <= REG_BR_PROB_BASE / 2 && (probability2 < probability)))
+		     prob = probability2;
+		 }
+	      if (!pred2)
+	        best_probability = prob, best_predictor = predictor;
+	    }
 
 	  d = (combined_probability * probability
 	       + (REG_BR_PROB_BASE - combined_probability)
@@ -863,7 +888,7 @@ combine_predictions_for_bb (basic_block bb)
     {
       for (pred = (struct edge_prediction *) *preds; pred; pred = pred->ep_next)
 	{
-	  int predictor = pred->ep_predictor;
+	  enum br_predictor predictor = pred->ep_predictor;
 	  int probability = pred->ep_probability;
 
 	  if (pred->ep_edge != EDGE_SUCC (bb, 0))
@@ -1521,6 +1546,16 @@ static void
 tree_bb_level_predictions (void)
 {
   basic_block bb;
+  bool has_return_edges = false;
+  edge e;
+  edge_iterator ei;
+
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    if (!(e->flags & (EDGE_ABNORMAL | EDGE_FAKE | EDGE_EH)))
+      {
+        has_return_edges = true;
+	break;
+      }
 
   apply_return_prediction ();
 
@@ -1535,7 +1570,8 @@ tree_bb_level_predictions (void)
 
 	  if (is_gimple_call (stmt))
 	    {
-	      if (gimple_call_flags (stmt) & ECF_NORETURN)
+	      if ((gimple_call_flags (stmt) & ECF_NORETURN)
+	          && has_return_edges)
 		predict_paths_leading_to (bb, PRED_NORETURN,
 					  NOT_TAKEN);
 	      decl = gimple_call_fndecl (stmt);
@@ -1599,6 +1635,7 @@ tree_estimate_probability (void)
     {
       edge e;
       edge_iterator ei;
+      gimple last;
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	{
@@ -1621,7 +1658,8 @@ tree_estimate_probability (void)
 	      && e->dest != EXIT_BLOCK_PTR
 	      && single_succ_p (e->dest)
 	      && single_succ_edge (e->dest)->dest == EXIT_BLOCK_PTR
-	      && gimple_code (last_stmt (e->dest)) == GIMPLE_RETURN)
+	      && (last = last_stmt (e->dest)) != NULL
+	      && gimple_code (last) == GIMPLE_RETURN)
 	    {
 	      edge e1;
 	      edge_iterator ei1;
@@ -2014,7 +2052,7 @@ estimate_bb_frequencies (void)
   basic_block bb;
   sreal freq_max;
 
-  if (cfun->function_frequency != PROFILE_READ || !counts_to_freqs ())
+  if (profile_status != PROFILE_READ || !counts_to_freqs ())
     {
       static int real_values_initialized = 0;
 
@@ -2147,7 +2185,7 @@ build_predict_expr (enum br_predictor predictor, enum prediction taken)
 {
   tree t = build1 (PREDICT_EXPR, void_type_node,
 		   build_int_cst (NULL, predictor));
-  PREDICT_EXPR_OUTCOME (t) = taken;
+  SET_PREDICT_EXPR_OUTCOME (t, taken);
   return t;
 }
 

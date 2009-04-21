@@ -9,13 +9,13 @@
 # Contents:
 #   Script to create a GCC release.
 #
-# Copyright (c) 2001, 2002, 2006 Free Software Foundation.
+# Copyright (c) 2001, 2002, 2006, 2009 Free Software Foundation.
 #
 # This file is part of GCC.
 #
 # GCC is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
+# the Free Software Foundation; either version 3, or (at your option)
 # any later version.
 #
 # GCC is distributed in the hope that it will be useful,
@@ -24,9 +24,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with GCC; see the file COPYING.  If not, write to
-# the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-# Boston, MA 02110-1301, USA.
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 #
 ########################################################################
 
@@ -232,10 +231,10 @@ EOF
   xargs md5sum >>MD5SUMS
 }
 
-# Buid a single tarfile.  The first argument is the name of the name
-# of the tarfile to build, without any suffixes.  They will be added
-# automatically.  The rest of the arguments are the files or
-# directories to include, and possibly other arguments to tar.
+# Build a single tarfile.  The first argument is the name of the tarfile
+# to build, without any suffixes.  They will be added automatically.  The
+# rest of the arguments are files or directories to include, and possibly
+# other arguments to tar.
 
 build_tarfile() {
   # Get the name of the destination tar file.
@@ -384,7 +383,7 @@ upload_files() {
   done
 }
 
-#Print description if snapshot exists
+# Print description if snapshot exists.
 snapshot_print() {
   if [ -e ${RELEASE}/$1 ]; then
      printf "%-38s%s\n\n" "$1" "$2" >> ${SNAPSHOT_README}
@@ -536,7 +535,7 @@ TAG=""
 OLD_TARS=""
 
 # The directory that will be used to construct the release.  The
-# release itself will be placed in a subdirectory of this diretory.
+# release itself will be placed in a subdirectory of this directory.
 DESTINATION=${HOME}
 # The subdirectory.
 WORKING_DIRECTORY=""
@@ -548,7 +547,7 @@ SOURCE_DIRECTORY=""
 ADA_DIRS="gcc/ada libada gnattools"
 CPLUSPLUS_DIRS="gcc/cp libstdc++-v3"
 FORTRAN95_DIRS="gcc/fortran libgfortran"
-JAVA_DIRS="gcc/java libjava libffi fastjar zlib boehm-gc"
+JAVA_DIRS="gcc/java libjava libffi zlib boehm-gc"
 OBJECTIVEC_DIRS="gcc/objc gcc/objcp libobjc"
 TESTSUITE_DIRS="gcc/testsuite"
 
@@ -678,7 +677,7 @@ else
 
   # If diffs are requested when building locally on gcc.gnu.org, we (usually)
   # know what the last snapshot date was and take the corresponding tarballs,
-  # unless the user specified tarballs explictly.
+  # unless the user specified tarballs explicitly.
   if [ $MODE_DIFFS -ne 0 ] && [ $LOCAL -ne 0 ] && [ -z "${OLD_TARS}" ]; then
     LAST_DATE=`cat ~/.snapshot_date-${BRANCH}`
     OLD_TARS=${SNAPSHOTS_DIR}/${BRANCH}-${LAST_DATE}/gcc-${BRANCH}-${LAST_DATE}.tar.bz2

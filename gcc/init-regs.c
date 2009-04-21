@@ -1,6 +1,5 @@
 /* Initialization of uninitialized regs. 
-   Copyright (C) 2007 Free Software Foundation,
-   Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -70,13 +69,13 @@ initialize_uninitialized_regs (void)
       FOR_BB_INSNS (bb, insn)
 	{
 	  unsigned int uid = INSN_UID (insn);
-	  struct df_ref **use_rec;
+	  df_ref *use_rec;
 	  if (!INSN_P (insn))
 	    continue;
 
 	  for (use_rec = DF_INSN_UID_USES (uid); *use_rec; use_rec++)
 	    {
-	      struct df_ref *use = *use_rec;
+	      df_ref use = *use_rec;
 	      unsigned int regno = DF_REF_REGNO (use);
 
 	      /* Only do this for the pseudos.  */
@@ -149,7 +148,7 @@ struct rtl_opt_pass pass_initialize_regs =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

@@ -1,5 +1,5 @@
 ;; Machine description for ST Microelectronics Loongson-2E/2F.
-;; Copyright (C) 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 ;; Contributed by CodeSourcery.
 ;;
 ;; This file is part of GCC.
@@ -358,7 +358,7 @@
   [(set_attr "type" "fadd")])
 
 ;; Sum of unsigned byte integers.
-(define_insn "reduc_uplus_<mode>"
+(define_insn "loongson_biadd"
   [(set (match_operand:<V_stretch_half> 0 "register_operand" "=f")
         (unspec:<V_stretch_half> [(match_operand:VB 1 "register_operand" "f")]
 				 UNSPEC_LOONGSON_BIADD))]
@@ -473,3 +473,23 @@
   "TARGET_HARD_FLOAT && TARGET_LOONGSON_VECTORS"
   "punpckl<V_stretch_half_suffix>\t%0,%1,%2"
   [(set_attr "type" "fdiv")])
+
+;; Integer division and modulus.
+
+(define_insn "<u>div<mode>3"
+  [(set (match_operand:GPR 0 "register_operand" "=&d")
+	(any_div:GPR (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "register_operand" "d")))]
+  "TARGET_LOONGSON_2EF"
+  { return mips_output_division ("<d>div<u>.g\t%0,%1,%2", operands); }
+  [(set_attr "type" "idiv3")
+   (set_attr "mode" "<MODE>")])
+
+(define_insn "<u>mod<mode>3"
+  [(set (match_operand:GPR 0 "register_operand" "=&d")
+	(any_mod:GPR (match_operand:GPR 1 "register_operand" "d")
+		     (match_operand:GPR 2 "register_operand" "d")))]
+  "TARGET_LOONGSON_2EF"
+  { return mips_output_division ("<d>mod<u>.g\t%0,%1,%2", operands); }
+  [(set_attr "type" "idiv3")
+   (set_attr "mode" "<MODE>")])

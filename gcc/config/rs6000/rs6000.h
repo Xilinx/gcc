@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -16,8 +16,13 @@
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
 /* Note that some other tm.h files include this one and then override
@@ -240,6 +245,15 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_DFP 0
 #endif
 
+/* Define TARGET_TLS_MARKERS if the target assembler does not support
+   arg markers for __tls_get_addr calls.  */
+#ifndef HAVE_AS_TLS_MARKERS
+#undef  TARGET_TLS_MARKERS
+#define TARGET_TLS_MARKERS 0
+#else
+#define TARGET_TLS_MARKERS tls_markers
+#endif
+
 #ifndef TARGET_SECURE_PLT
 #define TARGET_SECURE_PLT 0
 #endif
@@ -298,6 +312,15 @@ enum processor_type
    PROCESSOR_CELL
 };
 
+/* FPU operations supported. 
+   Each use of TARGET_SINGLE_FLOAT or TARGET_DOUBLE_FLOAT must 
+   also test TARGET_HARD_FLOAT.  */
+#define TARGET_SINGLE_FLOAT 1
+#define TARGET_DOUBLE_FLOAT 1
+#define TARGET_SINGLE_FPU   0
+#define TARGET_SIMPLE_FPU   0
+#define TARGET_XILINX_FPU   0
+
 extern enum processor_type rs6000_cpu;
 
 /* Recast the processor type to the cpu attribute.  */
@@ -312,6 +335,18 @@ extern enum processor_type rs6000_cpu;
 /* Define the default processor.  This is overridden by other tm.h files.  */
 #define PROCESSOR_DEFAULT   PROCESSOR_RIOS1
 #define PROCESSOR_DEFAULT64 PROCESSOR_RS64A
+
+/* FP processor type.  */
+enum fpu_type_t
+{
+	FPU_NONE,		/* No FPU */
+	FPU_SF_LITE,		/* Limited Single Precision FPU */
+	FPU_DF_LITE,		/* Limited Double Precision FPU */
+	FPU_SF_FULL,		/* Full Single Precision FPU */
+	FPU_DF_FULL		/* Full Double Single Precision FPU */
+};
+
+extern enum fpu_type_t fpu_type;
 
 /* Specify the dialect of assembler to use.  New mnemonics is dialect one
    and the old mnemonics are dialect zero.  */
@@ -385,6 +420,7 @@ extern int rs6000_float_gprs;
 extern int rs6000_alignment_flags;
 extern const char *rs6000_sched_insert_nops_str;
 extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
+extern int rs6000_xilinx_fpu;
 
 /* Alignment options for fields in structures for sub-targets following
    AIX-like ABI.
@@ -1848,6 +1884,8 @@ do {								\
   if (rs6000_mode_dependent_address (ADDR))			\
     goto LABEL;							\
 } while (0)
+
+#define FIND_BASE_TERM rs6000_find_base_term
 
 /* The register number of the register used to address a table of
    static data addresses in memory.  In some cases this register is
@@ -1881,7 +1919,8 @@ do {								\
 /* Define this if some processing needs to be done immediately before
    emitting code for an insn.  */
 
-/* #define FINAL_PRESCAN_INSN(INSN,OPERANDS,NOPERANDS) */
+#define FINAL_PRESCAN_INSN(INSN,OPERANDS,NOPERANDS) \
+  rs6000_final_prescan_insn (INSN, OPERANDS, NOPERANDS)
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
@@ -2344,6 +2383,12 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
+#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)		\
+  do								\
+    if (!rs6000_output_addr_const_extra (STREAM, X))		\
+      goto FAIL;						\
+  while (0)
+
 /* uncomment for disabling the corresponding default options */
 /* #define  MACHINE_no_sched_interblock */
 /* #define  MACHINE_no_sched_speculative */
@@ -2535,10 +2580,18 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_LVXL,
   ALTIVEC_BUILTIN_LVX,
   ALTIVEC_BUILTIN_STVX,
+  ALTIVEC_BUILTIN_LVLX,
+  ALTIVEC_BUILTIN_LVLXL,
+  ALTIVEC_BUILTIN_LVRX,
+  ALTIVEC_BUILTIN_LVRXL,
   ALTIVEC_BUILTIN_STVEBX,
   ALTIVEC_BUILTIN_STVEHX,
   ALTIVEC_BUILTIN_STVEWX,
   ALTIVEC_BUILTIN_STVXL,
+  ALTIVEC_BUILTIN_STVLX,
+  ALTIVEC_BUILTIN_STVLXL,
+  ALTIVEC_BUILTIN_STVRX,
+  ALTIVEC_BUILTIN_STVRXL,
   ALTIVEC_BUILTIN_VCMPBFP_P,
   ALTIVEC_BUILTIN_VCMPEQFP_P,
   ALTIVEC_BUILTIN_VCMPEQUB_P,
@@ -2587,6 +2640,7 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_AND,
   ALTIVEC_BUILTIN_VEC_ANDC,
   ALTIVEC_BUILTIN_VEC_AVG,
+  ALTIVEC_BUILTIN_VEC_EXTRACT,
   ALTIVEC_BUILTIN_VEC_CEIL,
   ALTIVEC_BUILTIN_VEC_CMPB,
   ALTIVEC_BUILTIN_VEC_CMPEQ,
@@ -2613,6 +2667,10 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_LVEBX,
   ALTIVEC_BUILTIN_VEC_LVEHX,
   ALTIVEC_BUILTIN_VEC_LVEWX,
+  ALTIVEC_BUILTIN_VEC_LVLX,
+  ALTIVEC_BUILTIN_VEC_LVLXL,
+  ALTIVEC_BUILTIN_VEC_LVRX,
+  ALTIVEC_BUILTIN_VEC_LVRXL,
   ALTIVEC_BUILTIN_VEC_LVSL,
   ALTIVEC_BUILTIN_VEC_LVSR,
   ALTIVEC_BUILTIN_VEC_MADD,
@@ -2672,6 +2730,10 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_STVEBX,
   ALTIVEC_BUILTIN_VEC_STVEHX,
   ALTIVEC_BUILTIN_VEC_STVEWX,
+  ALTIVEC_BUILTIN_VEC_STVLX,
+  ALTIVEC_BUILTIN_VEC_STVLXL,
+  ALTIVEC_BUILTIN_VEC_STVRX,
+  ALTIVEC_BUILTIN_VEC_STVRXL,
   ALTIVEC_BUILTIN_VEC_SUB,
   ALTIVEC_BUILTIN_VEC_SUBC,
   ALTIVEC_BUILTIN_VEC_SUBS,
@@ -2788,7 +2850,10 @@ enum rs6000_builtins
   ALTIVEC_BUILTIN_VEC_VUPKLSH,
   ALTIVEC_BUILTIN_VEC_XOR,
   ALTIVEC_BUILTIN_VEC_STEP,
-  ALTIVEC_BUILTIN_OVERLOADED_LAST = ALTIVEC_BUILTIN_VEC_STEP,
+  ALTIVEC_BUILTIN_VEC_PROMOTE,
+  ALTIVEC_BUILTIN_VEC_INSERT,
+  ALTIVEC_BUILTIN_VEC_SPLATS,
+  ALTIVEC_BUILTIN_OVERLOADED_LAST = ALTIVEC_BUILTIN_VEC_SPLATS,
 
   /* SPE builtins.  */
   SPE_BUILTIN_EVADDW,

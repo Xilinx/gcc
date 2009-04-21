@@ -1,6 +1,6 @@
 /* real.c - software floating point emulation.
-   Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002,
+   2003, 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Stephen L. Moshier (moshier@world.std.com).
    Re-written by Richard Henderson <rth@redhat.com>
 
@@ -905,15 +905,23 @@ do_compare (const REAL_VALUE_TYPE *a, const REAL_VALUE_TYPE *b,
       /* Sign of zero doesn't matter for compares.  */
       return 0;
 
+    case CLASS2 (rvc_normal, rvc_zero):
+      /* Decimal float zero is special and uses rvc_normal, not rvc_zero.  */
+      if (a->decimal)
+	return decimal_do_compare (a, b, nan_result);
+      /* Fall through.  */
     case CLASS2 (rvc_inf, rvc_zero):
     case CLASS2 (rvc_inf, rvc_normal):
-    case CLASS2 (rvc_normal, rvc_zero):
       return (a->sign ? -1 : 1);
 
     case CLASS2 (rvc_inf, rvc_inf):
       return -a->sign - -b->sign;
 
     case CLASS2 (rvc_zero, rvc_normal):
+      /* Decimal float zero is special and uses rvc_normal, not rvc_zero.  */
+      if (b->decimal)
+	return decimal_do_compare (a, b, nan_result);
+      /* Fall through.  */
     case CLASS2 (rvc_zero, rvc_inf):
     case CLASS2 (rvc_normal, rvc_inf):
       return (b->sign ? 1 : -1);
@@ -992,7 +1000,7 @@ real_arithmetic (REAL_VALUE_TYPE *r, int icode, const REAL_VALUE_TYPE *op0,
   enum tree_code code = icode;
 
   if (op0->decimal || (op1 && op1->decimal))
-    return decimal_real_arithmetic (r, icode, op0, op1);
+    return decimal_real_arithmetic (r, code, op0, op1);
 
   switch (code)
     {
@@ -1265,6 +1273,35 @@ exact_real_inverse (enum machine_mode mode, REAL_VALUE_TYPE *r)
 
   *r = u;
   return true;
+}
+
+/* Return true if arithmetic on values in IMODE that were promoted
+   from values in TMODE is equivalent to direct arithmetic on values
+   in TMODE.  */
+
+bool
+real_can_shorten_arithmetic (enum machine_mode imode, enum machine_mode tmode)
+{
+  const struct real_format *tfmt, *ifmt;
+  tfmt = REAL_MODE_FORMAT (tmode);
+  ifmt = REAL_MODE_FORMAT (imode);
+  /* These conditions are conservative rather than trying to catch the
+     exact boundary conditions; the main case to allow is IEEE float
+     and double.  */
+  return (ifmt->b == tfmt->b
+	  && ifmt->p > 2 * tfmt->p
+	  && ifmt->emin < 2 * tfmt->emin - tfmt->p - 2
+	  && ifmt->emin < tfmt->emin - tfmt->emax - tfmt->p - 2
+	  && ifmt->emax > 2 * tfmt->emax + 2
+	  && ifmt->emax > tfmt->emax - tfmt->emin + tfmt->p + 2
+	  && ifmt->round_towards_zero == tfmt->round_towards_zero
+	  && (ifmt->has_sign_dependent_rounding
+	      == tfmt->has_sign_dependent_rounding)
+	  && ifmt->has_nans >= tfmt->has_nans
+	  && ifmt->has_inf >= tfmt->has_inf
+	  && ifmt->has_signed_zero >= tfmt->has_signed_zero
+	  && !MODE_COMPOSITE_P (tmode)
+	  && !MODE_COMPOSITE_P (imode));
 }
 
 /* Render R as an integer.  */
@@ -4418,8 +4455,8 @@ const struct real_format decimal_single_format =
     10, 
     7,
     7,
-    -95,
-    96,
+    -94,
+    97,
     31,
     31,
     false,
@@ -4440,8 +4477,8 @@ const struct real_format decimal_double_format =
     10,
     16,
     16,
-    -383,
-    384,
+    -382,
+    385,
     63,
     63,
     false,
@@ -4462,8 +4499,8 @@ const struct real_format decimal_quad_format =
     10,
     34,
     34,
-    -6143,
-    6144,
+    -6142,
+    6145,
     127,
     127,
     false,

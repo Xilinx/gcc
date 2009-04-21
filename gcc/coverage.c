@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "function.h"
 #include "toplev.h"
+#include "tm_p.h"
 #include "ggc.h"
 #include "coverage.h"
 #include "langhooks.h"
@@ -457,6 +458,8 @@ tree_coverage_counter_addr (unsigned counter, unsigned no)
 
   gcc_assert (no < fn_n_ctrs[counter] - fn_b_ctrs[counter]);
   no += prg_n_ctrs[counter] + fn_b_ctrs[counter];
+
+  TREE_ADDRESSABLE (tree_ctr_tables[counter]) = 1;
 
   /* "no" here is an array index, scaled to bytes later.  */
   return build_fold_addr_expr (build4 (ARRAY_REF, gcov_type_node,

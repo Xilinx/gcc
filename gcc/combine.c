@@ -1,6 +1,6 @@
 /* Optimize by combining instructions for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -605,6 +605,7 @@ find_single_use_1 (rtx dest, rtx *loc)
 static rtx *
 find_single_use (rtx dest, rtx insn, rtx *ploc)
 {
+  basic_block bb;
   rtx next;
   rtx *result;
   rtx link;
@@ -627,9 +628,10 @@ find_single_use (rtx dest, rtx insn, rtx *ploc)
   if (!REG_P (dest))
     return 0;
 
-  for (next = next_nonnote_insn (insn);
-       next != 0 && !LABEL_P (next);
-       next = next_nonnote_insn (next))
+  bb = BLOCK_FOR_INSN (insn);
+  for (next = NEXT_INSN (insn);
+       next && BLOCK_FOR_INSN (next) == bb;
+       next = NEXT_INSN (next))
     if (INSN_P (next) && dead_or_set_p (next, dest))
       {
 	for (link = LOG_LINKS (next); link; link = XEXP (link, 1))
@@ -900,7 +902,7 @@ create_log_links (void)
 {
   basic_block bb;
   rtx *next_use, insn;
-  struct df_ref **def_vec, **use_vec;
+  df_ref *def_vec, *use_vec;
 
   next_use = XCNEWVEC (rtx, max_reg_num ());
 
@@ -925,7 +927,7 @@ create_log_links (void)
 
           for (def_vec = DF_INSN_DEFS (insn); *def_vec; def_vec++)
             {
-	      struct df_ref *def = *def_vec;
+	      df_ref def = *def_vec;
               int regno = DF_REF_REGNO (def);
               rtx use_insn;
 
@@ -979,7 +981,7 @@ create_log_links (void)
 
           for (use_vec = DF_INSN_USES (insn); *use_vec; use_vec++)
             {
-	      struct df_ref *use = *use_vec;
+	      df_ref use = *use_vec;
 	      int regno = DF_REF_REGNO (use);
 
               /* Do not consider the usage of the stack pointer
@@ -1062,17 +1064,19 @@ combine_instructions (rtx f, unsigned int nregs)
      Also set any known values so that we can use it while searching
      for what bits are known to be set.  */
 
-  label_tick = label_tick_ebb_start = 1;
-
   setup_incoming_promotions (first);
 
   create_log_links ();
+  label_tick_ebb_start = ENTRY_BLOCK_PTR->index;
   FOR_EACH_BB (this_basic_block)
     {
       optimize_this_for_speed_p = optimize_bb_for_speed_p (this_basic_block);
       last_call_luid = 0;
       mem_last_set = -1;
-      label_tick++;
+      label_tick = this_basic_block->index;
+      if (!single_pred_p (this_basic_block)
+	  || single_pred (this_basic_block)->index != label_tick - 1)
+	label_tick_ebb_start = label_tick;
       FOR_BB_INSNS (this_basic_block, insn)
         if (INSN_P (insn) && BLOCK_FOR_INSN (insn))
 	  {
@@ -1098,23 +1102,25 @@ combine_instructions (rtx f, unsigned int nregs)
 	      fprintf(dump_file, "insn_cost %d: %d\n",
 		    INSN_UID (insn), INSN_COST (insn));
 	  }
-	else if (LABEL_P (insn))
-	  label_tick_ebb_start = label_tick;
     }
 
   nonzero_sign_valid = 1;
 
   /* Now scan all the insns in forward order.  */
 
-  label_tick = label_tick_ebb_start = 1;
+  label_tick_ebb_start = ENTRY_BLOCK_PTR->index;
   init_reg_last ();
   setup_incoming_promotions (first);
 
   FOR_EACH_BB (this_basic_block)
     {
+      optimize_this_for_speed_p = optimize_bb_for_speed_p (this_basic_block);
       last_call_luid = 0;
       mem_last_set = -1;
-      label_tick++;
+      label_tick = this_basic_block->index;
+      if (!single_pred_p (this_basic_block)
+	  || single_pred (this_basic_block)->index != label_tick - 1)
+	label_tick_ebb_start = label_tick;
       rtl_profile_for_bb (this_basic_block);
       for (insn = BB_HEAD (this_basic_block);
 	   insn != NEXT_INSN (BB_END (this_basic_block));
@@ -1267,8 +1273,6 @@ combine_instructions (rtx f, unsigned int nregs)
 	    retry:
 	      ;
 	    }
-	  else if (LABEL_P (insn))
-	    label_tick_ebb_start = label_tick;
 	}
     }
 
@@ -2158,6 +2162,25 @@ reg_subword_p (rtx x, rtx reg)
 }
 
 
+/* Delete the conditional jump INSN and adjust the CFG correspondingly.
+   Note that the INSN should be deleted *after* removing dead edges, so
+   that the kept edge is the fallthrough edge for a (set (pc) (pc))
+   but not for a (set (pc) (label_ref FOO)).  */
+
+static void
+update_cfg_for_uncondjump (rtx insn)
+{
+  basic_block bb = BLOCK_FOR_INSN (insn);
+
+  if (BB_END (bb) == insn)
+    purge_dead_edges (bb);
+
+  delete_insn (insn);
+  if (EDGE_COUNT (bb->succs) == 1)
+    single_succ_edge (bb)->flags |= EDGE_FALLTHRU;
+}
+
+
 /* Try to combine the insns I1 and I2 into I3.
    Here I1 and I2 appear earlier than I3.
    I1 can be zero; then we combine just I2 into I3.
@@ -2208,6 +2231,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
   /* Notes that I1, I2 or I3 is a MULT operation.  */
   int have_mult = 0;
   int swap_i2i3 = 0;
+  int changed_i3_dest = 0;
 
   int maxreg;
   rtx temp;
@@ -2895,14 +2919,7 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  insn_code_number = recog_for_combine (&newpat, i3, &new_i3_notes);
 
 	  if (insn_code_number >= 0)
-	    {
-	      /* If we will be able to accept this, we have made a
-		 change to the destination of I3.  This requires us to
-		 do a few adjustments.  */
-
-	      PATTERN (i3) = newpat;
-	      adjust_for_new_dest (i3);
-	    }
+	    changed_i3_dest = 1;
 	}
     }
 
@@ -3375,6 +3392,16 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
       return 0;
     }
 
+  /* If we will be able to accept this, we have made a
+     change to the destination of I3.  This requires us to
+     do a few adjustments.  */
+
+  if (changed_i3_dest)
+    {
+      PATTERN (i3) = newpat;
+      adjust_for_new_dest (i3);
+    }
+
   /* We now know that we can do this combination.  Merge the insns and
      update the status of registers and LOG_LINKS.  */
 
@@ -3616,12 +3643,12 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     if (i3dest_killed)
       {
 	if (newi2pat && reg_set_p (i3dest_killed, newi2pat))
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i3dest_killed,
-					       NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i3dest_killed,
+					    NULL_RTX),
 			    NULL_RTX, i2, NULL_RTX, elim_i2, elim_i1);
 	else
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i3dest_killed,
-					       NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i3dest_killed,
+					    NULL_RTX),
 			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
 			    elim_i2, elim_i1);
       }
@@ -3629,10 +3656,10 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     if (i2dest_in_i2src)
       {
 	if (newi2pat && reg_set_p (i2dest, newi2pat))
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i2dest, NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i2dest, NULL_RTX),
 			    NULL_RTX, i2, NULL_RTX, NULL_RTX, NULL_RTX);
 	else
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i2dest, NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i2dest, NULL_RTX),
 			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
 			    NULL_RTX, NULL_RTX);
       }
@@ -3640,10 +3667,10 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     if (i1dest_in_i1src)
       {
 	if (newi2pat && reg_set_p (i1dest, newi2pat))
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i1dest, NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i1dest, NULL_RTX),
 			    NULL_RTX, i2, NULL_RTX, NULL_RTX, NULL_RTX);
 	else
-	  distribute_notes (gen_rtx_EXPR_LIST (REG_DEAD, i1dest, NULL_RTX),
+	  distribute_notes (alloc_reg_note (REG_DEAD, i1dest, NULL_RTX),
 			    NULL_RTX, i3, newi2pat ? i2 : NULL_RTX,
 			    NULL_RTX, NULL_RTX);
       }
@@ -3707,43 +3734,8 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
     if (newi2pat)
       note_stores (newi2pat, set_nonzero_bits_and_sign_copies, NULL);
     note_stores (newpat, set_nonzero_bits_and_sign_copies, NULL);
-
-    /* Set new_direct_jump_p if a new return or simple jump instruction
-       has been created.
-
-       If I3 is now an unconditional jump, ensure that it has a
-       BARRIER following it since it may have initially been a
-       conditional jump.  It may also be the last nonnote insn.  */
-
-    if (returnjump_p (i3) || any_uncondjump_p (i3))
-      {
-	*new_direct_jump_p = 1;
-	mark_jump_label (PATTERN (i3), i3, 0);
-
-	if ((temp = next_nonnote_insn (i3)) == NULL_RTX
-	    || !BARRIER_P (temp))
-	  emit_barrier_after (i3);
-      }
-
-    if (undobuf.other_insn != NULL_RTX
-	&& (returnjump_p (undobuf.other_insn)
-	    || any_uncondjump_p (undobuf.other_insn)))
-      {
-	*new_direct_jump_p = 1;
-
-	if ((temp = next_nonnote_insn (undobuf.other_insn)) == NULL_RTX
-	    || !BARRIER_P (temp))
-	  emit_barrier_after (undobuf.other_insn);
-      }
-
-    /* An NOOP jump does not need barrier, but it does need cleaning up
-       of CFG.  */
-    if (GET_CODE (newpat) == SET
-	&& SET_SRC (newpat) == pc_rtx
-	&& SET_DEST (newpat) == pc_rtx)
-      *new_direct_jump_p = 1;
   }
-  
+
   if (undobuf.other_insn != NULL_RTX)
     {
       if (dump_file)
@@ -3782,6 +3774,34 @@ try_combine (rtx i3, rtx i2, rtx i1, int *new_direct_jump_p)
 	  dump_insn_slim (dump_file, i3);
 	}
       df_insn_rescan (i3);
+    }
+  
+  /* Set new_direct_jump_p if a new return or simple jump instruction
+     has been created.  Adjust the CFG accordingly.  */
+
+  if (returnjump_p (i3) || any_uncondjump_p (i3))
+    {
+      *new_direct_jump_p = 1;
+      mark_jump_label (PATTERN (i3), i3, 0);
+      update_cfg_for_uncondjump (i3);
+    }
+
+  if (undobuf.other_insn != NULL_RTX
+      && (returnjump_p (undobuf.other_insn)
+	  || any_uncondjump_p (undobuf.other_insn)))
+    {
+      *new_direct_jump_p = 1;
+      update_cfg_for_uncondjump (undobuf.other_insn);
+    }
+
+  /* A noop might also need cleaning up of CFG, if it comes from the
+     simplification of a jump.  */
+  if (GET_CODE (newpat) == SET
+      && SET_SRC (newpat) == pc_rtx
+      && SET_DEST (newpat) == pc_rtx)
+    {
+      *new_direct_jump_p = 1;
+      update_cfg_for_uncondjump (i3);
     }
   
   combine_successes++;
@@ -5701,6 +5721,7 @@ simplify_set (rtx x)
 	{
 	  int other_changed_previously = other_changed;
 	  unsigned HOST_WIDE_INT mask;
+	  rtx old_cc_use = *cc_use;
 
 	  SUBST (*cc_use, gen_rtx_fmt_ee (new_code, GET_MODE (*cc_use),
 					  dest, const0_rtx));
@@ -5723,7 +5744,7 @@ simplify_set (rtx x)
 	      if ((recog_for_combine (&pat, other_insn, &note) < 0
 		   && ! check_asm_operands (pat)))
 		{
-		  PUT_CODE (*cc_use, old_code);
+		  *cc_use = old_cc_use;
 		  other_changed = 0;
 
 		  op0 = simplify_gen_binary (XOR, GET_MODE (op0),
@@ -5843,6 +5864,7 @@ simplify_set (rtx x)
      zero_extend to avoid the reload that would otherwise be required.  */
 
   if (GET_CODE (src) == SUBREG && subreg_lowpart_p (src)
+      && INTEGRAL_MODE_P (GET_MODE (SUBREG_REG (src)))
       && LOAD_EXTEND_OP (GET_MODE (SUBREG_REG (src))) != UNKNOWN
       && SUBREG_BYTE (src) == 0
       && (GET_MODE_SIZE (GET_MODE (src))
@@ -6995,7 +7017,8 @@ make_compound_operation (rtx x, enum rtx_code in_code)
       if (GET_CODE (rhs) == CONST_INT
 	  && GET_CODE (lhs) == ASHIFT
 	  && GET_CODE (XEXP (lhs, 1)) == CONST_INT
-	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1)))
+	  && INTVAL (rhs) >= INTVAL (XEXP (lhs, 1))
+	  && INTVAL (rhs) < mode_width)
 	{
 	  new_rtx = make_compound_operation (XEXP (lhs, 0), next_code);
 	  new_rtx = make_extraction (mode, new_rtx,
@@ -7015,6 +7038,7 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 		&& (OBJECT_P (SUBREG_REG (lhs))))
 	  && GET_CODE (rhs) == CONST_INT
 	  && INTVAL (rhs) < HOST_BITS_PER_WIDE_INT
+	  && INTVAL (rhs) < mode_width
 	  && (new_rtx = extract_left_shift (lhs, INTVAL (rhs))) != 0)
 	new_rtx = make_extraction (mode, make_compound_operation (new_rtx, next_code),
 			       0, NULL_RTX, mode_width - INTVAL (rhs),
@@ -7319,6 +7343,10 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
   if (GET_MODE_SIZE (GET_MODE (x)) < GET_MODE_SIZE (mode)
       && (GET_MODE_MASK (GET_MODE (x)) & ~mask) == 0)
     return gen_lowpart (mode, x);
+
+  /* The arithmetic simplifications here do the wrong thing on vector modes.  */
+  if (VECTOR_MODE_P (mode) || VECTOR_MODE_P (GET_MODE (x)))
+      return gen_lowpart (mode, x);
 
   switch (code)
     {
@@ -8943,13 +8971,13 @@ merge_outer_ops (enum rtx_code *pop0, HOST_WIDE_INT *pconst0, enum rtx_code op1,
 	   && op0 == AND)
     op0 = UNKNOWN;
 
+  *pop0 = op0;
+
   /* ??? Slightly redundant with the above mask, but not entirely.
      Moving this above means we'd have to sign-extend the mode mask
      for the final test.  */
-  const0 = trunc_int_for_mode (const0, mode);
-
-  *pop0 = op0;
-  *pconst0 = const0;
+  if (op0 != UNKNOWN && op0 != NEG)
+    *pconst0 = trunc_int_for_mode (const0, mode);
 
   return 1;
 }
@@ -9002,11 +9030,6 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
       if (GET_CODE (varop) == CLOBBER)
 	return NULL_RTX;
 
-      /* If we discovered we had to complement VAROP, leave.  Making a NOT
-	 here would cause an infinite loop.  */
-      if (complement_p)
-	break;
-
       /* Convert ROTATERT to ROTATE.  */
       if (code == ROTATERT)
 	{
@@ -9051,6 +9074,11 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	      break;
 	    }
 	}
+
+      /* If we discovered we had to complement VAROP, leave.  Making a NOT
+	 here would cause an infinite loop.  */
+      if (complement_p)
+	break;
 
       /* An arithmetic right shift of a quantity known to be -1 or 0
 	 is a no-op.  */
@@ -9672,7 +9700,8 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 
   if (outer_op != UNKNOWN)
     {
-      if (GET_MODE_BITSIZE (result_mode) < HOST_BITS_PER_WIDE_INT)
+      if (GET_RTX_CLASS (outer_op) != RTX_UNARY
+	  && GET_MODE_BITSIZE (result_mode) < HOST_BITS_PER_WIDE_INT)
 	outer_const = trunc_int_for_mode (outer_const, result_mode);
 
       if (outer_op == AND)
@@ -9834,8 +9863,8 @@ recog_for_combine (rtx *pnewpat, rtx insn, rtx *pnotes)
 	  if (GET_CODE (XEXP (XVECEXP (newpat, 0, i), 0)) != SCRATCH) 
 	    {
 	      gcc_assert (REG_P (XEXP (XVECEXP (newpat, 0, i), 0)));
-	      notes = gen_rtx_EXPR_LIST (REG_UNUSED,
-					 XEXP (XVECEXP (newpat, 0, i), 0), notes);
+	      notes = alloc_reg_note (REG_UNUSED,
+				      XEXP (XVECEXP (newpat, 0, i), 0), notes);
 	    }
 	}
       pat = newpat;
@@ -9960,7 +9989,7 @@ gen_lowpart_for_combine (enum machine_mode omode, rtx x)
     }
 
  fail:
-  return gen_rtx_CLOBBER (imode, const0_rtx);
+  return gen_rtx_CLOBBER (omode, const0_rtx);
 }
 
 /* Simplify a comparison between *POP0 and *POP1 where CODE is the
@@ -10506,7 +10535,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && ((unsigned HOST_WIDE_INT) const_op
 		  < (((unsigned HOST_WIDE_INT) 1
 		      << (GET_MODE_BITSIZE (mode) - 1))))
-	      && optab_handler (cmp_optab, mode)->insn_code != CODE_FOR_nothing)
+	      && have_insn_for (COMPARE, mode))
 	    {
 	      op0 = XEXP (op0, 0);
 	      continue;
@@ -10587,7 +10616,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	      && (unsigned_comparison_p || equality_comparison_p)
 	      && (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
 	      && ((unsigned HOST_WIDE_INT) const_op < GET_MODE_MASK (mode))
-	      && optab_handler (cmp_optab, mode)->insn_code != CODE_FOR_nothing)
+	      && have_insn_for (COMPARE, mode))
 	    {
 	      op0 = XEXP (op0, 0);
 	      continue;
@@ -11971,32 +12000,28 @@ reg_dead_at_p (rtx reg, rtx insn)
 	  return 0;
     }
 
-  /* Scan backwards until we find a REG_DEAD note, SET, CLOBBER, label, or
-     beginning of function.  */
-  for (; insn && !LABEL_P (insn) && !BARRIER_P (insn);
-       insn = prev_nonnote_insn (insn))
+  /* Scan backwards until we find a REG_DEAD note, SET, CLOBBER, or
+     beginning of basic block.  */
+  block = BLOCK_FOR_INSN (insn);
+  for (;;)
     {
-      note_stores (PATTERN (insn), reg_dead_at_p_1, NULL);
-      if (reg_dead_flag)
-	return reg_dead_flag == 1 ? 1 : 0;
+      if (INSN_P (insn))
+        {
+	  note_stores (PATTERN (insn), reg_dead_at_p_1, NULL);
+	  if (reg_dead_flag)
+	    return reg_dead_flag == 1 ? 1 : 0;
 
-      if (find_regno_note (insn, REG_DEAD, reg_dead_regno))
-	return 1;
+	  if (find_regno_note (insn, REG_DEAD, reg_dead_regno))
+	    return 1;
+        }
+
+      if (insn == BB_HEAD (block))
+	break;
+
+      insn = PREV_INSN (insn);
     }
 
-  /* Get the basic block that we were in.  */
-  if (insn == 0)
-    block = ENTRY_BLOCK_PTR->next_bb;
-  else
-    {
-      FOR_EACH_BB (block)
-	if (insn == BB_HEAD (block))
-	  break;
-
-      if (block == EXIT_BLOCK_PTR)
-	return 0;
-    }
-
+  /* Look at live-in sets for the basic block that we were in.  */
   for (i = reg_dead_regno; i < reg_dead_endregno; i++)
     if (REGNO_REG_SET_P (df_get_live_in (block), i))
       return 0;
@@ -12206,7 +12231,7 @@ move_deaths (rtx x, rtx maybe_kill_insn, int from_luid, rtx to_insn,
 	      *pnotes = note;
 	    }
 	  else
-	    *pnotes = gen_rtx_EXPR_LIST (REG_DEAD, x, *pnotes);
+	    *pnotes = alloc_reg_note (REG_DEAD, x, *pnotes);
 	}
 
       return;
@@ -12646,6 +12671,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			  distribute_links (LOG_LINKS (tem));
 
 			  SET_INSN_DELETED (tem);
+			  if (tem == i2)
+			    i2 = NULL_RTX;
 
 #ifdef HAVE_cc0
 			  /* Delete the setter too.  */
@@ -12661,6 +12688,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			      distribute_links (LOG_LINKS (cc0_setter));
 
 			      SET_INSN_DELETED (cc0_setter);
+			      if (cc0_setter == i2)
+				i2 = NULL_RTX;
 			    }
 #endif
 			}
@@ -12771,8 +12800,8 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 			      && ! reg_bitfield_target_p (piece,
 							  PATTERN (place)))
 			    {
-			      rtx new_note
-				= gen_rtx_EXPR_LIST (REG_DEAD, piece, NULL_RTX);
+			      rtx new_note = alloc_reg_note (REG_DEAD, piece,
+							     NULL_RTX);
 
 			      distribute_notes (new_note, place, place,
 						NULL_RTX, NULL_RTX, NULL_RTX);
@@ -12819,9 +12848,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	}
 
       if (place2)
-	REG_NOTES (place2) 
-	  = gen_rtx_fmt_ee (GET_CODE (note), REG_NOTE_KIND (note),
-			    XEXP (note, 0), REG_NOTES (place2));
+	add_reg_note (place2, REG_NOTE_KIND (note), XEXP (note, 0));
     }
 }
 
@@ -13008,7 +13035,7 @@ struct rtl_opt_pass pass_combine =
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
   TV_COMBINE,                           /* tv_id */
-  0,                                    /* properties_required */
+  PROP_cfglayout,                       /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
@@ -13017,4 +13044,3 @@ struct rtl_opt_pass pass_combine =
   TODO_ggc_collect,                     /* todo_flags_finish */
  }
 };
-

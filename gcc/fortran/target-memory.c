@@ -1,5 +1,5 @@
 /* Simulate storage of variables into target memory.
-   Copyright (C) 2007, 2008
+   Copyright (C) 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Thomas and Brooks Moses
 
@@ -158,7 +158,7 @@ encode_integer (int kind, mpz_t integer, unsigned char *buffer,
 static int
 encode_float (int kind, mpfr_t real, unsigned char *buffer, size_t buffer_size)
 {
-  return native_encode_expr (gfc_conv_mpfr_to_tree (real, kind), buffer,
+  return native_encode_expr (gfc_conv_mpfr_to_tree (real, kind, 0), buffer,
 			     buffer_size);
 }
 
@@ -220,8 +220,13 @@ encode_derived (gfc_expr *source, unsigned char *buffer, size_t buffer_size)
 	continue;
       ptr = TREE_INT_CST_LOW(DECL_FIELD_OFFSET(cmp->backend_decl))
 	    + TREE_INT_CST_LOW(DECL_FIELD_BIT_OFFSET(cmp->backend_decl))/8;
-      gfc_target_encode_expr (ctr->expr, &buffer[ptr],
-			      buffer_size - ptr);
+
+      if (ctr->expr->expr_type == EXPR_NULL)
+ 	memset (&buffer[ptr], 0,
+		int_size_in_bytes (TREE_TYPE (cmp->backend_decl)));
+      else
+	gfc_target_encode_expr (ctr->expr, &buffer[ptr],
+				buffer_size - ptr);
     }
 
   return int_size_in_bytes (type);

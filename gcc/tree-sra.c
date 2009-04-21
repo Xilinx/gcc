@@ -1,8 +1,8 @@
 /* Scalar Replacement of Aggregates (SRA) converts some structure
    references into scalar references, exposing them to the scalar
    optimizers.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
-     Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -77,9 +77,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* True if this is the "early" pass, before inlining.  */
 static bool early_sra;
-
-/* The set of todo flags to return from tree_sra.  */
-static unsigned int todoflags;
 
 /* The set of aggregate variables that are candidates for scalarization.  */
 static bitmap sra_candidates;
@@ -210,7 +207,6 @@ extern void debug_sra_elt_name (struct sra_elt *);
 static tree generate_element_ref (struct sra_elt *);
 static gimple_seq sra_build_assignment (tree dst, tree src);
 static void mark_all_v_defs_seq (gimple_seq);
-static void mark_all_v_defs_stmt (gimple);
 
 
 /* Return true if DECL is an SRA candidate.  */
@@ -1008,6 +1004,7 @@ sra_walk_gimple_assign (gimple stmt, gimple_stmt_iterator *gsi,
 	 we'd been passed the constructor directly.  Invoke INIT.  */
       else if (TREE_CODE (rhs) == VAR_DECL
 	       && TREE_STATIC (rhs)
+	       && !DECL_EXTERNAL (rhs)
 	       && TREE_READONLY (rhs)
 	       && targetm.binds_local_p (rhs))
 	fns->init (lhs_elt, DECL_INITIAL (rhs), gsi);
@@ -1056,11 +1053,10 @@ sra_walk_function (const struct sra_walk_fns *fns)
 	ni = si;
 	gsi_next (&ni);
 
-	/* If the statement has no virtual operands, then it doesn't
+	/* If the statement does not reference memory, then it doesn't
 	   make any structure references that we care about.  */
-	if (gimple_aliases_computed_p (cfun)
-	    && ZERO_SSA_OPERANDS (stmt, (SSA_OP_VIRTUAL_DEFS | SSA_OP_VUSE)))
-	      continue;
+	if (!gimple_references_memory_p (stmt))
+	  continue;
 
 	switch (gimple_code (stmt))
 	  {
@@ -1712,16 +1708,6 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
   gcc_assert (block && block->is_scalar);
 
   var = block->replacement;
-
-  if ((bit & ~alchk)
-      || (HOST_WIDE_INT)size != tree_low_cst (DECL_SIZE (var), 1))
-    {
-      block->replacement = fold_build3 (BIT_FIELD_REF,
-					TREE_TYPE (block->element), var,
-					bitsize_int (size),
-					bitsize_int (bit & ~alchk));
-    }
-
   block->in_bitfld_block = 2;
 
   /* Add the member fields to the group, such that they access
@@ -1735,12 +1721,14 @@ try_instantiate_multiple_fields (struct sra_elt *elt, tree f)
       gcc_assert (fld && fld->is_scalar && !fld->replacement);
 
       fld->replacement = fold_build3 (BIT_FIELD_REF, field_type, var,
-				      DECL_SIZE (f),
+				      bitsize_int (TYPE_PRECISION (field_type)),
 				      bitsize_int
 				      ((TREE_INT_CST_LOW (DECL_FIELD_OFFSET (f))
 					* BITS_PER_UNIT
 					+ (TREE_INT_CST_LOW
-					   (DECL_FIELD_BIT_OFFSET (f))))
+					   (DECL_FIELD_BIT_OFFSET (f)))
+					- (TREE_INT_CST_LOW
+					   (TREE_OPERAND (block->element, 2))))
 				       & ~alchk));
       fld->in_bitfld_block = 1;
     }
@@ -2015,27 +2003,6 @@ decide_instantiations (void)
 
 /* Phase Four: Update the function to match the replacements created.  */
 
-/* Mark all the variables in VDEF/VUSE operators for STMT for
-   renaming. This becomes necessary when we modify all of a
-   non-scalar.  */
-
-static void
-mark_all_v_defs_stmt (gimple stmt)
-{
-  tree sym;
-  ssa_op_iter iter;
-
-  update_stmt_if_modified (stmt);
-
-  FOR_EACH_SSA_TREE_OPERAND (sym, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (sym) == SSA_NAME)
-	sym = SSA_NAME_VAR (sym);
-      mark_sym_for_renaming (sym);
-    }
-}
-
-
 /* Mark all the variables in virtual operands in all the statements in
    LIST for renaming.  */
 
@@ -2045,7 +2012,7 @@ mark_all_v_defs_seq (gimple_seq seq)
   gimple_stmt_iterator gsi;
 
   for (gsi = gsi_start (seq); !gsi_end_p (gsi); gsi_next (&gsi))
-    mark_all_v_defs_stmt (gsi_stmt (gsi));
+    update_stmt_if_modified (gsi_stmt (gsi));
 }
 
 /* Mark every replacement under ELT with TREE_NO_WARNING.  */
@@ -2158,9 +2125,10 @@ sra_build_assignment (tree dst, tree src)
   if (scalar_bitfield_p (src))
     {
       tree var, shift, width;
-      tree utype, stype, stmp, utmp, dtmp;
+      tree utype, stype;
       bool unsignedp = (INTEGRAL_TYPE_P (TREE_TYPE (src))
 		        ? TYPE_UNSIGNED (TREE_TYPE (src)) : true);
+      struct gimplify_ctx gctx;
 
       var = TREE_OPERAND (src, 0);
       width = TREE_OPERAND (src, 1);
@@ -2191,28 +2159,15 @@ sra_build_assignment (tree dst, tree src)
       else if (!TYPE_UNSIGNED (utype))
 	utype = unsigned_type_for (utype);
 
-      stmp = make_rename_temp (stype, "SR");
-
       /* Convert the base var of the BIT_FIELD_REF to the scalar type
 	 we use for computation if we cannot use it directly.  */
-      if (!useless_type_conversion_p (stype, TREE_TYPE (var)))
-	{
-	  if (INTEGRAL_TYPE_P (TREE_TYPE (var)))
-	    stmt = gimple_build_assign (stmp, fold_convert (stype, var));
-	  else
-	    stmt = gimple_build_assign (stmp, fold_build1 (VIEW_CONVERT_EXPR,
-							   stype, var));
-	  gimple_seq_add_stmt (&seq, stmt);
-	  var = stmp;
-	}
+      if (INTEGRAL_TYPE_P (TREE_TYPE (var)))
+	var = fold_convert (stype, var);
+      else
+	var = fold_build1 (VIEW_CONVERT_EXPR, stype, var);
 
       if (!integer_zerop (shift))
-	{
-	  stmt = gimple_build_assign (stmp, fold_build2 (RSHIFT_EXPR, stype,
-							 var, shift));
-	  gimple_seq_add_stmt (&seq, stmt);
-	  var = stmp;
-	}
+	var = fold_build2 (RSHIFT_EXPR, stype, var, shift);
 
       /* If we need a masking operation, produce one.  */
       if (TREE_INT_CST_LOW (width) == TYPE_PRECISION (stype))
@@ -2222,24 +2177,11 @@ sra_build_assignment (tree dst, tree src)
 	  tree one = build_int_cst_wide (stype, 1, 0);
 	  tree mask = int_const_binop (LSHIFT_EXPR, one, width, 0);
 	  mask = int_const_binop (MINUS_EXPR, mask, one, 0);
-
-	  stmt = gimple_build_assign (stmp, fold_build2 (BIT_AND_EXPR, stype,
-							 var, mask));
-	  gimple_seq_add_stmt (&seq, stmt);
-	  var = stmp;
+	  var = fold_build2 (BIT_AND_EXPR, stype, var, mask);
 	}
 
       /* After shifting and masking, convert to the target type.  */
-      utmp = stmp;
-      if (!useless_type_conversion_p (utype, stype))
-	{
-	  utmp = make_rename_temp (utype, "SR");
-
-	  stmt = gimple_build_assign (utmp, fold_convert (utype, var));
-	  gimple_seq_add_stmt (&seq, stmt);
-
-	  var = utmp;
-	}
+      var = fold_convert (utype, var);
 
       /* Perform sign extension, if required.
 	 ???  This should never be necessary.  */
@@ -2250,40 +2192,29 @@ sra_build_assignment (tree dst, tree src)
 					  size_binop (MINUS_EXPR, width,
 						      bitsize_int (1)), 0);
 
-	  stmt = gimple_build_assign (utmp, fold_build2 (BIT_XOR_EXPR, utype,
-							 var, signbit));
-	  gimple_seq_add_stmt (&seq, stmt);
-
-	  stmt = gimple_build_assign (utmp, fold_build2 (MINUS_EXPR, utype,
-							 utmp, signbit));
-	  gimple_seq_add_stmt (&seq, stmt);
-
-	  var = utmp;
+	  var = fold_build2 (BIT_XOR_EXPR, utype, var, signbit);
+	  var = fold_build2 (MINUS_EXPR, utype, var, signbit);
 	}
 
       /* fold_build3 (BIT_FIELD_REF, ...) sometimes returns a cast.  */
       STRIP_NOPS (dst);
 
       /* Finally, move and convert to the destination.  */
-      if (!useless_type_conversion_p (TREE_TYPE (dst), TREE_TYPE (var)))
-	{
-	  if (INTEGRAL_TYPE_P (TREE_TYPE (dst)))
-	    var = fold_convert (TREE_TYPE (dst), var);
-	  else
-	    var = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (dst), var);
+      if (INTEGRAL_TYPE_P (TREE_TYPE (dst)))
+	var = fold_convert (TREE_TYPE (dst), var);
+      else
+	var = fold_build1 (VIEW_CONVERT_EXPR, TREE_TYPE (dst), var);
 
-	  /* If the destination is not a register the conversion needs
-	     to be a separate statement.  */
-	  if (!is_gimple_reg (dst))
-	    {
-	      dtmp = make_rename_temp (TREE_TYPE (dst), "SR");
-	      stmt = gimple_build_assign (dtmp, var);
-	      gimple_seq_add_stmt (&seq, stmt);
-	      var = dtmp;
-	    }
-	}
-      stmt = gimple_build_assign (dst, var);
-      gimple_seq_add_stmt (&seq, stmt);
+      push_gimplify_context (&gctx);
+      gctx.into_ssa = true;
+      gctx.allow_rhs_cond_expr = true;
+
+      gimplify_assign (dst, var, &seq);
+
+      if (gimple_referenced_vars (cfun))
+	for (var = gctx.temps; var; var = TREE_CHAIN (var))
+	  add_referenced_var (var);
+      pop_gimplify_context (NULL);
 
       return seq;
     }
@@ -2390,14 +2321,17 @@ sra_build_bf_assignment (tree dst, tree src)
       tmp = var;
       if (!is_gimple_variable (tmp))
 	tmp = unshare_expr (var);
+      else
+	TREE_NO_WARNING (var) = true;
 
       tmp2 = make_rename_temp (utype, "SR");
 
       if (INTEGRAL_TYPE_P (TREE_TYPE (var)))
-	stmt = gimple_build_assign (tmp2, fold_convert (utype, tmp));
+	tmp = fold_convert (utype, tmp);
       else
-	stmt = gimple_build_assign (tmp2, fold_build1 (VIEW_CONVERT_EXPR,
-						       utype, tmp));
+	tmp = fold_build1 (VIEW_CONVERT_EXPR, utype, tmp);
+
+      stmt = gimple_build_assign (tmp2, tmp);
       gimple_seq_add_stmt (&seq, stmt);
     }
   else
@@ -2903,6 +2837,7 @@ static void
 sra_replace (gimple_stmt_iterator *gsi, gimple_seq seq)
 {
   sra_insert_before (gsi, seq);
+  unlink_stmt_vdef (gsi_stmt (*gsi));
   gsi_remove (gsi, false);
   if (gsi_end_p (*gsi))
     *gsi = gsi_last (gsi_seq (*gsi));
@@ -2961,8 +2896,13 @@ bitfield_overlaps_p (tree blen, tree bpos, struct sra_elt *fld,
     }
   else if (TREE_CODE (fld->element) == INTEGER_CST)
     {
+      tree domain_type = TYPE_DOMAIN (TREE_TYPE (fld->parent->element));
       flen = fold_convert (bitsizetype, TYPE_SIZE (fld->type));
       fpos = fold_convert (bitsizetype, fld->element);
+      if (domain_type && TYPE_MIN_VALUE (domain_type))
+	fpos = size_binop (MINUS_EXPR, fpos,
+			   fold_convert (bitsizetype,
+			   		 TYPE_MIN_VALUE (domain_type)));
       fpos = size_binop (MULT_EXPR, flen, fpos);
     }
   else
@@ -3044,11 +2984,9 @@ sra_explode_bitfield_assignment (tree var, tree vpos, bool to_var,
 
 	  infld = fld->replacement;
 
-	  type = TREE_TYPE (infld);
+	  type = unsigned_type_for (TREE_TYPE (infld));
 	  if (TYPE_PRECISION (type) != TREE_INT_CST_LOW (flen))
-	    type = lang_hooks.types.type_for_size (TREE_INT_CST_LOW (flen), 1);
-	  else
-	    type = unsigned_type_for (type);
+	    type = build_nonstandard_integer_type (TREE_INT_CST_LOW (flen), 1);
 
 	  if (TREE_CODE (infld) == BIT_FIELD_REF)
 	    {
@@ -3175,7 +3113,7 @@ scalarize_use (struct sra_elt *elt, tree *expr_p, gimple_stmt_iterator *gsi,
 	  replacement = tmp;
 	}
       if (is_output)
-	  mark_all_v_defs_stmt (stmt);
+	  update_stmt_if_modified (stmt);
       *expr_p = REPLDUP (replacement);
       update_stmt (stmt);
     }
@@ -3256,12 +3194,20 @@ scalarize_use (struct sra_elt *elt, tree *expr_p, gimple_stmt_iterator *gsi,
       if (!elt->use_block_copy)
 	{
 	  tree type = TREE_TYPE (bfexpr);
-	  tree var, vpos;
+	  tree var = make_rename_temp (type, "SR"), tmp, vpos;
+	  gimple st = NULL;
+
+	  gimple_assign_set_rhs1 (stmt, var);
+	  update = true;
 
 	  if (!TYPE_UNSIGNED (type))
-	    type = unsigned_type_for (type);
-
-	  var = make_rename_temp (type, "SR");
+	    {
+	      type = unsigned_type_for (type);
+	      tmp = make_rename_temp (type, "SR");
+	      st = gimple_build_assign (var,
+					fold_convert (TREE_TYPE (var), tmp));
+	      var = tmp;
+	    }
 
 	  gimple_seq_add_stmt (&seq,
                                gimple_build_assign
@@ -3278,8 +3224,8 @@ scalarize_use (struct sra_elt *elt, tree *expr_p, gimple_stmt_iterator *gsi,
 	  sra_explode_bitfield_assignment
 	    (var, vpos, true, &seq, blen, bpos, elt);
 
-	  gimple_assign_set_rhs1 (stmt, var);
-	  update = true;
+	  if (st)
+	    gimple_seq_add_stmt (&seq, st);
 	}
       else
 	sra_sync_for_bitfield_assignment
@@ -3387,7 +3333,7 @@ scalarize_copy (struct sra_elt *lhs_elt, struct sra_elt *rhs_elt,
 	 original block copy statement.  */
 
       stmt = gsi_stmt (*gsi);
-      mark_all_v_defs_stmt (stmt);
+      update_stmt_if_modified (stmt);
 
       seq = NULL;
       generate_element_copy (lhs_elt, rhs_elt, &seq);
@@ -3454,7 +3400,7 @@ scalarize_init (struct sra_elt *lhs_elt, tree rhs, gimple_stmt_iterator *gsi)
       /* The LHS is fully instantiated.  The list of initializations
 	 replaces the original structure assignment.  */
       gcc_assert (seq);
-      mark_all_v_defs_stmt (gsi_stmt (*gsi));
+      update_stmt_if_modified (gsi_stmt (*gsi));
       mark_all_v_defs_seq (seq);
       sra_replace (gsi, seq);
     }
@@ -3505,7 +3451,7 @@ scalarize_ldst (struct sra_elt *elt, tree other,
       gimple_seq seq = NULL;
       gimple stmt = gsi_stmt (*gsi);
 
-      mark_all_v_defs_stmt (stmt);
+      update_stmt_if_modified (stmt);
       generate_copy_inout (elt, is_output, other, &seq);
       gcc_assert (seq);
       mark_all_v_defs_seq (seq);
@@ -3666,7 +3612,6 @@ static unsigned int
 tree_sra (void)
 {
   /* Initialize local variables.  */
-  todoflags = 0;
   gcc_obstack_init (&sra_obstack);
   sra_candidates = BITMAP_ALLOC (NULL);
   needs_copy_in = BITMAP_ALLOC (NULL);
@@ -3679,8 +3624,6 @@ tree_sra (void)
       scan_function ();
       decide_instantiations ();
       scalarize_function ();
-      if (!bitmap_empty_p (sra_candidates))
-	todoflags |= TODO_rebuild_alias;
     }
 
   /* Free allocated memory.  */
@@ -3691,7 +3634,7 @@ tree_sra (void)
   BITMAP_FREE (sra_type_decomp_cache);
   BITMAP_FREE (sra_type_inst_cache);
   obstack_free (&sra_obstack, NULL);
-  return todoflags;
+  return 0;
 }
 
 static unsigned int
@@ -3703,7 +3646,7 @@ tree_sra_early (void)
   ret = tree_sra ();
   early_sra = false;
 
-  return ret & ~TODO_rebuild_alias;
+  return ret;
 }
 
 static bool
@@ -3748,7 +3691,7 @@ struct gimple_opt_pass pass_sra =
   PROP_cfg | PROP_ssa,			/* properties_required */
   0,					/* properties_provided */
   0,				        /* properties_destroyed */
-  0,					/* todo_flags_start */
+  TODO_update_address_taken,		/* todo_flags_start */
   TODO_dump_func
   | TODO_update_ssa
   | TODO_ggc_collect

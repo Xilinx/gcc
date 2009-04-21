@@ -1,5 +1,6 @@
 /* Lower complex number operations to scalar operations.
-   Copyright (C) 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
    
@@ -537,7 +538,8 @@ set_component_ssa_name (tree ssa_name, bool imag_p, tree value)
   /* If we've nothing assigned, and the value we're given is already stable,
      then install that as the value for this SSA_NAME.  This preemptively
      copy-propagates the value, which avoids unnecessary memory allocation.  */
-  else if (is_gimple_min_invariant (value))
+  else if (is_gimple_min_invariant (value)
+	   && !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (ssa_name))
     {
       VEC_replace (tree, complex_ssa_name_components, ssa_name_index, value);
       return NULL;
@@ -744,23 +746,6 @@ update_phi_components (basic_block bb)
     }
 }
 
-/* Mark each virtual op in STMT for ssa update.  */
-
-static void
-update_all_vops (gimple stmt)
-{
-  ssa_op_iter iter;
-  tree sym;
-
-  FOR_EACH_SSA_TREE_OPERAND (sym, stmt, iter, SSA_OP_ALL_VIRTUALS)
-    {
-      if (TREE_CODE (sym) == SSA_NAME)
-	sym = SSA_NAME_VAR (sym);
-      mark_sym_for_renaming (sym);
-    }
-}
-
-
 /* Expand a complex move to scalars.  */
 
 static void
@@ -816,7 +801,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	}
       else
 	{
-	  update_all_vops (stmt);
 	  if (gimple_assign_rhs_code (stmt) != COMPLEX_EXPR)
 	    {
 	      r = extract_component (gsi, rhs, 0, true);
@@ -859,7 +843,6 @@ expand_complex_move (gimple_stmt_iterator *gsi, tree type)
 	  gimple_return_set_retval (stmt, lhs);
 	}
 
-      update_all_vops (stmt);
       update_stmt (stmt);
     }
 }
@@ -952,10 +935,10 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   enum machine_mode mode;
   enum built_in_function bcode;
   tree fn, type, lhs;
-  gimple stmt;
+  gimple old_stmt, stmt;
 
-  stmt = gsi_stmt (*gsi);
-  lhs = gimple_assign_lhs (stmt);
+  old_stmt = gsi_stmt (*gsi);
+  lhs = gimple_assign_lhs (old_stmt);
   type = TREE_TYPE (lhs);
 
   mode = TYPE_MODE (type);
@@ -972,7 +955,10 @@ expand_complex_libcall (gimple_stmt_iterator *gsi, tree ar, tree ai,
   stmt = gimple_build_call (fn, 4, ar, ai, br, bi);
   gimple_call_set_lhs (stmt, lhs);
   update_stmt (stmt);
-  gsi_replace (gsi, stmt, true);
+  gsi_replace (gsi, stmt, false);
+
+  if (maybe_clean_or_replace_eh_stmt (old_stmt, stmt))
+    gimple_purge_dead_eh_edges (gsi_bb (*gsi));
 
   if (gimple_in_ssa_p (cfun))
     {
@@ -1620,7 +1606,7 @@ struct gimple_opt_pass pass_lower_complex =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,                       		/* properties_destroyed */
@@ -1671,7 +1657,7 @@ struct gimple_opt_pass pass_lower_complex_O0 =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

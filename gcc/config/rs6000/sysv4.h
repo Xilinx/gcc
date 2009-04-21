@@ -1,6 +1,6 @@
 /* Target definitions for GNU compiler for PowerPC running System V.4
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Cygnus Support.
 
    This file is part of GCC.
@@ -15,8 +15,13 @@
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
 /* Header files should be C++ aware in general.  */
@@ -54,6 +59,7 @@ extern enum rs6000_sdata_type rs6000_sdata;
 
 #define	TARGET_BITFIELD_TYPE	(! TARGET_NO_BITFIELD_TYPE)
 #define	TARGET_BIG_ENDIAN	(! TARGET_LITTLE_ENDIAN)
+#define	TARGET_PROTOTYPE	target_prototype
 #define	TARGET_NO_PROTOTYPE	(! TARGET_PROTOTYPE)
 #define	TARGET_NO_TOC		(! TARGET_TOC)
 #define	TARGET_NO_EABI		(! TARGET_EABI)
@@ -585,10 +591,10 @@ extern int fixuplabelno;
 /* Override svr4.h definition.  */
 #undef	ASM_SPEC
 #define	ASM_SPEC "%(asm_cpu) \
-%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
-%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
-%{memb|msdata|msdata=eabi: -memb} \
+%{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}}" \
+SVR4_ASM_SPEC \
+"%{mrelocatable} %{mrelocatable-lib} %{fpic|fpie|fPIC|fPIE:-K PIC} \
+%{memb|msdata=eabi: -memb} \
 %{mlittle|mlittle-endian:-mlittle; \
   mbig|mbig-endian      :-mbig;    \
   mcall-aixdesc |		   \
@@ -728,6 +734,9 @@ extern int fixuplabelno;
                : %(link_os_default)     }"
 
 #define LINK_OS_DEFAULT_SPEC ""
+
+#define DRIVER_SELF_SPECS "%{mfpu=none: %<mfpu=* \
+ 	%<msingle-float %<mdouble-float}"
 
 /* Override rs6000.h definition.  */
 #undef	CPP_SPEC

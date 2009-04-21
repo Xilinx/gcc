@@ -1,5 +1,5 @@
 /* Discovery of auto-inc and auto-dec instructions.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
    
 This file is part of GCC.
@@ -520,10 +520,10 @@ attempt_change (rtx new_addr, rtx inc_reg)
   PUT_MODE (mem_tmp, mode);
   XEXP (mem_tmp, 0) = new_addr;
 
-  old_cost = rtx_cost (mem, 0, speed) 
-    + rtx_cost (PATTERN (inc_insn.insn), 0, speed);
-  new_cost = rtx_cost (mem_tmp, 0, speed);
-  
+  old_cost = (rtx_cost (mem, SET, speed)
+	      + rtx_cost (PATTERN (inc_insn.insn), SET, speed));
+  new_cost = rtx_cost (mem_tmp, SET, speed);
+
   /* The first item of business is to see if this is profitable.  */
   if (old_cost < new_cost)
     {
@@ -1007,7 +1007,7 @@ find_inc (bool first_try)
   rtx insn;
   basic_block bb = BASIC_BLOCK (BLOCK_NUM (mem_insn.insn));
   rtx other_insn;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
 
   /* Make sure this reg appears only once in this insn.  */
   if (count_occurrences (PATTERN (mem_insn.insn), mem_insn.reg0, 1) != 1)
@@ -1053,7 +1053,7 @@ find_inc (bool first_try)
      assigned to by the mem insn.  */
   for (def_rec = DF_INSN_DEFS (mem_insn.insn); *def_rec; def_rec++)
     {
-      struct df_ref *def = *def_rec;
+      df_ref def = *def_rec;
       unsigned int regno = DF_REF_REGNO (def);
       if ((regno == REGNO (inc_insn.reg0)) 
 	  || (regno == REGNO (inc_insn.reg_res)))
@@ -1454,12 +1454,12 @@ merge_in_block (int max_reg, basic_block bb)
 	 and there is noting to update.  */
       if (DF_INSN_UID_GET(uid))
 	{
-	  struct df_ref **def_rec;
-	  struct df_ref **use_rec;
+	  df_ref *def_rec;
+	  df_ref *use_rec;
 	  /* Need to update next use.  */
 	  for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 	    {
-	      struct df_ref *def = *def_rec;
+	      df_ref def = *def_rec;
 	      reg_next_use[DF_REF_REGNO (def)] = NULL;
 	      reg_next_inc_use[DF_REF_REGNO (def)] = NULL;
 	      reg_next_def[DF_REF_REGNO (def)] = insn;
@@ -1467,7 +1467,7 @@ merge_in_block (int max_reg, basic_block bb)
 	  
 	  for (use_rec = DF_INSN_UID_USES (uid); *use_rec; use_rec++)
 	    {
-	      struct df_ref *use = *use_rec;
+	      df_ref use = *use_rec;
 	      reg_next_use[DF_REF_REGNO (use)] = insn;
 	      if (insn_is_add_or_inc)
 		reg_next_inc_use[DF_REF_REGNO (use)] = insn;
@@ -1544,7 +1544,7 @@ struct rtl_opt_pass pass_inc_dec =
 {
  {
   RTL_PASS,
-  "auto-inc-dec",                       /* name */
+  "auto_inc_dec",                       /* name */
   gate_auto_inc_dec,                    /* gate */
   rest_of_handle_auto_inc_dec,          /* execute */
   NULL,                                 /* sub */
@@ -1559,4 +1559,3 @@ struct rtl_opt_pass pass_inc_dec =
   TODO_df_finish,                       /* todo_flags_finish */
  }
 };
-

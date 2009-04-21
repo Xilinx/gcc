@@ -1,5 +1,5 @@
 /* Configuration file for ARM BPABI targets.
-   Copyright (C) 2004, 2005, 2007, 2008
+   Copyright (C) 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC   
 
@@ -55,7 +55,7 @@
 
 /* Tell the assembler to build BPABI binaries.  */
 #undef  SUBTARGET_EXTRA_ASM_SPEC
-#define SUBTARGET_EXTRA_ASM_SPEC "%{mabi=apcs-gnu|mabi=atpcs:-meabi=gnu;:-meabi=4}" TARGET_FIX_V4BX_SPEC
+#define SUBTARGET_EXTRA_ASM_SPEC "%{mabi=apcs-gnu|mabi=atpcs:-meabi=gnu;:-meabi=5}" TARGET_FIX_V4BX_SPEC
 
 #ifndef SUBTARGET_EXTRA_LINK_SPEC
 #define SUBTARGET_EXTRA_LINK_SPEC ""
@@ -147,3 +147,26 @@
 #undef FINI_SECTION_ASM_OP
 #define INIT_ARRAY_SECTION_ASM_OP ARM_EABI_CTORS_SECTION_OP
 #define FINI_ARRAY_SECTION_ASM_OP ARM_EABI_DTORS_SECTION_OP
+
+/* The legacy _mcount implementation assumes r11 points to a
+    4-word APCS frame.  This is generally not true for EABI targets,
+    particularly not in Thumb mode.  We assume the mcount
+    implementation does not require a counter variable (No Counter).
+    Note that __gnu_mcount_nc will be entered with a misaligned stack.
+    This is OK because it uses a special calling convention anyway.  */
+
+#undef  NO_PROFILE_COUNTERS
+#define NO_PROFILE_COUNTERS 1
+#undef  ARM_FUNCTION_PROFILER
+#define ARM_FUNCTION_PROFILER(STREAM, LABELNO)  			\
+{									\
+  fprintf (STREAM, "\tpush\t{lr}\n");					\
+  fprintf (STREAM, "\tbl\t__gnu_mcount_nc\n");				\
+}
+
+#undef SUBTARGET_FRAME_POINTER_REQUIRED
+#define SUBTARGET_FRAME_POINTER_REQUIRED 0
+
+/* __gnu_mcount_nc restores the original LR value before returning.  Ensure
+   that there is no unnecessary hook set up.  */
+#undef PROFILE_HOOK

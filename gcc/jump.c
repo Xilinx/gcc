@@ -1,6 +1,6 @@
 /* Optimize jump instructions, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -132,7 +132,7 @@ struct rtl_opt_pass pass_cleanup_barriers =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1536,6 +1536,7 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
     {
       int reg_x = -1, reg_y = -1;
       int byte_x = 0, byte_y = 0;
+      struct subreg_info info;
 
       if (GET_MODE (x) != GET_MODE (y))
 	return 0;
@@ -1552,22 +1553,14 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 
 	  if (reg_renumber[reg_x] >= 0)
 	    {
-	      if (!subreg_offset_representable_p (reg_renumber[reg_x],
-						  GET_MODE (SUBREG_REG (x)),
-						  byte_x,
-						  GET_MODE (x)))
+	      subreg_get_info (reg_renumber[reg_x],
+			       GET_MODE (SUBREG_REG (x)), byte_x,
+			       GET_MODE (x), &info);
+	      if (!info.representable_p)
 		return 0;
-	      reg_x = subreg_regno_offset (reg_renumber[reg_x],
-					   GET_MODE (SUBREG_REG (x)),
-					   byte_x,
-					   GET_MODE (x));
+	      reg_x = info.offset;
 	      byte_x = 0;
 	    }
-	  else if (!subreg_offset_representable_p (reg_x,
-						   GET_MODE (SUBREG_REG (x)),
-						   byte_x,
-						   GET_MODE (x)))
-	    return 0;
 	}
       else
 	{
@@ -1583,22 +1576,14 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 
 	  if (reg_renumber[reg_y] >= 0)
 	    {
-	      if (!subreg_offset_representable_p (reg_renumber[reg_y],
-						  GET_MODE (SUBREG_REG (y)),
-						  byte_y,
-						  GET_MODE (y)))
+	      subreg_get_info (reg_renumber[reg_y],
+			       GET_MODE (SUBREG_REG (y)), byte_y,
+			       GET_MODE (y), &info);
+	      if (!info.representable_p)
 		return 0;
-	      reg_y = subreg_regno_offset (reg_renumber[reg_y],
-					   GET_MODE (SUBREG_REG (y)),
-					   byte_y,
-					   GET_MODE (y));
+	      reg_y = info.offset;
 	      byte_y = 0;
 	    }
-	  else if (!subreg_offset_representable_p (reg_y,
-						   GET_MODE (SUBREG_REG (y)),
-						   byte_y,
-						   GET_MODE (y)))
-	    return 0;
 	}
       else
 	{
@@ -1738,13 +1723,17 @@ true_regnum (const_rtx x)
     {
       int base = true_regnum (SUBREG_REG (x));
       if (base >= 0
-	  && base < FIRST_PSEUDO_REGISTER
-	  && subreg_offset_representable_p (REGNO (SUBREG_REG (x)),
-					    GET_MODE (SUBREG_REG (x)),
-					    SUBREG_BYTE (x), GET_MODE (x)))
-	return base + subreg_regno_offset (REGNO (SUBREG_REG (x)),
-					   GET_MODE (SUBREG_REG (x)),
-					   SUBREG_BYTE (x), GET_MODE (x));
+	  && base < FIRST_PSEUDO_REGISTER)
+	{
+	  struct subreg_info info;
+
+	  subreg_get_info (REGNO (SUBREG_REG (x)),
+			   GET_MODE (SUBREG_REG (x)),
+			   SUBREG_BYTE (x), GET_MODE (x), &info);
+
+	  if (info.representable_p)
+	    return base + info.offset;
+	}
     }
   return -1;
 }

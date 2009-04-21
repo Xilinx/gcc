@@ -430,14 +430,8 @@ poplevel (int keep, int reverse, int functionbody)
   current_binding_level = current_binding_level->level_chain;
 
   if (functionbody)
-    {
-      /* This is the top level block of a function. The ..._DECL chain stored
-         in BLOCK_VARS are the function's parameters (PARM_DECL nodes). Don't
-         leave them in the BLOCK because they are found in the FUNCTION_DECL
-         instead.  */
-      DECL_INITIAL (current_function_decl) = block_node;
-      BLOCK_VARS (block_node) = 0;
-    }
+    /* This is the top level block of a function. */
+    DECL_INITIAL (current_function_decl) = block_node;
   else if (current_binding_level == global_binding_level)
     /* When using gfc_start_block/gfc_finish_block from middle-end hooks,
        don't add newly created BLOCKs as subblocks of global_binding_level.  */
@@ -923,12 +917,12 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", true);
 
-  gfc_define_builtin ("__builtin_infl", mfunc_longdouble[3], 
-		      BUILT_IN_INFL, "__builtin_infl", true);
-  gfc_define_builtin ("__builtin_inf", mfunc_double[3], 
-		      BUILT_IN_INF, "__builtin_inf", true);
-  gfc_define_builtin ("__builtin_inff", mfunc_float[3], 
-		      BUILT_IN_INFF, "__builtin_inff", true);
+  gfc_define_builtin ("__builtin_huge_vall", mfunc_longdouble[3], 
+		      BUILT_IN_HUGE_VALL, "__builtin_huge_vall", true);
+  gfc_define_builtin ("__builtin_huge_val", mfunc_double[3], 
+		      BUILT_IN_HUGE_VAL, "__builtin_huge_val", true);
+  gfc_define_builtin ("__builtin_huge_valf", mfunc_float[3], 
+		      BUILT_IN_HUGE_VALF, "__builtin_huge_valf", true);
 
   /* lround{f,,l} and llround{f,,l} */
   type = tree_cons (NULL_TREE, float_type_node, void_list_node);
@@ -1002,6 +996,37 @@ gfc_init_builtin_functions (void)
       gfc_define_builtin ("__builtin_sincosf", func_float_floatp_floatp,
 		          BUILT_IN_SINCOSF, "sincosf", false);
     }
+
+  /* For LEADZ / TRAILZ.  */
+  tmp = tree_cons (NULL_TREE, unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clz", ftype, BUILT_IN_CLZ,
+		      "__builtin_clz", true);
+
+  tmp = tree_cons (NULL_TREE, long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clzl", ftype, BUILT_IN_CLZL,
+		      "__builtin_clzl", true);
+
+  tmp = tree_cons (NULL_TREE, long_long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_clzll", ftype, BUILT_IN_CLZLL,
+		      "__builtin_clzll", true);
+
+  tmp = tree_cons (NULL_TREE, unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctz", ftype, BUILT_IN_CTZ,
+		      "__builtin_ctz", true);
+
+  tmp = tree_cons (NULL_TREE, long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctzl", ftype, BUILT_IN_CTZL,
+		      "__builtin_ctzl", true);
+
+  tmp = tree_cons (NULL_TREE, long_long_unsigned_type_node, void_list_node);
+  ftype = build_function_type (integer_type_node, tmp);
+  gfc_define_builtin ("__builtin_ctzll", ftype, BUILT_IN_CTZLL,
+		      "__builtin_ctzll", true);
 
   /* Other builtin functions we use.  */
 

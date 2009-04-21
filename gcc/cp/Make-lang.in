@@ -93,7 +93,7 @@ cp-warn = $(STRICT_WARN)
 
 cc1plus-dummy$(exeext): $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-	      $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
+	      $(CXX_OBJS) dummy-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 cc1plus-checksum.c : cc1plus-dummy$(exeext) build/genchecksum$(build_exeext)
 	build/genchecksum$(build_exeext) cc1plus-dummy$(exeext) > $@
@@ -102,7 +102,7 @@ cc1plus-checksum.o : cc1plus-checksum.c
 
 cc1plus$(exeext): $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBDEPS)
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-	      $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBS) $(GMPLIBS)
+	      $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
 # Special build rules.
 $(srcdir)/cp/cfns.h: $(srcdir)/cp/cfns.gperf
@@ -138,8 +138,12 @@ c++.srcman: doc/g++.1
 # check targets.  However, our DejaGNU framework requires 'check-g++' as its
 # entry point.  We feed the former to the latter here.
 check-c++ : check-g++
+check-c++-subtargets : check-g++-subtargets
 # List of targets that can use the generic check- rule and its // variant.
 lang_checks += check-g++
+lang_checks_parallelized += check-g++
+# For description see comment above check_gcc_parallelize in gcc/Makefile.in.
+check_g++_parallelize = old-deja.exp dg.exp
 
 #
 # Install hooks:
@@ -236,7 +240,7 @@ cp/cp-lang.o: cp/cp-lang.c $(CXX_TREE_H) $(TM_H) toplev.h debug.h langhooks.h \
 cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h $(EXPR_H) except.h toplev.h $(HASHTAB_H) $(RTL_H) \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
-  debug.h gt-cp-decl.h $(TIMEVAR_H) $(TREE_FLOW_H) $(TARGET_H)
+  debug.h gt-cp-decl.h $(TIMEVAR_H) $(TREE_FLOW_H) $(TARGET_H) $(PLUGIN_H)
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h $(EXPR_H) \
   output.h except.h toplev.h $(RTL_H) $(C_COMMON_H) gt-cp-decl2.h $(CGRAPH_H) \
   $(C_PRAGMA_H) $(TREE_DUMP_H) intl.h $(TARGET_H) $(GIMPLE_H)
@@ -288,7 +292,7 @@ cp/optimize.o: cp/optimize.c $(CXX_TREE_H) $(TM_H) rtl.h $(INTEGRATE_H) \
 cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) toplev.h $(REAL_H) \
   gt-cp-mangle.h $(TARGET_H) $(TM_P_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_H) gt-cp-parser.h \
-  output.h $(TARGET_H)
+  output.h $(TARGET_H) $(PLUGIN_H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) toplev.h $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
 

@@ -1,5 +1,5 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
@@ -851,8 +851,9 @@ enum reg_class
 /* Node: Elimination */
 
 /* Really only needed if the stack frame has variable length (alloca
-   or variable sized local arguments (GNU C extension).  */
-#define FRAME_POINTER_REQUIRED 0
+   or variable sized local arguments (GNU C extension).  See PR39499 and
+   PR38609 for the reason this isn't just 0.  */
+#define FRAME_POINTER_REQUIRED (!current_function_sp_is_unchanging)
 
 #define ELIMINABLE_REGS				\
  {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\

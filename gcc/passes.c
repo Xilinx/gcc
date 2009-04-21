@@ -1,6 +1,6 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -319,7 +319,7 @@ struct rtl_opt_pass pass_postreload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   PROP_rtl,                             /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -368,7 +368,7 @@ get_pass_for_id (int id)
    to do this depth first, and independent of whether the pass is
    enabled or not.  */
 
-static void
+void
 register_one_dump_file (struct opt_pass *pass)
 {
   char *dot_name, *flag_name, *glob_name;
@@ -536,13 +536,13 @@ init_optimization_passes (void)
   NEXT_PASS (pass_early_local_passes);
     {
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
+      NEXT_PASS (pass_fixup_cfg);
       NEXT_PASS (pass_tree_profile);
       NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
       NEXT_PASS (pass_referenced_vars);
-      NEXT_PASS (pass_reset_cc_flags);
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_early_warn_uninitialized);
       NEXT_PASS (pass_all_early_optimizations);
@@ -550,6 +550,7 @@ init_optimization_passes (void)
 	  struct opt_pass **p = &pass_all_early_optimizations.pass.sub;
 	  NEXT_PASS (pass_rebuild_cgraph_edges);
 	  NEXT_PASS (pass_early_inline);
+	  NEXT_PASS (pass_remove_cgraph_callee_edges);
 	  NEXT_PASS (pass_rename_ssa_copies);
 	  NEXT_PASS (pass_ccp);
 	  NEXT_PASS (pass_forwprop);
@@ -558,10 +559,11 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_cd_dce);
-	  NEXT_PASS (pass_simple_dse);
 	  NEXT_PASS (pass_tail_recursion);
 	  NEXT_PASS (pass_convert_switch);
+          NEXT_PASS (pass_cleanup_eh);
           NEXT_PASS (pass_profile);
+          NEXT_PASS (pass_local_pure_const);
 	}
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
@@ -584,6 +586,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_all_optimizations);
     {
       struct opt_pass **p = &pass_all_optimizations.pass.sub;
+      NEXT_PASS (pass_remove_cgraph_callee_edges);
       /* Initial scalar cleanups before alias computation.
 	 They ensure memory accesses are not indirect wherever possible.  */
       NEXT_PASS (pass_strip_predict_hints);
@@ -701,7 +704,9 @@ init_optimization_passes (void)
       NEXT_PASS (pass_tail_calls);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
+      NEXT_PASS (pass_local_pure_const);
     }
+  NEXT_PASS (pass_cleanup_eh);
   NEXT_PASS (pass_del_ssa);
   NEXT_PASS (pass_nrv);
   NEXT_PASS (pass_mark_used_blocks);
@@ -749,15 +754,15 @@ init_optimization_passes (void)
       NEXT_PASS (pass_cse2);
       NEXT_PASS (pass_rtl_dse1);
       NEXT_PASS (pass_rtl_fwprop_addr);
-      NEXT_PASS (pass_regclass_init);
+      NEXT_PASS (pass_reginfo_init);
       NEXT_PASS (pass_inc_dec);
       NEXT_PASS (pass_initialize_regs);
-      NEXT_PASS (pass_outof_cfg_layout_mode);
       NEXT_PASS (pass_ud_rtl_dce);
       NEXT_PASS (pass_combine);
       NEXT_PASS (pass_if_after_combine);
       NEXT_PASS (pass_partition_blocks);
       NEXT_PASS (pass_regmove);
+      NEXT_PASS (pass_outof_cfg_layout_mode);
       NEXT_PASS (pass_split_all_insns);
       NEXT_PASS (pass_lower_subreg2);
       NEXT_PASS (pass_df_initialize_no_opt);
@@ -768,8 +773,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_sms);
       NEXT_PASS (pass_sched);
       NEXT_PASS (pass_subregs_of_mode_init);
-      NEXT_PASS (pass_local_alloc);
-      NEXT_PASS (pass_global_alloc);
       NEXT_PASS (pass_ira);
       NEXT_PASS (pass_subregs_of_mode_finish);
       NEXT_PASS (pass_postreload);
@@ -781,7 +784,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_branch_target_load_optimize1);
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);
-	  NEXT_PASS (pass_rtl_seqabstr);
 	  NEXT_PASS (pass_stack_adjustments);
 	  NEXT_PASS (pass_peephole2);
 	  NEXT_PASS (pass_if_after_reload);
@@ -880,11 +882,14 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
       order = GGC_NEWVEC (struct cgraph_node *, cgraph_n_nodes);
       nnodes = cgraph_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
+        order[i]->process = 1;
+      for (i = nnodes - 1; i >= 0; i--)
 	{
 	  struct cgraph_node *node = order[i];
 
 	  /* Allow possibly removed nodes to be garbage collected.  */
 	  order[i] = NULL;
+	  node->process = 0;
 	  if (node->analyzed && (node->needed || node->reachable))
 	    {
 	      push_cfun (DECL_STRUCT_FUNCTION (node->decl));
@@ -931,7 +936,7 @@ execute_function_todo (void *data)
 	 SSA form to become out-of-date (see PR 22037).  So, even
 	 if the parent pass had not scheduled an SSA update, we may
 	 still need to do one.  */
-      if (!(flags & TODO_update_ssa_any) && need_ssa_update_p ())
+      if (!(flags & TODO_update_ssa_any) && need_ssa_update_p (cfun))
 	flags |= TODO_update_ssa;
     }
 
@@ -942,8 +947,13 @@ execute_function_todo (void *data)
       cfun->last_verified &= ~TODO_verify_ssa;
     }
   
+  if (flags & TODO_update_address_taken)
+    execute_update_addresses_taken (true);
+
   if (flags & TODO_rebuild_alias)
     {
+      if (!(flags & TODO_update_address_taken))
+	execute_update_addresses_taken (true);
       compute_may_aliases ();
       cfun->curr_properties |= PROP_alias;
     }
@@ -1015,7 +1025,8 @@ static void
 execute_todo (unsigned int flags)
 {
 #if defined ENABLE_CHECKING
-  if (need_ssa_update_p ())
+  if (cfun
+      && need_ssa_update_p (cfun))
     gcc_assert (flags & TODO_update_ssa_any);
 #endif
 
@@ -1196,14 +1207,14 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   execute_todo (ipa_pass->function_transform_todo_flags_start);
 
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
   todo_after = ipa_pass->function_transform (node);
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   /* Run post-pass cleanup and verification.  */
@@ -1259,6 +1270,8 @@ execute_one_pass (struct opt_pass *pass)
      This is a hack until the new folder is ready.  */
   in_gimple_form = (cfun && (cfun->curr_properties & PROP_trees)) != 0;
 
+  initializing_dump = pass_init_dump_file (pass);
+
   /* Run pre-pass verification.  */
   execute_todo (pass->todo_flags_start);
 
@@ -1267,10 +1280,8 @@ execute_one_pass (struct opt_pass *pass)
 		   (void *)(size_t)pass->properties_required);
 #endif
 
-  initializing_dump = pass_init_dump_file (pass);
-
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
@@ -1281,7 +1292,7 @@ execute_one_pass (struct opt_pass *pass)
     }
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   do_per_function (update_properties_after_pass, pass);
@@ -1289,6 +1300,7 @@ execute_one_pass (struct opt_pass *pass)
   if (initializing_dump
       && dump_file
       && graph_dump_format != no_graph
+      && cfun
       && (cfun->curr_properties & (PROP_cfg | PROP_rtl))
 	  == (PROP_cfg | PROP_rtl))
     {
@@ -1368,6 +1380,32 @@ execute_ipa_pass_list (struct opt_pass *pass)
       pass = pass->next;
     }
   while (pass);
+}
+
+/* Called by local passes to see if function is called by already processed nodes.
+   Because we process nodes in topological order, this means that function is
+   in recursive cycle or we introduced new direct calls.  */
+bool
+function_called_by_processed_nodes_p (void)
+{
+  struct cgraph_edge *e;
+  for (e = cgraph_node (current_function_decl)->callers; e; e = e->next_caller)
+    {
+      if (e->caller->decl == current_function_decl)
+        continue;
+      if (!e->caller->analyzed || (!e->caller->needed && !e->caller->reachable))
+        continue;
+      if (TREE_ASM_WRITTEN (e->caller->decl))
+        continue;
+      if (!e->caller->process && !e->caller->global.inlined_to)
+      	break;
+    }
+  if (dump_file && e)
+    {
+      fprintf (dump_file, "Already processed call to:\n");
+      dump_cgraph_node (dump_file, e->caller);
+    }
+  return e != NULL;
 }
 
 #include "gt-passes.h"

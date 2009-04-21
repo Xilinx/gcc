@@ -1,6 +1,6 @@
 /* Definitions for Intel 386 running Linux-based GNU systems with ELF format.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Eric Youngdale.
    Modified for stabs-in-ELF by H.J. Lu.
 
@@ -101,6 +101,11 @@ along with GCC; see the file COPYING3.  If not see
 /* These macros may be overridden in k*bsd-gnu.h and i386/k*bsd-gnu.h. */
 #define LINK_EMULATION "elf_i386"
 #define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
+
+#undef  ASM_SPEC
+#define ASM_SPEC \
+  "%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef  SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS \

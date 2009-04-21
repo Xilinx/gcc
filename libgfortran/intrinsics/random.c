@@ -1,5 +1,5 @@
 /* Implementation of the RANDOM intrinsics
-   Copyright 2002, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright 2002, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Lars Segerlund <seger@linuxmail.org>
    and Steve Kargl.
 
@@ -8,26 +8,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Ligbfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <gthr.h>
@@ -75,8 +70,7 @@ static __gthread_mutex_t random_lock;
    GFC_REAL_* types in the range of [0,1).  If GFC_REAL_*_RADIX are 2
    or 16, respectively, we mask off the bits that don't fit into the
    correct GFC_REAL_*, convert to the real type, then multiply by the
-   correct offset.
-*/
+   correct offset.  */
 
 
 static inline void
@@ -214,8 +208,7 @@ KISS algorithm.  */
    We do this by using three generators with different seeds, the
    first one always for the most significant bits, the second one
    for bits 33..64 (if present in the REAL kind), and the third one
-   (called twice) for REAL(16).
-*/
+   (called twice) for REAL(16).  */
 
 #define GFC_SL(k, n)	((k)^((k)<<(n)))
 #define GFC_SR(k, n)	((k)^((k)>>(n)))
@@ -229,8 +222,11 @@ KISS algorithm.  */
    with 0<=x<2^32, 0<y<2^32, 0<=z<2^32, 0<=c<698769069
    except that the two pairs
    z=0,c=0 and z=2^32-1,c=698769068
-   should be avoided.
-*/
+   should be avoided.  */
+
+/* Any modifications to the seeds that change kiss_size below need to be
+   reflected in check.c (gfc_check_random_seed) to enable correct
+   compile-time checking of PUT size for the RANDOM_SEED intrinsic.  */
 
 #define KISS_DEFAULT_SEED_1 123456789, 362436069, 521288629, 316191069
 #define KISS_DEFAULT_SEED_2 987654321, 458629013, 582859209, 438195021
@@ -390,7 +386,7 @@ arandom_r4 (gfc_array_r4 *x)
 
   while (dest)
     {
-      /* random_r4 (dest); */
+      /* random_r4 (dest);  */
       kiss = kiss_random_kernel (kiss_seed_1);
       rnumber_4 (dest, kiss);
 
@@ -457,7 +453,7 @@ arandom_r8 (gfc_array_r8 *x)
 
   while (dest)
     {
-      /* random_r8 (dest); */
+      /* random_r8 (dest);  */
       kiss = ((GFC_UINTEGER_8) kiss_random_kernel (kiss_seed_1)) << 32;
       kiss += kiss_random_kernel (kiss_seed_2);
       rnumber_8 (dest, kiss);
@@ -527,7 +523,7 @@ arandom_r10 (gfc_array_r10 *x)
 
   while (dest)
     {
-      /* random_r10 (dest); */
+      /* random_r10 (dest);  */
       kiss = ((GFC_UINTEGER_8) kiss_random_kernel (kiss_seed_1)) << 32;
       kiss += kiss_random_kernel (kiss_seed_2);
       rnumber_10 (dest, kiss);
@@ -599,7 +595,7 @@ arandom_r16 (gfc_array_r16 *x)
 
   while (dest)
     {
-      /* random_r16 (dest); */
+      /* random_r16 (dest);  */
       kiss1 = ((GFC_UINTEGER_8) kiss_random_kernel (kiss_seed_1)) << 32;
       kiss1 += kiss_random_kernel (kiss_seed_2);
 

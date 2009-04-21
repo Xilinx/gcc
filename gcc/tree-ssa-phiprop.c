@@ -105,12 +105,11 @@ static bool
 phivn_valid_p (struct phiprop_d *phivn, tree name, basic_block bb)
 {
   gimple vop_stmt = phivn[SSA_NAME_VERSION (name)].vop_stmt;
-  ssa_op_iter ui;
   tree vuse;
 
   /* The def stmts of all virtual uses need to be post-dominated
      by bb.  */
-  FOR_EACH_SSA_TREE_OPERAND (vuse, vop_stmt, ui, SSA_OP_VUSE)
+  if ((vuse = gimple_vuse (vop_stmt)))
     {
       gimple use_stmt;
       imm_use_iterator ui2;
@@ -120,7 +119,7 @@ phivn_valid_p (struct phiprop_d *phivn, tree name, basic_block bb)
 	{
 	  /* If BB does not dominate a VDEF, the value is invalid.  */
 	  if (((is_gimple_assign (use_stmt)
-	        && !ZERO_SSA_OPERANDS (use_stmt, SSA_OP_VDEF))
+	        && gimple_vdef (use_stmt))
 	       || gimple_code (use_stmt) == GIMPLE_PHI)
 	      && !dominated_by_p (CDI_DOMINATORS, gimple_bb (use_stmt), bb))
 	    {
@@ -229,8 +228,7 @@ propagate_with_phi (basic_block bb, gimple phi, struct phiprop_d *phivn,
   ssa_op_iter i;
   bool phi_inserted;
 
-  if (MTAG_P (SSA_NAME_VAR (ptr))
-      || !POINTER_TYPE_P (TREE_TYPE (ptr))
+  if (!POINTER_TYPE_P (TREE_TYPE (ptr))
       || !is_gimple_reg_type (TREE_TYPE (TREE_TYPE (ptr))))
     return false;
 
@@ -271,7 +269,6 @@ propagate_with_phi (basic_block bb, gimple phi, struct phiprop_d *phivn,
   phi_inserted = false;
   FOR_EACH_IMM_USE_STMT (use_stmt, ui, ptr)
     {
-      ssa_op_iter ui2;
       tree vuse;
 
       /* Check whether this is a load of *ptr.  */
@@ -285,7 +282,7 @@ propagate_with_phi (basic_block bb, gimple phi, struct phiprop_d *phivn,
 
       /* Check if we can move the loads.  The def stmts of all virtual uses
 	 need to be post-dominated by bb.  */
-      FOR_EACH_SSA_TREE_OPERAND (vuse, use_stmt, ui2, SSA_OP_VUSE)
+      if ((vuse = gimple_vuse (use_stmt)) != NULL_TREE)
 	{
 	  gimple def_stmt = SSA_NAME_DEF_STMT (vuse);
 	  if (!SSA_NAME_IS_DEFAULT_DEF (vuse)
@@ -328,41 +325,34 @@ next:;
   return phi_inserted;
 }
 
-/* Helper walking the dominator tree starting from BB and processing
-   phi nodes with global data PHIVN and N.  */
-
-static bool
-tree_ssa_phiprop_1 (basic_block bb, struct phiprop_d *phivn, size_t n)
-{
-  bool did_something = false; 
-  basic_block son;
-  gimple_stmt_iterator gsi;
-
-  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    did_something |= propagate_with_phi (bb, gsi_stmt (gsi), phivn, n);
-
-  for (son = first_dom_son (CDI_DOMINATORS, bb);
-       son;
-       son = next_dom_son (CDI_DOMINATORS, son))
-    did_something |= tree_ssa_phiprop_1 (son, phivn, n);
-
-  return did_something;
-}
-
 /* Main entry for phiprop pass.  */
 
 static unsigned int
 tree_ssa_phiprop (void)
 {
+  VEC(basic_block, heap) *bbs;
   struct phiprop_d *phivn;
+  bool did_something = false; 
+  basic_block bb;
+  gimple_stmt_iterator gsi;
+  unsigned i;
 
   calculate_dominance_info (CDI_DOMINATORS);
 
   phivn = XCNEWVEC (struct phiprop_d, num_ssa_names);
 
-  if (tree_ssa_phiprop_1 (ENTRY_BLOCK_PTR, phivn, num_ssa_names))
+  /* Walk the dominator tree in preorder.  */
+  bbs = get_all_dominated_blocks (CDI_DOMINATORS,
+				  single_succ (ENTRY_BLOCK_PTR));
+  for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
+    for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      did_something |= propagate_with_phi (bb, gsi_stmt (gsi),
+					   phivn, num_ssa_names);
+
+  if (did_something)
     gsi_commit_edge_inserts ();
 
+  VEC_free (basic_block, heap, bbs);
   free (phivn);
 
   return 0;

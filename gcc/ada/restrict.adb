@@ -154,10 +154,7 @@ package body Restrict is
             --  Strip extension and pad to eight characters
 
             Name_Len := Name_Len - 4;
-            while Name_Len < 8 loop
-               Name_Len := Name_Len + 1;
-               Name_Buffer (Name_Len) := ' ';
-            end loop;
+            Add_Str_To_Name_Buffer ((Name_Len + 1 .. 8 => ' '));
 
             --  If predefined unit, check the list of restricted units
 
@@ -319,6 +316,15 @@ package body Restrict is
       DU : Node_Id;
 
    begin
+      --  Ignore call if node U is not in the main source unit. This avoids
+      --  cascaded errors, e.g. when Ada.Containers units with other units.
+
+      if not In_Extended_Main_Source_Unit (U) then
+         return;
+      end if;
+
+      --  Loop through entries in No_Dependence table to check each one in turn
+
       for J in No_Dependence.First .. No_Dependence.Last loop
          DU := No_Dependence.Table (J).Unit;
 

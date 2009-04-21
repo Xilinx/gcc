@@ -1,6 +1,6 @@
 /* Scalar evolution detector.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008 Free Software
-   Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
@@ -1229,6 +1229,18 @@ follow_ssa_edge_in_rhs (struct loop *loop, gimple stmt,
     case GIMPLE_SINGLE_RHS:
       return follow_ssa_edge_expr (loop, stmt, gimple_assign_rhs1 (stmt),
 				   halting_phi, evolution_of_loop, limit);
+    case GIMPLE_UNARY_RHS:
+      if (code == NOP_EXPR)
+	{
+	  /* This assignment is under the form "a_1 = (cast) rhs.  */
+	  t_bool res
+	    = follow_ssa_edge_expr (loop, stmt, gimple_assign_rhs1 (stmt),
+				    halting_phi, evolution_of_loop, limit);
+	  *evolution_of_loop = chrec_convert (type, *evolution_of_loop, stmt);
+	  return res;
+	}
+      /* FALLTHRU */
+
     default:
       return t_false;
     }
@@ -1565,6 +1577,20 @@ analyze_initial_condition (gimple loop_phi_node)
   if (init_cond == chrec_not_analyzed_yet)
     init_cond = chrec_dont_know;
 
+  /* During early loop unrolling we do not have fully constant propagated IL.
+     Handle degenerate PHIs here to not miss important unrollings.  */
+  if (TREE_CODE (init_cond) == SSA_NAME)
+    {
+      gimple def = SSA_NAME_DEF_STMT (init_cond);
+      tree res;
+      if (gimple_code (def) == GIMPLE_PHI
+	  && (res = degenerate_phi_result (def)) != NULL_TREE
+	  /* Only allow invariants here, otherwise we may break
+	     loop-closed SSA form.  */
+	  && is_gimple_min_invariant (res))
+	init_cond = res;
+    }
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "  (init_cond = ");
@@ -1698,6 +1724,15 @@ interpret_rhs_expr (struct loop *loop, gimple at_stmt,
       /* TYPE may be integer, real or complex, so use fold_convert.  */
       res = chrec_fold_multiply (type, chrec1,
 				 fold_convert (type, integer_minus_one_node));
+      break;
+
+    case BIT_NOT_EXPR:
+      /* Handle ~X as -1 - X.  */
+      chrec1 = analyze_scalar_evolution (loop, rhs1);
+      chrec1 = chrec_convert (type, chrec1, at_stmt);
+      res = chrec_fold_minus (type,
+			      fold_convert (type, integer_minus_one_node),
+			      chrec1);
       break;
 
     case MULT_EXPR:
@@ -1894,12 +1929,54 @@ analyze_scalar_evolution (struct loop *loop, tree var)
 }
 
 /* Analyze scalar evolution of use of VERSION in USE_LOOP with respect to
-   WRTO_LOOP (which should be a superloop of both USE_LOOP and definition
-   of VERSION).
+   WRTO_LOOP (which should be a superloop of USE_LOOP)
 
    FOLDED_CASTS is set to true if resolve_mixers used
    chrec_convert_aggressive (TODO -- not really, we are way too conservative
-   at the moment in order to keep things simple).  */
+   at the moment in order to keep things simple). 
+   
+   To illustrate the meaning of USE_LOOP and WRTO_LOOP, consider the following
+   example:
+
+   for (i = 0; i < 100; i++)			-- loop 1
+     {
+       for (j = 0; j < 100; j++)		-- loop 2
+         {
+	   k1 = i;
+	   k2 = j;
+
+	   use2 (k1, k2);
+
+	   for (t = 0; t < 100; t++)		-- loop 3
+	     use3 (k1, k2);
+
+	 }
+       use1 (k1, k2);
+     }
+
+   Both k1 and k2 are invariants in loop3, thus
+     analyze_scalar_evolution_in_loop (loop3, loop3, k1) = k1
+     analyze_scalar_evolution_in_loop (loop3, loop3, k2) = k2
+
+   As they are invariant, it does not matter whether we consider their
+   usage in loop 3 or loop 2, hence
+     analyze_scalar_evolution_in_loop (loop2, loop3, k1) =
+       analyze_scalar_evolution_in_loop (loop2, loop2, k1) = i
+     analyze_scalar_evolution_in_loop (loop2, loop3, k2) =
+       analyze_scalar_evolution_in_loop (loop2, loop2, k2) = [0,+,1]_2
+
+   Similarly for their evolutions with respect to loop 1.  The values of K2
+   in the use in loop 2 vary independently on loop 1, thus we cannot express
+   the evolution with respect to loop 1:
+     analyze_scalar_evolution_in_loop (loop1, loop3, k1) =
+       analyze_scalar_evolution_in_loop (loop1, loop2, k1) = [0,+,1]_1
+     analyze_scalar_evolution_in_loop (loop1, loop3, k2) =
+       analyze_scalar_evolution_in_loop (loop1, loop2, k2) = dont_know
+
+   The value of k2 in the use in loop 1 is known, though:
+     analyze_scalar_evolution_in_loop (loop1, loop1, k1) = [0,+,1]_1
+     analyze_scalar_evolution_in_loop (loop1, loop1, k2) = 100
+   */
 
 static tree
 analyze_scalar_evolution_in_loop (struct loop *wrto_loop, struct loop *use_loop,
@@ -1907,6 +1984,25 @@ analyze_scalar_evolution_in_loop (struct loop *wrto_loop, struct loop *use_loop,
 {
   bool val = false;
   tree ev = version, tmp;
+
+  /* We cannot just do 
+
+     tmp = analyze_scalar_evolution (use_loop, version);
+     ev = resolve_mixers (wrto_loop, tmp);
+
+     as resolve_mixers would query the scalar evolution with respect to
+     wrto_loop.  For example, in the situation described in the function
+     comment, suppose that wrto_loop = loop1, use_loop = loop3 and
+     version = k2.  Then
+
+     analyze_scalar_evolution (use_loop, version) = k2
+
+     and resolve_mixers (loop1, k2) finds that the value of k2 in loop 1
+     is 100, which is a wrong result, since we are interested in the
+     value in loop 3.
+
+     Instead, we need to proceed from use_loop to wrto_loop loop by loop,
+     each time checking that there is no evolution in the inner loop.  */
 
   if (folded_casts)
     *folded_casts = false;
@@ -2203,6 +2299,24 @@ instantiate_scev_1 (basic_block instantiate_below,
 
       return chrec_convert (TREE_TYPE (chrec), op0, NULL);
 
+    case BIT_NOT_EXPR:
+      /* Handle ~X as -1 - X.  */
+      op0 = instantiate_scev_1 (instantiate_below, evolution_loop,
+				TREE_OPERAND (chrec, 0),
+				fold_conversions, cache, size_expr);
+      if (op0 == chrec_dont_know)
+	return chrec_dont_know;
+
+      if (TREE_OPERAND (chrec, 0) != op0)
+	{
+	  op0 = chrec_convert (type, op0, NULL);
+	  chrec = chrec_fold_minus (type,
+				    fold_convert (type,
+						  integer_minus_one_node),
+				    op0);
+	}
+      return chrec;
+
     case SCEV_NOT_KNOWN:
       return chrec_dont_know;
 
@@ -2213,7 +2327,9 @@ instantiate_scev_1 (basic_block instantiate_below,
       break;
     }
 
-  gcc_assert (!VL_EXP_CLASS_P (chrec));
+  if (VL_EXP_CLASS_P (chrec))
+    return chrec_dont_know;
+
   switch (TREE_CODE_LENGTH (TREE_CODE (chrec)))
     {
     case 3:
@@ -2702,17 +2818,31 @@ scev_reset (void)
     }
 }
 
-/* Checks whether OP behaves as a simple affine iv of LOOP in STMT and returns
-   its base and step in IV if possible.  If ALLOW_NONCONSTANT_STEP is true, we
-   want step to be invariant in LOOP.  Otherwise we require it to be an
-   integer constant.  IV->no_overflow is set to true if we are sure the iv cannot
-   overflow (e.g.  because it is computed in signed arithmetics).  */
+/* Checks whether use of OP in USE_LOOP behaves as a simple affine iv with
+   respect to WRTO_LOOP and returns its base and step in IV if possible
+   (see analyze_scalar_evolution_in_loop for more details on USE_LOOP
+   and WRTO_LOOP).  If ALLOW_NONCONSTANT_STEP is true, we want step to be
+   invariant in LOOP.  Otherwise we require it to be an integer constant.
+   
+   IV->no_overflow is set to true if we are sure the iv cannot overflow (e.g.
+   because it is computed in signed arithmetics).  Consequently, adding an
+   induction variable
+   
+   for (i = IV->base; ; i += IV->step)
+
+   is only safe if IV->no_overflow is false, or TYPE_OVERFLOW_UNDEFINED is
+   false for the type of the induction variable, or you can prove that i does
+   not wrap by some other argument.  Otherwise, this might introduce undefined
+   behavior, and
+   
+   for (i = iv->base; ; i = (type) ((unsigned type) i + (unsigned type) iv->step))
+
+   must be used instead.  */
 
 bool
-simple_iv (struct loop *loop, gimple stmt, tree op, affine_iv *iv,
-	   bool allow_nonconstant_step)
+simple_iv (struct loop *wrto_loop, struct loop *use_loop, tree op,
+	   affine_iv *iv, bool allow_nonconstant_step)
 {
-  basic_block bb = gimple_bb (stmt);
   tree type, ev;
   bool folded_casts;
 
@@ -2725,13 +2855,13 @@ simple_iv (struct loop *loop, gimple stmt, tree op, affine_iv *iv,
       && TREE_CODE (type) != POINTER_TYPE)
     return false;
 
-  ev = analyze_scalar_evolution_in_loop (loop, bb->loop_father, op,
+  ev = analyze_scalar_evolution_in_loop (wrto_loop, use_loop, op,
 					 &folded_casts);
-  if (chrec_contains_undetermined (ev))
+  if (chrec_contains_undetermined (ev)
+      || chrec_contains_symbols_defined_in_loop (ev, wrto_loop->num))
     return false;
 
-  if (tree_does_not_contain_chrecs (ev)
-      && !chrec_contains_symbols_defined_in_loop (ev, loop->num))
+  if (tree_does_not_contain_chrecs (ev))
     {
       iv->base = ev;
       iv->step = build_int_cst (TREE_TYPE (ev), 0);
@@ -2740,22 +2870,16 @@ simple_iv (struct loop *loop, gimple stmt, tree op, affine_iv *iv,
     }
 
   if (TREE_CODE (ev) != POLYNOMIAL_CHREC
-      || CHREC_VARIABLE (ev) != (unsigned) loop->num)
+      || CHREC_VARIABLE (ev) != (unsigned) wrto_loop->num)
     return false;
 
   iv->step = CHREC_RIGHT (ev);
-  if (allow_nonconstant_step)
-    {
-      if (tree_contains_chrecs (iv->step, NULL)
-	  || chrec_contains_symbols_defined_in_loop (iv->step, loop->num))
-	return false;
-    }
-  else if (TREE_CODE (iv->step) != INTEGER_CST)
+  if ((!allow_nonconstant_step && TREE_CODE (iv->step) != INTEGER_CST)
+      || tree_contains_chrecs (iv->step, NULL))
     return false;
 
   iv->base = CHREC_LEFT (ev);
-  if (tree_contains_chrecs (iv->base, NULL)
-      || chrec_contains_symbols_defined_in_loop (iv->base, loop->num))
+  if (tree_contains_chrecs (iv->base, NULL))
     return false;
 
   iv->no_overflow = !folded_casts && TYPE_OVERFLOW_UNDEFINED (type);
@@ -2789,6 +2913,50 @@ scev_finalize (void)
     return;
   htab_delete (scalar_evolution_info);
   scalar_evolution_info = NULL;
+}
+
+/* Returns true if the expression EXPR is considered to be too expensive
+   for scev_const_prop.  */
+
+bool
+expression_expensive_p (tree expr)
+{
+  enum tree_code code;
+
+  if (is_gimple_val (expr))
+    return false;
+
+  code = TREE_CODE (expr);
+  if (code == TRUNC_DIV_EXPR
+      || code == CEIL_DIV_EXPR
+      || code == FLOOR_DIV_EXPR
+      || code == ROUND_DIV_EXPR
+      || code == TRUNC_MOD_EXPR
+      || code == CEIL_MOD_EXPR
+      || code == FLOOR_MOD_EXPR
+      || code == ROUND_MOD_EXPR
+      || code == EXACT_DIV_EXPR)
+    {
+      /* Division by power of two is usually cheap, so we allow it.
+	 Forbid anything else.  */
+      if (!integer_pow2p (TREE_OPERAND (expr, 1)))
+	return true;
+    }
+
+  switch (TREE_CODE_CLASS (code))
+    {
+    case tcc_binary:
+    case tcc_comparison:
+      if (expression_expensive_p (TREE_OPERAND (expr, 1)))
+	return true;
+
+      /* Fallthru.  */
+    case tcc_unary:
+      return expression_expensive_p (TREE_OPERAND (expr, 0));
+
+    default:
+      return true;
+    }
 }
 
 /* Replace ssa names for that scev can prove they are constant by the
@@ -2882,12 +3050,6 @@ scev_const_prop (void)
 	continue;
 
       niter = number_of_latch_executions (loop);
-      /* We used to check here whether the computation of NITER is expensive,
-	 and avoided final value elimination if that is the case.  The problem
-	 is that it is hard to evaluate whether the expression is too
-	 expensive, as we do not know what optimization opportunities the
-	 elimination of the final value may reveal.  Therefore, we now
-	 eliminate the final values of induction variables unconditionally.  */
       if (niter == chrec_dont_know)
 	continue;
 
@@ -2924,7 +3086,15 @@ scev_const_prop (void)
 	      /* Moving the computation from the loop may prolong life range
 		 of some ssa names, which may cause problems if they appear
 		 on abnormal edges.  */
-	      || contains_abnormal_ssa_name_p (def))
+	      || contains_abnormal_ssa_name_p (def)
+	      /* Do not emit expensive expressions.  The rationale is that
+		 when someone writes a code like
+
+		 while (n > 45) n -= 45;
+
+		 he probably knows that n is not large, and does not want it
+		 to be turned into n %= 45.  */
+	      || expression_expensive_p (def))
 	    {
 	      gsi_next (&psi);
 	      continue;

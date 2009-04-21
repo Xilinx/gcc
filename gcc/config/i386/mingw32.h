@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using GNU tools and the Windows32 API Library.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007, 2008,
+   2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -38,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
       builtin_define_std ("WINNT");				\
       builtin_define_with_int_value ("_INTEGRAL_MAX_BITS",	\
 				     TYPE_PRECISION (intmax_type_node));\
-      if (TARGET_64BIT && DEFAULT_ABI == MS_ABI)			\
+      if (TARGET_64BIT && ix86_abi == MS_ABI)			\
 	{							\
 	  builtin_define ("__MINGW64__");			\
 	  builtin_define_std ("WIN64");				\
@@ -89,10 +89,16 @@ along with GCC; see the file COPYING3.  If not see
   %(shared_libgcc_undefs)"
 
 /* Include in the mingw32 libraries with libgcc */
-#undef LIBGCC_SPEC
-#define LIBGCC_SPEC \
-  "-lmingw32 \
-   %{shared-libgcc:-lgcc_s} -lgcc \
+#ifdef ENABLE_SHARED_LIBGCC
+#define SHARED_LIBGCC_SPEC "%{shared-libgcc:-lgcc_s} %{!shared-libgcc:-lgcc_eh}"
+#else
+#define SHARED_LIBGCC_SPEC /*empty*/
+#endif
+#undef REAL_LIBGCC_SPEC
+#define REAL_LIBGCC_SPEC \
+  "%{mthreads:-lmingwthrd} -lmingw32 \
+   "SHARED_LIBGCC_SPEC" \
+   -lgcc \
    -lmoldname -lmingwex -lmsvcrt"
 
 #undef STARTFILE_SPEC
@@ -167,6 +173,10 @@ do {						         \
 #undef TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT
 #define TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT 3
 
+/* Custom initialization for warning -Wpedantic-ms-format for c-format.  */
+#undef TARGET_OVERRIDES_FORMAT_INIT
+#define TARGET_OVERRIDES_FORMAT_INIT msformat_init
+
 /* MS specific format attributes for ms_printf, ms_scanf, ms_strftime.  */
 #undef TARGET_FORMAT_TYPES
 #define TARGET_FORMAT_TYPES mingw_format_attributes
@@ -202,4 +212,10 @@ __enable_execute_stack (void *addr)					\
 #endif
 
 /* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygming. */
-#define LIBGCC_SONAME "libgcc_s_1.dll"
+/* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygwin. */
+#if DWARF2_UNWIND_INFO
+#define LIBGCC_EH_EXTN "_dw2"
+#else
+#define LIBGCC_EH_EXTN "_sjlj"
+#endif
+#define LIBGCC_SONAME "libgcc_s" LIBGCC_EH_EXTN "-1.dll"

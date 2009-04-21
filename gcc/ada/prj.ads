@@ -116,6 +116,9 @@ package Prj is
 
    No_Project_Tree : constant Project_Tree_Ref;
 
+   procedure Free (Tree : in out Project_Tree_Ref);
+   --  Free memory associated with the tree
+
    function Default_Ada_Spec_Suffix return File_Name_Type;
    pragma Inline (Default_Ada_Spec_Suffix);
    --  The name for the standard GNAT suffix for Ada spec source file name
@@ -438,6 +441,8 @@ package Prj is
       --  Value may be Canonical (Unix style) or Host (host syntax, for example
       --  on VMS for DEC C).
 
+      Object_File_Suffix : Name_Id := No_Name;
+
       Compilation_PIC_Option : Name_List_Index := No_Name_List;
       --  The option(s) to compile a source in Position Independent Code for
       --  shared libraries. Specified in the configuration. When not specified,
@@ -452,6 +457,9 @@ package Prj is
 
       Runtime_Library_Dir        : Name_Id := No_Name;
       --  Path name of the runtime library directory, if any
+
+      Runtime_Source_Dir        : Name_Id := No_Name;
+      --  Path name of the runtime source directory, if any
 
       Mapping_File_Switches  : Name_List_Index := No_Name_List;
       --  The option(s) to provide a mapping file to the compiler. Specified in
@@ -551,10 +559,12 @@ package Prj is
                            Compiler_Driver_Path         => null,
                            Compiler_Required_Switches   => No_Name_List,
                            Path_Syntax                  => Canonical,
+                           Object_File_Suffix           => No_Name,
                            Compilation_PIC_Option       => No_Name_List,
                            Object_Generated             => True,
                            Objects_Linked               => True,
                            Runtime_Library_Dir          => No_Name,
+                           Runtime_Source_Dir           => No_Name,
                            Mapping_File_Switches        => No_Name_List,
                            Mapping_Spec_Suffix          => No_File,
                            Mapping_Body_Suffix          => No_File,
@@ -696,7 +706,7 @@ package Prj is
       Object_Exists       : Boolean               := True;
       --  True if an object file exists
 
-      Object_Linked          : Boolean               := True;
+      Object_Linked          : Boolean            := True;
       --  False if the object file is not use to link executables or included
       --  in libraries.
 
@@ -725,7 +735,8 @@ package Prj is
       --  Dependency file time stamp
 
       Switches            : File_Name_Type        := No_File;
-      --  File name of the switches file
+      --  File name of the switches file. For all languages, this is a file
+      --  that ends with the .cswi extension.
 
       Switches_Path       : Path_Name_Type        := No_Path;
       --  Path name of the switches file
@@ -802,6 +813,14 @@ package Prj is
       Hash       => Hash,
       Equal      => "=");
    --  Mapping of source paths to source ids
+
+   package Unit_Sources_Htable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => Source_Id,
+      No_Element => No_Source,
+      Key        => Name_Id,
+      Hash       => Hash,
+      Equal      => "=");
 
    type Verbosity is (Default, Medium, High);
    --  Verbosity when parsing GNAT Project Files
@@ -970,7 +989,17 @@ package Prj is
       Table_Increment      => 100);
    --  The table that contains the lists of project files
 
+   type Response_File_Format is
+     (None,
+      GNU,
+      Object_List,
+      Option_List);
+   --  The format of the different response files
+
    type Project_Configuration is record
+      Target                        : Name_Id         := No_Name;
+      --  The target of the configuration, when specified
+
       Run_Path_Option               : Name_List_Index := No_Name_List;
       --  The option to use when linking to specify the path where to look for
       --  libraries.
@@ -1005,6 +1034,19 @@ package Prj is
       Linker_Lib_Name_Option        : Name_Id         := No_Name;
       --  The option to specify the name of a library for linking. Specified in
       --  the configuration. When not specified, defaults to "-l".
+
+      Max_Command_Line_Length       : Natural         := 0;
+      --  When positive and when Resp_File_Format (see below) is not None,
+      --  if the command line for the invocation of the linker would be greater
+      --  than this value, a response file is used to invoke the linker.
+
+      Resp_File_Format              : Response_File_Format := None;
+      --  The format of a response file, when linking with a response file is
+      --  supported.
+
+      Resp_File_Options             : Name_List_Index := No_Name_List;
+      --  The switches, if any, that precede the path name of the response
+      --  file in the invocation of the linker.
 
       --  Libraries
 
@@ -1067,7 +1109,8 @@ package Prj is
    end record;
 
    Default_Project_Config : constant Project_Configuration :=
-                              (Run_Path_Option               => No_Name_List,
+                              (Target                        => No_Name,
+                               Run_Path_Option               => No_Name_List,
                                Executable_Suffix             => No_Name,
                                Linker                        => No_Path,
                                Map_File_Option               => No_Name,
@@ -1076,6 +1119,9 @@ package Prj is
                                Linker_Lib_Dir_Option         => No_Name,
                                Linker_Lib_Name_Option        => No_Name,
                                Library_Builder               => No_Path,
+                               Max_Command_Line_Length       => 0,
+                               Resp_File_Format              => None,
+                               Resp_File_Options             => No_Name_List,
                                Lib_Support                   => None,
                                Archive_Builder               => No_Name_List,
                                Archive_Builder_Append_Option => No_Name_List,
@@ -1463,6 +1509,7 @@ package Prj is
          Units_HT          : Units_Htable.Instance;
          Files_HT          : Files_Htable.Instance;
          Source_Paths_HT   : Source_Paths_Htable.Instance;
+         Unit_Sources_HT   : Unit_Sources_Htable.Instance;
 
          --  Private part
 
@@ -1524,7 +1571,8 @@ package Prj is
    --  Replace the extension of File with With_Suffix
 
    function Object_Name
-     (Source_File_Name : File_Name_Type) return File_Name_Type;
+     (Source_File_Name   : File_Name_Type;
+      Object_File_Suffix : Name_Id := No_Name) return File_Name_Type;
    --  Returns the object file name corresponding to a source file name
 
    function Dependency_Name

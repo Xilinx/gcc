@@ -1,5 +1,5 @@
 /* Data structure definitions for a generic GCC target.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This program is free software; you can redistribute it and/or modify it
@@ -245,6 +245,8 @@ struct gcc_target
     /* Output a DTP-relative reference to a TLS symbol.  */
     void (*output_dwarf_dtprel) (FILE *file, int size, rtx x);
 
+    /* Some target machines need to postscan each insn after it is output.  */
+    void (*final_postscan_insn) (FILE *, rtx, rtx *, int);
   } asm_out;
 
   /* Functions relating to instruction scheduling.  */
@@ -397,7 +399,7 @@ struct gcc_target
     /* The following member value is a pointer to a function called
        by the insn scheduler.  It should return true if the check instruction
        passed as the parameter needs a recovery block.  */
-    bool (* needs_block_p) (const_rtx);
+    bool (* needs_block_p) (int);
 
     /* The following member value is a pointer to a function called
        by the insn scheduler.  It should return a pattern for the check
@@ -407,7 +409,7 @@ struct gcc_target
        simple check).  If the mutation of the check is requested (e.g. from
        ld.c to chk.a), the third parameter is true - in this case the first
        parameter is the previous check.  */
-    rtx (* gen_spec_check) (rtx, rtx, bool);
+    rtx (* gen_spec_check) (rtx, rtx, int);
 
     /* The following member value is a pointer to a function controlling
        what insns from the ready insn queue will be considered for the
@@ -551,10 +553,12 @@ struct gcc_target
 			  enum machine_mode mode, int ignore);
 
   /* Select a replacement for a target-specific builtin.  This is done
-     *before* regular type checking, and so allows the target to implement
-     a crude form of function overloading.  The result is a complete
-     expression that implements the operation.  */
-  tree (*resolve_overloaded_builtin) (tree decl, tree params);
+     *before* regular type checking, and so allows the target to
+     implement a crude form of function overloading.  The result is a
+     complete expression that implements the operation.  PARAMS really
+     has type VEC(tree,gc)*, but we don't want to include tree.h
+     here.  */
+  tree (*resolve_overloaded_builtin) (tree decl, void *params);
 
   /* Fold a target-specific builtin.  */
   tree (* fold_builtin) (tree fndecl, tree arglist, bool ignore);
@@ -626,7 +630,7 @@ struct gcc_target
   bool (* in_small_data_p) (const_tree);
 
   /* True if EXP names an object for which name resolution must resolve
-     to the current module.  */
+     to the current executable or shared library.  */
   bool (* binds_local_p) (const_tree);
 
   /* Modify and return the identifier of a DECL's external name,
@@ -671,9 +675,6 @@ struct gcc_target
      least some operations are supported; need to check optabs or builtins
      for further details.  */
   bool (* vector_mode_supported_p) (enum machine_mode mode);
-
-  /* True if a vector is opaque.  */
-  bool (* vector_opaque_p) (const_tree);
 
   /* Compute a (partial) cost for rtx X.  Return true if the complete
      cost has been computed, and false if subexpressions should be

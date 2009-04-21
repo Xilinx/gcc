@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -131,7 +131,7 @@ package VMS_Data is
    --  no space is inserted between the switch and the file name.
 
    --  The NUMERIC_TRANSLATION format is similar to the FILE_TRANSLATION case
-   --  except that the parameter is a decimal integer in the range 0 to 999.
+   --  except that the parameter is a decimal integer in the range 0 to 999999.
 
    --  For the OPTIONS_TRANSLATION case, GNATCmd similarly permits one or
    --  more options to appear (although only in some cases does the use of
@@ -774,16 +774,16 @@ package VMS_Data is
    --
    --   Use full source locations references in the report file.
 
-   S_Diagnosis   : aliased constant S := "/DIAGNOSIS_LIMIT=#"              &
+   S_Diagnosis   : aliased constant S := "/DIAGNOSTIC_LIMIT=#"             &
                                             "-m#";
-   --        /DIAGNOSIS_LIMIT=500 (D)
-   --        /ERROR_LIMIT=nnn
+   --        /DIAGNOSTIC_LIMIT=500 (D)
+   --        /DIAGNOSTIC_LIMIT=nnn
    --
    --   NNN is a decimal integer in the range of 1 to 1000 and limits the
    --   number of diagnostic messages to be generated into Stdout to that
    --   number.  Once that number has been reached, gnatcheck stops
    --   to print out diagnoses into Stderr. If NNN is equal to 0, this means
-   --  that there is no limit on the number of diagnoses in Stdout
+   --   that there is no limit on the number of diagnoses in Stdout.
 
    S_Check_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="       &
                                              "DEFAULT "                    &
@@ -875,6 +875,12 @@ package VMS_Data is
    --   copies of the gnat1 commands spawned to obtain the chop control
    --   information.
 
+   S_Check_Out  : aliased constant S := "/OUTPUT=@"                &
+                                             "-o@";
+   --        /OUTPUT=filename
+   --
+   --   Specify the name of the output file.
+
    Check_Switches : aliased constant Switches :=
                       (S_Check_Add      'Access,
                        S_Check_All      'Access,
@@ -890,7 +896,8 @@ package VMS_Data is
                        S_Check_Sections 'Access,
                        S_Check_Short    'Access,
                        S_Check_Subdirs  'Access,
-                       S_Check_Verb     'Access);
+                       S_Check_Verb     'Access,
+                       S_Check_Out      'Access);
 
    ----------------------------
    -- Switches for GNAT CHOP --
@@ -1228,6 +1235,17 @@ package VMS_Data is
    --   filetype, instead of the object file. This may be useful if you need
    --   to examine the generated assembly code.
 
+   S_GCC_AValid  : aliased constant S := "/ASSUME_VALID "                  &
+                                             "-gnatB";
+   --        /NO_ASSUME_VALID (D)
+   --        /ASSUME_VALID
+   --
+   --   Use to tell the compiler to assume that all objects have valid values
+   --   except those occurring as prefixes to 'Valid attributes. In the default
+   --   mode, the compiler assumes that values may be invalid unless it can
+   --   be sure that they are valid, and code is generated to allow for this
+   --   possibility. The use of /ASSUME_VALID will improve the code.
+
    S_GCC_Checks  : aliased constant S := "/CHECKS="                        &
                                              "FULL "                       &
                                                 "-gnato,!-gnatE,!-gnatp "  &
@@ -1480,7 +1498,16 @@ package VMS_Data is
    --
    --   Produces a listing of the expanded code in Ada source form. For
    --   example, all tasking constructs are reduced to appropriate run-time
-   --   library calls.
+   --   library calls. The maximum line length for the listing 72.
+
+   S_GCC_Lexpand : aliased constant S := "/LEXPAND_SOURCE=#"               &
+                                            "-gnatG#";
+   --        /LEXPAND_SOURCE=nnn
+   --
+   --   Produces a listing of the expanded code in Ada source form. For
+   --   example, all tasking constructs are reduced to appropriate run-time
+   --   library calls. The parameter is the maximum line length for the
+   --   listing.
 
    S_GCC_Extend  : aliased constant S := "/EXTENSIONS_ALLOWED "            &
                                             "-gnatX";
@@ -2233,6 +2260,10 @@ package VMS_Data is
                                                "-gnatyo "                  &
                                             "NOORDERED_SUBPROGRAMS "       &
                                                "-gnaty-o "                 &
+                                            "OVERRIDING_INDICATORS "       &
+                                               "-gnatyO "                  &
+                                            "NOOVERRIDING_INDICATORS "     &
+                                               "-gnaty-O "                 &
                                             "PRAGMA "                      &
                                                "-gnatyp "                  &
                                             "NOPRAGMA "                    &
@@ -2471,6 +2502,12 @@ package VMS_Data is
    --                           suffix, then the value of this suffix is used
    --                           in the ordering (e.g. Junk2 comes before
    --                           Junk10).
+   --
+   --      OVERRIDING_INDICATORS Check that overriding subprograms are
+   --                           explicitly marked as such. The declaration of
+   --                           a primitive operation of a type extension that
+   --                           overrides an inherited operation must carry
+   --                           an overriding indicator.
    --
    --      PRAGMA               Check pragma casing.
    --                           Pragma names must be written in mixed case,
@@ -3309,7 +3346,7 @@ package VMS_Data is
    --  NODOC (see /WIDE_CHARACTER_ENCODING)
 
    S_GCC_Xdebug  : aliased constant S := "/XDEBUG "                        &
-                                             "-gnatD";
+                                            "-gnatD";
    --        /NOXDEBUG (D)
    --        /XDEBUG
    --
@@ -3320,7 +3357,21 @@ package VMS_Data is
    --   refer to the generated file. This allows source level debugging using
    --   the generated code which is sometimes useful for complex code, for
    --   example to find out exactly which part of a complex construction
-   --   raised an exception.
+   --   raised an exception. The maximum line length for the output is 72.
+
+   S_GCC_Lxdebug : aliased constant S := "/LXDEBUG=#"                      &
+                                            "-gnatD=#";
+   --        /LXDEBUG=nnn
+   --
+   --   Output expanded source files for source level debugging.
+   --   The expanded source (see /EXPAND_SOURCE) is written to files
+   --   with names formed by appending "_DG" to the input file name,
+   --   The debugging information generated by the /DEBUG qualifier will then
+   --   refer to the generated file. This allows source level debugging using
+   --   the generated code which is sometimes useful for complex code, for
+   --   example to find out exactly which part of a complex construction
+   --   raised an exception. The parameter is the maximum line length for
+   --   the output.
 
    S_GCC_Xref    : aliased constant S := "/XREF="                          &
                                             "GENERATE "                    &
@@ -3346,6 +3397,7 @@ package VMS_Data is
                      S_GCC_Ada_05  'Access,
                      S_GCC_Add     'Access,
                      S_GCC_Asm     'Access,
+                     S_GCC_AValid  'Access,
                      S_GCC_Checks  'Access,
                      S_GCC_ChecksX 'Access,
                      S_GCC_Compres 'Access,
@@ -3359,6 +3411,7 @@ package VMS_Data is
                      S_GCC_Error   'Access,
                      S_GCC_ErrorX  'Access,
                      S_GCC_Expand  'Access,
+                     S_GCC_Lexpand 'Access,
                      S_GCC_Extend  'Access,
                      S_GCC_Ext     'Access,
                      S_GCC_File    'Access,
@@ -3422,6 +3475,7 @@ package VMS_Data is
                      S_GCC_No_Back 'Access,
                      S_GCC_All_Back'Access,
                      S_GCC_Xdebug  'Access,
+                     S_GCC_Lxdebug 'Access,
                      S_GCC_Xref    'Access);
 
    ----------------------------
@@ -3715,7 +3769,7 @@ package VMS_Data is
    --   Specifies the main project file to be used. The project files rooted
    --   at the main project file will be parsed before looking for sources.
    --   The source and object directories to be searched will be communicated
-   --   to gnatfind  through logical names ADA_PRJ_INCLUDE_FILE and
+   --   to gnatfind through logical names ADA_PRJ_INCLUDE_FILE and
    --   ADA_PRJ_OBJECTS_FILE.
 
    S_Find_Ref     : aliased constant S := "/REFERENCES "                   &
@@ -5829,6 +5883,7 @@ package VMS_Data is
    --
    --   Specify the case of Ada keywords. The default is keywords in lower
    --   case.
+   --
    --   keyword-option may be one of the following:
    --
    --      LOWER_CASE (D)
@@ -5845,9 +5900,9 @@ package VMS_Data is
    --        /MAX_INDENT=nnn
    --
    --   Do not use an additional indentation level for case alternatives
-   --   and variants if their number is nnn or more. The default is  10.
-   --   If nnn is zero, an additional indentation level is  used for any number
-   --   of case alternatives and variants.
+   --   and variants if their number is nnn or more. The default is 10.
+   --   If nnn is zero, an additional indentation level is used for any
+   --   number of case alternatives and variants.
 
    S_Pretty_Mess      : aliased constant S := "/MESSAGES_PROJECT_FILE="    &
                                             "DEFAULT "                     &
@@ -6463,6 +6518,13 @@ package VMS_Data is
    --      HIGH         A great number of messages are output, most of them not
    --                   being useful for the user.
 
+   S_Stub_No_Exc  : aliased constant S := "/NO_EXCEPTION "                 &
+                                          "--no-exception";
+   --        /NONO_EXCEPTION (D)
+   --        /NO_EXCEPTION
+   --
+   --  Avoid raising PROGRAM_ERROR in the generated program unit stubs.
+
    S_Stub_Output  : aliased constant S := "/OUTPUT=@"                      &
                                             "-o@";
    --        /OUTPUT=filespec
@@ -6559,6 +6621,7 @@ package VMS_Data is
                       S_Stub_Mess       'Access,
                       S_Stub_Output     'Access,
                       S_Stub_Project    'Access,
+                      S_Stub_No_Exc     'Access,
                       S_Stub_Quiet      'Access,
                       S_Stub_Search     'Access,
                       S_Stub_Subdirs    'Access,
@@ -6584,6 +6647,15 @@ package VMS_Data is
    --  components of the GNAT RTL when building and analyzing the global
    --  structure for checking the global rules.
 
+   S_Sync_Allproj : aliased constant S := "/ALL_PROJECTS "                 &
+                                            "-U";
+   --        /NOALL_PROJECTS (D)
+   --        /ALL_PROJECTS
+   --
+   --   When GNAT SYNC is used with a Project File and no source is
+   --   specified, the underlying tool gnatsync is called for all the
+   --   sources of all the Project Files in the project tree.
+
    S_Sync_Ext     : aliased constant S := "/EXTERNAL_REFERENCE=" & '"'     &
                                              "-X" & '"';
    --       /EXTERNAL_REFERENCE="name=val"
@@ -6607,6 +6679,12 @@ package VMS_Data is
    --        /FOLLOW_LINKS_FOR_FILES
    --
    --    Follow links when parsing project files
+
+   S_Sync_Main    : aliased constant S := "/MAIN_SUBPROGRAM=@"             &
+                                            "-main=@";
+   --        /MAIN_SUBPROGRAM=filename
+   --
+   --   Specify the name of the file containing the main subprogram
 
    S_Sync_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="        &
                                              "DEFAULT "                    &
@@ -6700,9 +6778,11 @@ package VMS_Data is
    Sync_Switches : aliased constant Switches :=
                       (S_Sync_Add      'Access,
                        S_Sync_All      'Access,
+                       S_Sync_Allproj  'Access,
                        S_Sync_Ext      'Access,
                        S_Sync_Follow   'Access,
                        S_Sync_Files    'Access,
+                       S_Sync_Main     'Access,
                        S_Sync_Mess     'Access,
                        S_Sync_Project  'Access,
                        S_Sync_Quiet    'Access,

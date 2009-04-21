@@ -1,3 +1,382 @@
+2009-04-17  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-04-15  Anthony Green  <green@moxielogic.com>
+
+	* configure.ac: Add moxie support.
+	* configure: Rebuilt.
+
+2009-04-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* Makefile.def: Likewise.
+	* Makefile.tpl: Likewise.
+	* Makefile.in: Regenerate.
+
+2009-04-09  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Restore match for darwin9 or later. Use double
+	brackets since regeneration eats one pair.
+	* configure: Regenerate.
+
+2009-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/10039
+	* configure.ac: Require texinfo 4.7.
+	* configure: Regenerated.
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* COPYING.RUNTIME: New file: Contains a copy of version 3.1 of
+	the GCC Runtime Library Exception.
+
+2009-04-08  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Bump minimum GMP/MPFR versions to 4.2 and 2.3.1.
+	* configure: Regenerate.
+
+2009-04-01  Steve Ellcey  <sje@cup.hp.com>
+
+	* Makefil.def (languages): New entries.
+	* Makefile.tpl (check-gcc-*): New generic target.
+	* Makefile.in: Regenerate.
+
+2009-03-25  Erven Rohou <erven.rohou@inria.fr>
+
+	* MAINTAINERS:  Update my email address.
+
+2009-03-18  Tom Tromey  <tromey@redhat.com>
+
+	* configure: Rebuild.
+	* configure.ac (host_libs): Add libiconv.
+	* Makefile.in: Rebuild.
+	* Makefile.def (host_modules): Add libiconv.
+	(configure-gdb, all-gdb): Depend on libiconv.
+
+2009-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* configure.ac: Treat gdb as supported on x86_64-darwin.
+	* configure: Regenerate.
+
+2009-03-16  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac (--with-host-libstdcxx): New option.
+	* configure: Regenerate.
+
+2009-03-12  Joern Rennecke <joern.rennecke@arc.com>
+
+	* MAINTAINERS:  Move myself into the write after approval list.
+
+2009-03-11  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* MAINTAINERS: Update e-mail address.
+	
+2009-03-11  Dorit Nuzman  <dorit@il.ibm.com>
+
+	* MAINTAINERS: Remove myself as auto-vectorizer maintainer.
+
+2009-03-10  Ira Rosen <irar@il.ibm.com>
+
+	* MAINTAINERS: Add myself as auto-vectorizer maintainer.
+
+2009-03-01  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	Backport from git Libtool:
+
+	2009-01-19  Robert Millan  <rmh@aybabtu.com>
+	Support GNU/kOpenSolaris.
+	* libltdl/m4/libtool.m4 (_LT_SYS_DYNAMIC_LINKER)
+	(_LT_CHECK_MAGIC_METHOD, _LT_COMPILER_PIC, _LT_LINKER_SHLIBS)
+	(_LT_LANG_CXX_CONFIG) [kopensolaris*-gnu]: Recognize
+	GNU/kOpenSolaris.
+
+2009-02-27  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* MAINTAINERS: Update e-mail address.
+
+2009-02-24  Michael Eager  <eager@eagercon.com>
+
+	* MAINTAINERS (Write After Approval): Add self.
+
+2009-02-18  Bingfeng Mei  <bmei@broadcom.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-02-05  Andreas Schwab  <schwab@suse.de>
+
+	* Makefile.tpl (stage_last): Define $r and $s before using
+	$(RECURSE_FLAGS_TO_PASS).
+	* Makefile.in: Regenerate
+
+2009-01-30  Ian Lance Taylor  <iant@google.com>
+
+	* MAINTAINERS: Move myself to the Global Reviewers list.
+
+2009-01-29  Robert Millan  <rmh@aybabtu.com>
+
+	* configure.ac: Recognize GNU/kOpenSolaris (*-*-kopensolaris*-gnu).
+	* configure: Regenerate.
+
+2009-01-17  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* MAINTAINERS: Make whitespace consistent.
+	Remove Robert Millan from Write After Approval.
+
+2009-01-16  Alan Modra  <amodra@bigpond.net.au>
+
+	* Makefile.def (configure-opcodes): Depend on configure-libiberty.
+	(all-opcodes): Depend on all-libiberty.
+	* Makefile.in: Regenerate.
+
+2009-01-15  Douglas B Rupp  <rupp@gnat.com>
+
+	* configure.ac (ia64*-*-*vms*): Add case with no gdb or ld support.
+	* configure: Regenerate.
+
+2009-01-12  Ramana Radhakrishnan  <ramana.r@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2009-01-12  Steven G. Kargl  <sgk@troutmask.apl.washington.edu>
+
+	* MAINTAINERS: Add myself to reviewers (Fortran).
+
+2009-01-12  Sebastian Pop <sebastian.pop@amd.com>
+
+	PR tree-optimization/38515
+	* configure.ac (cloog-polylib): Removed.
+	(with_ppl, with_cloog): Test for "no".
+	* configure: Regenerated.
+
+2009-01-11  Daniel Franke  <franke.daniel@gmail.com>
+
+	* MAINTAINERS: Moved myself to reviewers (Fortran).
+
+2009-01-06  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* MAINTAINERS (OS Port Maintainers): Add myself for GNU/Hurd.
+	(Write After Approval): Remove myself.
+
+2009-01-03  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS: Remove myself from alias maintainership.
+
+2009-01-02  David Ayers  <ayers@fsfe.org>
+
+	* MAINTAINERS: Update e-mail address.
+
+2008-12-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* MAINTAINERS: Make whitespace consistent.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	Backport from upstream Libtool:
+	* libltdl.m4 (_LT_SYS_DYNAMIC_LINKER, _LT_LINKER_SHLIBS):
+	Add cache variables to tests that require the linker to work.
+	For shlibpath_overrides_runpath, this also changes the semantics
+	to let the result from the C compiler take precedence.
+
+2008-12-02  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-12-12  Sebastian Pop <sebastian.pop@amd.com>
+
+	* configure.ac (ppllibs): Add by default the lib flags.
+	* configure: Regenerate.
+
+2008-12-08  Luis Machado  <luisgpm@br.ibm.com>
+
+	* MAINTAINERS:  Add myself to the write after approval list.
+
+2008-12-04  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Add double brackets on darwin[912].
+	* configure: Regenerate.
+
+2008-12-03  Daniel Kraft  <d@domob.eu>
+
+	* MAINTAINERS:  Moved myself and Mikael Morin from Write After
+	Approval to Reviewer section (for Fortran front-end).
+
+2008-12-02  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Expand to darwin10 and later.
+	* configure: Regenerate.
+
+2008-12-02  Andreas Schwab  <schwab@suse.de>
+
+	* Makefile.def: configure-target-boehm-gc depends on
+	all-target-libstdc++-v3.
+	* Makefile.in: Regenerate.
+
+2008-12-02  Kai Tietz  <kai.tietz@onevision.com>
+
+	* MAINTAINERS:  Add myself as mingw maintainer.
+
+2008-12-02  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2008-12-01  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* README.SCO: Remove.
+
+2008-11-29  Fernando Pereira  <pronesto@gmail.com>
+
+	* MAINTAINERS:  Add myself to the write after approval list.
+
+2008-11-29  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* MAINTAINERS:  Update my email address in WAA section.
+
+2008-11-29  Chen Liqin <liqin@sunnorth.com.cn>
+
+	* MAINTAINERS: Update e-mail address.
+
+2008-11-27  Toon Moene <toon@moene.org>
+
+	* MAINTAINERS: Change e-mail address.
+
+2008-11-27  Tristan Gingold  <gingold@adacore.com>
+
+	* configure.ac: Build gdb for i?86-*-darwin*
+	* configure: Regenerated.
+
+2008-11-24  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* MAINTAINERS: Added my full name.
+
+2008-11-14  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR bootstrap/38014
+	PR bootstrap/37923
+
+	Revert:
+
+	2008-10-24  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.tpl (HOST_EXPORTS): Correct CPPFLAGS typo.
+	* Makefile.in: Regenerated.
+
+	2008-10-22  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR gdb/921
+	PR gdb/1646
+	PR gdb/2175
+	PR gdb/2176
+
+	* Makefile.def (flags_to_pass): Add CPPFLAGS_FOR_BUILD and CPPFLAGS.
+	* Makefile.tpl (BUILD_EXPORTS): Set CPPFLAGS.
+	(EXTRA_BUILD_FLAGS): Correct typo.  Pass CPPFLAGS.
+	(HOST_EXPORTS): Pass CPPFLAGS.
+	(CPPFLAGS_FOR_BUILD, CPPFLAGS, CPPFLAGS_FOR_TARGET): Define.
+	(LDFLAGS_FOR_TARGET): Initialize from configure script.
+	(EXTRA_TARGET_FLAGS): Set CPPFLAGS.
+	* Makefile.in, configure: Regenerated.
+	* configure.ac: Set CPPFLAGS_FOR_TARGET, LDFLAGS_FOR_TARGET,
+	and CPPFLAGS_FOR_BUILD.
+
+2008-11-06  Jeff Law <law@redhat.com>
+
+	* MAINTAINERS: Add myself as middle end maintainer.
+
+2008-11-06  Andrew Stubbs  <ams@codesourcery.com>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-11-05  Diego Novillo  <dnovillo@google.com>
+
+	* MAINTAINERS (Global Reviewers): Add myself.
+	(Non-Algorithmic Maintainers): Remove myself.
+
+2008-11-04  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-10-31  Mikael Morin  <mikael.morin@tele2.fr>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-10-31  Ben Elliston  <bje@au.ibm.com>
+
+	* configure.ac (spu-*-*): Remove special case.
+	* configure: Regenerate.
+
+2008-10-30  Catherine Moore  <clm@codesourcery.com>
+
+	* MAINTAINERS (Write after approval): Update my email address.
+
+2008-10-29  Stefan Schulze Frielinghaus  <xxschulz@de.ibm.com>
+
+	* configure.ac [spu-*-*]: Do not set skipdirs.
+	* configure: Re-generate.
+
+2008-10-29  Bernd Schmidt  <bernd.schmidt@analog.com>
+
+	* MAINTAINERS (Various Maintainers): Add myself to reload.
+
+2008-10-25  Richard Guenther  <rguenther@suse.de>
+
+	* MAINTAINERS (Various Maintainers): Add myself as middle-end
+	maintainer.  Remove myself as libgcc-math maintainer.
+	(Non-Algorithmic Maintainers): Remove myself.
+
+2008-10-24  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	* Makefile.tpl (HOST_EXPORTS): Correct CPPFLAGS typo.
+	* Makefile.in: Regenerated.
+
+2008-10-23  Cary Coutant  <ccoutant@google.com>
+
+	* MAINTAINERS (Write after approval): Add myself.
+
+2008-10-22  Daniel Jacobowitz  <dan@codesourcery.com>
+
+	PR gdb/921
+	PR gdb/1646
+	PR gdb/2175
+	PR gdb/2176
+
+	* Makefile.def (flags_to_pass): Add CPPFLAGS_FOR_BUILD and CPPFLAGS.
+	* Makefile.tpl (BUILD_EXPORTS): Set CPPFLAGS.
+	(EXTRA_BUILD_FLAGS): Correct typo.  Pass CPPFLAGS.
+	(HOST_EXPORTS): Pass CPPFLAGS.
+	(CPPFLAGS_FOR_BUILD, CPPFLAGS, CPPFLAGS_FOR_TARGET): Define.
+	(LDFLAGS_FOR_TARGET): Initialize from configure script.
+	(EXTRA_TARGET_FLAGS): Set CPPFLAGS.
+	* Makefile.in, configure: Regenerated.
+	* configure.ac: Set CPPFLAGS_FOR_TARGET, LDFLAGS_FOR_TARGET,
+	and CPPFLAGS_FOR_BUILD.
+
+2008-10-20  Sebastian Pop <sebastian.pop@amd.com>
+
+	* MAINTAINERS (Graphite Reviewers): Added Daniel Berlin and
+	Sebastian Pop.
+
+2008-10-14  Antoniu Pop	<antoniu.pop@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Added myself.
+
+2008-10-13  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac (MPFR check): Bump minimum version to 2.3.0 and
+	recommended version to 2.3.2.
+
+	* configure: Regenerate.
+
+2008-10-01  Mark Mitchell  <mark@codesourcery.com>
+
+	* MAINTAINERS (Blanket Write Privs): Change to Global Reviewers.
+
+2008-09-29  David Daney	<david.daney@caviumnetworks.com>
+
+	* MAINTAINERS (Write After Approval): Update e-mail address.
+
 2008-09-26  Peter O'Gorman  <pogma@thewrittenword.com>
 
 	* libtool.m4: Update to libtool 2.2.6.
@@ -18,11 +397,11 @@
 
 2008-09-20  Steven Bosscher  <steven@gcc.gnu.org>
 
-        * MAINTAINERS: Add myself in "Write After Approval".
+	* MAINTAINERS: Add myself in "Write After Approval".
 
 2008-09-18  Steve Ellcey  <sje@cup.hp.com>
 
-        * MAINTAINERS: Add myself as ia64 maintainer.
+	* MAINTAINERS: Add myself as ia64 maintainer.
 
 2008-09-04  Gerald Pfeifer  <gerald@pfeifer.com>
 
@@ -205,7 +584,7 @@
 
 2008-05-18 Xinliang David Li   <davidxl@google.com>
 
-	* ChangeLog: Remove wrong ChangeLog entry. 
+	* ChangeLog: Remove wrong ChangeLog entry.
 
 2008-05-17 Xinliang David Li   <davidxl@google.com>
 
@@ -226,7 +605,7 @@
 2008-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* MAINTAINERS: Update my email address.
-	
+
 2008-05-03  Kris Van Hees  <kris.van.hees@oracle.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -244,8 +623,8 @@
 	Sync with src:
 	2008-04-14  David S. Miller  <davem@davemloft.net>
 
-        * configure.ac: Add sparc*-*-* to gold supported targets.
-        * configure: Regenerate.
+	* configure.ac: Add sparc*-*-* to gold supported targets.
+	* configure: Regenerate.
 
 2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
 
@@ -255,14 +634,14 @@
 
 2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
 
-        * Makefile.tpl (restrap): Call `make all' using double-colon rules.
-        * Makefile.in: Regenerate.
+	* Makefile.tpl (restrap): Call `make all' using double-colon rules.
+	* Makefile.in: Regenerate.
 
 2008-04-18  M R Swami Reddy <MR.Swami.Reddy@nsc.com>
 
-        * configure.ac (cr16-*-*): Add case for cr16 target and include gdb
+	* configure.ac (cr16-*-*): Add case for cr16 target and include gdb
 	as nonconfigurable directories list.
-        * configure: Regenerate.
+	* configure: Regenerate.
 
 2008-04-14  Ben Elliston  <bje@au.ibm.com>
 
@@ -297,8 +676,8 @@
 2008-04-04  NightStrike  <NightStrike@gmail.com>
 
 	PR other/35151
-        * configure.ac: Combine rules for mingw32 and mingw64.
-        * configure: Regenerate.
+	* configure.ac: Combine rules for mingw32 and mingw64.
+	* configure: Regenerate.
 
 2008-04-02  Kai Tietz  <kai.tietz@onvision.com>
 
@@ -343,9 +722,9 @@
 	* configure: Regenerate.
 
 	Backport from upstream Libtool:
-	
+
 	2007-10-12  Eric Blake  <ebb9@byu.net>
-	
+
 	Deal with Autoconf 2.62's semantic change in m4_append.
 	* ltsugar.m4 (lt_append): Replace broken versions of
 	m4_append.
@@ -632,7 +1011,7 @@
 	* Makefile.def: Add libgomp config as a maybe dependency for libstdc++.
 	* configure: Regenerate.
 	* Makefile.in: Regenerate.
-	
+
 2007-09-17  Andreas Schwab  <schwab@suse.de>
 
 	* configure.ac: Raise minimum makeinfo version to 4.6.
@@ -824,13 +1203,13 @@
 	* configure.ac: Likewise.
 	* Makefile.in: Regenerate.
 	* configure: Regenerate.
-						
+
 2007-06-28  DJ Delorie  <dj@redhat.com>
 
 	* configure.ac (arm*-*-linux-gnueabi): Don't build libgloss if we're
 	not building newlib.
 	* configure: Regenerated.
-	
+
 2007-06-28  Jan Sjodin  <jan.sjodin@amd.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -1009,7 +1388,7 @@
 2007-04-04  Christian Bruel  <christian.bruel@st.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
-	
+
 2007-04-02  Dave Korn  <dave.korn@artimi.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
@@ -1021,7 +1400,7 @@
 2007-03-28  Dwarakanath Rajagopal  <dwarak.rajagopal@amd.com>
 
 	* MAINTAINERS (Write After Approval): Add myself.
-	
+
 2007-03-24  Ayal Zaks  <zaks@il.ibm.com>
 
 	* MAINTAINERS (Modulo Scheduler): Add myself.

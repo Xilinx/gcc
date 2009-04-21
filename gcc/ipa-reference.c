@@ -334,23 +334,36 @@ mark_address_taken (tree x)
     bitmap_set_bit (module_statics_escape, DECL_UID (x));
 }
 
+/* Wrapper around mark_address_taken for the stmt walker.  */
+
+static bool
+mark_address (gimple stmt ATTRIBUTE_UNUSED, tree addr,
+	      void *data ATTRIBUTE_UNUSED)
+{
+  while (handled_component_p (addr))
+    addr = TREE_OPERAND (addr, 0);
+  mark_address_taken (addr);
+  return false;
+}
+
 /* Mark load of T.  */
 
-static void
-mark_load (ipa_reference_local_vars_info_t local, 
-	   tree t)
+static bool
+mark_load (gimple stmt ATTRIBUTE_UNUSED, tree t, void *data)
 {
+  ipa_reference_local_vars_info_t local = (ipa_reference_local_vars_info_t)data;
   if (TREE_CODE (t) == VAR_DECL
       && has_proper_scope_for_analysis (t))
     bitmap_set_bit (local->statics_read, DECL_UID (t));
+  return false;
 }
 
 /* Mark store of T.  */
 
-static void
-mark_store (ipa_reference_local_vars_info_t local, 
-	   tree t)
+static bool
+mark_store (gimple stmt ATTRIBUTE_UNUSED, tree t, void *data)
 {
+  ipa_reference_local_vars_info_t local = (ipa_reference_local_vars_info_t)data;
   if (TREE_CODE (t) == VAR_DECL
       && has_proper_scope_for_analysis (t))
     {
@@ -361,6 +374,7 @@ mark_store (ipa_reference_local_vars_info_t local,
       if (module_statics_written)
 	bitmap_set_bit (module_statics_written, DECL_UID (t));
     }
+  return false;
 }
 
 /* Look for memory clobber and set read_all/write_all if present.  */
@@ -427,39 +441,18 @@ scan_stmt_for_static_refs (gimple_stmt_iterator *gsip,
 {
   gimple stmt = gsi_stmt (*gsip);
   ipa_reference_local_vars_info_t local = NULL;
-  unsigned int i;
-  bitmap_iterator bi;
 
   if (fn)
     local = get_reference_vars_info (fn)->local;
 
-  if (gimple_loaded_syms (stmt))
-    EXECUTE_IF_SET_IN_BITMAP (gimple_loaded_syms (stmt), 0, i, bi)
-      mark_load (local, referenced_var_lookup (i));
-  if (gimple_stored_syms (stmt))
-    EXECUTE_IF_SET_IN_BITMAP (gimple_stored_syms (stmt), 0, i, bi)
-      mark_store (local, referenced_var_lookup (i));
-  if (gimple_addresses_taken (stmt))
-    EXECUTE_IF_SET_IN_BITMAP (gimple_addresses_taken (stmt), 0, i, bi)
-      mark_address_taken (referenced_var_lookup (i));
+  /* Look for direct loads and stores.  */
+  walk_stmt_load_store_addr_ops (stmt, local, mark_load, mark_store,
+				 mark_address);
 
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_CALL:
-      check_call (local, stmt);
-      break;
-      
-    case GIMPLE_ASM:
-      check_asm_memory_clobber (local, stmt);
-      break;
-
-    /* We used to check nonlocal labels here and set them as potentially modifying
-       everything.  This is not needed, since we can get to nonlocal label only
-       from callee and thus we will get info propagated.  */
-
-    default:
-      break;
-    }
+  if (is_gimple_call (stmt))
+    check_call (local, stmt);
+  else if (gimple_code (stmt) == GIMPLE_ASM)
+    check_asm_memory_clobber (local, stmt);
   
   return NULL;
 }
@@ -1002,7 +995,7 @@ propagate (void)
   struct cgraph_node *w;
   struct cgraph_node **order =
     XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  int order_pos = ipa_utils_reduced_inorder (order, false, true);
+  int order_pos = ipa_utils_reduced_inorder (order, false, true, NULL);
   int i;
 
   cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
@@ -1013,7 +1006,7 @@ propagate (void)
      the global information.  All the nodes within a cycle will have
      the same info so we collapse cycles first.  Then we can do the
      propagation in one pass from the leaves to the roots.  */
-  order_pos = ipa_utils_reduced_inorder (order, true, true);
+  order_pos = ipa_utils_reduced_inorder (order, true, true, NULL);
   if (dump_file)
     ipa_utils_print_order(dump_file, "reduced", order, order_pos);
 

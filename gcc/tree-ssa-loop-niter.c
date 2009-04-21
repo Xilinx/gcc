@@ -699,8 +699,10 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
 	 iv0->base <= iv1->base + MOD.  */
       if (!iv0->no_overflow && !integer_zerop (mod))
 	{
-	  bound = fold_build2 (MINUS_EXPR, type,
+	  bound = fold_build2 (MINUS_EXPR, type1,
 			       TYPE_MAX_VALUE (type1), tmod);
+	  if (POINTER_TYPE_P (type))
+	    bound = fold_convert (type, bound);
 	  assumption = fold_build2 (LE_EXPR, boolean_type_node,
 				    iv1->base, bound);
 	  if (integer_zerop (assumption))
@@ -708,6 +710,11 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
 	}
       if (mpz_cmp (mmod, bnds->below) < 0)
 	noloop = boolean_false_node;
+      else if (POINTER_TYPE_P (type))
+	noloop = fold_build2 (GT_EXPR, boolean_type_node,
+			      iv0->base,
+			      fold_build2 (POINTER_PLUS_EXPR, type,
+					   iv1->base, tmod));
       else
 	noloop = fold_build2 (GT_EXPR, boolean_type_node,
 			      iv0->base,
@@ -723,6 +730,8 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
 	{
 	  bound = fold_build2 (PLUS_EXPR, type1,
 			       TYPE_MIN_VALUE (type1), tmod);
+	  if (POINTER_TYPE_P (type))
+	    bound = fold_convert (type, bound);
 	  assumption = fold_build2 (GE_EXPR, boolean_type_node,
 				    iv0->base, bound);
 	  if (integer_zerop (assumption))
@@ -730,6 +739,13 @@ number_of_iterations_lt_to_ne (tree type, affine_iv *iv0, affine_iv *iv1,
 	}
       if (mpz_cmp (mmod, bnds->below) < 0)
 	noloop = boolean_false_node;
+      else if (POINTER_TYPE_P (type))
+	noloop = fold_build2 (GT_EXPR, boolean_type_node,
+			      fold_build2 (POINTER_PLUS_EXPR, type,
+					   iv0->base,
+					   fold_build1 (NEGATE_EXPR,
+							type1, tmod)),
+			      iv1->base);
       else
 	noloop = fold_build2 (GT_EXPR, boolean_type_node,
 			      fold_build2 (MINUS_EXPR, type1,
@@ -1084,10 +1100,10 @@ number_of_iterations_le (tree type, affine_iv *iv0, affine_iv *iv1,
     {
       if (integer_nonzerop (iv0->step))
 	assumption = fold_build2 (NE_EXPR, boolean_type_node,
-				  iv1->base, TYPE_MAX_VALUE (type1));
+				  iv1->base, TYPE_MAX_VALUE (type));
       else
 	assumption = fold_build2 (NE_EXPR, boolean_type_node,
-				  iv0->base, TYPE_MIN_VALUE (type1));
+				  iv0->base, TYPE_MIN_VALUE (type));
 
       if (integer_zerop (assumption))
 	return false;
@@ -1097,8 +1113,18 @@ number_of_iterations_le (tree type, affine_iv *iv0, affine_iv *iv1,
     }
 
   if (integer_nonzerop (iv0->step))
-    iv1->base = fold_build2 (PLUS_EXPR, type1,
-			     iv1->base, build_int_cst (type1, 1));
+    {
+      if (POINTER_TYPE_P (type))
+	iv1->base = fold_build2 (POINTER_PLUS_EXPR, type, iv1->base,
+				 build_int_cst (type1, 1));
+      else
+	iv1->base = fold_build2 (PLUS_EXPR, type1, iv1->base,
+				 build_int_cst (type1, 1));
+    }
+  else if (POINTER_TYPE_P (type))
+    iv0->base = fold_build2 (POINTER_PLUS_EXPR, type, iv0->base,
+			     fold_build1 (NEGATE_EXPR, type1,
+					  build_int_cst (type1, 1)));
   else
     iv0->base = fold_build2 (MINUS_EXPR, type1,
 			     iv0->base, build_int_cst (type1, 1));
@@ -1781,9 +1807,9 @@ number_of_iterations_exit (struct loop *loop, edge exit,
       && !POINTER_TYPE_P (type))
     return false;
      
-  if (!simple_iv (loop, stmt, op0, &iv0, false))
+  if (!simple_iv (loop, loop_containing_stmt (stmt), op0, &iv0, false))
     return false;
-  if (!simple_iv (loop, stmt, op1, &iv1, false))
+  if (!simple_iv (loop, loop_containing_stmt (stmt), op1, &iv1, false))
     return false;
 
   /* We don't want to see undefined signed overflow warnings while
@@ -1967,17 +1993,13 @@ chain_of_csts_start (struct loop *loop, tree x)
 
   code = gimple_assign_rhs_code (stmt);
   if (gimple_references_memory_p (stmt)
-      /* Before alias information is computed, operand scanning marks
-	 statements that write memory volatile.  However, the statements
-	 that only read memory are not marked, thus gimple_references_memory_p
-	 returns false for them.  */
       || TREE_CODE_CLASS (code) == tcc_reference
-      || TREE_CODE_CLASS (code) == tcc_declaration
-      || SINGLE_SSA_DEF_OPERAND (stmt, SSA_OP_DEF) == NULL_DEF_OPERAND_P)
+      || (code == ADDR_EXPR
+	  && !is_gimple_min_invariant (gimple_assign_rhs1 (stmt))))
     return NULL;
 
   use = SINGLE_SSA_TREE_OPERAND (stmt, SSA_OP_USE);
-  if (use == NULL_USE_OPERAND_P)
+  if (use == NULL_TREE)
     return NULL;
 
   return chain_of_csts_start (loop, use);
@@ -3053,7 +3075,7 @@ scev_probably_wraps_p (tree base, tree step,
 
   /* If we can use the fact that signed and pointer arithmetics does not
      wrap, we are done.  */
-  if (use_overflow_semantics && nowrap_type_p (type))
+  if (use_overflow_semantics && nowrap_type_p (TREE_TYPE (base)))
     return false;
 
   /* To be able to use estimates on number of iterations of the loop,

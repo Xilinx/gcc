@@ -55,7 +55,7 @@ AR_FLAGS = rc
 
 CC = @CC@
 CFLAGS = @CFLAGS@
-LIBCFLAGS = $(CFLAGS)
+CPPFLAGS = @CPPFLAGS@
 RANLIB = @RANLIB@
 MAKEINFO = @MAKEINFO@
 PERL = @PERL@
@@ -79,8 +79,8 @@ FLAGS_TO_PASS = \
 	"AR_FLAGS=$(AR_FLAGS)" \
 	"CC=$(CC)" \
 	"CFLAGS=$(CFLAGS)" \
+	"CPPFLAGS=$(CPPFLAGS)" \
 	"DESTDIR=$(DESTDIR)" \
-	"LIBCFLAGS=$(LIBCFLAGS)" \
 	"EXTRA_OFILES=$(EXTRA_OFILES)" \
 	"HDEFINES=$(HDEFINES)" \
 	"INSTALL=$(INSTALL)" \
@@ -111,7 +111,7 @@ installcheck: installcheck-subdir
 
 INCDIR=$(srcdir)/$(MULTISRCTOP)../include
 
-COMPILE.c = $(CC) -c @DEFS@ $(LIBCFLAGS) -I. -I$(INCDIR) $(HDEFINES) @ac_libiberty_warn_cflags@
+COMPILE.c = $(CC) -c @DEFS@ $(CFLAGS) $(CPPFLAGS) -I. -I$(INCDIR) $(HDEFINES) @ac_libiberty_warn_cflags@
 
 # Just to make sure we don't use a built-in rule with VPATH
 .c.o:
@@ -135,8 +135,8 @@ CFILES = alloca.c argv.c asprintf.c atexit.c				\
 	lbasename.c							\
 	lrealpath.c							\
 	make-relative-prefix.c						\
-	make-temp-file.c md5.c memchr.c memcmp.c memcpy.c memmove.c	\
-	 mempcpy.c memset.c mkstemps.c					\
+	make-temp-file.c md5.c memchr.c memcmp.c memcpy.c memmem.c	\
+	 memmove.c mempcpy.c memset.c mkstemps.c			\
 	objalloc.c obstack.c						\
 	partition.c pexecute.c						\
 	 pex-common.c pex-djgpp.c pex-msdos.c pex-one.c			\
@@ -187,8 +187,8 @@ CONFIGURED_OFILES = ./asprintf.o ./atexit.o				\
 	./ffs.o								\
 	./getcwd.o ./getpagesize.o ./gettimeofday.o			\
 	./index.o ./insque.o						\
-	./memchr.o ./memcmp.o ./memcpy.o ./memmove.o ./mempcpy.o	\
-	 ./memset.o ./mkstemps.o					\
+	./memchr.o ./memcmp.o ./memcpy.o ./memmem.o ./memmove.o		\
+	 ./mempcpy.o ./memset.o ./mkstemps.o				\
 	./pex-djgpp.o ./pex-msdos.o					\
 	 ./pex-unix.o ./pex-win32.o					\
 	 ./putenv.o							\
@@ -350,9 +350,9 @@ install: install_to_$(INSTALL_DEST) install-subdir
 
 # This is tricky.  Even though CC in the Makefile contains
 # multilib-specific flags, it's overridden by FLAGS_TO_PASS from the
-# default multilib, so we have to take LIBCFLAGS into account as well,
+# default multilib, so we have to take CFLAGS into account as well,
 # since it will be passed the multilib flags.
-MULTIOSDIR = `$(CC) $(LIBCFLAGS) -print-multi-os-directory`
+MULTIOSDIR = `$(CC) $(CFLAGS) -print-multi-os-directory`
 install_to_libdir: all
 	${mkinstalldirs} $(DESTDIR)$(libdir)/$(MULTIOSDIR)
 	$(INSTALL_DATA) $(TARGETLIB) $(DESTDIR)$(libdir)/$(MULTIOSDIR)/$(TARGETLIB)n
@@ -797,6 +797,12 @@ $(CONFIGURED_OFILES): stamp-picdir
 	  $(COMPILE.c) $(PICFLAG) $(srcdir)/memcpy.c -o pic/$@; \
 	else true; fi
 	$(COMPILE.c) $(srcdir)/memcpy.c $(OUTPUT_OPTION)
+
+./memmem.o: $(srcdir)/memmem.c config.h
+	if [ x"$(PICFLAG)" != x ]; then \
+	  $(COMPILE.c) $(PICFLAG) $(srcdir)/memmem.c -o pic/$@; \
+	else true; fi
+	$(COMPILE.c) $(srcdir)/memmem.c $(OUTPUT_OPTION)
 
 ./memmove.o: $(srcdir)/memmove.c $(INCDIR)/ansidecl.h
 	if [ x"$(PICFLAG)" != x ]; then \

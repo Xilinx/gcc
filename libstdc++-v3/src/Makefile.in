@@ -79,7 +79,8 @@ am__libstdc___la_SOURCES_DIST = atomic.cc bitmap_allocator.cc \
 	hash_c++0x.cc globals_io.cc hashtable.cc hashtable_c++0x.cc \
 	ios.cc ios_failure.cc ios_init.cc ios_locale.cc limits.cc \
 	limits_c++0x.cc list.cc debug_list.cc locale.cc locale_init.cc \
-	locale_facets.cc localename.cc stdexcept.cc strstream.cc \
+	locale_facets.cc localename.cc math_stubs_float.cc \
+	math_stubs_long_double.cc stdexcept.cc strstream.cc \
 	system_error.cc tree.cc allocator-inst.cc concept-inst.cc \
 	fstream-inst.cc ext-inst.cc ios-inst.cc iostream-inst.cc \
 	istream-inst.cc istream.cc locale-inst.cc misc-inst.cc \
@@ -104,7 +105,8 @@ am__objects_5 = atomic.lo bitmap_allocator.lo pool_allocator.lo \
 	globals_io.lo hashtable.lo hashtable_c++0x.lo ios.lo \
 	ios_failure.lo ios_init.lo ios_locale.lo limits.lo \
 	limits_c++0x.lo list.lo debug_list.lo locale.lo locale_init.lo \
-	locale_facets.lo localename.lo stdexcept.lo strstream.lo \
+	locale_facets.lo localename.lo math_stubs_float.lo \
+	math_stubs_long_double.lo stdexcept.lo strstream.lo \
 	system_error.lo tree.lo allocator-inst.lo concept-inst.lo \
 	fstream-inst.lo ext-inst.lo ios-inst.lo iostream-inst.lo \
 	istream-inst.lo istream.lo locale-inst.lo misc-inst.lo \
@@ -216,7 +218,6 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBICONV = @LIBICONV@
-LIBMATHOBJS = @LIBMATHOBJS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBSUPCXX_PICFLAGS = @LIBSUPCXX_PICFLAGS@
@@ -412,6 +413,8 @@ sources = \
 	locale_init.cc \
 	locale_facets.cc \
 	localename.cc \
+	math_stubs_float.cc \
+	math_stubs_long_double.cc \
 	stdexcept.cc \
 	strstream.cc \
 	system_error.cc \
@@ -444,12 +447,10 @@ sources = \
 libstdc___la_SOURCES = $(sources)
 libstdc___la_LIBADD = \
 	$(GLIBCXX_LIBS) \
-	$(top_builddir)/libmath/libmath.la \
 	$(top_builddir)/libsupc++/libsupc++convenience.la
 
 libstdc___la_DEPENDENCIES = \
 	${version_dep} \
-	$(top_builddir)/libmath/libmath.la \
 	$(top_builddir)/libsupc++/libsupc++convenience.la
 
 libstdc___la_LDFLAGS = \
@@ -883,9 +884,9 @@ limits_c++0x.o: limits_c++0x.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 atomic.lo: atomic.cc
-	$(LTCXXCOMPILE) -x c++ -std=gnu++0x -c $<
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 atomic.o: atomic.cc
-	$(CXXCOMPILE) -x c++ -std=gnu++0x -c $<
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 string-inst.lo: string-inst.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<

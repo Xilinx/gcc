@@ -1,6 +1,7 @@
 /* Output sdb-format symbol table information from GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -336,6 +337,7 @@ const struct gcc_debug_hooks sdb_debug_hooks =
   debug_nothing_int,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
 
@@ -1177,14 +1179,21 @@ sdbout_one_type (tree type)
 	if (TREE_CODE (type) == ENUMERAL_TYPE)
 	  {
 	    for (tem = TYPE_VALUES (type); tem; tem = TREE_CHAIN (tem))
-	      if (host_integerp (TREE_VALUE (tem), 0))
-		{
-		  PUT_SDB_DEF (IDENTIFIER_POINTER (TREE_PURPOSE (tem)));
-		  PUT_SDB_INT_VAL (tree_low_cst (TREE_VALUE (tem), 0));
-		  PUT_SDB_SCL (C_MOE);
-		  PUT_SDB_TYPE (T_MOE);
-		  PUT_SDB_ENDEF;
-		}
+	      {
+	        tree value = TREE_VALUE (tem);
+
+	        if (TREE_CODE (value) == CONST_DECL)
+	          value = DECL_INITIAL (value);
+
+	        if (host_integerp (value, 0))
+		  {
+		    PUT_SDB_DEF (IDENTIFIER_POINTER (TREE_PURPOSE (tem)));
+		    PUT_SDB_INT_VAL (tree_low_cst (value, 0));
+		    PUT_SDB_SCL (C_MOE);
+		    PUT_SDB_TYPE (T_MOE);
+		    PUT_SDB_ENDEF;
+		  }
+	      }
 	  }
 	else			/* record or union type */
 	  for (tem = TYPE_FIELDS (type); tem; tem = TREE_CHAIN (tem))

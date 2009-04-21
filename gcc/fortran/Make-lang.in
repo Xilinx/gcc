@@ -98,7 +98,7 @@ gfortran-cross$(exeext): gfortran$(exeext)
 f951$(exeext): $(F95_OBJS) \
 		$(BACKEND) $(LIBDEPS) attribs.o
 	$(CC) $(ALL_CFLAGS) $(LDFLAGS) -o $@ \
-		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o $(GMPLIBS)
+		$(F95_OBJS) $(BACKEND) $(LIBS) attribs.o $(BACKENDLIBS)
 
 gt-fortran-trans.h    : s-gtype; @true
 #
@@ -145,7 +145,14 @@ fortran.srcextra:
 
 check-f95 : check-gfortran
 check-fortran : check-gfortran
+check-f95-subtargets : check-gfortran-subtargets
+check-fortran-subtargets : check-gfortran-subtargets
 lang_checks += check-gfortran
+lang_checks_parallelized += check-gfortran
+# For description see comment above check_gcc_parallelize in gcc/Makefile.in.
+check_gfortran_parallelize = dg.exp=gfortran.dg/\[a-cA-C\]* \
+			     dg.exp=gfortran.dg/\[d-mD-M\]* \
+			     dg.exp=gfortran.dg/\[n-zN-Z0-9\]*
 
 # GFORTRAN documentation.
 GFORTRAN_TEXI = \
@@ -204,9 +211,7 @@ doc/gfc-internals.pdf: $(GFC_INTERNALS_TEXI)
 
 # Create or recreate the gfortran private include file directory.
 install-finclude-dir: installdirs
-	-rm -rf $(DESTDIR)$(libsubdir)/finclude
-	mkdir $(DESTDIR)$(libsubdir)/finclude
-	-chmod a+rx $(DESTDIR)$(libsubdir)/finclude
+	$(mkinstalldirs) -m 0755 $(DESTDIR)$(libsubdir)/finclude
 #
 # Install hooks:
 # f951 is installed elsewhere as part of $(COMPILERS).

@@ -1,5 +1,5 @@
 /* Struct-reorg optimization.
-   Copyright (C) 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Olga Golovanevsky <olga@il.ibm.com>
    (Initial version of this code was developed
    by Caroline Tice and Mostafa Hagog.)
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -17,9 +17,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -496,8 +495,6 @@ static void
 finalize_var_creation (tree new_decl)
 {
   add_referenced_var (new_decl);  
-  if (is_global_var (new_decl))
-    mark_call_clobbered (new_decl, ESCAPE_UNKNOWN);
   mark_sym_for_renaming (new_decl); 
 }
 
@@ -609,13 +606,17 @@ gen_size (tree num, tree type, tree *res)
   if (exact_log2 (struct_size_int) == -1)
     {
       tree size = build_int_cst (TREE_TYPE (num), struct_size_int);
-      new_stmt = gimple_build_assign_with_ops (MULT_EXPR, *res, num, size);
+      new_stmt = gimple_build_assign (*res, fold_build2 (MULT_EXPR,
+							 TREE_TYPE (num),
+							 num, size));
     }
   else
     {
       tree C = build_int_cst (TREE_TYPE (num), exact_log2 (struct_size_int));
  
-      new_stmt = gimple_build_assign_with_ops (LSHIFT_EXPR, *res, num, C);
+      new_stmt = gimple_build_assign (*res, fold_build2 (LSHIFT_EXPR,
+							 TREE_TYPE (num),
+							 num, C));
     }
 
   finalize_stmt (new_stmt);
@@ -1250,11 +1251,18 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
   gimple new_stmt = gimple_copy (old_stmt);
   unsigned i;
 
+  /* We are really building a new stmt, clear the virtual operands.  */
+  if (gimple_has_mem_ops (new_stmt))
+    {
+      gimple_set_vuse (new_stmt, NULL_TREE);
+      gimple_set_vdef (new_stmt, NULL_TREE);
+    }
+
   for (i = 0; VEC_iterate (tree, acc->vars, i, var); i++)
     {
       tree *pos;
       tree new_var = find_new_var_of_type (var, new_type);
-      tree lhs, rhs;
+      tree lhs, rhs = NULL_TREE;
 
       gcc_assert (new_var);
       finalize_var_creation (new_var);
@@ -1287,6 +1295,8 @@ create_general_new_stmt (struct access_site *acc, tree new_type)
 	    {
 	      pos = find_pos_in_stmt (new_stmt, var);
 	      gcc_assert (pos);
+	      /* ???  This misses adjustments to the type of the
+	         INDIRECT_REF we possibly replace the operand of.  */
 	      *pos = new_var;
 	    }      
 	}
@@ -1865,8 +1875,9 @@ gen_struct_type (tree decl, tree new_str_type)
 	  wr.wrap = 0;
 	  wr.domain = NULL_TREE;
 	}
-      else if (TREE_CODE (type_orig) == ARRAY_TYPE)
+      else
 	{
+	  gcc_assert (TREE_CODE (type_orig) == ARRAY_TYPE);
 	  wr.wrap = 1;
 	  wr.domain = TYPE_DOMAIN (type_orig);
 	}
@@ -2114,8 +2125,9 @@ create_new_alloc_sites (fallocs_t m_data, tree context)
       num = gen_num_of_structs_in_malloc (stmt, str->decl, &new_stmts);
       if (new_stmts)
 	{
-	  last_stmt = gimple_seq_last_stmt (new_stmts);
+	  gimple last_stmt_tmp = gimple_seq_last_stmt (new_stmts);
 	  insert_seq_after_stmt (last_stmt, new_stmts);
+	  last_stmt = last_stmt_tmp;
 	}
       
       /* Generate an allocation sites for each new structure type.  */      

@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for 64 bit PowerPC linux.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009  Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -15,8 +15,13 @@
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING3.  If not see
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
 #ifndef RS6000_BI_ARCH
@@ -99,7 +104,7 @@ extern int dot_symbols;
 	    }							\
 	  if (TARGET_PROTOTYPE)					\
 	    {							\
-	      TARGET_PROTOTYPE = 0;				\
+	      target_prototype = 0;				\
 	      error (INVALID_64BIT, "prototype");		\
 	    }							\
 	  if ((target_flags & MASK_POWERPC64) == 0)		\
@@ -134,6 +139,10 @@ extern int dot_symbols;
 #undef	ASM_SPEC
 #undef	LINK_OS_LINUX_SPEC
 
+/* FIXME: This will quite possibly choose the wrong dynamic linker.  */
+#undef	LINK_OS_GNU_SPEC
+#define	LINK_OS_GNU_SPEC LINK_OS_LINUX_SPEC
+
 #ifndef	RS6000_BI_ARCH
 #define	ASM_DEFAULT_SPEC "-mppc64"
 #define	ASM_SPEC	 "%(asm_spec64) %(asm_spec_common)"
@@ -152,7 +161,7 @@ extern int dot_symbols;
 
 #define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
 %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
-%{memb} %{!memb: %{msdata: -memb} %{msdata=eabi: -memb}} \
+%{memb} %{!memb: %{msdata=eabi: -memb}} \
 %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
     %{mcall-freebsd: -mbig} \
     %{mcall-i960-old: -mlittle} \

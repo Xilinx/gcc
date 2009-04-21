@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -85,6 +85,9 @@ extern void ix86_fixup_binary_operands_no_copy (enum rtx_code,
 extern void ix86_expand_binary_operator (enum rtx_code,
 					 enum machine_mode, rtx[]);
 extern int ix86_binary_operator_ok (enum rtx_code, enum machine_mode, rtx[]);
+extern bool ix86_lea_for_add_ok (enum rtx_code, rtx, rtx[]);
+extern bool ix86_dep_by_shift_count (const_rtx set_insn, const_rtx use_insn);
+extern bool ix86_agi_dependent (rtx set_insn, rtx use_insn);
 extern void ix86_expand_unary_operator (enum rtx_code, enum machine_mode,
 					rtx[]);
 extern rtx ix86_build_const_vector (enum machine_mode, bool, rtx);
@@ -139,9 +142,8 @@ extern int ix86_function_arg_boundary (enum machine_mode, tree);
 extern bool ix86_sol10_return_in_memory (const_tree,const_tree);
 extern rtx ix86_force_to_memory (enum machine_mode, rtx);
 extern void ix86_free_from_memory (enum machine_mode);
-extern int ix86_cfun_abi (void);
-extern int ix86_function_abi (const_tree);
-extern int ix86_function_type_abi (const_tree);
+extern enum calling_abi ix86_cfun_abi (void);
+extern enum calling_abi ix86_function_type_abi (const_tree);
 extern void ix86_call_abi_override (const_tree);
 extern tree ix86_fn_abi_va_list (tree);
 extern tree ix86_canonical_va_list_type (tree);
@@ -272,3 +274,7 @@ extern enum rtx_code ix86_fp_compare_code_to_integer (enum rtx_code);
 extern rtx construct_plt_address (rtx);
 #endif
 extern int asm_preferred_eh_data_format (int, int);
+
+#ifdef HAVE_ATTR_cpu
+extern enum attr_cpu ix86_schedule;
+#endif

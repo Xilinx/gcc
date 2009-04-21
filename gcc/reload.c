@@ -1,6 +1,6 @@
 /* Search an insn for pseudo regs that must be in hard regs and are not.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -685,7 +685,7 @@ find_valid_class (enum machine_mode outer ATTRIBUTE_UNUSED,
 
       if (bad || !good)
 	continue;
-      cost = REGISTER_MOVE_COST (outer, rclass, dest_class);
+      cost = REGISTER_MOVE_COST (outer, (enum reg_class) rclass, dest_class);
 
       if ((reg_class_size[rclass] > best_size
 	   && (best_cost < 0 || best_cost >= cost))
@@ -693,7 +693,8 @@ find_valid_class (enum machine_mode outer ATTRIBUTE_UNUSED,
 	{
 	  best_class = rclass;
 	  best_size = reg_class_size[rclass];
-	  best_cost = REGISTER_MOVE_COST (outer, rclass, dest_class);
+	  best_cost = REGISTER_MOVE_COST (outer, (enum reg_class) rclass,
+					  dest_class);
 	}
     }
 
@@ -1516,7 +1517,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	 value for the incoming operand (same as outgoing one).  */
       if (rld[i].reg_rtx == out
 	  && (REG_P (in) || CONSTANT_P (in))
-	  && 0 != find_equiv_reg (in, this_insn, 0, REGNO (out),
+	  && 0 != find_equiv_reg (in, this_insn, NO_REGS, REGNO (out),
 				  static_reload_reg_p, i, inmode))
 	rld[i].in = out;
     }
@@ -1549,9 +1550,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 	    && reg_mentioned_p (XEXP (note, 0), in)
 	    /* Check that a former pseudo is valid; see find_dummy_reload.  */
 	    && (ORIGINAL_REGNO (XEXP (note, 0)) < FIRST_PSEUDO_REGISTER
-		|| (! bitmap_bit_p (flag_ira
-				    ? DF_LR_OUT (ENTRY_BLOCK_PTR)
-				    : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+		|| (! bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
 				    ORIGINAL_REGNO (XEXP (note, 0)))
 		    && hard_regno_nregs[regno][GET_MODE (XEXP (note, 0))] == 1))
 	    && ! refers_to_regno_for_reload_p (regno,
@@ -2029,9 +2028,7 @@ find_dummy_reload (rtx real_in, rtx real_out, rtx *inloc, rtx *outloc,
 	     can ignore the conflict).  We must never introduce writes
 	     to such hardregs, as they would clobber the other live
 	     pseudo.  See PR 20973.  */
-          || (!bitmap_bit_p (flag_ira
-			     ? DF_LR_OUT (ENTRY_BLOCK_PTR)
-			     : DF_LIVE_OUT (ENTRY_BLOCK_PTR),
+          || (!bitmap_bit_p (DF_LR_OUT (ENTRY_BLOCK_PTR),
 			     ORIGINAL_REGNO (in))
 	      /* Similarly, only do this if we can be sure that the death
 		 note is still valid.  global can assign some hardreg to
@@ -2569,7 +2566,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
   enum reload_usage { RELOAD_READ, RELOAD_READ_WRITE, RELOAD_WRITE } modified[MAX_RECOG_OPERANDS];
   int no_input_reloads = 0, no_output_reloads = 0;
   int n_alternatives;
-  int this_alternative[MAX_RECOG_OPERANDS];
+  enum reg_class this_alternative[MAX_RECOG_OPERANDS];
   char this_alternative_match_win[MAX_RECOG_OPERANDS];
   char this_alternative_win[MAX_RECOG_OPERANDS];
   char this_alternative_offmemok[MAX_RECOG_OPERANDS];
@@ -3063,7 +3060,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		force_reload = 1;
 	    }
 
-	  this_alternative[i] = (int) NO_REGS;
+	  this_alternative[i] = NO_REGS;
 	  this_alternative_win[i] = 0;
 	  this_alternative_match_win[i] = 0;
 	  this_alternative_offmemok[i] = 0;
@@ -3150,7 +3147,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		       this combination, because we can't reload it.  */
 		    if (this_alternative_offmemok[m]
 			&& MEM_P (recog_data.operand[m])
-			&& this_alternative[m] == (int) NO_REGS
+			&& this_alternative[m] == NO_REGS
 			&& ! this_alternative_win[m])
 		      bad = 1;
 
@@ -3166,7 +3163,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		    if (this_alternative_win[m])
 		      losers++;
 		    this_alternative_win[m] = 0;
-		    if (this_alternative[m] == (int) NO_REGS)
+		    if (this_alternative[m] == NO_REGS)
 		      bad = 1;
 		    /* But count the pair only once in the total badness of
 		       this alternative, if the pair can be a dummy reload.
@@ -3215,8 +3212,8 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	      case 'p':
 		/* All necessary reloads for an address_operand
 		   were handled in find_reloads_address.  */
-		this_alternative[i]
-		  = (int) base_reg_class (VOIDmode, ADDRESS, SCRATCH);
+		this_alternative[i] = base_reg_class (VOIDmode, ADDRESS,
+						      SCRATCH);
 		win = 1;
 		badop = 0;
 		break;
@@ -3375,7 +3372,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 
 	      case 'r':
 		this_alternative[i]
-		  = (int) reg_class_subunion[this_alternative[i]][(int) GENERAL_REGS];
+		  = reg_class_subunion[this_alternative[i]][(int) GENERAL_REGS];
 		goto reg;
 
 	      default:
@@ -3421,8 +3418,9 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 
 			/* If we didn't already win, we can reload
 			   the address into a base register.  */
-			this_alternative[i]
-			  = (int) base_reg_class (VOIDmode, ADDRESS, SCRATCH);
+			this_alternative[i] = base_reg_class (VOIDmode,
+							      ADDRESS,
+							      SCRATCH);
 			badop = 0;
 			break;
 		      }
@@ -3434,9 +3432,9 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		  }
 
 		this_alternative[i]
-		  = (int) (reg_class_subunion
-			   [this_alternative[i]]
-			   [(int) REG_CLASS_FROM_CONSTRAINT (c, p)]);
+		  = (reg_class_subunion
+		     [this_alternative[i]]
+		     [(int) REG_CLASS_FROM_CONSTRAINT (c, p)]);
 	      reg:
 		if (GET_MODE (operand) == BLKmode)
 		  break;
@@ -3453,7 +3451,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 
 	  /* If this operand could be handled with a reg,
 	     and some reg is allowed, then this operand can be handled.  */
-	  if (winreg && this_alternative[i] != (int) NO_REGS)
+	  if (winreg && this_alternative[i] != NO_REGS)
 	    badop = 0;
 
 	  /* Record which operands fit this alternative.  */
@@ -3472,7 +3470,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		bad = 1;
 	      /* Alternative loses if it has no regs for a reg operand.  */
 	      if (REG_P (operand)
-		  && this_alternative[i] == (int) NO_REGS
+		  && this_alternative[i] == NO_REGS
 		  && this_alternative_matches[i] < 0)
 		bad = 1;
 
@@ -3485,14 +3483,13 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		 precisely the same as in the code below that calls
 		 force_const_mem.  */
 	      if (CONST_POOL_OK_P (operand)
-		  && ((PREFERRED_RELOAD_CLASS (operand,
-					       (enum reg_class) this_alternative[i])
+		  && ((PREFERRED_RELOAD_CLASS (operand, this_alternative[i])
 		       == NO_REGS)
 		      || no_input_reloads)
 		  && operand_mode[i] != VOIDmode)
 		{
 		  const_to_mem = 1;
-		  if (this_alternative[i] != (int) NO_REGS)
+		  if (this_alternative[i] != NO_REGS)
 		    losers++;
 		}
 
@@ -3512,19 +3509,17 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		 LIMIT_RELOAD_CLASS, but we don't check that
 		 here.  */
 
-	      if (! CONSTANT_P (operand)
-		  && (enum reg_class) this_alternative[i] != NO_REGS)
+	      if (! CONSTANT_P (operand) && this_alternative[i] != NO_REGS)
 		{
-		  if (PREFERRED_RELOAD_CLASS
-			(operand, (enum reg_class) this_alternative[i])
+		  if (PREFERRED_RELOAD_CLASS (operand, this_alternative[i])
 		      == NO_REGS)
 		    reject = 600;
 
 #ifdef PREFERRED_OUTPUT_RELOAD_CLASS
 		  if (operand_type[i] == RELOAD_FOR_OUTPUT
-		      && PREFERRED_OUTPUT_RELOAD_CLASS
-			   (operand, (enum reg_class) this_alternative[i])
-		         == NO_REGS)
+		      && (PREFERRED_OUTPUT_RELOAD_CLASS (operand,
+							this_alternative[i])
+			  == NO_REGS))
 		    reject = 600;
 #endif
 		}
@@ -3572,7 +3567,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	     because we might otherwise exhaust the class.  */
 
 	  if (! win && ! did_match
-	      && this_alternative[i] != (int) NO_REGS
+	      && this_alternative[i] != NO_REGS
 	      && GET_MODE_SIZE (operand_mode[i]) <= UNITS_PER_WORD
 	      && reg_class_size [(int) preferred_class[i]] > 0
 	      && ! SMALL_REGISTER_CLASS_P (preferred_class[i]))
@@ -3586,7 +3581,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		     common case anyway.  */
 		  if (reg_class_subset_p (preferred_class[i],
 					  this_alternative[i]))
-		    this_alternative[i] = (int) preferred_class[i];
+		    this_alternative[i] = preferred_class[i];
 		  else
 		    reject += (2 + 2 * pref_or_nothing[i]);
 		}
@@ -4771,7 +4766,8 @@ make_memloc (rtx ad, int regno)
   /* We must rerun eliminate_regs, in case the elimination
      offsets have changed.  */
   rtx tem
-    = XEXP (eliminate_regs (reg_equiv_memory_loc[regno], 0, NULL_RTX), 0);
+    = XEXP (eliminate_regs (reg_equiv_memory_loc[regno], VOIDmode, NULL_RTX),
+	    0);
 
   /* If TEM might contain a pseudo, we must copy it to avoid
      modifying it when we do the substitution for the reload.  */

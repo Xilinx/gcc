@@ -1,6 +1,6 @@
 /* Language-independent diagnostic subroutines for the GNU Compiler Collection
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@codesourcery.com>
 
 This file is part of GCC.
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "opts.h"
+#include "plugin.h"
 
 #define pedantic_warning_kind() (flag_pedantic_errors ? DK_ERROR : DK_WARNING)
 #define permissive_error_kind() (flag_permissive ? DK_WARNING : DK_ERROR)
@@ -126,6 +127,7 @@ diagnostic_set_info_translated (diagnostic_info *diagnostic, const char *msg,
   diagnostic->message.args_ptr = args;
   diagnostic->message.format_spec = msg;
   diagnostic->location = location;
+  diagnostic->override_column = 0;
   diagnostic->kind = kind;
   diagnostic->option_index = 0;
 }
@@ -153,6 +155,8 @@ diagnostic_build_prefix (diagnostic_info *diagnostic)
   };
   const char *text = _(diagnostic_kind_text[diagnostic->kind]);
   expanded_location s = expand_location (diagnostic->location);
+  if (diagnostic->override_column)
+    s.column = diagnostic->override_column;
   gcc_assert (diagnostic->kind < DK_LAST_DIAGNOSTIC_KIND);
 
   return
@@ -367,6 +371,14 @@ diagnostic_report_diagnostic (diagnostic_context *context,
     }
 
   context->lock++;
+
+  if (diagnostic->kind == DK_ICE && plugins_active_p ())
+    {
+      fnotice (stderr, "*** WARNING *** there are active plugins, do not report"
+	       " this as a bug unless you can reproduce it without enabling"
+	       " any plugins.\n");
+      dump_active_plugins (stderr);
+    }
 
   if (diagnostic->kind == DK_ICE) 
     {

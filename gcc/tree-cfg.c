@@ -1,5 +1,5 @@
 /* Control flow functions for trees.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -221,6 +221,11 @@ execute_build_cfg (void)
 
   build_gimple_cfg (body);
   gimple_set_body (current_function_decl, NULL);
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      fprintf (dump_file, "Scope blocks:\n");
+      dump_scope_blocks (dump_file, dump_flags);
+    }
   return 0;
 }
 
@@ -370,7 +375,29 @@ make_blocks (gimple_seq seq)
       /* If STMT is a basic block terminator, set START_NEW_BLOCK for the
 	 next iteration.  */
       if (stmt_ends_bb_p (stmt))
-	start_new_block = true;
+	{
+	  /* If the stmt can make abnormal goto use a new temporary
+	     for the assignment to the LHS.  This makes sure the old value
+	     of the LHS is available on the abnormal edge.  Otherwise
+	     we will end up with overlapping life-ranges for abnormal
+	     SSA names.  */
+	  if (gimple_has_lhs (stmt)
+	      && stmt_can_make_abnormal_goto (stmt)
+	      && is_gimple_reg_type (TREE_TYPE (gimple_get_lhs (stmt))))
+	    {
+	      tree lhs = gimple_get_lhs (stmt);
+	      tree tmp = create_tmp_var (TREE_TYPE (lhs), NULL);
+	      gimple s = gimple_build_assign (lhs, tmp);
+	      gimple_set_location (s, gimple_location (stmt));
+	      gimple_set_block (s, gimple_block (stmt));
+	      gimple_set_lhs (stmt, tmp);
+	      if (TREE_CODE (TREE_TYPE (tmp)) == COMPLEX_TYPE
+		  || TREE_CODE (TREE_TYPE (tmp)) == VECTOR_TYPE)
+		DECL_GIMPLE_REG_P (tmp) = 1;
+	      gsi_insert_after (&i, s, GSI_SAME_STMT);
+	    }
+	  start_new_block = true;
+	}
 
       gsi_next (&i);
       first_stmt_of_seq = false;
@@ -658,9 +685,15 @@ make_cond_expr_edges (basic_block bb)
 
   e = make_edge (bb, then_bb, EDGE_TRUE_VALUE);
   e->goto_locus = gimple_location (then_stmt);
+  if (e->goto_locus)
+    e->goto_block = gimple_block (then_stmt);
   e = make_edge (bb, else_bb, EDGE_FALSE_VALUE);
   if (e)
-    e->goto_locus = gimple_location (else_stmt);
+    {
+      e->goto_locus = gimple_location (else_stmt);
+      if (e->goto_locus)
+	e->goto_block = gimple_block (else_stmt);
+    }
 
   /* We do not need the labels anymore.  */
   gimple_cond_set_true_label (entry, NULL_TREE);
@@ -849,6 +882,8 @@ make_goto_expr_edges (basic_block bb)
       tree dest = gimple_goto_dest (goto_t);
       edge e = make_edge (bb, label_to_block (dest), EDGE_FALLTHRU);
       e->goto_locus = gimple_location (goto_t);
+      if (e->goto_locus)
+	e->goto_block = gimple_block (goto_t);
       gsi_remove (&last, true);
       return;
     }
@@ -1539,7 +1574,8 @@ remove_useless_stmts_cond (gimple_stmt_iterator *gsi, struct rus_data *data)
   gimple stmt = gsi_stmt (*gsi);
 
   /* The folded result must still be a conditional statement.  */
-  fold_stmt_inplace (stmt);
+  fold_stmt (gsi);
+  gcc_assert (gsi_stmt (*gsi) == stmt);
 
   data->may_branch = true;
 
@@ -1783,9 +1819,21 @@ remove_useless_stmts_bind (gimple_stmt_iterator *gsi, struct rus_data *data ATTR
 	  || (TREE_CODE (BLOCK_ABSTRACT_ORIGIN (block))
 	      != FUNCTION_DECL)))
     {
-      gsi_insert_seq_before (gsi, body_seq, GSI_SAME_STMT);
-      gsi_remove (gsi, false);
-      data->repeat = true;
+      tree var = NULL_TREE;
+      /* Even if there are no gimple_bind_vars, there might be other
+	 decls in BLOCK_VARS rendering the GIMPLE_BIND not useless.  */
+      if (block && !BLOCK_NUM_NONLOCALIZED_VARS (block))
+	for (var = BLOCK_VARS (block); var; var = TREE_CHAIN (var))
+	  if (TREE_CODE (var) == IMPORTED_DECL)
+	    break;
+      if (var || (block && BLOCK_NUM_NONLOCALIZED_VARS (block)))
+	gsi_next (gsi);
+      else
+	{
+	  gsi_insert_seq_before (gsi, body_seq, GSI_SAME_STMT);
+	  gsi_remove (gsi, false);
+	  data->repeat = true;
+	}
     }
   else
     gsi_next (gsi);
@@ -2050,7 +2098,7 @@ struct gimple_opt_pass pass_remove_useless_stmts =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_gimple_any,			/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -2064,14 +2112,9 @@ struct gimple_opt_pass pass_remove_useless_stmts =
 static void
 remove_phi_nodes_and_edges_for_unreachable_block (basic_block bb)
 {
-  gimple_stmt_iterator gsi;
-
   /* Since this block is no longer reachable, we can just delete all
      of its PHI nodes.  */
-  for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); )
-    remove_phi_node (&gsi, true);
-
-  set_phi_nodes (bb, NULL);
+  remove_phi_nodes (bb);
 
   /* Remove edges to BB's successors.  */
   while (EDGE_COUNT (bb->succs) > 0)
@@ -2802,6 +2845,15 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	}
       break;
 
+    case INDIRECT_REF:
+      x = TREE_OPERAND (t, 0);
+      if (!is_gimple_reg (x) && !is_gimple_min_invariant (x))
+	{
+	  error ("Indirect reference's operand is not a register or a constant.");
+	  return x;
+	}
+      break;
+
     case ASSERT_EXPR:
       x = fold (ASSERT_EXPR_COND (t));
       if (x == boolean_false_node)
@@ -2812,14 +2864,8 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       break;
 
     case MODIFY_EXPR:
-      x = TREE_OPERAND (t, 0);
-      if (TREE_CODE (x) == BIT_FIELD_REF
-	  && is_gimple_reg (TREE_OPERAND (x, 0)))
-	{
-	  error ("GIMPLE register modified with BIT_FIELD_REF");
-	  return t;
-	}
-      break;
+      error ("MODIFY_EXPR not expected while having tuples.");
+      return *tp;
 
     case ADDR_EXPR:
       {
@@ -2856,11 +2902,18 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	     x = TREE_OPERAND (x, 0))
 	  ;
 
-	if (TREE_CODE (x) != VAR_DECL && TREE_CODE (x) != PARM_DECL)
+	if (!(TREE_CODE (x) == VAR_DECL
+	      || TREE_CODE (x) == PARM_DECL
+	      || TREE_CODE (x) == RESULT_DECL))
 	  return NULL;
 	if (!TREE_ADDRESSABLE (x))
 	  {
 	    error ("address taken, but ADDRESSABLE bit not set");
+	    return x;
+	  }
+	if (DECL_GIMPLE_REG_P (x))
+	  {
+	    error ("DECL_GIMPLE_REG_P set on a variable with address taken");
 	    return x;
 	  }
 
@@ -3381,23 +3434,23 @@ verify_gimple_assign_unary (gimple stmt)
         return false;
       }
 
-    case TRUTH_NOT_EXPR:
-      {
-      }
+    case VEC_UNPACK_HI_EXPR:
+    case VEC_UNPACK_LO_EXPR:
+    case REDUC_MAX_EXPR:
+    case REDUC_MIN_EXPR:
+    case REDUC_PLUS_EXPR:
+    case VEC_UNPACK_FLOAT_HI_EXPR:
+    case VEC_UNPACK_FLOAT_LO_EXPR:
+      /* FIXME.  */
+      return false;
 
+    case TRUTH_NOT_EXPR:
     case NEGATE_EXPR:
     case ABS_EXPR:
     case BIT_NOT_EXPR:
     case PAREN_EXPR:
     case NON_LVALUE_EXPR:
     case CONJ_EXPR:
-    case REDUC_MAX_EXPR:
-    case REDUC_MIN_EXPR:
-    case REDUC_PLUS_EXPR:
-    case VEC_UNPACK_HI_EXPR:
-    case VEC_UNPACK_LO_EXPR:
-    case VEC_UNPACK_FLOAT_HI_EXPR:
-    case VEC_UNPACK_FLOAT_LO_EXPR:
       break;
 
     default:
@@ -3471,8 +3524,18 @@ verify_gimple_assign_binary (gimple stmt)
     case LROTATE_EXPR:
     case RROTATE_EXPR:
       {
-	if (!INTEGRAL_TYPE_P (rhs1_type)
-	    || !INTEGRAL_TYPE_P (rhs2_type)
+	/* Shifts and rotates are ok on integral types, fixed point
+	   types and integer vector types.  */
+	if ((!INTEGRAL_TYPE_P (rhs1_type)
+	     && !FIXED_POINT_TYPE_P (rhs1_type)
+	     && !(TREE_CODE (rhs1_type) == VECTOR_TYPE
+		  && TREE_CODE (TREE_TYPE (rhs1_type)) == INTEGER_TYPE))
+	    || (!INTEGRAL_TYPE_P (rhs2_type)
+		/* Vector shifts of vectors are also ok.  */
+		&& !(TREE_CODE (rhs1_type) == VECTOR_TYPE
+		     && TREE_CODE (TREE_TYPE (rhs1_type)) == INTEGER_TYPE
+		     && TREE_CODE (rhs2_type) == VECTOR_TYPE
+		     && TREE_CODE (TREE_TYPE (rhs2_type)) == INTEGER_TYPE))
 	    || !useless_type_conversion_p (lhs_type, rhs1_type))
 	  {
 	    error ("type mismatch in shift expression");
@@ -3489,7 +3552,8 @@ verify_gimple_assign_binary (gimple stmt)
     case VEC_RSHIFT_EXPR:
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
-	    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
 		&& (TREE_CODE (rhs2_type) != VECTOR_TYPE
 		    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2_type))))
@@ -3505,8 +3569,52 @@ verify_gimple_assign_binary (gimple stmt)
 	return false;
       }
 
+    case PLUS_EXPR:
+      {
+	/* We use regular PLUS_EXPR for vectors.
+	   ???  This just makes the checker happy and may not be what is
+	   intended.  */
+	if (TREE_CODE (lhs_type) == VECTOR_TYPE
+	    && POINTER_TYPE_P (TREE_TYPE (lhs_type)))
+	  {
+	    if (TREE_CODE (rhs1_type) != VECTOR_TYPE
+		|| TREE_CODE (rhs2_type) != VECTOR_TYPE)
+	      {
+		error ("invalid non-vector operands to vector valued plus");
+		return true;
+	      }
+	    lhs_type = TREE_TYPE (lhs_type);
+	    rhs1_type = TREE_TYPE (rhs1_type);
+	    rhs2_type = TREE_TYPE (rhs2_type);
+	    /* PLUS_EXPR is commutative, so we might end up canonicalizing
+	       the pointer to 2nd place.  */
+	    if (POINTER_TYPE_P (rhs2_type))
+	      {
+		tree tem = rhs1_type;
+		rhs1_type = rhs2_type;
+		rhs2_type = tem;
+	      }
+	    goto do_pointer_plus_expr_check;
+	  }
+      }
+    /* Fallthru.  */
+    case MINUS_EXPR:
+      {
+	if (POINTER_TYPE_P (lhs_type)
+	    || POINTER_TYPE_P (rhs1_type)
+	    || POINTER_TYPE_P (rhs2_type))
+	  {
+	    error ("invalid (pointer) operands to plus/minus");
+	    return true;
+	  }
+
+	/* Continue with generic binary expression handling.  */
+	break;
+      }
+
     case POINTER_PLUS_EXPR:
       {
+do_pointer_plus_expr_check:
 	if (!POINTER_TYPE_P (rhs1_type)
 	    || !useless_type_conversion_p (lhs_type, rhs1_type)
 	    || !useless_type_conversion_p (sizetype, rhs2_type))
@@ -3562,20 +3670,19 @@ verify_gimple_assign_binary (gimple stmt)
 	 connected to the operand types.  */
       return verify_gimple_comparison (lhs_type, rhs1, rhs2);
 
-    case PLUS_EXPR:
-    case MINUS_EXPR:
-      {
-	if (POINTER_TYPE_P (lhs_type)
-	    || POINTER_TYPE_P (rhs1_type)
-	    || POINTER_TYPE_P (rhs2_type))
-	  {
-	    error ("invalid (pointer) operands to plus/minus");
-	    return true;
-	  }
-
-	/* Continue with generic binary expression handling.  */
-	break;
-      }
+    case WIDEN_SUM_EXPR:
+    case WIDEN_MULT_EXPR:
+    case VEC_WIDEN_MULT_HI_EXPR:
+    case VEC_WIDEN_MULT_LO_EXPR:
+    case VEC_PACK_TRUNC_EXPR:
+    case VEC_PACK_SAT_EXPR:
+    case VEC_PACK_FIX_TRUNC_EXPR:
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
+      /* FIXME.  */
+      return false;
 
     case MULT_EXPR:
     case TRUNC_DIV_EXPR:
@@ -3593,17 +3700,6 @@ verify_gimple_assign_binary (gimple stmt)
     case BIT_IOR_EXPR:
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
-    case WIDEN_SUM_EXPR:
-    case WIDEN_MULT_EXPR:
-    case VEC_WIDEN_MULT_HI_EXPR:
-    case VEC_WIDEN_MULT_LO_EXPR:
-    case VEC_PACK_TRUNC_EXPR:
-    case VEC_PACK_SAT_EXPR:
-    case VEC_PACK_FIX_TRUNC_EXPR:
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
       /* Continue with generic binary expression handling.  */
       break;
 
@@ -3660,11 +3756,8 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	if (!one_pointer_to_useless_type_conversion_p (lhs_type, TREE_TYPE (op))
-	    /* FIXME: a longstanding wart, &a == &a[0].  */
-	    && (TREE_CODE (TREE_TYPE (op)) != ARRAY_TYPE
-		|| !one_pointer_to_useless_type_conversion_p (lhs_type,
-		      TREE_TYPE (TREE_TYPE (op)))))
+	if (!one_pointer_to_useless_type_conversion_p (lhs_type,
+						       TREE_TYPE (op)))
 	  {
 	    error ("type mismatch in address expression");
 	    debug_generic_stmt (lhs_type);
@@ -3871,7 +3964,7 @@ verify_gimple_phi (gimple stmt)
 	}
       if (!useless_type_conversion_p (type, TREE_TYPE (arg)))
 	{
-	  error ("Incompatible types in PHI argument");
+	  error ("Incompatible types in PHI argument %u", i);
 	  debug_generic_stmt (type);
 	  debug_generic_stmt (TREE_TYPE (arg));
 	  return true;
@@ -4063,7 +4156,10 @@ verify_stmt (gimple_stmt_iterator *gsi)
      to match.  */
   if (lookup_stmt_eh_region (stmt) >= 0)
     {
-      if (!stmt_could_throw_p (stmt))
+      /* During IPA passes, ipa-pure-const sets nothrow flags on calls
+         and they are updated on statements only after fixup_cfg
+	 is executed at beggining of expansion stage.  */
+      if (!stmt_could_throw_p (stmt) && cgraph_state != CGRAPH_STATE_IPA_SSA)
 	{
 	  error ("statement marked for throw, but doesn%'t");
 	  goto fail;
@@ -4146,7 +4242,7 @@ verify_eh_throw_stmt_node (void **slot, void *data)
       debug_gimple_stmt (node->stmt);
       eh_error_found = true;
     }
-  return 0;
+  return 1;
 }
 
 
@@ -4934,7 +5030,6 @@ gimple_duplicate_bb (basic_block bb)
 	 operands.  */
       copy = gimple_copy (stmt);
       gsi_insert_after (&gsi_tgt, copy, GSI_NEW_STMT);
-      copy_virtual_operands (copy, stmt);
       region = lookup_stmt_eh_region (stmt);
       if (region >= 0)
 	add_stmt_to_eh_region (copy, region);
@@ -5106,7 +5201,7 @@ gimple_duplicate_sese_region (edge entry, edge exit,
       free_region_copy = true;
     }
 
-  gcc_assert (!need_ssa_update_p ());
+  gcc_assert (!need_ssa_update_p (cfun));
 
   /* Record blocks outside the region that are dominated by something
      inside.  */
@@ -5265,7 +5360,7 @@ gimple_duplicate_sese_tail (edge entry ATTRIBUTE_UNUSED, edge exit ATTRIBUTE_UNU
       free_region_copy = true;
     }
 
-  gcc_assert (!need_ssa_update_p ());
+  gcc_assert (!need_ssa_update_p (cfun));
 
   /* Record blocks outside the region that are dominated by something
      inside.  */
@@ -5592,19 +5687,6 @@ mark_virtual_ops_in_bb (basic_block bb)
     mark_virtual_ops_for_renaming (gsi_stmt (gsi));
 }
 
-/* Marks virtual operands of all statements in basic blocks BBS for
-   renaming.  */
-
-static void
-mark_virtual_ops_in_region (VEC (basic_block,heap) *bbs)
-{
-  basic_block bb;
-  unsigned i;
-
-  for (i = 0; VEC_iterate (basic_block, bbs, i, bb); i++)
-    mark_virtual_ops_in_bb (bb);
-}
-
 /* Move basic block BB from function CFUN to function DEST_FN.  The
    block is moved out of the original linked list and placed after
    block AFTER in the new list.  Also, the block is removed from the
@@ -5711,7 +5793,7 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
 	  old_len = VEC_length (basic_block, cfg->x_label_to_block_map);
 	  if (old_len <= (unsigned) uid)
 	    {
-	      new_len = 3 * uid / 2;
+	      new_len = 3 * uid / 2 + 1;
 	      VEC_safe_grow_cleared (basic_block, gc,
 				     cfg->x_label_to_block_map, new_len);
 	    }
@@ -5743,6 +5825,23 @@ move_block_to_fn (struct function *dest_cfun, basic_block bb,
       update_stmt (stmt);
       pop_cfun ();
     }
+
+  FOR_EACH_EDGE (e, ei, bb->succs)
+    if (e->goto_locus)
+      {
+	tree block = e->goto_block;
+	if (d->orig_block == NULL_TREE
+	    || block == d->orig_block)
+	  e->goto_block = d->new_block;
+#ifdef ENABLE_CHECKING
+	else if (block != d->new_block)
+	  {
+	    while (block && block != d->orig_block)
+	      block = BLOCK_SUPERCONTEXT (block);
+	    gcc_assert (block);
+	  }
+#endif
+      }
 }
 
 /* Examine the statements in BB (which is in SRC_CFUN); find and return
@@ -5815,6 +5914,8 @@ replace_block_vars_by_duplicates (tree block, struct pointer_map_t *vars_map,
   for (tp = &BLOCK_VARS (block); *tp; tp = &TREE_CHAIN (*tp))
     {
       t = *tp;
+      if (TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != CONST_DECL)
+	continue;
       replace_by_duplicate_decl (&t, vars_map, to_context);
       if (t != *tp)
 	{
@@ -5953,11 +6054,6 @@ move_sese_region_to_fn (struct function *dest_cfun, basic_block entry_bb,
     }
 
   pop_cfun ();
-
-  /* The ssa form for virtual operands in the source function will have to
-     be repaired.  We do not care for the real operands -- the sese region
-     must be closed with respect to those.  */
-  mark_virtual_ops_in_region (bbs);
 
   /* Move blocks from BBS into DEST_CFUN.  */
   gcc_assert (VEC_length (basic_block, bbs) >= 2);
@@ -6412,9 +6508,14 @@ need_fake_edge_p (gimple t)
       && fndecl
       && DECL_BUILT_IN (fndecl)
       && (call_flags & ECF_NOTHROW)
-      && !(call_flags & ECF_NORETURN)
-      && !(call_flags & ECF_RETURNS_TWICE))
-   return false;
+      && !(call_flags & ECF_RETURNS_TWICE)
+      /* fork() doesn't really return twice, but the effect of
+         wrapping it in __gcov_fork() which calls __gcov_flush()
+	 and clears the counters before forking has the same
+	 effect as returning twice.  Force a fake edge.  */
+      && !(DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+	   && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_FORK))
+    return false;
 
   if (is_gimple_call (t)
       && !(call_flags & ECF_NORETURN))
@@ -6580,20 +6681,6 @@ gimple_purge_dead_abnormal_call_edges (basic_block bb)
   return changed;
 }
 
-/* Stores all basic blocks dominated by BB to DOM_BBS.  */
-
-static void
-get_all_dominated_blocks (basic_block bb, VEC (basic_block, heap) **dom_bbs)
-{
-  basic_block son;
-
-  VEC_safe_push (basic_block, heap, *dom_bbs, bb);
-  for (son = first_dom_son (CDI_DOMINATORS, bb);
-       son;
-       son = next_dom_son (CDI_DOMINATORS, son))
-    get_all_dominated_blocks (son, dom_bbs);
-}
-
 /* Removes edge E and all the blocks dominated by it, and updates dominance
    information.  The IL in E->src needs to be updated separately.
    If dominance info is not available, only the edge E is removed.*/
@@ -6653,7 +6740,7 @@ remove_edge_and_dominated_blocks (edge e)
 		    get_immediate_dominator (CDI_DOMINATORS, e->dest)->index);
   else
     {
-      get_all_dominated_blocks (e->dest, &bbs_to_remove);
+      bbs_to_remove = get_all_dominated_blocks (CDI_DOMINATORS, e->dest);
       for (i = 0; VEC_iterate (basic_block, bbs_to_remove, i, bb); i++)
 	{
 	  FOR_EACH_EDGE (f, ei, bb->succs)
@@ -7072,7 +7159,7 @@ struct gimple_opt_pass pass_warn_function_return =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */
@@ -7106,7 +7193,7 @@ struct gimple_opt_pass pass_warn_function_noreturn =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

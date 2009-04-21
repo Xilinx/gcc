@@ -31,9 +31,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Warnings (Off);
 pragma Compiler_Unit;
-pragma Warnings (On);
 
 with System.Case_Util;
 with System.CRTL;
@@ -846,12 +844,8 @@ package body System.OS_Lib is
 
    procedure Delete_File (Name : Address; Success : out Boolean) is
       R : Integer;
-
-      function unlink (A : Address) return Integer;
-      pragma Import (C, unlink, "unlink");
-
    begin
-      R := unlink (Name);
+      R := System.CRTL.unlink (Name);
       Success := (R = 0);
    end Delete_File;
 
@@ -1839,8 +1833,9 @@ package body System.OS_Lib is
 
                --  By default, the drive letter on Windows is in upper case
 
-               if On_Windows and then Path_Len >= 2 and then
-                 Buffer (2) = ':'
+               if On_Windows
+                 and then Path_Len >= 2
+                 and then Buffer (2) = ':'
                then
                   System.Case_Util.To_Upper (Buffer (1 .. 1));
                end if;
@@ -1912,31 +1907,41 @@ package body System.OS_Lib is
       --  it may have multiple equivalences and if resolved we will only
       --  get the first one.
 
-      --  On Windows, if we have an absolute path starting with a directory
-      --  separator, we need to have the drive letter appended in front.
+      if On_Windows then
 
-      --  On Windows, Get_Current_Dir will return a suitable directory
-      --  name (path starting with a drive letter on Windows). So we take this
-      --  drive letter and prepend it to the current path.
+         --  On Windows, if we have an absolute path starting with a directory
+         --  separator, we need to have the drive letter appended in front.
 
-      if On_Windows
-        and then Path_Buffer (1) = Directory_Separator
-        and then Path_Buffer (2) /= Directory_Separator
-      then
-         declare
-            Cur_Dir : constant String := Get_Directory ("");
-            --  Get the current directory to get the drive letter
+         --  On Windows, Get_Current_Dir will return a suitable directory name
+         --  (path starting with a drive letter on Windows). So we take this
+         --  drive letter and prepend it to the current path.
 
-         begin
-            if Cur_Dir'Length > 2
-              and then Cur_Dir (Cur_Dir'First + 1) = ':'
-            then
-               Path_Buffer (3 .. End_Path + 2) := Path_Buffer (1 .. End_Path);
-               Path_Buffer (1 .. 2) :=
-                 Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
-               End_Path := End_Path + 2;
-            end if;
-         end;
+         if Path_Buffer (1) = Directory_Separator
+           and then Path_Buffer (2) /= Directory_Separator
+         then
+            declare
+               Cur_Dir : constant String := Get_Directory ("");
+               --  Get the current directory to get the drive letter
+
+            begin
+               if Cur_Dir'Length > 2
+                 and then Cur_Dir (Cur_Dir'First + 1) = ':'
+               then
+                  Path_Buffer (3 .. End_Path + 2) :=
+                    Path_Buffer (1 .. End_Path);
+                  Path_Buffer (1 .. 2) :=
+                    Cur_Dir (Cur_Dir'First .. Cur_Dir'First + 1);
+                  End_Path := End_Path + 2;
+               end if;
+            end;
+
+         --  We have a drive letter, ensure it is upper-case
+
+         elsif Path_Buffer (1) in 'a' .. 'z'
+           and then Path_Buffer (2) = ':'
+         then
+            System.Case_Util.To_Upper (Path_Buffer (1 .. 1));
+         end if;
       end if;
 
       --  On Windows, remove all double-quotes that are possibly part of the
@@ -2246,7 +2251,7 @@ package body System.OS_Lib is
       Success  : out Boolean)
    is
       function rename (From, To : Address) return Integer;
-      pragma Import (C, rename, "rename");
+      pragma Import (C, rename, "__gnat_rename");
       R : Integer;
    begin
       R := rename (Old_Name, New_Name);

@@ -1,6 +1,6 @@
 /* Coalesce SSA_NAMES together for the out-of-ssa pass.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008 Free Software Foundation,
-   Inc.
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Andrew MacLeod <amacleod@redhat.com>
 
 This file is part of GCC.
@@ -284,8 +284,7 @@ add_cost_one_coalesce (coalesce_list_p cl, int p1, int p2)
 /* Add a coalesce between P1 and P2 in list CL with a cost of VALUE.  */
 
 static inline void 
-add_coalesce (coalesce_list_p cl, int p1, int p2,
-	      int value)
+add_coalesce (coalesce_list_p cl, int p1, int p2, int value)
 {
   coalesce_pair_p node;
 
@@ -295,13 +294,13 @@ add_coalesce (coalesce_list_p cl, int p1, int p2,
 
   node = find_coalesce_pair (cl, p1, p2, true);
 
-  /* Once the value is MUST_COALESCE_COST, leave it that way.  */
-  if (node->cost != MUST_COALESCE_COST)
+  /* Once the value is at least MUST_COALESCE_COST - 1, leave it that way.  */
+  if (node->cost < MUST_COALESCE_COST - 1)
     {
-      if (value == MUST_COALESCE_COST)
-	node->cost = value;
-      else
+      if (value < MUST_COALESCE_COST - 1)
 	node->cost += value;
+      else
+	node->cost = value;
     }
 }
 
@@ -1115,12 +1114,9 @@ create_outofssa_var_map (coalesce_list_p cl, bitmap used_in_copy)
 	    bitmap_set_bit (used_in_real_ops, DECL_UID (SSA_NAME_VAR (var)));
 
 	  /* Validate that virtual ops don't get used in funny ways.  */
-	  FOR_EACH_SSA_TREE_OPERAND (var, stmt, iter, SSA_OP_ALL_VIRTUALS)
-	    {
-	      bitmap_set_bit (used_in_virtual_ops, 
-			      DECL_UID (SSA_NAME_VAR (var)));
-	    }
-
+	  if (gimple_vuse (stmt))
+	    bitmap_set_bit (used_in_virtual_ops, 
+			    DECL_UID (SSA_NAME_VAR (gimple_vuse (stmt))));
 #endif /* ENABLE_CHECKING */
 	}
     }

@@ -1,12 +1,12 @@
 /* Definitions for CPP library.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2008
+   2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -15,8 +15,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
  In other words, you are welcome to use, share and improve this program.
  You are forbidden to forbid anyone else to use, share and improve
@@ -178,6 +178,10 @@ struct cpp_string GTY(())
 #define BOL		(1 << 6) /* Token at beginning of line.  */
 #define PURE_ZERO	(1 << 7) /* Single 0 digit, used by the C++ frontend,
 				    set in c-lex.c.  */
+#define SP_DIGRAPH	(1 << 8) /* # or ## token was a digraph.  */
+#define SP_PREV_WHITE	(1 << 9) /* If whitespace before a ##
+				    operator, or before this token
+				    after a # operator.  */
 
 /* Specify which field, if any, of the cpp_token union is used.  */
 
@@ -196,7 +200,7 @@ struct cpp_token GTY(())
 {
   source_location src_loc;	/* Location of first char of token.  */
   ENUM_BITFIELD(cpp_ttype) type : CHAR_BIT;  /* token type */
-  unsigned char flags;		/* flags - see above */
+  unsigned short flags;		/* flags - see above */
 
   union cpp_token_u
   {
@@ -302,21 +306,8 @@ struct cpp_options
   /* Nonzero means print names of header files (-H).  */
   unsigned char print_include_names;
 
-  /* Nonzero means cpp_pedwarn causes a hard error.  */
-  unsigned char pedantic_errors;
-
-  /* Nonzero means don't print warning messages.  */
-  unsigned char inhibit_warnings;
-
   /* Nonzero means complain about deprecated features.  */
   unsigned char warn_deprecated;
-
-  /* Nonzero means don't suppress warnings from system headers.  */
-  unsigned char warn_system_headers;
-
-  /* Nonzero means don't print error messages.  Has no option to
-     select it, but can be set by a user of cpplib (e.g. fix-header).  */
-  unsigned char inhibit_errors;
 
   /* Nonzero means warn if slash-star appears in a comment.  */
   unsigned char warn_comments;
@@ -352,9 +343,6 @@ struct cpp_options
   /* Nonzero means warn about builtin macros that are redefined or
      explicitly undefined.  */
   unsigned char warn_builtin_macro_redefined;
-
-  /* Nonzero means turn warnings into errors.  */
-  unsigned char warnings_are_errors;
 
   /* Nonzero means we should look for header.gcc files that remap file
      names.  */
@@ -450,9 +438,6 @@ struct cpp_options
   /* Nonzero means __STDC__ should have the value 0 in system headers.  */
   unsigned char stdc_0_in_system_headers;
 
-  /* True means error callback should be used for diagnostics.  */
-  bool client_diagnostic;
-
   /* True disables tokenization outside of preprocessing directives. */
   bool directives_only;
 };
@@ -492,10 +477,11 @@ struct cpp_callbacks
      be expanded.  */
   cpp_hashnode * (*macro_to_expand) (cpp_reader *, const cpp_token *);
 
-  /* Called to emit a diagnostic if client_diagnostic option is true.
-     This callback receives the translated message.  */
-  void (*error) (cpp_reader *, int, const char *, va_list *)
-       ATTRIBUTE_FPTR_PRINTF(3,0);
+  /* Called to emit a diagnostic.  This callback receives the
+     translated message.  */
+  bool (*error) (cpp_reader *, int, source_location, unsigned int,
+		 const char *, va_list *)
+       ATTRIBUTE_FPTR_PRINTF(5,0);
 
   /* Callbacks for when a macro is expanded, or tested (whether
      defined or not at the time) in #ifdef, #ifndef or "defined".  */
@@ -516,13 +502,16 @@ struct cpp_dir
   char *name;
   unsigned int len;
 
-  /* The canonicalized NAME as determined by lrealpath.  This field 
-     is only used by hosts that lack reliable inode numbers.  */
-  char *canonical_name;
-
   /* One if a system header, two if a system header that has extern
      "C" guards for C++.  */
   unsigned char sysp;
+
+  /* Is this a user-supplied directory? */
+  bool user_supplied_p;
+
+  /* The canonicalized NAME as determined by lrealpath.  This field 
+     is only used by hosts that lack reliable inode numbers.  */
+  char *canonical_name;
 
   /* Mapping of file names for this directory for MS-DOS and related
      platforms.  A NULL-terminated array of (from, to) pairs.  */
@@ -538,9 +527,6 @@ struct cpp_dir
      directories in the search path.  */
   ino_t ino;
   dev_t dev;
-
-  /* Is this a user-supplied directory? */
-  bool user_supplied_p;
 };
 
 /* Name under which this program was invoked.  */
@@ -697,18 +683,12 @@ extern void cpp_init_iconv (cpp_reader *);
 
 /* Call this to finish preprocessing.  If you requested dependency
    generation, pass an open stream to write the information to,
-   otherwise NULL.  It is your responsibility to close the stream.
-
-   Returns cpp_errors (pfile).  */
-extern int cpp_finish (cpp_reader *, FILE *deps_stream);
+   otherwise NULL.  It is your responsibility to close the stream.  */
+extern void cpp_finish (cpp_reader *, FILE *deps_stream);
 
 /* Call this to release the handle at the end of preprocessing.  Any
-   use of the handle after this function returns is invalid.  Returns
-   cpp_errors (pfile).  */
+   use of the handle after this function returns is invalid.  */
 extern void cpp_destroy (cpp_reader *);
-
-/* Error count.  */
-extern unsigned int cpp_errors (cpp_reader *);
 
 extern unsigned int cpp_token_len (const cpp_token *);
 extern unsigned char *cpp_token_as_text (cpp_reader *, const cpp_token *);
@@ -804,6 +784,7 @@ struct cpp_num
 #define CPP_N_UNSIGNED	0x1000	/* Properties.  */
 #define CPP_N_IMAGINARY	0x2000
 #define CPP_N_DFLOAT	0x4000
+#define CPP_N_DEFAULT	0x8000
 
 #define CPP_N_FRACT	0x100000 /* Fract types.  */
 #define CPP_N_ACCUM	0x200000 /* Accum types.  */
@@ -835,24 +816,23 @@ cpp_num cpp_num_sign_extend (cpp_num, size_t);
 /* An internal consistency check failed.  Prints "internal error: ",
    otherwise the same as CPP_DL_ERROR.  */
 #define CPP_DL_ICE		0x04
-/* Extracts a diagnostic level from an int.  */
-#define CPP_DL_EXTRACT(l)	(l & 0xf)
-/* Nonzero if a diagnostic level is one of the warnings.  */
-#define CPP_DL_WARNING_P(l)	(CPP_DL_EXTRACT (l) >= CPP_DL_WARNING \
-				 && CPP_DL_EXTRACT (l) <= CPP_DL_PEDWARN)
+/* An informative note following a warning.  */
+#define CPP_DL_NOTE		0x05
+/* A fatal error.  */
+#define CPP_DL_FATAL		0x06
 
 /* Output a diagnostic of some kind.  */
-extern void cpp_error (cpp_reader *, int, const char *msgid, ...)
+extern bool cpp_error (cpp_reader *, int, const char *msgid, ...)
   ATTRIBUTE_PRINTF_3;
 
 /* Output a diagnostic with "MSGID: " preceding the
    error string of errno.  No location is printed.  */
-extern void cpp_errno (cpp_reader *, int, const char *msgid);
+extern bool cpp_errno (cpp_reader *, int, const char *msgid);
 
 /* Same as cpp_error, except additionally specifies a position as a
    (translation unit) physical line and physical column.  If the line is
    zero, then no location is printed.  */
-extern void cpp_error_with_line (cpp_reader *, int, source_location, unsigned,
+extern bool cpp_error_with_line (cpp_reader *, int, source_location, unsigned,
 				 const char *msgid, ...) ATTRIBUTE_PRINTF_5;
 
 /* In lex.c */
@@ -869,6 +849,36 @@ extern const char *cpp_type2name (enum cpp_ttype);
    string literal.  Handles all relevant diagnostics.  */
 extern cppchar_t cpp_parse_escape (cpp_reader *, const unsigned char ** pstr,
 				   const unsigned char *limit, int wide);
+
+/* Structure used to hold a comment block at a given location in the
+   source code.  */
+
+typedef struct
+{
+  /* Text of the comment including the terminators.  */
+  char *comment;
+
+  /* source location for the given comment.  */
+  source_location sloc;
+} cpp_comment;
+
+/* Structure holding all comments for a given cpp_reader.  */
+
+typedef struct
+{
+  /* table of comment entries.  */
+  cpp_comment *entries;
+
+  /* number of actual entries entered in the table.  */
+  int count;
+
+  /* number of entries allocated currently.  */
+  int allocated;
+} cpp_comment_table;
+
+/* Returns the table of comments encountered by the preprocessor. This
+   table is only populated when pfile->state.save_comments is true. */
+extern cpp_comment_table *cpp_get_comments (cpp_reader *);
 
 /* In hash.c */
 

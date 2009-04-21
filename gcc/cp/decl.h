@@ -1,5 +1,5 @@
 /* Variables and structures for declaration processing.
-   Copyright (C) 1993, 2000, 2002, 2004, 2005, 2007
+   Copyright (C) 1993, 2000, 2002, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -27,6 +27,7 @@ enum decl_context
   FIELD,			/* Declaration inside struct or union */
   BITFIELD,			/* Likewise but with specified width */
   TYPENAME,			/* Typename (inside cast or sizeof)  */
+  TEMPLATE_TYPE_ARG,		/* Almost the same as TYPENAME  */
   MEMFUNCDEF			/* Member function definition */
 };
 

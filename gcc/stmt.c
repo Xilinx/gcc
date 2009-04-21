@@ -1,6 +1,6 @@
 /* Expands front end tree to back end RTL for GCC
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -886,7 +886,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
       else if (MEM_P (op))
 	op = validize_mem (op);
 
-      if (asm_operand_ok (op, constraint) <= 0)
+      if (asm_operand_ok (op, constraint, NULL) <= 0)
 	{
 	  if (allows_reg && TYPE_MODE (type) != BLKmode)
 	    op = force_reg (TYPE_MODE (type), op);
@@ -1724,38 +1724,6 @@ expand_return (tree retval)
     }
 }
 
-/* Given a pointer to a BLOCK node return nonzero if (and only if) the node
-   in question represents the outermost pair of curly braces (i.e. the "body
-   block") of a function or method.
-
-   For any BLOCK node representing a "body block" of a function or method, the
-   BLOCK_SUPERCONTEXT of the node will point to another BLOCK node which
-   represents the outermost (function) scope for the function or method (i.e.
-   the one which includes the formal parameters).  The BLOCK_SUPERCONTEXT of
-   *that* node in turn will point to the relevant FUNCTION_DECL node.  */
-
-int
-is_body_block (const_tree stmt)
-{
-  if (lang_hooks.no_body_blocks)
-    return 0;
-
-  if (TREE_CODE (stmt) == BLOCK)
-    {
-      tree parent = BLOCK_SUPERCONTEXT (stmt);
-
-      if (parent && TREE_CODE (parent) == BLOCK)
-	{
-	  tree grandparent = BLOCK_SUPERCONTEXT (parent);
-
-	  if (grandparent && TREE_CODE (grandparent) == FUNCTION_DECL)
-	    return 1;
-	}
-    }
-
-  return 0;
-}
-
 /* Emit code to restore vital registers at the beginning of a nonlocal goto
    handler.  */
 static void

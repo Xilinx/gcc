@@ -1,6 +1,6 @@
 /* Header file for intrinsics check, resolve and simplify function
    prototypes.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -259,6 +259,7 @@ gfc_expr *gfc_simplify_ishft (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_ishftc (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_kind (gfc_expr *);
 gfc_expr *gfc_simplify_lbound (gfc_expr *, gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_leadz (gfc_expr *);
 gfc_expr *gfc_simplify_len (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_len_trim (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_lgamma (gfc_expr *);
@@ -269,8 +270,11 @@ gfc_expr *gfc_simplify_llt (gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_log (gfc_expr *);
 gfc_expr *gfc_simplify_log10 (gfc_expr *);
 gfc_expr *gfc_simplify_logical (gfc_expr *, gfc_expr *);
+gfc_expr *gfc_simplify_merge (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_min (gfc_expr *);
+gfc_expr *gfc_simplify_minval (gfc_expr *, gfc_expr*, gfc_expr*);
 gfc_expr *gfc_simplify_max (gfc_expr *);
+gfc_expr *gfc_simplify_maxval (gfc_expr *, gfc_expr*, gfc_expr*);
 gfc_expr *gfc_simplify_maxexponent (gfc_expr *);
 gfc_expr *gfc_simplify_minexponent (gfc_expr *);
 gfc_expr *gfc_simplify_mod (gfc_expr *, gfc_expr *);
@@ -310,6 +314,7 @@ gfc_expr *gfc_simplify_sqrt (gfc_expr *);
 gfc_expr *gfc_simplify_tan (gfc_expr *);
 gfc_expr *gfc_simplify_tanh (gfc_expr *);
 gfc_expr *gfc_simplify_tiny (gfc_expr *);
+gfc_expr *gfc_simplify_trailz (gfc_expr *);
 gfc_expr *gfc_simplify_transfer (gfc_expr *, gfc_expr *, gfc_expr *);
 gfc_expr *gfc_simplify_trim (gfc_expr *);
 gfc_expr *gfc_simplify_ubound (gfc_expr *, gfc_expr *, gfc_expr *);

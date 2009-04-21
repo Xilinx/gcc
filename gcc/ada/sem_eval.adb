@@ -37,6 +37,7 @@ with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
@@ -189,7 +190,7 @@ package body Sem_Eval is
    --  it is not technically static (e.g. the static lower bound of a range
    --  whose upper bound is non-static).
    --
-   --  If Stat is set False on return, then Expression_Is_Foldable makes a
+   --  If Stat is set False on return, then Test_Expression_Is_Foldable makes a
    --  call to Check_Non_Static_Context on the operand. If Fold is False on
    --  return, then all processing is complete, and the caller should
    --  return, since there is nothing else to do.
@@ -241,7 +242,7 @@ package body Sem_Eval is
 
       if not Is_Static_Expression (N) then
          if Is_Floating_Point_Type (T)
-           and then Is_Out_Of_Range (N, Base_Type (T))
+           and then Is_Out_Of_Range (N, Base_Type (T), Assume_Valid => True)
          then
             Error_Msg_N
               ("?float value out of range, infinity will be generated", N);
@@ -271,7 +272,7 @@ package body Sem_Eval is
          --  number, so as not to lose case where value overflows in the
          --  least significant bit or less. See B490001.
 
-         if Is_Out_Of_Range (N, Base_Type (T)) then
+         if Is_Out_Of_Range (N, Base_Type (T), Assume_Valid => True) then
             Out_Of_Range (N);
             return;
          end if;
@@ -325,21 +326,21 @@ package body Sem_Eval is
 
       --  Check out of range of base type
 
-      elsif Is_Out_Of_Range (N, Base_Type (T)) then
+      elsif Is_Out_Of_Range (N, Base_Type (T), Assume_Valid => True) then
          Out_Of_Range (N);
 
-      --  Give warning if outside subtype (where one or both of the
-      --  bounds of the subtype is static). This warning is omitted
-      --  if the expression appears in a range that could be null
-      --  (warnings are handled elsewhere for this case).
+      --  Give warning if outside subtype (where one or both of the bounds of
+      --  the subtype is static). This warning is omitted if the expression
+      --  appears in a range that could be null (warnings are handled elsewhere
+      --  for this case).
 
       elsif T /= Base_Type (T)
         and then Nkind (Parent (N)) /= N_Range
       then
-         if Is_In_Range (N, T) then
+         if Is_In_Range (N, T, Assume_Valid => True) then
             null;
 
-         elsif Is_Out_Of_Range (N, T) then
+         elsif Is_Out_Of_Range (N, T, Assume_Valid => True) then
             Apply_Compile_Time_Constraint_Error
               (N, "value not in range of}?", CE_Range_Check_Failed);
 
@@ -379,6 +380,16 @@ package body Sem_Eval is
 
    function Compile_Time_Compare
      (L, R         : Node_Id;
+      Assume_Valid : Boolean) return Compare_Result
+   is
+      Discard : aliased Uint;
+   begin
+      return Compile_Time_Compare (L, R, Discard'Access, Assume_Valid);
+   end Compile_Time_Compare;
+
+   function Compile_Time_Compare
+     (L, R         : Node_Id;
+      Diff         : access Uint;
       Assume_Valid : Boolean;
       Rec          : Boolean := False) return Compare_Result
    is
@@ -388,6 +399,8 @@ package body Sem_Eval is
       --  Is_Known_Valid is not set. This takes care of handling possible
       --  invalid representations using the value of the base type, in
       --  accordance with RM 13.9.1(10).
+
+      Discard : aliased Uint;
 
       procedure Compare_Decompose
         (N : Node_Id;
@@ -574,16 +587,17 @@ package body Sem_Eval is
 
       begin
          --  Values are the same if they refer to the same entity and the
-         --  entity is a constant object (E_Constant). This does not however
-         --  apply to Float types, since we may have two NaN values and they
-         --  should never compare equal.
+         --  entity is non-volatile. This does not however apply to Float
+         --  types, since we may have two NaN values and they should never
+         --  compare equal.
 
          if Nkind_In (Lf, N_Identifier, N_Expanded_Name)
            and then Nkind_In (Rf, N_Identifier, N_Expanded_Name)
            and then Entity (Lf) = Entity (Rf)
            and then Present (Entity (Lf))
            and then not Is_Floating_Point_Type (Etype (L))
-           and then Is_Constant_Object (Entity (Lf))
+           and then not Is_Volatile_Reference (L)
+           and then not Is_Volatile_Reference (R)
          then
             return True;
 
@@ -652,6 +666,8 @@ package body Sem_Eval is
    --  Start of processing for Compile_Time_Compare
 
    begin
+      Diff.all := No_Uint;
+
       --  If either operand could raise constraint error, then we cannot
       --  know the result at compile time (since CE may be raised!)
 
@@ -722,10 +738,14 @@ package body Sem_Eval is
 
             begin
                if Lo < Hi then
+                  Diff.all := Hi - Lo;
                   return LT;
+
                elsif Lo = Hi then
                   return EQ;
+
                else
+                  Diff.all := Lo - Hi;
                   return GT;
                end if;
             end;
@@ -748,7 +768,7 @@ package body Sem_Eval is
          --  not known to have valid representations. This takes care of
          --  properly dealing with invalid representations.
 
-         if not Assume_Valid then
+         if not Assume_Valid and then not Assume_No_Invalid_Values then
             if Is_Entity_Name (L) and then not Is_Known_Valid (Entity (L)) then
                Ltyp := Base_Type (Ltyp);
             end if;
@@ -757,6 +777,39 @@ package body Sem_Eval is
                Rtyp := Base_Type (Rtyp);
             end if;
          end if;
+
+         --  Try range analysis on variables and see if ranges are disjoint
+
+         declare
+            LOK, ROK : Boolean;
+            LLo, LHi : Uint;
+            RLo, RHi : Uint;
+
+         begin
+            Determine_Range (L, LOK, LLo, LHi, Assume_Valid);
+            Determine_Range (R, ROK, RLo, RHi, Assume_Valid);
+
+            if LOK and ROK then
+               if LHi < RLo then
+                  return LT;
+
+               elsif RHi < LLo then
+                  return GT;
+
+               elsif LLo = LHi
+                 and then RLo = RHi
+                 and then LLo = RLo
+               then
+                  return EQ;
+
+               elsif LHi = RLo then
+                  return LE;
+
+               elsif RHi = LLo then
+                  return GE;
+               end if;
+            end if;
+         end;
 
          --  Here is where we check for comparisons against maximum bounds of
          --  types, where we know that no value can be outside the bounds of
@@ -778,7 +831,9 @@ package body Sem_Eval is
             --  a bound of the other operand (four possible tests here).
 
             case Compile_Time_Compare (L, Type_Low_Bound (Rtyp),
-                                       Assume_Valid, Rec => True) is
+                                       Discard'Access,
+                                       Assume_Valid, Rec => True)
+            is
                when LT => return LT;
                when LE => return LE;
                when EQ => return LE;
@@ -786,7 +841,9 @@ package body Sem_Eval is
             end case;
 
             case Compile_Time_Compare (L, Type_High_Bound (Rtyp),
-                                       Assume_Valid, Rec => True) is
+                                       Discard'Access,
+                                       Assume_Valid, Rec => True)
+            is
                when GT => return GT;
                when GE => return GE;
                when EQ => return GE;
@@ -794,7 +851,9 @@ package body Sem_Eval is
             end case;
 
             case Compile_Time_Compare (Type_Low_Bound (Ltyp), R,
-                                       Assume_Valid, Rec => True) is
+                                       Discard'Access,
+                                       Assume_Valid, Rec => True)
+            is
                when GT => return GT;
                when GE => return GE;
                when EQ => return GE;
@@ -802,7 +861,9 @@ package body Sem_Eval is
             end case;
 
             case Compile_Time_Compare (Type_High_Bound (Ltyp), R,
-                                       Assume_Valid, Rec => True) is
+                                       Discard'Access,
+                                       Assume_Valid, Rec => True)
+            is
                when LT => return LT;
                when LE => return LE;
                when EQ => return LE;
@@ -836,9 +897,11 @@ package body Sem_Eval is
                   return EQ;
 
                elsif Loffs < Roffs then
+                  Diff.all := Roffs - Loffs;
                   return LT;
 
                else
+                  Diff.all := Loffs - Roffs;
                   return GT;
                end if;
             end if;
@@ -908,6 +971,7 @@ package body Sem_Eval is
             if Op = N_Op_Le then
                Op := N_Op_Lt;
                Opv := Opv + 1;
+
             elsif Op = N_Op_Ge then
                Op := N_Op_Gt;
                Opv := Opv - 1;
@@ -1454,8 +1518,8 @@ package body Sem_Eval is
    -- Eval_Concatenation --
    ------------------------
 
-   --  Concatenation is a static function, so the result is static if
-   --  both operands are static (RM 4.9(7), 4.9(21)).
+   --  Concatenation is a static function, so the result is static if both
+   --  operands are static (RM 4.9(7), 4.9(21)).
 
    procedure Eval_Concatenation (N : Node_Id) is
       Left  : constant Node_Id   := Left_Opnd (N);
@@ -1465,8 +1529,8 @@ package body Sem_Eval is
       Fold  : Boolean;
 
    begin
-      --  Concatenation is never static in Ada 83, so if Ada 83
-      --  check operand non-static context
+      --  Concatenation is never static in Ada 83, so if Ada 83 check operand
+      --  non-static context.
 
       if Ada_Version = Ada_83
         and then Comes_From_Source (N)
@@ -1485,20 +1549,16 @@ package body Sem_Eval is
 
       Test_Expression_Is_Foldable (N, Left, Right, Stat, Fold);
 
-      if Is_Standard_Character_Type (C_Typ)
-        and then Fold
-      then
-         null;
-      else
+      if not (Is_Standard_Character_Type (C_Typ) and then Fold) then
          Set_Is_Static_Expression (N, False);
          return;
       end if;
 
       --  Compile time string concatenation
 
-      --  ??? Note that operands that are aggregates can be marked as
-      --  static, so we should attempt at a later stage to fold
-      --  concatenations with such aggregates.
+      --  ??? Note that operands that are aggregates can be marked as static,
+      --  so we should attempt at a later stage to fold concatenations with
+      --  such aggregates.
 
       declare
          Left_Str   : constant Node_Id := Get_String_Val (Left);
@@ -1748,6 +1808,32 @@ package body Sem_Eval is
                         Set_Sloc (N, Loc);
                      end if;
                   end if;
+
+               --  We can also constant-fold if the prefix is a string literal.
+               --  This will be useful in an instantiation or an inlining.
+
+               elsif Compile_Time_Known_Value (Sub)
+                 and then Nkind (Arr) = N_String_Literal
+                 and then Compile_Time_Known_Value (Lbd)
+                 and then Expr_Value (Lbd) = 1
+                 and then Expr_Value (Sub) <=
+                   String_Literal_Length (Etype (Arr))
+               then
+                  declare
+                     C : constant Char_Code :=
+                           Get_String_Char (Strval (Arr),
+                             UI_To_Int (Expr_Value (Sub)));
+                  begin
+                     Set_Character_Literal_Name (C);
+
+                     Elm :=
+                       Make_Character_Literal (Loc,
+                         Chars              => Name_Find,
+                         Char_Literal_Value => UI_From_CC (C));
+                     Set_Etype (Elm, Component_Type (Atyp));
+                     Rewrite (N, Duplicate_Subexpr_No_Checks (Elm));
+                     Set_Is_Static_Expression (N, False);
+                  end;
                end if;
             end if;
          end;
@@ -1812,7 +1898,7 @@ package body Sem_Eval is
       --  Modular integer literals must be in their base range
 
       if Is_Modular_Integer_Type (T)
-        and then Is_Out_Of_Range (N, Base_Type (T))
+        and then Is_Out_Of_Range (N, Base_Type (T), Assume_Valid => True)
       then
          Out_Of_Range (N);
       end if;
@@ -2276,7 +2362,7 @@ package body Sem_Eval is
 
       Set_Is_Static_Expression (N, Stat);
 
-      if Is_Out_Of_Range (N, Etype (N)) then
+      if Is_Out_Of_Range (N, Etype (N), Assume_Valid => True) then
          Out_Of_Range (N);
       end if;
    end Eval_Qualified_Expression;
@@ -2473,8 +2559,10 @@ package body Sem_Eval is
                --  Start of processing for Extract_Length
 
                begin
-                  Decompose_Expr (Type_Low_Bound  (T), Ent1, Kind1, Cons1);
-                  Decompose_Expr (Type_High_Bound (T), Ent2, Kind2, Cons2);
+                  Decompose_Expr
+                    (Original_Node (Type_Low_Bound  (T)), Ent1, Kind1, Cons1);
+                  Decompose_Expr
+                    (Original_Node (Type_High_Bound (T)), Ent2, Kind2, Cons2);
 
                   if Present (Ent1)
                     and then Kind1 = Kind2
@@ -2998,7 +3086,7 @@ package body Sem_Eval is
          Fold_Uint (N, Expr_Value (Operand), Stat);
       end if;
 
-      if Is_Out_Of_Range (N, Etype (N)) then
+      if Is_Out_Of_Range (N, Etype (N), Assume_Valid => True) then
          Out_Of_Range (N);
       end if;
 
@@ -3508,10 +3596,9 @@ package body Sem_Eval is
    --------------------
 
    function In_Subrange_Of
-     (T1           : Entity_Id;
-      T2           : Entity_Id;
-      Assume_Valid : Boolean;
-      Fixed_Int    : Boolean := False) return Boolean
+     (T1        : Entity_Id;
+      T2        : Entity_Id;
+      Fixed_Int : Boolean := False) return Boolean
    is
       L1 : Node_Id;
       H1 : Node_Id;
@@ -3538,9 +3625,9 @@ package body Sem_Eval is
 
          --  Check bounds to see if comparison possible at compile time
 
-         if Compile_Time_Compare (L1, L2, Assume_Valid) in Compare_GE
+         if Compile_Time_Compare (L1, L2, Assume_Valid => True) in Compare_GE
               and then
-            Compile_Time_Compare (H1, H2, Assume_Valid) in Compare_LE
+            Compile_Time_Compare (H1, H2, Assume_Valid => True) in Compare_LE
          then
             return True;
          end if;
@@ -3610,13 +3697,20 @@ package body Sem_Eval is
    -----------------
 
    function Is_In_Range
-     (N         : Node_Id;
-      Typ       : Entity_Id;
-      Fixed_Int : Boolean := False;
-      Int_Real  : Boolean := False) return Boolean
+     (N            : Node_Id;
+      Typ          : Entity_Id;
+      Assume_Valid : Boolean := False;
+      Fixed_Int    : Boolean := False;
+      Int_Real     : Boolean := False) return Boolean
    is
       Val  : Uint;
       Valr : Ureal;
+
+      pragma Warnings (Off, Assume_Valid);
+      --  For now Assume_Valid is unreferenced since the current implementation
+      --  always returns False if N is not a compile time known value, but we
+      --  keep the parameter to allow for future enhancements in which we try
+      --  to get the information in the variable case as well.
 
    begin
       --  Universal types have no range limits, so always in range
@@ -3635,14 +3729,22 @@ package body Sem_Eval is
       elsif not Compile_Time_Known_Value (N) then
          return False;
 
+      --  General processing with a known compile time value
+
       else
          declare
-            Lo       : constant Node_Id := Type_Low_Bound  (Typ);
-            Hi       : constant Node_Id := Type_High_Bound (Typ);
-            LB_Known : constant Boolean := Compile_Time_Known_Value (Lo);
-            UB_Known : constant Boolean := Compile_Time_Known_Value (Hi);
+            Lo       : Node_Id;
+            Hi       : Node_Id;
+            LB_Known : Boolean;
+            UB_Known : Boolean;
 
          begin
+            Lo := Type_Low_Bound  (Typ);
+            Hi := Type_High_Bound (Typ);
+
+            LB_Known := Compile_Time_Known_Value (Lo);
+            UB_Known := Compile_Time_Known_Value (Hi);
+
             --  Fixed point types should be considered as such only in
             --  flag Fixed_Int is set to False.
 
@@ -3792,11 +3894,18 @@ package body Sem_Eval is
    function Is_Out_Of_Range
      (N            : Node_Id;
       Typ          : Entity_Id;
+      Assume_Valid : Boolean := False;
       Fixed_Int    : Boolean := False;
       Int_Real     : Boolean := False) return Boolean
    is
       Val  : Uint;
       Valr : Ureal;
+
+      pragma Warnings (Off, Assume_Valid);
+      --  For now Assume_Valid is unreferenced since the current implementation
+      --  always returns False if N is not a compile time known value, but we
+      --  keep the parameter to allow for future enhancements in which we try
+      --  to get the information in the variable case as well.
 
    begin
       --  Universal types have no range limits, so always in range
@@ -3826,12 +3935,18 @@ package body Sem_Eval is
 
       else
          declare
-            Lo       : constant Node_Id := Type_Low_Bound  (Typ);
-            Hi       : constant Node_Id := Type_High_Bound (Typ);
-            LB_Known : constant Boolean := Compile_Time_Known_Value (Lo);
-            UB_Known : constant Boolean := Compile_Time_Known_Value (Hi);
+            Lo       : Node_Id;
+            Hi       : Node_Id;
+            LB_Known : Boolean;
+            UB_Known : Boolean;
 
          begin
+            Lo := Type_Low_Bound (Typ);
+            Hi := Type_High_Bound (Typ);
+
+            LB_Known := Compile_Time_Known_Value (Lo);
+            UB_Known := Compile_Time_Known_Value (Hi);
+
             --  Real types (note that fixed-point types are not treated
             --  as being of a real type if the flag Fixed_Int is set,
             --  since in that case they are regarded as integer types).

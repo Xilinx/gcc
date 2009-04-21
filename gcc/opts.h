@@ -1,5 +1,6 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -65,14 +66,13 @@ extern const unsigned int cl_options_count;
 extern const char *const lang_names[];
 extern const unsigned int cl_lang_count;
 
-#define CL_SAVE			(1 << 17) /* Target-specific option for attribute.  */
-#define CL_PARAMS               (1 << 18) /* Fake entry.  Used to display --param info with --help.  */
-#define CL_WARNING		(1 << 19) /* Enables an (optional) warning message.  */
-#define CL_OPTIMIZATION		(1 << 20) /* Enables an (optional) optimization.  */
-#define CL_TARGET		(1 << 21) /* Target-specific option.  */
-#define CL_COMMON		(1 << 22) /* Language-independent.  */
+#define CL_PARAMS               (1 << 17) /* Fake entry.  Used to display --param info with --help.  */
+#define CL_WARNING		(1 << 18) /* Enables an (optional) warning message.  */
+#define CL_OPTIMIZATION		(1 << 19) /* Enables an (optional) optimization.  */
+#define CL_TARGET		(1 << 20) /* Target-specific option.  */
+#define CL_COMMON		(1 << 21) /* Language-independent.  */
 
-#define CL_MIN_OPTION_CLASS	CL_SAVE
+#define CL_MIN_OPTION_CLASS	CL_PARAMS
 #define CL_MAX_OPTION_CLASS	CL_COMMON
 
 /* From here on the bits describe attributes of the options.
@@ -80,6 +80,7 @@ extern const unsigned int cl_lang_count;
    This distinction is important because --help will not list options
    which only have these higher bits set.  */
 
+#define CL_SAVE			(1 << 22) /* Target-specific option for attribute.  */
 #define CL_DISABLED		(1 << 23) /* Disabled in this configuration.  */
 #define CL_REPORT		(1 << 24) /* Report argument with -fverbose-asm  */
 #define CL_JOINED		(1 << 25) /* If takes joined argument.  */

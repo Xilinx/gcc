@@ -1,13 +1,13 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file basic_string.tcc
  *  This is an internal header file, included by other library headers.
@@ -97,7 +92,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  }
 	_Rep* __r = _Rep::_S_create(__len, size_type(0), __a);
 	_M_copy(__r->_M_refdata(), __buf, __len);
-	try
+	__try
 	  {
 	    while (__beg != __end)
 	      {
@@ -113,7 +108,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		++__beg;
 	      }
 	  }
-	catch(...)
+	__catch(...)
 	  {
 	    __r->_M_destroy(__a);
 	    __throw_exception_again;
@@ -142,9 +137,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 								      __end));
 	// Check for out_of_range and length_error exceptions.
 	_Rep* __r = _Rep::_S_create(__dnew, size_type(0), __a);
-	try
+	__try
 	  { _S_copy_chars(__r->_M_refdata(), __beg, __end); }
-	catch(...)
+	__catch(...)
 	  {
 	    __r->_M_destroy(__a);
 	    __throw_exception_again;
@@ -992,7 +987,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typename __istream_type::sentry __cerb(__in, false);
       if (__cerb)
 	{
-	  try
+	  __try
 	    {
 	      // Avoid reallocation for common case.
 	      __str.erase();
@@ -1025,12 +1020,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		__err |= __ios_base::eofbit;
 	      __in.width(0);
 	    }
-	  catch(__cxxabiv1::__forced_unwind&)
+	  __catch(__cxxabiv1::__forced_unwind&)
 	    {
 	      __in._M_setstate(__ios_base::badbit);
 	      __throw_exception_again;
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
 	      // 91. Description of operator>> and getline() for string<>
@@ -1063,7 +1058,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typename __istream_type::sentry __cerb(__in, true);
       if (__cerb)
 	{
-	  try
+	  __try
 	    {
 	      __str.erase();
 	      const __int_type __idelim = _Traits::to_int_type(__delim);
@@ -1089,12 +1084,12 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      else
 		__err |= __ios_base::failbit;
 	    }
-	  catch(__cxxabiv1::__forced_unwind&)
+	  __catch(__cxxabiv1::__forced_unwind&)
 	    {
 	      __in._M_setstate(__ios_base::badbit);
 	      __throw_exception_again;
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      // _GLIBCXX_RESOLVE_LIB_DEFECTS
 	      // 91. Description of operator>> and getline() for string<>

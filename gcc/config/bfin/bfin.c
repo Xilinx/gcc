@@ -1,5 +1,5 @@
 /* The Blackfin code generation auxiliary output file.
-   Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -60,7 +60,11 @@
    This is added to the cfun structure.  */
 struct machine_function GTY(())
 {
+  /* Set if we are notified by the doloop pass that a hardware loop
+     was created.  */
   int has_hardware_loops;
+  /* Set if we create a memcpy pattern that uses loop registers.  */
+  int has_loopreg_clobber;
 };
 
 /* Test and compare insns in bfin.md store the information needed to
@@ -114,122 +118,184 @@ struct bfin_cpu
 
 struct bfin_cpu bfin_cpus[] =
 {
+  {"bf512", BFIN_CPU_BF512, 0x0000,
+   WA_SPECULATIVE_LOADS},
+
+  {"bf514", BFIN_CPU_BF514, 0x0000,
+   WA_SPECULATIVE_LOADS},
+
+  {"bf516", BFIN_CPU_BF516, 0x0000,
+   WA_SPECULATIVE_LOADS},
+
+  {"bf518", BFIN_CPU_BF518, 0x0000,
+   WA_SPECULATIVE_LOADS},
+
+  {"bf522", BFIN_CPU_BF522, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf522", BFIN_CPU_BF522, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf522", BFIN_CPU_BF522, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf523", BFIN_CPU_BF523, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf523", BFIN_CPU_BF523, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf523", BFIN_CPU_BF523, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf524", BFIN_CPU_BF524, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf524", BFIN_CPU_BF524, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf524", BFIN_CPU_BF524, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf525", BFIN_CPU_BF525, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf525", BFIN_CPU_BF525, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf525", BFIN_CPU_BF525, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf526", BFIN_CPU_BF526, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf526", BFIN_CPU_BF526, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf526", BFIN_CPU_BF526, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf527", BFIN_CPU_BF527, 0x0002,
+   WA_SPECULATIVE_LOADS},
   {"bf527", BFIN_CPU_BF527, 0x0001,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf527", BFIN_CPU_BF527, 0x0000,
    WA_SPECULATIVE_LOADS | WA_RETS},
 
+  {"bf531", BFIN_CPU_BF531, 0x0006,
+   WA_SPECULATIVE_LOADS},
   {"bf531", BFIN_CPU_BF531, 0x0005,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_05000283 | WA_05000315},
   {"bf531", BFIN_CPU_BF531, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf531", BFIN_CPU_BF531, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
+  {"bf532", BFIN_CPU_BF532, 0x0006,
+   WA_SPECULATIVE_LOADS},
   {"bf532", BFIN_CPU_BF532, 0x0005,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_05000283 | WA_05000315},
   {"bf532", BFIN_CPU_BF532, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf532", BFIN_CPU_BF532, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
+  {"bf533", BFIN_CPU_BF533, 0x0006,
+   WA_SPECULATIVE_LOADS},
   {"bf533", BFIN_CPU_BF533, 0x0005,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_05000283 | WA_05000315},
   {"bf533", BFIN_CPU_BF533, 0x0004,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf533", BFIN_CPU_BF533, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
   {"bf534", BFIN_CPU_BF534, 0x0003,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf534", BFIN_CPU_BF534, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf534", BFIN_CPU_BF534, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
   {"bf536", BFIN_CPU_BF536, 0x0003,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf536", BFIN_CPU_BF536, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf536", BFIN_CPU_BF536, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
   {"bf537", BFIN_CPU_BF537, 0x0003,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf537", BFIN_CPU_BF537, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf537", BFIN_CPU_BF537, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
+  {"bf538", BFIN_CPU_BF538, 0x0005,
+   WA_SPECULATIVE_LOADS},
   {"bf538", BFIN_CPU_BF538, 0x0004,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf538", BFIN_CPU_BF538, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS
+   | WA_05000283 | WA_05000315},
   {"bf538", BFIN_CPU_BF538, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_05000283 | WA_05000257 | WA_05000315},
 
+  {"bf539", BFIN_CPU_BF539, 0x0005,
+   WA_SPECULATIVE_LOADS},
   {"bf539", BFIN_CPU_BF539, 0x0004,
    WA_SPECULATIVE_LOADS | WA_RETS},
   {"bf539", BFIN_CPU_BF539, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS
+   | WA_05000283 | WA_05000315},
   {"bf539", BFIN_CPU_BF539, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
+  {"bf542", BFIN_CPU_BF542, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS},
   {"bf542", BFIN_CPU_BF542, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
   {"bf542", BFIN_CPU_BF542, 0x0000,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
 
+  {"bf544", BFIN_CPU_BF544, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS},
   {"bf544", BFIN_CPU_BF544, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
   {"bf544", BFIN_CPU_BF544, 0x0000,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
 
+  {"bf547", BFIN_CPU_BF547, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS},
   {"bf547", BFIN_CPU_BF547, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
   {"bf547", BFIN_CPU_BF547, 0x0000,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
 
+  {"bf548", BFIN_CPU_BF548, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS},
   {"bf548", BFIN_CPU_BF548, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
   {"bf548", BFIN_CPU_BF548, 0x0000,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
 
+  {"bf549", BFIN_CPU_BF549, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS},
   {"bf549", BFIN_CPU_BF549, 0x0001,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
   {"bf549", BFIN_CPU_BF549, 0x0000,
-   WA_SPECULATIVE_LOADS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_RETS | WA_INDIRECT_CALLS},
 
-  {"bf561", BFIN_CPU_BF561, 0x0005, WA_RETS},
+  {"bf561", BFIN_CPU_BF561, 0x0005, WA_RETS
+   | WA_05000283 | WA_05000315},
   {"bf561", BFIN_CPU_BF561, 0x0003,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
   {"bf561", BFIN_CPU_BF561, 0x0002,
-   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS},
+   WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
+   | WA_05000283 | WA_05000257 | WA_05000315},
 
   {NULL, 0, 0, 0}
 };
@@ -409,6 +475,9 @@ must_save_p (bool is_inthandler, unsigned regno)
       return ((df_regs_ever_live_p (regno)
 	       && !fixed_regs[regno]
 	       && (is_inthandler || !call_used_regs[regno]))
+	      || (is_inthandler
+		  && (ENABLE_WA_05000283 || ENABLE_WA_05000315)
+		  && regno == REG_P5)
 	      || (!TARGET_FDPIC
 		  && regno == PIC_OFFSET_TABLE_REGNUM
 		  && (crtl->uses_pic_offset_table
@@ -500,7 +569,18 @@ expand_prologue_reg_save (rtx spreg, int saveall, bool is_inthandler)
   if (saveall || is_inthandler)
     {
       rtx insn = emit_move_insn (predec, gen_rtx_REG (SImode, REG_ASTAT));
+
       RTX_FRAME_RELATED_P (insn) = 1;
+      for (dregno = REG_LT0; dregno <= REG_LB1; dregno++)
+	if (! current_function_is_leaf
+	    || cfun->machine->has_hardware_loops
+	    || cfun->machine->has_loopreg_clobber
+	    || (ENABLE_WA_05000257
+		&& (dregno == REG_LC0 || dregno == REG_LC1)))
+	  {
+	    insn = emit_move_insn (predec, gen_rtx_REG (SImode, dregno));
+	    RTX_FRAME_RELATED_P (insn) = 1;
+	  }
     }
 
   if (total_consec != 0)
@@ -670,7 +750,16 @@ expand_epilogue_reg_restore (rtx spreg, bool saveall, bool is_inthandler)
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   if (saveall || is_inthandler)
-    emit_move_insn (gen_rtx_REG (SImode, REG_ASTAT), postinc);
+    {
+      for (regno = REG_LB1; regno >= REG_LT0; regno--)
+	if (! current_function_is_leaf
+	    || cfun->machine->has_hardware_loops
+	    || cfun->machine->has_loopreg_clobber
+	    || (ENABLE_WA_05000257 && (regno == REG_LC0 || regno == REG_LC1)))
+	  emit_move_insn (gen_rtx_REG (SImode, regno), postinc);
+
+      emit_move_insn (gen_rtx_REG (SImode, REG_ASTAT), postinc);
+    }
 }
 
 /* Perform any needed actions needed for a function that is receiving a
@@ -769,8 +858,16 @@ n_regs_saved_by_prologue (void)
     }
 
   if (fkind != SUBROUTINE || all)
-    /* Increment once for ASTAT.  */
-    n++;
+    {
+      /* Increment once for ASTAT.  */
+      n++;
+      if (! current_function_is_leaf
+	  || cfun->machine->has_hardware_loops
+	  || cfun->machine->has_loopreg_clobber)
+	{
+	  n += 6;
+	}
+    }
 
   if (fkind != SUBROUTINE)
     {
@@ -1077,6 +1174,16 @@ expand_interrupt_handler_prologue (rtx spreg, e_funkind fkind, bool all)
     all = true;
   expand_prologue_reg_save (spreg, all, true);
 
+  if (ENABLE_WA_05000283 || ENABLE_WA_05000315)
+    {
+      rtx chipid = GEN_INT (trunc_int_for_mode (0xFFC00014, SImode));
+      rtx p5reg = gen_rtx_REG (Pmode, REG_P5);
+      emit_insn (gen_movbi (bfin_cc_rtx, const1_rtx));
+      emit_insn (gen_movsi_high (p5reg, chipid));
+      emit_insn (gen_movsi_low (p5reg, p5reg, chipid));
+      emit_insn (gen_dummy_load (p5reg, bfin_cc_rtx));
+    }
+  
   if (lookup_attribute ("nesting", attrs))
     {
       rtx srcreg = gen_rtx_REG (Pmode, (fkind == EXCPT_HANDLER ? REG_RETX
@@ -3354,6 +3461,7 @@ bfin_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	      countreg = copy_to_mode_reg (Pmode, GEN_INT (new_count));
 
 	      emit_insn (gen_rep_movsi (destreg, srcreg, countreg, destreg, srcreg));
+	      cfun->machine->has_loopreg_clobber = true;
 	    }
 	  if (count & 2)
 	    {
@@ -3374,6 +3482,7 @@ bfin_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp)
 	      countreg = copy_to_mode_reg (Pmode, GEN_INT (new_count));
 
 	      emit_insn (gen_rep_movhi (destreg, srcreg, countreg, destreg, srcreg));
+	      cfun->machine->has_loopreg_clobber = true;
 	    }
 	}
       if (count & 1)
@@ -3445,7 +3554,36 @@ bfin_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
 
   return cost;
 }
+
+/* This function acts like NEXT_INSN, but is aware of three-insn bundles and
+   skips all subsequent parallel instructions if INSN is the start of such
+   a group.  */
+static rtx
+find_next_insn_start (rtx insn)
+{
+  if (GET_MODE (insn) == SImode)
+    {
+      while (GET_MODE (insn) != QImode)
+	insn = NEXT_INSN (insn);
+    }
+  return NEXT_INSN (insn);
+}
 
+/* This function acts like PREV_INSN, but is aware of three-insn bundles and
+   skips all subsequent parallel instructions if INSN is the start of such
+   a group.  */
+static rtx
+find_prev_insn_start (rtx insn)
+{
+  insn = PREV_INSN (insn);
+  gcc_assert (GET_MODE (insn) != SImode);
+  if (GET_MODE (insn) == QImode)
+    {
+      while (GET_MODE (PREV_INSN (insn)) == SImode)
+	insn = PREV_INSN (insn);
+    }
+  return insn;
+}
 
 /* Increment the counter for the number of loop instructions in the
    current function.  */
@@ -3716,9 +3854,17 @@ bfin_optimize_loop (loop_info loop)
       /* Make sure the predecessor is before the loop start label, as required by
 	 the LSETUP instruction.  */
       length = 0;
-      for (insn = BB_END (loop->incoming_src);
-	   insn && insn != loop->start_label;
-	   insn = NEXT_INSN (insn))
+      insn = BB_END (loop->incoming_src);
+      /* If we have to insert the LSETUP before a jump, count that jump in the
+	 length.  */
+      if (VEC_length (edge, loop->incoming) > 1
+	  || !(VEC_last (edge, loop->incoming)->flags & EDGE_FALLTHRU))
+	{
+	  gcc_assert (JUMP_P (insn));
+	  insn = PREV_INSN (insn);
+	}
+
+      for (; insn && insn != loop->start_label; insn = NEXT_INSN (insn))
 	length += length_for_loop (insn);
       
       if (!insn)
@@ -3823,16 +3969,16 @@ bfin_optimize_loop (loop_info loop)
      - Returns (RTS, RTN, etc.)  */
 
   bb = loop->tail;
-  last_insn = PREV_INSN (loop->loop_end);
+  last_insn = find_prev_insn_start (loop->loop_end);
 
   while (1)
     {
-      for (; last_insn != PREV_INSN (BB_HEAD (bb));
-	   last_insn = PREV_INSN (last_insn))
+      for (; last_insn != BB_HEAD (bb);
+	   last_insn = find_prev_insn_start (last_insn))
 	if (INSN_P (last_insn))
 	  break;
 
-      if (last_insn != PREV_INSN (BB_HEAD (bb)))
+      if (last_insn != BB_HEAD (bb))
 	break;
 
       if (single_pred_p (bb)
@@ -3950,11 +4096,32 @@ bfin_optimize_loop (loop_info loop)
       print_rtl_single (dump_file, loop->loop_end);
     }
 
+  /* Create a sequence containing the loop setup.  */
   start_sequence ();
 
   if (loop->init != NULL_RTX)
     emit_insn (loop->init);
   seq_end = emit_insn (loop->loop_init);
+
+  /* If the loop isn't entered at the top, also create a jump to the entry
+     point.  */
+  if (!loop->incoming_src && loop->head != loop->incoming_dest)
+    {
+      rtx label = BB_HEAD (loop->incoming_dest);
+      /* If we're jumping to the final basic block in the loop, and there's
+	 only one cheap instruction before the end (typically an increment of
+	 an induction variable), we can just emit a copy here instead of a
+	 jump.  */
+      if (loop->incoming_dest == loop->tail
+	  && next_real_insn (label) == last_insn
+	  && asm_noperands (last_insn) < 0
+	  && GET_CODE (PATTERN (last_insn)) == SET)
+	{
+	  seq_end = emit_insn (copy_rtx (PATTERN (last_insn)));
+	}
+      else
+	seq_end = emit_insn (gen_jump (label));
+    }
 
   seq = get_insns ();
   end_sequence ();
@@ -3975,21 +4142,19 @@ bfin_optimize_loop (loop_info loop)
       basic_block new_bb;
       edge e;
       edge_iterator ei;
-      
+
+#ifdef ENABLE_CHECKING
       if (loop->head != loop->incoming_dest)
 	{
+	  /* We aren't entering the loop at the top.  Since we've established
+	     that the loop is entered only at one point, this means there
+	     can't be fallthru edges into the head.  Any such fallthru edges
+	     would become invalid when we insert the new block, so verify
+	     that this does not in fact happen.  */
 	  FOR_EACH_EDGE (e, ei, loop->head->preds)
-	    {
-	      if (e->flags & EDGE_FALLTHRU)
-		{
-		  rtx newjump = gen_jump (loop->start_label);
-		  emit_insn_before (newjump, BB_HEAD (loop->head));
-		  new_bb = create_basic_block (newjump, newjump, loop->head->prev_bb);
-		  gcc_assert (new_bb = loop->head->prev_bb);
-		  break;
-		}
-	    }
+	    gcc_assert (!(e->flags & EDGE_FALLTHRU));
 	}
+#endif
 
       emit_insn_before (seq, BB_HEAD (loop->head));
       seq = emit_label_before (gen_label_rtx (), seq);
@@ -4204,6 +4369,12 @@ bfin_discover_loop (loop_info loop, basic_block tail_bb, rtx tail_insn)
 		      retry = 1;
 		      break;
 		    }
+		}
+	      if (!retry)
+		{
+		  if (dump_file)
+		    fprintf (dump_file, ";; No forwarder blocks found\n");
+		  loop->bad = 1;
 		}
 	    }
 	}
@@ -4760,20 +4931,6 @@ trapping_loads_p (rtx insn)
     return may_trap_p (SET_SRC (single_set (insn)));
 }
 
-/* This function acts like NEXT_INSN, but is aware of three-insn bundles and
-   skips all subsequent parallel instructions if INSN is the start of such
-   a group.  */
-static rtx
-find_next_insn_start (rtx insn)
-{
-  if (GET_MODE (insn) == SImode)
-    {
-      while (GET_MODE (insn) != QImode)
-	insn = NEXT_INSN (insn);
-    }
-  return NEXT_INSN (insn);
-}
-
 /* Return INSN if it is of TYPE_MCLD.  Alternatively, if INSN is the start of
    a three-insn bundle, see if one of them is a load and return that if so.
    Return NULL_RTX if the insn does not contain loads.  */
@@ -4793,6 +4950,22 @@ find_load (rtx insn)
   return NULL_RTX;
 }
 
+/* Determine whether PAT is an indirect call pattern.  */
+static bool
+indirect_call_p (rtx pat)
+{
+  if (GET_CODE (pat) == PARALLEL)
+    pat = XVECEXP (pat, 0, 0);
+  if (GET_CODE (pat) == SET)
+    pat = SET_SRC (pat);
+  gcc_assert (GET_CODE (pat) == CALL);
+  pat = XEXP (pat, 0);
+  gcc_assert (GET_CODE (pat) == MEM);
+  pat = XEXP (pat, 0);
+  
+  return REG_P (pat);
+}
+
 static void
 workaround_speculation (void)
 {
@@ -4801,7 +4974,8 @@ workaround_speculation (void)
   int cycles_since_jump = INT_MAX;
   int delay_added = 0;
 
-  if (! ENABLE_WA_SPECULATIVE_LOADS && ! ENABLE_WA_SPECULATIVE_SYNCS)
+  if (! ENABLE_WA_SPECULATIVE_LOADS && ! ENABLE_WA_SPECULATIVE_SYNCS
+      && ! ENABLE_WA_INDIRECT_CALLS)
     return;
 
   /* First pass: find predicted-false branches; if something after them
@@ -4833,6 +5007,15 @@ workaround_speculation (void)
 	    }
 	  else
 	    cycles_since_jump = INT_MAX;
+	}
+      else if (CALL_P (insn))
+	{
+	  if (cycles_since_jump < INT_MAX)
+	    cycles_since_jump++;
+	  if (indirect_call_p (pat) && ENABLE_WA_INDIRECT_CALLS)
+	    {
+	      delay_needed = 3;
+	    }
 	}
       else if (INSN_P (insn))
 	{
@@ -5625,7 +5808,13 @@ static const struct builtin_description bdesc_2arg[] =
   { CODE_FOR_flag_mulhi, "__builtin_bfin_mult_fr1x16", BFIN_BUILTIN_MULT_1X16, MACFLAG_T },
   { CODE_FOR_flag_mulhi, "__builtin_bfin_multr_fr1x16", BFIN_BUILTIN_MULTR_1X16, MACFLAG_NONE },
   { CODE_FOR_flag_mulv2hi, "__builtin_bfin_mult_fr2x16", BFIN_BUILTIN_MULT_2X16, MACFLAG_T },
-  { CODE_FOR_flag_mulv2hi, "__builtin_bfin_multr_fr2x16", BFIN_BUILTIN_MULTR_2X16, MACFLAG_NONE }
+  { CODE_FOR_flag_mulv2hi, "__builtin_bfin_multr_fr2x16", BFIN_BUILTIN_MULTR_2X16, MACFLAG_NONE },
+
+  { CODE_FOR_mulhisi_ll, "__builtin_bfin_mulhisill", BFIN_BUILTIN_MULHISILL, -1 },
+  { CODE_FOR_mulhisi_lh, "__builtin_bfin_mulhisilh", BFIN_BUILTIN_MULHISILH, -1 },
+  { CODE_FOR_mulhisi_hl, "__builtin_bfin_mulhisihl", BFIN_BUILTIN_MULHISIHL, -1 },
+  { CODE_FOR_mulhisi_hh, "__builtin_bfin_mulhisihh", BFIN_BUILTIN_MULHISIHH, -1 }
+
 };
 
 static const struct builtin_description bdesc_1arg[] =

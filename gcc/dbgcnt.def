@@ -1,5 +1,5 @@
 /* This file contains the list of the debug counter for GCC.
-   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -142,6 +142,7 @@ echo ubound: $ub
 
 /* Debug counter definitions.  */
 DEBUG_COUNTER (auto_inc_dec)
+DEBUG_COUNTER (ccp)
 DEBUG_COUNTER (cfg_cleanup)
 DEBUG_COUNTER (cse2_move2add)
 DEBUG_COUNTER (cprop1)

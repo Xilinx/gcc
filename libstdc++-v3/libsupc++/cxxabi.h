@@ -1,12 +1,13 @@
 // new abi support -*- C++ -*-
   
-// Copyright (C) 2000, 2002, 2003, 2004, 2006, 2007 Free Software Foundation, Inc.
+// Copyright (C) 2000, 2002, 2003, 2004, 2006, 2007, 2009
+// Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
 // GCC is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or (at your option)
+// the Free Software Foundation; either version 3, or (at your option)
 // any later version.
 // 
 // GCC is distributed in the hope that it will be useful,
@@ -14,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
-// You should have received a copy of the GNU General Public License
-// along with GCC; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 // Written by Nathan Sidwell, Codesourcery LLC, <nathan@codesourcery.com>
  
@@ -104,7 +100,7 @@ namespace __cxxabiv1
   
   void 
   __cxa_vec_cleanup(void* __array_address, size_t __element_count,
-		    size_t __element_size, __cxa_cdtor_type destructor);
+		    size_t __element_size, __cxa_cdtor_type destructor) _GLIBCXX_NOTHROW;
   
   // Destruct and release array.
   void 
@@ -125,14 +121,14 @@ namespace __cxxabiv1
   __cxa_guard_acquire(__guard*);
 
   void 
-  __cxa_guard_release(__guard*);
+  __cxa_guard_release(__guard*) _GLIBCXX_NOTHROW;
 
   void 
-  __cxa_guard_abort(__guard*);
+  __cxa_guard_abort(__guard*) _GLIBCXX_NOTHROW;
 
   // Pure virtual functions.
   void
-  __cxa_pure_virtual(void);
+  __cxa_pure_virtual(void) __attribute__ ((__noreturn__));
 
   // Exception handling.
   void
@@ -148,7 +144,47 @@ namespace __cxxabiv1
   int
   __cxa_finalize(void*);
 
-  // Demangling routines. 
+
+  /**
+   *  @brief Demangling routine. 
+   *  ABI-mandated entry point in the C++ runtime library for demangling.
+   *
+   *  @param __mangled_name A NUL-terminated character string
+   *  containing the name to be demangled.
+   *
+   *  @param __output_buffer A region of memory, allocated with
+   *  malloc, of @a *__length bytes, into which the demangled name is
+   *  stored.  If @a __output_buffer is not long enough, it is
+   *  expanded using realloc.  @a __output_buffer may instead be NULL;
+   *  in that case, the demangled name is placed in a region of memory
+   *  allocated with malloc.
+   *
+   *  @param __length If @a __length is non-NULL, the length of the
+   *  buffer containing the demangled name is placed in @a *__length.
+   *
+   *  @param __status @a *__status is set to one of the following values:
+   *   0: The demangling operation succeeded.
+   *  -1: A memory allocation failiure occurred.
+   *  -2: @a mangled_name is not a valid name under the C++ ABI mangling rules.
+   *  -3: One of the arguments is invalid.
+   *
+   *  @return A pointer to the start of the NUL-terminated demangled
+   *  name, or NULL if the demangling fails.  The caller is
+   *  responsible for deallocating this memory using @c free.
+   *
+   *  The demangling is performed using the C++ ABI mangling rules,
+   *  with GNU extensions. For example, this function is used in
+   *  __gnu_cxx::__verbose_terminate_handler.
+   * 
+   *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt12ch39.html
+   *  for other examples of use.
+   *
+   *  @note The same demangling functionality is available via
+   *  libiberty (@c <libiberty/demangle.h> and @c libiberty.a) in GCC
+   *  3.1 and later, but that requires explicit installation (@c
+   *  --enable-install-libiberty) and uses a different API, although
+   *  the ABI is unchanged.
+   */
   char*
   __cxa_demangle(const char* __mangled_name, char* __output_buffer,
 		 size_t* __length, int* __status);
@@ -531,19 +567,38 @@ namespace __cxxabiv1
   // Returns the type_info for the currently handled exception [15.3/8], or
   // null if there is none.
   extern "C" std::type_info*
-  __cxa_current_exception_type();
+  __cxa_current_exception_type() _GLIBCXX_NOTHROW __attribute__ ((__pure__));
 
   // A magic placeholder class that can be caught by reference
   // to recognize foreign exceptions.
   class __foreign_exception
   {
-    virtual ~__foreign_exception() throw();
+    virtual ~__foreign_exception() _GLIBCXX_NOTHROW;
     virtual void __pure_dummy() = 0; // prevent catch by value
   };
 
 } // namespace __cxxabiv1
 
-// User programs should use the alias `abi'. 
+/** @namespace abi
+ *  @brief The cross-vendor C++ Application Binary Interface. A
+ *  namespace alias to __cxxabiv1, but user programs should use the
+ *  alias `abi'.
+ *
+ *  A brief overview of an ABI is given in the libstdc++ FAQ, question
+ *  5.8 (you may have a copy of the FAQ locally, or you can view the online
+ *  version at http://gcc.gnu.org/onlinedocs/libstdc++/faq/index.html#5_8).
+ *
+ *  GCC subscribes to a cross-vendor ABI for C++, sometimes
+ *  called the IA64 ABI because it happens to be the native ABI for that
+ *  platform.  It is summarized at http://www.codesourcery.com/cxx-abi/
+ *  along with the current specification.
+ *
+ *  For users of GCC greater than or equal to 3.x, entry points are
+ *  available in <cxxabi.h>, which notes, <em>"It is not normally
+ *  necessary for user programs to include this header, or use the
+ *  entry points directly.  However, this header is available should
+ *  that be needed."</em>
+*/
 namespace abi = __cxxabiv1;
 
 #endif // __cplusplus

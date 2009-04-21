@@ -3,7 +3,8 @@
 # of passing tests.
 #
 #
-# Copyright (c) 2004, 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+# Copyright (c) 2004, 2005, 2006, 2007, 2008, 2009
+# Free Software Foundation, Inc.
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,6 +54,8 @@ BEGIN			{ skip = 1; passes = 0; fails = 0; }
 /^PASS.*dox.*\(test for excess errors\)/ { ignore(); next }
 # The sf tests pass the compile step; ignore that message.
 /^PASS.*sf.*\(test for excess errors\)/ { ignore(); next }
+# Ignore passing compile step for scan tests.
+/^PASS.*scan.*\(test for excess errors\)/ { ignore(); next }
 # Ignore lines that begin with comma.
 /^,/			{ ignore(); next }
 # For tests of dg-output, ignore successful compilation.

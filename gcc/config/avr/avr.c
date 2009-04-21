@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for ATMEL AVR micro controllers
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Denis Chertykov (denisc@overta.ru)
 
    This file is part of GCC.
@@ -175,6 +175,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at90s8535",    ARCH_AVR2, "__AVR_AT90S8535__" },
     /* Classic + MOVW, <= 8K.  */
   { "avr25",        ARCH_AVR25, NULL },
+  { "ata6289",      ARCH_AVR25, "__AVR_ATA6289__" },
   { "attiny13",     ARCH_AVR25, "__AVR_ATtiny13__" },
   { "attiny13a",    ARCH_AVR25, "__AVR_ATtiny13A__" },
   { "attiny2313",   ARCH_AVR25, "__AVR_ATtiny2313__" },
@@ -188,6 +189,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "attiny461",    ARCH_AVR25, "__AVR_ATtiny461__" },
   { "attiny861",    ARCH_AVR25, "__AVR_ATtiny861__" },
   { "attiny43u",    ARCH_AVR25, "__AVR_ATtiny43U__" },
+  { "attiny87",     ARCH_AVR25, "__AVR_ATtiny87__" },
   { "attiny48",     ARCH_AVR25, "__AVR_ATtiny48__" },
   { "attiny88",     ARCH_AVR25, "__AVR_ATtiny88__" },
   { "at86rf401",    ARCH_AVR25, "__AVR_AT86RF401__" },
@@ -204,6 +206,7 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "at90usb82",    ARCH_AVR35, "__AVR_AT90USB82__" },
   { "at90usb162",   ARCH_AVR35, "__AVR_AT90USB162__" },
   { "attiny167",    ARCH_AVR35, "__AVR_ATtiny167__" },
+  { "attiny327",    ARCH_AVR35, "__AVR_ATtiny327__" },
     /* Enhanced, <= 8K.  */
   { "avr4",         ARCH_AVR4, NULL },
   { "atmega8",      ARCH_AVR4, "__AVR_ATmega8__" },
@@ -214,11 +217,16 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega8515",   ARCH_AVR4, "__AVR_ATmega8515__" },
   { "atmega8535",   ARCH_AVR4, "__AVR_ATmega8535__" },
   { "atmega8hva",   ARCH_AVR4, "__AVR_ATmega8HVA__" },
+  { "atmega4hvd",   ARCH_AVR4, "__AVR_ATmega4HVD__" },
+  { "atmega8hvd",   ARCH_AVR4, "__AVR_ATmega8HVD__" },
+  { "atmega8c1",    ARCH_AVR4, "__AVR_ATmega8C1__" },
+  { "atmega8m1",    ARCH_AVR4, "__AVR_ATmega8M1__" },
   { "at90pwm1",     ARCH_AVR4, "__AVR_AT90PWM1__" },
   { "at90pwm2",     ARCH_AVR4, "__AVR_AT90PWM2__" },
   { "at90pwm2b",    ARCH_AVR4, "__AVR_AT90PWM2B__" },
   { "at90pwm3",     ARCH_AVR4, "__AVR_AT90PWM3__" },
   { "at90pwm3b",    ARCH_AVR4, "__AVR_AT90PWM3B__" },
+  { "at90pwm81",    ARCH_AVR4, "__AVR_AT90PWM81__" },
     /* Enhanced, > 8K, <= 64K.  */
   { "avr5",         ARCH_AVR5, NULL },
   { "atmega16",     ARCH_AVR5, "__AVR_ATmega16__" },
@@ -254,13 +262,22 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega649",    ARCH_AVR5, "__AVR_ATmega649__" },
   { "atmega6490",   ARCH_AVR5, "__AVR_ATmega6490__" },
   { "atmega16hva",  ARCH_AVR5, "__AVR_ATmega16HVA__" },
+  { "atmega16hvb",  ARCH_AVR5, "__AVR_ATmega16HVB__" },
+  { "atmega32hvb",  ARCH_AVR5, "__AVR_ATmega32HVB__" },
   { "at90can32",    ARCH_AVR5, "__AVR_AT90CAN32__" },
   { "at90can64",    ARCH_AVR5, "__AVR_AT90CAN64__" },
   { "at90pwm216",   ARCH_AVR5, "__AVR_AT90PWM216__" },
   { "at90pwm316",   ARCH_AVR5, "__AVR_AT90PWM316__" },
-  { "atmega32m1",   ARCH_AVR5, "__AVR_ATmega32M1__" },
+  { "atmega16c1",   ARCH_AVR5, "__AVR_ATmega16C1__" },
   { "atmega32c1",   ARCH_AVR5, "__AVR_ATmega32C1__" },
+  { "atmega64c1",   ARCH_AVR5, "__AVR_ATmega64C1__" },
+  { "atmega16m1",   ARCH_AVR5, "__AVR_ATmega16M1__" },
+  { "atmega32m1",   ARCH_AVR5, "__AVR_ATmega32M1__" },
+  { "atmega64m1",   ARCH_AVR5, "__AVR_ATmega64M1__" },
+  { "atmega16u4",   ARCH_AVR5, "__AVR_ATmega16U4__" },
   { "atmega32u4",   ARCH_AVR5, "__AVR_ATmega32U4__" },
+  { "atmega32u6",   ARCH_AVR5, "__AVR_ATmega32U6__" },
+  { "at90scr100",   ARCH_AVR5, "__AVR_AT90SCR100__" },
   { "at90usb646",   ARCH_AVR5, "__AVR_AT90USB646__" },
   { "at90usb647",   ARCH_AVR5, "__AVR_AT90USB647__" },
   { "at94k",        ARCH_AVR5, "__AVR_AT94K__" },
@@ -270,9 +287,13 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { "atmega1280",   ARCH_AVR51, "__AVR_ATmega1280__" },
   { "atmega1281",   ARCH_AVR51, "__AVR_ATmega1281__" },
   { "atmega1284p",  ARCH_AVR51, "__AVR_ATmega1284P__" },
+  { "atmega128rfa1",  ARCH_AVR51, "__AVR_ATmega128RFA1__" },
   { "at90can128",   ARCH_AVR51, "__AVR_AT90CAN128__" },
   { "at90usb1286",  ARCH_AVR51, "__AVR_AT90USB1286__" },
   { "at90usb1287",  ARCH_AVR51, "__AVR_AT90USB1287__" },
+  { "m3000f",       ARCH_AVR51, "__AVR_M3000F__" },
+  { "m3000s",       ARCH_AVR51, "__AVR_M3000S__" },
+  { "m3001b",       ARCH_AVR51, "__AVR_M3001B__" },
     /* 3-Byte PC.  */
   { "avr6",         ARCH_AVR6, NULL },
   { "atmega2560",   ARCH_AVR6, "__AVR_ATmega2560__" },
@@ -287,7 +308,6 @@ static const struct mcu_type_s avr_mcu_types[] = {
   { NULL,           ARCH_UNKNOWN, NULL }
 };
 
-int avr_case_values_threshold = 30000;
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -366,10 +386,6 @@ avr_override_options (void)
 
   avr_current_arch = &avr_arch_types[t->arch];
   avr_extra_arch_macro = t->macro;
-
-  if (optimize && !TARGET_NO_TABLEJUMP)
-    avr_case_values_threshold = 
-      (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 
   tmp_reg_rtx  = gen_rtx_REG (QImode, TMP_REGNO);
   zero_reg_rtx = gen_rtx_REG (QImode, ZERO_REGNO);
@@ -4577,6 +4593,39 @@ avr_assemble_integer (rtx x, unsigned int size, int aligned_p)
   return default_assemble_integer (x, size, aligned_p);
 }
 
+/* Worker function for ASM_DECLARE_FUNCTION_NAME.  */
+
+void
+avr_asm_declare_function_name (FILE *file, const char *name, tree decl)
+{
+
+  /* If the function has the 'signal' or 'interrupt' attribute, test to
+     make sure that the name of the function is "__vector_NN" so as to
+     catch when the user misspells the interrupt vector name.  */
+
+  if (cfun->machine->is_interrupt)
+    {
+      if (strncmp (name, "__vector", strlen ("__vector")) != 0)
+        {
+          warning_at (DECL_SOURCE_LOCATION (decl), 0,
+                      "%qs appears to be a misspelled interrupt handler",
+                      name);
+        }
+    }
+  else if (cfun->machine->is_signal)
+    {
+      if (strncmp (name, "__vector", strlen ("__vector")) != 0)
+        {
+           warning_at (DECL_SOURCE_LOCATION (decl), 0,
+                       "%qs appears to be a misspelled signal handler",
+                       name);
+        }
+    }
+
+  ASM_OUTPUT_TYPE_DIRECTIVE (file, name, "function");
+  ASM_OUTPUT_LABEL (file, name);
+}
+
 /* The routine used to output NUL terminated strings.  We use a special
    version of this for most svr4 targets because doing so makes the
    generated assembly code more compact (and thus faster to assemble)
@@ -4760,32 +4809,6 @@ avr_handle_fndecl_attribute (tree *node, tree name,
       warning (OPT_Wattributes, "%qs attribute only applies to functions",
 	       IDENTIFIER_POINTER (name));
       *no_add_attrs = true;
-    }
-  else
-    {
-      const char *func_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (*node));
-      const char *attr = IDENTIFIER_POINTER (name);
-
-      /* If the function has the 'signal' or 'interrupt' attribute, test to
-         make sure that the name of the function is "__vector_NN" so as to
-         catch when the user misspells the interrupt vector name.  */
-
-      if (strncmp (attr, "interrupt", strlen ("interrupt")) == 0)
-        {
-          if (strncmp (func_name, "__vector", strlen ("__vector")) != 0)
-            {
-              warning (0, "%qs appears to be a misspelled interrupt handler",
-                       func_name);
-            }
-        }
-      else if (strncmp (attr, "signal", strlen ("signal")) == 0)
-        {
-          if (strncmp (func_name, "__vector", strlen ("__vector")) != 0)
-            {
-              warning (0, "%qs appears to be a misspelled signal handler",
-                       func_name);
-            }
-        }
     }
 
   return NULL_TREE;
@@ -5192,6 +5215,41 @@ avr_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
       *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
       *total += avr_operand_rtx_cost (XEXP (x, 1), mode, code, speed);
       return true;
+
+    case ROTATE:
+      switch (mode)
+	{
+	case QImode:
+	  if (CONST_INT_P (XEXP (x, 1)) && INTVAL (XEXP (x, 1)) == 4)
+	    *total = COSTS_N_INSNS (1);
+
+	  break;
+
+	case HImode:
+	  if (CONST_INT_P (XEXP (x, 1)) && INTVAL (XEXP (x, 1)) == 8)
+	    *total = COSTS_N_INSNS (3);
+
+	  break;
+
+	case SImode:
+	  if (CONST_INT_P (XEXP (x, 1)))
+	    switch (INTVAL (XEXP (x, 1)))
+	      {
+	      case 8:
+	      case 24:
+		*total = COSTS_N_INSNS (5);
+		break;
+	      case 16:
+		*total = COSTS_N_INSNS (AVR_HAVE_MOVW ? 4 : 6);
+		break;
+	      }
+	  break;
+
+	default:
+	  return false;
+	}
+      *total += avr_operand_rtx_cost (XEXP (x, 0), mode, code, speed);
+      return true;    
 
     case ASHIFT:
       switch (mode)
@@ -6049,6 +6107,13 @@ avr_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
     }
   else
     return false;
+}
+
+/* Worker function for CASE_VALUES_THRESHOLD.  */
+
+unsigned int avr_case_values_threshold (void)
+{
+  return (!AVR_HAVE_JMP_CALL || TARGET_CALL_PROLOGUES) ? 8 : 17;
 }
 
 #include "gt-avr.h"

@@ -364,7 +364,8 @@ idx_analyze_ref (tree base, tree *index, void *data)
       || TREE_CODE (base) == ALIGN_INDIRECT_REF)
     return false;
 
-  if (!simple_iv (ar_data->loop, ar_data->stmt, *index, &iv, false))
+  if (!simple_iv (ar_data->loop, loop_containing_stmt (ar_data->stmt),
+		  *index, &iv, false))
     return false;
   ibase = iv.base;
   step = iv.step;
@@ -501,7 +502,7 @@ gather_memory_references (struct loop *loop, bool *no_other_refs)
 
 	  if (gimple_code (stmt) != GIMPLE_ASSIGN)
 	    {
-	      if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS)
+	      if (gimple_vuse (stmt)
 		  || (is_gimple_call (stmt)
 		      && !(gimple_call_flags (stmt) & ECF_CONST)))
 		*no_other_refs = false;

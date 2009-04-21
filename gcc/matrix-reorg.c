@@ -1,5 +1,5 @@
 /* Matrix layout transformations.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Razya Ladelsky <razya@il.ibm.com>
    Originally written by Revital Eres and Mustafa Hagog.
    
@@ -261,9 +261,6 @@ struct matrix_info
 
   gimple min_indirect_level_escape_stmt;
 
-  /* Is the matrix transposed.  */
-  bool is_transposed_p;
-
   /* Hold the allocation site for each level (dimension).
      We can use NUM_DIMS as the upper bound and allocate the array
      once with this number of elements and no need to use realloc and
@@ -271,6 +268,9 @@ struct matrix_info
   gimple *malloc_for_level;
 
   int max_malloced_level;
+
+  /* Is the matrix transposed.  */
+  bool is_transposed_p;
 
   /* The location of the allocation sites (they must be in one
      function).  */
@@ -303,7 +303,7 @@ struct matrix_info
 
   /* An array of the accesses to be flattened.
      elements are of type "struct access_site_info *".  */
-    VEC (access_site_info_p, heap) * access_l;
+  VEC (access_site_info_p, heap) * access_l;
 
   /* A map of how the dimensions will be organized at the end of 
      the analyses.  */
@@ -930,7 +930,7 @@ analyze_transpose (void **slot, void *data ATTRIBUTE_UNUSED)
 	      free (acc_info);
 	      continue;
 	    }
-	  if (simple_iv (loop, acc_info->stmt, acc_info->offset, &iv, true))
+	  if (simple_iv (loop, loop, acc_info->offset, &iv, true))
 	    {
 	      if (iv.step != NULL)
 		{
@@ -1865,8 +1865,9 @@ transform_access_sites (void **slot, void *data ATTRIBUTE_UNUSED)
 		    tmp = create_tmp_var (TREE_TYPE (lhs), "new");
 		    add_referenced_var (tmp);
 		    rhs = gimple_assign_rhs1 (acc_info->stmt);
-		    new_stmt = gimple_build_assign (tmp,
-						    TREE_OPERAND (rhs, 0));
+		    rhs = fold_convert (TREE_TYPE (tmp),
+					TREE_OPERAND (rhs, 0));
+		    new_stmt = gimple_build_assign (tmp, rhs);
 		    tmp = make_ssa_name (tmp, new_stmt);
 		    gimple_assign_set_lhs (new_stmt, tmp);
 		    gsi = gsi_for_stmt (acc_info->stmt);
@@ -2419,12 +2420,11 @@ struct simple_ipa_opt_pass pass_ipa_matrix_reorg =
   NULL,				/* sub */
   NULL,				/* next */
   0,				/* static_pass_number */
-  0,				/* tv_id */
+  TV_NONE,			/* tv_id */
   0,				/* properties_required */
-  PROP_trees,			/* properties_provided */
+  0,				/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
   TODO_dump_cgraph | TODO_dump_func	/* todo_flags_finish */
  }
 };
-

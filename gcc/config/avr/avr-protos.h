@@ -1,6 +1,6 @@
 /* Prototypes for exported functions defined in avr.c
    
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Denis Chertykov (denisc@overta.ru)
 
@@ -32,12 +32,14 @@ extern enum reg_class avr_regno_reg_class (int r);
 extern enum reg_class avr_reg_class_from_letter (int c);
 extern int frame_pointer_required_p (void);
 extern void asm_globalize_label (FILE *file, const char *name);
+extern void avr_asm_declare_function_name (FILE *, const char *, tree);
 extern void order_regs_for_local_alloc (void);
 extern int initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
 extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
+extern unsigned int avr_case_values_threshold (void);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);

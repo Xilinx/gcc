@@ -1,5 +1,5 @@
 /* Backend support for Fortran 95 basic types and derived types.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -115,20 +115,6 @@ int gfc_charlen_int_kind;
 /* The size of the numeric storage unit and character storage unit.  */
 int gfc_numeric_storage_size;
 int gfc_character_storage_size;
-
-
-/* Validate that the f90_type of the given gfc_typespec is valid for
-   the type it represents.  The f90_type represents the Fortran types
-   this C kind can be used with.  For example, c_int has a f90_type of
-   BT_INTEGER and c_float has a f90_type of BT_REAL.  Returns FAILURE
-   if a mismatch occurs between ts->f90_type and ts->type; SUCCESS if
-   they match.  */
-
-gfc_try
-gfc_validate_c_kind (gfc_typespec *ts)
-{
-   return ((ts->type == ts->f90_type) ? SUCCESS : FAILURE);
-}
 
 
 gfc_try
@@ -735,6 +721,9 @@ gfc_init_types (void)
   for (index = 0; gfc_integer_kinds[index].kind != 0; ++index)
     {
       type = gfc_build_int_type (&gfc_integer_kinds[index]);
+      /* Ensure integer(kind=1) doesn't have TYPE_STRING_FLAG set.  */
+      if (TYPE_STRING_FLAG (type))
+	type = make_signed_type (gfc_integer_kinds[index].bit_size);
       gfc_integer_types[index] = type;
       snprintf (name_buf, sizeof(name_buf), "integer(kind=%d)",
 		gfc_integer_kinds[index].kind);
@@ -1415,10 +1404,10 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed)
   mpz_clear (stride);
   mpz_clear (delta);
 
-  /* In debug info represent packed arrays as multi-dimensional
-     if they have rank > 1 and with proper bounds, instead of flat
-     arrays.  */
-  if (known_offset && write_symbols != NO_DEBUG)
+  /* Represent packed arrays as multi-dimensional if they have rank >
+     1 and with proper bounds, instead of flat arrays.  This makes for
+     better debug info.  */
+  if (known_offset)
     {
       tree gtype = etype, rtype, type_decl;
 
@@ -1627,6 +1616,16 @@ gfc_sym_type (gfc_symbol * sym)
   tree type;
   int byref;
 
+  /* Procedure Pointers inside COMMON blocks.  */
+  if (sym->attr.proc_pointer && sym->attr.in_common)
+    {
+      /* Unset proc_pointer as gfc_get_function_type calls gfc_sym_type.  */
+      sym->attr.proc_pointer = 0;
+      type = build_pointer_type (gfc_get_function_type (sym));
+      sym->attr.proc_pointer = 1;
+      return type;
+    }
+
   if (sym->attr.flavor == FL_PROCEDURE && !sym->attr.function)
     return void_type_node;
 
@@ -1636,8 +1635,11 @@ gfc_sym_type (gfc_symbol * sym)
   if (sym->backend_decl && !sym->attr.function)
     return TREE_TYPE (sym->backend_decl);
 
-  if (sym->ts.type == BT_CHARACTER && sym->attr.is_bind_c
-      && (sym->attr.function || sym->attr.result))
+  if (sym->ts.type == BT_CHARACTER
+      && ((sym->attr.function && sym->attr.is_bind_c)
+	  || (sym->attr.result
+	      && sym->ns->proc_name
+	      && sym->ns->proc_name->attr.is_bind_c)))
     type = gfc_character1_type_node;
   else
     type = gfc_typenode_for_spec (&sym->ts);
@@ -1934,7 +1936,8 @@ gfc_get_derived_type (gfc_symbol * derived)
 
   gfc_finish_type (typenode);
   gfc_set_decl_location (TYPE_STUB_DECL (typenode), &derived->declared_at);
-  if (derived->module && derived->ns->proc_name->attr.flavor == FL_MODULE)
+  if (derived->module && derived->ns->proc_name
+      && derived->ns->proc_name->attr.flavor == FL_MODULE)
     {
       if (derived->ns->proc_name->backend_decl
 	  && TREE_CODE (derived->ns->proc_name->backend_decl)
@@ -1965,7 +1968,11 @@ gfc_return_by_reference (gfc_symbol * sym)
   if (sym->attr.dimension)
     return 1;
 
-  if (sym->ts.type == BT_CHARACTER && !sym->attr.is_bind_c)
+  if (sym->ts.type == BT_CHARACTER
+      && !sym->attr.is_bind_c
+      && (!sym->attr.result
+	  || !sym->ns->proc_name
+	  || !sym->ns->proc_name->attr.is_bind_c))
     return 1;
 
   /* Possibly return complex numbers by reference for g77 compatibility.
@@ -2146,6 +2153,20 @@ gfc_get_function_type (gfc_symbol * sym)
       sym->ts.kind = gfc_default_double_kind;
       type = gfc_typenode_for_spec (&sym->ts);
       sym->ts.kind = gfc_default_real_kind;
+    }
+  else if (sym->result && sym->result->attr.proc_pointer)
+    /* Procedure pointer return values.  */
+    {
+      if (sym->result->attr.result && strcmp (sym->name,"ppr@") != 0)
+	{
+	  /* Unset proc_pointer as gfc_get_function_type
+	     is called recursively.  */
+	  sym->result->attr.proc_pointer = 0;
+	  type = build_pointer_type (gfc_get_function_type (sym->result));
+	  sym->result->attr.proc_pointer = 1;
+	}
+      else
+       type = gfc_sym_type (sym->result);
     }
   else
     type = gfc_sym_type (sym);

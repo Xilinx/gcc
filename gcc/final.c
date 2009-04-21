@@ -1,6 +1,6 @@
 /* Convert RTL to assembler code and output it, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -801,7 +801,7 @@ struct rtl_opt_pass pass_compute_alignments =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -2235,6 +2235,10 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 #endif
 	      }
 
+	    if (targetm.asm_out.final_postscan_insn)
+	      targetm.asm_out.final_postscan_insn (file, insn, ops,
+						   insn_noperands);
+
 	    this_is_asm_operands = 0;
 	    break;
 	  }
@@ -2636,6 +2640,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize ATTRIBUTE_UNUSED,
 
 	/* Output assembler code from the template.  */
 	output_asm_insn (templ, recog_data.operand);
+
+	/* Some target machines need to postscan each insn after
+	   it is output.  */
+	if (targetm.asm_out.final_postscan_insn)
+	  targetm.asm_out.final_postscan_insn (file, insn, recog_data.operand,
+					       recog_data.n_operands);
 
 	/* If necessary, report the effect that the instruction has on
 	   the unwind info.   We've already done this for delay slots
@@ -3349,8 +3359,9 @@ output_asm_label (rtx x)
   assemble_name (asm_out_file, buf);
 }
 
-/* Helper rtx-iteration-function for output_operand.  Marks
-   SYMBOL_REFs as referenced through use of assemble_external.  */
+/* Helper rtx-iteration-function for mark_symbol_refs_as_used and
+   output_operand.  Marks SYMBOL_REFs as referenced through use of
+   assemble_external.  */
 
 static int
 mark_symbol_ref_as_used (rtx *xp, void *dummy ATTRIBUTE_UNUSED)
@@ -3372,6 +3383,14 @@ mark_symbol_ref_as_used (rtx *xp, void *dummy ATTRIBUTE_UNUSED)
     }
 
   return 0;
+}
+
+/* Marks SYMBOL_REFs in x as referenced through use of assemble_external.  */
+
+void
+mark_symbol_refs_as_used (rtx x)
+{
+  for_each_rtx (&x, mark_symbol_ref_as_used, NULL);
 }
 
 /* Print operand X using machine-dependent assembler syntax.
@@ -3431,7 +3450,10 @@ output_addr_const (FILE *file, rtx x)
 
     case SYMBOL_REF:
       if (SYMBOL_REF_DECL (x))
-	mark_decl_referenced (SYMBOL_REF_DECL (x));
+	{
+	  mark_decl_referenced (SYMBOL_REF_DECL (x));
+	  assemble_external (SYMBOL_REF_DECL (x));
+	}
 #ifdef ASM_OUTPUT_SYMBOL_REF
       ASM_OUTPUT_SYMBOL_REF (file, x);
 #else
@@ -4187,6 +4209,10 @@ rest_of_handle_final (void)
   timevar_push (TV_SYMOUT);
   (*debug_hooks->function_decl) (current_function_decl);
   timevar_pop (TV_SYMOUT);
+
+  /* Release the blocks that are linked to DECL_INITIAL() to free the memory.  */
+  DECL_INITIAL (current_function_decl) = error_mark_node;
+
   if (DECL_STATIC_CONSTRUCTOR (current_function_decl)
       && targetm.have_ctors_dtors)
     targetm.asm_out.constructor (XEXP (DECL_RTL (current_function_decl), 0),
@@ -4330,4 +4356,3 @@ struct rtl_opt_pass pass_clean_state =
   0                                     /* todo_flags_finish */
  }
 };
-

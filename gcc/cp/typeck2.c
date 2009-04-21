@@ -1,7 +1,7 @@
 /* Report error messages, build initializers, and perform
    some front-end optimizations for C++ compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -650,7 +650,7 @@ store_init_value (tree decl, tree init)
 void
 check_narrowing (tree type, tree init)
 {
-  tree ftype = TREE_TYPE (init);
+  tree ftype = unlowered_expr_type (init);
   bool ok = true;
   REAL_VALUE_TYPE d;
   bool was_decl = false;
@@ -677,18 +677,18 @@ check_narrowing (tree type, tree init)
     {
       if (TYPE_PRECISION (type) < TYPE_PRECISION (ftype))
 	{
-	  ok = false;
 	  if (TREE_CODE (init) == REAL_CST)
 	    {
+	      /* Issue 703: Loss of precision is OK as long as the value is
+		 within the representable range of the new type.  */
+	      REAL_VALUE_TYPE r;
 	      d = TREE_REAL_CST (init);
-	      if (exact_real_truncate (TYPE_MODE (type), &d)
-		  /* FIXME: As a temporary workaround for PR 36963, don't
-		     complain about narrowing from a floating
-		     literal. Hopefully this will be resolved at the
-		     September 2008 C++ meeting. */
-		  || !was_decl)
-		ok = true;
+	      real_convert (&r, TYPE_MODE (type), &d);
+	      if (real_isinf (&r))
+		ok = false;
 	    }
+	  else
+	    ok = false;
 	}
     }
   else if (INTEGRAL_OR_ENUMERATION_TYPE_P (ftype)
@@ -704,8 +704,8 @@ check_narrowing (tree type, tree init)
     }
 
   if (!ok)
-    permerror (input_location, "narrowing conversion of %qE to %qT inside { }",
-	       init, type);
+    permerror (input_location, "narrowing conversion of %qE from %qT to %qT inside { }",
+	       init, ftype, type);
 }
 
 /* Process the initializer INIT for a variable of type TYPE, emitting
@@ -789,7 +789,8 @@ digest_init_r (tree type, tree init, bool nested)
     }
 
   /* Handle scalar types (including conversions) and references.  */
-  if (TREE_CODE (type) != COMPLEX_TYPE
+  if ((TREE_CODE (type) != COMPLEX_TYPE
+       || BRACE_ENCLOSED_INITIALIZER_P (init))
       && (SCALAR_TYPE_P (type) || code == REFERENCE_TYPE))
     {
       tree *exp;
@@ -820,7 +821,8 @@ digest_init_r (tree type, tree init, bool nested)
 	      || TREE_CODE (type) == UNION_TYPE
 	      || TREE_CODE (type) == COMPLEX_TYPE);
 
-  if (BRACE_ENCLOSED_INITIALIZER_P (init))
+  if (BRACE_ENCLOSED_INITIALIZER_P (init)
+      && !TYPE_NON_AGGREGATE_CLASS (type))
     return process_init_constructor (type, init);
   else
     {
@@ -993,6 +995,7 @@ process_init_constructor_record (tree type, tree init)
   for (field = TYPE_FIELDS (type); field; field = TREE_CHAIN (field))
     {
       tree next;
+      tree type;
 
       if (!DECL_NAME (field) && DECL_C_BIT_FIELD (field))
 	{
@@ -1003,6 +1006,11 @@ process_init_constructor_record (tree type, tree init)
 
       if (TREE_CODE (field) != FIELD_DECL || DECL_ARTIFICIAL (field))
 	continue;
+
+      /* If this is a bitfield, first convert to the declared type.  */
+      type = TREE_TYPE (field);
+      if (DECL_BIT_FIELD_TYPE (field))
+	type = DECL_BIT_FIELD_TYPE (field);
 
       if (idx < VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init)))
 	{
@@ -1024,7 +1032,7 @@ process_init_constructor_record (tree type, tree init)
 	    }
 
 	  gcc_assert (ce->value);
-	  next = digest_init_r (TREE_TYPE (field), ce->value, true);
+	  next = digest_init_r (type, ce->value, true);
 	  ++idx;
 	}
       else if (TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (field)))
@@ -1068,10 +1076,16 @@ process_init_constructor_record (tree type, tree init)
 	    continue;
 	}
 
+      /* If this is a bitfield, now convert to the lowered type.  */
+      if (type != TREE_TYPE (field))
+	next = cp_convert_and_check (TREE_TYPE (field), next);
       flags |= picflag_from_initializer (next);
       CONSTRUCTOR_APPEND_ELT (v, field, next);
     }
 
+  if (idx < VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init)))
+    error ("too many initializers for %qT", type);
+    
   CONSTRUCTOR_ELTS (init) = v;
   return flags;
 }
@@ -1084,12 +1098,19 @@ static int
 process_init_constructor_union (tree type, tree init)
 {
   constructor_elt *ce;
+  int len;
 
   /* If the initializer was empty, use default zero initialization.  */
   if (VEC_empty (constructor_elt, CONSTRUCTOR_ELTS (init)))
     return 0;
 
-  gcc_assert (VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init)) == 1);
+  len = VEC_length (constructor_elt, CONSTRUCTOR_ELTS (init));
+  if (len > 1)
+    {
+      error ("too many initializers for %qT", type);
+      VEC_block_remove (constructor_elt, CONSTRUCTOR_ELTS (init), 1, len-1);
+    }
+
   ce = VEC_index (constructor_elt, CONSTRUCTOR_ELTS (init), 0);
 
   /* If this element specifies a field, initialize via that field.  */
@@ -1127,7 +1148,11 @@ process_init_constructor_union (tree type, tree init)
       tree field = TYPE_FIELDS (type);
       while (field && (!DECL_NAME (field) || TREE_CODE (field) != FIELD_DECL))
 	field = TREE_CHAIN (field);
-      gcc_assert (field);
+      if (field == NULL_TREE)
+	{
+	  error ("too many initializers for %qT", type);
+	  ce->value = error_mark_node;
+	}
       ce->index = field;
     }
 
@@ -1420,6 +1445,12 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
     type = TREE_TYPE (exp);
   else
     type = exp;
+
+  if (TREE_CODE (type) == REFERENCE_TYPE && !parms)
+    {
+      error ("invalid value-initialization of reference types");
+      return error_mark_node;
+    }
 
   if (processing_template_decl)
     {

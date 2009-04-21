@@ -1,13 +1,13 @@
 // Locale support -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008
+// 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file locale_facets.h
  *  This is an internal header file, included by other library headers.
@@ -75,17 +70,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<>
     void
     __convert_to_v(const char*, float&, ios_base::iostate&,
-		   const __c_locale&);
+		   const __c_locale&) throw ();
 
   template<>
     void
     __convert_to_v(const char*, double&, ios_base::iostate&,
-		   const __c_locale&);
+		   const __c_locale&) throw ();
 
   template<>
     void
     __convert_to_v(const char*, long double&, ios_base::iostate&,
-		   const __c_locale&);
+		   const __c_locale&) throw ();
 
   // NB: __pad is a struct, rather than a function, so it can be
   // partially-specialized.
@@ -1225,7 +1220,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     protected:
       __wmask_type
-      _M_convert_to_wmask(const mask __m) const;
+      _M_convert_to_wmask(const mask __m) const throw ();
 
       /// Destructor
       virtual
@@ -1463,7 +1458,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       // For use at construction time only.
       void
-      _M_initialize_ctype();
+      _M_initialize_ctype() throw ();
     };
 #endif //_GLIBCXX_USE_WCHAR_T
 
@@ -1563,7 +1558,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     // num_put
     // Construct and return valid scanf format for floating point types.
     static void
-    _S_format_float(const ios_base& __io, char* __fptr, char __mod);
+    _S_format_float(const ios_base& __io, char* __fptr, char __mod) throw ();
   };
 
   template<typename _CharT>
@@ -2104,12 +2099,12 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
 
       iter_type
       _M_extract_float(iter_type, iter_type, ios_base&, ios_base::iostate&,
-		       string& __xtrc) const;
+		       string&) const;
 
       template<typename _ValueT>
         iter_type
         _M_extract_int(iter_type, iter_type, ios_base&, ios_base::iostate&,
-		       _ValueT& __v) const;
+		       _ValueT&) const;
 
       template<typename _CharT2>
       typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value, int>::__type
@@ -2167,30 +2162,36 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
       virtual iter_type
       do_get(iter_type, iter_type, ios_base&, ios_base::iostate&, bool&) const;
 
+      virtual iter_type
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, long& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }
 
       virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate&, long&) const;
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, unsigned short& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }
 
       virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate& __err,
-	      unsigned short&) const;
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, unsigned int& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }
 
       virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate& __err,
-	     unsigned int&) const;
-
-      virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate& __err,
-	     unsigned long&) const;
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, unsigned long& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }
 
 #ifdef _GLIBCXX_USE_LONG_LONG
       virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate& __err,
-	     long long&) const;
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, long long& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }	
 
       virtual iter_type
-      do_get(iter_type, iter_type, ios_base&, ios_base::iostate& __err,
-	     unsigned long long&) const;
+      do_get(iter_type __beg, iter_type __end, ios_base& __io,
+	     ios_base::iostate& __err, unsigned long long& __v) const
+      { return _M_extract_int(__beg, __end, __io, __err, __v); }
 #endif
 
       virtual iter_type
@@ -2461,17 +2462,24 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
       do_put(iter_type, ios_base&, char_type __fill, bool __v) const;
 
       virtual iter_type
-      do_put(iter_type, ios_base&, char_type __fill, long __v) const;
+      do_put(iter_type __s, ios_base& __io, char_type __fill, long __v) const
+      { return _M_insert_int(__s, __io, __fill, __v); }	
 
       virtual iter_type
-      do_put(iter_type, ios_base&, char_type __fill, unsigned long) const;
+      do_put(iter_type __s, ios_base& __io, char_type __fill,
+	     unsigned long __v) const
+      { return _M_insert_int(__s, __io, __fill, __v); }
 
 #ifdef _GLIBCXX_USE_LONG_LONG
       virtual iter_type
-      do_put(iter_type, ios_base&, char_type __fill, long long __v) const;
+      do_put(iter_type __s, ios_base& __io, char_type __fill,
+	     long long __v) const
+      { return _M_insert_int(__s, __io, __fill, __v); }
 
       virtual iter_type
-      do_put(iter_type, ios_base&, char_type __fill, unsigned long long) const;
+      do_put(iter_type __s, ios_base& __io, char_type __fill,
+	     unsigned long long __v) const
+      { return _M_insert_int(__s, __io, __fill, __v); }
 #endif
 
       virtual iter_type

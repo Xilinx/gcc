@@ -1,5 +1,6 @@
 /*  Loop transformation code generation
-    Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+    Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+    Free Software Foundation, Inc.
     Contributed by Daniel Berlin <dberlin@dberlin.org>
 
     This file is part of GCC.
@@ -2141,7 +2142,7 @@ can_put_in_inner_loop (struct loop *inner, gimple stmt)
   use_operand_p use_p;
   
   gcc_assert (is_gimple_assign (stmt));
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS)
+  if (gimple_vuse (stmt)
       || !stmt_invariant_in_loop_p (inner, stmt))
     return false;
   
@@ -2166,7 +2167,7 @@ can_put_after_inner_loop (struct loop *loop, gimple stmt)
   imm_use_iterator imm_iter;
   use_operand_p use_p;
 
-  if (!ZERO_SSA_OPERANDS (stmt, SSA_OP_ALL_VIRTUALS))
+  if (gimple_vuse (stmt))
     return false;
   
   FOR_EACH_IMM_USE_FAST (use_p, imm_iter, gimple_assign_lhs (stmt))
@@ -2471,7 +2472,8 @@ perfect_nestify (struct loop *loop,
      it to one just in case.  */
 
   exit_condition = get_loop_exit_condition (newloop);
-  uboundvar = create_tmp_var (integer_type_node, "uboundvar");
+  uboundvar = create_tmp_var (TREE_TYPE (VEC_index (tree, ubounds, 0)),
+			      "uboundvar");
   add_referenced_var (uboundvar);
   stmt = gimple_build_assign (uboundvar, VEC_index (tree, ubounds, 0));
   uboundvar = make_ssa_name (uboundvar, stmt);
@@ -2534,8 +2536,6 @@ perfect_nestify (struct loop *loop,
 		 incremented when we do.  */
 	      for (bsi = gsi_start_bb (bbs[i]); !gsi_end_p (bsi);)
 		{ 
-		  ssa_op_iter i;
-		  tree n;
 		  gimple stmt = gsi_stmt (bsi);
 		  
 		  if (stmt == exit_condition
@@ -2551,12 +2551,12 @@ perfect_nestify (struct loop *loop,
 		     VEC_index (tree, lbounds, 0), replacements, &firstbsi);
 
 		  gsi_move_before (&bsi, &tobsi);
-		  
+
 		  /* If the statement has any virtual operands, they may
 		     need to be rewired because the original loop may
 		     still reference them.  */
-		  FOR_EACH_SSA_TREE_OPERAND (n, stmt, i, SSA_OP_ALL_VIRTUALS)
-		    mark_sym_for_renaming (SSA_NAME_VAR (n));
+		  if (gimple_vuse (stmt))
+		    mark_sym_for_renaming (gimple_vop (cfun));
 		}
 	    }
 	  
@@ -2682,6 +2682,7 @@ lambda_collect_parameters (VEC (data_reference_p, heap) *datarefs,
     for (j = 0; j < DR_NUM_DIMENSIONS (data_reference); j++)
       lambda_collect_parameters_from_af (DR_ACCESS_FN (data_reference, j),
 					 parameter_set, parameters);
+  pointer_set_destroy (parameter_set);
 }
 
 /* Translates BASE_EXPR to vector CY.  AM is needed for inferring
@@ -2786,23 +2787,19 @@ av_for_af (tree access_fun, lambda_vector cy, struct access_matrix *am)
 
 static bool
 build_access_matrix (data_reference_p data_reference,
-		     VEC (tree, heap) *parameters, int loop_nest_num)
+		     VEC (tree, heap) *parameters, VEC (loop_p, heap) *nest)
 {
   struct access_matrix *am = GGC_NEW (struct access_matrix);
   unsigned i, ndim = DR_NUM_DIMENSIONS (data_reference);
-  struct loop *loop = gimple_bb (DR_STMT (data_reference))->loop_father;
-  struct loop *loop_nest = get_loop (loop_nest_num);
-  unsigned nivs = loop_depth (loop) - loop_depth (loop_nest) + 1;
+  unsigned nivs = VEC_length (loop_p, nest);
   unsigned lambda_nb_columns;
-  lambda_vector_vec_p matrix;
 
-  AM_LOOP_NEST_NUM (am) = loop_nest_num;
+  AM_LOOP_NEST (am) = nest;
   AM_NB_INDUCTION_VARS (am) = nivs;
   AM_PARAMETERS (am) = parameters;
 
   lambda_nb_columns = AM_NB_COLUMNS (am);
-  matrix = VEC_alloc (lambda_vector, heap, lambda_nb_columns);
-  AM_MATRIX (am) = matrix;
+  AM_MATRIX (am) = VEC_alloc (lambda_vector, gc, ndim);
 
   for (i = 0; i < ndim; i++)
     {
@@ -2812,7 +2809,7 @@ build_access_matrix (data_reference_p data_reference,
       if (!av_for_af (access_function, access_vector, am))
 	return false;
 
-      VEC_safe_push (lambda_vector, heap, matrix, access_vector);
+      VEC_quick_push (lambda_vector, AM_MATRIX (am), access_vector);
     }
 
   DR_ACCESS_MATRIX (data_reference) = am;
@@ -2824,13 +2821,13 @@ build_access_matrix (data_reference_p data_reference,
 bool
 lambda_compute_access_matrices (VEC (data_reference_p, heap) *datarefs,
 				VEC (tree, heap) *parameters,
-				int loop_nest_num)
+				VEC (loop_p, heap) *nest)
 {
   data_reference_p dataref;
   unsigned ix;
 
   for (ix = 0; VEC_iterate (data_reference_p, datarefs, ix, dataref); ix++)
-    if (!build_access_matrix (dataref, parameters, loop_nest_num))
+    if (!build_access_matrix (dataref, parameters, nest))
       return false;
 
   return true;

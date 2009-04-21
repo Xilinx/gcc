@@ -1,6 +1,6 @@
 /* Emit RTL for the GCC expander.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1490,6 +1490,90 @@ mem_expr_equal_p (const_tree expr1, const_tree expr2)
   return 0;
 }
 
+/* Return OFFSET if XEXP (MEM, 0) - OFFSET is known to be ALIGN
+   bits aligned for 0 <= OFFSET < ALIGN / BITS_PER_UNIT, or
+   -1 if not known.  */
+
+int
+get_mem_align_offset (rtx mem, unsigned int align)
+{
+  tree expr;
+  unsigned HOST_WIDE_INT offset;
+
+  /* This function can't use
+     if (!MEM_EXPR (mem) || !MEM_OFFSET (mem)
+	 || !CONST_INT_P (MEM_OFFSET (mem))
+	 || (get_object_alignment (MEM_EXPR (mem), MEM_ALIGN (mem), align)
+	     < align))
+       return -1;
+     else
+       return (- INTVAL (MEM_OFFSET (mem))) & (align / BITS_PER_UNIT - 1);
+     for two reasons:
+     - COMPONENT_REFs in MEM_EXPR can have NULL first operand,
+       for <variable>.  get_inner_reference doesn't handle it and
+       even if it did, the alignment in that case needs to be determined
+       from DECL_FIELD_CONTEXT's TYPE_ALIGN.
+     - it would do suboptimal job for COMPONENT_REFs, even if MEM_EXPR
+       isn't sufficiently aligned, the object it is in might be.  */
+  gcc_assert (MEM_P (mem));
+  expr = MEM_EXPR (mem);
+  if (expr == NULL_TREE
+      || MEM_OFFSET (mem) == NULL_RTX
+      || !CONST_INT_P (MEM_OFFSET (mem)))
+    return -1;
+
+  offset = INTVAL (MEM_OFFSET (mem));
+  if (DECL_P (expr))
+    {
+      if (DECL_ALIGN (expr) < align)
+	return -1;
+    }
+  else if (INDIRECT_REF_P (expr))
+    {
+      if (TYPE_ALIGN (TREE_TYPE (expr)) < (unsigned int) align)
+	return -1;
+    }
+  else if (TREE_CODE (expr) == COMPONENT_REF)
+    {
+      while (1)
+	{
+	  tree inner = TREE_OPERAND (expr, 0);
+	  tree field = TREE_OPERAND (expr, 1);
+	  tree byte_offset = component_ref_field_offset (expr);
+	  tree bit_offset = DECL_FIELD_BIT_OFFSET (field);
+
+	  if (!byte_offset
+	      || !host_integerp (byte_offset, 1)
+	      || !host_integerp (bit_offset, 1))
+	    return -1;
+
+	  offset += tree_low_cst (byte_offset, 1);
+	  offset += tree_low_cst (bit_offset, 1) / BITS_PER_UNIT;
+
+	  if (inner == NULL_TREE)
+	    {
+	      if (TYPE_ALIGN (DECL_FIELD_CONTEXT (field))
+		  < (unsigned int) align)
+		return -1;
+	      break;
+	    }
+	  else if (DECL_P (inner))
+	    {
+	      if (DECL_ALIGN (inner) < align)
+		return -1;
+	      break;
+	    }
+	  else if (TREE_CODE (inner) != COMPONENT_REF)
+	    return -1;
+	  expr = inner;
+	}
+    }
+  else
+    return -1;
+
+  return offset & ((align / BITS_PER_UNIT) - 1);
+}
+
 /* Given REF (a MEM) and T, either the type of X or the expression
    corresponding to REF, set the memory attributes.  OBJECTP is nonzero
    if we are making a new object of this type.  BITPOS is nonzero if
@@ -1564,6 +1648,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   if (! TYPE_P (t))
     {
       tree base;
+      bool align_computed = false;
 
       if (TREE_THIS_VOLATILE (t))
 	MEM_VOLATILE_P (ref) = 1;
@@ -1620,6 +1705,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 		  && host_integerp (DECL_SIZE_UNIT (t), 1)
 		  ? GEN_INT (tree_low_cst (DECL_SIZE_UNIT (t), 1)) : 0);
 	  align = DECL_ALIGN (t);
+	  align_computed = true;
 	}
 
       /* If this is a constant, we know the alignment.  */
@@ -1629,6 +1715,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 #ifdef CONSTANT_ALIGNMENT
 	  align = CONSTANT_ALIGNMENT (t, align);
 #endif
+	  align_computed = true;
 	}
 
       /* If this is a field reference and not a bit-field, record it.  */
@@ -1688,6 +1775,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 		  align = DECL_ALIGN (t2);
 		  if (aoff && (unsigned HOST_WIDE_INT) aoff < align)
 	            align = aoff;
+		  align_computed = true;
 		  offset = GEN_INT (ioff);
 		  apply_bitpos = bitpos;
 		}
@@ -1720,6 +1808,13 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
 	{
 	  expr = t;
 	  offset = NULL;
+	}
+
+      if (!align_computed && !INDIRECT_REF_P (t))
+	{
+	  unsigned int obj_align
+	    = get_object_alignment (t, align, BIGGEST_ALIGNMENT);
+	  align = MAX (align, obj_align);
 	}
     }
 
@@ -1761,17 +1856,6 @@ void
 set_mem_attributes (rtx ref, tree t, int objectp)
 {
   set_mem_attributes_minus_bitpos (ref, t, objectp, 0);
-}
-
-/* Set MEM to the decl that REG refers to.  */
-
-void
-set_mem_attrs_from_reg (rtx mem, rtx reg)
-{
-  MEM_ATTRS (mem)
-    = get_mem_attrs (MEM_ALIAS_SET (mem), REG_EXPR (reg),
-		     GEN_INT (REG_OFFSET (reg)),
-		     MEM_SIZE (mem), MEM_ALIGN (mem), GET_MODE (mem));
 }
 
 /* Set the alias set of MEM to SET.  */
@@ -1913,6 +1997,7 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
   rtx memoffset = MEM_OFFSET (memref);
   rtx size = 0;
   unsigned int memalign = MEM_ALIGN (memref);
+  int pbits;
 
   /* If there are no changes, just return the original memory reference.  */
   if (mode == GET_MODE (memref) && !offset
@@ -1923,6 +2008,16 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
      This may happen even if offset is nonzero -- consider
      (plus (plus reg reg) const_int) -- so do this always.  */
   addr = copy_rtx (addr);
+
+  /* Convert a possibly large offset to a signed value within the
+     range of the target address space.  */
+  pbits = GET_MODE_BITSIZE (Pmode);
+  if (HOST_BITS_PER_WIDE_INT > pbits)
+    {
+      int shift = HOST_BITS_PER_WIDE_INT - pbits;
+      offset = (((HOST_WIDE_INT) ((unsigned HOST_WIDE_INT) offset << shift))
+		>> shift);
+    }
 
   if (adjust)
     {
@@ -1939,6 +2034,11 @@ adjust_address_1 (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset,
     }
 
   new_rtx = change_address_1 (memref, mode, addr, validate);
+
+  /* If the address is a REG, change_address_1 rightfully returns memref,
+     but this would destroy memref's MEM_ATTRS.  */
+  if (new_rtx == memref && offset != 0)
+    new_rtx = copy_rtx (new_rtx);
 
   /* Compute the new values of the memory attributes due to this adjustment.
      We add the offsets and update the alignment.  */
@@ -2127,6 +2227,65 @@ widen_memory_access (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset)
   return new_rtx;
 }
 
+/* A fake decl that is used as the MEM_EXPR of spill slots.  */
+static GTY(()) tree spill_slot_decl;
+
+tree
+get_spill_slot_decl (bool force_build_p)
+{
+  tree d = spill_slot_decl;
+  rtx rd;
+
+  if (d || !force_build_p)
+    return d;
+
+  d = build_decl (VAR_DECL, get_identifier ("%sfp"), void_type_node);
+  DECL_ARTIFICIAL (d) = 1;
+  DECL_IGNORED_P (d) = 1;
+  TREE_USED (d) = 1;
+  TREE_THIS_NOTRAP (d) = 1;
+  spill_slot_decl = d;
+
+  rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
+  MEM_NOTRAP_P (rd) = 1;
+  MEM_ATTRS (rd) = get_mem_attrs (new_alias_set (), d, const0_rtx,
+				  NULL_RTX, 0, BLKmode);
+  SET_DECL_RTL (d, rd);
+
+  return d;
+}
+
+/* Given MEM, a result from assign_stack_local, fill in the memory
+   attributes as appropriate for a register allocator spill slot.
+   These slots are not aliasable by other memory.  We arrange for
+   them all to use a single MEM_EXPR, so that the aliasing code can
+   work properly in the case of shared spill slots.  */
+
+void
+set_mem_attrs_for_spill (rtx mem)
+{
+  alias_set_type alias;
+  rtx addr, offset;
+  tree expr;
+
+  expr = get_spill_slot_decl (true);
+  alias = MEM_ALIAS_SET (DECL_RTL (expr));
+
+  /* We expect the incoming memory to be of the form:
+	(mem:MODE (plus (reg sfp) (const_int offset)))
+     with perhaps the plus missing for offset = 0.  */
+  addr = XEXP (mem, 0);
+  offset = const0_rtx;
+  if (GET_CODE (addr) == PLUS
+      && GET_CODE (XEXP (addr, 1)) == CONST_INT)
+    offset = XEXP (addr, 1);
+
+  MEM_ATTRS (mem) = get_mem_attrs (alias, expr, offset,
+				   MEM_SIZE (mem), MEM_ALIGN (mem),
+				   GET_MODE (mem));
+  MEM_NOTRAP_P (mem) = 1;
+}
+
 /* Return a newly created CODE_LABEL rtx with a unique label number.  */
 
 rtx
@@ -2222,7 +2381,7 @@ struct rtl_opt_pass pass_unshare_all_rtl =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -3550,7 +3709,8 @@ add_insn_before (rtx insn, rtx before, basic_block bb)
 
 /* Replace insn with an deleted instruction note.  */
 
-void set_insn_deleted (rtx insn)
+void
+set_insn_deleted (rtx insn)
 {
   df_insn_delete (BLOCK_FOR_INSN (insn), INSN_UID (insn));
   PUT_CODE (insn, NOTE);
