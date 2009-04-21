@@ -1,5 +1,5 @@
-// { dg-do "compile" }
-// { dg-options "-std=c++0x"}
+// { dg-do "run" }
+// { dg-options "-std=c++0x" }
 
 #include <cassert>
 
@@ -8,7 +8,7 @@ void call(const F& f) { f(); }
 
 int main() {
   call([] () -> void {});
-  //call([] () -> void mutable {}); // { dg-error "`f' does not have const `operator()'" }
+  //call([] () mutable -> void {}); // { dg-error: "`f' does not have const `operator()'" }
 
   int i = -1;
   call([&i] () -> void { i = 0; });

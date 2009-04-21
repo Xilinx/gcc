@@ -3304,11 +3304,15 @@ cp_parser_primary_expression (cp_parser *parser,
       else if (c_dialect_objc ())
         /* We have an Objective-C++ message. */
         return cp_parser_objc_expression (parser);
+      cp_parser_error (parser, "expected primary-expression");
+      return error_mark_node;
 
     case CPP_OBJC_STRING:
       if (c_dialect_objc ())
       /* We have an Objective-C++ string literal. */
         return cp_parser_objc_expression (parser);
+      cp_parser_error (parser, "expected primary-expression");
+      return error_mark_node;
   
     case CPP_KEYWORD:
       switch (token->keyword)
@@ -7000,6 +7004,7 @@ cp_parser_lambda_introducer (cp_parser* parser,
     cp_token* capture_token;
     tree capture_id;
     tree capture_init_expr;
+    cp_id_kind idk = CP_ID_KIND_NONE;
 
     enum capture_kind_type {
       BY_COPY,
@@ -7060,11 +7065,11 @@ cp_parser_lambda_introducer (cp_parser* parser,
       /* An explicit expression exists. */
       cp_lexer_consume_token (parser->lexer);
       capture_init_expr = cp_parser_assignment_expression (parser,
-          /*cast_p=*/true);
+							   /*cast_p=*/true,
+							   &idk);
     }
     else
     {
-      cp_id_kind idk = CP_ID_KIND_NONE;
       const char* error_msg;
 
       /* Turn the identifier into an id-expression. */
@@ -7292,13 +7297,14 @@ cp_parser_lambda_body (cp_parser* parser,
     {
       tree compound_stmt;
       tree expr = NULL_TREE;
+      cp_id_kind idk = CP_ID_KIND_NONE;
      
       cp_parser_require (parser, CPP_OPEN_BRACE, "%<{%>");
       compound_stmt = begin_compound_stmt (0);
 
       cp_parser_require_keyword (parser, RID_RETURN, "%<return%>");
 
-      expr = cp_parser_expression (parser, /*cast_p=*/false);
+      expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
       deduce_lambda_return_type (lambda_expr, expr);
       /* Will get error here if type not deduced yet.  */
       finish_return_stmt (expr);

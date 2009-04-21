@@ -1,3 +1,6 @@
+// { dg-do "run" }
+// { dg-options "-std=c++0x" }
+
 //#include <iostream>
 #include <functional>
 #include <cassert>

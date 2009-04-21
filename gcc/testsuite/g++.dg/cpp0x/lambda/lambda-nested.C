@@ -1,5 +1,5 @@
-// { dg-do "compile" }
-// { dg-options "-std=c++0x"}
+// { dg-do "run" }
+// { dg-options "-std=c++0x" }
 
 #include <cassert>
 
@@ -22,7 +22,6 @@ int main() {
 
   assert(i == 3);
 
-  /*
   [&] () -> void {
     [&] () -> void {
       i = 4;
@@ -31,17 +30,13 @@ int main() {
 
   assert(i == 4);
   i = 4;
-  */
 
-  /*
   [&] () -> void {
     [=] () mutable -> void {
       i = 5;
     } ();
   } ();
-  */
 
-  /*
   assert(i == 4);
 
   [=] () mutable -> void {
@@ -51,7 +46,6 @@ int main() {
   } ();
 
   assert(i == 4);
-  */
 
   return 0;
 }

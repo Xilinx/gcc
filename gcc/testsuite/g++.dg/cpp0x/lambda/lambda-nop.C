@@ -1,5 +1,5 @@
-// { dg-do "compile" }
-// { dg-options "-std=c++0x"}
+// { dg-do "run" }
+// { dg-options "-std=c++0x" }
 #include <cassert>
 
 int main() {

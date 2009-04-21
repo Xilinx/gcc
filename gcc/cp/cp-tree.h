@@ -555,7 +555,7 @@ enum cp_lambda_default_capture_mode_type {
 /* The capture-list, including `this'.  Each capture is stored as a FIELD_DECL
  * so that the name, type, and field are all together, whether or not it has
  * been added to the lambda's class type.
-   TREE_LIST: 
+   TREE_LIST:
      TREE_PURPOSE: The FIELD_DECL for this capture.
      TREE_VALUE: The initializer. This is part of a GNU extension.  */
 #define LAMBDA_EXPR_CAPTURE_LIST(NODE) \
