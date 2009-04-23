@@ -53,6 +53,29 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-clast-to-gimple.h"
 #include "graphite-sese-to-poly.h"
 
+
+/* Check if VAR is used in a phi node, that is no loop header.  */
+
+static bool
+var_used_in_not_loop_header_phi_node (tree var)
+{
+
+  imm_use_iterator imm_iter;
+  gimple stmt;
+  bool result = false;
+
+  FOR_EACH_IMM_USE_STMT (stmt, imm_iter, var)
+    {
+      basic_block bb = gimple_bb (stmt);
+
+      if (gimple_code (stmt) == GIMPLE_PHI
+	  && bb->loop_father->header != bb)
+	result = true;
+    }
+
+  return result;
+}
+
 /* Returns true when BB will be represented in graphite.  Return false
    for the basic blocks that contain code eliminated in the code
    generation pass: i.e. induction variables and exit conditions.  */
@@ -84,6 +107,11 @@ graphite_stmt_p (sese region, basic_block bb,
 	case GIMPLE_ASSIGN:
 	  {
 	    tree var = gimple_assign_lhs (stmt);
+
+	    /* We need these bbs to be able to construct the phi nodes.  */ 
+	    if (var_used_in_not_loop_header_phi_node (var))
+	      return true;
+
 	    var = analyze_scalar_evolution (loop, var);
 	    var = instantiate_scev (block_before_sese (region), loop, var);
 
