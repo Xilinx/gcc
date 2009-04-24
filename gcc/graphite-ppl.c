@@ -332,6 +332,48 @@ set_coef (ppl_Linear_Expression_t e, ppl_dimension_type i, int x)
 */
 
 void
+ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t ph, int x,
+				int nb_new_dims)
+{
+  ppl_dimension_type i, dim;
+  ppl_dimension_type *map;
+  ppl_dimension_type x_ppl, nb_new_dims_ppl;
+
+  x_ppl = (ppl_dimension_type) x;
+  nb_new_dims_ppl = (ppl_dimension_type) nb_new_dims;
+
+  ppl_Pointset_Powerset_NNC_Polyhedron_space_dimension (ph, &dim);
+  ppl_Pointset_Powerset_NNC_Polyhedron_add_space_dimensions_and_embed (ph, nb_new_dims);
+
+  map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + nb_new_dims);
+
+  for (i = 0; i < x_ppl; i++)
+    map[i] = i;
+
+  for (i = x_ppl; i < x_ppl + nb_new_dims_ppl; i++)
+    map[dim + i - x_ppl] = i;
+
+  for (i = x_ppl + nb_new_dims_ppl; i < dim + nb_new_dims_ppl; i++)
+    map[i - nb_new_dims_ppl] = i;
+
+  ppl_Pointset_Powerset_NNC_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
+  free (map);
+}
+
+/* Insert after X NB_NEW_DIMS empty dimensions into PH. 
+   
+   With x = 3 and nb_new_dims = 4
+
+   |  d0 d1 d2 d3 d4
+   
+   is transformed to
+   
+   |  d0 d1 d2 x0 x1 x2 x3 d3 d4 
+
+   | map = {0, 1, 2, 7, 8, 3, 4, 5, 6}
+*/
+
+void
 ppl_insert_dimensions (ppl_Polyhedron_t ph, int x,
 		       int nb_new_dims)
 {

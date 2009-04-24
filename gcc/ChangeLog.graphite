@@ -1,5 +1,11 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-ppl.c (ppl_insert_dimensions_pointset): Add
+	Pointset_Powerset version of ppl_insert_dimensions.
+	* graphite-ppl.h (ppl_insert_dimensions_pointset): Declared.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-ppl.c (ppl_insert_dimensions): Fix formatting.
 
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>

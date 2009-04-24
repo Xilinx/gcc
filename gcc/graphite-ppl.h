@@ -37,5 +37,6 @@ void debug_ppl_polyhedron_matrix (ppl_Polyhedron_t);
 void debug_ppl_powerset_matrix (ppl_Pointset_Powerset_NNC_Polyhedron_t);
 void ppl_read_polyhedron_matrix (ppl_Polyhedron_t *, FILE *);
 void ppl_insert_dimensions (ppl_Polyhedron_t, int, int);
+void ppl_insert_dimensions_pointset (ppl_Pointset_Powerset_NNC_Polyhedron_t, int, int);
 #endif
 
