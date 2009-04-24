@@ -1,5 +1,11 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-scop-detection.c (dot_all_scops): Fix system call
+	return value warning.
+	(dot_scop): Same.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* testsuite/gcc.dg/graphite/id-6.c: Fix pattern.
 	* testsuite/gcc.dg/graphite/scop-3.c: Same.
 
