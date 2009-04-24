@@ -349,6 +349,7 @@ extern void debug_scattering_functions (scop_p);
 extern int scop_max_loop_depth (scop_p);
 extern int unify_scattering_dimensions (scop_p);
 extern bool apply_poly_transforms (scop_p);
+extern bool graphite_legal_transform (scop_p scop);
 
 /* Set the region of SCOP to REGION.  */
 

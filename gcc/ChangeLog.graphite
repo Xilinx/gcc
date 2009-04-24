@@ -1,5 +1,18 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.c (map_into_dep_poly, map_dr_into_dep_poly,
+	build_pairwise_constraint, dr_equality_constraints,
+	build_pairwise_scheduling_equality,
+	build_pairwise_scheduling_inequality, lexicographically_gt_p,
+	build_lexicographically_gt_constraint, dependence_polyhedron,
+	graphite_legal_transform_dr, graphite_legal_transform_bb,
+	graphite_legal_transform): New.
+	* graphite-poly.h (graphite_legal_transform): Declared.
+	* graphite-sese-to-poly.c (build_poly_scop): Call to
+	graphite_legal_transform is disabled for the moment.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.h (pbb_nb_scattering_dims): New.
 	(pbb_nb_scattering): Use it.
 

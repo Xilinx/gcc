@@ -1423,8 +1423,12 @@ build_poly_scop (scop_p scop)
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
+
   if (0)
-    build_scop_drs (scop);
+    {
+      build_scop_drs (scop);
+      graphite_legal_transform (scop);
+    }
 
   return true;
 }
