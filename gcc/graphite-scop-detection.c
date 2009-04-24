@@ -171,8 +171,8 @@ graphite_can_represent_scev (tree scev, int loop)
   zero = fold_convert (chrec_type (scev), integer_zero_node);
   scev = chrec_replace_initial_condition (scev, zero);
 
-  if (evolution_function_is_affine_multivariate_p (scev, loop)
-      && !chrec_contains_symbols (scev))
+  if (evolution_function_is_constant_p (scev)
+      || evolution_function_is_constant_p (CHREC_RIGHT (scev)))
     return true;
 
   return false;

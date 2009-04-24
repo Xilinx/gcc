@@ -1,3 +1,9 @@
+2009-04-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (graphite_can_represent_scev): Do not
+	allow non constant strides.
+	* testsuite/gcc.dg/graphite/scop-20.c: New.
+
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-scop-detection.c (dot_all_scops): Fix system call
