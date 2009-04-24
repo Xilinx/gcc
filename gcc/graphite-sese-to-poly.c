@@ -1357,6 +1357,7 @@ build_poly_dr (data_reference_p dr, poly_bb_p pbb)
       scan_tree_for_params (region, DR_ACCESS_FN (dr, i), fn, v);
       ppl_assign_Linear_Expression_from_Linear_Expression (access, fn);
 
+      value_oppose (v, v);
       add_value_to_dim (dom_nb_dims + 1 + i, access, v);
       ppl_new_Constraint (&cstr, access, PPL_CONSTRAINT_TYPE_EQUAL);
       ppl_Polyhedron_add_constraint (accesses, cstr);
