@@ -282,16 +282,26 @@ pbb_nb_loops (const struct poly_bb *pbb)
   return dim - scop_nb_params (scop);
 }
 
+/* The number of scattering dimensions in the SCATTERING polyhedron
+   for a given SCOP.  */
+
+static inline graphite_dim_t 
+pbb_nb_scattering_dims (ppl_Polyhedron_t scattering, 
+                        const struct poly_bb *pbb, 
+                        scop_p scop)
+{
+  ppl_dimension_type dim;
+
+  ppl_Polyhedron_space_dimension (scattering, &dim);
+  return dim - pbb_nb_loops (pbb) - scop_nb_params (scop);
+}
+
 /* The number of scattering dimensions in PBB.  */
 
 static inline graphite_dim_t 
 pbb_nb_scattering (const struct poly_bb *pbb)
 {
-  scop_p scop = PBB_SCOP (pbb);
-  ppl_dimension_type dim;
-
-  ppl_Polyhedron_space_dimension (PBB_TRANSFORMED_SCATTERING (pbb), &dim);
-  return dim - pbb_nb_loops (pbb) - scop_nb_params (scop);
+  return pbb_nb_scattering_dims (PBB_TRANSFORMED_SCATTERING (pbb), pbb, PBB_SCOP (pbb));
 }
 
 /* The number of params defined in PBB.  */

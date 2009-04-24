@@ -1,5 +1,10 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.h (pbb_nb_scattering_dims): New.
+	(pbb_nb_scattering): Use it.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-ppl.c (ppl_insert_dimensions_pointset): Add
 	Pointset_Powerset version of ppl_insert_dimensions.
 	* graphite-ppl.h (ppl_insert_dimensions_pointset): Declared.
