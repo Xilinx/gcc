@@ -1,5 +1,10 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* testsuite/gcc.dg/graphite/id-6.c: Fix pattern.
+	* testsuite/gcc.dg/graphite/scop-3.c: Same.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.c (map_into_dep_poly, map_dr_into_dep_poly,
 	build_pairwise_constraint, dr_equality_constraints,
 	build_pairwise_scheduling_equality,
