@@ -78,7 +78,7 @@ struct poly_dr
      | int A[1335][123];
      | int *p = malloc ();
      |
-     | b = ...
+     | k = ...
      | for i
      |   {
      |     if (unknown_function ())
@@ -88,7 +88,7 @@ struct poly_dr
      |       A[i][j+b] = m; 
      |   }
 
-     The data access A[i][j+b] in alias set "5" is described like this:
+     The data access A[i][j+k] in alias set "5" is described like this:
 
      | i   j   k   a   s0  s1  1
      | 0   0   0   1   0   0  -5     =  0

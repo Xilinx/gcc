@@ -1,5 +1,9 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-poly.h: Fix comment.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-sese-to-poly.c (build_poly_dr): Fix data ref multiplier.
 
 2009-04-24  Tobias Grosser  <grosser@fim.uni-passau.de>
