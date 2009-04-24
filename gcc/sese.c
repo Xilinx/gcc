@@ -952,7 +952,7 @@ expand_scalar_variables_stmt (gimple stmt, basic_block bb, sese region,
 	{
 	  tree new_use =
 	    force_gimple_operand_gsi (gsi, use_expr, true, NULL,
-				      true, GSI_NEW_STMT);
+				      true, GSI_SAME_STMT);
 	  replace_exp (use_p, new_use);
 	}
     }

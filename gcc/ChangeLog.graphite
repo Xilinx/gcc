@@ -1,5 +1,10 @@
 2009-04-24  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* sese.c (expand_scalar_variables_stmt): Only iterate over the old
+	statements.
+
+2009-04-24  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-sese-to-poly.c (var_used_in_not_loop_header_phi_node): New.
 	(graphite_stmt_p): Represent bbs necessary to build the phi nodes of
 	conditions.
