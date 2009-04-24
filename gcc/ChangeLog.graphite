@@ -1,5 +1,9 @@
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-ppl.c (ppl_insert_dimensions): Fix formatting.
+
+2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-poly.h: Fix comment.
 
 2009-04-24  Sebastian Pop  <sebastian.pop@amd.com>

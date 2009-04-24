@@ -346,11 +346,14 @@ ppl_insert_dimensions (ppl_Polyhedron_t ph, int x,
   ppl_Polyhedron_add_space_dimensions_and_embed (ph, nb_new_dims);
 
   map = (ppl_dimension_type *) XNEWVEC (ppl_dimension_type, dim + nb_new_dims);
+
   for (i = 0; i < x_ppl; i++)
     map[i] = i;
+
   for (i = x_ppl; i < x_ppl + nb_new_dims_ppl; i++)
     map[dim + i - x_ppl] = i;
-  for (i = x_ppl + nb_new_dims_ppl ; i < dim + nb_new_dims_ppl; i++)
+
+  for (i = x_ppl + nb_new_dims_ppl; i < dim + nb_new_dims_ppl; i++)
     map[i - nb_new_dims_ppl] = i;
 
   ppl_Polyhedron_map_space_dimensions (ph, map, dim + nb_new_dims);
