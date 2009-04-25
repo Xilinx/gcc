@@ -2,12 +2,13 @@
 
 // 2001-08-15 Benjamin Kosnik  <bkoz@redhat.com>
 
-// Copyright (C) 2001, 2002, 2003, 2005 Free Software Foundation
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+// Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -16,9 +17,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 22.2.4.1.1 collate members
 
@@ -48,19 +48,17 @@ void test02()
 
   // int compare(const charT*, const charT*, const charT*, const charT*) const
 
-  const char* strlit1 = "monkey picked tikuanyin oolong";
   const char* strlit3 = "Äuglein Augment"; // "C" == "Augment Äuglein"
   const char* strlit4 = "Base baß Baß Bast"; // "C" == "Base baß Baß Bast"
 
   int i1;
   int i2;
-  int size1 = char_traits<char>::length(strlit1) - 1;
   int size3 = char_traits<char>::length(strlit3) - 1;
   int size4 = char_traits<char>::length(strlit4) - 1;
 
   i1 = coll_de.compare(strlit3, strlit3 + size3, strlit3, strlit3 + 7);
   VERIFY ( i1 == 1 );
-  i1 = coll_de.compare(strlit3, strlit3 + 7, strlit3, strlit3 + size1);
+  i1 = coll_de.compare(strlit3, strlit3 + 7, strlit3, strlit3 + size3);
   VERIFY ( i1 == -1 );
   i1 = coll_de.compare(strlit3, strlit3 + 7, strlit3, strlit3 + 7);
   VERIFY ( i1 == 0 );

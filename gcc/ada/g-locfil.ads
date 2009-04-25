@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,7 +32,7 @@
 ------------------------------------------------------------------------------
 
 --  This package contains the necessary routines for using files for the
---  purpose of providing realiable system wide locking capability.
+--  purpose of providing reliable system wide locking capability.
 
 package GNAT.Lock_Files is
    pragma Preelaborate;

@@ -1,12 +1,12 @@
 // Locale support (codecvt) -*- C++ -*-
 
-// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
 //  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 //
 // ISO C++ 14882: 22.2.1.5 Template class codecvt
@@ -47,7 +42,7 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
-  /// @brief  Extension to use icov for dealing with character encodings.
+  /// Extension to use iconv for dealing with character encodings.
   // This includes conversions and comparisons between various character
   // sets.  This object encapsulates data that may need to be shared between
   // char_traits, codecvt and ctype.
@@ -101,7 +96,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     // typedef STATE_T state_type
     // requires: state_type shall meet the requirements of
     // CopyConstructible types (20.1.3)
-    // NB: This does not preseve the actual state of the conversion
+    // NB: This does not preserve the actual state of the conversion
     // descriptor member, but it does duplicate the encoding
     // information.
     encoding_state(const encoding_state& __obj) : _M_in_desc(0), _M_out_desc(0)
@@ -121,7 +116,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     bool
     good() const throw()
     { 
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       bool __test = _M_in_desc && _M_in_desc != __err; 
       __test &=  _M_out_desc && _M_out_desc != __err;
       return __test;
@@ -159,7 +154,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     void
     init()
     {
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       const bool __have_encodings = _M_int_enc.size() && _M_ext_enc.size();
       if (!_M_in_desc && __have_encodings)
 	{
@@ -192,7 +187,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     void
     destroy() throw()
     {
-      const descriptor_type __err = reinterpret_cast<iconv_t>(-1);
+      const descriptor_type __err = (iconv_t)(-1);
       if (_M_in_desc && _M_in_desc != __err) 
 	{
 	  iconv_close(_M_in_desc);
@@ -206,7 +201,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     }
   };
 
-  /// @brief  encoding_char_traits.
+  /// encoding_char_traits
   // Custom traits type with encoding_state for the state type, and the
   // associated fpos<encoding_state> for the position type, all other
   // bits equivalent to the required char_traits instantiations.
@@ -224,7 +219,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   using __gnu_cxx::encoding_state;
 
-  /// @brief  codecvt<InternT, _ExternT, encoding_state> specialization.
+  /// codecvt<InternT, _ExternT, encoding_state> specialization.
   // This partial specialization takes advantage of iconv to provide
   // code conversions between a large number of character encodings.
   template<typename _InternT, typename _ExternT>

@@ -1,5 +1,5 @@
-/* { dg-do run { target mipsisa64*-*-* } } */
-/* { dg-mips-options "-mips64 -O2 -mips3d -mhard-float -mgp64" } */
+/* { dg-do run } */
+/* { dg-options "-O2 -mips3d" } */
 
 /* Test MIPS-3D builtin functions */
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 
 typedef float v2sf __attribute__ ((vector_size(8)));
 
-int main ()
+NOMIPS16 int main ()
 {
   int little_endian;
   v2sf a, b, c, d;

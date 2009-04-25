@@ -130,6 +130,7 @@ fi
 
 GCC_NO_EXECUTABLES
 AC_PROG_CC
+AC_SYS_LARGEFILE
 AC_PROG_CPP_WERROR
 
 ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wc++-compat \
@@ -187,9 +188,7 @@ case "${host}" in
 esac
 
 if [[ -n "${frag}" ]]; then
-  frags=${libiberty_topdir}/libiberty/config/$frag
-else
-  frags=
+  frag=${libiberty_topdir}/libiberty/config/$frag
 fi
 
 # If they didn't specify --enable-shared, don't generate shared libs.
@@ -200,34 +199,35 @@ case "${enable_shared}" in
   *) shared=yes ;;
 esac
 if [[ "${shared}" = "yes" ]]; then
-  frag=
   case "${host}" in
     *-*-cygwin*)	;;
-    alpha*-*-linux*)	frag=mh-elfalphapic ;;
-    arm*-*-*)		frag=mh-armpic ;;
-    hppa*-*-*)		frag=mh-papic ;;
+    alpha*-*-linux*)	PICFLAG=-fPIC ;;
+    arm*-*-*)		PICFLAG=-fPIC ;;
+    hppa*-*-*)		PICFLAG=-fPIC ;;
+    i370-*-*)		PICFLAG=-fPIC ;;
+    ia64-*-*)		PICFLAG=-fpic ;;
     i[[34567]]86-*-* | x86_64-*-*)
-			frag=mh-x86pic ;;
+			PICFLAG=-fpic ;;
+    m68k-*-*)		PICFLAG=-fpic ;;
+    mips*-*-linux*)	PICFLAG=-fPIC ;;
     powerpc*-*-aix*)	;;
-    powerpc*-*-*)	frag=mh-ppcpic ;;
-    sparc*-*-*)		frag=mh-sparcpic ;;
-    s390*-*-*)		frag=mh-s390pic ;;
-    *)			frag=mh-${host_cpu}pic ;;
+    powerpc*-*-*)	PICFLAG=-fPIC ;;
+    sparc*-*-*)		case "${CFLAGS}" in
+			  *-fpic* ) PICFLAG=-fpic ;;
+			  * ) PICFLAG=-fPIC ;;
+			esac ;;
+    s390*-*-*)		PICFLAG=-fpic ;;
   esac
-  if [[ -n "${frag}" ]]; then
-    frags="${frags} ${libiberty_topdir}/config/${frag}"
-  fi
 fi
+AC_SUBST(PICFLAG)
 
 echo "# Warning: this fragment is automatically generated" > temp-frag
 
-for frag in ${frags}; do
-  if [[ -f ${frag} ]]; then
-    echo "Appending ${frag} to xhost-mkfrag"
-    echo "# Following fragment copied from ${frag}" >> temp-frag
-    cat ${frag} >> temp-frag
-  fi
-done
+if [[ -n "${frag}" ]] && [[ -f "${frag}" ]]; then
+  echo "Appending ${frag} to xhost-mkfrag"
+  echo "# Following fragment copied from ${frag}" >> temp-frag
+  cat ${frag} >> temp-frag
+fi
 
 # record if we want to build shared libs.
 if [[ "${shared}" = "yes" ]]; then
@@ -317,6 +317,7 @@ funcs="$funcs insque"
 funcs="$funcs memchr"
 funcs="$funcs memcmp"
 funcs="$funcs memcpy"
+funcs="$funcs memmem"
 funcs="$funcs memmove"
 funcs="$funcs mempcpy"
 funcs="$funcs memset"
@@ -362,7 +363,7 @@ checkfuncs="$checkfuncs getsysinfo table sysctl wait3 wait4 __fsetlocking"
 if test "x" = "y"; then
   AC_CHECK_FUNCS(asprintf atexit basename bcmp bcopy bsearch bzero calloc clock \
   getcwd getpagesize gettimeofday index insque mkstemps memchr memcmp memcpy \
-  memmove mempcpy memset putenv random rename rindex sigsetmask \
+  memmem memmove mempcpy memset putenv random rename rindex sigsetmask \
   strcasecmp setenv stpcpy stpncpy strchr strdup strncasecmp strndup strrchr strstr \
   strtod strtol strtoul strverscmp tmpnam vasprintf vfprintf vprintf \
   vsprintf waitpid getrusage on_exit psignal strerror strsignal \
@@ -468,6 +469,28 @@ if test -n "${with_target_subdir}"; then
     setobjs=yes
     ;;
 
+  *-*-msdosdjgpp)
+    AC_LIBOBJ([vasprintf])
+    AC_LIBOBJ([vsnprintf])
+    AC_LIBOBJ([snprintf])
+    AC_LIBOBJ([asprintf])
+
+    for f in atexit basename bcmp bcopy bsearch bzero calloc clock ffs \
+             getcwd getpagesize getrusage gettimeofday \
+             index insque memchr memcmp memcpy memmove memset psignal \
+             putenv random rename rindex sbrk setenv stpcpy strcasecmp \
+             strchr strdup strerror strncasecmp strrchr strstr strtod \
+             strtol strtoul sysconf times tmpnam vfprintf vprintf \
+             vsprintf waitpid
+    do
+      n=HAVE_`echo $f | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+      AC_DEFINE_UNQUOTED($n)
+    done
+
+
+    setobjs=yes
+    ;;
+
   esac
 
   # We may wish to install the target headers somewhere.
@@ -547,52 +570,12 @@ if test -z "${setobjs}"; then
     setobjs=yes
     ;;
 
-  *-*-msdosdjgpp)
-    for f in atexit basename bcmp bcopy bsearch bzero calloc clock ffs \
-             getcwd getpagesize getrusage gettimeofday \
-             index insque memchr memcmp memcpy memmove memset psignal \
-             putenv random rename rindex sbrk setenv stpcpy strcasecmp \
-             strchr strdup strerror strncasecmp strrchr strstr strtod \
-             strtol strtoul sysconf times tmpnam vfprintf vprintf \
-             vsprintf waitpid
-    do
-      n=HAVE_`echo $f | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
-      AC_DEFINE_UNQUOTED($n)
-    done
-
-
-    setobjs=yes
-    ;;
-
   esac
 fi
 
 if test -z "${setobjs}"; then
 
   case "${host}" in
-
-  *-*-cygwin*)
-    # The Cygwin library actually uses a couple of files from
-    # libiberty when it is built.  If we are building a native
-    # Cygwin, and we run the tests, we will appear to have these
-    # files.  However, when we go on to build winsup, we will wind up
-    # with a library which does not have the files, since they should
-    # have come from libiberty.
-
-    # We handle this by removing the functions the winsup library
-    # provides from our shell variables, so that they appear to be
-    # missing.
-
-    # DJ - only if we're *building* cygwin, not just building *with* cygwin
-  
-    if test -n "${with_target_subdir}"
-    then
-      funcs="`echo $funcs | sed -e 's/random//'`"
-      AC_LIBOBJ([random])
-      vars="`echo $vars | sed -e 's/sys_siglist//'`"
-      checkfuncs="`echo $checkfuncs | sed -e 's/strsignal//' -e 's/psignal//'`"
-    fi
-    ;;
 
   *-*-mingw32*)
     # Under mingw32, sys_nerr and sys_errlist exist, but they are

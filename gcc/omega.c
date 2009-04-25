@@ -5,7 +5,8 @@
    This code has no license restrictions, and is considered public
    domain.
 
-   Changes copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Changes copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation,
+   Inc.
    Contributed by Sebastian Pop <sebastian.pop@inria.fr>
 
 This file is part of GCC.
@@ -34,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "errors.h"
 #include "ggc.h"
 #include "tree.h"
 #include "diagnostic.h"
@@ -2433,7 +2433,7 @@ smooth_weird_equations (omega_pb pb)
 		if (dump_file && (dump_flags & TDF_DETAILS))
 		  {
 		    fprintf (dump_file,
-			     "Smoothing wierd equations; adding:\n");
+			     "Smoothing weird equations; adding:\n");
 		    omega_print_geq (dump_file, pb, &pb->geqs[e3]);
 		    fprintf (dump_file, "\nto:\n");
 		    omega_print_problem (dump_file, pb);
@@ -3048,7 +3048,8 @@ omega_do_elimination (omega_pb pb, int e, int i)
 	      eqn->coef[j] *= a;
 	    k = eqn->coef[i];
 	    eqn->coef[i] = 0;
-	    eqn->color |= sub->color;
+	    if (sub->color == omega_red)
+	      eqn->color = omega_red;
 	    for (j = n_vars; j >= 0; j--)
 	      eqn->coef[j] -= sub->coef[j] * k / c;
 	  }

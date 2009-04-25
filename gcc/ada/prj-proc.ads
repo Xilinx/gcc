@@ -38,24 +38,46 @@ package Prj.Proc is
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Report_Error           : Put_Line_Access;
-      Follow_Links           : Boolean := True;
       When_No_Sources        : Error_Warning := Error;
-      Reset_Tree             : Boolean := True);
+      Reset_Tree             : Boolean := True;
+      Current_Dir            : String := "");
    --  Process a project file tree into project file data structures. If
    --  Report_Error is null, use the error reporting mechanism. Otherwise,
    --  report errors using Report_Error.
    --
-   --  If Follow_Links is False, it is assumed that the project doesn't contain
-   --  any file duplicated through symbolic links (although the latter are
-   --  still valid if they point to a file which is outside of the project),
-   --  and that no directory has a name which is a valid source name.
+   --  Current_Dir is for optimization purposes, avoiding extra system calls.
    --
-   --  When_No_Sources indicates what should be done when no sources
-   --  are found in a project for a specified or implied language.
+   --  When_No_Sources indicates what should be done when no sources are found
+   --  in a project for a specified or implied language.
    --
    --  When Reset_Tree is True, all the project data are removed from the
    --  project table before processing.
    --
    --  Process is a bit of a junk name, how about Process_Project_Tree???
+
+   --  The two procedures that follow are implementing procedure Process in
+   --  two successive phases. They are used by gprbuild/gprclean to add the
+   --  configuration attributes between the two phases.
+
+   procedure Process_Project_Tree_Phase_1
+     (In_Tree                : Project_Tree_Ref;
+      Project                : out Project_Id;
+      Success                : out Boolean;
+      From_Project_Node      : Project_Node_Id;
+      From_Project_Node_Tree : Project_Node_Tree_Ref;
+      Report_Error           : Put_Line_Access;
+      Reset_Tree             : Boolean := True);
+   --  See documentation of parameters in procedure Process above
+
+   procedure Process_Project_Tree_Phase_2
+     (In_Tree                : Project_Tree_Ref;
+      Project                : Project_Id;
+      Success                : out Boolean;
+      From_Project_Node      : Project_Node_Id;
+      From_Project_Node_Tree : Project_Node_Tree_Ref;
+      Report_Error           : Put_Line_Access;
+      When_No_Sources        : Error_Warning := Error;
+      Current_Dir            : String);
+   --  See documentation of parameters in procedure Process above
 
 end Prj.Proc;

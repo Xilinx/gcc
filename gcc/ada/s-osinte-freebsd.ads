@@ -7,7 +7,7 @@
 --                                   S p e c                                --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---          Copyright (C) 1995-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -36,13 +36,14 @@
 --  This is the FreeBSD PTHREADS version of this package
 
 --  This package encapsulates all direct interfaces to OS services
---  that are needed by children of System.
+--  that are needed by the tasking run-time (libgnarl).
 
 --  PLEASE DO NOT add any with-clauses to this package or remove the pragma
 --  Preelaborate. This package is designed to be a bottom-level (leaf) package.
 
-with Interfaces.C;
 with Ada.Unchecked_Conversion;
+
+with Interfaces.C;
 
 package System.OS_Interface is
    pragma Preelaborate;
@@ -66,11 +67,11 @@ package System.OS_Interface is
    function Errno return int;
    pragma Inline (Errno);
 
-   EAGAIN   : constant := 35;
-   EINTR    : constant := 4;
-   EINVAL   : constant := 22;
-   ENOMEM   : constant := 12;
-   ETIMEDOUT    : constant := 60;
+   EAGAIN    : constant := 35;
+   EINTR     : constant := 4;
+   EINVAL    : constant := 22;
+   ENOMEM    : constant := 12;
+   ETIMEDOUT : constant := 60;
 
    -------------
    -- Signals --
@@ -181,6 +182,7 @@ package System.OS_Interface is
    SIG_IGN : constant := 1;
 
    SA_SIGINFO : constant := 16#0040#;
+   SA_ONSTACK : constant := 16#0001#;
 
    function sigaction
      (sig  : Signal;
@@ -193,7 +195,7 @@ package System.OS_Interface is
    ----------
 
    Time_Slice_Supported : constant Boolean := True;
-   --  Indicates wether time slicing is supported (i.e SCHED_RR is supported)
+   --  Indicates whether time slicing is supported (i.e SCHED_RR is supported)
 
    type timespec is private;
 
@@ -267,6 +269,7 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    function Thread_Body_Access is new
      Ada.Unchecked_Conversion (System.Address, Thread_Body);
@@ -291,42 +294,57 @@ package System.OS_Interface is
    -- Stack --
    -----------
 
+   type stack_t is record
+      ss_sp    : System.Address;
+      ss_size  : size_t;
+      ss_flags : int;
+   end record;
+   pragma Convention (C, stack_t);
+
+   function sigaltstack
+     (ss  : not null access stack_t;
+      oss : access stack_t) return int;
+   pragma Import (C, sigaltstack, "sigaltstack");
+
+   Alternate_Stack : aliased System.Address;
+   --  This is a dummy definition, never used (Alternate_Stack_Size is null)
+
+   Alternate_Stack_Size : constant := 0;
+   --  No alternate signal stack is used on this platform
+
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target.
-   --  This allows us to share s-osinte.adb between all the FSU run time.
-   --  Note that this value can only be true if pthread_t has a complete
-   --  definition that corresponds exactly to the C header files.
+   --  Indicates whether the stack base is available on this target. This
+   --  allows us to share s-osinte.adb between all the FSU run time. Note that
+   --  this value can only be true if pthread_t has a complete definition that
+   --  corresponds exactly to the C header files.
 
    function Get_Stack_Base (thread : pthread_t) return Address;
    pragma Inline (Get_Stack_Base);
-   --  returns the stack base of the specified thread.
-   --  Only call this function when Stack_Base_Available is True.
+   --  returns the stack base of the specified thread. Only call this function
+   --  when Stack_Base_Available is True.
 
    function Get_Page_Size return size_t;
    function Get_Page_Size return Address;
    pragma Import (C, Get_Page_Size, "getpagesize");
-   --  returns the size of a page, or 0 if this is not relevant on this
-   --  target
+   --  returns the size of a page, or 0 if this is not relevant on this target
 
    PROT_NONE  : constant := 0;
    PROT_READ  : constant := 1;
    PROT_WRITE : constant := 2;
    PROT_EXEC  : constant := 4;
    PROT_ALL   : constant := PROT_READ + PROT_WRITE + PROT_EXEC;
-
    PROT_ON    : constant := PROT_NONE;
    PROT_OFF   : constant := PROT_ALL;
 
-   function mprotect
-     (addr : Address; len : size_t; prot : int) return int;
+   function mprotect (addr : Address; len : size_t; prot : int) return int;
    pragma Import (C, mprotect);
 
    ---------------------------------------
    -- Nonstandard Thread Initialization --
    ---------------------------------------
 
-   --  FSU_THREADS requires pthread_init, which is nonstandard and
-   --  this should be invoked during the elaboration of s-taprop.adb
+   --  FSU_THREADS requires pthread_init, which is nonstandard and this should
+   --  be invoked during the elaboration of s-taprop.adb.
 
    --  FreeBSD does not require this so we provide an empty Ada body
 
@@ -572,8 +590,8 @@ package System.OS_Interface is
    function pthread_getspecific (key : pthread_key_t) return System.Address;
    pragma Import (C, pthread_getspecific, "pthread_getspecific");
 
-   type destructor_pointer is access
-      procedure (arg : System.Address);
+   type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;

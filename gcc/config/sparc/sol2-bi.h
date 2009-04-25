@@ -1,5 +1,28 @@
 /* Definitions of target machine for GCC, for bi-arch SPARC
-   running Solaris 2 using the system assembler and linker.  */
+   running Solaris 2 using the system assembler and linker.
+
+Copyright (C) 2002, 2003, 2004, 2006, 2007, 2009 Free Software Foundation, Inc.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* The default code model used to be CM_MEDANY on Solaris
    but even Sun eventually found it to be quite wasteful
@@ -48,6 +71,15 @@
 #define ASM_CPU64_DEFAULT_SPEC AS_SPARC64_FLAG "b"
 #endif
 
+#if TARGET_CPU_DEFAULT == TARGET_CPU_niagara2
+#undef CPP_CPU64_DEFAULT_SPEC
+#define CPP_CPU64_DEFAULT_SPEC ""
+#undef ASM_CPU32_DEFAULT_SPEC
+#define ASM_CPU32_DEFAULT_SPEC "-xarch=v8plusb"
+#undef ASM_CPU64_DEFAULT_SPEC
+#define ASM_CPU64_DEFAULT_SPEC AS_SPARC64_FLAG "b"
+#endif
+
 #if DEFAULT_ARCH32_P
 #define DEF_ARCH32_SPEC(__str) "%{!m64:" __str "}"
 #define DEF_ARCH64_SPEC(__str) "%{m64:" __str "}"
@@ -66,7 +98,7 @@
 %{mcpu=sparclite|mcpu-f930|mcpu=f934:-D__sparclite__} \
 %{mcpu=v8:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
 %{mcpu=supersparc:-D__supersparc__ " DEF_ARCH32_SPEC("-D__sparcv8") "} \
-%{mcpu=v9|mcpu=ultrasparc|mcpu=ultrasparc3|mcpu=niagara:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
+%{mcpu=v9|mcpu=ultrasparc|mcpu=ultrasparc3|mcpu=niagara|mcpu=niagara2:" DEF_ARCH32_SPEC("-D__sparcv8") "} \
 %{!mcpu*:%{!mcypress:%{!msparclite:%{!mf930:%{!mf934:%{!mv8:%{!msupersparc:%(cpp_cpu_default)}}}}}}} \
 "
 
@@ -76,7 +108,8 @@
 %{mcpu=ultrasparc:" DEF_ARCH32_SPEC("-xarch=v8plusa") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "a") "} \
 %{mcpu=ultrasparc3:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
 %{mcpu=niagara:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
-%{!mcpu=niagara:%{!mcpu=ultrasparc3:%{!mcpu=ultrasparc:%{!mcpu=v9:%{mcpu*:" DEF_ARCH32_SPEC("-xarch=v8") DEF_ARCH64_SPEC(AS_SPARC64_FLAG) "}}}}} \
+%{mcpu=niagara2:" DEF_ARCH32_SPEC("-xarch=v8plusb") DEF_ARCH64_SPEC(AS_SPARC64_FLAG "b") "} \
+%{!mcpu=niagara2:%{!mcpu=niagara:%{!mcpu=ultrasparc3:%{!mcpu=ultrasparc:%{!mcpu=v9:%{mcpu*:" DEF_ARCH32_SPEC("-xarch=v8") DEF_ARCH64_SPEC(AS_SPARC64_FLAG) "}}}}}} \
 %{!mcpu*:%(asm_cpu_default)} \
 "
 
@@ -162,12 +195,12 @@
    %{YP,*} \
    %{R*} \
    %{compat-bsd: \
-     %{!YP,*:%{p|pg:-Y P,/usr/ucblib/sparcv9:/usr/lib/libp/sparcv9:/usr/lib/sparcv9} \
-       %{!p:%{!pg:-Y P,/usr/ucblib/sparcv9:/usr/lib/sparcv9}}} \
-     -R /usr/ucblib/sparcv9} \
+     %{!YP,*:%{p|pg:-Y P,%R/usr/ucblib/sparcv9:%R/usr/lib/libp/sparcv9:%R/usr/lib/sparcv9} \
+       %{!p:%{!pg:-Y P,%R/usr/ucblib/sparcv9:%R/usr/lib/sparcv9}}} \
+     -R %R/usr/ucblib/sparcv9} \
    %{!compat-bsd: \
-     %{!YP,*:%{p|pg:-Y P,/usr/lib/libp/sparcv9:/usr/lib/sparcv9} \
-       %{!p:%{!pg:-Y P,/usr/lib/sparcv9}}}}"
+     %{!YP,*:%{p|pg:-Y P,%R/usr/lib/libp/sparcv9:%R/usr/lib/sparcv9} \
+       %{!p:%{!pg:-Y P,%R/usr/lib/sparcv9}}}}"
 
 #define LINK_ARCH64_SPEC LINK_ARCH64_SPEC_BASE
 

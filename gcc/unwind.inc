@@ -1,35 +1,31 @@
 /* Exception handling and frame unwind runtime interface routines. -*- C -*-
-   Copyright (C) 2001, 2003 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2008, 2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
-
-   In addition to the permissions in the GNU General Public License, the
-   Free Software Foundation gives you unlimited permission to link the
-   compiled version of this file into combinations with other programs,
-   and to distribute those combinations without any restriction coming
-   from the use of this file.  (The General Public License restrictions
-   do apply in other respects; for example, they cover modification of
-   the file, and distribution when not linked into a combined
-   executable.)
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This is derived from the C++ ABI for IA-64.  Where we diverge
    for cross-architecture compatibility are noted with "@@@".  
-   This file is included from unwind-dw2.c or unwind-ia64.c.  */
+   This file is included from unwind-dw2.c, unwind-sjlj.c or
+   unwind-ia64.c.  */
 
 /* Subroutine of _Unwind_RaiseException also invoked from _Unwind_Resume. 
 
@@ -82,7 +78,7 @@ _Unwind_RaiseException_Phase2(struct _Unwind_Exception *exc,
 
 /* Raise an exception, passing along the given exception object.  */
 
-_Unwind_Reason_Code
+_Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
 _Unwind_RaiseException(struct _Unwind_Exception *exc)
 {
   struct _Unwind_Context this_context, cur_context;
@@ -107,7 +103,7 @@ _Unwind_RaiseException(struct _Unwind_Exception *exc)
 	return _URC_END_OF_STACK;
 
       if (code != _URC_NO_REASON)
-	/* Some error encountered.  Ususally the unwinder doesn't
+	/* Some error encountered.  Usually the unwinder doesn't
 	   diagnose these and merely crashes.  */
 	return _URC_FATAL_PHASE1_ERROR;
 
@@ -195,7 +191,7 @@ _Unwind_ForcedUnwind_Phase2 (struct _Unwind_Exception *exc,
 
 /* Raise an exception for forced unwinding.  */
 
-_Unwind_Reason_Code
+_Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
 _Unwind_ForcedUnwind (struct _Unwind_Exception *exc,
 		      _Unwind_Stop_Fn stop, void * stop_argument)
 {
@@ -219,7 +215,7 @@ _Unwind_ForcedUnwind (struct _Unwind_Exception *exc,
 /* Resume propagation of an existing exception.  This is used after
    e.g. executing cleanup code, and not to implement rethrowing.  */
 
-void
+void LIBGCC2_UNWIND_ATTRIBUTE
 _Unwind_Resume (struct _Unwind_Exception *exc)
 {
   struct _Unwind_Context this_context, cur_context;
@@ -244,7 +240,7 @@ _Unwind_Resume (struct _Unwind_Exception *exc)
 /* Resume propagation of an FORCE_UNWIND exception, or to rethrow
    a normal exception that was handled.  */
 
-_Unwind_Reason_Code
+_Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
 _Unwind_Resume_or_Rethrow (struct _Unwind_Exception *exc)
 {
   struct _Unwind_Context this_context, cur_context;
@@ -278,7 +274,7 @@ _Unwind_DeleteException (struct _Unwind_Exception *exc)
 
 /* Perform stack backtrace through unwind data.  */
 
-_Unwind_Reason_Code
+_Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
 _Unwind_Backtrace(_Unwind_Trace_Fn trace, void * trace_argument)
 {
   struct _Unwind_Context context;

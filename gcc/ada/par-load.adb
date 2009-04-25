@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@
 
 with Fname.UF; use Fname.UF;
 with Lib.Load; use Lib.Load;
+with Namet.Sp; use Namet.Sp;
 with Uname;    use Uname;
 with Osint;    use Osint;
 with Sinput.L; use Sinput.L;
@@ -225,8 +226,7 @@ begin
             --  unit name is indeed a plausible misspelling of the one we got.
 
             if Is_Bad_Spelling_Of
-              (Found  => Get_Name_String (Expect_Name),
-               Expect => Get_Name_String (Actual_Name))
+              (Name_Id (Expect_Name), Name_Id (Actual_Name))
             then
                Error_Msg_Unit_1 := Actual_Name;
                Error_Msg ("possible misspelling of $$!", Loc);
@@ -266,12 +266,13 @@ begin
            Error_Node => Curunit,
            Corr_Body  => Cur_Unum);
 
-      --  If we successfully load the unit, then set the spec pointer. Once
-      --  again note that if the loaded unit has a fatal error, Load will
-      --  have set our Fatal_Error flag to propagate this condition.
+      --  If we successfully load the unit, then set the spec/body
+      --  pointers. Once again note that if the loaded unit has a fatal error,
+      --  Load will have set our Fatal_Error flag to propagate this condition.
 
       if Unum /= No_Unit then
          Set_Library_Unit (Curunit, Cunit (Unum));
+         Set_Library_Unit (Cunit (Unum), Curunit);
 
          --  If this is a separate spec for the main unit, then we reset
          --  Main_Unit_Entity to point to the entity for this separate spec

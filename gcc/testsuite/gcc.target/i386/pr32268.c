@@ -1,15 +1,16 @@
 /* { dg-do run { target *-*-linux* } } */
-/* { dg-require-effective-target lp64 } */
 /* { dg-options "-O2" } */
 
 extern void abort(void);
 
-int test_lt(__float128 x, __float128 y)
+int __attribute__ ((__noinline__))
+test_lt(__float128 x, __float128 y)
 {
   return x < y;
 }
 
-int test_gt (__float128 x, __float128 y)
+int __attribute__ ((__noinline__))
+test_gt (__float128 x, __float128 y)
 {
   return x > y;
 }

@@ -1,6 +1,6 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -62,8 +62,7 @@ enum format_type { printf_format_type, asm_fprintf_format_type,
 		   gcc_diag_format_type, gcc_tdiag_format_type,
 		   gcc_cdiag_format_type,
 		   gcc_cxxdiag_format_type, gcc_gfc_format_type,
-		   scanf_format_type, strftime_format_type,
-		   strfmon_format_type, format_type_error = -1};
+		   format_type_error = -1};
 
 typedef struct function_format_info
 {
@@ -80,7 +79,8 @@ static bool check_format_string (tree argument,
 				 int flags, bool *no_add_attrs);
 static bool get_constant (tree expr, unsigned HOST_WIDE_INT *value,
 			  int validated_p);
-
+static const char *convert_format_name_to_system_name (const char *attr_name);
+static bool cmp_attribs (const char *tattr_name, const char *attr_name);
 
 /* Handle a "format_arg" attribute; arguments as in
    struct attribute_spec.handler.  */
@@ -191,6 +191,8 @@ decode_format_attr (tree args, function_format_info *info, int validated_p)
     {
       const char *p = IDENTIFIER_POINTER (format_type_id);
 
+      p = convert_format_name_to_system_name (p);
+
       info->format_type = decode_format_type (p);
 
       if (info->format_type == format_type_error)
@@ -281,36 +283,38 @@ typedef struct format_wanted_type
   struct format_wanted_type *next;
 } format_wanted_type;
 
+/* Convenience macro for format_length_info meaning unused.  */
+#define NO_FMT NULL, FMT_LEN_none, STD_C89
 
 static const format_length_info printf_length_specs[] =
 {
   { "h", FMT_LEN_h, STD_C89, "hh", FMT_LEN_hh, STD_C99 },
   { "l", FMT_LEN_l, STD_C89, "ll", FMT_LEN_ll, STD_C9L },
-  { "q", FMT_LEN_ll, STD_EXT, NULL, 0, 0 },
-  { "L", FMT_LEN_L, STD_C89, NULL, 0, 0 },
-  { "z", FMT_LEN_z, STD_C99, NULL, 0, 0 },
-  { "Z", FMT_LEN_z, STD_EXT, NULL, 0, 0 },
-  { "t", FMT_LEN_t, STD_C99, NULL, 0, 0 },
-  { "j", FMT_LEN_j, STD_C99, NULL, 0, 0 },
-  { "H", FMT_LEN_H, STD_EXT, NULL, 0, 0 },
+  { "q", FMT_LEN_ll, STD_EXT, NO_FMT },
+  { "L", FMT_LEN_L, STD_C89, NO_FMT },
+  { "z", FMT_LEN_z, STD_C99, NO_FMT },
+  { "Z", FMT_LEN_z, STD_EXT, NO_FMT },
+  { "t", FMT_LEN_t, STD_C99, NO_FMT },
+  { "j", FMT_LEN_j, STD_C99, NO_FMT },
+  { "H", FMT_LEN_H, STD_EXT, NO_FMT },
   { "D", FMT_LEN_D, STD_EXT, "DD", FMT_LEN_DD, STD_EXT },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { NO_FMT, NO_FMT }
 };
 
 /* Length specifiers valid for asm_fprintf.  */
 static const format_length_info asm_fprintf_length_specs[] =
 {
   { "l", FMT_LEN_l, STD_C89, "ll", FMT_LEN_ll, STD_C89 },
-  { "w", FMT_LEN_none, STD_C89, NULL, 0, 0 },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { "w", FMT_LEN_none, STD_C89, NO_FMT },
+  { NO_FMT, NO_FMT }
 };
 
 /* Length specifiers valid for GCC diagnostics.  */
 static const format_length_info gcc_diag_length_specs[] =
 {
   { "l", FMT_LEN_l, STD_C89, "ll", FMT_LEN_ll, STD_C89 },
-  { "w", FMT_LEN_none, STD_C89, NULL, 0, 0 },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { "w", FMT_LEN_none, STD_C89, NO_FMT },
+  { NO_FMT, NO_FMT }
 };
 
 /* The custom diagnostics all accept the same length specifiers.  */
@@ -323,14 +327,14 @@ static const format_length_info scanf_length_specs[] =
 {
   { "h", FMT_LEN_h, STD_C89, "hh", FMT_LEN_hh, STD_C99 },
   { "l", FMT_LEN_l, STD_C89, "ll", FMT_LEN_ll, STD_C9L },
-  { "q", FMT_LEN_ll, STD_EXT, NULL, 0, 0 },
-  { "L", FMT_LEN_L, STD_C89, NULL, 0, 0 },
-  { "z", FMT_LEN_z, STD_C99, NULL, 0, 0 },
-  { "t", FMT_LEN_t, STD_C99, NULL, 0, 0 },
-  { "j", FMT_LEN_j, STD_C99, NULL, 0, 0 },
-  { "H", FMT_LEN_H, STD_EXT, NULL, 0, 0 },
+  { "q", FMT_LEN_ll, STD_EXT, NO_FMT },
+  { "L", FMT_LEN_L, STD_C89, NO_FMT },
+  { "z", FMT_LEN_z, STD_C99, NO_FMT },
+  { "t", FMT_LEN_t, STD_C99, NO_FMT },
+  { "j", FMT_LEN_j, STD_C99, NO_FMT },
+  { "H", FMT_LEN_H, STD_EXT, NO_FMT },
   { "D", FMT_LEN_D, STD_EXT, "DD", FMT_LEN_DD, STD_EXT },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { NO_FMT, NO_FMT }
 };
 
 
@@ -339,16 +343,16 @@ static const format_length_info scanf_length_specs[] =
 static const format_length_info strfmon_length_specs[] =
 {
   /* A GNU extension.  */
-  { "L", FMT_LEN_L, STD_C89, NULL, 0, 0 },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { "L", FMT_LEN_L, STD_C89, NO_FMT },
+  { NO_FMT, NO_FMT }
 };
 
 
 /* For now, the Fortran front-end routines only use l as length modifier.  */
 static const format_length_info gcc_gfc_length_specs[] =
 {
-  { "l", FMT_LEN_l, STD_C89, NULL, 0, 0 },
-  { NULL, 0, 0, NULL, 0, 0 }
+  { "l", FMT_LEN_l, STD_C89, NO_FMT },
+  { NO_FMT, NO_FMT }
 };
 
 
@@ -364,7 +368,7 @@ static const format_flag_spec printf_flag_specs[] =
   { 'w',  0, 0, N_("field width"),     N_("field width in printf format"),     STD_C89 },
   { 'p',  0, 0, N_("precision"),       N_("precision in printf format"),       STD_C89 },
   { 'L',  0, 0, N_("length modifier"), N_("length modifier in printf format"), STD_C89 },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 
@@ -386,7 +390,7 @@ static const format_flag_spec asm_fprintf_flag_specs[] =
   { 'w',  0, 0, N_("field width"),     N_("field width in printf format"),     STD_C89 },
   { 'p',  0, 0, N_("precision"),       N_("precision in printf format"),       STD_C89 },
   { 'L',  0, 0, N_("length modifier"), N_("length modifier in printf format"), STD_C89 },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 static const format_flag_pair asm_fprintf_flag_pairs[] =
@@ -417,7 +421,7 @@ static const format_flag_spec gcc_diag_flag_specs[] =
   { 'q',  0, 0, N_("'q' flag"),        N_("the 'q' diagnostic flag"),          STD_C89 },
   { 'p',  0, 0, N_("precision"),       N_("precision in printf format"),       STD_C89 },
   { 'L',  0, 0, N_("length modifier"), N_("length modifier in printf format"), STD_C89 },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 #define gcc_tdiag_flag_specs gcc_diag_flag_specs
@@ -430,24 +434,26 @@ static const format_flag_spec gcc_cxxdiag_flag_specs[] =
   { 'q',  0, 0, N_("'q' flag"),        N_("the 'q' diagnostic flag"),          STD_C89 },
   { 'p',  0, 0, N_("precision"),       N_("precision in printf format"),       STD_C89 },
   { 'L',  0, 0, N_("length modifier"), N_("length modifier in printf format"), STD_C89 },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 static const format_flag_spec scanf_flag_specs[] =
 {
   { '*',  0, 0, N_("assignment suppression"), N_("the assignment suppression scanf feature"), STD_C89 },
   { 'a',  0, 0, N_("'a' flag"),               N_("the 'a' scanf flag"),                       STD_EXT },
+  { 'm',  0, 0, N_("'m' flag"),               N_("the 'm' scanf flag"),                       STD_EXT },
   { 'w',  0, 0, N_("field width"),            N_("field width in scanf format"),              STD_C89 },
   { 'L',  0, 0, N_("length modifier"),        N_("length modifier in scanf format"),          STD_C89 },
   { '\'', 0, 0, N_("''' flag"),               N_("the ''' scanf flag"),                       STD_EXT },
   { 'I',  0, 0, N_("'I' flag"),               N_("the 'I' scanf flag"),                       STD_EXT },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 
 static const format_flag_pair scanf_flag_pairs[] =
 {
   { '*', 'L', 0, 0 },
+  { 'a', 'm', 0, 0 },
   { 0, 0, 0, 0 }
 };
 
@@ -463,7 +469,7 @@ static const format_flag_spec strftime_flag_specs[] =
   { 'E', 0,   0, N_("'E' modifier"), N_("the 'E' strftime modifier"),      STD_C99 },
   { 'O', 0,   0, N_("'O' modifier"), N_("the 'O' strftime modifier"),      STD_C99 },
   { 'O', 'o', 0, NULL,               N_("the 'O' modifier"),               STD_EXT },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 
@@ -490,7 +496,7 @@ static const format_flag_spec strfmon_flag_specs[] =
   { '#',  0, 0, N_("left precision"),  N_("left precision in strfmon format"),  STD_C89 },
   { 'p',  0, 0, N_("right precision"), N_("right precision in strfmon format"), STD_C89 },
   { 'L',  0, 0, N_("length modifier"), N_("length modifier in strfmon format"), STD_C89 },
-  { 0, 0, 0, NULL, NULL, 0 }
+  { 0, 0, 0, NULL, NULL, STD_C89 }
 };
 
 static const format_flag_pair strfmon_flag_pairs[] =
@@ -520,7 +526,7 @@ static const format_char_info print_char_table[] =
   { "S",   1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp",       "R",  NULL },
   /* GNU conversion specifiers.  */
   { "m",   0, STD_EXT, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "-wp",       "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info asm_fprintf_char_table[] =
@@ -540,7 +546,7 @@ static const format_char_info asm_fprintf_char_table[] =
   { "U",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "r",   0, STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "",  "", NULL },
   { "@",   0, STD_C89, NOARGUMENTS, "",      "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info gcc_diag_char_table[] =
@@ -559,11 +565,11 @@ static const format_char_info gcc_diag_char_table[] =
   { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "J", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",    "",   NULL },
+  { "JK", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",    "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info gcc_tdiag_char_table[] =
@@ -582,11 +588,11 @@ static const format_char_info gcc_tdiag_char_table[] =
   { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "DFJT", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
+  { "DFJKTE", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info gcc_cdiag_char_table[] =
@@ -605,11 +611,11 @@ static const format_char_info gcc_cdiag_char_table[] =
   { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "DEFJT", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
+  { "DEFJKT", 0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+", "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info gcc_cxxdiag_char_table[] =
@@ -628,14 +634,14 @@ static const format_char_info gcc_cxxdiag_char_table[] =
   { "H",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   /* These will require a "tree" at runtime.  */
-  { "ADEFJTV",0,STD_C89,{ T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+#",   "",   NULL },
+  { "ADEFJKTV",0,STD_C89,{ T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q+#",   "",   NULL },
 
   /* These accept either an 'int' or an 'enum tree_code' (which is handled as an 'int'.)  */
   { "CLOPQ",0,STD_C89, { T89_I,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "q",  "",   NULL },
 
   { "<>'", 0, STD_C89, NOARGUMENTS, "",      "",   NULL },
   { "m",   0, STD_C89, NOARGUMENTS, "q",     "",   NULL },
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info gcc_gfc_char_table[] =
@@ -653,7 +659,7 @@ static const format_char_info gcc_gfc_char_table[] =
   /* This will require a "locus" at runtime.  */
   { "L",   0, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN  }, "", "R", NULL },
 
-  { NULL,  0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,  0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info scan_char_table[] =
@@ -663,18 +669,18 @@ static const format_char_info scan_char_table[] =
   { "u",     1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "*w'I", "W",   NULL },
   { "oxX",   1, STD_C89, { T89_UI,  T99_UC,  T89_US,  T89_UL,  T9L_ULL, TEX_ULL, T99_ST,  T99_UPD, T99_UIM, BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
   { "efgEG", 1, STD_C89, { T89_F,   BADLEN,  BADLEN,  T89_D,   BADLEN,  T89_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "*w'",  "W",   NULL },
-  { "c",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "cW",  NULL },
-  { "s",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "cW",  NULL },
-  { "[",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "cW[", NULL },
+  { "c",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*mw",   "cW",  NULL },
+  { "s",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*amw",  "cW",  NULL },
+  { "[",     1, STD_C89, { T89_C,   BADLEN,  BADLEN,  T94_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*amw",  "cW[", NULL },
   { "p",     2, STD_C89, { T89_V,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
   { "n",     1, STD_C89, { T89_I,   T99_SC,  T89_S,   T89_L,   T9L_LL,  BADLEN,  T99_SST, T99_PD,  T99_IM,  BADLEN,  BADLEN,  BADLEN }, "",     "W",   NULL },
   /* C99 conversion specifiers.  */
   { "F",   1, STD_C99, { T99_F,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  TEX_D32, TEX_D64, TEX_D128 }, "*w'",  "W",   NULL },
   { "aA",   1, STD_C99, { T99_F,   BADLEN,  BADLEN,  T99_D,   BADLEN,  T99_LD,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w'",  "W",   NULL },
   /* X/Open conversion specifiers.  */
-  { "C",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*w",   "W",   NULL },
-  { "S",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*aw",  "W",   NULL },
-  { NULL, 0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { "C",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*mw",   "W",   NULL },
+  { "S",     1, STD_EXT, { TEX_W,   BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN,  BADLEN }, "*amw",  "W",   NULL },
+  { NULL, 0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info time_char_table[] =
@@ -701,74 +707,74 @@ static const format_char_info time_char_table[] =
   /* GNU conversion specifiers.  */
   { "kls",		0, STD_EXT, NOLENGTHS, "-_0Ow",  "",   NULL },
   { "P",		0, STD_EXT, NOLENGTHS, "",       "",   NULL },
-  { NULL,		0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL,		0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 static const format_char_info monetary_char_table[] =
 {
   { "in", 0, STD_C89, { T89_D, BADLEN, BADLEN, BADLEN, BADLEN, T89_LD, BADLEN, BADLEN, BADLEN, BADLEN, BADLEN, BADLEN }, "=^+(!-w#p", "", NULL },
-  { NULL, 0, 0, NOLENGTHS, NULL, NULL, NULL }
+  { NULL, 0, STD_C89, NOLENGTHS, NULL, NULL, NULL }
 };
 
 /* This must be in the same order as enum format_type.  */
 static const format_kind_info format_types_orig[] =
 {
-  { "printf",   printf_length_specs,  print_char_table, " +#0-'I", NULL,
+  { "gnu_printf",   printf_length_specs,  print_char_table, " +#0-'I", NULL,
     printf_flag_specs, printf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_DOLLAR_MULTIPLE|FMT_FLAG_USE_DOLLAR|FMT_FLAG_EMPTY_PREC_OK,
-    'w', 0, 'p', 0, 'L',
+    'w', 0, 'p', 0, 'L', 0,
     &integer_type_node, &integer_type_node
   },
   { "asm_fprintf",   asm_fprintf_length_specs,  asm_fprintf_char_table, " +#0-", NULL,
     asm_fprintf_flag_specs, asm_fprintf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_EMPTY_PREC_OK,
-    'w', 0, 'p', 0, 'L',
+    'w', 0, 'p', 0, 'L', 0,
     NULL, NULL
   },
   { "gcc_diag",   gcc_diag_length_specs,  gcc_diag_char_table, "q+", NULL,
     gcc_diag_flag_specs, gcc_diag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
-    0, 0, 'p', 0, 'L',
+    0, 0, 'p', 0, 'L', 0,
     NULL, &integer_type_node
   },
   { "gcc_tdiag",   gcc_tdiag_length_specs,  gcc_tdiag_char_table, "q+", NULL,
     gcc_tdiag_flag_specs, gcc_tdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
-    0, 0, 'p', 0, 'L',
+    0, 0, 'p', 0, 'L', 0,
     NULL, &integer_type_node
   },
   { "gcc_cdiag",   gcc_cdiag_length_specs,  gcc_cdiag_char_table, "q+", NULL,
     gcc_cdiag_flag_specs, gcc_cdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
-    0, 0, 'p', 0, 'L',
+    0, 0, 'p', 0, 'L', 0,
     NULL, &integer_type_node
   },
   { "gcc_cxxdiag",   gcc_cxxdiag_length_specs,  gcc_cxxdiag_char_table, "q+#", NULL,
     gcc_cxxdiag_flag_specs, gcc_cxxdiag_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
-    0, 0, 'p', 0, 'L',
+    0, 0, 'p', 0, 'L', 0,
     NULL, &integer_type_node
   },
   { "gcc_gfc", gcc_gfc_length_specs, gcc_gfc_char_table, "", NULL,
     NULL, gcc_gfc_flag_pairs,
     FMT_FLAG_ARG_CONVERT,
-    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     NULL, NULL
   },
-  { "scanf",    scanf_length_specs,   scan_char_table,  "*'I", NULL,
+  { "gnu_scanf",    scanf_length_specs,   scan_char_table,  "*'I", NULL,
     scanf_flag_specs, scanf_flag_pairs,
     FMT_FLAG_ARG_CONVERT|FMT_FLAG_SCANF_A_KLUDGE|FMT_FLAG_USE_DOLLAR|FMT_FLAG_ZERO_WIDTH_BAD|FMT_FLAG_DOLLAR_GAP_POINTER_OK,
-    'w', 0, 0, '*', 'L',
+    'w', 0, 0, '*', 'L', 'm',
     NULL, NULL
   },
-  { "strftime", NULL,                 time_char_table,  "_-0^#", "EO",
+  { "gnu_strftime", NULL,                 time_char_table,  "_-0^#", "EO",
     strftime_flag_specs, strftime_flag_pairs,
-    FMT_FLAG_FANCY_PERCENT_OK, 'w', 0, 0, 0, 0,
+    FMT_FLAG_FANCY_PERCENT_OK, 'w', 0, 0, 0, 0, 0,
     NULL, NULL
   },
-  { "strfmon",  strfmon_length_specs, monetary_char_table, "=^+(!-", NULL,
+  { "gnu_strfmon",  strfmon_length_specs, monetary_char_table, "=^+(!-", NULL,
     strfmon_flag_specs, strfmon_flag_pairs,
-    FMT_FLAG_ARG_CONVERT, 'w', '#', 'p', 0, 'L',
+    FMT_FLAG_ARG_CONVERT, 'w', '#', 'p', 0, 'L', 0,
     NULL, NULL
   }
 };
@@ -845,6 +851,8 @@ decode_format_type (const char *s)
 {
   int i;
   int slen;
+
+  s = convert_format_name_to_system_name (s);
   slen = strlen (s);
   for (i = 0; i < n_format_types; i++)
     {
@@ -1482,7 +1490,7 @@ check_format_info_main (format_check_results *res,
       const format_length_info *fli = NULL;
       const format_char_info *fci = NULL;
       char flag_chars[256];
-      int aflag = 0;
+      int alloc_flag = 0;
       const char *format_start = format_chars;
       if (*format_chars == 0)
 	{
@@ -1741,6 +1749,31 @@ check_format_info_main (format_check_results *res,
 	    }
 	}
 
+      if (fki->alloc_char && fki->alloc_char == *format_chars)
+	{
+	  i = strlen (flag_chars);
+	  flag_chars[i++] = fki->alloc_char;
+	  flag_chars[i] = 0;
+	  format_chars++;
+	}
+
+      /* Handle the scanf allocation kludge.  */
+      if (fki->flags & (int) FMT_FLAG_SCANF_A_KLUDGE)
+	{
+	  if (*format_chars == 'a' && !flag_isoc99)
+	    {
+	      if (format_chars[1] == 's' || format_chars[1] == 'S'
+		  || format_chars[1] == '[')
+		{
+		  /* 'a' is used as a flag.  */
+		  i = strlen (flag_chars);
+		  flag_chars[i++] = 'a';
+		  flag_chars[i] = 0;
+		  format_chars++;
+		}
+	    }
+	}
+
       /* Read any length modifier, if this kind of format has them.  */
       fli = fki->length_char_specs;
       length_chars = NULL;
@@ -1748,11 +1781,12 @@ check_format_info_main (format_check_results *res,
       length_chars_std = STD_C89;
       if (fli)
 	{
-	  while (fli->name != 0 && fli->name[0] != *format_chars)
-	    fli++;
+	  while (fli->name != 0 
+ 		 && strncmp (fli->name, format_chars, strlen (fli->name)))
+	      fli++;
 	  if (fli->name != 0)
 	    {
-	      format_chars++;
+ 	      format_chars += strlen (fli->name);
 	      if (fli->double_name != 0 && fli->name[0] == *format_chars)
 		{
 		  format_chars++;
@@ -1800,23 +1834,6 @@ check_format_info_main (format_check_results *res,
 		  flag_chars[i] = 0;
 		}
 	      ++format_chars;
-	    }
-	}
-
-      /* Handle the scanf allocation kludge.  */
-      if (fki->flags & (int) FMT_FLAG_SCANF_A_KLUDGE)
-	{
-	  if (*format_chars == 'a' && !flag_isoc99)
-	    {
-	      if (format_chars[1] == 's' || format_chars[1] == 'S'
-		  || format_chars[1] == '[')
-		{
-		  /* 'a' is used as a flag.  */
-		  i = strlen (flag_chars);
-		  flag_chars[i++] = 'a';
-		  flag_chars[i] = 0;
-		  format_chars++;
-		}
 	    }
 	}
 
@@ -1892,7 +1909,9 @@ check_format_info_main (format_check_results *res,
 
       if ((fki->flags & (int) FMT_FLAG_SCANF_A_KLUDGE)
 	  && strchr (flag_chars, 'a') != 0)
-	aflag = 1;
+	alloc_flag = 1;
+      if (fki->alloc_char && strchr (flag_chars, fki->alloc_char) != 0)
+	alloc_flag = 1;
 
       if (fki->suppression_char
 	  && strchr (flag_chars, fki->suppression_char) != 0)
@@ -2064,13 +2083,13 @@ check_format_info_main (format_check_results *res,
 
 	      wanted_type_ptr->wanted_type = wanted_type;
 	      wanted_type_ptr->wanted_type_name = wanted_type_name;
-	      wanted_type_ptr->pointer_count = fci->pointer_count + aflag;
+	      wanted_type_ptr->pointer_count = fci->pointer_count + alloc_flag;
 	      wanted_type_ptr->char_lenient_flag = 0;
 	      if (strchr (fci->flags2, 'c') != 0)
 		wanted_type_ptr->char_lenient_flag = 1;
 	      wanted_type_ptr->writing_in_flag = 0;
 	      wanted_type_ptr->reading_from_flag = 0;
-	      if (aflag)
+	      if (alloc_flag)
 		wanted_type_ptr->writing_in_flag = 1;
 	      else
 		{
@@ -2443,7 +2462,8 @@ init_dynamic_gfc_info (void)
 	  locus = identifier_global_value (locus);
 	  if (locus)
 	    {
-	      if (TREE_CODE (locus) != TYPE_DECL)
+	      if (TREE_CODE (locus) != TYPE_DECL
+		  || TREE_TYPE (locus) == error_mark_node)
 		{
 		  error ("%<locus%> is not defined as a type");
 		  locus = 0;
@@ -2599,6 +2619,9 @@ init_dynamic_diag_info (void)
 	  i = find_char_info_specifier_index (diag_fci, 'J');
 	  diag_fci[i].types[0].type = &t;
 	  diag_fci[i].pointer_count = 1;
+	  i = find_char_info_specifier_index (diag_fci, 'K');
+	  diag_fci[i].types[0].type = &t;
+	  diag_fci[i].pointer_count = 1;
 	}
 
       /* Handle the __gcc_tdiag__ format specifics.  */
@@ -2621,6 +2644,9 @@ init_dynamic_diag_info (void)
 	  tdiag_fci[i].types[0].type = &t;
 	  tdiag_fci[i].pointer_count = 1;
 	  i = find_char_info_specifier_index (tdiag_fci, 'J');
+	  tdiag_fci[i].types[0].type = &t;
+	  tdiag_fci[i].pointer_count = 1;
+	  i = find_char_info_specifier_index (tdiag_fci, 'K');
 	  tdiag_fci[i].types[0].type = &t;
 	  tdiag_fci[i].pointer_count = 1;
 	}
@@ -2647,6 +2673,9 @@ init_dynamic_diag_info (void)
 	  i = find_char_info_specifier_index (cdiag_fci, 'J');
 	  cdiag_fci[i].types[0].type = &t;
 	  cdiag_fci[i].pointer_count = 1;
+	  i = find_char_info_specifier_index (cdiag_fci, 'K');
+	  cdiag_fci[i].types[0].type = &t;
+	  cdiag_fci[i].pointer_count = 1;
 	}
 
       /* Handle the __gcc_cxxdiag__ format specifics.  */
@@ -2671,6 +2700,9 @@ init_dynamic_diag_info (void)
 	  i = find_char_info_specifier_index (cxxdiag_fci, 'J');
 	  cxxdiag_fci[i].types[0].type = &t;
 	  cxxdiag_fci[i].pointer_count = 1;
+	  i = find_char_info_specifier_index (cxxdiag_fci, 'K');
+	  cxxdiag_fci[i].types[0].type = &t;
+	  cxxdiag_fci[i].pointer_count = 1;
 	}
     }
 }
@@ -2678,6 +2710,90 @@ init_dynamic_diag_info (void)
 #ifdef TARGET_FORMAT_TYPES
 extern const format_kind_info TARGET_FORMAT_TYPES[];
 #endif
+
+#ifdef TARGET_OVERRIDES_FORMAT_ATTRIBUTES
+extern const target_ovr_attr TARGET_OVERRIDES_FORMAT_ATTRIBUTES[];
+#endif
+#ifdef TARGET_OVERRIDES_FORMAT_INIT
+  extern void TARGET_OVERRIDES_FORMAT_INIT (void);
+#endif
+
+/* Attributes such as "printf" are equivalent to those such as
+   "gnu_printf" unless this is overridden by a target.  */
+static const target_ovr_attr gnu_target_overrides_format_attributes[] =
+{
+  { "gnu_printf",   "printf" },
+  { "gnu_scanf",    "scanf" },
+  { "gnu_strftime", "strftime" },
+  { "gnu_strfmon",  "strfmon" },
+  { NULL,           NULL }
+};
+
+/* Translate to unified attribute name. This is used in decode_format_type and
+   decode_format_attr. In attr_name the user specified argument is passed. It
+   returns the unified format name from TARGET_OVERRIDES_FORMAT_ATTRIBUTES
+   or the attr_name passed to this function, if there is no matching entry.  */
+static const char *
+convert_format_name_to_system_name (const char *attr_name)
+{
+  int i;
+
+  if (attr_name == NULL || *attr_name == 0
+      || strncmp (attr_name, "gcc_", 4) == 0)
+    return attr_name;
+#ifdef TARGET_OVERRIDES_FORMAT_INIT
+  TARGET_OVERRIDES_FORMAT_INIT ();
+#endif
+
+#ifdef TARGET_OVERRIDES_FORMAT_ATTRIBUTES
+  /* Check if format attribute is overridden by target.  */
+  if (TARGET_OVERRIDES_FORMAT_ATTRIBUTES != NULL
+      && TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT > 0)
+    {
+      for (i = 0; i < TARGET_OVERRIDES_FORMAT_ATTRIBUTES_COUNT; ++i)
+        {
+          if (cmp_attribs (TARGET_OVERRIDES_FORMAT_ATTRIBUTES[i].named_attr_src,
+			   attr_name))
+            return attr_name;
+          if (cmp_attribs (TARGET_OVERRIDES_FORMAT_ATTRIBUTES[i].named_attr_dst,
+			   attr_name))
+            return TARGET_OVERRIDES_FORMAT_ATTRIBUTES[i].named_attr_src;
+        }
+    }
+#endif
+  /* Otherwise default to gnu format.  */
+  for (i = 0;
+       gnu_target_overrides_format_attributes[i].named_attr_src != NULL;
+       ++i)
+    {
+      if (cmp_attribs (gnu_target_overrides_format_attributes[i].named_attr_src,
+		       attr_name))
+        return attr_name;
+      if (cmp_attribs (gnu_target_overrides_format_attributes[i].named_attr_dst,
+		       attr_name))
+        return gnu_target_overrides_format_attributes[i].named_attr_src;
+    }
+
+  return attr_name;
+}
+
+/* Return true if TATTR_NAME and ATTR_NAME are the same format attribute,
+   counting "name" and "__name__" as the same, false otherwise.  */
+static bool
+cmp_attribs (const char *tattr_name, const char *attr_name)
+{
+  int alen = strlen (attr_name);
+  int slen = (tattr_name ? strlen (tattr_name) : 0);
+  if (alen > 4 && attr_name[0] == '_' && attr_name[1] == '_'
+      && attr_name[alen - 1] == '_' && attr_name[alen - 2] == '_')
+    {
+      attr_name += 2;
+      alen -= 4;
+    }
+  if (alen != slen || strncmp (tattr_name, attr_name, alen) != 0)
+    return false;
+  return true;
+}
 
 /* Handle a "format" attribute; arguments as in
    struct attribute_spec.handler.  */
@@ -2694,8 +2810,8 @@ handle_format_attribute (tree *node, tree ARG_UNUSED (name), tree args,
      add them to FORMAT_TYPES at first use.  */
   if (TARGET_FORMAT_TYPES != NULL && !dynamic_format_types)
     {
-      dynamic_format_types = xmalloc ((n_format_types + TARGET_N_FORMAT_TYPES)
-				      * sizeof (dynamic_format_types[0]));
+      dynamic_format_types = XNEWVEC (format_kind_info,
+				      n_format_types + TARGET_N_FORMAT_TYPES);
       memcpy (dynamic_format_types, format_types_orig,
 	      sizeof (format_types_orig));
       memcpy (&dynamic_format_types[n_format_types], TARGET_FORMAT_TYPES,
@@ -2738,7 +2854,10 @@ handle_format_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 	}
     }
 
-  if (info.format_type == strftime_format_type && info.first_arg_num != 0)
+  /* Check if this is a strftime variant. Just for this variant
+     FMT_FLAG_ARG_CONVERT is not set.  */
+  if ((format_types[info.format_type].flags & (int) FMT_FLAG_ARG_CONVERT) == 0
+      && info.first_arg_num != 0)
     {
       error ("strftime formats cannot format arguments");
       *no_add_attrs = true;

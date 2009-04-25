@@ -6,25 +6,23 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -33,46 +31,31 @@
 
 --  This is a Solaris (native) version of this package
 
---  This package contains all the GNULL primitives that interface directly
---  with the underlying OS.
+--  This package contains all the GNULL primitives that interface directly with
+--  the underlying OS.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
+
+with Ada.Unchecked_Deallocation;
+
+with Interfaces.C;
 
 with System.Tasking.Debug;
---  used for Known_Tasks
-
 with System.Interrupt_Management;
---  used for Keep_Unmasked
---           Abort_Task_Interrupt
---           Interrupt_ID
-
 with System.OS_Primitives;
---  used for Delay_Modes
+with System.Task_Info;
 
 pragma Warnings (Off);
 with System.OS_Lib;
---  used for String_Access, Getenv
-
 pragma Warnings (On);
 
-with Interfaces.C;
---  used for int
---           size_t
-
-with System.Task_Info;
---  to initialize Task_Info for a C thread, in function Self
-
 with System.Soft_Links;
---  used for Defer/Undefer_Abort
-
 --  We use System.Soft_Links instead of System.Tasking.Initialization
 --  because the later is a higher level package that we shouldn't depend on.
 --  For example when using the restricted run time, it is replaced by
 --  System.Tasking.Restricted.Stages.
-
-with Ada.Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
 
@@ -122,16 +105,16 @@ package body System.Task_Primitives.Operations is
    --  controls whether we emulate priority ceiling locking
 
    --  To get a scheduling close to annex D requirements, we use the real-time
-   --  class provided for LWP's and map each task/thread to a specific and
+   --  class provided for LWPs and map each task/thread to a specific and
    --  unique LWP (there is 1 thread per LWP, and 1 LWP per thread).
 
    --  The real time class can only be set when the process has root
-   --  priviledges, so in the other cases, we use the normal thread scheduling
+   --  privileges, so in the other cases, we use the normal thread scheduling
    --  and priority handling.
 
    Using_Real_Time_Class : Boolean := False;
-   --  indicates wether the real time class is being used (i.e the process
-   --  has root priviledges).
+   --  indicates whether the real time class is being used (i.e. the process
+   --  has root privileges).
 
    Prio_Param : aliased struct_pcparms;
    --  Hold priority info (Real_Time) initialized during the package
@@ -270,6 +253,7 @@ package body System.Task_Primitives.Operations is
       Old_Set : aliased sigset_t;
 
       Result : Interfaces.C.int;
+      pragma Warnings (Off, Result);
 
    begin
       --  It is not safe to raise an exception when using ZCX and the GCC
@@ -495,6 +479,12 @@ package body System.Task_Primitives.Operations is
 
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
 
+      --  Make environment task known here because it doesn't go through
+      --  Activate_Tasks, which does it for all other tasks.
+
+      Known_Tasks (Known_Tasks'First) := Environment_Task;
+      Environment_Task.Known_Tasks_Index := Known_Tasks'First;
+
       Enter_Task (Environment_Task);
 
       --  Install the abort-signal handler
@@ -535,7 +525,7 @@ package body System.Task_Primitives.Operations is
    --  Note: mutexes and cond_variables needed per-task basis are initialized
    --  in Initialize_TCB and the Storage_Error is handled. Other mutexes (such
    --  as RTS_Lock, Memory_Lock...) used in RTS is initialized before any
-   --  status change of RTS. Therefore rasing Storage_Error in the following
+   --  status change of RTS. Therefore raising Storage_Error in the following
    --  routines should be able to be handled safely.
 
    procedure Initialize_Lock
@@ -916,18 +906,6 @@ package body System.Task_Primitives.Operations is
 
       --  We need the above code even if we do direct fetch of Task_Id in Self
       --  for the main task on Sun, x86 Solaris and for gcc 2.7.2.
-
-      Lock_RTS;
-
-      for J in Known_Tasks'Range loop
-         if Known_Tasks (J) = null then
-            Known_Tasks (J) := Self_ID;
-            Self_ID.Known_Tasks_Index := J;
-            exit;
-         end if;
-      end loop;
-
-      Unlock_RTS;
    end Enter_Task;
 
    --------------
@@ -1153,11 +1131,12 @@ package body System.Task_Primitives.Operations is
       pragma Assert (Result = 0 or else Result = EINTR);
    end Sleep;
 
-   --  Note that we are relying heaviliy here on GNAT represting Calendar.Time,
-   --  System.Real_Time.Time, Duration, System.Real_Time.Time_Span in the same
-   --  way, i.e., as a 64-bit count of nanoseconds.
+   --  Note that we are relying heavily here on GNAT representing
+   --  Calendar.Time, System.Real_Time.Time, Duration,
+   --  System.Real_Time.Time_Span in the same way, i.e., as a 64-bit count of
+   --  nanoseconds.
 
-   --  This allows us to always pass the timeout value as a Duration
+   --  This allows us to always pass the timeout value as a Duration.
 
    --  ???
    --  We are taking liberties here with the semantics of the delays. That is,
@@ -1839,7 +1818,16 @@ package body System.Task_Primitives.Operations is
             S.State := False;
          else
             S.Waiting := True;
-            Result := cond_wait (S.CV'Access, S.L'Access);
+
+            loop
+               --  Loop in case pthread_cond_wait returns earlier than expected
+               --  (e.g. in case of EINTR caused by a signal).
+
+               Result := cond_wait (S.CV'Access, S.L'Access);
+               pragma Assert (Result = 0 or else Result = EINTR);
+
+               exit when not S.Waiting;
+            end loop;
          end if;
 
          Result := mutex_unlock (S.L'Access);
@@ -1956,6 +1944,16 @@ package body System.Task_Primitives.Operations is
    begin
       null;
    end Stop_All_Tasks;
+
+   ---------------
+   -- Stop_Task --
+   ---------------
+
+   function Stop_Task (T : ST.Task_Id) return Boolean is
+      pragma Unreferenced (T);
+   begin
+      return False;
+   end Stop_Task;
 
    -------------------
    -- Continue_Task --

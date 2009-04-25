@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,6 +39,7 @@ package body Targparm is
 
    type Targparm_Tags is
      (AAM,  --   AAMP
+      ACR,  --   Always_Compatible_Rep
       BDC,  --   Backend_Divide_Checks
       BOC,  --   Backend_Overflow_Checks
       CLA,  --   Command_Line_Args
@@ -53,11 +54,13 @@ package body Targparm is
       MOV,  --   Machine_Overflows
       MRN,  --   Machine_Rounds
       PAS,  --   Preallocated_Stacks
+      RTX,  --   RTX_RTSS_Kernel_Module
       S64,  --   Support_64_Bit_Divides
       SAG,  --   Support_Aggregates
       SCA,  --   Support_Composite_Assign
       SCC,  --   Support_Composite_Compare
       SCD,  --   Stack_Check_Default
+      SCL,  --   Stack_Check_Limits
       SCP,  --   Stack_Check_Probes
       SLS,  --   Support_Long_Shifts
       SNZ,  --   Signed_Zeros
@@ -73,6 +76,7 @@ package body Targparm is
    --  The following list of string constants gives the parameter names
 
    AAM_Str : aliased constant Source_Buffer := "AAMP";
+   ACR_Str : aliased constant Source_Buffer := "Always_Compatible_Rep";
    BDC_Str : aliased constant Source_Buffer := "Backend_Divide_Checks";
    BOC_Str : aliased constant Source_Buffer := "Backend_Overflow_Checks";
    CLA_Str : aliased constant Source_Buffer := "Command_Line_Args";
@@ -87,11 +91,13 @@ package body Targparm is
    MOV_Str : aliased constant Source_Buffer := "Machine_Overflows";
    MRN_Str : aliased constant Source_Buffer := "Machine_Rounds";
    PAS_Str : aliased constant Source_Buffer := "Preallocated_Stacks";
+   RTX_Str : aliased constant Source_Buffer := "RTX_RTSS_Kernel_Module";
    S64_Str : aliased constant Source_Buffer := "Support_64_Bit_Divides";
    SAG_Str : aliased constant Source_Buffer := "Support_Aggregates";
    SCA_Str : aliased constant Source_Buffer := "Support_Composite_Assign";
    SCC_Str : aliased constant Source_Buffer := "Support_Composite_Compare";
    SCD_Str : aliased constant Source_Buffer := "Stack_Check_Default";
+   SCL_Str : aliased constant Source_Buffer := "Stack_Check_Limits";
    SCP_Str : aliased constant Source_Buffer := "Stack_Check_Probes";
    SLS_Str : aliased constant Source_Buffer := "Support_Long_Shifts";
    SNZ_Str : aliased constant Source_Buffer := "Signed_Zeros";
@@ -107,6 +113,7 @@ package body Targparm is
    type Buffer_Ptr is access constant Source_Buffer;
    Targparm_Str : constant array (Targparm_Tags) of Buffer_Ptr :=
      (AAM_Str'Access,
+      ACR_Str'Access,
       BDC_Str'Access,
       BOC_Str'Access,
       CLA_Str'Access,
@@ -121,11 +128,13 @@ package body Targparm is
       MOV_Str'Access,
       MRN_Str'Access,
       PAS_Str'Access,
+      RTX_Str'Access,
       S64_Str'Access,
       SAG_Str'Access,
       SCA_Str'Access,
       SCC_Str'Access,
       SCD_Str'Access,
+      SCL_Str'Access,
       SCP_Str'Access,
       SLS_Str'Access,
       SNZ_Str'Access,
@@ -168,7 +177,7 @@ package body Targparm is
          raise Unrecoverable_Error;
       end if;
 
-      Targparm.Get_Target_Parameters
+      Get_Target_Parameters
         (System_Text  => Text,
          Source_First => 0,
          Source_Last  => Hi);
@@ -399,10 +408,10 @@ package body Targparm is
 
          --  Suppress_Exception_Locations
 
-         elsif System_Text (P .. P + 34) =
-                                "pragma Suppress_Exception_Locations;"
+         elsif System_Text (P .. P + 35) =
+                                   "pragma Suppress_Exception_Locations;"
          then
-            P := P + 35;
+            P := P + 36;
             Opt.Exception_Locations_Suppressed := True;
             goto Line_Loop_Continue;
 
@@ -544,6 +553,7 @@ package body Targparm is
 
                   case K is
                      when AAM => AAMP_On_Target                      := Result;
+                     when ACR => Always_Compatible_Rep_On_Target     := Result;
                      when BDC => Backend_Divide_Checks_On_Target     := Result;
                      when BOC => Backend_Overflow_Checks_On_Target   := Result;
                      when CLA => Command_Line_Args_On_Target         := Result;
@@ -566,11 +576,13 @@ package body Targparm is
                      when MOV => Machine_Overflows_On_Target         := Result;
                      when MRN => Machine_Rounds_On_Target            := Result;
                      when PAS => Preallocated_Stacks_On_Target       := Result;
+                     when RTX => RTX_RTSS_Kernel_Module_On_Target    := Result;
                      when S64 => Support_64_Bit_Divides_On_Target    := Result;
                      when SAG => Support_Aggregates_On_Target        := Result;
                      when SCA => Support_Composite_Assign_On_Target  := Result;
                      when SCC => Support_Composite_Compare_On_Target := Result;
                      when SCD => Stack_Check_Default_On_Target       := Result;
+                     when SCL => Stack_Check_Limits_On_Target        := Result;
                      when SCP => Stack_Check_Probes_On_Target        := Result;
                      when SLS => Support_Long_Shifts_On_Target       := Result;
                      when SSL => Suppress_Standard_Library_On_Target := Result;
@@ -586,7 +598,7 @@ package body Targparm is
                   --  Here we are seeing a parameter we do not understand. We
                   --  simply ignore this (will happen when an old compiler is
                   --  used to compile a newer version of GNAT which does not
-                  --  support the
+                  --  support the parameter).
                end if;
             end loop Config_Param_Loop;
          end if;

@@ -1,12 +1,12 @@
 // { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2007
+// Copyright (C) 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -15,9 +15,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 19.1 Exception classes
 
@@ -26,29 +25,31 @@
 #include <cstring>
 #include <testsuite_hooks.h>
 
+using namespace std;
+
 // libstdc++/1972
 void test01()
 {
   bool test __attribute__((unused)) = true;
-  std::string s("lack of sunlight, no water error");
+  string s("lack of sunlight, no water error");
 
   // 1
-  std::system_error obj1 = std::system_error(s);
+  system_error obj1 = system_error(error_code(), s);
 
   // 2
-  std::system_error obj2(s);
+  system_error obj2(error_code(), s);
 
-  VERIFY( std::strcmp(obj1.what(), s.data()) == 0 );
-  VERIFY( std::strcmp(obj2.what(), s.data()) == 0 );
+  VERIFY( strcmp(obj1.what(), s.data()) == 0 );
+  VERIFY( strcmp(obj2.what(), s.data()) == 0 );
 }
 
 void test02()
 {
   bool test __attribute__((unused)) = true;
-  std::string s("lack of sunlight error");
-  std::system_error x(s);
+  string s("lack of sunlight error");
+  system_error x(error_code(), s);
   
-  VERIFY( std::strcmp(x.what(), s.data()) == 0 );
+  VERIFY( strcmp(x.what(), s.data()) == 0 );
 }
 
 int main(void)

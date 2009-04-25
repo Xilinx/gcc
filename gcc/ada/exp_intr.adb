@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -45,12 +45,14 @@ with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
+with Sem_Type; use Sem_Type;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Stringt;  use Stringt;
+with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 with Urealp;   use Urealp;
@@ -86,7 +88,7 @@ package body Exp_Intr is
    --  K is the kind for the shift node
 
    procedure Expand_Unc_Conversion (N : Node_Id; E : Entity_Id);
-   --  Expand a call to an instantiation of Unchecked_Convertion into a node
+   --  Expand a call to an instantiation of Unchecked_Conversion into a node
    --  N_Unchecked_Type_Conversion.
 
    procedure Expand_Unc_Deallocation (N : Node_Id);
@@ -96,7 +98,7 @@ package body Exp_Intr is
    procedure Expand_To_Address (N : Node_Id);
    procedure Expand_To_Pointer (N : Node_Id);
    --  Expand a call to corresponding function, declared in an instance of
-   --  System.Addess_To_Access_Conversions.
+   --  System.Address_To_Access_Conversions.
 
    procedure Expand_Source_Info (N : Node_Id; Nam : Name_Id);
    --  Rewrite the node by the appropriate string or positive constant.
@@ -136,8 +138,9 @@ package body Exp_Intr is
       Inst_Pkg   : constant Node_Id    := Parent (Subp_Decl);
       Act_Rename : Node_Id;
       Act_Constr : Entity_Id;
-      Result_Typ : Entity_Id;
+      Iface_Tag  : Node_Id := Empty;
       Cnstr_Call : Node_Id;
+      Result_Typ : Entity_Id;
 
    begin
       --  The subprogram is the third actual in the instantiation, and is
@@ -159,6 +162,30 @@ package body Exp_Intr is
 
       if Is_Interface (Etype (Act_Constr)) then
          Set_Etype (Act_Constr, Result_Typ);
+
+         --  If the result type is not parent of Tag_Arg then we need to
+         --  locate the tag of the secondary dispatch table.
+
+         if not Is_Ancestor (Etype (Result_Typ), Etype (Tag_Arg)) then
+            pragma Assert (not Is_Interface (Etype (Tag_Arg)));
+
+            Iface_Tag :=
+              Make_Object_Declaration (Loc,
+                Defining_Identifier =>
+                  Make_Defining_Identifier (Loc, New_Internal_Name ('V')),
+                Object_Definition =>
+                  New_Reference_To (RTE (RE_Tag), Loc),
+                Expression =>
+                  Make_Function_Call (Loc,
+                    Name => New_Reference_To (RTE (RE_Secondary_Tag), Loc),
+                    Parameter_Associations => New_List (
+                      Relocate_Node (Tag_Arg),
+                      New_Reference_To
+                        (Node (First_Elmt (Access_Disp_Table
+                                            (Etype (Etype (Act_Constr))))),
+                         Loc))));
+            Insert_Action (N, Iface_Tag);
+         end if;
       end if;
 
       --  Create the call to the actual Constructor function
@@ -173,8 +200,14 @@ package body Exp_Intr is
       --  should be generated now, to prevent out-of-order insertions during
       --  the expansion of that call when stack-checking is enabled.
 
-      Remove_Side_Effects (Tag_Arg);
-      Set_Controlling_Argument (Cnstr_Call, Relocate_Node (Tag_Arg));
+      if Present (Iface_Tag) then
+         Set_Controlling_Argument (Cnstr_Call,
+           New_Occurrence_Of (Defining_Identifier (Iface_Tag), Loc));
+      else
+         Remove_Side_Effects (Tag_Arg);
+         Set_Controlling_Argument (Cnstr_Call,
+           Relocate_Node (Tag_Arg));
+      end if;
 
       --  Rewrite and analyze the call to the instance as a class-wide
       --  conversion of the call to the actual constructor.
@@ -183,9 +216,11 @@ package body Exp_Intr is
       Analyze_And_Resolve (N, Etype (Act_Constr));
 
       --  Do not generate a run-time check on the built object if tag
-      --  checks are suppressed for the result type.
+      --  checks are suppressed for the result type or VM_Target /= No_VM
 
-      if Tag_Checks_Suppressed (Etype (Result_Typ)) then
+      if Tag_Checks_Suppressed (Etype (Result_Typ))
+        or else VM_Target /= No_VM
+      then
          null;
 
       --  Generate a class-wide membership test to ensure that the call's tag
@@ -225,7 +260,7 @@ package body Exp_Intr is
                     Name => New_Occurrence_Of (RTE (RE_IW_Membership), Loc),
                     Parameter_Associations => New_List (
                       Make_Attribute_Reference (Loc,
-                        Prefix => Duplicate_Subexpr (Tag_Arg),
+                        Prefix         => Duplicate_Subexpr (Tag_Arg),
                         Attribute_Name => Name_Address),
 
                       New_Reference_To (
@@ -345,8 +380,8 @@ package body Exp_Intr is
       Rewrite (N,
         Unchecked_Convert_To (Etype (Ent),
           Make_Attribute_Reference (Loc,
-            Attribute_Name => Name_Address,
-            Prefix => Make_Identifier (Loc, Chars (Dum)))));
+            Prefix         => Make_Identifier (Loc, Chars (Dum)),
+            Attribute_Name => Name_Address)));
 
       Analyze_And_Resolve (N, Etype (Ent));
    end Expand_Import_Call;
@@ -625,6 +660,8 @@ package body Exp_Intr is
       --  String cases
 
       else
+         Name_Len := 0;
+
          case Nam is
             when Name_File =>
                Get_Decoded_Name_String
@@ -634,12 +671,10 @@ package body Exp_Intr is
                Build_Location_String (Loc);
 
             when Name_Enclosing_Entity =>
-               Name_Len := 0;
-
-               Ent := Current_Scope;
 
                --  Skip enclosing blocks to reach enclosing unit
 
+               Ent := Current_Scope;
                while Present (Ent) loop
                   exit when Ekind (Ent) /= E_Block
                     and then Ekind (Ent) /= E_Loop;
@@ -648,7 +683,6 @@ package body Exp_Intr is
 
                --  Ent now points to the relevant defining entity
 
-               Name_Len := 0;
                Write_Entity_Name (Ent);
 
             when others =>
@@ -656,7 +690,8 @@ package body Exp_Intr is
          end case;
 
          Rewrite (N,
-           Make_String_Literal (Loc, Strval => String_From_Name_Buffer));
+           Make_String_Literal (Loc,
+             Strval => String_From_Name_Buffer));
          Analyze_And_Resolve (N, Standard_String);
       end if;
 
@@ -780,7 +815,7 @@ package body Exp_Intr is
 
       --  Processing for pointer to controlled type
 
-      if Controlled_Type (Desig_T) then
+      if Needs_Finalization (Desig_T) then
          Deref :=
            Make_Explicit_Dereference (Loc,
              Prefix => Duplicate_Subexpr_No_Checks (Arg));
@@ -992,12 +1027,15 @@ package body Exp_Intr is
 
       --  Ada 2005 (AI-251): In case of abstract interface type we must
       --  displace the pointer to reference the base of the object to
-      --  deallocate its memory.
+      --  deallocate its memory, unless we're targetting a VM, in which case
+      --  no special processing is required.
 
       --  Generate:
       --    free (Base_Address (Obj_Ptr))
 
-      if Is_Interface (Directly_Designated_Type (Typ)) then
+      if Is_Interface (Directly_Designated_Type (Typ))
+        and then VM_Target = No_VM
+      then
          Set_Expression (Free_Node,
            Unchecked_Convert_To (Typ,
              Make_Function_Call (Loc,
@@ -1083,8 +1121,8 @@ package body Exp_Intr is
               Right_Opnd => Make_Null (Loc)),
             New_Occurrence_Of (RTE (RE_Null_Address), Loc),
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Address,
-              Prefix => Obj))));
+              Prefix         => Obj,
+              Attribute_Name => Name_Address))));
 
       Analyze_And_Resolve (N, RTE (RE_Address));
    end Expand_To_Address;

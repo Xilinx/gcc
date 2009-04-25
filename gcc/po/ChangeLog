@@ -1,3 +1,232 @@
+2009-04-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2009-04-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* exgettext: Also look for */*/config-lang.in to find language
+	subdirectories.
+
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, EXCLUDES: Add copyright and license notices.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* exgettext: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+
+2009-04-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2009-03-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2009-03-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* EXCLUDES (fix-header.c, gen-protos.c, scan-decls.c, scan.c,
+	scan.h): Remove.
+
+2009-03-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* es.po: Update.
+
+2009-02-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2009-02-03  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* fi.po: Update.
+
+2009-01-12  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-12-06  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: Update.
+
+2008-11-29  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, da.po, de.po, el.po, es.po, fi.po, fr.po, id.po, ja.po,
+	nl.po, ru.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
+2008-11-23  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* ru.po: Update.
+
+2008-11-18  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2008-11-18  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* ru.po: Update.
+
+2008-11-07  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: Update.
+
+2008-11-05  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: Update.
+
+2008-11-02  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: Update.
+
+2008-10-31  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: Update.
+
+2008-10-29  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* id.po: New.
+
+2008-08-30  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* fi.po: New.
+
+2008-08-27  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2008-08-09  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-05-11  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2008-05-07  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-05-03  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2008-03-27  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2008-03-20  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* es.po: Update.
+
+2008-03-20  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-03-18  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* nl.po: Update.
+
+2008-03-15  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2008-03-15  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2008-03-14  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po, ru.po,
+	sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+	* ca.po, rw.po: Remove.
+
+2008-02-08  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* ru.po: Update.
+
+2008-02-06  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* ru.po: Update.
+
+2008-02-01  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2008-01-29  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-01-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-01-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2008-01-19  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Restore to current version from TP site.
+
+2008-01-19  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2008-01-18  Bernhard Fischer  <aldot@gcc.gnu.org>
+
+	* de.po: Fix typo.
+
+2007-12-15  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* sv.po: Update.
+
+2007-11-29  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* zh_CN.po: Update.
+
+2007-11-25  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2007-11-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2007-11-16  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2007-11-15  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* es.po: Update.
+
+2007-11-15  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po: Update.
+
+2007-11-12  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po, zh_CN.po: Update.
+
+2007-11-10  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
+	ru.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
+2007-11-08  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* gcc.pot: Regenerate.
+
+2007-10-21  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* de.po, es.po, zh_CN.po: Update.
+
+2007-10-10  Joseph S. Myers  <joseph@codesourcery.com>
+
+	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
+	ru.po, sr.po, sv.po, tr.po, zh_CN.po, zh_TW.po: Update.
+
 2007-08-21  Joseph S. Myers  <joseph@codesourcery.com>
 
 	* be.po, ca.po, da.po, de.po, el.po, es.po, fr.po, ja.po, nl.po,
@@ -560,11 +789,11 @@
 	* exgettext: Merge changes from diffutils.  Scan .def files in
 	addition to .c and .h.  Add --language=c to xgettext command line.
 
-2001-12-05  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
+2001-12-05  Martin v. LÃ¶wis  <loewis@informatik.hu-berlin.de>
 
 	* es.po: Update to 3.0 template.
 
-2001-12-05  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
+2001-12-05  Martin v. LÃ¶wis  <loewis@informatik.hu-berlin.de>
 
 	* da.po, es.po, fr.po, ja.po: New files.
 
@@ -871,3 +1100,10 @@ Sun Oct 31 17:17:18 1999  Jeffrey A Law  (law@cygnus.com)
 	Fix names of those files which are now living in egcs's
 	libiberty/include directories.
 
+
+Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

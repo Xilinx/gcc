@@ -1,11 +1,12 @@
 // MT-optimized allocator -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file ext/mt_allocator.h
  *  This file is a GNU extension to the Standard C++ Library.
@@ -38,6 +34,7 @@
 #include <cstdlib>
 #include <bits/functexcept.h>
 #include <ext/atomicity.h>
+#include <bits/move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
@@ -46,7 +43,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   typedef void (*__destroy_handler)(void*);
 
-  /// @brief  Base class for pool object.
+  /// Base class for pool object.
   struct __pool_base
   {
     // Using short int as type for the binmap implies we are never
@@ -85,7 +82,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // In order to avoid fragmenting and minimize the number of
       // new() calls we always request new memory using this
       // value. Based on previous discussions on the libstdc++
-      // mailing list we have choosen the value below.
+      // mailing list we have chosen the value below.
       // See http://gcc.gnu.org/ml/libstdc++/2001-07/msg00077.html
       // NB: At least one order of magnitude > _M_max_bytes. 
       size_t	_M_chunk_size;
@@ -224,7 +221,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       _M_reserve_block(size_t __bytes, const size_t __thread_id);
     
       void
-      _M_reclaim_block(char* __p, size_t __bytes);
+      _M_reclaim_block(char* __p, size_t __bytes) throw ();
     
       size_t 
       _M_get_thread_id() { return 0; }
@@ -335,7 +332,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       _M_reserve_block(size_t __bytes, const size_t __thread_id);
     
       void
-      _M_reclaim_block(char* __p, size_t __bytes);
+      _M_reclaim_block(char* __p, size_t __bytes) throw ();
     
       const _Bin_record&
       _M_get_bin(size_t __which)
@@ -354,8 +351,8 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       }
 
       // XXX GLIBCXX_ABI Deprecated
-      void 
-      _M_destroy_thread_key(void*);
+      _GLIBCXX_CONST void 
+      _M_destroy_thread_key(void*) throw ();
 
       size_t 
       _M_get_thread_id();
@@ -454,7 +451,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 #endif
 
-  /// @brief  Policy for shared __pool objects.
+  /// Policy for shared __pool objects.
   template<template <bool> class _PoolTp, bool _Thread>
     struct __common_pool_policy : public __common_pool_base<_PoolTp, _Thread>
     {
@@ -549,7 +546,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     };
 #endif
 
-  /// @brief  Policy for individual __pool objects.
+  /// Policy for individual __pool objects.
   template<typename _Tp, template <bool> class _PoolTp, bool _Thread>
     struct __per_type_pool_policy 
     : public __per_type_pool_base<_Tp, _PoolTp, _Thread>
@@ -564,7 +561,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   };
 
 
-  /// @brief  Base class for _Tp dependent member functions.
+  /// Base class for _Tp dependent member functions.
   template<typename _Tp>
     class __mt_alloc_base 
     {
@@ -593,7 +590,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       // 402. wrong new expression in [some_] allocator::construct
       void 
       construct(pointer __p, const _Tp& __val) 
-      { ::new(__p) _Tp(__val); }
+      { ::new((void *)__p) _Tp(__val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p) { __p->~_Tp(); }
@@ -611,9 +615,10 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    *  size per thread plus a "global" one. Steps are taken to limit
    *  the per thread freelist sizes (by returning excess back to
    *  the "global" list).
+   *  @ingroup allocators
    *
    *  Further details:
-   *  http://gcc.gnu.org/onlinedocs/libstdc++/ext/mt_allocator.html
+   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt12ch32.html
    */
   template<typename _Tp, 
 	   typename _Poolp = __common_pool_policy<__pool, __thread_default> >
@@ -669,7 +674,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     __mt_alloc<_Tp, _Poolp>::
     allocate(size_type __n, const void*)
     {
-      if (__builtin_expect(__n > this->max_size(), false))
+      if (__n > this->max_size())
 	std::__throw_bad_alloc();
 
       __policy_type::_S_initialize_once();

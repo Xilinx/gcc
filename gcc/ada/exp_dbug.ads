@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -66,7 +66,7 @@ package Exp_Dbug is
    --  For global entities, the encoded name includes all components of the
    --  fully expanded name (but omitting Standard at the start). For example,
    --  if a library level child package P.Q has an embedded package R, and
-   --  there is an entity in this embdded package whose name is S, the encoded
+   --  there is an entity in this embedded package whose name is S, the encoded
    --  name will include the components p.q.r.s.
 
    --  For local entities, the encoded name only includes the components up to
@@ -358,7 +358,7 @@ package Exp_Dbug is
       --  the protected/non-locking version of the operation.
 
       --  Operations generated for protected entries follow the same encoding.
-      --  Each entry results in two suprograms: a procedure that holds the
+      --  Each entry results in two subprograms: a procedure that holds the
       --  entry body, and a function that holds the evaluation of the barrier.
       --  The names of these subprograms include the prefix '_E' or '_B' res-
       --  pectively. The names also include a numeric suffix to render them
@@ -851,7 +851,7 @@ package Exp_Dbug is
       --  The size of the objects typed as x should be obtained from the
       --  structure of x (and x___XVE, if applicable) as for ordinary types
       --  unless there is a variable named x___XVZ, which, if present, will
-      --  hold the the size (in bits) of x.
+      --  hold the size (in bytes) of x.
 
       --  The type x will either be a subtype of y (see also Subtypes of
       --  Variant Records, below) or will contain no fields at all. The layout,
@@ -1423,7 +1423,7 @@ package Exp_Dbug is
    --  Character types are enumeration types at least one of whose enumeration
    --  literals is a character literal. Enumeration literals are usually simply
    --  represented using their identifier names. If the enumeration literal is
-   --  a character literal, the name aencoded as described in the following
+   --  a character literal, the name is encoded as described in the following
    --  paragraph.
 
    --  A name QUhh, where each 'h' is a lower-case hexadecimal digit, stands
@@ -1450,7 +1450,7 @@ package Exp_Dbug is
    --  Set Name_Buffer and Name_Len to the external name of one secondary
    --  dispatch table of Typ. If the interface has been inherited from some
    --  ancestor then Ancestor_Typ is such node (in this case the secondary DT
-   --  is needed to handle overriden primitives); if there is no such ancestor
+   --  is needed to handle overridden primitives); if there is no such ancestor
    --  then Ancestor_Typ is equal to Typ.
    --
    --  Internal rule followed for the generation of the external name:
@@ -1490,7 +1490,7 @@ package Exp_Dbug is
    --
    --  These are the external names generated for Case_1.Typ (note that
    --  Pkg1.Typ is associated with the Primary Dispatch Table, because it
-   --  is the the parent of this type, and hence no external name is
+   --  is the parent of this type, and hence no external name is
    --  generated for it).
    --      case_1__typ0P   (associated with Pkg2.Typ)
    --      case_1__typ1P   (associated with Pkg3.Typ)

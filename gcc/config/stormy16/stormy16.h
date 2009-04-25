@@ -1,6 +1,6 @@
 /* Xstormy16 cpu description.
-   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
+   2008  Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
 This file is part of GCC.
@@ -191,12 +191,16 @@ enum reg_class
   R8_REGS,
   ICALL_REGS,
   GENERAL_REGS,
-  CARRY_REGS,
   ALL_REGS,
   LIM_REG_CLASSES
 };
 
 #define N_REG_CLASSES ((int) LIM_REG_CLASSES)
+
+#define IRA_COVER_CLASSES			\
+{						\
+  GENERAL_REGS, LIM_REG_CLASSES	\
+}
 
 #define REG_CLASS_NAMES				\
 {						\
@@ -209,7 +213,6 @@ enum reg_class
   "R8_REGS",					\
   "ICALL_REGS",					\
   "GENERAL_REGS",				\
-  "CARRY_REGS",					\
   "ALL_REGS"					\
 }
 
@@ -224,17 +227,15 @@ enum reg_class
   { 0x00100 },					\
   { 0x00300 },					\
   { 0x6FFFF },					\
-  { 0x10000 },					\
   { (1 << FIRST_PSEUDO_REGISTER) - 1 }		\
 }
 
 #define REGNO_REG_CLASS(REGNO) 			\
-  ((REGNO) == 0   ? R0_REGS			\
-   : (REGNO) == 1 ? R1_REGS			\
-   : (REGNO) == 2 ? R2_REGS			\
-   : (REGNO) < 8  ? EIGHT_REGS			\
-   : (REGNO) == 8 ? R8_REGS			\
-   : (REGNO) == 16 ? CARRY_REGS			\
+  (  (REGNO) ==  0 ? R0_REGS			\
+   : (REGNO) ==  1 ? R1_REGS			\
+   : (REGNO) ==  2 ? R2_REGS			\
+   : (REGNO) <   8 ? EIGHT_REGS			\
+   : (REGNO) ==  8 ? R8_REGS			\
    : (REGNO) <= 18 ? GENERAL_REGS		\
    : ALL_REGS)
 
@@ -259,7 +260,6 @@ enum reg_class
   : (CHAR) == 'd' ? R8_REGS			\
   : (CHAR) == 'e' ? EIGHT_REGS			\
   : (CHAR) == 't' ? TWO_REGS			\
-  : (CHAR) == 'y' ? CARRY_REGS			\
   : (CHAR) == 'z' ? ICALL_REGS			\
   : NO_REGS)
 
@@ -352,20 +352,17 @@ enum reg_class
 #define INCOMING_RETURN_ADDR_RTX  \
    gen_rtx_MEM (SImode, gen_rtx_PLUS (Pmode, stack_pointer_rtx, GEN_INT (-4)))
 
-#define INCOMING_FRAME_SP_OFFSET (xstormy16_interrupt_function_p () ? 6 : 4)
+#define INCOMING_FRAME_SP_OFFSET (xstormy16_interrupt_function_p () ? -6 : -4)
 
 
 /* Register That Address the Stack Frame.  */
 
-#define STACK_POINTER_REGNUM 15
-
-#define FRAME_POINTER_REGNUM 17
-
+#define STATIC_CHAIN_REGNUM	 1
 #define HARD_FRAME_POINTER_REGNUM 13
-
-#define ARG_POINTER_REGNUM 18
-
-#define STATIC_CHAIN_REGNUM 1
+#define STACK_POINTER_REGNUM	15
+#define CARRY_REGNUM		16
+#define FRAME_POINTER_REGNUM	17
+#define ARG_POINTER_REGNUM	18
 
 
 /* Eliminating the Frame Pointer and the Arg Pointer */
@@ -460,16 +457,6 @@ enum reg_class
    displayed if the '-Winline' command line switch has been given.  If the message
    contains a '%s' sequence, this will be replaced by the name of the function.  */
 /* #define TARGET_CANNOT_INLINE_P(FN_DECL) xstormy16_cannot_inline_p (FN_DECL) */
-
-/* Implementing the Varargs Macros.  */
-
-/* Implement the stdarg/varargs va_start macro.  STDARG_P is nonzero if this
-   is stdarg.h instead of varargs.h.  VALIST is the tree of the va_list
-   variable to initialize.  NEXTARG is the machine independent notion of the
-   'next' argument after the variable arguments.  If not defined, a standard
-   implementation will be defined that works for arguments passed on the stack.  */
-#define EXPAND_BUILTIN_VA_START(VALIST, NEXTARG) \
-  xstormy16_expand_builtin_va_start (VALIST, NEXTARG)
 
 /* Trampolines for Nested Functions.  */
 
@@ -592,7 +579,7 @@ do {							\
 
 #define MEMORY_MOVE_COST(M,C,I) (5 + memory_move_secondary_cost (M, C, I))
 
-#define BRANCH_COST 5
+#define BRANCH_COST(speed_p, predictable_p) 5
 
 #define SLOW_BYTE_ACCESS 0
 
@@ -632,7 +619,7 @@ do {							\
 
 /* Output of Data.  */
 
-#define IS_ASM_LOGICAL_LINE_SEPARATOR(C) ((C) == '|')
+#define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR) ((C) == '|')
 
 #define ASM_OUTPUT_ALIGNED_DECL_COMMON(STREAM, DECL, NAME, SIZE, ALIGNMENT) \
   xstormy16_asm_output_aligned_common (STREAM, DECL, NAME, SIZE, ALIGNMENT, 1)
@@ -743,7 +730,8 @@ do  {						\
 
 /* Assembler Commands for Exception Regions.  */
 
-#define DWARF2_UNWIND_INFO 0
+#define DWARF2_UNWIND_INFO 		0
+#define DWARF_CIE_DATA_ALIGNMENT	1
 
 /* Don't use __builtin_setjmp for unwinding, since it's tricky to get
    at the high 16 bits of an address.  */

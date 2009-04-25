@@ -1,31 +1,26 @@
 /* Handling of compile-time options that influence the library.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2009 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 
@@ -105,11 +100,13 @@ set_options (int num, int options[])
     compile_options.sign_zero = options[5];
   if (num >= 7)
     compile_options.bounds_check = options[6];
+  if (num >= 8)
+    compile_options.range_check = options[7];
 
   /* If backtrace is required, we set signal handlers on most common
      signals.  */
-#if defined(HAVE_SIGNAL_H) && (defined(SIGSEGV) || defined(SIGBUS) \
-			       || defined(SIGILL) || defined(SIGFPE))
+#if defined(HAVE_SIGNAL) && (defined(SIGSEGV) || defined(SIGBUS) \
+			     || defined(SIGILL) || defined(SIGFPE))
   if (compile_options.backtrace)
     {
 #if defined(SIGSEGV)
@@ -138,14 +135,15 @@ set_options (int num, int options[])
 void
 init_compile_options (void)
 {
-  compile_options.warn_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
-    | GFC_STD_F2003 | GFC_STD_LEGACY;
+  compile_options.warn_std = GFC_STD_F95_DEL | GFC_STD_LEGACY;
   compile_options.allow_std = GFC_STD_F95_OBS | GFC_STD_F95_DEL
-    | GFC_STD_F2003 | GFC_STD_F95 | GFC_STD_F77 | GFC_STD_GNU | GFC_STD_LEGACY;
+    | GFC_STD_F2003 | GFC_STD_F2008 | GFC_STD_F95 | GFC_STD_F77
+    | GFC_STD_GNU | GFC_STD_LEGACY;
   compile_options.pedantic = 0;
   compile_options.dump_core = 0;
   compile_options.backtrace = 0;
   compile_options.sign_zero = 1;
+  compile_options.range_check = 1;
 }
 
 /* Function called by the front-end to tell us the

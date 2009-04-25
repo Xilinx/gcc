@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2005-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2005-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -42,6 +40,8 @@
 --  an equivalent package GNAT.UTF_32 can be used directly and provides exactly
 --  the same services. The reason this package is in System is so that it can
 --  with'ed by other packages in the Ada and System hierarchies.
+
+pragma Compiler_Unit;
 
 package System.UTF_32 is
 
@@ -113,14 +113,14 @@ package System.UTF_32 is
    function Is_UTF_32_Digit (U : UTF_32)   return Boolean;
    function Is_UTF_32_Digit (C : Category) return Boolean;
    pragma Inline (Is_UTF_32_Digit);
-   --  Returns true iff U is a digit that can be used to extend an identifer,
+   --  Returns true iff U is a digit that can be used to extend an identifier,
    --  or if C is one of the corresponding categories, which are the following:
    --    Number, Decimal_Digit (Nd)
 
    function Is_UTF_32_Line_Terminator (U : UTF_32) return Boolean;
    pragma Inline (Is_UTF_32_Line_Terminator);
    --  Returns true iff U is an allowed line terminator for source programs,
-   --  if U is in the category Zp (Separator, Paragaph), or Zs (Separator,
+   --  if U is in the category Zp (Separator, Paragraph), or Zs (Separator,
    --  Line), or if U is a conventional line terminator (CR, LF, VT, FF).
    --  There is no category version for this function, since the set of
    --  characters does not correspond to a set of Unicode categories.
@@ -139,7 +139,7 @@ package System.UTF_32 is
    pragma Inline (Is_UTF_32_Other);
    --  Returns true iff U is an other format character, which means that it
    --  can be used to extend an identifier, but is ignored for the purposes of
-   --  matching of identiers, or if C is one of the corresponding categories,
+   --  matching of identifiers, or if C is one of the corresponding categories,
    --  which are the following:
    --    Other, Format (Cf)
 
@@ -147,7 +147,7 @@ package System.UTF_32 is
    function Is_UTF_32_Punctuation (C : Category) return Boolean;
    pragma Inline (Is_UTF_32_Punctuation);
    --  Returns true iff U is a punctuation character that can be used to
-   --  separate pices of an identifier, or if C is one of the corresponding
+   --  separate pieces of an identifier, or if C is one of the corresponding
    --  categories, which are the following:
    --    Punctuation, Connector (Pc)
 
@@ -173,7 +173,7 @@ package System.UTF_32 is
    --  Note that the Ada category format effector is subsumed by the above
    --  list of Unicode categories.
    --
-   --  Note that Other, Unassiged (Cn) is quite deliberately not included
+   --  Note that Other, Unassigned (Cn) is quite deliberately not included
    --  in the list of categories above. This means that should any of these
    --  code positions be defined in future with graphic characters they will
    --  be allowed without a need to change implementations or the standard.

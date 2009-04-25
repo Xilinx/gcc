@@ -38,6 +38,7 @@ exception statement from your version. */
 
 package gnu.java.awt.peer.gtk;
 
+import gnu.classpath.Configuration;
 import gnu.java.awt.ClasspathGraphicsEnvironment;
 
 import java.awt.Font;
@@ -72,7 +73,10 @@ public class GdkGraphicsEnvironment extends ClasspathGraphicsEnvironment
 
   static
   {
-    System.loadLibrary("gtkpeer");
+    if (true) // GCJ LOCAL
+      {
+        System.loadLibrary("gtkpeer");
+      }
 
     GtkToolkit.initializeGlobalIDs();
     initIDs();
@@ -155,6 +159,7 @@ public class GdkGraphicsEnvironment extends ClasspathGraphicsEnvironment
    * Used by GtkMouseInfoPeer.
    */ 
   native int[] getMouseCoordinates();
+  native boolean isWindowUnderMouse(GtkWindowPeer windowPeer);
   
   public WritableRaster createRaster(ColorModel cm, SampleModel sm)
   {

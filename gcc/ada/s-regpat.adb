@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                                                                          --
 --               Copyright (C) 1986 by University of Toronto.               --
---                      Copyright (C) 1999-2007, AdaCore                    --
+--                      Copyright (C) 1999-2008, AdaCore                    --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -136,10 +136,10 @@ package body System.Regpat is
       --  Matches after or before a word
 
       BOL,        -- no        Match "" at beginning of line
-      MBOL,       -- no        Same, assuming mutiline (match after \n)
+      MBOL,       -- no        Same, assuming multiline (match after \n)
       SBOL,       -- no        Same, assuming single line (don't match at \n)
       EOL,        -- no        Match "" at end of line
-      MEOL,       -- no        Same, assuming mutiline (match before \n)
+      MEOL,       -- no        Same, assuming multiline (match before \n)
       SEOL,       -- no        Same, assuming single line (don't match at \n)
 
       BOUND,      -- no        Match "" at any word boundary
@@ -386,7 +386,7 @@ package body System.Regpat is
       function  Emit_Node (Op : Opcode) return Pointer;
       --  If code-generation is enabled, Emit_Node outputs the
       --  opcode Op and reserves space for a pointer to the next node.
-      --  Return value is the location of new opcode, ie old Emit_Ptr.
+      --  Return value is the location of new opcode, i.e. old Emit_Ptr.
 
       procedure Emit_Natural (IP : Pointer; N : Natural);
       --  Split N on two characters at position IP
@@ -449,7 +449,7 @@ package body System.Regpat is
       --  Link_Tail sets the next-pointer at the end of a node chain
 
       procedure Link_Operand_Tail (P, Val : Pointer);
-      --  Link_Tail on operand of first argument; nop if operandless
+      --  Link_Tail on operand of first argument; noop if operand-less
 
       function  Next_Instruction (P : Pointer) return Pointer;
       --  Dig the "next" pointer out of a node
@@ -460,7 +460,7 @@ package body System.Regpat is
 
       function Is_Curly_Operator (IP : Natural) return Boolean;
       --  Return True if IP is looking at a '{' that is the beginning
-      --  of a curly operator, ie it matches {\d+,?\d*}
+      --  of a curly operator, i.e. it matches {\d+,?\d*}
 
       function Is_Mult (IP : Natural) return Boolean;
       --  Return True if C is a regexp multiplier: '+', '*' or '?'
@@ -484,8 +484,8 @@ package body System.Regpat is
       --  Parse_Literal encodes a string of characters to be matched exactly
 
       function Parse_Posix_Character_Class return Std_Class;
-      --  Parse a posic character class, like [:alpha:] or [:^alpha:].
-      --  The called is suppoed to absorbe the opening [.
+      --  Parse a posix character class, like [:alpha:] or [:^alpha:].
+      --  The caller is supposed to absorb the opening [.
 
       pragma Inline (Is_Mult);
       pragma Inline (Emit_Natural);
@@ -1195,7 +1195,7 @@ package body System.Regpat is
          In_Range    : Boolean := False;
          Named_Class : Std_Class := ANYOF_NONE;
          Value       : Character;
-         Last_Value  : Character := ASCII.Nul;
+         Last_Value  : Character := ASCII.NUL;
 
       begin
          Reset_Class (Bitmap);
@@ -2059,8 +2059,12 @@ package body System.Regpat is
          return Class;
       end Parse_Posix_Character_Class;
 
+      --  Local Declarations
+
+      Result : Pointer;
+
       Expr_Flags : Expression_Flags;
-      Result     : Pointer;
+      pragma Unreferenced (Expr_Flags);
 
    --  Start of processing for Compile
 
@@ -2090,6 +2094,7 @@ package body System.Regpat is
    is
       Size  : Program_Size;
       Dummy : Pattern_Matcher (0);
+      pragma Unreferenced (Dummy);
 
    begin
       Compile (Dummy, Expression, Size, Flags);
@@ -2108,6 +2113,7 @@ package body System.Regpat is
       Flags      : Regexp_Flags := No_Flags)
    is
       Size : Program_Size;
+      pragma Unreferenced (Size);
    begin
       Compile (Matcher, Expression, Size, Flags);
    end Compile;
@@ -2186,7 +2192,7 @@ package body System.Regpat is
                when ANYOF =>  null;
                   declare
                      Bitmap  : Character_Class;
-                     Last    : Character := ASCII.Nul;
+                     Last    : Character := ASCII.NUL;
                      Current : Natural := 0;
 
                      Current_Char : Character;
@@ -2852,7 +2858,7 @@ package body System.Regpat is
          Next   : Pointer;
          Greedy : Boolean) return Boolean
       is
-         Next_Char       : Character := ASCII.Nul;
+         Next_Char       : Character := ASCII.NUL;
          Next_Char_Known : Boolean := False;
          No              : Integer;  --  Can be negative
          Min             : Natural;
@@ -3442,7 +3448,7 @@ package body System.Regpat is
    is
       PM            : Pattern_Matcher (Size);
       Finalize_Size : Program_Size;
-
+      pragma Unreferenced (Finalize_Size);
    begin
       if Size = 0 then
          Match (Compile (Expression), Data, Matches, Data_First, Data_Last);
@@ -3464,8 +3470,8 @@ package body System.Regpat is
       Data_Last  : Positive     := Positive'Last) return Natural
    is
       PM         : Pattern_Matcher (Size);
-      Final_Size : Program_Size; -- unused
-
+      Final_Size : Program_Size;
+      pragma Unreferenced (Final_Size);
    begin
       if Size = 0 then
          return Match (Compile (Expression), Data, Data_First, Data_Last);
@@ -3488,8 +3494,8 @@ package body System.Regpat is
    is
       Matches    : Match_Array (0 .. 0);
       PM         : Pattern_Matcher (Size);
-      Final_Size : Program_Size; -- unused
-
+      Final_Size : Program_Size;
+      pragma Unreferenced (Final_Size);
    begin
       if Size = 0 then
          Match (Compile (Expression), Data, Matches, Data_First, Data_Last);

@@ -6,24 +6,23 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2006, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -46,10 +45,7 @@ extern char Fold_Lower[], Fold_Upper[];
 
 /* debug: */
 
-#define Debug_Flag_XX debug__debug_flag_xx
 #define Debug_Flag_NN debug__debug_flag_nn
-
-extern Boolean Debug_Flag_XX;
 extern Boolean Debug_Flag_NN;
 
 /* einfo: We will be setting Esize for types, Component_Bit_Offset for fields,
@@ -88,7 +84,7 @@ extern Node_Id Get_Attribute_Definition_Clause (Entity_Id, char);
 
 extern void Error_Msg_N	          (Fat_Pointer, Node_Id);
 extern void Error_Msg_NE          (Fat_Pointer, Node_Id, Entity_Id);
-extern void Set_Identifier_Casing (Char *, Char *);
+extern void Set_Identifier_Casing (Char *, const Char *);
 
 /* err_vars: */
 
@@ -139,10 +135,12 @@ extern void Setup_Asm_Outputs		(Node_Id);
 /* exp_dbug:  */
 
 #define Get_Encoded_Name exp_dbug__get_encoded_name
+#define Get_External_Name exp_dbug__get_external_name
 #define Get_External_Name_With_Suffix exp_dbug__get_external_name_with_suffix
 
-extern void Get_Encoded_Name	(Entity_Id);
-extern void Get_External_Name_With_Suffix (Entity_Id, Fat_Pointer);
+extern void Get_Encoded_Name			(Entity_Id);
+extern void Get_External_Name			(Entity_Id, Boolean);
+extern void Get_External_Name_With_Suffix	(Entity_Id, Fat_Pointer);
 
 /* lib: */
 
@@ -175,10 +173,28 @@ extern Boolean Back_Annotate_Rep_Info;
 #define No_Exception_Handlers_Set      restrict__no_exception_handlers_set
 #define Check_No_Implicit_Heap_Alloc   restrict__check_no_implicit_heap_alloc
 #define Check_Elaboration_Code_Allowed restrict__check_elaboration_code_allowed
+#define Check_Implicit_Dynamic_Code_Allowed restrict__check_implicit_dynamic_code_allowed
 
 extern Boolean No_Exception_Handlers_Set   (void);
 extern void Check_No_Implicit_Heap_Alloc   (Node_Id);
 extern void Check_Elaboration_Code_Allowed (Node_Id);
+extern void Check_Implicit_Dynamic_Code_Allowed (Node_Id);
+
+/* sem_aux:  */
+
+#define Ancestor_Subtype               sem_aux__ancestor_subtype
+#define First_Discriminant             sem_aux__first_discriminant
+#define First_Stored_Discriminant      sem_aux__first_stored_discriminant
+#define First_Subtype                  sem_aux__first_subtype
+#define Is_By_Reference_Type           sem_aux__is_by_reference_type
+#define Is_Derived_Type                sem_aux__is_derived_type
+
+extern Entity_Id  Ancestor_Subtype             (Entity_Id);
+extern Entity_Id  First_Discriminant           (Entity_Id);
+extern Entity_Id  First_Stored_Discriminant    (Entity_Id);
+extern Entity_Id  First_Subtype                (Entity_Id);
+extern Boolean    Is_By_Reference_Type         (Entity_Id);
+extern Boolean    Is_Derived_Type              (Entity_Id);
 
 /* sem_elim: */
 
@@ -220,6 +236,10 @@ extern void Set_Has_No_Elaboration_Code	(Node_Id, Boolean);
 
 /* targparm: */
 
+#define Backend_Overflow_Checks_On_Target targparm__backend_overflow_checks_on_target
 #define Stack_Check_Probes_On_Target targparm__stack_check_probes_on_target
+#define Stack_Check_Limits_On_Target targparm__stack_check_limits_on_target
 
+extern Boolean Backend_Overflow_Checks_On_Target;
 extern Boolean Stack_Check_Probes_On_Target;
+extern Boolean Stack_Check_Limits_On_Target;

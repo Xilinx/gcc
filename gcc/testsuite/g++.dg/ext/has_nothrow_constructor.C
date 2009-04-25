@@ -97,7 +97,7 @@ int main()
   assert (PTEST (C));
   assert (PTEST (C[]));
   assert (PTEST (D));
-  assert (PTEST (E));
+  assert (NTEST (E));
   assert (NTEST (E1));
   assert (NTEST (F));
   assert (NTEST (G));

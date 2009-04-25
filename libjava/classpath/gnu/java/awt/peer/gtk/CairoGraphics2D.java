@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package gnu.java.awt.peer.gtk;
 
+import gnu.classpath.Configuration;
+
 import gnu.java.awt.ClasspathToolkit;
 
 import java.awt.AWTPermission;
@@ -120,7 +122,10 @@ public abstract class CairoGraphics2D extends Graphics2D
 {
   static 
   {
-    System.loadLibrary("gtkpeer");
+    if (true) // GCJ LOCAL
+      {
+        System.loadLibrary("gtkpeer");
+      }
   }
 
   /**
@@ -222,7 +227,7 @@ public abstract class CairoGraphics2D extends Graphics2D
 
   /**
    * Sets up the default values and allocates the native cairographics2d structure
-   * @param cairo_t_pointer, a native pointer to a cairo_t of the context.
+   * @param cairo_t_pointer a native pointer to a cairo_t of the context.
    */
   public void setup(long cairo_t_pointer)
   { 
@@ -341,7 +346,8 @@ public abstract class CairoGraphics2D extends Graphics2D
 
   /**
    * Draw pixels as an RGBA int matrix
-   * @param w, h - width and height
+   * @param w - width
+   * @param h - height
    * @param stride - stride of the array width
    * @param i2u - affine transform array
    */
@@ -1240,7 +1246,9 @@ public abstract class CairoGraphics2D extends Graphics2D
 
   public void drawPolyline(int[] xPoints, int[] yPoints, int nPoints)
   {
-    draw(new Polygon(xPoints, yPoints, nPoints));
+    for (int i = 1; i < nPoints; i++)
+      draw(new Line2D.Double(xPoints[i - 1], yPoints[i - 1],
+                             xPoints[i], yPoints[i]));
   }
 
   public void drawOval(int x, int y, int width, int height)
@@ -2113,10 +2121,10 @@ public abstract class CairoGraphics2D extends Graphics2D
   private static Rectangle computeIntersection(int x, int y, int w, int h,
                                                Rectangle rect)
   {
-    int x2 = (int) rect.x;
-    int y2 = (int) rect.y;
-    int w2 = (int) rect.width;
-    int h2 = (int) rect.height;
+    int x2 = rect.x;
+    int y2 = rect.y;
+    int w2 = rect.width;
+    int h2 = rect.height;
 
     int dx = (x > x2) ? x : x2;
     int dy = (y > y2) ? y : y2;

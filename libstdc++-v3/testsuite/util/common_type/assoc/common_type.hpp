@@ -1,11 +1,11 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
 // of the GNU General Public License as published by the Free Software
-// Foundation; either version 2, or (at your option) any later
+// Foundation; either version 3, or (at your option) any later
 // version.
 
 // This library is distributed in the hope that it will be useful, but
@@ -14,19 +14,9 @@
 // General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-// MA 02111-1307, USA.
+// along with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
-// As a special exception, you may use this file as part of a free
-// software library without restriction.  Specifically, if other files
-// instantiate templates or use macros or inline functions from this
-// file, or you compile this file and link it with other files to
-// produce an executable, this file does not by itself cause the
-// resulting executable to be covered by the GNU General Public
-// License.  This exception does not however invalidate any other
-// reasons why the executable file might be covered by the GNU General
-// Public License.
 
 // Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
 
@@ -44,20 +34,20 @@
  * Contains common types.
  */
 
-#ifndef PB_DS_COMMON_TYPES_HPP
-#define PB_DS_COMMON_TYPES_HPP
+#ifndef PB_DS_COMMON_TYPES_ASSOC_HPP
+#define PB_DS_COMMON_TYPES_ASSOC_HPP
 
 #include <ext/pb_ds/detail/type_utils.hpp>
 #include <common_type/assoc/template_policy.hpp>
 #include <ext/pb_ds/assoc_container.hpp>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
     template<typename Key,
 	     typename Data,
-	     class Hash_Fn = typename pb_ds::detail::default_hash_fn<Key>::type,
+	     class Hash_Fn = typename __gnu_pbds::detail::default_hash_fn<Key>::type,
 	     class Eq_Fn = std::equal_to<Key>,
 	     class Allocator = std::allocator<std::pair<const Key, Data> > >
     struct hash_common_types
@@ -66,7 +56,7 @@ namespace pb_ds
       typedef typename Allocator::size_type size_type;
 
       typedef
-      pb_ds::test::hash_load_check_resize_trigger_t_<
+      __gnu_pbds::test::hash_load_check_resize_trigger_t_<
 	Allocator,
 	1, 8,
 	1, 2,
@@ -74,7 +64,7 @@ namespace pb_ds
       no_access_half_load_check_resize_trigger_policy;
 
       typedef
-      pb_ds::test::hash_load_check_resize_trigger_t_<
+      __gnu_pbds::test::hash_load_check_resize_trigger_t_<
 	Allocator,
 	1, 8,
 	1, 2,
@@ -82,7 +72,7 @@ namespace pb_ds
       access_half_load_check_resize_trigger_policy;
 
       typedef
-      pb_ds::test::hash_load_check_resize_trigger_t_<
+      __gnu_pbds::test::hash_load_check_resize_trigger_t_<
 	Allocator,
 	1, 8,
 	1, 1,
@@ -90,149 +80,149 @@ namespace pb_ds
       no_access_one_load_check_resize_trigger_policy;
 
       typedef
-      pb_ds::test::cc_hash_max_collision_check_resize_trigger_t_<
+      __gnu_pbds::test::cc_hash_max_collision_check_resize_trigger_t_<
 	Allocator,
 	1, 2,
 	false>
       no_access_half_max_col_check_check_resize_trigger_policy;
 
       typedef
-      pb_ds::test::cc_hash_max_collision_check_resize_trigger_t_<
+      __gnu_pbds::test::cc_hash_max_collision_check_resize_trigger_t_<
 	Allocator,
 	1, 2,
 	true>
       access_half_max_col_check_check_resize_trigger_policy;
 
-      typedef pb_ds::test::linear_probe_fn_t_<Key, Allocator> lin_p_t;
+      typedef __gnu_pbds::test::linear_probe_fn_t_<Key, Allocator> lin_p_t;
 
-      typedef pb_ds::test::quadratic_probe_fn_t_<Key, Allocator> quad_p_t;
+      typedef __gnu_pbds::test::quadratic_probe_fn_t_<Key, Allocator> quad_p_t;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       performance_cc_policy0;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mod_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_prime_size_policy_t_>::type
+	__gnu_pbds::test::hash_prime_size_policy_t_>::type
       performance_cc_policy1;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	no_access_one_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       performance_cc_policy2;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mod_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator>,
 	no_access_one_load_check_resize_trigger_policy,
-	pb_ds::test::hash_prime_size_policy_t_ >::type
+	__gnu_pbds::test::hash_prime_size_policy_t_ >::type
       performance_cc_policy3;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::true_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::true_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       performance_cc_policy4;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	no_access_half_max_col_check_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       performance_cc_policy5;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	access_half_max_col_check_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       regression_cc_policy0;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::false_type,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::detail::false_type,
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       regression_cc_policy1;
 
       typedef
       typename __gnu_cxx::typelist::create4<
-	pb_ds::detail::true_type,
-	pb_ds::test::direct_mod_range_hashing_t_<
+	__gnu_pbds::detail::true_type,
+	__gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_prime_size_policy_t_ >::type
+	__gnu_pbds::test::hash_prime_size_policy_t_ >::type
       regression_cc_policy2;
 
       typedef
       typename __gnu_cxx::typelist::create5<
-	pb_ds::detail::false_type,
+	__gnu_pbds::detail::false_type,
 	lin_p_t,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       performance_gp_policy0;
 
       typedef
       typename __gnu_cxx::typelist::create5<
-	pb_ds::detail::false_type,
+	__gnu_pbds::detail::false_type,
 	quad_p_t,
-	pb_ds::test::direct_mod_range_hashing_t_<
+	__gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_prime_size_policy_t_ >::type
+	__gnu_pbds::test::hash_prime_size_policy_t_ >::type
       performance_gp_policy1;
 
       typedef
       typename __gnu_cxx::typelist::create5<
-	pb_ds::detail::false_type,
+	__gnu_pbds::detail::false_type,
 	quad_p_t,
-	pb_ds::test::direct_mod_range_hashing_t_<
+	__gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator>,
 	access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_prime_size_policy_t_>::type
+	__gnu_pbds::test::hash_prime_size_policy_t_>::type
       regression_gp_policy0;
 
       typedef
       typename __gnu_cxx::typelist::create5<
-	pb_ds::detail::true_type,
+	__gnu_pbds::detail::true_type,
 	lin_p_t,
-	pb_ds::test::direct_mask_range_hashing_t_<
+	__gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator>,
 	access_half_load_check_resize_trigger_policy,
-	pb_ds::test::hash_exponential_size_policy_t_<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator> >::type
       regression_gp_policy1;
 
@@ -296,13 +286,13 @@ namespace pb_ds
 
       public:
         typedef
-	pb_ds::cc_hash_table<
+	__gnu_pbds::cc_hash_table<
 	Key,
 	Data,
 	Hash_Fn,
 	Eq_Fn,
 	comb_hash_fn,
-	pb_ds::hash_standard_resize_policy<
+	__gnu_pbds::hash_standard_resize_policy<
 	size_policy,
 	trigger_policy,
 	false>,
@@ -342,13 +332,13 @@ namespace pb_ds
 
       public:
         typedef
-	pb_ds::cc_hash_table<
+	__gnu_pbds::cc_hash_table<
 	Key,
 	Data,
 	Hash_Fn,
 	Eq_Fn,
 	comb_hash_fn,
-	pb_ds::hash_standard_resize_policy<
+	__gnu_pbds::hash_standard_resize_policy<
 	size_policy,
 	trigger_policy,
 	true>,
@@ -393,14 +383,14 @@ namespace pb_ds
 
       public:
         typedef
-	pb_ds::gp_hash_table<
+	__gnu_pbds::gp_hash_table<
 	Key,
 	Data,
 	Hash_Fn,
 	Eq_Fn,
 	comb_probe_fn,
 	probe_fn,
-	pb_ds::hash_standard_resize_policy<
+	__gnu_pbds::hash_standard_resize_policy<
 	size_policy,
 	trigger_policy,
 	false>,
@@ -445,14 +435,14 @@ namespace pb_ds
 
       public:
         typedef
-	pb_ds::gp_hash_table<
+	__gnu_pbds::gp_hash_table<
 	Key,
 	Data,
 	Hash_Fn,
 	Eq_Fn,
 	comb_probe_fn,
 	probe_fn,
-	pb_ds::hash_standard_resize_policy<
+	__gnu_pbds::hash_standard_resize_policy<
 	size_policy,
 	trigger_policy,
 	true>,
@@ -533,7 +523,7 @@ namespace pb_ds
       typedef typename Allocator::size_type size_type;
 
       typedef
-      pb_ds::test::hash_load_check_resize_trigger_t_<
+      __gnu_pbds::test::hash_load_check_resize_trigger_t_<
 	Allocator,
 	1, 8,
 	1, 2,
@@ -541,7 +531,7 @@ namespace pb_ds
       no_access_half_load_check_resize_trigger_policy;
 
       typedef
-      pb_ds::test::hash_load_check_resize_trigger_t_<
+      __gnu_pbds::test::hash_load_check_resize_trigger_t_<
 	Allocator,
 	1, 8,
 	1, 1,
@@ -549,28 +539,28 @@ namespace pb_ds
       no_access_one_load_check_resize_trigger_policy;
 
       typedef
-      pb_ds::hash_standard_resize_policy<
-	pb_ds::test::hash_exponential_size_policy_t_<
+      __gnu_pbds::hash_standard_resize_policy<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator>,
 	no_access_half_load_check_resize_trigger_policy>
       mask_half_resize_policy_t;
 
       typedef
-      pb_ds::hash_standard_resize_policy<
-	pb_ds::test::hash_exponential_size_policy_t_<
+      __gnu_pbds::hash_standard_resize_policy<
+	__gnu_pbds::test::hash_exponential_size_policy_t_<
 	Allocator>,
 	no_access_one_load_check_resize_trigger_policy>
       mask_one_resize_policy_t;
 
       typedef
-      pb_ds::hash_standard_resize_policy<
-	pb_ds::test::hash_prime_size_policy_t_,
+      __gnu_pbds::hash_standard_resize_policy<
+	__gnu_pbds::test::hash_prime_size_policy_t_,
 	no_access_half_load_check_resize_trigger_policy>
       mod_half_resize_policy_t;
 
       typedef
-      pb_ds::hash_standard_resize_policy<
-	pb_ds::test::hash_prime_size_policy_t_,
+      __gnu_pbds::hash_standard_resize_policy<
+	__gnu_pbds::test::hash_prime_size_policy_t_,
 	no_access_one_load_check_resize_trigger_policy>
       mod_one_resize_policy_t;
 
@@ -579,7 +569,7 @@ namespace pb_ds
 
       template<typename Allocator_>
       struct half_resize_policy_selector<
-        pb_ds::test::direct_mask_range_hashing_t_<
+        __gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator_> >
       {
         typedef mask_half_resize_policy_t type;
@@ -587,7 +577,7 @@ namespace pb_ds
 
       template<typename Allocator_>
       struct half_resize_policy_selector<
-        pb_ds::test::direct_mod_range_hashing_t_<
+        __gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator_> >
       {
         typedef mod_half_resize_policy_t type;
@@ -598,7 +588,7 @@ namespace pb_ds
 
       template<typename Allocator_>
       struct one_resize_policy_selector<
-        pb_ds::test::direct_mask_range_hashing_t_<
+        __gnu_pbds::test::direct_mask_range_hashing_t_<
 	Allocator_> >
       {
         typedef mask_one_resize_policy_t type;
@@ -606,7 +596,7 @@ namespace pb_ds
 
       template<typename Allocator_>
       struct one_resize_policy_selector<
-        pb_ds::test::direct_mod_range_hashing_t_<
+        __gnu_pbds::test::direct_mod_range_hashing_t_<
 	Allocator_> >
       {
         typedef mod_one_resize_policy_t type;
@@ -616,10 +606,10 @@ namespace pb_ds
       struct generic_cc_hash_table_t
       {
         typedef
-	pb_ds::cc_hash_table<
+	__gnu_pbds::cc_hash_table<
 	  Key,
 	  Data,
-	  pb_ds::null_hash_fn,
+	  __gnu_pbds::null_hash_fn,
 	  Eq_Fn,
 	  Comb_Hash_Fn,
 	  typename one_resize_policy_selector<
@@ -639,13 +629,13 @@ namespace pb_ds
       struct no_access_generic_gp_hash_table_t
       {
         typedef
-	pb_ds::gp_hash_table<
+	__gnu_pbds::gp_hash_table<
 	  Key,
 	  Data,
-	  pb_ds::null_hash_fn,
+	  __gnu_pbds::null_hash_fn,
 	  Eq_Fn,
 	  Comb_Probe_Fn,
-	  pb_ds::null_probe_fn,
+	  __gnu_pbds::null_probe_fn,
 	  typename half_resize_policy_selector<
 	  typename Comb_Probe_Fn::comb_fn>::type,
 	  false,
@@ -675,9 +665,9 @@ namespace pb_ds
     private:
       typedef typename Allocator::size_type size_type;
 
-      typedef pb_ds::test::move_to_front_lu_policy_t_ mtf_u;
+      typedef __gnu_pbds::test::move_to_front_lu_policy_t_ mtf_u;
 
-      typedef pb_ds::test::counter_lu_policy_t_<Allocator, 5> cnt_5_u;
+      typedef __gnu_pbds::test::counter_lu_policy_t_<Allocator, 5> cnt_5_u;
 
       typedef typename __gnu_cxx::typelist::create1<mtf_u>::type lu_policy0;
 
@@ -700,7 +690,7 @@ namespace pb_ds
 
       public:
         typedef
-	pb_ds::list_update<
+	__gnu_pbds::list_update<
 	Key,
 	Data,
 	Eq_Fn,
@@ -733,37 +723,37 @@ namespace pb_ds
 		      class Node_Iterator,
 		      class Cmp_Fn_,
 		      class Allocator_>
-    class Node_Update = pb_ds::null_tree_node_update,
+    class Node_Update = __gnu_pbds::null_tree_node_update,
 	     class Allocator = std::allocator<std::pair<const Key, Data> > >
     struct tree_common_types
     {
     private:
       typedef
-      pb_ds::tree<
+      __gnu_pbds::tree<
       Key,
       Data,
       Cmp_Fn,
-      pb_ds::ov_tree_tag,
+      __gnu_pbds::ov_tree_tag,
       Node_Update,
       Allocator>
       ov_tree_assoc_container_t;
 
       typedef
-      pb_ds::tree<
+      __gnu_pbds::tree<
 	Key,
 	Data,
 	Cmp_Fn,
-	pb_ds::rb_tree_tag,
+	__gnu_pbds::rb_tree_tag,
 	Node_Update,
 	Allocator>
       rb_tree_assoc_container_t;
 
       typedef
-      pb_ds::tree<
+      __gnu_pbds::tree<
 	Key,
 	Data,
 	Cmp_Fn,
-	pb_ds::splay_tree_tag,
+	__gnu_pbds::splay_tree_tag,
 	Node_Update,
 	Allocator>
       splay_tree_assoc_container_t;
@@ -792,18 +782,18 @@ namespace pb_ds
     template<typename Key,
 	     typename Data,
 	     class E_Access_Traits =
-	     typename pb_ds::detail::default_trie_e_access_traits<Key>::type,
-	     class Tag = pb_ds::pat_trie_tag,
+	     typename __gnu_pbds::detail::default_trie_e_access_traits<Key>::type,
+	     class Tag = __gnu_pbds::pat_trie_tag,
 	     template<typename Const_Node_Iterator,
 		      typename Node_Iterator,
 		      class E_Access_Traits_,
 		      typename Allocator_>
-    class Node_Update = pb_ds::null_trie_node_update,
+    class Node_Update = __gnu_pbds::null_trie_node_update,
 	     class Allocator = std::allocator<char> >
     class trie_common_types
     {
     private:
-      typedef pb_ds::trie<Key, Data, E_Access_Traits, Tag, Node_Update, Allocator> type;
+      typedef __gnu_pbds::trie<Key, Data, E_Access_Traits, Tag, Node_Update, Allocator> type;
 
     public:
       typedef typename __gnu_cxx::typelist::create1<type>::type performance_tl;
@@ -812,7 +802,6 @@ namespace pb_ds
     };
 
   } // namespace test
+} // namespace __gnu_pbds
 
-} // namespace pb_ds
-
-#endif // #ifndef PB_DS_COMMON_TYPES_HPP
+#endif // #ifndef PB_DS_COMMON_TYPES_ASSOC_HPP

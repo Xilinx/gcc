@@ -1,11 +1,11 @@
 /* Exception handling and frame unwind runtime interface routines.
-   Copyright (C) 2001, 2003, 2004, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2003, 2004, 2006, 2008, 2009 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
    GCC is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
+   the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
    GCC is distributed in the hope that it will be useful, but WITHOUT
@@ -13,17 +13,14 @@
    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
    License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with GCC; see the file COPYING.  If not, write to the Free
-   Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-   02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you include this header file into source
-   files compiled by GCC, this header file does not by itself cause
-   the resulting executable to be covered by the GNU General Public
-   License.  This exception does not however invalidate any other
-   reasons why the executable file might be covered by the GNU General
-   Public License.  */
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /* This is derived from the C++ ABI for IA-64.  Where we diverge
    for cross-architecture compatibility are noted with "@@@".  */
@@ -43,8 +40,8 @@ extern "C" {
 
 /* @@@ The IA-64 ABI uses uint64 throughout.  Most places this is
    inefficient for 32-bit and smaller machines.  */
-typedef unsigned _Unwind_Word __attribute__((__mode__(__word__)));
-typedef signed _Unwind_Sword __attribute__((__mode__(__word__)));
+typedef unsigned _Unwind_Word __attribute__((__mode__(__unwind_word__)));
+typedef signed _Unwind_Sword __attribute__((__mode__(__unwind_word__)));
 #if defined(__ia64__) && defined(__hpux__)
 typedef unsigned _Unwind_Ptr __attribute__((__mode__(__word__)));
 #else
@@ -108,6 +105,12 @@ typedef int _Unwind_Action;
 #define _UA_FORCE_UNWIND	8
 #define _UA_END_OF_STACK	16
 
+/* The target can override this macro to define any back-end-specific
+   attributes required for the lowest-level stack frame.  */
+#ifndef LIBGCC2_UNWIND_ATTRIBUTE
+#define LIBGCC2_UNWIND_ATTRIBUTE
+#endif
+
 /* This is an opaque type used to refer to a system-specific data
    structure used by the system unwinder. This context is created and
    destroyed by the system, and passed to the personality routine
@@ -115,7 +118,8 @@ typedef int _Unwind_Action;
 struct _Unwind_Context;
 
 /* Raise an exception, passing along the given exception object.  */
-extern _Unwind_Reason_Code _Unwind_RaiseException (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_RaiseException (struct _Unwind_Exception *);
 
 /* Raise an exception for forced unwinding.  */
 
@@ -123,20 +127,21 @@ typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn)
      (int, _Unwind_Action, _Unwind_Exception_Class,
       struct _Unwind_Exception *, struct _Unwind_Context *, void *);
 
-extern _Unwind_Reason_Code _Unwind_ForcedUnwind (struct _Unwind_Exception *,
-						 _Unwind_Stop_Fn,
-						 void *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_ForcedUnwind (struct _Unwind_Exception *, _Unwind_Stop_Fn, void *);
 
 /* Helper to invoke the exception_cleanup routine.  */
 extern void _Unwind_DeleteException (struct _Unwind_Exception *);
 
 /* Resume propagation of an existing exception.  This is used after
    e.g. executing cleanup code, and not to implement rethrowing.  */
-extern void _Unwind_Resume (struct _Unwind_Exception *);
+extern void LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_Resume (struct _Unwind_Exception *);
 
-/* @@@ Resume propagation of an FORCE_UNWIND exception, or to rethrow
+/* @@@ Resume propagation of a FORCE_UNWIND exception, or to rethrow
    a normal exception that was handled.  */
-extern _Unwind_Reason_Code _Unwind_Resume_or_Rethrow (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_Resume_or_Rethrow (struct _Unwind_Exception *);
 
 /* @@@ Use unwind data to perform a stack backtrace.  The trace callback
    is called for every stack frame in the call chain, but no cleanup
@@ -144,12 +149,13 @@ extern _Unwind_Reason_Code _Unwind_Resume_or_Rethrow (struct _Unwind_Exception *
 typedef _Unwind_Reason_Code (*_Unwind_Trace_Fn)
      (struct _Unwind_Context *, void *);
 
-extern _Unwind_Reason_Code _Unwind_Backtrace (_Unwind_Trace_Fn, void *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_Backtrace (_Unwind_Trace_Fn, void *);
 
 /* These functions are used for communicating information about the unwind
    context (i.e. the unwind descriptors and the user register state) between
    the unwind library and the personality routine and landing pad.  Only
-   selected registers maybe manipulated.  */
+   selected registers may be manipulated.  */
 
 extern _Unwind_Word _Unwind_GetGR (struct _Unwind_Context *, int);
 extern void _Unwind_SetGR (struct _Unwind_Context *, int, _Unwind_Word);
@@ -191,12 +197,14 @@ struct SjLj_Function_Context;
 extern void _Unwind_SjLj_Register (struct SjLj_Function_Context *);
 extern void _Unwind_SjLj_Unregister (struct SjLj_Function_Context *);
 
-extern _Unwind_Reason_Code _Unwind_SjLj_RaiseException
-     (struct _Unwind_Exception *);
-extern _Unwind_Reason_Code _Unwind_SjLj_ForcedUnwind
-     (struct _Unwind_Exception *, _Unwind_Stop_Fn, void *);
-extern void _Unwind_SjLj_Resume (struct _Unwind_Exception *);
-extern _Unwind_Reason_Code _Unwind_SjLj_Resume_or_Rethrow (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_SjLj_RaiseException (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_SjLj_ForcedUnwind (struct _Unwind_Exception *, _Unwind_Stop_Fn, void *);
+extern void LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_SjLj_Resume (struct _Unwind_Exception *);
+extern _Unwind_Reason_Code LIBGCC2_UNWIND_ATTRIBUTE
+_Unwind_SjLj_Resume_or_Rethrow (struct _Unwind_Exception *);
 
 /* @@@ The following provide access to the base addresses for text
    and data-relative addressing in the LDSA.  In order to stay link

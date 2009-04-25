@@ -1,7 +1,9 @@
 /* Check that we can use the save instruction to save $16, $17 and $31.  */
-/* { dg-mips-options "-mips32r2 -mgp32 -mips16 -O2" } */
+/* { dg-options "(-mips16) isa_rev>=1 -mabi=32 -O2" } */
+
 void bar (void);
-void
+
+MIPS16 void
 foo (void)
 {
   bar ();

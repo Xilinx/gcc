@@ -1,9 +1,9 @@
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,9 +12,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.5 class vector<bool> [lib.vector.bool]
 
@@ -23,6 +22,12 @@
 #include <vector>
 #include <stdexcept>
 #include <testsuite_hooks.h>
+
+#ifndef _GLIBCXX_DEBUG
+  using std::_S_word_bit;
+#else
+  using std::_GLIBCXX_STD_D::_S_word_bit;
+#endif
 
 inline void
 check_cap_ge_size(const std::vector<bool>& x)
@@ -62,7 +67,7 @@ void test01()
     {
       std::vector<bool> x;
       x.resize(x.max_size() / 2 + 1, false); 
-      for(int i = 0; i < std::_S_word_bit; ++i)
+      for(int i = 0; i < _S_word_bit; ++i)
 	x.push_back(false);
       check_cap_ge_size(x);
     }
@@ -75,7 +80,7 @@ void test01()
     {
       std::vector<bool> x;
       x.resize(x.max_size() / 2 + 1, false); 
-      x.insert(x.end(), std::_S_word_bit, false);
+      x.insert(x.end(), _S_word_bit, false);
       check_cap_ge_size(x);
     }
   catch(std::bad_alloc&)
@@ -87,7 +92,7 @@ void test01()
     {
       std::vector<bool> x;
       x.resize(x.max_size() / 2 + 1, false); 
-      std::vector<bool> y(std::_S_word_bit, false);
+      std::vector<bool> y(_S_word_bit, false);
       x.insert(x.end(), y.begin(), y.end());
       check_cap_ge_size(x);
     }
@@ -101,8 +106,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      for(int i = 0; i < std::_S_word_bit; ++i)
+      x.resize(x.max_size() - _S_word_bit, false); 
+      for(int i = 0; i < _S_word_bit; ++i)
 	x.push_back(false);
       check_cap_ge_size(x);
     }
@@ -114,8 +119,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      x.insert(x.end(), std::_S_word_bit, false);
+      x.resize(x.max_size() - _S_word_bit, false); 
+      x.insert(x.end(), _S_word_bit, false);
       check_cap_ge_size(x);
     }
   catch(std::bad_alloc&)
@@ -126,8 +131,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      std::vector<bool> y(std::_S_word_bit, false);
+      x.resize(x.max_size() - _S_word_bit, false); 
+      std::vector<bool> y(_S_word_bit, false);
       x.insert(x.end(), y.begin(), y.end());
       check_cap_ge_size(x);
     }
@@ -141,8 +146,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      for(int i = 0; i < std::_S_word_bit + 1; ++i)
+      x.resize(x.max_size() - _S_word_bit, false); 
+      for(int i = 0; i < _S_word_bit + 1; ++i)
 	x.push_back(false);
       ++myexit;
     }
@@ -156,8 +161,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      x.insert(x.end(), std::_S_word_bit + 1, false);
+      x.resize(x.max_size() - _S_word_bit, false); 
+      x.insert(x.end(), _S_word_bit + 1, false);
       ++myexit;
     }
   catch(std::bad_alloc)
@@ -170,8 +175,8 @@ void test01()
   try
     {
       std::vector<bool> x;
-      x.resize(x.max_size() - std::_S_word_bit, false); 
-      std::vector<bool> y(std::_S_word_bit + 1, false);
+      x.resize(x.max_size() - _S_word_bit, false); 
+      std::vector<bool> y(_S_word_bit + 1, false);
       x.insert(x.end(), y.begin(), y.end());
       ++myexit;
     }

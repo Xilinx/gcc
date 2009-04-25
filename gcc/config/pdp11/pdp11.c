@@ -1,6 +1,6 @@
 /* Subroutines for gcc2 for pdp11.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Michael K. Gschwind (mike@vlsivie.tuwien.ac.at).
 
 This file is part of GCC.
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "df.h"
 
 /*
 #define FPU_REG_P(X)	((X)>=8 && (X)<14)
@@ -78,6 +79,8 @@ const struct real_format pdp11_f_format =
     false,
     false,
     false,
+    false,
+    false,
     false
   };
 
@@ -92,6 +95,8 @@ const struct real_format pdp11_d_format =
     -127,
     127,
     15,
+    false,
+    false,
     false,
     false,
     false,
@@ -145,7 +150,7 @@ static const char *singlemove_string (rtx *);
 static bool pdp11_assemble_integer (rtx, unsigned int, int);
 static void pdp11_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void pdp11_output_function_epilogue (FILE *, HOST_WIDE_INT);
-static bool pdp11_rtx_costs (rtx, int, int, int *);
+static bool pdp11_rtx_costs (rtx, int, int, int *, bool);
 static bool pdp11_return_in_memory (const_tree, const_tree);
 
 /* Initialize the GCC target structure.  */
@@ -236,23 +241,6 @@ expand_shift_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
    knowing which registers should not be saved even if used.  
 */
 
-#ifdef TWO_BSD
-
-static void
-pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
-{							       
-  fprintf (stream, "\tjsr	r5, csv\n");
-  if (size)
-    {
-      fprintf (stream, "\t/*abuse empty parameter slot for locals!*/\n");
-      if (size > 2)
-	asm_fprintf (stream, "\tsub $%#wo, sp\n", size - 2);
-
-    }
-}
-
-#else  /* !TWO_BSD */
-
 static void
 pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
 {							       
@@ -326,8 +314,6 @@ pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
     fprintf (stream, "\t;/* end of prologue */\n\n");		
 }
 
-#endif /* !TWO_BSD */
-
 /*
    The function epilogue should not depend on the current stack pointer!
    It should use the frame pointer only.  This is mandatory because
@@ -347,18 +333,6 @@ pdp11_output_function_prologue (FILE *stream, HOST_WIDE_INT size)
 
    maybe as option if you want to generate code for kernel mode? */
 
-#ifdef TWO_BSD
-
-static void
-pdp11_output_function_epilogue (FILE *stream,
-				HOST_WIDE_INT size ATTRIBUTE_UNUSED)
-{								
-  fprintf (stream, "\t/* SP ignored by cret? */\n");
-  fprintf (stream, "\tjmp cret\n");
-}
-
-#else  /* !TWO_BSD */
-
 static void
 pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
 {								
@@ -372,7 +346,7 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
     if (frame_pointer_needed)					
     {								
 	/* hope this is safe - m68k does it also .... */		
-      df_regs_ever_live_p (FRAME_POINTER_REGNUM) = 0;			
+        df_set_regs_ever_live (FRAME_POINTER_REGNUM, false);
 								
 	for (i =7, j = 0 ; i >= 0 ; i--)				
 	  if (df_regs_ever_live_p (i) && ! call_used_regs[i])		
@@ -464,8 +438,6 @@ pdp11_output_function_epilogue (FILE *stream, HOST_WIDE_INT size)
     fprintf (stream, "\t;/* end of epilogue*/\n\n\n");		
 }
 
-#endif /* !TWO_BSD */
-	
 /* Return the best assembler insn template
    for moving operands[1] into operands[0] as a fullword.  */
 static const char *
@@ -1090,7 +1062,8 @@ register_move_cost(enum reg_class c1, enum reg_class c2)
 }
 
 static bool
-pdp11_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total)
+pdp11_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int *total,
+		 bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {

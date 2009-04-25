@@ -1,5 +1,5 @@
 /* URI.java -- An URI class
-   Copyright (C) 2002, 2004, 2005, 2006  Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2005, 2006, 2008  Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -37,6 +37,8 @@ exception statement from your version. */
 
 
 package java.net;
+
+import gnu.java.lang.CPStringBuilder;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -483,7 +485,7 @@ public final class URI
    */
   private static String quote(String str, String legalCharacters)
   {
-    StringBuffer sb = new StringBuffer(str.length());
+    CPStringBuilder sb = new CPStringBuilder(str.length());
     for (int i = 0; i < str.length(); i++)
       {
 	char c = str.charAt(i);
@@ -778,8 +780,8 @@ public final class URI
        This follows the algorithm in section 5.2.4. of RFC3986,
        but doesn't modify the input buffer.
     */
-    StringBuffer input = new StringBuffer(relativePath);
-    StringBuffer output = new StringBuffer();
+    CPStringBuilder input = new CPStringBuilder(relativePath);
+    CPStringBuilder output = new CPStringBuilder();
     int start = 0;
     while (start < input.length())
       {
@@ -853,7 +855,7 @@ public final class URI
    *
    * @param buffer the buffer containing the path.
    */
-  private void removeLastSegment(StringBuffer buffer)
+  private void removeLastSegment(CPStringBuilder buffer)
   {
     int lastSlash = buffer.lastIndexOf("/");
     if (lastSlash == -1)
@@ -899,7 +901,7 @@ public final class URI
 	      path = "";
 	    if (! (path.startsWith("/")))
 	      {
-		StringBuffer basepath = new StringBuffer(this.path);
+		CPStringBuilder basepath = new CPStringBuilder(this.path);
 		int i = this.path.lastIndexOf('/');
 
 		if (i >= 0)
@@ -968,12 +970,18 @@ public final class URI
       return uri;
     if (rawAuthority != null && !(rawAuthority.equals(uri.getRawAuthority())))
       return uri;
-    if (!(uri.getRawPath().startsWith(rawPath)))
-      return uri;
+    String basePath = rawPath;
+    if (!(uri.getRawPath().equals(rawPath)))
+      {
+	if (!(basePath.endsWith("/")))
+	  basePath = basePath.concat("/");
+	if (!(uri.getRawPath().startsWith(basePath)))
+	  return uri;
+      }
     try
       {
 	return new URI(null, null, 
-		       uri.getRawPath().substring(rawPath.length()),
+		       uri.getRawPath().substring(basePath.length()),
 		       uri.getRawQuery(), uri.getRawFragment());
       }
     catch (URISyntaxException e)
@@ -1315,7 +1323,8 @@ public final class URI
 	    int hCompare = host.compareTo(uri.getHost());
 	    if (hCompare != 0)
 	      return hCompare;
-	    return new Integer(port).compareTo(new Integer(uri.getPort()));
+	    int uriPort = uri.getPort();
+	    return (uriPort == port) ? 0 : (uriPort > port) ? -1 : 1;
 	  }
       }
     if (rawPath == null && uri.getRawPath() != null)
@@ -1381,8 +1390,8 @@ public final class URI
   {
     String strRep = toString();
     boolean inNonAsciiBlock = false;
-    StringBuffer buffer = new StringBuffer();
-    StringBuffer encBuffer = null;
+    CPStringBuilder buffer = new CPStringBuilder();
+    CPStringBuilder encBuffer = null;
     for (int i = 0; i < strRep.length(); i++)
       {
 	char c = strRep.charAt(i);
@@ -1399,7 +1408,7 @@ public final class URI
 	  {
 	    if (!inNonAsciiBlock)
 	      {
-		encBuffer = new StringBuffer();
+		encBuffer = new CPStringBuilder();
 		inNonAsciiBlock = true;
 	      }
 	    encBuffer.append(c);
@@ -1421,7 +1430,7 @@ public final class URI
   {
     try
       {
-	StringBuffer sb = new StringBuffer(); 
+	CPStringBuilder sb = new CPStringBuilder(); 
 	// this is far from optimal, but it works
 	byte[] utf8 = str.getBytes("utf-8");
 	for (int j = 0; j < utf8.length; j++)

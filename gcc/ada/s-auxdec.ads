@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS For A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -48,7 +46,7 @@ package System.Aux_DEC is
    --  name Short_Address is used for the short address form. To avoid
    --  difficulties (in regression tests and elsewhere) with units that
    --  reference Short_Address, it is provided for other targets as a
-   --  synonum for the normal Address type, and, as in the case where
+   --  synonym for the normal Address type, and, as in the case where
    --  the lengths are different, Address and Short_Address can be
    --  freely inter-converted.
 
@@ -63,6 +61,14 @@ package System.Aux_DEC is
 
    type Integer_64 is range -2 ** (64 - 1) .. +2 ** (64 - 1) - 1;
    for Integer_64'Size use 64;
+
+   type Integer_8_Array  is array (Integer range <>) of Integer_8;
+   type Integer_16_Array is array (Integer range <>) of Integer_16;
+   type Integer_32_Array is array (Integer range <>) of Integer_32;
+   type Integer_64_Array is array (Integer range <>) of Integer_64;
+   --  These array types are not in all versions of DEC System, and in fact it
+   --  is not quite clear why they are in some and not others, but since they
+   --  definitely appear in some versions, we include them unconditionally.
 
    type Largest_Integer is range Min_Int .. Max_Int;
 
@@ -86,9 +92,10 @@ package System.Aux_DEC is
    function "or"  (Left, Right : Largest_Integer) return Largest_Integer;
    function "xor" (Left, Right : Largest_Integer) return Largest_Integer;
 
-   Address_Zero : constant Address;
-   No_Addr      : constant Address;
-   Address_Size : constant := Standard'Address_Size;
+   Address_Zero       : constant Address;
+   No_Addr            : constant Address;
+   Address_Size       : constant := Standard'Address_Size;
+   Short_Address_Size : constant := Standard'Address_Size;
 
    function "+" (Left : Address; Right : Integer) return Address;
    function "+" (Left : Integer; Right : Address) return Address;
@@ -106,6 +113,7 @@ package System.Aux_DEC is
    --  Floating point type declarations for VAX floating point data types
 
    pragma Warnings (Off);
+   --  ??? needs comment
 
    type F_Float is digits 6;
    pragma Float_Representation (VAX_Float, F_Float);
@@ -455,28 +463,109 @@ private
    pragma Inline_Always (Fetch_From_Address);
    pragma Inline_Always (Assign_To_Address);
 
-   --  Synchronization related subprograms. These are declared to have
-   --  convention C so that the critical parameters are passed by reference.
+   --  Synchronization related subprograms. Mechanism is explicitly set
+   --  so that the critical parameters are passed by reference.
    --  Without this, the parameters are passed by copy, creating load/store
    --  race conditions. We also inline them, since this seems more in the
    --  spirit of the original (hardware intrinsic) routines.
 
-   pragma Convention (C, Clear_Interlocked);
+   pragma Export_Procedure
+     (Clear_Interlocked,
+      External        => "system__aux_dec__clear_interlocked__1",
+      Parameter_Types => (Boolean, Boolean),
+      Mechanism       => (Reference, Reference));
+   pragma Export_Procedure
+     (Clear_Interlocked,
+      External        => "system__aux_dec__clear_interlocked__2",
+      Parameter_Types => (Boolean, Boolean, Natural, Boolean),
+      Mechanism       => (Reference, Reference, Value, Reference));
    pragma Inline_Always (Clear_Interlocked);
 
-   pragma Convention (C, Set_Interlocked);
+   pragma Export_Procedure
+     (Set_Interlocked,
+      External        => "system__aux_dec__set_interlocked__1",
+      Parameter_Types => (Boolean, Boolean),
+      Mechanism       => (Reference, Reference));
+   pragma Export_Procedure
+     (Set_Interlocked,
+      External        => "system__aux_dec__set_interlocked__2",
+      Parameter_Types => (Boolean, Boolean, Natural, Boolean),
+      Mechanism       => (Reference, Reference, Value, Reference));
    pragma Inline_Always (Set_Interlocked);
 
-   pragma Convention (C, Add_Interlocked);
+   pragma Export_Procedure
+     (Add_Interlocked,
+      External        => "system__aux_dec__add_interlocked__1",
+      Mechanism       => (Value, Reference, Reference));
    pragma Inline_Always (Add_Interlocked);
 
-   pragma Convention (C, Add_Atomic);
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Add_Atomic,
+      External        => "system__aux_dec__add_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (Add_Atomic);
 
-   pragma Convention (C, And_Atomic);
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (And_Atomic,
+      External => "system__aux_dec__and_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism => (Reference, Value));
+   pragma Export_Procedure
+     (And_Atomic,
+      External        => "system__aux_dec__and_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (And_Atomic);
 
-   pragma Convention (C, Or_Atomic);
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__1",
+      Parameter_Types => (Aligned_Integer, Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__2",
+      Parameter_Types => (Aligned_Integer, Integer, Natural, Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__3",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer),
+      Mechanism       => (Reference, Value));
+   pragma Export_Procedure
+     (Or_Atomic,
+      External        => "system__aux_dec__or_atomic__4",
+      Parameter_Types => (Aligned_Long_Integer, Long_Integer, Natural,
+                          Long_Integer, Boolean),
+      Mechanism       => (Reference, Value, Value, Reference, Reference));
    pragma Inline_Always (Or_Atomic);
 
    --  Provide proper unchecked conversion definitions for transfer

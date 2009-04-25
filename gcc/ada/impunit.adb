@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2000-2007, Free Software Foundation, Inc.        --
+--           Copyright (C) 2000-2008, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -30,6 +30,9 @@ with Lib;      use Lib;
 with Namet;    use Namet;
 with Uname;    use Uname;
 
+--  Note: this package body is used by GPS and GNATBench to supply a list of
+--  entries for help on available library routines.
+
 package body Impunit is
 
    subtype File_Name_8 is String (1 .. 8);
@@ -39,13 +42,14 @@ package body Impunit is
    -- Ada 95 Units --
    ------------------
 
-   --  The following is a giant string list containing the names of all
-   --  non-implementation internal files, i.e. the complete list of files for
+   --  The following is a giant string list containing the names of all non-
+   --  implementation internal files, i.e. the complete list of files for
    --  internal units which a program may legitimately WITH when operating in
    --  either Ada 95 or Ada 05 mode.
 
    --  Note that this list should match the list of units documented in the
-   --  "GNAT Library" section of the GNAT Reference Manual.
+   --  "GNAT Library" section of the GNAT Reference Manual. A unit listed here
+   --  must either be documented in that section or described in the Ada RM.
 
    Non_Imp_File_Names_95 : constant File_List := (
 
@@ -143,6 +147,7 @@ package body Impunit is
    -- GNAT Defined Additions to Ada --
    -----------------------------------
 
+     "a-calcon",    -- Ada.Calendar.Conversions
      "a-chlat9",    -- Ada.Characters.Latin_9
      "a-clrefi",    -- Ada.Command_Line.Response_File
      "a-colien",    -- Ada.Command_Line.Environment
@@ -157,7 +162,6 @@ package body Impunit is
      "a-ssicst",    -- Ada.Streams.Stream_IO.C_Streams
      "a-suteio",    -- Ada.Strings.Unbounded.Text_IO
      "a-swuwti",    -- Ada.Strings.Wide_Unbounded.Wide_Text_IO
-     "a-taidim",    -- Ada.Task_Identification.Image
      "a-tiocst",    -- Ada.Text_IO.C_Streams
      "a-wtcstr",    -- Ada.Wide_Text_IO.C_Streams
 
@@ -172,14 +176,13 @@ package body Impunit is
    -- GNAT Special IO Units --
    ---------------------------
 
-   --  As further explained elsewhere (see Sem_Ch10), the internal
-   --  packages of Text_IO and Wide_Text_IO are actually implemented
-   --  as separate children, but this fact is intended to be hidden
-   --  from the user completely. Any attempt to WITH one of these
-   --  units will be diagnosed as an error later on, but for now we
-   --  do not consider these internal implementation units (if we did,
-   --  then we would get a junk warning which would be confusing and
-   --  unecessary, given that we generate a clear error message).
+   --  As further explained elsewhere (see Sem_Ch10), the internal packages of
+   --  Text_IO and Wide_Text_IO are actually implemented as separate children,
+   --  but this fact is intended to be hidden from the user completely. Any
+   --  attempt to WITH one of these units will be diagnosed as an error later
+   --  on, but for now we do not consider these internal implementation units
+   --  (if we did, then we would get a junk warning which would be confusing
+   --  and unnecessary, given that we generate a clear error message).
 
      "a-tideio",    -- Ada.Text_IO.Decimal_IO
      "a-tienio",    -- Ada.Text_IO.Enumeration_IO
@@ -200,10 +203,10 @@ package body Impunit is
    ------------------------
 
      "g-altive",    -- GNAT.Altivec
+     "g-altcon",    -- GNAT.Altivec.Conversions
+     "g-alveop",    -- GNAT.Altivec.Vector_Operations
      "g-alvety",    -- GNAT.Altivec.Vector_Types
      "g-alvevi",    -- GNAT.Altivec.Vector_Views
-     "g-alveop",    -- GNAT.Altivec.Vector_Operations
-     "g-altcon",    -- GNAT.Altivec.Conversions
      "g-arrspl",    -- GNAT.Array_Split
      "g-awk   ",    -- GNAT.AWK
      "g-boubuf",    -- GNAT.Bounded_Buffers
@@ -211,10 +214,11 @@ package body Impunit is
      "g-bubsor",    -- GNAT.Bubble_Sort
      "g-busora",    -- GNAT.Bubble_Sort_A
      "g-busorg",    -- GNAT.Bubble_Sort_G
-     "g-bytswa",    -- Gnat.Byte_Swapping
+     "g-byorma",    -- GNAT.Byte_Order_Mark
+     "g-bytswa",    -- GNAT.Byte_Swapping
      "g-calend",    -- GNAT.Calendar
-     "g-casuti",    -- GNAT.Case_Util
      "g-catiio",    -- GNAT.Calendar.Time_IO
+     "g-casuti",    -- GNAT.Case_Util
      "g-cgi   ",    -- GNAT.CGI
      "g-cgicoo",    -- GNAT.CGI.Cookie
      "g-cgideb",    -- GNAT.CGI.Debug
@@ -225,10 +229,14 @@ package body Impunit is
      "g-curexc",    -- GNAT.Current_Exception
      "g-debpoo",    -- GNAT.Debug_Pools
      "g-debuti",    -- GNAT.Debug_Utilities
-     "g-diopit",    -- GNAT.Directory_Operations.Iteration
+     "g-decstr",    -- GNAT.Decode_String
+     "g-deutst",    -- GNAT.Decode_UTF8_String
      "g-dirope",    -- GNAT.Directory_Operations
+     "g-diopit",    -- GNAT.Directory_Operations.Iteration
      "g-dynhta",    -- GNAT.Dynamic_HTables
      "g-dyntab",    -- GNAT.Dynamic_Tables
+     "g-encstr",    -- GNAT.Encode_String
+     "g-enutst",    -- GNAT.Encode_UTF8_String
      "g-excact",    -- GNAT.Exception_Actions
      "g-except",    -- GNAT.Exceptions
      "g-exctra",    -- GNAT.Exception_Traces
@@ -251,14 +259,16 @@ package body Impunit is
      "g-regist",    -- GNAT.Registry
      "g-regpat",    -- GNAT.Regpat
      "g-semaph",    -- GNAT.Semaphores
+     "g-sercom",    -- GNAT.Serial_Communications
      "g-sestin",    -- GNAT.Secondary_Stack_Info
      "g-sha1  ",    -- GNAT.SHA1
      "g-signal",    -- GNAT.Signals
      "g-socket",    -- GNAT.Sockets
      "g-souinf",    -- GNAT.Source_Info
      "g-speche",    -- GNAT.Spell_Checker
-     "g-spipat",    -- GNAT.Spitbol.Patterns
+     "g-spchge",    -- GNAT.Spell_Checker_Generic
      "g-spitbo",    -- GNAT.Spitbol
+     "g-spipat",    -- GNAT.Spitbol.Patterns
      "g-sptabo",    -- GNAT.Spitbol.Table_Boolean
      "g-sptain",    -- GNAT.Spitbol.Table_Integer
      "g-sptavs",    -- GNAT.Spitbol.Table_Vstring
@@ -267,9 +277,12 @@ package body Impunit is
      "g-table ",    -- GNAT.Table
      "g-tasloc",    -- GNAT.Task_Lock
      "g-thread",    -- GNAT.Threads
+     "g-timsta",    -- GNAT.Time_Stamp
      "g-traceb",    -- GNAT.Traceback
      "g-trasym",    -- GNAT.Traceback.Symbolic
      "g-utf_32",    -- GNAT.UTF_32
+     "g-u3spch",    -- GNAT.UTF_32_Spelling_Checker
+     "g-wispch",    -- GNAT.Wide_Spelling_Checker
      "g-wistsp",    -- GNAT.Wide_String_Split
 
    -----------------------------------------------------
@@ -287,9 +300,12 @@ package body Impunit is
    ------------------------------------------
 
      "i-cexten",    -- Interfaces.C.Extensions
+     "i-cil   ",    -- Interfaces.CIL
+     "i-cilobj",    -- Interfaces.CIL.Object
      "i-cpp   ",    -- Interfaces.CPP
      "i-cstrea",    -- Interfaces.C.Streams
      "i-java  ",    -- Interfaces.Java
+     "i-javjni",    -- Interfaces.Java.JNI
      "i-pacdec",    -- Interfaces.Packed_Decimal
      "i-vxwoio",    -- Interfaces.VxWorks.IO
      "i-vxwork",    -- Interfaces.VxWorks
@@ -317,6 +333,7 @@ package body Impunit is
      "s-pooloc",    -- System.Pool_Local
      "s-restri",    -- System.Restrictions
      "s-rident",    -- System.Rident
+     "s-ststop",    -- System.Strings.Stream_Ops
      "s-tasinf",    -- System.Task_Info
      "s-wchcnv",    -- System.Wch_Cnv
      "s-wchcon");   -- System.Wch_Con
@@ -356,6 +373,7 @@ package body Impunit is
      "a-coteio",    -- Ada.Complex_Text_IO
      "a-direct",    -- Ada.Directories
      "a-diroro",    -- Ada.Dispatching.Round_Robin
+     "a-disedf",    -- Ada.Dispatching.EDF
      "a-dispat",    -- Ada.Dispatching
      "a-envvar",    -- Ada.Environment_Variables
      "a-exetim",    -- Ada.Execution_Time
@@ -451,6 +469,7 @@ package body Impunit is
    -- GNAT Library Units --
    ------------------------
 
+     "g-zspche",    -- GNAT.Wide_Wide_Spelling_Checker
      "g-zstspl");   -- GNAT.Wide_Wide_String_Split
 
    ----------------------

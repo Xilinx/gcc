@@ -6,24 +6,28 @@
 !
 ! Contributed by Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 !
-type(foo) function ext_fun()
+module kinds
   type foo
     integer :: i
   end type foo
+end module
+
+type(foo) function ext_fun()
+  use kinds
   ext_fun%i = 1
 end function ext_fun
 
-  type foo
-    integer :: i
-  end type foo
+  use kinds
 
   interface fun_interface
     type(foo) function fun()
+      use kinds
     end function fun
   end interface
 
   interface ext_fun_interface
     type(foo) function ext_fun()
+      use kinds
     end function ext_fun
   end interface
 
@@ -37,4 +41,5 @@ contains
   type(foo) function fun() ! { dg-error "already has an explicit interface" }
   end function fun  ! { dg-error "Expecting END PROGRAM" }
 
-end ! { dg-warning "CONTAINS statement without FUNCTION or SUBROUTINE statement" }
+end
+! { dg-final { cleanup-modules "kinds" } }

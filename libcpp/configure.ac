@@ -37,7 +37,7 @@ ZW_PROG_COMPILER_DEPENDENCIES([CC])
 # Checks for header files.
 AC_HEADER_TIME
 ACX_HEADER_STRING
-AC_CHECK_HEADERS(iconv.h locale.h fcntl.h limits.h stddef.h \
+AC_CHECK_HEADERS(locale.h fcntl.h limits.h stddef.h \
 	stdlib.h strings.h string.h sys/file.h unistd.h)
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -46,6 +46,7 @@ AC_C_INLINE
 AC_FUNC_OBSTACK
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
+AC_CHECK_TYPE(ssize_t, int)
 AC_STRUCT_TM
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
@@ -117,7 +118,7 @@ case $target in
 	arm*-*-symbianelf* | \
 	x86_64-*-* | \
 	ia64-*-* | \
-	hppa*64*-*-* | parisc*64*-*-* | \
+	hppa*64*-*-* | \
 	i[34567]86-*-darwin* | \
 	i[34567]86-*-solaris2.1[0-9]* | \
 	mips*-*-* | \
@@ -125,11 +126,9 @@ case $target in
 	powerpc*-*-* | \
 	rs6000*-*-* | \
 	s390*-*-* | \
-	sparc64*-*-* | ultrasparc-*-freebsd* | \
-	sparcv9-*-solaris2* | \
-	sparc-*-solaris2.[789] | sparc-*-solaris2.1[0-9]* | \
+	sparc*-*-* | \
 	spu-*-* | \
-	sh[123456789l]*-*-*)
+	sh[123456789lbe]*-*-* | sh-*-*)
 		need_64bit_hwint=yes ;;
 	i[34567]86-*-linux*)
 		if test "x$enable_targets" = xall; then

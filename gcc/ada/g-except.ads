@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2000-2005, AdaCore                     --
+--                     Copyright (C) 2000-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,7 +39,7 @@
 
 --  However, it is not normally possible to raise an exception with a
 --  message because the routine Ada.Exceptions.Raise_Exception is not in
---  a Pure unit. This is an annoying and unnecessary restrictiona and this
+--  a Pure unit. This is an annoying and unnecessary restriction and this
 --  package allows for raising the standard predefined exceptions at least.
 
 package GNAT.Exceptions is

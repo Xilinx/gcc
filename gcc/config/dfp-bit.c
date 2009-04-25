@@ -1,33 +1,28 @@
 /* This is a software decimal floating point library.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* This implements IEEE 754R decimal floating point arithmetic, but
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
+
+/* This implements IEEE 754 decimal floating point arithmetic, but
    does not provide a mechanism for setting the rounding mode, or for
    generating or handling exceptions.  Conversions between decimal
    floating point types and other types depend on C library functions.
@@ -348,45 +343,169 @@ DFP_GE (DFP_C_TYPE arg_a, DFP_C_TYPE arg_b)
 
 #define BUFMAX 128
 
-#if defined (L_sd_to_dd) || defined (L_sd_to_td) || defined (L_dd_to_sd) \
- || defined (L_dd_to_td) || defined (L_td_to_sd) || defined (L_td_to_dd)
-DFP_C_TYPE_TO
-DFP_TO_DFP (DFP_C_TYPE f_from)
+/* Check for floating point exceptions that are relevant for conversions
+   between decimal float values and handle them.  */
+static inline void
+dfp_conversion_exceptions (const int status)
 {
-  DFP_C_TYPE_TO f_to;
-  IEEE_TYPE s_from;
-  IEEE_TYPE_TO s_to;
-  decNumber d;
+  /* decNumber exception flags we care about here.  */
+  int ieee_flags;
+  int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
+		  | DEC_IEEE_854_Overflow;
+  dec_flags &= status;
+  ieee_flags = DFP_IEEE_FLAGS (dec_flags);
+  if (ieee_flags != 0)
+    DFP_HANDLE_EXCEPTIONS (ieee_flags);
+}
+
+#if defined (L_sd_to_dd)
+/* Use decNumber to convert directly from _Decimal32 to _Decimal64.  */
+_Decimal64
+DFP_TO_DFP (_Decimal32 f_from)
+{
+  union { _Decimal32 c; decSingle f; } from;
+  union { _Decimal64 c; decDouble f; } to;
+
+  from.c = f_from;
+  to.f = *decSingleToWider (&from.f, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_sd_to_td)
+/* Use decNumber to convert directly from _Decimal32 to _Decimal128.  */
+_Decimal128
+DFP_TO_DFP (_Decimal32 f_from)
+{
+  union { _Decimal32 c; decSingle f; } from;
+  union { _Decimal128 c; decQuad f; } to;
+  decDouble temp;
+
+  from.c = f_from;
+  temp = *decSingleToWider (&from.f, &temp);
+  to.f = *decDoubleToWider (&temp, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_td)
+/* Use decNumber to convert directly from _Decimal64 to _Decimal128.  */
+_Decimal128
+DFP_TO_DFP (_Decimal64 f_from)
+{
+  union { _Decimal64 c; decDouble f; } from;
+  union { _Decimal128 c; decQuad f; } to;
+
+  from.c = f_from;
+  to.f = *decDoubleToWider (&from.f, &to.f);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_sd)
+/* Use decNumber to convert directly from _Decimal64 to _Decimal32.  */
+_Decimal32
+DFP_TO_DFP (_Decimal64 f_from)
+{
+  union { _Decimal32 c; decSingle f; } to;
+  union { _Decimal64 c; decDouble f; } from;
   decContext context;
 
   decContextDefault (&context, CONTEXT_INIT);
   DFP_INIT_ROUNDMODE (context.round);
-
-  HOST_TO_IEEE (f_from, &s_from);
-  TO_INTERNAL (&s_from, &d);
-  TO_ENCODED_TO (&s_to, &d, &context);
-
+  from.c = f_from;
+  to.f = *decSingleFromWider (&to.f, &from.f, &context);
   if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
-    {
-      /* decNumber exception flags we care about here.  */
-      int ieee_flags;
-      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
-		      | DEC_IEEE_854_Overflow;
-      dec_flags &= context.status;
-      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
-      if (ieee_flags != 0)
-        DFP_HANDLE_EXCEPTIONS (ieee_flags);
-    }
-
-  IEEE_TO_HOST_TO (s_to, &f_to);
-  return f_to;
+    dfp_conversion_exceptions (context.status);
+  return to.c;
 }
 #endif
 
-#if defined (L_sd_to_si) || defined (L_dd_to_si) || defined (L_td_to_si) \
-  || defined (L_sd_to_di) || defined (L_dd_to_di) || defined (L_td_to_di) \
-  || defined (L_sd_to_usi) || defined (L_dd_to_usi) || defined (L_td_to_usi) \
+#if defined (L_td_to_sd)
+/* Use decNumber to convert directly from _Decimal128 to _Decimal32.  */
+_Decimal32
+DFP_TO_DFP (_Decimal128 f_from)
+{
+  union { _Decimal32 c; decSingle f; } to;
+  union { _Decimal128 c; decQuad f; } from;
+  decDouble temp;
+  decContext context;
+
+  decContextDefault (&context, CONTEXT_INIT);
+  DFP_INIT_ROUNDMODE (context.round);
+  from.c = f_from;
+  temp = *decDoubleFromWider (&temp, &from.f, &context);
+  to.f = *decSingleFromWider (&to.f, &temp, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return to.c;
+}
+#endif
+
+#if defined (L_td_to_dd)
+/* Use decNumber to convert directly from _Decimal128 to _Decimal64.  */
+_Decimal64
+DFP_TO_DFP (_Decimal128 f_from)
+{
+  union { _Decimal64 c; decDouble f; } to;
+  union { _Decimal128 c; decQuad f; } from;
+  decContext context;
+
+  decContextDefault (&context, CONTEXT_INIT);
+  DFP_INIT_ROUNDMODE (context.round);
+  from.c = f_from;
+  to.f = *decDoubleFromWider (&to.f, &from.f, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return to.c;
+}
+#endif
+
+#if defined (L_dd_to_si) || defined (L_td_to_si) \
+  || defined (L_dd_to_usi) || defined (L_td_to_usi)
+/* Use decNumber to convert directly from decimal float to integer types.  */
+INT_TYPE
+DFP_TO_INT (DFP_C_TYPE x)
+{
+  union { DFP_C_TYPE c; decFloat f; } u;
+  decContext context;
+  INT_TYPE i;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  u.c = x;
+  i = DEC_FLOAT_TO_INT (&u.f, &context, context.round);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return i;
+}
+#endif
+
+#if defined (L_sd_to_si) || (L_sd_to_usi)
+/* Use decNumber to convert directly from decimal float to integer types.  */
+INT_TYPE
+DFP_TO_INT (_Decimal32 x)
+{
+  union { _Decimal32 c; decSingle f; } u32;
+  decDouble f64;
+  decContext context;
+  INT_TYPE i;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  u32.c = x;
+  f64 = *decSingleToWider (&u32.f, &f64);
+  i = DEC_FLOAT_TO_INT (&f64, &context, context.round);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return i;
+}
+#endif
+
+#if defined (L_sd_to_di) || defined (L_dd_to_di) || defined (L_td_to_di) \
   || defined (L_sd_to_udi) || defined (L_dd_to_udi) || defined (L_td_to_udi)
+/* decNumber doesn't provide support for conversions to 64-bit integer
+   types, so do it the hard way.  */
 INT_TYPE
 DFP_TO_INT (DFP_C_TYPE x)
 {
@@ -412,7 +531,7 @@ DFP_TO_INT (DFP_C_TYPE x)
   /* Rescale if the exponent is less than zero.  */
   decNumberToIntegralValue (&n2, &n1, &context);
   /* Get a value to use for the quantize call.  */
-  decNumberFromString (&qval, (char *) "1.", &context);
+  decNumberFromString (&qval, "1.", &context);
   /* Force the exponent to zero.  */
   decNumberQuantize (&n1, &n2, &qval, &context);
   /* Get a string, which at this point will not include an exponent.  */
@@ -426,10 +545,42 @@ DFP_TO_INT (DFP_C_TYPE x)
 }
 #endif
 
-#if defined (L_si_to_sd) || defined (L_si_to_dd) || defined (L_si_to_td) \
-  || defined (L_di_to_sd) || defined (L_di_to_dd) || defined (L_di_to_td) \
-  || defined (L_usi_to_sd) || defined (L_usi_to_dd) || defined (L_usi_to_td) \
+#if defined (L_si_to_dd) || defined (L_si_to_td) \
+  || defined (L_usi_to_dd) || defined (L_usi_to_td)
+/* Use decNumber to convert directly from integer to decimal float types.  */
+DFP_C_TYPE
+INT_TO_DFP (INT_TYPE i)
+{
+  union { DFP_C_TYPE c; decFloat f; } u;
+
+  u.f = *DEC_FLOAT_FROM_INT (&u.f, i);
+  return u.c;
+}
+#endif
+
+#if defined (L_si_to_sd) || defined (L_usi_to_sd)
+_Decimal32
+/* Use decNumber to convert directly from integer to decimal float types.  */
+INT_TO_DFP (INT_TYPE i)
+{
+  union { _Decimal32 c; decSingle f; } u32;
+  decDouble f64;
+  decContext context;
+
+  decContextDefault (&context, DEC_INIT_DECIMAL128);
+  context.round = DEC_ROUND_DOWN;
+  f64 = *DEC_FLOAT_FROM_INT (&f64, i);
+  u32.f = *decSingleFromWider (&u32.f, &f64, &context);
+  if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
+    dfp_conversion_exceptions (context.status);
+  return u32.c;
+}
+#endif
+
+#if defined (L_di_to_sd) || defined (L_di_to_dd) || defined (L_di_to_td) \
   || defined (L_udi_to_sd) || defined (L_udi_to_dd) || defined (L_udi_to_td)
+/* decNumber doesn't provide support for conversions from 64-bit integer
+   types, so do it the hard way.  */
 DFP_C_TYPE
 INT_TO_DFP (INT_TYPE i)
 {
@@ -448,16 +599,7 @@ INT_TO_DFP (INT_TYPE i)
   IEEE_TO_HOST (s, &f);
 
   if (DFP_EXCEPTIONS_ENABLED && context.status != 0)
-    {
-      /* decNumber exception flags we care about here.  */
-      int ieee_flags;
-      int dec_flags = DEC_IEEE_854_Inexact | DEC_IEEE_854_Invalid_operation
-		      | DEC_IEEE_854_Overflow;
-      dec_flags &= context.status;
-      ieee_flags = DFP_IEEE_FLAGS (dec_flags);
-      if (ieee_flags != 0)
-        DFP_HANDLE_EXCEPTIONS (ieee_flags);
-    }
+    dfp_conversion_exceptions (context.status);
 
   return f;
 }

@@ -1,16 +1,19 @@
 /* { dg-do compile } */
-/* { dg-options "-O3 -fipa-cp -fdump-ipa-cp -fno-early-inlining"  } */
+/* { dg-options "-O3 -fipa-cp -fipa-cp-clone -fdump-ipa-cp -fno-early-inlining"  } */
 /* { dg-skip-if "PR 25442" { "*-*-*" } { "-fpic" "-fPIC" } { "" } } */
 
 /* Float & short constants.  */
 
 #include <stdio.h>
+void t(void);
 int g (float b, short c)
 {
+  t();
   return c + (int)b;
 }
 int f (float a)
 {
+  t();
   /* a is modified.  */
   if (a++ > 0)
     g (a, 3);
@@ -23,5 +26,6 @@ int main ()
 
 
 /* { dg-final { scan-ipa-dump-times "versioned function" 2 "cp"  } } */
-/* { dg-final { scan-ipa-dump-times "replacing param with const" 2 "cp"  } } */
+/* { dg-final { scan-ipa-dump "replacing param c with const 3" "cp"  } } */
+/* { dg-final { scan-ipa-dump "replacing param a with const 7" "cp"  } } */
 /* { dg-final { cleanup-ipa-dump "cp" } } */

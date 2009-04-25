@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -49,7 +47,7 @@ with Uname;   use Uname;
 package body Lib is
 
    Switch_Storing_Enabled : Boolean := True;
-   --  Set to False by Disable_Switch_Storing
+   --  Controlled by Enable_Switch_Storing/Disable_Switch_Storing
 
    -----------------------
    -- Local Subprograms --
@@ -120,6 +118,11 @@ package body Lib is
       return Units.Table (U).Has_RACW;
    end Has_RACW;
 
+   function Is_Compiler_Unit (U : Unit_Number_Type) return Boolean is
+   begin
+      return Units.Table (U).Is_Compiler_Unit;
+   end Is_Compiler_Unit;
+
    function Ident_String (U : Unit_Number_Type) return Node_Id is
    begin
       return Units.Table (U).Ident_String;
@@ -139,6 +142,11 @@ package body Lib is
    begin
       return Units.Table (U).Munit_Index;
    end Munit_Index;
+
+   function OA_Setting (U : Unit_Number_Type) return Character is
+   begin
+      return Units.Table (U).OA_Setting;
+   end OA_Setting;
 
    function Source_Index (U : Unit_Number_Type) return Source_File_Index is
    begin
@@ -195,6 +203,14 @@ package body Lib is
       Units.Table (U).Has_RACW := B;
    end Set_Has_RACW;
 
+   procedure Set_Is_Compiler_Unit
+     (U : Unit_Number_Type;
+      B : Boolean := True)
+   is
+   begin
+      Units.Table (U).Is_Compiler_Unit := B;
+   end Set_Is_Compiler_Unit;
+
    procedure Set_Ident_String (U : Unit_Number_Type; N : Node_Id) is
    begin
       Units.Table (U).Ident_String := N;
@@ -209,6 +225,11 @@ package body Lib is
    begin
       Units.Table (U).Main_Priority := P;
    end Set_Main_Priority;
+
+   procedure Set_OA_Setting (U : Unit_Number_Type; C : Character) is
+   begin
+      Units.Table (U).OA_Setting := C;
+   end Set_OA_Setting;
 
    procedure Set_Unit_Name (U : Unit_Number_Type; N : Unit_Name_Type) is
    begin
@@ -321,7 +342,7 @@ package body Lib is
          end if;
 
          --  At this stage we know that neither is a subunit, so we deal
-         --  with instantiations, since we culd have a common ancestor
+         --  with instantiations, since we could have a common ancestor
 
          Inst1 := Instantiation (Sind1);
          Inst2 := Instantiation (Sind2);
@@ -409,6 +430,19 @@ package body Lib is
    begin
       return Compilation_Switches.Last;
    end Compilation_Switches_Last;
+
+   ---------------------------
+   -- Enable_Switch_Storing --
+   ---------------------------
+
+   procedure Enable_Switch_Storing is
+   begin
+      Switch_Storing_Enabled := True;
+   end Enable_Switch_Storing;
+
+   ----------------------------
+   -- Disable_Switch_Storing --
+   ----------------------------
 
    procedure Disable_Switch_Storing is
    begin
@@ -568,10 +602,14 @@ package body Lib is
          end if;
       end loop;
 
-      --  If not in the table, must be the main source unit, and we just
-      --  have not got it put into the table yet.
+      --  If not in the table, must be a spec created for a main unit that is a
+      --  child subprogram body which we have not inserted into the table yet.
 
-      return Main_Unit;
+      if N /= Library_Unit (Cunit (Main_Unit)) then
+         raise Program_Error;
+      else
+         return Main_Unit;
+      end if;
    end Get_Cunit_Unit_Number;
 
    ---------------------

@@ -1,11 +1,11 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
 // of the GNU General Public License as published by the Free Software
-// Foundation; either version 2, or (at your option) any later
+// Foundation; either version 3, or (at your option) any later
 // version.
 
 // This library is distributed in the hope that it will be useful, but
@@ -13,20 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-// MA 02111-1307, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free
-// software library without restriction.  Specifically, if other files
-// instantiate templates or use macros or inline functions from this
-// file, or you compile this file and link it with other files to
-// produce an executable, this file does not by itself cause the
-// resulting executable to be covered by the GNU General Public
-// License.  This exception does not however invalidate any other
-// reasons why the executable file might be covered by the GNU General
-// Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 // Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
 
@@ -54,22 +48,22 @@
 #include <ext/pb_ds/detail/basic_tree_policy/null_node_metadata.hpp>
 #include <ext/pb_ds/trie_policy.hpp>
 #include <ext/pb_ds/tag_and_trait.hpp>
-#include <ext/hash_map>
+#include <tr1/functional>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace detail
   {
     template<typename Key>
     struct default_hash_fn
     {
-      typedef __gnu_cxx::hash< Key> type;
+      typedef std::tr1::hash<Key> type;
     };
 
     template<typename Key>
     struct default_eq_fn
     {
-      typedef std::equal_to< Key> type;
+      typedef std::equal_to<Key> type;
     };
 
     enum
@@ -79,7 +73,7 @@ namespace pb_ds
 
     struct default_comb_hash_fn
     {
-      typedef pb_ds::direct_mask_range_hashing<> type;
+      typedef __gnu_pbds::direct_mask_range_hashing<> type;
     };
 
     template<typename Comb_Hash_Fn>
@@ -88,32 +82,22 @@ namespace pb_ds
     private:
       typedef typename Comb_Hash_Fn::size_type size_type;
 
-      typedef
-      typename __conditional_type<
-	is_same<
-	pb_ds::direct_mask_range_hashing<
-	size_type>,
-	Comb_Hash_Fn>::value,
-	pb_ds::hash_exponential_size_policy<
-	size_type>,
-	pb_ds::hash_prime_size_policy>::__type
-      size_policy_type;
+      typedef __gnu_pbds::direct_mask_range_hashing<size_type> default_fn;
+      typedef is_same<default_fn, Comb_Hash_Fn> same_type;
+      typedef __gnu_pbds::hash_exponential_size_policy<size_type> iftrue;
+      typedef __gnu_pbds::hash_prime_size_policy iffalse;
+      typedef __conditional_type<same_type::value, iftrue, iffalse> cond_type;
+      typedef typename cond_type::__type size_policy_type;
+
+      typedef __gnu_pbds::hash_load_check_resize_trigger<false, size_type> trigger;
 
     public:
-      typedef
-      pb_ds::hash_standard_resize_policy<
-      size_policy_type,
-      pb_ds::hash_load_check_resize_trigger<
-      false,
-      size_type>,
-      false,
-      size_type>
-      type;
+      typedef __gnu_pbds::hash_standard_resize_policy<size_policy_type, trigger, false, size_type> type;
     };
 
     struct default_update_policy
     {
-      typedef pb_ds::move_to_front_lu_policy<> type;
+      typedef __gnu_pbds::move_to_front_lu_policy<> type;
     };
 
     template<typename Comb_Probe_Fn>
@@ -122,42 +106,31 @@ namespace pb_ds
     private:
       typedef typename Comb_Probe_Fn::size_type size_type;
 
+      typedef __gnu_pbds::direct_mask_range_hashing<size_type> default_fn;
+      typedef is_same<default_fn, Comb_Probe_Fn> same_type;
+      typedef __gnu_pbds::linear_probe_fn<size_type> iftrue;
+      typedef __gnu_pbds::quadratic_probe_fn<size_type> iffalse;
+      typedef __conditional_type<same_type::value, iftrue, iffalse> cond_type;
+
     public:
-      typedef
-      typename __conditional_type<
-      is_same<
-      pb_ds::direct_mask_range_hashing<size_t>,
-      Comb_Probe_Fn>::value,
-      pb_ds::linear_probe_fn<
-      size_type>,
-      pb_ds::quadratic_probe_fn<
-      size_type> >::__type
-      type;
+      typedef typename cond_type::__type type;
     };
 
     template<typename Key>
     struct default_trie_e_access_traits;
 
     template<typename Char, class Char_Traits>
-    struct default_trie_e_access_traits<
-      std::basic_string<
-      Char,
-      Char_Traits,
-      std::allocator<
-      char> > >
+    struct default_trie_e_access_traits<std::basic_string<Char, Char_Traits, std::allocator<char> > >
     {
-      typedef
-      pb_ds::string_trie_e_access_traits<
-	std::basic_string<
-	Char,
-	Char_Traits,
-	std::allocator<
-	char> > >
-      type;
+    private:
+      typedef std::basic_string<Char, Char_Traits, std::allocator<char> > string_type;
+
+    public:
+      typedef __gnu_pbds::string_trie_e_access_traits<string_type> type;
     };
 
   } // namespace detail
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif // #ifndef PB_DS_STANDARD_POLICIES_HPP
 

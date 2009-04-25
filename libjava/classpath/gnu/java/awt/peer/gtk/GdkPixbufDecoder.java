@@ -68,13 +68,17 @@ import javax.imageio.spi.ImageWriterSpi;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 
+import gnu.classpath.Configuration;
 import gnu.classpath.Pointer;
 
 public class GdkPixbufDecoder extends gnu.java.awt.image.ImageDecoder
 {
   static 
   {
-    System.loadLibrary("gtkpeer");
+    if (true) // GCJ LOCAL
+      {
+        System.loadLibrary("gtkpeer");
+      }
 
     initStaticState ();
   }

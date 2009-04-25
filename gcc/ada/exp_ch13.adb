@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@ with Exp_Util; use Exp_Util;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
+with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
 with Sem_Ch7;  use Sem_Ch7;
@@ -91,6 +92,14 @@ package body Exp_Ch13 is
             --  call to the init proc, and must be respected. Note that for
             --  packed types we do not build equivalent aggregates.
 
+            --  Also, if Init_Or_Norm_Scalars applies, then we need to retain
+            --  any default initialization for objects of scalar types and
+            --  types with scalar components. Normally a composite type will
+            --  have an init_proc in the presence of Init_Or_Norm_Scalars,
+            --  so when that flag is set we have just have to do a test for
+            --  scalar and string types (the predefined string types such as
+            --  String and Wide_String don't have an init_proc).
+
             declare
                Decl : constant Node_Id := Declaration_Node (Ent);
                Typ  : constant Entity_Id := Etype (Ent);
@@ -107,6 +116,13 @@ package body Exp_Ch13 is
                       Present (Static_Initialization (Base_Init_Proc (Typ)))
                   then
                      null;
+
+                  elsif Init_Or_Norm_Scalars
+                    and then
+                      (Is_Scalar_Type (Typ) or else Is_String_Type (Typ))
+                  then
+                     null;
+
                   else
                      Set_Expression (Decl, Empty);
                   end if;
@@ -146,21 +162,29 @@ package body Exp_Ch13 is
 
             --  For Storage_Size for an access type, create a variable to hold
             --  the value of the specified size with name typeV and expand an
-            --  assignment statement to initialze this value.
+            --  assignment statement to initialize this value.
 
             elsif Is_Access_Type (Ent) then
-               V := Make_Defining_Identifier (Loc,
-                      New_External_Name (Chars (Ent), 'V'));
 
-               Insert_Action (N,
-                 Make_Object_Declaration (Loc,
-                   Defining_Identifier => V,
-                   Object_Definition  =>
-                     New_Reference_To (RTE (RE_Storage_Offset), Loc),
-                   Expression =>
-                     Convert_To (RTE (RE_Storage_Offset), Expression (N))));
+               --  We don't need the variable for a storage size of zero
 
-               Set_Storage_Size_Variable (Ent, Entity_Id (V));
+               if not No_Pool_Assigned (Ent) then
+                  V :=
+                    Make_Defining_Identifier (Loc,
+                      Chars => New_External_Name (Chars (Ent), 'V'));
+
+                  --  Insert the declaration of the object
+
+                  Insert_Action (N,
+                    Make_Object_Declaration (Loc,
+                      Defining_Identifier => V,
+                      Object_Definition  =>
+                        New_Reference_To (RTE (RE_Storage_Offset), Loc),
+                      Expression =>
+                        Convert_To (RTE (RE_Storage_Offset), Expression (N))));
+
+                  Set_Storage_Size_Variable (Ent, Entity_Id (V));
+               end if;
             end if;
 
          --  Other attributes require no expansion
@@ -208,18 +232,32 @@ package body Exp_Ch13 is
          return;
       end if;
 
+      --  Remember that we are processing a freezing entity and its freezing
+      --  nodes. This flag (non-zero = set) is used to avoid the need of
+      --  climbing through the tree while processing the freezing actions (ie.
+      --  to avoid generating spurious warnings or to avoid killing constant
+      --  indications while processing the code associated with freezing
+      --  actions). We use a counter to deal with nesting.
+
+      Inside_Freezing_Actions := Inside_Freezing_Actions + 1;
+
       --  If we are freezing entities defined in protected types, they belong
       --  in the enclosing scope, given that the original type has been
       --  expanded away. The same is true for entities in task types, in
       --  particular the parameter records of entries (Entities in bodies are
       --  all frozen within the body). If we are in the task body, this is a
-      --  proper scope.
+      --  proper scope. If we are within a subprogram body, the proper scope
+      --  is the corresponding spec. This may happen for itypes generated in
+      --  the bodies of protected operations.
 
       if Ekind (E_Scope) = E_Protected_Type
         or else (Ekind (E_Scope) = E_Task_Type
                    and then not Has_Completion (E_Scope))
       then
          E_Scope := Scope (E_Scope);
+
+      elsif Ekind (E_Scope) = E_Subprogram_Body then
+         E_Scope := Corresponding_Spec (Unit_Declaration_Node (E_Scope));
       end if;
 
       S := Current_Scope;
@@ -238,9 +276,8 @@ package body Exp_Ch13 is
          Push_Scope (E_Scope);
          Install_Visible_Declarations (E_Scope);
 
-         if Ekind (E_Scope) = E_Package         or else
-            Ekind (E_Scope) = E_Generic_Package or else
-            Is_Protected_Type (E_Scope)         or else
+         if Is_Package_Or_Generic_Package (E_Scope) or else
+            Is_Protected_Type (E_Scope)             or else
             Is_Task_Type (E_Scope)
          then
             Install_Private_Declarations (E_Scope);
@@ -278,7 +315,7 @@ package body Exp_Ch13 is
          --  its secondary dispatch table and therefore the code generator
          --  has nothing else to do with this freezing node.
 
-         Delete := Present (Abstract_Interface_Alias (E));
+         Delete := Present (Interface_Alias (E));
       end if;
 
       --  Analyze actions generated by freezing. The init_proc contains source
@@ -334,6 +371,11 @@ package body Exp_Ch13 is
       elsif In_Outer_Scope then
          Pop_Scope;
       end if;
+
+      --  Restore previous value of the nesting-level counter that records
+      --  whether we are inside a (possibly nested) call to this procedure.
+
+      Inside_Freezing_Actions := Inside_Freezing_Actions - 1;
    end Expand_N_Freeze_Entity;
 
    -------------------------------------------

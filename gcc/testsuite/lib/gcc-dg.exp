@@ -1,4 +1,4 @@
-#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006, 2007
+#   Copyright (C) 1997, 1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008
 #   Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
@@ -23,15 +23,20 @@ load_lib scanasm.exp
 load_lib scanrtl.exp
 load_lib scantree.exp
 load_lib scanipa.exp
+load_lib timeout.exp
+load_lib timeout-dg.exp
 load_lib prune.exp
 load_lib libgloss.exp
 load_lib target-libpath.exp
+load_lib torture-options.exp
 
 # We set LC_ALL and LANG to C so that we get the same error messages as expected.
 setenv LC_ALL C
 setenv LANG C
 
-if ![info exists TORTURE_OPTIONS] {
+if [info exists TORTURE_OPTIONS] {
+    set DG_TORTURE_OPTIONS $TORTURE_OPTIONS
+} else {
     # It is theoretically beneficial to group all of the O2/O3 options together,
     # as in many cases the compiler will generate identical executables for
     # all of them--and the c-torture testsuite will skip testing identical
@@ -39,7 +44,7 @@ if ![info exists TORTURE_OPTIONS] {
     # Also note that -finline-functions is explicitly included in one of the
     # items below, even though -O3 is also specified, because some ports may
     # choose to disable inlining functions by default, even when optimizing.
-    set TORTURE_OPTIONS [list \
+    set DG_TORTURE_OPTIONS [list \
 	{ -O0 } \
 	{ -O1 } \
 	{ -O2 } \
@@ -48,6 +53,11 @@ if ![info exists TORTURE_OPTIONS] {
 	{ -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions } \
 	{ -O3 -g } \
 	{ -Os } ]
+}
+
+if [info exists ADDITIONAL_TORTURE_OPTIONS] {
+    set DG_TORTURE_OPTIONS \
+	[concat $DG_TORTURE_OPTIONS $ADDITIONAL_TORTURE_OPTIONS]
 }
 
 global GCC_UNDER_TEST
@@ -62,17 +72,6 @@ global orig_environment_saved
 if { $orig_environment_saved == 0 } {
     append ld_library_path [gcc-set-multilib-library-path $GCC_UNDER_TEST]
     set_ld_library_path_env_vars
-}
-
-# Split TORTURE_OPTIONS into two choices: one for testcases with loops and
-# one for testcases without loops.
-
-set torture_with_loops $TORTURE_OPTIONS
-set torture_without_loops ""
-foreach option $TORTURE_OPTIONS {
-    if ![string match "*loop*" $option] {
-	lappend torture_without_loops $option
-    }
 }
 
 # Define gcc callbacks for dg.exp.
@@ -140,8 +139,9 @@ proc gcc-dg-test-1 { target_compile prog do_what extra_tool_flags } {
     set comp_output [$target_compile "$prog" "$output_file" "$compile_type" $options]
 
     # Look for an internal compiler error, which sometimes masks the fact
-    # that we didn't get an expected error message.  An ICE always fails,
-    # there's no way to XFAIL it.
+    # that we didn't get an expected error message.  XFAIL an ICE via
+    # dg-xfail-if and use { dg-prune-output ".*internal compiler error.*" }
+    # to avoid a second failure for excess errors.
     if [string match "*internal compiler error*" $comp_output] {
 	upvar 2 name name
 	fail "$name (internal compiler error)"
@@ -186,7 +186,7 @@ proc gcc-dg-prune { system text } {
     # Likewise, if we see ".text exceeds local store range" or
     # similar.
     if {[string match "spu-*" $system] && \
-	    [string match "*exceeds local store range*" $text]} {
+	    [string match "*exceeds local store*" $text]} {
 	# The format here is important.  See dg.exp.
 	return "::unsupported::memory full"
     }
@@ -238,7 +238,17 @@ proc search_for { file pattern } {
 proc gcc-dg-runtest { testcases default-extra-flags } {
     global runtests
 
+    # Some callers set torture options themselves; don't override those.
+    set existing_torture_options [torture-options-exist]
+    if { $existing_torture_options == 0 } {
+	global DG_TORTURE_OPTIONS
+	torture-init
+	set-torture-options $DG_TORTURE_OPTIONS
+    }
+    dump-torture-options
+
     foreach test $testcases {
+	global torture_with_loops torture_without_loops
 	# If we're only testing specific files and this isn't one of
 	# them, skip it.
 	if ![runtest_file_p $runtests $test] {
@@ -247,7 +257,6 @@ proc gcc-dg-runtest { testcases default-extra-flags } {
 
 	# Look for a loop within the source code - if we don't find one,
 	# don't pass -funroll[-all]-loops.
-	global torture_with_loops torture_without_loops
 	if [expr [search_for $test "for*("]+[search_for $test "while*("]] {
 	    set option_list $torture_with_loops
 	} else {
@@ -260,6 +269,10 @@ proc gcc-dg-runtest { testcases default-extra-flags } {
 	    verbose "Testing $nshort, $flags" 1
 	    dg-test $test $flags ${default-extra-flags}
 	}
+    }
+
+    if { $existing_torture_options == 0 } {
+	torture-finish
     }
 }
 
@@ -348,6 +361,11 @@ proc remove-build-file { pat } {
     set file_list "[glob -nocomplain $pat]"
     verbose "remove-build-file `$file_list'" 2
     foreach output_file $file_list {
+	if [is_remote host] {
+	    # Ensure the host knows the file is gone by deleting there
+	    # first.
+	    remote_file host delete $output_file
+	}
 	remote_file build delete $output_file
     }
 }
@@ -435,21 +453,32 @@ proc cleanup-dump { suffix } {
 #
 # Currently this is only .i, .ii and .s files, but more can be added
 # if there are tests generating them.
-proc cleanup-saved-temps { } {
+# ARGS is a list of suffixes to NOT delete.
+proc cleanup-saved-temps { args } {
     global additional_sources
+    set suffixes {}
+
+    # add the to-be-kept suffixes
+    foreach suffix {".ii" ".i" ".s"} {
+	if {[lsearch $args $suffix] < 0} {
+	    lappend suffixes $suffix
+	}
+    }
 
     # This assumes that we are two frames down from dg-test or some other proc
     # that stores the filename of the testcase in a local variable "name".
     # A cleaner solution would require a new DejaGnu release.
     upvar 2 name testcase
-    remove-build-file "[file rootname [file tail $testcase]].ii"
-    remove-build-file "[file rootname [file tail $testcase]].i"
+    foreach suffix $suffixes {
+	remove-build-file "[file rootname [file tail $testcase]]$suffix"
+    }
 
     # Clean up saved temp files for additional source files.
     if [info exists additional_sources] {
 	foreach srcfile $additional_sources {
-            remove-build-file "[file rootname [file tail $srcfile]].ii"
-            remove-build-file "[file rootname [file tail $srcfile]].i"
+	    foreach suffix $suffixes {
+		remove-build-file "[file rootname [file tail $srcfile]]$suffix"
+	    }
 	}
     }
 }
@@ -553,12 +582,14 @@ if { [info procs saved-dg-test] == [list] } {
 	    if [info exists compiler_conditional_xfail_data] {
 		unset compiler_conditional_xfail_data
 	    }
+	    unset_timeout_vars
 	    error $errmsg $saved_info
 	}
 	set additional_files ""
 	set additional_sources ""
 	set additional_prunes ""
 	set shouldfail 0
+	unset_timeout_vars
 	if [info exists compiler_conditional_xfail_data] {
 	    unset compiler_conditional_xfail_data
 	}
@@ -614,7 +645,18 @@ proc process-message { msgproc msgprefix dgargs } {
     # it match a single line.
     set newentry [lindex ${dg-messages} end]
     set expmsg [lindex $newentry 2]
-    set expmsg "$msgprefix\[^\n]*$expmsg"
+
+    # If we have a column...
+    if [regexp "^(\[0-9\]+):" $expmsg "" column] {
+	# Remove "COLUMN:"
+	regsub "^\[0-9\]+:" $expmsg "" expmsg
+
+	# Include the column in the search expression.
+	set expmsg "$column: $msgprefix\[^\n]*$expmsg"
+    } else {
+	set expmsg "$msgprefix\[^\n]*$expmsg"
+    }
+
     set newentry [lreplace $newentry 2 2 $expmsg]
     set dg-messages [lreplace ${dg-messages} end end $newentry]
     verbose "process-message:\n${dg-messages}" 2

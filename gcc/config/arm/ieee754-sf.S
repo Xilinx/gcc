@@ -1,31 +1,26 @@
 /* ieee754-sf.S single-precision floating point support for ARM
 
-   Copyright (C) 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Nicolas Pitre (nico@cam.org)
 
    This file is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
+   Free Software Foundation; either version 3, or (at your option) any
    later version.
-
-   In addition to the permissions in the GNU General Public License, the
-   Free Software Foundation gives you unlimited permission to link the
-   compiled version of this file into combinations with other programs,
-   and to distribute those combinations without any restriction coming
-   from the use of this file.  (The General Public License restrictions
-   do apply in other respects; for example, they cover modification of
-   the file, and distribution when not linked into a combine
-   executable.)
 
    This file is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /*
  * Notes:
@@ -38,7 +33,7 @@
  * if necessary without impacting performances.
  */
 
-#ifdef L_negsf2
+#ifdef L_arm_negsf2
 	
 ARM_FUNC_START negsf2
 ARM_FUNC_ALIAS aeabi_fneg negsf2
@@ -51,7 +46,7 @@ ARM_FUNC_ALIAS aeabi_fneg negsf2
 
 #endif
 
-#ifdef L_addsubsf3
+#ifdef L_arm_addsubsf3
 
 ARM_FUNC_START aeabi_frsub
 
@@ -331,7 +326,7 @@ ARM_FUNC_ALIAS aeabi_ul2f floatundisf
 
 	orrs	r2, r0, r1
 #if !defined (__VFP_FP__) && !defined(__SOFTFP__)
-	do_itt	eq
+	do_it	eq, t
 	mvfeqs	f0, #0.0
 #else
 	do_it	eq
@@ -448,7 +443,7 @@ LSYM(f0_ret):
 
 #endif /* L_addsubsf3 */
 
-#ifdef L_muldivsf3
+#ifdef L_arm_muldivsf3
 
 ARM_FUNC_START mulsf3
 ARM_FUNC_ALIAS aeabi_fmul mulsf3
@@ -795,7 +790,7 @@ LSYM(Ldv_s):
 
 #endif /* L_muldivsf3 */
 
-#ifdef L_cmpsf2
+#ifdef L_arm_cmpsf2
 
 	@ The return value in r0 is
 	@
@@ -958,7 +953,7 @@ ARM_FUNC_START	aeabi_fcmpgt
 
 #endif /* L_cmpsf2 */
 
-#ifdef L_unordsf2
+#ifdef L_arm_unordsf2
 
 ARM_FUNC_START unordsf2
 ARM_FUNC_ALIAS aeabi_fcmpun unordsf2
@@ -983,7 +978,7 @@ ARM_FUNC_ALIAS aeabi_fcmpun unordsf2
 
 #endif /* L_unordsf2 */
 
-#ifdef L_fixsfsi
+#ifdef L_arm_fixsfsi
 
 ARM_FUNC_START fixsfsi
 ARM_FUNC_ALIAS aeabi_f2iz fixsfsi
@@ -1025,7 +1020,7 @@ ARM_FUNC_ALIAS aeabi_f2iz fixsfsi
 
 #endif /* L_fixsfsi */
 
-#ifdef L_fixunssfsi
+#ifdef L_arm_fixunssfsi
 
 ARM_FUNC_START fixunssfsi
 ARM_FUNC_ALIAS aeabi_f2uiz fixunssfsi

@@ -6,38 +6,34 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---           Copyright (C) 2001-2005, Free Software Foundation, Inc.        --
+--           Copyright (C) 2001-2009, Free Software Foundation, Inc.        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions;
 with Interfaces.C;
 with System;
 with GNAT.Directory_Operations;
 
 package body GNAT.Registry is
 
-   use Ada;
    use System;
 
    ------------------------------
@@ -154,12 +150,10 @@ package body GNAT.Registry is
 
    procedure Check_Result (Result : LONG; Message : String) is
       use type LONG;
-
    begin
       if Result /= ERROR_SUCCESS then
-         Exceptions.Raise_Exception
-           (Registry_Error'Identity,
-            Message & " (" & LONG'Image (Result) & ')');
+         raise Registry_Error with
+           Message & " (" & LONG'Image (Result) & ')';
       end if;
    end Check_Result;
 
@@ -169,7 +163,6 @@ package body GNAT.Registry is
 
    procedure Close_Key (Key : HKEY) is
       Result : LONG;
-
    begin
       Result := RegCloseKey (Key);
       Check_Result (Result, "Close_Key");
@@ -189,8 +182,8 @@ package body GNAT.Registry is
 
       REG_OPTION_NON_VOLATILE : constant := 16#0#;
 
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
-      C_Class   : constant String := "" & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
+      C_Class   : constant String := "" & ASCII.NUL;
       C_Mode    : constant REGSAM := To_C_Mode (Mode);
 
       New_Key : aliased HKEY;
@@ -198,16 +191,17 @@ package body GNAT.Registry is
       Dispos  : aliased DWORD;
 
    begin
-      Result := RegCreateKeyEx
-        (From_Key,
-         C_Sub_Key (C_Sub_Key'First)'Address,
-         0,
-         C_Class (C_Class'First)'Address,
-         REG_OPTION_NON_VOLATILE,
-         C_Mode,
-         Null_Address,
-         New_Key'Unchecked_Access,
-         Dispos'Unchecked_Access);
+      Result :=
+        RegCreateKeyEx
+          (From_Key,
+           C_Sub_Key (C_Sub_Key'First)'Address,
+           0,
+           C_Class (C_Class'First)'Address,
+           REG_OPTION_NON_VOLATILE,
+           C_Mode,
+           Null_Address,
+           New_Key'Unchecked_Access,
+           Dispos'Unchecked_Access);
 
       Check_Result (Result, "Create_Key " & Sub_Key);
       return New_Key;
@@ -218,9 +212,8 @@ package body GNAT.Registry is
    ----------------
 
    procedure Delete_Key (From_Key : HKEY; Sub_Key : String) is
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
       Result    : LONG;
-
    begin
       Result := RegDeleteKey (From_Key, C_Sub_Key (C_Sub_Key'First)'Address);
       Check_Result (Result, "Delete_Key " & Sub_Key);
@@ -231,9 +224,8 @@ package body GNAT.Registry is
    ------------------
 
    procedure Delete_Value (From_Key : HKEY; Sub_Key : String) is
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
       Result    : LONG;
-
    begin
       Result := RegDeleteValue (From_Key, C_Sub_Key (C_Sub_Key'First)'Address);
       Check_Result (Result, "Delete_Value " & Sub_Key);
@@ -271,32 +263,35 @@ package body GNAT.Registry is
          Size_Sub_Key := Sub_Key'Length;
          Size_Value   := Value'Length;
 
-         Result := RegEnumValue
-           (From_Key, Index,
-            Sub_Key (1)'Address,
-            Size_Sub_Key'Unchecked_Access,
-            null,
-            Type_Sub_Key'Unchecked_Access,
-            Value (1)'Address,
-            Size_Value'Unchecked_Access);
+         Result :=
+           RegEnumValue
+             (From_Key, Index,
+              Sub_Key (1)'Address,
+              Size_Sub_Key'Unchecked_Access,
+              null,
+              Type_Sub_Key'Unchecked_Access,
+              Value (1)'Address,
+              Size_Value'Unchecked_Access);
 
          exit when not (Result = ERROR_SUCCESS);
 
          Quit := False;
 
          if Type_Sub_Key = REG_EXPAND_SZ and then Expand then
-               Action (Natural (Index) + 1,
-                       Sub_Key (1 .. Integer (Size_Sub_Key)),
-                       Directory_Operations.Expand_Path
-                         (Value (1 .. Integer (Size_Value) - 1),
-                          Directory_Operations.DOS),
-                       Quit);
+            Action
+              (Natural (Index) + 1,
+               Sub_Key (1 .. Integer (Size_Sub_Key)),
+               Directory_Operations.Expand_Path
+                 (Value (1 .. Integer (Size_Value) - 1),
+                  Directory_Operations.DOS),
+               Quit);
 
          elsif Type_Sub_Key = REG_SZ or else Type_Sub_Key = REG_EXPAND_SZ then
-            Action (Natural (Index) + 1,
-                    Sub_Key (1 .. Integer (Size_Sub_Key)),
-                    Value (1 .. Integer (Size_Value) - 1),
-                    Quit);
+            Action
+              (Natural (Index) + 1,
+               Sub_Key (1 .. Integer (Size_Sub_Key)),
+               Value (1 .. Integer (Size_Value) - 1),
+               Quit);
          end if;
 
          exit when Quit;
@@ -342,19 +337,20 @@ package body GNAT.Registry is
    is
       use type REGSAM;
 
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
       C_Mode    : constant REGSAM := To_C_Mode (Mode);
 
-      New_Key   : aliased HKEY;
-      Result    : LONG;
+      New_Key : aliased HKEY;
+      Result  : LONG;
 
    begin
-      Result := RegOpenKeyEx
-        (From_Key,
-         C_Sub_Key (C_Sub_Key'First)'Address,
-         0,
-         C_Mode,
-         New_Key'Unchecked_Access);
+      Result :=
+        RegOpenKeyEx
+          (From_Key,
+           C_Sub_Key (C_Sub_Key'First)'Address,
+           0,
+           C_Mode,
+           New_Key'Unchecked_Access);
 
       Check_Result (Result, "Open_Key " & Sub_Key);
       return New_Key;
@@ -379,19 +375,20 @@ package body GNAT.Registry is
       Size_Value : aliased ULONG;
       Type_Value : aliased DWORD;
 
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
       Result    : LONG;
 
    begin
       Size_Value := Value'Length;
 
-      Result := RegQueryValueEx
-        (From_Key,
-         C_Sub_Key (C_Sub_Key'First)'Address,
-         null,
-         Type_Value'Unchecked_Access,
-         Value (Value'First)'Address,
-         Size_Value'Unchecked_Access);
+      Result :=
+        RegQueryValueEx
+          (From_Key,
+           C_Sub_Key (C_Sub_Key'First)'Address,
+           null,
+           Type_Value'Unchecked_Access,
+           Value (Value'First)'Address,
+           Size_Value'Unchecked_Access);
 
       Check_Result (Result, "Query_Value " & Sub_Key & " key");
 
@@ -408,23 +405,32 @@ package body GNAT.Registry is
    ---------------
 
    procedure Set_Value
-     (From_Key : HKEY;
-      Sub_Key  : String;
-      Value    : String)
+      (From_Key : HKEY;
+       Sub_Key  : String;
+       Value    : String;
+       Expand   : Boolean := False)
    is
-      C_Sub_Key : constant String := Sub_Key & ASCII.Nul;
-      C_Value   : constant String := Value & ASCII.Nul;
+      C_Sub_Key : constant String := Sub_Key & ASCII.NUL;
+      C_Value   : constant String := Value & ASCII.NUL;
 
-      Result : LONG;
+      Value_Type : DWORD;
+      Result     : LONG;
 
    begin
-      Result := RegSetValueEx
-        (From_Key,
-         C_Sub_Key (C_Sub_Key'First)'Address,
-         0,
-         REG_SZ,
-         C_Value (C_Value'First)'Address,
-         C_Value'Length);
+      if Expand then
+         Value_Type := REG_EXPAND_SZ;
+      else
+         Value_Type := REG_SZ;
+      end if;
+
+      Result :=
+        RegSetValueEx
+          (From_Key,
+           C_Sub_Key (C_Sub_Key'First)'Address,
+           0,
+           Value_Type,
+           C_Value (C_Value'First)'Address,
+           C_Value'Length);
 
       Check_Result (Result, "Set_Value " & Sub_Key & " key");
    end Set_Value;

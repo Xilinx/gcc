@@ -1,7 +1,8 @@
 @c markers: CROSSREF BUG TODO
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-@c 2000, 2001, 2002, 2003, 2004, 2005 Free Software Foundation, Inc.
+@c 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software
+@c Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -19,7 +20,7 @@ where near complete.
 @menu
 * Parsing pass::         The language front end turns text into bits.
 * Gimplification pass::  The bits are turned into something we can optimize.
-* Pass manager::	 Sequencing the optimization passes.
+* Pass manager::         Sequencing the optimization passes.
 * Tree-SSA passes::      Optimizations on a high-level representation.
 * RTL passes::           Optimizations on a low-level representation.
 @end menu
@@ -165,9 +166,13 @@ not attempt to (re-)generate data structures or lower intermediate
 language form based on the requirements of the next pass.  Nevertheless,
 what is present is useful, and a far sight better than nothing at all.
 
+Each pass may have its own dump file (for GCC debugging purposes).
+Passes without any names, or with a name starting with a star, do not
+dump anything.
+
 TODO: describe the global variables set up by the pass manager,
 and a brief description of how a new pass should use it.
-I need to look at what info rtl passes use first...
+I need to look at what info rtl passes use first@enddots{}
 
 @node Tree-SSA passes
 @section Tree-SSA passes
@@ -274,7 +279,7 @@ located in @file{tree-ssa.c} and is described by @code{pass_build_ssa}.
 This pass scans the function for uses of @code{SSA_NAME}s that
 are fed by default definition.  For non-parameter variables, such
 uses are uninitialized.  The pass is run twice, before and after
-optimization.  In the first pass we only warn for uses that are
+optimization (if turned on).  In the first pass we only warn for uses that are
 positively uninitialized; in the second pass we warn for uses that
 are possibly uninitialized.  The pass is located in @file{tree-ssa.c}
 and is defined by @code{pass_early_warn_uninitialized} and
@@ -366,7 +371,7 @@ This pass transforms tail recursion into a loop.  It is located in
 
 @item Forward store motion
 
-This pass sinks stores and assignments down the flowgraph closer to it's
+This pass sinks stores and assignments down the flowgraph closer to their
 use point.  The pass is located in @file{tree-ssa-sink.c} and is
 described by @code{pass_sink_code}.
 
@@ -384,7 +389,7 @@ in @file{tree-ssa-math-opts.c} and is described by
 
 @item Full redundancy elimination
 
-This is a simpler form of PRE that only eliminate redundancies that
+This is a simpler form of PRE that only eliminates redundancies that
 occur an all paths.  It is located in @file{tree-ssa-pre.c} and
 described by @code{pass_fre}.
 
@@ -438,6 +443,9 @@ The pass is implemented in @file{tree-vectorizer.c} (the main driver and general
 utilities), @file{tree-vect-analyze.c} and @file{tree-vect-transform.c}.
 Analysis of data references is in @file{tree-data-ref.c}.
 
+Autoparallelization.  This pass splits the loop iteration space to run
+into several threads.  The pass is implemented in @file{tree-parloops.c}.
+
 @item Tree level if-conversion for vectorizer
 
 This pass applies if-conversion to simple loops to help vectorizer.
@@ -487,7 +495,7 @@ described by @code{pass_vrp}.
 @item Folding built-in functions
 
 This pass simplifies built-in functions, as applicable, with constant
-arguments or with inferrable string lengths.  It is located in
+arguments or with inferable string lengths.  It is located in
 @file{tree-ssa-ccp.c} and is described by @code{pass_fold_builtins}.
 
 @item Split critical edges
@@ -555,7 +563,7 @@ If a function always returns the same local variable, and that local
 variable is an aggregate type, then the variable is replaced with the
 return value for the function (i.e., the function's DECL_RESULT).  This
 is equivalent to the C++ named return value optimization applied to
-GIMPLE.  The pass is located in @file{tree-nrv.c} and is described by
+GIMPLE@.  The pass is located in @file{tree-nrv.c} and is described by
 @code{pass_nrv}.
 
 @item Return slot optimization
@@ -818,20 +826,30 @@ them on the stack.  This is done in several subpasses:
 
 @itemize @bullet
 @item
-Register class preferencing.  The RTL code is scanned to find out
-which register class is best for each pseudo register.  The source
-file is @file{regclass.c}.
+Register move optimizations.  This pass makes some simple RTL code
+transformations which improve the subsequent register allocation.  The
+source file is @file{regmove.c}.
 
 @item
-Local register allocation.  This pass allocates hard registers to
-pseudo registers that are used only within one basic block.  Because
-the basic block is linear, it can use fast and powerful techniques to
-do a decent job.  The source is located in @file{local-alloc.c}.
+The integrated register allocator (@acronym{IRA}).  It is called
+integrated because coalescing, register live range splitting, and hard
+register preferencing are done on-the-fly during coloring.  It also
+has better integration with the reload pass.  Pseudo-registers spilled
+by the allocator or the reload have still a chance to get
+hard-registers if the reload evicts some pseudo-registers from
+hard-registers.  The allocator helps to choose better pseudos for
+spilling based on their live ranges and to coalesce stack slots
+allocated for the spilled pseudo-registers.  IRA is a regional
+register allocator which is transformed into Chaitin-Briggs allocator
+if there is one region.  By default, IRA chooses regions using
+register pressure but the user can force it to use one region or
+regions corresponding to all loops.
 
-@item
-Global register allocation.  This pass allocates hard registers for
-the remaining pseudo registers (those whose life spans are not
-contained in one basic block).  The pass is located in @file{global.c}.
+Source files of the allocator are @file{ira.c}, @file{ira-build.c},
+@file{ira-costs.c}, @file{ira-conflicts.c}, @file{ira-color.c},
+@file{ira-emit.c}, @file{ira-lives}, plus header files @file{ira.h}
+and @file{ira-int.h} used for the communication between the allocator
+and the rest of the compiler and between the IRA files.
 
 @cindex reloading
 @item

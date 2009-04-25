@@ -1,6 +1,6 @@
 /* Part of CPP library.  File handling.
    Copyright (C) 1986, 1987, 1989, 1992, 1993, 1994, 1995, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994.
    Based on CCCP program by Paul Rubin, June 1986
@@ -10,7 +10,7 @@
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -19,8 +19,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -74,6 +74,10 @@ struct _cpp_file
   /* The contents of NAME after calling read_file().  */
   const uchar *buffer;
 
+  /* Pointer to the real start of BUFFER.  read_file() might increment
+     BUFFER; when freeing, this this pointer must be used instead.  */
+  const uchar *buffer_start;
+
   /* The macro, if any, preventing re-inclusion.  */
   const cpp_hashnode *cmacro;
 
@@ -106,9 +110,6 @@ struct _cpp_file
 
   /* If BUFFER above contains the true contents of the file.  */
   bool buffer_valid;
-
-  /* File is a PCH (on return from find_include_file).  */
-  bool pch;
 };
 
 /* A singly-linked list for all searches for a given file name, with
@@ -142,11 +143,27 @@ struct file_hash_entry
 {
   struct file_hash_entry *next;
   cpp_dir *start_dir;
+  source_location location;
   union
   {
     _cpp_file *file;
     cpp_dir *dir;
   } u;
+};
+
+/* Number of entries to put in a file_hash_entry pool.  */
+#define FILE_HASH_POOL_SIZE 127
+
+/* A file hash entry pool.  We allocate file_hash_entry object from
+   one of these.  */
+struct file_hash_entry_pool
+{
+  /* Number of entries used from this pool.  */
+  unsigned int file_hash_entries_used;
+  /* Next pool in the chain; used when freeing.  */
+  struct file_hash_entry_pool *next;
+  /* The memory pool.  */
+  struct file_hash_entry pool[FILE_HASH_POOL_SIZE];
 };
 
 static bool open_file (_cpp_file *file);
@@ -306,9 +323,7 @@ pch_open_file (cpp_reader *pfile, _cpp_file *file, bool *invalid_pch)
 	    }
 	  closedir (pchdir);
 	}
-      if (valid)
-	file->pch = true;
-      else
+      if (!valid)
 	*invalid_pch = true;
     }
 
@@ -473,7 +488,6 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
 	      return file;
 	    }
 
-	  open_file_failed (pfile, file, angle_brackets);
 	  if (invalid_pch)
 	    {
 	      cpp_error (pfile, CPP_DL_ERROR,
@@ -482,6 +496,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
 		cpp_error (pfile, CPP_DL_ERROR,
 			   "use -Winvalid-pch for more information");
 	    }
+	  open_file_failed (pfile, file, angle_brackets);
 	  break;
 	}
 
@@ -521,6 +536,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
   entry = new_file_hash_entry (pfile);
   entry->next = *hash_slot;
   entry->start_dir = start_dir;
+  entry->location = pfile->line_table->highest_location;
   entry->u.file = file;
   *hash_slot = entry;
 
@@ -533,6 +549,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
       entry = new_file_hash_entry (pfile);
       entry->next = *hash_slot;
       entry->start_dir = pfile->bracket_include;
+      entry->location = pfile->line_table->highest_location;
       entry->u.file = file;
       *hash_slot = entry;
     }
@@ -543,6 +560,7 @@ _cpp_find_file (cpp_reader *pfile, const char *fname, cpp_dir *start_dir, bool f
       entry = new_file_hash_entry (pfile);
       entry->next = *hash_slot;
       entry->start_dir = pfile->quote_include;
+      entry->location = pfile->line_table->highest_location;
       entry->u.file = file;
       *hash_slot = entry;
     }
@@ -621,8 +639,11 @@ read_file_guts (cpp_reader *pfile, _cpp_file *file)
     cpp_error (pfile, CPP_DL_WARNING,
 	       "%s is shorter than expected", file->path);
 
-  file->buffer = _cpp_convert_input (pfile, CPP_OPTION (pfile, input_charset),
-				     buf, size, total, &file->st.st_size);
+  file->buffer = _cpp_convert_input (pfile,
+				     CPP_OPTION (pfile, input_charset),
+				     buf, size, total,
+				     &file->buffer_start,
+				     &file->st.st_size);
   file->buffer_valid = true;
 
   return true;
@@ -684,11 +705,12 @@ should_stack_file (cpp_reader *pfile, _cpp_file *file, bool import)
     return false;
 
   /* Handle PCH files immediately; don't stack them.  */
-  if (file->pch)
+  if (file->pchname)
     {
       pfile->cb.read_pch (pfile, file->pchname, file->fd, file->path);
-      close (file->fd);
       file->fd = -1;
+      free ((void *) file->pchname);
+      file->pchname = NULL;
       return false;
     }
 
@@ -833,7 +855,8 @@ search_path_head (cpp_reader *pfile, const char *fname, int angle_brackets,
   /* For #include_next, skip in the search path past the dir in which
      the current file was found, but if it was found via an absolute
      path use the normal search logic.  */
-  if (type == IT_INCLUDE_NEXT && file->dir)
+  if (type == IT_INCLUDE_NEXT && file->dir
+      && file->dir != &pfile->no_search_path)
     dir = file->dir->next;
   else if (angle_brackets)
     dir = pfile->bracket_include;
@@ -896,7 +919,7 @@ _cpp_stack_include (cpp_reader *pfile, const char *fname, int angle_brackets,
      complicates LAST_SOURCE_LINE_LOCATION.  This does not apply if we
      found a PCH file (in which case linemap_add is not called) or we
      were included from the command-line.  */
-  if (! file->pch && file->err_no == 0 && type != IT_CMDLINE)
+  if (file->pchname == NULL && file->err_no == 0 && type != IT_CMDLINE)
     pfile->line_table->highest_location--;
 
   return _cpp_stack_file (pfile, file, type == IT_IMPORT);
@@ -919,7 +942,7 @@ open_file_failed (cpp_reader *pfile, _cpp_file *file, int angle_brackets)
       if (CPP_OPTION (pfile, deps.style) && ! print_dep)
 	cpp_errno (pfile, CPP_DL_WARNING, file->path);
       else
-	cpp_errno (pfile, CPP_DL_ERROR, file->path);
+	cpp_errno (pfile, CPP_DL_FATAL, file->path);
     }
 }
 
@@ -953,10 +976,23 @@ make_cpp_file (cpp_reader *pfile, cpp_dir *dir, const char *fname)
 static void
 destroy_cpp_file (_cpp_file *file)
 {
-  if (file->buffer)
-    free ((void *) file->buffer);
+  if (file->buffer_start)
+    free ((void *) file->buffer_start);
   free ((void *) file->name);
   free (file);
+}
+
+/* Release all the files allocated by this reader.  */
+static void
+destroy_all_cpp_files (cpp_reader *pfile)
+{
+  _cpp_file *iter = pfile->all_files;
+  while (iter)
+    {
+      _cpp_file *next = iter->next_file;
+      destroy_cpp_file (iter);
+      iter = next;
+    }
 }
 
 /* A hash of directory names.  The directory names are the path names
@@ -993,6 +1029,7 @@ make_cpp_dir (cpp_reader *pfile, const char *dir_name, int sysp)
   entry = new_file_hash_entry (pfile);
   entry->next = *hash_slot;
   entry->start_dir = NULL;
+  entry->location = pfile->line_table->highest_location;
   entry->u.dir = dir;
   *hash_slot = entry;
 
@@ -1003,20 +1040,35 @@ make_cpp_dir (cpp_reader *pfile, const char *dir_name, int sysp)
 static void
 allocate_file_hash_entries (cpp_reader *pfile)
 {
-  pfile->file_hash_entries_used = 0;
-  pfile->file_hash_entries_allocated = 127;
-  pfile->file_hash_entries = XNEWVEC (struct file_hash_entry,
-                                      pfile->file_hash_entries_allocated);
+  struct file_hash_entry_pool *pool = XNEW (struct file_hash_entry_pool);
+  pool->file_hash_entries_used = 0;
+  pool->next = pfile->file_hash_entries;
+  pfile->file_hash_entries = pool;
 }
 
 /* Return a new file hash entry.  */
 static struct file_hash_entry *
 new_file_hash_entry (cpp_reader *pfile)
 {
-  if (pfile->file_hash_entries_used == pfile->file_hash_entries_allocated)
+  unsigned int idx;
+  if (pfile->file_hash_entries->file_hash_entries_used == FILE_HASH_POOL_SIZE)
     allocate_file_hash_entries (pfile);
 
-  return &pfile->file_hash_entries[pfile->file_hash_entries_used++];
+  idx = pfile->file_hash_entries->file_hash_entries_used++;
+  return &pfile->file_hash_entries->pool[idx];
+}
+
+/* Free the file hash entry pools.  */
+static void
+free_file_hash_entries (cpp_reader *pfile)
+{
+  struct file_hash_entry_pool *iter = pfile->file_hash_entries;
+  while (iter)
+    {
+      struct file_hash_entry_pool *next = iter->next;
+      free (iter);
+      iter = next;
+    }
 }
 
 /* Returns TRUE if a file FNAME has ever been successfully opened.
@@ -1031,6 +1083,25 @@ cpp_included (cpp_reader *pfile, const char *fname)
      htab_find_with_hash (pfile->file_hash, fname, htab_hash_string (fname));
 
   while (entry && (entry->start_dir == NULL || entry->u.file->err_no))
+    entry = entry->next;
+
+  return entry != NULL;
+}
+
+/* Returns TRUE if a file FNAME has ever been successfully opened
+   before LOCATION.  This routine is not intended to correctly handle
+   filenames aliased by links or redundant . or .. traversals etc.  */
+bool
+cpp_included_before (cpp_reader *pfile, const char *fname,
+		     source_location location)
+{
+  struct file_hash_entry *entry;
+
+  entry = (struct file_hash_entry *)
+     htab_find_with_hash (pfile->file_hash, fname, htab_hash_string (fname));
+
+  while (entry && (entry->start_dir == NULL || entry->u.file->err_no
+		   || entry->location > location))
     entry = entry->next;
 
   return entry != NULL;
@@ -1100,6 +1171,19 @@ _cpp_cleanup_files (cpp_reader *pfile)
   htab_delete (pfile->dir_hash);
   htab_delete (pfile->nonexistent_file_hash);
   obstack_free (&pfile->nonexistent_file_ob, 0);
+  free_file_hash_entries (pfile);
+  destroy_all_cpp_files (pfile);
+}
+
+/* Make the parser forget about files it has seen.  This can be useful
+   for resetting the parser to start another run.  */
+void
+cpp_clear_file_cache (cpp_reader *pfile)
+{
+  _cpp_cleanup_files (pfile);
+  pfile->file_hash_entries = NULL;
+  pfile->all_files = NULL;
+  _cpp_init_files (pfile);
 }
 
 /* Enter a file name in the hash for the sake of cpp_included.  */
@@ -1137,12 +1221,19 @@ cpp_change_file (cpp_reader *pfile, enum lc_reason reason,
   _cpp_do_file_change (pfile, reason, new_name, 1, 0);
 }
 
+struct report_missing_guard_data
+{
+  const char **paths;
+  size_t count;
+};
+
 /* Callback function for htab_traverse.  */
 static int
-report_missing_guard (void **slot, void *b)
+report_missing_guard (void **slot, void *d)
 {
   struct file_hash_entry *entry = (struct file_hash_entry *) *slot;
-  int *bannerp = (int *) b;
+  struct report_missing_guard_data *data
+    = (struct report_missing_guard_data *) d;
 
   /* Skip directories.  */
   if (entry->start_dir != NULL)
@@ -1152,19 +1243,25 @@ report_missing_guard (void **slot, void *b)
       /* We don't want MI guard advice for the main file.  */
       if (file->cmacro == NULL && file->stack_count == 1 && !file->main_file)
 	{
-	  if (*bannerp == 0)
+	  if (data->paths == NULL)
 	    {
-	      fputs (_("Multiple include guards may be useful for:\n"),
-		     stderr);
-	      *bannerp = 1;
+	      data->paths = XCNEWVEC (const char *, data->count);
+	      data->count = 0;
 	    }
 
-	  fputs (entry->u.file->path, stderr);
-	  putc ('\n', stderr);
+	  data->paths[data->count++] = file->path;
 	}
     }
 
-  return 0;
+  /* Keep traversing the hash table.  */
+  return 1;
+}
+
+/* Comparison function for qsort.  */
+static int
+report_missing_guard_cmp (const void *p1, const void *p2)
+{
+  return strcmp (*(const char *const *) p1, *(const char *const *) p2);
 }
 
 /* Report on all files that might benefit from a multiple include guard.
@@ -1172,9 +1269,29 @@ report_missing_guard (void **slot, void *b)
 void
 _cpp_report_missing_guards (cpp_reader *pfile)
 {
-  int banner = 0;
+  struct report_missing_guard_data data;
 
-  htab_traverse (pfile->file_hash, report_missing_guard, &banner);
+  data.paths = NULL;
+  data.count = htab_elements (pfile->file_hash);
+  htab_traverse (pfile->file_hash, report_missing_guard, &data);
+
+  if (data.paths != NULL)
+    {
+      size_t i;
+
+      /* Sort the paths to avoid outputting them in hash table
+	 order.  */
+      qsort (data.paths, data.count, sizeof (const char *),
+	     report_missing_guard_cmp);
+      fputs (_("Multiple include guards may be useful for:\n"),
+	     stderr);
+      for (i = 0; i < data.count; i++)
+	{
+	  fputs (data.paths[i], stderr);
+	  putc ('\n', stderr);
+	}
+      free (data.paths);
+    }
 }
 
 /* Locate HEADER, and determine whether it is newer than the current
@@ -1225,9 +1342,10 @@ _cpp_pop_file_buffer (cpp_reader *pfile, _cpp_file *file)
   /* Invalidate control macros in the #including file.  */
   pfile->mi_valid = false;
 
-  if (file->buffer)
+  if (file->buffer_start)
     {
-      free ((void *) file->buffer);
+      free ((void *) file->buffer_start);
+      file->buffer_start = NULL;
       file->buffer = NULL;
       file->buffer_valid = false;
     }

@@ -1,5 +1,6 @@
 ! { dg-do run }
 ! { dg-options "-O2" }
+! { dg-options "-O2 -mieee" { target alpha*-*-* } }
 ! Tests the fix for the meta-bug PR31237 (TRANSFER intrinsic)
 ! Exercises gfc_simplify_transfer a random walk through types and shapes
 ! and compares its results with the middle-end version that operates on
@@ -71,7 +72,7 @@ contains
 
   subroutine integer8_to_real4
     integer               ::  k
-    integer(8), parameter ::  i1(2) = transfer ((/asin (1.0_8), log (1.0_8)/), i1)
+    integer(8), parameter ::  i1(2) = transfer ((/asin (1.0_8), log (1.0_8)/), 0_8)
     integer(8)            ::  i2(2) = i1
     real(4), parameter    ::  r1(4) = transfer (i1, (/(1.0_4,k=1,4)/))
     real(4)               ::  r2(4)
@@ -82,7 +83,7 @@ contains
 
   subroutine integer8_to_complex4
     integer               ::  k
-    integer(8), parameter ::  i1(2) = transfer ((/asin (1.0_8), log (1.0_8)/), i1)
+    integer(8), parameter ::  i1(2) = transfer ((/asin (1.0_8), log (1.0_8)/), 0_8)
     integer(8)            ::  i2(2) = i1
     complex(4), parameter ::  z1(2) = transfer (i1, (/((1.0_4,2.0_4),k=1,2)/))
     complex(4)            ::  z2(2)
@@ -92,7 +93,7 @@ contains
   end subroutine integer8_to_complex4
 
   subroutine character16_to_complex8
-    character(16), parameter ::  c1(2) = (/"abcdefghijklmnop","qrstuvwxyz1234567890"/)
+    character(16), parameter ::  c1(2) = (/"abcdefghijklmnop","qrstuvwxyz123456"/)
     character(16)            ::  c2(2) = c1
     complex(8), parameter    ::  z1(2) = transfer (c1, (1.0_8,1.0_8), 2)
     complex(8)               ::  z2(2)

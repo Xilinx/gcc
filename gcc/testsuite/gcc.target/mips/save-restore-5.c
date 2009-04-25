@@ -1,11 +1,10 @@
 /* Check that we don't try to save the same register twice.  */
-/* { dg-do assemble } */
-/* { dg-mips-options "-mips32r2 -mgp32 -mips16 -mno-abicalls -O2" } */
+/* { dg-options "(-mips16) isa_rev>=1 -mgp32 -O2" } */
 
 int bar (int, int, int, int);
 void frob (void);
 
-void
+MIPS16 void
 foo (int a1, int a2, int a3, int a4)
 {
   asm volatile ("" ::: "$2", "$3", "$4", "$5", "$6", "$7", "$8",

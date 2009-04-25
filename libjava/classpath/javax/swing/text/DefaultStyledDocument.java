@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package javax.swing.text;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.io.Serializable;
@@ -374,7 +376,7 @@ public class DefaultStyledDocument extends AbstractDocument implements
      */
     public String toString()
     {
-      StringBuilder b = new StringBuilder();
+      CPStringBuilder b = new CPStringBuilder();
       switch (type)
         {
         case StartTagType:
@@ -1158,6 +1160,9 @@ public class DefaultStyledDocument extends AbstractDocument implements
 
     private void insertElement(ElementSpec spec)
     {
+      if (elementStack.isEmpty())
+        return;
+      
       Edit edit = (Edit) elementStack.peek();
       switch (spec.getType())
         {
@@ -2417,7 +2422,7 @@ public class DefaultStyledDocument extends AbstractDocument implements
         writeLock();
 
         // First we collect the content to be inserted.
-        StringBuffer contentBuffer = new StringBuffer();
+        CPStringBuilder contentBuffer = new CPStringBuilder();
         for (int i = 0; i < data.length; i++)
           {
             // Collect all inserts into one so we can get the correct

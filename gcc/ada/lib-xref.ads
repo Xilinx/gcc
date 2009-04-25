@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -73,7 +73,7 @@ package Lib.Xref is
    --        in the visible part of a generic package, and space otherwise.
 
    --        entity is the name of the referenced entity, with casing in
-   --        the canical casing for the source file where it is defined.
+   --        the canonical casing for the source file where it is defined.
 
    --        renameref provides information on renaming. If the entity is
    --        a package, object or overloadable entity which is declared by
@@ -115,7 +115,18 @@ package Lib.Xref is
 
    --          For a type that implements multiple interfaces, there is an
    --          entry of the form  LR=<> for each of the interfaces appearing
-   --          in the type declaration.
+   --          in the type declaration. In the data structures of ali.ads,
+   --          the type that the entity extends (or the first interface if
+   --          there is no such type) is stored in Xref_Entity_Record.Tref*,
+   --          additional interfaces are stored in the list of references
+   --          with a special type of Interface_Reference.
+
+   --          For an array type, there is an entry of the form LR=<> for
+   --          each of the index types appearing in the type declaration.
+   --          The index types follow the entry for the component type.
+   --          In the data structures of ali.ads, however, the list of index
+   --          types are output in the list of references with a special
+   --          Rtype set to Array_Index_Reference.
 
    --          In the above list LR shows the brackets used in the output,
    --          which has one of the two following forms:
@@ -169,6 +180,7 @@ package Lib.Xref is
    --              p = primitive operation
    --              P = overriding primitive operation
    --              r = reference
+   --              R = subprogram reference in dispatching call
    --              t = end of body
    --              w = WITH line
    --              x = type extension
@@ -176,7 +188,7 @@ package Lib.Xref is
    --              > = subprogram IN parameter
    --              = = subprogram IN OUT parameter
    --              < = subprogram OUT parameter
-   --              > = subprogram ACCESS parameter
+   --              ^ = subprogram ACCESS parameter
 
    --           b is used for spec entities that are repeated in a body,
    --           including the unit (subprogram, package, task, protected
@@ -225,8 +237,33 @@ package Lib.Xref is
    --           source node that generates the implicit reference, and it is
    --           useful to record this one.
 
-   --           k is used to denote a reference to the parent unit, in the
-   --           cross-reference line for a child unit.
+   --           k is another non-standard reference type, used to record a
+   --           reference from a child unit to its parent. For various cross-
+   --           referencing tools, we need a pointer from the xref entries for
+   --           the child to the parent. This is the opposite way round from
+   --           normal xref entries, since the reference is *from* the child
+   --           unit *to* the parent unit, yet appears in the xref entries for
+   --           the child. Consider this example:
+   --
+   --             package q is
+   --             end;
+   --             package q.r is
+   --             end q.r;
+   --
+   --           The ali file for q-r.ads has these entries
+   --
+   --             D q.ads
+   --             D q-r.ads
+   --             D system.ads
+   --             X 1 q.ads
+   --             1K9*q 2e4 2|1r9 2r5
+   --             X 2 q-r.ads
+   --             1K11*r 1|1k9 2|2l7 2e8
+   --
+   --           Here the 2|1r9 entry appearing in the section for the parent
+   --           is the normal reference from the child to the parent. The 1k9
+   --           entry in the section for the child duplicates this information
+   --           but appears in the child rather than the parent.
 
    --           l is used to identify the occurrence in the source of the
    --           name on an end line. This is just a syntactic reference
@@ -239,7 +276,7 @@ package Lib.Xref is
    --           Pq of this type, then an entry in the list of references to
    --           Tx will point to the declaration of Pq. Note that this entry
    --           type is unusual because it an implicit rather than explicit,
-   --           and the name of the refrerence does not match the name of the
+   --           and the name of the reference does not match the name of the
    --           entity for which a reference is generated. These entries are
    --           generated only for entities declared in the extended main
    --           source unit (main unit itself, its separate spec (if any).
@@ -248,6 +285,10 @@ package Lib.Xref is
    --           If the primitive operation overrides an inherited primitive
    --           operation of the parent type, the letter 'P' is used in the
    --           corresponding entry.
+
+   --           R is used to mark a dispatching call. The reference is to
+   --           the specification of the primitive operation of the root
+   --           type when the call has a controlling argument in its class.
 
    --           t is similar to e. It identifies the end of a corresponding
    --           body (such a reference always links up with a b reference)
@@ -283,7 +324,7 @@ package Lib.Xref is
    --           instantiations, this can be nested [...[...[...]]] etc.
    --           The reference is of the form [file|line] no column is
    --           present since it is assumed that only one instantiation
-   --           appears on a single source line. Note that the appearence
+   --           appears on a single source line. Note that the appearance
    --           of file numbers in such references follows the normal
    --           rules (present only if needed, and resets the current
    --           file for subsequent references).
@@ -317,7 +358,7 @@ package Lib.Xref is
    --              a reference (e.g. a call) at line 8 column 4 of the
    --              of the current file.
 
-   --              the END line of the body has an explict reference to
+   --              the END line of the body has an explicit reference to
    --              the name of the procedure at line 12, column 13.
 
    --              the body ends at line 12, column 15, just past this label
@@ -546,7 +587,7 @@ package Lib.Xref is
    --  Node N is an operator node, whose entity has been set. If this entity
    --  is a user defined operator (i.e. an operator not defined in package
    --  Standard), then a reference to the operator is recorded at node N.
-   --  T is the operand type of of the operator. A reference to the operator
+   --  T is the operand type of the operator. A reference to the operator
    --  is an implicit reference to the type, and that needs to be recorded
    --  to avoid spurious warnings on unused entities, when the operator is
    --  a renaming of a predefined operator.
@@ -596,22 +637,22 @@ package Lib.Xref is
    --    the node N is not an identifier, defining identifier, or expanded name
    --    the type is 'p' and the entity is not in the extended main source
    --
-   --  If all these conditions are met, then the Is_Referenced flag of E
-   --  is set (unless Set_Ref is False) and a cross-reference entry is
-   --  recorded for later output when Output_References is called.
+   --  If all these conditions are met, then the Is_Referenced flag of E is set
+   --  (unless Set_Ref is False) and a cross-reference entry is recorded for
+   --  later output when Output_References is called.
    --
    --  Note: the dummy space entry is for the convenience of some callers,
    --  who find it easier to pass a space to suppress the entry than to do
    --  a specific test. The call has no effect if the type is a space.
    --
-   --  The parameter Set_Ref is normally True, and indicates that in
-   --  addition to generating a cross-reference, the Referenced flag
-   --  of the specified entity should be set. If this parameter is
-   --  False, then setting of the Referenced flag is inhibited.
+   --  The parameter Set_Ref is normally True, and indicates that in addition
+   --  to generating a cross-reference, the Referenced flag of the specified
+   --  entity should be set. If this parameter is False, then setting of the
+   --  Referenced flag is inhibited.
    --
-   --  The parameter Force is set to True to force a reference to be
-   --  generated even if Comes_From_Source is false. This is used for
-   --  certain implicit references, and also for end label references.
+   --  The parameter Force is set to True to force a reference to be generated
+   --  even if Comes_From_Source is false. This is used for certain implicit
+   --  references, and also for end label references.
 
    procedure Generate_Reference_To_Formals (E : Entity_Id);
    --  Add a reference to the definition of each formal on the line for

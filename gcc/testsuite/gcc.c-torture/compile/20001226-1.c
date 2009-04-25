@@ -1,8 +1,12 @@
 /* This does not assemble on m68hc11 because the function is larger
    than 64K.  */
-/* { dg-do assemble { xfail m6811-*-* m6812-*-* } } */
-/* { dg-xfail-if "jump beyond 128K not supported" "xtensa-*-*" "-O0" "" } */
+/* { dg-do assemble } */
+/* { dg-xfail-if "function larger than 64K" { m6811-*-* } { "*" } { "" } } */
+/* { dg-skip-if "too much code for avr" { "avr-*-*" } { "*" } { "" } } */
+/* { dg-xfail-if "jump beyond 128K not supported" { xtensa*-*-* } { "-O0" } { "" } } */
+/* { dg-xfail-if "PR36698" { spu-*-* } { "-O0" } { "" } } */
 /* { dg-skip-if "" { m32c-*-* } { "*" } { "" } } */
+/* { dg-timeout-factor 4.0 } */
 
 /* This testcase exposed two branch shortening bugs on powerpc.  */
 

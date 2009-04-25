@@ -39,6 +39,8 @@ exception statement from your version. */
 
 package java.awt;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.awt.event.ContainerEvent;
 import java.awt.event.ContainerListener;
 import java.awt.event.HierarchyEvent;
@@ -1098,6 +1100,33 @@ public class Container extends Component
   }
 
   /**
+   * Returns the mouse pointer position relative to this Container's
+   * top-left corner.  If allowChildren is false, the mouse pointer
+   * must be directly over this container.  If allowChildren is true,
+   * the mouse pointer may be over this container or any of its
+   * descendents.
+   *
+   * @param allowChildren true to allow descendents, false if pointer
+   * must be directly over Container.
+   *
+   * @return relative mouse pointer position
+   *
+   * @throws HeadlessException if in a headless environment
+   */
+  public Point getMousePosition(boolean allowChildren) throws HeadlessException
+  {
+    return super.getMousePositionHelper(allowChildren);
+  }
+
+  boolean mouseOverComponent(Component component, boolean allowChildren)
+  {
+    if (allowChildren)
+      return isAncestorOf(component);
+    else
+      return component == this;
+  }
+
+  /**
    * Returns the component located at the specified point.  This is done
    * by checking whether or not a child component claims to contain this
    * point.  The first child component that does is returned.  If no
@@ -1295,10 +1324,10 @@ public class Container extends Component
         while (true)
           {
             if (comp == null)
-              return false;
-            if (comp == this)
-              return true;
+	      return false;
             comp = comp.getParent();
+            if (comp == this)
+	      return true;
           }
       }
   }
@@ -1314,7 +1343,7 @@ public class Container extends Component
     if (layoutMgr == null)
       return super.paramString();
 
-    StringBuffer sb = new StringBuffer();
+    CPStringBuilder sb = new CPStringBuilder();
     sb.append(super.paramString());
     sb.append(",layout=");
     sb.append(layoutMgr.getClass().getName());

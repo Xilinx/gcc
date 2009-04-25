@@ -1,5 +1,5 @@
 /* Memory address lowering and addressing mode selection.
-   Copyright (C) 2004, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
    
 This file is part of GCC.
    
@@ -70,8 +70,7 @@ along with GCC; see the file COPYING3.  If not see
 /* A "template" for memory address, used to determine whether the address is
    valid for mode.  */
 
-struct mem_addr_template GTY (())
-{
+struct GTY (()) mem_addr_template {
   rtx ref;			/* The template.  */
   rtx * GTY ((skip)) step_p;	/* The point in template where the step should be
 				   filled in.  */
@@ -333,9 +332,9 @@ create_mem_ref_raw (tree type, struct mem_address *addr)
   if (addr->offset && integer_zerop (addr->offset))
     addr->offset = NULL_TREE;
 
-  return build7 (TARGET_MEM_REF, type,
+  return build6 (TARGET_MEM_REF, type,
 		 addr->symbol, addr->base, addr->index,
-		 addr->step, addr->offset, NULL, NULL);
+		 addr->step, addr->offset, NULL);
 }
 
 /* Returns true if OBJ is an object whose address is a link time constant.  */
@@ -345,7 +344,8 @@ fixed_address_object_p (tree obj)
 {
   return (TREE_CODE (obj) == VAR_DECL
 	  && (TREE_STATIC (obj)
-	      || DECL_EXTERNAL (obj)));
+	      || DECL_EXTERNAL (obj))
+	  && ! DECL_DLLIMPORT_P (obj));
 }
 
 /* If ADDR contains an address of object that is a link time constant,
@@ -422,9 +422,13 @@ add_to_parts (struct mem_address *parts, tree elt)
 
   /* Add ELT to base.  */
   type = TREE_TYPE (parts->base);
-  parts->base = fold_build2 (POINTER_PLUS_EXPR, type,
-			     parts->base,
-			     fold_convert (sizetype, elt));
+  if (POINTER_TYPE_P (type))
+    parts->base = fold_build2 (POINTER_PLUS_EXPR, type,
+			       parts->base,
+			       fold_convert (sizetype, elt));
+  else
+    parts->base = fold_build2 (PLUS_EXPR, type,
+			       parts->base, elt);
 }
 
 /* Finds the most expensive multiplication in ADDR that can be
@@ -432,7 +436,8 @@ add_to_parts (struct mem_address *parts, tree elt)
    element(s) to PARTS.  */
 
 static void
-most_expensive_mult_to_index (struct mem_address *parts, aff_tree *addr)
+most_expensive_mult_to_index (struct mem_address *parts, aff_tree *addr,
+			      bool speed)
 {
   HOST_WIDE_INT coef;
   double_int best_mult, amult, amult_neg;
@@ -454,7 +459,7 @@ most_expensive_mult_to_index (struct mem_address *parts, aff_tree *addr)
 	  || !multiplier_allowed_in_address_p (coef, Pmode))
 	continue;
 
-      acost = multiply_by_cost (coef, Pmode);
+      acost = multiply_by_cost (coef, Pmode, speed);
 
       if (acost > best_mult_cost)
 	{
@@ -507,7 +512,7 @@ most_expensive_mult_to_index (struct mem_address *parts, aff_tree *addr)
    addressing modes is useless.  */
 
 static void
-addr_to_parts (aff_tree *addr, struct mem_address *parts)
+addr_to_parts (aff_tree *addr, struct mem_address *parts, bool speed)
 {
   tree part;
   unsigned i;
@@ -527,7 +532,7 @@ addr_to_parts (aff_tree *addr, struct mem_address *parts)
 
   /* First move the most expensive feasible multiplication
      to index.  */
-  most_expensive_mult_to_index (parts, addr);
+  most_expensive_mult_to_index (parts, addr, speed);
 
   /* Try to find a base of the reference.  Since at the moment
      there is no reliable way how to distinguish between pointer and its
@@ -551,31 +556,32 @@ addr_to_parts (aff_tree *addr, struct mem_address *parts)
 /* Force the PARTS to register.  */
 
 static void
-gimplify_mem_ref_parts (block_stmt_iterator *bsi, struct mem_address *parts)
+gimplify_mem_ref_parts (gimple_stmt_iterator *gsi, struct mem_address *parts)
 {
   if (parts->base)
-    parts->base = force_gimple_operand_bsi (bsi, parts->base,
+    parts->base = force_gimple_operand_gsi (gsi, parts->base,
 					    true, NULL_TREE,
-					    true, BSI_SAME_STMT);
+					    true, GSI_SAME_STMT);
   if (parts->index)
-    parts->index = force_gimple_operand_bsi (bsi, parts->index,
+    parts->index = force_gimple_operand_gsi (gsi, parts->index,
 					     true, NULL_TREE,
-					     true, BSI_SAME_STMT);
+					     true, GSI_SAME_STMT);
 }
 
 /* Creates and returns a TARGET_MEM_REF for address ADDR.  If necessary
-   computations are emitted in front of BSI.  TYPE is the mode
+   computations are emitted in front of GSI.  TYPE is the mode
    of created memory reference.  */
 
 tree
-create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
+create_mem_ref (gimple_stmt_iterator *gsi, tree type, aff_tree *addr,
+		bool speed)
 {
   tree mem_ref, tmp;
   tree atype;
   struct mem_address parts;
 
-  addr_to_parts (addr, &parts);
-  gimplify_mem_ref_parts (bsi, &parts);
+  addr_to_parts (addr, &parts, speed);
+  gimplify_mem_ref_parts (gsi, &parts);
   mem_ref = create_mem_ref_raw (type, &parts);
   if (mem_ref)
     return mem_ref;
@@ -586,10 +592,10 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
     {
       /* Move the multiplication to index.  */
       gcc_assert (parts.index);
-      parts.index = force_gimple_operand_bsi (bsi,
+      parts.index = force_gimple_operand_gsi (gsi,
 				fold_build2 (MULT_EXPR, sizetype,
 					     parts.index, parts.step),
-				true, NULL_TREE, true, BSI_SAME_STMT);
+				true, NULL_TREE, true, GSI_SAME_STMT);
       parts.step = NULL_TREE;
   
       mem_ref = create_mem_ref_raw (type, &parts);
@@ -611,11 +617,11 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
 	  if (parts.index)
 	    {
 	      atype = TREE_TYPE (tmp);
-	      parts.base = force_gimple_operand_bsi (bsi,
-			fold_build2 (PLUS_EXPR, atype,
-				     fold_convert (atype, parts.base),
-				     tmp),
-			true, NULL_TREE, true, BSI_SAME_STMT);
+	      parts.base = force_gimple_operand_gsi (gsi,
+			fold_build2 (POINTER_PLUS_EXPR, atype,
+				     tmp,
+				     fold_convert (sizetype, parts.base)),
+			true, NULL_TREE, true, GSI_SAME_STMT);
 	    }
 	  else
 	    {
@@ -638,11 +644,11 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
       if (parts.base)
 	{
 	  atype = TREE_TYPE (parts.base);
-	  parts.base = force_gimple_operand_bsi (bsi,
-			fold_build2 (PLUS_EXPR, atype,
+	  parts.base = force_gimple_operand_gsi (gsi,
+			fold_build2 (POINTER_PLUS_EXPR, atype,
 				     parts.base,
-			    	     fold_convert (atype, parts.index)),
-			true, NULL_TREE, true, BSI_SAME_STMT);
+			    	     parts.index),
+			true, NULL_TREE, true, GSI_SAME_STMT);
 	}
       else
 	parts.base = parts.index;
@@ -659,11 +665,11 @@ create_mem_ref (block_stmt_iterator *bsi, tree type, aff_tree *addr)
       if (parts.base)
 	{
 	  atype = TREE_TYPE (parts.base);
-	  parts.base = force_gimple_operand_bsi (bsi, 
+	  parts.base = force_gimple_operand_gsi (gsi, 
 			fold_build2 (POINTER_PLUS_EXPR, atype,
 				     parts.base,
 				     fold_convert (sizetype, parts.offset)),
-			true, NULL_TREE, true, BSI_SAME_STMT);
+			true, NULL_TREE, true, GSI_SAME_STMT);
 	}
       else
 	parts.base = parts.offset;
@@ -702,9 +708,6 @@ get_address_description (tree op, struct mem_address *addr)
 void
 copy_mem_ref_info (tree to, tree from)
 {
-  /* Copy the annotation, to preserve the aliasing information.  */
-  TMR_TAG (to) = TMR_TAG (from);
-
   /* And the info about the original reference.  */
   TMR_ORIGINAL (to) = TMR_ORIGINAL (from);
 }

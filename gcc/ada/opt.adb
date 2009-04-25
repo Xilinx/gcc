@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -49,15 +47,25 @@ package body Opt is
       Ada_Version_Config                    := Ada_Version;
       Ada_Version_Explicit_Config           := Ada_Version_Explicit;
       Assertions_Enabled_Config             := Assertions_Enabled;
+      Assume_No_Invalid_Values_Config       := Assume_No_Invalid_Values;
+      Check_Policy_List_Config              := Check_Policy_List;
       Debug_Pragmas_Enabled_Config          := Debug_Pragmas_Enabled;
       Dynamic_Elaboration_Checks_Config     := Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed_Config := Exception_Locations_Suppressed;
       Extensions_Allowed_Config             := Extensions_Allowed;
       External_Name_Exp_Casing_Config       := External_Name_Exp_Casing;
       External_Name_Imp_Casing_Config       := External_Name_Imp_Casing;
+      Fast_Math_Config                      := Fast_Math;
+      Optimize_Alignment_Config             := Optimize_Alignment;
       Persistent_BSS_Mode_Config            := Persistent_BSS_Mode;
       Polling_Required_Config               := Polling_Required;
       Use_VADS_Size_Config                  := Use_VADS_Size;
+
+      --  Reset the indication that Optimize_Alignment was set locally, since
+      --  if we had a pragma in the config file, it would set this flag True,
+      --  but that's not a local setting.
+
+      Optimize_Alignment_Local := False;
    end Register_Opt_Config_Switches;
 
    ---------------------------------
@@ -69,12 +77,17 @@ package body Opt is
       Ada_Version                    := Save.Ada_Version;
       Ada_Version_Explicit           := Save.Ada_Version_Explicit;
       Assertions_Enabled             := Save.Assertions_Enabled;
+      Assume_No_Invalid_Values       := Save.Assume_No_Invalid_Values;
+      Check_Policy_List              := Save.Check_Policy_List;
       Debug_Pragmas_Enabled          := Save.Debug_Pragmas_Enabled;
       Dynamic_Elaboration_Checks     := Save.Dynamic_Elaboration_Checks;
       Exception_Locations_Suppressed := Save.Exception_Locations_Suppressed;
       Extensions_Allowed             := Save.Extensions_Allowed;
       External_Name_Exp_Casing       := Save.External_Name_Exp_Casing;
       External_Name_Imp_Casing       := Save.External_Name_Imp_Casing;
+      Fast_Math                      := Save.Fast_Math;
+      Optimize_Alignment             := Save.Optimize_Alignment;
+      Optimize_Alignment_Local       := Save.Optimize_Alignment_Local;
       Persistent_BSS_Mode            := Save.Persistent_BSS_Mode;
       Polling_Required               := Save.Polling_Required;
       Use_VADS_Size                  := Save.Use_VADS_Size;
@@ -89,12 +102,17 @@ package body Opt is
       Save.Ada_Version                    := Ada_Version;
       Save.Ada_Version_Explicit           := Ada_Version_Explicit;
       Save.Assertions_Enabled             := Assertions_Enabled;
+      Save.Assume_No_Invalid_Values       := Assume_No_Invalid_Values;
+      Save.Check_Policy_List              := Check_Policy_List;
       Save.Debug_Pragmas_Enabled          := Debug_Pragmas_Enabled;
       Save.Dynamic_Elaboration_Checks     := Dynamic_Elaboration_Checks;
       Save.Exception_Locations_Suppressed := Exception_Locations_Suppressed;
       Save.Extensions_Allowed             := Extensions_Allowed;
       Save.External_Name_Exp_Casing       := External_Name_Exp_Casing;
       Save.External_Name_Imp_Casing       := External_Name_Imp_Casing;
+      Save.Fast_Math                      := Fast_Math;
+      Save.Optimize_Alignment             := Optimize_Alignment;
+      Save.Optimize_Alignment_Local       := Optimize_Alignment_Local;
       Save.Persistent_BSS_Mode            := Persistent_BSS_Mode;
       Save.Polling_Required               := Polling_Required;
       Save.Use_VADS_Size                  := Use_VADS_Size;
@@ -117,41 +135,55 @@ package body Opt is
          --  since the whole point of this is that it still properly indicates
          --  the configuration setting even in a run time unit.
 
-         Ada_Version                := Ada_Version_Runtime;
-         Dynamic_Elaboration_Checks := False;
-         Extensions_Allowed         := True;
-         External_Name_Exp_Casing   := As_Is;
-         External_Name_Imp_Casing   := Lowercase;
-         Persistent_BSS_Mode        := False;
-         Use_VADS_Size              := False;
+         Ada_Version                 := Ada_Version_Runtime;
+         Dynamic_Elaboration_Checks  := False;
+         Extensions_Allowed          := True;
+         External_Name_Exp_Casing    := As_Is;
+         External_Name_Imp_Casing    := Lowercase;
+         Optimize_Alignment          := 'O';
+         Persistent_BSS_Mode         := False;
+         Use_VADS_Size               := False;
+         Optimize_Alignment_Local    := True;
 
          --  For an internal unit, assertions/debug pragmas are off unless this
-         --  is the main unit and they were explicitly enabled.
+         --  is the main unit and they were explicitly enabled. We also make
+         --  sure we do not assume that values are necessarily valid.
 
          if Main_Unit then
-            Assertions_Enabled    := Assertions_Enabled_Config;
-            Debug_Pragmas_Enabled := Debug_Pragmas_Enabled_Config;
+            Assertions_Enabled       := Assertions_Enabled_Config;
+            Assume_No_Invalid_Values := Assume_No_Invalid_Values_Config;
+            Debug_Pragmas_Enabled    := Debug_Pragmas_Enabled_Config;
+            Check_Policy_List        := Check_Policy_List_Config;
          else
-            Assertions_Enabled    := False;
-            Debug_Pragmas_Enabled := False;
+            Assertions_Enabled       := False;
+            Assume_No_Invalid_Values := False;
+            Debug_Pragmas_Enabled    := False;
+            Check_Policy_List        := Empty;
          end if;
 
       --  Case of non-internal unit
 
       else
-         Ada_Version                := Ada_Version_Config;
-         Ada_Version_Explicit       := Ada_Version_Explicit_Config;
-         Assertions_Enabled         := Assertions_Enabled_Config;
-         Debug_Pragmas_Enabled      := Debug_Pragmas_Enabled_Config;
-         Dynamic_Elaboration_Checks := Dynamic_Elaboration_Checks_Config;
-         Extensions_Allowed         := Extensions_Allowed_Config;
-         External_Name_Exp_Casing   := External_Name_Exp_Casing_Config;
-         External_Name_Imp_Casing   := External_Name_Imp_Casing_Config;
-         Persistent_BSS_Mode        := Persistent_BSS_Mode_Config;
-         Use_VADS_Size              := Use_VADS_Size_Config;
+         Ada_Version                 := Ada_Version_Config;
+         Ada_Version_Explicit        := Ada_Version_Explicit_Config;
+         Assertions_Enabled          := Assertions_Enabled_Config;
+         Assume_No_Invalid_Values    := Assume_No_Invalid_Values_Config;
+         Check_Policy_List           := Check_Policy_List_Config;
+         Debug_Pragmas_Enabled       := Debug_Pragmas_Enabled_Config;
+         Dynamic_Elaboration_Checks  := Dynamic_Elaboration_Checks_Config;
+         Extensions_Allowed          := Extensions_Allowed_Config;
+         External_Name_Exp_Casing    := External_Name_Exp_Casing_Config;
+         External_Name_Imp_Casing    := External_Name_Imp_Casing_Config;
+         Fast_Math                   := Fast_Math_Config;
+         Optimize_Alignment          := Optimize_Alignment_Config;
+         Optimize_Alignment_Local    := False;
+         Persistent_BSS_Mode         := Persistent_BSS_Mode_Config;
+         Use_VADS_Size               := Use_VADS_Size_Config;
       end if;
 
       Exception_Locations_Suppressed := Exception_Locations_Suppressed_Config;
+      Fast_Math                      := Fast_Math_Config;
+      Optimize_Alignment             := Optimize_Alignment_Config;
       Polling_Required               := Polling_Required_Config;
    end Set_Opt_Config_Switches;
 
@@ -181,6 +213,7 @@ package body Opt is
       Tree_Read_Int  (Assertions_Enabled_Config_Val);
       Tree_Read_Bool (All_Errors_Mode);
       Tree_Read_Bool (Assertions_Enabled);
+      Tree_Read_Int  (Int (Check_Policy_List));
       Tree_Read_Bool (Debug_Pragmas_Enabled);
       Tree_Read_Bool (Enable_Overflow_Checks);
       Tree_Read_Bool (Full_List);
@@ -245,6 +278,7 @@ package body Opt is
       Tree_Write_Int  (Boolean'Pos (Assertions_Enabled_Config));
       Tree_Write_Bool (All_Errors_Mode);
       Tree_Write_Bool (Assertions_Enabled);
+      Tree_Write_Int  (Int (Check_Policy_List));
       Tree_Write_Bool (Debug_Pragmas_Enabled);
       Tree_Write_Bool (Enable_Overflow_Checks);
       Tree_Write_Bool (Full_List);

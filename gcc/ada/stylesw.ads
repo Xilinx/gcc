@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,7 +77,7 @@ package Stylesw is
    --    For a comment that is not at the start of a line, the only requirement
    --    is that a space follow the comment characters.
    --
-   --    For a coment that is at the start of the line, one of the following
+   --    For a comment that is at the start of the line, one of the following
    --    conditions must hold:
    --
    --      The comment characters are the only non-blank characters on the line
@@ -142,7 +142,7 @@ package Stylesw is
    --  indicated indentation value. A value of zero turns off checking. The
    --  requirement is that any new statement, line comment, declaration or
    --  keyword such as END, start on a column that is a multiple of the
-   --  indentiation value.
+   --  indentation value.
 
    Style_Check_Keyword_Casing : Boolean := False;
    --  This can be set True by using the -gnatg or -gnatyk switches. If it is
@@ -156,14 +156,19 @@ package Stylesw is
    --  with the IF keyword.
 
    Style_Check_Max_Line_Length : Boolean := False;
-   --  This can be set True by using the -gnatg or -gnatym/M switches. If
-   --  it is True, it activates checking for a maximum line length of
+   --  This can be set True by using the -gnatg or -gnatym/M switches.
+   --  If it is True, it activates checking for a maximum line length of
    --  Style_Max_Line_Length characters.
 
    Style_Check_Max_Nesting_Level : Boolean := False;
    --  This can be set True by using -gnatyLnnn with a value other than zero
    --  (a value of zero resets it to False). If True, it activates checking
    --  the maximum nesting level against Style_Max_Nesting_Level.
+
+   Style_Check_Missing_Overriding : Boolean := False;
+   --  This can be set True by using the -gnatyO switch. If it is True, then
+   --  "[not] overriding" is required in subprogram declarations and bodies
+   --  where appropriate.
 
    Style_Check_Mode_In : Boolean := False;
    --  This can be set True by using -gnatyI. If True, it activates checking
@@ -267,9 +272,13 @@ package Stylesw is
    -- Subprograms --
    -----------------
 
+   function RM_Column_Check return Boolean;
+   --  Determines whether style checking is active and the RM column check
+   --  mode is set requiring checking of RM format layout.
+
    procedure Set_Default_Style_Check_Options;
    --  This procedure is called to set the default style checking options in
-   --  response to a -gnaty switch with no suboptions.
+   --  response to a -gnaty switch with no suboptions or from -gnatyy.
 
    procedure Set_GNAT_Style_Check_Options;
    --  This procedure is called to set the default style checking options for
@@ -286,7 +295,8 @@ package Stylesw is
    --  This procedure is called to set the style check options that correspond
    --  to the characters in the given Options string. If all options are valid,
    --  they are set in an additive manner: any previous options are retained
-   --  unless overridden.
+   --  unless overridden, unless a minus is encountered, and then subsequent
+   --  style switches are subtracted from the current set.
    --
    --  If all options given are valid, then OK is True, Err_Col is set to
    --  Options'Last + 1, and Style_Msg_Buf/Style_Msg_Len are unchanged.
@@ -298,7 +308,7 @@ package Stylesw is
 
    procedure Set_Style_Check_Options (Options : String);
    --  Like the above procedure, but used when the Options string is known to
-   --  be valid. This is for example appopriate for calls where the string ==
+   --  be valid. This is for example appropriate for calls where the string ==
    --  was obtained by Save_Style_Check_Options.
 
    procedure Reset_Style_Check_Options;

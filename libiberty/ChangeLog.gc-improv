@@ -1,6 +1,0 @@
-2007-09-19  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
-
-	* splay-tree.c (splay_tree_new_with_allocator): Initialize
-	sp->allocate_node.
-	(splay_tree_new_with_separate_allocators): New.
-	(splay_tree_insert): Use sp->allocate_node.

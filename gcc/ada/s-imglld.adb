@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -32,36 +30,33 @@
 ------------------------------------------------------------------------------
 
 with System.Img_Dec; use System.Img_Dec;
-with System.Img_LLI; use System.Img_LLI;
 
 package body System.Img_LLD is
 
    -----------------------------
    -- Image_Long_Long_Decimal --
-   -----------------------------
+   ----------------------------
 
-   function Image_Long_Long_Decimal
+   procedure Image_Long_Long_Decimal
      (V     : Long_Long_Integer;
+      S     : in out String;
+      P     : out Natural;
       Scale : Integer)
-      return  String
    is
-      P : Natural := 0;
-      S : String (1 .. 64);
+      pragma Assert (S'First = 1);
 
    begin
+      --  Add space at start for non-negative numbers
+
+      if V >= 0 then
+         S (1) := ' ';
+         P := 1;
+      else
+         P := 0;
+      end if;
+
       Set_Image_Long_Long_Decimal
         (V, S, P, Scale, 1, Integer'Max (1, Scale), 0);
-
-      --  Mess around to make sure we have the objectionable space at the
-      --  start for positive numbers in accordance with the annoying rules!
-
-      if S (1) /= ' ' and then S (1) /= '-' then
-         S (2 .. P + 1) := S (1 .. P);
-         S (1) := ' ';
-         return S (1 .. P + 1);
-      else
-         return S (1 .. P);
-      end if;
    end Image_Long_Long_Decimal;
 
    ---------------------------------
@@ -70,14 +65,14 @@ package body System.Img_LLD is
 
    procedure Set_Image_Long_Long_Decimal
      (V     : Long_Long_Integer;
-      S     : out String;
+      S     : in out String;
       P     : in out Natural;
       Scale : Integer;
       Fore  : Natural;
       Aft   : Natural;
       Exp   : Natural)
    is
-      Digs : String := Image_Long_Long_Integer (V);
+      Digs : String := Long_Long_Integer'Image (V);
       --  Sign and digits of decimal value
 
    begin

@@ -1,6 +1,6 @@
 /* Functions to support general ended bitmaps.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -51,7 +51,8 @@ static htab_t bitmap_desc_hash;
 static hashval_t
 hash_descriptor (const void *p)
 {
-  const struct bitmap_descriptor *const d = p;
+  const struct bitmap_descriptor *const d =
+    (const struct bitmap_descriptor *) p;
   return htab_hash_pointer (d->file) + d->line;
 }
 struct loc
@@ -63,8 +64,9 @@ struct loc
 static int
 eq_descriptor (const void *p1, const void *p2)
 {
-  const struct bitmap_descriptor *const d = p1;
-  const struct loc *const l = p2;
+  const struct bitmap_descriptor *const d =
+    (const struct bitmap_descriptor *) p1;
+  const struct loc *const l = (const struct loc *) p2;
   return d->file == l->file && d->function == l->function && d->line == l->line;
 }
 
@@ -88,7 +90,7 @@ bitmap_descriptor (const char *file, const char *function, int line)
 			      1);
   if (*slot)
     return *slot;
-  *slot = xcalloc (sizeof (**slot), 1);
+  *slot = XCNEW (struct bitmap_descriptor);
   (*slot)->file = file;
   (*slot)->function = function;
   (*slot)->line = line;
@@ -119,6 +121,7 @@ register_overhead (bitmap b, int amount)
 /* Global data */
 bitmap_element bitmap_zero_bits;  /* An element of all zero bits.  */
 bitmap_obstack bitmap_default_obstack;    /* The default bitmap obstack.  */
+static int bitmap_default_obstack_depth;
 static GTY((deletable)) bitmap_element *bitmap_ggc_free; /* Freelist of
 							    GC'd elements.  */
 
@@ -302,7 +305,11 @@ void
 bitmap_obstack_initialize (bitmap_obstack *bit_obstack)
 {
   if (!bit_obstack)
-    bit_obstack = &bitmap_default_obstack;
+    {
+      if (bitmap_default_obstack_depth++)
+	return;
+      bit_obstack = &bitmap_default_obstack;
+    }
 
 #if !defined(__GNUC__) || (__GNUC__ < 2)
 #define __alignof__(type) 0
@@ -323,7 +330,14 @@ void
 bitmap_obstack_release (bitmap_obstack *bit_obstack)
 {
   if (!bit_obstack)
-    bit_obstack = &bitmap_default_obstack;
+    {
+      if (--bitmap_default_obstack_depth)
+	{
+	  gcc_assert (bitmap_default_obstack_depth > 0);
+	  return;
+	}
+      bit_obstack = &bitmap_default_obstack;
+    }
 
   bit_obstack->elements = NULL;
   bit_obstack->heads = NULL;
@@ -342,7 +356,7 @@ bitmap_obstack_alloc_stat (bitmap_obstack *bit_obstack MEM_STAT_DECL)
     bit_obstack = &bitmap_default_obstack;
   map = bit_obstack->heads;
   if (map)
-    bit_obstack->heads = (void *)map->first;
+    bit_obstack->heads = (struct bitmap_head_def *) map->first;
   else
     map = XOBNEW (&bit_obstack->obstack, bitmap_head);
   bitmap_initialize_stat (map, bit_obstack PASS_MEM_STAT);
@@ -377,7 +391,7 @@ bitmap_obstack_free (bitmap map)
   if (map)
     {
       bitmap_clear (map);
-      map->first = (void *)map->obstack->heads;
+      map->first = (bitmap_element *) map->obstack->heads;
 #ifdef GATHER_STATISTICS
       register_overhead (map, -((int)sizeof (bitmap_head)));
 #endif
@@ -583,9 +597,9 @@ bitmap_find_bit (bitmap head, unsigned int bit)
   return element;
 }
 
-/* Clear a single bit in a bitmap.  */
+/* Clear a single bit in a bitmap.  Return true if the bit changed.  */
 
-void
+bool
 bitmap_clear_bit (bitmap head, int bit)
 {
   bitmap_element *const ptr = bitmap_find_bit (head, bit);
@@ -594,17 +608,24 @@ bitmap_clear_bit (bitmap head, int bit)
     {
       unsigned bit_num  = bit % BITMAP_WORD_BITS;
       unsigned word_num = bit / BITMAP_WORD_BITS % BITMAP_ELEMENT_WORDS;
-      ptr->bits[word_num] &= ~ (((BITMAP_WORD) 1) << bit_num);
+      BITMAP_WORD bit_val = ((BITMAP_WORD) 1) << bit_num;
+      bool res = (ptr->bits[word_num] & bit_val) != 0;
+      if (res)
+	ptr->bits[word_num] &= ~bit_val;
 
       /* If we cleared the entire word, free up the element.  */
       if (bitmap_element_zerop (ptr))
 	bitmap_element_free (head, ptr);
+
+      return res;
     }
+
+  return false;
 }
 
-/* Set a single bit in a bitmap.  */
+/* Set a single bit in a bitmap.  Return true if the bit changed.  */
 
-void
+bool
 bitmap_set_bit (bitmap head, int bit)
 {
   bitmap_element *ptr = bitmap_find_bit (head, bit);
@@ -618,9 +639,15 @@ bitmap_set_bit (bitmap head, int bit)
       ptr->indx = bit / BITMAP_ELEMENT_ALL_BITS;
       ptr->bits[word_num] = bit_val;
       bitmap_element_link (head, ptr);
+      return true;
     }
   else
-    ptr->bits[word_num] |= bit_val;
+    {
+      bool res = (ptr->bits[word_num] & bit_val) == 0;
+      if (res)
+	ptr->bits[word_num] |= bit_val;
+      return res;
+    }
 }
 
 /* Return whether a bit is set within a bitmap.  */
@@ -693,6 +720,40 @@ bitmap_count_bits (const_bitmap a)
   return count;
 }
 
+/* Return true if the bitmap has a single bit set.  Otherwise return
+   false.  */
+
+bool
+bitmap_single_bit_set_p (const_bitmap a)
+{
+  unsigned long count = 0;
+  const bitmap_element *elt;
+  unsigned ix;
+
+  if (bitmap_empty_p (a))
+    return false;
+
+  elt = a->first;
+  /* As there are no completely empty bitmap elements, a second one
+     means we have more than one bit set.  */
+  if (elt->next != NULL)
+    return false;
+
+  for (ix = 0; ix != BITMAP_ELEMENT_WORDS; ix++)
+    {
+#if GCC_VERSION >= 3400
+      /* Note that popcountl matches BITMAP_WORD in type, so the actual size
+	 of BITMAP_WORD is not material.  */
+      count += __builtin_popcountl (elt->bits[ix]);
+#else
+      count += bitmap_popcount (elt->bits[ix]);
+#endif
+      if (count > 1)
+	return false;
+    }
+
+  return count == 1;
+}
 
 
 /* Return the bit number of the first set bit in the bitmap.  The
@@ -743,6 +804,59 @@ bitmap_first_set_bit (const_bitmap a)
 
  gcc_assert (word & 1);
 #endif
+ return bit_no;
+}
+
+/* Return the bit number of the first set bit in the bitmap.  The
+   bitmap must be non-empty.  */
+
+unsigned
+bitmap_last_set_bit (const_bitmap a)
+{
+  const bitmap_element *elt = a->current ? a->current : a->first;
+  unsigned bit_no;
+  BITMAP_WORD word;
+  int ix;
+
+  gcc_assert (elt);
+  while (elt->next)
+    elt = elt->next;
+  bit_no = elt->indx * BITMAP_ELEMENT_ALL_BITS;
+  for (ix = BITMAP_ELEMENT_WORDS - 1; ix >= 0; ix--)
+    {
+      word = elt->bits[ix];
+      if (word)
+	goto found_bit;
+    }
+  gcc_unreachable ();
+ found_bit:
+  bit_no += ix * BITMAP_WORD_BITS;
+
+  /* Binary search for the last set bit.  */
+#if GCC_VERSION >= 3004
+  gcc_assert (sizeof(long) == sizeof (word));
+  bit_no += sizeof (long) * 8 - __builtin_ctzl (word);
+#else
+#if BITMAP_WORD_BITS > 64
+#error "Fill out the table."
+#endif
+#if BITMAP_WORD_BITS > 32
+  if ((word & 0xffffffff00000000))
+    word >>= 32, bit_no += 32;
+#endif
+  if (word & 0xffff0000)
+    word >>= 16, bit_no += 16;
+  if (!(word & 0xff00))
+    word >>= 8, bit_no += 8;
+  if (!(word & 0xf0))
+    word >>= 4, bit_no += 4;
+  if (!(word & 12))
+    word >>= 2, bit_no += 2;
+  if (!(word & 2))
+    word >>= 1, bit_no += 1;
+#endif
+
+ gcc_assert (word & 1);
  return bit_no;
 }
 

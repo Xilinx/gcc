@@ -1,13 +1,13 @@
 # Process this file with autoconf to produce a configure script.
 #   Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2003, 2004
-#   2005, 2006 Free Software Foundation, Inc.
+#   2005, 2006, 2009 Free Software Foundation, Inc.
 #   Originally contributed by Dave Love (d.love@dl.ac.uk).
 #
 #This file is part of GCC.
 #
 #GCC is free software; you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2, or (at your option)
+#the Free Software Foundation; either version 3, or (at your option)
 #any later version.
 #
 #GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to
-#the Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-#02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 AC_PREREQ(2.59)
 AC_INIT(package-unused, version-unused,, libobjc)
@@ -271,26 +270,11 @@ AC_MSG_RESULT($ac_exception_model_name)
 # Output
 # ------
 
+if test ${multilib} = yes; then
+  multilib_arg="--enable-multilib"
+else
+  multilib_arg=
+fi
+
 AC_CONFIG_FILES([Makefile])
-
-AC_CONFIG_COMMANDS([default],
-[[if test -n "$CONFIG_FILES"; then
-  if test -n "${with_target_subdir}"; then
-    # FIXME: We shouldn't need to set ac_file
-    ac_file=Makefile
-    LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-    . ${multi_basedir}/config-ml.in
-  fi
-fi]],
-[[srcdir=${srcdir}
-host=${host}
-target=${target}
-with_target_subdir=${with_target_subdir}
-with_multisubdir=${with_multisubdir}
-ac_configure_args="--enable-multilib ${ac_configure_args}"
-multi_basedir=${multi_basedir}
-CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
-ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"
-]])
-
 AC_OUTPUT

@@ -1,12 +1,12 @@
 // Queue implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -70,8 +65,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  A standard container giving FIFO behavior.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets many of the requirements of a
    *  <a href="tables.html#65">container</a>,
@@ -131,8 +125,29 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Default constructor creates no elements.
        */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       explicit
-      queue(const _Sequence& __c = _Sequence()) : c(__c) {}
+      queue(const _Sequence& __c = _Sequence())
+      : c(__c) { }
+#else
+      explicit
+      queue(const _Sequence& __c)
+      : c(__c) { }
+
+      explicit
+      queue(_Sequence&& __c = _Sequence())
+      : c(std::move(__c)) { }
+
+      queue(queue&& __q)
+      : c(std::move(__q.c)) { }
+
+      queue&
+      operator=(queue&& __q)
+      {
+	c = std::move(__q.c);
+	return *this;
+      }
+#endif
 
       /**
        *  Returns true if the %queue is empty.
@@ -203,6 +218,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       push(const value_type& __x)
       { c.push_back(__x); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push(value_type&& __x)
+      { c.push_back(std::move(__x)); }
+
+      template<typename... _Args>
+        void
+        emplace(_Args&&... __args)
+	{ c.emplace_back(std::forward<_Args>(__args)...); }
+#endif
+
       /**
        *  @brief  Removes first element.
        *
@@ -220,8 +246,13 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	__glibcxx_requires_nonempty();
 	c.pop_front();
       }
-    };
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      swap(queue&& __q)
+      { c.swap(__q.c); }
+#endif
+    };
 
   /**
    *  @brief  Queue equality comparison.
@@ -281,11 +312,27 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator>=(const queue<_Tp, _Seq>& __x, const queue<_Tp, _Seq>& __y)
     { return !(__x < __y); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>& __x, queue<_Tp, _Seq>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>&& __x, queue<_Tp, _Seq>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Seq>
+    inline void
+    swap(queue<_Tp, _Seq>& __x, queue<_Tp, _Seq>&& __y)
+    { __x.swap(__y); }
+#endif
+
   /**
    *  @brief  A standard container automatically sorting its contents.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  This is not a true container, but an @e adaptor.  It holds
    *  another container, and provides a wrapper interface to that
@@ -346,11 +393,25 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Default constructor creates no elements.
        */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       explicit
       priority_queue(const _Compare& __x = _Compare(),
 		     const _Sequence& __s = _Sequence())
       : c(__s), comp(__x)
       { std::make_heap(c.begin(), c.end(), comp); }
+#else
+      explicit
+      priority_queue(const _Compare& __x,
+		     const _Sequence& __s)
+      : c(__s), comp(__x)
+      { std::make_heap(c.begin(), c.end(), comp); }
+
+      explicit
+      priority_queue(const _Compare& __x = _Compare(),
+		     _Sequence&& __s = _Sequence())
+      : c(std::move(__s)), comp(__x)
+      { std::make_heap(c.begin(), c.end(), comp); }
+#endif
 
       /**
        *  @brief  Builds a %queue from a range.
@@ -364,9 +425,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  the copy according to @a x.
        *
        *  For more information on function objects, see the
-       *  documentation on @link s20_3_1_base functor base
+       *  documentation on @link functors functor base
        *  classes@endlink.
        */
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       template<typename _InputIterator>
         priority_queue(_InputIterator __first, _InputIterator __last,
 		       const _Compare& __x = _Compare(),
@@ -377,6 +439,40 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  c.insert(c.end(), __first, __last);
 	  std::make_heap(c.begin(), c.end(), comp);
 	}
+#else
+      template<typename _InputIterator>
+        priority_queue(_InputIterator __first, _InputIterator __last,
+		       const _Compare& __x,
+		       const _Sequence& __s)
+	: c(__s), comp(__x)
+        {
+	  __glibcxx_requires_valid_range(__first, __last);
+	  c.insert(c.end(), __first, __last);
+	  std::make_heap(c.begin(), c.end(), comp);
+	}
+
+      template<typename _InputIterator>
+        priority_queue(_InputIterator __first, _InputIterator __last,
+		       const _Compare& __x = _Compare(),
+		       _Sequence&& __s = _Sequence())
+	: c(std::move(__s)), comp(__x)
+        {
+	  __glibcxx_requires_valid_range(__first, __last);
+	  c.insert(c.end(), __first, __last);
+	  std::make_heap(c.begin(), c.end(), comp);
+	}
+
+      priority_queue(priority_queue&& __pq)
+      : c(std::move(__pq.c)), comp(std::move(__pq.comp)) { }
+
+      priority_queue&
+      operator=(priority_queue&& __pq)
+      {
+	c = std::move(__pq.c);
+	comp = std::move(__pq.comp);
+	return *this;
+      }
+#endif
 
       /**
        *  Returns true if the %queue is empty.
@@ -416,6 +512,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::push_heap(c.begin(), c.end(), comp);
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push(value_type&& __x)
+      {
+	c.push_back(std::move(__x));
+	std::push_heap(c.begin(), c.end(), comp);
+      }
+
+      template<typename... _Args>
+        void
+        emplace(_Args&&... __args)
+	{
+	  c.emplace_back(std::forward<_Args>(__args)...);
+	  std::push_heap(c.begin(), c.end(), comp);
+	}
+#endif
+
       /**
        *  @brief  Removes first element.
        *
@@ -434,9 +547,39 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	std::pop_heap(c.begin(), c.end(), comp);
 	c.pop_back();
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      swap(priority_queue&& __pq)
+      {
+	using std::swap;
+	c.swap(__pq.c);
+	swap(comp, __pq.comp);
+      }
+#endif
     };
 
   // No equality/comparison operators are provided for priority_queue.
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>&& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Sequence, typename _Compare>
+    inline void
+    swap(priority_queue<_Tp, _Sequence, _Compare>& __x,
+	 priority_queue<_Tp, _Sequence, _Compare>&& __y)
+    { __x.swap(__y); }
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

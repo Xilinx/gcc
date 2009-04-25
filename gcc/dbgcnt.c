@@ -1,5 +1,5 @@
 /* Debug counter for debugging support
-   Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -23,6 +23,9 @@ See dbgcnt.def for usage information.  */
 #include "system.h"
 #include "coretypes.h"
 #include "errors.h"
+#include "tm.h"
+#include "rtl.h"
+#include "output.h"
 
 #include "dbgcnt.h"
 
@@ -58,6 +61,10 @@ bool
 dbg_cnt (enum debug_counter index)
 {
   count[index]++;
+  if (dump_file && count[index] == limit[index])
+    fprintf (dump_file, "***dbgcnt: limit reached for %s.***\n", 
+	     map[index].name);
+
   return dbg_cnt_is_enabled (index);
 }
 
@@ -81,7 +88,7 @@ dbg_cnt_set_limit_by_name (const char *name, int len, int value)
   if (i < 0)
     return false;
 
-  dbg_cnt_set_limit_by_index (i, value);
+  dbg_cnt_set_limit_by_index ((enum debug_counter) i, value);
   return true;
 }
 
@@ -122,7 +129,7 @@ dbg_cnt_process_opt (const char *arg)
 
    if (next == NULL || *next != 0)
      {
-       char *buffer = alloca (arg - start + 2);
+       char *buffer = XALLOCAVEC (char, arg - start + 2);
        sprintf (buffer, "%*c", (int)(1 + (arg - start)), '^');
        error ("Can not find a valid counter:value pair:");
        error ("-fdbg-cnt=%s", start);
@@ -132,7 +139,8 @@ dbg_cnt_process_opt (const char *arg)
 
 /* Print name, limit and count of all counters.   */
 
-void dbg_cnt_list_all_counters (void)
+void 
+dbg_cnt_list_all_counters (void)
 {
   int i;
   printf ("  %-30s %-5s %-5s\n", "counter name",  "limit", "value");

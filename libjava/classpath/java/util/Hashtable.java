@@ -39,6 +39,8 @@ exception statement from your version. */
 
 package java.util;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -579,7 +581,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
     // would repeatedly re-lock/release the monitor, we directly use the
     // unsynchronized EntryIterator instead.
     Iterator<Map.Entry<K, V>> entries = new EntryIterator();
-    StringBuffer r = new StringBuffer("{");
+    CPStringBuilder r = new CPStringBuilder("{");
     for (int pos = size; pos > 0; pos--)
       {
         r.append(entries.next());
@@ -1088,7 +1090,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
      * <code>next()</code> gives a different result, by returning just
      * the key rather than the whole element.
      */
-    private EntryIterator iterator;
+    private final EntryIterator iterator;
 
     /**
      * Construct a new KeyIterator
@@ -1153,7 +1155,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
      * <code>next()</code> gives a different result, by returning just
      * the value rather than the whole element.
      */
-    private EntryIterator iterator;
+    private final EntryIterator iterator;
 
     /**
      * Construct a new KeyIterator
@@ -1294,7 +1296,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
      * <code>nextElement()</code> gives a different result, by returning just
      * the key rather than the whole element.
      */
-    private EntryEnumerator enumerator;
+    private final EntryEnumerator enumerator;
 
     /**
      * Construct a new KeyEnumerator
@@ -1355,7 +1357,7 @@ public class Hashtable<K, V> extends Dictionary<K, V>
      * <code>nextElement()</code> gives a different result, by returning just
      * the value rather than the whole element.
      */
-    private EntryEnumerator enumerator;
+    private final EntryEnumerator enumerator;
 
     /**
      * Construct a new ValueEnumerator

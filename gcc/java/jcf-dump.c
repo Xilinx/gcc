@@ -2,7 +2,7 @@
    Functionally similar to Sun's javap.
 
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -850,9 +850,11 @@ print_constant (FILE *out, JCF *jcf, int index, int verbosity)
 	    if (dnum.mantissa0 == 0 && dnum.mantissa1 == 0)
 	      fputs ("Inf", out);
 	    else if (dnum.mantissa0 & JDOUBLE_QNAN_MASK)
-	      fprintf (out, "QNaN(%llu)", (unsigned long long)mantissa);
+	      fprintf (out, "QNaN(%" HOST_LONG_LONG_FORMAT "u)",
+                (unsigned long long)mantissa);
 	    else
-	      fprintf (out, "SNaN(%llu)", (unsigned long long)mantissa);
+	      fprintf (out, "SNaN(%" HOST_LONG_LONG_FORMAT "u)",
+                (unsigned long long)mantissa);
 	  }
 	if (verbosity > 1)
 	  {
@@ -1165,7 +1167,7 @@ static void
 version (void)
 {
   printf ("jcf-dump %s%s\n\n", pkgversion_string, version_string);
-  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n", _("(C)"));
+  printf ("Copyright %s 2009 Free Software Foundation, Inc.\n", _("(C)"));
   printf (_("This is free software; see the source for copying conditions.  There is NO\n"
 	    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"));
   exit (0);

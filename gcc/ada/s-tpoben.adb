@@ -2,30 +2,27 @@
 --                                                                          --
 --                GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                  --
 --                                                                          --
---      S Y S T E M . T A S K I N G . P R O T E C T E D _ O B J E C T S .   --
---                               E N T R I E S                              --
+--                SYSTEM.TASKING.PROTECTED_OBJECTS.ENTRIES                  --
 --                                                                          --
---                                  B o d y                                 --
+--                               B o d y                                    --
 --                                                                          --
---         Copyright (C) 1998-2007, Free Software Foundation, Inc.          --
+--          Copyright (C) 1998-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -44,32 +41,15 @@
 
 --  Note: the compiler generates direct calls to this interface, via Rtsfind
 
-with Ada.Exceptions;
---  Used for Exception_Occurrence_Access
---           Raise_Exception
+with Ada.Unchecked_Deallocation;
 
 with System.Task_Primitives.Operations;
---  Used for Initialize_Lock
---           Write_Lock
---           Unlock
---           Get_Priority
---           Wakeup
---           Set_Ceiling
+with System.Restrictions;
+with System.Parameters;
 
 with System.Tasking.Initialization;
---  Used for Defer_Abort,
---           Undefer_Abort,
---           Change_Base_Priority
-
 pragma Elaborate_All (System.Tasking.Initialization);
---  This insures that tasking is initialized if any protected objects are
---  created.
-
-with System.Restrictions;
---  Used for Abort_Allowed
-
-with System.Parameters;
---  Used for Single_Lock
+--  To insure that tasking is initialized if any protected objects are created
 
 package body System.Tasking.Protected_Objects.Entries is
 
@@ -77,7 +57,13 @@ package body System.Tasking.Protected_Objects.Entries is
 
    use Parameters;
    use Task_Primitives.Operations;
-   use Ada.Exceptions;
+
+   -----------------------
+   -- Local Subprograms --
+   -----------------------
+
+   procedure Free_Entry_Names (Object : Protection_Entries);
+   --  Deallocate all string names associated with protected entries
 
    ----------------
    -- Local Data --
@@ -90,7 +76,7 @@ package body System.Tasking.Protected_Objects.Entries is
    -- Finalize --
    --------------
 
-   procedure Finalize (Object : in out Protection_Entries) is
+   overriding procedure Finalize (Object : in out Protection_Entries) is
       Entry_Call        : Entry_Call_Link;
       Caller            : Task_Id;
       Ceiling_Violation : Boolean;
@@ -126,7 +112,7 @@ package body System.Tasking.Protected_Objects.Entries is
          STPO.Write_Lock (Object.L'Unrestricted_Access, Ceiling_Violation);
 
          if Ceiling_Violation then
-            Raise_Exception (Program_Error'Identity, "Ceiling Violation");
+            raise Program_Error with "Ceiling Violation";
          end if;
 
          if Single_Lock then
@@ -155,6 +141,8 @@ package body System.Tasking.Protected_Objects.Entries is
          end loop;
       end loop;
 
+      Free_Entry_Names (Object);
+
       Object.Finalized := True;
 
       if Single_Lock then
@@ -165,6 +153,26 @@ package body System.Tasking.Protected_Objects.Entries is
 
       STPO.Finalize_Lock (Object.L'Unrestricted_Access);
    end Finalize;
+
+   ----------------------
+   -- Free_Entry_Names --
+   ----------------------
+
+   procedure Free_Entry_Names (Object : Protection_Entries) is
+      Names : Entry_Names_Array_Access := Object.Entry_Names;
+
+      procedure Free_Entry_Names_Array_Access is new
+        Ada.Unchecked_Deallocation
+          (Entry_Names_Array, Entry_Names_Array_Access);
+
+   begin
+      if Names = null then
+         return;
+      end if;
+
+      Free_Entry_Names_Array (Names.all);
+      Free_Entry_Names_Array_Access (Names);
+   end Free_Entry_Names;
 
    -----------------
    -- Get_Ceiling --
@@ -198,14 +206,15 @@ package body System.Tasking.Protected_Objects.Entries is
       Ceiling_Priority  : Integer;
       Compiler_Info     : System.Address;
       Entry_Bodies      : Protected_Entry_Body_Access;
-      Find_Body_Index   : Find_Body_Index_Access)
+      Find_Body_Index   : Find_Body_Index_Access;
+      Build_Entry_Names : Boolean)
    is
       Init_Priority : Integer := Ceiling_Priority;
       Self_ID       : constant Task_Id := STPO.Self;
 
    begin
       if Init_Priority = Unspecified_Priority then
-         Init_Priority  := System.Priority'Last;
+         Init_Priority := System.Priority'Last;
       end if;
 
       if Locking_Policy = 'C'
@@ -234,6 +243,11 @@ package body System.Tasking.Protected_Objects.Entries is
          Object.Entry_Queues (E).Head := null;
          Object.Entry_Queues (E).Tail := null;
       end loop;
+
+      if Build_Entry_Names then
+         Object.Entry_Names :=
+           new Entry_Names_Array (1 .. Entry_Index (Object.Num_Entries));
+      end if;
    end Initialize_Protection_Entries;
 
    ------------------
@@ -246,8 +260,7 @@ package body System.Tasking.Protected_Objects.Entries is
    is
    begin
       if Object.Finalized then
-         Raise_Exception
-           (Program_Error'Identity, "Protected Object is finalized");
+         raise Program_Error with "Protected Object is finalized";
       end if;
 
       --  If pragma Detect_Blocking is active then, as described in the ARM
@@ -261,7 +274,7 @@ package body System.Tasking.Protected_Objects.Entries is
          raise Program_Error;
       end if;
 
-      --  The lock is made without defering abort
+      --  The lock is made without deferring abort
 
       --  Therefore the abort has to be deferred before calling this routine.
       --  This means that the compiler has to generate a Defer_Abort call
@@ -306,7 +319,7 @@ package body System.Tasking.Protected_Objects.Entries is
       Lock_Entries (Object, Ceiling_Violation);
 
       if Ceiling_Violation then
-         Raise_Exception (Program_Error'Identity, "Ceiling Violation");
+         raise Program_Error with "Ceiling Violation";
       end if;
    end Lock_Entries;
 
@@ -319,8 +332,7 @@ package body System.Tasking.Protected_Objects.Entries is
 
    begin
       if Object.Finalized then
-         Raise_Exception
-           (Program_Error'Identity, "Protected Object is finalized");
+         raise Program_Error with "Protected Object is finalized";
       end if;
 
       --  If pragma Detect_Blocking is active then, as described in the ARM
@@ -334,7 +346,7 @@ package body System.Tasking.Protected_Objects.Entries is
       --  have read ownership of the protected object, so that this method of
       --  storing the (single) protected object's owner does not work
       --  reliably for read locks. However, this is the approach taken for two
-      --  major reasosn: first, this function is not currently being used (it
+      --  major reasons: first, this function is not currently being used (it
       --  is provided for possible future use), and second, it largely
       --  simplifies the implementation.
 
@@ -345,7 +357,7 @@ package body System.Tasking.Protected_Objects.Entries is
       Read_Lock (Object.L'Access, Ceiling_Violation);
 
       if Ceiling_Violation then
-         Raise_Exception (Program_Error'Identity, "Ceiling Violation");
+         raise Program_Error with "Ceiling Violation";
       end if;
 
       --  We are entering in a protected action, so that we increase the
@@ -379,6 +391,21 @@ package body System.Tasking.Protected_Objects.Entries is
    begin
       Object.New_Ceiling := Prio;
    end Set_Ceiling;
+
+   --------------------
+   -- Set_Entry_Name --
+   --------------------
+
+   procedure Set_Entry_Name
+     (Object : Protection_Entries'Class;
+      Pos    : Protected_Entry_Index;
+      Val    : String_Access)
+   is
+   begin
+      pragma Assert (Object.Entry_Names /= null);
+
+      Object.Entry_Names (Entry_Index (Pos)) := Val;
+   end Set_Entry_Name;
 
    --------------------
    -- Unlock_Entries --

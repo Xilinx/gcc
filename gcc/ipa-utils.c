@@ -1,5 +1,5 @@
 /* Utilities for ipa analysis.
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-utils.h"
 #include "ipa-reference.h"
 #include "c-common.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "cgraph.h"
 #include "output.h"
 #include "flags.h"
@@ -76,12 +76,13 @@ struct searchc_env {
    has been customized for cgraph_nodes.  The env parameter is because
    it is recursive and there are no nested functions here.  This
    function should only be called from itself or
-   cgraph_reduced_inorder.  ENV is a stack env and would be
+   ipa_utils_reduced_inorder.  ENV is a stack env and would be
    unnecessary if C had nested functions.  V is the node to start
    searching from.  */
 
 static void
-searchc (struct searchc_env* env, struct cgraph_node *v) 
+searchc (struct searchc_env* env, struct cgraph_node *v,
+	 bool (*ignore_edge) (struct cgraph_edge *))
 {
   struct cgraph_edge *edge;
   struct ipa_dfs_info *v_info = (struct ipa_dfs_info *) v->aux;
@@ -100,15 +101,16 @@ searchc (struct searchc_env* env, struct cgraph_node *v)
     {
       struct ipa_dfs_info * w_info;
       struct cgraph_node *w = edge->callee;
-      /* Bypass the clones and only look at the master node.  Skip
-	 external and other bogus nodes.  */
-      w = cgraph_master_clone (w);
-      if (w && w->aux) 
+
+      if (ignore_edge && ignore_edge (edge))
+        continue;
+
+      if (w->aux && cgraph_function_body_availability (edge->callee) > AVAIL_OVERWRITABLE)
 	{
 	  w_info = (struct ipa_dfs_info *) w->aux;
 	  if (w_info->new_node) 
 	    {
-	      searchc (env, w);
+	      searchc (env, w, ignore_edge);
 	      v_info->low_link =
 		(v_info->low_link < w_info->low_link) ?
 		v_info->low_link : w_info->low_link;
@@ -154,7 +156,8 @@ searchc (struct searchc_env* env, struct cgraph_node *v)
 
 int
 ipa_utils_reduced_inorder (struct cgraph_node **order, 
-			   bool reduce, bool allow_overwritable)
+			   bool reduce, bool allow_overwritable,
+			   bool (*ignore_edge) (struct cgraph_edge *))
 {
   struct cgraph_node *node;
   struct searchc_env env;
@@ -168,32 +171,34 @@ ipa_utils_reduced_inorder (struct cgraph_node **order,
   env.reduce = reduce;
   
   for (node = cgraph_nodes; node; node = node->next) 
-    if ((node->analyzed)
-	&& (cgraph_is_master_clone (node) 
-	 || (allow_overwritable 
-	     && (cgraph_function_body_availability (node) == 
-		 AVAIL_OVERWRITABLE))))
-      {
-	/* Reuse the info if it is already there.  */
-	struct ipa_dfs_info *info = (struct ipa_dfs_info *) node->aux;
-	if (!info)
-	  info = XCNEW (struct ipa_dfs_info);
-	info->new_node = true;
-	info->on_stack = false;
-	info->next_cycle = NULL;
-	node->aux = info;
-	
-	splay_tree_insert (env.nodes_marked_new,
-			   (splay_tree_key)node->uid, 
-			   (splay_tree_value)node);
-      } 
-    else 
-      node->aux = NULL;
+    {
+      enum availability avail = cgraph_function_body_availability (node);
+
+      if (avail > AVAIL_OVERWRITABLE
+	  || (allow_overwritable 
+	      && (avail == AVAIL_OVERWRITABLE)))
+	{
+	  /* Reuse the info if it is already there.  */
+	  struct ipa_dfs_info *info = (struct ipa_dfs_info *) node->aux;
+	  if (!info)
+	    info = XCNEW (struct ipa_dfs_info);
+	  info->new_node = true;
+	  info->on_stack = false;
+	  info->next_cycle = NULL;
+	  node->aux = info;
+	  
+	  splay_tree_insert (env.nodes_marked_new,
+			     (splay_tree_key)node->uid, 
+			     (splay_tree_value)node);
+	} 
+      else 
+	node->aux = NULL;
+    }
   result = splay_tree_min (env.nodes_marked_new);
   while (result)
     {
       node = (struct cgraph_node *)result->value;
-      searchc (&env, node);
+      searchc (&env, node, ignore_edge);
       result = splay_tree_min (env.nodes_marked_new);
     }
   splay_tree_delete (env.nodes_marked_new);
@@ -217,7 +222,8 @@ get_base_var (tree t)
 	 && (!CONSTANT_CLASS_P (t))
 	 && TREE_CODE (t) != LABEL_DECL
 	 && TREE_CODE (t) != FUNCTION_DECL
-	 && TREE_CODE (t) != CONST_DECL)
+	 && TREE_CODE (t) != CONST_DECL
+	 && TREE_CODE (t) != CONSTRUCTOR)
     {
       t = TREE_OPERAND (t, 0);
     }

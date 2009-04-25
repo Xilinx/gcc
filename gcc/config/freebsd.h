@@ -1,5 +1,5 @@
 /* Base configuration file for all FreeBSD targets.
-   Copyright (C) 1999, 2000, 2001, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -55,6 +55,8 @@ along with GCC; see the file COPYING3.  If not see
 #undef  LIB_SPEC
 #define LIB_SPEC FBSD_LIB_SPEC
 
+/* Define this so we can compile MS code for use with WINE.  */
+#define HANDLE_PRAGMA_PACK_PUSH_POP 1
 
 /************************[  Target stuff  ]***********************************/
 

@@ -1,31 +1,26 @@
-/* Copyright (C) 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 
@@ -201,78 +196,6 @@ show_boolean (variable * v)
 }
 
 
-/* init_mem()-- Initialize environment variables that have to do with
- * how memory from an ALLOCATE statement is filled.  A single flag
- * enables filling and a second variable gives the value that is used
- * to initialize the memory. */
-
-static void
-init_mem (variable * v)
-{
-  int offset, n;
-  char *p;
-
-  p = getenv (v->name);
-
-  options.allocate_init_flag = 0;	/* The default */
-
-  if (p == NULL)
-    return;
-
-  if (strcasecmp (p, "NONE") == 0)
-    return;
-
-  /* IEEE-754 Quiet Not-a-Number that will work for single and double
-   * precision.  Look for the 'f95' mantissa in debug dumps. */
-
-  if (strcasecmp (p, "NaN") == 0)
-    {
-      options.allocate_init_flag = 1;
-      options.allocate_init_value = 0xfff80f95;
-      return;
-    }
-
-  /* Interpret the string as a hexadecimal constant */
-
-  n = 0;
-  while (*p)
-    {
-      if (!isxdigit (*p))
-	{
-	  v->bad = 1;
-	  return;
-	}
-
-      offset = '0';
-      if (islower (*p))
-	offset = 'a';
-      if (isupper (*p))
-	offset = 'A';
-
-      n = (n << 4) | (*p++ - offset);
-    }
-
-  options.allocate_init_flag = 1;
-  options.allocate_init_value = n;
-}
-
-
-static void
-show_mem (variable * v)
-{
-  char *p;
-
-  p = getenv (v->name);
-
-  st_printf ("%s  ", var_source (v));
-
-  if (options.allocate_init_flag)
-    st_printf ("0x%x", options.allocate_init_value);
-
-  st_printf ("\n");
-}
-
-
 static void
 init_sep (variable * v)
 {
@@ -342,123 +265,6 @@ show_string (variable * v)
 }
 
 
-/* Structure for associating names and values.  */
-
-typedef struct
-{
-  const char *name;
-  int value;
-}
-choice;
-
-
-enum
-{ FP_ROUND_NEAREST, FP_ROUND_UP, FP_ROUND_DOWN, FP_ROUND_ZERO };
-
-static const choice rounding[] = {
-  {"NEAREST", FP_ROUND_NEAREST},
-  {"UP", FP_ROUND_UP},
-  {"DOWN", FP_ROUND_DOWN},
-  {"ZERO", FP_ROUND_ZERO},
-  {NULL, 0}
-};
-
-static const choice precision[] =
-{
-  { "24", 1},
-  { "53", 2},
-  { "64", 0},
-  { NULL, 0}
-};
-
-static const choice signal_choices[] =
-{
-  { "IGNORE", 1},
-  { "ABORT", 0},
-  { NULL, 0}
-};
-
-
-static void
-init_choice (variable * v, const choice * c)
-{
-  char *p;
-
-  p = getenv (v->name);
-  if (p == NULL)
-    goto set_default;
-
-  for (; c->name; c++)
-    if (strcasecmp (c->name, p) == 0)
-      break;
-
-  if (c->name == NULL)
-    {
-      v->bad = 1;
-      goto set_default;
-    }
-
-  *v->var = c->value;
-  return;
-
- set_default:
-  *v->var = v->value;
-}
-
-
-static void
-show_choice (variable * v, const choice * c)
-{
-  st_printf ("%s  ", var_source (v));
-
-  for (; c->name; c++)
-    if (c->value == *v->var)
-      break;
-
-  if (c->name)
-    st_printf ("%s\n", c->name);
-  else
-    st_printf ("(Unknown)\n");
-}
-
-
-static void
-init_round (variable * v)
-{
-  init_choice (v, rounding);
-}
-
-static void
-show_round (variable * v)
-{
-  show_choice (v, rounding);
-}
-
-static void
-init_precision (variable * v)
-{
-  init_choice (v, precision);
-}
-
-static void
-show_precision (variable * v)
-{
-  show_choice (v, precision);
-}
-
-static void
-init_signal (variable * v)
-{
-  init_choice (v, signal_choices);
-}
-
-static void
-show_signal (variable * v)
-{
-  show_choice (v, signal_choices);
-}
-
-
 static variable variable_table[] = {
   {"GFORTRAN_STDIN_UNIT", GFC_STDIN_UNIT_NUMBER, &options.stdin_unit,
    init_integer, show_integer,
@@ -488,6 +294,10 @@ static variable variable_table[] = {
    "If TRUE, all output is unbuffered.  This will slow down large writes "
    "but can be\nuseful for forcing data to be displayed immediately.", 0},
 
+  {"GFORTRAN_UNBUFFERED_PRECONNECTED", 0, &options.unbuffered_preconnected,
+   init_boolean, show_boolean,
+   "If TRUE, output to preconnected units is unbuffered.", 0},
+
   {"GFORTRAN_SHOW_LOCUS", 1, &options.locus, init_boolean, show_boolean,
    "If TRUE, print filename and line number where runtime errors happen.", 0},
 
@@ -503,34 +313,6 @@ static variable variable_table[] = {
   {"GFORTRAN_LIST_SEPARATOR", 0, NULL, init_sep, show_sep,
    "Separator to use when writing list output.  May contain any number of "
    "spaces\nand at most one comma.  Default is a single space.", 0},
-
-  /* Memory related controls */
-
-  {"GFORTRAN_MEM_INIT", 0, NULL, init_mem, show_mem,
-   "How to initialize allocated memory.  Default value is NONE for no "
-   "initialization\n(faster), NAN for a Not-a-Number with the mantissa "
-   "0x40f95 or a custom\nhexadecimal value", 0},
-
-  {"GFORTRAN_MEM_CHECK", 0, &options.mem_check, init_boolean, show_boolean,
-   "Whether memory still allocated will be reported when the program ends.",
-   0},
-
-  /* Signal handling (Unix).  */
-
-  {"GFORTRAN_SIGHUP", 0, &options.sighup, init_signal, show_signal,
-   "Whether the program will IGNORE or ABORT on SIGHUP.", 0},
-
-  {"GFORTRAN_SIGINT", 0, &options.sigint, init_signal, show_signal,
-   "Whether the program will IGNORE or ABORT on SIGINT.", 0},
-
-  /* Floating point control */
-
-  {"GFORTRAN_FPU_ROUND", 0, &options.fpu_round, init_round, show_round,
-   "Set floating point rounding.  Values are NEAREST, UP, DOWN, ZERO.", 0},
-
-  {"GFORTRAN_FPU_PRECISION", 0, &options.fpu_precision, init_precision,
-   show_precision,
-   "Precision of intermediate results.  Values are 24, 53 and 64.", 0},
 
   /* GFORTRAN_CONVERT_UNIT - Set the default data conversion for
    unformatted I/O.  */
@@ -560,32 +342,6 @@ init_variables (void)
 
   for (v = variable_table; v->name; v++)
     v->init (v);
-}
-
-
-/* check_buffered()-- Given an unit number n, determine if an override
- * for the stream exists.  Returns zero for unbuffered, one for
- * buffered or two for not set. */
-
-int
-check_buffered (int n)
-{
-  char name[22 + sizeof (n) * 3];
-  variable v;
-  int rv;
-
-  if (options.all_unbuffered)
-    return 0;
-
-  sprintf (name, "GFORTRAN_UNBUFFERED_%d", n);
-
-  v.name = name;
-  v.value = 2;
-  v.var = &rv;
-
-  init_boolean (&v);
-
-  return rv;
 }
 
 

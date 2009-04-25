@@ -1,19 +1,39 @@
-// { dg-options "-std=c++98" }
-// PR c++/12226
+// PR c++/39480
+// It isn't always safe to call memcpy with identical arguments.
+// { dg-do run }
 
-class foo {
-private:
-  foo(const foo &); // { dg-error "" }
-public:
-  foo();
+extern "C" void abort();
+extern "C" void *
+memcpy(void *dest, void *src, __SIZE_TYPE__ n)
+{
+  if (dest == src)
+    abort();
+  else
+    {
+      __SIZE_TYPE__ i;
+      for (i = 0; i < n; i++)
+        ((char *)dest)[i] = ((const char*)src)[i];
+    }
+}
+
+struct A
+{
+  double d[10];
 };
-const foo &bar = foo(); // { dg-error "" }
 
-class derived : public foo {
-private:
-  derived(const derived&);  // { dg-error "" }
-public:
-  derived();
+struct B: public A
+{
+  char bc;
 };
 
-const foo& baz = derived(); // { dg-error "" }
+B b;
+
+void f(B *a1, B* a2)
+{
+  *a1 = *a2;
+}
+
+int main()
+{
+  f(&b,&b);
+}

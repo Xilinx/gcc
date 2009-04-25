@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -236,7 +236,7 @@ package body Scng is
       --  Scan_Ptr points to the opening string quote (the checksum for this
       --  character has not been accumulated yet). On return Scan_Ptr points
       --  past the closing quote of the string literal, Token and Token_Node
-      --  are set appropriately, and the checksum is upated.
+      --  are set appropriately, and the checksum is updated.
 
       -----------------------
       -- Check_End_Of_Line --
@@ -350,6 +350,7 @@ package body Scng is
 
       procedure Error_Illegal_Wide_Character is
       begin
+         Scan_Ptr := Scan_Ptr + 1;
          Error_Msg ("illegal wide character", Wptr);
       end Error_Illegal_Wide_Character;
 
@@ -1651,7 +1652,7 @@ package body Scng is
 
                   if Err then
                      Error_Illegal_Wide_Character;
-                        Code := Character'Pos (' ');
+                     Code := Character'Pos (' ');
 
                   --  In Ada 95 mode we allow any wide character in a character
                   --  literal, but in Ada 2005, the set of characters allowed
@@ -2066,7 +2067,7 @@ package body Scng is
                Underline_Found := False;
                goto Scan_Identifier;
 
-            --  Mark character is an error (at start of identifer)
+            --  Mark character is an error (at start of identifier)
 
             elsif Is_UTF_32_Mark (Cat) then
                Error_Msg
@@ -2076,7 +2077,7 @@ package body Scng is
                Underline_Found := False;
                goto Scan_Identifier;
 
-            --  Other format character is an error (at start of identifer)
+            --  Other format character is an error (at start of identifier)
 
             elsif Is_UTF_32_Other (Cat) then
                Error_Msg
@@ -2108,7 +2109,7 @@ package body Scng is
 
       --  Routine to scan line terminator. On entry Scan_Ptr points to a
       --  character which is one of FF,LR,CR,VT, or one of the wide characters
-      --  that is treated as a line termiantor.
+      --  that is treated as a line terminator.
 
       <<Scan_Line_Terminator>>
 
@@ -2151,7 +2152,7 @@ package body Scng is
 
       --  Identifier scanning routine. On entry, some initial characters of
       --  the identifier may have already been stored in Name_Buffer. If so,
-      --  Name_Len has the number of characters stored. otherwise Name_Len is
+      --  Name_Len has the number of characters stored, otherwise Name_Len is
       --  set to zero on entry. Underline_Found is also set False on entry.
 
       <<Scan_Identifier>>
@@ -2189,8 +2190,10 @@ package body Scng is
          --  is active, so if we find an ESC character we know that we have a
          --  wide character.
 
-         if Identifier_Char (Source (Scan_Ptr)) then
-
+         if Identifier_Char (Source (Scan_Ptr))
+           or else (Source (Scan_Ptr) in Upper_Half_Character
+                     and then Upper_Half_Encoding)
+         then
             --  Case of underline
 
             if Source (Scan_Ptr) = '_' then
@@ -2322,7 +2325,7 @@ package body Scng is
                            Underline_Found := True;
                         end if;
 
-                     --  Wide character in Unicode cateogory "Other, Format"
+                     --  Wide character in Unicode category "Other, Format"
                      --  is accepted in an identifier, but is ignored and not
                      --  stored. It seems reasonable to exclude it from the
                      --  checksum.

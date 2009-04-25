@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -118,24 +118,35 @@ package GNAT.Calendar.Time_IO is
 
    function Value (Date : String) return Ada.Calendar.Time;
    --  Parse the string Date and return its equivalent as a Time value. The
-   --  following formats are supported:
-   --
-   --     yyyy*mm*dd hh:mm:ss  - Delimiter '*' is either '-' or '/'
-   --     yyyy*mm*dd           - The time of day is set to 00:00:00
-   --
-   --     yy*mm*dd hh:mm:ss    - Year is assumend to be 20YY
-   --     yy*mm*dd             - The time of day is set to 00:00:00
+   --  following time format is supported:
    --
    --     hh:mm:ss             - Date is the current date
    --
-   --  Constraint_Error is raised if the input string is malformatted or
+   --  The following formats are also supported. They all accept an optional
+   --  time with the format "hh:mm:ss". The time is separated from the date by
+   --  exactly one space character.
+   --
+   --  When the time is not specified, it is set to 00:00:00. The delimiter '*'
+   --  must be either '-' and '/' and both occurrences must use the same
+   --  character.
+   --
+   --  Trailing characters (in particular spaces) are not allowed
+   --
+   --     yyyy*mm*dd           - ISO format
+   --     yy*mm*dd             - Year is assumed to be 20yy
+   --     mm*dd*yyyy           - (US date format)
+   --     dd*mmm*yyyy          - month spelled out
+   --     yyyy*mmm*dd          - month spelled out
+   --     yyyymmdd             - Iso format, no separator
+   --     mmm dd, yyyy         - month spelled out
+   --     dd mmm yyyy          - month spelled out
+   --
+   --  Constraint_Error is raised if the input string is malformed (does not
+   --  conform to one of the above dates, or has an invalid time string), or
    --  the resulting time is not valid.
 
-   procedure Put_Time
-     (Date    : Ada.Calendar.Time;
-      Picture : Picture_String);
-   --  Put Date with format Picture. Raise Picture_Error if picture string is
-   --  wrong
+   procedure Put_Time (Date : Ada.Calendar.Time; Picture : Picture_String);
+   --  Put Date with format Picture. Raise Picture_Error if bad picture string
 
 private
    ISO_Date      : constant Picture_String := "%Y-%m-%d";

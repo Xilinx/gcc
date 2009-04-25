@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2007, AdaCore                          --
+--                  Copyright (C) 2007-2008, AdaCore                        --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@
 --  This version is used on VxWorks. Note that the corresponding spec is in
 --  g-sttsne-locking.ads.
 
+with Ada.Unchecked_Conversion;
 with Interfaces.C; use Interfaces.C;
 
 package body GNAT.Sockets.Thin.Task_Safe_NetDB is
@@ -76,24 +77,23 @@ package body GNAT.Sockets.Thin.Task_Safe_NetDB is
       pragma Import (Ada, Netdb_Data);
       for Netdb_Data'Address use Buf;
 
-      pragma Unreferenced (H_Errnop);
-      --  VxWorks does not provide h_errno
-
    begin
-      pragma Assert (Addr_Type = Constants.AF_INET);
+      pragma Assert (Addr_Type = SOSC.AF_INET);
       pragma Assert (Addr_Len = In_Addr'Size / 8);
 
       --  Check that provided buffer is sufficiently large to hold the
       --  data we want to return.
 
       if Netdb_Data'Size / 8 > Buflen then
+         H_Errnop.all := SOSC.ERANGE;
          return -1;
       end if;
 
       if VxWorks_hostGetByAddr (To_Pointer (Addr).all,
                                 Netdb_Data.Name'Address)
-           /= Constants.OK
+           /= SOSC.OK
       then
+         H_Errnop.all := C.int (Host_Errno);
          return -1;
       end if;
 
@@ -105,7 +105,7 @@ package body GNAT.Sockets.Thin.Task_Safe_NetDB is
       Ret.H_Name      := C.Strings.To_Chars_Ptr
                            (Netdb_Data.Name'Unrestricted_Access);
       Ret.H_Aliases   := Alias_Access;
-      Ret.H_Addrtype  := Constants.AF_INET;
+      Ret.H_Addrtype  := SOSC.AF_INET;
       Ret.H_Length    := 4;
       Ret.H_Addr_List :=
         Netdb_Data.Addr_List (Netdb_Data.Addr_List'First)'Unchecked_Access;
@@ -129,12 +129,10 @@ package body GNAT.Sockets.Thin.Task_Safe_NetDB is
 
       Addr : C.int;
 
-      pragma Unreferenced (H_Errnop);
-      --  VxWorks does not provide h_errno
-
    begin
       Addr := VxWorks_hostGetByName (Name);
-      if Addr = Constants.ERROR then
+      if Addr = SOSC.ERROR then
+         H_Errnop.all := C.int (Host_Errno);
          return -1;
       end if;
 
@@ -148,6 +146,7 @@ package body GNAT.Sockets.Thin.Task_Safe_NetDB is
          --  data we want to return.
 
          if Netdb_Data'Size / 8 > Buflen then
+            H_Errnop.all := SOSC.ERANGE;
             return -1;
          end if;
 
@@ -160,7 +159,7 @@ package body GNAT.Sockets.Thin.Task_Safe_NetDB is
          Ret.H_Name      := C.Strings.To_Chars_Ptr
                               (Netdb_Data.Name'Unrestricted_Access);
          Ret.H_Aliases   := Alias_Access;
-         Ret.H_Addrtype  := Constants.AF_INET;
+         Ret.H_Addrtype  := SOSC.AF_INET;
          Ret.H_Length    := 4;
          Ret.H_Addr_List :=
            Netdb_Data.Addr_List (Netdb_Data.Addr_List'First)'Unchecked_Access;

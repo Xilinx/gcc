@@ -37,10 +37,11 @@ exception statement from your version. */
 
 package gnu.xml.transform;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -596,7 +597,7 @@ public class StreamSerializer
     if (!encoder.canEncode(text) || htmlNeedingEncoding)
       {
         // Check each character
-        StringBuffer buf = new StringBuffer();
+        CPStringBuilder buf = new CPStringBuilder();
         int len = text.length();
         for (int i = 0; i < len; i++)
           {
@@ -649,20 +650,20 @@ public class StreamSerializer
   String encode(String text, boolean encodeCtl, boolean inAttr)
   {
     int len = text.length();
-    StringBuffer buf = null;
+    CPStringBuilder buf = null;
     for (int i = 0; i < len; i++)
       {
         char c = text.charAt(i);
         if (c == '<')
           {
             if (buf == null)
-              buf = new StringBuffer(text.substring(0, i));
+              buf = new CPStringBuilder(text.substring(0, i));
             buf.append("&lt;");
           }
         else if (c == '>')
           {
             if (buf == null)
-              buf = new StringBuffer(text.substring(0, i));
+              buf = new CPStringBuilder(text.substring(0, i));
             buf.append("&gt;");
           }
         else if (c == '&')
@@ -676,14 +677,14 @@ public class StreamSerializer
             else
               {
                 if (buf == null)
-                  buf = new StringBuffer(text.substring(0, i));
+                  buf = new CPStringBuilder(text.substring(0, i));
                 buf.append("&amp;");
               }
           }
         else if (c == '\'' && inAttr)
           {
             if (buf == null)
-              buf = new StringBuffer(text.substring(0, i));
+              buf = new CPStringBuilder(text.substring(0, i));
             if (mode == Stylesheet.OUTPUT_HTML)
               // HTML does not define &apos;, use character entity ref
               buf.append("&#x27;");
@@ -693,7 +694,7 @@ public class StreamSerializer
         else if (c == '"' && inAttr)
           {
             if (buf == null)
-              buf = new StringBuffer(text.substring(0, i));
+              buf = new CPStringBuilder(text.substring(0, i));
             buf.append("&quot;");
           }
         else if (encodeCtl)
@@ -701,7 +702,7 @@ public class StreamSerializer
             if (c < 0x20)
               {
                 if (buf == null)
-                  buf = new StringBuffer(text.substring(0, i));
+                  buf = new CPStringBuilder(text.substring(0, i));
                 buf.append('&');
                 buf.append('#');
                 buf.append((int) c);

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -221,8 +219,6 @@ package body Sinput is
       Ptr : Source_Ptr;
 
    begin
-      Name_Len := 0;
-
       --  Loop through instantiations
 
       Ptr := Loc;
@@ -366,22 +362,22 @@ package body Sinput is
    Source_Cache_First : Source_Ptr := 1;
    Source_Cache_Last  : Source_Ptr := 0;
    --  Records the First and Last subscript values for the most recently
-   --  referenced entry in the source table, to optimize the common case
-   --  of repeated references to the same entry. The initial values force
-   --  an initial search to set the cache value.
+   --  referenced entry in the source table, to optimize the common case of
+   --  repeated references to the same entry. The initial values force an
+   --  initial search to set the cache value.
 
    Source_Cache_Index : Source_File_Index := No_Source_File;
    --  Contains the index of the entry corresponding to Source_Cache
 
-   function Get_Source_File_Index
-     (S    : Source_Ptr)
-      return Source_File_Index
-   is
+   function Get_Source_File_Index (S : Source_Ptr) return Source_File_Index is
    begin
       if S in Source_Cache_First .. Source_Cache_Last then
          return Source_Cache_Index;
 
       else
+         pragma Assert (Source_File_Index_Table (Int (S) / Chunk_Size)
+                          /=
+                        No_Source_File);
          for J in Source_File_Index_Table (Int (S) / Chunk_Size)
                                                     .. Source_File.Last
          loop
@@ -651,7 +647,7 @@ package body Sinput is
       Chr : constant Character := Source (P);
 
    begin
-      if  Chr = CR then
+      if Chr = CR then
          if Source (P + 1) = LF then
             P := P + 2;
          else
@@ -659,11 +655,7 @@ package body Sinput is
          end if;
 
       elsif Chr = LF then
-         if Source (P) = CR then
-            P := P + 2;
-         else
-            P := P + 1;
-         end if;
+         P := P + 1;
 
       elsif Chr = FF or else Chr = VT then
          P := P + 1;
@@ -765,17 +757,20 @@ package body Sinput is
                   null;
 
                else
+                  --  Free the buffer, we use Free here, because we used malloc
+                  --  or realloc directly to allocate the tables. That is
+                  --  because we were playing the big array trick. We need to
+                  --  suppress the warning for freeing from an empty pool!
+
                   --  We have to recreate a proper pointer to the actual array
                   --  from the zero origin pointer stored in the source table.
 
                   Tmp1 :=
                     To_Source_Buffer_Ptr
                       (S.Source_Text (S.Source_First)'Address);
+                  pragma Warnings (Off);
                   Free_Ptr (Tmp1);
-
-                  --  Note: we are using free here, because we used malloc
-                  --  or realloc directly to allocate the tables. That is
-                  --  because we were playing the big array trick.
+                  pragma Warnings (On);
 
                   if S.Lines_Table /= null then
                      Memory.Free (To_Address (S.Lines_Table));
@@ -811,7 +806,7 @@ package body Sinput is
          begin
             --  For the instantiation case, we do not read in any data. Instead
             --  we share the data for the generic template entry. Since the
-            --  template always occurs first, we can safetly refer to its data.
+            --  template always occurs first, we can safely refer to its data.
 
             if S.Instantiation /= No_Location then
                declare

@@ -136,13 +136,13 @@ int main()
   assert (PTEST (C));
   assert (NTEST (C[]));
   assert (PTEST (D));
-  assert (PTEST (E));
+  assert (NTEST (E));
   assert (NTEST (E1));
   assert (PTEST (F));
   assert (PTEST (G));
-  assert (PTEST (H));
+  assert (NTEST (H));
   assert (NTEST (H1));
-  assert (PTEST (I));
+  assert (NTEST (I));
   assert (NTEST (I1));
   assert (PTEST (J));
   assert (NTEST (const K));

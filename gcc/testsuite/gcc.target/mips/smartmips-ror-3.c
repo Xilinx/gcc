@@ -1,7 +1,5 @@
 /* { dg-do compile } */
-/* { dg-mips-options "-O -msmartmips" } */
-
-#define NOMIPS16 __attribute__ ((nomips16)) 
+/* { dg-options "-O -msmartmips" } */
 
 #define S 13
 

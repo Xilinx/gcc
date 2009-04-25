@@ -1,4 +1,5 @@
-C { dg-do run }
+C { dg-do run { target fd_truncate } }
+C { dg-options "-fbackslash" }
 C PR fortran/30278
       program a
       character(len=1), parameter  :: c1 = char(8), c2 = char(92)

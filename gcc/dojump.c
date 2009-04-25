@@ -1,6 +1,6 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "optabs.h"
 #include "langhooks.h"
 #include "ggc.h"
+#include "basic-block.h"
 
 static bool prefer_and_bit_test (enum machine_mode, int);
 static void do_jump_by_parts_greater (tree, int, rtx, rtx);
@@ -70,9 +71,8 @@ void
 clear_pending_stack_adjust (void)
 {
   if (optimize > 0
-      && (! flag_omit_frame_pointer || current_function_calls_alloca)
-      && EXIT_IGNORE_STACK
-      && ! (DECL_INLINE (current_function_decl) && ! flag_no_inline))
+      && (! flag_omit_frame_pointer || cfun->calls_alloca)
+      && EXIT_IGNORE_STACK)
     discard_pending_stack_adjust ();
 }
 
@@ -144,8 +144,8 @@ prefer_and_bit_test (enum machine_mode mode, int bitnum)
   XEXP (and_test, 1) = GEN_INT ((unsigned HOST_WIDE_INT) 1 << bitnum);
   XEXP (XEXP (shift_test, 0), 1) = GEN_INT (bitnum);
 
-  return (rtx_cost (and_test, IF_THEN_ELSE)
-	  <= rtx_cost (shift_test, IF_THEN_ELSE));
+  return (rtx_cost (and_test, IF_THEN_ELSE, optimize_insn_for_speed_p ())
+	  <= rtx_cost (shift_test, IF_THEN_ELSE, optimize_insn_for_speed_p ()));
 }
 
 /* Generate code to evaluate EXP and jump to IF_FALSE_LABEL if
@@ -208,81 +208,6 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
       do_jump (TREE_OPERAND (exp, 0), if_false_label, if_true_label);
       break;
 
-    case BIT_AND_EXPR:
-      /* fold_single_bit_test() converts (X & (1 << C)) into (X >> C) & 1.
-	 See if the former is preferred for jump tests and restore it
-	 if so.  */
-      if (integer_onep (TREE_OPERAND (exp, 1)))
-	{
-	  tree exp0 = TREE_OPERAND (exp, 0);
-	  rtx set_label, clr_label;
-
-	  /* Strip narrowing integral type conversions.  */
-	  while ((TREE_CODE (exp0) == NOP_EXPR
-		  || TREE_CODE (exp0) == CONVERT_EXPR
-		  || TREE_CODE (exp0) == NON_LVALUE_EXPR)
-		 && TREE_OPERAND (exp0, 0) != error_mark_node
-		 && TYPE_PRECISION (TREE_TYPE (exp0))
-		    <= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (exp0, 0))))
-	    exp0 = TREE_OPERAND (exp0, 0);
-
-	  /* "exp0 ^ 1" inverts the sense of the single bit test.  */
-	  if (TREE_CODE (exp0) == BIT_XOR_EXPR
-	      && integer_onep (TREE_OPERAND (exp0, 1)))
-	    {
-	      exp0 = TREE_OPERAND (exp0, 0);
-	      clr_label = if_true_label;
-	      set_label = if_false_label;
-	    }
-	  else
-	    {
-	      clr_label = if_false_label;
-	      set_label = if_true_label;
-	    }
-
-	  if (TREE_CODE (exp0) == RSHIFT_EXPR)
-	    {
-	      tree arg = TREE_OPERAND (exp0, 0);
-	      tree shift = TREE_OPERAND (exp0, 1);
-	      tree argtype = TREE_TYPE (arg);
-	      if (TREE_CODE (shift) == INTEGER_CST
-		  && compare_tree_int (shift, 0) >= 0
-		  && compare_tree_int (shift, HOST_BITS_PER_WIDE_INT) < 0
-		  && prefer_and_bit_test (TYPE_MODE (argtype),
-					  TREE_INT_CST_LOW (shift)))
-		{
-		  HOST_WIDE_INT mask = (HOST_WIDE_INT) 1
-				       << TREE_INT_CST_LOW (shift);
-		  do_jump (build2 (BIT_AND_EXPR, argtype, arg,
-				   build_int_cst_type (argtype, mask)),
-			   clr_label, set_label);
-		  break;
-		}
-	    }
-	}
-
-      /* If we are AND'ing with a small constant, do this comparison in the
-         smallest type that fits.  If the machine doesn't have comparisons
-         that small, it will be converted back to the wider comparison.
-         This helps if we are testing the sign bit of a narrower object.
-         combine can't do this for us because it can't know whether a
-         ZERO_EXTRACT or a compare in a smaller mode exists, but we do.  */
-
-      if (! SLOW_BYTE_ACCESS
-          && TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST
-          && TYPE_PRECISION (TREE_TYPE (exp)) <= HOST_BITS_PER_WIDE_INT
-          && (i = tree_floor_log2 (TREE_OPERAND (exp, 1))) >= 0
-          && (mode = mode_for_size (i + 1, MODE_INT, 0)) != BLKmode
-          && (type = lang_hooks.types.type_for_mode (mode, 1)) != 0
-          && TYPE_PRECISION (type) < TYPE_PRECISION (TREE_TYPE (exp))
-          && (optab_handler (cmp_optab, TYPE_MODE (type))->insn_code
-              != CODE_FOR_nothing))
-        {
-          do_jump (fold_convert (type, exp), if_false_label, if_true_label);
-          break;
-        }
-      goto normal;
-
     case TRUTH_NOT_EXPR:
       do_jump (TREE_OPERAND (exp, 0), if_true_label, if_false_label);
       break;
@@ -307,8 +232,6 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	break;
       }
 
-    case TRUTH_ANDIF_EXPR:
-    case TRUTH_ORIF_EXPR:
     case COMPOUND_EXPR:
       /* Lowered by gimplify.c.  */
       gcc_unreachable ();
@@ -334,8 +257,7 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
         if (! SLOW_BYTE_ACCESS
             && type != 0 && bitsize >= 0
             && TYPE_PRECISION (type) < TYPE_PRECISION (TREE_TYPE (exp))
-            && (optab_handler (cmp_optab, TYPE_MODE (type))->insn_code
-		!= CODE_FOR_nothing))
+            && have_insn_for (COMPARE, TYPE_MODE (type)))
           {
             do_jump (fold_convert (type, exp), if_false_label, if_true_label);
             break;
@@ -508,16 +430,96 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	    do_jump (cmp0, 0, if_true_label);
 	    do_jump (cmp1, if_false_label, if_true_label);
           }
-      }
       break;
+    }
+
+    case BIT_AND_EXPR:
+      /* fold_single_bit_test() converts (X & (1 << C)) into (X >> C) & 1.
+	 See if the former is preferred for jump tests and restore it
+	 if so.  */
+      if (integer_onep (TREE_OPERAND (exp, 1)))
+	{
+	  tree exp0 = TREE_OPERAND (exp, 0);
+	  rtx set_label, clr_label;
+
+	  /* Strip narrowing integral type conversions.  */
+	  while (CONVERT_EXPR_P (exp0)
+		 && TREE_OPERAND (exp0, 0) != error_mark_node
+		 && TYPE_PRECISION (TREE_TYPE (exp0))
+		    <= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (exp0, 0))))
+	    exp0 = TREE_OPERAND (exp0, 0);
+
+	  /* "exp0 ^ 1" inverts the sense of the single bit test.  */
+	  if (TREE_CODE (exp0) == BIT_XOR_EXPR
+	      && integer_onep (TREE_OPERAND (exp0, 1)))
+	    {
+	      exp0 = TREE_OPERAND (exp0, 0);
+	      clr_label = if_true_label;
+	      set_label = if_false_label;
+	    }
+	  else
+	    {
+	      clr_label = if_false_label;
+	      set_label = if_true_label;
+	    }
+
+	  if (TREE_CODE (exp0) == RSHIFT_EXPR)
+	    {
+	      tree arg = TREE_OPERAND (exp0, 0);
+	      tree shift = TREE_OPERAND (exp0, 1);
+	      tree argtype = TREE_TYPE (arg);
+	      if (TREE_CODE (shift) == INTEGER_CST
+		  && compare_tree_int (shift, 0) >= 0
+		  && compare_tree_int (shift, HOST_BITS_PER_WIDE_INT) < 0
+		  && prefer_and_bit_test (TYPE_MODE (argtype),
+					  TREE_INT_CST_LOW (shift)))
+		{
+		  HOST_WIDE_INT mask = (HOST_WIDE_INT) 1
+				       << TREE_INT_CST_LOW (shift);
+		  do_jump (build2 (BIT_AND_EXPR, argtype, arg,
+				   build_int_cst_type (argtype, mask)),
+			   clr_label, set_label);
+		  break;
+		}
+	    }
+	}
+
+      /* If we are AND'ing with a small constant, do this comparison in the
+         smallest type that fits.  If the machine doesn't have comparisons
+         that small, it will be converted back to the wider comparison.
+         This helps if we are testing the sign bit of a narrower object.
+         combine can't do this for us because it can't know whether a
+         ZERO_EXTRACT or a compare in a smaller mode exists, but we do.  */
+
+      if (! SLOW_BYTE_ACCESS
+          && TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST
+          && TYPE_PRECISION (TREE_TYPE (exp)) <= HOST_BITS_PER_WIDE_INT
+          && (i = tree_floor_log2 (TREE_OPERAND (exp, 1))) >= 0
+          && (mode = mode_for_size (i + 1, MODE_INT, 0)) != BLKmode
+          && (type = lang_hooks.types.type_for_mode (mode, 1)) != 0
+          && TYPE_PRECISION (type) < TYPE_PRECISION (TREE_TYPE (exp))
+          && have_insn_for (COMPARE, TYPE_MODE (type)))
+        {
+          do_jump (fold_convert (type, exp), if_false_label, if_true_label);
+          break;
+        }
+
+      if (TYPE_PRECISION (TREE_TYPE (exp)) > 1
+	  || TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST)
+	goto normal;
+
+      /* Boolean comparisons can be compiled as TRUTH_AND_EXPR.  */
 
     case TRUTH_AND_EXPR:
       /* High branch cost, expand as the bitwise AND of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_AND_EXPR into a TRUTH_ANDIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (),
+		       false) >= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ANDIF_EXPR:
       if (if_false_label == NULL_RTX)
         {
 	  drop_through_label = gen_label_rtx ();
@@ -531,13 +533,16 @@ do_jump (tree exp, rtx if_false_label, rtx if_true_label)
 	}
       break;
 
+    case BIT_IOR_EXPR:
     case TRUTH_OR_EXPR:
       /* High branch cost, expand as the bitwise OR of the conditions.
 	 Do the same if the RHS has side effects, because we're effectively
 	 turning a TRUTH_OR_EXPR into a TRUTH_ORIF_EXPR.  */
-      if (BRANCH_COST >= 4 || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
+      if (BRANCH_COST (optimize_insn_for_speed_p (), false)>= 4
+	  || TREE_SIDE_EFFECTS (TREE_OPERAND (exp, 1)))
 	goto normal;
 
+    case TRUTH_ORIF_EXPR:
       if (if_true_label == NULL_RTX)
 	{
           drop_through_label = gen_label_rtx ();
@@ -668,10 +673,10 @@ do_jump_by_parts_zero_rtx (enum machine_mode mode, rtx op0,
      be slower, but that's highly unlikely.  */
 
   part = gen_reg_rtx (word_mode);
-  emit_move_insn (part, operand_subword_force (op0, 0, GET_MODE (op0)));
+  emit_move_insn (part, operand_subword_force (op0, 0, mode));
   for (i = 1; i < nwords && part != 0; i++)
     part = expand_binop (word_mode, ior_optab, part,
-                         operand_subword_force (op0, i, GET_MODE (op0)),
+                         operand_subword_force (op0, i, mode),
                          part, 1, OPTAB_WIDEN);
 
   if (part != 0)
@@ -687,7 +692,7 @@ do_jump_by_parts_zero_rtx (enum machine_mode mode, rtx op0,
     drop_through_label = if_false_label = gen_label_rtx ();
 
   for (i = 0; i < nwords; i++)
-    do_compare_rtx_and_jump (operand_subword_force (op0, i, GET_MODE (op0)),
+    do_compare_rtx_and_jump (operand_subword_force (op0, i, mode),
                              const0_rtx, EQ, 1, word_mode, NULL_RTX,
                              if_false_label, NULL_RTX);
 

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                   S p e c                                --
 --                                                                          --
---          Copyright (C) 1997-2003 Free Software Foundation, Inc.          --
+--          Copyright (C) 1997-2009 Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -35,17 +33,21 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is the RTEMS version of this package
-
---  These are guesses based on what I think the GNARL team will want to
---  call the rtems configurations.  We use CPU-rtems for the rtems
---  configurations.
+--  This is the RTEMS version of this package.
+--
+--  RTEMS target names are of the form CPU-rtems.
+--  This implementation is designed to work on ALL RTEMS targets.
+--  The RTEMS implementation is primarily based upon the POSIX threads
+--  API but there are also bindings to GNAT/RTEMS support routines
+--  to insulate this code from C API specific details and, in some
+--  cases, obtain target architecture and BSP specific information
+--  that is unavailable at the time this package is built.
 
 --  This package encapsulates all direct interfaces to OS services
 --  that are needed by children of System.
 
 --  PLEASE DO NOT add any with-clauses to this package
---  or remove the pragma Elaborate_Body.
+--  or remove the pragma Preelaborate.
 --  It is designed to be a bottom-level (leaf) package.
 
 with Interfaces.C;
@@ -84,7 +86,13 @@ package System.OS_Interface is
    -- Signals --
    -------------
 
-   Max_Interrupt : constant := 31;
+   Num_HW_Interrupts : constant := 256;
+
+   Max_HW_Interrupt : constant := Num_HW_Interrupts - 1;
+   type HW_Interrupt is new int range 0 .. Max_HW_Interrupt;
+
+   Max_Interrupt : constant := Max_HW_Interrupt;
+
    type Signal is new int range 0 .. Max_Interrupt;
 
    SIGXCPU     : constant := 0; --  XCPU
@@ -141,6 +149,11 @@ package System.OS_Interface is
 
    SA_SIGINFO  : constant := 16#02#;
 
+   SA_ONSTACK : constant := 16#00#;
+   --  SA_ONSTACK is not defined on RTEMS, but it is referred to in the POSIX
+   --  implementation of System.Interrupt_Management. Therefore we define a
+   --  dummy value of zero here so that setting this flag is a nop.
+
    SIG_BLOCK   : constant := 1;
    SIG_UNBLOCK : constant := 2;
    SIG_SETMASK : constant := 3;
@@ -159,7 +172,7 @@ package System.OS_Interface is
    ----------
 
    Time_Slice_Supported : constant Boolean := True;
-   --  Indicates wether time slicing is supported (i.e SCHED_RR is supported)
+   --  Indicates whether time slicing is supported (i.e SCHED_RR is supported)
 
    type timespec is private;
 
@@ -194,6 +207,10 @@ package System.OS_Interface is
    SCHED_RR    : constant := 2;
    SCHED_OTHER : constant := 0;
 
+   function To_Target_Priority
+     (Prio : System.Any_Priority) return Interfaces.C.int;
+   --  Maps System.Any_Priority to a POSIX priority
+
    -------------
    -- Process --
    -------------
@@ -222,6 +239,7 @@ package System.OS_Interface is
 
    type Thread_Body is access
      function (arg : System.Address) return System.Address;
+   pragma Convention (C, Thread_Body);
 
    type pthread_t           is private;
    subtype Thread_Id        is pthread_t;
@@ -237,12 +255,32 @@ package System.OS_Interface is
 
    PTHREAD_CREATE_DETACHED : constant := 0;
 
+   PTHREAD_SCOPE_PROCESS : constant := 0;
+   PTHREAD_SCOPE_SYSTEM  : constant := 1;
+
    -----------
    -- Stack --
    -----------
 
+   type stack_t is record
+      ss_sp    : System.Address;
+      ss_flags : int;
+      ss_size  : size_t;
+   end record;
+   pragma Convention (C, stack_t);
+
+   function sigaltstack
+     (ss  : not null access stack_t;
+      oss : access stack_t) return int;
+
+   Alternate_Stack : aliased System.Address;
+   --  This is a dummy definition, never used (Alternate_Stack_Size is null)
+
+   Alternate_Stack_Size : constant := 0;
+   --  No alternate signal stack is used on this platform
+
    Stack_Base_Available : constant Boolean := False;
-   --  Indicates wether the stack base is available on this target.
+   --  Indicates whether the stack base is available on this target.
    --  This allows us to share s-osinte.adb between all the FSU/RTEMS
    --  run time.
    --  Note that this value can only be true if pthread_t has a complete
@@ -378,7 +416,7 @@ package System.OS_Interface is
 
    type struct_sched_param is record
       sched_priority      : int;
-      ss_low_priority     : timespec;
+      ss_low_priority     : int;
       ss_replenish_period : timespec;
       ss_initial_budget   : timespec;
    end record;
@@ -460,11 +498,85 @@ package System.OS_Interface is
    pragma Import (C, pthread_getspecific, "pthread_getspecific");
 
    type destructor_pointer is access procedure (arg : System.Address);
+   pragma Convention (C, destructor_pointer);
 
    function pthread_key_create
      (key        : access pthread_key_t;
       destructor : destructor_pointer) return int;
    pragma Import (C, pthread_key_create, "pthread_key_create");
+
+   ------------------------------------------------------------
+   --   Binary Semaphore Wrapper to Support Interrupt Tasks  --
+   ------------------------------------------------------------
+
+   type Binary_Semaphore_Id is new rtems_id;
+
+   function Binary_Semaphore_Create return Binary_Semaphore_Id;
+   pragma Import (
+      C,
+      Binary_Semaphore_Create,
+      "__gnat_binary_semaphore_create");
+
+   function Binary_Semaphore_Delete (ID : Binary_Semaphore_Id) return int;
+   pragma Import (
+      C,
+      Binary_Semaphore_Delete,
+      "__gnat_binary_semaphore_delete");
+
+   function Binary_Semaphore_Obtain (ID : Binary_Semaphore_Id) return int;
+   pragma Import (
+      C,
+      Binary_Semaphore_Obtain,
+      "__gnat_binary_semaphore_obtain");
+
+   function Binary_Semaphore_Release (ID : Binary_Semaphore_Id) return int;
+   pragma Import (
+      C,
+      Binary_Semaphore_Release,
+      "__gnat_binary_semaphore_release");
+
+   function Binary_Semaphore_Flush (ID : Binary_Semaphore_Id) return int;
+   pragma Import (
+      C,
+      Binary_Semaphore_Flush,
+      "__gnat_binary_semaphore_flush");
+
+   ------------------------------------------------------------
+   -- Hardware Interrupt Wrappers to Support Interrupt Tasks --
+   ------------------------------------------------------------
+
+   type Interrupt_Handler is access procedure (parameter : System.Address);
+   pragma Convention (C, Interrupt_Handler);
+   type Interrupt_Vector is new System.Address;
+
+   function Interrupt_Connect
+     (vector    : Interrupt_Vector;
+      handler   : Interrupt_Handler;
+      parameter : System.Address := System.Null_Address) return int;
+   pragma Import (C, Interrupt_Connect, "__gnat_interrupt_connect");
+   --  Use this to set up an user handler. The routine installs a
+   --  a user handler which is invoked after RTEMS has saved enough
+   --  context for a high-level language routine to be safely invoked.
+
+   function Interrupt_Vector_Get
+     (Vector : Interrupt_Vector) return Interrupt_Handler;
+   pragma Import (C, Interrupt_Vector_Get, "__gnat_interrupt_get");
+   --  Use this to get the existing handler for later restoral.
+
+   procedure Interrupt_Vector_Set
+     (Vector  : Interrupt_Vector;
+      Handler : Interrupt_Handler);
+   pragma Import (C, Interrupt_Vector_Set, "__gnat_interrupt_set");
+   --  Use this to restore a handler obtained using Interrupt_Vector_Get.
+
+   function Interrupt_Number_To_Vector (intNum : int) return Interrupt_Vector;
+   --  Convert a logical interrupt number to the hardware interrupt vector
+   --  number used to connect the interrupt.
+   pragma Import (
+      C,
+      Interrupt_Number_To_Vector,
+      "__gnat_interrupt_number_to_vector"
+   );
 
 private
 
@@ -498,12 +610,13 @@ private
       schedpolicy     : int;
       schedparam      : struct_sched_param;
       cputime_clocked_allowed : int;
-      deatchstate     : int;
+      detatchstate    : int;
    end record;
    pragma Convention (C, pthread_attr_t);
 
    type pthread_condattr_t is record
-      flags        : int;
+      flags           : int;
+      process_shared  : int;
    end record;
    pragma Convention (C, pthread_condattr_t);
 

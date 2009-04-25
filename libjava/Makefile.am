@@ -13,13 +13,20 @@ SUBDIRS += testsuite
 endif
 
 # write_entries_to_file - writes each entry in a list
-# to the specified file. Each entry is written individually
-# to accomodate systems with severe command-line-length
-# limitations.
+# to the specified file.  Entries are written in chunks of
+# $(write_entries_to_file_split) to accomodate systems with
+# severe command-line-length limitations.
 # Parameters:
 # $(1): variable containing entries to iterate over
 # $(2): output file
-write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) $(foreach object,$(1),$(shell echo $(object) >> $(2)))
+write_entries_to_file_split = 50
+write_entries_to_file = $(shell rm -f $(2) || :) $(shell touch $(2)) \
+	$(foreach range, \
+	  $(shell i=1; while test $$i -le $(words $(1)); do \
+	     echo $$i; i=`expr $$i + $(write_entries_to_file_split)`; done), \
+	  $(shell echo $(wordlist $(range), \
+			  $(shell expr $(range) + $(write_entries_to_file_split) - 1), $(1)) \
+	     | tr ' ' '\n' >> $(2)))
 
 ## ################################################################
 
@@ -67,20 +74,35 @@ endif
 ## Name of the default .db.
 db_name = classmap.db
 ## Compiler specific component of the .db file
-db_pathtail = gcj-$(gcc_version)/$(db_name)
+gcjsubdir = @gcjsubdir@
+db_pathtail = $(gcjsubdir)/$(db_name)
 
 ## For now, only on native systems.  FIXME.
 if NATIVE
-bin_PROGRAMS = jv-convert gij grmic grmiregistry gcj-dbtool \
+bin_programs = jv-convert gij grmic grmiregistry gcj-dbtool \
 	gappletviewer gjarsigner gkeytool gjar gcjh gjavah gnative2ascii \
 	gorbd grmid gserialver gtnameserv gc-analyze
+if CREATE_GJDOC
+bin_programs += gjdoc
+endif
+
+noinst_PROGRAMS =
+if INSTALL_BINARIES
+bin_PROGRAMS = $(bin_programs)
+else
+noinst_PROGRAMS += $(bin_programs)
+endif
 
 ## It is convenient to actually build and install the default database
 ## when gcj-dbtool is available.
 dbexec_DATA = $(db_name)
-endif
+endif 
 
-bin_SCRIPTS = addr2name.awk
+bin_SCRIPTS = contrib/rebuild-gcj-db contrib/aot-compile
+
+if INSTALL_AOT_RPM
+bin_SCRIPTS += contrib/aot-compile-rpm
+endif
 
 if BUILD_ECJ1
 ## We build ecjx and not ecj1 because in one mode, ecjx will not work
@@ -106,12 +128,15 @@ if ANONVERSCRIPT
 extra_ldflags_libjava += -Wl,--version-script=$(srcdir)/libgcj.ver
 endif
 
+LTLDFLAGS = $(shell $(top_srcdir)/../libtool-ldflags $(LDFLAGS))
 GCJLINK = $(LIBTOOL) --tag=GCJ --mode=link $(GCJ) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) -o $@
+          $(LTLDFLAGS) -o $@
 GCJ_FOR_ECJX = @GCJ_FOR_ECJX@
 GCJ_FOR_ECJX_LINK = $(GCJ_FOR_ECJX) -o $@
 LIBLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXX) -L$(here) $(JC1FLAGS) \
-          $(LDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+          $(LTLDFLAGS) $(extra_ldflags_libjava) $(extra_ldflags) -o $@
+CXXLINK = $(LIBTOOL) --tag=CXX --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LTLDFLAGS) -o $@
 
 GCC_UNWIND_INCLUDE = @GCC_UNWIND_INCLUDE@
 
@@ -153,6 +178,18 @@ AM_GCJFLAGS = \
 AM_CFLAGS = @LIBGCJ_CFLAGS@
 if USING_GCC
 AM_CFLAGS += $(WARNINGS)
+endif
+
+if SUPPRESS_LIBGCJ_BC
+LIBGCJ_BC_FLAGS =
+else
+LIBGCJ_BC_FLAGS = -findirect-dispatch -fno-indirect-classes
+endif
+
+if BUILD_LIBGCJ_REDUCED_REFLECTION
+LIBGCJ_REDUCED_REFLECTION_FLAGS = -freduced-reflection
+else
+LIBGCJ_REDUCED_REFLECTION_FLAGS =
 endif
 
 ## Extra CFLAGS used for JNI C sources shared with GNU Classpath.
@@ -359,7 +396,7 @@ DISTCLEANFILES = native.dirs
 
 mostlyclean-local:
 ## Use libtool rm to remove each libtool object
-	find . -name '*.lo' -print | xargs $(LIBTOOL) rm -f
+	find . -name '*.lo' -print | xargs $(LIBTOOL) --mode=clean rm -f
 
 distclean-local:
 ## Remove every .d file that was created.
@@ -383,8 +420,13 @@ lib-gnu-awt-xlib.la: $(lib_gnu_awt_xlib_la_OBJECTS) $(lib_gnu_awt_xlib_la_DEPEND
 
 ## Compiling a list of java sources to a single .o.
 
+# Concurrent things use reflection internally.
+java/util/concurrent.lo \
+java/util/concurrent/atomic.lo \
+java/util/concurrent/locks.lo: LIBGCJ_REDUCED_REFLECTION_FLAGS =
+
 %.lo: %.list
-	$(LTGCJCOMPILE) -c -o $@ -fsource-filename=$(here)/classpath/lib/classes -MT $@ -MD -MP -MF $(basename $@).deps @$<
+	$(LTGCJCOMPILE) $(LIBGCJ_REDUCED_REFLECTION_FLAGS) -c -o $@ -fsource-filename=$(here)/classpath/lib/classes -MT $@ -MD -MP -MF $(basename $@).deps @$<
 
 java/lang/Object.lo: classpath/lib/java/lang/Object.class
 	$(LTGCJCOMPILE) -c -o $@ -fsource-filename=$(srcdir)/$(basename $@).java $<
@@ -447,7 +489,8 @@ extra_headers = java/lang/Object.h java/lang/Class.h
 $(extra_headers) $(srcdir)/java/lang/Object.h $(srcdir)/java/lang/Class.h:
 	@:
 
-install-exec-hook: install-toolexeclibLTLIBRARIES install-libexecsubPROGRAMS
+install-exec-hook: install-binPROGRAMS install-toolexeclibLTLIBRARIES \
+	install-libexecsubPROGRAMS
 ## Support for libgcj_bc: dummy shared library used only at link-time.
 if USE_LIBGCJ_BC
 ## Install libgcj_bc dummy lib in the target directory. We also need to delete
@@ -470,6 +513,7 @@ endif BUILD_ECJ1
 
 ## Install the headers.  It is fairly ugly that we have to do this by
 ## hand.
+install_data_local_split = 50
 install-data-local:
 	$(PRE_INSTALL)
 ## Install the .pc file.
@@ -482,12 +526,23 @@ install-data-local:
 ## length limit of some shells.
 	@echo Creating list of headers to install...
 	@: $(call write_entries_to_file,$(nat_headers_install) $(extra_headers),tmp-ilist)
-	@cat tmp-ilist | while read f; do \
-	  d="`echo $$f | sed -e 's,/[^/]*$$,,'`"; \
-	  $(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$d; \
-	  if test -f $(srcdir)/$$f; then p=$(srcdir)/$$f; else p=$$f; fi; \
-	  echo " $(INSTALL_DATA) $$p $(DESTDIR)$(gxx_include_dir)/$$f"; \
-	  $(INSTALL_DATA) $$p $(DESTDIR)$(gxx_include_dir)/$$f; \
+	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	while read file; do echo "$$file $$file"; done < tmp-ilist | \
+	sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+	$(AWK) 'BEGIN { files["."] = "" } \
+	  { files[$$2] = files[$$2] " " $$1; \
+	    if (++n[$$2] == $(install_data_local_split)) { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+	     END { for (dir in files) print dir, files[dir] }' | \
+	while read dir files; do \
+	  xfiles=; for file in $$files; do \
+	    if test -f "$$file"; then xfiles="$$xfiles $$file"; \
+	    else xfiles="$$xfiles $(srcdir)/$$file"; fi; done; \
+	  test -z "$$xfiles" || { \
+	    test "x$$dir" = x. || { \
+	      echo "$(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$dir"; \
+	      $(mkinstalldirs) $(DESTDIR)$(gxx_include_dir)/$$dir; }; \
+	    echo " $(INSTALL_DATA) $$xfiles $(DESTDIR)$(gxx_include_dir)/$$dir"; \
+	    $(INSTALL_DATA) $$xfiles $(DESTDIR)$(gxx_include_dir)/$$dir; }; \
 	done
 	-@rm -f tmp-ilist
 ## Install inner class headers.
@@ -502,7 +557,134 @@ install-data-local:
 	$(INSTALL_DATA) $(srcdir)/'gnu/java/nio/PipeImpl$$SinkChannelImpl.h' $(DESTDIR)$(gxx_include_dir)/gnu/java/nio/
 	$(INSTALL_DATA) $(srcdir)/'gnu/java/nio/PipeImpl$$SourceChannelImpl.h' $(DESTDIR)$(gxx_include_dir)/gnu/java/nio/
 ## Don't install java/nio/DirectByteBufferImpl$$ReadWrite.h here. It's for internal use only.
-
+## Install Python modules for aot-compile.
+	$(mkinstalldirs) $(DESTDIR)$(python_mod_dir); \
+	$(INSTALL_DATA) $(srcdir)/contrib/classfile.py \
+	  $(DESTDIR)$(python_mod_dir)/classfile.py; \
+	$(INSTALL_DATA) contrib/aotcompile.py \
+	  $(DESTDIR)$(python_mod_dir)/aotcompile.py;
+if CREATE_JAVA_HOME
+## Create sdk style directories
+	$(mkinstalldirs) $(DESTDIR)$(JRE_BIN_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(SDK_BIN_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)
+	$(mkinstalldirs) $(DESTDIR)$(SDK_INCLUDE_DIR)
+	$(mkinstalldirs) $(DESTDIR)$(SDK_INCLUDE_DIR)/$(OS)
+	relative() { \
+	  $(PERL) -e 'use File::Spec; \
+	    print File::Spec->abs2rel($$ARGV[0], $$ARGV[1])' $$1 $$2; \
+	}; \
+	RELATIVE=$$(relative $(DESTDIR)$(bindir) $(DESTDIR)$(SDK_BIN_DIR)); \
+	ln -sf $$RELATIVE/`echo gij | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/java; \
+	ln -sf $$RELATIVE/`echo gjar | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/jar; \
+	ln -sf $$RELATIVE/`echo gjdoc | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/javadoc; \
+	ln -sf $$RELATIVE/`echo grmic | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/rmic; \
+	ln -sf $$RELATIVE/`echo gjavah | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/javah; \
+	ln -sf $$RELATIVE/`echo gappletviewer | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/appletviewer; \
+	ln -sf $$RELATIVE/`echo gjarsigner | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/jarsigner; \
+	ln -sf $$RELATIVE/`echo grmiregistry | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/rmiregistry; \
+	ln -sf $$RELATIVE/`echo gkeytool | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/keytool; \
+	ln -sf $$RELATIVE/`echo gorbd | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/orbd; \
+	ln -sf $$RELATIVE/`echo gnative2ascii | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/native2ascii; \
+	ln -sf $$RELATIVE/`echo grmid | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/rmid; \
+	ln -sf $$RELATIVE/`echo gtnameserv | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/tnameserv; \
+	ln -sf $$RELATIVE/`echo gserialver | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(SDK_BIN_DIR)/serialver; \
+	RELATIVE=$$(relative $(DESTDIR)$(bindir) $(DESTDIR)$(JRE_BIN_DIR)); \
+	ln -sf $$RELATIVE/`echo grmiregistry | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/rmiregistry; \
+	ln -sf $$RELATIVE/`echo gkeytool | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/keytool; \
+	ln -sf $$RELATIVE/`echo gij | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/java; \
+	ln -sf $$RELATIVE/`echo gorbd | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/orbd; \
+	ln -sf $$RELATIVE/`echo grmid | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/rmid; \
+	ln -sf $$RELATIVE/`echo gtnameserv | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	  $(DESTDIR)$(JRE_BIN_DIR)/tnameserv; \
+	$(mkinstalldirs) $(DESTDIR)$(JVM_JAR_DIR); \
+	version=$(JAVA_VERSION).$(BUILD_VERSION); \
+	working_dir=`pwd`; \
+	cd $(DESTDIR)$(JVM_JAR_DIR); \
+	  RELATIVE=$$(relative $(DESTDIR)$(JRE_LIB_DIR) \
+	    $(DESTDIR)$(JVM_JAR_DIR)); \
+	  for jarname in jaas jce jdbc-stdext jndi jndi-cos jndi-dns \
+	    jndi-ldap jndi-rmi jsse sasl; \
+	  do \
+	    ln -sf $$RELATIVE/rt.jar $$jarname-$$version.jar; \
+	  done; \
+	  RELATIVE=$$(relative $(DESTDIR)$(jardir) \
+	    $(DESTDIR)$(JVM_JAR_DIR)); \
+	  for jar in *-$$version.jar; \
+	  do \
+	    ln -sf $$jar $$(echo $$jar | sed "s|-$$version.jar|-$(JAVA_VERSION).jar|g"); \
+	    ln -sf $$jar $$(echo $$jar | sed "s|-$$version.jar|.jar|g"); \
+	  done; \
+	cd $$working_dir; \
+	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/security; \
+	RELATIVE=$$(relative $(DESTDIR)$(toolexeclibdir)/security \
+	  $(DESTDIR)$(JRE_LIB_DIR)/security); \
+	cd $(DESTDIR)$(JRE_LIB_DIR)/security; \
+	  ln -sf $$RELATIVE/classpath.security java.security; \
+	cd $$working_dir; \
+	$(mkinstalldirs) $(DESTDIR)$(SDK_INCLUDE_DIR)/linux; \
+	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/client; \
+	$(mkinstalldirs) $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/server; \
+	$(mkinstalldirs) $(DESTDIR)$(SDK_LIB_DIR); \
+	RELATIVE=$$(relative $(DESTDIR)$(datadir)/java \
+	  $(DESTDIR)$(JRE_LIB_DIR)); \
+	ln -sf $$RELATIVE/libgcj-$(gcc_version).jar \
+	  $(DESTDIR)$(JRE_LIB_DIR)/rt.jar; \
+	RELATIVE=$$(relative $(DESTDIR)$(dbexecdir) \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)); \
+	ln -sf $$RELATIVE/libjawt.so \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/libjawt.so; \
+	RELATIVE=$$(relative $(DESTDIR)$(dbexecdir) \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/client); \
+	ln -sf $$RELATIVE/libjvm.so \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/client/libjvm.so; \
+	RELATIVE=$$(relative $(DESTDIR)$(dbexecdir) \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/server); \
+	ln -sf $$RELATIVE/libjvm.so \
+	  $(DESTDIR)$(JRE_LIB_DIR)/$(CPU)/server/libjvm.so;	\
+	RELATIVE=$$(relative $(DESTDIR)$(datadir)/java \
+	  $(DESTDIR)$(SDK_LIB_DIR)); \
+	ln -sf $$RELATIVE/libgcj-tools-$(gcc_version).jar \
+	  $(DESTDIR)$(SDK_LIB_DIR)/tools.jar; \
+	for headername in jawt jni; do \
+	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	    -print-file-name=include/$$headername.h)); \
+	  RELATIVE=$$(relative $$DIRECTORY \
+	    $(DESTDIR)$(SDK_INCLUDE_DIR)); \
+	  ln -sf $$RELATIVE/$$headername.h \
+	    $(DESTDIR)$(SDK_INCLUDE_DIR)/$$headername.h; \
+	done; \
+	for headername in jawt_md jni_md; do \
+	  DIRECTORY=$$(dirname $$($(DESTDIR)$(bindir)/`echo gcj | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'` \
+	    -print-file-name=include/$$headername.h)); \
+	  RELATIVE=$$(relative $$DIRECTORY \
+	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux); \
+	  ln -sf $$RELATIVE/$$headername.h \
+	    $(DESTDIR)$(SDK_INCLUDE_DIR)/linux/$$headername.h; \
+	done; \
+	RELATIVE=$$(relative $(DESTDIR)$(datadir)/java \
+	  $(DESTDIR)$(JVM_ROOT_DIR)/$(SDK_DIR)); 
+endif
 
 ## ################################################################
 
@@ -559,11 +741,12 @@ write-entries-to-file-check:
 ## systems.
 if NATIVE
 if MAINTAINER_MODE
-noinst_PROGRAMS = gen-from-JIS
+noinst_PROGRAMS += gen-from-JIS
 
 gen_from_JIS_SOURCES = \
 	gnu/gcj/convert/gen-from-JIS.c \
-	gnu/gcj/convert/make-trie.c
+	gnu/gcj/convert/make-trie.c \
+	gnu/gcj/convert/make-trie.h
 
 gen_from_JIS_DEPENDENCIES = \
 	gnu/gcj/convert/JIS0201.h \
@@ -675,7 +858,8 @@ gij_SOURCES =
 ## need this because we are explicitly using libtool to link using the
 ## `.la' file.
 gij_LDFLAGS = -rpath $(dbexecdir) -rpath $(toolexeclibdir) \
-	-shared-libgcc $(THREADLDFLAGS) $(extra_ldflags)
+	-shared-libgcc $(THREADLDFLAGS) $(extra_ldflags) \
+	$(extra_gij_ldflags) 
 gij_LINK = $(GCJLINK)
 ## See jv_convert_LDADD.
 gij_LDADD = -L$(here)/.libs libgij.la
@@ -684,7 +868,7 @@ gij_LDADD = -L$(here)/.libs libgij.la
 gij_DEPENDENCIES = libgij.la
 
 ## Build an ecjx from a .jar.
-ecjx_SOURCES =
+ecjx_SOURCES = ecjx.cc
 ## We use the BC ABI here so that we don't need to compile ecj.jar.
 ## Hopefully the user has compiled it into his system .db.
 ## However, even if not it will run reasonably quickly.
@@ -704,10 +888,12 @@ else !ENABLE_SHARED
 ecjx_LDFLAGS = $(ECJX_BASE_FLAGS) $(ECJ_BUILD_JAR) -fbootclasspath=$(BOOTCLASSPATH)
 endif !ENABLE_SHARED
 
-ecjx_LDADD = -L$(here)/.libs libgcj.la
+ecjx_LDADD = -L$(here)/.libs $(extra_ldflags)
 ecjx_DEPENDENCIES = libgcj.la libgcj.spec
 if USE_LIBGCJ_BC
 ecjx_DEPENDENCIES += libgcj_bc.la
+else
+ecjx_LDADD += libgcj.la
 endif
 
 else !NATIVE
@@ -836,6 +1022,16 @@ grmiregistry_LINK = $(GCJLINK)
 grmiregistry_LDADD = -L$(here)/.libs libgcj-tools.la
 grmiregistry_DEPENDENCIES = libgcj-tools.la
 
+## This is a dummy definition.
+gjdoc_SOURCES =
+gjdoc_LDFLAGS = --main=gnu.classpath.tools.gjdoc.Main \
+	-Djava.class.path=$(ANTLR_JAR) \
+	-rpath $(toolexeclibdir) -shared-libgcc $(THREADLDFLAGS) $(extra_ldflags)
+gjdoc_LINK = $(GCJLINK)
+## See jv_convert_LDADD.
+gjdoc_LDADD = -L$(here)/.libs libgcj-tools.la
+gjdoc_DEPENDENCIES = libgcj-tools.la
+
 ## ################################################################
 if INTERPRETER
 nat_jdwp_source_files = \
@@ -892,6 +1088,7 @@ gnu/java/nio/natVMSelector.cc \
 gnu/java/nio/natNIOServerSocket.cc \
 gnu/java/nio/natVMChannel.cc \
 gnu/java/nio/channels/natFileChannelImpl.cc \
+gnu/java/security/jce/prng/natVMSecureRandom.cc \
 java/io/natFile.cc \
 java/io/natVMObjectInputStream.cc \
 java/io/natVMObjectStreamClass.cc \
@@ -905,8 +1102,7 @@ java/lang/natMath.cc \
 java/lang/natObject.cc \
 java/lang/natRuntime.cc	\
 java/lang/natString.cc \
-java/lang/natStringBuffer.cc \
-java/lang/natStringBuilder.cc \
+java/lang/natAbstractStringBuffer.cc \
 java/lang/natSystem.cc \
 java/lang/natThread.cc \
 java/lang/natThreadLocal.cc \
@@ -1100,6 +1296,7 @@ AM_MAKEFLAGS = \
 	"SHELL=$(SHELL)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)" \
 	"exec_prefix=$(exec_prefix)" \
+	"datadir=$(datadir)" \
 	"infodir=$(infodir)" \
 	"libdir=$(libdir)" \
 	"mandir=$(mandir)" \

@@ -1,5 +1,5 @@
 /* FR30 specific functions.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2007
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Cygnus Solutions.
 
@@ -140,7 +140,7 @@ static int fr30_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
    && ! call_used_regs [regno]         )
 
 #define MUST_SAVE_FRAME_POINTER	 (df_regs_ever_live_p (FRAME_POINTER_REGNUM)  || frame_pointer_needed)
-#define MUST_SAVE_RETURN_POINTER (df_regs_ever_live_p (RETURN_POINTER_REGNUM) || current_function_profile)
+#define MUST_SAVE_RETURN_POINTER (df_regs_ever_live_p (RETURN_POINTER_REGNUM) || crtl->profile)
 
 #if UNITS_PER_WORD == 4
 #define WORD_ALIGN(SIZE) (((SIZE) + 3) & ~3)
@@ -181,8 +181,8 @@ fr30_compute_frame_size (int from_reg, int to_reg)
   unsigned int 	gmask;
 
   var_size	= WORD_ALIGN (get_frame_size ());
-  args_size	= WORD_ALIGN (current_function_outgoing_args_size);
-  pretend_size	= current_function_pretend_args_size;
+  args_size	= WORD_ALIGN (crtl->outgoing_args_size);
+  pretend_size	= crtl->args.pretend_args_size;
 
   reg_size	= 0;
   gmask		= 0;
@@ -308,7 +308,7 @@ fr30_expand_prologue (void)
 		     G++ testsuite.  */
 		  if (! frame_pointer_needed
 		      && GET_CODE (part) == SET
-		      && REGNO (SET_DEST (part)) == HARD_FRAME_POINTER_REGNUM)
+		      && SET_DEST (part) == hard_frame_pointer_rtx)
 		    RTX_FRAME_RELATED_P (part) = 0;
 		  else
 		    RTX_FRAME_RELATED_P (part) = 1;
@@ -336,7 +336,8 @@ fr30_expand_prologue (void)
     ; /* Nothing to do.  */
   else if (current_frame_info.frame_size <= 512)
     {
-      insn = emit_insn (gen_add_to_stack (GEN_INT (- current_frame_info.frame_size)));
+      insn = emit_insn (gen_add_to_stack
+			 (GEN_INT (- (signed) current_frame_info.frame_size)));
       RTX_FRAME_RELATED_P (insn) = 1;
     }
   else
@@ -348,7 +349,7 @@ fr30_expand_prologue (void)
       RTX_FRAME_RELATED_P (insn) = 1;
     }
 
-  if (current_function_profile)
+  if (crtl->profile)
     emit_insn (gen_blockage ());
 }
 
@@ -827,47 +828,23 @@ fr30_move_double (rtx * operands)
 	{
 	  rtx addr = XEXP (src, 0);
 	  int dregno = REGNO (dest);
-	  rtx dest0;
-	  rtx dest1;
+	  rtx dest0 = operand_subword (dest, 0, TRUE, mode);;
+	  rtx dest1 = operand_subword (dest, 1, TRUE, mode);;
 	  rtx new_mem;
 	  
-	  /* If the high-address word is used in the address, we
-	     must load it last.  Otherwise, load it first.  */
-	  int reverse = (refers_to_regno_p (dregno, dregno + 1, addr, 0) != 0);
-
 	  gcc_assert (GET_CODE (addr) == REG);
 	  
-	  dest0 = operand_subword (dest, reverse, TRUE, mode);
-	  dest1 = operand_subword (dest, !reverse, TRUE, mode);
+	  /* Copy the address before clobbering it.  See PR 34174.  */
+	  emit_insn (gen_rtx_SET (SImode, dest1, addr));
+	  emit_insn (gen_rtx_SET (VOIDmode, dest0,
+				  adjust_address (src, SImode, 0)));
+	  emit_insn (gen_rtx_SET (SImode, dest1,
+				  plus_constant (dest1, UNITS_PER_WORD)));
 
-	  if (reverse)
-	    {
-	      emit_insn (gen_rtx_SET (VOIDmode, dest1,
-				      adjust_address (src, SImode, 0)));
-	      emit_insn (gen_rtx_SET (SImode, dest0,
-				      gen_rtx_REG (SImode, REGNO (addr))));
-	      emit_insn (gen_rtx_SET (SImode, dest0,
-				      plus_constant (dest0, UNITS_PER_WORD)));
-
-	      new_mem = gen_rtx_MEM (SImode, dest0);
-	      MEM_COPY_ATTRIBUTES (new_mem, src);
+	  new_mem = gen_rtx_MEM (SImode, dest1);
+	  MEM_COPY_ATTRIBUTES (new_mem, src);
 	      
-	      emit_insn (gen_rtx_SET (VOIDmode, dest0, new_mem));
-	    }
-	  else
-	    {
-	      emit_insn (gen_rtx_SET (VOIDmode, dest0,
-				      adjust_address (src, SImode, 0)));
-	      emit_insn (gen_rtx_SET (SImode, dest1,
-				      gen_rtx_REG (SImode, REGNO (addr))));
-	      emit_insn (gen_rtx_SET (SImode, dest1,
-				      plus_constant (dest1, UNITS_PER_WORD)));
-
-	      new_mem = gen_rtx_MEM (SImode, dest1);
-	      MEM_COPY_ATTRIBUTES (new_mem, src);
-	      
-	      emit_insn (gen_rtx_SET (VOIDmode, dest1, new_mem));
-	    }
+	  emit_insn (gen_rtx_SET (VOIDmode, dest1, new_mem));
 	}
       else if (src_code == CONST_INT || src_code == CONST_DOUBLE)
 	{

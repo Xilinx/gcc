@@ -1,12 +1,12 @@
 // The template and inlines for the numeric_limits classes. -*- C++ -*- 
 
-// Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
-// Free Software Foundation, Inc.
+// Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+// 2008, 2009  Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file limits
  *  This is a Standard C++ Library header.
@@ -63,7 +58,7 @@
 //         double						(1)
 //         long double						(1)
 //
-// GNU C++ undertstands (where supported by the host C-library)
+// GNU C++ understands (where supported by the host C-library)
 //   * integer
 //         long long, unsigned long long			(2)
 //
@@ -79,7 +74,7 @@
 // These values can be overridden in the target configuration file.
 // The default values are appropriate for many 32-bit targets.
 
-// GCC only intrinsicly supports modulo integral types.  The only remaining
+// GCC only intrinsically supports modulo integral types.  The only remaining
 // integral exceptional values is division by zero.  Only targets that do not
 // signal division by zero in some "hard to ignore" way should use false.
 #ifndef __glibcxx_integral_traps
@@ -89,7 +84,7 @@
 // float
 //
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_float_has_denorm_loss
 #  define __glibcxx_float_has_denorm_loss false
@@ -103,7 +98,7 @@
 
 // double
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_double_has_denorm_loss
 #  define __glibcxx_double_has_denorm_loss false
@@ -117,7 +112,7 @@
 
 // long double
 
-// Default values.  Should be overriden in configuration files if necessary.
+// Default values.  Should be overridden in configuration files if necessary.
 
 #ifndef __glibcxx_long_double_has_denorm_loss
 #  define __glibcxx_long_double_has_denorm_loss false
@@ -186,7 +181,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  The @c static @c const members are usable as integral constant
    *  expressions.
    *
-   *  @note This is a seperate class for purposes of efficiency; you
+   *  @note This is a separate class for purposes of efficiency; you
    *        should only access these members as part of an instantiation
    *        of the std::numeric_limits class.
   */
@@ -205,9 +200,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     /** True if the type is signed.  */
     static const bool is_signed = false;
     /** True if the type is integer.
-     *  @if maint
      *  Is this supposed to be "if the type is integral"?
-     *  @endif
     */
     static const bool is_integer = false;
     /** True if the type uses an exact representation.  "All integer types are
@@ -262,7 +255,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     /** True if trapping is implemented for this type.  */
     static const bool traps = false;
-    /** True if tinyness is detected before rounding.  (see IEC 559)  */
+    /** True if tininess is detected before rounding.  (see IEC 559)  */
     static const bool tinyness_before = false;
     /** See std::float_round_style for more information.  This is only
         meaningful for floating types; integer types will all be
@@ -278,10 +271,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  non-fundamental types, the functions will return 0 and the data
    *  members will all be @c false.
    *
-   *  @if maint
    *  _GLIBCXX_RESOLVE_LIB_DEFECTS:  DRs 201 and 184 (hi Gaby!) are
    *  noted, but not incorporated in this documented (yet).
-   *  @endif
   */
   template<typename _Tp>
     struct numeric_limits : public __numeric_limits_base
@@ -569,6 +560,110 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       static const bool tinyness_before = false;
       static const float_round_style round_style = round_toward_zero;
     };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  /// numeric_limits<char16_t> specialization.
+  template<>
+    struct numeric_limits<char16_t>
+    {
+      static const bool is_specialized = true;
+
+      static char16_t min() throw()
+      { return __glibcxx_min (char16_t); }
+      static char16_t max() throw()
+      { return __glibcxx_max (char16_t); }
+
+      static const int digits = __glibcxx_digits (char16_t);
+      static const int digits10 = __glibcxx_digits10 (char16_t);
+      static const bool is_signed = __glibcxx_signed (char16_t);
+      static const bool is_integer = true;
+      static const bool is_exact = true;
+      static const int radix = 2;
+      static char16_t epsilon() throw()
+      { return 0; }
+      static char16_t round_error() throw()
+      { return 0; }
+
+      static const int min_exponent = 0;
+      static const int min_exponent10 = 0;
+      static const int max_exponent = 0;
+      static const int max_exponent10 = 0;
+
+      static const bool has_infinity = false;
+      static const bool has_quiet_NaN = false;
+      static const bool has_signaling_NaN = false;
+      static const float_denorm_style has_denorm = denorm_absent;
+      static const bool has_denorm_loss = false;
+
+      static char16_t infinity() throw()
+      { return char16_t(); }
+      static char16_t quiet_NaN() throw()
+      { return char16_t(); }
+      static char16_t signaling_NaN() throw()
+      { return char16_t(); }
+      static char16_t denorm_min() throw()
+      { return char16_t(); }
+
+      static const bool is_iec559 = false;
+      static const bool is_bounded = true;
+      static const bool is_modulo = true;
+
+      static const bool traps = __glibcxx_integral_traps;
+      static const bool tinyness_before = false;
+      static const float_round_style round_style = round_toward_zero;
+    };
+
+  /// numeric_limits<char32_t> specialization.
+  template<>
+    struct numeric_limits<char32_t>
+    {
+      static const bool is_specialized = true;
+
+      static char32_t min() throw()
+      { return __glibcxx_min (char32_t); }
+      static char32_t max() throw()
+      { return __glibcxx_max (char32_t); }
+
+      static const int digits = __glibcxx_digits (char32_t);
+      static const int digits10 = __glibcxx_digits10 (char32_t);
+      static const bool is_signed = __glibcxx_signed (char32_t);
+      static const bool is_integer = true;
+      static const bool is_exact = true;
+      static const int radix = 2;
+      static char32_t epsilon() throw()
+      { return 0; }
+      static char32_t round_error() throw()
+      { return 0; }
+
+      static const int min_exponent = 0;
+      static const int min_exponent10 = 0;
+      static const int max_exponent = 0;
+      static const int max_exponent10 = 0;
+
+      static const bool has_infinity = false;
+      static const bool has_quiet_NaN = false;
+      static const bool has_signaling_NaN = false;
+      static const float_denorm_style has_denorm = denorm_absent;
+      static const bool has_denorm_loss = false;
+
+      static char32_t infinity() throw()
+      { return char32_t(); }
+      static char32_t quiet_NaN() throw()
+      { return char32_t(); }
+      static char32_t signaling_NaN() throw()
+      { return char32_t(); }
+      static char32_t denorm_min() throw()
+      { return char32_t(); }
+
+      static const bool is_iec559 = false;
+      static const bool is_bounded = true;
+      static const bool is_modulo = true;
+
+      static const bool traps = __glibcxx_integral_traps;
+      static const bool tinyness_before = false;
+      static const float_round_style round_style = round_toward_zero;
+    };
+#endif
 
   /// numeric_limits<short> specialization.
   template<>

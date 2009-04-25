@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -59,7 +59,7 @@ package GNAT.Case_Util is
 
    procedure To_Upper (A : in out String)
      renames System.Case_Util.To_Upper;
-   --  Folds all characters of string A to upper csae
+   --  Folds all characters of string A to upper case
 
    function To_Lower (A : Character) return Character
      renames System.Case_Util.To_Lower;

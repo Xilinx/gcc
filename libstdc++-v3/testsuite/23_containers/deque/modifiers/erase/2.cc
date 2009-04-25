@@ -1,11 +1,11 @@
 // 2005-11-25  Paolo Carlini  <pcarlini@suse.de>
 
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,9 +14,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 23.2.1.3 deque modifiers
 
@@ -32,14 +31,14 @@ const int A3[] = {-5, 0, 1, 2, 8, 9, 10, 11};
 const int A4[] = {2, 8, 9, 10, 11};
 const int A5[] = {2, 8, 10, 11};
 const int A6[] = {2, 8, 10};
-const int  N = sizeof(A)  / sizeof(int);
-const int N0 = sizeof(A0) / sizeof(int);
-const int N1 = sizeof(A1) / sizeof(int);
-const int N2 = sizeof(A2) / sizeof(int);
-const int N3 = sizeof(A3) / sizeof(int);
-const int N4 = sizeof(A4) / sizeof(int);
-const int N5 = sizeof(A5) / sizeof(int);
-const int N6 = sizeof(A6) / sizeof(int);
+const unsigned  N = sizeof(A)  / sizeof(int);
+const unsigned N0 = sizeof(A0) / sizeof(int);
+const unsigned N1 = sizeof(A1) / sizeof(int);
+const unsigned N2 = sizeof(A2) / sizeof(int);
+const unsigned N3 = sizeof(A3) / sizeof(int);
+const unsigned N4 = sizeof(A4) / sizeof(int);
+const unsigned N5 = sizeof(A5) / sizeof(int);
+const unsigned N6 = sizeof(A6) / sizeof(int);
 
 template<int Size>
   class My_class

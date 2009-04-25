@@ -1,31 +1,26 @@
 /* Implementation of various C99 functions 
-   Copyright (C) 2004 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2009 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 
@@ -341,7 +336,11 @@ log10f(float x)
 double
 scalbn(double x, int y)
 {
+#if (FLT_RADIX == 2) && defined(HAVE_LDEXP)
+  return ldexp (x, y);
+#else
   return x * pow(FLT_RADIX, y);
+#endif
 }
 #endif
 
@@ -487,8 +486,10 @@ nextafterf(float x, float y)
 #endif
 
 
+#if !defined(HAVE_POWF) || defined(HAVE_BROKEN_POWF)
 #ifndef HAVE_POWF
 #define HAVE_POWF 1
+#endif
 float
 powf(float x, float y)
 {
@@ -565,16 +566,16 @@ round(double x)
 
    if (x >= 0.0) 
     {
-      t = ceil(x);
-      if (t - x > 0.5)
-	t -= 1.0;
+      t = floor(x);
+      if (t - x <= -0.5)
+	t += 1.0;
       return (t);
     } 
    else 
     {
-      t = ceil(-x);
-      if (t + x > 0.5)
-	t -= 1.0;
+      t = floor(-x);
+      if (t + x <= -0.5)
+	t += 1.0;
       return (-t);
     }
 }
@@ -594,16 +595,16 @@ roundf(float x)
 
    if (x >= 0.0) 
     {
-      t = ceilf(x);
-      if (t - x > 0.5)
-	t -= 1.0;
+      t = floorf(x);
+      if (t - x <= -0.5)
+	t += 1.0;
       return (t);
     } 
    else 
     {
-      t = ceilf(-x);
-      if (t + x > 0.5)
-	t -= 1.0;
+      t = floorf(-x);
+      if (t + x <= -0.5)
+	t += 1.0;
       return (-t);
     }
 }
@@ -1410,3 +1411,335 @@ ctanl (long double complex a)
 }
 #endif
 
+
+#if !defined(HAVE_TGAMMA)
+#define HAVE_TGAMMA 1
+
+extern double tgamma (double); 
+
+/* Fallback tgamma() function. Uses the algorithm from
+   http://www.netlib.org/specfun/gamma and references therein.  */
+
+#undef SQRTPI
+#define SQRTPI 0.9189385332046727417803297
+
+#undef PI
+#define PI 3.1415926535897932384626434
+
+double
+tgamma (double x)
+{
+  int i, n, parity;
+  double fact, res, sum, xden, xnum, y, y1, ysq, z;
+
+  static double p[8] = {
+    -1.71618513886549492533811e0,  2.47656508055759199108314e1,
+    -3.79804256470945635097577e2,  6.29331155312818442661052e2,
+     8.66966202790413211295064e2, -3.14512729688483675254357e4,
+    -3.61444134186911729807069e4,  6.64561438202405440627855e4 };
+
+  static double q[8] = {
+    -3.08402300119738975254353e1,  3.15350626979604161529144e2,
+    -1.01515636749021914166146e3, -3.10777167157231109440444e3,
+     2.25381184209801510330112e4,  4.75584627752788110767815e3,
+    -1.34659959864969306392456e5, -1.15132259675553483497211e5 };
+
+  static double c[7] = {             -1.910444077728e-03,
+     8.4171387781295e-04,            -5.952379913043012e-04,
+     7.93650793500350248e-04,        -2.777777777777681622553e-03,
+     8.333333333333333331554247e-02,  5.7083835261e-03 };
+
+  static const double xminin = 2.23e-308;
+  static const double xbig = 171.624;
+  static const double xnan = __builtin_nan ("0x0"), xinf = __builtin_inf ();
+  static double eps = 0;
+  
+  if (eps == 0)
+    eps = nextafter(1., 2.) - 1.;
+
+  parity = 0;
+  fact = 1;
+  n = 0;
+  y = x;
+
+  if (__builtin_isnan (x))
+    return x;
+
+  if (y <= 0)
+    {
+      y = -x;
+      y1 = trunc(y);
+      res = y - y1;
+
+      if (res != 0)
+	{
+	  if (y1 != trunc(y1*0.5l)*2)
+	    parity = 1;
+	  fact = -PI / sin(PI*res);
+	  y = y + 1;
+	}
+      else
+	return x == 0 ? copysign (xinf, x) : xnan;
+    }
+
+  if (y < eps)
+    {
+      if (y >= xminin)
+        res = 1 / y;
+      else
+	return xinf;
+    }
+  else if (y < 13)
+    {
+      y1 = y;
+      if (y < 1)
+	{
+	  z = y;
+	  y = y + 1;
+	}
+      else
+	{
+	  n = (int)y - 1;
+	  y = y - n;
+	  z = y - 1;
+	}
+
+      xnum = 0;
+      xden = 1;
+      for (i = 0; i < 8; i++)
+	{
+	  xnum = (xnum + p[i]) * z;
+	  xden = xden * z + q[i];
+	}
+
+      res = xnum / xden + 1;
+
+      if (y1 < y)
+        res = res / y1;
+      else if (y1 > y)
+	for (i = 1; i <= n; i++)
+	  {
+	    res = res * y;
+	    y = y + 1;
+	  }
+    }
+  else
+    {
+      if (y < xbig)
+	{
+	  ysq = y * y;
+	  sum = c[6];
+	  for (i = 0; i < 6; i++)
+	    sum = sum / ysq + c[i];
+
+	  sum = sum/y - y + SQRTPI;
+	  sum = sum + (y - 0.5) * log(y);
+	  res = exp(sum);
+	}
+      else
+	return x < 0 ? xnan : xinf;
+    }
+
+  if (parity)
+    res = -res;
+  if (fact != 1)
+    res = fact / res;
+
+  return res;
+}
+#endif
+
+
+
+#if !defined(HAVE_LGAMMA)
+#define HAVE_LGAMMA 1
+
+extern double lgamma (double); 
+
+/* Fallback lgamma() function. Uses the algorithm from
+   http://www.netlib.org/specfun/algama and references therein, 
+   except for negative arguments (where netlib would return +Inf)
+   where we use the following identity:
+       lgamma(y) = log(pi/(|y*sin(pi*y)|)) - lgamma(-y)
+ */
+
+double
+lgamma (double y)
+{
+
+#undef SQRTPI
+#define SQRTPI 0.9189385332046727417803297
+
+#undef PI
+#define PI 3.1415926535897932384626434
+
+#define PNT68  0.6796875
+#define D1    -0.5772156649015328605195174
+#define D2     0.4227843350984671393993777
+#define D4     1.791759469228055000094023
+
+  static double p1[8] = {
+              4.945235359296727046734888e0, 2.018112620856775083915565e2,
+              2.290838373831346393026739e3, 1.131967205903380828685045e4,
+              2.855724635671635335736389e4, 3.848496228443793359990269e4,
+              2.637748787624195437963534e4, 7.225813979700288197698961e3 };
+  static double q1[8] = {
+              6.748212550303777196073036e1,  1.113332393857199323513008e3,
+              7.738757056935398733233834e3,  2.763987074403340708898585e4,
+              5.499310206226157329794414e4,  6.161122180066002127833352e4,
+              3.635127591501940507276287e4,  8.785536302431013170870835e3 };
+  static double p2[8] = {
+              4.974607845568932035012064e0,  5.424138599891070494101986e2,
+              1.550693864978364947665077e4,  1.847932904445632425417223e5,
+              1.088204769468828767498470e6,  3.338152967987029735917223e6,
+              5.106661678927352456275255e6,  3.074109054850539556250927e6 };
+  static double q2[8] = {
+              1.830328399370592604055942e2,  7.765049321445005871323047e3,
+              1.331903827966074194402448e5,  1.136705821321969608938755e6,
+              5.267964117437946917577538e6,  1.346701454311101692290052e7,
+              1.782736530353274213975932e7,  9.533095591844353613395747e6 };
+  static double p4[8] = {
+              1.474502166059939948905062e4,  2.426813369486704502836312e6,
+              1.214755574045093227939592e8,  2.663432449630976949898078e9,
+              2.940378956634553899906876e10, 1.702665737765398868392998e11,
+              4.926125793377430887588120e11, 5.606251856223951465078242e11 };
+  static double q4[8] = {
+              2.690530175870899333379843e3,  6.393885654300092398984238e5,
+              4.135599930241388052042842e7,  1.120872109616147941376570e9,
+              1.488613728678813811542398e10, 1.016803586272438228077304e11,
+              3.417476345507377132798597e11, 4.463158187419713286462081e11 };
+  static double  c[7] = {
+             -1.910444077728e-03,            8.4171387781295e-04,
+             -5.952379913043012e-04,         7.93650793500350248e-04,
+             -2.777777777777681622553e-03,   8.333333333333333331554247e-02,
+              5.7083835261e-03 };
+
+  static double xbig = 2.55e305, xinf = __builtin_inf (), eps = 0,
+		frtbig = 2.25e76;
+
+  int i;
+  double corr, res, xden, xm1, xm2, xm4, xnum, ysq;
+
+  if (eps == 0)
+    eps = __builtin_nextafter(1., 2.) - 1.;
+
+  if ((y > 0) && (y <= xbig))
+    {
+      if (y <= eps)
+	res = -log(y);
+      else if (y <= 1.5)
+	{
+	  if (y < PNT68)
+	    {
+	      corr = -log(y);
+	      xm1 = y;
+	    }
+	  else
+	    {
+	      corr = 0;
+	      xm1 = (y - 0.5) - 0.5;
+	    }
+
+	  if ((y <= 0.5) || (y >= PNT68))
+	    {
+	      xden = 1;
+	      xnum = 0;
+	      for (i = 0; i < 8; i++)
+		{
+		  xnum = xnum*xm1 + p1[i];
+		  xden = xden*xm1 + q1[i];
+		}
+	      res = corr + (xm1 * (D1 + xm1*(xnum/xden)));
+	    }
+	  else
+	    {
+	      xm2 = (y - 0.5) - 0.5;
+	      xden = 1;
+	      xnum = 0;
+	      for (i = 0; i < 8; i++)
+		{
+		  xnum = xnum*xm2 + p2[i];
+		  xden = xden*xm2 + q2[i];
+		}
+	      res = corr + xm2 * (D2 + xm2*(xnum/xden));
+	    }
+	}
+      else if (y <= 4)
+	{
+	  xm2 = y - 2;
+	  xden = 1;
+	  xnum = 0;
+	  for (i = 0; i < 8; i++)
+	    {
+	      xnum = xnum*xm2 + p2[i];
+	      xden = xden*xm2 + q2[i];
+	    }
+	  res = xm2 * (D2 + xm2*(xnum/xden));
+	}
+      else if (y <= 12)
+	{
+	  xm4 = y - 4;
+	  xden = -1;
+	  xnum = 0;
+	  for (i = 0; i < 8; i++)
+	    {
+	      xnum = xnum*xm4 + p4[i];
+	      xden = xden*xm4 + q4[i];
+	    }
+	  res = D4 + xm4*(xnum/xden);
+	}
+      else
+	{
+	  res = 0;
+	  if (y <= frtbig)
+	    {
+	      res = c[6];
+	      ysq = y * y;
+	      for (i = 0; i < 6; i++)
+		res = res / ysq + c[i];
+	    }
+	  res = res/y;
+	  corr = log(y);
+	  res = res + SQRTPI - 0.5*corr;
+	  res = res + y*(corr-1);
+	}
+    }
+  else if (y < 0 && __builtin_floor (y) != y)
+    {
+      /* lgamma(y) = log(pi/(|y*sin(pi*y)|)) - lgamma(-y)
+         For abs(y) very close to zero, we use a series expansion to
+	 the first order in y to avoid overflow.  */
+      if (y > -1.e-100)
+        res = -2 * log (fabs (y)) - lgamma (-y);
+      else
+        res = log (PI / fabs (y * sin (PI * y))) - lgamma (-y);
+    }
+  else
+    res = xinf;
+
+  return res;
+}
+#endif
+
+
+#if defined(HAVE_TGAMMA) && !defined(HAVE_TGAMMAF)
+#define HAVE_TGAMMAF 1
+extern float tgammaf (float);
+
+float
+tgammaf (float x)
+{
+  return (float) tgamma ((double) x);
+}
+#endif
+
+#if defined(HAVE_LGAMMA) && !defined(HAVE_LGAMMAF)
+#define HAVE_LGAMMAF 1
+extern float lgammaf (float);
+
+float
+lgammaf (float x)
+{
+  return (float) lgamma ((double) x);
+}
+#endif

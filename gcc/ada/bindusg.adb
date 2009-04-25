@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,6 +25,8 @@
 
 with Osint;  use Osint;
 with Output; use Output;
+
+with System.WCh_Con; use System.WCh_Con;
 
 package body Bindusg is
 
@@ -140,7 +142,7 @@ package body Bindusg is
 
       --  Line for -m switch
 
-      Write_Line ("  -mnnn     Limit number of detected errors " &
+      Write_Line ("  -mnnn     Limit number of detected errors/warnings " &
                   "to nnn (1-999999)");
 
       --  Line for -M switch
@@ -222,19 +224,39 @@ package body Bindusg is
       Write_Line ("  -v        Verbose mode. Error messages, " &
                   "header, summary output to stdout");
 
-      --  Lines for -w switch
+      --  Line for -w switch
 
       Write_Line ("  -wx       Warning mode. (x=s/e for " &
                   "suppress/treat as error)");
+
+      --  Line for -W switch
+
+      Write_Str  ("  -W?       Wide character encoding method (");
+
+      for J in WC_Encoding_Method loop
+         Write_Char (WC_Encoding_Letters (J));
+
+         if J = WC_Encoding_Method'Last then
+            Write_Char (')');
+         else
+            Write_Char ('/');
+         end if;
+      end loop;
+
+      Write_Eol;
 
       --  Line for -x switch
 
       Write_Line ("  -x        Exclude source files (check object " &
                   "consistency only)");
 
-      --  Line for X switch
+      --  Line for -X switch
 
       Write_Line ("  -Xnnn     Default exit status value = nnn");
+
+      --  Line for -y switch
+
+      Write_Line ("  -y        Enable leap seconds");
 
       --  Line for -z switch
 
@@ -249,7 +271,7 @@ package body Bindusg is
 
       --  Line for --RTS
 
-      Write_Line ("  --RTS=dir specify the default source and " &
+      Write_Line ("  --RTS=dir Specify the default source and " &
                   "object search path");
 
       --  Line for sfile

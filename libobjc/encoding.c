@@ -1,5 +1,5 @@
 /* Encoding of types for Objective C.
-   Copyright (C) 1993, 1995, 1996, 1997, 1998, 2000, 2002, 2004
+   Copyright (C) 1993, 1995, 1996, 1997, 1998, 2000, 2002, 2004, 2009
    Free Software Foundation, Inc.
    Contributed by Kresten Krab Thorup
    Bitfield support by Ovidiu Predescu
@@ -8,7 +8,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,16 +16,14 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with files
-   compiled with GCC to produce an executable, this does not cause
-   the resulting executable to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* FIXME: This file has no business including tm.h.  */
 
@@ -78,7 +76,7 @@ Boston, MA 02110-1301, USA.  */
 
 #define DFmode          _C_DBL
 
-#define get_inner_array_type(TYPE)      ({const char *_field = (TYPE); \
+#define strip_array_types(TYPE)      ({const char *_field = (TYPE); \
   while (*_field == _C_ARY_B)\
     {\
       while (isdigit ((unsigned char)*++_field))\
@@ -115,9 +113,7 @@ static int __attribute__ ((__unused__)) not_target_flags = 0;
 #define rs6000_special_round_type_align(STRUCT, COMPUTED, SPECIFIED)	\
   ({ const char *_fields = TYPE_FIELDS (STRUCT);				\
   ((_fields != 0							\
-    && TYPE_MODE (TREE_CODE (TREE_TYPE (_fields)) == ARRAY_TYPE		\
-		    ? get_inner_array_type (_fields)			\
-		    : TREE_TYPE (_fields)) == DFmode)			\
+    && TYPE_MODE (strip_array_types (TREE_TYPE (_fields))) == DFmode)	\
    ? MAX (MAX (COMPUTED, SPECIFIED), 64)				\
    : MAX (COMPUTED, SPECIFIED));})
 /* FIXME: The word 'fixme' is insufficient to explain the wrong-ness

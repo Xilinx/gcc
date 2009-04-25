@@ -7,8 +7,7 @@
 
 /* { dg-do link } */
 /* { dg-options "-O2 -ffast-math" } */
-/* { dg-options "-O2 -ffast-math -mmacosx-version-min=10.3" { target powerpc-*-darwin* } } */
-/* { dg-options "-O2 -ffast-math -std=c99" { target *-*-solaris2* } } */
+/* { dg-add-options c99_runtime } */
 
 #include "builtins-config.h"
 
@@ -450,9 +449,6 @@ void test2f(float x, float y)
 
 void test3f(__complex__ float x, __complex__ float y, int i)
 {
-  if (cargf(x) != atan2f(__imag__ x, __real__ x))
-    link_error ();
-
   if (ccosf(x) != ccosf(-x))
     link_error();
 
@@ -503,6 +499,11 @@ void test3f(__complex__ float x, __complex__ float y, int i)
 
   if (ctanf(~(x/y)) != -ctanf(~(x/-y)))
     link_error();
+
+#ifdef HAVE_C99_RUNTIME
+  if (cargf(x) != atan2f(__imag__ x, __real__ x))
+    link_error ();
+#endif
 }
 
 void test1l(long double x)
@@ -675,9 +676,6 @@ void test2l(long double x, long double y)
 
 void test3l(__complex__ long double x, __complex__ long double y, int i)
 {
-  if (cargl(x) != atan2l(__imag__ x, __real__ x))
-    link_error ();
-
   if (ccosl(x) != ccosl(-x))
     link_error();
 
@@ -728,6 +726,11 @@ void test3l(__complex__ long double x, __complex__ long double y, int i)
 
   if (ctanl(~(x/y)) != -ctanl(~(x/-y)))
     link_error();
+
+#ifdef HAVE_C99_RUNTIME
+  if (cargl(x) != atan2l(__imag__ x, __real__ x))
+    link_error ();
+#endif
 }
 
 int main()

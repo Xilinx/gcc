@@ -1,5 +1,5 @@
 /* Target definitions for GCC for Intel 80386 running Interix
-   Parts Copyright (C) 1991, 1999, 2000, 2002, 2003, 2004, 2007
+   Parts Copyright (C) 1991, 1999, 2000, 2002, 2003, 2004, 2007, 2008
    Free Software Foundation, Inc.
 
    Parts:
@@ -43,7 +43,7 @@ along with GCC; see the file COPYING3.  If not see
     MASK_ALIGN_DOUBLE | MASK_MS_BITFIELD_LAYOUT)
 
 #undef TARGET_CPU_DEFAULT
-#define TARGET_CPU_DEFAULT 2 /* 486 */
+#define TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT_i486
 
 #define WCHAR_TYPE_SIZE 16
 #define WCHAR_TYPE "short unsigned int"
@@ -357,7 +357,6 @@ extern void i386_pe_unique_section (tree, int);
 
 #define DEFAULT_PCC_STRUCT_RETURN 0
 
-#undef RETURN_IN_MEMORY
-#define RETURN_IN_MEMORY(TYPE) \
-  (TYPE_MODE (TYPE) == BLKmode || \
-     (AGGREGATE_TYPE_P (TYPE) && int_size_in_bytes(TYPE) > 8 ))
+#define SUBTARGET_RETURN_IN_MEMORY(TYPE, FNTYPE) \
+	(TYPE_MODE (TYPE) == BLKmode \
+	 || (AGGREGATE_TYPE_P (TYPE) && int_size_in_bytes (TYPE) > 8 ))

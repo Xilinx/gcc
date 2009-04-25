@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,9 +28,6 @@
 --  a separate package so that they can more easily be customized. Calls
 --  to these subprograms are only made if Opt.Style_Check is set True.
 --  Styleg does not depends on the GNAT tree (Atree, Sinfo, ...).
-
---  For the compiler, there is also a child package Styleg.C that depends
---  on the GNAT tree.
 
 with Types; use Types;
 
@@ -136,7 +133,7 @@ package Styleg is
    pragma Inline (Check_Separate_Stmt_Lines);
    --  Called after scanning THEN (not preceded by AND) or ELSE (not preceded
    --  by OR). Used to check that no tokens follow on the same line (which
-   --  would intefere with coverage testing). Handles case of THEN ABORT as
+   --  would interfere with coverage testing). Handles case of THEN ABORT as
    --  an exception, as well as PRAGMA after ELSE.
 
    procedure Check_Unary_Plus_Or_Minus;
@@ -172,10 +169,5 @@ package Styleg is
    --  lower case letters. On entry Token_Ptr points to the keyword token.
    --  This is not used for keywords appearing as attribute designators,
    --  where instead Check_Attribute_Name (True) is called.
-
-   function RM_Column_Check return Boolean;
-   pragma Inline (RM_Column_Check);
-   --  Determines whether style checking is active and the RM column check
-   --  mode is set requiring checking of RM format layout.
 
 end Styleg;

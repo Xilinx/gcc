@@ -1,5 +1,5 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
@@ -38,21 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 
    Be sure to add an entry to invoke.texi summarizing the parameter.  */
 
-/* The maximum number of fields in a variable with only implicit uses
-   for which structure aliasing will consider trying to track each
-   field.  The default is 5.  */
-DEFPARAM (PARAM_SALIAS_MAX_IMPLICIT_FIELDS,
-	  "salias-max-implicit-fields",
-	  "The maximum number of fields in a structure variable without direct structure accesses that GCC will attempt to track separately",
-	  5, 0, 0)
-
-/* The maximum number of array elements structure aliasing will decompose
-   an array for.  The default is 4.  */
-DEFPARAM (PARAM_SALIAS_MAX_ARRAY_ELEMENTS,
-	  "salias-max-array-elements",
-	  "The maximum number of elements in an array for wich we track its elements separately",
-	  4, 0, 0)
-
 /* The maximum structure size at which the scalar replacement of
    aggregates (SRA) pass will perform block copies.  The default
    value, 0, implies that GCC will select the most appropriate size
@@ -82,6 +67,23 @@ DEFPARAM (PARAM_SRA_FIELD_STRUCTURE_RATIO,
 	  "sra-field-structure-ratio",
 	  "The threshold ratio between instantiated fields and the total structure size",
 	  75, 0, 100)
+
+/* The threshold ratio between current and hottest structure counts.
+   We say that if the ratio of the current structure count, 
+   calculated by profiling, to the hottest structure count 
+   in the program is less than this parameter, then structure
+   reorganization is not applied. The default is 10%.  */
+DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
+	  "struct-reorg-cold-struct-ratio",
+	  "The threshold ratio between current and hottest structure counts",
+	  10, 0, 100)
+
+/* When branch is predicted to be taken with probability lower than this
+   threshold (in percent), then it is considered well predictable. */
+DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
+	  "predictable-branch-outcome",
+	  "Maximal esitmated outcome of branch considered predictable",
+	  2, 0, 50)
 
 /* The single function inlining limit. This is the maximum size
    of a function counted in internal gcc instructions (not in
@@ -148,7 +150,7 @@ DEFPARAM (PARAM_MAX_VARIABLE_EXPANSIONS,
 DEFPARAM (PARAM_MIN_VECT_LOOP_BOUND,
 	  "min-vect-loop-bound",
 	  "If -ftree-vectorize is used, the minimal loop bound of a loop to be considered for vectorization",
-	  0, 0, 0)
+	  1, 1, 0)
 
 /* The maximum number of instructions to consider when looking for an
    instruction to fill a delay slot.  If more than this arbitrary
@@ -198,10 +200,14 @@ DEFPARAM(PARAM_INLINE_UNIT_GROWTH,
 	 "inline-unit-growth",
 	 "how much can given compilation unit grow because of the inlining (in percent)",
 	 30, 0, 0)
+DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
+	 "ipcp-unit-growth",
+	 "how much can given compilation unit grow because of the interprocedural constant propagation (in percent)",
+	 10, 0, 0)
 DEFPARAM(PARAM_INLINE_CALL_COST,
 	 "inline-call-cost",
 	 "expense of call operation relative to ordinary arithmetic operations",
-	 16, 0, 0)
+	 12, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",
@@ -217,11 +223,7 @@ DEFPARAM(PARAM_MAX_GCSE_MEMORY,
 	 "max-gcse-memory",
 	 "The maximum amount of memory to be allocated by GCSE",
 	 50 * 1024 * 1024, 0, 0)
-/* The number of repetitions of copy/const prop and PRE to run.  */
-DEFPARAM(PARAM_MAX_GCSE_PASSES,
-	"max-gcse-passes",
-	"The maximum number of passes to make when doing GCSE",
-	1, 1, 0)
+
 /* This is the threshold ratio when to perform partial redundancy
    elimination after reload. We perform partial redundancy elimination
    when the following holds:
@@ -333,6 +335,16 @@ DEFPARAM(HOT_BB_FREQUENCY_FRACTION,
 	 "hot-bb-frequency-fraction",
 	 "Select fraction of the maximal frequency of executions of basic block in function given basic block needs to have to be considered hot",
 	 1000, 0, 0)
+
+DEFPARAM (PARAM_ALIGN_THRESHOLD,
+	  "align-threshold",
+	  "Select fraction of the maximal frequency of executions of basic block in function given basic block get alignment",
+	  100, 0, 0)
+
+DEFPARAM (PARAM_ALIGN_LOOP_ITERATIONS,
+	  "align-loop-iterations",
+	  "Loops iterating at least selected number of iterations will get loop alignement.",
+	  4, 0, 0)
 
 /* For guessed profiles, the loops having unknown number of iterations
    are predicted to iterate relatively few (10) times at average.
@@ -494,10 +506,6 @@ DEFPARAM(PARAM_MAX_CSELIB_MEMORY_LOCATIONS,
 	 "max-cselib-memory-locations",
 	 "The maximum memory locations recorded by cselib",
 	 500, 0, 0)
-DEFPARAM(PARAM_MAX_FLOW_MEMORY_LOCATIONS,
-	 "max-flow-memory-locations",
-	 "The maximum memory locations recorded by flow",
-	 100, 0, 0)
 
 #ifdef ENABLE_GC_ALWAYS_COLLECT
 # define GGC_MIN_EXPAND_DEFAULT 0
@@ -525,16 +533,6 @@ DEFPARAM(PARAM_MAX_RELOAD_SEARCH_INSNS,
 	 "The maximum number of instructions to search backward when looking for equivalent reload",
 	 100, 0, 0)
 
-DEFPARAM(PARAM_MAX_ALIASED_VOPS,
-         "max-aliased-vops",
-	 "The maximum number of virtual operators that a function is allowed to have before triggering memory partitioning heuristics",
-	 100, 0, 0)
-
-DEFPARAM(PARAM_AVG_ALIASED_VOPS,
-    	 "avg-aliased-vops",
-	 "The average number of virtual operators that memory statements are allowed to have before triggering memory partitioning heuristics",
-	 1, 0, 0)
-
 DEFPARAM(PARAM_MAX_SCHED_REGION_BLOCKS,
 	 "max-sched-region-blocks",
 	 "The maximum number of blocks in a region to be considered for interblock scheduling",
@@ -544,6 +542,16 @@ DEFPARAM(PARAM_MAX_SCHED_REGION_INSNS,
 	 "max-sched-region-insns",
 	 "The maximum number of insns in a region to be considered for interblock scheduling",
 	 100, 0, 0)
+
+DEFPARAM(PARAM_MAX_PIPELINE_REGION_BLOCKS,
+	 "max-pipeline-region-blocks",
+	 "The maximum number of blocks in a region to be considered for interblock scheduling",
+	 15, 0, 0)
+
+DEFPARAM(PARAM_MAX_PIPELINE_REGION_INSNS,
+	 "max-pipeline-region-insns",
+	 "The maximum number of insns in a region to be considered for interblock scheduling",
+	 200, 0, 0)
 
 DEFPARAM(PARAM_MIN_SPEC_PROB,
          "min-spec-prob",
@@ -564,6 +572,26 @@ DEFPARAM(PARAM_SCHED_SPEC_PROB_CUTOFF,
          "sched-spec-prob-cutoff",
          "The minimal probability of speculation success (in percents), so that speculative insn will be scheduled.",
          40, 0, 100)
+
+DEFPARAM(PARAM_SELSCHED_MAX_LOOKAHEAD,
+         "selsched-max-lookahead",
+         "The maximum size of the lookahead window of selective scheduling",
+         50, 0, 0)
+
+DEFPARAM(PARAM_SELSCHED_MAX_SCHED_TIMES,
+         "selsched-max-sched-times",
+         "Maximum number of times that an insn could be scheduled",
+         2, 0, 0)
+
+DEFPARAM(PARAM_SELSCHED_INSNS_TO_RENAME,
+         "selsched-insns-to-rename",
+         "Maximum number of instructions in the ready list that are considered eligible for renaming",
+         2, 0, 0)
+
+DEFPARAM (PARAM_SCHED_MEM_TRUE_DEP_COST,
+	  "sched-mem-true-dep-cost",
+	  "Minimal distance between possibly conflicting store and load",
+	  1, 0, 0)
 
 DEFPARAM(PARAM_MAX_LAST_VALUE_RTL,
 	 "max-last-value-rtl",
@@ -632,7 +660,7 @@ DEFPARAM (PARAM_MAX_JUMP_THREAD_DUPLICATION_STMTS,
 DEFPARAM (PARAM_MAX_FIELDS_FOR_FIELD_SENSITIVE,
           "max-fields-for-field-sensitive",
 	  "Maximum number of fields in a structure before pointer analysis treats the structure as a single variable",
-	  100, 0, 0)
+	  0, 0, 0)
 
 DEFPARAM(PARAM_MAX_SCHED_READY_INSNS,
 	 "max-sched-ready-insns",
@@ -687,6 +715,48 @@ DEFPARAM (PARAM_USE_CANONICAL_TYPES,
 	  "use-canonical-types",
 	  "Whether to use canonical types",
 	  1, 0, 1)
+
+DEFPARAM (PARAM_MAX_PARTIAL_ANTIC_LENGTH,
+	  "max-partial-antic-length",
+	  "Maximum length of partial antic set when performing tree pre optimization",
+	  100, 0, 0)
+
+/* The following is used as a stop-gap limit for cases where really huge
+   SCCs blow up memory and compile-time use too much.  If we hit this limit,
+   SCCVN and such FRE and PRE will be not done at all for the current
+   function.  */
+
+DEFPARAM (PARAM_SCCVN_MAX_SCC_SIZE,
+	  "sccvn-max-scc-size",
+	  "Maximum size of a SCC before SCCVN stops processing a function",
+	  10000, 10, 0)
+
+DEFPARAM (PARAM_IRA_MAX_LOOPS_NUM,
+	  "ira-max-loops-num",
+	  "max loops number for regional RA",
+	  100, 0, 0)
+
+DEFPARAM (PARAM_IRA_MAX_CONFLICT_TABLE_SIZE,
+	  "ira-max-conflict-table-size",
+	  "max size of conflict table in MB",
+	  1000, 0, 0)
+
+/* Switch initialization conversion will refuse to create arrays that are
+   bigger than this parameter times the number of switch branches.  */
+
+DEFPARAM (PARAM_SWITCH_CONVERSION_BRANCH_RATIO,
+	  "switch-conversion-max-branch-ratio",
+	  "The maximum ratio between array size and switch branches for "
+	  "a switch conversion to take place",
+	  8, 1, 0)
+
+/* Avoid doing loop invariant motion on very large loops.  */
+
+DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
+	  "loop-invariant-max-bbs-in-loop",
+	  "max basic blocks number in loop for loop invariant motion",
+	  10000, 0, 0)
+
 /*
 Local variables:
 mode:c

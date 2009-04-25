@@ -1,11 +1,12 @@
 // Bitmap Allocator. -*- C++ -*-
 
-// Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file ext/bitmap_allocator.h
  *  This file is a GNU extension to the Standard C++ Library.
@@ -41,7 +37,7 @@
 #include <new> // For operator new.
 #include <debug/debug.h> // _GLIBCXX_DEBUG_ASSERT
 #include <ext/concurrence.h>
-
+#include <bits/move.h>
 
 /** @brief The constant in the expression below is the alignment
  * required in bytes.
@@ -377,7 +373,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	  // Set the _rover to the last physical location bitmap,
 	  // which is the bitmap which belongs to the first free
 	  // block. Thus, the bitmaps are in exact reverse order of
-	  // the actual memory layout. So, we count down the bimaps,
+	  // the actual memory layout. So, we count down the bitmaps,
 	  // which is the same as moving up the memory.
 
 	  // If the used count stored at the start of the Bit Map headers
@@ -549,11 +545,13 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
    */
   class free_list
   {
+  public:
     typedef size_t* 				value_type;
     typedef __detail::__mini_vector<value_type> vector_type;
     typedef vector_type::iterator 		iterator;
     typedef __mutex				__mutex_type;
 
+  private:
     struct _LT_pointer_compare
     {
       bool
@@ -608,7 +606,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	  else
 	    {
 	      // Deallocate the last block in the list of free lists,
-	      // and insert the new one in it's correct position.
+	      // and insert the new one in its correct position.
 	      ::operator delete(static_cast<void*>(__free_list.back()));
 	      __free_list.pop_back();
 	    }
@@ -706,6 +704,10 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	};
     };
 
+  /**
+   * @brief Bitmap Allocator, primary template.
+   * @ingroup allocators
+   */
   template<typename _Tp>
     class bitmap_allocator : private free_list
     {
@@ -1047,7 +1049,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       pointer 
       allocate(size_type __n)
       {
-	if (__builtin_expect(__n > this->max_size(), false))
+	if (__n > this->max_size())
 	  std::__throw_bad_alloc();
 
 	if (__builtin_expect(__n == 1, true))
@@ -1089,7 +1091,14 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
       void 
       construct(pointer __p, const_reference __data)
-      { ::new(__p) value_type(__data); }
+      { ::new((void *)__p) value_type(__data); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        void
+        construct(pointer __p, _Args&&... __args)
+	{ ::new((void *)__p) _Tp(std::forward<_Args>(__args)...); }
+#endif
 
       void 
       destroy(pointer __p)

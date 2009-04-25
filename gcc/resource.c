@@ -1,5 +1,5 @@
 /* Definitions for computing resource usage of specific insns.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -266,12 +266,9 @@ mark_referenced_resources (rtx x, struct resources *res,
       return;
 
     case UNSPEC_VOLATILE:
+    case TRAP_IF:
     case ASM_INPUT:
       /* Traditional asm's are always volatile.  */
-      res->volatil = 1;
-      return;
-
-    case TRAP_IF:
       res->volatil = 1;
       break;
 
@@ -663,9 +660,8 @@ mark_set_resources (rtx x, struct resources *res, int in_dest,
 	  rtx link;
 
 	  res->cc = res->memory = 1;
-	  for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-	    if (call_used_regs[r] || global_regs[r])
-	      SET_HARD_REG_BIT (res->regs, r);
+
+	  IOR_HARD_REG_SET (res->regs, regs_invalidated_by_call);
 
 	  for (link = CALL_INSN_FUNCTION_USAGE (x);
 	       link; link = XEXP (link, 1))
@@ -958,22 +954,14 @@ mark_target_live_regs (rtx insns, rtx target, struct resources *res)
      TARGET.  Otherwise, we must assume everything is live.  */
   if (b != -1)
     {
-      regset regs_live = df_get_live_in (BASIC_BLOCK (b));
+      regset regs_live = DF_LR_IN (BASIC_BLOCK (b));
       rtx start_insn, stop_insn;
-      reg_set_iterator rsi;
 
       /* Compute hard regs live at start of block -- this is the real hard regs
 	 marked live, plus live pseudo regs that have been renumbered to
 	 hard regs.  */
 
       REG_SET_TO_HARD_REG_SET (current_live_regs, regs_live);
-
-      EXECUTE_IF_SET_IN_REG_SET (regs_live, FIRST_PSEUDO_REGISTER, i, rsi)
-	{
-	  if (reg_renumber[i] >= 0)
-	    add_to_hard_reg_set (&current_live_regs, PSEUDO_REGNO_MODE (i),
-				reg_renumber[i]);
-	}
 
       /* Get starting and ending insn, handling the case where each might
 	 be a SEQUENCE.  */
@@ -1159,8 +1147,8 @@ init_resource_info (rtx epilogue_insn)
   else
     SET_HARD_REG_BIT (end_of_function_needs.regs, STACK_POINTER_REGNUM);
 
-  if (current_function_return_rtx != 0)
-    mark_referenced_resources (current_function_return_rtx,
+  if (crtl->return_rtx != 0)
+    mark_referenced_resources (crtl->return_rtx,
 			       &end_of_function_needs, 1);
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)

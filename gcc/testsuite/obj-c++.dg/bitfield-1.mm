@@ -4,8 +4,10 @@
    were defined at once (i.e., any padding introduced for
    superclasses should be removed).  */
 /* Contributed by Ziemowit Laski <zlaski@apple.com>.  */
-/* { dg-options "-Wpadded -Wabi" } */
 /* { dg-do run } */
+/* { dg-options "-Wpadded -Wabi" } */
+
+/* Leave blank lines here to keep warnings on the same lines.  */
 
 #include <objc/objc.h>
 #include <objc/Object.h>
@@ -111,3 +113,12 @@ int main(void)
   
   return 0;
 }
+
+/* { dg-prune-output "In file included from" }  Ignore this message.  */
+/* { dg-bogus "padding struct to align" "PR23610" { xfail lp64 } 1 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 42 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 45 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 59 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 62 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 77 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 78 } */

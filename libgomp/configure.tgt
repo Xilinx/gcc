@@ -11,7 +11,7 @@
 #  XLDFLAGS		Add extra link flags to use.
 
 # Optimize TLS usage by avoiding the overhead of dynamic allocation.
-if test $have_tls = yes ; then
+if test $gcc_cv_have_tls = yes ; then
   case "${target}" in
 
     *-*-linux*)
@@ -33,6 +33,10 @@ if test $enable_linux_futex = yes; then
 
     ia64*-*-linux*)
 	config_path="linux/ia64 linux posix"
+	;;
+
+    mips*-*-linux*)
+	config_path="linux/mips linux posix"
 	;;
 
     powerpc*-*-linux*)
@@ -105,6 +109,10 @@ case "${target}" in
   *-*-solaris2.[56]*)
 	config_path="posix95 posix"
 	XLDFLAGS="${XLDFLAGS} -lposix4"
+	;;
+
+  *-*-darwin*)
+	config_path="bsd posix"
 	;;
 
   *)

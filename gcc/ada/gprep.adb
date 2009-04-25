@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2002-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2002-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -167,10 +167,11 @@ package body GPrep is
       Namet.Initialize;
       Snames.Initialize;
       Stringt.Initialize;
+      Prep.Initialize;
 
       --  Initialize the preprocessor
 
-      Prep.Initialize
+      Prep.Setup_Hooks
         (Error_Msg         => Errutil.Error_Msg'Access,
          Scan              => Scanner.Scan'Access,
          Set_Ignore_Errors => Errutil.Set_Ignore_Errors'Access,
@@ -236,9 +237,9 @@ package body GPrep is
             Sinput.Main_Source_File := Deffile;
 
             if Deffile = No_Source_File then
-               Fail ("unable to find definition file """,
-                     Get_Name_String (Deffile_Name),
-                     """");
+               Fail ("unable to find definition file """
+                     & Get_Name_String (Deffile_Name)
+                     & """");
             end if;
 
             Scanner.Initialize_Scanner (Deffile);
@@ -251,8 +252,9 @@ package body GPrep is
 
       if Total_Errors_Detected > 0 then
          Errutil.Finalize (Source_Type => "definition");
-         Fail ("errors in definition file """,
-               Get_Name_String (Deffile_Name), """");
+         Fail ("errors in definition file """
+               & Get_Name_String (Deffile_Name)
+               & """");
       end if;
 
       --  If -s switch was specified, print a sorted list of symbol names and
@@ -444,7 +446,7 @@ package body GPrep is
 
       Symbol := Index_Of (Data.Symbol);
 
-      --  If symbol does not alrady exist, create a new entry in the mapping
+      --  If symbol does not already exist, create a new entry in the mapping
       --  table.
 
       if Symbol = No_Symbol then
@@ -475,6 +477,9 @@ package body GPrep is
       procedure Process_One_File is
          Infile : Source_File_Index;
 
+         Modified : Boolean;
+         pragma Warnings (Off, Modified);
+
       begin
          --  Create the output file (fails if this does not work)
 
@@ -484,8 +489,9 @@ package body GPrep is
          exception
             when others =>
                Fail
-                 ("unable to create output file """,
-                  Get_Name_String (Outfile_Name), """");
+                 ("unable to create output file """
+                  & Get_Name_String (Outfile_Name)
+                  & """");
          end;
 
          --  Load the input file
@@ -493,8 +499,9 @@ package body GPrep is
          Infile := Sinput.C.Load_File (Get_Name_String (Infile_Name));
 
          if Infile = No_Source_File then
-            Fail ("unable to find input file """,
-                  Get_Name_String (Infile_Name), """");
+            Fail ("unable to find input file """
+                  & Get_Name_String (Infile_Name)
+                  & """");
          end if;
 
          --  Set Main_Source_File to the input file for the benefit of
@@ -515,7 +522,7 @@ package body GPrep is
 
          --  Preprocess the input file
 
-         Prep.Preprocess;
+         Prep.Preprocess (Modified);
 
          --  In verbose mode, if there is no error, report it
 
@@ -629,8 +636,9 @@ package body GPrep is
 
                         exception
                            when Directory_Error =>
-                              Fail ("could not create directory """,
-                                    Output, """");
+                              Fail ("could not create directory """
+                                    & Output
+                                    & """");
                         end;
                      end if;
 
@@ -699,10 +707,14 @@ package body GPrep is
    procedure Scan_Command_Line is
       Switch : Character;
 
+      procedure Check_Version_And_Help is new Check_Version_And_Help_G (Usage);
+
+      --  Start of processing for Scan_Command_Line
+
    begin
       --  First check for --version or --help
 
-      Check_Version_And_Help ("GNATPREP", "1996", Usage'Access);
+      Check_Version_And_Help ("GNATPREP", "1996");
 
       --  Now scan the other switches
 
@@ -774,7 +786,7 @@ package body GPrep is
             elsif Deffile_Name = No_Name then
                Deffile_Name := Name_Find;
             else
-               Fail ("too many arguments specifed");
+               Fail ("too many arguments specified");
             end if;
          end;
       end loop;

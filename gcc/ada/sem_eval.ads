@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,7 +43,7 @@ package Sem_Eval is
    -- Handling of Static Expressions --
    ------------------------------------
 
-   --  This package contains a set of routine that process individual
+   --  This package contains a set of routines that process individual
    --  subexpression nodes with the objective of folding (precomputing) the
    --  value of static expressions that are known at compile time and properly
    --  computing the setting of two flags that appear in every subexpression
@@ -56,7 +56,7 @@ package Sem_Eval is
 
    --    Raises_Constraint_Error
 
-   --      This flag indicatest that it is known at compile time that the
+   --      This flag indicates that it is known at compile time that the
    --      evaluation of an expression raises constraint error. If the
    --      expression is static, and this flag is off, then it is also known at
    --      compile time that the expression does not raise constraint error
@@ -132,17 +132,34 @@ package Sem_Eval is
    type Compare_Result is (LT, LE, EQ, GT, GE, NE, Unknown);
    subtype Compare_GE is Compare_Result range EQ .. GE;
    subtype Compare_LE is Compare_Result range LT .. EQ;
+   --  Result subtypes for Compile_Time_Compare subprograms
+
    function Compile_Time_Compare
-     (L, R : Node_Id;
-      Rec  : Boolean := False) return Compare_Result;
+     (L, R         : Node_Id;
+      Assume_Valid : Boolean) return Compare_Result;
+   pragma Inline (Compile_Time_Compare);
    --  Given two expression nodes, finds out whether it can be determined at
    --  compile time how the runtime values will compare. An Unknown result
    --  means that the result of a comparison cannot be determined at compile
    --  time, otherwise the returned result indicates the known result of the
    --  comparison, given as tightly as possible (i.e. EQ or LT is preferred
-   --  returned value to LE). Rec is a parameter that is set True for a
-   --  recursive call from within Compile_Time_Compare to avoid some infinite
-   --  recursion cases. It should never be set by a client.
+   --  returned value to LE). If Assume_Valid is true, the result reflects
+   --  the result of assuming that entities involved in the comparison have
+   --  valid representations. If Assume_Valid is false, then the base type of
+   --  any involved entity is used so that no assumption of validity is made.
+
+   function Compile_Time_Compare
+     (L, R         : Node_Id;
+      Diff         : access Uint;
+      Assume_Valid : Boolean;
+      Rec          : Boolean := False) return Compare_Result;
+   --  This version of Compile_Time_Compare returns extra information if the
+   --  result is GT or LT. In these cases, if the magnitude of the difference
+   --  can be determined at compile time, this (positive) magnitude is returned
+   --  in Diff.all. If the magnitude of the difference cannot be determined
+   --  then Diff.all contains No_Uint on return. Rec is a parameter that is set
+   --  True for a recursive call from within Compile_Time_Compare to avoid some
+   --  infinite recursion cases. It should never be set by a client.
 
    procedure Flag_Non_Static_Expr (Msg : String; Expr : Node_Id);
    --  This procedure is called after it has been determined that Expr is not
@@ -159,7 +176,7 @@ package Sem_Eval is
    --  An OK static expression is one that is static in the RM definition sense
    --  and which does not raise constraint error. For most legality checking
    --  purposes you should use Is_Static_Expression. For those legality checks
-   --  where the expression N should not raise constaint error use this
+   --  where the expression N should not raise constraint error use this
    --  routine. This routine is *not* to be used in contexts where the test is
    --  for compile time evaluation purposes. Use Compile_Time_Known_Value
    --  instead (see section on "Compile-Time Known Values" above).
@@ -306,7 +323,7 @@ package Sem_Eval is
    --  literals list for the enumeration case. Is_Static_Expression is set True
    --  in the result node. The result is fully analyzed/resolved. Static
    --  indicates whether the result should be considered static or not (True =
-   --  consider static). The point here is that normally all string literals
+   --  consider static). The point here is that normally all integer literals
    --  are static, but if this was the result of some sequence of evaluation
    --  where values were known at compile time but not static, then the result
    --  is not static.
@@ -322,39 +339,44 @@ package Sem_Eval is
    --  known at compile time but not static, then the result is not static.
 
    function Is_In_Range
-     (N         : Node_Id;
-      Typ       : Entity_Id;
-      Fixed_Int : Boolean := False;
-      Int_Real  : Boolean := False) return Boolean;
+     (N            : Node_Id;
+      Typ          : Entity_Id;
+      Assume_Valid : Boolean := False;
+      Fixed_Int    : Boolean := False;
+      Int_Real     : Boolean := False) return Boolean;
    --  Returns True if it can be guaranteed at compile time that expression is
-   --  known to be in range of the subtype Typ. If the values of N or of either
-   --  bouds of Type are unknown at compile time, False will always be
-   --  returned. A result of False does not mean that the expression is out of
-   --  range, merely that it cannot be determined at compile time that it is in
-   --  range. If Typ is a floating point type or Int_Real is set, any integer
-   --  value is treated as though it was a real value (i.e. the underlying real
-   --  value is used). In this case we use the corresponding real value, both
-   --  for the bounds of Typ, and for the value of the expression N. If Typ is
-   --  a fixed type or a discrete type and Int_Real is False but flag Fixed_Int
-   --  is True then any fixed-point value is treated as though it was discrete
-   --  value (i.e. the underlying integer value is used). In this case we use
-   --  the corresponding integer value, both for the bounds of Typ, and for the
-   --  value of the expression N. If Typ is a discret type and Fixed_Int as
-   --  well as Int_Real are false, intere values are used throughout.
+   --  known to be in range of the subtype Typ. A result of False does not mean
+   --  that the expression is out of range, merely that it cannot be determined
+   --  at compile time that it is in range. If Typ is a floating point type or
+   --  Int_Real is set, any integer value is treated as though it was a real
+   --  value (i.e. the underlying real value is used). In this case we use the
+   --  corresponding real value, both for the bounds of Typ, and for the value
+   --  of the expression N. If Typ is a fixed type or a discrete type and
+   --  Int_Real is False but flag Fixed_Int is True then any fixed-point value
+   --  is treated as though it was discrete value (i.e. the underlying integer
+   --  value is used). In this case we use the corresponding integer value,
+   --  both for the bounds of Typ, and for the value of the expression N. If
+   --  Typ is a discrete type and Fixed_Int as well as Int_Real are false,
+   --  integer values are used throughout.
+   --
+   --  If Assume_Valid is set True, then N is always assumed to contain a valid
+   --  value. If Assume_Valid is set False, then N may be invalid (unless there
+   --  is some independent way of knowing that it is valid, i.e. either it is
+   --  an entity with Is_Known_Valid set, or Assume_No_Invalid_Values is True.
 
    function Is_Out_Of_Range
-     (N         : Node_Id;
-      Typ       : Entity_Id;
-      Fixed_Int : Boolean := False;
-      Int_Real  : Boolean := False) return Boolean;
+     (N            : Node_Id;
+      Typ          : Entity_Id;
+      Assume_Valid : Boolean := False;
+      Fixed_Int    : Boolean := False;
+      Int_Real     : Boolean := False) return Boolean;
    --  Returns True if it can be guaranteed at compile time that expression is
    --  known to be out of range of the subtype Typ. True is returned if Typ is
-   --  a scalar type, at least one of whose bounds is known at compile time,
-   --  and N is a compile time known expression which can be determined to be
-   --  outside a compile_time known bound of Typ. A result of False does not
-   --  mean that the expression is in range, but rather merely that it cannot
-   --  be determined at compile time that it is out of range. Flags Int_Real
-   --  and Fixed_Int are used as in routine Is_In_Range above.
+   --  a scalar type, and the value of N can be determined to be outside the
+   --  range of Typ. A result of False does not mean that the expression is in
+   --  range, but rather merely that it cannot be determined at compile time
+   --  that it is out of range. The parameters Assume_Valid, Fixed_Int, and
+   --  Int_Real are as described for Is_In_Range above.
 
    function In_Subrange_Of
      (T1        : Entity_Id;

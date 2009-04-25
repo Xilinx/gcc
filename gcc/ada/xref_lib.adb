@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -109,7 +109,7 @@ package body Xref_Lib is
      (Source : not null access String;
       Ptr    : in out Positive;
       Number : out Natural);
-   --  Skips any separators and parses Source upto the first character that
+   --  Skips any separators and parses Source up to the first character that
    --  is not a decimal digit. Returns value of parsed digits or 0 if none.
 
    procedure Parse_X_Filename (File : in out ALI_File);
@@ -522,6 +522,7 @@ package body Xref_Lib is
          when 'd' => return Param_String & "decimal object";
          when 'e' => return Param_String & "enumeration object";
          when 'f' => return Param_String & "float object";
+         when 'h' => return "interface";
          when 'i' => return Param_String & "integer object";
          when 'm' => return Param_String & "modular object";
          when 'o' => return Param_String & "fixed object";
@@ -669,6 +670,7 @@ package body Xref_Lib is
       Dependencies : Boolean := False)
    is
       Ali : String_Access renames File.Buffer;
+      pragma Warnings (Off, Ali);
 
    begin
       if File.Buffer /= null then
@@ -806,7 +808,7 @@ package body Xref_Lib is
             exit when Ali (Ptr) = EOF;
          end loop;
 
-         --  We were not able to find the symbol, this should not happend but
+         --  We were not able to find the symbol, this should not happen but
          --  since we don't want to stop here we return a string of three
          --  question marks as the symbol name.
 
@@ -892,6 +894,21 @@ package body Xref_Lib is
 
       if Ali (Ptr) = '[' then
          Skip_To_Matching_Closing_Bracket;
+      end if;
+
+      --  Skip any renaming indication
+
+      if Ali (Ptr) = '=' then
+         declare
+            P_Line, P_Column : Natural;
+            pragma Warnings (Off, P_Line);
+            pragma Warnings (Off, P_Column);
+         begin
+            Ptr := Ptr + 1;
+            Parse_Number (Ali, Ptr, P_Line);
+            Ptr := Ptr + 1;
+            Parse_Number (Ali, Ptr, P_Column);
+         end;
       end if;
 
       if Ali (Ptr) = '<'
@@ -1034,17 +1051,6 @@ package body Xref_Lib is
             end loop;
             Ptr := Ptr + 1;
          end if;
-
-      elsif Ali (Ptr) = '=' then
-         declare
-            P_Line, P_Column : Natural;
-
-         begin
-            Ptr := Ptr + 1;
-            Parse_Number (Ali, Ptr, P_Line);
-            Ptr := Ptr + 1;
-            Parse_Number (Ali, Ptr, P_Column);
-         end;
       end if;
 
       --  To find the body, we will have to parse the file too

@@ -1,6 +1,6 @@
 /* PR c/2098 */
 /* Test for a warning on comparison on out-of-range data.  */
-/* { dg-do compile { xfail c4x-*-* } } */
+/* { dg-do compile } */
 /* { dg-options "-Wtype-limits" } */
 
 signed char sc;

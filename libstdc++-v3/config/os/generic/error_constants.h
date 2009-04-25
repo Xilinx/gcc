@@ -1,11 +1,11 @@
 // Specific definitions for generic platforms  -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file error_constants.h
  *  This is an internal header file, included by other library headers.
@@ -33,14 +28,14 @@
  */
 
 #ifndef _GLIBCXX_ERROR_CONSTANTS
-#  define _GLIBCXX_ERROR_CONSTANTS 1
+#define _GLIBCXX_ERROR_CONSTANTS 1
 
 #include <bits/c++config.h>
 #include <cerrno>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
- enum posix_errno
+  enum class errc
     {
       address_family_not_supported = 		EAFNOSUPPORT,
       address_in_use = 				EADDRINUSE,
@@ -70,7 +65,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       filename_too_long = 			ENAMETOOLONG,
       function_not_supported = 			ENOSYS,
       host_unreachable = 			EHOSTUNREACH,
+
+#ifdef _GLIBCXX_HAVE_EIDRM
       identifier_removed = 			EIDRM,
+#endif
+
       illegal_byte_sequence = 			EILSEQ,
       inappropriate_io_control_operation = 	ENOTTY,
       interrupted = 				EINTR,
@@ -88,6 +87,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #ifdef _GLIBCXX_HAVE_ENOLINK
       no_link = 				ENOLINK,
 #endif
+
       no_lock_available = 			ENOLCK,
 
 #ifdef _GLIBCXX_HAVE_ENODATA
@@ -115,7 +115,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       not_connected = 				ENOTCONN,
       not_enough_memory = 			ENOMEM,
+
+#ifdef _GLIBCXX_HAVE_ENOTSUP
       not_supported = 				ENOTSUP,
+#endif
 
 #ifdef _GLIBCXX_HAVE_ECANCELED
       operation_canceled = 			ECANCELED,
@@ -125,18 +128,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operation_not_permitted = 		EPERM,
       operation_not_supported = 		EOPNOTSUPP,
       operation_would_block = 			EWOULDBLOCK,
+
 #ifdef _GLIBCXX_HAVE_EOWNERDEAD
       owner_dead = 				EOWNERDEAD,
 #endif
+
       permission_denied = 			EACCES,
+
 #ifdef _GLIBCXX_HAVE_EPROTO
       protocol_error = 				EPROTO,
 #endif
+
       protocol_not_supported = 			EPROTONOSUPPORT,
       read_only_file_system = 			EROFS,
       resource_deadlock_would_occur = 		EDEADLK,
       resource_unavailable_try_again = 		EAGAIN,
       result_out_of_range = 			ERANGE,
+
 #ifdef _GLIBCXX_HAVE_ENOTRECOVERABLE
       state_not_recoverable = 			ENOTRECOVERABLE,
 #endif
@@ -145,15 +153,21 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       stream_timeout = 				ETIME,
 #endif
 
+#ifdef _GLIBCXX_HAVE_ETXTBSY
       text_file_busy = 				ETXTBSY,
+#endif
+
       timed_out = 				ETIMEDOUT,
       too_many_files_open_in_system = 		ENFILE,
       too_many_files_open = 			EMFILE,
       too_many_links = 				EMLINK,
-      too_many_synbolic_link_levels = 		ELOOP,
+      too_many_symbolic_link_levels = 		ELOOP,
+
+#ifdef _GLIBCXX_HAVE_EOVERFLOW
       value_too_large = 			EOVERFLOW,
-      wrong_protocol_type = 			EPROTOTYPE,
-      no_posix_equivalent = 1L << 16
+#endif
+
+      wrong_protocol_type = 			EPROTOTYPE
     };
 
 _GLIBCXX_END_NAMESPACE

@@ -1,4 +1,4 @@
-! { dg-do run }
+! { dg-do run { target fd_truncate } }
 ! { dg-options "-pedantic" }
 !  This test verifies the most basic sequential unformatted I/O
 !  with convert="swap".
@@ -18,9 +18,9 @@ program main
   integer i
   character*4 str
 
-  m(1) = Z'11223344'
-  m(2) = Z'55667788'
-  n    = Z'77AABBCC'
+  m(1) = Z'11223344' ! { dg-warning "BOZ literal at .1. outside a DATA statement" }
+  m(2) = Z'55667788' ! { dg-warning "BOZ literal at .1. outside a DATA statement" }
+  n    = Z'77AABBCC' ! { dg-warning "BOZ literal at .1. outside a DATA statement" }
   str = 'asdf'
   do i = 1,size
      r(i) = i

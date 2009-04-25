@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -473,6 +473,7 @@ extern Node_Id Current_Error_Node;
 #define Elist21(N)    Field21 (N)
 #define Elist23(N)    Field23 (N)
 #define Elist25(N)    Field25 (N)
+#define Elist26(N)    Field26 (N)
 
 #define Name1(N)      Field1  (N)
 #define Name2(N)      Field2  (N)
@@ -726,6 +727,7 @@ extern Node_Id Current_Error_Node;
 #define Flag213(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag213)
 #define Flag214(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag214)
 #define Flag215(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.X.fw4.flag215)
+
 #define Flag216(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag216)
 #define Flag217(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag217)
 #define Flag218(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag218)
@@ -741,3 +743,20 @@ extern Node_Id Current_Error_Node;
 #define Flag228(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag228)
 #define Flag229(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag229)
 #define Flag230(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag230)
+#define Flag231(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag231)
+#define Flag232(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag232)
+#define Flag233(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag233)
+#define Flag234(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag234)
+#define Flag235(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag235)
+#define Flag236(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag236)
+#define Flag237(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag237)
+#define Flag238(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag238)
+#define Flag239(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag239)
+#define Flag240(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag240)
+#define Flag241(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag241)
+#define Flag242(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag242)
+#define Flag243(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag243)
+#define Flag244(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag244)
+#define Flag245(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag245)
+#define Flag246(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag246)
+#define Flag247(N)     (Nodes_Ptr[(N) - First_Node_Id + 4].V.EX.U.fw5.flag247)

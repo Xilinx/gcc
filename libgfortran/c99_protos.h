@@ -1,30 +1,26 @@
 /* Declarations of various C99 functions 
-   Copyright (C) 2004, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2006, 2007, 2009 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
-Libgfortran is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
+Libgfortran is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
+GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public
-License along with libgfortran; see the file COPYING.LIB.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
 
-/* As a special exception, if you link this library with other files,
-   some of which are compiled with GCC, to produce an executable,
-   this library does not by itself cause the resulting executable
-   to be covered by the GNU General Public License.
-   This exception does not however invalidate any other reasons why
-   the executable file might be covered by the GNU General Public License.  */
-
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef C99_PROTOS_H
 #define C99_PROTOS_H 1
@@ -499,6 +495,28 @@ extern double complex ctan (double complex);
 #if !defined(HAVE_CTANL) && defined(HAVE_TANL) && defined(HAVE_TANHL)
 #define HAVE_CTANL 1
 extern long double complex ctanl (long double complex);
+#endif
+
+
+/* Gamma-related prototypes.  */
+#if !defined(HAVE_TGAMMA)
+#define HAVE_TGAMMA 1
+extern double tgamma (double);
+#endif
+
+#if !defined(HAVE_LGAMMA)
+#define HAVE_LGAMMA 1
+extern double lgamma (double);
+#endif
+
+#if defined(HAVE_TGAMMA) && !defined(HAVE_TGAMMAF)
+#define HAVE_TGAMMAF 1
+extern float tgammaf (float);
+#endif
+
+#if defined(HAVE_LGAMMA) && !defined(HAVE_LGAMMAF)
+#define HAVE_LGAMMAF 1
+extern float lgammaf (float);
 #endif
 
 

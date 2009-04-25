@@ -1,30 +1,26 @@
 /* Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006
+   2004, 2005, 2006, 2009
    Free Software Foundation, Inc.
 
 This file is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 This file is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
+
 
 !! libgcc routines for the Renesas / SuperH SH CPUs.
 !! Contributed by Steve Chamberlain.
@@ -33,6 +29,11 @@ Boston, MA 02110-1301, USA.  */
 !! ashiftrt_r4_x, ___ashrsi3, ___ashlsi3, ___lshrsi3 routines
 !! recoded in assembly by Toshiyasu Morita
 !! tm@netcom.com
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",%progbits
+.previous
+#endif
 
 /* SH2 optimizations for ___ashrsi3, ___ashlsi3, ___lshrsi3 and
    ELF local label prefixes by J"orn Rennecke
@@ -2084,8 +2085,9 @@ GLOBAL(ic_invalidate):
 GLOBAL(ic_invalidate):
 	ocbwb	@r4
 	synco
-	rts
 	icbi	@r4
+	rts
+	  nop
 	ENDFUNC(GLOBAL(ic_invalidate))
 #elif defined(__SH4_SINGLE__) || defined(__SH4__) || defined(__SH4_SINGLE_ONLY__) || (defined(__SH4_NOFPU__) && !defined(__SH5__))
 	/* For system code, we use ic_invalidate_line_i, but user code
@@ -2151,8 +2153,10 @@ GLOBAL(ic_invalidate):
 GLOBAL(ic_invalidate_array):
 	add	r1,r4
 	synco
-	rts
 	icbi	@r4
+	rts
+	  nop
+	.align 2
 	.long	0
 	ENDFUNC(GLOBAL(ic_invalidate_array))
 #elif defined(__SH4_SINGLE__) || defined(__SH4__) || defined(__SH4_SINGLE_ONLY__) || (defined(__SH4_NOFPU__) && !defined(__SH5__))

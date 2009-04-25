@@ -1,10 +1,11 @@
 /* Check that we can use the save instruction to save varargs.  */
-/* { dg-mips-options "-mips32r2 -mgp32 -mips16 -O2" } */
+/* { dg-options "(-mips16) isa_rev>=1 -mabi=32 -O2" } */
+
 #include <stdarg.h>
 
 int bar (int, va_list ap);
 
-int
+MIPS16 int
 foo (int n, ...)
 {
   va_list ap;

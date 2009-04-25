@@ -1,5 +1,6 @@
 /* Definitions of target machine for GNU compiler.  Sun 68000/68020 version.
-   Copyright (C) 2000, 2002, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2002, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -50,6 +51,7 @@ extern bool strict_low_part_peephole_ok (enum machine_mode mode, rtx first_insn,
 extern int standard_68881_constant_p (rtx);
 extern void print_operand_address (FILE *, rtx);
 extern void print_operand (FILE *, rtx, int);
+extern bool m68k_output_addr_const_extra (FILE *, rtx);
 extern void notice_update_cc (rtx, rtx);
 extern bool m68k_legitimate_base_reg_p (rtx, bool);
 extern bool m68k_legitimate_index_reg_p (rtx, bool);
@@ -64,6 +66,17 @@ extern rtx m68k_function_value (const_tree, const_tree);
 extern int emit_move_sequence (rtx *, enum machine_mode, rtx);
 extern bool m68k_movem_pattern_p (rtx, rtx, HOST_WIDE_INT, bool);
 extern const char *m68k_output_movem (rtx *, rtx, HOST_WIDE_INT, bool);
+
+#ifdef HAVE_ATTR_cpu
+extern enum attr_cpu m68k_sched_cpu;
+extern enum attr_mac m68k_sched_mac;
+
+extern enum attr_opx_type m68k_sched_attr_opx_type (rtx, int);
+extern enum attr_opy_type m68k_sched_attr_opy_type (rtx, int);
+extern enum attr_size m68k_sched_attr_size (rtx);
+extern enum attr_op_mem m68k_sched_attr_op_mem (rtx);
+extern enum attr_type m68k_sched_branch_type (rtx);
+#endif /* HAVE_ATTR_cpu */
 
 #endif /* RTX_CODE */
 

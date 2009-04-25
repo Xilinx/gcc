@@ -1,5 +1,6 @@
 /* Definitions of target machine for GNU compiler, for MMIX.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Hans-Peter Nilsson (hp@bitrange.com)
 
 This file is part of GCC.
@@ -88,7 +89,7 @@ extern GTY(()) rtx mmix_compare_op1;
 /* Per-function machine data.  This is normally an opaque type just
    defined and used in the tm.c file, but we need to see the definition in
    mmix.md too.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
  {
    int has_landing_pad;
    int highest_saved_stack_register;
@@ -319,13 +320,9 @@ extern int target_flags;
 
 #define CONDITIONAL_REGISTER_USAGE mmix_conditional_register_usage ()
 
-/* No INCOMING_REGNO or OUTGOING_REGNO, since those macros are not usable
-   for MMIX: it doesn't have a fixed register window size.  FIXME: Perhaps
-   we should say something about $0..$15 may sometimes be the incoming
-   $16..$31.  Those macros need better documentation; it looks like
-   they're just bogus and that FUNCTION_INCOMING_ARG_REGNO_P and
-   FUNCTION_OUTGOING_VALUE should be used where they're used.  For the
-   moment, do nothing; things seem to work anyway.  */
+#define INCOMING_REGNO(OUT) mmix_opposite_regno (OUT, 0)
+
+#define OUTGOING_REGNO(IN) mmix_opposite_regno (IN, 1)
 
 /* Defining LOCAL_REGNO is necessary in presence of prologue/epilogue,
    else GCC will be confused that those registers aren't saved and
@@ -595,7 +592,7 @@ enum reg_class
 /* Node: Elimination */
 /* FIXME: Is this requirement built-in?  Anyway, we should try to get rid
    of it; we can deduce the value.  */
-#define FRAME_POINTER_REQUIRED  current_function_has_nonlocal_label
+#define FRAME_POINTER_REQUIRED  cfun->has_nonlocal_label
 
 /* The frame-pointer is stored in a location that either counts to the
    offset of incoming parameters, or that counts to the offset of the
@@ -643,9 +640,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 
 #define FUNCTION_ARG_REGNO_P(REGNO)		\
  mmix_function_arg_regno_p (REGNO, 0)
-
-#define FUNCTION_INCOMING_ARG_REGNO_P(REGNO)		\
- mmix_function_arg_regno_p (REGNO, 1)
 
 
 /* Node: Register Arguments */
@@ -715,8 +709,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 #endif /* REG_OK_STRICT */
 
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) \
  mmix_legitimate_constant_p (X)

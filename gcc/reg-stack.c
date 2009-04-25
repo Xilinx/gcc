@@ -1,6 +1,6 @@
 /* Register to Stack convert for GNU compiler.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -503,7 +503,7 @@ check_asm_stack_operands (rtx insn)
 
   if (GET_CODE (body) == PARALLEL)
     {
-      clobber_reg = alloca (XVECLEN (body, 0) * sizeof (rtx));
+      clobber_reg = XALLOCAVEC (rtx, XVECLEN (body, 0));
 
       for (i = 0; i < XVECLEN (body, 0); i++)
 	if (GET_CODE (XVECEXP (body, 0, i)) == CLOBBER)
@@ -713,18 +713,18 @@ replace_reg (rtx *reg, int regno)
 static void
 remove_regno_note (rtx insn, enum reg_note note, unsigned int regno)
 {
-  rtx *note_link, this;
+  rtx *note_link, this_rtx;
 
   note_link = &REG_NOTES (insn);
-  for (this = *note_link; this; this = XEXP (this, 1))
-    if (REG_NOTE_KIND (this) == note
-	&& REG_P (XEXP (this, 0)) && REGNO (XEXP (this, 0)) == regno)
+  for (this_rtx = *note_link; this_rtx; this_rtx = XEXP (this_rtx, 1))
+    if (REG_NOTE_KIND (this_rtx) == note
+	&& REG_P (XEXP (this_rtx, 0)) && REGNO (XEXP (this_rtx, 0)) == regno)
       {
-	*note_link = XEXP (this, 1);
+	*note_link = XEXP (this_rtx, 1);
 	return;
       }
     else
-      note_link = &XEXP (this, 1);
+      note_link = &XEXP (this_rtx, 1);
 
   gcc_unreachable ();
 }
@@ -788,9 +788,7 @@ emit_pop_insn (rtx insn, stack regstack, rtx reg, enum emit_where where)
   else
     pop_insn = emit_insn_before (pop_rtx, insn);
 
-  REG_NOTES (pop_insn)
-    = gen_rtx_EXPR_LIST (REG_DEAD, FP_MODE_REG (FIRST_STACK_REG, DFmode),
-			 REG_NOTES (pop_insn));
+  add_reg_note (pop_insn, REG_DEAD, FP_MODE_REG (FIRST_STACK_REG, DFmode));
 
   regstack->reg[regstack->top - (hard_regno - FIRST_STACK_REG)]
     = regstack->reg[regstack->top];
@@ -1064,8 +1062,7 @@ move_for_stack_reg (rtx insn, stack regstack, rtx pat)
 
 	  push_rtx = gen_movxf (top_stack_reg, top_stack_reg);
 	  emit_insn_before (push_rtx, insn);
-	  REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_DEAD, top_stack_reg,
-						REG_NOTES (insn));
+	  add_reg_note (insn, REG_DEAD, top_stack_reg);
 	}
 
       replace_reg (psrc, FIRST_STACK_REG);
@@ -1085,11 +1082,13 @@ move_for_stack_reg (rtx insn, stack regstack, rtx pat)
 	 special case with i387 UNSPEC_TAN, where destination is live
 	 (an argument to fptan) but inherent load of 1.0 is modelled
 	 as a load from a constant.  */
-      if (! (GET_CODE (pat) == PARALLEL
-	     && XVECLEN (pat, 0) == 2
-	     && GET_CODE (XVECEXP (pat, 0, 1)) == SET
-	     && GET_CODE (SET_SRC (XVECEXP (pat, 0, 1))) == UNSPEC
-	     && XINT (SET_SRC (XVECEXP (pat, 0, 1)), 1) == UNSPEC_TAN))
+      if (GET_CODE (pat) == PARALLEL
+	  && XVECLEN (pat, 0) == 2
+	  && GET_CODE (XVECEXP (pat, 0, 1)) == SET
+	  && GET_CODE (SET_SRC (XVECEXP (pat, 0, 1))) == UNSPEC
+	  && XINT (SET_SRC (XVECEXP (pat, 0, 1)), 1) == UNSPEC_TAN)
+	emit_swap_insn (insn, regstack, dest);
+      else
 	gcc_assert (get_hard_regnum (regstack, dest) < FIRST_STACK_REG);
 
       gcc_assert (regstack->top < REG_STACK_SIZE);
@@ -1528,15 +1527,30 @@ subst_stack_regs_pat (rtx insn, stack regstack, rtx pat)
 	    else
 	      {
 		/* Both operands are REG.  If neither operand is already
-		   at the top of stack, choose to make the one that is the dest
-		   the new top of stack.  */
+		   at the top of stack, choose to make the one that is the
+		   dest the new top of stack.  */
 
 		int src1_hard_regnum, src2_hard_regnum;
 
 		src1_hard_regnum = get_hard_regnum (regstack, *src1);
 		src2_hard_regnum = get_hard_regnum (regstack, *src2);
-		gcc_assert (src1_hard_regnum != -1);
-		gcc_assert (src2_hard_regnum != -1);
+
+		/* If the source is not live, this is yet another case of
+		   uninitialized variables.  Load up a NaN instead.  */
+		if (src1_hard_regnum == -1)
+		  {
+		    rtx pat2 = gen_rtx_CLOBBER (VOIDmode, *src1);
+		    rtx insn2 = emit_insn_before (pat2, insn);
+		    control_flow_insn_deleted
+		      |= move_nan_for_stack_reg (insn2, regstack, *src1);
+		  }
+		if (src2_hard_regnum == -1)
+		  {
+		    rtx pat2 = gen_rtx_CLOBBER (VOIDmode, *src2);
+		    rtx insn2 = emit_insn_before (pat2, insn);
+		    control_flow_insn_deleted
+		      |= move_nan_for_stack_reg (insn2, regstack, *src2);
+		  }
 
 		if (src1_hard_regnum != FIRST_STACK_REG
 		    && src2_hard_regnum != FIRST_STACK_REG)
@@ -2010,9 +2024,9 @@ subst_asm_stack_regs (rtx insn, stack regstack)
   for (i = 0, note = REG_NOTES (insn); note; note = XEXP (note, 1))
     i++;
 
-  note_reg = alloca (i * sizeof (rtx));
-  note_loc = alloca (i * sizeof (rtx *));
-  note_kind = alloca (i * sizeof (enum reg_note));
+  note_reg = XALLOCAVEC (rtx, i);
+  note_loc = XALLOCAVEC (rtx *, i);
+  note_kind = XALLOCAVEC (enum reg_note, i);
 
   n_notes = 0;
   for (note = REG_NOTES (insn); note; note = XEXP (note, 1))
@@ -2043,8 +2057,8 @@ subst_asm_stack_regs (rtx insn, stack regstack)
 
   if (GET_CODE (body) == PARALLEL)
     {
-      clobber_reg = alloca (XVECLEN (body, 0) * sizeof (rtx));
-      clobber_loc = alloca (XVECLEN (body, 0) * sizeof (rtx *));
+      clobber_reg = XALLOCAVEC (rtx, XVECLEN (body, 0));
+      clobber_loc = XALLOCAVEC (rtx *, XVECLEN (body, 0));
 
       for (i = 0; i < XVECLEN (body, 0); i++)
 	if (GET_CODE (XVECEXP (body, 0, i)) == CLOBBER)
@@ -2356,7 +2370,7 @@ subst_stack_regs (rtx insn, stack regstack)
    is no longer needed once this has executed.  */
 
 static void
-change_stack (rtx insn, stack old, stack new, enum emit_where where)
+change_stack (rtx insn, stack old, stack new_stack, enum emit_where where)
 {
   int reg;
   int update_end = 0;
@@ -2369,9 +2383,9 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
       && starting_stack_p
       && where == EMIT_BEFORE)
     {
-      BLOCK_INFO (current_block)->stack_in = *new;
+      BLOCK_INFO (current_block)->stack_in = *new_stack;
       starting_stack_p = false;
-      *old = *new;
+      *old = *new_stack;
       return;
     }
 
@@ -2387,7 +2401,7 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 
   /* Initialize partially dead variables.  */
   for (i = FIRST_STACK_REG; i < LAST_STACK_REG + 1; i++)
-    if (TEST_HARD_REG_BIT (new->reg_set, i)
+    if (TEST_HARD_REG_BIT (new_stack->reg_set, i)
 	&& !TEST_HARD_REG_BIT (old->reg_set, i))
       {
 	old->reg[++old->top] = i;
@@ -2401,28 +2415,28 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
   /* If the destination block's stack already has a specified layout
      and contains two or more registers, use a more intelligent algorithm
      to pop registers that minimizes the number number of fxchs below.  */
-  if (new->top > 0)
+  if (new_stack->top > 0)
     {
       bool slots[REG_STACK_SIZE];
       int pops[REG_STACK_SIZE];
       int next, dest, topsrc;
 
       /* First pass to determine the free slots.  */
-      for (reg = 0; reg <= new->top; reg++)
-	slots[reg] = TEST_HARD_REG_BIT (new->reg_set, old->reg[reg]);
+      for (reg = 0; reg <= new_stack->top; reg++)
+	slots[reg] = TEST_HARD_REG_BIT (new_stack->reg_set, old->reg[reg]);
 
       /* Second pass to allocate preferred slots.  */
       topsrc = -1;
-      for (reg = old->top; reg > new->top; reg--)
-	if (TEST_HARD_REG_BIT (new->reg_set, old->reg[reg]))
+      for (reg = old->top; reg > new_stack->top; reg--)
+	if (TEST_HARD_REG_BIT (new_stack->reg_set, old->reg[reg]))
 	  {
 	    dest = -1;
-	    for (next = 0; next <= new->top; next++)
-	      if (!slots[next] && new->reg[next] == old->reg[reg])
+	    for (next = 0; next <= new_stack->top; next++)
+	      if (!slots[next] && new_stack->reg[next] == old->reg[reg])
 		{
 		  /* If this is a preference for the new top of stack, record
 		     the fact by remembering it's old->reg in topsrc.  */
-                  if (next == new->top)
+                  if (next == new_stack->top)
 		    topsrc = reg;
 		  slots[next] = true;
 		  dest = next;
@@ -2439,18 +2453,18 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 	 slot is still unallocated, in which case we should place the
 	 top of stack there.  */
       if (topsrc != -1)
-	for (reg = 0; reg < new->top; reg++)
+	for (reg = 0; reg < new_stack->top; reg++)
 	  if (!slots[reg])
 	    {
 	      pops[topsrc] = reg;
-	      slots[new->top] = false;
+	      slots[new_stack->top] = false;
 	      slots[reg] = true;
 	      break;
 	    }
 
       /* Third pass allocates remaining slots and emits pop insns.  */
-      next = new->top;
-      for (reg = old->top; reg > new->top; reg--)
+      next = new_stack->top;
+      for (reg = old->top; reg > new_stack->top; reg--)
 	{
 	  dest = pops[reg];
 	  if (dest == -1)
@@ -2473,14 +2487,14 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 
       live = 0;
       for (reg = 0; reg <= old->top; reg++)
-        if (TEST_HARD_REG_BIT (new->reg_set, old->reg[reg]))
+        if (TEST_HARD_REG_BIT (new_stack->reg_set, old->reg[reg]))
           live++;
 
       next = live;
       while (old->top >= live)
-        if (TEST_HARD_REG_BIT (new->reg_set, old->reg[old->top]))
+        if (TEST_HARD_REG_BIT (new_stack->reg_set, old->reg[old->top]))
 	  {
-	    while (TEST_HARD_REG_BIT (new->reg_set, old->reg[next]))
+	    while (TEST_HARD_REG_BIT (new_stack->reg_set, old->reg[next]))
 	      next--;
 	    emit_pop_insn (insn, old, FP_MODE_REG (old->reg[next], DFmode),
 			   EMIT_BEFORE);
@@ -2490,13 +2504,13 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 			 EMIT_BEFORE);
     }
 
-  if (new->top == -2)
+  if (new_stack->top == -2)
     {
       /* If the new block has never been processed, then it can inherit
 	 the old stack order.  */
 
-      new->top = old->top;
-      memcpy (new->reg, old->reg, sizeof (new->reg));
+      new_stack->top = old->top;
+      memcpy (new_stack->reg, old->reg, sizeof (new_stack->reg));
     }
   else
     {
@@ -2506,10 +2520,10 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
       /* By now, the only difference should be the order of the stack,
 	 not their depth or liveliness.  */
 
-      gcc_assert (hard_reg_set_equal_p (old->reg_set, new->reg_set));
-      gcc_assert (old->top == new->top);
+      gcc_assert (hard_reg_set_equal_p (old->reg_set, new_stack->reg_set));
+      gcc_assert (old->top == new_stack->top);
 
-      /* If the stack is not empty (new->top != -1), loop here emitting
+      /* If the stack is not empty (new_stack->top != -1), loop here emitting
 	 swaps until the stack is correct.
 
 	 The worst case number of swaps emitted is N + 2, where N is the
@@ -2518,16 +2532,16 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 	 other regs.  But since we never swap any other reg away from
 	 its correct slot, this algorithm will converge.  */
 
-      if (new->top != -1)
+      if (new_stack->top != -1)
 	do
 	  {
 	    /* Swap the reg at top of stack into the position it is
 	       supposed to be in, until the correct top of stack appears.  */
 
-	    while (old->reg[old->top] != new->reg[new->top])
+	    while (old->reg[old->top] != new_stack->reg[new_stack->top])
 	      {
-		for (reg = new->top; reg >= 0; reg--)
-		  if (new->reg[reg] == old->reg[old->top])
+		for (reg = new_stack->top; reg >= 0; reg--)
+		  if (new_stack->reg[reg] == old->reg[old->top])
 		    break;
 
 		gcc_assert (reg != -1);
@@ -2540,8 +2554,8 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
 	     incorrect reg to the top of stack, and let the while loop
 	     above fix it.  */
 
-	    for (reg = new->top; reg >= 0; reg--)
-	      if (new->reg[reg] != old->reg[reg])
+	    for (reg = new_stack->top; reg >= 0; reg--)
+	      if (new_stack->reg[reg] != old->reg[reg])
 		{
 		  emit_swap_insn (insn, old,
 				  FP_MODE_REG (old->reg[reg], DFmode));
@@ -2552,7 +2566,7 @@ change_stack (rtx insn, stack old, stack new, enum emit_where where)
       /* At this point there must be no differences.  */
 
       for (reg = old->top; reg >= 0; reg--)
-	gcc_assert (old->reg[reg] == new->reg[reg]);
+	gcc_assert (old->reg[reg] == new_stack->reg[reg]);
     }
 
   if (update_end)
@@ -3166,14 +3180,17 @@ reg_to_stack (void)
      ??? We can't load from constant memory in PIC mode, because
      we're inserting these instructions before the prologue and
      the PIC register hasn't been set up.  In that case, fall back
-     on zero, which we can get from `ldz'.  */
+     on zero, which we can get from `fldz'.  */
 
   if ((flag_pic && !TARGET_64BIT)
       || ix86_cmodel == CM_LARGE || ix86_cmodel == CM_LARGE_PIC)
     not_a_num = CONST0_RTX (SFmode);
   else
     {
-      not_a_num = gen_lowpart (SFmode, GEN_INT (0x7fc00000));
+      REAL_VALUE_TYPE r;
+
+      real_nan (&r, "", 1, SFmode);
+      not_a_num = CONST_DOUBLE_FROM_REAL_VALUE (r, SFmode);
       not_a_num = force_const_mem (SFmode, not_a_num);
     }
 
@@ -3181,7 +3198,7 @@ reg_to_stack (void)
   max_uid = get_max_uid ();
   stack_regs_mentioned_data = VEC_alloc (char, heap, max_uid + 1);
   memset (VEC_address (char, stack_regs_mentioned_data),
-	  0, sizeof (char) * max_uid + 1);
+	  0, sizeof (char) * (max_uid + 1));
 
   convert_regs ();
 
@@ -3200,8 +3217,10 @@ gate_handle_stack_regs (void)
 #endif
 }
 
-struct tree_opt_pass pass_stack_regs =
+struct rtl_opt_pass pass_stack_regs =
 {
+ {
+  RTL_PASS,
   NULL,                                 /* name */
   gate_handle_stack_regs,               /* gate */
   NULL,					/* execute */
@@ -3213,8 +3232,8 @@ struct tree_opt_pass pass_stack_regs =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  0                                     /* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 
 /* Convert register usage from flat register file usage to a stack
@@ -3229,8 +3248,10 @@ rest_of_handle_stack_regs (void)
   return 0;
 }
 
-struct tree_opt_pass pass_stack_regs_run =
+struct rtl_opt_pass pass_stack_regs_run =
 {
+ {
+  RTL_PASS,
   "stack",                              /* name */
   NULL,                                 /* gate */
   rest_of_handle_stack_regs,            /* execute */
@@ -3244,6 +3265,6 @@ struct tree_opt_pass pass_stack_regs_run =
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_dump_func |
-  TODO_ggc_collect,                     /* todo_flags_finish */
-  'k'                                   /* letter */
+  TODO_ggc_collect                      /* todo_flags_finish */
+ }
 };

@@ -1,7 +1,7 @@
 /* Subroutines for insn-output.c for Windows NT.
    Contributed by Douglas Rupp (drupp@cs.washington.edu)
    Copyright (C) 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "toplev.h"
 #include "hashtab.h"
+#include "langhooks.h"
 #include "ggc.h"
 #include "target.h"
 
@@ -165,43 +166,41 @@ gen_stdcall_or_fastcall_suffix (tree decl, tree id, bool fastcall)
   HOST_WIDE_INT total = 0;
   const char *old_str = IDENTIFIER_POINTER (id != NULL_TREE ? id : DECL_NAME (decl));
   char *new_str, *p;
-  tree formal_type;
+  tree type = TREE_TYPE (decl);
+  tree arg;
+  function_args_iterator args_iter;
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);  
 
-  formal_type = TYPE_ARG_TYPES (TREE_TYPE (decl));
-  if (formal_type != NULL_TREE)
-    while (1)
-      {
-	HOST_WIDE_INT parm_size;
-	HOST_WIDE_INT parm_boundary_bytes = PARM_BOUNDARY / BITS_PER_UNIT;
+  if (prototype_p (type))
+    {
+      /* This attribute is ignored for variadic functions.  */ 
+      if (stdarg_p (type))
+	return NULL_TREE;
 
-	/* We got to the end of the list without seeing void_list_node,
-	   which means the function is variadic.  The suffix is to be
-	   ignored in that case.  */
-	if (formal_type == NULL_TREE)
-	  return NULL_TREE;
+      /* Quit if we hit an incomplete type.  Error is reported
+	 by convert_arguments in c-typeck.c or cp/typeck.c.  */
+      FOREACH_FUNCTION_ARGS(type, arg, args_iter)
+	{
+	  HOST_WIDE_INT parm_size;
+	  HOST_WIDE_INT parm_boundary_bytes = PARM_BOUNDARY / BITS_PER_UNIT;
 
-	/* End of arguments, non-varargs marker.  */
-        if (formal_type == void_list_node)
-	  break;
+	  if (! COMPLETE_TYPE_P (arg))
+	    break;
 
-        /* Quit if we hit an incomplete type.  Error is reported
-	   by convert_arguments in c-typeck.c or cp/typeck.c.  */
-	parm_size = int_size_in_bytes (TREE_VALUE (formal_type));
-	if (parm_size < 0)
-	  break;
+	  parm_size = int_size_in_bytes (arg);
+	  if (parm_size < 0)
+	    break;
 
-	/* Must round up to include padding.  This is done the same
-	   way as in store_one_arg.  */
-	parm_size = ((parm_size + parm_boundary_bytes - 1)
-		     / parm_boundary_bytes * parm_boundary_bytes);
-	total += parm_size;
-
-	formal_type = TREE_CHAIN (formal_type);
+	  /* Must round up to include padding.  This is done the same
+	     way as in store_one_arg.  */
+	  parm_size = ((parm_size + parm_boundary_bytes - 1)
+		       / parm_boundary_bytes * parm_boundary_bytes);
+	  total += parm_size;
+	}
       }
   /* Assume max of 8 base 10 digits in the suffix.  */
-  p = new_str = alloca (1 + strlen (old_str) + 1 + 8 + 1);
+  p = new_str = XALLOCAVEC (char, 1 + strlen (old_str) + 1 + 8 + 1);
   if (fastcall)
     *p++ = FASTCALL_PREFIX;
   sprintf (p, "%s@" HOST_WIDE_INT_PRINT_DEC, old_str, total);
@@ -260,27 +259,19 @@ i386_pe_encode_section_info (tree decl, rtx rtl, int first)
   switch (TREE_CODE (decl))
     {
     case FUNCTION_DECL:
-      if (first)
+      /* FIXME:  Imported stdcall names are not modified by the Ada frontend.
+	 Check and decorate the RTL name now.  */
+      if  (strcmp (lang_hooks.name, "GNU Ada") == 0)
 	{
-	  /* FIXME: In Ada, and perhaps other language frontends,
-	     imported stdcall names may not yet have been modified.
-	     Check and do it know.  */
-         tree new_id;
-         tree old_id = DECL_ASSEMBLER_NAME (decl);
-     	  const char* asm_str = IDENTIFIER_POINTER (old_id);
-          /* Do not change the identifier if a verbatim asmspec
+	  tree new_id;
+	  tree old_id = DECL_ASSEMBLER_NAME (decl);
+	  const char* asm_str = IDENTIFIER_POINTER (old_id);
+	  /* Do not change the identifier if a verbatim asmspec
 	     or if stdcall suffix already added. */
-      	  if (*asm_str == '*' || strchr (asm_str, '@'))
-            break;
-	  if ((new_id = i386_pe_maybe_mangle_decl_assembler_name (decl, old_id)))
-	    {
-	      /* These attributes must be present on first declaration,
-		 change_decl_assembler_name will warn if they are added
-		 later and the decl has been referenced, but duplicate_decls
-		 should catch the mismatch first.  */
-	      change_decl_assembler_name (decl, new_id);
-	      XSTR (symbol, 0) = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-	    }
+	  if (!(*asm_str == '*' || strchr (asm_str, '@'))
+	      && (new_id = i386_pe_maybe_mangle_decl_assembler_name (decl,
+								     old_id)))
+	    XSTR (symbol, 0) = IDENTIFIER_POINTER (new_id);
 	}
       break;
 
@@ -382,7 +373,7 @@ i386_pe_unique_section (tree decl, int reloc)
   else
     prefix = ".data$";
   len = strlen (name) + strlen (prefix);
-  string = alloca (len + 1);
+  string = XALLOCAVEC (char, len + 1);
   sprintf (string, "%s%s", prefix, name);
 
   DECL_SECTION_NAME (decl) = build_string (len, string);
@@ -422,6 +413,15 @@ i386_pe_section_type_flags (tree decl, const char *name, int reloc)
     flags = SECTION_CODE;
   else if (decl && decl_readonly_section (decl, reloc))
     flags = 0;
+  else if (current_function_decl
+	   && cfun
+	   && crtl->subsections.unlikely_text_section_name
+	   && strcmp (name, crtl->subsections.unlikely_text_section_name) == 0)
+    flags = SECTION_CODE;
+  else if (!decl
+	   && (!current_function_decl || !cfun)
+	   && strcmp (name, UNLIKELY_EXECUTED_TEXT_SECTION_NAME) == 0)
+    flags = SECTION_CODE;
   else
     {
       flags = SECTION_WRITE;
@@ -524,22 +524,22 @@ i386_pe_asm_output_aligned_decl_common (FILE *stream, tree decl,
 /* Mark a function appropriately.  This should only be called for
    functions for which we are not emitting COFF debugging information.
    FILE is the assembler output file, NAME is the name of the
-   function, and PUBLIC is nonzero if the function is globally
+   function, and PUB is nonzero if the function is globally
    visible.  */
 
 void
-i386_pe_declare_function_type (FILE *file, const char *name, int public)
+i386_pe_declare_function_type (FILE *file, const char *name, int pub)
 {
   fprintf (file, "\t.def\t");
   assemble_name (file, name);
   fprintf (file, ";\t.scl\t%d;\t.type\t%d;\t.endef\n",
-	   public ? (int) C_EXT : (int) C_STAT,
+	   pub ? (int) C_EXT : (int) C_STAT,
 	   (int) DT_FCN << N_BTSHFT);
 }
 
 /* Keep a list of external functions.  */
 
-struct extern_list GTY(())
+struct GTY(()) extern_list
 {
   struct extern_list *next;
   tree decl;
@@ -568,7 +568,7 @@ i386_pe_record_external_function (tree decl, const char *name)
 
 /* Keep a list of exported symbols.  */
 
-struct export_list GTY(())
+struct GTY(()) export_list
 {
   struct export_list *next;
   const char *name;

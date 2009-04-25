@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler.  
    Vitesse IQ2000 processors
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -128,8 +129,6 @@
 
 #define PCC_BITFIELD_TYPE_MATTERS 1
 
-#define TARGET_FLOAT_FORMAT IEEE_FLOAT_FORMAT
-
 
 /* Layout of Source Language Data Types.  */
 
@@ -202,6 +201,11 @@ enum reg_class
 #define GENERAL_REGS GR_REGS
 
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
+
+#define IRA_COVER_CLASSES	\
+{				\
+  GR_REGS, LIM_REG_CLASSES	\
+}
 
 #define REG_CLASS_NAMES						\
 {								\
@@ -303,7 +307,7 @@ enum reg_class
 #define FRAME_GROWS_DOWNWARD 0
 
 #define STARTING_FRAME_OFFSET						\
-  (current_function_outgoing_args_size)
+  (crtl->outgoing_args_size)
 
 /* Use the default value zero.  */
 /* #define STACK_POINTER_OFFSET 0 */
@@ -374,7 +378,7 @@ enum reg_class
 
 #define REG_PARM_STACK_SPACE(FNDECL) 0
 
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 
 #define RETURN_POPS_ARGS(FUNDECL,FUNTYPE,SIZE) 0
 
@@ -474,12 +478,6 @@ typedef struct iq2000_args
   fprintf (FILE, "\t.set\treorder\n");					\
   fprintf (FILE, "\t.set\tat\n");					\
 }
-
-
-/* Implementing the Varargs Macros.  */
-
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  iq2000_va_start (valist, nextarg)
 
 
 /* Trampolines for Nested Functions.  */
@@ -614,8 +612,6 @@ typedef struct iq2000_args
     GO_PRINTF ("LEGITIMIZE_ADDRESS could not fix.\n");			\
 }
 
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) {}
-
 #define LEGITIMATE_CONSTANT_P(X) (1)
 
 
@@ -626,7 +622,7 @@ typedef struct iq2000_args
 #define MEMORY_MOVE_COST(MODE,CLASS,TO_P)	\
   (TO_P ? 2 : 16)
 
-#define BRANCH_COST 2
+#define BRANCH_COST(speed_p, predictable_p) 2
 
 #define SLOW_BYTE_ACCESS 1
 

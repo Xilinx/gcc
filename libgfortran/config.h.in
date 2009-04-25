@@ -96,6 +96,9 @@
 /* Define if isnan is broken. */
 #undef HAVE_BROKEN_ISNAN
 
+/* Define if powf is broken. */
+#undef HAVE_BROKEN_POWF
+
 /* libm includes cabs */
 #undef HAVE_CABS
 
@@ -273,6 +276,9 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
+/* Define to 1 if you have the `dup' function. */
+#undef HAVE_DUP
+
 /* Define to 1 if you have the `dup2' function. */
 #undef HAVE_DUP2
 
@@ -384,6 +390,9 @@
 /* Define to 1 if you have the `ftruncate' function. */
 #undef HAVE_FTRUNCATE
 
+/* Define to 1 if you have the `getcwd' function. */
+#undef HAVE_GETCWD
+
 /* libc includes geteuid */
 #undef HAVE_GETEUID
 
@@ -476,6 +485,15 @@
 
 /* libm includes ldexpl */
 #undef HAVE_LDEXPL
+
+/* libm includes lgamma */
+#undef HAVE_LGAMMA
+
+/* libm includes lgammaf */
+#undef HAVE_LGAMMAF
+
+/* libm includes lgammal */
+#undef HAVE_LGAMMAL
 
 /* Define to 1 if you have the `link' function. */
 #undef HAVE_LINK
@@ -699,6 +717,15 @@
 /* libm includes tanl */
 #undef HAVE_TANL
 
+/* libm includes tgamma */
+#undef HAVE_TGAMMA
+
+/* libm includes tgammaf */
+#undef HAVE_TGAMMAF
+
+/* libm includes tgammal */
+#undef HAVE_TGAMMAL
+
 /* Define to 1 if you have the `time' function. */
 #undef HAVE_TIME
 
@@ -719,6 +746,9 @@
 
 /* Define to 1 if you have the `ttyname' function. */
 #undef HAVE_TTYNAME
+
+/* Define to 1 if the system has the type `uintptr_t'. */
+#undef HAVE_UINTPTR_T
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
@@ -801,9 +831,6 @@
 
 /* Define to 1 if the target supports #pragma weak */
 #undef SUPPORTS_WEAK
-
-/* Define to 1 if the target is ILP32. */
-#undef TARGET_ILP32
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME

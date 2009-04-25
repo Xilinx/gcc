@@ -1,20 +1,33 @@
 /* longlong.h -- definitions for mixed size 32/64 bit arithmetic.
-   Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2004,
-   2005, 2007  Free Software Foundation, Inc.
+   Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
-   This definition file is free software; you can redistribute it
-   and/or modify it under the terms of the GNU General Public
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
-   version 3, or (at your option) any later version.
+   version 2.1 of the License, or (at your option) any later version.
 
-   This definition file is distributed in the hope that it will be
-   useful, but WITHOUT ANY WARRANTY; without even the implied
-   warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-   See the GNU General Public License for more details.
+   In addition to the permissions in the GNU Lesser General Public
+   License, the Free Software Foundation gives you unlimited
+   permission to link the compiled version of this file into
+   combinations with other programs, and to distribute those
+   combinations without any restriction coming from the use of this
+   file.  (The Lesser General Public License restrictions do apply in
+   other respects; for example, they cover modification of the file,
+   and distribution when not linked into a combine executable.)
 
-   You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING3.  If not see
-   <http://www.gnu.org/licenses/>.  */
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
+   MA 02110-1301, USA.  */
 
 /* You have to define the following before including this file:
 
@@ -42,7 +55,12 @@
 #define UDWtype		UDItype
 #endif
 
-extern const UQItype __clz_tab[256];
+/* Used in glibc only.  */
+#ifndef attribute_hidden
+#define attribute_hidden
+#endif
+
+extern const UQItype __clz_tab[256] attribute_hidden;
 
 /* Define auxiliary asm macros.
 
@@ -226,6 +244,12 @@ UDItype __umulsidi3 (USItype, USItype);
 #define UDIV_TIME 100
 #endif /* __arm__ */
 
+#if defined(__arm__)
+/* Let gcc decide how best to implement count_leading_zeros.  */
+#define count_leading_zeros(COUNT,X)	((COUNT) = __builtin_clz (X))
+#define COUNT_LEADING_ZEROS_0 32
+#endif
+
 #if defined (__CRIS__) && __CRIS_arch_version >= 3
 #define count_leading_zeros(COUNT, X) ((COUNT) = __builtin_clz (X))
 #if __CRIS_arch_version >= 8
@@ -319,7 +343,7 @@ UDItype __umulsidi3 (USItype, USItype);
 
 #if (defined (__i386__) || defined (__i486__)) && W_TYPE_SIZE == 32
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
-  __asm__ ("addl %5,%1\n\tadcl %3,%0"					\
+  __asm__ ("add{l} {%5,%1|%1,%5}\n\tadc{l} {%3,%0|%0,%3}"		\
 	   : "=r" ((USItype) (sh)),					\
 	     "=&r" ((USItype) (sl))					\
 	   : "%0" ((USItype) (ah)),					\
@@ -327,7 +351,7 @@ UDItype __umulsidi3 (USItype, USItype);
 	     "%1" ((USItype) (al)),					\
 	     "g" ((USItype) (bl)))
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
-  __asm__ ("subl %5,%1\n\tsbbl %3,%0"					\
+  __asm__ ("sub{l} {%5,%1|%1,%5}\n\tsbb{l} {%3,%0|%0,%3}"		\
 	   : "=r" ((USItype) (sh)),					\
 	     "=&r" ((USItype) (sl))					\
 	   : "0" ((USItype) (ah)),					\
@@ -335,13 +359,13 @@ UDItype __umulsidi3 (USItype, USItype);
 	     "1" ((USItype) (al)),					\
 	     "g" ((USItype) (bl)))
 #define umul_ppmm(w1, w0, u, v) \
-  __asm__ ("mull %3"							\
+  __asm__ ("mul{l} %3"							\
 	   : "=a" ((USItype) (w0)),					\
 	     "=d" ((USItype) (w1))					\
 	   : "%0" ((USItype) (u)),					\
 	     "rm" ((USItype) (v)))
 #define udiv_qrnnd(q, r, n1, n0, dv) \
-  __asm__ ("divl %4"							\
+  __asm__ ("div{l} %4"							\
 	   : "=a" ((USItype) (q)),					\
 	     "=d" ((USItype) (r))					\
 	   : "0" ((USItype) (n0)),					\
@@ -355,7 +379,7 @@ UDItype __umulsidi3 (USItype, USItype);
 
 #if (defined (__x86_64__) || defined (__i386__)) && W_TYPE_SIZE == 64
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
-  __asm__ ("addq %5,%1\n\tadcq %3,%0"					\
+  __asm__ ("add{q} {%5,%1|%1,%5}\n\tadc{q} {%3,%0|%0,%3}"		\
 	   : "=r" ((UDItype) (sh)),					\
 	     "=&r" ((UDItype) (sl))					\
 	   : "%0" ((UDItype) (ah)),					\
@@ -363,7 +387,7 @@ UDItype __umulsidi3 (USItype, USItype);
 	     "%1" ((UDItype) (al)),					\
 	     "rme" ((UDItype) (bl)))
 #define sub_ddmmss(sh, sl, ah, al, bh, bl) \
-  __asm__ ("subq %5,%1\n\tsbbq %3,%0"					\
+  __asm__ ("sub{q} {%5,%1|%1,%5}\n\tsbb{q} {%3,%0|%0,%3}"		\
 	   : "=r" ((UDItype) (sh)),					\
 	     "=&r" ((UDItype) (sl))					\
 	   : "0" ((UDItype) (ah)),					\
@@ -371,13 +395,13 @@ UDItype __umulsidi3 (USItype, USItype);
 	     "1" ((UDItype) (al)),					\
 	     "rme" ((UDItype) (bl)))
 #define umul_ppmm(w1, w0, u, v) \
-  __asm__ ("mulq %3"							\
+  __asm__ ("mul{q} %3"							\
 	   : "=a" ((UDItype) (w0)),					\
 	     "=d" ((UDItype) (w1))					\
 	   : "%0" ((UDItype) (u)),					\
 	     "rm" ((UDItype) (v)))
 #define udiv_qrnnd(q, r, n1, n0, dv) \
-  __asm__ ("divq %4"							\
+  __asm__ ("div{q} %4"							\
 	   : "=a" ((UDItype) (q)),					\
 	     "=d" ((UDItype) (r))					\
 	   : "0" ((UDItype) (n0)),					\
@@ -407,6 +431,55 @@ UDItype __umulsidi3 (USItype, USItype);
 	       "dI" ((USItype) (v)));					\
     __w; })
 #endif /* __i960__ */
+
+#if defined (__ia64) && W_TYPE_SIZE == 64
+/* This form encourages gcc (pre-release 3.4 at least) to emit predicated
+   "sub r=r,r" and "sub r=r,r,1", giving a 2 cycle latency.  The generic
+   code using "al<bl" arithmetically comes out making an actual 0 or 1 in a
+   register, which takes an extra cycle.  */
+#define sub_ddmmss(sh, sl, ah, al, bh, bl)				\
+  do {									\
+    UWtype __x;								\
+    __x = (al) - (bl);							\
+    if ((al) < (bl))							\
+      (sh) = (ah) - (bh) - 1;						\
+    else								\
+      (sh) = (ah) - (bh);						\
+    (sl) = __x;								\
+  } while (0)
+
+/* Do both product parts in assembly, since that gives better code with
+   all gcc versions.  Some callers will just use the upper part, and in
+   that situation we waste an instruction, but not any cycles.  */
+#define umul_ppmm(ph, pl, m0, m1)					\
+  __asm__ ("xma.hu %0 = %2, %3, f0\n\txma.l %1 = %2, %3, f0"		\
+	   : "=&f" (ph), "=f" (pl)					\
+	   : "f" (m0), "f" (m1))
+#define count_leading_zeros(count, x)					\
+  do {									\
+    UWtype _x = (x), _y, _a, _c;					\
+    __asm__ ("mux1 %0 = %1, @rev" : "=r" (_y) : "r" (_x));		\
+    __asm__ ("czx1.l %0 = %1" : "=r" (_a) : "r" (-_y | _y));		\
+    _c = (_a - 1) << 3;							\
+    _x >>= _c;								\
+    if (_x >= 1 << 4)							\
+      _x >>= 4, _c += 4;						\
+    if (_x >= 1 << 2)							\
+      _x >>= 2, _c += 2;						\
+    _c += _x >> 1;							\
+    (count) =  W_TYPE_SIZE - 1 - _c;					\
+  } while (0)
+/* similar to what gcc does for __builtin_ffs, but 0 based rather than 1
+   based, and we don't need a special case for x==0 here */
+#define count_trailing_zeros(count, x)					\
+  do {									\
+    UWtype __ctz_x = (x);						\
+    __asm__ ("popcnt %0 = %1"						\
+	     : "=r" (count)						\
+	     : "r" ((__ctz_x-1) & ~__ctz_x));				\
+  } while (0)
+#define UMUL_TIME 14
+#endif
 
 #if defined (__M32R__) && W_TYPE_SIZE == 32
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
@@ -623,12 +696,12 @@ UDItype __umulsidi3 (USItype, USItype);
 #endif /* __m88000__ */
 
 #if defined (__mips__) && W_TYPE_SIZE == 32
-#define umul_ppmm(w1, w0, u, v) \
-  __asm__ ("multu %2,%3"						\
-	   : "=l" ((USItype) (w0)),					\
-	     "=h" ((USItype) (w1))					\
-	   : "d" ((USItype) (u)),					\
-	     "d" ((USItype) (v)))
+#define umul_ppmm(w1, w0, u, v)						\
+  do {									\
+    UDItype __x = (UDItype) (USItype) (u) * (USItype) (v);		\
+    (w1) = (USItype) (__x >> 32);					\
+    (w0) = (USItype) (__x);						\
+  } while (0)
 #define UMUL_TIME 10
 #define UDIV_TIME 100
 

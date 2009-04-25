@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -208,10 +206,10 @@ package Lib is
    -- Special Handling of Subprogram Bodies --
    -------------------------------------------
 
-   --  A subprogram body (in an adb file) may stand for both a spec and a
-   --  body. A simple model (and one that was adopted through version 2.07),
-   --  is simply to assume that such an adb file acts as its own spec if no
-   --  ads file is present.
+   --  A subprogram body (in an adb file) may stand for both a spec and a body.
+   --  A simple model (and one that was adopted through version 2.07) is simply
+   --  to assume that such an adb file acts as its own spec if no ads file is
+   --  is present.
 
    --  However, this is not correct. RM 10.1.4(4) requires that such a body
    --  act as a spec unless a subprogram declaration of the same name is
@@ -325,6 +323,10 @@ package Lib is
    --      (RACW) object. This is used for controlling generation of the RA
    --      attribute in the ali file.
 
+   --    Is_Compiler_Unit
+   --      A Boolean flag, initially set False by default, set to True if a
+   --      pragma Compiler_Unit appears in the unit.
+
    --    Ident_String
    --      N_String_Literal node from a valid pragma Ident that applies to
    --      this unit. If no Ident pragma applies to the unit, then Empty.
@@ -339,6 +341,10 @@ package Lib is
    --      program, as set by a pragma Priority. A value of -1 indicates
    --      that the default priority is to be used (and is also used for
    --      entries that do not correspond to possible main programs).
+
+   --    OA_Setting
+   --      This is a character field containing L if Optimize_Alignment mode
+   --      was set locally, and O/T/S for Off/Time/Space default if not.
 
    --    Serial_Number
    --      This field holds a serial number used by New_Internal_Name to
@@ -377,25 +383,29 @@ package Lib is
    function Generate_Code    (U : Unit_Number_Type) return Boolean;
    function Ident_String     (U : Unit_Number_Type) return Node_Id;
    function Has_RACW         (U : Unit_Number_Type) return Boolean;
+   function Is_Compiler_Unit (U : Unit_Number_Type) return Boolean;
    function Loading          (U : Unit_Number_Type) return Boolean;
    function Main_Priority    (U : Unit_Number_Type) return Int;
    function Munit_Index      (U : Unit_Number_Type) return Nat;
+   function OA_Setting       (U : Unit_Number_Type) return Character;
    function Source_Index     (U : Unit_Number_Type) return Source_File_Index;
    function Unit_File_Name   (U : Unit_Number_Type) return File_Name_Type;
    function Unit_Name        (U : Unit_Number_Type) return Unit_Name_Type;
    --  Get value of named field from given units table entry
 
-   procedure Set_Cunit          (U : Unit_Number_Type; N : Node_Id);
-   procedure Set_Cunit_Entity   (U : Unit_Number_Type; E : Entity_Id);
-   procedure Set_Dynamic_Elab   (U : Unit_Number_Type; B : Boolean := True);
-   procedure Set_Error_Location (U : Unit_Number_Type; W : Source_Ptr);
-   procedure Set_Fatal_Error    (U : Unit_Number_Type; B : Boolean := True);
-   procedure Set_Generate_Code  (U : Unit_Number_Type; B : Boolean := True);
-   procedure Set_Has_RACW       (U : Unit_Number_Type; B : Boolean := True);
-   procedure Set_Ident_String   (U : Unit_Number_Type; N : Node_Id);
-   procedure Set_Loading        (U : Unit_Number_Type; B : Boolean := True);
-   procedure Set_Main_Priority  (U : Unit_Number_Type; P : Int);
-   procedure Set_Unit_Name      (U : Unit_Number_Type; N : Unit_Name_Type);
+   procedure Set_Cunit            (U : Unit_Number_Type; N : Node_Id);
+   procedure Set_Cunit_Entity     (U : Unit_Number_Type; E : Entity_Id);
+   procedure Set_Dynamic_Elab     (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Error_Location   (U : Unit_Number_Type; W : Source_Ptr);
+   procedure Set_Fatal_Error      (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Generate_Code    (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Has_RACW         (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Is_Compiler_Unit (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Ident_String     (U : Unit_Number_Type; N : Node_Id);
+   procedure Set_Loading          (U : Unit_Number_Type; B : Boolean := True);
+   procedure Set_Main_Priority    (U : Unit_Number_Type; P : Int);
+   procedure Set_OA_Setting       (U : Unit_Number_Type; C : Character);
+   procedure Set_Unit_Name        (U : Unit_Number_Type; N : Unit_Name_Type);
    --  Set value of named field for given units table entry. Note that we
    --  do not have an entry for each possible field, since some of the fields
    --  can only be set by specialized interfaces (defined below).
@@ -503,10 +513,11 @@ package Lib is
    --  Same function as above but argument is a source pointer
 
    function Earlier_In_Extended_Unit (S1, S2 : Source_Ptr) return Boolean;
-   --  Given two Sloc values  for which In_Same_Extended_Unit is true,
-   --  determine if S1 appears before S2. Returns True if S1 appears before
-   --  S2, and False otherwise. The result is undefined if S1 and S2 are
-   --  not in the same extended unit.
+   --  Given two Sloc values for which In_Same_Extended_Unit is true, determine
+   --  if S1 appears before S2. Returns True if S1 appears before S2, and False
+   --  otherwise. The result is undefined if S1 and S2 are not in the same
+   --  extended unit. Note: this routine will not give reliable results if
+   --  called after Sprint has been called with -gnatD set.
 
    function Compilation_Switches_Last return Nat;
    --  Return the count of stored compilation switches
@@ -549,9 +560,15 @@ package Lib is
    --  which may influence the generated output file(s). Switch is the text of
    --  the switch to store (except that -fRTS gets changed back to --RTS).
 
+   procedure Enable_Switch_Storing;
+   --  Enable registration of switches by Store_Compilation_Switch. Used to
+   --  avoid registering switches added automatically by the gcc driver at the
+   --  beginning of the command line.
+
    procedure Disable_Switch_Storing;
    --  Disable registration of switches by Store_Compilation_Switch. Used to
-   --  avoid registering switches added automatically by the gcc driver.
+   --  avoid registering switches added automatically by the gcc driver at the
+   --  end of the command line.
 
    procedure Store_Linker_Option_String (S : String_Id);
    --  This procedure is called to register the string from a pragma
@@ -618,10 +635,12 @@ private
    pragma Inline (Fatal_Error);
    pragma Inline (Generate_Code);
    pragma Inline (Has_RACW);
+   pragma Inline (Is_Compiler_Unit);
    pragma Inline (Increment_Serial_Number);
    pragma Inline (Loading);
    pragma Inline (Main_Priority);
    pragma Inline (Munit_Index);
+   pragma Inline (OA_Setting);
    pragma Inline (Set_Cunit);
    pragma Inline (Set_Cunit_Entity);
    pragma Inline (Set_Fatal_Error);
@@ -629,6 +648,7 @@ private
    pragma Inline (Set_Has_RACW);
    pragma Inline (Set_Loading);
    pragma Inline (Set_Main_Priority);
+   pragma Inline (Set_OA_Setting);
    pragma Inline (Set_Unit_Name);
    pragma Inline (Source_Index);
    pragma Inline (Unit_File_Name);
@@ -651,8 +671,10 @@ private
       Fatal_Error      : Boolean;
       Generate_Code    : Boolean;
       Has_RACW         : Boolean;
+      Is_Compiler_Unit : Boolean;
       Dynamic_Elab     : Boolean;
       Loading          : Boolean;
+      OA_Setting       : Character;
    end record;
 
    --  The following representation clause ensures that the above record
@@ -677,7 +699,9 @@ private
       Generate_Code    at 53 range 0 ..  7;
       Has_RACW         at 54 range 0 ..  7;
       Dynamic_Elab     at 55 range 0 ..  7;
-      Loading          at 56 range 0 .. 31;
+      Is_Compiler_Unit at 56 range 0 ..  7;
+      OA_Setting       at 57 range 0 ..  7;
+      Loading          at 58 range 0 .. 15;
    end record;
 
    for Unit_Record'Size use 60 * 8;

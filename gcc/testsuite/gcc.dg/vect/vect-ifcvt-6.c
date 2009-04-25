@@ -1,4 +1,5 @@
 /* { dg-require-effective-target vect_condition } */
+/* { dg-require-effective-target vect_int } */
 
 #include <stdarg.h>
 #include <signal.h>
@@ -7,12 +8,13 @@
 #define N 16
 #define MAX 42
 
+int A[N] = {36,39,42,45,43,32,21,42,23,34,45,56,67,42,89,11};
+int B[N] = {42,42,0,42,42,42,42,0,42,42,42,42,42,0,42,42};
+
 extern void abort(void); 
 
 int main ()
 {  
-  int A[N] = {36,39,42,45,43,32,21,42,23,34,45,56,67,42,89,11};
-  int B[N] = {42,42,0,42,42,42,42,0,42,42,42,42,42,0,42,42};
   int i, j;
 
   check_vect ();

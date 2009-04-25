@@ -1,4 +1,5 @@
 ! { dg-do compile }
+! { dg-options "-std=f95" }
 ! PR21986 - test based on original example.
 ! A public subroutine must not have private-type, dummy arguments.
 ! Contributed by Paul Thomas <pault@gcc.gnu.org>

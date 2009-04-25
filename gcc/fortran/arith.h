@@ -1,5 +1,5 @@
 /* Compiler arithmetic header.
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -27,7 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 /* MPFR also does not have the conversion of a mpfr_t to a mpz_t, so declare
    a function for this as well.  */
 
-void gfc_mpfr_to_mpz (mpz_t, mpfr_t);
+void gfc_mpfr_to_mpz (mpz_t, mpfr_t, locus *);
 void gfc_set_model_kind (int);
 void gfc_set_model (mpfr_t);
 
@@ -38,8 +38,10 @@ gfc_expr *gfc_constant_result (bt, int, locus *);
    for overflow and underflow.  */
 arith gfc_range_check (gfc_expr *);
 
-int gfc_compare_expr (gfc_expr *, gfc_expr *);
+int gfc_compare_expr (gfc_expr *, gfc_expr *, gfc_intrinsic_op);
 int gfc_compare_string (gfc_expr *, gfc_expr *);
+int gfc_compare_with_Cstring (gfc_expr *, const char *, bool);
+
 
 /* Constant folding for gfc_expr trees.  */
 gfc_expr *gfc_parentheses (gfc_expr * op);

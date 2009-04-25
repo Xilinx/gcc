@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -37,13 +35,6 @@
 
 with Types; use Types;
 
---  Do we really need the with of Namet?
-
-pragma Warnings (Off);
-with Namet; use Namet;
-pragma Elaborate_All (Namet);
-pragma Warnings (On);
-
 package Stand is
 
    type Standard_Entity_Type is (
@@ -54,16 +45,11 @@ package Stand is
       S_Standard,
       S_ASCII,
 
-      --  Types defined in package Standard
+      --  Types and subtypes defined in package Standard (in the order in which
+      --  they appear in the RM, so that the declarations are in the right
+      --  order for the purposes of ASIS traversals
 
       S_Boolean,
-      S_Character,
-      S_Wide_Character,
-      S_Wide_Wide_Character,
-      S_String,
-      S_Wide_String,
-      S_Wide_Wide_String,
-      S_Duration,
 
       S_Short_Short_Integer,
       S_Short_Integer,
@@ -71,20 +57,28 @@ package Stand is
       S_Long_Integer,
       S_Long_Long_Integer,
 
+      S_Natural,
+      S_Positive,
+
       S_Short_Float,
       S_Float,
       S_Long_Float,
       S_Long_Long_Float,
 
+      S_Character,
+      S_Wide_Character,
+      S_Wide_Wide_Character,
+
+      S_String,
+      S_Wide_String,
+      S_Wide_Wide_String,
+
+      S_Duration,
+
       --  Enumeration literals for type Boolean
 
       S_False,
       S_True,
-
-      --  Subtypes declared in package Standard
-
-      S_Natural,
-      S_Positive,
 
       --  Exceptions declared in package Standard
 
@@ -218,7 +212,7 @@ package Stand is
       S_DEL);           -- 16#7F#
 
    subtype S_Types is
-     Standard_Entity_Type range S_Boolean .. S_Long_Long_Float;
+     Standard_Entity_Type range S_Boolean .. S_Duration;
 
    subtype S_Exceptions is
      Standard_Entity_Type range S_Constraint_Error .. S_Tasking_Error;
@@ -361,7 +355,7 @@ package Stand is
 
    Any_Type : Entity_Id;
    --  Used to represent some unknown type. Plays an important role in
-   --  avoiding cascaded errors, since any node that remains labaled with
+   --  avoiding cascaded errors, since any node that remains labeled with
    --  this type corresponds to an already issued error message. Any_Type
    --  is propagated to avoid cascaded errors from a single type error.
 

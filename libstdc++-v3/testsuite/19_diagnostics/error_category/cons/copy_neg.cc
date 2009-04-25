@@ -2,12 +2,12 @@
 // { dg-do compile }
 // 2007-08-22 Benjamin Kosnik  <bkoz@redhat.com>
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -16,29 +16,11 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 #include <system_error>
-#include <testsuite_hooks.h>
-
-namespace __gnu_test
-{
-  struct test_category : public std::error_category
-  { 
-    virtual std::posix_errno 
-    posix(int __v) const
-    { return std::posix_errno(__v); }
-
-    virtual const std::string& 
-    name() const 
-    { 
-      static std::string s("__gnu_test::test_category");
-      return s;
-    }
-  };
-}
+#include <testsuite_error.h>
 
 int main()
 {
@@ -50,7 +32,7 @@ int main()
   return 0;
 }
 
-// { dg-error "is private" "" { target *-*-* } 75 }
-// { dg-error "within this context" "" { target *-*-* } 29 }
-// { dg-error "first required here" "" { target *-*-* } 48 }
+// { dg-error "deleted function" "" { target *-*-* } 76 }
+// { dg-error "used here" "" { target *-*-* } 31 }
+// { dg-error "first required here" "" { target *-*-* } 30 }
 // { dg-excess-errors "copy constructor" }

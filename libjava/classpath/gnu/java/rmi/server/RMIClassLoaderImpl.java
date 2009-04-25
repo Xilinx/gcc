@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package gnu.java.rmi.server;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.lang.reflect.Proxy;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -64,18 +66,12 @@ public class RMIClassLoaderImpl extends RMIClassLoaderSpi
       this.annotation = annotation;
     }
 
-    private MyClassLoader (URL[] urls, ClassLoader parent)
-    {
-      super (urls, parent);
-      this.annotation = urlToAnnotation (urls);
-    }
-
     public static String urlToAnnotation (URL[] urls)
     {
       if (urls.length == 0)
         return null;
 
-      StringBuffer annotation = new StringBuffer (64 * urls.length);
+      CPStringBuilder annotation = new CPStringBuilder (64 * urls.length);
 
       for (int i = 0; i < urls.length; i++)
       {
@@ -343,7 +339,7 @@ public class RMIClassLoaderImpl extends RMIClassLoaderSpi
         if (urls.length == 0)
           return null;
         
-        StringBuffer annotation = new StringBuffer (64 * urls.length);
+        CPStringBuilder annotation = new CPStringBuilder (64 * urls.length);
         
         for (int i = 0; i < urls.length; i++)
           {

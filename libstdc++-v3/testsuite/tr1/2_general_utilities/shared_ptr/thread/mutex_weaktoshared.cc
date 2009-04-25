@@ -1,9 +1,9 @@
-// Copyright (C) 2006, 2007 Free Software Foundation
+// Copyright (C) 2006, 2007, 2009 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,9 +12,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // TR1 2.2.2 Template class shared_ptr [tr.util.smartptr.shared]
 
@@ -84,7 +83,7 @@ struct shared_and_weak_pools
 
 void* thread_hammer_and_kill(void* opaque_pools)
 {
-  shared_and_weak_pools& pools = *reinterpret_cast<shared_and_weak_pools*>(opaque_pools);
+  shared_and_weak_pools& pools = *static_cast<shared_and_weak_pools*>(opaque_pools);
   // Using the same parameters as in the RNG test cases.
   std::tr1::mersenne_twister<
     unsigned long, 32, 624, 397, 31,
@@ -119,7 +118,7 @@ void* thread_hammer_and_kill(void* opaque_pools)
 
 void* thread_hammer(void* opaque_weak)
 {
-  wp_vector_t& weak_pool = *reinterpret_cast<wp_vector_t*>(opaque_weak);
+  wp_vector_t& weak_pool = *static_cast<wp_vector_t*>(opaque_weak);
   // Using the same parameters as in the RNG test cases.
   std::tr1::mersenne_twister<
     unsigned long, 32, 624, 397, 31,
@@ -164,14 +163,14 @@ test01()
 #endif
   
   pthread_attr_t tattr;
-  int ret = pthread_attr_init(&tattr);
+  pthread_attr_init(&tattr);
 
   shared_and_weak_pools pools(obj_pool, weak_pool[0]);
-  pthread_create(threads, &tattr, thread_hammer_and_kill, reinterpret_cast<void*>(&pools));
+  pthread_create(threads, &tattr, thread_hammer_and_kill, static_cast<void*>(&pools));
   for (unsigned int worker = 1; worker < HAMMER_MAX_THREADS; worker++)
     {
       if (pthread_create(&threads[worker], &tattr,
-			 thread_hammer, reinterpret_cast<void*>(&weak_pool[worker])))
+			 thread_hammer, static_cast<void*>(&weak_pool[worker])))
 	std::abort();
     }
   // Wait for threads to complete, then check integrity of reference.

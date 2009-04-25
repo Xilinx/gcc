@@ -41,6 +41,8 @@ package gnu.CORBA.CDR;
 import gnu.CORBA.Minor;
 import gnu.CORBA.ObjectCreator;
 
+import gnu.java.lang.CPStringBuilder;
+
 import org.omg.CORBA.CustomMarshal;
 import org.omg.CORBA.DataInputStream;
 import org.omg.CORBA.DataOutputStream;
@@ -637,7 +639,7 @@ public abstract class Vio
               r = new byte[chunk_size + 256];
 
             n = 0;
-            reading: while (n < chunk_size)
+            while (n < chunk_size)
               n += input.read(r, n, chunk_size - n);
             output.write(r, 0, n);
           }
@@ -754,7 +756,7 @@ public abstract class Vio
       return "null";
     else
       {
-        StringBuffer b = new StringBuffer("{");
+        CPStringBuilder b = new CPStringBuilder("{");
         for (int i = 0; i < s.length; i++)
           {
             b.append(s[i]);

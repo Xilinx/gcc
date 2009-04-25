@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -38,6 +36,7 @@
 --  This is the Alpha/VMS version
 
 with System.OS_Primitives;
+
 package Ada.Calendar is
 
    package OSP renames System.OS_Primitives;
@@ -106,6 +105,7 @@ private
    --  readability, this unit will be called "mili".
 
    Mili         : constant := 10_000_000;
+   Mili_F       : constant := 10_000_000.0;
    Milis_In_Day : constant := 864_000_000_000;
    Secs_In_Day  : constant := 86_400;
 
@@ -138,7 +138,12 @@ private
    --  NOTE: Delays does not need a target independent interface because
    --  VMS already has a target specific file for that package.
 
+   ---------------------------
+   -- Arithmetic_Operations --
+   ---------------------------
+
    package Arithmetic_Operations is
+
       function Add (Date : Time; Days : Long_Integer) return Time;
       --  Add a certain number of days to a time value
 
@@ -155,9 +160,59 @@ private
 
       function Subtract (Date : Time; Days : Long_Integer) return Time;
       --  Subtract a certain number of days from a time value
+
    end Arithmetic_Operations;
 
+   ---------------------------
+   -- Conversion_Operations --
+   ---------------------------
+
+   package Conversion_Operations is
+      function To_Ada_Time (Unix_Time : Long_Integer) return Time;
+      --  Unix to Ada Epoch conversion
+
+      function To_Ada_Time
+        (tm_year  : Integer;
+         tm_mon   : Integer;
+         tm_day   : Integer;
+         tm_hour  : Integer;
+         tm_min   : Integer;
+         tm_sec   : Integer;
+         tm_isdst : Integer) return Time;
+      --  Struct tm to Ada Epoch conversion
+
+      function To_Duration
+        (tv_sec  : Long_Integer;
+         tv_nsec : Long_Integer) return Duration;
+      --  Struct timespec to Duration conversion
+
+      procedure To_Struct_Timespec
+        (D       : Duration;
+         tv_sec  : out Long_Integer;
+         tv_nsec : out Long_Integer);
+      --  Duration to struct timespec conversion
+
+      procedure To_Struct_Tm
+        (T       : Time;
+         tm_year : out Integer;
+         tm_mon  : out Integer;
+         tm_day  : out Integer;
+         tm_hour : out Integer;
+         tm_min  : out Integer;
+         tm_sec  : out Integer);
+      --  Time to struct tm conversion
+
+      function To_Unix_Time (Ada_Time : Time) return Long_Integer;
+      --  Ada to Unix Epoch conversion
+
+   end Conversion_Operations;
+
+   ---------------------------
+   -- Formatting_Operations --
+   ---------------------------
+
    package Formatting_Operations is
+
       function Day_Of_Week (Date : Time) return Integer;
       --  Determine which day of week Date falls on. The returned values are
       --  within the range of 0 .. 6 (Monday .. Sunday).
@@ -188,21 +243,28 @@ private
          Minute       : Integer;
          Second       : Integer;
          Sub_Sec      : Duration;
-         Leap_Sec     : Boolean;
-         Use_Day_Secs : Boolean;
-         Is_Ada_05    : Boolean;
-         Time_Zone    : Long_Integer) return Time;
+         Leap_Sec     : Boolean := False;
+         Use_Day_Secs : Boolean := False;
+         Is_Ada_05    : Boolean := False;
+         Time_Zone    : Long_Integer := 0) return Time;
       --  Given all the components of a date, return the corresponding time
       --  value. Set Use_Day_Secs to use the value in Day_Secs, otherwise the
       --  day duration will be calculated from Hour, Minute, Second and Sub_
       --  Sec. Set Is_Ada_05 to use the local time zone (the value in formal
       --  Time_Zone is ignored) when building a time value and to verify the
       --  validity of a requested leap second.
+
    end Formatting_Operations;
 
+   ---------------------------
+   -- Time_Zones_Operations --
+   ---------------------------
+
    package Time_Zones_Operations is
+
       function UTC_Time_Offset (Date : Time) return Long_Integer;
       --  Return the offset in seconds from UTC
+
    end Time_Zones_Operations;
 
 end Ada.Calendar;

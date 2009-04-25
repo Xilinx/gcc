@@ -1,31 +1,26 @@
 /* Header file for dfp-bit.c.
-   Copyright (C) 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #ifndef _DFPBIT_H
 #define _DFPBIT_H
@@ -65,7 +60,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
    DFP_C_TYPE: type of the arguments to the libgcc functions;
 	(eg _Decimal32)
 
-   IEEE_TYPE: the corresponding (encoded) IEEE754R type;
+   IEEE_TYPE: the corresponding (encoded) IEEE754 type;
 	(eg decimal32)
    
    TO_INTERNAL: the name of the decNumber function to convert an
@@ -163,7 +158,7 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 
    DFP_C_TYPE_TO: type of the result of dfp to dfp conversion.
 
-   IEEE_TYPE_TO: the corresponding (encoded) IEEE754R type.
+   IEEE_TYPE_TO: the corresponding (encoded) IEEE754 type.
 
    TO_ENCODED_TO: the name of the decNumber function to convert an
    internally represented decNumber into the encoded representation
@@ -431,40 +426,54 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsisd,__bid_floatsisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixsdsi,__bid_fixsdsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromInt32
+#define DEC_FLOAT_TO_INT   decDoubleToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatdisd,__bid_floatdisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixsddi,__bid_fixsddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssisd,__bid_floatunssisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunssdsi,__bid_fixunssdsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromUInt32
+#define DEC_FLOAT_TO_INT   decDoubleToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsdisd,__bid_floatunsdisd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunssddi,__bid_fixunssddi)
 #endif
 #elif WIDTH == 64
+#define decFloat	decDouble
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsidd,__bid_floatsidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixddsi,__bid_fixddsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromInt32
+#define DEC_FLOAT_TO_INT   decDoubleToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatdidd,__bid_floatdidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixdddi,__bid_fixdddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssidd,__bid_floatunssidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunsddsi,__bid_fixunsddsi)
+#define DEC_FLOAT_FROM_INT decDoubleFromUInt32
+#define DEC_FLOAT_TO_INT   decDoubleToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsdidd,__bid_floatunsdidd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunsdddi,__bid_fixunsdddi)
 #endif
 #elif WIDTH == 128
+#define decFloat	decQuad
 #if INT_KIND == 1
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatsitd,__bid_floatsitd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixtdsi,__bid_fixtdsi)
+#define DEC_FLOAT_FROM_INT decQuadFromInt32
+#define DEC_FLOAT_TO_INT   decQuadToInt32
 #elif INT_KIND == 2
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatditd,__bid_floatditd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixtddi,__bid_fixtddi)
 #elif INT_KIND == 3
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunssitd,__bid_floatunssitd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunstdsi,__bid_fixunstdsi)
+#define DEC_FLOAT_FROM_INT decQuadFromUInt32
+#define DEC_FLOAT_TO_INT   decQuadToUInt32
 #elif INT_KIND == 4
 #define INT_TO_DFP	DPD_BID_NAME(__dpd_floatunsditd,__bid_floatunsditd)
 #define DFP_TO_INT	DPD_BID_NAME(__dpd_fixunstddi,__bid_fixunstddi)

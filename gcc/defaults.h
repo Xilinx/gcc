@@ -1,6 +1,6 @@
 /* Definitions of various defaults for tm.h macros.
    Copyright (C) 1992, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2007
+   2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Ron Guilmette (rfg@monkeys.com)
 
@@ -16,8 +16,13 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_DEFAULTS_H
@@ -321,7 +326,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* If we have a definition of INCOMING_RETURN_ADDR_RTX, assume that
    the rest of the DWARF 2 frame unwind support is also provided.  */
-#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX)
+#if !defined (DWARF2_UNWIND_INFO) && defined (INCOMING_RETURN_ADDR_RTX) \
+    && !defined (TARGET_UNWIND_INFO)
 #define DWARF2_UNWIND_INFO 1
 #endif
 
@@ -550,10 +556,22 @@ along with GCC; see the file COPYING3.  If not see
 #define PUSH_ARGS_REVERSED 0
 #endif
 
+/* Default value for the alignment (in bits) a C conformant malloc has to
+   provide. This default is intended to be safe and always correct.  */
+#ifndef MALLOC_ABI_ALIGNMENT
+#define MALLOC_ABI_ALIGNMENT BITS_PER_WORD
+#endif
+
 /* If PREFERRED_STACK_BOUNDARY is not defined, set it to STACK_BOUNDARY.
    STACK_BOUNDARY is required.  */
 #ifndef PREFERRED_STACK_BOUNDARY
 #define PREFERRED_STACK_BOUNDARY STACK_BOUNDARY
+#endif
+
+/* Set INCOMING_STACK_BOUNDARY to PREFERRED_STACK_BOUNDARY if it is not
+   defined.  */
+#ifndef INCOMING_STACK_BOUNDARY
+#define INCOMING_STACK_BOUNDARY PREFERRED_STACK_BOUNDARY
 #endif
 
 #ifndef TARGET_DEFAULT_PACK_STRUCT
@@ -650,49 +668,12 @@ along with GCC; see the file COPYING3.  If not see
 #define PREFERRED_DEBUGGING_TYPE NO_DEBUG
 #endif
 
-/* Define codes for all the float formats that we know of.  */
-#define UNKNOWN_FLOAT_FORMAT 0
-#define IEEE_FLOAT_FORMAT 1
-#define VAX_FLOAT_FORMAT 2
-#define C4X_FLOAT_FORMAT 3
-
-/* Default to IEEE float if not specified.  Nearly all machines use it.  */
-#ifndef TARGET_FLOAT_FORMAT
-#define	TARGET_FLOAT_FORMAT	IEEE_FLOAT_FORMAT
-#endif
-
 #ifndef LARGEST_EXPONENT_IS_NORMAL
 #define LARGEST_EXPONENT_IS_NORMAL(SIZE) 0
 #endif
 
 #ifndef ROUND_TOWARDS_ZERO
 #define ROUND_TOWARDS_ZERO 0
-#endif
-
-#ifndef MODE_HAS_NANS
-#define MODE_HAS_NANS(MODE)					\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-
-#ifndef MODE_HAS_INFINITIES
-#define MODE_HAS_INFINITIES(MODE)				\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !LARGEST_EXPONENT_IS_NORMAL (GET_MODE_BITSIZE (MODE)))
-#endif
-
-#ifndef MODE_HAS_SIGNED_ZEROS
-#define MODE_HAS_SIGNED_ZEROS(MODE) \
-  (FLOAT_MODE_P (MODE) && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT)
-#endif
-
-#ifndef MODE_HAS_SIGN_DEPENDENT_ROUNDING
-#define MODE_HAS_SIGN_DEPENDENT_ROUNDING(MODE)			\
-  (FLOAT_MODE_P (MODE)						\
-   && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT			\
-   && !ROUND_TOWARDS_ZERO)
 #endif
 
 #ifndef FLOAT_LIB_COMPARE_RETURNS_BOOL
@@ -712,8 +693,11 @@ along with GCC; see the file COPYING3.  If not see
 #define FLOAT_WORDS_BIG_ENDIAN WORDS_BIG_ENDIAN
 #endif
 
-#ifndef TARGET_FLT_EVAL_METHOD
+#ifdef TARGET_FLT_EVAL_METHOD
+#define TARGET_FLT_EVAL_METHOD_NON_DEFAULT 1
+#else
 #define TARGET_FLT_EVAL_METHOD 0
+#define TARGET_FLT_EVAL_METHOD_NON_DEFAULT 0
 #endif
 
 #ifndef TARGET_DEC_EVAL_METHOD
@@ -739,7 +723,7 @@ along with GCC; see the file COPYING3.  If not see
 /* By default, only attempt to parallelize bitwise operations, and
    possibly adds/subtracts using bit-twiddling.  */
 #ifndef UNITS_PER_SIMD_WORD
-#define UNITS_PER_SIMD_WORD UNITS_PER_WORD
+#define UNITS_PER_SIMD_WORD(MODE) UNITS_PER_WORD
 #endif
 
 /* Determine whether __cxa_atexit, rather than atexit, is used to
@@ -902,6 +886,10 @@ along with GCC; see the file COPYING3.  If not see
 #define LEGITIMATE_PIC_OPERAND_P(X) 1
 #endif
 
+#ifndef TARGET_MEM_CONSTRAINT
+#define TARGET_MEM_CONSTRAINT 'm'
+#endif
+
 #ifndef REVERSIBLE_CC_MODE
 #define REVERSIBLE_CC_MODE(MODE) 0
 #endif
@@ -937,7 +925,48 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #ifndef OUTGOING_REG_PARM_STACK_SPACE
-#define OUTGOING_REG_PARM_STACK_SPACE 0
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 0
+#endif
+
+/* MAX_STACK_ALIGNMENT is the maximum stack alignment guaranteed by
+   the backend.  MAX_SUPPORTED_STACK_ALIGNMENT is the maximum best
+   effort stack alignment supported by the backend.  If the backend
+   supports stack alignment, MAX_SUPPORTED_STACK_ALIGNMENT and
+   MAX_STACK_ALIGNMENT are the same.  Otherwise, the incoming stack
+   boundary will limit the maximum guaranteed stack alignment.  */
+#ifdef MAX_STACK_ALIGNMENT
+#define MAX_SUPPORTED_STACK_ALIGNMENT MAX_STACK_ALIGNMENT
+#else
+#define MAX_STACK_ALIGNMENT STACK_BOUNDARY
+#define MAX_SUPPORTED_STACK_ALIGNMENT PREFERRED_STACK_BOUNDARY
+#endif
+
+#define SUPPORTS_STACK_ALIGNMENT (MAX_STACK_ALIGNMENT > STACK_BOUNDARY)
+
+#ifndef LOCAL_ALIGNMENT
+#define LOCAL_ALIGNMENT(TYPE, ALIGNMENT) ALIGNMENT
+#endif
+
+#ifndef STACK_SLOT_ALIGNMENT
+#define STACK_SLOT_ALIGNMENT(TYPE,MODE,ALIGN) \
+  ((TYPE) ? LOCAL_ALIGNMENT ((TYPE), (ALIGN)) : (ALIGN))
+#endif
+
+#ifndef LOCAL_DECL_ALIGNMENT
+#define LOCAL_DECL_ALIGNMENT(DECL) \
+  LOCAL_ALIGNMENT (TREE_TYPE (DECL), DECL_ALIGN (DECL))
+#endif
+
+/* Alignment value for attribute ((aligned)).  */
+#ifndef ATTRIBUTE_ALIGNED_VALUE
+#define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
+#endif
+
+/* Many ports have no mode-dependent addresses (except possibly autoincrement
+   and autodecrement addresses, which are handled by target-independent code
+   in recog.c).  */
+#ifndef GO_IF_MODE_DEPENDENT_ADDRESS
+#define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

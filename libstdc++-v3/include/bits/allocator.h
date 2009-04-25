@@ -1,12 +1,12 @@
 // Allocators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  * Copyright (c) 1996-1997
@@ -54,6 +49,13 @@
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
+  /**
+   * @defgroup allocators Allocators
+   * @ingroup memory
+   *
+   * Classes encapsulating memory operations.
+   */
+
   template<typename _Tp>
     class allocator;
 
@@ -75,9 +77,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    * @brief  The "standard" allocator, as per [20.4].
+   * @ingroup allocators
    *
    *  Further details:
-   *  http://gcc.gnu.org/onlinedocs/libstdc++/20_util/allocator.html
+   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt04ch11.html
    */
   template<typename _Tp>
     class allocator: public __glibcxx_base_allocator<_Tp>
@@ -113,9 +116,19 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     operator==(const allocator<_T1>&, const allocator<_T2>&)
     { return true; }
 
+  template<typename _Tp>
+    inline bool
+    operator==(const allocator<_Tp>&, const allocator<_Tp>&)
+    { return true; }
+
   template<typename _T1, typename _T2>
     inline bool
     operator!=(const allocator<_T1>&, const allocator<_T2>&)
+    { return false; }
+
+  template<typename _Tp>
+    inline bool
+    operator!=(const allocator<_Tp>&, const allocator<_Tp>&)
     { return false; }
 
   // Inhibit implicit instantiations for required instantiations,
@@ -144,6 +157,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	if (__one != __two)
 	  swap(__one, __two);
       }
+    };
+
+  // Optimize for stateless allocators.
+  template<typename _Alloc, bool = __is_empty(_Alloc)>
+    struct __alloc_neq
+    {
+      static bool
+      _S_do_it(const _Alloc&, const _Alloc&)
+      { return false; }
+    };
+
+  template<typename _Alloc>
+    struct __alloc_neq<_Alloc, false>
+    {
+      static bool
+      _S_do_it(const _Alloc& __one, const _Alloc& __two)
+      { return __one != __two; }
     };
 
 _GLIBCXX_END_NAMESPACE

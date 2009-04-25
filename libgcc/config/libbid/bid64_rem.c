@@ -1,30 +1,25 @@
-/* Copyright (C) 2007  Free Software Foundation, Inc.
+/* Copyright (C) 2007, 2009  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /*****************************************************************************
  *    BID64 remainder
@@ -56,23 +51,21 @@ Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 #if DECIMAL_CALL_BY_REFERENCE
 
 void
-__bid64_rem (UINT64 * pres, UINT64 * px,
+bid64_rem (UINT64 * pres, UINT64 * px,
 	   UINT64 *
-	   py _RND_MODE_PARAM _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-	   _EXC_INFO_PARAM) {
+	   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
   UINT64 x, y;
 #else
 
 UINT64
-__bid64_rem (UINT64 x,
-	   UINT64 y _RND_MODE_PARAM _EXC_FLAGS_PARAM
-	   _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
+bid64_rem (UINT64 x,
+	   UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
 #endif
   UINT128 CY;
   UINT64 sign_x, sign_y, coefficient_x, coefficient_y, res;
-  UINT64 Q, R, R2, T;
+  UINT64 Q, R, R2, T, valid_y, valid_x;
   int_float tempx;
-  int exponent_x = 0, exponent_y, bin_expon, e_scale;
+  int exponent_x, exponent_y, bin_expon, e_scale;
   int digits_x, diff_expon;
 
 #if DECIMAL_CALL_BY_REFERENCE
@@ -80,8 +73,11 @@ __bid64_rem (UINT64 x,
   y = *py;
 #endif
 
+  valid_y = unpack_BID64 (&sign_y, &exponent_y, &coefficient_y, y);
+  valid_x = unpack_BID64 (&sign_x, &exponent_x, &coefficient_x, x);
+
   // unpack arguments, check for NaN or Infinity
-  if (!unpack_BID64 (&sign_x, &exponent_x, &coefficient_x, x)) {
+  if (!valid_x) {
     // x is Inf. or NaN or 0
 #ifdef SET_STATUS_FLAGS
     if ((y & SNAN_MASK64) == SNAN_MASK64)	// y is sNaN
@@ -94,24 +90,24 @@ __bid64_rem (UINT64 x,
       if (((x & SNAN_MASK64) == SNAN_MASK64))
 	__set_status_flags (pfpsf, INVALID_EXCEPTION);
 #endif
-      res = x & QUIET_MASK64;;
+      res = coefficient_x & QUIET_MASK64;;
       BID_RETURN (res);
     }
     // x is Infinity?
     if ((x & 0x7800000000000000ull) == 0x7800000000000000ull) {
+      if (((y & NAN_MASK64) != NAN_MASK64)) {
 #ifdef SET_STATUS_FLAGS
-      if (((y & NAN_MASK64) != NAN_MASK64))
 	__set_status_flags (pfpsf, INVALID_EXCEPTION);
 #endif
-      // return NaN
-      res = 0x7c00000000000000ull;
-      BID_RETURN (res);
+	// return NaN
+	res = 0x7c00000000000000ull;
+	BID_RETURN (res);
+      }
     }
     // x is 0
     // return x if y != 0
     if (((y & 0x7800000000000000ull) < 0x7800000000000000ull) &&
-	(((y & 0x6000000000000000ull) == 0x6000000000000000ull)
-	 || (y << (64 - 53)))) {
+	coefficient_y) {
       if ((y & 0x6000000000000000ull) == 0x6000000000000000ull)
 	exponent_y = (y >> 51) & 0x3ff;
       else
@@ -128,7 +124,7 @@ __bid64_rem (UINT64 x,
     }
 
   }
-  if (!unpack_BID64 (&sign_y, &exponent_y, &coefficient_y, y)) {
+  if (!valid_y) {
     // y is Inf. or NaN
 
     // test if y is NaN
@@ -137,12 +133,12 @@ __bid64_rem (UINT64 x,
       if (((y & SNAN_MASK64) == SNAN_MASK64))
 	__set_status_flags (pfpsf, INVALID_EXCEPTION);
 #endif
-      res = y & QUIET_MASK64;;
+      res = coefficient_y & QUIET_MASK64;;
       BID_RETURN (res);
     }
     // y is Infinity?
     if ((y & 0x7800000000000000ull) == 0x7800000000000000ull) {
-      res = x;
+      res = very_fast_get_BID64 (sign_x, exponent_x, coefficient_x);
       BID_RETURN (res);
     }
     // y is 0, return NaN
@@ -166,7 +162,7 @@ __bid64_rem (UINT64 x,
       BID_RETURN (res);
     }
     // set exponent of y to exponent_x, scale coefficient_y
-    T = __bid_power10_table_128[diff_expon].w[0];
+    T = power10_table_128[diff_expon].w[0];
     __mul_64x64_to_128 (CY, coefficient_y, T);
 
     if (CY.w[1] || CY.w[0] > (coefficient_x << 1)) {
@@ -192,9 +188,9 @@ __bid64_rem (UINT64 x,
     // get number of digits in coeff_x
     tempx.d = (float) coefficient_x;
     bin_expon = ((tempx.i >> 23) & 0xff) - 0x7f;
-    digits_x = __bid_estimate_decimal_digits[bin_expon];
+    digits_x = estimate_decimal_digits[bin_expon];
     // will not use this test, dividend will have 18 or 19 digits
-    //if(coefficient_x >= __bid_power10_table_128[digits_x].w[0])
+    //if(coefficient_x >= power10_table_128[digits_x].w[0])
     //      digits_x++;
 
     e_scale = 18 - digits_x;
@@ -206,7 +202,7 @@ __bid64_rem (UINT64 x,
     }
 
     // scale dividend to 18 or 19 digits
-    coefficient_x *= __bid_power10_table_128[e_scale].w[0];
+    coefficient_x *= power10_table_128[e_scale].w[0];
 
     // quotient
     Q = coefficient_x / coefficient_y;

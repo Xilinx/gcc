@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2007, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -328,6 +328,15 @@ typedef Int Mechanism_Type;
 #define By_Descriptor_A    (-9)
 #define By_Descriptor_NCA  (-10)
 #define By_Descriptor_Last (-10)
+#define By_Short_Descriptor      (-11)
+#define By_Short_Descriptor_UBS  (-12)
+#define By_Short_Descriptor_UBSB (-13)
+#define By_Short_Descriptor_UBA  (-14)
+#define By_Short_Descriptor_S    (-15)
+#define By_Short_Descriptor_SB   (-16)
+#define By_Short_Descriptor_A    (-17)
+#define By_Short_Descriptor_NCA  (-18)
+#define By_Short_Descriptor_Last (-18)
 
 /* Internal to Gigi.  */
 #define By_Copy_Return     (-128)
@@ -341,7 +350,7 @@ typedef Int Mechanism_Type;
 #define CE_Index_Check_Failed               5
 #define CE_Invalid_Data                     6
 #define CE_Length_Check_Failed              7
-#define CE_Null_Exception_Id                9
+#define CE_Null_Exception_Id                8
 #define CE_Null_Not_Allowed                 9
 #define CE_Overflow_Check_Failed           10
 #define CE_Partition_Check_Failed          11
@@ -350,23 +359,24 @@ typedef Int Mechanism_Type;
 
 #define PE_Access_Before_Elaboration       14
 #define PE_Accessibility_Check_Failed      15
-#define PE_All_Guards_Closed               16
-#define PE_Current_Task_In_Entry_Body      17
-#define PE_Duplicated_Entry_Address        18
-#define PE_Explicit_Raise                  19
-#define PE_Finalize_Raised_Exception       20
-#define PE_Implicit_Return                 21
-#define PE_Misaligned_Address_Value        22
-#define PE_Missing_Return                  23
-#define PE_Overlaid_Controlled_Object      24
-#define PE_Potentially_Blocking_Operation  25
-#define PE_Stubbed_Subprogram_Called       26
-#define PE_Unchecked_Union_Restriction     27
-#define PE_Non_Transportable_Actual        28
+#define PE_Address_Of_Intrinsic            16
+#define PE_All_Guards_Closed               17
+#define PE_Current_Task_In_Entry_Body      18
+#define PE_Duplicated_Entry_Address        19
+#define PE_Explicit_Raise                  20
+#define PE_Finalize_Raised_Exception       21
+#define PE_Implicit_Return                 22
+#define PE_Misaligned_Address_Value        23
+#define PE_Missing_Return                  24
+#define PE_Overlaid_Controlled_Object      25
+#define PE_Potentially_Blocking_Operation  26
+#define PE_Stubbed_Subprogram_Called       27
+#define PE_Unchecked_Union_Restriction     28
+#define PE_Non_Transportable_Actual        29
 
-#define SE_Empty_Storage_Pool              29
-#define SE_Explicit_Raise                  30
-#define SE_Infinite_Recursion              31
-#define SE_Object_Too_Large                32
+#define SE_Empty_Storage_Pool              30
+#define SE_Explicit_Raise                  31
+#define SE_Infinite_Recursion              32
+#define SE_Object_Too_Large                33
 
-#define LAST_REASON_CODE                   32
+#define LAST_REASON_CODE                   33

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,7 @@ with Csets;    use Csets;
 with Hostparm; use Hostparm;
 with Namet;    use Namet;
 with Opt;      use Opt;
+with Output;   use Output;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Scans;    use Scans;
@@ -35,9 +36,17 @@ with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Uintp;    use Uintp;
 
+with GNAT.Byte_Order_Mark; use GNAT.Byte_Order_Mark;
+
+with System.WCh_Con; use System.WCh_Con;
+
 package body Scn is
 
    use ASCII;
+
+   Obsolescent_Check_Flag : Boolean := True;
+   --  Obsolescent check activation. Set to False during integrated
+   --  preprocessing.
 
    Used_As_Identifier : array (Token_Type) of Boolean;
    --  Flags set True if a given keyword is used as an identifier (used to
@@ -266,6 +275,46 @@ package body Scn is
          Set_License (Current_Source_File, Determine_License);
       end if;
 
+      --  Check for BOM
+
+      declare
+         BOM : BOM_Kind;
+         Len : Natural;
+         Tst : String (1 .. 5);
+
+      begin
+         for J in 1 .. 5 loop
+            Tst (J) := Source (Scan_Ptr + Source_Ptr (J) - 1);
+         end loop;
+
+         Read_BOM (Tst, Len, BOM, False);
+
+         case BOM is
+            when UTF8_All =>
+               Scan_Ptr := Scan_Ptr + Source_Ptr (Len);
+               Wide_Character_Encoding_Method := WCEM_UTF8;
+               Upper_Half_Encoding := True;
+
+            when UTF16_LE | UTF16_BE =>
+               Set_Standard_Error;
+               Write_Line ("UTF-16 encoding format not recognized");
+               Set_Standard_Output;
+               raise Unrecoverable_Error;
+
+            when UTF32_LE | UTF32_BE =>
+               Set_Standard_Error;
+               Write_Line ("UTF-32 encoding format not recognized");
+               Set_Standard_Output;
+               raise Unrecoverable_Error;
+
+            when Unknown =>
+               null;
+
+            when others =>
+               raise Program_Error;
+         end case;
+      end;
+
       --  Because of the License stuff above, Scng.Initialize_Scanner cannot
       --  call Scan. Scan initial token (note this initializes Prev_Token,
       --  Prev_Token_Ptr).
@@ -284,7 +333,7 @@ package body Scn is
          Scan;
       end if;
 
-      --  Clear flags for reserved words used as indentifiers
+      --  Clear flags for reserved words used as identifiers
 
       for J in Token_Type loop
          Used_As_Identifier (J) := False;
@@ -297,12 +346,15 @@ package body Scn is
 
    procedure Obsolescent_Check (S : Source_Ptr) is
    begin
-      --  This is a pain in the neck case, since we normally need a node to
-      --  call Check_Restrictions, and all we have is a source pointer. The
-      --  easiest thing is to construct a dummy node. A bit kludgy, but this
-      --  is a marginal case. It's not worth trying to do things more cleanly.
+      if Obsolescent_Check_Flag then
+         --  This is a pain in the neck case, since we normally need a node to
+         --  call Check_Restrictions, and all we have is a source pointer. The
+         --  easiest thing is to construct a dummy node. A bit kludgy, but this
+         --  is a marginal case. It's not worth trying to do things more
+         --  cleanly.
 
-      Check_Restriction (No_Obsolescent_Features, New_Node (N_Empty, S));
+         Check_Restriction (No_Obsolescent_Features, New_Node (N_Empty, S));
+      end if;
    end Obsolescent_Check;
 
    ---------------
@@ -374,5 +426,14 @@ package body Scn is
       Token_Node := New_Node (N_Identifier, Token_Ptr);
       Set_Chars (Token_Node, Token_Name);
    end Scan_Reserved_Identifier;
+
+   ---------------------------
+   -- Set_Obsolescent_Check --
+   ---------------------------
+
+   procedure Set_Obsolescent_Check (Value : Boolean) is
+   begin
+      Obsolescent_Check_Flag := Value;
+   end Set_Obsolescent_Check;
 
 end Scn;

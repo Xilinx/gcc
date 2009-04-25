@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -103,7 +103,7 @@ package Sem_Res is
    --  Several forms of names can denote calls to entities without para-
    --  meters. The context determines whether the name denotes the entity
    --  or a call to it. When it is a call, the node must be rebuilt
-   --  accordingly and renalyzed to obtain possible interpretations.
+   --  accordingly and reanalyzed to obtain possible interpretations.
    --
    --  The name may be that of an overloadable construct, or it can be an
    --  explicit dereference of a prefix that denotes an access to subprogram.
@@ -113,13 +113,13 @@ package Sem_Res is
    --
    --  The parameter T is the Typ for the corresponding resolve call.
 
-   procedure Pre_Analyze_And_Resolve (N : Node_Id; T : Entity_Id);
-   --  Performs a pre-analysis of expression node N. During pre-analysis
+   procedure Preanalyze_And_Resolve (N : Node_Id; T : Entity_Id);
+   --  Performs a pre-analysis of expression node N. During pre-analysis,
    --  N is analyzed and then resolved against type T, but no expansion
    --  is carried out for N or its children. For more info on pre-analysis
    --  read the spec of Sem.
 
-   procedure Pre_Analyze_And_Resolve (N : Node_Id);
+   procedure Preanalyze_And_Resolve (N : Node_Id);
    --  Same, but use type of node because context does not impose a single type
 
 private

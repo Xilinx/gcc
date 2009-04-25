@@ -1,30 +1,25 @@
-/* Copyright (C) 2007  Free Software Foundation, Inc.
+/* Copyright (C) 2007, 2009  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "bid_internal.h"
 
@@ -38,7 +33,7 @@ static const UINT64 mult_factor[16] = {
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_equal (int *pres, UINT64 * px,
+bid64_quiet_equal (int *pres, UINT64 * px,
 		   UINT64 *
 		   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		   _EXC_INFO_PARAM) {
@@ -46,7 +41,7 @@ __bid64_quiet_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_equal (UINT64 x,
+bid64_quiet_equal (UINT64 x,
 		   UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		   _EXC_INFO_PARAM) {
 #endif
@@ -60,7 +55,7 @@ __bid64_quiet_equal (UINT64 x,
   // rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -74,6 +69,11 @@ __bid64_quiet_equal (UINT64 x,
   // INFINITY (CASE3)
   if (((x & MASK_INF) == MASK_INF) && ((y & MASK_INF) == MASK_INF)) {
     res = (((x ^ y) & MASK_SIGN) != MASK_SIGN);
+    BID_RETURN (res);
+  }
+  // ONE INFINITY (CASE3')
+  if (((x & MASK_INF) == MASK_INF) || ((y & MASK_INF) == MASK_INF)) {
+    res = 0;
     BID_RETURN (res);
   }
   // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
@@ -130,12 +130,12 @@ __bid64_quiet_equal (UINT64 x,
     BID_RETURN (res);
   }
   // REDUNDANT REPRESENTATIONS (CASE6)
-  if (exp_x > exp_y) { // to simplify the loop below,
-    SWAP (exp_x, exp_y, exp_t); // put the larger exp in y,
-    SWAP (sig_x, sig_y, sig_t); // and the smaller exp in x
+  if (exp_x > exp_y) {	// to simplify the loop below,
+    SWAP (exp_x, exp_y, exp_t);	// put the larger exp in y,
+    SWAP (sig_x, sig_y, sig_t);	// and the smaller exp in x
   }
   if (exp_y - exp_x > 15) {
-    res = 0; // difference cannot be greater than 10^15
+    res = 0;	// difference cannot be greater than 10^15
     BID_RETURN (res);
   }
   for (lcv = 0; lcv < (exp_y - exp_x); lcv++) {
@@ -152,7 +152,7 @@ __bid64_quiet_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_greater (int *pres, UINT64 * px,
+bid64_quiet_greater (int *pres, UINT64 * px,
 		     UINT64 *
 		     py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		     _EXC_INFO_PARAM) {
@@ -160,7 +160,7 @@ __bid64_quiet_greater (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_greater (UINT64 x,
+bid64_quiet_greater (UINT64 x,
 		     UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		     _EXC_INFO_PARAM) {
 #endif
@@ -175,7 +175,7 @@ __bid64_quiet_greater (UINT64 x,
   // return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -276,7 +276,7 @@ __bid64_quiet_greater (UINT64 x,
     BID_RETURN (res);
   }
   // if exp_x is 15 greater than exp_y, no need for compensation
-  if (exp_x - exp_y > 15) { // difference cannot be greater than 10^15
+  if (exp_x - exp_y > 15) {	// difference cannot be greater than 10^15
     if (x & MASK_SIGN)	// if both are negative
       res = 0;
     else	// if both are positive
@@ -292,7 +292,7 @@ __bid64_quiet_greater (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -323,7 +323,7 @@ __bid64_quiet_greater (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_greater_equal (int *pres, UINT64 * px,
+bid64_quiet_greater_equal (int *pres, UINT64 * px,
 			   UINT64 *
 			   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			   _EXC_INFO_PARAM) {
@@ -331,7 +331,7 @@ __bid64_quiet_greater_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_greater_equal (UINT64 x,
+bid64_quiet_greater_equal (UINT64 x,
 			   UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			   _EXC_INFO_PARAM) {
 #endif
@@ -345,7 +345,7 @@ __bid64_quiet_greater_equal (UINT64 x,
   // if either number is NAN, the comparison is unordered : return 1
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -364,7 +364,7 @@ __bid64_quiet_greater_equal (UINT64 x,
       res = (((y & MASK_INF) == MASK_INF)
 	     && (y & MASK_SIGN) == MASK_SIGN);
       BID_RETURN (res);
-    } else { // x is pos_inf, no way for it to be less than y
+    } else {	// x is pos_inf, no way for it to be less than y
       res = 1;
       BID_RETURN (res);
     }
@@ -456,7 +456,7 @@ __bid64_quiet_greater_equal (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -490,7 +490,7 @@ __bid64_quiet_greater_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_greater_unordered (int *pres, UINT64 * px,
+bid64_quiet_greater_unordered (int *pres, UINT64 * px,
 			       UINT64 *
 			       py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			       _EXC_INFO_PARAM) {
@@ -498,7 +498,7 @@ __bid64_quiet_greater_unordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_greater_unordered (UINT64 x,
+bid64_quiet_greater_unordered (UINT64 x,
 			       UINT64 y _EXC_FLAGS_PARAM
 			       _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
 #endif
@@ -513,7 +513,7 @@ __bid64_quiet_greater_unordered (UINT64 x,
   // return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -624,7 +624,7 @@ __bid64_quiet_greater_unordered (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -655,7 +655,7 @@ __bid64_quiet_greater_unordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_less (int *pres, UINT64 * px,
+bid64_quiet_less (int *pres, UINT64 * px,
 		  UINT64 *
 		  py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM _EXC_INFO_PARAM) 
 {
@@ -663,7 +663,7 @@ __bid64_quiet_less (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_less (UINT64 x,
+bid64_quiet_less (UINT64 x,
 		  UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		  _EXC_INFO_PARAM) {
 #endif
@@ -677,7 +677,7 @@ __bid64_quiet_less (UINT64 x,
   // if either number is NAN, the comparison is unordered : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -790,7 +790,7 @@ __bid64_quiet_less (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -824,7 +824,7 @@ __bid64_quiet_less (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_less_equal (int *pres, UINT64 * px,
+bid64_quiet_less_equal (int *pres, UINT64 * px,
 			UINT64 *
 			py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			_EXC_INFO_PARAM) {
@@ -832,7 +832,7 @@ __bid64_quiet_less_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_less_equal (UINT64 x,
+bid64_quiet_less_equal (UINT64 x,
 			UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			_EXC_INFO_PARAM) {
 #endif
@@ -847,7 +847,7 @@ __bid64_quiet_less_equal (UINT64 x,
   //     return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -958,7 +958,7 @@ __bid64_quiet_less_equal (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -992,7 +992,7 @@ __bid64_quiet_less_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_less_unordered (int *pres, UINT64 * px,
+bid64_quiet_less_unordered (int *pres, UINT64 * px,
 			    UINT64 *
 			    py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			    _EXC_INFO_PARAM) {
@@ -1000,7 +1000,7 @@ __bid64_quiet_less_unordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_less_unordered (UINT64 x,
+bid64_quiet_less_unordered (UINT64 x,
 			    UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			    _EXC_INFO_PARAM) {
 #endif
@@ -1014,7 +1014,7 @@ __bid64_quiet_less_unordered (UINT64 x,
   // if either number is NAN, the comparison is unordered : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -1126,7 +1126,7 @@ __bid64_quiet_less_unordered (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
 			    mult_factor[exp_x - exp_y]);
@@ -1160,7 +1160,7 @@ __bid64_quiet_less_unordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_not_equal (int *pres, UINT64 * px,
+bid64_quiet_not_equal (int *pres, UINT64 * px,
 		       UINT64 *
 		       py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		       _EXC_INFO_PARAM) {
@@ -1168,7 +1168,7 @@ __bid64_quiet_not_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_not_equal (UINT64 x,
+bid64_quiet_not_equal (UINT64 x,
 		       UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		       _EXC_INFO_PARAM) {
 #endif
@@ -1182,7 +1182,7 @@ __bid64_quiet_not_equal (UINT64 x,
   // rather than equal : return 1
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -1196,6 +1196,11 @@ __bid64_quiet_not_equal (UINT64 x,
   // INFINITY (CASE3)
   if (((x & MASK_INF) == MASK_INF) && ((y & MASK_INF) == MASK_INF)) {
     res = (((x ^ y) & MASK_SIGN) == MASK_SIGN);
+    BID_RETURN (res);
+  }
+  // ONE INFINITY (CASE3')
+  if (((x & MASK_INF) == MASK_INF) || ((y & MASK_INF) == MASK_INF)) {
+    res = 1;
     BID_RETURN (res);
   }
   // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
@@ -1255,9 +1260,9 @@ __bid64_quiet_not_equal (UINT64 x,
     BID_RETURN (res);
   }
   // REDUNDANT REPRESENTATIONS (CASE6)
-  if (exp_x > exp_y) { // to simplify the loop below,
-    SWAP (exp_x, exp_y, exp_t); // put the larger exp in y,
-    SWAP (sig_x, sig_y, sig_t); // and the smaller exp in x
+  if (exp_x > exp_y) {	// to simplify the loop below,
+    SWAP (exp_x, exp_y, exp_t);	// put the larger exp in y,
+    SWAP (sig_x, sig_y, sig_t);	// and the smaller exp in x
   }
 
   if (exp_y - exp_x > 15) {
@@ -1285,7 +1290,7 @@ __bid64_quiet_not_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_not_greater (int *pres, UINT64 * px,
+bid64_quiet_not_greater (int *pres, UINT64 * px,
 			 UINT64 *
 			 py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			 _EXC_INFO_PARAM) {
@@ -1293,7 +1298,7 @@ __bid64_quiet_not_greater (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_not_greater (UINT64 x,
+bid64_quiet_not_greater (UINT64 x,
 			 UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			 _EXC_INFO_PARAM) {
 #endif
@@ -1308,7 +1313,7 @@ __bid64_quiet_not_greater (UINT64 x,
   //   rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -1428,7 +1433,7 @@ __bid64_quiet_not_greater (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -1469,7 +1474,7 @@ __bid64_quiet_not_greater (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_not_less (int *pres, UINT64 * px,
+bid64_quiet_not_less (int *pres, UINT64 * px,
 		      UINT64 *
 		      py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		      _EXC_INFO_PARAM) {
@@ -1477,7 +1482,7 @@ __bid64_quiet_not_less (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_not_less (UINT64 x,
+bid64_quiet_not_less (UINT64 x,
 		      UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		      _EXC_INFO_PARAM) {
 #endif
@@ -1491,7 +1496,7 @@ __bid64_quiet_not_less (UINT64 x,
   // if either number is NAN, the comparison is unordered : return 1
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -1613,7 +1618,7 @@ __bid64_quiet_not_less (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -1654,7 +1659,7 @@ __bid64_quiet_not_less (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_ordered (int *pres, UINT64 * px,
+bid64_quiet_ordered (int *pres, UINT64 * px,
 		     UINT64 *
 		     py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		     _EXC_INFO_PARAM) {
@@ -1662,7 +1667,7 @@ __bid64_quiet_ordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_ordered (UINT64 x,
+bid64_quiet_ordered (UINT64 x,
 		     UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		     _EXC_INFO_PARAM) {
 #endif
@@ -1672,7 +1677,7 @@ __bid64_quiet_ordered (UINT64 x,
   // if either number is NAN, the comparison is ordered, rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 0;
     BID_RETURN (res);
@@ -1684,7 +1689,7 @@ __bid64_quiet_ordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_quiet_unordered (int *pres, UINT64 * px,
+bid64_quiet_unordered (int *pres, UINT64 * px,
 		       UINT64 *
 		       py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		       _EXC_INFO_PARAM) {
@@ -1692,7 +1697,7 @@ __bid64_quiet_unordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_quiet_unordered (UINT64 x,
+bid64_quiet_unordered (UINT64 x,
 		       UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		       _EXC_INFO_PARAM) {
 #endif
@@ -1703,7 +1708,7 @@ __bid64_quiet_unordered (UINT64 x,
   //     rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
     if ((x & MASK_SNAN) == MASK_SNAN || (y & MASK_SNAN) == MASK_SNAN) {
-      *pfpsf |= INVALID_EXCEPTION; // set exception if sNaN
+      *pfpsf |= INVALID_EXCEPTION;	// set exception if sNaN
     }
     res = 1;
     BID_RETURN (res);
@@ -1715,130 +1720,7 @@ __bid64_quiet_unordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_equal (int *pres, UINT64 * px,
-		       UINT64 *
-		       py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-		       _EXC_INFO_PARAM) {
-  UINT64 x = *px;
-  UINT64 y = *py;
-#else
-int
-__bid64_signaling_equal (UINT64 x,
-		       UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-		       _EXC_INFO_PARAM) {
-#endif
-  int res;
-  int exp_x, exp_y, exp_t;
-  UINT64 sig_x, sig_y, sig_t;
-  char x_is_zero = 0, y_is_zero = 0, non_canon_x, non_canon_y, lcv;
-
-  // NaN (CASE1)
-  // if either number is NAN, the comparison is unordered, 
-  //     rather than equal : return 0
-  if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
-    res = 0;
-    BID_RETURN (res);
-  }
-  // SIMPLE (CASE2)
-  // if all the bits are the same, these numbers are equivalent.
-  if (x == y) {
-    res = 1;
-    BID_RETURN (res);
-  }
-  // INFINITY (CASE3)
-  if (((x & MASK_INF) == MASK_INF) && ((y & MASK_INF) == MASK_INF)) {
-    res = (((x ^ y) & MASK_SIGN) != MASK_SIGN);
-    BID_RETURN (res);
-  }
-  // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
-  if ((x & MASK_STEERING_BITS) == MASK_STEERING_BITS) {
-    exp_x = (x & MASK_BINARY_EXPONENT2) >> 51;
-    sig_x = (x & MASK_BINARY_SIG2) | MASK_BINARY_OR2;
-    if (sig_x > 9999999999999999ull) {
-      non_canon_x = 1;
-    } else {
-      non_canon_x = 0;
-    }
-  } else {
-    exp_x = (x & MASK_BINARY_EXPONENT1) >> 53;
-    sig_x = (x & MASK_BINARY_SIG1);
-    non_canon_x = 0;
-  }
-
-  // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
-  if ((y & MASK_STEERING_BITS) == MASK_STEERING_BITS) {
-    exp_y = (y & MASK_BINARY_EXPONENT2) >> 51;
-    sig_y = (y & MASK_BINARY_SIG2) | MASK_BINARY_OR2;
-    if (sig_y > 9999999999999999ull) {
-      non_canon_y = 1;
-    } else {
-      non_canon_y = 0;
-    }
-  } else {
-    exp_y = (y & MASK_BINARY_EXPONENT1) >> 53;
-    sig_y = (y & MASK_BINARY_SIG1);
-    non_canon_y = 0;
-  }
-
-  // ZERO (CASE4)
-  // some properties:
-  // (+ZERO==-ZERO) => therefore ignore the sign
-  //    (ZERO x 10^A == ZERO x 10^B) for any valid A, B => 
-  //     therefore ignore the exponent field
-  //    (Any non-canonical # is considered 0)
-  if (non_canon_x || sig_x == 0) {
-    x_is_zero = 1;
-  }
-  if (non_canon_y || sig_y == 0) {
-    y_is_zero = 1;
-  }
-
-  if (x_is_zero && y_is_zero) {
-    res = 1;
-    BID_RETURN (res);
-  } else if ((x_is_zero && !y_is_zero) || (!x_is_zero && y_is_zero)) {
-    res = 0;
-    BID_RETURN (res);
-  }
-  // OPPOSITE SIGN (CASE5)
-  // now, if the sign bits differ => not equal : return 0
-  if ((x ^ y) & MASK_SIGN) {
-    res = 0;
-    BID_RETURN (res);
-  }
-  // REDUNDANT REPRESENTATIONS (CASE6)
-  if (exp_x > exp_y) { // to simplify the loop below,
-    SWAP (exp_x, exp_y, exp_t); // put the larger exp in y,
-    SWAP (sig_x, sig_y, sig_t); // and the smaller exp in x
-  }
-
-  if (exp_y - exp_x > 15) {
-    res = 0;
-    BID_RETURN (res);
-  }
-  // difference cannot be greater than 10^15
-
-  for (lcv = 0; lcv < (exp_y - exp_x); lcv++) {
-
-    // recalculate y's significand upwards
-    sig_y = sig_y * 10;
-    if (sig_y > 9999999999999999ull) {
-      res = 0;
-      BID_RETURN (res);
-    }
-  }
-
-  {
-    res = sig_y == sig_x;
-    BID_RETURN (res);
-  }
-
-}
-
-#if DECIMAL_CALL_BY_REFERENCE
-void
-__bid64_signaling_greater (int *pres, UINT64 * px,
+bid64_signaling_greater (int *pres, UINT64 * px,
 			 UINT64 *
 			 py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			 _EXC_INFO_PARAM) {
@@ -1846,7 +1728,7 @@ __bid64_signaling_greater (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_greater (UINT64 x,
+bid64_signaling_greater (UINT64 x,
 			 UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			 _EXC_INFO_PARAM) {
 #endif
@@ -1860,7 +1742,7 @@ __bid64_signaling_greater (UINT64 x,
   // if either number is NAN, the comparison is unordered, 
   //     rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 0;
     BID_RETURN (res);
   }
@@ -1979,7 +1861,7 @@ __bid64_signaling_greater (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2020,7 +1902,7 @@ __bid64_signaling_greater (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_greater_equal (int *pres, UINT64 * px,
+bid64_signaling_greater_equal (int *pres, UINT64 * px,
 			       UINT64 *
 			       py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			       _EXC_INFO_PARAM) {
@@ -2028,7 +1910,7 @@ __bid64_signaling_greater_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_greater_equal (UINT64 x,
+bid64_signaling_greater_equal (UINT64 x,
 			       UINT64 y _EXC_FLAGS_PARAM
 			       _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
 #endif
@@ -2041,7 +1923,7 @@ __bid64_signaling_greater_equal (UINT64 x,
   // NaN (CASE1)
   // if either number is NAN, the comparison is unordered : return 1
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 0;
     BID_RETURN (res);
   }
@@ -2161,7 +2043,7 @@ __bid64_signaling_greater_equal (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2202,7 +2084,7 @@ __bid64_signaling_greater_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_greater_unordered (int *pres, UINT64 * px,
+bid64_signaling_greater_unordered (int *pres, UINT64 * px,
 				   UINT64 *
 				   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 				   _EXC_INFO_PARAM) {
@@ -2210,7 +2092,7 @@ __bid64_signaling_greater_unordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_greater_unordered (UINT64 x,
+bid64_signaling_greater_unordered (UINT64 x,
 				   UINT64 y _EXC_FLAGS_PARAM
 				   _EXC_MASKS_PARAM _EXC_INFO_PARAM) {
 #endif
@@ -2224,7 +2106,7 @@ __bid64_signaling_greater_unordered (UINT64 x,
   // if either number is NAN, the comparison is unordered, 
   // rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 1;
     BID_RETURN (res);
   }
@@ -2343,7 +2225,7 @@ __bid64_signaling_greater_unordered (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2383,7 +2265,7 @@ __bid64_signaling_greater_unordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_less (int *pres, UINT64 * px,
+bid64_signaling_less (int *pres, UINT64 * px,
 		      UINT64 *
 		      py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		      _EXC_INFO_PARAM) {
@@ -2391,7 +2273,7 @@ __bid64_signaling_less (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_less (UINT64 x,
+bid64_signaling_less (UINT64 x,
 		      UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 		      _EXC_INFO_PARAM) {
 #endif
@@ -2404,7 +2286,7 @@ __bid64_signaling_less (UINT64 x,
   // NaN (CASE1)
   // if either number is NAN, the comparison is unordered : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 0;
     BID_RETURN (res);
   }
@@ -2524,7 +2406,7 @@ __bid64_signaling_less (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2565,7 +2447,7 @@ __bid64_signaling_less (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_less_equal (int *pres, UINT64 * px,
+bid64_signaling_less_equal (int *pres, UINT64 * px,
 			    UINT64 *
 			    py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			    _EXC_INFO_PARAM) {
@@ -2573,7 +2455,7 @@ __bid64_signaling_less_equal (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_less_equal (UINT64 x,
+bid64_signaling_less_equal (UINT64 x,
 			    UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			    _EXC_INFO_PARAM) {
 #endif
@@ -2587,7 +2469,7 @@ __bid64_signaling_less_equal (UINT64 x,
   // if either number is NAN, the comparison is unordered, 
   // rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 0;
     BID_RETURN (res);
   }
@@ -2705,7 +2587,7 @@ __bid64_signaling_less_equal (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2746,7 +2628,7 @@ __bid64_signaling_less_equal (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_less_unordered (int *pres, UINT64 * px,
+bid64_signaling_less_unordered (int *pres, UINT64 * px,
 				UINT64 *
 				py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 				_EXC_INFO_PARAM) {
@@ -2754,7 +2636,7 @@ __bid64_signaling_less_unordered (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_less_unordered (UINT64 x,
+bid64_signaling_less_unordered (UINT64 x,
 				UINT64 y _EXC_FLAGS_PARAM
 				_EXC_MASKS_PARAM _EXC_INFO_PARAM) {
 #endif
@@ -2767,7 +2649,7 @@ __bid64_signaling_less_unordered (UINT64 x,
   // NaN (CASE1)
   // if either number is NAN, the comparison is unordered : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 1;
     BID_RETURN (res);
   }
@@ -2887,7 +2769,7 @@ __bid64_signaling_less_unordered (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -2928,130 +2810,7 @@ __bid64_signaling_less_unordered (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_not_equal (int *pres, UINT64 * px,
-			   UINT64 *
-			   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			   _EXC_INFO_PARAM) {
-  UINT64 x = *px;
-  UINT64 y = *py;
-#else
-int
-__bid64_signaling_not_equal (UINT64 x,
-			   UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			   _EXC_INFO_PARAM) {
-#endif
-  int res;
-  int exp_x, exp_y, exp_t;
-  UINT64 sig_x, sig_y, sig_t;
-  char x_is_zero = 0, y_is_zero = 0, non_canon_x, non_canon_y, lcv;
-
-  // NaN (CASE1)
-  // if either number is NAN, the comparison is unordered, 
-  // rather than equal : return 1
-  if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
-    res = 1;
-    BID_RETURN (res);
-  }
-  // SIMPLE (CASE2)
-  // if all the bits are the same, these numbers are equivalent.
-  if (x == y) {
-    res = 0;
-    BID_RETURN (res);
-  }
-  // INFINITY (CASE3)
-  if (((x & MASK_INF) == MASK_INF) && ((y & MASK_INF) == MASK_INF)) {
-    res = (((x ^ y) & MASK_SIGN) == MASK_SIGN);
-    BID_RETURN (res);
-  }
-  // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
-  if ((x & MASK_STEERING_BITS) == MASK_STEERING_BITS) {
-    exp_x = (x & MASK_BINARY_EXPONENT2) >> 51;
-    sig_x = (x & MASK_BINARY_SIG2) | MASK_BINARY_OR2;
-    if (sig_x > 9999999999999999ull) {
-      non_canon_x = 1;
-    } else {
-      non_canon_x = 0;
-    }
-  } else {
-    exp_x = (x & MASK_BINARY_EXPONENT1) >> 53;
-    sig_x = (x & MASK_BINARY_SIG1);
-    non_canon_x = 0;
-  }
-
-  // if steering bits are 11 (condition will be 0), then exponent is G[0:w+1] =>
-  if ((y & MASK_STEERING_BITS) == MASK_STEERING_BITS) {
-    exp_y = (y & MASK_BINARY_EXPONENT2) >> 51;
-    sig_y = (y & MASK_BINARY_SIG2) | MASK_BINARY_OR2;
-    if (sig_y > 9999999999999999ull) {
-      non_canon_y = 1;
-    } else {
-      non_canon_y = 0;
-    }
-  } else {
-    exp_y = (y & MASK_BINARY_EXPONENT1) >> 53;
-    sig_y = (y & MASK_BINARY_SIG1);
-    non_canon_y = 0;
-  }
-
-  // ZERO (CASE4)
-  // some properties:
-  // (+ZERO==-ZERO) => therefore ignore the sign
-  //    (ZERO x 10^A == ZERO x 10^B) for any valid A, B => 
-  //      therefore ignore the exponent field
-  //    (Any non-canonical # is considered 0)
-  if (non_canon_x || sig_x == 0) {
-    x_is_zero = 1;
-  }
-  if (non_canon_y || sig_y == 0) {
-    y_is_zero = 1;
-  }
-
-  if (x_is_zero && y_is_zero) {
-    res = 0;
-    BID_RETURN (res);
-  } else if ((x_is_zero && !y_is_zero) || (!x_is_zero && y_is_zero)) {
-    res = 1;
-    BID_RETURN (res);
-  }
-  // OPPOSITE SIGN (CASE5)
-  // now, if the sign bits differ => not equal : return 1
-  if ((x ^ y) & MASK_SIGN) {
-    res = 1;
-    BID_RETURN (res);
-  }
-  // REDUNDANT REPRESENTATIONS (CASE6)
-  if (exp_x > exp_y) { // to simplify the loop below,
-    SWAP (exp_x, exp_y, exp_t); // put the larger exp in y,
-    SWAP (sig_x, sig_y, sig_t); // and the smaller exp in x
-  }
-
-  if (exp_y - exp_x > 15) {
-    res = 1;
-    BID_RETURN (res);
-  }
-  // difference cannot be greater than 10^16
-
-  for (lcv = 0; lcv < (exp_y - exp_x); lcv++) {
-
-    // recalculate y's significand upwards
-    sig_y = sig_y * 10;
-    if (sig_y > 9999999999999999ull) {
-      res = 1;
-      BID_RETURN (res);
-    }
-  }
-
-  {
-    res = sig_y != sig_x;
-    BID_RETURN (res);
-  }
-
-}
-
-#if DECIMAL_CALL_BY_REFERENCE
-void
-__bid64_signaling_not_greater (int *pres, UINT64 * px,
+bid64_signaling_not_greater (int *pres, UINT64 * px,
 			     UINT64 *
 			     py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			     _EXC_INFO_PARAM) {
@@ -3059,7 +2818,7 @@ __bid64_signaling_not_greater (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_not_greater (UINT64 x,
+bid64_signaling_not_greater (UINT64 x,
 			     UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			     _EXC_INFO_PARAM) {
 #endif
@@ -3073,7 +2832,7 @@ __bid64_signaling_not_greater (UINT64 x,
   // if either number is NAN, the comparison is unordered, 
   // rather than equal : return 0
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 1;
     BID_RETURN (res);
   }
@@ -3191,7 +2950,7 @@ __bid64_signaling_not_greater (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -3232,7 +2991,7 @@ __bid64_signaling_not_greater (UINT64 x,
 
 #if DECIMAL_CALL_BY_REFERENCE
 void
-__bid64_signaling_not_less (int *pres, UINT64 * px,
+bid64_signaling_not_less (int *pres, UINT64 * px,
 			  UINT64 *
 			  py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			  _EXC_INFO_PARAM) {
@@ -3240,7 +2999,7 @@ __bid64_signaling_not_less (int *pres, UINT64 * px,
   UINT64 y = *py;
 #else
 int
-__bid64_signaling_not_less (UINT64 x,
+bid64_signaling_not_less (UINT64 x,
 			  UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
 			  _EXC_INFO_PARAM) {
 #endif
@@ -3253,7 +3012,7 @@ __bid64_signaling_not_less (UINT64 x,
   // NaN (CASE1)
   // if either number is NAN, the comparison is unordered : return 1
   if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
+    *pfpsf |= INVALID_EXCEPTION;	// set invalid exception if NaN
     res = 1;
     BID_RETURN (res);
   }
@@ -3373,7 +3132,7 @@ __bid64_signaling_not_less (UINT64 x,
     BID_RETURN (res);
   }
   // if |exp_x - exp_y| < 15, it comes down to the compensated significand
-  if (exp_x > exp_y) { // to simplify the loop below,
+  if (exp_x > exp_y) {	// to simplify the loop below,
 
     // otherwise adjust the x significand upwards
     __mul_64x64_to_128MACH (sig_n_prime, sig_x,
@@ -3408,64 +3167,6 @@ __bid64_signaling_not_less (UINT64 x,
     res = (((sig_n_prime.w[1] > 0)
 	    || (sig_x < sig_n_prime.w[0])) ^ ((x & MASK_SIGN) !=
 					      MASK_SIGN));
-    BID_RETURN (res);
-  }
-}
-
-#if DECIMAL_CALL_BY_REFERENCE
-void
-__bid64_signaling_ordered (int *pres, UINT64 * px,
-			 UINT64 *
-			 py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			 _EXC_INFO_PARAM) {
-  UINT64 x = *px;
-  UINT64 y = *py;
-#else
-int
-__bid64_signaling_ordered (UINT64 x,
-			 UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			 _EXC_INFO_PARAM) {
-#endif
-  int res;
-
-  // NaN (CASE1)
-  // if either number is NAN, the comparison is ordered, 
-  // rather than equal : return 0
-  if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
-    res = 0;
-    BID_RETURN (res);
-  } else {
-    res = 1;
-    BID_RETURN (res);
-  }
-}
-
-#if DECIMAL_CALL_BY_REFERENCE
-void
-__bid64_signaling_unordered (int *pres, UINT64 * px,
-			   UINT64 *
-			   py _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			   _EXC_INFO_PARAM) {
-  UINT64 x = *px;
-  UINT64 y = *py;
-#else
-int
-__bid64_signaling_unordered (UINT64 x,
-			   UINT64 y _EXC_FLAGS_PARAM _EXC_MASKS_PARAM
-			   _EXC_INFO_PARAM) {
-#endif
-  int res;
-
-  // NaN (CASE1)
-  // if either number is NAN, the comparison is unordered, 
-  // rather than equal : return 0
-  if (((x & MASK_NAN) == MASK_NAN) || ((y & MASK_NAN) == MASK_NAN)) {
-    *pfpsf |= INVALID_EXCEPTION; // set invalid exception if NaN
-    res = 1;
-    BID_RETURN (res);
-  } else {
-    res = 0;
     BID_RETURN (res);
   }
 }

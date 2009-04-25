@@ -1,11 +1,11 @@
 // TR1 functional -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file tr1_impl/functional_hash.h
  *  This is an internal header file, included by other library headers.
@@ -36,7 +31,7 @@ namespace std
 {
 _GLIBCXX_BEGIN_NAMESPACE_TR1
 
-  // Class template hash.
+  /// Class template hash.
   // Declaration of default hash functor std::tr1::hash.  The types for
   // which std::tr1::hash<T> is well-defined is in clause 6.3.3. of the PDTR.
   template<typename _Tp>
@@ -46,7 +41,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       operator()(_Tp __val) const;
     };
 
-  // Partial specializations for pointer types.
+  /// Partial specializations for pointer types.
   template<typename _Tp>
     struct hash<_Tp*> : public std::unary_function<_Tp*, size_t>
     {
@@ -55,7 +50,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       { return reinterpret_cast<size_t>(__p); }
     };
 
-  // Explicit specializations for integer types.
+  /// Explicit specializations for integer types.
 #define _TR1_hashtable_define_trivial_hash(_Tp) 	\
   template<>						\
     inline size_t					\
@@ -67,6 +62,10 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   _TR1_hashtable_define_trivial_hash(signed char);
   _TR1_hashtable_define_trivial_hash(unsigned char);
   _TR1_hashtable_define_trivial_hash(wchar_t);
+#ifdef _GLIBCXX_INCLUDE_AS_CXX0X
+  _TR1_hashtable_define_trivial_hash(char16_t);
+  _TR1_hashtable_define_trivial_hash(char32_t);
+#endif
   _TR1_hashtable_define_trivial_hash(short);
   _TR1_hashtable_define_trivial_hash(int);
   _TR1_hashtable_define_trivial_hash(long);
@@ -81,7 +80,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
   // Fowler / Noll / Vo (FNV) Hash (type FNV-1a)
   // (Used by the next specializations of std::tr1::hash.)
 
-  // Dummy generic implementation (for sizeof(size_t) != 4, 8).
+  /// Dummy generic implementation (for sizeof(size_t) != 4, 8).
   template<size_t = sizeof(size_t)>
     struct _Fnv_hash
     {
@@ -128,7 +127,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       }
     };
 
-  // Explicit specializations for floating point types.
+  /// Explicit specializations for float.
   template<>
     inline size_t
     hash<float>::operator()(float __val) const
@@ -142,6 +141,7 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
       return __result;
     };
 
+  /// Explicit specializations for double.
   template<>
     inline size_t
     hash<double>::operator()(double __val) const
@@ -155,36 +155,12 @@ _GLIBCXX_BEGIN_NAMESPACE_TR1
 	return __result;
     };
 
-  // For long double, careful with random padding bits (e.g., on x86,
-  // 10 bytes -> 12 bytes) and resort to frexp.
+  /// Explicit specializations for long double.
   template<>
-    inline size_t
-    hash<long double>::operator()(long double __val) const
-    {
-      size_t __result = 0;
+    size_t
+    hash<long double>::operator()(long double __val) const;
 
-      int __exponent;
-      __val = std::frexp(__val, &__exponent);
-      __val = __val < 0.0l ? -(__val + 0.5l) : __val;
-      
-      const long double __mult =
-      __gnu_cxx::__numeric_traits<size_t>::__max + 1.0l;
-      __val *= __mult;
-      
-	// Try to use all the bits of the mantissa (really necessary only
-	// on 32-bit targets, at least for 80-bit floating point formats).
-      const size_t __hibits = (size_t)__val;
-      __val = (__val - (long double)__hibits) * __mult;
-      
-      const size_t __coeff =
-	__gnu_cxx::__numeric_traits<size_t>::__max / __LDBL_MAX_EXP__;
-      
-      __result = __hibits + (size_t)__val + __coeff * __exponent;
-      
-      return __result;
-    };
-
-  // Explicit specialization of member operator for types that are not builtin.
+  /// Explicit specialization of member operator for non-builtin types.
   template<>
     size_t
     hash<string>::operator()(string) const;

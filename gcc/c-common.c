@@ -1,6 +1,7 @@
 /* Subroutines shared by all languages that are variants of C.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -32,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "varray.h"
 #include "expr.h"
 #include "c-common.h"
-#include "diagnostic.h"
 #include "tm_p.h"
 #include "obstack.h"
 #include "cpplib.h"
@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "c-tree.h"
 #include "toplev.h"
+#include "diagnostic.h"
 #include "tree-iterator.h"
 #include "hashtab.h"
 #include "tree-mudflap.h"
@@ -48,7 +49,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "real.h"
 #include "cgraph.h"
 #include "target-def.h"
+#include "gimple.h"
 #include "fixed-value.h"
+#include "libfuncs.h"
 
 cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
@@ -64,6 +67,24 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
 #ifndef PID_TYPE
 #define PID_TYPE "int"
+#endif
+
+/* If GCC knows the exact uint_least16_t and uint_least32_t types from
+   <stdint.h>, use them for char16_t and char32_t.  Otherwise, use
+   these guesses; getting the wrong type of a given width will not
+   affect C++ name mangling because in C++ these are distinct types
+   not typedefs.  */
+
+#ifdef UINT_LEAST16_TYPE
+#define CHAR16_TYPE UINT_LEAST16_TYPE
+#else
+#define CHAR16_TYPE "short unsigned int"
+#endif
+
+#ifdef UINT_LEAST32_TYPE
+#define CHAR32_TYPE UINT_LEAST32_TYPE
+#else
+#define CHAR32_TYPE "unsigned int"
 #endif
 
 #ifndef WCHAR_TYPE
@@ -98,6 +119,116 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 			: "long long unsigned int"))
 #endif
 
+/* There are no default definitions of these <stdint.h> types.  */
+
+#ifndef SIG_ATOMIC_TYPE
+#define SIG_ATOMIC_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT8_TYPE
+#define INT8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT16_TYPE
+#define INT16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT32_TYPE
+#define INT32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT64_TYPE
+#define INT64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT8_TYPE
+#define UINT8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT16_TYPE
+#define UINT16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT32_TYPE
+#define UINT32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT64_TYPE
+#define UINT64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST8_TYPE
+#define INT_LEAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST16_TYPE
+#define INT_LEAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST32_TYPE
+#define INT_LEAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_LEAST64_TYPE
+#define INT_LEAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST8_TYPE
+#define UINT_LEAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST16_TYPE
+#define UINT_LEAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST32_TYPE
+#define UINT_LEAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_LEAST64_TYPE
+#define UINT_LEAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST8_TYPE
+#define INT_FAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST16_TYPE
+#define INT_FAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST32_TYPE
+#define INT_FAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INT_FAST64_TYPE
+#define INT_FAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST8_TYPE
+#define UINT_FAST8_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST16_TYPE
+#define UINT_FAST16_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST32_TYPE
+#define UINT_FAST32_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINT_FAST64_TYPE
+#define UINT_FAST64_TYPE ((const char *) NULL)
+#endif
+
+#ifndef INTPTR_TYPE
+#define INTPTR_TYPE ((const char *) NULL)
+#endif
+
+#ifndef UINTPTR_TYPE
+#define UINTPTR_TYPE ((const char *) NULL)
+#endif
+
 /* The following symbols are subsumed in the c_global_trees array, and
    listed here individually for documentation purposes.
 
@@ -120,8 +251,9 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 	tree unsigned_char_type_node;
 	tree signed_char_type_node;
 	tree wchar_type_node;
-	tree signed_wchar_type_node;
-	tree unsigned_wchar_type_node;
+
+	tree char16_type_node;
+	tree char32_type_node;
 
 	tree float_type_node;
 	tree double_type_node;
@@ -174,6 +306,16 @@ cpp_reader *parse_in;		/* Declared in c-pragma.h.  */
 
 	tree wchar_array_type_node;
 
+   Type `char16_t[SOMENUMBER]' or something like it.
+   Used when a UTF-16 string literal is created.
+
+	tree char16_array_type_node;
+
+   Type `char32_t[SOMENUMBER]' or something like it.
+   Used when a UTF-32 string literal is created.
+
+	tree char32_array_type_node;
+
    Type `int ()' -- used for implicit declaration of functions.
 
 	tree default_function_type;
@@ -200,7 +342,7 @@ tree c_global_trees[CTI_MAX];
 
 /* Switches common to the C front ends.  */
 
-/* Nonzero if prepreprocessing only.  */
+/* Nonzero if preprocessing only.  */
 
 int flag_preprocess_only;
 
@@ -320,10 +462,6 @@ int flag_isoc99;
 
 int flag_hosted = 1;
 
-/* Warn if main is suspicious.  */
-
-int warn_main;
-
 
 /* ObjC language option variables.  */
 
@@ -339,7 +477,7 @@ int flag_gen_declaration;
 
 int print_struct_values;
 
-/* Tells the compiler what is the constant string class for Objc.  */
+/* Tells the compiler what is the constant string class for ObjC.  */
 
 const char *constant_string_class_name;
 
@@ -443,11 +581,6 @@ int flag_use_cxa_atexit = DEFAULT_USE_CXA_ATEXIT;
 
 int flag_use_cxa_get_exception_ptr = 2;
 
-/* Nonzero means make the default pedwarns warnings instead of errors.
-   The value of this flag is ignored if -pedantic is specified.  */
-
-int flag_permissive;
-
 /* Nonzero means to implement standard semantics for exception
    specifications, calling unexpected if an exception is thrown that
    doesn't match the specification.  Zero means to treat them as
@@ -459,6 +592,11 @@ int flag_enforce_eh_specs = 1;
    statics.  */
 
 int flag_threadsafe_statics = 1;
+
+/* Nonzero if we want to pretty-print template specializations as the
+   template signature followed by the arguments.  */
+
+int flag_pretty_templates = 1;
 
 /* Nonzero means warn about implicit declarations.  */
 
@@ -482,6 +620,10 @@ tree (*make_fname_decl) (tree, int);
    This is a count, since unevaluated expressions can nest.  */
 int skip_evaluation;
 
+/* Whether lexing has been completed, so subsequent preprocessor
+   errors should use the compiler's input_location.  */
+bool done_lexing = false;
+
 /* Information about how a function name is generated.  */
 struct fname_var_t
 {
@@ -503,6 +645,7 @@ const struct fname_var_t fname_vars[] =
   {NULL, 0, 0},
 };
 
+static tree c_fully_fold_internal (tree expr, bool, bool *, bool *);
 static tree check_case_value (tree);
 static bool check_case_bounds (tree, tree, tree *, tree *);
 
@@ -515,9 +658,10 @@ static tree handle_cold_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noinline_attribute (tree *, tree, tree, int, bool *);
 static tree handle_always_inline_attribute (tree *, tree, tree, int,
 					    bool *);
-static tree handle_gnu_inline_attribute (tree *, tree, tree, int,
-					 bool *);
+static tree handle_gnu_inline_attribute (tree *, tree, tree, int, bool *);
+static tree handle_artificial_attribute (tree *, tree, tree, int, bool *);
 static tree handle_flatten_attribute (tree *, tree, tree, int, bool *);
+static tree handle_error_attribute (tree *, tree, tree, int, bool *);
 static tree handle_used_attribute (tree *, tree, tree, int, bool *);
 static tree handle_unused_attribute (tree *, tree, tree, int, bool *);
 static tree handle_externally_visible_attribute (tree *, tree, tree, int,
@@ -557,12 +701,187 @@ static tree handle_warn_unused_result_attribute (tree *, tree, tree, int,
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
+static tree handle_target_attribute (tree *, tree, tree, int, bool *);
+static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
 
 static void check_function_nonnull (tree, int, tree *);
 static void check_nonnull_arg (void *, tree, unsigned HOST_WIDE_INT);
 static bool nonnull_check_p (tree, unsigned HOST_WIDE_INT);
 static bool get_nonnull_operand (tree, unsigned HOST_WIDE_INT *);
 static int resort_field_decl_cmp (const void *, const void *);
+
+/* Reserved words.  The third field is a mask: keywords are disabled
+   if they match the mask.
+
+   Masks for languages:
+   C --std=c89: D_C99 | D_CXXONLY | D_OBJC | D_CXX_OBJC
+   C --std=c99: D_CXXONLY | D_OBJC
+   ObjC is like C except that D_OBJC and D_CXX_OBJC are not set
+   C++ --std=c98: D_CONLY | D_CXXOX | D_OBJC
+   C++ --std=c0x: D_CONLY | D_OBJC
+   ObjC++ is like C++ except that D_OBJC is not set
+
+   If -fno-asm is used, D_ASM is added to the mask.  If
+   -fno-gnu-keywords is used, D_EXT is added.  If -fno-asm and C in
+   C89 mode, D_EXT89 is added for both -fno-asm and -fno-gnu-keywords.
+   In C with -Wc++-compat, we warn if D_CXXWARN is set.  */
+
+const struct c_common_resword c_common_reswords[] =
+{
+  { "_Bool",		RID_BOOL,      D_CONLY },
+  { "_Complex",		RID_COMPLEX,	0 },
+  { "_Decimal32",       RID_DFLOAT32,  D_CONLY | D_EXT },
+  { "_Decimal64",       RID_DFLOAT64,  D_CONLY | D_EXT },
+  { "_Decimal128",      RID_DFLOAT128, D_CONLY | D_EXT },
+  { "_Fract",           RID_FRACT,     D_CONLY | D_EXT },
+  { "_Accum",           RID_ACCUM,     D_CONLY | D_EXT },
+  { "_Sat",             RID_SAT,       D_CONLY | D_EXT },
+  { "__FUNCTION__",	RID_FUNCTION_NAME, 0 },
+  { "__PRETTY_FUNCTION__", RID_PRETTY_FUNCTION_NAME, 0 },
+  { "__alignof",	RID_ALIGNOF,	0 },
+  { "__alignof__",	RID_ALIGNOF,	0 },
+  { "__asm",		RID_ASM,	0 },
+  { "__asm__",		RID_ASM,	0 },
+  { "__attribute",	RID_ATTRIBUTE,	0 },
+  { "__attribute__",	RID_ATTRIBUTE,	0 },
+  { "__builtin_choose_expr", RID_CHOOSE_EXPR, D_CONLY },
+  { "__builtin_offsetof", RID_OFFSETOF, 0 },
+  { "__builtin_types_compatible_p", RID_TYPES_COMPATIBLE_P, D_CONLY },
+  { "__builtin_va_arg",	RID_VA_ARG,	0 },
+  { "__complex",	RID_COMPLEX,	0 },
+  { "__complex__",	RID_COMPLEX,	0 },
+  { "__const",		RID_CONST,	0 },
+  { "__const__",	RID_CONST,	0 },
+  { "__decltype",       RID_DECLTYPE,   D_CXXONLY },
+  { "__extension__",	RID_EXTENSION,	0 },
+  { "__func__",		RID_C99_FUNCTION_NAME, 0 },
+  { "__has_nothrow_assign", RID_HAS_NOTHROW_ASSIGN, D_CXXONLY },
+  { "__has_nothrow_constructor", RID_HAS_NOTHROW_CONSTRUCTOR, D_CXXONLY },
+  { "__has_nothrow_copy", RID_HAS_NOTHROW_COPY, D_CXXONLY },
+  { "__has_trivial_assign", RID_HAS_TRIVIAL_ASSIGN, D_CXXONLY },
+  { "__has_trivial_constructor", RID_HAS_TRIVIAL_CONSTRUCTOR, D_CXXONLY },
+  { "__has_trivial_copy", RID_HAS_TRIVIAL_COPY, D_CXXONLY },
+  { "__has_trivial_destructor", RID_HAS_TRIVIAL_DESTRUCTOR, D_CXXONLY },
+  { "__has_virtual_destructor", RID_HAS_VIRTUAL_DESTRUCTOR, D_CXXONLY },
+  { "__is_abstract",	RID_IS_ABSTRACT, D_CXXONLY },
+  { "__is_base_of",	RID_IS_BASE_OF, D_CXXONLY },
+  { "__is_class",	RID_IS_CLASS,	D_CXXONLY },
+  { "__is_convertible_to", RID_IS_CONVERTIBLE_TO, D_CXXONLY },
+  { "__is_empty",	RID_IS_EMPTY,	D_CXXONLY },
+  { "__is_enum",	RID_IS_ENUM,	D_CXXONLY },
+  { "__is_pod",		RID_IS_POD,	D_CXXONLY },
+  { "__is_polymorphic",	RID_IS_POLYMORPHIC, D_CXXONLY },
+  { "__is_union",	RID_IS_UNION,	D_CXXONLY },
+  { "__imag",		RID_IMAGPART,	0 },
+  { "__imag__",		RID_IMAGPART,	0 },
+  { "__inline",		RID_INLINE,	0 },
+  { "__inline__",	RID_INLINE,	0 },
+  { "__label__",	RID_LABEL,	0 },
+  { "__null",		RID_NULL,	0 },
+  { "__real",		RID_REALPART,	0 },
+  { "__real__",		RID_REALPART,	0 },
+  { "__restrict",	RID_RESTRICT,	0 },
+  { "__restrict__",	RID_RESTRICT,	0 },
+  { "__signed",		RID_SIGNED,	0 },
+  { "__signed__",	RID_SIGNED,	0 },
+  { "__thread",		RID_THREAD,	0 },
+  { "__typeof",		RID_TYPEOF,	0 },
+  { "__typeof__",	RID_TYPEOF,	0 },
+  { "__volatile",	RID_VOLATILE,	0 },
+  { "__volatile__",	RID_VOLATILE,	0 },
+  { "asm",		RID_ASM,	D_ASM },
+  { "auto",		RID_AUTO,	0 },
+  { "bool",		RID_BOOL,	D_CXXONLY | D_CXXWARN },
+  { "break",		RID_BREAK,	0 },
+  { "case",		RID_CASE,	0 },
+  { "catch",		RID_CATCH,	D_CXX_OBJC | D_CXXWARN },
+  { "char",		RID_CHAR,	0 },
+  { "char16_t",		RID_CHAR16,	D_CXXONLY | D_CXX0X | D_CXXWARN },
+  { "char32_t",		RID_CHAR32,	D_CXXONLY | D_CXX0X | D_CXXWARN },
+  { "class",		RID_CLASS,	D_CXX_OBJC | D_CXXWARN },
+  { "const",		RID_CONST,	0 },
+  { "const_cast",	RID_CONSTCAST,	D_CXXONLY | D_CXXWARN },
+  { "continue",		RID_CONTINUE,	0 },
+  { "decltype",         RID_DECLTYPE,   D_CXXONLY | D_CXX0X | D_CXXWARN },
+  { "default",		RID_DEFAULT,	0 },
+  { "delete",		RID_DELETE,	D_CXXONLY | D_CXXWARN },
+  { "do",		RID_DO,		0 },
+  { "double",		RID_DOUBLE,	0 },
+  { "dynamic_cast",	RID_DYNCAST,	D_CXXONLY | D_CXXWARN },
+  { "else",		RID_ELSE,	0 },
+  { "enum",		RID_ENUM,	0 },
+  { "explicit",		RID_EXPLICIT,	D_CXXONLY | D_CXXWARN },
+  { "export",		RID_EXPORT,	D_CXXONLY | D_CXXWARN },
+  { "extern",		RID_EXTERN,	0 },
+  { "false",		RID_FALSE,	D_CXXONLY | D_CXXWARN },
+  { "float",		RID_FLOAT,	0 },
+  { "for",		RID_FOR,	0 },
+  { "friend",		RID_FRIEND,	D_CXXONLY | D_CXXWARN },
+  { "goto",		RID_GOTO,	0 },
+  { "if",		RID_IF,		0 },
+  { "inline",		RID_INLINE,	D_EXT89 },
+  { "int",		RID_INT,	0 },
+  { "long",		RID_LONG,	0 },
+  { "mutable",		RID_MUTABLE,	D_CXXONLY | D_CXXWARN },
+  { "namespace",	RID_NAMESPACE,	D_CXXONLY | D_CXXWARN },
+  { "new",		RID_NEW,	D_CXXONLY | D_CXXWARN },
+  { "operator",		RID_OPERATOR,	D_CXXONLY | D_CXXWARN },
+  { "private",		RID_PRIVATE,	D_CXX_OBJC | D_CXXWARN },
+  { "protected",	RID_PROTECTED,	D_CXX_OBJC | D_CXXWARN },
+  { "public",		RID_PUBLIC,	D_CXX_OBJC | D_CXXWARN },
+  { "register",		RID_REGISTER,	0 },
+  { "reinterpret_cast",	RID_REINTCAST,	D_CXXONLY | D_CXXWARN },
+  { "restrict",		RID_RESTRICT,	D_CONLY | D_C99 },
+  { "return",		RID_RETURN,	0 },
+  { "short",		RID_SHORT,	0 },
+  { "signed",		RID_SIGNED,	0 },
+  { "sizeof",		RID_SIZEOF,	0 },
+  { "static",		RID_STATIC,	0 },
+  { "static_assert",    RID_STATIC_ASSERT, D_CXXONLY | D_CXX0X | D_CXXWARN },
+  { "static_cast",	RID_STATCAST,	D_CXXONLY | D_CXXWARN },
+  { "struct",		RID_STRUCT,	0 },
+  { "switch",		RID_SWITCH,	0 },
+  { "template",		RID_TEMPLATE,	D_CXXONLY | D_CXXWARN },
+  { "this",		RID_THIS,	D_CXXONLY | D_CXXWARN },
+  { "throw",		RID_THROW,	D_CXX_OBJC | D_CXXWARN },
+  { "true",		RID_TRUE,	D_CXXONLY | D_CXXWARN },
+  { "try",		RID_TRY,	D_CXX_OBJC | D_CXXWARN },
+  { "typedef",		RID_TYPEDEF,	0 },
+  { "typename",		RID_TYPENAME,	D_CXXONLY | D_CXXWARN },
+  { "typeid",		RID_TYPEID,	D_CXXONLY | D_CXXWARN },
+  { "typeof",		RID_TYPEOF,	D_ASM | D_EXT },
+  { "union",		RID_UNION,	0 },
+  { "unsigned",		RID_UNSIGNED,	0 },
+  { "using",		RID_USING,	D_CXXONLY | D_CXXWARN },
+  { "virtual",		RID_VIRTUAL,	D_CXXONLY | D_CXXWARN },
+  { "void",		RID_VOID,	0 },
+  { "volatile",		RID_VOLATILE,	0 },
+  { "wchar_t",		RID_WCHAR,	D_CXXONLY },
+  { "while",		RID_WHILE,	0 },
+  /* These Objective-C keywords are recognized only immediately after
+     an '@'.  */
+  { "compatibility_alias", RID_AT_ALIAS,	D_OBJC },
+  { "defs",		RID_AT_DEFS,		D_OBJC },
+  { "encode",		RID_AT_ENCODE,		D_OBJC },
+  { "end",		RID_AT_END,		D_OBJC },
+  { "implementation",	RID_AT_IMPLEMENTATION,	D_OBJC },
+  { "interface",	RID_AT_INTERFACE,	D_OBJC },
+  { "protocol",		RID_AT_PROTOCOL,	D_OBJC },
+  { "selector",		RID_AT_SELECTOR,	D_OBJC },
+  { "finally",		RID_AT_FINALLY,		D_OBJC },
+  { "synchronized",	RID_AT_SYNCHRONIZED,	D_OBJC },
+  /* These are recognized only in protocol-qualifier context
+     (see above) */
+  { "bycopy",		RID_BYCOPY,		D_OBJC },
+  { "byref",		RID_BYREF,		D_OBJC },
+  { "in",		RID_IN,			D_OBJC },
+  { "inout",		RID_INOUT,		D_OBJC },
+  { "oneway",		RID_ONEWAY,		D_OBJC },
+  { "out",		RID_OUT,		D_OBJC },
+};
+
+const unsigned int num_c_common_reswords =
+  sizeof c_common_reswords / sizeof (struct c_common_resword);
 
 /* Table of machine-independent attributes common to all C-like languages.  */
 const struct attribute_spec c_common_attribute_table[] =
@@ -589,6 +908,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_always_inline_attribute },
   { "gnu_inline",             0, 0, true,  false, false,
 			      handle_gnu_inline_attribute },
+  { "artificial",             0, 0, true,  false, false,
+			      handle_artificial_attribute },
   { "flatten",                0, 0, true,  false, false,
 			      handle_flatten_attribute },
   { "used",                   0, 0, true,  false, false,
@@ -661,6 +982,14 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_cold_attribute },
   { "hot",                    0, 0, true,  false, false,
 			      handle_hot_attribute },
+  { "warning",		      1, 1, true,  false, false,
+			      handle_error_attribute },
+  { "error",		      1, 1, true,  false, false,
+			      handle_error_attribute },
+  { "target",                 1, -1, true, false, false,
+			      handle_target_attribute },
+  { "optimize",               1, -1, true, false, false,
+			      handle_optimize_attribute },
   { NULL,                     0, 0, false, false, false, NULL }
 };
 
@@ -756,7 +1085,8 @@ fname_as_string (int pretty_p)
 {
   const char *name = "top level";
   char *namep;
-  int vrb = 2;
+  int vrb = 2, len;
+  cpp_string cstr = { 0, 0 }, strname;
 
   if (!pretty_p)
     {
@@ -767,59 +1097,32 @@ fname_as_string (int pretty_p)
   if (current_function_decl)
     name = lang_hooks.decl_printable_name (current_function_decl, vrb);
 
-  if (c_lex_string_translate)
+  len = strlen (name) + 3; /* Two for '"'s.  One for NULL.  */
+
+  namep = XNEWVEC (char, len);
+  snprintf (namep, len, "\"%s\"", name);
+  strname.text = (unsigned char *) namep;
+  strname.len = len - 1;
+
+  if (cpp_interpret_string (parse_in, &strname, 1, &cstr, CPP_STRING))
     {
-      int len = strlen (name) + 3; /* Two for '"'s.  One for NULL.  */
-      cpp_string cstr = { 0, 0 }, strname;
-
-      namep = XNEWVEC (char, len);
-      snprintf (namep, len, "\"%s\"", name);
-      strname.text = (unsigned char *) namep;
-      strname.len = len - 1;
-
-      if (cpp_interpret_string (parse_in, &strname, 1, &cstr, false))
-	{
-	  XDELETEVEC (namep);
-	  return (const char *) cstr.text;
-	}
+      XDELETEVEC (namep);
+      return (const char *) cstr.text;
     }
-  else
-    namep = xstrdup (name);
 
   return namep;
 }
-
-/* Expand DECL if it declares an entity not handled by the
-   common code.  */
-
-int
-c_expand_decl (tree decl)
-{
-  if (TREE_CODE (decl) == VAR_DECL && !TREE_STATIC (decl))
-    {
-      /* Let the back-end know about this variable.  */
-      if (!anon_aggr_type_p (TREE_TYPE (decl)))
-	emit_local_var (decl);
-      else
-	expand_anon_union_decl (decl, NULL_TREE,
-				DECL_ANON_UNION_ELEMS (decl));
-    }
-  else
-    return 0;
-
-  return 1;
-}
-
 
 /* Return the VAR_DECL for a const char array naming the current
    function. If the VAR_DECL has not yet been created, create it
    now. RID indicates how it should be formatted and IDENTIFIER_NODE
    ID is its name (unfortunately C and C++ hold the RID values of
    keywords in different places, so we can't derive RID from ID in
-   this language independent code.  */
+   this language independent code. LOC is the location of the
+   function.  */
 
 tree
-fname_decl (unsigned int rid, tree id)
+fname_decl (location_t loc, unsigned int rid, tree id)
 {
   unsigned ix;
   tree decl = NULL_TREE;
@@ -838,11 +1141,7 @@ fname_decl (unsigned int rid, tree id)
 	 it from appearing in the RTL.  */
       tree stmts;
       location_t saved_location = input_location;
-#ifdef USE_MAPPED_LOCATION
       input_location = UNKNOWN_LOCATION;
-#else
-      input_line = 0;
-#endif
 
       stmts = push_stmt_list ();
       decl = (*make_fname_decl) (id, fname_vars[ix].pretty);
@@ -854,7 +1153,7 @@ fname_decl (unsigned int rid, tree id)
       input_location = saved_location;
     }
   if (!ix && !current_function_decl)
-    pedwarn ("%qD is not defined outside of function scope", decl);
+    pedwarn (loc, 0, "%qD is not defined outside of function scope", decl);
 
   return decl;
 }
@@ -864,14 +1163,31 @@ fname_decl (unsigned int rid, tree id)
 tree
 fix_string_type (tree value)
 {
-  const int wchar_bytes = TYPE_PRECISION (wchar_type_node) / BITS_PER_UNIT;
-  const int wide_flag = TREE_TYPE (value) == wchar_array_type_node;
   int length = TREE_STRING_LENGTH (value);
   int nchars;
   tree e_type, i_type, a_type;
 
   /* Compute the number of elements, for the array type.  */
-  nchars = wide_flag ? length / wchar_bytes : length;
+  if (TREE_TYPE (value) == char_array_type_node || !TREE_TYPE (value))
+    {
+      nchars = length;
+      e_type = char_type_node;
+    }
+  else if (TREE_TYPE (value) == char16_array_type_node)
+    {
+      nchars = length / (TYPE_PRECISION (char16_type_node) / BITS_PER_UNIT);
+      e_type = char16_type_node;
+    }
+  else if (TREE_TYPE (value) == char32_array_type_node)
+    {
+      nchars = length / (TYPE_PRECISION (char32_type_node) / BITS_PER_UNIT);
+      e_type = char32_type_node;
+    }
+  else
+    {
+      nchars = length / (TYPE_PRECISION (wchar_type_node) / BITS_PER_UNIT);
+      e_type = wchar_type_node;
+    }
 
   /* C89 2.2.4.1, C99 5.2.4.1 (Translation limits).  The analogous
      limit in C++98 Annex B is very large (65536) and is not normative,
@@ -886,7 +1202,8 @@ fix_string_type (tree value)
 	   separate the %d from the 'C'.  'ISO' should not be
 	   translated, but it may be moved after 'C%d' in languages
 	   where modifiers follow nouns.  */
-	pedwarn ("string length %qd is greater than the length %qd "
+	pedwarn (input_location, OPT_Woverlength_strings,
+		 "string length %qd is greater than the length %qd "
 		 "ISO C%d compilers are required to support",
 		 nchars - 1, nchars_max, relevant_std);
     }
@@ -906,7 +1223,6 @@ fix_string_type (tree value)
      construct the matching unqualified array type first.  The C front
      end does not require this, but it does no harm, so we do it
      unconditionally.  */
-  e_type = wide_flag ? wchar_type_node : char_type_node;
   i_type = build_index_type (build_int_cst (NULL_TREE, nchars - 1));
   a_type = build_array_type (e_type, i_type);
   if (c_dialect_cxx() || warn_write_strings)
@@ -914,12 +1230,412 @@ fix_string_type (tree value)
 
   TREE_TYPE (value) = a_type;
   TREE_CONSTANT (value) = 1;
-  TREE_INVARIANT (value) = 1;
   TREE_READONLY (value) = 1;
   TREE_STATIC (value) = 1;
   return value;
 }
 
+/* Fully fold EXPR, an expression that was not folded (beyond integer
+   constant expressions and null pointer constants) when being built
+   up.  If IN_INIT, this is in a static initializer and certain
+   changes are made to the folding done.  Clear *MAYBE_CONST if
+   MAYBE_CONST is not NULL and EXPR is definitely not a constant
+   expression because it contains an evaluated operator (in C99) or an
+   operator outside of sizeof returning an integer constant (in C90)
+   not permitted in constant expressions, or because it contains an
+   evaluated arithmetic overflow.  (*MAYBE_CONST should typically be
+   set to true by callers before calling this function.)  Return the
+   folded expression.  Function arguments have already been folded
+   before calling this function, as have the contents of SAVE_EXPR,
+   TARGET_EXPR, BIND_EXPR, VA_ARG_EXPR, OBJ_TYPE_REF and
+   C_MAYBE_CONST_EXPR.  */
+
+tree
+c_fully_fold (tree expr, bool in_init, bool *maybe_const)
+{
+  tree ret;
+  tree eptype = NULL_TREE;
+  bool dummy = true;
+  bool maybe_const_itself = true;
+
+  /* This function is not relevant to C++ because C++ folds while
+     parsing, and may need changes to be correct for C++ when C++
+     stops folding while parsing.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  if (!maybe_const)
+    maybe_const = &dummy;
+  if (TREE_CODE (expr) == EXCESS_PRECISION_EXPR)
+    {
+      eptype = TREE_TYPE (expr);
+      expr = TREE_OPERAND (expr, 0);
+    }
+  ret = c_fully_fold_internal (expr, in_init, maybe_const,
+			       &maybe_const_itself);
+  if (eptype)
+    ret = fold_convert (eptype, ret);
+  *maybe_const &= maybe_const_itself;
+  return ret;
+}
+
+/* Internal helper for c_fully_fold.  EXPR and IN_INIT are as for
+   c_fully_fold.  *MAYBE_CONST_OPERANDS is cleared because of operands
+   not permitted, while *MAYBE_CONST_ITSELF is cleared because of
+   arithmetic overflow (for C90, *MAYBE_CONST_OPERANDS is carried from
+   both evaluated and unevaluated subexpressions while
+   *MAYBE_CONST_ITSELF is carried from only evaluated
+   subexpressions).  */
+
+static tree
+c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
+		       bool *maybe_const_itself)
+{
+  tree ret = expr;
+  enum tree_code code = TREE_CODE (expr);
+  enum tree_code_class kind = TREE_CODE_CLASS (code);
+  location_t loc = EXPR_LOCATION (expr);
+  tree op0, op1, op2, op3;
+  tree orig_op0, orig_op1, orig_op2;
+  bool op0_const = true, op1_const = true, op2_const = true;
+  bool op0_const_self = true, op1_const_self = true, op2_const_self = true;
+  bool nowarning = TREE_NO_WARNING (expr);
+
+  /* This function is not relevant to C++ because C++ folds while
+     parsing, and may need changes to be correct for C++ when C++
+     stops folding while parsing.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  /* Constants, declarations, statements, errors, SAVE_EXPRs and
+     anything else not counted as an expression cannot usefully be
+     folded further at this point.  */
+  if (!IS_EXPR_CODE_CLASS (kind)
+      || kind == tcc_statement
+      || code == SAVE_EXPR)
+    return expr;
+
+  /* Operands of variable-length expressions (function calls) have
+     already been folded, as have __builtin_* function calls, and such
+     expressions cannot occur in constant expressions.  */
+  if (kind == tcc_vl_exp)
+    {
+      *maybe_const_operands = false;
+      ret = fold (expr);
+      goto out;
+    }
+
+  if (code == C_MAYBE_CONST_EXPR)
+    {
+      tree pre = C_MAYBE_CONST_EXPR_PRE (expr);
+      tree inner = C_MAYBE_CONST_EXPR_EXPR (expr);
+      if (C_MAYBE_CONST_EXPR_NON_CONST (expr))
+	*maybe_const_operands = false;
+      if (C_MAYBE_CONST_EXPR_INT_OPERANDS (expr))
+	*maybe_const_itself = false;
+      if (pre && !in_init)
+	ret = build2 (COMPOUND_EXPR, TREE_TYPE (expr), pre, inner);
+      else
+	ret = inner;
+      goto out;
+    }
+
+  /* Assignment, increment, decrement, function call and comma
+     operators, and statement expressions, cannot occur in constant
+     expressions if evaluated / outside of sizeof.  (Function calls
+     were handled above, though VA_ARG_EXPR is treated like a function
+     call here, and statement expressions are handled through
+     C_MAYBE_CONST_EXPR to avoid folding inside them.)  */
+  switch (code)
+    {
+    case MODIFY_EXPR:
+    case PREDECREMENT_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case COMPOUND_EXPR:
+      *maybe_const_operands = false;
+      break;
+
+    case VA_ARG_EXPR:
+    case TARGET_EXPR:
+    case BIND_EXPR:
+    case OBJ_TYPE_REF:
+      *maybe_const_operands = false;
+      ret = fold (expr);
+      goto out;
+
+    default:
+      break;
+    }
+
+  /* Fold individual tree codes as appropriate.  */
+  switch (code)
+    {
+    case COMPOUND_LITERAL_EXPR:
+      /* Any non-constancy will have been marked in a containing
+	 C_MAYBE_CONST_EXPR; there is no more folding to do here.  */
+      goto out;
+
+    case COMPONENT_REF:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      op1 = TREE_OPERAND (expr, 1);
+      op2 = TREE_OPERAND (expr, 2);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (op0 != orig_op0)
+	ret = build3 (COMPONENT_REF, TREE_TYPE (expr), op0, op1, op2);
+      if (ret != expr)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      goto out;
+
+    case ARRAY_REF:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op2 = TREE_OPERAND (expr, 2);
+      op3 = TREE_OPERAND (expr, 3);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      op1 = c_fully_fold_internal (op1, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      op1 = decl_constant_value_for_optimization (op1);
+      if (op0 != orig_op0 || op1 != orig_op1)
+	ret = build4 (ARRAY_REF, TREE_TYPE (expr), op0, op1, op2, op3);
+      if (ret != expr)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_SIDE_EFFECTS (ret) = TREE_SIDE_EFFECTS (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      ret = fold (ret);
+      goto out;
+
+    case COMPOUND_EXPR:
+    case MODIFY_EXPR:
+    case PREDECREMENT_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case PLUS_EXPR:
+    case MINUS_EXPR:
+    case MULT_EXPR:
+    case POINTER_PLUS_EXPR:
+    case TRUNC_DIV_EXPR:
+    case CEIL_DIV_EXPR:
+    case FLOOR_DIV_EXPR:
+    case TRUNC_MOD_EXPR:
+    case RDIV_EXPR:
+    case EXACT_DIV_EXPR:
+    case LSHIFT_EXPR:
+    case RSHIFT_EXPR:
+    case BIT_IOR_EXPR:
+    case BIT_XOR_EXPR:
+    case BIT_AND_EXPR:
+    case LT_EXPR:
+    case LE_EXPR:
+    case GT_EXPR:
+    case GE_EXPR:
+    case EQ_EXPR:
+    case NE_EXPR:
+    case COMPLEX_EXPR:
+    case TRUTH_AND_EXPR:
+    case TRUTH_OR_EXPR:
+    case TRUTH_XOR_EXPR:
+    case UNORDERED_EXPR:
+    case ORDERED_EXPR:
+    case UNLT_EXPR:
+    case UNLE_EXPR:
+    case UNGT_EXPR:
+    case UNGE_EXPR:
+    case UNEQ_EXPR:
+      /* Binary operations evaluating both arguments (increment and
+	 decrement are binary internally in GCC).  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (code != MODIFY_EXPR
+	  && code != PREDECREMENT_EXPR
+	  && code != PREINCREMENT_EXPR
+	  && code != POSTDECREMENT_EXPR
+	  && code != POSTINCREMENT_EXPR)
+	op0 = decl_constant_value_for_optimization (op0);
+      /* The RHS of a MODIFY_EXPR was fully folded when building that
+	 expression for the sake of conversion warnings.  */
+      if (code != MODIFY_EXPR)
+	op1 = c_fully_fold_internal (op1, in_init, maybe_const_operands,
+				     maybe_const_itself);
+      op1 = decl_constant_value_for_optimization (op1);
+      if (op0 != orig_op0 || op1 != orig_op1 || in_init)
+	ret = in_init
+	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+      else
+	ret = fold (expr);
+      goto out;
+
+    case INDIRECT_REF:
+    case FIX_TRUNC_EXPR:
+    case FLOAT_EXPR:
+    CASE_CONVERT:
+    case NON_LVALUE_EXPR:
+    case NEGATE_EXPR:
+    case BIT_NOT_EXPR:
+    case TRUTH_NOT_EXPR:
+    case ADDR_EXPR:
+    case CONJ_EXPR:
+    case REALPART_EXPR:
+    case IMAGPART_EXPR:
+      /* Unary operations.  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      op0 = c_fully_fold_internal (op0, in_init, maybe_const_operands,
+				   maybe_const_itself);
+      if (code != ADDR_EXPR && code != REALPART_EXPR && code != IMAGPART_EXPR)
+	op0 = decl_constant_value_for_optimization (op0);
+      if (op0 != orig_op0 || in_init)
+	ret = in_init
+	  ? fold_build1_initializer (code, TREE_TYPE (expr), op0)
+	  : fold_build1 (code, TREE_TYPE (expr), op0);
+      else
+	ret = fold (expr);
+      if (code == INDIRECT_REF
+	  && ret != expr
+	  && TREE_CODE (ret) == INDIRECT_REF)
+	{
+	  TREE_READONLY (ret) = TREE_READONLY (expr);
+	  TREE_SIDE_EFFECTS (ret) = TREE_SIDE_EFFECTS (expr);
+	  TREE_THIS_VOLATILE (ret) = TREE_THIS_VOLATILE (expr);
+	}
+      goto out;
+
+    case TRUTH_ANDIF_EXPR:
+    case TRUTH_ORIF_EXPR:
+      /* Binary operations not necessarily evaluating both
+	 arguments.  */
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+      op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      if (op0 != orig_op0 || op1 != orig_op1 || in_init)
+	ret = in_init
+	  ? fold_build2_initializer (code, TREE_TYPE (expr), op0, op1)
+	  : fold_build2 (code, TREE_TYPE (expr), op0, op1);
+      else
+	ret = fold (expr);
+      *maybe_const_operands &= op0_const;
+      *maybe_const_itself &= op0_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && (code == TRUTH_ANDIF_EXPR
+		? op0 == truthvalue_false_node
+		: op0 == truthvalue_true_node)))
+	*maybe_const_operands &= op1_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && (code == TRUTH_ANDIF_EXPR
+		? op0 == truthvalue_false_node
+		: op0 == truthvalue_true_node)))
+	*maybe_const_itself &= op1_const_self;
+      goto out;
+
+    case COND_EXPR:
+      orig_op0 = op0 = TREE_OPERAND (expr, 0);
+      orig_op1 = op1 = TREE_OPERAND (expr, 1);
+      orig_op2 = op2 = TREE_OPERAND (expr, 2);
+      op0 = c_fully_fold_internal (op0, in_init, &op0_const, &op0_const_self);
+      op1 = c_fully_fold_internal (op1, in_init, &op1_const, &op1_const_self);
+      op2 = c_fully_fold_internal (op2, in_init, &op2_const, &op2_const_self);
+      if (op0 != orig_op0 || op1 != orig_op1 || op2 != orig_op2)
+	ret = fold_build3 (code, TREE_TYPE (expr), op0, op1, op2);
+      else
+	ret = fold (expr);
+      *maybe_const_operands &= op0_const;
+      *maybe_const_itself &= op0_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_false_node))
+	*maybe_const_operands &= op1_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_false_node))
+	*maybe_const_itself &= op1_const_self;
+      if (!(flag_isoc99
+	    && op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_true_node))
+	*maybe_const_operands &= op2_const;
+      if (!(op0_const
+	    && op0_const_self
+	    && op0 == truthvalue_true_node))
+	*maybe_const_itself &= op2_const_self;
+      goto out;
+
+    case EXCESS_PRECISION_EXPR:
+      /* Each case where an operand with excess precision may be
+	 encountered must remove the EXCESS_PRECISION_EXPR around
+	 inner operands and possibly put one around the whole
+	 expression or possibly convert to the semantic type (which
+	 c_fully_fold does); we cannot tell at this stage which is
+	 appropriate in any particular case.  */
+      gcc_unreachable ();
+
+    default:
+      /* Various codes may appear through folding built-in functions
+	 and their arguments.  */
+      goto out;
+    }
+
+ out:
+  /* Some folding may introduce NON_LVALUE_EXPRs; all lvalue checks
+     have been done by this point, so remove them again.  */
+  nowarning |= TREE_NO_WARNING (ret);
+  STRIP_TYPE_NOPS (ret);
+  if (nowarning && !TREE_NO_WARNING (ret))
+    {
+      if (!CAN_HAVE_LOCATION_P (ret))
+	ret = build1 (NOP_EXPR, TREE_TYPE (ret), ret);
+      TREE_NO_WARNING (ret) = 1;
+    }
+  if (ret != expr)
+    protected_set_expr_location (ret, loc);
+  return ret;
+}
+
+/* If not optimizing, EXP is not a VAR_DECL, or EXP has array type,
+   return EXP.  Otherwise, return either EXP or its known constant
+   value (if it has one), but return EXP if EXP has mode BLKmode.  ???
+   Is the BLKmode test appropriate?  */
+
+tree
+decl_constant_value_for_optimization (tree exp)
+{
+  tree ret;
+
+  /* This function is only used by C, for c_fully_fold and other
+     optimization, and may not be correct for C++.  */
+  if (c_dialect_cxx ())
+    gcc_unreachable ();
+
+  if (!optimize
+      || TREE_CODE (exp) != VAR_DECL
+      || TREE_CODE (TREE_TYPE (exp)) == ARRAY_TYPE
+      || DECL_MODE (exp) == BLKmode)
+    return exp;
+
+  ret = decl_constant_value (exp);
+  /* Avoid unwanted tree sharing between the initializer and current
+     function's body where the tree can be modified e.g. by the
+     gimplifier.  */
+  if (ret != exp && TREE_STATIC (exp))
+    ret = unshare_expr (ret);
+  return ret;
+}
+
 /* Print a warning if a constant expression had overflow in folding.
    Invoke this function on every expression that the language
    requires to be a constant expression.
@@ -929,14 +1645,25 @@ fix_string_type (tree value)
 void
 constant_expression_warning (tree value)
 {
+  if (warn_overflow && pedantic 
+      && (TREE_CODE (value) == INTEGER_CST || TREE_CODE (value) == REAL_CST
+	  || TREE_CODE (value) == FIXED_CST
+	  || TREE_CODE (value) == VECTOR_CST
+	  || TREE_CODE (value) == COMPLEX_CST)
+      && TREE_OVERFLOW (value))
+    pedwarn (input_location, OPT_Woverflow, "overflow in constant expression");
+}
+
+/* The same as above but print an unconditional error.  */
+void
+constant_expression_error (tree value)
+{
   if ((TREE_CODE (value) == INTEGER_CST || TREE_CODE (value) == REAL_CST
        || TREE_CODE (value) == FIXED_CST
        || TREE_CODE (value) == VECTOR_CST
        || TREE_CODE (value) == COMPLEX_CST)
-      && TREE_OVERFLOW (value)
-      && warn_overflow
-      && pedantic)
-    pedwarn ("overflow in constant expression");
+      && TREE_OVERFLOW (value))
+    error ("overflow in constant expression");
 }
 
 /* Print a warning if an expression had overflow in folding and its
@@ -985,38 +1712,43 @@ overflow_warning (tree value)
     }
 }
 
-
-/* Warn about use of a logical || / && operator being used in a
-   context where it is likely that the bitwise equivalent was intended
-   by the programmer. CODE is the TREE_CODE of the operator, ARG1
-   and ARG2 the arguments.  */
+/* Warn about uses of logical || / && operator in a context where it
+   is likely that the bitwise equivalent was intended by the
+   programmer.  We have seen an expression in which CODE is a binary
+   operator used to combine expressions OP_LEFT and OP_RIGHT, which
+   before folding had CODE_LEFT and CODE_RIGHT.  */
 
 void
-warn_logical_operator (enum tree_code code, tree arg1, tree
-    arg2)
+warn_logical_operator (location_t location, enum tree_code code,
+		       enum tree_code code_left, tree op_left, 
+		       enum tree_code ARG_UNUSED (code_right), tree op_right)
 {
-  switch (code)
+  if (code != TRUTH_ANDIF_EXPR
+      && code != TRUTH_AND_EXPR
+      && code != TRUTH_ORIF_EXPR
+      && code != TRUTH_OR_EXPR)
+    return;
+
+  /* Warn if &&/|| are being used in a context where it is
+     likely that the bitwise equivalent was intended by the
+     programmer. That is, an expression such as op && MASK
+     where op should not be any boolean expression, nor a
+     constant, and mask seems to be a non-boolean integer constant.  */
+  if (!truth_value_p (code_left)
+      && INTEGRAL_TYPE_P (TREE_TYPE (op_left))
+      && !CONSTANT_CLASS_P (op_left)
+      && !TREE_NO_WARNING (op_left)
+      && TREE_CODE (op_right) == INTEGER_CST
+      && !integer_zerop (op_right)
+      && !integer_onep (op_right))
     {
-      case TRUTH_ANDIF_EXPR:
-      case TRUTH_ORIF_EXPR:
-      case TRUTH_OR_EXPR:
-      case TRUTH_AND_EXPR:
-	if (!TREE_NO_WARNING (arg1)
-	    && INTEGRAL_TYPE_P (TREE_TYPE (arg1))
-	    && !CONSTANT_CLASS_P (arg1)
-	    && TREE_CODE (arg2) == INTEGER_CST
-	    && !integer_zerop (arg2))
-	  {
-	    warning (OPT_Wlogical_op,
-		     "logical %<%s%> with non-zero constant "
-		     "will always evaluate as true",
-		     ((code == TRUTH_ANDIF_EXPR)
-		      || (code == TRUTH_AND_EXPR)) ? "&&" : "||");
-	    TREE_NO_WARNING (arg1) = true;
-	  }
-	break;
-      default:
-	break;
+      if (code == TRUTH_ORIF_EXPR || code == TRUTH_OR_EXPR)
+	warning_at (location, OPT_Wlogical_op, "logical %<or%>"
+		    " applied to non-boolean constant");
+      else
+	warning_at (location, OPT_Wlogical_op, "logical %<and%>"
+		    " applied to non-boolean constant");
+      TREE_NO_WARNING (op_left) = true;
     }
 }
 
@@ -1029,8 +1761,13 @@ warn_logical_operator (enum tree_code code, tree arg1, tree
 bool
 strict_aliasing_warning (tree otype, tree type, tree expr)
 {
-  if (!(flag_strict_aliasing && POINTER_TYPE_P (type) 
-        && POINTER_TYPE_P (otype) && !VOID_TYPE_P (TREE_TYPE (type))))
+  if (!(flag_strict_aliasing
+	&& POINTER_TYPE_P (type)
+	&& POINTER_TYPE_P (otype)
+	&& !VOID_TYPE_P (TREE_TYPE (type)))
+      /* If the type we are casting to is a ref-all pointer
+         dereferencing it is always valid.  */
+      || TYPE_REF_CAN_ALIAS_ALL (type))
     return false;
 
   if ((warn_strict_aliasing > 1) && TREE_CODE (expr) == ADDR_EXPR
@@ -1053,7 +1790,8 @@ strict_aliasing_warning (tree otype, tree type, tree expr)
 	    get_alias_set (TREE_TYPE (TREE_OPERAND (expr, 0)));
           alias_set_type set2 = get_alias_set (TREE_TYPE (type));
 
-          if (!alias_sets_conflict_p (set1, set2))
+          if (set1 != set2 && set2 != 0
+	      && (set1 == 0 || !alias_sets_conflict_p (set1, set2)))
 	    {
 	      warning (OPT_Wstrict_aliasing, "dereferencing type-punned "
 		       "pointer will break strict-aliasing rules");
@@ -1089,31 +1827,6 @@ strict_aliasing_warning (tree otype, tree type, tree expr)
   return false;
 }
 
-/* Print a warning about if (); or if () .. else; constructs
-   via the special empty statement node that we create.  INNER_THEN
-   and INNER_ELSE are the statement lists of the if and the else
-   block.  */
-
-void
-empty_if_body_warning (tree inner_then, tree inner_else)
-{
-  if (TREE_CODE (inner_then) == STATEMENT_LIST
-      && STATEMENT_LIST_TAIL (inner_then))
-    inner_then = STATEMENT_LIST_TAIL (inner_then)->stmt;
-
-  if (inner_else && TREE_CODE (inner_else) == STATEMENT_LIST
-      && STATEMENT_LIST_TAIL (inner_else))
-    inner_else = STATEMENT_LIST_TAIL (inner_else)->stmt;
-
-  if (IS_EMPTY_STMT (inner_then) && !inner_else)
-    warning (OPT_Wempty_body, "%Hsuggest braces around empty body "
-             "in an %<if%> statement", EXPR_LOCUS (inner_then));
-
-  else if (inner_else && IS_EMPTY_STMT (inner_else))
-    warning (OPT_Wempty_body, "%Hsuggest braces around empty body "
-             "in an %<else%> statement", EXPR_LOCUS (inner_else));
-}
-
 /* Warn for unlikely, improbable, or stupid DECL declarations
    of `main'.  */
 
@@ -1136,7 +1849,8 @@ check_main_parameter_types (tree decl)
        {
        case 1:
          if (TYPE_MAIN_VARIANT (type) != integer_type_node)
-           pedwarn ("first argument of %q+D should be %<int%>", decl);
+           pedwarn (input_location, OPT_Wmain, "first argument of %q+D should be %<int%>", 
+		    decl);
          break;
 
        case 2:
@@ -1144,8 +1858,8 @@ check_main_parameter_types (tree decl)
              || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
              || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
                  != char_type_node))
-           pedwarn ("second argument of %q+D should be %<char **%>",
-                    decl);
+           pedwarn (input_location, OPT_Wmain, "second argument of %q+D should be %<char **%>",
+		    decl);
          break;
 
        case 3:
@@ -1153,8 +1867,8 @@ check_main_parameter_types (tree decl)
              || TREE_CODE (TREE_TYPE (type)) != POINTER_TYPE
              || (TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (type)))
                  != char_type_node))
-           pedwarn ("third argument of %q+D should probably be "
-                    "%<char **%>", decl);
+	   pedwarn (input_location, OPT_Wmain, "third argument of %q+D should probably be "
+		    "%<char **%>", decl);
          break;
        }
    }
@@ -1163,7 +1877,21 @@ check_main_parameter_types (tree decl)
     argument because it's only mentioned in an appendix of the
     standard.  */
   if (argct > 0 && (argct < 2 || argct > 3))
-   pedwarn ("%q+D takes only zero or two arguments", decl);
+    pedwarn (input_location, OPT_Wmain, "%q+D takes only zero or two arguments", decl);
+}
+
+/* True if pointers to distinct types T1 and T2 can be converted to
+   each other without an explicit cast.  Only returns true for opaque
+   vector types.  */
+bool
+vector_targets_convertible_p (const_tree t1, const_tree t2)
+{
+  if (TREE_CODE (t1) == VECTOR_TYPE && TREE_CODE (t2) == VECTOR_TYPE
+      && (TYPE_VECTOR_OPAQUE (t1) || TYPE_VECTOR_OPAQUE (t2))
+      && tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2)))
+    return true;
+
+  return false;
 }
 
 /* True if vector types T1 and T2 can be converted to each other
@@ -1177,7 +1905,7 @@ vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note)
   static bool emitted_lax_note = false;
   bool convertible_lax;
 
-  if ((targetm.vector_opaque_p (t1) || targetm.vector_opaque_p (t2))
+  if ((TYPE_VECTOR_OPAQUE (t1) || TYPE_VECTOR_OPAQUE (t2))
       && tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2)))
     return true;
 
@@ -1192,18 +1920,122 @@ vector_types_convertible_p (const_tree t1, const_tree t2, bool emit_lax_note)
     return convertible_lax;
 
   if (TYPE_VECTOR_SUBPARTS (t1) == TYPE_VECTOR_SUBPARTS (t2)
-      && comptypes (TREE_TYPE (t1), TREE_TYPE (t2)))
+      && lang_hooks.types_compatible_p (TREE_TYPE (t1), TREE_TYPE (t2)))
     return true;
 
   if (emit_lax_note && !emitted_lax_note)
     {
       emitted_lax_note = true;
-      inform ("use -flax-vector-conversions to permit "
+      inform (input_location, "use -flax-vector-conversions to permit "
               "conversions between vectors with differing "
               "element types or numbers of subparts");
     }
 
   return false;
+}
+
+/* This is a helper function of build_binary_op.
+
+   For certain operations if both args were extended from the same
+   smaller type, do the arithmetic in that type and then extend.
+
+   BITWISE indicates a bitwise operation.
+   For them, this optimization is safe only if
+   both args are zero-extended or both are sign-extended.
+   Otherwise, we might change the result.
+   Eg, (short)-1 | (unsigned short)-1 is (int)-1
+   but calculated in (unsigned short) it would be (unsigned short)-1.  
+*/
+tree shorten_binary_op (tree result_type, tree op0, tree op1, bool bitwise)
+{
+  int unsigned0, unsigned1;
+  tree arg0, arg1;
+  int uns;
+  tree type;
+
+  /* Cast OP0 and OP1 to RESULT_TYPE.  Doing so prevents
+     excessive narrowing when we call get_narrower below.  For
+     example, suppose that OP0 is of unsigned int extended
+     from signed char and that RESULT_TYPE is long long int.
+     If we explicitly cast OP0 to RESULT_TYPE, OP0 would look
+     like
+     
+     (long long int) (unsigned int) signed_char
+
+     which get_narrower would narrow down to
+     
+     (unsigned int) signed char
+     
+     If we do not cast OP0 first, get_narrower would return
+     signed_char, which is inconsistent with the case of the
+     explicit cast.  */
+  op0 = convert (result_type, op0);
+  op1 = convert (result_type, op1);
+
+  arg0 = get_narrower (op0, &unsigned0);
+  arg1 = get_narrower (op1, &unsigned1);
+
+  /* UNS is 1 if the operation to be done is an unsigned one.  */
+  uns = TYPE_UNSIGNED (result_type);
+
+  /* Handle the case that OP0 (or OP1) does not *contain* a conversion
+     but it *requires* conversion to FINAL_TYPE.  */
+  
+  if ((TYPE_PRECISION (TREE_TYPE (op0))
+       == TYPE_PRECISION (TREE_TYPE (arg0)))
+      && TREE_TYPE (op0) != result_type)
+    unsigned0 = TYPE_UNSIGNED (TREE_TYPE (op0));
+  if ((TYPE_PRECISION (TREE_TYPE (op1))
+       == TYPE_PRECISION (TREE_TYPE (arg1)))
+      && TREE_TYPE (op1) != result_type)
+    unsigned1 = TYPE_UNSIGNED (TREE_TYPE (op1));
+  
+  /* Now UNSIGNED0 is 1 if ARG0 zero-extends to FINAL_TYPE.  */
+  
+  /* For bitwise operations, signedness of nominal type
+     does not matter.  Consider only how operands were extended.  */
+  if (bitwise)
+    uns = unsigned0;
+  
+  /* Note that in all three cases below we refrain from optimizing
+     an unsigned operation on sign-extended args.
+     That would not be valid.  */
+  
+  /* Both args variable: if both extended in same way
+     from same width, do it in that width.
+     Do it unsigned if args were zero-extended.  */
+  if ((TYPE_PRECISION (TREE_TYPE (arg0))
+       < TYPE_PRECISION (result_type))
+      && (TYPE_PRECISION (TREE_TYPE (arg1))
+	  == TYPE_PRECISION (TREE_TYPE (arg0)))
+      && unsigned0 == unsigned1
+      && (unsigned0 || !uns))
+    return c_common_signed_or_unsigned_type
+      (unsigned0, common_type (TREE_TYPE (arg0), TREE_TYPE (arg1)));
+
+  else if (TREE_CODE (arg0) == INTEGER_CST
+	   && (unsigned1 || !uns)
+	   && (TYPE_PRECISION (TREE_TYPE (arg1))
+	       < TYPE_PRECISION (result_type))
+	   && (type
+	       = c_common_signed_or_unsigned_type (unsigned1,
+						   TREE_TYPE (arg1)))
+	   && !POINTER_TYPE_P (type)
+	   && int_fits_type_p (arg0, type))
+    return type;
+
+  else if (TREE_CODE (arg1) == INTEGER_CST
+	   && (unsigned0 || !uns)
+	   && (TYPE_PRECISION (TREE_TYPE (arg0))
+	       < TYPE_PRECISION (result_type))
+	   && (type
+	       = c_common_signed_or_unsigned_type (unsigned0,
+						   TREE_TYPE (arg0)))
+	   && !POINTER_TYPE_P (type)
+	   && int_fits_type_p (arg1, type))
+    return type;
+
+  return result_type;
 }
 
 /* Warns if the conversion of EXPR to TYPE may alter a value.
@@ -1214,39 +2046,74 @@ conversion_warning (tree type, tree expr)
 {
   bool give_warning = false;
 
-  unsigned int formal_prec = TYPE_PRECISION (type);
+  int i;
+  const int expr_num_operands = TREE_OPERAND_LENGTH (expr);
+  tree expr_type = TREE_TYPE (expr);
 
   if (!warn_conversion && !warn_sign_conversion)
     return;
 
-  if (TREE_CODE (expr) == REAL_CST || TREE_CODE (expr) == INTEGER_CST)
+  /* If any operand is artificial, then this expression was generated
+     by the compiler and we do not warn.  */
+  for (i = 0; i < expr_num_operands; i++)
     {
+      tree op = TREE_OPERAND (expr, i);
+      if (op && DECL_P (op) && DECL_ARTIFICIAL (op))
+	return;
+    }
+
+  switch (TREE_CODE (expr))
+    {
+    case EQ_EXPR:
+    case NE_EXPR:
+    case LE_EXPR:
+    case GE_EXPR:
+    case LT_EXPR:
+    case GT_EXPR:
+    case TRUTH_ANDIF_EXPR:
+    case TRUTH_ORIF_EXPR:
+    case TRUTH_AND_EXPR:
+    case TRUTH_OR_EXPR:
+    case TRUTH_XOR_EXPR:
+    case TRUTH_NOT_EXPR:
+      /* Conversion from boolean to a signed:1 bit-field (which only
+	 can hold the values 0 and -1) doesn't lose information - but
+	 it does change the value.  */
+      if (TYPE_PRECISION (type) == 1 && !TYPE_UNSIGNED (type)) 
+	warning (OPT_Wconversion,
+                 "conversion to %qT from boolean expression", type);
+      return;
+
+    case REAL_CST:
+    case INTEGER_CST:
+
       /* Warn for real constant that is not an exact integer converted
          to integer type.  */
-      if (TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
+      if (TREE_CODE (expr_type) == REAL_TYPE
           && TREE_CODE (type) == INTEGER_TYPE)
         {
-          if (!real_isinteger (TREE_REAL_CST_PTR (expr), TYPE_MODE (TREE_TYPE (expr))))
+          if (!real_isinteger (TREE_REAL_CST_PTR (expr), TYPE_MODE (expr_type)))
             give_warning = true;
         }
       /* Warn for an integer constant that does not fit into integer type.  */
-      else if (TREE_CODE (TREE_TYPE (expr)) == INTEGER_TYPE
+      else if (TREE_CODE (expr_type) == INTEGER_TYPE
                && TREE_CODE (type) == INTEGER_TYPE
                && !int_fits_type_p (expr, type))
         {
-          if (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (TREE_TYPE (expr)))
+          if (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (expr_type) 
+	      && tree_int_cst_sgn (expr) < 0)
 	    warning (OPT_Wsign_conversion,
 		     "negative integer implicitly converted to unsigned type");
-          else if (!TYPE_UNSIGNED (type) && TYPE_UNSIGNED (TREE_TYPE (expr)))
-	    warning (OPT_Wsign_conversion,
-		     "conversion of unsigned constant value to negative integer");
+          else if (!TYPE_UNSIGNED (type) && TYPE_UNSIGNED (expr_type))
+	    warning (OPT_Wsign_conversion,  "conversion of unsigned constant "
+		     "value to negative integer");
 	  else
 	    give_warning = true;
         }
       else if (TREE_CODE (type) == REAL_TYPE)
         {
           /* Warn for an integer constant that does not fit into real type.  */
-          if (TREE_CODE (TREE_TYPE (expr)) == INTEGER_TYPE)
+          if (TREE_CODE (expr_type) == INTEGER_TYPE)
             {
               REAL_VALUE_TYPE a = real_value_from_int_cst (0, expr);
               if (!exact_real_truncate (TYPE_MODE (type), &a))
@@ -1254,8 +2121,8 @@ conversion_warning (tree type, tree expr)
             }
           /* Warn for a real constant that does not fit into a smaller
              real type.  */
-          else if (TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
-                   && formal_prec < TYPE_PRECISION (TREE_TYPE (expr)))
+          else if (TREE_CODE (expr_type) == REAL_TYPE
+                   && TYPE_PRECISION (type) < TYPE_PRECISION (expr_type))
             {
               REAL_VALUE_TYPE a = TREE_REAL_CST (expr);
               if (!exact_real_truncate (TYPE_MODE (type), &a))
@@ -1266,45 +2133,114 @@ conversion_warning (tree type, tree expr)
       if (give_warning)
         warning (OPT_Wconversion,
                  "conversion to %qT alters %qT constant value",
-                 type, TREE_TYPE (expr));
-    }
-  else /* 'expr' is not a constant.  */
-    {
+                 type, expr_type);
+
+      return;
+
+    case COND_EXPR:
+      {
+	/* In case of COND_EXPR, if both operands are constants or
+	   COND_EXPR, then we do not care about the type of COND_EXPR,
+	   only about the conversion of each operand.  */
+	tree op1 = TREE_OPERAND (expr, 1);
+	tree op2 = TREE_OPERAND (expr, 2);
+
+	if ((TREE_CODE (op1) == REAL_CST || TREE_CODE (op1) == INTEGER_CST 
+	     || TREE_CODE (op1) == COND_EXPR)
+	    && (TREE_CODE (op2) == REAL_CST || TREE_CODE (op2) == INTEGER_CST
+		|| TREE_CODE (op2) == COND_EXPR))
+	  {
+	    conversion_warning (type, op1);
+	    conversion_warning (type, op2);
+	    return;
+	  }
+	/* Fall through.  */
+      }
+
+    default: /* 'expr' is not a constant.  */
+
       /* Warn for real types converted to integer types.  */
-      if (TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
+      if (TREE_CODE (expr_type) == REAL_TYPE
           && TREE_CODE (type) == INTEGER_TYPE)
         give_warning = true;
 
-      else if (TREE_CODE (TREE_TYPE (expr)) == INTEGER_TYPE
+      else if (TREE_CODE (expr_type) == INTEGER_TYPE
                && TREE_CODE (type) == INTEGER_TYPE)
         {
+	  /* Don't warn about unsigned char y = 0xff, x = (int) y;  */
+	  expr = get_unwidened (expr, 0);
+	  expr_type = TREE_TYPE (expr);
+
+	  /* Don't warn for short y; short x = ((int)y & 0xff);  */
+	  if (TREE_CODE (expr) == BIT_AND_EXPR 
+		|| TREE_CODE (expr) == BIT_IOR_EXPR 
+	      || TREE_CODE (expr) == BIT_XOR_EXPR)
+	    {
+	      /* If both args were extended from a shortest type,
+		 use that type if that is safe.  */
+	      expr_type = shorten_binary_op (expr_type, 
+					     TREE_OPERAND (expr, 0), 
+					     TREE_OPERAND (expr, 1), 
+					     /* bitwise */1);
+
+	      if (TREE_CODE (expr) == BIT_AND_EXPR)
+		{
+		  tree op0 = TREE_OPERAND (expr, 0);
+		  tree op1 = TREE_OPERAND (expr, 1);
+		  bool unsigned0 = TYPE_UNSIGNED (TREE_TYPE (op0));
+		  bool unsigned1 = TYPE_UNSIGNED (TREE_TYPE (op1));
+
+		  /* If one of the operands is a non-negative constant
+		     that fits in the target type, then the type of the
+		     other operand does not matter. */
+		  if ((TREE_CODE (op0) == INTEGER_CST
+		       && int_fits_type_p (op0, c_common_signed_type (type))
+		       && int_fits_type_p (op0, c_common_unsigned_type (type)))
+		      || (TREE_CODE (op1) == INTEGER_CST
+			  && int_fits_type_p (op1, c_common_signed_type (type))
+			  && int_fits_type_p (op1, 
+					      c_common_unsigned_type (type))))
+		    return;
+		  /* If constant is unsigned and fits in the target
+		     type, then the result will also fit.  */
+		  else if ((TREE_CODE (op0) == INTEGER_CST
+			    && unsigned0 
+			    && int_fits_type_p (op0, type))
+			   || (TREE_CODE (op1) == INTEGER_CST
+			       && unsigned1
+			       && int_fits_type_p (op1, type)))
+		    return;
+		}
+	    }
           /* Warn for integer types converted to smaller integer types.  */
-          if (formal_prec < TYPE_PRECISION (TREE_TYPE (expr))) 
+	  if (TYPE_PRECISION (type) < TYPE_PRECISION (expr_type)) 
 	    give_warning = true;
 
 	  /* When they are the same width but different signedness,
 	     then the value may change.  */
-	  else if ((formal_prec == TYPE_PRECISION (TREE_TYPE (expr))
-		    && TYPE_UNSIGNED (TREE_TYPE (expr)) != TYPE_UNSIGNED (type))
+	  else if ((TYPE_PRECISION (type) == TYPE_PRECISION (expr_type)
+		    && TYPE_UNSIGNED (expr_type) != TYPE_UNSIGNED (type))
 		   /* Even when converted to a bigger type, if the type is
 		      unsigned but expr is signed, then negative values
 		      will be changed.  */
-		   || (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (TREE_TYPE (expr))))
-	    warning (OPT_Wsign_conversion,
-		     "conversion to %qT from %qT may change the sign of the result",
-		     type, TREE_TYPE (expr));
+		   || (TYPE_UNSIGNED (type) && !TYPE_UNSIGNED (expr_type)))
+	    warning (OPT_Wsign_conversion, "conversion to %qT from %qT "
+		     "may change the sign of the result",
+		     type, expr_type);
         }
 
       /* Warn for integer types converted to real types if and only if
          all the range of values of the integer type cannot be
          represented by the real type.  */
-      else if (TREE_CODE (TREE_TYPE (expr)) == INTEGER_TYPE
+      else if (TREE_CODE (expr_type) == INTEGER_TYPE
                && TREE_CODE (type) == REAL_TYPE)
         {
-          tree type_low_bound = TYPE_MIN_VALUE (TREE_TYPE (expr));
-          tree type_high_bound = TYPE_MAX_VALUE (TREE_TYPE (expr));
-          REAL_VALUE_TYPE real_low_bound = real_value_from_int_cst (0, type_low_bound);
-          REAL_VALUE_TYPE real_high_bound = real_value_from_int_cst (0, type_high_bound);
+          tree type_low_bound = TYPE_MIN_VALUE (expr_type);
+          tree type_high_bound = TYPE_MAX_VALUE (expr_type);
+          REAL_VALUE_TYPE real_low_bound 
+	    = real_value_from_int_cst (0, type_low_bound);
+          REAL_VALUE_TYPE real_high_bound 
+	    = real_value_from_int_cst (0, type_high_bound);
 
           if (!exact_real_truncate (TYPE_MODE (type), &real_low_bound)
               || !exact_real_truncate (TYPE_MODE (type), &real_high_bound))
@@ -1312,16 +2248,16 @@ conversion_warning (tree type, tree expr)
         }
 
       /* Warn for real types converted to smaller real types.  */
-      else if (TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
+      else if (TREE_CODE (expr_type) == REAL_TYPE
                && TREE_CODE (type) == REAL_TYPE
-               && formal_prec < TYPE_PRECISION (TREE_TYPE (expr)))
+               && TYPE_PRECISION (type) < TYPE_PRECISION (expr_type))
         give_warning = true;
 
 
       if (give_warning)
         warning (OPT_Wconversion,
                  "conversion to %qT from %qT may alter its value",
-                 type, TREE_TYPE (expr));
+                 type, expr_type);
     }
 }
 
@@ -1383,6 +2319,21 @@ tree
 convert_and_check (tree type, tree expr)
 {
   tree result;
+  tree expr_for_warning;
+
+  /* Convert from a value with possible excess precision rather than
+     via the semantic type, but do not warn about values not fitting
+     exactly in the semantic type.  */
+  if (TREE_CODE (expr) == EXCESS_PRECISION_EXPR)
+    {
+      tree orig_type = TREE_TYPE (expr);
+      expr = TREE_OPERAND (expr, 0);
+      expr_for_warning = convert (orig_type, expr);
+      if (orig_type == type)
+	return expr_for_warning;
+    }
+  else
+    expr_for_warning = expr;
 
   if (TREE_TYPE (expr) == type)
     return expr;
@@ -1390,7 +2341,7 @@ convert_and_check (tree type, tree expr)
   result = convert (type, expr);
 
   if (!skip_evaluation && !TREE_OVERFLOW_P (expr) && result != error_mark_node)
-    warnings_for_convert_and_check (type, expr, result);
+    warnings_for_convert_and_check (type, expr_for_warning, result);
 
   return result;
 }
@@ -1430,6 +2381,7 @@ static void add_tlist (struct tlist **, struct tlist *, tree, int);
 static void merge_tlist (struct tlist **, struct tlist *, int);
 static void verify_tree (tree, struct tlist **, struct tlist **, tree);
 static int warning_candidate_p (tree);
+static bool candidate_equal_p (const_tree, const_tree);
 static void warn_for_collisions (struct tlist *);
 static void warn_for_collisions_1 (tree, tree, struct tlist *, int);
 static struct tlist *new_tlist (struct tlist *, tree, tree);
@@ -1457,7 +2409,7 @@ add_tlist (struct tlist **to, struct tlist *add, tree exclude_writer, int copy)
       struct tlist *next = add->next;
       if (!copy)
 	add->next = *to;
-      if (!exclude_writer || add->writer != exclude_writer)
+      if (!exclude_writer || !candidate_equal_p (add->writer, exclude_writer))
 	*to = copy ? new_tlist (*to, add->expr, add->writer) : add;
       add = next;
     }
@@ -1484,7 +2436,7 @@ merge_tlist (struct tlist **to, struct tlist *add, int copy)
       struct tlist *next = add->next;
 
       for (tmp2 = *to; tmp2; tmp2 = tmp2->next)
-	if (tmp2->expr == add->expr)
+	if (candidate_equal_p (tmp2->expr, add->expr))
 	  {
 	    found = 1;
 	    if (!tmp2->writer)
@@ -1512,18 +2464,20 @@ warn_for_collisions_1 (tree written, tree writer, struct tlist *list,
 
   /* Avoid duplicate warnings.  */
   for (tmp = warned_ids; tmp; tmp = tmp->next)
-    if (tmp->expr == written)
+    if (candidate_equal_p (tmp->expr, written))
       return;
 
   while (list)
     {
-      if (list->expr == written
-	  && list->writer != writer
-	  && (!only_writes || list->writer)
-	  && DECL_NAME (list->expr))
+      if (candidate_equal_p (list->expr, written)
+	  && !candidate_equal_p (list->writer, writer)
+	  && (!only_writes || list->writer))
 	{
 	  warned_ids = new_tlist (warned_ids, written, NULL_TREE);
-	  warning (0, "operation on %qE may be undefined", list->expr);
+	  warning_at (EXPR_HAS_LOCATION (writer)
+		      ? EXPR_LOCATION (writer) : input_location,
+		      OPT_Wsequence_point, "operation on %qE may be undefined",
+		      list->expr);
 	}
       list = list->next;
     }
@@ -1549,7 +2503,17 @@ warn_for_collisions (struct tlist *list)
 static int
 warning_candidate_p (tree x)
 {
-  return TREE_CODE (x) == VAR_DECL || TREE_CODE (x) == PARM_DECL;
+  /* !VOID_TYPE_P (TREE_TYPE (x)) is workaround for cp/tree.c
+     (lvalue_p) crash on TRY/CATCH. */
+  return !(DECL_P (x) && DECL_ARTIFICIAL (x))
+    && TREE_TYPE (x) && !VOID_TYPE_P (TREE_TYPE (x)) && lvalue_p (x);
+}
+
+/* Return nonzero if X and Y appear to be the same candidate (or NULL) */
+static bool
+candidate_equal_p (const_tree x, const_tree y)
+{
+  return (x == y) || (x && y && operand_equal_p (x, y, 0));
 }
 
 /* Walk the tree X, and record accesses to variables.  If X is written by the
@@ -1595,10 +2559,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
   cl = TREE_CODE_CLASS (code);
 
   if (warning_candidate_p (x))
-    {
-      *pno_sp = new_tlist (*pno_sp, x, writer);
-      return;
-    }
+    *pno_sp = new_tlist (*pno_sp, x, writer);
 
   switch (code)
     {
@@ -1711,7 +2672,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
       {
 	struct tlist_cache *t;
 	for (t = save_expr_cache; t; t = t->next)
-	  if (t->expr == x)
+	  if (candidate_equal_p (t->expr, x))
 	    break;
 
 	if (!t)
@@ -1739,6 +2700,13 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
 	add_tlist (pno_sp, t->cache_after_sp, NULL_TREE, 1);
 	return;
       }
+
+    case ADDR_EXPR:
+      x = TREE_OPERAND (x, 0);
+      if (DECL_P (x))
+	return;
+      writer = 0;
+      goto restart;
 
     default:
       /* For other expressions, simply recurse on their operands.
@@ -2222,53 +3190,77 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
   if (type1 == intQI_type_node || type1 == unsigned_intQI_type_node)
     return unsignedp ? unsigned_intQI_type_node : intQI_type_node;
 
-#define C_COMMON_FIXED_TYPES(SAT,NAME) \
-  if (type1 == SAT ## short_ ## NAME ## _type_node \
-      || type1 == SAT ## unsigned_short_ ## NAME ## _type_node) \
-    return unsignedp ? SAT ## unsigned_short_ ## NAME ## _type_node \
-		     : SAT ## short_ ## NAME ## _type_node; \
-  if (type1 == SAT ## NAME ## _type_node \
-      || type1 == SAT ## unsigned_ ## NAME ## _type_node) \
-    return unsignedp ? SAT ## unsigned_ ## NAME ## _type_node \
-		     : SAT ## NAME ## _type_node; \
-  if (type1 == SAT ## long_ ## NAME ## _type_node \
-      || type1 == SAT ## unsigned_long_ ## NAME ## _type_node) \
-    return unsignedp ? SAT ## unsigned_long_ ## NAME ## _type_node \
-		     : SAT ## long_ ## NAME ## _type_node; \
-  if (type1 == SAT ## long_long_ ## NAME ## _type_node \
-      || type1 == SAT ## unsigned_long_long_ ## NAME ## _type_node) \
-    return unsignedp ? SAT ## unsigned_long_long_ ## NAME ## _type_node \
-		     : SAT ## long_long_ ## NAME ## _type_node;
+#define C_COMMON_FIXED_TYPES(NAME)	    \
+  if (type1 == short_ ## NAME ## _type_node \
+      || type1 == unsigned_short_ ## NAME ## _type_node) \
+    return unsignedp ? unsigned_short_ ## NAME ## _type_node \
+		     : short_ ## NAME ## _type_node; \
+  if (type1 == NAME ## _type_node \
+      || type1 == unsigned_ ## NAME ## _type_node) \
+    return unsignedp ? unsigned_ ## NAME ## _type_node \
+		     : NAME ## _type_node; \
+  if (type1 == long_ ## NAME ## _type_node \
+      || type1 == unsigned_long_ ## NAME ## _type_node) \
+    return unsignedp ? unsigned_long_ ## NAME ## _type_node \
+		     : long_ ## NAME ## _type_node; \
+  if (type1 == long_long_ ## NAME ## _type_node \
+      || type1 == unsigned_long_long_ ## NAME ## _type_node) \
+    return unsignedp ? unsigned_long_long_ ## NAME ## _type_node \
+		     : long_long_ ## NAME ## _type_node;
 
-#define C_COMMON_FIXED_MODE_TYPES(SAT,NAME) \
-  if (type1 == SAT ## NAME ## _type_node \
-      || type1 == SAT ## u ## NAME ## _type_node) \
-    return unsignedp ? SAT ## u ## NAME ## _type_node \
-		     : SAT ## NAME ## _type_node;
+#define C_COMMON_FIXED_MODE_TYPES(NAME) \
+  if (type1 == NAME ## _type_node \
+      || type1 == u ## NAME ## _type_node) \
+    return unsignedp ? u ## NAME ## _type_node \
+		     : NAME ## _type_node;
 
-  C_COMMON_FIXED_TYPES (, fract);
-  C_COMMON_FIXED_TYPES (sat_, fract);
-  C_COMMON_FIXED_TYPES (, accum);
-  C_COMMON_FIXED_TYPES (sat_, accum);
+#define C_COMMON_FIXED_TYPES_SAT(NAME) \
+  if (type1 == sat_ ## short_ ## NAME ## _type_node \
+      || type1 == sat_ ## unsigned_short_ ## NAME ## _type_node) \
+    return unsignedp ? sat_ ## unsigned_short_ ## NAME ## _type_node \
+		     : sat_ ## short_ ## NAME ## _type_node; \
+  if (type1 == sat_ ## NAME ## _type_node \
+      || type1 == sat_ ## unsigned_ ## NAME ## _type_node) \
+    return unsignedp ? sat_ ## unsigned_ ## NAME ## _type_node \
+		     : sat_ ## NAME ## _type_node; \
+  if (type1 == sat_ ## long_ ## NAME ## _type_node \
+      || type1 == sat_ ## unsigned_long_ ## NAME ## _type_node) \
+    return unsignedp ? sat_ ## unsigned_long_ ## NAME ## _type_node \
+		     : sat_ ## long_ ## NAME ## _type_node; \
+  if (type1 == sat_ ## long_long_ ## NAME ## _type_node \
+      || type1 == sat_ ## unsigned_long_long_ ## NAME ## _type_node) \
+    return unsignedp ? sat_ ## unsigned_long_long_ ## NAME ## _type_node \
+		     : sat_ ## long_long_ ## NAME ## _type_node;
 
-  C_COMMON_FIXED_MODE_TYPES (, qq);
-  C_COMMON_FIXED_MODE_TYPES (, hq);
-  C_COMMON_FIXED_MODE_TYPES (, sq);
-  C_COMMON_FIXED_MODE_TYPES (, dq);
-  C_COMMON_FIXED_MODE_TYPES (, tq);
-  C_COMMON_FIXED_MODE_TYPES (sat_, qq);
-  C_COMMON_FIXED_MODE_TYPES (sat_, hq);
-  C_COMMON_FIXED_MODE_TYPES (sat_, sq);
-  C_COMMON_FIXED_MODE_TYPES (sat_, dq);
-  C_COMMON_FIXED_MODE_TYPES (sat_, tq);
-  C_COMMON_FIXED_MODE_TYPES (, ha);
-  C_COMMON_FIXED_MODE_TYPES (, sa);
-  C_COMMON_FIXED_MODE_TYPES (, da);
-  C_COMMON_FIXED_MODE_TYPES (, ta);
-  C_COMMON_FIXED_MODE_TYPES (sat_, ha);
-  C_COMMON_FIXED_MODE_TYPES (sat_, sa);
-  C_COMMON_FIXED_MODE_TYPES (sat_, da);
-  C_COMMON_FIXED_MODE_TYPES (sat_, ta);
+#define C_COMMON_FIXED_MODE_TYPES_SAT(NAME)	\
+  if (type1 == sat_ ## NAME ## _type_node \
+      || type1 == sat_ ## u ## NAME ## _type_node) \
+    return unsignedp ? sat_ ## u ## NAME ## _type_node \
+		     : sat_ ## NAME ## _type_node;
+
+  C_COMMON_FIXED_TYPES (fract);
+  C_COMMON_FIXED_TYPES_SAT (fract);
+  C_COMMON_FIXED_TYPES (accum);
+  C_COMMON_FIXED_TYPES_SAT (accum);
+
+  C_COMMON_FIXED_MODE_TYPES (qq);
+  C_COMMON_FIXED_MODE_TYPES (hq);
+  C_COMMON_FIXED_MODE_TYPES (sq);
+  C_COMMON_FIXED_MODE_TYPES (dq);
+  C_COMMON_FIXED_MODE_TYPES (tq);
+  C_COMMON_FIXED_MODE_TYPES_SAT (qq);
+  C_COMMON_FIXED_MODE_TYPES_SAT (hq);
+  C_COMMON_FIXED_MODE_TYPES_SAT (sq);
+  C_COMMON_FIXED_MODE_TYPES_SAT (dq);
+  C_COMMON_FIXED_MODE_TYPES_SAT (tq);
+  C_COMMON_FIXED_MODE_TYPES (ha);
+  C_COMMON_FIXED_MODE_TYPES (sa);
+  C_COMMON_FIXED_MODE_TYPES (da);
+  C_COMMON_FIXED_MODE_TYPES (ta);
+  C_COMMON_FIXED_MODE_TYPES_SAT (ha);
+  C_COMMON_FIXED_MODE_TYPES_SAT (sa);
+  C_COMMON_FIXED_MODE_TYPES_SAT (da);
+  C_COMMON_FIXED_MODE_TYPES_SAT (ta);
 
   /* For ENUMERAL_TYPEs in C++, must check the mode of the types, not
      the precision; they have precision set to match their range, but
@@ -2285,7 +3277,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
 
 #define TYPE_OK(node)							    \
   (TYPE_MODE (type) == TYPE_MODE (node)					    \
-   && (c_dialect_cxx () || TYPE_PRECISION (type) == TYPE_PRECISION (node)))
+   && TYPE_PRECISION (type) == TYPE_PRECISION (node))
   if (TYPE_OK (signed_char_type_node))
     return unsignedp ? unsigned_char_type_node : signed_char_type_node;
   if (TYPE_OK (integer_type_node))
@@ -2315,10 +3307,7 @@ c_common_signed_or_unsigned_type (int unsignedp, tree type)
     return unsignedp ? unsigned_intQI_type_node : intQI_type_node;
 #undef TYPE_OK
 
-  if (c_dialect_cxx ())
-    return type;
-  else
-    return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
+  return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
 }
 
 /* Build a bit-field integer type for the given WIDTH and UNSIGNEDP.  */
@@ -2361,40 +3350,14 @@ c_register_builtin_type (tree type, const char* name)
 
   registered_builtin_types = tree_cons (0, type, registered_builtin_types);
 }
-
-
-/* Return the minimum number of bits needed to represent VALUE in a
-   signed or unsigned type, UNSIGNEDP says which.  */
-
-unsigned int
-min_precision (tree value, int unsignedp)
-{
-  int log;
-
-  /* If the value is negative, compute its negative minus 1.  The latter
-     adjustment is because the absolute value of the largest negative value
-     is one larger than the largest positive value.  This is equivalent to
-     a bit-wise negation, so use that operation instead.  */
-
-  if (tree_int_cst_sgn (value) < 0)
-    value = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (value), value);
-
-  /* Return the number of bits needed, taking into account the fact
-     that we need one more bit for a signed than unsigned type.  */
-
-  if (integer_zerop (value))
-    log = 0;
-  else
-    log = tree_floor_log2 (value);
-
-  return log + 1 + !unsignedp;
-}
 
 /* Print an error message for invalid operands to arith operation
-   CODE with TYPE0 for operand 0, and TYPE1 for operand 1.  */
+   CODE with TYPE0 for operand 0, and TYPE1 for operand 1.
+   LOCATION is the location of the message.  */
 
 void
-binary_op_error (enum tree_code code, tree type0, tree type1)
+binary_op_error (location_t location, enum tree_code code,
+		 tree type0, tree type1)
 {
   const char *opname;
 
@@ -2445,8 +3408,9 @@ binary_op_error (enum tree_code code, tree type0, tree type1)
     default:
       gcc_unreachable ();
     }
-  error ("invalid operands to binary %s (have %qT and %qT)", opname,
-	 type0, type1);
+  error_at (location,
+	    "invalid operands to binary %s (have %qT and %qT)", opname,
+	    type0, type1);
 }
 
 /* Subroutine of build_binary_op, used for comparison operations.
@@ -2803,7 +3767,8 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
    of pointer PTROP and integer INTOP.  */
 
 tree
-pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
+pointer_int_sum (location_t location, enum tree_code resultcode,
+		 tree ptrop, tree intop)
 {
   tree size_exp, ret;
 
@@ -2812,20 +3777,20 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer of type %<void *%> used in arithmetic");
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer to a function used in arithmetic");
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      if (pedantic || warn_pointer_arith)
-	pedwarn ("pointer to member function used in arithmetic");
+      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
   else
@@ -2862,7 +3827,8 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
       /* Convert both subexpression types to the type of intop,
 	 because weird cases involving pointer arithmetic
 	 can result in a sum or difference with different type args.  */
-      ptrop = build_binary_op (subcode, ptrop,
+      ptrop = build_binary_op (EXPR_LOCATION (TREE_OPERAND (intop, 1)),
+			       subcode, ptrop,
 			       convert (int_type, TREE_OPERAND (intop, 1)), 1);
       intop = convert (int_type, TREE_OPERAND (intop, 0));
     }
@@ -2878,12 +3844,38 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
      Do this multiplication as signed, then convert to the appropriate
      type for the pointer operation.  */
   intop = convert (sizetype,
-		   build_binary_op (MULT_EXPR, intop,
+		   build_binary_op (EXPR_LOCATION (intop),
+				    MULT_EXPR, intop,
 				    convert (TREE_TYPE (intop), size_exp), 1));
 
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
     intop = fold_build1 (NEGATE_EXPR, sizetype, intop);
+
+  if (TREE_CODE (intop) == INTEGER_CST)
+    {
+      tree offset_node;
+      tree string_cst = string_constant (ptrop, &offset_node);
+
+      if (string_cst != 0 
+	  && !(offset_node && TREE_CODE (offset_node) != INTEGER_CST))
+	{
+	  HOST_WIDE_INT max = TREE_STRING_LENGTH (string_cst);
+	  HOST_WIDE_INT offset;
+	  if (offset_node == 0)
+	    offset = 0;
+	  else if (! host_integerp (offset_node, 0))
+	    offset = -1;
+	  else
+	    offset = tree_low_cst (offset_node, 0);
+
+	  offset = offset + tree_low_cst (intop, 0);
+	  if (offset < 0 || offset > max)
+	    warning_at (location, 0,
+			"offset %<%wd%> outside bounds of constant string",
+			tree_low_cst (intop, 0));
+	}
+    }
 
   ret = fold_build2 (POINTER_PLUS_EXPR, result_type, ptrop, intop);
 
@@ -2892,6 +3884,27 @@ pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
   return ret;
 }
 
+/* Wrap a SAVE_EXPR around EXPR, if appropriate.  Like save_expr, but
+   for C folds the inside expression and wraps a C_MAYBE_CONST_EXPR
+   around the SAVE_EXPR if needed so that c_fully_fold does not need
+   to look inside SAVE_EXPRs.  */
+
+tree
+c_save_expr (tree expr)
+{
+  bool maybe_const = true;
+  if (c_dialect_cxx ())
+    return save_expr (expr);
+  expr = c_fully_fold (expr, false, &maybe_const);
+  expr = save_expr (expr);
+  if (!maybe_const)
+    {
+      expr = build2 (C_MAYBE_CONST_EXPR, TREE_TYPE (expr), NULL, expr);
+      C_MAYBE_CONST_EXPR_NON_CONST (expr) = 1;
+    }
+  return expr;
+}
+
 /* Return whether EXPR is a declaration whose address can never be
    NULL.  */
 
@@ -2909,6 +3922,8 @@ decl_with_nonnull_addr_p (const_tree expr)
    have been validated to be of suitable type; otherwise, a bad
    diagnostic may result.
 
+   The EXPR is located at LOCATION.
+
    This preparation consists of taking the ordinary
    representation of an expression expr and producing a valid tree
    boolean expression describing whether expr is nonzero.  We could
@@ -2918,7 +3933,7 @@ decl_with_nonnull_addr_p (const_tree expr)
    The resulting type should always be `truthvalue_type_node'.  */
 
 tree
-c_common_truthvalue_conversion (tree expr)
+c_common_truthvalue_conversion (location_t location, tree expr)
 {
   switch (TREE_CODE (expr))
     {
@@ -2939,14 +3954,17 @@ c_common_truthvalue_conversion (tree expr)
       if (TREE_TYPE (expr) == truthvalue_type_node)
 	return expr;
       return build2 (TREE_CODE (expr), truthvalue_type_node,
-		 c_common_truthvalue_conversion (TREE_OPERAND (expr, 0)),
-		 c_common_truthvalue_conversion (TREE_OPERAND (expr, 1)));
+		 c_common_truthvalue_conversion (location, 
+						 TREE_OPERAND (expr, 0)),
+		 c_common_truthvalue_conversion (location,
+						 TREE_OPERAND (expr, 1)));
 
     case TRUTH_NOT_EXPR:
       if (TREE_TYPE (expr) == truthvalue_type_node)
 	return expr;
       return build1 (TREE_CODE (expr), truthvalue_type_node,
-		 c_common_truthvalue_conversion (TREE_OPERAND (expr, 0)));
+		 c_common_truthvalue_conversion (location,
+						 TREE_OPERAND (expr, 0)));
 
     case ERROR_MARK:
       return expr;
@@ -2967,7 +3985,7 @@ c_common_truthvalue_conversion (tree expr)
 	     : truthvalue_false_node;
 
     case FUNCTION_DECL:
-      expr = build_unary_op (ADDR_EXPR, expr, 0);
+      expr = build_unary_op (location, ADDR_EXPR, expr, 0);
       /* Fall through.  */
 
     case ADDR_EXPR:
@@ -2976,9 +3994,10 @@ c_common_truthvalue_conversion (tree expr)
 	if (decl_with_nonnull_addr_p (inner))
 	  {
 	    /* Common Ada/Pascal programmer's mistake.  */
-	    warning (OPT_Waddress,
-		     "the address of %qD will always evaluate as %<true%>",
-		     inner);
+	    warning_at (location,
+			OPT_Waddress,
+			"the address of %qD will always evaluate as %<true%>",
+			inner);
 	    return truthvalue_true_node;
 	  }
 
@@ -2998,17 +4017,21 @@ c_common_truthvalue_conversion (tree expr)
       }
 
     case COMPLEX_EXPR:
-      return build_binary_op ((TREE_SIDE_EFFECTS (TREE_OPERAND (expr, 1))
+      return build_binary_op (EXPR_LOCATION (expr),
+			      (TREE_SIDE_EFFECTS (TREE_OPERAND (expr, 1))
 			       ? TRUTH_OR_EXPR : TRUTH_ORIF_EXPR),
-		c_common_truthvalue_conversion (TREE_OPERAND (expr, 0)),
-		c_common_truthvalue_conversion (TREE_OPERAND (expr, 1)),
+		c_common_truthvalue_conversion (location,
+						TREE_OPERAND (expr, 0)),
+		c_common_truthvalue_conversion (location,
+						TREE_OPERAND (expr, 1)),
 			      0);
 
     case NEGATE_EXPR:
     case ABS_EXPR:
     case FLOAT_EXPR:
+    case EXCESS_PRECISION_EXPR:
       /* These don't change whether an object is nonzero or zero.  */
-      return c_common_truthvalue_conversion (TREE_OPERAND (expr, 0));
+      return c_common_truthvalue_conversion (location, TREE_OPERAND (expr, 0));
 
     case LROTATE_EXPR:
     case RROTATE_EXPR:
@@ -3017,19 +4040,33 @@ c_common_truthvalue_conversion (tree expr)
       if (TREE_SIDE_EFFECTS (TREE_OPERAND (expr, 1)))
 	return build2 (COMPOUND_EXPR, truthvalue_type_node,
 		       TREE_OPERAND (expr, 1),
-		       c_common_truthvalue_conversion (TREE_OPERAND (expr, 0)));
+		       c_common_truthvalue_conversion 
+		        (location, TREE_OPERAND (expr, 0)));
       else
-	return c_common_truthvalue_conversion (TREE_OPERAND (expr, 0));
+	return c_common_truthvalue_conversion (location,
+					       TREE_OPERAND (expr, 0));
 
     case COND_EXPR:
       /* Distribute the conversion into the arms of a COND_EXPR.  */
-      return fold_build3 (COND_EXPR, truthvalue_type_node,
-		TREE_OPERAND (expr, 0),
-		c_common_truthvalue_conversion (TREE_OPERAND (expr, 1)),
-		c_common_truthvalue_conversion (TREE_OPERAND (expr, 2)));
+      if (c_dialect_cxx ())
+	return fold_build3 (COND_EXPR, truthvalue_type_node,
+			    TREE_OPERAND (expr, 0),
+			    c_common_truthvalue_conversion (location,
+							    TREE_OPERAND (expr,
+									  1)),
+			    c_common_truthvalue_conversion (location,
+							    TREE_OPERAND (expr,
+									  2)));
+      else
+	/* Folding will happen later for C.  */
+	return build3 (COND_EXPR, truthvalue_type_node,
+		       TREE_OPERAND (expr, 0),
+		       c_common_truthvalue_conversion (location,
+						       TREE_OPERAND (expr, 1)),
+		       c_common_truthvalue_conversion (location,
+						       TREE_OPERAND (expr, 2)));
 
-    case CONVERT_EXPR:
-    case NOP_EXPR:
+    CASE_CONVERT:
       /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
 	 since that affects how `default_conversion' will behave.  */
       if (TREE_CODE (TREE_TYPE (expr)) == REFERENCE_TYPE
@@ -3038,7 +4075,8 @@ c_common_truthvalue_conversion (tree expr)
       /* If this is widening the argument, we can ignore it.  */
       if (TYPE_PRECISION (TREE_TYPE (expr))
 	  >= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (expr, 0))))
-	return c_common_truthvalue_conversion (TREE_OPERAND (expr, 0));
+	return c_common_truthvalue_conversion (location,
+					       TREE_OPERAND (expr, 0));
       break;
 
     case MODIFY_EXPR:
@@ -3057,12 +4095,17 @@ c_common_truthvalue_conversion (tree expr)
 
   if (TREE_CODE (TREE_TYPE (expr)) == COMPLEX_TYPE)
     {
-      tree t = save_expr (expr);
+      tree t = c_save_expr (expr);
       return (build_binary_op
-	      ((TREE_SIDE_EFFECTS (expr)
+	      (EXPR_LOCATION (expr),
+	       (TREE_SIDE_EFFECTS (expr)
 		? TRUTH_OR_EXPR : TRUTH_ORIF_EXPR),
-	c_common_truthvalue_conversion (build_unary_op (REALPART_EXPR, t, 0)),
-	c_common_truthvalue_conversion (build_unary_op (IMAGPART_EXPR, t, 0)),
+	c_common_truthvalue_conversion
+	       (location,
+		build_unary_op (location, REALPART_EXPR, t, 0)),
+	c_common_truthvalue_conversion
+	       (location,
+		build_unary_op (location, IMAGPART_EXPR, t, 0)),
 	       0));
     }
 
@@ -3071,10 +4114,10 @@ c_common_truthvalue_conversion (tree expr)
       tree fixed_zero_node = build_fixed (TREE_TYPE (expr),
 					  FCONST0 (TYPE_MODE
 						   (TREE_TYPE (expr))));
-      return build_binary_op (NE_EXPR, expr, fixed_zero_node, 1);
+      return build_binary_op (location, NE_EXPR, expr, fixed_zero_node, 1);
     }
 
-  return build_binary_op (NE_EXPR, expr, integer_zero_node, 1);
+  return build_binary_op (location, NE_EXPR, expr, integer_zero_node, 1);
 }
 
 static void def_builtin_1  (enum built_in_function fncode,
@@ -3084,70 +4127,6 @@ static void def_builtin_1  (enum built_in_function fncode,
 			    bool both_p, bool fallback_p, bool nonansi_p,
 			    tree fnattrs, bool implicit_p);
 
-/* Make a variant type in the proper way for C/C++, propagating qualifiers
-   down to the element type of an array.  */
-
-tree
-c_build_qualified_type (tree type, int type_quals)
-{
-  if (type == error_mark_node)
-    return type;
-
-  if (TREE_CODE (type) == ARRAY_TYPE)
-    {
-      tree t;
-      tree element_type = c_build_qualified_type (TREE_TYPE (type),
-						  type_quals);
-
-      /* See if we already have an identically qualified type.  */
-      for (t = TYPE_MAIN_VARIANT (type); t; t = TYPE_NEXT_VARIANT (t))
-	{
-	  if (TYPE_QUALS (strip_array_types (t)) == type_quals
-	      && TYPE_NAME (t) == TYPE_NAME (type)
-	      && TYPE_CONTEXT (t) == TYPE_CONTEXT (type)
-	      && attribute_list_equal (TYPE_ATTRIBUTES (t),
-				       TYPE_ATTRIBUTES (type)))
-	    break;
-	}
-      if (!t)
-	{
-          tree domain = TYPE_DOMAIN (type);
-
-	  t = build_variant_type_copy (type);
-	  TREE_TYPE (t) = element_type;
-
-          if (TYPE_STRUCTURAL_EQUALITY_P (element_type)
-              || (domain && TYPE_STRUCTURAL_EQUALITY_P (domain)))
-            SET_TYPE_STRUCTURAL_EQUALITY (t);
-          else if (TYPE_CANONICAL (element_type) != element_type
-                   || (domain && TYPE_CANONICAL (domain) != domain))
-            {
-              tree unqualified_canon 
-                = build_array_type (TYPE_CANONICAL (element_type),
-                                    domain? TYPE_CANONICAL (domain) 
-                                          : NULL_TREE);
-              TYPE_CANONICAL (t) 
-                = c_build_qualified_type (unqualified_canon, type_quals);
-            }
-          else
-            TYPE_CANONICAL (t) = t;
-	}
-      return t;
-    }
-
-  /* A restrict-qualified pointer type must be a pointer to object or
-     incomplete type.  Note that the use of POINTER_TYPE_P also allows
-     REFERENCE_TYPEs, which is appropriate for C++.  */
-  if ((type_quals & TYPE_QUAL_RESTRICT)
-      && (!POINTER_TYPE_P (type)
-	  || !C_TYPE_OBJECT_OR_INCOMPLETE_P (TREE_TYPE (type))))
-    {
-      error ("invalid use of %<restrict%>");
-      type_quals &= ~TYPE_QUAL_RESTRICT;
-    }
-
-  return build_qualified_type (type, type_quals);
-}
 
 /* Apply the TYPE_QUALS to the new DECL.  */
 
@@ -3230,7 +4209,11 @@ c_type_hash (const void *p)
     }
   for (; t2; t2 = TREE_CHAIN (t2))
     i++;
-  size = TREE_INT_CST_LOW (TYPE_SIZE (t));
+  /* We might have a VLA here.  */
+  if (TREE_CODE (TYPE_SIZE (t)) != INTEGER_CST)
+    size = 0;
+  else
+    size = TREE_INT_CST_LOW (TYPE_SIZE (t));
   return ((size << 24) | (i << shift));
 }
 
@@ -3267,10 +4250,6 @@ c_common_get_alias_set (tree t)
   if (t == char_type_node
       || t == signed_char_type_node
       || t == unsigned_char_type_node)
-    return 0;
-
-  /* If it has the may_alias attribute, it can alias anything.  */
-  if (lookup_attribute ("may_alias", TYPE_ATTRIBUTES (t)))
     return 0;
 
   /* The C standard specifically allows aliasing between signed and
@@ -3398,7 +4377,10 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
       if (is_sizeof)
 	{
 	  if (complain && (pedantic || warn_pointer_arith))
-	    pedwarn ("invalid application of %<sizeof%> to a function type");
+	    pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+		     "invalid application of %<sizeof%> to a function type");
+          else if (!complain)
+            return error_mark_node;
 	  value = size_one_node;
 	}
       else
@@ -3408,7 +4390,10 @@ c_sizeof_or_alignof_type (tree type, bool is_sizeof, int complain)
     {
       if (type_code == VOID_TYPE
 	  && complain && (pedantic || warn_pointer_arith))
-	pedwarn ("invalid application of %qs to a void type", op_name);
+	pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+		 "invalid application of %qs to a void type", op_name);
+      else if (!complain)
+        return error_mark_node;
       value = size_one_node;
     }
   else if (!COMPLETE_TYPE_P (type))
@@ -3468,7 +4453,7 @@ c_alignof_expr (tree expr)
       tree best = t;
       int bestalign = TYPE_ALIGN (TREE_TYPE (TREE_TYPE (t)));
 
-      while ((TREE_CODE (t) == NOP_EXPR || TREE_CODE (t) == CONVERT_EXPR)
+      while (CONVERT_EXPR_P (t)
 	     && TREE_CODE (TREE_TYPE (TREE_OPERAND (t, 0))) == POINTER_TYPE)
 	{
 	  int thisalign;
@@ -3570,7 +4555,7 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
   va_start (list, n);
   for (i = 0; i < n; ++i)
     {
-      builtin_type a = va_arg (list, builtin_type);
+      builtin_type a = (builtin_type) va_arg (list, int);
       t = builtin_types[a];
       if (t == error_mark_node)
 	goto egress;
@@ -3671,12 +4656,24 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
     mudflap_init ();
 }
 
+/* Like get_identifier, but avoid warnings about null arguments when
+   the argument may be NULL for targets where GCC lacks stdint.h type
+   information.  */
+
+static inline tree
+c_get_ident (const char *id)
+{
+  return get_identifier (id);
+}
+
 /* Build tree nodes and builtin functions common to both C and C++ language
    frontends.  */
 
 void
 c_common_nodes_and_builtins (void)
 {
+  int char16_type_size;
+  int char32_type_size;
   int wchar_type_size;
   tree array_domain_type;
   tree va_list_ref_type_node;
@@ -3908,6 +4905,7 @@ c_common_nodes_and_builtins (void)
   wchar_type_node = get_identifier (MODIFIED_WCHAR_TYPE);
   wchar_type_node = TREE_TYPE (identifier_global_value (wchar_type_node));
   wchar_type_size = TYPE_PRECISION (wchar_type_node);
+  underlying_wchar_type_node = wchar_type_node;
   if (c_dialect_cxx ())
     {
       if (TYPE_UNSIGNED (wchar_type_node))
@@ -3916,15 +4914,42 @@ c_common_nodes_and_builtins (void)
 	wchar_type_node = make_signed_type (wchar_type_size);
       record_builtin_type (RID_WCHAR, "wchar_t", wchar_type_node);
     }
-  else
-    {
-      signed_wchar_type_node = c_common_signed_type (wchar_type_node);
-      unsigned_wchar_type_node = c_common_unsigned_type (wchar_type_node);
-    }
 
   /* This is for wide string constants.  */
   wchar_array_type_node
     = build_array_type (wchar_type_node, array_domain_type);
+
+  /* Define 'char16_t'.  */
+  char16_type_node = get_identifier (CHAR16_TYPE);
+  char16_type_node = TREE_TYPE (identifier_global_value (char16_type_node));
+  char16_type_size = TYPE_PRECISION (char16_type_node);
+  if (c_dialect_cxx ())
+    {
+      char16_type_node = make_unsigned_type (char16_type_size);
+
+      if (cxx_dialect == cxx0x)
+	record_builtin_type (RID_CHAR16, "char16_t", char16_type_node);
+    }
+
+  /* This is for UTF-16 string constants.  */
+  char16_array_type_node
+    = build_array_type (char16_type_node, array_domain_type);
+
+  /* Define 'char32_t'.  */
+  char32_type_node = get_identifier (CHAR32_TYPE);
+  char32_type_node = TREE_TYPE (identifier_global_value (char32_type_node));
+  char32_type_size = TYPE_PRECISION (char32_type_node);
+  if (c_dialect_cxx ())
+    {
+      char32_type_node = make_unsigned_type (char32_type_size);
+
+      if (cxx_dialect == cxx0x)
+	record_builtin_type (RID_CHAR32, "char32_t", char32_type_node);
+    }
+
+  /* This is for UTF-32 string constants.  */
+  char32_array_type_node
+    = build_array_type (char32_type_node, array_domain_type);
 
   wint_type_node =
     TREE_TYPE (identifier_global_value (get_identifier (WINT_TYPE)));
@@ -3934,6 +4959,88 @@ c_common_nodes_and_builtins (void)
   uintmax_type_node =
     TREE_TYPE (identifier_global_value (get_identifier (UINTMAX_TYPE)));
 
+  if (SIG_ATOMIC_TYPE)
+    sig_atomic_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (SIG_ATOMIC_TYPE)));
+  if (INT8_TYPE)
+    int8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT8_TYPE)));
+  if (INT16_TYPE)
+    int16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT16_TYPE)));
+  if (INT32_TYPE)
+    int32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT32_TYPE)));
+  if (INT64_TYPE)
+    int64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT64_TYPE)));
+  if (UINT8_TYPE)
+    uint8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT8_TYPE)));
+  if (UINT16_TYPE)
+    uint16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT16_TYPE)));
+  if (UINT32_TYPE)
+    c_uint32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT32_TYPE)));
+  if (UINT64_TYPE)
+    c_uint64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT64_TYPE)));
+  if (INT_LEAST8_TYPE)
+    int_least8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST8_TYPE)));
+  if (INT_LEAST16_TYPE)
+    int_least16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST16_TYPE)));
+  if (INT_LEAST32_TYPE)
+    int_least32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST32_TYPE)));
+  if (INT_LEAST64_TYPE)
+    int_least64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_LEAST64_TYPE)));
+  if (UINT_LEAST8_TYPE)
+    uint_least8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST8_TYPE)));
+  if (UINT_LEAST16_TYPE)
+    uint_least16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST16_TYPE)));
+  if (UINT_LEAST32_TYPE)
+    uint_least32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST32_TYPE)));
+  if (UINT_LEAST64_TYPE)
+    uint_least64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_LEAST64_TYPE)));
+  if (INT_FAST8_TYPE)
+    int_fast8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST8_TYPE)));
+  if (INT_FAST16_TYPE)
+    int_fast16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST16_TYPE)));
+  if (INT_FAST32_TYPE)
+    int_fast32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST32_TYPE)));
+  if (INT_FAST64_TYPE)
+    int_fast64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INT_FAST64_TYPE)));
+  if (UINT_FAST8_TYPE)
+    uint_fast8_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST8_TYPE)));
+  if (UINT_FAST16_TYPE)
+    uint_fast16_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST16_TYPE)));
+  if (UINT_FAST32_TYPE)
+    uint_fast32_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST32_TYPE)));
+  if (UINT_FAST64_TYPE)
+    uint_fast64_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINT_FAST64_TYPE)));
+  if (INTPTR_TYPE)
+    intptr_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (INTPTR_TYPE)));
+  if (UINTPTR_TYPE)
+    uintptr_type_node =
+      TREE_TYPE (identifier_global_value (c_get_ident (UINTPTR_TYPE)));
+
   default_function_type = build_function_type (integer_type_node, NULL_TREE);
   ptrdiff_type_node
     = TREE_TYPE (identifier_global_value (get_identifier (PTRDIFF_TYPE)));
@@ -3942,6 +5049,20 @@ c_common_nodes_and_builtins (void)
   lang_hooks.decls.pushdecl
     (build_decl (TYPE_DECL, get_identifier ("__builtin_va_list"),
 		 va_list_type_node));
+#ifdef TARGET_ENUM_VA_LIST
+  {
+    int l;
+    const char *pname;
+    tree ptype;
+    for (l = 0; TARGET_ENUM_VA_LIST (l, &pname, &ptype); ++l)
+      {
+	lang_hooks.decls.pushdecl
+	  (build_decl (TYPE_DECL, get_identifier (pname),
+	  	       ptype));
+
+      }
+  }
+#endif
 
   if (TREE_CODE (va_list_type_node) == ARRAY_TYPE)
     {
@@ -3982,10 +5103,28 @@ set_builtin_user_assembler_name (tree decl, const char *asmspec)
 
   builtin = built_in_decls [DECL_FUNCTION_CODE (decl)];
   set_user_assembler_name (builtin, asmspec);
-  if (DECL_FUNCTION_CODE (decl) == BUILT_IN_MEMCPY)
-    init_block_move_fn (asmspec);
-  else if (DECL_FUNCTION_CODE (decl) == BUILT_IN_MEMSET)
-    init_block_clear_fn (asmspec);
+  switch (DECL_FUNCTION_CODE (decl))
+    {
+    case BUILT_IN_MEMCPY:
+      init_block_move_fn (asmspec);
+      memcpy_libfunc = set_user_assembler_libfunc ("memcpy", asmspec);
+      break;
+    case BUILT_IN_MEMSET:
+      init_block_clear_fn (asmspec);
+      memset_libfunc = set_user_assembler_libfunc ("memset", asmspec);
+      break;
+    case BUILT_IN_MEMMOVE:
+      memmove_libfunc = set_user_assembler_libfunc ("memmove", asmspec);
+      break;
+    case BUILT_IN_MEMCMP:
+      memcmp_libfunc = set_user_assembler_libfunc ("memcmp", asmspec);
+      break;
+    case BUILT_IN_ABORT:
+      abort_libfunc = set_user_assembler_libfunc ("abort", asmspec);
+      break;
+    default:
+      break;
+    }
 }
 
 /* The number of named compound-literals generated thus far.  */
@@ -4152,18 +5291,6 @@ self_promoting_args_p (const_tree parms)
   return 1;
 }
 
-/* Recursively examines the array elements of TYPE, until a non-array
-   element type is found.  */
-
-tree
-strip_array_types (tree type)
-{
-  while (TREE_CODE (type) == ARRAY_TYPE)
-    type = TREE_TYPE (type);
-
-  return type;
-}
-
 /* Recursively remove any '*' or '&' operator from TYPE.  */
 tree
 strip_pointer_operator (tree t)
@@ -4236,8 +5363,9 @@ c_add_case_label (splay_tree cases, tree cond, tree orig_type,
     }
 
   /* Case ranges are a GNU extension.  */
-  if (high_value && pedantic)
-    pedwarn ("range expressions in switch statements are non-standard");
+  if (high_value)
+    pedwarn (input_location, OPT_pedantic, 
+	     "range expressions in switch statements are non-standard");
 
   type = TREE_TYPE (cond);
   if (low_value)
@@ -4380,13 +5508,16 @@ match_case_to_enum_1 (tree key, tree type, tree label)
 	      -TREE_INT_CST_LOW (key));
   else
     snprintf (buf, sizeof (buf), HOST_WIDE_INT_PRINT_DOUBLE_HEX,
-	      TREE_INT_CST_HIGH (key), TREE_INT_CST_LOW (key));
+	      (unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (key),
+	      (unsigned HOST_WIDE_INT) TREE_INT_CST_LOW (key));
 
   if (TYPE_NAME (type) == 0)
-    warning (0, "%Jcase value %qs not in enumerated type",
+    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+	     "%Jcase value %qs not in enumerated type",
 	     CASE_LABEL (label), buf);
   else
-    warning (0, "%Jcase value %qs not in enumerated type %qT",
+    warning (warn_switch ? OPT_Wswitch : OPT_Wswitch_enum,
+	     "%Jcase value %qs not in enumerated type %qT",
 	     CASE_LABEL (label), buf, type);
 }
 
@@ -4438,6 +5569,7 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
   splay_tree_node default_node;
   splay_tree_node node;
   tree chain;
+  int saved_warn_switch;
 
   if (!warn_switch && !warn_switch_enum && !warn_switch_default)
     return;
@@ -4473,6 +5605,8 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
   for (chain = TYPE_VALUES (type); chain; chain = TREE_CHAIN (chain))
     {
       tree value = TREE_VALUE (chain);
+      if (TREE_CODE (value) == CONST_DECL)
+        value = DECL_INITIAL (value);
       node = splay_tree_lookup (cases, (splay_tree_key) value);
       if (node)
 	{
@@ -4483,7 +5617,7 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
 	}
 
       /* Even though there wasn't an exact match, there might be a
-	 case range which includes the enumator's value.  */
+	 case range which includes the enumerator's value.  */
       node = splay_tree_predecessor (cases, (splay_tree_key) value);
       if (node && CASE_HIGH ((tree) node->value))
 	{
@@ -4507,7 +5641,13 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
       if (cond && tree_int_cst_compare (cond, value))
 	continue;
 
-      warning (0, "%Henumeration value %qE not handled in switch",
+      /* If there is a default_node, the only relevant option is
+	 Wswitch-enum. Otherwise, if both are enabled then we prefer
+	 to warn using -Wswitch because -Wswitch is enabled by -Wall
+	 while -Wswitch-enum is explicit.  */
+      warning ((default_node || !warn_switch) 
+	       ? OPT_Wswitch_enum : OPT_Wswitch,
+	       "%Henumeration value %qE not handled in switch",
 	       &switch_location, TREE_PURPOSE (chain));
     }
 
@@ -4519,19 +5659,30 @@ c_do_switch_warnings (splay_tree cases, location_t switch_location,
      we should have marked both the lower bound and upper bound of
      every disjoint case label, with CASE_LOW_SEEN and CASE_HIGH_SEEN
      above.  This scan also resets those fields.  */
+
+  /* If there is a default_node, the only relevant option is
+     Wswitch-enum. Otherwise, if both are enabled then we prefer
+     to warn using -Wswitch because -Wswitch is enabled by -Wall
+     while -Wswitch-enum is explicit.  */
+  saved_warn_switch = warn_switch;
+  if (default_node)
+    warn_switch = 0;
   splay_tree_foreach (cases, match_case_to_enum, type);
+  warn_switch = saved_warn_switch;
+
 }
 
 /* Finish an expression taking the address of LABEL (an
-   IDENTIFIER_NODE).  Returns an expression for the address.  */
+   IDENTIFIER_NODE).  Returns an expression for the address.
+
+   LOC is the location for the expression returned.  */
 
 tree
-finish_label_address_expr (tree label)
+finish_label_address_expr (tree label, location_t loc)
 {
   tree result;
 
-  if (pedantic)
-    pedwarn ("taking the address of a label is non-standard");
+  pedwarn (input_location, OPT_pedantic, "taking the address of a label is non-standard");
 
   if (label == error_mark_node)
     return error_mark_node;
@@ -4546,45 +5697,10 @@ finish_label_address_expr (tree label)
       /* The current function in not necessarily uninlinable.
 	 Computed gotos are incompatible with inlining, but the value
 	 here could be used only in a diagnostic, for example.  */
+      protected_set_expr_location (result, loc);
     }
 
   return result;
-}
-
-/* Hook used by expand_expr to expand language-specific tree codes.  */
-/* The only things that should go here are bits needed to expand
-   constant initializers.  Everything else should be handled by the
-   gimplification routines.  */
-
-rtx
-c_expand_expr (tree exp, rtx target, enum machine_mode tmode,
-	       int modifier /* Actually enum_modifier.  */,
-	       rtx *alt_rtl)
-{
-  switch (TREE_CODE (exp))
-    {
-    case COMPOUND_LITERAL_EXPR:
-      {
-	/* Initialize the anonymous variable declared in the compound
-	   literal, then return the variable.  */
-	tree decl = COMPOUND_LITERAL_EXPR_DECL (exp);
-	emit_local_var (decl);
-	return expand_expr_real (decl, target, tmode, modifier, alt_rtl);
-      }
-
-    default:
-      gcc_unreachable ();
-    }
-}
-
-/* Hook used by staticp to handle language-specific tree codes.  */
-
-tree
-c_staticp (tree exp)
-{
-  return (TREE_CODE (exp) == COMPOUND_LITERAL_EXPR
-	  && TREE_STATIC (COMPOUND_LITERAL_EXPR_DECL (exp))
-	  ? exp : NULL);
 }
 
 
@@ -4627,8 +5743,8 @@ boolean_increment (enum tree_code code, tree arg)
   return val;
 }
 
-/* Built-in macros for stddef.h, that require macros defined in this
-   file.  */
+/* Built-in macros for stddef.h and stdint.h, that require macros
+   defined in this file.  */
 void
 c_stddef_cpp_builtins(void)
 {
@@ -4638,6 +5754,62 @@ c_stddef_cpp_builtins(void)
   builtin_define_with_value ("__WINT_TYPE__", WINT_TYPE, 0);
   builtin_define_with_value ("__INTMAX_TYPE__", INTMAX_TYPE, 0);
   builtin_define_with_value ("__UINTMAX_TYPE__", UINTMAX_TYPE, 0);
+  builtin_define_with_value ("__CHAR16_TYPE__", CHAR16_TYPE, 0);
+  builtin_define_with_value ("__CHAR32_TYPE__", CHAR32_TYPE, 0);
+  if (SIG_ATOMIC_TYPE)
+    builtin_define_with_value ("__SIG_ATOMIC_TYPE__", SIG_ATOMIC_TYPE, 0);
+  if (INT8_TYPE)
+    builtin_define_with_value ("__INT8_TYPE__", INT8_TYPE, 0);
+  if (INT16_TYPE)
+    builtin_define_with_value ("__INT16_TYPE__", INT16_TYPE, 0);
+  if (INT32_TYPE)
+    builtin_define_with_value ("__INT32_TYPE__", INT32_TYPE, 0);
+  if (INT64_TYPE)
+    builtin_define_with_value ("__INT64_TYPE__", INT64_TYPE, 0);
+  if (UINT8_TYPE)
+    builtin_define_with_value ("__UINT8_TYPE__", UINT8_TYPE, 0);
+  if (UINT16_TYPE)
+    builtin_define_with_value ("__UINT16_TYPE__", UINT16_TYPE, 0);
+  if (UINT32_TYPE)
+    builtin_define_with_value ("__UINT32_TYPE__", UINT32_TYPE, 0);
+  if (UINT64_TYPE)
+    builtin_define_with_value ("__UINT64_TYPE__", UINT64_TYPE, 0);
+  if (INT_LEAST8_TYPE)
+    builtin_define_with_value ("__INT_LEAST8_TYPE__", INT_LEAST8_TYPE, 0);
+  if (INT_LEAST16_TYPE)
+    builtin_define_with_value ("__INT_LEAST16_TYPE__", INT_LEAST16_TYPE, 0);
+  if (INT_LEAST32_TYPE)
+    builtin_define_with_value ("__INT_LEAST32_TYPE__", INT_LEAST32_TYPE, 0);
+  if (INT_LEAST64_TYPE)
+    builtin_define_with_value ("__INT_LEAST64_TYPE__", INT_LEAST64_TYPE, 0);
+  if (UINT_LEAST8_TYPE)
+    builtin_define_with_value ("__UINT_LEAST8_TYPE__", UINT_LEAST8_TYPE, 0);
+  if (UINT_LEAST16_TYPE)
+    builtin_define_with_value ("__UINT_LEAST16_TYPE__", UINT_LEAST16_TYPE, 0);
+  if (UINT_LEAST32_TYPE)
+    builtin_define_with_value ("__UINT_LEAST32_TYPE__", UINT_LEAST32_TYPE, 0);
+  if (UINT_LEAST64_TYPE)
+    builtin_define_with_value ("__UINT_LEAST64_TYPE__", UINT_LEAST64_TYPE, 0);
+  if (INT_FAST8_TYPE)
+    builtin_define_with_value ("__INT_FAST8_TYPE__", INT_FAST8_TYPE, 0);
+  if (INT_FAST16_TYPE)
+    builtin_define_with_value ("__INT_FAST16_TYPE__", INT_FAST16_TYPE, 0);
+  if (INT_FAST32_TYPE)
+    builtin_define_with_value ("__INT_FAST32_TYPE__", INT_FAST32_TYPE, 0);
+  if (INT_FAST64_TYPE)
+    builtin_define_with_value ("__INT_FAST64_TYPE__", INT_FAST64_TYPE, 0);
+  if (UINT_FAST8_TYPE)
+    builtin_define_with_value ("__UINT_FAST8_TYPE__", UINT_FAST8_TYPE, 0);
+  if (UINT_FAST16_TYPE)
+    builtin_define_with_value ("__UINT_FAST16_TYPE__", UINT_FAST16_TYPE, 0);
+  if (UINT_FAST32_TYPE)
+    builtin_define_with_value ("__UINT_FAST32_TYPE__", UINT_FAST32_TYPE, 0);
+  if (UINT_FAST64_TYPE)
+    builtin_define_with_value ("__UINT_FAST64_TYPE__", UINT_FAST64_TYPE, 0);
+  if (INTPTR_TYPE)
+    builtin_define_with_value ("__INTPTR_TYPE__", INTPTR_TYPE, 0);
+  if (UINTPTR_TYPE)
+    builtin_define_with_value ("__UINTPTR_TYPE__", UINTPTR_TYPE, 0);
 }
 
 static void
@@ -4679,7 +5851,9 @@ handle_packed_attribute (tree *node, tree name, tree ARG_UNUSED (args),
     }
   else if (TREE_CODE (*node) == FIELD_DECL)
     {
-      if (TYPE_ALIGN (TREE_TYPE (*node)) <= BITS_PER_UNIT)
+      if (TYPE_ALIGN (TREE_TYPE (*node)) <= BITS_PER_UNIT
+	  /* Still pack bitfields.  */
+	  && ! DECL_INITIAL (*node))
 	warning (OPT_Wattributes,
 		 "%qE attribute ignored for field of type %qT",
 		 name, TREE_TYPE (*node));
@@ -4768,7 +5942,7 @@ handle_noreturn_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 
 static tree
 handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
-			  int ARG_UNUSED (flags), bool *no_add_attrs)
+		      int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL)
     {
@@ -4778,8 +5952,8 @@ handle_hot_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "cold");
 	  *no_add_attrs = true;
 	}
-      /* Do nothing else, just set the attribute.  We'll get at
-	 it later with lookup_attribute.  */
+      /* Most of the rest of the hot processing is done later with
+	 lookup_attribute.  */
     }
   else
     {
@@ -4804,8 +5978,8 @@ handle_cold_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		   name, "hot");
 	  *no_add_attrs = true;
 	}
-      /* Do nothing else, just set the attribute.  We'll get at
-	 it later with lookup_attribute.  */
+      /* Most of the rest of the cold processing is done later with
+	 lookup_attribute.  */
     }
   else
     {
@@ -4882,6 +6056,29 @@ handle_gnu_inline_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle an "artificial" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_artificial_attribute (tree *node, tree name,
+			     tree ARG_UNUSED (args),
+			     int ARG_UNUSED (flags),
+			     bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (*node))
+    {
+      /* Do nothing else, just set the attribute.  We'll get at
+	 it later with lookup_attribute.  */
+    }
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
+
 /* Handle a "flatten" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -4903,6 +6100,26 @@ handle_flatten_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* Handle a "warning" or "error" attribute; arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_error_attribute (tree *node, tree name, tree args,
+			int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  if (TREE_CODE (*node) == FUNCTION_DECL
+      || TREE_CODE (TREE_VALUE (args)) == STRING_CST)
+    /* Do nothing else, just set the attribute.  We'll get at
+       it later with lookup_attribute.  */
+    ;
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+
+  return NULL_TREE;
+}
 
 /* Handle a "used" attribute; arguments as in
    struct attribute_spec.handler.  */
@@ -5026,21 +6243,13 @@ handle_transparent_union_attribute (tree *node, tree name,
 				    tree ARG_UNUSED (args), int flags,
 				    bool *no_add_attrs)
 {
-  tree type = NULL;
+  tree type;
 
   *no_add_attrs = true;
 
-  if (DECL_P (*node))
-    {
-      if (TREE_CODE (*node) != TYPE_DECL)
-	goto ignored;
-      node = &TREE_TYPE (*node);
-      type = *node;
-    }
-  else if (TYPE_P (*node))
-    type = *node;
-  else
-    goto ignored;
+  if (TREE_CODE (*node) == TYPE_DECL)
+    node = &TREE_TYPE (*node);
+  type = *node;
 
   if (TREE_CODE (type) == UNION_TYPE)
     {
@@ -5227,6 +6436,8 @@ handle_mode_attribute (tree *node, tree name, tree args,
 	mode = targetm.libgcc_cmp_return_mode ();
       else if (!strcmp (p, "libgcc_shift_count"))
 	mode = targetm.libgcc_shift_count_mode ();
+      else if (!strcmp (p, "unwind_word"))
+	mode = targetm.unwind_word_mode ();
       else
 	for (j = 0; j < NUM_MACHINE_MODES; j++)
 	  if (!strcmp (p, GET_MODE_NAME (j)))
@@ -5399,6 +6610,13 @@ handle_section_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 		     *node);
 	      *no_add_attrs = true;
 	    }
+	  else if (TREE_CODE (decl) == VAR_DECL
+		   && !targetm.have_tls && targetm.emutls.tmpl_section
+		   && DECL_THREAD_LOCAL_P (decl))
+	    {
+	      error ("section of %q+D cannot be overridden", *node);
+	      *no_add_attrs = true;
+	    }
 	  else
 	    DECL_SECTION_NAME (decl) = TREE_VALUE (args);
 	}
@@ -5428,7 +6646,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   tree *type = NULL;
   int is_type = 0;
   tree align_expr = (args ? TREE_VALUE (args)
-		     : size_int (BIGGEST_ALIGNMENT / BITS_PER_UNIT));
+		     : size_int (ATTRIBUTE_ALIGNED_VALUE / BITS_PER_UNIT));
   int i;
 
   if (DECL_P (*node))
@@ -5450,7 +6668,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       error ("requested alignment is not a power of 2");
       *no_add_attrs = true;
     }
-  else if (i > HOST_BITS_PER_INT - 2)
+  else if (i >= HOST_BITS_PER_INT - BITS_PER_UNIT_LOG)
     {
       error ("requested alignment is too large");
       *no_add_attrs = true;
@@ -5472,7 +6690,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       else if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
 	*type = build_variant_type_copy (*type);
 
-      TYPE_ALIGN (*type) = (1 << i) * BITS_PER_UNIT;
+      TYPE_ALIGN (*type) = (1U << i) * BITS_PER_UNIT;
       TYPE_USER_ALIGN (*type) = 1;
     }
   else if (! VAR_OR_FUNCTION_DECL_P (decl)
@@ -5482,7 +6700,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
       *no_add_attrs = true;
     }
   else if (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_ALIGN (decl) > (1 << i) * BITS_PER_UNIT)
+	   && DECL_ALIGN (decl) > (1U << i) * BITS_PER_UNIT)
     {
       if (DECL_USER_ALIGN (decl))
 	error ("alignment for %q+D was previously specified as %d "
@@ -5495,7 +6713,7 @@ handle_aligned_attribute (tree *node, tree ARG_UNUSED (name), tree args,
     }
   else
     {
-      DECL_ALIGN (decl) = (1 << i) * BITS_PER_UNIT;
+      DECL_ALIGN (decl) = (1U << i) * BITS_PER_UNIT;
       DECL_USER_ALIGN (decl) = 1;
     }
 
@@ -5512,11 +6730,16 @@ handle_weak_attribute (tree *node, tree name,
 		       bool * ARG_UNUSED (no_add_attrs))
 {
   if (TREE_CODE (*node) == FUNCTION_DECL
-      || TREE_CODE (*node) == VAR_DECL)
+      && DECL_DECLARED_INLINE_P (*node))
+    {
+      error ("inline function %q+D cannot be declared weak", *node);
+      *no_add_attrs = true;
+    }
+  else if (TREE_CODE (*node) == FUNCTION_DECL
+	   || TREE_CODE (*node) == VAR_DECL)
     declare_weak (*node);
   else
     warning (OPT_Wattributes, "%qE attribute ignored", name);
-    	
 
   return NULL_TREE;
 }
@@ -5530,7 +6753,12 @@ handle_alias_attribute (tree *node, tree name, tree args,
 {
   tree decl = *node;
 
-  if ((TREE_CODE (decl) == FUNCTION_DECL && DECL_INITIAL (decl))
+  if (TREE_CODE (decl) != FUNCTION_DECL && TREE_CODE (decl) != VAR_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  else if ((TREE_CODE (decl) == FUNCTION_DECL && DECL_INITIAL (decl))
       || (TREE_CODE (decl) != FUNCTION_DECL 
 	  && TREE_PUBLIC (decl) && !DECL_EXTERNAL (decl))
       /* A static variable declaration is always a tentative definition,
@@ -5594,7 +6822,9 @@ handle_weakref_attribute (tree *node, tree ARG_UNUSED (name), tree args,
   /* We must ignore the attribute when it is associated with
      local-scoped decls, since attribute alias is ignored and many
      such symbols do not even have a DECL_WEAK field.  */
-  if (decl_function_context (*node) || current_function_decl)
+  if (decl_function_context (*node)
+      || current_function_decl
+      || (TREE_CODE (*node) != VAR_DECL && TREE_CODE (*node) != FUNCTION_DECL))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       *no_add_attrs = true;
@@ -5757,8 +6987,18 @@ c_determine_visibility (tree decl)
      visibility_specified depending on #pragma GCC visibility.  */
   if (!DECL_VISIBILITY_SPECIFIED (decl))
     {
-      DECL_VISIBILITY (decl) = default_visibility;
-      DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+      if (visibility_options.inpragma
+	  || DECL_VISIBILITY (decl) != default_visibility)
+	{
+	  DECL_VISIBILITY (decl) = default_visibility;
+	  DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+	  /* If visibility changed and DECL already has DECL_RTL, ensure
+	     symbol flags are updated.  */
+	  if (((TREE_CODE (decl) == VAR_DECL && TREE_STATIC (decl))
+	       || TREE_CODE (decl) == FUNCTION_DECL)
+	      && DECL_RTL_SET_P (decl))
+	    make_decl_rtl (decl);
+	}
     }
   return false;
 }
@@ -5776,7 +7016,7 @@ handle_tls_model_attribute (tree *node, tree name, tree args,
 
   *no_add_attrs = true;
 
-  if (!DECL_THREAD_LOCAL_P (decl))
+  if (TREE_CODE (decl) != VAR_DECL || !DECL_THREAD_LOCAL_P (decl))
     {
       warning (OPT_Wattributes, "%qE attribute ignored", name);
       return NULL_TREE;
@@ -5858,12 +7098,7 @@ static tree
 handle_alloc_size_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 			     int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  tree params = TYPE_ARG_TYPES (*node);
-  unsigned arg_count = 0;
-
-  for (; TREE_CHAIN (params); params = TREE_CHAIN (params))
-    arg_count ++;
-
+  unsigned arg_count = type_num_arguments (*node);
   for (; args; args = TREE_CHAIN (args))
     {
       tree position = TREE_VALUE (args);
@@ -5935,7 +7170,7 @@ handle_pure_attribute (tree *node, tree name, tree ARG_UNUSED (args),
 		       int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   if (TREE_CODE (*node) == FUNCTION_DECL)
-    DECL_IS_PURE (*node) = 1;
+    DECL_PURE_P (*node) = 1;
   /* ??? TODO: Support types.  */
   else
     {
@@ -6051,19 +7286,21 @@ handle_vector_size_attribute (tree *node, tree name, tree args,
   while (POINTER_TYPE_P (type)
 	 || TREE_CODE (type) == FUNCTION_TYPE
 	 || TREE_CODE (type) == METHOD_TYPE
-	 || TREE_CODE (type) == ARRAY_TYPE)
+	 || TREE_CODE (type) == ARRAY_TYPE
+	 || TREE_CODE (type) == OFFSET_TYPE)
     type = TREE_TYPE (type);
 
   /* Get the mode of the type being modified.  */
   orig_mode = TYPE_MODE (type);
 
-  if (TREE_CODE (type) == RECORD_TYPE
-      || TREE_CODE (type) == UNION_TYPE
-      || TREE_CODE (type) == VECTOR_TYPE
+  if ((!INTEGRAL_TYPE_P (type)
+       && !SCALAR_FLOAT_TYPE_P (type)
+       && !FIXED_POINT_TYPE_P (type))
       || (!SCALAR_FLOAT_MODE_P (orig_mode)
 	  && GET_MODE_CLASS (orig_mode) != MODE_INT
 	  && !ALL_SCALAR_FIXED_POINT_MODE_P (orig_mode))
-      || !host_integerp (TYPE_SIZE_UNIT (type), 1))
+      || !host_integerp (TYPE_SIZE_UNIT (type), 1)
+      || TREE_CODE (type) == BOOLEAN_TYPE)
     {
       error ("invalid vector type for attribute %qE", name);
       return NULL_TREE;
@@ -6092,7 +7329,7 @@ handle_vector_size_attribute (tree *node, tree name, tree args,
   new_type = build_vector_type (type, nunits);
 
   /* Build back pointers if needed.  */
-  *node = reconstruct_complex_type (*node, new_type);
+  *node = lang_hooks.types.reconstruct_complex_type (*node, new_type);
 
   return NULL_TREE;
 }
@@ -6444,8 +7681,194 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  /* Ensure we have a function type, with no arguments.  */
-  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE && ! TYPE_ARG_TYPES (*node));
+  tree params;
+  
+  /* Ensure we have a function type.  */
+  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
+  
+  params = TYPE_ARG_TYPES (*node);
+  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
+    params = TREE_CHAIN (params);
+
+  /* Ensure we have a variadic function.  */
+  gcc_assert (!params);
+
+  return NULL_TREE;
+}
+
+/* Handle a "target" attribute.  */
+
+static tree
+handle_target_attribute (tree *node, tree name, tree args, int flags,
+			 bool *no_add_attrs)
+{
+  /* Ensure we have a function type.  */
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  else if (! targetm.target_option.valid_attribute_p (*node, name, args,
+						      flags))
+    *no_add_attrs = true;
+
+  return NULL_TREE;
+}
+
+/* Arguments being collected for optimization.  */
+typedef const char *const_char_p;		/* For DEF_VEC_P.  */
+DEF_VEC_P(const_char_p);
+DEF_VEC_ALLOC_P(const_char_p, gc);
+static GTY(()) VEC(const_char_p, gc) *optimize_args;
+
+
+/* Inner function to convert a TREE_LIST to argv string to parse the optimize
+   options in ARGS.  ATTR_P is true if this is for attribute(optimize), and
+   false for #pragma GCC optimize.  */
+
+bool
+parse_optimize_options (tree args, bool attr_p)
+{
+  bool ret = true;
+  unsigned opt_argc;
+  unsigned i;
+  int saved_flag_strict_aliasing;
+  const char **opt_argv;
+  tree ap;
+
+  /* Build up argv vector.  Just in case the string is stored away, use garbage
+     collected strings.  */
+  VEC_truncate (const_char_p, optimize_args, 0);
+  VEC_safe_push (const_char_p, gc, optimize_args, NULL);
+
+  for (ap = args; ap != NULL_TREE; ap = TREE_CHAIN (ap))
+    {
+      tree value = TREE_VALUE (ap);
+
+      if (TREE_CODE (value) == INTEGER_CST)
+	{
+	  char buffer[20];
+	  sprintf (buffer, "-O%ld", (long) TREE_INT_CST_LOW (value));
+	  VEC_safe_push (const_char_p, gc, optimize_args, ggc_strdup (buffer));
+	}
+
+      else if (TREE_CODE (value) == STRING_CST)
+	{
+	  /* Split string into multiple substrings.  */
+	  size_t len = TREE_STRING_LENGTH (value);
+	  char *p = ASTRDUP (TREE_STRING_POINTER (value));
+	  char *end = p + len;
+	  char *comma;
+	  char *next_p = p;
+
+	  while (next_p != NULL)
+	    {
+	      size_t len2;
+	      char *q, *r;
+
+	      p = next_p;
+	      comma = strchr (p, ',');
+	      if (comma)
+		{
+		  len2 = comma - p;
+		  *comma = '\0';
+		  next_p = comma+1;
+		}
+	      else
+		{
+		  len2 = end - p;
+		  next_p = NULL;
+		}
+
+	      r = q = (char *) ggc_alloc (len2 + 3);
+
+	      /* If the user supplied -Oxxx or -fxxx, only allow -Oxxx or -fxxx
+		 options.  */
+	      if (*p == '-' && p[1] != 'O' && p[1] != 'f')
+		{
+		  ret = false;
+		  if (attr_p)
+		    warning (OPT_Wattributes,
+			     "Bad option %s to optimize attribute.", p);
+		  else
+		    warning (OPT_Wpragmas,
+			     "Bad option %s to pragma attribute", p);
+		  continue;
+		}
+
+	      if (*p != '-')
+		{
+		  *r++ = '-';
+
+		  /* Assume that Ox is -Ox, a numeric value is -Ox, a s by
+		     itself is -Os, and any other switch begins with a -f.  */
+		  if ((*p >= '0' && *p <= '9')
+		      || (p[0] == 's' && p[1] == '\0'))
+		    *r++ = 'O';
+		  else if (*p != 'O')
+		    *r++ = 'f';
+		}
+
+	      memcpy (r, p, len2);
+	      r[len2] = '\0';
+	      VEC_safe_push (const_char_p, gc, optimize_args, q);
+	    }
+
+	}
+    }
+
+  opt_argc = VEC_length (const_char_p, optimize_args);
+  opt_argv = (const char **) alloca (sizeof (char *) * (opt_argc + 1));
+
+  for (i = 1; i < opt_argc; i++)
+    opt_argv[i] = VEC_index (const_char_p, optimize_args, i);
+
+  saved_flag_strict_aliasing = flag_strict_aliasing;
+
+  /* Now parse the options.  */
+  decode_options (opt_argc, opt_argv);
+
+  /* Don't allow changing -fstrict-aliasing.  */
+  flag_strict_aliasing = saved_flag_strict_aliasing;
+
+  VEC_truncate (const_char_p, optimize_args, 0);
+  return ret;
+}
+
+/* For handling "optimize" attribute. arguments as in
+   struct attribute_spec.handler.  */
+
+static tree
+handle_optimize_attribute (tree *node, tree name, tree args,
+			   int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  /* Ensure we have a function type.  */
+  if (TREE_CODE (*node) != FUNCTION_DECL)
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  else
+    {
+      struct cl_optimization cur_opts;
+      tree old_opts = DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node);
+
+      /* Save current options.  */
+      cl_optimization_save (&cur_opts);
+
+      /* If we previously had some optimization options, use them as the
+	 default.  */
+      if (old_opts)
+	cl_optimization_restore (TREE_OPTIMIZATION (old_opts));
+
+      /* Parse options, and update the vector.  */
+      parse_optimize_options (args, true);
+      DECL_FUNCTION_SPECIFIC_OPTIMIZATION (*node)
+	= build_optimization_node ();
+
+      /* Restore current options.  */
+      cl_optimization_restore (&cur_opts);
+    }
 
   return NULL_TREE;
 }
@@ -6481,7 +7904,7 @@ check_function_arguments_recurse (void (*callback)
 				  void *ctx, tree param,
 				  unsigned HOST_WIDE_INT param_num)
 {
-  if ((TREE_CODE (param) == NOP_EXPR || TREE_CODE (param) == CONVERT_EXPR)
+  if (CONVERT_EXPR_P (param)
       && (TYPE_PRECISION (TREE_TYPE (param))
 	  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (param, 0)))))
     {
@@ -6551,6 +7974,109 @@ check_function_arguments_recurse (void (*callback)
     }
 
   (*callback) (ctx, param, param_num);
+}
+
+/* Checks the number of arguments NARGS against the required number
+   REQUIRED and issues an error if there is a mismatch.  Returns true
+   if the number of arguments is correct, otherwise false.  */
+
+static bool
+validate_nargs (tree fndecl, int nargs, int required)
+{
+  if (nargs < required)
+    {
+      error ("not enough arguments to function %qE", fndecl);
+      return false;
+    }
+  else if (nargs > required)
+    {
+      error ("too many arguments to function %qE", fndecl);
+      return false;
+    }
+  return true;
+}
+
+/* Verifies the NARGS arguments ARGS to the builtin function FNDECL.
+   Returns false if there was an error, otherwise true.  */
+
+bool
+check_builtin_function_arguments (tree fndecl, int nargs, tree *args)
+{
+  if (!DECL_BUILT_IN (fndecl)
+      || DECL_BUILT_IN_CLASS (fndecl) != BUILT_IN_NORMAL)
+    return true;
+
+  switch (DECL_FUNCTION_CODE (fndecl))
+    {
+    case BUILT_IN_CONSTANT_P:
+      return validate_nargs (fndecl, nargs, 1);
+
+    case BUILT_IN_ISFINITE:
+    case BUILT_IN_ISINF:
+    case BUILT_IN_ISINF_SIGN:
+    case BUILT_IN_ISNAN:
+    case BUILT_IN_ISNORMAL:
+      if (validate_nargs (fndecl, nargs, 1))
+	{
+	  if (TREE_CODE (TREE_TYPE (args[0])) != REAL_TYPE)
+	    {
+	      error ("non-floating-point argument in call to "
+		     "function %qE", fndecl);
+	      return false;
+	    }
+	  return true;
+	}
+      return false;
+
+    case BUILT_IN_ISGREATER:
+    case BUILT_IN_ISGREATEREQUAL:
+    case BUILT_IN_ISLESS:
+    case BUILT_IN_ISLESSEQUAL:
+    case BUILT_IN_ISLESSGREATER:
+    case BUILT_IN_ISUNORDERED:
+      if (validate_nargs (fndecl, nargs, 2))
+	{
+	  enum tree_code code0, code1;
+	  code0 = TREE_CODE (TREE_TYPE (args[0]));
+	  code1 = TREE_CODE (TREE_TYPE (args[1]));
+	  if (!((code0 == REAL_TYPE && code1 == REAL_TYPE)
+		|| (code0 == REAL_TYPE && code1 == INTEGER_TYPE)
+		|| (code0 == INTEGER_TYPE && code1 == REAL_TYPE)))
+	    {
+	      error ("non-floating-point arguments in call to "
+		     "function %qE", fndecl);
+	      return false;
+	    }
+	  return true;
+	}
+      return false;
+
+    case BUILT_IN_FPCLASSIFY:
+      if (validate_nargs (fndecl, nargs, 6))
+	{
+	  unsigned i;
+	  
+	  for (i=0; i<5; i++)
+	    if (TREE_CODE (args[i]) != INTEGER_CST)
+	      {
+		error ("non-const integer argument %u in call to function %qE",
+		       i+1, fndecl);
+		return false;
+	      }
+
+	  if (TREE_CODE (TREE_TYPE (args[5])) != REAL_TYPE)
+	    {
+	      error ("non-floating-point argument in call to function %qE",
+		     fndecl);
+	      return false;
+	    }
+	  return true;
+	}
+      return false;
+
+    default:
+      return true;
+    }
 }
 
 /* Function to help qsort sort FIELD_DECLs by name order.  */
@@ -6641,46 +8167,70 @@ catenate_strings (const char *lhs, const char *rhs_start, int rhs_size)
    TOKEN, which had the associated VALUE.  */
 
 void
-c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
+c_parse_error (const char *gmsgid, enum cpp_ttype token_type, 
+	       tree value, unsigned char token_flags)
 {
 #define catenate_messages(M1, M2) catenate_strings ((M1), (M2), sizeof (M2))
 
   char *message = NULL;
 
-  if (token == CPP_EOF)
+  if (token_type == CPP_EOF)
     message = catenate_messages (gmsgid, " at end of input");
-  else if (token == CPP_CHAR || token == CPP_WCHAR)
+  else if (token_type == CPP_CHAR 
+	   || token_type == CPP_WCHAR 
+	   || token_type == CPP_CHAR16
+	   || token_type == CPP_CHAR32)
     {
       unsigned int val = TREE_INT_CST_LOW (value);
-      const char *const ell = (token == CPP_CHAR) ? "" : "L";
+      const char *prefix;
+
+      switch (token_type)
+	{
+	default:
+	  prefix = "";
+	  break;
+	case CPP_WCHAR:
+	  prefix = "L";
+	  break;
+	case CPP_CHAR16:
+	  prefix = "u";
+	  break;
+	case CPP_CHAR32:
+	  prefix = "U";
+	  break;
+        }
+
       if (val <= UCHAR_MAX && ISGRAPH (val))
 	message = catenate_messages (gmsgid, " before %s'%c'");
       else
 	message = catenate_messages (gmsgid, " before %s'\\x%x'");
 
-      error (message, ell, val);
+      error (message, prefix, val);
       free (message);
       message = NULL;
     }
-  else if (token == CPP_STRING || token == CPP_WSTRING)
+  else if (token_type == CPP_STRING 
+	   || token_type == CPP_WSTRING 
+	   || token_type == CPP_STRING16
+	   || token_type == CPP_STRING32)
     message = catenate_messages (gmsgid, " before string constant");
-  else if (token == CPP_NUMBER)
+  else if (token_type == CPP_NUMBER)
     message = catenate_messages (gmsgid, " before numeric constant");
-  else if (token == CPP_NAME)
+  else if (token_type == CPP_NAME)
     {
       message = catenate_messages (gmsgid, " before %qE");
       error (message, value);
       free (message);
       message = NULL;
     }
-  else if (token == CPP_PRAGMA)
+  else if (token_type == CPP_PRAGMA)
     message = catenate_messages (gmsgid, " before %<#pragma%>");
-  else if (token == CPP_PRAGMA_EOL)
+  else if (token_type == CPP_PRAGMA_EOL)
     message = catenate_messages (gmsgid, " before end of line");
-  else if (token < N_TTYPES)
+  else if (token_type < N_TTYPES)
     {
       message = catenate_messages (gmsgid, " before %qs token");
-      error (message, cpp_type2name (token));
+      error (message, cpp_type2name (token_type, token_flags));
       free (message);
       message = NULL;
     }
@@ -6695,76 +8245,127 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
 #undef catenate_messages
 }
 
+/* Callback from cpp_error for PFILE to print diagnostics from the
+   preprocessor.  The diagnostic is of type LEVEL, at location
+   LOCATION unless this is after lexing and the compiler's location
+   should be used instead, with column number possibly overridden by
+   COLUMN_OVERRIDE if not zero; MSG is the translated message and AP
+   the arguments.  Returns true if a diagnostic was emitted, false
+   otherwise.  */
+
+bool
+c_cpp_error (cpp_reader *pfile ATTRIBUTE_UNUSED, int level,
+	     location_t location, unsigned int column_override,
+	     const char *msg, va_list *ap)
+{
+  diagnostic_info diagnostic;
+  diagnostic_t dlevel;
+  int save_warn_system_headers = warn_system_headers;
+  bool ret;
+
+  switch (level)
+    {
+    case CPP_DL_WARNING_SYSHDR:
+      if (flag_no_output)
+	return false;
+      warn_system_headers = 1;
+      /* Fall through.  */
+    case CPP_DL_WARNING:
+      if (flag_no_output)
+	return false;
+      dlevel = DK_WARNING;
+      break;
+    case CPP_DL_PEDWARN:
+      if (flag_no_output && !flag_pedantic_errors)
+	return false;
+      dlevel = DK_PEDWARN;
+      break;
+    case CPP_DL_ERROR:
+      dlevel = DK_ERROR;
+      break;
+    case CPP_DL_ICE:
+      dlevel = DK_ICE;
+      break;
+    case CPP_DL_NOTE:
+      dlevel = DK_NOTE;
+      break;
+    case CPP_DL_FATAL:
+      dlevel = DK_FATAL;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+  if (done_lexing)
+    location = input_location;
+  diagnostic_set_info_translated (&diagnostic, msg, ap,
+				  location, dlevel);
+  if (column_override)
+    diagnostic_override_column (&diagnostic, column_override);
+  ret = report_diagnostic (&diagnostic);
+  if (level == CPP_DL_WARNING_SYSHDR)
+    warn_system_headers = save_warn_system_headers;
+  return ret;
+}
+
 /* Walk a gimplified function and warn for functions whose return value is
    ignored and attribute((warn_unused_result)) is set.  This is done before
    inlining, so we don't have to worry about that.  */
 
 void
-c_warn_unused_result (tree *top_p)
+c_warn_unused_result (gimple_seq seq)
 {
-  tree t = *top_p;
-  tree_stmt_iterator i;
   tree fdecl, ftype;
+  gimple_stmt_iterator i;
 
-  switch (TREE_CODE (t))
+  for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
     {
-    case STATEMENT_LIST:
-      for (i = tsi_start (*top_p); !tsi_end_p (i); tsi_next (&i))
-	c_warn_unused_result (tsi_stmt_ptr (i));
-      break;
+      gimple g = gsi_stmt (i);
 
-    case COND_EXPR:
-      c_warn_unused_result (&COND_EXPR_THEN (t));
-      c_warn_unused_result (&COND_EXPR_ELSE (t));
-      break;
-    case BIND_EXPR:
-      c_warn_unused_result (&BIND_EXPR_BODY (t));
-      break;
-    case TRY_FINALLY_EXPR:
-    case TRY_CATCH_EXPR:
-      c_warn_unused_result (&TREE_OPERAND (t, 0));
-      c_warn_unused_result (&TREE_OPERAND (t, 1));
-      break;
-    case CATCH_EXPR:
-      c_warn_unused_result (&CATCH_BODY (t));
-      break;
-    case EH_FILTER_EXPR:
-      c_warn_unused_result (&EH_FILTER_FAILURE (t));
-      break;
-
-    case CALL_EXPR:
-      if (TREE_USED (t))
-	break;
-
-      /* This is a naked call, as opposed to a CALL_EXPR nested inside
-	 a MODIFY_EXPR.  All calls whose value is ignored should be
-	 represented like this.  Look for the attribute.  */
-      fdecl = get_callee_fndecl (t);
-      if (fdecl)
-	ftype = TREE_TYPE (fdecl);
-      else
+      switch (gimple_code (g))
 	{
-	  ftype = TREE_TYPE (CALL_EXPR_FN (t));
-	  /* Look past pointer-to-function to the function type itself.  */
-	  ftype = TREE_TYPE (ftype);
-	}
+	case GIMPLE_BIND:
+	  c_warn_unused_result (gimple_bind_body (g));
+	  break;
+	case GIMPLE_TRY:
+	  c_warn_unused_result (gimple_try_eval (g));
+	  c_warn_unused_result (gimple_try_cleanup (g));
+	  break;
+	case GIMPLE_CATCH:
+	  c_warn_unused_result (gimple_catch_handler (g));
+	  break;
+	case GIMPLE_EH_FILTER:
+	  c_warn_unused_result (gimple_eh_filter_failure (g));
+	  break;
 
-      if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
-	{
-	  if (fdecl)
-	    warning (0, "%Hignoring return value of %qD, "
-		     "declared with attribute warn_unused_result",
-		     EXPR_LOCUS (t), fdecl);
-	  else
-	    warning (0, "%Hignoring return value of function "
-		     "declared with attribute warn_unused_result",
-		     EXPR_LOCUS (t));
-	}
-      break;
+	case GIMPLE_CALL:
+	  if (gimple_call_lhs (g))
+	    break;
 
-    default:
-      /* Not a container, not a call, or a call whose value is used.  */
-      break;
+	  /* This is a naked call, as opposed to a GIMPLE_CALL with an
+	     LHS.  All calls whose value is ignored should be
+	     represented like this.  Look for the attribute.  */
+	  fdecl = gimple_call_fndecl (g);
+	  ftype = TREE_TYPE (TREE_TYPE (gimple_call_fn (g)));
+
+	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
+	    {
+	      location_t loc = gimple_location (g);
+
+	      if (fdecl)
+		warning (0, "%Hignoring return value of %qD, "
+			 "declared with attribute warn_unused_result",
+			 &loc, fdecl);
+	      else
+		warning (0, "%Hignoring return value of function "
+			 "declared with attribute warn_unused_result",
+			 &loc);
+	    }
+	  break;
+
+	default:
+	  /* Not a container, not a call, or a call whose value is used.  */
+	  break;
+	}
     }
 }
 
@@ -6813,6 +8414,7 @@ fold_offsetof_1 (tree expr, tree stop_ref)
       return error_mark_node;
 
     case CALL_EXPR:
+    case TARGET_EXPR:
       error ("cannot apply %<offsetof%> when %<operator[]%> is overloaded");
       return error_mark_node;
 
@@ -6942,6 +8544,7 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	      tree curindex;
 	      unsigned HOST_WIDE_INT cnt;
 	      constructor_elt *ce;
+	      bool fold_p = false;
 
 	      if (VEC_index (constructor_elt, v, 0)->index)
 		maxindex = fold_convert (sizetype,
@@ -6953,14 +8556,20 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 		   VEC_iterate (constructor_elt, v, cnt, ce);
 		   cnt++)
 		{
+		  bool curfold_p = false;
 		  if (ce->index)
-		    curindex = fold_convert (sizetype, ce->index);
+		    curindex = ce->index, curfold_p = true;
 		  else
-		    curindex = size_binop (PLUS_EXPR, curindex, size_one_node);
-
+		    {
+		      if (fold_p)
+		        curindex = fold_convert (sizetype, curindex);
+		      curindex = size_binop (PLUS_EXPR, curindex, size_one_node);
+		    }
 		  if (tree_int_cst_lt (maxindex, curindex))
-		    maxindex = curindex;
+		    maxindex = curindex, fold_p = curfold_p;
 		}
+	       if (fold_p)
+	         maxindex = fold_convert (sizetype, maxindex);
 	    }
 	}
       else
@@ -6999,10 +8608,33 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
 				    hashcode);
   main_type = type_hash_canon (hashcode, main_type);
 
+  /* Fix the canonical type.  */
+  if (TYPE_STRUCTURAL_EQUALITY_P (TREE_TYPE (main_type))
+      || TYPE_STRUCTURAL_EQUALITY_P (TYPE_DOMAIN (main_type)))
+    SET_TYPE_STRUCTURAL_EQUALITY (main_type);
+  else if (TYPE_CANONICAL (TREE_TYPE (main_type)) != TREE_TYPE (main_type)
+	   || (TYPE_CANONICAL (TYPE_DOMAIN (main_type))
+	       != TYPE_DOMAIN (main_type)))
+    TYPE_CANONICAL (main_type) 
+      = build_array_type (TYPE_CANONICAL (TREE_TYPE (main_type)),
+			  TYPE_CANONICAL (TYPE_DOMAIN (main_type)));
+  else
+    TYPE_CANONICAL (main_type) = main_type;
+
   if (quals == 0)
     type = main_type;
   else
     type = c_build_qualified_type (main_type, quals);
+
+  if (COMPLETE_TYPE_P (type)
+      && TREE_CODE (TYPE_SIZE_UNIT (type)) == INTEGER_CST
+      && TREE_OVERFLOW (TYPE_SIZE_UNIT (type)))
+    {
+      error ("size of array is too large");
+      /* If we proceed with the array type as it is, we'll eventually
+	 crash in tree_low_cst().  */
+      type = error_mark_node;
+    }
 
   *ptype = type;
   return failure;
@@ -7027,18 +8659,18 @@ builtin_type_for_size (int size, bool unsignedp)
    Returns 0 if an error is encountered.  */
 
 static int
-sync_resolve_size (tree function, tree params)
+sync_resolve_size (tree function, VEC(tree,gc) *params)
 {
   tree type;
   int size;
 
-  if (params == NULL)
+  if (VEC_empty (tree, params))
     {
       error ("too few arguments to function %qE", function);
       return 0;
     }
 
-  type = TREE_TYPE (TREE_VALUE (params));
+  type = TREE_TYPE (VEC_index (tree, params, 0));
   if (TREE_CODE (type) != POINTER_TYPE)
     goto incompatible;
 
@@ -7061,27 +8693,29 @@ sync_resolve_size (tree function, tree params)
    was encountered; true on success.  */
 
 static bool
-sync_resolve_params (tree orig_function, tree function, tree params)
+sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 {
   tree arg_types = TYPE_ARG_TYPES (TREE_TYPE (function));
   tree ptype;
   int number;
+  unsigned int parmnum;
 
   /* We've declared the implementation functions to use "volatile void *"
      as the pointer parameter, so we shouldn't get any complaints from the
      call to check_function_arguments what ever type the user used.  */
   arg_types = TREE_CHAIN (arg_types);
-  ptype = TREE_TYPE (TREE_TYPE (TREE_VALUE (params)));
+  ptype = TREE_TYPE (TREE_TYPE (VEC_index (tree, params, 0)));
   number = 2;
 
   /* For the rest of the values, we need to cast these to FTYPE, so that we
      don't get warnings for passing pointer types, etc.  */
+  parmnum = 0;
   while (arg_types != void_list_node)
     {
       tree val;
 
-      params = TREE_CHAIN (params);
-      if (params == NULL)
+      ++parmnum;
+      if (VEC_length (tree, params) <= parmnum)
 	{
 	  error ("too few arguments to function %qE", orig_function);
 	  return false;
@@ -7090,10 +8724,10 @@ sync_resolve_params (tree orig_function, tree function, tree params)
       /* ??? Ideally for the first conversion we'd use convert_for_assignment
 	 so that we get warnings for anything that doesn't match the pointer
 	 type.  This isn't portable across the C and C++ front ends atm.  */
-      val = TREE_VALUE (params);
+      val = VEC_index (tree, params, parmnum);
       val = convert (ptype, val);
       val = convert (TREE_VALUE (arg_types), val);
-      TREE_VALUE (params) = val;
+      VEC_replace (tree, params, parmnum, val);
 
       arg_types = TREE_CHAIN (arg_types);
       number++;
@@ -7103,7 +8737,7 @@ sync_resolve_params (tree orig_function, tree function, tree params)
      being "an optional list of variables protected by the memory barrier".
      No clue what that's supposed to mean, precisely, but we consider all
      call-clobbered variables to be protected so we're safe.  */
-  TREE_CHAIN (params) = NULL;
+  VEC_truncate (tree, params, parmnum + 1);
 
   return true;
 }
@@ -7113,9 +8747,9 @@ sync_resolve_params (tree orig_function, tree function, tree params)
    PARAMS.  */
 
 static tree
-sync_resolve_return (tree params, tree result)
+sync_resolve_return (tree first_param, tree result)
 {
-  tree ptype = TREE_TYPE (TREE_TYPE (TREE_VALUE (params)));
+  tree ptype = TREE_TYPE (TREE_TYPE (first_param));
   ptype = TYPE_MAIN_VARIANT (ptype);
   return convert (ptype, result);
 }
@@ -7130,7 +8764,7 @@ sync_resolve_return (tree params, tree result)
    continue.  */
 
 tree
-resolve_overloaded_builtin (tree function, tree params)
+resolve_overloaded_builtin (tree function, VEC(tree,gc) *params)
 {
   enum built_in_function orig_code = DECL_FUNCTION_CODE (function);
   switch (DECL_BUILT_IN_CLASS (function))
@@ -7167,7 +8801,7 @@ resolve_overloaded_builtin (tree function, tree params)
     case BUILT_IN_LOCK_RELEASE_N:
       {
 	int n = sync_resolve_size (function, params);
-	tree new_function, result;
+	tree new_function, first_param, result;
 
 	if (n == 0)
 	  return error_mark_node;
@@ -7176,10 +8810,11 @@ resolve_overloaded_builtin (tree function, tree params)
 	if (!sync_resolve_params (function, new_function, params))
 	  return error_mark_node;
 
-	result = build_function_call (new_function, params);
+	first_param = VEC_index (tree, params, 0);
+	result = build_function_call_vec (new_function, params, NULL);
 	if (orig_code != BUILT_IN_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_LOCK_RELEASE_N)
-	  result = sync_resolve_return (params, result);
+	  result = sync_resolve_return (first_param, result);
 
 	return result;
       }
@@ -7249,94 +8884,134 @@ warn_array_subscript_with_type_char (tree index)
 /* Implement -Wparentheses for the unexpected C precedence rules, to
    cover cases like x + y << z which readers are likely to
    misinterpret.  We have seen an expression in which CODE is a binary
-   operator used to combine expressions headed by CODE_LEFT and
-   CODE_RIGHT.  CODE_LEFT and CODE_RIGHT may be ERROR_MARK, which
-   means that that side of the expression was not formed using a
-   binary operator, or it was enclosed in parentheses.  */
+   operator used to combine expressions ARG_LEFT and ARG_RIGHT, which
+   before folding had CODE_LEFT and CODE_RIGHT.  CODE_LEFT and
+   CODE_RIGHT may be ERROR_MARK, which means that that side of the
+   expression was not formed using a binary or unary operator, or it
+   was enclosed in parentheses.  */
 
 void
-warn_about_parentheses (enum tree_code code, enum tree_code code_left,
-			enum tree_code code_right)
+warn_about_parentheses (enum tree_code code,
+			enum tree_code code_left, tree arg_left,
+			enum tree_code code_right, tree arg_right)
 {
   if (!warn_parentheses)
     return;
 
-  if (code == LSHIFT_EXPR || code == RSHIFT_EXPR)
-    {
-      if (code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
-	warning (OPT_Wparentheses,
-		 "suggest parentheses around + or - inside shift");
-    }
+  /* This macro tests that the expression ARG with original tree code
+     CODE appears to be a boolean expression. or the result of folding a
+     boolean expression.  */
+#define APPEARS_TO_BE_BOOLEAN_EXPR_P(CODE, ARG)                             \
+	(truth_value_p (TREE_CODE (ARG))                                    \
+	 || TREE_CODE (TREE_TYPE (ARG)) == BOOLEAN_TYPE                     \
+	 /* Folding may create 0 or 1 integers from other expressions.  */  \
+	 || ((CODE) != INTEGER_CST                                          \
+	     && (integer_onep (ARG) || integer_zerop (ARG))))
 
-  if (code == TRUTH_ORIF_EXPR)
+  switch (code) 
     {
-      if (code_left == TRUTH_ANDIF_EXPR
-	  || code_right == TRUTH_ANDIF_EXPR)
+    case LSHIFT_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around && within ||");
-    }
+		 "suggest parentheses around %<+%> inside %<<<%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> inside %<<<%>");
+      return;
 
-  if (code == BIT_IOR_EXPR)
-    {
+    case RSHIFT_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<+%> inside %<>>%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> inside %<>>%>");
+      return;
+
+    case TRUTH_ORIF_EXPR:
+      if (code_left == TRUTH_ANDIF_EXPR || code_right == TRUTH_ANDIF_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<&&%> within %<||%>");
+      return;
+
+    case BIT_IOR_EXPR:
       if (code_left == BIT_AND_EXPR || code_left == BIT_XOR_EXPR
 	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
 	  || code_right == BIT_AND_EXPR || code_right == BIT_XOR_EXPR
 	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around arithmetic in operand of |");
+		 "suggest parentheses around arithmetic in operand of %<|%>");
       /* Check cases like x|y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of |");
-    }
+		 "suggest parentheses around comparison in operand of %<|%>");
+      /* Check cases like !x | y */
+      else if (code_left == TRUTH_NOT_EXPR
+	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
+		 "%<!%> or change %<|%> to %<||%> or %<!%> to %<~%>");
+      return;
 
-  if (code == BIT_XOR_EXPR)
-    {
+    case BIT_XOR_EXPR:
       if (code_left == BIT_AND_EXPR
 	  || code_left == PLUS_EXPR || code_left == MINUS_EXPR
 	  || code_right == BIT_AND_EXPR
 	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around arithmetic in operand of ^");
+		 "suggest parentheses around arithmetic in operand of %<^%>");
       /* Check cases like x^y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of ^");
-    }
+		 "suggest parentheses around comparison in operand of %<^%>");
+      return;
 
-  if (code == BIT_AND_EXPR)
-    {
-      if (code_left == PLUS_EXPR || code_left == MINUS_EXPR
-	  || code_right == PLUS_EXPR || code_right == MINUS_EXPR)
+    case BIT_AND_EXPR:
+      if (code_left == PLUS_EXPR || code_right == PLUS_EXPR)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around + or - in operand of &");
+		 "suggest parentheses around %<+%> in operand of %<&%>");
+      else if (code_left == MINUS_EXPR || code_right == MINUS_EXPR)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around %<-%> in operand of %<&%>");
       /* Check cases like x&y==z */
-      if (TREE_CODE_CLASS (code_left) == tcc_comparison
-	  || TREE_CODE_CLASS (code_right) == tcc_comparison)
+      else if (TREE_CODE_CLASS (code_left) == tcc_comparison
+	       || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of &");
-    }
+		 "suggest parentheses around comparison in operand of %<&%>");
+      /* Check cases like !x & y */
+      else if (code_left == TRUTH_NOT_EXPR
+	       && !APPEARS_TO_BE_BOOLEAN_EXPR_P (code_right, arg_right))
+	warning (OPT_Wparentheses, "suggest parentheses around operand of "
+		 "%<!%> or change %<&%> to %<&&%> or %<!%> to %<~%>");
+      return;
 
-  if (code == EQ_EXPR || code == NE_EXPR)
-    {
+    case EQ_EXPR:
       if (TREE_CODE_CLASS (code_left) == tcc_comparison
           || TREE_CODE_CLASS (code_right) == tcc_comparison)
 	warning (OPT_Wparentheses,
-		 "suggest parentheses around comparison in operand of %s",
-                 code == EQ_EXPR ? "==" : "!=");
-    }
-  else if (TREE_CODE_CLASS (code) == tcc_comparison)
-    {
-      if ((TREE_CODE_CLASS (code_left) == tcc_comparison
-	   && code_left != NE_EXPR && code_left != EQ_EXPR)
-	  || (TREE_CODE_CLASS (code_right) == tcc_comparison
-	      && code_right != NE_EXPR && code_right != EQ_EXPR))
-	warning (OPT_Wparentheses, "comparisons like X<=Y<=Z do not "
+		 "suggest parentheses around comparison in operand of %<==%>");
+      return;
+    case NE_EXPR:
+      if (TREE_CODE_CLASS (code_left) == tcc_comparison
+          || TREE_CODE_CLASS (code_right) == tcc_comparison)
+	warning (OPT_Wparentheses,
+		 "suggest parentheses around comparison in operand of %<!=%>");
+      return;
+
+    default:
+      if (TREE_CODE_CLASS (code) == tcc_comparison
+	   && ((TREE_CODE_CLASS (code_left) == tcc_comparison
+		&& code_left != NE_EXPR && code_left != EQ_EXPR
+		&& INTEGRAL_TYPE_P (TREE_TYPE (arg_left)))
+	       || (TREE_CODE_CLASS (code_right) == tcc_comparison
+		   && code_right != NE_EXPR && code_right != EQ_EXPR
+		   && INTEGRAL_TYPE_P (TREE_TYPE (arg_right)))))
+	warning (OPT_Wparentheses, "comparisons like %<X<=Y<=Z%> do not "
 		 "have their mathematical meaning");
+      return;
     }
+#undef NOT_A_BOOLEAN_EXPR_P
 }
 
 /* If LABEL (a LABEL_DECL) has not been used, issue a warning.  */
@@ -7357,10 +9032,11 @@ warn_for_unused_label (tree label)
 struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;
 #endif
 
-/* Warn for division by zero according to the value of DIVISOR.  */
+/* Warn for division by zero according to the value of DIVISOR.  LOC
+   is the location of the division operator.  */
 
 void
-warn_for_div_by_zero (tree divisor)
+warn_for_div_by_zero (location_t loc, tree divisor)
 {
   /* If DIVISOR is zero, and has integral or fixed-point type, issue a warning
      about division by zero.  Do not issue a warning if DIVISOR has a
@@ -7368,7 +9044,227 @@ warn_for_div_by_zero (tree divisor)
      generating a NaN.  */
   if (skip_evaluation == 0
       && (integer_zerop (divisor) || fixed_zerop (divisor)))
-    warning (OPT_Wdiv_by_zero, "division by zero");
+    warning_at (loc, OPT_Wdiv_by_zero, "division by zero");
+}
+
+/* Subroutine of build_binary_op. Give warnings for comparisons
+   between signed and unsigned quantities that may fail. Do the
+   checking based on the original operand trees ORIG_OP0 and ORIG_OP1,
+   so that casts will be considered, but default promotions won't
+   be.
+
+   LOCATION is the location of the comparison operator.
+
+   The arguments of this function map directly to local variables
+   of build_binary_op.  */
+
+void 
+warn_for_sign_compare (location_t location,
+		       tree orig_op0, tree orig_op1, 
+		       tree op0, tree op1, 
+		       tree result_type, enum tree_code resultcode)
+{
+  int op0_signed = !TYPE_UNSIGNED (TREE_TYPE (orig_op0));
+  int op1_signed = !TYPE_UNSIGNED (TREE_TYPE (orig_op1));
+  int unsignedp0, unsignedp1;
+  
+  /* In C++, check for comparison of different enum types.  */
+  if (c_dialect_cxx()
+      && TREE_CODE (TREE_TYPE (orig_op0)) == ENUMERAL_TYPE
+      && TREE_CODE (TREE_TYPE (orig_op1)) == ENUMERAL_TYPE
+      && TYPE_MAIN_VARIANT (TREE_TYPE (orig_op0))
+	 != TYPE_MAIN_VARIANT (TREE_TYPE (orig_op1)))
+    {
+      warning_at (location,
+		  OPT_Wsign_compare, "comparison between types %qT and %qT",
+		  TREE_TYPE (orig_op0), TREE_TYPE (orig_op1));
+    }
+
+  /* Do not warn if the comparison is being done in a signed type,
+     since the signed type will only be chosen if it can represent
+     all the values of the unsigned type.  */
+  if (!TYPE_UNSIGNED (result_type))
+    /* OK */;
+  /* Do not warn if both operands are unsigned.  */
+  else if (op0_signed == op1_signed)
+    /* OK */;
+  else
+    {
+      tree sop, uop, base_type;
+      bool ovf;
+
+      if (op0_signed)
+        sop = orig_op0, uop = orig_op1;
+      else 
+        sop = orig_op1, uop = orig_op0;
+
+      STRIP_TYPE_NOPS (sop); 
+      STRIP_TYPE_NOPS (uop);
+      base_type = (TREE_CODE (result_type) == COMPLEX_TYPE
+		   ? TREE_TYPE (result_type) : result_type);
+
+      /* Do not warn if the signed quantity is an unsuffixed integer
+         literal (or some static constant expression involving such
+         literals or a conditional expression involving such literals)
+         and it is non-negative.  */
+      if (tree_expr_nonnegative_warnv_p (sop, &ovf))
+        /* OK */;
+      /* Do not warn if the comparison is an equality operation, the
+         unsigned quantity is an integral constant, and it would fit
+         in the result if the result were signed.  */
+      else if (TREE_CODE (uop) == INTEGER_CST
+               && (resultcode == EQ_EXPR || resultcode == NE_EXPR)
+	       && int_fits_type_p (uop, c_common_signed_type (base_type)))
+        /* OK */;
+      /* In C, do not warn if the unsigned quantity is an enumeration
+         constant and its maximum value would fit in the result if the
+         result were signed.  */
+      else if (!c_dialect_cxx() && TREE_CODE (uop) == INTEGER_CST
+               && TREE_CODE (TREE_TYPE (uop)) == ENUMERAL_TYPE
+               && int_fits_type_p (TYPE_MAX_VALUE (TREE_TYPE (uop)),
+				   c_common_signed_type (base_type)))
+        /* OK */;
+      else 
+        warning_at (location,
+		    OPT_Wsign_compare, 
+		    "comparison between signed and unsigned integer expressions");
+    }
+  
+  /* Warn if two unsigned values are being compared in a size larger
+     than their original size, and one (and only one) is the result of
+     a `~' operator.  This comparison will always fail.
+     
+     Also warn if one operand is a constant, and the constant does not
+     have all bits set that are set in the ~ operand when it is
+     extended.  */
+
+  op0 = get_narrower (op0, &unsignedp0);
+  op1 = get_narrower (op1, &unsignedp1);
+  
+  if ((TREE_CODE (op0) == BIT_NOT_EXPR)
+      ^ (TREE_CODE (op1) == BIT_NOT_EXPR))
+    {
+      if (TREE_CODE (op0) == BIT_NOT_EXPR)
+	op0 = get_narrower (TREE_OPERAND (op0, 0), &unsignedp0);
+      if (TREE_CODE (op1) == BIT_NOT_EXPR)
+	op1 = get_narrower (TREE_OPERAND (op1, 0), &unsignedp1);
+
+      if (host_integerp (op0, 0) || host_integerp (op1, 0))
+        {
+          tree primop;
+          HOST_WIDE_INT constant, mask;
+          int unsignedp;
+          unsigned int bits;
+          
+          if (host_integerp (op0, 0))
+            {
+              primop = op1;
+              unsignedp = unsignedp1;
+              constant = tree_low_cst (op0, 0);
+            }
+          else
+            {
+              primop = op0;
+              unsignedp = unsignedp0;
+              constant = tree_low_cst (op1, 0);
+            }
+          
+          bits = TYPE_PRECISION (TREE_TYPE (primop));
+          if (bits < TYPE_PRECISION (result_type)
+              && bits < HOST_BITS_PER_LONG && unsignedp)
+            {
+              mask = (~ (HOST_WIDE_INT) 0) << bits;
+              if ((mask & constant) != mask)
+		{
+		  if (constant == 0)
+		    warning (OPT_Wsign_compare, 
+			     "promoted ~unsigned is always non-zero");
+		  else
+		    warning_at (location, OPT_Wsign_compare, 
+				"comparison of promoted ~unsigned with constant");
+		}
+            }
+        }
+      else if (unsignedp0 && unsignedp1
+               && (TYPE_PRECISION (TREE_TYPE (op0))
+                   < TYPE_PRECISION (result_type))
+               && (TYPE_PRECISION (TREE_TYPE (op1))
+                   < TYPE_PRECISION (result_type)))
+        warning_at (location, OPT_Wsign_compare,
+                 "comparison of promoted ~unsigned with unsigned");
+    }
+}
+
+/* Setup a TYPE_DECL node as a typedef representation.
+
+   X is a TYPE_DECL for a typedef statement.  Create a brand new
+   ..._TYPE node (which will be just a variant of the existing
+   ..._TYPE node with identical properties) and then install X
+   as the TYPE_NAME of this brand new (duplicate) ..._TYPE node.
+
+   The whole point here is to end up with a situation where each
+   and every ..._TYPE node the compiler creates will be uniquely
+   associated with AT MOST one node representing a typedef name.
+   This way, even though the compiler substitutes corresponding
+   ..._TYPE nodes for TYPE_DECL (i.e. "typedef name") nodes very
+   early on, later parts of the compiler can always do the reverse
+   translation and get back the corresponding typedef name.  For
+   example, given:
+
+	typedef struct S MY_TYPE;
+	MY_TYPE object;
+
+   Later parts of the compiler might only know that `object' was of
+   type `struct S' if it were not for code just below.  With this
+   code however, later parts of the compiler see something like:
+
+	struct S' == struct S
+	typedef struct S' MY_TYPE;
+	struct S' object;
+
+    And they can then deduce (from the node for type struct S') that
+    the original object declaration was:
+
+		MY_TYPE object;
+
+    Being able to do this is important for proper support of protoize,
+    and also for generating precise symbolic debugging information
+    which takes full account of the programmer's (typedef) vocabulary.
+
+    Obviously, we don't want to generate a duplicate ..._TYPE node if
+    the TYPE_DECL node that we are now processing really represents a
+    standard built-in type.  */
+
+void
+set_underlying_type (tree x)
+{
+  if (x == error_mark_node)
+    return;
+  if (DECL_IS_BUILTIN (x))
+    {
+      if (TYPE_NAME (TREE_TYPE (x)) == 0)
+	TYPE_NAME (TREE_TYPE (x)) = x;
+    }
+  else if (TREE_TYPE (x) != error_mark_node
+	   && DECL_ORIGINAL_TYPE (x) == NULL_TREE)
+    {
+      tree tt = TREE_TYPE (x);
+      DECL_ORIGINAL_TYPE (x) = tt;
+      tt = build_variant_type_copy (tt);
+      TYPE_STUB_DECL (tt) = TYPE_STUB_DECL (DECL_ORIGINAL_TYPE (x));
+      TYPE_NAME (tt) = x;
+      TREE_USED (tt) = TREE_USED (x);
+      TREE_TYPE (x) = tt;
+    }
+}
+
+/* Returns true if X is a typedef decl.  */
+
+bool
+is_typedef_decl (tree x)
+{
+  return (x && TREE_CODE (x) == TYPE_DECL
+          && DECL_ORIGINAL_TYPE (x) != NULL_TREE);
 }
 
 #include "gt-c-common.h"

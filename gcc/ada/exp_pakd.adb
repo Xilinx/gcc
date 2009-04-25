@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,8 +33,10 @@ with Layout;   use Layout;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
+with Opt;      use Opt;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
@@ -534,7 +536,7 @@ package body Exp_Pakd is
    --  directly using Insert_Action.
 
    ------------------------------
-   -- Compute_Linear_Subcsript --
+   -- Compute_Linear_Subscript --
    ------------------------------
 
    procedure Compute_Linear_Subscript
@@ -635,8 +637,8 @@ package body Exp_Pakd is
                       Attribute_Name => Name_Pos,
                       Expressions    => New_List (
                         Make_Attribute_Reference (Loc,
-                        Prefix         => New_Occurrence_Of (Styp, Loc),
-                        Attribute_Name => Name_First)))));
+                          Prefix         => New_Occurrence_Of (Styp, Loc),
+                          Attribute_Name => Name_First)))));
          end if;
 
          Set_Paren_Count (Newsub, 1);
@@ -960,23 +962,23 @@ package body Exp_Pakd is
                                Make_Range (Loc,
                                  Low_Bound =>
                                    Make_Attribute_Reference (Loc,
-                                     Prefix =>
+                                     Prefix         =>
                                        New_Occurrence_Of (Indx_Typ, Loc),
                                      Attribute_Name => Name_Pos,
-                                     Expressions => New_List (
+                                     Expressions    => New_List (
                                        Make_Attribute_Reference (Loc,
-                                         Prefix =>
+                                         Prefix         =>
                                            New_Occurrence_Of (Indx_Typ, Loc),
                                          Attribute_Name => Name_First))),
 
                                  High_Bound =>
                                    Make_Attribute_Reference (Loc,
-                                     Prefix =>
+                                     Prefix         =>
                                        New_Occurrence_Of (Indx_Typ, Loc),
                                      Attribute_Name => Name_Pos,
-                                     Expressions => New_List (
+                                     Expressions    => New_List (
                                        Make_Attribute_Reference (Loc,
-                                         Prefix =>
+                                         Prefix         =>
                                            New_Occurrence_Of (Indx_Typ, Loc),
                                          Attribute_Name => Name_Last)))))));
 
@@ -1091,7 +1093,7 @@ package body Exp_Pakd is
          --  discriminants, so we treat it as a default/per-object expression.
 
          Set_Parent (Len_Expr, Typ);
-         Analyze_Per_Use_Expression (Len_Expr, Standard_Long_Long_Integer);
+         Preanalyze_Spec_Expression (Len_Expr, Standard_Long_Long_Integer);
 
          --  Use a modular type if possible. We can do this if we have
          --  static bounds, and the length is small enough, and the length
@@ -1359,7 +1361,19 @@ package body Exp_Pakd is
 
       Rhs := Convert_To (Ctyp, Rhs);
       Set_Parent (Rhs, N);
-      Analyze_And_Resolve (Rhs, Ctyp);
+
+      --  If we are building the initialization procedure for a packed array,
+      --  and Initialize_Scalars is enabled, each component assignment is an
+      --  out-of-range value by design.  Compile this value without checks,
+      --  because a call to the array init_proc must not raise an exception.
+
+      if Within_Init_Proc
+        and then Initialize_Scalars
+      then
+         Analyze_And_Resolve (Rhs, Ctyp, Suppress => All_Checks);
+      else
+         Analyze_And_Resolve (Rhs, Ctyp);
+      end if;
 
       --  Case of component size 1,2,4 or any component size for the modular
       --  case. These are the cases for which we can inline the code.
@@ -1430,8 +1444,20 @@ package body Exp_Pakd is
             end if;
          end if;
 
-         New_Lhs := Duplicate_Subexpr (Obj, True);
-         New_Rhs := Duplicate_Subexpr_No_Checks (Obj);
+         --  Now create copies removing side effects. Note that in some
+         --  complex cases, this may cause the fact that we have already
+         --  set a packed array type on Obj to get lost. So we save the
+         --  type of Obj, and make sure it is reset properly.
+
+         declare
+            T : constant Entity_Id := Etype (Obj);
+         begin
+            New_Lhs := Duplicate_Subexpr (Obj, True);
+            New_Rhs := Duplicate_Subexpr_No_Checks (Obj);
+            Set_Etype (Obj, T);
+            Set_Etype (New_Lhs, T);
+            Set_Etype (New_Rhs, T);
+         end;
 
          --  First we deal with the "and"
 
@@ -1516,7 +1542,7 @@ package body Exp_Pakd is
 
                else
                   --  We have to convert the right hand side to Etype (Obj).
-                  --  A special case case arises if what we have now is a Val
+                  --  A special case arises if what we have now is a Val
                   --  attribute reference whose expression type is Etype (Obj).
                   --  This happens for assignments of fields from the same
                   --  array. In this case we get the required right hand side
@@ -1622,8 +1648,8 @@ package body Exp_Pakd is
                   Name => New_Occurrence_Of (Set_nn, Loc),
                   Parameter_Associations => New_List (
                     Make_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Obj),
+                      Prefix         => Obj,
+                      Attribute_Name => Name_Address),
                     Subscr,
                     Unchecked_Convert_To (Bits_nn,
                       Convert_To (Ctyp, Rhs)))));
@@ -1749,47 +1775,11 @@ package body Exp_Pakd is
       Ltyp := Etype (L);
       Rtyp := Etype (R);
 
-      --  First an odd and silly test. We explicitly check for the XOR
-      --  case where the component type is True .. True, since this will
-      --  raise constraint error. A special check is required since CE
-      --  will not be required other wise (cf Expand_Packed_Not).
-
-      --  No such check is required for AND and OR, since for both these
-      --  cases False op False = False, and True op True = True.
+      --  Deal with silly case of XOR where the subcomponent has a range
+      --  True .. True where an exception must be raised.
 
       if Nkind (N) = N_Op_Xor then
-         declare
-            CT : constant Entity_Id := Component_Type (Rtyp);
-            BT : constant Entity_Id := Base_Type (CT);
-
-         begin
-            Insert_Action (N,
-              Make_Raise_Constraint_Error (Loc,
-                Condition =>
-                  Make_Op_And (Loc,
-                    Left_Opnd =>
-                      Make_Op_Eq (Loc,
-                        Left_Opnd =>
-                          Make_Attribute_Reference (Loc,
-                            Prefix         => New_Occurrence_Of (CT, Loc),
-                            Attribute_Name => Name_First),
-
-                        Right_Opnd =>
-                          Convert_To (BT,
-                            New_Occurrence_Of (Standard_True, Loc))),
-
-                    Right_Opnd =>
-                      Make_Op_Eq (Loc,
-                        Left_Opnd =>
-                          Make_Attribute_Reference (Loc,
-                            Prefix         => New_Occurrence_Of (CT, Loc),
-                            Attribute_Name => Name_Last),
-
-                        Right_Opnd =>
-                          Convert_To (BT,
-                            New_Occurrence_Of (Standard_True, Loc)))),
-                Reason => CE_Range_Check_Failed));
-         end;
+         Silly_Boolean_Array_Xor_Test (N, Rtyp);
       end if;
 
       --  Now that that silliness is taken care of, get packed array type
@@ -1834,7 +1824,7 @@ package body Exp_Pakd is
 
       --    Result : Ltype;
 
-      --    System.Bitops.Bit_And/Or/Xor
+      --    System.Bit_Ops.Bit_And/Or/Xor
       --     (Left'Address,
       --      Ltype'Length * Ltype'Component_Size;
       --      Right'Address,
@@ -1881,36 +1871,38 @@ package body Exp_Pakd is
                   Parameter_Associations => New_List (
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => L),
+                      Prefix         => L,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Ltyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Ltyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => R),
+                      Prefix         => R,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Rtyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Rtyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix => New_Occurrence_Of (Result_Ent, Loc))))));
+                      Prefix => New_Occurrence_Of (Result_Ent, Loc),
+                      Attribute_Name => Name_Address)))));
 
             Rewrite (N,
               New_Occurrence_Of (Result_Ent, Loc));
@@ -1983,7 +1975,7 @@ package body Exp_Pakd is
              Left_Opnd  => Make_Shift_Right (Obj, Shift),
              Right_Opnd => Lit);
 
-         --  We neded to analyze this before we do the unchecked convert
+         --  We needed to analyze this before we do the unchecked convert
          --  below, but we need it temporarily attached to the tree for
          --  this analysis (hence the temporary Set_Parent call).
 
@@ -2032,8 +2024,8 @@ package body Exp_Pakd is
                   Name => New_Occurrence_Of (Get_nn, Loc),
                   Parameter_Associations => New_List (
                     Make_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Obj),
+                      Prefix         => Obj,
+                      Attribute_Name => Name_Address),
                     Subscr))));
          end;
       end if;
@@ -2074,8 +2066,8 @@ package body Exp_Pakd is
         Make_Op_Multiply (Loc,
           Left_Opnd =>
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Length,
-              Prefix         => New_Occurrence_Of (Ltyp, Loc)),
+              Prefix         => New_Occurrence_Of (Ltyp, Loc),
+              Attribute_Name => Name_Length),
           Right_Opnd =>
             Make_Integer_Literal (Loc, Component_Size (Ltyp)));
 
@@ -2083,8 +2075,8 @@ package body Exp_Pakd is
         Make_Op_Multiply (Loc,
           Left_Opnd =>
             Make_Attribute_Reference (Loc,
-              Attribute_Name => Name_Length,
-              Prefix         => New_Occurrence_Of (Rtyp, Loc)),
+              Prefix         => New_Occurrence_Of (Rtyp, Loc),
+              Attribute_Name => Name_Length),
           Right_Opnd =>
             Make_Integer_Literal (Loc, Component_Size (Rtyp)));
 
@@ -2125,14 +2117,14 @@ package body Exp_Pakd is
              Name => New_Occurrence_Of (RTE (RE_Bit_Eq), Loc),
              Parameter_Associations => New_List (
                Make_Byte_Aligned_Attribute_Reference (Loc,
-                 Attribute_Name => Name_Address,
-                 Prefix         => L),
+                 Prefix         => L,
+                 Attribute_Name => Name_Address),
 
                LLexpr,
 
                Make_Byte_Aligned_Attribute_Reference (Loc,
-                 Attribute_Name => Name_Address,
-                 Prefix         => R),
+                 Prefix         => R,
+                 Attribute_Name => Name_Address),
 
                RLexpr)));
       end if;
@@ -2159,37 +2151,11 @@ package body Exp_Pakd is
       Convert_To_Actual_Subtype (Opnd);
       Rtyp := Etype (Opnd);
 
-      --  First an odd and silly test. We explicitly check for the case
-      --  where the 'First of the component type is equal to the 'Last of
-      --  this component type, and if this is the case, we make sure that
-      --  constraint error is raised. The reason is that the NOT is bound
-      --  to cause CE in this case, and we will not otherwise catch it.
+      --  Deal with silly False..False and True..True subtype case
 
-      --  Believe it or not, this was reported as a bug. Note that nearly
-      --  always, the test will evaluate statically to False, so the code
-      --  will be statically removed, and no extra overhead caused.
+      Silly_Boolean_Array_Not_Test (N, Rtyp);
 
-      declare
-         CT : constant Entity_Id := Component_Type (Rtyp);
-
-      begin
-         Insert_Action (N,
-           Make_Raise_Constraint_Error (Loc,
-             Condition =>
-               Make_Op_Eq (Loc,
-                 Left_Opnd =>
-                   Make_Attribute_Reference (Loc,
-                     Prefix         => New_Occurrence_Of (CT, Loc),
-                     Attribute_Name => Name_First),
-
-                 Right_Opnd =>
-                   Make_Attribute_Reference (Loc,
-                     Prefix         => New_Occurrence_Of (CT, Loc),
-                     Attribute_Name => Name_Last)),
-             Reason => CE_Range_Check_Failed));
-      end;
-
-      --  Now that that silliness is taken care of, get packed array type
+      --  Now that the silliness is taken care of, get packed array type
 
       Convert_To_PAT_Type (Opnd);
       PAT := Etype (Opnd);
@@ -2217,7 +2183,7 @@ package body Exp_Pakd is
 
       --    Result : Typ;
 
-      --    System.Bitops.Bit_Not
+      --    System.Bit_Ops.Bit_Not
       --     (Opnd'Address,
       --      Typ'Length * Typ'Component_Size;
       --      Result'Address);
@@ -2244,22 +2210,23 @@ package body Exp_Pakd is
                   Parameter_Associations => New_List (
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix         => Opnd),
+                      Prefix         => Opnd,
+                      Attribute_Name => Name_Address),
 
                     Make_Op_Multiply (Loc,
                       Left_Opnd =>
                         Make_Attribute_Reference (Loc,
-                          Prefix =>
+                          Prefix         =>
                             New_Occurrence_Of
                               (Etype (First_Index (Rtyp)), Loc),
                           Attribute_Name => Name_Range_Length),
+
                       Right_Opnd =>
                         Make_Integer_Literal (Loc, Component_Size (Rtyp))),
 
                     Make_Byte_Aligned_Attribute_Reference (Loc,
-                      Attribute_Name => Name_Address,
-                      Prefix => New_Occurrence_Of (Result_Ent, Loc))))));
+                      Prefix => New_Occurrence_Of (Result_Ent, Loc),
+                      Attribute_Name => Name_Address)))));
 
             Rewrite (N,
               New_Occurrence_Of (Result_Ent, Loc));

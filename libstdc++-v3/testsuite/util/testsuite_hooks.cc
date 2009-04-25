@@ -2,13 +2,13 @@
 
 // Utility subroutines for the C++ library testsuite. 
 //
-// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -17,18 +17,9 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 //
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
 
 #include <testsuite_hooks.h>
 
@@ -92,17 +83,17 @@ namespace __gnu_test
     setrlimit(RLIMIT_VMEM, &r);
 #endif
 
-    // Virtual memory.
-    // On x86_64-linux, the default is -z max-page-size=0x200000
-    // which means up to 2MB of address space are accounted for
-    // PROT_NONE mappings between text and data segments of
-    // each shared library.  There are 4 shared libs involved
-    // in addition to the dynamic linker.  Use at least 16MB address space
-    // limit.
+    // Virtual memory.  On x86_64-linux, the default is -z
+    // max-page-size=0x200000 which means up to 2MB of address space
+    // are accounted for PROT_NONE mappings between text and data
+    // segments of each shared library.  There are 4 shared libs
+    // involved in addition to the dynamic linker, maybe 5 if libgomp
+    // is being used as well.  Use at least 20MB address space limit.
 #if defined(__x86_64__) && defined(__linux__)
-    if (limit < 16777216)
-      limit = 16777216;
+    if (limit < 20971520)
+      limit = 20971520;
 #endif
+
     // On HP-UX 11.23, a trivial C++ program that sets RLIMIT_AS to
     // anything less than 128MB cannot "malloc" even 1K of memory.
     // Therefore, we skip RLIMIT_AS on HP-UX.
@@ -173,7 +164,6 @@ namespace __gnu_test
   run_tests_wrapped_locale(const char* name, const func_callback& l)
   {
     using namespace std;
-    bool test = true;
     
     // Set the global locale. 
     locale loc_name = locale(name);
@@ -202,7 +192,6 @@ namespace __gnu_test
 			const func_callback& l)
   {
     using namespace std;
-    bool test = true;
     
 #ifdef _GLIBCXX_HAVE_SETENV 
     // Set the global locale. 
@@ -285,6 +274,7 @@ namespace __gnu_test
   {
 #ifdef _GLIBCXX_SYSV_SEM
     union semun val;
+    val.val = 0; // Avoid uninitialized variable warning.
     // Destroy the semaphore set only in the process that created it. 
     if (pid_ == getpid())
       semctl(sem_set_, 0, IPC_RMID, val);
@@ -334,4 +324,4 @@ namespace __gnu_test
     tmp.tm_isdst = isdst;
     return tmp;
   }
-}; // namespace __gnu_test
+} // namespace __gnu_test

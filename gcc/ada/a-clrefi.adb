@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -51,8 +49,7 @@ package body Ada.Command_Line.Response_File is
    type Argument_List_Access is access Argument_List;
    procedure Free is new Ada.Unchecked_Deallocation
      (Argument_List, Argument_List_Access);
-   --  Free only the allocated Argument_List, not the allocated String
-   --  components.
+   --  Free only the allocated Argument_List, not allocated String components
 
    --------------------
    -- Arguments_From --
@@ -76,8 +73,8 @@ package body Ada.Command_Line.Response_File is
       --  if necessary.
 
       procedure Recurse (File_Name : String);
-      --  Get the arguments from the file and call itself recursively if
-      --  one of the argument starts with character '@'.
+      --  Get the arguments from the file and call itself recursively if one of
+      --  the argument starts with character '@'.
 
       ------------------
       -- Add_Argument --
@@ -123,13 +120,13 @@ package body Ada.Command_Line.Response_File is
          First_Char : Positive;
          --  Index of the first character of an argument in Line
 
-         Last_Char  : Natural;
+         Last_Char : Natural;
          --  Index of the last character of an argument in Line
 
          In_String : Boolean;
          --  True when inside a quoted string
 
-         Arg  : Positive;
+         Arg : Positive;
 
          function End_Of_File return Boolean;
          --  True when the end of the response file has been reached
@@ -166,6 +163,7 @@ package body Ada.Command_Line.Response_File is
 
          procedure Get_Line is
             Ch : Character;
+
          begin
             Last := 0;
 
@@ -230,7 +228,6 @@ package body Ada.Command_Line.Response_File is
          if FD = Invalid_FD then
             if Ignore_Non_Existing_Files then
                return;
-
             else
                raise File_Does_Not_Exist;
             end if;
@@ -245,9 +242,11 @@ package body Ada.Command_Line.Response_File is
                  Next => null,
                  Prev => null);
             Last_File  := First_File;
+
          else
             declare
                Current : File_Ptr := First_File;
+
             begin
                loop
                   if Current.Name.all = File_Name then
@@ -303,10 +302,12 @@ package body Ada.Command_Line.Response_File is
 
                Character_Loop :
                while Last_Char <= Last loop
+
                   --  Inside a string, check only for '"'
 
                   if In_String then
                      if Line (Last_Char) = '"' then
+
                         --  Remove the '"'
 
                         Line (Last_Char .. Last - 1) :=
@@ -314,6 +315,7 @@ package body Ada.Command_Line.Response_File is
                         Last := Last - 1;
 
                         --  End of string is end of argument
+
                         if Last_Char > Last or else
                           Line (Last_Char) = ' ' or else
                           Line (Last_Char) = ASCII.HT
@@ -339,6 +341,7 @@ package body Ada.Command_Line.Response_File is
                      end if;
 
                   elsif Last_Char = Last then
+
                      --  An opening '"' at the end of the line is an error
 
                      if Line (Last) = '"' then
@@ -351,6 +354,7 @@ package body Ada.Command_Line.Response_File is
                      end if;
 
                   elsif Line (Last_Char) = '"' then
+
                      --  Entering a quoted string: remove the '"'
 
                      In_String := True;
@@ -359,8 +363,7 @@ package body Ada.Command_Line.Response_File is
                      Last := Last - 1;
 
                   else
-                     --  Outside of quoted strings, white space ends the
-                     --  argument.
+                     --  Outside quoted strings, white space ends the argument
 
                      exit Character_Loop
                           when Line (Last_Char + 1) = ' ' or else
@@ -411,8 +414,8 @@ package body Ada.Command_Line.Response_File is
                      Last_Arg := Last_Arg - 1;
 
                   else
-                     --  Save the current arguments and get those in the
-                     --  new response file.
+                     --  Save the current arguments and get those in the new
+                     --  response file.
 
                      declare
                         Inc_File_Name     : constant String :=
@@ -435,6 +438,7 @@ package body Ada.Command_Line.Response_File is
 
                         begin
                            --  Grow Arguments if it is not large enough
+
                            if Arguments'Last < New_Last_Arg then
                               Last_Arg := Arguments'Last;
                               Free (Arguments);
@@ -504,6 +508,7 @@ package body Ada.Command_Line.Response_File is
 
    exception
       when others =>
+
          --  When an exception occurs, deallocate everything
 
          Free (Arguments);

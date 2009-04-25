@@ -1,13 +1,13 @@
 /* Definitions of target machine for GNU compiler.
    MIPS SDE version.
-   Copyright (C) 2003, 2004
+   Copyright (C) 2003, 2004, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
 
 GCC is distributed in the hope that it will be useful,
@@ -16,10 +16,10 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to
-the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
+#undef DRIVER_SELF_SPECS
 #define DRIVER_SELF_SPECS						\
   /* Make sure a -mips option is present.  This helps us to pick	\
      the right multilib, and also makes the later specs easier		\
@@ -47,7 +47,10 @@ Boston, MA 02111-1307, USA.  */
      The latter trumps the former.  */					\
   "%{mno-data-in-code: -mcode-readable=no}",				\
   "%{!mcode-readable=no: %{mcode-xonly: -mcode-readable=pcrel}}",	\
-  "%<mno-data-in-code %<mcode-xonly"
+  "%<mno-data-in-code %<mcode-xonly",					\
+									\
+  /* Configuration-independent MIPS rules.  */				\
+  BASE_DRIVER_SELF_SPECS				
 
 /* Use trap rather than break for all but MIPS I ISA.  Force -no-mips16,
    so that MIPS16 assembler code requires an explicit ".set mips16".
@@ -57,13 +60,12 @@ Boston, MA 02111-1307, USA.  */
 #undef SUBTARGET_ASM_SPEC
 #define SUBTARGET_ASM_SPEC "\
 %{!mips1:--trap} \
-%{fPIC|fpic|fPIE|fpie:%{!mips16*:-KPIC}} \
 %{mips16:-no-mips16}"
 
 #undef LINK_SPEC
 #define LINK_SPEC "\
 %(endian_spec) \
-%{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32} %{mips32r2} %{mips64} \
+%{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32*} %{mips64*} \
 %{bestGnum} \
 %{shared} %{non_shared} %{call_shared} \
 %{mabi=n32:-melf32%{EB:b}%{EL:l}tsmipn32} \
@@ -73,9 +75,8 @@ Boston, MA 02111-1307, USA.  */
 #undef DEFAULT_SIGNED_CHAR
 #define DEFAULT_SIGNED_CHAR 0
 
-/* SDE-MIPS won't ever support SDB or MIPS debugging info.  */
+/* SDE-MIPS won't ever support SDB debugging info.  */
 #undef SDB_DEBUGGING_INFO
-#undef MIPS_DEBUGGING_INFO
 
 /* Describe how we implement __builtin_eh_return.  */
 
@@ -89,7 +90,8 @@ Boston, MA 02111-1307, USA.  */
 
 /* Use $5 as a temporary for both MIPS16 and non-MIPS16.  */
 #undef MIPS_EPILOGUE_TEMP_REGNUM
-#define MIPS_EPILOGUE_TEMP_REGNUM (GP_REG_FIRST + 5)
+#define MIPS_EPILOGUE_TEMP_REGNUM \
+  (cfun->machine->interrupt_handler_p ? K0_REG_NUM : GP_REG_FIRST + 5)
 
 /* Using long will always be right for size_t and ptrdiff_t, since
    sizeof(long) must equal sizeof(void *), following from the setting
@@ -129,19 +131,6 @@ Boston, MA 02111-1307, USA.  */
 #undef LIBGCC2_LONG_DOUBLE_TYPE_SIZE
 #define LIBGCC2_LONG_DOUBLE_TYPE_SIZE 64
 #endif
-
-/* This version of _mcount does not pop 2 words from the stack.  */
-#undef FUNCTION_PROFILER
-#define FUNCTION_PROFILER(FILE, LABELNO)				\
-  {									\
-    fprintf (FILE, "\t.set\tnoat\n");					\
-    /* MIPS16 code passes saved $ra in $v1 instead of $at.  */		\
-    fprintf (FILE, "\tmove\t%s,%s\n",					\
-	     reg_names[GP_REG_FIRST + (TARGET_MIPS16 ? 3 : 1)],		\
-	     reg_names[GP_REG_FIRST + 31]);				\
-    fprintf (FILE, "\tjal\t_mcount\n");					\
-    fprintf (FILE, "\t.set\tat\n");					\
-  }
 
 /* Force all .init and .fini entries to be 32-bit, not mips16, so that
    in a mixed environment they are all the same mode. The crti.asm and

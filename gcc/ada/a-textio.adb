@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -36,6 +34,8 @@ with Interfaces.C_Streams; use Interfaces.C_Streams;
 
 with System.File_IO;
 with System.CRTL;
+with System.WCh_Cnv;       use System.WCh_Cnv;
+with System.WCh_Con;       use System.WCh_Con;
 
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -54,6 +54,45 @@ package body Ada.Text_IO is
    use type FCB.File_Mode;
 
    use type System.CRTL.size_t;
+
+   WC_Encoding : Character;
+   pragma Import (C, WC_Encoding, "__gl_wc_encoding");
+
+   -----------------------
+   -- Local Subprograms --
+   -----------------------
+
+   function Getc_Immed (File : File_Type) return int;
+   --  This routine is identical to Getc, except that the read is done in
+   --  Get_Immediate mode (i.e. without waiting for a line return).
+
+   function Get_Upper_Half_Char
+     (C    : Character;
+      File : File_Type) return Character;
+   --  This function is shared by Get and Get_Immediate to extract an encoded
+   --  upper half character value from the given File. The first byte has
+   --  already been read and is passed in C. The character value is returned as
+   --  the result, and the file pointer is bumped past the character.
+   --  Constraint_Error is raised if the encoded value is outside the bounds of
+   --  type Character.
+
+   function Get_Upper_Half_Char_Immed
+     (C    : Character;
+      File : File_Type) return Character;
+   --  This routine is identical to Get_Upper_Half_Char, except that the reads
+   --  are done in Get_Immediate mode (i.e. without waiting for a line return).
+
+   function Has_Upper_Half_Character (Item : String) return Boolean;
+   --  Returns True if any of the characters is in the range 16#80#-16#FF#
+
+   procedure Put_Encoded (File : File_Type; Char : Character);
+   --  Called to output a character Char to the given File, when the encoding
+   --  method for the file is other than brackets, and Char is upper half.
+
+   procedure Set_WCEM (File : in out File_Type);
+   --  Called by Open and Create to set the wide character encoding method for
+   --  the file, processing a WCEM form parameter if one is present. File is
+   --  IN OUT because it may be closed in case of an error.
 
    -------------------
    -- AFCB_Allocate --
@@ -107,7 +146,7 @@ package body Ada.Text_IO is
 
    procedure Close (File : in out File_Type) is
    begin
-      FIO.Close (AP (File));
+      FIO.Close (AP (File)'Unrestricted_Access);
    end Close;
 
    ---------
@@ -155,6 +194,7 @@ package body Ada.Text_IO is
                 Text      => True);
 
       File.Self := File;
+      Set_WCEM (File);
    end Create;
 
    -------------------
@@ -205,7 +245,7 @@ package body Ada.Text_IO is
 
    procedure Delete (File : in out File_Type) is
    begin
-      FIO.Delete (AP (File));
+      FIO.Delete (AP (File)'Unrestricted_Access);
    end Delete;
 
    -----------------
@@ -218,8 +258,10 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Read_Status (AP (File));
 
-      if File.Before_LM then
+      if File.Before_Upper_Half_Character then
+         return False;
 
+      elsif File.Before_LM then
          if File.Before_LM_PM then
             return Nextc (File) = EOF;
          end if;
@@ -276,7 +318,10 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Read_Status (AP (File));
 
-      if File.Before_LM then
+      if File.Before_Upper_Half_Character then
+         return False;
+
+      elsif File.Before_LM then
          return True;
 
       else
@@ -308,6 +353,9 @@ package body Ada.Text_IO is
       FIO.Check_Read_Status (AP (File));
 
       if not File.Is_Regular_File then
+         return False;
+
+      elsif File.Before_Upper_Half_Character then
          return False;
 
       elsif File.Before_LM then
@@ -389,7 +437,11 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Read_Status (AP (File));
 
-      if File.Before_LM then
+      if File.Before_Upper_Half_Character then
+         File.Before_Upper_Half_Character := False;
+         Item := File.Saved_Upper_Half_Character;
+
+      elsif File.Before_LM then
          File.Before_LM := False;
          File.Col := 1;
 
@@ -486,40 +538,39 @@ package body Ada.Text_IO is
    -- Get_Immediate --
    -------------------
 
-   --  More work required here ???
-
    procedure Get_Immediate
      (File : File_Type;
       Item : out Character)
    is
       ch          : int;
-      end_of_file : int;
-
-      procedure getc_immediate
-        (stream      : FILEs;
-         ch          : out int;
-         end_of_file : out int);
-      pragma Import (C, getc_immediate, "getc_immediate");
 
    begin
       FIO.Check_Read_Status (AP (File));
 
-      if File.Before_LM then
+      if File.Before_Upper_Half_Character then
+         File.Before_Upper_Half_Character := False;
+         Item := File.Saved_Upper_Half_Character;
+
+      elsif File.Before_LM then
          File.Before_LM := False;
          File.Before_LM_PM := False;
-         ch := LM;
+         Item := Character'Val (LM);
 
       else
-         getc_immediate (File.Stream, ch, end_of_file);
+         ch := Getc_Immed (File);
 
-         if ferror (File.Stream) /= 0 then
-            raise Device_Error;
-         elsif end_of_file /= 0 then
+         if ch = EOF then
             raise End_Error;
+         else
+            if not Is_Start_Of_Encoding
+                     (Character'Val (ch), File.WC_Method)
+            then
+               Item := Character'Val (ch);
+            else
+               Item := Get_Upper_Half_Char_Immed (Character'Val (ch), File);
+            end if;
          end if;
       end if;
-
-      Item := Character'Val (ch);
    end Get_Immediate;
 
    procedure Get_Immediate
@@ -547,18 +598,16 @@ package body Ada.Text_IO is
 
    begin
       FIO.Check_Read_Status (AP (File));
+      Available := True;
 
-      --  If we are logically before an end of line, but physically after it,
-      --  then we just return the end of line character, no I/O is necessary.
+      if File.Before_Upper_Half_Character then
+         File.Before_Upper_Half_Character := False;
+         Item := File.Saved_Upper_Half_Character;
 
-      if File.Before_LM then
+      elsif File.Before_LM then
          File.Before_LM := False;
          File.Before_LM_PM := False;
-
-         Available := True;
          Item := Character'Val (LM);
-
-      --  Normal case where a read operation is required
 
       else
          getc_immediate_nowait (File.Stream, ch, end_of_file, avail);
@@ -575,7 +624,14 @@ package body Ada.Text_IO is
 
          else
             Available := True;
-            Item := Character'Val (ch);
+
+            if Is_Start_Of_Encoding
+              (Character'Val (ch), File.WC_Method)
+            then
+               Item := Character'Val (ch);
+            else
+               Item := Get_Upper_Half_Char_Immed (Character'Val (ch), File);
+            end if;
          end if;
       end if;
 
@@ -764,6 +820,92 @@ package body Ada.Text_IO is
       return Get_Line (Current_In);
    end Get_Line;
 
+   -------------------------
+   -- Get_Upper_Half_Char --
+   -------------------------
+
+   function Get_Upper_Half_Char
+     (C    : Character;
+      File : File_Type) return Character
+   is
+      Result : Wide_Character;
+
+      function In_Char return Character;
+      --  Function used to obtain additional characters it the wide character
+      --  sequence is more than one character long.
+
+      function WC_In is new Char_Sequence_To_Wide_Char (In_Char);
+
+      -------------
+      -- In_Char --
+      -------------
+
+      function In_Char return Character is
+         ch : constant Integer := Getc (File);
+      begin
+         if ch = EOF then
+            raise End_Error;
+         else
+            return Character'Val (ch);
+         end if;
+      end In_Char;
+
+   --  Start of processing for Get_Upper_Half_Char
+
+   begin
+      Result := WC_In (C, File.WC_Method);
+
+      if Wide_Character'Pos (Result) > 16#FF# then
+         raise Constraint_Error with
+           "invalid wide character in Text_'I'O input";
+      else
+         return Character'Val (Wide_Character'Pos (Result));
+      end if;
+   end Get_Upper_Half_Char;
+
+   -------------------------------
+   -- Get_Upper_Half_Char_Immed --
+   -------------------------------
+
+   function Get_Upper_Half_Char_Immed
+     (C    : Character;
+      File : File_Type) return Character
+   is
+      Result : Wide_Character;
+
+      function In_Char return Character;
+      --  Function used to obtain additional characters it the wide character
+      --  sequence is more than one character long.
+
+      function WC_In is new Char_Sequence_To_Wide_Char (In_Char);
+
+      -------------
+      -- In_Char --
+      -------------
+
+      function In_Char return Character is
+         ch : constant Integer := Getc_Immed (File);
+      begin
+         if ch = EOF then
+            raise End_Error;
+         else
+            return Character'Val (ch);
+         end if;
+      end In_Char;
+
+   --  Start of processing for Get_Upper_Half_Char_Immed
+
+   begin
+      Result := WC_In (C, File.WC_Method);
+
+      if Wide_Character'Pos (Result) > 16#FF# then
+         raise Constraint_Error with
+           "invalid wide character in Text_'I'O input";
+      else
+         return Character'Val (Wide_Character'Pos (Result));
+      end if;
+   end Get_Upper_Half_Char_Immed;
+
    ----------
    -- Getc --
    ----------
@@ -780,6 +922,54 @@ package body Ada.Text_IO is
          return ch;
       end if;
    end Getc;
+
+   ----------------
+   -- Getc_Immed --
+   ----------------
+
+   function Getc_Immed (File : File_Type) return int is
+      ch          : int;
+      end_of_file : int;
+
+      procedure getc_immediate
+        (stream : FILEs; ch : out int; end_of_file : out int);
+      pragma Import (C, getc_immediate, "getc_immediate");
+
+   begin
+      FIO.Check_Read_Status (AP (File));
+
+      if File.Before_LM then
+         File.Before_LM := False;
+         File.Before_LM_PM := False;
+         ch := LM;
+
+      else
+         getc_immediate (File.Stream, ch, end_of_file);
+
+         if ferror (File.Stream) /= 0 then
+            raise Device_Error;
+         elsif end_of_file /= 0 then
+            return EOF;
+         end if;
+      end if;
+
+      return ch;
+   end Getc_Immed;
+
+   ------------------------------
+   -- Has_Upper_Half_Character --
+   ------------------------------
+
+   function Has_Upper_Half_Character (Item : String) return Boolean is
+   begin
+      for J in Item'Range loop
+         if Character'Pos (Item (J)) >= 16#80# then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Has_Upper_Half_Character;
 
    -------------
    -- Is_Open --
@@ -838,22 +1028,54 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Read_Status (AP (File));
 
+      --  If we are logically before a line mark, we can return immediately
+
       if File.Before_LM then
          End_Of_Line := True;
          Item := ASCII.NUL;
 
+      --  If we are before an upper half character just return it (this can
+      --  happen if there are two calls to Look_Ahead in a row).
+
+      elsif File.Before_Upper_Half_Character then
+         End_Of_Line := False;
+         Item := File.Saved_Upper_Half_Character;
+
+      --  Otherwise we must read a character from the input stream
+
       else
-         ch := Nextc (File);
+         ch := Getc (File);
 
          if ch = LM
            or else ch = EOF
            or else (ch = PM and then File.Is_Regular_File)
          then
             End_Of_Line := True;
+            Ungetc (ch, File);
             Item := ASCII.NUL;
-         else
+
+         --  Case where character obtained does not represent the start of an
+         --  encoded sequence so it stands for itself and we can unget it with
+         --  no difficulty.
+
+         elsif not Is_Start_Of_Encoding
+                     (Character'Val (ch), File.WC_Method)
+         then
             End_Of_Line := False;
+            Ungetc (ch, File);
             Item := Character'Val (ch);
+
+         --  For the start of an encoding, we read the character using the
+         --  Get_Upper_Half_Char routine. It will occupy more than one byte
+         --  so we can't put it back with ungetc. Instead we save it in the
+         --  control block, setting a flag that everyone interested in reading
+         --  characters must test before reading the stream.
+
+         else
+            Item := Get_Upper_Half_Char (Character'Val (ch), File);
+            End_Of_Line := False;
+            File.Saved_Upper_Half_Character := Item;
+            File.Before_Upper_Half_Character := True;
          end if;
       end if;
    end Look_Ahead;
@@ -997,6 +1219,7 @@ package body Ada.Text_IO is
                 Text      => True);
 
       File.Self := File;
+      Set_WCEM (File);
    end Open;
 
    ----------
@@ -1048,8 +1271,19 @@ package body Ada.Text_IO is
          New_Line (File);
       end if;
 
-      if fputc (Character'Pos (Item), File.Stream) = EOF then
-         raise Device_Error;
+      --  If lower half character, or brackets encoding, output directly
+
+      if Character'Pos (Item) < 16#80#
+        or else File.WC_Method = WCEM_Brackets
+      then
+         if fputc (Character'Pos (Item), File.Stream) = EOF then
+            raise Device_Error;
+         end if;
+
+      --  Case of upper half character with non-brackets encoding
+
+      else
+         Put_Encoded (File, Item);
       end if;
 
       File.Col := File.Col + 1;
@@ -1065,8 +1299,19 @@ package body Ada.Text_IO is
          New_Line (Current_Out);
       end if;
 
-      if fputc (Character'Pos (Item), Current_Out.Stream) = EOF then
-         raise Device_Error;
+      --  If lower half character, or brackets encoding, output directly
+
+      if Character'Pos (Item) < 16#80#
+        or else Default_WCEM = WCEM_Brackets
+      then
+         if fputc (Character'Pos (Item), Current_Out.Stream) = EOF then
+            raise Device_Error;
+         end if;
+
+      --  Case of upper half character with non-brackets encoding
+
+      else
+         Put_Encoded (Current_Out, Item);
       end if;
 
       Current_Out.Col := Current_Out.Col + 1;
@@ -1083,12 +1328,18 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Write_Status (AP (File));
 
+      --  Only have something to do if string is non-null
+
       if Item'Length > 0 then
 
-         --  If we have bounded lines, then do things character by
-         --  character (this seems a rare case anyway!)
+         --  If we have bounded lines, or if the file encoding is other than
+         --  Brackets and the string has at least one upper half character,
+         --  then output the string character by character.
 
-         if File.Line_Length /= 0 then
+         if File.Line_Length /= 0
+           or else (File.WC_Method /= WCEM_Brackets
+                      and then Has_Upper_Half_Character (Item))
+         then
             for J in Item'Range loop
                Put (File, Item (J));
             end loop;
@@ -1109,6 +1360,31 @@ package body Ada.Text_IO is
       Put (Current_Out, Item);
    end Put;
 
+   -----------------
+   -- Put_Encoded --
+   -----------------
+
+   procedure Put_Encoded (File : File_Type; Char : Character) is
+      procedure Out_Char (C : Character);
+      --  Procedure to output one character of an upper half encoded sequence
+
+      procedure WC_Out is new Wide_Char_To_Char_Sequence (Out_Char);
+
+      --------------
+      -- Out_Char --
+      --------------
+
+      procedure Out_Char (C : Character) is
+      begin
+         Putc (Character'Pos (C), File);
+      end Out_Char;
+
+   --  Start of processing for Put_Encoded
+
+   begin
+      WC_Out (Wide_Character'Val (Character'Pos (Char)), File.WC_Method);
+   end Put_Encoded;
+
    --------------
    -- Put_Line --
    --------------
@@ -1123,15 +1399,23 @@ package body Ada.Text_IO is
    begin
       FIO.Check_Write_Status (AP (File));
 
-      --  If we have bounded lines, then just do a put and a new line. In
-      --  this case we will end up doing things character by character in
-      --  any case, and it is a rare situation.
+      --  If we have bounded lines, or if the file encoding is other than
+      --  Brackets and the string has at least one upper half character, then
+      --  output the string character by character.
 
-      if File.Line_Length /= 0 then
-         Put (File, Item);
+      if File.Line_Length /= 0
+        or else (File.WC_Method /= WCEM_Brackets
+                   and then Has_Upper_Half_Character (Item))
+      then
+         for J in Item'Range loop
+            Put (File, Item (J));
+         end loop;
+
          New_Line (File);
          return;
       end if;
+
+      --  Normal case where we do not need to output character by character
 
       --  We setup a single string that has the necessary terminators and
       --  then write it with a single call. The reason for doing this is
@@ -1211,6 +1495,8 @@ package body Ada.Text_IO is
       pragma Warnings (Off, Discard_ch);
 
    begin
+      --  Need to deal with Before_Upper_Half_Character ???
+
       if File.Mode /= FCB.In_File then
          raise Mode_Error;
       end if;
@@ -1297,7 +1583,7 @@ package body Ada.Text_IO is
       end if;
 
       Terminate_Line (File);
-      FIO.Reset (AP (File), To_FCB (Mode));
+      FIO.Reset (AP (File)'Unrestricted_Access, To_FCB (Mode));
       File.Page := 1;
       File.Line := 1;
       File.Col  := 1;
@@ -1310,7 +1596,7 @@ package body Ada.Text_IO is
    procedure Reset (File : in out File_Type) is
    begin
       Terminate_Line (File);
-      FIO.Reset (AP (File));
+      FIO.Reset (AP (File)'Unrestricted_Access);
       File.Page := 1;
       File.Line := 1;
       File.Col  := 1;
@@ -1553,6 +1839,36 @@ package body Ada.Text_IO is
       Set_Page_Length (Current_Out, To);
    end Set_Page_Length;
 
+   --------------
+   -- Set_WCEM --
+   --------------
+
+   procedure Set_WCEM (File : in out File_Type) is
+      Start : Natural;
+      Stop  : Natural;
+
+   begin
+      File.WC_Method := WCEM_Brackets;
+      FIO.Form_Parameter (File.Form.all, "wcem", Start, Stop);
+
+      if Start = 0 then
+         File.WC_Method := WCEM_Brackets;
+
+      else
+         if Stop = Start then
+            for J in WC_Encoding_Letters'Range loop
+               if File.Form (Start) = WC_Encoding_Letters (J) then
+                  File.WC_Method := J;
+                  return;
+               end if;
+            end loop;
+         end if;
+
+         Close (File);
+         raise Use_Error with "invalid WCEM form parameter";
+      end if;
+   end Set_WCEM;
+
    ---------------
    -- Skip_Line --
    ---------------
@@ -1640,8 +1956,9 @@ package body Ada.Text_IO is
                Ungetc (ch, File);
             end if;
          end if;
-
       end loop;
+
+      File.Before_Upper_Half_Character := False;
    end Skip_Line;
 
    procedure Skip_Line (Spacing : Positive_Count := 1) is
@@ -1702,6 +2019,7 @@ package body Ada.Text_IO is
       File.Page := File.Page + 1;
       File.Line := 1;
       File.Col  := 1;
+      File.Before_Upper_Half_Character := False;
    end Skip_Page;
 
    procedure Skip_Page is
@@ -1892,14 +2210,20 @@ package body Ada.Text_IO is
    --  null character in the runtime, here the null characters are added just
    --  to have a correct filename length.
 
-   Err_Name : aliased String := "*stderr" & ASCII.Nul;
-   In_Name  : aliased String := "*stdin" & ASCII.Nul;
-   Out_Name : aliased String := "*stdout" & ASCII.Nul;
+   Err_Name : aliased String := "*stderr" & ASCII.NUL;
+   In_Name  : aliased String := "*stdin" & ASCII.NUL;
+   Out_Name : aliased String := "*stdout" & ASCII.NUL;
 
 begin
    -------------------------------
    -- Initialize Standard Files --
    -------------------------------
+
+   for J in WC_Encoding_Method loop
+      if WC_Encoding = WC_Encoding_Letters (J) then
+         Default_WCEM := J;
+      end if;
+   end loop;
 
    --  Note: the names in these files are bogus, and probably it would be
    --  better for these files to have no names, but the ACVC test insist!
@@ -1915,6 +2239,7 @@ begin
    Standard_Err.Is_Text_File      := True;
    Standard_Err.Access_Method     := 'T';
    Standard_Err.Self              := Standard_Err;
+   Standard_Err.WC_Method         := Default_WCEM;
 
    Standard_In.Stream             := stdin;
    Standard_In.Name               := In_Name'Access;
@@ -1926,6 +2251,7 @@ begin
    Standard_In.Is_Text_File       := True;
    Standard_In.Access_Method      := 'T';
    Standard_In.Self               := Standard_In;
+   Standard_In.WC_Method          := Default_WCEM;
 
    Standard_Out.Stream            := stdout;
    Standard_Out.Name              := Out_Name'Access;
@@ -1937,6 +2263,7 @@ begin
    Standard_Out.Is_Text_File      := True;
    Standard_Out.Access_Method     := 'T';
    Standard_Out.Self              := Standard_Out;
+   Standard_Out.WC_Method         := Default_WCEM;
 
    FIO.Chain_File (AP (Standard_In));
    FIO.Chain_File (AP (Standard_Out));

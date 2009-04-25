@@ -37,10 +37,10 @@
 
 package gnu.java.awt.peer;
 
-import java.io.File;
+import gnu.java.lang.CPStringBuilder;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 
 /**
  * @author Mario Torre <neugens@limasoftware.net>
@@ -106,7 +106,7 @@ public class KDEDesktopPeer
   protected String execQuery(String command) throws IOException
   {
     InputStream in = null;
-    StringBuilder output = new StringBuilder();
+    CPStringBuilder output = new CPStringBuilder();
 
     try
       {

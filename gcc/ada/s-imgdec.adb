@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -39,26 +37,25 @@ package body System.Img_Dec is
    -- Image_Decimal --
    -------------------
 
-   function Image_Decimal
+   procedure Image_Decimal
      (V     : Integer;
-      Scale : Integer) return String
+      S     : in out String;
+      P     : out Natural;
+      Scale : Integer)
    is
-      P : Natural := 0;
-      S : String (1 .. 64);
+      pragma Assert (S'First = 1);
 
    begin
-      Set_Image_Decimal (V, S, P, Scale, 1, Integer'Max (1, Scale), 0);
+      --  Add space at start for non-negative numbers
 
-      --  Mess around to make sure we have the objectionable space at the
-      --  start for positive numbers in accordance with the annoying rules!
-
-      if S (1) /= ' ' and then S (1) /= '-' then
-         S (2 .. P + 1) := S (1 .. P);
+      if V >= 0 then
          S (1) := ' ';
-         return S (1 .. P + 1);
+         P := 1;
       else
-         return S (1 .. P);
+         P := 0;
       end if;
+
+      Set_Image_Decimal (V, S, P, Scale, 1, Integer'Max (1, Scale), 0);
    end Image_Decimal;
 
    ------------------------
@@ -130,6 +127,10 @@ package body System.Img_Dec is
       pragma Inline (Set_Zeroes);
       --  Set N zeroes, no effect if N is negative
 
+      -----------
+      -- Round --
+      -----------
+
       procedure Round (N : Natural) is
          D : Character;
 
@@ -188,11 +189,19 @@ package body System.Img_Dec is
          end if;
       end Round;
 
+      ---------
+      -- Set --
+      ---------
+
       procedure Set (C : Character) is
       begin
          P := P + 1;
          S (P) := C;
       end Set;
+
+      -------------------------
+      -- Set_Blanks_And_Sign --
+      -------------------------
 
       procedure Set_Blanks_And_Sign (N : Integer) is
          W : Integer := N;
@@ -214,12 +223,20 @@ package body System.Img_Dec is
          end if;
       end Set_Blanks_And_Sign;
 
+      ----------------
+      -- Set_Digits --
+      ----------------
+
       procedure Set_Digits (S, E : Natural) is
       begin
          for J in S .. E loop
             Set (Digs (J));
          end loop;
       end Set_Digits;
+
+      ----------------
+      -- Set_Zeroes --
+      ----------------
 
       procedure Set_Zeroes (N : Integer) is
       begin
@@ -235,7 +252,7 @@ package body System.Img_Dec is
 
       if Exp > 0 then
          Set_Blanks_And_Sign (Fore - 1);
-         Round (Aft + 2);
+         Round (Digits_After_Point + 2);
          Set (Digs (FD));
          FD := FD + 1;
          ND := ND - 1;
@@ -243,7 +260,6 @@ package body System.Img_Dec is
 
          if ND >= Digits_After_Point then
             Set_Digits (FD, FD + Digits_After_Point - 1);
-
          else
             Set_Digits (FD, LD);
             Set_Zeroes (Digits_After_Point - ND);
@@ -302,27 +318,42 @@ package body System.Img_Dec is
             Set_Blanks_And_Sign (Fore - 1);
             Set ('0');
             Set ('.');
-
-            Set_Zeroes (Digits_After_Point - ND);
+            Set_Zeroes (-Digits_Before_Point);
             Set_Digits (FD, LD);
+            Set_Zeroes (Digits_After_Point - Scale);
 
          --  At least one digit before point in input
 
          else
-            Set_Blanks_And_Sign (Fore - Digits_Before_Point);
-
             --  Less digits in input than are needed before point
             --    Input: 1PP  Output: 100.000
 
             if ND < Digits_Before_Point then
-               Set_Digits (FD, LD);
-               Set_Zeroes (Digits_Before_Point - ND);
+
+               --  Special case, if the input is the single digit 0, then we
+               --  do not want 000.000, but instead 0.000.
+
+               if ND = 1 and then Digs (FD) = '0' then
+                  Set_Blanks_And_Sign (Fore - 1);
+                  Set ('0');
+
+               --  Normal case where we need to output scaling zeroes
+
+               else
+                  Set_Blanks_And_Sign (Fore - Digits_Before_Point);
+                  Set_Digits (FD, LD);
+                  Set_Zeroes (Digits_Before_Point - ND);
+               end if;
+
+               --  Set period and zeroes after the period
+
                Set ('.');
                Set_Zeroes (Digits_After_Point);
 
             --  Input has full amount of digits before decimal point
 
             else
+               Set_Blanks_And_Sign (Fore - Digits_Before_Point);
                Set_Digits (FD, FD + Digits_Before_Point - 1);
                Set ('.');
                Set_Digits (FD + Digits_Before_Point, LD);
@@ -330,7 +361,6 @@ package body System.Img_Dec is
             end if;
          end if;
       end if;
-
    end Set_Decimal_Digits;
 
    -----------------------
@@ -339,14 +369,14 @@ package body System.Img_Dec is
 
    procedure Set_Image_Decimal
      (V     : Integer;
-      S     : out String;
+      S     : in out String;
       P     : in out Natural;
       Scale : Integer;
       Fore  : Natural;
       Aft   : Natural;
       Exp   : Natural)
    is
-      Digs : String := Image_Integer (V);
+      Digs : String := Integer'Image (V);
       --  Sign and digits of decimal value
 
    begin

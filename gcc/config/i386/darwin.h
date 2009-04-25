@@ -1,5 +1,5 @@
 /* Target definitions for x86 running Darwin.
-   Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
@@ -75,15 +75,17 @@ along with GCC; see the file COPYING3.  If not see
 #undef STACK_BOUNDARY
 #define STACK_BOUNDARY 128
 
+#undef MAIN_STACK_BOUNDARY
+#define MAIN_STACK_BOUNDARY 128
+
 /* Since we'll never want a stack boundary less aligned than 128 bits
    we need the extra work here otherwise bits of gcc get very grumpy
    when we ask for lower alignment.  We could just reject values less
    than 128 bits for Darwin, but it's easier to up the alignment if
    it's below the minimum.  */
 #undef PREFERRED_STACK_BOUNDARY
-#define PREFERRED_STACK_BOUNDARY (ix86_preferred_stack_boundary > 128	\
-				  ? ix86_preferred_stack_boundary	\
-				  : 128)
+#define PREFERRED_STACK_BOUNDARY			\
+  MAX (STACK_BOUNDARY, ix86_preferred_stack_boundary)
 
 /* We want -fPIC by default, unless we're using -static to compile for
    the kernel or some such.  */
@@ -174,7 +176,7 @@ extern void darwin_x86_file_end (void);
 #define TARGET_DYNAMIC_NO_PIC	  (target_flags & MASK_MACHO_DYNAMIC_NO_PIC)
 
 #undef GOT_SYMBOL_NAME
-#define GOT_SYMBOL_NAME (machopic_function_base_name ())
+#define GOT_SYMBOL_NAME MACHOPIC_FUNCTION_BASE_NAME
 
 /* Define the syntax of pseudo-ops, labels and comments.  */
 
@@ -264,8 +266,8 @@ extern void darwin_x86_file_end (void);
    : (n) >= 11 && (n) <= 18 ? (n) + 1					\
    : (n))
 
-#undef REGISTER_TARGET_PRAGMAS
-#define REGISTER_TARGET_PRAGMAS() DARWIN_REGISTER_TARGET_PRAGMAS()
+#undef REGISTER_SUBTARGET_PRAGMAS
+#define REGISTER_SUBTARGET_PRAGMAS() DARWIN_REGISTER_TARGET_PRAGMAS()
 
 #undef TARGET_SET_DEFAULT_TYPE_ATTRIBUTES
 #define TARGET_SET_DEFAULT_TYPE_ATTRIBUTES darwin_set_default_type_attributes

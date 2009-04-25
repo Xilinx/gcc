@@ -1,10 +1,10 @@
 /* Map logical line numbers to (source file, line number) pairs.
-   Copyright (C) 2001, 2003, 2004, 2007
+   Copyright (C) 2001, 2003, 2004, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -13,8 +13,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.
 
  In other words, you are welcome to use, share and improve this program.
  You are forbidden to forbid anyone else to use, share and improve
@@ -31,8 +31,12 @@ Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
    when including a new file, e.g. a #include directive in C.
    LC_LEAVE is when reaching a file's end.  LC_RENAME is when a file
    name or line number changes for neither of the above reasons
-   (e.g. a #line directive in C).  */
-enum lc_reason {LC_ENTER = 0, LC_LEAVE, LC_RENAME};
+   (e.g. a #line directive in C); LC_RENAME_VERBATIM is like LC_RENAME
+   but a filename of "" is not specially interpreted as standard input.  */
+enum lc_reason {LC_ENTER = 0, LC_LEAVE, LC_RENAME, LC_RENAME_VERBATIM};
+
+/* The type of line numbers.  */
+typedef unsigned int linenum_type;
 
 /* A logical line/column number, i.e. an "index" into a line_map.  */
 /* Long-term, we want to use this to replace struct location_s (in input.h),
@@ -54,10 +58,9 @@ typedef void *(*line_map_realloc) (void *, size_t);
    creation of this line map, SYSP is one for a system header, two for
    a C system header file that therefore needs to be extern "C"
    protected in C++, and zero otherwise.  */
-struct line_map GTY(())
-{
+struct GTY(()) line_map {
   const char *to_file;
-  unsigned int to_line;
+  linenum_type to_line;
   source_location start_location;
   int included_from;
   ENUM_BITFIELD (lc_reason) reason : CHAR_BIT;
@@ -68,8 +71,7 @@ struct line_map GTY(())
 };
 
 /* A set of chronological line_map structures.  */
-struct line_maps GTY(())
-{
+struct GTY(()) line_maps {
   struct line_map * GTY ((length ("%h.used"))) maps;
   unsigned int allocated;
   unsigned int used;
@@ -119,7 +121,7 @@ extern void linemap_check_files_exited (struct line_maps *);
    the highest_location).  */
 
 extern source_location linemap_line_start
-(struct line_maps *set, unsigned int to_line,  unsigned int max_column_hint);
+(struct line_maps *set, linenum_type to_line,  unsigned int max_column_hint);
 
 /* Add a mapping of logical source line to physical source file and
    line number.
@@ -134,25 +136,19 @@ extern source_location linemap_line_start
    maps, so any stored line_map pointers should not be used.  */
 extern const struct line_map *linemap_add
   (struct line_maps *, enum lc_reason, unsigned int sysp,
-   const char *to_file, unsigned int to_line);
+   const char *to_file, linenum_type to_line);
 
 /* Given a logical line, returns the map from which the corresponding
    (source file, line) pair can be deduced.  */
 extern const struct line_map *linemap_lookup
   (struct line_maps *, source_location);
 
-/* Print the file names and line numbers of the #include commands
-   which led to the map MAP, if any, to stderr.  Nothing is output if
-   the most recently listed stack is the same as the current one.  */
-extern void linemap_print_containing_files (struct line_maps *,
-					    const struct line_map *);
-
 /* Converts a map and a source_location to source line.  */
-#define SOURCE_LINE(MAP, LINE) \
-  ((((LINE) - (MAP)->start_location) >> (MAP)->column_bits) + (MAP)->to_line)
+#define SOURCE_LINE(MAP, LOC) \
+  ((((LOC) - (MAP)->start_location) >> (MAP)->column_bits) + (MAP)->to_line)
 
-#define SOURCE_COLUMN(MAP, LINE) \
-  (((LINE) - (MAP)->start_location) & ((1 << (MAP)->column_bits) - 1))
+#define SOURCE_COLUMN(MAP, LOC) \
+  (((LOC) - (MAP)->start_location) & ((1 << (MAP)->column_bits) - 1))
 
 /* Returns the last source line within a map.  This is the (last) line
    of the #include, or other directive, that caused a map change.  */
@@ -172,7 +168,7 @@ extern void linemap_print_containing_files (struct line_maps *,
 /* Set LOC to a source position that is the same line as the most recent
    linemap_line_start, but with the specified TO_COLUMN column number.  */
 
-#define LINEMAP_POSITION_FOR_COLUMN(LOC, SET, TO_COLUMN) { \
+#define LINEMAP_POSITION_FOR_COLUMN(LOC, SET, TO_COLUMN) do { \
   unsigned int to_column = (TO_COLUMN); \
   struct line_maps *set = (SET); \
   if (__builtin_expect (to_column >= set->max_column_hint, 0)) \
@@ -183,7 +179,7 @@ extern void linemap_print_containing_files (struct line_maps *,
     if (r >= set->highest_location) \
       set->highest_location = r; \
     (LOC) = r;			 \
-  }}
+  }} while (0)
     
 
 extern source_location

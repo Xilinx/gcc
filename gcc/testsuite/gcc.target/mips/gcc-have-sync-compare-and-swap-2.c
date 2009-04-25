@@ -1,11 +1,11 @@
-/* { dg-do preprocess { target { mips64*-*-* } } } */
-/* { dg-options "-mips64 -mabi=64" } */
+/* { dg-do preprocess } */
+/* { dg-options "-mgp64" } */
 
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
 #error nonono
 #endif
 
-#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
+#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
 #error nonono
 #endif
 

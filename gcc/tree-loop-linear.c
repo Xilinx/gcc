@@ -1,5 +1,6 @@
 /* Linear Loop transforms
-   Copyright (C) 2003, 2004, 2005, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>.
 
 This file is part of GCC.
@@ -89,13 +90,13 @@ along with GCC; see the file COPYING3.  If not see
 */
 
 static void
-gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations,
-			  VEC (data_reference_p, heap) *datarefs,
-			  struct loop *loop,
-			  struct loop *first_loop,
-			  unsigned int *dependence_steps, 
-			  unsigned int *nb_deps_not_carried_by_loop, 
-			  double_int *access_strides)
+gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations ATTRIBUTE_UNUSED,
+			  VEC (data_reference_p, heap) *datarefs ATTRIBUTE_UNUSED,
+			  struct loop *loop ATTRIBUTE_UNUSED,
+			  struct loop *first_loop ATTRIBUTE_UNUSED,
+			  unsigned int *dependence_steps ATTRIBUTE_UNUSED, 
+			  unsigned int *nb_deps_not_carried_by_loop ATTRIBUTE_UNUSED, 
+			  double_int *access_strides ATTRIBUTE_UNUSED)
 {
   unsigned int i, j;
   struct data_dependence_relation *ddr;
@@ -135,7 +136,7 @@ gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations,
     {
       unsigned int it;
       tree ref = DR_REF (dr);
-      tree stmt = DR_STMT (dr);
+      gimple stmt = DR_STMT (dr);
       struct loop *stmt_loop = loop_containing_stmt (stmt);
       struct loop *inner_loop = first_loop->inner;
 
@@ -146,19 +147,17 @@ gather_interchange_stats (VEC (ddr_p, heap) *dependence_relations,
       for (it = 0; it < DR_NUM_DIMENSIONS (dr); 
 	   it++, ref = TREE_OPERAND (ref, 0))
 	{
-	  tree chrec = DR_ACCESS_FN (dr, it);
-	  tree tstride = evolution_part_in_loop_num (chrec, loop->num);
+	  int num = am_vector_index_for_loop (DR_ACCESS_MATRIX (dr), loop->num);
+	  int istride = AM_GET_ACCESS_MATRIX_ELEMENT (DR_ACCESS_MATRIX (dr), it, num);
 	  tree array_size = TYPE_SIZE (TREE_TYPE (ref));
 	  double_int dstride;
 
-	  if (tstride == NULL_TREE
-	      || array_size == NULL_TREE 
-	      || TREE_CODE (tstride) != INTEGER_CST
+	  if (array_size == NULL_TREE 
 	      || TREE_CODE (array_size) != INTEGER_CST)
 	    continue;
 
 	  dstride = double_int_mul (tree_to_double_int (array_size), 
-				    tree_to_double_int (tstride));
+				    shwi_to_double_int (istride));
 	  (*access_strides) = double_int_add (*access_strides, dstride);
 	}
     }
@@ -179,10 +178,14 @@ try_interchange_loops (lambda_trans_matrix trans,
 		       VEC (data_reference_p, heap) *datarefs,
 		       struct loop *first_loop)
 {
+  bool res;
   struct loop *loop_i;
   struct loop *loop_j;
   unsigned int dependence_steps_i, dependence_steps_j;
   double_int access_strides_i, access_strides_j;
+  double_int small, large, nb_iter;
+  double_int l1_cache_size, l2_cache_size;
+  int cmp;
   unsigned int nb_deps_not_carried_by_i, nb_deps_not_carried_by_j;
   struct data_dependence_relation *ddr;
 
@@ -194,7 +197,10 @@ try_interchange_loops (lambda_trans_matrix trans,
   ddr = VEC_index (ddr_p, dependence_relations, 0);
   if (ddr == NULL || DDR_ARE_DEPENDENT (ddr) == chrec_dont_know)
     return trans;
-  
+
+  l1_cache_size = uhwi_to_double_int (L1_CACHE_SIZE * 1024);
+  l2_cache_size = uhwi_to_double_int (L2_CACHE_SIZE * 1024);
+
   /* LOOP_I is always the outer loop.  */
   for (loop_j = first_loop->inner; 
        loop_j; 
@@ -216,18 +222,38 @@ try_interchange_loops (lambda_trans_matrix trans,
 	
 	/* Heuristics for loop interchange profitability:
 
+	   0. Don't transform if the smallest stride is larger than
+	      the L2 cache, or if the largest stride multiplied by the
+	      number of iterations is smaller than the L1 cache.
+
 	   1. (spatial locality) Inner loops should have smallest
               dependence steps.
 
 	   2. (spatial locality) Inner loops should contain more
 	   dependence relations not carried by the loop.
 
-	   3. (temporal locality) Inner loops should have smallest 
+	   3. (temporal locality) Inner loops should have smallest
 	      array access strides.
 	*/
+
+	cmp = double_int_ucmp (access_strides_i, access_strides_j);
+	small = cmp < 0 ? access_strides_i : access_strides_j;
+	large = cmp < 0 ? access_strides_j : access_strides_i;
+
+	if (double_int_ucmp (small, l2_cache_size) > 0)
+	  continue;
+
+	res = cmp < 0 ?
+	  estimated_loop_iterations (loop_j, false, &nb_iter):
+	  estimated_loop_iterations (loop_i, false, &nb_iter);
+	large = double_int_mul (large, nb_iter);
+
+	if (res && double_int_ucmp (large, l1_cache_size) < 0)
+	  continue;
+
 	if (dependence_steps_i < dependence_steps_j 
 	    || nb_deps_not_carried_by_i > nb_deps_not_carried_by_j
-	    || double_int_ucmp (access_strides_i, access_strides_j) < 0)
+	    || cmp < 0)
 	  {
 	    lambda_matrix_row_exchange (LTM_MATRIX (trans),
 					loop_depth (loop_i) - loop_depth (first_loop),
@@ -244,6 +270,46 @@ try_interchange_loops (lambda_trans_matrix trans,
   return trans;
 }
 
+/* Return the number of nested loops in LOOP_NEST, or 0 if the loops
+   are not perfectly nested.  */
+
+unsigned int
+perfect_loop_nest_depth (struct loop *loop_nest)
+{
+  struct loop *temp;
+  unsigned int depth = 1;
+
+  /* If it's not a loop nest, we don't want it.  We also don't handle
+     sibling loops properly, which are loops of the following form:
+
+     | for (i = 0; i < 50; i++)
+     |   {
+     |     for (j = 0; j < 50; j++)
+     |       {
+     |        ...
+     |       }
+     |     for (j = 0; j < 50; j++)
+     |       {
+     |        ...
+     |       }
+     |   }
+  */
+
+  if (!loop_nest->inner || !single_exit (loop_nest))
+    return 0;
+
+  for (temp = loop_nest->inner; temp; temp = temp->inner)
+    {
+      /* If we have a sibling loop or multiple exit edges, jump ship.  */
+      if (temp->next || !single_exit (temp))
+	return 0;
+
+      depth++;
+    }
+
+  return depth;
+}
+
 /* Perform a set of linear transforms on loops.  */
 
 void
@@ -253,58 +319,46 @@ linear_transform_loops (void)
   loop_iterator li;
   VEC(tree,heap) *oldivs = NULL;
   VEC(tree,heap) *invariants = NULL;
+  VEC(tree,heap) *lambda_parameters = NULL;
+  VEC(gimple,heap) *remove_ivs = VEC_alloc (gimple, heap, 3);
   struct loop *loop_nest;
+  gimple oldiv_stmt;
+  unsigned i;
 
   FOR_EACH_LOOP (li, loop_nest, 0)
     {
       unsigned int depth = 0;
       VEC (ddr_p, heap) *dependence_relations;
       VEC (data_reference_p, heap) *datarefs;
-      struct loop *temp;
+      
       lambda_loopnest before, after;
       lambda_trans_matrix trans;
-      bool problem = false;
       struct obstack lambda_obstack;
-      gcc_obstack_init (&lambda_obstack);
+      struct loop *loop;
+      VEC(loop_p,heap) *nest;
 
-      /* If it's not a loop nest, we don't want it.
-         We also don't handle sibling loops properly, 
-         which are loops of the following form:
-         for (i = 0; i < 50; i++)
-           {
-             for (j = 0; j < 50; j++)
-               {
-	        ...
-               }
-             for (j = 0; j < 50; j++)
-               {
-                ...
-               }
-           } */
-      if (!loop_nest->inner || !single_exit (loop_nest))
+      depth = perfect_loop_nest_depth (loop_nest);
+      if (depth == 0)
 	continue;
+
+      nest = VEC_alloc (loop_p, heap, 3);
+      for (loop = loop_nest; loop; loop = loop->inner)
+	VEC_safe_push (loop_p, heap, nest, loop);
+
+      gcc_obstack_init (&lambda_obstack);
       VEC_truncate (tree, oldivs, 0);
       VEC_truncate (tree, invariants, 0);
-      depth = 1;
-      for (temp = loop_nest->inner; temp; temp = temp->inner)
-	{
-	  /* If we have a sibling loop or multiple exit edges, jump ship.  */
-	  if (temp->next || !single_exit (temp))
-	    {
-	      problem = true;
-	      break;
-	    }
-	  depth ++;
-	}
-      if (problem)
-	continue;
+      VEC_truncate (tree, lambda_parameters, 0);
 
-      /* Analyze data references and dependence relations using scev.  */      
- 
       datarefs = VEC_alloc (data_reference_p, heap, 10);
       dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
-      compute_data_dependences_for_loop (loop_nest, true, &datarefs,
-					 &dependence_relations);
+      if (!compute_data_dependences_for_loop (loop_nest, true, &datarefs,
+					      &dependence_relations))
+	goto free_and_continue;
+      
+      lambda_collect_parameters (datarefs, &lambda_parameters);
+      if (!lambda_compute_access_matrices (datarefs, lambda_parameters, nest))
+	goto free_and_continue;
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	dump_ddrs (dump_file, dependence_relations);
@@ -351,6 +405,7 @@ linear_transform_loops (void)
 	}
 
       lambda_loopnest_to_gcc_loopnest (loop_nest, oldivs, invariants,
+				       &remove_ivs,
                                        after, trans, &lambda_obstack);
       modified = true;
 
@@ -361,10 +416,15 @@ linear_transform_loops (void)
       obstack_free (&lambda_obstack, NULL);
       free_dependence_relations (dependence_relations);
       free_data_refs (datarefs);
+      VEC_free (loop_p, heap, nest);
     }
+
+  for (i = 0; VEC_iterate (gimple, remove_ivs, i, oldiv_stmt); i++)
+    remove_iv (oldiv_stmt);
 
   VEC_free (tree, heap, oldivs);
   VEC_free (tree, heap, invariants);
+  VEC_free (gimple, heap, remove_ivs);
   scev_reset ();
 
   if (modified)

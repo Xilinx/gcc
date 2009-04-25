@@ -6,33 +6,33 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1999-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1999-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package obtains parameters from the target runtime version of
---  System, to indicate parameters relevant to the target environment.
+--  This package obtains parameters from the target runtime version of System,
+--  to indicate parameters relevant to the target environment.
+
+--  Is it right for this to be modified GPL???
 
 --  Conceptually, these parameters could be obtained using rtsfind, but
 --  we do not do this for four reasons:
@@ -70,10 +70,10 @@
 
 --     3. Identification information. This is an optional string constant
 --        that gives the name of the run-time library configuration. This
---        line may be ommitted for a version of system.ads to be used with
+--        line may be omitted for a version of system.ads to be used with
 --        the full Ada 95 run time.
 
---     4. Other characterisitics of package System. At the current time the
+--     4. Other characteristics of package System. At the current time the
 --        only item in this category is whether type Address is private.
 
 with Rident; use Rident;
@@ -180,12 +180,10 @@ package Targparm is
    --  The following parameters correspond to the variables defined in the
    --  private part of System (without the terminating _On_Target). Note
    --  that it is required that all parameters defined here be specified
-   --  in the target specific version of system.ads (there are no defaults).
-
-   --  All these parameters should be regarded as read only by all clients
-   --  of the package. The only way they get modified is by calling the
-   --  Get_Target_Parameters routine which reads the values from a provided
-   --  text buffer containing the source of the system package.
+   --  in the target specific version of system.ads. Thus, to add a new
+   --  parameter, add it to all system*.ads files. (There is a defaulting
+   --  mechanism, but we don't normally take advantage of it, as explained
+   --  below.)
 
    --  The default values here are used if no value is found in system.ads.
    --  This should normally happen if the special version of system.ads used
@@ -196,6 +194,11 @@ package Targparm is
    --  parameters added) being used to compile older versions of the compiler
    --  sources, as well as avoiding duplicating values in all system-*.ads
    --  files for flags that are used on a few platforms only.
+
+   --  All these parameters should be regarded as read only by all clients
+   --  of the package. The only way they get modified is by calling the
+   --  Get_Target_Parameters routine which reads the values from a provided
+   --  text buffer containing the source of the system package.
 
    ----------------------------
    -- Special Target Control --
@@ -211,9 +214,13 @@ package Targparm is
    OpenVMS_On_Target : Boolean := False;
    --  Set to True if target is OpenVMS
 
+   RTX_RTSS_Kernel_Module_On_Target : Boolean := False;
+   --  Set to True if target is RTSS module for RTX
+
    type Virtual_Machine_Kind is (No_VM, JVM_Target, CLI_Target);
    VM_Target : Virtual_Machine_Kind := No_VM;
    --  Kind of virtual machine targetted
+   --  Needs comments, don't depend on names ???
 
    -------------------------------
    -- Backend Arithmetic Checks --
@@ -252,7 +259,7 @@ package Targparm is
    --      The generation of the setjmp and longjmp calls is handled by
    --      the front end of the compiler (this includes gigi in the case
    --      of the standard GCC back end). It does not use any back end
-   --      suport (such as the GCC3 exception handling mechanism). When
+   --      support (such as the GCC3 exception handling mechanism). When
    --      this approach is used, the compiler generates special exception
    --      handlers for handling cleanups when an exception is raised.
 
@@ -425,6 +432,16 @@ package Targparm is
    --  the source program may not contain explicit 64-bit shifts. In addition,
    --  the code generated for packed arrays will avoid the use of long shifts.
 
+   --------------------
+   -- Indirect Calls --
+   --------------------
+
+   Always_Compatible_Rep_On_Target : Boolean := True;
+   --  If True, the Can_Use_Internal_Rep flag (see Einfo) is set to False in
+   --  all cases. This corresponds to the traditional code generation
+   --  strategy. False allows the front end to choose a policy that partly or
+   --  entirely eliminates dynamically generated trampolines.
+
    -------------------------------
    -- Control of Stack Checking --
    -------------------------------
@@ -444,6 +461,18 @@ package Targparm is
    --      size for the environment task depends on the operating
    --      system and cannot be set in a system-independent way.
 
+   --   GCC Stack-limit Mechanism
+
+   --      This approach uses the GCC stack limits mechanism.
+   --      It relies on comparing the stack pointer with the
+   --      values of a global symbol. If the check fails, a
+   --      trap is explicitly generated. The advantage is
+   --      that the mechanism requires no memory protection,
+   --      but operating system and run-time support are
+   --      needed to manage the per-task values of the symbol.
+   --      This is the default method after probing where it
+   --      is available.
+
    --   GNAT Stack-limit Checking
 
    --      This method relies on comparing the stack pointer
@@ -452,13 +481,17 @@ package Targparm is
    --      that the method requires no extra system dependent
    --      runtime support and can be used on systems without
    --      memory protection as well, but at the cost of more
-   --      overhead for doing the check. This method is the
-   --      default on systems that lack complete support for
-   --      probing.
+   --      overhead for doing the check. This is the fallback
+   --      method if the above two are not supported.
 
    Stack_Check_Probes_On_Target : Boolean := False;
-   --  Indicates if stack check probes are used, as opposed to the standard
-   --  target independent comparison method.
+   --  Indicates if the GCC probing mechanism is used
+
+   Stack_Check_Limits_On_Target : Boolean := False;
+   --  Indicates if the GCC stack-limit mechanism is used
+
+   --  Both flags cannot be simultaneously set to True. If neither
+   --  is, the target independent fallback method is used.
 
    Stack_Check_Default_On_Target : Boolean := False;
    --  Indicates if stack checking is on by default

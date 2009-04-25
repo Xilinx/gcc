@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  IRIX version 6.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007
+   2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -29,9 +29,12 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Force the default ABI onto the command line in order to make the specs
    easier to write.  Default to the mips2 ISA for the O32 ABI.  */
-#define DRIVER_SELF_SPECS \
-  "%{!mabi=*: -mabi=n32}", \
-  "%{mabi=32: %{!mips*: %{!march*: -mips2}}}"
+#undef DRIVER_SELF_SPECS
+#define DRIVER_SELF_SPECS 			\
+  "%{!mabi=*: -mabi=n32}", 			\
+  "%{mabi=32: %{!mips*: %{!march*: -mips2}}}", 	\
+  /* Configuration-independent MIPS rules.  */	\
+  BASE_DRIVER_SELF_SPECS
 
 /* Force the generation of dwarf .debug_frame sections even if not
    compiling -g.  This guarantees that we can unwind the stack.  */
@@ -49,8 +52,32 @@ along with GCC; see the file COPYING3.  If not see
 #define IRIX_SUBTARGET_LINK_SPEC \
   "%{mabi=32: -melf32bsmip}%{mabi=n32: -melf32bmipn32}%{mabi=64: -melf64bmip}"
 #else
+  /* Explicitly hide crt symbols that would normally be marked with
+     a "hidden" visibility attribute.
+     
+     We have traditionally disabled this attribute when using the
+     native linker because the native linker's visibility support is
+     not fully-compatible with the GNU linker's.  In particular, the
+     native linker does not pull in archive objects purely to resolve
+     references to the object's hidden symbols, whereas the GNU
+     linker does.
+     
+     The gcc build system currently hides symbols in some static
+     libraries (typically libgcov.a or libgcc.a) whenever visibility
+     attributes are supported.  On targets with GNU semantics, this
+     makes sure that uses of libx.so symbols in one dynamic object are
+     not resolved to libx.a symbols in another dynamic object.  But
+     on targets with IRIX semantics, hiding the symbols prevents the
+     static archive from working at all.
+     
+     It would probably be better to enable visiblity attributes for
+     IRIX ld and disable the static archives versioning.  It shouldn't
+     make anything worse, since libx.a symbols are global by default
+     anyway.  However, no-one has volunteered to do this yet.  */
+
 #define IRIX_SUBTARGET_LINK_SPEC \
   "%{w} -_SYSTYPE_SVR4 -woff 131 \
+   %{shared:-hidden_symbol __dso_handle} \
    %{mabi=32: -32}%{mabi=n32: -n32}%{mabi=64: -64}%{!mabi*: -n32}"
 #endif
 

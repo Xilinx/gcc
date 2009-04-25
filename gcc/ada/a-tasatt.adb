@@ -7,7 +7,7 @@
 --                                 B o d y                                  --
 --                                                                          --
 --             Copyright (C) 1991-1994, Florida State University            --
---                     Copyright (C) 1995-2007, AdaCore                     --
+--                     Copyright (C) 1995-2009, AdaCore                     --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,15 +42,15 @@
 --  include:
 
 --  - It is vulnerable to bad Task_Id values, to the extent of possibly
---     trashing memory and crashing the runtime system.
+--    trashing memory and crashing the runtime system.
 
 --  - It requires dynamic storage allocation for each new attribute value,
---     except for types that happen to be the same size as System.Address, or
---     shorter.
+--    except for types that happen to be the same size as System.Address, or
+--    shorter.
 
---  -  Instantiations at other than the library level rely on being able to
---     do down-level calls to a procedure declared in the generic package body.
---     This makes it potentially vulnerable to compiler changes.
+--  - Instantiations at other than the library level rely on being able to
+--    do down-level calls to a procedure declared in the generic package body.
+--    This makes it potentially vulnerable to compiler changes.
 
 --  The main implementation issue here is that the connection from task to
 --  attribute is a potential source of dangling references.
@@ -196,7 +196,7 @@
 
 --    type Node;
 --    type Node_Access is access all Node;
---    type Node_Access;
+--    type Wrapper;
 --    type Access_Wrapper is access all Wrapper;
 --    type Node is record
 --       Next    : Node_Access;
@@ -217,40 +217,18 @@
 --  "passed" in via access discriminants. GNAT was having trouble with access
 --  discriminants, so all this work was moved to the package body.
 
+--  Note that references to objects declared in this package body must in
+--  general use 'Unchecked_Access instead of 'Access as the package can be
+--  instantiated from within a local context.
+
 with System.Error_Reporting;
---  Used for Shutdown;
-
 with System.Storage_Elements;
---  Used for Integer_Address
-
 with System.Task_Primitives.Operations;
---  Used for Write_Lock
---           Unlock
---           Lock/Unlock_RTS
-
 with System.Tasking;
---  Used for Access_Address
---           Task_Id
---           Direct_Index_Vector
---           Direct_Index
-
 with System.Tasking.Initialization;
---  Used for Defer_Abort
---           Undefer_Abort
---           Initialize_Attributes_Link
---           Finalize_Attributes_Link
-
 with System.Tasking.Task_Attributes;
---  Used for Access_Node
---           Access_Dummy_Wrapper
---           Deallocator
---           Instance
---           Node
---           Access_Instance
 
 with Ada.Exceptions;
---  Used for Raise_Exception
-
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
@@ -265,16 +243,14 @@ package body Ada.Task_Attributes is
        System.Tasking.Task_Attributes,
        Ada.Exceptions;
 
-   use type System.Tasking.Access_Address;
-
    package POP renames System.Task_Primitives.Operations;
 
    ---------------------------
    -- Unchecked Conversions --
    ---------------------------
 
-   --  The following type corresponds to Dummy_Wrapper,
-   --  declared in System.Tasking.Task_Attributes.
+   --  The following type corresponds to Dummy_Wrapper, declared in
+   --  System.Tasking.Task_Attributes.
 
    type Wrapper;
    type Access_Wrapper is access all Wrapper;
@@ -300,8 +276,7 @@ package body Ada.Task_Attributes is
    --  For reference to directly addressed task attributes
 
    pragma Warnings (On);
-   --  End of warnings off region for directly addressed
-   --  attribute conversion functions.
+   --  End warnings off region for directly addressed attribute conversions
 
    function To_Access_Address is new Ada.Unchecked_Conversion
      (Access_Node, Access_Address);
@@ -330,8 +305,6 @@ package body Ada.Task_Attributes is
    function To_Lib_Level_Deallocator is new Ada.Unchecked_Conversion
      (Local_Deallocator, Deallocator);
    --  To defeat accessibility check
-
-   pragma Warnings (On);
 
    ------------------------
    -- Storage Management --
@@ -426,9 +399,9 @@ package body Ada.Task_Attributes is
                P := P.Next;
             end loop;
 
-            --  Unlock the RTS here to follow the lock ordering rule
-            --  that prevent us from using new (i.e the Global_Lock) while
-            --  holding any other lock.
+            --  Unlock the RTS here to follow the lock ordering rule that
+            --  prevent us from using new (i.e the Global_Lock) while holding
+            --  any other lock.
 
             POP.Unlock_RTS;
             W := new Wrapper'
@@ -743,9 +716,9 @@ begin
                In_Use := In_Use or Two_To_J;
                Local.Index := J;
 
-               --  This unchecked conversions can give a warning when the the
-               --  alignment is incorrect, but it will not be used in such a
-               --  case anyway, so the warning can be safely ignored.
+               --  This unchecked conversion can give a warning when the
+               --  alignment is incorrect, but it will not be used in such
+               --  a case anyway, so the warning can be safely ignored.
 
                pragma Warnings (Off);
                To_Attribute_Handle (Local.Initial_Value'Access).all :=

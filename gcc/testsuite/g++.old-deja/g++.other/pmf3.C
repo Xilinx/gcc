@@ -3,9 +3,9 @@
 // Bug: g++ was crashing after giving errors.
 
 template<class T>
-  void connect_to_method(
+  void connect_to_method( // { dg-message "candidates are" }
     T *receiver,
-    void (T::*method)()) // { dg-error "candidates are" }
+    void (T::*method)())
   {}
 
 class Gtk_Base
@@ -20,6 +20,6 @@ public:
 
 Gtk_Base::Gtk_Base()
 {
-  connect_to_method(this,&show);   // { dg-error "" } invalid pmf expression
-  connect_to_method(this,&expose); // { dg-error "" } invalid pmf expression
+  connect_to_method(this,&show);   // { dg-error "no match" } invalid pmf expression
+  connect_to_method(this,&expose); // { dg-error "pointer to member" } invalid pmf expression
 }

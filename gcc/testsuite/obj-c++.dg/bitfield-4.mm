@@ -1,8 +1,8 @@
 /* Check if the @defs() construct preserves the correct
    layout of bitfields.  */
 /* Contributed by Ziemowit Laski <zlaski@apple.com>.  */
-/* { dg-options "-lobjc -Wpadded" } */
 /* { dg-do run } */
+/* { dg-options "-lobjc -Wpadded" } */
 
 #include <objc/Object.h>
 
@@ -48,3 +48,9 @@ int main(void)
 
   return 0;
 }
+
+/* { dg-prune-output "In file included from" }  Ignore this message.  */
+/* { dg-bogus "padding struct to align" "PR23610" { xfail lp64 } 1 } */
+
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 28 } */
+/* { dg-bogus "padding struct size" "PR23610" { xfail lp64 } 34 } */

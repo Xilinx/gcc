@@ -1,13 +1,13 @@
 // -*- C++ -*-
 // Testing allocator for the C++ library testsuite.
 //
-// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -16,18 +16,9 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 //
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
 
 // This file provides an test instrumentation allocator that can be
 // used to verify allocation functionality of standard library
@@ -39,12 +30,13 @@
 #include <cstddef>
 #include <tr1/unordered_map>
 #include <cassert>
+#include <bits/move.h>
 
 namespace 
 {
   bool new_called = false;
   bool delete_called = false;
-};
+}
 
 namespace __gnu_test
 {
@@ -153,9 +145,19 @@ namespace __gnu_test
     void
     construct(pointer p, const T& value)
     {
-      new (p) T(value);
+      ::new ((void *)p) T(value);
       counter_type::construct();
     }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... Args>
+        void
+        construct(pointer p, Args&&... args) 
+	{
+	  ::new((void *)p) T(std::forward<Args>(args)...);
+	  counter_type::construct();
+	}
+#endif
 
     void
     destroy(pointer p)
@@ -338,8 +340,15 @@ namespace __gnu_test
       
       void 
       construct(pointer p, const Tp& val) 
-      { ::new(p) Tp(val); }
-    
+      { ::new((void *)p) Tp(val); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... Args>
+        void
+        construct(pointer p, Args&&... args) 
+	{ ::new((void *)p) Tp(std::forward<Args>(args)...); }
+#endif
+
       void 
       destroy(pointer p) { p->~Tp(); }
 
@@ -365,6 +374,6 @@ namespace __gnu_test
       
       int personality;
     };
-}; // namespace __gnu_test
+} // namespace __gnu_test
 
 #endif // _GLIBCXX_TESTSUITE_ALLOCATOR_H

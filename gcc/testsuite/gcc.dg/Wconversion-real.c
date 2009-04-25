@@ -1,6 +1,7 @@
 /* Test for diagnostics for Wconversion for floating-point.  */
 
-/* { dg-do compile }
+/* { dg-do compile } */
+/* { dg-skip-if "doubles are floats" { "avr-*-*" } { "*" } { "" } } */
 /* { dg-options "-std=c99 -Wconversion" } */
 
 float  vfloat;
@@ -80,5 +81,3 @@ void h (void)
   flongdouble (ld);
   vlongdouble = ld;
 }
-
-

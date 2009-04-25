@@ -1,7 +1,7 @@
 /* Check that we save non-MIPS16 GPRs if they are explicitly clobbered.  */
-/* { dg-mips-options "-mips2 -mips16 -mno-abicalls -O2" } */
+/* { dg-options "(-mips16) isa_rev=0 -O2" } */
 
-void
+MIPS16 void
 foo (void)
 {
   asm volatile ("" ::: "$19", "$23", "$24", "$30");

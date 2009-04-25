@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -33,13 +33,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic.h"
 #include "intl.h"
 #include "cppdefault.h"
-#include "c-incpath.h"
+#include "incpath.h"
 #include "debug.h"		/* For debug_hooks.  */
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
 #include "target.h"
 #include "tm_p.h"
+#include "c-tree.h"		/* For c_cpp_error.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -54,7 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* CPP's options.  */
-static cpp_options *cpp_opts;
+cpp_options *cpp_opts;
 
 /* Input filename.  */
 static const char *this_input_filename;
@@ -71,9 +72,6 @@ static bool deps_seen;
 
 /* If -v seen.  */
 static bool verbose;
-
-/* If -lang-fortran seen.  */
-bool lang_fortran = false;
 
 /* Dependency output file.  */
 static const char *deps_file;
@@ -204,6 +202,7 @@ c_common_init_options (unsigned int argc, const char **argv)
 {
   static const unsigned int lang_flags[] = {CL_C, CL_ObjC, CL_CXX, CL_ObjCXX};
   unsigned int i, result;
+  struct cpp_callbacks *cb;
 
   /* This is conditionalized only because that is the way the front
      ends used to do it.  Maybe this should be unconditional?  */
@@ -219,6 +218,8 @@ c_common_init_options (unsigned int argc, const char **argv)
 
   parse_in = cpp_create_reader (c_dialect_cxx () ? CLK_GNUCXX: CLK_GNUC89,
 				ident_hash, line_table);
+  cb = cpp_get_callbacks (parse_in);
+  cb->error = c_cpp_error;
 
   cpp_opts = cpp_get_options (parse_in);
   cpp_opts->dollars_in_ident = DOLLARS_IN_IDENTIFIERS;
@@ -249,15 +250,6 @@ c_common_init_options (unsigned int argc, const char **argv)
 	    result |= CL_C | CL_ObjC | CL_CXX | CL_ObjCXX;
 	    break;
 	  }
-
-#ifdef CL_Fortran
-      for (i = 1; i < argc; i++)
-	if (! strcmp (argv[i], "-lang-fortran"))
-	{
-	    result |= CL_Fortran;
-	    break;
-	}
-#endif
     }
 
   return result;
@@ -288,10 +280,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	    result = 0;
 	  break;
 	}
-#ifdef CL_Fortran
-      if (lang_fortran && (cl_options[code].flags & (CL_Fortran)))
-	break;
-#endif
       result = 0;
       break;
 
@@ -337,7 +325,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	    error ("-I- specified twice");
 	  quote_chain_split = true;
 	  split_quote_chain ();
-	  inform ("obsolete option -I- used, please use -iquote instead");
+	  inform (input_location, "obsolete option -I- used, please use -iquote instead");
 	}
       break;
 
@@ -349,7 +337,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 or environment var dependency generation is used.  */
       cpp_opts->deps.style = (code == OPT_M ? DEPS_SYSTEM: DEPS_USER);
       flag_no_output = 1;
-      cpp_opts->inhibit_warnings = 1;
       break;
 
     case OPT_MD:
@@ -392,7 +379,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_Wall:
-      set_Wunused (value);
+      warn_unused = value;
       set_Wformat (value);
       set_Wimplicit (value);
       warn_char_subscripts = value;
@@ -400,13 +387,14 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       warn_parentheses = value;
       warn_return_type = value;
       warn_sequence_point = value;	/* Was C only.  */
-      if (c_dialect_cxx ())
-	warn_sign_compare = value;
       warn_switch = value;
-      set_Wstrict_aliasing (value);
+      if (warn_strict_aliasing == -1)
+	set_Wstrict_aliasing (value);
       warn_address = value;
-      warn_strict_overflow = value;
+      if (warn_strict_overflow == -1)
+	warn_strict_overflow = value;
       warn_array_bounds = value;
+      warn_volatile_register_var = value;
 
       /* Only warn about unknown pragmas that are not in system
 	 headers.  */
@@ -419,31 +407,48 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_uninitialized = (value ? 2 : 0);
 
       if (!c_dialect_cxx ())
-	/* We set this to 2 here, but 1 in -Wmain, so -ffreestanding
-	   can turn it off only if it's not explicit.  */
-	warn_main = value * 2;
+	{
+	  /* We set this to 2 here, but 1 in -Wmain, so -ffreestanding
+	     can turn it off only if it's not explicit.  */
+	  if (warn_main == -1)
+	    warn_main = (value ? 2 : 0);
+
+	  /* In C, -Wall turns on -Wenum-compare, which we do here.
+	     In C++ it is on by default, which is done in
+	     c_common_post_options.  */
+          if (warn_enum_compare == -1)
+            warn_enum_compare = value;
+	}
       else
 	{
 	  /* C++-specific warnings.  */
+          warn_sign_compare = value;
 	  warn_reorder = value;
-	  warn_nontemplate_friend = value;
           warn_cxx0x_compat = value;
-          if (value > 0)
-            warn_write_strings = true;
 	}
 
       cpp_opts->warn_trigraphs = value;
       cpp_opts->warn_comments = value;
       cpp_opts->warn_num_sign_change = value;
-      cpp_opts->warn_multichar = value;	/* Was C++ only.  */
 
       if (warn_pointer_sign == -1)
-	warn_pointer_sign = 1;
+	warn_pointer_sign = value;
+      break;
+
+    case OPT_Wbuiltin_macro_redefined:
+      cpp_opts->warn_builtin_macro_redefined = value;
       break;
 
     case OPT_Wcomment:
     case OPT_Wcomments:
       cpp_opts->warn_comments = value;
+      break;
+
+    case OPT_Wc___compat:
+      /* Because -Wenum-compare is the default in C++, -Wc++-compat
+	 implies -Wenum-compare.  */
+      if (warn_enum_compare == -1 && value)
+	warn_enum_compare = value;
       break;
 
     case OPT_Wdeprecated:
@@ -455,7 +460,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       break;
 
     case OPT_Werror:
-      cpp_opts->warnings_are_errors = value;
       global_dc->warning_as_error_requested = value;
       break;
 
@@ -485,13 +489,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       cpp_opts->warn_invalid_pch = value;
       break;
 
-    case OPT_Wmain:
-      if (value)
-	warn_main = 1;
-      else
-	warn_main = -1;
-      break;
-
     case OPT_Wmissing_include_dirs:
       cpp_opts->warn_missing_include_dirs = value;
       break;
@@ -519,10 +516,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 
     case OPT_Wstrict_null_sentinel:
       warn_strict_null_sentinel = value;
-      break;
-
-    case OPT_Wsystem_headers:
-      cpp_opts->warn_system_headers = value;
       break;
 
     case OPT_Wtraditional:
@@ -633,9 +626,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
     case OPT_fhosted:
       flag_hosted = value;
       flag_no_builtin = !value;
-      /* warn_main will be 2 if set by -Wall, 1 if set by -Wmain */
-      if (!value && warn_main == 2)
-	warn_main = 0;
       break;
 
     case OPT_fshort_double:
@@ -831,6 +821,10 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_threadsafe_statics = value;
       break;
 
+    case OPT_fpretty_templates:
+      flag_pretty_templates = value;
+      break;
+
     case OPT_fzero_link:
       flag_zero_link = value;
       break;
@@ -893,10 +887,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       cpp_opts->dollars_in_ident = false;
       break;
 
-    case OPT_lang_fortran:
-      lang_fortran = true;
-      break;
-
     case OPT_lang_objc:
       cpp_opts->objc = 1;
       break;
@@ -920,8 +910,6 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 c_common_post_options, so that a subsequent -Wno-endif-labels
 	 is not overridden.  */
     case OPT_pedantic_errors:
-      cpp_opts->pedantic_errors = 1;
-      /* Fall through.  */
     case OPT_pedantic:
       cpp_opts->pedantic = 1;
       cpp_opts->warn_endif_labels = 1;
@@ -929,6 +917,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	warn_pointer_sign = 1;
       if (warn_overlength_strings == -1)
 	warn_overlength_strings = 1;
+      if (warn_main == -1)
+	warn_main = 2;
       break;
 
     case OPT_print_objc_runtime_info:
@@ -994,12 +984,12 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_undef = 1;
       break;
 
-    case OPT_w:
-      cpp_opts->inhibit_warnings = 1;
-      break;
-
     case OPT_v:
       verbose = true;
+      break;
+
+    case OPT_Wabi:
+      warn_psabi = value;
       break;
     }
 
@@ -1040,13 +1030,19 @@ c_common_post_options (const char **pfilename)
   C_COMMON_OVERRIDE_OPTIONS;
 #endif
 
-  flag_inline_trees = 1;
-
-  /* Use tree inlining.  */
-  if (!flag_no_inline)
-    flag_no_inline = 1;
-  if (flag_inline_functions)
-    flag_inline_trees = 2;
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  if (c_dialect_cxx ())
+    {
+      if (flag_excess_precision_cmdline == EXCESS_PRECISION_STANDARD
+	  && TARGET_FLT_EVAL_METHOD_NON_DEFAULT)
+	sorry ("-fexcess-precision=standard for C++");
+      flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
+    }
+  else if (flag_excess_precision_cmdline == EXCESS_PRECISION_DEFAULT)
+    flag_excess_precision_cmdline = (flag_iso
+				     ? EXCESS_PRECISION_STANDARD
+				     : EXCESS_PRECISION_FAST);
 
   /* By default we use C99 inline semantics in GNU99 or C99 mode.  C99
      inline semantics are not supported in GNU89 or C89 mode.  */
@@ -1054,11 +1050,6 @@ c_common_post_options (const char **pfilename)
     flag_gnu89_inline = !flag_isoc99;
   else if (!flag_gnu89_inline && !flag_isoc99)
     error ("-fno-gnu89-inline is only supported in GNU99 or C99 mode");
-
-  /* If we are given more than one input file, we must use
-     unit-at-a-time mode.  */
-  if (num_in_fnames > 1)
-    flag_unit_at_a_time = 1;
 
   /* Default to ObjC sjlj exception handling if NeXT runtime.  */
   if (flag_objc_sjlj_exceptions < 0)
@@ -1069,7 +1060,7 @@ c_common_post_options (const char **pfilename)
   /* -Wextra implies -Wtype-limits, -Wclobbered, 
      -Wempty-body, -Wsign-compare, 
      -Wmissing-field-initializers, -Wmissing-parameter-type
-     -Wold-style-declaration, and -Woverride-init, 
+     -Wold-style-declaration, -Woverride-init and -Wignored-qualifiers
      but not if explicitly overridden.  */
   if (warn_type_limits == -1)
     warn_type_limits = extra_warnings;
@@ -1087,11 +1078,20 @@ c_common_post_options (const char **pfilename)
     warn_old_style_declaration = extra_warnings;
   if (warn_override_init == -1)
     warn_override_init = extra_warnings;
+  if (warn_ignored_qualifiers == -1)
+    warn_ignored_qualifiers = extra_warnings;
+  if (warn_logical_op == -1)
+    warn_logical_op = extra_warnings;
 
-  /* -Wpointer_sign is disabled by default, but it is enabled if any
+  /* -Wpointer-sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
   if (warn_pointer_sign == -1)
     warn_pointer_sign = 0;
+
+  if (warn_strict_aliasing == -1)
+    warn_strict_aliasing = 0;
+  if (warn_strict_overflow == -1)
+    warn_strict_overflow = 0;
 
   /* -Woverlength-strings is off by default, but is enabled by -pedantic.
      It is never enabled in C++, as the minimum limit is not normative
@@ -1099,22 +1099,14 @@ c_common_post_options (const char **pfilename)
   if (warn_overlength_strings == -1 || c_dialect_cxx ())
     warn_overlength_strings = 0;
 
-  /* Adjust various flags for C++ based on command-line settings.  */
-  if (c_dialect_cxx ())
-    {
-      if (!flag_permissive)
-	{
-	  flag_pedantic_errors = 1;
-	  cpp_opts->pedantic_errors = 1;
-	}
-      if (!flag_no_inline)
-	{
-	  flag_inline_trees = 1;
-	  flag_no_inline = 1;
-	}
-      if (flag_inline_functions)
-	flag_inline_trees = 2;
-    } 
+  /* Wmain is enabled by default in C++ but not in C.  */
+  /* Wmain is disabled by default for -ffreestanding (!flag_hosted),
+     even if -Wall was given (warn_main will be 2 if set by -Wall, 1
+     if set by -Wmain).  */
+  if (warn_main == -1)
+    warn_main = (c_dialect_cxx () && flag_hosted) ? 1 : 0;
+  else if (warn_main == 2)
+    warn_main = flag_hosted ? 1 : 0;
 
   /* In C, -Wconversion enables -Wsign-conversion (unless disabled
      through -Wno-sign-conversion). While in C++,
@@ -1122,6 +1114,17 @@ c_common_post_options (const char **pfilename)
   if (warn_sign_conversion == -1)
     warn_sign_conversion =  (c_dialect_cxx ()) ? 0 : warn_conversion;
 
+  /* In C, -Wall and -Wc++-compat enable -Wenum-compare, which we do
+     in c_common_handle_option; if it has not yet been set, it is
+     disabled by default.  In C++, it is enabled by default.  */
+  if (warn_enum_compare == -1)
+    warn_enum_compare = c_dialect_cxx () ? 1 : 0;
+
+  /* -Wpacked-bitfield-compat is on by default for the C languages.  The
+     warning is issued in stor-layout.c which is not part of the front-end so
+     we need to selectively turn it on here.  */
+  if (warn_packed_bitfield_compat == -1)
+    warn_packed_bitfield_compat = 1;
 
   /* Special format checking options don't work without -Wformat; warn if
      they are used.  */
@@ -1187,10 +1190,6 @@ c_common_post_options (const char **pfilename)
 
   input_location = UNKNOWN_LOCATION;
 
-  /* If an error has occurred in cpplib, note it so we fail
-     immediately.  */
-  errorcount += cpp_errors (parse_in);
-
   *pfilename = this_input_filename
     = cpp_read_main_file (parse_in, in_fnames[0]);
   /* Don't do any compilation or preprocessing if there is no input file.  */
@@ -1227,15 +1226,15 @@ c_common_init (void)
   if (version_flag)
     c_common_print_pch_checksum (stderr);
 
+  /* Has to wait until now so that cpplib has its hash table.  */
+  init_pragma ();
+
   if (flag_preprocess_only)
     {
       finish_options ();
       preprocess_file (parse_in);
       return false;
     }
-
-  /* Has to wait until now so that cpplib has its hash table.  */
-  init_pragma ();
 
   return true;
 }
@@ -1286,6 +1285,7 @@ c_common_parse_file (int set_yydebug)
       if (++i >= num_in_fnames)
 	break;
       cpp_undef_all (parse_in);
+      cpp_clear_file_cache (parse_in);
       this_input_filename
 	= cpp_read_main_file (parse_in, in_fnames[i]);
       /* If an input file is missing, abandon further compilation.
@@ -1301,7 +1301,8 @@ c_common_finish (void)
 {
   FILE *deps_stream = NULL;
 
-  if (cpp_opts->deps.style != DEPS_NONE)
+  /* Don't write the deps file if there are errors.  */
+  if (cpp_opts->deps.style != DEPS_NONE && errorcount == 0)
     {
       /* If -M or -MM was seen without -MF, default output to the
 	 output stream.  */
@@ -1317,7 +1318,7 @@ c_common_finish (void)
 
   /* For performance, avoid tearing down cpplib's internal structures
      with cpp_destroy ().  */
-  errorcount += cpp_finish (parse_in, deps_stream);
+  cpp_finish (parse_in, deps_stream);
 
   if (deps_stream && deps_stream != out_stream
       && (ferror (deps_stream) || fclose (deps_stream)))
@@ -1426,14 +1427,21 @@ sanitize_cpp_opts (void)
       flag_dump_includes = 0;
       flag_no_line_commands = 1;
     }
+  else if (cpp_opts->deps.missing_files)
+    error ("-MG may only be used with -M or -MM");
 
   cpp_opts->unsigned_char = !flag_signed_char;
   cpp_opts->stdc_0_in_system_headers = STDC_0_IN_SYSTEM_HEADERS;
 
-  /* We want -Wno-long-long to override -pedantic -std=non-c99
-     and/or -Wtraditional, whatever the ordering.  */
-  cpp_opts->warn_long_long
-    = warn_long_long && ((!flag_isoc99 && pedantic) || warn_traditional);
+  /* Wlong-long is disabled by default. It is enabled by:
+      [-pedantic | -Wtraditional] -std=[gnu|c]++98 ; or
+      [-pedantic | -Wtraditional] -std=non-c99 . 
+
+      Either -Wlong-long or -Wno-long-long override any other settings.  */
+  if (warn_long_long == -1)
+    warn_long_long = ((pedantic || warn_traditional)
+		      && (c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99));
+  cpp_opts->warn_long_long = warn_long_long;
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */
@@ -1663,6 +1671,7 @@ handle_OPT_d (const char *arg)
       case 'M':			/* Dump macros only.  */
       case 'N':			/* Dump names.  */
       case 'D':			/* Dump definitions.  */
+      case 'U':			/* Dump used macros.  */
 	flag_dump_macros = c;
 	break;
 

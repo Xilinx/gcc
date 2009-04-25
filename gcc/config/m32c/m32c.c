@@ -1,5 +1,5 @@
 /* Target Code for R8C/M16C/M32C
-   Copyright (C) 2005, 2006, 2007
+   Copyright (C) 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -47,7 +47,7 @@
 #include "target-def.h"
 #include "tm_p.h"
 #include "langhooks.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "df.h"
 
 /* Prototypes */
@@ -340,36 +340,36 @@ classes_intersect (int class1, int class2)
 /* Used by m32c_register_move_cost to determine if a move is
    impossibly expensive.  */
 static int
-class_can_hold_mode (int class, enum machine_mode mode)
+class_can_hold_mode (int rclass, enum machine_mode mode)
 {
   /* Cache the results:  0=untested  1=no  2=yes */
   static char results[LIM_REG_CLASSES][MAX_MACHINE_MODE];
-  if (results[class][mode] == 0)
+  if (results[rclass][mode] == 0)
     {
       int r, n, i;
-      results[class][mode] = 1;
+      results[rclass][mode] = 1;
       for (r = 0; r < FIRST_PSEUDO_REGISTER; r++)
-	if (class_contents[class][0] & (1 << r)
+	if (class_contents[rclass][0] & (1 << r)
 	    && HARD_REGNO_MODE_OK (r, mode))
 	  {
 	    int ok = 1;
 	    n = HARD_REGNO_NREGS (r, mode);
 	    for (i = 1; i < n; i++)
-	      if (!(class_contents[class][0] & (1 << (r + i))))
+	      if (!(class_contents[rclass][0] & (1 << (r + i))))
 		ok = 0;
 	    if (ok)
 	      {
-		results[class][mode] = 2;
+		results[rclass][mode] = 2;
 		break;
 	      }
 	  }
     }
 #if DEBUG0
   fprintf (stderr, "class %s can hold %s? %s\n",
-	   class_names[class], mode_name[mode],
-	   (results[class][mode] == 2) ? "yes" : "no");
+	   class_names[rclass], mode_name[mode],
+	   (results[rclass][mode] == 2) ? "yes" : "no");
 #endif
-  return results[class][mode] == 2;
+  return results[rclass][mode] == 2;
 }
 
 /* Run-time Target Specification.  */
@@ -523,8 +523,8 @@ m32c_conditional_register_usage (void)
 /* Implements HARD_REGNO_NREGS.  This is complicated by the fact that
    different registers are different sizes from each other, *and* may
    be different sizes in different chip families.  */
-int
-m32c_hard_regno_nregs (int regno, enum machine_mode mode)
+static int
+m32c_hard_regno_nregs_1 (int regno, enum machine_mode mode)
 {
   if (regno == FLG_REGNO && mode == CCmode)
     return 1;
@@ -549,12 +549,19 @@ m32c_hard_regno_nregs (int regno, enum machine_mode mode)
   return 0;
 }
 
+int
+m32c_hard_regno_nregs (int regno, enum machine_mode mode)
+{
+  int rv = m32c_hard_regno_nregs_1 (regno, mode);
+  return rv ? rv : 1;
+}
+
 /* Implements HARD_REGNO_MODE_OK.  The above function does the work
    already; just test its return value.  */
 int
 m32c_hard_regno_ok (int regno, enum machine_mode mode)
 {
-  return m32c_hard_regno_nregs (regno, mode) != 0;
+  return m32c_hard_regno_nregs_1 (regno, mode) != 0;
 }
 
 /* Implements MODES_TIEABLE_P.  In general, modes aren't tieable since
@@ -942,6 +949,11 @@ m32c_const_ok_for_constraint_p (HOST_WIDE_INT value,
       int b = exact_log2 ((value ^ 0xff) & 0xff);
       return (b >= 0 && b <= 7);
     }
+  if (memcmp (str, "ImB", 3) == 0)
+    {
+      int b = exact_log2 ((value ^ 0xffff) & 0xffff);
+      return (b >= 0 && b <= 7);
+    }
   if (memcmp (str, "Ilw", 3) == 0)
     {
       int b = exact_log2 (value);
@@ -1092,7 +1104,8 @@ m32c_return_addr_rtx (int count)
 
   if (TARGET_A24)
     {
-      mode = SImode;
+      /* It's four bytes */
+      mode = PSImode;
       offset = 4;
     }
   else
@@ -1127,7 +1140,10 @@ m32c_eh_return_data_regno (int n)
     case 0:
       return A0_REGNO;
     case 1:
-      return A1_REGNO;
+      if (TARGET_A16)
+	return R3_REGNO;
+      else
+	return R1_REGNO;
     default:
       return INVALID_REGNUM;
     }
@@ -1241,7 +1257,7 @@ need_to_save (int regno)
 {
   if (fixed_regs[regno])
     return 0;
-  if (cfun->calls_eh_return)
+  if (crtl->calls_eh_return)
     return 1;
   if (regno == FP_REGNO)
     return 0;
@@ -1271,11 +1287,11 @@ m32c_pushm_popm (Push_Pop_Type ppt)
   int n_dwarfs = 0;
   int nosave_mask = 0;
 
-  if (cfun->return_rtx
-      && GET_CODE (cfun->return_rtx) == PARALLEL
-      && !(cfun->calls_eh_return || cfun->machine->is_interrupt))
+  if (crtl->return_rtx
+      && GET_CODE (crtl->return_rtx) == PARALLEL
+      && !(crtl->calls_eh_return || cfun->machine->is_interrupt))
     {
-      rtx exp = XVECEXP (cfun->return_rtx, 0, 0);
+      rtx exp = XVECEXP (crtl->return_rtx, 0, 0);
       rtx rv = XEXP (exp, 0);
       int rv_bytes = GET_MODE_SIZE (GET_MODE (rv));
 
@@ -2108,7 +2124,8 @@ m32c_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m32c_rtx_costs
 static bool
-m32c_rtx_costs (rtx x, int code, int outer_code, int *total)
+m32c_rtx_costs (rtx x, int code, int outer_code, int *total,
+		bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -2187,18 +2204,38 @@ m32c_rtx_costs (rtx x, int code, int outer_code, int *total)
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST m32c_address_cost
 static int
-m32c_address_cost (rtx addr)
+m32c_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 {
+  int i;
   /*  fprintf(stderr, "\naddress_cost\n");
       debug_rtx(addr);*/
   switch (GET_CODE (addr))
     {
     case CONST_INT:
-      return COSTS_N_INSNS(1);
+      i = INTVAL (addr);
+      if (i == 0)
+	return COSTS_N_INSNS(1);
+      if (0 < i && i <= 255)
+	return COSTS_N_INSNS(2);
+      if (0 < i && i <= 65535)
+	return COSTS_N_INSNS(3);
+      return COSTS_N_INSNS(4);
     case SYMBOL_REF:
-      return COSTS_N_INSNS(3);
+      return COSTS_N_INSNS(4);
     case REG:
-      return COSTS_N_INSNS(2);
+      return COSTS_N_INSNS(1);
+    case PLUS:
+      if (GET_CODE (XEXP (addr, 1)) == CONST_INT)
+	{
+	  i = INTVAL (XEXP (addr, 1));
+	  if (i == 0)
+	    return COSTS_N_INSNS(1);
+	  if (0 < i && i <= 255)
+	    return COSTS_N_INSNS(2);
+	  if (0 < i && i <= 65535)
+	    return COSTS_N_INSNS(3);
+	}
+      return COSTS_N_INSNS(4);
     default:
       return 0;
     }
@@ -2664,8 +2701,13 @@ m32c_print_operand_punct_valid_p (int c)
 void
 m32c_print_operand_address (FILE * stream, rtx address)
 {
-  gcc_assert (GET_CODE (address) == MEM);
-  m32c_print_operand (stream, XEXP (address, 0), 0);
+  if (GET_CODE (address) == MEM)
+    address = XEXP (address, 0);
+  else
+    /* cf: gcc.dg/asm-4.c.  */
+    gcc_assert (GET_CODE (address) == REG);
+
+  m32c_print_operand (stream, address, 0);
 }
 
 /* Implements ASM_OUTPUT_REG_PUSH.  Control registers are pushed
@@ -2729,10 +2771,12 @@ interrupt_handler (tree * node ATTRIBUTE_UNUSED,
 int
 m32c_special_page_vector_p (tree func)
 {
+  tree list;
+
   if (TREE_CODE (func) != FUNCTION_DECL)
     return 0;
 
-  tree list = M32C_ATTRIBUTES (func);
+  list = M32C_ATTRIBUTES (func);
   while (list)
     {
       if (is_attribute_p ("function_vector", TREE_PURPOSE (list)))
@@ -2795,12 +2839,13 @@ current_function_special_page_vector (rtx x)
   if ((GET_CODE(x) == SYMBOL_REF)
       && (SYMBOL_REF_FLAGS (x) & SYMBOL_FLAG_FUNCVEC_FUNCTION))
     {
+      tree list;
       tree t = SYMBOL_REF_DECL (x);
 
       if (TREE_CODE (t) != FUNCTION_DECL)
         return 0;
 
-      tree list = M32C_ATTRIBUTES (t);
+      list = M32C_ATTRIBUTES (t);
       while (list)
         {
           if (is_attribute_p ("function_vector", TREE_PURPOSE (list)))
@@ -2990,7 +3035,7 @@ m32c_immd_dbl_mov (rtx * operands,
            && GET_CODE (XEXP (XEXP (XEXP (operands[0], 0), 0), 0)) == SYMBOL_REF
            && MEM_SCALAR_P (operands[0])
            && !MEM_IN_STRUCT_P (operands[0])
-           && !(XINT (XEXP (XEXP (XEXP (operands[0], 0), 0), 1), 0) %4)
+           && !(INTVAL (XEXP (XEXP (XEXP (operands[0], 0), 0), 1)) %4)
            && GET_CODE (XEXP (operands[2], 0)) == CONST
            && GET_CODE (XEXP (XEXP (operands[2], 0), 0)) == PLUS
            && GET_CODE (XEXP (XEXP (XEXP (operands[2], 0), 0), 0)) == SYMBOL_REF
@@ -3004,7 +3049,7 @@ m32c_immd_dbl_mov (rtx * operands,
            &&  GET_CODE (XEXP (XEXP (operands[0], 0), 1)) == CONST_INT
            &&  MEM_SCALAR_P (operands[0])
            &&  !MEM_IN_STRUCT_P (operands[0])
-           &&  !(XINT (XEXP (XEXP (operands[0], 0), 1), 0) %4)
+           &&  !(INTVAL (XEXP (XEXP (operands[0], 0), 1)) %4)
            &&  REGNO (XEXP (XEXP (operands[2], 0), 0)) == FB_REGNO 
            &&  GET_CODE (XEXP (XEXP (operands[2], 0), 1)) == CONST_INT
            &&  MEM_SCALAR_P (operands[2])
@@ -3033,8 +3078,8 @@ m32c_immd_dbl_mov (rtx * operands,
 	okflag = 0; 
       break; 
     case 3:
-      offset1 = XINT (XEXP (XEXP (operands[0], 0), 1), 0);
-      offset2 = XINT (XEXP (XEXP (operands[2], 0), 1), 0);
+      offset1 = INTVAL (XEXP (XEXP (operands[0], 0), 1));
+      offset2 = INTVAL (XEXP (XEXP (operands[2], 0), 1));
       offsetsign = offset1 >> ((sizeof (offset1) * 8) -1);
       if (((offset2-offset1) == 2) && offsetsign != 0)
 	okflag = 1;
@@ -3050,7 +3095,7 @@ m32c_immd_dbl_mov (rtx * operands,
       HOST_WIDE_INT val;
       operands[4] = gen_rtx_MEM (SImode, XEXP (operands[0], 0));
 
-      val = (XINT (operands[3], 0) << 16) + (XINT (operands[1], 0) & 0xFFFF);
+      val = (INTVAL (operands[3]) << 16) + (INTVAL (operands[1]) & 0xFFFF);
       operands[5] = gen_rtx_CONST_INT (VOIDmode, val);
      
       return true;
@@ -3828,6 +3873,7 @@ m32c_expand_insv (rtx *operands)
     case 5: p = gen_iorqi3_24 (op0, src0, GEN_INT (mask)); break;
     case 6: p = gen_iorhi3_16 (op0, src0, GEN_INT (mask)); break;
     case 7: p = gen_iorhi3_24 (op0, src0, GEN_INT (mask)); break;
+    default: p = NULL_RTX; break; /* Not reached, but silences a warning.  */
     }
 
   emit_insn (p);
@@ -3879,20 +3925,20 @@ m32c_leaf_function_p (void)
   struct sequence_stack *seq;
   int rv;
 
-  saved_first = cfun->emit->x_first_insn;
-  saved_last = cfun->emit->x_last_insn;
-  for (seq = cfun->emit->sequence_stack; seq && seq->next; seq = seq->next)
+  saved_first = crtl->emit.x_first_insn;
+  saved_last = crtl->emit.x_last_insn;
+  for (seq = crtl->emit.sequence_stack; seq && seq->next; seq = seq->next)
     ;
   if (seq)
     {
-      cfun->emit->x_first_insn = seq->first;
-      cfun->emit->x_last_insn = seq->last;
+      crtl->emit.x_first_insn = seq->first;
+      crtl->emit.x_last_insn = seq->last;
     }
 
   rv = leaf_function_p ();
 
-  cfun->emit->x_first_insn = saved_first;
-  cfun->emit->x_last_insn = saved_last;
+  crtl->emit.x_first_insn = saved_first;
+  crtl->emit.x_last_insn = saved_last;
   return rv;
 }
 
@@ -3908,7 +3954,7 @@ m32c_function_needs_enter (void)
   rtx fb = gen_rtx_REG (Pmode, FB_REGNO);
 
   insn = get_insns ();
-  for (seq = cfun->emit->sequence_stack;
+  for (seq = crtl->emit.sequence_stack;
        seq;
        insn = seq->first, seq = seq->next);
 
@@ -4048,7 +4094,7 @@ m32c_emit_eh_epilogue (rtx ret_addr)
      (fudged), and return (fudged).  This is actually easier to do in
      assembler, so punt to libgcc.  */
   emit_jump_insn (gen_eh_epilogue (ret_addr, cfun->machine->eh_stack_adjust));
-  /*  emit_insn (gen_rtx_CLOBBER (HImode, gen_rtx_REG (HImode, R0L_REGNO))); */
+  /*  emit_clobber (gen_rtx_REG (HImode, R0L_REGNO)); */
   emit_barrier ();
 }
 
@@ -4267,22 +4313,22 @@ m32c_compare_redundant (rtx cmp, rtx *operands)
 char *
 m32c_output_compare (rtx insn, rtx *operands)
 {
-  static char template[] = ";cmp.b\t%1,%0";
+  static char templ[] = ";cmp.b\t%1,%0";
   /*                             ^ 5  */
 
-  template[5] = " bwll"[GET_MODE_SIZE(GET_MODE(operands[0]))];
+  templ[5] = " bwll"[GET_MODE_SIZE(GET_MODE(operands[0]))];
   if (m32c_compare_redundant (insn, operands))
     {
 #if DEBUG_CMP
       fprintf(stderr, "cbranch: cmp not needed\n");
 #endif
-      return template;
+      return templ;
     }
 
 #if DEBUG_CMP
-  fprintf(stderr, "cbranch: cmp needed: `%s'\n", template);
+  fprintf(stderr, "cbranch: cmp needed: `%s'\n", templ);
 #endif
-  return template + 1;
+  return templ + 1;
 }
 
 #undef TARGET_ENCODE_SECTION_INFO

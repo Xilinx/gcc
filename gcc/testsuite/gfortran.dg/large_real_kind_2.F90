@@ -1,5 +1,6 @@
 ! { dg-do run }
 ! { dg-require-effective-target fortran_large_real }
+! { dg-xfail-if "" { "*-*-freebsd*" } { "*" }  { "" } }
 
 ! Testing library calls on large real kinds (larger than kind=8)
   implicit none
@@ -42,8 +43,6 @@
  TEST_FUNCTION(log,0.00178914)
  TEST_FUNCTION(log10,123789.123)
  TEST_FUNCTION(sqrt,789.1356)
- TEST_FUNCTION(erf,1.45123231)
- TEST_FUNCTION(erfc,-0.123789)
 
  CTEST_FUNCTION(cos,(17.456,-1.123))
  CTEST_FUNCTION(sin,(17.456,-7.6))

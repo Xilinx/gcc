@@ -1,6 +1,6 @@
 /* PR c++/18313 */
 /* { dg-do compile } */
-/* { dg-options "-Wreturn-type" } */
+/* { dg-options "-Wignored-qualifiers" } */
 
 volatile void bar(); /* { dg-warning "type qualifiers ignored" } */
 
@@ -16,7 +16,7 @@ template<typename T> const T getfoo(const T def) /* { dg-bogus "type qualifiers 
 template<typename T> class Pair
 {
     public:
-        T getLeft() const { return T(); }   /* { dg-warning "type qualifiers ignored" } */
+        T getLeft() const { return T(); }   /* { dg-bogus "type qualifiers ignored" } */
         const T getRight() const { return T(); } /* { dg-bogus "type qualifiers ignored" } */
 };
 

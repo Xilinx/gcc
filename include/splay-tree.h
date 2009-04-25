@@ -86,8 +86,7 @@ typedef void *(*splay_tree_allocate_fn) (int, void *);
 typedef void (*splay_tree_deallocate_fn) (void *, void *);
 
 /* The nodes in the splay tree.  */
-struct splay_tree_node_s GTY(())
-{
+struct GTY(()) splay_tree_node_s {
   /* The key.  */
   splay_tree_key GTY ((use_param1)) key;
 
@@ -100,8 +99,7 @@ struct splay_tree_node_s GTY(())
 };
 
 /* The splay tree itself.  */
-struct splay_tree_s GTY(())
-{
+struct GTY(()) splay_tree_s {
   /* The root of the tree.  */
   splay_tree_node GTY ((use_params)) root;
 
@@ -115,7 +113,7 @@ struct splay_tree_s GTY(())
   splay_tree_delete_value_fn delete_value;
 
   /* Allocate/free functions, and a data pointer to pass to them.  */
-  splay_tree_allocate_fn allocate_node;
+  splay_tree_allocate_fn allocate;
   splay_tree_deallocate_fn deallocate;
   void * GTY((skip)) allocate_data;
 };
@@ -131,13 +129,6 @@ extern splay_tree splay_tree_new_with_allocator (splay_tree_compare_fn,
 						 splay_tree_allocate_fn,
 						 splay_tree_deallocate_fn,
 						 void *);
-extern splay_tree splay_tree_new_with_separate_allocators (splay_tree_compare_fn,
-                                                  splay_tree_delete_key_fn,
-                                                  splay_tree_delete_value_fn,
-                                                  splay_tree_allocate_fn,
-                                                  splay_tree_allocate_fn,
-                                                  splay_tree_deallocate_fn,
-                                                  void *);
 extern void splay_tree_delete (splay_tree);
 extern splay_tree_node splay_tree_insert (splay_tree,
 					  splay_tree_key,

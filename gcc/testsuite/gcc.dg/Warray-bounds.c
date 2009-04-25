@@ -26,10 +26,10 @@ int* f(void) {
     a[ 9] = 0;
     a[10] = 0;             /* { dg-warning "array subscript" } */
     a[11] = 0;             /* { dg-warning "array subscript" } */
-    a[2 * n() - 11] = 0;    /* { dg-warning "array subscript" } */
-    a[2 * n() - 10] = 0;
-    a[2 * n() -  1] = 0;
-    a[2 * n() -  0] = 0;    /* { dg-warning "array subscript" } */
+    a[2 * n() - 11] = 1;    /* { dg-warning "array subscript" } */
+    a[2 * n() - 10] = 1;
+    a[2 * n() -  1] = 1;
+    a[2 * n() -  0] = 1;    /* { dg-warning "array subscript" } */
 
     b[-1] = 0;             /* { dg-warning "array subscript" } */
     b[ 0] = 0;
@@ -37,10 +37,10 @@ int* f(void) {
     b[ 9] = 0;
     b[10] = 0;             /* { dg-warning "array subscript" } */
     b[11] = 0;             /* { dg-warning "array subscript" } */
-    b[2 * n() - 11] = 0;    /* { dg-warning "array subscript" } */
-    b[2 * n() - 10] = 0;
-    b[2 * n() -  1] = 0;
-    b[2 * n() -  0] = 0;    /* { dg-warning "array subscript" } */
+    b[2 * n() - 11] = 1;    /* { dg-warning "array subscript" } */
+    b[2 * n() - 10] = 1;
+    b[2 * n() -  1] = 1;
+    b[2 * n() -  0] = 1;    /* { dg-warning "array subscript" } */
 
     c.c[-1] = 0;           /* { dg-warning "array subscript" } */
     c.c[ 0] = 0;
@@ -48,22 +48,21 @@ int* f(void) {
     c.c[ 9] = 0;
     c.c[10] = 0;           /* { dg-warning "array subscript" } */
     c.c[11] = 0;           /* { dg-warning "array subscript" } */
-    c.c[2 * n() - 11] = 0;  /* { dg-warning "array subscript" } */
-    c.c[2 * n() - 10] = 0;
-    c.c[2 * n() -  1] = 0;
-    c.c[2 * n() -  0] = 0;  /* { dg-warning "array subscript" } */
+    c.c[2 * n() - 11] = 1;  /* { dg-warning "array subscript" } */
+    c.c[2 * n() - 10] = 1;
+    c.c[2 * n() -  1] = 1;
+    c.c[2 * n() -  0] = 1;  /* { dg-warning "array subscript" } */
 
     g(&a[8]);
     g(&a[9]);
     g(&a[10]);
-    g(&a[11]);             /* { dg-warning "array subscript" } */
+    g(&a[11]);             /* { dg-warning "array subscript" "" { xfail *-*-* } } */
     g(&a[-30]+10);             /* { dg-warning "array subscript" } */
     g(&a[-30]+30);
 
     g(&b[10]);
     g(&c.c[10]);
-    g(&a[11]);             /* { dg-warning "array subscript" } */
-    g(&b[11]);             /* { dg-warning "array subscript" } */
+    g(&b[11]);             /* { dg-warning "array subscript" "" { xfail *-*-* } } */
     g(&c.c[11]);           /* { dg-warning "array subscript" } */
 
     g(&a[0]);

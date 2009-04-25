@@ -1,3 +1,58 @@
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog: Add copyright and license notices.
+
+2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/38262
+	* Make-lang.in (cc1objplus-dummy, cc1objplus): Add BACKENDLIBS,
+	remove GMPLIBS.
+
+2008-09-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	PR objc/37460
+	* objcp-lang.c (LANG_HOOKS_GET_CALLEE_FNDECL): Don't define.
+
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (obj-c++_OBJS): New variable.
+
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (obj-c++_OBJS): Rename from objcp_OBJS.
+	(objcp/objcp-act.o): Restore target.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (objcp_OBJS): New variable.
+	(cc1objplus-checksum.o, objcp/objcp-lang.o, objcp/objcp-decl.o,
+	objcp/objcp-act.o): Remove.
+
+2008-03-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	Revert:
+
+	2008-02-07  Andreas Tobler  <andreast-list@fgznet.ch>
+	            Douglas Gregor  <doug.gregor@gmail.com>
+ 
+	PR bootstrap/35115
+	* objcp-decl.c (objcp_comptypes): Call cp_comptypes, not comptypes.
+
+2008-02-07  Andreas Tobler  <andreast-list@fgznet.ch>
+            Douglas Gregor  <doug.gregor@gmail.com>
+ 
+	PR bootstrap/35115
+	* objcp-decl.c (objcp_comptypes): Call cp_comptypes, not comptypes.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (cc1objplus-dummy, cc1objplus): Add $(GMPLIBS).
+
 2007-08-02  Nick Clifton  <nickc@redhat.com>
 
 	* Make-lang.in: Change copyright header to refer to version 3 of
@@ -10,7 +65,7 @@
 
 	* Make-lang.in: Add dummy lang.install-pdf target.
 
-2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+2006-10-23 Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* objcp-decl.h (objcp_builtin_function): Remove.
 
@@ -42,7 +97,7 @@
 	* Make-lang.in (objcp/objcp-decl.o): Add dependency on
 	$(TARGET_H).
 
-2006-02-20 Rafael ¡vila de EspÌndola <rafael.espindola@gmail.com>
+2006-02-20 Rafael √Åvila de Esp√≠ndola <rafael.espindola@gmail.com>
 
 	* Make-lang.in (OBJ-C++): Remove
 	(.PHONY): Remove Obj-c++ and obj-C++. Add obj-c++
@@ -51,11 +106,11 @@
 
 	* Make-lang.in (objcp/objcp-decl.o): Add depends on $(EXPR_H).
 
-2005-12-07  Rafael ¡vila de EspÌndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in (obj-c++.all.build, obj-c++.install-normal): Remove.
 
-2005-12-07  Rafael ¡vila de EspÌndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael √Åvila de Esp√≠ndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in: Remove all dependencies on s-gtype.
 
@@ -130,3 +185,10 @@
 	* objcp-decl.c: Likewise.
 	* objcp-decl.h: Likewise.
 	* objcp-lang.c: Likewise.
+
+
+Copyright (C) 2005, 2006, 2007, 2008 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

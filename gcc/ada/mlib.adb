@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -70,20 +70,22 @@ package body MLib is
       end if;
 
       if Name'Length > Max_Characters_In_Library_Name then
-         Prj.Com.Fail ("illegal library name """, Name, """: too long");
+         Prj.Com.Fail ("illegal library name """
+                       & Name
+                       & """: too long");
       end if;
 
       if not Is_Letter (Name (Name'First)) then
-         Prj.Com.Fail ("illegal library name """,
-                       Name,
-                       """: should start with a letter");
+         Prj.Com.Fail ("illegal library name """
+                       & Name
+                       & """: should start with a letter");
       end if;
 
       for Index in Name'Range loop
          if not Is_Alphanumeric (Name (Index)) then
-            Prj.Com.Fail ("illegal library name """,
-                          Name,
-                          """: should include only letters and digits");
+            Prj.Com.Fail ("illegal library name """
+                          & Name
+                          & """: should include only letters and digits");
          end if;
       end loop;
    end Check_Library_Name;
@@ -263,11 +265,16 @@ package body MLib is
                               --  Set Success to True only if the newly
                               --  created file has been correctly written.
 
-                              Success := Status and Actual_Len = Len + 3;
+                              Success := Status and then Actual_Len = Len + 3;
 
                               if Success then
-                                 Set_Read_Only (
-                                   Name_Buffer (1 .. Name_Len - 1));
+
+                                 --  Set_Read_Only is used here, rather than
+                                 --  Set_Non_Writable, so that gprbuild can
+                                 --  he compiled with older compilers.
+
+                                 Set_Read_Only
+                                   (Name_Buffer (1 .. Name_Len - 1));
                               end if;
                            end if;
                         end if;
@@ -303,25 +310,16 @@ package body MLib is
          Newpath : System.Address) return Integer;
       pragma Import (C, Symlink, "__gnat_symlink");
 
-      Success      : Boolean;
       Version_Path : String_Access;
 
-      Result : Integer;
-      pragma Unreferenced (Result);
+      Success : Boolean;
+      Result  : Integer;
+      pragma Unreferenced (Success, Result);
 
    begin
-      if Is_Absolute_Path (Lib_Version) then
-         Version_Path := new String (1 .. Lib_Version'Length + 1);
-         Version_Path (1 .. Lib_Version'Length) := Lib_Version;
-
-      else
-         Version_Path :=
-           new String (1 .. Lib_Dir'Length + 1 + Lib_Version'Length + 1);
-         Version_Path (1 .. Version_Path'Last - 1) :=
-           Lib_Dir & Directory_Separator & Lib_Version;
-      end if;
-
-      Version_Path (Version_Path'Last) := ASCII.NUL;
+      Version_Path := new String (1 .. Lib_Version'Length + 1);
+      Version_Path (1 .. Lib_Version'Length) := Lib_Version;
+      Version_Path (Version_Path'Last)       := ASCII.NUL;
 
       if Maj_Version'Length = 0 then
          declare
@@ -339,6 +337,7 @@ package body MLib is
             Maj_Path : constant String :=
                          Lib_Dir & Directory_Separator & Maj_Version;
             Newpath2 : String (1 .. Maj_Path'Length + 1);
+            Maj_Ver  : String (1 .. Maj_Version'Length + 1);
 
          begin
             Newpath1 (1 .. Lib_Path'Length) := Lib_Path;
@@ -347,13 +346,16 @@ package body MLib is
             Newpath2 (1 .. Maj_Path'Length) := Maj_Path;
             Newpath2 (Newpath2'Last)        := ASCII.NUL;
 
+            Maj_Ver (1 .. Maj_Version'Length) := Maj_Version;
+            Maj_Ver (Maj_Ver'Last)            := ASCII.NUL;
+
             Delete_File (Maj_Path, Success);
 
             Result := Symlink (Version_Path (1)'Address, Newpath2'Address);
 
             Delete_File (Lib_Path, Success);
 
-            Result := Symlink (Newpath2'Address, Newpath1'Address);
+            Result := Symlink (Maj_Ver'Address, Newpath1'Address);
          end;
       end if;
    end Create_Sym_Links;
@@ -439,6 +441,18 @@ package body MLib is
          return "";
       end if;
    end Major_Id_Name;
+
+   -------------------------------
+   -- Separate_Run_Path_Options --
+   -------------------------------
+
+   function Separate_Run_Path_Options return Boolean is
+      Separate_Paths : Boolean;
+      for Separate_Paths'Size use Character'Size;
+      pragma Import (C, Separate_Paths, "__gnat_separate_run_path_options");
+   begin
+      return Separate_Paths;
+   end Separate_Run_Path_Options;
 
 --  Package elaboration
 

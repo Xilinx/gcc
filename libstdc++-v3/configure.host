@@ -39,6 +39,9 @@
 #   atomic_word_dir        location of atomic_word.h
 #                          defaults to generic.
 #
+#   atomic_flags           extra flags to pass to use atomic instructions
+#                          defaults to nothing.
+#
 #   cpu_defines_dir        location of cpu_defines.h
 #                          defaults to generic.
 #
@@ -71,6 +74,7 @@
 c_model=c_global
 c_compatibility=no
 atomic_word_dir=cpu/generic
+atomic_flags=""
 atomicity_dir="cpu/generic"
 cpu_defines_dir="cpu/generic"
 try_cpu=generic
@@ -87,8 +91,11 @@ case "${host_cpu}" in
   alpha*)
     try_cpu=alpha
     ;;
-  arm* | xscale | ep9312)
+  arm*)
     try_cpu=arm
+    ;;
+  crisv32)
+    try_cpu=cris
     ;;
   i[567]86 | x86_64)
     try_cpu=i486
@@ -98,9 +105,6 @@ case "${host_cpu}" in
     ;;
   mips*)
     try_cpu=mips
-    ;;
-  m680[246]0)
-    try_cpu=m68k
     ;;
   powerpc* | rs6000)
     try_cpu=powerpc
@@ -130,7 +134,8 @@ case "${host_cpu}" in
 esac
 
 
-# Set specific CPU overrides for atomic_word_dir. Most can just use generic.
+# Set specific CPU overrides for atomic_word_dir and atomic_flags. 
+# Most can just use generic.
 # THIS TABLE IS SORTED.  KEEP IT THAT WAY.
 case "${host_cpu}" in
   alpha*)
@@ -142,11 +147,15 @@ case "${host_cpu}" in
   ia64)
     atomic_word_dir=cpu/ia64
     ;;
+  i[4567]86 | x86_64)
+    atomic_flags="-march=native"
+    ;;
   powerpc* | rs6000)
     atomic_word_dir=cpu/powerpc
     ;;
   sparc* | ultrasparc)
     atomic_word_dir=cpu/sparc
+    atomic_flags="-mcpu=v9"
     ;;
 esac
 
@@ -259,12 +268,6 @@ case "${host_os}" in
     echo "Please specify the full version of Solaris, ie. solaris2.9 " 1>&2
     exit 1
     ;;
-  solaris2.5 | solaris2.5.[0-9])
-    os_include_dir="os/solaris/solaris2.5"
-    ;;
-  solaris2.6)
-    os_include_dir="os/solaris/solaris2.6"
-    ;;
   solaris2.[789] | solaris2.1[0-9])
     os_include_dir="os/solaris/solaris2.7"
     ;;
@@ -273,9 +276,6 @@ case "${host_os}" in
     ;;
   vxworks)
     os_include_dir="os/vxworks"
-    ;;
-  windiss*)
-    os_include_dir="os/windiss"
     ;;
   *)
     os_include_dir="os/generic"
@@ -291,6 +291,9 @@ case "${host}" in
       i[567]86)
         abi_baseline_pair=i486-linux-gnu
         ;;
+      mips64*)
+	abi_baseline_pair=mips64-linux-gnu
+	;;
       powerpc64)
         abi_baseline_pair=powerpc64-linux-gnu
         ;;
@@ -308,14 +311,10 @@ case "${host}" in
           abi_baseline_pair=${try_cpu}-linux-gnu
         fi
     esac
-    ;;
-  mips*-*-*)
-    case "${host_os}" in
-      gnu* | linux* | irix*)
-        ;;
-      *)
-        atomicity_dir="cpu/generic"
-        ;;
+    case "${host}" in
+      arm*-*-linux-*eabi)
+	port_specific_symbol_files="\$(srcdir)/../config/os/gnu-linux/arm-eabi-extra.ver"
+	;;
     esac
     ;;
   powerpc*-*-darwin*)

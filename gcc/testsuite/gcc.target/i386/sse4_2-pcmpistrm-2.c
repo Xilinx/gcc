@@ -2,24 +2,33 @@
 /* { dg-require-effective-target sse4 } */
 /* { dg-options "-O2 -msse4.2" } */
 
-#include "sse4_2-check.h"
+#ifndef CHECK_H
+#define CHECK_H "sse4_2-check.h"
+#endif
+
+#ifndef TEST
+#define TEST sse4_2_test
+#endif
+
+#include CHECK_H
+
 #include "sse4_2-pcmpstr.h"
 
 #define NUM 1024
 
 #define IMM_VAL0 \
-  (SIDD_SBYTE_OPS | SIDD_CMP_RANGES | SIDD_MASKED_POSITIVE_POLARITY)
+  (_SIDD_SBYTE_OPS | _SIDD_CMP_RANGES | _SIDD_MASKED_POSITIVE_POLARITY)
 #define IMM_VAL1 \
-  (SIDD_UBYTE_OPS | SIDD_CMP_EQUAL_EACH | SIDD_NEGATIVE_POLARITY \
-   | SIDD_BIT_MASK)
+  (_SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_EACH | _SIDD_NEGATIVE_POLARITY \
+   | _SIDD_BIT_MASK)
 #define IMM_VAL2 \
-  (SIDD_UWORD_OPS | SIDD_CMP_EQUAL_ANY | SIDD_MASKED_NEGATIVE_POLARITY)
+  (_SIDD_UWORD_OPS | _SIDD_CMP_EQUAL_ANY | _SIDD_MASKED_NEGATIVE_POLARITY)
 #define IMM_VAL3 \
-  (SIDD_SWORD_OPS | SIDD_CMP_EQUAL_ORDERED \
-   | SIDD_POSITIVE_POLARITY | SIDD_UNIT_MASK)
+  (_SIDD_SWORD_OPS | _SIDD_CMP_EQUAL_ORDERED \
+   | _SIDD_POSITIVE_POLARITY | _SIDD_UNIT_MASK)
 
 static void
-sse4_2_test (void)
+TEST (void)
 {
   union
     {

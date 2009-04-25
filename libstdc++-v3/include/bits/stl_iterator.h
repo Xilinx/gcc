@@ -1,12 +1,12 @@
 // Iterators -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -68,6 +63,7 @@
 
 #include <bits/cpp_type_traits.h>
 #include <ext/type_traits.h>
+#include <bits/move.h>
 
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
@@ -364,9 +360,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     { return !(__x < __y); }
 
   template<typename _IteratorL, typename _IteratorR>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    // DR 685.
+    inline auto
+    operator-(const reverse_iterator<_IteratorL>& __x,
+	      const reverse_iterator<_IteratorR>& __y)
+    -> decltype(__y.base() - __x.base())
+#else
     inline typename reverse_iterator<_IteratorL>::difference_type
     operator-(const reverse_iterator<_IteratorL>& __x,
 	      const reverse_iterator<_IteratorR>& __y)
+#endif
     { return __y.base() - __x.base(); }
   //@}
 
@@ -413,6 +417,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	container->push_back(__value);
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      back_insert_iterator&
+      operator=(typename _Container::value_type&& __value)
+      {
+	container->push_back(std::move(__value));
+	return *this;
+      }
+#endif
 
       /// Simply returns *this.
       back_insert_iterator&
@@ -487,6 +500,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	container->push_front(__value);
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      front_insert_iterator&
+      operator=(typename _Container::value_type&& __value)
+      {
+	container->push_front(std::move(__value));
+	return *this;
+      }
+#endif
 
       /// Simply returns *this.
       front_insert_iterator&
@@ -577,12 +599,22 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
        *  @endcode
       */
       insert_iterator&
-      operator=(const typename _Container::const_reference __value)
+      operator=(typename _Container::const_reference __value)
       {
 	iter = container->insert(iter, __value);
 	++iter;
 	return *this;
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      insert_iterator&
+      operator=(typename _Container::value_type&& __value)
+      {
+	iter = container->insert(iter, std::move(__value));
+	++iter;
+	return *this;
+      }
+#endif
 
       /// Simply returns *this.
       insert_iterator&
@@ -639,6 +671,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       _Iterator _M_current;
 
     public:
+      typedef _Iterator					     iterator_type;
       typedef typename iterator_traits<_Iterator>::iterator_category
                                                              iterator_category;
       typedef typename iterator_traits<_Iterator>::value_type  value_type;
@@ -646,8 +679,6 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
                                                              difference_type;
       typedef typename iterator_traits<_Iterator>::reference reference;
       typedef typename iterator_traits<_Iterator>::pointer   pointer;
-
-      typedef _Iterator _Iterator_type;
 
       __normal_iterator() : _M_current(_Iterator()) { }
 
@@ -722,7 +753,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   // Note: In what follows, the left- and right-hand-side iterators are
   // allowed to vary in types (conceptually in cv-qualification) so that
-  // comparaison between cv-qualified and non-cv-qualified iterators be
+  // comparison between cv-qualified and non-cv-qualified iterators be
   // valid.  However, the greedy and unfriendly operators in std::rel_ops
   // will make overload resolution ambiguous (when in scope) if we don't
   // provide overloads whose operands are of the same type.  Can someone
@@ -807,9 +838,17 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   // operators but also operator- must accept mixed iterator/const_iterator
   // parameters.
   template<typename _IteratorL, typename _IteratorR, typename _Container>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    // DR 685.
+    inline auto
+    operator-(const __normal_iterator<_IteratorL, _Container>& __lhs,
+	      const __normal_iterator<_IteratorR, _Container>& __rhs)
+    -> decltype(__lhs.base() - __rhs.base())
+#else
     inline typename __normal_iterator<_IteratorL, _Container>::difference_type
     operator-(const __normal_iterator<_IteratorL, _Container>& __lhs,
 	      const __normal_iterator<_IteratorR, _Container>& __rhs)
+#endif
     { return __lhs.base() - __rhs.base(); }
 
   template<typename _Iterator, typename _Container>
@@ -825,5 +864,178 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     { return __normal_iterator<_Iterator, _Container>(__i.base() + __n); }
 
 _GLIBCXX_END_NAMESPACE
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  // 24.4.3  Move iterators
+  /**
+   *  Class template move_iterator is an iterator adapter with the same
+   *  behavior as the underlying iterator except that its dereference
+   *  operator implicitly converts the value returned by the underlying
+   *  iterator's dereference operator to an rvalue reference.  Some
+   *  generic algorithms can be called with move iterators to replace
+   *  copying with moving.
+   */
+  template<typename _Iterator>
+    class move_iterator
+    {
+    protected:
+      _Iterator _M_current;
+
+    public:
+      typedef _Iterator                                        iterator_type;
+      typedef typename iterator_traits<_Iterator>::difference_type
+                                                               difference_type;
+      // NB: DR 680.
+      typedef _Iterator                                        pointer;
+      typedef typename iterator_traits<_Iterator>::value_type  value_type;
+      typedef typename iterator_traits<_Iterator>::iterator_category
+                                                               iterator_category;
+      typedef value_type&&                                     reference;
+
+    public:
+      move_iterator()
+      : _M_current() { }
+
+      explicit
+      move_iterator(iterator_type __i)
+      : _M_current(__i) { }
+
+      template<typename _Iter>
+	move_iterator(const move_iterator<_Iter>& __i)
+	: _M_current(__i.base()) { }
+
+      iterator_type
+      base() const
+      { return _M_current; }
+
+      reference
+      operator*() const
+      { return *_M_current; }
+
+      pointer
+      operator->() const
+      { return _M_current; }
+
+      move_iterator&
+      operator++()
+      {
+	++_M_current;
+	return *this;
+      }
+
+      move_iterator
+      operator++(int)
+      {
+	move_iterator __tmp = *this;
+	++_M_current;
+	return __tmp;
+      }
+
+      move_iterator&
+      operator--()
+      {
+	--_M_current;
+	return *this;
+      }
+
+      move_iterator
+      operator--(int)
+      {
+	move_iterator __tmp = *this;
+	--_M_current;
+	return __tmp;
+      }
+
+      move_iterator
+      operator+(difference_type __n) const
+      { return move_iterator(_M_current + __n); }
+
+      move_iterator&
+      operator+=(difference_type __n)
+      {
+	_M_current += __n;
+	return *this;
+      }
+
+      move_iterator
+      operator-(difference_type __n) const
+      { return move_iterator(_M_current - __n); }
+    
+      move_iterator&
+      operator-=(difference_type __n)
+      { 
+	_M_current -= __n;
+	return *this;
+      }
+
+      reference
+      operator[](difference_type __n) const
+      { return _M_current[__n]; }
+    };
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator==(const move_iterator<_IteratorL>& __x,
+	       const move_iterator<_IteratorR>& __y)
+    { return __x.base() == __y.base(); }
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator!=(const move_iterator<_IteratorL>& __x,
+	       const move_iterator<_IteratorR>& __y)
+    { return !(__x == __y); }
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator<(const move_iterator<_IteratorL>& __x,
+	      const move_iterator<_IteratorR>& __y)
+    { return __x.base() < __y.base(); }
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator<=(const move_iterator<_IteratorL>& __x,
+	       const move_iterator<_IteratorR>& __y)
+    { return !(__y < __x); }
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator>(const move_iterator<_IteratorL>& __x,
+	      const move_iterator<_IteratorR>& __y)
+    { return __y < __x; }
+
+  template<typename _IteratorL, typename _IteratorR>
+    inline bool
+    operator>=(const move_iterator<_IteratorL>& __x,
+	       const move_iterator<_IteratorR>& __y)
+    { return !(__x < __y); }
+
+  // DR 685.
+  template<typename _IteratorL, typename _IteratorR>
+    inline auto
+    operator-(const move_iterator<_IteratorL>& __x,
+	      const move_iterator<_IteratorR>& __y)
+    -> decltype(__x.base() - __y.base())
+    { return __x.base() - __y.base(); }
+
+  template<typename _Iterator>
+    inline move_iterator<_Iterator>
+    operator+(typename move_iterator<_Iterator>::difference_type __n,
+	      const move_iterator<_Iterator>& __x)
+    { return __x + __n; }
+
+  template<typename _Iterator>
+    inline move_iterator<_Iterator>
+    make_move_iterator(const _Iterator& __i)
+    { return move_iterator<_Iterator>(__i); }
+
+_GLIBCXX_END_NAMESPACE
+
+#define _GLIBCXX_MAKE_MOVE_ITERATOR(_Iter) std::make_move_iterator(_Iter)
+#else
+#define _GLIBCXX_MAKE_MOVE_ITERATOR(_Iter) (_Iter)
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
 #endif

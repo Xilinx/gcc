@@ -1,12 +1,12 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006-2007
+// Copyright (C) 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 //
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
-//
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
+
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file tr1/bessel_function.tcc
  *  This is an internal header file, included by other library headers.
@@ -61,14 +56,7 @@ namespace tr1
 
   // [5.2] Special functions
 
-  /**
-   * @ingroup tr1_math_spec_func
-   * @{
-   */
-
-  //
   // Implementation-space details.
-  //
   namespace __detail
   {
 
@@ -131,7 +119,7 @@ namespace tr1
      *   @param  __nu  The order of the Bessel functions.
      *   @param  __x   The argument of the Bessel functions.
      *   @param  __Jnu  The output Bessel function of the first kind.
-     *   @param  __Nnu  The output Neumann function (Bessel fuction of the second kind).
+     *   @param  __Nnu  The output Neumann function (Bessel function of the second kind).
      *   @param  __Jpnu  The output derivative of the Bessel function of the first kind.
      *   @param  __Npnu  The output derivative of the Neumann function.
      */
@@ -345,7 +333,7 @@ namespace tr1
 
 
     /**
-     *   @brief This routine computes the asyptotic cylindrical Bessel
+     *   @brief This routine computes the asymptotic cylindrical Bessel
      *          and Neumann functions of order nu: \f$ J_{\nu} \f$,
      *          \f$ N_{\nu} \f$.
      *
@@ -358,7 +346,7 @@ namespace tr1
      *   @param  __nu  The order of the Bessel functions.
      *   @param  __x   The argument of the Bessel functions.
      *   @param  __Jnu  The output Bessel function of the first kind.
-     *   @param  __Nnu  The output Neumann function (Bessel fuction of the second kind).
+     *   @param  __Nnu  The output Neumann function (Bessel function of the second kind).
      */
     template <typename _Tp>
     void
@@ -401,7 +389,7 @@ namespace tr1
      *              \frac{\sigma^k (x/2)^{\nu + 2k}}{k!\Gamma(\nu+k+1)}
      *   @f]
      *   where \f$ \sigma = +1 \f$ or\f$  -1 \f$ for
-     *   \f$ Z = I \f$ or \f$ J \f$ respecively. 
+     *   \f$ Z = I \f$ or \f$ J \f$ respectively.
      * 
      *   See Abramowitz & Stegun, 9.1.10
      *       Abramowitz & Stegun, 9.6.7
@@ -488,7 +476,7 @@ namespace tr1
 
 
     /**
-     *   @brief  Return the Neunamm function of order \f$ \nu \f$:
+     *   @brief  Return the Neumann function of order \f$ \nu \f$:
      *           \f$ N_{\nu}(x) \f$.
      *
      *   The Neumann function is defined by:
@@ -633,9 +621,6 @@ namespace tr1
     }
 
   } // namespace std::tr1::__detail
-
-  /* @} */ // group tr1_math_spec_func
-
 }
 }
 

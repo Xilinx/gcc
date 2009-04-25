@@ -1,6 +1,7 @@
 ## Makefile for the src subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2005
+## Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005
+## 2006, 2007, 2008, 2009
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
@@ -9,7 +10,7 @@
 ## This file is part of the GNU ISO C++ Library.  This library is free
 ## software; you can redistribute it and/or modify it under the
 ## terms of the GNU General Public License as published by the
-## Free Software Foundation; either version 2, or (at your option)
+## Free Software Foundation; either version 3, or (at your option)
 ## any later version.
 
 ## This library is distributed in the hope that it will be useful,
@@ -18,9 +19,8 @@
 ## GNU General Public License for more details.
 
 ## You should have received a copy of the GNU General Public License along
-## with this library; see the file COPYING.  If not, write to the Free
-## Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-## USA.
+## with this library; see the file COPYING3.  If not see
+## <http://www.gnu.org/licenses/>.
 
 include $(top_srcdir)/fragment.am
 
@@ -112,14 +112,19 @@ atomicity.cc: ${atomicity_file}
 # Source files linked in via configuration/make substitution for a
 # particular host, but with ad hoc naming rules.
 host_sources_extra = \
-	basic_file.cc \
-	c++locale.cc
+	basic_file.cc c++locale.cc ${ldbl_compat_sources} ${parallel_sources}
 
 c++locale.cc: ${glibcxx_srcdir}/$(CLOCALE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(CLOCALE_CC) ./$@ || true
 
 basic_file.cc: ${glibcxx_srcdir}/$(BASIC_FILE_CC)
 	$(LN_S) ${glibcxx_srcdir}/$(BASIC_FILE_CC) ./$@ || true
+
+if ENABLE_PARALLEL
+parallel_sources = parallel_list.cc parallel_settings.cc
+else
+parallel_sources =
+endif
 
 if GLIBCXX_LDBL_COMPAT
 ldbl_compat_sources = compatibility-ldbl.cc
@@ -129,6 +134,7 @@ endif
 
 # Sources present in the src directory.
 sources = \
+	atomic.cc \
 	bitmap_allocator.cc \
 	pool_allocator.cc \
 	mt_allocator.cc \
@@ -137,21 +143,26 @@ sources = \
 	complex_io.cc \
 	ctype.cc \
 	debug.cc \
-	debug_list.cc \
 	functexcept.cc \
 	hash.cc \
 	hash_c++0x.cc \
 	globals_io.cc \
+	hashtable.cc \
+	hashtable_c++0x.cc \
 	ios.cc \
 	ios_failure.cc \
 	ios_init.cc \
 	ios_locale.cc \
 	limits.cc \
+	limits_c++0x.cc \
 	list.cc \
+	debug_list.cc \
 	locale.cc \
 	locale_init.cc \
 	locale_facets.cc \
 	localename.cc \
+	math_stubs_float.cc \
+	math_stubs_long_double.cc \
 	stdexcept.cc \
 	strstream.cc \
 	system_error.cc \
@@ -174,19 +185,25 @@ sources = \
 	valarray-inst.cc \
 	wlocale-inst.cc \
 	wstring-inst.cc \
+	mutex.cc \
+	condition_variable.cc \
+	chrono.cc \
+	thread.cc \
 	${host_sources} \
-	${host_sources_extra} \
-	${ldbl_compat_sources}
+	${host_sources_extra} 
 
-VPATH = $(top_srcdir)/src:$(top_srcdir)
+vpath % $(top_srcdir)/src
+vpath % $(top_srcdir)
 
 libstdc___la_SOURCES = $(sources)
 
 libstdc___la_LIBADD = \
-	$(top_builddir)/libmath/libmath.la \
+	$(GLIBCXX_LIBS) \
 	$(top_builddir)/libsupc++/libsupc++convenience.la
 
-libstdc___la_DEPENDENCIES = ${version_dep} $(libstdc___la_LIBADD)
+libstdc___la_DEPENDENCIES = \
+	${version_dep} \
+	$(top_builddir)/libsupc++/libsupc++convenience.la
 
 libstdc___la_LDFLAGS = \
 	-version-info $(libtool_VERSION) ${version_arg} -lm 
@@ -207,15 +224,77 @@ concept-inst.lo: concept-inst.cc
 concept-inst.o: concept-inst.cc
 	$(CXXCOMPILE) -D_GLIBCXX_CONCEPT_CHECKS -fimplicit-templates -c $<
 
+# Use special rules for parallel mode compilation.
+PARALLEL_FLAGS = -fopenmp -D_GLIBCXX_PARALLEL -I$(glibcxx_builddir)/../libgomp
+parallel_list.lo: parallel_list.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_list.o: parallel_list.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
+parallel_settings.lo: parallel_settings.cc
+	$(LTCXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+parallel_settings.o: parallel_settings.cc
+	$(CXXCOMPILE) $(PARALLEL_FLAGS) -c $<
+
 # Use special rules for the C++0x sources so that the proper flags are passed.
+functexcept.lo: functexcept.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+functexcept.o: functexcept.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 system_error.lo: system_error.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 system_error.o: system_error.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
+mutex.lo: mutex.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+mutex.o: mutex.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+condition_variable.lo: condition_variable.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+condition_variable.o: condition_variable.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
 hash_c++0x.lo: hash_c++0x.cc
 	$(LTCXXCOMPILE) -std=gnu++0x -c $<
 hash_c++0x.o: hash_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+hashtable_c++0x.lo: hashtable_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+hashtable_c++0x.o: hashtable_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+limits_c++0x.lo: limits_c++0x.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+limits_c++0x.o: limits_c++0x.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+atomic.lo: atomic.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+atomic.o: atomic.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+string-inst.lo: string-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+string-inst.o: string-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+wstring-inst.lo: wstring-inst.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+wstring-inst.o: wstring-inst.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+chrono.lo: chrono.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+chrono.o: chrono.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
+
+thread.lo: thread.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+thread.o: thread.cc
 	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 if GLIBCXX_LDBL_COMPAT

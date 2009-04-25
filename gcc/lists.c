@@ -1,6 +1,7 @@
 /* List management for the GCC expander.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   1999, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -140,7 +141,7 @@ alloc_EXPR_LIST (int kind, rtx val, rtx next)
       PUT_REG_NOTE_KIND (r, kind);
     }
   else
-    r = gen_rtx_EXPR_LIST (kind, val, next);
+    r = gen_rtx_EXPR_LIST ((enum machine_mode) kind, val, next);
 
   return r;
 }
@@ -186,6 +187,32 @@ void
 remove_free_INSN_LIST_elem (rtx elem, rtx *listp)
 {
   free_INSN_LIST_node (remove_list_elem (elem, listp));
+}
+
+/* Remove and free the first node in the INSN_LIST pointed to by LISTP.  */
+rtx
+remove_free_INSN_LIST_node (rtx *listp)
+{
+  rtx node = *listp;
+  rtx elem = XEXP (node, 0);
+
+  remove_list_node (listp);
+  free_INSN_LIST_node (node);
+
+  return elem;
+}
+
+/* Remove and free the first node in the EXPR_LIST pointed to by LISTP.  */
+rtx
+remove_free_EXPR_LIST_node (rtx *listp)
+{
+  rtx node = *listp;
+  rtx elem = XEXP (node, 0);
+
+  remove_list_node (listp);
+  free_EXPR_LIST_node (node);
+
+  return elem;
 }
 
 #include "gt-lists.h"

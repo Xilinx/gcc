@@ -1,9 +1,9 @@
-// Copyright (C) 2005 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -12,9 +12,8 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 // 25.1.5 [lib.alg.search]
 
@@ -24,9 +23,11 @@
 
 using __gnu_test::test_container;
 using __gnu_test::forward_iterator_wrapper;
+using __gnu_test::random_access_iterator_wrapper;
 using std::search;
 
 typedef test_container<int, forward_iterator_wrapper> Container;
+typedef test_container<int, random_access_iterator_wrapper> RAcontainer;
 int array1[] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1};
 int array2[] = {0, 0, 0};
 
@@ -101,6 +102,53 @@ test6()
 	 == array3 + 6);
 }
 
+bool
+lexstep(int* start, int length) 
+{
+  int i = 0;
+  int carry = 1;
+  while(i < length && carry) 
+    {
+      if(start[i] == 1)
+        start[i] = 0;
+      else 
+        {
+          start[i] = 1;
+          carry = 0;
+        }
+      i++;
+    }
+  return !carry;
+}
+
+void test7()
+{
+  int array1[6];
+  int array2[6];
+  for(int length1 = 0; length1 < 6; length1++)
+  {
+    for(int length2 = 0; length2 < 6; length2++)
+    {
+      std::fill_n(array1, length1, 0);
+      while(lexstep(array1, length1))
+      {
+ 	std::fill_n(array2, length2, 0);
+ 	while(lexstep(array2, length2))
+        {
+          Container con1(array1, array1 + length1);
+          Container con2(array2, array2 + length2);
+          RAcontainer rcon1(array1, array1 + length1);
+          RAcontainer rcon2(array2, array2 + length2);
+          VERIFY(search(con1.begin(), con1.end(), con2.begin(), 
+ 			con2.end()).ptr ==
+                 search(rcon1.begin(), rcon1.end(), rcon2.begin(),
+                 rcon2.end()).ptr);
+        }
+      } 
+    }
+  }
+}
+
 int 
 main()
 {
@@ -110,4 +158,5 @@ main()
   test4();
   test5();
   test6();
+  test7();
 }

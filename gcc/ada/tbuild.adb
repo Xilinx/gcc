@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,6 +32,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
+with Sem_Aux;  use Sem_Aux;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
@@ -347,6 +348,24 @@ package body Tbuild is
       return LS;
    end Make_Linker_Section_Pragma;
 
+   -----------------
+   -- Make_Pragma --
+   -----------------
+
+   function Make_Pragma
+     (Sloc                         : Source_Ptr;
+      Chars                        : Name_Id;
+      Pragma_Argument_Associations : List_Id := No_List;
+      Debug_Statement              : Node_Id := Empty) return Node_Id
+   is
+   begin
+      return
+        Make_Pragma (Sloc,
+          Pragma_Argument_Associations => Pragma_Argument_Associations,
+          Debug_Statement              => Debug_Statement,
+          Pragma_Identifier            => Make_Identifier (Sloc, Chars));
+   end Make_Pragma;
+
    ---------------------------------
    -- Make_Raise_Constraint_Error --
    ---------------------------------
@@ -480,7 +499,7 @@ package body Tbuild is
       Get_Name_String (Related_Id);
 
       if Prefix /= ' ' then
-         pragma Assert (Is_OK_Internal_Letter (Prefix));
+         pragma Assert (Is_OK_Internal_Letter (Prefix) or else Prefix = '_');
 
          for J in reverse 1 .. Name_Len loop
             Name_Buffer (J + 1) := Name_Buffer (J);
@@ -492,8 +511,7 @@ package body Tbuild is
 
       if Suffix /= ' ' then
          pragma Assert (Is_OK_Internal_Letter (Suffix));
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Suffix;
+         Add_Char_To_Name_Buffer (Suffix);
       end if;
 
       if Suffix_Index /= 0 then
@@ -618,10 +636,8 @@ package body Tbuild is
    is
    begin
       Get_Name_String (Related_Id);
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := '_';
-      Name_Buffer (Name_Len + 1 .. Name_Len + Suffix'Length) := Suffix;
-      Name_Len := Name_Len + Suffix'Length;
+      Add_Char_To_Name_Buffer ('_');
+      Add_Str_To_Name_Buffer (Suffix);
       return Name_Find;
    end New_Suffixed_Name;
 

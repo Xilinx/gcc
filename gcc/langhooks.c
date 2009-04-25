@@ -1,5 +1,5 @@
 /* Default language-specific hooks.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
@@ -27,7 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "tree.h"
 #include "tree-inline.h"
-#include "tree-gimple.h"
+#include "gimple.h"
 #include "rtl.h"
 #include "insn-config.h"
 #include "integrate.h"
@@ -76,14 +76,6 @@ lhd_do_nothing_f (struct function * ARG_UNUSED (f))
 {
 }
 
-/* Do nothing (return the tree node passed).  */
-
-tree
-lhd_return_tree (tree t)
-{
-  return t;
-}
-
 /* Do nothing (return NULL_TREE).  */
 
 tree
@@ -113,6 +105,9 @@ lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
 bool
 lhd_post_options (const char ** ARG_UNUSED (pfilename))
 {
+  /* Excess precision other than "fast" requires front-end
+     support.  */
+  flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
   return false;
 }
 
@@ -125,14 +120,6 @@ lhd_print_tree_nothing (FILE * ARG_UNUSED (file),
 {
 }
 
-/* Called from staticp.  */
-
-tree
-lhd_staticp (tree ARG_UNUSED (exp))
-{
-  return NULL;
-}
-
 /* Called from check_global_declarations.  */
 
 bool
@@ -141,7 +128,7 @@ lhd_warn_unused_global_decl (const_tree decl)
   /* This is what used to exist in check_global_declarations.  Probably
      not many of these actually apply to non-C languages.  */
 
-  if (TREE_CODE (decl) == FUNCTION_DECL && DECL_INLINE (decl))
+  if (TREE_CODE (decl) == FUNCTION_DECL && DECL_DECLARED_INLINE_P (decl))
     return false;
   if (TREE_CODE (decl) == VAR_DECL && TREE_READONLY (decl))
     return false;
@@ -224,29 +211,6 @@ lhd_get_alias_set (tree ARG_UNUSED (t))
   return -1;
 }
 
-/* This is the default expand_expr function.  */
-
-rtx
-lhd_expand_expr (tree ARG_UNUSED (t), rtx ARG_UNUSED (r),
-		 enum machine_mode ARG_UNUSED (mm),
-		 int ARG_UNUSED (em),
-		 rtx * ARG_UNUSED (a))
-{
-  gcc_unreachable ();
-}
-
-/* The default language-specific function for expanding a decl.  After
-   the language-independent cases are handled, this function will be
-   called.  If this function is not defined, it is assumed that
-   declarations other than those for variables and labels do not require
-   any RTL generation.  */
-
-int
-lhd_expand_decl (tree ARG_UNUSED (t))
-{
-  return 0;
-}
-
 /* This is the default decl_printable_name function.  */
 
 const char *
@@ -311,8 +275,9 @@ lhd_expr_size (const_tree exp)
 /* lang_hooks.gimplify_expr re-writes *EXPR_P into GIMPLE form.  */
 
 int
-lhd_gimplify_expr (tree *expr_p ATTRIBUTE_UNUSED, tree *pre_p ATTRIBUTE_UNUSED,
-		   tree *post_p ATTRIBUTE_UNUSED)
+lhd_gimplify_expr (tree *expr_p ATTRIBUTE_UNUSED,
+		   gimple_seq *pre_p ATTRIBUTE_UNUSED,
+		   gimple_seq *post_p ATTRIBUTE_UNUSED)
 {
   return GS_UNHANDLED;
 }
@@ -381,12 +346,15 @@ lhd_initialize_diagnostics (struct diagnostic_context *ctx ATTRIBUTE_UNUSED)
 /* The default function to print out name of current function that caused
    an error.  */
 void
-lhd_print_error_function (diagnostic_context *context, const char *file)
+lhd_print_error_function (diagnostic_context *context, const char *file,
+			  diagnostic_info *diagnostic)
 {
-  if (diagnostic_last_function_changed (context))
+  if (diagnostic_last_function_changed (context, diagnostic))
     {
       const char *old_prefix = context->printer->prefix;
-      char *new_prefix = file ? file_name_as_prefix (file) : NULL;
+      tree abstract_origin = diagnostic->abstract_origin;
+      char *new_prefix = (file && abstract_origin == NULL)
+			 ? file_name_as_prefix (file) : NULL;
 
       pp_set_prefix (context->printer, new_prefix);
 
@@ -394,17 +362,97 @@ lhd_print_error_function (diagnostic_context *context, const char *file)
 	pp_printf (context->printer, _("At top level:"));
       else
 	{
-	  if (TREE_CODE (TREE_TYPE (current_function_decl)) == METHOD_TYPE)
+	  tree fndecl, ao;
+
+	  if (abstract_origin)
+	    {
+	      ao = BLOCK_ABSTRACT_ORIGIN (abstract_origin);
+	      while (TREE_CODE (ao) == BLOCK
+		     && BLOCK_ABSTRACT_ORIGIN (ao)
+		     && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
+		ao = BLOCK_ABSTRACT_ORIGIN (ao);
+	      gcc_assert (TREE_CODE (ao) == FUNCTION_DECL);
+	      fndecl = ao;
+	    }
+	  else
+	    fndecl = current_function_decl;
+
+	  if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
 	    pp_printf
-	      (context->printer, _("In member function %qs:"),
-	       lang_hooks.decl_printable_name (current_function_decl, 2));
+	      (context->printer, _("In member function %qs"),
+	       lang_hooks.decl_printable_name (fndecl, 2));
 	  else
 	    pp_printf
-	      (context->printer, _("In function %qs:"),
-	       lang_hooks.decl_printable_name (current_function_decl, 2));
+	      (context->printer, _("In function %qs"),
+	       lang_hooks.decl_printable_name (fndecl, 2));
+
+	  while (abstract_origin)
+	    {
+	      location_t *locus;
+	      tree block = abstract_origin;
+
+	      locus = &BLOCK_SOURCE_LOCATION (block);
+	      fndecl = NULL;
+	      block = BLOCK_SUPERCONTEXT (block);
+	      while (block && TREE_CODE (block) == BLOCK
+		     && BLOCK_ABSTRACT_ORIGIN (block))
+		{
+		  ao = BLOCK_ABSTRACT_ORIGIN (block);
+
+		  while (TREE_CODE (ao) == BLOCK
+			 && BLOCK_ABSTRACT_ORIGIN (ao)
+			 && BLOCK_ABSTRACT_ORIGIN (ao) != ao)
+		    ao = BLOCK_ABSTRACT_ORIGIN (ao);
+
+		  if (TREE_CODE (ao) == FUNCTION_DECL)
+		    {
+		      fndecl = ao;
+		      break;
+		    }
+		  else if (TREE_CODE (ao) != BLOCK)
+		    break;
+
+		  block = BLOCK_SUPERCONTEXT (block);
+		}
+	      if (fndecl)
+		abstract_origin = block;
+	      else
+		{
+		  while (block && TREE_CODE (block) == BLOCK)
+		    block = BLOCK_SUPERCONTEXT (block);
+
+		  if (block && TREE_CODE (block) == FUNCTION_DECL)
+		    fndecl = block;
+		  abstract_origin = NULL;
+		}
+	      if (fndecl)
+		{
+		  expanded_location s = expand_location (*locus);
+		  pp_character (context->printer, ',');
+		  pp_newline (context->printer);
+		  if (s.file != NULL)
+		    {
+		      if (flag_show_column && s.column != 0)
+			pp_printf (context->printer,
+				   _("    inlined from %qs at %s:%d:%d"),
+				   lang_hooks.decl_printable_name (fndecl, 2),
+				   s.file, s.line, s.column);
+		      else
+			pp_printf (context->printer,
+				   _("    inlined from %qs at %s:%d"),
+				   lang_hooks.decl_printable_name (fndecl, 2),
+				   s.file, s.line);
+
+		    }
+		  else
+		    pp_printf (context->printer, _("    inlined from %qs"),
+			       lang_hooks.decl_printable_name (fndecl, 2));
+		}
+	    }
+	  pp_character (context->printer, ':');
 	}
 
-      diagnostic_set_last_function (context);
+      diagnostic_set_last_function (context, diagnostic);
       pp_flush (context->printer);
       context->printer->prefix = old_prefix;
       free ((char*) new_prefix);
@@ -413,8 +461,7 @@ lhd_print_error_function (diagnostic_context *context, const char *file)
 
 tree
 lhd_callgraph_analyze_expr (tree *tp ATTRIBUTE_UNUSED,
-			    int *walk_subtrees ATTRIBUTE_UNUSED,
-			    tree decl ATTRIBUTE_UNUSED)
+			    int *walk_subtrees ATTRIBUTE_UNUSED)
 {
   return NULL;
 }
@@ -432,8 +479,7 @@ lhd_to_target_charset (HOST_WIDE_INT c)
 }
 
 tree
-lhd_expr_to_decl (tree expr, bool *tc ATTRIBUTE_UNUSED,
-		  bool *ti ATTRIBUTE_UNUSED, bool *se ATTRIBUTE_UNUSED)
+lhd_expr_to_decl (tree expr, bool *tc ATTRIBUTE_UNUSED, bool *se ATTRIBUTE_UNUSED)
 {
   return expr;
 }
@@ -454,7 +500,7 @@ lhd_omp_predetermined_sharing (tree decl ATTRIBUTE_UNUSED)
 tree
 lhd_omp_assignment (tree clause ATTRIBUTE_UNUSED, tree dst, tree src)
 {
-  return build_gimple_modify_stmt (dst, src);
+  return build2 (MODIFY_EXPR, TREE_TYPE (dst), dst, src);
 }
 
 /* Register language specific type size variables as potentially OpenMP
@@ -466,13 +512,16 @@ lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *c ATTRIBUTE_UNUSED,
 {
 }
 
-tree
-add_builtin_function (const char *name,
-		      tree type,
-		      int function_code,
-		      enum built_in_class cl,
-		      const char *library_name,
-		      tree attrs)
+/* Common function for add_builtin_function and
+   add_builtin_function_ext_scope.  */
+static tree
+add_builtin_function_common (const char *name,
+			     tree type,
+			     int function_code,
+			     enum built_in_class cl,
+			     const char *library_name,
+			     tree attrs,
+			     tree (*hook) (tree))
 {
   tree   id = get_identifier (name);
   tree decl = build_decl (FUNCTION_DECL, id, type);
@@ -481,9 +530,10 @@ add_builtin_function (const char *name,
   DECL_EXTERNAL (decl)       = 1;
   DECL_BUILT_IN_CLASS (decl) = cl;
 
-  DECL_FUNCTION_CODE (decl)  = -1;
-  gcc_assert (DECL_FUNCTION_CODE (decl) >= function_code);
-  DECL_FUNCTION_CODE (decl)  = function_code;
+  DECL_FUNCTION_CODE (decl)  = (enum built_in_function) function_code;
+
+  /* DECL_FUNCTION_CODE is a bitfield; verify that the value fits.  */
+  gcc_assert (DECL_FUNCTION_CODE (decl) == function_code);
 
   if (library_name)
     {
@@ -497,8 +547,43 @@ add_builtin_function (const char *name,
   else
     decl_attributes (&decl, NULL_TREE, 0);
 
-  return lang_hooks.builtin_function (decl);
+  return hook (decl);
 
+}
+
+/* Create a builtin function.  */
+
+tree
+add_builtin_function (const char *name,
+		      tree type,
+		      int function_code,
+		      enum built_in_class cl,
+		      const char *library_name,
+		      tree attrs)
+{
+  return add_builtin_function_common (name, type, function_code, cl,
+				      library_name, attrs,
+				      lang_hooks.builtin_function);
+}
+
+/* Like add_builtin_function, but make sure the scope is the external scope.
+   This is used to delay putting in back end builtin functions until the ISA
+   that defines the builtin is declared via function specific target options,
+   which can save memory for machines like the x86_64 that have multiple ISAs.
+   If this points to the same function as builtin_function, the backend must
+   add all of the builtins at program initialization time.  */
+
+tree
+add_builtin_function_ext_scope (const char *name,
+				tree type,
+				int function_code,
+				enum built_in_class cl,
+				const char *library_name,
+				tree attrs)
+{
+  return add_builtin_function_common (name, type, function_code, cl,
+				      library_name, attrs,
+				      lang_hooks.builtin_function_ext_scope);
 }
 
 tree

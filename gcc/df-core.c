@@ -1,6 +1,6 @@
 /* Allocation for dataflow support routines.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+   2008, 2009 Free Software Foundation, Inc.
    Originally contributed by Michael P. Hayes 
              (m.hayes@elec.canterbury.ac.nz, mhayes@redhat.com)
    Major rewrite contributed by Danny Berlin (dberlin@dberlin.org)
@@ -42,7 +42,7 @@ requirement is that there be a correct control flow graph.
 There are three variations of the live variable problem that are
 available whenever dataflow is available.  The LR problem finds the
 areas that can reach a use of a variable, the UR problems finds the
-areas tha can be reached from a definition of a variable.  The LIVE
+areas that can be reached from a definition of a variable.  The LIVE
 problem finds the intersection of these two areas.  
 
 There are several optional problems.  These can be enabled when they
@@ -57,7 +57,7 @@ making this happen and are described in the INCREMENTAL SCANNING
 section.
 
 In the middle layer, basic blocks are scanned to produce transfer
-functions which describe the effects of that block on the a global
+functions which describe the effects of that block on the global
 dataflow solution.  The transfer functions are only rebuilt if the
 some instruction within the block has changed.  
 
@@ -71,7 +71,7 @@ USAGE:
 
 Here is an example of using the dataflow routines.
 
-      df_[ru,rd,urec,ri,chain]_add_problem (flags);
+      df_[chain,live,note,rd]_add_problem (flags);
 
       df_set_blocks (blocks);
 
@@ -81,7 +81,7 @@ Here is an example of using the dataflow routines.
 
       df_finish_pass (false);
 
-DF_[ru,rd,urec,ri,chain]_ADD_PROBLEM adds a problem, defined by an
+DF_[chain,live,note,rd]_ADD_PROBLEM adds a problem, defined by an
 instance to struct df_problem, to the set of problems solved in this
 instance of df.  All calls to add a problem for a given instance of df
 must occur before the first call to DF_ANALYZE.
@@ -268,25 +268,29 @@ pseudos and long for the hard registers.
 
 ACCESSING INSNS:
 
-1) The df insn information is kept in the insns array.  This array is
-   indexed by insn uid.  
+1) The df insn information is kept in an array of DF_INSN_INFO objects.
+   The array is indexed by insn uid, and every DF_REF points to the
+   DF_INSN_INFO object of the insn that contains the reference.
 
-2) Each insn has three sets of refs: They are linked into one of three
-   lists: the insn's defs list (accessed by the DF_INSN_DEFS or
-   DF_INSN_UID_DEFS macros), the insn's uses list (accessed by the
-   DF_INSN_USES or DF_INSN_UID_USES macros) or the insn's eq_uses list
-   (accessed by the DF_INSN_EQ_USES or DF_INSN_UID_EQ_USES macros).
-   The latter list are the list of references in REG_EQUAL or
-   REG_EQUIV notes.  These macros produce a ref (or NULL), the rest of
-   the list can be obtained by traversal of the NEXT_REF field
-   (accessed by the DF_REF_NEXT_REF macro.)  There is no significance
-   to the ordering of the uses or refs in an instruction.
+2) Each insn has three sets of refs, which are linked into one of three
+   lists: The insn's defs list (accessed by the DF_INSN_INFO_DEFS,
+   DF_INSN_DEFS, or DF_INSN_UID_DEFS macros), the insn's uses list
+   (accessed by the DF_INSN_INFO_USES, DF_INSN_USES, or
+   DF_INSN_UID_USES macros) or the insn's eq_uses list (accessed by the
+   DF_INSN_INFO_EQ_USES, DF_INSN_EQ_USES or DF_INSN_UID_EQ_USES macros).
+   The latter list are the list of references in REG_EQUAL or REG_EQUIV
+   notes.  These macros produce a ref (or NULL), the rest of the list
+   can be obtained by traversal of the NEXT_REF field (accessed by the
+   DF_REF_NEXT_REF macro.)  There is no significance to the ordering of
+   the uses or refs in an instruction.
 
-3) Each insn has a logical uid field (LUID).  When properly set, this
-   is an integer that numbers each insn in the basic block, in order from
-   the start of the block.  The numbers are only correct after a call to
-   df_analyse.  They will rot after insns are added deleted or moved
-   around.
+3) Each insn has a logical uid field (LUID) which is stored in the
+   DF_INSN_INFO object for the insn.  The LUID field is accessed by
+   the DF_INSN_INFO_LUID, DF_INSN_LUID, and DF_INSN_UID_LUID macros.
+   When properly set, the LUID is an integer that numbers each insn in
+   the basic block, in order from the start of the block.
+   The numbers are only correct after a call to df_analyze.  They will
+   rot after insns are added deleted or moved round.
 
 ACCESSING REFS:
 
@@ -343,7 +347,6 @@ There are 4 ways to obtain access to refs:
    chains.
 
 4) An array of all of the uses (and an array of all of the defs) can
-
    be built.  These arrays are indexed by the value in the id
    structure.  These arrays are only lazily kept up to date, and that
    process can be expensive.  To have these arrays built, call
@@ -370,7 +373,7 @@ address in this second example.
 
 A set to a REG inside a ZERO_EXTRACT, or a set to a non-paradoxical SUBREG
 for which the number of word_mode units covered by the outer mode is
-smaller than that covered by the inner mode, invokes a read-modify-write.
+smaller than that covered by the inner mode, invokes a read-modify-write
 operation.  We generate both a use and a def and again mark them
 read/write.
 
@@ -399,6 +402,7 @@ are write-only operations.
 #include "timevar.h"
 #include "df.h"
 #include "tree-pass.h"
+#include "params.h"
 
 static void *df_get_bb_info (struct dataflow *, unsigned int);
 static void df_set_bb_info (struct dataflow *, unsigned int, void *);
@@ -471,7 +475,7 @@ df_add_problem (struct df_problem *problem)
    returned.  If a flag is not allowed to be changed this will fail if
    checking is enabled.  */
 enum df_changeable_flags
-df_set_flags (enum df_changeable_flags changeable_flags)
+df_set_flags (int changeable_flags)
 {
   enum df_changeable_flags old_flags = df->changeable_flags;
   df->changeable_flags |= changeable_flags;
@@ -483,7 +487,7 @@ df_set_flags (enum df_changeable_flags changeable_flags)
    returned.  If a flag is not allowed to be changed this will fail if
    checking is enabled.  */
 enum df_changeable_flags
-df_clear_flags (enum df_changeable_flags changeable_flags)
+df_clear_flags (int changeable_flags)
 {
   enum df_changeable_flags old_flags = df->changeable_flags;
   df->changeable_flags &= ~changeable_flags;
@@ -618,7 +622,7 @@ df_remove_problem (struct dataflow *dflow)
 	int j;
 	for (j = i + 1; j < df->num_problems_defined; j++)
 	  df->problems_in_order[j-1] = df->problems_in_order[j];
-	df->problems_in_order[j] = NULL;
+	df->problems_in_order[j-1] = NULL;
 	df->num_problems_defined--;
 	break;
       }
@@ -628,9 +632,9 @@ df_remove_problem (struct dataflow *dflow)
 }
 
 
-/* Remove all of the problems that are not permanent.  Scanning, lr,
-   ur and live are permanent, the rest are removable.  Also clear all
-   of the changeable_flags.  */
+/* Remove all of the problems that are not permanent.  Scanning, LR
+   and (at -O2 or higher) LIVE are permanent, the rest are removable.
+   Also clear all of the changeable_flags.  */
 
 void
 df_finish_pass (bool verify ATTRIBUTE_UNUSED)
@@ -752,21 +756,23 @@ gate_opt (void)
 }
 
 
-struct tree_opt_pass pass_df_initialize_opt =
+struct rtl_opt_pass pass_df_initialize_opt =
 {
+ {
+  RTL_PASS,
   "dfinit",                             /* name */
   gate_opt,                             /* gate */
   rest_of_handle_df_initialize,         /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  'z'                                   /* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 
 
@@ -777,21 +783,23 @@ gate_no_opt (void)
 }
 
 
-struct tree_opt_pass pass_df_initialize_no_opt =
+struct rtl_opt_pass pass_df_initialize_no_opt =
 {
+ {
+  RTL_PASS,
   "dfinit",                             /* name */
   gate_no_opt,                          /* gate */
   rest_of_handle_df_initialize,         /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  'z'                                   /* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 
 
@@ -824,21 +832,23 @@ rest_of_handle_df_finish (void)
 }
 
 
-struct tree_opt_pass pass_df_finish =
+struct rtl_opt_pass pass_df_finish =
 {
+ {
+  RTL_PASS,
   "dfinish",                            /* name */
   NULL,					/* gate */
   rest_of_handle_df_finish,             /* execute */
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  0,                                    /* todo_flags_finish */
-  'z'                                   /* letter */
+  0                                     /* todo_flags_finish */
+ }
 };
 
 
@@ -931,18 +941,70 @@ df_worklist_propagate_backward (struct dataflow *dataflow,
 }
 
 
+
+/* This will free "pending". */
+
+static void 
+df_worklist_dataflow_doublequeue (struct dataflow *dataflow,
+			  	  bitmap pending,
+                                  sbitmap considered,
+                                  int *blocks_in_postorder,
+				  unsigned *bbindex_to_postorder)
+{
+  enum df_flow_dir dir = dataflow->problem->dir;
+  int dcount = 0;
+  bitmap worklist = BITMAP_ALLOC (&df_bitmap_obstack);
+
+  /* Double-queueing. Worklist is for the current iteration,
+     and pending is for the next. */
+  while (!bitmap_empty_p (pending))
+    {
+      /* Swap pending and worklist. */
+      bitmap temp = worklist;
+      worklist = pending;
+      pending = temp;
+
+      do
+	{
+	  int index;
+	  unsigned bb_index;
+	  dcount++;
+
+	  index = bitmap_first_set_bit (worklist);
+	  bitmap_clear_bit (worklist, index);
+
+	  bb_index = blocks_in_postorder[index];
+
+	  if (dir == DF_FORWARD)
+	    df_worklist_propagate_forward (dataflow, bb_index,
+					   bbindex_to_postorder,
+					   pending, considered);
+	  else 
+	    df_worklist_propagate_backward (dataflow, bb_index,
+					    bbindex_to_postorder,
+					    pending, considered);
+	}
+      while (!bitmap_empty_p (worklist));
+    }
+
+  BITMAP_FREE (worklist);
+  BITMAP_FREE (pending);
+
+  /* Dump statistics. */
+  if (dump_file)
+    fprintf (dump_file, "df_worklist_dataflow_doublequeue:"
+	     "n_basic_blocks %d n_edges %d"
+	     " count %d (%5.2g)\n",
+	     n_basic_blocks, n_edges,
+	     dcount, dcount / (float)n_basic_blocks);
+}
+
 /* Worklist-based dataflow solver. It uses sbitmap as a worklist,
    with "n"-th bit representing the n-th block in the reverse-postorder order. 
-   This is so-called over-eager algorithm where it propagates
-   changes on demand. This algorithm may visit blocks more than
-   iterative method if there are deeply nested loops. 
-   Worklist algorithm works better than iterative algorithm
-   for CFGs with no nested loops.
-   In practice, the measurement shows worklist algorithm beats 
-   iterative algorithm by some margin overall.  
-   Note that this is slightly different from the traditional textbook worklist solver,
-   in that the worklist is effectively sorted by the reverse postorder.
-   For CFGs with no nested loops, this is optimal.  */
+   The solver is a double-queue algorithm similar to the "double stack" solver
+   from Cooper, Harvey and Kennedy, "Iterative data-flow analysis, Revisited".
+   The only significant difference is that the worklist in this implementation
+   is always sorted in RPO of the CFG visiting direction.  */
 
 void 
 df_worklist_dataflow (struct dataflow *dataflow,
@@ -983,29 +1045,15 @@ df_worklist_dataflow (struct dataflow *dataflow,
       bitmap_set_bit (pending, i);
     }
 
+  /* Initialize the problem. */
   if (dataflow->problem->init_fun)
     dataflow->problem->init_fun (blocks_to_consider);
 
-  while (!bitmap_empty_p (pending))
-    {
-      unsigned bb_index;
+  /* Solve it.  */
+  df_worklist_dataflow_doublequeue (dataflow, pending, considered,
+				    blocks_in_postorder,
+				    bbindex_to_postorder);
 
-      index = bitmap_first_set_bit (pending);
-      bitmap_clear_bit (pending, index);
-
-      bb_index = blocks_in_postorder[index];
-
-      if (dir == DF_FORWARD)
-        df_worklist_propagate_forward (dataflow, bb_index,
-                                       bbindex_to_postorder,
-                                       pending, considered);
-      else 
-        df_worklist_propagate_backward (dataflow, bb_index,
-                                        bbindex_to_postorder,
-                                        pending, considered);
-    }
-
-  BITMAP_FREE (pending);
   sbitmap_free (considered);
   free (bbindex_to_postorder);
 }
@@ -1337,7 +1385,7 @@ df_compact_blocks (void)
   void **problem_temps;
   int size = last_basic_block * sizeof (void *);
   bitmap tmp = BITMAP_ALLOC (&df_bitmap_obstack);
-  problem_temps = xmalloc (size);
+  problem_temps = XNEWVAR (void *, size);
 
   for (p = 0; p < df->num_problems_defined; p++)
     {
@@ -1607,11 +1655,11 @@ df_set_clean_cfg (void)
 
 /* Return first def of REGNO within BB.  */
 
-struct df_ref *
+df_ref 
 df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
 {
   rtx insn;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
   unsigned int uid;
 
   FOR_BB_INSNS (bb, insn)
@@ -1622,7 +1670,7 @@ df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
       uid = INSN_UID (insn);
       for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 	{
-	  struct df_ref *def = *def_rec;
+	  df_ref def = *def_rec;
 	  if (DF_REF_REGNO (def) == regno)
 	    return def;
 	}
@@ -1633,11 +1681,11 @@ df_bb_regno_first_def_find (basic_block bb, unsigned int regno)
 
 /* Return last def of REGNO within BB.  */
 
-struct df_ref *
+df_ref 
 df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
 {
   rtx insn;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
   unsigned int uid;
 
   FOR_BB_INSNS_REVERSE (bb, insn)
@@ -1648,7 +1696,7 @@ df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
       uid = INSN_UID (insn);
       for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
 	{
-	  struct df_ref *def = *def_rec;
+	  df_ref def = *def_rec;
 	  if (DF_REF_REGNO (def) == regno)
 	    return def;
 	}
@@ -1660,11 +1708,11 @@ df_bb_regno_last_def_find (basic_block bb, unsigned int regno)
 /* Finds the reference corresponding to the definition of REG in INSN.
    DF is the dataflow object.  */
 
-struct df_ref *
+df_ref 
 df_find_def (rtx insn, rtx reg)
 {
   unsigned int uid;
-  struct df_ref **def_rec;
+  df_ref *def_rec;
 
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
@@ -1673,7 +1721,7 @@ df_find_def (rtx insn, rtx reg)
   uid = INSN_UID (insn);
   for (def_rec = DF_INSN_UID_DEFS (uid); *def_rec; def_rec++)
     {
-      struct df_ref *def = *def_rec;
+      df_ref def = *def_rec;
       if (rtx_equal_p (DF_REF_REAL_REG (def), reg))
 	return def;
     }
@@ -1694,11 +1742,11 @@ df_reg_defined (rtx insn, rtx reg)
 /* Finds the reference corresponding to the use of REG in INSN.
    DF is the dataflow object.  */
   
-struct df_ref *
+df_ref 
 df_find_use (rtx insn, rtx reg)
 {
   unsigned int uid;
-  struct df_ref **use_rec;
+  df_ref *use_rec;
 
   if (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
@@ -1707,14 +1755,14 @@ df_find_use (rtx insn, rtx reg)
   uid = INSN_UID (insn);
   for (use_rec = DF_INSN_UID_USES (uid); *use_rec; use_rec++)
     {
-      struct df_ref *use = *use_rec;
+      df_ref use = *use_rec;
       if (rtx_equal_p (DF_REF_REAL_REG (use), reg))
 	return use;
     } 
   if (df->changeable_flags & DF_EQ_NOTES)
     for (use_rec = DF_INSN_UID_EQ_USES (uid); *use_rec; use_rec++)
       {
-	struct df_ref *use = *use_rec;
+	df_ref use = *use_rec;
 	if (rtx_equal_p (DF_REF_REAL_REG (use), reg))
 	  return use; 
       }
@@ -1754,6 +1802,69 @@ df_print_regset (FILE *file, bitmap r)
 	  fprintf (file, " %d", i);
 	  if (i < FIRST_PSEUDO_REGISTER)
 	    fprintf (file, " [%s]", reg_names[i]);
+	}
+    }
+  fprintf (file, "\n");
+}
+
+
+/* Write information about registers and basic blocks into FILE.  The
+   bitmap is in the form used by df_byte_lr.  This is part of making a
+   debugging dump.  */
+
+void
+df_print_byte_regset (FILE *file, bitmap r)
+{
+  unsigned int max_reg = max_reg_num ();
+  bitmap_iterator bi;
+
+  if (r == NULL)
+    fputs (" (nil)", file);
+  else
+    {
+      unsigned int i;
+      for (i = 0; i < max_reg; i++)
+	{
+	  unsigned int first = df_byte_lr_get_regno_start (i);
+	  unsigned int len = df_byte_lr_get_regno_len (i);
+
+	  if (len > 1)
+	    {
+	      bool found = false;
+	      unsigned int j;
+
+	      EXECUTE_IF_SET_IN_BITMAP (r, first, j, bi)
+		{
+		  found = j < first + len;
+		  break;
+		}
+	      if (found)
+		{
+		  const char * sep = "";
+		  fprintf (file, " %d", i);
+		  if (i < FIRST_PSEUDO_REGISTER)
+		    fprintf (file, " [%s]", reg_names[i]);
+		  fprintf (file, "(");
+		  EXECUTE_IF_SET_IN_BITMAP (r, first, j, bi)
+		    {
+		      if (j > first + len - 1)
+			break;
+		      fprintf (file, "%s%d", sep, j-first);
+		      sep = ", ";
+		    }
+		  fprintf (file, ")");
+		}
+	    }
+	  else
+	    {
+	      if (bitmap_bit_p (r, first))
+		{
+		  fprintf (file, " %d", i);
+		  if (i < FIRST_PSEUDO_REGISTER)
+		    fprintf (file, " [%s]", reg_names[i]);
+		}
+	    }
+
 	}
     }
   fprintf (file, "\n");
@@ -1883,12 +1994,12 @@ df_dump_bottom (basic_block bb, FILE *file)
 
 
 void
-df_refs_chain_dump (struct df_ref **ref_rec, bool follow_chain, FILE *file)
+df_refs_chain_dump (df_ref *ref_rec, bool follow_chain, FILE *file)
 {
   fprintf (file, "{ ");
   while (*ref_rec)
     {
-      struct df_ref *ref = *ref_rec;
+      df_ref ref = *ref_rec;
       fprintf (file, "%c%d(%d)",
 	       DF_REF_REG_DEF_P (ref) ? 'd' : (DF_REF_FLAGS (ref) & DF_REF_IN_NOTE) ? 'e' : 'u',
 	       DF_REF_ID (ref),
@@ -1904,7 +2015,7 @@ df_refs_chain_dump (struct df_ref **ref_rec, bool follow_chain, FILE *file)
 /* Dump either a ref-def or reg-use chain.  */
 
 void
-df_regs_chain_dump (struct df_ref *ref,  FILE *file)
+df_regs_chain_dump (df_ref ref,  FILE *file)
 {
   fprintf (file, "{ ");
   while (ref)
@@ -1913,7 +2024,7 @@ df_regs_chain_dump (struct df_ref *ref,  FILE *file)
 	       DF_REF_REG_DEF_P (ref) ? 'd' : 'u',
 	       DF_REF_ID (ref),
 	       DF_REF_REGNO (ref));
-      ref = ref->next_reg;
+      ref = DF_REF_NEXT_REG (ref);
     }
   fprintf (file, "}");
 }
@@ -1925,7 +2036,7 @@ df_mws_dump (struct df_mw_hardreg **mws, FILE *file)
   while (*mws)
     {
       fprintf (file, "mw %c r[%d..%d]\n", 
-	       ((*mws)->type == DF_REF_REG_DEF) ? 'd' : 'u',
+	       (DF_MWS_REG_DEF_P (*mws)) ? 'd' : 'u',
 	       (*mws)->start_regno, (*mws)->end_regno);
       mws++;
     }
@@ -1975,17 +2086,18 @@ df_insn_debug (rtx insn, bool follow_chain, FILE *file)
 void
 df_insn_debug_regno (rtx insn, FILE *file)
 {
-  unsigned int uid = INSN_UID(insn);
+  struct df_insn_info *insn_info = DF_INSN_INFO_GET (insn);
 
   fprintf (file, "insn %d bb %d luid %d defs ",
-	   uid, BLOCK_FOR_INSN (insn)->index, DF_INSN_LUID (insn));
-  df_refs_chain_dump (DF_INSN_UID_DEFS (uid), false, file);
+	   INSN_UID (insn), BLOCK_FOR_INSN (insn)->index,
+	   DF_INSN_INFO_LUID (insn_info));
+  df_refs_chain_dump (DF_INSN_INFO_DEFS (insn_info), false, file);
     
   fprintf (file, " uses ");
-  df_refs_chain_dump (DF_INSN_UID_USES (uid), false, file);
+  df_refs_chain_dump (DF_INSN_INFO_USES (insn_info), false, file);
 
   fprintf (file, " eq_uses ");
-  df_refs_chain_dump (DF_INSN_UID_EQ_USES (uid), false, file);
+  df_refs_chain_dump (DF_INSN_INFO_EQ_USES (insn_info), false, file);
   fprintf (file, "\n");
 }
 
@@ -2003,7 +2115,7 @@ df_regno_debug (unsigned int regno, FILE *file)
 
 
 void
-df_ref_debug (struct df_ref *ref, FILE *file)
+df_ref_debug (df_ref ref, FILE *file)
 {
   fprintf (file, "%c%d ",
 	   DF_REF_REG_DEF_P (ref) ? 'd' : 'u',
@@ -2011,7 +2123,7 @@ df_ref_debug (struct df_ref *ref, FILE *file)
   fprintf (file, "reg %d bb %d insn %d flag 0x%x type 0x%x ",
 	   DF_REF_REGNO (ref),
 	   DF_REF_BBNO (ref),
-	   DF_REF_INSN (ref) ? INSN_UID (DF_REF_INSN (ref)) : -1,
+	   DF_REF_IS_ARTIFICIAL (ref) ? -1 : DF_REF_INSN_UID (ref),
 	   DF_REF_FLAGS (ref),
 	   DF_REF_TYPE (ref));
   if (DF_REF_LOC (ref))
@@ -2047,7 +2159,7 @@ debug_df_regno (unsigned int regno)
 
 
 void
-debug_df_ref (struct df_ref *ref)
+debug_df_ref (df_ref ref)
 {
   df_ref_debug (ref, stderr);
 }

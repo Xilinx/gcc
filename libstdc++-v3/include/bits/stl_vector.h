@@ -1,12 +1,12 @@
 // Vector implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -65,14 +60,11 @@
 #include <bits/stl_iterator_base_funcs.h>
 #include <bits/functexcept.h>
 #include <bits/concept_check.h>
+#include <initializer_list>
 
-_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
+_GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_D)
 
-  /**
-   *  @if maint
-   *  See bits/stl_deque.h's _Deque_base for an explanation.
-   *  @endif
-  */
+  /// See bits/stl_deque.h's _Deque_base for an explanation.
   template<typename _Tp, typename _Alloc>
     struct _Vector_base
     {
@@ -81,9 +73,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       struct _Vector_impl 
       : public _Tp_alloc_type
       {
-	_Tp*           _M_start;
-	_Tp*           _M_finish;
-	_Tp*           _M_end_of_storage;
+	typename _Tp_alloc_type::pointer _M_start;
+	typename _Tp_alloc_type::pointer _M_finish;
+	typename _Tp_alloc_type::pointer _M_end_of_storage;
+
+	_Vector_impl()
+	: _Tp_alloc_type(), _M_start(0), _M_finish(0), _M_end_of_storage(0)
+	{ }
+
 	_Vector_impl(_Tp_alloc_type const& __a)
 	: _Tp_alloc_type(__a), _M_start(0), _M_finish(0), _M_end_of_storage(0)
 	{ }
@@ -104,9 +101,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       get_allocator() const
       { return allocator_type(_M_get_Tp_allocator()); }
 
+      _Vector_base()
+      : _M_impl() { }
+
       _Vector_base(const allocator_type& __a)
-      : _M_impl(__a)
-      { }
+      : _M_impl(__a) { }
 
       _Vector_base(size_t __n, const allocator_type& __a)
       : _M_impl(__a)
@@ -116,6 +115,19 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	this->_M_impl._M_end_of_storage = this->_M_impl._M_start + __n;
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      _Vector_base(_Vector_base&& __x)
+      : _M_impl(__x._M_get_Tp_allocator())
+      {
+	this->_M_impl._M_start = __x._M_impl._M_start;
+	this->_M_impl._M_finish = __x._M_impl._M_finish;
+	this->_M_impl._M_end_of_storage = __x._M_impl._M_end_of_storage;
+	__x._M_impl._M_start = 0;
+	__x._M_impl._M_finish = 0;
+	__x._M_impl._M_end_of_storage = 0;
+      }
+#endif
+
       ~_Vector_base()
       { _M_deallocate(this->_M_impl._M_start, this->_M_impl._M_end_of_storage
 		      - this->_M_impl._M_start); }
@@ -123,12 +135,12 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     public:
       _Vector_impl _M_impl;
 
-      _Tp*
+      typename _Tp_alloc_type::pointer
       _M_allocate(size_t __n)
       { return __n != 0 ? _M_impl.allocate(__n) : 0; }
 
       void
-      _M_deallocate(_Tp* __p, size_t __n)
+      _M_deallocate(typename _Tp_alloc_type::pointer __p, size_t __n)
       {
 	if (__p)
 	  _M_impl.deallocate(__p, __n);
@@ -140,8 +152,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
    *  @brief A standard container which offers fixed time access to
    *  individual elements in any order.
    *
-   *  @ingroup Containers
-   *  @ingroup Sequences
+   *  @ingroup sequences
    *
    *  Meets the requirements of a <a href="tables.html#65">container</a>, a
    *  <a href="tables.html#66">reversible container</a>, and a
@@ -164,7 +175,6 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       __glibcxx_class_requires2(_Tp, _Alloc_value_type, _SameTypeConcept)
       
       typedef _Vector_base<_Tp, _Alloc>			 _Base;
-      typedef vector<_Tp, _Alloc>			 vector_type;
       typedef typename _Base::_Tp_alloc_type		 _Tp_alloc_type;
 
     public:
@@ -173,8 +183,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       typedef typename _Tp_alloc_type::const_pointer     const_pointer;
       typedef typename _Tp_alloc_type::reference         reference;
       typedef typename _Tp_alloc_type::const_reference   const_reference;
-      typedef __gnu_cxx::__normal_iterator<pointer, vector_type> iterator;
-      typedef __gnu_cxx::__normal_iterator<const_pointer, vector_type>
+      typedef __gnu_cxx::__normal_iterator<pointer, vector> iterator;
+      typedef __gnu_cxx::__normal_iterator<const_pointer, vector>
       const_iterator;
       typedef std::reverse_iterator<const_iterator>  const_reverse_iterator;
       typedef std::reverse_iterator<iterator>		 reverse_iterator;
@@ -194,15 +204,22 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       /**
        *  @brief  Default constructor creates no elements.
        */
-      explicit
-      vector(const allocator_type& __a = allocator_type())
-      : _Base(__a)
-      { }
+      vector()
+      : _Base() { }
 
       /**
-       *  @brief  Create a %vector with copies of an exemplar element.
+       *  @brief  Creates a %vector with no elements.
+       *  @param  a  An allocator object.
+       */
+      explicit
+      vector(const allocator_type& __a)
+      : _Base(__a) { }
+
+      /**
+       *  @brief  Creates a %vector with copies of an exemplar element.
        *  @param  n  The number of elements to initially create.
        *  @param  value  An element to copy.
+       *  @param  a  An allocator.
        *
        *  This constructor fills the %vector with @a n copies of @a value.
        */
@@ -229,10 +246,42 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 				      _M_get_Tp_allocator());
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %Vector move constructor.
+       *  @param  x  A %vector of identical element and allocator types.
+       *
+       *  The newly-created %vector contains the exact contents of @a x.
+       *  The contents of @a x are a valid, but unspecified %vector.
+       */
+      vector(vector&& __x)
+      : _Base(std::forward<_Base>(__x)) { }
+
+      /**
+       *  @brief  Builds a %vector from an initializer list.
+       *  @param  l  An initializer_list.
+       *  @param  a  An allocator.
+       *
+       *  Create a %vector consisting of copies of the elements in the
+       *  initializer_list @a l.
+       *
+       *  This will call the element type's copy constructor N times
+       *  (where N is @a l.size()) and do no memory reallocation.
+       */
+      vector(initializer_list<value_type> __l,
+	     const allocator_type& __a = allocator_type())
+      : _Base(__a)
+      {
+	_M_range_initialize(__l.begin(), __l.end(),
+			    random_access_iterator_tag());
+      }
+#endif
+
       /**
        *  @brief  Builds a %vector from a range.
        *  @param  first  An input iterator.
        *  @param  last  An input iterator.
+       *  @param  a  An allocator.
        *
        *  Create a %vector consisting of copies of the elements from
        *  [first,last).
@@ -258,7 +307,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  The dtor only erases the elements, and note that if the
        *  elements themselves are pointers, the pointed-to memory is
        *  not touched in any way.  Managing the pointer is the user's
-       *  responsibilty.
+       *  responsibility.
        */
       ~vector()
       { std::_Destroy(this->_M_impl._M_start, this->_M_impl._M_finish,
@@ -274,6 +323,42 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        */
       vector&
       operator=(const vector& __x);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  %Vector move assignment operator.
+       *  @param  x  A %vector of identical element and allocator types.
+       *
+       *  The contents of @a x are moved into this %vector (without copying).
+       *  @a x is a valid, but unspecified %vector.
+       */
+      vector&
+      operator=(vector&& __x)
+      {
+	// NB: DR 675.
+	this->clear();
+	this->swap(__x); 
+	return *this;
+      }
+
+      /**
+       *  @brief  %Vector list assignment operator.
+       *  @param  l  An initializer_list.
+       *
+       *  This function fills a %vector with copies of the elements in the
+       *  initializer list @a l.
+       *
+       *  Note that the assignment completely changes the %vector and
+       *  that the resulting %vector's size is the same as the number
+       *  of elements assigned.  Old data may be lost.
+       */
+      vector&
+      operator=(initializer_list<value_type> __l)
+      {
+	this->assign(__l.begin(), __l.end());
+	return *this;
+      }
+#endif
 
       /**
        *  @brief  Assigns a given value to a %vector.
@@ -309,6 +394,23 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  _M_assign_dispatch(__first, __last, _Integral());
 	}
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Assigns an initializer list to a %vector.
+       *  @param  l  An initializer_list.
+       *
+       *  This function fills a %vector with copies of the elements in the
+       *  initializer list @a l.
+       *
+       *  Note that the assignment completely changes the %vector and
+       *  that the resulting %vector's size is the same as the number
+       *  of elements assigned.  Old data may be lost.
+       */
+      void
+      assign(initializer_list<value_type> __l)
+      { this->assign(__l.begin(), __l.end()); }
+#endif
 
       /// Get a copy of the memory allocation object.
       using _Base::get_allocator;
@@ -385,6 +487,44 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       const_reverse_iterator
       rend() const
       { return const_reverse_iterator(begin()); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  Returns a read-only (constant) iterator that points to the
+       *  first element in the %vector.  Iteration is done in ordinary
+       *  element order.
+       */
+      const_iterator
+      cbegin() const
+      { return const_iterator(this->_M_impl._M_start); }
+
+      /**
+       *  Returns a read-only (constant) iterator that points one past
+       *  the last element in the %vector.  Iteration is done in
+       *  ordinary element order.
+       */
+      const_iterator
+      cend() const
+      { return const_iterator(this->_M_impl._M_finish); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to the last element in the %vector.  Iteration is done in
+       *  reverse element order.
+       */
+      const_reverse_iterator
+      crbegin() const
+      { return const_reverse_iterator(end()); }
+
+      /**
+       *  Returns a read-only (constant) reverse iterator that points
+       *  to one before the first element in the %vector.  Iteration
+       *  is done in reverse element order.
+       */
+      const_reverse_iterator
+      crend() const
+      { return const_reverse_iterator(begin()); }
+#endif
 
       // [23.2.4.2] capacity
       /**  Returns the number of elements in the %vector.  */
@@ -486,7 +626,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       { return *(this->_M_impl._M_start + __n); }
 
     protected:
-      /// @if maint Safety check used only from at().  @endif
+      /// Safety check used only from at().
       void
       _M_range_check(size_type __n) const
       {
@@ -601,6 +741,16 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	  _M_insert_aux(end(), __x);
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      void
+      push_back(value_type&& __x)
+      { emplace_back(std::move(__x)); }
+
+      template<typename... _Args>
+        void
+        emplace_back(_Args&&... __args);
+#endif
+
       /**
        *  @brief  Removes last element.
        *
@@ -617,6 +767,24 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 	this->_M_impl.destroy(this->_M_impl._M_finish);
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Inserts an object in %vector before specified iterator.
+       *  @param  position  An iterator into the %vector.
+       *  @param  args  Arguments.
+       *  @return  An iterator that points to the inserted data.
+       *
+       *  This function will insert an object of type T constructed
+       *  with T(std::forward<Args>(args)...) before the specified location.
+       *  Note that this kind of operation could be expensive for a %vector
+       *  and if it is frequently used the user should consider using
+       *  std::list.
+       */
+      template<typename... _Args>
+        iterator
+        emplace(iterator __position, _Args&&... __args);
+#endif
+
       /**
        *  @brief  Inserts given value into %vector before specified iterator.
        *  @param  position  An iterator into the %vector.
@@ -630,6 +798,40 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        */
       iterator
       insert(iterator __position, const value_type& __x);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Inserts given rvalue into %vector before specified iterator.
+       *  @param  position  An iterator into the %vector.
+       *  @param  x  Data to be inserted.
+       *  @return  An iterator that points to the inserted data.
+       *
+       *  This function will insert a copy of the given rvalue before
+       *  the specified location.  Note that this kind of operation
+       *  could be expensive for a %vector and if it is frequently
+       *  used the user should consider using std::list.
+       */
+      iterator
+      insert(iterator __position, value_type&& __x)
+      { return emplace(__position, std::move(__x)); }
+
+      /**
+       *  @brief  Inserts an initializer_list into the %vector.
+       *  @param  position  An iterator into the %vector.
+       *  @param  l  An initializer_list.
+       *
+       *  This function will insert copies of the data in the 
+       *  initializer_list @a l into the %vector before the location
+       *  specified by @a position.
+       *
+       *  Note that this kind of operation could be expensive for a
+       *  %vector and if it is frequently used the user should
+       *  consider using std::list.
+       */
+      void
+      insert(iterator __position, initializer_list<value_type> __l)
+      { this->insert(__position, __l.begin(), __l.end()); }
+#endif
 
       /**
        *  @brief  Inserts a number of copies of given data into the %vector.
@@ -685,7 +887,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  The user is also cautioned that this function only erases
        *  the element, and that if the element is itself a pointer,
        *  the pointed-to memory is not touched in any way.  Managing
-       *  the pointer is the user's responsibilty.
+       *  the pointer is the user's responsibility.
        */
       iterator
       erase(iterator __position);
@@ -706,7 +908,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  The user is also cautioned that this function only erases
        *  the elements, and that if the elements themselves are
        *  pointers, the pointed-to memory is not touched in any way.
-       *  Managing the pointer is the user's responsibilty.
+       *  Managing the pointer is the user's responsibility.
        */
       iterator
       erase(iterator __first, iterator __last);
@@ -721,7 +923,11 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  std::swap(v1,v2) will feed to this function.
        */
       void
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(vector&& __x)
+#else
       swap(vector& __x)
+#endif
       {
 	std::swap(this->_M_impl._M_start, __x._M_impl._M_start);
 	std::swap(this->_M_impl._M_finish, __x._M_impl._M_finish);
@@ -738,7 +944,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
        *  Erases all the elements.  Note that this function only erases the
        *  elements, and that if the elements themselves are pointers, the
        *  pointed-to memory is not touched in any way.  Managing the pointer is
-       *  the user's responsibilty.
+       *  the user's responsibility.
        */
       void
       clear()
@@ -746,10 +952,8 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 
     protected:
       /**
-       *  @if maint
        *  Memory expansion handler.  Uses the member allocation function to
        *  obtain @a n bytes of memory, and then copies [first,last) into it.
-       *  @endif
        */
       template<typename _ForwardIterator>
         pointer
@@ -757,13 +961,13 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
 			     _ForwardIterator __first, _ForwardIterator __last)
         {
 	  pointer __result = this->_M_allocate(__n);
-	  try
+	  __try
 	    {
 	      std::__uninitialized_copy_a(__first, __last, __result,
 					  _M_get_Tp_allocator());
 	      return __result;
 	    }
-	  catch(...)
+	  __catch(...)
 	    {
 	      _M_deallocate(__result, __n);
 	      __throw_exception_again;
@@ -916,8 +1120,14 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
       _M_fill_insert(iterator __pos, size_type __n, const value_type& __x);
 
       // Called by insert(p,x)
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       void
       _M_insert_aux(iterator __position, const value_type& __x);
+#else
+      template<typename... _Args>
+        void
+        _M_insert_aux(iterator __position, _Args&&... __args);
+#endif
 
       // Called by the latter.
       size_type
@@ -1005,6 +1215,18 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD)
     inline void
     swap(vector<_Tp, _Alloc>& __x, vector<_Tp, _Alloc>& __y)
     { __x.swap(__y); }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(vector<_Tp, _Alloc>&& __x, vector<_Tp, _Alloc>& __y)
+    { __x.swap(__y); }
+
+  template<typename _Tp, typename _Alloc>
+    inline void
+    swap(vector<_Tp, _Alloc>& __x, vector<_Tp, _Alloc>&& __y)
+    { __x.swap(__y); }
+#endif
 
 _GLIBCXX_END_NESTED_NAMESPACE
 

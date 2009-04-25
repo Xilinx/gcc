@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -43,8 +41,10 @@
 --  builds may be done with bootstrap compilers that cannot handle these
 --  additions. The full version of Ada.Exceptions can be found in the files
 --  a-except-2005.ads/adb, and is used for all other builds where full Ada
---  2005 functionality is required. in particular, it is used for building
+--  2005 functionality is required. In particular, it is used for building
 --  run times on all targets.
+
+pragma Compiler_Unit;
 
 pragma Polling (Off);
 --  We must turn polling off for this unit, because otherwise we get
@@ -80,12 +80,8 @@ package Ada.Exceptions is
    function Exception_Name (Id : Exception_Id) return String;
 
    procedure Raise_Exception (E : Exception_Id; Message : String := "");
-   --  Note: it would be really nice to give a pragma No_Return for this
-   --  procedure, but it would be wrong, since Raise_Exception does return if
-   --  given the null exception in Ada 95 mode. However we do special case the
-   --  name in the test in the compiler for issuing a warning for a missing
-   --  return after this call. Program_Error seems reasonable enough in such a
-   --  case. See also the routine Raise_Exception_Always in the private part.
+   pragma No_Return (Raise_Exception);
+   --  Note: In accordance with AI-466, CE is raised if E = Null_Id
 
    function Exception_Message (X : Exception_Occurrence) return String;
 
@@ -179,10 +175,10 @@ private
    pragma No_Return (Raise_Exception_Always);
    pragma Export (Ada, Raise_Exception_Always, "__gnat_raise_exception");
    --  This differs from Raise_Exception only in that the caller has determined
-   --  that for sure the parameter E is not null, and that therefore the call
-   --  to this procedure cannot return. The expander converts Raise_Exception
-   --  calls to Raise_Exception_Always if it can determine this is the case.
-   --  The Export allows this routine to be accessed from Pure units.
+   --  that for sure the parameter E is not null, and that therefore no check
+   --  for Null_Id is required. The expander converts Raise_Exception calls to
+   --  Raise_Exception_Always if it can determine this is the case. The Export
+   --  allows this routine to be accessed from Pure units.
 
    procedure Raise_From_Signal_Handler
      (E : Exception_Id;
@@ -205,7 +201,7 @@ private
    procedure Raise_From_Controlled_Operation
      (X : Ada.Exceptions.Exception_Occurrence);
    pragma No_Return (Raise_From_Controlled_Operation);
-   --  Raise Program_Error, proviving information about X (an exception
+   --  Raise Program_Error, providing information about X (an exception
    --  raised during a controlled operation) in the exception message.
 
    procedure Reraise_Occurrence_Always (X : Exception_Occurrence);
@@ -236,7 +232,7 @@ private
    --  purposes (e.g. implementing watchpoints in software or in the debugger).
 
    --  In the GNAT technology itself, this interface is used to implement
-   --  immediate aynschronous transfer of control and immediate abort on
+   --  immediate asynchronous transfer of control and immediate abort on
    --  targets which do not provide for one thread interrupting another.
 
    --  Note: this used to be in a separate unit called System.Poll, but that

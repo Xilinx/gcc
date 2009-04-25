@@ -1,3 +1,154 @@
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* decRound.c: Change copyright header to refer to version 3 of
+	the GNU General Public License with version 3.1 of the GCC
+	Runtime Library Exception and to point readers at the COPYING3
+	and COPYING3.RUNTIME files and the FSF's license web page.
+	* bid/bid-dpd.h: Likewise.
+	* bid/bid2dpd_dpd2bid.c: Likewise.
+	* bid/bid2dpd_dpd2bid.h: Likewise.
+	* bid/decimal128.c: Likewise.
+	* bid/decimal32.c: Likewise.
+	* bid/decimal64.c: Likewise.
+	* bid/host-ieee128.c: Likewise.
+	* bid/host-ieee32.c: Likewise.
+	* bid/host-ieee64.c: Likewise.
+	* dconfig.h: Likewise.
+	* decBasic.c: Likewise.
+	* decCommon.c: Likewise.
+	* decContext.c: Likewise.
+	* decContext.h: Likewise.
+	* decDPD.h: Likewise.
+	* decDouble.c: Likewise.
+	* decDouble.h: Likewise.
+	* decExcept.c: Likewise.
+	* decExcept.h: Likewise.
+	* decLibrary.c: Likewise.
+	* decNumber.c: Likewise.
+	* decNumber.h: Likewise.
+	* decNumberLocal.h: Likewise.
+	* decPacked.c: Likewise.
+	* decPacked.h: Likewise.
+	* decQuad.c: Likewise.
+	* decQuad.h: Likewise.
+	* decRound.h: Likewise.
+	* decSingle.c: Likewise.
+	* decSingle.h: Likewise.
+	* dpd/decimal128.c: Likewise.
+	* dpd/decimal128.h: Likewise.
+	* dpd/decimal128Local.h: Likewise.
+	* dpd/decimal32.c: Likewise.
+	* dpd/decimal32.h: Likewise.
+	* dpd/decimal64.c: Likewise.
+	* dpd/decimal64.h: Likewise.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* configure.ac: Likewise.
+
+2009-04-01  Ben Elliston  <bje@au.ibm.com>
+
+        * decContext.h: Include gstdint.h instead of <stdint.h>.
+
+2009-03-30  Ben Elliston  <bje@au.ibm.com>
+
+	* decNumber.c, decNumber.h, decNumberLocal.h, decDouble.c,
+	decDouble.h, decSingle.c, decContext.c, decSingle.h, decPacked.c,
+	decCommon.c, decContext.h, decQuad.c, decPacked.h, decQuad.h,
+	decDPD.h, decBasic.c: Upgrade to decNumber 3.61.
+	* dpd/decimal128.h, dpd/decimal32.c, dpd/decimal32.h,
+	dpd/decimal64.c, dpd/decimal128.c, dpd/decimal64.h: Likewise.
+
+2009-02-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (clean): Don't remove makedepend$(EXEEXT).
+
+2008-10-27  Janis Johnson  <janis187@us.ibm.com>
+
+	PR other/37897
+	* decDouble.h (decDouble): Replace struct with union accessible
+	by more types.
+	* decSingle.h (decSingle): Ditto.
+	* decQuad.h (decQuad): Ditto.
+	* decNumberLocal.h (DFWORD, DFBYTE, DFWWORD): access decFloat via
+	new members.
+	* decBasic.c (decFloatCompareTotal): Avoid type-pun violation.
+	(decNumberCompare): Ditto.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in ($(srcdir)/aclocal.m4): Update dependencies.
+	* configure: Regenerate.
+
+2008-06-16  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in (datarootdir): New variable.
+
+2008-06-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* dconfig.h: New.
+	* decContext.c, decExcept.c, decExcept.h, decLibrary.c,
+	decNumber.c, decNumberLocal.h, decRound.c, dpd/decimal128.c,
+	dpd/decimal32.c, dpd/decimal64.c: Include dconfig.h not config.h.
+	* dpd/decimal128Local.h (decimal128SetSign, decimal128ClearSign,
+	decimal128FlipSign): Use WORDS_BIGENDIAN not
+	FLOAT_WORDS_BIG_ENDIAN.
+	* bid/host-ieee128.c: Include dconfig.h.
+	(__host_to_ieee_128, __ieee_to_host_128): Swap 64-bit halves of
+	value if WORDS_BIGENDIAN.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-04-18  Ben Elliston  <bje@au.ibm.com>
+
+	* Makefile.in (distclean): Add gstdint.h.
+
+2008-01-25  Janis Johnson  <janis187@us.ibm.com>
+
+	* decCommonSymbols.h: Commit.
+	* decDPDSybmols.h: Commit.
+
+	* Makefile.in (libdecnumber_a_SOURCES): List Symbols headers.
+	* decCommonSymbols.h: New file.
+	* decCommon.c: Include it.
+	* decDPDSymbols.h: New file.
+	* decDPD.h: Include it.
+	* decNumberLocal.h: Include the two new files.
+	* decContextSymbols.h (DECPOWERS, DECSTICKYTAB): New.
+	* decNumberSymbols.h (LNnn, d2utable): New.
+	* dpd/decimal32Symbols.h (COMBEXP, COMBMSD, DPD2BIN, BIN2DPD): New.
+	* dpd/decimal64Symbols.h (COMBEXP, COMBMSD, DPD2BIN, BIN2DPD): New.
+	* dpd/decimal128Symbols.h (COMBEXP, COMBMSD, DPD2BIN, BIN2DPD): New.
+	* dpd/decimal32.c: Remove redefine of DPD2BIN, BIN2DPD.
+	* dpd/decimal64.c: Ditto.
+	* dpd/decimal128.c: Ditto.
+
+2007-11-26  Thiago Jung Bauermann  <bauerman@br.ibm.com>
+
+	* Makefile.in (decimal32.o): Prepend $(srcdir) to dependencies
+	and substitute $< for the source file in compilation command.
+	(decimal64.o): Likewise.
+	(decimal128.o): Likewise.
+	(bid2dpd_dpd2bid.o): Likewise.
+	(host-ieee32.o): Likewise.
+	(host-ieee64.o): Likewise.
+	(host-ieee128.o): Likewise.
+
+2007-10-31  Thiago Jung Bauermann  <bauerman@br.ibm.com>
+
+	* configure.ac: Add ADDITIONAL_OBJS variable.
+	* Makefile.in (bid_OBS): New.
+	(libdecnumber_a_OBJS): Add ADDITIONAL_OBJS, remove condition
+	on enable_decimal_float.
+	* configure: Regenerate.
+
 2007-09-10  Janis Johnson  <janis187@us.ibm.com>
 	    Ben Elliston  <bje@au.ibm.com>
 

@@ -22,15 +22,11 @@ Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
 package gnu.classpath.tools.rmic;
 
 import gnu.java.rmi.server.RMIHashes;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -46,13 +42,10 @@ import java.rmi.server.RemoteRef;
 import java.rmi.server.RemoteStub;
 import java.rmi.server.Skeleton;
 import java.rmi.server.SkeletonMismatchException;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.StringTokenizer;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -337,7 +330,7 @@ public class ClassRmicCompiler
       {
         Method m = remotemethods[i].meth;
 
-        StringBuffer desc = new StringBuffer();
+        StringBuilder desc = new StringBuilder();
         desc.append(getPrettyName(m.getReturnType()) + " ");
         desc.append(m.getName() + "(");
 
@@ -1719,7 +1712,7 @@ public class ClassRmicCompiler
 
   private static String getPrettyName(Class cls)
   {
-    StringBuffer str = new StringBuffer();
+    StringBuilder str = new StringBuilder();
     for (int count = 0;; count++)
       {
 	if (! cls.isArray())

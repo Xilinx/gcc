@@ -1,5 +1,5 @@
 /* Implementation of the DATE_AND_TIME intrinsic.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Steven Bosscher.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -7,26 +7,21 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation; either
-version 2 of the License, or (at your option) any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
+version 3 of the License, or (at your option) any later version.
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public
-License along with libgfortran; see the file COPYING.  If not,
-write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <string.h>
@@ -242,7 +237,7 @@ date_and_time (char *__date, char *__time, char *__zone,
   /* Copy the values into the arguments.  */
   if (__values)
     {
-      size_t len, delta, elt_size;
+      index_type len, delta, elt_size;
 
       elt_size = GFC_DESCRIPTOR_SIZE (__values);
       len = __values->dim[0].ubound + 1 - __values->dim[0].lbound;
@@ -384,7 +379,7 @@ void
 itime_i4 (gfc_array_i4 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   
   /* Call helper function.  */
@@ -410,7 +405,7 @@ void
 itime_i8 (gfc_array_i8 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   
   /* Call helper function.  */
@@ -466,7 +461,7 @@ void
 idate_i4 (gfc_array_i4 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   
   /* Call helper function.  */
@@ -492,7 +487,7 @@ void
 idate_i8 (gfc_array_i8 *__values)
 {
   int x[3], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   
   /* Call helper function.  */
@@ -554,7 +549,7 @@ void
 gmtime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   time_t tt;
   
@@ -581,7 +576,7 @@ void
 gmtime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   time_t tt;
   
@@ -646,7 +641,7 @@ void
 ltime_i4 (GFC_INTEGER_4 * t, gfc_array_i4 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_4 *vptr;
   time_t tt;
   
@@ -673,7 +668,7 @@ void
 ltime_i8 (GFC_INTEGER_8 * t, gfc_array_i8 * tarray)
 {
   int x[9], i;
-  size_t len, delta;
+  index_type len, delta;
   GFC_INTEGER_8 *vptr;
   time_t tt;
   

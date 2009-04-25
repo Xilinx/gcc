@@ -1,5 +1,5 @@
-/* { dg-do run { target mipsisa64*-*-* } } */
-/* { dg-mips-options "-mips64 -O2 -mpaired-single -mhard-float -mgp64" } */
+/* { dg-do run } */
+/* { dg-options "-O2 -mpaired-single" } */
 
 /* Test v2sf calculations */
 #include <stdlib.h>
@@ -117,7 +117,7 @@ v2sf cond_move4 (v2sf a, v2sf b, double i)
     return b;
 }
 
-int main()
+NOMIPS16 int main()
 {
   v2sf a, b, c, d, e, f;
   float f1, f2;

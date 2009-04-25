@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,7 +25,6 @@
 
 --  Expand routines for chapter 9 constructs
 
-with Namet; use Namet;
 with Types; use Types;
 
 package Exp_Ch9 is
@@ -36,41 +35,6 @@ package Exp_Ch9 is
       Unprotected_Mode);
    --  This type is used to distinguish the different protection modes of a
    --  protected subprogram.
-
-   procedure Add_Discriminal_Declarations
-     (Decls : List_Id;
-      Typ   : Entity_Id;
-      Name  : Name_Id;
-      Loc   : Source_Ptr);
-   --  This routine is used to add discriminal declarations to task and
-   --  protected operation bodies. The discriminants are available by normal
-   --  selection from the concurrent object (whose name is passed as the third
-   --  parameter). Discriminant references inside the body have already
-   --  been replaced by references to the corresponding discriminals. The
-   --  declarations constructed by this procedure hook the references up with
-   --  the objects:
-   --
-   --    discriminal_name : discr_type renames name.discriminant_name;
-   --
-   --  Obviously we could have expanded the discriminant references in the
-   --  first place to be the appropriate selection, but this turns out to
-   --  be hard to do because it would introduce difference in handling of
-   --  discriminant references depending on their location.
-
-   procedure Add_Private_Declarations
-     (Decls : List_Id;
-      Typ   : Entity_Id;
-      Name  : Name_Id;
-      Loc : Source_Ptr);
-   --  This routine is used to add private declarations to protected bodies.
-   --  These are analogous to the discriminal declarations added to tasks
-   --  and protected operations, and consist of a renaming of each private
-   --  object to a selection from the concurrent object passed as an extra
-   --  parameter to each such operation:
-   --    private_name : private_type renames name.private_name;
-   --  As with discriminals, private references inside the protected
-   --  subprogram bodies have already been replaced by references to the
-   --  corresponding privals.
 
    procedure Build_Activation_Chain_Entity (N : Node_Id);
    --  Given a declaration N of an object that is a task, or contains tasks
@@ -94,6 +58,11 @@ package Exp_Ch9 is
    --  build record declaration. N is the type declaration, Ctyp is the
    --  concurrent entity (task type or protected type).
 
+   function Build_Entry_Names (Conc_Typ : Entity_Id) return Node_Id;
+   --  Create the statements which populate the entry names array of a task or
+   --  protected type. The statements are wrapped inside a block due to a local
+   --  declaration.
+
    procedure Build_Master_Entity (E : Entity_Id);
    --  Given an entity E for the declaration of an object containing tasks
    --  or of a type declaration for an allocator whose designated type is a
@@ -113,12 +82,12 @@ package Exp_Ch9 is
    --  declarative part.
 
    function Build_Protected_Sub_Specification
-     (N       : Node_Id;
-      Prottyp : Entity_Id;
-      Mode    : Subprogram_Protection_Mode) return Node_Id;
-   --  Build specification for protected subprogram. This is called when
+     (N        : Node_Id;
+      Prot_Typ : Entity_Id;
+      Mode     : Subprogram_Protection_Mode) return Node_Id;
+   --  Build the specification for protected subprogram. This is called when
    --  expanding a protected type, and also when expanding the declaration for
-   --  an Access_To_Protected_Subprogram type. In the latter case, Prottyp is
+   --  an Access_To_Protected_Subprogram type. In the latter case, Prot_Typ is
    --  empty, and the first parameter of the signature of the protected op is
    --  of type System.Address.
 
@@ -184,6 +153,18 @@ package Exp_Ch9 is
    --  aggregate. It replaces the call to Init (Args) done by
    --  Build_Task_Allocate_Block.
 
+   function Build_Wrapper_Spec
+     (Loc     : Source_Ptr;
+      Subp_Id : Entity_Id;
+      Obj_Typ : Entity_Id;
+      Formals : List_Id) return Node_Id;
+   --  Ada 2005 (AI-345): Build the specification of a primitive operation
+   --  associated with a protected or task type. This is required to implement
+   --  dispatching calls through interfaces. Subp_Id is the primitive to be
+   --  wrapped, Obj_Typ is the type of the newly added formal parameter to
+   --  handle object notation, Formals are the original entry formals that
+   --  will be explicitly replicated.
+
    function Concurrent_Ref (N : Node_Id) return Node_Id;
    --  Given the name of a concurrent object (task or protected object), or
    --  the name of an access to a concurrent object, this function returns an
@@ -194,17 +175,15 @@ package Exp_Ch9 is
 
    function Convert_Concurrent
      (N    : Node_Id;
-      Typ  : Entity_Id)
-      return Node_Id;
-   --  N is an expression of type Typ. If the type is not a concurrent
-   --  type then it is returned unchanged. If it is a task or protected
-   --  reference, Convert_Concurrent creates an unchecked conversion node
-   --  from this expression to the corresponding concurrent record type
-   --  value. We need this in any situation where the concurrent type is
-   --  used, because the actual concurrent object is an object of the
-   --  corresponding concurrent type, and manipulations on the concurrent
-   --  object actually manipulate the corresponding object of the record
-   --  type.
+      Typ  : Entity_Id) return Node_Id;
+   --  N is an expression of type Typ. If the type is not a concurrent type
+   --  then it is returned unchanged. If it is a task or protected reference,
+   --  Convert_Concurrent creates an unchecked conversion node from this
+   --  expression to the corresponding concurrent record type value. We need
+   --  this in any situation where the concurrent type is used, because the
+   --  actual concurrent object is an object of the corresponding concurrent
+   --  type, and manipulations on the concurrent object actually manipulate the
+   --  corresponding object of the record type.
 
    function Entry_Index_Expression
      (Sloc  : Source_Ptr;
@@ -219,7 +198,7 @@ package Exp_Ch9 is
 
    procedure Establish_Task_Master (N : Node_Id);
    --  Given a subprogram body, or a block statement, or a task body, this
-   --  proccedure makes the necessary transformations required of a task
+   --  procedure makes the necessary transformations required of a task
    --  master (add Enter_Master call at start, and establish a cleanup
    --  routine to make sure Complete_Master is called on exit).
 
@@ -237,14 +216,10 @@ package Exp_Ch9 is
    --  Expand the entry barrier into a function. This is called directly
    --  from Analyze_Entry_Body so that the discriminals and privals of the
    --  barrier can be attached to the function declaration list, and a new
-   --  set prepared for the entry body procedure, bedore the entry body
+   --  set prepared for the entry body procedure, before the entry body
    --  statement sequence can be expanded. The resulting function is analyzed
    --  now, within the context of the protected object, to resolve calls to
    --  other protected functions.
-
-   procedure Expand_Entry_Body_Declarations (N : Node_Id);
-   --  Expand declarations required for the expansion of the
-   --  statements of the body.
 
    procedure Expand_N_Abort_Statement            (N : Node_Id);
    procedure Expand_N_Accept_Statement           (N : Node_Id);
@@ -277,11 +252,10 @@ package Exp_Ch9 is
    procedure Expand_Protected_Body_Declarations
      (N       : Node_Id;
       Spec_Id : Entity_Id);
-   --  Expand declarations required for a protected body. See bodies of
-   --  both Expand_Protected_Body_Declarations and Expand_N_Protected_Body
-   --  for full details of the nature and use of these declarations.
-   --  The second argument is the entity for the corresponding
-   --  protected type declaration.
+   --  Expand declarations required for a protected body. See bodies of both
+   --  Expand_Protected_Body_Declarations and Expand_N_Protected_Body for full
+   --  details of the nature and use of these declarations. The second argument
+   --  is the entity for the corresponding protected type declaration.
 
    function External_Subprogram (E : Entity_Id) return Entity_Id;
    --  return the external version of a protected operation, which locks
@@ -291,43 +265,79 @@ package Exp_Ch9 is
    --  Given the declarations list for a protected body, find the
    --  first protected operation body.
 
+   procedure Install_Private_Data_Declarations
+     (Loc      : Source_Ptr;
+      Spec_Id  : Entity_Id;
+      Conc_Typ : Entity_Id;
+      Body_Nod : Node_Id;
+      Decls    : List_Id;
+      Barrier  : Boolean := False;
+      Family   : Boolean := False);
+   --  This routines generates several types, objects and object renamings used
+   --  in the handling of discriminants and private components of protected and
+   --  task types. It also generates the entry index for entry families. Formal
+   --  Spec_Id denotes an entry, entry family or a subprogram, Conc_Typ is the
+   --  concurrent type where Spec_Id resides, Body_Nod is the corresponding
+   --  body of Spec_Id, Decls are the declarations of the subprogram or entry.
+   --  Flag Barrier denotes whether the context is an entry barrier function.
+   --  Flag Family is used in conjunction with Barrier to denote a barrier for
+   --  an entry family.
+   --
+   --  The generated types, entities and renamings are:
+   --
+   --  * If flag Barrier is set or Spec_Id denotes a protected entry or an
+   --    entry family, generate:
+   --
+   --      type prot_typVP is access prot_typV;
+   --      _object : prot_typVP := prot_typV (_O);
+   --
+   --    where prot_typV is the corresponding record of a protected type and
+   --    _O is a formal parameter representing the concurrent object of either
+   --    the barrier function or the entry (family).
+   --
+   --  * If Conc_Typ is a protected type, create a renaming for the Protection
+   --    field _object:
+   --
+   --      conc_typR : protection_typ renames _object._object;
+   --
+   --  * If Conc_Typ has discriminants, create renamings of the form:
+   --
+   --      discr_nameD : discr_typ renames _object.discr_name;
+   --        or
+   --      discr_nameD : discr_typ renames _task.discr_name;
+   --
+   --  * If Conc_Typ denotes a protected type and has private components,
+   --    generate renamings of the form:
+   --
+   --      comp_name : comp_typ renames _object.comp_name;
+   --
+   --  * Finally, is flag Barrier and Family are set or Spec_Id denotes an
+   --    entry family, generate the entry index constant:
+   --
+   --      subtype Jnn is <Type of Index> range Low .. High;
+   --      J : constant Jnn :=
+   --            Jnn'Val (_E - <Index expression> + Jnn'Pos (Jnn'First));
+   --
+   --  All the above declarations are inserted in the order shown to the front
+   --  of Decls.
+
    function Make_Task_Create_Call (Task_Rec : Entity_Id) return Node_Id;
    --  Given the entity of the record type created for a task type, build
    --  the call to Create_Task
 
    function Make_Initialize_Protection
-     (Protect_Rec : Entity_Id)
-      return        List_Id;
+     (Protect_Rec : Entity_Id) return List_Id;
    --  Given the entity of the record type created for a protected type, build
    --  a list of statements needed for proper initialization of the object.
 
    function Next_Protected_Operation (N : Node_Id) return Node_Id;
-   --  Given a protected operation node (a subprogram or entry body),
-   --  find the following node in the declarations list.
+   --  Given a protected operation node (a subprogram or entry body), find the
+   --  following node in the declarations list.
 
    procedure Set_Discriminals (Dec : Node_Id);
-   --  Replace discriminals in a protected type for use by the
-   --  next protected operation on the type. Each operation needs a
-   --  new set of discirminals, since it needs a unique renaming of
-   --  the discriminant fields in the record used to implement the
-   --  protected type.
-
-   procedure Set_Privals
-      (Dec           : Node_Id;
-       Op            : Node_Id;
-       Loc           : Source_Ptr;
-       After_Barrier : Boolean := False);
-   --  Associates a new set of privals (placeholders for later access to
-   --  private components of protected objects) with the private object
-   --  declarations of a protected object. These will be used to expand
-   --  the references to private objects in the next protected
-   --  subprogram or entry body to be expanded.
-   --
-   --  The flag After_Barrier indicates whether this is called after building
-   --  the barrier function for an entry body. This flag determines whether
-   --  the privals should have source names (which simplifies debugging) or
-   --  internally generated names. Entry barriers contain no debuggable code,
-   --  and there may be visibility conflicts between an entry index and a
-   --  a prival, so  privals for barrier function have internal names.
+   --  Replace discriminals in a protected type for use by the next protected
+   --  operation on the type. Each operation needs a new set of discriminals,
+   --  since it needs a unique renaming of the discriminant fields in the
+   --  record used to implement the protected type.
 
 end Exp_Ch9;

@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler.
    Matsushita MN10300 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
 This file is part of GCC.
@@ -171,6 +171,13 @@ extern enum processor_type mn10300_processor;
   , 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 \
   }
 
+/* Note: The definition of CALL_REALLY_USED_REGISTERS is not
+   redundant.  It is needed when compiling in PIC mode because
+   the a2 register becomes fixed (and hence must be marked as
+   call_used) but in order to preserve the ABI it is not marked
+   as call_really_used.  */
+#define CALL_REALLY_USED_REGISTERS CALL_USED_REGISTERS
+
 #define REG_ALLOC_ORDER \
   { 0, 1, 4, 5, 2, 3, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 8, 9 \
   , 42, 43, 44, 45, 46, 47, 48, 49, 34, 35, 36, 37, 38, 39, 40, 41 \
@@ -293,6 +300,19 @@ enum reg_class {
  { 0x03fc0000, 0 },	/* FP_ACC_REGS */	\
  { 0x3fdff, 0 }, 	/* GENERAL_REGS */	\
  { 0xffffffff, 0x3ffff } /* ALL_REGS 	*/	\
+}
+
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES                                                    \
+{                                                                            \
+  GENERAL_REGS, FP_REGS, LIM_REG_CLASSES \
 }
 
 /* The same information, inverted:
@@ -486,7 +506,7 @@ enum reg_class {
 /* We use d0/d1 for passing parameters, so allocate 8 bytes of space
    for a register flushback area.  */
 #define REG_PARM_STACK_SPACE(DECL) 8
-#define OUTGOING_REG_PARM_STACK_SPACE 1
+#define OUTGOING_REG_PARM_STACK_SPACE(FNTYPE) 1
 #define ACCUMULATE_OUTGOING_ARGS 1
 
 /* So we can allocate space for return pointers once for the function
@@ -624,10 +644,6 @@ struct cum_arg {int nbytes; };
   ((COUNT == 0)                         \
    ? gen_rtx_MEM (Pmode, arg_pointer_rtx) \
    : (rtx) 0)
-
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  mn10300_va_start (valist, nextarg)
 
 /* 1 if X is an rtx for a constant that is a valid address.  */
 
@@ -697,11 +713,6 @@ while (0)
   if ((X) != orig_x && memory_address_p (MODE, X)) \
     goto WIN; }
 
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
-
 /* Nonzero if the constant value X is a legitimate general operand.
    It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
 
@@ -729,7 +740,7 @@ while (0)
    constants.  Used for PIC-specific UNSPECs.  */
 #define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL) \
   do									\
-    if (GET_CODE (X) == UNSPEC && XVECLEN ((X), 0) == 1)	\
+    if (GET_CODE (X) == UNSPEC)						\
       {									\
 	switch (XINT ((X), 1))						\
 	  {								\
@@ -752,6 +763,12 @@ while (0)
 	  case UNSPEC_PLT:						\
 	    output_addr_const ((STREAM), XVECEXP ((X), 0, 0));		\
 	    fputs ("@PLT", (STREAM));					\
+	    break;							\
+	  case UNSPEC_GOTSYM_OFF:					\
+	    assemble_name (STREAM, GOT_SYMBOL_NAME);			\
+	    fputs ("-(", STREAM);					\
+	    output_addr_const (STREAM, XVECEXP (X, 0, 0));		\
+	    fputs ("-.)", STREAM);					\
 	    break;							\
 	  default:							\
 	    goto FAIL;							\
@@ -793,19 +810,11 @@ while (0)
    than accessing full words.  */
 #define SLOW_BYTE_ACCESS 1
 
-/* Dispatch tables on the mn10300 are extremely expensive in terms of code
-   and readonly data size.  So we crank up the case threshold value to
-   encourage a series of if/else comparisons to implement many small switch
-   statements.  In theory, this value could be increased much more if we
-   were solely optimizing for space, but we keep it "reasonable" to avoid
-   serious code efficiency lossage.  */
-#define CASE_VALUES_THRESHOLD 6
-
 #define NO_FUNCTION_CSE
 
 /* According expr.c, a value of around 6 should minimize code size, and
    for the MN10300 series, that's our primary concern.  */
-#define MOVE_RATIO 6
+#define MOVE_RATIO(speed) 6
 
 #define TEXT_SECTION_ASM_OP "\t.section .text"
 #define DATA_SECTION_ASM_OP "\t.section .data"

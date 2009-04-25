@@ -1,14 +1,14 @@
-/* { dg-do compile } */
-/* { dg-mips-options "-Os -march=mips32 -mips16" } */
+/* -mlong32 added because of PR target/38595.  */
+/* { dg-options "(-mips16) -Os isa_rev>=1 -mlong32" } */
 
-short cksum16 (unsigned long n)
+MIPS16 short cksum16 (unsigned long n)
 {
   unsigned long l;
   l = validate (n, (n >> 16) + (n & 0xffff));
   return l;
 }
 
-signed char cksum8 (unsigned long n)
+MIPS16 signed char cksum8 (unsigned long n)
 {
   unsigned long l;
   l = validate (n, (n >> 8) + (n & 0xff));

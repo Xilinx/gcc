@@ -1,6 +1,6 @@
 /* Target-independent configuration for VxWorks and VxWorks AE.   
-   Copyright (C) 2005, 2007 Free Software Foundation, Inc.
-   Contributed by by CodeSourcery, LLC.
+   Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
+   Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
 

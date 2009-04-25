@@ -546,20 +546,28 @@ public final class System
     SecurityManager sm = SecurityManager.current; // Be thread-safe.
     if (sm != null)
       sm.checkPermission(new RuntimePermission("getenv.*"));
+
     if (environmentMap == null)
       {
-	List<String> environ = (List<String>)VMSystem.environ();
 	Map<String,String> variables = new EnvironmentMap();
-	for (String pair : environ)
-	  {
-	    String[] parts = pair.split("=");
-	    if (parts.length == 2)
-	      variables.put(parts[0], parts[1]);
-	    else
-	      variables.put(parts[0], "");
-	  }
-	environmentMap = Collections.unmodifiableMap(variables);
+        List<String> environ = (List<String>)VMSystem.environ();
+        for (String envEntry : environ)
+          {
+            // avoid broken and null entries
+            if (envEntry != null && !envEntry.endsWith("="))
+              {
+                // it's perfectly legal that some entries may be in the form
+                // key=value=value=value
+                int equalSignIndex = envEntry.indexOf('=');            
+                String key = envEntry.substring(0, equalSignIndex);
+                String value = envEntry.substring(equalSignIndex + 1);
+                variables.put(key, value);
+              }
+          }
+        
+        environmentMap = Collections.unmodifiableMap(variables);
       }
+    
     return environmentMap;
   }
 
@@ -832,7 +840,7 @@ public final class System
      * Blocks the retention of all elements in the specified
      * collection from the collection.
      *
-     * @param c the collection of elements to retain.
+     * @param coll the collection of elements to retain.
      * @return true if the other elements were removed.
      * @throws NullPointerException if the collection is null.
      * @throws NullPointerException if any collection entry is null.

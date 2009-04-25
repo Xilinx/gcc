@@ -1,6 +1,4 @@
-/* { dg-mips-options "-mcode-readable=pcrel -mgp32" } */
-
-#define MIPS16 __attribute__ ((mips16))
+/* { dg-options "(-mips16) -mcode-readable=pcrel -mgp32 addressing=absolute" } */
 
 MIPS16 int
 foo (int i)

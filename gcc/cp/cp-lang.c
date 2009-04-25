@@ -1,5 +1,5 @@
 /* Language-dependent hooks for C++.
-   Copyright 2001, 2002, 2004, 2007 Free Software Foundation, Inc.
+   Copyright 2001, 2002, 2004, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Alexandre Oliva  <aoliva@redhat.com>
 
 This file is part of GCC.
@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 enum c_language_kind c_language = clk_cxx;
 static void cp_init_ts (void);
 static const char * cxx_dwarf_name (tree t, int verbosity);
+static enum classify_record cp_classify_record (tree type);
 
 /* Lang hooks common to C++ and ObjC++ are declared in cp/cp-objcp-common.h;
    consequently, there should be very few hooks below.  */
@@ -44,6 +45,8 @@ static const char * cxx_dwarf_name (tree t, int verbosity);
 #define LANG_HOOKS_NAME "GNU C++"
 #undef LANG_HOOKS_INIT
 #define LANG_HOOKS_INIT cxx_init
+#undef LANG_HOOKS_CLASSIFY_RECORD
+#define LANG_HOOKS_CLASSIFY_RECORD cp_classify_record
 #undef LANG_HOOKS_GENERIC_TYPE_P
 #define LANG_HOOKS_GENERIC_TYPE_P class_tmpl_impl_spec_p
 #undef LANG_HOOKS_DECL_PRINTABLE_NAME
@@ -57,47 +60,6 @@ static const char * cxx_dwarf_name (tree t, int verbosity);
 
 /* Each front end provides its own lang hook initializer.  */
 const struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
-
-/* Tree code classes.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) TYPE,
-
-const enum tree_code_class tree_code_type[] = {
-#include "tree.def"
-  tcc_exceptional,
-#include "c-common.def"
-  tcc_exceptional,
-#include "cp-tree.def"
-};
-#undef DEFTREECODE
-
-/* Table indexed by tree code giving number of expression
-   operands beyond the fixed part of the node structure.
-   Not used for types or decls.  */
-
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) LENGTH,
-
-const unsigned char tree_code_length[] = {
-#include "tree.def"
-  0,
-#include "c-common.def"
-  0,
-#include "cp-tree.def"
-};
-#undef DEFTREECODE
-
-/* Names of tree components.
-   Used for printing out the tree and error messages.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LEN) NAME,
-
-const char *const tree_code_name[] = {
-#include "tree.def"
-  "@@dummy",
-#include "c-common.def"
-  "@@dummy",
-#include "cp-tree.def"
-};
-#undef DEFTREECODE
 
 /* Lang hook routines common to C++ and ObjC++ appear in cp/cp-objcp-common.c;
    there should be very few routines below.  */
@@ -151,6 +113,15 @@ cxx_dwarf_name (tree t, int verbosity)
     return decl_as_string (t, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME);
 
   return cxx_printable_name (t, verbosity);
+}
+
+static enum classify_record
+cp_classify_record (tree type)
+{
+  if (CLASSTYPE_DECLARED_CLASS (type))
+    return RECORD_IS_CLASS;
+
+  return RECORD_IS_STRUCT;
 }
 
 void

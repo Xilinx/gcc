@@ -1,5 +1,5 @@
 /* NamingServicePersistent.java -- The persistent naming service.
-   Copyright (C) 2006 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GNU Classpath.
 
@@ -41,10 +41,8 @@ import gnu.CORBA.OrbFunctional;
 import gnu.CORBA.IOR;
 import gnu.CORBA.NamingService.Ext;
 import gnu.classpath.tools.common.ClasspathToolParser;
-import gnu.classpath.tools.getopt.FileArgumentCallback;
 import gnu.classpath.tools.getopt.Option;
 import gnu.classpath.tools.getopt.OptionException;
-import gnu.classpath.tools.getopt.OptionGroup;
 import gnu.classpath.tools.getopt.Parser;
 
 import org.omg.CosNaming.NamingContextExt;
@@ -181,7 +179,7 @@ public class Main
         System.out.println("GNU Classpath persistent naming service "
                            + "started at " + iorr.Internet.host + ":"
                            + iorr.Internet.port + " key 'NameService'.\n\n"
-                           + "Copyright (C) 2006 Free Software Foundation\n"
+                           + "Copyright (C) 2009 Free Software Foundation\n"
                            + "This tool comes with ABSOLUTELY NO WARRANTY. "
                            + "This is free software, and you are\nwelcome to "
                            + "redistribute it under conditions, defined in "

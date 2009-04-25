@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -24,6 +24,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "match.h"
 #include "parse.h"
+
+
+/* Macros to access allocate memory for gfc_data_variable,
+   gfc_data_value and gfc_data.  */
+#define gfc_get_data_variable() XCNEW (gfc_data_variable)
+#define gfc_get_data_value() XCNEW (gfc_data_value)
+#define gfc_get_data() XCNEW (gfc_data)
+
 
 /* This flag is set if an old-style length selector is matched
    during a type-declaration statement.  */
@@ -78,6 +86,8 @@ static enumerator_history *max_enum = NULL;
 
 gfc_symbol *gfc_new_block;
 
+bool gfc_matching_function;
+
 
 /********************* DATA statement subroutines *********************/
 
@@ -89,8 +99,8 @@ gfc_in_match_data (void)
   return in_match_data;
 }
 
-void
-gfc_set_in_match_data (bool set_value)
+static void
+set_in_match_data (bool set_value)
 {
   in_match_data = set_value;
 }
@@ -221,21 +231,26 @@ syntax:
    variable-iterator list.  */
 
 static match
-var_element (gfc_data_variable *new)
+var_element (gfc_data_variable *new_var)
 {
   match m;
   gfc_symbol *sym;
 
-  memset (new, 0, sizeof (gfc_data_variable));
+  memset (new_var, 0, sizeof (gfc_data_variable));
 
   if (gfc_match_char ('(') == MATCH_YES)
-    return var_list (new);
+    return var_list (new_var);
 
-  m = gfc_match_variable (&new->expr, 0);
+  m = gfc_match_variable (&new_var->expr, 0);
   if (m != MATCH_YES)
     return m;
 
-  sym = new->expr->symtree->n.sym;
+  sym = new_var->expr->symtree->n.sym;
+
+  /* Symbol should already have an associated type.  */
+  if (gfc_check_symbol_typed (sym, gfc_current_ns,
+			      false, gfc_current_locus) == FAILURE)
+    return MATCH_ERROR;
 
   if (!sym->attr.function && gfc_current_ns->parent
       && gfc_current_ns->parent == sym->ns)
@@ -252,7 +267,7 @@ var_element (gfc_data_variable *new)
 			 sym->name) == FAILURE)
     return MATCH_ERROR;
 
-  if (gfc_add_data (&sym->attr, sym->name, &new->expr->where) == FAILURE)
+  if (gfc_add_data (&sym->attr, sym->name, &new_var->expr->where) == FAILURE)
     return MATCH_ERROR;
 
   return MATCH_YES;
@@ -264,7 +279,7 @@ var_element (gfc_data_variable *new)
 static match
 top_var_list (gfc_data *d)
 {
-  gfc_data_variable var, *tail, *new;
+  gfc_data_variable var, *tail, *new_var;
   match m;
 
   tail = NULL;
@@ -277,15 +292,15 @@ top_var_list (gfc_data *d)
       if (m == MATCH_ERROR)
 	return MATCH_ERROR;
 
-      new = gfc_get_data_variable ();
-      *new = var;
+      new_var = gfc_get_data_variable ();
+      *new_var = var;
 
       if (tail == NULL)
-	d->var = new;
+	d->var = new_var;
       else
-	tail->next = new;
+	tail->next = new_var;
 
-      tail = new;
+      tail = new_var;
 
       if (gfc_match_char ('/') == MATCH_YES)
 	break;
@@ -357,7 +372,31 @@ match_data_constant (gfc_expr **result)
       return MATCH_ERROR;
     }
   else if (sym->attr.flavor == FL_DERIVED)
-    return gfc_match_structure_constructor (sym, result);
+    return gfc_match_structure_constructor (sym, result, false);
+
+  /* Check to see if the value is an initialization array expression.  */
+  if (sym->value->expr_type == EXPR_ARRAY)
+    {
+      gfc_current_locus = old_loc;
+
+      m = gfc_match_init_expr (result);
+      if (m == MATCH_ERROR)
+	return m;
+
+      if (m == MATCH_YES)
+	{
+	  if (gfc_simplify_expr (*result, 0) == FAILURE)
+	    m = MATCH_ERROR;
+
+	  if ((*result)->expr_type == EXPR_CONSTANT)
+	    return m;
+          else
+	    {
+	      gfc_error ("Invalid initializer %s in Data statement at %C", name);
+	      return MATCH_ERROR;
+	    }
+	}
+    }
 
   *result = gfc_copy_expr (sym->value);
   return MATCH_YES;
@@ -370,9 +409,8 @@ match_data_constant (gfc_expr **result)
 static match
 top_val_list (gfc_data *data)
 {
-  gfc_data_value *new, *tail;
+  gfc_data_value *new_val, *tail;
   gfc_expr *expr;
-  const char *msg;
   match m;
 
   tail = NULL;
@@ -385,31 +423,26 @@ top_val_list (gfc_data *data)
       if (m == MATCH_ERROR)
 	return MATCH_ERROR;
 
-      new = gfc_get_data_value ();
+      new_val = gfc_get_data_value ();
+      mpz_init (new_val->repeat);
 
       if (tail == NULL)
-	data->value = new;
+	data->value = new_val;
       else
-	tail->next = new;
+	tail->next = new_val;
 
-      tail = new;
+      tail = new_val;
 
       if (expr->ts.type != BT_INTEGER || gfc_match_char ('*') != MATCH_YES)
 	{
 	  tail->expr = expr;
-	  tail->repeat = 1;
+	  mpz_set_ui (tail->repeat, 1);
 	}
       else
 	{
-	  signed int tmp;
-	  msg = gfc_extract_int (expr, &tmp);
+	  if (expr->ts.type == BT_INTEGER)
+	    mpz_set (tail->repeat, expr->value.integer);
 	  gfc_free_expr (expr);
-	  if (msg != NULL)
-	    {
-	      gfc_error (msg);
-	      return MATCH_ERROR;
-	    }
-	  tail->repeat = tmp;
 
 	  m = match_data_constant (&tail->expr);
 	  if (m == MATCH_NO)
@@ -490,26 +523,26 @@ match_old_style_init (const char *name)
 match
 gfc_match_data (void)
 {
-  gfc_data *new;
+  gfc_data *new_data;
   match m;
 
-  gfc_set_in_match_data (true);
+  set_in_match_data (true);
 
   for (;;)
     {
-      new = gfc_get_data ();
-      new->where = gfc_current_locus;
+      new_data = gfc_get_data ();
+      new_data->where = gfc_current_locus;
 
-      m = top_var_list (new);
+      m = top_var_list (new_data);
       if (m != MATCH_YES)
 	goto cleanup;
 
-      m = top_val_list (new);
+      m = top_val_list (new_data);
       if (m != MATCH_YES)
 	goto cleanup;
 
-      new->next = gfc_current_ns->data;
-      gfc_current_ns->data = new;
+      new_data->next = gfc_current_ns->data;
+      gfc_current_ns->data = new_data;
 
       if (gfc_match_eos () == MATCH_YES)
 	break;
@@ -517,7 +550,7 @@ gfc_match_data (void)
       gfc_match_char (',');	/* Optional comma */
     }
 
-  gfc_set_in_match_data (false);
+  set_in_match_data (false);
 
   if (gfc_pure (NULL))
     {
@@ -528,8 +561,8 @@ gfc_match_data (void)
   return MATCH_YES;
 
 cleanup:
-  gfc_set_in_match_data (false);
-  gfc_free_data (new);
+  set_in_match_data (false);
+  gfc_free_data (new_data);
   return MATCH_ERROR;
 }
 
@@ -561,13 +594,44 @@ match_intent_spec (void)
 static match
 char_len_param_value (gfc_expr **expr)
 {
+  match m;
+
   if (gfc_match_char ('*') == MATCH_YES)
     {
       *expr = NULL;
       return MATCH_YES;
     }
 
-  return gfc_match_expr (expr);
+  m = gfc_match_expr (expr);
+
+  if (m == MATCH_YES
+      && gfc_expr_check_typed (*expr, gfc_current_ns, false) == FAILURE)
+    return MATCH_ERROR;
+
+  if (m == MATCH_YES && (*expr)->expr_type == EXPR_FUNCTION)
+    {
+      if ((*expr)->value.function.actual
+	  && (*expr)->value.function.actual->expr->symtree)
+	{
+	  gfc_expr *e;
+	  e = (*expr)->value.function.actual->expr;
+	  if (e->symtree->n.sym->attr.flavor == FL_PROCEDURE
+	      && e->expr_type == EXPR_VARIABLE)
+	    {
+	      if (e->symtree->n.sym->ts.type == BT_UNKNOWN)
+		goto syntax;
+	      if (e->symtree->n.sym->ts.type == BT_CHARACTER
+		  && e->symtree->n.sym->ts.cl
+		  && e->symtree->n.sym->ts.cl->length->ts.type == BT_UNKNOWN)
+	        goto syntax;
+	    }
+	}
+    }
+  return m;
+
+syntax:
+  gfc_error ("Conflict in attributes of function argument at %C");
+  return MATCH_ERROR;
 }
 
 
@@ -598,6 +662,12 @@ match_char_length (gfc_expr **expr)
     goto syntax;
 
   m = char_len_param_value (expr);
+  if (m != MATCH_YES && gfc_matching_function)
+    {
+      gfc_undo_symbols ();
+      m = MATCH_YES;
+    }
+
   if (m == MATCH_ERROR)
     return m;
   if (m == MATCH_NO)
@@ -669,7 +739,7 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
 {
   gfc_symtree *st;
   gfc_symbol *sym;
-  int rc;
+  int rc = 0;
 
   /* Module functions have to be left in their own namespace because
      they have potentially (almost certainly!) already been referenced.
@@ -684,9 +754,7 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
 
       if (*result == NULL)
 	rc = gfc_get_symbol (name, NULL, result);
-      else if (gfc_get_symbol (name, NULL, &sym) == 0
-		 && sym
-		 && sym->ts.type != BT_UNKNOWN
+      else if (!gfc_get_symbol (name, NULL, &sym) && sym
 		 && (*result)->ts.type == BT_UNKNOWN
 		 && sym->attr.flavor == FL_UNKNOWN)
 	/* Pick up the typespec for the entry, if declared in the function
@@ -695,21 +763,35 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
 	   is set to point to the module symbol and a unique symtree
 	   to the local version.  This latter ensures a correct clearing
 	   of the symbols.  */
-	  {
-	    (*result)->ts = sym->ts;
-	    gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
-	    st->n.sym = *result;
-	    st = gfc_get_unique_symtree (gfc_current_ns);
-	    st->n.sym = sym;
-	  }
+	{
+	  /* If the ENTRY proceeds its specification, we need to ensure
+	     that this does not raise a "has no IMPLICIT type" error.  */
+	  if (sym->ts.type == BT_UNKNOWN)
+	    sym->attr.untyped = 1;
+
+	  (*result)->ts = sym->ts;
+
+	  /* Put the symbol in the procedure namespace so that, should
+	     the ENTRY precede its specification, the specification
+	     can be applied.  */
+	  (*result)->ns = gfc_current_ns;
+
+	  gfc_find_sym_tree (name, gfc_current_ns, 0, &st);
+	  st->n.sym = *result;
+	  st = gfc_get_unique_symtree (gfc_current_ns);
+	  st->n.sym = sym;
+	}
     }
   else
     rc = gfc_get_symbol (name, gfc_current_ns->parent, result);
 
+  if (rc)
+    return rc;
+
   sym = *result;
   gfc_current_ns->refs++;
 
-  if (sym && !sym->new && gfc_current_state () != COMP_INTERFACE)
+  if (sym && !sym->gfc_new && gfc_current_state () != COMP_INTERFACE)
     {
       /* Trap another encompassed procedure with the same name.  All
 	 these conditions are necessary to avoid picking up an entry
@@ -795,11 +877,11 @@ get_proc_name (const char *name, gfc_symbol **result, bool module_fcn_entry)
    the compiler could have automatically handled the varying sizes
    across platforms.  */
 
-try
+gfc_try
 verify_c_interop_param (gfc_symbol *sym)
 {
   int is_c_interop = 0;
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
 
   /* We check implicitly typed variables in symbol.c:gfc_set_default_type().
      Don't repeat the checks here.  */
@@ -836,7 +918,7 @@ verify_c_interop_param (gfc_symbol *sym)
       if (sym->ns->proc_name->attr.is_bind_c == 1)
 	{
 	  is_c_interop =
-	    (verify_c_interop (&(sym->ts), sym->name, &(sym->declared_at))
+	    (verify_c_interop (&(sym->ts))
 	     == SUCCESS ? 1 : 0);
 
 	  if (is_c_interop != 1)
@@ -937,7 +1019,7 @@ verify_c_interop_param (gfc_symbol *sym)
 
 /* Function called by variable_decl() that adds a name to the symbol table.  */
 
-static try
+static gfc_try
 build_sym (const char *name, gfc_charlen *cl,
 	   gfc_array_spec **as, locus *var_locus)
 {
@@ -1012,24 +1094,27 @@ build_sym (const char *name, gfc_charlen *cl,
 
 
 /* Set character constant to the given length. The constant will be padded or
-   truncated.  */
+   truncated.  If we're inside an array constructor without a typespec, we
+   additionally check that all elements have the same length; check_len -1
+   means no checking.  */
 
 void
-gfc_set_constant_character_len (int len, gfc_expr *expr, bool array)
+gfc_set_constant_character_len (int len, gfc_expr *expr, int check_len)
 {
-  char *s;
+  gfc_char_t *s;
   int slen;
 
   gcc_assert (expr->expr_type == EXPR_CONSTANT);
-  gcc_assert (expr->ts.type == BT_CHARACTER && expr->ts.kind == 1);
+  gcc_assert (expr->ts.type == BT_CHARACTER);
 
   slen = expr->value.character.length;
   if (len != slen)
     {
-      s = gfc_getmem (len + 1);
-      memcpy (s, expr->value.character.string, MIN (len, slen));
+      s = gfc_get_wide_string (len + 1);
+      memcpy (s, expr->value.character.string,
+	      MIN (len, slen) * sizeof (gfc_char_t));
       if (len > slen)
-	memset (&s[slen], ' ', len - slen);
+	gfc_wide_memset (&s[slen], ' ', len - slen);
 
       if (gfc_option.warn_character_truncation && slen > len)
 	gfc_warning_now ("CHARACTER expression at %L is being truncated "
@@ -1037,10 +1122,11 @@ gfc_set_constant_character_len (int len, gfc_expr *expr, bool array)
 
       /* Apply the standard by 'hand' otherwise it gets cleared for
 	 initializers.  */
-      if (array && slen < len && !(gfc_option.allow_std & GFC_STD_GNU))
+      if (check_len != -1 && slen != check_len
+          && !(gfc_option.allow_std & GFC_STD_GNU))
 	gfc_error_now ("The CHARACTER elements of the array constructor "
 		       "at %L must have the same length (%d/%d)",
-			&expr->where, slen, len);
+			&expr->where, slen, check_len);
 
       s[len] = '\0';
       gfc_free (expr->value.character.string);
@@ -1064,7 +1150,7 @@ create_enum_history (gfc_symbol *sym, gfc_expr *init)
   enumerator_history *new_enum_history;
   gcc_assert (sym != NULL && init != NULL);
 
-  new_enum_history = gfc_getmem (sizeof (enumerator_history));
+  new_enum_history = XCNEW (enumerator_history);
 
   new_enum_history->sym = sym;
   new_enum_history->initializer = init;
@@ -1109,7 +1195,7 @@ gfc_free_enum_history (void)
 /* Function called by variable_decl() that adds an initialization
    expression to a symbol.  */
 
-static try
+static gfc_try
 add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 {
   symbol_attribute attr;
@@ -1129,15 +1215,6 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
       && *initp != NULL)
     {
       gfc_error ("Initializer not allowed for PARAMETER '%s' at %C",
-		 sym->name);
-      return FAILURE;
-    }
-
-  if (attr.in_common
-      && !attr.data
-      && *initp != NULL)
-    {
-      gfc_error ("Initializer not allowed for COMMON variable '%s' at %C",
 		 sym->name);
       return FAILURE;
     }
@@ -1205,7 +1282,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 	      gfc_constructor * p;
 
 	      if (init->expr_type == EXPR_CONSTANT)
-		gfc_set_constant_character_len (len, init, false);
+		gfc_set_constant_character_len (len, init, -1);
 	      else if (init->expr_type == EXPR_ARRAY)
 		{
 		  /* Build a new charlen to prevent simplification from
@@ -1216,7 +1293,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 		  init->ts.cl->length = gfc_copy_expr (sym->ts.cl->length);
 
 		  for (p = init->value.constructor; p; p = p->next)
-		    gfc_set_constant_character_len (len, p->expr, false);
+		    gfc_set_constant_character_len (len, p->expr, -1);
 		}
 	    }
 	}
@@ -1295,7 +1372,7 @@ add_init_expr_to_sym (const char *name, gfc_expr **initp, locus *var_locus)
 /* Function called by variable_decl() that adds a name to a structure
    being built.  */
 
-static try
+static gfc_try
 build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 	      gfc_array_spec **as)
 {
@@ -1326,20 +1403,67 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   c->ts = current_ts;
   c->ts.cl = cl;
-  gfc_set_component_attr (c, &current_attr);
+  c->attr = current_attr;
 
   c->initializer = *init;
   *init = NULL;
 
   c->as = *as;
   if (c->as != NULL)
-    c->dimension = 1;
+    c->attr.dimension = 1;
   *as = NULL;
 
-  /* Check array components.  */
-  if (!c->dimension)
+  /* Should this ever get more complicated, combine with similar section
+     in add_init_expr_to_sym into a separate function.  */
+  if (c->ts.type == BT_CHARACTER && !c->attr.pointer && c->initializer && c->ts.cl
+      && c->ts.cl->length && c->ts.cl->length->expr_type == EXPR_CONSTANT)
     {
-      if (c->allocatable)
+      int len;
+
+      gcc_assert (c->ts.cl && c->ts.cl->length);
+      gcc_assert (c->ts.cl->length->expr_type == EXPR_CONSTANT);
+      gcc_assert (c->ts.cl->length->ts.type == BT_INTEGER);
+
+      len = mpz_get_si (c->ts.cl->length->value.integer);
+
+      if (c->initializer->expr_type == EXPR_CONSTANT)
+	gfc_set_constant_character_len (len, c->initializer, -1);
+      else if (mpz_cmp (c->ts.cl->length->value.integer,
+			c->initializer->ts.cl->length->value.integer))
+	{
+	  bool has_ts;
+	  gfc_constructor *ctor = c->initializer->value.constructor;
+
+	  bool first = true;
+	  int first_len;
+
+	  has_ts = (c->initializer->ts.cl
+		    && c->initializer->ts.cl->length_from_typespec);
+
+	  for (; ctor; ctor = ctor->next)
+	    {
+	      /* Remember the length of the first element for checking that
+		 all elements *in the constructor* have the same length.  This
+		 need not be the length of the LHS!  */
+	      if (first)
+		{
+		  gcc_assert (ctor->expr->expr_type == EXPR_CONSTANT);
+		  gcc_assert (ctor->expr->ts.type == BT_CHARACTER);
+		  first_len = ctor->expr->value.character.length;
+		  first = false;
+		}
+
+	      if (ctor->expr->expr_type == EXPR_CONSTANT)
+		gfc_set_constant_character_len (len, ctor->expr,
+						has_ts ? -1 : first_len);
+	    }
+	}
+    }
+
+  /* Check array components.  */
+  if (!c->attr.dimension)
+    {
+      if (c->attr.allocatable)
 	{
 	  gfc_error ("Allocatable component at %C must be an array");
 	  return FAILURE;
@@ -1348,7 +1472,7 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 	return SUCCESS;
     }
 
-  if (c->pointer)
+  if (c->attr.pointer)
     {
       if (c->as->type != AS_DEFERRED)
 	{
@@ -1357,7 +1481,7 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 	  return FAILURE;
 	}
     }
-  else if (c->allocatable)
+  else if (c->attr.allocatable)
     {
       if (c->as->type != AS_DEFERRED)
 	{
@@ -1434,7 +1558,7 @@ variable_decl (int elem)
   gfc_charlen *cl;
   locus var_locus;
   match m;
-  try t;
+  gfc_try t;
   gfc_symbol *sym;
   locus old_locus;
 
@@ -1543,6 +1667,17 @@ variable_decl (int elem)
 	}
     }
 
+  /* Procedure pointer as function result.  */
+  if (gfc_current_state () == COMP_FUNCTION
+      && strcmp ("ppr@", gfc_current_block ()->name) == 0
+      && strcmp (name, gfc_current_block ()->ns->proc_name->name) == 0)
+    strcpy (name, "ppr@");
+
+  if (gfc_current_state () == COMP_FUNCTION
+      && strcmp (name, gfc_current_block ()->name) == 0
+      && gfc_current_block ()->result
+      && strcmp ("ppr@", gfc_current_block ()->result->name) == 0)
+    strcpy (name, "ppr@");
 
   /* OK, we've successfully matched the declaration.  Now put the
      symbol in the current namespace, because it might be used in the
@@ -1762,17 +1897,22 @@ gfc_match_old_kind_spec (gfc_typespec *ts)
    string is found, then we know we have an error.  */
 
 match
-gfc_match_kind_spec (gfc_typespec *ts)
+gfc_match_kind_spec (gfc_typespec *ts, bool kind_expr_only)
 {
-  locus where;
+  locus where, loc;
   gfc_expr *e;
   match m, n;
+  char c;
   const char *msg;
 
   m = MATCH_NO;
+  n = MATCH_YES;
   e = NULL;
 
-  where = gfc_current_locus;
+  where = loc = gfc_current_locus;
+
+  if (kind_expr_only)
+    goto kind_expr;
 
   if (gfc_match_char ('(') == MATCH_NO)
     return MATCH_NO;
@@ -1781,11 +1921,38 @@ gfc_match_kind_spec (gfc_typespec *ts)
   if (gfc_match (" kind = ") == MATCH_YES)
     m = MATCH_ERROR;
 
+  loc = gfc_current_locus;
+
+kind_expr:
   n = gfc_match_init_expr (&e);
-  if (n == MATCH_NO)
-    gfc_error ("Expected initialization expression at %C");
+
   if (n != MATCH_YES)
-    return MATCH_ERROR;
+    {
+      if (gfc_matching_function)
+	{
+	  /* The function kind expression might include use associated or 
+	     imported parameters and try again after the specification
+	     expressions.....  */
+	  if (gfc_match_char (')') != MATCH_YES)
+	    {
+	      gfc_error ("Missing right parenthesis at %C");
+	      m = MATCH_ERROR;
+	      goto no_match;
+	    }
+
+	  gfc_free_expr (e);
+	  gfc_undo_symbols ();
+	  return MATCH_YES;
+	}
+      else
+	{
+	  /* ....or else, the match is real.  */
+	  if (n == MATCH_NO)
+	    gfc_error ("Expected initialization expression at %C");
+	  if (n != MATCH_YES)
+	    return MATCH_ERROR;
+	}
+    }
 
   if (e->rank != 0)
     {
@@ -1795,6 +1962,7 @@ gfc_match_kind_spec (gfc_typespec *ts)
     }
 
   msg = gfc_extract_int (e, &ts->kind);
+
   if (msg != NULL)
     {
       gfc_error (msg);
@@ -1821,12 +1989,30 @@ gfc_match_kind_spec (gfc_typespec *ts)
     {
       gfc_error ("Kind %d not supported for type %s at %C", ts->kind,
 		 gfc_basic_typename (ts->type));
-      m = MATCH_ERROR;
+      gfc_current_locus = where;
+      return MATCH_ERROR;
     }
-  else if (gfc_match_char (')') != MATCH_YES)
+
+  /* Warn if, e.g., c_int is used for a REAL variable, but not
+     if, e.g., c_double is used for COMPLEX as the standard
+     explicitly says that the kind type parameter for complex and real
+     variable is the same, i.e. c_float == c_float_complex.  */
+  if (ts->f90_type != BT_UNKNOWN && ts->f90_type != ts->type
+      && !((ts->f90_type == BT_REAL && ts->type == BT_COMPLEX)
+	   || (ts->f90_type == BT_COMPLEX && ts->type == BT_REAL)))
+    gfc_error_now ("C kind type parameter is for type %s but type at %L "
+		   "is %s", gfc_basic_typename (ts->f90_type), &where,
+		   gfc_basic_typename (ts->type));
+
+  gfc_gobble_whitespace ();
+  if ((c = gfc_next_ascii_char ()) != ')'
+      && (ts->type != BT_CHARACTER || c != ','))
     {
-      gfc_error ("Missing right parenthesis at %C");
-     m = MATCH_ERROR;
+      if (ts->type == BT_CHARACTER)
+	gfc_error ("Missing right parenthesis or comma at %C");
+      else
+	gfc_error ("Missing right parenthesis at %C");
+      m = MATCH_ERROR;
     }
   else
      /* All tests passed.  */
@@ -1845,20 +2031,91 @@ no_match:
 }
 
 
+static match
+match_char_kind (int * kind, int * is_iso_c)
+{
+  locus where;
+  gfc_expr *e;
+  match m, n;
+  const char *msg;
+
+  m = MATCH_NO;
+  e = NULL;
+  where = gfc_current_locus;
+
+  n = gfc_match_init_expr (&e);
+
+  if (n != MATCH_YES && gfc_matching_function)
+    {
+      /* The expression might include use-associated or imported
+	 parameters and try again after the specification 
+	 expressions.  */
+      gfc_free_expr (e);
+      gfc_undo_symbols ();
+      return MATCH_YES;
+    }
+
+  if (n == MATCH_NO)
+    gfc_error ("Expected initialization expression at %C");
+  if (n != MATCH_YES)
+    return MATCH_ERROR;
+
+  if (e->rank != 0)
+    {
+      gfc_error ("Expected scalar initialization expression at %C");
+      m = MATCH_ERROR;
+      goto no_match;
+    }
+
+  msg = gfc_extract_int (e, kind);
+  *is_iso_c = e->ts.is_iso_c;
+  if (msg != NULL)
+    {
+      gfc_error (msg);
+      m = MATCH_ERROR;
+      goto no_match;
+    }
+
+  gfc_free_expr (e);
+
+  /* Ignore errors to this point, if we've gotten here.  This means
+     we ignore the m=MATCH_ERROR from above.  */
+  if (gfc_validate_kind (BT_CHARACTER, *kind, true) < 0)
+    {
+      gfc_error ("Kind %d is not supported for CHARACTER at %C", *kind);
+      m = MATCH_ERROR;
+    }
+  else
+     /* All tests passed.  */
+     m = MATCH_YES;
+
+  if (m == MATCH_ERROR)
+     gfc_current_locus = where;
+  
+  /* Return what we know from the test(s).  */
+  return m;
+
+no_match:
+  gfc_free_expr (e);
+  gfc_current_locus = where;
+  return m;
+}
+
 /* Match the various kind/length specifications in a CHARACTER
    declaration.  We don't return MATCH_NO.  */
 
 static match
 match_char_spec (gfc_typespec *ts)
 {
-  int kind, seen_length;
+  int kind, seen_length, is_iso_c;
   gfc_charlen *cl;
   gfc_expr *len;
   match m;
-  gfc_expr *kind_expr = NULL;
-  kind = gfc_default_character_kind;
+
   len = NULL;
   seen_length = 0;
+  kind = 0;
+  is_iso_c = 0;
 
   /* Try the old-style specification first.  */
   old_char_selector = 0;
@@ -1882,7 +2139,7 @@ match_char_spec (gfc_typespec *ts)
   /* Try the weird case:  ( KIND = <int> [ , LEN = <len-param> ] ).  */
   if (gfc_match (" kind =") == MATCH_YES)
     {
-      m = gfc_match_small_int_expr(&kind, &kind_expr);
+      m = match_char_kind (&kind, &is_iso_c);
        
       if (m == MATCH_ERROR)
 	goto done;
@@ -1918,13 +2175,8 @@ match_char_spec (gfc_typespec *ts)
       if (gfc_match (" , kind =") != MATCH_YES)
 	goto syntax;
 
-      gfc_match_small_int_expr(&kind, &kind_expr);
-
-      if (gfc_validate_kind (BT_CHARACTER, kind, true) < 0)
-	{
-	  gfc_error ("Kind %d is not a CHARACTER kind at %C", kind);
-	  return MATCH_YES;
-	}
+      if (match_char_kind (&kind, &is_iso_c) == MATCH_ERROR)
+	goto done;
 
       goto rparen;
     }
@@ -1946,7 +2198,7 @@ match_char_spec (gfc_typespec *ts)
 
   gfc_match (" kind =");	/* Gobble optional text.  */
 
-  m = gfc_match_small_int_expr(&kind, &kind_expr);
+  m = match_char_kind (&kind, &is_iso_c);
   if (m == MATCH_ERROR)
     goto done;
   if (m == MATCH_NO)
@@ -1965,23 +2217,17 @@ syntax:
   return m;
 
 done:
-  if (gfc_validate_kind (BT_CHARACTER, kind, true) < 0)
+  /* Deal with character functions after USE and IMPORT statements.  */
+  if (gfc_matching_function)
     {
-      gfc_error ("Kind %d is not a CHARACTER kind at %C", kind);
-      m = MATCH_ERROR;
-    }
-
-  if (seen_length == 1 && len != NULL
-      && len->ts.type != BT_INTEGER && len->ts.type != BT_UNKNOWN)
-    {
-      gfc_error ("Expression at %C must be of INTEGER type");
-      m = MATCH_ERROR;
+      gfc_free_expr (len);
+      gfc_undo_symbols ();
+      return MATCH_YES;
     }
 
   if (m != MATCH_YES)
     {
       gfc_free_expr (len);
-      gfc_free_expr (kind_expr);
       return m;
     }
 
@@ -1996,30 +2242,24 @@ done:
     cl->length = len;
 
   ts->cl = cl;
-  ts->kind = kind;
+  ts->kind = kind == 0 ? gfc_default_character_kind : kind;
 
   /* We have to know if it was a c interoperable kind so we can
      do accurate type checking of bind(c) procs, etc.  */
-  if (kind_expr != NULL)
-    {
-      /* Mark this as c interoperable if being declared with one
-	 of the named constants from iso_c_binding.  */
-      ts->is_c_interop = kind_expr->ts.is_iso_c;
-      gfc_free_expr (kind_expr);
-    }
+  if (kind != 0)
+    /* Mark this as c interoperable if being declared with one
+       of the named constants from iso_c_binding.  */
+    ts->is_c_interop = is_iso_c;
   else if (len != NULL)
-    {
-      /* Here, we might have parsed something such as:
-	 character(c_char)
-	 In this case, the parsing code above grabs the c_char when
-	 looking for the length (line 1690, roughly).  it's the last
-	 testcase for parsing the kind params of a character variable.
-	 However, it's not actually the length.	 this seems like it
-	 could be an error.  
-	 To see if the user used a C interop kind, test the expr
-	 of the so called length, and see if it's C interoperable.  */
-      ts->is_c_interop = len->ts.is_iso_c;
-    }
+    /* Here, we might have parsed something such as: character(c_char)
+       In this case, the parsing code above grabs the c_char when
+       looking for the length (line 1690, roughly).  it's the last
+       testcase for parsing the kind params of a character variable.
+       However, it's not actually the length.	 this seems like it
+       could be an error.  
+       To see if the user used a C interop kind, test the expr
+       of the so called length, and see if it's C interoperable.  */
+    ts->is_c_interop = len->ts.is_iso_c;
   
   return MATCH_YES;
 }
@@ -2033,15 +2273,23 @@ done:
    kind specification.  Not doing so is needed for matching an IMPLICIT
    statement correctly.  */
 
-static match
-match_type_spec (gfc_typespec *ts, int implicit_flag)
+match
+gfc_match_type_spec (gfc_typespec *ts, int implicit_flag)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
   gfc_symbol *sym;
   match m;
-  int c;
+  char c;
+  bool seen_deferred_kind;
 
+  /* A belt and braces check that the typespec is correctly being treated
+     as a deferred characteristic association.  */
+  seen_deferred_kind = (gfc_current_state () == COMP_FUNCTION)
+			  && (gfc_current_block ()->result->ts.kind == -1)
+			  && (ts->kind == -1);
   gfc_clear_ts (ts);
+  if (seen_deferred_kind)
+    ts->kind = -1;
 
   /* Clear the current binding label, in case one is given.  */
   curr_binding_label[0] = '\0';
@@ -2123,19 +2371,49 @@ match_type_spec (gfc_typespec *ts, int implicit_flag)
   if (m != MATCH_YES)
     return m;
 
-  /* Search for the name but allow the components to be defined later.  */
-  if (gfc_get_ha_symbol (name, &sym))
+  ts->type = BT_DERIVED;
+
+  /* Defer association of the derived type until the end of the
+     specification block.  However, if the derived type can be
+     found, add it to the typespec.  */  
+  if (gfc_matching_function)
+    {
+      ts->derived = NULL;
+      if (gfc_current_state () != COMP_INTERFACE
+	    && !gfc_find_symbol (name, NULL, 1, &sym) && sym)
+	ts->derived = sym;
+      return MATCH_YES;
+    }
+
+  /* Search for the name but allow the components to be defined later.  If
+     type = -1, this typespec has been seen in a function declaration but
+     the type could not be accessed at that point.  */
+  sym = NULL;
+  if (ts->kind != -1 && gfc_get_ha_symbol (name, &sym))
     {
       gfc_error ("Type name '%s' at %C is ambiguous", name);
       return MATCH_ERROR;
+    }
+  else if (ts->kind == -1)
+    {
+      int iface = gfc_state_stack->previous->state != COMP_INTERFACE
+		    || gfc_current_ns->has_import_set;
+      if (gfc_find_symbol (name, NULL, iface, &sym))
+	{       
+	  gfc_error ("Type name '%s' at %C is ambiguous", name);
+	  return MATCH_ERROR;
+	}
+
+      ts->kind = 0;
+      if (sym == NULL)
+	return MATCH_NO;
     }
 
   if (sym->attr.flavor != FL_DERIVED
       && gfc_add_flavor (&sym->attr, FL_DERIVED, sym->name, NULL) == FAILURE)
     return MATCH_ERROR;
 
-  ts->type = BT_DERIVED;
-  ts->kind = 0;
+  gfc_set_sym_referenced (sym);
   ts->derived = sym;
 
   return MATCH_YES;
@@ -2148,15 +2426,21 @@ get_kind:
 
   if (gfc_current_form == FORM_FREE)
     {
-      c = gfc_peek_char();
+      c = gfc_peek_ascii_char();
       if (!gfc_is_whitespace(c) && c != '*' && c != '('
 	  && c != ':' && c != ',')
        return MATCH_NO;
     }
 
-  m = gfc_match_kind_spec (ts);
+  m = gfc_match_kind_spec (ts, false);
   if (m == MATCH_NO && ts->type != BT_CHARACTER)
     m = gfc_match_old_kind_spec (ts);
+
+  /* Defer association of the KIND expression of function results
+     until after USE and IMPORT statements.  */
+  if ((gfc_current_state () == COMP_NONE && gfc_error_flag_test ())
+	 || gfc_matching_function)
+    return MATCH_YES;
 
   if (m == MATCH_NO)
     m = MATCH_YES;		/* No kind specifier found.  */
@@ -2182,13 +2466,14 @@ gfc_match_implicit_none (void)
 static match
 match_implicit_range (void)
 {
-  int c, c1, c2, inner;
+  char c, c1, c2;
+  int inner;
   locus cur_loc;
 
   cur_loc = gfc_current_locus;
 
   gfc_gobble_whitespace ();
-  c = gfc_next_char ();
+  c = gfc_next_ascii_char ();
   if (c != '(')
     {
       gfc_error ("Missing character range in IMPLICIT at %C");
@@ -2199,12 +2484,12 @@ match_implicit_range (void)
   while (inner)
     {
       gfc_gobble_whitespace ();
-      c1 = gfc_next_char ();
+      c1 = gfc_next_ascii_char ();
       if (!ISALPHA (c1))
 	goto bad;
 
       gfc_gobble_whitespace ();
-      c = gfc_next_char ();
+      c = gfc_next_ascii_char ();
 
       switch (c)
 	{
@@ -2217,12 +2502,12 @@ match_implicit_range (void)
 
 	case '-':
 	  gfc_gobble_whitespace ();
-	  c2 = gfc_next_char ();
+	  c2 = gfc_next_ascii_char ();
 	  if (!ISALPHA (c2))
 	    goto bad;
 
 	  gfc_gobble_whitespace ();
-	  c = gfc_next_char ();
+	  c = gfc_next_ascii_char ();
 
 	  if ((c != ',') && (c != ')'))
 	    goto bad;
@@ -2285,8 +2570,10 @@ gfc_match_implicit (void)
 {
   gfc_typespec ts;
   locus cur_loc;
-  int c;
+  char c;
   match m;
+
+  gfc_clear_ts (&ts);
 
   /* We don't allow empty implicit statements.  */
   if (gfc_match_eos () == MATCH_YES)
@@ -2301,7 +2588,7 @@ gfc_match_implicit (void)
       gfc_clear_new_implicit ();
 
       /* A basic type is mandatory here.  */
-      m = match_type_spec (&ts, 1);
+      m = gfc_match_type_spec (&ts, 1);
       if (m == MATCH_ERROR)
 	goto error;
       if (m == MATCH_NO)
@@ -2314,7 +2601,7 @@ gfc_match_implicit (void)
 	{
 	  /* We may have <TYPE> (<RANGE>).  */
 	  gfc_gobble_whitespace ();
-	  c = gfc_next_char ();
+	  c = gfc_next_ascii_char ();
 	  if ((c == '\n') || (c == ','))
 	    {
 	      /* Check for CHARACTER with no length parameter.  */
@@ -2344,7 +2631,7 @@ gfc_match_implicit (void)
 	m = match_char_spec (&ts);
       else
 	{
-	  m = gfc_match_kind_spec (&ts);
+	  m = gfc_match_kind_spec (&ts, false);
 	  if (m == MATCH_NO)
 	    {
 	      m = gfc_match_old_kind_spec (&ts);
@@ -2364,7 +2651,7 @@ gfc_match_implicit (void)
 	goto syntax;
 
       gfc_gobble_whitespace ();
-      c = gfc_next_char ();
+      c = gfc_next_ascii_char ();
       if ((c != '\n') && (c != ','))
 	goto syntax;
 
@@ -2454,7 +2741,7 @@ gfc_match_import (void)
 	      goto next_item;
 	    }
 
-	  st = gfc_new_symtree (&gfc_current_ns->sym_root, name);
+	  st = gfc_new_symtree (&gfc_current_ns->sym_root, sym->name);
 	  st->n.sym = sym;
 	  sym->refs++;
 	  sym->attr.imported = 1;
@@ -2493,7 +2780,7 @@ match_string_p (const char *target)
   const char *p;
 
   for (p = target; *p; p++)
-    if (gfc_next_char () != *p)
+    if ((char) gfc_next_ascii_char () != *p)
       return false;
   return true;
 }
@@ -2531,7 +2818,7 @@ match_attr_spec (void)
   decl_types d;
   const char *attr;
   match m;
-  try t;
+  gfc_try t;
 
   gfc_clear_attr (&current_attr);
   start = gfc_current_locus;
@@ -2545,22 +2832,22 @@ match_attr_spec (void)
 
   for (;;)
     {
-      int ch;
+      char ch;
 
       d = DECL_NONE;
       gfc_gobble_whitespace ();
 
-      ch = gfc_next_char ();
+      ch = gfc_next_ascii_char ();
       if (ch == ':')
 	{
 	  /* This is the successful exit condition for the loop.  */
-	  if (gfc_next_char () == ':')
+	  if (gfc_next_ascii_char () == ':')
 	    break;
 	}
       else if (ch == ',')
 	{
 	  gfc_gobble_whitespace ();
-	  switch (gfc_peek_char ())
+	  switch (gfc_peek_ascii_char ())
 	    {
 	    case 'a':
 	      if (match_string_p ("allocatable"))
@@ -2569,7 +2856,7 @@ match_attr_spec (void)
 
 	    case 'b':
 	      /* Try and match the bind(c).  */
-	      m = gfc_match_bind_c (NULL);
+	      m = gfc_match_bind_c (NULL, true);
 	      if (m == MATCH_YES)
 		d = DECL_IS_BIND_C;
 	      else if (m == MATCH_ERROR)
@@ -2589,7 +2876,7 @@ match_attr_spec (void)
 	    case 'i':
 	      if (match_string_p ("int"))
 		{
-		  ch = gfc_next_char ();
+		  ch = gfc_next_ascii_char ();
 		  if (ch == 'e')
 		    {
 		      if (match_string_p ("nt"))
@@ -2621,8 +2908,8 @@ match_attr_spec (void)
 	      break;
 
 	    case 'p':
-	      gfc_next_char ();
-	      switch (gfc_next_char ())
+	      gfc_next_ascii_char ();
+	      switch (gfc_next_ascii_char ())
 		{
 		case 'a':
 		  if (match_string_p ("rameter"))
@@ -2641,7 +2928,7 @@ match_attr_spec (void)
 		  break;
 
 		case 'r':
-		  ch = gfc_next_char ();
+		  ch = gfc_next_ascii_char ();
 		  if (ch == 'i')
 		    {
 		      if (match_string_p ("vate"))
@@ -2681,8 +2968,8 @@ match_attr_spec (void)
 	      break;
 
 	    case 'v':
-	      gfc_next_char ();
-	      ch = gfc_next_char ();
+	      gfc_next_ascii_char ();
+	      ch = gfc_next_ascii_char ();
 	      if (ch == 'a')
 		{
 		  if (match_string_p ("lue"))
@@ -2708,6 +2995,13 @@ match_attr_spec (void)
       if (d == DECL_NONE)
 	{
 	  m = MATCH_NO;
+	  goto cleanup;
+	}
+
+      /* Check to make sure any parens are paired up correctly.  */
+      if (gfc_match_parens () == MATCH_ERROR)
+	{
+	  m = MATCH_ERROR;
 	  goto cleanup;
 	}
 
@@ -2986,7 +3280,7 @@ cleanup:
    (J3/04-007, section 15.4.1).  If a binding label was given and
    there is more than one argument (num_idents), it is an error.  */
 
-try
+gfc_try
 set_binding_label (char *dest_label, const char *sym_name, int num_idents)
 {
   if (num_idents > 1 && has_name_equals)
@@ -2999,15 +3293,14 @@ set_binding_label (char *dest_label, const char *sym_name, int num_idents)
   if (curr_binding_label[0] != '\0')
     {
       /* Binding label given; store in temp holder til have sym.  */
-      strncpy (dest_label, curr_binding_label,
-               strlen (curr_binding_label) + 1);
+      strcpy (dest_label, curr_binding_label);
     }
   else
     {
       /* No binding label given, and the NAME= specifier did not exist,
          which means there was no NAME="".  */
       if (sym_name != NULL && has_name_equals == 0)
-        strncpy (dest_label, sym_name, strlen (sym_name) + 1);
+        strcpy (dest_label, sym_name);
     }
    
   return SUCCESS;
@@ -3027,30 +3320,9 @@ set_com_block_bind_c (gfc_common_head *com_block, int is_bind_c)
 
 /* Verify that the given gfc_typespec is for a C interoperable type.  */
 
-try
-verify_c_interop (gfc_typespec *ts, const char *name, locus *where)
+gfc_try
+verify_c_interop (gfc_typespec *ts)
 {
-  try t;
-
-  /* Make sure the kind used is appropriate for the type.
-     The f90_type is unknown if an integer constant was
-     used (e.g., real(4), bind(c) :: myFloat).  */
-  if (ts->f90_type != BT_UNKNOWN)
-    {
-      t = gfc_validate_c_kind (ts);
-      if (t != SUCCESS)
-        {
-          /* Print an error, but continue parsing line.  */
-          gfc_error_now ("C kind parameter is for type %s but "
-                         "symbol '%s' at %L is of type %s",
-                         gfc_basic_typename (ts->f90_type),
-                         name, where, 
-                         gfc_basic_typename (ts->type));
-        }
-    }
-
-  /* Make sure the kind is C interoperable.  This does not care about the
-     possible error above.  */
   if (ts->type == BT_DERIVED && ts->derived != NULL)
     return (ts->derived->ts.is_c_interop ? SUCCESS : FAILURE);
   else if (ts->is_c_interop != 1)
@@ -3065,11 +3337,11 @@ verify_c_interop (gfc_typespec *ts, const char *name, locus *where)
    interoperable type.  Errors will be reported here, if
    encountered.  */
 
-try
+gfc_try
 verify_com_block_vars_c_interop (gfc_common_head *com_block)
 {
   gfc_symbol *curr_sym = NULL;
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
 
   curr_sym = com_block->head;
   
@@ -3093,11 +3365,15 @@ verify_com_block_vars_c_interop (gfc_common_head *com_block)
 /* Verify that a given BIND(C) symbol is C interoperable.  If it is not,
    an appropriate error message is reported.  */
 
-try
+gfc_try
 verify_bind_c_sym (gfc_symbol *tmp_sym, gfc_typespec *ts,
                    int is_in_common, gfc_common_head *com_block)
 {
-  try retval = SUCCESS;
+  bool bind_c_function = false;
+  gfc_try retval = SUCCESS;
+
+  if (tmp_sym->attr.function && tmp_sym->attr.is_bind_c)
+    bind_c_function = true;
 
   if (tmp_sym->attr.function && tmp_sym->result != NULL)
     {
@@ -3114,15 +3390,14 @@ verify_bind_c_sym (gfc_symbol *tmp_sym, gfc_typespec *ts,
 	  tmp_sym->attr.is_c_interop = 1;
 	}
     }
-  
+
   /* Here, we know we have the bind(c) attribute, so if we have
      enough type info, then verify that it's a C interop kind.
      The info could be in the symbol already, or possibly still in
      the given ts (current_ts), so look in both.  */
   if (tmp_sym->ts.type != BT_UNKNOWN || ts->type != BT_UNKNOWN) 
     {
-      if (verify_c_interop (&(tmp_sym->ts), tmp_sym->name,
-                            &(tmp_sym->declared_at)) != SUCCESS)
+      if (verify_c_interop (&(tmp_sym->ts)) != SUCCESS)
 	{
 	  /* See if we're dealing with a sym in a common block or not.	*/
 	  if (is_in_common == 1)
@@ -3180,22 +3455,23 @@ verify_bind_c_sym (gfc_symbol *tmp_sym, gfc_typespec *ts,
 	      retval = FAILURE;
 	    }
 
-	  /* If it is a BIND(C) function, make sure the return value is a
-	     scalar value.  The previous tests in this function made sure
-	     the type is interoperable.  */
-	  if (tmp_sym->attr.function == 1 && tmp_sym->as != NULL)
-	    gfc_error ("Return type of BIND(C) function '%s' at %L cannot "
-		       "be an array", tmp_sym->name, &(tmp_sym->declared_at));
+        }
 
-	  /* BIND(C) functions can not return a character string.  */
-	  if (tmp_sym->attr.function == 1 && tmp_sym->ts.type == BT_CHARACTER)
-	    if (tmp_sym->ts.cl == NULL || tmp_sym->ts.cl->length == NULL
-		|| tmp_sym->ts.cl->length->expr_type != EXPR_CONSTANT
-		|| mpz_cmp_si (tmp_sym->ts.cl->length->value.integer, 1) != 0)
-	      gfc_error ("Return type of BIND(C) function '%s' at %L cannot "
+      /* If it is a BIND(C) function, make sure the return value is a
+	 scalar value.  The previous tests in this function made sure
+	 the type is interoperable.  */
+      if (bind_c_function && tmp_sym->as != NULL)
+	gfc_error ("Return type of BIND(C) function '%s' at %L cannot "
+		   "be an array", tmp_sym->name, &(tmp_sym->declared_at));
+
+      /* BIND(C) functions can not return a character string.  */
+      if (bind_c_function && tmp_sym->ts.type == BT_CHARACTER)
+	if (tmp_sym->ts.cl == NULL || tmp_sym->ts.cl->length == NULL
+	    || tmp_sym->ts.cl->length->expr_type != EXPR_CONSTANT
+	    || mpz_cmp_si (tmp_sym->ts.cl->length->value.integer, 1) != 0)
+	  gfc_error ("Return type of BIND(C) function '%s' at %L cannot "
 			 "be a character string", tmp_sym->name,
 			 &(tmp_sym->declared_at));
-	}
     }
 
   /* See if the symbol has been marked as private.  If it has, make sure
@@ -3217,10 +3493,10 @@ verify_bind_c_sym (gfc_symbol *tmp_sym, gfc_typespec *ts,
    the type is C interoperable.  Errors are reported by the functions
    used to set/test these fields.  */
 
-try
+gfc_try
 set_verify_bind_c_sym (gfc_symbol *tmp_sym, int num_idents)
 {
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
   
   /* TODO: Do we need to make sure the vars aren't marked private?  */
 
@@ -3238,10 +3514,10 @@ set_verify_bind_c_sym (gfc_symbol *tmp_sym, int num_idents)
 /* Set the fields marking the given common block as BIND(C), including
    a binding label, and report any errors encountered.  */
 
-try
+gfc_try
 set_verify_bind_c_com_block (gfc_common_head *com_block, int num_idents)
 {
-  try retval = SUCCESS;
+  gfc_try retval = SUCCESS;
   
   /* destLabel, common name, typespec (which may have binding label).  */
   if (set_binding_label (com_block->binding_label, com_block->name, num_idents)
@@ -3258,7 +3534,7 @@ set_verify_bind_c_com_block (gfc_common_head *com_block, int num_idents)
 /* Retrieve the list of one or more identifiers that the given bind(c)
    attribute applies to.  */
 
-try
+gfc_try
 get_bind_c_idents (void)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
@@ -3358,7 +3634,7 @@ gfc_match_bind_c_stmt (void)
   curr_binding_label[0] = '\0';
 
   /* Look for the bind(c).  */
-  found_match = gfc_match_bind_c (NULL);
+  found_match = gfc_match_bind_c (NULL, true);
 
   if (found_match == MATCH_YES)
     {
@@ -3390,7 +3666,7 @@ gfc_match_data_decl (void)
 
   num_idents_on_line = 0;
   
-  m = match_type_spec (&current_ts, 0);
+  m = gfc_match_type_spec (&current_ts, 0);
   if (m != MATCH_YES)
     return m;
 
@@ -3414,7 +3690,8 @@ gfc_match_data_decl (void)
       goto cleanup;
     }
 
-  if (current_ts.type == BT_DERIVED && current_ts.derived->components == NULL)
+  if (current_ts.type == BT_DERIVED && current_ts.derived->components == NULL
+      && !current_ts.derived->attr.zero_comp)
     {
 
       if (current_attr.pointer && gfc_current_state () == COMP_DERIVED)
@@ -3426,7 +3703,8 @@ gfc_match_data_decl (void)
       /* Any symbol that we find had better be a type definition
 	 which has its components defined.  */
       if (sym != NULL && sym->attr.flavor == FL_DERIVED
-	  && current_ts.derived->components != NULL)
+	  && (current_ts.derived->components != NULL
+	      || current_ts.derived->attr.zero_comp))
 	goto ok;
 
       /* Now we have an error, which we signal, and then fix up
@@ -3480,17 +3758,20 @@ cleanup:
    can be matched.  Note that if nothing matches, MATCH_YES is
    returned (the null string was matched).  */
 
-static match
-match_prefix (gfc_typespec *ts)
+match
+gfc_match_prefix (gfc_typespec *ts)
 {
-  int seen_type;
+  bool seen_type;
 
   gfc_clear_attr (&current_attr);
   seen_type = 0;
 
+  gcc_assert (!gfc_matching_prefix);
+  gfc_matching_prefix = true;
+
 loop:
   if (!seen_type && ts != NULL
-      && match_type_spec (ts, 0) == MATCH_YES
+      && gfc_match_type_spec (ts, 0) == MATCH_YES
       && gfc_match_space () == MATCH_YES)
     {
 
@@ -3501,7 +3782,7 @@ loop:
   if (gfc_match ("elemental% ") == MATCH_YES)
     {
       if (gfc_add_elemental (&current_attr, NULL) == FAILURE)
-	return MATCH_ERROR;
+	goto error;
 
       goto loop;
     }
@@ -3509,7 +3790,7 @@ loop:
   if (gfc_match ("pure% ") == MATCH_YES)
     {
       if (gfc_add_pure (&current_attr, NULL) == FAILURE)
-	return MATCH_ERROR;
+	goto error;
 
       goto loop;
     }
@@ -3517,19 +3798,26 @@ loop:
   if (gfc_match ("recursive% ") == MATCH_YES)
     {
       if (gfc_add_recursive (&current_attr, NULL) == FAILURE)
-	return MATCH_ERROR;
+	goto error;
 
       goto loop;
     }
 
   /* At this point, the next item is not a prefix.  */
+  gcc_assert (gfc_matching_prefix);
+  gfc_matching_prefix = false;
   return MATCH_YES;
+
+error:
+  gcc_assert (gfc_matching_prefix);
+  gfc_matching_prefix = false;
+  return MATCH_ERROR;
 }
 
 
-/* Copy attributes matched by match_prefix() to attributes on a symbol.  */
+/* Copy attributes matched by gfc_match_prefix() to attributes on a symbol.  */
 
-static try
+static gfc_try
 copy_prefix (symbol_attribute *dest, locus *where)
 {
   if (current_attr.pure && gfc_add_pure (dest, where) == FAILURE)
@@ -3697,8 +3985,7 @@ match_result (gfc_symbol *function, gfc_symbol **result)
   if (gfc_get_symbol (name, NULL, &r))
     return MATCH_ERROR;
 
-  if (gfc_add_flavor (&r->attr, FL_VARIABLE, r->name, NULL) == FAILURE
-      || gfc_add_result (&r->attr, r->name, NULL) == FAILURE)
+  if (gfc_add_result (&r->attr, r->name, NULL) == FAILURE)
     return MATCH_ERROR;
 
   *result = r;
@@ -3717,7 +4004,8 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
   match is_bind_c;   /* Found bind(c).  */
   match is_result;   /* Found result clause.  */
   match found_match; /* Status of whether we've found a good match.  */
-  int peek_char;     /* Character we're going to peek at.  */
+  char peek_char;    /* Character we're going to peek at.  */
+  bool allow_binding_name;
 
   /* Initialize to having found nothing.  */
   found_match = MATCH_NO;
@@ -3726,7 +4014,14 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
 
   /* Get the next char to narrow between result and bind(c).  */
   gfc_gobble_whitespace ();
-  peek_char = gfc_peek_char ();
+  peek_char = gfc_peek_ascii_char ();
+
+  /* C binding names are not allowed for internal procedures.  */
+  if (gfc_current_state () == COMP_CONTAINS
+      && sym->ns->proc_name->attr.flavor != FL_MODULE)
+    allow_binding_name = false;
+  else
+    allow_binding_name = true;
 
   switch (peek_char)
     {
@@ -3736,7 +4031,7 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
       if (is_result == MATCH_YES)
 	{
 	  /* Now see if there is a bind(c) after it.  */
-	  is_bind_c = gfc_match_bind_c (sym);
+	  is_bind_c = gfc_match_bind_c (sym, allow_binding_name);
 	  /* We've found the result clause and possibly bind(c).  */
 	  found_match = MATCH_YES;
 	}
@@ -3746,7 +4041,7 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
       break;
     case 'b':
       /* Look for bind(c) first.  */
-      is_bind_c = gfc_match_bind_c (sym);
+      is_bind_c = gfc_match_bind_c (sym, allow_binding_name);
       if (is_bind_c == MATCH_YES)
 	{
 	  /* Now see if a result clause followed it.  */
@@ -3766,11 +4061,87 @@ gfc_match_suffix (gfc_symbol *sym, gfc_symbol **result)
     }
 
   if (is_bind_c == MATCH_YES)
-    if (gfc_add_is_bind_c (&(sym->attr), sym->name, &gfc_current_locus, 1)
-        == FAILURE)
-      return MATCH_ERROR;
+    {
+      /* Fortran 2008 draft allows BIND(C) for internal procedures.  */
+      if (gfc_current_state () == COMP_CONTAINS
+	  && sym->ns->proc_name->attr.flavor != FL_MODULE
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BIND(C) attribute "
+			     "at %L may not be specified for an internal "
+			     "procedure", &gfc_current_locus)
+	     == FAILURE)
+	return MATCH_ERROR;
+
+      if (gfc_add_is_bind_c (&(sym->attr), sym->name, &gfc_current_locus, 1)
+	  == FAILURE)
+     	return MATCH_ERROR;
+    }
   
   return found_match;
+}
+
+
+/* Procedure pointer return value without RESULT statement:
+   Add "hidden" result variable named "ppr@".  */
+
+static gfc_try
+add_hidden_procptr_result (gfc_symbol *sym)
+{
+  bool case1,case2;
+
+  if (gfc_notification_std (GFC_STD_F2003) == ERROR)
+    return FAILURE;
+
+  /* First usage case: PROCEDURE and EXTERNAL statements.  */
+  case1 = gfc_current_state () == COMP_FUNCTION && gfc_current_block ()
+	  && strcmp (gfc_current_block ()->name, sym->name) == 0
+	  && sym->attr.external;
+  /* Second usage case: INTERFACE statements.  */
+  case2 = gfc_current_state () == COMP_INTERFACE && gfc_state_stack->previous
+	  && gfc_state_stack->previous->state == COMP_FUNCTION
+	  && strcmp (gfc_state_stack->previous->sym->name, sym->name) == 0;
+
+  if (case1 || case2)
+    {
+      gfc_symtree *stree;
+      if (case1)
+	gfc_get_sym_tree ("ppr@", gfc_current_ns, &stree);
+      else if (case2)
+	{
+	  gfc_symtree *st2;
+	  gfc_get_sym_tree ("ppr@", gfc_current_ns->parent, &stree);
+	  st2 = gfc_new_symtree (&gfc_current_ns->sym_root, "ppr@");
+	  st2->n.sym = stree->n.sym;
+	}
+      sym->result = stree->n.sym;
+
+      sym->result->attr.proc_pointer = sym->attr.proc_pointer;
+      sym->result->attr.pointer = sym->attr.pointer;
+      sym->result->attr.external = sym->attr.external;
+      sym->result->attr.referenced = sym->attr.referenced;
+      sym->attr.proc_pointer = 0;
+      sym->attr.pointer = 0;
+      sym->attr.external = 0;
+      if (sym->result->attr.external && sym->result->attr.pointer)
+	{
+	  sym->result->attr.pointer = 0;
+	  sym->result->attr.proc_pointer = 1;
+	}
+
+      return gfc_add_result (&sym->result->attr, sym->result->name, NULL);
+    }
+  /* POINTER after PROCEDURE/EXTERNAL/INTERFACE statement.  */
+  else if (sym->attr.function && !sym->attr.external && sym->attr.pointer
+	   && sym->result && sym->result != sym && sym->result->attr.external
+	   && sym == gfc_current_ns->proc_name
+	   && sym == sym->result->ns->proc_name
+	   && strcmp ("ppr@", sym->result->name) == 0)
+    {
+      sym->result->attr.proc_pointer = 1;
+      sym->attr.pointer = 0;
+      return SUCCESS;
+    }
+  else
+    return FAILURE;
 }
 
 
@@ -3783,6 +4154,7 @@ match_procedure_decl (void)
   locus old_loc, entry_loc;
   gfc_symbol *sym, *proc_if = NULL;
   int num;
+  gfc_expr *initializer = NULL;
 
   old_loc = entry_loc = gfc_current_locus;
 
@@ -3796,8 +4168,9 @@ match_procedure_decl (void)
 
   /* Get the type spec. for the procedure interface.  */
   old_loc = gfc_current_locus;
-  m = match_type_spec (&current_ts, 0);
-  if (m == MATCH_YES || (m == MATCH_NO && gfc_peek_char () == ')'))
+  m = gfc_match_type_spec (&current_ts, 0);
+  gfc_gobble_whitespace ();
+  if (m == MATCH_YES || (m == MATCH_NO && gfc_peek_ascii_char () == ')'))
     goto got_ts;
 
   if (m == MATCH_ERROR)
@@ -3817,6 +4190,13 @@ match_procedure_decl (void)
   /* Various interface checks.  */
   if (proc_if)
     {
+      proc_if->refs++;
+      /* Resolve interface if possible. That way, attr.procedure is only set
+	 if it is declared by a later procedure-declaration-stmt, which is
+	 invalid per C1212.  */
+      while (proc_if->ts.interface)
+	proc_if = proc_if->ts.interface;
+
       if (proc_if->generic)
 	{
 	  gfc_error ("Interface '%s' at %C may not be generic", proc_if->name);
@@ -3829,8 +4209,10 @@ match_procedure_decl (void)
 	  return MATCH_ERROR;
 	}
       /* Handle intrinsic procedures.  */
-      if (gfc_intrinsic_name (proc_if->name, 0)
-	  || gfc_intrinsic_name (proc_if->name, 1))
+      if (!(proc_if->attr.external || proc_if->attr.use_assoc
+	    || proc_if->attr.if_source == IFSRC_IFBODY)
+	  && (gfc_is_intrinsic (proc_if, 0, gfc_current_locus)
+	      || gfc_is_intrinsic (proc_if, 1, gfc_current_locus)))
 	proc_if->attr.intrinsic = 1;
       if (proc_if->attr.intrinsic
 	  && !gfc_intrinsic_actual_ok (proc_if->name, 0))
@@ -3839,19 +4221,9 @@ match_procedure_decl (void)
 		    "in PROCEDURE statement at %C", proc_if->name);
 	  return MATCH_ERROR;
 	}
-      /* TODO: Allow intrinsics with gfc_intrinsic_actual_ok
-	 (proc_if->name, 0) after PR33162 is fixed.  */
-      if (proc_if->attr.intrinsic)
-	{
-	  gfc_error ("Fortran 2003: Support for intrinsic procedure '%s' "
-		     "in PROCEDURE statement at %C not yet implemented "
-		     "in gfortran", proc_if->name);
-	  return MATCH_ERROR;
-	}
     }
 
 got_ts:
-
   if (gfc_match (" )") != MATCH_YES)
     {
       gfc_current_locus = entry_loc;
@@ -3866,7 +4238,6 @@ got_ts:
   /* Get procedure symbols.  */
   for(num=1;;num++)
     {
-
       m = gfc_match_symbol (&sym, 0);
       if (m == MATCH_NO)
 	goto syntax;
@@ -3904,22 +4275,73 @@ got_ts:
 	    return MATCH_ERROR;
 	}
 
-      if (!sym->attr.pointer && gfc_add_external (&sym->attr, NULL) == FAILURE)
+      if (gfc_add_external (&sym->attr, NULL) == FAILURE)
 	return MATCH_ERROR;
+
+      if (add_hidden_procptr_result (sym) == SUCCESS)
+	sym = sym->result;
+
       if (gfc_add_proc (&sym->attr, sym->name, NULL) == FAILURE)
 	return MATCH_ERROR;
 
       /* Set interface.  */
       if (proc_if != NULL)
-	sym->interface = proc_if;
+	{
+          if (sym->ts.type != BT_UNKNOWN)
+	    {
+	      gfc_error ("Procedure '%s' at %L already has basic type of %s",
+			 sym->name, &gfc_current_locus,
+			 gfc_basic_typename (sym->ts.type));
+	      return MATCH_ERROR;
+	    }
+	  sym->ts.interface = proc_if;
+	  sym->attr.untyped = 1;
+	  sym->attr.if_source = IFSRC_IFBODY;
+	}
       else if (current_ts.type != BT_UNKNOWN)
 	{
-	  sym->interface = gfc_new_symbol ("", gfc_current_ns);
-	  sym->interface->ts = current_ts;
-	  sym->interface->attr.function = 1;
-	  sym->ts = sym->interface->ts;
-	  sym->attr.function = sym->interface->attr.function;
+	  if (gfc_add_type (sym, &current_ts, &gfc_current_locus) == FAILURE)
+	    return MATCH_ERROR;
+	  sym->ts.interface = gfc_new_symbol ("", gfc_current_ns);
+	  sym->ts.interface->ts = current_ts;
+	  sym->ts.interface->attr.function = 1;
+	  sym->attr.function = sym->ts.interface->attr.function;
+	  sym->attr.if_source = IFSRC_UNKNOWN;
 	}
+
+      if (gfc_match (" =>") == MATCH_YES)
+	{
+	  if (!current_attr.pointer)
+	    {
+	      gfc_error ("Initialization at %C isn't for a pointer variable");
+	      m = MATCH_ERROR;
+	      goto cleanup;
+	    }
+
+	  m = gfc_match_null (&initializer);
+	  if (m == MATCH_NO)
+	    {
+	      gfc_error ("Pointer initialization requires a NULL() at %C");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (gfc_pure (NULL))
+	    {
+	      gfc_error ("Initialization of pointer at %C is not allowed in "
+			 "a PURE procedure");
+	      m = MATCH_ERROR;
+	    }
+
+	  if (m != MATCH_YES)
+	    goto cleanup;
+
+	  if (add_init_expr_to_sym (sym->name, &initializer, &gfc_current_locus)
+	      != SUCCESS)
+	    goto cleanup;
+
+	}
+
+      gfc_set_sym_referenced (sym);
 
       if (gfc_match_eos () == MATCH_YES)
 	return MATCH_YES;
@@ -3930,6 +4352,11 @@ got_ts:
 syntax:
   gfc_error ("Syntax error in PROCEDURE statement at %C");
   return MATCH_ERROR;
+
+cleanup:
+  /* Free stuff up and return.  */
+  gfc_free_expr (initializer);
+  return m;
 }
 
 
@@ -3962,8 +4389,6 @@ match_procedure_in_interface (void)
       if (gfc_add_interface (sym) == FAILURE)
 	return MATCH_ERROR;
 
-      sym->attr.procedure = 1;
-
       if (gfc_match_eos () == MATCH_YES)
 	break;
       if (gfc_match_char (',') != MATCH_YES)
@@ -3979,6 +4404,8 @@ syntax:
 
 
 /* General matcher for PROCEDURE declarations.  */
+
+static match match_procedure_in_type (void);
 
 match
 gfc_match_procedure (void)
@@ -3998,9 +4425,12 @@ gfc_match_procedure (void)
       m = match_procedure_in_interface ();
       break;
     case COMP_DERIVED:
-      gfc_error ("Fortran 2003: Procedure components at %C are "
-		"not yet implemented in gfortran");
+      gfc_error ("Fortran 2003: Procedure components at %C are not yet"
+		 " implemented in gfortran");
       return MATCH_ERROR;
+    case COMP_DERIVED_CONTAINS:
+      m = match_procedure_in_type ();
+      break;
     default:
       return MATCH_NO;
     }
@@ -4013,6 +4443,22 @@ gfc_match_procedure (void)
     return MATCH_ERROR;
 
   return m;
+}
+
+
+/* Warn if a matched procedure has the same name as an intrinsic; this is
+   simply a wrapper around gfc_warn_intrinsic_shadow that interprets the current
+   parser-state-stack to find out whether we're in a module.  */
+
+static void
+warn_intrinsic_shadow (const gfc_symbol* sym, bool func)
+{
+  bool in_module;
+
+  in_module = (gfc_state_stack->previous
+	       && gfc_state_stack->previous->state == COMP_MODULE);
+
+  gfc_warn_intrinsic_shadow (sym, in_module, func);
 }
 
 
@@ -4037,7 +4483,7 @@ gfc_match_function_decl (void)
 
   old_loc = gfc_current_locus;
 
-  m = match_prefix (&current_ts);
+  m = gfc_match_prefix (&current_ts);
   if (m != MATCH_YES)
     {
       gfc_current_locus = old_loc;
@@ -4051,6 +4497,10 @@ gfc_match_function_decl (void)
     }
   if (get_proc_name (name, &sym, false))
     return MATCH_ERROR;
+
+  if (add_hidden_procptr_result (sym) == SUCCESS)
+    sym = sym->result;
+
   gfc_new_block = sym;
 
   m = gfc_match_formal_arglist (sym, 0, 0);
@@ -4121,6 +4571,14 @@ gfc_match_function_decl (void)
 	  goto cleanup;
 	}
 
+      /* Delay matching the function characteristics until after the
+	 specification block by signalling kind=-1.  */
+      sym->declared_at = old_loc;
+      if (current_ts.type != BT_UNKNOWN)
+	current_ts.kind = -1;
+      else
+	current_ts.kind = 0;
+
       if (result == NULL)
 	{
 	  sym->ts = current_ts;
@@ -4131,6 +4589,9 @@ gfc_match_function_decl (void)
 	  result->ts = current_ts;
 	  sym->result = result;
 	}
+
+      /* Warn if this procedure has the same name as an intrinsic.  */
+      warn_intrinsic_shadow (sym, true);
 
       return MATCH_YES;
     }
@@ -4149,18 +4610,21 @@ static bool
 add_global_entry (const char *name, int sub)
 {
   gfc_gsymbol *s;
+  enum gfc_symbol_type type;
 
   s = gfc_get_gsymbol(name);
+  type = sub ? GSYM_SUBROUTINE : GSYM_FUNCTION;
 
   if (s->defined
       || (s->type != GSYM_UNKNOWN
-	  && s->type != (sub ? GSYM_SUBROUTINE : GSYM_FUNCTION)))
-    global_used(s, NULL);
+	  && s->type != type))
+    gfc_global_used(s, NULL);
   else
     {
-      s->type = sub ? GSYM_SUBROUTINE : GSYM_FUNCTION;
+      s->type = type;
       s->where = gfc_current_locus;
       s->defined = 1;
+      s->ns = gfc_current_ns;
       return true;
     }
   return false;
@@ -4181,6 +4645,8 @@ gfc_match_entry (void)
   gfc_entry_list *el;
   locus old_loc;
   bool module_procedure;
+  char peek_char;
+  match is_bind_c;
 
   m = gfc_match_name (name);
   if (m != MATCH_YES)
@@ -4258,21 +4724,57 @@ gfc_match_entry (void)
      created symbols attached to the current namespace.  */
   if (get_proc_name (name, &entry,
 		     gfc_current_ns->parent != NULL
-		     && module_procedure
-		     && gfc_current_ns->proc_name->attr.function))
+		     && module_procedure))
     return MATCH_ERROR;
 
   proc = gfc_current_block ();
 
+  /* Make sure that it isn't already declared as BIND(C).  If it is, it
+     must have been marked BIND(C) with a BIND(C) attribute and that is
+     not allowed for procedures.  */
+  if (entry->attr.is_bind_c == 1)
+    {
+      entry->attr.is_bind_c = 0;
+      if (entry->old_symbol != NULL)
+        gfc_error_now ("BIND(C) attribute at %L can only be used for "
+                       "variables or common blocks",
+                       &(entry->old_symbol->declared_at));
+      else
+        gfc_error_now ("BIND(C) attribute at %L can only be used for "
+                       "variables or common blocks", &gfc_current_locus);
+    }
+  
+  /* Check what next non-whitespace character is so we can tell if there
+     is the required parens if we have a BIND(C).  */
+  gfc_gobble_whitespace ();
+  peek_char = gfc_peek_ascii_char ();
+
   if (state == COMP_SUBROUTINE)
     {
       /* An entry in a subroutine.  */
-      if (!add_global_entry (name, 1))
+      if (!gfc_current_ns->parent && !add_global_entry (name, 1))
 	return MATCH_ERROR;
 
       m = gfc_match_formal_arglist (entry, 0, 1);
       if (m != MATCH_YES)
 	return MATCH_ERROR;
+
+      /* Call gfc_match_bind_c with allow_binding_name = true as ENTRY can
+	 never be an internal procedure.  */
+      is_bind_c = gfc_match_bind_c (entry, true);
+      if (is_bind_c == MATCH_ERROR)
+	return MATCH_ERROR;
+      if (is_bind_c == MATCH_YES)
+	{
+	  if (peek_char != '(')
+	    {
+	      gfc_error ("Missing required parentheses before BIND(C) at %C");
+	      return MATCH_ERROR;
+	    }
+	    if (gfc_add_is_bind_c (&(entry->attr), entry->name, &(entry->declared_at), 1)
+		== FAILURE)
+	      return MATCH_ERROR;
+	}
 
       if (gfc_add_entry (&entry->attr, entry->name, NULL) == FAILURE
 	  || gfc_add_subroutine (&entry->attr, entry->name, NULL) == FAILURE)
@@ -4289,7 +4791,7 @@ gfc_match_entry (void)
 	    ENTRY f() RESULT (r)
 	 can't be written as
 	    ENTRY f RESULT (r).  */
-      if (!add_global_entry (name, 0))
+      if (!gfc_current_ns->parent && !add_global_entry (name, 0))
 	return MATCH_ERROR;
 
       old_loc = gfc_current_locus;
@@ -4318,19 +4820,28 @@ gfc_match_entry (void)
 	}
       else
 	{
-	  m = match_result (proc, &result);
+	  m = gfc_match_suffix (entry, &result);
 	  if (m == MATCH_NO)
 	    gfc_syntax_error (ST_ENTRY);
 	  if (m != MATCH_YES)
 	    return MATCH_ERROR;
 
-	  if (gfc_add_result (&result->attr, result->name, NULL) == FAILURE
-	      || gfc_add_entry (&entry->attr, result->name, NULL) == FAILURE
-	      || gfc_add_function (&entry->attr, result->name, NULL)
-		 == FAILURE)
-	    return MATCH_ERROR;
-
-	  entry->result = result;
+          if (result)
+	    {
+	      if (gfc_add_result (&result->attr, result->name, NULL) == FAILURE
+		  || gfc_add_entry (&entry->attr, result->name, NULL) == FAILURE
+		  || gfc_add_function (&entry->attr, result->name, NULL)
+		  == FAILURE)
+	        return MATCH_ERROR;
+	      entry->result = result;
+	    }
+	  else
+	    {
+	      if (gfc_add_entry (&entry->attr, entry->name, NULL) == FAILURE
+		  || gfc_add_function (&entry->attr, entry->name, NULL) == FAILURE)
+		return MATCH_ERROR;
+	      entry->result = entry;
+	    }
 	}
     }
 
@@ -4370,13 +4881,14 @@ gfc_match_subroutine (void)
   match m;
   match is_bind_c;
   char peek_char;
+  bool allow_binding_name;
 
   if (gfc_current_state () != COMP_NONE
       && gfc_current_state () != COMP_INTERFACE
       && gfc_current_state () != COMP_CONTAINS)
     return MATCH_NO;
 
-  m = match_prefix (NULL);
+  m = gfc_match_prefix (NULL);
   if (m != MATCH_YES)
     return m;
 
@@ -4386,12 +4898,16 @@ gfc_match_subroutine (void)
 
   if (get_proc_name (name, &sym, false))
     return MATCH_ERROR;
+
+  if (add_hidden_procptr_result (sym) == SUCCESS)
+    sym = sym->result;
+
   gfc_new_block = sym;
 
   /* Check what next non-whitespace character is so we can tell if there
-     where the required parens if we have a BIND(C).  */
+     is the required parens if we have a BIND(C).  */
   gfc_gobble_whitespace ();
-  peek_char = gfc_peek_char ();
+  peek_char = gfc_peek_ascii_char ();
   
   if (gfc_add_subroutine (&sym->attr, sym->name, NULL) == FAILURE)
     return MATCH_ERROR;
@@ -4413,11 +4929,18 @@ gfc_match_subroutine (void)
         gfc_error_now ("BIND(C) attribute at %L can only be used for "
                        "variables or common blocks", &gfc_current_locus);
     }
-  
+
+  /* C binding names are not allowed for internal procedures.  */
+  if (gfc_current_state () == COMP_CONTAINS
+      && sym->ns->proc_name->attr.flavor != FL_MODULE)
+    allow_binding_name = false;
+  else
+    allow_binding_name = true;
+
   /* Here, we are just checking if it has the bind(c) attribute, and if
      so, then we need to make sure it's all correct.  If it doesn't,
      we still need to continue matching the rest of the subroutine line.  */
-  is_bind_c = gfc_match_bind_c (sym);
+  is_bind_c = gfc_match_bind_c (sym, allow_binding_name);
   if (is_bind_c == MATCH_ERROR)
     {
       /* There was an attempt at the bind(c), but it was wrong.	 An
@@ -4428,6 +4951,15 @@ gfc_match_subroutine (void)
 
   if (is_bind_c == MATCH_YES)
     {
+      /* The following is allowed in the Fortran 2008 draft.  */
+      if (gfc_current_state () == COMP_CONTAINS
+	  && sym->ns->proc_name->attr.flavor != FL_MODULE
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: BIND(C) attribute "
+			     "at %L may not be specified for an internal "
+			     "procedure", &gfc_current_locus)
+	     == FAILURE)
+	return MATCH_ERROR;
+
       if (peek_char != '(')
         {
           gfc_error ("Missing required parentheses before BIND(C) at %C");
@@ -4447,6 +4979,9 @@ gfc_match_subroutine (void)
   if (copy_prefix (&sym->attr, &sym->declared_at) == FAILURE)
     return MATCH_ERROR;
 
+  /* Warn if it has the same name as an intrinsic.  */
+  warn_intrinsic_shadow (sym, false);
+
   return MATCH_YES;
 }
 
@@ -4459,10 +4994,11 @@ gfc_match_subroutine (void)
    MATCH_ERROR if it is a BIND(C) clause but an error was encountered,
    or MATCH_YES if the specifier was correct and the binding label and
    bind(c) fields were set correctly for the given symbol or the
-   current_ts.  */
+   current_ts. If allow_binding_name is false, no binding name may be
+   given.  */
 
 match
-gfc_match_bind_c (gfc_symbol *sym)
+gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
 {
   /* binding label, if exists */   
   char binding_label[GFC_MAX_SYMBOL_LEN + 1];
@@ -4542,6 +5078,20 @@ gfc_match_bind_c (gfc_symbol *sym)
       return MATCH_ERROR;
     }
 
+  if (has_name_equals && !allow_binding_name)
+    {
+      gfc_error ("No binding name is allowed in BIND(C) at %C");
+      return MATCH_ERROR;
+    }
+
+  if (has_name_equals && sym != NULL && sym->attr.dummy)
+    {
+      gfc_error ("For dummy procedure %s, no binding name is "
+		 "allowed in BIND(C) at %C", sym->name);
+      return MATCH_ERROR;
+    }
+
+
   /* Save the binding label to the symbol.  If sym is null, we're
      probably matching the typespec attributes of a declaration and
      haven't gotten the name yet, and therefore, no symbol yet.	 */
@@ -4549,23 +5099,17 @@ gfc_match_bind_c (gfc_symbol *sym)
     {
       if (sym != NULL)
       {
-	strncpy (sym->binding_label, binding_label,
-		 strlen (binding_label)+1);
+	strcpy (sym->binding_label, binding_label);
       }
       else
-	strncpy (curr_binding_label, binding_label,
-		 strlen (binding_label) + 1);
+	strcpy (curr_binding_label, binding_label);
     }
-  else
+  else if (allow_binding_name)
     {
       /* No binding label, but if symbol isn't null, we
-	 can set the label for it here.	 */
-      /* TODO: If the name= was given and no binding label (name=""), we simply
-         will let fortran mangle the symbol name as it usually would.
-         However, this could still let C call it if the user looked up the
-         symbol in the object file.  Should the name set during mangling in
-         trans-decl.c be marked with characters that are invalid for C to
-         prevent this?  */
+	 can set the label for it here.
+	 If name="" or allow_binding_name is false, no C binding name is
+	 created. */
       if (sym != NULL && sym->name != NULL && has_name_equals == 0)
 	strncpy (sym->binding_label, sym->name, strlen (sym->name) + 1);
     }
@@ -4586,12 +5130,11 @@ gfc_match_bind_c (gfc_symbol *sym)
 static int
 contained_procedure (void)
 {
-  gfc_state_data *s;
+  gfc_state_data *s = gfc_state_stack;
 
-  for (s=gfc_state_stack; s; s=s->previous)
-    if ((s->state == COMP_SUBROUTINE || s->state == COMP_FUNCTION)
-	&& s->previous != NULL && s->previous->state == COMP_CONTAINS)
-      return 1;
+  if ((s->state == COMP_SUBROUTINE || s->state == COMP_FUNCTION)
+      && s->previous != NULL && s->previous->state == COMP_CONTAINS)
+    return 1;
 
   return 0;
 }
@@ -4654,7 +5197,7 @@ gfc_match_end (gfc_statement *st)
   block_name = gfc_current_block () == NULL
 	     ? NULL : gfc_current_block ()->name;
 
-  if (state == COMP_CONTAINS)
+  if (state == COMP_CONTAINS || state == COMP_DERIVED_CONTAINS)
     {
       state = gfc_state_stack->previous->state;
       block_name = gfc_state_stack->previous->sym == NULL
@@ -4701,6 +5244,7 @@ gfc_match_end (gfc_statement *st)
       break;
 
     case COMP_DERIVED:
+    case COMP_DERIVED_CONTAINS:
       *st = ST_END_TYPE;
       target = " type";
       eos_ok = 0;
@@ -4805,9 +5349,18 @@ gfc_match_end (gfc_statement *st)
   if (block_name == NULL)
     goto syntax;
 
-  if (strcmp (name, block_name) != 0)
+  if (strcmp (name, block_name) != 0 && strcmp (block_name, "ppr@") != 0)
     {
       gfc_error ("Expected label '%s' for %s statement at %C", block_name,
+		 gfc_ascii_statement (*st));
+      goto cleanup;
+    }
+  /* Procedure pointer as function result.  */
+  else if (strcmp (block_name, "ppr@") == 0
+	   && strcmp (name, gfc_current_block ()->ns->proc_name->name) != 0)
+    {
+      gfc_error ("Expected label '%s' for %s statement at %C",
+		 gfc_current_block ()->ns->proc_name->name,
 		 gfc_ascii_statement (*st));
       goto cleanup;
     }
@@ -4867,6 +5420,14 @@ attr_decl1 (void)
 	  goto cleanup;
 	}
 
+      if (current_attr.dimension && sym->value)
+	{
+	  gfc_error ("Dimensions specified for %s at %L after its "
+		     "initialisation", sym->name, &var_locus);
+	  m = MATCH_ERROR;
+	  goto cleanup;
+	}
+
       if ((current_attr.allocatable || current_attr.pointer)
 	  && (m == MATCH_YES) && (as->type != AS_DEFERRED))
 	{
@@ -4879,7 +5440,7 @@ attr_decl1 (void)
   /* Update symbol table.  DIMENSION attribute is set
      in gfc_set_array_spec().  */
   if (current_attr.dimension == 0
-      && gfc_copy_attr (&sym->attr, &current_attr, NULL) == FAILURE)
+      && gfc_copy_attr (&sym->attr, &current_attr, &var_locus) == FAILURE)
     {
       m = MATCH_ERROR;
       goto cleanup;
@@ -4912,6 +5473,8 @@ attr_decl1 (void)
       m = MATCH_ERROR;
       goto cleanup;
     }
+
+  add_hidden_procptr_result (sym);
 
   return MATCH_YES;
 
@@ -5159,7 +5722,7 @@ match
 gfc_match_pointer (void)
 {
   gfc_gobble_whitespace ();
-  if (gfc_peek_char () == '(')
+  if (gfc_peek_ascii_char () == '(')
     {
       if (!gfc_option.flag_cray_pointer)
 	{
@@ -5219,7 +5782,7 @@ access_attr_decl (gfc_statement st)
   interface_type type;
   gfc_user_op *uop;
   gfc_symbol *sym;
-  gfc_intrinsic_op operator;
+  gfc_intrinsic_op op;
   match m;
 
   if (gfc_match (" ::") == MATCH_NO && gfc_match_space () == MATCH_NO)
@@ -5227,7 +5790,7 @@ access_attr_decl (gfc_statement st)
 
   for (;;)
     {
-      m = gfc_match_generic_spec (&type, name, &operator);
+      m = gfc_match_generic_spec (&type, name, &op);
       if (m == MATCH_NO)
 	goto syntax;
       if (m == MATCH_ERROR)
@@ -5251,15 +5814,15 @@ access_attr_decl (gfc_statement st)
 	  break;
 
 	case INTERFACE_INTRINSIC_OP:
-	  if (gfc_current_ns->operator_access[operator] == ACCESS_UNKNOWN)
+	  if (gfc_current_ns->operator_access[op] == ACCESS_UNKNOWN)
 	    {
-	      gfc_current_ns->operator_access[operator] =
+	      gfc_current_ns->operator_access[op] =
 		(st == ST_PUBLIC) ? ACCESS_PUBLIC : ACCESS_PRIVATE;
 	    }
 	  else
 	    {
 	      gfc_error ("Access specification of the %s operator at %C has "
-			 "already been specified", gfc_op2string (operator));
+			 "already been specified", gfc_op2string (op));
 	      goto done;
 	    }
 
@@ -5359,7 +5922,7 @@ syntax:
 
 
 /* The PRIVATE statement is a bit weird in that it can be an attribute
-   declaration, but also works as a standlone statement inside of a
+   declaration, but also works as a standalone statement inside of a
    type declaration or a module.  */
 
 match
@@ -5370,9 +5933,12 @@ gfc_match_private (gfc_statement *st)
     return MATCH_NO;
 
   if (gfc_current_state () != COMP_MODULE
-      && (gfc_current_state () != COMP_DERIVED
-          || !gfc_state_stack->previous
-          || gfc_state_stack->previous->state != COMP_MODULE))
+      && !(gfc_current_state () == COMP_DERIVED
+	   && gfc_state_stack->previous
+	   && gfc_state_stack->previous->state == COMP_MODULE)
+      && !(gfc_current_state () == COMP_DERIVED_CONTAINS
+	   && gfc_state_stack->previous && gfc_state_stack->previous->previous
+	   && gfc_state_stack->previous->previous->state == COMP_MODULE))
     {
       gfc_error ("PRIVATE statement at %C is only allowed in the "
 		 "specification part of a module");
@@ -5469,15 +6035,39 @@ do_parm (void)
       goto cleanup;
     }
 
+  if (sym->value)
+    {
+      gfc_error ("Initializing already initialized variable at %C");
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
+
   if (sym->ts.type == BT_CHARACTER
       && sym->ts.cl != NULL
       && sym->ts.cl->length != NULL
       && sym->ts.cl->length->expr_type == EXPR_CONSTANT
       && init->expr_type == EXPR_CONSTANT
-      && init->ts.type == BT_CHARACTER
-      && init->ts.kind == 1)
+      && init->ts.type == BT_CHARACTER)
     gfc_set_constant_character_len (
-      mpz_get_si (sym->ts.cl->length->value.integer), init, false);
+      mpz_get_si (sym->ts.cl->length->value.integer), init, -1);
+  else if (sym->ts.type == BT_CHARACTER && sym->ts.cl != NULL
+	   && sym->ts.cl->length == NULL)
+	{
+	  int clen;
+	  if (init->expr_type == EXPR_CONSTANT)
+	    {
+	      clen = init->value.character.length;
+	      sym->ts.cl->length = gfc_int_expr (clen);
+	    }
+	  else if (init->expr_type == EXPR_ARRAY)
+	    {
+	      gfc_expr *p = init->value.constructor->expr;
+	      clen = p->value.character.length;
+	      sym->ts.cl->length = gfc_int_expr (clen);
+	    }
+	  else if (init->ts.cl && init->ts.cl->length)
+	    sym->ts.cl->length = gfc_copy_expr (sym->value->ts.cl->length);
+	}
 
   sym->value = init;
   return MATCH_YES;
@@ -5712,6 +6302,7 @@ gfc_match_modproc (void)
   gfc_symbol *sym;
   match m;
   gfc_namespace *module_ns;
+  gfc_interface *old_interface_head, *interface;
 
   if (gfc_state_stack->state != COMP_INTERFACE
       || gfc_state_stack->previous == NULL
@@ -5731,14 +6322,29 @@ gfc_match_modproc (void)
   if (module_ns == NULL)
     return MATCH_ERROR;
 
+  /* Store the current state of the interface. We will need it if we
+     end up with a syntax error and need to recover.  */
+  old_interface_head = gfc_current_interface_head ();
+
   for (;;)
     {
+      bool last = false;
+
       m = gfc_match_name (name);
       if (m == MATCH_NO)
 	goto syntax;
       if (m != MATCH_YES)
 	return MATCH_ERROR;
 
+      /* Check for syntax error before starting to add symbols to the
+	 current namespace.  */
+      if (gfc_match_eos () == MATCH_YES)
+	last = true;
+      if (!last && gfc_match_char (',') != MATCH_YES)
+	goto syntax;
+
+      /* Now we're sure the syntax is valid, we process this item
+	 further.  */
       if (gfc_get_symbol (name, module_ns, &sym))
 	return MATCH_ERROR;
 
@@ -5752,17 +6358,71 @@ gfc_match_modproc (void)
 
       sym->attr.mod_proc = 1;
 
-      if (gfc_match_eos () == MATCH_YES)
+      if (last)
 	break;
-      if (gfc_match_char (',') != MATCH_YES)
-	goto syntax;
     }
 
   return MATCH_YES;
 
 syntax:
+  /* Restore the previous state of the interface.  */
+  interface = gfc_current_interface_head ();
+  gfc_set_current_interface_head (old_interface_head);
+
+  /* Free the new interfaces.  */
+  while (interface != old_interface_head)
+  {
+    gfc_interface *i = interface->next;
+    gfc_free (interface);
+    interface = i;
+  }
+
+  /* And issue a syntax error.  */
   gfc_syntax_error (ST_MODULE_PROC);
   return MATCH_ERROR;
+}
+
+
+/* Check a derived type that is being extended.  */
+static gfc_symbol*
+check_extended_derived_type (char *name)
+{
+  gfc_symbol *extended;
+
+  if (gfc_find_symbol (name, gfc_current_ns, 1, &extended))
+    {
+      gfc_error ("Ambiguous symbol in TYPE definition at %C");
+      return NULL;
+    }
+
+  if (!extended)
+    {
+      gfc_error ("No such symbol in TYPE definition at %C");
+      return NULL;
+    }
+
+  if (extended->attr.flavor != FL_DERIVED)
+    {
+      gfc_error ("'%s' in EXTENDS expression at %C is not a "
+		 "derived type", name);
+      return NULL;
+    }
+
+  if (extended->attr.is_bind_c)
+    {
+      gfc_error ("'%s' cannot be extended at %C because it "
+		 "is BIND(C)", extended->name);
+      return NULL;
+    }
+
+  if (extended->attr.sequence)
+    {
+      gfc_error ("'%s' cannot be extended at %C because it "
+		 "is a SEQUENCE type", extended->name);
+      return NULL;
+    }
+
+  return extended;
 }
 
 
@@ -5773,7 +6433,7 @@ syntax:
    checking on attribute conflicts needs to be done.  */
 
 match
-gfc_get_type_attr_spec (symbol_attribute *attr)
+gfc_get_type_attr_spec (symbol_attribute *attr, char *name)
 {
   /* See if the derived type is marked as private.  */
   if (gfc_match (" , private") == MATCH_YES)
@@ -5800,7 +6460,7 @@ gfc_get_type_attr_spec (symbol_attribute *attr)
       if (gfc_add_access (attr, ACCESS_PUBLIC, NULL, NULL) == FAILURE)
 	return MATCH_ERROR;
     }
-  else if (gfc_match(" , bind ( c )") == MATCH_YES)
+  else if (gfc_match (" , bind ( c )") == MATCH_YES)
     {
       /* If the type is defined to be bind(c) it then needs to make
 	 sure that all fields are interoperable.  This will
@@ -5810,6 +6470,20 @@ gfc_get_type_attr_spec (symbol_attribute *attr)
 	return MATCH_ERROR;
 
       /* TODO: attr conflicts need to be checked, probably in symbol.c.  */
+    }
+  else if (gfc_match (" , abstract") == MATCH_YES)
+    {
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ABSTRACT type at %C")
+	    == FAILURE)
+	return MATCH_ERROR;
+
+      if (gfc_add_abstract (attr, &gfc_current_locus) == FAILURE)
+	return MATCH_ERROR;
+    }
+  else if (name && gfc_match(" , extends ( %n )", name) == MATCH_YES)
+    {
+      if (gfc_add_extension (attr, &gfc_current_locus) == FAILURE)
+	return MATCH_ERROR;
     }
   else
     return MATCH_NO;
@@ -5827,8 +6501,10 @@ match
 gfc_match_derived_decl (void)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
+  char parent[GFC_MAX_SYMBOL_LEN + 1];
   symbol_attribute attr;
   gfc_symbol *sym;
+  gfc_symbol *extended;
   match m;
   match is_type_attr_spec = MATCH_NO;
   bool seen_attr = false;
@@ -5836,16 +6512,28 @@ gfc_match_derived_decl (void)
   if (gfc_current_state () == COMP_DERIVED)
     return MATCH_NO;
 
+  name[0] = '\0';
+  parent[0] = '\0';
   gfc_clear_attr (&attr);
+  extended = NULL;
 
   do
     {
-      is_type_attr_spec = gfc_get_type_attr_spec (&attr);
+      is_type_attr_spec = gfc_get_type_attr_spec (&attr, parent);
       if (is_type_attr_spec == MATCH_ERROR)
 	return MATCH_ERROR;
       if (is_type_attr_spec == MATCH_YES)
 	seen_attr = true;
     } while (is_type_attr_spec == MATCH_YES);
+
+  /* Deal with derived type extensions.  The extension attribute has
+     been added to 'attr' but now the parent type must be found and
+     checked.  */
+  if (parent[0])
+    extended = check_extended_derived_type (parent);
+
+  if (parent[0] && !extended)
+    return MATCH_ERROR;
 
   if (gfc_match (" ::") != MATCH_YES && seen_attr)
     {
@@ -5879,12 +6567,12 @@ gfc_match_derived_decl (void)
      components.  The ways this can happen is via a function
      definition, an INTRINSIC statement or a subtype in another
      derived type that is a pointer.  The first part of the AND clause
-     is true if a the symbol is not the return value of a function.  */
+     is true if the symbol is not the return value of a function.  */
   if (sym->attr.flavor != FL_DERIVED
       && gfc_add_flavor (&sym->attr, FL_DERIVED, sym->name, NULL) == FAILURE)
     return MATCH_ERROR;
 
-  if (sym->components != NULL)
+  if (sym->components != NULL || sym->attr.zero_comp)
     {
       gfc_error ("Derived type definition of '%s' at %C has already been "
 		 "defined", sym->name);
@@ -5899,6 +6587,35 @@ gfc_match_derived_decl (void)
   if (attr.is_bind_c != 0)
     sym->attr.is_bind_c = attr.is_bind_c;
 
+  /* Construct the f2k_derived namespace if it is not yet there.  */
+  if (!sym->f2k_derived)
+    sym->f2k_derived = gfc_get_namespace (NULL, 0);
+  
+  if (extended && !sym->components)
+    {
+      gfc_component *p;
+      gfc_symtree *st;
+
+      /* Add the extended derived type as the first component.  */
+      gfc_add_component (sym, parent, &p);
+      sym->attr.extension = attr.extension;
+      extended->refs++;
+      gfc_set_sym_referenced (extended);
+
+      p->ts.type = BT_DERIVED;
+      p->ts.derived = extended;
+      p->initializer = gfc_default_initializer (&p->ts);
+
+      /* Provide the links between the extended type and its extension.  */
+      if (!extended->f2k_derived)
+	extended->f2k_derived = gfc_get_namespace (NULL, 0);
+      st = gfc_new_symtree (&extended->f2k_derived->sym_root, sym->name);
+      st->n.sym = sym;
+    }
+
+  /* Take over the ABSTRACT attribute.  */
+  sym->attr.abstract = attr.abstract;
+
   gfc_new_block = sym;
 
   return MATCH_YES;
@@ -5912,7 +6629,7 @@ gfc_match_derived_decl (void)
    is the case. Since there is no bounds-checking for Cray Pointees,
    this will be okay.  */
 
-try
+match
 gfc_mod_pointee_as (gfc_array_spec *as)
 {
   as->cray_pointee = true; /* This will be useful to know later.  */
@@ -5966,7 +6683,7 @@ enumerator_decl (void)
   gfc_symbol *sym;
   locus var_locus;
   match m;
-  try t;
+  gfc_try t;
   locus old_locus;
 
   initializer = NULL;
@@ -6049,7 +6766,7 @@ match
 gfc_match_enumerator_def (void)
 {
   match m;
-  try t;
+  gfc_try t;
 
   gfc_clear_ts (&current_ts);
 
@@ -6109,3 +6826,578 @@ cleanup:
 
 }
 
+
+/* Match binding attributes.  */
+
+static match
+match_binding_attributes (gfc_typebound_proc* ba, bool generic)
+{
+  bool found_passing = false;
+  match m;
+
+  /* Intialize to defaults.  Do so even before the MATCH_NO check so that in
+     this case the defaults are in there.  */
+  ba->access = ACCESS_UNKNOWN;
+  ba->pass_arg = NULL;
+  ba->pass_arg_num = 0;
+  ba->nopass = 0;
+  ba->non_overridable = 0;
+  ba->deferred = 0;
+
+  /* If we find a comma, we believe there are binding attributes.  */
+  if (gfc_match_char (',') == MATCH_NO)
+    {
+      ba->access = gfc_typebound_default_access;
+      return MATCH_NO;
+    }
+
+  do
+    {
+      /* Access specifier.  */
+
+      m = gfc_match (" public");
+      if (m == MATCH_ERROR)
+	goto error;
+      if (m == MATCH_YES)
+	{
+	  if (ba->access != ACCESS_UNKNOWN)
+	    {
+	      gfc_error ("Duplicate access-specifier at %C");
+	      goto error;
+	    }
+
+	  ba->access = ACCESS_PUBLIC;
+	  continue;
+	}
+
+      m = gfc_match (" private");
+      if (m == MATCH_ERROR)
+	goto error;
+      if (m == MATCH_YES)
+	{
+	  if (ba->access != ACCESS_UNKNOWN)
+	    {
+	      gfc_error ("Duplicate access-specifier at %C");
+	      goto error;
+	    }
+
+	  ba->access = ACCESS_PRIVATE;
+	  continue;
+	}
+
+      /* If inside GENERIC, the following is not allowed.  */
+      if (!generic)
+	{
+
+	  /* NOPASS flag.  */
+	  m = gfc_match (" nopass");
+	  if (m == MATCH_ERROR)
+	    goto error;
+	  if (m == MATCH_YES)
+	    {
+	      if (found_passing)
+		{
+		  gfc_error ("Binding attributes already specify passing,"
+			     " illegal NOPASS at %C");
+		  goto error;
+		}
+
+	      found_passing = true;
+	      ba->nopass = 1;
+	      continue;
+	    }
+
+	  /* NON_OVERRIDABLE flag.  */
+	  m = gfc_match (" non_overridable");
+	  if (m == MATCH_ERROR)
+	    goto error;
+	  if (m == MATCH_YES)
+	    {
+	      if (ba->non_overridable)
+		{
+		  gfc_error ("Duplicate NON_OVERRIDABLE at %C");
+		  goto error;
+		}
+
+	      ba->non_overridable = 1;
+	      continue;
+	    }
+
+	  /* DEFERRED flag.  */
+	  m = gfc_match (" deferred");
+	  if (m == MATCH_ERROR)
+	    goto error;
+	  if (m == MATCH_YES)
+	    {
+	      if (ba->deferred)
+		{
+		  gfc_error ("Duplicate DEFERRED at %C");
+		  goto error;
+		}
+
+	      ba->deferred = 1;
+	      continue;
+	    }
+
+	  /* PASS possibly including argument.  */
+	  m = gfc_match (" pass");
+	  if (m == MATCH_ERROR)
+	    goto error;
+	  if (m == MATCH_YES)
+	    {
+	      char arg[GFC_MAX_SYMBOL_LEN + 1];
+
+	      if (found_passing)
+		{
+		  gfc_error ("Binding attributes already specify passing,"
+			     " illegal PASS at %C");
+		  goto error;
+		}
+
+	      m = gfc_match (" ( %n )", arg);
+	      if (m == MATCH_ERROR)
+		goto error;
+	      if (m == MATCH_YES)
+		ba->pass_arg = xstrdup (arg);
+	      gcc_assert ((m == MATCH_YES) == (ba->pass_arg != NULL));
+
+	      found_passing = true;
+	      ba->nopass = 0;
+	      continue;
+	    }
+
+	}
+
+      /* Nothing matching found.  */
+      if (generic)
+	gfc_error ("Expected access-specifier at %C");
+      else
+	gfc_error ("Expected binding attribute at %C");
+      goto error;
+    }
+  while (gfc_match_char (',') == MATCH_YES);
+
+  /* NON_OVERRIDABLE and DEFERRED exclude themselves.  */
+  if (ba->non_overridable && ba->deferred)
+    {
+      gfc_error ("NON_OVERRIDABLE and DEFERRED can't both appear at %C");
+      goto error;
+    }
+
+  if (ba->access == ACCESS_UNKNOWN)
+    ba->access = gfc_typebound_default_access;
+
+  return MATCH_YES;
+
+error:
+  gfc_free (ba->pass_arg);
+  return MATCH_ERROR;
+}
+
+
+/* Match a PROCEDURE specific binding inside a derived type.  */
+
+static match
+match_procedure_in_type (void)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  char target_buf[GFC_MAX_SYMBOL_LEN + 1];
+  char* target = NULL;
+  gfc_typebound_proc* tb;
+  bool seen_colons;
+  bool seen_attrs;
+  match m;
+  gfc_symtree* stree;
+  gfc_namespace* ns;
+  gfc_symbol* block;
+
+  /* Check current state.  */
+  gcc_assert (gfc_state_stack->state == COMP_DERIVED_CONTAINS);
+  block = gfc_state_stack->previous->sym;
+  gcc_assert (block);
+
+  /* Try to match PROCEDURE(interface).  */
+  if (gfc_match (" (") == MATCH_YES)
+    {
+      m = gfc_match_name (target_buf);
+      if (m == MATCH_ERROR)
+	return m;
+      if (m != MATCH_YES)
+	{
+	  gfc_error ("Interface-name expected after '(' at %C");
+	  return MATCH_ERROR;
+	}
+
+      if (gfc_match (" )") != MATCH_YES)
+	{
+	  gfc_error ("')' expected at %C");
+	  return MATCH_ERROR;
+	}
+
+      target = target_buf;
+    }
+
+  /* Construct the data structure.  */
+  tb = gfc_get_typebound_proc ();
+  tb->where = gfc_current_locus;
+  tb->is_generic = 0;
+
+  /* Match binding attributes.  */
+  m = match_binding_attributes (tb, false);
+  if (m == MATCH_ERROR)
+    return m;
+  seen_attrs = (m == MATCH_YES);
+
+  /* Check that attribute DEFERRED is given iff an interface is specified, which
+     means target != NULL.  */
+  if (tb->deferred && !target)
+    {
+      gfc_error ("Interface must be specified for DEFERRED binding at %C");
+      return MATCH_ERROR;
+    }
+  if (target && !tb->deferred)
+    {
+      gfc_error ("PROCEDURE(interface) at %C should be declared DEFERRED");
+      return MATCH_ERROR;
+    }
+
+  /* Match the colons.  */
+  m = gfc_match (" ::");
+  if (m == MATCH_ERROR)
+    return m;
+  seen_colons = (m == MATCH_YES);
+  if (seen_attrs && !seen_colons)
+    {
+      gfc_error ("Expected '::' after binding-attributes at %C");
+      return MATCH_ERROR;
+    }
+
+  /* Match the binding name.  */ 
+  m = gfc_match_name (name);
+  if (m == MATCH_ERROR)
+    return m;
+  if (m == MATCH_NO)
+    {
+      gfc_error ("Expected binding name at %C");
+      return MATCH_ERROR;
+    }
+
+  /* Try to match the '=> target', if it's there.  */
+  m = gfc_match (" =>");
+  if (m == MATCH_ERROR)
+    return m;
+  if (m == MATCH_YES)
+    {
+      if (tb->deferred)
+	{
+	  gfc_error ("'=> target' is invalid for DEFERRED binding at %C");
+	  return MATCH_ERROR;
+	}
+
+      if (!seen_colons)
+	{
+	  gfc_error ("'::' needed in PROCEDURE binding with explicit target"
+		     " at %C");
+	  return MATCH_ERROR;
+	}
+
+      m = gfc_match_name (target_buf);
+      if (m == MATCH_ERROR)
+	return m;
+      if (m == MATCH_NO)
+	{
+	  gfc_error ("Expected binding target after '=>' at %C");
+	  return MATCH_ERROR;
+	}
+      target = target_buf;
+    }
+
+  /* Now we should have the end.  */
+  m = gfc_match_eos ();
+  if (m == MATCH_ERROR)
+    return m;
+  if (m == MATCH_NO)
+    {
+      gfc_error ("Junk after PROCEDURE declaration at %C");
+      return MATCH_ERROR;
+    }
+
+  /* If no target was found, it has the same name as the binding.  */
+  if (!target)
+    target = name;
+
+  /* Get the namespace to insert the symbols into.  */
+  ns = block->f2k_derived;
+  gcc_assert (ns);
+
+  /* If the binding is DEFERRED, check that the containing type is ABSTRACT.  */
+  if (tb->deferred && !block->attr.abstract)
+    {
+      gfc_error ("Type '%s' containing DEFERRED binding at %C is not ABSTRACT",
+		 block->name);
+      return MATCH_ERROR;
+    }
+
+  /* See if we already have a binding with this name in the symtree which would
+     be an error.  If a GENERIC already targetted this binding, it may be
+     already there but then typebound is still NULL.  */
+  stree = gfc_find_symtree (ns->tb_sym_root, name);
+  if (stree && stree->n.tb)
+    {
+      gfc_error ("There's already a procedure with binding name '%s' for the"
+		 " derived type '%s' at %C", name, block->name);
+      return MATCH_ERROR;
+    }
+
+  /* Insert it and set attributes.  */
+
+  if (!stree)
+    {
+      stree = gfc_new_symtree (&ns->tb_sym_root, name);
+      gcc_assert (stree);
+    }
+  stree->n.tb = tb;
+
+  if (gfc_get_sym_tree (target, gfc_current_ns, &tb->u.specific))
+    return MATCH_ERROR;
+  gfc_set_sym_referenced (tb->u.specific->n.sym);
+
+  return MATCH_YES;
+}
+
+
+/* Match a GENERIC procedure binding inside a derived type.  */
+
+match
+gfc_match_generic (void)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  gfc_symbol* block;
+  gfc_typebound_proc tbattr; /* Used for match_binding_attributes.  */
+  gfc_typebound_proc* tb;
+  gfc_symtree* st;
+  gfc_namespace* ns;
+  match m;
+
+  /* Check current state.  */
+  if (gfc_current_state () == COMP_DERIVED)
+    {
+      gfc_error ("GENERIC at %C must be inside a derived-type CONTAINS");
+      return MATCH_ERROR;
+    }
+  if (gfc_current_state () != COMP_DERIVED_CONTAINS)
+    return MATCH_NO;
+  block = gfc_state_stack->previous->sym;
+  ns = block->f2k_derived;
+  gcc_assert (block && ns);
+
+  /* See if we get an access-specifier.  */
+  m = match_binding_attributes (&tbattr, true);
+  if (m == MATCH_ERROR)
+    goto error;
+
+  /* Now the colons, those are required.  */
+  if (gfc_match (" ::") != MATCH_YES)
+    {
+      gfc_error ("Expected '::' at %C");
+      goto error;
+    }
+
+  /* The binding name and =>.  */
+  m = gfc_match (" %n =>", name);
+  if (m == MATCH_ERROR)
+    return MATCH_ERROR;
+  if (m == MATCH_NO)
+    {
+      gfc_error ("Expected generic name at %C");
+      goto error;
+    }
+
+  /* If there's already something with this name, check that it is another
+     GENERIC and then extend that rather than build a new node.  */
+  st = gfc_find_symtree (ns->tb_sym_root, name);
+  if (st)
+    {
+      gcc_assert (st->n.tb);
+      tb = st->n.tb;
+
+      if (!tb->is_generic)
+	{
+	  gfc_error ("There's already a non-generic procedure with binding name"
+		     " '%s' for the derived type '%s' at %C",
+		     name, block->name);
+	  goto error;
+	}
+
+      if (tb->access != tbattr.access)
+	{
+	  gfc_error ("Binding at %C must have the same access as already"
+		     " defined binding '%s'", name);
+	  goto error;
+	}
+    }
+  else
+    {
+      st = gfc_new_symtree (&ns->tb_sym_root, name);
+      gcc_assert (st);
+
+      st->n.tb = tb = gfc_get_typebound_proc ();
+      tb->where = gfc_current_locus;
+      tb->access = tbattr.access;
+      tb->is_generic = 1;
+      tb->u.generic = NULL;
+    }
+
+  /* Now, match all following names as specific targets.  */
+  do
+    {
+      gfc_symtree* target_st;
+      gfc_tbp_generic* target;
+
+      m = gfc_match_name (name);
+      if (m == MATCH_ERROR)
+	goto error;
+      if (m == MATCH_NO)
+	{
+	  gfc_error ("Expected specific binding name at %C");
+	  goto error;
+	}
+
+      target_st = gfc_get_tbp_symtree (&ns->tb_sym_root, name);
+
+      /* See if this is a duplicate specification.  */
+      for (target = tb->u.generic; target; target = target->next)
+	if (target_st == target->specific_st)
+	  {
+	    gfc_error ("'%s' already defined as specific binding for the"
+		       " generic '%s' at %C", name, st->name);
+	    goto error;
+	  }
+
+      target = gfc_get_tbp_generic ();
+      target->specific_st = target_st;
+      target->specific = NULL;
+      target->next = tb->u.generic;
+      tb->u.generic = target;
+    }
+  while (gfc_match (" ,") == MATCH_YES);
+
+  /* Here should be the end.  */
+  if (gfc_match_eos () != MATCH_YES)
+    {
+      gfc_error ("Junk after GENERIC binding at %C");
+      goto error;
+    }
+
+  return MATCH_YES;
+
+error:
+  return MATCH_ERROR;
+}
+
+
+/* Match a FINAL declaration inside a derived type.  */
+
+match
+gfc_match_final_decl (void)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  gfc_symbol* sym;
+  match m;
+  gfc_namespace* module_ns;
+  bool first, last;
+  gfc_symbol* block;
+
+  if (gfc_state_stack->state != COMP_DERIVED_CONTAINS)
+    {
+      gfc_error ("FINAL declaration at %C must be inside a derived type "
+		 "CONTAINS section");
+      return MATCH_ERROR;
+    }
+
+  block = gfc_state_stack->previous->sym;
+  gcc_assert (block);
+
+  if (!gfc_state_stack->previous || !gfc_state_stack->previous->previous
+      || gfc_state_stack->previous->previous->state != COMP_MODULE)
+    {
+      gfc_error ("Derived type declaration with FINAL at %C must be in the"
+		 " specification part of a MODULE");
+      return MATCH_ERROR;
+    }
+
+  module_ns = gfc_current_ns;
+  gcc_assert (module_ns);
+  gcc_assert (module_ns->proc_name->attr.flavor == FL_MODULE);
+
+  /* Match optional ::, don't care about MATCH_YES or MATCH_NO.  */
+  if (gfc_match (" ::") == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  /* Match the sequence of procedure names.  */
+  first = true;
+  last = false;
+  do
+    {
+      gfc_finalizer* f;
+
+      if (first && gfc_match_eos () == MATCH_YES)
+	{
+	  gfc_error ("Empty FINAL at %C");
+	  return MATCH_ERROR;
+	}
+
+      m = gfc_match_name (name);
+      if (m == MATCH_NO)
+	{
+	  gfc_error ("Expected module procedure name at %C");
+	  return MATCH_ERROR;
+	}
+      else if (m != MATCH_YES)
+	return MATCH_ERROR;
+
+      if (gfc_match_eos () == MATCH_YES)
+	last = true;
+      if (!last && gfc_match_char (',') != MATCH_YES)
+	{
+	  gfc_error ("Expected ',' at %C");
+	  return MATCH_ERROR;
+	}
+
+      if (gfc_get_symbol (name, module_ns, &sym))
+	{
+	  gfc_error ("Unknown procedure name \"%s\" at %C", name);
+	  return MATCH_ERROR;
+	}
+
+      /* Mark the symbol as module procedure.  */
+      if (sym->attr.proc != PROC_MODULE
+	  && gfc_add_procedure (&sym->attr, PROC_MODULE,
+				sym->name, NULL) == FAILURE)
+	return MATCH_ERROR;
+
+      /* Check if we already have this symbol in the list, this is an error.  */
+      for (f = block->f2k_derived->finalizers; f; f = f->next)
+	if (f->proc_sym == sym)
+	  {
+	    gfc_error ("'%s' at %C is already defined as FINAL procedure!",
+		       name);
+	    return MATCH_ERROR;
+	  }
+
+      /* Add this symbol to the list of finalizers.  */
+      gcc_assert (block->f2k_derived);
+      ++sym->refs;
+      f = XCNEW (gfc_finalizer);
+      f->proc_sym = sym;
+      f->proc_tree = NULL;
+      f->where = gfc_current_locus;
+      f->next = block->f2k_derived->finalizers;
+      block->f2k_derived->finalizers = f;
+
+      first = false;
+    }
+  while (!last);
+
+  return MATCH_YES;
+}

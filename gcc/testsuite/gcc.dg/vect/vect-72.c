@@ -7,16 +7,20 @@
 
 /* unaligned load.  */
 
+char ia[N];
+char ib[N+1];
+
 __attribute__ ((noinline))
 int main1 ()
 {
   int i;
-  char ia[N];
-  char ib[N+1];
 
   for (i=0; i < N+1; i++)
     {
       ib[i] = i;
+      /* Avoid vectorization.  */
+      if (i%3 == 0)
+        ib[i] = 5;
     }
 
   for (i = 1; i < N+1; i++)

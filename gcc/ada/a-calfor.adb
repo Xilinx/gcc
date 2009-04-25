@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2006-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2006-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the Free Software Foundation,  59 Temple Place - Suite 330,  Boston, --
--- MA 02111-1307, USA.                                                      --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -45,7 +43,7 @@ package body Ada.Calendar.Formatting is
 
    procedure Check_Char (S : String; C : Character; Index : Integer);
    --  Subsidiary to the two versions of Value. Determine whether the
-   --  input strint S has character C at position Index. Raise
+   --  input string S has character C at position Index. Raise
    --  Constraint_Error if there is a mismatch.
 
    procedure Check_Digit (S : String; Index : Integer);
@@ -93,6 +91,8 @@ package body Ada.Calendar.Formatting is
       Ss : Second_Duration;
       Le : Boolean;
 
+      pragma Unreferenced (Y, Mo, H, Mi);
+
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le, Time_Zone);
       return D;
@@ -123,6 +123,8 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Y, Mo, D, Mi);
 
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le, Time_Zone);
@@ -168,7 +170,12 @@ package body Ada.Calendar.Formatting is
 
       --  Prevent rounding when converting to natural
 
-      Sub_Second := Sub_Second * 100.0 - 0.5;
+      Sub_Second := Sub_Second * 100.0;
+
+      if Sub_Second > 0.0 then
+         Sub_Second := Sub_Second - 0.5;
+      end if;
+
       SS_Nat := Natural (Sub_Second);
 
       declare
@@ -247,7 +254,12 @@ package body Ada.Calendar.Formatting is
 
       --  Prevent rounding when converting to natural
 
-      Sub_Second := Sub_Second * 100.0 - 0.5;
+      Sub_Second := Sub_Second * 100.0;
+
+      if Sub_Second > 0.0 then
+         Sub_Second := Sub_Second - 0.5;
+      end if;
+
       SS_Nat := Natural (Sub_Second);
 
       declare
@@ -345,6 +357,9 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Y, Mo, D, H);
+
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le, Time_Zone);
       return Mi;
@@ -366,6 +381,9 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Y, D, H, Mi);
+
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le, Time_Zone);
       return Mo;
@@ -384,6 +402,9 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Y, Mo, D, H, Mi);
+
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le);
       return Se;
@@ -413,7 +434,7 @@ package body Ada.Calendar.Formatting is
       return Day_Duration (Hour   * 3_600) +
              Day_Duration (Minute *    60) +
              Day_Duration (Second)         +
-                           Sub_Second;
+             Sub_Second;
    end Seconds_Of;
 
    -----------
@@ -613,6 +634,9 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Y, Mo, D, H, Mi);
+
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le);
       return Ss;
@@ -922,6 +946,8 @@ package body Ada.Calendar.Formatting is
       Se : Second_Number;
       Ss : Second_Duration;
       Le : Boolean;
+
+      pragma Unreferenced (Mo, D, H, Mi);
 
    begin
       Split (Date, Y, Mo, D, H, Mi, Se, Ss, Le, Time_Zone);

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                       Copyright (C) 2007, AdaCore                        --
+--                     Copyright (C) 2007-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -51,22 +51,23 @@ package body Host_Error_Messages is
       use Interfaces.C.Strings;
       function TCP
         (P : char_array_access; Nul_Check : Boolean := False) return chars_ptr
-        renames To_Chars_Ptr;
+         renames To_Chars_Ptr;
+
    begin
       case H_Errno is
-         when Constants.HOST_NOT_FOUND =>
+         when SOSC.HOST_NOT_FOUND =>
             return TCP (Messages.HOST_NOT_FOUND'Access);
 
-         when Constants.TRY_AGAIN      =>
+         when SOSC.TRY_AGAIN      =>
             return TCP (Messages.TRY_AGAIN'Access);
 
-         when Constants.NO_RECOVERY    =>
+         when SOSC.NO_RECOVERY    =>
             return TCP (Messages.NO_RECOVERY'Access);
 
-         when Constants.NO_DATA        =>
+         when SOSC.NO_DATA        =>
             return TCP (Messages.NO_DATA'Access);
 
-         when others                   =>
+         when others              =>
             return TCP (Messages.Unknown_Error'Access);
 
       end case;

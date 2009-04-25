@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,7 +35,8 @@ package Prj.Part is
       Project_File_Name      : String;
       Always_Errout_Finalize : Boolean;
       Packages_To_Check      : String_List_Access := All_Packages;
-      Store_Comments         : Boolean := False);
+      Store_Comments         : Boolean := False;
+      Current_Directory      : String := "");
    --  Parse project file and all its imported project files and create a tree.
    --  Return the node for the project (or Empty_Node if parsing failed). If
    --  Always_Errout_Finalize is True, Errout.Finalize is called in all cases,
@@ -44,28 +45,8 @@ package Prj.Part is
    --  where any unknown attribute produces an error. For other packages, an
    --  unknown attribute produces a warning. When Store_Comments is True,
    --  comments are stored in the parse tree.
-
-   type Extension_Origin is (None, Extending_Simple, Extending_All);
-   --  Type of parameter From_Extended for procedures Parse_Single_Project and
-   --  Post_Parse_Context_Clause. Extending_All means that we are parsing the
-   --  tree rooted at an extending all project.
-
-   procedure Parse_Single_Project
-     (In_Tree           : Project_Node_Tree_Ref;
-      Project           : out Project_Node_Id;
-      Extends_All       : out Boolean;
-      Path_Name         : String;
-      Extended          : Boolean;
-      From_Extended     : Extension_Origin;
-      In_Limited        : Boolean;
-      Packages_To_Check : String_List_Access;
-      Depth             : Natural);
-   --  Parse a project file.
-   --  Recursive procedure: it calls itself for imported and extended
-   --  projects. When From_Extended is not None, if the project has already
-   --  been parsed and is an extended project A, return the ultimate
-   --  (not extended) project that extends A. When In_Limited is True,
-   --  the importing path includes at least one "limited with".
-   --  When parsing configuration projects, do not allow a depth > 1.
+   --
+   --  Current_Directory is used for optimization purposes only, avoiding extra
+   --  system calls.
 
 end Prj.Part;

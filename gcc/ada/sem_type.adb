@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,10 +35,12 @@ with Namet;    use Namet;
 with Opt;      use Opt;
 with Output;   use Output;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Disp; use Sem_Disp;
+with Sem_Dist; use Sem_Dist;
 with Sem_Util; use Sem_Util;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
@@ -55,12 +57,12 @@ package body Sem_Type is
    --  The following data structures establish a mapping between nodes and
    --  their interpretations. An overloaded node has an entry in Interp_Map,
    --  which in turn contains a pointer into the All_Interp array. The
-   --  interpretations of a given node are contiguous in All_Interp. Each
-   --  set of interpretations is terminated with the marker No_Interp.
-   --  In order to speed up the retrieval of the interpretations of an
-   --  overloaded node, the Interp_Map table is accessed by means of a simple
-   --  hashing scheme, and the entries in Interp_Map are chained. The heads
-   --  of clash lists are stored in array Headers.
+   --  interpretations of a given node are contiguous in All_Interp. Each set
+   --  of interpretations is terminated with the marker No_Interp. In order to
+   --  speed up the retrieval of the interpretations of an overloaded node, the
+   --  Interp_Map table is accessed by means of a simple hashing scheme, and
+   --  the entries in Interp_Map are chained. The heads of clash lists are
+   --  stored in array Headers.
 
    --              Headers        Interp_Map          All_Interp
 
@@ -130,16 +132,15 @@ package body Sem_Type is
    -- Operator Overloading --
    --------------------------
 
-   --  The visibility of operators is handled differently from that of
-   --  other entities. We do not introduce explicit versions of primitive
-   --  operators for each type definition. As a result, there is only one
-   --  entity corresponding to predefined addition on all numeric types, etc.
-   --  The back-end resolves predefined operators according to their type.
-   --  The visibility of primitive operations then reduces to the visibility
-   --  of the resulting type:  (a + b) is a legal interpretation of some
-   --  primitive operator + if the type of the result (which must also be
-   --  the type of a and b) is directly visible (i.e. either immediately
-   --  visible or use-visible.)
+   --  The visibility of operators is handled differently from that of other
+   --  entities. We do not introduce explicit versions of primitive operators
+   --  for each type definition. As a result, there is only one entity
+   --  corresponding to predefined addition on all numeric types, etc. The
+   --  back-end resolves predefined operators according to their type. The
+   --  visibility of primitive operations then reduces to the visibility of the
+   --  resulting type: (a + b) is a legal interpretation of some primitive
+   --  operator + if the type of the result (which must also be the type of a
+   --  and b) is directly visible (either immediately visible or use-visible).
 
    --  User-defined operators are treated like other functions, but the
    --  visibility of these user-defined operations must be special-cased
@@ -310,8 +311,7 @@ package body Sem_Type is
          end loop;
 
          All_Interp.Table (All_Interp.Last) := (Name, Typ, Abstr_Op);
-         All_Interp.Increment_Last;
-         All_Interp.Table (All_Interp.Last) := No_Interp;
+         All_Interp.Append (No_Interp);
       end Add_Entry;
 
       ----------------------------
@@ -403,10 +403,9 @@ package body Sem_Type is
             return;
          end if;
 
-      --  In an instance, an abstract non-dispatching operation cannot
-      --  be a candidate interpretation, because it could not have been
-      --  one in the generic (it may be a spurious overloading in the
-      --  instance).
+      --  In an instance, an abstract non-dispatching operation cannot be a
+      --  candidate interpretation, because it could not have been one in the
+      --  generic (it may be a spurious overloading in the instance).
 
       elsif In_Instance
         and then Is_Overloadable (E)
@@ -415,28 +414,34 @@ package body Sem_Type is
       then
          return;
 
-      --  An inherited interface operation that is implemented by some
-      --  derived type does not participate in overload resolution, only
-      --  the implementation operation does.
+      --  An inherited interface operation that is implemented by some derived
+      --  type does not participate in overload resolution, only the
+      --  implementation operation does.
 
       elsif Is_Hidden (E)
         and then Is_Subprogram (E)
-        and then Present (Abstract_Interface_Alias (E))
+        and then Present (Interface_Alias (E))
       then
          --  Ada 2005 (AI-251): If this primitive operation corresponds with
-         --  an inmediate ancestor interface there is no need to add it to the
-         --  list of interpretations; the corresponding aliased primitive is
+         --  an immediate ancestor interface there is no need to add it to the
+         --  list of interpretations. The corresponding aliased primitive is
          --  also in this list of primitive operations and will be used instead
-         --  because otherwise we have a dummy between the two subprograms that
-         --  are in fact the same.
+         --  because otherwise we have a dummy ambiguity between the two
+         --  subprograms which are in fact the same.
 
          if not Is_Ancestor
-                  (Find_Dispatching_Type (Abstract_Interface_Alias (E)),
+                  (Find_Dispatching_Type (Interface_Alias (E)),
                    Find_Dispatching_Type (E))
          then
-            Add_One_Interp (N, Abstract_Interface_Alias (E), T);
+            Add_One_Interp (N, Interface_Alias (E), T);
          end if;
 
+         return;
+
+      --  Calling stubs for an RACW operation never participate in resolution,
+      --  they are executed only through dispatching calls.
+
+      elsif Is_RACW_Stub_Type_Operation (E) then
          return;
       end if;
 
@@ -494,16 +499,19 @@ package body Sem_Type is
            and then Is_Overloaded (Name (N))
          then
             declare
-               I  : Interp_Index;
                It : Interp;
+
+               Itn : Interp_Index;
+               pragma Warnings (Off, Itn);
+
             begin
-               Get_First_Interp (Name (N), I, It);
+               Get_First_Interp (Name (N), Itn, It);
                Add_Entry (It.Nam, Etype (N));
             end;
 
          else
-            --  Overloaded prefix in indexed or selected component,
-            --  or call whose name is an expression or another call.
+            --  Overloaded prefix in indexed or selected component, or call
+            --  whose name is an expression or another call.
 
             Add_Entry (Etype (N), Etype (N));
          end if;
@@ -527,6 +535,7 @@ package body Sem_Type is
             Write_Entity_Info (All_Interp.Table (J). Nam, " ");
          else
             Write_Str ("No Interp");
+            Write_Eol;
          end if;
 
          Write_Str ("=================");
@@ -623,8 +632,7 @@ package body Sem_Type is
                      then
                         All_Interp.Table (All_Interp.Last) :=
                           (H, Etype (H), Empty);
-                        All_Interp.Increment_Last;
-                        All_Interp.Table (All_Interp.Last) := No_Interp;
+                        All_Interp.Append (No_Interp);
                         goto Next_Homograph;
 
                      elsif Scope (H) /= Standard_Standard then
@@ -638,7 +646,7 @@ package body Sem_Type is
                Add_One_Interp (N, H, Etype (H));
 
                if Debug_Flag_E then
-                  Write_Str ("Add overloaded Interpretation ");
+                  Write_Str ("Add overloaded interpretation ");
                   Write_Int (Int (H));
                   Write_Eol;
                end if;
@@ -677,9 +685,15 @@ package body Sem_Type is
 
       if All_Interp.Last = First_Interp + 1 then
 
-         --  The original interpretation is in fact not overloaded
+         --  The final interpretation is in fact not overloaded. Note that the
+         --  unique legal interpretation may or may not be the original one,
+         --  so we need to update N's entity and etype now, because once N
+         --  is marked as not overloaded it is also expected to carry the
+         --  proper interpretation.
 
          Set_Is_Overloaded (N, False);
+         Set_Entity (N, All_Interp.Table (First_Interp).Nam);
+         Set_Etype  (N, All_Interp.Table (First_Interp).Typ);
       end if;
    end Collect_Interps;
 
@@ -730,6 +744,18 @@ package body Sem_Type is
       else
          BT1 := Base_Type (T1);
          BT2 := Base_Type (T2);
+
+         --  Handle underlying view of records with unknown discriminants
+         --  using the original entity that motivated the construction of
+         --  this underlying record view (see Build_Derived_Private_Type).
+
+         if Is_Underlying_Record_View (BT1) then
+            BT1 := Underlying_Record_View (BT1);
+         end if;
+
+         if Is_Underlying_Record_View (BT2) then
+            BT2 := Underlying_Record_View (BT2);
+         end if;
       end if;
 
       --  Simplest case: same types are compatible, and types that have the
@@ -750,7 +776,7 @@ package body Sem_Type is
       if T1 = T2 then
          return True;
 
-      elsif  BT1 = BT2
+      elsif BT1 = BT2
         or else BT1 = T2
         or else BT2 = T1
       then
@@ -767,7 +793,7 @@ package body Sem_Type is
 
       --  Literals are compatible with types in  a given "class"
 
-      elsif (T2 = Universal_Integer and then Is_Integer_Type (T1))
+      elsif     (T2 = Universal_Integer and then Is_Integer_Type (T1))
         or else (T2 = Universal_Real    and then Is_Real_Type (T1))
         or else (T2 = Universal_Fixed   and then Is_Fixed_Point_Type (T1))
         or else (T2 = Any_Fixed         and then Is_Fixed_Point_Type (T1))
@@ -833,9 +859,9 @@ package body Sem_Type is
             --  Note: test for presence of E is defense against previous error.
 
             if Present (E)
-              and then Present (Abstract_Interfaces (E))
+              and then Present (Interfaces (E))
             then
-               Elmt := First_Elmt (Abstract_Interfaces (E));
+               Elmt := First_Elmt (Interfaces (E));
                while Present (Elmt) loop
                   if Is_Ancestor (Etype (T1), Node (Elmt)) then
                      return True;
@@ -928,7 +954,7 @@ package body Sem_Type is
 
       --  The context can be a remote access type, and the expression the
       --  corresponding source type declared in a categorized package, or
-      --  viceversa.
+      --  vice versa.
 
       elsif Is_Record_Type (T1)
         and then (Is_Remote_Call_Interface (T1)
@@ -1016,7 +1042,7 @@ package body Sem_Type is
          return True;
 
       elsif Is_Type (T1)
-        and then  Is_Generic_Actual_Type (T1)
+        and then Is_Generic_Actual_Type (T1)
         and then Full_View_Covers (T2, T1)
       then
          return True;
@@ -1406,15 +1432,36 @@ package body Sem_Type is
                   end if;
 
                elsif Is_Numeric_Type (Etype (F1))
-                 and then
-                   (Has_Abstract_Interpretation (Act1)
-                     or else Has_Abstract_Interpretation (Act2))
+                 and then Has_Abstract_Interpretation (Act1)
                then
-                  if It = Disambiguate.It1 then
-                     return Disambiguate.It2;
-                  elsif It = Disambiguate.It2 then
-                     return Disambiguate.It1;
-                  end if;
+                  --  Current interpretation is not the right one because it
+                  --  expects a numeric operand. Examine all the other ones.
+
+                  declare
+                     I  : Interp_Index;
+                     It : Interp;
+
+                  begin
+                     Get_First_Interp (N, I, It);
+                     while Present (It.Typ) loop
+                        if
+                          not Is_Numeric_Type (Etype (First_Formal (It.Nam)))
+                        then
+                           if No (Act2)
+                             or else not Has_Abstract_Interpretation (Act2)
+                             or else not
+                               Is_Numeric_Type
+                                 (Etype (Next_Formal (First_Formal (It.Nam))))
+                           then
+                              return It;
+                           end if;
+                        end if;
+
+                        Get_Next_Interp (I, It);
+                     end loop;
+
+                     return No_Interp;
+                  end;
                end if;
             end if;
 
@@ -1511,8 +1558,8 @@ package body Sem_Type is
       end if;
 
       --  Check for overloaded CIL convention stuff because the CIL libraries
-      --  do sick things like Console.WriteLine where it matches
-      --  two different overloads, so just pick the first ???
+      --  do sick things like Console.Write_Line where it matches two different
+      --  overloads, so just pick the first ???
 
       if Convention (Nam1) = Convention_CIL
         and then Convention (Nam2) = Convention_CIL
@@ -1631,6 +1678,39 @@ package body Sem_Type is
 
       elsif Nkind (N) = N_Range then
          return It1;
+
+      --  Implement AI05-105: A renaming declaration with an access
+      --  definition must resolve to an anonymous access type. This
+      --  is a resolution rule and can be used to disambiguate.
+
+      elsif Nkind (Parent (N)) = N_Object_Renaming_Declaration
+        and then Present (Access_Definition (Parent (N)))
+      then
+         if Ekind (It1.Typ) = E_Anonymous_Access_Type
+              or else
+            Ekind (It1.Typ) = E_Anonymous_Access_Subprogram_Type
+         then
+            if Ekind (It2.Typ) = Ekind (It1.Typ) then
+
+               --  True ambiguity
+
+               return No_Interp;
+
+            else
+               return It1;
+            end if;
+
+         elsif Ekind (It2.Typ) = E_Anonymous_Access_Type
+                 or else
+               Ekind (It2.Typ) = E_Anonymous_Access_Subprogram_Type
+         then
+            return It2;
+
+         --  No legal interpretation
+
+         else
+            return No_Interp;
+         end if;
 
       --  If two user defined-subprograms are visible, it is a true ambiguity,
       --  unless one of them is an entry and the context is a conditional or
@@ -1978,7 +2058,10 @@ package body Sem_Type is
       Form_Parm : Node_Id;
 
    begin
-      if Is_Overloaded (N) then
+      --  Why is check on E needed below ???
+      --  In any case this para needs comments ???
+
+      if Is_Overloaded (N) and then Is_Overloadable (E) then
          Act_Parm  := First_Actual (N);
          Form_Parm := First_Formal (E);
          while Present (Act_Parm)
@@ -2082,14 +2165,21 @@ package body Sem_Type is
          return
            Covers (Typ, Etype (N))
 
-            --  Ada 2005 (AI-345) The context may be a synchronized interface.
+            --  Ada 2005 (AI-345): The context may be a synchronized interface.
             --  If the type is already frozen use the corresponding_record
             --  to check whether it is a proper descendant.
 
            or else
-             (Is_Concurrent_Type (Etype (N))
+             (Is_Record_Type (Typ)
+                and then Is_Concurrent_Type (Etype (N))
                 and then Present (Corresponding_Record_Type (Etype (N)))
                 and then Covers (Typ, Corresponding_Record_Type (Etype (N))))
+
+           or else
+             (Is_Concurrent_Type (Typ)
+                and then Is_Record_Type (Etype (N))
+                and then Present (Corresponding_Record_Type (Typ))
+                and then Covers (Corresponding_Record_Type (Typ), Etype (N)))
 
            or else
              (not Is_Tagged_Type (Typ)
@@ -2232,11 +2322,11 @@ package body Sem_Type is
          end if;
 
          loop
-            if Present (Abstract_Interfaces (E))
-              and then Present (Abstract_Interfaces (E))
-              and then not Is_Empty_Elmt_List (Abstract_Interfaces (E))
+            if Present (Interfaces (E))
+              and then Present (Interfaces (E))
+              and then not Is_Empty_Elmt_List (Interfaces (E))
             then
-               Elmt := First_Elmt (Abstract_Interfaces (E));
+               Elmt := First_Elmt (Interfaces (E));
                while Present (Elmt) loop
                   AI := Node (Elmt);
 
@@ -2315,7 +2405,7 @@ package body Sem_Type is
                   if Etype (AI) = Iface_Typ then
                      return True;
 
-                  elsif Present (Abstract_Interfaces (Etype (AI)))
+                  elsif Present (Interfaces (Etype (AI)))
                      and then Iface_Present_In_Ancestor (Etype (AI))
                   then
                      return True;
@@ -2389,7 +2479,7 @@ package body Sem_Type is
          end if;
       end Check_Right_Argument;
 
-   --  Start processing for Intersect_Types
+   --  Start of processing for Intersect_Types
 
    begin
       if Etype (L) = Any_Type or else Etype (R) = Any_Type then
@@ -2440,20 +2530,37 @@ package body Sem_Type is
    -----------------
 
    function Is_Ancestor (T1, T2 : Entity_Id) return Boolean is
+      BT1 : Entity_Id;
+      BT2 : Entity_Id;
       Par : Entity_Id;
 
    begin
-      if Base_Type (T1) = Base_Type (T2) then
+      BT1 := Base_Type (T1);
+      BT2 := Base_Type (T2);
+
+      --  Handle underlying view of records with unknown discriminants
+      --  using the original entity that motivated the construction of
+      --  this underlying record view (see Build_Derived_Private_Type).
+
+      if Is_Underlying_Record_View (BT1) then
+         BT1 := Underlying_Record_View (BT1);
+      end if;
+
+      if Is_Underlying_Record_View (BT2) then
+         BT2 := Underlying_Record_View (BT2);
+      end if;
+
+      if BT1 = BT2 then
          return True;
 
       elsif Is_Private_Type (T1)
         and then Present (Full_View (T1))
-        and then Base_Type (T2) = Base_Type (Full_View (T1))
+        and then BT2 = Base_Type (Full_View (T1))
       then
          return True;
 
       else
-         Par := Etype (T2);
+         Par := Etype (BT2);
 
          loop
             --  If there was a error on the type declaration, do not recurse
@@ -2461,7 +2568,7 @@ package body Sem_Type is
             if Error_Posted (Par) then
                return False;
 
-            elsif Base_Type (T1) = Base_Type (Par)
+            elsif BT1 = Base_Type (Par)
               or else (Is_Private_Type (T1)
                          and then Present (Full_View (T1))
                          and then Base_Type (Par) = Base_Type (Full_View (T1)))
@@ -2470,7 +2577,7 @@ package body Sem_Type is
 
             elsif Is_Private_Type (Par)
               and then Present (Full_View (Par))
-              and then Full_View (Par) = Base_Type (T1)
+              and then Full_View (Par) = BT1
             then
                return True;
 
@@ -2577,8 +2684,7 @@ package body Sem_Type is
       Map_Ptr : Int;
 
    begin
-      All_Interp.Increment_Last;
-      All_Interp.Table (All_Interp.Last) := No_Interp;
+      All_Interp.Append (No_Interp);
 
       Map_Ptr := Headers (Hash (N));
 

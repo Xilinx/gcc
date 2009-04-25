@@ -77,6 +77,63 @@ AC_ARG_ENABLE(gconf-peer,
     [gconf_enabled=no]
 )
 
+AC_ARG_WITH([antlr-jar],
+            [AS_HELP_STRING([--with-antlr-jar=file],[Use ANTLR from the specified jar file])],
+            [
+             ANTLR_JAR=$withval
+            ],
+            [
+             ANTLR_JAR=
+            ])
+
+AC_MSG_CHECKING([for antlr.jar])
+if test "x$ANTLR_JAR" = x; then
+    for antlr_lib_home in `ls -d /usr/local/share/antlr* 2> /dev/null` \
+	/usr/share/antlr/lib /usr/share/java /usr/lib;
+    do
+	if test -f "$antlr_lib_home/antlr.jar"; then
+	    # FIXME: version check for antlr needed without using a VM
+	    ANTLR_JAR="$antlr_lib_home/antlr.jar"
+	    break
+	fi
+    done
+    if test "x$ANTLR_JAR" = x; then
+	AC_MSG_RESULT([not found])
+    else
+	AC_MSG_RESULT($ANTLR_JAR)
+    fi
+else
+    if test -f "${ANTLR_JAR}"; then
+	AC_MSG_RESULT($ANTLR_JAR)
+    else
+	AC_MSG_ERROR([antlr jar file not found: $ANTLR_JAR])
+    fi
+fi
+AC_SUBST(ANTLR_JAR)
+
+AC_ARG_ENABLE([gjdoc],
+              [AS_HELP_STRING(--disable-gjdoc,compile GJDoc (disabled by --disable-gjdoc) [default=yes])],
+              [case "${enableval}" in
+                yes) BUILD_GJDOC=yes ;;
+                no) BUILD_GJDOC=no ;;
+                *) BUILD_GJDOC=yes ;;
+              esac],
+              [BUILD_GJDOC=maybe])
+
+AC_MSG_CHECKING([whether to build gjdoc])
+if test "x$BUILD_GJDOC" = xmaybe; then
+    if test -f "${ANTLR_JAR}"; then
+	BUILD_GJDOC=yes
+	AC_MSG_RESULT(yes)
+    else
+	BUILD_GJDOC=no
+	AC_MSG_RESULT([no, antlr.jar not found])
+    fi
+else
+    AC_MSG_RESULT($BUILD_GJDOC)
+fi
+AM_CONDITIONAL(CREATE_GJDOC, test "x${BUILD_GJDOC}" = xyes)
+
 AC_ARG_ENABLE(java-maintainer-mode,
 	AS_HELP_STRING([--enable-java-maintainer-mode],
 	[allow rebuilding of .class and .h files]))
@@ -372,6 +429,8 @@ case "${which_gcj}" in
       GCJH=gcjh
    ;;
 esac
+JAVAC="$GCJ -C"
+export JAVAC
 
 AC_SUBST(GCJ_FOR_ECJX)
 AC_SUBST(GCJH)
@@ -384,7 +443,6 @@ test -f libgcj.spec || touch libgcj.spec
 
 # Set up to configure Classpath.
 # FIXME: no supported way to pass args in autoconf.
-ac_configure_args="$ac_configure_args --with-fastjar=$JAR"
 # Disable tool wrappers to avoid ltdl.h configure check.
 ac_configure_args="$ac_configure_args --disable-tool-wrappers"
 ac_configure_args="$ac_configure_args --disable-load-library"
@@ -423,11 +481,14 @@ else
     ac_configure_args="$ac_configure_args --with-escher=$with_escher"
   fi
 fi
+if test "x$BUILD_GJDOC" = xno; then
+  ac_configure_args="$ac_configure_args --disable-gjdoc"
+fi
 # -Werror causes unavoidable problems in code using alsa.
+ac_configure_args="$ac_configure_args --disable-regen-headers"
 ac_configure_args="$ac_configure_args --disable-Werror"
 dnl --with-gcj=$GCJ
 dnl --with-javah=$GCJH
-dnl gjdoc?
 dnl gtk-cairo -- just export here...
 dnl --enable-regen-headers?
 
@@ -514,6 +575,24 @@ AC_ARG_WITH(java-home,
 AM_CONDITIONAL(JAVA_HOME_SET, test ! -z "$JAVA_HOME")
 AC_SUBST(JAVA_HOME)
 
+suppress_libgcj_bc=no
+AC_ARG_ENABLE(libgcj-bc,
+  AS_HELP_STRING([--enable-libgcj-bc],
+                 [enable(default) or disable BC ABI for portions of libgcj]),
+  [if test "$enable_libgcj_bc" = "no"; then
+     suppress_libgcj_bc=yes
+   fi])
+AM_CONDITIONAL(SUPPRESS_LIBGCJ_BC, test "$suppress_libgcj_bc" = "yes")
+
+build_libgcj_reduced_reflection=no
+AC_ARG_ENABLE(reduced-reflection,
+  AS_HELP_STRING([--enable-reduced-reflection],
+                 [enable or disable(default) -freduced-reflection when building portions of libgcj]),
+  [if test "$enable_reduced_reflection" = "yes"; then
+     build_libgcj_reduced_reflection=yes
+   fi])
+AM_CONDITIONAL(BUILD_LIBGCJ_REDUCED_REFLECTION, test "$build_libgcj_reduced_reflection" = "yes")
+
 # What is the native OS API for MinGW?
 AC_ARG_WITH(win32-nlsapi,
   AS_HELP_STRING([--with-win32-nlsapi=ansi or unicows or unicode],
@@ -595,6 +674,9 @@ if AC_TRY_EVAL(ac_compile); then
   if grep _Unwind_SjLj_Resume conftest.s >/dev/null 2>&1 ; then
     enable_sjlj_exceptions=yes
   elif grep _Unwind_Resume conftest.s >/dev/null 2>&1 ; then
+    enable_sjlj_exceptions=no
+  elif grep __cxa_end_cleanup conftest.s >/dev/null 2>&1 ; then
+    # ARM EH ABI.
     enable_sjlj_exceptions=no
   fi
 fi
@@ -751,6 +833,12 @@ AC_CONFIG_LINKS(gnu/java/nio/natVMSelector.cc:gnu/java/nio/natVMSelector${PLATFO
 test -d gnu/java/nio/channels || mkdir gnu/java/nio/channels
 AC_CONFIG_LINKS(gnu/java/nio/channels/natFileChannelImpl.cc:gnu/java/nio/channels/natFileChannel${FILE-${PLATFORM}}.cc)
 
+# Likewise for natVMSecureRandom.cc
+test -d gnu/java/security || mkdir gnu/java/security
+test -d gnu/java/security/jce || mkdir gnu/java/security/jce
+test -d gnu/java/security/jce/prng || mkdir gnu/java/security/jce/prng
+AC_CONFIG_LINKS(gnu/java/security/jce/prng/natVMSecureRandom.cc:gnu/java/security/jce/prng/natVMSecureRandom${FILE-${PLATFORM}}.cc)
+
 case "${host}" in
     *mingw*)
       SYSTEMSPEC="-lgdi32 -lws2_32"
@@ -788,6 +876,9 @@ case "${host}" in
     # on Darwin -single_module speeds up loading of the dynamic libraries.
     extra_ldflags_libjava=-Wl,-single_module
     ;;
+*-*-darwin[[912]]*)
+    extra_gij_ldflags=-Wl,-allow_stack_execute
+    ;;
 arm*linux*eabi)
     # Some of the ARM unwinder code is actually in libstdc++.  We
     # could in principle replicate it in libgcj, but it's better to
@@ -798,6 +889,7 @@ arm*linux*eabi)
     ;;
 esac
 AC_SUBST(extra_ldflags_libjava)
+AC_SUBST(extra_gij_ldflags)
 AC_SUBST(extra_ldflags)
 AC_SUBST(LIBSTDCXXSPEC)
 
@@ -855,7 +947,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- posix | posix95 | pthreads)
+ aix | posix | posix95 | pthreads)
     THREADS=posix
     case "$host" in
      *-*-linux*)
@@ -963,6 +1055,9 @@ AC_SUBST(THREADCXXFLAGS)
 AM_CONDITIONAL(USING_POSIX_THREADS, test "$THREADS" = posix)
 AM_CONDITIONAL(USING_WIN32_THREADS, test "$THREADS" = win32)
 AM_CONDITIONAL(USING_NO_THREADS, test "$THREADS" = none)
+if test "$enable_shared" != yes; then
+  use_libgcj_bc=no
+fi
 AM_CONDITIONAL(USE_LIBGCJ_BC, test "$use_libgcj_bc" = yes)
 
 if test -d sysdep; then true; else mkdir sysdep; fi
@@ -972,7 +1067,7 @@ AC_CONFIG_LINKS(sysdep/descriptor.h:$descriptor_h)
 
 LIBGCJ_SPEC="%{s-bc-abi:} -lgcj"
 if test "$use_libgcj_bc" = yes; then
-  LIBGCJ_SPEC="%{s-bc-abi:-lgcj_bc;:-lgcj}"
+  LIBGCJ_SPEC="%{static|static-libgcj|!s-bc-abi:-lgcj;:-lgcj_bc}"
 fi
 AC_SUBST(LIBGCJ_SPEC)
 
@@ -1010,7 +1105,7 @@ if test "x${with_newlib}" = "xyes"; then
    PLATFORMNET=NoNet
 else
    AC_CHECK_FUNCS([strerror_r select fstat open fsync sleep opendir \
-                   localtime_r readdir_r getpwuid_r getcwd \
+                   localtime_r getpwuid_r getcwd \
 		   access stat lstat mkdir rename rmdir unlink utime chmod readlink \
 		   nl_langinfo setlocale \
 		   inet_pton uname inet_ntoa \
@@ -1300,6 +1395,7 @@ if test ! -f gnu/classpath/Configuration.java; then
       -e "s,@JAVA_LANG_SYSTEM_EXPLICIT_INITIALIZATION@,false," \
       -e "s,@GTK_CAIRO_ENABLED@,false," \
       -e "s,@ECJ_JAR@,," \
+      -e "s,@WANT_NATIVE_BIG_INTEGER@,false," \
 	< $srcdir/classpath/gnu/classpath/Configuration.java.in \
 	> gnu/classpath/Configuration.java
   # We do not want to redirect the output of the grep below to /dev/null,
@@ -1345,6 +1441,7 @@ AC_SUBST(IEEESPEC)
 AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
 AM_CONDITIONAL(NEEDS_DATA_START, test "$NEEDS_DATA_START" = yes && test "$NATIVE" = yes)
+AM_CONDITIONAL(INSTALL_BINARIES, test -z "${with_multisubdir}")
 AC_SUBST(GCC_UNWIND_INCLUDE)
 
 # Process the option "--enable-version-specific-runtime-libs"
@@ -1400,6 +1497,7 @@ case $multi_os_directory in
    ;;
 esac
 AC_SUBST(dbexecdir)
+AC_SUBST(gcjsubdir)
 
 AC_DEFINE(JV_VERSION, "1.5.0", [Compatibility version string])
 AC_DEFINE(JV_API_VERSION, "1.5", [API compatibility version string])
@@ -1546,8 +1644,11 @@ case "${host}" in
  m68*-*-linux*)
     SIGNAL_HANDLER=include/dwarf2-signal.h
     ;;
- powerpc*-*-darwin*)
+ powerpc*-*-darwin* | i?86-*-darwin[[912]]* | x86_64-*-darwin[[912]]*)
     SIGNAL_HANDLER=include/darwin-signal.h
+    ;;
+ powerpc*-*-aix*)
+    SIGNAL_HANDLER=include/aix-signal.h
     ;;
  *)
     SIGNAL_HANDLER=include/default-signal.h
@@ -1612,6 +1713,205 @@ AC_SUBST(here)
 # We get this from the environment.
 AC_SUBST(GCJFLAGS)
 
+AC_ARG_WITH([python-dir],
+            AS_HELP_STRING([--with-python-dir],
+                           [the location to install Python modules. This path should NOT include the prefix.]),
+            [with_python_dir=$withval], [with_python_dir=""])
+
+if test "x${with_python_dir}" = "x"
+then
+  # Needed for installing Python modules during make install.
+  python_mod_dir="\${prefix}/share/python"
+  # Needed for substituting into aot-compile*
+  python_mod_dir_expanded="${prefix}/share/python"
+else
+  python_mod_dir="\${prefix}${with_python_dir}"
+  python_mod_dir_expanded="${prefix}${with_python_dir}"
+fi
+AC_MSG_RESULT(Python modules dir: ${python_mod_dir_expanded});
+AC_SUBST(python_mod_dir)
+AC_SUBST(python_mod_dir_expanded)
+
+# needed for aot-compile-rpm
+MAKE=`which make`
+AC_SUBST(MAKE)
+
+AC_ARG_ENABLE([aot-compile-rpm],
+  [AS_HELP_STRING([--enable-aot-compile-rpm],
+                 [enable installation of aot-compile-rpm [default=no]])],
+  [case "${enableval}" in
+    yes) AOT_RPM_ENABLED=yes ;;
+    no)  AOT_RPM_ENABLED=no ;;
+    *)   AC_MSG_ERROR([Unknown argument to enable/disable aot-compile-rpm]) ;;
+  esac],
+  [AOT_RPM_ENABLED=no]
+)
+AM_CONDITIONAL(INSTALL_AOT_RPM, test "x${AOT_RPM_ENABLED}" = xyes)
+
+AC_ARG_ENABLE([java-home],
+  [AS_HELP_STRING([--enable-java-home],
+                 [create a standard JDK-style directory layout in the install tree [default=no]])],
+  [case "${enableval}" in
+    yes) JAVA_HOME_ENABLED=yes ;;
+    no)  JAVA_HOME_ENABLED=no ;;
+    *)   AC_MSG_ERROR([Unknown argument to enable/disable java-home]) ;;
+  esac],
+  [JAVA_HOME_ENABLED=no]
+)
+AM_CONDITIONAL(CREATE_JAVA_HOME, test "x${JAVA_HOME_ENABLED}" = xyes)
+
+# Only do these checks if java-home above is enabled.
+if test "x${JAVA_HOME_ENABLED}" = xyes
+then
+
+  AC_ARG_WITH([gcc-suffix],
+              AS_HELP_STRING([--with-gcc-suffix],
+                             [the GCC tool suffix (defaults to empty string)]),
+              [gcc_suffix=$withval], [gcc_suffix=""])
+  AC_MSG_RESULT(GCC suffix: ${gcc_suffix})
+  AC_SUBST(gcc_suffix)
+
+  AC_ARG_WITH([arch-directory],
+              AS_HELP_STRING([--with-arch-directory],
+                             [the arch directory under jre/lib (defaults to auto-detect)]),
+              [host_cpu=$withval], [host_cpu=""])
+
+  AC_ARG_WITH([os-directory],
+              AS_HELP_STRING([--with-os-directory],
+                             [the os directory under include (defaults to auto-detect)]),
+              [host_os=$withval], [host_os=""])
+
+  AC_ARG_WITH([origin-name],
+              AS_HELP_STRING([--with-origin-name],
+                             [the JPackage origin name of this package (default is gcj${gcc_suffix}]),
+              [origin_name=$withval], [origin_name=gcj${gcc_suffix}])
+  AC_MSG_RESULT(JPackage origin name: ${origin_name})
+
+  AC_ARG_WITH([arch-suffix],
+              AS_HELP_STRING([--with-arch-suffix],
+                             [the arch directory suffix (default is the empty string]),
+              [arch_suffix=$withval], [arch_suffix=""])
+  AC_MSG_RESULT(arch suffix: ${arch_suffix})
+
+  AC_ARG_WITH([jvm-root-dir],
+              AS_HELP_STRING([--with-jvm-root-dir],
+                             [where to install SDK (default is ${prefix}/lib/jvm)]),
+              [jvm_root_dir=$withval], [jvm_root_dir="\${prefix}/lib/jvm"])
+  AC_MSG_RESULT(JVM root installation directory: ${jvm_root_dir})
+
+  AC_ARG_WITH([jvm-jar-dir],
+              AS_HELP_STRING([--with-jvm-jar-dir],
+			                 [where to install jars (default is ${prefix}/lib/jvm-exports)]),
+              [jvm_jar_dir=$withval], [jvm_jar_dir=\${prefix}/lib/jvm-exports])
+  AC_MSG_RESULT(JAR root installation directory: ${jvm_jar_dir})
+
+  JAVA_VERSION=1.5.0
+  BUILD_VERSION=0
+  AC_SUBST(JAVA_VERSION)
+  AC_SUBST(BUILD_VERSION)
+  AC_MSG_RESULT(Java version: ${JAVA_VERSION})
+
+  jre_dir=jre
+  jre_lnk=jre-${JAVA_VERSION}-${origin_name}
+  sdk_lnk=java-${JAVA_VERSION}-${origin_name}
+
+  JVM_ROOT_DIR=${jvm_root_dir}
+  AC_SUBST(JVM_ROOT_DIR)
+  AC_MSG_RESULT(JVM ROOT directory: ${JVM_ROOT_DIR})
+
+  JVM_JAR_ROOT_DIR=${jvm_jar_dir}
+  AC_SUBST(JVM_JAR_ROOT_DIR)
+  AC_MSG_RESULT(JVM JAR ROOT directory: ${JVM_JAR_ROOT_DIR})
+
+  JVM_JAR_DIR=${jvm_jar_dir}
+  AC_SUBST(JVM_JAR_DIR)
+  AC_MSG_RESULT(JVM JAR directory: ${JVM_JAR_DIR})
+
+  JRE_DIR=${jre_dir}
+  AC_SUBST(JRE_DIR)
+
+  JRE_LNK=${jre_lnk}
+  AC_SUBST(JRE_LNK)
+
+  SDK_LNK=${sdk_lnk}
+  AC_SUBST(SDK_LNK)
+
+  SDK_BIN_DIR=${jvm_root_dir}/bin
+  AC_SUBST(SDK_BIN_DIR)
+  AC_MSG_RESULT(SDK tools directory: ${SDK_BIN_DIR})
+
+  SDK_LIB_DIR=${jvm_root_dir}/lib
+  AC_SUBST(SDK_LIB_DIR)
+  AC_MSG_RESULT(SDK jar directory: ${SDK_LIB_DIR})
+
+  SDK_INCLUDE_DIR=${jvm_root_dir}/include
+  AC_SUBST(SDK_INCLUDE_DIR)
+  AC_MSG_RESULT(SDK include directory: ${SDK_INCLUDE_DIR})
+
+  JRE_BIN_DIR=${jvm_root_dir}/${jre_dir}/bin
+  AC_SUBST(JRE_BIN_DIR)
+  AC_MSG_RESULT(JRE tools directory: ${JRE_BIN_DIR})
+
+  JRE_LIB_DIR=${jvm_root_dir}/${jre_dir}/lib
+  AC_SUBST(JRE_LIB_DIR)
+  AC_MSG_RESULT(JRE lib directory: ${JRE_LIB_DIR})
+
+  # Find gcj prefix using gcj found in PATH.
+  gcj_prefix=`which gcj${gcc_suffix} | sed "s%/bin/gcj${gcc_suffix}%%"`
+
+  # Where do the gcj binaries live?
+  # For jhbuild based builds, they all live in a sibling of bin called
+  # gcj-bin.  Check for gcj-bin first, and use bin otherwise.
+  GCJ_BIN_DIR=`if test -d ${gcj_prefix}/gcj-bin; then echo ${gcj_prefix}/gcj-bin; else echo ${gcj_prefix}/bin; fi`
+  AC_SUBST(GCJ_BIN_DIR)
+  AC_MSG_RESULT(GCJ tools directory: ${GCJ_BIN_DIR})
+
+  AC_MSG_RESULT(host is ${host})
+  if test "x${host_cpu}" = "x"
+  then
+    case ${host} in
+      *-mingw* | *-cygwin*)
+        host_cpu=x86;;
+      i486-* | i586-* | i686-*)
+        host_cpu=i386;;
+      x86_64-*)
+        host_cpu=amd64;;
+      *)
+        host_cpu=${host_cpu};;
+    esac
+  fi
+  AC_MSG_RESULT(arch directory: ${host_cpu})
+  CPU=${host_cpu}
+  AC_SUBST(CPU)
+
+  if test "x${host_os}" = "x"
+  then
+    case ${host} in
+      *-mingw* | *-cygwin*)
+        host_os=win32;;
+      *-linux*)
+        host_os=linux;;
+      *)
+        host_os=${host_os};;
+    esac
+  fi
+  echo os directory: ${host_os}
+  OS=${host_os}
+  AC_SUBST(OS)
+
+  # make an expanded $libdir, for substituting into
+  # scripts (and other non-Makefile things).
+  LIBDIR=$libdir
+  if test "x${exec_prefix}" = "xNONE"
+  then
+      lib_exec_prefix=$prefix
+  else
+      lib_exec_prefix=$exec_prefix
+  fi
+  LIBDIR=`echo $libdir | sed "s:\\\${exec_prefix}:$lib_exec_prefix:g"`
+  AC_SUBST(LIBDIR)
+fi
+
 AC_CONFIG_FILES([
 Makefile
 libgcj.pc
@@ -1620,35 +1920,17 @@ libgcj-test.spec
 gcj/Makefile
 include/Makefile
 testsuite/Makefile
+contrib/aotcompile.py
+contrib/aot-compile
+contrib/aot-compile-rpm
+contrib/rebuild-gcj-db
 ])
 
+if test ${multilib} = yes; then
+  multilib_arg="--enable-multilib"
+else
+  multilib_arg=
+fi
+
 AC_CONFIG_FILES([scripts/jar], [chmod +x scripts/jar])
-
-AC_CONFIG_COMMANDS([default],
-[# Only add multilib support code if we just rebuilt top-level Makefile.
-case " $CONFIG_FILES " in
- *" Makefile "*)
-   LD="${ORIGINAL_LD_FOR_MULTILIBS}"
-   ac_file=Makefile . ${multi_basedir}/./libjava/../config-ml.in
-   ;;
-esac
-for ac_multi_file in $CONFIG_FILES; do
-  case $ac_multi_file in
-  */Makefile)
-    grep "^MULTI[[^ ]]* =" Makefile >> "$ac_multi_file" ;;
-  esac
-done
-],
-srcdir=${srcdir}
-host=${host}
-target=${target}
-with_multisubdir=${with_multisubdir}
-ac_configure_args="${multilib_arg} ${ac_configure_args}"
-CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
-multi_basedir=${multi_basedir}
-CC="${CC}"
-CXX="${CXX}"
-ORIGINAL_LD_FOR_MULTILIBS="${ORIGINAL_LD_FOR_MULTILIBS}"
-)
-
 AC_OUTPUT

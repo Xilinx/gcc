@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -22,6 +22,9 @@
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
+
+--  Warning: the output of this usage for warnings is duplicated in the GNAT
+--  reference manual. Be sure to update that if you change the warning list.
 
 with Targparm; use Targparm;
 with Namet;    use Namet;
@@ -96,6 +99,9 @@ begin
 
       Write_Switch_Char ("fno-inline   ", "");
       Write_Line ("Inhibit all inlining (makes executable smaller)");
+
+      Write_Switch_Char ("fpreserve-control-flow ", "");
+      Write_Line ("Preserve control flow for coverage analysis");
    end if;
 
    --  Common switches available to both GCC and JGNAT
@@ -134,6 +140,11 @@ begin
    Write_Switch_Char ("b");
    Write_Line ("Generate brief messages to stderr even if verbose mode set");
 
+   --  Line for -gnatB switch
+
+   Write_Switch_Char ("B");
+   Write_Line ("Assume no bad (invalid) values except in 'Valid attribute");
+
    --  Line for -gnatc switch
 
    Write_Switch_Char ("c");
@@ -147,7 +158,9 @@ begin
    --  Line for -gnatD switch
 
    Write_Switch_Char ("D");
-   Write_Line ("Debug expanded generated code rather than source code");
+   Write_Line ("Debug expanded generated code (max line length = 72)");
+   Write_Switch_Char ("Dnn");
+   Write_Line ("Debug expanded generated code (max line length = nn)");
 
    --  Line for -gnatec switch
 
@@ -163,6 +176,11 @@ begin
 
    Write_Switch_Char ("ef");
    Write_Line ("Full source path in brief error messages");
+
+   --  Line for -gnateG switch
+
+   Write_Switch_Char ("eG");
+   Write_Line ("Generate preprocessed source");
 
    --  Line for -gnateI switch
 
@@ -199,10 +217,12 @@ begin
    Write_Switch_Char ("g");
    Write_Line ("GNAT implementation mode (used for compiling GNAT units)");
 
-   --  Line for -gnatG switch
+   --  Lines for -gnatG switch
 
    Write_Switch_Char ("G");
-   Write_Line ("Output generated expanded code in source form");
+   Write_Line ("Output generated expanded code (max line length = 72)");
+   Write_Switch_Char ("Gnn");
+   Write_Line ("Output generated expanded code (max line length = nn)");
 
    --  Line for -gnath switch
 
@@ -244,7 +264,7 @@ begin
    --  Line for -gnatm switch
 
    Write_Switch_Char ("mnn");
-   Write_Line ("Limit number of detected errors to nn (1-999999)");
+   Write_Line ("Limit number of detected errors/warnings to nn (1-999999)");
 
    --  Line for -gnatn switch
 
@@ -285,6 +305,11 @@ begin
 
    Write_Switch_Char ("Q");
    Write_Line ("Don't quit, write ali/tree file even if compile errors");
+
+   --  Line for -gnatr switch
+
+   Write_Switch_Char ("r");
+   Write_Line ("Treat pragma Restrictions as Restriction_Warnings");
 
    --  Lines for -gnatR switch
 
@@ -362,12 +387,17 @@ begin
 
    Write_Switch_Char ("wxx");
    Write_Line ("Enable selected warning modes, xx = list of parameters:");
-   Write_Line ("        a    turn on all optional warnings (except d,h,l,t)");
+   Write_Line ("        a    turn on all optional warnings " &
+                                                  "(except dhl.ot.w)");
    Write_Line ("        A    turn off all optional warnings");
+   Write_Line ("        .a*  turn on warnings for failing assertion");
+   Write_Line ("        .A   turn off warnings for failing assertion");
    Write_Line ("        b    turn on warnings for bad fixed value " &
                                                   "(not multiple of small)");
    Write_Line ("        B*   turn off warnings for bad fixed value " &
                                                   "(not multiple of small)");
+   Write_Line ("        .b*  turn on warnings for biased representation");
+   Write_Line ("        .B   turn off warnings for biased representation");
    Write_Line ("        c    turn on warnings for constant conditional");
    Write_Line ("        C*   turn off warnings for constant conditional");
    Write_Line ("        .c   turn on warnings for unrepped components");
@@ -375,11 +405,12 @@ begin
    Write_Line ("        d    turn on warnings for implicit dereference");
    Write_Line ("        D*   turn off warnings for implicit dereference");
    Write_Line ("        e    treat all warnings as errors");
+   Write_Line ("        .e   turn on every optional warning (no exceptions)");
    Write_Line ("        f    turn on warnings for unreferenced formal");
    Write_Line ("        F*   turn off warnings for unreferenced formal");
    Write_Line ("        g*   turn on warnings for unrecognized pragma");
    Write_Line ("        G    turn off warnings for unrecognized pragma");
-   Write_Line ("        h    turn on warnings for hiding variable ");
+   Write_Line ("        h    turn on warnings for hiding variable");
    Write_Line ("        H*   turn off warnings for hiding variable");
    Write_Line ("        i*   turn on warnings for implementation unit");
    Write_Line ("        I    turn off warnings for implementation unit");
@@ -400,14 +431,22 @@ begin
    Write_Line ("        n*   normal warning mode (cancels -gnatws/-gnatwe)");
    Write_Line ("        o*   turn on warnings for address clause overlay");
    Write_Line ("        O    turn off warnings for address clause overlay");
+   Write_Line ("        .o   turn on warnings for out parameters assigned " &
+                                                  "but not read");
+   Write_Line ("        .O*  turn off warnings for out parameters assigned " &
+                                                  "but not read");
    Write_Line ("        p    turn on warnings for ineffective pragma " &
-                                             "Inline in frontend");
+                                                  "Inline in frontend");
    Write_Line ("        P*   turn off warnings for ineffective pragma " &
-                                             "Inline in frontend");
+                                                  "Inline in frontend");
+   Write_Line ("        .p   turn on warnings for suspicious parameter " &
+                                                  "order");
+   Write_Line ("        .P*  turn off warnings for suspicious parameter " &
+                                                  "order");
    Write_Line ("        q*   turn on warnings for questionable " &
-                                                  "missing parentheses");
+                                                  "missing parenthesis");
    Write_Line ("        Q    turn off warnings for questionable " &
-                                                  "missing parentheses");
+                                                  "missing parenthesis");
    Write_Line ("        r    turn on warnings for redundant construct");
    Write_Line ("        R*   turn off warnings for redundant construct");
    Write_Line ("        .r   turn on warnings for object renaming function");
@@ -422,15 +461,17 @@ begin
    Write_Line ("        w*   turn on warnings for wrong low bound assumption");
    Write_Line ("        W    turn off warnings for wrong low bound " &
                                                   "assumption");
+   Write_Line ("        .w   turn on warnings on pragma Warnings Off");
+   Write_Line ("        .w*  turn off warnings on pragma Warnings Off");
    Write_Line ("        x*   turn on warnings for export/import");
    Write_Line ("        X    turn off warnings for export/import");
-   Write_Line ("        .x   turn on warnings for non-local exceptions");
-   Write_Line ("        .X*  turn off warnings for non-local exceptions");
+   Write_Line ("        .x   turn on warnings for non-local exception");
+   Write_Line ("        .X*  turn off warnings for non-local exception");
    Write_Line ("        y*   turn on warnings for Ada 2005 incompatibility");
    Write_Line ("        Y    turn off warnings for Ada 2005 incompatibility");
-   Write_Line ("        z*   turn on convention/size/align warnings for " &
+   Write_Line ("        z*   turn on warnings for suspicious " &
                                                   "unchecked conversion");
-   Write_Line ("        Z    turn off convention/size/align warnings for " &
+   Write_Line ("        Z    turn off warnings for suspicious " &
                                                   "unchecked conversion");
    Write_Line ("        *    indicates default in above list");
 
@@ -485,7 +526,9 @@ begin
    Write_Line ("        m    check line length <= 79 characters");
    Write_Line ("        n    check casing of package Standard identifiers");
    Write_Line ("        Mnn  check line length <= nn characters");
+   Write_Line ("        N    turn off all checks");
    Write_Line ("        o    check subprogram bodies in alphabetical order");
+   Write_Line ("        O    check overriding indicators");
    Write_Line ("        p    check pragma casing");
    Write_Line ("        r    check casing for identifier references");
    Write_Line ("        s    check separate subprogram specs present");
@@ -493,6 +536,9 @@ begin
    Write_Line ("        t    check token separation rules");
    Write_Line ("        u    check no unnecessary blank lines");
    Write_Line ("        x    check extra parentheses around conditionals");
+   Write_Line ("        y    turn on default style checks");
+   Write_Line ("        -    subtract (turn off) subsequent checks");
+   Write_Line ("        +    add (turn on) subsequent checks");
 
    --  Lines for -gnatyN switch
 

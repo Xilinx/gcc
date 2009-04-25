@@ -1,11 +1,11 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 2007 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file locale_classes.tcc
  *  This is an internal header file, included by other library headers.
@@ -44,13 +39,14 @@
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Facet>
-    locale::locale(const locale& __other, _Facet* __f)
+    locale::
+    locale(const locale& __other, _Facet* __f)
     {
       _M_impl = new _Impl(*__other._M_impl, 1);
 
-      try
+      __try
 	{ _M_impl->_M_install_facet(&_Facet::id, __f); }
-      catch(...)
+      __catch(...)
 	{
 	  _M_impl->_M_remove_reference();
 	  __throw_exception_again;
@@ -61,14 +57,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Facet>
     locale
-    locale::combine(const locale& __other) const
+    locale::
+    combine(const locale& __other) const
     {
       _Impl* __tmp = new _Impl(*_M_impl, 1);
-      try
+      __try
 	{
 	  __tmp->_M_replace_facet(__other._M_impl, &_Facet::id);
 	}
-      catch(...)
+      __catch(...)
 	{
 	  __tmp->_M_remove_reference();
 	  __throw_exception_again;
@@ -78,8 +75,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _CharT, typename _Traits, typename _Alloc>
     bool
-    locale::operator()(const basic_string<_CharT, _Traits, _Alloc>& __s1,
-                       const basic_string<_CharT, _Traits, _Alloc>& __s2) const
+    locale::
+    operator()(const basic_string<_CharT, _Traits, _Alloc>& __s1,
+	       const basic_string<_CharT, _Traits, _Alloc>& __s2) const
     {
       typedef std::collate<_CharT> __collate_type;
       const __collate_type& __collate = use_facet<__collate_type>(*this);
@@ -88,16 +86,46 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
 
+  template<typename _Facet>
+    bool
+    has_facet(const locale& __loc) throw()
+    {
+      const size_t __i = _Facet::id._M_id();
+      const locale::facet** __facets = __loc._M_impl->_M_facets;
+      return (__i < __loc._M_impl->_M_facets_size
+#ifdef __GXX_RTTI
+	      && dynamic_cast<const _Facet*>(__facets[__i]));
+#else
+              && static_cast<const _Facet*>(__facets[__i]));
+#endif
+    }
+
+  template<typename _Facet>
+    const _Facet&
+    use_facet(const locale& __loc)
+    {
+      const size_t __i = _Facet::id._M_id();
+      const locale::facet** __facets = __loc._M_impl->_M_facets;
+      if (__i >= __loc._M_impl->_M_facets_size || !__facets[__i])
+        __throw_bad_cast();
+#ifdef __GXX_RTTI
+      return dynamic_cast<const _Facet&>(*__facets[__i]);
+#else
+      return static_cast<const _Facet&>(*__facets[__i]);
+#endif
+    }
+
+
   // Generic version does nothing.
   template<typename _CharT>
     int
-    collate<_CharT>::_M_compare(const _CharT*, const _CharT*) const
+    collate<_CharT>::_M_compare(const _CharT*, const _CharT*) const throw ()
     { return 0; }
 
   // Generic version does nothing.
   template<typename _CharT>
     size_t
-    collate<_CharT>::_M_transform(_CharT*, const _CharT*, size_t) const
+    collate<_CharT>::_M_transform(_CharT*, const _CharT*, size_t) const throw ()
     { return 0; }
 
   template<typename _CharT>
@@ -156,7 +184,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       _CharT* __c = new _CharT[__len];
 
-      try
+      __try
 	{
 	  // strxfrm stops when it sees a nul character so we break
 	  // the string into zero-terminated substrings and pass those
@@ -184,7 +212,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      __ret.push_back(_CharT());
 	    }
 	}
-      catch(...)
+      __catch(...)
 	{
 	  delete [] __c;
 	  __throw_exception_again;

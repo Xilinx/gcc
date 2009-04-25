@@ -39,6 +39,9 @@ exception statement from your version. */
 package java.util;
 
 import gnu.classpath.SystemProperties;
+
+import gnu.java.lang.CPStringBuilder;
+
 import gnu.java.locale.LocaleHelper;
 
 import java.io.IOException;
@@ -178,21 +181,21 @@ public final class Locale implements Serializable, Cloneable
    *
    * @serial the languange, possibly ""
    */
-  private String language;
+  private final String language;
 
   /**
    * The country code, as returned by getCountry().
    *
    * @serial the country, possibly ""
    */
-  private String country;
+  private final String country;
 
   /**
    * The variant code, as returned by getVariant().
    *
    * @serial the variant, possibly ""
    */
-  private String variant;
+  private final String variant;
 
   /**
    * This is the cached hashcode. When writing to stream, we write -1.
@@ -324,13 +327,12 @@ public final class Locale implements Serializable, Cloneable
     // default locale.
     if (defaultLocale != null)
       {
-        language = convertLanguage(language).intern();
-        country = country.toUpperCase().intern();
-        variant = variant.intern();
+        language = convertLanguage(language);
+        country = country.toUpperCase();
       }
-    this.language = language;
-    this.country = country;
-    this.variant = variant;
+    this.language = language.intern();
+    this.country = country.intern();
+    this.variant = variant.intern();
     hashcode = language.hashCode() ^ country.hashCode() ^ variant.hashCode();
   }
 
@@ -549,7 +551,7 @@ public final class Locale implements Serializable, Cloneable
       return "";
     else if (country.length() == 0 && variant.length() == 0)
       return language;
-    StringBuffer result = new StringBuffer(language);
+    CPStringBuilder result = new CPStringBuilder(language);
     result.append('_').append(country);
     if (variant.length() != 0)
       result.append('_').append(variant);
@@ -923,7 +925,7 @@ public final class Locale implements Serializable, Cloneable
    */
   public String getDisplayName(Locale locale)
   {
-    StringBuffer result = new StringBuffer();
+    CPStringBuilder result = new CPStringBuilder();
     int count = 0;
     String[] delimiters = {"", " (", ","};
     if (language.length() != 0)
@@ -1022,9 +1024,6 @@ public final class Locale implements Serializable, Cloneable
     throws IOException, ClassNotFoundException
   {
     s.defaultReadObject();
-    language = language.intern();
-    country = country.intern();
-    variant = variant.intern();
     hashcode = language.hashCode() ^ country.hashCode() ^ variant.hashCode();
   }
 } // class Locale

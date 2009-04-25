@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -47,43 +47,42 @@ procedure XSnames is
    InH  : File_Type;
    OutH : File_Type;
 
-   A, B    : VString := Nul;
-   Line    : VString := Nul;
-   Name    : VString := Nul;
-   Name1   : VString := Nul;
-   Oname   : VString := Nul;
-   Oval    : VString := Nul;
-   Restl   : VString := Nul;
+   A, B  : VString := Nul;
+   Line  : VString := Nul;
+   Name  : VString := Nul;
+   Name1 : VString := Nul;
+   Oval  : VString := Nul;
+   Restl : VString := Nul;
 
-   Tdigs : Pattern := Any (Decimal_Digit_Set) &
-                      Any (Decimal_Digit_Set) &
-                      Any (Decimal_Digit_Set);
+   Tdigs : constant Pattern := Any (Decimal_Digit_Set) &
+                               Any (Decimal_Digit_Set) &
+                               Any (Decimal_Digit_Set);
 
-   Name_Ref : Pattern := Span (' ') * A & Break (' ') * Name
-                           & Span (' ') * B
-                           & ": constant Name_Id := N + " & Tdigs
-                           & ';' & Rest * Restl;
+   Name_Ref : constant Pattern := Span (' ') * A & Break (' ') * Name
+                                  & Span (' ') * B
+                                  & ": constant Name_Id := N + " & Tdigs
+                                  & ';' & Rest * Restl;
 
-   Get_Name : Pattern := "Name_" & Rest * Name1;
-
-   Chk_Low  : Pattern := Pos (0) & Any (Lower_Set) & Rest & Pos (1);
-
-   Findu    : Pattern := Span ('u') * A;
+   Get_Name : constant Pattern := "Name_" & Rest * Name1;
+   Chk_Low  : constant Pattern := Pos (0) & Any (Lower_Set) & Rest & Pos (1);
+   Findu    : constant Pattern := Span ('u') * A;
 
    Val : Natural;
 
-   Xlate_U_Und : Character_Mapping := To_Mapping ("u", "_");
+   Xlate_U_Und : constant Character_Mapping := To_Mapping ("u", "_");
 
    M : Match_Result;
 
    type Header_Symbol is (None, Attr, Conv, Prag);
    --  A symbol in the header file
 
-   --  Prefixes used in the header file
+   procedure Output_Header_Line (S : Header_Symbol);
+   --  Output header line
 
    Header_Attr : aliased String := "Attr";
    Header_Conv : aliased String := "Convention";
    Header_Prag : aliased String := "Pragma";
+   --  Prefixes used in the header file
 
    type String_Ptr is access all String;
    Header_Prefix : constant array (Header_Symbol) of String_Ptr :=
@@ -94,9 +93,12 @@ procedure XSnames is
 
    --  Patterns used in the spec file
 
-   Get_Attr : Pattern := Span (' ') & "Attribute_" & Break (",)") * Name1;
-   Get_Conv : Pattern := Span (' ') & "Convention_" & Break (",)") * Name1;
-   Get_Prag : Pattern := Span (' ') & "Pragma_" & Break (",)") * Name1;
+   Get_Attr : constant Pattern := Span (' ') & "Attribute_"
+                                  & Break (",)") * Name1;
+   Get_Conv : constant Pattern := Span (' ') & "Convention_"
+                                  & Break (",)") * Name1;
+   Get_Prag : constant Pattern := Span (' ') & "Pragma_"
+                                  & Break (",)") * Name1;
 
    type Header_Symbol_Counter is array (Header_Symbol) of Natural;
    Header_Counter : Header_Symbol_Counter := (0, 0, 0, 0);
@@ -117,7 +119,7 @@ procedure XSnames is
 
       if Header_Current_Symbol /= S then
          declare
-            Pat : String := "#define  " & Header_Prefix (S).all;
+            Pat : constant String := "#define  " & Header_Prefix (S).all;
             In_Pat : Boolean := False;
 
          begin
@@ -129,7 +131,7 @@ procedure XSnames is
                Line := Get_Line (InH);
 
                if Match (Line, Pat) then
-                  In_Pat := true;
+                  In_Pat := True;
                elsif In_Pat then
                   Header_Pending_Line := Line;
                   exit;
@@ -162,7 +164,6 @@ begin
    Create (OutH, Out_File, "snames.nh");
 
    Anchored_Mode := True;
-   Oname := Nul;
    Val := 0;
 
    loop

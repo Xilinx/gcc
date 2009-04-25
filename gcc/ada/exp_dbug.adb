@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@ with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Output;   use Output;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Eval; use Sem_Eval;
 with Sem_Util; use Sem_Util;
 with Sinfo;    use Sinfo;
@@ -464,7 +465,12 @@ package body Exp_Dbug is
 
       Set_Debug_Renaming_Link (Obj, Entity (Ren));
 
-      Set_Needs_Debug_Info (Obj);
+      Set_Debug_Info_Needed (Obj);
+
+      --  Mark the object as internal so that it won't be initialized when
+      --  pragma Initialize_Scalars or Normalize_Scalars is in use.
+
+      Set_Is_Internal (Obj);
 
       return Res;
 
@@ -530,7 +536,7 @@ package body Exp_Dbug is
       --  For all these cases, just return the name unchanged
 
       then
-         Name_Buffer (Name_Len + 1) := ASCII.Nul;
+         Name_Buffer (Name_Len + 1) := ASCII.NUL;
          return;
       end if;
 
@@ -746,7 +752,7 @@ package body Exp_Dbug is
          Get_Qualified_Name_And_Append (E);
       end if;
 
-      Name_Buffer (Name_Len + 1) := ASCII.Nul;
+      Name_Buffer (Name_Len + 1) := ASCII.NUL;
    end Get_External_Name;
 
    -----------------------------------
@@ -779,7 +785,7 @@ package body Exp_Dbug is
       if Has_Suffix then
          Add_Str_To_Name_Buffer ("___");
          Add_Str_To_Name_Buffer (Suffix);
-         Name_Buffer (Name_Len + 1) := ASCII.Nul;
+         Name_Buffer (Name_Len + 1) := ASCII.NUL;
       end if;
    end Get_External_Name_With_Suffix;
 
@@ -1237,7 +1243,7 @@ package body Exp_Dbug is
                Add_Str_To_Name_Buffer ("__");
             end if;
 
-            --  Otherwise get name and note if it is a NPBE
+            --  Otherwise get name and note if it is a BNPE
 
             Get_Name_String_And_Append (Chars (E));
 

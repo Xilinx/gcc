@@ -1,3 +1,513 @@
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* jcf-parse.c (handle_constant): Add cast to enum type.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* builtins.c: Update GTY annotations to new syntax
+	* decl.c: Likewise
+	* java-tree.h: Likewise
+	* jcf.h: Likewise
+	* lang.c: Likewise
+
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, ChangeLog.ptr, ChangeLog.tree-ssa: Add copyright and
+	license notices.
+
+2009-04-18  Ian Lance Taylor  <iant@google.com>
+
+	* verify-impl.c (verify_instructions_0): Add cast to enum type.
+
+2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
+
+        * builtins.c (compareAndSwapLong_builtin,
+        compareAndSwapInt_builtin, compareAndSwapObject_builtin,
+        VMSupportsCS8_builtin): Do not look at sync_compare_and_swap_cc.
+
+2009-03-31  Richard Guenther  <rguenther@suse.de>
+
+	* java-gimplify.c (java_gimplify_expr): Do not manually gimplify
+	the first operand of binary and comaprison expressions.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	PR rtl-optimization/323
+	* lang.c (java_post_options): Set flag_excess_precision_cmdline.
+	Give an error for -fexcess-precision=standard for processors where
+	the option is significant.
+
+2009-03-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* lang.opt: Unify help text for -Wdeprecated.
+
+2009-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2009-01-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38835
+	PR middle-end/36227
+	* builtins.c (build_addr_sum): Use POINTER_PLUS_EXPR.
+
+2008-12-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR bootstrap/38262
+	* Make-lang.in (jc1): Add BACKENDLIBS, remove GMPLIBS.
+
+2008-11-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/37068
+	* jcf-parse.c (java_emit_static_constructor): Don't call
+	cgraph_build_static_cdtor.  Rewrite.
+
+2008-10-24  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check-java-subtargets): New target.
+
+2008-10-16  David Edelsohn  <edelsohn@gnu.org>
+
+	PR target/35483
+	* Make-lang.in (class.o): Depend on $(TM_P_H).
+	(expr.o): Same.
+	* class.c: Include tm_p.h.
+	* expr.c: Include tm_p.h.
+
+2008-10-14  Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constant_data_ref): Make sure we only build
+	one copy of the decl for the constant pool.
+
+2008-09-22  Andrew Haley  <aph@redhat.com>
+
+	* expr.c (rules): Add new rule for
+	gnu.java.lang.VMCPStringBuilder.toString.
+	(rewrite_rule.new_classname): New field.
+	(maybe_rewrite_invocation): Use new_classname field instead of
+	DECL_CONTEXT (*method_p).
+	Allow rewrite_arglist to be NULL.
+
+2008-09-17  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* lang.c (LANG_HOOKS_GET_CALLEE_FNDECL): Don't define.
+	(java_get_callee_fndecl): Kill.
+
+2008-09-17  Jan Hubicka  <jh@suse.cz>
+
+	PR c++/18071
+	* class.c (add_method_1): Do not initialize DECL_INLINE.
+	(make_local_function_alias): Likewise.
+	* expr.c (rewrite_arglist_getcaller): Set DECL_UNINLINABLE.
+	* lang.c (java_decl_ok_for_sibcall): Use DECL_UNINLINABLE.
+
+2008-09-09  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (build_result_decl): Remove no longer applicable
+	promotion.
+
+2008-09-05  David Daney  <ddaney@avtrex.com>
+
+	* gcj.texi (-freduced-reflection): Clarify option's restrictions.
+
+2008-08-21  David Daney  <ddaney@avtrex.com>
+
+	* class.c (make_class_data): Don't add field_index when
+	flag_reduced_reflection set.
+
+2008-08-12  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* typeck.c (convert): Do not check for TARGET_FLOAT_FORMAT.
+
+2008-08-08  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR 28875
+	* lang.c (java_handle_option): Replace set_Wunused with
+	warn_unused.
+
+2008-07-30  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi: Update copyright years.  Do not list GPL as
+	Invariant Section.
+
+2008-07-29  Jakub Jelinek  <jakub@redhat.com>
+
+	* class.c (build_utf8_ref): Set DECL_SIZE and DECL_SIZE_UNIT
+	from ctype's sizes.
+
+	* class.c (build_utf8_ref): Pad initializer string to utf8const_type's
+	alignment.
+
+2008-07-29  Jan Hubicka  <jh@suse.cz>
+
+	* lang.c (java_post_options): Remove handling of flag_no_inline.
+
+2008-07-28  Richard Guenther  <rguenther@suse.de>
+
+	Merge from gimple-tuples-branch.
+
+	2008-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c: Include tree-iterator.h.
+	* Make-lang.in (expr.o): Add tree-iterator.h dependency.
+
+	2008-07-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c: Include gimple.h instead of tree-gimple.h.
+	* expr.c: Same.
+
+	2008-07-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c (java_gimplify_expr): Same.
+	(java_gimplify_modify_expr): Same.
+	* java-tree.h: Rename GENERIC_NEXT to TREE_CHAIN.
+
+	2008-05-02  Diego Novillo  <dnovillo@google.com>
+
+	* expr.c (build_java_throw_out_of_bounds_exception): Fix
+	mixed declarations and code.
+
+	2008-05-02  Doug Kwan  <dougkwan@google.com>
+	
+	* expr.c (build_java_throw_out_of_bounds_exception ): Wrap call to
+	_Jv_ThrowBadArrayIndex with a COMPOUND_EXPR to return 0.
+
+	2008-02-19  Diego Novillo  <dnovillo@google.com>
+
+	http://gcc.gnu.org/ml/gcc-patches/2008-02/msg00804.html
+
+	* java-gimplify.c (java_gimplify_self_mod_expr): Change
+	gimple_seq arguments to gimple_seq *.  Update all users.
+
+	2007-11-26  Aldy Hernandez  <aldyh@redhat.com>
+
+	* java-gimplify.c (java_gimplify_expr): Make pre_p and post_p
+	sequences.
+	(java_gimplify_self_mod_expr): Same.                                    
+	* java-tree.h (java_gimplify_expr): Make pre_p and post_p               
+	sequences.
+
+2008-07-24  Jan Hubicka  <jh@suse.cz>
+
+	* java/decl.c: Include cgraph.h
+	(end_java_method): Remove non-unit-at-a-time code.
+	(java_mark_decl_local): Likewise; sanity check that we don't touch
+	finalized nodes.
+
+2008-07-15  Jan Hubicka  <jh@suse.cz>
+
+	* lang.c (java_init_options): Enable unit-at-a-time by default.
+
+2008-07-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Make-lang.in (jvspec.o): Fix dependencies.
+
+2008-07-06  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java/parse.o-warn): Remove.
+	(java/jcf-io.o-warn): Remove.
+
+2008-07-05  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-io.c: Don't include fnmatch.h.  Don't use JCF_USE_SCANDIR.
+	(compare_path): Remove.
+	(java_or_class_file): Likewise.
+	(memoized_dirlist_entry): Likewise.
+	(memoized_dirlist_hash): Likewise.
+	(memoized_dirlist_lookup_eq): Likewise.
+	(memoized_dirlists): Likewise.
+	(caching_stat): Likewise.
+	(find_class): Use stat.
+	* jcf.h (JCF_USE_SCANDIR): Remove.
+
+2008-06-30  Joshua Sumali  <jsumali@redhat.com>
+
+	* Make-lang.in (JAVA_MANFILES): Add doc/aot-compile.1 and
+	doc/rebuild-gcj-db.1
+	(java.uninstall): Likewise.
+	(java.maintainer-clean): Likewise.
+	(aot-compile.pod): New rule.
+	(rebuild-gcj-db.pod): New rule.
+	(java.install-man): Install doc/aot-compile.1 and doc/rebuild-gcj-db.1
+	* gcj.texi: Add new sections for aot-compile and rebuild-gcj-db.
+
+2008-06-29  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* Make-lang.in (java/jcf-io.o-warn): New.
+
+2008-06-24  Tom Tromey  <tromey@redhat.com>
+
+	* jcf-path.c (jcf_path_init): Don't name variable 'try'.
+	* expr.c (add_type_assertion): Rename argument.
+	(build_java_arrayaccess): Don't name variable 'throw'.
+	(ARRAY_NEW_MULTI): Don't name variable 'class'.
+	* jcf-io.c (find_class): Don't name variable 'class'.
+	* mangle.c (compression_table_add): Don't name variable 'new'.
+	* constants.c (cpool_for_class): Rename argument.
+	(alloc_constant_fieldref): Likewise.
+	* jcf-parse.c (handle_innerclass_attribute): Don't name variable
+	'class'.
+	(read_class): Likewise.
+	(parse_zip_file_entries): Likewise.
+	(process_zip_dir): Likewise.
+	* decl.c (java_mark_class_local): Rename argument.
+	* class.c (GEN_TABLE): Use type_name, not typename.
+	(gen_indirect_dispatch_tables): Likewise.
+	(add_field): Rename argument.
+	(is_compiled_class): Likewise.
+	(safe_layout_class): Likewise.
+	(emit_assertion_table): Likewise.
+	* typeck.c (has_method): Rename argument.
+
+2008-06-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* class.c (ident_subst, mangled_classname, unmangle_classname,
+	gen_indirect_dispatch_tables, add_method_1,
+	build_fieldref_cache_entry, make_local_function_alias,
+	layout_class, java_treetreehash_find, java_treetreehash_new,
+	split_qualified_name): Fix for -Wc++-compat.
+	* constants.c (set_constant_entry, cpool_for_class): Likewise.
+	* decl.c (make_binding_level, java_dup_lang_specific_decl,
+	start_java_method): Likewise.
+	* except.c (prepare_eh_table_type): Likewise.
+	* expr.c (type_assertion_hash, note_instructions): Likewise.
+	* java-tree.h (MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC,
+	MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC): Likewise.
+	* jcf-io.c (jcf_filbuf_from_stdio, opendir_in_zip, find_class):
+	Likewise.
+	* jcf-parse.c (reverse, java_read_sourcefilenames,
+	annotation_grow, rewrite_reflection_indexes, java_parse_file,
+	process_zip_dir): Likewise.
+	* jcf-path.c (add_entry, add_path, jcf_path_init,
+	jcf_path_extdirs_arg): Likewise.
+	* jcf-reader.c (jcf_parse_constant_pool): Likewise.
+	* jvgenmain.c (do_mangle_classname): Likewise.
+	* lang.c (put_decl_string): Likewise.
+	* verify-impl.c (make_state_copy, make_state, add_new_state):
+	Likewise.
+
+2008-06-15  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gcj.texi: Expand TABs, remove whitespace from blank lines.
+
+2008-06-14  Tom Tromey  <tromey@redhat.com>
+
+	PR java/36247:
+	* class.c (build_class_ref): Initialize this_classdollar when
+	needed.
+
+2008-05-23  Andrew Haley  <aph@redhat.com>
+
+	* jcf-parse.c (give_name_to_class): Call find_sourcefile to find full
+	pathname of source file.
+
+2008-05-12  Aaron W. LaFramboise  <aaronavay62@aaronwl.com>
+
+	* jcf-dump.c (print_constant): Use
+	HOST_LONG_LONG_FORMAT.
+
+2008-05-07  Kenneth Zadeck <zadeck@naturalbridge.com>
+
+	* decl.c (java_init_decl_processing): Change DECL_IS_PURE to
+	DECL_PURE_P.
+
+2008-04-23  Paolo Bonzini  <bonzini@gnu.org>
+
+	* class.c (build_utf8_ref): Don't set TREE_INVARIANT.
+	(build_classdollar_field): Don't set TREE_INVARIANT.
+	(get_dispatch_table): Don't set TREE_INVARIANT.
+	(make_class_data): Don't set TREE_INVARIANT.
+	(build_symbol_entry): Don't set TREE_INVARIANT.
+	(emit_symbol_table): Don't set TREE_INVARIANT.
+	* constants.c (build_constant_data_ref): Don't set TREE_INVARIANT.
+	(build_ref_from_constant_pool): Don't set TREE_INVARIANT.
+	* resource.c (compile_resource_data): Don't set TREE_INVARIANT.
+	* expr.c (cache_cpool_data_ref): Don't set TREE_INVARIANT.
+
+2008-04-03  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java_OBJS): New variable.
+
+2008-04-03  Paolo Bonzini  <bonzini@gnu.org>
+
+        * java-tree.h (insert_block): Kill.
+        * decl.c (insert_block): Kill.
+		
+2008-04-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcj.texi: Include gpl_v3.texi instead of gpl.texi
+	* Make-lang.in (TEXI_JAVA_FILES): Include gpl_v3.texi instead of
+	gpl.texi.
+
+2008-03-27  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Revert automatic dependency patch.
+
+2008-03-25  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in: Removed most explicit .o targets.
+	(java/jvspec.o): Reduce to variable setting.  Moved to java/.
+	($(GCJ)$(exeext)): Update.
+	(JAVA_OBJS): New variable.
+	(JCFDUMP_OBJS): Reformat.
+	(java_OBJS): New variable.
+	(java/jvspec.o-warn): Update.
+	(java/parse.o-warn): Remove.
+	(JAVA_TREE_H): Remove.
+	(java/jcf-io.o): Reduce to variable setting.
+	(ALL_CPPFLAGS): Likewise.
+
+2008-03-12  Paolo Bonzini  <bonzini@gnu.org>
+
+	* mangle.c (java_mangle_decl): Remove dead check.
+
+2008-03-11  Paolo Bonzini  <bonzini@gnu.org>
+
+        * jcf-parse.c (java_parse_file): Assert binding levels are
+        left in order.
+        * lang.c (LANG_HOOKS_CLEAR_BINDING_STACK, java_clear_binding_stack):
+        Delete.
+
+2008-03-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* jcf-dump.c (version): Update copyright notice dates.
+
+2008-02-29  Tom Tromey  <tromey@redhat.com>
+
+	* expr.c (expand_byte_code): Set DECL_FUNCTION_LAST_LINE on
+	method.
+	* java-tree.h (struct lang_decl_func): Remove obsolete comment.
+
+2008-02-26  Tom Tromey  <tromey@redhat.com>
+
+	* lang.c (java_post_options): Remove conditional.
+	* expr.c (expand_byte_code): Remove old location code.
+	* jcf-parse.c (set_source_filename): Remove old location code.
+	(give_name_to_class): Likewise.
+	(jcf_parse): Likewise.
+	(duplicate_class_warning): Likewise.
+	(parse_class_file): Likewise.
+	(java_parse_file): Likewise.
+	* decl.c (finish_method): Remove old location code.
+	* class.c (push_class): Remove old location code.
+
+2008-02-06  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR other/35107
+	* Make-lang.in (jc1): Add $(GMPLIBS).
+
+2008-01-23  David Daney  <ddaney@avtrex.com>
+
+	* class.c (hide)  Rename to...
+	(java_hide_decl) ... this throughout, and make public.
+	* resource.c (Jr_count): Remove.
+	(compile_resource_data): Call java_mangle_resource_name to generate
+	decl name.  Make resource decl public and hidden.
+	* mangle.c (java_mangle_resource_name): New function.
+	* java-tree.h (java_hide_decl, java_mangle_resource_name): Declare
+	functions.
+
+2008-01-04  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Move decl to compile on
+	C90.
+
+2008-01-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/17779
+	* jcf-parse.c (parse_zip_file_entries): Unset TYPE_ALIAS_SET if
+	we're about to re-layout the type.
+
+2007-12-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	* lang.c (java_classify_record): Don't return
+	RECORD_IS_INTERFACE for now.
+
+2007-12-18  Andrew Haley  <aph@redhat.com>
+
+	PR java/27643
+	* jcf-parse.c (java_parse_file): Remove call to
+	java_mark_class_local.
+	(parse_class_file): Reinstate call to java_mark_class_local here.
+	* decl.c (java_mark_cni_decl_local): If the ASSEMBLER_NAME is
+	already set, call java_mangle_decl() and make_decl_rtl() to
+	rewrite its name as a hidden alias.
+
+2007-12-15  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/7081
+	* lang.c (java_classify_record): New.
+	(LANG_HOOKS_CLASSIFY_RECORD): Override.
+
+2007-11-26  Andreas Krebbel  <krebbel1@de.ibm.com>
+
+	PR 34081/C++
+	* decl.c (finish_method): Pass 'false' for the new
+	allocate_struct_function parameter.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (build_jni_stub): Use the computed jni func type for
+	variable meth.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* class.c (JAVA_TREEHASHHASH_H): Use TYPE_UID.
+
+2007-11-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	* expr.c (type_assertion_hash): Hash type uids rather than
+	tree pointers.
+
+2007-11-17  David Daney  <ddaney@avtrex.com>
+	    Andrew Haley  <aph@redhat.com>
+
+	* constants.c (build_constants_constructor):  Use POINTER_SIZE
+	insead of BITS_PER_WORD in big-endian work around.
+
+2007-11-07  Tom Tromey  <tromey@redhat.com>
+
+	PR java/34019:
+	* gcj.texi (Input Options): Add missing noun.
+
+2007-11-02  Tom Tromey  <tromey@redhat.com>
+
+	PR java/33765:
+	* jcf-parse.c (java_parse_file): Ignore ZIPEMPTYMAGIC files.
+	* zipfile.h (ZIPEMPTYMAGIC): New define.
+
+2007-11-01  Tom Tromey  <tromey@redhat.com>
+
+	* Make-lang.in (java/jcf-dump.o): Depend on zipfile.h.
+	(java/jcf-parse.o): Depend on jcf-reader.c, zipfile.h, and jcf.h.
+	(java/jcf-io.o): Depend on zipfile.h.
+
+2007-10-17  Richard Guenther  <rguenther@suse.de>
+
+	* Make-lang.in (java/builtins.o): Add $(OPTABS_H) and $(EXPR_H)
+	dependencies.
+
+2007-10-03  Andrew Haley  <aph@redhat.com>
+
+	PR java/33639
+	* class.c (mangled_classname): Detect and replace illegal
+	characters in assembly language symbols.
+	(gen_indirect_dispatch_tables): Call mangled_classname() on
+	the type.
+
+2007-09-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* lang.c (java_print_error_function): Add third argument.
+
+2007-09-15  Tom Tromey  <tromey@redhat.com>
+
+	* java-tree.h (struct lang_decl_func) <function_decl_body>:
+	Remove.
+	<init_final>: Likewise.
+	* lang.c (java_dump_tree): Update.
+	* java-tree.h (DECL_FUNCTION_BODY): Remove.
+
 2007-09-11  Jan Hubicka <jh@suse.cz>
 
 	* decl.c (java_expand_body): Kill.
@@ -9,7 +519,7 @@
 
 2007-09-07  Roman Zippel  <zippel@linux-m68k.org>
 
-	boehm.c (mark_reference_fields): Move misaligned pointer check
+	* boehm.c (mark_reference_fields): Move misaligned pointer check
 	after JREFERENCE_TYPE_P test
 
 2007-09-06  Roman Zippel  <zippel@linux-m68k.org>
@@ -236,7 +746,7 @@
 	NEGATIVE and then a POINTER_PLUS_EXPR instead
 	of a MINUS_EXPR.
 
-2007-06-11  Rafael Avila de Espindola  <espindola@google.com>
+2007-06-11  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* typeck.c (java_signed_type): Remove.
 	* lang.c (LANG_HOOKS_SIGNED_TYPE): Remove.
@@ -247,7 +757,7 @@
 	* jcf-dump.c (HANDLE_MAGIC): Use 'unsigned long' for %lx.
 	(print_constant): Likewise.
 
-2007-05-14  Rafael Avila de Espindola  <espindola@google.com>
+2007-05-14  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* expr.c (build_java_binop): Use unsigned_type_for instead of
 	java_unsigned_type.
@@ -282,7 +792,7 @@
 	* jcf-parse.c (give_name_to_class): Don't set input_location from
 	DECL_ARTIFICIAL decls.
 
-2007-03-30  Rafael Avila de Espindola  <espindola@google.com>
+2007-03-30  Rafael Ávila de Espíndola  <espindola@google.com>
 
 	* typeck.c (java_signed_or_unsigned_type): Removed.
 	(java_signed_type): use get_signed_or_unsigned_type instead of
@@ -1162,7 +1672,7 @@
 	* jcf-path.c (jcf_path_compute): New function.
 	* jcf.h (jcf_path_compute): Declare.
 
-2006-10-23 Rafael Avila de Espindola  <rafael.espindola@gmail.com>
+2006-10-23 Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* decl.c: Include langhooks.h.
 	(builtin_function): Remove.
@@ -1629,7 +2139,7 @@
 	* jv-scan.c (version), jcf-dump.c (version), gjavah.c (version):
 	Update copyright notice dates.
 
-2006-01-16  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2006-01-16  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* jvspec.c (lang_specific_spec_functions): Remove.
 
@@ -1682,11 +2192,11 @@
 	* expr.c (build_field_ref): Add in-line check for missing field.
 	* decl.c (java_init_decl_processing): Add soft_nosuchfield_node.
 
-2005-12-07  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in (java.all.build, java.install-normal): Remove.
 
-2005-12-07  Rafael �vila de Esp�ndola  <rafael.espindola@gmail.com>
+2005-12-07  Rafael Ávila de Espíndola  <rafael.espindola@gmail.com>
 
 	* Make-lang.in: Remove all dependencies on s-gtype, except for
 	gt-java-parse.h.
@@ -12618,7 +13128,7 @@
 	properly initialize `finished_label'. Don't emit gotos for empty
 	try statements.
 
-2000-03-19  Martin v. Loewis  <loewis@informatik.hu-berlin.de>
+2000-03-19  Martin v. Löwis  <loewis@informatik.hu-berlin.de>
 
 	* except.c (emit_handlers): Clear catch_clauses_last.
 
@@ -12896,7 +13406,7 @@
 	(build_current_thisn): Likewise.
 	(patch_method_invocation): Likewise.
 
-2000-03-01  Martin von Loewis  <loewis@informatik.hu-berlin.de>
+2000-03-01  Martin von Löwis  <loewis@informatik.hu-berlin.de>
 
 	* decl.c (current_function_decl): Move to toplev.c.
 
@@ -12993,7 +13503,7 @@
 	(expand_java_return): Handle the case of a native integer smaller
 	than a JVM integer.
 
-2000-02-18  Martin von Loewis  <loewis@informatik.hu-berlin.de>
+2000-02-18  Martin von Löwis  <loewis@informatik.hu-berlin.de>
 
 	* gjavah.c (help): Use GCCBUGURL.
 	* jv-scan.c (help): Likewise.
@@ -21164,3 +21674,11 @@ Tue Mar  9 11:52:08 1999  Alexandre Petit-Bianco  <apbianco@cygnus.com>
 1996-10-24  Per Bothner  <bothner@deneb.cygnus.com>
 
 	New directory.
+
+
+Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

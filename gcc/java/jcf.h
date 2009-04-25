@@ -1,6 +1,6 @@
 /* Utility macros to read Java(TM) .class files and byte codes.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -45,14 +45,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #define JCF_word JCF_u4
 #endif
 
-/* If we have both "scandir" and "alphasort", we can cache directory
-   listings to reduce the time taken to search the classpath.  */
-#if defined(HAVE_SCANDIR) && defined(HAVE_ALPHASORT)
-#define JCF_USE_SCANDIR 1
-#else
-#define JCF_USE_SCANDIR 0
-#endif 
-
 /* On case-insensitive file systems, we need to ensure that a request
    to open a .java or .class file is honored only if the file to be
    opened is of the exact case we are asking for. In other words, we
@@ -74,7 +66,7 @@ jcf_open_exact_case (const char* filename, int oflag);
 struct JCF;
 typedef int (*jcf_filbuf_t) (struct JCF*, int needed);
 
-union cpool_entry GTY(()) {
+union GTY(()) cpool_entry {
   jword GTY ((tag ("0"))) w;
   tree GTY ((tag ("1"))) t;
 };
@@ -82,7 +74,7 @@ union cpool_entry GTY(()) {
 #define cpool_entry_is_tree(tag) \
   (tag & CONSTANT_ResolvedFlag) || tag == CONSTANT_Utf8
 
-typedef struct CPool GTY(()) {
+typedef struct GTY(()) CPool {
   /* Available number of elements in the constants array, before it
      must be re-allocated. */
   int capacity;
@@ -100,7 +92,7 @@ struct ZipDirectory;
 
 /* JCF encapsulates the state of reading a Java Class File. */
 
-typedef struct JCF GTY(()) {
+typedef struct GTY(()) JCF {
   unsigned char * GTY ((skip)) buffer;
   unsigned char * GTY ((skip)) buffer_end;
   unsigned char * GTY ((skip)) read_ptr;

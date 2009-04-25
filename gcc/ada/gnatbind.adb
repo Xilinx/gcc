@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -63,6 +63,10 @@ procedure Gnatbind is
 
    Main_Lib_File : File_Name_Type;
    --  Current main library file
+
+   First_Main_Lib_File : File_Name_Type := No_File;
+   --  The first library file, that should be a main subprogram if neither -n
+   --  nor -z are used.
 
    Std_Lib_File : File_Name_Type;
    --  Standard library
@@ -160,48 +164,96 @@ procedure Gnatbind is
       Additional_Restrictions_Listed : Boolean := False;
       --  Set True if we have listed header for restrictions
 
+      function Restriction_Could_Be_Set (R : Restriction_Id) return Boolean;
+      --  Returns True if the given restriction can be listed as an additional
+      --  restriction that could be set.
+
+      ------------------------------
+      -- Restriction_Could_Be_Set --
+      ------------------------------
+
+      function Restriction_Could_Be_Set (R : Restriction_Id) return Boolean is
+         CR : Restrictions_Info renames Cumulative_Restrictions;
+
+      begin
+         case R is
+
+            --  Boolean restriction
+
+            when All_Boolean_Restrictions =>
+
+               --  The condition for listing a boolean restriction as an
+               --  additional restriction that could be set is that it is
+               --  not violated by any unit, and not already set.
+
+               return CR.Violated (R) = False and then CR.Set (R) = False;
+
+            --  Parameter restriction
+
+            when All_Parameter_Restrictions =>
+
+               --  If the restriction is violated and the level of violation is
+               --  unknown, the restriction can definitely not be listed.
+
+               if CR.Violated (R) and then CR.Unknown (R) then
+                  return False;
+
+               --  We can list the restriction if it is not set
+
+               elsif not CR.Set (R) then
+                  return True;
+
+               --  We can list the restriction if is set to a greater value
+               --  than the maximum value known for the violation.
+
+               else
+                  return CR.Value (R) > CR.Count (R);
+               end if;
+
+            --  No other values for R possible
+
+            when others =>
+               raise Program_Error;
+
+         end case;
+      end Restriction_Could_Be_Set;
+
+   --  Start of processing for List_Applicable_Restrictions
+
    begin
       --  Loop through restrictions
 
       for R in All_Restrictions loop
-         if not No_Restriction_List (R) then
-
-            --  We list a restriction if it is not violated, or if
-            --  it is violated but the violation count is exactly known.
-
-            if Cumulative_Restrictions.Violated (R) = False
-              or else (R in All_Parameter_Restrictions
-                       and then
-                         Cumulative_Restrictions.Unknown (R) = False)
-            then
-               if not Additional_Restrictions_Listed then
-                  Write_Eol;
-                  Write_Line
-                    ("The following additional restrictions may be" &
-                     " applied to this partition:");
-                  Additional_Restrictions_Listed := True;
-               end if;
-
-               Write_Str ("pragma Restrictions (");
-
-               declare
-                  S : constant String := Restriction_Id'Image (R);
-               begin
-                  Name_Len := S'Length;
-                  Name_Buffer (1 .. Name_Len) := S;
-               end;
-
-               Set_Casing (Mixed_Case);
-               Write_Str (Name_Buffer (1 .. Name_Len));
-
-               if R in All_Parameter_Restrictions then
-                  Write_Str (" => ");
-                  Write_Int (Int (Cumulative_Restrictions.Count (R)));
-               end if;
-
-               Write_Str (");");
+         if not No_Restriction_List (R)
+            and then Restriction_Could_Be_Set (R)
+         then
+            if not Additional_Restrictions_Listed then
                Write_Eol;
+               Write_Line
+                 ("The following additional restrictions may be" &
+                  " applied to this partition:");
+               Additional_Restrictions_Listed := True;
             end if;
+
+            Write_Str ("pragma Restrictions (");
+
+            declare
+               S : constant String := Restriction_Id'Image (R);
+            begin
+               Name_Len := S'Length;
+               Name_Buffer (1 .. Name_Len) := S;
+            end;
+
+            Set_Casing (Mixed_Case);
+            Write_Str (Name_Buffer (1 .. Name_Len));
+
+            if R in All_Parameter_Restrictions then
+               Write_Str (" => ");
+               Write_Int (Int (Cumulative_Restrictions.Count (R)));
+            end if;
+
+            Write_Str (");");
+            Write_Eol;
          end if;
       end loop;
    end List_Applicable_Restrictions;
@@ -313,7 +365,7 @@ procedure Gnatbind is
                then
                   null;
 
-               --  Invalid -S switch, let Switch give error, set defalut of IN
+               --  Invalid -S switch, let Switch give error, set default of IN
 
                else
                   Scan_Binder_Switches (Argv);
@@ -399,6 +451,9 @@ procedure Gnatbind is
       end if;
    end Scan_Bind_Arg;
 
+   procedure Check_Version_And_Help is
+      new Check_Version_And_Help_G (Bindusg.Display);
+
 --  Start of processing for Gnatbind
 
 begin
@@ -425,7 +480,7 @@ begin
 
    --  First, scan to detect --version and/or --help
 
-   Check_Version_And_Help ("GNATBIND", "1995", Bindusg.Display'Access);
+   Check_Version_And_Help ("GNATBIND", "1995");
 
    --  Use low level argument routines to avoid dragging in the secondary stack
 
@@ -593,6 +648,10 @@ begin
       while More_Lib_Files loop
          Main_Lib_File := Next_Main_Lib_File;
 
+         if First_Main_Lib_File = No_File then
+            First_Main_Lib_File := Main_Lib_File;
+         end if;
+
          if Verbose_Mode then
             if Check_Only then
                Write_Str ("Checking: ");
@@ -683,6 +742,15 @@ begin
 
       Set_Source_Table;
 
+      --  If there is main program to bind, set Main_Lib_File to the first
+      --  library file, and the name from which to derive the binder generate
+      --  file to the first ALI file.
+
+      if Bind_Main_Program then
+         Main_Lib_File := First_Main_Lib_File;
+         Set_Current_File_Name_Index (To => 1);
+      end if;
+
       --  Check that main library file is a suitable main program
 
       if Bind_Main_Program
@@ -690,7 +758,7 @@ begin
         and then not No_Main_Subprogram
       then
          Error_Msg_File_1 := Main_Lib_File;
-         Error_Msg ("% does not contain a unit that can be a main program");
+         Error_Msg ("{ does not contain a unit that can be a main program");
       end if;
 
       --  Perform consistency and correctness checks

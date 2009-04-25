@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -53,6 +53,7 @@ package body ALI is
       'D'    => True,   -- dependency
       'X'    => True,   -- xref
       'S'    => True,   -- specific dispatching
+      'Y'    => True,   -- limited_with
       others => False);
 
    --------------------
@@ -481,8 +482,7 @@ package body ALI is
          end if;
 
          loop
-            Name_Len := Name_Len + 1;
-            Name_Buffer (Name_Len) := Getc;
+            Add_Char_To_Name_Buffer (Getc);
 
             exit when At_End_Of_Field and not Ignore_Spaces;
 
@@ -772,7 +772,7 @@ package body ALI is
       --  Acquire lines to be ignored
 
       if Read_Xref then
-         Ignore := ('U' | 'W' | 'D' | 'X' => False, others => True);
+         Ignore := ('U' | 'W' | 'Y' | 'D' | 'X' => False, others => True);
 
       --  Read_Lines parameter given
 
@@ -824,7 +824,7 @@ package body ALI is
         Sfile                      => No_File,
         Task_Dispatching_Policy    => ' ',
         Time_Slice_Value           => -1,
-        WC_Encoding                => '8',
+        WC_Encoding                => 'b',
         Unit_Exception_Table       => False,
         Ver                        => (others => ' '),
         Ver_Len                    => 0,
@@ -930,12 +930,21 @@ package body ALI is
 
          else
             Checkc (' ');
-            Name_Len := 0;
 
+            --  Scan out argument
+
+            Name_Len := 0;
             while not At_Eol loop
-               Name_Len := Name_Len + 1;
-               Name_Buffer (Name_Len) := Getc;
+               Add_Char_To_Name_Buffer (Getc);
             end loop;
+
+            --  If -fstack-check, record that it occurred
+
+            if Name_Buffer (1 .. Name_Len) = "-fstack-check" then
+               Stack_Check_Switch_Set := True;
+            end if;
+
+            --  Store the argument
 
             Args.Increment_Last;
             Args.Table (Args.Last) := new String'(Name_Buffer (1 .. Name_Len));
@@ -1408,6 +1417,7 @@ package body ALI is
             UL.SAL_Interface            := ALIs.Table (Id).SAL_Interface;
             UL.Body_Needed_For_SAL      := False;
             UL.Elaborate_Body_Desirable := False;
+            UL.Optimize_Alignment       := 'O';
 
             if Debug_Flag_U then
                Write_Str (" ----> reading unit ");
@@ -1610,6 +1620,19 @@ package body ALI is
 
                Check_At_End_Of_Field;
 
+            --  OL/OO/OS/OT parameters
+
+            elsif C = 'O' then
+               C := Getc;
+
+               if C = 'L' or else C = 'O' or else C = 'S' or else C = 'T' then
+                  Units.Table (Units.Last).Optimize_Alignment := C;
+               else
+                  Fatal_Error_Ignore;
+               end if;
+
+               Check_At_End_Of_Field;
+
             --  RC/RT parameters
 
             elsif C = 'R' then
@@ -1662,7 +1685,7 @@ package body ALI is
 
          With_Loop : loop
             Check_Unknown_Line;
-            exit With_Loop when C /= 'W';
+            exit With_Loop when C /= 'W' and then C /= 'Y';
 
             if Ignore ('W') then
                Skip_Line;
@@ -1677,6 +1700,7 @@ package body ALI is
                Withs.Table (Withs.Last).Elab_Desirable     := False;
                Withs.Table (Withs.Last).Elab_All_Desirable := False;
                Withs.Table (Withs.Last).SAL_Interface      := False;
+               Withs.Table (Withs.Last).Limited_With       := (C = 'Y');
 
                --  Generic case with no object file available
 
@@ -1812,7 +1836,7 @@ package body ALI is
                   end if;
                end loop;
 
-               Add_Char_To_Name_Buffer (nul);
+               Add_Char_To_Name_Buffer (NUL);
                Skip_Eol;
             end if;
 
@@ -1973,13 +1997,16 @@ package body ALI is
 
                if Nextc not in '0' .. '9' then
                   Name_Len := 0;
-
                   while not At_End_Of_Field loop
-                     Name_Len := Name_Len + 1;
-                     Name_Buffer (Name_Len) := Getc;
+                     Add_Char_To_Name_Buffer (Getc);
                   end loop;
 
-                  Sdep.Table (Sdep.Last).Subunit_Name := Name_Enter;
+                  --  Set the subunit name. Note that we use Name_Find rather
+                  --  than Name_Enter here as the subunit name may already
+                  --  have been put in the name table by the Project Manager.
+
+                  Sdep.Table (Sdep.Last).Subunit_Name := Name_Find;
+
                   Skip_Space;
                end if;
 
@@ -1992,8 +2019,7 @@ package body ALI is
                   Name_Len := 0;
 
                   while not At_End_Of_Field loop
-                     Name_Len := Name_Len + 1;
-                     Name_Buffer (Name_Len) := Getc;
+                     Add_Char_To_Name_Buffer (Getc);
                   end loop;
 
                   Sdep.Table (Sdep.Last).Rfile := Name_Enter;
@@ -2174,35 +2200,82 @@ package body ALI is
 
                   Skip_Space;
 
-                  --  See if type reference present
+                  XE.Oref_File_Num := No_Sdep_Id;
+                  XE.Tref_File_Num := No_Sdep_Id;
+                  XE.Tref          := Tref_None;
+                  XE.First_Xref    := Xref.Last + 1;
 
-                  Get_Typeref
-                    (Current_File_Num, XE.Tref, XE.Tref_File_Num, XE.Tref_Line,
-                     XE.Tref_Type, XE.Tref_Col, XE.Tref_Standard_Entity);
+                  --  Loop to check for additional info present
 
-                  --  Do we have an overriding procedure, instead ?
-                  if XE.Tref_Type = 'p' then
-                     XE.Oref_File_Num := XE.Tref_File_Num;
-                     XE.Oref_Line     := XE.Tref_Line;
-                     XE.Oref_Col      := XE.Tref_Col;
-                     XE.Tref_File_Num := No_Sdep_Id;
-                     XE.Tref          := Tref_None;
-                  else
-                     --  We might have additional information about the
-                     --  overloaded subprograms
+                  loop
                      declare
-                        Ref : Tref_Kind;
-                        Typ : Character;
-                        Standard_Entity : Name_Id;
+                        Ref  : Tref_Kind;
+                        File : Sdep_Id;
+                        Line : Nat;
+                        Typ  : Character;
+                        Col  : Nat;
+                        Std  : Name_Id;
+
                      begin
                         Get_Typeref
-                          (Current_File_Num,
-                           Ref, XE.Oref_File_Num,
-                           XE.Oref_Line, Typ, XE.Oref_Col, Standard_Entity);
-                     end;
-                  end if;
+                          (Current_File_Num, Ref, File, Line, Typ, Col, Std);
+                        exit when Ref = Tref_None;
 
-                  XE.First_Xref := Xref.Last + 1;
+                        --  Do we have an overriding procedure?
+
+                        if Ref = Tref_Derived and then Typ = 'p' then
+                           XE.Oref_File_Num := File;
+                           XE.Oref_Line     := Line;
+                           XE.Oref_Col      := Col;
+
+                        --  Arrays never override anything, and <> points to
+                        --  the index types instead
+
+                        elsif Ref = Tref_Derived and then XE.Etype = 'A' then
+
+                           --  Index types are stored in the list of references
+
+                           Xref.Increment_Last;
+
+                           declare
+                              XR : Xref_Record renames Xref.Table (Xref.Last);
+                           begin
+                              XR.File_Num := File;
+                              XR.Line     := Line;
+                              XR.Rtype    := Array_Index_Reference;
+                              XR.Col      := Col;
+                              XR.Name     := Std;
+                           end;
+
+                        --  Interfaces are stored in the list of references,
+                        --  although the parent type itself is stored in XE
+
+                        elsif Ref = Tref_Derived
+                          and then Typ = 'R'
+                          and then XE.Tref_File_Num /= No_Sdep_Id
+                        then
+                           Xref.Increment_Last;
+
+                           declare
+                              XR : Xref_Record renames Xref.Table (Xref.Last);
+                           begin
+                              XR.File_Num := File;
+                              XR.Line     := Line;
+                              XR.Rtype    := Interface_Reference;
+                              XR.Col      := Col;
+                              XR.Name     := Std;
+                           end;
+
+                        else
+                           XE.Tref                 := Ref;
+                           XE.Tref_File_Num        := File;
+                           XE.Tref_Line            := Line;
+                           XE.Tref_Type            := Typ;
+                           XE.Tref_Col             := Col;
+                           XE.Tref_Standard_Entity := Std;
+                        end if;
+                     end;
+                  end loop;
 
                   --  Loop through cross-references for this entity
 

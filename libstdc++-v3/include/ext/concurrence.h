@@ -1,12 +1,12 @@
 // Support for concurrent programing -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file concurrence.h
  *  This is an internal header file, included by other library headers.
@@ -45,7 +40,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   // Available locking policies:
   // _S_single    single-threaded code that doesn't need to be locked.
   // _S_mutex     multi-threaded code that requires additional support
-  //              from gthr.h or abstraction layers in concurrance.h.
+  //              from gthr.h or abstraction layers in concurrence.h.
   // _S_atomic    multi-threaded code using atomic operations.
   enum _Lock_policy { _S_single, _S_mutex, _S_atomic }; 
 
@@ -81,6 +76,22 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     { return "__gnu_cxx::__concurrence_unlock_error"; }
   };
 
+  class __concurrence_broadcast_error : public std::exception
+  {
+  public:
+    virtual char const*
+    what() const throw()
+    { return "__gnu_cxx::__concurrence_broadcast_error"; }
+  };
+
+  class __concurrence_wait_error : public std::exception
+  {
+  public:
+    virtual char const*
+    what() const throw()
+    { return "__gnu_cxx::__concurrence_wait_error"; }
+  };
+
   // Substitute for concurrence_error object in the case of -fno-exceptions.
   inline void
   __throw_concurrence_lock_error()
@@ -102,6 +113,28 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 #endif
   }
 
+#ifdef __GTHREAD_HAS_COND
+  inline void
+  __throw_concurrence_broadcast_error()
+  {
+#if __EXCEPTIONS
+    throw __concurrence_broadcast_error();
+#else
+    __builtin_abort();
+#endif
+  }
+
+  inline void
+  __throw_concurrence_wait_error()
+  {
+#if __EXCEPTIONS
+    throw __concurrence_wait_error();
+#else
+    __builtin_abort();
+#endif
+  }
+#endif
+ 
   class __mutex 
   {
   private:
@@ -147,6 +180,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	}
 #endif
     }
+
+    __gthread_mutex_t* gthread_mutex(void)
+      { return &_M_mutex; }
   };
 
   class __recursive_mutex 
@@ -194,9 +230,12 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 	}
 #endif
     }
+
+    __gthread_recursive_mutex_t* gthread_recursive_mutex(void)
+      { return &_M_mutex; }
   };
 
-  /// @brief  Scoped lock idiom.
+  /// Scoped lock idiom.
   // Acquire the mutex here with a constructor call, then release with
   // the destructor call in accordance with RAII style.
   class __scoped_lock
@@ -217,6 +256,66 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     ~__scoped_lock() throw()
     { _M_device.unlock(); }
   };
+
+#ifdef __GTHREAD_HAS_COND
+  class __cond
+  {
+  private:
+    __gthread_cond_t _M_cond;
+
+    __cond(const __cond&);
+    __cond& operator=(const __cond&);
+
+  public:
+    __cond() 
+    { 
+#if __GTHREADS
+      if (__gthread_active_p())
+	{
+#if defined __GTHREAD_COND_INIT
+	  __gthread_cond_t __tmp = __GTHREAD_COND_INIT;
+	  _M_cond = __tmp;
+#else
+	  __GTHREAD_COND_INIT_FUNCTION(&_M_cond);
+#endif
+	}
+#endif 
+    }
+
+    void broadcast()
+    {
+#if __GTHREADS
+      if (__gthread_active_p())
+	{
+	  if (__gthread_cond_broadcast(&_M_cond) != 0)
+	    __throw_concurrence_broadcast_error();
+	}
+#endif
+    }
+
+    void wait(__mutex *mutex)
+    {
+#if __GTHREADS
+      {
+	  if (__gthread_cond_wait(&_M_cond, mutex->gthread_mutex()) != 0)
+	    __throw_concurrence_wait_error();
+      }
+#endif
+    }
+
+    void wait_recursive(__recursive_mutex *mutex)
+    {
+#if __GTHREADS
+      {
+	  if (__gthread_cond_wait_recursive(&_M_cond,
+					    mutex->gthread_recursive_mutex())
+	      != 0)
+	    __throw_concurrence_wait_error();
+      }
+#endif
+    }
+  };
+#endif
 
 _GLIBCXX_END_NAMESPACE
 

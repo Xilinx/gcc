@@ -1,5 +1,6 @@
 /* Definitions for GCC.  Part of the machine description for CRIS.
-   Copyright (C) 2001, 2002, 2003, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2001, 2002, 2003, 2005, 2006, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Axis Communications.  Written by Hans-Peter Nilsson.
 
 This file is part of GCC.
@@ -35,6 +36,13 @@ along with GCC; see the file COPYING3.  If not see
 /* This file defines the macros for cris-axis-linux-gnu that are not
    covered by cris.h, elfos.h and (config/)linux.h.  */
 
+/* Make sure we have a valid TARGET_CPU_DEFAULT, so we can assume it
+   and take shortcuts below.  */
+#ifndef TARGET_CPU_DEFAULT
+#error "TARGET_CPU_DEFAULT not defined"
+#elif (TARGET_CPU_DEFAULT+0) != 10 && (TARGET_CPU_DEFAULT+0) != 32
+#error "TARGET_CPU_DEFAULT must be 10 or 32, or this file be updated"
+#endif
 
 /* Node: Instruction Output */
 
@@ -45,19 +53,41 @@ along with GCC; see the file COPYING3.  If not see
 /* These macros are CRIS-specific, but used in target driver macros.  */
 
 #undef CRIS_CPP_SUBTARGET_SPEC
-#define CRIS_CPP_SUBTARGET_SPEC \
+#if TARGET_CPU_DEFAULT == 32
+# define CRIS_CPP_SUBTARGET_SPEC \
+  "%{pthread:-D_REENTRANT}\
+   %{!march=*:%{!cpu=*:-D__arch_v32 -D__CRIS_arch_version=32}}"
+#else
+# define CRIS_CPP_SUBTARGET_SPEC \
   "%{pthread:-D_REENTRANT}\
    %{!march=*:%{!cpu=*:-D__arch_v10 -D__CRIS_arch_version=10}}"
+#endif
 
 #undef CRIS_CC1_SUBTARGET_SPEC
-#define CRIS_CC1_SUBTARGET_SPEC \
+#if TARGET_CPU_DEFAULT == 32
+# define CRIS_CC1_SUBTARGET_SPEC \
+ "%{!march=*:%{!cpu=*:-march=v32}}"
+#define CRIS_SUBTARGET_DEFAULT_ARCH MASK_AVOID_GOTPLT
+#else
+# define CRIS_CC1_SUBTARGET_SPEC \
  "%{!march=*:%{!cpu=*:-march=v10}}"
+#define CRIS_SUBTARGET_DEFAULT_ARCH 0
+#endif
 
 #undef CRIS_ASM_SUBTARGET_SPEC
-#define CRIS_ASM_SUBTARGET_SPEC \
- "--em=criself\
+#if TARGET_CPU_DEFAULT == 32
+# define CRIS_ASM_SUBTARGET_SPEC \
+ "--em=criself \
+  %{!march=*:%{!cpu=*:--march=v32}} \
   %{!fleading-underscore:--no-underscore}\
   %{fPIC|fpic|fPIE|fpie: --pic}"
+#else
+# define CRIS_ASM_SUBTARGET_SPEC \
+ "--em=criself \
+  %{!march=*:%{!cpu=*:--march=v10}} \
+  %{!fleading-underscore:--no-underscore}\
+  %{fPIC|fpic|fPIE|fpie: --pic}"
+#endif
 
 /* Previously controlled by target_flags.  */
 #undef TARGET_LINUX
@@ -67,13 +97,11 @@ along with GCC; see the file COPYING3.  If not see
 #define CRIS_SUBTARGET_DEFAULT			\
   (MASK_SVINTO					\
    + MASK_ETRAX4_ADD				\
-   + MASK_ALIGN_BY_32)
+   + MASK_ALIGN_BY_32				\
+   + CRIS_SUBTARGET_DEFAULT_ARCH)
 
 #undef CRIS_DEFAULT_CPU_VERSION
 #define CRIS_DEFAULT_CPU_VERSION CRIS_CPU_NG
-
-#undef CRIS_SUBTARGET_VERSION
-#define CRIS_SUBTARGET_VERSION " - cris-axis-linux-gnu"
 
 #define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
 
@@ -82,7 +110,8 @@ along with GCC; see the file COPYING3.  If not see
 #undef CRIS_LINK_SUBTARGET_SPEC
 #define CRIS_LINK_SUBTARGET_SPEC \
  "-mcrislinux\
-  -rpath-link include/asm/../..%s\
+  %{B*:-rpath-link %*}\
+  %{!nostdlib:-rpath-link ../sys-include/asm/../../lib%s}\
   %{shared} %{static}\
   %{symbolic:-Bdynamic} %{shlib:-Bdynamic} %{static:-Bstatic}\
   %{!shared:%{!static:\

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,8 @@ with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
+with Sem_Case; use Sem_Case;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
@@ -41,7 +43,7 @@ with Sinfo;    use Sinfo;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
-with GNAT.Heap_Sort_A; use GNAT.Heap_Sort_A;
+with GNAT.Heap_Sort_G;
 
 package body Sem_Case is
 
@@ -52,7 +54,7 @@ package body Sem_Case is
    type Sort_Choice_Table_Type is array (Nat range <>) of Choice_Bounds;
    --  This new array type is used as the actual table type for sorting
    --  discrete choices. The reason for not using Choice_Table_Type, is that
-   --  in Sort_Choice_Table_Type we reserve entry 0 for the sorting algortim
+   --  in Sort_Choice_Table_Type we reserve entry 0 for the sorting algorithm
    --  (this is not absolutely necessary but it makes the code more
    --  efficient).
 
@@ -103,6 +105,8 @@ package body Sem_Case is
 
       procedure Move_Choice (From : Natural; To : Natural);
       --  Move routine for sorting the Choice_Table
+
+      package Sorting is new GNAT.Heap_Sort_G (Move_Choice, Lt_Choice);
 
       procedure Issue_Msg (Value1 : Node_Id; Value2 : Node_Id);
       procedure Issue_Msg (Value1 : Node_Id; Value2 : Uint);
@@ -199,7 +203,7 @@ package body Sem_Case is
       Lo       : Uint;
       Prev_Hi  : Uint;
 
-   --  Start processing for Check_Choices
+   --  Start of processing for Check_Choices
 
    begin
       --  Choice_Table must start at 0 which is an unused location used
@@ -215,10 +219,7 @@ package body Sem_Case is
          return;
       end if;
 
-      Sort
-        (Positive (Choice_Table'Last),
-         Move_Choice'Unrestricted_Access,
-         Lt_Choice'Unrestricted_Access);
+      Sorting.Sort (Positive (Choice_Table'Last));
 
       Lo      := Expr_Value (Choice_Table (1).Lo);
       Hi      := Expr_Value (Choice_Table (1).Hi);
@@ -269,10 +270,7 @@ package body Sem_Case is
       --  For character, or wide [wide] character. If 7-bit ASCII graphic
       --  range, then build and return appropriate character literal name
 
-      if Rtp = Standard_Character
-        or else Rtp = Standard_Wide_Character
-        or else Rtp = Standard_Wide_Wide_Character
-      then
+      if Is_Standard_Character_Type (Ctype) then
          C := UI_To_Int (Value);
 
          if C in 16#20# .. 16#7E# then
@@ -315,26 +313,11 @@ package body Sem_Case is
       --  the pos value passed as an argument to Choice_Image.
 
       Get_Name_String (Chars (First_Subtype (Ctype)));
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := ''';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'v';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'a';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'l';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := '(';
 
+      Add_Str_To_Name_Buffer ("'val(");
       UI_Image (Value);
-
-      for J in 1 .. UI_Image_Length loop
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := UI_Image_Buffer (J);
-      end loop;
-
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := ')';
+      Add_Str_To_Name_Buffer (UI_Image_Buffer (1 .. UI_Image_Length));
+      Add_Char_To_Name_Buffer (')');
       return Name_Find;
    end Choice_Image;
 
@@ -426,12 +409,7 @@ package body Sem_Case is
          --  of literals to search. Instead, a N_Character_Literal node
          --  is created with the appropriate Char_Code and Chars fields.
 
-         if Root_Type (Choice_Type) = Standard_Character
-              or else
-            Root_Type (Choice_Type) = Standard_Wide_Character
-              or else
-            Root_Type (Choice_Type) = Standard_Wide_Wide_Character
-         then
+         if Is_Standard_Character_Type (Choice_Type) then
             Set_Character_Literal_Name (Char_Code (UI_To_Int (Value)));
             Lit := New_Node (N_Character_Literal, Loc);
             Set_Chars (Lit, Name_Find);
@@ -757,7 +735,6 @@ package body Sem_Case is
 
             else
                Choice := First (Get_Choices (Alt));
-
                while Present (Choice) loop
                   Analyze (Choice);
                   Kind := Nkind (Choice);

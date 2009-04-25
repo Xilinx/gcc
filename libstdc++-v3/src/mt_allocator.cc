@@ -1,11 +1,11 @@
 // Allocator details.
 
-// Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2004, 2005, 2006, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 //
 // ISO C++ 14882:
@@ -57,21 +52,34 @@ namespace
     }
   };
 
-  // Ensure freelist is constructed first.
-  static __freelist freelist;
-  __gnu_cxx::__mutex freelist_mutex;
+  __freelist&
+  get_freelist()
+  {
+    static __freelist freelist;
+    return freelist;
+  }
+
+  __gnu_cxx::__mutex&
+  get_freelist_mutex()
+  {
+    static __gnu_cxx::__mutex freelist_mutex;
+    return freelist_mutex;
+  }
 
   static void 
   _M_destroy_thread_key(void* __id)
   {
     // Return this thread id record to the front of thread_freelist.
-    __gnu_cxx::__scoped_lock sentry(freelist_mutex);
-    size_t _M_id = reinterpret_cast<size_t>(__id);
-
-    typedef __gnu_cxx::__pool<true>::_Thread_record _Thread_record;
-    _Thread_record* __tr = &freelist._M_thread_freelist_array[_M_id - 1];
-    __tr->_M_next = freelist._M_thread_freelist;
-    freelist._M_thread_freelist = __tr;
+    __freelist& freelist = get_freelist();
+    {
+      __gnu_cxx::__scoped_lock sentry(get_freelist_mutex());
+      size_t _M_id = reinterpret_cast<size_t>(__id);
+      
+      typedef __gnu_cxx::__pool<true>::_Thread_record _Thread_record;
+      _Thread_record* __tr = &freelist._M_thread_freelist_array[_M_id - 1];
+      __tr->_M_next = freelist._M_thread_freelist;
+      freelist._M_thread_freelist = __tr;
+    }
   }
 #endif
 } // anonymous namespace
@@ -100,7 +108,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   }
 
   void
-  __pool<false>::_M_reclaim_block(char* __p, size_t __bytes)
+  __pool<false>::_M_reclaim_block(char* __p, size_t __bytes) throw ()
   {
     // Round up to power of 2 and figure out which bin to use.
     const size_t __which = _M_binmap[__bytes];
@@ -248,7 +256,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
   }
 
   void
-  __pool<true>::_M_reclaim_block(char* __p, size_t __bytes)
+  __pool<true>::_M_reclaim_block(char* __p, size_t __bytes) throw ()
   {
     // Round up to power of 2 and figure out which bin to use.
     const size_t __which = _M_binmap[__bytes];
@@ -496,8 +504,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     // directly and have no need for this.
     if (__gthread_active_p())
       {
+	__freelist& freelist = get_freelist();
 	{
-	  __gnu_cxx::__scoped_lock sentry(freelist_mutex);
+	  __gnu_cxx::__scoped_lock sentry(get_freelist_mutex());
 
 	  if (!freelist._M_thread_freelist_array
 	      || freelist._M_max_threads < _M_options._M_max_threads)
@@ -610,15 +619,16 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     // If we have thread support and it's active we check the thread
     // key value and return its id or if it's not set we take the
     // first record from _M_thread_freelist and sets the key and
-    // returns it's id.
+    // returns its id.
     if (__gthread_active_p())
       {
+	__freelist& freelist = get_freelist();
 	void* v = __gthread_getspecific(freelist._M_key);
 	size_t _M_id = (size_t)v;
 	if (_M_id == 0)
 	  {
 	    {
-	      __gnu_cxx::__scoped_lock sentry(freelist_mutex);
+	      __gnu_cxx::__scoped_lock sentry(get_freelist_mutex());
 	      if (freelist._M_thread_freelist)
 		{
 		  _M_id = freelist._M_thread_freelist->_M_id;
@@ -639,7 +649,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 
   // XXX GLIBCXX_ABI Deprecated
   void 
-  __pool<true>::_M_destroy_thread_key(void*) { }
+  __pool<true>::_M_destroy_thread_key(void*) throw () { }
 
   // XXX GLIBCXX_ABI Deprecated
   void
@@ -689,8 +699,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     // directly and have no need for this.
     if (__gthread_active_p())
       {
+	__freelist& freelist = get_freelist();
 	{
-	  __gnu_cxx::__scoped_lock sentry(freelist_mutex);
+	  __gnu_cxx::__scoped_lock sentry(get_freelist_mutex());
 
 	  if (!freelist._M_thread_freelist_array
 	      || freelist._M_max_threads < _M_options._M_max_threads)

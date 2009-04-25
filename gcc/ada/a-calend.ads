@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -53,7 +51,9 @@ package Ada.Calendar is
 
    function Clock return Time;
    --  The returned time value is the number of nanoseconds since the start
-   --  of Ada time (1901-01-01 00:00:00.0 UTC).
+   --  of Ada time (1901-01-01 00:00:00.0 UTC). If leap seconds are enabled,
+   --  the result will contain all elapsed leap seconds since the start of
+   --  Ada time until now.
 
    function Year    (Date : Time) return Year_Number;
    function Month   (Date : Time) return Month_Number;
@@ -137,7 +137,7 @@ private
 
    --  Time is represented as a signed 64 bit integer count of nanoseconds
    --  since the start of Ada time (1901-01-01 00:00:00.0 UTC). Time values
-   --  produced by Time_Of are internaly normalized to UTC regardless of their
+   --  produced by Time_Of are internally normalized to UTC regardless of their
    --  local time zone. This representation ensures correct handling of leap
    --  seconds as well as performing arithmetic. In Ada 95, Split and Time_Of
    --  will treat a time value as being in the local time zone, in Ada 2005,
@@ -153,7 +153,7 @@ private
    --  Due to Earth's slowdown, the astronomical time is not as precise as the
    --  International Atomic Time. To compensate for this inaccuracy, a single
    --  leap second is added after the last day of June or December. The count
-   --  of seconds during those occurences becomes:
+   --  of seconds during those occurrences becomes:
 
    --    ... 58, 59, leap second 60, 0, 1, 2 ...
 
@@ -169,23 +169,28 @@ private
    --    1972-06-30 23:59:59.0
    --    1972-07-01 00:00:00.0
 
-   --  When a new leap second is added, the following steps must be carried
-   --  out:
+   --  When a new leap second is introduced, the following steps must be
+   --  carried out:
 
-   --     1) Increment Leap_Seconds_Count by one
-   --     2) Add an entry to the end of table Leap_Second_Dates
+   --     1) Increment Leap_Seconds_Count in a-calend.adb by one
+   --     2) Increment LS_Count in xleaps.adb by one
+   --     3) Add the new date to the aggregate of array LS_Dates in
+   --        xleaps.adb
+   --     4) Compile and execute xleaps
+   --     5) Replace the values of Leap_Second_Times in a-calend.adb with the
+   --        aggregate generated by xleaps
 
    --  The algorithms that build the actual leap second values and discover
-   --  how many leap seconds have occured between two dates do not need any
+   --  how many leap seconds have occurred between two dates do not need any
    --  modification.
 
    ------------------------------
-   -- Non-leap centenial years --
+   -- Non-leap centennial years --
    ------------------------------
 
-   --  Over the range of Ada time, centenial years 2100, 2200 and 2300 are
+   --  Over the range of Ada time, centennial years 2100, 2200 and 2300 are
    --  non-leap. As a consequence, seven non-leap years occur over the period
-   --  of year - 4 to year + 4. Internaly, routines Split and Time_Of add or
+   --  of year - 4 to year + 4. Internally, routines Split and Time_Of add or
    --  subtract a "fake" February 29 to facilitate the arithmetic involved.
 
    --  The underlying type of Time has been chosen to be a 64 bit signed
@@ -205,9 +210,15 @@ private
    --  Determine whether a given year is leap
 
    --  The following packages provide a target independent interface to the
-   --  children of Calendar - Arithmetic, Delays, Formatting and Time_Zones.
+   --  children of Calendar - Arithmetic, Conversions, Delays, Formatting and
+   --  Time_Zones.
+
+   ---------------------------
+   -- Arithmetic_Operations --
+   ---------------------------
 
    package Arithmetic_Operations is
+
       function Add (Date : Time; Days : Long_Integer) return Time;
       --  Add a certain number of days to a time value
 
@@ -224,15 +235,72 @@ private
 
       function Subtract (Date : Time; Days : Long_Integer) return Time;
       --  Subtract a certain number of days from a time value
+
    end Arithmetic_Operations;
 
-   package Delays_Operations is
+   ---------------------------
+   -- Conversion_Operations --
+   ---------------------------
+
+   package Conversion_Operations is
+
+      function To_Ada_Time (Unix_Time : Long_Integer) return Time;
+      --  Unix to Ada Epoch conversion
+
+      function To_Ada_Time
+        (tm_year  : Integer;
+         tm_mon   : Integer;
+         tm_day   : Integer;
+         tm_hour  : Integer;
+         tm_min   : Integer;
+         tm_sec   : Integer;
+         tm_isdst : Integer) return Time;
+      --  Struct tm to Ada Epoch conversion
+
+      function To_Duration
+        (tv_sec  : Long_Integer;
+         tv_nsec : Long_Integer) return Duration;
+      --  Struct timespec to Duration conversion
+
+      procedure To_Struct_Timespec
+        (D       : Duration;
+         tv_sec  : out Long_Integer;
+         tv_nsec : out Long_Integer);
+      --  Duration to struct timespec conversion
+
+      procedure To_Struct_Tm
+        (T       : Time;
+         tm_year : out Integer;
+         tm_mon  : out Integer;
+         tm_day  : out Integer;
+         tm_hour : out Integer;
+         tm_min  : out Integer;
+         tm_sec  : out Integer);
+      --  Time to struct tm conversion
+
+      function To_Unix_Time (Ada_Time : Time) return Long_Integer;
+      --  Ada to Unix Epoch conversion
+
+   end Conversion_Operations;
+
+   ----------------------
+   -- Delay_Operations --
+   ----------------------
+
+   package Delay_Operations is
+
       function To_Duration (Date : Time) return Duration;
       --  Given a time value in nanoseconds since 1901, convert it into a
       --  duration value giving the number of nanoseconds since the Unix Epoch.
-   end Delays_Operations;
+
+   end Delay_Operations;
+
+   ---------------------------
+   -- Formatting_Operations --
+   ---------------------------
 
    package Formatting_Operations is
+
       function Day_Of_Week (Date : Time) return Integer;
       --  Determine which day of week Date falls on. The returned values are
       --  within the range of 0 .. 6 (Monday .. Sunday).
@@ -263,21 +331,28 @@ private
          Minute       : Integer;
          Second       : Integer;
          Sub_Sec      : Duration;
-         Leap_Sec     : Boolean;
-         Use_Day_Secs : Boolean;
-         Is_Ada_05    : Boolean;
-         Time_Zone    : Long_Integer) return Time;
+         Leap_Sec     : Boolean := False;
+         Use_Day_Secs : Boolean := False;
+         Is_Ada_05    : Boolean := False;
+         Time_Zone    : Long_Integer := 0) return Time;
       --  Given all the components of a date, return the corresponding time
       --  value. Set Use_Day_Secs to use the value in Day_Secs, otherwise the
       --  day duration will be calculated from Hour, Minute, Second and Sub_
       --  Sec. Set Is_Ada_05 to use the local time zone (the value in formal
       --  Time_Zone is ignored) when building a time value and to verify the
       --  validity of a requested leap second.
+
    end Formatting_Operations;
 
+   ---------------------------
+   -- Time_Zones_Operations --
+   ---------------------------
+
    package Time_Zones_Operations is
+
       function UTC_Time_Offset (Date : Time) return Long_Integer;
       --  Return the offset in seconds from UTC
+
    end Time_Zones_Operations;
 
 end Ada.Calendar;

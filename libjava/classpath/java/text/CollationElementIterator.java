@@ -38,6 +38,8 @@ exception statement from your version. */
 
 package java.text;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.util.ArrayList;
 
 /* Written using "Java Class Libraries", 2nd edition, plus online
@@ -73,7 +75,7 @@ public final class CollationElementIterator
   /**
    * This is the String that is being iterated over.
    */
-  String text;
+  CharacterIterator text;
 
   /**
    * This is the index into the collation decomposition where we are currently scanning.
@@ -105,6 +107,21 @@ public final class CollationElementIterator
    * @param text The <code>String</code> to iterate over.
    */
   CollationElementIterator(RuleBasedCollator collator, String text)
+  {
+    this.collator = collator;
+    
+    setText (text);    
+  }
+
+  /**
+   * This method initializes a new instance of <code>CollationElementIterator</code>
+   * to iterate over the specified <code>String</code> using the rules in the
+   * specified <code>RuleBasedCollator</code>.
+   *
+   * @param collator The <code>RuleBasedCollation</code> used for calculating collation values
+   * @param text The character iterator to iterate over.
+   */
+  CollationElementIterator(RuleBasedCollator collator, CharacterIterator text)
   {
     this.collator = collator;
     
@@ -246,7 +263,7 @@ public final class CollationElementIterator
     int alreadyExpanded = 0;
     int idxToMove = 0;
 
-    this.text = text;
+    this.text = new StringCharacterIterator(text);
     this.index = 0;
 
     String work_text = text.intern();
@@ -401,7 +418,7 @@ public final class CollationElementIterator
    */
   public void setText(CharacterIterator source)
   {
-    StringBuffer expand = new StringBuffer();
+    CPStringBuilder expand = new CPStringBuilder();
 
     // For now assume we read from the beginning of the string.
     for (char c = source.first();
@@ -440,7 +457,7 @@ public final class CollationElementIterator
     if (offset < 0)
       throw new IllegalArgumentException("Negative offset: " + offset);
 
-    if (offset > (text.length() - 1))
+    if (offset > (text.getEndIndex() - 1))
       throw new IllegalArgumentException("Offset too large: " + offset);
     
     for (index = 0; index < text_decomposition.length; index++)

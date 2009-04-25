@@ -1,5 +1,5 @@
 /* Handle types for the GNU compiler for the Java(TM) language.
-   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2007
+   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -131,8 +131,7 @@ convert (tree type, tree expr)
       if (type == char_type_node || type == promoted_char_type_node)
 	return fold_convert (type, expr);
       if ((really_constant_p (expr) || ! flag_unsafe_math_optimizations)
-	  && TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE
-	  && TARGET_FLOAT_FORMAT == IEEE_FLOAT_FORMAT)
+	  && TREE_CODE (TREE_TYPE (expr)) == REAL_TYPE)
 	return convert_ieee_real_to_integer (type, expr);
       else
 	{
@@ -691,11 +690,11 @@ lookup_java_method (tree searched_class, tree method_name,
 		    method_signature, build_java_signature);
 }
 
-/* Return true iff CLASS (or its ancestors) has a method METHOD_NAME.  */
+/* Return true iff KLASS (or its ancestors) has a method METHOD_NAME.  */
 int
-has_method (tree class, tree method_name)
+has_method (tree klass, tree method_name)
 {
-  return lookup_do (class, SEARCH_INTERFACE,
+  return lookup_do (klass, SEARCH_INTERFACE,
 		    method_name, NULL_TREE,
 		    build_null_signature) != NULL_TREE;
 }

@@ -1,7 +1,7 @@
 /* Operating system specific defines to be used when targeting GCC for
    hosting on Windows32, using a Unix style C library and tools.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007
+   2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -34,7 +34,10 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 #undef TARGET_64BIT_MS_ABI
-#define TARGET_64BIT_MS_ABI TARGET_64BIT
+#define TARGET_64BIT_MS_ABI (!cfun ? ix86_abi == MS_ABI : TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
+
+#undef DEFAULT_ABI
+#define DEFAULT_ABI (TARGET_64BIT ? MS_ABI : SYSV_ABI)
 
 #undef DBX_REGISTER_NUMBER
 #define DBX_REGISTER_NUMBER(n)				\
@@ -55,7 +58,7 @@ along with GCC; see the file COPYING3.  If not see
    won't allow it.  */
 #define ASM_OUTPUT_DWARF_OFFSET(FILE, SIZE, LABEL, SECTION)	\
   do {								\
-    if (SIZE != 4)						\
+    if (SIZE != 4 && (!TARGET_64BIT || SIZE != 8))		\
       abort ();							\
 								\
     fputs ("\t.secrel32\t", FILE);				\
@@ -66,8 +69,6 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_EXECUTABLE_SUFFIX ".exe"
 
 #include <stdio.h>
-
-#define MAYBE_UWIN_CPP_BUILTINS() /* Nothing.  */
 
 #define TARGET_OS_CPP_BUILTINS()					\
   do									\
@@ -87,7 +88,6 @@ along with GCC; see the file COPYING3.  If not see
 	    to compare typeinfo symbols across dll boundaries.  */	\
 	builtin_define ("__GXX_MERGED_TYPEINFO_NAMES=0");		\
 	builtin_define ("__GXX_TYPEINFO_EQUALITY_INLINE=0");		\
-	MAYBE_UWIN_CPP_BUILTINS ();					\
 	EXTRA_OS_CPP_BUILTINS ();					\
   }									\
   while (0)
@@ -122,18 +122,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Windows64 continues to use a 32-bit long type.  */
 #undef LONG_TYPE_SIZE
 #define LONG_TYPE_SIZE 32
-
-#undef REG_PARM_STACK_SPACE
-#define REG_PARM_STACK_SPACE(FNDECL) (TARGET_64BIT_MS_ABI ? 32 : 0)
-
-#undef OUTGOING_REG_PARM_STACK_SPACE
-#define OUTGOING_REG_PARM_STACK_SPACE (TARGET_64BIT_MS_ABI ? 1 : 0)
-
-#undef REGPARM_MAX
-#define REGPARM_MAX (TARGET_64BIT_MS_ABI ? 4 : 3)
-
-#undef SSE_REGPARM_MAX
-#define SSE_REGPARM_MAX (TARGET_64BIT_MS_ABI ? 4 : TARGET_SSE ? 3 : 0)
 
 /* Enable parsing of #pragma pack(push,<n>) and #pragma pack(pop).  */
 #define HANDLE_PRAGMA_PACK_PUSH_POP 1
@@ -197,13 +185,24 @@ do {							\
   ASM_OUTPUT_LABEL ((STREAM), (NAME));			\
 } while (0)
 
+/* Output a reference to a label. Fastcall function symbols
+   keep their '@' prefix, while other symbols are prefixed
+   with user_label_prefix.  */
+#undef ASM_OUTPUT_LABELREF
+#define  ASM_OUTPUT_LABELREF(STREAM, NAME)	\
+do {						\
+  if ((NAME)[0] != FASTCALL_PREFIX)		\
+    fputs (user_label_prefix, (STREAM));	\
+  fputs ((NAME), (STREAM));			\
+} while (0)
+
 
 /* Emit code to check the stack when allocating more than 4000
    bytes in one go.  */
 #define CHECK_STACK_LIMIT 4000
 
 #undef STACK_BOUNDARY
-#define STACK_BOUNDARY	(TARGET_64BIT_MS_ABI ? 128 : BITS_PER_WORD)
+#define STACK_BOUNDARY	(ix86_abi == MS_ABI ? 128 : BITS_PER_WORD)
 
 /* By default, target has a 80387, uses IEEE compatible arithmetic,
    returns float values in the 387 and needs stack probes.
@@ -213,6 +212,10 @@ do {							\
 #define TARGET_SUBTARGET_DEFAULT \
 	(MASK_80387 | MASK_IEEE_FP | MASK_FLOAT_RETURNS \
 	 | MASK_STACK_PROBE | MASK_ALIGN_DOUBLE)
+
+#undef TARGET_SUBTARGET64_DEFAULT
+#define TARGET_SUBTARGET64_DEFAULT \
+	MASK_128BIT_LONG_DOUBLE
 
 /* This is how to output an assembler line
    that says to advance the location counter
@@ -277,11 +280,11 @@ do {							\
 #define ASM_COMMENT_START " #"
 
 #ifndef DWARF2_UNWIND_INFO
-/* 64-bit target uses DWARF2 unwind by default. If 32-bit target
-   configured with --disable-sjlj-exceptions, use DWARF2, else default
-   to SJLJ.  */
-#if TARGET_64BIT_DEFAULT \
-    || (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
+/* If configured with --disable-sjlj-exceptions, use DWARF2, else
+   default to SJLJ.  */
+#if  (defined (CONFIG_SJLJ_EXCEPTIONS) && !CONFIG_SJLJ_EXCEPTIONS)
+/* The logic of this #if must be kept synchronised with the logic
+   for selecting the tmake_eh_file fragment in config.gcc.  */
 #define DWARF2_UNWIND_INFO 1
 #else
 #define DWARF2_UNWIND_INFO 0
@@ -318,10 +321,6 @@ do {							\
 #undef MS_AGGREGATE_RETURN
 #define MS_AGGREGATE_RETURN 1
 
-/* No data type wants to be aligned rounder than this.  */
-#undef	BIGGEST_ALIGNMENT
-#define BIGGEST_ALIGNMENT 128
-
 /* Biggest alignment supported by the object file format of this
    machine.  Use this macro to limit the alignment which can be
    specified using the `__attribute__ ((aligned (N)))' construct.  If
@@ -332,9 +331,13 @@ do {							\
 #undef MAX_OFILE_ALIGNMENT
 #define MAX_OFILE_ALIGNMENT (8192 * 8)
 
-/* Native complier aligns internal doubles in structures on dword boundaries.  */
+/* BIGGEST_FIELD_ALIGNMENT macro is used directly by libobjc, There, we
+   align internal doubles in structures on dword boundaries. Otherwise,
+   support vector modes using ADJUST_FIELD_ALIGN, defined in i386.h.  */
+#ifdef IN_TARGET_LIBS
 #undef	BIGGEST_FIELD_ALIGNMENT
 #define BIGGEST_FIELD_ALIGNMENT 64
+#endif
 
 /* A bit-field declared as `int' forces `int' alignment for the struct.  */
 #undef PCC_BITFIELD_TYPE_MATTERS

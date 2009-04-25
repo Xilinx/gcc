@@ -107,7 +107,7 @@ splay_tree_delete_helper (splay_tree sp, splay_tree_node node)
 }
 
 /* Rotate the edge joining the left child N with its parent P.  PP is the
-   grandparents pointer to P.  */
+   grandparents' pointer to P.  */
 
 static inline void
 rotate_left (splay_tree_node *pp, splay_tree_node p, splay_tree_node n)
@@ -120,7 +120,7 @@ rotate_left (splay_tree_node *pp, splay_tree_node p, splay_tree_node n)
 }
 
 /* Rotate the edge joining the right child N with its parent P.  PP is the
-   grandparents pointer to P.  */
+   grandparents' pointer to P.  */
 
 static inline void
 rotate_right (splay_tree_node *pp, splay_tree_node p, splay_tree_node n)
@@ -271,29 +271,12 @@ splay_tree_new_with_allocator (splay_tree_compare_fn compare_fn,
   sp->comp = compare_fn;
   sp->delete_key = delete_key_fn;
   sp->delete_value = delete_value_fn;
-  sp->allocate_node = allocate_fn;
+  sp->allocate = allocate_fn;
   sp->deallocate = deallocate_fn;
   sp->allocate_data = allocate_data;
 
   return sp;
 }
-
-splay_tree 
-splay_tree_new_with_separate_allocators (splay_tree_compare_fn compare_fn,
-                                         splay_tree_delete_key_fn delete_key_fn,
-                                         splay_tree_delete_value_fn delete_value_fn,
-                                         splay_tree_allocate_fn tree_allocate_fn,
-                                         splay_tree_allocate_fn node_allocate_fn,
-                                         splay_tree_deallocate_fn deallocate_fn,
-                                         void *allocate_data)
-{
-  splay_tree sp = splay_tree_new_with_allocator(compare_fn, delete_key_fn,
-                                                delete_value_fn, tree_allocate_fn,
-                                                deallocate_fn, allocate_data);
-  sp->allocate_node = node_allocate_fn;
-  return sp;
-}
-
 
 /* Deallocate SP.  */
 
@@ -332,7 +315,7 @@ splay_tree_insert (splay_tree sp, splay_tree_key key, splay_tree_value value)
       splay_tree_node node;
       
       node = ((splay_tree_node)
-              (*sp->allocate_node) (sizeof (struct splay_tree_node_s),
+              (*sp->allocate) (sizeof (struct splay_tree_node_s),
                                sp->allocate_data));
       node->key = key;
       node->value = value;

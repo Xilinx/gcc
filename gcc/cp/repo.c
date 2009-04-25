@@ -1,6 +1,6 @@
 /* Code to maintain a C++ template repository.
    Copyright (C) 1995, 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007  Free Software Foundation, Inc.
+   2006, 2007, 2008  Free Software Foundation, Inc.
    Contributed by Jason Merrill (jason@cygnus.com)
 
 This file is part of GCC.
@@ -280,6 +280,7 @@ finish_repo (void)
 int
 repo_emit_p (tree decl)
 {
+  int ret = 0;
   gcc_assert (TREE_PUBLIC (decl));
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL
 	      || TREE_CODE (decl) == VAR_DECL);
@@ -304,14 +305,19 @@ repo_emit_p (tree decl)
 	  && (!TYPE_LANG_SPECIFIC (type)
 	      || !CLASSTYPE_TEMPLATE_INSTANTIATION (type)))
 	return 2;
-      /* Static data members initialized by constant expressions must
+      /* Const static data members initialized by constant expressions must
 	 be processed where needed so that their definitions are
-	 available.  */
-      if (DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
+	 available.  Still record them into *.rpo files, so if they
+	 weren't actually emitted and collect2 requests them, they can
+	 be provided.  */
+      if (DECL_INTEGRAL_CONSTANT_VAR_P (decl)
 	  && DECL_CLASS_SCOPE_P (decl))
-	return 2;
+	ret = 2;
     }
   else if (!DECL_TEMPLATE_INSTANTIATION (decl))
+    return 2;
+
+  if (DECL_EXPLICIT_INSTANTIATION (decl))
     return 2;
 
   /* For constructors and destructors, the repository contains
@@ -340,7 +346,7 @@ repo_emit_p (tree decl)
       pending_repo = tree_cons (NULL_TREE, decl, pending_repo);
     }
 
-  return IDENTIFIER_REPO_CHOSEN (DECL_ASSEMBLER_NAME (decl));
+  return IDENTIFIER_REPO_CHOSEN (DECL_ASSEMBLER_NAME (decl)) ? 1 : ret;
 }
 
 /* Returns true iff the prelinker has explicitly marked CLASS_TYPE for

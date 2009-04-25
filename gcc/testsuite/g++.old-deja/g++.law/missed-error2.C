@@ -8,8 +8,16 @@
 
 #include <iostream>
 
-inline int max(int a, int b) {return a > b ? a : b;}; // { dg-error "" } candidate
-inline double max(double a, double b) {return a > b ? a : b;}; // { dg-error "" } candidate
+// The VxWorks kernel-mode headers define a macro named "max", which is not
+// ISO-compliant, but is part of the VxWorks API.
+#if defined __vxworks && !defined __RTP__
+#undef max
+#endif
+
+inline int max(int a, int b) {return a > b ? a : b;}; // { dg-message "candidate" } 
+ // { dg-error "extra ';'" "extra ;" { target *-*-* } 17 }
+inline double max(double a, double b) {return a > b ? a : b;}; // { dg-message "note" } candidate
+ // { dg-error "extra ';'" "extra ;" { target *-*-* } 19 }
 
 int main() {
    static void foo(int i, int j, double x, double y) ;// { dg-error "" } .*

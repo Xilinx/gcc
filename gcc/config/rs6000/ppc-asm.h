@@ -1,4 +1,28 @@
-/* PowerPC asm definitions for GNU C.  */
+/* PowerPC asm definitions for GNU C.
+
+Copyright (C) 2002, 2003, 2008 Free Software Foundation, Inc.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
+
 /* Under winnt, 1) gas supports the following as names and 2) in particular
    defining "toc" breaks the FUNC_START macro as ".toc" becomes ".2" */
 
@@ -110,6 +134,11 @@ name: \
 	.globl GLUE(.,name); \
 GLUE(.,name):
 
+#define HIDDEN_FUNC(name) \
+  FUNC_START(name) \
+  .hidden name;	\
+  .hidden GLUE(.,name);
+
 #define FUNC_END(name) \
 GLUE(.L,name): \
 	.size GLUE(.,name),GLUE(.L,name)-GLUE(.,name)
@@ -136,6 +165,11 @@ name: \
 	.globl GLUE(.,name); \
 GLUE(.,name):
 
+#define HIDDEN_FUNC(name) \
+  FUNC_START(name) \
+  .hidden name; \
+  .hidden GLUE(.,name);
+
 #define FUNC_END(name) \
 GLUE(.L,name): \
 	.size GLUE(.,name),GLUE(.L,name)-GLUE(.,name)
@@ -152,6 +186,10 @@ GLUE(.L,name): \
 	.type FUNC_NAME(name),@function; \
 	.globl FUNC_NAME(name); \
 FUNC_NAME(name):
+
+#define HIDDEN_FUNC(name) \
+  FUNC_START(name) \
+  .hidden FUNC_NAME(name);
 
 #define FUNC_END(name) \
 GLUE(.L,name): \

@@ -1,6 +1,6 @@
 /* Definitions for Intel 386 running Linux-based GNU systems with ELF format.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2004, 2005,
-   2006, 2007 Free Software Foundation, Inc.
+   2006, 2007, 2008 Free Software Foundation, Inc.
    Contributed by Eric Youngdale.
    Modified for stabs-in-ELF by H.J. Lu.
 
@@ -55,7 +55,7 @@ along with GCC; see the file COPYING3.  If not see
    frame, so we cannot allow profiling without a frame pointer.  */
 
 #undef SUBTARGET_FRAME_POINTER_REQUIRED
-#define SUBTARGET_FRAME_POINTER_REQUIRED current_function_profile
+#define SUBTARGET_FRAME_POINTER_REQUIRED crtl->profile
 
 #undef SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
@@ -101,6 +101,11 @@ along with GCC; see the file COPYING3.  If not see
 /* These macros may be overridden in k*bsd-gnu.h and i386/k*bsd-gnu.h. */
 #define LINK_EMULATION "elf_i386"
 #define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
+
+#undef  ASM_SPEC
+#define ASM_SPEC \
+  "%{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*} %{Wa,*:%*} \
+  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef  SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS \
@@ -180,13 +185,20 @@ along with GCC; see the file COPYING3.  If not see
 #define CRT_GET_RFIB_DATA(BASE)						\
   __asm__ ("call\t.LPR%=\n"						\
 	   ".LPR%=:\n\t"						\
-	   "popl\t%0\n\t"						\
+	   "pop{l}\t%0\n\t"						\
 	   /* Due to a GAS bug, this cannot use EAX.  That encodes	\
 	      smaller than the traditional EBX, which results in the	\
 	      offset being off by one.  */				\
-	   "addl\t$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"			\
+	   "add{l}\t{$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"		\
+		   "|%0,_GLOBAL_OFFSET_TABLE_+(.-.LPR%=)}"		\
 	   : "=d"(BASE))
 #endif
+
+/* Put all *tf routines in libgcc.  */
+#undef LIBGCC2_HAS_TF_MODE
+#define LIBGCC2_HAS_TF_MODE 1
+#define LIBGCC2_TF_CEXT q
+#define TF_SIZE 113
 
 #undef NEED_INDICATE_EXEC_STACK
 #define NEED_INDICATE_EXEC_STACK 1

@@ -12,9 +12,7 @@ search_path = $(addprefix $(top_srcdir)/config/, $(config_path)) $(top_srcdir)
 fincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/finclude
 libsubincludedir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
 
-empty =
-space = $(empty) $(empty)
-VPATH = $(subst $(space),:,$(strip $(search_path)))
+vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
@@ -29,11 +27,13 @@ else
 libgomp_version_script =
 endif
 libgomp_version_info = -version-info $(libtool_VERSION)
-libgomp_la_LDFLAGS = $(libgomp_version_info) $(libgomp_version_script)
+libgomp_la_LDFLAGS = $(libgomp_version_info) $(libgomp_version_script) \
+        -no-undefined
 
 libgomp_la_SOURCES = alloc.c barrier.c critical.c env.c error.c iter.c \
-	loop.c ordered.c parallel.c sections.c single.c team.c work.c \
-	lock.c mutex.c proc.c sem.c bar.c time.c fortran.c affinity.c
+	iter_ull.c loop.c loop_ull.c ordered.c parallel.c sections.c single.c \
+	task.c team.c work.c lock.c mutex.c proc.c sem.c bar.c ptrlock.c \
+	time.c fortran.c affinity.c
 
 nodist_noinst_HEADERS = libgomp_f.h
 nodist_libsubinclude_HEADERS = omp.h

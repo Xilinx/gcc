@@ -1,13 +1,13 @@
 # @configure_input@
 # Makefile for libdecnumber.  Run 'configure' to generate Makefile from Makefile.in
 
-# Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
 #GCC is free software; you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
-#the Free Software Foundation; either version 2, or (at your option)
+#the Free Software Foundation; either version 3, or (at your option)
 #any later version.
 
 #GCC is distributed in the hope that it will be useful,
@@ -16,9 +16,8 @@
 #GNU General Public License for more details.
 
 #You should have received a copy of the GNU General Public License
-#along with GCC; see the file COPYING.  If not, write to
-#the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-#Boston MA 02110-1301, USA.
+#along with GCC; see the file COPYING3.  If not see
+#<http://www.gnu.org/licenses/>.
 
 @SET_MAKE@
 
@@ -44,11 +43,14 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 SHELL = @SHELL@
 
+datarootdir = @datarootdir@
 datadir = @datadir@
 exec_prefix = @prefix@
 libdir = @libdir@
 localedir = $(datadir)/locale
 prefix = @prefix@
+
+ADDITIONAL_OBJS = @ADDITIONAL_OBJS@
 
 enable_decimal_float= @enable_decimal_float@
 
@@ -56,19 +58,17 @@ INCLUDES = -I$(srcdir) -I.
 
 ALL_CFLAGS = $(CFLAGS) $(WARN_CFLAGS) $(INCLUDES) $(CPPFLAGS)
 
-libdecnumber_a_OBJS = decNumber.o decContext.o \
-	decimal32.o decimal64.o decimal128.o
+bid_OBJS = bid2dpd_dpd2bid.o host-ieee32.o host-ieee64.o host-ieee128.o
 
-ifeq ($(enable_decimal_float),bid)
-libdecnumber_a_OBJS+=bid2dpd_dpd2bid.o host-ieee32.o host-ieee64.o \
-	host-ieee128.o
-endif
+libdecnumber_a_OBJS = decNumber.o decContext.o \
+	decimal32.o decimal64.o decimal128.o $(ADDITIONAL_OBJS)
 
 libdecnumber_a_SOURCES = decContext.c decContext.h decDPD.h \
 	decNumber.c decNumber.h decNumberLocal.h \
-	dpd/decimal128.c dpd/decimal128.h \
-	dpd/decimal32.c dpd/decimal32.h \
-	dpd/decimal64.c dpd/decimal64.h \
+	decContextSymbols.h decDPDSymbols.h decNumberSymbols.h \
+	dpd/decimal128.c dpd/decimal128.h dpd/decimal128Symbols.h \
+	dpd/decimal32.c dpd/decimal32.h dpd/decimal32Symbols.h \
+	dpd/decimal64.c dpd/decimal64.h dpd/decimal64Symbols.h \
 	bid/decimal128.c bid/decimal128.h \
 	bid/decimal32.c bid/decimal32.h \
 	bid/decimal64.c bid/decimal64.h
@@ -95,7 +95,7 @@ $(srcdir)/configure: @MAINT@ $(srcdir)/aclocal.m4
 	cd $(srcdir) && $(AUTOCONF)
 
 $(srcdir)/aclocal.m4: @MAINT@ $(srcdir)/../config/stdint.m4 \
-	$(srcdir)/../config/warnings.m4 \
+	$(srcdir)/../config/warnings.m4 $(srcdir)/../config/override.m4 \
 	$(srcdir)/configure.ac
 	cd $(srcdir) && $(ACLOCAL) -I ../config
 
@@ -116,42 +116,42 @@ decContext.o: decContext.c decContext.h decNumberLocal.h \
 	decContextSymbols.h
 decNumber.o:  decNumber.c decNumber.h decContext.h decNumberLocal.h \
 	decNumberSymbols.h
-decimal32.o:  $(enable_decimal_float)/decimal32.c \
-   $(enable_decimal_float)/decimal32.h \
-   $(enable_decimal_float)/decimal32Symbols.h \
+decimal32.o:  $(srcdir)/$(enable_decimal_float)/decimal32.c \
+   $(srcdir)/$(enable_decimal_float)/decimal32.h \
+   $(srcdir)/$(enable_decimal_float)/decimal32Symbols.h \
    decNumber.h decContext.h decNumberLocal.h
-	$(COMPILE) $<
-decimal64.o:  $(enable_decimal_float)/decimal64.c \
-   $(enable_decimal_float)/decimal64.h \
-   $(enable_decimal_float)/decimal64Symbols.h \
+	$(COMPILE) $(srcdir)/$(enable_decimal_float)/decimal32.c
+decimal64.o:  $(srcdir)/$(enable_decimal_float)/decimal64.c \
+   $(srcdir)/$(enable_decimal_float)/decimal64.h \
+   $(srcdir)/$(enable_decimal_float)/decimal64Symbols.h \
    decNumber.h decContext.h decNumberLocal.h
-	$(COMPILE) $<
-decimal128.o:  $(enable_decimal_float)/decimal128.c \
-   $(enable_decimal_float)/decimal128.h \
-   $(enable_decimal_float)/decimal128Symbols.h\
-   $(enable_decimal_float)/decimal128Local.h\
+	$(COMPILE) $(srcdir)/$(enable_decimal_float)/decimal64.c
+decimal128.o:  $(srcdir)/$(enable_decimal_float)/decimal128.c \
+   $(srcdir)/$(enable_decimal_float)/decimal128.h \
+   $(srcdir)/$(enable_decimal_float)/decimal128Symbols.h\
+   $(srcdir)/$(enable_decimal_float)/decimal128Local.h\
    decNumber.h decContext.h decNumberLocal.h 
-	$(COMPILE) $<
-bid2dpd_dpd2bid.o : bid/bid2dpd_dpd2bid.c bid/bid2dpd_dpd2bid.h
-	$(COMPILE) $<
-host-ieee32.o : bid/host-ieee32.c bid/decimal32.h
-	$(COMPILE) $<
-host-ieee64.o : bid/host-ieee64.c bid/decimal64.h
-	$(COMPILE) $<
-host-ieee128.o : bid/host-ieee128.c bid/decimal128.h
-	$(COMPILE) $<
+	$(COMPILE) $(srcdir)/$(enable_decimal_float)/decimal128.c
+bid2dpd_dpd2bid.o : $(srcdir)/bid/bid2dpd_dpd2bid.c $(srcdir)/bid/bid2dpd_dpd2bid.h
+	$(COMPILE) $(srcdir)/bid/bid2dpd_dpd2bid.c
+host-ieee32.o : $(srcdir)/bid/host-ieee32.c $(srcdir)/bid/decimal32.h
+	$(COMPILE) $(srcdir)/bid/host-ieee32.c
+host-ieee64.o : $(srcdir)/bid/host-ieee64.c $(srcdir)/bid/decimal64.h
+	$(COMPILE) $(srcdir)/bid/host-ieee64.c
+host-ieee128.o : $(srcdir)/bid/host-ieee128.c $(srcdir)/bid/decimal128.h
+	$(COMPILE) $(srcdir)/bid/host-ieee128.c
 # Other miscellaneous targets.
 
 mostlyclean:
 	-rm -f *.o
 
 clean: mostlyclean
-	-rm -rf makedepend$(EXEEXT) libdecnumber.a $(srcdir)/autom4te.cache
+	-rm -rf libdecnumber.a $(srcdir)/autom4te.cache
 
 distclean: clean
 	-rm -f config.h stamp-h1 config.status config.cache config.log \
 	  configure.lineno configure.status.lineno Makefile localedir.h \
-	  localedir.hs
+	  localedir.hs gstdint.h
 
 maintainer-clean: distclean
 	@echo "This command is intended for maintainers to use"

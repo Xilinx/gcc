@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *                     Copyright (C) 2000-2007, AdaCore                     *
+ *                     Copyright (C) 2000-2008, AdaCore                     *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -57,6 +57,8 @@
 #else
 #include "config.h"
 #include "system.h"
+/* We don't want fancy_abort here.  */
+#undef abort
 #endif
 
 extern int __gnat_backtrace (void **, int, void *, void *, int);
@@ -145,7 +147,7 @@ extern void (*Unlock_Task) (void);
      of a call instruction), which is what we want in the output array, and
      the associated return address, which is what we retrieve from the stack.
 
-   o STOP_FRAME, to decide wether we reached the top of the call chain, and
+   o STOP_FRAME, to decide whether we reached the top of the call chain, and
      thus if the process shall stop.
 
 	   :
@@ -227,9 +229,10 @@ struct layout
 
 #define BASE_SKIP 1
 
-/*---------------------------- PPC VxWorks------------------------------*/
+/*-------------------- PPC ELF (GNU/Linux & VxWorks) ---------------------*/
 
-#elif defined (_ARCH_PPC) && defined (__vxworks)
+#elif (defined (_ARCH_PPC) && defined (__vxworks)) ||  \
+  (defined (linux) && defined (__powerpc__))
 
 #define USE_GENERIC_UNWINDER
 
@@ -306,7 +309,6 @@ struct layout
   void *return_address;
 };
 
-#define LOWEST_ADDR 0
 #define FRAME_LEVEL 1
 /* builtin_frame_address (1) is expected to work on this target, and (0) might
    return the soft stack pointer, which does not designate a location where a
@@ -315,8 +317,8 @@ struct layout
 #define FRAME_OFFSET(FP) 0
 #define PC_ADJUST -2
 #define STOP_FRAME(CURRENT, TOP_STACK) \
-  (IS_BAD_PTR((long)(CURRENT)->return_address) \
-   || (unsigned int)(CURRENT)->return_address < LOWEST_ADDR \
+  (IS_BAD_PTR((long)(CURRENT)) \
+   || IS_BAD_PTR((long)(CURRENT)->return_address) \
    || (CURRENT)->return_address == 0|| (CURRENT)->next == 0  \
    || (void *) (CURRENT) < (TOP_STACK))
 

@@ -2,30 +2,27 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---                      A D A . C O N T A I N E R S .                       --
---              I N D E F I N I T E _ O R D E R E D _ S E T S               --
+--                 ADA.CONTAINERS.INDEFINITE_ORDERED_SETS                   --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
@@ -964,7 +961,10 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
 
    procedure Insert (Container : in out Set; New_Item  : Element_Type) is
       Position : Cursor;
+      pragma Unreferenced (Position);
+
       Inserted : Boolean;
+
    begin
       Insert (Container, New_Item, Position, Inserted);
 
@@ -1032,7 +1032,8 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       Src_Node : Node_Access;
       Dst_Node : out Node_Access)
    is
-      Success  : Boolean;
+      Success : Boolean;
+      pragma Unreferenced (Success);
 
       function New_Node return Node_Access;
 
@@ -1173,7 +1174,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
       T : Tree_Type renames Container.Tree'Unrestricted_Access.all;
       B : Natural renames T.Busy;
 
-   --  Start of prccessing for Iterate
+   --  Start of processing for Iterate
 
    begin
       B := B + 1;
@@ -1434,6 +1435,7 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
                Element_Keys.Find (Container.Tree, New_Item);
 
       X : Element_Access;
+      pragma Warnings (Off, X);
 
    begin
       if Node = null then
@@ -1687,9 +1689,11 @@ package body Ada.Containers.Indefinite_Ordered_Sets is
    ------------
 
    function To_Set (New_Item : Element_Type) return Set is
-      Tree     : Tree_Type;
+      Tree : Tree_Type;
+
       Node     : Node_Access;
       Inserted : Boolean;
+      pragma Unreferenced (Node, Inserted);
 
    begin
       Insert_Sans_Hint (Tree, New_Item, Node, Inserted);

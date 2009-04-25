@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,8 @@ with Atree;    use Atree;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Errout;   use Errout;
+with Fname;    use Fname;
+with Hostparm;
 with Opt;      use Opt;
 with Osint;    use Osint;
 with Output;   use Output;
@@ -38,6 +40,8 @@ with Scn;      use Scn;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with System;   use System;
+
+with System.OS_Lib; use System.OS_Lib;
 
 with Unchecked_Conversion;
 
@@ -55,7 +59,7 @@ package body Sinput.L is
 
    --  When a file is to be preprocessed and the options to list symbols
    --  has been selected (switch -s), Prep.List_Symbols is called with a
-   --  "foreword", a single line indicationg what source the symbols apply to.
+   --  "foreword", a single line indicating what source the symbols apply to.
    --  The following two constant String are the start and the end of this
    --  foreword.
 
@@ -73,8 +77,7 @@ package body Sinput.L is
    --  Used to initialize the preprocessor.
 
    procedure New_EOL_In_Prep_Buffer;
-   --  Add an LF to Prep_Buffer.
-   --  Used to initialize the preprocessor.
+   --  Add an LF to Prep_Buffer (used to initialize the preprocessor)
 
    function Load_File
      (N : File_Name_Type;
@@ -90,10 +93,10 @@ package body Sinput.L is
       Loc : constant Source_Ptr := Sloc (N);
 
    begin
-      --  We only do the adjustment if the value is between the appropriate
-      --  low and high values. It is not clear that this should ever not be
-      --  the case, but in practice there seem to be some nodes that get
-      --  copied twice, and this is a defence against that happening.
+      --  We only do the adjustment if the value is between the appropriate low
+      --  and high values. It is not clear that this should ever not be the
+      --  case, but in practice there seem to be some nodes that get copied
+      --  twice, and this is a defence against that happening.
 
       if A.Lo <= Loc and then Loc <= A.Hi then
          Set_Sloc (N, Loc + A.Adjust);
@@ -232,19 +235,19 @@ package body Sinput.L is
          Write_Eol;
       end if;
 
-      --  For a given character in the source, a higher subscript will be
-      --  used to access the instantiation, which means that the virtual
-      --  origin must have a corresponding lower value. We compute this
-      --  new origin by taking the address of the appropriate adjusted
-      --  element in the old array. Since this adjusted element will be
-      --  at a negative subscript, we must suppress checks.
+      --  For a given character in the source, a higher subscript will be used
+      --  to access the instantiation, which means that the virtual origin must
+      --  have a corresponding lower value. We compute this new origin by
+      --  taking the address of the appropriate adjusted element in the old
+      --  array. Since this adjusted element will be at a negative subscript,
+      --  we must suppress checks.
 
       declare
          pragma Suppress (All_Checks);
 
          pragma Warnings (Off);
-         --  This unchecked conversion is aliasing safe, since it is never
-         --  used to create improperly aliased pointer values.
+         --  This unchecked conversion is aliasing safe, since it is never used
+         --  to create improperly aliased pointer values.
 
          function To_Source_Buffer_Ptr is new
            Unchecked_Conversion (Address, Source_Buffer_Ptr);
@@ -320,7 +323,7 @@ package body Sinput.L is
       --  source will be the last created, and we will be able to replace it
       --  and modify Hi without stepping on another buffer.
 
-      if T = Osint.Source then
+      if T = Osint.Source and then not Is_Internal_File_Name (N) then
          Prepare_To_Preprocess
            (Source => N, Preprocessing_Needed => Preprocessing_Needed);
       end if;
@@ -472,6 +475,12 @@ package body Sinput.L is
                T : constant Nat := Total_Errors_Detected;
                --  Used to check if there were errors during preprocessing
 
+               Save_Style_Check : Boolean;
+               --  Saved state of the Style_Check flag (which needs to be
+               --  temporarily set to False during preprocessing, see below).
+
+               Modified : Boolean;
+
             begin
                --  If this is the first time we preprocess a source, allocate
                --  the preprocessing buffer.
@@ -485,34 +494,47 @@ package body Sinput.L is
 
                Prep_Buffer_Last := 0;
 
-               --  Initialize the preprocessor
+               --  Initialize the preprocessor hooks
 
-               Prep.Initialize
+               Prep.Setup_Hooks
                  (Error_Msg         => Errout.Error_Msg'Access,
                   Scan              => Scn.Scanner.Scan'Access,
                   Set_Ignore_Errors => Errout.Set_Ignore_Errors'Access,
                   Put_Char          => Put_Char_In_Prep_Buffer'Access,
                   New_EOL           => New_EOL_In_Prep_Buffer'Access);
 
-               --  Initialize the scanner and set its behavior for
-               --  preprocessing, then preprocess.
+               --  Initialize scanner and set its behavior for preprocessing,
+               --  then preprocess. Also disable style checks, since some of
+               --  them are done in the scanner (specifically, those dealing
+               --  with line length and line termination), and cannot be done
+               --  during preprocessing (because the source file index table
+               --  has not been set yet).
 
                Scn.Scanner.Initialize_Scanner (X);
 
                Scn.Scanner.Set_Special_Character ('#');
                Scn.Scanner.Set_Special_Character ('$');
                Scn.Scanner.Set_End_Of_Line_As_Token (True);
+               Save_Style_Check := Opt.Style_Check;
+               Opt.Style_Check := False;
 
-               Preprocess;
+               --  Make sure that there will be no check of pragma Restrictions
+               --  for obsolescent features while preprocessing the source.
 
-               --  Reset the scanner to its standard behavior
+               Scn.Set_Obsolescent_Check (False);
+               Preprocess (Modified);
+               Scn.Set_Obsolescent_Check (True);
+
+               --  Reset the scanner to its standard behavior, and restore the
+               --  Style_Checks flag.
 
                Scn.Scanner.Reset_Special_Characters;
                Scn.Scanner.Set_End_Of_Line_As_Token (False);
+               Opt.Style_Check := Save_Style_Check;
 
-               --  If there were errors during preprocessing, record an
-               --  error at the start of the file, and do not change the
-               --  source buffer.
+               --  If there were errors during preprocessing, record an error
+               --  at the start of the file, and do not change the source
+               --  buffer.
 
                if T /= Total_Errors_Detected then
                   Errout.Error_Msg
@@ -520,6 +542,54 @@ package body Sinput.L is
                   return No_Source_File;
 
                else
+                  --  Output the result of the preprocessing, if requested and
+                  --  the source has been modified by the preprocessing.
+
+                  if Generate_Processed_File and then Modified then
+                     declare
+                        FD     : File_Descriptor;
+                        NB     : Integer;
+                        Status : Boolean;
+
+                     begin
+                        Get_Name_String (N);
+
+                        if Hostparm.OpenVMS then
+                           Add_Str_To_Name_Buffer ("_prep");
+                        else
+                           Add_Str_To_Name_Buffer (".prep");
+                        end if;
+
+                        Delete_File (Name_Buffer (1 .. Name_Len), Status);
+
+                        FD :=
+                          Create_New_File (Name_Buffer (1 .. Name_Len), Text);
+
+                        Status := FD /= Invalid_FD;
+
+                        if Status then
+                           NB :=
+                             Write
+                               (FD,
+                                Prep_Buffer (1)'Address,
+                                Integer (Prep_Buffer_Last));
+                           Status := NB = Integer (Prep_Buffer_Last);
+                        end if;
+
+                        if Status then
+                           Close (FD, Status);
+                        end if;
+
+                        if not Status then
+                           Errout.Error_Msg
+                             ("could not write processed file """ &
+                              Name_Buffer (1 .. Name_Len) & '"',
+                              Lo);
+                           return No_Source_File;
+                        end if;
+                     end;
+                  end if;
+
                   --  Set the new value of Hi
 
                   Hi := Lo + Source_Ptr (Prep_Buffer_Last);
@@ -531,12 +601,11 @@ package body Sinput.L is
                      --  Physical buffer allocated
 
                      type Actual_Source_Ptr is access Actual_Source_Buffer;
-                     --  This is the pointer type for the physical buffer
-                     --  allocated.
+                     --  Pointer type for the physical buffer allocated
 
                      Actual_Ptr : constant Actual_Source_Ptr :=
                                     new Actual_Source_Buffer;
-                     --  And this is the actual physical buffer
+                     --  Actual physical buffer
 
                   begin
                      Actual_Ptr (Lo .. Hi - 1) :=
@@ -544,9 +613,9 @@ package body Sinput.L is
                      Actual_Ptr (Hi) := EOF;
 
                      --  Now we need to work out the proper virtual origin
-                     --  pointer to return. This is exactly
-                     --  Actual_Ptr (0)'Address, but we have to be careful to
-                     --  suppress checks to compute this address.
+                     --  pointer to return. This is Actual_Ptr (0)'Address, but
+                     --  we have to be careful to suppress checks to compute
+                     --  this address.
 
                      declare
                         pragma Suppress (All_Checks);
@@ -571,7 +640,7 @@ package body Sinput.L is
                         Source_File.Table (X).Source_Last := Hi;
 
                         --  Reset Last_Line to 1, because the lines do not
-                        --  have neccessarily the same starts and lengths.
+                        --  have necessarily the same starts and lengths.
 
                         Source_File.Table (X).Last_Source_Line := 1;
                      end;
@@ -679,11 +748,10 @@ package body Sinput.L is
    begin
       Initialize_Scanner (No_Unit, X);
 
-      --  We scan past junk to the first interesting compilation unit
-      --  token, to see if it is SEPARATE. We ignore WITH keywords during
-      --  this and also PRIVATE. The reason for ignoring PRIVATE is that
-      --  it handles some error situations, and also to handle PRIVATE WITH
-      --  in Ada 2005 mode.
+      --  We scan past junk to the first interesting compilation unit token, to
+      --  see if it is SEPARATE. We ignore WITH keywords during this and also
+      --  PRIVATE. The reason for ignoring PRIVATE is that it handles some
+      --  error situations, and also to handle PRIVATE WITH in Ada 2005 mode.
 
       while Token = Tok_With
         or else Token = Tok_Private

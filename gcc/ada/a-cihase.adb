@@ -2,32 +2,29 @@
 --                                                                          --
 --                         GNAT LIBRARY COMPONENTS                          --
 --                                                                          --
---                      A D A . C O N T A I N E R S .                       --
---               I N D E F I N I T E _ H A S H E D _ S E T S                --
+--                  ADA.CONTAINERS.INDEFINITE_HASHED_SETS                   --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
 --                                                                          --
--- This unit has originally being developed by Matthew J Heaney.            --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
+--                                                                          --
+-- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Deallocation;
@@ -103,25 +100,23 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    --------------------------
 
    procedure Free_Element is
-      new Ada.Unchecked_Deallocation (Element_Type, Element_Access);
+     new Ada.Unchecked_Deallocation (Element_Type, Element_Access);
 
-   package HT_Ops is
-      new Hash_Tables.Generic_Operations
-       (HT_Types  => HT_Types,
-        Hash_Node => Hash_Node,
-        Next      => Next,
-        Set_Next  => Set_Next,
-        Copy_Node => Copy_Node,
-        Free      => Free);
+   package HT_Ops is new Hash_Tables.Generic_Operations
+     (HT_Types  => HT_Types,
+      Hash_Node => Hash_Node,
+      Next      => Next,
+      Set_Next  => Set_Next,
+      Copy_Node => Copy_Node,
+      Free      => Free);
 
-   package Element_Keys is
-      new Hash_Tables.Generic_Keys
-       (HT_Types  => HT_Types,
-        Next      => Next,
-        Set_Next  => Set_Next,
-        Key_Type  => Element_Type,
-        Hash      => Hash,
-        Equivalent_Keys => Equivalent_Keys);
+   package Element_Keys is new Hash_Tables.Generic_Keys
+     (HT_Types        => HT_Types,
+      Next            => Next,
+      Set_Next        => Set_Next,
+      Key_Type        => Element_Type,
+      Hash            => Hash,
+      Equivalent_Keys => Equivalent_Keys);
 
    function Is_Equal is
       new HT_Ops.Generic_Equal (Find_Equal_Key);
@@ -703,6 +698,8 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
       New_Item  : Element_Type)
    is
       Position : Cursor;
+      pragma Unreferenced (Position);
+
       Inserted : Boolean;
 
    begin
@@ -1138,6 +1135,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
                Element_Keys.Find (Container.HT, New_Item);
 
       X : Element_Access;
+      pragma Warnings (Off, X);
 
    begin
       if Node = null then
@@ -1471,9 +1469,11 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    ------------
 
    function To_Set (New_Item : Element_Type) return Set is
-      HT       : Hash_Table_Type;
+      HT : Hash_Table_Type;
+
       Node     : Node_Access;
       Inserted : Boolean;
+      pragma Unreferenced (Node, Inserted);
 
    begin
       Insert (HT, New_Item, Node, Inserted);
@@ -1523,6 +1523,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
          Tgt_Node : Node_Access;
          Success  : Boolean;
+         pragma Unreferenced (Tgt_Node, Success);
 
       --  Start of processing for Process
 

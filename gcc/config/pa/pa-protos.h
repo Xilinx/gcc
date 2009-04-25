@@ -29,9 +29,6 @@ extern int following_call (rtx);
 extern int function_label_operand (rtx, enum machine_mode);
 extern int lhs_lshift_cint_operand (rtx, enum machine_mode);
 
-#ifdef TREE_CODE
-extern void hppa_va_start (tree, rtx);
-#endif /* TREE_CODE */
 extern rtx hppa_legitimize_address (rtx, rtx, enum machine_mode);
 
 /* Define functions in pa.c and used in insn-output.c.  */
@@ -175,6 +172,9 @@ extern void pa_asm_output_aligned_local (FILE *, const char *,
 					 unsigned HOST_WIDE_INT,
 					 unsigned int);
 extern void pa_hpux_asm_output_external (FILE *, tree, const char *);
+extern bool pa_cannot_change_mode_class (enum machine_mode, enum machine_mode,
+					 enum reg_class);
+extern bool pa_modes_tieable_p (enum machine_mode, enum machine_mode);
 
 extern const int magic_milli[];
 extern int shadd_constant_p (int);

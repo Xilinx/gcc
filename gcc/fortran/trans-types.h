@@ -1,6 +1,6 @@
 /* Header for Fortran 95 types backend support.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007 Free Software Foundation,
-   Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008
+   Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
 
@@ -55,8 +55,11 @@ tree gfc_get_int_type (int);
 tree gfc_get_real_type (int);
 tree gfc_get_complex_type (int);
 tree gfc_get_logical_type (int);
+tree gfc_get_char_type (int);
+tree gfc_get_pchar_type (int);
 tree gfc_get_character_type (int, gfc_charlen *);
 tree gfc_get_character_type_len (int, tree);
+tree gfc_get_character_type_len_for_eltype (tree, tree);
 
 tree gfc_sym_type (gfc_symbol *);
 tree gfc_typenode_for_spec (gfc_typespec *);
@@ -67,7 +70,8 @@ tree gfc_type_for_size (unsigned, int);
 tree gfc_type_for_mode (enum machine_mode, int);
 
 tree gfc_get_element_type (tree);
-tree gfc_get_array_type_bounds (tree, int, tree *, tree *, int);
+tree gfc_get_array_type_bounds (tree, int, tree *, tree *, int,
+				enum gfc_array_kind);
 tree gfc_get_nodesc_array_type (tree, gfc_array_spec *, gfc_packed);
 
 /* Add a field of given name and type to a UNION_TYPE or RECORD_TYPE.  */

@@ -1,5 +1,6 @@
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1996, 1998, 1999, 2000, 2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+@c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
 
@@ -25,11 +26,11 @@ See the next chapter for information on the C header file.
 * Example::             An explained example of a @code{define_insn} pattern.
 * RTL Template::        The RTL template defines what insns match a pattern.
 * Output Template::     The output template says how to make assembler code
-                          from such an insn.
+                        from such an insn.
 * Output Statement::    For more generality, write C code to output
-                          the assembler code.
+                        the assembler code.
 * Predicates::          Controlling what kinds of operands can be used
-                          for an insn.
+                        for an insn.
 * Constraints::         Fine-tuning operand selection.
 * Standard Names::      Names mark patterns to use for code generation.
 * Pattern Ordering::    When the order of patterns makes a difference.
@@ -38,13 +39,13 @@ See the next chapter for information on the C header file.
 * Looping Patterns::    How to define patterns for special looping insns.
 * Insn Canonicalizations::Canonicalization of Instructions
 * Expander Definitions::Generating a sequence of several RTL insns
-                          for a standard operation.
+                        for a standard operation.
 * Insn Splitting::      Splitting Instructions into Multiple Instructions.
-* Including Patterns::      Including Patterns in Machine Descriptions.
+* Including Patterns::  Including Patterns in Machine Descriptions.
 * Peephole Definitions::Defining machine-specific peephole optimizations.
 * Insn Attributes::     Specifying the value of attributes for generated insns.
 * Conditional Execution::Generating @code{define_insn} patterns for
-                           predication.
+                         predication.
 * Constant Definitions::Defining symbolic constants that can be used in the
                         md file.
 * Iterators::           Using iterators to generate patterns from a template.
@@ -859,12 +860,20 @@ valid for @var{mode}.
 @end defun
 
 @noindent
-Finally, there is one generic operator predicate.
+Finally, there are two generic operator predicates.
 
 @defun comparison_operator
 This predicate matches any expression which performs an arithmetic
 comparison in @var{mode}; that is, @code{COMPARISON_P} is true for the
 expression code.
+@end defun
+
+@defun ordered_comparison_operator
+This predicate matches any expression which performs an arithmetic
+comparison in @var{mode} and whose expression code is valid for integer
+modes; that is, the expression code will be one of @code{eq}, @code{ne},
+@code{lt}, @code{ltu}, @code{le}, @code{leu}, @code{gt}, @code{gtu},
+@code{ge}, @code{geu}.
 @end defun
 
 @node Defining Predicates
@@ -1050,6 +1059,7 @@ have.  Constraints can also require two operands to match.
 * Multi-Alternative::   When an insn has two alternative constraint-patterns.
 * Class Preferences::   Constraints guide which hard register to put things in.
 * Modifiers::           More precise control over effects of constraints.
+* Disable Insn Alternatives:: Disable insn alternatives using the @code{enabled} attribute.
 * Machine Constraints:: Existing constraints for some particular machines.
 * Define Constraints::  How to define machine-specific constraints.
 * C Constraint Interface:: How to test constraints from C code.
@@ -1085,6 +1095,8 @@ number of constraints and modifiers.
 @item @samp{m}
 A memory operand is allowed, with any kind of address that the machine
 supports in general.
+Note that the letter used for the general memory constraint can be
+re-defined by a back end using the @code{TARGET_MEM_CONSTRAINT} macro.
 
 @cindex offsettable address
 @cindex @samp{o} in constraint
@@ -1626,7 +1638,7 @@ it includes both constraints that are useful for @code{asm} and
 constraints that aren't.  The compiler source file mentioned in the
 table heading for each architecture is the definitive reference for
 the meanings of that architecture's constraints.
- 
+
 @table @emph
 @item ARM family---@file{config/arm/arm.h}
 @table @code
@@ -1852,6 +1864,46 @@ A memory operand for floating-point loads and stores
 A register indirect memory operand
 @end table
 
+@item picoChip family---@file{picochip.h}
+@table @code
+@item k
+Stack register.
+
+@item f
+Pointer register.  A register which can be used to access memory without
+supplying an offset.  Any other register can be used to access memory,
+but will need a constant offset.  In the case of the offset being zero,
+it is more efficient to use a pointer register, since this reduces code
+size.
+
+@item t
+A twin register.  A register which may be paired with an adjacent
+register to create a 32-bit register.
+
+@item a
+Any absolute memory address (e.g., symbolic constant, symbolic
+constant + offset).
+
+@item I
+4-bit signed integer.
+
+@item J
+4-bit unsigned integer.
+
+@item K
+8-bit signed integer.
+
+@item M
+Any constant whose absolute value is no greater than 4-bits.
+
+@item N
+10-bit signed integer
+
+@item O
+16-bit signed integer.
+
+@end table
+
 @item PowerPC and IBM RS6000---@file{config/rs6000/rs6000.h}
 @table @code
 @item b
@@ -1949,35 +2001,6 @@ Vector constant that does not require memory
 
 @end table
 
-@item MorphoTech family---@file{config/mt/mt.h}
-@table @code
-@item I
-Constant for an arithmetic insn (16-bit signed integer).
-
-@item J
-The constant 0.
-
-@item K
-Constant for a logical insn (16-bit zero-extended integer).
-
-@item L
-A constant that can be loaded with @code{lui} (i.e.@: the bottom 16
-bits are zero).
-
-@item M
-A constant that takes two words to load (i.e.@: not matched by
-@code{I}, @code{K}, or @code{L}).
-
-@item N
-Negative 16-bit constants other than -65536.
-
-@item O
-A 15-bit signed integer constant.
-
-@item P
-A positive 16-bit constant.
-@end table
-
 @item Intel 386---@file{config/i386/constraints.md}
 @table @code
 @item R
@@ -2036,9 +2059,18 @@ Any MMX register.
 @item x
 Any SSE register.
 
+@item Yz
+First SSE register (@code{%xmm0}).
+
 @ifset INTERNALS
-@item Y
-Any SSE2 register.
+@item Y2
+Any SSE register, when SSE2 is enabled.
+
+@item Yi
+Any SSE register, when SSE2 and inter-unit moves are enabled.
+
+@item Ym
+Any MMX register, when inter-unit moves are enabled.
 @end ifset
 
 @item I
@@ -2239,7 +2271,7 @@ range of 1 to 2047.
 
 @end table
 
-@item Blackfin family---@file{config/bfin/bfin.h}
+@item Blackfin family---@file{config/bfin/constraints.md}
 @table @code
 @item a
 P register
@@ -2249,6 +2281,10 @@ D register
 
 @item z
 A call clobbered P register.
+
+@item q@var{n}
+A single register.  If @var{n} is in the range 0 to 7, the corresponding D
+register.  If it is @code{A}, then the register P0.
 
 @item D
 Even-numbered D register
@@ -2491,17 +2527,23 @@ generating MIPS16 code.
 A floating-point register (if available).
 
 @item h
-The @code{hi} register.
+Formerly the @code{hi} register.  This constraint is no longer supported.
 
 @item l
-The @code{lo} register.
+The @code{lo} register.  Use this register to store values that are
+no bigger than a word.
 
 @item x
-The @code{hi} and @code{lo} registers.
+The concatenated @code{hi} and @code{lo} registers.  Use this register
+to store doubleword values.
 
 @item c
 A register suitable for use in an indirect jump.  This will always be
 @code{$25} for @option{-mabicalls}.
+
+@item v
+Register @code{$3}.  Do not use this constraint in new code;
+it is retained only for compatibility with glibc.
 
 @item y
 Equivalent to @code{r}; retained for backwards compatibility.
@@ -2714,6 +2756,9 @@ when the Visual Instruction Set is available.
 @item h
 64-bit global or out register for the SPARC-V8+ architecture.
 
+@item D
+A vector constant
+
 @item I
 Signed 13-bit constant
 
@@ -2843,88 +2888,6 @@ An immediate for the @code{iohl} instruction.  const_int is sign extended to 128
 
 @end table
 
-@item TMS320C3x/C4x---@file{config/c4x/c4x.h}
-@table @code
-@item a
-Auxiliary (address) register (ar0-ar7)
-
-@item b
-Stack pointer register (sp)
-
-@item c
-Standard (32-bit) precision integer register
-
-@item f
-Extended (40-bit) precision register (r0-r11)
-
-@item k
-Block count register (bk)
-
-@item q
-Extended (40-bit) precision low register (r0-r7)
-
-@item t
-Extended (40-bit) precision register (r0-r1)
-
-@item u
-Extended (40-bit) precision register (r2-r3)
-
-@item v
-Repeat count register (rc)
-
-@item x
-Index register (ir0-ir1)
-
-@item y
-Status (condition code) register (st)
-
-@item z
-Data page register (dp)
-
-@item G
-Floating-point zero
-
-@item H
-Immediate 16-bit floating-point constant
-
-@item I
-Signed 16-bit constant
-
-@item J
-Signed 8-bit constant
-
-@item K
-Signed 5-bit constant
-
-@item L
-Unsigned 16-bit constant
-
-@item M
-Unsigned 8-bit constant
-
-@item N
-Ones complement of unsigned 16-bit constant
-
-@item O
-High 16-bit constant (32-bit constant with 16 LSBs zero)
-
-@item Q
-Indirect memory reference with signed 8-bit or index register displacement
-
-@item R
-Indirect memory reference with unsigned 5-bit displacement
-
-@item S
-Indirect memory reference with 1 bit or index register displacement
-
-@item T
-Direct memory reference
-
-@item U
-Symbolic address
-
-@end table
-
 @item S/390 and zSeries---@file{config/s390/s390.h}
 @table @code
 @item a
@@ -2951,10 +2914,10 @@ Signed 16-bit constant (@minus{}32768--32767)
 @item L
 Value appropriate as displacement.
 @table @code
-       @item (0..4095)
-       for short displacement
-       @item (-524288..524287)
-       for long displacement
+@item (0..4095)
+for short displacement
+@item (-524288..524287)
+for long displacement
 @end table
 
 @item M
@@ -2963,17 +2926,17 @@ Constant integer with a value of 0x7fffffff.
 @item N
 Multiple letter constraint followed by 4 parameter letters.
 @table @code
-         @item 0..9:
-         number of the part counting from most to least significant
-         @item H,Q:
-         mode of the part
-         @item D,S,H:
-         mode of the containing operand
-         @item 0,F:
-         value of the other parts (F---all bits set)
+@item 0..9:
+number of the part counting from most to least significant
+@item H,Q:
+mode of the part
+@item D,S,H:
+mode of the containing operand
+@item 0,F:
+value of the other parts (F---all bits set)
 @end table
 The constraint matches if the specified part of a constant
-has a value different from it's other parts.
+has a value different from its other parts.
 
 @item Q
 Memory reference without index register and with short displacement.
@@ -3163,6 +3126,99 @@ Unsigned constant valid for BccUI instructions
 @end table
 
 @end table
+
+@ifset INTERNALS
+@node Disable Insn Alternatives
+@subsection Disable insn alternatives using the @code{enabled} attribute
+@cindex enabled
+
+The @code{enabled} insn attribute may be used to disable certain insn
+alternatives for machine-specific reasons.  This is useful when adding
+new instructions to an existing pattern which are only available for
+certain cpu architecture levels as specified with the @code{-march=}
+option.
+
+If an insn alternative is disabled, then it will never be used.  The
+compiler treats the constraints for the disabled alternative as
+unsatisfiable.
+
+In order to make use of the @code{enabled} attribute a back end has to add
+in the machine description files:
+
+@enumerate
+@item
+A definition of the @code{enabled} insn attribute.  The attribute is
+defined as usual using the @code{define_attr} command.  This
+definition should be based on other insn attributes and/or target flags.
+The @code{enabled} attribute is a numeric attribute and should evaluate to
+@code{(const_int 1)} for an enabled alternative and to
+@code{(const_int 0)} otherwise.
+@item
+A definition of another insn attribute used to describe for what
+reason an insn alternative might be available or
+not.  E.g. @code{cpu_facility} as in the example below.
+@item
+An assignment for the second attribute to each insn definition
+combining instructions which are not all available under the same
+circumstances.  (Note: It obviously only makes sense for definitions
+with more than one alternative.  Otherwise the insn pattern should be
+disabled or enabled using the insn condition.)
+@end enumerate
+
+E.g. the following two patterns could easily be merged using the @code{enabled}
+attribute:
+
+@smallexample
+
+(define_insn "*movdi_old"
+  [(set (match_operand:DI 0 "register_operand" "=d")
+        (match_operand:DI 1 "register_operand" " d"))]
+  "!TARGET_NEW"
+  "lgr %0,%1")
+
+(define_insn "*movdi_new"
+  [(set (match_operand:DI 0 "register_operand" "=d,f,d")
+        (match_operand:DI 1 "register_operand" " d,d,f"))]
+  "TARGET_NEW"
+  "@@
+   lgr  %0,%1
+   ldgr %0,%1
+   lgdr %0,%1")
+
+@end smallexample
+
+to:
+
+@smallexample
+
+(define_insn "*movdi_combined"
+  [(set (match_operand:DI 0 "register_operand" "=d,f,d")
+        (match_operand:DI 1 "register_operand" " d,d,f"))]
+  ""
+  "@@
+   lgr  %0,%1
+   ldgr %0,%1
+   lgdr %0,%1"
+  [(set_attr "cpu_facility" "*,new,new")])
+
+@end smallexample
+
+with the @code{enabled} attribute defined like this:
+
+@smallexample
+
+(define_attr "cpu_facility" "standard,new" (const_string "standard"))
+
+(define_attr "enabled" ""
+  (cond [(eq_attr "cpu_facility" "standard") (const_int 1)
+         (and (eq_attr "cpu_facility" "new")
+              (ne (symbol_ref "TARGET_NEW") (const_int 0)))
+         (const_int 1)]
+        (const_int 0)))
+
+@end smallexample
+
+@end ifset
 
 @ifset INTERNALS
 @node Define Constraints
@@ -3407,8 +3463,8 @@ definition from the i386 machine description.)
 (define_peephole2
   [(match_scratch:SI 3 "r")
    (set (match_operand:SI 0 "register_operand" "")
-	(mult:SI (match_operand:SI 1 "memory_operand" "")
-		 (match_operand:SI 2 "immediate_operand" "")))]
+        (mult:SI (match_operand:SI 1 "memory_operand" "")
+                 (match_operand:SI 2 "immediate_operand" "")))]
 
   "!satisfies_constraint_K (operands[2])"
 
@@ -3741,7 +3797,7 @@ The output and input vectors should have the same modes.
 @item @samp{vec_pack_trunc_@var{m}}
 Narrow (demote) and merge the elements of two vectors. Operands 1 and 2
 are vectors of the same mode having N integral or floating point elements
-of size S.  Operand 0 is the resulting vector in which 2*N elements of
+of size S@.  Operand 0 is the resulting vector in which 2*N elements of
 size N/2 are concatenated after narrowing them down using truncation.
 
 @cindex @code{vec_pack_ssat_@var{m}} instruction pattern
@@ -3758,7 +3814,7 @@ saturating arithmetic.
 @item @samp{vec_pack_sfix_trunc_@var{m}}, @samp{vec_pack_ufix_trunc_@var{m}}
 Narrow, convert to signed/unsigned integral type and merge the elements
 of two vectors.  Operands 1 and 2 are vectors of the same mode having N
-floating point elements of size S.  Operand 0 is the resulting vector
+floating point elements of size S@.  Operand 0 is the resulting vector
 in which 2*N elements of size N/2 are concatenated.
 
 @cindex @code{vec_unpacks_hi_@var{m}} instruction pattern
@@ -3766,7 +3822,7 @@ in which 2*N elements of size N/2 are concatenated.
 @item @samp{vec_unpacks_hi_@var{m}}, @samp{vec_unpacks_lo_@var{m}}
 Extract and widen (promote) the high/low part of a vector of signed
 integral or floating point elements.  The input vector (operand 1) has N
-elements of size S.  Widen (promote) the high/low elements of the vector
+elements of size S@.  Widen (promote) the high/low elements of the vector
 using signed or floating point extension and place the resulting N/2
 values of size 2*S in the output vector (operand 0).
 
@@ -3786,7 +3842,7 @@ place the resulting N/2 values of size 2*S in the output vector (operand 0).
 @itemx @samp{vec_unpacku_float_hi_@var{m}}, @samp{vec_unpacku_float_lo_@var{m}}
 Extract, convert to floating point type and widen the high/low part of a
 vector of signed/unsigned integral elements.  The input vector (operand 1)
-has N elements of size S.  Convert the high/low elements of the vector using
+has N elements of size S@.  Convert the high/low elements of the vector using
 floating point conversion and place the resulting N/2 values of size 2*S in
 the output vector (operand 0).
 
@@ -3797,7 +3853,7 @@ the output vector (operand 0).
 @item @samp{vec_widen_umult_hi_@var{m}}, @samp{vec_widen_umult_lo_@var{m}}
 @itemx @samp{vec_widen_smult_hi_@var{m}}, @samp{vec_widen_smult_lo_@var{m}}
 Signed/Unsigned widening multiplication.  The two inputs (operands 1 and 2)
-are vectors with N signed/unsigned elements of size S.  Multiply the high/low
+are vectors with N signed/unsigned elements of size S@.  Multiply the high/low
 elements of the two vectors, and put the N/2 products of size 2*S in the
 output vector (operand 0).
 
@@ -3926,7 +3982,7 @@ operand 0 and operand 1; operand 2's mode is specified by the
 instruction pattern, and the compiler will convert the operand to that
 mode before generating the instruction.  The meaning of out-of-range shift
 counts can optionally be specified by @code{TARGET_SHIFT_TRUNCATION_MASK}.
-@xref{TARGET_SHIFT_TRUNCATION_MASK}.
+@xref{TARGET_SHIFT_TRUNCATION_MASK}.  Operand 2 is always a scalar type.
 
 @cindex @code{ashr@var{m}3} instruction pattern
 @cindex @code{lshr@var{m}3} instruction pattern
@@ -3934,7 +3990,16 @@ counts can optionally be specified by @code{TARGET_SHIFT_TRUNCATION_MASK}.
 @cindex @code{rotr@var{m}3} instruction pattern
 @item @samp{ashr@var{m}3}, @samp{lshr@var{m}3}, @samp{rotl@var{m}3}, @samp{rotr@var{m}3}
 Other shift and rotate instructions, analogous to the
-@code{ashl@var{m}3} instructions.
+@code{ashl@var{m}3} instructions.  Operand 2 is always a scalar type.
+
+@cindex @code{vashl@var{m}3} instruction pattern
+@cindex @code{vashr@var{m}3} instruction pattern
+@cindex @code{vlshr@var{m}3} instruction pattern
+@cindex @code{vrotl@var{m}3} instruction pattern
+@cindex @code{vrotr@var{m}3} instruction pattern
+@item @samp{vashl@var{m}3}, @samp{vashr@var{m}3}, @samp{vlshr@var{m}3}, @samp{vrotl@var{m}3}, @samp{vrotr@var{m}3}
+Vector shift and rotate instructions that take vectors as operand 2
+instead of a scalar type.
 
 @cindex @code{neg@var{m}2} instruction pattern
 @cindex @code{ssneg@var{m}2} instruction pattern
@@ -4136,16 +4201,20 @@ corresponds to the C data type @code{int}.
 @cindex @code{clz@var{m}2} instruction pattern
 @item @samp{clz@var{m}2}
 Store into operand 0 the number of leading 0-bits in @var{x}, starting
-at the most significant bit position.  If @var{x} is 0, the result is
-undefined.  @var{m} is the mode of operand 0; operand 1's mode is
+at the most significant bit position.  If @var{x} is 0, the
+@code{CLZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}) macro defines if
+the result is undefined or has a useful value.
+@var{m} is the mode of operand 0; operand 1's mode is
 specified by the instruction pattern, and the compiler will convert the
 operand to that mode before generating the instruction.
 
 @cindex @code{ctz@var{m}2} instruction pattern
 @item @samp{ctz@var{m}2}
 Store into operand 0 the number of trailing 0-bits in @var{x}, starting
-at the least significant bit position.  If @var{x} is 0, the result is
-undefined.  @var{m} is the mode of operand 0; operand 1's mode is
+at the least significant bit position.  If @var{x} is 0, the
+@code{CTZ_DEFINED_VALUE_AT_ZERO} (@pxref{Misc}) macro defines if
+the result is undefined or has a useful value.
+@var{m} is the mode of operand 0; operand 1's mode is
 specified by the instruction pattern, and the compiler will convert the
 operand to that mode before generating the instruction.
 
@@ -4213,7 +4282,8 @@ it may provide the value 4 for this operand.
 Optional operands 5 and 6 specify expected alignment and size of block
 respectively.  The expected alignment differs from alignment in operand 4
 in a way that the blocks are not required to be aligned according to it in
-all cases. Expected size, when unknown, is set to @code{(const_int -1)}.
+all cases. This expected alignment is also in bytes, just like operand 4.
+Expected size, when unknown, is set to @code{(const_int -1)}.
 
 Descriptions of multiple @code{movmem@var{m}} patterns can only be
 beneficial if the patterns for smaller modes have fewer restrictions
@@ -4250,7 +4320,8 @@ operand.
 Optional operands 5 and 6 specify expected alignment and size of block
 respectively.  The expected alignment differs from alignment in operand 4
 in a way that the blocks are not required to be aligned according to it in
-all cases. Expected size, when unknown, is set to @code{(const_int -1)}.
+all cases. This expected alignment is also in bytes, just like operand 4.
+Expected size, when unknown, is set to @code{(const_int -1)}.
 
 The use for multiple @code{setmem@var{m}} is as for @code{movmem@var{m}}.
 
@@ -5020,19 +5091,15 @@ memory operations before the atomic operation occur before the atomic
 operation and all memory operations after the atomic operation occur
 after the atomic operation.
 
-@cindex @code{sync_compare_and_swap_cc@var{mode}} instruction pattern
-@item @samp{sync_compare_and_swap_cc@var{mode}}
-
-This pattern is just like @code{sync_compare_and_swap@var{mode}}, except
-it should act as if compare part of the compare-and-swap were issued via
-@code{cmp@var{m}}.  This comparison will only be used with @code{EQ} and
-@code{NE} branches and @code{setcc} operations.
-
-Some targets do expose the success or failure of the compare-and-swap
-operation via the status flags.  Ideally we wouldn't need a separate
-named pattern in order to take advantage of this, but the combine pass
-does not handle patterns with multiple sets, which is required by
-definition for @code{sync_compare_and_swap@var{mode}}.
+For targets where the success or failure of the compare-and-swap
+operation is available via the status flags, it is possible
+to avoid a separate compare operation and issue the subsequent
+setcc or branch immediately after the compare-and-swap.  To this
+end, GCC will look for a @code{MODE_CC} set in the output of
+@code{sync_compare_and_swap@var{mode}}; if the machine description
+includes such a set, the target should also define a special @code{cmpcc}
+instruction.  GCC will then be able to take the destination of the
+@code{MODE_CC} set and use it as the first operand of @code{cmpcc}.
 
 @cindex @code{sync_add@var{mode}} instruction pattern
 @cindex @code{sync_sub@var{mode}} instruction pattern
@@ -5436,15 +5503,15 @@ following for its @code{dbra} instruction:
 @group
 (define_insn "decrement_and_branch_until_zero"
   [(set (pc)
-	(if_then_else
-	  (ge (plus:SI (match_operand:SI 0 "general_operand" "+d*am")
-		       (const_int -1))
-	      (const_int 0))
-	  (label_ref (match_operand 1 "" ""))
-	  (pc)))
+        (if_then_else
+          (ge (plus:SI (match_operand:SI 0 "general_operand" "+d*am")
+                       (const_int -1))
+              (const_int 0))
+          (label_ref (match_operand 1 "" ""))
+          (pc)))
    (set (match_dup 0)
-	(plus:SI (match_dup 0)
-		 (const_int -1)))]
+        (plus:SI (match_dup 0)
+                 (const_int -1)))]
   "find_reg_note (insn, REG_NONNEG, 0)"
   "@dots{}")
 @end group
@@ -5462,14 +5529,14 @@ pattern will not be matched by the combiner.
 @group
 (define_insn "decrement_and_branch_until_zero"
   [(set (pc)
-	(if_then_else
-	  (ge (match_operand:SI 0 "general_operand" "+d*am")
-	      (const_int 1))
-	  (label_ref (match_operand 1 "" ""))
-	  (pc)))
+        (if_then_else
+          (ge (match_operand:SI 0 "general_operand" "+d*am")
+              (const_int 1))
+          (label_ref (match_operand 1 "" ""))
+          (pc)))
    (set (match_dup 0)
-	(plus:SI (match_dup 0)
-		 (const_int -1)))]
+        (plus:SI (match_dup 0)
+                 (const_int -1)))]
   "find_reg_note (insn, REG_NONNEG, 0)"
   "@dots{}")
 @end group
@@ -6091,7 +6158,7 @@ from i386.md:
   "&& reload_completed"
   [(parallel [(set (match_dup 0)
                    (and:SI (match_dup 0) (const_int 65535)))
-	      (clobber (reg:CC 17))])]
+              (clobber (reg:CC 17))])]
   ""
   [(set_attr "type" "alu1")])
 
@@ -6583,6 +6650,22 @@ extern enum attr_type get_attr_type ();
 If the attribute takes numeric values, no @code{enum} type will be
 defined and the function to obtain the attribute's value will return
 @code{int}.
+
+There are attributes which are tied to a specific meaning.  These
+attributes are not free to use for other purposes:
+
+@table @code
+@item length
+The @code{length} attribute is used to calculate the length of emitted
+code chunks.  This is especially important when verifying branch
+distances. @xref{Insn Lengths}.
+
+@item enabled
+The @code{enabled} attribute can be defined to prevent certain
+alternatives of an insn definition from being used during code
+generation. @xref{Disable Insn Alternatives}.
+
+@end table
 
 @end ifset
 @ifset INTERNALS
@@ -7216,10 +7299,10 @@ the instruction issue is possible if there is a transition from one
 automaton state to another one.  This algorithm is very fast, and
 furthermore, its speed is not dependent on processor
 complexity@footnote{However, the size of the automaton depends on
-  processor complexity.  To limit this effect, machine descriptions
-  can split orthogonal parts of the machine description among several
-  automata: but then, since each of these must be stepped independently,
-  this does cause a small decrease in the algorithm's performance.}.
+processor complexity.  To limit this effect, machine descriptions
+can split orthogonal parts of the machine description among several
+automata: but then, since each of these must be stepped independently,
+this does cause a small decrease in the algorithm's performance.}.
 
 @cindex automaton based pipeline description
 The rest of this section describes the directives that constitute
@@ -7426,6 +7509,11 @@ two insns as parameters.  If the function returns zero the bypass will
 be ignored for this case.  The additional guard is necessary to
 recognize complicated bypasses, e.g.@: when the consumer is only an address
 of insn @samp{store} (not a stored value).
+
+If there are more one bypass with the same output and input insns, the
+chosen bypass is the first bypass with a guard in description whose
+guard function returns nonzero.  If there is no such bypass, then
+bypass without the guard function is chosen.
 
 @findex exclusion_set
 @findex presence_set
@@ -7819,8 +7907,8 @@ rtx-based construct, such as a @code{define_insn},
 
 @menu
 * Defining Mode Iterators:: Defining a new mode iterator.
-* Substitutions::	    Combining mode iterators with substitutions
-* Examples::		    Examples
+* Substitutions::           Combining mode iterators with substitutions
+* Examples::                Examples
 @end menu
 
 @node Defining Mode Iterators
@@ -7830,7 +7918,7 @@ rtx-based construct, such as a @code{define_insn},
 The syntax for defining a mode iterator is:
 
 @smallexample
-(define_mode_iterator @var{name} [(@var{mode1} "@var{cond1}") ... (@var{moden} "@var{condn}")])
+(define_mode_iterator @var{name} [(@var{mode1} "@var{cond1}") @dots{} (@var{moden} "@var{condn}")])
 @end smallexample
 
 This allows subsequent @file{.md} file constructs to use the mode suffix
@@ -7897,7 +7985,7 @@ the mode in lower case, and @code{MODE}, which is the same thing in
 upper case.  You can define other attributes using:
 
 @smallexample
-(define_mode_attr @var{name} [(@var{mode1} "@var{value1}") ... (@var{moden} "@var{valuen}")])
+(define_mode_attr @var{name} [(@var{mode1} "@var{value1}") @dots{} (@var{moden} "@var{valuen}")])
 @end smallexample
 
 where @var{name} is the name of the attribute and @var{valuei}
@@ -7907,7 +7995,7 @@ When GCC replaces some @var{:iterator} with @var{:mode}, it will scan
 each string and mode in the pattern for sequences of the form
 @code{<@var{iterator}:@var{attr}>}, where @var{attr} is the name of a
 mode attribute.  If the attribute is defined for @var{mode}, the whole
-@code{<...>} sequence will be replaced by the appropriate attribute
+@code{<@dots{}>} sequence will be replaced by the appropriate attribute
 value.
 
 For example, suppose an @file{.md} file has:
@@ -7927,8 +8015,8 @@ Here is an example of using an attribute for a mode:
 @smallexample
 (define_mode_iterator LONG [SI DI])
 (define_mode_attr SHORT [(SI "HI") (DI "SI")])
-(define_insn ...
-  (sign_extend:LONG (match_operand:<LONG:SHORT> ...)) ...)
+(define_insn @dots{}
+  (sign_extend:LONG (match_operand:<LONG:SHORT> @dots{})) @dots{})
 @end smallexample
 
 The @code{@var{iterator}:} prefix may be omitted, in which case the
@@ -7992,7 +8080,7 @@ Code iterators operate in a similar way to mode iterators.  @xref{Mode Iterators
 The construct:
 
 @smallexample
-(define_code_iterator @var{name} [(@var{code1} "@var{cond1}") ... (@var{coden} "@var{condn}")])
+(define_code_iterator @var{name} [(@var{code1} "@var{cond1}") @dots{} (@var{coden} "@var{condn}")])
 @end smallexample
 
 defines a pseudo rtx code @var{name} that can be instantiated as
@@ -8010,7 +8098,7 @@ code in lower case, and @code{CODE}, the name of the code in upper case.
 Other attributes are defined using:
 
 @smallexample
-(define_code_attr @var{name} [(@var{code1} "@var{value1}") ... (@var{coden} "@var{valuen}")])
+(define_code_attr @var{name} [(@var{code1} "@var{value1}") @dots{} (@var{coden} "@var{valuen}")])
 @end smallexample
 
 Here's an example of code iterators in action, taken from the MIPS port:
@@ -8059,7 +8147,7 @@ This is equivalent to:
   DONE;
 @})
 
-...
+@dots{}
 @end smallexample
 
 @end ifset

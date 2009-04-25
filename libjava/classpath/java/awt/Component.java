@@ -43,6 +43,8 @@ package java.awt;
 
 import gnu.java.awt.ComponentReshapeEvent;
 
+import gnu.java.lang.CPStringBuilder;
+
 import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
 import java.awt.event.AdjustmentEvent;
@@ -175,7 +177,7 @@ public abstract class Component
   /**
    * Constant returned by the <code>getAlignmentY</code> and
    * <code>getAlignmentX</code> methods to indicate
-   * that the component wishes to be aligned to the center relative to
+   * that the component wishes to be aligned to the centdisper relative to
    * other components.
    *
    * @see #getAlignmentX()
@@ -4991,7 +4993,7 @@ public abstract class Component
    */
   protected String paramString()
   {
-    StringBuffer param = new StringBuffer();
+    CPStringBuilder param = new CPStringBuilder();
     String name = getName();
     if (name != null)
       param.append(name).append(",");
@@ -5831,6 +5833,62 @@ p   * <li>the set of backward traversal keys
           visible = visible && comp.isVisible();
       }
     return visible;
+  }
+
+  /**
+   * Returns the mouse pointer position relative to this Component's
+   * top-left corner.
+   *
+   * @return relative mouse pointer position
+   *
+   * @throws HeadlessException if in a headless environment
+   */
+  public Point getMousePosition() throws HeadlessException
+  {
+    return getMousePositionHelper(true);
+  }
+
+  Point getMousePositionHelper(boolean allowChildren) throws HeadlessException
+  {
+    if (GraphicsEnvironment.isHeadless())
+      throw new HeadlessException("can't get mouse position"
+                                  + " in headless environment");
+    if (!isShowing())
+      return null;
+
+    Component parent = this;
+    int windowRelativeXOffset = 0;
+    int windowRelativeYOffset = 0;
+    while (parent != null && !(parent instanceof Window))
+      {
+        windowRelativeXOffset += parent.getX();
+        windowRelativeYOffset += parent.getY();
+        parent = parent.getParent();
+      }
+    if (parent == null)
+      return null;
+
+    Window window = (Window) parent;
+    if (!Toolkit.getDefaultToolkit()
+        .getMouseInfoPeer().isWindowUnderMouse(window))
+      return null;
+
+    PointerInfo info = MouseInfo.getPointerInfo();
+    Point mouseLocation = info.getLocation();
+    Point windowLocation = window.getLocationOnScreen();
+
+    int x = mouseLocation.x - windowLocation.x;
+    int y = mouseLocation.y - windowLocation.y;
+
+    if (!mouseOverComponent(window.getComponentAt(x, y), allowChildren))
+      return null;
+
+    return new Point(x - windowRelativeXOffset, y - windowRelativeYOffset);
+  }
+
+  boolean mouseOverComponent(Component component, boolean allowChildren)
+  {
+    return component == this;
   }
 
   /**

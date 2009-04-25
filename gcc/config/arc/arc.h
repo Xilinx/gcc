@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, Argonaut ARC cpu.
    Copyright (C) 1994, 1995, 1997, 1998, 1999, 2000, 2001, 2002, 2004, 2005,
-   2007 Free Software Foundation, Inc.
+   2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -520,7 +520,7 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
    frame pointer.  This expression is evaluated in the reload pass.
    If its value is nonzero the function will have a frame pointer.  */
 #define FRAME_POINTER_REQUIRED \
-(current_function_calls_alloca)
+(cfun->calls_alloca)
 
 /* C statement to store the difference between the frame pointer
    and the stack pointer values immediately after the function prologue.  */
@@ -531,7 +531,7 @@ extern enum reg_class arc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 /* If defined, the maximum amount of space required for outgoing
    arguments will be computed and placed into the variable
-   `current_function_outgoing_args_size'.  No space will be pushed
+   `crtl->outgoing_args_size'.  No space will be pushed
    onto the stack for each call; instead, the function prologue should
    increase the stack frame size by this amount.  */
 #define ACCUMULATE_OUTGOING_ARGS 1
@@ -795,10 +795,6 @@ do { \
       && RTX_OK_FOR_BASE_P (XEXP ((X), 0)))		\
     goto ADDR;						\
 }
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* Given a comparison code (EQ, NE, etc.) and the first operand of a COMPARE,
    return the mode to be used for the comparison.  */
@@ -824,7 +820,7 @@ arc_select_cc_mode (OP, X, Y)
 /* The cost of a branch insn.  */
 /* ??? What's the right value here?  Branches are certainly more
    expensive than reg->reg moves.  */
-#define BRANCH_COST 2
+#define BRANCH_COST(speed_p, predictable_p) 2
 
 /* Nonzero if access to memory by bytes is slow and undesirable.
    For RISC chips, it means that access to memory by bytes is no
@@ -1086,8 +1082,3 @@ enum arc_function_type {
 #define ARC_INTERRUPT_P(TYPE) \
 ((TYPE) == ARC_FUNCTION_ILINK1 || (TYPE) == ARC_FUNCTION_ILINK2)
 /* Compute the type of a function from its DECL.  */
-
-
-/* Implement `va_start' for varargs and stdarg.  */
-#define EXPAND_BUILTIN_VA_START(valist, nextarg) \
-  arc_va_start (valist, nextarg)

@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler,
    for IBM RS/6000 POWER running AIX V5.2.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by David Edelsohn (edelsohn@gnu.org).
 
@@ -122,6 +122,12 @@ do {									\
 #undef  TARGET_POWER
 #define TARGET_POWER 0
 
+/* AIX does not support Altivec.  */
+#undef  TARGET_ALTIVEC
+#define TARGET_ALTIVEC 0
+#undef  TARGET_ALTIVEC_ABI
+#define TARGET_ALTIVEC_ABI 0
+
 /* Define this macro as a C expression for the initializer of an
    array of string to tell the driver program which options are
    defaults for this target and thus do not need to be handled
@@ -190,3 +196,8 @@ extern long long int    atoll(const char *);
 
 /* This target uses the aix64.opt file.  */
 #define TARGET_USES_AIX64_OPT 1
+
+/* This target defines SUPPORTS_WEAK and TARGET_ASM_NAMED_SECTION,
+   but does not have crtbegin/end.  */
+
+#define TARGET_USE_JCR_SECTION 0

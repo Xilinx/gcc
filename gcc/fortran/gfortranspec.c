@@ -1,5 +1,6 @@
 /* Specific flags and argument handling of the Fortran front-end.
-   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+   2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -174,6 +175,8 @@ lookup_option (Option *xopt, int *xskip, const char **xarg, const char *text)
     opt = OPTION_v, skip = 0;
   else if (text[1] == 'x')
     opt = OPTION_x, arg = text + 2;
+  else if (text[1] == 'J')
+    ;
   else
     {
       if ((skip = WORD_SWITCH_TAKES_ARG (text + 1)) != 0)  /* See gcc.c.  */
@@ -376,7 +379,7 @@ lang_specific_driver (int *in_argc, const char *const **in_argv,
 
 	case OPTION_version:
 	  printf ("GNU Fortran %s%s\n", pkgversion_string, version_string);
-	  printf ("Copyright %s 2007 Free Software Foundation, Inc.\n\n",
+	  printf ("Copyright %s 2009 Free Software Foundation, Inc.\n\n",
 		  _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\
 You may redistribute copies of GNU Fortran\n\
@@ -426,18 +429,27 @@ For more information about these matters, see the file named COPYING\n\n"));
 	{
 	  char *p;
 
+	  fprintf (stderr, _("Warning: Using -M <directory> is deprecated, "
+	           "use -J instead\n"));
 	  if (argv[i][2] == '\0')
 	    {
-	      p = XNEWVEC (char, strlen (argv[i + 1]) + 2);
-	      p[0] = '-';
-	      p[1] = 'J';
-	      strcpy (&p[2], argv[i + 1]);
-	      i++;
+	      if (i+1 < argc)
+		{
+		  p = XNEWVEC (char, strlen (argv[i + 1]) + 3);
+		  p[0] = '-';
+		  p[1] = 'J';
+		  strcpy (&p[2], argv[i + 1]);
+		  i++;
+		}
+	      else
+		fatal ("argument to '%s' missing", argv[i]);
 	    }
 	  else
 	    {
 	      p = XNEWVEC (char, strlen (argv[i]) + 1);
-	      strcpy (p, argv[i]);
+	      p[0] = '-';
+	      p[1] = 'J';
+	      strcpy (&p[2], argv[i] + 2);
 	    }
 	  append_arg (p);
 	  continue;

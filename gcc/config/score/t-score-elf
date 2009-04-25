@@ -1,9 +1,34 @@
+# Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
 # Additional Backend Files
-score-mdaux.o: $(srcdir)/config/score/score-mdaux.c $(CONFIG_H) $(SYSTEM_H) \
+score7.o: $(srcdir)/config/score/score7.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(TM_H) $(RTL_H) output.h flags.h $(TREE_H) \
   expr.h toplev.h $(TM_P_H)
 	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(srcdir)/config/score/score-mdaux.c
+	$(srcdir)/config/score/score7.c
+
+score3.o: $(srcdir)/config/score/score3.c $(CONFIG_H) $(SYSTEM_H) \
+  coretypes.h $(TM_H) $(RTL_H) output.h flags.h $(TREE_H) \
+  expr.h toplev.h $(TM_P_H)
+	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(srcdir)/config/score/score3.c
+
 
 # Assemble startup files.
 $(T)crti.o: $(srcdir)/config/score/crti.asm $(GCC_PASSES)
@@ -35,8 +60,8 @@ dp-bit.c: $(srcdir)/config/fp-bit.c
 # without the $gp register.
 TARGET_LIBGCC2_CFLAGS = -G 0
 
-MULTILIB_OPTIONS = mmac mel fPIC
-MULTILIB_MATCHES = fPIC=fpic
+MULTILIB_OPTIONS = mscore3 mel
+MULTILIB_MATCHES = mscore3=march?score3
 
 EXTRA_MULTILIB_PARTS = crtbegin.o crtend.o crti.o crtn.o
 

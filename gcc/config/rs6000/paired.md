@@ -1,5 +1,5 @@
 ;; PowerPC paired single and double hummer description
-;; Copyright (C) 2007
+;; Copyright (C) 2007, 2009
 ;; Free Software Foundation, Inc.
 ;; Contributed by David Edelsohn <edelsohn@gnu.org> and Revital Eres
 ;; <eres@il.ibm.com>
@@ -8,19 +8,24 @@
 
 ;; GCC is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published
-;; by the Free Software Foundation; either version 2, or (at your
+;; by the Free Software Foundation; either version 3, or (at your
 ;; option) any later version.
 
 ;; GCC is distributed in the hope that it will be useful, but WITHOUT
 ;; ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 ;; or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
 ;; License for more details.
-
+;; 
 ;; You should have received a copy of the GNU General Public License
-;; along with GCC; see the file COPYING.  If not, write to the
-;; Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
-;; MA 02110-1301, USA.
+;; along with this program; see the file COPYING3.  If not see
+;; <http://www.gnu.org/licenses/>.
 
+(define_constants
+[(UNSPEC_INTERHI_V2SF     330)
+ (UNSPEC_INTERLO_V2SF     331)
+ (UNSPEC_EXTEVEN_V2SF     332)
+ (UNSPEC_EXTODD_V2SF      333)
+])
 
 (define_insn "negv2sf2"
   [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
@@ -188,7 +193,7 @@
   [(set_attr "type" "fp")])
 
 (define_insn "*movv2sf_paired"
-  [(set (match_operand:V2SF 0 "nonimmediate_operand" "=Z,f,f,o,r,r,v")
+  [(set (match_operand:V2SF 0 "nonimmediate_operand" "=Z,f,f,o,r,r,f")
 		 (match_operand:V2SF 1 "input_operand" "f,Z,f,r,o,r,W"))]
   "TARGET_PAIRED_FLOAT
    && (register_operand (operands[0], V2SFmode) 
@@ -202,7 +207,7 @@
     case 3: return "#";
     case 4: return "#";
     case 5: return "#";
-    case 6: return output_vec_const_move (operands);
+    case 6: return "#"; 
     default: gcc_unreachable ();
     }
 }
@@ -352,4 +357,163 @@
   "ps_muls1 %0, %1, %2"
   [(set_attr "type" "fp")])
 
+(define_expand "vec_initv2sf"
+  [(match_operand:V2SF 0 "gpc_reg_operand" "=f")
+   (match_operand 1 "" "")]
+  "TARGET_PAIRED_FLOAT"
+{
+  paired_expand_vector_init (operands[0], operands[1]);
+  DONE;
+})
+
+(define_insn "*vconcatsf"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (vec_concat:V2SF
+         (match_operand:SF 1 "gpc_reg_operand" "f")
+         (match_operand:SF 2 "gpc_reg_operand" "f")))]
+  "TARGET_PAIRED_FLOAT"
+  "ps_merge00 %0, %1, %2"
+  [(set_attr "type" "fp")])
+
+(define_expand "sminv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (smin:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "f")
+                   (match_operand:V2SF 2 "gpc_reg_operand" "f")))]
+  "TARGET_PAIRED_FLOAT"
+{
+  rtx tmp = gen_reg_rtx (V2SFmode);
+
+  emit_insn (gen_subv2sf3 (tmp, operands[1], operands[2]));
+  emit_insn (gen_selv2sf4 (operands[0], tmp, operands[2], operands[1], CONST0_RTX (SFmode)));
+  DONE;
+})
+
+(define_expand "smaxv2sf3"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (smax:V2SF (match_operand:V2SF 1 "gpc_reg_operand" "f")
+                   (match_operand:V2SF 2 "gpc_reg_operand" "f")))]
+  "TARGET_PAIRED_FLOAT"
+{
+  rtx tmp = gen_reg_rtx (V2SFmode);
+
+  emit_insn (gen_subv2sf3 (tmp, operands[1], operands[2]));
+  emit_insn (gen_selv2sf4 (operands[0], tmp, operands[1], operands[2], CONST0_RTX (SFmode)));
+  DONE;
+})
+
+(define_expand "reduc_smax_v2sf"
+  [(match_operand:V2SF 0 "gpc_reg_operand" "=f")
+   (match_operand:V2SF 1 "gpc_reg_operand" "f")]
+  "TARGET_PAIRED_FLOAT"
+{
+  rtx tmp_swap = gen_reg_rtx (V2SFmode);
+  rtx tmp = gen_reg_rtx (V2SFmode);
+
+  emit_insn (gen_paired_merge10 (tmp_swap, operands[1], operands[1]));
+  emit_insn (gen_subv2sf3 (tmp, operands[1], tmp_swap));
+  emit_insn (gen_selv2sf4 (operands[0], tmp, operands[1], tmp_swap, CONST0_RTX (SFmode)));
+
+  DONE;
+})
+
+(define_expand "reduc_smin_v2sf"
+  [(match_operand:V2SF 0 "gpc_reg_operand" "=f")
+   (match_operand:V2SF 1 "gpc_reg_operand" "f")]
+  "TARGET_PAIRED_FLOAT"
+{
+  rtx tmp_swap = gen_reg_rtx (V2SFmode);
+  rtx tmp = gen_reg_rtx (V2SFmode);
+
+  emit_insn (gen_paired_merge10 (tmp_swap, operands[1], operands[1]));
+  emit_insn (gen_subv2sf3 (tmp, operands[1], tmp_swap));
+  emit_insn (gen_selv2sf4 (operands[0], tmp, tmp_swap, operands[1], CONST0_RTX (SFmode)));
+
+  DONE;
+})
+
+(define_expand "vec_interleave_highv2sf"
+ [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (unspec:V2SF [(match_operand:V2SF 1 "gpc_reg_operand" "f")
+                      (match_operand:V2SF 2 "gpc_reg_operand" "f")]
+                      UNSPEC_INTERHI_V2SF))]
+  "TARGET_PAIRED_FLOAT"
+  "
+{
+  emit_insn (gen_paired_merge00 (operands[0], operands[1], operands[2]));
+  DONE;
+}")
+
+(define_expand "vec_interleave_lowv2sf"
+ [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (unspec:V2SF [(match_operand:V2SF 1 "gpc_reg_operand" "f")
+                      (match_operand:V2SF 2 "gpc_reg_operand" "f")]
+                      UNSPEC_INTERLO_V2SF))]
+  "TARGET_PAIRED_FLOAT"
+  "
+{
+  emit_insn (gen_paired_merge11 (operands[0], operands[1], operands[2]));
+  DONE;
+}")
+
+(define_expand "vec_extract_evenv2sf"
+ [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (unspec:V2SF [(match_operand:V2SF 1 "gpc_reg_operand" "f")
+                      (match_operand:V2SF 2 "gpc_reg_operand" "f")]
+                      UNSPEC_EXTEVEN_V2SF))]
+  "TARGET_PAIRED_FLOAT"
+  "
+{
+  emit_insn (gen_paired_merge00 (operands[0], operands[1], operands[2]));
+  DONE;
+}")
+
+(define_expand "vec_extract_oddv2sf"
+ [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (unspec:V2SF [(match_operand:V2SF 1 "gpc_reg_operand" "f")
+                      (match_operand:V2SF 2 "gpc_reg_operand" "f")]
+                      UNSPEC_EXTODD_V2SF))]
+  "TARGET_PAIRED_FLOAT"
+  "
+{
+  emit_insn (gen_paired_merge11 (operands[0], operands[1], operands[2]));
+  DONE;
+}")
+
+
+(define_expand "reduc_splus_v2sf"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (match_operand:V2SF 1 "gpc_reg_operand" "f"))]
+  "TARGET_PAIRED_FLOAT"
+  "
+{
+  emit_insn (gen_paired_sum1 (operands[0], operands[1], operands[1], operands[1]));
+  DONE;
+}")
+
+(define_expand "movmisalignv2sf"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (match_operand:V2SF 1 "gpc_reg_operand" "f"))]
+  "TARGET_PAIRED_FLOAT"
+{
+  paired_expand_vector_move (operands);
+  DONE;
+})
+
+(define_expand "vcondv2sf"
+  [(set (match_operand:V2SF 0 "gpc_reg_operand" "=f")
+        (if_then_else:V2SF
+         (match_operator 3 "gpc_reg_operand"
+                         [(match_operand:V2SF 4 "gpc_reg_operand" "f")
+                          (match_operand:V2SF 5 "gpc_reg_operand" "f")])
+         (match_operand:V2SF 1 "gpc_reg_operand" "f")
+         (match_operand:V2SF 2 "gpc_reg_operand" "f")))]
+  "TARGET_PAIRED_FLOAT && flag_unsafe_math_optimizations"
+  "
+{
+        if (paired_emit_vector_cond_expr (operands[0], operands[1], operands[2],
+                                          operands[3], operands[4], operands[5]))
+        DONE;
+        else
+        FAIL;
+}")
 

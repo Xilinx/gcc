@@ -1,6 +1,6 @@
 /* Definitions for ARM running Linux-based GNU systems using ELF
    Copyright (C) 1993, 1994, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007
+   2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Philip Blundell <philb@gnu.org>
 
@@ -30,12 +30,24 @@
 #undef  TARGET_DEFAULT_FLOAT_ABI
 #define TARGET_DEFAULT_FLOAT_ABI ARM_FLOAT_ABI_HARD
 
+/* TARGET_BIG_ENDIAN_DEFAULT is set in
+   config.gcc for big endian configurations.  */
+#if TARGET_BIG_ENDIAN_DEFAULT
+#define TARGET_ENDIAN_DEFAULT    MASK_BIG_END
+#define TARGET_ENDIAN_OPTION     "mbig-endian"
+#define TARGET_LINKER_EMULATION  "armelfb_linux"
+#else
+#define TARGET_ENDIAN_DEFAULT    0
+#define TARGET_ENDIAN_OPTION     "mlittle-endian"
+#define TARGET_LINKER_EMULATION  "armelf_linux"
+#endif
+
 #undef  TARGET_DEFAULT
-#define TARGET_DEFAULT (0)
+#define TARGET_DEFAULT (TARGET_ENDIAN_DEFAULT)
 
 #define SUBTARGET_CPU_DEFAULT TARGET_CPU_arm6
 
-#define SUBTARGET_EXTRA_LINK_SPEC " -m armelf_linux -p"
+#define SUBTARGET_EXTRA_LINK_SPEC " -m " TARGET_LINKER_EMULATION " -p"
 
 #undef  MULTILIB_DEFAULTS
 #define MULTILIB_DEFAULTS \
@@ -60,7 +72,7 @@
    %{rdynamic:-export-dynamic} \
    %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER "} \
    -X \
-   %{mbig-endian:-EB}" \
+   %{mbig-endian:-EB} %{mlittle-endian:-EL}" \
    SUBTARGET_EXTRA_LINK_SPEC
 
 #undef  LINK_SPEC
@@ -99,10 +111,10 @@
 /* The GNU/Linux profiler clobbers the link register.  Make sure the
    prologue knows to save it.  */
 #define PROFILE_HOOK(X)						\
-  emit_insn (gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (SImode, LR_REGNUM)))
+  emit_clobber (gen_rtx_REG (SImode, LR_REGNUM))
 
 /* The GNU/Linux profiler needs a frame pointer.  */
-#define SUBTARGET_FRAME_POINTER_REQUIRED current_function_profile
+#define SUBTARGET_FRAME_POINTER_REQUIRED crtl->profile
 
 /* Add .note.GNU-stack.  */
 #undef NEED_INDICATE_EXEC_STACK

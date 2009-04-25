@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -49,8 +47,6 @@ with System.File_Control_Block;
 with System.WCh_Con;
 
 package Ada.Wide_Wide_Text_IO is
-
-   package WCh_Con renames System.WCh_Con;
 
    type File_Type is limited private;
    type File_Mode is (In_File, Out_File, Append_File);
@@ -140,7 +136,7 @@ package Ada.Wide_Wide_Text_IO is
    -- Buffer control --
    --------------------
 
-   --  Note: The paramter file is in out in the RM, but as pointed out
+   --  Note: The parameter file is in out in the RM, but as pointed out
    --  in <<95-5166.a Tucker Taft 95-6-23>> this is clearly an oversight.
 
    procedure Flush (File : File_Type);
@@ -303,6 +299,34 @@ package Ada.Wide_Wide_Text_IO is
    Layout_Error : exception renames IO_Exceptions.Layout_Error;
 
 private
+
+   --  The following procedures have a File_Type formal of mode IN OUT because
+   --  they may close the original file. The Close operation may raise an
+   --  exception, but in that case we want any assignment to the formal to
+   --  be effective anyway, so it must be passed by reference (or the caller
+   --  will be left with a dangling pointer).
+
+   pragma Export_Procedure
+     (Internal  => Close,
+      External  => "",
+      Mechanism => Reference);
+   pragma Export_Procedure
+     (Internal  => Delete,
+      External  => "",
+      Mechanism => Reference);
+   pragma Export_Procedure
+     (Internal        => Reset,
+      External        => "",
+      Parameter_Types => (File_Type),
+      Mechanism       => Reference);
+   pragma Export_Procedure
+     (Internal        => Reset,
+      External        => "",
+      Parameter_Types => (File_Type, File_Mode),
+      Mechanism       => (File => Reference));
+
+   package WCh_Con renames System.WCh_Con;
+
    -----------------------------------
    -- Handling of Format Characters --
    -----------------------------------
@@ -319,7 +343,7 @@ private
    --  omitted on output unless an explicit New_Page call is made before
    --  closing the file. No page mark is added when a file is appended to,
    --  so, in accordance with the permission in (RM A.10.2(4)), there may
-   --  or may not be a page mark separating preexising text in the file
+   --  or may not be a page mark separating preexisting text in the file
    --  from the new text to be written.
 
    --  A file mark is marked by the physical end of file. In DOS translation
@@ -350,8 +374,14 @@ private
       Line_Length : Count := 0;
       Page_Length : Count := 0;
 
+      Self : aliased File_Type;
+      --  Set to point to the containing Text_AFCB block. This is used to
+      --  implement the Current_{Error,Input,Output} functions which return
+      --  a File_Access, the file access value returned is a pointer to
+      --  the Self field of the corresponding file.
+
       Before_LM : Boolean := False;
-      --  This flag is used to deal with the anomolies introduced by the
+      --  This flag is used to deal with the anomalies introduced by the
       --  peculiar definition of End_Of_File and End_Of_Page in Ada. These
       --  functions require looking ahead more than one character. Since
       --  there is no convenient way of backing up more than one character,

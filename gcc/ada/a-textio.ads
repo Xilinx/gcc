@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -14,21 +14,19 @@
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -45,6 +43,7 @@ with Ada.IO_Exceptions;
 with Ada.Streams;
 with System;
 with System.File_Control_Block;
+with System.WCh_Con;
 
 package Ada.Text_IO is
    pragma Elaborate_Body;
@@ -300,6 +299,32 @@ package Ada.Text_IO is
    Layout_Error : exception renames IO_Exceptions.Layout_Error;
 
 private
+
+   --  The following procedures have a File_Type formal of mode IN OUT because
+   --  they may close the original file. The Close operation may raise an
+   --  exception, but in that case we want any assignment to the formal to
+   --  be effective anyway, so it must be passed by reference (or the caller
+   --  will be left with a dangling pointer).
+
+   pragma Export_Procedure
+     (Internal  => Close,
+      External  => "",
+      Mechanism => Reference);
+   pragma Export_Procedure
+     (Internal  => Delete,
+      External  => "",
+      Mechanism => Reference);
+   pragma Export_Procedure
+     (Internal        => Reset,
+      External        => "",
+      Parameter_Types => (File_Type),
+      Mechanism       => Reference);
+   pragma Export_Procedure
+     (Internal        => Reset,
+      External        => "",
+      Parameter_Types => (File_Type, File_Mode),
+      Mechanism       => (File => Reference));
+
    -----------------------------------
    -- Handling of Format Characters --
    -----------------------------------
@@ -316,7 +341,7 @@ private
    --  omitted on output unless an explicit New_Page call is made before
    --  closing the file. No page mark is added when a file is appended to,
    --  so, in accordance with the permission in (RM A.10.2(4)), there may
-   --  or may not be a page mark separating preexising text in the file
+   --  or may not be a page mark separating preexisting text in the file
    --  from the new text to be written.
 
    --  A file mark is marked by the physical end of file. In DOS translation
@@ -334,6 +359,11 @@ private
    -- Text_IO File Control Block --
    --------------------------------
 
+   Default_WCEM : System.WCh_Con.WC_Encoding_Method :=
+                    System.WCh_Con.WCEM_UTF8;
+   --  This gets modified during initialization (see body) using
+   --  the default value established in the call to Set_Globals.
+
    package FCB renames System.File_Control_Block;
 
    type Text_AFCB;
@@ -348,7 +378,7 @@ private
 
       Self : aliased File_Type;
       --  Set to point to the containing Text_AFCB block. This is used to
-      --  implement the Current_{Error,Input,Ouput} functions which return
+      --  implement the Current_{Error,Input,Output} functions which return
       --  a File_Access, the file access value returned is a pointer to
       --  the Self field of the corresponding file.
 
@@ -365,6 +395,31 @@ private
       --  This flag similarly handles the case of being physically positioned
       --  after a LM-PM sequence when logically we are before the LM-PM. This
       --  flag can only be set if Before_LM is also set.
+
+      WC_Method : System.WCh_Con.WC_Encoding_Method := Default_WCEM;
+      --  Encoding method to be used for this file. Text_IO does not deal with
+      --  wide characters, but it does deal with upper half characters in the
+      --  range 16#80#-16#FF# which may need encoding, e.g. in UTF-8 mode.
+
+      Before_Upper_Half_Character : Boolean := False;
+      --  This flag is set to indicate that an encoded upper half character has
+      --  been read by Text_IO.Look_Ahead. If it is set to True, then it means
+      --  that the stream is logically positioned before the character but is
+      --  physically positioned after it. The character involved must be in
+      --  the range 16#80#-16#FF#, i.e. if the flag is set, then we know the
+      --  next character has a code greater than 16#7F#, and the value of this
+      --  character is saved in Saved_Upper_Half_Character.
+
+      Saved_Upper_Half_Character : Character;
+      --  This field is valid only if Before_Upper_Half_Character is set. It
+      --  contains an upper-half character read by Look_Ahead. If Look_Ahead
+      --  reads a character in the range 16#00# to 16#7F#, then it can use
+      --  ungetc to put it back, but ungetc cannot be called more than once,
+      --  so for characters above this range, we don't try to back up the
+      --  file. Instead we save the character in this field and set the flag
+      --  Before_Upper_Half_Character to True to indicate that we are logically
+      --  positioned before this character even though the stream is physically
+      --  positioned after it.
 
    end record;
 

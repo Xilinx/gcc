@@ -1,5 +1,5 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005, 2006, 2007
+   Copyright (C) 2004, 2005, 2006, 2007, 2008
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -175,7 +175,8 @@ static void free_mem (void);
 
 /* Support for hash table construction and transformations.  */
 static bool oprs_unchanged_p (rtx, rtx, bool);
-static void record_last_reg_set_info (rtx, int);
+static void record_last_reg_set_info (rtx, rtx);
+static void record_last_reg_set_info_regno (rtx, int);
 static void record_last_mem_set_info (rtx);
 static void record_last_set_info (rtx, const_rtx, void *);
 static void record_opr_changes (rtx);
@@ -645,7 +646,19 @@ load_killed_in_block_p (int uid_limit, rtx x, bool after_insn)
 /* Record register first/last/block set information for REGNO in INSN.  */
 
 static inline void
-record_last_reg_set_info (rtx insn, int regno)
+record_last_reg_set_info (rtx insn, rtx reg)
+{
+  unsigned int regno, end_regno;
+
+  regno = REGNO (reg);
+  end_regno = END_HARD_REGNO (reg);
+  do
+    reg_avail_info[regno] = INSN_CUID (insn);
+  while (++regno < end_regno);
+}
+
+static inline void
+record_last_reg_set_info_regno (rtx insn, int regno)
 {
   reg_avail_info[regno] = INSN_CUID (insn);
 }
@@ -680,7 +693,7 @@ record_last_set_info (rtx dest, const_rtx setter ATTRIBUTE_UNUSED, void *data)
     dest = SUBREG_REG (dest);
 
   if (REG_P (dest))
-    record_last_reg_set_info (last_set_insn, REGNO (dest));
+    record_last_reg_set_info (last_set_insn, dest);
   else if (MEM_P (dest))
     {
       /* Ignore pushes, they don't clobber memory.  They may still
@@ -691,7 +704,7 @@ record_last_set_info (rtx dest, const_rtx setter ATTRIBUTE_UNUSED, void *data)
       if (! push_operand (dest, GET_MODE (dest)))
 	record_last_mem_set_info (last_set_insn);
       else
-	record_last_reg_set_info (last_set_insn, STACK_POINTER_REGNUM);
+	record_last_reg_set_info_regno (last_set_insn, STACK_POINTER_REGNUM);
     }
 }
 
@@ -722,17 +735,17 @@ record_opr_changes (rtx insn)
   /* Also record autoincremented REGs for this insn as changed.  */
   for (note = REG_NOTES (insn); note; note = XEXP (note, 1))
     if (REG_NOTE_KIND (note) == REG_INC)
-      record_last_reg_set_info (insn, REGNO (XEXP (note, 0)));
+      record_last_reg_set_info (insn, XEXP (note, 0));
 
   /* Finally, if this is a call, record all call clobbers.  */
   if (CALL_P (insn))
     {
-      unsigned int regno, end_regno;
+      unsigned int regno;
       rtx link, x;
 
       for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
 	if (TEST_HARD_REG_BIT (regs_invalidated_by_call, regno))
-	  record_last_reg_set_info (insn, regno);
+	  record_last_reg_set_info_regno (insn, regno);
 
       for (link = CALL_INSN_FUNCTION_USAGE (insn); link; link = XEXP (link, 1))
 	if (GET_CODE (XEXP (link, 0)) == CLOBBER)
@@ -741,15 +754,11 @@ record_opr_changes (rtx insn)
 	    if (REG_P (x))
 	      {
 		gcc_assert (HARD_REGISTER_P (x));
-	        regno = REGNO (x);
-		end_regno = END_HARD_REGNO (x);
-		do
-		  record_last_reg_set_info (insn, regno);
-		while (++regno < end_regno);
+		record_last_reg_set_info (insn, x);
 	      }
 	  }
 
-      if (! CONST_OR_PURE_CALL_P (insn))
+      if (! RTL_CONST_OR_PURE_CALL_P (insn))
 	record_last_mem_set_info (insn);
     }
 }
@@ -1057,7 +1066,7 @@ eliminate_partially_redundant_load (basic_block bb, rtx insn,
   if (/* No load can be replaced by copy.  */
       npred_ok == 0
       /* Prevent exploding the code.  */ 
-      || (optimize_size && npred_ok > 1)
+      || (optimize_bb_for_size_p (bb) && npred_ok > 1)
       /* If we don't have profile information we cannot tell if splitting 
          a critical edge is profitable or not so don't do it.  */
       || ((! profile_info || ! flag_branch_probabilities
@@ -1164,7 +1173,7 @@ eliminate_partially_redundant_loads (void)
 	continue;
 
       /* Do not try anything on cold basic blocks.  */
-      if (probably_cold_bb_p (bb))
+      if (optimize_bb_for_size_p (bb))
 	continue;
 
       /* Reset the table of things changed since the start of the current
@@ -1260,7 +1269,7 @@ gcse_after_reload_main (rtx f ATTRIBUTE_UNUSED)
 
   memset (&stats, 0, sizeof (stats));
 
-  /* Allocate ememory for this pass.
+  /* Allocate memory for this pass.
      Also computes and initializes the insns' CUIDs.  */
   alloc_mem ();
 
@@ -1297,7 +1306,8 @@ gcse_after_reload_main (rtx f ATTRIBUTE_UNUSED)
 static bool
 gate_handle_gcse2 (void)
 {
-  return (optimize > 0 && flag_gcse_after_reload);
+  return (optimize > 0 && flag_gcse_after_reload
+	  && optimize_function_for_speed_p (cfun));
 }
 
 
@@ -1309,8 +1319,10 @@ rest_of_handle_gcse2 (void)
   return 0;
 }
 
-struct tree_opt_pass pass_gcse2 =
+struct rtl_opt_pass pass_gcse2 =
 {
+ {
+  RTL_PASS,
   "gcse2",                              /* name */
   gate_handle_gcse2,                    /* gate */
   rest_of_handle_gcse2,                 /* execute */
@@ -1323,7 +1335,7 @@ struct tree_opt_pass pass_gcse2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_dump_func | TODO_verify_rtl_sharing
-  | TODO_verify_flow | TODO_ggc_collect,/* todo_flags_finish */
-  'J'                                   /* letter */
+  | TODO_verify_flow | TODO_ggc_collect /* todo_flags_finish */
+ }
 };
 

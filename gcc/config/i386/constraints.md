@@ -18,7 +18,7 @@
 ;; <http://www.gnu.org/licenses/>.
 
 ;;; Unused letters:
-;;;     B     H           TU W   
+;;;     B     H           TU W
 ;;;           h jk          vw  z
 
 ;; Integer register constraints.
@@ -83,15 +83,15 @@
  "Any SSE register.")
 
 ;; We use the Y prefix to denote any number of conditional register sets:
-;;  0	First SSE register.
-;;  t	SSE2 enabled
+;;  z	First SSE register.
+;;  2	SSE2 enabled
 ;;  i	SSE2 inter-unit moves enabled
 ;;  m	MMX inter-unit moves enabled
 
-(define_register_constraint "Y0" "TARGET_SSE ? SSE_FIRST_REG : NO_REGS"
+(define_register_constraint "Yz" "TARGET_SSE ? SSE_FIRST_REG : NO_REGS"
  "First SSE register (@code{%xmm0}).")
 
-(define_register_constraint "Yt" "TARGET_SSE2 ? SSE_REGS : NO_REGS"
+(define_register_constraint "Y2" "TARGET_SSE2 ? SSE_REGS : NO_REGS"
  "@internal Any SSE register, when SSE2 is enabled.")
 
 (define_register_constraint "Yi"
@@ -129,7 +129,7 @@
        (match_test "IN_RANGE (ival, 0, 3)")))
 
 (define_constraint "N"
-  "Unsigned 8-bit integer constant (for @code{in} and @code{out} 
+  "Unsigned 8-bit integer constant (for @code{in} and @code{out}
    instructions)."
   (and (match_code "const_int")
        (match_test "IN_RANGE (ival, 0, 255)")))

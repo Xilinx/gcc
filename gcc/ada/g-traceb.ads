@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1999-2007, AdaCore                     --
+--                     Copyright (C) 1999-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,7 +43,7 @@
 --  using the external addr2line utility, or from within GDB.
 
 --  In order to use this facility, in some cases the binder must be invoked
---  with -E switch (store the backtrace with exception occurence). Please
+--  with -E switch (store the backtrace with exception occurrence). Please
 --  refer to gnatbind documentation for more information.
 
 --  To analyze the code locations later using addr2line or gdb, the necessary

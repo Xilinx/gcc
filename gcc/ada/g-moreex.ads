@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2000-2005, AdaCore                     --
+--                     Copyright (C) 2000-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -33,7 +33,7 @@
 
 --  This package provides routines for accessing the most recently raised
 --  exception. This may be useful for certain logging activities. It may
---  also be useful for mimicing implementation dependent capabilities in
+--  also be useful for mimicking implementation dependent capabilities in
 --  Ada 83 compilers, but see also GNAT.Current_Exceptions for this usage.
 
 with Ada.Exceptions;

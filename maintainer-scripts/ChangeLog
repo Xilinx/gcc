@@ -1,3 +1,74 @@
+2009-04-23  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_web_docs_svn: Redirect output of texi2dvi to /dev/null.
+
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc_release: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* maintainer-addresses: Likewise.
+
+2009-04-08  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_web_docs_svn: Run this script under plain /bin/sh
+	as opposed to /bin/sh -x.
+
+2009-03-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* update_version_svn (IGNORE_BRANCHES): Add 4.2 branch.
+
+2009-03-28  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* crontab: Stop 4.2 snapshots.
+	Spread out 4.3, 4.4, and 4.5 snapshots more evenly.
+
+2009-03-27  Mark Mitchell  <mark@codesourcery.com>
+
+	* crontab: Add 4.4 branch snapshots.
+
+2009-02-21  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* update_version_svn (ADD_BRANCHES): Remove autovect-branch
+	and document format.
+
+2009-01-17  Richard Guenther  <rguenther@suse.de>
+
+	* gcc_release (JAVA_DIRS): Remove fastjar.
+
+2008-10-04  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* gcc_release: Fix a couple of comments.
+
+2008-07-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* crontab: Remove 4.1 snapshots job.
+	* update_version: Remove.
+	* gcc_release: Remove support for g77 and release status in
+	version.c.
+	* update_version_svn: Ignore 4.1 branch.  Remove support for
+	updating files other than DATESTAMP.
+	* update_web_docs_svn: Remove support for g77 manual.
+
+2008-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	* crontab: Add 4.3 branch.  Set trunk to 4.4.
+
+2008-01-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_release (build_sources): Pass --disable-multilib to
+	gcc_build.
+	(SVN): Don't use full path.
+
+2008-01-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* update_web_docs_libstdcxx_svn: "docs" dir moved to "doc".
+
+2007-10-01  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* gcc_release: Do not include copies of faq.html in releases,
+	and remove all the explicit support code to pull in web pages.
+
 2007-08-21  Paul Brook  <paul@codesourcery.com>
 	    Nathan Sidwell  <nathan@codesourcery.com>
 	    Mark Mitchell  <mark@codesourcery.com>
@@ -300,7 +371,7 @@
 
 	* update_version: Add some documentation.
 
-2004-01-02  Pop Sébastian  <pop@gauvain.u-strasbg.fr>
+2004-01-02  Pop SÃ©bastian  <pop@gauvain.u-strasbg.fr>
 
 	* update_version (ADD_BRANCHES): Add lno-branch.
 

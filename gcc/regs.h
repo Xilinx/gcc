@@ -1,6 +1,7 @@
 /* Define per-register tables for data flow info and register allocation.
    Copyright (C) 1987, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   Foundation, Inc.
 
 This file is part of GCC.
 
@@ -115,6 +116,7 @@ struct reg_info_t
   int deaths;			/* # of times (REG n) dies */
   int live_length;		/* # of instructions (REG n) is live */
   int calls_crossed;		/* # of calls (REG n) is live across */
+  int freq_calls_crossed;	/* # estimated frequency (REG n) crosses call */
   int throw_calls_crossed;	/* # of calls that may throw (REG n) is live across */
   int basic_block;		/* # of basic blocks (REG n) is used in */
 };
@@ -128,7 +130,7 @@ extern size_t reg_info_p_size;
 
 #define REG_FREQ(N) (reg_info_p[N].freq)
 
-/* The weights for each insn varries from 0 to REG_FREQ_BASE.
+/* The weights for each insn varies from 0 to REG_FREQ_BASE.
    This constant does not need to be high, as in infrequently executed
    regions we want to count instructions equivalently to optimize for
    size instead of speed.  */
@@ -172,6 +174,7 @@ extern size_t reg_info_p_size;
 /* Indexed by N, gives number of CALL_INSNS across which (REG n) is live.  */
 
 #define REG_N_CALLS_CROSSED(N)  (reg_info_p[N].calls_crossed)
+#define REG_FREQ_CALLS_CROSSED(N)  (reg_info_p[N].freq_calls_crossed)
 
 /* Indexed by N, gives number of CALL_INSNS that may throw, across which
    (REG n) is live.  */
@@ -259,8 +262,26 @@ extern int caller_save_needed;
 #define HARD_REGNO_CALL_PART_CLOBBERED(REGNO, MODE) 0
 #endif
 
+/* 1 if the corresponding class does contain register of given
+   mode.  */
+extern char contains_reg_of_mode [N_REG_CLASSES] [MAX_MACHINE_MODE];
+
+typedef unsigned short move_table[N_REG_CLASSES];
+
+/* Maximum cost of moving from a register in one class to a register
+   in another class.  */
+extern move_table *move_cost[MAX_MACHINE_MODE];
+
 /* Specify number of hard registers given machine mode occupy.  */
 extern unsigned char hard_regno_nregs[FIRST_PSEUDO_REGISTER][MAX_MACHINE_MODE];
+
+/* Similar, but here we don't have to move if the first index is a
+   subset of the second so in that case the cost is zero.  */
+extern move_table *may_move_in_cost[MAX_MACHINE_MODE];
+
+/* Similar, but here we don't have to move if the first index is a
+   superset of the second so in that case the cost is zero.  */
+extern move_table *may_move_out_cost[MAX_MACHINE_MODE];
 
 /* Return an exclusive upper bound on the registers occupied by hard
    register (reg:MODE REGNO).  */

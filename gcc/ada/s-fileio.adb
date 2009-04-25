@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -33,10 +31,12 @@
 
 with Ada.Finalization;            use Ada.Finalization;
 with Ada.IO_Exceptions;           use Ada.IO_Exceptions;
+with Interfaces.C;
 with Interfaces.C_Streams;        use Interfaces.C_Streams;
 
 with System.CRTL;
 with System.Case_Util;            use System.Case_Util;
+with System.OS_Lib;
 with System.Soft_Links;
 
 with Ada.Unchecked_Deallocation;
@@ -47,6 +47,7 @@ package body System.File_IO is
 
    package SSL renames System.Soft_Links;
 
+   use type Interfaces.C.int;
    use type System.CRTL.size_t;
 
    ----------------------
@@ -206,9 +207,10 @@ package body System.File_IO is
    -- Close --
    -----------
 
-   procedure Close (File : in out AFCB_Ptr) is
+   procedure Close (File_Ptr : access AFCB_Ptr) is
       Close_Status : int := 0;
       Dup_Strm     : Boolean := False;
+      File         : AFCB_Ptr renames File_Ptr.all;
 
    begin
       --  Take a task lock, to protect the global data value Open_Files
@@ -296,7 +298,8 @@ package body System.File_IO is
    -- Delete --
    ------------
 
-   procedure Delete (File : in out AFCB_Ptr) is
+   procedure Delete (File_Ptr : access AFCB_Ptr) is
+      File : AFCB_Ptr renames File_Ptr.all;
    begin
       Check_File_Open (File);
 
@@ -308,7 +311,7 @@ package body System.File_IO is
          Filename : aliased constant String := File.Name.all;
 
       begin
-         Close (File);
+         Close (File_Ptr);
 
          --  Now unlink the external file. Note that we use the full name
          --  in this unlink, because the working directory may have changed
@@ -354,7 +357,7 @@ package body System.File_IO is
    procedure Finalize (V : in out File_IO_Clean_Up_Type) is
       pragma Warnings (Off, V);
 
-      Fptr1   : AFCB_Ptr;
+      Fptr1   : aliased AFCB_Ptr;
       Fptr2   : AFCB_Ptr;
 
       Discard : int;
@@ -371,7 +374,7 @@ package body System.File_IO is
       Fptr1 := Open_Files;
       while Fptr1 /= null loop
          Fptr2 := Fptr1.Next;
-         Close (Fptr1);
+         Close (Fptr1'Access);
          Fptr1 := Fptr2;
       end loop;
 
@@ -523,6 +526,7 @@ package body System.File_IO is
       return    Boolean
    is
       V1, V2 : Natural;
+      pragma Unreferenced (V2);
 
    begin
       Form_Parameter (Form, Keyword, V1, V2);
@@ -733,6 +737,8 @@ package body System.File_IO is
       Formstr : aliased String (1 .. Form'Length + 1);
       --  Form string with ASCII.NUL appended, folded to lower case
 
+      Is_Text_File : Boolean;
+
       Tempfile : constant Boolean := (Name'Length = 0);
       --  Indicates temporary file case
 
@@ -794,7 +800,7 @@ package body System.File_IO is
          end if;
       end;
 
-      --  Acquire setting of shared parameter
+      --  Acquire setting of encoding parameter
 
       declare
          V1, V2 : Natural;
@@ -803,7 +809,7 @@ package body System.File_IO is
          Form_Parameter (Formstr, "encoding", V1, V2);
 
          if V1 = 0 then
-            Encoding := System.CRTL.UTF8;
+            Encoding := System.CRTL.Unspecified;
 
          elsif Formstr (V1 .. V2) = "utf8" then
             Encoding := System.CRTL.UTF8;
@@ -816,19 +822,31 @@ package body System.File_IO is
          end if;
       end;
 
+      --  Acquire setting of text_translation parameter. Only needed if this is
+      --  a [Wide_[Wide_]]Text_IO file, in which case we default to True, but
+      --  if the Form says Text_Translation=No, we use binary mode, so new-line
+      --  will be just LF, even on Windows.
+
+      Is_Text_File := Text;
+
+      if Is_Text_File then
+         Is_Text_File :=
+           Form_Boolean (Formstr, "text_translation", Default => True);
+      end if;
+
       --  If we were given a stream (call from xxx.C_Streams.Open), then set
       --  the full name to the given one, and skip to end of processing.
 
       if Stream /= NULL_Stream then
          Full_Name_Len := Name'Length + 1;
          Fullname (1 .. Full_Name_Len - 1) := Name;
-         Fullname (Full_Name_Len) := ASCII.Nul;
+         Fullname (Full_Name_Len) := ASCII.NUL;
 
       --  Normal case of Open or Create
 
       else
-         --  If temporary file case, get temporary file name and add
-         --  to the list of temporary files to be deleted on exit.
+         --  If temporary file case, get temporary file name and add to the
+         --  list of temporary files to be deleted on exit.
 
          if Tempfile then
             if not Creat then
@@ -956,13 +974,13 @@ package body System.File_IO is
          --  Open specified file if we did not find an existing stream
 
          if Stream = NULL_Stream then
-            Fopen_Mode (Mode, Text, Creat, Amethod, Fopstr);
+            Fopen_Mode (Mode, Is_Text_File, Creat, Amethod, Fopstr);
 
             --  A special case, if we are opening (OPEN case) a file and the
             --  mode returned by Fopen_Mode is not "r" or "r+", then we first
             --  make sure that the file exists as required by Ada semantics.
 
-            if Creat = False and then Fopstr (1) /= 'r' then
+            if not Creat and then Fopstr (1) /= 'r' then
                if file_exists (Namestr'Address) = 0 then
                   raise Name_Error;
                end if;
@@ -981,11 +999,33 @@ package body System.File_IO is
             Stream := fopen (Namestr'Address, Fopstr'Address, Encoding);
 
             if Stream = NULL_Stream then
-               if file_exists (Namestr'Address) = 0 then
-                  raise Name_Error;
-               else
-                  raise Use_Error;
-               end if;
+
+               --  Raise Name_Error if trying to open a non-existent file.
+               --  Otherwise raise Use_Error.
+
+               --  Should we raise Device_Error for ENOSPC???
+
+               declare
+                  subtype Cint is Interfaces.C.int;
+
+                  function Is_File_Not_Found_Error
+                    (Errno_Value : Cint) return Cint;
+                  --  Non-zero when the given errno value indicates a non-
+                  --  existing file.
+
+                  pragma Import
+                    (C, Is_File_Not_Found_Error,
+                     "__gnat_is_file_not_found_error");
+
+               begin
+                  if
+                    Is_File_Not_Found_Error (Cint (System.OS_Lib.Errno)) /= 0
+                  then
+                     raise Name_Error;
+                  else
+                     raise Use_Error;
+                  end if;
+               end;
             end if;
          end if;
       end if;
@@ -998,7 +1038,7 @@ package body System.File_IO is
 
       File_Ptr.Is_Regular_File   := (is_regular_file (fileno (Stream)) /= 0);
       File_Ptr.Is_System_File    := False;
-      File_Ptr.Is_Text_File      := Text;
+      File_Ptr.Is_Text_File      := Is_Text_File;
       File_Ptr.Shared_Status     := Shared;
       File_Ptr.Access_Method     := Amethod;
       File_Ptr.Stream            := Stream;
@@ -1057,29 +1097,33 @@ package body System.File_IO is
 
    --  The reset which does not change the mode simply does a rewind
 
-   procedure Reset (File : in out AFCB_Ptr) is
+   procedure Reset (File_Ptr : access AFCB_Ptr) is
+      File : AFCB_Ptr renames File_Ptr.all;
    begin
       Check_File_Open (File);
-      Reset (File, File.Mode);
+      Reset (File_Ptr, File.Mode);
    end Reset;
 
    --  The reset with a change in mode is done using freopen, and is
    --  not permitted except for regular files (since otherwise there
    --  is no name for the freopen, and in any case it seems meaningless)
 
-   procedure Reset (File : in out AFCB_Ptr; Mode : File_Mode) is
+   procedure Reset (File_Ptr : access AFCB_Ptr; Mode : File_Mode) is
+      File   : AFCB_Ptr renames File_Ptr.all;
       Fopstr : aliased Fopen_String;
 
    begin
       Check_File_Open (File);
 
-      --  Change of mode not allowed for shared file or file with no name
-      --  or file that is not a regular file, or for a system file.
+      --  Change of mode not allowed for shared file or file with no name or
+      --  file that is not a regular file, or for a system file. Note that we
+      --  allow the "change" of mode if it is not in fact doing a change.
 
-      if File.Shared_Status = Yes
-        or else File.Name'Length <= 1
-        or else File.Is_System_File
-        or else (not File.Is_Regular_File)
+      if Mode /= File.Mode
+        and then (File.Shared_Status = Yes
+                   or else File.Name'Length <= 1
+                   or else File.Is_System_File
+                   or else not File.Is_Regular_File)
       then
          raise Use_Error;
 
@@ -1103,7 +1147,7 @@ package body System.File_IO is
            (File.Name.all'Address, Fopstr'Address, File.Stream, File.Encoding);
 
          if File.Stream = NULL_Stream then
-            Close (File);
+            Close (File_Ptr);
             raise Use_Error;
 
          else

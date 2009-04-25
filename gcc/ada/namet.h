@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *            Copyright (C) 1992-2007, Free Software Foundation, Inc.       *
+ *            Copyright (C) 1992-2008, Free Software Foundation, Inc.       *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -85,7 +85,7 @@ Get_Decoded_Name_String (Name_Id Id)
 
 /* Like Get_Decoded_Name_String, but the result has all qualification and
    package body entity suffixes stripped, and also all letters are upper
-   cased.  This is used fo rbuilding the enumeration literal table. */
+   cased.  This is used for building the enumeration literal table. */
 
 extern void casing__set_all_upper_case (void);
 

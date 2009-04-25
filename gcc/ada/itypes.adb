@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,11 +23,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Atree; use Atree;
-with Opt;   use Opt;
-with Sem;   use Sem;
-with Sinfo; use Sinfo;
-with Stand; use Stand;
+with Atree;    use Atree;
+with Opt;      use Opt;
+with Sem;      use Sem;
+with Sinfo;    use Sinfo;
+with Stand;    use Stand;
+with Targparm; use Targparm;
+with Uintp;    use Uintp;
 
 package body Itypes is
 
@@ -46,17 +48,24 @@ package body Itypes is
       Typ : Entity_Id;
 
    begin
+      --  Should comment setting of Public_Status here ???
+
       if Related_Id = Empty then
          Typ := New_Internal_Entity (Ekind, Scope_Id, Sloc (Related_Nod), 'T');
          Set_Public_Status (Typ);
 
       else
-         Typ := New_External_Entity
-           (Ekind, Scope_Id, Sloc (Related_Nod), Related_Id, Suffix,
-               Suffix_Index, 'T');
+         Typ :=
+           New_External_Entity
+             (Ekind, Scope_Id, Sloc (Related_Nod), Related_Id, Suffix,
+              Suffix_Index, 'T');
       end if;
 
-      Init_Size_Align (Typ);
+      --  Make sure Esize (Typ) was properly initialized, it should be since
+      --  New_Internal_Entity/New_External_Entity call Init_Size_Align.
+
+      pragma Assert (Esize (Typ) = Uint_0);
+
       Set_Etype (Typ, Any_Type);
       Set_Is_Itype (Typ);
       Set_Associated_Node_For_Itype (Typ, Related_Nod);
@@ -65,6 +74,10 @@ package body Itypes is
         and then not ASIS_Mode
       then
          Set_Is_Frozen (Typ);
+      end if;
+
+      if Ekind in Access_Subprogram_Kind then
+         Set_Can_Use_Internal_Rep (Typ, not Always_Compatible_Rep_On_Target);
       end if;
 
       return Typ;
@@ -89,8 +102,7 @@ package body Itypes is
                              Scope_Id    => Scope_Id);
 
       Set_Directly_Designated_Type (I_Typ, Directly_Designated_Type (T));
-      Set_Etype                    (I_Typ, T);
-      Init_Size_Align              (I_Typ);
+      Set_Etype                    (I_Typ, Base_Type (T));
       Set_Depends_On_Private       (I_Typ, Depends_On_Private (T));
       Set_Is_Public                (I_Typ, Is_Public          (T));
       Set_From_With_Type           (I_Typ, From_With_Type     (T));

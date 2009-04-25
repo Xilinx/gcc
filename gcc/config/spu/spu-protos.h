@@ -1,4 +1,4 @@
-/* Copyright (C) 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This file is free software; you can redistribute it and/or modify it under
    the terms of the GNU General Public License as published by the Free
@@ -19,7 +19,6 @@
 
 #include "rtl.h"
 
-extern enum machine_mode spu_eh_return_filter_mode (void);
 extern void spu_cpu_cpp_builtins (struct cpp_reader * pfile);
 extern void builtin_define_std (const char *);
 extern void spu_optimization_options (int level, int size);
@@ -52,7 +51,6 @@ extern int logical_immediate_p (rtx op, enum machine_mode mode);
 extern int iohl_immediate_p (rtx op, enum machine_mode mode);
 extern int arith_immediate_p (rtx op, enum machine_mode mode,
 			      HOST_WIDE_INT low, HOST_WIDE_INT high);
-extern int legitimate_const (rtx x, int aligned);
 extern int spu_constant_address_p (rtx x);
 extern int spu_legitimate_constant_p (rtx x);
 extern int spu_legitimate_address (enum machine_mode mode, rtx x,
@@ -62,7 +60,6 @@ extern int spu_initial_elimination_offset (int from, int to);
 extern rtx spu_function_value (const_tree type, const_tree func);
 extern rtx spu_function_arg (int cum, enum machine_mode mode, tree type,
 			     int named);
-extern void spu_va_start (tree valist, rtx nextarg);
 extern void spu_setup_incoming_varargs (int *cum, enum machine_mode mode,
 					tree type, int *pretend_size,
 					int no_rtl);
@@ -78,7 +75,6 @@ extern rtx gen_cpat_const (rtx * ops);
 extern void constant_to_array (enum machine_mode mode, rtx x,
 			       unsigned char *arr);
 extern rtx array_to_constant (enum machine_mode mode, unsigned char *arr);
-extern enum machine_mode spu_eh_return_filter_mode (void);
 extern void spu_allocate_stack (rtx op0, rtx op1);
 extern void spu_restore_stack_nonlocal (rtx op0, rtx op1);
 extern void spu_restore_stack_block (rtx op0, rtx op1);
@@ -94,7 +90,7 @@ extern void spu_expand_vector_init (rtx target, rtx vals);
 extern void spu_init_expanders (void);
 
 /* spu-c.c */
-extern tree spu_resolve_overloaded_builtin (tree fndecl, tree fnargs);
+extern tree spu_resolve_overloaded_builtin (tree fndecl, void *fnargs);
 extern rtx spu_expand_builtin (tree exp, rtx target, rtx subtarget,
 			       enum machine_mode mode, int ignore);
 extern rtx spu_expand_builtin (tree, rtx, rtx, enum machine_mode, int);

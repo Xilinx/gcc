@@ -31,6 +31,8 @@ int main(void)
   int a[1002];
   int b[1002];
 
+  check_vect ();
+
   for (i = 0; i < 1002; ++i) {
     a[i] = b[i] = i;
   }
@@ -45,6 +47,6 @@ int main(void)
   return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 2 "vect"  } } */
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect"  } } */
+/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 2 "vect"  { xfail vect_no_align } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect"  { xfail vect_no_align } } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -110,13 +108,6 @@ package Nlists is
    function New_Copy_List_Original (List : List_Id) return List_Id;
    --  Same as New_Copy_List but copies only nodes coming from source
 
-   function New_Copy_List_Tree (List : List_Id) return List_Id;
-   --  Similar to New_Copy_List, except that the copies are done using the
-   --  Atree.New_Copy_Tree function, which means that a full recursive copy
-   --  of the subtrees in the list is performed, setting proper parents. As
-   --  for New_Copy_Tree, it is illegal to attempt to copy extended nodes
-   --  (entities) either directly or indirectly using this function.
-
    function First (List : List_Id) return Node_Id;
    pragma Inline (First);
    --  Obtains the first element of the given node list or, if the node list
@@ -129,7 +120,7 @@ package Nlists is
    --  returned. It is an error to call First_Non_Pragma with a Node_Id value
    --  or No_List (No_List is not considered to be the same as an empty list).
    --  This function also skips N_Null nodes which can result from rewriting
-   --  unrecognized or incorrrect pragmas.
+   --  unrecognized or incorrect pragmas.
 
    function Last (List : List_Id) return Node_Id;
    pragma Inline (Last);
@@ -172,7 +163,7 @@ package Nlists is
 
    function Prev (Node : Node_Id) return Node_Id;
    pragma Inline (Prev);
-   --  This function returns the previous node on a node list list, or Empty
+   --  This function returns the previous node on a node list, or Empty
    --  if Node is the first element of the node list. The argument must be
    --  a member of a node list. Note: the implementation does maintain back
    --  pointers, so this function executes quickly in constant time.
@@ -201,7 +192,7 @@ package Nlists is
    function Is_Empty_List (List : List_Id) return Boolean;
    pragma Inline (Is_Empty_List);
    --  This function determines if a given list id references a node list that
-   --  contains no items. No_List is a not a legitimate argument.
+   --  contains no items. No_List as an argument returns True.
 
    function Is_Non_Empty_List (List : List_Id) return Boolean;
    pragma Inline (Is_Non_Empty_List);
@@ -332,9 +323,6 @@ package Nlists is
    function Prev_Node_Address return System.Address;
    --  These functions return the addresses of the Next_Node and Prev_Node
    --  tables (used in Back_End for Gigi).
-
-   procedure Delete_List (L : List_Id);
-   --  Removes all elements of the given list, and calls Delete_Tree on each
 
    function p (U : Union_Id) return Node_Id;
    --  This function is intended for use from the debugger, it determines

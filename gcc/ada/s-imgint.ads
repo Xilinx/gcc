@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2005 Free Software Foundation, Inc.          --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -38,18 +36,22 @@
 package System.Img_Int is
    pragma Pure;
 
-   function Image_Integer (V : Integer) return String;
-   --  Computes Integer'Image (V) and returns the result
+   procedure Image_Integer
+     (V : Integer;
+      S : in out String;
+      P : out Natural);
+   --  Computes Integer'Image (V) and stores the result in S (1 .. P)
+   --  setting the resulting value of P. The caller guarantees that S
+   --  is long enough to hold the result, and that S'First is 1.
 
    procedure Set_Image_Integer
      (V : Integer;
-      S : out String;
+      S : in out String;
       P : in out Natural);
-   --  Sets the image of V starting at S (P + 1) with no leading spaces (i.e.
-   --  Text_IO format where Width = 0), starting at S (P + 1), updating P
-   --  to point to the last character stored. The caller promises that the
-   --  buffer is large enough and no check is made for this (Constraint_Error
-   --  will not be necessarily raised if this is violated since it is perfectly
-   --  valid to compile this unit with checks off).
+   --  Stores the image of V in S starting at S (P + 1), P is updated to point
+   --  to the last character stored. The value stored is identical to the value
+   --  of Integer'Image (V) except that no leading space is stored when V is
+   --  non-negative. The caller guarantees that S is long enough to hold the
+   --  result. S need not have a lower bound of 1.
 
 end System.Img_Int;

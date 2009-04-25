@@ -1,5 +1,5 @@
 /* Header file to the Fortran front-end and runtime library
-   Copyright (C) 2007 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -20,6 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Flags to specify which standard/extension contains a feature.
    Note that no features were obsoleted nor deleted in F2003.  */
+#define GFC_STD_F2008	(1<<7)	/* New in F2008.  */
 #define GFC_STD_LEGACY	(1<<6)	/* Backward compatibility.  */
 #define GFC_STD_GNU	(1<<5)	/* GNU Fortran extension.  */
 #define GFC_STD_F2003	(1<<4)	/* New in F2003.  */
@@ -37,6 +38,15 @@ along with GCC; see the file COPYING3.  If not see
 #define GFC_FPE_OVERFLOW   (1<<3)
 #define GFC_FPE_UNDERFLOW  (1<<4)
 #define GFC_FPE_PRECISION  (1<<5)
+
+
+/* Bitmasks for the various runtime checks that can be enabled.  */
+#define GFC_RTCHECK_BOUNDS      (1<<0)
+#define GFC_RTCHECK_ARRAY_TEMPS (1<<1)
+#define GFC_RTCHECK_RECURSION   (1<<2)
+#define GFC_RTCHECK_DO          (1<<3)
+#define GFC_RTCHECK_ALL        (GFC_RTCHECK_BOUNDS | GFC_RTCHECK_ARRAY_TEMPS \
+				| GFC_RTCHECK_RECURSION | GFC_RTCHECK_DO)
 
 
 /* Possible values for the CONVERT I/O specifier.  */
@@ -87,6 +97,8 @@ libgfortran_error_codes;
 #define GFC_STDERR_UNIT_NUMBER 0
 
 
+/* FIXME: Increase to 15 for Fortran 2008. Also needs changes to
+   GFC_DTYPE_RANK_MASK. See PR 36825.  */
 #define GFC_MAX_DIMENSIONS 7
 
 #define GFC_DTYPE_RANK_MASK 0x07

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -156,7 +156,7 @@ package body Sem_Ch11 is
          return False;
       end Others_Present;
 
-   --  Start processing for Analyze_Exception_Handlers
+   --  Start of processing for Analyze_Exception_Handlers
 
    begin
       Handler := First (L);
@@ -185,8 +185,7 @@ package body Sem_Ch11 is
             --  scope for visibility purposes. We create an entity to denote
             --  the whole exception part, and use it as the scope of all the
             --  choices, which may even have the same name without conflict.
-            --  This scope plays no other role in expansion or or code
-            --  generation.
+            --  This scope plays no other role in expansion or code generation.
 
             Choice := Choice_Parameter (Handler);
 
@@ -437,7 +436,6 @@ package body Sem_Ch11 is
       Exception_Id   : constant Node_Id := Name (N);
       Exception_Name : Entity_Id        := Empty;
       P              : Node_Id;
-      Nkind_P        : Node_Kind;
 
    begin
       Check_Unreachable_Code (N);
@@ -484,16 +482,13 @@ package body Sem_Ch11 is
 
       if No (Exception_Id) then
          P := Parent (N);
-         Nkind_P := Nkind (P);
-
-         while Nkind_P /= N_Exception_Handler
-           and then Nkind_P /= N_Subprogram_Body
-           and then Nkind_P /= N_Package_Body
-           and then Nkind_P /= N_Task_Body
-           and then Nkind_P /= N_Entry_Body
+         while not Nkind_In (P, N_Exception_Handler,
+                                N_Subprogram_Body,
+                                N_Package_Body,
+                                N_Task_Body,
+                                N_Entry_Body)
          loop
             P := Parent (P);
-            Nkind_P := Nkind (P);
          end loop;
 
          if Nkind (P) /= N_Exception_Handler then
@@ -506,7 +501,15 @@ package body Sem_Ch11 is
 
          else
             Set_Local_Raise_Not_OK (P);
-            Check_Restriction (No_Exception_Propagation, N);
+
+            --  Do not check the restriction if the reraise statement is part
+            --  of the code generated for an AT-END handler. That's because
+            --  if the restriction is actually active, we never generate this
+            --  raise anyway, so the apparent violation is bogus.
+
+            if not From_At_End (N) then
+               Check_Restriction (No_Exception_Propagation, N);
+            end if;
          end if;
 
       --  Normal case with exception id present
@@ -527,10 +530,15 @@ package body Sem_Ch11 is
             Set_Is_Raised (Exception_Name);
          end if;
 
+         --  Deal with RAISE WITH case
+
          if Present (Expression (N)) then
+            Check_Compiler_Unit (Expression (N));
             Analyze_And_Resolve (Expression (N), Standard_String);
          end if;
       end if;
+
+      Kill_Current_Values (Last_Assignment_Only => True);
    end Analyze_Raise_Statement;
 
    -----------------------------

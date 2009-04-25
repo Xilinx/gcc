@@ -1,11 +1,11 @@
 // -*- C++ -*-
 
-// Copyright (C) 2005, 2006 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2009 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
 // of the GNU General Public License as published by the Free Software
-// Foundation; either version 2, or (at your option) any later
+// Foundation; either version 3, or (at your option) any later
 // version.
 
 // This library is distributed in the hope that it will be useful, but
@@ -14,19 +14,9 @@
 // General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 59 Temple Place - Suite 330, Boston,
-// MA 02111-1307, USA.
+// along with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
-// As a special exception, you may use this file as part of a free
-// software library without restriction.  Specifically, if other files
-// instantiate templates or use macros or inline functions from this
-// file, or you compile this file and link it with other files to
-// produce an executable, this file does not by itself cause the
-// resulting executable to be covered by the GNU General Public
-// License.  This exception does not however invalidate any other
-// reasons why the executable file might be covered by the GNU General
-// Public License.
 
 // Copyright (C) 2004 Ami Tavory and Vladimir Dreizin, IBM-HRL.
 
@@ -50,7 +40,7 @@
 #include <hash_fn/string_hash_fn.hpp>
 #include <common_type/assoc/common_type.hpp>
 
-namespace pb_ds
+namespace __gnu_pbds
 {
   namespace test
   {
@@ -67,9 +57,9 @@ namespace pb_ds
       struct hash_set_tl_t
       {
 	typedef
-        typename pb_ds::test::hash_common_types<
+        typename __gnu_pbds::test::hash_common_types<
 	  Key,
-	  pb_ds::null_mapped_type,
+	  __gnu_pbds::null_mapped_type,
 	  int_hash,
 	  std::equal_to<Key>,
 	  Allocator>::performance_min_tl
@@ -80,9 +70,9 @@ namespace pb_ds
       struct lu_set_tl_t
       {
 	typedef
-        typename pb_ds::test::lu_common_types<
+        typename __gnu_pbds::test::lu_common_types<
 	  Key,
-	  pb_ds::null_mapped_type,
+	  __gnu_pbds::null_mapped_type,
 	  std::equal_to<
 	  Key>,
 	  Allocator>::performance_min_tl
@@ -96,8 +86,8 @@ namespace pb_ds
       {
       private:
 	typedef
-        typename pb_ds::detail::__conditional_type<
-	pb_ds::detail::is_same<
+        typename __gnu_pbds::detail::__conditional_type<
+	__gnu_pbds::detail::is_same<
 	int,
 	Key>::value,
 	int_hash,
@@ -108,7 +98,7 @@ namespace pb_ds
 	struct hash_mmap_transform
 	{
 	  typedef
-	  typename pb_ds::test::hash_common_types<
+	  typename __gnu_pbds::test::hash_common_types<
 	    Key,
 	    Cntnr_T,
 	    hash_fn_t,
@@ -137,12 +127,12 @@ namespace pb_ds
 	struct tree_mmap_transform
 	{
 	  typedef
-	  typename pb_ds::test::tree_common_types<
+	  typename __gnu_pbds::test::tree_common_types<
 	    Key,
 	    Cntnr_T,
 	    std::less<
 	    Key>,
-	    pb_ds::null_tree_node_update,
+	    __gnu_pbds::null_tree_node_update,
 	    Allocator>::performance_min_tl
 	  type;
 	};
@@ -227,7 +217,7 @@ namespace pb_ds
     };
 
   } // namespace test
-} // namespace pb_ds
+} // namespace __gnu_pbds
 
 #endif
 

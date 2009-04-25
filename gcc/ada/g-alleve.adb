@@ -7,25 +7,23 @@
 --                                 B o d y                                  --
 --                         (Soft Binding Version)                           --
 --                                                                          --
---          Copyright (C) 2004-2006, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the Free Software Foundation,  59 Temple Place - Suite 330,  Boston, --
--- MA 02111-1307, USA.                                                      --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -48,17 +46,6 @@ with GNAT.Altivec.Conversions;         use  GNAT.Altivec.Conversions;
 with GNAT.Altivec.Low_Level_Interface; use  GNAT.Altivec.Low_Level_Interface;
 
 package body GNAT.Altivec.Low_Level_Vectors is
-
-   --  This package assumes C_float is an IEEE single-precision float type
-
-   pragma Assert (C_float'Machine_Radix = 2);
-   pragma Assert (C_float'Machine_Mantissa = 24);
-   pragma Assert (C_float'Machine_Emin = -125);
-   pragma Assert (C_float'Machine_Emax = 128);
-   pragma Assert (C_float'Machine_Rounds);
-   pragma Assert (not C_float'Machine_Overflows);
-   pragma Assert (C_float'Signed_Zeros);
-   pragma Assert (C_float'Denorm);
 
    --  Pixel types. As defined in [PIM-2.1 Data types]:
    --  A 16-bit pixel is 1/5/5/5;
@@ -1875,7 +1862,7 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_Pixel (Source : unsigned_short) return Pixel_16 is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
 
       Target : Pixel_16;
@@ -1890,7 +1877,7 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_Pixel (Source : unsigned_int) return Pixel_32 is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
 
       Target : Pixel_32;
@@ -1909,10 +1896,10 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_unsigned_int (Source : Pixel_32) return unsigned_int is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
       --  It should also be the same result, value-wise, on two hosts
-      --  with the same endianess.
+      --  with the same endianness.
 
       Target : unsigned_int := 0;
 
@@ -1941,10 +1928,10 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
    function To_unsigned_short (Source : Pixel_16) return unsigned_short is
 
-      --  This conversion should not depend on the host endianess;
+      --  This conversion should not depend on the host endianness;
       --  therefore, we cannot use an unchecked conversion.
       --  It should also be the same result, value-wise, on two hosts
-      --  with the same endianess.
+      --  with the same endianness.
 
       Target : unsigned_short := 0;
 
@@ -2776,9 +2763,9 @@ package body GNAT.Altivec.Low_Level_Vectors is
 
          --  ??? Check the precision of the operation.
          --  As described in [PEM-6 vexptefp]:
-         --  If theorical_result is equal to 2 at the power of A (J) with
+         --  If theoretical_result is equal to 2 at the power of A (J) with
          --  infinite precision, we should have:
-         --  abs ((D (J) - theorical_result) / theorical_result) <= 1/16
+         --  abs ((D (J) - theoretical_result) / theoretical_result) <= 1/16
 
          D.Values (J) := 2.0 ** NJ_Truncate (VA.Values (J));
       end loop;

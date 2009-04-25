@@ -1,6 +1,6 @@
 ; Options for the ATMEL AVR port of the compiler.
 
-; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2007, 2008 Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
 ;
@@ -29,10 +29,6 @@ Target RejectNegative Joined Var(avr_mcu_name) Init("avr2")
 mdeb
 Target Report Undocumented Mask(ALL_DEBUG)
 
-minit-stack=
-Target RejectNegative Joined Var(avr_init_stack) Init("__stack")
--minit-stack=STACK	Use STACK as the initial value of the stack pointer
-
 mint8
 Target Report Mask(INT8)
 Use an 8-bit 'int' type
@@ -40,10 +36,6 @@ Use an 8-bit 'int' type
 mno-interrupts
 Target Report RejectNegative Mask(NO_INTERRUPTS)
 Change the stack pointer without disabling interrupts
-
-mno-tablejump
-Target Report RejectNegative Mask(NO_TABLEJUMP)
-Do not generate tablejump insns
 
 morder1
 Target Report Undocumented Mask(ORDER_1)
@@ -62,3 +54,11 @@ Output instruction sizes to the asm file
 mtiny-stack
 Target Report Mask(TINY_STACK)
 Change only the low 8 bits of the stack pointer
+
+mrelax
+Target Report
+Relax branches
+
+mpmem-wrap-around
+Target Report
+Make the linker relaxation machine assume that a program counter wrap-around occures.

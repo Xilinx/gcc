@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -28,10 +28,10 @@
 
 #ifdef TREE_CODE
 extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, int, int, int);
-extern void rs6000_va_start (tree, rtx);
 #endif /* TREE_CODE */
 
 extern bool easy_altivec_constant (rtx, enum machine_mode);
+extern HOST_WIDE_INT const_vector_elt_as_int (rtx, unsigned int);
 extern bool macho_lo_sum_memory_operand (rtx, enum machine_mode);
 extern int num_insns_constant (rtx, enum machine_mode);
 extern int num_insns_constant_wide (HOST_WIDE_INT);
@@ -42,12 +42,14 @@ extern void validate_condition_mode (enum rtx_code, enum machine_mode);
 extern bool legitimate_constant_pool_address_p (rtx);
 extern bool legitimate_indirect_address_p (rtx, int);
 extern bool legitimate_indexed_address_p (rtx, int);
+extern bool avoiding_indexed_address_p (enum machine_mode);
 
 extern rtx rs6000_got_register (rtx);
 extern rtx find_addr_reg (rtx);
 extern rtx gen_easy_altivec_constant (rtx);
 extern const char *output_vec_const_move (rtx *);
 extern void rs6000_expand_vector_init (rtx, rtx);
+extern void paired_expand_vector_init (rtx, rtx);
 extern void rs6000_expand_vector_set (rtx, rtx, int);
 extern void rs6000_expand_vector_extract (rtx, rtx, int);
 extern void build_mask64_2_operands (rtx, rtx *);
@@ -64,12 +66,19 @@ extern int mems_ok_for_quad_peep (rtx, rtx);
 extern bool gpr_or_gpr_p (rtx, rtx);
 extern enum reg_class rs6000_secondary_reload_class (enum reg_class,
 						     enum machine_mode, rtx);
+
+extern int paired_emit_vector_cond_expr (rtx, rtx, rtx,
+                                         rtx, rtx, rtx);
+extern void paired_expand_vector_move (rtx operands[]);
+
+
 extern int ccr_bit (rtx, int);
 extern int extract_MB (rtx);
 extern int extract_ME (rtx);
 extern void rs6000_output_function_entry (FILE *, const char *);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
+extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
 extern void rs6000_emit_sCOND (enum rtx_code, rtx);
@@ -89,6 +98,7 @@ extern void rs6000_split_compare_and_swapqhi (rtx, rtx, rtx, rtx, rtx, rtx);
 extern void rs6000_split_lock_test_and_set (rtx, rtx, rtx, rtx);
 extern void rs6000_emit_swdivsf (rtx, rtx, rtx);
 extern void rs6000_emit_swdivdf (rtx, rtx, rtx);
+extern void rs6000_emit_swrsqrtsf (rtx, rtx);
 extern void output_toc (FILE *, rtx, int, enum machine_mode);
 extern void rs6000_initialize_trampoline (rtx, rtx, rtx);
 extern rtx rs6000_longcall_ref (rtx);
@@ -96,12 +106,14 @@ extern void rs6000_fatal_bad_address (rtx);
 extern rtx create_TOC_reference (rtx);
 extern void rs6000_split_multireg_move (rtx, rtx);
 extern void rs6000_emit_move (rtx, rtx, enum machine_mode);
+extern rtx rs6000_secondary_memory_needed_rtx (enum machine_mode);
 extern rtx rs6000_legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx rs6000_legitimize_reload_address (rtx, enum machine_mode,
 					     int, int, int, int *);
 extern int rs6000_legitimate_address (enum machine_mode, rtx, int);
 extern bool rs6000_legitimate_offset_address_p (enum machine_mode, rtx, int);
 extern bool rs6000_mode_dependent_address (rtx);
+extern rtx rs6000_find_base_term (rtx);
 extern bool rs6000_offsettable_memref_p (rtx);
 extern rtx rs6000_return_addr (int, rtx);
 extern void rs6000_output_symbol_ref (FILE*, rtx);
@@ -122,7 +134,7 @@ extern void function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				  tree, int, int);
 extern int function_arg_boundary (enum machine_mode, tree);
 extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode, tree, int);
-extern tree altivec_resolve_overloaded_builtin (tree, tree);
+extern tree altivec_resolve_overloaded_builtin (tree, void *);
 extern rtx rs6000_function_value (const_tree, const_tree);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -169,6 +181,12 @@ extern void rs6000_cpu_cpp_builtins (struct cpp_reader *);
 #if TARGET_MACHO
 char *output_call (rtx, rtx *, int, int);
 #endif
+
+#ifdef NO_DOLLAR_IN_LABEL
+const char * rs6000_xcoff_strip_dollar (const char *);
+#endif
+
+void rs6000_final_prescan_insn (rtx, rtx *operand, int num_operands);
 
 extern bool rs6000_hard_regno_mode_ok_p[][FIRST_PSEUDO_REGISTER];
 #endif  /* rs6000-protos.h */

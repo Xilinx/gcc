@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -80,8 +80,7 @@ package body Switch.B is
 
          exception
             when Constraint_Error =>
-               Osint.Fail
-                 ("numeric value out of range for switch: ", (1 => S));
+               Osint.Fail ("numeric value out of range for switch: " & S);
          end;
 
          return Result;
@@ -104,8 +103,8 @@ package body Switch.B is
       if Switch_Chars'Last >= Ptr + 3
         and then Switch_Chars (Ptr .. Ptr + 3) = "gnat"
       then
-         Osint.Fail ("invalid switch: """, Switch_Chars, """"
-            & " (gnat not needed here)");
+         Osint.Fail ("invalid switch: """ & Switch_Chars & """"
+                     & " (gnat not needed here)");
       end if;
 
       --  Loop to scan through switches given in switch string
@@ -287,7 +286,7 @@ package body Switch.B is
             end if;
 
             Ptr := Ptr + 1;
-            Scan_Pos (Switch_Chars, Max, Ptr, Maximum_Errors, C);
+            Scan_Pos (Switch_Chars, Max, Ptr, Maximum_Messages, C);
 
          --  Processing for n switch
 
@@ -403,10 +402,10 @@ package body Switch.B is
             case Switch_Chars (Ptr) is
 
                when 'e' =>
-                  Warning_Mode  := Treat_As_Error;
+                  Warning_Mode := Treat_As_Error;
 
                when 's' =>
-                  Warning_Mode  := Suppress;
+                  Warning_Mode := Suppress;
 
                when others =>
                   Bad_Switch (Switch_Chars);
@@ -417,21 +416,21 @@ package body Switch.B is
          --  Processing for W switch
 
          when 'W' =>
-            if Ptr = Max then
+            Ptr := Ptr + 1;
+
+            if Ptr > Max then
                Bad_Switch (Switch_Chars);
             end if;
 
-            Ptr := Ptr + 1;
-
-            for J in WC_Encoding_Method loop
-               if Switch_Chars (Ptr) = WC_Encoding_Letters (J) then
-                  Wide_Character_Encoding_Method := J;
-                  exit;
-
-               elsif J = WC_Encoding_Method'Last then
+            begin
+               Wide_Character_Encoding_Method :=
+                 Get_WC_Encoding_Method (Switch_Chars (Ptr));
+            exception
+               when Constraint_Error =>
                   Bad_Switch (Switch_Chars);
-               end if;
-            end loop;
+            end;
+
+            Wide_Character_Encoding_Method_Specified := True;
 
             Upper_Half_Encoding :=
               Wide_Character_Encoding_Method in
@@ -455,6 +454,12 @@ package body Switch.B is
 
             Ptr := Ptr + 1;
             Scan_Pos (Switch_Chars, Max, Ptr, Default_Exit_Status, C);
+
+         --  Processing for y switch
+
+         when 'y' =>
+            Ptr := Ptr + 1;
+            Leap_Seconds_Support := True;
 
          --  Processing for z switch
 

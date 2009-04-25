@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---                     Copyright (C) 2002-2006, AdaCore                     --
+--                     Copyright (C) 2002-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,7 +46,7 @@ package body GNAT.MD5 is
    --  Look-up table for each hex digit of the Message-Digest.
    --  Used by function Digest (Context).
 
-   --  The sixten values used to rotate the context words.
+   --  The sixteen values used to rotate the context words.
    --  Four for each rounds. Used in procedure Transform.
 
    --  Round 1

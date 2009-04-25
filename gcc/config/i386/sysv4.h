@@ -1,5 +1,5 @@
 /* Target definitions for GCC for Intel 80386 running System V.4
-   Copyright (C) 1991, 2001, 2002, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1991, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
 
    Written by Ron Guilmette (rfg@netcom.com).
 
@@ -25,10 +25,9 @@ along with GCC; see the file COPYING3.  If not see
 /* The svr4 ABI for the i386 says that records and unions are returned
    in memory.  */
 
-#undef RETURN_IN_MEMORY
-#define RETURN_IN_MEMORY(TYPE) \
-  (TYPE_MODE (TYPE) == BLKmode \
-   || (VECTOR_MODE_P (TYPE_MODE (TYPE)) && int_size_in_bytes (TYPE) == 8))
+#define SUBTARGET_RETURN_IN_MEMORY(TYPE, FNTYPE) \
+	(TYPE_MODE (TYPE) == BLKmode \
+	 || (VECTOR_MODE_P (TYPE_MODE (TYPE)) && int_size_in_bytes (TYPE) == 8));
 
 /* Output at beginning of assembler file.  */
 /* The .file command should always begin the output.  */
@@ -123,10 +122,11 @@ along with GCC; see the file COPYING3.  If not see
 #define CRT_GET_RFIB_DATA(BASE)						\
   __asm__ ("call\t.LPR%=\n"						\
 	   ".LPR%=:\n\t"						\
-	   "popl\t%0\n\t"						\
+	   "pop{l}\t%0\n\t"						\
 	   /* Due to a GAS bug, this cannot use EAX.  That encodes	\
 	      smaller than the traditional EBX, which results in the	\
 	      offset being off by one.  */				\
-	   "addl\t$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"			\
+	   "add{l}\t{$_GLOBAL_OFFSET_TABLE_+[.-.LPR%=],%0"		\
+		   "|%0,_GLOBAL_OFFSET_TABLE_+(.-.LPR%=)}"		\
 	   : "=d"(BASE))
 #endif

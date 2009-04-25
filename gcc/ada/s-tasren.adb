@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -32,53 +30,15 @@
 ------------------------------------------------------------------------------
 
 with System.Task_Primitives.Operations;
---  used for Get_Priority
---           Set_Priority
---           Write_Lock
---           Unlock
---           Sleep
---           Wakeup
---           Timed_Sleep
-
 with System.Tasking.Entry_Calls;
---  Used for Wait_For_Completion
---           Wait_For_Completion_With_Timeout
---           Wait_Until_Abortable
-
 with System.Tasking.Initialization;
---  used for Defer_Abort
---           Undefer_Abort
---           Do_Pending_Action
-
 with System.Tasking.Queuing;
---  used for Enqueue
---           Dequeue_Head
---           Select_Task_Entry_Call
---           Count_Waiting
-
 with System.Tasking.Utilities;
---  used for Check_Exception
---           Make_Passive
---           Wakeup_Entry_Caller
---           Exit_One_ATC_Level
-
 with System.Tasking.Protected_Objects.Operations;
---  used for PO_Do_Or_Queue
---           PO_Service_Entries
---           Lock_Entries
-
 with System.Tasking.Debug;
---  used for Trace
-
 with System.Restrictions;
---  used for Abort_Allowed
-
 with System.Parameters;
---  used for Single_Lock
---           Runtime_Traces
-
 with System.Traces.Tasking;
---  used for Send_Trace_Info
 
 package body System.Tasking.Rendezvous is
 
@@ -392,6 +352,7 @@ package body System.Tasking.Rendezvous is
       Uninterpreted_Data : System.Address)
    is
       Rendezvous_Successful : Boolean;
+      pragma Unreferenced (Rendezvous_Successful);
 
    begin
       --  If pragma Detect_Blocking is active then Program_Error must be
@@ -401,8 +362,7 @@ package body System.Tasking.Rendezvous is
       if System.Tasking.Detect_Blocking
         and then STPO.Self.Common.Protected_Action_Nesting > 0
       then
-         Ada.Exceptions.Raise_Exception
-           (Program_Error'Identity, "potentially blocking operation");
+         raise Program_Error with "potentially blocking operation";
       end if;
 
       Call_Synchronous
@@ -1036,8 +996,7 @@ package body System.Tasking.Rendezvous is
                end if;
 
                Initialization.Undefer_Abort (Self_Id);
-               Ada.Exceptions.Raise_Exception
-                 (Program_Error'Identity, "Entry call not a delay mode");
+               raise Program_Error with "Entry call not a delay mode";
             end if;
       end case;
 
@@ -1266,9 +1225,31 @@ package body System.Tasking.Rendezvous is
       --  we would not have gotten this far, so now we should
       --  (re)enqueue the call, if the mode permits that.
 
-      if Entry_Call.Mode /= Conditional_Call
-        or else not Entry_Call.With_Abort
+      --  If the call is timed, it may have timed out before the requeue,
+      --  in the unusual case where the current accept has taken longer than
+      --  the given delay. In that case the requeue is cancelled, and the
+      --  outer timed call will be aborted.
+
+      if Entry_Call.Mode = Conditional_Call
+        or else
+          (Entry_Call.Mode = Timed_Call
+            and then Entry_Call.With_Abort
+            and then Entry_Call.Cancellation_Attempted)
       then
+         STPO.Unlock (Acceptor);
+
+         if Parent_Locked then
+            STPO.Unlock (Parent);
+         end if;
+
+         STPO.Write_Lock (Entry_Call.Self);
+
+         pragma Assert (Entry_Call.State >= Was_Abortable);
+
+         Initialization.Wakeup_Entry_Caller (Self_ID, Entry_Call, Cancelled);
+         STPO.Unlock (Entry_Call.Self);
+
+      else
          --  Timed_Call, Simple_Call, or Asynchronous_Call
 
          Queuing.Enqueue (Acceptor.Entry_Queues (E), Entry_Call);
@@ -1307,22 +1288,6 @@ package body System.Tasking.Rendezvous is
 
             STPO.Unlock (Entry_Call.Self);
          end if;
-
-      else
-         --  Conditional_Call and With_Abort
-
-         STPO.Unlock (Acceptor);
-
-         if Parent_Locked then
-            STPO.Unlock (Parent);
-         end if;
-
-         STPO.Write_Lock (Entry_Call.Self);
-
-         pragma Assert (Entry_Call.State >= Was_Abortable);
-
-         Initialization.Wakeup_Entry_Caller (Self_ID, Entry_Call, Cancelled);
-         STPO.Unlock (Entry_Call.Self);
       end if;
 
       return True;
@@ -1350,8 +1315,7 @@ package body System.Tasking.Rendezvous is
       if System.Tasking.Detect_Blocking
         and then Self_Id.Common.Protected_Action_Nesting > 0
       then
-         Ada.Exceptions.Raise_Exception
-           (Program_Error'Identity, "potentially blocking operation");
+         raise Program_Error with "potentially blocking operation";
       end if;
 
       if Parameters.Runtime_Traces then
@@ -1567,7 +1531,7 @@ package body System.Tasking.Rendezvous is
             --  Wait for a normal call and a pending action until the
             --  Wakeup_Time is reached.
 
-            Self_Id.Common.State := Acceptor_Sleep;
+            Self_Id.Common.State := Acceptor_Delay_Sleep;
 
             --  Try to remove calls to Sleep in the loop below by letting the
             --  caller a chance of getting ready immediately, using Unlock
@@ -1599,7 +1563,7 @@ package body System.Tasking.Rendezvous is
                exit when Self_Id.Open_Accepts = null;
 
                if Timedout then
-                  Sleep (Self_Id, Acceptor_Sleep);
+                  Sleep (Self_Id, Acceptor_Delay_Sleep);
                else
                   if Parameters.Runtime_Traces then
                      Send_Trace_Info (WT_Select,
@@ -1609,7 +1573,7 @@ package body System.Tasking.Rendezvous is
                   end if;
 
                   STPO.Timed_Sleep (Self_Id, Timeout, Mode,
-                    Acceptor_Sleep, Timedout, Yielded);
+                    Acceptor_Delay_Sleep, Timedout, Yielded);
                end if;
 
                if Timedout then
@@ -1655,9 +1619,9 @@ package body System.Tasking.Rendezvous is
             --  3) Spurious wakeup
 
             Self_Id.Open_Accepts := null;
-            Self_Id.Common.State := Acceptor_Sleep;
+            Self_Id.Common.State := Acceptor_Delay_Sleep;
 
-            STPO.Timed_Sleep (Self_Id, Timeout, Mode, Acceptor_Sleep,
+            STPO.Timed_Sleep (Self_Id, Timeout, Mode, Acceptor_Delay_Sleep,
               Timedout, Yielded);
 
             Self_Id.Common.State := Runnable;
@@ -1706,7 +1670,9 @@ package body System.Tasking.Rendezvous is
       Self_Id    : constant Task_Id := STPO.Self;
       Level      : ATC_Level;
       Entry_Call : Entry_Call_Link;
-      Yielded    : Boolean;
+
+      Yielded : Boolean;
+      pragma Unreferenced (Yielded);
 
    begin
       --  If pragma Detect_Blocking is active then Program_Error must be
@@ -1716,8 +1682,7 @@ package body System.Tasking.Rendezvous is
       if System.Tasking.Detect_Blocking
         and then Self_Id.Common.Protected_Action_Nesting > 0
       then
-         Ada.Exceptions.Raise_Exception
-           (Program_Error'Identity, "potentially blocking operation");
+         raise Program_Error with "potentially blocking operation";
       end if;
 
       Initialization.Defer_Abort (Self_Id);

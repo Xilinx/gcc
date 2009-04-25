@@ -380,7 +380,7 @@ proc libjava_arguments {{mode compile}} {
 	global wrapper_file wrap_compile_flags
 	lappend args "additional_flags=$wrap_compile_flags"
 
-	if { [string match "linux" $target_triplet] } {
+	if { [regexp "linux" $target_triplet] } {
 	    lappend args "additional_flags=-specs=libgcj-test.spec"
 	}
 
@@ -422,13 +422,18 @@ proc libjava_arguments {{mode compile}} {
     # Avoid libtool wrapper scripts when possible.
     # but not if libtool warnings results in FAILs
     if {$mode == "link"} {
-	if {! [istarget "*-*-cygwin*"] && ! [istarget "*-*-mingw*"] } {
+	if {! [istarget "*-*-cygwin*"] && ! [istarget "*-*-mingw*"]
+	    && ! [istarget "*-*-darwin*"] } { 
 	    lappend args "additional_flags=-no-install"
 	}
 	if { [istarget "*-*-darwin*"] } {
 	    lappend args "additional_flags=-bind_at_load"
 	    lappend args "additional_flags=-multiply_defined suppress"
 	}
+	if { [istarget "*-*-darwin9*"] || [istarget "*-*-darwin1*"] || [istarget "*-*-darwin2*"] } {
+	    lappend args "additional_flags=-Wl,-allow_stack_execute"
+	}
+
     }
 
     return $args

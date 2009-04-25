@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -78,10 +78,15 @@ procedure Gnatfind is
    --------------------
 
    procedure Parse_Cmd_Line is
+
+      procedure Check_Version_And_Help is new Check_Version_And_Help_G (Usage);
+
+      --  Start of processing for Parse_Cmd_Line
+
    begin
       --  First check for --version or --help
 
-      Check_Version_And_Help ("GNATFIND", "1998", Usage'Unrestricted_Access);
+      Check_Version_And_Help ("GNATFIND", "1998");
 
       --  Now scan the other switches
 
@@ -126,7 +131,7 @@ procedure Gnatfind is
             when 'n'    =>
                if GNAT.Command_Line.Full_Switch = "nostdinc" then
                   Opt.No_Stdinc := True;
-               elsif GNAT.Command_Line.Full_Switch = "nostlib" then
+               elsif GNAT.Command_Line.Full_Switch = "nostdlib" then
                   Opt.No_Stdlib := True;
                end if;
 
@@ -309,8 +314,8 @@ begin
    end if;
 
    --  Special case to speed things up: if the user has a command line of the
-   --  form 'gnatfind entity:file', ie has specified a file and only wants the
-   --  bodies and specs, then we can restrict the search to the .ali file
+   --  form 'gnatfind entity:file', i.e. has specified a file and only wants
+   --  the bodies and specs, then we can restrict the search to the .ali file
    --  associated with 'file'.
 
    if Has_File_In_Entity

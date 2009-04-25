@@ -1,12 +1,12 @@
 // Temporary buffer implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -69,14 +64,25 @@
 _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
-   *  @if maint
-   *  This is a helper function.  The unused second parameter exists to
-   *  permit the real get_temporary_buffer to use template parameter deduction.
-   *  @endif
+   *  @brief Allocates a temporary buffer.
+   *  @param  len  The number of objects of type Tp.
+   *  @return See full description.
+   *
+   *  Reinventing the wheel, but this time with prettier spokes!
+   *
+   *  This function tries to obtain storage for @c len adjacent Tp
+   *  objects.  The objects themselves are not constructed, of course.
+   *  A pair<> is returned containing "the buffer s address and
+   *  capacity (in the units of sizeof(Tp)), or a pair of 0 values if
+   *  no storage can be obtained."  Note that the capacity obtained
+   *  may be less than that requested if the memory is unavailable;
+   *  you should compare len with the .second return value.
+   *
+   * Provides the nothrow exception guarantee.
    */
   template<typename _Tp>
     pair<_Tp*, ptrdiff_t>
-    __get_temporary_buffer(ptrdiff_t __len, _Tp*)
+    get_temporary_buffer(ptrdiff_t __len)
     {
       const ptrdiff_t __max =
 	__gnu_cxx::__numeric_traits<ptrdiff_t>::__max / sizeof(_Tp);
@@ -95,28 +101,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     }
 
   /**
-   *  @brief Allocates a temporary buffer.
-   *  @param  len  The number of objects of type Tp.
-   *  @return See full description.
-   *
-   *  Reinventing the wheel, but this time with prettier spokes!
-   *
-   *  This function tries to obtain storage for @c len adjacent Tp
-   *  objects.  The objects themselves are not constructed, of course.
-   *  A pair<> is returned containing "the buffer s address and
-   *  capacity (in the units of sizeof(Tp)), or a pair of 0 values if
-   *  no storage can be obtained."  Note that the capacity obtained
-   *  may be less than that requested if the memory is unavailable;
-   *  you should compare len with the .second return value.
-   *
-   * Provides the nothrow exception guarantee.
-   */
-  template<typename _Tp>
-    inline pair<_Tp*, ptrdiff_t>
-    get_temporary_buffer(ptrdiff_t __len)
-    { return std::__get_temporary_buffer(__len, static_cast<_Tp*>(0)); }
-
-  /**
    *  @brief The companion to get_temporary_buffer().
    *  @param  p  A buffer previously allocated by get_temporary_buffer.
    *  @return   None.
@@ -130,11 +114,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
 
   /**
-   *  @if maint
    *  This class is used in two places: stl_algo.h and ext/memory,
    *  where it is wrapped as the temporary_buffer class.  See
    *  temporary_buffer docs for more notes.
-   *  @endif
    */
   template<typename _ForwardIterator, typename _Tp>
     class _Temporary_buffer
@@ -200,7 +182,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     : _M_original_len(std::distance(__first, __last)),
       _M_len(0), _M_buffer(0)
     {
-      try
+      __try
 	{
 	  std::pair<pointer, size_type> __p(std::get_temporary_buffer<
 					    value_type>(_M_original_len));
@@ -209,7 +191,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  if (!__is_pod(_Tp) && _M_len > 0)
 	    std::uninitialized_fill_n(_M_buffer, _M_len, *__first);
 	}
-      catch(...)
+      __catch(...)
 	{
 	  std::return_temporary_buffer(_M_buffer);
 	  _M_buffer = 0;

@@ -6,70 +6,53 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2007, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is a DEC Unix 4.0d version of this package
+--  This is a Tru64 version of this package
 
---  This package contains all the GNULL primitives that interface directly
---  with the underlying OS.
+--  This package contains all the GNULL primitives that interface directly with
+--  the underlying OS.
 
 pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+--  Turn off polling, we do not want ATC polling to take place during tasking
+--  operations. It causes infinite loops and other problems.
 
-with System.Tasking.Debug;
---  used for Known_Tasks
-
-with System.Interrupt_Management;
---  used for Keep_Unmasked
---           Abort_Task_Interrupt
---           Interrupt_ID
-
-with System.OS_Primitives;
---  used for Delay_Modes
-
-with System.Task_Info;
---  used for Task_Info_Type
+with Ada.Unchecked_Deallocation;
 
 with Interfaces;
---  used for Shift_Left
-
 with Interfaces.C;
---  used for int
---           size_t
+
+with System.Tasking.Debug;
+with System.Interrupt_Management;
+with System.OS_Primitives;
+with System.Task_Info;
 
 with System.Soft_Links;
---  used for Abort_Defer/Undefer
-
 --  We use System.Soft_Links instead of System.Tasking.Initialization
 --  because the later is a higher level package that we shouldn't depend on.
 --  For example when using the restricted run time, it is replaced by
 --  System.Tasking.Restricted.Stages.
-
-with Ada.Unchecked_Deallocation;
 
 package body System.Task_Primitives.Operations is
 
@@ -173,8 +156,10 @@ package body System.Task_Primitives.Operations is
       pragma Unreferenced (Sig);
 
       T       : constant Task_Id := Self;
-      Result  : Interfaces.C.int;
       Old_Set : aliased sigset_t;
+
+      Result : Interfaces.C.int;
+      pragma Warnings (Off, Result);
 
    begin
       --  It is not safe to raise an exception when using ZCX and the GCC
@@ -195,8 +180,8 @@ package body System.Task_Primitives.Operations is
          Result :=
            pthread_sigmask
              (SIG_UNBLOCK,
-              Unblocked_Signal_Mask'Unchecked_Access,
-              Old_Set'Unchecked_Access);
+              Unblocked_Signal_Mask'Access,
+              Old_Set'Access);
          pragma Assert (Result = 0);
 
          raise Standard'Abort_Signal;
@@ -239,7 +224,7 @@ package body System.Task_Primitives.Operations is
    --  Note: mutexes and cond_variables needed per-task basis are initialized
    --  in Initialize_TCB and the Storage_Error is handled. Other mutexes (such
    --  as RTS_Lock, Memory_Lock...) used in RTS is initialized before any
-   --  status change of RTS. Therefore rasing Storage_Error in the following
+   --  status change of RTS. Therefore raising Storage_Error in the following
    --  routines should be able to be handled safely.
 
    procedure Initialize_Lock
@@ -720,21 +705,10 @@ package body System.Task_Primitives.Operations is
 
    procedure Enter_Task (Self_ID : Task_Id) is
    begin
-      Hide_Yellow_Zone;
+      Hide_Unhide_Yellow_Zone (Hide => True);
       Self_ID.Common.LL.Thread := pthread_self;
+
       Specific.Set (Self_ID);
-
-      Lock_RTS;
-
-      for J in Known_Tasks'Range loop
-         if Known_Tasks (J) = null then
-            Known_Tasks (J) := Self_ID;
-            Self_ID.Known_Tasks_Index := J;
-            exit;
-         end if;
-      end loop;
-
-      Unlock_RTS;
    end Enter_Task;
 
    --------------
@@ -843,8 +817,8 @@ package body System.Task_Primitives.Operations is
       use System.Task_Info;
 
    begin
-      --  Account for the Yellow Zone (2 pages) and the guard page
-      --  right above. See Hide_Yellow_Zone for the rationale.
+      --  Account for the Yellow Zone (2 pages) and the guard page right above.
+      --  See Hide_Unhide_Yellow_Zone for the rationale.
 
       Adjusted_Stack_Size :=
         Interfaces.C.size_t (Stack_Size) + 3 * Get_Page_Size;
@@ -946,7 +920,7 @@ package body System.Task_Primitives.Operations is
       Result := pthread_attr_destroy (Attributes'Access);
       pragma Assert (Result = 0);
 
-      if T.Common.Task_Info /= null then
+      if Succeeded and then T.Common.Task_Info /= null then
 
          --  ??? We're using a process-wide function to implement a task
          --  specific characteristic.
@@ -1006,6 +980,7 @@ package body System.Task_Primitives.Operations is
    procedure Exit_Task is
    begin
       Specific.Set (null);
+      Hide_Unhide_Yellow_Zone (Hide => False);
    end Exit_Task;
 
    ----------------
@@ -1195,7 +1170,16 @@ package body System.Task_Primitives.Operations is
             S.State := False;
          else
             S.Waiting := True;
-            Result := pthread_cond_wait (S.CV'Access, S.L'Access);
+
+            loop
+               --  Loop in case pthread_cond_wait returns earlier than expected
+               --  (e.g. in case of EINTR caused by a signal).
+
+               Result := pthread_cond_wait (S.CV'Access, S.L'Access);
+               pragma Assert (Result = 0 or else Result = EINTR);
+
+               exit when not S.Waiting;
+            end loop;
          end if;
 
          Result := pthread_mutex_unlock (S.L'Access);
@@ -1289,6 +1273,16 @@ package body System.Task_Primitives.Operations is
       null;
    end Stop_All_Tasks;
 
+   ---------------
+   -- Stop_Task --
+   ---------------
+
+   function Stop_Task (T : ST.Task_Id) return Boolean is
+      pragma Unreferenced (T);
+   begin
+      return False;
+   end Stop_Task;
+
    -------------------
    -- Continue_Task --
    -------------------
@@ -1346,6 +1340,12 @@ package body System.Task_Primitives.Operations is
       Initialize_Lock (Single_RTS_Lock'Access, RTS_Lock_Level);
 
       Specific.Initialize (Environment_Task);
+
+      --  Make environment task known here because it doesn't go through
+      --  Activate_Tasks, which does it for all other tasks.
+
+      Known_Tasks (Known_Tasks'First) := Environment_Task;
+      Environment_Task.Known_Tasks_Index := Known_Tasks'First;
 
       Enter_Task (Environment_Task);
 

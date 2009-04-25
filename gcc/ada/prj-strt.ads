@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -101,6 +101,6 @@ private package Prj.Strt is
    --  On exit, Variable is the node of the variable or attribute reference.
    --  A variable reference is made of one to three simple names.
    --  An attribute reference is made of one or two simple names,
-   --  followed by an apostroph, followed by the attribute simple name.
+   --  followed by an apostrophe, followed by the attribute simple name.
 
 end Prj.Strt;

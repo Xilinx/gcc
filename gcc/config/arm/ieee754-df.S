@@ -1,31 +1,26 @@
 /* ieee754-df.S double-precision floating point support for ARM
 
-   Copyright (C) 2003, 2004, 2005, 2007  Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Nicolas Pitre (nico@cam.org)
 
    This file is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by the
-   Free Software Foundation; either version 2, or (at your option) any
+   Free Software Foundation; either version 3, or (at your option) any
    later version.
-
-   In addition to the permissions in the GNU General Public License, the
-   Free Software Foundation gives you unlimited permission to link the
-   compiled version of this file into combinations with other programs,
-   and to distribute those combinations without any restriction coming
-   from the use of this file.  (The General Public License restrictions
-   do apply in other respects; for example, they cover modification of
-   the file, and distribution when not linked into a combine
-   executable.)
 
    This file is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; see the file COPYING.  If not, write to
-   the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
 
 /*
  * Notes: 
@@ -56,7 +51,7 @@
 #endif
 
 
-#ifdef L_negdf2
+#ifdef L_arm_negdf2
 
 ARM_FUNC_START negdf2
 ARM_FUNC_ALIAS aeabi_dneg negdf2
@@ -70,7 +65,7 @@ ARM_FUNC_ALIAS aeabi_dneg negdf2
 
 #endif
 
-#ifdef L_addsubdf3
+#ifdef L_arm_addsubdf3
 
 ARM_FUNC_START aeabi_drsub
 
@@ -512,7 +507,8 @@ ARM_FUNC_ALIAS aeabi_ul2d floatundidf
 	@ we can return the result in f0 as well as in r0/r1 for backwards
 	@ compatibility.
 	adr	ip, LSYM(f0_ret)
-	do_push	{r4, r5, ip, lr}
+	@ Push pc as well so that RETLDM works correctly.
+	do_push	{r4, r5, ip, lr, pc}
 #else
 	do_push	{r4, r5, lr}
 #endif
@@ -525,7 +521,7 @@ ARM_FUNC_ALIAS aeabi_l2d floatdidf
 
 	orrs	r2, r0, r1
 #if !defined (__VFP_FP__) && !defined(__SOFTFP__)
-	do_itt	eq
+	do_it	eq, t
 	mvfeqd	f0, #0.0
 #else
 	do_it	eq
@@ -537,7 +533,8 @@ ARM_FUNC_ALIAS aeabi_l2d floatdidf
 	@ we can return the result in f0 as well as in r0/r1 for backwards
 	@ compatibility.
 	adr	ip, LSYM(f0_ret)
-	do_push	{r4, r5, ip, lr}
+	@ Push pc as well so that RETLDM works correctly.
+	do_push	{r4, r5, ip, lr, pc}
 #else
 	do_push	{r4, r5, lr}
 #endif
@@ -601,7 +598,7 @@ LSYM(f0_ret):
 
 #endif /* L_addsubdf3 */
 
-#ifdef L_muldivdf3
+#ifdef L_arm_muldivdf3
 
 ARM_FUNC_START muldf3
 ARM_FUNC_ALIAS aeabi_dmul muldf3
@@ -838,7 +835,7 @@ LSYM(Lml_d):
 	orr	xh, xh, r6
 	teq	r5, #0
 	do_it	ne
-	movne	pc, lr
+	RETc(ne)
 2:	and	r6, yh, #0x80000000
 3:	movs	yl, yl, lsl #1
 	adc	yh, yh, yh
@@ -847,7 +844,7 @@ LSYM(Lml_d):
 	subeq	r5, r5, #1
 	beq	3b
 	orr	yh, yh, r6
-	mov	pc, lr
+	RET
 
 LSYM(Lml_s):
 	@ Isolate the INF and NAN cases away
@@ -1101,7 +1098,7 @@ LSYM(Ldv_s):
 
 #endif /* L_muldivdf3 */
 
-#ifdef L_cmpdf2
+#ifdef L_arm_cmpdf2
 
 @ Note: only r0 (return value) and ip are clobbered here.
 
@@ -1269,7 +1266,7 @@ ARM_FUNC_START	aeabi_dcmpgt
 
 #endif /* L_cmpdf2 */
 
-#ifdef L_unorddf2
+#ifdef L_arm_unorddf2
 
 ARM_FUNC_START unorddf2
 ARM_FUNC_ALIAS aeabi_dcmpun unorddf2
@@ -1295,7 +1292,7 @@ ARM_FUNC_ALIAS aeabi_dcmpun unorddf2
 
 #endif /* L_unorddf2 */
 
-#ifdef L_fixdfsi
+#ifdef L_arm_fixdfsi
 
 ARM_FUNC_START fixdfsi
 ARM_FUNC_ALIAS aeabi_d2iz fixdfsi
@@ -1337,7 +1334,7 @@ ARM_FUNC_ALIAS aeabi_d2iz fixdfsi
 
 #endif /* L_fixdfsi */
 
-#ifdef L_fixunsdfsi
+#ifdef L_arm_fixunsdfsi
 
 ARM_FUNC_START fixunsdfsi
 ARM_FUNC_ALIAS aeabi_d2uiz fixunsdfsi
@@ -1375,7 +1372,7 @@ ARM_FUNC_ALIAS aeabi_d2uiz fixunsdfsi
 
 #endif /* L_fixunsdfsi */
 
-#ifdef L_truncdfsf2
+#ifdef L_arm_truncdfsf2
 
 ARM_FUNC_START truncdfsf2
 ARM_FUNC_ALIAS aeabi_d2f truncdfsf2

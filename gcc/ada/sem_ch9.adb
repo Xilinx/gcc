@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch5;  use Sem_Ch5;
 with Sem_Ch6;  use Sem_Ch6;
@@ -72,6 +73,15 @@ package body Sem_Ch9 is
    procedure Check_Interfaces (N : Node_Id; T : Entity_Id);
    --  N is an N_Protected_Type_Declaration or N_Task_Type_Declaration node.
    --  Complete decoration of T and check legality of the covered interfaces.
+
+   procedure Check_Triggering_Statement
+     (Trigger        : Node_Id;
+      Error_Node     : Node_Id;
+      Is_Dispatching : out Boolean);
+   --  Examine the triggering statement of a select statement, conditional or
+   --  timed entry call. If Trigger is a dispatching call, return its status
+   --  in Is_Dispatching and check whether the primitive belongs to a limited
+   --  interface. If it does not, emit an error at Error_Node.
 
    function Find_Concurrent_Spec (Body_Id : Entity_Id) return Entity_Id;
    --  Find entity in corresponding task or protected declaration. Use full
@@ -165,6 +175,10 @@ package body Sem_Ch9 is
       --  If the bounds of an entry family depend on task discriminants, create
       --  a new index type where a discriminant is replaced by the local
       --  variable that renames it in the task body.
+
+      -----------------------
+      -- Actual_Index_Type --
+      -----------------------
 
       function Actual_Index_Type (E : Entity_Id) return Entity_Id is
          Typ   : constant Entity_Id := Entry_Index_Type (E);
@@ -404,19 +418,20 @@ package body Sem_Ch9 is
 
       --  Set Never_Set_In_Source and clear Is_True_Constant/Current_Value
       --  fields on all entry formals (this loop ignores all other entities).
-      --  Reset Referenced, Referenced_As_LHS and Has_Pragma_Unreferenced as
+      --  Reset Referenced, Referenced_As_xxx and Has_Pragma_Unreferenced as
       --  well, so that we can post accurate warnings on each accept statement
       --  for the same entry.
 
       E := First_Entity (Entry_Nam);
       while Present (E) loop
          if Is_Formal (E) then
-            Set_Never_Set_In_Source     (E, True);
-            Set_Is_True_Constant        (E, False);
-            Set_Current_Value           (E, Empty);
-            Set_Referenced              (E, False);
-            Set_Referenced_As_LHS       (E, False);
-            Set_Has_Pragma_Unreferenced (E, False);
+            Set_Never_Set_In_Source         (E, True);
+            Set_Is_True_Constant            (E, False);
+            Set_Current_Value               (E, Empty);
+            Set_Referenced                  (E, False);
+            Set_Referenced_As_LHS           (E, False);
+            Set_Referenced_As_Out_Parameter (E, False);
+            Set_Has_Pragma_Unreferenced     (E, False);
          end if;
 
          Next_Entity (E);
@@ -447,8 +462,8 @@ package body Sem_Ch9 is
    ---------------------------------
 
    procedure Analyze_Asynchronous_Select (N : Node_Id) is
-      Param   : Node_Id;
-      Trigger : Node_Id;
+      Is_Disp_Select : Boolean := False;
+      Trigger        : Node_Id;
 
    begin
       Tasking_Used := True;
@@ -460,39 +475,30 @@ package body Sem_Ch9 is
 
          Analyze (Trigger);
 
-         --  The trigger is a dispatching procedure. Postpone the analysis of
-         --  the triggering and abortable statements until the expansion of
-         --  this asynchronous select in Expand_N_Asynchronous_Select. This
-         --  action is required since otherwise we would get a gigi abort from
-         --  the code replication in Expand_N_Asynchronous_Select of an already
-         --  analyzed statement list.
+         --  Ada 2005 (AI-345): Check for a potential dispatching select
 
-         if Expander_Active
-           and then Nkind (Trigger) = N_Procedure_Call_Statement
-           and then Present (Parameter_Associations (Trigger))
-         then
-            Param := First (Parameter_Associations (Trigger));
-
-            if Is_Controlling_Actual (Param)
-              and then Is_Interface (Etype (Param))
-            then
-               if Is_Limited_Record (Etype (Param)) then
-                  return;
-               else
-                  Error_Msg_N
-                   ("dispatching operation of limited or synchronized " &
-                    "interface required (RM 9.7.2(3))!", N);
-               end if;
-            end if;
-         end if;
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
       end if;
+
+      --  Ada 2005 (AI-345): The expansion of the dispatching asynchronous
+      --  select will have to duplicate the triggering statements. Postpone
+      --  the analysis of the statements till expansion. Analyze only if the
+      --  expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze_Statements (Statements (Abortable_Part (N)));
+            Analyze (Triggering_Alternative (N));
+         end if;
 
       --  Analyze the statements. We analyze statements in the abortable part,
       --  because this is the section that is executed first, and that way our
       --  remembering of saved values and checks is accurate.
 
-      Analyze_Statements (Statements (Abortable_Part (N)));
-      Analyze (Triggering_Alternative (N));
+      else
+         Analyze_Statements (Statements (Abortable_Part (N)));
+         Analyze (Triggering_Alternative (N));
+      end if;
    end Analyze_Asynchronous_Select;
 
    ------------------------------------
@@ -500,21 +506,45 @@ package body Sem_Ch9 is
    ------------------------------------
 
    procedure Analyze_Conditional_Entry_Call (N : Node_Id) is
+      Trigger        : constant Node_Id :=
+                         Entry_Call_Statement (Entry_Call_Alternative (N));
+      Is_Disp_Select : Boolean := False;
+
    begin
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
-      Analyze (Entry_Call_Alternative (N));
+
+      --  Ada 2005 (AI-345): The trigger may be a dispatching call
+
+      if Ada_Version >= Ada_05 then
+         Analyze (Trigger);
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
+      end if;
 
       if List_Length (Else_Statements (N)) = 1
         and then Nkind (First (Else_Statements (N))) in N_Delay_Statement
       then
          Error_Msg_N
-           ("suspicious form of conditional entry call?", N);
+           ("suspicious form of conditional entry call?!", N);
          Error_Msg_N
-           ("\`SELECT OR` may be intended rather than `SELECT ELSE`", N);
+           ("\`SELECT OR` may be intended rather than `SELECT ELSE`!", N);
       end if;
 
-      Analyze_Statements (Else_Statements (N));
+      --  Postpone the analysis of the statements till expansion. Analyze only
+      --  if the expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze (Entry_Call_Alternative (N));
+            Analyze_Statements (Else_Statements (N));
+         end if;
+
+      --  Regular select analysis
+
+      else
+         Analyze (Entry_Call_Alternative (N));
+         Analyze_Statements (Else_Statements (N));
+      end if;
    end Analyze_Conditional_Entry_Call;
 
    --------------------------------
@@ -533,9 +563,7 @@ package body Sem_Ch9 is
          Analyze_List (Pragmas_Before (N));
       end if;
 
-      if Nkind (Parent (N)) = N_Selective_Accept
-        or else Nkind (Parent (N)) = N_Timed_Entry_Call
-      then
+      if Nkind_In (Parent (N), N_Selective_Accept, N_Timed_Entry_Call) then
          Expr := Expression (Delay_Statement (N));
 
          --  Defer full analysis until the statement is expanded, to insure
@@ -543,9 +571,9 @@ package body Sem_Ch9 is
          --  expression is only evaluated if the guard is open.
 
          if Nkind (Delay_Statement (N)) = N_Delay_Relative_Statement then
-            Pre_Analyze_And_Resolve (Expr, Standard_Duration);
+            Preanalyze_And_Resolve (Expr, Standard_Duration);
          else
-            Pre_Analyze_And_Resolve (Expr);
+            Preanalyze_And_Resolve (Expr);
          end if;
 
          Typ := First_Subtype (Etype (Expr));
@@ -619,8 +647,8 @@ package body Sem_Ch9 is
       Stats      : constant Node_Id   := Handled_Statement_Sequence (N);
       Formals    : constant Node_Id   := Entry_Body_Formal_Part (N);
       P_Type     : constant Entity_Id := Current_Scope;
-      Entry_Name : Entity_Id;
       E          : Entity_Id;
+      Entry_Name : Entity_Id;
 
    begin
       Tasking_Used := True;
@@ -738,7 +766,6 @@ package body Sem_Ch9 is
       Exp_Ch9.Expand_Entry_Barrier (N, Entry_Name);
       Push_Scope (Entry_Name);
 
-      Exp_Ch9.Expand_Entry_Body_Declarations (N);
       Install_Declarations (Entry_Name);
       Set_Actual_Subtypes (N, Current_Scope);
 
@@ -756,8 +783,20 @@ package body Sem_Ch9 is
       Set_Entry_Parameters_Type
         (Id, Entry_Parameters_Type (Entry_Name));
 
+      --  Add a declaration for the Protection object, renaming declarations
+      --  for the discriminals and privals and finally a declaration for the
+      --  entry family index (if applicable).
+
+      if Expander_Active
+        and then Is_Protected_Type (P_Type)
+      then
+         Install_Private_Data_Declarations
+           (Sloc (N), Entry_Name, P_Type, N, Decls);
+      end if;
+
       if Present (Decls) then
          Analyze_Declarations (Decls);
+         Inspect_Deferred_Constant_Completion (Decls);
       end if;
 
       if Present (Stats) then
@@ -791,8 +830,7 @@ package body Sem_Ch9 is
             end loop;
 
             --  If no matching body entity, then we already had a detected
-            --  error of some kind, so just forget about worrying about these
-            --  warnings.
+            --  error of some kind, so just don't worry about these warnings.
 
             if No (E2) then
                goto Continue;
@@ -881,7 +919,7 @@ package body Sem_Ch9 is
       if Nkind (Call) = N_Attribute_Reference then
 
          --  Possibly a stream attribute, but definitely illegal. Other
-         --  illegalitles, such as procedure calls, are diagnosed after
+         --  illegalities, such as procedure calls, are diagnosed after
          --  resolution.
 
          Error_Msg_N ("entry call alternative requires an entry call", Call);
@@ -900,40 +938,40 @@ package body Sem_Ch9 is
    -------------------------------
 
    procedure Analyze_Entry_Declaration (N : Node_Id) is
-      Formals : constant List_Id   := Parameter_Specifications (N);
-      Id      : constant Entity_Id := Defining_Identifier (N);
       D_Sdef  : constant Node_Id   := Discrete_Subtype_Definition (N);
+      Def_Id  : constant Entity_Id := Defining_Identifier (N);
+      Formals : constant List_Id   := Parameter_Specifications (N);
 
    begin
-      Generate_Definition (Id);
+      Generate_Definition (Def_Id);
       Tasking_Used := True;
 
       if No (D_Sdef) then
-         Set_Ekind (Id, E_Entry);
+         Set_Ekind (Def_Id, E_Entry);
       else
-         Enter_Name (Id);
-         Set_Ekind (Id, E_Entry_Family);
+         Enter_Name (Def_Id);
+         Set_Ekind (Def_Id, E_Entry_Family);
          Analyze (D_Sdef);
-         Make_Index (D_Sdef, N, Id);
+         Make_Index (D_Sdef, N, Def_Id);
       end if;
 
-      Set_Etype          (Id, Standard_Void_Type);
-      Set_Convention     (Id, Convention_Entry);
-      Set_Accept_Address (Id, New_Elmt_List);
+      Set_Etype          (Def_Id, Standard_Void_Type);
+      Set_Convention     (Def_Id, Convention_Entry);
+      Set_Accept_Address (Def_Id, New_Elmt_List);
 
       if Present (Formals) then
-         Set_Scope (Id, Current_Scope);
-         Push_Scope (Id);
+         Set_Scope (Def_Id, Current_Scope);
+         Push_Scope (Def_Id);
          Process_Formals (Formals, N);
-         Create_Extra_Formals (Id);
+         Create_Extra_Formals (Def_Id);
          End_Scope;
       end if;
 
-      if Ekind (Id) = E_Entry then
-         New_Overloaded_Entity (Id);
+      if Ekind (Def_Id) = E_Entry then
+         New_Overloaded_Entity (Def_Id);
       end if;
 
-      Generate_Reference_To_Formals (Id);
+      Generate_Reference_To_Formals (Def_Id);
    end Analyze_Entry_Declaration;
 
    ---------------------------------------
@@ -947,7 +985,7 @@ package body Sem_Ch9 is
    --  order to make it available to the barrier, we create an additional
    --  scope, as for a loop, whose only declaration is the index name. This
    --  loop is not attached to the tree and does not appear as an entity local
-   --  to the protected type, so its existence need only be knwown to routines
+   --  to the protected type, so its existence need only be known to routines
    --  that process entry families.
 
    procedure Analyze_Entry_Index_Specification (N : Node_Id) is
@@ -994,9 +1032,9 @@ package body Sem_Ch9 is
 
       Ref_Id : Entity_Id;
       --  This is the entity of the protected object or protected type
-      --  involved, and is the entity used for cross-reference purposes
-      --  (it differs from Spec_Id in the case of a single protected
-      --  object, since Spec_Id is set to the protected type in this case).
+      --  involved, and is the entity used for cross-reference purposes (it
+      --  differs from Spec_Id in the case of a single protected object, since
+      --  Spec_Id is set to the protected type in this case).
 
    begin
       Tasking_Used := True;
@@ -1035,7 +1073,7 @@ package body Sem_Ch9 is
       Set_Has_Completion (Spec_Id);
       Install_Declarations (Spec_Id);
 
-      Exp_Ch9.Expand_Protected_Body_Declarations (N, Spec_Id);
+      Expand_Protected_Body_Declarations (N, Spec_Id);
 
       Last_E := Last_Entity (Spec_Id);
 
@@ -1066,6 +1104,55 @@ package body Sem_Ch9 is
    procedure Analyze_Protected_Definition (N : Node_Id) is
       E : Entity_Id;
       L : Entity_Id;
+
+      procedure Undelay_Itypes (T : Entity_Id);
+      --  Itypes created for the private components of a protected type
+      --  do not receive freeze nodes, because there is no scope in which
+      --  they can be elaborated, and they can depend on discriminants of
+      --  the enclosed protected type. Given that the components can be
+      --  composite types with inner components, we traverse recursively
+      --  the private components of the protected type, and indicate that
+      --  all itypes within are frozen. This ensures that no freeze nodes
+      --  will be generated for them.
+      --
+      --  On the other hand, components of the corresponding record are
+      --  frozen (or receive itype references) as for other records.
+
+      --------------------
+      -- Undelay_Itypes --
+      --------------------
+
+      procedure Undelay_Itypes (T : Entity_Id) is
+         Comp : Entity_Id;
+
+      begin
+         if Is_Protected_Type (T) then
+            Comp := First_Private_Entity (T);
+         elsif Is_Record_Type (T) then
+            Comp := First_Entity (T);
+         else
+            return;
+         end if;
+
+         while Present (Comp) loop
+            if Is_Type (Comp)
+              and then Is_Itype (Comp)
+            then
+               Set_Has_Delayed_Freeze (Comp, False);
+               Set_Is_Frozen (Comp);
+
+               if Is_Record_Type (Comp)
+                 or else Is_Protected_Type (Comp)
+               then
+                  Undelay_Itypes (Comp);
+               end if;
+            end if;
+
+            Next_Entity (Comp);
+         end loop;
+      end Undelay_Itypes;
+
+   --  Start of processing for Analyze_Protected_Definition
 
    begin
       Tasking_Used := True;
@@ -1101,6 +1188,8 @@ package body Sem_Ch9 is
          Next_Entity (E);
       end loop;
 
+      Undelay_Itypes (Current_Scope);
+
       Check_Max_Entries (N, Max_Protected_Entries);
       Process_End_Label (N, 'e', Current_Scope);
    end Analyze_Protected_Definition;
@@ -1125,7 +1214,10 @@ package body Sem_Ch9 is
 
       T := Find_Type_Name (N);
 
-      if Ekind (T) = E_Incomplete_Type then
+      --  In the case of an incomplete type, use the full view, unless it's not
+      --  present (as can occur for an incomplete view from a limited with).
+
+      if Ekind (T) = E_Incomplete_Type and then Present (Full_View (T)) then
          T := Full_View (T);
          Set_Completion_Referenced (T);
       end if;
@@ -1156,9 +1248,8 @@ package body Sem_Ch9 is
 
       Set_Is_Constrained (T, not Has_Discriminants (T));
 
-      --  Perform minimal expansion of the protected type while inside of a
-      --  generic. The corresponding record is needed for various semantic
-      --  checks.
+      --  Perform minimal expansion of protected type while inside a generic.
+      --  The corresponding record is needed for various semantic checks.
 
       if Ada_Version >= Ada_05
         and then Inside_A_Generic
@@ -1231,15 +1322,16 @@ package body Sem_Ch9 is
    ---------------------
 
    procedure Analyze_Requeue (N : Node_Id) is
-      Count      : Natural := 0;
-      Entry_Name : Node_Id := Name (N);
-      Entry_Id   : Entity_Id;
-      I          : Interp_Index;
-      It         : Interp;
-      Enclosing  : Entity_Id;
-      Target_Obj : Node_Id := Empty;
-      Req_Scope  : Entity_Id;
-      Outer_Ent  : Entity_Id;
+      Count       : Natural := 0;
+      Entry_Name  : Node_Id := Name (N);
+      Entry_Id    : Entity_Id;
+      I           : Interp_Index;
+      Is_Disp_Req : Boolean;
+      It          : Interp;
+      Enclosing   : Entity_Id;
+      Target_Obj  : Node_Id := Empty;
+      Req_Scope   : Entity_Id;
+      Outer_Ent   : Entity_Id;
 
    begin
       Check_Restriction (No_Requeue_Statements, N);
@@ -1313,10 +1405,20 @@ package body Sem_Ch9 is
       if Is_Overloaded (Entry_Name) then
          Entry_Id := Empty;
 
+         --  Loop over candidate interpretations and filter out any that are
+         --  not parameterless, are not type conformant, are not entries, or
+         --  do not come from source.
+
          Get_First_Interp (Entry_Name, I, It);
          while Present (It.Nam) loop
-            if No (First_Formal (It.Nam))
-              or else Subtype_Conformant (Enclosing, It.Nam)
+
+            --  Note: we test type conformance here, not subtype conformance.
+            --  Subtype conformance will be tested later on, but it is better
+            --  for error output in some cases not to do that here.
+
+            if (No (First_Formal (It.Nam))
+                 or else (Type_Conformant (Enclosing, It.Nam)))
+              and then Ekind (It.Nam) = E_Entry
             then
                --  Ada 2005 (AI-345): Since protected and task types have
                --  primitive entry wrappers, we only consider source entries.
@@ -1384,11 +1486,28 @@ package body Sem_Ch9 is
          Entry_Id := Entity (Entry_Name);
       end if;
 
+      --  Ada 2005 (AI05-0030): Potential dispatching requeue statement. The
+      --  target type must be a concurrent interface class-wide type and the
+      --  entry name must be a procedure, flagged by pragma Implemented_By_
+      --  Entry.
+
+      Is_Disp_Req :=
+        Ada_Version >= Ada_05
+          and then Present (Target_Obj)
+          and then Is_Class_Wide_Type (Etype (Target_Obj))
+          and then Is_Concurrent_Interface (Etype (Target_Obj))
+          and then Ekind (Entry_Id) = E_Procedure
+          and then Implemented_By_Entry (Entry_Id);
+
       --  Resolve entry, and check that it is subtype conformant with the
       --  enclosing construct if this construct has formals (RM 9.5.4(5)).
+      --  Ada 2005 (AI05-0030): Do not emit an error for this specific case.
 
-      if not Is_Entry (Entry_Id) then
+      if not Is_Entry (Entry_Id)
+        and then not Is_Disp_Req
+      then
          Error_Msg_N ("expect entry name in requeue statement", Name (N));
+
       elsif Ekind (Entry_Id) = E_Entry_Family
         and then Nkind (Entry_Name) /= N_Indexed_Component
       then
@@ -1399,14 +1518,46 @@ package body Sem_Ch9 is
          Generate_Reference (Entry_Id, Entry_Name);
 
          if Present (First_Formal (Entry_Id)) then
-            if VM_Target = JVM_Target then
+            if VM_Target = JVM_Target and then not Inspector_Mode then
                Error_Msg_N
                  ("arguments unsupported in requeue statement",
                   First_Formal (Entry_Id));
                return;
             end if;
 
-            Check_Subtype_Conformant (Enclosing, Entry_Id, Name (N));
+            --  Ada 2005 (AI05-0030): Perform type conformance after skipping
+            --  the first parameter of Entry_Id since it is the interface
+            --  controlling formal.
+
+            if Is_Disp_Req then
+               declare
+                  Enclosing_Formal : Entity_Id;
+                  Target_Formal    : Entity_Id;
+
+               begin
+                  Enclosing_Formal := First_Formal (Enclosing);
+                  Target_Formal := Next_Formal (First_Formal (Entry_Id));
+                  while Present (Enclosing_Formal)
+                    and then Present (Target_Formal)
+                  loop
+                     if not Conforming_Types
+                              (T1    => Etype (Enclosing_Formal),
+                               T2    => Etype (Target_Formal),
+                               Ctype => Subtype_Conformant)
+                     then
+                        Error_Msg_Node_2 := Target_Formal;
+                        Error_Msg_NE
+                          ("formal & is not subtype conformant with &" &
+                           "in dispatching requeue", N, Enclosing_Formal);
+                     end if;
+
+                     Next_Formal (Enclosing_Formal);
+                     Next_Formal (Target_Formal);
+                  end loop;
+               end;
+            else
+               Check_Subtype_Conformant (Enclosing, Entry_Id, Name (N));
+            end if;
 
             --  Processing for parameters accessed by the requeue
 
@@ -1691,6 +1842,7 @@ package body Sem_Ch9 is
 
    procedure Analyze_Task_Body (N : Node_Id) is
       Body_Id : constant Entity_Id := Defining_Identifier (N);
+      Decls   : constant List_Id   := Declarations (N);
       HSS     : constant Node_Id   := Handled_Statement_Sequence (N);
       Last_E  : Entity_Id;
 
@@ -1757,7 +1909,8 @@ package body Sem_Ch9 is
       Install_Declarations (Spec_Id);
       Last_E := Last_Entity (Spec_Id);
 
-      Analyze_Declarations (Declarations (N));
+      Analyze_Declarations (Decls);
+      Inspect_Deferred_Constant_Completion (Decls);
 
       --  For visibility purposes, all entities in the body are private. Set
       --  First_Private_Entity accordingly, if there was no private part in the
@@ -1861,7 +2014,10 @@ package body Sem_Ch9 is
       T := Find_Type_Name (N);
       Generate_Definition (T);
 
-      if Ekind (T) = E_Incomplete_Type then
+      --  In the case of an incomplete type, use the full view, unless it's not
+      --  present (as can occur for an incomplete view from a limited with).
+
+      if Ekind (T) = E_Incomplete_Type and then Present (Full_View (T)) then
          T := Full_View (T);
          Set_Completion_Referenced (T);
       end if;
@@ -1887,7 +2043,7 @@ package body Sem_Ch9 is
          if Has_Discriminants (T) then
 
             --  Install discriminants. Also, verify conformance of
-            --  discriminants of previous and current view.  ???
+            --  discriminants of previous and current view. ???
 
             Install_Declarations (T);
          else
@@ -1965,11 +2121,36 @@ package body Sem_Ch9 is
    ------------------------------
 
    procedure Analyze_Timed_Entry_Call (N : Node_Id) is
+      Trigger        : constant Node_Id :=
+                         Entry_Call_Statement (Entry_Call_Alternative (N));
+      Is_Disp_Select : Boolean := False;
+
    begin
       Check_Restriction (No_Select_Statements, N);
       Tasking_Used := True;
-      Analyze (Entry_Call_Alternative (N));
-      Analyze (Delay_Alternative (N));
+
+      --  Ada 2005 (AI-345): The trigger may be a dispatching call
+
+      if Ada_Version >= Ada_05 then
+         Analyze (Trigger);
+         Check_Triggering_Statement (Trigger, N, Is_Disp_Select);
+      end if;
+
+      --  Postpone the analysis of the statements till expansion. Analyze only
+      --  if the expander is disabled in order to catch any semantic errors.
+
+      if Is_Disp_Select then
+         if not Expander_Active then
+            Analyze (Entry_Call_Alternative (N));
+            Analyze (Delay_Alternative (N));
+         end if;
+
+      --  Regular select analysis
+
+      else
+         Analyze (Entry_Call_Alternative (N));
+         Analyze (Delay_Alternative (N));
+      end if;
    end Analyze_Timed_Entry_Call;
 
    ------------------------------------
@@ -1997,7 +2178,7 @@ package body Sem_Ch9 is
              ("triggering statement must be delay or entry call", Trigger);
 
          --  Ada 2005 (AI-345): If a procedure_call_statement is used for a
-         --  procedure_or_entry_call, the procedure_name or pro- cedure_prefix
+         --  procedure_or_entry_call, the procedure_name or procedure_prefix
          --  of the procedure_call_statement shall denote an entry renamed by a
          --  procedure, or (a view of) a primitive subprogram of a limited
          --  interface whose first parameter is a controlling parameter.
@@ -2113,8 +2294,8 @@ package body Sem_Ch9 is
       Iface_Typ : Entity_Id;
 
    begin
-      pragma Assert (Nkind (N) = N_Protected_Type_Declaration
-        or else Nkind (N) = N_Task_Type_Declaration);
+      pragma Assert
+        (Nkind_In (N, N_Protected_Type_Declaration, N_Task_Type_Declaration));
 
       if Present (Interface_List (N)) then
          Set_Is_Tagged_Type (T);
@@ -2221,14 +2402,14 @@ package body Sem_Ch9 is
             then
                Error_Msg_N
                  ("(Ada 2005) full view must be a synchronized tagged " &
-                  "type ('R'M 7.3 (7.2/2))", Priv_T);
+                  "type (RM 7.3 (7.2/2))", Priv_T);
 
             elsif Is_Synchronized_Tagged_Type (T)
               and then not Is_Synchronized_Tagged_Type (Priv_T)
             then
                Error_Msg_N
                  ("(Ada 2005) partial view must be a synchronized tagged " &
-                  "type ('R'M 7.3 (7.2/2))", T);
+                  "type (RM 7.3 (7.2/2))", T);
             end if;
 
             --  RM 7.3 (7.3/2): The partial view shall be a descendant of an
@@ -2237,16 +2418,16 @@ package body Sem_Ch9 is
 
             if Present (Interface_List (N))
               or else (Is_Tagged_Type (Priv_T)
-                         and then Has_Abstract_Interfaces
-                                    (Priv_T, Use_Full_View => False))
+                         and then Has_Interfaces
+                                   (Priv_T, Use_Full_View => False))
             then
                if Is_Tagged_Type (Priv_T) then
-                  Collect_Abstract_Interfaces
+                  Collect_Interfaces
                     (Priv_T, Priv_T_Ifaces, Use_Full_View => False);
                end if;
 
                if Is_Tagged_Type (T) then
-                  Collect_Abstract_Interfaces (T, Full_T_Ifaces);
+                  Collect_Interfaces (T, Full_T_Ifaces);
                end if;
 
                Iface := Find_Hidden_Interface (Priv_T_Ifaces, Full_T_Ifaces);
@@ -2266,6 +2447,43 @@ package body Sem_Ch9 is
          end if;
       end;
    end Check_Interfaces;
+
+   --------------------------------
+   -- Check_Triggering_Statement --
+   --------------------------------
+
+   procedure Check_Triggering_Statement
+     (Trigger        : Node_Id;
+      Error_Node     : Node_Id;
+      Is_Dispatching : out Boolean)
+   is
+      Param : Node_Id;
+
+   begin
+      Is_Dispatching := False;
+
+      --  It is not possible to have a dispatching trigger if we are not in
+      --  Ada 2005 mode.
+
+      if Ada_Version >= Ada_05
+        and then Nkind (Trigger) = N_Procedure_Call_Statement
+        and then Present (Parameter_Associations (Trigger))
+      then
+         Param := First (Parameter_Associations (Trigger));
+
+         if Is_Controlling_Actual (Param)
+           and then Is_Interface (Etype (Param))
+         then
+            if Is_Limited_Record (Etype (Param)) then
+               Is_Dispatching := True;
+            else
+               Error_Msg_N
+                 ("dispatching operation of limited or synchronized " &
+                  "interface required (RM 9.7.2(3))!", Error_Node);
+            end if;
+         end if;
+      end if;
+   end Check_Triggering_Statement;
 
    --------------------------
    -- Find_Concurrent_Spec --

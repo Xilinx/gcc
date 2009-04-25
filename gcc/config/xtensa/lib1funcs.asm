@@ -1,5 +1,5 @@
 /* Assembly functions for the Xtensa version of libgcc1.
-   Copyright (C) 2001, 2002, 2003, 2005, 2006, 2007
+   Copyright (C) 2001, 2002, 2003, 2005, 2006, 2007, 2009
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -7,27 +7,22 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "xtensa-config.h"
 
@@ -201,17 +196,28 @@ __mulsi3:
 
 
 #ifdef L_umulsidi3
+
+#if !XCHAL_HAVE_MUL16 && !XCHAL_HAVE_MUL32 && !XCHAL_HAVE_MAC16
+#define XCHAL_NO_MUL 1
+#endif
+
 	.align	4
 	.global	__umulsidi3
 	.type	__umulsidi3, @function
 __umulsidi3:
-	leaf_entry sp, 32
 #if __XTENSA_CALL0_ABI__
+	leaf_entry sp, 32
 	addi	sp, sp, -32
 	s32i	a12, sp, 16
 	s32i	a13, sp, 20
 	s32i	a14, sp, 24
 	s32i	a15, sp, 28
+#elif XCHAL_NO_MUL
+	/* This is not really a leaf function; allocate enough stack space
+	   to allow CALL12s to a helper function.  */
+	leaf_entry sp, 48
+#else
+	leaf_entry sp, 16
 #endif
 
 #ifdef __XTENSA_EB__
@@ -232,7 +238,7 @@ __umulsidi3:
 
 #else /* ! MUL32_HIGH */
 
-#if !XCHAL_HAVE_MUL16 && !XCHAL_HAVE_MUL32 && !XCHAL_HAVE_MAC16
+#if __XTENSA_CALL0_ABI__ && XCHAL_NO_MUL
 	/* a0 and a8 will be clobbered by calling the multiply function
 	   but a8 is not used here and need not be saved.  */
 	s32i	a0, sp, 0
@@ -290,12 +296,21 @@ __umulsidi3:
 #define set_arg_h(dst, src) \
 	srli	dst, src, 16
 
+#if __XTENSA_CALL0_ABI__
 #define do_mul(dst, xreg, xhalf, yreg, yhalf) \
 	set_arg_ ## xhalf (a13, xreg); \
 	set_arg_ ## yhalf (a14, yreg); \
 	call0	.Lmul_mulsi3; \
 	mov	dst, a12
-#endif
+#else
+#define do_mul(dst, xreg, xhalf, yreg, yhalf) \
+	set_arg_ ## xhalf (a14, xreg); \
+	set_arg_ ## yhalf (a15, yreg); \
+	call12	.Lmul_mulsi3; \
+	mov	dst, a14
+#endif /* __XTENSA_CALL0_ABI__ */
+
+#endif /* no multiply hardware */
 
 	/* Add pp1 and pp2 into a6 with carry-out in a9.  */
 	do_mul(a6, a2, l, a3, h)	/* pp 1 */
@@ -324,7 +339,7 @@ __umulsidi3:
 
 #endif /* !MUL32_HIGH */
 
-#if !XCHAL_HAVE_MUL16 && !XCHAL_HAVE_MUL32 && !XCHAL_HAVE_MAC16
+#if __XTENSA_CALL0_ABI__ && XCHAL_NO_MUL
 	/* Restore the original return address.  */
 	l32i	a0, sp, 0
 #endif
@@ -337,38 +352,47 @@ __umulsidi3:
 #endif
 	leaf_return
 
-#if !XCHAL_HAVE_MUL16 && !XCHAL_HAVE_MUL32 && !XCHAL_HAVE_MAC16
+#if XCHAL_NO_MUL
 
 	/* For Xtensa processors with no multiply hardware, this simplified
 	   version of _mulsi3 is used for multiplying 16-bit chunks of
-	   the floating-point mantissas.  It uses a custom ABI:	the inputs
-	   are passed in a13 and a14, the result is returned in a12, and
-	   a8 and a15 are clobbered.  */
+	   the floating-point mantissas.  When using CALL0, this function
+	   uses a custom ABI: the inputs are passed in a13 and a14, the
+	   result is returned in a12, and a8 and a15 are clobbered.  */
 	.align	4
 .Lmul_mulsi3:
-	movi	a12, 0
-.Lmul_mult_loop:
-	add	a15, a14, a12
-	extui	a8, a13, 0, 1
-	movnez	a12, a15, a8
+	leaf_entry sp, 16
+	.macro mul_mulsi3_body dst, src1, src2, tmp1, tmp2
+	movi	\dst, 0
+1:	add	\tmp1, \src2, \dst
+	extui	\tmp2, \src1, 0, 1
+	movnez	\dst, \tmp1, \tmp2
 
-	do_addx2 a15, a14, a12, a15
-	extui	a8, a13, 1, 1
-	movnez	a12, a15, a8
+	do_addx2 \tmp1, \src2, \dst, \tmp1
+	extui	\tmp2, \src1, 1, 1
+	movnez	\dst, \tmp1, \tmp2
 
-	do_addx4 a15, a14, a12, a15
-	extui	a8, a13, 2, 1
-	movnez	a12, a15, a8
+	do_addx4 \tmp1, \src2, \dst, \tmp1
+	extui	\tmp2, \src1, 2, 1
+	movnez	\dst, \tmp1, \tmp2
 
-	do_addx8 a15, a14, a12, a15
-	extui	a8, a13, 3, 1
-	movnez	a12, a15, a8
+	do_addx8 \tmp1, \src2, \dst, \tmp1
+	extui	\tmp2, \src1, 3, 1
+	movnez	\dst, \tmp1, \tmp2
 
-	srli	a13, a13, 4
-	slli	a14, a14, 4
-	bnez	a13, .Lmul_mult_loop
-	ret
-#endif /* !MUL16 && !MUL32 && !MAC16 */
+	srli	\src1, \src1, 4
+	slli	\src2, \src2, 4
+	bnez	\src1, 1b
+	.endm
+#if __XTENSA_CALL0_ABI__
+	mul_mulsi3_body a12, a13, a14, a15, a8
+#else
+	/* The result will be written into a2, so save that argument in a4.  */
+	mov	a4, a2
+	mul_mulsi3_body a2, a4, a3, a5, a6
+#endif
+	leaf_return
+#endif /* XCHAL_NO_MUL */
 
 	.size	__umulsidi3, . - __umulsidi3
 

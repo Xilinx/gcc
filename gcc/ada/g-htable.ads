@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1995-2005, AdaCore                     --
+--                     Copyright (C) 1995-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,6 +42,8 @@
 --  Note: actual code is found in System.HTable (s-htable.ads/adb) since
 --  this facility is accessed from run time routines, but clients should
 --  always access the version supplied via GNAT.HTable.
+
+pragma Compiler_Unit;
 
 with System.HTable;
 
@@ -192,7 +194,7 @@ package GNAT.HTable is
    --     function Get_Next return Elmt_Ptr;
    --     --  Returns a non-specified element that has not been returned by
    --     --  the same function since the last call to Get_First or Null_Ptr
-   --     --  if there is no such element or Get_First has bever been called.
+   --     --  if there is no such element or Get_First has never been called.
    --     --  If there is no call to 'Set' in between Get_Next calls, all
    --     --  the elements of the HTable will be traversed.
 

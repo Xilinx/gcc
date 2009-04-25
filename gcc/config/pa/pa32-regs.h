@@ -1,3 +1,27 @@
+/* Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+   2008 Free Software Foundation, Inc.
+
+This file is part of GCC.
+
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
+
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
+
 /* Standard register usage.  */
 
 /* Number of actual hardware registers.
@@ -172,8 +196,7 @@
 #define VALID_FP_MODE_P(MODE)						\
   ((MODE) == SFmode || (MODE) == DFmode					\
    || (MODE) == SCmode || (MODE) == DCmode				\
-   || (MODE) == QImode || (MODE) == HImode || (MODE) == SImode		\
-   || (TARGET_PA_11 && (MODE) == DImode))
+   || (MODE) == SImode || (TARGET_PA_11 && (MODE) == DImode))
 
 /* Value is 1 if hard register REGNO can hold a value of machine-mode MODE.
 
@@ -287,6 +310,24 @@ enum reg_class { NO_REGS, R1_REGS, GENERAL_REGS, FPUPPER_REGS, FP_REGS,
   {0xfffffffe, 0xffffffff, 0x00ffffff},	/* GENERAL_OR_FP_REGS */	\
   {0x00000000, 0x00000000, 0x01000000},	/* SHIFT_REGS */		\
   {0xfffffffe, 0xffffffff, 0x01ffffff}}	/* ALL_REGS */
+
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES						\
+{									\
+  GENERAL_REGS, FP_REGS, SHIFT_REGS, LIM_REG_CLASSES			\
+}
+
+/* Defines invalid mode changes.  */
+
+#define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS) \
+  pa_cannot_change_mode_class (FROM, TO, CLASS)
 
 /* Return the class number of the smallest class containing
    reg number REGNO.  This could be a conditional expression

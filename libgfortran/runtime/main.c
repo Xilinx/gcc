@@ -1,31 +1,26 @@
-/* Copyright (C) 2002-2003, 2005, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2003, 2005, 2007, 2009 Free Software Foundation, Inc.
    Contributed by Andy Vaught and Paul Brook <paul@nowt.org>
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
 #include <stdlib.h>
@@ -45,10 +40,9 @@ stupid_function_name_for_static_linking (void)
   return;
 }
 
-/* This is the offset (in bytes) required to cast from logical(8)* to
-   logical(4)*. and still get the same result.  Will be 0 for little-endian
-   machines and 4 for big-endian machines.  */
-int l8_to_l4_offset = 0;
+/* This will be 0 for little-endian
+   machines and 1 for big-endian machines.  */
+int big_endian = 0;
 
 
 /* Figure out endianness for this machine.  */
@@ -64,9 +58,9 @@ determine_endianness (void)
 
   u.l8 = 1;
   if (u.l4[0])
-    l8_to_l4_offset = 0;
+    big_endian = 0;
   else if (u.l4[1])
-    l8_to_l4_offset = 1;
+    big_endian = 1;
   else
     runtime_error ("Unable to determine machine endianness");
 }
@@ -112,7 +106,8 @@ store_exe_path (const char * argv0)
 
   char buf[PATH_MAX], *cwd, *path;
 
-  if (argv0[0] == '/')
+  /* On the simulator argv is not set.  */
+  if (argv0 == NULL || argv0[0] == '/')
     {
       exe_path = argv0;
       please_free_exe_path_when_done = 0;
@@ -120,7 +115,11 @@ store_exe_path (const char * argv0)
     }
 
   memset (buf, 0, sizeof (buf));
+#ifdef HAVE_GETCWD
   cwd = getcwd (buf, sizeof (buf));
+#else
+  cwd = "";
+#endif
 
   /* exe_path will be cwd + "/" + argv[0] + "\0" */
   path = malloc (strlen (cwd) + 1 + strlen (argv0) + 1);
@@ -172,5 +171,5 @@ cleanup (void)
   close_units ();
   
   if (please_free_exe_path_when_done)
-    free (exe_path);
+    free ((char *) exe_path);
 }

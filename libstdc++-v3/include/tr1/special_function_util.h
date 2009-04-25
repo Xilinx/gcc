@@ -1,12 +1,12 @@
 // Special functions -*- C++ -*-
 
-// Copyright (C) 2006
+// Copyright (C) 2006, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file tr1/special_function_util.h
  *  This is an internal header file, included by other library headers.
@@ -42,7 +37,6 @@
 #ifndef _GLIBCXX_TR1_SPECIAL_FUNCTION_UTIL_H
 #define _GLIBCXX_TR1_SPECIAL_FUNCTION_UTIL_H 1
 
-// namespace std::tr1
 namespace std
 {
 namespace tr1
@@ -51,21 +45,17 @@ namespace tr1
   namespace __detail
   {
 
-    ///
-    ///  @brief  A class to encapsulate type dependent floating point
-    ///          constants.  Not everything will be able to be expressed
-    ///          as type logic.
-    ///
-    template <typename _Tp>
+    /// A class to encapsulate type dependent floating point
+    /// constants.  Not everything will be able to be expressed as
+    /// type logic.
+    template<typename _Tp>
     struct __floating_point_constant
     {
       static const _Tp __value;
     };
 
 
-    ///
-    ///  @brief  A structure for numeric constants.
-    ///
+    /// A structure for numeric constants.
     template<typename _Tp>
       struct __numeric_constants
       {
@@ -111,15 +101,13 @@ namespace tr1
       };
 
 
-    ///
-    ///  @brief  This is a wrapper for the isnan function.
-    ///          Otherwise, for NaN, all comparisons result in false.
-    ///          If/when we build a std::isnan out of intrinsics, this
-    ///          will disappear completely in favor of std::isnan.
-    ///
 #if _GLIBCXX_USE_C99_MATH && !_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC
 
-    template <typename _Tp>
+    /// This is a wrapper for the isnan function. Otherwise, for NaN,
+    /// all comparisons result in false. If/when we build a std::isnan
+    /// out of intrinsics, this will disappear completely in favor of
+    /// std::isnan.
+    template<typename _Tp>
     inline bool __isnan(const _Tp __x)
     {
       return std::isnan(__x);
@@ -127,19 +115,19 @@ namespace tr1
 
 #else
 
-    template <typename _Tp>
+    template<typename _Tp>
     inline bool __isnan(const _Tp __x)
     {
       return __builtin_isnan(__x);
     }
 
-    template <>
+    template<>
     inline bool __isnan<float>(const float __x)
     {
       return __builtin_isnanf(__x);
     }
 
-    template <>
+    template<>
     inline bool __isnan<long double>(const long double __x)
     {
       return __builtin_isnanl(__x);

@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *                     Copyright (C) 2001-2005, AdaCore                     *
+ *                     Copyright (C) 2001-2007, AdaCore                     *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -51,6 +51,12 @@
 #endif
 #elif defined (__vxworks) && defined (__RTP__)
 #include <wait.h>
+#elif defined (__Lynx__)
+/* ??? See comment in adaint.c.  */
+#define GCC_RESOURCE_H
+#include <sys/wait.h>
+#elif defined (__nucleus__)
+/* No wait.h available on Nucleus */
 #else
 #include <sys/wait.h>
 #endif
@@ -86,6 +92,12 @@ __gnat_kill (int pid, int sig, int close)
 	  if (close)
 	    CloseHandle ((HANDLE)pid);
 	}
+    }
+  else if (sig == 2)
+    {
+      GenerateConsoleCtrlEvent (CTRL_C_EVENT, (HANDLE)pid);
+      if (close)
+	CloseHandle ((HANDLE)pid);
     }
 }
 
@@ -239,6 +251,13 @@ __gnat_expect_poll (int *fd, int num_fd, int timeout, int *is_set)
 #include <stdio.h>
 #include <vms/stsdef.h>
 #include <vms/iodef.h>
+#include <signal.h>
+
+void
+__gnat_kill (int pid, int sig, int close)
+{
+  kill (pid, sig);
+}
 
 int
 __gnat_waitpid (int pid)
@@ -363,8 +382,7 @@ __gnat_expect_poll (int *fd, int num_fd, int timeout, int *is_set)
 
   return ready;
 }
-
-#elif defined (__unix__)
+#elif defined (__unix__) && !defined (__nucleus__)
 
 #ifdef __hpux__
 #include <sys/ptyio.h>

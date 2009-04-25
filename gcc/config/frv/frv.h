@@ -1,5 +1,5 @@
 /* Target macros for the FRV port of GCC.
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
    Free Software Foundation, Inc.
    Contributed by Red Hat Inc.
 
@@ -592,6 +592,8 @@
 #define FDPIC_FPTR_REGNO  (GPR_FIRST + 14)        /* uClinux PIC function pointer register.  */
 #define FDPIC_REGNO   (GPR_FIRST + 15)        /* uClinux PIC register.  */
 
+#define HARD_REGNO_RENAME_OK(from,to) (TARGET_FDPIC ? ((to) != FDPIC_REG) : 1)
+
 #define OUR_FDPIC_REG	get_hard_reg_initial_val (SImode, FDPIC_REGNO)
 
 #define FPR_FIRST       64			/* First FP reg */
@@ -797,7 +799,7 @@
 	1, 1, 1, 1,			/* 164-167, accg8 - accg11 */	\
 	/* Other registers */						\
 	1,				/* 168, AP   - fake arg ptr */	\
-	0,				/* 169, LR   - Link register*/	\
+	1,				/* 169, LR   - Link register*/	\
 	0,				/* 170, LCR  - Loop count reg*/	\
 	1, 1				/* 171-172, iacc0 */		\
 }
@@ -1153,6 +1155,21 @@ enum reg_class
   { 0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,0x1fff}, /* ALL_REGS */\
 }
 
+/* The following macro defines cover classes for Integrated Register
+   Allocator.  Cover classes is a set of non-intersected register
+   classes covering all hard registers used for register allocation
+   purpose.  Any move between two registers of a cover class should be
+   cheaper than load or store of the registers.  The macro value is
+   array of register classes with LIM_REG_CLASSES used as the end
+   marker.  */
+
+#define IRA_COVER_CLASSES						\
+{									\
+  GPR_REGS, FPR_REGS, ACC_REGS, ICR_REGS, FCR_REGS, ICC_REGS, FCC_REGS, \
+  ACCG_REGS, SPR_REGS,							\
+  LIM_REG_CLASSES							\
+}
+
 /* A C expression whose value is a register class containing hard register
    REGNO.  In general there is more than one such class; choose a class which
    is "minimal", meaning that no smaller class also contains the register.  */
@@ -1235,10 +1252,10 @@ extern enum reg_class reg_class_from_letter[];
 #define PREFERRED_RELOAD_CLASS(X, CLASS) CLASS
 
 #define SECONDARY_INPUT_RELOAD_CLASS(CLASS, MODE, X) \
-  frv_secondary_reload_class (CLASS, MODE, X, TRUE)
+  frv_secondary_reload_class (CLASS, MODE, X)
 
 #define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, X) \
-  frv_secondary_reload_class (CLASS, MODE, X, FALSE)
+  frv_secondary_reload_class (CLASS, MODE, X)
 
 /* A C expression whose value is nonzero if pseudos that have been assigned to
    registers of class CLASS would likely be spilled because registers of CLASS
@@ -1620,7 +1637,7 @@ typedef struct frv_stack {
 
 /* If defined, the maximum amount of space required for outgoing arguments will
    be computed and placed into the variable
-   `current_function_outgoing_args_size'.  No space will be pushed onto the
+   `crtl->outgoing_args_size'.  No space will be pushed onto the
    stack for each call; instead, the function prologue should increase the
    stack frame size by this amount.
 
@@ -1847,19 +1864,6 @@ typedef struct frv_stack {
 
 #define FUNCTION_PROFILER(FILE, LABELNO)
 
-
-/* Implementing the Varargs Macros.  */
-
-/* Implement the stdarg/varargs va_start macro.  STDARG_P is nonzero if this
-   is stdarg.h instead of varargs.h.  VALIST is the tree of the va_list
-   variable to initialize.  NEXTARG is the machine independent notion of the
-   'next' argument after the variable arguments.  If not defined, a standard
-   implementation will be defined that works for arguments passed on the stack.  */
-
-#define EXPAND_BUILTIN_VA_START(VALIST, NEXTARG)		\
-  (frv_expand_builtin_va_start(VALIST, NEXTARG))
-
-
 /* Trampolines for Nested Functions.  */
 
 /* A C expression for the size in bytes of the trampoline, as an integer.  */
@@ -2128,19 +2132,6 @@ do {							\
 
 #define FIND_BASE_TERM frv_find_base_term
 
-/* A C statement or compound statement with a conditional `goto LABEL;'
-   executed if memory address X (an RTX) can have different meanings depending
-   on the machine mode of the memory reference it is used for or if the address
-   is valid for some modes but not others.
-
-   Autoincrement and autodecrement addresses typically have mode-dependent
-   effects because the amount of the increment or decrement is the size of the
-   operand being addressed.  Some machines have other mode-dependent addresses.
-   Many RISC machines have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
-
 /* A C expression that is nonzero if X is a legitimate constant for an
    immediate operand on the target machine.  You can assume that X satisfies
    `CONSTANT_P', so you need not check this.  In fact, `1' is a suitable
@@ -2206,7 +2197,7 @@ do {							\
 
 /* A C expression for the cost of a branch instruction.  A value of 1 is the
    default; other values are interpreted relative to that.  */
-#define BRANCH_COST frv_branch_cost_int
+#define BRANCH_COST(speed_p, predictable_p) frv_branch_cost_int
 
 /* Define this macro as a C expression which is nonzero if accessing less than
    a word of memory (i.e. a `char' or a `short') is no faster than accessing a

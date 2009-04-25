@@ -1,12 +1,12 @@
 // Debugging support implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2005, 2006
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file debug/macros.h
  *  This file is a GNU debug extension to the Standard C++ Library.
@@ -140,21 +135,9 @@ _GLIBCXX_DEBUG_VERIFY(! this->empty(),					\
 		      _M_message(__gnu_debug::__msg_empty)	        \
                       ._M_sequence(*this, "this"))
 
-// Verify that the < operator for elements in the sequence is a
-// StrictWeakOrdering by checking that it is irreflexive.
-#define __glibcxx_check_strict_weak_ordering(_First,_Last)	\
-_GLIBCXX_DEBUG_ASSERT(_First == _Last || !(*_First < *_First))
-
-// Verify that the predicate is StrictWeakOrdering by checking that it
-// is irreflexive.
-#define __glibcxx_check_strict_weak_ordering_pred(_First,_Last,_Pred)	\
-_GLIBCXX_DEBUG_ASSERT(_First == _Last || !_Pred(*_First, *_First))
-
-
 // Verify that the iterator range [_First, _Last) is sorted
 #define __glibcxx_check_sorted(_First,_Last)				\
 __glibcxx_check_valid_range(_First,_Last);				\
-__glibcxx_check_strict_weak_ordering(_First,_Last);			\
 _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_sorted(_First, _Last),	\
 		      _M_message(__gnu_debug::__msg_unsorted)	        \
                       ._M_iterator(_First, #_First)			\
@@ -164,18 +147,45 @@ _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_sorted(_First, _Last),	\
     predicate _Pred. */
 #define __glibcxx_check_sorted_pred(_First,_Last,_Pred)			\
 __glibcxx_check_valid_range(_First,_Last);				\
-__glibcxx_check_strict_weak_ordering_pred(_First,_Last,_Pred);	        \
 _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_sorted(_First, _Last, _Pred), \
 		      _M_message(__gnu_debug::__msg_unsorted_pred)      \
                       ._M_iterator(_First, #_First)			\
 		      ._M_iterator(_Last, #_Last)			\
 		      ._M_string(#_Pred))
 
+// Special variant for std::merge, std::includes, std::set_*
+#define __glibcxx_check_sorted_set(_First1,_Last1,_First2)		\
+__glibcxx_check_valid_range(_First1,_Last1);				\
+_GLIBCXX_DEBUG_VERIFY(                                                  \
+  __gnu_debug::__check_sorted_set(_First1, _Last1, _First2),		\
+  _M_message(__gnu_debug::__msg_unsorted)				\
+  ._M_iterator(_First1, #_First1)					\
+  ._M_iterator(_Last1, #_Last1))
+
+// Likewise with a _Pred.
+#define __glibcxx_check_sorted_set_pred(_First1,_Last1,_First2,_Pred)	\
+__glibcxx_check_valid_range(_First1,_Last1);        			\
+_GLIBCXX_DEBUG_VERIFY(							\
+  __gnu_debug::__check_sorted_set(_First1, _Last1, _First2, _Pred),	\
+  _M_message(__gnu_debug::__msg_unsorted_pred)				\
+  ._M_iterator(_First1, #_First1)					\
+  ._M_iterator(_Last1, #_Last1)						\
+  ._M_string(#_Pred))
+
 /** Verify that the iterator range [_First, _Last) is partitioned
     w.r.t. the value _Value. */
-#define __glibcxx_check_partitioned(_First,_Last,_Value)		\
+#define __glibcxx_check_partitioned_lower(_First,_Last,_Value)		\
 __glibcxx_check_valid_range(_First,_Last);				\
-_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned(_First, _Last,   \
+_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned_lower(_First, _Last, \
+							    _Value),	\
+		      _M_message(__gnu_debug::__msg_unpartitioned)      \
+		      ._M_iterator(_First, #_First)			\
+		      ._M_iterator(_Last, #_Last)			\
+		      ._M_string(#_Value))
+
+#define __glibcxx_check_partitioned_upper(_First,_Last,_Value)		\
+__glibcxx_check_valid_range(_First,_Last);				\
+_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned_upper(_First, _Last, \
 							    _Value),	\
 		      _M_message(__gnu_debug::__msg_unpartitioned)      \
 		      ._M_iterator(_First, #_First)			\
@@ -184,9 +194,21 @@ _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned(_First, _Last,   \
 
 /** Verify that the iterator range [_First, _Last) is partitioned
     w.r.t. the value _Value and predicate _Pred. */
-#define __glibcxx_check_partitioned_pred(_First,_Last,_Value,_Pred)	\
+#define __glibcxx_check_partitioned_lower_pred(_First,_Last,_Value,_Pred) \
 __glibcxx_check_valid_range(_First,_Last);				\
-_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned(_First, _Last,   \
+_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned_lower(_First, _Last, \
+							 _Value, _Pred), \
+		      _M_message(__gnu_debug::__msg_unpartitioned_pred) \
+		      ._M_iterator(_First, #_First)			\
+		      ._M_iterator(_Last, #_Last)			\
+		      ._M_string(#_Pred)				\
+                      ._M_string(#_Value))
+
+/** Verify that the iterator range [_First, _Last) is partitioned
+    w.r.t. the value _Value and predicate _Pred. */
+#define __glibcxx_check_partitioned_upper_pred(_First,_Last,_Value,_Pred) \
+__glibcxx_check_valid_range(_First,_Last);				\
+_GLIBCXX_DEBUG_VERIFY(__gnu_debug::__check_partitioned_upper(_First, _Last, \
 							 _Value, _Pred), \
 		      _M_message(__gnu_debug::__msg_unpartitioned_pred) \
 		      ._M_iterator(_First, #_First)			\

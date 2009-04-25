@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 1998-2007, AdaCore                     --
+--                     Copyright (C) 1998-2008, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,15 +46,15 @@ package body GNAT.Directory_Operations is
 
    use Ada;
 
-   type Dir_Type_Value is new System.Address;
-   --  This is the low-level address directory structure as returned by the C
-   --  opendir routine.
-
    Filename_Max : constant Integer := 1024;
    --  1024 is the value of FILENAME_MAX in stdio.h
 
    procedure Free is new
      Ada.Unchecked_Deallocation (Dir_Type_Value, Dir_Type);
+
+   On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
+   --  An indication that we are on Windows. Used in Get_Current_Dir, to
+   --  deal with drive letters in the beginning of absolute paths.
 
    ---------------
    -- Base_Name --
@@ -146,7 +146,7 @@ package body GNAT.Directory_Operations is
          end Check_For_Standard_Dirs;
       end Basename;
 
-   --  Start processing for Base_Name
+   --  Start of processing for Base_Name
 
    begin
       if Path'Length <= Suffix'Length then
@@ -168,10 +168,6 @@ package body GNAT.Directory_Operations is
 
    procedure Change_Dir (Dir_Name : Dir_Name_Str) is
       C_Dir_Name : constant String := Dir_Name & ASCII.NUL;
-
-      function chdir (Dir_Name : String) return Integer;
-      pragma Import (C, chdir, "chdir");
-
    begin
       if chdir (C_Dir_Name) /= 0 then
          raise Directory_Error;
@@ -415,7 +411,7 @@ package body GNAT.Directory_Operations is
 
             E := K;
 
-            --  Check that first chartacter is a letter
+            --  Check that first character is a letter
 
             if Characters.Handling.Is_Letter (Path (E)) then
                E := E + 1;
@@ -591,6 +587,15 @@ package body GNAT.Directory_Operations is
       end if;
 
       Dir (Buffer'First .. Last) := Buffer (Buffer'First .. Last);
+
+      --  By default, the drive letter on Windows is in upper case
+
+      if On_Windows and then Last > Dir'First and then
+        Dir (Dir'First + 1) = ':'
+      then
+         Dir (Dir'First) :=
+           Ada.Characters.Handling.To_Upper (Dir (Dir'First));
+      end if;
    end Get_Current_Dir;
 
    -------------
@@ -734,41 +739,58 @@ package body GNAT.Directory_Operations is
       --  Remove the directory only if it is empty
 
       if not Recursive then
-         rmdir (C_Dir_Name);
-
-         if GNAT.OS_Lib.Is_Directory (Dir_Name) then
+         if rmdir (C_Dir_Name) /= 0 then
             raise Directory_Error;
          end if;
 
       --  Remove directory and all files and directories that it may contain
 
       else
-         Change_Dir (Dir_Name);
-         Open (Working_Dir, ".");
+         --  Substantial comments needed. See RH for revision 1.50 ???
 
-         loop
-            Read (Working_Dir, Str, Last);
-            exit when Last = 0;
+         begin
+            Change_Dir (Dir_Name);
+            Open (Working_Dir, ".");
 
-            if GNAT.OS_Lib.Is_Directory (Str (1 .. Last)) then
-               if Str (1 .. Last) /= "." and then Str (1 .. Last) /= ".." then
-                  Remove_Dir (Str (1 .. Last), True);
-                  Remove_Dir (Str (1 .. Last));
+            loop
+               Read (Working_Dir, Str, Last);
+               exit when Last = 0;
+
+               if GNAT.OS_Lib.Is_Directory (Str (1 .. Last)) then
+                  if Str (1 .. Last) /= "."
+                       and then
+                     Str (1 .. Last) /= ".."
+                  then
+                     Remove_Dir (Str (1 .. Last), True);
+                  end if;
+
+               else
+                  GNAT.OS_Lib.Delete_File (Str (1 .. Last), Success);
+
+                  if not Success then
+                     Change_Dir (Current_Dir);
+                     raise Directory_Error;
+                  end if;
                end if;
+            end loop;
 
-            else
-               GNAT.OS_Lib.Delete_File (Str (1 .. Last), Success);
+            Change_Dir (Current_Dir);
+            Close (Working_Dir);
+            Remove_Dir (Dir_Name);
 
-               if not Success then
-                  Change_Dir (Current_Dir);
-                  raise Directory_Error;
-               end if;
-            end if;
-         end loop;
+         exception
+            when others =>
 
-         Change_Dir (Current_Dir);
-         Close (Working_Dir);
-         Remove_Dir (Dir_Name);
+               --  An exception occurred. We must make sure the current working
+               --  directory is unchanged.
+
+               Change_Dir (Current_Dir);
+
+               --  What if the Change_Dir raises an exception itself, shouldn't
+               --  that be protected? ???
+
+               raise;
+         end;
       end if;
    end Remove_Dir;
 

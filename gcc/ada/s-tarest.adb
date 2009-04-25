@@ -6,25 +6,23 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1999-2006, Free Software Foundation, Inc.          --
+--         Copyright (C) 1999-2009, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
--- sion. GNARL is distributed in the hope that it will be useful, but WITH- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
+-- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNARL; see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNARL was developed by the GNARL team at Florida State University.       --
 -- Extensive contributions were provided by Ada Core Technologies, Inc.     --
@@ -46,31 +44,18 @@ pragma Polling (Off);
 --  tasking operations. It causes infinite loops and other problems.
 
 with Ada.Exceptions;
---  used for Exception_Occurrence
 
 with System.Task_Primitives.Operations;
---  used for Enter_Task
---           Write_Lock
---           Unlock
---           Wakeup
---           Get_Priority
+with System.Soft_Links.Tasking;
+with System.Secondary_Stack;
+with System.Storage_Elements;
 
 with System.Soft_Links;
---  used for the non-tasking routines (*_NT) that refer to global data.
---  They are needed here before the tasking run time has been elaborated.
---  used for Create_TSD
---  This package also provides initialization routines for task specific data.
---  The GNARL must call these to be sure that all non-tasking
+--  Used for the non-tasking routines (*_NT) that refer to global data. They
+--  are needed here before the tasking run time has been elaborated. used for
+--  Create_TSD This package also provides initialization routines for task
+--  specific data. The GNARL must call these to be sure that all non-tasking
 --  Ada constructs will work.
-
-with System.Soft_Links.Tasking;
---  Used for Init_Tasking_Soft_Links
-
-with System.Secondary_Stack;
---  used for SS_Init;
-
-with System.Storage_Elements;
---  used for Storage_Array;
 
 package body System.Tasking.Restricted.Stages is
 
@@ -195,7 +180,6 @@ package body System.Tasking.Restricted.Stages is
       --
       --  DO NOT delete ID. As noted, it is needed on some targets.
 
-      use type System.Parameters.Size_Type;
       use type SSE.Storage_Offset;
 
       Secondary_Stack : aliased SSE.Storage_Array
@@ -214,7 +198,7 @@ package body System.Tasking.Restricted.Stages is
       --  a task terminating due to completing the last statement of its body.
       --  If the task terminates because of an exception raised by the
       --  execution of its task body, then Cause is set to Unhandled_Exception.
-      --  Aborts are not allowed in the restriced profile to which this file
+      --  Aborts are not allowed in the restricted profile to which this file
       --  belongs.
 
       EO : Exception_Occurrence;

@@ -1,3 +1,258 @@
+2009-04-09  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* fixfixes.c: Likewise.
+	* fixinc.in: Likewise.
+	* fixincl.c: Likewise.
+	* fixlib.c: Likewise.
+	* fixlib.h: Likewise.
+	* fixopts.c: Likewise.
+	* fixtests.c: Likewise.
+	* genfixes: Likewise.
+	* mkheaders.in: Likewise.
+	* system.h: Likewise.
+
+2009-03-31  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/448
+	* inclhack.def (newlib_stdint_1, newlib_stdint_2): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/stdint.h: Update.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* tests/base/math.h, tests/base/pthread.h, tests/base/sys/wait.h:
+	Update.
+
+2009-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/456
+	PR c/5675
+	PR c/19976
+	PR c/29116
+	PR c/31871
+	PR c/35198
+	* inclhack.def (glibc_tgmath): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/tgmath.h: New.
+
+2009-03-28  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (aix_syswait, exception_structure,
+	pthread_page_size): Remove.
+	(math_exception): Remove mention of fixproto in comment.
+	* fixincl.x: Regenerate.
+	* mkheaders.in: Do not handle STMP_FIXPROTO.
+
+2009-03-27  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* server.c (run_shell): Quote directory name passed to cd.
+
+2009-03-01  Bruce Korb  <bkorb@gnu.org>
+	Apply a positively ancient patch:
+
+	2004-10-15  Giovanni Bajo  <giovannibajo@libero.it>
+
+	* inclhack.def (alpha_if_semicolon): new fix from long, long ago
+	* tests/base/net/if.h: Add new test.
+
+2009-01-06  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* tests/base/locale.h: Add new test.
+	* tests/base/stdarg.h: Likewise.
+
+2009-01-05  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_spu_info):  Add files line.
+	* fixincl.x: Regenerate.
+
+2009-01-01  Andreas Tobler  <a.tobler@schweiz.org>
+
+	* inclhack.def (openbsd_null_definition): Redefine NULL to (void *)0
+	in case of C.
+	* fixincl.x: Regenerate.
+
+2008-12-31  Andreas Tobler  <a.tobler@schweiz.org>
+
+	PR target/35460
+	* inclhack.def (openbsd_va_start): Use __builtin_va_start
+	for OpenBSD.
+	* fixincl.x: Regenerate.
+
+2008-12-18  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-12-15  Steve Ellcey  <sje@cup.hp.com>
+
+	* inclhack.def (hpux_spu_info): Match PA as well as IA64.
+	* fixincl.x: Regenerate.
+
+2008-09-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure.ac: Fix a typo.
+	* configured: Regenerate.
+
+2008-09-06  Bruce Korb  <bkorb@gnu.org>
+
+	* fixincl.tpl (sed): make the program executable configurable.
+	Some platforms have some rather oddball defaults.
+	* config.h.in (SED_PROGRAM): define the default sed.
+	* fixincl.x: regenerated
+	* tests/base/internal/wchar_core.h: fix bad sample text
+	* tests/base/math.h: fix bad sample text
+	* configure.ac: search for working sed
+	* inclhack.def (glibc_mutex_init): fix non-portable construct
+	and re-order a few misordered entries.
+
+2008-06-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2008-06-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (AAB_svr4_replace_byteorder,
+	AAB_ultrix_ansi_compat, AAB_ultrix_limits, AAB_ultrix_memory,
+	libc1_G_va_list, libc1_ifdefd_memx, nested_motorola,
+	ptx_sys_mc_param_h, sco_regset, sco_static_func, sco_utime,
+	solaris_mutex_init_1, solaris_socket, solaris_unistd,
+	solaris_widec, svr4_krnl, ultrix_atexit_param, ultrix_atof_param,
+	ultrix_const3, ultrix_fix_fixproto, ultrix_ifdef, ultrix_locale,
+	ultrix_math_ifdef, ultrix_nested_ioctl, ultrix_nested_svc,
+	ultrix_stat, ultrix_static, ultrix_stdlib, ultrix_strings,
+	ultrix_strings2, ultrix_sys_time, ultrix_unistd,
+	unicosmk_restrict, uw7_byteorder_fix, windiss_math1,
+	windiss_math2, windiss_valist): Remove.
+	* fixincl.x: Regenerate.
+	* mkfixinc.sh: (arm-semi-aof, hppa1.1-*-osf*, hppa1.1-*-bsd*,
+	i370-*-openedition, i?86-*-moss*, i?86-*-uwin*,
+	powerpc-*-eabiaix*): Remove.
+	* tests/base/math.h: Update.
+	* tests/base/pthread.h: Update.
+	* tests/base/stdio.h: Update.
+	* tests/base/stdlib.h: Update.
+	* tests/base/string.h: Update.
+	* tests/base/strings.h: Update.
+	* tests/base/sys/file.h: Update.
+	* tests/base/sys/limits.h: Update.
+	* tests/base/sys/socket.h: Update.
+	* tests/base/sys/stat.h: Update.
+	* tests/base/sys/time.h: Update.
+	* tests/base/testing.h: Update.
+	* tests/base/unistd.h: Update.
+	* tests/base/_G_config.h: Remove.
+	* tests/base/arpa: Remove directory.
+	* tests/base/fs: Remove directory.
+	* tests/base/locale.h: Remove.
+	* tests/base/machine: Remove directory.
+	* tests/base/rpc/svc.h: Remove.
+	* tests/base/sys/ioctl.h: Remove.
+	* tests/base/sys/regset.h: Remove.
+	* tests/base/sys/times.h: Remove.
+	* tests/base/sys/utsname.h: Remove.
+	* tests/base/widec.h: Remove.
+
+2008-05-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* inclhack.def (solaris_math_4): Use GCC's __builtin_fpclassify.
+	* tests/base/iso/math_c99.h: Update.
+	* fixincl.x: Regenerate.
+
+2008-05-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* inclhack.def (AAB_fd_zero_asm_posix_types_h): Bypass on
+	posix_types_64.
+	* fixincl.x: Regenerate.
+
+2008-04-25  Kai Tietz  <kai.tietz@onvision.com>
+
+	* fixincl.c (fix_with_system): Cast pointer difference to long.
+	* fixlib.c (make_raw_shell_str): Cast compare to avoid sign warning.
+
+2008-04-18  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR bootstrap/35457
+	* Makefile.in: Rewrite aclocal.m4 rule.
+	* aclocal.m4: Regenerate.
+	* configure: Regenerate.
+
+2008-03-07  Peter O'Gorman  <pogma@thewrittenword.com>
+
+	PR c++/20366
+	* inclhack.def (AAB_aix_stdio): Hack stdio.h for -D_LARGE_FILES.
+	* fixincl.x: Regenerate.
+	* tests/base/stdio.h: Add test.
+
+2008-02-25  Ben Elliston  <bje@au.ibm.com>
+
+	PR other/32948
+	* fixincl.c (fix_applies): Remove unused variable `name_len'.
+
+2008-02-19  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* inclhack.def (solaris_math_10): New.
+	* tests/base/iso/math_c99.h: Update.
+
+	* fixincl.x: Regenerate.
+
+2008-02-04  Ismail Dönmez  <ismail@pardus.org.tr>
+
+	* inclhack.def: (bsd_stdio_attrs_conflict, freebsd_gcc3_breakage,
+	freebsd_gcc4_breakage, hppa_hpux_fp_macros, hpux11_abs,
+	netbsd_c99_inline_1, netbsd_c99_inline_2, netbsd_extra_semicolon):  Add
+	quotes around mach entries.
+	* fixincl.x: Regenerate with latest autogen (5.9.4), updating license
+	to GPLv3.
+
+2008-02-04  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR other/31405
+	* inclhack.def: (glibc_c99_inline_1a): Re-add last change.
+	(glibc_c99_inline_3) <bypass>: Change from __STDC_VERSION__ to
+	__extern_inline|__GNU_STDC_INLINE__.
+	(glibc_c99_inline_4) <files>: Add wchar.h and */wchar.h.
+	<bypass>: Change from __STDC_VERSION__ to
+	__extern_inline|__GNU_STDC_INLINE__.
+	<first c_fix_arg>: Change from #ifdef-wrapping the extern part to
+	appending attribute-gnu_inline.
+	<second c_fix_arg>: Remove.
+	<test_text>: Remove __extern_inline line.
+	* tests/base/features.h: Re-add.
+	* tests/base/sys/sysmacros.h: Adjust.
+	* fixincl.x: Regenerate.
+
+2008-01-06  Hans-Peter Nilsson  <hp@axis.com>
+
+	Revert last change.
+
+2007-12-18  Hans-Peter Nilsson  <hp@axis.com>
+
+	* inclhack.def: (glibc_c99_inline_1a, glibc_c99_inline_5): New.
+	* fixincl.x: Regenerate.
+	* tests/base/wchar.h: Update.
+	* tests/base/features.h: New.
+
+2007-10-14  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/33700
+	* inclhack.def (hpux11_pthread_const): New.
+	* fixincl.x: Regenerate.
+	* tests/base/sys/pthread.h: Update.
+
+2007-10-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	* configure.ac: x86_64 mingw target uses twoprocess.
+	* mkfixinc.sh: Add x86_64 mingw target.
+	* configure: Regenerate.
+
+2007-10-09  Geoffrey Keating  <geoffk@apple.com>
+
+	* inclhack.def (darwin_externc): New.
+	* fixincl.x: Regenerate.
+	* tests/base/mach-o/swap.h: New.
+
 2007-08-03  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
 
 	* inclhack.def (solaris_math_5, solaris_math_6, solaris_math_7):

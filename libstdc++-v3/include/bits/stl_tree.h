@@ -1,12 +1,12 @@
 // RB tree implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  *
@@ -133,19 +128,26 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     {
       typedef _Rb_tree_node<_Val>* _Link_type;
       _Val _M_value_field;
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename... _Args>
+        _Rb_tree_node(_Args&&... __args)
+	: _Rb_tree_node_base(),
+	  _M_value_field(std::forward<_Args>(__args)...) { }
+#endif
     };
 
-  _Rb_tree_node_base*
-  _Rb_tree_increment(_Rb_tree_node_base* __x);
+  _GLIBCXX_PURE _Rb_tree_node_base*
+  _Rb_tree_increment(_Rb_tree_node_base* __x) throw ();
 
-  const _Rb_tree_node_base*
-  _Rb_tree_increment(const _Rb_tree_node_base* __x);
+  _GLIBCXX_PURE const _Rb_tree_node_base*
+  _Rb_tree_increment(const _Rb_tree_node_base* __x) throw ();
 
-  _Rb_tree_node_base*
-  _Rb_tree_decrement(_Rb_tree_node_base* __x);
+  _GLIBCXX_PURE _Rb_tree_node_base*
+  _Rb_tree_decrement(_Rb_tree_node_base* __x) throw ();
 
-  const _Rb_tree_node_base*
-  _Rb_tree_decrement(const _Rb_tree_node_base* __x);
+  _GLIBCXX_PURE const _Rb_tree_node_base*
+  _Rb_tree_decrement(const _Rb_tree_node_base* __x) throw ();
 
   template<typename _Tp>
     struct _Rb_tree_iterator
@@ -308,11 +310,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   _Rb_tree_insert_and_rebalance(const bool __insert_left,
                                 _Rb_tree_node_base* __x,
                                 _Rb_tree_node_base* __p,
-                                _Rb_tree_node_base& __header);
+                                _Rb_tree_node_base& __header) throw ();
 
   _Rb_tree_node_base*
   _Rb_tree_rebalance_for_erase(_Rb_tree_node_base* const __z,
-			       _Rb_tree_node_base& __header);
+			       _Rb_tree_node_base& __header) throw ();
 
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
@@ -360,19 +362,53 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _M_put_node(_Link_type __p)
       { _M_impl._Node_allocator::deallocate(__p, 1); }
 
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
       _Link_type
       _M_create_node(const value_type& __x)
       {
 	_Link_type __tmp = _M_get_node();
-	try
+	__try
 	  { get_allocator().construct(&__tmp->_M_value_field, __x); }
-	catch(...)
+	__catch(...)
 	  {
 	    _M_put_node(__tmp);
 	    __throw_exception_again;
 	  }
 	return __tmp;
       }
+
+      void
+      _M_destroy_node(_Link_type __p)
+      {
+	get_allocator().destroy(&__p->_M_value_field);
+	_M_put_node(__p);
+      }
+#else
+      template<typename... _Args>
+        _Link_type
+        _M_create_node(_Args&&... __args)
+	{
+	  _Link_type __tmp = _M_get_node();
+	  __try
+	    {
+	      _M_get_Node_allocator().construct(__tmp,
+					     std::forward<_Args>(__args)...);
+	    }
+	  __catch(...)
+	    {
+	      _M_put_node(__tmp);
+	      __throw_exception_again;
+	    }
+	  return __tmp;
+	}
+
+      void
+      _M_destroy_node(_Link_type __p)
+      {
+	_M_get_Node_allocator().destroy(__p);
+	_M_put_node(__p);
+      }
+#endif
 
       _Link_type
       _M_clone_node(_Const_Link_type __x)
@@ -384,13 +420,6 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	return __tmp;
       }
 
-      void
-      _M_destroy_node(_Link_type __p)
-      {
-	get_allocator().destroy(&__p->_M_value_field);
-	_M_put_node(__p);
-      }
-
     protected:
       template<typename _Key_compare, 
 	       bool _Is_pod_comparator = __is_pod(_Key_compare)>
@@ -400,37 +429,25 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  _Rb_tree_node_base 	_M_header;
 	  size_type 		_M_node_count; // Keeps track of size of tree.
 
-	  _Rb_tree_impl(const _Node_allocator& __a = _Node_allocator(),
-			const _Key_compare& __comp = _Key_compare())
-	  : _Node_allocator(__a), _M_key_compare(__comp), _M_header(), 
+	  _Rb_tree_impl()
+	  : _Node_allocator(), _M_key_compare(), _M_header(),
 	    _M_node_count(0)
+	  { _M_initialize(); }
+
+	  _Rb_tree_impl(const _Key_compare& __comp, const _Node_allocator& __a)
+	  : _Node_allocator(__a), _M_key_compare(__comp), _M_header(),
+	    _M_node_count(0)
+	  { _M_initialize(); }
+
+	private:
+	  void
+	  _M_initialize()
 	  {
 	    this->_M_header._M_color = _S_red;
 	    this->_M_header._M_parent = 0;
 	    this->_M_header._M_left = &this->_M_header;
 	    this->_M_header._M_right = &this->_M_header;
-	  }
-	};
-
-      // Specialization for _Comparison types that are not capable of
-      // being base classes / super classes.
-      template<typename _Key_compare>
-        struct _Rb_tree_impl<_Key_compare, true> : public _Node_allocator 
-	{
-	  _Key_compare 		_M_key_compare;
-	  _Rb_tree_node_base 	_M_header;
-	  size_type 		_M_node_count; // Keeps track of size of tree.
-
-	  _Rb_tree_impl(const _Node_allocator& __a = _Node_allocator(),
-			const _Key_compare& __comp = _Key_compare())
-	  : _Node_allocator(__a), _M_key_compare(__comp), _M_header(),
-	    _M_node_count(0)
-	  { 
-	    this->_M_header._M_color = _S_red;
-	    this->_M_header._M_parent = 0;
-	    this->_M_header._M_left = &this->_M_header;
-	    this->_M_header._M_right = &this->_M_header;
-	  }
+	  }	    
 	};
 
       _Rb_tree_impl<_Compare> _M_impl;
@@ -571,19 +588,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
     public:
       // allocation/deallocation
-      _Rb_tree()
-      { }
+      _Rb_tree() { }
 
-      _Rb_tree(const _Compare& __comp)
-      : _M_impl(allocator_type(), __comp)
-      { }
+      _Rb_tree(const _Compare& __comp,
+	       const allocator_type& __a = allocator_type())
+      : _M_impl(__comp, __a) { }
 
-      _Rb_tree(const _Compare& __comp, const allocator_type& __a)
-      : _M_impl(__a, __comp)
-      { }
-
-      _Rb_tree(const _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __x)
-      : _M_impl(__x._M_get_Node_allocator(), __x._M_impl._M_key_compare)
+      _Rb_tree(const _Rb_tree& __x)
+      : _M_impl(__x._M_impl._M_key_compare, __x._M_get_Node_allocator())
       {
 	if (__x._M_root() != 0)
 	  {
@@ -594,11 +606,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  }
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      _Rb_tree(_Rb_tree&& __x);
+#endif
+
       ~_Rb_tree()
       { _M_erase(_M_begin()); }
 
-      _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>&
-      operator=(const _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __x);
+      _Rb_tree&
+      operator=(const _Rb_tree& __x);
 
       // Accessors.
       _Compare
@@ -656,10 +672,14 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       size_type
       max_size() const
-      { return get_allocator().max_size(); }
+      { return _M_get_Node_allocator().max_size(); }
 
       void
-      swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __t);
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      swap(_Rb_tree&& __t);
+#else
+      swap(_Rb_tree& __t);      
+#endif
 
       // Insert/erase.
       pair<iterator, bool>
@@ -802,6 +822,30 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	 _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __y)
     { __x.swap(__y); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+           typename _Compare, typename _Alloc>
+    _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+    _Rb_tree(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>&& __x)
+    : _M_impl(__x._M_impl._M_key_compare, __x._M_get_Node_allocator())
+    {
+      if (__x._M_root() != 0)
+	{
+	  _M_root() = __x._M_root();
+	  _M_leftmost() = __x._M_leftmost();
+	  _M_rightmost() = __x._M_rightmost();
+	  _M_root()->_M_parent = _M_end();
+
+	  __x._M_root() = 0;
+	  __x._M_leftmost() = __x._M_end();
+	  __x._M_rightmost() = __x._M_end();
+
+	  this->_M_impl._M_node_count = __x._M_impl._M_node_count;
+	  __x._M_impl._M_node_count = 0;
+	}
+    }
+#endif
+
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>&
@@ -888,7 +932,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _Link_type __top = _M_clone_node(__x);
       __top->_M_parent = __p;
 
-      try
+      __try
 	{
 	  if (__x->_M_right)
 	    __top->_M_right = _M_copy(_S_right(__x), __top);
@@ -906,7 +950,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	      __x = _S_left(__x);
 	    }
 	}
-      catch(...)
+      __catch(...)
 	{
 	  _M_erase(__top);
 	  __throw_exception_again;
@@ -1060,7 +1104,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
            typename _Compare, typename _Alloc>
     void
     _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>&& __t)
+#else
     swap(_Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>& __t)
+#endif
     {
       if (_M_root() == 0)
 	{
@@ -1400,9 +1448,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __n;
     }
 
-  unsigned int
+  _GLIBCXX_PURE unsigned int
   _Rb_tree_black_count(const _Rb_tree_node_base* __node,
-                       const _Rb_tree_node_base* __root);
+                       const _Rb_tree_node_base* __root) throw ();
 
   template<typename _Key, typename _Val, typename _KeyOfValue,
            typename _Compare, typename _Alloc>

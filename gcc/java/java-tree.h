@@ -1,7 +1,7 @@
 /* Definitions for parsing and type checking for the GNU compiler for
    the Java(TM) language.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -29,15 +29,6 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #define GCC_JAVA_TREE_H
 
 #include "hashtab.h"
-
-/* Java language-specific tree codes.  */
-#define DEFTREECODE(SYM, NAME, TYPE, LENGTH) SYM,
-enum java_tree_code {
-  __DUMMY = LAST_AND_UNUSED_TREE_CODE,
-#include "java-tree.def"
-  LAST_JAVA_TREE_CODE
-};
-#undef DEFTREECODE
 
 struct JCF;
 
@@ -644,8 +635,7 @@ extern GTY(()) tree java_global_trees[JTI_MAX];
 /* The decl for "_Jv_ResolvePoolEntry".  */
 extern GTY(()) tree soft_resolvepoolentry_node;
 
-struct lang_identifier GTY(())
-{
+struct GTY(()) lang_identifier {
   struct tree_identifier ignore;
   tree global_value;
   tree local_value;
@@ -656,11 +646,10 @@ struct lang_identifier GTY(())
 };
 
 /* The resulting tree type.  */
-union lang_tree_node 
-  GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-       chain_next ("(union lang_tree_node *)GENERIC_NEXT (&%h.generic)")))
-
-{
+union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
+       chain_next ("(union lang_tree_node *)TREE_CHAIN (&%h.generic)")))
+ 
+  lang_tree_node {
   union tree_node GTY ((tag ("0"), 
 			desc ("tree_node_structure (&%h)"))) 
     generic;
@@ -722,10 +711,6 @@ union lang_tree_node
 /* List of checked thrown exceptions, as specified with the `throws'
    keyword */
 #define DECL_FUNCTION_THROWS(DECL) (DECL_LANG_SPECIFIC(DECL)->u.f.throws_list)
-/* Pointer to the function's current's COMPOUND_EXPR tree (while
-   completing its body) or the function's block */
-#define DECL_FUNCTION_BODY(DECL) \
-  (DECL_LANG_SPECIFIC(DECL)->u.f.function_decl_body)
 /* For each function decl, init_test_table contains a hash table whose
    entries are keyed on class names, and whose values are local
    boolean decls.  The variables are intended to be TRUE when the
@@ -773,8 +758,7 @@ union lang_tree_node
 #define MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC(T)			\
   if (DECL_LANG_SPECIFIC (T) == NULL)				\
     {								\
-      DECL_LANG_SPECIFIC ((T))					\
-	= ggc_alloc_cleared (sizeof (struct lang_decl));	\
+      DECL_LANG_SPECIFIC ((T)) = GGC_CNEW (struct lang_decl);	\
       DECL_LANG_SPECIFIC (T)->desc = LANG_DECL_VAR;		\
     }
 
@@ -786,8 +770,7 @@ union lang_tree_node
    || TREE_CODE (NODE) == REAL_CST)
 
 /* DECL_LANG_SPECIFIC for FUNCTION_DECLs. */
-struct lang_decl_func GTY(())
-{
+struct GTY(()) lang_decl_func {
   /*  tree chain; not yet used. */
   long code_offset;
   int code_length;
@@ -797,11 +780,8 @@ struct lang_decl_func GTY(())
   int max_locals;
   int max_stack;
   int arg_slot_count;
-  /* A temporary lie for the sake of ggc.  Actually, last_line is
-     only a source_location if USE_MAPPED_LOCATION.  FIXME.  */
   source_location last_line;	/* End line number for a function decl */
   tree throws_list;		/* Exception specified by `throws' */
-  tree function_decl_body;	/* Hold all function's statements */
 
   /* Class initialization test variables  */
   htab_t GTY ((param_is (struct treetreehash_entry))) init_test_table;
@@ -810,7 +790,6 @@ struct lang_decl_func GTY(())
   htab_t GTY ((param_is (union tree_node))) ict;
 
   unsigned int native : 1;	/* Nonzero if this is a native method  */
-  unsigned int init_final : 1;	/* Nonzero all finals are initialized */
   unsigned int strictfp : 1;
   unsigned int invisible : 1;	/* Set for methods we generate
 				   internally but which shouldn't be
@@ -821,8 +800,7 @@ struct lang_decl_func GTY(())
   unsigned int varargs : 1;	/* Varargs method.  */
 };
 
-struct treetreehash_entry GTY(())
-{
+struct GTY(()) treetreehash_entry {
   tree key;
   tree value;
 };
@@ -858,8 +836,7 @@ typedef enum
   JV_ANNOTATION_DEFAULT_KIND
 } jv_attr_kind;
 
-typedef struct type_assertion GTY(())
-{
+typedef struct GTY(()) type_assertion {
   int assertion_code; /* 'opcode' for the type of this assertion. */
   tree op1;           /* First operand. */
   tree op2;           /* Second operand. */
@@ -871,8 +848,7 @@ extern htab_t java_treetreehash_create (size_t size, int ggc);
 
 /* DECL_LANG_SPECIFIC for VAR_DECL, PARM_DECL and sometimes FIELD_DECL
    (access methods on outer class fields) and final fields. */
-struct lang_decl_var GTY(())
-{
+struct GTY(()) lang_decl_var {
   int slot_number;
   int start_pc;
   int end_pc;
@@ -889,8 +865,7 @@ struct lang_decl_var GTY(())
 
 enum lang_decl_desc {LANG_DECL_FUNC, LANG_DECL_VAR};
 
-struct lang_decl GTY(())
-{
+struct GTY(()) lang_decl {
   enum lang_decl_desc desc;
   union lang_decl_u
     {
@@ -908,7 +883,7 @@ struct lang_decl GTY(())
 #define MAYBE_CREATE_TYPE_TYPE_LANG_SPECIFIC(T) \
   if (TYPE_LANG_SPECIFIC ((T)) == NULL)		\
      TYPE_LANG_SPECIFIC ((T))			\
-     = ggc_alloc_cleared (sizeof (struct lang_type));
+     = GGC_CNEW (struct lang_type);
 
 #define TYPE_DUMMY(T)		(TYPE_LANG_SPECIFIC(T)->dummy_class)
 
@@ -945,8 +920,7 @@ struct lang_decl GTY(())
 #define TYPE_REFLECTION_DATASIZE(T)					\
 				(TYPE_LANG_SPECIFIC (T)->reflection_datasize)
 
-struct lang_type GTY(())
-{
+struct GTY(()) lang_type {
   tree signature;
   struct JCF *jcf;
   struct CPool *cpool;
@@ -1032,6 +1006,7 @@ extern tree parse_signature (struct JCF *jcf, int sig_index);
 extern tree add_field (tree, tree, tree, int);
 extern tree add_method (tree, int, tree, tree);
 extern tree add_method_1 (tree, int, tree, tree);
+extern void java_hide_decl (tree);
 extern tree make_class (void);
 extern tree push_class (tree, tree);
 extern tree unmangle_classname (const char *name, int name_length);
@@ -1058,7 +1033,6 @@ extern int global_bindings_p (void);
 extern tree getdecls (void);
 extern void pushlevel (int);
 extern tree poplevel (int,int, int);
-extern void insert_block (tree);
 extern tree pushdecl (tree);
 extern void java_init_decl_processing (void);
 extern void java_dup_lang_specific_decl (tree);
@@ -1211,6 +1185,7 @@ extern void java_check_methods (tree);
 extern void java_mangle_decl (tree);
 extern tree java_mangle_class_field (struct obstack *, tree);
 extern tree java_mangle_vtable (struct obstack *, tree);
+extern tree java_mangle_resource_name (const char *);
 extern void append_gpp_mangled_name (const char *, int);
 
 extern void add_predefined_file (tree);
@@ -1572,7 +1547,7 @@ enum
 #undef DEBUG_JAVA_BINDING_LEVELS
 
 extern void java_genericize (tree);
-extern int java_gimplify_expr (tree *, tree *, tree *);
+extern int java_gimplify_expr (tree *, gimple_seq *, gimple_seq *);
 
 extern FILE *finput;
 

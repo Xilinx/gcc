@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -133,8 +133,7 @@ package body Switch.C is
                elsif
                  RTS_Specified.all /= Switch_Chars (Ptr + 4 .. Max)
                then
-                  Osint.Fail
-                    ("--RTS cannot be specified multiple times");
+                  Osint.Fail ("--RTS cannot be specified multiple times");
                end if;
 
                --  Valid --RTS switch
@@ -212,6 +211,12 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Brief_Output := True;
 
+            --  Processing for B switch
+
+            when 'B' =>
+               Ptr := Ptr + 1;
+               Assume_No_Invalid_Values := True;
+
             --  Processing for c switch
 
             when 'c' =>
@@ -225,6 +230,7 @@ package body Switch.C is
 
                if Tree_Output then
                   ASIS_Mode := True;
+                  Inspector_Mode := False;
                end if;
 
             --  Processing for d switch
@@ -251,6 +257,25 @@ package body Switch.C is
                      if Dot then
                         Set_Dotted_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd." & C);
+
+                        --  ??? Change this when we use a non debug flag to
+                        --  enable inspector mode.
+
+                        if C = 'I' then
+                           if ASIS_Mode then
+                              --  Do not enable inspector mode in ASIS mode,
+                              --  since the two switches are incompatible.
+
+                              Inspector_Mode := False;
+
+                           else
+                              --  In inspector mode, we need back-end rep info
+                              --  annotations and disable front-end inlining.
+
+                              Back_Annotate_Rep_Info := True;
+                              Front_End_Inlining := False;
+                           end if;
+                        end if;
                      else
                         Set_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd" & C);
@@ -273,6 +298,13 @@ package body Switch.C is
             when 'D' =>
                Ptr := Ptr + 1;
 
+               --  Scan optional integer line limit value
+
+               if Nat_Present (Switch_Chars, Max, Ptr) then
+                  Scan_Nat (Switch_Chars, Max, Ptr, Sprint_Line_Limit, 'D');
+                  Sprint_Line_Limit := Nat'Max (Sprint_Line_Limit, 40);
+               end if;
+
                --  Note: -gnatD also sets -gnatx (to turn off cross-reference
                --  generation in the ali file) since otherwise this generation
                --  gets confused by the "wrong" Sloc values put in the tree.
@@ -294,6 +326,11 @@ package body Switch.C is
                end if;
 
                case Switch_Chars (Ptr) is
+
+                  when 'a' =>
+                     Store_Switch := False;
+                     Enable_Switch_Storing;
+                     Ptr := Ptr + 1;
 
                   --  -gnatec (configuration pragmas)
 
@@ -370,6 +407,16 @@ package body Switch.C is
                      Ptr := Ptr + 1;
                      Full_Path_Name_For_Brief_Errors := True;
                      return;
+
+                  --  -gnateG (save preprocessor output)
+
+                  when 'G' =>
+                     if Ptr < Max then
+                        Bad_Switch (Switch_Chars);
+                     end if;
+
+                     Generate_Processed_File := True;
+                     Ptr := Ptr + 1;
 
                   --  -gnateI (index of unit in multi-unit source)
 
@@ -479,6 +526,7 @@ package body Switch.C is
                Constant_Condition_Warnings     := True;
                Implementation_Unit_Warnings    := True;
                Ineffective_Inline_Warnings     := True;
+               Warn_On_Assertion_Failure       := True;
                Warn_On_Assumed_Low_Bound       := True;
                Warn_On_Bad_Fixed_Value         := True;
                Warn_On_Constant                := True;
@@ -499,6 +547,13 @@ package body Switch.C is
             when 'G' =>
                Ptr := Ptr + 1;
                Print_Generated_Code := True;
+
+               --  Scan optional integer line limit value
+
+               if Nat_Present (Switch_Chars, Max, Ptr) then
+                  Scan_Nat (Switch_Chars, Max, Ptr, Sprint_Line_Limit, 'G');
+                  Sprint_Line_Limit := Nat'Max (Sprint_Line_Limit, 40);
+               end if;
 
             --  Processing for h switch
 
@@ -547,13 +602,6 @@ package body Switch.C is
 
             when 'j' =>
                Ptr := Ptr + 1;
-
-               --  There may be an equal sign between -gnatj and the value
-
-               if Ptr <= Max and then Switch_Chars (Ptr) = '=' then
-                  Ptr := Ptr + 1;
-               end if;
-
                Scan_Nat (Switch_Chars, Max, Ptr, Error_Msg_Line_Length, C);
 
             --  Processing for k switch
@@ -591,14 +639,7 @@ package body Switch.C is
 
             when 'm' =>
                Ptr := Ptr + 1;
-
-               --  There may be an equal sign between -gnatm and the value
-
-               if Ptr <= Max and then Switch_Chars (Ptr) = '=' then
-                  Ptr := Ptr + 1;
-               end if;
-
-               Scan_Nat (Switch_Chars, Max, Ptr, Maximum_Errors, C);
+               Scan_Nat (Switch_Chars, Max, Ptr, Maximum_Messages, C);
 
             --  Processing for n switch
 
@@ -611,7 +652,14 @@ package body Switch.C is
             when 'N' =>
                Ptr := Ptr + 1;
                Inline_Active := True;
-               Front_End_Inlining := True;
+
+               --  Do not enable front-end inlining in inspector mode, to
+               --  generate trees that can be converted to SCIL. We still
+               --  enable back-end inlining which is fine.
+
+               if not Inspector_Mode then
+                  Front_End_Inlining := True;
+               end if;
 
             --  Processing for o switch
 
@@ -659,12 +707,18 @@ package body Switch.C is
                Ptr := Ptr + 1;
                Try_Semantics := True;
 
-            --  Processing for q switch
+            --  Processing for Q switch
 
             when 'Q' =>
                Ptr := Ptr + 1;
                Force_ALI_Tree_File := True;
                Try_Semantics := True;
+
+               --  Processing for r switch
+
+            when 'r' =>
+               Ptr := Ptr + 1;
+               Treat_Restrictions_As_Warnings := True;
 
             --  Processing for R switch
 
@@ -718,6 +772,7 @@ package body Switch.C is
 
                if Operating_Mode = Check_Semantics then
                   ASIS_Mode := True;
+                  Inspector_Mode := False;
                end if;
 
                Back_Annotate_Rep_Info := True;
@@ -833,9 +888,11 @@ package body Switch.C is
                      Bad_Switch ("-gnatW" & Switch_Chars (Ptr .. Max));
                end;
 
+               Wide_Character_Encoding_Method_Specified := True;
+
                Upper_Half_Encoding :=
                  Wide_Character_Encoding_Method in
-                 WC_Upper_Half_Encoding_Method;
+                   WC_Upper_Half_Encoding_Method;
 
                Ptr := Ptr + 1;
 

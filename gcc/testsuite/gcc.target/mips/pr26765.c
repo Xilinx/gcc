@@ -6,7 +6,7 @@
 
 __thread int *a = 0;
 
-void foo (void)
+NOMIPS16 void foo (void)
 {
   extern int *b;
   b = (int *) ((*a));

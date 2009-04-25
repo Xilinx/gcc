@@ -1,19 +1,24 @@
 /* PR 23572 : warnings for out of range floating-point constants.  */
 /* { dg-compile } */
 /* { dg-options "-Wno-overflow -std=c99" } */
+/* { dg-skip-if "No Inf support" { spu-*-* } } */
 #include <math.h>
+
+#ifndef INFINITY
+#define INFINITY (__builtin_inff ())
+#endif
 
 void overflow(void)
 {
   float f1 = 3.5E+38f;  
   float f2 = -3.5E+38f; 
-  float f3 = FP_INFINITE;
-  float f4 = -FP_INFINITE;
+  float f3 = INFINITY;
+  float f4 = -INFINITY;
 
   double d1 = 1.9E+308; 
   double d2 = -1.9E+308;
-  double d3 = FP_INFINITE;
-  double d4 = -FP_INFINITE;
+  double d3 = INFINITY;
+  double d4 = -INFINITY;
 }
 
 void underflow(void)

@@ -1,6 +1,7 @@
 // link.cc - Code for linking and resolving classes and pool entries.
 
-/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Free Software Foundation
+/* Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Free Software Foundation
 
    This file is part of libgcj.
 
@@ -245,13 +246,9 @@ _Jv_Linker::find_field (jclass klass, jclass owner,
   if (_Jv_CheckAccess (klass, *found_class, the_field->flags))
     {
       // Note that the field returned by find_field_helper is always
-      // resolved.  There's no point checking class loaders here,
-      // since we already did the work to look up all the types.
-      // FIXME: being lazy here would be nice.
-      if (the_field->type != field_type)
-	throw new java::lang::LinkageError
-	  (JvNewStringLatin1 
-	   ("field type mismatch with different loaders"));
+      // resolved.  However, we still use the constraint mechanism
+      // because this may affect other lookups.
+      _Jv_CheckOrCreateLoadingConstraint (field_type, (*found_class)->loader);
     }
   else
     {
@@ -266,6 +263,23 @@ _Jv_Linker::find_field (jclass klass, jclass owner,
     }
 
   return the_field;
+}
+
+// Check loading constraints for method.
+void
+_Jv_Linker::check_loading_constraints (_Jv_Method *method, jclass self_class,
+				       jclass other_class)
+{
+  JArray<jclass> *klass_args;
+  jclass klass_return;
+
+  _Jv_GetTypesFromSignature (method, self_class, &klass_args, &klass_return);
+  jclass *klass_arg = elements (klass_args);
+  java::lang::ClassLoader *found_loader = other_class->loader;
+
+  _Jv_CheckOrCreateLoadingConstraint (klass_return, found_loader);
+  for (int i = 0; i < klass_args->length; i++)
+    _Jv_CheckOrCreateLoadingConstraint (*(klass_arg++), found_loader);
 }
 
 _Jv_Method *
@@ -358,43 +372,27 @@ _Jv_Linker::resolve_method_entry (jclass klass, jclass &found_class,
       throw new java::lang::NoSuchMethodError (sb->toString());
     }
 
-  // if (found_class->loader != klass->loader), then we
-  // must actually check that the types of arguments
-  // correspond.  That is, for each argument type, and
-  // the return type, doing _Jv_FindClassFromSignature
-  // with either loader should produce the same result,
-  // i.e., exactly the same jclass object. JVMS 5.4.3.3
+  // if (found_class->loader != klass->loader), then we must actually
+  // check that the types of arguments correspond.  JVMS 5.4.3.3.
   if (found_class->loader != klass->loader)
-    {
-      JArray<jclass> *found_args, *klass_args;
-      jclass found_return, klass_return;
-
-      _Jv_GetTypesFromSignature (the_method,
-				 found_class,
-				 &found_args,
-				 &found_return);
-      _Jv_GetTypesFromSignature (the_method,
-				 klass,
-				 &klass_args,
-				 &klass_return);
-
-      jclass *found_arg = elements (found_args);
-      jclass *klass_arg = elements (klass_args);
-
-      for (int i = 0; i < found_args->length; i++)
-	{
-	  if (*(found_arg++) != *(klass_arg++))
-	    throw new java::lang::LinkageError (JvNewStringLatin1 
-	      ("argument type mismatch with different loaders"));
-	}
-      if (found_return != klass_return)
-	throw new java::lang::LinkageError (JvNewStringLatin1
-	  ("return type mismatch with different loaders"));
-    }
+    check_loading_constraints (the_method, klass, found_class);
   
   return the_method;
 }
 
+_Jv_Mutex_t _Jv_Linker::resolve_mutex;
+
+void
+_Jv_Linker::init (void)
+{
+  _Jv_MutexInit (&_Jv_Linker::resolve_mutex);
+}
+
+// Locking in resolve_pool_entry is somewhat subtle.  Constant
+// resolution is idempotent, so it doesn't matter if two threads
+// resolve the same entry.  However, it is important that we always
+// write the resolved flag and the data together, atomically.  It is
+// also important that we read them atomically.
 _Jv_word
 _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 {
@@ -402,6 +400,10 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 
   if (GC_base (klass) && klass->constants.data
       && ! GC_base (klass->constants.data))
+    // If a class is heap-allocated but the constant pool is not this
+    // is a "new ABI" class, i.e. one where the initial constant pool
+    // is in the read-only data section of an object file.  Copy the
+    // initial constant pool from there to a new heap-allocated pool.
     {
       jsize count = klass->constants.size;
       if (count)
@@ -417,14 +419,18 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 
   _Jv_Constants *pool = &klass->constants;
 
-  if ((pool->tags[index] & JV_CONSTANT_ResolvedFlag) != 0)
-    return pool->data[index];
+  jbyte tags;
+  _Jv_word data;
+  tags = read_cpool_entry (&data, pool, index);
 
-  switch (pool->tags[index] & ~JV_CONSTANT_LazyFlag)
+  if ((tags & JV_CONSTANT_ResolvedFlag) != 0)
+    return data;
+
+  switch (tags & ~JV_CONSTANT_LazyFlag)
     {
     case JV_CONSTANT_Class:
       {
-	_Jv_Utf8Const *name = pool->data[index].utf8;
+	_Jv_Utf8Const *name = data.utf8;
 
 	jclass found;
 	if (name->first() == '[')
@@ -443,8 +449,8 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 	      {
 		found = _Jv_NewClass(name, NULL, NULL);
 		found->state = JV_STATE_PHANTOM;
-		pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
-		pool->data[index].clazz = found;
+		tags |= JV_CONSTANT_ResolvedFlag;
+		data.clazz = found;
 		break;
 	      }
 	    else
@@ -462,8 +468,8 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 	    || (_Jv_ClassNameSamePackage (check->name,
 					  klass->name)))
 	  {
-	    pool->data[index].clazz = found;
-	    pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
+	    data.clazz = found;
+	    tags |= JV_CONSTANT_ResolvedFlag;
 	  }
 	else
 	  {
@@ -479,16 +485,16 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
     case JV_CONSTANT_String:
       {
 	jstring str;
-	str = _Jv_NewStringUtf8Const (pool->data[index].utf8);
-	pool->data[index].o = str;
-	pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
+	str = _Jv_NewStringUtf8Const (data.utf8);
+	data.o = str;
+	tags |= JV_CONSTANT_ResolvedFlag;
       }
       break;
 
     case JV_CONSTANT_Fieldref:
       {
 	_Jv_ushort class_index, name_and_type_index;
-	_Jv_loadIndexes (&pool->data[index],
+	_Jv_loadIndexes (&data,
 			 class_index,
 			 name_and_type_index);
 	jclass owner = (resolve_pool_entry (klass, class_index, true)).clazz;
@@ -518,8 +524,8 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 	// Initialize the field's declaring class, not its qualifying
 	// class.
 	_Jv_InitClass (found_class);
-	pool->data[index].field = the_field;
-	pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
+	data.field = the_field;
+	tags |= JV_CONSTANT_ResolvedFlag;
       }
       break;
 
@@ -527,7 +533,7 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
     case JV_CONSTANT_InterfaceMethodref:
       {
 	_Jv_ushort class_index, name_and_type_index;
-	_Jv_loadIndexes (&pool->data[index],
+	_Jv_loadIndexes (&data,
 			 class_index,
 			 name_and_type_index);
 
@@ -536,18 +542,21 @@ _Jv_Linker::resolve_pool_entry (jclass klass, int index, bool lazy)
 	the_method = resolve_method_entry (klass, found_class,
 					   class_index, name_and_type_index,
 					   true,
-					   pool->tags[index] == JV_CONSTANT_InterfaceMethodref);
+					   tags == JV_CONSTANT_InterfaceMethodref);
       
-	pool->data[index].rmethod
+	data.rmethod
 	  = klass->engine->resolve_method(the_method,
 					  found_class,
 					  ((the_method->accflags
 					    & Modifier::STATIC) != 0));
-	pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
+	tags |= JV_CONSTANT_ResolvedFlag;
       }
       break;
     }
-  return pool->data[index];
+
+  write_cpool_entry (data, tags, pool, index);
+
+  return data;
 }
 
 // This function is used to lazily locate superclasses and
@@ -662,10 +671,11 @@ _Jv_Linker::prepare_constant_time_tables (jclass klass)
   // interfaces or primitive types.
    
   jclass klass0 = klass;
-  jboolean has_interfaces = 0;
+  jboolean has_interfaces = false;
   while (klass0 != &java::lang::Object::class$)
     {
-      has_interfaces += klass0->interface_count;
+      if (klass0->interface_count)
+	has_interfaces = true;
       klass0 = klass0->superclass;
       klass->depth++;
     }
@@ -923,7 +933,8 @@ _Jv_Linker::append_partial_itable (jclass klass, jclass iface,
 	continue;
 
       meth = NULL;
-      for (jclass cl = klass; cl; cl = cl->getSuperclass())
+      jclass cl;
+      for (cl = klass; cl; cl = cl->getSuperclass())
         {
 	  meth = _Jv_GetMethodLocal (cl, iface->methods[j].name,
 				     iface->methods[j].signature);
@@ -945,6 +956,9 @@ _Jv_Linker::append_partial_itable (jclass klass, jclass iface,
 	    itable[pos] = (void *) &_Jv_ThrowAbstractMethodError;
 	  else
 	    itable[pos] = meth->ncode;
+
+	  if (cl->loader != iface->loader)
+	    check_loading_constraints (meth, cl, iface);
 	}
       else
         {
@@ -1499,6 +1513,11 @@ _Jv_Linker::layout_vtable_methods (jclass klass)
 		  sb->append(_Jv_GetMethodString(declarer, super_meth));
 		  throw new VerifyError(sb->toString());
 		}
+	      else if (declarer->loader != klass->loader)
+		{
+		  // JVMS 5.4.2.
+		  check_loading_constraints (meth, klass, declarer);
+		}
 	    }
 	}
 
@@ -1733,13 +1752,15 @@ _Jv_Linker::ensure_class_linked (jclass klass)
       // Resolve the remaining constant pool entries.
       for (int index = 1; index < pool->size; ++index)
 	{
-	  if (pool->tags[index] == JV_CONSTANT_String)
-	    {
-	      jstring str;
+	  jbyte tags;
+	  _Jv_word data;
 
-	      str = _Jv_NewStringUtf8Const (pool->data[index].utf8);
-	      pool->data[index].o = str;
-	      pool->tags[index] |= JV_CONSTANT_ResolvedFlag;
+	  tags = read_cpool_entry (&data, pool, index);
+	  if (tags == JV_CONSTANT_String)
+	    {
+	      data.o = _Jv_NewStringUtf8Const (data.utf8);
+	      tags |= JV_CONSTANT_ResolvedFlag;
+	      write_cpool_entry (data, tags, pool, index);
 	    }
 	}
 

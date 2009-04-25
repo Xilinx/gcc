@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2007, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,15 +23,19 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package together with a child package appropriate to the client
---  tool scans switches. Note that the body of the appropraite Usage package
---  must be coordinated with the switches that are recognized by this package.
---  These Usage packages also act as the official documentation for the
---  switches that are recognized. In addition, package Debug documents
---  the otherwise undocumented debug switches that are also recognized.
+--  This package together with a child package appropriate to the client tool
+--  scans switches. Note that the body of the appropriate Usage package must be
+--  coordinated with the switches that are recognized by this package. These
+--  Usage packages also act as the official documentation for the switches
+--  that are recognized. In addition, package Debug documents the otherwise
+--  undocumented debug switches that are also recognized.
 
 with Gnatvsn;
 with Types; use Types;
+
+------------
+-- Switch --
+------------
 
 package Switch is
 
@@ -44,15 +48,15 @@ package Switch is
    -- Subprograms --
    -----------------
 
-   type Procedure_Ptr is access procedure;
-
-   procedure Check_Version_And_Help
+   generic
+      with procedure Usage;
+      --  Print tool-specific part of --help message
+   procedure Check_Version_And_Help_G
      (Tool_Name      : String;
       Initial_Year   : String;
-      Usage          : Procedure_Ptr;
       Version_String : String := Gnatvsn.Gnat_Version_String);
-   --  Check if switches --version or --help is used. If one of this switch
-   --  is used, issue the proper messages and end the process.
+   --  Check if switches --version or --help is used. If one of this switch is
+   --  used, issue the proper messages and end the process.
 
    procedure Display_Version
      (Tool_Name      : String;
@@ -61,12 +65,12 @@ package Switch is
    --  Display version of a tool when switch --version is used
 
    function Is_Switch (Switch_Chars : String) return Boolean;
-   --  Returns True iff Switch_Chars is at least two characters long,
-   --  and the first character is an hyphen ('-').
+   --  Returns True iff Switch_Chars is at least two characters long, and the
+   --  first character is an hyphen ('-').
 
    function Is_Front_End_Switch (Switch_Chars : String) return Boolean;
-   --  Returns True iff Switch_Chars represents a front-end switch,
-   --  ie. it starts with -I, -gnat or -?RTS.
+   --  Returns True iff Switch_Chars represents a front-end switch, i.e. it
+   --  starts with -I, -gnat or -?RTS.
 
 private
 
@@ -77,15 +81,28 @@ private
    Switch_Max_Value : constant := 999_999;
    --  Maximum value permitted in switches that take a value
 
+   function Nat_Present
+     (Switch_Chars : String;
+      Max          : Integer;
+      Ptr          : Integer) return Boolean;
+   --  Returns True if an integer is at the current scan location or an equal
+   --  sign. This is used as a guard for calling Scan_Nat. Switch_Chars is the
+   --  string containing the switch, and Ptr points just past the switch
+   --  character. Max is the maximum alllowed value of Ptr.
+
    procedure Scan_Nat
      (Switch_Chars : String;
       Max          : Integer;
       Ptr          : in out Integer;
       Result       : out Nat;
       Switch       : Character);
-   --  Scan natural integer parameter for switch. On entry, Ptr points
-   --  just past the switch character, on exit it points past the last
-   --  digit of the integer value.
+   --  Scan natural integer parameter for switch. On entry, Ptr points just
+   --  past the switch character, on exit it points past the last digit of the
+   --  integer value. Max is the maximum allowed value of Ptr, so the scan is
+   --  restricted to Switch_Chars (Ptr .. Max). It is posssible for Ptr to be
+   --  one greater than Max on return if the entire string is digits. Scan_Nat
+   --  will skip an optional equal sign if it is present. Nat_Present must be
+   --  True, or an error will be signalled.
 
    procedure Scan_Pos
      (Switch_Chars : String;
@@ -93,9 +110,9 @@ private
       Ptr          : in out Integer;
       Result       : out Pos;
       Switch       : Character);
-   --  Scan positive integer parameter for switch. On entry, Ptr points
-   --  just past the switch character, on exit it points past the last
-   --  digit of the integer value.
+   --  Scan positive integer parameter for switch. On entry, Ptr points just
+   --  past the switch character, on exit it points past the last digit of the
+   --  integer value.
 
    procedure Bad_Switch (Switch : Character);
    procedure Bad_Switch (Switch : String);
