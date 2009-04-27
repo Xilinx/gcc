@@ -346,7 +346,9 @@ saved_LIBS="$LIBS"
 CFLAGS="$CFLAGS $pplinc $gmpinc $ppllibs $gmplibs"
 AC_MSG_CHECKING([for correct version of ppl_c.h])
 AC_TRY_LINK([#include <ppl_c.h>],[
-ppl_version_major(); ], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
+ppl_version_major(); 
+ppl_io_asprint_Coefficient((char**)0, (ppl_Coefficient_t)0);
+], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
 
 # one some systems, PPL requires an additional C++ wrapping library for GMP 
 # namely -lgmpxx ahead of -lgmp
@@ -357,7 +359,9 @@ if test x"$have_ppl" != xyes; then
   CFLAGS="$CFLAGS $pplinc $gmpinc $ppllibs $gmplibs"
   AC_MSG_CHECKING([for libgmpxx needed by ppl])
   AC_TRY_LINK([#include <ppl_c.h>],[
-  ppl_version_major(); ], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
+  ppl_version_major(); 
+  ppl_io_asprint_Coefficient((char**)0, (ppl_Coefficient_t)0);
+], [AC_MSG_RESULT([yes]); have_ppl=yes], [AC_MSG_RESULT([no]); have_ppl=no])
 fi
 if test x"$have_ppl" = xyes; then
   AC_DEFINE(HAVE_PARMAPOLY, 1, [Define if Parma Polyhedra Library is in use.])
@@ -366,7 +370,7 @@ LIBS="$saved_LIBS"
 CFLAGS="$saved_CFLAGS"
 
 if test -d ${srcdir}/gcc && test x$have_ppl != xyes; then
-  AC_MSG_WARN([Some passes of GCC require PPL 0.9+.
+  AC_MSG_WARN([Some passes of GCC require PPL 0.10.2 or newer.
 Try the --with-ppl option to specify the installed PPL location,
 or specify separately --with-ppl-include=DIRINCL  --with-ppl-lib=DIRLIB.
 Copies of this library source code can be found at its respective
