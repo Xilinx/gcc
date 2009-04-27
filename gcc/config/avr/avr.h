@@ -494,8 +494,6 @@ do {									    \
     }									    \
 } while(0)
 
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
-
 #define LEGITIMATE_CONSTANT_P(X) 1
 
 #define REGISTER_MOVE_COST(MODE, FROM, TO) ((FROM) == STACK_REG ? 6 \
@@ -733,8 +731,6 @@ fprintf (STREAM, "\t.skip %lu,0\n", (unsigned long)(N))
   } while (0)
 
 #define CASE_VECTOR_MODE HImode
-
-#define CASE_VALUES_THRESHOLD avr_case_values_threshold ()
 
 #undef WORD_REGISTER_OPERATIONS
 
@@ -1092,7 +1088,7 @@ mmcu=*:-mmcu=%*}"
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   /* 'true' - if the current function is a leaf function.  */
   int is_leaf;

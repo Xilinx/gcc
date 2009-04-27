@@ -5,7 +5,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -13,19 +13,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this library; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /** @file forward_list.h
  *  This is a Standard C++ Library header.
@@ -86,7 +81,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *          This is just a linked list with a data value in each node.
    *          There is a sorting utility method.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_node : public _Fwd_list_node_base<_Alloc>
     {
       typedef typename _Alloc::template rebind<_Fwd_list_node<_Tp, _Alloc> >
@@ -109,7 +104,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    * 
    *   All the functions are op overloads.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_iterator
     {
       typedef _Fwd_list_iterator<_Tp, _Alloc>   _Self;
@@ -176,7 +171,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    * 
    *   All the functions are op overloads.
    */
-  template<typename _Tp, typename _Alloc = std::allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_const_iterator
     {
       typedef _Fwd_list_const_iterator<_Tp, _Alloc>   _Self;
@@ -245,7 +240,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Forward list iterator equality comparison.
    */
-  template<typename _Tp,class _Alloc>
+  template<typename _Tp, typename _Alloc>
     inline bool
     operator==(const _Fwd_list_iterator<_Tp, _Alloc>& __x,
                const _Fwd_list_const_iterator<_Tp, _Alloc>& __y)
@@ -254,7 +249,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Forward list iterator inequality comparison.
    */
-  template<typename _Tp,class _Alloc>
+  template<typename _Tp, typename _Alloc>
     inline bool
     operator!=(const _Fwd_list_iterator<_Tp, _Alloc>& __x,
                const _Fwd_list_const_iterator<_Tp, _Alloc>& __y)
@@ -263,7 +258,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /**
    *  @brief  Base class for %forward_list.
    */
-  template<typename _Tp, typename _Alloc = allocator<_Tp> >
+  template<typename _Tp, typename _Alloc>
     struct _Fwd_list_base
     {
     protected:

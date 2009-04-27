@@ -7,7 +7,7 @@
 //
 // GCC is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2, or (at your option)
+// the Free Software Foundation; either version 3, or (at your option)
 // any later version.
 // 
 // GCC is distributed in the hope that it will be useful,
@@ -15,19 +15,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
-// You should have received a copy of the GNU General Public License
-// along with GCC; see the file COPYING.  If not, write to
-// the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-// Boston, MA 02110-1301, USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 // Written by Nathan Sidwell, Codesourcery LLC, <nathan@codesourcery.com>
  
@@ -105,7 +100,7 @@ namespace __cxxabiv1
   
   void 
   __cxa_vec_cleanup(void* __array_address, size_t __element_count,
-		    size_t __element_size, __cxa_cdtor_type destructor);
+		    size_t __element_size, __cxa_cdtor_type destructor) _GLIBCXX_NOTHROW;
   
   // Destruct and release array.
   void 
@@ -126,14 +121,14 @@ namespace __cxxabiv1
   __cxa_guard_acquire(__guard*);
 
   void 
-  __cxa_guard_release(__guard*);
+  __cxa_guard_release(__guard*) _GLIBCXX_NOTHROW;
 
   void 
-  __cxa_guard_abort(__guard*);
+  __cxa_guard_abort(__guard*) _GLIBCXX_NOTHROW;
 
   // Pure virtual functions.
   void
-  __cxa_pure_virtual(void);
+  __cxa_pure_virtual(void) __attribute__ ((__noreturn__));
 
   // Exception handling.
   void
@@ -572,13 +567,13 @@ namespace __cxxabiv1
   // Returns the type_info for the currently handled exception [15.3/8], or
   // null if there is none.
   extern "C" std::type_info*
-  __cxa_current_exception_type();
+  __cxa_current_exception_type() _GLIBCXX_NOTHROW __attribute__ ((__pure__));
 
   // A magic placeholder class that can be caught by reference
   // to recognize foreign exceptions.
   class __foreign_exception
   {
-    virtual ~__foreign_exception() throw();
+    virtual ~__foreign_exception() _GLIBCXX_NOTHROW;
     virtual void __pure_dummy() = 0; // prevent catch by value
   };
 

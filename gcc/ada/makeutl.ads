@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -32,10 +32,7 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 package Makeutl is
 
-   type Fail_Proc is access procedure
-     (S1 : String;
-      S2 : String := "";
-      S3 : String := "");
+   type Fail_Proc is access procedure (S : String);
    Do_Fail : Fail_Proc := Osint.Fail'Access;
    --  Failing procedure called from procedure Test_If_Relative_Path below.
    --  May be redirected.
@@ -131,12 +128,12 @@ package Makeutl is
 
    procedure Test_If_Relative_Path
      (Switch               : in out String_Access;
-      Parent               : String_Access;
+      Parent               : String;
       Including_L_Switch   : Boolean := True;
       Including_Non_Switch : Boolean := True);
    --  Test if Switch is a relative search path switch.
-   --  If it is, fail if Parent is null, otherwise prepend the path with
-   --  Parent. This subprogram is only called when using project files.
+   --  If it is, fail if Parent is the empty string, otherwise prepend the path
+   --  with Parent. This subprogram is only called when using project files.
    --  For gnatbind switches, Including_L_Switch is False, because the
    --  argument of the -L switch is not a path.
 

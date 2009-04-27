@@ -8,7 +8,7 @@
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
-Free Software Foundation; either version 2, or (at your option) any
+Free Software Foundation; either version 3, or (at your option) any
 later version.
 
 This program is distributed in the hope that it will be useful,
@@ -17,8 +17,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
+along with this program; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
 #include "system.h"
@@ -160,7 +160,7 @@ cpp_create_reader (enum c_lang lang, hash_table *table,
   CPP_OPTION (pfile, warn_trigraphs) = 2;
   CPP_OPTION (pfile, warn_endif_labels) = 1;
   CPP_OPTION (pfile, warn_deprecated) = 1;
-  CPP_OPTION (pfile, warn_long_long) = !CPP_OPTION (pfile, c99);
+  CPP_OPTION (pfile, warn_long_long) = 0;
   CPP_OPTION (pfile, dollars_in_ident) = 1;
   CPP_OPTION (pfile, warn_dollars) = 1;
   CPP_OPTION (pfile, warn_variadic_macros) = 1;
@@ -379,6 +379,24 @@ mark_named_operators (cpp_reader *pfile)
       hp->is_directive = 0;
       hp->directive_index = b->value;
     }
+}
+
+/* Helper function of cpp_type2name. Return the string associated with
+   named operator TYPE.  */
+const char *
+cpp_named_operator2name (enum cpp_ttype type)
+{
+  const struct builtin_operator *b;
+
+  for (b = operator_array;
+       b < (operator_array + ARRAY_SIZE (operator_array));
+       b++)
+    {
+      if (type == b->value)
+	return (const char *) b->name;
+    }
+
+  return NULL;
 }
 
 void

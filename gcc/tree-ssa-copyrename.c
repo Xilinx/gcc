@@ -291,7 +291,7 @@ rename_ssa_copies (void)
   else
     debug = NULL;
 
-  map = init_var_map (num_ssa_names + 1);
+  map = init_var_map (num_ssa_names);
 
   FOR_EACH_BB (bb)
     {
@@ -339,12 +339,12 @@ rename_ssa_copies (void)
   /* Now one more pass to make all elements of a partition share the same
      root variable.  */
   
-  for (x = 1; x <= num_ssa_names; x++)
+  for (x = 1; x < num_ssa_names; x++)
     {
       part_var = partition_to_var (map, x);
       if (!part_var)
         continue;
-      var = map->partition_to_var[x];
+      var = ssa_name (x);
       if (debug)
         {
 	  if (SSA_NAME_VAR (var) != SSA_NAME_VAR (part_var))

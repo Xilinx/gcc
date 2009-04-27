@@ -1784,19 +1784,19 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag)
 	  gcc_assert (!tail || !tail->next);
 	  gcc_assert (primary->expr_type == EXPR_VARIABLE);
 
-	  if (tbp->typebound->is_generic)
+	  if (tbp->n.tb->is_generic)
 	    tbp_sym = NULL;
 	  else
-	    tbp_sym = tbp->typebound->u.specific->n.sym;
+	    tbp_sym = tbp->n.tb->u.specific->n.sym;
 
 	  primary->expr_type = EXPR_COMPCALL;
-	  primary->value.compcall.tbp = tbp->typebound;
+	  primary->value.compcall.tbp = tbp->n.tb;
 	  primary->value.compcall.name = tbp->name;
 	  gcc_assert (primary->symtree->n.sym->attr.referenced);
 	  if (tbp_sym)
 	    primary->ts = tbp_sym->ts;
 
-	  m = gfc_match_actual_arglist (tbp->typebound->subroutine,
+	  m = gfc_match_actual_arglist (tbp->n.tb->subroutine,
 					&primary->value.compcall.actual);
 	  if (m == MATCH_ERROR)
 	    return MATCH_ERROR;
@@ -1810,8 +1810,6 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag)
 		  return MATCH_ERROR;
 		}
 	    }
-
-	  gfc_set_sym_referenced (tbp->n.sym);
 
 	  break;
 	}
@@ -2358,6 +2356,30 @@ check_for_implicit_index (gfc_symtree **st, gfc_symbol **sym)
 }
 
 
+/* Procedure pointer as function result: Replace the function symbol by the
+   auto-generated hidden result variable named "ppr@".  */
+
+static gfc_try
+replace_hidden_procptr_result (gfc_symbol **sym, gfc_symtree **st)
+{
+  /* Check for procedure pointer result variable.  */
+  if ((*sym)->attr.function && !(*sym)->attr.external
+      && (*sym)->result && (*sym)->result != *sym
+      && (*sym)->result->attr.proc_pointer
+      && (*sym) == gfc_current_ns->proc_name
+      && (*sym) == (*sym)->result->ns->proc_name
+      && strcmp ("ppr@", (*sym)->result->name) == 0)
+    {
+      /* Automatic replacement with "hidden" result variable.  */
+      (*sym)->result->attr.referenced = (*sym)->attr.referenced;
+      *sym = (*sym)->result;
+      *st = gfc_find_symtree ((*sym)->ns->sym_root, (*sym)->name);
+      return SUCCESS;
+    }
+  return FAILURE;
+}
+
+
 /* Matches a variable name followed by anything that might follow it--
    array reference, argument list of a function, etc.  */
 
@@ -2393,6 +2415,8 @@ gfc_match_rvalue (gfc_expr **result)
   sym = symtree->n.sym;
   e = NULL;
   where = gfc_current_locus;
+
+  replace_hidden_procptr_result (&sym, &symtree);
 
   /* If this is an implicit do loop index and implicitly typed,
      it should not be host associated.  */
@@ -2582,6 +2606,8 @@ gfc_match_rvalue (gfc_expr **result)
 
       gfc_get_ha_sym_tree (name, &symtree);	/* Can't fail */
       sym = symtree->n.sym;
+
+      replace_hidden_procptr_result (&sym, &symtree);
 
       e = gfc_get_expr ();
       e->symtree = symtree;
@@ -2912,7 +2938,8 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 	  break;
 	}
 
-      if (sym->attr.proc_pointer)
+      if (sym->attr.proc_pointer
+	  || replace_hidden_procptr_result (&sym, &st) == SUCCESS)
 	break;
 
       /* Fall through to error */

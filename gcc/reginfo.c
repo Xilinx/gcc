@@ -277,7 +277,8 @@ init_move_cost (enum machine_mode m)
 	    cost = 65535;
 	  else
 	    {
-	      cost = REGISTER_MOVE_COST (m, i, j);
+	      cost = REGISTER_MOVE_COST (m, (enum reg_class) i,
+					 (enum reg_class) j);
 	      gcc_assert (cost < 65535);
 	    }
 	  all_match &= (last_move_cost[i][j] == cost);
@@ -327,12 +328,12 @@ init_move_cost (enum machine_mode m)
 	      gcc_assert (cost <= 65535);
 	      move_cost[m][i][j] = cost;
 
-	      if (reg_class_subset_p (i, j))
+	      if (reg_class_subset_p ((enum reg_class) i, (enum reg_class) j))
 		may_move_in_cost[m][i][j] = 0;
 	      else
 		may_move_in_cost[m][i][j] = cost;
 
-	      if (reg_class_subset_p (j, i))
+	      if (reg_class_subset_p ((enum reg_class) j, (enum reg_class) i))
 		may_move_out_cost[m][i][j] = 0;
 	      else
 		may_move_out_cost[m][i][j] = cost;
@@ -589,11 +590,13 @@ init_reg_sets_1 (void)
       HARD_REG_SET ok_regs;
       CLEAR_HARD_REG_SET (ok_regs);
       for (j = 0; j < FIRST_PSEUDO_REGISTER; j++)
-	if (!fixed_regs [j] && HARD_REGNO_MODE_OK (j, m))
+	if (!fixed_regs [j] && HARD_REGNO_MODE_OK (j, (enum machine_mode) m))
 	  SET_HARD_REG_BIT (ok_regs, j);
-      
+
       for (i = 0; i < N_REG_CLASSES; i++)
-	if ((unsigned) CLASS_MAX_NREGS (i, m) <= reg_class_size[i]
+	if (((unsigned) CLASS_MAX_NREGS ((enum reg_class) i,
+					 (enum machine_mode) m)
+	     <= reg_class_size[i])
 	    && hard_reg_set_intersect_p (ok_regs, reg_class_contents[i]))
 	  {
 	     contains_reg_of_mode [i][m] = 1;
@@ -676,9 +679,9 @@ void
 init_fake_stack_mems (void)
 {
   int i;
-  
+
   for (i = 0; i < MAX_MACHINE_MODE; i++)
-    top_of_stack[i] = gen_rtx_MEM (i, stack_pointer_rtx);
+    top_of_stack[i] = gen_rtx_MEM ((enum machine_mode) i, stack_pointer_rtx);
 }
 
 
@@ -948,7 +951,7 @@ struct rtl_opt_pass pass_reginfo_init =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1311,34 +1314,6 @@ init_subregs_of_mode (void)
   return 0;
 }
 
-/* Set bits in *USED which correspond to registers which can't change
-   their mode from FROM to any mode in which REGNO was
-   encountered.  */
-void
-cannot_change_mode_set_regs (HARD_REG_SET *used, enum machine_mode from,
-			     unsigned int regno)
-{
-  struct subregs_of_mode_node dummy, *node;
-  enum machine_mode to;
-  unsigned char mask;
-  unsigned int i;
-
-  gcc_assert (subregs_of_mode);
-  dummy.block = regno & -8;
-  node = (struct subregs_of_mode_node *)
-    htab_find_with_hash (subregs_of_mode, &dummy, dummy.block);
-  if (node == NULL)
-    return;
-
-  mask = 1 << (regno & 7);
-  for (to = VOIDmode; to < NUM_MACHINE_MODES; to++)
-    if (node->modes[to] & mask)
-      for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-	if (!TEST_HARD_REG_BIT (*used, i)
-	    && REG_CANNOT_CHANGE_MODE_P (i, from, to))
-	  SET_HARD_REG_BIT (*used, i);
-}
-
 /* Return 1 if REGNO has had an invalid mode change in CLASS from FROM
    mode.  */
 bool
@@ -1407,7 +1382,7 @@ struct rtl_opt_pass pass_subregs_of_mode_init =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -1426,7 +1401,7 @@ struct rtl_opt_pass pass_subregs_of_mode_finish =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

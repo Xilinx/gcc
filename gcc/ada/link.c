@@ -6,24 +6,23 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2008, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2009, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
- * ware  Foundation;  either version 2,  or (at your option) any later ver- *
+ * ware  Foundation;  either version 3,  or (at your option) any later ver- *
  * sion.  GNAT is distributed in the hope that it will be useful, but WITH- *
  * OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY *
- * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License *
- * for  more details.  You should have  received  a copy of the GNU General *
- * Public License  distributed with GNAT;  see file COPYING.  If not, write *
- * to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, *
- * Boston, MA 02110-1301, USA.                                              *
+ * or FITNESS FOR A PARTICULAR PURPOSE.                                     *
  *                                                                          *
- * As a  special  exception,  if you  link  this file  with other  files to *
- * produce an executable,  this file does not by itself cause the resulting *
- * executable to be covered by the GNU General Public License. This except- *
- * ion does not  however invalidate  any other reasons  why the  executable *
- * file might be covered by the  GNU Public License.                        *
+ * As a special exception under Section 7 of GPL version 3, you are granted *
+ * additional permissions described in the GCC Runtime Library Exception,   *
+ * version 3.1, as published by the Free Software Foundation.               *
+ *                                                                          *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -66,6 +65,9 @@
 /*  using_gnu_linker is set to 1 when the GNU linker is used under this     */
 /*  target.                                                                 */
 
+/*  separate_run_path_options is set to 1 when separate "rpath" arguments   */
+/*  must be passed to the linker for each directory in the rpath.           */
+
 /*  RESPONSE FILE & GNU LINKER                                              */
 /*  --------------------------                                              */
 /*  objlist_file_supported and using_gnu_link used together tell gnatlink   */
@@ -89,6 +91,7 @@ unsigned char __gnat_objlist_file_supported = 1;
 char __gnat_shared_libgnat_default = STATIC;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (sgi)
 const char *__gnat_object_file_option = "-Wl,-objectlist,";
@@ -98,6 +101,7 @@ unsigned char __gnat_objlist_file_supported = 1;
 char __gnat_shared_libgnat_default = STATIC;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (__WIN32)
 const char *__gnat_object_file_option = "";
@@ -107,6 +111,7 @@ unsigned char __gnat_objlist_file_supported = 1;
 char __gnat_shared_libgnat_default = STATIC;
 unsigned char __gnat_using_gnu_linker = 1;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (__hpux__)
 const char *__gnat_object_file_option = "-Wl,-c,";
@@ -116,6 +121,7 @@ unsigned char __gnat_objlist_file_supported = 1;
 char __gnat_shared_libgnat_default = STATIC;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (_AIX)
 const char *__gnat_object_file_option = "-Wl,-f,";
@@ -125,6 +131,7 @@ const unsigned char __gnat_objlist_file_supported = 1;
 char __gnat_shared_libgnat_default = STATIC;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (VMS)
 const char *__gnat_object_file_option = "";
@@ -134,6 +141,7 @@ int __gnat_link_max = 2147483647;
 unsigned char __gnat_objlist_file_supported = 0;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".olb";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (sun)
 const char *__gnat_object_file_option = "";
@@ -143,6 +151,7 @@ int __gnat_link_max = 2147483647;
 unsigned char __gnat_objlist_file_supported = 0;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (__FreeBSD__)
 const char *__gnat_object_file_option = "";
@@ -152,6 +161,17 @@ int __gnat_link_max = 8192;
 unsigned char __gnat_objlist_file_supported = 1;
 unsigned char __gnat_using_gnu_linker = 1;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
+
+#elif defined (__APPLE__)
+const char *__gnat_object_file_option = "-Wl,-filelist,";
+const char *__gnat_run_path_option = "-Wl,-rpath,";
+char __gnat_shared_libgnat_default = STATIC;
+int __gnat_link_max = 262144;
+unsigned char __gnat_objlist_file_supported = 1;
+unsigned char __gnat_using_gnu_linker = 0;
+const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 1;
 
 #elif defined (linux) || defined(__GLIBC__)
 const char *__gnat_object_file_option = "";
@@ -161,6 +181,7 @@ int __gnat_link_max = 8192;
 unsigned char __gnat_objlist_file_supported = 1;
 unsigned char __gnat_using_gnu_linker = 1;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #elif defined (__svr4__) && defined (i386)
 const char *__gnat_object_file_option = "";
@@ -170,6 +191,7 @@ int __gnat_link_max = 2147483647;
 unsigned char __gnat_objlist_file_supported = 0;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 
 #else
 
@@ -182,4 +204,5 @@ int __gnat_link_max = 2147483647;
 unsigned char __gnat_objlist_file_supported = 0;
 unsigned char __gnat_using_gnu_linker = 0;
 const char *__gnat_object_library_extension = ".a";
+unsigned char __gnat_separate_run_path_options = 0;
 #endif

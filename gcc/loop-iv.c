@@ -1341,10 +1341,10 @@ simple_rhs_p (rtx rhs)
       op1 = XEXP (rhs, 1);
       /* Allow reg OP const and reg OP reg.  */
       if (!(REG_P (op0) && !HARD_REGISTER_P (op0))
-	  && !CONSTANT_P (op0))
+	  && !function_invariant_p (op0))
 	return false;
       if (!(REG_P (op1) && !HARD_REGISTER_P (op1))
-	  && !CONSTANT_P (op1))
+	  && !function_invariant_p (op1))
 	return false;
 
       return true;
@@ -1358,7 +1358,7 @@ simple_rhs_p (rtx rhs)
       /* Allow reg OP const.  */
       if (!(REG_P (op0) && !HARD_REGISTER_P (op0)))
 	return false;
-      if (!CONSTANT_P (op1))
+      if (!function_invariant_p (op1))
 	return false;
 
       return true;
@@ -1376,23 +1376,46 @@ replace_single_def_regs (rtx *reg, void *expr1)
 {
   unsigned regno;
   df_ref adef;
-  rtx set;
+  rtx set, src;
   rtx *expr = (rtx *)expr1;
 
   if (!REG_P (*reg))
     return 0;
 
   regno = REGNO (*reg);
-  adef = DF_REG_DEF_CHAIN (regno);
-  if (adef == NULL || DF_REF_NEXT_REG (adef) != NULL
-      || DF_REF_IS_ARTIFICIAL (adef))
+  for (;;)
+    {
+      rtx note;
+      adef = DF_REG_DEF_CHAIN (regno);
+      if (adef == NULL || DF_REF_NEXT_REG (adef) != NULL
+	    || DF_REF_IS_ARTIFICIAL (adef))
+	return -1;
+
+      set = single_set (DF_REF_INSN (adef));
+      if (set == NULL || !REG_P (SET_DEST (set))
+	  || REGNO (SET_DEST (set)) != regno)
+	return -1;
+
+      note = find_reg_equal_equiv_note (DF_REF_INSN (adef));
+
+      if (note && function_invariant_p (XEXP (note, 0)))
+	{
+	  src = XEXP (note, 0);
+	  break;
+	}
+      src = SET_SRC (set);
+
+      if (REG_P (src))
+	{
+	  regno = REGNO (src);
+	  continue;
+	}
+      break;
+    }
+  if (!function_invariant_p (src))
     return -1;
 
-  set = single_set (DF_REF_INSN (adef));
-  if (set == NULL || SET_DEST (set) != *reg || !CONSTANT_P (SET_SRC (set)))
-    return -1;
-
-  *expr = simplify_replace_rtx (*expr, *reg, SET_SRC (set));
+  *expr = simplify_replace_rtx (*expr, *reg, src);
   return 1;
 }
 

@@ -1,3 +1,9 @@
+2009-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	MERGED WITH TRUNK r146824::
+	* basilys.h: all GTY goes before the identifiers.
+	* basilys.c: removed errors.h include.
+	* run-basilys.h: ditto.
+
 2009-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-simple.melt: replacing abenv_consys field by abenv_poly...
 

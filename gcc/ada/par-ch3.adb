@@ -763,7 +763,16 @@ package body Ch3 is
                      Typedef_Node := P_Derived_Type_Def_Or_Private_Ext_Decl;
 
                      if Saved_Token = Tok_Synchronized then
-                        Set_Synchronized_Present (Typedef_Node);
+                        if Nkind (Typedef_Node) =
+                          N_Derived_Type_Definition
+                        then
+                           Error_Msg_N
+                             ("SYNCHRONIZED not allowed for record extension",
+                              Typedef_Node);
+                        else
+                           Set_Synchronized_Present (Typedef_Node);
+                        end if;
+
                      else
                         Error_Msg_SC ("invalid kind of private extension");
                      end if;
@@ -3827,13 +3836,14 @@ package body Ch3 is
          else
             Result_Node := P_Subtype_Mark;
             No_Constraint;
-         end if;
 
-         --  Note: A null exclusion given on the result type needs to
-         --  be coded by a distinct flag, since Null_Exclusion_Present
-         --  on an access-to-function type pertains to a null exclusion
-         --  on the access type itself (as set above). ???
-         --  Set_Null_Exclusion_Present??? (Type_Def_Node, Result_Not_Null);
+            --  A null exclusion on the result type must be recorded in a flag
+            --  distinct from the one used for the access-to-subprogram type's
+            --  null exclusion.
+
+            Set_Null_Exclusion_In_Return_Present
+              (Type_Def_Node, Result_Not_Null);
+         end if;
 
          Set_Result_Definition (Type_Def_Node, Result_Node);
 

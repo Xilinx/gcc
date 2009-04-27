@@ -88,26 +88,10 @@ find_referenced_vars (void)
   FOR_EACH_BB (bb)
     {
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
-	{
-	  size_t i;
-	  gimple stmt = gsi_stmt (si);
-	  for (i = 0; i < gimple_num_ops (stmt); i++)
-	    walk_tree (gimple_op_ptr (stmt, i), find_vars_r, NULL, NULL);
-	}
+	find_referenced_vars_in (gsi_stmt (si));
 
       for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
-	{
-	  gimple phi = gsi_stmt (si);
-	  size_t i, len = gimple_phi_num_args (phi);
-
-	  walk_tree (gimple_phi_result_ptr (phi), find_vars_r, NULL, NULL);
-
-	  for (i = 0; i < len; i++)
-	    {
-	      tree arg = gimple_phi_arg_def (phi, i);
-	      walk_tree (&arg, find_vars_r, NULL, NULL);
-	    }
-	}
+	find_referenced_vars_in (gsi_stmt (si));
     }
 
   return 0;
@@ -498,6 +482,33 @@ find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
+/* Find referenced variables in STMT.  In contrast with
+   find_new_referenced_vars, this function will not mark newly found
+   variables for renaming.  */
+
+void
+find_referenced_vars_in (gimple stmt)
+{
+  size_t i;
+
+  if (gimple_code (stmt) != GIMPLE_PHI)
+    {
+      for (i = 0; i < gimple_num_ops (stmt); i++)
+	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, NULL, NULL);
+    }
+  else
+    {
+      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, NULL, NULL);
+
+      for (i = 0; i < gimple_phi_num_args (stmt); i++)
+	{
+	  tree arg = gimple_phi_arg_def (stmt, i);
+	  walk_tree (&arg, find_vars_r, NULL, NULL);
+	}
+    }
+}
+
+
 /* Lookup UID in the referenced_vars hashtable and return the associated
    variable.  */
 
@@ -600,13 +611,11 @@ add_referenced_var (tree var)
     {
       /* Scan DECL_INITIAL for pointer variables as they may contain
 	 address arithmetic referencing the address of other
-	 variables.  
-	 Even non-constant initializers need to be walked, because
-	 IPA passes might prove that their are invariant later on.  */
+	 variables.  As we are only interested in directly referenced
+	 globals or referenced locals restrict this to initializers
+	 than can refer to local variables.  */
       if (DECL_INITIAL (var)
-	  /* Initializers of external variables are not useful to the
-	     optimizers.  */
-          && !DECL_EXTERNAL (var))
+          && DECL_CONTEXT (var) == current_function_decl)
       	walk_tree (&DECL_INITIAL (var), find_vars_r, NULL, 0);
 
       return true;

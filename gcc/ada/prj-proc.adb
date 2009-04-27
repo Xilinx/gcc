@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -63,15 +63,20 @@ package body Prj.Proc is
    --  Concatenate two strings and returns another string if both
    --  arguments are not null string.
 
+   --  In the following procedures, we are expected to guess the meaning of
+   --  the parameters from their names, this is never a good idea, comments
+   --  should be added precisely defining every formal ???
+
    procedure Add_Attributes
      (Project       : Project_Id;
       Project_Name  : Name_Id;
+      Project_Dir   : Name_Id;
       In_Tree       : Project_Tree_Ref;
       Decl          : in out Declarations;
       First         : Attribute_Node_Id;
       Project_Level : Boolean);
-   --  Add all attributes, starting with First, with their default
-   --  values to the package or project with declarations Decl.
+   --  Add all attributes, starting with First, with their default values to
+   --  the package or project with declarations Decl.
 
    procedure Check
      (In_Tree         : Project_Tree_Ref;
@@ -133,22 +138,26 @@ package body Prj.Proc is
       From_Project_Node      : Project_Node_Id;
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Extended_By            : Project_Id);
-   --  Process project with node From_Project_Node in the tree.
-   --  Do nothing if From_Project_Node is Empty_Node.
-   --  If project has already been processed, simply return its project id.
-   --  Otherwise create a new project id, mark it as processed, call itself
-   --  recursively for all imported projects and a extended project, if any.
-   --  Then process the declarative items of the project.
+   --  Process project with node From_Project_Node in the tree. Do nothing if
+   --  From_Project_Node is Empty_Node. If project has already been processed,
+   --  simply return its project id. Otherwise create a new project id, mark it
+   --  as processed, call itself recursively for all imported projects and a
+   --  extended project, if any. Then process the declarative items of the
+   --  project.
+
+   type Recursive_Check_Data is record
+      In_Tree         : Project_Tree_Ref;
+      Current_Dir     : String_Access;
+      When_No_Sources : Error_Warning;
+      Proc_Data       : Processing_Data;
+   end record;
+   --  Data passed to Recursive_Check
+   --  Current_Dir is for optimization purposes, avoiding extra system calls.
 
    procedure Recursive_Check
-     (Project         : Project_Id;
-      In_Tree         : Project_Tree_Ref;
-      Current_Dir     : String;
-      When_No_Sources : Error_Warning);
-   --  If Project is not marked as checked, mark it as checked, call
-   --  Check_Naming_Scheme for the project, then call itself for a
-   --  possible extended project and all the imported projects of Project.
-   --  Current_Dir is for optimization purposes, avoiding extra system calls.
+     (Project : Project_Id;
+      Data    : in out Recursive_Check_Data);
+   --  Check_Naming_Scheme for the project
 
    ---------
    -- Add --
@@ -183,6 +192,7 @@ package body Prj.Proc is
    procedure Add_Attributes
      (Project       : Project_Id;
       Project_Name  : Name_Id;
+      Project_Dir   : Name_Id;
       In_Tree       : Project_Tree_Ref;
       Decl          : in out Declarations;
       First         : Attribute_Node_Id;
@@ -217,13 +227,20 @@ package body Prj.Proc is
                         Value    => Empty_String,
                         Index    => 0);
 
-                     --  Special case of <project>'Name
+                     --  Special cases of <project>'Name and
+                     --  <project>'Project_Dir.
 
-                     if Project_Level
-                       and then Attribute_Name_Of (The_Attribute) =
-                                  Snames.Name_Name
-                     then
-                        New_Attribute.Value := Project_Name;
+                     if Project_Level then
+                        if Attribute_Name_Of (The_Attribute) =
+                          Snames.Name_Name
+                        then
+                           New_Attribute.Value := Project_Name;
+
+                        elsif Attribute_Name_Of (The_Attribute) =
+                          Snames.Name_Project_Dir
+                        then
+                           New_Attribute.Value := Project_Dir;
+                        end if;
                      end if;
 
                   --  List attributes have a default value of nil list
@@ -265,16 +282,20 @@ package body Prj.Proc is
       Current_Dir     : String;
       When_No_Sources : Error_Warning)
    is
+      Dir : aliased String := Current_Dir;
+
+      procedure Check_All_Projects is new
+        For_Every_Project_Imported (Recursive_Check_Data, Recursive_Check);
+
+      Data : Recursive_Check_Data;
+
    begin
-      --  Make sure that all projects are marked as not checked
+      Data.In_Tree         := In_Tree;
+      Data.Current_Dir     := Dir'Unchecked_Access;
+      Data.When_No_Sources := When_No_Sources;
+      Initialize (Data.Proc_Data);
 
-      for Index in Project_Table.First ..
-                   Project_Table.Last (In_Tree.Projects)
-      loop
-         In_Tree.Projects.Table (Index).Checked := False;
-      end loop;
-
-      Recursive_Check (Project, In_Tree, Current_Dir, When_No_Sources);
+      Check_All_Projects (Project, In_Tree, Data, Imported_First => True);
 
       --  Set the Other_Part field for the units
 
@@ -282,13 +303,17 @@ package body Prj.Proc is
          Source1 : Source_Id;
          Name    : Name_Id;
          Source2 : Source_Id;
+         Iter    : Source_Iterator;
 
       begin
          Unit_Htable.Reset;
 
-         Source1 := In_Tree.First_Source;
-         while Source1 /= No_Source loop
-            Name := In_Tree.Sources.Table (Source1).Unit;
+         Iter := For_Each_Source (In_Tree);
+         loop
+            Source1 := Prj.Element (Iter);
+            exit when Source1 = No_Source;
+
+            Name := Source1.Unit;
 
             if Name /= No_Name then
                Source2 := Unit_Htable.Get (Name);
@@ -298,14 +323,16 @@ package body Prj.Proc is
 
                else
                   Unit_Htable.Remove (Name);
-                  In_Tree.Sources.Table (Source1).Other_Part := Source2;
-                  In_Tree.Sources.Table (Source2).Other_Part := Source1;
+                  Source1.Other_Part := Source2;
+                  Source2.Other_Part := Source1;
                end if;
             end if;
 
-            Source1 := In_Tree.Sources.Table (Source1).Next_In_Sources;
+            Next (Iter);
          end loop;
       end;
+
+      Free (Data.Proc_Data);
    end Check;
 
    -------------------------------
@@ -319,11 +346,11 @@ package body Prj.Proc is
       Naming_Restricted : Boolean;
       In_Tree           : Project_Tree_Ref)
    is
-      V1  : Variable_Id := From.Attributes;
-      V2  : Variable_Id := No_Variable;
+      V1  : Variable_Id;
+      V2  : Variable_Id      := No_Variable;
       Var : Variable;
-      A1  : Array_Id := From.Arrays;
-      A2  : Array_Id := No_Array;
+      A1  : Array_Id;
+      A2  : Array_Id         := No_Array;
       Arr : Array_Data;
       E1  : Array_Element_Id;
       E2  : Array_Element_Id := No_Array_Element;
@@ -337,6 +364,7 @@ package body Prj.Proc is
 
       --  First single attributes
 
+      V1 := From.Attributes;
       while V1 /= No_Variable loop
 
          --  Copy the attribute
@@ -370,16 +398,16 @@ package body Prj.Proc is
 
       --  Then the associated array attributes
 
+      A1 := From.Arrays;
       while A1 /= No_Array loop
-
          Arr := In_Tree.Arrays.Table (A1);
          A1  := Arr.Next;
 
          if not Naming_Restricted or else
            (Arr.Name /= Snames.Name_Body
-            and then Arr.Name /= Snames.Name_Spec
-            and then Arr.Name /= Snames.Name_Implementation
-            and then Arr.Name /= Snames.Name_Specification)
+             and then Arr.Name /= Snames.Name_Spec
+             and then Arr.Name /= Snames.Name_Implementation
+             and then Arr.Name /= Snames.Name_Specification)
          then
             --  Remove the Next component
 
@@ -516,22 +544,21 @@ package body Prj.Proc is
                      end if;
 
                      Last := String_Element_Table.Last
-                       (In_Tree.String_Elements);
+                               (In_Tree.String_Elements);
+
                      In_Tree.String_Elements.Table (Last) :=
-                       (Value    =>
-                          String_Value_Of
-                            (The_Current_Term,
-                             From_Project_Node_Tree),
-                        Index    =>
-                          Source_Index_Of
-                            (The_Current_Term, From_Project_Node_Tree),
+                       (Value         => String_Value_Of
+                                           (The_Current_Term,
+                                            From_Project_Node_Tree),
+                        Index         => Source_Index_Of
+                                           (The_Current_Term,
+                                            From_Project_Node_Tree),
                         Display_Value => No_Name,
-                        Location      =>
-                          Location_Of
-                            (The_Current_Term,
-                             From_Project_Node_Tree),
-                        Flag     => False,
-                        Next     => Nil_String);
+                        Location      => Location_Of
+                                           (The_Current_Term,
+                                            From_Project_Node_Tree),
+                        Flag          => False,
+                        Next          => Nil_String);
                end case;
 
             when N_Literal_String_List =>
@@ -547,8 +574,8 @@ package body Prj.Proc is
                begin
                   if Present (String_Node) then
 
-                     --  If String_Node is nil, it is an empty list,
-                     --  there is nothing to do
+                     --  If String_Node is nil, it is an empty list, there is
+                     --  nothing to do
 
                      Value := Expression
                        (Project                => Project,
@@ -565,8 +592,8 @@ package body Prj.Proc is
 
                      if Result.Values = Nil_String then
 
-                        --  This literal string list is the first term
-                        --  in a string list expression
+                        --  This literal string list is the first term in a
+                        --  string list expression
 
                         Result.Values :=
                           String_Element_Table.Last (In_Tree.String_Elements);
@@ -1134,8 +1161,8 @@ package body Prj.Proc is
 
       Temp_Result := No_Project;
       List := Data.Imported_Projects;
-      while List /= Empty_Project_List loop
-         Result := In_Tree.Project_Lists.Table (List).Project;
+      while List /= null loop
+         Result := List.Project;
 
          --  If the project is directly imported, then returns its ID
 
@@ -1161,7 +1188,7 @@ package body Prj.Proc is
             end loop;
          end;
 
-         List := In_Tree.Project_Lists.Table (List).Next;
+         List := List.Next;
       end loop;
 
       pragma Assert (Temp_Result /= No_Project, "project not found");
@@ -1372,6 +1399,8 @@ package body Prj.Proc is
                         Add_Attributes
                           (Project,
                            In_Tree.Projects.Table (Project).Name,
+                           Name_Id
+                             (In_Tree.Projects.Table (Project).Directory.Name),
                            In_Tree,
                            In_Tree.Packages.Table (New_Pkg).Decl,
                            First_Attribute_Of
@@ -1583,12 +1612,12 @@ package body Prj.Proc is
                      if Orig_Array = No_Array then
                         if Error_Report = null then
                            Error_Msg
-                             ("associative array value cannot be found",
+                             ("associative array value not found",
                               Location_Of
                                 (Current_Item, From_Project_Node_Tree));
                         else
                            Error_Report
-                             ("associative array value cannot be found",
+                             ("associative array value not found",
                               Project, In_Tree);
                         end if;
 
@@ -2373,8 +2402,7 @@ package body Prj.Proc is
 
                Extending2 := Extending;
                while Extending2 /= No_Project loop
-                  if In_Tree.Projects.Table (Extending2).Ada_Sources /=
-                    Nil_String
+                  if Has_Ada_Sources (In_Tree.Projects.Table (Extending2))
                     and then
                       In_Tree.Projects.Table
                         (Extending2).Object_Directory.Name = Obj_Dir
@@ -2445,56 +2473,20 @@ package body Prj.Proc is
    ---------------------
 
    procedure Recursive_Check
-     (Project         : Project_Id;
-      In_Tree         : Project_Tree_Ref;
-      Current_Dir     : String;
-      When_No_Sources : Error_Warning)
+     (Project : Project_Id;
+      Data    : in out Recursive_Check_Data)
    is
-      Data                  : Project_Data;
-      Imported_Project_List : Project_List := Empty_Project_List;
-
    begin
-      --  Do nothing if Project is No_Project, or Project has already
-      --  been marked as checked.
-
-      if Project /= No_Project
-        and then not In_Tree.Projects.Table (Project).Checked
-      then
-         --  Mark project as checked, to avoid infinite recursion in
-         --  ill-formed trees, where a project imports itself.
-
-         In_Tree.Projects.Table (Project).Checked := True;
-
-         Data := In_Tree.Projects.Table (Project);
-
-         --  Call itself for a possible extended project.
-         --  (if there is no extended project, then nothing happens).
-
-         Recursive_Check (Data.Extends, In_Tree, Current_Dir, When_No_Sources);
-
-         --  Call itself for all imported projects
-
-         Imported_Project_List := Data.Imported_Projects;
-         while Imported_Project_List /= Empty_Project_List loop
-            Recursive_Check
-              (In_Tree.Project_Lists.Table
-                 (Imported_Project_List).Project,
-               In_Tree, Current_Dir, When_No_Sources);
-            Imported_Project_List :=
-              In_Tree.Project_Lists.Table
-                (Imported_Project_List).Next;
-         end loop;
-
-         if Verbose_Mode then
-            Write_Str ("Checking project file """);
-            Write_Str (Get_Name_String (Data.Name));
-            Write_Line ("""");
-         end if;
-
-         Prj.Nmsc.Check
-           (Project, In_Tree, Error_Report, When_No_Sources,
-            Current_Dir);
+      if Verbose_Mode then
+         Write_Str ("Checking project file """);
+         Write_Str
+           (Get_Name_String (Data.In_Tree.Projects.Table (Project).Name));
+         Write_Line ("""");
       end if;
+
+      Prj.Nmsc.Check
+        (Project, Data.In_Tree, Error_Report, Data.When_No_Sources,
+         Data.Current_Dir.all, Data.Proc_Data);
    end Recursive_Check;
 
    -----------------------
@@ -2508,7 +2500,72 @@ package body Prj.Proc is
       From_Project_Node_Tree : Project_Node_Tree_Ref;
       Extended_By            : Project_Id)
    is
-      With_Clause : Project_Node_Id;
+      procedure Process_Imported_Projects
+        (Imported     : in out Project_List;
+         Limited_With : Boolean);
+      --  Process imported projects. If Limited_With is True, then only
+      --  projects processed through a "limited with" are processed, otherwise
+      --  only projects imported through a standard "with" are processed.
+      --  Imported is the id of the last imported project.
+
+      -------------------------------
+      -- Process_Imported_Projects --
+      -------------------------------
+
+      procedure Process_Imported_Projects
+        (Imported     : in out Project_List;
+         Limited_With : Boolean)
+      is
+         With_Clause : Project_Node_Id;
+         New_Project : Project_Id;
+         Proj_Node   : Project_Node_Id;
+
+      begin
+         With_Clause :=
+           First_With_Clause_Of
+             (From_Project_Node, From_Project_Node_Tree);
+         while Present (With_Clause) loop
+            Proj_Node :=
+              Non_Limited_Project_Node_Of
+                (With_Clause, From_Project_Node_Tree);
+            New_Project := No_Project;
+
+            if (Limited_With and No (Proj_Node))
+              or (not Limited_With and Present (Proj_Node))
+            then
+               Recursive_Process
+                 (In_Tree                => In_Tree,
+                  Project                => New_Project,
+                  From_Project_Node      =>
+                    Project_Node_Of
+                      (With_Clause, From_Project_Node_Tree),
+                  From_Project_Node_Tree => From_Project_Node_Tree,
+                  Extended_By            => No_Project);
+
+               --  Imported is the id of the last imported project. If
+               --  it is nil, then this imported project is our first.
+
+               if Imported = null then
+                  In_Tree.Projects.Table (Project).Imported_Projects :=
+                    new Project_List_Element'
+                      (Project => New_Project,
+                       Next    => null);
+                  Imported :=
+                    In_Tree.Projects.Table (Project).Imported_Projects;
+               else
+                  Imported.Next := new Project_List_Element'
+                    (Project => New_Project,
+                     Next    => null);
+                  Imported := Imported.Next;
+               end if;
+            end if;
+
+            With_Clause :=
+              Next_With_Clause_Of (With_Clause, From_Project_Node_Tree);
+         end loop;
+      end Process_Imported_Projects;
+
+   --  Start of processing for Recursive_Process
 
    begin
       if No (From_Project_Node) then
@@ -2517,7 +2574,7 @@ package body Prj.Proc is
       else
          declare
             Processed_Data   : Project_Data     := Empty_Project (In_Tree);
-            Imported         : Project_List     := Empty_Project_List;
+            Imported         : Project_List;
             Declaration_Node : Project_Node_Id  := Empty_Node;
             Tref             : Source_Buffer_Ptr;
             Name             : constant Name_Id :=
@@ -2607,81 +2664,15 @@ package body Prj.Proc is
             Add_Attributes
               (Project,
                Name,
+               Name_Id (Processed_Data.Directory.Name),
                In_Tree,
                Processed_Data.Decl,
                Prj.Attr.Attribute_First,
                Project_Level => True);
 
-            --  Process non limited withed projects
+            In_Tree.Projects.Table (Project) := Processed_Data;
 
-            With_Clause :=
-              First_With_Clause_Of (From_Project_Node, From_Project_Node_Tree);
-            while Present (With_Clause) loop
-               declare
-                  New_Project : Project_Id;
-                  New_Data    : Project_Data;
-                  Proj_Node   : Project_Node_Id;
-
-               begin
-                  Proj_Node :=
-                    Non_Limited_Project_Node_Of
-                      (With_Clause, From_Project_Node_Tree);
-
-                  if Present (Proj_Node) then
-                     Recursive_Process
-                       (In_Tree                => In_Tree,
-                        Project                => New_Project,
-                        From_Project_Node      =>
-                          Project_Node_Of
-                            (With_Clause, From_Project_Node_Tree),
-                        From_Project_Node_Tree => From_Project_Node_Tree,
-                        Extended_By            => No_Project);
-
-                     New_Data :=
-                       In_Tree.Projects.Table (New_Project);
-
-                     --  If we were the first project to import it,
-                     --  set First_Referred_By to us.
-
-                     if New_Data.First_Referred_By = No_Project then
-                        New_Data.First_Referred_By := Project;
-                        In_Tree.Projects.Table (New_Project) :=
-                          New_Data;
-                     end if;
-
-                     --  Add this project to our list of imported projects
-
-                     Project_List_Table.Increment_Last
-                       (In_Tree.Project_Lists);
-
-                     In_Tree.Project_Lists.Table
-                       (Project_List_Table.Last
-                          (In_Tree.Project_Lists)) :=
-                       (Project => New_Project, Next => Empty_Project_List);
-
-                     --  Imported is the id of the last imported project. If it
-                     --  is nil, then this imported project is our first.
-
-                     if Imported = Empty_Project_List then
-                        Processed_Data.Imported_Projects :=
-                          Project_List_Table.Last
-                            (In_Tree.Project_Lists);
-
-                     else
-                        In_Tree.Project_Lists.Table
-                          (Imported).Next := Project_List_Table.Last
-                          (In_Tree.Project_Lists);
-                     end if;
-
-                     Imported := Project_List_Table.Last
-                       (In_Tree.Project_Lists);
-                  end if;
-
-                  With_Clause :=
-                    Next_With_Clause_Of
-                      (With_Clause, From_Project_Node_Tree);
-               end;
-            end loop;
+            Process_Imported_Projects (Imported, Limited_With => False);
 
             Declaration_Node :=
               Project_Declaration_Of
@@ -2689,14 +2680,12 @@ package body Prj.Proc is
 
             Recursive_Process
               (In_Tree                => In_Tree,
-               Project                => Processed_Data.Extends,
+               Project            => In_Tree.Projects.Table (Project).Extends,
                From_Project_Node      => Extended_Project_Of
                                           (Declaration_Node,
                                            From_Project_Node_Tree),
                From_Project_Node_Tree => From_Project_Node_Tree,
                Extended_By            => Project);
-
-            In_Tree.Projects.Table (Project) := Processed_Data;
 
             Process_Declarative_Items
               (Project                => Project,
@@ -2822,76 +2811,7 @@ package body Prj.Proc is
                In_Tree.Projects.Table (Project) := Processed_Data;
             end if;
 
-            --  Process limited withed projects
-
-            With_Clause :=
-              First_With_Clause_Of
-                (From_Project_Node, From_Project_Node_Tree);
-            while Present (With_Clause) loop
-               declare
-                  New_Project : Project_Id;
-                  New_Data    : Project_Data;
-                  Proj_Node   : Project_Node_Id;
-
-               begin
-                  Proj_Node :=
-                    Non_Limited_Project_Node_Of
-                      (With_Clause, From_Project_Node_Tree);
-
-                  if No (Proj_Node) then
-                     Recursive_Process
-                       (In_Tree                => In_Tree,
-                        Project                => New_Project,
-                        From_Project_Node      =>
-                          Project_Node_Of
-                            (With_Clause, From_Project_Node_Tree),
-                        From_Project_Node_Tree => From_Project_Node_Tree,
-                        Extended_By            => No_Project);
-
-                     New_Data :=
-                       In_Tree.Projects.Table (New_Project);
-
-                     --  If we were the first project to import it, set
-                     --  First_Referred_By to us.
-
-                     if New_Data.First_Referred_By = No_Project then
-                        New_Data.First_Referred_By := Project;
-                        In_Tree.Projects.Table (New_Project) :=
-                          New_Data;
-                     end if;
-
-                     --  Add this project to our list of imported projects
-
-                     Project_List_Table.Increment_Last
-                       (In_Tree.Project_Lists);
-
-                     In_Tree.Project_Lists.Table
-                       (Project_List_Table.Last
-                          (In_Tree.Project_Lists)) :=
-                       (Project => New_Project, Next => Empty_Project_List);
-
-                     --  Imported is the id of the last imported project. If
-                     --  it is nil, then this imported project is our first.
-
-                     if Imported = Empty_Project_List then
-                        In_Tree.Projects.Table (Project).Imported_Projects :=
-                          Project_List_Table.Last
-                            (In_Tree.Project_Lists);
-                     else
-                        In_Tree.Project_Lists.Table
-                          (Imported).Next := Project_List_Table.Last
-                          (In_Tree.Project_Lists);
-                     end if;
-
-                     Imported := Project_List_Table.Last
-                       (In_Tree.Project_Lists);
-                  end if;
-
-                  With_Clause :=
-                    Next_With_Clause_Of
-                      (With_Clause, From_Project_Node_Tree);
-               end;
-            end loop;
+            Process_Imported_Projects (Imported, Limited_With => True);
          end;
       end if;
    end Recursive_Process;

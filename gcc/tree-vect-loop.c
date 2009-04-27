@@ -1890,7 +1890,7 @@ vect_model_reduction_cost (stmt_vec_info stmt_info, enum tree_code reduc_code,
 
   if (!nested_in_vect_loop_p (loop, orig_stmt))
     {
-      if (reduc_code < NUM_TREE_CODES) 
+      if (reduc_code != ERROR_MARK)
 	outer_cost += TARG_VEC_STMT_COST + TARG_VEC_TO_SCALAR_COST;
       else 
 	{
@@ -2267,25 +2267,25 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
   stmt_vec_info stmt_vinfo = vinfo_for_stmt (stmt);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
-  tree vectype = STMT_VINFO_VECTYPE (stmt_vinfo);
-  int nunits =  TYPE_VECTOR_SUBPARTS (vectype);
-  tree scalar_type = TREE_TYPE (vectype);
+  tree scalar_type = TREE_TYPE (init_val);
+  tree vectype = get_vectype_for_scalar_type (scalar_type);
+  int nunits;
   enum tree_code code = gimple_assign_rhs_code (stmt);
-  tree type = TREE_TYPE (init_val);
-  tree vecdef;
   tree def_for_init;
   tree init_def;
   tree t = NULL_TREE;
   int i;
   bool nested_in_vect_loop = false; 
 
-  gcc_assert (POINTER_TYPE_P (type) || INTEGRAL_TYPE_P (type) || SCALAR_FLOAT_TYPE_P (type));
+  gcc_assert (vectype);
+  nunits = TYPE_VECTOR_SUBPARTS (vectype);
+
+  gcc_assert (POINTER_TYPE_P (scalar_type) || INTEGRAL_TYPE_P (scalar_type)
+	      || SCALAR_FLOAT_TYPE_P (scalar_type));
   if (nested_in_vect_loop_p (loop, stmt))
     nested_in_vect_loop = true;
   else
     gcc_assert (loop == (gimple_bb (stmt))->loop_father);
-
-  vecdef = vect_get_vec_def_for_operand (init_val, stmt, NULL);
 
   switch (code)
   {
@@ -2293,7 +2293,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
   case DOT_PROD_EXPR:
   case PLUS_EXPR:
     if (nested_in_vect_loop)
-      *adjustment_def = vecdef;
+      *adjustment_def = vect_get_vec_def_for_operand (init_val, stmt, NULL);
     else
       *adjustment_def = init_val;
     /* Create a vector of zeros for init_def.  */
@@ -2310,7 +2310,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val, tree *adjustment_def)
   case MIN_EXPR:
   case MAX_EXPR:
     *adjustment_def = NULL_TREE;
-    init_def = vecdef;
+    init_def = vect_get_vec_def_for_operand (init_val, stmt, NULL);
     break;
 
   default:
@@ -2563,7 +2563,7 @@ vect_create_epilog_for_reduction (tree vect_def, gimple stmt,
   /* 2.3 Create the reduction code, using one of the three schemes described
          above.  */
 
-  if (reduc_code < NUM_TREE_CODES)
+  if (reduc_code != ERROR_MARK)
     {
       tree tmp;
 
@@ -2852,7 +2852,7 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
   tree vectype = STMT_VINFO_VECTYPE (stmt_info);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   struct loop *loop = LOOP_VINFO_LOOP (loop_vinfo);
-  enum tree_code code, orig_code, epilog_reduc_code = 0;
+  enum tree_code code, orig_code, epilog_reduc_code;
   enum machine_mode vec_mode;
   int op_type;
   optab optab, reduc_optab;
@@ -3088,13 +3088,13 @@ vectorizable_reduction (gimple stmt, gimple_stmt_iterator *gsi,
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         fprintf (vect_dump, "no optab for reduction.");
-      epilog_reduc_code = NUM_TREE_CODES;
+      epilog_reduc_code = ERROR_MARK;
     }
   if (optab_handler (reduc_optab, vec_mode)->insn_code == CODE_FOR_nothing)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         fprintf (vect_dump, "reduc op not supported by target.");
-      epilog_reduc_code = NUM_TREE_CODES;
+      epilog_reduc_code = ERROR_MARK;
     }
  
   if (!vec_stmt) /* transformation not required.  */
@@ -3528,20 +3528,11 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 		  if (vect_print_dump_info (REPORT_DETAILS))
 		    fprintf (vect_dump, "=== scheduling SLP instances ===");
 
-		  is_store = vect_schedule_slp (loop_vinfo);
-
-		  /* IS_STORE is true if STMT is a store. Stores cannot be of
-		     hybrid SLP type. They are removed in
-		     vect_schedule_slp_instance and their vinfo is destroyed. */
-		  if (is_store)
-		    {
-		      gsi_next (&si);
-		      continue;
-		    }
+		  vect_schedule_slp (loop_vinfo);
 		}
 
 	      /* Hybrid SLP stmts must be vectorized in addition to SLP.  */
-	      if (PURE_SLP_STMT (stmt_info))
+	      if (!vinfo_for_stmt (stmt) || PURE_SLP_STMT (stmt_info))
 		{
 		  gsi_next (&si);
 		  continue;
@@ -3591,6 +3582,3 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   if (loop->inner && vect_print_dump_info (REPORT_VECTORIZED_LOOPS))
     fprintf (vect_dump, "OUTER LOOP VECTORIZED.");
 }
-
-
-

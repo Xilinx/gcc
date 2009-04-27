@@ -1,6 +1,6 @@
 /* Generate code from machine description to recognize rtl as insns.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -378,7 +378,7 @@ process_define_predicate (rtx desc)
 
   for (i = 0; i < NUM_RTX_CODE; i++)
     if (codes[i] != N)
-      add_predicate_code (pred, i);
+      add_predicate_code (pred, (enum rtx_code) i);
 
   add_predicate (pred);
 }
@@ -793,7 +793,8 @@ validate_pattern (rtx pattern, rtx insn, rtx set, int set_code)
 		 && GET_CODE (dest) != CC0
 		 && GET_CODE (src) != PC
 		 && GET_CODE (src) != CC0
-		 && GET_CODE (src) != CONST_INT)
+		 && GET_CODE (src) != CONST_INT
+		 && GET_CODE (src) != CALL)
 	  {
 	    const char *which;
 	    which = (dmode == VOIDmode ? "destination" : "source");
@@ -1243,7 +1244,7 @@ maybe_both_true_2 (struct decision_test *d1, struct decision_test *d2)
 	  else if (d2->type == DT_pred && d2->u.pred.data)
 	    {
 	      bool common = false;
-	      enum rtx_code c;
+	      int c;
 
 	      for (c = 0; c < NUM_RTX_CODE; c++)
 		if (d1->u.pred.data->codes[c] && d2->u.pred.data->codes[c])
@@ -1921,7 +1922,8 @@ write_switch (struct decision *start, int depth)
       while (p && p->tests->type == DT_pred && p->tests->u.pred.data)
 	{
 	  const struct pred_data *data = p->tests->u.pred.data;
-	  RTX_CODE c;
+	  int c;
+
 	  for (c = 0; c < NUM_RTX_CODE; c++)
 	    if (codemap[c] && data->codes[c])
 	      goto pred_done;
@@ -1930,7 +1932,7 @@ write_switch (struct decision *start, int depth)
 	    if (data->codes[c])
 	      {
 		fputs ("    case ", stdout);
-		print_code (c);
+		print_code ((enum rtx_code) c);
 		fputs (":\n", stdout);
 		codemap[c] = 1;
 	      }

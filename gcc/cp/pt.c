@@ -54,7 +54,7 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct pending_template GTY (()) {
+struct GTY (()) pending_template {
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -6325,6 +6325,7 @@ uses_template_parms (tree t)
 	   || TREE_CODE (t) == BASELINK
 	   || TREE_CODE (t) == IDENTIFIER_NODE
 	   || TREE_CODE (t) == TRAIT_EXPR
+	   || TREE_CODE (t) == CONSTRUCTOR
 	   || CONSTANT_CLASS_P (t))
     dependent_p = (type_dependent_expression_p (t)
 		   || value_dependent_expression_p (t));
@@ -10773,7 +10774,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 			  init = t;
 		      }
 
-		    finish_decl (decl, init, NULL_TREE);
+		    finish_decl (decl, init, NULL_TREE, NULL_TREE);
 		  }
 	      }
 	  }
@@ -12679,6 +12680,7 @@ resolve_overloaded_unification (tree tparms,
 {
   tree tempargs = copy_node (targs);
   int good = 0;
+  tree goodfn = NULL_TREE;
   bool addr_p;
 
   if (TREE_CODE (arg) == ADDR_EXPR)
@@ -12724,8 +12726,13 @@ resolve_overloaded_unification (tree tparms,
 	  if (subargs)
 	    {
 	      elem = tsubst (TREE_TYPE (fn), subargs, tf_none, NULL_TREE);
-	      good += try_one_overload (tparms, targs, tempargs, parm,
-					elem, strict, sub_strict, addr_p);
+	      if (try_one_overload (tparms, targs, tempargs, parm,
+				    elem, strict, sub_strict, addr_p)
+		  && (!goodfn || !decls_match (goodfn, elem)))
+		{
+		  goodfn = elem;
+		  ++good;
+		}
 	    }
 	  --processing_template_decl;
 	}
@@ -12738,9 +12745,14 @@ resolve_overloaded_unification (tree tparms,
     return false;
   else
     for (; arg; arg = OVL_NEXT (arg))
-      good += try_one_overload (tparms, targs, tempargs, parm,
-				TREE_TYPE (OVL_CURRENT (arg)),
-				strict, sub_strict, addr_p);
+      if (try_one_overload (tparms, targs, tempargs, parm,
+			    TREE_TYPE (OVL_CURRENT (arg)),
+			    strict, sub_strict, addr_p)
+	  && (!goodfn || !decls_match (goodfn, OVL_CURRENT (arg))))
+	{
+	  goodfn = OVL_CURRENT (arg);
+	  ++good;
+	}
 
   /* [temp.deduct.type] A template-argument can be deduced from a pointer
      to function or pointer to member function argument if the set of
@@ -13119,7 +13131,9 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
                        match.  */
 
                     if (resolve_overloaded_unification
-                        (tparms, targs, parm, arg, strict, sub_strict)
+                        (tparms, targs, parm, arg,
+			 (unification_kind_t) strict,
+			 sub_strict)
                         != 0)
                       return 1;
                     skip_arg_p = true;
@@ -13138,8 +13152,8 @@ unify_pack_expansion (tree tparms, tree targs, tree packed_parms,
 
             if (!subr)
               arg_strict |= 
-                maybe_adjust_types_for_deduction (strict, &parm, &arg, 
-						  arg_expr);
+                maybe_adjust_types_for_deduction ((unification_kind_t) strict,
+						  &parm, &arg, arg_expr);
           }
 
         if (!skip_arg_p)
@@ -13565,6 +13579,13 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 	 against it unless PARM is also a parameter pack.  */
       if ((template_parameter_pack_p (arg) || PACK_EXPANSION_P (arg))
 	  && !template_parameter_pack_p (parm))
+	return 1;
+
+      /* If the argument deduction results is a METHOD_TYPE,
+         then there is a problem.
+         METHOD_TYPE doesn't map to any real C++ type the result of
+	 the deduction can not be of that type.  */
+      if (TREE_CODE (arg) == METHOD_TYPE)
 	return 1;
 
       TREE_VEC_ELT (INNERMOST_TEMPLATE_ARGS (targs), idx) = arg;
@@ -15563,7 +15584,7 @@ instantiate_decl (tree d, int defer_ok,
 
       /* Enter the scope of D so that access-checking works correctly.  */
       push_nested_class (DECL_CONTEXT (d));
-      finish_decl (d, init, NULL_TREE);
+      finish_decl (d, init, NULL_TREE, NULL_TREE);
       pop_nested_class ();
     }
   else if (TREE_CODE (d) == FUNCTION_DECL)

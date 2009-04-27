@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2008, AdaCore                     --
+--                     Copyright (C) 2001-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -340,13 +340,12 @@ package body MLib.Prj is
       Success : Boolean := False;
 
       Library_Options : Variable_Value := Nil_Variable_Value;
-      Library_GCC     : Variable_Value := Nil_Variable_Value;
 
       Driver_Name : Name_Id := No_Name;
 
       In_Main_Object_Directory : Boolean := True;
 
-      There_Are_Foreign_Sources : Boolean;
+      Foreign_Sources : Boolean;
 
       Rpath : String_Access := null;
       --  Allocated only if Path Option is supported
@@ -680,8 +679,7 @@ package body MLib.Prj is
 
          procedure Process_Project (Project : Project_Id) is
             Data     : Project_Data := In_Tree.Projects.Table (Project);
-            Imported : Project_List := Data.Imported_Projects;
-            Element  : Project_Element;
+            Imported : Project_List;
 
          begin
             --  Nothing to do if process has already been processed
@@ -693,15 +691,13 @@ package body MLib.Prj is
                --  We first process the imported projects to guarantee that
                --  we have a proper reverse order for the libraries.
 
-               while Imported /= Empty_Project_List loop
-                  Element :=
-                    In_Tree.Project_Lists.Table (Imported);
-
-                  if Element.Project /= No_Project then
-                     Process_Project (Element.Project);
+               Imported := Data.Imported_Projects;
+               while Imported /= null loop
+                  if Imported.Project /= No_Project then
+                     Process_Project (Imported.Project);
                   end if;
 
-                  Imported := Element.Next;
+                  Imported := Imported.Next;
                end loop;
 
                --  If it is a library project, add it to Library_Projs
@@ -781,7 +777,6 @@ package body MLib.Prj is
                      end if;
                   end if;
                end if;
-
             end if;
          end Process_Project;
 
@@ -828,7 +823,7 @@ package body MLib.Prj is
       --  Fail if project is not a library project
 
       if not Data.Library then
-         Com.Fail ("project """, Project_Name, """ has no library");
+         Com.Fail ("project """ & Project_Name & """ has no library");
       end if;
 
       --  Do not attempt to build the library if it is externally built
@@ -868,11 +863,11 @@ package body MLib.Prj is
 
          if Bind then
             if Gnatbind_Path = null then
-               Com.Fail ("unable to locate ", Gnatbind);
+               Com.Fail ("unable to locate " & Gnatbind);
             end if;
 
             if Gcc_Path = null then
-               Com.Fail ("unable to locate ", Gcc);
+               Com.Fail ("unable to locate " & Gcc);
             end if;
 
             --  Allocate Arguments, if it is the first time we see a standalone
@@ -1176,8 +1171,8 @@ package body MLib.Prj is
             end if;
 
             if not Success then
-               Com.Fail ("could not bind standalone library ",
-                         Get_Name_String (Data.Library_Name));
+               Com.Fail ("could not bind standalone library "
+                         & Get_Name_String (Data.Library_Name));
             end if;
          end if;
 
@@ -1268,8 +1263,8 @@ package body MLib.Prj is
 
             if not Success then
                Com.Fail
-                 ("could not compile binder generated file for library ",
-                  Get_Name_String (Data.Library_Name));
+                ("could not compile binder generated file for library "
+                  & Get_Name_String (Data.Library_Name));
             end if;
 
             --  Process binder generated file for pragmas Linker_Options
@@ -1282,13 +1277,11 @@ package body MLib.Prj is
 
       if Link then
 
-         --  If attribute Library_GCC was specified, get the driver name
+         --  If attributes Library_GCC or Linker'Driver were specified, get the
+         --  driver name.
 
-         Library_GCC :=
-           Value_Of (Name_Library_GCC, Data.Decl.Attributes, In_Tree);
-
-         if not Library_GCC.Default then
-            Driver_Name := Library_GCC.Value;
+         if Data.Config.Shared_Lib_Driver /= No_File then
+            Driver_Name := Name_Id (Data.Config.Shared_Lib_Driver);
          end if;
 
          --  If attribute Library_Options was specified, add these additional
@@ -1354,7 +1347,7 @@ package body MLib.Prj is
 
          In_Main_Object_Directory := True;
 
-         There_Are_Foreign_Sources := Data.Other_Sources_Present;
+         Foreign_Sources := Has_Foreign_Sources (Data);
 
          loop
             if Data.Object_Directory /= No_Path_Information then
@@ -1415,7 +1408,7 @@ package body MLib.Prj is
                                     ALI_Path : constant String :=
                                                  Ext_To (C_Object_Path, "ali");
                                     Add_It   : Boolean :=
-                                                 There_Are_Foreign_Sources
+                                                 Foreign_Sources
                                                  or else
                                                    (Last > 5
                                                     and then
@@ -1517,7 +1510,7 @@ package body MLib.Prj is
                                           Check_Libs (ALI_Path, True);
                                        end if;
 
-                                    elsif There_Are_Foreign_Sources then
+                                    elsif Foreign_Sources then
                                        Objects.Append
                                          (new String'(Object_Path));
                                     end if;
@@ -1532,10 +1525,10 @@ package body MLib.Prj is
 
                exception
                   when Directory_Error =>
-                     Com.Fail ("cannot find object directory """,
-                               Get_Name_String
-                                 (Data.Object_Directory.Display_Name),
-                               """");
+                     Com.Fail ("cannot find object directory """
+                               & Get_Name_String
+                                  (Data.Object_Directory.Display_Name)
+                               & """");
                end;
             end if;
 
@@ -1817,9 +1810,9 @@ package body MLib.Prj is
             exception
                when others =>
                   Com.Fail
-                    ("unable to access library directory """,
-                     Name_Buffer (1 .. Name_Len),
-                     """");
+                    ("unable to access library directory """
+                     & Name_Buffer (1 .. Name_Len)
+                     & """");
             end;
 
             Open (Dir, ".");
@@ -1972,9 +1965,9 @@ package body MLib.Prj is
             exception
                when others =>
                   Com.Fail
-                    ("unable to access library source copy directory """,
-                     Name_Buffer (1 .. Name_Len),
-                     """");
+                    ("unable to access library source copy directory """
+                     & Name_Buffer (1 .. Name_Len)
+                     & """");
             end;
 
             declare
@@ -2060,7 +2053,7 @@ package body MLib.Prj is
    procedure Check (Filename : String) is
    begin
       if not Is_Regular_File (Filename) then
-         Com.Fail (Filename, " not found.");
+         Com.Fail (Filename & " not found.");
       end if;
    end Check;
 

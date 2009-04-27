@@ -16,8 +16,13 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #ifndef GCC_DEFAULTS_H
@@ -955,6 +960,13 @@ along with GCC; see the file COPYING3.  If not see
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
+#endif
+
+/* Many ports have no mode-dependent addresses (except possibly autoincrement
+   and autodecrement addresses, which are handled by target-independent code
+   in recog.c).  */
+#ifndef GO_IF_MODE_DEPENDENT_ADDRESS
+#define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

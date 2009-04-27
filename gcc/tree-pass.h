@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_TREE_PASS_H
 #define GCC_TREE_PASS_H 1
 
-/* In tree-dump.c */
+#include "timevar.h"
 
 /* Different tree dump places.  When you add new tree dump places,
    extend the DUMP_FILES array in tree-dump.c.  */
@@ -75,15 +75,16 @@ enum tree_dump_index
 					   dumper to print stmts.  */
 #define TDF_RHS_ONLY	(1 << 17)	/* a flag to only print the RHS of
 					   a gimple stmt.  */
+/* In tree-dump.c */
 
-extern char *get_dump_file_name (enum tree_dump_index);
-extern int dump_enabled_p (enum tree_dump_index);
-extern int dump_initialized_p (enum tree_dump_index);
-extern FILE *dump_begin (enum tree_dump_index, int *);
-extern void dump_end (enum tree_dump_index, FILE *);
+extern char *get_dump_file_name (int);
+extern int dump_enabled_p (int);
+extern int dump_initialized_p (int);
+extern FILE *dump_begin (int, int *);
+extern void dump_end (int, FILE *);
 extern void dump_node (const_tree, int, FILE *);
 extern int dump_switch_p (const char *);
-extern const char *dump_flag_name (enum tree_dump_index);
+extern const char *dump_flag_name (int);
 
 /* Global variables used to communicate with passes.  */
 extern FILE *dump_file;
@@ -91,7 +92,7 @@ extern int dump_flags;
 extern const char *dump_file_name;
 
 /* Return the dump_file_info for the given phase.  */
-extern struct dump_file_info *get_dump_file_info (enum tree_dump_index);
+extern struct dump_file_info *get_dump_file_info (int);
 
 /* Describe one pass; this is the common part shared across different pass
    types.  */
@@ -128,7 +129,7 @@ struct opt_pass
 
   /* The timevar id associated with this pass.  */
   /* ??? Ideally would be dynamically assigned.  */
-  unsigned int tv_id;
+  timevar_id_t tv_id;
 
   /* Sets of properties input and output from this pass.  */
   unsigned int properties_required;
@@ -154,6 +155,7 @@ struct rtl_opt_pass
 
 struct varpool_node;
 struct cgraph_node;
+struct cgraph_node_set_def;
 
 /* Description of IPA pass with generate summary, write, execute, read and
    transform stages.  */
@@ -166,7 +168,7 @@ struct ipa_opt_pass
   void (*generate_summary) (void);
 
   /* This hook is used to serialize IPA summaries on disk.  */
-  void (*write_summary) (void);
+  void (*write_summary) (struct cgraph_node_set_def *);
 
   /* For most ipa passes, the information can only be deserialized in
      one chunk.  However, function bodies are read function at a time
@@ -342,7 +344,6 @@ extern struct gimple_opt_pass pass_ch;
 extern struct gimple_opt_pass pass_ccp;
 extern struct gimple_opt_pass pass_phi_only_cprop;
 extern struct gimple_opt_pass pass_build_ssa;
-extern struct gimple_opt_pass pass_del_ssa;
 extern struct gimple_opt_pass pass_build_alias;
 extern struct gimple_opt_pass pass_dominator;
 extern struct gimple_opt_pass pass_dce;
@@ -378,7 +379,6 @@ extern struct gimple_opt_pass pass_phiprop;
 extern struct gimple_opt_pass pass_tree_ifcombine;
 extern struct gimple_opt_pass pass_dse;
 extern struct gimple_opt_pass pass_nrv;
-extern struct gimple_opt_pass pass_mark_used_blocks;
 extern struct gimple_opt_pass pass_rename_ssa_copies;
 extern struct gimple_opt_pass pass_rest_of_compilation;
 extern struct gimple_opt_pass pass_sink_code;
@@ -430,8 +430,6 @@ extern struct gimple_opt_pass pass_basilys_latessa;
 
 extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;
-extern struct gimple_opt_pass pass_free_cfg_annotations;
-extern struct gimple_opt_pass pass_free_datastructures;
 extern struct gimple_opt_pass pass_init_datastructures;
 extern struct gimple_opt_pass pass_fixup_cfg;
 
@@ -551,6 +549,7 @@ extern void execute_pass_list (struct opt_pass *);
 extern void execute_ipa_pass_list (struct opt_pass *);
 extern void print_current_pass (FILE *);
 extern void debug_pass (void);
+extern void register_one_dump_file (struct opt_pass *);
 extern bool function_called_by_processed_nodes_p (void);
 
 /* Set to true if the pass is called the first time during compilation of the

@@ -1,3 +1,219 @@
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* call.c (build_temp): Change 0 to enum constant.
+	* cp-tree.h (cp_lvalue_kind): Typedef to int rather than enum
+	type.
+	* cp-gimplify.c (cp_gimplify_expr): Add cast to enum type.
+	* decl2.c (constrain_visibility): Likewise.
+	* parser.c (cp_lexer_get_preprocessor_token): Likewise.
+	(cp_parser_flags): Typedef to int rather than enum type.
+	(cp_parser_expression_stack_entry): Change prec field to enum
+	cp_parser_prec.
+
+	* typeck.c (build_modify_expr): Add lhs_origtype parameter.
+	Change all callers.
+
+2009-04-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39639
+	* parser.c (cp_parser_template_argument_list): Display an error
+	when an ellipsis is not preceded by a parameter pack. Also, warn
+	about variadic templates usage without -std=c++0x.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* cp-tree.h: Update GTY annotations to new syntax.
+	* decl.c: Likewise.
+	* mangle.c: Likewise.
+	* name-lookup.c: Likewise.
+	* name-lookup.h: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* rtti.c: Likewise.
+	* semantics.c: Likewise.
+	* typeck2.c: Likewise.
+
+2009-04-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/14875
+	* parser.c (cp_parser_error): Pass token->flags to c_parse_error.
+
+2009-04-21  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/35711
+	* typeck.c (check_for_casting_away_constness): We diagnose casting
+	away any qualifiers not just constness.
+	(casts_away_constness): Mention that it handles more than just
+	constness.
+	
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, ChangeLog-1993, ChangeLog-1994, ChangeLog-1995,
+	ChangeLog-1996, ChangeLog-1997, ChangeLog-1998, ChangeLog-1999,
+	ChangeLog-2000, ChangeLog-2001, ChangeLog-2002, ChangeLog-2003,
+	ChangeLog-2004, ChangeLog-2005, ChangeLog-2006, ChangeLog-2007,
+	ChangeLog-2008, ChangeLog.ptr, ChangeLog.tree-ssa, NEWS,
+	cfns.gperf: Add copyright and license notices.
+	* cfns.h: Regenerate.
+	* ChangeLog, ChangeLog-2004: Correct dates.
+
+2009-04-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 16202
+	* tree.c (lvalue_p_1): Use const_tree.
+	Use CONST_CAST_TREE to avoid warning.
+	(lvalue_p): Returns bool, receives const_tree.
+
+2009-04-21  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/13358
+	* parser.c (cp_parser_check_decl_spec): Drop redundant flags.
+	* error.c (pedwarn_cxx98): New.
+	* cp-tree.h (pedwarn_cxx98): Declare.
+
+2009-04-20  Le-Chun Wu  <lcwu@google.com>
+
+	PR c++/39803
+	* init.c (build_vec_init): Set TREE_NO_WARNING on the
+	compiler-generated INDIRECT_REF expression.
+
+2009-04-20  Ian Lance Taylor  <iant@google.com>
+
+	* typeck.c (build_function_call_vec): New function.
+	(cp_build_function_call): Only pass first parameter to
+	objc_rewrite_function_call.
+	(build_modify_expr): Add rhs_origtype parameter.  Change all
+	callers.
+	* decl.c (finish_decl): Add origtype parameter.  Change all
+	callers.
+	* semantics.c (finish_call_expr): Pass VEC to
+	resolve_overloaded_builtin.
+
+2009-04-20  Ian Lance Taylor  <iant@google.com>
+
+	* cp-tree.h (base_access): Change typedef to int.
+	* parser.c (cp_parser_omp_flush): Change 0 to OMP_CLAUSE_ERROR.
+	(cp_parser_omp_threadprivate): Likewise.
+	* pt.c (unify_pack_expansion): Add casts to enum type.
+
+2009-04-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/32061
+	PR c++/36954
+	* call.c (build_new_op): Save the original codes of operands
+	before folding.
+
+2009-04-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* cp-tree.h: Remove the prototype for insert_block.
+	* decl.c (insert_block): Remove.
+
+2009-04-16  Ian Lance Taylor  <iant@google.com>
+
+	* cp-tree.h (enum tsubst_flags): Rename from enum tsubst_flags_t.
+	(tsubst_flags_t): Change typedef from enum type to int.
+
+2009-04-16  Paolo Bonzini  <bonzini@gnu.org>
+
+	* decl.c (check_initializer): Use TYPE_VECTOR_OPAQUE
+	instead of targetm.vector_opaque_p.
+
+2009-04-15  Le-Chun Wu  <lcwu@google.com>
+
+	PR c++/39551
+	* call.c (build_over_call): Set TREE_NO_WARNING on the
+	compiler-generated INDIRECT_REF expression.
+	* cvt.c (convert_to_void): Emit warning when stripping off
+	INDIRECT_REF.
+
+2009-04-14  Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_parser_type_specifier_seq): Move call to
+	invoke_plugin_callbacks ...
+	(cp_parser_type_specifier_seq): ... here.
+
+2009-04-14  Le-Chun Wu  <lcwu@google.com>
+
+	* Make-lang.in: Modify dependencies of files including plugin.h.
+	* decl.c (finish_function): Call invoke_plugin_callbacks.
+	* parser.c (cp_parser_type_specifier): Call invoke_plugin_callbacks.
+
+2009-04-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39763
+	* name-lookup.c (pushdecl_maybe_friend): Avoid all warnings
+	about shadowing by tentative parms.
+
+2009-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39480
+	* call.c (build_over_call): Don't call memcpy if the target is
+	the same as the source.
+
+2009-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39750
+	* pt.c (uses_template_parms): Handle CONSTRUCTOR.
+
+2009-04-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39742
+	* call.c (joust): Don't crash on variadic fn.
+
+2009-04-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/28301
+	* parser.c (cp_parser_skip_to_end_of_block_or_statement): Return
+	if we see a close brace without an open brace.
+
+2009-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* parser.c (cp_parser_class_specifier): Remove the unused
+	has_trailing_semicolon.
+
+2009-04-10  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR  c++/20118
+	* parser.c (cp_parser_check_template_parameters): Take a
+	cp_declarator parameter.
+	(cp_parser_elaborated_type_specifier): Update to
+	cp_parser_check_template_parameters.
+	(cp_parser_class_head): Likewise.
+	(cp_parser_check_declarator_template_parameters): Likewise.
+	(cp_parser_check_template_parameters): Handle first the non-error
+	conditions. Give more accurate diagnostics if a declarator is
+	given. 
+
+2009-04-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (dump_aggr_type): Chase template typedefs if
+	-fno-pretty-templates.
+
+2009-04-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39637
+	* parser.c (cp_parser_enumerator_definition): Make sure the
+	initializer of the enumerator doesn't contain any bare parameter pack.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34691
+	* name-lookup.c	(merge_functions): Keep multiple extern "C" functions.
+	* call.c (joust): Complain about mismatched default arguments
+	in extern "C" functions.
+	* class.c (resolve_address_of_overloaded_function): Handle multiple
+	extern "C" functions.
+	* pt.c (resolve_overloaded_unification): Likewise.
+
+2009-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/25185
+	* error.c (dump_function_decl): Don't pretty-print templates
+	if -fno-pretty-templates.
+	(count_non_default_template_args): Print all args if
+	-fno-pretty-templates.
+
 2009-04-06  Jason Merrill  <jason@redhat.com>
 
 	PR c++/35146
@@ -763,3 +979,10 @@
 	PR c++/38684
 	* typeck2.c (digest_init_r): Don't use process_init_constructor
 	for non-aggregate classes.
+
+
+Copyright (C) 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,7 @@ with Nmake;    use Nmake;
 with Nlists;   use Nlists;
 with Opt;      use Opt;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch13; use Sem_Ch13;
@@ -133,8 +134,8 @@ package body Sem_Aggr is
    --  The algorithm of Resolve_Record_Aggregate proceeds as follows:
    --
    --  1. Make sure that the record type against which the record aggregate
-   --     has to be resolved is not abstract. Furthermore if the type is
-   --     a null aggregate make sure the input aggregate N is also null.
+   --     has to be resolved is not abstract. Furthermore if the type is a
+   --     null aggregate make sure the input aggregate N is also null.
    --
    --  2. Verify that the structure of the aggregate is that of a record
    --     aggregate. Specifically, look for component associations and ensure
@@ -142,31 +143,29 @@ package body Sem_Aggr is
    --     node. Also make sure that if present, the N_Others_Choice occurs
    --     last and by itself.
    --
-   --  3. If Typ contains discriminants, the values for each discriminant
-   --     is looked for. If the record type Typ has variants, we check
-   --     that the expressions corresponding to each discriminant ruling
-   --     the (possibly nested) variant parts of Typ, are static. This
-   --     allows us to determine the variant parts to which the rest of
-   --     the aggregate must conform. The names of discriminants with their
-   --     values are saved in a new association list, New_Assoc_List which
-   --     is later augmented with the names and values of the remaining
-   --     components in the record type.
+   --  3. If Typ contains discriminants, the values for each discriminant is
+   --     looked for. If the record type Typ has variants, we check that the
+   --     expressions corresponding to each discriminant ruling the (possibly
+   --     nested) variant parts of Typ, are static. This allows us to determine
+   --     the variant parts to which the rest of the aggregate must conform.
+   --     The names of discriminants with their values are saved in a new
+   --     association list, New_Assoc_List which is later augmented with the
+   --     names and values of the remaining components in the record type.
    --
    --     During this phase we also make sure that every discriminant is
-   --     assigned exactly one value. Note that when several values
-   --     for a given discriminant are found, semantic processing continues
-   --     looking for further errors. In this case it's the first
-   --     discriminant value found which we will be recorded.
+   --     assigned exactly one value. Note that when several values for a given
+   --     discriminant are found, semantic processing continues looking for
+   --     further errors. In this case it's the first discriminant value found
+   --     which we will be recorded.
    --
    --     IMPORTANT NOTE: For derived tagged types this procedure expects
    --     First_Discriminant and Next_Discriminant to give the correct list
    --     of discriminants, in the correct order.
    --
-   --  4. After all the discriminant values have been gathered, we can
-   --     set the Etype of the record aggregate. If Typ contains no
-   --     discriminants this is straightforward: the Etype of N is just
-   --     Typ, otherwise a new implicit constrained subtype of Typ is
-   --     built to be the Etype of N.
+   --  4. After all the discriminant values have been gathered, we can set the
+   --     Etype of the record aggregate. If Typ contains no discriminants this
+   --     is straightforward: the Etype of N is just Typ, otherwise a new
+   --     implicit constrained subtype of Typ is built to be the Etype of N.
    --
    --  5. Gather the remaining record components according to the discriminant
    --     values. This involves recursively traversing the record type
@@ -175,41 +174,40 @@ package body Sem_Aggr is
    --     derived tagged types since we need to retrieve the record structure
    --     of all the ancestors of Typ.
    --
-   --  6. After gathering the record components we look for their values
-   --     in the record aggregate and emit appropriate error messages
-   --     should we not find such values or should they be duplicated.
+   --  6. After gathering the record components we look for their values in the
+   --     record aggregate and emit appropriate error messages should we not
+   --     find such values or should they be duplicated.
    --
-   --  7. We then make sure no illegal component names appear in the
-   --     record aggregate and make sure that the type of the record
-   --     components appearing in a same choice list is the same.
-   --     Finally we ensure that the others choice, if present, is
-   --     used to provide the value of at least a record component.
+   --  7. We then make sure no illegal component names appear in the record
+   --     aggregate and make sure that the type of the record components
+   --     appearing in a same choice list is the same. Finally we ensure that
+   --     the others choice, if present, is used to provide the value of at
+   --     least a record component.
    --
-   --  8. The original aggregate node is replaced with the new named
-   --     aggregate built in steps 3 through 6, as explained earlier.
+   --  8. The original aggregate node is replaced with the new named aggregate
+   --     built in steps 3 through 6, as explained earlier.
    --
-   --  Given the complexity of record aggregate resolution, the primary
-   --  goal of this routine is clarity and simplicity rather than execution
-   --  and storage efficiency. If there are only positional components in the
-   --  aggregate the running time is linear. If there are associations
-   --  the running time is still linear as long as the order of the
-   --  associations is not too far off the order of the components in the
-   --  record type. If this is not the case the running time is at worst
-   --  quadratic in the size of the association list.
+   --  Given the complexity of record aggregate resolution, the primary goal of
+   --  this routine is clarity and simplicity rather than execution and storage
+   --  efficiency. If there are only positional components in the aggregate the
+   --  running time is linear. If there are associations the running time is
+   --  still linear as long as the order of the associations is not too far off
+   --  the order of the components in the record type. If this is not the case
+   --  the running time is at worst quadratic in the size of the association
+   --  list.
 
    procedure Check_Misspelled_Component
      (Elements  : Elist_Id;
       Component : Node_Id);
-   --  Give possible misspelling diagnostic if Component is likely to be
-   --  a misspelling of one of the components of the Assoc_List.
-   --  This is called by Resolve_Aggr_Expr after producing
-   --  an invalid component error message.
+   --  Give possible misspelling diagnostic if Component is likely to be a
+   --  misspelling of one of the components of the Assoc_List. This is called
+   --  by Resolve_Aggr_Expr after producing an invalid component error message.
 
    procedure Check_Static_Discriminated_Subtype (T : Entity_Id; V : Node_Id);
-   --  An optimization: determine whether a discriminated subtype has a
-   --  static constraint, and contains array components whose length is also
-   --  static, either because they are constrained by the discriminant, or
-   --  because the original component bounds are static.
+   --  An optimization: determine whether a discriminated subtype has a static
+   --  constraint, and contains array components whose length is also static,
+   --  either because they are constrained by the discriminant, or because the
+   --  original component bounds are static.
 
    -----------------------------------------------------
    -- Subprograms used for ARRAY AGGREGATE Processing --
@@ -895,6 +893,15 @@ package body Sem_Aggr is
       --  which is the subtype of the context in which the aggregate was found.
 
    begin
+      --  Ignore junk empty aggregate resulting from parser error
+
+      if No (Expressions (N))
+        and then No (Component_Associations (N))
+        and then not Null_Record_Present (N)
+      then
+         return;
+      end if;
+
       --  Check for aggregates not allowed in configurable run-time mode.
       --  We allow all cases of aggregates that do not come from source,
       --  since these are all assumed to be small (e.g. bounds of a string
@@ -1503,6 +1510,15 @@ package body Sem_Aggr is
    --  Start of processing for Resolve_Array_Aggregate
 
    begin
+      --  Ignore junk empty aggregate resulting from parser error
+
+      if No (Expressions (N))
+        and then No (Component_Associations (N))
+        and then not Null_Record_Present (N)
+      then
+         return False;
+      end if;
+
       --  STEP 1: make sure the aggregate is correctly formatted
 
       if Present (Component_Associations (N)) then
@@ -2170,13 +2186,12 @@ package body Sem_Aggr is
             then
                A_Type := Etype (Imm_Type);
                return True;
-
             else
                Imm_Type := Etype (Base_Type (Imm_Type));
             end if;
          end loop;
 
-         --  If previous loop did not find a proper ancestor, report error.
+         --  If previous loop did not find a proper ancestor, report error
 
          Error_Msg_NE ("expect ancestor type of &", A, Typ);
          return False;
@@ -2425,6 +2440,16 @@ package body Sem_Aggr is
          Ancestor     := Ancestor_Part (N);
          Ancestor_Typ := Etype (Ancestor);
          Loc          := Sloc (Ancestor);
+
+         --  For a private type with unknown discriminants, use the underlying
+         --  record view if it is available.
+
+         if Has_Unknown_Discriminants (Ancestor_Typ)
+           and then Present (Full_View (Ancestor_Typ))
+           and then Present (Underlying_Record_View (Full_View (Ancestor_Typ)))
+         then
+            Ancestor_Typ := Underlying_Record_View (Full_View (Ancestor_Typ));
+         end if;
 
          Ancestor_Is_Subtyp :=
            Is_Entity_Name (Ancestor) and then Is_Type (Entity (Ancestor));
@@ -2867,7 +2892,11 @@ package body Sem_Aggr is
             Positional_Expr := Empty;
          end if;
 
-         if Has_Discriminants (Typ) then
+         if Has_Unknown_Discriminants (Typ)
+           and then Present (Underlying_Record_View (Typ))
+         then
+            Discrim := First_Discriminant (Underlying_Record_View (Typ));
+         elsif Has_Discriminants (Typ) then
             Discrim := First_Discriminant (Typ);
          else
             Discrim := Empty;
@@ -2947,7 +2976,10 @@ package body Sem_Aggr is
       --  this may be a problem. What should be done in this case is
       --  to reuse itypes as much as possible.
 
-      if Has_Discriminants (Typ) then
+      if Has_Discriminants (Typ)
+        or else (Has_Unknown_Discriminants (Typ)
+                   and then Present (Underlying_Record_View (Typ)))
+      then
          Build_Constrained_Itype : declare
             Loc         : constant Source_Ptr := Sloc (N);
             Indic       : Node_Id;
@@ -2963,10 +2995,23 @@ package body Sem_Aggr is
                Next (New_Assoc);
             end loop;
 
-            Indic :=
-              Make_Subtype_Indication (Loc,
-                Subtype_Mark => New_Occurrence_Of (Base_Type (Typ), Loc),
-                Constraint  => Make_Index_Or_Discriminant_Constraint (Loc, C));
+            if Has_Unknown_Discriminants (Typ)
+              and then Present (Underlying_Record_View (Typ))
+            then
+               Indic :=
+                 Make_Subtype_Indication (Loc,
+                   Subtype_Mark =>
+                     New_Occurrence_Of (Underlying_Record_View (Typ), Loc),
+                   Constraint  =>
+                     Make_Index_Or_Discriminant_Constraint (Loc, C));
+            else
+               Indic :=
+                 Make_Subtype_Indication (Loc,
+                   Subtype_Mark =>
+                     New_Occurrence_Of (Base_Type (Typ), Loc),
+                   Constraint  =>
+                     Make_Index_Or_Discriminant_Constraint (Loc, C));
+            end if;
 
             Def_Id := Create_Itype (Ekind (Typ), N);
 
@@ -3043,7 +3088,7 @@ package body Sem_Aggr is
                end if;
             end if;
 
-            Parent_Typ  := Base_Type (Typ);
+            Parent_Typ := Base_Type (Typ);
             while Parent_Typ /= Root_Typ loop
                Prepend_Elmt (Parent_Typ, To => Parent_Typ_List);
                Parent_Typ := Etype (Parent_Typ);
@@ -3069,11 +3114,22 @@ package body Sem_Aggr is
                end if;
             end loop;
 
-            --  Now collect components from all other ancestors
+            --  Now collect components from all other ancestors, beginning
+            --  with the current type. If the type has unknown discriminants
+            --  use the component list of the underlying_record_view, which
+            --  needs to be used for the subsequent expansion of the aggregate
+            --  into assignments.
 
             Parent_Elmt := First_Elmt (Parent_Typ_List);
             while Present (Parent_Elmt) loop
                Parent_Typ := Node (Parent_Elmt);
+
+               if Has_Unknown_Discriminants (Parent_Typ)
+                 and then Present (Underlying_Record_View (Typ))
+               then
+                  Parent_Typ := Underlying_Record_View (Parent_Typ);
+               end if;
+
                Record_Def := Type_Definition (Parent (Base_Type (Parent_Typ)));
                Gather_Components (Empty,
                  Component_List (Record_Extension_Part (Record_Def)),
@@ -3089,8 +3145,17 @@ package body Sem_Aggr is
 
             if Null_Present (Record_Def) then
                null;
-            else
+
+            elsif not Has_Unknown_Discriminants (Typ) then
                Gather_Components (Base_Type (Typ),
+                 Component_List (Record_Def),
+                 Governed_By   => New_Assoc_List,
+                 Into          => Components,
+                 Report_Errors => Errors_Found);
+
+            else
+               Gather_Components
+                 (Base_Type (Underlying_Record_View (Typ)),
                  Component_List (Record_Def),
                  Governed_By   => New_Assoc_List,
                  Into          => Components,

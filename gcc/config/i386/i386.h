@@ -15,8 +15,13 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 /* The purpose of this file is to define the characteristics of the i386,
@@ -1883,13 +1888,6 @@ do {									\
   (GET_CODE (X) == SYMBOL_REF						\
    || GET_CODE (X) == LABEL_REF						\
    || (GET_CODE (X) == CONST && symbolic_reference_mentioned_p (X)))
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.
-   On the 80386, only postdecrement and postincrement address depend thus
-   (the amount of decrement or increment being the length of the operand).
-   These are now caught in recog.c.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 /* Max number of args passed in registers.  If this is more than 3, we will
    have problems with ebx (register #4), since it is a caller save register and
@@ -2333,7 +2331,6 @@ extern enum reg_class const regclass_map[FIRST_PSEUDO_REGISTER];
 
 extern rtx ix86_compare_op0;	/* operand 0 for comparisons */
 extern rtx ix86_compare_op1;	/* operand 1 for comparisons */
-extern rtx ix86_compare_emitted;
 
 /* To properly truncate FP values into integers, we need to set i387 control
    word.  We can't emit proper mode switching code before reload, as spills
@@ -2423,8 +2420,7 @@ enum ix86_stack_slot
 
 #define FASTCALL_PREFIX '@'
 
-struct machine_function GTY(())
-{
+struct GTY(()) machine_function {
   struct stack_local_entry *stack_locals;
   const char *some_ld_name;
   int varargs_gpr_size;

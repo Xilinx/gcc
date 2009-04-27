@@ -128,8 +128,7 @@ along with GCC; see the file COPYING3.  If not see
    However, this is no actual entry for alias set zero.  It is an
    error to attempt to explicitly construct a subset of zero.  */
 
-struct alias_set_entry GTY(())
-{
+struct GTY(()) alias_set_entry {
   /* The alias set number, as stored in MEM_ALIAS_SET.  */
   alias_set_type alias_set;
 
@@ -435,6 +434,9 @@ find_base_decl (tree t)
 
   if (t == 0 || t == error_mark_node || ! POINTER_TYPE_P (TREE_TYPE (t)))
     return 0;
+
+  if (TREE_CODE (t) == SSA_NAME)
+    t = SSA_NAME_VAR (t);
 
   /* If this is a declaration, return it.  If T is based on a restrict
      qualified decl, return that decl.  */
@@ -1475,15 +1477,16 @@ find_base_term (rtx x)
 	  return x;
       return 0;
 
+    case LO_SUM:
+      /* The standard form is (lo_sum reg sym) so look only at the
+         second operand.  */
+      return find_base_term (XEXP (x, 1));
+
     case CONST:
       x = XEXP (x, 0);
       if (GET_CODE (x) != PLUS && GET_CODE (x) != MINUS)
 	return 0;
       /* Fall through.  */
-    case LO_SUM:
-      /* The standard form is (lo_sum reg sym) so look only at the
-         second operand.  */
-      return find_base_term (XEXP (x, 1));
     case PLUS:
     case MINUS:
       {
@@ -2287,14 +2290,13 @@ true_dependence (const_rtx mem, enum machine_mode mem_mode, const_rtx x,
    Variant of true_dependence which assumes MEM has already been
    canonicalized (hence we no longer do that here).
    The mem_addr argument has been added, since true_dependence computed
-   this value prior to canonicalizing.  */
+   this value prior to canonicalizing.
+   If x_addr is non-NULL, it is used in preference of XEXP (x, 0).  */
 
 int
 canon_true_dependence (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
-		       const_rtx x, bool (*varies) (const_rtx, bool))
+		       const_rtx x, rtx x_addr, bool (*varies) (const_rtx, bool))
 {
-  rtx x_addr;
-
   if (MEM_VOLATILE_P (x) && MEM_VOLATILE_P (mem))
     return 1;
 
@@ -2320,7 +2322,8 @@ canon_true_dependence (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
   if (nonoverlapping_memrefs_p (x, mem))
     return 0;
 
-  x_addr = get_addr (XEXP (x, 0));
+  if (! x_addr)
+    x_addr = get_addr (XEXP (x, 0));
 
   if (! base_alias_check (x_addr, mem_addr, GET_MODE (x), mem_mode))
     return 0;

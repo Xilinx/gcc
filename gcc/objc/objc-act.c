@@ -243,7 +243,6 @@ static struct c_arg_info *objc_get_parm_info (int);
 
 /* Utilities for debugging and error diagnostics.  */
 
-static void warn_with_method (const char *, int, tree);
 static char *gen_type_name (tree);
 static char *gen_type_name_0 (tree);
 static char *gen_method_decl (tree);
@@ -390,8 +389,7 @@ static int flag_typed_selectors;
 /* Store all constructed constant strings in a hash table so that
    they get uniqued properly.  */
 
-struct string_descriptor GTY(())
-{
+struct GTY(()) string_descriptor {
   /* The literal argument .  */
   tree literal;
 
@@ -402,8 +400,7 @@ struct string_descriptor GTY(())
 static GTY((param_is (struct string_descriptor))) htab_t string_htab;
 
 /* Store the EH-volatilized types in a hash table, for easy retrieval.  */
-struct volatilized_type GTY(())
-{
+struct GTY(()) volatilized_type {
   tree type;
 };
 
@@ -1483,7 +1480,7 @@ start_var_decl (tree type, const char *name)
 static void
 finish_var_decl (tree var, tree initializer)
 {
-  finish_decl (var, initializer, NULL_TREE);
+  finish_decl (var, initializer, NULL_TREE, NULL_TREE);
   /* Ensure that the variable actually gets output.  */
   mark_decl_referenced (var);
   /* Mark the decl to avoid "defined but not used" warning.  */
@@ -3298,8 +3295,7 @@ objc_generate_write_barrier (tree lhs, enum tree_code modifycode, tree rhs)
   return result;
 }
 
-struct interface_tuple GTY(())
-{
+struct GTY(()) interface_tuple {
   tree id;
   tree class_name;
 };
@@ -6103,22 +6099,37 @@ check_duplicates (hash hsh, int methods, int is_class)
 	    }
 
 	issue_warning:
-	  warning (0, "multiple %s named %<%c%s%> found",
-		   methods ? "methods" : "selectors",
-		   (is_class ? '+' : '-'),
-		   IDENTIFIER_POINTER (METHOD_SEL_NAME (meth)));
+	  if (methods)
+	    {
+	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
 
-	  warn_with_method (methods ? "using" : "found",
-			    ((TREE_CODE (meth) == INSTANCE_METHOD_DECL)
-			     ? '-'
-			     : '+'),
-			    meth);
+	      warning (0, "multiple methods named %<%c%s%> found",
+		       (is_class ? '+' : '-'),
+		       IDENTIFIER_POINTER (METHOD_SEL_NAME (meth)));
+	      inform (0, "%Jusing %<%c%s%>", meth,
+		      (type ? '-' : '+'),
+		      gen_method_decl (meth));
+	    }
+	  else
+	    {
+	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
+
+	      warning (0, "multiple selectors named %<%c%s%> found",
+		       (is_class ? '+' : '-'),
+		       IDENTIFIER_POINTER (METHOD_SEL_NAME (meth)));
+	      inform (0, "%Jfound %<%c%s%>", meth,
+		      (type ? '-' : '+'),
+		      gen_method_decl (meth));
+	    }
+
 	  for (loop = hsh->list; loop; loop = loop->next)
-	    warn_with_method ("also found",
-			      ((TREE_CODE (loop->value) == INSTANCE_METHOD_DECL)
-			       ? '-'
-			       : '+'),
-			      loop->value);
+	    {
+	      bool type = TREE_CODE (loop->value) == INSTANCE_METHOD_DECL;
+
+	      inform (0, "%Jalso found %<%c%s%>", loop->value, 
+		      (type ? '-' : '+'),
+		      gen_method_decl (loop->value));
+	    }
         }
     }
   return meth;
@@ -8332,7 +8343,7 @@ objc_get_parm_info (int have_ellipsis)
 
       TREE_CHAIN (parm_info) = NULL_TREE;
       parm_info = pushdecl (parm_info);
-      finish_decl (parm_info, NULL_TREE, NULL_TREE);
+      finish_decl (parm_info, NULL_TREE, NULL_TREE, NULL_TREE);
       parm_info = next;
     }
   arg_info = get_parm_info (have_ellipsis);
@@ -8425,14 +8436,6 @@ start_method_def (tree method)
   parm_info = objc_get_parm_info (have_ellipsis);
 
   really_start_method (objc_method_context, parm_info);
-}
-
-static void
-warn_with_method (const char *message, int mtype, tree method)
-{
-  /* Add a readable method name to the warning.  */
-  warning (0, "%J%s %<%c%s%>", method,
-           message, mtype, gen_method_decl (method));
 }
 
 /* Return 1 if TYPE1 is equivalent to TYPE2
@@ -8677,10 +8680,14 @@ really_start_method (tree method,
 	{
 	  if (!comp_proto_with_proto (method, proto, 1))
 	    {
-	      char type = (TREE_CODE (method) == INSTANCE_METHOD_DECL ? '-' : '+');
+	      bool type = TREE_CODE (method) == INSTANCE_METHOD_DECL;
 
-	      warn_with_method ("conflicting types for", type, method);
-	      warn_with_method ("previous declaration of", type, proto);
+	      warning (0, "%Jconflicting types for %<%c%s%>", method,
+		       (type ? '-' : '+'),
+		       gen_method_decl (method));
+	      inform (0, "%Jprevious declaration of %<%c%s%>", proto,
+		      (type ? '-' : '+'),
+		      gen_method_decl (proto));
 	    }
 	}
       else
@@ -8727,14 +8734,14 @@ get_super_receiver (void)
 	/* This prevents `unused variable' warnings when compiling with -Wall.  */
 	TREE_USED (UOBJC_SUPER_decl) = 1;
 	lang_hooks.decls.pushdecl (UOBJC_SUPER_decl);
-        finish_decl (UOBJC_SUPER_decl, NULL_TREE, NULL_TREE);
+        finish_decl (UOBJC_SUPER_decl, NULL_TREE, NULL_TREE, NULL_TREE);
 	UOBJC_SUPER_scope = objc_get_current_scope ();
       }
 
       /* Set receiver to self.  */
       super_expr = objc_build_component_ref (UOBJC_SUPER_decl, self_id);
-      super_expr = build_modify_expr (input_location, 
-				      super_expr, NOP_EXPR, self_decl);
+      super_expr = build_modify_expr (input_location, super_expr, NULL_TREE,
+				      NOP_EXPR, self_decl, NULL_TREE);
       super_expr_list = super_expr;
 
       /* Set class to begin searching.  */
@@ -8746,11 +8753,13 @@ get_super_receiver (void)
 	  /* [_cls, __cls]Super are "pre-built" in
 	     synth_forward_declarations.  */
 
-	  super_expr = build_modify_expr (input_location, super_expr, NOP_EXPR,
+	  super_expr = build_modify_expr (input_location, super_expr,
+					  NULL_TREE, NOP_EXPR,
 					  ((TREE_CODE (objc_method_context)
 					    == INSTANCE_METHOD_DECL)
 					   ? ucls_super_ref
-					   : uucls_super_ref));
+					   : uucls_super_ref),
+					  NULL_TREE);
 	}
 
       else
@@ -8798,9 +8807,11 @@ get_super_receiver (void)
 	    }
 
 	  super_expr
-	    = build_modify_expr (input_location, super_expr, NOP_EXPR,
+	    = build_modify_expr (input_location, super_expr, NULL_TREE,
+				 NOP_EXPR,
 				 build_c_cast (TREE_TYPE (super_expr),
-					       super_class));
+					       super_class),
+				 NULL_TREE);
 	}
 
       super_expr_list = build_compound_expr (super_expr_list, super_expr);
@@ -9498,7 +9509,7 @@ objc_lookup_ivar (tree other, tree id)
    needs to be done if we are calling a function through a cast.  */
 
 tree
-objc_rewrite_function_call (tree function, tree params)
+objc_rewrite_function_call (tree function, tree first_param)
 {
   if (TREE_CODE (function) == NOP_EXPR
       && TREE_CODE (TREE_OPERAND (function, 0)) == ADDR_EXPR
@@ -9507,7 +9518,7 @@ objc_rewrite_function_call (tree function, tree params)
     {
       function = build3 (OBJ_TYPE_REF, TREE_TYPE (function),
 			 TREE_OPERAND (function, 0),
-			 TREE_VALUE (params), size_zero_node);
+			 first_param, size_zero_node);
     }
 
   return function;

@@ -31,6 +31,8 @@ with Nlists;   use Nlists;
 with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
+with Sem_Case; use Sem_Case;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Util; use Sem_Util;
@@ -201,7 +203,7 @@ package body Sem_Case is
       Lo       : Uint;
       Prev_Hi  : Uint;
 
-   --  Start processing for Check_Choices
+   --  Start of processing for Check_Choices
 
    begin
       --  Choice_Table must start at 0 which is an unused location used
@@ -311,26 +313,11 @@ package body Sem_Case is
       --  the pos value passed as an argument to Choice_Image.
 
       Get_Name_String (Chars (First_Subtype (Ctype)));
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := ''';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'v';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'a';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := 'l';
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := '(';
 
+      Add_Str_To_Name_Buffer ("'val(");
       UI_Image (Value);
-
-      for J in 1 .. UI_Image_Length loop
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := UI_Image_Buffer (J);
-      end loop;
-
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := ')';
+      Add_Str_To_Name_Buffer (UI_Image_Buffer (1 .. UI_Image_Length));
+      Add_Char_To_Name_Buffer (')');
       return Name_Find;
    end Choice_Image;
 

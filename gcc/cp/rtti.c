@@ -1,6 +1,6 @@
 /* RunTime Type Identification
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008
+   2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Mostly written by Jason Merrill (jason@cygnus.com).
 
@@ -64,8 +64,7 @@ along with GCC; see the file COPYING3.  If not see
    translation, when we are emitting the type info objects.  */
 
 /* Auxiliary data we hold for each type_info derived object we need.  */
-typedef struct tinfo_s GTY (())
-{
+typedef struct GTY (()) tinfo_s {
   tree type;  /* The RECORD_TYPE for this type_info object */
 
   tree vtable; /* The VAR_DECL of the vtable.  Only filled at end of
@@ -1519,7 +1518,7 @@ emit_tinfo_decl (tree decl)
       init = get_pseudo_ti_init (type, get_pseudo_ti_index (type));
       DECL_INITIAL (decl) = init;
       mark_used (decl);
-      finish_decl (decl, init, NULL_TREE);
+      finish_decl (decl, init, NULL_TREE, NULL_TREE);
       return true;
     }
   else

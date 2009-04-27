@@ -709,7 +709,8 @@ enum mips_code_readable_setting {
      %{march=mips32|march=4kc|march=4km|march=4kp|march=4ksc:-mips32} \
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
        |march=34k*|march=74k*: -mips32r2} \
-     %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000: -mips64} \
+     %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
+       |march=xlr: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
      %{!march=*: -" MULTILIB_ISA_DEFAULT "}}"
 
@@ -720,7 +721,7 @@ enum mips_code_readable_setting {
 #define MIPS_ARCH_FLOAT_SPEC \
   "%{mhard-float|msoft-float|march=mips*:; \
      march=vr41*|march=m4k|march=4k*|march=24kc|march=24kec \
-     |march=34kc|march=74kc|march=5kc|march=octeon: -msoft-float; \
+     |march=34kc|march=74kc|march=5kc|march=octeon|march=xlr: -msoft-float; \
      march=*: -mhard-float}"
 
 /* A spec condition that matches 32-bit options.  It only works if
@@ -2440,7 +2441,7 @@ typedef struct mips_args {
   /* Flush both caches.  We need to flush the data cache in case	\
      the system has a write-back cache.  */				\
   emit_library_call (gen_rtx_SYMBOL_REF (Pmode, mips_cache_flush_func),	\
-		     0, VOIDmode, 3, ADDR, Pmode, SIZE, Pmode,		\
+		     LCT_NORMAL, VOIDmode, 3, ADDR, Pmode, SIZE, Pmode,	\
 		     GEN_INT (3), TYPE_MODE (integer_type_node))
 
 /* A C statement to initialize the variable parts of a trampoline.
@@ -2523,21 +2524,6 @@ typedef struct mips_args {
       goto WIN;							\
   } while (0)
 
-
-/* A C statement or compound statement with a conditional `goto
-   LABEL;' executed if memory address X (an RTX) can have different
-   meanings depending on the machine mode of the memory reference it
-   is used for.
-
-   Autoincrement and autodecrement addresses typically have
-   mode-dependent effects because the amount of the increment or
-   decrement is the size of the operand being addressed.  Some
-   machines have other mode-dependent addresses.  Many RISC machines
-   have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) {}
 
 /* This handles the magic '..CURRENT_FUNCTION' symbol, which means
    'the start of the function that this code is output in'.  */
@@ -3459,3 +3445,10 @@ extern enum mips_code_readable_setting mips_code_readable;
 
 /* Enable querying of DFA units.  */
 #define CPU_UNITS_QUERY 1
+
+#define FINAL_PRESCAN_INSN(INSN, OPVEC, NOPERANDS)	\
+  mips_final_prescan_insn (INSN, OPVEC, NOPERANDS)
+
+/* This is necessary to avoid a warning about comparing different enum
+   types.  */
+#define mips_tune_attr ((enum attr_cpu) mips_tune)

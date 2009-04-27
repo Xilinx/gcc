@@ -4,7 +4,7 @@
 #
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
+# the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful, but
@@ -13,8 +13,8 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
 
 ##############################################################################
 ### WARNING: this file contains embedded tabs.  Do not run untabify on this file.
@@ -450,7 +450,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ld gas gdb gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
-  i[[3456789]]86-*-darwin* | x86_64-*-darwin9*)
+  i[[3456789]]86-*-darwin* | x86_64-*-darwin[[912]]*)
     noconfigdirs="$noconfigdirs ld gas gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
     ;;
@@ -643,6 +643,10 @@ case "${target}" in
     ;;
   frv-*-*)
     noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  moxie-*-*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof"
     ;;
   h8300*-*-*)
     noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
@@ -1250,6 +1254,7 @@ fi
 if test "x$with_gmp$with_gmp_include$with_gmp_lib" = x && test -d ${srcdir}/gmp; then
   gmplibs='-L$$r/$(HOST_SUBDIR)/gmp/.libs -L$$r/$(HOST_SUBDIR)/gmp/_libs '"$gmplibs"
   gmpinc='-I$$r/$(HOST_SUBDIR)/gmp -I$$s/gmp '"$gmpinc"
+  extra_mpfr_configure_flags='--with-gmp-build=$$r/$(HOST_SUBDIR)/gmp'
   # Do not test the gmp version.  Assume that it is sufficient, since
   # it is in the source tree, and the library has not been built yet
   # but it would be included on the link line in the version check below
@@ -1264,7 +1269,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   # Check GMP actually works
   AC_MSG_CHECKING([for correct version of gmp.h])
   AC_TRY_COMPILE([#include "gmp.h"],[
-  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1)
+  #if __GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 2)
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); have_gmp=no])
@@ -1272,11 +1277,11 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   if test x"$have_gmp" = xyes; then
     saved_LIBS="$LIBS"
     LIBS="$LIBS $gmplibs"
-    dnl MPFR 2.3.0 is acceptable, but MPFR 2.3.2 is better.
+    dnl MPFR 2.3.1 is acceptable, but MPFR 2.3.2 is better.
     AC_MSG_CHECKING([for correct version of mpfr.h])
     AC_TRY_LINK([#include <gmp.h>
     #include <mpfr.h>],[
-    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,0)
+    #if MPFR_VERSION < MPFR_VERSION_NUM(2,3,1)
     choke me
     #endif
     mpfr_t n;
@@ -1300,7 +1305,7 @@ if test -d ${srcdir}/gcc && test "x$have_gmp" = xno; then
   CFLAGS="$saved_CFLAGS"
 
   if test x$have_gmp != xyes; then
-    AC_MSG_ERROR([Building GCC requires GMP 4.1+ and MPFR 2.3.2+.
+    AC_MSG_ERROR([Building GCC requires GMP 4.2+ and MPFR 2.3.2+.
 Try the --with-gmp and/or --with-mpfr options to specify their locations.
 Copies of these libraries' source code can be found at their respective
 hosting sites as well as at ftp://gcc.gnu.org/pub/gcc/infrastructure/.
@@ -1314,6 +1319,7 @@ fi
 # Flags needed for both GMP and/or MPFR
 AC_SUBST(gmplibs)
 AC_SUBST(gmpinc)
+AC_SUBST(extra_mpfr_configure_flags)
 
 # Allow host libstdc++ to be specified for static linking with PPL.
 AC_ARG_WITH(host-libstdcxx, [  --with-host-libstdcxx=L Use linker arguments L to link with libstdc++
@@ -2726,10 +2732,10 @@ case " $build_configdirs " in
   *" texinfo "*) MAKEINFO='$$r/$(BUILD_SUBDIR)/texinfo/makeinfo/makeinfo' ;;
   *)
 changequote(,)
-    # For an installed makeinfo, we require it to be from texinfo 4.6 or
+    # For an installed makeinfo, we require it to be from texinfo 4.7 or
     # higher, else we use the "missing" dummy.
     if ${MAKEINFO} --version \
-       | egrep 'texinfo[^0-9]*(4\.([6-9]|[1-9][0-9])|[5-9]|[1-9][0-9])' >/dev/null 2>&1; then
+       | egrep 'texinfo[^0-9]*(4\.([7-9]|[1-9][0-9])|[5-9]|[1-9][0-9])' >/dev/null 2>&1; then
       :
     else
       MAKEINFO="$MISSING makeinfo"

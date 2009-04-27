@@ -72,7 +72,8 @@ struct funct_state_d
   /* See above.  */
   enum pure_const_state_e pure_const_state;
   /* What user set here; we can be always sure about this.  */
-  enum pure_const_state_e state_set_in_source; 
+  enum pure_const_state_e state_previously_known; 
+  bool looping_previously_known; 
 
   /* True if the function could possibly infinite loop.  There are a
      lot of ways that this could be determined.  We are pretty
@@ -209,36 +210,28 @@ check_decl (funct_state local,
    variable T is legal in a function that is either pure or const.  */
 
 static inline void 
-check_op (funct_state local, 
-	    tree t, bool checking_write)
+check_op (funct_state local, tree t, bool checking_write)
 {
-  while (t && handled_component_p (t))
-    t = TREE_OPERAND (t, 0);
-  if (!t)
-    return;
-  if (INDIRECT_REF_P (t) || TREE_CODE (t) == TARGET_MEM_REF)
+  if (TREE_THIS_VOLATILE (t))
     {
-      if (TREE_THIS_VOLATILE (t)) 
-	{ 
-	  local->pure_const_state = IPA_NEITHER;
-	  if (dump_file)
-	    fprintf (dump_file, "    Volatile indirect ref is not const/pure\n");
-	  return;
-	}
-      else if (checking_write)
-	{ 
-	  local->pure_const_state = IPA_NEITHER;
-	  if (dump_file)
-	    fprintf (dump_file, "    Indirect ref write is not const/pure\n");
-	  return;
-	}
-       else
-        {
-	  if (dump_file)
-	    fprintf (dump_file, "    Indirect ref read is not const\n");
-          if (local->pure_const_state == IPA_CONST)
-	    local->pure_const_state = IPA_PURE;
-	}
+      local->pure_const_state = IPA_NEITHER;
+      if (dump_file)
+	fprintf (dump_file, "    Volatile indirect ref is not const/pure\n");
+      return;
+    }
+  else if (checking_write)
+    {
+      local->pure_const_state = IPA_NEITHER;
+      if (dump_file)
+	fprintf (dump_file, "    Indirect ref write is not const/pure\n");
+      return;
+    }
+  else
+    {
+      if (dump_file)
+	fprintf (dump_file, "    Indirect ref read is not const\n");
+      if (local->pure_const_state == IPA_CONST)
+	local->pure_const_state = IPA_PURE;
     }
 }
 
@@ -375,6 +368,30 @@ check_call (funct_state local, gimple call, bool ipa)
   /* Direct functions calls are handled by IPA propagation.  */
 }
 
+/* Wrapper around check_decl for loads.  */
+
+static bool
+check_load (gimple stmt ATTRIBUTE_UNUSED, tree op, void *data)
+{
+  if (DECL_P (op))
+    check_decl ((funct_state)data, op, false);
+  else
+    check_op ((funct_state)data, op, false);
+  return false;
+}
+
+/* Wrapper around check_decl for stores.  */
+
+static bool
+check_store (gimple stmt ATTRIBUTE_UNUSED, tree op, void *data)
+{
+  if (DECL_P (op))
+    check_decl ((funct_state)data, op, true);
+  else
+    check_op ((funct_state)data, op, true);
+  return false;
+}
+
 /* Look into pointer pointed to by GSIP and figure out what interesting side
    effects it has.  */
 static void
@@ -389,45 +406,8 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
       print_gimple_stmt (dump_file, stmt, 0, 0);
     }
 
-  /* Look for direct loads and stores.  */
-  if (gimple_has_lhs (stmt))
-    {
-      tree lhs = get_base_address (gimple_get_lhs (stmt));
-      if (lhs && DECL_P (lhs))
-	check_decl (local, lhs, true);
-    }
-  if (gimple_assign_single_p (stmt))
-    {
-      tree rhs = get_base_address (gimple_assign_rhs1 (stmt));
-      if (rhs && DECL_P (rhs))
-	check_decl (local, rhs, false);
-    }
-  else if (is_gimple_call (stmt))
-    {
-      for (i = 0; i < gimple_call_num_args (stmt); ++i)
-	{
-	  tree rhs = get_base_address (gimple_call_arg (stmt, i));
-	  if (rhs && DECL_P (rhs))
-	    check_decl (local, rhs, false);
-	}
-    }
-  else if (gimple_code (stmt) == GIMPLE_ASM)
-    {
-      for (i = 0; i < gimple_asm_ninputs (stmt); ++i)
-	{
-	  tree op = TREE_VALUE (gimple_asm_input_op (stmt, i));
-	  op = get_base_address (op);
-	  if (op && DECL_P (op))
-	    check_decl (local, op, false);
-	}
-      for (i = 0; i < gimple_asm_noutputs (stmt); ++i)
-	{
-	  tree op = TREE_VALUE (gimple_asm_output_op (stmt, i));
-	  op = get_base_address (op);
-	  if (op && DECL_P (op))
-	    check_decl (local, op, true);
-	}
-    }
+  /* Look for loads and stores.  */
+  walk_stmt_load_store_ops (stmt, local, check_load, check_store);
 
   if (gimple_code (stmt) != GIMPLE_CALL
       && stmt_could_throw_p (stmt))
@@ -447,13 +427,7 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
     }
   switch (gimple_code (stmt))
     {
-    case GIMPLE_ASSIGN:
-      check_op (local, gimple_assign_lhs (stmt), true);
-      i = 1;
-      break;
     case GIMPLE_CALL:
-      check_op (local, gimple_call_lhs (stmt), true);
-      i = 1;
       check_call (local, stmt, ipa);
       break;
     case GIMPLE_LABEL:
@@ -466,10 +440,6 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
 	}
       break;
     case GIMPLE_ASM:
-      for (i = 0; i < gimple_asm_noutputs (stmt); i++)
-         check_op (local, TREE_VALUE (gimple_asm_output_op (stmt, i)), true);
-      for (i = 0; i < gimple_asm_ninputs (stmt); i++)
-         check_op (local, TREE_VALUE (gimple_asm_input_op (stmt, i)), false);
       for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
 	{
 	  tree op = gimple_asm_clobber_op (stmt, i);
@@ -493,9 +463,6 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
     default:
       break;
     }
-
-  for (; i < gimple_num_ops (stmt); i++)
-    check_op (local, gimple_op (stmt, i), false);
 }
 
 
@@ -519,7 +486,8 @@ analyze_function (struct cgraph_node *fn, bool ipa)
 
   l = XCNEW (struct funct_state_d);
   l->pure_const_state = IPA_CONST;
-  l->state_set_in_source = IPA_NEITHER;
+  l->state_previously_known = IPA_NEITHER;
+  l->looping_previously_known = true;
   l->looping = false;
   l->can_throw = false;
 
@@ -562,17 +530,17 @@ end:
   if (TREE_READONLY (decl))
     {
       l->pure_const_state = IPA_CONST;
-      l->state_set_in_source = IPA_CONST;
+      l->state_previously_known = IPA_CONST;
       if (!DECL_LOOPING_CONST_OR_PURE_P (decl))
-        l->looping = false;
+        l->looping = false, l->looping_previously_known = false;
     }
   if (DECL_PURE_P (decl))
     {
       if (l->pure_const_state != IPA_CONST)
         l->pure_const_state = IPA_PURE;
-      l->state_set_in_source = IPA_PURE;
+      l->state_previously_known = IPA_PURE;
       if (!DECL_LOOPING_CONST_OR_PURE_P (decl))
-        l->looping = false;
+        l->looping = false, l->looping_previously_known = false;
     }
   if (TREE_NOTHROW (decl))
     l->can_throw = false;
@@ -671,6 +639,12 @@ generate_summary (void)
   visited_nodes = NULL;
 }
 
+static bool
+ignore_edge (struct cgraph_edge *e)
+{
+  return (!e->can_throw_external);
+}
+
 /* Produce the global information by preforming a transitive closure
    on the local information that was produced by generate_summary.
    Note that there is no function_transform pass since this only
@@ -690,7 +664,7 @@ propagate (void)
   cgraph_remove_function_insertion_hook (function_insertion_hook_holder);
   cgraph_remove_node_duplication_hook (node_duplication_hook_holder);
   cgraph_remove_node_removal_hook (node_removal_hook_holder);
-  order_pos = ipa_utils_reduced_inorder (order, true, false);
+  order_pos = ipa_utils_reduced_inorder (order, true, false, NULL);
   if (dump_file)
     {
       dump_cgraph (dump_file);
@@ -705,7 +679,6 @@ propagate (void)
     {
       enum pure_const_state_e pure_const_state = IPA_CONST;
       bool looping = false;
-      bool can_throw = false;
       int count = 0;
       node = order[i];
 
@@ -718,13 +691,10 @@ propagate (void)
 	  if (pure_const_state < w_l->pure_const_state)
 	    pure_const_state = w_l->pure_const_state;
 
-	  if (w_l->can_throw)
-	    can_throw = true;
 	  if (w_l->looping)
 	    looping = true;
 
-	  if (pure_const_state == IPA_NEITHER
-	      && can_throw)
+	  if (pure_const_state == IPA_NEITHER)
 	    break;
 
 	  count++;
@@ -741,16 +711,10 @@ propagate (void)
 		  funct_state y_l = get_function_state (y);
 		  if (pure_const_state < y_l->pure_const_state)
 		    pure_const_state = y_l->pure_const_state;
-		  if (pure_const_state == IPA_NEITHER
-		      && can_throw) 
+		  if (pure_const_state == IPA_NEITHER)
 		    break;
 		  if (y_l->looping)
 		    looping = true;
-		  if (y_l->can_throw && !TREE_NOTHROW (w->decl)
-		      /* FIXME: We should check that the throw can get external.
-		         We also should handle only loops formed by can throw external
-			 edges.  */)
-		    can_throw = true;
 		}
 	    }
 	  w_info = (struct ipa_dfs_info *) w->aux;
@@ -766,12 +730,11 @@ propagate (void)
 	  enum pure_const_state_e this_state = pure_const_state;
 	  bool this_looping = looping;
 
-	  if (w_l->state_set_in_source != IPA_NEITHER)
-	    {
-	      if (this_state > w_l->state_set_in_source)
-	        this_state = w_l->state_set_in_source;
-	      this_looping = false;
-	    }
+	  if (w_l->state_previously_known != IPA_NEITHER
+	      && this_state > w_l->state_previously_known)
+            this_state = w_l->state_previously_known;
+	  if (!w_l->looping_previously_known)
+	    this_looping = false;
 
 	  /* All nodes within a cycle share the same info.  */
 	  w_l->pure_const_state = this_state;
@@ -800,16 +763,87 @@ propagate (void)
 	    default:
 	      break;
 	    }
+	  w_info = (struct ipa_dfs_info *) w->aux;
+	  w = w_info->next_cycle;
+	}
+    }
+
+  /* Cleanup. */
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      /* Get rid of the aux information.  */
+      if (node->aux)
+	{
+	  w_info = (struct ipa_dfs_info *) node->aux;
+	  free (node->aux);
+	  node->aux = NULL;
+	}
+    }
+  order_pos = ipa_utils_reduced_inorder (order, true, false, ignore_edge);
+  if (dump_file)
+    {
+      dump_cgraph (dump_file);
+      ipa_utils_print_order(dump_file, "reduced for nothrow", order, order_pos);
+    }
+  /* Propagate the local information thru the call graph to produce
+     the global information.  All the nodes within a cycle will have
+     the same info so we collapse cycles first.  Then we can do the
+     propagation in one pass from the leaves to the roots.  */
+  for (i = 0; i < order_pos; i++ )
+    {
+      bool can_throw = false;
+      node = order[i];
+
+      /* Find the worst state for any node in the cycle.  */
+      w = node;
+      while (w)
+	{
+	  struct cgraph_edge *e;
+	  funct_state w_l = get_function_state (w);
+
+	  if (w_l->can_throw)
+	    can_throw = true;
+
+	  if (can_throw)
+	    break;
+		
+	  for (e = w->callees; e; e = e->next_callee) 
+	    {
+	      struct cgraph_node *y = e->callee;
+
+	      if (cgraph_function_body_availability (y) > AVAIL_OVERWRITABLE)
+		{
+		  funct_state y_l = get_function_state (y);
+
+		  if (can_throw) 
+		    break;
+		  if (y_l->can_throw && !TREE_NOTHROW (w->decl)
+		      && e->can_throw_external)
+		    can_throw = true;
+		}
+	    }
+	  w_info = (struct ipa_dfs_info *) w->aux;
+	  w = w_info->next_cycle;
+	}
+
+      /* Copy back the region's pure_const_state which is shared by
+	 all nodes in the region.  */
+      w = node;
+      while (w)
+	{
+	  funct_state w_l = get_function_state (w);
 	  if (!can_throw && !TREE_NOTHROW (w->decl))
 	    {
-	      /* FIXME: TREE_NOTHROW is not set because passmanager will execute
-	         verify_ssa and verify_cfg on every function.  Before fixup_cfg is done,
-	         those functions are going to have NOTHROW calls in EH regions reulting
-	         in ICE.  */
+	      struct cgraph_edge *e;
+	      TREE_NOTHROW (w->decl) = true;
+	      for (e = w->callers; e; e = e->next_caller)
+	        e->can_throw_external = false;
 	      if (dump_file)
 		fprintf (dump_file, "Function found to be nothrow: %s\n",  
 			 cgraph_node_name (w));
 	    }
+	  else if (can_throw && !TREE_NOTHROW (w->decl))
+	    w_l->can_throw = true;
 	  w_info = (struct ipa_dfs_info *) w->aux;
 	  w = w_info->next_cycle;
 	}
@@ -952,7 +986,12 @@ local_pure_const (void)
     }
   if (!l->can_throw && !TREE_NOTHROW (current_function_decl))
     {
-      TREE_NOTHROW (current_function_decl) = 1;
+      struct cgraph_edge *e;
+
+      TREE_NOTHROW (current_function_decl) = true;
+      for (e = cgraph_node (current_function_decl)->callers;
+           e; e = e->next_caller)
+	e->can_throw_external = false;
       changed = true;
       if (dump_file)
 	fprintf (dump_file, "Function found to be nothrow: %s\n",

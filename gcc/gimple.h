@@ -69,7 +69,7 @@ extern void gimple_check_failed (const_gimple, const char *, int,          \
     const_gimple __gs = (GS);						\
     if (gimple_code (__gs) != (CODE))					\
       gimple_check_failed (__gs, __FILE__, __LINE__, __FUNCTION__,	\
-	  		   (CODE), 0);					\
+	  		   (CODE), ERROR_MARK);				\
   } while (0)
 #else  /* not ENABLE_GIMPLE_CHECKING  */
 #define GIMPLE_CHECK(GS, CODE)			(void)0
@@ -125,16 +125,14 @@ enum plf_mask {
 };
 
 /* A node in a gimple_seq_d.  */
-struct gimple_seq_node_d GTY((chain_next ("%h.next"), chain_prev ("%h.prev")))
-{
+struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) gimple_seq_node_d {
   gimple stmt;
   struct gimple_seq_node_d *prev;
   struct gimple_seq_node_d *next;
 };
 
 /* A double-linked sequence of gimple statements.  */
-struct gimple_seq_d GTY ((chain_next ("%h.next_free")))
-{
+struct GTY ((chain_next ("%h.next_free"))) gimple_seq_d {
   /* First and last statements in the sequence.  */
   gimple_seq_node first;
   gimple_seq_node last;
@@ -262,8 +260,7 @@ typedef struct
 /* Data structure definitions for GIMPLE tuples.  NOTE: word markers
    are for 64 bit hosts.  */
 
-struct gimple_statement_base GTY(())
-{
+struct GTY(()) gimple_statement_base {
   /* [ WORD 1 ]
      Main identifying code for a tuple.  */
   ENUM_BITFIELD(gimple_code) code : 8;
@@ -325,17 +322,12 @@ struct gimple_statement_base GTY(())
 
 /* Base structure for tuples with operands.  */
 
-struct gimple_statement_with_ops_base GTY(())
+struct GTY(()) gimple_statement_with_ops_base
 {
-  /* [ WORD  1-4 ]  */
+  /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
-  /* [ WORD 5 ]
-     Symbols whose addresses are taken by this statement (i.e., they
-     appear inside ADDR_EXPR nodes).  */
-  bitmap GTY((skip (""))) addresses_taken;
-
-  /* [ WORD 6-7 ]
+  /* [ WORD 5-6 ]
      SSA operand vectors.  NOTE: It should be possible to
      amalgamate these vectors with the operand vector OP.  However,
      the SSA operand vectors are organized differently and contain
@@ -347,12 +339,12 @@ struct gimple_statement_with_ops_base GTY(())
 
 /* Statements that take register operands.  */
 
-struct gimple_statement_with_ops GTY(())
+struct GTY(()) gimple_statement_with_ops
 {
-  /* [ WORD 1-7 ]  */
+  /* [ WORD 1-6 ]  */
   struct gimple_statement_with_ops_base opbase;
 
-  /* [ WORD 8 ]
+  /* [ WORD 7 ]
      Operand vector.  NOTE!  This must always be the last field
      of this structure.  In particular, this means that this
      structure cannot be embedded inside another one.  */
@@ -362,12 +354,12 @@ struct gimple_statement_with_ops GTY(())
 
 /* Base for statements that take both memory and register operands.  */
 
-struct gimple_statement_with_memory_ops_base GTY(())
+struct GTY(()) gimple_statement_with_memory_ops_base
 {
-  /* [ WORD 1-7 ]  */
+  /* [ WORD 1-6 ]  */
   struct gimple_statement_with_ops_base opbase;
 
-  /* [ WORD 8-9 ]
+  /* [ WORD 7-8 ]
      Virtual operands for this statement.  The GC will pick them
      up via the ssa_names array.  */
   tree GTY((skip (""))) vdef;
@@ -377,12 +369,12 @@ struct gimple_statement_with_memory_ops_base GTY(())
 
 /* Statements that take both memory and register operands.  */
 
-struct gimple_statement_with_memory_ops GTY(())
+struct GTY(()) gimple_statement_with_memory_ops
 {
-  /* [ WORD 1-9 ]  */
+  /* [ WORD 1-8 ]  */
   struct gimple_statement_with_memory_ops_base membase;
 
-  /* [ WORD 10 ]
+  /* [ WORD 9 ]
      Operand vector.  NOTE!  This must always be the last field
      of this structure.  In particular, this means that this
      structure cannot be embedded inside another one.  */
@@ -392,8 +384,7 @@ struct gimple_statement_with_memory_ops GTY(())
 
 /* OpenMP statements (#pragma omp).  */
 
-struct gimple_statement_omp GTY(())
-{
+struct GTY(()) gimple_statement_omp {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -404,8 +395,7 @@ struct gimple_statement_omp GTY(())
 
 /* GIMPLE_BIND */
 
-struct gimple_statement_bind GTY(())
-{
+struct GTY(()) gimple_statement_bind {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -428,8 +418,7 @@ struct gimple_statement_bind GTY(())
 
 /* GIMPLE_CATCH */
 
-struct gimple_statement_catch GTY(())
-{
+struct GTY(()) gimple_statement_catch {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -443,8 +432,7 @@ struct gimple_statement_catch GTY(())
 
 /* GIMPLE_EH_FILTER */
 
-struct gimple_statement_eh_filter GTY(())
-{
+struct GTY(()) gimple_statement_eh_filter {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -463,8 +451,7 @@ struct gimple_statement_eh_filter GTY(())
 
 /* GIMPLE_PHI */
 
-struct gimple_statement_phi GTY(())
-{
+struct GTY(()) gimple_statement_phi {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -482,8 +469,7 @@ struct gimple_statement_phi GTY(())
 
 /* GIMPLE_RESX */
 
-struct gimple_statement_resx GTY(())
-{
+struct GTY(()) gimple_statement_resx {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -495,8 +481,7 @@ struct gimple_statement_resx GTY(())
 
 /* GIMPLE_TRY */
 
-struct gimple_statement_try GTY(())
-{
+struct GTY(()) gimple_statement_try {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -525,8 +510,7 @@ enum gimple_try_flags
 
 /* GIMPLE_WITH_CLEANUP_EXPR */
 
-struct gimple_statement_wce GTY(())
-{
+struct GTY(()) gimple_statement_wce {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -543,22 +527,22 @@ struct gimple_statement_wce GTY(())
 
 /* GIMPLE_ASM  */
 
-struct gimple_statement_asm GTY(())
+struct GTY(()) gimple_statement_asm
 {
-  /* [ WORD 1-9 ]  */
+  /* [ WORD 1-8 ]  */
   struct gimple_statement_with_memory_ops_base membase;
 
-  /* [ WORD 10 ]
+  /* [ WORD 9 ]
      __asm__ statement.  */
   const char *string;
 
-  /* [ WORD 11 ]
+  /* [ WORD 10 ]
        Number of inputs, outputs and clobbers.  */
   unsigned char ni;
   unsigned char no;
   unsigned short nc;
 
-  /* [ WORD 12 ]
+  /* [ WORD 11 ]
      Operand vector.  NOTE!  This must always be the last field
      of this structure.  In particular, this means that this
      structure cannot be embedded inside another one.  */
@@ -567,8 +551,7 @@ struct gimple_statement_asm GTY(())
 
 /* GIMPLE_OMP_CRITICAL */
 
-struct gimple_statement_omp_critical GTY(())
-{
+struct GTY(()) gimple_statement_omp_critical {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -578,8 +561,7 @@ struct gimple_statement_omp_critical GTY(())
 };
 
 
-struct gimple_omp_for_iter GTY(())
-{
+struct GTY(()) gimple_omp_for_iter {
   /* Condition code.  */
   enum tree_code cond;
 
@@ -598,8 +580,7 @@ struct gimple_omp_for_iter GTY(())
 
 /* GIMPLE_OMP_FOR */
 
-struct gimple_statement_omp_for GTY(())
-{
+struct GTY(()) gimple_statement_omp_for {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -621,8 +602,7 @@ struct gimple_statement_omp_for GTY(())
 
 /* GIMPLE_OMP_PARALLEL */
 
-struct gimple_statement_omp_parallel GTY(())
-{
+struct GTY(()) gimple_statement_omp_parallel {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -642,8 +622,7 @@ struct gimple_statement_omp_parallel GTY(())
 
 /* GIMPLE_OMP_TASK */
 
-struct gimple_statement_omp_task GTY(())
-{
+struct GTY(()) gimple_statement_omp_task {
   /* [ WORD 1-8 ]  */
   struct gimple_statement_omp_parallel par;
 
@@ -664,8 +643,7 @@ struct gimple_statement_omp_task GTY(())
 
 /* GIMPLE_OMP_SECTIONS */
 
-struct gimple_statement_omp_sections GTY(())
-{
+struct GTY(()) gimple_statement_omp_sections {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -683,8 +661,7 @@ struct gimple_statement_omp_sections GTY(())
    Note: This does not inherit from gimple_statement_omp, because we
          do not need the body field.  */
 
-struct gimple_statement_omp_continue GTY(())
-{
+struct GTY(()) gimple_statement_omp_continue {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -697,8 +674,7 @@ struct gimple_statement_omp_continue GTY(())
 
 /* GIMPLE_OMP_SINGLE */
 
-struct gimple_statement_omp_single GTY(())
-{
+struct GTY(()) gimple_statement_omp_single {
   /* [ WORD 1-5 ]  */
   struct gimple_statement_omp omp;
 
@@ -711,8 +687,7 @@ struct gimple_statement_omp_single GTY(())
    Note: This is based on gimple_statement_base, not g_s_omp, because g_s_omp
    contains a sequence, which we don't need here.  */
 
-struct gimple_statement_omp_atomic_load GTY(())
-{
+struct GTY(()) gimple_statement_omp_atomic_load {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -723,8 +698,7 @@ struct gimple_statement_omp_atomic_load GTY(())
 /* GIMPLE_OMP_ATOMIC_STORE.
    See note on GIMPLE_OMP_ATOMIC_LOAD.  */
 
-struct gimple_statement_omp_atomic_store GTY(())
-{
+struct GTY(()) gimple_statement_omp_atomic_store {
   /* [ WORD 1-4 ]  */
   struct gimple_statement_base gsbase;
 
@@ -743,8 +717,7 @@ enum gimple_statement_structure_enum {
 /* Define the overall contents of a gimple tuple.  It may be any of the
    structures declared above for various types of tuples.  */
 
-union gimple_statement_d GTY ((desc ("gimple_statement_structure (&%h)")))
-{
+union GTY ((desc ("gimple_statement_structure (&%h)"))) gimple_statement_d {
   struct gimple_statement_base GTY ((tag ("GSS_BASE"))) gsbase;
   struct gimple_statement_with_ops GTY ((tag ("GSS_WITH_OPS"))) gsops;
   struct gimple_statement_with_memory_ops GTY ((tag ("GSS_WITH_MEM_OPS"))) gsmem;
@@ -909,6 +882,14 @@ extern tree get_call_expr_in (tree t);
 extern void recalculate_side_effects (tree);
 extern void count_uses_and_derefs (tree, gimple, unsigned *, unsigned *,
 				   unsigned *);
+extern bool walk_stmt_load_store_addr_ops (gimple, void *,
+					   bool (*)(gimple, tree, void *),
+					   bool (*)(gimple, tree, void *),
+					   bool (*)(gimple, tree, void *));
+extern bool walk_stmt_load_store_ops (gimple, void *,
+				      bool (*)(gimple, tree, void *),
+				      bool (*)(gimple, tree, void *));
+extern bool gimple_ior_addresses_taken (bitmap, gimple);
 
 /* In gimplify.c  */
 extern tree create_tmp_var_raw (tree, const char *);
@@ -927,7 +908,7 @@ typedef bool (*gimple_predicate)(tree);
 
 
 /* FIXME we should deduce this from the predicate.  */
-typedef enum fallback_t {
+enum fallback {
   fb_none = 0,		/* Do not generate a temporary.  */
 
   fb_rvalue = 1,	/* Generate an rvalue to hold the result of a
@@ -939,7 +920,9 @@ typedef enum fallback_t {
   fb_mayfail = 4,	/* Gimplification may fail.  Error issued
 			   afterwards.  */
   fb_either= fb_rvalue | fb_lvalue
-} fallback_t;
+};
+
+typedef int fallback_t;
 
 enum gimplify_status {
   GS_ERROR	= -2,	/* Something Bad Seen.  */
@@ -1233,41 +1216,6 @@ static inline bool
 gimple_has_mem_ops (const_gimple g)
 {
   return gimple_code (g) >= GIMPLE_ASSIGN && gimple_code (g) <= GIMPLE_RETURN;
-}
-
-/* Return the set of addresses taken by statement G.  */
-
-static inline bitmap
-gimple_addresses_taken (const_gimple g)
-{
-  if (gimple_has_ops (g))
-    return g->gsops.opbase.addresses_taken;
-  else
-    return NULL;
-}
-
-
-/* Return a pointer to the set of addresses taken by statement G.  */
-
-static inline bitmap *
-gimple_addresses_taken_ptr (gimple g)
-{
-  if (gimple_has_ops (g))
-    return &g->gsops.opbase.addresses_taken;
-  else
-    return NULL;
-}
-
-
-/* Set B to be the set of addresses taken by statement G.  The
-   previous set is freed.  */
-
-static inline void
-gimple_set_addresses_taken (gimple g, bitmap b)
-{
-  gcc_assert (gimple_has_ops (g));
-  BITMAP_FREE (g->gsops.opbase.addresses_taken);
-  g->gsops.opbase.addresses_taken = b;
 }
 
 

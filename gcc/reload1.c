@@ -997,7 +997,8 @@ reload (rtx first, int global)
       for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
 	if (reg_renumber[i] < 0 && reg_equiv_memory_loc[i])
 	  {
-	    rtx x = eliminate_regs (reg_equiv_memory_loc[i], 0, NULL_RTX);
+	    rtx x = eliminate_regs (reg_equiv_memory_loc[i], VOIDmode,
+				    NULL_RTX);
 
 	    if (strict_memory_address_p (GET_MODE (regno_reg_rtx[i]),
 					 XEXP (x, 0)))
@@ -2686,7 +2687,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 			? eliminate_regs_1 (XEXP (x, 1), mem_mode, insn, true)
 			: NULL_RTX);
 
-	      x = gen_rtx_EXPR_LIST (REG_NOTE_KIND (x), new_rtx, XEXP (x, 1));
+	      x = alloc_reg_note (REG_NOTE_KIND (x), new_rtx, XEXP (x, 1));
 	    }
 	}
 
@@ -2809,7 +2810,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 
     case USE:
       /* Handle insn_list USE that a call to a pure function may generate.  */
-      new_rtx = eliminate_regs_1 (XEXP (x, 0), 0, insn, false);
+      new_rtx = eliminate_regs_1 (XEXP (x, 0), VOIDmode, insn, false);
       if (new_rtx != XEXP (x, 0))
 	return gen_rtx_USE (GET_MODE (x), new_rtx);
       return x;
@@ -3050,8 +3051,8 @@ elimination_effects (rtx x, enum machine_mode mem_mode)
 	      }
 	}
 
-      elimination_effects (SET_DEST (x), 0);
-      elimination_effects (SET_SRC (x), 0);
+      elimination_effects (SET_DEST (x), VOIDmode);
+      elimination_effects (SET_SRC (x), VOIDmode);
       return;
 
     case MEM:
@@ -3349,7 +3350,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
     }
 
   /* Determine the effects of this insn on elimination offsets.  */
-  elimination_effects (old_body, 0);
+  elimination_effects (old_body, VOIDmode);
 
   /* Eliminate all eliminable registers occurring in operands that
      can be handled by reload.  */
@@ -3390,7 +3391,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
 	    in_plus = true;
 
 	  substed_operand[i]
-	    = eliminate_regs_1 (recog_data.operand[i], 0,
+	    = eliminate_regs_1 (recog_data.operand[i], VOIDmode,
 			        replace ? insn : NULL_RTX,
 				is_set_src || in_plus);
 	  if (substed_operand[i] != orig_operand[i])
@@ -3520,7 +3521,7 @@ eliminate_regs_in_insn (rtx insn, int replace)
      the pre-passes.  */
   if (val && REG_NOTES (insn) != 0)
     REG_NOTES (insn)
-      = eliminate_regs_1 (REG_NOTES (insn), 0, REG_NOTES (insn), true);
+      = eliminate_regs_1 (REG_NOTES (insn), VOIDmode, REG_NOTES (insn), true);
 
   return val;
 }
@@ -7087,10 +7088,17 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 	  else if (new_class == NO_REGS)
 	    {
 	      if (reload_adjust_reg_for_icode (&second_reload_reg,
-					       third_reload_reg, sri.icode))
-		icode = sri.icode, third_reload_reg = 0;
+					       third_reload_reg,
+					       (enum insn_code) sri.icode))
+		{
+		  icode = (enum insn_code) sri.icode;
+		  third_reload_reg = 0;
+		}
 	      else
-		oldequiv = old, real_oldequiv = real_old;
+		{
+		  oldequiv = old;
+		  real_oldequiv = real_old;
+		}
 	    }
 	  else if (sri.icode != CODE_FOR_nothing)
 	    /* We currently lack a way to express this in reloads.  */
@@ -7106,9 +7114,15 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 		  if (reload_adjust_reg_for_temp (&second_reload_reg,
 						  third_reload_reg,
 						  new_class, mode))
-		    third_reload_reg = 0, tertiary_icode = sri2.icode;
+		    {
+		      third_reload_reg = 0;
+		      tertiary_icode = (enum insn_code) sri2.icode;
+		    }
 		  else
-		    oldequiv = old, real_oldequiv = real_old;
+		    {
+		      oldequiv = old;
+		      real_oldequiv = real_old;
+		    }
 		}
 	      else if (new_t_class == NO_REGS && sri2.icode != CODE_FOR_nothing)
 		{
@@ -7117,13 +7131,17 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 		  if (reload_adjust_reg_for_temp (&intermediate, NULL,
 						  new_class, mode)
 		      && reload_adjust_reg_for_icode (&third_reload_reg, NULL,
-						      sri2.icode))
+						      ((enum insn_code)
+						       sri2.icode)))
 		    {
 		      second_reload_reg = intermediate;
-		      tertiary_icode = sri2.icode;
+		      tertiary_icode = (enum insn_code) sri2.icode;
 		    }
 		  else
-		    oldequiv = old, real_oldequiv = real_old;
+		    {
+		      oldequiv = old;
+		      real_oldequiv = real_old;
+		    }
 		}
 	      else if (new_t_class != NO_REGS && sri2.icode == CODE_FOR_nothing)
 		{
@@ -7135,14 +7153,20 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 						      new_t_class, mode))
 		    {
 		      second_reload_reg = intermediate;
-		      tertiary_icode = sri2.icode;
+		      tertiary_icode = (enum insn_code) sri2.icode;
 		    }
 		  else
-		    oldequiv = old, real_oldequiv = real_old;
+		    {
+		      oldequiv = old;
+		      real_oldequiv = real_old;
+		    }
 		}
 	      else
-		/* This could be handled more intelligently too.  */
-		oldequiv = old, real_oldequiv = real_old;
+		{
+		  /* This could be handled more intelligently too.  */
+		  oldequiv = old;
+		  real_oldequiv = real_old;
+		}
 	    }
 	}
 
@@ -8414,7 +8438,7 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
 					reg, 0);
   if (substed)
     n_occurrences += count_occurrences (PATTERN (insn),
-					eliminate_regs (substed, 0,
+					eliminate_regs (substed, VOIDmode,
 							NULL_RTX), 0);
   for (i1 = reg_equiv_alt_mem_list[REGNO (reg)]; i1; i1 = XEXP (i1, 1))
     {

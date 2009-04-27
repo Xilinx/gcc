@@ -1,21 +1,79 @@
+2009-04-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* Makefile.tpl (POSTSTAGE1_HOST_EXPORTS): Add GNATBIND.
+	(POSTSTAGE1_FLAGS_TO_PASS): Pick up exported value for GNATBIND.
+	* Makefile.in: Regenerate.
+
+2009-04-24  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	PR bootstrap/39739
+	* configure.ac (extra_mpfr_configure_flags): Set and AC_SUBST.
+	* Makefile.def (module=mpfr): Use extra_mpfr_configure_flags.
+
+	* configure, Makefile.in: Regenerate.
+
+2009-04-21  Taras Glek  <tglek@mozilla.com>
+
+	* include/hashtab.h: Update GTY annotations to new syntax
+	* include/splay-tree.h: Likewise
+
+2009-04-17  Ben Elliston  <bje@au.ibm.com>
+
+	* config.sub, config.guess: Update from upstream sources.
+
+2009-04-15  Anthony Green  <green@moxielogic.com>
+
+	* configure.ac: Add moxie support.
+	* configure: Rebuilt.
+
+2009-04-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* configure.ac: Change copyright header to refer to version
+	3 of the GNU General Public License and to point readers at the
+	COPYING3 file and the FSF's license web page.
+	* Makefile.def: Likewise.
+	* Makefile.tpl: Likewise.
+	* Makefile.in: Regenerate.
+
+2009-04-09  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* configure.ac: Restore match for darwin9 or later. Use double
+	brackets since regeneration eats one pair.
+	* configure: Regenerate.
+
+2009-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/10039
+	* configure.ac: Require texinfo 4.7.
+	* configure: Regenerated.
+
+2009-04-09  Nick Clifton  <nickc@redhat.com>
+
+	* COPYING.RUNTIME: New file: Contains a copy of version 3.1 of
+	the GCC Runtime Library Exception.
+
+2009-04-08  Kaveh R. Ghazi  <ghazi@caip.rutgers.edu>
+
+	* configure.ac: Bump minimum GMP/MPFR versions to 4.2 and 2.3.1.
+	* configure: Regenerate.
+
 2009-04-01  Steve Ellcey  <sje@cup.hp.com>
 
 	* Makefil.def (languages): New entries.
 	* Makefile.tpl (check-gcc-*): New generic target.
 	* Makefile.in: Regenerate.
-	* gcc/doc/sourcebuild.texi: Update front-end requirements.
 
 2009-03-25  Erven Rohou <erven.rohou@inria.fr>
 
-        * MAINTAINERS:  Update my email address.
+	* MAINTAINERS:  Update my email address.
 
 2009-03-18  Tom Tromey  <tromey@redhat.com>
 
-        * configure: Rebuild.
-        * configure.ac (host_libs): Add libiconv.
-        * Makefile.in: Rebuild.
-        * Makefile.def (host_modules): Add libiconv.
-        (configure-gdb, all-gdb): Depend on libiconv.
+	* configure: Rebuild.
+	* configure.ac (host_libs): Add libiconv.
+	* Makefile.in: Rebuild.
+	* Makefile.def (host_modules): Add libiconv.
+	(configure-gdb, all-gdb): Depend on libiconv.
 
 2009-03-16  Tristan Gingold  <gingold@adacore.com>
 

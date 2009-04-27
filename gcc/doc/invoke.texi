@@ -163,7 +163,7 @@ in the following sections.
 @xref{Overall Options,,Options Controlling the Kind of Output}.
 @gccoptlist{-c  -S  -E  -o @var{file}  -combine  -pipe  -pass-exit-codes  @gol
 -x @var{language}  -v  -###  --help@r{[}=@var{class}@r{[},@dots{}@r{]]}  --target-help  @gol
---version -wrapper@@@var{file}}
+--version -wrapper@@@var{file} -fplugin=@var{file} -fplugin-arg-@var{name}=@var{arg}}
 
 @item C Language Options
 @xref{C Dialect Options,,Options Controlling C Dialect}.
@@ -188,6 +188,7 @@ in the following sections.
 -fno-implement-inlines  -fms-extensions @gol
 -fno-nonansi-builtins  -fno-operator-names @gol
 -fno-optional-diags  -fpermissive @gol
+-fno-pretty-templates @gol
 -frepo  -fno-rtti  -fstats  -ftemplate-depth-@var{n} @gol
 -fno-threadsafe-statics -fuse-cxa-atexit  -fno-weak  -nostdinc++ @gol
 -fno-default-inline  -fvisibility-inlines-hidden @gol
@@ -828,7 +829,7 @@ See i386 and x86-64 Options.
 
 @emph{i386 and x86-64 Windows Options}
 @gccoptlist{-mconsole -mcygwin -mno-cygwin -mdll
--mnop-fun-dllimport -mthread -mwin32 -mwindows}
+-mnop-fun-dllimport -mthread -municode -mwin32 -mwindows}
 
 @emph{Xstormy16 Options}
 @gccoptlist{-msim}
@@ -1297,6 +1298,19 @@ gcc -c t.c -wrapper gdb,--args
 
 This will invoke all subprograms of gcc under "gdb --args",
 thus cc1 invocation will be "gdb --args cc1 ...".
+
+@item -fplugin=@var{name}.so
+Load the plugin code in file @var{name}.so, assumed to be a
+shared object to be dlopen'd by the compiler.  The base name of
+the shared object file is used to identify the plugin for the
+purposes of argument parsing (See
+@option{-fplugin-arg-@var{name}-@var{key}=@var{value}} below).
+Each plugin should define the callback functions specified in the
+Plugins API.
+
+@item -fplugin-arg-@var{name}-@var{key}=@var{value}
+Define an argument called @var{key} with a value of @var{value}
+for the plugin called @var{name}.
 
 @include @value{srcdir}/../libiberty/at-file.texi
 @end table
@@ -1834,6 +1848,19 @@ a name having multiple meanings within a class.
 Downgrade some diagnostics about nonconformant code from errors to
 warnings.  Thus, using @option{-fpermissive} will allow some
 nonconforming code to compile.
+
+@item -fno-pretty-templates
+@opindex fno-pretty-templates
+When an error message refers to a specialization of a function
+template, the compiler will normally print the signature of the
+template followed by the template arguments and any typedefs or
+typenames in the signature (e.g. @code{void f(T) [with T = int]}
+rather than @code{void f(int)}) so that it's clear which template is
+involved.  When an error message refers to a specialization of a class
+template, the compiler will omit any template arguments which match
+the default template arguments for that template.  If either of these
+behaviors make it harder to understand the error message rather than
+easier, using @option{-fno-pretty-templates} will disable them.
 
 @item -frepo
 @opindex frepo
@@ -2736,6 +2763,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Warray-bounds @r{(only with} @option{-O2}@r{)}  @gol
 -Wc++0x-compat  @gol
 -Wchar-subscripts  @gol
+-Wenum-compare @r{(in C/Objc; this is on by default in C++)} @gol
 -Wimplicit-int  @gol
 -Wimplicit-function-declaration  @gol
 -Wcomment  @gol
@@ -2781,6 +2809,7 @@ name is still supported, but the newer name is more descriptive.)
 @gccoptlist{-Wclobbered  @gol
 -Wempty-body  @gol
 -Wignored-qualifiers @gol
+-Wlogical-op @gol
 -Wmissing-field-initializers  @gol
 -Wmissing-parameter-type @r{(C only)}  @gol
 -Wold-style-declaration @r{(C only)}  @gol
@@ -3721,11 +3750,12 @@ integers are disabled by default in C++ unless
 Warn if an empty body occurs in an @samp{if}, @samp{else} or @samp{do
 while} statement.  This warning is also enabled by @option{-Wextra}.
 
-@item -Wenum-compare @r{(C++ and Objective-C++ only)}
+@item -Wenum-compare
 @opindex Wenum-compare
 @opindex Wno-enum-compare
-Warn about a comparison between values of different enum types. This
-warning is enabled by default.
+Warn about a comparison between values of different enum types. In C++
+this warning is enabled by default.  In C this warning is enabled by
+@option{-Wall}.
 
 @item -Wsign-compare
 @opindex Wsign-compare
@@ -3766,7 +3796,8 @@ programmer intended to use @code{strcmp}.  This warning is enabled by
 @opindex Wno-logical-op
 Warn about suspicious uses of logical operators in expressions.
 This includes using logical operators in contexts where a
-bit-wise operator is likely to be expected.
+bit-wise operator is likely to be expected.  This warning is enabled by
+@option{-Wextra}.
 
 @item -Waggregate-return
 @opindex Waggregate-return
@@ -4121,10 +4152,9 @@ the search path but can't be used.
 @item -Wlong-long
 @opindex Wlong-long
 @opindex Wno-long-long
-Warn if @samp{long long} type is used.  This is default.  To inhibit
-the warning messages, use @option{-Wno-long-long}.  Flags
-@option{-Wlong-long} and @option{-Wno-long-long} are taken into account
-only when @option{-pedantic} flag is used.
+Warn if @samp{long long} type is used.  This is enabled by either
+@option{-pedantic} or @option{-Wtraditional} in ISO C90 and C++98
+modes.  To inhibit the warning messages, use @option{-Wno-long-long}.
 
 @item -Wvariadic-macros
 @opindex Wvariadic-macros
@@ -5363,7 +5393,13 @@ the compiler to use information gained from all of the files when compiling
 each of them.
 
 Not all optimizations are controlled directly by a flag.  Only
-optimizations that have a flag are listed.
+optimizations that have a flag are listed in this section.
+
+Depending on the target and how GCC was configured, a slightly different 
+set of optimizations may be enabled at each @option{-O} level than 
+those listed here.  You can invoke GCC with @samp{-Q --help=optimizers} 
+to find out the exact set of optimizations that are enabled at each level.
+@xref{Overall Options}, for examples.
 
 @table @gcctabopt
 @item -O
@@ -5873,17 +5909,22 @@ Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fdelete-null-pointer-checks
 @opindex fdelete-null-pointer-checks
-Use global dataflow analysis to identify and eliminate useless checks
-for null pointers.  The compiler assumes that dereferencing a null
-pointer would have halted the program.  If a pointer is checked after
-it has already been dereferenced, it cannot be null.
+Assume that programs cannot safely dereference null pointers, and that
+no code or data element resides there.  This enables simple constant
+folding optimizations at all optimization levels.  In addition, other
+optimization passes in GCC use this flag to control global dataflow
+analyses that eliminate useless checks for null pointers; these assume
+that if a pointer is checked after it has already been dereferenced,
+it cannot be null.
 
-In some environments, this assumption is not true, and programs can
-safely dereference null pointers.  Use
-@option{-fno-delete-null-pointer-checks} to disable this optimization
+Note however that in some environments this assumption is not true.
+Use @option{-fno-delete-null-pointer-checks} to disable this optimization
 for programs which depend on that behavior.
 
-Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
+Some targets, especially embedded ones, disable this option at all levels.
+Otherwise it is enabled at all levels: @option{-O0}, @option{-O1},
+@option{-O2}, @option{-O3}, @option{-Os}.  Passes that use the information
+are enabled independently at different optimization levels.
 
 @item -fexpensive-optimizations
 @opindex fexpensive-optimizations
@@ -7309,9 +7350,6 @@ The approximate maximum amount of memory that will be allocated in
 order to perform the global common subexpression elimination
 optimization.  If more memory than specified is required, the
 optimization will not be done.
-
-@item max-gcse-passes
-The maximum number of passes of GCSE to run.  The default is 1.
 
 @item max-pending-list-length
 The maximum number of pending dependencies scheduling will allow
@@ -10987,6 +11025,9 @@ SSE2 and SSE3 instruction set support.
 @item core2
 Intel Core2 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
 instruction set support.
+@item atom
+Intel Atom CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3
+instruction set support.
 @item k6
 AMD K6 CPU with MMX instruction set support.
 @item k6-2, k6-3
@@ -14187,16 +14228,18 @@ Application Binary Interface, PowerPC processor supplement.  This is the
 default unless you configured GCC using @samp{powerpc-*-eabiaix}.
 
 @item -mcall-sysv-eabi
+@itemx -mcall-eabi
 @opindex mcall-sysv-eabi
+@opindex mcall-eabi
 Specify both @option{-mcall-sysv} and @option{-meabi} options.
 
 @item -mcall-sysv-noeabi
 @opindex mcall-sysv-noeabi
 Specify both @option{-mcall-sysv} and @option{-mno-eabi} options.
 
-@item -mcall-solaris
-@opindex mcall-solaris
-On System V.4 and embedded PowerPC systems compile code for the Solaris
+@item -mcall-aixdesc
+@opindex m
+On System V.4 and embedded PowerPC systems compile code for the AIX
 operating system.
 
 @item -mcall-linux
@@ -14209,10 +14252,20 @@ Linux-based GNU system.
 On System V.4 and embedded PowerPC systems compile code for the
 Hurd-based GNU system.
 
+@item -mcall-freebsd
+@opindex mcall-freebsd
+On System V.4 and embedded PowerPC systems compile code for the
+FreeBSD operating system.
+
 @item -mcall-netbsd
 @opindex mcall-netbsd
 On System V.4 and embedded PowerPC systems compile code for the
 NetBSD operating system.
+
+@item -mcall-openbsd
+@opindex mcall-netbsd
+On System V.4 and embedded PowerPC systems compile code for the
+OpenBSD operating system.
 
 @item -maix-struct-return
 @opindex maix-struct-return
@@ -15533,14 +15586,14 @@ This option is available for Cygwin and MinGW targets.  It
 specifies that a console application is to be generated, by
 instructing the linker to set the PE header subsystem type
 required for console applications.
-This is the default behaviour for Cygwin and MinGW targets.
+This is the default behavior for Cygwin and MinGW targets.
 
 @item -mcygwin
 @opindex mcygwin
 This option is available for Cygwin targets.  It specifies that
 the Cygwin internal interface is to be used for predefined
 preprocessor macros, C runtime libraries and related linker
-paths and options.  For Cygwin targets this is the default behaviour.
+paths and options.  For Cygwin targets this is the default behavior.
 This option is deprecated and will be removed in a future release.
 
 @item -mno-cygwin
@@ -15567,6 +15620,12 @@ specifies that the dllimport attribute should be ignored.
 @opindex mthread
 This option is available for MinGW targets. It specifies
 that MinGW-specific thread support is to be used.
+
+@item -municode
+@opindex municode
+This option is available for mingw-w64 targets.  It specifies
+that the UNICODE macro is getting pre-defined and that the
+unicode capable runtime startup code is choosen.
 
 @item -mwin32
 @opindex mwin32

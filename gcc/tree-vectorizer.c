@@ -99,9 +99,9 @@ vect_set_verbosity_level (const char *val)
 
    vl = atoi (val);
    if (vl < MAX_VERBOSITY_LEVEL)
-     vect_verbosity_level = vl;
+     vect_verbosity_level = (enum verbosity_levels) vl;
    else
-     vect_verbosity_level = MAX_VERBOSITY_LEVEL - 1;
+     vect_verbosity_level = (enum verbosity_levels) (MAX_VERBOSITY_LEVEL - 1);
 }
 
 
@@ -305,7 +305,7 @@ struct simple_ipa_opt_pass pass_ipa_increase_alignment =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -313,5 +313,3 @@ struct simple_ipa_opt_pass pass_ipa_increase_alignment =
   0                                     /* todo_flags_finish */
  }
 };
-
-

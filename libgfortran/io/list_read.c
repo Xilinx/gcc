@@ -8,27 +8,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 
 #include "io.h"
@@ -1224,7 +1219,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
    what it is right away.  */
 
 static void
-read_complex (st_parameter_dt *dtp, int kind, size_t size)
+read_complex (st_parameter_dt *dtp, void * dest, int kind, size_t size)
 {
   char message[100];
   char c;
@@ -1248,7 +1243,7 @@ read_complex (st_parameter_dt *dtp, int kind, size_t size)
     }
 
   eat_spaces (dtp);
-  if (parse_real (dtp, dtp->u.p.value, kind))
+  if (parse_real (dtp, dest, kind))
     return;
 
 eol_1:
@@ -1271,7 +1266,7 @@ eol_2:
   else
     unget_char (dtp, c);
 
-  if (parse_real (dtp, dtp->u.p.value + size / 2, kind))
+  if (parse_real (dtp, dest + size / 2, kind))
     return;
 
   eat_spaces (dtp);
@@ -1305,7 +1300,7 @@ eol_2:
 /* Parse a real number with a possible repeat count.  */
 
 static void
-read_real (st_parameter_dt *dtp, int length)
+read_real (st_parameter_dt *dtp, void * dest, int length)
 {
   char c, message[100];
   int seen_dp;
@@ -1518,7 +1513,7 @@ read_real (st_parameter_dt *dtp, int length)
   unget_char (dtp, c);
   eat_separator (dtp);
   push_char (dtp, '\0');
-  if (convert_real (dtp, dtp->u.p.value, dtp->u.p.saved_string, length))
+  if (convert_real (dtp, dest, dtp->u.p.saved_string, length))
     return;
 
   free_saved (dtp);
@@ -1762,10 +1757,16 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
       read_character (dtp, kind);
       break;
     case BT_REAL:
-      read_real (dtp, kind);
+      read_real (dtp, p, kind);
+      /* Copy value back to temporary if needed.  */
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (dtp->u.p.value, p, kind);
       break;
     case BT_COMPLEX:
-      read_complex (dtp, kind, size);
+      read_complex (dtp, p, kind, size);
+      /* Copy value back to temporary if needed.  */
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (dtp->u.p.value, p, size);
       break;
     default:
       internal_error (&dtp->common, "Bad type for list read");
@@ -1781,8 +1782,12 @@ list_formatted_read_scalar (st_parameter_dt *dtp, volatile bt type, void *p,
   switch (dtp->u.p.saved_type)
     {
     case BT_COMPLEX:
-    case BT_INTEGER:
     case BT_REAL:
+      if (dtp->u.p.repeat_count > 0)
+	memcpy (p, dtp->u.p.value, size);
+      break;
+
+    case BT_INTEGER:
     case BT_LOGICAL:
       memcpy (p, dtp->u.p.value, size);
       break;
@@ -2305,7 +2310,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
   int dim;
   index_type dlen;
   index_type m;
-  index_type obj_name_len;
+  size_t obj_name_len;
   void * pdata;
 
   /* This object not touched in name parsing.  */
@@ -2384,12 +2389,17 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
               break;
 
 	  case GFC_DTYPE_REAL:
-	      read_real (dtp, len);
-              break;
+	    /* Need to copy data back from the real location to the temp in order
+	       to handle nml reads into arrays.  */
+	    read_real (dtp, pdata, len);
+	    memcpy (dtp->u.p.value, pdata, dlen);
+	    break;
 
 	  case GFC_DTYPE_COMPLEX:
-              read_complex (dtp, len, dlen);
-              break;
+	    /* Same as for REAL, copy back to temp.  */
+	    read_complex (dtp, pdata, len, dlen);
+	    memcpy (dtp->u.p.value, pdata, dlen);
+	    break;
 
 	  case GFC_DTYPE_DERIVED:
 	    obj_name_len = strlen (nl->var_name) + 1;

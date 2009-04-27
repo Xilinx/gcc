@@ -1,6 +1,6 @@
 /* Subroutines used for code generation on IBM S/390 and zSeries
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com) and
                   Andreas Krebbel (Andreas.Krebbel@de.ibm.com).
@@ -224,12 +224,9 @@ struct processor_costs z10_cost =
 extern int reload_completed;
 
 /* Save information from a "cmpxx" operation until the branch or scc is
-   emitted.  */
+   emitted.  A pair of a MODE_CC register and a const0_rtx if a compare
+   has been emitted already.  */
 rtx s390_compare_op0, s390_compare_op1;
-
-/* Save the result of a compare_and_swap  until the branch or scc is
-   emitted.  */
-rtx s390_compare_emitted = NULL_RTX;
 
 /* Structure used to hold the components of a S/390 memory
    address.  A legitimate address on S/390 is of the general
@@ -263,7 +260,7 @@ HOST_WIDE_INT s390_stack_guard = 0;
 /* The following structure is embedded in the machine 
    specific part of struct function.  */
 
-struct s390_frame_layout GTY (())
+struct GTY (()) s390_frame_layout
 {
   /* Offset within stack frame.  */
   HOST_WIDE_INT gprs_offset;
@@ -306,7 +303,7 @@ struct s390_frame_layout GTY (())
 
 /* Define the structure for the machine field in struct function.  */
 
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   struct s390_frame_layout frame_layout;
 
@@ -814,23 +811,23 @@ rtx
 s390_emit_compare (enum rtx_code code, rtx op0, rtx op1)
 {
   enum machine_mode mode = s390_select_ccmode (code, op0, op1);
-  rtx ret = NULL_RTX;
+  rtx cc;
 
   /* Do not output a redundant compare instruction if a compare_and_swap
      pattern already computed the result and the machine modes are compatible.  */
-  if (s390_compare_emitted 
-      && (s390_cc_modes_compatible (GET_MODE (s390_compare_emitted), mode)
-	  == GET_MODE (s390_compare_emitted)))
-    ret = gen_rtx_fmt_ee (code, VOIDmode, s390_compare_emitted, const0_rtx); 
+  if (GET_MODE_CLASS (GET_MODE (op0)) == MODE_CC)
+    {
+      gcc_assert (s390_cc_modes_compatible (GET_MODE (op0), mode)
+		  == GET_MODE (op0));
+      cc = op0;
+    }
   else
     {
-      rtx cc = gen_rtx_REG (mode, CC_REGNUM);
-      
+      cc = gen_rtx_REG (mode, CC_REGNUM);
       emit_insn (gen_rtx_SET (VOIDmode, cc, gen_rtx_COMPARE (mode, op0, op1)));
-      ret = gen_rtx_fmt_ee (code, VOIDmode, cc, const0_rtx); 
     }
-  s390_compare_emitted = NULL_RTX;
-  return ret;
+
+  return gen_rtx_fmt_ee (code, VOIDmode, cc, const0_rtx); 
 }
 
 /* Emit a SImode compare and swap instruction setting MEM to NEW_RTX if OLD
@@ -841,14 +838,8 @@ s390_emit_compare (enum rtx_code code, rtx op0, rtx op1)
 static rtx
 s390_emit_compare_and_swap (enum rtx_code code, rtx old, rtx mem, rtx cmp, rtx new_rtx)
 {
-  rtx ret;
-
-  emit_insn (gen_sync_compare_and_swap_ccsi (old, mem, cmp, new_rtx));
-  ret = gen_rtx_fmt_ee (code, VOIDmode, s390_compare_emitted, const0_rtx);
-
-  s390_compare_emitted = NULL_RTX;
-
-  return ret;
+  emit_insn (gen_sync_compare_and_swapsi (old, mem, cmp, new_rtx));
+  return s390_emit_compare (code, gen_rtx_REG (CCZ1mode, CC_REGNUM), const0_rtx);
 }
 
 /* Emit a jump instruction to TARGET.  If COND is NULL_RTX, emit an
@@ -2329,9 +2320,9 @@ s390_rtx_costs (rtx x, int code, int outer_code, int *total,
 	    *total = s390_cost->madbr;
 	  else
 	    *total = s390_cost->maebr;
-	  *total += rtx_cost (XEXP (XEXP (x, 0), 0), MULT, speed) 
-	    + rtx_cost (XEXP (XEXP (x, 0), 1), MULT, speed) 
-	    + rtx_cost (XEXP (x, 1), code, speed);
+	  *total += (rtx_cost (XEXP (XEXP (x, 0), 0), MULT, speed)
+		     + rtx_cost (XEXP (XEXP (x, 0), 1), MULT, speed)
+		     + rtx_cost (XEXP (x, 1), (enum rtx_code) code, speed));
 	  return true;  /* Do not do an additional recursive descent.  */
 	}
       *total = COSTS_N_INSNS (1);
@@ -3918,11 +3909,13 @@ s390_expand_movmem (rtx dst, rtx src, rtx len)
       dst = change_address (dst, VOIDmode, dst_addr);
       src = change_address (src, VOIDmode, src_addr);
 
-      temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1, 0);
+      temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1,
+			   OPTAB_DIRECT);
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -3937,7 +3930,8 @@ s390_expand_movmem (rtx dst, rtx src, rtx len)
       s390_load_address (src_addr,
 			 gen_rtx_PLUS (Pmode, src_addr, GEN_INT (256)));
 
-      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1, 0);
+      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -4020,7 +4014,8 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
       dst = change_address (dst, VOIDmode, dst_addr);
 
       if (val == const0_rtx)
-        temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1, 0);
+        temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1,
+			     OPTAB_DIRECT);
       else
 	{
 	  dstp1 = adjust_address (dst, VOIDmode, 1);
@@ -4033,12 +4028,14 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
 	  emit_cmp_and_jump_insns (count, const1_rtx,
 				   EQ, NULL_RTX, mode, 1, end_label);
 
-	  temp = expand_binop (mode, add_optab, count, GEN_INT (-2), count, 1, 0);
+	  temp = expand_binop (mode, add_optab, count, GEN_INT (-2), count, 1,
+			       OPTAB_DIRECT);
 	}
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -4054,7 +4051,8 @@ s390_expand_setmem (rtx dst, rtx len, rtx val)
       s390_load_address (dst_addr,
 			 gen_rtx_PLUS (Pmode, dst_addr, GEN_INT (256)));
 
-      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1, 0);
+      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -4126,11 +4124,13 @@ s390_expand_cmpmem (rtx target, rtx op0, rtx op1, rtx len)
       op0 = change_address (op0, VOIDmode, addr0);
       op1 = change_address (op1, VOIDmode, addr1);
 
-      temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1, 0);
+      temp = expand_binop (mode, add_optab, count, constm1_rtx, count, 1,
+			   OPTAB_DIRECT);
       if (temp != count)
         emit_move_insn (count, temp);
 
-      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1, 0);
+      temp = expand_binop (mode, lshr_optab, count, GEN_INT (8), blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -4151,7 +4151,8 @@ s390_expand_cmpmem (rtx target, rtx op0, rtx op1, rtx len)
       s390_load_address (addr1,
 			 gen_rtx_PLUS (Pmode, addr1, GEN_INT (256)));
 
-      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1, 0);
+      temp = expand_binop (mode, add_optab, blocks, constm1_rtx, blocks, 1,
+			   OPTAB_DIRECT);
       if (temp != blocks)
         emit_move_insn (blocks, temp);
 
@@ -7499,9 +7500,7 @@ save_gprs (rtx base, int offset, int first, int last)
 				 GEN_INT (last - 6 + 1));
       note = PATTERN (note);
 
-      REG_NOTES (insn) =
-	gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			   note, REG_NOTES (insn));
+      add_reg_note (insn, REG_FRAME_RELATED_EXPR, note);
 
       for (i = 0; i < XVECLEN (note, 0); i++)
 	if (GET_CODE (XVECEXP (note, 0, i)) == SET)
@@ -7713,6 +7712,7 @@ s390_emit_prologue (void)
   if (cfun_frame_layout.frame_size > 0)
     {
       rtx frame_off = GEN_INT (-cfun_frame_layout.frame_size);
+      rtx real_frame_off;
 
       if (s390_stack_size)
   	{
@@ -7790,12 +7790,11 @@ s390_emit_prologue (void)
 	}
 
       RTX_FRAME_RELATED_P (insn) = 1;
-      REG_NOTES (insn) =
-	gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			   gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			     gen_rtx_PLUS (Pmode, stack_pointer_rtx,
-			       GEN_INT (-cfun_frame_layout.frame_size))),
-			   REG_NOTES (insn));
+      real_frame_off = GEN_INT (-cfun_frame_layout.frame_size);
+      add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+		    gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+				 gen_rtx_PLUS (Pmode, stack_pointer_rtx,
+					       real_frame_off)));
 
       /* Set backchain.  */
 
@@ -7847,12 +7846,10 @@ s390_emit_prologue (void)
 	    insn = save_fpr (temp_reg, offset, i);
 	    offset += 8;
 	    RTX_FRAME_RELATED_P (insn) = 1;
-	    REG_NOTES (insn) =
-	      gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-				 gen_rtx_SET (VOIDmode,
-					      gen_rtx_MEM (DFmode, addr),
-					      gen_rtx_REG (DFmode, i)),
-				 REG_NOTES (insn));
+	    add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			  gen_rtx_SET (VOIDmode,
+				       gen_rtx_MEM (DFmode, addr),
+				       gen_rtx_REG (DFmode, i)));
 	  }
     }
 
@@ -8663,12 +8660,12 @@ enum s390_builtin
   S390_BUILTIN_max
 };
 
-static unsigned int const code_for_builtin_64[S390_BUILTIN_max] = {
+static enum insn_code const code_for_builtin_64[S390_BUILTIN_max] = {
   CODE_FOR_get_tp_64,
   CODE_FOR_set_tp_64
 };
 
-static unsigned int const code_for_builtin_31[S390_BUILTIN_max] = {
+static enum insn_code const code_for_builtin_31[S390_BUILTIN_max] = {
   CODE_FOR_get_tp_31,
   CODE_FOR_set_tp_31
 };
@@ -8702,7 +8699,7 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 {
 #define MAX_ARGS 2
 
-  unsigned int const *code_for_builtin =
+  enum insn_code const *code_for_builtin =
     TARGET_64BIT ? code_for_builtin_64 : code_for_builtin_31;
 
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
@@ -8734,7 +8731,7 @@ s390_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 
       insn_op = &insn_data[icode].operand[arity + nonvoid];
 
-      op[arity] = expand_expr (arg, NULL_RTX, insn_op->mode, 0);
+      op[arity] = expand_expr (arg, NULL_RTX, insn_op->mode, EXPAND_NORMAL);
 
       if (!(*insn_op->predicate) (op[arity], insn_op->mode))
 	op[arity] = copy_to_mode_reg (insn_op->mode, op[arity]);

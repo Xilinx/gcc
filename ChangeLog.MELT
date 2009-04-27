@@ -1,3 +1,6 @@
+2009-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r146824
+
 2009-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	all .bysl files renamed to .melt
 	all ChangeLog.melt renamed to ChangeLog.MELT

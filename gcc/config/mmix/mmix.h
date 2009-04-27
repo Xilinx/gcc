@@ -89,7 +89,7 @@ extern GTY(()) rtx mmix_compare_op1;
 /* Per-function machine data.  This is normally an opaque type just
    defined and used in the tm.c file, but we need to see the definition in
    mmix.md too.  */
-struct machine_function GTY(())
+struct GTY(()) machine_function
  {
    int has_landing_pad;
    int highest_saved_stack_register;
@@ -709,8 +709,6 @@ typedef struct { int regs; int lib; } CUMULATIVE_ARGS;
 #endif /* REG_OK_STRICT */
 
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) \
  mmix_legitimate_constant_p (X)

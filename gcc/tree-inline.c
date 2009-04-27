@@ -1608,8 +1608,6 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
 	gimple phi;
 	gimple_stmt_iterator si;
 
-	gcc_assert (e->flags & EDGE_ABNORMAL);
-
 	if (!nonlocal_goto)
 	  gcc_assert (e->flags & EDGE_EH);
 
@@ -1625,7 +1623,8 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
 	    /* There shouldn't be any PHI nodes in the ENTRY_BLOCK.  */
 	    gcc_assert (!e->dest->aux);
 
-	    gcc_assert (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (PHI_RESULT (phi)));
+	    gcc_assert ((e->flags & EDGE_EH)
+			|| SSA_NAME_OCCURS_IN_ABNORMAL_PHI (PHI_RESULT (phi)));
 
 	    if (!is_gimple_reg (PHI_RESULT (phi)))
 	      {
@@ -2386,7 +2385,10 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
   STRIP_USELESS_TYPE_CONVERSION (use);
 
   if (DECL_BY_REFERENCE (result))
-    var = build_fold_addr_expr (var);
+    {
+      TREE_ADDRESSABLE (var) = 1;
+      var = build_fold_addr_expr (var);
+    }
 
  done:
   /* Register the VAR_DECL as the equivalent for the RESULT_DECL; that

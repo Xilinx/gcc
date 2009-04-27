@@ -187,6 +187,7 @@ AdaCore@*
 * Stack Related Facilities::
 * Verifying Properties Using gnatcheck::
 * Creating Sample Bodies Using gnatstub::
+* Generating Ada Bindings for C and C++ headers::
 * Other Utility Programs::
 * Running and Debugging Ada Programs::
 @ifclear vms
@@ -844,6 +845,10 @@ a utility that checks Ada code against a set of rules.
 @item
 @ref{Creating Sample Bodies Using gnatstub}, discusses @code{gnatstub},
 a utility that generates empty but compilable bodies for library units.
+
+@item
+@ref{Generating Ada Bindings for C and C++ headers}, describes how to
+generate automatically Ada bindings from C and C++ headers.
 
 @item
 @ref{Other Utility Programs}, discusses several other GNAT utilities,
@@ -2372,9 +2377,6 @@ The use of @option{-gnatN} activates  inlining optimization
 that is performed by the front end of the compiler. This inlining does
 not require that the code generation be optimized. Like @option{-gnatn},
 the use of this switch generates additional dependencies.
-Note that
-@option{-gnatN} automatically implies @option{-gnatn} so it is not necessary
-to specify both options.
 
 When using a gcc-based back end (in practice this means using any version
 of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
@@ -3800,13 +3802,27 @@ effect if this switch is present.
 
 @item -fno-inline-functions
 @cindex @option{-fno-inline-functions} (@command{gcc})
-Suppresses automatic inlining of small subprograms, which is enabled
+Suppresses automatic inlining of simple subprograms, which is enabled
 if @option{-O3} is used.
+
+@item -fno-inline-small-functions
+@cindex @option{-fno-inline-small-functions} (@command{gcc})
+Suppresses automatic inlining of small subprograms, which is enabled
+if @option{-O2} is used.
 
 @item -fno-inline-functions-called-once
 @cindex @option{-fno-inline-functions-called-once} (@command{gcc})
 Suppresses inlining of subprograms local to the unit and called once
 from within it, which is enabled if @option{-O1} is used.
+
+@item -fno-ivopts
+@cindex @option{-fno-ivopts} (@command{gcc})
+Suppresses high-level loop induction variable optimizations, which are
+enabled if @option{-O1} is used. These optimizations are generally
+profitable but, for some specific cases of loops with numerous uses
+of the iteration variable that follow a common pattern, they may end
+up destroying the regularity that could be exploited at a lower level
+and thus producing inferior code.
 
 @item -fno-strict-aliasing
 @cindex @option{-fno-strict-aliasing} (@command{gcc})
@@ -3867,6 +3883,10 @@ it will be ignored.
 @cindex @option{-gnatb} (@command{gcc})
 Generate brief messages to @file{stderr} even if verbose mode set.
 
+@item -gnatB
+@cindex @option{-gnatB} (@command{gcc})
+Assume no invalid (bad) values except for 'Valid attribute use.
+
 @item -gnatc
 @cindex @option{-gnatc} (@command{gcc})
 Check syntax and semantics only (no code generation attempted).
@@ -3881,8 +3901,13 @@ debug options. Certain debug options are relevant to applications
 programmers, and these are documented at appropriate points in this
 users guide.
 
+@ifclear vms
 @item -gnatD
-@cindex @option{-gnatD} (@command{gcc})
+@cindex @option{-gnatD[nn]} (@command{gcc})
+@end ifclear
+@ifset vms
+@item /XDEBUG /LXDEBUG=nnn
+@end ifset
 Create expanded source files for source level debugging. This switch
 also suppress generation of cross-reference information
 (see @option{-gnatx}).
@@ -3948,8 +3973,13 @@ Note that @option{^-gnatg^/GNAT_INTERNAL^} implies
 so that all standard warnings and all standard style options are turned on.
 All warnings and style error messages are treated as errors.
 
-@item -gnatG
-@cindex @option{-gnatG} (@command{gcc})
+@ifclear vms
+@item -gnatG=nn
+@cindex @option{-gnatG[nn]} (@command{gcc})
+@end ifclear
+@ifset vms
+@item /EXPAND_SOURCE, /LEXPAND_SOURCE=nnn
+@end ifset
 List generated expanded code in source form.
 
 @item ^-gnath^/HELP^
@@ -3994,9 +4024,13 @@ source output.
 @item -gnatm=@var{n}
 @cindex @option{-gnatm} (@command{gcc})
 Limit number of detected error or warning messages to @var{n}
-where @var{n} is in the range 1..999_999. The default setting if
-no switch is given is 9999. Compilation is terminated if this
-limit is exceeded. The equal sign here is optional.
+where @var{n} is in the range 1..999999. The default setting if
+no switch is given is 9999. If the number of warnings reaches this
+limit, then a message is output and further warnings are suppressed,
+but the compilation is continued. If the number of error messages
+reaches this limit, then a message is output and the compilation
+is abandoned. The equal sign here is optional. A value of zero
+means that no limit applies.
 
 @item -gnatn
 @cindex @option{-gnatn} (@command{gcc})
@@ -4010,14 +4044,12 @@ Activate front end inlining for subprograms for which
 pragma @code{Inline} is specified. This inlining is performed
 by the front end and will be visible in the
 @option{-gnatG} output.
-In some cases, this has proved more effective than the back end
-inlining resulting from the use of
-@option{-gnatn}.
-Note that
-@option{-gnatN} automatically implies
-@option{-gnatn} so it is not necessary
-to specify both options. There are a few cases that the back-end inlining
-catches that cannot be dealt with in the front-end.
+
+When using a gcc-based back end (in practice this means using any version
+of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
+@option{-gnatN} is deprecated, and the use of @option{-gnatn} is preferred.
+Historically front end inlining was more extensive than the gcc back end
+inlining, but that is no longer the case.
 
 @item -gnato
 @cindex @option{-gnato} (@command{gcc})
@@ -4489,15 +4521,24 @@ format message or full listing (which as usual is written to
 The @code{m} stands for maximum.
 @end ifclear
 @var{n} is a decimal integer in the
-range of 1 to 999 and limits the number of error messages to be
-generated. For example, using @option{-gnatm2} might yield
+range of 1 to 999999 and limits the number of error or warning
+messages to be generated. For example, using
+@option{-gnatm2} might yield
 
 @smallexample
 e.adb:3:04: Incorrect spelling of keyword "function"
 e.adb:5:35: missing ".."
-fatal error: maximum errors reached
+fatal error: maximum number of errors detected
 compilation abandoned
 @end smallexample
+
+@noindent
+The default setting if
+no switch is given is 9999. If the number of warnings reaches this
+limit, then a message is output and further warnings are suppressed,
+but the compilation is continued. If the number of error messages
+reaches this limit, then a message is output and the compilation
+is abandoned. A value of zero means that no limit applies.
 
 @noindent
 Note that the equal sign is optional, so the switches
@@ -5586,6 +5627,12 @@ statements (where a wild jump might result from an invalid value),
 and subscripts on the left hand side (where memory corruption could
 occur as a result of an invalid value).
 
+The @option{-gnatB} switch tells the compiler to assume that all
+values are valid (that is, within their declared subtype range)
+except in the context of a use of the Valid attribute. This means
+the compiler can generate more efficient code, since the range
+of values is better known at compile time.
+
 The @option{-gnatV^@var{x}^^} switch allows more control over the validity
 checking mode.
 @ifclear vms
@@ -6048,6 +6095,11 @@ rule uses normal Ada rules for comparing strings, ignoring casing
 of letters, except that if there is a trailing numeric suffix, then
 the value of this suffix is used in the ordering (e.g.@: Junk2 comes
 before Junk10).
+
+@item ^O^OVERRIDING_INDICATORS^
+@emph{Check that overriding subprograms are explicitly marked as such.}
+The declaration of a primitive operation of a type extension that overrides
+an inherited operation must carry an overriding indicator.
 
 @item ^p^PRAGMA^
 @emph{Check pragma casing.}
@@ -6701,12 +6753,14 @@ see @ref{Inlining of Subprograms}.
 
 @item -gnatN
 @cindex @option{-gnatN} (@command{gcc})
-The front end inlining activated by this switch is generally more extensive,
-and quite often more effective than the standard @option{-gnatn} inlining mode.
-It will also generate additional dependencies.
-Note that
-@option{-gnatN} automatically implies @option{-gnatn} so it is not necessary
-to specify both options.
+This switch activates front-end inlining which also
+generates additional dependencies.
+
+When using a gcc-based back end (in practice this means using any version
+of GNAT other than the JGNAT, .NET or GNAAMP versions), then the use of
+@option{-gnatN} is deprecated, and the use of @option{-gnatn} is preferred.
+Historically front end inlining was more extensive than the gcc back end
+inlining, but that is no longer the case.
 @end table
 
 @node Auxiliary Output Control
@@ -6771,7 +6825,7 @@ switches in the body of the @code{Debug} unit in the compiler source
 file @file{debug.adb}.
 @end ifclear
 
-@item -gnatG
+@item -gnatG[=nn]
 @cindex @option{-gnatG} (@command{gcc})
 This switch causes the compiler to generate auxiliary output containing
 a pseudo-source listing of the generated expanded code. Like most Ada
@@ -6785,6 +6839,11 @@ Ada (e.g.@: the use of controlled types), where simple Ada statements can
 generate a lot of run-time code. By using @option{-gnatG} you can identify
 these cases, and consider whether it may be desirable to modify the coding
 approach to improve efficiency.
+
+The optional parameter @code{nn} if present after -gnatG specifies an
+alternative maximum line length that overrides the normal default of 72.
+This value is in the range 40-999999, values less than 40 being silently
+reset to 40. The equal sign is optional.
 
 The format of the output is very similar to standard Ada source, and is
 easily understood by an Ada programmer. The following special syntactic
@@ -6869,7 +6928,7 @@ representation in base 2-16 (for example, the result of compile time
 evaluation of the expression 1.0/27.0).
 @end table
 
-@item -gnatD
+@item -gnatD[=nn]
 @cindex @option{-gnatD} (@command{gcc})
 When used in conjunction with @option{-gnatG}, this switch causes
 the expanded source, as described above for
@@ -6896,6 +6955,11 @@ If the switch @option{-gnatL} is used in conjunction with
 @cindex @option{-gnatL} (@command{gcc})
 @option{-gnatDG}, then the original source lines are interspersed
 in the expanded source (as comment lines with the original line number).
+
+The optional parameter @code{nn} if present after -gnatD specifies an
+alternative maximum line length that overrides the normal default of 72.
+This value is in the range 40-999999, values less than 40 being silently
+reset to 40. The equal sign is optional.
 
 @item -gnatr
 @cindex @option{-gnatr} (@command{gcc})
@@ -7777,9 +7841,15 @@ supported on cross environments only.
 
 @item ^-m^/ERROR_LIMIT=^@var{n}
 @cindex @option{^-m^/ERROR_LIMIT^} (@command{gnatbind})
-Limit number of detected errors to @var{n}, where @var{n} is
-in the range 1..999_999. The default value if no switch is
-given is 9999. Binding is terminated if the limit is exceeded.
+Limit number of detected errors or warnings to @var{n}, where @var{n} is
+in the range 1..999999. The default value if no switch is
+given is 9999. If the number of warnings reaches this limit, then a
+message is output and further warnings are suppressed, the bind
+continues in this case. If the number of errors reaches this
+limit, then a message is output and the bind is abandoned.
+A value of zero means that no limit is enforced. The equal
+sign is optional.
+
 @ifset unw
 Furthermore, under Windows, the sources pointed to by the libraries path
 set in the registry are not searched for.
@@ -10058,7 +10128,7 @@ required to dereference it each time through the loop.
 
 This kind of optimization, called strict aliasing analysis, is
 triggered by specifying an optimization level of @option{-O2} or
-higher and allows @code{GNAT} to generate more efficient code
+higher or @option{-Os} and allows @code{GNAT} to generate more efficient code
 when access values are involved.
 
 However, although this optimization is always correct in terms of
@@ -10226,6 +10296,21 @@ use of address clauses for type overlaying, and to allow unchecked
 conversion only for primitive types. This is not really a significant
 restriction since any possible desired effect can be achieved by
 unchecked conversion of access values.
+
+The aliasing analysis done in strict aliasing mode can certainly
+have significant benefits. We have seen cases of large scale
+application code where the time is increased by up to 5% by turning
+this optimization off. If you have code that includes significant
+usage of unchecked conversion, you might want to just stick with
+@option{-O1} and avoid the entire issue. If you get adequate
+performance at this level of optimization level, that's probably
+the safest approach. If tests show that you really need higher
+levels of optimization, then you can experiment with @option{-O2}
+and @option{-O2 -fno-strict-aliasing} to see how much effect this
+has on size and speed of the code. If you really need to use
+@option{-O2} with strict aliasing in effect, then you should
+review any uses of unchecked conversion of access types,
+particularly if you are getting the warnings described above.
 
 @ifset vms
 @node Coverage Analysis
@@ -10650,6 +10735,11 @@ perhaps to maintain compatibility with some other Ada compilation
 system, you can set up a procedure where you use @command{gnatchop} each
 time you compile, regarding the source files that it writes as temporary
 files that you throw away.
+
+Note that if your file containing multiple units starts with a byte order
+mark (BOM) specifying UTF-8 encoding, then the files generated by gnatchop
+will each start with a copy of this BOM, meaning that they can be compiled
+automatically in UTF-8 mode without needing to specify an explicit encoding.
 
 @node Operating gnatchop in Compilation Mode
 @section Operating gnatchop in Compilation Mode
@@ -13585,6 +13675,15 @@ operating system).
    for Spec ("MyPack.MyChild") use "mypack.mychild.spec";
 @end smallexample
 
+When the source file contains several units, you can indicate at what
+position the unit occurs in the file, with the following. The first unit
+in the file has index 1
+
+@smallexample @c projectfile
+  for Body ("top") use "foo.a" at 1;
+  for Body ("foo") use "foo.a" at 2;
+@end smallexample
+
 @item @code{Body}
 
 You can use the associative array attribute @code{Body} to
@@ -13608,7 +13707,20 @@ sensitive or insensitive depending on the operating system).
 
 @noindent
 @emph{Library projects} are projects whose object code is placed in a library.
-(Note that this facility is not yet supported on all platforms)
+(Note that this facility is not yet supported on all platforms).
+
+@code{gnatmake} or @code{gprbuild} will collect all object files into a
+single archive, which might either be a shared or a static library. This
+library can later on be linked with multiple executables, potentially
+reducing their sizes.
+
+If your project file specifies languages other than Ada, but you are still
+using @code{gnatmake} to compile and link, the latter will not try to
+compile your sources other than Ada (you should use @code{gprbuild} if that
+is your intent). However, @code{gnatmake} will automatically link all object
+files found in the object directory, whether or not they were compiled from
+an Ada source file. This specific behavior only applies when multiple
+languages are specified.
 
 To create a library project, you need to define in its project file
 two project-level attributes: @code{Library_Name} and @code{Library_Dir}.
@@ -19652,7 +19764,8 @@ Debug Pool info:
 The @code{gnatmem} utility monitors dynamic allocation and
 deallocation activity in a program, and displays information about
 incorrect deallocations and possible sources of memory leaks.
-It provides three type of information:
+It is designed to work in association with a static runtime library
+only and in this context provides three types of information:
 @itemize @bullet
 @item
 General information concerning memory management, such as the total
@@ -20270,9 +20383,11 @@ Either a @file{@var{filename}} or an @file{@var{arg_list_filename}} must be supp
 @noindent
 The @command{gnatcheck} tool outputs on @file{stdout} all messages concerning
 rule violations.
-It also creates, in the current
-directory, a text file named @file{^gnatcheck.out^GNATCHECK.OUT^} that
-contains the complete report of the last gnatcheck run. This report contains:
+It also creates a text file  that
+contains the complete report of the last gnatcheck run. By default this file is
+named named @file{^gnatcheck.out^GNATCHECK.OUT^} and it is located in the current
+directory, @option{^-o^/OUTPUT^} option can be used to change the name and/or
+location of the report file. This report contains:
 @itemize @bullet
 @item a list of the Ada source files being checked,
 @item a list of enabled and disabled rules,
@@ -20321,8 +20436,8 @@ a generic instantiation a full source location is a chain from the location
 of this construct in the generic unit to the place where this unit is
 instantiated.
 
-@cindex @option{^-m^/DIAGNOSIS_LIMIT^} (@command{gnatcheck})
-@item ^-m@i{nnn}^/DIAGNOSIS_LIMIT=@i{nnn}^
+@cindex @option{^-m^/DIAGNOSTIC_LIMIT^} (@command{gnatcheck})
+@item ^-m@i{nnn}^/DIAGNOSTIC_LIMIT=@i{nnn}^
 Maximum number of diagnoses to be sent to Stdout, @i{nnn} from o@dots{}1000,
 the default value is 500. Zero means that there is no limitation on
 the number of diagnostic messages to be printed into Stdout.
@@ -20354,6 +20469,11 @@ in the report file
 @item ^-v^/VERBOSE^
 Verbose mode; @command{gnatcheck} generates version information and then
 a trace of sources being processed.
+
+
+@cindex @option{^-o ^/OUTPUT^} (@command{gnatcheck})
+@item ^-o ^/OUTPUT=^@var{report_file}
+Set name of report file file to @var{report_file} .
 
 @end table
 
@@ -22015,6 +22135,11 @@ units located outside the current directory, you have to provide
 the source search path when calling @command{gnatstub}, see the description
 of @command{gnatstub} switches below.
 
+By default, all the program unit body stubs generated by @code{gnatstub}
+raise the predefined @code{Program_Error} exception, which will catch
+accidental calls of generated stubs. This behavior can be changed with
+option @option{^--no-exception^/NO_EXCEPTION^} (see below).
+
 @menu
 * Running gnatstub::
 * Switches for gnatstub::
@@ -22140,7 +22265,12 @@ structures used by @command{gnatstub}) after creating the body stub.
 @cindex @option{^-l^/LINE_LENGTH^} (@command{gnatstub})
 Same as @option{^-gnatyM^/MAX_LINE_LENGTH=^@var{n}}
 
-@item ^-o^/BODY=^@var{body-name}
+@item ^--no-exception^/NO_EXCEPTION^
+@cindex @option{^--no-exception^/NO_EXCEPTION^} (@command{gnatstub})
+Avoind raising PROGRAM_ERROR in the generated bodies of program unit stubs.
+This is not always possible for function stubs.
+
+@item ^-o ^/BODY=^@var{body-name}
 @cindex @option{^-o^/BODY^} (@command{gnatstub})
 Body file name.  This should be set if the argument file name does not
 follow
@@ -22178,6 +22308,240 @@ unless this option is set.
 @cindex @option{^-v^/VERBOSE^} (@command{gnatstub})
 Verbose mode: generate version information.
 
+@end table
+
+@c *********************************
+@node Generating Ada Bindings for C and C++ headers
+@chapter Generating Ada Bindings for C and C++ headers
+@findex binding
+
+@noindent
+GNAT now comes with a new experimental binding generator for C and C++
+headers which is intended to do 95% of the tedious work of generating
+Ada specs from C or C++ header files. Note that this still is a work in
+progress, not designed to generate 100% correct Ada specs.
+
+The code generated is using the Ada 2005 syntax, which makes it
+easier to interface with other languages than previous versions of Ada.
+
+@menu
+* Running the binding generator::
+* Generating bindings for C++ headers::
+* Switches::
+@end menu
+
+@node Running the binding generator
+@section Running the binding generator
+
+@noindent
+The binding generator is part of the @command{gcc} compiler and can be
+invoked via the @option{-fdump-ada-spec} switch, which will generate Ada
+spec files for the header files specified on the command line, and all
+header files needed by these files transitivitely. For example:
+
+@smallexample
+$ g++ -c -fdump-ada-spec -C /usr/include/time.h
+$ gcc -c -gnat05 *.ads
+@end smallexample
+
+will generate, under GNU/Linux, the following files: @file{time_h.ads},
+@file{bits_time_h.ads}, @file{stddef_h.ads}, @file{bits_types_h.ads} which
+correspond to the files @file{/usr/include/time.h},
+@file{/usr/include/bits/time.h}, etc@dots{}, and will then compile in Ada 2005
+mode these Ada specs.
+
+The @code{-C} switch tells @command{gcc} to extract comments from headers,
+and will attempt to generate corresponding Ada comments.
+
+If you want to generate a single Ada file and not the transitive closure, you
+can use instead the @option{-fdump-ada-spec-slim} switch.
+
+Note that we recommend when possible to use the @command{g++} driver to
+generate bindings, even for most C headers, since this will in general
+generate better Ada specs. For generating bindings for C++ headers, it is
+mandatory to use the @command{g++} command, or @command{gcc -x c++} which
+is equivalent in this case. If @command{g++} cannot work on your C headers
+because of incompatibilities between C and C++, then you can fallback to
+@command{gcc} instead.
+
+For an example of better bindings generated from the C++ front-end,
+the name of the parameters (when available) are actually ignored by the C
+front-end. Consider the following C header:
+
+@smallexample
+extern void foo (int variable);
+@end smallexample
+
+with the C front-end, @code{variable} is ignored, and the above is handled as:
+
+@smallexample
+extern void foo (int);
+@end smallexample
+
+generating a generic:
+
+@smallexample
+procedure foo (param1 : int);
+@end smallexample
+
+with the C++ front-end, the name is available, and we generate:
+
+@smallexample
+procedure foo (variable : int);
+@end smallexample
+
+In some cases, the generated bindings will be more complete or more meaningful
+when defining some macros, which you can do via the @option{-D} switch. This
+is for example the case with @file{Xlib.h} under GNU/Linux:
+
+@smallexample
+g++ -c -fdump-ada-spec -DXLIB_ILLEGAL_ACCESS -C /usr/include/X11/Xlib.h
+@end smallexample
+
+The above will generate more complete bindings than a straight call without
+the @option{-DXLIB_ILLEGAL_ACCESS} switch.
+
+In other cases, it is not possible to parse a header file in a stand alone
+manner, because other include files need to be included first. In this
+case, the solution is to create a small header file including the needed
+@code{#include} and possible @code{#define} directives. For example, to
+generate Ada bindings for @file{readline/readline.h}, you need to first
+include @file{stdio.h}, so you can create a file with the following two
+lines in e.g. @file{readline1.h}:
+
+@smallexample
+#include <stdio.h>
+#include <readline/readline.h>
+@end smallexample
+
+and then generate Ada bindings from this file:
+
+@smallexample
+$ g++ -c -fdump-ada-spec readline1.h
+@end smallexample
+
+@node Generating bindings for C++ headers
+@section Generating bindings for C++ headers
+
+@noindent
+Generating bindings for C++ headers is done using the same options, always
+with the @command{g++} compiler.
+
+In this mode, C++ classes will be mapped to Ada tagged types, constructors
+will be mapped using the @code{CPP_Constructor} pragma, and when possible,
+multiple inheritance of abstract classes will be mapped to Ada interfaces
+(@xref{Interfacing to C++,,,gnat_rm, GNAT Reference Manual}, for additional
+information on interfacing to C++).
+
+For example, given the following C++ header file:
+
+@smallexample
+@group
+@cartouche
+class Carnivore @{
+public:
+   virtual int Number_Of_Teeth () = 0;
+@};
+
+class Domestic @{
+public:
+   virtual void Set_Owner (char* Name) = 0;
+@};
+
+class Animal @{
+public:
+  int Age_Count;
+  virtual void Set_Age (int New_Age);
+@};
+
+class Dog : Animal, Carnivore, Domestic @{
+ public:
+  int  Tooth_Count;
+  char *Owner;
+
+  virtual int  Number_Of_Teeth ();
+  virtual void Set_Owner (char* Name);
+
+  Dog();
+@};
+@end cartouche
+@end group
+@end smallexample
+
+The corresponding Ada code is generated:
+
+@smallexample @c ada
+@group
+@cartouche
+  package Class_Carnivore is
+    type Carnivore is limited interface;
+    pragma Import (CPP, Carnivore);
+
+    function Number_Of_Teeth (this : access Carnivore) return int is abstract;
+  end;
+  use Class_Carnivore;
+
+  package Class_Domestic is
+    type Domestic is limited interface;
+    pragma Import (CPP, Domestic);
+
+    procedure Set_Owner
+      (this : access Domestic;
+       Name : Interfaces.C.Strings.chars_ptr) is abstract;
+  end;
+  use Class_Domestic;
+
+  package Class_Animal is
+    type Animal is tagged limited record
+      Age_Count : aliased int;
+    end record;
+    pragma Import (CPP, Animal);
+
+    procedure Set_Age (this : access Animal; New_Age : int);
+    pragma Import (CPP, Set_Age, "_ZN6Animal7Set_AgeEi");
+  end;
+  use Class_Animal;
+
+  package Class_Dog is
+    type Dog is new Animal and Carnivore and Domestic with record
+      Tooth_Count : aliased int;
+      Owner : Interfaces.C.Strings.chars_ptr;
+    end record;
+    pragma Import (CPP, Dog);
+
+    function Number_Of_Teeth (this : access Dog) return int;
+    pragma Import (CPP, Number_Of_Teeth, "_ZN3Dog15Number_Of_TeethEv");
+
+    procedure Set_Owner
+      (this : access Dog; Name : Interfaces.C.Strings.chars_ptr);
+    pragma Import (CPP, Set_Owner, "_ZN3Dog9Set_OwnerEPc");
+
+    function New_Dog return Dog'Class;
+    pragma CPP_Constructor (New_Dog);
+    pragma Import (CPP, New_Dog, "_ZN3DogC1Ev");
+  end;
+  use Class_Dog;
+@end cartouche
+@end group
+@end smallexample
+
+@node Switches
+@section Switches
+
+@table @option
+@item -fdump-ada-spec
+@cindex @option{-fdump-ada-spec} (@command{gcc})
+Generate Ada spec files for the given header files transitively (including
+all header files that these headers depend upon).
+
+@item -fdump-ada-spec-slim
+@cindex @option{-fdump-ada-spec-slim} (@command{gcc})
+Generate Ada spec files for the header files specified on the command line
+only.
+
+@item -C
+@cindex @option{-C} (@command{gcc})
+Extract comments from headers and generate Ada comments in the Ada spec files.
 @end table
 
 @node Other Utility Programs

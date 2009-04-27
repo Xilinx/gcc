@@ -39,6 +39,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -120,10 +121,14 @@ package body Sem_Ch13 is
    --  processing is to take advantage of back-annotations of size and
    --  alignment values performed by the back end.
 
+   --  Note: the reason we store a Source_Ptr value instead of a Node_Id
+   --  is that by the time Validate_Unchecked_Conversions is called, Sprint
+   --  will already have modified all Sloc values if the -gnatD option is set.
+
    type UC_Entry is record
-      Enode  : Node_Id;   -- node used for posting warnings
-      Source : Entity_Id; -- source type for unchecked conversion
-      Target : Entity_Id; -- target type for unchecked conversion
+      Eloc   : Source_Ptr; -- node used for posting warnings
+      Source : Entity_Id;  -- source type for unchecked conversion
+      Target : Entity_Id;  -- target type for unchecked conversion
    end record;
 
    package Unchecked_Conversions is new Table.Table (
@@ -4050,7 +4055,7 @@ package body Sem_Ch13 is
                   end if;
                end Same_Rep;
 
-            --  Start processing for Record_Case
+            --  Start of processing for Record_Case
 
             begin
                if Has_Discriminants (T1) then
@@ -4397,7 +4402,7 @@ package body Sem_Ch13 is
       if Warn_On_Unchecked_Conversion then
          Unchecked_Conversions.Append
            (New_Val => UC_Entry'
-              (Enode  => N,
+              (Eloc   => Sloc (N),
                Source => Source,
                Target => Target));
 
@@ -4454,9 +4459,9 @@ package body Sem_Ch13 is
          declare
             T : UC_Entry renames Unchecked_Conversions.Table (N);
 
-            Enode  : constant Node_Id   := T.Enode;
-            Source : constant Entity_Id := T.Source;
-            Target : constant Entity_Id := T.Target;
+            Eloc   : constant Source_Ptr := T.Eloc;
+            Source : constant Entity_Id  := T.Source;
+            Target : constant Entity_Id  := T.Target;
 
             Source_Siz    : Uint;
             Target_Siz    : Uint;
@@ -4471,22 +4476,29 @@ package body Sem_Ch13 is
             if Serious_Errors_Detected = 0
               and then Known_Static_RM_Size (Source)
               and then Known_Static_RM_Size (Target)
+
+              --  Don't do the check if warnings off for either type, note the
+              --  deliberate use of OR here instead of OR ELSE to get the flag
+              --  Warnings_Off_Used set for both types if appropriate.
+
+              and then not (Has_Warnings_Off (Source)
+                              or
+                            Has_Warnings_Off (Target))
             then
                Source_Siz := RM_Size (Source);
                Target_Siz := RM_Size (Target);
 
                if Source_Siz /= Target_Siz then
-                  Error_Msg_N
+                  Error_Msg
                     ("?types for unchecked conversion have different sizes!",
-                     Enode);
+                     Eloc);
 
                   if All_Errors_Mode then
                      Error_Msg_Name_1 := Chars (Source);
                      Error_Msg_Uint_1 := Source_Siz;
                      Error_Msg_Name_2 := Chars (Target);
                      Error_Msg_Uint_2 := Target_Siz;
-                     Error_Msg_N
-                       ("\size of % is ^, size of % is ^?", Enode);
+                     Error_Msg ("\size of % is ^, size of % is ^?", Eloc);
 
                      Error_Msg_Uint_1 := UI_Abs (Source_Siz - Target_Siz);
 
@@ -4494,46 +4506,46 @@ package body Sem_Ch13 is
                        and then Is_Discrete_Type (Target)
                      then
                         if Source_Siz > Target_Siz then
-                           Error_Msg_N
+                           Error_Msg
                              ("\?^ high order bits of source will be ignored!",
-                              Enode);
+                              Eloc);
 
                         elsif Is_Unsigned_Type (Source) then
-                           Error_Msg_N
+                           Error_Msg
                              ("\?source will be extended with ^ high order " &
-                              "zero bits?!", Enode);
+                              "zero bits?!", Eloc);
 
                         else
-                           Error_Msg_N
+                           Error_Msg
                              ("\?source will be extended with ^ high order " &
                               "sign bits!",
-                              Enode);
+                              Eloc);
                         end if;
 
                      elsif Source_Siz < Target_Siz then
                         if Is_Discrete_Type (Target) then
                            if Bytes_Big_Endian then
-                              Error_Msg_N
+                              Error_Msg
                                 ("\?target value will include ^ undefined " &
                                  "low order bits!",
-                                 Enode);
+                                 Eloc);
                            else
-                              Error_Msg_N
+                              Error_Msg
                                 ("\?target value will include ^ undefined " &
                                  "high order bits!",
-                                 Enode);
+                                 Eloc);
                            end if;
 
                         else
-                           Error_Msg_N
+                           Error_Msg
                              ("\?^ trailing bits of target value will be " &
-                              "undefined!", Enode);
+                              "undefined!", Eloc);
                         end if;
 
                      else pragma Assert (Source_Siz > Target_Siz);
-                        Error_Msg_N
+                        Error_Msg
                           ("\?^ trailing bits of source will be ignored!",
-                           Enode);
+                           Eloc);
                      end if;
                   end if;
                end if;
@@ -4564,19 +4576,31 @@ package body Sem_Ch13 is
                      begin
                         if Source_Align < Target_Align
                           and then not Is_Tagged_Type (D_Source)
+
+                          --  Suppress warning if warnings suppressed on either
+                          --  type or either designated type. Note the use of
+                          --  OR here instead of OR ELSE. That is intentional,
+                          --  we would like to set flag Warnings_Off_Used in
+                          --  all types for which warnings are suppressed.
+
+                          and then not (Has_Warnings_Off (D_Source)
+                                          or
+                                        Has_Warnings_Off (D_Target)
+                                          or
+                                        Has_Warnings_Off (Source)
+                                          or
+                                        Has_Warnings_Off (Target))
                         then
                            Error_Msg_Uint_1 := Target_Align;
                            Error_Msg_Uint_2 := Source_Align;
+                           Error_Msg_Node_1 := D_Target;
                            Error_Msg_Node_2 := D_Source;
-                           Error_Msg_NE
+                           Error_Msg
                              ("?alignment of & (^) is stricter than " &
-                              "alignment of & (^)!", Enode, D_Target);
-
-                           if All_Errors_Mode then
-                              Error_Msg_N
-                                ("\?resulting access value may have invalid " &
-                                 "alignment!", Enode);
-                           end if;
+                              "alignment of & (^)!", Eloc);
+                           Error_Msg
+                             ("\?resulting access value may have invalid " &
+                              "alignment!", Eloc);
                         end if;
                      end;
                   end if;

@@ -1,6 +1,6 @@
 /* Output dbx-format symbol table information from GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -171,8 +171,7 @@ enum typestatus {TYPE_UNSEEN, TYPE_XREF, TYPE_DEFINED};
    The file_number and type_number elements are used if DBX_USE_BINCL
    is defined.  */
 
-struct typeinfo GTY(())
-{
+struct GTY(()) typeinfo {
   enum typestatus status;
   int file_number;
   int type_number;
@@ -376,6 +375,7 @@ const struct gcc_debug_hooks dbx_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,		 /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* DBX_DEBUGGING_INFO  */
@@ -408,6 +408,7 @@ const struct gcc_debug_hooks xcoff_debug_hooks =
   dbxout_handle_pch,		         /* handle_pch */
   debug_nothing_rtx,		         /* var_location */
   debug_nothing_void,                    /* switch_text_section */
+  debug_nothing_tree_tree,	         /* set_name */
   0                                      /* start_end_main_source_file */
 };
 #endif /* XCOFF_DEBUGGING_INFO  */
@@ -1397,7 +1398,9 @@ dbxout_type_index (tree type)
 /* Used in several places: evaluates to '0' for a private decl,
    '1' for a protected decl, '2' for a public decl.  */
 #define DECL_ACCESSIBILITY_CHAR(DECL) \
-(TREE_PRIVATE (DECL) ? '0' : TREE_PROTECTED (DECL) ? '1' : '2')
+((TREE_CODE (DECL) != PARM_DECL && TREE_CODE (DECL) != RESULT_DECL \
+  && (TREE_CODE (DECL) != VAR_DECL || TREE_STATIC (DECL)) \
+  && TREE_PRIVATE (DECL)) ? '0' : TREE_PROTECTED (DECL) ? '1' : '2')
 
 /* Subroutine of `dbxout_type'.  Output the type fields of TYPE.
    This must be a separate function because anonymous unions require
@@ -2809,7 +2812,7 @@ dbxout_symbol (tree decl, int local ATTRIBUTE_UNUSED)
       if (!decl_rtl)
 	DBXOUT_DECR_NESTING_AND_RETURN (0);
 
-      decl_rtl = eliminate_regs (decl_rtl, 0, NULL_RTX);
+      decl_rtl = eliminate_regs (decl_rtl, VOIDmode, NULL_RTX);
 #ifdef LEAF_REG_REMAP
       if (current_function_uses_only_leaf_regs)
 	leaf_renumber_regs_insn (decl_rtl);
@@ -3314,8 +3317,9 @@ dbxout_parms (tree parms)
 	/* Perform any necessary register eliminations on the parameter's rtl,
 	   so that the debugging output will be accurate.  */
 	DECL_INCOMING_RTL (parms)
-	  = eliminate_regs (DECL_INCOMING_RTL (parms), 0, NULL_RTX);
-	SET_DECL_RTL (parms, eliminate_regs (DECL_RTL (parms), 0, NULL_RTX));
+	  = eliminate_regs (DECL_INCOMING_RTL (parms), VOIDmode, NULL_RTX);
+	SET_DECL_RTL (parms,
+		      eliminate_regs (DECL_RTL (parms), VOIDmode, NULL_RTX));
 #ifdef LEAF_REG_REMAP
 	if (current_function_uses_only_leaf_regs)
 	  {
@@ -3593,7 +3597,7 @@ dbxout_block (tree block, int depth, tree args)
   while (block)
     {
       /* Ignore blocks never expanded or otherwise marked as real.  */
-      if (TREE_ASM_WRITTEN (block))
+      if (TREE_USED (block) && TREE_ASM_WRITTEN (block))
 	{
 	  int did_output;
 	  int blocknum = BLOCK_NUMBER (block);

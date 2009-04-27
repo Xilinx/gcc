@@ -1028,7 +1028,7 @@ set_reg_attrs_for_parm (rtx parm_rtx, rtx mem)
 /* Set the REG_ATTRS for registers in value X, given that X represents
    decl T.  */
 
-static void
+void
 set_reg_attrs_for_decl_rtl (tree t, rtx x)
 {
   if (GET_CODE (x) == SUBREG)
@@ -1449,7 +1449,10 @@ component_ref_for_mem_expr (tree ref)
 	inner = NULL_TREE;
     }
 
-  if (inner == TREE_OPERAND (ref, 0))
+  if (inner == TREE_OPERAND (ref, 0)
+      /* Don't leak SSA-names in the third operand.  */
+      && (!TREE_OPERAND (ref, 2)
+	  || TREE_CODE (TREE_OPERAND (ref, 2)) != SSA_NAME))
     return ref;
   else
     return build3 (COMPONENT_REF, TREE_TYPE (ref), inner,
@@ -1856,17 +1859,6 @@ void
 set_mem_attributes (rtx ref, tree t, int objectp)
 {
   set_mem_attributes_minus_bitpos (ref, t, objectp, 0);
-}
-
-/* Set MEM to the decl that REG refers to.  */
-
-void
-set_mem_attrs_from_reg (rtx mem, rtx reg)
-{
-  MEM_ATTRS (mem)
-    = get_mem_attrs (MEM_ALIAS_SET (mem), REG_EXPR (reg),
-		     GEN_INT (REG_OFFSET (reg)),
-		     MEM_SIZE (mem), MEM_ALIGN (mem), GET_MODE (mem));
 }
 
 /* Set the alias set of MEM to SET.  */
@@ -2392,7 +2384,7 @@ struct rtl_opt_pass pass_unshare_all_rtl =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   0,                                    /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */

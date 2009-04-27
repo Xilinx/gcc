@@ -384,8 +384,9 @@ enum obmag_en    {
 /* we now have fixed length objects - so the number of variables cannot change */
 #define BASILYS_HAS_OBJ_TAB_FIELDS 0
 
-struct basilysobject_st
+struct 
 GTY (())
+basilysobject_st
 {
   /* for objects, the discriminant is their class */
   basilysobject_ptr_t obj_class;
@@ -463,16 +464,18 @@ static inline void basilys_object_set_serial(basilysobject_ptr_t ob) {}
 
 /* forwarded pointers; nobody see them except the basilys copying
    garbage collector */
-struct basilysforward_st
+struct 
 GTY (())
+basilysforward_st
 {
   basilysobject_ptr_t discr;	/* actually always (void*)1 for forwarded */
   basilys_ptr_t forward;
 };
 
 /* when OBMAG_DECAY  */
-struct basilysdecay_st
+struct 
 GTY ((mark_hook ("basilys_mark_decay")))
+basilysdecay_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t val;
@@ -481,16 +484,18 @@ GTY ((mark_hook ("basilys_mark_decay")))
 
 
 /* when OBMAG_BOX  */
-struct basilysbox_st
+struct 
 GTY (())
+basilysbox_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t val;
 };
 
 /* when OBMAG_MULTIPLE  */
-struct basilysmultiple_st
+struct 
 GTY (())
+basilysmultiple_st
 {
   basilysobject_ptr_t discr;
   unsigned nbval;
@@ -504,8 +509,9 @@ GTY (())
   long _gap; }
 
 /* when OBMAG_CLOSURE */
-struct basilysclosure_st
+struct 
 GTY (())
+basilysclosure_st
 {
   basilysobject_ptr_t discr;
   basilysroutine_ptr_t rout;
@@ -523,7 +529,10 @@ GTY (())
 /* when OBMAG_ROUTINE */
 #define BASILYS_ROUTDESCR_LEN 96
 
-struct basilysroutine_st GTY (()) {
+struct 
+GTY (()) 
+basilysroutine_st 
+{
   basilysobject_ptr_t discr;
   char routdescr[BASILYS_ROUTDESCR_LEN];
   basilysroutfun_t* GTY ((skip)) routfunad;
@@ -553,8 +562,9 @@ struct basilysroutine_st GTY (()) {
 
 
 /* when OBMAG_PAIR */
-struct basilyspair_st
+struct 
 GTY ((chain_next ("%h.tl")))
+basilyspair_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t hd;
@@ -562,8 +572,9 @@ GTY ((chain_next ("%h.tl")))
 };
 
 /* when OBMAG_TRIPLE */
-struct basilystriple_st
+struct 
 GTY ((chain_next ("%h.tl")))
+basilystriple_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t hd;
@@ -572,8 +583,9 @@ GTY ((chain_next ("%h.tl")))
 };
 
 /* when OBMAG_LIST   */
-struct basilyslist_st
+struct 
 GTY (())
+basilyslist_st
 {
   basilysobject_ptr_t discr;
   struct basilyspair_st *first;
@@ -585,16 +597,18 @@ GTY (())
 
 
 /* when OBMAG_INT -  */
-struct basilysint_st
+struct 
 GTY (())
+basilysint_st
 {
   basilysobject_ptr_t discr;
   long val;
 };
 
 /* when OBMAG_MIXINT -  */
-struct basilysmixint_st
+struct 
 GTY (())
+basilysmixint_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t ptrval;
@@ -602,8 +616,9 @@ GTY (())
 };
 
 /* when OBMAG_MIXLOC -  */
-struct basilysmixloc_st
+struct 
 GTY (())
+basilysmixloc_st
 {
   basilysobject_ptr_t discr;
   basilys_ptr_t ptrval;
@@ -614,8 +629,9 @@ GTY (())
 
 
 /* when OBMAG_REAL   */
-struct basilysreal_st
+struct 
 GTY (())
+basilysreal_st
 {
   basilysobject_ptr_t discr;
   REAL_VALUE_TYPE val;
@@ -647,8 +663,9 @@ union special_basilys_un
    ones */
 /* when OBMAG_SPEC* eg OBMAG_SPEC_MPFR, OBMAG_SPECPPL_COEFFICIENT; etc.
     */
-struct basilysspecial_st
+struct 
 GTY ((mark_hook ("basilys_mark_special")))
+basilysspecial_st
 {
   basilysobject_ptr_t discr;
   int mark;
@@ -674,8 +691,9 @@ basilys_mark_decay (struct basilysdecay_st *p)
 }
 
 /* when OBMAG_STRING -  */
-struct basilysstring_st
+struct 
 GTY (())
+basilysstring_st
 {
   basilysobject_ptr_t discr;
   char val[FLEXIBLE_DIM];	/* null terminated */
@@ -686,9 +704,12 @@ GTY (())
   char val[(N)+1];	/* null terminated */	\
   long _gap; }
 
-/* when OBMAG_STRBUF -   */
-struct basilysstrbuf_st
+
+
+/* when OBMAG_STRBUF - string buffers  */
+struct 
 GTY (())
+basilysstrbuf_st
 {
   basilysobject_ptr_t discr;
   char *GTY ((length ("1+basilys_primtab[%h.buflenix]"))) bufzn;
@@ -702,41 +723,48 @@ GTY (())
   char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
 };
 
-/* when OBMAG_TREE  */
-struct basilystree_st
+/* when OBMAG_TREE - boxed tree-s  */
+struct 
 GTY (())
+basilystree_st
 {
   basilysobject_ptr_t discr;
   tree val;
 };
 
-/* when OBMAG_GIMPLE  */
-struct basilysgimple_st
+
+/* when OBMAG_GIMPLE - boxed gimple-s */
+struct 
 GTY (())
+basilysgimple_st
 {
   basilysobject_ptr_t discr;
   gimple val;
 };
 
-/* when OBMAG_GIMPLESEQ  */
-struct basilysgimpleseq_st
+
+/* when OBMAG_GIMPLESEQ - boxed gimpleseq-s */
+struct 
 GTY (())
+basilysgimpleseq_st
 {
   basilysobject_ptr_t discr;
   gimple_seq val;
 };
 
-/* when OBMAG_BASICBLOCK   */
-struct basilysbasicblock_st
+/* when OBMAG_BASICBLOCK  - boxed basic_block-s */
+struct
 GTY (())
+basilysbasicblock_st
 {
   basilysobject_ptr_t discr;
   basic_block val;
 };
 
 /* when OBMAG_EDGE   */
-struct basilysedge_st
+struct
 GTY (())
+basilysedge_st
 {
   basilysobject_ptr_t discr;
   edge val;
@@ -746,16 +774,18 @@ GTY (())
 
 
 /*** hashed maps of objects to basilys ***/
-struct entryobjectsbasilys_st
+struct 
 GTY (())
+entryobjectsbasilys_st
 {
   basilysobject_ptr_t e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPOBJECTS */
-struct basilysmapobjects_st
+struct 
 GTY (())
+basilysmapobjects_st
 {
   basilysobject_ptr_t discr;
   unsigned count;
@@ -769,16 +799,18 @@ GTY (())
 };
 
 /*** hashed maps of trees to basilys ***/
-struct entrytreesbasilys_st
-GTY (())
+struct
+GTY (()) 
+entrytreesbasilys_st
 {
   tree e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPTREES */
-struct basilysmaptrees_st
+struct
 GTY (())
+basilysmaptrees_st
 {
   /* change basilysmappointers_st when changing this structure */
   basilysobject_ptr_t discr;
@@ -791,16 +823,18 @@ GTY (())
 
 
 /*** hashed maps of gimples to basilys ***/
-struct entrygimplesbasilys_st
-GTY (())
+struct
+GTY (()) 
+entrygimplesbasilys_st
 {
   gimple e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPGIMPLES */
-struct basilysmapgimples_st
+struct
 GTY (())
+basilysmapgimples_st
 {
   /* change basilysmappointers_st when changing this structure */
   basilysobject_ptr_t discr;
@@ -812,16 +846,18 @@ GTY (())
 
 
 /*** hashed maps of gimpleseqs to basilys ***/
-struct entrygimpleseqsbasilys_st
-GTY (())
+struct
+GTY (()) 
+entrygimpleseqsbasilys_st
 {
   gimple_seq e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPGIMPLESEQS */
-struct basilysmapgimpleseqs_st
-GTY (())
+struct
+GTY (()) 
+basilysmapgimpleseqs_st
 {
   /* change basilysmappointers_st when changing this structure */
   basilysobject_ptr_t discr;
@@ -834,16 +870,18 @@ GTY (())
 
 
 /*** hashed maps of strings to basilys ***/
-struct entrystringsbasilys_st
-GTY (())
+struct
+GTY (()) 
+entrystringsbasilys_st
 {
   const char *GTY (()) e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPSTRINGS */
-struct basilysmapstrings_st
-GTY (())
+struct
+GTY (()) 
+basilysmapstrings_st
 {
   basilysobject_ptr_t discr;
   unsigned count;
@@ -855,16 +893,18 @@ GTY (())
 
 /*** hashed maps of basicblocks to basilys ***/
 
-struct entrybasicblocksbasilys_st
-GTY (())
+struct
+GTY (()) 
+entrybasicblocksbasilys_st
 {
   basic_block e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPBASICBLOCKS */
-struct basilysmapbasicblocks_st
+struct
 GTY (())
+basilysmapbasicblocks_st
 {
   /* change basilysmappointers_st when changing this structure */
   basilysobject_ptr_t discr;
@@ -875,16 +915,18 @@ GTY (())
 };
 
 /*** hashed maps of edges to basilys ***/
-struct entryedgesbasilys_st
+struct
 GTY (())
+entryedgesbasilys_st
 {
   edge e_at;
   basilys_ptr_t e_va;
 };
 
 /* when OBMAG_MAPEDGES */
-struct basilysmapedges_st
-GTY (())
+struct
+GTY (()) 
+basilysmapedges_st
 {
   /* change basilysmappointers_st when changing this structure */
   basilysobject_ptr_t discr;
@@ -897,8 +939,9 @@ GTY (())
 
 /**** our union for everything ***/
 /* never use an array of basilys_un, only array of pointers basilys_ptr_t */
-typedef union basilys_un
-GTY ((desc ("%0.u_discr->object_magic")))
+typedef union
+GTY ((desc ("%0.u_discr->object_magic"))) 
+basilys_un
 {
   basilysobject_ptr_t GTY ((skip)) u_discr;
   struct basilysforward_st GTY ((skip)) u_forward;

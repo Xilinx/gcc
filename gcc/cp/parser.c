@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "c-common.h"
+#include "plugin.h"
 
 
 /* The lexer.  */
@@ -47,8 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 /* A token's value and its associated deferred access checks and
    qualifying scope.  */
 
-struct tree_check GTY(())
-{
+struct GTY(()) tree_check {
   /* The value associated with the token.  */
   tree value;
   /* The checks that have been associated with value.  */
@@ -60,8 +60,7 @@ struct tree_check GTY(())
 
 /* A C++ token.  */
 
-typedef struct cp_token GTY (())
-{
+typedef struct GTY (()) cp_token {
   /* The kind of token.  */
   ENUM_BITFIELD (cpp_ttype) type : 8;
   /* If this token is a keyword, this value indicates which keyword.
@@ -103,8 +102,7 @@ static cp_token eof_token =
    it to the parser.  Tokens are never added to the cp_lexer after
    it is created.  */
 
-typedef struct cp_lexer GTY (())
-{
+typedef struct GTY (()) cp_lexer {
   /* The memory allocated for the buffer.  NULL if this lexer does not
      own the token buffer.  */
   cp_token * GTY ((length ("%h.buffer_length"))) buffer;
@@ -143,8 +141,7 @@ typedef struct cp_lexer GTY (())
    a cp_token_cache, since everything in here is referenced through
    a lexer.  */
 
-typedef struct cp_token_cache GTY(())
-{
+typedef struct GTY(()) cp_token_cache {
   /* The beginning of the token range.  */
   cp_token * GTY((skip)) first;
 
@@ -468,7 +465,8 @@ cp_lexer_get_preprocessor_token (cp_lexer *lexer, cp_token *token)
   else if (token->type == CPP_PRAGMA)
     {
       /* We smuggled the cpp_token->u.pragma value in an INTEGER_CST.  */
-      token->pragma_kind = TREE_INT_CST_LOW (token->u.value);
+      token->pragma_kind = ((enum pragma_kind)
+			    TREE_INT_CST_LOW (token->u.value));
       token->u.value = NULL_TREE;
     }
 }
@@ -1190,7 +1188,7 @@ function_declarator_p (const cp_declarator *declarator)
 /* Flags that are passed to some parsing functions.  These values can
    be bitwise-ored together.  */
 
-typedef enum cp_parser_flags
+enum cp_parser_flags
 {
   /* No flags.  */
   CP_PARSER_FLAGS_NONE = 0x0,
@@ -1199,7 +1197,11 @@ typedef enum cp_parser_flags
   CP_PARSER_FLAGS_OPTIONAL = 0x1,
   /* When parsing a type-specifier, do not allow user-defined types.  */
   CP_PARSER_FLAGS_NO_USER_DEFINED_TYPES = 0x2
-} cp_parser_flags;
+};
+
+/* This type is used for parameters and variables which hold
+   combinations of the flags in enum cp_parser_flags.  */
+typedef int cp_parser_flags;
 
 /* The different kinds of declarators we want to parse.  */
 
@@ -1271,7 +1273,7 @@ typedef struct cp_parser_expression_stack_entry
   /* Tree code for the binary operation we are parsing.  */
   enum tree_code tree_type;
   /* Precedence of the binary operation we are parsing.  */
-  int prec;
+  enum cp_parser_prec prec;
 } cp_parser_expression_stack_entry;
 
 /* The stack for storing partial expressions.  We only need NUM_PREC_VALUES
@@ -1281,8 +1283,7 @@ typedef struct cp_parser_expression_stack_entry
   cp_parser_expression_stack[NUM_PREC_VALUES];
 
 /* Context that is saved and restored when parsing tentatively.  */
-typedef struct cp_parser_context GTY (())
-{
+typedef struct GTY (()) cp_parser_context {
   /* If this is a tentative parsing context, the status of the
      tentative parse.  */
   enum cp_parser_status_kind status;
@@ -1388,8 +1389,7 @@ cp_parser_context_new (cp_parser_context* next)
 
 /* The cp_parser structure represents the C++ parser.  */
 
-typedef struct cp_parser GTY(())
-{
+typedef struct GTY(()) cp_parser {
   /* The lexer from which we are obtaining tokens.  */
   cp_lexer *lexer;
 
@@ -1913,7 +1913,7 @@ static tree cp_parser_maybe_treat_template_as_class
 static bool cp_parser_check_declarator_template_parameters
   (cp_parser *, cp_declarator *, location_t);
 static bool cp_parser_check_template_parameters
-  (cp_parser *, unsigned, location_t);
+  (cp_parser *, unsigned, location_t, cp_declarator *);
 static tree cp_parser_simple_cast_expression
   (cp_parser *);
 static tree cp_parser_global_scope_opt
@@ -2090,7 +2090,7 @@ cp_parser_error (cp_parser* parser, const char* message)
 			CPP_KEYWORD, keywords are treated like
 			identifiers.  */
 		     (token->type == CPP_KEYWORD ? CPP_NAME : token->type),
-		     token->u.value);
+		     token->u.value, token->flags);
     }
 }
 
@@ -2166,10 +2166,9 @@ cp_parser_check_decl_spec (cp_decl_specifier_seq *decl_specs,
 	{
 	  if (count > 2)
 	    error ("%H%<long long long%> is too long for GCC", &location);
-	  else if (pedantic && !in_system_header && warn_long_long
-                   && cxx_dialect == cxx98)
-	    pedwarn (location, OPT_Wlong_long, 
-		     "ISO C++ 1998 does not support %<long long%>");
+	  else 
+	    pedwarn_cxx98 (location, OPT_Wlong_long, 
+			   "ISO C++ 1998 does not support %<long long%>");
 	}
       else if (count > 1)
 	{
@@ -2623,6 +2622,8 @@ cp_parser_skip_to_end_of_block_or_statement (cp_parser* parser)
 	  /* Stop if this is an unnested '}', or closes the outermost
 	     nesting level.  */
 	  nesting_depth--;
+	  if (nesting_depth < 0)
+	    return;
 	  if (!nesting_depth)
 	    nesting_depth = -1;
 	  break;
@@ -10474,6 +10475,12 @@ cp_parser_template_argument_list (cp_parser* parser)
          argument pack. */
       if (cp_lexer_next_token_is (parser->lexer, CPP_ELLIPSIS))
         {
+	  if (argument == error_mark_node)
+	    {
+	      cp_token *token = cp_lexer_peek_token (parser->lexer);
+	      error ("%Hexpected parameter pack before %<...%>",
+		     &token->location);
+	    }
           /* Consume the `...' token. */
           cp_lexer_consume_token (parser->lexer);
 
@@ -11012,6 +11019,7 @@ cp_parser_type_specifier (cp_parser* parser,
       cp_parser_parse_tentatively (parser);
       /* Look for the class-specifier.  */
       type_spec = cp_parser_class_specifier (parser);
+      invoke_plugin_callbacks (PLUGIN_FINISH_TYPE, type_spec);
       /* If that worked, we're done.  */
       if (cp_parser_parse_definitely (parser))
 	{
@@ -11765,7 +11773,8 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 	     there were no qualifying templates.  */
 	  if (!cp_parser_check_template_parameters (parser,
 						    /*num_templates=*/0,
-						    token->location))
+						    token->location,
+						    /*declarator=*/NULL))
 	    return error_mark_node;
 	  type = xref_tag (tag_type, identifier, ts, template_p);
 	}
@@ -12010,6 +12019,11 @@ cp_parser_enumerator_definition (cp_parser* parser, tree type)
     }
   else
     value = NULL_TREE;
+
+  /* If we are processing a template, make sure the initializer of the
+     enumerator doesn't contain any bare template parameter pack.  */
+  if (check_for_bare_parameter_packs (value))
+    value = error_mark_node;
 
   /* Create the enumerator.  */
   build_enumerator (identifier, value, type);
@@ -14942,10 +14956,8 @@ cp_parser_class_name (cp_parser *parser,
 static tree
 cp_parser_class_specifier (cp_parser* parser)
 {
-  cp_token *token;
   tree type;
   tree attributes = NULL_TREE;
-  int has_trailing_semicolon;
   bool nested_name_specifier_p;
   unsigned saved_num_template_parameter_lists;
   bool saved_in_function_body;
@@ -15023,10 +15035,6 @@ cp_parser_class_specifier (cp_parser* parser)
 
   /* Look for the trailing `}'.  */
   cp_parser_require (parser, CPP_CLOSE_BRACE, "%<}%>");
-  /* We get better error messages by noticing a common problem: a
-     missing trailing `;'.  */
-  token = cp_lexer_peek_token (parser->lexer);
-  has_trailing_semicolon = (token->type == CPP_SEMICOLON);
   /* Look for trailing attributes to apply to this class.  */
   if (cp_parser_allow_gnu_extensions_p (parser))
     attributes = cp_parser_attributes_opt (parser);
@@ -15397,7 +15405,8 @@ cp_parser_class_head (cp_parser* parser,
   /* Make sure that the right number of template parameters were
      present.  */
   if (!cp_parser_check_template_parameters (parser, num_templates,
-					    type_start_token->location))
+					    type_start_token->location,
+					    /*declarator=*/NULL))
     {
       /* If something went wrong, there is no point in even trying to
 	 process the class-definition.  */
@@ -17306,9 +17315,9 @@ cp_parser_check_declarator_template_parameters (cp_parser* parser,
 	   additional level of template parameters.  */
 	++num_templates;
 
-      return cp_parser_check_template_parameters (parser,
-						  num_templates,
-						  declarator_location);
+      return cp_parser_check_template_parameters 
+	(parser, num_templates, declarator_location, declarator);
+
 
     case cdk_function:
     case cdk_array:
@@ -17329,22 +17338,15 @@ cp_parser_check_declarator_template_parameters (cp_parser* parser,
 
 /* NUM_TEMPLATES were used in the current declaration.  If that is
    invalid, return FALSE and issue an error messages.  Otherwise,
-   return TRUE.  */
+   return TRUE.  If DECLARATOR is non-NULL, then we are checking a
+   declarator and we can print more accurate diagnostics.  */
 
 static bool
 cp_parser_check_template_parameters (cp_parser* parser,
 				     unsigned num_templates,
-				     location_t location)
+				     location_t location,
+				     cp_declarator *declarator)
 {
-  /* If there are more template classes than parameter lists, we have
-     something like:
-
-       template <class T> void S<T>::R<T>::f ();  */
-  if (parser->num_template_parameter_lists < num_templates)
-    {
-      error ("%Htoo few template-parameter-lists", &location);
-      return false;
-    }
   /* If there are the same number of template classes and parameter
      lists, that's OK.  */
   if (parser->num_template_parameter_lists == num_templates)
@@ -17352,7 +17354,22 @@ cp_parser_check_template_parameters (cp_parser* parser,
   /* If there are more, but only one more, then we are referring to a
      member template.  That's OK too.  */
   if (parser->num_template_parameter_lists == num_templates + 1)
-      return true;
+    return true;
+  /* If there are more template classes than parameter lists, we have
+     something like:
+
+       template <class T> void S<T>::R<T>::f ();  */
+  if (parser->num_template_parameter_lists < num_templates)
+    {
+      if (declarator)
+	error_at (location, "specializing member %<%T::%E%> "
+		  "requires %<template<>%> syntax", 
+		  declarator->u.id.qualifying_scope,
+		  declarator->u.id.unqualified_name);
+      else 
+	error_at (location, "too few template-parameter-lists");
+      return false;
+    }
   /* Otherwise, there are too many template parameter lists.  We have
      something like:
 
@@ -21030,7 +21047,7 @@ static void
 cp_parser_omp_flush (cp_parser *parser, cp_token *pragma_tok)
 {
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
-    (void) cp_parser_omp_var_list (parser, 0, NULL);
+    (void) cp_parser_omp_var_list (parser, OMP_CLAUSE_ERROR, NULL);
   cp_parser_require_pragma_eol (parser, pragma_tok);
 
   finish_omp_flush ();
@@ -21871,7 +21888,7 @@ cp_parser_omp_threadprivate (cp_parser *parser, cp_token *pragma_tok)
 {
   tree vars;
 
-  vars = cp_parser_omp_var_list (parser, 0, NULL);
+  vars = cp_parser_omp_var_list (parser, OMP_CLAUSE_ERROR, NULL);
   cp_parser_require_pragma_eol (parser, pragma_tok);
 
   finish_omp_threadprivate (vars);

@@ -1,5 +1,5 @@
 /* Instruction scheduling pass.  Selective scheduler and pipeliner.
-   Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -1108,7 +1108,7 @@ hash_with_unspec_callback (const_rtx x, enum machine_mode mode ATTRIBUTE_UNUSED,
       && targetm.sched.skip_rtx_p (x))
     {
       *nx = XVECEXP (x, 0 ,0);
-      *nmode = 0;
+      *nmode = VOIDmode;
       return 1;
     }
   
@@ -1504,14 +1504,6 @@ insert_in_history_vect (VEC (expr_history_def, heap) **pvect,
   if (res)
     {
       expr_history_def *phist = VEC_index (expr_history_def, vect, ind);
-
-      /* When merging, either old vinsns are the *same* or, if not, both 
-         old and new vinsns are different pointers.  In the latter case, 
-         though, new vinsns should be equal.  */
-      gcc_assert (phist->old_expr_vinsn == old_expr_vinsn
-                  || (phist->new_expr_vinsn != new_expr_vinsn 
-                      && (vinsn_equal_p 
-                          (phist->old_expr_vinsn, old_expr_vinsn))));
 
       /* It is possible that speculation types of expressions that were 
          propagated through different paths will be different here.  In this

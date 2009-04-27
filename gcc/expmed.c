@@ -208,7 +208,7 @@ init_expmed (void)
   for (speed = 0; speed < 2; speed++)
     {
       crtl->maybe_hot_insn_p = speed;
-      zero_cost[speed] = rtx_cost (const0_rtx, 0, speed);
+      zero_cost[speed] = rtx_cost (const0_rtx, SET, speed);
 
       for (mode = GET_CLASS_NARROWEST_MODE (MODE_INT);
 	   mode != VOIDmode;
@@ -3998,10 +3998,8 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		      {
 			/* Most significant bit of divisor is set; emit an scc
 			   insn.  */
-			quotient = emit_store_flag (tquotient, GEU, op0, op1,
-						    compute_mode, 1, 1);
-			if (quotient == 0)
-			  goto fail1;
+			quotient = emit_store_flag_force (tquotient, GEU, op0, op1,
+							  compute_mode, 1, 1);
 		      }
 		    else
 		      {

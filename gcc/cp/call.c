@@ -3897,11 +3897,12 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
   tree result = NULL_TREE;
   bool result_valid_p = false;
   enum tree_code code2 = NOP_EXPR;
+  enum tree_code code_orig_arg1 = ERROR_MARK;
+  enum tree_code code_orig_arg2 = ERROR_MARK;
   conversion *conv;
   void *p;
   bool strict_p;
   bool any_viable_p;
-  bool expl_eq_arg1 = false;
 
   if (error_operand_p (arg1)
       || error_operand_p (arg2)
@@ -3935,8 +3936,10 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
     case TRUTH_ANDIF_EXPR:
     case TRUTH_AND_EXPR:
     case TRUTH_OR_EXPR:
-      if (COMPARISON_CLASS_P (arg1))
-	expl_eq_arg1 = true;
+      /* These are saved for the sake of warn_logical_operator.  */
+      code_orig_arg1 = TREE_CODE (arg1);
+      code_orig_arg2 = TREE_CODE (arg2);
+
     default:
       break;
     }
@@ -4069,8 +4072,20 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	default:
 	  if ((flags & LOOKUP_COMPLAIN) && (complain & tf_error))
 	    {
-	      op_error (code, code2, arg1, arg2, arg3, "no match");
-	      print_z_candidates (candidates);
+		/* If one of the arguments of the operator represents
+		   an invalid use of member function pointer, try to report
+		   a meaningful error ...  */
+		if (invalid_nonstatic_memfn_p (arg1, tf_error)
+		    || invalid_nonstatic_memfn_p (arg2, tf_error)
+		    || invalid_nonstatic_memfn_p (arg3, tf_error))
+		  /* We displayed the error message.  */;
+		else
+		  {
+		    /* ... Otherwise, report the more generic
+		       "no matching operator found" error */
+		    op_error (code, code2, arg1, arg2, arg3, "no match");
+		    print_z_candidates (candidates);
+		  }
 	    }
 	  result = error_mark_node;
 	  break;
@@ -4140,8 +4155,16 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  if (conv->kind == ck_ref_bind)
 	    conv = conv->u.next;
 	  arg1 = convert_like (conv, arg1, complain);
+
 	  if (arg2)
 	    {
+	      /* We need to call warn_logical_operator before
+		 converting arg2 to a boolean_type.  */
+	      if (complain & tf_warning)
+		warn_logical_operator (input_location, code,
+				       code_orig_arg1, arg1,
+				       code_orig_arg2, arg2);
+
 	      conv = cand->convs[1];
 	      if (conv->kind == ck_ref_bind)
 		conv = conv->u.next;
@@ -4155,12 +4178,6 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	      arg3 = convert_like (conv, arg3, complain);
 	    }
 
-	  if (!expl_eq_arg1) 
-	    {
-	      if (complain & tf_warning)
-		warn_logical_operator (code, arg1, arg2);
-	      expl_eq_arg1 = true;
-	    }
 	}
     }
 
@@ -4185,8 +4202,9 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
     case TRUTH_ORIF_EXPR:
     case TRUTH_AND_EXPR:
     case TRUTH_OR_EXPR:
-      if (!expl_eq_arg1)
-	warn_logical_operator (code, arg1, arg2);
+      warn_logical_operator (input_location, code,
+			     code_orig_arg1, arg1, code_orig_arg2, arg2);
+      /* Fall through.  */
     case PLUS_EXPR:
     case MINUS_EXPR:
     case MULT_EXPR:
@@ -4466,7 +4484,7 @@ build_temp (tree expr, tree type, int flags,
   else if (errorcount > savee)
     *diagnostic_kind = DK_ERROR;
   else
-    *diagnostic_kind = 0;
+    *diagnostic_kind = DK_UNSPECIFIED;
   return expr;
 }
 
@@ -5391,18 +5409,35 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       else
 	{
 	  /* We must only copy the non-tail padding parts.
-	     Use __builtin_memcpy for the bitwise copy.  */
+	     Use __builtin_memcpy for the bitwise copy.
+	     FIXME fix 22488 so we can go back to using MODIFY_EXPR
+	     instead of an explicit call to memcpy.  */
 	
 	  tree arg0, arg1, arg2, t;
+	  tree test = NULL_TREE;
 
 	  arg2 = TYPE_SIZE_UNIT (as_base);
 	  arg1 = arg;
 	  arg0 = cp_build_unary_op (ADDR_EXPR, to, 0, complain);
+
+	  if (!(optimize && flag_tree_ter))
+	    {
+	      /* When TER is off get_pointer_alignment returns 0, so a call
+		 to __builtin_memcpy is expanded as a call to memcpy, which
+		 is invalid with identical args.  When TER is on it is
+		 expanded as a block move, which should be safe.  */
+	      arg0 = save_expr (arg0);
+	      arg1 = save_expr (arg1);
+	      test = build2 (EQ_EXPR, boolean_type_node, arg0, arg1);
+	    }
 	  t = implicit_built_in_decls[BUILT_IN_MEMCPY];
 	  t = build_call_n (t, 3, arg0, arg1, arg2);
 
 	  t = convert (TREE_TYPE (arg0), t);
+	  if (test)
+	    t = build3 (COND_EXPR, TREE_TYPE (t), test, arg0, t);
 	  val = cp_build_indirect_ref (t, 0, complain);
+          TREE_NO_WARNING (val) = 1;
 	}
 
       return val;
@@ -6787,11 +6822,56 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
 	}
     }
 
-  /* If the two functions are the same (this can happen with declarations
-     in multiple scopes and arg-dependent lookup), arbitrarily choose one.  */
+  /* If the two function declarations represent the same function (this can
+     happen with declarations in multiple scopes and arg-dependent lookup),
+     arbitrarily choose one.  But first make sure the default args we're
+     using match.  */
   if (DECL_P (cand1->fn) && DECL_P (cand2->fn)
       && equal_functions (cand1->fn, cand2->fn))
-    return 1;
+    {
+      tree parms1 = TYPE_ARG_TYPES (TREE_TYPE (cand1->fn));
+      tree parms2 = TYPE_ARG_TYPES (TREE_TYPE (cand2->fn));
+
+      gcc_assert (!DECL_CONSTRUCTOR_P (cand1->fn));
+
+      for (i = 0; i < len; ++i)
+	{
+	  /* Don't crash if the fn is variadic.  */
+	  if (!parms1)
+	    break;
+	  parms1 = TREE_CHAIN (parms1);
+	  parms2 = TREE_CHAIN (parms2);
+	}
+
+      if (off1)
+	parms1 = TREE_CHAIN (parms1);
+      else if (off2)
+	parms2 = TREE_CHAIN (parms2);
+
+      for (; parms1; ++i)
+	{
+	  if (!cp_tree_equal (TREE_PURPOSE (parms1),
+			      TREE_PURPOSE (parms2)))
+	    {
+	      if (warn)
+		{
+		  permerror (input_location, "default argument mismatch in "
+			     "overload resolution");
+		  inform (input_location,
+			  " candidate 1: %q+#F", cand1->fn);
+		  inform (input_location,
+			  " candidate 2: %q+#F", cand2->fn);
+		}
+	      else
+		add_warning (cand1, cand2);
+	      break;
+	    }
+	  parms1 = TREE_CHAIN (parms1);
+	  parms2 = TREE_CHAIN (parms2);
+	}
+
+      return 1;
+    }
 
 tweak:
 

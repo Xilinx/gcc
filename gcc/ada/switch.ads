@@ -81,6 +81,15 @@ private
    Switch_Max_Value : constant := 999_999;
    --  Maximum value permitted in switches that take a value
 
+   function Nat_Present
+     (Switch_Chars : String;
+      Max          : Integer;
+      Ptr          : Integer) return Boolean;
+   --  Returns True if an integer is at the current scan location or an equal
+   --  sign. This is used as a guard for calling Scan_Nat. Switch_Chars is the
+   --  string containing the switch, and Ptr points just past the switch
+   --  character. Max is the maximum alllowed value of Ptr.
+
    procedure Scan_Nat
      (Switch_Chars : String;
       Max          : Integer;
@@ -89,7 +98,11 @@ private
       Switch       : Character);
    --  Scan natural integer parameter for switch. On entry, Ptr points just
    --  past the switch character, on exit it points past the last digit of the
-   --  integer value.
+   --  integer value. Max is the maximum allowed value of Ptr, so the scan is
+   --  restricted to Switch_Chars (Ptr .. Max). It is posssible for Ptr to be
+   --  one greater than Max on return if the entire string is digits. Scan_Nat
+   --  will skip an optional equal sign if it is present. Nat_Present must be
+   --  True, or an error will be signalled.
 
    procedure Scan_Pos
      (Switch_Chars : String;

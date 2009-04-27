@@ -28,7 +28,9 @@ with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
+with Sem;      use Sem;
 with Sem_Prag; use Sem_Prag;
+with Sem_Util; use Sem_Util;
 with Sinput;   use Sinput;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
@@ -269,7 +271,7 @@ package body Sem_Elim is
 
       Elmt := Elim_Hash_Table.Get (Chars (E));
       while Elmt /= null loop
-         declare
+         Check_Homonyms : declare
             procedure Set_Eliminated;
             --  Set current subprogram entity as eliminated
 
@@ -279,15 +281,25 @@ package body Sem_Elim is
 
             procedure Set_Eliminated is
             begin
-               --  Never try to eliminate dispatching operation, since we
-               --  can't properly process the eliminated result. This could
-               --  be fixed, but is not worth it.
+               if Is_Dispatching_Operation (E) then
 
-               if not Is_Dispatching_Operation (E) then
-                  Set_Is_Eliminated (E);
-                  Elim_Entities.Append ((Prag => Elmt.Prag, Subp => E));
+                  --  If an overriding dispatching primitive is eliminated then
+                  --  its parent must have been eliminated.
+
+                  if Is_Overriding_Operation (E)
+                    and then not Is_Eliminated (Overridden_Operation (E))
+                  then
+                     Error_Msg_Name_1 := Chars (E);
+                     Error_Msg_N ("cannot eliminate subprogram %", E);
+                     return;
+                  end if;
                end if;
+
+               Set_Is_Eliminated (E);
+               Elim_Entities.Append ((Prag => Elmt.Prag, Subp => E));
             end Set_Eliminated;
+
+         --  Start of processing for Check_Homonyms
 
          begin
             --  First we check that the name of the entity matches
@@ -643,7 +655,7 @@ package body Sem_Elim is
                Set_Eliminated;
                return;
             end if;
-         end;
+         end Check_Homonyms;
 
       <<Continue>>
          Elmt := Elmt.Homonym;
@@ -651,6 +663,29 @@ package body Sem_Elim is
 
       return;
    end Check_Eliminated;
+
+   -------------------------------------
+   -- Check_For_Eliminated_Subprogram --
+   -------------------------------------
+
+   procedure Check_For_Eliminated_Subprogram (N : Node_Id; S : Entity_Id) is
+      Ultimate_Subp  : constant Entity_Id := Ultimate_Alias (S);
+      Enclosing_Subp : Entity_Id;
+
+   begin
+      if Is_Eliminated (Ultimate_Subp) and then not Inside_A_Generic then
+         Enclosing_Subp := Current_Subprogram;
+         while Present (Enclosing_Subp) loop
+            if Is_Eliminated (Enclosing_Subp) then
+               return;
+            end if;
+
+            Enclosing_Subp := Enclosing_Subprogram (Enclosing_Subp);
+         end loop;
+
+         Eliminate_Error_Msg (N, Ultimate_Subp);
+      end if;
+   end Check_For_Eliminated_Subprogram;
 
    -------------------------
    -- Eliminate_Error_Msg --
@@ -661,7 +696,7 @@ package body Sem_Elim is
       for J in Elim_Entities.First .. Elim_Entities.Last loop
          if E = Elim_Entities.Table (J).Subp then
             Error_Msg_Sloc := Sloc (Elim_Entities.Table (J).Prag);
-            Error_Msg_NE ("cannot call subprogram & eliminated #", N, E);
+            Error_Msg_NE ("cannot reference subprogram & eliminated #", N, E);
             return;
          end if;
       end loop;

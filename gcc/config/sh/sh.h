@@ -1743,7 +1743,7 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 		 || TREE_CODE (VALTYPE) == BOOLEAN_TYPE			\
 		 || TREE_CODE (VALTYPE) == REAL_TYPE			\
 		 || TREE_CODE (VALTYPE) == OFFSET_TYPE))		\
-             && sh_promote_prototypes (VALTYPE)				\
+             && sh_promote_prototypes (FUNC)				\
 	    ? (TARGET_SHMEDIA64 ? DImode : SImode) : TYPE_MODE (VALTYPE)), \
 	   BASE_RETURN_VALUE_REG (TYPE_MODE (VALTYPE)))
 
@@ -2592,18 +2592,6 @@ struct sh_args {
       goto WIN;								\
     }									\
 }
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.
-
-   ??? Strictly speaking, we should also include all indexed addressing,
-   because the index scale factor is the length of the operand.
-   However, the impact of GO_IF_MODE_DEPENDENT_ADDRESS would be to
-   high if we did that.  So we rely on reload to fix things up.
-
-   Auto-increment addressing is now treated in recog.c.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
@@ -2630,7 +2618,7 @@ struct sh_args {
    floating point types equivalent to `float'.  */
 #define DOUBLE_TYPE_SIZE ((TARGET_SH2E && ! TARGET_SH4 && ! TARGET_SH2A_DOUBLE) ? 32 : 64)
 
-#if defined(__SH2E__) || defined(__SH3E__) || defined( __SH4_SINGLE_ONLY__)
+#if defined(__SH2E__) || defined(__SH3E__) || defined( __SH2A_SINGLE_ONLY__) || defined( __SH4_SINGLE_ONLY__)
 #define LIBGCC2_DOUBLE_TYPE_SIZE 32
 #else
 #define LIBGCC2_DOUBLE_TYPE_SIZE 64

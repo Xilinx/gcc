@@ -32,6 +32,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
+with Sem_Aux;  use Sem_Aux;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Stand;    use Stand;
@@ -510,8 +511,7 @@ package body Tbuild is
 
       if Suffix /= ' ' then
          pragma Assert (Is_OK_Internal_Letter (Suffix));
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Suffix;
+         Add_Char_To_Name_Buffer (Suffix);
       end if;
 
       if Suffix_Index /= 0 then
@@ -636,10 +636,8 @@ package body Tbuild is
    is
    begin
       Get_Name_String (Related_Id);
-      Name_Len := Name_Len + 1;
-      Name_Buffer (Name_Len) := '_';
-      Name_Buffer (Name_Len + 1 .. Name_Len + Suffix'Length) := Suffix;
-      Name_Len := Name_Len + Suffix'Length;
+      Add_Char_To_Name_Buffer ('_');
+      Add_Str_To_Name_Buffer (Suffix);
       return Name_Find;
    end New_Suffixed_Name;
 

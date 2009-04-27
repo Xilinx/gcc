@@ -6,7 +6,7 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
@@ -14,19 +14,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
 
 /*
  * Copyright (c) 1996-1997
@@ -101,11 +96,11 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       _M_round_up(size_t __bytes)
       { return ((__bytes + (size_t)_S_align - 1) & ~((size_t)_S_align - 1)); }
       
-      _Obj* volatile*
-      _M_get_free_list(size_t __bytes);
+      _GLIBCXX_CONST _Obj* volatile*
+      _M_get_free_list(size_t __bytes) throw ();
     
       __mutex&
-      _M_get_mutex();
+      _M_get_mutex() throw ();
 
       // Returns an object of size __n, and optionally adds to size __n
       // free list.
@@ -205,7 +200,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       pointer __ret = 0;
       if (__builtin_expect(__n != 0, true))
 	{
-	  if (__builtin_expect(__n > this->max_size(), false))
+	  if (__n > this->max_size())
 	    std::__throw_bad_alloc();
 
 	  // If there is a race through here, assume answer from getenv
@@ -235,7 +230,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
 		  *__free_list = __result->_M_free_list_link;
 		  __ret = reinterpret_cast<_Tp*>(__result);
 		}
-	      if (__builtin_expect(__ret == 0, 0))
+	      if (__ret == 0)
 		std::__throw_bad_alloc();
 	    }
 	}

@@ -146,7 +146,7 @@ package body GNAT.Directory_Operations is
          end Check_For_Standard_Dirs;
       end Basename;
 
-   --  Start processing for Base_Name
+   --  Start of processing for Base_Name
 
    begin
       if Path'Length <= Suffix'Length then
@@ -168,10 +168,6 @@ package body GNAT.Directory_Operations is
 
    procedure Change_Dir (Dir_Name : Dir_Name_Str) is
       C_Dir_Name : constant String := Dir_Name & ASCII.NUL;
-
-      function chdir (Dir_Name : String) return Integer;
-      pragma Import (C, chdir, "chdir");
-
    begin
       if chdir (C_Dir_Name) /= 0 then
          raise Directory_Error;
@@ -743,9 +739,7 @@ package body GNAT.Directory_Operations is
       --  Remove the directory only if it is empty
 
       if not Recursive then
-         rmdir (C_Dir_Name);
-
-         if GNAT.OS_Lib.Is_Directory (Dir_Name) then
+         if rmdir (C_Dir_Name) /= 0 then
             raise Directory_Error;
          end if;
 
@@ -768,7 +762,6 @@ package body GNAT.Directory_Operations is
                      Str (1 .. Last) /= ".."
                   then
                      Remove_Dir (Str (1 .. Last), True);
-                     Remove_Dir (Str (1 .. Last));
                   end if;
 
                else

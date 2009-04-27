@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.   If not see
 #include "tree-inline.h"
 #include "basic-block.h"
 #include "timevar.h"
-#include "errors.h"
 #include "ggc.h"
 #include "cgraph.h"
 #include "diagnostic.h"
@@ -161,7 +160,7 @@ int basilys_last_global_ix = BGLOB__LASTGLOB;
 static GTY(()) VEC(basilys_ptr_t,gc) *bscanvec;
 
 
-struct basilocalsptr_st GTY(()) {
+struct GTY(())  basilocalsptr_st {
   unsigned char lenix;			/* length is prime, this is the index of length */
   int nbent;
   basilys_ptr_t  GTY((length("basilys_primtab[%h.lenix]"))) ptrtab[FLEXIBLE_DIM];

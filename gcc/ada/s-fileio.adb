@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -739,6 +737,8 @@ package body System.File_IO is
       Formstr : aliased String (1 .. Form'Length + 1);
       --  Form string with ASCII.NUL appended, folded to lower case
 
+      Is_Text_File : Boolean;
+
       Tempfile : constant Boolean := (Name'Length = 0);
       --  Indicates temporary file case
 
@@ -800,7 +800,7 @@ package body System.File_IO is
          end if;
       end;
 
-      --  Acquire setting of shared parameter
+      --  Acquire setting of encoding parameter
 
       declare
          V1, V2 : Natural;
@@ -809,7 +809,7 @@ package body System.File_IO is
          Form_Parameter (Formstr, "encoding", V1, V2);
 
          if V1 = 0 then
-            Encoding := System.CRTL.UTF8;
+            Encoding := System.CRTL.Unspecified;
 
          elsif Formstr (V1 .. V2) = "utf8" then
             Encoding := System.CRTL.UTF8;
@@ -821,6 +821,18 @@ package body System.File_IO is
             raise Use_Error;
          end if;
       end;
+
+      --  Acquire setting of text_translation parameter. Only needed if this is
+      --  a [Wide_[Wide_]]Text_IO file, in which case we default to True, but
+      --  if the Form says Text_Translation=No, we use binary mode, so new-line
+      --  will be just LF, even on Windows.
+
+      Is_Text_File := Text;
+
+      if Is_Text_File then
+         Is_Text_File :=
+           Form_Boolean (Formstr, "text_translation", Default => True);
+      end if;
 
       --  If we were given a stream (call from xxx.C_Streams.Open), then set
       --  the full name to the given one, and skip to end of processing.
@@ -962,7 +974,7 @@ package body System.File_IO is
          --  Open specified file if we did not find an existing stream
 
          if Stream = NULL_Stream then
-            Fopen_Mode (Mode, Text, Creat, Amethod, Fopstr);
+            Fopen_Mode (Mode, Is_Text_File, Creat, Amethod, Fopstr);
 
             --  A special case, if we are opening (OPEN case) a file and the
             --  mode returned by Fopen_Mode is not "r" or "r+", then we first
@@ -1026,7 +1038,7 @@ package body System.File_IO is
 
       File_Ptr.Is_Regular_File   := (is_regular_file (fileno (Stream)) /= 0);
       File_Ptr.Is_System_File    := False;
-      File_Ptr.Is_Text_File      := Text;
+      File_Ptr.Is_Text_File      := Is_Text_File;
       File_Ptr.Shared_Status     := Shared;
       File_Ptr.Access_Method     := Amethod;
       File_Ptr.Stream            := Stream;

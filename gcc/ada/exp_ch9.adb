@@ -48,6 +48,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch11; use Sem_Ch11;
@@ -737,20 +738,25 @@ package body Exp_Ch9 is
       --  At the end of the statement sequence, Complete_Rendezvous is called.
       --  A label skipping the Complete_Rendezvous, and all other accept
       --  processing, has already been added for the expansion of requeue
-      --  statements.
+      --  statements. The Sloc is copied from the last statement since it
+      --  is really part of this last statement.
 
-      Call := Build_Runtime_Call (Loc, RE_Complete_Rendezvous);
+      Call :=
+        Build_Runtime_Call
+          (Sloc (Last (Statements (Stats))), RE_Complete_Rendezvous);
       Insert_Before (Last (Statements (Stats)), Call);
       Analyze (Call);
 
       --  If exception handlers are present, then append Complete_Rendezvous
-      --  calls to the handlers, and construct the required outer block.
+      --  calls to the handlers, and construct the required outer block. As
+      --  above, the Sloc is copied from the last statement in the sequence.
 
       if Present (Exception_Handlers (Stats)) then
          Hand := First (Exception_Handlers (Stats));
-
          while Present (Hand) loop
-            Call := Build_Runtime_Call (Loc, RE_Complete_Rendezvous);
+            Call :=
+              Build_Runtime_Call
+                (Sloc (Last (Statements (Hand))), RE_Complete_Rendezvous);
             Append (Call, Statements (Hand));
             Analyze (Call);
             Next (Hand);
@@ -785,13 +791,13 @@ package body Exp_Ch9 is
             Exception_Choices => New_List (Ohandle),
 
             Statements =>  New_List (
-              Make_Procedure_Call_Statement (Loc,
+              Make_Procedure_Call_Statement (Sloc (Stats),
                 Name => New_Reference_To (
-                  RTE (RE_Exceptional_Complete_Rendezvous), Loc),
+                  RTE (RE_Exceptional_Complete_Rendezvous), Sloc (Stats)),
                 Parameter_Associations => New_List (
-                  Make_Function_Call (Loc,
+                  Make_Function_Call (Sloc (Stats),
                     Name => New_Reference_To (
-                      RTE (RE_Get_GNAT_Exception), Loc))))))));
+                      RTE (RE_Get_GNAT_Exception), Sloc (Stats)))))))));
 
       Set_Parent (New_S, Astat); -- temp parent for Analyze call
       Analyze_Exception_Handlers (Exception_Handlers (New_S));
@@ -1126,8 +1132,9 @@ package body Exp_Ch9 is
       --    for Lnn in Family_Low .. Family_High loop
       --       Inn := Inn + 1;
       --       Set_Entry_Name
-      --         (_init._object, Inn, new String ("<Entry name> " & Lnn'Img));
-      --          _init._task_id
+      --         (_init._object <or> _init._task_id,
+      --          Inn,
+      --          new String ("<Entry name>(" & Lnn'Img & ")"));
       --    end loop;
       --  Note that the bounds of the range may reference discriminants. The
       --  above construct is added directly to the statements of the block.
@@ -1135,8 +1142,10 @@ package body Exp_Ch9 is
       procedure Build_Entry_Name (Id : Entity_Id);
       --  Generate:
       --    Inn := Inn + 1;
-      --    Set_Entry_Name (_init._task_id, Inn, new String ("<Entry name>");
-      --                    _init._object
+      --    Set_Entry_Name
+      --      (_init._object <or>_init._task_id,
+      --       Inn,
+      --       new String ("<Entry name>");
       --  The above construct is added directly to the statements of the block.
 
       function Build_Set_Entry_Name_Call (Arg3 : Node_Id) return Node_Id;
@@ -1207,13 +1216,16 @@ package body Exp_Ch9 is
       begin
          Get_Name_String (Chars (Id));
 
-         if Is_Enumeration_Type (Etype (Def)) then
-            Name_Len := Name_Len + 1;
-            Name_Buffer (Name_Len) := ' ';
-         end if;
+         --  Add a leading '('
+
+         Add_Char_To_Name_Buffer ('(');
 
          --  Generate:
-         --    new String'("<Entry name>" & Lnn'Img);
+         --    new String'("<Entry name>(" & Lnn'Img & ")");
+
+         --  This is an implicit heap allocation, and Comes_From_Source is
+         --  False, which ensures that it will get flagged as a violation of
+         --  No_Implicit_Heap_Allocations when that restriction applies.
 
          Val :=
            Make_Allocator (Loc,
@@ -1223,13 +1235,18 @@ package body Exp_Ch9 is
                Expression =>
                  Make_Op_Concat (Loc,
                    Left_Opnd =>
-                     Make_String_Literal (Loc,
-                       String_From_Name_Buffer),
+                     Make_Op_Concat (Loc,
+                       Left_Opnd =>
+                         Make_String_Literal (Loc,
+                           Strval => String_From_Name_Buffer),
+                       Right_Opnd =>
+                         Make_Attribute_Reference (Loc,
+                           Prefix =>
+                             New_Reference_To (L_Id, Loc),
+                               Attribute_Name => Name_Img)),
                    Right_Opnd =>
-                     Make_Attribute_Reference (Loc,
-                       Prefix =>
-                         New_Reference_To (L_Id, Loc),
-                           Attribute_Name => Name_Img))));
+                     Make_String_Literal (Loc,
+                       Strval => ")"))));
 
          Increment_Index (L_Stmts);
          Append_To (L_Stmts, Build_Set_Entry_Name_Call (Val));
@@ -1237,7 +1254,8 @@ package body Exp_Ch9 is
          --  Generate:
          --    for Lnn in Family_Low .. Family_High loop
          --       Inn := Inn + 1;
-         --       Set_Entry_Name (_init._task_id, Inn, <Val>);
+         --       Set_Entry_Name
+         --         (_init._object <or> _init._task_id, Inn, <Val>);
          --    end loop;
 
          Append_To (B_Stmts,
@@ -1262,6 +1280,11 @@ package body Exp_Ch9 is
 
       begin
          Get_Name_String (Chars (Id));
+
+         --  This is an implicit heap allocation, and Comes_From_Source is
+         --  False, which ensures that it will get flagged as a violation of
+         --  No_Implicit_Heap_Allocations when that restriction applies.
+
          Val :=
            Make_Allocator (Loc,
              Make_Qualified_Expression (Loc,
@@ -2388,7 +2411,10 @@ package body Exp_Ch9 is
       --  in internal scopes, unless present already.. Required for nested
       --  limited aggregates, where the expansion of task components may
       --  generate inner blocks. If the block is the rewriting of a call
-      --  this is valid master.
+      --  or the scope is an extended return statement this is valid master.
+      --  The master in an extended return is only used within the return,
+      --  and is subsequently overwritten in Move_Activation_Chain, but it
+      --  must exist now.
 
       if Ada_Version >= Ada_05 then
          while Is_Internal (S) loop
@@ -2396,6 +2422,8 @@ package body Exp_Ch9 is
               and then
                 Nkind (Original_Node (Parent (S))) = N_Procedure_Call_Statement
             then
+               exit;
+            elsif Ekind (S) = E_Return_Statement then
                exit;
             else
                S := Scope (S);
@@ -2762,6 +2790,11 @@ package body Exp_Ch9 is
       --  unlock calls.
 
       Set_Debug_Info_Needed (New_Id);
+
+      --  If a pragma Eliminate applies to the source entity, the internal
+      --  subprograms will be eliminated as well.
+
+      Set_Is_Eliminated (New_Id, Is_Eliminated (Def_Id));
 
       if Nkind (Specification (Decl)) = N_Procedure_Specification then
          New_Spec :=
@@ -3147,13 +3180,9 @@ package body Exp_Ch9 is
          Name_Len := Name_Len - 1;
       end if;
 
-      Name_Buffer (Name_Len + 1) := '_';
-      Name_Buffer (Name_Len + 2) := '_';
-
-      Name_Len := Name_Len + 2;
+      Add_Str_To_Name_Buffer ("__");
       for J in 1 .. Select_Len loop
-         Name_Len := Name_Len + 1;
-         Name_Buffer (Name_Len) := Select_Buffer (J);
+         Add_Char_To_Name_Buffer (Select_Buffer (J));
       end loop;
 
       --  Now add the Append_Char if specified. The encoding to follow
@@ -3166,13 +3195,10 @@ package body Exp_Ch9 is
 
       if Append_Char /= ' ' then
          if Append_Char = 'P' or Append_Char = 'N' then
-            Name_Len := Name_Len + 1;
-            Name_Buffer (Name_Len) := Append_Char;
+            Add_Char_To_Name_Buffer (Append_Char);
             return Name_Find;
          else
-            Name_Buffer (Name_Len + 1) := '_';
-            Name_Buffer (Name_Len + 2) := Append_Char;
-            Name_Len := Name_Len + 2;
+            Add_Str_To_Name_Buffer ((1 => '_', 2 => Append_Char));
             return New_External_Name (Name_Find, ' ', -1);
          end if;
       else
@@ -4662,14 +4688,14 @@ package body Exp_Ch9 is
                while Present (Formal) loop
                   Comp  := Entry_Component (Formal);
                   New_F :=
-                    Make_Defining_Identifier (Sloc (Formal), Chars (Formal));
+                    Make_Defining_Identifier (Loc, Chars (Formal));
 
                   Set_Etype (New_F, Etype (Formal));
                   Set_Scope (New_F, Ent);
 
-               --  Now we set debug info needed on New_F even though it does
-               --  not come from source, so that the debugger will get the
-               --  right information for these generated names.
+                  --  Now we set debug info needed on New_F even though it does
+                  --  not come from source, so that the debugger will get the
+                  --  right information for these generated names.
 
                   Set_Debug_Info_Needed (New_F);
 
@@ -7191,7 +7217,7 @@ package body Exp_Ch9 is
 
             when N_Subprogram_Body =>
 
-               --  Exclude functions created to analyze defaults
+               --  Do not create bodies for eliminated operations
 
                if not Is_Eliminated (Defining_Entity (Op_Body))
                  and then not Is_Eliminated (Corresponding_Spec (Op_Body))
@@ -7199,13 +7225,13 @@ package body Exp_Ch9 is
                   New_Op_Body :=
                     Build_Unprotected_Subprogram_Body (Op_Body, Pid);
 
-                  --  Propagate the finalization chain to the new body.
-                  --  In the unlikely event that the subprogram contains a
-                  --  declaration or allocator for an object that requires
-                  --  finalization, the corresponding chain is created when
-                  --  analyzing the body, and attached to its entity. This
-                  --  entity is not further elaborated, and so the chain
-                  --  properly belongs to the newly created subprogram body.
+                  --  Propagate the finalization chain to the new body. In the
+                  --  unlikely event that the subprogram contains a declaration
+                  --  or allocator for an object that requires finalization,
+                  --  the corresponding chain is created when analyzing the
+                  --  body, and attached to its entity. This entity is not
+                  --  further elaborated, and so the chain properly belongs to
+                  --  the newly created subprogram body.
 
                   Chain :=
                     Finalization_Chain_Entity (Defining_Entity (Op_Body));
@@ -7226,11 +7252,11 @@ package body Exp_Ch9 is
                   --  appear that this is needed only if this is a visible
                   --  operation of the type, or if it is an interrupt handler,
                   --  and this was the strategy used previously in GNAT.
-                  --  However, the operation may be exported through a
-                  --  'Access to an external caller. This is the common idiom
-                  --  in code that uses the Ada 2005 Timing_Events package
-                  --  As a result we need to produce the protected body for
-                  --  both visible and private operations.
+                  --  However, the operation may be exported through a 'Access
+                  --  to an external caller. This is the common idiom in code
+                  --  that uses the Ada 2005 Timing_Events package. As a result
+                  --  we need to produce the protected body for both visible
+                  --  and private operations.
 
                   if Present (Corresponding_Spec (Op_Body)) then
                      Op_Decl :=
@@ -7441,9 +7467,26 @@ package body Exp_Ch9 is
       E_Count      : Int;
       Object_Comp  : Node_Id;
 
+      procedure Check_Inlining (Subp : Entity_Id);
+      --  If the original operation has a pragma Inline, propagate the flag
+      --  to the internal body, for possible inlining later on. The source
+      --  operation is invisible to the back-end and is never actually called.
+
       procedure Register_Handler;
       --  For a protected operation that is an interrupt handler, add the
       --  freeze action that will register it as such.
+
+      --------------------
+      -- Check_Inlining --
+      --------------------
+
+      procedure Check_Inlining (Subp : Entity_Id) is
+      begin
+         if Is_Inlined (Subp) then
+            Set_Is_Inlined (Protected_Body_Subprogram (Subp));
+            Set_Is_Inlined (Subp, False);
+         end if;
+      end Check_Inlining;
 
       ----------------------
       -- Register_Handler --
@@ -7693,7 +7736,7 @@ package body Exp_Ch9 is
                Set_Protected_Body_Subprogram
                  (Defining_Unit_Name (Specification (Priv)),
                   Defining_Unit_Name (Specification (Sub)));
-
+               Check_Inlining (Defining_Unit_Name (Specification (Priv)));
                Current_Node := Sub;
 
                Sub :=
@@ -7765,9 +7808,7 @@ package body Exp_Ch9 is
       Comp := First (Visible_Declarations (Pdef));
 
       while Present (Comp) loop
-         if Nkind (Comp) = N_Subprogram_Declaration
-           and then not Is_Eliminated (Defining_Entity (Comp))
-         then
+         if Nkind (Comp) = N_Subprogram_Declaration then
             Sub :=
               Make_Subprogram_Declaration (Loc,
                 Specification =>
@@ -7780,6 +7821,7 @@ package body Exp_Ch9 is
             Set_Protected_Body_Subprogram
               (Defining_Unit_Name (Specification (Comp)),
                Defining_Unit_Name (Specification (Sub)));
+               Check_Inlining (Defining_Unit_Name (Specification (Comp)));
 
             --  Make the protected version of the subprogram available for
             --  expansion of external calls.
@@ -8560,6 +8602,7 @@ package body Exp_Ch9 is
       procedure Add_Accept (Alt : Node_Id) is
          Acc_Stm   : constant Node_Id    := Accept_Statement (Alt);
          Ename     : constant Node_Id    := Entry_Direct_Name (Acc_Stm);
+         Eloc      : constant Source_Ptr := Sloc (Ename);
          Eent      : constant Entity_Id  := Entity (Ename);
          Index     : constant Node_Id    := Entry_Index (Acc_Stm);
          Null_Body : Node_Id;
@@ -8575,29 +8618,29 @@ package body Exp_Ch9 is
 
          if Present (Condition (Alt)) then
             Expr :=
-              Make_Conditional_Expression (Loc, New_List (
+              Make_Conditional_Expression (Eloc, New_List (
                 Condition (Alt),
-                Entry_Index_Expression (Loc, Eent, Index, Scope (Eent)),
-                New_Reference_To (RTE (RE_Null_Task_Entry), Loc)));
+                Entry_Index_Expression (Eloc, Eent, Index, Scope (Eent)),
+                New_Reference_To (RTE (RE_Null_Task_Entry), Eloc)));
          else
             Expr :=
               Entry_Index_Expression
-                (Loc, Eent, Index, Scope (Eent));
+                (Eloc, Eent, Index, Scope (Eent));
          end if;
 
          if Present (Handled_Statement_Sequence (Accept_Statement (Alt))) then
-            Null_Body := New_Reference_To (Standard_False, Loc);
+            Null_Body := New_Reference_To (Standard_False, Eloc);
 
             if Abort_Allowed then
-               Call := Make_Procedure_Call_Statement (Loc,
-                 Name => New_Reference_To (RTE (RE_Abort_Undefer), Loc));
+               Call := Make_Procedure_Call_Statement (Eloc,
+                 Name => New_Reference_To (RTE (RE_Abort_Undefer), Eloc));
                Insert_Before (First (Statements (Handled_Statement_Sequence (
                  Accept_Statement (Alt)))), Call);
                Analyze (Call);
             end if;
 
             PB_Ent :=
-              Make_Defining_Identifier (Sloc (Ename),
+              Make_Defining_Identifier (Eloc,
                 New_External_Name (Chars (Ename), 'A', Num_Accept));
 
             if Comes_From_Source (Alt) then
@@ -8605,9 +8648,9 @@ package body Exp_Ch9 is
             end if;
 
             Proc_Body :=
-              Make_Subprogram_Body (Loc,
+              Make_Subprogram_Body (Eloc,
                 Specification =>
-                  Make_Procedure_Specification (Loc,
+                  Make_Procedure_Specification (Eloc,
                     Defining_Unit_Name => PB_Ent),
                Declarations => Declarations (Acc_Stm),
                Handled_Statement_Sequence =>
@@ -8623,7 +8666,7 @@ package body Exp_Ch9 is
             Append (Proc_Body, Body_List);
 
          else
-            Null_Body := New_Reference_To (Standard_True,  Loc);
+            Null_Body := New_Reference_To (Standard_True,  Eloc);
 
             --  if accept statement has declarations, insert above, given that
             --  we are not creating a body for the accept.
@@ -8634,7 +8677,7 @@ package body Exp_Ch9 is
          end if;
 
          Append_To (Accept_List,
-           Make_Aggregate (Loc, Expressions => New_List (Null_Body, Expr)));
+           Make_Aggregate (Eloc, Expressions => New_List (Null_Body, Expr)));
 
          Num_Accept := Num_Accept + 1;
       end Add_Accept;
@@ -8704,9 +8747,9 @@ package body Exp_Ch9 is
               Make_Integer_Literal (Loc, Index));
 
             Alt_Stats := New_List (
-              Make_Procedure_Call_Statement (Loc,
+              Make_Procedure_Call_Statement (Sloc (Proc),
                 Name => New_Reference_To (
-                  Defining_Unit_Name (Specification (Proc)), Loc)));
+                  Defining_Unit_Name (Specification (Proc)), Sloc (Proc))));
          end if;
 
          if Statements (Alt) /= Empty_List then
@@ -11988,12 +12031,15 @@ package body Exp_Ch9 is
       if Present (Tdef)
         and then Has_Task_Name_Pragma (Tdef)
       then
+         --  Copy expression in full, because it may be dynamic and have
+         --  side effects.
+
          Append_To (Args,
-           New_Copy (
-             Expression (First (
-               Pragma_Argument_Associations (
-                 Find_Task_Or_Protected_Pragma
-                   (Tdef, Name_Task_Name))))));
+           New_Copy_Tree
+             (Expression (First
+                           (Pragma_Argument_Associations
+                             (Find_Task_Or_Protected_Pragma
+                               (Tdef, Name_Task_Name))))));
 
       else
          Append_To (Args, Make_Identifier (Loc, Name_uTask_Name));

@@ -1378,7 +1378,7 @@ prepare_cbranch_operands (rtx *operands, enum machine_mode mode,
   rtx op1;
   rtx scratch = NULL_RTX;
 
-  if (comparison == CODE_FOR_nothing)
+  if (comparison == LAST_AND_UNUSED_RTX_CODE)
     comparison = GET_CODE (operands[0]);
   else
     scratch = operands[4];
@@ -1478,9 +1478,7 @@ expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
                                           operands[1], operands[2])));
   jump = emit_jump_insn (branch_expander (operands[3]));
   if (probability >= 0)
-    REG_NOTES (jump)
-      = gen_rtx_EXPR_LIST (REG_BR_PROB, GEN_INT (probability),
-                           REG_NOTES (jump));
+    add_reg_note (jump, REG_BR_PROB, GEN_INT (probability));
 
 }
 
@@ -1518,7 +1516,7 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   op2h = gen_highpart_mode (SImode, DImode, operands[2]);
   op1l = gen_lowpart (SImode, operands[1]);
   op2l = gen_lowpart (SImode, operands[2]);
-  msw_taken = msw_skip = lsw_taken = CODE_FOR_nothing;
+  msw_taken = msw_skip = lsw_taken = LAST_AND_UNUSED_RTX_CODE;
   prob = split_branch_probability;
   rev_prob = REG_BR_PROB_BASE - prob;
   switch (comparison)
@@ -1609,9 +1607,9 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
       break;
     default: return false;
     }
-  num_branches = ((msw_taken != CODE_FOR_nothing)
-		  + (msw_skip != CODE_FOR_nothing)
-		  + (lsw_taken != CODE_FOR_nothing));
+  num_branches = ((msw_taken != LAST_AND_UNUSED_RTX_CODE)
+		  + (msw_skip != LAST_AND_UNUSED_RTX_CODE)
+		  + (lsw_taken != LAST_AND_UNUSED_RTX_CODE));
   if (comparison != EQ && comparison != NE && num_branches > 1)
     {
       if (!CONSTANT_P (operands[2])
@@ -1637,20 +1635,21 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
   operands[4] = NULL_RTX;
   if (reload_completed
       && ! arith_reg_or_0_operand (op2h, SImode) && true_regnum (op1h)
-      && (msw_taken != CODE_FOR_nothing || msw_skip != CODE_FOR_nothing))
+      && (msw_taken != LAST_AND_UNUSED_RTX_CODE
+	  || msw_skip != LAST_AND_UNUSED_RTX_CODE))
     {
       emit_move_insn (scratch, operands[2]);
       operands[2] = scratch;
     }
-  if (msw_taken != CODE_FOR_nothing)
+  if (msw_taken != LAST_AND_UNUSED_RTX_CODE)
     expand_cbranchsi4 (operands, msw_taken, msw_taken_prob);
-  if (msw_skip != CODE_FOR_nothing)
+  if (msw_skip != LAST_AND_UNUSED_RTX_CODE)
     {
       rtx taken_label = operands[3];
 
       /* Operands were possibly modified, but msw_skip doesn't expect this.
 	 Always use the original ones.  */
-      if (msw_taken != CODE_FOR_nothing)
+      if (msw_taken != LAST_AND_UNUSED_RTX_CODE)
 	{
 	  operands[1] = op1h;
 	  operands[2] = op2h;
@@ -1662,14 +1661,14 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
     }
   operands[1] = op1l;
   operands[2] = op2l;
-  if (lsw_taken != CODE_FOR_nothing)
+  if (lsw_taken != LAST_AND_UNUSED_RTX_CODE)
     {
       if (reload_completed
 	  && ! arith_reg_or_0_operand (op2l, SImode) && true_regnum (op1l))
 	operands[4] = scratch;
       expand_cbranchsi4 (operands, lsw_taken, lsw_taken_prob);
     }
-  if (msw_skip != CODE_FOR_nothing)
+  if (msw_skip != LAST_AND_UNUSED_RTX_CODE)
     emit_label (skip_label);
   return true;
 }
@@ -1766,7 +1765,7 @@ from_compare (rtx *operands, int code)
   else
     insn = gen_rtx_SET (VOIDmode,
 			gen_rtx_REG (SImode, T_REG),
-			gen_rtx_fmt_ee (code, SImode,
+			gen_rtx_fmt_ee ((enum rtx_code) code, SImode,
 					sh_compare_op0, sh_compare_op1));
   if ((TARGET_SH4 || TARGET_SH2A) && GET_MODE_CLASS (mode) == MODE_FLOAT)
     {
@@ -2248,7 +2247,7 @@ int
 shift_insns_rtx (rtx insn)
 {
   rtx set_src = SET_SRC (XVECEXP (PATTERN (insn), 0, 0));
-  int shift_count = INTVAL (XEXP (set_src, 1));
+  int shift_count = INTVAL (XEXP (set_src, 1)) & 31;
   enum rtx_code shift_code = GET_CODE (set_src);
 
   switch (shift_code)
@@ -2287,9 +2286,10 @@ shiftcosts (rtx x)
   if (GET_CODE (XEXP (x, 1)) != CONST_INT)
     return SH_DYNAMIC_SHIFT_COST;
 
-  value = INTVAL (XEXP (x, 1));
+  /* Otherwise, return the true cost in instructions.  Cope with out of range
+     shift counts more or less arbitrarily.  */
+  value = INTVAL (XEXP (x, 1)) & 31;
 
-  /* Otherwise, return the true cost in instructions.  */
   if (GET_CODE (x) == ASHIFTRT)
     {
       int cost = ashiftrt_insns[value];
@@ -2638,7 +2638,7 @@ gen_shifty_op (int code, rtx *operands)
   int max, i;
 
   /* Truncate the shift count in case it is out of bounds.  */
-  value = value & 0x1f;
+  value = value & 31;
 
   if (value == 31)
     {
@@ -2791,7 +2791,7 @@ expand_ashiftrt (rtx *operands)
 int
 sh_dynamicalize_shift_p (rtx count)
 {
-  return shift_insns[INTVAL (count)] > 1 + SH_DYNAMIC_SHIFT_COST;
+  return shift_insns[INTVAL (count) & 31] > 1 + SH_DYNAMIC_SHIFT_COST;
 }
 
 /* Try to find a good way to implement the combiner pattern
@@ -2951,11 +2951,11 @@ int
 shl_and_scr_length (rtx insn)
 {
   rtx set_src = SET_SRC (XVECEXP (PATTERN (insn), 0, 0));
-  int len = shift_insns[INTVAL (XEXP (set_src, 1))];
+  int len = shift_insns[INTVAL (XEXP (set_src, 1)) & 31];
   rtx op = XEXP (set_src, 0);
-  len += shift_insns[INTVAL (XEXP (op, 1))] + 1;
+  len += shift_insns[INTVAL (XEXP (op, 1)) & 31] + 1;
   op = XEXP (XEXP (op, 0), 0);
-  return len + shift_insns[INTVAL (XEXP (op, 1))];
+  return len + shift_insns[INTVAL (XEXP (op, 1)) & 31];
 }
 
 /* Generate rtl for instructions for which shl_and_kind advised a particular
@@ -5704,12 +5704,10 @@ output_stack_adjust (int size, rtx reg, int epilogue_p,
 	      insn = emit_fn (GEN_ADD3 (reg, reg, const_reg));
 	    }
 	  if (! epilogue_p)
-	    REG_NOTES (insn)
-	      = (gen_rtx_EXPR_LIST
-		 (REG_FRAME_RELATED_EXPR,
-		  gen_rtx_SET (VOIDmode, reg,
-			       gen_rtx_PLUS (SImode, reg, GEN_INT (size))),
-		  REG_NOTES (insn)));
+	    add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			  gen_rtx_SET (VOIDmode, reg,
+				       gen_rtx_PLUS (SImode, reg,
+						     GEN_INT (size))));
 	}
     }
 }
@@ -5745,9 +5743,7 @@ push (int rn)
     x = gen_push (gen_rtx_REG (SImode, rn));
 
   x = frame_insn (x);
-  REG_NOTES (x)
-    = gen_rtx_EXPR_LIST (REG_INC,
-			 gen_rtx_REG (SImode, STACK_POINTER_REGNUM), 0);
+  add_reg_note (x, REG_INC, gen_rtx_REG (SImode, STACK_POINTER_REGNUM));
   return x;
 }
 
@@ -5774,9 +5770,7 @@ pop (int rn)
     x = gen_pop (gen_rtx_REG (SImode, rn));
 
   x = emit_insn (x);
-  REG_NOTES (x)
-    = gen_rtx_EXPR_LIST (REG_INC,
-			 gen_rtx_REG (SImode, STACK_POINTER_REGNUM), 0);
+  add_reg_note (x, REG_INC, gen_rtx_REG (SImode, STACK_POINTER_REGNUM));
 }
 
 /* Generate code to push the regs specified in the mask.  */
@@ -6368,32 +6362,27 @@ sh_expand_prologue (void)
 						 stack_pointer_rtx,
 						 GEN_INT (offset)));
 
-	  GO_IF_LEGITIMATE_ADDRESS (mode, XEXP (mem_rtx, 0), try_pre_dec);
+	  if (!memory_address_p (mode, XEXP (mem_rtx, 0)))
+	    {
+	      gcc_assert (r0);
+	      mem_rtx = NULL_RTX;
+	    }
 
-	  gcc_assert (r0);
-	  mem_rtx = NULL_RTX;
+	  if (HAVE_PRE_DECREMENT
+	      && (offset_in_r0 - offset == GET_MODE_SIZE (mode)
+		  || mem_rtx == NULL_RTX
+		  || reg == PR_REG || SPECIAL_REGISTER_P (reg)))
+	    {
+	      pre_dec = gen_frame_mem (mode, gen_rtx_PRE_DEC (Pmode, r0));
 
-	try_pre_dec:
-	  do
-	    if (HAVE_PRE_DECREMENT
-		&& (offset_in_r0 - offset == GET_MODE_SIZE (mode)
-		    || mem_rtx == NULL_RTX
-		    || reg == PR_REG || SPECIAL_REGISTER_P (reg)))
-	      {
-		pre_dec = gen_frame_mem (mode, gen_rtx_PRE_DEC (Pmode, r0));
-
-		GO_IF_LEGITIMATE_ADDRESS (mode, XEXP (pre_dec, 0),
-					  pre_dec_ok);
-
+	      if (!memory_address_p (mode, XEXP (pre_dec, 0)))
 		pre_dec = NULL_RTX;
-
-		break;
-
-	      pre_dec_ok:
-		mem_rtx = NULL_RTX;
-		offset += GET_MODE_SIZE (mode);
-	      }
-	  while (0);
+	      else
+		{
+		  mem_rtx = NULL_RTX;
+		  offset += GET_MODE_SIZE (mode);
+		}
+	    }
 
 	  if (mem_rtx != NULL_RTX)
 	    goto addr_ok;
@@ -6481,27 +6470,23 @@ sh_expand_prologue (void)
 	       a direct save from the to-be-saved register.  */
 	    if (REGNO (reg_rtx) != reg)
 	      {
-		rtx set, note_rtx;
+		rtx set;
 
 		set = gen_rtx_SET (VOIDmode, mem_rtx, orig_reg_rtx);
-		note_rtx = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, set,
-					      REG_NOTES (insn));
-		REG_NOTES (insn) = note_rtx;
+		add_reg_note (insn, REG_FRAME_RELATED_EXPR, set);
 	      }
 
 	    if (TARGET_SHCOMPACT && (offset_in_r0 != -1))
 	      {
 		rtx reg_rtx = gen_rtx_REG (mode, reg);
-		rtx set, note_rtx;
+		rtx set;
 		rtx mem_rtx = gen_frame_mem (mode,
 					     gen_rtx_PLUS (Pmode,
 							   stack_pointer_rtx,
 							   GEN_INT (offset)));
 
 		set = gen_rtx_SET (VOIDmode, mem_rtx, reg_rtx);
-		note_rtx = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR, set,
-					      REG_NOTES (insn));
-		REG_NOTES (insn) = note_rtx;
+		add_reg_note (insn, REG_FRAME_RELATED_EXPR, set);
 	      }
 	  }
 	}
@@ -6660,31 +6645,22 @@ sh_expand_epilogue (bool sibcall_p)
 						 stack_pointer_rtx,
 						 GEN_INT (offset)));
 
-	  GO_IF_LEGITIMATE_ADDRESS (mode, XEXP (mem_rtx, 0), try_post_inc);
+	  if (!memory_address_p (mode, XEXP (mem_rtx, 0)))
+	    mem_rtx = NULL_RTX;
 
-	  mem_rtx = NULL_RTX;
+	  if (HAVE_POST_INCREMENT
+	      && (offset == offset_in_r0
+		  || (offset + GET_MODE_SIZE (mode) != d + d_rounding
+		      && mem_rtx == NULL_RTX)
+		  || reg == PR_REG || SPECIAL_REGISTER_P (reg)))
+	    {
+	      post_inc = gen_frame_mem (mode, gen_rtx_POST_INC (Pmode, r0));
 
-	try_post_inc:
-	  do
-	    if (HAVE_POST_INCREMENT
-		&& (offset == offset_in_r0
-		    || (offset + GET_MODE_SIZE (mode) != d + d_rounding
-			&& mem_rtx == NULL_RTX)
-		    || reg == PR_REG || SPECIAL_REGISTER_P (reg)))
-	      {
-		post_inc = gen_frame_mem (mode, gen_rtx_POST_INC (Pmode, r0));
-
-		GO_IF_LEGITIMATE_ADDRESS (mode, XEXP (post_inc, 0),
-					  post_inc_ok);
-
+	      if (!memory_address_p (mode, XEXP (post_inc, 0)))
 		post_inc = NULL_RTX;
-
-		break;
-
-	      post_inc_ok:
+	      else
 		mem_rtx = NULL_RTX;
-	      }
-	  while (0);
+	    }
 
 	  if (mem_rtx != NULL_RTX)
 	    goto addr_ok;
@@ -8751,7 +8727,7 @@ sh_insn_length_adjustment (rtx insn)
 
   /* SH2e has a bug that prevents the use of annulled branches, so if
      the delay slot is not filled, we'll have to put a NOP in it.  */
-  if (sh_cpu == CPU_SH2E
+  if (sh_cpu_attr == CPU_SH2E
       && GET_CODE (insn) == JUMP_INSN
       && GET_CODE (PATTERN (insn)) != ADDR_DIFF_VEC
       && GET_CODE (PATTERN (insn)) != ADDR_VEC
@@ -9836,7 +9812,7 @@ sh_initialize_trampoline (rtx tramp, rtx fnaddr, rtx cxt)
 	  || (!(TARGET_SH4A_ARCH || TARGET_SH4_300) && TARGET_USERMODE))
 	emit_library_call (function_symbol (NULL, "__ic_invalidate",
 					    FUNCTION_ORDINARY),
-			   0, VOIDmode, 1, tramp, SImode);
+			   LCT_NORMAL, VOIDmode, 1, tramp, SImode);
       else
 	emit_insn (gen_ic_invalidate_line (tramp));
     }
@@ -10173,7 +10149,7 @@ sh_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
       argmode = TYPE_MODE (TREE_TYPE (arg));
       if (argmode != opmode)
 	arg = build1 (NOP_EXPR, optype, arg);
-      op[nop] = expand_expr (arg, NULL_RTX, opmode, 0);
+      op[nop] = expand_expr (arg, NULL_RTX, opmode, EXPAND_NORMAL);
       if (! (*insn_data[icode].operand[nop].predicate) (op[nop], opmode))
 	op[nop] = copy_to_mode_reg (opmode, op[nop]);
     }
@@ -10634,41 +10610,12 @@ sh_output_mi_thunk (FILE *file, tree thunk_fndecl ATTRIBUTE_UNUSED,
   insn_locators_alloc ();
   insns = get_insns ();
 
-#if 0
-  if (optimize > 0)
-    {
-      /* Initialize the bitmap obstacks.  */
-      bitmap_obstack_initialize (NULL);
-      bitmap_obstack_initialize (&reg_obstack);
-      if (! cfun->cfg)
-	init_flow ();
-      rtl_register_cfg_hooks ();
-      init_rtl_bb_info (ENTRY_BLOCK_PTR);
-      init_rtl_bb_info (EXIT_BLOCK_PTR);
-      ENTRY_BLOCK_PTR->flags |= BB_RTL;
-      EXIT_BLOCK_PTR->flags |= BB_RTL;
-      find_basic_blocks (insns);
-
-      if (flag_schedule_insns_after_reload)
-	{
-	  life_analysis (PROP_FINAL);
-
-	  split_all_insns (1);
-
-	  schedule_insns ();
-	}
-      /* We must split jmp insn in PIC case.  */
-      else if (flag_pic)
-	split_all_insns_noflow ();
-    }
-#else
   if (optimize > 0)
     {
       if (! cfun->cfg)
 	init_flow (cfun);
       split_all_insns_noflow ();
     }
-#endif
 
   sh_reorg ();
 

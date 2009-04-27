@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -7,27 +7,22 @@ This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
+the Free Software Foundation; either version 3, or (at your option)
 any later version.
-
-In addition to the permissions in the GNU General Public License, the
-Free Software Foundation gives you unlimited permission to link the
-compiled version of this file into combinations with other programs,
-and to distribute those combinations without any restriction coming
-from the use of this file.  (The General Public License restrictions
-do apply in other respects; for example, they cover modification of
-the file, and distribution when not linked into a combine
-executable.)
 
 Libgfortran is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with Libgfortran; see the file COPYING.  If not, write to
-the Free Software Foundation, 51 Franklin Street, Fifth Floor,
-Boston, MA 02110-1301, USA.  */
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+<http://www.gnu.org/licenses/>.  */
 
 /* Unix stream I/O module */
 
@@ -151,31 +146,6 @@ typedef struct
 unix_stream;
 
 
-/*move_pos_offset()--  Move the record pointer right or left
- *relative to current position */
-
-int
-move_pos_offset (stream* st, int pos_off)
-{
-  unix_stream * str = (unix_stream*)st;
-  if (pos_off < 0)
-    {
-      str->logical_offset += pos_off;
-
-      if (str->ndirty > str->logical_offset)
-	{
-	  if (str->ndirty + pos_off > 0)
-	    str->ndirty += pos_off;
-	  else
-            str->ndirty = 0;
-	}
-
-    return pos_off;
-  }
-  return 0;
-}
-
-
 /* fix_fd()-- Given a file descriptor, make sure it is not one of the
  * standard descriptors, returning a non-standard descriptor.  If the
  * user specifies that system errors should go to standard output,
@@ -220,17 +190,6 @@ fix_fd (int fd)
   return fd;
 }
 
-int
-is_preconnected (stream * s)
-{
-  int fd;
-
-  fd = ((unix_stream *) s)->fd;
-  if (fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO)
-    return 1;
-  else
-    return 0;
-}
 
 /* If the stream corresponds to a preconnected unit, we flush the
    corresponding C stream.  This is bugware for mixed C-Fortran codes
@@ -349,7 +308,7 @@ raw_close (unix_stream * s)
       && s->fd != STDIN_FILENO)
     retval = close (s->fd);
   else
-    retval = SUCCESS;
+    retval = 0;
   free_mem (s);
   return retval;
 }

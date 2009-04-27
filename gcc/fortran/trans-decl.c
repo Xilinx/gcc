@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "debug.h"
 #include "gfortran.h"
+#include "pointer-set.h"
 #include "trans.h"
 #include "trans-types.h"
 #include "trans-array.h"
@@ -60,6 +61,8 @@ static GTY(()) tree current_function_return_label;
 static GTY(()) tree saved_function_decls;
 static GTY(()) tree saved_parent_function_decls;
 
+static struct pointer_set_t *nonlocal_dummy_decl_pset;
+static GTY(()) tree nonlocal_dummy_decls;
 
 /* The namespace of the module we're currently generating.  Only used while
    outputting decls for module variables.  Do not rely on this being set.  */
@@ -870,6 +873,38 @@ gfc_build_dummy_array_decl (gfc_symbol * sym, tree dummy)
   return decl;
 }
 
+/* For symbol SYM with GFC_DECL_SAVED_DESCRIPTOR used in contained
+   function add a VAR_DECL to the current function with DECL_VALUE_EXPR
+   pointing to the artificial variable for debug info purposes.  */
+
+static void
+gfc_nonlocal_dummy_array_decl (gfc_symbol *sym)
+{
+  tree decl, dummy;
+
+  if (! nonlocal_dummy_decl_pset)
+    nonlocal_dummy_decl_pset = pointer_set_create ();
+
+  if (pointer_set_insert (nonlocal_dummy_decl_pset, sym->backend_decl))
+    return;
+
+  dummy = GFC_DECL_SAVED_DESCRIPTOR (sym->backend_decl);
+  decl = build_decl (VAR_DECL, DECL_NAME (dummy),
+		     TREE_TYPE (sym->backend_decl));
+  DECL_ARTIFICIAL (decl) = 0;
+  TREE_USED (decl) = 1;
+  TREE_PUBLIC (decl) = 0;
+  TREE_STATIC (decl) = 0;
+  DECL_EXTERNAL (decl) = 0;
+  if (DECL_BY_REFERENCE (dummy))
+    DECL_BY_REFERENCE (decl) = 1;
+  DECL_LANG_SPECIFIC (decl) = DECL_LANG_SPECIFIC (sym->backend_decl);
+  SET_DECL_VALUE_EXPR (decl, sym->backend_decl);
+  DECL_HAS_VALUE_EXPR_P (decl) = 1;
+  DECL_CONTEXT (decl) = DECL_CONTEXT (sym->backend_decl);
+  TREE_CHAIN (decl) = nonlocal_dummy_decls;
+  nonlocal_dummy_decls = decl;
+}
 
 /* Return a constant or a variable to use as a string length.  Does not
    add the decl to the current scope.  */
@@ -877,13 +912,12 @@ gfc_build_dummy_array_decl (gfc_symbol * sym, tree dummy)
 static tree
 gfc_create_string_length (gfc_symbol * sym)
 {
-  tree length;
-
   gcc_assert (sym->ts.cl);
   gfc_conv_const_charlen (sym->ts.cl);
-  
+
   if (sym->ts.cl->backend_decl == NULL_TREE)
     {
+      tree length;
       char name[GFC_MAX_MANGLED_SYMBOL_LEN + 2];
 
       /* Also prefix the mangled name.  */
@@ -895,9 +929,11 @@ gfc_create_string_length (gfc_symbol * sym)
       TREE_USED (length) = 1;
       if (sym->ns->proc_name->tlink != NULL)
 	gfc_defer_symbol_init (sym);
+
       sym->ts.cl->backend_decl = length;
     }
 
+  gcc_assert (sym->ts.cl->backend_decl != NULL_TREE);
   return sym->ts.cl->backend_decl;
 }
 
@@ -1009,16 +1045,25 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	{
 	  gfc_add_assign_aux_vars (sym);
 	}
+
+      if (sym->attr.dimension
+	  && DECL_LANG_SPECIFIC (sym->backend_decl)
+	  && GFC_DECL_SAVED_DESCRIPTOR (sym->backend_decl)
+	  && DECL_CONTEXT (sym->backend_decl) != current_function_decl)
+	gfc_nonlocal_dummy_array_decl (sym);
+
       return sym->backend_decl;
     }
 
   if (sym->backend_decl)
     return sym->backend_decl;
 
-  /* Catch function declarations.  Only used for actual parameters.  */
+  /* Catch function declarations.  Only used for actual parameters and
+     procedure pointers.  */
   if (sym->attr.flavor == FL_PROCEDURE)
     {
       decl = gfc_get_extern_function_decl (sym);
+      gfc_set_decl_location (decl, &sym->declared_at);
       return decl;
     }
 
@@ -1125,6 +1170,13 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  TREE_TYPE (decl), sym->attr.dimension,
 	  sym->attr.pointer || sym->attr.allocatable);
     }
+
+  if (!TREE_STATIC (decl)
+      && POINTER_TYPE_P (TREE_TYPE (decl))
+      && !sym->attr.pointer
+      && !sym->attr.allocatable
+      && !sym->attr.proc_pointer)
+    DECL_BY_REFERENCE (decl) = 1;
 
   return decl;
 }
@@ -1644,7 +1696,8 @@ create_function_arglist (gfc_symbol * sym)
 	  TREE_READONLY (length) = 1;
 	  gfc_finish_decl (length);
 
-	  /* TODO: Check string lengths when -fbounds-check.  */
+	  /* Remember the passed value.  */
+	  f->sym->ts.cl->passed_length = length;
 
 	  /* Use the passed value for assumed length variables.  */
 	  if (!f->sym->ts.cl->length)
@@ -3702,6 +3755,86 @@ gfc_trans_entry_master_switch (gfc_entry_list * el)
 }
 
 
+/* Add code to string lengths of actual arguments passed to a function against
+   the expected lengths of the dummy arguments.  */
+
+static void
+add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
+{
+  gfc_formal_arglist *formal;
+
+  for (formal = sym->formal; formal; formal = formal->next)
+    if (formal->sym && formal->sym->ts.type == BT_CHARACTER)
+      {
+	enum tree_code comparison;
+	tree cond;
+	tree argname;
+	gfc_symbol *fsym;
+	gfc_charlen *cl;
+	const char *message;
+
+	fsym = formal->sym;
+	cl = fsym->ts.cl;
+
+	gcc_assert (cl);
+	gcc_assert (cl->passed_length != NULL_TREE);
+	gcc_assert (cl->backend_decl != NULL_TREE);
+
+	/* For POINTER, ALLOCATABLE and assumed-shape dummy arguments, the
+	   string lengths must match exactly.  Otherwise, it is only required
+	   that the actual string length is *at least* the expected one.  */
+	if (fsym->attr.pointer || fsym->attr.allocatable
+	    || (fsym->as && fsym->as->type == AS_ASSUMED_SHAPE))
+	  {
+	    comparison = NE_EXPR;
+	    message = _("Actual string length does not match the declared one"
+			" for dummy argument '%s' (%ld/%ld)");
+	  }
+	else
+	  {
+	    comparison = LT_EXPR;
+	    message = _("Actual string length is shorter than the declared one"
+			" for dummy argument '%s' (%ld/%ld)");
+	  }
+
+	/* Build the condition.  For optional arguments, an actual length
+	   of 0 is also acceptable if the associated string is NULL, which
+	   means the argument was not passed.  */
+	cond = fold_build2 (comparison, boolean_type_node,
+			    cl->passed_length, cl->backend_decl);
+	if (fsym->attr.optional)
+	  {
+	    tree not_absent;
+	    tree not_0length;
+	    tree absent_failed;
+
+	    not_0length = fold_build2 (NE_EXPR, boolean_type_node,
+				       cl->passed_length,
+				       fold_convert (gfc_charlen_type_node,
+						     integer_zero_node));
+	    not_absent = fold_build2 (NE_EXPR, boolean_type_node,
+				      fsym->backend_decl, null_pointer_node);
+
+	    absent_failed = fold_build2 (TRUTH_OR_EXPR, boolean_type_node,
+					 not_0length, not_absent);
+
+	    cond = fold_build2 (TRUTH_AND_EXPR, boolean_type_node,
+				cond, absent_failed);
+	  }
+
+	/* Build the runtime check.  */
+	argname = gfc_build_cstring_const (fsym->name);
+	argname = gfc_build_addr_expr (pchar_type_node, argname);
+	gfc_trans_runtime_check (true, false, cond, block, &fsym->declared_at,
+				 message, argname,
+				 fold_convert (long_integer_type_node,
+					       cl->passed_length),
+				 fold_convert (long_integer_type_node,
+					       cl->backend_decl));
+      }
+}
+
+
 /* Generate code for a function.  */
 
 void
@@ -3767,6 +3900,9 @@ gfc_generate_function_code (gfc_namespace * ns)
     parent_fake_result_decl = NULL_TREE;
 
   gfc_generate_contained_functions (ns);
+
+  nonlocal_dummy_decls = NULL;
+  nonlocal_dummy_decl_pset = NULL;
 
   generate_local_vars (ns);
 
@@ -3918,6 +4054,12 @@ gfc_generate_function_code (gfc_namespace * ns)
       gfc_add_expr_to_block (&body, tmp);
     }
 
+  /* If bounds-checking is enabled, generate code to check passed in actual
+     arguments against the expected dummy argument attributes (e.g. string
+     lengths).  */
+  if (flag_bounds_check)
+    add_argument_checking (&body, sym);
+
   tmp = gfc_trans_code (ns->code);
   gfc_add_expr_to_block (&body, tmp);
 
@@ -4020,6 +4162,15 @@ gfc_generate_function_code (gfc_namespace * ns)
   DECL_SAVED_TREE (fndecl)
     = build3_v (BIND_EXPR, decl, DECL_SAVED_TREE (fndecl),
 		DECL_INITIAL (fndecl));
+
+  if (nonlocal_dummy_decls)
+    {
+      BLOCK_VARS (DECL_INITIAL (fndecl))
+	= chainon (BLOCK_VARS (DECL_INITIAL (fndecl)), nonlocal_dummy_decls);
+      pointer_set_destroy (nonlocal_dummy_decl_pset);
+      nonlocal_dummy_decls = NULL;
+      nonlocal_dummy_decl_pset = NULL;
+    }
 
   /* Output the GENERIC tree.  */
   dump_function (TDI_original, fndecl);

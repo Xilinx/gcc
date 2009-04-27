@@ -322,7 +322,7 @@ struct rtl_opt_pass pass_postreload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  0,                                    /* tv_id */
+  TV_NONE,                              /* tv_id */
   PROP_rtl,                             /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -371,7 +371,7 @@ get_pass_for_id (int id)
    to do this depth first, and independent of whether the pass is
    enabled or not.  */
 
-static void
+void
 register_one_dump_file (struct opt_pass *pass)
 {
   char *dot_name, *flag_name, *glob_name;
@@ -730,22 +730,19 @@ init_optimization_passes (void)
   NEXT_PASS (pass_basilys_latessa); 
 #endif /*ENABLE_BASILYSMELT*/
 
-  NEXT_PASS (pass_del_ssa);
+  NEXT_PASS (pass_cleanup_eh);
   NEXT_PASS (pass_nrv);
-  NEXT_PASS (pass_mark_used_blocks);
+  NEXT_PASS (pass_mudflap_2);
   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
-
 
 #if ENABLE_COMPILER_PROBE
   NEXT_PASS(pass_compiler_probe);
 #endif
 
   NEXT_PASS (pass_warn_function_noreturn);
-  NEXT_PASS (pass_free_datastructures);
-  NEXT_PASS (pass_mudflap_2);
 
-  NEXT_PASS (pass_free_cfg_annotations);
   NEXT_PASS (pass_expand);
+
   NEXT_PASS (pass_rest_of_compilation);
     {
       struct opt_pass **p = &pass_rest_of_compilation.pass.sub;
@@ -1235,14 +1232,14 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   execute_todo (ipa_pass->function_transform_todo_flags_start);
 
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
   todo_after = ipa_pass->function_transform (node);
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   /* Run post-pass cleanup and verification.  */
@@ -1323,7 +1320,7 @@ execute_one_pass (struct opt_pass *pass)
   initializing_dump = pass_init_dump_file (pass);
 
   /* If a timevar is present, start it.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_push (pass->tv_id);
 
   /* Do it!  */
@@ -1342,7 +1339,7 @@ execute_one_pass (struct opt_pass *pass)
     }
 
   /* Stop timevar.  */
-  if (pass->tv_id)
+  if (pass->tv_id != TV_NONE)
     timevar_pop (pass->tv_id);
 
   do_per_function (update_properties_after_pass, pass);

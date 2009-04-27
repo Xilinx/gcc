@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2003-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2003-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -878,7 +878,7 @@ package body Clean is
                --  Source_Dirs or Source_Files is specified as an empty list,
                --  so always look for Ada units in extending projects.
 
-               if Data.Ada_Sources_Present
+               if Has_Ada_Sources (Data)
                  or else Data.Extends /= No_Project
                then
                   for Unit in Unit_Table.First ..
@@ -1028,8 +1028,8 @@ package body Clean is
                   for Proj in Project_Table.First ..
                     Project_Table.Last (Project_Tree.Projects)
                   loop
-                     if Project_Tree.Projects.Table
-                       (Proj).Other_Sources_Present
+                     if Has_Foreign_Sources
+                          (Project_Tree.Projects.Table (Proj))
                      then
                         Global_Archive := True;
                         exit;
@@ -1078,31 +1078,31 @@ package body Clean is
 
       if All_Projects then
          declare
-            Imported : Project_List := Data.Imported_Projects;
-            Element  : Project_Element;
+            Imported : Project_List;
             Process  : Boolean;
 
          begin
             --  For each imported project, call Clean_Project if the project
             --  has not been processed already.
 
-            while Imported /= Empty_Project_List loop
-               Element := Project_Tree.Project_Lists.Table (Imported);
-               Imported := Element.Next;
+            Imported := Data.Imported_Projects;
+            while Imported /= null loop
                Process := True;
 
                for
                  J in Processed_Projects.First .. Processed_Projects.Last
                loop
-                  if Element.Project = Processed_Projects.Table (J) then
+                  if Imported.Project = Processed_Projects.Table (J) then
                      Process := False;
                      exit;
                   end if;
                end loop;
 
                if Process then
-                  Clean_Project (Element.Project);
+                  Clean_Project (Imported.Project);
                end if;
+
+               Imported := Imported.Next;
             end loop;
 
             --  If this project extends another project, call Clean_Project for
@@ -1250,8 +1250,8 @@ package body Clean is
      (Dir    : String;
       Source : File_Name_Type)
    is
-      Source_Name : constant String := Get_Name_String (Source);
-      Current     : constant String := Get_Current_Dir;
+      Source_Name : constant String   := Get_Name_String (Source);
+      Current     : constant String   := Get_Current_Dir;
       Last        : constant Positive := B_Start'Length + Source_Name'Length;
       File_Name   : String (1 .. Last + 4);
 
@@ -1416,8 +1416,8 @@ package body Clean is
          end;
       end if;
 
-      --  If neither a project file nor an executable were specified,
-      --  output the usage and exit.
+      --  If neither a project file nor an executable were specified, output
+      --  the usage and exit.
 
       if Main_Project = No_Project and then Osint.Number_Of_Files = 0 then
          Usage;
@@ -1444,8 +1444,8 @@ package body Clean is
          Clean_Executables;
       end if;
 
-      --  In verbose mode, if Delete has not been called, indicate that
-      --  no file needs to be deleted.
+      --  In verbose mode, if Delete has not been called, indicate that no file
+      --  needs to be deleted.
 
       if Verbose_Mode and (not File_Deleted) then
          New_Line;
@@ -1625,7 +1625,7 @@ package body Clean is
 
             procedure Bad_Argument is
             begin
-               Fail ("invalid argument """, Arg, """");
+               Fail ("invalid argument """ & Arg & """");
             end Bad_Argument;
 
          begin
@@ -1680,7 +1680,7 @@ package body Clean is
                               Dir : constant String := Arg (3 .. Arg'Last);
                            begin
                               if not Is_Directory (Dir) then
-                                 Fail (Dir, " is not a directory");
+                                 Fail (Dir & " is not a directory");
                               else
                                  Add_Lib_Search_Dir (Dir);
                               end if;
@@ -1697,7 +1697,7 @@ package body Clean is
                               Dir : constant String := Argument (Index);
                            begin
                               if not Is_Directory (Dir) then
-                                 Fail (Dir, " is not a directory");
+                                 Fail (Dir & " is not a directory");
                               else
                                  Add_Lib_Search_Dir (Dir);
                               end if;
@@ -1853,8 +1853,9 @@ package body Clean is
 
                            else
                               Fail
-                                ("illegal external assignment '",
-                                 Ext_Asgn, "'");
+                                ("illegal external assignment '"
+                                 & Ext_Asgn
+                                 & "'");
                            end if;
                         end;
 
@@ -1889,8 +1890,7 @@ package body Clean is
       Src : constant String := Get_Name_String (Source);
 
    begin
-      --  If the source name has an extension, then replace it with
-      --  the tree suffix.
+      --  If source name has an extension, then replace it with the tree suffix
 
       for Index in reverse Src'First + 1 .. Src'Last loop
          if Src (Index) = '.' then

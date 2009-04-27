@@ -760,8 +760,15 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
     }
 
   if (flags & LOOKUP_COMPLAIN)
-    error ("conversion from %qT to non-scalar type %qT requested",
-	   TREE_TYPE (expr), type);
+    {
+      /* If the conversion failed and expr was an invalid use of pointer to
+	 member function, try to report a meaningful error.  */
+      if (invalid_nonstatic_memfn_p (expr, tf_warning_or_error))
+	/* We displayed the error message.  */;
+      else
+	error ("conversion from %qT to non-scalar type %qT requested",
+	       TREE_TYPE (expr), type);
+    }
   return error_mark_node;
 }
 
@@ -870,7 +877,20 @@ convert_to_void (tree expr, const char *implicit, tsubst_flags_t complain)
                        implicit ? implicit : "void context");
           }
 	if (is_reference || !is_volatile || !is_complete || TREE_ADDRESSABLE (type))
-	  expr = TREE_OPERAND (expr, 0);
+          {
+            /* Emit a warning (if enabled) when the "effect-less" INDIRECT_REF
+               operation is stripped off. Note that we don't warn about
+               - an expression with TREE_NO_WARNING set. (For an example of
+                 such expressions, see build_over_call in call.c.)
+               - automatic dereferencing of references, since the user cannot
+                 control it. (See also warn_if_unused_value() in stmt.c.)  */
+            if (warn_unused_value
+                && (complain & tf_warning)
+                && !TREE_NO_WARNING (expr)
+                && !is_reference)
+              warning (OPT_Wunused_value, "value computed is not used");
+            expr = TREE_OPERAND (expr, 0);
+          }
 
 	break;
       }

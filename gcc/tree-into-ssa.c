@@ -1,5 +1,5 @@
 /* Rewrite a program in Normal form into SSA.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -318,7 +318,7 @@ get_ssa_name_ann (tree name)
   info = VEC_index (ssa_name_info_p, info_for_ssa_name, ver);
   if (info->age < current_info_for_ssa_name_age)
     {
-      info->need_phi_state = 0;
+      info->need_phi_state = NEED_PHI_STATE_UNKNOWN;
       info->current_def = NULL_TREE;
       info->age = current_info_for_ssa_name_age;
     }
@@ -2272,7 +2272,7 @@ struct gimple_opt_pass pass_build_ssa =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  0,					/* tv_id */
+  TV_NONE,				/* tv_id */
   PROP_cfg | PROP_referenced_vars,	/* properties_required */
   PROP_ssa,				/* properties_provided */
   0,					/* properties_destroyed */

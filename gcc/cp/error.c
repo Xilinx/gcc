@@ -163,7 +163,7 @@ count_non_default_template_args (tree args, tree params)
   int n = TREE_VEC_LENGTH (args);
   int last;
 
-  if (params == NULL_TREE)
+  if (params == NULL_TREE || !flag_pretty_templates)
     return n;
 
   for (last = n - 1; last >= 0; --last)
@@ -537,14 +537,22 @@ dump_aggr_type (tree t, int flags)
   if (flags & TFF_CLASS_KEY_OR_ENUM)
     pp_cxx_identifier (cxx_pp, variety);
 
-  if (flags & TFF_CHASE_TYPEDEF)
-    t = TYPE_MAIN_VARIANT (t);
-
   name = TYPE_NAME (t);
 
   if (name)
     {
       typdef = !DECL_ARTIFICIAL (name);
+
+      if (typdef
+	  && ((flags & TFF_CHASE_TYPEDEF)
+	      || (!flag_pretty_templates && DECL_LANG_SPECIFIC (name)
+		  && DECL_TEMPLATE_INFO (name))))
+	{
+	  t = TYPE_MAIN_VARIANT (t);
+	  name = TYPE_NAME (t);
+	  typdef = 0;
+	}
+
       tmplate = !typdef && TREE_CODE (t) != ENUMERAL_TYPE
 		&& TYPE_LANG_SPECIFIC (t) && CLASSTYPE_TEMPLATE_INFO (t)
 		&& (TREE_CODE (CLASSTYPE_TI_TEMPLATE (t)) != TEMPLATE_DECL
@@ -1206,7 +1214,8 @@ dump_function_decl (tree t, int flags)
   exceptions = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (t));
 
   /* Pretty print template instantiations only.  */
-  if (DECL_USE_TEMPLATE (t) && DECL_TEMPLATE_INFO (t))
+  if (DECL_USE_TEMPLATE (t) && DECL_TEMPLATE_INFO (t)
+      && flag_pretty_templates)
     {
       tree tmpl;
 
@@ -2794,4 +2803,23 @@ void
 maybe_warn_variadic_templates (void)
 {
   maybe_warn_cpp0x ("variadic templates");
+}
+
+
+/* Issue an ISO C++98 pedantic warning at LOCATION, conditional on
+   option OPT with text GMSGID.  Use this function to report
+   diagnostics for constructs that are invalid C++98, but valid
+   C++0x.  */
+bool
+pedwarn_cxx98 (location_t location, int opt, const char *gmsgid, ...)
+{
+  diagnostic_info diagnostic;
+  va_list ap;
+
+  va_start (ap, gmsgid);
+  diagnostic_set_info (&diagnostic, gmsgid, &ap, location,
+		       (cxx_dialect == cxx98) ? DK_PEDWARN : DK_WARNING);
+  diagnostic.option_index = opt;
+  va_end (ap);
+  return report_diagnostic (&diagnostic);
 }

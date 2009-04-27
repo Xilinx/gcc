@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "dbgcnt.h"
 #include "debug.h"
+#include "plugin.h"
 
 /* Value of the -G xx switch, and whether it was passed or not.  */
 unsigned HOST_WIDE_INT g_switch_value;
@@ -338,11 +339,7 @@ enum symbol_visibility default_visibility = VISIBILITY_DEFAULT;
 struct visibility_flags visibility_options;
 
 /* What to print when a switch has no documentation.  */
-#ifdef ENABLE_CHECKING
 static const char undocumented_msg[] = N_("This switch lacks documentation");
-#else
-static const char undocumented_msg[] = "";
-#endif
 
 /* Used for bookkeeping on whether user set these flags so
    -fprofile-use/-fprofile-generate does not use them.  */
@@ -894,7 +891,6 @@ decode_options (unsigned int argc, const char **argv)
   flag_regmove = opt2;
   flag_strict_aliasing = opt2;
   flag_strict_overflow = opt2;
-  flag_delete_null_pointer_checks = opt2;
   flag_reorder_blocks = opt2;
   flag_reorder_functions = opt2;
   flag_tree_vrp = opt2;
@@ -1561,8 +1557,8 @@ common_handle_option (size_t scode, const char *arg, int value,
 	break;
       }
 
+    case OPT_fversion:
     case OPT__version:
-      print_version (stderr, "");
       exit_after_options = true;
       break;
 
@@ -1765,6 +1761,22 @@ common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fpeel_loops:
       flag_peel_loops_set = true;
+      break;
+
+    case OPT_fplugin_:
+#ifdef ENABLE_PLUGIN
+      add_new_plugin (arg);
+#else
+      error ("Plugin support is disabled.  Configure with --enable-plugin.");
+#endif
+      break;
+
+    case OPT_fplugin_arg_:
+#ifdef ENABLE_PLUGIN
+      parse_plugin_arg_opt (arg);
+#else
+      error ("Plugin support is disabled.  Configure with --enable-plugin.");
+#endif
       break;
 
     case OPT_fprofile_arcs:
@@ -2213,15 +2225,17 @@ set_debug_level (enum debug_info_type type, int extended, const char *arg)
   if (*arg == '\0')
     {
       if (!debug_info_level)
-	debug_info_level = 2;
+	debug_info_level = DINFO_LEVEL_NORMAL;
     }
   else
     {
-      debug_info_level = integral_argument (arg);
-      if (debug_info_level == (unsigned int) -1)
+      int argval = integral_argument (arg);
+      if (argval == -1)
 	error ("unrecognised debug output level \"%s\"", arg);
-      else if (debug_info_level > 3)
+      else if (argval > 3)
 	error ("debug output level %s is too high", arg);
+      else
+	debug_info_level = (enum debug_info_level) argval;
     }
 }
 
@@ -2307,7 +2321,7 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
     }
   else
     {
-      int kind = value ? DK_ERROR : DK_WARNING;
+      diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
       diagnostic_classify_diagnostic (global_dc, option_index, kind);
       
       /* -Werror=foo implies -Wfoo.  */

@@ -494,9 +494,9 @@ package body Sinput.L is
 
                Prep_Buffer_Last := 0;
 
-               --  Initialize the preprocessor
+               --  Initialize the preprocessor hooks
 
-               Prep.Initialize
+               Prep.Setup_Hooks
                  (Error_Msg         => Errout.Error_Msg'Access,
                   Scan              => Scn.Scanner.Scan'Access,
                   Set_Ignore_Errors => Errout.Set_Ignore_Errors'Access,
@@ -518,7 +518,12 @@ package body Sinput.L is
                Save_Style_Check := Opt.Style_Check;
                Opt.Style_Check := False;
 
+               --  Make sure that there will be no check of pragma Restrictions
+               --  for obsolescent features while preprocessing the source.
+
+               Scn.Set_Obsolescent_Check (False);
                Preprocess (Modified);
+               Scn.Set_Obsolescent_Check (True);
 
                --  Reset the scanner to its standard behavior, and restore the
                --  Style_Checks flag.

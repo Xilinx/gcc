@@ -46,7 +46,6 @@ Boston, MA 02110-1301, USA.  */
 #include "tree-inline.h"
 #include "basic-block.h"
 #include "timevar.h"
-#include "errors.h"
 #include "ggc.h"
 #include "cgraph.h"
 #include "diagnostic.h"

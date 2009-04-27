@@ -1702,7 +1702,6 @@ int const svr4_dbx_register_map[FIRST_PSEUDO_REGISTER] =
 
 rtx ix86_compare_op0 = NULL_RTX;
 rtx ix86_compare_op1 = NULL_RTX;
-rtx ix86_compare_emitted = NULL_RTX;
 
 /* Define parameter passing and return registers.  */
 
@@ -1723,8 +1722,7 @@ static int const x86_64_int_return_registers[4] =
 
 /* Define the structure for the machine field in struct function.  */
 
-struct stack_local_entry GTY(())
-{
+struct GTY(()) stack_local_entry {
   unsigned short mode;
   unsigned short n;
   rtx rtl;
@@ -3417,10 +3415,10 @@ ix86_function_specific_restore (struct cl_target_option *ptr)
   unsigned int ix86_arch_mask, ix86_tune_mask;
   int i;
 
-  ix86_arch = ptr->arch;
-  ix86_schedule = ptr->schedule;
-  ix86_tune = ptr->tune;
-  ix86_fpmath = ptr->fpmath;
+  ix86_arch = (enum processor_type) ptr->arch;
+  ix86_schedule = (enum attr_cpu) ptr->schedule;
+  ix86_tune = (enum processor_type) ptr->tune;
+  ix86_fpmath = (enum fpmath_unit) ptr->fpmath;
   ix86_branch_cost = ptr->branch_cost;
   ix86_tune_defaulted = ptr->tune_defaulted;
   ix86_arch_specified = ptr->arch_specified;
@@ -5274,7 +5272,22 @@ classify_argument (enum machine_mode mode, const_tree type,
       return 2;
     case SCmode:
       classes[0] = X86_64_SSE_CLASS;
-      return 1;
+      if (!(bit_offset % 64))
+	return 1;
+      else
+	{
+	  static bool warned;
+
+	  if (!warned && warn_psabi)
+	    {
+	      warned = true;
+	      inform (input_location,
+		      "The ABI of passing structure with complex float"
+		      " member has changed in GCC 4.4");
+	    }
+	  classes[1] = X86_64_SSESF_CLASS;
+	  return 2;
+	}
     case DCmode:
       classes[0] = X86_64_SSEDF_CLASS;
       classes[1] = X86_64_SSEDF_CLASS;
@@ -8319,8 +8332,7 @@ ix86_expand_prologue (void)
       RTX_FRAME_RELATED_P (insn) = 1;
       t = gen_rtx_PLUS (Pmode, stack_pointer_rtx, GEN_INT (-allocate));
       t = gen_rtx_SET (VOIDmode, stack_pointer_rtx, t);
-      REG_NOTES (insn) = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-					    t, REG_NOTES (insn));
+      add_reg_note (insn, REG_FRAME_RELATED_EXPR, t);
 
       if (eax_live)
 	{
@@ -10836,6 +10848,7 @@ get_some_local_dynamic_name (void)
         otherwise nothing
    R -- print the prefix for register names.
    z -- print the opcode suffix for the size of the current operand.
+   Z -- likewise, with special suffixes for fild/fist instructions.
    * -- print a star (in certain assembler syntax)
    A -- print an absolute memory reference.
    w -- print the operand as if it's a "word" (HImode) even if it isn't.
@@ -10934,6 +10947,37 @@ print_operand (FILE *file, rtx x, int code)
 	    putc ('t', file);
 	  return;
 
+	case 'Z':
+	  gcc_assert (MEM_P (x));
+
+	  /* fild/fist don't get size suffixes if using Intel opcodes.  */
+	  if (ASSEMBLER_DIALECT == ASM_INTEL)
+	    return;
+
+	  switch (GET_MODE_SIZE (GET_MODE (x)))
+	    {
+	    case 2:
+#ifdef HAVE_AS_IX86_FILDS
+	      putc ('s', file);
+#endif
+	      return;
+
+	    case 4:
+	      putc ('l', file);
+	      return;
+
+	    case 8:
+#ifdef HAVE_AS_IX86_FILDQ
+	      putc ('q', file);
+#else
+	      fputs ("ll", file);
+#endif
+	      return;
+
+	    default:
+	      gcc_unreachable ();
+	    }
+	    
 	case 'z':
 	  /* 387 opcodes don't get size suffixes if the operands are
 	     registers.  */
@@ -10952,9 +10996,11 @@ print_operand (FILE *file, rtx x, int code)
 	      return;
 
 	    case 2:
+	      /* ??? This fails for HImode integer
+		 operator with memory operand.  */
 	      if (MEM_P (x))
 		{
-#ifdef HAVE_GAS_FILDS_FISTS
+#ifdef HAVE_AS_IX86_FILDS
 		  putc ('s', file);
 #endif
 		  return;
@@ -10964,37 +11010,22 @@ print_operand (FILE *file, rtx x, int code)
 	      return;
 
 	    case 4:
-	      if (GET_MODE (x) == SFmode)
-		{
-		  putc ('s', file);
-		  return;
-		}
-	      else
+	      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT)
 		putc ('l', file);
+	      else
+		putc ('s', file);
+	      return;
+
+	    case 8:
+	      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT)
+		putc ('q', file);
+	      else
+	        putc ('l', file);
 	      return;
 
 	    case 12:
 	    case 16:
 	      putc ('t', file);
-	      return;
-
-	    case 8:
-	      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT)
-		{
-		  if (MEM_P (x))
-		    {
-#ifdef GAS_MNEMONICS
-		      putc ('q', file);
-#else
-		      putc ('l', file);
-		      putc ('l', file);
-#endif
-		    }
-		  else
-		    putc ('q', file);
-		}
-	      else
-	        putc ('l', file);
 	      return;
 
 	    default:
@@ -12077,15 +12108,15 @@ output_fix_trunc (rtx insn, rtx *operands, int fisttp)
   gcc_assert (GET_MODE (operands[1]) != TFmode);
 
   if (fisttp)
-      output_asm_insn ("fisttp%z0\t%0", operands);
+      output_asm_insn ("fisttp%Z0\t%0", operands);
   else
     {
       if (round_mode != I387_CW_ANY)
 	output_asm_insn ("fldcw\t%3", operands);
       if (stack_top_dies || dimode_p)
-	output_asm_insn ("fistp%z0\t%0", operands);
+	output_asm_insn ("fistp%Z0\t%0", operands);
       else
-	output_asm_insn ("fist%z0\t%0", operands);
+	output_asm_insn ("fist%Z0\t%0", operands);
       if (round_mode != I387_CW_ANY)
 	output_asm_insn ("fldcw\t%2", operands);
     }
@@ -12996,6 +13027,316 @@ ix86_expand_unary_operator (enum rtx_code code, enum machine_mode mode,
   /* Fix up the destination if needed.  */
   if (dst != operands[0])
     emit_move_insn (operands[0], dst);
+}
+
+#define LEA_SEARCH_THRESHOLD 12
+
+/* Search backward for non-agu definition of register number REGNO1
+   or register number REGNO2 in INSN's basic block until 
+   1. Pass LEA_SEARCH_THRESHOLD instructions, or
+   2. Reach BB boundary, or
+   3. Reach agu definition.
+   Returns the distance between the non-agu definition point and INSN.
+   If no definition point, returns -1.  */
+
+static int
+distance_non_agu_define (unsigned int regno1, unsigned int regno2,
+			 rtx insn)
+{
+  basic_block bb = BLOCK_FOR_INSN (insn);
+  int distance = 0;
+  df_ref *def_rec;
+  enum attr_type insn_type;
+
+  if (insn != BB_HEAD (bb))
+    {
+      rtx prev = PREV_INSN (insn);
+      while (prev && distance < LEA_SEARCH_THRESHOLD)
+	{
+	  if (INSN_P (prev))
+	    {
+	      distance++;
+              for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
+                if (DF_REF_TYPE (*def_rec) == DF_REF_REG_DEF
+                    && !DF_REF_IS_ARTIFICIAL (*def_rec)
+                    && (regno1 == DF_REF_REGNO (*def_rec)
+			|| regno2 == DF_REF_REGNO (*def_rec)))
+		  {
+		    insn_type = get_attr_type (prev);
+		    if (insn_type != TYPE_LEA)
+		      goto done;
+		  }
+	    }
+	  if (prev == BB_HEAD (bb))
+	    break;
+	  prev = PREV_INSN (prev);
+	}
+    }
+  
+  if (distance < LEA_SEARCH_THRESHOLD)
+    {
+      edge e;
+      edge_iterator ei;
+      bool simple_loop = false;
+  
+      FOR_EACH_EDGE (e, ei, bb->preds)
+	if (e->src == bb)
+	  {
+	    simple_loop = true;
+	    break;
+	  }
+  
+      if (simple_loop)
+	{
+	  rtx prev = BB_END (bb);
+	  while (prev
+		 && prev != insn
+		 && distance < LEA_SEARCH_THRESHOLD)
+	    {
+	      if (INSN_P (prev))
+		{
+		  distance++;
+		  for (def_rec = DF_INSN_DEFS (prev); *def_rec; def_rec++)
+		    if (DF_REF_TYPE (*def_rec) == DF_REF_REG_DEF
+			&& !DF_REF_IS_ARTIFICIAL (*def_rec)
+			&& (regno1 == DF_REF_REGNO (*def_rec)
+			    || regno2 == DF_REF_REGNO (*def_rec)))
+		      {
+			insn_type = get_attr_type (prev);
+			if (insn_type != TYPE_LEA)
+			  goto done;
+		      }
+		}
+	      prev = PREV_INSN (prev);
+	    }
+	}
+    }
+
+  distance = -1;
+
+done:
+  /* get_attr_type may modify recog data.  We want to make sure
+     that recog data is valid for instruction INSN, on which
+     distance_non_agu_define is called.  INSN is unchanged here.  */
+  extract_insn_cached (insn);
+  return distance;
+}
+
+/* Return the distance between INSN and the next insn that uses 
+   register number REGNO0 in memory address.  Return -1 if no such
+   a use is found within LEA_SEARCH_THRESHOLD or REGNO0 is set.  */
+
+static int
+distance_agu_use (unsigned int regno0, rtx insn)
+{
+  basic_block bb = BLOCK_FOR_INSN (insn);
+  int distance = 0;
+  df_ref *def_rec;
+  df_ref *use_rec;
+
+  if (insn != BB_END (bb))
+    {
+      rtx next = NEXT_INSN (insn);
+      while (next && distance < LEA_SEARCH_THRESHOLD)
+	{
+	  if (INSN_P (next))
+	    {
+	      distance++;
+
+	      for (use_rec = DF_INSN_USES (next); *use_rec; use_rec++)
+		if ((DF_REF_TYPE (*use_rec) == DF_REF_REG_MEM_LOAD
+		     || DF_REF_TYPE (*use_rec) == DF_REF_REG_MEM_STORE)
+		    && regno0 == DF_REF_REGNO (*use_rec))
+		  {
+		    /* Return DISTANCE if OP0 is used in memory
+		       address in NEXT.  */
+		    return distance;
+		  }
+
+	      for (def_rec = DF_INSN_DEFS (next); *def_rec; def_rec++)
+		if (DF_REF_TYPE (*def_rec) == DF_REF_REG_DEF
+		    && !DF_REF_IS_ARTIFICIAL (*def_rec)
+		    && regno0 == DF_REF_REGNO (*def_rec))
+		  {
+		    /* Return -1 if OP0 is set in NEXT.  */
+		    return -1;
+		  }
+	    }
+	  if (next == BB_END (bb))
+	    break;
+	  next = NEXT_INSN (next);
+	}
+    }
+
+  if (distance < LEA_SEARCH_THRESHOLD)
+    {
+      edge e;
+      edge_iterator ei;
+      bool simple_loop = false;
+  
+      FOR_EACH_EDGE (e, ei, bb->succs)
+        if (e->dest == bb)
+	  {
+	    simple_loop = true;
+	    break;
+	  }
+  
+      if (simple_loop)
+	{
+	  rtx next = BB_HEAD (bb);
+	  while (next
+		 && next != insn
+		 && distance < LEA_SEARCH_THRESHOLD)
+	    {
+	      if (INSN_P (next))
+		{
+		  distance++;
+
+		  for (use_rec = DF_INSN_USES (next); *use_rec; use_rec++)
+		    if ((DF_REF_TYPE (*use_rec) == DF_REF_REG_MEM_LOAD
+			 || DF_REF_TYPE (*use_rec) == DF_REF_REG_MEM_STORE)
+			&& regno0 == DF_REF_REGNO (*use_rec))
+		      {
+			/* Return DISTANCE if OP0 is used in memory
+			   address in NEXT.  */
+			return distance;
+		      }
+
+		  for (def_rec = DF_INSN_DEFS (next); *def_rec; def_rec++)
+		    if (DF_REF_TYPE (*def_rec) == DF_REF_REG_DEF
+			&& !DF_REF_IS_ARTIFICIAL (*def_rec)
+			&& regno0 == DF_REF_REGNO (*def_rec))
+		      {
+			/* Return -1 if OP0 is set in NEXT.  */
+			return -1;
+		      }
+
+		}
+	      next = NEXT_INSN (next);
+	    }
+	}
+    }  
+
+  return -1;
+}
+
+/* Define this macro to tune LEA priority vs ADD, it take effect when
+   there is a dilemma of choicing LEA or ADD
+   Negative value: ADD is more preferred than LEA
+   Zero: Netrual
+   Positive value: LEA is more preferred than ADD*/
+#define IX86_LEA_PRIORITY 2
+
+/* Return true if it is ok to optimize an ADD operation to LEA
+   operation to avoid flag register consumation.  For the processors
+   like ATOM, if the destination register of LEA holds an actual
+   address which will be used soon, LEA is better and otherwise ADD
+   is better.  */
+
+bool
+ix86_lea_for_add_ok (enum rtx_code code ATTRIBUTE_UNUSED,
+                     rtx insn, rtx operands[])
+{
+  unsigned int regno0 = true_regnum (operands[0]);
+  unsigned int regno1 = true_regnum (operands[1]);
+  unsigned int regno2;
+
+  if (!TARGET_OPT_AGU || optimize_function_for_size_p (cfun))
+    return regno0 != regno1;
+
+  regno2 = true_regnum (operands[2]);
+
+  /* If a = b + c, (a!=b && a!=c), must use lea form. */
+  if (regno0 != regno1 && regno0 != regno2)
+    return true;
+  else    
+    {
+      int dist_define, dist_use;
+      dist_define = distance_non_agu_define (regno1, regno2, insn);
+      if (dist_define <= 0)
+        return true;
+
+      /* If this insn has both backward non-agu dependence and forward
+         agu dependence, the one with short distance take effect. */
+      dist_use = distance_agu_use (regno0, insn);
+      if (dist_use <= 0
+	  || (dist_define + IX86_LEA_PRIORITY) < dist_use)
+        return false;
+
+      return true;
+    }
+}
+
+/* Return true if destination reg of SET_BODY is shift count of
+   USE_BODY.  */
+
+static bool
+ix86_dep_by_shift_count_body (const_rtx set_body, const_rtx use_body)
+{
+  rtx set_dest;
+  rtx shift_rtx;
+  int i;
+
+  /* Retrieve destination of SET_BODY.  */
+  switch (GET_CODE (set_body))
+    {
+    case SET:
+      set_dest = SET_DEST (set_body);
+      if (!set_dest || !REG_P (set_dest))
+	return false;
+      break;
+    case PARALLEL:
+      for (i = XVECLEN (set_body, 0) - 1; i >= 0; i--)
+	if (ix86_dep_by_shift_count_body (XVECEXP (set_body, 0, i),
+					  use_body))
+	  return true;
+    default:
+      return false;
+      break;
+    }
+
+  /* Retrieve shift count of USE_BODY.  */
+  switch (GET_CODE (use_body))
+    {
+    case SET:
+      shift_rtx = XEXP (use_body, 1);
+      break;
+    case PARALLEL:
+      for (i = XVECLEN (use_body, 0) - 1; i >= 0; i--)
+	if (ix86_dep_by_shift_count_body (set_body,
+					  XVECEXP (use_body, 0, i)))
+	  return true;
+    default:
+      return false;
+      break;
+    }
+
+  if (shift_rtx 
+      && (GET_CODE (shift_rtx) == ASHIFT
+	  || GET_CODE (shift_rtx) == LSHIFTRT
+	  || GET_CODE (shift_rtx) == ASHIFTRT
+	  || GET_CODE (shift_rtx) == ROTATE
+	  || GET_CODE (shift_rtx) == ROTATERT))
+    {
+      rtx shift_count = XEXP (shift_rtx, 1);
+
+      /* Return true if shift count is dest of SET_BODY.  */
+      if (REG_P (shift_count)
+	  && true_regnum (set_dest) == true_regnum (shift_count))
+	return true;
+    }
+
+  return false;
+}
+
+/* Return true if destination reg of SET_INSN is shift count of
+   USE_INSN.  */
+
+bool
+ix86_dep_by_shift_count (const_rtx set_insn, const_rtx use_insn)
+{
+  return ix86_dep_by_shift_count_body (PATTERN (set_insn),
+				       PATTERN (use_insn));
 }
 
 /* Return TRUE or FALSE depending on whether the unary operator meets the
@@ -14271,11 +14612,9 @@ ix86_expand_compare (enum rtx_code code, rtx *second_test, rtx *bypass_test)
   if (bypass_test)
     *bypass_test = NULL_RTX;
 
-  if (ix86_compare_emitted)
-    {
-      ret = gen_rtx_fmt_ee (code, VOIDmode, ix86_compare_emitted, const0_rtx);
-      ix86_compare_emitted = NULL_RTX;
-    }
+  if (GET_MODE_CLASS (GET_MODE (ix86_compare_op0)) == MODE_CC)
+    ret = gen_rtx_fmt_ee (code, VOIDmode, ix86_compare_op0, ix86_compare_op1);
+
   else if (SCALAR_FLOAT_MODE_P (GET_MODE (op0)))
     {
       gcc_assert (!DECIMAL_FLOAT_MODE_P (GET_MODE (op0)));
@@ -14303,12 +14642,6 @@ void
 ix86_expand_branch (enum rtx_code code, rtx label)
 {
   rtx tmp;
-
-  /* If we have emitted a compare insn, go straight to simple.
-     ix86_expand_compare won't emit anything if ix86_compare_emitted
-     is non NULL.  */
-  if (ix86_compare_emitted)
-    goto simple;
 
   switch (GET_MODE (ix86_compare_op0))
     {
@@ -14510,7 +14843,11 @@ ix86_expand_branch (enum rtx_code code, rtx label)
       }
 
     default:
-      gcc_unreachable ();
+      /* If we have already emitted a compare insn, go straight to simple.
+         ix86_expand_compare won't emit anything if ix86_compare_emitted
+         is non NULL.  */
+      gcc_assert (GET_MODE_CLASS (GET_MODE (ix86_compare_op0)) == MODE_CC);
+      goto simple;
     }
 }
 
@@ -14566,20 +14903,14 @@ ix86_split_fp_branch (enum rtx_code code, rtx op1, rtx op2,
 								    label),
 						 pc_rtx)));
       if (bypass_probability >= 0)
-	REG_NOTES (i)
-	  = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			       GEN_INT (bypass_probability),
-			       REG_NOTES (i));
+	add_reg_note (i, REG_BR_PROB, GEN_INT (bypass_probability));
     }
   i = emit_jump_insn (gen_rtx_SET
 		      (VOIDmode, pc_rtx,
 		       gen_rtx_IF_THEN_ELSE (VOIDmode,
 					     condition, target1, target2)));
   if (probability >= 0)
-    REG_NOTES (i)
-      = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			   GEN_INT (probability),
-			   REG_NOTES (i));
+    add_reg_note (i, REG_BR_PROB, GEN_INT (probability));
   if (second != NULL_RTX)
     {
       i = emit_jump_insn (gen_rtx_SET
@@ -14587,10 +14918,7 @@ ix86_split_fp_branch (enum rtx_code code, rtx op1, rtx op2,
 			   gen_rtx_IF_THEN_ELSE (VOIDmode, second, target1,
 						 target2)));
       if (second_probability >= 0)
-	REG_NOTES (i)
-	  = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			       GEN_INT (second_probability),
-			       REG_NOTES (i));
+	add_reg_note (i, REG_BR_PROB, GEN_INT (second_probability));
     }
   if (label != NULL_RTX)
     emit_label (label);
@@ -16788,10 +17116,7 @@ predict_jump (int prob)
 {
   rtx insn = get_last_insn ();
   gcc_assert (JUMP_P (insn));
-  REG_NOTES (insn)
-    = gen_rtx_EXPR_LIST (REG_BR_PROB,
-			 GEN_INT (prob),
-			 REG_NOTES (insn));
+  add_reg_note (insn, REG_BR_PROB, GEN_INT (prob));
 }
 
 /* Helper function for the string operations below.  Dest VARIABLE whether
@@ -20557,8 +20882,7 @@ static GTY(()) tree ix86_builtins[(int) IX86_BUILTIN_MAX];
 /* Table of all of the builtin functions that are possible with different ISA's
    but are waiting to be built until a function is declared to use that
    ISA.  */
-struct builtin_isa GTY(())
-{
+struct GTY(()) builtin_isa {
   tree type;			/* builtin type to use in the declaration */
   const char *name;		/* function name */
   int isa;			/* isa_flags this builtin is defined for */
@@ -23594,7 +23918,7 @@ ix86_expand_binop_builtin (enum insn_code icode, tree exp, rtx target)
 static rtx
 ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
 			       enum multi_arg_type m_type,
-			       enum insn_code sub_code)
+			       enum rtx_code sub_code)
 {
   rtx pat;
   int i;
@@ -25081,7 +25405,8 @@ ix86_builtin_vectorized_function (unsigned int fn, tree type_out,
 
   /* Dispatch to a handler for a vectorization library.  */
   if (ix86_veclib_handler)
-    return (*ix86_veclib_handler)(fn, type_out, type_in);
+    return (*ix86_veclib_handler) ((enum built_in_function) fn, type_out,
+				   type_in);
 
   return NULL_TREE;
 }
