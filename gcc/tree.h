@@ -476,7 +476,7 @@ struct GTY(()) tree_common {
            CALL_EXPR
 
        DECL_BY_REFERENCE in
-           PARM_DECL, RESULT_DECL
+           PARM_DECL, RESULT_DECL, VAR_DECL (only !TREE_STATIC)
 
        OMP_SECTION_LAST in
            OMP_SECTION
@@ -1294,8 +1294,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define CALL_EXPR_RETURN_SLOT_OPT(NODE) \
   (CALL_EXPR_CHECK (NODE)->base.private_flag)
 
-/* In a RESULT_DECL or PARM_DECL, means that it is passed by invisible
-   reference (and the TREE_TYPE is a pointer to the true type).  */
+/* In a RESULT_DECL, PARM_DECL or VAR_DECL without TREE_STATIC, means that it is
+   passed by invisible reference (and the TREE_TYPE is a pointer to the true
+   type).  */
 #define DECL_BY_REFERENCE(NODE) (DECL_COMMON_CHECK (NODE)->base.private_flag)
 
 /* In a CALL_EXPR, means that the call is the jump from a thunk to the
@@ -5134,6 +5135,7 @@ struct GTY(()) tree_map_base {
 extern int tree_map_base_eq (const void *, const void *);
 extern unsigned int tree_map_base_hash (const void *);
 extern int tree_map_base_marked_p (const void *);
+extern bool list_equal_p (const_tree, const_tree);
 
 /* Map from a tree to another tree.  */
 

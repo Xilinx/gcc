@@ -344,7 +344,6 @@ extern struct gimple_opt_pass pass_ch;
 extern struct gimple_opt_pass pass_ccp;
 extern struct gimple_opt_pass pass_phi_only_cprop;
 extern struct gimple_opt_pass pass_build_ssa;
-extern struct gimple_opt_pass pass_del_ssa;
 extern struct gimple_opt_pass pass_build_alias;
 extern struct gimple_opt_pass pass_dominator;
 extern struct gimple_opt_pass pass_dce;
@@ -380,7 +379,6 @@ extern struct gimple_opt_pass pass_phiprop;
 extern struct gimple_opt_pass pass_tree_ifcombine;
 extern struct gimple_opt_pass pass_dse;
 extern struct gimple_opt_pass pass_nrv;
-extern struct gimple_opt_pass pass_mark_used_blocks;
 extern struct gimple_opt_pass pass_rename_ssa_copies;
 extern struct gimple_opt_pass pass_rest_of_compilation;
 extern struct gimple_opt_pass pass_sink_code;
@@ -396,6 +394,7 @@ extern struct gimple_opt_pass pass_rebuild_cgraph_edges;
 extern struct gimple_opt_pass pass_remove_cgraph_callee_edges;
 extern struct gimple_opt_pass pass_build_cgraph_edges;
 extern struct gimple_opt_pass pass_local_pure_const;
+extern struct gimple_opt_pass pass_tracer;
 
 /* IPA Passes */
 extern struct ipa_opt_pass pass_ipa_inline;
@@ -414,8 +413,6 @@ extern struct simple_ipa_opt_pass pass_ipa_function_and_variable_visibility;
 
 extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;
-extern struct gimple_opt_pass pass_free_cfg_annotations;
-extern struct gimple_opt_pass pass_free_datastructures;
 extern struct gimple_opt_pass pass_init_datastructures;
 extern struct gimple_opt_pass pass_fixup_cfg;
 
@@ -437,11 +434,12 @@ extern struct rtl_opt_pass pass_rtl_dce;
 extern struct rtl_opt_pass pass_rtl_dse1;
 extern struct rtl_opt_pass pass_rtl_dse2;
 extern struct rtl_opt_pass pass_rtl_dse3;
-extern struct rtl_opt_pass pass_gcse;
-extern struct rtl_opt_pass pass_jump_bypass;
-extern struct rtl_opt_pass pass_profiling;
+extern struct rtl_opt_pass pass_rtl_cprop;
+extern struct rtl_opt_pass pass_rtl_pre;
+extern struct rtl_opt_pass pass_rtl_hoist;
+extern struct rtl_opt_pass pass_rtl_store_motion;
+extern struct rtl_opt_pass pass_cse_after_global_opts;
 extern struct rtl_opt_pass pass_rtl_ifcvt;
-extern struct gimple_opt_pass pass_tracer;
 
 extern struct rtl_opt_pass pass_into_cfg_layout_mode;
 extern struct rtl_opt_pass pass_outof_cfg_layout_mode;

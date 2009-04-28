@@ -1,3 +1,500 @@
+2009-04-27  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* dbgcnt.def (cprop1, cprop2, gcse, jump_bypass): Remove
+	(cprop, hoist, pre, store_motion): New debug counters.
+	* tree-pass.h (pass_tracer): Move to list of gimple passes, it
+	is not an RTL pass anymore.
+	(pass_profiling): Remove extern decl for pass removed in 2005.
+	(pass_gcse, pass_jump_bypass): Remove.
+	* final.c (rest_of_clean_state): Set flag_rerun_cse_after_global_opts
+	to 0 for clean state.
+	* toplev.h (flag_rerun_cse_after_global_opts): Add extern declaration.
+	* cse.c (gate_handle_cse_after_global_opts,
+	rest_of_handle_cse_after_global_opts): New functions.
+	(pass_cse_after_global_opts): New pass, does local CSE.
+	* timevar.def (TV_GCSE, TV_CPROP1, TV_CPROP2, TV_BYPASS): Remove.
+	(TV_CPROP): New timevar.
+	* gcse.c (flag_rerun_cse_after_global_opts): New global variable.
+	(run_jump_opt_after_gcse, max_gcse_regno): Remove global vars.
+	(gcse_main, recompute_all_luids): Remove.
+	(compute_hash_table_work): Call max_reg_num instead of reading
+	max_gcse_regno.
+	(cprop_jump): Don't set run_jump_opt_after_gcse.
+	(constprop_register): Always allow to alter jumps.
+	(cprop_insn): Likewise.
+	(do_local_cprop): Likewise.
+	(local_cprop_pass): Likewise.  Return non-zero if something changed.
+	(cprop): Remove function, fold interesting bits into one_cprop_pass.
+	(find_implicit_sets): Add note about missed optimization opportunity.
+	(one_cprop_pass): Rewrite to be "the" CPROP pass, called from the
+	pass_rtl_cprop execute function.
+	Don't bother tracking the pass number, each pass gets its own dumpfile
+	now anyway.
+	Always allow to alter jumpsand bypass jumps.
+	(bypass_block): Don't ignore regno >= max_gcse_regno, find_bypass_set
+	will just find no suitable set.
+	(pre_edge_insert): Fix dumping, this function is for PRE only.
+	(one_pre_gcse_pass): Rewrite to be "the" PRE pass, called from the
+	pass_rtl_pre execute function.
+	(hoist_code): Return non-zero if something changed.  Keep track of
+	substitutions and insertions for statistics gathering similar to PRE.
+	(one_code_hoisting_pass): Rewrite to be "the" code hoisting pass,
+	called from the pass_rtl_hoist execute function.  Show pass statistics.
+	(compute_store_table): Use max_reg_num directly instead of using the
+	formerly global max_gcse_regno.
+	(build_store_vectors): Likewise.
+	(replace_store_insn): Fix dumping.
+	(store_motion): Rename to ...
+	(one_store_motion_pass): ... this.  Rewrite to be "the" STORE_MOTION
+	pass, called from the pass_rtl_store_motion execute function.  Keep
+	track of substitutions and insertions for statistics gathering similar
+	to PRE.
+	(bypass_jumps): Remove, fold interesting bits into ...
+	(one_cprop_pass): ... this.  Rewrite to be "the" CPROP pass, called
+	from the pass_rtl_cprop execute function.
+	(gate_handle_jump_bypass, rest_of_handle_jump_bypass,
+	pass_jump_bypass): Remove.
+	(gate_handle_gcse, rest_of_handle_gcse): Remove.
+	(gate_rtl_cprop, execute_rtl_cprop, pass_rtl_cprop): New.
+	(gate_rtl_pre, execute_rtl_pre, pass_rtl_pre): New.
+	(gate_rtl_hoist, execute_rtl_hoist, pass_rtl_hoist): New.
+	(gate_rtl_store_motion, execute_rtl_store_motion,
+	pass_rtl_store_motion): New.
+	* common.opt: Remove flag_cse_skip_blocks, adjust documentation to
+	make it clear that -fcse-skip-blocks is a no-op for backward compat.
+	* passes.c (init_optimization_passes): Remove pass_gcse and
+	pass_jump_bypass.  Schedule cprop, pre, hoist, cprop, store_motion,
+	and cse_after_global_opts in place of pass_gcse.  Schedule cprop
+	instead of pass_jump_bypass.
+
+2009-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/39928
+	* gimplify.c (gimplify_expr): If we are required to create
+	a temporary make sure it ends up as register.
+
+2009-04-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/39903
+	* config/i386/i386.c (construct_container): Don't call
+	gen_reg_or_parallel with BLKmode on X86_64_SSE_CLASS,
+	X86_64_SSESF_CLASS and X86_64_SSEDF_CLASS.
+
+2009-04-27  Michael Matz  <matz@suse.de>
+
+	* ssaexpand.h (struct ssaexpand): Member 'values' is a bitmap.
+	(get_gimple_for_ssa_name): Adjust, lookup using SSA_NAME_DEF_STMT.
+	* tree-ssa-live.h: (find_replaceable_exprs): Return a bitmap.
+	(dump_replaceable_exprs): Take a bitmap.
+	* cfgexpand.c (gimple_cond_pred_to_tree): Handle bitmap instead of
+	array.
+	(expand_gimple_basic_block): Likewise.
+	* tree-ssa-ter.c (struct temp_expr_table_d): Make
+	replaceable_expressions member a bitmap.
+	(free_temp_expr_table): Pass back and deal with bitmap, not gimple*.
+	(mark_replaceable): Likewise.
+	(find_replaceable_in_bb, dump_replaceable_exprs): Likewise.
+	* tree-outof-ssa.c (remove_ssa_form): 'values' is a bitmap.
+
+2009-04-27  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (remove_useless_stmts): Verify stmts afterwards.
+	(verify_stmts): Dispatch to gimple/type verification code.
+	* tree-inline.c (remap_gimple_op_r): Work around C++ FE
+	issue with call argument types.
+
+2009-04-27  Michael Matz  <matz@suse.de>
+
+	* tree-into-ssa.c (regs_to_rename, mem_syms_to_rename): Remove.
+	(init_update_ssa, delete_update_ssa, update_ssa): Remove references
+	to above.
+
+2009-04-27  Richard Sandiford  <rdsandiford@googlemail.com>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	* resource.c (find_basic_block): Use BLOCK_FOR_INSN to look up
+	a label's basic block.
+	(mark_target_live_regs): Tidy and rework obsolete comments.
+	Change back DF problem to LIVE.  If a label starts a basic block,
+	assume that all registers that used to be live then still are.
+	(init_resource_info): If a label starts a basic block, set its
+	BLOCK_FOR_INSN accordingly.
+	(fini_resource_info): Undo the setting of BLOCK_FOR_INSN.
+
+2009-04-27  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow-inline.h (function_ann): Remove.
+	(get_function_ann): Likewise.
+	* tree-dfa.c (create_function_ann): Remove.
+	* tree-flow.h (struct static_var_ann_d): Remove.
+	(struct function_ann_d): Likewise.
+	(union tree_ann_d): Remove fdecl member.
+	(function_ann_t): Remove.
+	(function_ann, get_function_ann, create_function_ann): Remove
+	declarations.
+
+2009-04-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (code_for_builtin): Declare as enum insn_code.
+
+2009-04-27  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-pure-const.c (struct funct_state_d): New fields
+	state_previously_known, looping_previously_known; remove
+	state_set_in_source.
+	(analyze_function): Use new fields.
+	(propagate): Avoid assumption that state_set_in_source imply
+	nonlooping.
+
+	* tree-ssa-loop-niter.c (finite_loop_p): New function.
+	* tree-ssa-loop-ivcanon.c (empty_loop_p): Use it.
+	* cfgloop.h (finite_loop_p): Declare.
+
+2009-04-26  Michael Matz  <matz@suse.de>
+
+	* tree-flow.h (tree_ann_common_d): Remove aux and value_handle members.
+
+2009-04-26  Michael Matz  <matz@suse.de>
+
+	* tree-pass.h (pass_del_ssa, pass_mark_used_blocks,
+	pass_free_cfg_annotations, pass_free_datastructures): Remove decls.
+	* gimple-low.c (mark_blocks_with_used_vars, mark_used_blocks,
+	pass_mark_used_blocks): Remove.
+	* tree-optimize.c (pass_free_datastructures,
+	execute_free_cfg_annotations, pass_free_cfg_annotations): Remove.
+	* passes.c (init_optimization_passes): Don't call
+	pass_mark_used_blocks, remove dead code.
+
+2009-04-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tree-outof-ssa.c (rewrite_trees): Add ATTRIBUTE_UNUSED.
+	* tree-ssa-live.h (register_ssa_partition): Likewise.
+
+2009-04-26  Michael Matz  <matz@suse.de>
+
+	Expand from SSA.
+	* builtins.c (fold_builtin_next_arg): Handle SSA names.
+	* tree-ssa-copyrename.c (rename_ssa_copies): Use ssa_name() directly.
+	* tree-ssa-coalesce.c (create_outofssa_var_map): Mark only useful
+	SSA names. 
+	(compare_pairs): Swap cost comparison.
+	(coalesce_ssa_name): Don't use change_partition_var.
+	* tree-nrv.c (struct nrv_data): Add modified member.
+	(finalize_nrv_r): Set it.
+	(tree_nrv): Use it to update statements.
+	(pass_nrv): Require PROP_ssa.
+	* tree-mudflap.c (mf_decl_cache_locals,
+	mf_build_check_statement_for): Use make_rename_temp.
+	(pass_mudflap_2): Require PROP_ssa, run ssa update at finish.
+	* alias.c (find_base_decl): Handle SSA names.
+	* emit-rtl (set_reg_attrs_for_parm): Make non-static.
+	(component_ref_for_mem_expr): Don't leak SSA names into RTL.
+	* rtl.h (set_reg_attrs_for_parm): Declare.
+	* tree-optimize.c (pass_cleanup_cfg_post_optimizing): Rename
+	to "optimized", remove unused locals at finish.
+	(execute_free_datastructures): Make global, call
+	delete_tree_cfg_annotations.
+	(execute_free_cfg_annotations): Don't call
+	delete_tree_cfg_annotations.
+
+	* ssaexpand.h: New file.
+	* expr.c (toplevel): Include ssaexpand.h.
+	(expand_assignment): Handle SSA names the same as register variables.
+	(expand_expr_real_1): Expand SSA names.
+	* cfgexpand.c (toplevel): Include ssaexpand.h.
+	(SA): New global variable.
+	(gimple_cond_pred_to_tree): Fold TERed comparisons into predicates.
+	(SSAVAR): New macro.
+	(set_rtl): New helper function.
+	(add_stack_var): Deal with SSA names, use set_rtl.
+	(expand_one_stack_var_at): Likewise.
+	(expand_one_stack_var): Deal with SSA names.
+	(stack_var_size_cmp): Use code (SSA_NAME / DECL) as tie breaker
+	before unique numbers.
+	(expand_stack_vars): Use set_rtl.
+	(expand_one_var): Accept SSA names, add asserts for them, feed them
+	to above subroutines.
+	(expand_used_vars): Expand all partitions (without default defs),
+	then only the local decls (ignoring those expanded already).
+	(expand_gimple_cond): Remove edges when jumpif() expands an
+	unconditional jump.
+	(expand_gimple_basic_block): Don't clear EDGE_EXECUTABLE here,
+	or remove abnormal edges.  Ignore insns setting the LHS of a TERed
+	SSA name.
+	(gimple_expand_cfg): Call into rewrite_out_of_ssa, initialize
+	members of SA; deal with PARM_DECL partitions here; expand
+	all PHI nodes, free tree datastructures and SA.  Commit instructions
+	on edges, clear EDGE_EXECUTABLE and remove abnormal edges here.
+	(pass_expand): Require and destroy PROP_ssa, verify SSA form, flow
+	info and statements at start, collect garbage at finish.
+	* tree-ssa-live.h (struct _var_map): Remove partition_to_var member.
+	(VAR_ANN_PARTITION) Remove.
+	(change_partition_var): Don't declare.
+	(partition_to_var): Always return SSA names.
+	(var_to_partition): Only accept SSA names.
+	(register_ssa_partition): Only check argument.
+	* tree-ssa-live.c (init_var_map): Don't allocate partition_to_var
+	member.
+	(delete_var_map): Don't free it.
+	(var_union): Only accept SSA names, simplify.
+	(partition_view_init): Mark only useful SSA names as used.
+	(partition_view_fini): Only deal with SSA names.
+	(change_partition_var): Remove.
+	(dump_var_map): Use ssa_name instead of partition_to_var member.
+	* tree-ssa.c (delete_tree_ssa): Don't remove PHI nodes on RTL
+	basic blocks.
+	* tree-outof-ssa.c (toplevel): Include ssaexpand.h and expr.h.
+	(struct _elim_graph): New member const_dests; nodes member vector of
+	ints.
+	(set_location_for_edge): New static helper.
+	(create_temp): Remove.
+	(insert_partition_copy_on_edge, insert_part_to_rtx_on_edge,
+	insert_value_copy_on_edge, insert_rtx_to_part_on_edge): New functions.
+	(new_elim_graph): Allocate const_dests member.
+	(clean_elim_graph): Truncate const_dests member.
+	(delete_elim_graph): Free const_dests member.
+	(elim_graph_size): Adapt to new type of nodes member.
+	(elim_graph_add_node): Likewise.
+	(eliminate_name): Likewise.
+	(eliminate_build): Don't take basic block argument, deal only with
+	partition numbers, not variables.
+	(get_temp_reg): New static helper.
+	(elim_create): Use it, deal with RTL temporaries instead of trees.
+	(eliminate_phi): Adjust all calls to new signature.
+	(assign_vars, replace_use_variable, replace_def_variable): Remove.
+	(rewrite_trees): Only do checking.
+	(edge_leader, stmt_list, leader_has_match, leader_match): Remove.
+	(same_stmt_list_p, identical_copies_p, identical_stmt_lists_p,
+	init_analyze_edges_for_bb, fini_analyze_edges_for_bb,
+	contains_tree_r, MAX_STMTS_IN_LATCH,
+	process_single_block_loop_latch, analyze_edges_for_bb,
+	perform_edge_inserts): Remove.
+	(expand_phi_nodes): New global function.
+	(remove_ssa_form): Take ssaexpand parameter.  Don't call removed
+	functions, initialize new parameter, remember partitions having a
+	default def.
+	(finish_out_of_ssa): New global function.
+	(rewrite_out_of_ssa): Make global.  Adjust call to remove_ssa_form,
+	don't reset in_ssa_p here, don't disable TER when mudflap.
+	(pass_del_ssa): Remove.
+	* tree-flow.h (struct var_ann_d): Remove out_of_ssa_tag and
+	partition members.
+	(execute_free_datastructures): Declare.
+	* Makefile.in (SSAEXPAND_H): New variable.
+	(tree-outof-ssa.o, expr.o, cfgexpand.o): Depend on SSAEXPAND_H.
+	* basic-block.h (commit_one_edge_insertion): Declare.
+	* passes.c (init_optimization_passes): Move pass_nrv and
+	pass_mudflap2 before pass_cleanup_cfg_post_optimizing, remove
+	pass_del_ssa, pass_free_datastructures, pass_free_cfg_annotations.
+	* cfgrtl.c (commit_one_edge_insertion): Make global, don't declare.
+	(redirect_branch_edge): Deal with super block when expanding, split
+	out jump patching itself into ...
+	(patch_jump_insn): ... here, new static helper.
+
+2009-04-26  Michael Matz  <matz@suse.de>
+
+	* tree-ssa-copyrename.c (rename_ssa_copies): Don't iterate
+	beyond num_ssa_names.
+	* tree-ssa-ter.c (free_temp_expr_table): Likewise.
+	* tree-ssa-coalesce.c (create_outofssa_var_map): Likewise.
+
+2009-04-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/39543
+	* fwprop.c (forward_propagate_asm): New function.
+	(forward_propagate_and_simplify): Propagate also into __asm, if it
+	doesn't increase the number of referenced registers.
+
+	PR c/39889
+	* stmt.c (warn_if_unused_value): Look through NON_LVALUE_EXPR.
+
+2009-04-26  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-nested.c (get_nonlocal_vla_type): If not optimizing, call
+	note_nonlocal_vla_type for nonlocal VLAs.
+	(note_nonlocal_vla_type, note_nonlocal_block_vlas,
+	contains_remapped_vars, remap_vla_decls): New functions.
+	(convert_nonlocal_reference_stmt): If not optimizing, call
+	note_nonlocal_block_vlas on GIMPLE_BIND block vars.
+	(nesting_copy_decl): Return {VAR,PARM,RESULT}_DECL unmodified
+	if it wasn't found in var_map.
+	(finalize_nesting_tree_1): Call remap_vla_decls.  If outermost
+	GIMPLE_BIND doesn't have gimple_bind_block, chain debug_var_chain
+	to BLOCK_VARS (DECL_INITIAL (root->context)) instead of calling
+	declare_vars.
+	* gimplify.c (nonlocal_vlas): New variable.
+	(gimplify_var_or_parm_decl): Add debug VAR_DECLs for non-local
+	referenced VLAs.
+	(gimplify_body): Create and destroy nonlocal_vlas.
+
+	* dwarf2out.c (loc_descr_plus_const): New function.
+	(build_cfa_aligned_loc, tls_mem_loc_descriptor,
+	mem_loc_descriptor, loc_descriptor_from_tree_1,
+	descr_info_loc, gen_variable_die): Use it.
+
+	* tree.h (DECL_BY_REFERENCE): Note that it is also valid for
+	!TREE_STATIC VAR_DECLs.
+	* dwarf2out.c (loc_by_reference, gen_decl_die): Handle
+	DECL_BY_REFERENCE on !TREE_STATIC VAR_DECLs.
+	(gen_variable_die): Likewise.  Don't look at TREE_PRIVATE if
+	DECL_BY_REFERENCE is valid.
+	* dbxout.c (DECL_ACCESSIBILITY_CHAR): Don't look at TREE_PRIVATE
+	for PARM_DECLs, RESULT_DECLs or !TREE_STATIC VAR_DECLs.
+	* tree-nested.c (get_nonlocal_debug_decl, get_local_debug_decl):
+	Copy DECL_BY_REFERENCE.
+	(struct nesting_copy_body_data): New type.
+	(nesting_copy_decl): New function.
+	(finalize_nesting_tree_1): Remap types of debug_var_chain variables,
+	if they have variable length.
+
+2009-04-26  Michael Matz  <matz@suse.de>
+
+	* tree-sra.c (sra_build_assignment): Don't use into_ssa mode,
+	mark new temporaries for renaming.
+
+2009-04-26  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39581
+	* c-decl.c (global_bindings_p): Return negative value.
+	(c_variable_size): New.  Based on variable_size from
+	stor-layout.c.
+	(grokdeclarator): Call c_variable_size not variable_size.
+
+2009-04-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (print_operand) ['z']: Fix typo.
+
+2009-04-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/mingw-w64.h (STANDARD_INCLUDE_DIR):
+	Redefine it to just use mingw/include.
+	(ASM_SPEC): Rules for -m32 and -m64.
+	(LINK_SPEC): Use Likewise.
+	(SPEC_32): New define.
+	(SPEC_64): Likewise.
+	(SUB_LINK_SPEC): Likewise.
+	(MULTILIB_DEFAULTS): New define.
+	* config/i386/t-mingw-w64 (MULTILIB_OPTIONS):
+	Add multilib options.
+	(MULTILIB_DIRNAMES): Likewise.
+	(MULTILIB_OSDIRNAMES): Likewise.
+	(LIBGCC): Likewise.
+	(INSTALL_LIBGCC): Likewise.
+
+2009-04-26  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39556
+	* c-tree.h (enum c_inline_static_type): New.
+	(record_inline_static): Declare.
+	* c-decl.c (struct c_inline_static, c_inline_statics,
+	record_inline_static, check_inline_statics): New.
+	(pop_file_scope): Call check_inline_statics.
+	(start_decl): Call record_inline_static instead of pedwarning
+	directly for static in inline function.
+	* c-typeck.c (build_external_ref): Call record_inline_static
+	instead of pedwarning directly for static referenced in inline
+	function.
+
+2009-04-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* df-scan.c (df_insn_rescan): Salvage insn's LUID if the insn is
+	not new but only being rescanned.
+	* gcse.c (uid_cuid, max_uid, INSN_CUID, max_cuid, struct reg_set,
+	reg_set_table, REG_SET_TABLE_SLOP, reg_set_in_block,
+	alloc_reg_set_mem, free_reg_set_mem, record_one_set,
+	record_set_info, compute_set, grealloc): Remove.
+	(recompute_all_luids): New function.
+	(gcse_main): Don't compute sets, and don't do related memory
+	allocations/free-ing.  If something changed before the end of the
+	pass, update LUIDs using recompute_all_luids.
+	(alloc_gcse_mem): Don't compute LUIDs.  Don't allocate reg_set memory.
+	(free_gcse_mem): Don't free it either.
+	(oprs_unchanged_p, load_killed_in_block, record_last_reg_set_info):
+	Use the df insn LUIDs.
+	(load_killed_in_block): Likewise.
+	(compute_hash_table_work): Don't compute reg_set_in_block.
+	(compute_transp): Use DF_REG_DEF_CHAINs.
+	(local_cprop_pass): Don't use compute_sets and related functions.
+	(one_cprop_pass, pre_gcse, one_pre_gcse_pass, one_code_hoisting_pass):
+	Use get_max_uid() instead of max_cuid.
+	(insert_insn_end_basic_block, pre_insert_copy_insn,
+	update_ld_motion_stores): Don't try to
+	keep reg_set tables up to date.
+	(pre_insert_copies): Use df insn LUIDs.
+	(sbitmap pre_redundant_insns): Replace with uses of INSN_DELETED_P.
+	(reg_set_info): Don't use extra bitmap argument.
+	(compute_store_table): Don't compute reg_set_in_block.  Use DF scan
+	information to compute regs_set_in_block.
+	(free_store_memory, store_motion): Don't nullify reg_set_in_block.
+	(bypass_jumps): Don't use compute_sets and friends.
+
+2009-04-26  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR testsuite/39710
+	* opts.c (undocumented_msg): Do not leave blank even with
+	ENABLE_CHECKING.
+
+2009-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-decl.c (build_enumerator): Allow values folding to integer
+	constants but not integer constant expressions with a pedwarn if
+	pedantic.
+
+2009-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39582
+	* c-typeck.c (c_expr_sizeof_type): Create a C_MAYBE_CONST_EXPR
+	with non-null C_MAYBE_CONST_EXPR_PRE if size of a variable-length
+	type is an integer constant.
+
+2009-04-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/39897
+	* config/i386/i386.c (print_operand) ['z']: Revert handling of
+	HImode operands.
+
+2009-04-25  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/39564
+	* c-decl.c (grokdeclarator): Diagnose declarations of functions
+	with variably modified return type and no storage class
+	specifiers, except for the case of nested functions.  Distinguish
+	extern declarations of functions with variably modified return
+	types from those of objects with variably modified types.
+
+2009-04-25  Jan Hubicka  <jh@suse.cz>
+
+	* tree.c (list_equal_p): New function.
+	* tree.h (list_equal_p): Declare.
+	* coretypes.h (edge_def, edge, const_edge, basic_block_def
+	basic_block_def, basic_block, const_basic_block): New.
+	* tree-eh.c (make_eh_edge): EH edges are not abnormal.
+	(redirect_eh_edge): New function.
+	(make_eh_edge_update_phi): EH edges are not abnormal.
+	* except.c: Include tree-flow.h.
+	(list_match): New function.
+	(eh_region_replaceable_by_p): New function.
+	(replace_region): New function.
+	(hash_type_list): New function.
+	(hash_eh_region): New function.
+	(eh_regions_equal_p): New function.
+	(merge_peers): New function.
+	(remove_unreachable_regions): Verify EH tree when checking;
+	merge peers.
+	(copy_eh_region_1): New function.
+	(copy_eh_region): New function.
+	(push_reachable_handler): New function.
+	(build_post_landing_pads, dw2_build_landing_pads): Be ready for
+	regions without label but with live RESX.
+	* except.h (redirect_eh_edge_to_label): New.
+	* tree-flow.h (redirect_eh_edge): New.
+	* coretypes.h (edge_def, edge, const_edge, basic_block_def
+	basic_block_def, basic_block, const_basic_block): Remove.
+	* Makefile.in (except.o): Add dependency on tree-flow.h
+	* tree-cfg.c (gimple_redirect_edge_and_branch): Handle EH edges.
+	* basic-block.h (edge, const_edge, basic_block, const_basic_block):
+	Remove.
+
 2009-04-25  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR bootstrap/39645

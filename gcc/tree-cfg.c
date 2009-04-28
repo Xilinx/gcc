@@ -2084,6 +2084,11 @@ remove_useless_stmts (void)
       remove_useless_stmts_1 (&gsi, &data);
     }
   while (data.repeat);
+
+#ifdef ENABLE_TYPES_CHECKING
+  verify_types_in_gimple_seq (gimple_body (current_function_decl));
+#endif
+
   return 0;
 }
 
@@ -4313,6 +4318,14 @@ verify_stmts (void)
 		  err |= true;
 		}
 	    }
+
+#ifdef ENABLE_TYPES_CHECKING
+	  if (verify_gimple_phi (phi))
+	    {
+	      debug_gimple_stmt (phi);
+	      err |= true;
+	    }
+#endif
 	}
 
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); )
@@ -4349,6 +4362,14 @@ verify_stmts (void)
 	    }
 
 	  err |= verify_stmt (&gsi);
+
+#ifdef ENABLE_TYPES_CHECKING
+	  if (verify_types_in_gimple_stmt (gsi_stmt (gsi)))
+	    {
+	      debug_gimple_stmt (stmt);
+	      err |= true;
+	    }
+#endif
 	  addr = walk_gimple_op (gsi_stmt (gsi), verify_node_sharing, &wi);
 	  if (addr)
 	    {
@@ -4799,6 +4820,9 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
 
   if (e->dest == dest)
     return NULL;
+
+  if (e->flags & EDGE_EH)
+    return redirect_eh_edge (e, dest);
 
   gsi = gsi_last_bb (bb);
   stmt = gsi_end_p (gsi) ? NULL : gsi_stmt (gsi);
