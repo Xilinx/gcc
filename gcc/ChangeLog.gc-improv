@@ -1,0 +1,6 @@
+2009-04-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* expr.c: Do not include ggc.h.
+	* tre-inline.c: Likewise.
+	* Makefile.in (tree_inline.o): Remove $(GGC_H) dependency.
+	(tree_iterator.o): Likewise.
