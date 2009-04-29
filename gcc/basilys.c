@@ -4956,6 +4956,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   char *dupmodulnam = NULL;
   basilys_module_info_t *moduptr = 0;
   basilys_ptr_t (*startroutp) (basilys_ptr_t);	/* start routine */
+  int modulnamlen = 0;
   BASILYS_ENTERFRAME (3, NULL);
 #define modulv curfram__.varptr[0]
 #define mdatav curfram__.varptr[1]
@@ -4989,8 +4990,9 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
      heap or whatever ... */
   dupmodulnam = xstrdup(modulnam);
   if (specialsuffix) {
-    int modulnamlen = strlen(modulnam);
+    modulnamlen = strlen(modulnam);
     gcc_assert (modulnamlen>2);
+    gcc_assert (dupmodulnam[modulnamlen-2] == '.');
     dupmodulnam[modulnamlen-2] = '\0';
   }
   /***** first find the source path ******/
@@ -5046,6 +5048,14 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   md5src = md5srctab;
   fclose (srcfi);
   srcfi = NULL;
+  /* if it had a special suffix, restore it */
+  if (specialsuffix)
+    {
+      gcc_assert (modulnamlen>2);
+      dupmodulnam[modulnamlen-2] = '.';
+      debugeprintf ("basilysgc_load_melt_module restored dupmodulnam %s", 
+		    dupmodulnam);
+    }
   /**
      we have to scan several dynlib directories to find the module;
      when we find a module, we dynamically load it to check that it

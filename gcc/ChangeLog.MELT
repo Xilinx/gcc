@@ -1,4 +1,20 @@
 2009-04-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_melt_module): Handle correctly
+	specially suffixed modules like warmelt-first.d.so ...
+	* melt/warmelt-first.melt: added mixloc_locline & mixloc_locfile
+	primitives.
+	* melt/warmelt-outobj.melt: output the full path in #line using
+	mixloc_locfile & mixloc_locline.
+	* Makefile.in: warmelt1n.modlis & warmelt2n.modlis correctly
+	generated.
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2009-04-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: the debug_ppl_ primitives behave well when
 	the pointer is nil by avoiding calling the underlying
 	ppl_io_asprint_* routine with a null pointer.

@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Fri Apr 10 10:36:58 2009 */
+/* generated on Wed Apr 29 17:03:38 2009 */
 
 #include "run-basilys.h"
 
@@ -5687,25 +5687,26 @@ rout_22_OUTPUT_RAW_LOCATION(basilysclosure_ptr_t closp_, basilys_ptr_t firstargp
   struct basilysclosure_st *clos;
   struct excepth_basilys_st *exh;
   struct callframe_basilys_st *prev;
-#define CURFRAM_NBVARPTR 7
-  void* varptr[7];
+#define CURFRAM_NBVARPTR 6
+  void* varptr[6];
 #define CURFRAM_NBVARNUM 5
   long varnum[5];
 /*others*/
 const char* loc_CTYPE_CSTRING__o0;
+const char* loc_CTYPE_CSTRING__o1;
   long _spare_; }
     *framptr_=0,    curfram__;
   if (BASILYS_UNLIKELY(xargdescr_ == BASILYSPAR_MARKGGC)) { /*mark for ggc*/
    int ix=0;
    framptr_ = (void*)firstargp_;
    gt_ggc_mx_basilys_un (framptr_->clos);
-   for(ix=0; ix<7; ix++)
+   for(ix=0; ix<6; ix++)
     if (framptr_->varptr[ix])
      gt_ggc_mx_basilys_un (framptr_->varptr[ix]);
    return NULL;
   }/*end markggc*/;
   memset(&curfram__, 0, sizeof(curfram__));
- curfram__.nbvar = 7;
+ curfram__.nbvar = 6;
   curfram__.clos = closp_;
  curfram__.prev = (struct callframe_basilys_st *) basilys_topframe;
  basilys_topframe = (struct callframe_basilys_st *) &curfram__;
@@ -5792,16 +5793,16 @@ BASILYS_LOCATION("warmelt-outobj.melt:560:/ block");
       /*block*/{
        
        basilysgc_add_strbuf((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), ( "#line "));
-       /*_#GET_INT__L5*/ curfnum[4] = 
-        (basilys_get_int((basilys_ptr_t)(/*_.LOC__V2*/ curfptr[1])));;
+       /*_#MIXLOC_LOCLINE__L5*/ curfnum[4] = 
+        (LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)/*_.LOC__V2*/ curfptr[1])));;
        
-       basilysgc_add_strbuf_dec((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), (/*_#GET_INT__L5*/ curfnum[4]));
+       basilysgc_add_strbuf_dec((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), (/*_#MIXLOC_LOCLINE__L5*/ curfnum[4]));
        
        basilysgc_add_strbuf((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), ( " \""));
-       /*_.MIXLOC_VAL__V7*/ curfptr[6] = 
-        (basilys_val_mixloc((basilys_ptr_t)(/*_.LOC__V2*/ curfptr[1])));;
+       /*_?*/ curfram__.loc_CTYPE_CSTRING__o1 = 
+        (LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)/*_.LOC__V2*/ curfptr[1])));;
        
-       basilysgc_add_strbuf((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), basilys_string_str((basilys_ptr_t)(/*_.MIXLOC_VAL__V7*/ curfptr[6])));
+       basilysgc_add_strbuf((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), (/*_?*/ curfram__.loc_CTYPE_CSTRING__o1));
        
        basilysgc_add_strbuf((basilys_ptr_t)(/*_.IMPLBUF__V3*/ curfptr[2]), ( "\""));
        BASILYS_LOCATION("warmelt-outobj.melt:572:/ block");
@@ -5809,9 +5810,9 @@ BASILYS_LOCATION("warmelt-outobj.melt:560:/ block");
        ;
        /*epilog*/
        BASILYS_LOCATION("warmelt-outobj.melt:572:/ clear");
-       /*clear*/ /*_#GET_INT__L5*/ curfnum[4] = 0 ;
+       /*clear*/ /*_#MIXLOC_LOCLINE__L5*/ curfnum[4] = 0 ;
        BASILYS_LOCATION("warmelt-outobj.melt:572:/ clear");
-       /*clear*/ /*_.MIXLOC_VAL__V7*/ curfptr[6] = 0 ;}
+       /*clear*/ /*_?*/ curfram__.loc_CTYPE_CSTRING__o1 = 0 ;}
       ;
      } else {BASILYS_LOCATION("warmelt-outobj.melt:572:/ cond.else");
      

@@ -4931,6 +4931,11 @@ warmelt1.modlis: $(WARMELT_BASE1SO)
 	for f in  $(WARMELT_BASE1); do echo $$f >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
+warmelt1n.modlis: $(WARMELT_BASE1NSO)
+	date +"#$@ generated %c" > $@-tmp
+	for f in  $(WARMELT_BASE1); do echo $$f.n >> $@-tmp; done
+	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
+
 
 ### we need ad hoc rules, since warmelt-first-1 is build using the
 ### warmelt*0.c files from SVN repository but warmelt-macro-1 is build
@@ -5049,7 +5054,7 @@ warmelt-outobj-3.so: warmelt-outobj-3.c
 
 warmelt2n.modlis: $(WARMELT_BASE2NSO)
 	date +"#$@ generated %c" > $@-tmp
-	for f in  $(WARMELT_BASE2); do echo $$f-n >> $@-tmp; done
+	for f in  $(WARMELT_BASE2); do echo $$f.n >> $@-tmp; done
 	$(SHELL) $(srcdir)/../move-if-change $@-tmp $@
 
 ####

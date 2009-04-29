@@ -1077,6 +1077,11 @@
   "(basilys_val_mixloc((basilys_ptr_t)(" mi ")))")
 (defprimitive mixloc_location (mi) :long
   "(basilys_location_mixloc((basilys_ptr_t)(" mi ")))")
+(defprimitive mixloc_locline (mi) :long
+  "(LOCATION_LINE(basilys_location_mixloc((basilys_ptr_t)" mi ")))")
+(defprimitive mixloc_locfile (mi) :cstring
+  "(LOCATION_FILE(basilys_location_mixloc((basilys_ptr_t)" mi ")))")
+
 ;; make a mixloc
 (defprimitive make_mixloc (dis val :long num loc) :value
   "(basilysgc_new_mixloc((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
@@ -3854,6 +3859,8 @@
  minor_garbcoll
  mixint_val
  mixloc_location
+ mixloc_locline
+ mixloc_locfile
  mixloc_val
  multiple_length
  multiple_nth
