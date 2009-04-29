@@ -1021,7 +1021,7 @@
 #{ 
   if (flag_basilys_debug) 
     {char*s=0; 
-     ppl_io_asprint_Coefficient(&s, $coef); 
+     if ($coef) ppl_io_asprint_Coefficient(&s, $coef); 
      debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
      free(s);}
 }#)
@@ -1031,7 +1031,7 @@
  #{
  if (flag_basilys_debug) 
    {char*s=0; 
-    ppl_io_asprint_Linear_Expression(&s, $liex); 
+    if ($liex) ppl_io_asprint_Linear_Expression(&s, $liex); 
     debugeprintf("debug_ppl_linear_expression %s @%p %s", 
 		 $msg, (void*)$liex, s); free(s);}
  }#)
@@ -1040,15 +1040,18 @@
  #{
  if (flag_basilys_debug)
  {char*s=0; 
-  ppl_io_asprint_Constraint(&s, $cons); 
+  if ($cons) ppl_io_asprint_Constraint(&s, $cons); 
   debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
   free(s);}
  }#)
 
 (defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
 #{ if (flag_basilys_debug) { 
-     char*s = 0; ppl_io_asprint_Polyhedron(&s, $poly);
-     debugeprintf("debug_ppl_polyhedron %s @%p %s", $msg, $poly, s);
+     char*s = 0; 
+     debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, $poly);
+     if ($poly) 
+       ppl_io_asprint_Polyhedron(&s, $poly);
+     debugeprintf_raw("%s\n", s);
      free(s); } 
 }#)
 

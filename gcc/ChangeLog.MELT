@@ -1,3 +1,8 @@
+2009-04-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.melt: the debug_ppl_ primitives behave well when
+	the pointer is nil by avoiding calling the underlying
+	ppl_io_asprint_* routine with a null pointer.
+
 2009-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* configure.ac: requires PPL 0.10.2 and test linking with 
 	ppl_io_asprint_Coefficient((char**)0, (ppl_Coefficient_t)0);
