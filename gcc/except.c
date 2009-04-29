@@ -301,7 +301,7 @@ init_eh (void)
 void
 init_eh_for_function (void)
 {
-  cfun->eh = GGC_CNEW (struct eh_status);
+  cfun->eh = ggc_alloc_cleared_eh_status ();
 }
 
 /* Routines to generate the exception tree somewhat directly.
@@ -318,7 +318,7 @@ gen_eh_region (enum eh_region_type type, struct eh_region *outer)
 #endif
 
   /* Insert a new blank region as a leaf in the tree.  */
-  new_eh = GGC_CNEW (struct eh_region);
+  new_eh = ggc_alloc_cleared_eh_region ();
   new_eh->type = type;
   new_eh->outer = outer;
   if (outer)
@@ -1148,7 +1148,7 @@ duplicate_eh_regions_1 (eh_region old, eh_region outer, int eh_offset)
 {
   eh_region ret, n;
 
-  ret = n = GGC_NEW (struct eh_region);
+  ret = n = ggc_alloc_eh_region ();
 
   *n = *old;
   n->outer = outer;
@@ -3766,7 +3766,7 @@ add_call_site (rtx landing_pad, int action)
 {
   call_site_record record;
   
-  record = GGC_NEW (struct call_site_record);
+  record = ggc_alloc_call_site_record ();
   record->landing_pad = landing_pad;
   record->action = action;
 

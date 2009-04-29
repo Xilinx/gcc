@@ -1,6 +1,6 @@
 /* Garbage collection for the GNU compiler.
-   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
+   2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -241,6 +241,11 @@ extern void dump_ggc_loc_statistics (bool);
 #define GGC_NEWVAR(T, S)	((T *) ggc_alloc ((S)))
 #define GGC_CNEWVAR(T, S)	((T *) ggc_alloc_cleared ((S)))
 #define GGC_RESIZEVAR(T, P, N)  ((T *) ggc_realloc ((P), (N)))
+
+#define ggc_internal_alloc(T)       GGC_NEW(T)
+#define ggc_internal_cleared_alloc(T) GGC_CNEW(T)
+#define ggc_internal_vec_alloc(T, c)  GGC_NEWVEC(T, c)
+#define ggc_internal_cleared_vec_alloc(T, c) GGC_CNEWVEC(T, c)
 
 #define ggc_alloc_rtvec(NELT)						 \
   ((rtvec) ggc_alloc_zone (sizeof (struct rtvec_def) + ((NELT) - 1)	 \

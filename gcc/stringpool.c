@@ -1,5 +1,5 @@
 /* String pool for GCC.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -231,7 +231,7 @@ static GTY(()) struct string_pool_data * spd;
 void
 gt_pch_save_stringpool (void)
 {
-  spd = GGC_NEW (struct string_pool_data);
+  spd = ggc_alloc_string_pool_data ();
   spd->nslots = ident_hash->nslots;
   spd->nelements = ident_hash->nelements;
   spd->entries = GGC_NEWVEC (struct ht_identifier *, spd->nslots);

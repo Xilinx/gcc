@@ -1,6 +1,6 @@
 /* Handle #pragma, system V.4 style.  Supports #pragma weak and #pragma pack.
    Copyright (C) 1992, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -74,7 +74,7 @@ push_alignment (int alignment, tree id)
 {
   align_stack * entry;
 
-  entry = GGC_NEW (align_stack);
+  entry = ggc_alloc_align_stack ();
 
   entry->alignment  = alignment;
   entry->id	    = id;
@@ -316,7 +316,7 @@ handle_pragma_push_macro (cpp_reader *reader)
   c = (struct def_pragma_macro *) *slot;
   if (c == NULL)
     {
-      *slot = c = GGC_NEW (struct def_pragma_macro);
+      *slot = c = ggc_alloc_def_pragma_macro ();
       c->hash = dummy.hash;
       c->name = ggc_alloc_string (macroname, TREE_STRING_LENGTH (id) - 1);
       c->value.prev = NULL;
@@ -324,7 +324,7 @@ handle_pragma_push_macro (cpp_reader *reader)
   else
     {
       struct def_pragma_macro_value *v;
-      v = GGC_NEW (struct def_pragma_macro_value);
+      v = ggc_alloc_def_pragma_macro_value ();
       *v = c->value;
       c->value.prev = v;
     }
@@ -1033,7 +1033,7 @@ handle_pragma_push_options (cpp_reader *ARG_UNUSED(dummy))
       return;
     }
 
-  p = GGC_NEW (opt_stack);
+  p = ggc_alloc_opt_stack ();
   p->prev = options_stack;
   options_stack = p;
 

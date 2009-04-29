@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -1652,7 +1652,7 @@ get_file_gtfilename (const char *f)
      : xasprintf ("gt-%s", basename));
 
   /* Then replace all non alphanumerics characters by '-' and change the
-     extenstion to ".h".  We expect the input filename extension was at least
+     extension to ".h".  We expect the input filename extension was at least
      one character long.  */
 
   char *s = result;
@@ -3579,6 +3579,82 @@ note_def_vec_alloc (const char *type, const char *astrat, struct fileloc *pos)
   do_typedef (astratname, new_structure (astratname, 0, pos, field, 0), pos);
 }
 
+static const char *
+get_tag_string (const type_p s)
+{
+  if (s->kind == TYPE_STRUCT || s->kind == TYPE_LANG_STRUCT)
+    return "struct ";
+  if (s->kind == TYPE_UNION)
+    return "union ";
+  return "";
+}
+
+static void
+write_typed_alloc_end (const type_p s, const char * allocator_type,
+		       bool is_vector)
+{
+  const char * type_tag = get_tag_string (s);
+
+  oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
+  oprintf (header_file, "%s%s", type_tag, s->u.s.tag);
+  oprintf (header_file, "%s", is_vector ? ", n" : "");
+  oprintf (header_file, "))\n");
+}
+
+static void
+write_typed_struct_alloc_def (const type_p s, const char * allocator_type,
+			      bool is_vector)
+{
+  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, s->u.s.tag);
+  oprintf (header_file, "(%s) ", is_vector ? "n" : "");
+  write_typed_alloc_end (s, allocator_type, is_vector);
+}
+
+static void
+write_typed_typedef_alloc_def (const pair_p p,
+			       const char * const allocator_type,
+			       bool is_vector)
+{
+  const type_p s = p->type;
+  oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, p->name);
+  oprintf (header_file, "(%s) ", is_vector ? "n" : "");
+  write_typed_alloc_end (s, allocator_type, is_vector);
+}
+
+#define USED_BY_GC(s) (((s)->gc_used == GC_POINTED_TO) ||	\
+  ((s)->gc_used == GC_MAYBE_POINTED_TO))
+
+static void
+write_typed_alloc_defns (const type_p structures, const pair_p typedefs)
+{
+  type_p s;
+  pair_p p;
+
+  oprintf (header_file, "\n/* Allocators for known structs and unions.  */\n");
+  for (s = structures; s; s = s->next)
+    {
+      if (!USED_BY_GC (s))
+	continue;
+      write_typed_struct_alloc_def (s, "", false);
+      write_typed_struct_alloc_def (s, "cleared_", false);
+      write_typed_struct_alloc_def (s, "vec_", true);
+      write_typed_struct_alloc_def (s, "cleared_vec_", true);
+    }
+
+  oprintf (header_file, "\n/* Allocators for known typedefs.  */\n");
+  for (p = typedefs; p; p = p->next)
+    {
+      s = p->type;
+      if (!USED_BY_GC (s) || !UNION_OR_STRUCT_P (s)
+	  || (strcmp (p->name, s->u.s.tag) == 0))
+	continue;
+      write_typed_typedef_alloc_def (p, "", false);
+      write_typed_typedef_alloc_def (p, "cleared_", false);
+      write_typed_typedef_alloc_def (p, "vec_", true);
+      write_typed_typedef_alloc_def (p, "cleared_vec_", true);
+    }
+}
+
 
 int
 main (int argc, char **argv)
@@ -3626,6 +3702,7 @@ main (int argc, char **argv)
 
   open_base_files ();
   write_enum_defn (structures, param_structs);
+  write_typed_alloc_defns (structures, typedefs);
   write_types (structures, param_structs, &ggc_wtd);
   write_types (structures, param_structs, &pch_wtd);
   write_local (structures, param_structs);

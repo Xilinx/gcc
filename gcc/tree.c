@@ -4380,7 +4380,7 @@ decl_priority_info (tree decl)
   h = (struct tree_priority_map *) *loc;
   if (!h)
     {
-      h = GGC_CNEW (struct tree_priority_map);
+      h = ggc_alloc_cleared_tree_priority_map ();
       *loc = h;
       h->base.from = decl;
       h->init = DEFAULT_INIT_PRIORITY;
@@ -4436,7 +4436,7 @@ decl_restrict_base_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_map);
+  h = ggc_alloc_tree_map ();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4503,7 +4503,7 @@ decl_debug_expr_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_map);
+  h = ggc_alloc_tree_map ();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4534,7 +4534,7 @@ decl_value_expr_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_map);
+  h = ggc_alloc_tree_map ();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;
@@ -4707,7 +4707,7 @@ type_hash_add (hashval_t hashcode, tree type)
   struct type_hash *h;
   void **loc;
 
-  h = GGC_NEW (struct type_hash);
+  h = ggc_alloc_type_hash ();
   h->hash = hashcode;
   h->type = type;
   loc = htab_find_slot_with_hash (type_hash_table, h, hashcode, INSERT);

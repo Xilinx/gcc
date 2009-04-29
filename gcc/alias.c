@@ -791,7 +791,7 @@ record_alias_subset (alias_set_type superset, alias_set_type subset)
     {
       /* Create an entry for the SUPERSET, so that we have a place to
 	 attach the SUBSET.  */
-      superset_entry = GGC_NEW (struct alias_set_entry);
+      superset_entry = ggc_alloc_cleared_alias_set_entry ();
       superset_entry->alias_set = superset;
       superset_entry->children
 	= splay_tree_new_ggc (splay_tree_compare_ints);

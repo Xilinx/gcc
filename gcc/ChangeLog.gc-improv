@@ -1,6 +1,51 @@
 2009-04-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* gengtype.c: Update copyright year.
+	(get_file_gtfilename): Fix typo.
+	(get_tag_string, write_typed_alloc_end): New.
+	(write_typed_struct_alloc_def): New.
+	(write_typed_typedef_alloc_def): New.
+	(USED_BY_GC): New.
+	(write_typed_alloc_defns): New.
+	(main): Invoke write_typed_alloc_defns.
+	* ggc.h: Update copyright year.
+	(ggc_internal_alloc, ggc_internal_cleared_alloc): New.
+	(ggc_internal_vec_alloc, ggc_internal_cleared_vec_alloc): New.
+	* optabs.c (set_optab_libfunc, set_conv_libfunc): Use typed GC
+	allocators.
+	* tree.c (decl_priority_info, decl_restrict_base_insert): Likewise.
+	(decl_debug_expr_insert, decl_value_expr_insert, type_hash_add):
+	Likewise.
+	* dwarf2out.c (new_cfi, queue_reg_save, dwarf2out_frame_init):
+	Likewise.
+	(new_loc_descr, find_AT_string, new_die): Likewise.
+	(add_var_loc_to_decl, new_loc_list, lookup_filename): Likewise.
+	(dwarf2out_var_location): Likewise.
+	* function.c (insert_temp_slot_address): Likewise.
+	(assign_stack_temp_for_type, allocate_struct_function): Likewise.
+	* alias.c (record_alias_subset): Likewise.
+	* c-pragma.c: Update copyright year.
+	(push_alignment, handle_pragma_push_macro): Use typed GC
+	allocators.
+	(handle_pragma_push_options): Likewise.
+	* except.c (init_eh_for_function, gen_eh_region): Likewise.
+	(duplicate_eh_regions_1, add_call_site): Likewise.
+	* emit-rtl.c (get_mem_attrs, get_reg_attrs, start_sequence):
+	Likewise.
+	* stringpool.c: Update copyright year.
+	(gt_pch_save_stringpool): Use typed GC allocators.
+	* varasm.c (emutls_decl, get_unnamed_section, get_section):
+	Likewise.
+	(get_block_for_section, build_constant_desc): Likewise.
+	(create_constant_pool, force_const_mem): Likewise.
+	* tree-iterator.c: Likewise.
+	* config/i386/i386.c (get_dllimport_decl): Likewise.
+	(ix86_init_machine_status): Likewise.
+	(assign_386_stack_local): Likewise.
+
+2009-04-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* expr.c: Do not include ggc.h.
-	* tre-inline.c: Likewise.
-	* Makefile.in (tree_inline.o): Remove $(GGC_H) dependency.
-	(tree_iterator.o): Likewise.
+	* tree-inline.c: Likewise.
+	* Makefile.in (expr.o): Remove $(GGC_H) dependency.
+	(tree-inline.o): Likewise.
