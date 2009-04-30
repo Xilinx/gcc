@@ -1085,12 +1085,12 @@ bb_contains_non_iv_scalar_phi_nodes (basic_block bb)
 static bool
 scop_contains_non_iv_scalar_phi_nodes (scop_p scop)
 {
-  int i;
-  poly_bb_p pbb;
+  basic_block bb;
 
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    if (bb_contains_non_iv_scalar_phi_nodes (GBB_BB (PBB_BLACK_BOX (pbb))))
-      return true;
+  FOR_EACH_BB (bb)
+    if (bb_in_sese_p (bb, SCOP_REGION (scop)))
+      if (bb_contains_non_iv_scalar_phi_nodes (bb))
+	return true;
 
   return false;
 }
@@ -1381,6 +1381,7 @@ build_poly_scop (scop_p scop)
   sese region = SCOP_REGION (scop);
   build_scop_bbs (scop);
   build_sese_loop_nests (region);
+
   if (scop_contains_non_iv_scalar_phi_nodes (scop))
     return false;
 

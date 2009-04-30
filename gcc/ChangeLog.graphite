@@ -1,3 +1,11 @@
+2009-04-30  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-sese-to-poly.c (bb_contains_non_iv_scalar_phi_nodes):
+	Check all bbs in region, not only the bbs that are represented in
+	GRAPHITE.
+	(build_poly_scop): Add newline.
+	* testsuite/gcc.dg/graphite/id-8.c: New.
+
 2009-24-30  Li Feng  <nemokingdom@gmail.com>
 	
 	* cfgloop.c (alloc_loop): Initialize can_be_parallel to false
