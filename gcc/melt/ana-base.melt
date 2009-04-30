@@ -957,6 +957,12 @@
   #{ basilysgc_new_ppl_constraint_system(($discr), 
 					 BASILYS_PPL_UNSATISFIABLE_CONSTRAINT_SYSTEM) }#)
 
+(defprimitive raw_new_ppl_empty_constraint_system () :ppl_constraint_system
+  #{ basilys_raw_new_ppl_empty_constraint_system() }#)
+
+(defprimitive raw_new_ppl_unsatisfiable_constraint_system () :ppl_constraint_system
+  #{ basilys_raw_new_ppl_unsatisfiable_constraint_system() }#)
+
 (defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
   #{ basilysgc_ppstrbuf_ppl_varnamvect (($sbuf), ($indent), ($ppl), ($varvect))}#)
 
@@ -1015,6 +1021,11 @@
 (defprimitive insert_ppl_constraint_in_boxed_system 
   (:ppl_constraint cons :value sysv) :void
  #{basilys_insert_ppl_constraint_in_boxed_system(($cons), ($sysv))}#)
+
+(defprimitive ppl_Constraint_System_insert_Constraint
+ (:ppl_constraint_system consys :ppl_constraint cons) :void
+#{ if (ppl_Constraint_System_insert_Constraint ($consys, $cons)) 
+     fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#)
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
@@ -1589,6 +1600,7 @@
  notnull_basicblock
  null_basicblock
  pop_cfun
+ ppl_Constraint_System_insert_Constraint
  ppl_Linear_Expression_add_to_coefficient
  ppl_Linear_Expression_add_to_inhomogeneous
  ppl_NNC_Polyhedron_from_Constraint_System  
@@ -1614,6 +1626,8 @@
  push_cfun_decl
  put_gdbmstate
  put_gdbmstate_constr
+ raw_new_ppl_empty_constraint_system
+ raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
  tree_block
  tree_content 

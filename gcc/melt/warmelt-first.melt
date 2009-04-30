@@ -1346,7 +1346,14 @@
 ;;; the discriminant for PPL constraint system
 (definstance discr_ppl_constraint_system class_discr
   :obj_num OBMAG_SPECPPL_CONSTRAINT_SYSTEM
+  :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_PPL_CONSTRAINT_SYSTEM")
+  )
+
+;;; the discriminant for PPL polyhedron
+(definstance discr_ppl_polyhedron class_discr
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_PPL_POLYHEDRON")
   )
 
 ;;; the discriminant for sequence of classes 
@@ -3965,6 +3972,7 @@
  discr_nullrecv                       
  discr_pair  
  discr_ppl_constraint_system 
+ discr_ppl_polyhedron 
  discr_routine                        
  discr_seqclass                       
  discr_seqfield                       

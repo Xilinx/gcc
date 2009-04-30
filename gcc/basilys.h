@@ -2356,38 +2356,64 @@ void basilys_clear_special(basilys_ptr_t val_p);
 void
 basilysgc_ppstrbuf_ppl_varnamvect (basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t ppl_p, basilys_ptr_t varnamvect_p);
 
+/* create a new PPL empty constraint system raw stuff */
+static inline ppl_Constraint_System_t 
+basilys_raw_new_ppl_empty_constraint_system (void) {
+  ppl_Constraint_System_t consys= NULL;
+  if (ppl_new_Constraint_System(&consys))
+    fatal_error("basilys_raw_new_ppl_empty_constraint_system failed");
+  return consys;
+}
+
+/* create a new PPL unsatisfiable constraint system raw stuff */
+static inline ppl_Constraint_System_t 
+basilys_raw_new_ppl_unsatisfiable_constraint_system (void) {
+  ppl_Constraint_System_t consys= NULL;
+  if (ppl_new_Constraint_System_zero_dim_empty(&consys))
+    fatal_error("basilys_raw_new_ppl_unsatisfiable_constraint_system failed");
+  return consys;
+}
+
+/* create a new PPL empty constraint system raw stuff */
+static inline ppl_Constraint_System_t 
+basilys_raw_clone_ppl_consstraint_system (ppl_Constraint_System_t oldconsys) {
+  ppl_Constraint_System_t consys= NULL;
+  if (ppl_new_Constraint_System_from_Constraint_System(&consys, oldconsys))
+    fatal_error("basilys_raw_clone_ppl_consstraint_system failed");
+  return consys;
+}
 
 /* utility to make a ppl_Coefficient_t out of a constant tree */
-ppl_Coefficient_t basilys_make_ppl_coefficient_from_tree(tree tr);
+ppl_Coefficient_t basilys_make_ppl_coefficient_from_tree (tree tr);
 
 /* utility to make a ppl_Coefficient_t from a long number */
-ppl_Coefficient_t basilys_make_ppl_coefficient_from_long(long l);
+ppl_Coefficient_t basilys_make_ppl_coefficient_from_long (long l);
 
 /* utility to make a ppl_Linear_Expression_t */
-ppl_Linear_Expression_t basilys_make_ppl_linear_expression(void);
+ppl_Linear_Expression_t basilys_make_ppl_linear_expression (void);
 
 /* utility to make a ppl_Constraint ; the constraint type is a string
    "==" or ">" "<" ">=" "<=" because we don't want enums in
    MELT... */
-ppl_Constraint_t basilys_make_ppl_constraint_cstrtype(ppl_Linear_Expression_t liex, const char*constyp);
+ppl_Constraint_t basilys_make_ppl_constraint_cstrtype (ppl_Linear_Expression_t liex, const char*constyp);
 
 /* insert a raw PPL constraint into a boxed constraint system */
 void
-basilys_insert_ppl_constraint_in_boxed_system(ppl_Constraint_t cons, basilys_ptr_t ppl_p);
+basilys_insert_ppl_constraint_in_boxed_system (ppl_Constraint_t cons, basilys_ptr_t ppl_p);
 
 /* utility to make a NNC [=not necessarily closed] ppl_Polyhedron_t
    out of a constraint system */
-ppl_Polyhedron_t basilys_make_ppl_NNC_Polyhedron_from_Constraint_System(ppl_Constraint_System_t consys);
+ppl_Polyhedron_t basilys_make_ppl_NNC_Polyhedron_from_Constraint_System (ppl_Constraint_System_t consys);
 
 /* make a new boxed PPL polyhedron; if cloned is true, the poly is
    copied otherwise taken as is */
 basilys_ptr_t
-basilysgc_new_ppl_polyhedron(basilys_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned);
+basilysgc_new_ppl_polyhedron (basilys_ptr_t discr_p, ppl_Polyhedron_t poly, bool cloned);
 enum { SAME_PPL_POLHYEDRON=0, CLONED_PPL_POLHYEDRON=1 };
 
 /* get the content of a boxed PPL coefficient */
 static inline ppl_Coefficient_t 
-basilys_ppl_coefficient_content(basilys_ptr_t ppl_p)
+basilys_ppl_coefficient_content (basilys_ptr_t ppl_p)
 {
   if (basilys_magic_discr(ppl_p) != OBMAG_SPECPPL_COEFFICIENT) 
     return NULL;
@@ -2765,7 +2791,7 @@ enum basilys_globalix_en
   BGLOB_CTYPE_PPL_GENERATOR,
   /* @@unimplemented ctype of PPL generator systems */
   BGLOB_CTYPE_PPL_GENERATOR_SYSTEM,
-  /* @@unimplemented ctype of PPL polyhedrons */
+  /* ctype of PPL polyhedrons */
   BGLOB_CTYPE_PPL_POLYHEDRON,
   /* the initial system data */
   BGLOB_INITIAL_SYSTEM_DATA,

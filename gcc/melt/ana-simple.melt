@@ -392,10 +392,9 @@
   (debug_msg tupvarbind "sman_propagate_constraints_call tupvarbind")
   (assert_msg "check newabenv" (is_a newabenv class_smallabstractenv))
   (let ( (pplvarslist (make_list discr_list)) 
-	 (pplconsysval (ppl_new_empty_constraint_system discr_ppl_constraint_system))
+	 (:ppl_constraint_system consys (raw_new_ppl_empty_constraint_system))
 	 (:long nbpplvars 0)
 	 )
-    (debug_msg pplconsysval "sman_propagate_constraints_call pplconsysval")
     (foreach_in_multiple
      (tupvarbind)
      (curvarbind :long bindix)
@@ -426,9 +425,8 @@
 	     (debug_ppl_linear_expression "sman_propagate_constraints_call liex" liex)
 	     (let ( (:ppl_constraint cons (make_ppl_constraint liex "==")) )
 	       (debug_ppl_constraint "sman_propagate_constraints_call cons" cons)
-	       (compile_warning "a revoir ici" ())
-	       ;(insert_ppl_constraint_in_boxed_system cons pplconsysval)
-	       ;(ppl_delete_Constraint cons)
+	       (ppl_Constraint_System_insert_Constraint consys cons)
+	       (ppl_delete_Constraint cons)
 	       )
 	     (ppl_delete_Coefficient coefm1)
 	     (ppl_delete_Coefficient coefarg)
@@ -440,11 +438,15 @@
 	( ?_
 	  (assert_msg "sman_propagate_constraints_call @$@unimplemented curarg tree" ())))
        ))
-    (compile_warning "should fill the newabenv pplpoly" ())
-    (put_fields newabenv 
-		;:abenv_pplconsys pplconsysval
-		:abenv_vectrees (list_to_multiple pplvarslist))
-    )
+    (let ( (:ppl_polyhedron poly (ppl_NNC_Polyhedron_from_Constraint_System consys)) 
+	   (polyv (make_ppl_polyhedron_same discr_ppl_polyhedron poly))
+	   )
+      (debug_msg polyv "sman_propagate_constraints_call polyv")
+      (compile_warning "probably filled the newabenv pplpoly" ())
+      (put_fields newabenv 
+		  :abenv_pplpoly polyv
+		  :abenv_vectrees (list_to_multiple pplvarslist))
+      ))
   (debug_msg newabenv "sman_propagate_constraints_call final newabenv")
   )
 

@@ -1,3 +1,15 @@
+2009-04-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (basilys_raw_new_ppl_empty_constraint_system)
+	(basilys_raw_new_ppl_unsatisfiable_constraint_system)
+	(basilys_raw_clone_ppl_consstraint_system): Added new
+	functions. Also, added spaces and corrected typos in some
+	comments.
+	* melt/warmelt-first.melt: Added discr_ppl_polyhedron.
+	* melt/ana-base.melt: added raw_new_ppl_empty_constraint_system &
+	raw_new_ppl_unsatisfiable_constraint_system.
+	* melt/ana-simple.melt: using abenv_pplpoly not abenv_pplconsys
+	field. Using polyhedrons, not constraint systems as main
+	lattice. Still incomplete.
 2009-04-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_load_melt_module): Handle correctly
 	specially suffixed modules like warmelt-first.d.so ...
