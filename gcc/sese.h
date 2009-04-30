@@ -354,54 +354,6 @@ typedef struct gimple_bb
      CASE_LABEL_EXPR.  */
   VEC (gimple, heap) *conditions;
   VEC (gimple, heap) *condition_cases;
-
-  /* LOOPS contains for every column in the graphite domain the corresponding
-     gimple loop.  If there exists no corresponding gimple loop LOOPS contains
-     NULL. 
-  
-     Example:
-
-     Original code:
-
-     for (i = 0; i <= 20; i++) 
-       for (j = 5; j <= 10; j++)
-         A
-
-     Original domain:
-
-     |  i >= 0
-     |  i <= 20
-     |  j >= 0
-     |  j <= 10
-
-     This is a two dimensional domain with "Loop i" represented in
-     dimension 0, and "Loop j" represented in dimension 1.  Original
-     loops vector:
-
-     | 0         1 
-     | Loop i    Loop j
-
-     After some changes (Exchange i and j, strip-mine i), the domain
-     is:
-
-     |  i >= 0
-     |  i <= 20
-     |  j >= 0
-     |  j <= 10
-     |  ii <= i
-     |  ii + 1 >= i 
-     |  ii <= 2k
-     |  ii >= 2k 
-
-     Iterator vector:
-     | 0        1        2         3
-     | Loop j   NULL     Loop i    NULL
-    
-     Means the original loop i is now on dimension 2 of the domain and
-     loop j in the original loop nest is now on dimension 0.
-     Dimensions 1 and 3 represent the newly created loops.  */
-  VEC (loop_p, heap) *loops;
-
   VEC (data_reference_p, heap) *data_refs;
   htab_t cloog_iv_types;
 } *gimple_bb_p;
@@ -410,10 +362,9 @@ typedef struct gimple_bb
 #define GBB_DATA_REFS(GBB) GBB->data_refs
 #define GBB_CONDITIONS(GBB) GBB->conditions
 #define GBB_CONDITION_CASES(GBB) GBB->condition_cases
-#define GBB_LOOPS(GBB) (GBB->loops)
 #define GBB_CLOOG_IV_TYPES(GBB) GBB->cloog_iv_types
 
-/* Return the loop that contains the basic block GBB.  */
+/* Return the innermost loop that contains the basic block GBB.  */
 
 static inline struct loop *
 gbb_loop (struct gimple_bb *gbb)
@@ -425,24 +376,27 @@ gbb_loop (struct gimple_bb *gbb)
    If there is no corresponding gimple loop, we return NULL.  */
 
 static inline loop_p
-gbb_loop_at_index (gimple_bb_p gbb, int index)
+gbb_loop_at_index (gimple_bb_p gbb, sese region, int index)
 {
-  return VEC_index (loop_p, GBB_LOOPS (gbb), index);
+  loop_p loop = gbb_loop (gbb);
+  int depth = sese_loop_depth (region, loop);
+
+  while (--depth > index)
+    {
+      loop = loop_outer (loop);
+    }
+
+  gcc_assert (sese_contains_loop (region, loop));
+
+  return loop;
 }
 
-/* Returns the index of LOOP in the loop nest around GBB.  */
+/* Returns the index of LOOP in the region, 0 based index.  */
 
 static inline int
-gbb_loop_index (gimple_bb_p gbb, loop_p loop)
+gbb_loop_index (sese region, loop_p loop)
 {
-  int i;
-  loop_p l;
-
-  for (i = 0; VEC_iterate (loop_p, GBB_LOOPS (gbb), i, l); i++)
-    if (loop == l)
-      return i;
-
-  gcc_unreachable();
+  return sese_loop_depth (region, loop) - 1;
 }
 
 /* The number of common loops in REGION for GBB1 and GBB2.  */

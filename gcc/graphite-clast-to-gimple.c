@@ -316,6 +316,7 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
   int index = 0;
   CloogStatement *cs = user_stmt->statement;
   poly_bb_p pbb = (poly_bb_p) cloog_statement_usr (cs);
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
 
   for (t = user_stmt->substitutions; t; t = t->next) 
     {
@@ -327,8 +328,8 @@ loop_iv_stack_patch_for_consts (loop_iv_stack stack,
       if (expr->type == expr_term
 	  && !term->var)
 	{
-	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), index);
-	  tree oldiv = oldiv_for_loop (SCOP_REGION (PBB_SCOP (pbb)), loop);
+	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), region, index);
+	  tree oldiv = oldiv_for_loop (region, loop);
 	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
 	  tree value = gmp_cst_to_tree (type, term->val);
 	  loop_iv_stack_insert_constant (stack, index, value);
@@ -507,7 +508,7 @@ build_iv_mapping (loop_iv_stack ivstack, htab_t map, poly_bb_p pbb,
 	free (*slot);
 
       new_name = loop_iv_stack_get_iv 
-	(ivstack, gbb_loop_index (PBB_BLACK_BOX (pbb), iv->loop));
+	(ivstack, gbb_loop_index (region, iv->loop));
       *slot = new_rename_map_elt (old_name, new_name);
     }
 }
@@ -688,6 +689,7 @@ compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
 {
   gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
   struct clast_stmt *t;
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
   int index = 0;
 
   for (t = user_stmt->substitutions; t; t = t->next, index++)
@@ -706,8 +708,8 @@ compute_cloog_iv_types_1 (poly_bb_p pbb, struct clast_user_stmt *user_stmt)
 
       if (!*slot)
 	{
-	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), index);
-	  tree oldiv = oldiv_for_loop (SCOP_REGION (PBB_SCOP (pbb)), loop);
+	  loop_p loop = gbb_loop_at_index (PBB_BLACK_BOX (pbb), region, index);
+	  tree oldiv = oldiv_for_loop (region, loop);
 	  tree type = oldiv ? TREE_TYPE (oldiv) : integer_type_node;
 	  *slot = new_ivtype_map_elt (tmp.cloog_iv, type);
 	}

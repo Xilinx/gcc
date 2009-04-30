@@ -143,7 +143,6 @@ new_gimple_bb (basic_block bb, VEC (data_reference_p, heap) *drs)
   GBB_CONDITIONS (gbb) = NULL;
   GBB_CONDITION_CASES (gbb) = NULL;
   GBB_CLOOG_IV_TYPES (gbb) = NULL;
-  GBB_LOOPS (gbb) = NULL;
  
   return gbb;
 }
@@ -161,7 +160,6 @@ free_gimple_bb (struct gimple_bb *gbb)
 
      free_data_refs (GBB_DATA_REFS (gbb)); */
 
-  VEC_free (loop_p, heap, GBB_LOOPS (gbb));
   VEC_free (gimple, heap, GBB_CONDITIONS (gbb));
   VEC_free (gimple, heap, GBB_CONDITION_CASES (gbb));
   GBB_BB (gbb)->aux = 0;
@@ -472,36 +470,6 @@ build_scop_scattering (scop_p scop)
   ppl_delete_Coefficient (c);
   ppl_delete_Linear_Expression (static_schedule);
 } 
-
-/* Build the LOOPS vector for all bbs in SCOP.  */
-
-static void
-build_bb_loops (scop_p scop)
-{
-  poly_bb_p pbb;
-  int i;
-
-  for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
-    {
-      loop_p loop;
-      int depth; 
-      gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
-
-      loop = GBB_BB (gbb)->loop_father;  
-      depth = sese_loop_depth (SCOP_REGION (scop), loop); 
-
-      GBB_LOOPS (gbb) = VEC_alloc (loop_p, heap, 3);
-      VEC_safe_grow_cleared (loop_p, heap, GBB_LOOPS (gbb), depth);
-
-
-      while (sese_contains_loop (SCOP_REGION(scop), loop))
-        {
-          VEC_replace (loop_p, GBB_LOOPS (gbb), depth - 1, loop);
-          loop = loop_outer (loop);
-          depth--;
-        }
-    }
-}
 
 /* Add the value K to the dimension D of the linear expression EXPR.  */
 
@@ -1416,7 +1384,6 @@ build_poly_scop (scop_p scop)
   if (scop_contains_non_iv_scalar_phi_nodes (scop))
     return false;
 
-  build_bb_loops (scop);
   build_sese_conditions (region);
   find_scop_parameters (scop);
 

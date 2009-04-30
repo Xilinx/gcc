@@ -1,3 +1,19 @@
+2009-24-30  Li Feng  <nemokingdom@gmail.com>
+
+	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts):
+	Change the call of gbb_loop_at_index and/or gbb_loop_index due
+	to the redefinition.
+	(compute_cloog_iv_types_1): ditto.
+	(build_iv_mapping): ditto.
+	* graphite-sese-to-poly.c (new_gimple_bb): Remove GBB_LOOPS related
+	initialization.
+	(free_gimple_bb): Removed GBB_LOOPS related free part.
+	(build_bb_loops): Removed.
+	* sese.h (struct gimple_bb): Removed loops.
+	(GBB_LOOPS): Removed.
+	(gbb_loop_at_index): Instead of using GBB_LOOPS, we use sese instead.
+	(gbb_loop_index): ditto.
+
 2009-04-24  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (graphite_can_represent_scev): Do not
