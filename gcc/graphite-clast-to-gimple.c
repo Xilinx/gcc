@@ -588,6 +588,14 @@ translate_clast (sese region, struct loop *context_loop,
       edge to_body = single_succ_edge (loop->header);
       basic_block after = to_body->dest;
 
+      /* Only mark the innermost loop parallel now.  */
+      if (flag_graphite_force_parallel)
+	{
+	  loop->can_be_parallel = true;
+	  if (context_loop)
+	    context_loop->can_be_parallel = false;
+	}
+
       /* Create a basic block for loop close phi nodes.  */
       last_e = single_succ_edge (split_edge (last_e));
 

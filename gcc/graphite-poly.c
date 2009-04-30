@@ -254,6 +254,9 @@ apply_poly_transforms (scop_p scop)
   if (flag_graphite_identity)
     transform_done = true;
 
+  if (flag_graphite_force_parallel)
+    transform_done = true;
+
   if (flag_loop_block)
     gcc_unreachable (); /* Not yet supported.  */
 

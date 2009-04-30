@@ -1,4 +1,18 @@
 2009-24-30  Li Feng  <nemokingdom@gmail.com>
+	
+	* cfgloop.c (alloc_loop): Initialize can_be_parallel to false
+	when loop initialize.
+	* cfgloop.h (struct loop): Introduce flag can_be_parallel.
+	* common.opt: Declare flag_graphite_force_parallel.
+	* graphite-clast-to-gimple.c (translate_clast): Mark the innermost
+	loop parallel.
+	* graphite-poly.c (apply_poly_transforms): Introduce
+	flag_graphite_force_parallel.
+	* tree-ssa-loop.c (gate_graphite_transforms): ditto.
+	* toplev.c (process_options): ditto and replace a not correctly
+	encoded space.
+
+2009-24-30  Li Feng  <nemokingdom@gmail.com>
 
 	* graphite-clast-to-gimple.c (loop_iv_stack_patch_for_consts):
 	Change the call of gbb_loop_at_index and/or gbb_loop_index due

@@ -160,6 +160,9 @@ struct loop GTY ((chain_next ("%h.next")))
 
   /* Head of the cyclic list of the exits of the loop.  */
   struct loop_exit *exits;
+
+  /* True if the loop can be parallel.  */
+  bool can_be_parallel;
 };
 
 /* Flags for state of loop structure.  */

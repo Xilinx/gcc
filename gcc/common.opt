@@ -571,6 +571,11 @@ fgraphite-read
 Common Report Var(flag_graphite_read) Optimization
 Read Graphite transformation file
 
+; This option is not documented as it will be removed
+fgraphite-force-parallel
+Common Report Var(flag_graphite_force_parallel) Optimization
+Mark all loops as parallel
+
 floop-strip-mine
 Common Report Var(flag_loop_strip_mine) Optimization
 Enable Loop Strip Mining transformation
