@@ -1,5 +1,14 @@
 2009-04-30  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* graphite-scop-detection.c (graphite_can_represent_scev):
+	Add check if scev is affine multivariate.
+	(harmful_stmt_in_bb): Check if we can represent the conditions.
+	(scopdet_basic_block_info (basic_block bb, VEC): Pass the loop to
+	harmful_stmt_in_bb.
+	* testsuite/gcc.dg/graphite/id-7.c: New.
+
+2009-04-30  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-sese-to-poly.c (bb_contains_non_iv_scalar_phi_nodes):
 	Check all bbs in region, not only the bbs that are represented in
 	GRAPHITE.

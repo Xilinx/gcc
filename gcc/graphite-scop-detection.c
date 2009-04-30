@@ -168,6 +168,9 @@ graphite_can_represent_scev (tree scev, int loop)
   if (evolution_function_is_invariant_p (scev, loop))
     return true;
 
+  if (!evolution_function_is_affine_multivariate_p (scev, loop))
+    return false;
+
   zero = fold_convert (chrec_type (scev), integer_zero_node);
   scev = chrec_replace_initial_condition (scev, zero);
 
@@ -375,7 +378,7 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
    scop should end before this statement.  */
 
 static gimple
-harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
+harmful_stmt_in_bb (basic_block scop_entry, loop_p loop, basic_block bb)
 {
   gimple_stmt_iterator psi;
   gimple_stmt_iterator gsi;
@@ -404,6 +407,10 @@ harmful_stmt_in_bb (basic_block scop_entry, basic_block bb)
 
       if (TREE_CODE (TREE_TYPE (lhs)) == REAL_TYPE
 	  || TREE_CODE (TREE_TYPE (rhs)) == REAL_TYPE)
+	return stmt;
+
+      if (!graphite_can_represent_expr (scop_entry, loop, lhs)
+	  || !graphite_can_represent_expr (scop_entry, loop, rhs))
 	return stmt;
     }
 
@@ -488,7 +495,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 
   /* XXX: ENTRY_BLOCK_PTR could be optimized in later steps.  */
   basic_block entry_block = ENTRY_BLOCK_PTR;
-  stmt = harmful_stmt_in_bb (entry_block, bb);
+  stmt = harmful_stmt_in_bb (entry_block, loop, bb);
   result.difficult = (stmt != NULL);
   result.exit = NULL;
 
@@ -597,7 +604,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	basic_block last_exit = NULL;
 	edge e;
 	result.exits = false;
- 
+
 	/* First check the successors of BB, and check if it is possible to join
 	   the different branches.  */
 	for (i = 0; VEC_iterate (edge, bb->succs, i, e); i++)
