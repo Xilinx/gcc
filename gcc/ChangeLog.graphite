@@ -1,5 +1,10 @@
 2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* testsuite/gcc.dg/graphite/id-6.c: Update testcase.
+	* testsuite/gcc.dg/graphite/scop-3.c: Dito.
+
+2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-scop-detection.c (stmt_simple_for_scop_p):
 	Enable EQ_EXPR and NE_EXPR again.
 
