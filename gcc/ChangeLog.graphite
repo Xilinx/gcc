@@ -1,3 +1,8 @@
+2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (stmt_simple_for_scop_p):
+	Enable EQ_EXPR and NE_EXPR again.
+
 2009-04-30  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (graphite_can_represent_scev):

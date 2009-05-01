@@ -305,8 +305,10 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
            them for the else branch.  */
         if (!(code == LT_EXPR
 	      || code == GT_EXPR
-              || code == LE_EXPR
-	      || code == GE_EXPR))
+	      || code == LE_EXPR
+	      || code == GE_EXPR
+	      || code == EQ_EXPR
+	      || code == NE_EXPR))
           return false;
 
 	if (!scop_entry)
