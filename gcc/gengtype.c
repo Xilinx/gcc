@@ -3595,10 +3595,11 @@ write_typed_alloc_end (const type_p s, const char * allocator_type,
 {
   const char * type_tag = get_tag_string (s);
 
+  oprintf (header_file, "((%s%s *)", type_tag, s->u.s.tag);
   oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
   oprintf (header_file, "%s%s", type_tag, s->u.s.tag);
   oprintf (header_file, "%s", is_vector ? ", n" : "");
-  oprintf (header_file, "))\n");
+  oprintf (header_file, ")))\n");
 }
 
 static void

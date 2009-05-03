@@ -1,3 +1,8 @@
+2009-05-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gengtype.c (write_typed_alloc_end): Print type cast to the
+	pointer to the type of object being allocated.
+
 2009-04-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c: Update copyright year.
