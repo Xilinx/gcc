@@ -130,13 +130,17 @@
 	    (and (>i depth 0) (>i oldmaxdepth 3)
 		 (put_int (unsafe_get_field :dbgi_maxdepth dbgi) newmaxdepth))
 	    (dbgout_fields self dbgi (+i depth 1) 0 offpar)
-	    ;(add2sbuf_indentnl sbuf depth)
-	    (add2sbuf_strconst sbuf "@ppl.cons.sys@[")
-	    (ppl_ppstrbuf sbuf 
-			  (get_field :abenv_pplpoly self)
-			  depth 
-			  (get_field :abenv_vectrees self))
-	    (add2sbuf_strconst sbuf "]@")
+					;(add2sbuf_indentnl sbuf depth)
+	    (let ( (polyv (get_field :abenv_pplpoly self)) )
+	      (if polyv
+		  (progn
+		    (add2sbuf_strconst sbuf "@ppl.poly@[")
+		    (ppl_ppstrbuf sbuf 
+				  (get_field :abenv_pplpoly self)
+				  depth 
+				  (get_field :abenv_vectrees self))
+		    (add2sbuf_strconst sbuf "]@"))
+		(add2sbuf_strconst sbuf "@ppl.poly*nil*")))
 	    (add2sbuf_indentnl sbuf depth)
 	    (if (need_dbglim (+i depth 2) newmaxdepth)
 		(dbgout_fields self dbgi (+i depth 2) offvnam -1)
@@ -452,17 +456,17 @@
 
 ;;;;;;;;;;;;;;;;
 ;; pass both the relation and the opposite relation when changing signs
-(defun sman_add_cmp_constraint (sman abenv :tree lhs rhs :cstring rel opprel)
+(defun sman_add_cmp_constraint (sman abenv polyv :tree lhs rhs :cstring rel opprel)
+  (debug_msg abenv "sman_add_cmp_constraint abenv")
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
-  (debug_msg abenv "sman_add_cmp_constraint abenv")
   (debugtree "sman_add_cmp_constraint lhs" lhs)
   (debugtree "sman_add_cmp_constraint rhs" rhs)
+  (debug_msg polyv "sman_add_cmp_constraint polyv")
+  (assert_msg "check polyv" (== (discrim polyv) discr_ppl_polyhedron))
   (let ( (:long lvix -1) 		;left var index
 	 (:long rvix -1)		;right var index
-	 (polyv (get_field :abenv_pplpoly abenv))
 	 )
-    (debug_msg polyv "sman_add_cmp_constraint polyv")
 ;;; handle the left hand side lhs
     (match 
      lhs
@@ -532,7 +536,7 @@
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint leftvar constraint" newcons)
 	   (ppl_Polyhedron_add_constraint poly newcons)
-	   (debug_ppl_polyhedron "sman_add_cmp_constraint updated polu" poly)
+	   (debug_ppl_polyhedron "sman_add_cmp_constraint updated poly" poly)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coefright)
 	   (ppl_delete_Linear_Expression liex)
@@ -544,12 +548,13 @@
        (let ( (:ppl_coefficient coefleft (ppl_coefficient_from_tree lhs))
 	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
 	      (:ppl_linear_expression liex (make_ppl_linear_expression))
+	      (:ppl_polyhedron poly (ppl_polyhedron_content polyv))
 	      )
 	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
 	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefleft)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint rightvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons polyv)
+	   (ppl_Polyhedron_add_constraint poly newcons)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coefleft)
 	   (ppl_delete_Linear_Expression liex)
@@ -562,12 +567,13 @@
        (let ( (:ppl_coefficient coef1 (ppl_coefficient_from_long 1))
 	      (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
 	      (:ppl_linear_expression liex (make_ppl_linear_expression))
+	      (:ppl_polyhedron poly (ppl_polyhedron_content polyv))
 	      )
 	 (ppl_Linear_Expression_add_to_coefficient liex lvix coef1)
 	 (ppl_Linear_Expression_add_to_coefficient liex rvix coefm1)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex rel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint bothvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons polyv)
+	   (ppl_Polyhedron_add_constraint poly newcons)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coef1)
 	   (ppl_delete_Linear_Expression liex)
@@ -580,8 +586,72 @@
       (assert_msg "unexpected left & right in sman_add_cmp_constraint" ())
       ))
     )
-  (debug_msg abenv "sman_add_cmp_constraint updated abenv")
+  (debug_msg polyv "sman_add_cmp_constraint final polyv")
   )
+
+;;;;;;;;;;;;;;;;
+;;;; utility to interpret an arithmetic compare test
+(defun sman_arithm_compare
+  (sman abenv
+;;; the entire gimple and its containing basicblock
+	:gimple g :basicblock bb 
+;;; the extracted lefthandside righthandside truelab falselab
+	:tree lhs rhs truelab falselab 
+;;; the relation string [eg "<="] its opposite for negative numbers [eg ">="] and
+;;; its negation [eg ">"] and the opposite of the negation [eg "<"]
+	:cstring rel opprel notrel notopprel)
+  ;; check arguments
+  (assert_msg "check sman" (is_a sman class_smallanalysis))
+  (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
+  (debuggimple "sman_arithm_compare gimple" g)
+  (debugbasicblock "sman_arithm_compare bb" bb)
+  (debug_msg abenv "sman_arithm_compare start abenv")
+  ;; extract the polyhedron value and clone it for the other branch
+  (let ( (polyv (get_field :abenv_pplpoly abenv)) 
+	 (:ppl_polyhedron poly (ppl_polyhedron_content polyv))
+	 (clonpolyv (make_ppl_polyhedron_cloned discr_ppl_polyhedron poly))
+	 (:ppl_polyhedron clonpoly (ppl_polyhedron_content clonpolyv))
+	 )
+    (debug_msg polyv "sman_arithm_compare polyv before sman_add_cmp_constraint")
+    ;; handle the true branch by adding the constraint from the test
+    (sman_add_cmp_constraint sman abenv polyv lhs rhs rel opprel)
+    (debug_msg polyv "sman_arithm_compare polyv after sman_add_cmp_constraint")
+    (if (ppl_Polyhedron_is_empty poly)
+	(progn
+	  (debuggimple "sman_arithm_compare true branch impossible" g)
+	  )
+      (progn
+	(debugtree "sman_arithm_compare true branch truelab" truelab)
+	(debuggimple "sman_arithm_compare true branch possible g" g)
+	(debugbasicblock "sman_arithm_compare true branch possible bb" bb)
+	(compile_warning "sman_arithm_compare should find the true branch & interpret it" ())
+	(assert_msg "@$@unimplemented sman_arithm_compare possible true branch" ())
+	))
+    ;; handle the false branch by adding the constraint incompatible with the test
+    (debug_msg clonpolyv "sman_arithm_compare clonpolyv before sman_add_cmp_constraint")
+    (sman_add_cmp_constraint sman abenv clonpolyv lhs rhs notrel notopprel)
+    (debug_msg clonpolyv "sman_arithm_compare clonpolyv after sman_add_cmp_constraint")
+    (if (ppl_Polyhedron_is_empty clonpoly)
+	(progn
+	  (debuggimple "sman_arithm_compare false branch impossible" g)
+	  )
+      (progn
+	(debugtree "sman_arithm_compare false branch falselab" falselab)
+	(debuggimple "sman_arithm_compare false branch possible" g)
+	(debugbasicblock "sman_arithm_compare false branch possible bb" bb)
+	(foreach_basicblock_succ_edge 
+	 (bb)
+	 (:edge eg :long eix)
+	 (debugedge "sman_arithm_compare false succedge eg" eg)
+	 (if (edge_for_false_value eg)
+	     (let ( (:basicblock fbb (edge_dest_bb eg)) )
+	       (debugbasicblock "sman_arithm_compare falsesucc fbb" fbb)
+	       ))
+	 )
+	(compile_warning "sman_arithm_compare should find the false branch & interpret it" ())
+	(assert_msg "@$@unimplemented sman_arithm_compare possible false branch" ())
+	))
+    ))
 
 ;;;;;;;;;;;;;;;;
 (defun smaninterp_gimple (sman abenv :gimple g :basicblock bb)
@@ -590,10 +660,10 @@
   (debug_msg abenv "smaninterp_gimple abenv")
   (debuggimple "smaninterp_gimple g" g)
   (debugbasicblock "smaninterp_gimple bb" bb)
-;; we really should count the number of times we are calling
-;; smaninterp_gimple and returns immediately with a warning if calling
-;; too often/too deeply. The point is that an small analysis of a
-;; buggy program could make the compiler loop.
+  ;; we really should count the number of times we are calling
+  ;; smaninterp_gimple and returns immediately with a warning if calling
+  ;; too often/too deeply. The point is that an small analysis of a
+  ;; buggy program could make the compiler loop.
   (compile_warning "we should check that we don't call too often or too deeply in smaninterp_gimple" ())
   (match 
    g
@@ -643,7 +713,7 @@
 	   )
 	 )
        (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple call" 15)
-       ;(assert_msg "@$@unimplemented smaninterp_gimple call" ())
+					;(assert_msg "@$@unimplemented smaninterp_gimple call" ())
        )
      )
    ;; handle conditional <=
@@ -652,28 +722,12 @@
       (debugtree "smaninterp_gimple cond<= rhs" rhs)
       (debugtree "smaninterp_gimple cond<= truelab" truelab)
       (debugtree "smaninterp_gimple cond<= falselab" falselab)
-      (debug_msg abenv "smaninterp_gimple cond<= abenv before sman_add_cmp_constraint")
-      (sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
-      (debug_msg abenv "smaninterp_gimple cond<= abenv after sman_add_cmp_constraint")
-      (debugbasicblock "smaninterp_gimple cond<= bb" bb)
-      ;; find the true branch and interpret it
-      (let ( 
-	    (:ppl_polyhedron poly 
-			     (ppl_polyhedron_content (get_field :abenv_pplpoly abenv)))
-	    )
-	(debug_ppl_polyhedron "smaninterp_gimple cond<= poly" poly)
-	(if (ppl_Polyhedron_is_empty poly)
-	    (progn
-	      (debug_msg () "smaninterp_gimple cond<= true branch impossible")
-	      )
-	  (progn
-	    (assert_msg "@$@unimplemented possible smaninterp_gimple cond<= true branch" ())
-	    )
-	  )
-					;(ppl_delete_Polyhedron poly)
-	)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
-      (compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
+      (debug_msg abenv "smaninterp_gimple cond<= abenv before sman_arithm_compare")
+      (sman_arithm_compare sman abenv
+			   g bb
+			   lhs rhs truelab falselab
+			   "<=" ">=" ">" "<")
+      (debug_msg abenv "smaninterp_gimple cond<= abenv after sman_arithm_compare")
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )
    ;; handle conditional <
@@ -699,14 +753,14 @@
       (debugtree "smaninterp_gimple condtrue truelab" truelab)
       (debugtree "smaninterp_gimple condtrue falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
-      ;(assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
+					;(assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
       )
    ;; handle conditional false
    ( ?(gimple_cond_false ?truelab ?falselab)
       (debugtree "smaninterp_gimple condfalse truelab" truelab)
       (debugtree "smaninterp_gimple condfalse falselab" falselab)
       (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
-      ;(assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
+					;(assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
       )
    ;; default 
    (?_ 

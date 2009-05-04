@@ -1,4 +1,11 @@
 2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/ana-base.melt: added debugedge edge_dest_bb
+	edge_for_false_value edge_for_true_value edge_src_bb.
+	* melt/ana-simple.melt: sman_add_cmp_constraint takes a polyv
+	argument. Adding sman_arithm_compare, still incomplete and to be
+	used elsewhere...
+
+2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt: added obj_num in discr_ppl_polyhedron.
 	* melt/ana-base.melt: added ppl_Polyhedron_add_constraint.
 	* melt/ana-simple.melt: use ppl_Polyhedron_add_constraint.

@@ -812,7 +812,13 @@
 				   (int) ($indent), ($bb)) }# )
 
 (defprimitive basicblock_single_succ (:basicblock bb) :basicblock
-  #{(single_succ_p($bb)?single_succ($bb):NULL)}# )
+  #{(($bb && single_succ_p($bb))?single_succ($bb):NULL)}# )
+
+(defprimitive basicblock_nb_succ (:basicblock bb) :long
+  #{(($bb)?EDGE_COUNT($bb->succs):0)}#)
+
+(defprimitive basicblock_nth_succ_edge  (:basicblock bb :long ix) :edge
+  #{(($bb && $ix>=0 && $ix<EDGE_COUNT($bb->succs))?EDGE_SUCC($bb,$ix):NULL)}#)
 
 ;;;;;;;;;;;;;;;;
 
@@ -870,18 +876,19 @@
 (defciterator foreach_basicblock_succ_edge
   (:basicblock bb)
   eachbbsucc
-  (:edge e)
+  (:edge e :long eix)
   #{
-  /* eachbbsucc start */
+  /* $eachbbsucc start */
    int $eachbbsucc#_nbsuc = $bb ? EDGE_COUNT($bb->succs) : 0;
    int $eachbbsucc#_ix = 0;
    for ($eachbbsucc#_ix=0; 
-	$eachbbsucc#_ix < eachbbsucc#_nbsuc;  
+	$eachbbsucc#_ix < $eachbbsucc#_nbsuc;  
 	$eachbbsucc#_ix++) {
      $e = EDGE_SUCC(($bb), $eachbbsucc#_ix);
      if (!$e) continue;
+     $eix = $eachbbsucc#_ix;
    }#
-   #{  /* eachbbsucc end */ }  }#
+   #{  /* $eachbbsucc end */ }  }#
 )
 
 ;;;;;;;;;;;;;;;;
@@ -1004,8 +1011,7 @@
 
 (defprimitive ppl_Linear_Expression_add_to_inhomogeneous
   (:ppl_linear_expression liex :ppl_coefficient coef) :void
-#{
-  { if (($liex) && ($coef)) 
+#{ { if (($liex) && ($coef)) 
        ppl_Linear_Expression_add_to_inhomogeneous(($liex), ($coef)); }
 }#)
 
@@ -1034,9 +1040,7 @@
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
-#{ 
-  if (flag_basilys_debug) 
-    {char*s=0; 
+#{  if (flag_basilys_debug)  {char*s=0; 
      if ($coef) ppl_io_asprint_Coefficient(&s, $coef); 
      debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
      free(s);}
@@ -1044,29 +1048,23 @@
 
 (defprimitive debug_ppl_linear_expression
   (:cstring msg :ppl_linear_expression liex) :void
- #{
- if (flag_basilys_debug) 
-   {char*s=0; 
+ #{ if (flag_basilys_debug)   {char*s=0; 
     if ($liex) ppl_io_asprint_Linear_Expression(&s, $liex); 
     debugeprintf("debug_ppl_linear_expression %s @%p %s", 
 		 $msg, (void*)$liex, s); free(s);}
  }#)
 
 (defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
- #{
- if (flag_basilys_debug)
- {char*s=0; 
+ #{if (flag_basilys_debug) { char*s=0; 
   if ($cons) ppl_io_asprint_Constraint(&s, $cons); 
   debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
   free(s);}
  }#)
 
 (defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
-#{ if (flag_basilys_debug) { 
-     char*s = 0; 
+#{ if (flag_basilys_debug) {  char*s = 0; 
      debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, $poly);
-     if ($poly) 
-       ppl_io_asprint_Polyhedron(&s, $poly);
+     if ($poly) ppl_io_asprint_Polyhedron(&s, $poly);
      debugeprintf_raw("%s\n", s);
      free(s); } 
 }#)
@@ -1367,12 +1365,35 @@
 
 ;; debug_tree is ok even for nil trees
 (defprimitive debugtree (:cstring msg :tree tr) :void
-  #{
-  do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
+  #{ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
 		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
   if (flag_basilys_debug) debug_tree($tr);}while(0)
   }#
 )
+
+
+;; debug_edge is ok even for nil
+(defprimitive debugedge (:cstring msg :edge eg) :void
+  #{ do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
+  if (flag_basilys_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
+  fputc('\n',stderr); }
+ }while(0)  }#
+)
+
+;; the basic block source of an edge
+(defprimitive edge_src_bb (:edge eg) :basicblock
+#{ ($eg)?($eg->src):NULL }#)
+
+;; the basic block destination of an edge
+(defprimitive edge_dest_bb (:edge eg) :basicblock
+#{ ($eg)?($eg->dest):NULL }#)
+
+;; test if an edge is for a true value of a branch
+(defprimitive edge_for_true_value (:edge eg) :long
+#{ ($eg && $eg->flags & EDGE_TRUE_VALUE) }#)
+;; test if an edge is for a false value of a branch
+(defprimitive edge_for_false_value (:edge eg) :long
+#{ ($eg && $eg->flags & EDGE_FALSE_VALUE) }#)
 
 (defprimitive debugtreecodenum  (:cstring msg :long opcod) :void
   #{ debugeprintf("debugtreecodenum %s #%ld %s", $msg, 
@@ -1523,6 +1544,7 @@
  debug_ppl_linear_expression
  debug_ppl_polyhedron 
  debugbasicblock
+ debugedge
  debuggimple
  debuggimpleseq
  debugtree
@@ -1533,6 +1555,10 @@
  each_in_gimpleseq
  each_param_in_fundecl
  eachgimple_in_basicblock
+ edge_dest_bb
+ edge_for_false_value
+ edge_for_true_value 
+ edge_src_bb
  fetch_gdbmstate
  fetch_gdbmstate_constr
  foreach_basicblock_succ_edge
@@ -1643,7 +1669,7 @@
  tree_integer_type
  tree_parm_decl
  tree_ssa_name 
- tree_variable_decl 
+ tree_variable_decl
 )
 
 (export_class
