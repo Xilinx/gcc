@@ -1,4 +1,9 @@
 2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: added obj_num in discr_ppl_polyhedron.
+	* melt/ana-base.melt: added ppl_Polyhedron_add_constraint.
+	* melt/ana-simple.melt: use ppl_Polyhedron_add_constraint.
+
+2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	replaced all -fbasilys options by -fmelt
 	* doc/melt.texi: updated documentation for -fmelt
 	* basilys.c (do_initial_command)

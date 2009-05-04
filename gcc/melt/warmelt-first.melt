@@ -1352,6 +1352,7 @@
 
 ;;; the discriminant for PPL polyhedron
 (definstance discr_ppl_polyhedron class_discr
+  :obj_num OBMAG_SPECPPL_POLYHEDRON
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_PPL_POLYHEDRON")
   )

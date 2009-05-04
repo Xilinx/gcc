@@ -442,7 +442,7 @@
 	   (polyv (make_ppl_polyhedron_same discr_ppl_polyhedron poly))
 	   )
       (debug_msg polyv "sman_propagate_constraints_call polyv")
-      (compile_warning "probably filled the newabenv pplpoly" ())
+      (assert_msg "check polyv" polyv)
       (put_fields newabenv 
 		  :abenv_pplpoly polyv
 		  :abenv_vectrees (list_to_multiple pplvarslist))
@@ -462,6 +462,7 @@
 	 (:long rvix -1)		;right var index
 	 (polyv (get_field :abenv_pplpoly abenv))
 	 )
+    (debug_msg polyv "sman_add_cmp_constraint polyv")
 ;;; handle the left hand side lhs
     (match 
      lhs
@@ -520,15 +521,18 @@
     (cond
      ( (and (>=i lvix 0) (<i rvix 0)) ;left is variable, right is constant
        (let (
+	     (:ppl_polyhedron poly (ppl_polyhedron_content polyv))
 	     (:ppl_linear_expression liex (make_ppl_linear_expression))
 	     (:ppl_coefficient coefright (ppl_coefficient_from_tree rhs))
 	     (:ppl_coefficient coefm1 (ppl_coefficient_from_long -1)) 
 	     )
+	 (assert_msg "check poly" poly)
 	 (ppl_Linear_Expression_add_to_coefficient liex lvix coefm1)
 	 (ppl_Linear_Expression_add_to_inhomogeneous liex coefright)
 	 (let ( (:ppl_constraint newcons (make_ppl_constraint liex opprel)) )
 	   (debug_ppl_constraint "sman_add_cmp_constraint leftvar constraint" newcons)
-	   (insert_ppl_constraint_in_boxed_system newcons polyv)
+	   (ppl_Polyhedron_add_constraint poly newcons)
+	   (debug_ppl_polyhedron "sman_add_cmp_constraint updated polu" poly)
 	   (ppl_delete_Coefficient coefm1)
 	   (ppl_delete_Coefficient coefright)
 	   (ppl_delete_Linear_Expression liex)
@@ -580,7 +584,7 @@
   )
 
 ;;;;;;;;;;;;;;;;
-(defun smaninterp_gimple  (sman abenv :gimple g :basicblock bb)
+(defun smaninterp_gimple (sman abenv :gimple g :basicblock bb)
   (assert_msg "check sman" (is_a sman class_smallanalysis))
   (assert_msg "check abenv" (is_a abenv class_smallabstractenv))
   (debug_msg abenv "smaninterp_gimple abenv")
@@ -648,31 +652,28 @@
       (debugtree "smaninterp_gimple cond<= rhs" rhs)
       (debugtree "smaninterp_gimple cond<= truelab" truelab)
       (debugtree "smaninterp_gimple cond<= falselab" falselab)
-      (let (
-	    ;(closys (ppl_clone_constraint_system (get_field :abenv_pplconsys abenv))) 
+      (debug_msg abenv "smaninterp_gimple cond<= abenv before sman_add_cmp_constraint")
+      (sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
+      (debug_msg abenv "smaninterp_gimple cond<= abenv after sman_add_cmp_constraint")
+      (debugbasicblock "smaninterp_gimple cond<= bb" bb)
+      ;; find the true branch and interpret it
+      (let ( 
+	    (:ppl_polyhedron poly 
+			     (ppl_polyhedron_content (get_field :abenv_pplpoly abenv)))
 	    )
-	;(debug_msg closys "smaninterp_gimple cond<= closys")
-	(sman_add_cmp_constraint sman abenv lhs rhs "<=" ">=")
-	(debugbasicblock "smaninterp_gimple cond<= bb" bb)
-	;; find the true branch and interpret it
-	(let ( 
-	      (:ppl_polyhedron poly 
-			       (ppl_polyhedron_content (get_field :abenv_pplpoly abenv)))
-	       )
-	  (debug_ppl_polyhedron "smaninterp_gimple cond<= poly" poly)
-	  (if (ppl_Polyhedron_is_empty poly)
-	      (progn
-		(debug_msg () "smaninterp_gimple cond<= true branch impossible")
-	      )
+	(debug_ppl_polyhedron "smaninterp_gimple cond<= poly" poly)
+	(if (ppl_Polyhedron_is_empty poly)
 	    (progn
-	      (assert_msg "@$@unimplemented possible smaninterp_gimple cond<= true branch" ())
+	      (debug_msg () "smaninterp_gimple cond<= true branch impossible")
 	      )
+	  (progn
+	    (assert_msg "@$@unimplemented possible smaninterp_gimple cond<= true branch" ())
 	    )
-	  ;(ppl_delete_Polyhedron poly)
 	  )
-	(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
-	(compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
+					;(ppl_delete_Polyhedron poly)
 	)
+      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple cond<=" 15)
+      (compile_warning "@$@unimplemented smaninterp_gimple should interpret both branches of cond<=" ())
       (assert_msg "@$@unimplemented smaninterp_gimple cond<=" ())
       )
    ;; handle conditional <

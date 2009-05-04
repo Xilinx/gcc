@@ -1027,6 +1027,11 @@
 #{ if (ppl_Constraint_System_insert_Constraint ($consys, $cons)) 
      fatal_error("ppl_Constraint_System_insert_Constraint failed"); }#)
 
+(defprimitive ppl_Polyhedron_add_constraint 
+(:ppl_polyhedron poly :ppl_constraint cons) :void
+#{ if (ppl_Polyhedron_add_constraint(($poly), ($cons))) 
+     fatal_error("ppl_Polyhedron_add_constraint failed"); }#)
+
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
 #{ 
@@ -1364,7 +1369,7 @@
 (defprimitive debugtree (:cstring msg :tree tr) :void
   #{
   do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
-		       ($tr)?tree_code_name[TREE_CODE($tr)]:"*niltree*");
+		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
   if (flag_basilys_debug) debug_tree($tr);}while(0)
   }#
 )
@@ -1604,6 +1609,7 @@
  ppl_Linear_Expression_add_to_coefficient
  ppl_Linear_Expression_add_to_inhomogeneous
  ppl_NNC_Polyhedron_from_Constraint_System  
+ ppl_Polyhedron_add_constraint
  ppl_Polyhedron_is_empty 
  ppl_clone_constraint_system
  ppl_coefficient_content 
@@ -1618,7 +1624,7 @@
  ppl_new_empty_constraint_system
  ppl_new_unsatisfiable_constraint_system 
  ppl_polyhedron_content
- ppl_ppstrbuf 
+ ppl_ppstrbuf  
  ppstrbuf_basicblock 
  ppstrbuf_gimple
  ppstrbuf_gimple_seq
