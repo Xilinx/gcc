@@ -1146,10 +1146,14 @@ print_version (FILE *file, const char *indent)
 	   indent, __VERSION__);
 
   /* We need to stringify the GMP macro values.  Ugh, gmp_version has
-     two string formats, "i.j.k" and "i.j" when k is zero.  */
+     two string formats, "i.j.k" and "i.j" when k is zero.  As of
+     gmp-4.3.0, GMP always uses the 3 number format.  */
 #define GCC_GMP_STRINGIFY_VERSION3(X) #X
 #define GCC_GMP_STRINGIFY_VERSION2(X) GCC_GMP_STRINGIFY_VERSION3(X)
-#if __GNU_MP_VERSION_PATCHLEVEL == 0
+#define GCC_GMP_VERSION_NUM(X,Y,Z) (((X) << 16L) | ((Y) << 8) | (Z))
+#define GCC_GMP_VERSION \
+  GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,0) && __GNU_MP_VERSION_PATCHLEVEL == 0
 #define GCC_GMP_STRINGIFY_VERSION GCC_GMP_STRINGIFY_VERSION2(__GNU_MP_VERSION) "." \
   GCC_GMP_STRINGIFY_VERSION2(__GNU_MP_VERSION_MINOR)
 #else
@@ -1712,6 +1716,10 @@ process_options (void)
     warn_unused_variable = warn_unused;
   if (warn_unused_value == -1)
     warn_unused_value = warn_unused;
+
+  /* This replaces set_Wextra.  */
+  if (warn_uninitialized == -1)
+    warn_uninitialized = extra_warnings;
 
   /* Allow the front end to perform consistency checks and do further
      initialization based on the command line options.  This hook also

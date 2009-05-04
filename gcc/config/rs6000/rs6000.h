@@ -377,16 +377,6 @@ enum group_termination
     previous_group
   };
 
-/* Support for a compile-time default CPU, et cetera.  The rules are:
-   --with-cpu is ignored if -mcpu is specified.
-   --with-tune is ignored if -mtune is specified.
-   --with-float is ignored if -mhard-float or -msoft-float are
-    specified.  */
-#define OPTION_DEFAULT_SPECS \
-  {"cpu", "%{!mcpu=*:-mcpu=%(VALUE)}" }, \
-  {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
-  {"float", "%{!msoft-float:%{!mhard-float:-m%(VALUE)-float}}" }
-
 /* rs6000_select[0] is reserved for the default cpu defined via --with-cpu */
 struct rs6000_cpu_select
 {
@@ -1036,12 +1026,6 @@ extern int rs6000_xilinx_fpu;
 
 /* Base register for access to local variables of the function.  */
 #define FRAME_POINTER_REGNUM 113
-
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 0
 
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM 67

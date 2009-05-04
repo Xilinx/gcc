@@ -3984,6 +3984,17 @@ package body Exp_Ch4 is
                  Name => New_Occurrence_Of (Cnn, Sloc (Elsex)),
                  Expression => Relocate_Node (Elsex))));
 
+         --  Move the SLOC of the parent If statement to the newly created
+         --  one and change it to the SLOC of the expression which, after
+         --  expansion, will correspond to what is being evaluated.
+
+         if Present (Parent (N))
+           and then Nkind (Parent (N)) = N_If_Statement
+         then
+            Set_Sloc (New_If, Sloc (Parent (N)));
+            Set_Sloc (Parent (N), Loc);
+         end if;
+
          Set_Assignment_OK (Name (First (Then_Statements (New_If))));
          Set_Assignment_OK (Name (First (Else_Statements (New_If))));
 

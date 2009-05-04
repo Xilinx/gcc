@@ -79,16 +79,18 @@ package body Rtsfind is
    --  the latter case it is critical to make a call to Set_RTU_Loaded to
    --  ensure that the entry in this table reflects the load.
 
-   --  Withed is True if an implicit with_clause has been added from some unit
-   --  other than the main unit to this unit. Withed_By_Main is the same,
-   --  except from the main unit.
+   --  A unit retrieved through rtsfind  may end up in the context of several
+   --  other units, in addition to the main unit. These additional with_clauses
+   --  are needed to generate a proper traversal order for Inspector. To
+   --  minimize somewhat the redundancy created by numerous calls to rtsfind
+   --  from different units, we keep track of the list of implicit with_clauses
+   --  already created for the current loaded unit.
 
    type RT_Unit_Table_Record is record
-      Entity         : Entity_Id;
-      Uname          : Unit_Name_Type;
-      Unum           : Unit_Number_Type;
-      Withed         : Boolean;
-      Withed_By_Main : Boolean;
+      Entity               : Entity_Id;
+      Uname                : Unit_Name_Type;
+      First_Implicit_With  : Node_Id;
+      Unum                 : Unit_Number_Type;
    end record;
 
    RT_Unit_Table : array (RTU_Id) of RT_Unit_Table_Record;
@@ -118,12 +120,12 @@ package body Rtsfind is
    --  When a unit is implicitly loaded as a result of a call to RTE, it is
    --  necessary to create one or two implicit with_clauses. We add such
    --  with_clauses to the extended main unit if needed, and also to whatever
-   --  unit first needs them, which is not necessarily the main unit. The
-   --  former ensures that the object is correctly loaded by the binder. The
-   --  latter is necessary for SofCheck Inspector.
+   --  unit needs them, which is not necessarily the main unit. The former
+   --  ensures that the object is correctly loaded by the binder. The latter
+   --  is necessary for SofCheck Inspector.
 
-   --  The flags Withed and Withed_By_Main in the unit table record are used to
-   --  avoid duplicates.
+   --  The field First_Implicit_With in the unit table record are used to
+   --  avoid creating duplicate with_clauses.
 
    -----------------------
    -- Local Subprograms --
@@ -668,9 +670,8 @@ package body Rtsfind is
       --  Otherwise we need to load the unit, First build unit name
       --  from the enumeration literal name in type RTU_Id.
 
-      U.Uname          := Get_Unit_Name (U_Id);
-      U.Withed         := False;
-      U.Withed_By_Main := False;
+      U.Uname                := Get_Unit_Name (U_Id);
+      U. First_Implicit_With := Empty;
 
       --  Now do the load call, note that setting Error_Node to Empty is
       --  a signal to Load_Unit that we will regard a failure to find the
@@ -798,9 +799,6 @@ package body Rtsfind is
    --------------------
 
    procedure Maybe_Add_With (U : in out RT_Unit_Table_Record) is
-      Is_Main : constant Boolean :=
-                  In_Extended_Main_Code_Unit (Cunit_Entity (Current_Sem_Unit));
-
    begin
       --  We do not need to generate a with_clause for a call issued from
       --  RTE_Component_Available. However, for Inspector, we need these
@@ -818,42 +816,37 @@ package body Rtsfind is
          return;
       end if;
 
-      --  If the current unit is the main one, add the with_clause unless it's
-      --  already been done.
-
-      if Is_Main then
-         if U.Withed_By_Main then
-            return;
-         else
-            U.Withed_By_Main := True;
-         end if;
-
-      --  If the current unit is not the main one, add the with_clause unless
-      --  it's already been done for some non-main unit.
-
-      else
-         if U.Withed then
-            return;
-         else
-            U.Withed := True;
-         end if;
-      end if;
-
-      --  Here if we've decided to add the with_clause
+      --  Add the with_clause, if not already in the context of the
+      --  current compilation unit.
 
       declare
          LibUnit : constant Node_Id := Unit (Cunit (U.Unum));
-         Withn   : constant Node_Id :=
-                     Make_With_Clause (Standard_Location,
-                       Name =>
-                         Make_Unit_Name
-                           (U, Defining_Unit_Name (Specification (LibUnit))));
+         Clause  : Node_Id;
+         Withn   : Node_Id;
 
       begin
-         Set_Library_Unit       (Withn, Cunit (U.Unum));
-         Set_Corresponding_Spec (Withn, U.Entity);
-         Set_First_Name         (Withn, True);
-         Set_Implicit_With      (Withn, True);
+         Clause := U.First_Implicit_With;
+         while Present (Clause) loop
+            if Parent (Clause) =  Cunit (Current_Sem_Unit) then
+               return;
+            end if;
+
+            Clause := Next_Implicit_With (Clause);
+         end loop;
+
+         Withn :=
+            Make_With_Clause (Standard_Location,
+              Name =>
+                Make_Unit_Name
+                  (U, Defining_Unit_Name (Specification (LibUnit))));
+
+         Set_Library_Unit        (Withn, Cunit (U.Unum));
+         Set_Corresponding_Spec  (Withn, U.Entity);
+         Set_First_Name          (Withn, True);
+         Set_Implicit_With       (Withn, True);
+         Set_Next_Implicit_With  (Withn, U.First_Implicit_With);
+
+         U.First_Implicit_With := Withn;
 
          Mark_Rewrite_Insertion (Withn);
          Append (Withn, Context_Items (Cunit (Current_Sem_Unit)));
@@ -1342,14 +1335,14 @@ package body Rtsfind is
                --  The RT_Unit_Table entry that may need updating
 
             begin
-               --  If entry is not set, set it now
+               --  If entry is not set, set it now, and indicate that it
+               --  was loaded through an explicit context clause..
 
                if No (U.Entity) then
-                  U := (Entity         => E,
-                        Uname          => Get_Unit_Name (U_Id),
-                        Unum           => Unum,
-                        Withed         => False,
-                        Withed_By_Main => False);
+                  U := (Entity               => E,
+                        Uname                => Get_Unit_Name (U_Id),
+                        Unum                 => Unum,
+                        First_Implicit_With  => Empty);
                end if;
 
                return;
@@ -1396,7 +1389,7 @@ package body Rtsfind is
 
    begin
       --  Nothing to do if name is not an identifier or a selected component
-      --  whose selector_name is not an identifier.
+      --  whose selector_name is an identifier.
 
       if Nkind (Nam) = N_Identifier then
          Chrs := Chars (Nam);
@@ -1445,11 +1438,43 @@ package body Rtsfind is
                   goto Continue;
                end if;
 
-               Load_RTU
-                 (To_Load,
-                  Use_Setting => In_Use (Cunit_Entity (U)));
-               Set_Is_Visible_Child_Unit
-                 (RT_Unit_Table (To_Load).Entity);
+               Load_RTU (To_Load, Use_Setting => In_Use (Cunit_Entity (U)));
+               Set_Is_Visible_Child_Unit (RT_Unit_Table (To_Load).Entity);
+
+               --  Prevent creation of an implicit 'with' from (for example)
+               --  Ada.Wide_Text_IO.Integer_IO to Ada.Text_IO.Integer_IO,
+               --  because these could create cycles. First check whether the
+               --  simple names match ("integer_io" = "integer_io"), and then
+               --  check whether the parent is indeed one of the
+               --  [[Wide_]Wide_]Text_IO packages.
+
+               if Chrs = Chars (Cunit_Entity (Current_Sem_Unit)) then
+                  declare
+                     Parent_Name : constant Unit_Name_Type :=
+                                     Get_Parent_Spec_Name
+                                       (Unit_Name (Current_Sem_Unit));
+
+                  begin
+                     if Parent_Name /= No_Unit_Name then
+                        Get_Name_String (Parent_Name);
+
+                        declare
+                           P : String renames Name_Buffer (1 .. Name_Len);
+                        begin
+                           if P = "ada.text_io%s"      or else
+                              P = "ada.wide_text_io%s" or else
+                              P = "ada.wide_wide_text_io%s"
+                           then
+                              goto Continue;
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end if;
+
+               --  Add an implicit with clause from the current unit to the
+               --  [[Wide_]Wide_]Text_IO child (if necessary).
+
                Maybe_Add_With (RT_Unit_Table (To_Load));
             end if;
 

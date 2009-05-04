@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,6 +35,7 @@ with Exp_Ch3;  use Exp_Ch3;
 with Exp_Ch7;  use Exp_Ch7;
 with Exp_Ch9;  use Exp_Ch9;
 with Exp_Tss;  use Exp_Tss;
+with Fname;    use Fname;
 with Freeze;   use Freeze;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
@@ -506,7 +507,7 @@ package body Exp_Aggr is
    --    9. There cannot be any discriminated record components, since the
    --       back end cannot handle this complex case.
 
-   --   10. No controlled actions need to be generated for components.
+   --   10. No controlled actions need to be generated for components
 
    function Backend_Processing_Possible (N : Node_Id) return Boolean is
       Typ : constant Entity_Id := Etype (N);
@@ -2774,10 +2775,24 @@ package body Exp_Aggr is
       while Present (Comp) loop
          Selector := Entity (First (Choices (Comp)));
 
+         --  C++ constructors
+
+         if Is_CPP_Constructor_Call (Expression (Comp)) then
+            Append_List_To (L,
+              Build_Initialization_Call (Loc,
+                Id_Ref => Make_Selected_Component (Loc,
+                            Prefix => New_Copy_Tree (Target),
+                            Selector_Name => New_Occurrence_Of (Selector,
+                                                                   Loc)),
+                Typ    => Etype (Selector),
+                Enclos_Type => Typ,
+                With_Default_Init => True,
+                Constructor_Ref => Expression (Comp)));
+
          --  Ada 2005 (AI-287): For each default-initialized component generate
          --  a call to the corresponding IP subprogram if available.
 
-         if Box_Present (Comp)
+         elsif Box_Present (Comp)
            and then Has_Non_Null_Base_Init_Proc (Etype (Selector))
          then
             if Ekind (Selector) /= E_Discriminant then
@@ -2821,12 +2836,9 @@ package body Exp_Aggr is
                 Enclos_Type => Typ,
                 With_Default_Init => True));
 
-            goto Next_Comp;
-         end if;
-
          --  Prepare for component assignment
 
-         if Ekind (Selector) /= E_Discriminant
+         elsif Ekind (Selector) /= E_Discriminant
            or else Nkind (N) = N_Extension_Aggregate
          then
             --  All the discriminants have now been assigned
@@ -3105,8 +3117,6 @@ package body Exp_Aggr is
                end if;
             end;
          end if;
-
-         <<Next_Comp>>
 
          Next (Comp);
       end loop;
@@ -3735,24 +3745,43 @@ package body Exp_Aggr is
                            --  Check for maximum others replication. Note that
                            --  we skip this test if either of the restrictions
                            --  No_Elaboration_Code or No_Implicit_Loops is
-                           --  active, or if this is a preelaborable unit.
+                           --  active, if this is a preelaborable unit or a
+                           --  predefined unit. This ensures that predefined
+                           --  units get the same level of constant folding in
+                           --  Ada 95 and Ada 05, where their categorization
+                           --  has changed.
 
                            declare
                               P : constant Entity_Id :=
                                     Cunit_Entity (Current_Sem_Unit);
 
                            begin
+                              --  Check if duplication OK and if so continue
+                              --  processing.
+
                               if Restriction_Active (No_Elaboration_Code)
                                 or else Restriction_Active (No_Implicit_Loops)
                                 or else Is_Preelaborated (P)
                                 or else (Ekind (P) = E_Package_Body
                                           and then
                                             Is_Preelaborated (Spec_Entity (P)))
+                                or else
+                                  Is_Predefined_File_Name
+                                    (Unit_File_Name (Get_Source_Unit (P)))
                               then
                                  null;
 
+                              --  If duplication not OK, then we return False
+                              --  if the replication count is too high
+
                               elsif Rep_Count > Max_Others_Replicate then
                                  return False;
+
+                              --  Continue on if duplication not OK, but the
+                              --  replication count is not excessive.
+
+                              else
+                                 null;
                               end if;
                            end;
                         end if;
@@ -4989,7 +5018,7 @@ package body Exp_Aggr is
 
       --  STEP 4
 
-      --  Look if in place aggregate expansion is possible.
+      --  Look if in place aggregate expansion is possible
 
       --  For object declarations we build the aggregate in place, unless
       --  the array is bit-packed or the component is controlled.

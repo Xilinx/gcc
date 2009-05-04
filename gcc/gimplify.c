@@ -1218,9 +1218,14 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
 
       /* Preliminarily mark non-addressed complex variables as eligible
 	 for promotion to gimple registers.  We'll transform their uses
-	 as we find them.  */
-      if ((TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
-	   || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+	 as we find them.
+	 We exclude complex types if not optimizing because they can be
+	 subject to partial stores in GNU C by means of the __real__ and
+	 __imag__ operators and we cannot promote them to total stores
+	 (see gimplify_modify_expr_complex_part).  */
+      if (optimize
+	  && (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
 	  && !TREE_THIS_VOLATILE (t)
 	  && (TREE_CODE (t) == VAR_DECL && !DECL_HARD_REGISTER (t))
 	  && !needs_to_live_in_memory (t))
@@ -7184,7 +7189,12 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	/* The postqueue might change the value of the expression between
 	   the initialization and use of the temporary, so we can't use a
 	   formal temp.  FIXME do we care?  */
-	*expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
+	{
+	  *expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
+	  if (TREE_CODE (TREE_TYPE (*expr_p)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (*expr_p)) == VECTOR_TYPE)
+	    DECL_GIMPLE_REG_P (*expr_p) = 1;
+	}
       else
 	*expr_p = get_formal_tmp_var (*expr_p, pre_p);
     }

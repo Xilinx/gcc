@@ -975,6 +975,16 @@ hppa*64*-*-hpux11*)
 		;;
 	esac
 	gas=yes
+	case ${target} in
+	  *-*-hpux11.[01]*)
+		use_gcc_stdint=provide
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	  *-*-hpux11.[23]*)
+		use_gcc_stdint=wrap
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	esac
 	;;
 hppa[12]*-*-hpux11*)
 	case ${target} in
@@ -1005,6 +1015,16 @@ hppa[12]*-*-hpux11*)
 	esac
 	use_collect2=yes
 	gas=yes
+	case ${target} in
+	  *-*-hpux11.[01]*)
+		use_gcc_stdint=provide
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	  *-*-hpux11.[23]*)
+		use_gcc_stdint=wrap
+		tm_file="${tm_file} hpux-stdint.h"
+		;;
+	esac
 	;;
 i[34567]86-*-darwin*)
 	need_64bit_hwint=yes
@@ -1360,6 +1380,8 @@ ia64*-*-hpux*)
 	c_target_objs="ia64-c.o"
 	cxx_target_objs="ia64-c.o"
 	extra_options="${extra_options} ia64/ilp32.opt"
+	use_gcc_stdint=wrap
+	tm_file="${tm_file} hpux-stdint.h"
 	;;
 iq2000*-*-elf*)
         tm_file="svr4.h elfos.h newlib-stdint.h iq2000/iq2000.h"
@@ -2446,6 +2468,8 @@ i[34567]86-*-linux* | x86_64-*-linux*)
 i[34567]86-*-* | x86_64-*-*)
 	tmake_file="${tmake_file} i386/t-gmm_malloc i386/t-i386"
 	;;
+powerpc*-*-* | rs6000-*-*)
+	tm_file="${tm_file} rs6000/option-defaults.h"
 esac
 
 # Support for --with-cpu and related options (and a few unrelated options,
@@ -2908,12 +2932,20 @@ case "${target}" in
 		;;
 
 	powerpc*-*-* | rs6000-*-*)
-		supported_defaults="cpu float tune"
+		supported_defaults="cpu cpu_32 cpu_64 float tune tune_32 tune_64"
 
-		for which in cpu tune; do
+		for which in cpu cpu_32 cpu_64 tune tune_32 tune_64; do
 			eval "val=\$with_$which"
 			case ${val} in
 			default32 | default64)
+				case $which in
+				cpu | tune)
+					;;
+				*)
+					echo "$val only valid for --with-cpu and --with-tune." 1>&2
+					exit 1
+					;;
+				esac
 				with_which="with_$which"
 				eval $with_which=
 				;;

@@ -1854,10 +1854,6 @@ struct GTY(()) tree_exp {
 #define SSA_NAME_PTR_INFO(N) \
     SSA_NAME_CHECK (N)->ssa_name.ptr_info
 
-/* Get the value of this SSA_NAME, if available.  */
-#define SSA_NAME_VALUE(N) \
-   SSA_NAME_CHECK (N)->ssa_name.value_handle
-
 #ifndef _TREE_FLOW_H
 struct ptr_info_def;
 #endif
@@ -1895,13 +1891,6 @@ struct GTY(()) tree_ssa_name {
 
   /* Pointer attributes used for alias analysis.  */
   struct ptr_info_def *ptr_info;
-
-  /* Value for SSA name used by various passes.
-
-     Right now only invariants are allowed to persist beyond a pass in
-     this field; in the future we will allow VALUE_HANDLEs to persist
-     as well.  */
-  tree value_handle;
 
   /* Immediate uses list for this SSA_NAME.  */
   struct ssa_use_operand_d imm_uses;
@@ -2208,8 +2197,8 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define SET_TYPE_VECTOR_SUBPARTS(VECTOR_TYPE, X) \
   (VECTOR_TYPE_CHECK (VECTOR_TYPE)->type.precision = exact_log2 (X))
 
-/* Nonzero in an IDENTIFIER_NODE if the name is a local alias, whose
-   uses are to be substituted for uses of the TREE_CHAINed identifier.  */
+/* Nonzero in a VECTOR_TYPE if the frontends should not emit warnings
+   about missing conversions to other vector types of the same size.  */
 #define TYPE_VECTOR_OPAQUE(NODE) \
   (VECTOR_TYPE_CHECK (NODE)->base.deprecated_flag)
 

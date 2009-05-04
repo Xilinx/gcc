@@ -99,12 +99,6 @@ package Prj is
    --  can ignore such errors when they don't need to build directly. Calling
    --  Set_Mode will reset this variable, default is for Ada_Only.
 
-   function In_Configuration return Boolean;
-   pragma Inline (In_Configuration);
-
-   procedure Set_In_Configuration (Value : Boolean);
-   pragma Inline (Set_In_Configuration);
-
    All_Packages : constant String_List_Access;
    --  Default value of parameter Packages of procedures Parse, in Prj.Pars and
    --  Prj.Part, indicating that all packages should be checked.
@@ -160,8 +154,9 @@ package Prj is
 
    No_Path_Information : constant Path_Information := (No_Path, No_Path);
 
-   type Project_Id is new Nat;
-   No_Project : constant Project_Id := 0;
+   type Project_Data;
+   type Project_Id is access all Project_Data;
+   No_Project : constant Project_Id := null;
    --  Id of a Project File
 
    type String_List_Id is new Nat;
@@ -323,10 +318,8 @@ package Prj is
    function Hash (Name : Name_Id)        return Header_Num;
    function Hash (Name : File_Name_Type) return Header_Num;
    function Hash (Name : Path_Name_Type) return Header_Num;
-   --  Used for computing hash values for names put into above hash table
-
    function Hash (Project : Project_Id) return Header_Num;
-   --  Used for hash tables where Project_Id is the Key
+   --  Used for computing hash values for names put into above hash table
 
    type Language_Kind is (File_Based, Unit_Based);
    --  Type for the kind of language. All languages are file based, except Ada
@@ -399,7 +392,7 @@ package Prj is
                             Body_Suffix     => No_File);
 
    type Source_Data;
-   type Source_Id is access Source_Data;
+   type Source_Id is access all Source_Data;
 
    No_Source : constant Source_Id := null;
 
@@ -605,7 +598,7 @@ package Prj is
                          Next          => No_Language_Index);
 
    type Language_List_Element;
-   type Language_List is access Language_List_Element;
+   type Language_List is access all Language_List_Element;
    type Language_List_Element is record
       Language : Language_Ptr := No_Language_Index;
       Next     : Language_List;
@@ -896,8 +889,7 @@ package Prj is
       Suffix   : File_Name_Type);
 
    function Get_Object_Directory
-     (In_Tree             : Project_Tree_Ref;
-      Project             : Project_Id;
+     (Project             : Project_Id;
       Including_Libraries : Boolean;
       Only_If_Ada         : Boolean := False) return Path_Name_Type;
    --  Return the object directory to use for the project. This depends on
@@ -908,13 +900,12 @@ package Prj is
    --  If Only_If_Ada is True, then No_Name will be returned when the project
    --  doesn't Ada sources.
 
-   procedure Compute_All_Imported_Projects
-     (Project : Project_Id; In_Tree : Project_Tree_Ref);
+   procedure Compute_All_Imported_Projects (Project : Project_Id);
    --  Compute, the list of the projects imported directly or indirectly by
    --  project Project. The result is stored in Project.All_Imported_Projects
 
    function Ultimate_Extending_Project_Of
-     (Proj : Project_Id; In_Tree : Project_Tree_Ref) return Project_Id;
+     (Proj : Project_Id) return Project_Id;
    --  Returns the ultimate extending project of project Proj. If project Proj
    --  is not extended, returns Proj.
 
@@ -931,12 +922,17 @@ package Prj is
    --  not considering Specs and Bodies.
 
    type Project_List_Element;
-   type Project_List is access Project_List_Element;
+   type Project_List is access all Project_List_Element;
    type Project_List_Element is record
       Project : Project_Id   := No_Project;
       Next    : Project_List := null;
    end record;
    --  A list of projects
+
+   procedure Free_List
+     (List         : in out Project_List;
+      Free_Project : Boolean);
+   --  Free the list of projects, if Free_Project, each project is also freed
 
    type Response_File_Format is
      (None,
@@ -1119,7 +1115,8 @@ package Prj is
       Config : Project_Configuration;
 
       Path : Path_Information := No_Path_Information;
-      --  The path name of the project file
+      --  The path name of the project file. This include base name of the
+      --  project file.
 
       Virtual : Boolean := False;
       --  True for virtual extending projects
@@ -1317,32 +1314,23 @@ package Prj is
 
    function Is_Extending
      (Extending : Project_Id;
-      Extended  : Project_Id;
-      In_Tree   : Project_Tree_Ref) return Boolean;
-   --  ??? needs comment
+      Extended  : Project_Id) return Boolean;
+   --  Return True if Extending is extending the Extended project
 
    function Is_A_Language
-     (Data          : Project_Data;
+     (Project       : Project_Id;
       Language_Name : Name_Id) return Boolean;
    --  Return True when Language_Name (which must be lower case) is one of the
    --  languages used for the project.
 
-   function Has_Ada_Sources (Data : Project_Data) return Boolean;
+   function Has_Ada_Sources (Data : Project_Id) return Boolean;
    --  Return True if the project has Ada sources
 
-   function Has_Foreign_Sources (Data : Project_Data) return Boolean;
+   function Has_Foreign_Sources (Data : Project_Id) return Boolean;
    --  Return True if the project has foreign sources
 
    Project_Error : exception;
    --  Raised by some subprograms in Prj.Attr
-
-   package Project_Table is new GNAT.Dynamic_Tables (
-     Table_Component_Type => Project_Data,
-     Table_Index_Type     => Project_Id,
-     Table_Low_Bound      => 1,
-     Table_Initial        => 100,
-     Table_Increment      => 100);
-   --  The set of all project files
 
    type Spec_Or_Body is (Specification, Body_Part);
 
@@ -1427,7 +1415,7 @@ package Prj is
          Array_Elements    : Array_Element_Table.Instance;
          Arrays            : Array_Table.Instance;
          Packages          : Package_Table.Instance;
-         Projects          : Project_Table.Instance;
+         Projects          : Project_List;
          Units             : Unit_Table.Instance;
          Units_HT          : Units_Htable.Instance;
          Source_Paths_HT   : Source_Paths_Htable.Instance;
@@ -1486,7 +1474,6 @@ package Prj is
          With_State : in out State);
    procedure For_Every_Project_Imported
      (By             : Project_Id;
-      In_Tree        : Project_Tree_Ref;
       With_State     : in out State;
       Imported_First : Boolean := False);
    --  Call Action for each project imported directly or indirectly by project
@@ -1560,7 +1547,7 @@ private
    type Source_Iterator is record
       In_Tree : Project_Tree_Ref;
 
-      Project      : Project_Id;
+      Project      : Project_List;
       All_Projects : Boolean;
       --  Current project and whether we should move on to the next
 
