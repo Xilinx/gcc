@@ -1,4 +1,4 @@
-@c Copyright (c) 2008 Free Software Foundation, Inc.
+@c Copyright (c) 2008,2009 Free Software Foundation, Inc.
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -150,29 +150,29 @@ Note that currently MELT is only compiled on Linux machines.
 Without any MELT specific program flags, the MELT variant of gcc
 behave as the trunk. So to get or use MELT features, you need to pass
 some special flags. Most of these flags are starting with
-@code{-fbasilys}. They for the middle-end of GCC so are common for
+@code{-fmelt}. They for the middle-end of GCC so are common for
 every source language (ie @code{gcc}, @code{g++} @dots{} commands) and
 target.
 
 MELT is usually invoked while compiling a (C, C++, @dots{}) source file
 but may occasionnally be invoked without compiling any source input to
 perform tasks which are not related to a particular GCC input source
-file. In particular, the translation of a MELT file @code{foo.bysl}
+file. In particular, the translation of a MELT file @code{foo.melt}
 into C code @code{foo.c} is done with a special invocation like
-@code{gcc -fbasilys=translatefile -fbasilys-arg=foo.bysl
--fbasilys-secondarg=foo.c} (possibly with other options like some
-appropriate @code{-fbasilys-init=}). It is possible but deprecated to
-invoke with @code{-fbasilys=compilefile} instead of
-@code{-fbasilys=translatefile}. In other words, the MELT translator to
+@code{gcc -fmelt=translatefile -fmelt-arg=foo.melt
+-fmelt-secondarg=foo.c} (possibly with other options like some
+appropriate @code{-fmelt-init=}). It is possible but deprecated to
+invoke with @code{-fmelt=compilefile} instead of
+@code{-fmelt=translatefile}. In other words, the MELT translator to
 C @emph{is not} a GCC front-end, like e.g. @code{g++} is a C++
 front-end of GCC.
 
 The table below lists all MELT specific options, in alphabetical order.
 
 @table @gcctabopt
-@item -fbasilys=
-@gccoptlist{-fbasilys=}
-@opindex fbasilys
+@item -fmelt=
+@gccoptlist{-fmelt=}
+@opindex fmelt
 This flag is required for every MELT enabled compilation. If it is not
 given, no MELT specific processing is done.  If given, this gives the
 command to be executed before any MELT passes. It uses the
@@ -182,29 +182,29 @@ execute the command. If this application returns nil, no GCC
 compilation occur (i.e. no @code{*.c} or @code{*.cc} etc@dots{} source
 file is read). Hence, some commands may be used for their
 side-effects. In particular, the compilation of MELT lisp source file
-@code{*.bysl} into C code @code{*.c} is done this way.
+@code{*.melt} into C code @code{*.c} is done this way.
 
-@item -fbasilys-arg=
-@gccoptlist{-fbasilys-arg=}
-@opindex fbasilys-arg=
+@item -fmelt-arg=
+@gccoptlist{-fmelt-arg=}
+@opindex fmelt-arg=
 This gives the first argument string to MELT. It is incompatible with
-the @code{-fbasilys-arglist=} option.
+the @code{-fmelt-arglist=} option.
 
-@item -fbasilys-arglist=
-@gccoptlist{-fbasilys-arglist=}
-@opindex fbasilys-arglist=
+@item -fmelt-arglist=
+@gccoptlist{-fmelt-arglist=}
+@opindex fmelt-arglist=
 This gives the first argument list of strings to MELT. It is
-incompatible with the @code{-fbasilys-arg=} option. The string program
+incompatible with the @code{-fmelt-arg=} option. The string program
 argument is split into a list of strings using the comma
-separator. For example, @code{-fbasilys-arglist=1,BB,3} makes a
+separator. For example, @code{-fmelt-arglist=1,BB,3} makes a
 three-element list argument with first string @code{1}, second string
 @code{BB} and third string @code{3}. There is no way to give a
 string subargument containing a comma.
 
 
-@item -fbasilys-compile-script=
-@gccoptlist{-fbasilys-compile-script=}
-@opindex fbasilys-compile-script=
+@item -fmelt-compile-script=
+@gccoptlist{-fmelt-compile-script=}
+@opindex fmelt-compile-script=
 This sets the compile script (default is @code{melt-compile-script}
 somewhere inside GCC files) used to compile MELT generated C code into
 dynamically loaded stuff. The script is usually invoked by GCC with
@@ -215,60 +215,60 @@ addition of a routine for each MELT function, a very big
 initialization routine), so it is recommended to avoid compiling these
 generated files with @code{-O3}.
 
-@item -fbasilys-debug
-@gccoptlist{-fbasilys-debug}
-@opindex fbasilys-debug
+@item -fmelt-debug
+@gccoptlist{-fmelt-debug}
+@opindex fmelt-debug
 This flag has no argument and asks for lot of debugging output. It is
 only useful to debug MELT and is unrelated to the @code{-g} flag
 asking GCC to output debug information.
 
-@item -fbasilys-debugskip=
-@gccoptlist{-fbasilys-debugskip=}
-@opindex fbasilys-debugskip=
-This flag (only useful with @code{-fbasilys-debug}) has an integer
-argument. When @code{-fbasilys-debug} is given with
-@code{-fbasilys-debugskip=1000} the first thousand debug messages are
+@item -fmelt-debugskip=
+@gccoptlist{-fmelt-debugskip=}
+@opindex fmelt-debugskip=
+This flag (only useful with @code{-fmelt-debug}) has an integer
+argument. When @code{-fmelt-debug} is given with
+@code{-fmelt-debugskip=1000} the first thousand debug messages are
 skipped, so are not printed.
 
-@item -fbasilys-gensrcdir=
-@gccoptlist{-fbasilys-gensrcdir=}
-@opindex fbasilys-gensrcdir=
+@item -fmelt-gensrcdir=
+@gccoptlist{-fmelt-gensrcdir=}
+@opindex fmelt-gensrcdir=
 This flag sets the directory containing MELT generated C files.
 
-@item -fbasilys-gdbmstate=
-@gccoptlist{-fbasilys-gdbmstate=}
-@opindex fbasilys-gdbmstate=
+@item -fmelt-gdbmstate=
+@gccoptlist{-fmelt-gdbmstate=}
+@opindex fmelt-gdbmstate=
 This flag sets the GDBM indexed file containing global state. It
 should always be specified when needed, because there is no default.
 
-@item -fbasilys-init=
-@gccoptlist{-fbasilys-init=}
-@opindex fbasilys-init=
+@item -fmelt-init=
+@gccoptlist{-fmelt-init=}
+@opindex fmelt-init=
 This flag sets the initial MELT modules. They are separated by
-semi-colons or (on Unix only) colons. So @code{-fbasilys-init=foo:bar}
-or @code{'-fbasilys-init=foo;bar'} (quotes are useful for the shell
+semi-colons or (on Unix only) colons. So @code{-fmelt-init=foo:bar}
+or @code{'-fmelt-init=foo;bar'} (quotes are useful for the shell
 running GCC) load first the @code{foo} module and then the @code{bar}
 module. A module starting with an at sign @code{@@} is handled as a
 module list file. The @code{.modlis} extension is added, and then a
 file is seeked by that name. This file is read line by line (with
 empty or blank lines skipped, and comment lines starting with an hash
 @code{#} skipped). Each line is the name of a module do be load in
-sequence. For example, @code{-fbasilys-init=@@mylist:bar} with a file
+sequence. For example, @code{-fmelt-init=@@mylist:bar} with a file
 @file{mylist.modlis} containing
 @example
 # file mylist.modlis ; just a comment
 alpha
 beta
 @end example
-would have the same effect as @code{-fbasilys-init=alpha:beta:bar}.
+would have the same effect as @code{-fmelt-init=alpha:beta:bar}.
 Notice that modules are seeked in several directories.  There is a
 default module list called @file{melt-default-modules.modlis} so the
 default value of this flag is
-@code{-fbasilys-init=@@melt-default-modules}.
+@code{-fmelt-init=@@melt-default-modules}.
 
-@item -fbasilys-tempdir=
-@gccoptlist{-fbasilys-tempdir=}
-@opindex fbasilys-tempdir=
+@item -fmelt-tempdir=
+@gccoptlist{-fmelt-tempdir=}
+@opindex fmelt-tempdir=
 @end table
 This flags sets the temporary MELT directory. If specified it is not
 cleaned. If it does not exist, it is mkdir-ed and cleaned. Avoid
@@ -293,7 +293,7 @@ MELT is a Lisp dialect translated into (unreadable, or at least
 unfriendly) C code. Some MELT constructs, and some MELT limitations
 (e.g. lack of tail-recursion) are related to this C
 translatability. The MELT translator is itself written in MELT (files
-@file{gcc/melt/warmelt-*.bysl}) and is bootstrapped; the translated C
+@file{gcc/melt/warmelt-*.melt}) and is bootstrapped; the translated C
 files are in @file{gcc/warmelt-*-0.c}; they are quite big and are
 distributed with the GCC source code; use the @code{upgrade-warmelt}
 target of @file{gcc/Makefile.in} to regenerate these C translations.
@@ -462,7 +462,7 @@ we box it (pack it into a MELT value) before passing it as an
 argument.
 
 The following define a second-order function (actually defined in
-@file{ana-base.bysl}) called @code{do_each_gimpleseq} which gets two
+@file{ana-base.melt}) called @code{do_each_gimpleseq} which gets two
 arguments, the first being itself a MELT function and the second being
 an unobxed @code{gimple} stuff, and apply the first argument to boxes
 packing each @code{gimple} inside the given @code{gimpleseq}.
@@ -539,9 +539,9 @@ significant only when @code{#if ENABLE_CHECKING}.
 
 @verbatim
   /*getarg#0 */
-  BASILYS_LOCATION ("ana-base.bysl:436:/ getarg");
+  BASILYS_LOCATION ("ana-base.melt:436:/ getarg");
 #ifndef MELTGCC_NOLINENUMBERING
-#line 436 "ana-base.bysl" /**::getarg::**/
+#line 436 "ana-base.melt" /**::getarg::**/
 #endif /*MELTGCC_NOLINENUMBERING */
  /*_.F__V2*/ curfptr[1] = (basilys_ptr_t) firstargp_;
 @end verbatim
@@ -850,7 +850,7 @@ and are each described by a predefined instance (of
 @cindex ctype MELT keyword
 [For experts: to add a new ctype, define a @code{BGLOB_CTYPE_*}
 predefined in @file{gcc/basilys.h} and an instance in
-@file{warmelt-first.bysl} using @code{install_ctype_descr}, then
+@file{warmelt-first.melt} using @code{install_ctype_descr}, then
 regenerate all the @file{gcc/warmelt-*.c} files]
 
 @node MELT ctypes
@@ -1072,7 +1072,7 @@ particular, object maps are tested with @code{is_mapobject}, built
 with @code{make_mapobject}, accessed with @code{mapobject_get} and
 updated using the @code{mapobject_put} and @code{mapobject_remove}
 primitives. For more details, look into file
-@file{gcc/melt/warmelt-first.bysl}.
+@file{gcc/melt/warmelt-first.melt}.
 
 
 @node MELT objects and classes
@@ -1189,7 +1189,7 @@ can be used for describing the field's type in instances.
 @end itemize
 
 Beware that the structure of classes, fields and discriminants is
-described not only in @file{warmelt-first.bysl} but also ``built-in''
+described not only in @file{warmelt-first.melt} but also ``built-in''
 in files @file{basilys.c} and @file{basilys.h} so changing them is
 very tricky.
 
@@ -1406,7 +1406,7 @@ environment.
 @code{(debug_msg @var{expv} @var{msg} [@var{count}])} -where the
 @var{count} expression (of ctype @code{:long}) is usually ommitted- is
 useful for debugging ouput of the value of @var{expv} (with the
-@code{-fbasilys-debug} program option) to output, using the
+@code{-fmelt-debug} program option) to output, using the
 @code{debug_msg_fun} function. The entire @code{debug_msg} expression
 is somehow equivalent to @code{(cppif ENABLE_CHECKING (debug_msg_fun
 @var{expv msg count filename lineno}) ())} and evaluates to nil.
@@ -1758,13 +1758,13 @@ initialization).
 @subsubsection translating a MELT module
 
 @cindex translation of MELT 
-A MELT file @file{@var{foo}.bysl} [which can be viewed as defining the
+A MELT file @file{@var{foo}.melt} [which can be viewed as defining the
 @var{foo} MELT module] is translated into a C source
 @file{@var{foo}.c} which is then compiled into a dynamically loadable
 shared library - usually @file{@var{foo}.so} on Linux. The translation
 to C is done using @code{cc1} (or @code{gcc}, not implemented yet)
-with the @code{-fbasilys=translatefile -fbasilys-arg=@var{foo}.bysl
--fbasilys-secondarg=@var{foo}.c} options. The generated file
+with the @code{-fmelt=translatefile -fmelt-arg=@var{foo}.melt
+-fmelt-secondarg=@var{foo}.c} options. The generated file
 @var{foo}.c is usually quite big (and only @code{#include}-ing one
 file, @code{"run-basilys.h"} which includes all the rest). It
 essentially contains one static C function (of signature compatible
@@ -1833,27 +1833,27 @@ giving the staring position and file of the s-expr. The
 elements. Leafs are read specifically, e.g. boxed integers (of
 @code{DISCR_INTEGER}) for integers, or symbols (instances of
 @code{CLASS_SYMBOL}) or keywords (instances of @code{CLASS_KEYWORD},
-etc. All these classes are defined in @file{warmelt-first.bysl}.
+etc. All these classes are defined in @file{warmelt-first.melt}.
 
 @cindex macro-expansion in MELT 
 Then s-expressions are @emph{macro-expanded} into objects of
 subclasses of @code{CLASS_SRC}. Standard macros (in particular all the
 constructs defined above, @pxref{MELT syntax constructs}.) are defined
-in @file{warmelt-macro.bysl}. For instance, the @code{if} macro is
+in @file{warmelt-macro.melt}. For instance, the @code{if} macro is
 expanded by the @code{mexpand_if} expander function (private to
-@file{warmelt-macro.bysl}) which makes an instance of
+@file{warmelt-macro.melt}) which makes an instance of
 @code{CLASS_SRC_IFELSE} with fields @code{:src_loc sif_test :sif_then
 :sif_else} and this @code{mexpand_if} expander is given to
 @code{export_macro}. Macro expanders might need some of
 @code{expand_apply lambda_arg_bindings macroexpand_1} @dots{}
-functions defined in @file{warmelt-macro.bysl}.
+functions defined in @file{warmelt-macro.melt}.
 
 @cindex normalization in MELT 
 @cindex nrep in MELT 
 After macro-expansion, the expanded source code (instances of some
 subclass of @code{CLASS_SRC}) is @emph{normalized} into instances of
 subclasses of @code{CLASS_NREP} (for normal representations,
-i.e. @emph{nrep}s) by code in @file{warmelt-normal.bysl}. Normal
+i.e. @emph{nrep}s) by code in @file{warmelt-normal.melt}. Normal
 expressions are not nested, so we separate simple nreps from complex
 normal expressions (@code{CLASS_NREP_SIMPLE} vs
 @code{CLASS_NREP_EXPR}). Normalization means not only adding extra
@@ -1879,14 +1879,14 @@ in the ``code generation''@footnote{this is not a proper term, since
 the generated code is only a representation of low level C code.} step
 into instruction-like representations called @emph{objcode}s .
 instances of subclasses of @code{CLASS_OBJCODE}. This happens in
-@file{warmelt-genobj.bysl} using the @code{compile_obj} selector,
+@file{warmelt-genobj.melt} using the @code{compile_obj} selector,
 which, applied to nreps and a generation context (a merge of various
 info), produce objcodes. Moving from nreps expressions to instructions
 involve very often putting a destination on an nrep thru the
 @code{put_objdest} selector.
 
 @cindex code output in MELT
-At last, the objcode is output, within the @file{warmelt-outobj.bysl}
+At last, the objcode is output, within the @file{warmelt-outobj.melt}
 file, in two string-buffers (one for the header part, one for the body
 part) using several selectors like @code{output_c_code
 output_c_declinit output_c_initfill output_c_initpredef}. Only once
@@ -1903,14 +1903,14 @@ machinery, the fresh module environment maker, the symbols and
 keywords dictionnaries and internizers.
 
 
-All the MELT translation occur in @file{warmelt-*.bysl} files which
+All the MELT translation occur in @file{warmelt-*.melt} files which
 generate their @file{warmelt-*.c} counterparts (these generated files
 are distributed with GCC sources). Be careful to minimize the
 interaction between these files and the rest of GCC (in particular,
 avoid having a strong dependecies between GCC internal data
 representations - like @code{gimple}) to be able to regenerate the
 translating and translated files @file{warmelt-*.c} from
-@file{warmelt-*.bysl} even when GCC internal passes
+@file{warmelt-*.melt} even when GCC internal passes
 evolve@footnote{using the @code{upgrade-warmelt} make target.}.
 
 
@@ -1921,7 +1921,7 @@ evolve@footnote{using the @code{upgrade-warmelt} make target.}.
 
 [For experts, knowing about GCC passes in general]
 
-GCC passes can be written in MELT. See the @file{ana-*.bysl} files.
+GCC passes can be written in MELT. See the @file{ana-*.melt} files.
 Currently, GCC pass manager @file{gcc/passes.c} has been extended by
 providing some hooks for some few additional passes, which are reified
 as MELT instances of @code{CLASS_GCC_PASS}. Each of these instances
@@ -1932,7 +1932,7 @@ below), a @code{:gccpass_gate} field containing the gate of the pass
 MELT function which really does the pass work), and an extra
 @code{:gccpass_data} field (to be used at will).
 
-The currently available passes (defined in @file{ana-base.bysl} and
+The currently available passes (defined in @file{ana-base.melt} and
 used in @file{gcc/basilys.c}) are:
 
 @itemize
@@ -1940,7 +1940,7 @@ used in @file{gcc/basilys.c}) are:
 @item pass @code{basilys-lowering}
 @footnote{It is the name in the @code{opt_pass} structure and the
 @code{:named_name} field} instance @code{basilys_lowering_gccpass}
-@footnote{The exported name in @file{ana-base.bysl}}; is the last
+@footnote{The exported name in @file{ana-base.melt}}; is the last
 lowering pass in GCC. Here, the CFG is available, but the tree is not
 in SSA form.
 
@@ -1979,7 +1979,7 @@ MELT related call.
 
 First, a real example. To box a long integer into a MELT value, MELT
 code have to use the @code{make_integerbox} defined in
-@file{warmelt-first.bysl} as
+@file{warmelt-first.melt} as
 @lisp
 (defprimitive make_integerbox (discr :long n) :value
   "(basilysgc_new_int((basilysobject_ptr_t)(" discr "), (" n ")))")
@@ -2126,7 +2126,7 @@ before, hence always use a @code{goto end} instead.
 @item avoid using global MELT values.
 If you really need some, use the @code{BASILYSGOB} or @code{BASILYSG}
 macros. Adding additional MELT globals is tricky (edit files
-@file{basilys.h} and @file{warmelt-normal.bysl}). Using existing MELT
+@file{basilys.h} and @file{warmelt-normal.melt}). Using existing MELT
 globals is simpler, e.g. @code{BASILYSGOB(DISCR_LIST)} to fetch the
 predefined discriminant @code{DISCR_LIST}.
 

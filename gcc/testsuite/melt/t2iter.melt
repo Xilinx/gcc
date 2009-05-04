@@ -5,10 +5,10 @@
 
 ;; TO BE TESTED
 #| 
-  ./cc1 -Wno-shadow -fbasilys=runfile \
-  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
-  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-  -fbasilys-init="@warmelt2"  -fbasilys-arg=t2iter.melt
+  ./cc1 -Wno-shadow -fmelt=runfile \
+  -fmelt-dynlibdir=. -fmelt-compile-script=./built-melt-cc-script \
+  -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
+  -fmelt-init="@warmelt2"  -fmelt-arg=t2iter.melt
 |#
 
 (defun t2iter (tu f g)

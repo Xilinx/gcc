@@ -2,10 +2,10 @@
 ;; file tmatch-3.melt
 
 #| run in buildir/gcc
- ./cc1 -fbasilys=translatefile -fbasilys-dynlibdir=. \
-    -fbasilys-compile-script=./built-melt-cc-script \
-    -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp -fbasilys-init=@warmelt2 \
-    -fbasilys-arg=..../tmatch-3.melt -fbasilys-debug
+ ./cc1 -fmelt=translatefile -fmelt-dynlibdir=. \
+    -fmelt-compile-script=./built-melt-cc-script \
+    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-arg=..../tmatch-3.melt -fmelt-debug
 |#
 
 (defprimitive tree_content (v) :tree

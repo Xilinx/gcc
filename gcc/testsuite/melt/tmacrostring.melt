@@ -3,10 +3,10 @@
 
 ;;; this tests the macrostring read syntax
 #| 
-  ./cc1 -Wno-shadow -fbasilys=runfile \
-  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
-  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmacrostring.melt
+  ./cc1 -Wno-shadow -fmelt=runfile \
+  -fmelt-dynlibdir=. -fmelt-compile-script=./built-melt-cc-script \
+  -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
+  -fmelt-init="@warmelt2"  -fmelt-arg=tmacrostring.melt
 |#
 
 (defprimitive say (:cstring s) :void

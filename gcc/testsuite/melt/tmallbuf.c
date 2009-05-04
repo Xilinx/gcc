@@ -1,11 +1,11 @@
 /* file testsuite/melt/tmallbuf.c */
 /*** 
       run in buildir/gcc 
-  ./cc1 -fbasilys=smallana \
-   -fbasilys-dynlibdir=. \
-   -fbasilys-compile-script=./built-melt-cc-script \
-   -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-   -fbasilys-debug \
+  ./cc1 -fmelt=smallana \
+   -fmelt-dynlibdir=. \
+   -fmelt-compile-script=./built-melt-cc-script \
+   -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
+   -fmelt-debug \
    -Wall -O .../tmallbuf.c
 
  ***/

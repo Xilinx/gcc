@@ -4,10 +4,10 @@
 ;; this tests that a :long argument is ok in multicall
 #|
 
- ./cc1 -Wno-shadow -fbasilys=runfile \
-  -fbasilys-dynlibdir=. -fbasilys-compile-script=./built-melt-cc-script \
-  -fbasilys-gensrcdir=. -fbasilys-tempdir=/tmp \
-  -fbasilys-init="@warmelt2"  -fbasilys-arg=tmultilong.melt
+ ./cc1 -Wno-shadow -fmelt=runfile \
+  -fmelt-dynlibdir=. -fmelt-compile-script=./built-melt-cc-script \
+  -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
+  -fmelt-init="@warmelt2"  -fmelt-arg=tmultilong.melt
 
 |#
 (defun tmultilong (f x)

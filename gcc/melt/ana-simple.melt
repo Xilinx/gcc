@@ -778,7 +778,7 @@
     (debug_msg smallana_cont "smallanapass_exec final smallana_cont")
     ))
 
-;;; our small analysis command -fbasilys=smallana
+;;; our small analysis command -fmelt=smallana
 (defun smallana_command (dispatcher arg secarg moduldata)
   ;; fill the ipa pass
   (put_fields basilys_ipa_gccpass

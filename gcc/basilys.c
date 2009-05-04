@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.   If not see
 <http://www.gnu.org/licenses/>.   
   */
 
-/* for debugging -fbasilys-debug is useful */
+/* for debugging -fmelt-debug is useful */
 
 
 #include "config.h"
@@ -6997,7 +6997,7 @@ do_initial_command (basilys_ptr_t modata_p)
       && basilys_arglist_string && basilys_arglist_string[0])
     {
       error
-	("cannot have both -fbasilys-arg=%s & -fbasilys-arglist=%s given as program arguments",
+	("cannot have both -fmelt-arg=%s & -fmelt-arglist=%s given as program arguments",
 	 basilys_argument_string, basilys_arglist_string);
       goto end;
     }
@@ -7086,7 +7086,7 @@ load_basilys_modules_and_do_command (void)
 #define modatv curfram__.varptr[0]
   debugeprintf ("load_initial_basilys_modules start init=%s command=%s",
 		basilys_init_string, basilys_mode_string);
-  /* if there is no -fbasilys-init use the default list of modules */
+  /* if there is no -fmelt-init use the default list of modules */
   if (!basilys_init_string || !basilys_init_string[0])
   {
     basilys_init_string = "@" MELT_DEFAULT_MODLIS;

@@ -4733,7 +4733,7 @@ melt_build_include_dir= melt-private-build-include
 
 ## this is the default module list for MELT, containing the list of
 ## all modules loaded by MELT (without any suffix or dirname)
-## if not provided, the default -fbasilys-init=@$(melt_default_modules_list)
+## if not provided, the default -fmelt-init=@$(melt_default_modules_list)
 
 melt_default_modules_list=melt-default-modules
 
@@ -4817,25 +4817,25 @@ melt.encap: run-basilys.d
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR) install-melt-cc-script
 
-MELTBASILYSCCINIT1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translateinit  \
-	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
-	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. 
+MELTBASILYSCCINIT1= time ./cc1$(exeext) -Wno-shadow -fmelt=translateinit  \
+	      -fmelt-dynlibdir=. \
+	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
+	      -fmelt-gensrcdir=. \
+	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCFILE1= time ./cc1$(exeext) -Wno-shadow -fbasilys=translatefile  \
-	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
-	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. 
+MELTBASILYSCCFILE1= time ./cc1$(exeext) -Wno-shadow -fmelt=translatefile  \
+	      -fmelt-dynlibdir=. \
+	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
+	      -fmelt-gensrcdir=. \
+	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
-MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fbasilys=showmdata  \
-	      -fbasilys-dynlibdir=. \
-	      -fbasilys-compile-script=$(objdir)/built-melt-cc-script \
-	      -fbasilys-gensrcdir=. \
-	      -fbasilys-tempdir=. 
+MELTBASILYSCCSHOW1= time ./cc1$(exeext) -fmelt=showmdata  \
+	      -fmelt-dynlibdir=. \
+	      -fmelt-compile-script=$(objdir)/built-melt-cc-script \
+	      -fmelt-gensrcdir=. \
+	      -fmelt-tempdir=. 
 #	      -frandom-seed=$$RANDOM
 
 
@@ -4946,9 +4946,9 @@ warmelt-first-1.c: $(srcdir)/melt/warmelt-first.melt warmelt0.modlis   cc1$(exee
 	-rm -f $@
 	@echo generating warmelt-first using $(WARMELT_BASE0) 
 	@echo WARMELT_BASE0= $(WARMELT_BASE0) WARMELT_BASE0ROW= $(WARMELT_BASE0DROW)
-	$(MELTBASILYSCCINIT1) -fbasilys-init=$(WARMELT_BASE0DROW) \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCINIT1) -fmelt-init=$(WARMELT_BASE0DROW) \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.melt cc1$(exeext) \
@@ -4960,9 +4960,9 @@ warmelt-macro-1.c: $(srcdir)/melt/warmelt-macro.melt cc1$(exeext) \
 	 warmelt-outobj-0.d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	-fmelt-init=warmelt-first-1:warmelt-macro-0.d:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.melt cc1$(exeext) \
@@ -4974,9 +4974,9 @@ warmelt-normal-1.c: $(srcdir)/melt/warmelt-normal.melt cc1$(exeext) \
 	 warmelt-outobj-0.d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-0.d:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 
@@ -4989,9 +4989,9 @@ warmelt-normatch-1.c: $(srcdir)/melt/warmelt-normatch.melt cc1$(exeext) \
 	 warmelt-outobj-0.d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-0.d:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.melt cc1$(exeext) \
@@ -5003,9 +5003,9 @@ warmelt-genobj-1.c: $(srcdir)/melt/warmelt-genobj.melt cc1$(exeext) \
 	 warmelt-outobj-0.d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-0.d:warmelt-outobj-0.d \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.melt cc1$(exeext) \
@@ -5017,9 +5017,9 @@ warmelt-outobj-1.c: $(srcdir)/melt/warmelt-outobj.melt cc1$(exeext) \
 	 warmelt-outobj-0.d.so 
 	-rm -f $@
 	$(MELTBASILYSCCFILE1) \
-	-fbasilys-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	-fmelt-init=warmelt-first-1:warmelt-macro-1:warmelt-normal-1:warmelt-normatch-1:warmelt-genobj-1:warmelt-outobj-0.d \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 ####
@@ -5031,11 +5031,11 @@ warmelt2.modlis: $(WARMELT_BASE2SO)
 warmelt-first-2.c: $(srcdir)/melt/warmelt-first.melt warmelt1.modlis $(WARMELT_BASE1SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo test showmdata using $(WARMELT_BASE1SO)
-	$(MELTBASILYSCCSHOW1) -fbasilys-init="@warmelt1"
+	$(MELTBASILYSCCSHOW1) -fmelt-init="@warmelt1"
 	@echo generating $@ using $(WARMELT_BASE1SO)
-	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt1" \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCINIT1) -fmelt-init="@warmelt1" \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 
@@ -5043,9 +5043,9 @@ warmelt-first-2.c: $(srcdir)/melt/warmelt-first.melt warmelt1.modlis $(WARMELT_B
 warmelt-%-2.c: $(srcdir)/melt/warmelt-%.melt warmelt1.modlis $(WARMELT_BASE1SO)  cc1$(exeext) $(WARMELT_BASE1NSO)
 	@echo generating $@ using $(WARMELT_BASE1SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt1" \
-	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCFILE1) -fmelt-init="@warmelt1" \
+	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 ## apparently, these dependencies are explicitly needed... because
@@ -5062,9 +5062,9 @@ warmelt2n.modlis: $(WARMELT_BASE2NSO)
 warmelt-%-3.c: $(srcdir)/melt/warmelt-%.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
-	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCFILE1) -fmelt-init="@warmelt2" \
+	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fmelt-secondarg=$@
 	ls -l $@
 warmelt3.modlis: $(WARMELT_BASE2SO)
 	date +"#$@ generated %c" > $@-tmp
@@ -5074,9 +5074,9 @@ warmelt3.modlis: $(WARMELT_BASE2SO)
 warmelt-first-3.c: $(srcdir)/melt/warmelt-first.melt warmelt2.modlis $(WARMELT_BASE2SO) cc1$(exeext)
 	-rm -f $@ 
 	@echo generating $@ using $(WARMELT_BASE2SO)
-	$(MELTBASILYSCCINIT1) -fbasilys-init="@warmelt2" \
-	      -fbasilys-arg=$< \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCINIT1) -fmelt-init="@warmelt2" \
+	      -fmelt-arg=$< \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 
@@ -5092,17 +5092,17 @@ diff-warmelt-2-3: $(WARMELT_BASE3SO)
 ana-base.c: $(srcdir)/melt/ana-base.melt  warmelt2.modlis $(WARMELT_BASE2SO)  cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2" \
-	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCFILE1) -fmelt-init="@warmelt2" \
+	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 ana-simple.c:  $(srcdir)/melt/ana-simple.melt  warmelt2.modlis $(WARMELT_BASE2SO)  ana-base.so   cc1$(exeext) 
 	@echo generating $@ using $(WARMELT_BASE2SO)
 	-rm -f $@
-	$(MELTBASILYSCCFILE1) -fbasilys-init="@warmelt2:ana-base" \
-	      -fbasilys-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      -fbasilys-secondarg=$@
+	$(MELTBASILYSCCFILE1) -fmelt-init="@warmelt2:ana-base" \
+	      -fmelt-arg=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      -fmelt-secondarg=$@
 	ls -l $@
 
 ana-%.so: ana-%.c built-melt-cc-script

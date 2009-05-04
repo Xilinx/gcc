@@ -1,3 +1,22 @@
+2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	replaced all -fbasilys options by -fmelt
+	* doc/melt.texi: updated documentation for -fmelt
+	* basilys.c (do_initial_command)
+	(load_basilys_modules_and_do_command): -fmelt replacing -fbasilys
+	in messages or comments.
+	* common.opt: replaced all -fbasilys by -fmelt.
+	* Makefile.in: likewise.
+	* testsuite/melt/tmatch-2.melt: likewise.
+	* testsuite/melt/tmatch-3.melt: likewise.
+	* testsuite/melt/tcond-1.melt: likewise.
+	* testsuite/melt/tmallbuf.c: likewise.
+	* testsuite/melt/t2iter.melt: likewise.
+	* testsuite/melt/tmacrostring.melt: likewise.
+	* testsuite/melt/tmultilong.melt: likewise.
+	* testsuite/melt/tmatch-1.melt: likewise.
+	* melt/ana-simple.melt: likewise.
+	* melt/warmelt-outobj.melt: likewise.
+
 2009-04-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilys_raw_new_ppl_empty_constraint_system)
 	(basilys_raw_new_ppl_unsatisfiable_constraint_system)

@@ -3067,7 +3067,7 @@
 		    ( (is_string secarg) secarg)
 		    ( (is_string arg) (make_string_nakedbasename discr_string arg))
 		    (:else
-		     (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
+		     (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
 		     (return)
 		     )))
 	   )
@@ -3101,7 +3101,7 @@
 	       (setq modulnam (make_string_nakedbasename discr_string arg))
 	       (make_string_tempname_suffixed discr_string arg ".c"))
 	     (:else
-	      (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
+	      (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
 	      (return)
 	      )))
 	   )
@@ -3126,7 +3126,7 @@
 		  ( (is_string secarg) secarg)
 		  ( (is_string arg) (make_string_nakedbasename discr_string arg))
 		  (:else
-		   (errormsg_plain "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist")
+		   (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
 		   (return)
 		   )))
 	 )
