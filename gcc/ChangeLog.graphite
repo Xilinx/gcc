@@ -1,3 +1,12 @@
+2009-05-04  Li Feng  <nemokingdom@gmail.com>
+
+	* tree-parloops.c (loop_parallel_p): Remove construction of
+	NITER and REDUCTION_LIST.
+	(try_get_loop_niter): New.
+	(try_create_reduction_list): New.
+	(parallelize_loops): Bypass the failed checkings in autopar
+	when can_be_parallel in loop structure is set to true.
+
 2009-05-01  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* testsuite/gcc.dg/graphite/id-6.c: Update testcase.

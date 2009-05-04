@@ -343,30 +343,15 @@ gather_scalar_reductions (loop_p loop, htab_t reduction_list)
     }
 }
 
-/* Returns true if the iterations of LOOP are independent on each other (that
-   is, if we can execute them in parallel), and if LOOP satisfies other
-   conditions that we need to be able to parallelize it.  Description of number
-   of iterations is stored to NITER.  Reduction analysis is done, if
-   reductions are found, they are inserted to the REDUCTION_LIST.  */  
+/* Try to initialize NITER for code generation part.  */
 
 static bool
-loop_parallel_p (struct loop *loop, htab_t reduction_list,
-		 struct tree_niter_desc *niter)
+try_get_loop_niter (loop_p loop, struct tree_niter_desc *niter)
 {
   edge exit = single_dom_exit (loop);
-  VEC (ddr_p, heap) * dependence_relations;
-  VEC (data_reference_p, heap) *datarefs;
-  lambda_trans_matrix trans;
-  bool ret = false;
-  gimple_stmt_iterator gsi;
 
-  /* Only consider innermost loops with just one exit.  The innermost-loop
-     restriction is not necessary, but it makes things simpler.  */
-  if (loop->inner || !exit)
+  if (!exit)
     return false;
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "\nConsidering loop %d\n", loop->num);
 
   /* We need to know # of iterations, and there should be no uses of values
      defined inside loop outside of it, unless the values are invariants of
@@ -377,6 +362,20 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
 	fprintf (dump_file, "  FAILED: number of iterations not known\n");
       return false;
     }
+
+  return true;
+}
+
+/* Try to initialize REDUCTION_LIST for code generation part.  */
+
+static bool
+try_create_reduction_list (loop_p loop, htab_t reduction_list)
+{
+  edge exit = single_dom_exit (loop);
+  gimple_stmt_iterator gsi;
+
+  if (!exit)
+    return false;
 
   gather_scalar_reductions (loop, reduction_list);
 
@@ -410,13 +409,13 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
 	    }
 	  reduc_phi = NULL;
 	  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, val)
-	  {
-	    if (flow_bb_inside_loop_p (loop, gimple_bb (USE_STMT (use_p))))
-	      {
-		reduc_phi = USE_STMT (use_p);
-		break;
-	      }
-	  }
+	    {
+	      if (flow_bb_inside_loop_p (loop, gimple_bb (USE_STMT (use_p))))
+		{
+		  reduc_phi = USE_STMT (use_p);
+		  break;
+		}
+	    }
 	  red = reduction_phi (reduction_list, reduc_phi);
 	  if (red == NULL)
 	    {
@@ -432,7 +431,6 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
 	      fprintf (dump_file, "reduction stmt is  ");
 	      print_gimple_stmt (dump_file, red->reduc_stmt, 0, 0);
 	    }
-
 	}
     }
 
@@ -459,13 +457,29 @@ loop_parallel_p (struct loop *loop, htab_t reduction_list,
 	}
     }
 
-  /* We need to version the loop to verify assumptions in runtime.  */
-  if (!can_duplicate_loop_p (loop))
-    {
-      if (dump_file && (dump_flags & TDF_DETAILS))
-	fprintf (dump_file, "  FAILED: cannot be duplicated\n");
-      return false;
-    }
+  return true;
+}
+
+/* Data dependency analysis. Returns true if the iterations of LOOP
+   are independent on each other (that is, if we can execute them
+   in parallel).  */
+
+static bool
+loop_parallel_p (struct loop *loop)
+{
+  edge exit = single_dom_exit (loop);
+  VEC (ddr_p, heap) * dependence_relations;
+  VEC (data_reference_p, heap) *datarefs;
+  lambda_trans_matrix trans;
+  bool ret = false;
+
+  /* Only consider innermost loops with just one exit.  The innermost-loop
+     restriction is not necessary, but it makes things simpler.  */
+  if (loop->inner || !exit)
+    return false;
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nConsidering loop %d\n", loop->num);
 
   /* Check for problems with dependences.  If the loop can be reversed,
      the iterations are independent.  */
@@ -1945,16 +1959,28 @@ parallelize_loops (void)
   FOR_EACH_LOOP (li, loop, 0)
     {
       htab_empty (reduction_list);
-      if (/* Do not bother with loops in cold areas.  */
-	  optimize_loop_nest_for_size_p (loop)
-	  /* Or loops that roll too little.  */
-	  || expected_loop_iterations (loop) <= n_threads
-	  /* And of course, the loop must be parallelizable.  */
-	  || !can_duplicate_loop_p (loop)
+      if (/* And of course, the loop must be parallelizable.  */
+	  !can_duplicate_loop_p (loop)
 	  || loop_has_blocks_with_irreducible_flag (loop)
 	  /* FIXME: the check for vector phi nodes could be removed.  */
-	  || loop_has_vector_phi_nodes (loop)
-	  || !loop_parallel_p (loop, reduction_list, &niter_desc))
+	  || loop_has_vector_phi_nodes (loop))
+	continue;
+
+      /* FIXME: Bypass this check as graphite doesn't update the
+      count and frequency correctly now.  */
+      if (!loop->can_be_parallel
+	  && (expected_loop_iterations (loop) <= n_threads
+	      /* Do not bother with loops in cold areas.  */
+	      || optimize_loop_nest_for_size_p (loop)))
+	continue;
+
+      if (!try_get_loop_niter (loop, &niter_desc))
+	continue;
+
+      if (!try_create_reduction_list (loop, reduction_list))
+	continue;
+
+      if (!loop->can_be_parallel && !loop_parallel_p (loop))
 	continue;
 
       changed = true;
