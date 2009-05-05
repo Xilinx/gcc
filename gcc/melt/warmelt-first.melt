@@ -1086,7 +1086,15 @@
 (defprimitive make_mixloc (dis val :long num loc) :value
   "(basilysgc_new_mixloc((basilysobject_ptr_t)(" dis "), (basilys_ptr_t)(" val "), (" num "), (location_t)(" loc "))")
 
+;; test for mixbigint
+(defprimitive is_mixbigint (mb) :long
+  "(basilys_magic_discr((basilys_ptr_t)(" mb ")) == OBMAG_MIXBIGINT)")
+(defprimitive mixbigint_val (mb) :value
+  #{basilys_val_mixbigint($mb)}#)
 
+(defprimitive ppstrbuf_mixbigint (:value sbuf :long indent :value mb) :void
+ #{basilysgc_ppstrbuf_mixbigint($sbuf,$indent,$mb);}#
+)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
@@ -1388,6 +1396,14 @@
   :obj_num OBMAG_MIXINT
   :disc_super discr_anyrecv
   :named_name (stringconst2val discr_namestring "DISCR_MIXEDINT"))
+
+
+;;; the discriminant for mixedintegers
+(definstance discr_mixbigint class_discr
+  :predef DISCR_MIXBIGINT
+  :obj_num OBMAG_MIXBIGINT
+  :disc_super discr_anyrecv
+  :named_name (stringconst2val discr_namestring "DISCR_MIXBIGINT"))
 
 
 
@@ -2495,6 +2511,7 @@
 	      (dbg_output obj dbgi depth)
 	      )))))
   )
+
 (defun dbg_out (obj dbgi  :long depth) 
   (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
   (checkcallstack_msg "start dbg_out")
@@ -2696,6 +2713,29 @@
     (add2sbuf_strconst sbuf "]")
     ))
 (install_method discr_mixedloc dbg_output dbgout_mixloc_method)
+
+
+;; mixbigint debug value
+(defun dbgout_mixbigint_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debuginfo))
+  (assert_msg "check self mixbigint" (is_mixbigint self))
+  (let ( (dis (discrim self)) 
+	 (sbuf  (unsafe_get_field :dbgi_sbuf dbgi))
+	 )
+    (add2sbuf_strconst sbuf " |")
+    (add2sbuf_string sbuf (unsafe_get_field :named_name dis))
+    (add2sbuf_strconst sbuf "#![")
+  (if  (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
+      (progn
+	(dbg_out (mixbigint_val self) dbgi (+i depth 1))
+	(add2sbuf_strconst sbuf ",")
+	(ppstrbuf_mixbigint sbuf (+i depth 1) self)
+	)
+    (add2sbuf_strconst sbuf ",..")
+    )
+  (add2sbuf_strconst sbuf "]")
+  ))
+(install_method discr_mixbigint dbg_output dbgout_mixbigint_method)
 
 ;; multiple debug out
 (defun dbgout_multiple_method (self dbgi :long depth)
@@ -3802,6 +3842,7 @@
  is_list_or_null
  is_mapobject
  is_mapstring
+ is_mixbigint
  is_mixint
  is_mixloc
  is_multiple
@@ -3865,6 +3906,7 @@
  messagenum_dbg
  messageval_dbg
  minor_garbcoll
+ mixbigint_val
  mixint_val
  mixloc_location
  mixloc_locline
@@ -3907,6 +3949,7 @@
  pair_listlength
  pair_set_head
  pair_tail
+ ppstrbuf_mixbigint
  put_int
  read_file
  routine_descr
@@ -3965,7 +4008,8 @@
  discr_mapobjects                     
  discr_mapstrings                     
  discr_maptrees
- discr_methodmap                      
+ discr_methodmap 
+ discr_mixbigint
  discr_mixedint                       
  discr_mixedloc                       
  discr_multiple                       

@@ -1,4 +1,31 @@
 2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	Added mixbigint which are big boxed integers mixed to a value
+	* basilys.h (OBMAG_MIXBIGINT, struct basilysmixbigint_st): added.
+	(union basilys_un): updated.
+	(basilys_val_mixbigint, basilys_fill_mpz_from_mixbigint): added
+	functions.
+	(basilysgc_new_mixbigint_mpz, basilysgc_ppstrbuf_mpz)
+	(basilysgc_ppstrbuf_mixbigint, BGLOB_DISCR_MIXBIGINT): added
+	declarations.
+	* basilys.c (check_pointer_at, forwarded_copy, scanning): handling
+	OBMAG_MIXBIGINT.
+	(basilysgc_new_mixbigint_mpz, basilysgc_ppstrbuf_mpz)
+	(basilysgc_ppstrbuf_mixbigint): added new functions.
+	* melt/warmelt-first.melt: added and exported discr_mixbigint
+	ppstrbuf_mixbigint mixbigint_val is_mixbigint. added
+	dbgout_mixbigint_method
+	* melt/warmelt-normal.melt: handling DISCR_MIXBIGINT.
+	* Makefile.in: added explicit dependency on basilys.h for
+	warmelt*0.o files, t be sure the warmelt*0.o files are recompiled
+	when basilys.h is edited [otherwise a crash can happen].
+	* warmelt-first-0.c: regenerated.
+	* warmelt-macro-0.c: regenerated.
+	* warmelt-normal-0.c: regenerated.
+	* warmelt-normatch-0.c: regenerated.
+	* warmelt-genobj-0.c: regenerated.
+	* warmelt-outobj-0.c: regenerated.
+
+2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	Big boxed integers are probably needed
 	* melt/ana-base.melt: added tree_type primitive. We really need
 	big boxed integers ... added size in tree_integer_type cmatcher.

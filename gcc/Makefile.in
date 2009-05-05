@@ -4898,6 +4898,8 @@ WARMELT_BASE3SO= $(patsubst %, %-3.so, $(WARMELT_BASE))
 WARMELT_BASE3C= $(patsubst %, %-3.c, $(WARMELT_BASE))
 WARMELT_BASE3ROW:=$(shell echo $(WARMELT_BASE3)|sed 's/ /:/g')
 
+## force a dependency
+$(WARMELT_BASE0SO): run-basilys.h basilys.h
 
 ################
 ## the analysis MELT files. They are not needed to bootstrap the MELT

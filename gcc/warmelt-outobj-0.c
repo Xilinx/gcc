@@ -1,5 +1,5 @@
 /* GCC BASILYS GENERATED FILE warmelt-outobj-3.c - DO NOT EDIT */
-/* generated on Wed Apr 29 17:03:38 2009 */
+/* generated on Tue May  5 15:51:20 2009 */
 
 #include "run-basilys.h"
 
@@ -33244,7 +33244,7 @@ BASILYS_LOCATION("warmelt-outobj.melt:3054:/ block");
       BASILYS_LOCATION("warmelt-outobj.melt:3068:/ block");
       /*block*/{
        
-       error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist"));
+       error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fmelt-secondarg should be specified with -fmelt-arglist"));
        BASILYS_LOCATION("warmelt-outobj.melt:3071:/ block");
        /*block*/{
         /*_.RETVAL___V1*/ curfptr[0] = NULL;;
@@ -33697,7 +33697,7 @@ BASILYS_LOCATION("warmelt-outobj.melt:3082:/ block");
       BASILYS_LOCATION("warmelt-outobj.melt:3100:/ block");
       /*block*/{
        
-       error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist"));
+       error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fmelt-secondarg should be specified with -fmelt-arglist"));
        BASILYS_LOCATION("warmelt-outobj.melt:3105:/ block");
        /*block*/{
         /*_.RETVAL___V1*/ curfptr[0] = NULL;;
@@ -34104,7 +34104,7 @@ BASILYS_LOCATION("warmelt-outobj.melt:3118:/ block");
      BASILYS_LOCATION("warmelt-outobj.melt:3127:/ block");
      /*block*/{
       
-      error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fbasilys-secondarg should be specified with -fbasilys-arglist"));
+      error("BASILYS ERROR MSG [#%ld]::: %s ", basilys_dbgcounter, ( "explicit -fmelt-secondarg should be specified with -fmelt-arglist"));
       BASILYS_LOCATION("warmelt-outobj.melt:3130:/ block");
       /*block*/{
        /*_.RETVAL___V1*/ curfptr[0] = NULL;;

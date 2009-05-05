@@ -373,6 +373,7 @@ check_pointer_at (const char msg[], long count, basilys_ptr_t * pptr,
     case OBMAG_INT:
     case OBMAG_MIXINT:
     case OBMAG_MIXLOC:
+    case OBMAG_MIXBIGINT:
     case OBMAG_REAL:
     case OBMAG_STRING:
     case OBMAG_STRBUF:
@@ -889,6 +890,20 @@ forwarded_copy (basilys_ptr_t p)
 	struct basilysmixloc_st *dst = (struct basilysmixloc_st *)
 	  ggc_alloc_cleared (sizeof (struct basilysmixloc_st));
 	*dst = *src;
+	n = (basilys_ptr_t) dst;
+	break;
+      }
+    case OBMAG_MIXBIGINT:
+      {
+	struct basilysmixbigint_st *src = (struct basilysmixbigint_st *) p;
+	unsigned blen = src->biglen;
+	struct basilysmixbigint_st *dst = (struct basilysmixbigint_st *)
+	  ggc_alloc_cleared (sizeof (struct basilysmixbigint_st)
+			     + blen * sizeof(src->tabig[0]));
+	dst->discr = src->discr;
+	dst->ptrval = src->ptrval;
+	dst->negative = src->negative;
+	dst->biglen = blen;
 	n = (basilys_ptr_t) dst;
 	break;
       }
@@ -1503,6 +1518,12 @@ scanning (basilys_ptr_t p)
 	FORWARDED (src->ptrval);
 	break;
       }
+    case OBMAG_MIXBIGINT:
+      {
+	struct basilysmixbigint_st *src = (struct basilysmixbigint_st *) p;
+	FORWARDED (src->ptrval);
+	break;
+      }
     case OBMAG_STRBUF:
       {
 	struct basilysstrbuf_st *src = (struct basilysstrbuf_st *) p;
@@ -1784,6 +1805,55 @@ end:
 #undef valv
 #undef discrv
 #undef mix_newmix
+#undef object_discrv
+}
+
+
+basilys_ptr_t
+basilysgc_new_mixbigint_mpz (basilysobject_ptr_t discr_p,
+			     basilys_ptr_t val_p, mpz_t mp)
+{
+  unsigned numb = 0, blen = 0;
+  size_t wcnt = 0;
+  BASILYS_ENTERFRAME (3, NULL);
+#define newbig  curfram__.varptr[0]
+#define discrv  curfram__.varptr[1]
+#define valv    curfram__.varptr[2]
+#define object_discrv ((basilysobject_ptr_t)(discrv))
+#define mix_newbig ((struct basilysmixbigint_st*)(newbig))
+  newbig = NULL;
+  discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = BASILYSGOB (DISCR_MIXBIGINT);
+  valv = val_p;
+  if (basilys_magic_discr ((basilys_ptr_t) (discrv)) != OBMAG_OBJECT)
+    goto end;
+  if (object_discrv->object_magic != OBMAG_MIXBIGINT)
+    goto end;
+  if (!mp) 
+    goto end; 
+  numb = 8*sizeof(mix_newbig->tabig[0]);
+  blen = (mpz_sizeinbase (mp, 2) + numb-1) / numb;
+  newbig = basilysgc_allocate (sizeof (struct basilysmixbigint_st),
+			       blen*sizeof(mix_newbig->tabig[0]));
+  mix_newbig->discr = object_discrv;
+  mix_newbig->ptrval = (basilys_ptr_t) valv;
+  mix_newbig->negative = (mpz_sgn (mp)<0);
+  mix_newbig->biglen = blen;
+  mpz_export (mix_newbig->tabig, &wcnt, 
+	      /*most significant word first */ 1, 
+	      sizeof(mix_newbig->tabig[0]), 
+	      /*native endian*/ 0, 
+	      /* no nails bits */ 0, 
+	      mp);
+  gcc_assert(wcnt <= blen);
+end:
+  BASILYS_EXITFRAME ();
+  return (basilys_ptr_t) newbig;
+#undef newbig
+#undef valv
+#undef discrv
+#undef mix_newbig
 #undef object_discrv
 }
 
@@ -8335,7 +8405,71 @@ end:
 #undef sbufv
 }
 
+/* pretty print into an sbuf a mpz_t GMP multiprecision integer */
+void
+basilysgc_ppstrbuf_mpz (basilys_ptr_t sbuf_p, int indentsp,
+			  mpz_t mp)
+{
+  int len = 0;
+  char* cbuf = 0;
+  char tinybuf [64];
+#define sbufv curfram__.varptr[0]
+  BASILYS_ENTERFRAME (2, NULL);
+  sbufv = sbuf_p;
+  memset(tinybuf, 0, sizeof (tinybuf));
+  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF || indentsp<0)
+    goto end;
+  if (!mp)
+    {
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv,
+				"%nullmp%");
+      goto end;
+    }
+  len = mpz_sizeinbase(mp, 10) + 2;
+  if (len < (int)sizeof(tinybuf)-2) 
+    {
+      mpz_get_str (tinybuf, 10, mp);
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, tinybuf);
+    }
+  else
+    {
+      cbuf = (char*) xcalloc(len+2, 1);
+      mpz_get_str(cbuf, 10, mp);
+      basilysgc_add_strbuf_raw ((basilys_ptr_t) sbufv, cbuf);
+      free(cbuf);
+    }
+ end:
+  BASILYS_EXITFRAME ();
+#undef sbufv
+}
 
+
+/* pretty print into an sbuf the GMP multiprecision integer of a mixbigint */
+void
+basilysgc_ppstrbuf_mixbigint (basilys_ptr_t sbuf_p, int indentsp,
+			      basilys_ptr_t big_p)
+{
+#define sbufv curfram__.varptr[0]
+#define bigv  curfram__.varptr[1]
+  BASILYS_ENTERFRAME (3, NULL);
+  sbufv = sbuf_p;
+  bigv = big_p;
+  if (!sbufv || basilys_magic_discr ((basilys_ptr_t) sbufv) != OBMAG_STRBUF)
+    goto end;
+  if (!bigv || basilys_magic_discr ((basilys_ptr_t) bigv) != OBMAG_MIXBIGINT)
+    goto end;
+  {
+    mpz_t mp;
+    mpz_init (mp);
+    if (basilys_fill_mpz_from_mixbigint((basilys_ptr_t) bigv, mp)) 
+      basilysgc_ppstrbuf_mpz ((basilys_ptr_t) sbufv, indentsp, mp);
+    mpz_clear (mp);
+  }
+ end:
+  BASILYS_EXITFRAME ();
+#undef sbufv
+#undef bigv
+}
 
 /***********************************************************************
  *   P A R M A     P O L Y H E D R A     L I B R A R Y     S T U F F   *

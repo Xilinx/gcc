@@ -290,6 +290,7 @@ enum obmag_en    {
   OBMAG_INT,
   OBMAG_MIXINT,
   OBMAG_MIXLOC,
+  OBMAG_MIXBIGINT,
   OBMAG_REAL,
   OBMAG_STRING,
   OBMAG_STRBUF,
@@ -627,6 +628,20 @@ basilysmixloc_st
 };
 
 
+/* when OBMAG_MIXBIGINT - an exported array mpz compatible; since we
+   use an exported mpz format, the value can be copied and trashed by
+   MELT garbage collector without harm. */
+struct
+GTY (())
+basilysmixbigint_st
+{
+  basilysobject_ptr_t discr;
+  basilys_ptr_t ptrval;
+  bool negative;
+  unsigned biglen;
+  long GTY ((length ("%h.biglen"))) tabig[FLEXIBLE_DIM];			/* of length LEN */
+};
+
 
 /* when OBMAG_REAL   */
 struct 
@@ -955,6 +970,7 @@ basilys_un
   struct basilysint_st GTY ((tag ("OBMAG_INT"))) u_int;
   struct basilysmixint_st GTY ((tag ("OBMAG_MIXINT"))) u_mixint;
   struct basilysmixloc_st GTY ((tag ("OBMAG_MIXLOC"))) u_mixloc;
+  struct basilysmixbigint_st GTY ((tag ("OBMAG_MIXBIGINT"))) u_mixbigint;
   struct basilysreal_st GTY ((tag ("OBMAG_REAL"))) u_real;
   struct basilyspair_st GTY ((tag ("OBMAG_PAIR"))) u_pair;
   struct basilystriple_st GTY ((tag ("OBMAG_TRIPLE"))) u_triple;
@@ -1614,15 +1630,26 @@ basilys_imod (long i, long j)
 basilys_ptr_t
 basilysgc_new_mixint (basilysobject_ptr_t discr_p, basilys_ptr_t val_p,
 		      long num);
+/* allocate a boxed mixed location */
 basilys_ptr_t
 basilysgc_new_mixloc (basilysobject_ptr_t discr_p, basilys_ptr_t val_p,
 		      long num, location_t loc);
 
+/* get the boxed value of a mixint */
 static inline basilys_ptr_t
 basilys_val_mixint (basilys_ptr_t mix)
 {
   struct basilysmixint_st *smix = (struct basilysmixint_st *) mix;
   if (basilys_magic_discr (mix) == OBMAG_MIXINT)
+    return smix->ptrval;
+  return NULL;
+}
+/* get the boxed value of a mixbigint */
+static inline basilys_ptr_t
+basilys_val_mixbigint (basilys_ptr_t mix)
+{
+  struct basilysmixbigint_st *smix = (struct basilysmixbigint_st *) mix;
+  if (basilys_magic_discr (mix) == OBMAG_MIXBIGINT)
     return smix->ptrval;
   return NULL;
 }
@@ -1664,6 +1691,25 @@ basilys_location_mixloc (basilys_ptr_t mix)
   return (location_t)UNKNOWN_LOCATION;
 }
 
+/* allocate a mixbigint from a GMP biginteger */
+basilys_ptr_t basilysgc_new_mixbigint_mpz (basilysobject_ptr_t discr_p,
+					   basilys_ptr_t val_p, mpz_t mp);
+
+/* fill an mpz from a mixbigint and return true iff ok */
+static inline bool 
+basilys_fill_mpz_from_mixbigint(basilys_ptr_t mix, mpz_t mp)
+{
+  struct basilysmixbigint_st *bmix = (struct basilysmixbigint_st *) mix;
+  if (!bmix || !mp || basilys_magic_discr (mix) != OBMAG_MIXBIGINT)
+    return false;
+  mpz_import (mp, bmix->biglen,
+	      /*most significant word first*/ 1, 
+	      sizeof(bmix->tabig[0]), 
+	      /*native endian*/ 0, 
+	      /*no nails bits*/0, 
+	      bmix->tabig);
+  return true;
+}
 
 /* get (safely) the nth (counting from 0) field of an object */
 static inline basilys_ptr_t
@@ -2332,6 +2378,14 @@ void basilysgc_ppstrbuf_tree(basilys_ptr_t sbuf_p, int indentsp, tree tr);
 /* pretty print into an sbuf a basic_block */
 void basilysgc_ppstrbuf_basicblock(basilys_ptr_t sbuf_p, int indentsp, basic_block bb);
 
+/* pretty print into an sbuf a basic_block */
+void basilysgc_ppstrbuf_mpz(basilys_ptr_t sbuf_p, int indentsp, mpz_t mp);
+
+
+/* pretty print into an sbuf the mpz of a MELT bigint; do nothing if
+   sbuf_p is nto a strbuf or big_p is not a MELT bigint */
+void basilysgc_ppstrbuf_mixbigint(basilys_ptr_t sbuf_p, int indentsp, basilys_ptr_t big_p);
+
 
 /***************** PARMA POLYHEDRA LIBRARY ****************/
 
@@ -2829,6 +2883,8 @@ enum basilys_globalix_en
   BGLOB_DISCR_MAPBASICBLOCKS,
   /* the initial discriminant of stringbuffers */
   BGLOB_DISCR_STRBUF,
+  /* the initial discriminant of mixedbigint */
+  BGLOB_DISCR_MIXBIGINT,
   /**************************** placeholder for last wired */
   BGLOB__LASTWIRED,
   BGLOB___SPARE1,
