@@ -174,7 +174,9 @@
        (debugtree "smallana_cfun_entbb argdtree" argdtree)
        (match 
 	argdtree
-	( ?(tree_parm_decl ?(as ?argdtype ?(tree_integer_type ?typname ?imin ?imax)) ?argdcl ?argname)
+	( ?(tree_parm_decl
+	    ?(as ?argdtype 
+		 ?(tree_integer_type ?typname ?imin ?imax ?isiz)) ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
 	   (debugcstring "smallana_cfun_entbb integer argname" argname)
 	   (debugcstring "smallana_cfun_entbb integer typname" typname)
@@ -624,8 +626,22 @@
 	(debugtree "sman_arithm_compare true branch truelab" truelab)
 	(debuggimple "sman_arithm_compare true branch possible g" g)
 	(debugbasicblock "sman_arithm_compare true branch possible bb" bb)
-	(compile_warning "sman_arithm_compare should find the true branch & interpret it" ())
-	(assert_msg "@$@unimplemented sman_arithm_compare possible true branch" ())
+	(foreach_basicblock_succ_edge 
+	 (bb)
+	 (:edge eg :long eix)
+	 (debugedge "sman_arithm_compare true succedge eg" eg)
+	 (if (edge_for_true_value eg)
+	     (let ( (:basicblock tbb (edge_dest_bb eg)) 
+		    (oldpolyv (get_field :abenv_pplpoly abenv))
+		    )
+	       ;; in the true case, the oldpolyv should be polyv
+	       (assert_msg "check polyv==oldpolyv" (== oldpolyv polyv))
+	       (debugbasicblock "sman_arithm_compare truesucc tbb" tbb)
+	       (debug_msg abenv "sman_arithm_compare true before tbb abenv")
+	       (smaninterp_basicblock sman abenv tbb)
+	       (debug_msg abenv "sman_arithm_compare true after tbb abenv")
+	       ))
+	 )
 	))
     ;; handle the false branch by adding the constraint incompatible with the test
     (debug_msg clonpolyv "sman_arithm_compare clonpolyv before sman_add_cmp_constraint")
@@ -644,14 +660,21 @@
 	 (:edge eg :long eix)
 	 (debugedge "sman_arithm_compare false succedge eg" eg)
 	 (if (edge_for_false_value eg)
-	     (let ( (:basicblock fbb (edge_dest_bb eg)) )
+	     (let ( (:basicblock fbb (edge_dest_bb eg)) 
+		    (oldpolyv (get_field :abenv_pplpoly abenv))
+		    )
 	       (debugbasicblock "sman_arithm_compare falsesucc fbb" fbb)
+	       (put_fields abenv :abenv_pplpoly clonpolyv)
+	       (debug_msg abenv "sman_arithm_compare false updated abenv")
+	       (smaninterp_basicblock sman abenv fbb)
+	       (put_fields abenv :abenv_pplpoly oldpolyv)
+	       (debug_msg abenv "sman_arithm_compare false restored abenv")
 	       ))
 	 )
-	(compile_warning "sman_arithm_compare should find the false branch & interpret it" ())
-	(assert_msg "@$@unimplemented sman_arithm_compare possible false branch" ())
 	))
-    ))
+    )
+  (debug_msg sman "sman_arithm_compare ended sman")
+)
 
 ;;;;;;;;;;;;;;;;
 (defun smaninterp_gimple (sman abenv :gimple g :basicblock bb)
@@ -752,22 +775,65 @@
    ( ?(gimple_cond_true ?truelab ?falselab)
       (debugtree "smaninterp_gimple condtrue truelab" truelab)
       (debugtree "smaninterp_gimple condtrue falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
-					;(assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
+      ;;(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condtrue" 15)
+      (assert_msg "@$@unimplemented smaninterp_gimple condtrue" ())
       )
    ;; handle conditional false
    ( ?(gimple_cond_false ?truelab ?falselab)
       (debugtree "smaninterp_gimple condfalse truelab" truelab)
       (debugtree "smaninterp_gimple condfalse falselab" falselab)
-      (shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
-					;(assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
+      ;;(shortbacktrace_dbg "@$@unimplemented smaninterp_gimple condfalse" 15)
+      (assert_msg "@$@unimplemented smaninterp_gimple condfalse" ())
       )
+   ;; handle single assign
+   ( ?(gimple_assign_single ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_single lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_single rhs" rhs)
+      (debuggimple "unimplemented smaninterp_gimple assign_single g" g)
+      (assert_msg "@$@unimplemented smaninterp_gimple singleassign" ())
+      )
+   ;; handle cast assign
+   ( ?(gimple_assign_cast ?lhs ?rhs)
+      (debugtree "smallana_gimple gimple_assign_cast lhs" lhs)
+      (debugtree "smallana_gimple gimple_assign_cast rhs" rhs)
+      (let ( (:tree lhstype (tree_type lhs))
+	     (:tree rhstype (tree_type rhs))
+	     (:long widenningcast 0)
+	     )
+	(debugtree "smallana_gimple gimple_assign_cast lhstype" lhstype)
+	(debugtree "smallana_gimple gimple_assign_cast rhstype" rhstype)
+	(match 
+	 rhstype
+	 ( ?(tree_integer_type ?rname ?rmin ?rmax ?rsize)
+	    (match 
+	     lhstype
+	     ( ?(tree_integer_type ?lname ?lmin ?lmax ?lsize)
+		(if (and (<=i lmin rmin)
+			 (>=i lmax rmax)
+			 (>=i lsize rsize))
+		    (setq widenningcast 1))
+		)
+	    )))	 
+	(if widenningcast
+	    (progn
+	    (assert_msg "@$@unimplemented smaninterp_gimple widenningcast" ())
+	      )
+	  (progn
+	    (assert_msg "@$@unimplemented smaninterp_gimple non widenningcast" ())
+	    ))
+	(debuggimple "unimplemented smaninterp_gimple assign_cast g" g)
+	(assert_msg "@$@unimplemented smaninterp_gimple castassign" ())
+	))
    ;; default 
    (?_ 
+    (debuggimple "unimplemented smaninterp_gimple g" g)
     (assert_msg "@$@unimplemented smaninterp_gimple" ()))
    )
   )
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun smallana_interpret (sman)
   (debug_msg sman "smallana_interpret sman")
   (assert_msg "check sman" (is_a sman class_smallanalysis))

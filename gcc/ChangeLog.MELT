@@ -1,3 +1,10 @@
+2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	Big boxed integers are probably needed
+	* melt/ana-base.melt: added tree_type primitive. We really need
+	big boxed integers ... added size in tree_integer_type cmatcher.
+	* melt/ana-simple.melt: completed sman_arithm_compare.
+	gimple_assign_cast handling in smallana_gimple need big boxed integers.
+
 2009-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/ana-base.melt: added debugedge edge_dest_bb
 	edge_for_false_value edge_for_true_value edge_src_bb.

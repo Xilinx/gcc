@@ -619,6 +619,8 @@
   $msg );
   }# )
 
+(defprimitive tree_type (:tree tr) :tree
+  #{(($tr)?TREE_TYPE($tr):NULL)}#)
 
 
 ;;;;;;;;;;;;;;;;
@@ -723,26 +725,31 @@
   (:tree tr)
   (					;output
    :cstring name
-   :long min max
+	    ;;; @@@@ INCORRECT should use bigger boxed integers
+   :long min max size
    )
   treeinty				;statesym
   ;; test expander
    #{ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
   ;; fill expander
    #{
-   tree $treeinty#_ty=TYPE_NAME($tr);
-   tree $treeinty#_mint=TYPE_MIN_VALUE($tr);
-   tree $treeinty#_maxt=TYPE_MAX_VALUE($tr);
-   $min = 0L; 
-   $max = 0L;
+   tree $treeinty#_ty= TYPE_NAME($tr);
+   tree $treeinty#_mint= TYPE_MIN_VALUE($tr);
+   tree $treeinty#_maxt= TYPE_MAX_VALUE($tr);
+   tree $treeinty#_sizt= TYPE_SIZE($tr);
+   $min = 0L;  $max = 0L;  $size = 0L;
    if ($treeinty#_ty && TREE_CODE($treeinty#_ty) == IDENTIFIER_NODE)
    $name = IDENTIFIER_POINTER($treeinty#_ty);
    if ($treeinty#_mint && TREE_CODE($treeinty#_mint) == INTEGER_CST)
      $min = tree_low_cst($treeinty#_mint,0);
    if ($treeinty#_maxt && TREE_CODE($treeinty#_maxt) == INTEGER_CST)
      $max = tree_low_cst($treeinty#_maxt,0);
+   if ($treeinty#_sizt && TREE_CODE($treeinty#_sizt) == INTEGER_CST)
+     $size = tree_low_cst($treeinty#_sizt,0);
    }# )
 
+;;;; TODO
+(compile_warning "bigger boxed integers are needed for tree_integer_type" ())
 
 ;;; pattern tree_integer_cst
 (defcmatcher tree_integer_cst
@@ -1669,6 +1676,7 @@
  tree_integer_type
  tree_parm_decl
  tree_ssa_name 
+ tree_type
  tree_variable_decl
 )
 
