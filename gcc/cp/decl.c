@@ -812,7 +812,7 @@ walk_namespaces (walk_namespaces_fn f, void* data)
    wrapup_global_declarations for this NAMESPACE.  */
 
 int
-wrapup_globals_for_namespace (tree name_space, void* data)
+wrapup_globals_for_namespace (tree name_space, void *data)
 {
   struct cp_binding_level *level = NAMESPACE_LEVEL (name_space);
   VEC(tree,gc) *statics = level->static_decls;
@@ -2015,6 +2015,7 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
   else if (TREE_CODE (newdecl) == NAMESPACE_DECL)
     NAMESPACE_LEVEL (newdecl) = NAMESPACE_LEVEL (olddecl);
 
+
   /* Now preserve various other info from the definition.  */
   TREE_ADDRESSABLE (newdecl) = TREE_ADDRESSABLE (olddecl);
   TREE_ASM_WRITTEN (newdecl) = TREE_ASM_WRITTEN (olddecl);
@@ -2154,6 +2155,17 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
   /* The NEWDECL will no longer be needed.  Because every out-of-class
      declaration of a member results in a call to duplicate_decls,
      freeing these nodes represents in a significant savings.  */
+  {
+    tree clone;
+    /* fix dangling reference  */
+    FOR_EACH_CLONE (clone, newdecl)
+      {
+        if (DECL_CLONED_FUNCTION (clone) == newdecl)
+          DECL_CLONED_FUNCTION (clone) = NULL;
+        if (DECL_ABSTRACT_ORIGIN (clone) == newdecl)
+          DECL_ABSTRACT_ORIGIN (clone) = NULL;
+      }
+  }
   ggc_free (newdecl);
 
   return olddecl;
@@ -5231,6 +5243,9 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   /* Handle non-variables up front.  */
   if (TREE_CODE (decl) != VAR_DECL)
     {
+      /* capture the current module info.  */
+      if (L_IPO_COMP_MODE)
+        cgraph_node (decl);
       rest_of_decl_compilation (decl, toplev, at_eof);
       return;
     }
@@ -5281,6 +5296,10 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   else if (DECL_LANG_SPECIFIC (decl)
 	   && DECL_IMPLICIT_INSTANTIATION (decl))
     defer_p = 1;
+
+  /* capture the current module info.  */
+  if (L_IPO_COMP_MODE)
+    varpool_node (decl);
 
   /* If we're not deferring, go ahead and assemble the variable.  */
   if (!defer_p)
@@ -12192,7 +12211,7 @@ finish_function (int flags)
 
   if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fndecl)
       && DECL_VIRTUAL_P (fndecl)
-      && !processing_template_decl)
+      && !processing_template_decl) 
     {
       tree fnclass = DECL_CONTEXT (fndecl);
       if (fndecl == CLASSTYPE_KEY_METHOD (fnclass))

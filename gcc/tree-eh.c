@@ -1962,7 +1962,11 @@ make_eh_edge (struct eh_region *region, void *data)
   src = gimple_bb (stmt);
   dst = label_to_block (lab);
 
-  make_edge (src, dst, EDGE_EH);
+  /* ??? unreachable eh region cleanup may not
+     happen before early inlining. This can lead
+     to NULL dst returned.   */
+  if (dst) 
+    make_edge (src, dst, EDGE_EH);
 }
 
 /* See if STMT is call that might be inlined.  */
@@ -2081,6 +2085,10 @@ mark_eh_edge (struct eh_region *region, void *data)
 
   src = gimple_bb (stmt);
   dst = label_to_block (lab);
+
+  /* ??? unreachable eh region not removed. */ 
+  if (!dst) 
+    return;  
 
   e = find_edge (src, dst);
   if (!e)

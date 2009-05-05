@@ -692,4 +692,20 @@ extern bool c_cpp_error (cpp_reader *, int, location_t, unsigned int,
 			 const char *, va_list *)
      ATTRIBUTE_GCC_CDIAG(5,0);
 
+/* LIPO support.  */
+
+int c_get_lang_decl_size (tree t);
+void c_lipo_dup_lang_type (tree src, tree dest);
+void c_lipo_copy_lang_type (tree src, tree dest);
+int c_is_global_scope (tree decl, void *scope);
+void c_clear_name_bindings (tree id);
+void c_add_built_in_decl (tree decl);
+void c_save_built_in_decl_pre_parsing (void);
+void c_restore_built_in_decl_pre_parsing (void);
+void c_save_built_in_decl_post_parsing (void);
+void c_restore_built_in_decl_post_parsing (void);
+int c_is_compiler_generated_type (tree t);
+int c_cmp_lang_type (tree t1, tree t2);
+
+
 #endif /* ! GCC_C_TREE_H */

@@ -420,6 +420,42 @@ add_path (char *path, int chain, int cxx_aware, bool user_supplied_p)
   add_cpp_dir_path (p, chain);
 }
 
+void
+get_include_chains (cpp_dir **quotes, cpp_dir **brackets)
+{
+  *quotes = heads[QUOTE];
+  *brackets = heads[BRACKET];
+}
+
+void
+resync_include_chains (void)
+{
+  cpp_dir *pdir, *ppdir = 0;
+  /* First split quote and bracket chains */
+  pdir = heads[QUOTE];
+  while (pdir && pdir != heads[BRACKET])
+    {
+      ppdir = pdir;
+      pdir = pdir->next;
+    }
+  if (ppdir)
+    ppdir->next = NULL;
+  else
+    heads[0] = NULL;
+
+  /* Now sync tails.  */
+  tails[QUOTE] = heads[QUOTE];
+  if (tails[QUOTE])
+    while (tails[QUOTE]->next)
+      tails[QUOTE] = tails[QUOTE]->next;
+  tails[BRACKET] = heads[BRACKET];
+  if (tails[BRACKET])
+    while (tails[BRACKET]->next)
+      tails[BRACKET] = tails[BRACKET]->next;
+  heads[SYSTEM] = tails[SYSTEM] = NULL;
+  heads[AFTER] = tails[AFTER] = NULL;
+}
+
 /* Exported function to handle include chain merging, duplicate
    removal, and registration with cpplib.  */
 void
@@ -472,4 +508,3 @@ static void hook_void_charptr_charptr_int (const char *sysroot ATTRIBUTE_UNUSED,
 #endif
 
 struct target_c_incpath_s target_c_incpath = { TARGET_EXTRA_PRE_INCLUDES, TARGET_EXTRA_INCLUDES };
-

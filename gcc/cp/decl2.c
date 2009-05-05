@@ -94,10 +94,6 @@ static GTY(()) VEC(tree,gc) *pending_statics;
    may need to emit outline anyway.  */
 static GTY(()) VEC(tree,gc) *deferred_fns;
 
-/* Nonzero if we're done parsing and into end-of-file activities.  */
-
-int at_eof;
-
 
 
 /* Return a member function type (a METHOD_TYPE), given FNTYPE (a
@@ -2706,11 +2702,13 @@ start_static_storage_duration_function (unsigned count)
   tree parm_types;
   tree type;
   tree body;
-  char id[sizeof (SSDF_IDENTIFIER) + 1 /* '\0' */ + 32];
+  char id[sizeof (SSDF_IDENTIFIER) + 1 /* '\0' */ + 64];
 
   /* Create the identifier for this function.  It will be of the form
      SSDF_IDENTIFIER_<number>.  */
   sprintf (id, "%s_%u", SSDF_IDENTIFIER, count);
+  if (IS_AUXILIARY_MODULE)
+    sprintf (id, "%s_%u", id, current_module_id);
 
   /* Create the parameters.  */
   parm_types = void_list_node;
@@ -2760,7 +2758,6 @@ start_static_storage_duration_function (unsigned count)
   TREE_CHAIN (initialize_p_decl) = priority_decl;
   DECL_ARGUMENTS (ssdf_decl) = initialize_p_decl;
 
-  /* Put the function in the global scope.  */
   pushdecl (ssdf_decl);
 
   /* Start the function itself.  This is equivalent to declaring the
@@ -3124,6 +3121,9 @@ prune_vars_needing_no_initialization (tree *vars)
 	  continue;
 	}
 
+      gcc_assert (!IS_AUXILIARY_MODULE 
+                  || varpool_node (decl)->auxiliary);
+
       /* This variable is going to need initialization and/or
 	 finalization, so we add it to the list.  */
       *var = TREE_CHAIN (t);
@@ -3324,53 +3324,21 @@ build_java_method_aliases (void)
     }
 }
 
-/* This routine is called at the end of compilation.
-   Its job is to create all the code needed to initialize and
-   destroy the global aggregates.  We do the destruction
-   first, since that way we only need to reverse the decls once.  */
+void
+cp_clear_deferred_fns (void)
+{
+  VEC_free (tree, gc, deferred_fns);
+  keyed_classes = NULL;
+}
 
 void
-cp_write_global_declarations (void)
+cp_process_pending_declarations (location_t locus)
 {
-  tree vars;
+  tree vars, decl;
   bool reconsider;
   size_t i;
-  location_t locus;
   unsigned ssdf_count = 0;
   int retries = 0;
-  tree decl;
-
-  locus = input_location;
-  at_eof = 1;
-
-  /* Bad parse errors.  Just forget about it.  */
-  if (! global_bindings_p () || current_class_type || decl_namespace_list)
-    return;
-
-  if (pch_file)
-    c_common_write_pch ();
-
-  /* FIXME - huh?  was  input_line -= 1;*/
-
-  /* We now have to write out all the stuff we put off writing out.
-     These include:
-
-       o Template specializations that we have not yet instantiated,
-	 but which are needed.
-       o Initialization and destruction for non-local objects with
-	 static storage duration.  (Local objects with static storage
-	 duration are initialized when their scope is first entered,
-	 and are cleaned up via atexit.)
-       o Virtual function tables.
-
-     All of these may cause others to be needed.  For example,
-     instantiating one function may cause another to be needed, and
-     generating the initializer for an object may cause templates to be
-     instantiated, etc., etc.  */
-
-  timevar_push (TV_VARCONST);
-
-  emit_support_tinfos ();
 
   do
     {
@@ -3583,6 +3551,25 @@ cp_write_global_declarations (void)
     }
   while (reconsider);
 
+
+  if (IS_AUXILIARY_MODULE)
+    {
+      tree fndecl;
+      int i;
+      gcc_assert (flag_dyn_ipa && L_IPO_COMP_MODE);
+
+      /* Do some cleanup -- we do not really need static init function
+         to be created for auxiliary modules -- they are created to keep
+         funcdef_no to be consistent between profile use and profile gen.  */
+      for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
+         {
+           TREE_STATIC (fndecl) = 0;
+           DECL_INITIAL (fndecl) = 0;
+         }
+      ssdf_decls = NULL;
+      return;
+    }
+
   /* All used inline functions must have a definition at this point.  */
   for (i = 0; VEC_iterate (tree, deferred_fns, i, decl); ++i)
     {
@@ -3622,7 +3609,10 @@ cp_write_global_declarations (void)
 
   /* We're done with the splay-tree now.  */
   if (priority_info_map)
-    splay_tree_delete (priority_info_map);
+    {
+      splay_tree_delete (priority_info_map);
+      priority_info_map = NULL;
+    }
 
   /* Generate any missing aliases.  */
   maybe_apply_pending_pragma_weaks ();
@@ -3631,7 +3621,64 @@ cp_write_global_declarations (void)
      linkage now.  */
   pop_lang_context ();
 
+  ssdf_decls = NULL;
+}
+
+/* This routine is called at the end of compilation.
+   Its job is to create all the code needed to initialize and
+   destroy the global aggregates.  We do the destruction
+   first, since that way we only need to reverse the decls once.  */
+
+void
+cp_write_global_declarations (void)
+{
+  bool reconsider = false;
+  location_t locus;
+
+  at_eof = 1;
+
+  /* Bad parse errors.  Just forget about it.  */
+  if (! global_bindings_p () || current_class_type || decl_namespace_list)
+    return;
+
+  locus = input_location;
+
+  if (pch_file)
+    c_common_write_pch ();
+
+  /* FIXME - huh?  was  input_line -= 1;*/
+
+  /* We now have to write out all the stuff we put off writing out.
+     These include:
+
+       o Template specializations that we have not yet instantiated,
+	 but which are needed.
+       o Initialization and destruction for non-local objects with
+	 static storage duration.  (Local objects with static storage
+	 duration are initialized when their scope is first entered,
+	 and are cleaned up via atexit.)
+       o Virtual function tables.
+
+     All of these may cause others to be needed.  For example,
+     instantiating one function may cause another to be needed, and
+     generating the initializer for an object may cause templates to be
+     instantiated, etc., etc.  */
+
+  timevar_push (TV_VARCONST);
+
+  emit_support_tinfos ();
+
+  if (!L_IPO_COMP_MODE)
+    cp_process_pending_declarations (locus);
+
+  /* Perform linking before cgraph build.  */
+  cgraph_do_link ();
   cgraph_finalize_compilation_unit ();
+  /* Perform linking before inlinling.  */
+  varpool_do_link ();
+  /* Recognize equivalent types across modules and
+     merge their alias sets.  */
+  cgraph_unify_type_alias_sets ();
   cgraph_optimize ();
 
   /* Now, issue warnings about static, but not defined, functions,

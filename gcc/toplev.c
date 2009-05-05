@@ -382,6 +382,15 @@ const char *dump_file_name;
 
 static const char *src_pwd;
 
+/* Primary module's id (non-zero). If no module-info was read in, this will
+   be zero.  */
+
+unsigned primary_module_id = 0;
+
+/* Current module id.  */
+
+unsigned current_module_id = 0;
+
 /* Initialize src_pwd with the given string, and return true.  If it
    was already initialized, return false.  As a special case, it may
    be called with a NULL argument to test whether src_pwd has NOT been
@@ -967,7 +976,7 @@ compile_file (void)
 
   init_cgraph ();
   init_final (main_input_filename);
-  coverage_init (aux_base_name);
+  coverage_init (aux_base_name, main_input_filename);
   statistics_init ();
 
   timevar_push (TV_PARSE);
@@ -992,6 +1001,9 @@ compile_file (void)
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
+
+  if (flag_dyn_ipa)
+    coverage_finish ();
 
   /* Likewise for mudflap static object registrations.  */
   if (flag_mudflap)

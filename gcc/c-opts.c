@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
@@ -40,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "mkdeps.h"
 #include "target.h"
 #include "tm_p.h"
+#include "function.h"
 #include "c-tree.h"		/* For c_cpp_error.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
@@ -984,6 +986,8 @@ c_common_handle_option (size_t scode, const char *arg, int value)
       flag_undef = 1;
       break;
 
+      break;
+
     case OPT_v:
       verbose = true;
       break;
@@ -1239,6 +1243,8 @@ c_common_init (void)
   return true;
 }
 
+extern void set_parsing_context (struct cpp_reader*, int, bool);
+
 /* Initialize the integrated preprocessor after debug output has been
    initialized; loop over each input file.  */
 void
@@ -1275,6 +1281,7 @@ c_common_parse_file (int set_yydebug)
 	(*debug_hooks->start_source_file) (0, this_input_filename);
       finish_options ();
       pch_init ();
+      set_parsing_context (parse_in, i, verbose);
       push_file_scope ();
       c_parse_file ();
       finish_file ();
@@ -1484,6 +1491,8 @@ add_prefixed_path (const char *suffix, size_t chain)
   add_path (path, chain, 0, false);
 }
 
+extern void coverage_note_define (const char *cpp_def, bool is_def);
+
 /* Handle -D, -U, -A, -imacros, and the first -include.  */
 static void
 finish_options (void)
@@ -1519,9 +1528,15 @@ finish_options (void)
 	  struct deferred_opt *opt = &deferred_opts[i];
 
 	  if (opt->code == OPT_D)
-	    cpp_define (parse_in, opt->arg);
+	    {
+	      cpp_define (parse_in, opt->arg);
+	      coverage_note_define (opt->arg, true);
+	    }
 	  else if (opt->code == OPT_U)
-	    cpp_undef (parse_in, opt->arg);
+	    {
+	      cpp_undef (parse_in, opt->arg);
+	      coverage_note_define (opt->arg, false);
+	    }
 	  else if (opt->code == OPT_A)
 	    {
 	      if (opt->arg[0] == '-')

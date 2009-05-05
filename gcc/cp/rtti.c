@@ -420,7 +420,8 @@ get_tinfo_decl (tree type)
 	CLASSTYPE_TYPEINFO_VAR (TYPE_MAIN_VARIANT (type)) = d;
 
       /* Add decl to the global array of tinfo decls.  */
-      VEC_safe_push (tree, gc, unemitted_tinfo_decls, d);
+      if (!IS_AUXILIARY_MODULE)
+        VEC_safe_push (tree, gc, unemitted_tinfo_decls, d);
     }
 
   return d;
@@ -1175,6 +1176,9 @@ create_pseudo_type_info (int tk, const char *real_name, ...)
   /* Create the pseudo type.  */
   pseudo_type = make_class_type (RECORD_TYPE);
   finish_builtin_struct (pseudo_type, pseudo_name, fields, NULL_TREE);
+  /* Support for lightweight IPO.  */
+  cp_add_built_in_decl (pseudo_type);
+
   CLASSTYPE_AS_BASE (pseudo_type) = pseudo_type;
 
   ti = VEC_index (tinfo_s, tinfo_descs, tk);
@@ -1337,6 +1341,8 @@ create_tinfo_types (void)
     ti->name = NULL_TREE;
     finish_builtin_struct (ti->type, "__type_info_pseudo",
 			   fields, NULL_TREE);
+    /* Support for lightweight IPO. */
+    cp_add_built_in_decl (ti->type);
   }
 
   /* Fundamental type_info */
@@ -1375,6 +1381,8 @@ create_tinfo_types (void)
     ti->name = NULL_TREE;
     finish_builtin_struct (ti->type, "__base_class_type_info_pseudo",
 			   fields, NULL_TREE);
+    /* Support for lightweight IPO. */
+    cp_add_built_in_decl (ti->type);
   }
 
   /* Pointer type_info. Adds two fields, qualification mask

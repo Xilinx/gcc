@@ -3053,6 +3053,13 @@ mangle_conv_op_name_for_type (const tree type)
   return identifier;
 }
 
+/* Clear the conversion map.  */
+void
+cp_clear_conv_type_map (void)
+{
+  conv_type_names = NULL;
+}
+
 /* Return an identifier for the name of an initialization guard
    variable for indicated VARIABLE.  */
 

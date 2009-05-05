@@ -30,6 +30,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "intl.h"
 #include "gimple.h"
+#include "toplev.h"
+#include "gcov-io.h"
+#include "coverage.h"
 #include "tree-pass.h"
 
 /* Walk tree and record all calls and references to functions/variables.
@@ -96,6 +99,103 @@ compute_call_stmt_bb_frequency (basic_block bb)
   return freq;
 }
 
+
+int cgraph_need_artificial_indirect_call_edges = 1;
+
+bool cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e)
+{
+ return !e->call_stmt && e->indirect_call;
+}
+
+/* After the early_inline_1 before value profile transformation, 
+   functions that are indirect call targets may have their bodies
+   removed (extern inline functions or functions from aux modules,
+   functions in comdat etc) if all direct callsites are inlined. This
+   will lead to missing inline opportunities after profile based 
+   indirect call promotion. The solution is to add fake edges to
+   indirect call targets. Note that such edges are not associated 
+   with actual indirect call sites because it is not possible to 
+   reliably match pre-early-inline indirect callsites with indirect
+   call profile counters which are from post-early inline function body.  */
+
+static void
+add_fake_indirect_call_edges (struct cgraph_node *node)
+{
+  unsigned n_counts, i;
+  gcov_type *ic_counts;
+
+  /* Enable this only for LIPO for now.  */
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  if (!cgraph_need_artificial_indirect_call_edges)
+    return;
+
+  ic_counts 
+      = get_coverage_counts_no_warn (DECL_STRUCT_FUNCTION (node->decl),
+                                     GCOV_COUNTER_ICALL_TOPNV, &n_counts);
+
+  if (!ic_counts)
+    return;
+
+  gcc_assert ((n_counts % GCOV_ICALL_TOPN_NCOUNTS) == 0);
+
+
+  for (i = 0; i < n_counts;
+       i += GCOV_ICALL_TOPN_NCOUNTS, ic_counts += GCOV_ICALL_TOPN_NCOUNTS)
+    {
+      gcov_type val1, val2, count1, count2;
+      struct cgraph_node *direct_call1 = 0, *direct_call2 = 0;
+
+      val1 = ic_counts[1];
+      count1 = ic_counts[2];
+      val2 = ic_counts[3];
+      count2 = ic_counts[4];
+
+      if (val1 == 0 || count1 == 0)
+        continue;
+
+      direct_call1 = find_func_by_global_id (val1);
+      if (direct_call1)
+        {
+          struct cgraph_edge *e;
+          tree decl = direct_call1->decl;
+          e = cgraph_create_edge (node, cgraph_real_node (decl), NULL,
+                                  count1, 0, 0);
+          e->indirect_call = 1;
+        }
+
+      if (val2 == 0 || count2 == 0)
+        continue;
+      direct_call2 = find_func_by_global_id (val2);
+      if (direct_call2)
+        {
+          struct cgraph_edge *e;
+          tree decl = direct_call2->decl;
+          e = cgraph_create_edge (node, cgraph_real_node (decl), NULL,
+                                  count2, 0, 0);
+          e->indirect_call = 1;
+        }
+    }
+}
+
+/* This can be implemented as an IPA pass that must be first one 
+   before any unreachable node elimination. */
+void
+cgraph_add_fake_indirect_call_edges (void)
+{
+  struct cgraph_node *node;
+  /* Enable this only for LIPO for now.  */
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      if (node->analyzed && (node->needed || node->reachable))
+        add_fake_indirect_call_edges (node);
+    }
+}
+
 /* Create cgraph edges for function calls.
    Also look for functions and variables having addresses taken.  */
 
@@ -120,7 +220,7 @@ build_cgraph_edges (void)
 	  {
 	    size_t i;
 	    size_t n = gimple_call_num_args (stmt);
-	    cgraph_create_edge (node, cgraph_node (decl), stmt,
+	    cgraph_create_edge (node, cgraph_real_node (decl), stmt,
 				bb->count, compute_call_stmt_bb_frequency (bb),
 				bb->loop_depth);
 	    for (i = 0; i < n; i++)
@@ -154,6 +254,7 @@ build_cgraph_edges (void)
 	      }
 	  }
       }
+
 
   /* Look for initializers of constant variables and private statics.  */
   for (step = cfun->local_decls;
@@ -223,11 +324,14 @@ rebuild_cgraph_edges (void)
 	tree decl;
 
 	if (is_gimple_call (stmt) && (decl = gimple_call_fndecl (stmt)))
-	  cgraph_create_edge (node, cgraph_node (decl), stmt,
+	  cgraph_create_edge (node, cgraph_real_node (decl), stmt,
 			      bb->count, compute_call_stmt_bb_frequency (bb),
 			      bb->loop_depth);
 
       }
+
+  add_fake_indirect_call_edges (node);
+
   gcc_assert (!node->global.inlined_to);
 
   return 0;

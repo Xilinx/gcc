@@ -1026,6 +1026,12 @@ ipcp_update_profiling (void)
 	  scale = ipcp_get_node_scale (orig_node);
 	  node->count = orig_node->count * scale / REG_BR_PROB_BASE;
 	  scale_complement = REG_BR_PROB_BASE - scale;
+          /* TODO: the sum of incoming edges may be larger than
+             the count of the callee -- possibly due to race condition.
+             When this happens, negative count may result.  For some
+             reason, this happens more frequently with LIPO turned on. */
+          if (scale_complement < 0)
+            scale_complement = 0;
 	  orig_node->count =
 	    orig_node->count * scale_complement / REG_BR_PROB_BASE;
 	  for (cs = node->callees; cs; cs = cs->next_callee)

@@ -22128,14 +22128,6 @@ void
 c_parse_file (void)
 {
   bool error_occurred;
-  static bool already_called = false;
-
-  if (already_called)
-    {
-      sorry ("inter-module optimizations not implemented for C++");
-      return;
-    }
-  already_called = true;
 
   the_parser = cp_parser_new ();
   push_deferring_access_checks (flag_access_control

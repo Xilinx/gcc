@@ -45,6 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "toplev.h"
 #include "pointer-set.h"
+#include "langhooks.h"
+#include "params.h"
 
 static struct value_prof_hooks *value_prof_hooks;
 
@@ -301,6 +303,10 @@ dump_histogram_value (FILE *dump_file, histogram_value hist)
 	}
       fprintf (dump_file, ".\n");
       break;
+    case HIST_TYPE_INDIR_CALL_TOPN:
+      fprintf (dump_file, "Indirect call -- top N\n");
+      /* TODO add more elaborate dumping code.  */
+      break;
    }
 }
 
@@ -484,6 +490,62 @@ check_counter (gimple stmt, const char * name,
   return false;
 }
 
+static bool
+check_ic_counter (gimple stmt, gcov_type *count1, gcov_type *count2, gcov_type all)
+{
+  location_t locus;
+  if (*count1 > all && flag_profile_correction)
+    {
+      locus = (stmt != NULL)
+              ? gimple_location (stmt)
+              : DECL_SOURCE_LOCATION (current_function_decl);
+      inform (locus, "Correcting inconsistent value profile: "
+              "ic (topn) profiler top target count (%lld) exceeds "
+	      "BB count (%lld)", *count1, all);
+      *count1 = all;
+    }
+  if (*count2 > all && flag_profile_correction)
+    {
+      locus = (stmt != NULL)
+              ? gimple_location (stmt)
+              : DECL_SOURCE_LOCATION (current_function_decl);
+      inform (locus, "Correcting inconsistent value profile: "
+              "ic (topn) profiler second target count (%lld) exceeds "
+	      "BB count (%lld)", *count2, all);
+      *count2 = all;
+    }
+  
+  if (*count2 > *count1)
+    {
+      locus = (stmt != NULL)
+              ? gimple_location (stmt)
+              : DECL_SOURCE_LOCATION (current_function_decl);
+      inform (locus, "Corrupted topn ic value profile: "
+	      "first target count (%lld) is less than the second "
+	      "target count (%lld)", *count1, *count2);
+      return true;
+    }
+
+  if (*count1 + *count2 > all)
+    {
+      /* If (COUNT1 + COUNT2) is greater than ALL by less than around 10% then
+	 just fix COUNT2 up so that (COUNT1 + COUNT2) equals ALL.  */
+      if ((*count1 + *count2 - all) < (all >> 3))
+	*count2 = all - *count1;
+      else
+	{
+	  locus = (stmt != NULL)
+	    ? gimple_location (stmt)
+	    : DECL_SOURCE_LOCATION (current_function_decl);
+	  inform (locus, "Corrupted topn ic value profile: top two targets's"
+		  " total count (%lld) exceeds bb count (%lld)",
+		  *count1 + *count2, all);
+	  return true;
+	}
+    }
+  return false;
+}
+
 
 /* GIMPLE based transformations. */
 
@@ -539,6 +601,14 @@ gimple_value_profile_transformations (void)
   if (changed)
     {
       counts_to_freqs ();
+      /* value profile transformations may change inline parameters
+         a lot (e.g., indirect call promotion introduces new direct calls).
+         The update is also needed to avoid compiler ICE -- when MULTI target icall
+         promotion happens, the caller's size may become negative when the promoted
+         direct calls get promoted.  */
+      /* Guard this for LIPO for now.  */
+      if (L_IPO_COMP_MODE)
+        compute_inline_parameters (cgraph_node (current_function_decl));
     }
 
   return changed;
@@ -1072,11 +1142,136 @@ init_pid_map (void)
 /* Return cgraph node for function with pid */
 
 static inline struct cgraph_node*
-find_func_by_pid (int	pid)
+find_func_by_pid (int pid)
 {
   init_pid_map ();
 
   return pid_map [pid];
+}
+
+
+/* Initialize map of gids (gid -> cgraph node) */
+
+static htab_t gid_map = NULL;
+
+typedef struct func_gid_entry
+{
+  struct cgraph_node *node;
+  unsigned HOST_WIDE_INT gid;
+} func_gid_entry_t;
+
+static hashval_t 
+htab_gid_hash (const void * ent)
+{
+  const func_gid_entry_t *const entry = (const func_gid_entry_t *) ent;
+  return entry->gid;
+}
+
+static int
+htab_gid_eq (const void *ent1, const void * ent2)
+{
+  const func_gid_entry_t *const entry1 = (const func_gid_entry_t *) ent1;
+  const func_gid_entry_t *const entry2 = (const func_gid_entry_t *) ent2;
+  return entry1->gid == entry2->gid;
+}
+
+static void
+htab_gid_del (void *ent)
+{
+  func_gid_entry_t *const entry = (func_gid_entry_t *) ent;
+  free (entry);
+}
+
+static void
+init_gid_map (void)
+{
+  struct cgraph_node *n;
+
+  gcc_assert (!gid_map);
+
+  gid_map
+      = htab_create (10, htab_gid_hash, htab_gid_eq, htab_gid_del);
+
+  for (n = cgraph_nodes; n; n = n->next)
+    {
+      func_gid_entry_t ent, *entp;
+      func_gid_entry_t **slot;
+      struct function *f;
+      ent.node = n;
+      f = DECL_STRUCT_FUNCTION (n->decl);
+      /* Do not care to icall promote a function without body.  */
+      if (!f || DECL_ABSTRACT (n->decl))
+        continue;
+      /* The global function id computed at profile-use time
+       * is slightly different from the one computed in
+       * instrumentation runtime -- for the latter, the intra-
+       * module function ident is 1 based while in profile-use
+       * phase, it is zero based. See get_next_funcdef_no in
+       * function.c */
+
+      ent.gid = FUNC_DECL_GLOBAL_ID (DECL_STRUCT_FUNCTION (n->decl));
+      slot = (func_gid_entry_t **)htab_find_slot
+          (gid_map, &ent, INSERT);
+
+      gcc_assert (!*slot || ((*slot)->gid == ent.gid && (*slot)->node == n));
+      if (!*slot)
+        {
+          *slot = entp = XCNEW (func_gid_entry_t);
+          entp->node = n;
+          entp->gid = ent.gid;
+        }
+    }
+}
+
+void
+cgraph_init_gid_map (void)
+{
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  init_gid_map ();
+}
+
+/* Return cgraph node for function with global id.  */
+
+struct cgraph_node *
+find_func_by_global_id (unsigned HOST_WIDE_INT gid)
+{
+  func_gid_entry_t ent, *entp;
+
+  gcc_assert (gid_map);
+
+  ent.node = NULL;
+  ent.gid = gid;
+  entp = (func_gid_entry_t *)htab_find (gid_map, &ent);
+  if (entp)
+    return entp->node;
+  return NULL;
+}
+
+/* Perform sanity check on the indirect call target. Due to race conditions,
+   false function target may be attributed to an indirect call site. If the
+   call expression type mismatches with the target function's type, expand_call
+   may ICE. Here we only do very minimal sanity check just to make compiler happy.
+   Returns true if TARGET is considered ok for call CALL_EXPR.  */
+
+static bool
+check_ic_target (tree call_expr, struct cgraph_node *target)
+{
+  tree tgt_decl;
+  /* Return types.  */
+  tree icall_type, tgt_type; 
+
+  tgt_decl = target->decl;
+  tgt_type = TREE_TYPE (TREE_TYPE (tgt_decl));
+
+  icall_type = TREE_TYPE (call_expr);
+  if (POINTER_TYPE_P (icall_type))
+    icall_type = TREE_TYPE (icall_type);
+  icall_type = TREE_TYPE (icall_type);
+
+  return (TREE_CODE (icall_type) == TREE_CODE (tgt_type)
+          && TYPE_MODE (icall_type) == TYPE_MODE (tgt_type));
 }
 
 /* Do transformation
@@ -1168,6 +1363,7 @@ gimple_ic (gimple stmt, gimple call, struct cgraph_node *direct_call,
   return stmt1;
 }
 
+
 /*
   For every checked indirect/virtual call determine if most common pid of
   function/class method has probability more than 50%. If yes modify code of
@@ -1175,26 +1371,12 @@ gimple_ic (gimple stmt, gimple call, struct cgraph_node *direct_call,
  */
 
 static bool
-gimple_ic_transform (gimple stmt)
+gimple_ic_transform_single_targ (gimple stmt, histogram_value histogram)
 {
-  histogram_value histogram;
   gcov_type val, count, all, bb_all;
   gcov_type prob;
-  tree callee;
   gimple modify;
   struct cgraph_node *direct_call;
-  
-  if (gimple_code (stmt) != GIMPLE_CALL)
-    return false;
-
-  callee = gimple_call_fn (stmt);
-
-  if (TREE_CODE (callee) == FUNCTION_DECL)
-    return false;
-
-  histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_INDIR_CALL);
-  if (!histogram)
-    return false;
 
   val = histogram->hvalue.counters [0];
   count = histogram->hvalue.counters [1];
@@ -1221,6 +1403,9 @@ gimple_ic_transform (gimple stmt)
   if (direct_call == NULL)
     return false;
 
+  if (!check_ic_target (gimple_call_fn (stmt), direct_call))
+    return false;
+
   modify = gimple_ic (stmt, stmt, direct_call, prob, count, all);
 
   if (dump_file)
@@ -1238,6 +1423,168 @@ gimple_ic_transform (gimple stmt)
     }
 
   return true;
+}
+
+static bool
+gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
+{
+  gcov_type val1, val2, count1, count2, all, bb_all;
+  gcov_type prob1, prob2;
+  gimple modify1, modify2;
+  struct cgraph_node *direct_call1 = 0, *direct_call2 = 0;
+  int perc_threshold, count_threshold, always_inline;
+  location_t locus;
+
+  val1 = histogram->hvalue.counters [1];
+  count1 = histogram->hvalue.counters [2];
+  val2 = histogram->hvalue.counters [3];
+  count2 = histogram->hvalue.counters [4];
+  bb_all = gimple_bb (stmt)->count;
+  all = bb_all;
+
+  gimple_remove_histogram_value (cfun, stmt, histogram);
+
+  if (count1 == 0)
+    return false;
+
+  perc_threshold = PARAM_VALUE (PARAM_ICALL_PROMOTE_PERCENT_THRESHOLD);
+  count_threshold = PARAM_VALUE (PARAM_ICALL_PROMOTE_COUNT_THRESHOLD);
+  always_inline = PARAM_VALUE (PARAM_ALWAYS_INLINE_ICALL_TARGET);
+
+  if (100 * count1 < all * perc_threshold || count1 < count_threshold)
+    return false;
+
+  if (check_ic_counter (stmt, &count1, &count2, all))
+    return false;
+
+  if (all > 0)
+    {
+      prob1 = (count1 * REG_BR_PROB_BASE + all / 2) / all;
+      if (all - count1 > 0)
+        prob2 = (count2 * REG_BR_PROB_BASE
+                 + (all - count1) / 2) / (all - count1);
+      else
+        prob2 = 0;
+    }
+  else
+    prob1 = prob2 = 0;
+
+  direct_call1 = find_func_by_global_id (val1);
+
+  if (val2 && (100 * count2 >= all * perc_threshold)
+      && count2 > count_threshold)
+    direct_call2 = find_func_by_global_id (val2);
+
+  locus = (stmt != NULL) ? gimple_location (stmt)
+      : DECL_SOURCE_LOCATION (current_function_decl);
+  if (direct_call1 == NULL
+      || !check_ic_target (gimple_call_fn (stmt), direct_call1))
+    {
+      if (!direct_call1)
+        inform (locus, "Can not find indirect call target decl "
+                "(%d:%d)[cnt:%u] in current module",
+                EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+                EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+      else
+        inform (locus,
+                "Can not find promote indirect call target decl -- type mismatch "
+                "(%d:%d)[cnt:%u] in current module",
+                EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+                EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+      return false;
+    }
+  else /*DEBUG*/
+    inform (locus, "Found indirect call target"
+            " decl (%d:%d)[cnt:%u] in current module",
+            EXTRACT_MODULE_ID_FROM_GLOBAL_ID (val1),
+            EXTRACT_FUNC_ID_FROM_GLOBAL_ID (val1), (unsigned) count1);
+
+
+  modify1 = gimple_ic (stmt, stmt, direct_call1, prob1, count1, all);
+  inform (locus, "Promote indirect call to target %s",
+          lang_hooks.decl_printable_name (direct_call1->decl, 3));
+  if (always_inline && count1 >= always_inline)
+    {
+      /* TODO: should mark the call edge. */
+      DECL_DISREGARD_INLINE_LIMITS (direct_call1->decl) = 1;
+      direct_call1->local.disregard_inline_limits = 1;
+    }
+  if (dump_file)
+    {
+      fprintf (dump_file, "Indirect call -> direct call ");
+      print_generic_expr (dump_file, gimple_call_fn (stmt), TDF_SLIM);
+      fprintf (dump_file, "=> ");
+      print_generic_expr (dump_file, direct_call1->decl, TDF_SLIM);
+      fprintf (dump_file, " transformation on insn ");
+      print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
+      fprintf (dump_file, " to ");
+      print_gimple_stmt (dump_file, modify1, 0, TDF_SLIM);
+      fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
+	       " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count1, all);
+    }
+
+  if (direct_call2 && check_ic_target (gimple_call_fn (stmt), direct_call2))
+    {
+      modify2 = gimple_ic (stmt, stmt, direct_call2, prob2, count2, all - count1);
+      inform (locus, "Promote indirect call to target %s",
+              lang_hooks.decl_printable_name (direct_call2->decl, 3));
+      if (always_inline && count2 >= always_inline)
+        {
+          /* TODO: should mark the call edge.  */
+          DECL_DISREGARD_INLINE_LIMITS (direct_call2->decl) = 1;
+          direct_call2->local.disregard_inline_limits = 1;
+        }
+      if (dump_file)
+        {
+          fprintf (dump_file, "Indirect call -> direct call ");
+          print_generic_expr (dump_file, gimple_call_fn (stmt), TDF_SLIM);
+          fprintf (dump_file, "=> ");
+          print_generic_expr (dump_file, direct_call2->decl, TDF_SLIM);
+          fprintf (dump_file, " transformation on insn ");
+          print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
+          fprintf (dump_file, " to ");
+          print_gimple_stmt (dump_file, modify2, 0, TDF_SLIM);
+          fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
+                   " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count2, all - count1);
+        }
+    }
+
+  return true;
+}
+
+
+/*
+  For every checked indirect/virtual call determine if most common pid of
+  function/class method has probability more than 50%. If yes modify code of
+  this call to:
+ */
+
+static bool
+gimple_ic_transform (gimple stmt)
+{
+  histogram_value histogram;
+  tree callee;
+  
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return false;
+
+  callee = gimple_call_fn (stmt);
+
+  if (TREE_CODE (callee) == FUNCTION_DECL)
+    return false;
+
+  histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_INDIR_CALL);
+  if (!histogram)
+    {
+      histogram = gimple_histogram_value_of_type (cfun, stmt, HIST_TYPE_INDIR_CALL_TOPN);
+      if (!histogram)
+        return false;
+    }
+
+  if (histogram->type == HIST_TYPE_INDIR_CALL)
+    return gimple_ic_transform_single_targ (stmt, histogram);
+  else
+    return gimple_ic_transform_mult_targ (stmt, histogram);
 }
 
 /* Return true if the stringop CALL with FNDECL shall be profiled.  */
@@ -1576,9 +1923,14 @@ gimple_indirect_call_to_profile (gimple stmt, histogram_values *values)
 
   VEC_reserve (histogram_value, heap, *values, 3);
 
-  VEC_quick_push (histogram_value, *values, 
-		  gimple_alloc_histogram_value (cfun, HIST_TYPE_INDIR_CALL,
-						stmt, callee));
+  if (flag_dyn_ipa)
+    VEC_quick_push (histogram_value, *values, 
+		    gimple_alloc_histogram_value (cfun, HIST_TYPE_INDIR_CALL_TOPN,
+						  stmt, callee));
+  else
+    VEC_quick_push (histogram_value, *values, 
+		    gimple_alloc_histogram_value (cfun, HIST_TYPE_INDIR_CALL,
+						  stmt, callee));
 
   return;
 }
@@ -1672,7 +2024,7 @@ gimple_find_values_to_profile (histogram_values *values)
 	  break;
 
  	case HIST_TYPE_INDIR_CALL:
- 	  hist->n_counters = 3;
+	  hist->n_counters = 3;
 	  break;
 
 	case HIST_TYPE_AVERAGE:
@@ -1681,6 +2033,10 @@ gimple_find_values_to_profile (histogram_values *values)
 
 	case HIST_TYPE_IOR:
 	  hist->n_counters = 1;
+	  break;
+
+ 	case HIST_TYPE_INDIR_CALL_TOPN:
+          hist->n_counters = (GCOV_ICALL_TOPN_VAL << 2) + 1;
 	  break;
 
 	default:

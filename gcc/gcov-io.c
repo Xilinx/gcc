@@ -50,7 +50,8 @@ static inline gcov_unsigned_t from_file (gcov_unsigned_t value)
    opened, if possible, and if MODE is <= 0, a new file will be
    created. Use MODE=0 to attempt to reopen an existing file and then
    fall back on creating a new one.  Return zero on failure, >0 on
-   opening an existing file and <0 on creating a new one.  */
+   opening an existing file and <0 on creating a new one.
+   MODE > 0 is read-only mode.  */
 
 GCOV_LINKAGE int
 #if IN_LIBGCOV
@@ -66,7 +67,6 @@ gcov_open (const char *name, int mode)
   struct flock s_flock;
   int fd;
 
-  s_flock.l_type = F_WRLCK;
   s_flock.l_whence = SEEK_SET;
   s_flock.l_start = 0;
   s_flock.l_len = 0; /* Until EOF.  */
@@ -83,16 +83,25 @@ gcov_open (const char *name, int mode)
 #endif
 #if GCOV_LOCKED
   if (mode > 0)
-    fd = open (name, O_RDWR);
+    {
+      /* Read-only mode - acquire a read-lock.  */
+      s_flock.l_type = F_RDLCK;
+      fd = open (name, O_RDONLY);
+    }
   else
-    fd = open (name, O_RDWR | O_CREAT, 0666);
+    {
+      /* Write mode - acquire a write-lock.  */
+      s_flock.l_type = F_WRLCK;
+      fd = open (name, O_RDWR | O_CREAT, 0666);
+    }
   if (fd < 0)
     return 0;
 
   while (fcntl (fd, F_SETLKW, &s_flock) && errno == EINTR)
     continue;
 
-  gcov_var.file = fdopen (fd, "r+b");
+  gcov_var.file = fdopen (fd, (mode > 0) ? "rb" : "r+b");
+
   if (!gcov_var.file)
     {
       close (fd);
@@ -120,7 +129,8 @@ gcov_open (const char *name, int mode)
     gcov_var.mode = mode * 2 + 1;
 #else
   if (mode >= 0)
-    gcov_var.file = fopen (name, "r+b");
+    gcov_var.file = fopen (name, (mode > 0) ? "rb" : "r+b");
+
   if (gcov_var.file)
     gcov_var.mode = 1;
   else if (mode <= 0)
@@ -486,6 +496,51 @@ gcov_read_summary (struct gcov_summary *summary)
     }
 }
 
+#if !IN_LIBGCOV && IN_GCOV != 1
+GCOV_LINKAGE void
+gcov_read_module_info (struct gcov_module_info *mod_info,
+                       gcov_unsigned_t len)
+{
+  gcov_unsigned_t src_filename_len, filename_len, i, j, num_strings;
+  mod_info->ident = gcov_read_unsigned ();
+  mod_info->is_primary = gcov_read_unsigned ();
+  mod_info->is_exported = gcov_read_unsigned ();
+  mod_info->lang  = gcov_read_unsigned ();
+  mod_info->num_quote_paths = gcov_read_unsigned ();
+  mod_info->num_bracket_paths = gcov_read_unsigned ();
+  mod_info->num_cpp_defines = gcov_read_unsigned ();
+  len -= 7;
+
+  filename_len = gcov_read_unsigned ();
+  mod_info->da_filename = (char *) xmalloc (filename_len *
+                                            sizeof (gcov_unsigned_t));
+  for (i = 0; i < filename_len; i++)
+    ((gcov_unsigned_t *) mod_info->da_filename)[i] = gcov_read_unsigned ();
+  len -= (filename_len + 1);
+
+  src_filename_len = gcov_read_unsigned ();
+  mod_info->source_filename = (char *) xmalloc (src_filename_len *
+						sizeof (gcov_unsigned_t));
+  for (i = 0; i < src_filename_len; i++)
+    ((gcov_unsigned_t *) mod_info->source_filename)[i] = gcov_read_unsigned ();
+  len -= (src_filename_len + 1);
+
+  num_strings = mod_info->num_quote_paths + mod_info->num_bracket_paths +
+    mod_info->num_cpp_defines;
+  for (j = 0; j < num_strings; j++)
+   {
+     gcov_unsigned_t string_len = gcov_read_unsigned ();
+     mod_info->string_array[j] =
+       (char *) xmalloc (string_len * sizeof (gcov_unsigned_t));
+     for (i = 0; i < string_len; i++)
+       ((gcov_unsigned_t *) mod_info->string_array[j])[i] =
+	 gcov_read_unsigned ();
+     len -= (string_len + 1);
+   }
+  gcc_assert (!len);
+}
+#endif
+
 #if !IN_LIBGCOV
 /* Reset to a known position.  BASE should have been obtained from
    gcov_position, LENGTH should be a record length.  */
@@ -518,6 +573,18 @@ gcov_seek (gcov_position_t base)
   fseek (gcov_var.file, base << 2, SEEK_SET);
   gcov_var.start = ftell (gcov_var.file) >> 2;
 }
+
+#if 0
+GCOV_LINKAGE void
+gcov_append (gcov_position_t tail_adjust)
+{
+  gcc_assert (gcov_var.offset == 0 && gcov_var.mode > 0);
+  fseek (gcov_var.file, -(long)(tail_adjust << 2), SEEK_END);
+  gcov_var.start = ftell (gcov_var.file) >> 2;
+  gcov_var.mode = -1;
+  gcov_var.offset = 0;
+}
+#endif
 #endif
 
 #if IN_GCOV > 0

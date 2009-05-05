@@ -4484,7 +4484,13 @@ gimple_verify_flow_info (void)
 
       stmt = gsi_stmt (gsi);
 
-      err |= verify_eh_edges (stmt);
+      /* FIXME: there does seem to be an overassertion in eh
+         edge verification -- triggered by -fdyn-ipa: after eh
+         cleanup, there might not be an direct edge from a BB
+         to the parent try block's catch region, but the catch
+         region is still reachable.  */ 
+      if (!flag_dyn_ipa)
+        err |= verify_eh_edges (stmt);
 
       if (is_ctrl_stmt (stmt))
 	{

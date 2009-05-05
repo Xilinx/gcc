@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Used for parsing attributes of asm code.  */
 extern tree memory_identifier_string;
+extern tree get_memory_identifier_string (void);
 
 struct ipa_dfs_info {
   int dfn_number;

@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "target.h"
 #include "integrate.h"
+#include "langhooks.h"
 
 /* I'm not real happy about this, but we need to handle gimple and
    non-gimple trees.  */
@@ -1931,6 +1932,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency,
   FOR_EACH_BB_FN (bb, cfun_to_copy)
     {
       basic_block new_bb = copy_bb (id, bb, frequency_scale, count_scale);
+
       bb->aux = new_bb;
       new_bb->aux = bb;
     }
@@ -2673,8 +2675,13 @@ inlinable_function_p (tree fn)
   tree always_inline;
 
   /* If we've already decided this function shouldn't be inlined,
-     there's no need to check again.  */
-  if (DECL_UNINLINABLE (fn))
+     there's no need to check again. But the cached bit from analysis
+     can be reset during decl merge in multi-module compilation (C FE only).
+     The problem is we can not really use a 2 state cached value --
+     can not tell the init state (unknown value) from a computed value.  */
+  if (DECL_UNINLINABLE (fn) 
+      && (!L_IPO_COMP_MODE 
+          || lookup_attribute ("noinline", DECL_ATTRIBUTES (fn))))
     return false;
 
   /* We only warn for functions declared `inline' by the user.  */
@@ -2989,7 +2996,13 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	else if (funtype && prototype_p (funtype))
 	  {
 	    tree t;
-	    for (t = TYPE_ARG_TYPES (funtype); t; t = TREE_CHAIN (t))
+            /* Note this should be changed for no-fdyn-ipa as well --
+               keep the the original behavior for now.  */
+            /* The last arg is always void -- skip it.  */
+	    for (t = TYPE_ARG_TYPES (funtype); 
+                 t && (!flag_dyn_ipa 
+                       || (TREE_CHAIN (t) && t != error_mark_node)); 
+                 t = TREE_CHAIN (t))
 	      cost += estimate_move_cost (TREE_VALUE (t));
 	  }
 	else
@@ -3485,6 +3498,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      remove the cgraph node.  */
   (*debug_hooks->outlining_inline_function) (cg_edge->callee->decl);
 
+  /* inform (input_location, "Inlined call to %s in %s",
+     lang_hooks.decl_printable_name (fn, 3),
+     cgraph_node_name (cg_edge->caller)); */
+
   /* Update callgraph if needed.  */
   cgraph_remove_node (cg_edge->callee);
 
@@ -3635,7 +3652,7 @@ optimize_inline_calls (tree fn)
 
       /* Double check that we inlined everything we are supposed to inline.  */
       for (e = id.dst_node->callees; e; e = e->next_callee)
-	gcc_assert (e->inline_failed);
+	gcc_assert (e->inline_failed || !e->call_stmt /*fake edge*/);
     }
 #endif
   
@@ -3721,7 +3738,23 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   else if (TREE_CODE_CLASS (code) == tcc_type)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_declaration)
-    *walk_subtrees = 0;
+    {
+      *walk_subtrees = 0;
+      if (L_IPO_COMP_MODE && (code == VAR_DECL)
+          && (TREE_STATIC (*tp) || DECL_EXTERNAL (*tp)))
+        {
+          tree resolved_decl = real_varpool_node (*tp)->decl;
+          if (resolved_decl != *tp)
+            {
+              *tp = resolved_decl;
+              if (gimple_in_ssa_p (cfun))
+                {
+                  get_var_ann (resolved_decl);
+                  add_referenced_var (resolved_decl);
+                } 
+            }
+        }
+    }
   else if (TREE_CODE_CLASS (code) == tcc_constant)
     *walk_subtrees = 0;
   else
@@ -4344,10 +4377,12 @@ tree_function_versioning (tree old_decl, tree new_decl, varray_type tree_map,
   /* Generate a new name for the new version. */
   if (!update_clones)
     {
+      cgraph_remove_assembler_hash_node (new_version_node);
       DECL_NAME (new_decl) = clone_function_name (old_decl);
       SET_DECL_ASSEMBLER_NAME (new_decl, DECL_NAME (new_decl));
       SET_DECL_RTL (new_decl, NULL_RTX);
       id.statements_to_fold = pointer_set_create ();
+      cgraph_add_assembler_hash_node (new_version_node);
     }
   
   id.decl_map = pointer_map_create ();

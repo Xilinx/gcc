@@ -42,10 +42,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "except.h"
 #include "toplev.h"
+#include "opts.h"
 #include "rtl.h"
 #include "timevar.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
+#include "cgraph.h"
 
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */
@@ -15526,7 +15528,17 @@ instantiate_decl (tree d, int defer_ok,
 	 when marked as "extern template".  */
       if (!(external_p && TREE_CODE (d) == VAR_DECL))
 	add_pending_template (d);
-      goto out;
+      {
+        if (L_IPO_COMP_MODE)
+          {
+            /* Capture module info.  */
+            if (TREE_CODE (d) == VAR_DECL)
+              varpool_node (d);
+            else if (TREE_CODE (d) == FUNCTION_DECL)
+              cgraph_node (d);
+          }
+        goto out;
+      }
     }
   /* Tell the repository that D is available in this translation unit
      -- and see if it is supposed to be instantiated here.  */

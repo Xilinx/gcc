@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "varray.h"
 #include "c-common.h"
 #include "name-lookup.h"
+#include "l-ipo.h"
 
 /* In order for the format checking to accept the C++ front end
    diagnostic framework extensions, you must include this file before
@@ -4408,6 +4409,9 @@ extern tree cp_reconstruct_complex_type		(tree, tree);
 extern void cplus_decl_attributes		(tree *, tree, int);
 extern void finish_anon_union			(tree);
 extern void cp_write_global_declarations	(void);
+extern void cp_process_pending_declarations     (location_t);
+extern void cp_clear_deferred_fns               (void);
+extern void cp_clear_conv_type_map              (void);
 extern tree coerce_new_type			(tree);
 extern tree coerce_delete_type			(tree);
 extern void comdat_linkage			(tree);
@@ -4758,7 +4762,7 @@ extern tree finish_stmt_expr_expr		(tree, tree);
 extern tree finish_stmt_expr			(tree, bool);
 extern tree stmt_expr_value_expr		(tree);
 extern tree perform_koenig_lookup		(tree, tree);
-extern tree finish_call_expr			(tree, tree, bool, bool, 
+extern tree finish_call_expr			(tree, tree, bool, int, 
 						 tsubst_flags_t);
 extern tree finish_increment_expr		(tree, enum tree_code);
 extern tree finish_this_expr			(void);
@@ -5046,6 +5050,22 @@ extern bool cp_var_mod_type_p			(tree, tree);
 extern void cxx_initialize_diagnostics		(struct diagnostic_context *);
 extern int cxx_types_compatible_p		(tree, tree);
 extern void init_shadowed_var_for_decl		(void);
+
+/* LIPO support  */
+extern int cp_is_compiler_generated_type        (tree);
+extern void cp_clear_global_name_bindings       (tree);
+extern int
+cp_is_non_sharable_global_decl                  (tree, void *);
+extern void cp_lipo_dup_lang_type               (tree, tree);
+extern void cp_lipo_copy_lang_type              (tree, tree);
+extern int cp_get_lang_decl_size                (tree);
+extern int cp_cmp_lang_type                     (tree, tree);
+extern void cp_add_built_in_decl                (tree);
+extern void cp_save_built_in_decl_pre_parsing (void);
+extern void cp_restore_built_in_decl_pre_parsing (void);
+extern void cp_save_built_in_decl_post_parsing (void);
+extern void cp_restore_built_in_decl_post_parsing (void);
+
 
 /* in cp-gimplify.c */
 extern int cp_gimplify_expr			(tree *, gimple_seq *,

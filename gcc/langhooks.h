@@ -223,6 +223,27 @@ struct lang_hooks_for_decls
   void (*omp_finish_clause) (tree clause);
 };
 
+/* Lang hooks for LIPO.  */
+
+struct lang_hooks_for_lipo
+{
+  void (*add_built_in_decl) (tree decl);
+  void (*save_built_in_decl_pre_parsing) (void);
+  void (*restore_built_in_decl_pre_parsing) (void);
+  void (*save_built_in_decl_post_module_parsing) (void);
+  void (*restore_built_in_decl_post_module_parsing) (void);
+  void (*clear_global_name_bindings) (tree id);
+  int (*has_global_name) (tree decl, void *scope);
+  int (*get_lang_decl_size) (tree);
+  void (*dup_lang_type) (tree src, tree dest);
+  void (*copy_lang_type) (tree src, tree dest);
+  void (*process_pending_decls) (unsigned);
+  void (*clear_deferred_fns) (void);
+  int (*is_compiler_generated_type) (tree t);
+  /* compare language specific types.  */
+  int (*cmp_lang_type) (tree t1, tree t2);
+};
+
 /* Language-specific hooks.  See langhooks-def.h for defaults.  */
 
 struct lang_hooks
@@ -383,6 +404,8 @@ struct lang_hooks
 
   struct lang_hooks_for_types types;
 
+  struct lang_hooks_for_lipo l_ipo;
+
   /* Perform language-specific gimplification on the argument.  Returns an
      enum gimplify_status, though we can't see that type here.  */
   int (*gimplify_expr) (tree *, gimple_seq *, gimple_seq *);
@@ -401,6 +424,9 @@ struct lang_hooks
      ISAs.  If this points to the same function as builtin_function, the
      backend must add all of the builtins at program initialization time.  */
   tree (*builtin_function_ext_scope) (tree decl);
+
+  /* Returns true if DECL is a user defined conversion operator  */
+  bool (*user_conv_function_p) (tree decl);
 
   /* Used to set up the tree_contains_structure array for a frontend. */
   void (*init_ts) (void);

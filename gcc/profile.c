@@ -193,6 +193,10 @@ instrument_values (histogram_values values)
  	  t = GCOV_COUNTER_IOR;
  	  break;
 
+ 	case HIST_TYPE_INDIR_CALL_TOPN:
+          t = GCOV_COUNTER_ICALL_TOPNV;
+ 	  break;
+
 	default:
 	  gcc_unreachable ();
 	}
@@ -218,7 +222,8 @@ instrument_values (histogram_values values)
 	  break;
 
  	case HIST_TYPE_INDIR_CALL:
- 	  (profile_hooks->gen_ic_profiler) (hist, t, 0);
+ 	case HIST_TYPE_INDIR_CALL_TOPN:
+          (profile_hooks->gen_ic_profiler) (hist, t, 0); 
   	  break;
 
 	case HIST_TYPE_AVERAGE:
@@ -412,8 +417,13 @@ read_profile_edge_counts (gcov_type *exec_counts)
 		e->count = exec_counts[exec_counts_pos++];
 		if (e->count > profile_info->sum_max)
 		  {
-		    error ("corrupted profile info: edge from %i to %i exceeds maximal count",
-			   bb->index, e->dest->index);
+                    /* sum_max is slightly smaller than
+                       max bb count -- Investigagte -- can happen
+                       in MT programs where counters get updated after
+                       summary computation.  */
+                    if (!(L_IPO_COMP_MODE && flag_profile_correction))
+                      error ("corrupted profile info: edge from %i to %i exceeds maximal count",
+                             bb->index, e->dest->index);
 		  }
 	      }
 	    else

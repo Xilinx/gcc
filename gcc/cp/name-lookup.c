@@ -416,6 +416,7 @@ pop_binding (tree id, tree decl)
     }
 }
 
+
 /* BINDING records an existing declaration for a name in the current scope.
    But, DECL is another declaration for that same identifier in the
    same scope.  This is the `struct stat' hack whereby a non-typedef
@@ -564,6 +565,8 @@ add_decl_to_level (tree decl, cxx_scope *b)
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
 	  VEC_safe_push (tree, gc, b->static_decls, decl);
     }
+
+  add_decl_to_current_module_scope (decl, b);
 }
 
 /* Record a decl-node X as belonging to the current lexical scope.

@@ -21,6 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GCC_TOPLEV_H
 #define GCC_TOPLEV_H
 #include "input.h"
+#include "l-ipo.h"
 
 /* If non-NULL, return one past-the-end of the matching SUBPART of
    the WHOLE string.  */
@@ -121,6 +122,9 @@ extern const char *profile_data_prefix;
 extern const char *asm_file_name;
 extern bool exit_after_options;
 
+/* Sample data input file. */
+extern const char *sample_data_name;
+
 /* True if the user has tagged the function with the 'section'
    attribute.  */
 
@@ -144,6 +148,7 @@ extern int flag_ira_coalesce;
 extern int flag_ira_move_spills;
 extern int flag_ira_share_save_slots;
 extern int flag_ira_share_spill_slots;
+
 
 /* Things to do with target switches.  */
 extern void print_version (FILE *, const char *);

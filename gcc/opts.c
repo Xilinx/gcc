@@ -332,6 +332,7 @@ should_emit_struct_debug (tree type, enum debug_info_usage usage)
    write_symbols is set to DBX_DEBUG, XCOFF_DEBUG, or DWARF_DEBUG.  */
 bool use_gnu_debug_info_extensions;
 
+
 /* The default visibility for all symbols (unless overridden) */
 enum symbol_visibility default_visibility = VISIBILITY_DEFAULT;
 
@@ -644,7 +645,7 @@ handle_option (const char **argv, unsigned int lang_mask)
 }
 
 /* Handle FILENAME from the command line.  */
-static void
+void
 add_input_filename (const char *filename)
 {
   num_in_fnames++;
@@ -739,6 +740,10 @@ static void
 handle_options (unsigned int argc, const char **argv, unsigned int lang_mask)
 {
   unsigned int n, i;
+  int force_multi_module = 0;
+  static int cur_mod_id = 0;
+
+  force_multi_module = PARAM_VALUE (PARAM_FORCE_LIPO_MODE);
 
   for (i = 1; i < argc; i += n)
     {
@@ -753,7 +758,9 @@ handle_options (unsigned int argc, const char **argv, unsigned int lang_mask)
 	      main_input_baselength
 		= base_of_path (main_input_filename, &main_input_basename);
 	    }
-	  add_input_filename (opt);
+          add_input_filename (opt);
+          if (force_multi_module)
+            add_module_info (++cur_mod_id, (num_in_fnames == 1), num_in_fnames - 1);
 	  n = 1;
 	  continue;
 	}

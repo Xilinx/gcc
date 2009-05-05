@@ -157,7 +157,16 @@ enum initialization_status_t
   FINISHED
 };
 
+extern GTY (()) tree memory_identifier_string;
 tree memory_identifier_string;
+
+tree
+get_memory_identifier_string (void)
+{
+  if (!memory_identifier_string)
+    memory_identifier_string = build_string(7, "memory");
+  return memory_identifier_string;
+}
 
 /* Vector where the reference var infos are actually stored. */
 DEF_VEC_P (ipa_reference_vars_info_t);
@@ -575,7 +584,7 @@ propagate_bits (ipa_reference_global_vars_info_t x_global, struct cgraph_node *x
 static void 
 ipa_init (void) 
 {
-  memory_identifier_string = build_string(7, "memory");
+  get_memory_identifier_string ();
 
   reference_vars_to_consider =
     splay_tree_new_ggc (splay_tree_compare_ints);

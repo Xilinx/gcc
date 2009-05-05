@@ -84,3 +84,11 @@ DEFCIFCODE(MISMATCHED_ARGUMENTS, N_("mismatched arguments"))
 /* Call was originally indirect.  */
 DEFCIFCODE(ORIGINALLY_INDIRECT_CALL,
 	   N_("originally indirect function call not considered for inlining"))
+
+/* Cross module inlining not allowed in first early inline phase.  */
+DEFCIFCODE(NO_INTERMODULE_INLINE,
+	   N_("inter-module inlining is disabled"))
+
+/* Artificial edge.  */
+DEFCIFCODE(ARTIFICIAL_EDGE,
+	   N_("artificial call graph edge"))

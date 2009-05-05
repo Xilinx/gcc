@@ -48,7 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 /* expr.h is needed for MOVE_RATIO.  */
 #include "expr.h"
 #include "params.h"
-
+#include "toplev.h"
 
 /* This object of this pass is to replace a non-addressable aggregate with a
    set of independent variables.  Most of the time, all of these variables
@@ -2596,7 +2596,11 @@ generate_element_copy (struct sra_elt *dst, struct sra_elt *src, gimple_seq *seq
 	{
 	  tree f;
 
-	  gcc_assert (useless_type_conversion_p (dst->type, src->type));
+	  gcc_assert (useless_type_conversion_p (dst->type, src->type)
+                      /* TODO: Add struct equivalence check. Note that
+                       type merging in LIPO scope/name based and is
+                       for aliasing set unification only.  */
+                      || L_IPO_COMP_MODE);
 	  gcc_assert (TREE_CODE (dc->element) == FIELD_DECL);
 	  for (f = TYPE_FIELDS (src->type); f ; f = TREE_CHAIN (f))
 	    if (simple_cst_equal (DECL_FIELD_OFFSET (f),
@@ -2608,7 +2612,8 @@ generate_element_copy (struct sra_elt *dst, struct sra_elt *src, gimple_seq *seq
 		&& (useless_type_conversion_p (TREE_TYPE (dc->element),
 					       TREE_TYPE (f))
 		    || (POINTER_TYPE_P (TREE_TYPE (dc->element))
-			&& POINTER_TYPE_P (TREE_TYPE (f)))))
+			&& POINTER_TYPE_P (TREE_TYPE (f)))
+                    || L_IPO_COMP_MODE ))
 	      break;
 	  gcc_assert (f != NULL_TREE);
 	  sc = lookup_element (src, f, NULL, NO_INSERT);

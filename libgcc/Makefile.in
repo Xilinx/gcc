@@ -726,9 +726,12 @@ libgcov-objects = $(patsubst %,%$(objext),$(LIBGCOV))
 $(libgcov-objects): %$(objext): $(gcc_srcdir)/libgcov.c
 	$(gcc_compile) -DL$* -c $(gcc_srcdir)/libgcov.c
 
+dyn-ipa.o: %$(objext): $(gcc_srcdir)/libgcov.c
+	$(gcc_compile)  -c $(gcc_srcdir)/dyn-ipa.c
+
 
 # Static libraries.
-libgcc.a: $(libgcc-objects)
+libgcc.a: $(libgcc-objects) dyn-ipa$(objext)
 libgcov.a: $(libgcov-objects)
 libunwind.a: $(libunwind-objects)
 libgcc_eh.a: $(libgcc-eh-objects)

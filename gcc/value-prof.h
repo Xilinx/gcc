@@ -33,7 +33,9 @@ enum hist_type
   HIST_TYPE_INDIR_CALL,   /* Tries to identify the function that is (almost) 
 			    called in indirect call */
   HIST_TYPE_AVERAGE,	/* Compute average value (sum of all values).  */
-  HIST_TYPE_IOR		/* Used to compute expected alignment.  */
+  HIST_TYPE_IOR,	/* Used to compute expected alignment.  */
+  HIST_TYPE_INDIR_CALL_TOPN  /* Tries to identify the top N most frequently
+				called functions in indirect call.  */
 };
 
 #define COUNTER_FOR_HIST_TYPE(TYPE) ((int) (TYPE) + GCOV_FIRST_VALUE_COUNTER)
@@ -102,6 +104,9 @@ struct profile_hooks {
   /* Insert code to find the most common indirect call */
   void (*gen_ic_profiler) (histogram_value, unsigned, unsigned);
 
+  /* Insert code measure direct call counts.  */
+  void (*gen_dc_profiler) (unsigned, gimple);
+
   /* Insert code to find the average value of an expression.  */
   void (*gen_average_profiler) (histogram_value, unsigned, unsigned);
 
@@ -133,4 +138,3 @@ extern void tree_register_profile_hooks (void);
 extern struct profile_hooks tree_profile_hooks;
 
 #endif	/* GCC_VALUE_PROF_H */
-

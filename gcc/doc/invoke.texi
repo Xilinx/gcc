@@ -328,7 +328,7 @@ Objective-C and Objective-C++ Dialects}.
 -fcheck-data-deps -fconserve-stack -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules -fcx-limited-range @gol
 -fdata-sections -fdce -fdce @gol
--fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
+-fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse -fdyn-ipa @gol
 -fearly-inlining -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffunction-sections @gol
@@ -4319,6 +4319,14 @@ option, GCC uses features of DWARF version 3 when they are useful;
 version 3 is upward compatible with version 2, but may still cause
 problems for older debuggers.
 
+@item -gdwarf-4
+@opindex gdwarf-4
+Produce debugging information in DWARF version 4 format (if that is
+supported).  With this option, GCC uses features of DWARF version 4
+when they are useful, including the placement of most type information
+in separate comdat sections.  The DWARF version 4 format is still a
+draft specification, and this option is currently experimental.
+
 @item -gvms
 @opindex gvms
 Produce debugging information in VMS debug format (if that is
@@ -6844,6 +6852,15 @@ code.
 
 If @var{path} is specified, GCC will look at the @var{path} to find
 the profile feedback data files. See @option{-fprofile-dir}.
+
+@item -fdyn-ipa
+@opindex fdyn-ipa
+Perform dynamic inter-procedural analysis. This is used in conjunction with
+the @option{-fprofile-generate} and @option{-fprofile-use} options.
+During the @option{-fprofile-generate} phase, this flag turns on some additional
+instrumentation code that enables dynamic call-graph analysis.
+During the @option{-fprofile-use} phase, this flag enables cross-module
+optimizations such as inlining.
 @end table
 
 The following options control compiler behavior regarding floating

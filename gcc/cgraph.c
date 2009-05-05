@@ -445,6 +445,44 @@ cgraph_create_node (void)
   return node;
 }
 
+/* Add an entry in assembler hash.  */
+void
+cgraph_add_assembler_hash_node (struct cgraph_node *node)
+{
+  if (assembler_name_hash)
+    {
+      void **aslot;
+      tree name = DECL_ASSEMBLER_NAME (node->decl);
+
+      aslot = htab_find_slot_with_hash (assembler_name_hash, name,
+					decl_assembler_name_hash (name),
+					INSERT);
+      /* We can have multiple declarations with same assembler name. For C++
+	 it is __builtin_strlen and strlen, for instance.  Do we need to
+	 record them all?  Original implementation marked just first one
+	 so lets hope for the best.  */
+      if (*aslot == NULL)
+	*aslot = node;
+    }
+}
+
+/* Remove from assembler hash.  */
+void
+cgraph_remove_assembler_hash_node (struct cgraph_node *node)
+{
+  void **slot;
+  if (assembler_name_hash)
+    {
+      tree name = DECL_ASSEMBLER_NAME (node->decl);
+      slot = htab_find_slot_with_hash (assembler_name_hash, name,
+				       decl_assembler_name_hash (name),
+				       NO_INSERT);
+      /* Inline clones are not hashed.  */
+      if (slot && *slot == node)
+        htab_clear_slot (assembler_name_hash, slot);
+    }
+}
+
 /* Return cgraph node assigned to DECL.  Create new one when needed.  */
 
 struct cgraph_node *
@@ -470,27 +508,14 @@ cgraph_node (tree decl)
   node = cgraph_create_node ();
   node->decl = decl;
   *slot = node;
+
   if (DECL_CONTEXT (decl) && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL)
     {
       node->origin = cgraph_node (DECL_CONTEXT (decl));
       node->next_nested = node->origin->nested;
       node->origin->nested = node;
     }
-  if (assembler_name_hash)
-    {
-      void **aslot;
-      tree name = DECL_ASSEMBLER_NAME (decl);
-
-      aslot = htab_find_slot_with_hash (assembler_name_hash, name,
-					decl_assembler_name_hash (name),
-					INSERT);
-      /* We can have multiple declarations with same assembler name. For C++
-	 it is __builtin_strlen and strlen, for instance.  Do we need to
-	 record them all?  Original implementation marked just first one
-	 so lets hope for the best.  */
-      if (*aslot == NULL)
-	*aslot = node;
-    }
+  cgraph_add_assembler_hash_node (node);
   return node;
 }
 
@@ -619,7 +644,7 @@ cgraph_edge (struct cgraph_node *node, gimple call_stmt)
 					   e2->call_stmt,
 					   htab_hash_pointer (e2->call_stmt),
 					   INSERT);
-	  gcc_assert (!*slot);
+	  gcc_assert (!*slot || !e2->call_stmt);
 	  *slot = e2;
 	}
     }
@@ -669,6 +694,12 @@ initialize_inline_failed (struct cgraph_edge *e)
     e->inline_failed = CIF_REDEFINED_EXTERN_INLINE;
   else if (!callee->local.inlinable)
     e->inline_failed = CIF_FUNCTION_NOT_INLINABLE;
+  else if (!e->call_stmt)
+    {
+      /* artifcial edge.  */
+      gcc_assert (L_IPO_COMP_MODE); 
+      e->inline_failed = CIF_ARTIFICIAL_EDGE;
+    }
   else if (gimple_call_cannot_inline_p (e->call_stmt))
     e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
   else
@@ -686,10 +717,11 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
 #ifdef ENABLE_CHECKING
   /* This is rather pricely check possibly trigerring construction of call stmt
      hashtable.  */
-  gcc_assert (!cgraph_edge (caller, call_stmt));
+  gcc_assert (!call_stmt /* a fake edge.  */
+              || !cgraph_edge (caller, call_stmt));
 #endif
 
-  gcc_assert (is_gimple_call (call_stmt));
+  gcc_assert (!call_stmt || is_gimple_call (call_stmt));
 
   if (free_edges)
     {
@@ -708,7 +740,10 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
   edge->callee = callee;
   edge->call_stmt = call_stmt;
   push_cfun (DECL_STRUCT_FUNCTION (caller->decl));
-  edge->can_throw_external = stmt_can_throw_external (call_stmt);
+  if (call_stmt)
+    edge->can_throw_external = stmt_can_throw_external (call_stmt);
+  else
+    edge->can_throw_external = false;
   pop_cfun ();
   edge->prev_caller = NULL;
   edge->next_caller = callee->callers;
@@ -735,7 +770,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
 				       htab_hash_pointer
 					 (edge->call_stmt),
 				       INSERT);
-      gcc_assert (!*slot);
+      gcc_assert (!*slot || !call_stmt);
       *slot = edge;
     }
 
@@ -768,7 +803,7 @@ cgraph_edge_remove_caller (struct cgraph_edge *e)
     e->next_callee->prev_callee = e->prev_callee;
   if (!e->prev_callee)
     e->caller->callees = e->next_callee;
-  if (e->caller->call_site_hash)
+  if (e->caller->call_site_hash && e->call_stmt)
     htab_remove_elt_with_hash (e->caller->call_site_hash,
 			       e->call_stmt,
 	  		       htab_hash_pointer (e->call_stmt));
@@ -805,6 +840,23 @@ cgraph_remove_edge (struct cgraph_edge *e)
   /* Put the edge onto the free list.  */
   cgraph_free_edge (e);
 }
+
+void
+cgraph_remove_fake_indirect_call_in_edges (struct cgraph_node *node)
+{
+  struct cgraph_edge *f, *e;
+
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  for (e = node->callers; e; e = f)
+    {
+      f = e->next_caller;
+      if (e->indirect_call && !e->call_stmt)
+        cgraph_remove_edge (e);
+    }
+}
+
 
 /* Redirect callee of E to N.  The function does not update underlying
    call expression.  */
@@ -959,6 +1011,7 @@ cgraph_release_function_body (struct cgraph_node *node)
     DECL_INITIAL (node->decl) = error_mark_node;
 }
 
+
 /* Remove the node from cgraph.  */
 
 void
@@ -1030,19 +1083,14 @@ cgraph_remove_node (struct cgraph_node *node)
 	      && (TREE_ASM_WRITTEN (n->decl) || DECL_EXTERNAL (n->decl))))
 	kill_body = true;
     }
-  if (assembler_name_hash)
-    {
-      tree name = DECL_ASSEMBLER_NAME (node->decl);
-      slot = htab_find_slot_with_hash (assembler_name_hash, name,
-				       decl_assembler_name_hash (name),
-				       NO_INSERT);
-      /* Inline clones are not hashed.  */
-      if (slot && *slot == node)
-        htab_clear_slot (assembler_name_hash, slot);
-    }
+
+  cgraph_remove_assembler_hash_node (node);
 
   if (kill_body)
     cgraph_release_function_body (node);
+
+  cgraph_remove_link_node (node);
+
   node->decl = NULL;
   if (node->call_site_hash)
     {
@@ -1342,7 +1390,7 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
   if (freq > CGRAPH_FREQ_MAX)
     freq = CGRAPH_FREQ_MAX;
   new_edge = cgraph_create_edge (n, e->callee, call_stmt, count, freq,
-			    e->loop_nest + loop_nest);
+                                 e->loop_nest + loop_nest);
 
   new_edge->inline_failed = e->inline_failed;
   new_edge->indirect_call = e->indirect_call;
@@ -1382,6 +1430,7 @@ cgraph_clone_node (struct cgraph_node *n, gcov_type count, int freq,
   new_node->global = n->global;
   new_node->rtl = n->rtl;
   new_node->count = count;
+  new_node->is_versioned_clone = n->is_versioned_clone;
   if (n->count)
     {
       if (new_node->count > n->count)

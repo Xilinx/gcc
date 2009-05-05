@@ -1608,6 +1608,13 @@ notice_global_symbol (tree decl)
       || !MEM_P (DECL_RTL (decl)))
     return;
 
+  if (L_IPO_COMP_MODE
+      && ((TREE_CODE (decl) == FUNCTION_DECL
+           && cgraph_is_auxiliary (decl))
+          || (TREE_CODE (decl) == VAR_DECL
+              && varpool_node (decl)->auxiliary)))
+    return;
+
   /* We win when global object is found, but it is useful to know about weak
      symbol as well so we can produce nicer unique names.  */
   if (DECL_WEAK (decl) || DECL_ONE_ONLY (decl) || flag_shlib)
@@ -2310,6 +2317,13 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
      open.  If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
 
+  /* Processing pending items from auxiliary modules are not supported
+     which means platforms that requires ASM_OUTPUT_EXTERNAL may 
+     have issues.  (TODO : one way is to flush the pending items from
+     auxiliary modules at the end of parsing the module)  */
+  if (IS_AUXILIARY_MODULE)
+    return;
+
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;
 
@@ -2372,7 +2386,7 @@ mark_decl_referenced (tree decl)
 	 functions can be marked reachable, just use the external
 	 definition.  */
       struct cgraph_node *node = cgraph_node (decl);
-      if (!DECL_EXTERNAL (decl)
+      if (!cgraph_is_decl_external (node)
 	  && (!node->local.vtable_method || !cgraph_global_info_ready
 	      || !node->local.finalized))
 	cgraph_mark_needed_node (node);
@@ -5350,8 +5364,13 @@ finish_aliases_1 (void)
 	}
       else if (DECL_EXTERNAL (target_decl)
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	error ("%q+D aliased to external symbol %qs",
-	       p->decl, IDENTIFIER_POINTER (p->target));
+        {
+          /* In lightweight IPO, find the merged decl and check that it is defined.  */
+          tree real_target_decl = cgraph_find_decl (p->target);
+          if (!real_target_decl || DECL_EXTERNAL (real_target_decl))
+            error ("%q+D aliased to external symbol %qs",
+                   p->decl, IDENTIFIER_POINTER (p->target));
+        }
     }
 }
 
@@ -5379,6 +5398,9 @@ assemble_alias (tree decl, tree target)
 {
   tree target_decl;
   bool is_weakref = false;
+
+  if (IS_AUXILIARY_MODULE)
+      return;
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
     {
@@ -5779,8 +5801,13 @@ default_elf_asm_named_section (const char *name, unsigned int flags,
       if (flags & SECTION_ENTSIZE)
 	fprintf (asm_out_file, ",%d", flags & SECTION_ENTSIZE);
       if (HAVE_COMDAT_GROUP && (flags & SECTION_LINKONCE))
-	fprintf (asm_out_file, ",%s,comdat",
-		 lang_hooks.decls.comdat_group (decl));
+        {
+          if (TREE_CODE (decl) == IDENTIFIER_NODE)
+	    fprintf (asm_out_file, ",%s,comdat", IDENTIFIER_POINTER (decl));
+          else
+	    fprintf (asm_out_file, ",%s,comdat",
+		     lang_hooks.decls.comdat_group (decl));
+        }
     }
 
   putc ('\n', asm_out_file);

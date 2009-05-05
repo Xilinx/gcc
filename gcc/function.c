@@ -4061,6 +4061,27 @@ get_next_funcdef_no (void)
   return funcdef_no++;
 }
 
+/* Return the current intra module funcdef_no;  */
+int 
+get_current_funcdef_no (void)
+{
+  return funcdef_no;
+}
+
+/* Restore funcdef no.  */
+void 
+set_funcdef_no (int fn)
+{
+  funcdef_no = fn;
+}
+
+/* Reset the funcdef number.  */
+void
+reset_funcdef_no (void)
+{
+  funcdef_no = 0;
+}
+
 /* Allocate a function structure for FNDECL and set its contents
    to the defaults.  Set cfun to the newly-allocated object.
    Some of the helper functions invoked during initialization assume
@@ -4100,6 +4121,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
       DECL_STRUCT_FUNCTION (fndecl) = cfun;
       cfun->decl = fndecl;
       current_function_funcdef_no = get_next_funcdef_no ();
+      cfun->module_id = current_module_id;
 
       result = DECL_RESULT (fndecl);
       if (!abstract_p && aggregate_value_p (result, fndecl))

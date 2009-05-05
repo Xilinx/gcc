@@ -1874,10 +1874,14 @@ perform_koenig_lookup (tree fn, tree args)
    qualified.  For example a call to `X::f' never generates a virtual
    call.)
 
+   KOENIG_P is 1 if we want to perform argument-dependent lookup,
+   -1 if we don't, but we want to accept functions found by previous
+   argument-dependent lookup, and 0 if we want nothing to do with it.
+
    Returns code for the call.  */
 
 tree
-finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
+finish_call_expr (tree fn, tree args, bool disallow_virtual, int koenig_p,
 		  tsubst_flags_t complain)
 {
   tree result;
@@ -1900,7 +1904,7 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
 	  || any_type_dependent_arguments_p (args))
 	{
 	  result = build_nt_call_list (fn, args);
-	  KOENIG_LOOKUP_P (result) = koenig_p;
+	  KOENIG_LOOKUP_P (result) = koenig_p > 0;
 	  if (cfun)
 	    {
 	      do
@@ -1998,7 +2002,7 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
 
       if (!result)
 	/* A call to a namespace-scope function.  */
-	result = build_new_function_call (fn, args, koenig_p, complain);
+	result = build_new_function_call (fn, args, koenig_p != 0, complain);
     }
   else if (TREE_CODE (fn) == PSEUDO_DTOR_EXPR)
     {
@@ -3186,6 +3190,16 @@ emit_associated_thunks (tree fn)
   if (DECL_VIRTUAL_P (fn))
     {
       tree thunk;
+
+      if (L_IPO_COMP_MODE)
+        {
+          /* In LIPO mode, multiple copies of defintions for the same function
+             may exist, but assembler hash table keeps only one copy which might
+             have been deleted at this point.  */
+          struct cgraph_node *n = cgraph_node (fn);
+          cgraph_add_assembler_hash_node (n);
+          cgraph_link_node (n);
+        }
 
       for (thunk = DECL_THUNKS (fn); thunk; thunk = TREE_CHAIN (thunk))
 	{

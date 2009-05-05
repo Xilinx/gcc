@@ -179,6 +179,9 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
 
+  /* Is this function cloned during versioning ?  */
+  unsigned is_versioned_clone : 1;
+
   /* In non-unit-at-a-time mode the function body of inline candidates is saved
      into clone before compiling so the function in original form can be
      inlined later.  This pointer points to the clone.  */
@@ -279,6 +282,8 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   /* Ordering of all cgraph nodes.  */
   int order;
 
+  /* The module in which it is first declared.  */
+  unsigned module_id;
   /* Set when function must be output - it is externally visible
      or its address is taken.  */
   unsigned needed : 1;
@@ -296,6 +301,8 @@ struct GTY((chain_next ("%h.next"))) varpool_node {
   unsigned externally_visible : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
+  /* Set for node declared in auxiliary modules.  */
+  unsigned auxiliary : 1;
 };
 
 /* Every top level asm statement is put into a cgraph_asm_node.  */
@@ -344,6 +351,12 @@ void debug_cgraph_node (struct cgraph_node *);
 void cgraph_insert_node_to_hashtable (struct cgraph_node *node);
 void cgraph_remove_edge (struct cgraph_edge *);
 void cgraph_remove_node (struct cgraph_node *);
+void cgraph_add_assembler_hash_node (struct cgraph_node *);
+void cgraph_remove_assembler_hash_node (struct cgraph_node *);
+void cgraph_remove_fake_indirect_call_in_edges (struct cgraph_node *);
+extern int cgraph_need_artificial_indirect_call_edges;
+extern bool cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e);
+
 void cgraph_release_function_body (struct cgraph_node *);
 void cgraph_node_remove_callees (struct cgraph_node *node);
 struct cgraph_edge *cgraph_create_edge (struct cgraph_node *,
@@ -397,6 +410,41 @@ void cgraph_analyze_function (struct cgraph_node *);
 struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree);
 bool cgraph_process_new_functions (void);
+
+struct GTY (()) cgraph_mod_info
+{
+  unsigned module_id;
+};
+
+struct GTY (()) cgraph_sym
+{
+  tree assembler_name;
+  struct cgraph_node *rep_node;
+  tree rep_decl;
+  htab_t GTY ((param_is (struct cgraph_mod_info))) def_module_hash;
+  bool is_promoted_static;
+};
+
+void cgraph_init_gid_map (void);
+void cgraph_add_fake_indirect_call_edges (void);
+void cgraph_do_link (void);
+struct cgraph_sym *cgraph_link_node (struct cgraph_node *);
+tree cgraph_find_decl (tree asm_name);
+void cgraph_remove_link_node (struct cgraph_node *node);
+struct cgraph_node *cgraph_real_node (tree decl);
+struct cgraph_node *cgraph_real_node_1 (tree decl, int);
+unsigned  cgraph_get_module_id (tree fndecl);
+bool cgraph_is_auxiliary (tree fndecl);
+bool cgraph_is_promoted_static_func (tree fndecl);
+bool cgraph_is_inline_body_available_in_module (tree fndecl, unsigned module_id);
+bool cgraph_is_decl_external (struct cgraph_node *);
+void cgraph_unify_type_alias_sets (void);
+void varpool_do_link (void);
+void varpool_link_node (struct varpool_node *);
+void varpool_remove_link_node (struct varpool_node *node);
+struct varpool_node *real_varpool_node (tree decl);
+void varpool_get_referenced_asm_ids (VEC(tree, gc) **);
+void varpool_clear_asm_id_reference_bit (void);
 
 typedef void (*cgraph_edge_hook)(struct cgraph_edge *, void *);
 typedef void (*cgraph_node_hook)(struct cgraph_node *, void *);

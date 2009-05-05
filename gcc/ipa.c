@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "cgraph.h"
+#include "toplev.h"
 #include "tree-pass.h"
 #include "timevar.h"
 #include "ggc.h"
@@ -114,7 +115,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 #endif
   for (node = cgraph_nodes; node; node = node->next)
     if (node->needed && !node->global.inlined_to
-	&& ((!DECL_EXTERNAL (node->decl)) 
+	&& ((!cgraph_is_decl_external (node)) 
             || !node->analyzed
             || before_inlining_p))
       {
@@ -137,7 +138,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	if (!e->callee->aux
 	    && node->analyzed
 	    && (!e->inline_failed || !e->callee->analyzed
-		|| (!DECL_EXTERNAL (e->callee->decl))
+		|| (!cgraph_is_decl_external (e->callee))
                 || before_inlining_p))
 	  {
 	    e->callee->aux = first;
@@ -159,9 +160,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
       if (!node->aux)
 	{
           node->global.inlined_to = NULL;
-	  if (file)
-	    fprintf (file, " %s", cgraph_node_name (node));
-	  if (!node->analyzed || !DECL_EXTERNAL (node->decl)
+	  if (!node->analyzed || !cgraph_is_decl_external (node)
 	      || before_inlining_p)
 	    cgraph_remove_node (node);
 	  else
@@ -248,7 +247,9 @@ function_and_variable_visibility (void)
 	  gcc_assert (flag_whole_program || !TREE_PUBLIC (vnode->decl));
 	  TREE_PUBLIC (vnode->decl) = 0;
 	}
-     gcc_assert (TREE_STATIC (vnode->decl));
+      /* static variables defined in auxiliary modules are externalized to
+         allow cross module inlining.  */
+      gcc_assert (TREE_STATIC (vnode->decl) || vnode->auxiliary);
     }
 
   if (dump_file)

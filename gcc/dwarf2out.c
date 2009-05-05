@@ -3188,9 +3188,9 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
 
   switch_to_section (function_section (current_function_decl));
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_BEGIN_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, FUNC_BEGIN_LABEL,
-			  current_function_funcdef_no);
+			  FUNC_LABEL_ID (cfun));
   dup_label = xstrdup (label);
   current_function_func_begin_label = dup_label;
 
@@ -3224,7 +3224,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_switched_sections = false;
   fde->dw_fde_end = NULL;
   fde->dw_fde_cfi = NULL;
-  fde->funcdef_number = current_function_funcdef_no;
+  fde->funcdef_number = FUNC_LABEL_ID (cfun);
   fde->nothrow = crtl->nothrow;
   fde->uses_eh_lsda = crtl->uses_eh_lsda;
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
@@ -3270,7 +3270,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
 
 	  enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/0);
 	  ASM_GENERATE_INTERNAL_LABEL (lab, "LLSDA",
-				       current_function_funcdef_no);
+				       FUNC_LABEL_ID (cfun));
 	  ref = gen_rtx_SYMBOL_REF (Pmode, lab);
 	  SYMBOL_REF_FLAGS (ref) = SYMBOL_FLAG_LOCAL;
 
@@ -3301,7 +3301,7 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   /* Output a label to mark the endpoint of the code generated for this
      function.  */
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_LABEL (asm_out_file, label);
   fde = current_fde ();
   gcc_assert (fde != NULL);
@@ -11819,7 +11819,7 @@ add_location_or_const_value_attribute (dw_die_ref die, tree decl,
 	  else
 	    {
 	      ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-					   current_function_funcdef_no);
+					   FUNC_LABEL_ID (cfun));
 	      endname = ggc_strdup (label_id);
 	    }
 	  descr = loc_by_reference (loc_descriptor (varloc, initialized),
@@ -13674,10 +13674,10 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (!flag_reorder_blocks_and_partition)
 	{
 	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_BEGIN_LABEL,
-				       current_function_funcdef_no);
+				       FUNC_LABEL_ID (cfun));
 	  add_AT_lbl_id (subr_die, DW_AT_low_pc, label_id);
 	  ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-				       current_function_funcdef_no);
+                                       FUNC_LABEL_ID (cfun));
 	  add_AT_lbl_id (subr_die, DW_AT_high_pc, label_id);
 
 	  add_pubname (decl, subr_die);
@@ -15919,7 +15919,7 @@ dwarf2out_source_line (unsigned int line, const char *filename)
 	    = &separate_line_info_table[separate_line_info_table_in_use++];
 	  line_info->dw_file_num = file_num;
 	  line_info->dw_line_num = line;
-	  line_info->function = current_function_funcdef_no;
+	  line_info->function = FUNC_LABEL_ID (cfun);
 	}
       else
 	{
