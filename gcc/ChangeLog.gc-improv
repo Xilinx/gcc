@@ -1,3 +1,21 @@
+2009-05-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gengtype.c (walk_type): Recognize variable_size option.
+	(variable_size_p): New.
+	(write_typed_alloc_end): Handle variable size types.
+	(write_typed_struct_alloc_def): Likewise.
+	* tree.c (build_string): Use typed GGC allocation.
+	(build_omp_clause): Likewise.
+	* tree.h (tree_node): Add variable_size GTY option.
+	* bitmap.h (bitmap_head_def): Update comment.
+	* ggc.h (GGC_NEWVECVAR, GGC_CNEWVECAR): New.
+	(ggc_internal_vec_alloc, ggc_internal_cleared_vec_alloc): Update
+	arguments.
+	(ggc_internal_sized_alloc, ggc_internal_cleared_sized_alloc): New.
+	(ggc_internal_vec_sized_alloc): New.
+	(ggc_internal_cleared_vec_sized_alloc): New.
+	(ggc_alloc_tree): Remove.
+
 2009-05-03  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c (write_typed_alloc_end): Print type cast to the

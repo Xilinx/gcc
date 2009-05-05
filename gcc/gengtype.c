@@ -2017,6 +2017,8 @@ walk_type (type_p t, struct walk_type_data *d)
       ;
     else if (strcmp (oo->name, "reorder") == 0)
       ;
+    else if (strcmp (oo->name, "variable_size") == 0)
+      ;
     else
       error_at_line (d->line, "unknown option `%s'\n", oo->name);
 
@@ -3589,15 +3591,28 @@ get_tag_string (const type_p s)
   return "";
 }
 
+static bool
+variable_size_p (const type_p s)
+{
+  options_p o;
+  for (o = s->u.s.opt; o; o = o->next)
+    if (strcmp (o->name, "variable_size") == 0)
+      return true;
+  return false;
+}
+
 static void
 write_typed_alloc_end (const type_p s, const char * allocator_type,
 		       bool is_vector)
 {
+  bool variable_size = variable_size_p (s);
   const char * type_tag = get_tag_string (s);
 
   oprintf (header_file, "((%s%s *)", type_tag, s->u.s.tag);
-  oprintf (header_file, "(ggc_internal_%salloc (", allocator_type);
+  oprintf (header_file, "(ggc_internal_%s%salloc (", allocator_type,
+	   (variable_size ? "sized_" : ""));
   oprintf (header_file, "%s%s", type_tag, s->u.s.tag);
+  oprintf (header_file, "%s", variable_size ? ", SIZE" : "");
   oprintf (header_file, "%s", is_vector ? ", n" : "");
   oprintf (header_file, ")))\n");
 }
@@ -3606,8 +3621,12 @@ static void
 write_typed_struct_alloc_def (const type_p s, const char * allocator_type,
 			      bool is_vector)
 {
+  bool variable_size = variable_size_p (s);
+  bool two_args = variable_size && is_vector;
+
   oprintf (header_file, "#define ggc_alloc_%s%s", allocator_type, s->u.s.tag);
-  oprintf (header_file, "(%s) ", is_vector ? "n" : "");
+  oprintf (header_file, "(%s%s%s) ", (variable_size ? "SIZE" : ""),
+	   (two_args ? ", " : ""), (is_vector ? "n" : ""));
   write_typed_alloc_end (s, allocator_type, is_vector);
 }
 
