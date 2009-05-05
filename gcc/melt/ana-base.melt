@@ -725,8 +725,8 @@
   (:tree tr)
   (					;output
    :cstring name
-	    ;;; @@@@ INCORRECT should use bigger boxed integers
-   :long min max size
+   :value minbig maxbig 
+   :long size
    )
   treeinty				;statesym
   ;; test expander
@@ -734,22 +734,29 @@
   ;; fill expander
    #{
    tree $treeinty#_ty= TYPE_NAME($tr);
-   tree $treeinty#_mint= TYPE_MIN_VALUE($tr);
-   tree $treeinty#_maxt= TYPE_MAX_VALUE($tr);
    tree $treeinty#_sizt= TYPE_SIZE($tr);
-   $min = 0L;  $max = 0L;  $size = 0L;
+   mpz_t $treeinty#_minz, $treeinty#_maxz;
+   $size = 0L;
+   $minbig = NULL; 
+   $maxbig = NULL;
    if ($treeinty#_ty && TREE_CODE($treeinty#_ty) == IDENTIFIER_NODE)
    $name = IDENTIFIER_POINTER($treeinty#_ty);
-   if ($treeinty#_mint && TREE_CODE($treeinty#_mint) == INTEGER_CST)
-     $min = tree_low_cst($treeinty#_mint,0);
-   if ($treeinty#_maxt && TREE_CODE($treeinty#_maxt) == INTEGER_CST)
-     $max = tree_low_cst($treeinty#_maxt,0);
+   mpz_init ($treeinty#_minz);
+   mpz_init ($treeinty#_maxz);
+   get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
+   $minbig = basilysgc_new_mixbigint_mpz(BASILYSGOB (DISCR_MIXBIGINT), 
+					 NULL, 
+					 $treeinty#_minz);
+   $maxbig =  basilysgc_new_mixbigint_mpz(BASILYSGOB (DISCR_MIXBIGINT), 
+					 NULL, 
+					 $treeinty#_maxz);
+   mpz_clear ($treeinty#_minz);
+   mpz_clear ($treeinty#_maxz);
    if ($treeinty#_sizt && TREE_CODE($treeinty#_sizt) == INTEGER_CST)
      $size = tree_low_cst($treeinty#_sizt,0);
    }# )
 
-;;;; TODO
-(compile_warning "bigger boxed integers are needed for tree_integer_type" ())
+
 
 ;;; pattern tree_integer_cst
 (defcmatcher tree_integer_cst

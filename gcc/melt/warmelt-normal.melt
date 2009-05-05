@@ -1315,6 +1315,57 @@
 
 (install_method class_src_primitive normal_exp normexp_primitive)
 
+
+;;; normalize a code_chunk
+(defun normexp_code_chunk (recv env ncx psloc)
+  (debug_msg recv "normexp_code_chunk recv")
+  (assert_msg "check code_chunk recv" (is_a recv class_src_codechunk))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+	 (schk (unsafe_get_field :sch_chunks recv))
+	 (gsym (unsafe_get_field :sch_gensym recv))
+	 (csym (clone_symbol gsym))
+	 (csymstr (let ( (sbuf (make_strbuf discr_strbuf)) )
+		    (add2sbuf_string sbuf (get_field :named_name csym))
+		    (add2sbuf_strconst sbuf "__")
+		    (add2sbuf_longdec sbuf (get_int (get_field :csym_urank csym)))
+		    (strbuf2string discr_verbatimstring sbuf)
+		    ))
+	 (nchk (multiple_map 
+		schk
+		(lambda (curcomp :long curix)
+		  (cond
+		   ( (is_string curcomp) curcomp)
+		   ( (== curcomp gsym) csymstr)
+		   ( (is_a curcomp class_symbol)
+		     (normal_exp curcomp env ncx sloc))
+		   (:else
+		    (assert_msg "impossible curcomp in src code_chunk" ()))
+		   ))))
+	 (cbind (instance class_normlet_binding
+			  :letbind_loc sloc
+			  :binder csym
+			  :letbind_type ctype_void
+			  :letbind_expr 
+			  (instance class_nrep_chunk
+				    :nrep_loc sloc
+				    :nchunk_expansion nchk
+				    :nchunk_oper csym
+				    :nexpr_ctyp ctype_void
+				    ))) 
+	 (clocc (instance class_nrep_locsymocc
+			  :nrep_loc sloc
+			  :nocc_ctyp ctype_void
+			  :nocc_symb csym
+			  :nocc_bind cbind)) 
+	 )
+    (debug_msg clocc "normexp_code_chunk clocc")
+    (assert_msg "check nchk" (is_multiple nchk))
+    (return clocc (list1 cbind))
+    ))
+(install_method class_src_codechunk normal_exp normexp_code_chunk)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a cmatchexpr
 (defun normexp_cmatchexpr (recv env ncx psloc)

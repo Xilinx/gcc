@@ -1,4 +1,12 @@
 2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	Added code_chunk macro...
+	* melt/warmelt-macro.melt: added class_src_codechunk & mexpand_code_chunk.
+	* melt/warmelt-normal.melt: added normexp_code_chunk.
+	* melt/warmelt-outobj.melt: adding braces when generating void objlocatedexpv
+	* melt/ana-base.melt: tree_integer_type cmatcher takes minbig & maxbig value outputs.
+	* melt/ana-simple.melt: using a code_chunk in smallana_gimple for gimple_assign_cast.
+
+2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	Added mixbigint which are big boxed integers mixed to a value
 	* basilys.h (OBMAG_MIXBIGINT, struct basilysmixbigint_st): added.
 	(union basilys_un): updated.

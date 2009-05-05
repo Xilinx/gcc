@@ -2741,15 +2741,29 @@
   (let ( (cont (unsafe_get_field :obx_cont oexp)) 
 	 (oloc (unsafe_get_field :obcx_loc oexp))
 	 (boxdepthp1 (make_integerbox discr_integer (+i depth 1)))
+	 (otyp (unsafe_get_field :obv_type oexp))
 	 )
     (assert_msg "check cont" (is_multiple cont))
-    (if (or (is_mixint oloc) (is_mixloc oloc))
-	(output_raw_location oloc implbuf depth "expr")
+    (if (== otyp ctype_void)
+	(progn
+	  (add2sbuf_indentnl implbuf depth)
+	  (add2sbuf_strconst implbuf "{")
+	  (add2sbuf_indentnl implbuf depth)
+	  (output_location oloc implbuf depth "locexp")
+	  )      
+      (if oloc
+	  (output_raw_location oloc implbuf depth "expr")
+	)
       )
     (multiple_every
      cont
      (lambda (comp :long ix)
-       (output_c_code comp declbuf implbuf (get_int boxdepthp1)))))
+       (output_c_code comp declbuf implbuf (get_int boxdepthp1))))
+    (if (== otyp ctype_void)
+	(progn
+	  (add2sbuf_strconst implbuf ";}")
+	  (add2sbuf_indentnl implbuf depth)))
+    )
   )
 (install_method class_objlocatedexpv output_c_code outpucod_objlocatedexpv)
 

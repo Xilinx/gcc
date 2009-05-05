@@ -416,6 +416,15 @@
 	   sstpd_value
 	   ))
 
+
+;; source code chunk
+(defclass class_src_codechunk
+  :super class_src
+  :fields (sch_gensym			;generating symbol
+	   sch_chunks			;the chunks
+))
+
+;;;;;;;;;;;;;;;;
 ;;; source patterns
 (defclass class_srcpattern_any
   :super class_src
@@ -2574,6 +2583,54 @@
 (install_initial_patmacro 'object patexpand_object mexpand_object)
 (export_patmacro object patexpand_object mexpand_object)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; the codechunk expander
+(defun mexpand_code_chunk (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (curchk ())
+	 (gsym ())
+	 (chklist (make_list discr_list))
+	 (curel ())
+	 )
+    (setq curel (pair_head curpair))
+    (if (is_a curel class_symbol)
+	(setq gsym curel)
+      (error_plain sloc "missing symbol in (CODE_CHUNK <gensymbol> <chunk>)"))
+    (setq curpair (pair_tail curpair))
+    (setq curchk (pair_head curpair))
+    (if  (pair_tail curpair)
+	(error_plain sloc "CODE_CHUNK expects one single chunk sexpr"))
+    (if (is_not_a curchk class_sexpr)
+	(error_plain sloc "CODE_CHUNK expects a chunk sexpr"))
+    (let ( (loc (get_field :loca_location curchk)) 
+	   (chkcont (get_field :sexp_contents curchk))
+	   )
+      (foreach_in_list
+       (chkcont)
+       (curpair curcomp)
+       (cond ( (is_string curcomp)
+	       (list_append chklist (make_string discr_verbatimstring curcomp))
+	       )
+	     ( (is_a curcomp class_symbol)
+	       (list_append chklist curcomp))
+	     (:else
+	      (error_plain loc "bad content in CODE_CHUNK - expecting string or symbol")))
+       )
+      (let ( (mres (instance class_src_codechunk
+			     :src_loc (or loc sloc)
+			     :sch_gensym gsym
+			     :sch_chunks (list_to_multiple chklist discr_multiple)
+			     )) )
+	(debug_msg mres "mexpand_code_chunk result")
+	(return mres)
+	))))
+
+(install_initial_macro 'code_chunk mexpand_code_chunk)
+(export_macro code_chunk mexpand_code_chunk)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; the unsafe_put_fields expander
 (defun mexpand_unsafe_put_fields (sexpr env mexpander)
@@ -4009,6 +4066,7 @@
  class_src_casewhenmatch
  class_src_citeration
  class_src_cmatchexpr
+ class_src_codechunk
  class_src_comment
  class_src_compilewarning
  class_src_cppif

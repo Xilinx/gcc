@@ -176,12 +176,12 @@
 	argdtree
 	( ?(tree_parm_decl
 	    ?(as ?argdtype 
-		 ?(tree_integer_type ?typname ?imin ?imax ?isiz)) ?argdcl ?argname)
+		 ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb integer argdtype" argdtype)
 	   (debugcstring "smallana_cfun_entbb integer argname" argname)
 	   (debugcstring "smallana_cfun_entbb integer typname" typname)
-	   (messagenum_dbg  "smallana_cfun_entbb integer imin" imin)
-	   (messagenum_dbg  "smallana_cfun_entbb integer imax" imax)
+	   (debug_msg bigmin "smallana_cfun_entbb integer bigmin")
+	   (debug_msg bigmax "smallana_cfun_entbb integer bigmax")
 	   )
 	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
 	   (debugtree "smallana_cfun_entbb argdtype" argdtype)
@@ -804,14 +804,34 @@
 	(debugtree "smallana_gimple gimple_assign_cast rhstype" rhstype)
 	(match 
 	 rhstype
-	 ( ?(tree_integer_type ?rname ?rmin ?rmax ?rsize)
+	 ( ?(tree_integer_type ?rname ?rbigmin ?rbigmax ?rsize)
 	    (match 
 	     lhstype
-	     ( ?(tree_integer_type ?lname ?lmin ?lmax ?lsize)
-		(if (and (<=i lmin rmin)
-			 (>=i lmax rmax)
-			 (>=i lsize rsize))
-		    (setq widenningcast 1))
+	     ( ?(tree_integer_type ?lname ?lbigmin ?lbigmax ?lsize)
+		(code_chunk 
+		 testinside
+		 #{ 
+		   mpz_t $testinside#_lminz;
+		   mpz_t $testinside#_lmaxz;
+		   mpz_t $testinside#_rminz;
+		   mpz_t $testinside#_rmaxz;
+		   mpz_init_set_ui($testinside#_lminz, 0UL);
+		   mpz_init_set_ui($testinside#_lmaxz, 0UL);
+		   mpz_init_set_ui($testinside#_rminz, 0UL);
+		   mpz_init_set_ui($testinside#_rmaxz, 0UL);
+		   if ($lsize >= $rsize 
+		      && basilys_fill_mpz_from_mixbigint($lbigmin, $testinside#_lminz)
+	              && basilys_fill_mpz_from_mixbigint($lbigmax, $testinside#_lmaxz)
+		      && basilys_fill_mpz_from_mixbigint($rbigmin, $testinside#_rminz)
+	              && basilys_fill_mpz_from_mixbigint($rbigmax, $testinside#_rmaxz)
+		      && mpz_cmp($testinside#_lminz, $testinside#_rminz) <= 0
+		      && mpz_cmp($testinside#_lmaxz, $testinside#_rmaxz) >= 0)
+		         $widenningcast = 1;
+		   mpz_clear($testinside#_lminz);
+		   mpz_clear($testinside#_lmaxz);
+		   mpz_clear($testinside#_rminz);
+		   mpz_clear($testinside#_rmaxz);
+		 }#)
 		)
 	    )))	 
 	(if widenningcast
