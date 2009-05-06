@@ -793,12 +793,20 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
   tree var0, var1, type;
   gimple def_stmt;
   enum tree_code subcode;
+  tree new_op;
       
   if (is_parameter (region, op0)
       || is_iv (op0))
     return get_rename (map, op0);
       
   def_stmt = SSA_NAME_DEF_STMT (op0);
+
+  /* We already created this stmt in this bb.  */
+  new_op = get_rename (map, op0);
+
+  if (new_op != op0
+      && gimple_bb (SSA_NAME_DEF_STMT (new_op)) == bb)
+    return new_op;
       
   if (gimple_bb (def_stmt) == bb)
     {
@@ -806,13 +814,13 @@ expand_scalar_variables_ssa_name (tree op0, basic_block bb,
 	 we do not need to create a new expression for it, we
 	 only need to ensure its operands are expanded.  */
       expand_scalar_variables_stmt (def_stmt, bb, region, map, gsi);
-      return get_rename (map, op0);
+      return new_op;
     }
   else
     {
       if (gimple_code (def_stmt) != GIMPLE_ASSIGN
 	  || !bb_in_sese_p (gimple_bb (def_stmt), region))
-	return get_rename (map, op0);
+	return new_op;
 
       var0 = gimple_assign_rhs1 (def_stmt);
       subcode = gimple_assign_rhs_code (def_stmt);

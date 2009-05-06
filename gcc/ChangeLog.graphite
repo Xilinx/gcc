@@ -1,5 +1,10 @@
 2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* sese.c (expand_scalar_variables_ssa_name): Only build expressions,
+	that we have not yet built for this SCoP.
+
+2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* sese.c (expand_scalar_variables_expr): Fix expand_scalar_variables
 	for complex numbers.
 
