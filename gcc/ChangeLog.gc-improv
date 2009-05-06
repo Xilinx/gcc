@@ -1,3 +1,10 @@
+2009-05-06  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* rtl.h (struct rtx_def): Add variable_size GTY annotation.
+	* rtl.c (rtx_alloc_stat): Use typed GGC allocation.
+	(shallow_copy_rtx_stat): Likewise.
+	* varasm.c (create_block_symbol): Likewise.
+
 2009-05-05  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c (walk_type): Recognize variable_size option.
