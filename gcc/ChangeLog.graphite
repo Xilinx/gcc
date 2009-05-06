@@ -1,5 +1,10 @@
 2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
+	* sese.c (expand_scalar_variables_expr): Fix expand_scalar_variables
+	for complex numbers.
+
+2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
 	* graphite-ppl.c: Fix build if cloog is not available.
 
 2009-05-04  Li Feng  <nemokingdom@gmail.com>

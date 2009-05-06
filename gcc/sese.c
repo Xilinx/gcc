@@ -853,7 +853,7 @@ expand_scalar_variables_expr (tree type, tree op0, enum tree_code code,
 	    tree op = TREE_OPERAND (op0, 0);
 	    tree res = expand_scalar_variables_expr
 	      (type, op, TREE_CODE (op), NULL, bb, region, map, gsi);
-	    return fold_build1 (code, type, res);
+	    return build1 (code, type, res);
 	  }
 
 	case INDIRECT_REF:
