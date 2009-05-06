@@ -1,3 +1,7 @@
+2009-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h: added careful include of <ppl_c.h>. See comment
+	around line 30.
+
 2009-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	Added code_chunk macro...
 	* melt/warmelt-macro.melt: added class_src_codechunk & mexpand_code_chunk.
