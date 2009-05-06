@@ -24,6 +24,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "ggc.h"
+
+#ifdef HAVE_cloog
 #include "ppl_c.h"
 #include "cloog/cloog.h"
 #include "graphite-ppl.h"
@@ -606,3 +608,4 @@ ppl_read_polyhedron_matrix (ppl_Polyhedron_t *ph, FILE *file)
   new_NNC_Polyhedron_from_Cloog_Matrix (ph, mat);
   cloog_matrix_free (mat);
 }
+#endif

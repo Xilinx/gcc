@@ -1,3 +1,7 @@
+2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-ppl.c: Fix build if cloog is not available.
+
 2009-05-04  Li Feng  <nemokingdom@gmail.com>
 
 	* tree-parloops.c (loop_parallel_p): Remove construction of
