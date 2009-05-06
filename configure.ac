@@ -1374,9 +1374,9 @@ ENABLE_PPL_CHECK=yes)
 if test "${ENABLE_PPL_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pplinc $gmpinc"
-  AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version of PPL])
+  AC_MSG_CHECKING([for version $ppl_major_version.$ppl_minor_version or better of PPL])
   AC_TRY_COMPILE([#include "ppl_c.h"],[
-  #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR != $ppl_minor_version
+  #if PPL_VERSION_MAJOR != $ppl_major_version || PPL_VERSION_MINOR < $ppl_minor_version
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ])
