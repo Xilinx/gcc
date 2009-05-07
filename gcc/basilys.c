@@ -5069,7 +5069,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   /* look first in the temporary directory */
   tmpath = basilys_tempdir_path (dupmodulnam, ".c");
   debugeprintf ("basilysgc_load_melt_module trying in tempdir %s", tmpath);
-  if (!access (tmpath, R_OK))
+  if (tmpath && !access (tmpath, R_OK))
     {
       debugeprintf ("basilysgc_load_melt_module found source in tempdir %s", tmpath);
       srcpath = tmpath;
@@ -5184,6 +5184,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* check in the temporary directory */
   tmpath = basilys_tempdir_path (dupmodulnam, NULL);
+  debugeprintf ("basilysgc_load_melt_module trying %s", tmpath);
   BASILYS_LOCATION_HERE
     ("basilysgc_load_melt_module before load_checked_dylib tmpath");
   dlix = tmpath ? load_checked_dynamic_module_index (tmpath, md5src) : 0;
@@ -5236,8 +5237,18 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
     }
   debugeprintf ("failed here dlix=%d", dlix);
   /* catch all situation, failed to find the dynamic stuff */
-  fatal_error ("failed to find dynamic stuff for MELT module %s (%s)",
-	       dupmodulnam, lt_dlerror ());
+  /* give info to user */
+  error("failed to find dynamic stuff for MELT module %s (%s)",
+	dupmodulnam, lt_dlerror ());
+  inform (UNKNOWN_LOCATION, 
+	  "not found dynamic stuff using tempdir %s", 
+	  basilys_tempdir_path (dupmodulnam, NULL));
+  if (srcpath)
+  inform (UNKNOWN_LOCATION, 
+	  "not found dynamic stuff using srcpath %s", 
+	  srcpath);
+  fatal_error ("unable to continue since failed to load MELT module %s", 
+	       dupmodulnam);
  dylibfound:
   debugeprintf ("dylibfound dlix=%d", dlix);
   gcc_assert (dlix > 0

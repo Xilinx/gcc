@@ -1,4 +1,7 @@
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_melt_module): gives more informative
+	messages when failed to load a melt module.
+2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* compiler-probe.c (hash_info_tree): replacing switch by ifs and
 	more casts in pointer compare to suppress warnings.
 	(hash_info_bb, hash_info_gimple): likewise.
