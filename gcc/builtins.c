@@ -5033,7 +5033,7 @@ gimplify_va_arg_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 	  if (TREE_CODE (TREE_TYPE (valist)) == ARRAY_TYPE)
 	    {
 	      tree p1 = build_pointer_type (TREE_TYPE (have_va_type));
-	      valist = build_fold_addr_expr_with_type (valist, p1);
+	      valist = fold_convert (p1, build_fold_addr_expr (valist));
 	    }
 
 	  gimplify_expr (&valist, pre_p, post_p, is_gimple_val, fb_rvalue);
@@ -8970,7 +8970,8 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	}
       srctype = TREE_TYPE (TREE_TYPE (src));
       if (srctype
-	  && TREE_CODE (srctype) == ARRAY_TYPE)
+	  && TREE_CODE (srctype) == ARRAY_TYPE
+	  && !tree_int_cst_equal (TYPE_SIZE_UNIT (srctype), len))
 	{
 	  srctype = TREE_TYPE (srctype);
 	  STRIP_NOPS (src);
@@ -8978,7 +8979,8 @@ fold_builtin_memory_op (tree dest, tree src, tree len, tree type, bool ignore, i
 	}
       desttype = TREE_TYPE (TREE_TYPE (dest));
       if (desttype
-	  && TREE_CODE (desttype) == ARRAY_TYPE)
+	  && TREE_CODE (desttype) == ARRAY_TYPE
+	  && !tree_int_cst_equal (TYPE_SIZE_UNIT (desttype), len))
 	{
 	  desttype = TREE_TYPE (desttype);
 	  STRIP_NOPS (dest);

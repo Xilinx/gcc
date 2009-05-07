@@ -14,7 +14,7 @@
 @setfilename gnat_ugn.info
 
 @copying
-Copyright @copyright{} 1995-2005, 2006, 2007, 2008 Free Software Foundation,
+Copyright @copyright{} 1995-2009 Free Software Foundation,
 Inc.
 
 Permission is granted to copy, distribute and/or modify this document
@@ -3291,8 +3291,29 @@ end Pkg_Root;
 
 On the Ada side the constructor is represented by a function (whose
 name is arbitrary) that returns the classwide type corresponding to
-the imported C++ class.
+the imported C++ class. Although the constructor is described as a
+function, it is typically a procedure with an extra implicit argument
+(the object being initialized) at the implementation level. GNAT
+issues the appropriate call, whatever it is, to get the object
+properly initialized.
 
+Constructors can only appear in the following contexts:
+
+@itemize @bullet
+@item
+On the right side of an initialization of an object of type @var{T}.
+@item
+On the right side of an initialization of a record component of type @var{T}.
+@item
+In an Ada 2005 limited aggregate.
+@item
+In an Ada 2005 nested limited aggregate.
+@item
+In an Ada 2005 limited aggregate that initializes an object built in
+place by an extended return statement.
+@end itemize
+
+@noindent
 In a declaration of an object whose type is a class imported from C++,
 either the default C++ constructor is implicitly called by GNAT, or
 else the required C++ constructor must be explicitly called in the
@@ -3324,12 +3345,12 @@ In this case the components DT inherited from the C++ side must be
 initialized by a C++ constructor, and the additional Ada components
 of type DT are initialized by GNAT. The initialization of such an
 object is done either by default, or by means of a function returning
-an aggregate of type DT, or by means of an extended aggregate.
+an aggregate of type DT, or by means of an extension aggregate.
 
 @smallexample @c ada
   Obj5 : DT;
   Obj6 : DT := Function_Returning_DT (50);
-  Obj7 : DT := (Constructor (30,40) with (C_Value => 50));
+  Obj7 : DT := (Constructor (30,40) with C_Value => 50);
 @end smallexample
 
 The declaration of @code{Obj5} invokes the default constructors: the
@@ -5468,6 +5489,20 @@ The default is that warnings for redundant constructs are not given.
 @emph{Suppress warnings on redundant constructs.}
 @cindex @option{-gnatwR} (@command{gcc})
 This switch suppresses warnings for redundant constructs.
+
+@item -gnatw.r
+@emph{Activate warnings for object renaming function.}
+@cindex @option{-gnatw.r} (@command{gcc})
+This switch activates warnings for an object renaming that renames a
+function call, which is equivalent to a constant declaration (as
+opposed to renaming the function itself).  The default is that these
+warnings are given.  This warning can also be turned on using
+@option{-gnatwa}.
+
+@item -gnatw.R
+@emph{Suppress warnings for object renaming function.}
+@cindex @option{-gnatwT} (@command{gcc})
+This switch suppresses warnings for object renaming function.
 
 @item -gnatws
 @emph{Suppress all warnings.}
@@ -17601,6 +17636,15 @@ bodies, task bodies, entry bodies and statement sequences in package bodies
 Do not consider @code{exit} statements as @code{goto}s when
 computing Essential Complexity
 
+@item ^--extra-exit-points^/EXTRA_EXIT_POINTS_ON^
+Report the extra exit points for subprogram bodies. As an exit point, this
+metric counts @code{return} statements and raise statements in case when the
+raised exception is not handled in the same body. In case of a function this
+metric subtracts 1 from the number of exit points, because a function body
+must contain at least one @code{return} statement.
+
+@item ^--no-extra-exit-points^/EXTRA_EXIT_POINTS_OFF^
+Do not report the extra exit points for subprogram bodies
 @end table
 
 
@@ -20849,6 +20893,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Discriminated_Records::
 * Enumeration_Ranges_In_CASE_Statements::
 * Exceptions_As_Control_Flow::
+* Exits_From_Conditional_Loops::
 * EXIT_Statements_With_No_Loop_Name::
 * Expanded_Loop_Exit_Names::
 * Explicit_Full_Discrete_Ranges::
@@ -20899,6 +20944,7 @@ used as a parameter of the @option{+R} or @option{-R} options.
 * Slices::
 * Unassigned_OUT_Parameters::
 * Uncommented_BEGIN_In_Package_Bodies::
+* Unconditional_Exits::
 * Unconstrained_Array_Returns::
 * Universal_Ranges::
 * Unnamed_Blocks_And_Loops::
@@ -21114,6 +21160,20 @@ same subprogram body. A @code{raise} statement in an exception handler,
 package body, task body or entry body is not flagged.
 
 The rule has no parameters.
+
+@node Exits_From_Conditional_Loops
+@subsection @code{Exits_From_Conditional_Loops}
+@cindex @code{Exits_From_Conditional_Loops} (for @command{gnatcheck})
+
+@noindent
+Flag any exit statement if it transfers the control out of a @code{for} loop
+or a @code{while} loop. This includes cases when the @code{exit} statement
+applies to a @code{FOR} or @code{while} loop, and cases when it is enclosed
+in some @code{for} or @code{while} loop, but transfers the control from some
+outer (inconditional) @code{loop} statement.
+
+The rule has no parameters.
+
 
 @node EXIT_Statements_With_No_Loop_Name
 @subsection @code{EXIT_Statements_With_No_Loop_Name}
@@ -21496,6 +21556,11 @@ Specifies the suffix for a type name.
 Specifies the suffix for an access type name. If
 this parameter is set, it overrides for access
 types the suffix set by the @code{Type_Suffix} parameter.
+For access types, @emph{string} may have the following format:
+@emph{suffix1(suffix2)}. That means that an access type name
+should have the @emph{suffix1} suffix except for the case when
+the designated type is also an access type, in this case the
+type name should have the @emph{suffix1 & suffix2} suffix.
 
 @item Constant_Suffix=@emph{string}
 Specifies the suffix for a constant name.
@@ -22213,6 +22278,14 @@ diagnostic message is attached to the line containing the first statement.
 
 This rule has no parameters.
 
+@node Unconditional_Exits
+@subsection @code{Unconditional_Exits}
+@cindex @code{Unconditional_Exits} rule (for @command{gnatcheck})
+
+@noindent
+Flag unconditional @code{exit} statements.
+
+This rule has no parameters.
 
 @node Unconstrained_Array_Returns
 @subsection @code{Unconstrained_Array_Returns}

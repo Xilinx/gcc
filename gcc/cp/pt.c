@@ -9182,6 +9182,14 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
 	max = tsubst_expr (omax, args, complain, in_decl,
 			   /*integral_constant_expression_p=*/false);
+
+	/* Fix up type of the magic NOP_EXPR with TREE_SIDE_EFFECTS if
+	   needed.  */
+	if (TREE_CODE (max) == NOP_EXPR
+	    && TREE_SIDE_EFFECTS (omax)
+	    && !TREE_TYPE (max))
+	  TREE_TYPE (max) = TREE_TYPE (TREE_OPERAND (max, 0));
+
 	max = fold_decl_constant_value (max);
 
 	/* If we're in a partial instantiation, preserve the magic NOP_EXPR
@@ -10012,11 +10020,15 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
       if (r == NULL)
 	{
+	  tree c;
 	  /* This can happen for a parameter name used later in a function
 	     declaration (such as in a late-specified return type).  Just
 	     make a dummy decl, since it's only used for its type.  */
 	  gcc_assert (skip_evaluation);	  
-	  r = tsubst_decl (t, args, complain);
+	  /* We copy T because want to tsubst the PARM_DECL only,
+	     not the following PARM_DECLs that are chained to T.  */
+	  c = copy_node (t);
+	  r = tsubst_decl (c, args, complain);
 	  /* Give it the template pattern as its context; its true context
 	     hasn't been instantiated yet and this is good enough for
 	     mangling.  */

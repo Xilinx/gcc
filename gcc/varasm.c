@@ -4761,8 +4761,8 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 	  total_bytes += fieldsize;
 	}
       else if (val != 0 && TREE_CODE (val) != INTEGER_CST)
-	error ("invalid initial value for member %qs",
-	       IDENTIFIER_POINTER (DECL_NAME (field)));
+	error ("invalid initial value for member %qE",
+	       DECL_NAME (field));
       else
 	{
 	  /* Element that is a bit-field.  */
@@ -5344,13 +5344,13 @@ finish_aliases_1 (void)
       if (target_decl == NULL)
 	{
 	  if (! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	    error ("%q+D aliased to undefined symbol %qs",
-		   p->decl, IDENTIFIER_POINTER (p->target));
+	    error ("%q+D aliased to undefined symbol %qE",
+		   p->decl, p->target);
 	}
       else if (DECL_EXTERNAL (target_decl)
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	error ("%q+D aliased to external symbol %qs",
-	       p->decl, IDENTIFIER_POINTER (p->target));
+	error ("%q+D aliased to external symbol %qE",
+	       p->decl, p->target);
     }
 }
 

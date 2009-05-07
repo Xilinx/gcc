@@ -40,13 +40,18 @@ with Interfaces.C; use Interfaces.C;
 
 package body GNAT.Sockets.Thin is
 
+   type VMS_Msghdr is new Msghdr;
+   pragma Pack (VMS_Msghdr);
+   --  On VMS (unlike other platforms), struct msghdr is packed, so a specific
+   --  derived type is required.
+
    Non_Blocking_Sockets : aliased Fd_Set;
    --  When this package is initialized with Process_Blocking_IO set to True,
    --  sockets are set in non-blocking mode to avoid blocking the whole process
    --  when a thread wants to perform a blocking IO operation. But the user can
    --  also set a socket in non-blocking mode by purpose. In order to make a
    --  difference between these two situations, we track the origin of
-   --  non-blocking mode in Non_Blocking_Sockets. If S is in
+   --  non-blocking mode in Non_Blocking_Sockets. Note that if S is in
    --  Non_Blocking_Sockets, it has been set in non-blocking mode by the user.
 
    Quantum : constant Duration := 0.2;
@@ -87,7 +92,7 @@ package body GNAT.Sockets.Thin is
       Msg     : System.Address;
       Len     : C.int;
       Flags   : C.int;
-      From    : Sockaddr_In_Access;
+      From    : System.Address;
       Fromlen : not null access C.int) return C.int;
    pragma Import (C, Syscall_Recvfrom, "recvfrom");
 
@@ -108,7 +113,7 @@ package body GNAT.Sockets.Thin is
       Msg   : System.Address;
       Len   : C.int;
       Flags : C.int;
-      To    : Sockaddr_In_Access;
+      To    : System.Address;
       Tolen : C.int) return C.int;
    pragma Import (C, Syscall_Sendto, "sendto");
 
@@ -210,7 +215,6 @@ package body GNAT.Sockets.Thin is
 
       if Res = Failure and then Errno = SOSC.EISCONN then
          return Thin_Common.Success;
-
       else
          return Res;
       end if;
@@ -271,7 +275,7 @@ package body GNAT.Sockets.Thin is
       Msg     : System.Address;
       Len     : C.int;
       Flags   : C.int;
-      From    : Sockaddr_In_Access;
+      From    : System.Address;
       Fromlen : not null access C.int) return C.int
    is
       Res : C.int;
@@ -300,15 +304,23 @@ package body GNAT.Sockets.Thin is
    is
       Res : C.int;
 
+      GNAT_Msg : Msghdr;
+      for GNAT_Msg'Address use Msg;
+      pragma Import (Ada, GNAT_Msg);
+
+      VMS_Msg : aliased VMS_Msghdr := VMS_Msghdr (GNAT_Msg);
+
    begin
       loop
-         Res := Syscall_Recvmsg (S, Msg, Flags);
+         Res := Syscall_Recvmsg (S, VMS_Msg'Address, Flags);
          exit when SOSC.Thread_Blocking_IO
            or else Res /= Failure
            or else Non_Blocking_Socket (S)
            or else Errno /= SOSC.EWOULDBLOCK;
          delay Quantum;
       end loop;
+
+      GNAT_Msg := Msghdr (VMS_Msg);
 
       return ssize_t (Res);
    end C_Recvmsg;
@@ -324,15 +336,23 @@ package body GNAT.Sockets.Thin is
    is
       Res : C.int;
 
+      GNAT_Msg : Msghdr;
+      for GNAT_Msg'Address use Msg;
+      pragma Import (Ada, GNAT_Msg);
+
+      VMS_Msg : aliased VMS_Msghdr := VMS_Msghdr (GNAT_Msg);
+
    begin
       loop
-         Res := Syscall_Sendmsg (S, Msg, Flags);
+         Res := Syscall_Sendmsg (S, VMS_Msg'Address, Flags);
          exit when SOSC.Thread_Blocking_IO
            or else Res /= Failure
            or else Non_Blocking_Socket (S)
            or else Errno /= SOSC.EWOULDBLOCK;
          delay Quantum;
       end loop;
+
+      GNAT_Msg := Msghdr (VMS_Msg);
 
       return ssize_t (Res);
    end C_Sendmsg;
@@ -346,7 +366,7 @@ package body GNAT.Sockets.Thin is
       Msg   : System.Address;
       Len   : C.int;
       Flags : C.int;
-      To    : Sockaddr_In_Access;
+      To    : System.Address;
       Tolen : C.int) return C.int
    is
       Res : C.int;

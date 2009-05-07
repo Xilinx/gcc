@@ -1,4 +1,4 @@
------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
@@ -1545,7 +1545,16 @@ package body Freeze is
 
          Placed_Component : Boolean := False;
          --  Set True if we find at least one component with a component
-         --  clause (used to warn about useless Bit_Order pragmas).
+         --  clause (used to warn about useless Bit_Order pragmas, and also
+         --  to detect cases where Implicit_Packing may have an effect).
+
+         All_Scalar_Components : Boolean := True;
+         --  Set False if we encounter a component of a non-scalar type
+
+         Scalar_Component_Total_RM_Size : Uint := Uint_0;
+         Scalar_Component_Total_Esize   : Uint := Uint_0;
+         --  Accumulates total RM_Size values and total Esize values of all
+         --  scalar components. Used for processing of Implicit_Packing.
 
          function Check_Allocator (N : Node_Id) return Node_Id;
          --  If N is an allocator, possibly wrapped in one or more level of
@@ -1855,6 +1864,17 @@ package body Freeze is
                end;
             end if;
 
+            --  Gather data for possible Implicit_Packing later
+
+            if not Is_Scalar_Type (Etype (Comp)) then
+               All_Scalar_Components := False;
+            else
+               Scalar_Component_Total_RM_Size :=
+                 Scalar_Component_Total_RM_Size + RM_Size (Etype (Comp));
+               Scalar_Component_Total_Esize :=
+                 Scalar_Component_Total_Esize + Esize (Etype (Comp));
+            end if;
+
             --  If the component is an Itype with Delayed_Freeze and is either
             --  a record or array subtype and its base type has not yet been
             --  frozen, we must remove this from the entity list of this
@@ -2061,7 +2081,7 @@ package body Freeze is
          --  Finally, enforce the restriction that access attributes with a
          --  current instance prefix can only apply to limited types.
 
-         if  Ekind (Rec) = E_Record_Type then
+         if Ekind (Rec) = E_Record_Type then
             if Present (Corresponding_Remote_Type (Rec)) then
                Freeze_And_Append
                  (Corresponding_Remote_Type (Rec), Loc, Result);
@@ -2162,6 +2182,36 @@ package body Freeze is
                     ("\?use of convention for type& is dubious", A2, E);
                end if;
             end;
+         end if;
+
+         --  See if Implicit_Packing would work
+
+         if not Is_Packed (Rec)
+           and then not Placed_Component
+           and then Has_Size_Clause (Rec)
+           and then All_Scalar_Components
+           and then not Has_Discriminants (Rec)
+           and then Esize (Rec) < Scalar_Component_Total_Esize
+           and then Esize (Rec) >= Scalar_Component_Total_RM_Size
+         then
+            --  If implicit packing enabled, do it
+
+            if Implicit_Packing then
+               Set_Is_Packed (Rec);
+
+               --  Otherwise flag the size clause
+
+            else
+               declare
+                  Sz : constant Node_Id := Size_Clause (Rec);
+               begin
+                  Error_Msg_NE
+                    ("size given for& too small", Sz, Rec);
+                  Error_Msg_N
+                    ("\use explicit pragma Pack "
+                     & "or use pragma Implicit_Packing", Sz);
+               end;
+            end if;
          end if;
       end Freeze_Record_Type;
 
@@ -2849,7 +2899,7 @@ package body Freeze is
                              and then Rsiz mod System_Storage_Unit /= 0
                            then
                               --  For implicit packing mode, just set the
-                              --  component size silently
+                              --  component size silently.
 
                               if Implicit_Packing then
                                  Set_Component_Size       (Btyp, Rsiz);
@@ -3245,7 +3295,7 @@ package body Freeze is
          --  later when the full type is frozen).
 
          elsif Ekind (E) = E_Record_Type
-           or else  Ekind (E) = E_Record_Subtype
+           or else Ekind (E) = E_Record_Subtype
          then
             Freeze_Record_Type (E);
 
@@ -3263,7 +3313,6 @@ package body Freeze is
             end if;
 
             Comp := First_Entity (E);
-
             while Present (Comp) loop
                if Is_Type (Comp) then
                   Freeze_And_Append (Comp, Loc, Result);

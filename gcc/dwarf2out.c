@@ -3851,18 +3851,11 @@ new_loc_descr (enum dwarf_location_atom op, unsigned HOST_WIDE_INT oprnd1,
 static inline dw_loc_descr_ref
 new_reg_loc_descr (unsigned int reg,  unsigned HOST_WIDE_INT offset)
 {
-  if (offset)
-    {
-      if (reg <= 31)
-	return new_loc_descr ((enum dwarf_location_atom) (DW_OP_breg0 + reg),
-			      offset, 0);
-      else
-	return new_loc_descr (DW_OP_bregx, reg, offset);
-    }
-  else if (reg <= 31)
-    return new_loc_descr ((enum dwarf_location_atom) (DW_OP_reg0 + reg), 0, 0);
+  if (reg <= 31)
+    return new_loc_descr ((enum dwarf_location_atom) (DW_OP_breg0 + reg),
+			  offset, 0);
   else
-   return new_loc_descr (DW_OP_regx, reg, 0);
+    return new_loc_descr (DW_OP_bregx, reg, offset);
 }
 
 /* Add a location description term to a location description expression.  */
@@ -9702,7 +9695,13 @@ reg_loc_descriptor (rtx rtl, enum var_init_status initialized)
 static dw_loc_descr_ref
 one_reg_loc_descriptor (unsigned int regno, enum var_init_status initialized)
 {
-  dw_loc_descr_ref reg_loc_descr = new_reg_loc_descr (regno, 0);
+  dw_loc_descr_ref reg_loc_descr;
+
+  if (regno <= 31)
+    reg_loc_descr
+      = new_loc_descr ((enum dwarf_location_atom) (DW_OP_reg0 + regno), 0, 0);
+  else
+    reg_loc_descr = new_loc_descr (DW_OP_regx, regno, 0);
 
   if (initialized == VAR_INIT_STATUS_UNINITIALIZED)
     add_loc_descr (&reg_loc_descr, new_loc_descr (DW_OP_GNU_uninit, 0, 0));
@@ -11715,9 +11714,34 @@ loc_by_reference (dw_loc_descr_ref loc, tree decl)
 
   if ((TREE_CODE (decl) != PARM_DECL
        && TREE_CODE (decl) != RESULT_DECL
-       && (TREE_CODE (decl) != VAR_DECL || TREE_STATIC (decl)))
+       && TREE_CODE (decl) != VAR_DECL)
       || !DECL_BY_REFERENCE (decl))
     return loc;
+
+  /* If loc is DW_OP_reg{0...31,x}, don't add DW_OP_deref, instead
+     change it into corresponding DW_OP_breg{0...31,x} 0.  Then the
+     location expression is considered to be address of a memory location,
+     rather than the register itself.  */
+  if (((loc->dw_loc_opc >= DW_OP_reg0 && loc->dw_loc_opc <= DW_OP_reg31)
+       || loc->dw_loc_opc == DW_OP_regx)
+      && (loc->dw_loc_next == NULL
+	  || (loc->dw_loc_next->dw_loc_opc == DW_OP_GNU_uninit
+	      && loc->dw_loc_next->dw_loc_next == NULL)))
+    {
+      if (loc->dw_loc_opc == DW_OP_regx)
+	{
+	  loc->dw_loc_opc = DW_OP_bregx;
+	  loc->dw_loc_oprnd2.v.val_int = 0;
+	}
+      else
+	{
+	  loc->dw_loc_opc
+	    = (enum dwarf_location_atom)
+	      (loc->dw_loc_opc + (DW_OP_breg0 - DW_OP_reg0));
+	  loc->dw_loc_oprnd1.v.val_int = 0;
+	}
+      return loc;
+    }
 
   size = int_size_in_bytes (TREE_TYPE (decl));
   if (size > DWARF2_ADDR_SIZE || size == -1)
@@ -14048,19 +14072,13 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
   else
     {
       tree type = TREE_TYPE (decl);
-      bool private_flag_valid = true;
 
       add_name_and_src_coords_attributes (var_die, decl);
       if ((TREE_CODE (decl) == PARM_DECL
 	   || TREE_CODE (decl) == RESULT_DECL
-	   || (TREE_CODE (decl) == VAR_DECL && !TREE_STATIC (decl)))
+	   || TREE_CODE (decl) == VAR_DECL)
 	  && DECL_BY_REFERENCE (decl))
-	{
-	  add_type_attribute (var_die, TREE_TYPE (type), 0, 0, context_die);
-	  /* DECL_BY_REFERENCE uses the same bit as TREE_PRIVATE,
-	     for PARM_DECL, RESULT_DECL or non-static VAR_DECL.  */
-	  private_flag_valid = false;
-	}
+	add_type_attribute (var_die, TREE_TYPE (type), 0, 0, context_die);
       else
 	add_type_attribute (var_die, type, TREE_READONLY (decl),
 			    TREE_THIS_VOLATILE (decl), context_die);
@@ -14073,7 +14091,7 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 
       if (TREE_PROTECTED (decl))
 	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_protected);
-      else if (private_flag_valid && TREE_PRIVATE (decl))
+      else if (TREE_PRIVATE (decl))
 	add_AT_unsigned (var_die, DW_AT_accessibility, DW_ACCESS_private);
     }
 
@@ -15307,8 +15325,7 @@ gen_decl_die (tree decl, tree origin, dw_die_ref context_die)
       /* Output any DIEs that are needed to specify the type of this data
 	 object.  */
       if ((TREE_CODE (decl_or_origin) == RESULT_DECL
-	   || (TREE_CODE (decl_or_origin) == VAR_DECL
-	       && !TREE_STATIC (decl_or_origin)))
+	   || TREE_CODE (decl_or_origin) == VAR_DECL)
           && DECL_BY_REFERENCE (decl_or_origin))
 	gen_type_die (TREE_TYPE (TREE_TYPE (decl_or_origin)), context_die);
       else

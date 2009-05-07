@@ -1,3 +1,140 @@
+2009-05-06  James E. Wilson  <wilson@codesourcery.com>
+
+	* gcc.c-torture/compile/const-high-part.c: New test.
+
+2009-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/40050
+	* lib/plugin-support.exp (plugin-test-execute): Use HOSTCC to
+	build plugin.
+
+2009-05-06  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39630
+	* gfortran.dg/proc_decl_1.f90: Modified.
+	* gfortran.dg/proc_ptr_comp_1.f90: New.
+	* gfortran.dg/proc_ptr_comp_2.f90: New.
+	* gfortran.dg/proc_ptr_comp_3.f90: New.
+	* gfortran.dg/proc_ptr_comp_4.f90: New.
+	* gfortran.dg/proc_ptr_comp_5.f90: New.
+	* gfortran.dg/proc_ptr_comp_6.f90: New.
+
+2009-05-06  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/17395
+	* g++.dg/template/call7.C: New test.
+
+2009-05-06  Diego Novillo  <dnovillo@google.com>
+
+	* lib/plugin-support.exp: Do not prefix $GMPINC with -I.
+
+2009-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gfortran.dg/pr40021.f: Moved to ...
+	* gfortran.fortran-torture/execute/pr40021.f: Here.
+
+2009-05-06  Janis Johnson  <janis187@us.ibm.com>
+
+	PR middle-end/39986
+	* gcc.dg/dfp/pr39986.c: New test.
+
+2009-05-06  Michael Matz  <matz@suse.de>
+
+	PR middle-end/40021
+	* gfortran.dg/pr40021.f: New test.
+
+2009-05-06  Le-Chun Wu  <lcwu@google.com>
+
+	* lib/plugin-support.exp: New file containing support procs for
+	plugin testcases.
+	* lib/target-supports.exp (check_plugin_available): New proc.
+	* gcc.dg/plugin/plugin.exp: New driver script for gcc testcases.
+	* gcc.dg/plugin/selfassign.c: New plugin source file.
+	* gcc.dg/plugin/self-assign-test-1.c: New test.
+	* gcc.dg/plugin/self-assign-test-2.c: Likewise.
+	* g++.dg/README: Add description for plugin test.
+	* g++.dg/dg.exp: Exclude plugin tests from the general test list.
+	* g++.dg/plugin/plugin.exp: New driver script for g++ testcases.
+	* g++.dg/plugin/selfassign.c: New plugin source file.
+	* g++.dg/plugin/self-assign-test-1.C: New test.
+	* g++.dg/plugin/self-assign-test-2.C: Likewise.
+	* g++.dg/plugin/self-assign-test-3.C: Likewise.
+	* g++.dg/plugin/dumb_plugin.c: New plugin source file.
+	* g++.dg/plugin/dumb-plugin-test-1.C: New test.
+
+2009-05-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40041
+	* gfortran.dg/intrinsic_2.f90: New test.
+	* gfortran.dg/intrinsic.f90: Add old and this PR as comment.
+
+2009-05-06  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/40032
+	* gcc.dg/noncompile/incomplete-5.c: New test.
+
+2009-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/39666
+	* gcc.dg/pr39666-1.c: New test.
+	* gcc.dg/pr39666-2.c: Likewise.
+	* g++.dg/warn/Wuninitialized-4.C: Likewise.
+	* g++.dg/warn/Wuninitialized-5.C: Likewise.
+	* gfortran.dg/pr39666-1.f90: Likewise.
+	* gfortran.dg/pr39666-2.f90: Likewise.
+
+2009-05-05  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp: Add -mtune= to mips_option_groups.
+	* gcc.target/mips/dspr2-MULT.c: Pass -mtune=74kc
+	* gcc.target/mips/dspr2-MULTU.c: Likewise.
+
+2009-05-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39998
+	* gfortran.dg/proc_ptr_17.f90: New.
+
+2009-05-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40022
+	* gcc.c-torture/execute/pr40022.c: New testcase.
+
+2009-05-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40023
+	* gcc.c-torture/compile/pr40023.c: New testcase.
+
+2009-05-05  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* g++.old-deja/g++.other/overload11.C: Adjust expected errors.
+	* g++.dg/template/overload9.C: Likewise.
+	* g++.dg/ext/ms-1.C: New.
+
+2009-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/40013
+	* g++.dg/ext/vla7.C: New test.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/ucnid-11.c, gcc.dg/ucnid-12.c, gcc.dg/ucnid-13.c: New tests.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/ucnid-8.c, gcc.dg/ucnid-9.c, gcc.dg/ucnid-10.c: New tests.
+	* gcc.dg/declspec-9.c, gcc.dg/declspec-10.c, gcc.dg/declspec-11.c:
+	Update expected errors.
+
+2009-05-04  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/28152
+	* g++.dg/parse/parser-pr28152.C: New.
+	* g++.dg/parse/parser-pr28152-2.C: New.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/attr-alias-5.c, gcc.dg/ucnid-7.c: New tests.
+
 2009-05-03  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc.target/sparc/fpmul-2.c: Replace final_cleanup with optimized.

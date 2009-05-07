@@ -1,3 +1,336 @@
+2009-05-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* doc/md.texi (Standard Pattern Names For Generation) [sync_nand]:
+	Remove wrong description of "nand" functionality.
+
+2009-05-06  Richard Guenther  <rguenther@suse.de>
+	    Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gimple.def (GIMPLE_ASSIGN): Fix incorrect information in the
+	comment.  Add that if LHS is not a gimple register, then RHS1 has
+	to be a single object (GIMPLE_SINGLE_RHS).
+
+2009-05-06  Adam Nemet  <anemet@caviumnetworks.com>
+
+	* expr.c (get_def_for_expr): Move it up in the file.
+	(store_field): When expanding a bit-field store, look at the
+	defining gimple stmt for the masking conversion.
+
+2009-05-06  Janis Johnson  <janis187@us.ibm.com>
+
+	PR middle-end/39986
+	* dfp.c (encode_decimal32, decode_decimal32, encode_decimal64,
+	decode_decimal64, encode_decimal128, decode_decimal128): Avoid
+	32-bit memcpy into long.
+
+2009-05-06  Jakub Jelinek  <jakub@redhat.com>
+
+	* dwarf2out.c (new_reg_loc_descr): Don't ever create DW_OP_regX.
+	(one_reg_loc_descriptor): Create DW_OP_regX here instead of calling
+	new_reg_loc_descr.
+	(loc_by_reference): If loc is DW_OP_regX, change it into DW_OP_bregX 0
+	instead of appending DW_OP_deref*.
+
+2009-05-06  Michael Matz  <matz@suse.de>
+
+	PR middle-end/40021
+	* cfgexpand.c (maybe_cleanup_end_of_block): New static function.
+	(expand_gimple_cond): Use it to cleanup CFG and superfluous jumps.
+
+2009-05-06  Rafael Avila de Espindola  <espindola@google.com>
+
+	* Makefile.in (install-plugin): Fix srcdir handling.
+
+2009-05-06  Andrey Belevantsev  <abel@ispras.ru>
+
+	* tree-ssa.c (execute_update_address_taken): Handle TARGET_MEM_REF
+	when processing for not_regs_needed bitmap.
+	* gimple.c (walk_stmt_load_store_addr_ops): When visiting address,
+	handle TARGET_MEM_REF in lhs.  Check TMR_BASE for NULL while 
+	handling it for rhs. 
+
+2009-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (unnamed inc/dec peephole): Use
+	optimize_insn_for_size_p instead of optimize_size.
+	* config/i386/predicates.md (incdec_operand): Likewise.
+	(aligned_operand): Likewise.
+	* config/i386/sse.md (divv8sf3): Likewise.
+	(sqrtv8sf2): Likewise.
+
+2009-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_build_signbit_mask): Make it static.
+
+	* config/i386/i386-protos.h (ix86_build_signbit_mask): Removed.
+
+2009-05-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*avx_<code><mode>3_finite): Replace
+	ssemodesuffixf2c with avxmodesuffixf2c.
+
+2009-05-06  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/40032
+	* c-decl.c (grokdeclarator): Handle incomplete type of unnamed field.
+
+2009-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree.h: Remove DECL_BY_REFERENCE from private_flag comment.
+	(struct tree_base): Adjust spacing for 8 bit boundaries.
+	(struct tree_decl_common): Add decl_by_reference_flag bit.
+	(DECL_BY_REFERENCE): Adjust.
+	* print-tree.c (print_node): For VAR_DECL, PARM_DECL or RESULT_DECL,
+	print DECL_BY_REFERENCE bit.
+	* dbxout.c (DECL_ACCESSIBILITY_CHAR): Revert last change.
+	* dwarf2out.c (loc_by_reference, gen_decl_die): Check
+	DECL_BY_REFERENCE for all VAR_DECLs, not just non-static ones.
+	(gen_variable_die): Likewise.  Check TREE_PRIVATE/TREE_PROTECTED
+	unconditionally.
+
+	PR middle-end/39666
+	* gimplify.c (gimplify_switch_expr): If case labels cover the whole
+	range of the type, but default label is missing, add it with one
+	of the existing labels instead of adding a new label for it.
+
+2009-05-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* dwarf.h: Remove.
+
+2009-05-05  Rafael Avila de Espindola  <espindola@google.com>
+
+	* Makefile.in (enable_plugin, plugin_includedir): New.
+	(install): Depend on install-plugin.
+	(PLUGIN_HEADERS): New.
+	(install-plugin): New.
+	* config.gcc: Add vxworks-dummy.h to tm_file for x86 and x86-64.
+
+2009-05-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40022
+	* tree-ssa-phiprop.c (struct phiprop_d): Exchange vop_stmt for
+	the only vuse.
+	(phivn_valid_p): Fix tuplification error, simplify.
+	(phiprop_insert_phi): Add dumps.
+	(propagate_with_phi): Simplify.
+
+2009-05-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40023
+	* builtins.c (gimplify_va_arg_expr): Properly build the address.
+
+2009-05-05  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* tree.h (strip_float_extensions): Remove duplicate declaration.
+	(build_low_bits_mask, debug_fold_checksum, expand_function_end,
+	expand_function_start, stack_protect_prologue, stack_protect_epilogue,
+	block_ultimate_origin): Rearrange the declarations line to match the
+	comment that indicates the .c file which the functions are defined.
+	(dwarf2out_*, set_decl_rtl): Add comment.
+	(get_base_address): Adjust comment.
+	(change_decl_assembler_name, maybe_fold_*, build_addr): Rearrange the
+	declarations line and add comment.
+	(is_builtin_name): Add blank after function name, for clarity.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* attribs.c (decl_attributes): Use %qE for identifiers in
+	diagnostics.
+	* cgraphunit.c (verify_cgraph_node): Translate function names to
+	locale character set in diagnostics.
+	* coverage.c (get_coverage_counts): Use %qE for identifiers in
+	diagnostics.
+	* doc/invoke.texi (-finstrument-functions-exclude-function-list):
+	Document that functions are named in UTF-8.
+	* expr.c (expand_expr_real_1): Translate function names to locale
+	character set in diagnostics.
+	* gimplify.c (omp_notice_variable, omp_is_private,
+	gimplify_scan_omp_clauses): Use %qE for identifiers in
+	diagnostics.
+	* langhooks.c (lhd_print_error_function): Translate function names
+	to locale character set.
+	* langhooks.h (decl_printable_name): Document that return value is
+	in internal character set.
+	* stmt.c: Include pretty-print.h
+	(tree_conflicts_with_clobbers_p): Use %qE for identifiers in
+	diagnostics.
+	(resolve_operand_name_1): Translate named operand name to locale
+	character set.
+	* stor-layout.c (finalize_record_size): Use %qE for identifiers in
+	diagnostics.
+	* toplev.c (announce_function): Translate function names to locale
+	character set.
+	(warn_deprecated_use): Use %qE for identifiers in diagnostics.
+	(default_tree_printer): Use pp_identifier or translate identifiers
+	to locale character set.  Mark "<anonymous>" for translation.
+	* tree-mudflap.c (mx_register_decls, mudflap_finish_file): Use %qE
+	for identifiers in diagnostics.
+	* tree.c (handle_dll_attribute): Use %qE for identifiers in
+	diagnostics.
+	* varasm.c (output_constructor): Use %qE for identifiers in
+	diagnostics.
+
+2009-05-04  Rafael Avila de Espindola  <espindola@google.com>
+
+	* configure.ac: use ` ` instead of $()
+	* configure: Regenerate.
+
+2009-05-05  Ben Elliston  <bje@au.ibm.com>
+
+	* config/pa/linux-atomic.c: Eliminate conditional include of
+	errno.h on non-LP64 systems to simplify build requirements.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-common.c (handle_mode_attribute): Use %qE for identifiers in
+	diagnostics.
+	* c-decl.c (check_bitfield_type_and_width): Make orig_name a tree
+	and pass value to identifier_to_locale.
+	(warn_variable_length_array): Make name a tree.
+	(grokdeclarator): Separate diagnostic texts for named and unnamed
+	declarators.  Use %qE for named declarators.
+	* c-parser.c (c_lex_one_token): Use %qE for identifiers in
+	diagnostics.
+	* c-pragma.c (pop_alignment, handle_pragma_pack): Use %qE for
+	identifiers in diagnostics.
+	* c-typeck.c (push_member_name, start_init): Pass identifiers to
+	identifier_to_locale.  Mark "anonymous" strings for translation.
+
+2009-05-04  Michael Eager <eager@eagercon.com>
+
+	* config/rs6000/rs6000.c (rs6000_legitimate_address): Allow
+	address for DImode/DFmode only if double-precision FP regs.
+
+2009-05-04  Michael Eager <eager@eagercon.com>
+
+	* config/rs6000/rs6000.c (rs6000_libcall_value): Add
+	TARGET_SINGLE_FLOAT check.
+
+2009-05-04  Michael Eager <eager@eagercon.com>
+
+	* config/rs6000/xilinx.h: Add CPP_SPEC for -mxilinx-fpu options.
+
+2009-05-04  Michael Eager <eager@eagercon.com>
+
+	* gcc/config.gcc: (powerpc-xilinx-eabi*): Add tm t-xilinx
+	* config/rs6000/t-xilinx: New
+
+2009-05-04  Paolo Bonzini  <bonzini@gnu.org>
+
+ 	* doc/tm.texi (LEGITIMIZE_ADDRESS): Revise documentation.
+	* gcc/defaults.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/explow.c (memory_address): Use target hook.
+	* gcc/targhooks.c (default_legitimize_address): New.
+	* gcc/targhooks.h (default_legitimize_address): New.
+	* gcc/target.h (legitimize_address): New.
+	* gcc/target-def.h (TARGET_LEGITIMIZE_ADDRESS): New.
+	(TARGET_INITIALIZER): Include it.
+	* gcc/system.h (LEGITIMIZE_ADDRESS): Poison.
+
+	* config/bfin/bfin-protos.h (legitimize_address): Remove.
+	* config/bfin/bfin.c (legitimize_address): Remove.
+	* config/bfin/bfin.h (LEGITIMIZE_ADDRESS): Remove.
+	* config/m68hc11/m68hc11-protos.h (m68hc11_legitimize_address):
+	Remove.
+	* config/m68hc11/m68hc11.c (m68hc11_legitimize_address): Remove.
+	* config/m68hc11/m68hc11.h (LEGITIMIZE_ADDRESS): Remove.
+
+	* gcc/config/arm/arm.h (LEGITIMIZE_ADDRESS, ARM_LEGITIMIZE_ADDRESS,
+	THUMB_LEGITIMIZE_ADDRESS, THUMB2_LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/s390/s390.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/m32c/m32c.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/sparc/sparc.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/m32r/m32r.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/i386/i386.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/sh/sh.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/avr/avr.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/m68hc11/m68hc11.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/iq2000/iq2000.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/mn10300/mn10300.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/m68k/m68k.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/score/score.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/pa/pa.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/mips/mips.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/alpha/alpha.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/frv/frv.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/spu/spu.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/xtensa/xtensa.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/cris/cris.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/rs6000/rs6000.h (LEGITIMIZE_ADDRESS): Delete.
+	* gcc/config/picochip/picochip.h (LEGITIMIZE_ADDRESS): Delete.
+
+	* gcc/config/s390/s390-protos.h (legitimize_address): Delete.
+	* gcc/config/m32c/m32c-protos.h (m32c_legitimize_address): Delete.
+	* gcc/config/sparc/sparc-protos.h (legitimize_address): Delete.
+	* gcc/config/i386/i386-protos.h (legitimize_address): Delete.
+	* gcc/config/avr/avr-protos.h (legitimize_address): Delete.
+	* gcc/config/mn10300/mn10300-protos.h (legitimize_address): Delete.
+	* gcc/config/score/score-protos.h (score_legitimize_address): Delete.
+	* gcc/config/arm/arm-protos.h (arm_legitimize_address,
+	(thumb_legitimize_address): Delete.
+	* gcc/config/pa/pa-protos.h (hppa_legitimize_address): Delete.
+	* gcc/config/mips/mips-protos.h (mips_legitimize_address): Delete.
+	* gcc/config/alpha/alpha-protos.h (alpha_legitimize_address): Delete.
+	* gcc/config/frv/frv-protos.h (frv_legitimize_address): Delete.
+	* gcc/config/spu/spu-protos.h (spu_legitimize_address): Delete.
+	* gcc/config/xtensa/xtensa-protos.h (xtensa_legitimize_address):
+	Delete.
+	* gcc/config/rs6000/rs6000-protos.h (rs6000_legitimize_address):
+	Delete.
+
+	* config/arm/arm.c (arm_legitimize_address): Maybe call Thumb version.
+	* config/m32c/m32c.c (m32c_legitimize_address): Standardize.
+	* config/m32r/m32r.c (m32r_legitimize_address): New.
+	* config/m68k/m68k.c (m68k_legitimize_address): New.
+	* config/score/score.c (score_legitimize_address): Standardize.
+	* config/score/score3.c (score3_legitimize_address): Standardize.
+	* config/score/score3.h (score3_legitimize_address): Adjust.
+	* config/score/score7.c (score7_legitimize_address): Standardize.
+	* config/score/score7.h (score7_legitimize_address): Adjust.
+	* config/sh/sh.c (sh_legitimize_address): New.
+	* config/iq2000/iq2000.c (iq2000_legitimize_address): New.
+
+	* gcc/config/s390/s390.c (legitimize_address): Rename to...
+ 	(s390_legitimize_address): ... this.
+	* gcc/config/sparc/sparc.c (legitimize_address): Rename to...
+	(sparc_legitimize_address): ... this.
+	* gcc/config/i386/i386.c (legitimize_address): Rename to...
+	(ix86_legitimize_address): ... this.
+	* gcc/config/avr/avr.c (legitimize_address): Rename to...
+	(avr_legitimize_address): ... this.
+	* gcc/config/mn10300/mn10300.c (legitimize_address): Rename to...
+	(mn10300_legitimize_address): ... this.
+	* config/alpha/alpha.c (alpha_legitimize_address): Wrap...
+	(alpha_legitimize_address_1): ... the old alpha_legitimize_address.
+	(alpha_expand_mov): Adjust call.
+
+	* config/frv/frv.c (frv_legitimize_address): Return x on failure.
+	* config/spu/spu.c (spu_legitimize_address): Likewise.
+	* config/xtensa/xtensa.c (xtensa_legitimize_address): Likewise.
+	* config/rs6000/rs6000.c (rs6000_legitimize_address): Likewise.
+
+2009-05-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* intl.c (locale_encoding, locale_utf8): New.
+	(gcc_init_libintl): Initialize locale_encoding and locale_utf8.
+	* intl.h (locale_encoding, locale_utf8): Declare.
+	* pretty-print.c: Include ggc.h.  Include iconv.h if HAVE_ICONV.
+	(pp_base_tree_identifier, decode_utf8_char, identifier_to_locale):
+	New.
+	* pretty-print.h (pp_identifier): Call identifier_to_locale on ID
+	argument.
+	(pp_tree_identifier): Define to call pp_base_tree_identifier.
+	(pp_base_tree_identifier): Declare as function.
+	(identifier_to_locale): Declare.
+	* Makefile.in (pretty-print.o): Update dependencies.
+	* varasm.c (finish_aliases_1): Use %qE for identifiers in diagnostics.
+
+2009-05-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/40015
+	* builtins.c (fold_builtin_memory_op): Do not decay to element
+	type if the size matches the whole array.
+
 2009-05-04  Kazu Hirata  <kazu@codesourcery.com>
 
 	* expmed.c (synth_mult): When trying out a shift, pass the result
@@ -112,9 +445,9 @@
 
 	* tree-ssa-coalesce.c (coalesce_cost): Do not take ciritical
 	parameter; update callers.
-	(coalesce_cost_edge): EH edges are costier because they needs splitting
-	even if not critical and even more costier when there are multiple
-	EH predecestors.
+	(coalesce_cost_edge): EH edges are costier because they needs
+	splitting even if not critical and even more costier when there are
+	multiple EH predecestors.
 
 2009-05-02  Jan Hubicka  <jh@suse.cz>
 
@@ -164,7 +497,8 @@
 	(ldst_entry): Rename to st_expr_entry, update users.
 	(free_ldst_entry): Rename to free_st_expr_entry, update users.
 	(free_ldst_mems): Rename to free_store_motion_mems, update users.
-	(enumerate_ldsts): Rename to enumerate_store_motion_mems, update caller.
+	(enumerate_ldsts): Rename to enumerate_store_motion_mems,
+	update caller.
 	(first_ls_expr): Rename to first_st_expr, update users.
 	(next_ls_expr): Rename to next_st_expr, update users.
 	(print_ldst_list): Rename to print_store_motion_mems.  Print names of
@@ -216,8 +550,7 @@
 2009-04-30  Paul Pluzhnikov  <ppluzhnikov@google.com>
 	    Roland McGrath <roland@redhat.com>
 
-	* configure.ac (HAVE_LD_BUILDID): New check for ld --build-id
-	support.
+	* configure.ac (HAVE_LD_BUILDID): New check for ld --build-id support.
 	(ENABLE_LD_BUILDID): New configuration option.
 	* gcc.c [HAVE_LD_BUILDID and ENABLE_LD_BUILDID]
 	(LINK_BUILDID_SPEC): New macro.
@@ -324,13 +657,13 @@
 	* config/avr/avr.h (CAN_ELIMINATE): Use avr_can_eliminate.
 	(FRAME_POINTER_REQUIRED): Use avr_frame_pointer_required_p.
 	(INITIAL_ELIMINATION_OFFSET): Use avr_initial_elimination_offset.
-	* config/avr/avr-protos.h (initial_elimination_offset) : Rename to
+	* config/avr/avr-protos.h (initial_elimination_offset): Rename to
 	avr_initial_elimination_offset.
 	(frame_pointer_required_p): Rename to avr_frame_pointer_required_p.
 	(avr_initial_elimination_offset): Define.
 
 2009-04-29  Eric Botcazou  <ebotcazou@adacore.com>
-            Steven Bosscher  <steven@gcc.gnu.org>
+	    Steven Bosscher  <steven@gcc.gnu.org>
 
 	PR rtl-optimization/39938
 	* Makefile.in (cfgrtl.o): Add $(INSN_ATTR_H).
@@ -390,12 +723,13 @@
 	(bfin_cpus): Add WA_LOAD_LCREGS as needed.
 	(struct loop_info): Remove members INIT and LOOP_INIT.
 	(bfin_optimize_loop): Don't set them.  Reorder the code that generates
-	the LSETUP sequence.  Allow LC to be loaded from any register, but also
-	add a case to push/pop a PREG scratch if ENABLE_WA_LOAD_LCREGS.
+	the LSETUP sequence.  Allow LC to be loaded from any register, but
+	also add a case to push/pop a PREG scratch if ENABLE_WA_LOAD_LCREGS.
 	(bfin_reorg_loops): When done, split all BB_ENDs with splitting_loops
 	set to 1.
 	* config/bfin/bfin.md (loop_end splitter): Use splitting_loops instead
 	of reload_completed.
+
 	From Jie Zhang:
 	* config/bfin/bfin.md (movsi_insn): Refine constraints.
 
@@ -420,8 +754,8 @@
 	
 	* config/bfin/bfin.c (bfin_optimize_loop): Unify handling of
 	problematic last insns.  Test for TYPE_CALL rather than CALL_P.
-	Remove special case testing for last insn of inner loops. Don't fail if
-	the loop ends with a jump, emit an extra nop instead.
+	Remove special case testing for last insn of inner loops. Don't fail
+	if the loop ends with a jump, emit an extra nop instead.
 
 	* config/bfin/bfin.c (bfin_register_move_cost): Test for subsets of
 	DREGS rather than comparing directly.  Remove code that tries to
@@ -443,12 +777,12 @@
 
 	* config/bfin/bfin.md (sp_or_sm, spm_string, spm_name): New macro.
 	(ss<spm_name>hi3, ss<spm_name>hi3_parts, ss<spm_name>hi3_low_parts,
-	ss<spm_name_hi3_high_parts): New patterns, replacing ssaddhi3, ssubhi3,
-	ssaddhi3_parts and sssubhi3_parts.
+	ss<spm_name_hi3_high_parts): New patterns, replacing ssaddhi3,
+	ssubhi3, ssaddhi3_parts and sssubhi3_parts.
 	(flag_mulhi3_parts): Produce a HImode output rather than trying to set
 	a VEC_SELECT.
-	* config/bfin/bfin.c (bfin_expand_builtin, case BFIN_BUILTIN_CPLX_SQU):
-	Adjust accordingly.
+	* config/bfin/bfin.c (bfin_expand_builtin,
+	case BFIN_BUILTIN_CPLX_SQU): Adjust accordingly.
 
 2009-04-28  Richard Guenther  <rguenther@suse.de>
 
@@ -7988,7 +8322,7 @@
 
 	* config/picochip/picochip.md (lea_add): Allow any nonimmediate
 	in the lea_add. Reload eventually constraints it properly.
-	* config/picochip/constraints.md : Remove the target constraint
+	* config/picochip/constraints.md: Remove the target constraint
 	"b", since it is not needed anymore.
 
 2009-02-16  Jakub Jelinek  <jakub@redhat.com>
