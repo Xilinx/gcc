@@ -347,7 +347,7 @@ heapvar_insert (tree from, tree to)
   struct tree_map *h;
   void **loc;
 
-  h = GGC_NEW (struct tree_map);
+  h = ggc_alloc_tree_map();
   h->hash = htab_hash_pointer (from);
   h->base.from = from;
   h->to = to;

@@ -698,7 +698,7 @@ cgraph_create_edge (struct cgraph_node *caller, struct cgraph_node *callee,
     }
   else
     {
-      edge = GGC_NEW (struct cgraph_edge);
+      edge = ggc_alloc_cgraph_edge();
       edge->uid = cgraph_edge_max_uid++;
     }
 

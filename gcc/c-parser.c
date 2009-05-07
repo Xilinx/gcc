@@ -8475,7 +8475,7 @@ c_parse_file (void)
   if (c_parser_peek_token (&tparser)->pragma_kind == PRAGMA_GCC_PCH_PREPROCESS)
     c_parser_pragma_pch_preprocess (&tparser);
 
-  the_parser = GGC_NEW (c_parser);
+  the_parser = ggc_alloc_c_parser();
   *the_parser = tparser;
 
   c_parser_translation_unit (the_parser);

@@ -824,7 +824,7 @@ cp_lexer_stop_debugging (cp_lexer* lexer)
 static cp_token_cache *
 cp_token_cache_new (cp_token *first, cp_token *last)
 {
-  cp_token_cache *cache = GGC_NEW (cp_token_cache);
+  cp_token_cache *cache = ggc_alloc_cp_token_cache();
   cache->first = first;
   cache->last = last;
   return cache;
@@ -2768,7 +2768,7 @@ cp_parser_new (void)
   cp_lexer *lexer;
   unsigned i;
 
-  /* cp_lexer_new_main is called before calling ggc_alloc because
+  /* cp_lexer_new_main is called before doing GC allocation because
      cp_lexer_new_main might load a PCH file.  */
   lexer = cp_lexer_new_main ();
 

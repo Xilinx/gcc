@@ -107,7 +107,7 @@ add_stmt_to_eh_region_fn (struct function *ifun, gimple t, int num)
   gcc_assert (num >= 0);
   gcc_assert (gimple_code (t) != GIMPLE_RESX);
 
-  n = GGC_NEW (struct throw_stmt_node);
+  n = ggc_alloc_throw_stmt_node();
   n->stmt = t;
   n->region_nr = num;
 

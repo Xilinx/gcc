@@ -1024,7 +1024,7 @@ rescan_loop_exit (edge e, bool new_edge, bool removed)
 	   aloop != cloop;
 	   aloop = loop_outer (aloop))
 	{
-	  exit = GGC_NEW (struct loop_exit);
+	  exit = ggc_alloc_loop_exit();
 	  exit->e = e;
 
 	  exit->next = aloop->exits->next;
