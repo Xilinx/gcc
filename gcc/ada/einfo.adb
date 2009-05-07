@@ -506,9 +506,8 @@ package body Einfo is
    --    Overlays_Constant               Flag243
    --    Is_RACW_Stub_Type               Flag244
    --    Is_Private_Primitive            Flag245
-
-   --    (unused)                        Flag246
-   --    (unused)                        Flag247
+   --    Is_Underlying_Record_View       Flag246
+   --    OK_To_Rename                    Flag247
 
    -----------------------
    -- Local subprograms --
@@ -2066,6 +2065,11 @@ package body Einfo is
       return Flag117 (Implementation_Base_Type (Id));
    end Is_Unchecked_Union;
 
+   function Is_Underlying_Record_View (Id : E) return B is
+   begin
+      return Flag246 (Id);
+   end Is_Underlying_Record_View;
+
    function Is_Unsigned_Type (Id : E) return B is
    begin
       pragma Assert (Is_Type (Id));
@@ -2286,6 +2290,12 @@ package body Einfo is
         (Ekind (Id) = E_Component or else Ekind (Id) = E_Discriminant);
       return Uint10 (Id);
    end Normalized_Position_Max;
+
+   function OK_To_Rename (Id : E) return B is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      return Flag247 (Id);
+   end OK_To_Rename;
 
    function OK_To_Reorder_Components (Id : E) return B is
    begin
@@ -2675,7 +2685,6 @@ package body Einfo is
 
    function Underlying_Record_View (Id : E) return E is
    begin
-      pragma Assert (Ekind (Id) = E_Record_Type);
       return Node24 (Id);
    end Underlying_Record_View;
 
@@ -4543,6 +4552,12 @@ package body Einfo is
       Set_Flag117 (Id, V);
    end Set_Is_Unchecked_Union;
 
+   procedure Set_Is_Underlying_Record_View (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Record_Type);
+      Set_Flag246 (Id, V);
+   end Set_Is_Underlying_Record_View;
+
    procedure Set_Is_Unsigned_Type (Id : E; V : B := True) is
    begin
       pragma Assert (Is_Discrete_Or_Fixed_Point_Type (Id));
@@ -4766,6 +4781,12 @@ package body Einfo is
         (Ekind (Id) = E_Component or else Ekind (Id) = E_Discriminant);
       Set_Uint10 (Id, V);
    end Set_Normalized_Position_Max;
+
+   procedure Set_OK_To_Rename (Id : E; V : B := True) is
+   begin
+      pragma Assert (Ekind (Id) = E_Variable);
+      Set_Flag247 (Id, V);
+   end Set_OK_To_Rename;
 
    procedure Set_OK_To_Reorder_Components (Id : E; V : B := True) is
    begin
@@ -6973,6 +6994,7 @@ package body Einfo is
       W ("Is_Trivial_Subprogram",           Flag235 (Id));
       W ("Is_True_Constant",                Flag163 (Id));
       W ("Is_Unchecked_Union",              Flag117 (Id));
+      W ("Is_Underlying_Record_View",       Flag246 (Id));
       W ("Is_Unsigned_Type",                Flag144 (Id));
       W ("Is_VMS_Exception",                Flag133 (Id));
       W ("Is_Valued_Procedure",             Flag127 (Id));
@@ -6997,6 +7019,7 @@ package body Einfo is
       W ("No_Strict_Aliasing",              Flag136 (Id));
       W ("Non_Binary_Modulus",              Flag58  (Id));
       W ("Nonzero_Is_True",                 Flag162 (Id));
+      W ("OK_To_Rename",                    Flag247 (Id));
       W ("OK_To_Reorder_Components",        Flag239 (Id));
       W ("Optimize_Alignment_Space",        Flag241 (Id));
       W ("Optimize_Alignment_Time",         Flag242 (Id));

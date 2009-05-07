@@ -36,7 +36,6 @@ with Exp_Pakd; use Exp_Pakd;
 with Exp_Util; use Exp_Util;
 with Exp_Tss;  use Exp_Tss;
 with Layout;   use Layout;
-with Lib.Xref; use Lib.Xref;
 with Namet;    use Namet;
 with Nlists;   use Nlists;
 with Nmake;    use Nmake;
@@ -134,10 +133,6 @@ package body Freeze is
    --  allocator is frozen, or an expression that may involve attributes of
    --  the designated type. Otherwise freezing the access type does not freeze
    --  the designated type.
-
-   procedure Generate_Prim_Op_References (Typ : Entity_Id);
-   --  For a tagged type, generate implicit references to its primitive
-   --  operations, for source navigation.
 
    procedure Process_Default_Expressions
      (E     : Entity_Id;
@@ -1120,7 +1115,6 @@ package body Freeze is
       if (Nkind (Parent (E)) = N_Object_Declaration
             or else Nkind (Parent (E)) = N_Assignment_Statement)
         and then Comes_From_Source (Parent (E))
-        and then Nkind (E) = N_Aggregate
       then
          Temp :=
            Make_Defining_Identifier (Loc,
@@ -1136,13 +1130,6 @@ package body Freeze is
 
          Set_Expression (Parent (E), New_Occurrence_Of (Temp, Loc));
 
-         --  To prevent the temporary from being constant-folded (which would
-         --  lead to the same piecemeal assignment on the original target)
-         --  indicate to the back-end that the temporary is a variable with
-         --  real storage. See description of this flag in Einfo, and the notes
-         --  on N_Assignment_Statement and N_Object_Declaration in Sinfo.
-
-         Set_Is_True_Constant (Temp, False);
       end if;
    end Expand_Atomic_Aggregate;
 
@@ -2295,39 +2282,18 @@ package body Freeze is
             Set_Encoded_Interface_Name
               (E, Get_Default_External_Name (E));
 
-         --  Special processing for atomic objects appearing in object decls
+         --  If entity is an atomic object appearing in a declaration and
+         --  the expression is an aggregate, assign it to a temporary to
+         --  ensure that the actual assignment is done atomically rather
+         --  than component-wise (the assignment to the temp may be done
+         --  component-wise, but that is harmless).
 
          elsif Is_Atomic (E)
            and then Nkind (Parent (E)) = N_Object_Declaration
            and then Present (Expression (Parent (E)))
+           and then Nkind (Expression (Parent (E))) = N_Aggregate
          then
-            declare
-               Expr : constant Node_Id := Expression (Parent (E));
-
-            begin
-               --  If expression is an aggregate, assign to a temporary to
-               --  ensure that the actual assignment is done atomically rather
-               --  than component-wise (the assignment to the temp may be done
-               --  component-wise, but that is harmless).
-
-               if Nkind (Expr) = N_Aggregate then
-                  Expand_Atomic_Aggregate (Expr, Etype (E));
-
-               --  If the expression is a reference to a record or array object
-               --  entity, then reset Is_True_Constant to False so that the
-               --  compiler will not optimize away the intermediate object,
-               --  which we need in this case for the same reason (to ensure
-               --  that the actual assignment is atomic, rather than
-               --  component-wise).
-
-               elsif Is_Entity_Name (Expr)
-                 and then (Is_Record_Type (Etype (Expr))
-                             or else
-                           Is_Array_Type (Etype (Expr)))
-               then
-                  Set_Is_True_Constant (Entity (Expr), False);
-               end if;
-            end;
+            Expand_Atomic_Aggregate (Expression (Parent (E)), Etype (E));
          end if;
 
          --  For a subprogram, freeze all parameter types and also the return
@@ -2503,7 +2469,7 @@ package body Freeze is
                      Next_Formal (Formal);
                   end loop;
 
-                  --  Case of function: similar checks on return type.
+                  --  Case of function: similar checks on return type
 
                   if Ekind (E) = E_Function then
 
@@ -2612,29 +2578,10 @@ package body Freeze is
          --  Here for other than a subprogram or type
 
          else
-            --  For a generic package, freeze types within, so that proper
-            --  cross-reference information is generated for tagged types.
-            --  This is the only freeze processing needed for generic packages.
-
-            if Ekind (E) = E_Generic_Package then
-               declare
-                  T : Entity_Id;
-
-               begin
-                  T := First_Entity (E);
-                  while Present (T) loop
-                     if Is_Type (T) then
-                        Generate_Prim_Op_References (T);
-                     end if;
-
-                     Next_Entity (T);
-                  end loop;
-               end;
-
             --  If entity has a type, and it is not a generic unit, then
             --  freeze it first (RM 13.14(10)).
 
-            elsif Present (Etype (E))
+            if Present (Etype (E))
               and then Ekind (E) /= E_Generic_Function
             then
                Freeze_And_Append (Etype (E), Loc, Result);
@@ -3626,10 +3573,6 @@ package body Freeze is
                end;
             end if;
          end if;
-
-         --  Generate references to primitive operations for a tagged type
-
-         Generate_Prim_Op_References (E);
 
          --  Now that all types from which E may depend are frozen, see if the
          --  size is known at compile time, if it must be unsigned, or if
@@ -5172,72 +5115,6 @@ package body Freeze is
            or else Present (Full_View (Base_Type (T)));
       end if;
    end Is_Fully_Defined;
-
-   ---------------------------------
-   -- Generate_Prim_Op_References --
-   ---------------------------------
-
-   procedure Generate_Prim_Op_References (Typ : Entity_Id) is
-      Base_T    : Entity_Id;
-      Prim      : Elmt_Id;
-      Prim_List : Elist_Id;
-      Ent       : Entity_Id;
-
-   begin
-      --  Handle subtypes of synchronized types
-
-      if Ekind (Typ) = E_Protected_Subtype
-        or else Ekind (Typ) = E_Task_Subtype
-      then
-         Base_T := Etype (Typ);
-      else
-         Base_T := Typ;
-      end if;
-
-      --  References to primitive operations are only relevant for tagged types
-
-      if not Is_Tagged_Type (Base_T)
-           or else Is_Class_Wide_Type (Base_T)
-      then
-         return;
-      end if;
-
-      --  Ada 2005 (AI-345): For synchronized types generate reference
-      --  to the wrapper that allow us to dispatch calls through their
-      --  implemented abstract interface types.
-
-      --  The check for Present here is to protect against previously
-      --  reported critical errors.
-
-      if Is_Concurrent_Type (Base_T)
-        and then Present (Corresponding_Record_Type (Base_T))
-      then
-         Prim_List := Primitive_Operations
-                       (Corresponding_Record_Type (Base_T));
-      else
-         Prim_List := Primitive_Operations (Base_T);
-      end if;
-
-      if No (Prim_List) then
-         return;
-      end if;
-
-      Prim := First_Elmt (Prim_List);
-      while Present (Prim) loop
-
-         --  If the operation is derived, get the original for cross-reference
-         --  reference purposes (it is the original for which we want the xref
-         --  and for which the comes_from_source test must be performed).
-
-         Ent := Node (Prim);
-         while Present (Alias (Ent)) loop
-            Ent := Alias (Ent);
-         end loop;
-
-         Generate_Reference (Typ, Ent, 'p', Set_Ref => False);
-         Next_Elmt (Prim);
-      end loop;
-   end Generate_Prim_Op_References;
 
    ---------------------------------
    -- Process_Default_Expressions --

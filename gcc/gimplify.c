@@ -1218,9 +1218,14 @@ gimplify_bind_expr (tree *expr_p, gimple_seq *pre_p)
 
       /* Preliminarily mark non-addressed complex variables as eligible
 	 for promotion to gimple registers.  We'll transform their uses
-	 as we find them.  */
-      if ((TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
-	   || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
+	 as we find them.
+	 We exclude complex types if not optimizing because they can be
+	 subject to partial stores in GNU C by means of the __real__ and
+	 __imag__ operators and we cannot promote them to total stores
+	 (see gimplify_modify_expr_complex_part).  */
+      if (optimize
+	  && (TREE_CODE (TREE_TYPE (t)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (t)) == VECTOR_TYPE)
 	  && !TREE_THIS_VOLATILE (t)
 	  && (TREE_CODE (t) == VAR_DECL && !DECL_HARD_REGISTER (t))
 	  && !needs_to_live_in_memory (t))
@@ -1599,20 +1604,63 @@ gimplify_switch_expr (tree *expr_p, gimple_seq *pre_p)
 	}
       len = i;
 
-      if (!default_case)
-	{
-	  gimple new_default;
-
-	  /* If the switch has no default label, add one, so that we jump
-	     around the switch body.  */
-	  default_case = build3 (CASE_LABEL_EXPR, void_type_node, NULL_TREE,
-	                         NULL_TREE, create_artificial_label ());
-	  new_default = gimple_build_label (CASE_LABEL (default_case));
-	  gimplify_seq_add_stmt (&switch_body_seq, new_default);
-	}
-
       if (!VEC_empty (tree, labels))
 	sort_case_labels (labels);
+
+      if (!default_case)
+	{
+	  tree type = TREE_TYPE (switch_expr);
+
+	  /* If the switch has no default label, add one, so that we jump
+	     around the switch body.  If the labels already cover the whole
+	     range of type, add the default label pointing to one of the
+	     existing labels.  */
+	  if (type == void_type_node)
+	    type = TREE_TYPE (SWITCH_COND (switch_expr));
+	  if (len
+	      && INTEGRAL_TYPE_P (type)
+	      && TYPE_MIN_VALUE (type)
+	      && TYPE_MAX_VALUE (type)
+	      && tree_int_cst_equal (CASE_LOW (VEC_index (tree, labels, 0)),
+				     TYPE_MIN_VALUE (type)))
+	    {
+	      tree low, high = CASE_HIGH (VEC_index (tree, labels, len - 1));
+	      if (!high)
+		high = CASE_LOW (VEC_index (tree, labels, len - 1));
+	      if (tree_int_cst_equal (high, TYPE_MAX_VALUE (type)))
+		{
+		  for (i = 1; i < len; i++)
+		    {
+		      high = CASE_LOW (VEC_index (tree, labels, i));
+		      low = CASE_HIGH (VEC_index (tree, labels, i - 1));
+		      if (!low)
+			low = CASE_LOW (VEC_index (tree, labels, i - 1));
+		      if ((TREE_INT_CST_LOW (low) + 1
+			   != TREE_INT_CST_LOW (high))
+			  || (TREE_INT_CST_HIGH (low)
+			      + (TREE_INT_CST_LOW (high) == 0)
+			      != TREE_INT_CST_HIGH (high)))
+			break;
+		    }
+		  if (i == len)
+		    default_case = build3 (CASE_LABEL_EXPR, void_type_node,
+					   NULL_TREE, NULL_TREE,
+					   CASE_LABEL (VEC_index (tree,
+								  labels, 0)));
+		}
+	    }
+
+	  if (!default_case)
+	    {
+	      gimple new_default;
+
+	      default_case = build3 (CASE_LABEL_EXPR, void_type_node,
+				     NULL_TREE, NULL_TREE,
+				     create_artificial_label ());
+	      new_default = gimple_build_label (CASE_LABEL (default_case));
+	      gimplify_seq_add_stmt (&switch_body_seq, new_default);
+	    }
+	}
 
       gimple_switch = gimple_build_switch_vec (SWITCH_COND (switch_expr), 
                                                default_case, labels);
@@ -1851,6 +1899,9 @@ gimplify_conversion (tree *expr_p)
   return GS_OK;
 }
 
+/* Nonlocal VLAs seen in the current function.  */
+static struct pointer_set_t *nonlocal_vlas;
+
 /* Gimplify a VAR_DECL or PARM_DECL.  Returns GS_OK if we expanded a 
    DECL_VALUE_EXPR, and it's worth re-examining things.  */
 
@@ -1881,7 +1932,36 @@ gimplify_var_or_parm_decl (tree *expr_p)
   /* If the decl is an alias for another expression, substitute it now.  */
   if (DECL_HAS_VALUE_EXPR_P (decl))
     {
-      *expr_p = unshare_expr (DECL_VALUE_EXPR (decl));
+      tree value_expr = DECL_VALUE_EXPR (decl);
+
+      /* For referenced nonlocal VLAs add a decl for debugging purposes
+	 to the current function.  */
+      if (TREE_CODE (decl) == VAR_DECL
+	  && TREE_CODE (DECL_SIZE_UNIT (decl)) != INTEGER_CST
+	  && nonlocal_vlas != NULL
+	  && TREE_CODE (value_expr) == INDIRECT_REF
+	  && TREE_CODE (TREE_OPERAND (value_expr, 0)) == VAR_DECL
+	  && decl_function_context (decl) != current_function_decl)
+	{
+	  struct gimplify_omp_ctx *ctx = gimplify_omp_ctxp;
+	  while (ctx && ctx->region_type == ORT_WORKSHARE)
+	    ctx = ctx->outer_context;
+	  if (!ctx && !pointer_set_insert (nonlocal_vlas, decl))
+	    {
+	      tree copy = copy_node (decl), block;
+
+	      lang_hooks.dup_lang_specific_decl (copy);
+	      SET_DECL_RTL (copy, NULL_RTX);
+	      TREE_USED (copy) = 1;
+	      block = DECL_INITIAL (current_function_decl);
+	      TREE_CHAIN (copy) = BLOCK_VARS (block);
+	      BLOCK_VARS (block) = copy;
+	      SET_DECL_VALUE_EXPR (copy, unshare_expr (value_expr));
+	      DECL_HAS_VALUE_EXPR_P (copy) = 1;
+	    }
+	}
+
+      *expr_p = unshare_expr (value_expr);
       return GS_OK;
     }
 
@@ -2449,12 +2529,15 @@ gimplify_call_expr (tree *expr_p, gimple_seq *pre_p, bool want_value)
    condition is true or false, respectively.  If null, we should generate
    our own to skip over the evaluation of this specific expression.
 
+   LOCUS is the source location of the COND_EXPR.
+
    This function is the tree equivalent of do_jump.
 
    shortcut_cond_r should only be called by shortcut_cond_expr.  */
 
 static tree
-shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p)
+shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p,
+		 location_t locus)
 {
   tree local_label = NULL_TREE;
   tree t, expr = NULL;
@@ -2464,6 +2547,8 @@ shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p)
      shortcut_cond_expr will append the real blocks later.  */
   if (TREE_CODE (pred) == TRUTH_ANDIF_EXPR)
     {
+      location_t new_locus;
+
       /* Turn if (a && b) into
 
 	 if (a); else goto no;
@@ -2473,15 +2558,20 @@ shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p)
       if (false_label_p == NULL)
 	false_label_p = &local_label;
 
-      t = shortcut_cond_r (TREE_OPERAND (pred, 0), NULL, false_label_p);
+      /* Keep the original source location on the first 'if'.  */
+      t = shortcut_cond_r (TREE_OPERAND (pred, 0), NULL, false_label_p, locus);
       append_to_statement_list (t, &expr);
 
-      t = shortcut_cond_r (TREE_OPERAND (pred, 1), true_label_p,
-			   false_label_p);
+      /* Set the source location of the && on the second 'if'.  */
+      new_locus = EXPR_HAS_LOCATION (pred) ? EXPR_LOCATION (pred) : locus;
+      t = shortcut_cond_r (TREE_OPERAND (pred, 1), true_label_p, false_label_p,
+			   new_locus);
       append_to_statement_list (t, &expr);
     }
   else if (TREE_CODE (pred) == TRUTH_ORIF_EXPR)
     {
+      location_t new_locus;
+
       /* Turn if (a || b) into
 
 	 if (a) goto yes;
@@ -2491,31 +2581,41 @@ shortcut_cond_r (tree pred, tree *true_label_p, tree *false_label_p)
       if (true_label_p == NULL)
 	true_label_p = &local_label;
 
-      t = shortcut_cond_r (TREE_OPERAND (pred, 0), true_label_p, NULL);
+      /* Keep the original source location on the first 'if'.  */
+      t = shortcut_cond_r (TREE_OPERAND (pred, 0), true_label_p, NULL, locus);
       append_to_statement_list (t, &expr);
 
-      t = shortcut_cond_r (TREE_OPERAND (pred, 1), true_label_p,
-			   false_label_p);
+      /* Set the source location of the || on the second 'if'.  */
+      new_locus = EXPR_HAS_LOCATION (pred) ? EXPR_LOCATION (pred) : locus;
+      t = shortcut_cond_r (TREE_OPERAND (pred, 1), true_label_p, false_label_p,
+			   new_locus);
       append_to_statement_list (t, &expr);
     }
   else if (TREE_CODE (pred) == COND_EXPR)
     {
+      location_t new_locus;
+
       /* As long as we're messing with gotos, turn if (a ? b : c) into
 	 if (a)
 	   if (b) goto yes; else goto no;
 	 else
 	   if (c) goto yes; else goto no;  */
+
+      /* Keep the original source location on the first 'if'.  Set the source
+	 location of the ? on the second 'if'.  */
+      new_locus = EXPR_HAS_LOCATION (pred) ? EXPR_LOCATION (pred) : locus;
       expr = build3 (COND_EXPR, void_type_node, TREE_OPERAND (pred, 0),
 		     shortcut_cond_r (TREE_OPERAND (pred, 1), true_label_p,
-				      false_label_p),
+				      false_label_p, locus),
 		     shortcut_cond_r (TREE_OPERAND (pred, 2), true_label_p,
-				      false_label_p));
+				      false_label_p, new_locus));
     }
   else
     {
       expr = build3 (COND_EXPR, void_type_node, pred,
 		     build_and_jump (true_label_p),
 		     build_and_jump (false_label_p));
+      SET_EXPR_LOCATION (expr, locus);
     }
 
   if (local_label)
@@ -2547,14 +2647,24 @@ shortcut_cond_expr (tree expr)
   /* First do simple transformations.  */
   if (!else_se)
     {
-      /* If there is no 'else', turn (a && b) into if (a) if (b).  */
+      /* If there is no 'else', turn
+	   if (a && b) then c
+	 into
+	   if (a) if (b) then c.  */
       while (TREE_CODE (pred) == TRUTH_ANDIF_EXPR)
 	{
+	  /* Keep the original source location on the first 'if'.  */
+	  location_t locus = EXPR_HAS_LOCATION (expr)
+			     ? EXPR_LOCATION (expr) : input_location;
 	  TREE_OPERAND (expr, 0) = TREE_OPERAND (pred, 1);
+	  /* Set the source location of the && on the second 'if'.  */
+	  if (EXPR_HAS_LOCATION (pred))
+	    SET_EXPR_LOCATION (expr, EXPR_LOCATION (pred));
 	  then_ = shortcut_cond_expr (expr);
 	  then_se = then_ && TREE_SIDE_EFFECTS (then_);
 	  pred = TREE_OPERAND (pred, 0);
 	  expr = build3 (COND_EXPR, void_type_node, pred, then_, NULL_TREE);
+	  SET_EXPR_LOCATION (expr, locus);
 	}
     }
 
@@ -2566,11 +2676,18 @@ shortcut_cond_expr (tree expr)
 	   if (a); else if (b); else d.  */
       while (TREE_CODE (pred) == TRUTH_ORIF_EXPR)
 	{
+	  /* Keep the original source location on the first 'if'.  */
+	  location_t locus = EXPR_HAS_LOCATION (expr)
+			     ? EXPR_LOCATION (expr) : input_location;
 	  TREE_OPERAND (expr, 0) = TREE_OPERAND (pred, 1);
+	  /* Set the source location of the || on the second 'if'.  */
+	  if (EXPR_HAS_LOCATION (pred))
+	    SET_EXPR_LOCATION (expr, EXPR_LOCATION (pred));
 	  else_ = shortcut_cond_expr (expr);
 	  else_se = else_ && TREE_SIDE_EFFECTS (else_);
 	  pred = TREE_OPERAND (pred, 0);
 	  expr = build3 (COND_EXPR, void_type_node, pred, NULL_TREE, else_);
+	  SET_EXPR_LOCATION (expr, locus);
 	}
     }
 
@@ -2624,17 +2741,19 @@ shortcut_cond_expr (tree expr)
 
   /* If there was nothing else in our arms, just forward the label(s).  */
   if (!then_se && !else_se)
-    return shortcut_cond_r (pred, true_label_p, false_label_p);
+    return shortcut_cond_r (pred, true_label_p, false_label_p,
+			    EXPR_HAS_LOCATION (expr)
+			    ? EXPR_LOCATION (expr) : input_location);
 
   /* If our last subexpression already has a terminal label, reuse it.  */
   if (else_se)
-    expr = expr_last (else_);
+    t = expr_last (else_);
   else if (then_se)
-    expr = expr_last (then_);
+    t = expr_last (then_);
   else
-    expr = NULL;
-  if (expr && TREE_CODE (expr) == LABEL_EXPR)
-    end_label = LABEL_EXPR_LABEL (expr);
+    t = NULL;
+  if (t && TREE_CODE (t) == LABEL_EXPR)
+    end_label = LABEL_EXPR_LABEL (t);
 
   /* If we don't care about jumping to the 'else' branch, jump to the end
      if the condition is false.  */
@@ -2655,7 +2774,9 @@ shortcut_cond_expr (tree expr)
      non-void function.  */
   jump_over_else = block_may_fallthru (then_);
 
-  pred = shortcut_cond_r (pred, true_label_p, false_label_p);
+  pred = shortcut_cond_r (pred, true_label_p, false_label_p,
+			  EXPR_HAS_LOCATION (expr)
+			  ? EXPR_LOCATION (expr) : input_location);
 
   expr = NULL;
   append_to_statement_list (pred, &expr);
@@ -2665,7 +2786,10 @@ shortcut_cond_expr (tree expr)
     {
       if (jump_over_else)
 	{
+	  tree last = expr_last (expr);
 	  t = build_and_jump (&end_label);
+	  if (EXPR_HAS_LOCATION (last))
+	    SET_EXPR_LOCATION (t, EXPR_LOCATION (last));
 	  append_to_statement_list (t, &expr);
 	}
       if (emit_false)
@@ -3938,11 +4062,14 @@ gimplify_modify_expr_rhs (tree *expr_p, tree *from_p, tree *to_p,
     switch (TREE_CODE (*from_p))
       {
       case VAR_DECL:
-	/* If we're assigning from a constant constructor, move the
-	   constructor expression to the RHS of the MODIFY_EXPR.  */
+	/* If we're assigning from a read-only variable initialized with
+	   a constructor, do the direct assignment from the constructor,
+	   but only if neither source nor target are volatile since this
+	   latter assignment might end up being done on a per-field basis.  */
 	if (DECL_INITIAL (*from_p)
 	    && TREE_READONLY (*from_p)
 	    && !TREE_THIS_VOLATILE (*from_p)
+	    && !TREE_THIS_VOLATILE (*to_p)
 	    && TREE_CODE (DECL_INITIAL (*from_p)) == CONSTRUCTOR)
 	  {
 	    tree old_from = *from_p;
@@ -4428,13 +4555,11 @@ gimplify_scalar_mode_aggregate_compare (tree *expr_p)
 
 	a && b ? true : false
 
-    gimplify_cond_expr will do the rest.
-
-    PRE_P points to the list where side effects that must happen before
-	*EXPR_P should be stored.  */
+    LOCUS is the source location to be put on the generated COND_EXPR.
+    gimplify_cond_expr will do the rest.  */
 
 static enum gimplify_status
-gimplify_boolean_expr (tree *expr_p)
+gimplify_boolean_expr (tree *expr_p, location_t locus)
 {
   /* Preserve the original type of the expression.  */
   tree type = TREE_TYPE (*expr_p);
@@ -4442,6 +4567,8 @@ gimplify_boolean_expr (tree *expr_p)
   *expr_p = build3 (COND_EXPR, type, *expr_p,
 		    fold_convert (type, boolean_true_node),
 		    fold_convert (type, boolean_false_node));
+
+  SET_EXPR_LOCATION (*expr_p, locus);
 
   return GS_OK;
 }
@@ -5311,8 +5438,8 @@ omp_notice_variable (struct gimplify_omp_ctx *ctx, tree decl, bool in_code)
       switch (default_kind)
 	{
 	case OMP_CLAUSE_DEFAULT_NONE:
-	  error ("%qs not specified in enclosing parallel",
-		 IDENTIFIER_POINTER (DECL_NAME (decl)));
+	  error ("%qE not specified in enclosing parallel",
+		 DECL_NAME (decl));
 	  error ("%Henclosing parallel", &ctx->location);
 	  /* FALLTHRU */
 	case OMP_CLAUSE_DEFAULT_SHARED:
@@ -5418,8 +5545,8 @@ omp_is_private (struct gimplify_omp_ctx *ctx, tree decl)
 	{
 	  if (ctx == gimplify_omp_ctxp)
 	    {
-	      error ("iteration variable %qs should be private",
-		     IDENTIFIER_POINTER (DECL_NAME (decl)));
+	      error ("iteration variable %qE should be private",
+		     DECL_NAME (decl));
 	      n->value = GOVD_PRIVATE;
 	      return true;
 	    }
@@ -5432,11 +5559,11 @@ omp_is_private (struct gimplify_omp_ctx *ctx, tree decl)
 		       && gimplify_omp_ctxp->outer_context == ctx)))
 	{
 	  if ((n->value & GOVD_FIRSTPRIVATE) != 0)
-	    error ("iteration variable %qs should not be firstprivate",
-		   IDENTIFIER_POINTER (DECL_NAME (decl)));
+	    error ("iteration variable %qE should not be firstprivate",
+		   DECL_NAME (decl));
 	  else if ((n->value & GOVD_REDUCTION) != 0)
-	    error ("iteration variable %qs should not be reduction",
-		   IDENTIFIER_POINTER (DECL_NAME (decl)));
+	    error ("iteration variable %qE should not be reduction",
+		   DECL_NAME (decl));
 	}
       return (ctx == gimplify_omp_ctxp
 	      || (ctx->region_type == ORT_COMBINED_PARALLEL
@@ -5598,8 +5725,8 @@ gimplify_scan_omp_clauses (tree *list_p, gimple_seq *pre_p,
 	      && region_type == ORT_WORKSHARE
 	      && omp_check_private (ctx, decl))
 	    {
-	      error ("%s variable %qs is private in outer context",
-		     check_non_private, IDENTIFIER_POINTER (DECL_NAME (decl)));
+	      error ("%s variable %qE is private in outer context",
+		     check_non_private, DECL_NAME (decl));
 	      remove = true;
 	    }
 	  break;
@@ -5855,7 +5982,8 @@ static enum gimplify_status
 gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
 {
   tree for_stmt, decl, var, t;
-  enum gimplify_status ret = GS_OK;
+  enum gimplify_status ret = GS_ALL_DONE;
+  enum gimplify_status tret;
   gimple gfor;
   gimple_seq for_body, for_pre_body;
   int i;
@@ -5905,8 +6033,9 @@ gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
       else
 	var = decl;
 
-      ret |= gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
+      tret = gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
 			    is_gimple_val, fb_rvalue);
+      ret = MIN (ret, tret);
       if (ret == GS_ERROR)
 	return ret;
 
@@ -5915,8 +6044,9 @@ gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
       gcc_assert (COMPARISON_CLASS_P (t));
       gcc_assert (TREE_OPERAND (t, 0) == decl);
 
-      ret |= gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
+      tret = gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
 			    is_gimple_val, fb_rvalue);
+      ret = MIN (ret, tret);
 
       /* Handle OMP_FOR_INCR.  */
       t = TREE_VEC_ELT (OMP_FOR_INCR (for_stmt), i);
@@ -5963,8 +6093,9 @@ gimplify_omp_for (tree *expr_p, gimple_seq *pre_p)
 	      gcc_unreachable ();
 	    }
 
-	  ret |= gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
+	  tret = gimplify_expr (&TREE_OPERAND (t, 1), &for_pre_body, NULL,
 				is_gimple_val, fb_rvalue);
+	  ret = MIN (ret, tret);
 	  break;
 
 	default:
@@ -6349,7 +6480,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	}
 
       /* Do any language-specific gimplification.  */
-      ret = lang_hooks.gimplify_expr (expr_p, pre_p, post_p);
+      ret = ((enum gimplify_status)
+	     lang_hooks.gimplify_expr (expr_p, pre_p, post_p));
       if (ret == GS_OK)
 	{
 	  if (*expr_p == NULL_TREE)
@@ -6430,7 +6562,8 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	case TRUTH_ANDIF_EXPR:
 	case TRUTH_ORIF_EXPR:
-	  ret = gimplify_boolean_expr (expr_p);
+	  /* Pass the source location of the outer expression.  */
+	  ret = gimplify_boolean_expr (expr_p, saved_location);
 	  break;
 
 	case TRUTH_NOT_EXPR:
@@ -7099,7 +7232,12 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	/* The postqueue might change the value of the expression between
 	   the initialization and use of the temporary, so we can't use a
 	   formal temp.  FIXME do we care?  */
-	*expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
+	{
+	  *expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
+	  if (TREE_CODE (TREE_TYPE (*expr_p)) == COMPLEX_TYPE
+	      || TREE_CODE (TREE_TYPE (*expr_p)) == VECTOR_TYPE)
+	    DECL_GIMPLE_REG_P (*expr_p) = 1;
+	}
       else
 	*expr_p = get_formal_tmp_var (*expr_p, pre_p);
     }
@@ -7314,6 +7452,9 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
   unshare_body (body_p, fndecl);
   unvisit_body (body_p, fndecl);
 
+  if (cgraph_node (fndecl)->origin)
+    nonlocal_vlas = pointer_set_create ();
+
   /* Make sure input_location isn't set to something weird.  */
   input_location = DECL_SOURCE_LOCATION (fndecl);
 
@@ -7347,6 +7488,12 @@ gimplify_body (tree *body_p, tree fndecl, bool do_parms)
     {
       gimplify_seq_add_seq (&parm_stmts, gimple_bind_body (outer_bind));
       gimple_bind_set_body (outer_bind, parm_stmts);
+    }
+
+  if (nonlocal_vlas)
+    {
+      pointer_set_destroy (nonlocal_vlas);
+      nonlocal_vlas = NULL;
     }
 
   pop_gimplify_context (outer_bind);

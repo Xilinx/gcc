@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -731,7 +731,10 @@ package body Sem_Ch10 is
                   --  it, and this must be indicated explicitly. We also mark
                   --  the body entity as a child unit now, to prevent a
                   --  cascaded error if the spec entity cannot be entered
-                  --  in its scope.
+                  --  in its scope. Finally we create a Units table entry for
+                  --  the subprogram declaration, to maintain a one-to-one
+                  --  correspondence with compilation unit nodes. This is
+                  --  critical for the tree traversals performed by Codepeer.
 
                   declare
                      Loc : constant Source_Ptr := Sloc (N);
@@ -753,6 +756,7 @@ package body Sem_Ch10 is
 
                      Set_Library_Unit (N, Lib_Unit);
                      Set_Parent_Spec (Unit (Lib_Unit), Cunit (Unum));
+                     Make_Child_Decl_Unit (N);
                      Semantics (Lib_Unit);
 
                      --  Now that a separate declaration exists, the body
@@ -774,6 +778,8 @@ package body Sem_Ch10 is
             Version_Update (N, Lib_Unit);
          end if;
 
+         --  If this is a child unit, generate references to the parents
+
          if Nkind (Defining_Unit_Name (Specification (Unit_Node))) =
                                              N_Defining_Program_Unit_Name
          then
@@ -783,8 +789,8 @@ package body Sem_Ch10 is
          end if;
       end if;
 
-      --  If it is a child unit, the parent must be elaborated first
-      --  and we update version, since we are dependent on our parent.
+      --  If it is a child unit, the parent must be elaborated first and we
+      --  update version, since we are dependent on our parent.
 
       if Is_Child_Spec (Unit_Node) then
 
@@ -1276,9 +1282,16 @@ package body Sem_Ch10 is
          then
             --  Skip analyzing with clause if no unit, nothing to do (this
             --  happens for a with that references a non-existent unit)
+            --  Skip as well if this is a with_clause for the main unit, which
+            --  happens if a subunit has a useless with_clause on its parent.
 
             if Present (Library_Unit (Item)) then
-               Analyze (Item);
+               if Library_Unit (Item) /= Cunit (Current_Sem_Unit) then
+                  Analyze (Item);
+
+               else
+                  Set_Entity (Name (Item), Cunit_Entity (Current_Sem_Unit));
+               end if;
             end if;
 
             if not Implicit_With (Item) then
@@ -3109,7 +3122,7 @@ package body Sem_Ch10 is
 
       if Is_Child_Spec (Lib_Unit) then
 
-         --  The unit also has implicit withs on its own parents
+         --  The unit also has implicit with_clauses on its own parents
 
          if No (Context_Items (N)) then
             Set_Context_Items (N, New_List);
@@ -3274,7 +3287,7 @@ package body Sem_Ch10 is
                     and then Renamed_Entity (E) = WEnt
                   then
                      --  The unlimited view is visible through use clause and
-                     --  renamings. There is not need to generate the error
+                     --  renamings. There is no need to generate the error
                      --  message here because Is_Visible_Through_Renamings
                      --  takes care of generating the precise error message.
 
@@ -4313,7 +4326,7 @@ package body Sem_Ch10 is
                      then
                         --  Generate the error message only if the current unit
                         --  is a package declaration; in case of subprogram
-                        --  bodies and package bodies we just return true to
+                        --  bodies and package bodies we just return True to
                         --  indicate that the limited view must not be
                         --  installed.
 
@@ -4339,7 +4352,13 @@ package body Sem_Ch10 is
                Next (Item);
             end loop;
 
-            if Present (Library_Unit (Aux_Unit)) then
+            --  If it's a body not acting as spec, follow pointer to
+            --  corresponding spec, otherwise follow pointer to parent spec.
+
+            if Present (Library_Unit (Aux_Unit))
+              and then Nkind_In (Unit (Aux_Unit),
+                                 N_Package_Body, N_Subprogram_Body)
+            then
                if Aux_Unit = Library_Unit (Aux_Unit) then
 
                   --  Aux_Unit is a body that acts as a spec. Clause has
@@ -4350,6 +4369,7 @@ package body Sem_Ch10 is
                else
                   Aux_Unit := Library_Unit (Aux_Unit);
                end if;
+
             else
                Aux_Unit := Parent_Spec (Unit (Aux_Unit));
             end if;

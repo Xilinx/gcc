@@ -782,25 +782,51 @@ package body Sem_Ch8 is
                Error_Msg_N
                  ("expect anonymous access type in object renaming", N);
             end if;
+
          else
             declare
-               I   : Interp_Index;
-               It  : Interp;
-               Typ : Entity_Id := Empty;
+               I    : Interp_Index;
+               It   : Interp;
+               Typ  : Entity_Id := Empty;
+               Seen : Boolean   := False;
 
             begin
                Get_First_Interp (Nam, I, It);
                while Present (It.Typ) loop
-                  if No (Typ) then
-                     if Ekind (It.Typ) = Ekind (T)
-                       and then Covers (T, It.Typ)
+
+                  --  Renaming is ambiguous if more than one candidate
+                  --  interpretation is type-conformant with the context.
+
+                  if Ekind (It.Typ) = Ekind (T) then
+                     if Ekind (T) = E_Anonymous_Access_Subprogram_Type
+                       and then
+                         Type_Conformant
+                           (Designated_Type (T), Designated_Type (It.Typ))
                      then
+                        if not Seen then
+                           Seen := True;
+                        else
+                           Error_Msg_N
+                             ("ambiguous expression in renaming", Nam);
+                        end if;
+
+                     elsif Ekind (T) = E_Anonymous_Access_Type
+                       and then
+                         Covers (Designated_Type (T), Designated_Type (It.Typ))
+                     then
+                        if not Seen then
+                           Seen := True;
+                        else
+                           Error_Msg_N
+                             ("ambiguous expression in renaming", Nam);
+                        end if;
+                     end if;
+
+                     if Covers (T, It.Typ) then
                         Typ := It.Typ;
                         Set_Etype (Nam, Typ);
                         Set_Is_Overloaded (Nam, False);
                      end if;
-                  else
-                     Error_Msg_N ("ambiguous expression in renaming", N);
                   end if;
 
                   Get_Next_Interp (I, It);
@@ -929,14 +955,21 @@ package body Sem_Ch8 is
                --  declaration occurs within the body of G or within the body
                --  of a generic unit declared within the declarative region
                --  of G, then the declaration of the formal object of G must
-               --  have a null exclusion.
+               --  have a null exclusion or a null-excluding subtype.
 
                if Is_Formal_Object (Nam_Ent)
                  and then In_Generic_Scope (Id)
                then
-                  Error_Msg_N
-                    ("renamed formal does not exclude `NULL` "
-                     & "(RM 8.5.1(4.6/2))", N);
+                  if not Can_Never_Be_Null (Etype (Nam_Ent)) then
+                     Error_Msg_N
+                       ("renamed formal does not exclude `NULL` "
+                        & "(RM 8.5.1(4.6/2))", N);
+
+                  elsif In_Package_Body (Scope (Id)) then
+                     Error_Msg_N
+                       ("formal object does not have a null exclusion"
+                        & "(RM 8.5.1(4.6/2))", N);
+                  end if;
 
                --  Ada 2005 (AI-423): Otherwise, the subtype of the object name
                --  shall exclude null.
@@ -946,12 +979,41 @@ package body Sem_Ch8 is
                     ("renamed object does not exclude `NULL` "
                      & "(RM 8.5.1(4.6/2))", N);
 
-               elsif Can_Never_Be_Null (Etype (Nam_Ent)) then
+               --  An instance is illegal if it contains a renaming that
+               --  excludes null, and the actual does not. The renaming
+               --  declaration has already indicated that the declaration
+               --  of the renamed actual in the instance will raise
+               --  constraint_error.
+
+               elsif Nkind (Parent (Nam_Ent)) = N_Object_Declaration
+                 and then In_Instance
+                 and then Present
+                   (Corresponding_Generic_Association (Parent (Nam_Ent)))
+                 and then Nkind (Expression (Parent (Nam_Ent)))
+                   = N_Raise_Constraint_Error
+               then
+                  Error_Msg_N
+                    ("renamed actual does not exclude `NULL` "
+                     & "(RM 8.5.1(4.6/2))", N);
+
+               --  Finally, if there is a null exclusion, the subtype mark
+               --  must not be null-excluding.
+
+               elsif No (Access_Definition (N))
+                 and then  Can_Never_Be_Null (T)
+               then
                   Error_Msg_NE
-                    ("`NOT NULL` not allowed (type of& already excludes null)",
-                      N, Nam_Ent);
+                    ("`NOT NULL` not allowed (& already excludes null)",
+                      N, T);
 
                end if;
+
+            elsif Can_Never_Be_Null (T)
+              and then not Can_Never_Be_Null (Etype (Nam_Ent))
+            then
+               Error_Msg_N
+                 ("renamed object does not exclude `NULL` "
+                  & "(RM 8.5.1(4.6/2))", N);
 
             elsif Has_Null_Exclusion (N)
               and then No (Access_Definition (N))
@@ -2308,10 +2370,12 @@ package body Sem_Ch8 is
             declare
                F1 : Entity_Id;
                F2 : Entity_Id;
+               T1 : Entity_Id;
 
             begin
                F1 := First_Formal (Candidate_Renaming);
                F2 := First_Formal (New_S);
+               T1 := First_Subtype (Etype (F1));
 
                while Present (F1) and then Present (F2) loop
                   Next_Formal (F1);
@@ -2327,6 +2391,15 @@ package body Sem_Ch8 is
                      Error_Msg_NE
                     ("\missing specification for &", Spec, F1);
                   end if;
+               end if;
+
+               if Nkind (Nam) = N_Operator_Symbol
+                 and then From_Default (N)
+               then
+                  Error_Msg_Node_2 := T1;
+                  Error_Msg_NE
+                    ("default & on & is not directly visible",
+                      Nam, Nam);
                end if;
             end;
          end if;
@@ -3300,8 +3373,23 @@ package body Sem_Ch8 is
       if Present (Hidden_By_Use_Clause (N)) then
          Elmt := First_Elmt (Hidden_By_Use_Clause (N));
          while Present (Elmt) loop
-            Set_Is_Immediately_Visible (Node (Elmt));
-            Next_Elmt (Elmt);
+            declare
+               E : constant Entity_Id := Node (Elmt);
+
+            begin
+               --  Reset either Use_Visibility or Direct_Visibility, depending
+               --  on how the entity was hidden by the use clause.
+
+               if In_Use (Scope (E))
+                 and then Used_As_Generic_Actual (Scope (E))
+               then
+                  Set_Is_Potentially_Use_Visible (Node (Elmt));
+               else
+                  Set_Is_Immediately_Visible (Node (Elmt));
+               end if;
+
+               Next_Elmt (Elmt);
+            end;
          end loop;
 
          Set_Hidden_By_Use_Clause (N, No_Elist);
@@ -4963,10 +5051,12 @@ package body Sem_Ch8 is
       Candidate_Renaming := Empty;
 
       if not Is_Overloaded (Nam) then
-         if Entity_Matches_Spec (Entity (Nam), New_S)
-           and then Is_Visible_Operation (Entity (Nam))
-         then
-            Old_S := Entity (Nam);
+         if Entity_Matches_Spec (Entity (Nam), New_S) then
+            Candidate_Renaming := New_S;
+
+            if Is_Visible_Operation (Entity (Nam)) then
+               Old_S := Entity (Nam);
+            end if;
 
          elsif
            Present (First_Formal (Entity (Nam)))
@@ -7017,6 +7107,23 @@ package body Sem_Ch8 is
                          or else Chars (Prev) = Name_Op_Expon)
             then
                goto Next_Usable_Entity;
+
+            --  In an instance, two homonyms may become use_visible through the
+            --  actuals of distinct formal packages. In the generic, only the
+            --  current one would have been visible, so make the other one
+            --  not use_visible.
+
+            elsif Present (Current_Instance)
+              and then Is_Potentially_Use_Visible (Prev)
+              and then not Is_Overloadable (Prev)
+              and then Scope (Id) /= Scope (Prev)
+              and then Used_As_Generic_Actual (Scope (Prev))
+              and then Used_As_Generic_Actual (Scope (Id))
+              and then List_Containing (Current_Use_Clause (Scope (Prev))) /=
+                       List_Containing (Current_Use_Clause (Scope (Id)))
+            then
+               Set_Is_Potentially_Use_Visible (Prev, False);
+               Append_Elmt (Prev, Hidden_By_Use_Clause (N));
             end if;
 
             Prev := Homonym (Prev);
@@ -7334,7 +7441,7 @@ package body Sem_Ch8 is
                   else
                      Error_Msg_NE
                        ("& is already use-visible through previous "
-                        & "use type clause?", Id, Id);
+                        & "use type clause?", Id, T);
                   end if;
                end Use_Clause_Known;
 
@@ -7344,7 +7451,7 @@ package body Sem_Ch8 is
             else
                Error_Msg_NE
                  ("& is already use-visible through previous "
-                  & "use type clause?", Id, Id);
+                  & "use type clause?", Id, T);
             end if;
 
          --  The package where T is declared is already used
@@ -7353,14 +7460,14 @@ package body Sem_Ch8 is
             Error_Msg_Sloc := Sloc (Current_Use_Clause (Scope (T)));
             Error_Msg_NE
               ("& is already use-visible through package use clause #?",
-               Id, Id);
+               Id, T);
 
          --  The current scope is the package where T is declared
 
          else
             Error_Msg_Node_2 := Scope (T);
             Error_Msg_NE
-              ("& is already use-visible inside package &?", Id, Id);
+              ("& is already use-visible inside package &?", Id, T);
          end if;
       end if;
    end Use_One_Type;

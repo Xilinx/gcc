@@ -230,6 +230,7 @@ package body Switch.C is
 
                if Tree_Output then
                   ASIS_Mode := True;
+                  Inspector_Mode := False;
                end if;
 
             --  Processing for d switch
@@ -256,6 +257,25 @@ package body Switch.C is
                      if Dot then
                         Set_Dotted_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd." & C);
+
+                        --  ??? Change this when we use a non debug flag to
+                        --  enable inspector mode.
+
+                        if C = 'I' then
+                           if ASIS_Mode then
+                              --  Do not enable inspector mode in ASIS mode,
+                              --  since the two switches are incompatible.
+
+                              Inspector_Mode := False;
+
+                           else
+                              --  In inspector mode, we need back-end rep info
+                              --  annotations and disable front-end inlining.
+
+                              Back_Annotate_Rep_Info := True;
+                              Front_End_Inlining := False;
+                           end if;
+                        end if;
                      else
                         Set_Debug_Flag (C);
                         Store_Compilation_Switch ("-gnatd" & C);
@@ -632,7 +652,14 @@ package body Switch.C is
             when 'N' =>
                Ptr := Ptr + 1;
                Inline_Active := True;
-               Front_End_Inlining := True;
+
+               --  Do not enable front-end inlining in inspector mode, to
+               --  generate trees that can be converted to SCIL. We still
+               --  enable back-end inlining which is fine.
+
+               if not Inspector_Mode then
+                  Front_End_Inlining := True;
+               end if;
 
             --  Processing for o switch
 
@@ -745,6 +772,7 @@ package body Switch.C is
 
                if Operating_Mode = Check_Semantics then
                   ASIS_Mode := True;
+                  Inspector_Mode := False;
                end if;
 
                Back_Annotate_Rep_Info := True;

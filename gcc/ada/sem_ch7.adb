@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1510,9 +1510,9 @@ package body Sem_Ch7 is
                         Next_Elmt (Op_Elmt_2);
                      end loop;
 
-                     --   Case 2: We have not found any explicit overriding and
-                     --   hence we need to declare the operation (i.e., make it
-                     --   visible).
+                     --  Case 2: We have not found any explicit overriding and
+                     --  hence we need to declare the operation (i.e., make it
+                     --  visible).
 
                      Derive_Subprogram (New_Op, Alias (Prim_Op), E, Etype (E));
 
@@ -1555,8 +1555,8 @@ package body Sem_Ch7 is
                end if;
 
             else
-               --   Non-tagged type, scan forward to locate inherited hidden
-               --   operations.
+               --  Non-tagged type, scan forward to locate inherited hidden
+               --  operations.
 
                Prim_Op := Next_Entity (E);
                while Present (Prim_Op) loop
@@ -2137,17 +2137,42 @@ package body Sem_Ch7 is
                  ("missing full declaration for private extension", Id);
             end if;
 
+         --  Case of constant, check for deferred constant declaration with
+         --  no full view. Likely just a matter of a missing expression, or
+         --  accidental use of the keyword constant.
+
          elsif Ekind (Id) = E_Constant
+
+           --  OK if constant value present
+
            and then No (Constant_Value (Id))
+
+           --  OK if full view present
+
            and then No (Full_View (Id))
+
+           --  OK if imported, since that provides the completion
+
            and then not Is_Imported (Id)
-           and then (Nkind (Parent (Id)) /= N_Object_Declaration
-                      or else not No_Initialization (Parent (Id)))
+
+           --  OK if object declaration replaced by renaming declaration as
+           --  a result of OK_To_Rename processing (e.g. for concatenation)
+
+           and then Nkind (Parent (Id)) /= N_Object_Renaming_Declaration
+
+           --  OK if object declaration with the No_Initialization flag set
+
+           and then not (Nkind (Parent (Id)) = N_Object_Declaration
+                           and then No_Initialization (Parent (Id)))
          then
+            --  If no private declaration is present, we assume the user did
+            --  not intend a deferred constant declaration and the problem
+            --  is simply that the initializing expression is missing.
+
             if not Has_Private_Declaration (Etype (Id)) then
 
-               --  We assume that the user did not intend a deferred
-               --  constant declaration, and the expression is just missing.
+               --  We assume that the user did not intend a deferred constant
+               --  declaration, and the expression is just missing.
 
                Error_Msg_N
                  ("constant declaration requires initialization expression",
@@ -2158,6 +2183,9 @@ package body Sem_Ch7 is
                     ("\if variable intended, remove CONSTANT from declaration",
                     Parent (Id));
                end if;
+
+            --  Otherwise if a private declaration is present, then we are
+            --  missing the full declaration for the deferred constant.
 
             else
                Error_Msg_N
@@ -2296,7 +2324,7 @@ package body Sem_Ch7 is
            and then No (Full_View (Id))
          then
             --  Mark Taft amendment types. Verify that there are no primitive
-            --  operations declared for the type (3.10.1 (9)).
+            --  operations declared for the type (3.10.1(9)).
 
             Set_Has_Completion_In_Body (Id);
 

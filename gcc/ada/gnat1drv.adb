@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -89,6 +89,11 @@ procedure Gnat1drv is
    procedure Check_Rep_Info;
    --  Called when we are not generating code, to check if -gnatR was requested
    --  and if so, explain that we will not be honoring the request.
+
+   procedure Check_Library_Items;
+   --  For debugging -- checks the behavior of Walk_Library_Items
+   pragma Warnings (Off, Check_Library_Items);
+   --  In case the call below is commented out
 
    --------------------
    -- Check_Bad_Body --
@@ -251,6 +256,35 @@ procedure Gnat1drv is
       end if;
    end Check_Rep_Info;
 
+   -------------------------
+   -- Check_Library_Items --
+   -------------------------
+
+   --  Walk_Library_Items has plenty of assertions, so all we need to do is
+   --  call it, just for these assertions, not actually doing anything else.
+
+   procedure Check_Library_Items is
+
+      procedure Action (Item : Node_Id);
+      --  Action passed to Walk_Library_Items to do nothing
+
+      ------------
+      -- Action --
+      ------------
+
+      procedure Action (Item : Node_Id) is
+      begin
+         null;
+      end Action;
+
+      procedure Walk is new Sem.Walk_Library_Items (Action);
+
+   --  Start of processing for Check_Library_Items
+
+   begin
+      Walk;
+   end Check_Library_Items;
+
 --  Start of processing for Gnat1drv
 
 begin
@@ -337,6 +371,12 @@ begin
          Back_Annotate_Rep_Info := True;
          List_Representation_Info := 1;
          List_Representation_Info_Mechanisms := True;
+      end if;
+
+      --  Force Target_Strict_Alignment true if debug flag -gnatd.a is set
+
+      if Debug_Flag_Dot_A then
+         Ttypes.Target_Strict_Alignment := True;
       end if;
 
       --  Disable static allocation of dispatch tables if -gnatd.t or if layout
@@ -470,14 +510,21 @@ begin
 
       Set_Generate_Code (Main_Unit);
 
-      --  If we have a corresponding spec, then we need object
-      --  code for the spec unit as well
+      --  If we have a corresponding spec, and it comes from source
+      --  or it is not a generated spec for a child subprogram body,
+      --  then we need object code for the spec unit as well.
 
       if Nkind (Unit (Main_Unit_Node)) in N_Unit_Body
         and then not Acts_As_Spec (Main_Unit_Node)
       then
-         Set_Generate_Code
-           (Get_Cunit_Unit_Number (Library_Unit (Main_Unit_Node)));
+         if Nkind (Unit (Main_Unit_Node)) = N_Subprogram_Body
+           and then not Comes_From_Source (Library_Unit (Main_Unit_Node))
+         then
+            null;
+         else
+            Set_Generate_Code
+              (Get_Cunit_Unit_Number (Library_Unit (Main_Unit_Node)));
+         end if;
       end if;
 
       --  Case of no code required to be generated, exit indicating no error
@@ -572,9 +619,9 @@ begin
          Back_End_Mode := Skip;
       end if;
 
-      --  At this stage Call_Back_End is set to indicate if the backend should
-      --  be called to generate code. If it is not set, then code generation
-      --  has been turned off, even though code was requested by the original
+      --  At this stage Back_End_Mode is set to indicate if the backend should
+      --  be called to generate code. If it is Skip, then code generation has
+      --  been turned off, even though code was requested by the original
       --  command. This is not an error from the user point of view, but it is
       --  an error from the point of view of the gcc driver, so we must exit
       --  with an error status.
@@ -699,6 +746,14 @@ begin
       Sinput.Lock;
       Namet.Lock;
       Stringt.Lock;
+
+      --  ???Check_Library_Items under control of a debug flag, because it
+      --  currently does not work if the -gnatn switch (back end inlining) is
+      --  used.
+
+      if Debug_Flag_Dot_WW then
+         Check_Library_Items;
+      end if;
 
       --  Here we call the back end to generate the output code
 

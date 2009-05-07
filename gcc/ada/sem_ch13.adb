@@ -692,8 +692,40 @@ package body Sem_Ch13 is
 
    begin
       if Ignore_Rep_Clauses then
-         Rewrite (N, Make_Null_Statement (Sloc (N)));
-         return;
+         case Id is
+
+            --  The following should be ignored
+
+            when Attribute_Address        |
+                 Attribute_Alignment      |
+                 Attribute_Bit_Order      |
+                 Attribute_Component_Size |
+                 Attribute_Machine_Radix  |
+                 Attribute_Object_Size    |
+                 Attribute_Size           |
+                 Attribute_Small          |
+                 Attribute_Stream_Size    |
+                 Attribute_Value_Size     =>
+
+               Rewrite (N, Make_Null_Statement (Sloc (N)));
+               return;
+
+            --  The following should not be ignored
+
+            when Attribute_External_Tag   |
+                 Attribute_Input          |
+                 Attribute_Output         |
+                 Attribute_Read           |
+                 Attribute_Storage_Pool   |
+                 Attribute_Storage_Size   |
+                 Attribute_Write          =>
+               null;
+
+            --  Other cases are errors, which will be caught below
+
+            when others =>
+               null;
+         end case;
       end if;
 
       Analyze (Nam);
@@ -4476,6 +4508,14 @@ package body Sem_Ch13 is
             if Serious_Errors_Detected = 0
               and then Known_Static_RM_Size (Source)
               and then Known_Static_RM_Size (Target)
+
+              --  Don't do the check if warnings off for either type, note the
+              --  deliberate use of OR here instead of OR ELSE to get the flag
+              --  Warnings_Off_Used set for both types if appropriate.
+
+              and then not (Has_Warnings_Off (Source)
+                              or
+                            Has_Warnings_Off (Target))
             then
                Source_Siz := RM_Size (Source);
                Target_Siz := RM_Size (Target);
@@ -4568,6 +4608,20 @@ package body Sem_Ch13 is
                      begin
                         if Source_Align < Target_Align
                           and then not Is_Tagged_Type (D_Source)
+
+                          --  Suppress warning if warnings suppressed on either
+                          --  type or either designated type. Note the use of
+                          --  OR here instead of OR ELSE. That is intentional,
+                          --  we would like to set flag Warnings_Off_Used in
+                          --  all types for which warnings are suppressed.
+
+                          and then not (Has_Warnings_Off (D_Source)
+                                          or
+                                        Has_Warnings_Off (D_Target)
+                                          or
+                                        Has_Warnings_Off (Source)
+                                          or
+                                        Has_Warnings_Off (Target))
                         then
                            Error_Msg_Uint_1 := Target_Align;
                            Error_Msg_Uint_2 := Source_Align;
@@ -4576,12 +4630,9 @@ package body Sem_Ch13 is
                            Error_Msg
                              ("?alignment of & (^) is stricter than " &
                               "alignment of & (^)!", Eloc);
-
-                           if All_Errors_Mode then
-                              Error_Msg
-                                ("\?resulting access value may have invalid " &
-                                 "alignment!", Eloc);
-                           end if;
+                           Error_Msg
+                             ("\?resulting access value may have invalid " &
+                              "alignment!", Eloc);
                         end if;
                      end;
                   end if;

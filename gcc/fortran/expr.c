@@ -3077,8 +3077,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
       if (pointer)
 	check_intent_in = 0;
 
-      if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
-	pointer = 1;
+      if (ref->type == REF_COMPONENT)
+	pointer = ref->u.c.component->attr.pointer;
 
       if (ref->type == REF_ARRAY && ref->next == NULL)
 	{
@@ -3153,9 +3153,25 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 	  gfc_error ("Abstract interface '%s' is invalid "
 		     "in procedure pointer assignment at %L",
 		     rvalue->symtree->name, &rvalue->where);
+	  return FAILURE;
+	}
+      /* Check for C727.  */
+      if (attr.flavor == FL_PROCEDURE)
+	{
+	  if (attr.proc == PROC_ST_FUNCTION)
+	    {
+	      gfc_error ("Statement function '%s' is invalid "
+			 "in procedure pointer assignment at %L",
+			 rvalue->symtree->name, &rvalue->where);
+	      return FAILURE;
+	    }
+	  if (attr.proc == PROC_INTERNAL &&
+	      gfc_notify_std (GFC_STD_F2008, "Internal procedure '%s' is "
+			      "invalid in procedure pointer assignment at %L",
+			      rvalue->symtree->name, &rvalue->where) == FAILURE)
+	    return FAILURE;
 	}
       if (rvalue->expr_type == EXPR_VARIABLE
-	  && lvalue->symtree->n.sym->attr.if_source != IFSRC_UNKNOWN
 	  && !gfc_compare_interfaces (lvalue->symtree->n.sym,
 				      rvalue->symtree->n.sym, 0))
 	{

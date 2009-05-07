@@ -730,6 +730,7 @@ const struct c_common_resword c_common_reswords[] =
 {
   { "_Bool",		RID_BOOL,      D_CONLY },
   { "_Complex",		RID_COMPLEX,	0 },
+  { "_Imaginary",	RID_IMAGINARY, D_CONLY },
   { "_Decimal32",       RID_DFLOAT32,  D_CONLY | D_EXT },
   { "_Decimal64",       RID_DFLOAT64,  D_CONLY | D_EXT },
   { "_Decimal128",      RID_DFLOAT128, D_CONLY | D_EXT },
@@ -1712,38 +1713,43 @@ overflow_warning (tree value)
     }
 }
 
-
-/* Warn about use of a logical || / && operator being used in a
-   context where it is likely that the bitwise equivalent was intended
-   by the programmer. CODE is the TREE_CODE of the operator, ARG1
-   and ARG2 the arguments.  */
+/* Warn about uses of logical || / && operator in a context where it
+   is likely that the bitwise equivalent was intended by the
+   programmer.  We have seen an expression in which CODE is a binary
+   operator used to combine expressions OP_LEFT and OP_RIGHT, which
+   before folding had CODE_LEFT and CODE_RIGHT.  */
 
 void
-warn_logical_operator (enum tree_code code, tree arg1, tree
-    arg2)
+warn_logical_operator (location_t location, enum tree_code code,
+		       enum tree_code code_left, tree op_left, 
+		       enum tree_code ARG_UNUSED (code_right), tree op_right)
 {
-  switch (code)
+  if (code != TRUTH_ANDIF_EXPR
+      && code != TRUTH_AND_EXPR
+      && code != TRUTH_ORIF_EXPR
+      && code != TRUTH_OR_EXPR)
+    return;
+
+  /* Warn if &&/|| are being used in a context where it is
+     likely that the bitwise equivalent was intended by the
+     programmer. That is, an expression such as op && MASK
+     where op should not be any boolean expression, nor a
+     constant, and mask seems to be a non-boolean integer constant.  */
+  if (!truth_value_p (code_left)
+      && INTEGRAL_TYPE_P (TREE_TYPE (op_left))
+      && !CONSTANT_CLASS_P (op_left)
+      && !TREE_NO_WARNING (op_left)
+      && TREE_CODE (op_right) == INTEGER_CST
+      && !integer_zerop (op_right)
+      && !integer_onep (op_right))
     {
-      case TRUTH_ANDIF_EXPR:
-      case TRUTH_ORIF_EXPR:
-      case TRUTH_OR_EXPR:
-      case TRUTH_AND_EXPR:
-	if (!TREE_NO_WARNING (arg1)
-	    && INTEGRAL_TYPE_P (TREE_TYPE (arg1))
-	    && !CONSTANT_CLASS_P (arg1)
-	    && TREE_CODE (arg2) == INTEGER_CST
-	    && !integer_zerop (arg2))
-	  {
-	    warning (OPT_Wlogical_op,
-		     "logical %<%s%> with non-zero constant "
-		     "will always evaluate as true",
-		     ((code == TRUTH_ANDIF_EXPR)
-		      || (code == TRUTH_AND_EXPR)) ? "&&" : "||");
-	    TREE_NO_WARNING (arg1) = true;
-	  }
-	break;
-      default:
-	break;
+      if (code == TRUTH_ORIF_EXPR || code == TRUTH_OR_EXPR)
+	warning_at (location, OPT_Wlogical_op, "logical %<or%>"
+		    " applied to non-boolean constant");
+      else
+	warning_at (location, OPT_Wlogical_op, "logical %<and%>"
+		    " applied to non-boolean constant");
+      TREE_NO_WARNING (op_left) = true;
     }
 }
 
@@ -1756,6 +1762,10 @@ warn_logical_operator (enum tree_code code, tree arg1, tree
 bool
 strict_aliasing_warning (tree otype, tree type, tree expr)
 {
+  /* Strip pointer conversion chains and get to the correct original type.  */
+  STRIP_NOPS (expr);
+  otype = TREE_TYPE (expr);
+
   if (!(flag_strict_aliasing
 	&& POINTER_TYPE_P (type)
 	&& POINTER_TYPE_P (otype)
@@ -2376,6 +2386,7 @@ static void add_tlist (struct tlist **, struct tlist *, tree, int);
 static void merge_tlist (struct tlist **, struct tlist *, int);
 static void verify_tree (tree, struct tlist **, struct tlist **, tree);
 static int warning_candidate_p (tree);
+static bool candidate_equal_p (const_tree, const_tree);
 static void warn_for_collisions (struct tlist *);
 static void warn_for_collisions_1 (tree, tree, struct tlist *, int);
 static struct tlist *new_tlist (struct tlist *, tree, tree);
@@ -2403,7 +2414,7 @@ add_tlist (struct tlist **to, struct tlist *add, tree exclude_writer, int copy)
       struct tlist *next = add->next;
       if (!copy)
 	add->next = *to;
-      if (!exclude_writer || add->writer != exclude_writer)
+      if (!exclude_writer || !candidate_equal_p (add->writer, exclude_writer))
 	*to = copy ? new_tlist (*to, add->expr, add->writer) : add;
       add = next;
     }
@@ -2430,7 +2441,7 @@ merge_tlist (struct tlist **to, struct tlist *add, int copy)
       struct tlist *next = add->next;
 
       for (tmp2 = *to; tmp2; tmp2 = tmp2->next)
-	if (tmp2->expr == add->expr)
+	if (candidate_equal_p (tmp2->expr, add->expr))
 	  {
 	    found = 1;
 	    if (!tmp2->writer)
@@ -2458,15 +2469,14 @@ warn_for_collisions_1 (tree written, tree writer, struct tlist *list,
 
   /* Avoid duplicate warnings.  */
   for (tmp = warned_ids; tmp; tmp = tmp->next)
-    if (tmp->expr == written)
+    if (candidate_equal_p (tmp->expr, written))
       return;
 
   while (list)
     {
-      if (list->expr == written
-	  && list->writer != writer
-	  && (!only_writes || list->writer)
-	  && DECL_NAME (list->expr))
+      if (candidate_equal_p (list->expr, written)
+	  && !candidate_equal_p (list->writer, writer)
+	  && (!only_writes || list->writer))
 	{
 	  warned_ids = new_tlist (warned_ids, written, NULL_TREE);
 	  warning_at (EXPR_HAS_LOCATION (writer)
@@ -2498,7 +2508,17 @@ warn_for_collisions (struct tlist *list)
 static int
 warning_candidate_p (tree x)
 {
-  return TREE_CODE (x) == VAR_DECL || TREE_CODE (x) == PARM_DECL;
+  /* !VOID_TYPE_P (TREE_TYPE (x)) is workaround for cp/tree.c
+     (lvalue_p) crash on TRY/CATCH. */
+  return !(DECL_P (x) && DECL_ARTIFICIAL (x))
+    && TREE_TYPE (x) && !VOID_TYPE_P (TREE_TYPE (x)) && lvalue_p (x);
+}
+
+/* Return nonzero if X and Y appear to be the same candidate (or NULL) */
+static bool
+candidate_equal_p (const_tree x, const_tree y)
+{
+  return (x == y) || (x && y && operand_equal_p (x, y, 0));
 }
 
 /* Walk the tree X, and record accesses to variables.  If X is written by the
@@ -2544,10 +2564,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
   cl = TREE_CODE_CLASS (code);
 
   if (warning_candidate_p (x))
-    {
-      *pno_sp = new_tlist (*pno_sp, x, writer);
-      return;
-    }
+    *pno_sp = new_tlist (*pno_sp, x, writer);
 
   switch (code)
     {
@@ -2660,7 +2677,7 @@ verify_tree (tree x, struct tlist **pbefore_sp, struct tlist **pno_sp,
       {
 	struct tlist_cache *t;
 	for (t = save_expr_cache; t; t = t->next)
-	  if (t->expr == x)
+	  if (candidate_equal_p (t->expr, x))
 	    break;
 
 	if (!t)
@@ -3755,8 +3772,7 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
    of pointer PTROP and integer INTOP.  */
 
 tree
-pointer_int_sum (location_t location, enum tree_code resultcode,
-		 tree ptrop, tree intop)
+pointer_int_sum (enum tree_code resultcode, tree ptrop, tree intop)
 {
   tree size_exp, ret;
 
@@ -3765,19 +3781,19 @@ pointer_int_sum (location_t location, enum tree_code resultcode,
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      pedwarn (location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
+      pedwarn (input_location, pedantic ? OPT_pedantic : OPT_Wpointer_arith, 
 	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
@@ -3839,31 +3855,6 @@ pointer_int_sum (location_t location, enum tree_code resultcode,
   /* Create the sum or difference.  */
   if (resultcode == MINUS_EXPR)
     intop = fold_build1 (NEGATE_EXPR, sizetype, intop);
-
-  if (TREE_CODE (intop) == INTEGER_CST)
-    {
-      tree offset_node;
-      tree string_cst = string_constant (ptrop, &offset_node);
-
-      if (string_cst != 0 
-	  && !(offset_node && TREE_CODE (offset_node) != INTEGER_CST))
-	{
-	  HOST_WIDE_INT max = TREE_STRING_LENGTH (string_cst);
-	  HOST_WIDE_INT offset;
-	  if (offset_node == 0)
-	    offset = 0;
-	  else if (! host_integerp (offset_node, 0))
-	    offset = -1;
-	  else
-	    offset = tree_low_cst (offset_node, 0);
-
-	  offset = offset + tree_low_cst (intop, 0);
-	  if (offset < 0 || offset > max)
-	    warning_at (location, 0,
-			"offset %<%wd%> outside bounds of constant string",
-			tree_low_cst (intop, 0));
-	}
-    }
 
   ret = fold_build2 (POINTER_PLUS_EXPR, result_type, ptrop, intop);
 
@@ -4102,12 +4093,10 @@ c_common_truthvalue_conversion (location_t location, tree expr)
       tree fixed_zero_node = build_fixed (TREE_TYPE (expr),
 					  FCONST0 (TYPE_MODE
 						   (TREE_TYPE (expr))));
-      return build_binary_op (EXPR_LOCATION (expr),
-			      NE_EXPR, expr, fixed_zero_node, 1);
+      return build_binary_op (location, NE_EXPR, expr, fixed_zero_node, 1);
     }
 
-  return build_binary_op (EXPR_LOCATION (expr),
-			  NE_EXPR, expr, integer_zero_node, 1);
+  return build_binary_op (location, NE_EXPR, expr, integer_zero_node, 1);
 }
 
 static void def_builtin_1  (enum built_in_function fncode,
@@ -6390,15 +6379,16 @@ handle_mode_attribute (tree *node, tree name, tree args,
 		       int ARG_UNUSED (flags), bool *no_add_attrs)
 {
   tree type = *node;
+  tree ident = TREE_VALUE (args);
 
   *no_add_attrs = true;
 
-  if (TREE_CODE (TREE_VALUE (args)) != IDENTIFIER_NODE)
+  if (TREE_CODE (ident) != IDENTIFIER_NODE)
     warning (OPT_Wattributes, "%qE attribute ignored", name);
   else
     {
       int j;
-      const char *p = IDENTIFIER_POINTER (TREE_VALUE (args));
+      const char *p = IDENTIFIER_POINTER (ident);
       int len = strlen (p);
       enum machine_mode mode = VOIDmode;
       tree typefm;
@@ -6438,7 +6428,7 @@ handle_mode_attribute (tree *node, tree name, tree args,
 
       if (mode == VOIDmode)
 	{
-	  error ("unknown machine mode %qs", p);
+	  error ("unknown machine mode %qE", ident);
 	  return NULL_TREE;
 	}
 
@@ -8157,21 +8147,24 @@ catenate_strings (const char *lhs, const char *rhs_start, int rhs_size)
    TOKEN, which had the associated VALUE.  */
 
 void
-c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
+c_parse_error (const char *gmsgid, enum cpp_ttype token_type, 
+	       tree value, unsigned char token_flags)
 {
 #define catenate_messages(M1, M2) catenate_strings ((M1), (M2), sizeof (M2))
 
   char *message = NULL;
 
-  if (token == CPP_EOF)
+  if (token_type == CPP_EOF)
     message = catenate_messages (gmsgid, " at end of input");
-  else if (token == CPP_CHAR || token == CPP_WCHAR || token == CPP_CHAR16
-	   || token == CPP_CHAR32)
+  else if (token_type == CPP_CHAR 
+	   || token_type == CPP_WCHAR 
+	   || token_type == CPP_CHAR16
+	   || token_type == CPP_CHAR32)
     {
       unsigned int val = TREE_INT_CST_LOW (value);
       const char *prefix;
 
-      switch (token)
+      switch (token_type)
 	{
 	default:
 	  prefix = "";
@@ -8196,26 +8189,28 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token, tree value)
       free (message);
       message = NULL;
     }
-  else if (token == CPP_STRING || token == CPP_WSTRING || token == CPP_STRING16
-	   || token == CPP_STRING32)
+  else if (token_type == CPP_STRING 
+	   || token_type == CPP_WSTRING 
+	   || token_type == CPP_STRING16
+	   || token_type == CPP_STRING32)
     message = catenate_messages (gmsgid, " before string constant");
-  else if (token == CPP_NUMBER)
+  else if (token_type == CPP_NUMBER)
     message = catenate_messages (gmsgid, " before numeric constant");
-  else if (token == CPP_NAME)
+  else if (token_type == CPP_NAME)
     {
       message = catenate_messages (gmsgid, " before %qE");
       error (message, value);
       free (message);
       message = NULL;
     }
-  else if (token == CPP_PRAGMA)
+  else if (token_type == CPP_PRAGMA)
     message = catenate_messages (gmsgid, " before %<#pragma%>");
-  else if (token == CPP_PRAGMA_EOL)
+  else if (token_type == CPP_PRAGMA_EOL)
     message = catenate_messages (gmsgid, " before end of line");
-  else if (token < N_TTYPES)
+  else if (token_type < N_TTYPES)
     {
       message = catenate_messages (gmsgid, " before %qs token");
-      error (message, cpp_type2name (token));
+      error (message, cpp_type2name (token_type, token_flags));
       free (message);
       message = NULL;
     }
@@ -8644,18 +8639,18 @@ builtin_type_for_size (int size, bool unsignedp)
    Returns 0 if an error is encountered.  */
 
 static int
-sync_resolve_size (tree function, tree params)
+sync_resolve_size (tree function, VEC(tree,gc) *params)
 {
   tree type;
   int size;
 
-  if (params == NULL)
+  if (VEC_empty (tree, params))
     {
       error ("too few arguments to function %qE", function);
       return 0;
     }
 
-  type = TREE_TYPE (TREE_VALUE (params));
+  type = TREE_TYPE (VEC_index (tree, params, 0));
   if (TREE_CODE (type) != POINTER_TYPE)
     goto incompatible;
 
@@ -8678,27 +8673,29 @@ sync_resolve_size (tree function, tree params)
    was encountered; true on success.  */
 
 static bool
-sync_resolve_params (tree orig_function, tree function, tree params)
+sync_resolve_params (tree orig_function, tree function, VEC(tree, gc) *params)
 {
   tree arg_types = TYPE_ARG_TYPES (TREE_TYPE (function));
   tree ptype;
   int number;
+  unsigned int parmnum;
 
   /* We've declared the implementation functions to use "volatile void *"
      as the pointer parameter, so we shouldn't get any complaints from the
      call to check_function_arguments what ever type the user used.  */
   arg_types = TREE_CHAIN (arg_types);
-  ptype = TREE_TYPE (TREE_TYPE (TREE_VALUE (params)));
+  ptype = TREE_TYPE (TREE_TYPE (VEC_index (tree, params, 0)));
   number = 2;
 
   /* For the rest of the values, we need to cast these to FTYPE, so that we
      don't get warnings for passing pointer types, etc.  */
+  parmnum = 0;
   while (arg_types != void_list_node)
     {
       tree val;
 
-      params = TREE_CHAIN (params);
-      if (params == NULL)
+      ++parmnum;
+      if (VEC_length (tree, params) <= parmnum)
 	{
 	  error ("too few arguments to function %qE", orig_function);
 	  return false;
@@ -8707,10 +8704,10 @@ sync_resolve_params (tree orig_function, tree function, tree params)
       /* ??? Ideally for the first conversion we'd use convert_for_assignment
 	 so that we get warnings for anything that doesn't match the pointer
 	 type.  This isn't portable across the C and C++ front ends atm.  */
-      val = TREE_VALUE (params);
+      val = VEC_index (tree, params, parmnum);
       val = convert (ptype, val);
       val = convert (TREE_VALUE (arg_types), val);
-      TREE_VALUE (params) = val;
+      VEC_replace (tree, params, parmnum, val);
 
       arg_types = TREE_CHAIN (arg_types);
       number++;
@@ -8720,7 +8717,7 @@ sync_resolve_params (tree orig_function, tree function, tree params)
      being "an optional list of variables protected by the memory barrier".
      No clue what that's supposed to mean, precisely, but we consider all
      call-clobbered variables to be protected so we're safe.  */
-  TREE_CHAIN (params) = NULL;
+  VEC_truncate (tree, params, parmnum + 1);
 
   return true;
 }
@@ -8730,9 +8727,9 @@ sync_resolve_params (tree orig_function, tree function, tree params)
    PARAMS.  */
 
 static tree
-sync_resolve_return (tree params, tree result)
+sync_resolve_return (tree first_param, tree result)
 {
-  tree ptype = TREE_TYPE (TREE_TYPE (TREE_VALUE (params)));
+  tree ptype = TREE_TYPE (TREE_TYPE (first_param));
   ptype = TYPE_MAIN_VARIANT (ptype);
   return convert (ptype, result);
 }
@@ -8747,7 +8744,7 @@ sync_resolve_return (tree params, tree result)
    continue.  */
 
 tree
-resolve_overloaded_builtin (tree function, tree params)
+resolve_overloaded_builtin (tree function, VEC(tree,gc) *params)
 {
   enum built_in_function orig_code = DECL_FUNCTION_CODE (function);
   switch (DECL_BUILT_IN_CLASS (function))
@@ -8784,7 +8781,7 @@ resolve_overloaded_builtin (tree function, tree params)
     case BUILT_IN_LOCK_RELEASE_N:
       {
 	int n = sync_resolve_size (function, params);
-	tree new_function, result;
+	tree new_function, first_param, result;
 
 	if (n == 0)
 	  return error_mark_node;
@@ -8793,10 +8790,11 @@ resolve_overloaded_builtin (tree function, tree params)
 	if (!sync_resolve_params (function, new_function, params))
 	  return error_mark_node;
 
-	result = build_function_call (new_function, params);
+	first_param = VEC_index (tree, params, 0);
+	result = build_function_call_vec (new_function, params, NULL);
 	if (orig_code != BUILT_IN_BOOL_COMPARE_AND_SWAP_N
 	    && orig_code != BUILT_IN_LOCK_RELEASE_N)
-	  result = sync_resolve_return (params, result);
+	  result = sync_resolve_return (first_param, result);
 
 	return result;
       }

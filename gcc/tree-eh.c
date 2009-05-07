@@ -1962,7 +1962,7 @@ make_eh_edge (struct eh_region *region, void *data)
   src = gimple_bb (stmt);
   dst = label_to_block (lab);
 
-  make_edge (src, dst, EDGE_ABNORMAL | EDGE_EH);
+  make_edge (src, dst, EDGE_EH);
 }
 
 /* See if STMT is call that might be inlined.  */
@@ -2017,6 +2017,50 @@ make_eh_edges (gimple stmt)
   bb = gimple_bb (stmt);
   if (is_resx && EDGE_COUNT (bb->succs))
     EDGE_SUCC (bb, 0)->probability = REG_BR_PROB_BASE;
+}
+
+/* Redirect EH edge E to NEW_BB.  */
+
+edge
+redirect_eh_edge (edge e, basic_block new_bb)
+{
+  gimple stmt = gsi_stmt (gsi_last_bb (e->src));
+  int region_nr, new_region_nr;
+  bool is_resx;
+  bool inlinable = false;
+  tree label = gimple_block_label (new_bb);
+  struct eh_region *r;
+
+  if (gimple_code (stmt) == GIMPLE_RESX)
+    {
+      region_nr = gimple_resx_region (stmt);
+      is_resx = true;
+    }
+  else
+    {
+      region_nr = lookup_stmt_eh_region (stmt);
+      gcc_assert (region_nr >= 0);
+      is_resx = false;
+      inlinable = inlinable_call_p (stmt);
+    }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "Redirecting EH edge %i->%i to %i, region %i, resx %i\n",
+	     e->src->index, e->dest->index, new_bb->index, region_nr, is_resx);
+  r = redirect_eh_edge_to_label (e, label, is_resx, inlinable, region_nr);
+  new_region_nr = get_eh_region_number (r);
+  if (new_region_nr != region_nr)
+    {
+      if (is_resx)
+        gimple_resx_set_region (stmt, new_region_nr);
+      else
+        {
+	  remove_stmt_from_eh_region (stmt);
+	  add_stmt_to_eh_region (stmt, new_region_nr);
+        }
+    }
+  e = ssa_redirect_edge (e, new_bb);
+  return e;
 }
 
 static bool mark_eh_edge_found_error;
@@ -2695,11 +2739,16 @@ tree_remove_unreachable_handlers (void)
 	if (gimple_code (stmt) == GIMPLE_LABEL && has_eh_preds)
 	  {
 	    int uid = LABEL_DECL_UID (gimple_label_label (stmt));
-	    int region = VEC_index (int, label_to_region, uid);
-	    SET_BIT (reachable, region);
+	    int region;
+
+	    for (region = VEC_index (int, label_to_region, uid);
+		 region; region = get_next_region_sharing_label (region))
+	      SET_BIT (reachable, region);
 	  }
 	if (gimple_code (stmt) == GIMPLE_RESX)
-	  SET_BIT (reachable, gimple_resx_region (stmt));
+	  SET_BIT (reachable,
+	  	   VEC_index (eh_region, cfun->eh->region_array,
+		   	      gimple_resx_region (stmt))->region_number);
 	if ((region = lookup_stmt_eh_region (stmt)) >= 0)
 	  SET_BIT (contains_stmt, region);
       }
@@ -2743,8 +2792,11 @@ tree_empty_eh_handler_p (basic_block bb)
 {
   gimple_stmt_iterator gsi;
   int region;
+  edge_iterator ei;
+  edge e;
   use_operand_p imm_use;
   gimple use_stmt;
+  bool found = false;
 
   gsi = gsi_last_bb (bb);
 
@@ -2815,15 +2867,17 @@ tree_empty_eh_handler_p (basic_block bb)
       if (gsi_end_p (gsi))
 	return 0;
     }
-  while (gimple_code (gsi_stmt (gsi)) == GIMPLE_LABEL)
-    {
-      if (gimple_label_label (gsi_stmt (gsi))
-      	  == get_eh_region_no_tree_label (region))
-        return region;
-      gsi_prev (&gsi);
-      if (gsi_end_p (gsi))
-	return 0;
-    }
+  if (gimple_code (gsi_stmt (gsi)) != GIMPLE_LABEL)
+    return 0;
+
+  /* Be sure that there is at least on EH region reaching the block directly.
+     After EH edge redirection, it is possible that block is reached by one handler
+     but resumed by different.  */
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if ((e->flags & EDGE_EH))
+      found = true;
+  if (found)
+    return region;
   return 0;
 }
 
@@ -2929,7 +2983,7 @@ make_eh_edge_and_update_phi (struct eh_region *region, void *data)
     }
   dominance_info_invalidated = true;
   e2 = find_edge (info->bb_to_remove, dst);
-  e = make_edge (src, dst, EDGE_ABNORMAL | EDGE_EH);
+  e = make_edge (src, dst, EDGE_EH);
   e->aux = e;
   gcc_assert (e2);
   for (si = gsi_start_phis (dst); !gsi_end_p (si); gsi_next (&si))
@@ -2955,9 +3009,12 @@ make_eh_edge_and_update_phi (struct eh_region *region, void *data)
 
 /* Make EH edges corresponding to STMT while updating PHI nodes after removal
    empty cleanup BB_TO_REMOVE joined to BB containing STMT
-   by EDGE_TO_REMOVE.  */
+   by EDGE_TO_REMOVE.
 
-static void
+   Return if EDGE_TO_REMOVE was really removed.  It might stay reachable when
+   not all EH regions are cleaned up.  */
+
+static bool
 update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
 {
   int region_nr;
@@ -2967,6 +3024,7 @@ update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
   edge_iterator ei;
   edge e;
   int probability_sum = 0;
+  bool removed = false;
 
   info.bb_to_remove = bb_to_remove;
   info.bb = gimple_bb (stmt);
@@ -2980,8 +3038,6 @@ update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
   else
     {
       region_nr = lookup_stmt_eh_region (stmt);
-      if (region_nr < 0)
-	return;
       is_resx = false;
       inlinable = inlinable_call_p (stmt);
     }
@@ -2993,9 +3049,11 @@ update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
   /* And remove edges we didn't marked. */
   for (ei = ei_start (info.bb->succs); (e = ei_safe_edge (ei)); )
     {
-      if ((e->flags & EDGE_EH) && !e->aux && e != edge_to_remove)
+      if ((e->flags & EDGE_EH) && !e->aux)
 	{
 	  dominance_info_invalidated = true;
+	  if (e == edge_to_remove)
+	    removed = true;
 	  remove_edge (e);
 	}
       else
@@ -3011,16 +3069,18 @@ update_eh_edges (gimple stmt, basic_block bb_to_remove, edge edge_to_remove)
      we get fewer consistency errors in the dumps.  */
   if (is_resx && EDGE_COUNT (info.bb->succs) && !probability_sum)
     EDGE_SUCC (info.bb, 0)->probability = REG_BR_PROB_BASE;
+  return removed;
 }
 
 /* Look for basic blocks containing empty exception handler and remove them.
    This is similar to jump forwarding, just across EH edges.  */
 
 static bool
-cleanup_empty_eh (basic_block bb)
+cleanup_empty_eh (basic_block bb, VEC(int,heap) * label_to_region)
 {
   int region;
   gimple_stmt_iterator si;
+  edge_iterator ei;
 
   /* When handler of EH region winds up to be empty, we can safely
      remove it.  This leads to inner EH regions to be redirected
@@ -3030,19 +3090,77 @@ cleanup_empty_eh (basic_block bb)
       && all_phis_safe_to_merge (bb))
     {
       edge e;
+      bool found = false, removed_some = false, has_non_eh_preds = false;
+      gimple_stmt_iterator gsi;
 
-      remove_eh_region (region);
+      /* Look for all EH regions sharing label of this block.
+         If they are not same as REGION, remove them and replace them
+	 by outer region of REGION.  Also note if REGION itself is one
+	 of them.  */
 
-      while ((e = ei_safe_edge (ei_start (bb->preds))))
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+        if (gimple_code (gsi_stmt (gsi)) == GIMPLE_LABEL)
+	  {
+	    int uid = LABEL_DECL_UID (gimple_label_label (gsi_stmt (gsi)));
+	    int r = VEC_index (int, label_to_region, uid);
+	    int next;
+
+	    while (r)
+	      {
+		next = get_next_region_sharing_label (r);
+		if (r == region)
+		  found = true;
+		else
+		  {
+		     removed_some = true;
+		     remove_eh_region_and_replace_by_outer_of (r, region);
+		     if (dump_file && (dump_flags & TDF_DETAILS))
+		       fprintf (dump_file, "Empty EH handler %i removed and "
+		       		"replaced by %i\n", r, region);
+		  }
+		r = next;
+	      }
+	  }
+	else
+	  break;
+
+      gcc_assert (found || removed_some);
+      FOR_EACH_EDGE (e, ei, bb->preds)
+	if (!(e->flags & EDGE_EH))
+	  has_non_eh_preds = true;
+
+      /* When block is empty EH cleanup, but it is reachable via non-EH code too,
+	 we can not remove the region it is resumed via, because doing so will
+	 lead to redirection of its RESX edges.
+
+	 This case will be handled later after edge forwarding if the EH cleanup
+	 is really dead.  */
+
+      if (found && !has_non_eh_preds)
+        {
+	   if (dump_file && (dump_flags & TDF_DETAILS))
+	     fprintf (dump_file, "Empty EH handler %i removed.\n", region);
+          remove_eh_region (region);
+	}
+      else if (!removed_some)
+        return false;
+
+      for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
 	{
 	  basic_block src = e->src;
-	  gcc_assert (e->flags & EDGE_EH);
+	  if (!(e->flags & EDGE_EH))
+	    {
+	      ei_next (&ei);
+	      continue;
+	    }
 	  if (stmt_can_throw_internal (last_stmt (src)))
-	    update_eh_edges (last_stmt (src), bb, e);
-	  remove_edge (e);
+	    {
+	      if (!update_eh_edges (last_stmt (src), bb, e))
+	        ei_next (&ei);
+	    }
+	  else
+	    remove_edge (e);
 	}
-      if (dump_file)
-	fprintf (dump_file, "Empty EH handler %i removed\n", region);
 
       /* Verify that we eliminated all uses of PHI we are going to remove.
          If we didn't, rebuild SSA on affected variable (this is allowed only
@@ -3091,7 +3209,8 @@ cleanup_empty_eh (basic_block bb)
 		}
 	    }
 	}
-      delete_basic_block (bb);
+      if (!ei_safe_edge (ei_start (bb->preds)))
+        delete_basic_block (bb);
       return true;
     }
   return false;
@@ -3111,6 +3230,7 @@ cleanup_eh (void)
 {
   bool changed = false;
   basic_block bb;
+  VEC(int,heap) * label_to_region;
   int i;
 
   if (!cfun->eh)
@@ -3123,14 +3243,16 @@ cleanup_eh (void)
 
   if (optimize)
     {
+      label_to_region = label_to_region_map ();
       dominance_info_invalidated = false;
       /* We cannot use FOR_EACH_BB, since the basic blocks may get removed.  */
       for (i = NUM_FIXED_BLOCKS; i < last_basic_block; i++)
 	{
 	  bb = BASIC_BLOCK (i);
 	  if (bb)
-	    changed |= cleanup_empty_eh (bb);
+	    changed |= cleanup_empty_eh (bb, label_to_region);
 	}
+      VEC_free (int, heap, label_to_region);
       if (dominance_info_invalidated)
 	{
 	  free_dominance_info (CDI_DOMINATORS);

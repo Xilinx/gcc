@@ -285,10 +285,12 @@
 ;; the target address into a register.
 (define_attr "jal_macro" "no,yes"
   (cond [(eq_attr "jal" "direct")
-	 (symbol_ref "TARGET_CALL_CLOBBERED_GP
-		      || (flag_pic && !TARGET_ABSOLUTE_ABICALLS)")
+	 (symbol_ref "((TARGET_CALL_CLOBBERED_GP
+			|| (flag_pic && !TARGET_ABSOLUTE_ABICALLS))
+		       ? JAL_MACRO_YES : JAL_MACRO_NO)")
 	 (eq_attr "jal" "indirect")
-	 (symbol_ref "TARGET_CALL_CLOBBERED_GP")]
+	 (symbol_ref "(TARGET_CALL_CLOBBERED_GP
+		       ? JAL_MACRO_YES : JAL_MACRO_NO)")]
 	(const_string "no")))
 
 ;; Classification of moves, extensions and truncations.  Most values
@@ -571,7 +573,7 @@
 ;; with the processor_type enumeration in mips.h.
 (define_attr "cpu"
   "r3000,4kc,4kp,5kc,5kf,20kc,24kc,24kf2_1,24kf1_1,74kc,74kf2_1,74kf1_1,74kf3_2,loongson_2e,loongson_2f,m4k,octeon,r3900,r6000,r4000,r4100,r4111,r4120,r4130,r4300,r4600,r4650,r5000,r5400,r5500,r7000,r8000,r9000,r10000,sb1,sb1a,sr71000,xlr"
-  (const (symbol_ref "mips_tune")))
+  (const (symbol_ref "mips_tune_attr")))
 
 ;; The type of hardware hazard associated with this instruction.
 ;; DELAY means that the next instruction cannot read the result
@@ -602,7 +604,8 @@
 
 ;; Is it a single instruction?
 (define_attr "single_insn" "no,yes"
-  (symbol_ref "get_attr_length (insn) == (TARGET_MIPS16 ? 2 : 4)"))
+  (symbol_ref "(get_attr_length (insn) == (TARGET_MIPS16 ? 2 : 4)
+		? SINGLE_INSN_YES : SINGLE_INSN_NO)"))
 
 ;; Can the instruction be put into a delay slot?
 (define_attr "can_delay" "no,yes"

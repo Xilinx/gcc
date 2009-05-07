@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2239,6 +2239,14 @@ package body Exp_Ch4 is
       Result : Node_Id;
       --  Result of the concatenation (of type Ityp)
 
+      Actions : constant List_Id := New_List;
+      --  Collect actions to be inserted if Save_Space is False
+
+      Save_Space : Boolean;
+      pragma Warnings (Off, Save_Space);
+      --  Set to True if we are saving generated code space by calling routines
+      --  in packages System.Concat_n.
+
       Known_Non_Null_Operand_Seen : Boolean;
       --  Set True during generation of the assignements of operands into
       --  result once an operand known to be non-null has been seen.
@@ -2552,7 +2560,7 @@ package body Exp_Ch4 is
                  Make_Defining_Identifier (Loc,
                    Chars => New_Internal_Name ('L'));
 
-               Insert_Action (Cnode,
+               Append_To (Actions,
                  Make_Object_Declaration (Loc,
                    Defining_Identifier => Var_Length (NN),
                    Constant_Present    => True,
@@ -2564,9 +2572,7 @@ package body Exp_Ch4 is
                      Make_Attribute_Reference (Loc,
                        Prefix         =>
                          Duplicate_Subexpr (Opnd, Name_Req => True),
-                       Attribute_Name => Name_Length)),
-
-                 Suppress => All_Checks);
+                       Attribute_Name => Name_Length)));
             end if;
          end if;
 
@@ -2595,8 +2601,8 @@ package body Exp_Ch4 is
               Make_Integer_Literal (Loc,
                 Intval => Fixed_Length (NN) + Intval (Aggr_Length (NN - 1)));
 
-            --  All other cases, construct an addition node for the length and
-            --  create an entity initialized to this length.
+         --  All other cases, construct an addition node for the length and
+         --  create an entity initialized to this length.
 
          else
             Ent :=
@@ -2609,7 +2615,7 @@ package body Exp_Ch4 is
                Clen := New_Reference_To (Var_Length (NN), Loc);
             end if;
 
-            Insert_Action (Cnode,
+            Append_To (Actions,
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Ent,
                 Constant_Present    => True,
@@ -2620,9 +2626,7 @@ package body Exp_Ch4 is
                 Expression          =>
                   Make_Op_Add (Loc,
                     Left_Opnd  => New_Copy (Aggr_Length (NN - 1)),
-                    Right_Opnd => Clen)),
-
-              Suppress => All_Checks);
+                    Right_Opnd => Clen)));
 
             Aggr_Length (NN) := Make_Identifier (Loc, Chars => Chars (Ent));
          end if;
@@ -2724,13 +2728,12 @@ package body Exp_Ch4 is
             Ent :=
               Make_Defining_Identifier (Loc, Chars => New_Internal_Name ('L'));
 
-            Insert_Action (Cnode,
+            Append_To (Actions,
               Make_Object_Declaration (Loc,
                 Defining_Identifier => Ent,
                 Constant_Present    => True,
                 Object_Definition   => New_Occurrence_Of (Ityp, Loc),
-                Expression          => Get_Known_Bound (1)),
-              Suppress => All_Checks);
+                Expression          => Get_Known_Bound (1)));
 
             Low_Bound := New_Reference_To (Ent, Loc);
          end;
@@ -2773,6 +2776,10 @@ package body Exp_Ch4 is
                High_Bound));
       end if;
 
+      --  Here is where we insert the saved up actions
+
+      Insert_Actions (Cnode, Actions, Suppress => All_Checks);
+
       --  Now we construct an array object with appropriate bounds
 
       Ent :=
@@ -2797,6 +2804,12 @@ package body Exp_Ch4 is
                       Low_Bound  => Low_Bound,
                       High_Bound => High_Bound))))),
         Suppress => All_Checks);
+
+      --  If the result of the concatenation appears as the initializing
+      --  expression of an object declaration, we can just rename the
+      --  result, rather than copying it.
+
+      Set_OK_To_Rename (Ent);
 
       --  Catch the static out of range case now
 
@@ -3970,6 +3983,17 @@ package body Exp_Ch4 is
                Make_Assignment_Statement (Sloc (Elsex),
                  Name => New_Occurrence_Of (Cnn, Sloc (Elsex)),
                  Expression => Relocate_Node (Elsex))));
+
+         --  Move the SLOC of the parent If statement to the newly created
+         --  one and change it to the SLOC of the expression which, after
+         --  expansion, will correspond to what is being evaluated.
+
+         if Present (Parent (N))
+           and then Nkind (Parent (N)) = N_If_Statement
+         then
+            Set_Sloc (New_If, Sloc (Parent (N)));
+            Set_Sloc (Parent (N), Loc);
+         end if;
 
          Set_Assignment_OK (Name (First (Then_Statements (New_If))));
          Set_Assignment_OK (Name (First (Else_Statements (New_If))));

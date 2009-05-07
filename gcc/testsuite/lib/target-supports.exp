@@ -544,8 +544,6 @@ proc check_effective_target_pcc_bitfield_type_matters { } {
 }
 
 # Return 1 if thread local storage (TLS) is supported, 0 otherwise.
-#
-# This won't change for different subtargets so cache the result.
 
 proc check_effective_target_tls {} {
     return [check_no_compiler_messages tls assembly {
@@ -556,8 +554,6 @@ proc check_effective_target_tls {} {
 }
 
 # Return 1 if *native* thread local storage (TLS) is supported, 0 otherwise.
-#
-# This won't change for different subtargets so cache the result.
 
 proc check_effective_target_tls_native {} {
     # VxWorks uses emulated TLS machinery, but with non-standard helper
@@ -575,8 +571,6 @@ proc check_effective_target_tls_native {} {
 }
 
 # Return 1 if TLS executables can run correctly, 0 otherwise.
-#
-# This won't change for different subtargets so cache the result.
 
 proc check_effective_target_tls_runtime {} {
     return [check_runtime tls_runtime {
@@ -1078,6 +1072,9 @@ proc check_cxa_atexit_available { } {
 	if { [istarget "hppa*-*-hpux10*"] } {
 	    # HP-UX 10 doesn't have __cxa_atexit but subsequent test passes.
 	    expr 0
+	} elseif { [istarget "*-*-vxworks"] } {
+	    # vxworks doesn't have __cxa_atexit but subsequent test passes.
+	    expr 0
 	} else {
 	    check_runtime_nocache cxa_atexit_available {
 		// C++
@@ -1191,6 +1188,33 @@ proc check_effective_target_llp64 { } {
 proc check_effective_target_large_long_double { } {
     return [check_no_compiler_messages large_long_double object {
 	int dummy[sizeof(long double) > sizeof(double) ? 1 : -1];
+    }]
+}
+
+# Return 1 if the target supports double larger than float,
+# 0 otherwise.
+
+proc check_effective_target_large_double { } {
+    return [check_no_compiler_messages large_double object {
+	int dummy[sizeof(double) > sizeof(float) ? 1 : -1];
+    }]
+}
+
+# Return 1 if the target supports double of 64 bits,
+# 0 otherwise.
+
+proc check_effective_target_double64 { } {
+    return [check_no_compiler_messages double64 object {
+	int dummy[sizeof(double) == 8 ? 1 : -1];
+    }]
+}
+
+# Return 1 if the target supports double of at least 64 bits,
+# 0 otherwise.
+
+proc check_effective_target_double64plus { } {
+    return [check_no_compiler_messages double64plus object {
+	int dummy[sizeof(double) >= 8 ? 1 : -1];
     }]
 }
 
@@ -1314,7 +1338,7 @@ proc check_effective_target_vect_int { } {
     return $et_vect_int_saved
 }
 
-# Return 1 if the target supports int->float conversion 
+# Return 1 if the target supports signed int->float conversion 
 #
 
 proc check_effective_target_vect_intfloat_cvt { } {
@@ -1337,7 +1361,28 @@ proc check_effective_target_vect_intfloat_cvt { } {
 }
 
 
-# Return 1 if the target supports float->int conversion
+# Return 1 if the target supports unsigned int->float conversion 
+#
+
+proc check_effective_target_vect_uintfloat_cvt { } {
+    global et_vect_uintfloat_cvt_saved
+
+    if [info exists et_vect_uintfloat_cvt_saved] {
+        verbose "check_effective_target_vect_uintfloat_cvt: using cached result" 2
+    } else {
+        set et_vect_uintfloat_cvt_saved 0
+        if { ([istarget powerpc*-*-*]
+	      && ![istarget powerpc-*-linux*paired*]) } {
+           set et_vect_uintfloat_cvt_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_uintfloat_cvt: returning $et_vect_uintfloat_cvt_saved" 2
+    return $et_vect_uintfloat_cvt_saved
+}
+
+
+# Return 1 if the target supports signed float->int conversion
 #
 
 proc check_effective_target_vect_floatint_cvt { } {
@@ -1357,6 +1402,26 @@ proc check_effective_target_vect_floatint_cvt { } {
 
     verbose "check_effective_target_vect_floatint_cvt: returning $et_vect_floatint_cvt_saved" 2
     return $et_vect_floatint_cvt_saved
+}
+
+# Return 1 if the target supports unsigned float->int conversion
+#
+
+proc check_effective_target_vect_floatuint_cvt { } {
+    global et_vect_floatuint_cvt_saved
+
+    if [info exists et_vect_floatuint_cvt_saved] {
+        verbose "check_effective_target_vect_floatuint_cvt: using cached result" 2
+    } else {
+        set et_vect_floatuint_cvt_saved 0
+        if { ([istarget powerpc*-*-*]
+	      && ![istarget powerpc-*-linux*paired*]) } {
+           set et_vect_floatuint_cvt_saved 1
+        }
+    }
+
+    verbose "check_effective_target_vect_floatuint_cvt: returning $et_vect_floatuint_cvt_saved" 2
+    return $et_vect_floatuint_cvt_saved
 }
 
 # Return 1 is this is an arm target using 32-bit instructions

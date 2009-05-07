@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -170,19 +170,21 @@ package body Exp_Disp is
               and then Ekind (Defining_Entity (D)) /= E_Record_Subtype
               and then not Is_Private_Type (Defining_Entity (D))
             then
-               --  We do not generate dispatch tables for the internal type
+               --  We do not generate dispatch tables for the internal types
                --  created for a type extension with unknown discriminants
                --  The needed information is shared with the source type,
                --  See Expand_N_Record_Extension.
 
-               if not Comes_From_Source (Defining_Entity (D))
-                 and then
-                   Has_Unknown_Discriminants (Etype (Defining_Entity (D)))
-                 and then
-                   not Comes_From_Source (First_Subtype (Defining_Entity (D)))
+               if Is_Underlying_Record_View (Defining_Entity (D))
+                 or else
+                  (not Comes_From_Source (Defining_Entity (D))
+                     and then
+                       Has_Unknown_Discriminants (Etype (Defining_Entity (D)))
+                     and then
+                       not Comes_From_Source
+                             (First_Subtype (Defining_Entity (D))))
                then
                   null;
-
                else
                   Insert_List_After_And_Analyze (Last (Target_List),
                     Make_DT (Defining_Entity (D)));
@@ -4749,6 +4751,7 @@ package body Exp_Disp is
            and then not Is_Abstract_Type (Typ)
            and then not Is_Controlled (Typ)
            and then not Restriction_Active (No_Dispatching_Calls)
+           and then not Restriction_Active (No_Select_Statements)
          then
             Append_To (Result,
               Make_Object_Declaration (Loc,
@@ -5160,22 +5163,19 @@ package body Exp_Disp is
                while Present (Prim_Elmt) loop
                   Prim := Node (Prim_Elmt);
 
+                  --  Retrieve the ultimate alias of the primitive for proper
+                  --  handling of renamings and eliminated primitives.
+
+                  E := Ultimate_Alias (Prim);
+
                   if Is_Imported (Prim)
                     or else Present (Interface_Alias (Prim))
                     or else Is_Predefined_Dispatching_Operation (Prim)
-                    or else Is_Eliminated (Prim)
+                    or else Is_Eliminated (E)
                   then
                      null;
 
                   else
-                     --  Traverse the list of aliased entities to handle
-                     --  renamings of predefined primitives.
-
-                     E := Prim;
-                     while Present (Alias (E)) loop
-                        E := Alias (E);
-                     end loop;
-
                      if not Is_Predefined_Dispatching_Operation (E)
                        and then not Is_Abstract_Subprogram (E)
                        and then not Present (Interface_Alias (E))
@@ -5548,13 +5548,16 @@ package body Exp_Disp is
          Append_List_To (Result, Elab_Code);
       end if;
 
-      --  Populate the two auxiliary tables used for dispatching
-      --  asynchronous, conditional and timed selects for synchronized
-      --  types that implement a limited interface.
+      --  Populate the two auxiliary tables used for dispatching asynchronous,
+      --  conditional and timed selects for synchronized types that implement
+      --  a limited interface. Skip this step in Ravenscar profile or when
+      --  general dispatching is forbidden.
 
       if Ada_Version >= Ada_05
         and then Is_Concurrent_Record_Type (Typ)
         and then Has_Interfaces (Typ)
+        and then not Restriction_Active (No_Dispatching_Calls)
+        and then not Restriction_Active (No_Select_Statements)
       then
          Append_List_To (Result,
            Make_Select_Specific_Data_Table (Typ));
@@ -6962,57 +6965,76 @@ package body Exp_Disp is
       end if;
    end Set_All_DT_Position;
 
-   -----------------------------
-   -- Set_Default_Constructor --
-   -----------------------------
+   --------------------------
+   -- Set_CPP_Constructors --
+   --------------------------
 
-   procedure Set_Default_Constructor (Typ : Entity_Id) is
+   procedure Set_CPP_Constructors (Typ : Entity_Id) is
       Loc   : Source_Ptr;
       Init  : Entity_Id;
-      Param : Entity_Id;
       E     : Entity_Id;
+      Found : Boolean := False;
+      P     : Node_Id;
+      Parms : List_Id;
 
    begin
-      --  Look for the default constructor entity. For now only the
-      --  default constructor has the flag Is_Constructor.
+      --  Look for the constructor entities
 
       E := Next_Entity (Typ);
-      while Present (E)
-        and then (Ekind (E) /= E_Function or else not Is_Constructor (E))
-      loop
+      while Present (E) loop
+         if Ekind (E) = E_Function
+           and then Is_Constructor (E)
+         then
+            --  Create the init procedure
+
+            Found := True;
+            Loc   := Sloc (E);
+            Init  := Make_Defining_Identifier (Loc, Make_Init_Proc_Name (Typ));
+            Parms :=
+              New_List (
+                Make_Parameter_Specification (Loc,
+                  Defining_Identifier =>
+                    Make_Defining_Identifier (Loc, Name_X),
+                  Parameter_Type =>
+                    New_Reference_To (Typ, Loc)));
+
+            if Present (Parameter_Specifications (Parent (E))) then
+               P := First (Parameter_Specifications (Parent (E)));
+               while Present (P) loop
+                  Append_To (Parms,
+                    Make_Parameter_Specification (Loc,
+                      Defining_Identifier =>
+                        Make_Defining_Identifier (Loc,
+                          Chars (Defining_Identifier (P))),
+                      Parameter_Type => New_Copy_Tree (Parameter_Type (P))));
+                  Next (P);
+               end loop;
+            end if;
+
+            Discard_Node (
+              Make_Subprogram_Declaration (Loc,
+                Make_Procedure_Specification (Loc,
+                  Defining_Unit_Name => Init,
+                  Parameter_Specifications => Parms)));
+
+            Set_Init_Proc (Typ, Init);
+            Set_Is_Imported    (Init);
+            Set_Interface_Name (Init, Interface_Name (E));
+            Set_Convention     (Init, Convention_C);
+            Set_Is_Public      (Init);
+            Set_Has_Completion (Init);
+         end if;
+
          Next_Entity (E);
       end loop;
-
-      --  Create the init procedure
-
-      if Present (E) then
-         Loc   := Sloc (E);
-         Init  := Make_Defining_Identifier (Loc, Make_Init_Proc_Name (Typ));
-         Param := Make_Defining_Identifier (Loc, Name_X);
-
-         Discard_Node (
-           Make_Subprogram_Declaration (Loc,
-             Make_Procedure_Specification (Loc,
-               Defining_Unit_Name => Init,
-               Parameter_Specifications => New_List (
-                 Make_Parameter_Specification (Loc,
-                   Defining_Identifier => Param,
-                   Parameter_Type      => New_Reference_To (Typ, Loc))))));
-
-         Set_Init_Proc (Typ, Init);
-         Set_Is_Imported    (Init);
-         Set_Interface_Name (Init, Interface_Name (E));
-         Set_Convention     (Init, Convention_C);
-         Set_Is_Public      (Init);
-         Set_Has_Completion (Init);
 
       --  If there are no constructors, mark the type as abstract since we
       --  won't be able to declare objects of that type.
 
-      else
+      if not Found then
          Set_Is_Abstract_Type (Typ);
       end if;
-   end Set_Default_Constructor;
+   end Set_CPP_Constructors;
 
    --------------------------
    -- Set_DTC_Entity_Value --

@@ -1244,7 +1244,7 @@ _cpp_lex_direct (cpp_reader *pfile)
 	      result->flags |= DIGRAPH;
 	      result->type = CPP_HASH;
 	      if (*buffer->cur == '%' && buffer->cur[1] == ':')
-		buffer->cur += 2, result->type = CPP_PASTE;
+		buffer->cur += 2, result->type = CPP_PASTE, result->val.arg_no = 0;
 	    }
 	  else if (*buffer->cur == '>')
 	    {
@@ -1325,7 +1325,7 @@ _cpp_lex_direct (cpp_reader *pfile)
     case '=': IF_NEXT_IS ('=', CPP_EQ_EQ, CPP_EQ); break;
     case '!': IF_NEXT_IS ('=', CPP_NOT_EQ, CPP_NOT); break;
     case '^': IF_NEXT_IS ('=', CPP_XOR_EQ, CPP_XOR); break;
-    case '#': IF_NEXT_IS ('#', CPP_PASTE, CPP_HASH); break;
+    case '#': IF_NEXT_IS ('#', CPP_PASTE, CPP_HASH); result->val.arg_no = 0; break;
 
     case '?': result->type = CPP_QUERY; break;
     case '~': result->type = CPP_COMPL; break;
@@ -1416,6 +1416,13 @@ utf8_to_ucn (unsigned char *buffer, const unsigned char *name)
   return ucn_len;
 }
 
+/* Given a token TYPE corresponding to a digraph, return a pointer to
+   the spelling of the digraph.  */
+static const unsigned char *
+cpp_digraph2name (enum cpp_ttype type)
+{
+  return digraph_spellings[(int) type - (int) CPP_FIRST_DIGRAPH];
+}
 
 /* Write the spelling of a token TOKEN to BUFFER.  The buffer must
    already contain the enough space to hold the token's spelling.
@@ -1435,8 +1442,7 @@ cpp_spell_token (cpp_reader *pfile, const cpp_token *token,
 	unsigned char c;
 
 	if (token->flags & DIGRAPH)
-	  spelling
-	    = digraph_spellings[(int) token->type - (int) CPP_FIRST_DIGRAPH];
+	  spelling = cpp_digraph2name (token->type);
 	else if (token->flags & NAMED_OP)
 	  goto spell_ident;
 	else
@@ -1499,11 +1505,17 @@ cpp_token_as_text (cpp_reader *pfile, const cpp_token *token)
   return start;
 }
 
-/* Used by C front ends, which really should move to using
-   cpp_token_as_text.  */
+/* Returns a pointer to a string which spells the token defined by
+   TYPE and FLAGS.  Used by C front ends, which really should move to
+   using cpp_token_as_text.  */
 const char *
-cpp_type2name (enum cpp_ttype type)
+cpp_type2name (enum cpp_ttype type, unsigned char flags)
 {
+  if (flags & DIGRAPH)
+    return (const char *) cpp_digraph2name (type);
+  else if (flags & NAMED_OP)
+    return cpp_named_operator2name (type);
+
   return (const char *) token_spellings[type].name;
 }
 
@@ -1521,8 +1533,7 @@ cpp_output_token (const cpp_token *token, FILE *fp)
 	int c;
 
 	if (token->flags & DIGRAPH)
-	  spelling
-	    = digraph_spellings[(int) token->type - (int) CPP_FIRST_DIGRAPH];
+	  spelling = cpp_digraph2name (token->type);
 	else if (token->flags & NAMED_OP)
 	  goto spell_ident;
 	else
@@ -1572,7 +1583,9 @@ _cpp_equiv_tokens (const cpp_token *a, const cpp_token *b)
       {
       default:			/* Keep compiler happy.  */
       case SPELL_OPERATOR:
-	return 1;
+	/* arg_no is used to track where multiple consecutive ##
+	   tokens were originally located.  */
+	return (a->type != CPP_PASTE || a->val.arg_no == b->val.arg_no);
       case SPELL_NONE:
 	return (a->type != CPP_MACRO_ARG || a->val.arg_no == b->val.arg_no);
       case SPELL_IDENT:
@@ -1886,6 +1899,11 @@ cpp_token_val_index (cpp_token *tok)
       return CPP_TOKEN_FLD_NODE;
     case SPELL_LITERAL:
       return CPP_TOKEN_FLD_STR;
+    case SPELL_OPERATOR:
+      if (tok->type == CPP_PASTE)
+	return CPP_TOKEN_FLD_ARG_NO;
+      else
+	return CPP_TOKEN_FLD_NONE;
     case SPELL_NONE:
       if (tok->type == CPP_MACRO_ARG)
 	return CPP_TOKEN_FLD_ARG_NO;

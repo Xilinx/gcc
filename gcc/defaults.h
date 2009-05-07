@@ -878,10 +878,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define SHIFT_COUNT_TRUNCATED 0
 #endif
 
-#ifndef LEGITIMIZE_ADDRESS
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)
-#endif
-
 #ifndef LEGITIMATE_PIC_OPERAND_P
 #define LEGITIMATE_PIC_OPERAND_P(X) 1
 #endif
@@ -960,6 +956,17 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* Alignment value for attribute ((aligned)).  */
 #ifndef ATTRIBUTE_ALIGNED_VALUE
 #define ATTRIBUTE_ALIGNED_VALUE BIGGEST_ALIGNMENT
+#endif
+
+/* Many ports have no mode-dependent addresses (except possibly autoincrement
+   and autodecrement addresses, which are handled by target-independent code
+   in recog.c).  */
+#ifndef GO_IF_MODE_DEPENDENT_ADDRESS
+#define GO_IF_MODE_DEPENDENT_ADDRESS(X, WIN)
+#endif
+
+#ifndef FRAME_POINTER_REQUIRED
+#define FRAME_POINTER_REQUIRED false
 #endif
 
 #endif  /* ! GCC_DEFAULTS_H */

@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -2741,7 +2741,7 @@ gfc_match_import (void)
 	      goto next_item;
 	    }
 
-	  st = gfc_new_symtree (&gfc_current_ns->sym_root, name);
+	  st = gfc_new_symtree (&gfc_current_ns->sym_root, sym->name);
 	  st->n.sym = sym;
 	  sym->refs++;
 	  sym->attr.imported = 1;
@@ -4104,9 +4104,14 @@ add_hidden_procptr_result (gfc_symbol *sym)
     {
       gfc_symtree *stree;
       if (case1)
-        gfc_get_sym_tree ("ppr@", gfc_current_ns, &stree);
+	gfc_get_sym_tree ("ppr@", gfc_current_ns, &stree);
       else if (case2)
-        gfc_get_sym_tree ("ppr@", gfc_current_ns->parent, &stree);
+	{
+	  gfc_symtree *st2;
+	  gfc_get_sym_tree ("ppr@", gfc_current_ns->parent, &stree);
+	  st2 = gfc_new_symtree (&gfc_current_ns->sym_root, "ppr@");
+	  st2->n.sym = stree->n.sym;
+	}
       sym->result = stree->n.sym;
 
       sym->result->attr.proc_pointer = sym->attr.proc_pointer;
@@ -4291,6 +4296,7 @@ got_ts:
 	    }
 	  sym->ts.interface = proc_if;
 	  sym->attr.untyped = 1;
+	  sym->attr.if_source = IFSRC_IFBODY;
 	}
       else if (current_ts.type != BT_UNKNOWN)
 	{
@@ -4300,6 +4306,7 @@ got_ts:
 	  sym->ts.interface->ts = current_ts;
 	  sym->ts.interface->attr.function = 1;
 	  sym->attr.function = sym->ts.interface->attr.function;
+	  sym->attr.if_source = IFSRC_UNKNOWN;
 	}
 
       if (gfc_match (" =>") == MATCH_YES)
@@ -4603,7 +4610,7 @@ static bool
 add_global_entry (const char *name, int sub)
 {
   gfc_gsymbol *s;
-  unsigned int type;
+  enum gfc_symbol_type type;
 
   s = gfc_get_gsymbol(name);
   type = sub ? GSYM_SUBROUTINE : GSYM_FUNCTION;
@@ -6622,7 +6629,7 @@ gfc_match_derived_decl (void)
    is the case. Since there is no bounds-checking for Cray Pointees,
    this will be okay.  */
 
-gfc_try
+match
 gfc_mod_pointee_as (gfc_array_spec *as)
 {
   as->cray_pointee = true; /* This will be useful to know later.  */
@@ -7134,8 +7141,8 @@ match_procedure_in_type (void)
   /* See if we already have a binding with this name in the symtree which would
      be an error.  If a GENERIC already targetted this binding, it may be
      already there but then typebound is still NULL.  */
-  stree = gfc_find_symtree (ns->sym_root, name);
-  if (stree && stree->typebound)
+  stree = gfc_find_symtree (ns->tb_sym_root, name);
+  if (stree && stree->n.tb)
     {
       gfc_error ("There's already a procedure with binding name '%s' for the"
 		 " derived type '%s' at %C", name, block->name);
@@ -7143,12 +7150,17 @@ match_procedure_in_type (void)
     }
 
   /* Insert it and set attributes.  */
-  if (gfc_get_sym_tree (name, ns, &stree))
-    return MATCH_ERROR;
+
+  if (!stree)
+    {
+      stree = gfc_new_symtree (&ns->tb_sym_root, name);
+      gcc_assert (stree);
+    }
+  stree->n.tb = tb;
+
   if (gfc_get_sym_tree (target, gfc_current_ns, &tb->u.specific))
     return MATCH_ERROR;
   gfc_set_sym_referenced (tb->u.specific->n.sym);
-  stree->typebound = tb;
 
   return MATCH_YES;
 }
@@ -7203,10 +7215,13 @@ gfc_match_generic (void)
 
   /* If there's already something with this name, check that it is another
      GENERIC and then extend that rather than build a new node.  */
-  st = gfc_find_symtree (ns->sym_root, name);
+  st = gfc_find_symtree (ns->tb_sym_root, name);
   if (st)
     {
-      if (!st->typebound || !st->typebound->is_generic)
+      gcc_assert (st->n.tb);
+      tb = st->n.tb;
+
+      if (!tb->is_generic)
 	{
 	  gfc_error ("There's already a non-generic procedure with binding name"
 		     " '%s' for the derived type '%s' at %C",
@@ -7214,7 +7229,6 @@ gfc_match_generic (void)
 	  goto error;
 	}
 
-      tb = st->typebound;
       if (tb->access != tbattr.access)
 	{
 	  gfc_error ("Binding at %C must have the same access as already"
@@ -7224,10 +7238,10 @@ gfc_match_generic (void)
     }
   else
     {
-      if (gfc_get_sym_tree (name, ns, &st))
-	return MATCH_ERROR;
+      st = gfc_new_symtree (&ns->tb_sym_root, name);
+      gcc_assert (st);
 
-      st->typebound = tb = gfc_get_typebound_proc ();
+      st->n.tb = tb = gfc_get_typebound_proc ();
       tb->where = gfc_current_locus;
       tb->access = tbattr.access;
       tb->is_generic = 1;
@@ -7249,19 +7263,16 @@ gfc_match_generic (void)
 	  goto error;
 	}
 
-      if (gfc_get_sym_tree (name, ns, &target_st))
-	goto error;
+      target_st = gfc_get_tbp_symtree (&ns->tb_sym_root, name);
 
       /* See if this is a duplicate specification.  */
       for (target = tb->u.generic; target; target = target->next)
 	if (target_st == target->specific_st)
 	  {
 	    gfc_error ("'%s' already defined as specific binding for the"
-		       " generic '%s' at %C", name, st->n.sym->name);
+		       " generic '%s' at %C", name, st->name);
 	    goto error;
 	  }
-
-      gfc_set_sym_referenced (target_st->n.sym);
 
       target = gfc_get_tbp_generic ();
       target->specific_st = target_st;

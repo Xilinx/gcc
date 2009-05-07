@@ -778,16 +778,6 @@ typedef struct score_args
 
 #define REG_OK_FOR_INDEX_P(X) 0
 
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)   \
-  do {                                           \
-    if (score_legitimize_address (&(X)))         \
-      goto WIN;                                  \
-  } while (0)
-
-/* Go to LABEL if ADDR (a legitimate address expression)
-   has an effect that depends on the machine mode it is used for.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)       {}
-
 #define LEGITIMATE_CONSTANT_P(X)        1
 
 /* Condition Code Status.  */

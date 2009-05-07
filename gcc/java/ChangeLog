@@ -1,3 +1,37 @@
+2009-04-27  Ian Lance Taylor  <iant@google.com>
+
+	* builtins.c (java_builtins): Add casts to enum type.
+	* verify-impl.c (check_class_constant): Add cast to enum type.
+	(check_constant, check_wide_constant): Likewise.
+
+2009-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR java/38374
+	* constants.c (build_constants_constructor): Retain the old
+	pointer type as valid TYPE_POINTER_TO after patching the
+	type of the constant pool decl.
+
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* jcf-parse.c (handle_constant): Add cast to enum type.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* builtins.c: Update GTY annotations to new syntax
+	* decl.c: Likewise
+	* java-tree.h: Likewise
+	* jcf.h: Likewise
+	* lang.c: Likewise
+
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, ChangeLog.ptr, ChangeLog.tree-ssa: Add copyright and
+	license notices.
+
+2009-04-18  Ian Lance Taylor  <iant@google.com>
+
+	* verify-impl.c (verify_instructions_0): Add cast to enum type.
+
 2009-04-09  Paolo Bonzini  <bonzini@gnu.org>
 
         * builtins.c (compareAndSwapLong_builtin,
@@ -21653,3 +21687,11 @@ Tue Mar  9 11:52:08 1999  Alexandre Petit-Bianco  <apbianco@cygnus.com>
 1996-10-24  Per Bothner  <bothner@deneb.cygnus.com>
 
 	New directory.
+
+
+Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

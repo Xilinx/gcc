@@ -844,7 +844,8 @@ delete_tree_ssa (void)
 
 	  gimple_set_modified (stmt, true);
 	}
-      set_phi_nodes (bb, NULL);
+      if (!(bb->flags & BB_RTL))
+	set_phi_nodes (bb, NULL);
     }
 
   /* Remove annotations from every referenced local variable.  */
@@ -960,12 +961,9 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
 	  && TYPE_VOLATILE (TREE_TYPE (outer_type)))
 	return false;
 
-      /* Do not lose casts between pointers with different
-	 TYPE_REF_CAN_ALIAS_ALL setting or alias sets.  */
-      if ((TYPE_REF_CAN_ALIAS_ALL (inner_type)
-	   != TYPE_REF_CAN_ALIAS_ALL (outer_type))
-	  || (get_alias_set (TREE_TYPE (inner_type))
-	      != get_alias_set (TREE_TYPE (outer_type))))
+      /* Do not lose casts between pointers that when dereferenced access
+	 memory with different alias sets.  */
+      if (get_deref_alias_set (inner_type) != get_deref_alias_set (outer_type))
 	return false;
 
       /* We do not care for const qualification of the pointed-to types
@@ -999,6 +997,13 @@ useless_type_conversion_p_1 (tree outer_type, tree inner_type)
     {
       /* Different types of aggregates are incompatible.  */
       if (TREE_CODE (inner_type) != TREE_CODE (outer_type))
+	return false;
+
+      /* Conversions from array types with unknown extent to
+	 array types with known extent are not useless.  */
+      if (TREE_CODE (inner_type) == ARRAY_TYPE
+	  && !TYPE_DOMAIN (inner_type)
+	  && TYPE_DOMAIN (outer_type))
 	return false;
 
       /* ???  This seems to be necessary even for aggregates that don't
@@ -1572,7 +1577,9 @@ execute_update_addresses_taken (bool do_optimize)
 	if (!DECL_GIMPLE_REG_P (var)
 	    && !bitmap_bit_p (not_reg_needs, DECL_UID (var))
 	    && (TREE_CODE (TREE_TYPE (var)) == COMPLEX_TYPE
-		|| TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE))
+		|| TREE_CODE (TREE_TYPE (var)) == VECTOR_TYPE)
+	    && !TREE_THIS_VOLATILE (var)
+	    && (TREE_CODE (var) != VAR_DECL || !DECL_HARD_REGISTER (var)))
 	  {
 	    DECL_GIMPLE_REG_P (var) = 1;
 	    mark_sym_for_renaming (var);

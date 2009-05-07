@@ -3929,20 +3929,21 @@ package body Sem_Prag is
 
                if not In_Character_Range (C)
 
-                  --  For all cases except external names on CLI target,
+                  --  For all cases except CLI target,
                   --  commas, spaces and slashes are dubious (in CLI, we use
-                  --  spaces and commas in external names to specify assembly
-                  --  version and public key, while slashes can be used in
-                  --  names to mark nested classes).
+                  --  commas and backslashes in external names to specify
+                  --  assembly version and public key, while slashes and spaces
+                  --  can be used in names to mark nested classes and
+                  --  valuetypes).
 
                   or else ((not Ext_Name_Case or else VM_Target /= CLI_Target)
-                             and then (Get_Character (C) = ' '
-                                         or else
-                                       Get_Character (C) = ','
+                             and then (Get_Character (C) = ','
                                          or else
                                        Get_Character (C) = '\'))
                  or else (VM_Target /= CLI_Target
-                           and then Get_Character (C) = '/')
+                            and then (Get_Character (C) = ' '
+                                        or else
+                                      Get_Character (C) = '/'))
                then
                   Error_Msg
                     ("?interface name contains illegal character",
@@ -6200,13 +6201,8 @@ package body Sem_Prag is
                   Process_Interface_Name (Def_Id, Arg2, Arg3);
                end if;
 
-               if No (Parameter_Specifications (Parent (Def_Id))) then
-                  Set_Has_Completion (Def_Id);
-                  Set_Is_Constructor (Def_Id);
-               else
-                  Error_Pragma_Arg
-                    ("non-default constructors not implemented", Arg1);
-               end if;
+               Set_Has_Completion (Def_Id);
+               Set_Is_Constructor (Def_Id);
 
             else
                Error_Pragma_Arg
@@ -8249,6 +8245,10 @@ package body Sem_Prag is
                  and then
                    (Is_Value_Type (Etype (Def_Id))
                      or else
+                       (Ekind (Etype (Def_Id)) = E_Access_Subprogram_Type
+                         and then
+                          Atree.Convention (Etype (Def_Id)) = Convention)
+                     or else
                        (Ekind (Etype (Def_Id)) in Access_Kind
                          and then
                           (Atree.Convention
@@ -8271,7 +8271,7 @@ package body Sem_Prag is
                      pragma Assert (Convention = Convention_CIL);
                      Error_Pragma_Arg
                        ("pragma% requires function returning a " &
-                        "'CIL access type", Arg1);
+                        "'C'I'L access type", Arg1);
                   end if;
                end if;
 

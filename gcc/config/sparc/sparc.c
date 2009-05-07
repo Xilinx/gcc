@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -321,7 +321,7 @@ char sparc_leaf_regs[] =
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1, 1};
 
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   /* Some local-dynamic TLS symbol name.  */
   const char *some_ld_name;
@@ -412,6 +412,7 @@ static bool sparc_strict_argument_naming (CUMULATIVE_ARGS *);
 static void sparc_va_start (tree, rtx);
 static tree sparc_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool sparc_vector_mode_supported_p (enum machine_mode);
+static rtx sparc_legitimize_address (rtx, rtx, enum machine_mode);
 static bool sparc_pass_by_reference (CUMULATIVE_ARGS *,
 				     enum machine_mode, const_tree, bool);
 static int sparc_arg_partial_bytes (CUMULATIVE_ARGS *,
@@ -491,6 +492,9 @@ static bool fpu_option_set = false;
 #define TARGET_INIT_LIBFUNCS sparc_init_libfuncs
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS sparc_init_builtins
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS sparc_legitimize_address
 
 #undef TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN sparc_expand_builtin
@@ -623,14 +627,14 @@ sparc_override_options (void)
 {
   static struct code_model {
     const char *const name;
-    const int value;
+    const enum cmodel value;
   } const cmodels[] = {
     { "32", CM_32 },
     { "medlow", CM_MEDLOW },
     { "medmid", CM_MEDMID },
     { "medany", CM_MEDANY },
     { "embmedany", CM_EMBMEDANY },
-    { 0, 0 }
+    { NULL, (enum cmodel) 0 }
   };
   const struct code_model *cmodel;
   /* Map TARGET_CPU_DEFAULT to value for -m{arch,tune}=.  */
@@ -689,7 +693,7 @@ sparc_override_options (void)
     /* UltraSPARC T1 */
     { "niagara", PROCESSOR_NIAGARA, MASK_ISA, MASK_V9|MASK_DEPRECATED_V8_INSNS},
     { "niagara2", PROCESSOR_NIAGARA, MASK_ISA, MASK_V9},
-    { 0, 0, 0, 0 }
+    { 0, (enum processor_type) 0, 0, 0 }
   };
   const struct cpu_table *cpu;
   const struct sparc_cpu_select *sel;
@@ -3370,10 +3374,13 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
    OLDX is the address as it was before break_out_memory_refs was called.
    In some cases it is useful to look at this to decide what needs to be done.
 
-   MODE is the mode of the operand pointed to by X.  */
+   MODE is the mode of the operand pointed to by X.
+
+   On SPARC, change REG+N into REG+REG, and REG+(X*Y) into REG+REG.  */
 
 rtx
-legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED, enum machine_mode mode)
+sparc_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			  enum machine_mode mode)
 {
   rtx orig_x = x;
 
@@ -4082,10 +4089,8 @@ sparc_expand_prologue (void)
 	  rtx reg = gen_rtx_REG (Pmode, 1);
 	  emit_move_insn (reg, GEN_INT (-actual_fsize));
 	  insn = emit_insn (gen_stack_pointer_inc (reg));
-	  REG_NOTES (insn) =
-	    gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			       gen_stack_pointer_inc (GEN_INT (-actual_fsize)),
-			       REG_NOTES (insn));
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			gen_stack_pointer_inc (GEN_INT (-actual_fsize)));
 	}
 
       RTX_FRAME_RELATED_P (insn) = 1;
@@ -5742,7 +5747,7 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       size = int_size_in_bytes (type);
       rsize = (size + UNITS_PER_WORD - 1) & -UNITS_PER_WORD;
       align = 0;
-    
+
       if (TARGET_ARCH64)
 	{
 	  /* For SPARC64, objects requiring 16-byte alignment get it.  */
@@ -5784,28 +5789,25 @@ sparc_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       addr = fold_convert (build_pointer_type (ptrtype), addr);
       addr = build_va_arg_indirect_ref (addr);
     }
-  /* If the address isn't aligned properly for the type,
-     we may need to copy to a temporary.  
-     FIXME: This is inefficient.  Usually we can do this
-     in registers.  */
-  else if (align == 0
-	   && TYPE_ALIGN (type) > BITS_PER_WORD)
+
+  /* If the address isn't aligned properly for the type, we need a temporary.
+     FIXME: This is inefficient, usually we can do this in registers.  */
+  else if (align == 0 && TYPE_ALIGN (type) > BITS_PER_WORD)
     {
       tree tmp = create_tmp_var (type, "va_arg_tmp");
       tree dest_addr = build_fold_addr_expr (tmp);
-
-      tree copy = build_call_expr (implicit_built_in_decls[BUILT_IN_MEMCPY], 3,
-				   dest_addr,
-				   addr,
-				   size_int (rsize));
-
+      tree copy = build_call_expr (implicit_built_in_decls[BUILT_IN_MEMCPY],
+				   3, dest_addr, addr, size_int (rsize));
+      TREE_ADDRESSABLE (tmp) = 1;
       gimplify_and_add (copy, pre_p);
       addr = dest_addr;
     }
+
   else
     addr = fold_convert (ptrtype, addr);
 
-  incr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr, size_int (rsize));
+  incr
+    = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, incr, size_int (rsize));
   gimplify_assign (valist, incr, post_p);
 
   return build_va_arg_indirect_ref (addr);
@@ -8255,13 +8257,14 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
 {
   tree arg0, arg1, arg2;
   tree rtype = TREE_TYPE (TREE_TYPE (fndecl));
+  enum insn_code icode = (enum insn_code) DECL_FUNCTION_CODE (fndecl);
 
   if (ignore
-      && DECL_FUNCTION_CODE (fndecl) != CODE_FOR_alignaddrsi_vis
-      && DECL_FUNCTION_CODE (fndecl) != CODE_FOR_alignaddrdi_vis)
+      && icode != CODE_FOR_alignaddrsi_vis
+      && icode != CODE_FOR_alignaddrdi_vis)
     return fold_convert (rtype, integer_zero_node);
 
-  switch (DECL_FUNCTION_CODE (fndecl))
+  switch (icode)
     {
     case CODE_FOR_fexpand_vis:
       arg0 = TREE_VALUE (arglist);
@@ -8297,8 +8300,8 @@ sparc_fold_builtin (tree fndecl, tree arglist, bool ignore)
 	  tree inner_type = TREE_TYPE (rtype);
 	  tree elts0 = TREE_VECTOR_CST_ELTS (arg0);
 	  tree elts1 = TREE_VECTOR_CST_ELTS (arg1);
-	  tree n_elts = sparc_handle_vis_mul8x16 (DECL_FUNCTION_CODE (fndecl),
-						  inner_type, elts0, elts1);
+	  tree n_elts = sparc_handle_vis_mul8x16 (icode, inner_type, elts0,
+						  elts1);
 
 	  return build_vector (rtype, n_elts);
 	}

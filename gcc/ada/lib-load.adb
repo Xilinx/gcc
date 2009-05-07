@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -714,12 +714,12 @@ package body Lib.Load is
                   --  it may very likely be the case that there is also pragma
                   --  Restriction forbidding its usage. This is typically the
                   --  case when building a configurable run time, where the
-                  --  usage of certain run-time units is restricted by
-                  --  means of both the corresponding pragma Restriction (such
-                  --  as No_Calendar), and by not including the unit. Hence,
-                  --  we check whether this predefined unit is forbidden, so
-                  --  that the message about the restriction violation is
-                  --  generated, if needed.
+                  --  usage of certain run-time units is restricted by means
+                  --  of both the corresponding pragma Restriction (such as
+                  --  No_Calendar), and by not including the unit. Hence, we
+                  --  check whether this predefined unit is forbidden, so that
+                  --  the message about the restriction violation is generated,
+                  --  if needed.
 
                   Check_Restricted_Unit (Load_Name, Error_Node);
 
@@ -753,6 +753,30 @@ package body Lib.Load is
       end if;
    end Load_Unit;
 
+   --------------------------
+   -- Make_Child_Decl_Unit --
+   --------------------------
+
+   procedure Make_Child_Decl_Unit (N : Node_Id) is
+      Unit_Decl : constant Node_Id := Library_Unit (N);
+
+   begin
+      Units.Increment_Last;
+      Units.Table (Units.Last) := Units.Table (Get_Cunit_Unit_Number (N));
+      Units.Table (Units.Last).Unit_Name :=
+        Get_Spec_Name (Unit_Name (Get_Cunit_Unit_Number (N)));
+      Units.Table (Units.Last).Cunit := Unit_Decl;
+      Units.Table (Units.Last).Cunit_Entity  :=
+        Defining_Identifier
+          (Defining_Unit_Name (Specification (Unit (Unit_Decl))));
+
+      --  The library unit created for of a child subprogram unit plays no
+      --  role in code generation and binding, so label it accordingly.
+
+      Units.Table (Units.Last).Generate_Code := False;
+      Set_Has_No_Elaboration_Code (Unit_Decl);
+   end Make_Child_Decl_Unit;
+
    ------------------------
    -- Make_Instance_Unit --
    ------------------------
@@ -766,17 +790,30 @@ package body Lib.Load is
    --  declaration has been attached to a new compilation unit node, and
    --  code will have to be generated for it.
 
-   procedure Make_Instance_Unit (N : Node_Id) is
+   procedure Make_Instance_Unit (N : Node_Id; In_Main : Boolean) is
       Sind : constant Source_File_Index := Source_Index (Main_Unit);
+
    begin
       Units.Increment_Last;
-      Units.Table (Units.Last)               := Units.Table (Main_Unit);
-      Units.Table (Units.Last).Cunit         := Library_Unit (N);
-      Units.Table (Units.Last).Generate_Code := True;
-      Units.Table (Main_Unit).Cunit          := N;
-      Units.Table (Main_Unit).Unit_Name      :=
-        Get_Body_Name (Unit_Name (Get_Cunit_Unit_Number (Library_Unit (N))));
-      Units.Table (Main_Unit).Version        := Source_Checksum (Sind);
+
+      if In_Main then
+         Units.Table (Units.Last)               := Units.Table (Main_Unit);
+         Units.Table (Units.Last).Cunit         := Library_Unit (N);
+         Units.Table (Units.Last).Generate_Code := True;
+         Units.Table (Main_Unit).Cunit          := N;
+         Units.Table (Main_Unit).Unit_Name      :=
+           Get_Body_Name
+             (Unit_Name (Get_Cunit_Unit_Number (Library_Unit (N))));
+         Units.Table (Main_Unit).Version        := Source_Checksum (Sind);
+
+      else
+         --  Duplicate information from instance unit, for the body. The unit
+         --  node N has been rewritten as a body, but it was placed in the
+         --  units table when first loaded as a declaration.
+
+         Units.Table (Units.Last) := Units.Table (Get_Cunit_Unit_Number (N));
+         Units.Table (Units.Last).Cunit := Library_Unit (N);
+      end if;
    end Make_Instance_Unit;
 
    ------------------------
@@ -791,11 +828,10 @@ package body Lib.Load is
       Bunit : constant Node_Id := Cunit (Body_Unit);
 
    begin
-      --  The spec is irrelevant if the body is a subprogram body, and the
-      --  spec is other than a subprogram spec or generic subprogram spec.
-      --  Note that the names must be the same, we don't need to check that,
-      --  because we already know that from the fact that the file names are
-      --  the same.
+      --  The spec is irrelevant if the body is a subprogram body, and the spec
+      --  is other than a subprogram spec or generic subprogram spec. Note that
+      --  the names must be the same, we don't need to check that, because we
+      --  already know that from the fact that the file names are the same.
 
       return
          Nkind (Unit (Bunit)) = N_Subprogram_Body

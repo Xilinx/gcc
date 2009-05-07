@@ -1,3 +1,271 @@
+2009-05-05  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/39909
+	* include/std/mutex (__get_once_functor_lock, __get_once_mutex,
+	__set_once_functor_lock_ptr): Replace global lock object with local
+	locks on global mutex.
+	* src/mutex.cc (__get_once_functor_lock, __get_once_mutex,
+	__set_once_functor_lock_ptr): Likewise, keeping old function to
+	preserve ABI.
+	(__once_proxy): Use pointer to local lock if set, global lock
+	otherwise.
+	* config/abi/pre/gnu.ver: Add new symbols to new ABI version.
+	* testsuite/util/testsuite_abi.cc: Add GLIBCX_3.4.12 version.
+	* testsuite/30_threads/call_once/39909.cc: New.
+
+2009-05-03  Jan Hubicka  <jh@suse.cz>
+
+	* include/parallel/settings.h (get): Mark const.
+	* libsupc++/unwind-cxx.h (__cxa_call_terminate): Mark throw ().
+	* libsupc++/eh_call.cc (__cxa_call_terminate): Mark throw ().
+	* config/io/basic_file_stdio.cc (sys_open, is_open, fd, seekoff): Mark
+	throw ().
+	* config/io/basic_file_stdio.h (__basic_file, sys_open): Mark throw ().
+	(is_open, fd): Mark pure and throw ().
+	(seekoff): Mark throw ().
+
+2009-05-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* acinclude.m4 ([GLIBCXX_ENABLE_ATOMIC_BUILTINS]): Do link tests when
+	possible.
+	* configure: Regenerate.
+
+2009-05-02  Jan Hubicka  <jh@suse.cz>
+
+	* include/tr1_impl/functional_hash.h (explicit specializations of ()
+	operator): Mark pure.
+
+2009-04-30  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* scripts/create_testsuite_files: Remove thread directory.
+
+2009-04-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/39868
+	* scripts/run_doxygen: Uncomment removal of includes.
+	(problematic): Rewrite __cxxabiv1 namespace to abi.
+
+2009-04-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert the last commit.
+
+2009-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/mutex (__get_once_functor_lock, __get_once_mutex):
+	Replace global lock object with local locks on global mutex.
+	* src/mutex.cc: Likewise.
+	* config/abi/pre/gnu.ver: Adjust.
+	* testsuite/30_threads/call_once/call_once2.cc: New.
+
+2009-04-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/39880
+	PR libstdc++/39881
+	PR libstdc++/39882
+	* include/std/system_error (is_error_code_enum<errc>): Remove.
+	(error_condition<>::error_condition(_ErrorCodeEnum,)
+	error_condition<>::operator=(_ErrorCodeEnum)): Use make_error_condition.
+	(error_code<>::error_code(_ErrorCodeEnum,),
+	error_code<>::operator=(_ErrorCodeEnum)): Use make_error_code.
+	* testsuite/19_diagnostics/system_error/39880.cc: New.
+	* testsuite/19_diagnostics/error_condition/modifiers/39881.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_condition/cons/39881.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/modifiers/39882.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/cons/39882.cc: Likewise.
+	* testsuite/27_io/basic_ostream/inserters_other/char/error_code.cc:
+	Adjust.
+	* testsuite/27_io/basic_ostream/inserters_other/wchar_t/error_code.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_code/cons/1.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/operators/bool.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/operators/equal.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/operators/not_equal.cc:
+	Likewise.
+	* testsuite/19_diagnostics/error_category/cons/copy_neg.cc: Likewise.
+	* testsuite/19_diagnostics/system_error/cons-1.cc: Likewise.
+	* testsuite/19_diagnostics/system_error/what-4.cc: Likewise.
+	* testsuite/30_threads/unique_lock/locking/2.cc: Likewise.
+
+2009-04-24  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/authors.xml: Add space.
+	* doc/xml/faq.xml: Update links.
+	* doc/xml/manual/intro.xml: Same.
+	* doc/xml/manual/abi.xml: Update.
+	* doc/xml/manual/appendix_contributing.xml: Fix typo.
+	* doc/xml/manual/status_cxxtr1.xml: Update links.
+	* doc/xml/manual/status_cxx1998.xml: Same.
+	* doc/xml/manual/status_cxx200x.xml: Same.
+
+2009-04-22  Jan Hubicka  <jh@suse.cz>
+
+	* include/tr1_impl/array (at): Do not use builtin_expect.
+	* include/ext/throw_allocator.h (allocate): Likewise.
+	* include/ext/pool_allocator.h (allocate): Likweise.
+	* include/ext/bitmap_allocator.h (allocate): Likewise.
+	* include/ext/rc_string_base.h (_S_construct): Likewise.
+	* include/ext/malloc_allocator.h (allocate): Likewise.
+	* include/ext/mt_allocator.h (allocate): Likewise.
+	* include/ext/sso_string_base.h (_M_construct): Likewise.
+	* include/bits/basic_string.tcc (_S_construct): Likewise.
+
+2009-04-22  Jan Hubicka  <jh@suse.cz>
+
+	* include/c_std/cstdlib (abort, exit, _Exit): Mark noreturn throw ().
+	(atexit, atoll, stroll, strtoull): Mark throw ()
+	* include/c_std/cstdio (snprintf, vsnprintf, vscanf): Mark throw ().
+	* include/c_std/cwchar (wcstold, wcstoll, wcstoull): Mark throw ().
+	* include/c_global/cstdlib (abort, exit, _Exit): Mark noreturn throw ().
+	(atexit, atoll, stroll, strtoull): Mark throw ()
+	* include/c_global/cstdio (snprintf, vsnprintf, vscanf): Mark throw ().
+	* include/c_wchar/cstdio (snprintf, vsnprintf, vscanf): Mark throw ().
+
+2009-04-21  Jan Hubicka  <jh@suse.cz>
+
+	* include/ext/atomicity.h
+	(__exchange_and_add, __atomic_add): Mark throw ().
+	* config/os/aix/atomicity.h
+	* config/os/aix/atomicity.h
+	* config/os/irix/atomicity.h
+	* config/cpu/cris/atomicity.h
+	* config/cpu/m68k/atomicity.h
+	* config/cpu/hppa/atomicity.h
+	* config/cpu/sparc/atomicity.h
+	* config/cpu/i386/atomicity.h
+	* config/cpu/i486/atomicity.h
+	* config/cpu/sh/atomicity.h
+	* config/cpu/generic/atomicity_mutex/atomicity.h
+	* config/cpu/generic/atomicity_builtins/atomicity.h
+	(__exchange_and_add, __atomic_add): Mark throw ().
+
+2009-04-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/39835
+	* include/bits/random.h: Avoid the badname __alpha (and, for
+	consistency, __beta too).
+	* include/bits/random.tcc: Likewise.
+
+2009-04-19  Jan Hubicka  <jh@suse.cz>
+
+	* include/c_compatibility/stdatomic.h (__atomic_flag_for_address): Use
+	_GLIBCXX_NOTHROW.
+
+2009-04-19  Jan Hubicka  <jh@suse.cz>
+
+	* include/c_compatibility/stdatomic.h
+	(atomic_flag_test_and_set_explicit, atomic_flag_clear_explicit,
+	__atomic_flag_wait_explicit): Use _GLIBCXX_NOTHROW.
+	* include/bits/c++config (_GLIBCXX_NOTHROW): New.
+
+2009-04-18  Jan Hubicka  <jh@suse.cz>
+
+	* libsupc++/eh_type.cc (__cxa_current_exception_type) Mark throw().
+	* libsupc++/unwind-cxx.h (__cxa_get_globals,
+	__cxa_get_globals_fast): Mark const.
+	(__cxa_get_exception_ptr): Mark pure.
+	(__cxa_bad_cast, __cxa_bad_typeid): Mark noreturn
+	(__terminate): Makr throw ().
+	* libsupc++/exception (terminate): Mark throw().
+	(uncaught_exception): Mark pure.
+	* libsupc++/eh_ptr.cc (_M_safe_bool_dummy): Mark throw().
+	* libsupc++/guard.cc (__cxa_guard_abort, __cxa_guard_release):
+	Mark throw().
+	* libsupc++/eh_terminate.cc (__terminate, terminate): Mark throw().
+	* libsupc++/vec.cc (__cxa_vec_cleanup): Mark throw().
+	* libsupc++/cxxabi.h (__cxa_vec_cleanup, __cxa_guard_release,
+	__cxa_guard_abort): Mark throw ().
+	(__cxa_pure_virtual): Mark noreturn.
+	(__cxa_current_exception_type): Mark throw and pure.
+	* libsupc++/exception_ptr.h (operator ==, !=, _M_get, !, ==,
+	__cxa_exception_type): Mark pure.
+	(_M_safe_bool_dummy): Mark pure and const.
+
+2009-04-18  Jan Hubicka  <jh@suse.cz>
+
+	* src/pool_allocator.cc (_M_get_free_list, _M_get_mutex): Mark throw ()
+	* src/mt_allocator.cc (_M_reclaim_block, _M_reclaim_block,
+	_M_destroy_thread_key): Mark throw ()
+	* debug.cc (_M_get_mutex, _M_attach_single, _M_detach_single,
+	_M_singular, _M_can_compare _M_get_mutex, _M_message,
+	_M_get_max_length): Mark throw ().
+	* include/debug/formatter.h (_M_message, _M_format_word,
+	_M_get_max_length): Mark throw ().
+	* include/debug/safe_base.h (_M_get_mutex, _M_attach_single,
+	_M_detach_single): Mark throw ().
+	(_M_singular, _M_can_compare, _M_get_mutex): Mark pure and throw ().
+	* include/ext/pool_allocator.h (_M_get_free_list): Mark const and
+	throw ()
+	(_M_get_mutex): Mark throw ().
+	* include/ext/mt_allocator.h (_M_reclaim_block): Mark throw ();
+	(_M_destroy_thread_key): Mark CONST and throw.
+	* include/bits/stl_list.h (swap, transfer, reverse, hook, unhook): Mark
+	throw ().
+
+2009-04-18  Jan Hubicka  <jh@suse.cz>
+
+	* src/condition_variable.cc (condition_variable,
+	condition_variable_any constructors): Mark throw()
+	* src/hash.cc (operator() for long double, string, and wstring): Mark
+	throw ().
+	* src/strstream.cc (strstreambuf constructors, freeze, str, pcount,
+	_M_setup, rdbuf, str): Mark throw ().
+	* src/chrono.cc (new): Mark throw ().
+	* include/std/system_error (system_category, generic_category): Mark
+	throw () and const.
+	* include/std/chrono (now): Mark throw ().
+	* include/std/condition_variable (condition_variable,
+	~condition_variable, condition_variable_any,
+	~condition_variable_any): Mark throw ().
+	* include/std/mutex (mutex): Mark throw ().
+	* include/bits/stl_list.h (swap, transfer, reverse, hook, unhook): Mark
+	throw.
+	* include/bits/functional_hash.h (operator()  on size_t): Mark pure
+	and throw ().
+	* include/bits/locale_facets.tcc (__verify_grouping): Mark pure.
+	* include/bits/locale_classes.h (_S_initialize_once,
+	_S_clone_c_locale): Mark throw ().
+	(_S_get_c_name): Mark const and throw ().
+	(_M_id, _M_compare, _M_transform, _M_compare, _M_transform): Mark
+	throw ().
+	* include/bits/locale_facets.h (__convert_to_v explicit instances):
+	Mark throw ().
+	(_M_convert_to_wmask, _M_initialize_ctype, _S_format_float): Mark
+	throw ().
+	* include/bits/ios_base.h (_M_dispose_callbacks, _M_init, imbue,
+	ios_base): Mark throw ()
+	* include/bits/locale_facets_nonio.h (_M_put): Mark throw.
+	* include/backward/strstream (strstreambuf constructors): Mark throw ().
+	(str, freeze, _M_setupf): Mark throw ().
+	(pcount): Mark pure and throw ().
+	(rdbuf): Mark const and throw ().
+
+2009-04-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/39802
+	* include/bits/locale_facets.tcc (num_get<>::_M_extract_int
+	(_InIter, _InIter, ios_base&, ios_base::iostate&, _ValueT&)):
+	Always accept negative values, for unsigned types too.
+	* testsuite/22_locale/num_get/get/char/39802.cc: New.
+	* testsuite/22_locale/num_get/get/wchar_t/39802.cc: Likewise.
+
+2009-04-18  Jan Hubicka  <jh@suse.cz>
+
+	* include/debug/formater.h: Include bits/c++config.h.
+	(_M_error): Mark noreturn.
+	* include/bits/c++config (_GLIBCXX_PURE, _GLIBCXX_CONST,
+	_GLIBCXX_NORETURN): New.
+	* include/bits/stl_tree.h (_Rb_tree_increment, _Rb_tree_increment,
+	_Rb_tree_decrement, _Rb_tree_decrement, _Rb_tree_black_count):
+	Mark pure.
+	* include/c_compatibility/stdatomic.h
+	(atomic_flag_test_and_set_explicit, atomic_flag_clear_explicit,
+	__atomic_flag_wait_explicit, __atomic_flag_for_address):
+	Mark by throw ().
+	* src/atomic.cc (atomic_flag_test_and_set_explicit,
+	atomic_flag_clear_explicit, __atomic_flag_wait_explicit,
+	__atomic_flag_for_address): Mark by throw ().
+
 2009-04-17  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/abi/post/alpha-linux-gnu/baseline_symbols.txt: Regenerated.
@@ -6710,9 +6978,6 @@
 	of debug.
 	* include/Makefile.in: Regenerate.
 	* include/precompiled/stdc++.h: Add.
-
-	* doc/xml/api.xml: Add gcc-4.4 link.
-	* doc/html/api.html: Regenerate.
 
 2009-04-06  Benjamin Kosnik  <bkoz@redhat.com>
 

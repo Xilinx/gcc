@@ -284,7 +284,8 @@ print_direction_vector (FILE *outf,
 
   for (eq = 0; eq < length; eq++)
     {
-      enum data_dependence_direction dir = dirv[eq];
+      enum data_dependence_direction dir = ((enum data_dependence_direction)
+					    dirv[eq]);
 
       switch (dir)
 	{
@@ -4587,7 +4588,7 @@ dot_rdg (struct graph *rdg)
 /* This structure is used for recording the mapping statement index in
    the RDG.  */
 
-struct rdg_vertex_info GTY(())
+struct GTY(()) rdg_vertex_info
 {
   gimple stmt;
   int index;

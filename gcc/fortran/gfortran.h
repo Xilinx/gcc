@@ -274,9 +274,12 @@ typedef enum gfc_access
 gfc_access;
 
 /* Flags to keep track of where an interface came from.
-   4 elements = 2 bits.  */
+   3 elements = 2 bits.  */
 typedef enum ifsrc
-{ IFSRC_UNKNOWN = 0, IFSRC_DECL, IFSRC_IFBODY, IFSRC_USAGE
+{ IFSRC_UNKNOWN = 0,	/* Interface unknown, only return type may be known.  */
+  IFSRC_DECL,		/* FUNCTION or SUBROUTINE declaration.  */
+  IFSRC_IFBODY		/* INTERFACE statement or PROCEDURE statement
+			   with explicit interface.  */
 }
 ifsrc;
 
@@ -1046,8 +1049,6 @@ typedef struct gfc_typebound_proc
 }
 gfc_typebound_proc;
 
-#define gfc_get_typebound_proc() XCNEW (gfc_typebound_proc)
-
 
 /* Symbol nodes.  These are important things.  They are what the
    standard refers to as "entities".  The possibly multiple names that
@@ -1212,11 +1213,9 @@ typedef struct gfc_symtree
     gfc_symbol *sym;		/* Symbol associated with this node */
     gfc_user_op *uop;
     gfc_common_head *common;
+    gfc_typebound_proc *tb;
   }
   n;
-
-  /* Data for type-bound procedures; NULL if no type-bound procedure.  */
-  gfc_typebound_proc* typebound;
 }
 gfc_symtree;
 
@@ -1245,6 +1244,9 @@ typedef struct gfc_namespace
   gfc_symtree *uop_root;
   /* Tree containing all the common blocks.  */
   gfc_symtree *common_root;
+
+  /* Tree containing type-bound procedures.  */
+  gfc_symtree *tb_sym_root;
   /* Linked list of finalizer procedures.  */
   struct gfc_finalizer *finalizers;
 
@@ -1320,6 +1322,12 @@ extern gfc_namespace *gfc_global_ns_list;
    this to detect collisions already when parsing.
    TODO: Extend to verify procedure calls.  */
 
+enum gfc_symbol_type
+{
+  GSYM_UNKNOWN=1, GSYM_PROGRAM, GSYM_FUNCTION, GSYM_SUBROUTINE,
+  GSYM_MODULE, GSYM_COMMON, GSYM_BLOCK_DATA
+};
+
 typedef struct gfc_gsymbol
 {
   BBT_HEADER(gfc_gsymbol);
@@ -1328,8 +1336,7 @@ typedef struct gfc_gsymbol
   const char *sym_name;
   const char *mod_name;
   const char *binding_label;
-  enum { GSYM_UNKNOWN=1, GSYM_PROGRAM, GSYM_FUNCTION, GSYM_SUBROUTINE,
-        GSYM_MODULE, GSYM_COMMON, GSYM_BLOCK_DATA } type;
+  enum gfc_symbol_type type;
 
   int defined, used;
   locus where;
@@ -1354,6 +1361,12 @@ extern gfc_interface_info current_interface;
 
 
 /* Array reference.  */
+
+enum gfc_array_ref_dimen_type
+{
+  DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_UNKNOWN
+};
+
 typedef struct gfc_array_ref
 {
   ar_type type;
@@ -1365,9 +1378,7 @@ typedef struct gfc_array_ref
   struct gfc_expr *start[GFC_MAX_DIMENSIONS], *end[GFC_MAX_DIMENSIONS],
     *stride[GFC_MAX_DIMENSIONS];
 
-  enum
-  { DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_UNKNOWN }
-  dimen_type[GFC_MAX_DIMENSIONS];
+  enum gfc_array_ref_dimen_type dimen_type[GFC_MAX_DIMENSIONS];
 
   struct gfc_expr *offset;
 }
@@ -2268,7 +2279,7 @@ gfc_try gfc_add_optional (symbol_attribute *, locus *);
 gfc_try gfc_add_pointer (symbol_attribute *, locus *);
 gfc_try gfc_add_cray_pointer (symbol_attribute *, locus *);
 gfc_try gfc_add_cray_pointee (symbol_attribute *, locus *);
-gfc_try gfc_mod_pointee_as (gfc_array_spec *);
+match gfc_mod_pointee_as (gfc_array_spec *);
 gfc_try gfc_add_protected (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_result (symbol_attribute *, const char *, locus *);
 gfc_try gfc_add_save (symbol_attribute *, const char *, locus *);
@@ -2367,11 +2378,13 @@ void gfc_free_dt_list (void);
 gfc_gsymbol *gfc_get_gsymbol (const char *);
 gfc_gsymbol *gfc_find_gsymbol (gfc_gsymbol *, const char *);
 
+gfc_typebound_proc* gfc_get_typebound_proc (void);
 gfc_symbol* gfc_get_derived_super_type (gfc_symbol*);
 gfc_symtree* gfc_find_typebound_proc (gfc_symbol*, gfc_try*, const char*, bool);
+gfc_symtree* gfc_get_tbp_symtree (gfc_symtree**, const char*);
 
-void copy_formal_args (gfc_symbol *, gfc_symbol *);
-void copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
+void gfc_copy_formal_args (gfc_symbol *, gfc_symbol *);
+void gfc_copy_formal_args_intr (gfc_symbol *, gfc_intrinsic_sym *);
 
 void gfc_free_finalizer (gfc_finalizer *el); /* Needed in resolve.c, too  */
 

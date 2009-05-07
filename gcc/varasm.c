@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "toplev.h"
 #include "hashtab.h"
-#include "c-pragma.h"
 #include "ggc.h"
 #include "langhooks.h"
 #include "tm_p.h"
@@ -2637,7 +2636,7 @@ assemble_integer (rtx x, unsigned int size, unsigned int align, int force)
       enum machine_mode omode, imode;
       unsigned int subalign;
       unsigned int subsize, i;
-      unsigned char mclass;
+      enum mode_class mclass;
 
       subsize = size > UNITS_PER_WORD? UNITS_PER_WORD : 1;
       subalign = MIN (align, subsize * BITS_PER_UNIT);
@@ -2713,8 +2712,7 @@ assemble_real (REAL_VALUE_TYPE d, enum machine_mode mode, unsigned int align)
    Store them both in the structure *VALUE.
    EXP must be reducible.  */
 
-struct addr_const GTY(())
-{
+struct GTY(()) addr_const {
   rtx base;
   HOST_WIDE_INT offset;
 };
@@ -2782,8 +2780,7 @@ decode_addr_const (tree exp, struct addr_const *value)
    Each constant in memory thus far output is recorded
    in `const_desc_table'.  */
 
-struct constant_descriptor_tree GTY(())
-{
+struct GTY(()) constant_descriptor_tree {
   /* A MEM for the constant.  */
   rtx rtl;
 
@@ -3368,8 +3365,7 @@ lookup_constant_def (tree exp)
    can use one per-file pool.  Should add a targetm bit to tell the
    difference.  */
 
-struct rtx_constant_pool GTY(())
-{
+struct GTY(()) rtx_constant_pool {
   /* Pointers to first and last constant in pool, as ordered by offset.  */
   struct constant_descriptor_rtx *first;
   struct constant_descriptor_rtx *last;
@@ -3385,8 +3381,7 @@ struct rtx_constant_pool GTY(())
   HOST_WIDE_INT offset;
 };
 
-struct constant_descriptor_rtx GTY((chain_next ("%h.next")))
-{
+struct GTY((chain_next ("%h.next"))) constant_descriptor_rtx {
   struct constant_descriptor_rtx *next;
   rtx mem;
   rtx sym;
@@ -4766,8 +4761,8 @@ output_constructor (tree exp, unsigned HOST_WIDE_INT size,
 	  total_bytes += fieldsize;
 	}
       else if (val != 0 && TREE_CODE (val) != INTEGER_CST)
-	error ("invalid initial value for member %qs",
-	       IDENTIFIER_POINTER (DECL_NAME (field)));
+	error ("invalid initial value for member %qE",
+	       DECL_NAME (field));
       else
 	{
 	  /* Element that is a bit-field.  */
@@ -5180,8 +5175,7 @@ globalize_decl (tree decl)
    of an alias.  This requires that the decl have been defined.  Aliases
    that precede their definition have to be queued for later processing.  */
 
-typedef struct alias_pair GTY(())
-{
+typedef struct GTY(()) alias_pair {
   tree decl;
   tree target;
 } alias_pair;
@@ -5350,13 +5344,13 @@ finish_aliases_1 (void)
       if (target_decl == NULL)
 	{
 	  if (! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	    error ("%q+D aliased to undefined symbol %qs",
-		   p->decl, IDENTIFIER_POINTER (p->target));
+	    error ("%q+D aliased to undefined symbol %qE",
+		   p->decl, p->target);
 	}
       else if (DECL_EXTERNAL (target_decl)
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	error ("%q+D aliased to external symbol %qs",
-	       p->decl, IDENTIFIER_POINTER (p->target));
+	error ("%q+D aliased to external symbol %qE",
+	       p->decl, p->target);
     }
 }
 

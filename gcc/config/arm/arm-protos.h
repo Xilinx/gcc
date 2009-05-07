@@ -1,6 +1,6 @@
 /* Prototypes for exported functions defined in arm.c and pe.c
-   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
-   Free Software Foundation, Inc.
+   Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2009 Free Software Foundation, Inc.
    Contributed by Richard Earnshaw (rearnsha@arm.com)
    Minor hacks by Nick Clifton (nickc@cygnus.com)
 
@@ -26,7 +26,7 @@
 extern void arm_override_options (void);
 extern void arm_optimization_options (int, int);
 extern int use_return_insn (int, rtx);
-extern int arm_regno_class (int);
+extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
 extern int arm_volatile_func (void);
 extern const char *arm_output_epilogue (rtx);
@@ -58,8 +58,6 @@ extern int arm_legitimate_address_p  (enum machine_mode, rtx, RTX_CODE, int);
 extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
 extern int thumb2_legitimate_address_p  (enum machine_mode, rtx, int);
 extern int thumb_legitimate_offset_p (enum machine_mode, HOST_WIDE_INT);
-extern rtx arm_legitimize_address (rtx, rtx, enum machine_mode);
-extern rtx thumb_legitimize_address (rtx, rtx, enum machine_mode);
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int arm_const_double_rtx (rtx);

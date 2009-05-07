@@ -239,10 +239,10 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, slp_tree slp_node,
       switch (dt[i])
 	{
 	case vect_constant_def:
-	case vect_invariant_def:
+	case vect_external_def:
 	  break;
 	  
-	case vect_loop_def:
+	case vect_internal_def:
 	  if (i == 0)
 	    VEC_safe_push (gimple, heap, *def_stmts0, def_stmt);
 	  else
@@ -283,8 +283,9 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
   unsigned int i;
   VEC (gimple, heap) *stmts = SLP_TREE_SCALAR_STMTS (*node);
   gimple stmt = VEC_index (gimple, stmts, 0);
-  enum vect_def_type first_stmt_dt0 = 0, first_stmt_dt1 = 0;
-  enum tree_code first_stmt_code = 0, rhs_code;
+  enum vect_def_type first_stmt_dt0 = vect_uninitialized_def;
+  enum vect_def_type first_stmt_dt1 = vect_uninitialized_def;
+  enum tree_code first_stmt_code = ERROR_MARK, rhs_code;
   tree first_stmt_def1_type = NULL_TREE, first_stmt_def0_type = NULL_TREE;
   tree lhs;
   bool stop_recursion = false, need_same_oprnds = false;
@@ -580,7 +581,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
     }
 
   /* Create SLP_TREE nodes for the definition node/s.  */ 
-  if (first_stmt_dt0 == vect_loop_def)
+  if (first_stmt_dt0 == vect_internal_def)
     {
       slp_tree left_node = XNEW (struct _slp_tree);
       SLP_TREE_SCALAR_STMTS (left_node) = def_stmts0;
@@ -597,7 +598,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, slp_tree *node,
       SLP_TREE_LEFT (*node) = left_node;
     }
 
-  if (first_stmt_dt1 == vect_loop_def)
+  if (first_stmt_dt1 == vect_internal_def)
     {
       slp_tree right_node = XNEW (struct _slp_tree);
       SLP_TREE_SCALAR_STMTS (right_node) = def_stmts1;
@@ -951,7 +952,7 @@ vect_analyze_slp (loop_vec_info loop_vinfo)
     if (!vect_analyze_slp_instance (loop_vinfo, store))
       {
 	/* SLP failed. No instance can be SLPed in the loop.  */
-	if (vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))	
+	if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))	
 	  fprintf (vect_dump, "SLP failed.");
 
 	return false;
@@ -1693,8 +1694,8 @@ vect_schedule_slp (loop_vec_info loop_vinfo)
       is_store = vect_schedule_slp_instance (SLP_INSTANCE_TREE (instance),
                             instance, LOOP_VINFO_VECT_FACTOR (loop_vinfo));
 			  
-      if (vect_print_dump_info (REPORT_VECTORIZED_LOOPS)
-	  || vect_print_dump_info (REPORT_UNVECTORIZED_LOOPS))
+      if (vect_print_dump_info (REPORT_VECTORIZED_LOCATIONS)
+	  || vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
 	fprintf (vect_dump, "vectorizing stmts using SLP.");
     }
 

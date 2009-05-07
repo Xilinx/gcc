@@ -400,11 +400,7 @@ c_common_handle_option (size_t scode, const char *arg, int value)
 	 headers.  */
       warn_unknown_pragmas = value;
 
-      /* We save the value of warn_uninitialized, since if they put
-	 -Wuninitialized on the command line, we need to generate a
-	 warning about not using it without also specifying -O.  */
-      if (warn_uninitialized != 1)
-	warn_uninitialized = (value ? 2 : 0);
+      warn_uninitialized = value;
 
       if (!c_dialect_cxx ())
 	{
@@ -1057,11 +1053,8 @@ c_common_post_options (const char **pfilename)
   if (flag_objc_exceptions && !flag_objc_sjlj_exceptions)
     flag_exceptions = 1;
 
-  /* -Wextra implies -Wtype-limits, -Wclobbered, 
-     -Wempty-body, -Wsign-compare, 
-     -Wmissing-field-initializers, -Wmissing-parameter-type
-     -Wold-style-declaration, -Woverride-init and -Wignored-qualifiers
-     but not if explicitly overridden.  */
+  /* -Wextra implies the following flags
+     unless explicitly overridden.  */
   if (warn_type_limits == -1)
     warn_type_limits = extra_warnings;
   if (warn_clobbered == -1)
@@ -1080,6 +1073,8 @@ c_common_post_options (const char **pfilename)
     warn_override_init = extra_warnings;
   if (warn_ignored_qualifiers == -1)
     warn_ignored_qualifiers = extra_warnings;
+  if (warn_logical_op == -1)
+    warn_logical_op = extra_warnings;
 
   /* -Wpointer-sign is disabled by default, but it is enabled if any
      of -Wall or -pedantic are given.  */
@@ -1431,14 +1426,15 @@ sanitize_cpp_opts (void)
   cpp_opts->unsigned_char = !flag_signed_char;
   cpp_opts->stdc_0_in_system_headers = STDC_0_IN_SYSTEM_HEADERS;
 
-  /* We want -Wno-long-long to override -pedantic -std=non-c99
-     and/or -Wtraditional, whatever the ordering.  */
-  cpp_opts->warn_long_long
-    = warn_long_long && ((pedantic
-			  && (c_dialect_cxx ()
-			      ? cxx_dialect == cxx98
-			      : !flag_isoc99))
-                         || warn_traditional);
+  /* Wlong-long is disabled by default. It is enabled by:
+      [-pedantic | -Wtraditional] -std=[gnu|c]++98 ; or
+      [-pedantic | -Wtraditional] -std=non-c99 . 
+
+      Either -Wlong-long or -Wno-long-long override any other settings.  */
+  if (warn_long_long == -1)
+    warn_long_long = ((pedantic || warn_traditional)
+		      && (c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99));
+  cpp_opts->warn_long_long = warn_long_long;
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */

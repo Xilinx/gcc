@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -100,6 +100,7 @@ package body Makeutl is
          declare
             New_Options : constant String_List_Access :=
                             new String_List (1 .. To'Last * 2);
+
          begin
             New_Options (To'Range) := To.all;
 
@@ -195,10 +196,10 @@ package body Makeutl is
       Exec_Name : constant String := Command_Name;
 
       function Get_Install_Dir (S : String) return String;
-      --  S is the executable name preceded by the absolute or relative
-      --  path, e.g. "c:\usr\bin\gcc.exe". Returns the absolute directory
-      --  where "bin" lies (in the example "C:\usr").
-      --  If the executable is not in a "bin" directory, return "".
+      --  S is the executable name preceded by the absolute or relative path,
+      --  e.g. "c:\usr\bin\gcc.exe". Returns the absolute directory where "bin"
+      --  lies (in the example "C:\usr"). If the executable is not in a "bin"
+      --  directory, return "".
 
       ---------------------
       -- Get_Install_Dir --
@@ -332,9 +333,7 @@ package body Makeutl is
          Equal_Pos := Equal_Pos + 1;
       end loop;
 
-      if Equal_Pos = Start
-        or else Equal_Pos > Finish
-      then
+      if Equal_Pos = Start or else Equal_Pos > Finish then
          return False;
       else
          Prj.Ext.Add
@@ -364,98 +363,71 @@ package body Makeutl is
      (Project  : Project_Id;
       In_Tree  : Project_Tree_Ref) return String_List
    is
-      procedure Recursive_Add_Linker_Options (Proj : Project_Id);
+      procedure Recursive_Add (Proj : Project_Id; Dummy : in out Boolean);
       --  The recursive routine used to add linker options
 
-      ----------------------------------
-      -- Recursive_Add_Linker_Options --
-      ----------------------------------
+      -------------------
+      -- Recursive_Add --
+      -------------------
 
-      procedure Recursive_Add_Linker_Options (Proj : Project_Id) is
-         Data           : Project_Data;
+      procedure Recursive_Add (Proj : Project_Id; Dummy : in out Boolean) is
+         pragma Unreferenced (Dummy);
+
          Linker_Package : Package_Id;
          Options        : Variable_Value;
-         Imported       : Project_List;
 
       begin
-         if Proj /= No_Project then
-            Data := In_Tree.Projects.Table (Proj);
+         Linker_Package :=
+           Prj.Util.Value_Of
+             (Name        => Name_Linker,
+              In_Packages => Proj.Decl.Packages,
+              In_Tree     => In_Tree);
 
-            if not Data.Seen then
-               In_Tree.Projects.Table (Proj).Seen := True;
-               Imported := Data.Imported_Projects;
+         Options :=
+           Prj.Util.Value_Of
+             (Name                    => Name_Ada,
+              Index                   => 0,
+              Attribute_Or_Array_Name => Name_Linker_Options,
+              In_Package              => Linker_Package,
+              In_Tree                 => In_Tree);
 
-               while Imported /= Empty_Project_List loop
-                  Recursive_Add_Linker_Options
-                    (In_Tree.Project_Lists.Table
-                       (Imported).Project);
-                  Imported := In_Tree.Project_Lists.Table
-                                (Imported).Next;
-               end loop;
+         --  If attribute is present, add the project with
+         --  the attribute to table Linker_Opts.
 
-               if Proj /= Project then
-                  Linker_Package :=
-                    Prj.Util.Value_Of
-                      (Name        => Name_Linker,
-                       In_Packages => Data.Decl.Packages,
-                       In_Tree     => In_Tree);
-                  Options :=
-                    Prj.Util.Value_Of
-                      (Name                    => Name_Ada,
-                       Index                   => 0,
-                       Attribute_Or_Array_Name => Name_Linker_Options,
-                       In_Package              => Linker_Package,
-                       In_Tree                 => In_Tree);
-
-                  --  If attribute is present, add the project with
-                  --  the attribute to table Linker_Opts.
-
-                  if Options /= Nil_Variable_Value then
-                     Linker_Opts.Increment_Last;
-                     Linker_Opts.Table (Linker_Opts.Last) :=
-                       (Project => Proj, Options => Options.Values);
-                  end if;
-               end if;
-            end if;
+         if Options /= Nil_Variable_Value then
+            Linker_Opts.Increment_Last;
+            Linker_Opts.Table (Linker_Opts.Last) :=
+              (Project => Proj, Options => Options.Values);
          end if;
-      end Recursive_Add_Linker_Options;
+      end Recursive_Add;
+
+      procedure For_All_Projects is
+        new For_Every_Project_Imported (Boolean, Recursive_Add);
+
+      Dummy : Boolean := False;
 
    --  Start of processing for Linker_Options_Switches
 
    begin
       Linker_Opts.Init;
 
-      for Index in Project_Table.First ..
-                   Project_Table.Last (In_Tree.Projects)
-      loop
-         In_Tree.Projects.Table (Index).Seen := False;
-      end loop;
-
-      Recursive_Add_Linker_Options (Project);
+      For_All_Projects (Project, Dummy, Imported_First => True);
 
       Last_Linker_Option := 0;
 
       for Index in reverse 1 .. Linker_Opts.Last loop
          declare
-            Options : String_List_Id := Linker_Opts.Table (Index).Options;
+            Options : String_List_Id;
             Proj    : constant Project_Id :=
-              Linker_Opts.Table (Index).Project;
+                        Linker_Opts.Table (Index).Project;
             Option  : Name_Id;
+            Dir_Path : constant String :=
+                         Get_Name_String (Proj.Directory.Name);
 
          begin
-            --  If Dir_Path has not been computed for this project, do it now
-
-            if In_Tree.Projects.Table (Proj).Dir_Path = null then
-               In_Tree.Projects.Table (Proj).Dir_Path :=
-                 new String'
-                   (Get_Name_String
-                        (In_Tree.Projects.Table
-                             (Proj).Directory.Name));
-            end if;
-
+            Options := Linker_Opts.Table (Index).Options;
             while Options /= Nil_String loop
-               Option :=
-                 In_Tree.String_Elements.Table (Options).Value;
+               Option := In_Tree.String_Elements.Table (Options).Value;
                Get_Name_String (Option);
 
                --  Do not consider empty linker options
@@ -467,15 +439,12 @@ package body Makeutl is
                   --  paths must be converted to absolute paths.
 
                   Test_If_Relative_Path
-                    (Switch =>
-                       Linker_Options_Buffer (Last_Linker_Option),
-                     Parent =>
-                       In_Tree.Projects.Table (Proj).Dir_Path,
+                    (Switch => Linker_Options_Buffer (Last_Linker_Option),
+                     Parent => Dir_Path,
                      Including_L_Switch => True);
                end if;
 
-               Options :=
-                 In_Tree.String_Elements.Table (Options).Next;
+               Options := In_Tree.String_Elements.Table (Options).Next;
             end loop;
          end;
       end loop;
@@ -627,14 +596,15 @@ package body Makeutl is
 
    procedure Test_If_Relative_Path
      (Switch               : in out String_Access;
-      Parent               : String_Access;
+      Parent               : String;
       Including_L_Switch   : Boolean := True;
-      Including_Non_Switch : Boolean := True)
+      Including_Non_Switch : Boolean := True;
+      Including_RTS        : Boolean := False)
    is
    begin
       if Switch /= null then
          declare
-            Sw : String (1 .. Switch'Length);
+            Sw    : String (1 .. Switch'Length);
             Start : Positive;
 
          begin
@@ -643,8 +613,8 @@ package body Makeutl is
             if Sw (1) = '-' then
                if Sw'Length >= 3
                  and then (Sw (2) = 'A'
-                           or else Sw (2) = 'I'
-                           or else (Including_L_Switch and then Sw (2) = 'L'))
+                            or else Sw (2) = 'I'
+                            or else (Including_L_Switch and then Sw (2) = 'L'))
                then
                   Start := 3;
 
@@ -654,10 +624,16 @@ package body Makeutl is
 
                elsif Sw'Length >= 4
                  and then (Sw (2 .. 3) = "aL"
-                           or else Sw (2 .. 3) = "aO"
-                           or else Sw (2 .. 3) = "aI")
+                            or else Sw (2 .. 3) = "aO"
+                            or else Sw (2 .. 3) = "aI")
                then
                   Start := 4;
+
+               elsif Including_RTS
+                 and then Sw'Length >= 7
+                 and then Sw (2 .. 6) = "-RTS="
+               then
+                  Start := 7;
 
                else
                   return;
@@ -665,20 +641,34 @@ package body Makeutl is
 
                --  Because relative path arguments to --RTS= may be relative
                --  to the search directory prefix, those relative path
-               --  arguments are not converted.
+               --  arguments are converted only when they include directory
+               --  information.
 
                if not Is_Absolute_Path (Sw (Start .. Sw'Last)) then
-                  if Parent = null or else Parent'Length = 0 then
+                  if Parent'Length = 0 then
                      Do_Fail
                        ("relative search path switches ("""
                         & Sw
                         & """) are not allowed");
 
+                  elsif Including_RTS then
+                     for J in Start .. Sw'Last loop
+                        if Sw (J) = Directory_Separator then
+                           Switch :=
+                             new String'
+                               (Sw (1 .. Start - 1) &
+                                Parent &
+                                Directory_Separator &
+                                Sw (Start .. Sw'Last));
+                           return;
+                        end if;
+                     end loop;
+
                   else
                      Switch :=
                        new String'
                          (Sw (1 .. Start - 1) &
-                          Parent.all &
+                          Parent &
                           Directory_Separator &
                           Sw (Start .. Sw'Last));
                   end if;
@@ -686,13 +676,11 @@ package body Makeutl is
 
             elsif Including_Non_Switch then
                if not Is_Absolute_Path (Sw) then
-                  if Parent = null or else Parent'Length = 0 then
+                  if Parent'Length = 0 then
                      Do_Fail
                        ("relative paths (""" & Sw & """) are not allowed");
-
                   else
-                     Switch :=
-                       new String'(Parent.all & Directory_Separator & Sw);
+                     Switch := new String'(Parent & Directory_Separator & Sw);
                   end if;
                end if;
             end if;
@@ -733,9 +721,9 @@ package body Makeutl is
          Start := Start - 1;
       end loop;
 
-      --  If there are no digits, or if the digits are not preceded by
-      --  the character that precedes a unit index, this is not the ALI file
-      --  of a unit in a multi-unit source.
+      --  If there are no digits, or if the digits are not preceded by the
+      --  character that precedes a unit index, this is not the ALI file of
+      --  a unit in a multi-unit source.
 
       if Start > Finish
         or else Start = 1

@@ -100,7 +100,7 @@ extern int target_memregs;
 
 /* Defining data structures for per-function information */
 
-typedef struct machine_function GTY (())
+typedef struct GTY (()) machine_function
 {
   /* How much we adjust the stack when returning from an exception
      handler.  */
@@ -587,15 +587,9 @@ typedef struct m32c_cumulative_args
 
 /* #define FIND_BASE_TERM(X) when we do unspecs for symrefs */
 
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN) \
-	if (m32c_legitimize_address(&(X),OLDX,MODE)) \
-	  goto WIN;
-
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_LEVELS,WIN) \
 	if (m32c_legitimize_reload_address(&(X),MODE,OPNUM,TYPE,IND_LEVELS)) \
 	  goto WIN;
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define LEGITIMATE_CONSTANT_P(X) m32c_legitimate_constant_p (X)
 

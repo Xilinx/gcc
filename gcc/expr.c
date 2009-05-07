@@ -1,6 +1,6 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -54,6 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "df.h"
 #include "diagnostic.h"
+#include "ssaexpand.h"
 
 /* Decide whether a function's arguments should be processed
    from first to last or from last to first.
@@ -267,7 +268,7 @@ init_expr_target (void)
   reg = gen_rtx_REG (VOIDmode, -1);
 
   insn = rtx_alloc (INSN);
-  pat = gen_rtx_SET (0, NULL_RTX, NULL_RTX);
+  pat = gen_rtx_SET (VOIDmode, NULL_RTX, NULL_RTX);
   PATTERN (insn) = pat;
 
   for (mode = VOIDmode; (int) mode < NUM_MACHINE_MODES;
@@ -4284,12 +4285,13 @@ expand_assignment (tree to, tree from, bool nontemporal)
      Don't do this if TO is a VAR_DECL or PARM_DECL whose DECL_RTL is REG
      since it might be a promoted variable where the zero- or sign- extension
      needs to be done.  Handling this in the normal way is safe because no
-     computation is done before the call.  */
+     computation is done before the call.  The same is true for SSA names.  */
   if (TREE_CODE (from) == CALL_EXPR && ! aggregate_value_p (from, from)
       && COMPLETE_TYPE_P (TREE_TYPE (from))
       && TREE_CODE (TYPE_SIZE (TREE_TYPE (from))) == INTEGER_CST
-      && ! ((TREE_CODE (to) == VAR_DECL || TREE_CODE (to) == PARM_DECL)
-	    && REG_P (DECL_RTL (to))))
+      && ! (((TREE_CODE (to) == VAR_DECL || TREE_CODE (to) == PARM_DECL)
+	     && REG_P (DECL_RTL (to)))
+	    || TREE_CODE (to) == SSA_NAME))
     {
       rtx value;
 
@@ -6199,27 +6201,6 @@ component_ref_field_offset (tree exp)
   else
     return SUBSTITUTE_PLACEHOLDER_IN_EXPR (DECL_FIELD_OFFSET (field), exp);
 }
-
-/* Return 1 if T is an expression that get_inner_reference handles.  */
-
-int
-handled_component_p (const_tree t)
-{
-  switch (TREE_CODE (t))
-    {
-    case BIT_FIELD_REF:
-    case COMPONENT_REF:
-    case ARRAY_REF:
-    case ARRAY_RANGE_REF:
-    case VIEW_CONVERT_EXPR:
-    case REALPART_EXPR:
-    case IMAGPART_EXPR:
-      return 1;
-
-    default:
-      return 0;
-    }
-}
 
 /* Given an rtx VALUE that may contain additions and multiplications, return
    an equivalent value that just refers to a register, memory, or constant.
@@ -7011,6 +6992,26 @@ expand_constructor (tree exp, rtx target, enum expand_modifier modifier,
   return target;
 }
 
+/* Return the defining gimple statement for SSA_NAME NAME if it is an
+   assigment and the code of the expresion on the RHS is CODE.  Return
+   NULL otherwise.  */
+
+static gimple
+get_def_for_expr (tree name, enum tree_code code)
+{
+  gimple def_stmt;
+
+  if (TREE_CODE (name) != SSA_NAME)
+    return NULL;
+
+  def_stmt = get_gimple_for_ssa_name (name);
+  if (!def_stmt
+      || gimple_assign_rhs_code (def_stmt) != code)
+    return NULL;
+
+  return def_stmt;
+}
+
 
 /* expand_expr: generate code for computing expression EXP.
    An rtx for the computed value is returned.  The value is never null.
@@ -7149,6 +7150,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   int ignore;
   tree context, subexp0, subexp1;
   bool reduce_bit_field;
+  gimple subexp0_def, subexp1_def;
+  tree top0, top1;
 #define REDUCE_BIT_FIELD(expr)	(reduce_bit_field			  \
 				 ? reduce_to_bit_field_precision ((expr), \
 								  target, \
@@ -7244,8 +7247,21 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       }
 
     case SSA_NAME:
-      return expand_expr_real_1 (SSA_NAME_VAR (exp), target, tmode, modifier,
-				 NULL);
+      /* ??? ivopts calls expander, without any preparation from
+         out-of-ssa.  So fake instructions as if this was an access to the
+	 base variable.  This unnecessarily allocates a pseudo, see how we can
+	 reuse it, if partition base vars have it set already.  */
+      if (!currently_expanding_to_rtl)
+	return expand_expr_real_1 (SSA_NAME_VAR (exp), target, tmode, modifier, NULL);
+      {
+	gimple g = get_gimple_for_ssa_name (exp);
+	if (g)
+	  return expand_expr_real_1 (gimple_assign_rhs_to_tree (g), target,
+				     tmode, modifier, NULL);
+      }
+      decl_rtl = get_rtx_for_ssa_name (exp);
+      exp = SSA_NAME_VAR (exp);
+      goto expand_decl_rtl;
 
     case PARM_DECL:
     case VAR_DECL:
@@ -7271,6 +7287,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case FUNCTION_DECL:
     case RESULT_DECL:
       decl_rtl = DECL_RTL (exp);
+    expand_decl_rtl:
       gcc_assert (decl_rtl);
       decl_rtl = copy_rtx (decl_rtl);
 
@@ -8038,14 +8055,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    && (attr = lookup_attribute ("error",
 					 DECL_ATTRIBUTES (fndecl))) != NULL)
 	  error ("%Kcall to %qs declared with attribute error: %s",
-		 exp, lang_hooks.decl_printable_name (fndecl, 1),
+		 exp, identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 1)),
 		 TREE_STRING_POINTER (TREE_VALUE (TREE_VALUE (attr))));
 	if (fndecl
 	    && (attr = lookup_attribute ("warning",
 					 DECL_ATTRIBUTES (fndecl))) != NULL)
 	  warning_at (tree_nonartificial_location (exp),
 		      0, "%Kcall to %qs declared with attribute warning: %s",
-		      exp, lang_hooks.decl_printable_name (fndecl, 1),
+		      exp, identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 1)),
 		      TREE_STRING_POINTER (TREE_VALUE (TREE_VALUE (attr))));
 
 	/* Check for a built-in function.  */
@@ -8327,27 +8344,30 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Check if this is a case for multiplication and addition.  */
       if ((TREE_CODE (type) == INTEGER_TYPE
 	   || TREE_CODE (type) == FIXED_POINT_TYPE)
-	  && TREE_CODE (TREE_OPERAND (exp, 0)) == MULT_EXPR)
+	  && (subexp0_def = get_def_for_expr (TREE_OPERAND (exp, 0),
+					      MULT_EXPR)))
 	{
 	  tree subsubexp0, subsubexp1;
-	  enum tree_code code0, code1, this_code;
+	  gimple subsubexp0_def, subsubexp1_def;
+	  enum tree_code this_code;
 
-	  subexp0 = TREE_OPERAND (exp, 0);
-	  subsubexp0 = TREE_OPERAND (subexp0, 0);
-	  subsubexp1 = TREE_OPERAND (subexp0, 1);
-	  code0 = TREE_CODE (subsubexp0);
-	  code1 = TREE_CODE (subsubexp1);
 	  this_code = TREE_CODE (type) == INTEGER_TYPE ? NOP_EXPR
 						       : FIXED_CONVERT_EXPR;
-	  if (code0 == this_code && code1 == this_code
-	      && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
+	  subsubexp0 = gimple_assign_rhs1 (subexp0_def);
+	  subsubexp0_def = get_def_for_expr (subsubexp0, this_code);
+	  subsubexp1 = gimple_assign_rhs2 (subexp0_def);
+	  subsubexp1_def = get_def_for_expr (subsubexp1, this_code);
+	  if (subsubexp0_def && subsubexp1_def
+	      && (top0 = gimple_assign_rhs1 (subsubexp0_def))
+	      && (top1 = gimple_assign_rhs1 (subsubexp1_def))
+	      && (TYPE_PRECISION (TREE_TYPE (top0))
 		  < TYPE_PRECISION (TREE_TYPE (subsubexp0)))
-	      && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
-		  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp1, 0))))
-	      && (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
-		  == TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subsubexp1, 0)))))
+	      && (TYPE_PRECISION (TREE_TYPE (top0))
+		  == TYPE_PRECISION (TREE_TYPE (top1)))
+	      && (TYPE_UNSIGNED (TREE_TYPE (top0))
+		  == TYPE_UNSIGNED (TREE_TYPE (top1))))
 	    {
-	      tree op0type = TREE_TYPE (TREE_OPERAND (subsubexp0, 0));
+	      tree op0type = TREE_TYPE (top0);
 	      enum machine_mode innermode = TYPE_MODE (op0type);
 	      bool zextend_p = TYPE_UNSIGNED (op0type);
 	      bool sat_p = TYPE_SATURATING (TREE_TYPE (subsubexp0));
@@ -8360,9 +8380,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		  && (optab_handler (this_optab, mode)->insn_code
 		      != CODE_FOR_nothing))
 		{
-		  expand_operands (TREE_OPERAND (subsubexp0, 0),
-				   TREE_OPERAND (subsubexp1, 0),
-				   NULL_RTX, &op0, &op1, EXPAND_NORMAL);
+		  expand_operands (top0, top1, NULL_RTX, &op0, &op1,
+				   EXPAND_NORMAL);
 		  op2 = expand_expr (TREE_OPERAND (exp, 1), subtarget,
 				     VOIDmode, EXPAND_NORMAL);
 		  temp = expand_ternary_op (mode, this_optab, op0, op1, op2,
@@ -8474,7 +8493,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  || mode != ptr_mode)
 	{
 	  expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-			   subtarget, &op0, &op1, 0);
+			   subtarget, &op0, &op1, EXPAND_NORMAL);
 	  if (op0 == const0_rtx)
 	    return op1;
 	  if (op1 == const0_rtx)
@@ -8490,27 +8509,30 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Check if this is a case for multiplication and subtraction.  */
       if ((TREE_CODE (type) == INTEGER_TYPE
 	   || TREE_CODE (type) == FIXED_POINT_TYPE)
-	  && TREE_CODE (TREE_OPERAND (exp, 1)) == MULT_EXPR)
+	  && (subexp1_def = get_def_for_expr (TREE_OPERAND (exp, 1),
+					      MULT_EXPR)))
 	{
 	  tree subsubexp0, subsubexp1;
-	  enum tree_code code0, code1, this_code;
+	  gimple subsubexp0_def, subsubexp1_def;
+	  enum tree_code this_code;
 
-	  subexp1 = TREE_OPERAND (exp, 1);
-	  subsubexp0 = TREE_OPERAND (subexp1, 0);
-	  subsubexp1 = TREE_OPERAND (subexp1, 1);
-	  code0 = TREE_CODE (subsubexp0);
-	  code1 = TREE_CODE (subsubexp1);
 	  this_code = TREE_CODE (type) == INTEGER_TYPE ? NOP_EXPR
 						       : FIXED_CONVERT_EXPR;
-	  if (code0 == this_code && code1 == this_code
-	      && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
+	  subsubexp0 = gimple_assign_rhs1 (subexp1_def);
+	  subsubexp0_def = get_def_for_expr (subsubexp0, this_code);
+	  subsubexp1 = gimple_assign_rhs2 (subexp1_def);
+	  subsubexp1_def = get_def_for_expr (subsubexp1, this_code);
+	  if (subsubexp0_def && subsubexp1_def
+	      && (top0 = gimple_assign_rhs1 (subsubexp0_def))
+	      && (top1 = gimple_assign_rhs1 (subsubexp1_def))
+	      && (TYPE_PRECISION (TREE_TYPE (top0))
 		  < TYPE_PRECISION (TREE_TYPE (subsubexp0)))
-	      && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
-		  == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subsubexp1, 0))))
-	      && (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subsubexp0, 0)))
-		  == TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subsubexp1, 0)))))
+	      && (TYPE_PRECISION (TREE_TYPE (top0))
+		  == TYPE_PRECISION (TREE_TYPE (top1)))
+	      && (TYPE_UNSIGNED (TREE_TYPE (top0))
+		  == TYPE_UNSIGNED (TREE_TYPE (top1))))
 	    {
-	      tree op0type = TREE_TYPE (TREE_OPERAND (subsubexp0, 0));
+	      tree op0type = TREE_TYPE (top0);
 	      enum machine_mode innermode = TYPE_MODE (op0type);
 	      bool zextend_p = TYPE_UNSIGNED (op0type);
 	      bool sat_p = TYPE_SATURATING (TREE_TYPE (subsubexp0));
@@ -8523,9 +8545,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		  && (optab_handler (this_optab, mode)->insn_code
 		      != CODE_FOR_nothing))
 		{
-		  expand_operands (TREE_OPERAND (subsubexp0, 0),
-				   TREE_OPERAND (subsubexp1, 0),
-				   NULL_RTX, &op0, &op1, EXPAND_NORMAL);
+		  expand_operands (top0, top1, NULL_RTX, &op0, &op1,
+				   EXPAND_NORMAL);
 		  op2 = expand_expr (TREE_OPERAND (exp, 0), subtarget,
 				     VOIDmode, EXPAND_NORMAL);
 		  temp = expand_ternary_op (mode, this_optab, op0, op1, op2,
@@ -8624,66 +8645,65 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
       subexp0 = TREE_OPERAND (exp, 0);
       subexp1 = TREE_OPERAND (exp, 1);
+      subexp0_def = get_def_for_expr (subexp0, NOP_EXPR);
+      subexp1_def = get_def_for_expr (subexp1, NOP_EXPR);
+      top0 = top1 = NULL_TREE;
+
       /* First, check if we have a multiplication of one signed and one
 	 unsigned operand.  */
-      if (TREE_CODE (subexp0) == NOP_EXPR
-	  && TREE_CODE (subexp1) == NOP_EXPR
+      if (subexp0_def
+	  && (top0 = gimple_assign_rhs1 (subexp0_def))
+	  && subexp1_def
+	  && (top1 = gimple_assign_rhs1 (subexp1_def))
 	  && TREE_CODE (type) == INTEGER_TYPE
-	  && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subexp0, 0)))
-	      < TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (exp, 0))))
-	  && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subexp0, 0)))
-	      == TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (subexp1, 0))))
-	  && (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subexp0, 0)))
-	      != TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subexp1, 0)))))
+	  && (TYPE_PRECISION (TREE_TYPE (top0))
+	      < TYPE_PRECISION (TREE_TYPE (subexp0)))
+	  && (TYPE_PRECISION (TREE_TYPE (top0))
+	      == TYPE_PRECISION (TREE_TYPE (top1)))
+	  && (TYPE_UNSIGNED (TREE_TYPE (top0))
+	      != TYPE_UNSIGNED (TREE_TYPE (top1))))
 	{
 	  enum machine_mode innermode
-	    = TYPE_MODE (TREE_TYPE (TREE_OPERAND (subexp0, 0)));
+	    = TYPE_MODE (TREE_TYPE (top0));
 	  this_optab = usmul_widen_optab;
 	  if (mode == GET_MODE_WIDER_MODE (innermode))
 	    {
 	      if (optab_handler (this_optab, mode)->insn_code != CODE_FOR_nothing)
 		{
-		  if (TYPE_UNSIGNED (TREE_TYPE (TREE_OPERAND (subexp0, 0))))
-		    expand_operands (TREE_OPERAND (subexp0, 0),
-				     TREE_OPERAND (subexp1, 0),
-				     NULL_RTX, &op0, &op1, 0);
+		  if (TYPE_UNSIGNED (TREE_TYPE (top0)))
+		    expand_operands (top0, top1, NULL_RTX, &op0, &op1,
+				     EXPAND_NORMAL);
 		  else
-		    expand_operands (TREE_OPERAND (subexp0, 0),
-				     TREE_OPERAND (subexp1, 0),
-				     NULL_RTX, &op1, &op0, 0);
+		    expand_operands (top0, top1, NULL_RTX, &op1, &op0,
+				     EXPAND_NORMAL);
 
 		  goto binop3;
 		}
 	    }
 	}
-      /* Check for a multiplication with matching signedness.  */
-      else if (TREE_CODE (TREE_OPERAND (exp, 0)) == NOP_EXPR
+      /* Check for a multiplication with matching signedness.  If
+	 valid, TOP0 and TOP1 were set in the previous if
+	 condition.  */
+      else if (top0
 	  && TREE_CODE (type) == INTEGER_TYPE
-	  && (TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (TREE_OPERAND (exp, 0), 0)))
-	      < TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (exp, 0))))
-	  && ((TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST
-	       && int_fits_type_p (TREE_OPERAND (exp, 1),
-				   TREE_TYPE (TREE_OPERAND (TREE_OPERAND (exp, 0), 0)))
+	  && (TYPE_PRECISION (TREE_TYPE (top0))
+	      < TYPE_PRECISION (TREE_TYPE (subexp0)))
+	  && ((TREE_CODE (subexp1) == INTEGER_CST
+	       && int_fits_type_p (subexp1, TREE_TYPE (top0))
 	       /* Don't use a widening multiply if a shift will do.  */
-	       && ((GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (TREE_OPERAND (exp, 1))))
+	       && ((GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (subexp1)))
 		    > HOST_BITS_PER_WIDE_INT)
-		   || exact_log2 (TREE_INT_CST_LOW (TREE_OPERAND (exp, 1))) < 0))
+		   || exact_log2 (TREE_INT_CST_LOW (subexp1)) < 0))
 	      ||
-	      (TREE_CODE (TREE_OPERAND (exp, 1)) == NOP_EXPR
-	       && (TYPE_PRECISION (TREE_TYPE
-				   (TREE_OPERAND (TREE_OPERAND (exp, 1), 0)))
-		   == TYPE_PRECISION (TREE_TYPE
-				      (TREE_OPERAND
-				       (TREE_OPERAND (exp, 0), 0))))
+	      (top1
+	       && (TYPE_PRECISION (TREE_TYPE (top1))
+		   == TYPE_PRECISION (TREE_TYPE (top0))
 	       /* If both operands are extended, they must either both
 		  be zero-extended or both be sign-extended.  */
-	       && (TYPE_UNSIGNED (TREE_TYPE
-				  (TREE_OPERAND (TREE_OPERAND (exp, 1), 0)))
-		   == TYPE_UNSIGNED (TREE_TYPE
-				     (TREE_OPERAND
-				      (TREE_OPERAND (exp, 0), 0)))))))
+	       && (TYPE_UNSIGNED (TREE_TYPE (top1))
+		   == TYPE_UNSIGNED (TREE_TYPE (top0)))))))
 	{
-	  tree op0type = TREE_TYPE (TREE_OPERAND (TREE_OPERAND (exp, 0), 0));
+	  tree op0type = TREE_TYPE (top0);
 	  enum machine_mode innermode = TYPE_MODE (op0type);
 	  bool zextend_p = TYPE_UNSIGNED (op0type);
 	  optab other_optab = zextend_p ? smul_widen_optab : umul_widen_optab;
@@ -8693,27 +8713,24 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    {
 	      if (optab_handler (this_optab, mode)->insn_code != CODE_FOR_nothing)
 		{
-		  if (TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST)
-		    expand_operands (TREE_OPERAND (TREE_OPERAND (exp, 0), 0),
-				     TREE_OPERAND (exp, 1),
-				     NULL_RTX, &op0, &op1, EXPAND_NORMAL);
+		  if (TREE_CODE (subexp1) == INTEGER_CST)
+		    expand_operands (top0, subexp1, NULL_RTX, &op0, &op1,
+				     EXPAND_NORMAL);
 		  else
-		    expand_operands (TREE_OPERAND (TREE_OPERAND (exp, 0), 0),
-				     TREE_OPERAND (TREE_OPERAND (exp, 1), 0),
-				     NULL_RTX, &op0, &op1, EXPAND_NORMAL);
+		    expand_operands (top0, top1, NULL_RTX, &op0, &op1,
+				     EXPAND_NORMAL);
 		  goto binop3;
 		}
 	      else if (optab_handler (other_optab, mode)->insn_code != CODE_FOR_nothing
 		       && innermode == word_mode)
 		{
 		  rtx htem, hipart;
-		  op0 = expand_normal (TREE_OPERAND (TREE_OPERAND (exp, 0), 0));
-		  if (TREE_CODE (TREE_OPERAND (exp, 1)) == INTEGER_CST)
+		  op0 = expand_normal (top0);
+		  if (TREE_CODE (subexp1) == INTEGER_CST)
 		    op1 = convert_modes (innermode, mode,
-					 expand_normal (TREE_OPERAND (exp, 1)),
-					 unsignedp);
+					 expand_normal (subexp1), unsignedp);
 		  else
-		    op1 = expand_normal (TREE_OPERAND (TREE_OPERAND (exp, 1), 0));
+		    op1 = expand_normal (top1);
 		  temp = expand_binop (mode, other_optab, op0, op1, target,
 				       unsignedp, OPTAB_LIB_WIDEN);
 		  hipart = gen_highpart (innermode, temp);
@@ -8726,8 +8743,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		}
 	    }
 	}
-      expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-		       subtarget, &op0, &op1, 0);
+      expand_operands (subexp0, subexp1, subtarget, &op0, &op1, EXPAND_NORMAL);
       return REDUCE_BIT_FIELD (expand_mult (mode, op0, op1, target, unsignedp));
 
     case TRUNC_DIV_EXPR:
@@ -8747,7 +8763,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	 then if the divisor is constant can optimize the case
 	 where some terms of the dividend have coeffs divisible by it.  */
       expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-		       subtarget, &op0, &op1, 0);
+		       subtarget, &op0, &op1, EXPAND_NORMAL);
       return expand_divmod (0, code, mode, op0, op1, target, unsignedp);
 
     case RDIV_EXPR:
@@ -8760,7 +8776,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       if (modifier == EXPAND_STACK_PARM)
 	target = 0;
       expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-		       subtarget, &op0, &op1, 0);
+		       subtarget, &op0, &op1, EXPAND_NORMAL);
       return expand_divmod (1, code, mode, op0, op1, target, unsignedp);
 
     case FIXED_CONVERT_EXPR:
@@ -8837,7 +8853,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	      && REGNO (target) < FIRST_PSEUDO_REGISTER))
 	target = gen_reg_rtx (mode);
       expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-		       target, &op0, &op1, 0);
+		       target, &op0, &op1, EXPAND_NORMAL);
 
       /* First try to do it with a special MIN or MAX instruction.
 	 If that does not win, use a conditional jump to select the proper
@@ -9345,7 +9361,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
         tree oprnd0 = TREE_OPERAND (exp, 0);
         tree oprnd1 = TREE_OPERAND (exp, 1);
 
-        expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, 0);
+        expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
         target = expand_widen_pattern_expr (exp, op0, NULL_RTX, op1,
                                             target, unsignedp);
         return target;
@@ -9366,7 +9382,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case VEC_EXTRACT_ODD_EXPR:
       {
         expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
-                         NULL_RTX, &op0, &op1, 0);
+                         NULL_RTX, &op0, &op1, EXPAND_NORMAL);
         this_optab = optab_for_tree_code (code, type, optab_default);
         temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
                              OPTAB_WIDEN);
@@ -9378,7 +9394,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case VEC_INTERLEAVE_LOW_EXPR:
       {
         expand_operands (TREE_OPERAND (exp, 0),  TREE_OPERAND (exp, 1),
-                         NULL_RTX, &op0, &op1, 0);
+                         NULL_RTX, &op0, &op1, EXPAND_NORMAL);
         this_optab = optab_for_tree_code (code, type, optab_default);
         temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
                              OPTAB_WIDEN);
@@ -9426,7 +9442,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	tree oprnd0 = TREE_OPERAND (exp, 0);
 	tree oprnd1 = TREE_OPERAND (exp, 1);
 
-	expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, 0);
+	expand_operands (oprnd0, oprnd1, NULL_RTX, &op0, &op1, EXPAND_NORMAL);
 	target = expand_widen_pattern_expr (exp, op0, op1, NULL_RTX,
 					    target, unsignedp);
 	gcc_assert (target);
@@ -9467,7 +9483,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
   /* Here to do an ordinary binary operator.  */
  binop:
   expand_operands (TREE_OPERAND (exp, 0), TREE_OPERAND (exp, 1),
-		   subtarget, &op0, &op1, 0);
+		   subtarget, &op0, &op1, EXPAND_NORMAL);
  binop2:
   this_optab = optab_for_tree_code (code, type, optab_default);
  binop3:
@@ -9846,7 +9862,7 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode)
       || GET_MODE (subtarget) != operand_mode)
     subtarget = 0;
 
-  expand_operands (arg0, arg1, subtarget, &op0, &op1, 0);
+  expand_operands (arg0, arg1, subtarget, &op0, &op1, EXPAND_NORMAL);
 
   if (target == 0)
     target = gen_reg_rtx (mode);
@@ -9885,19 +9901,6 @@ do_store_flag (tree exp, rtx target, enum machine_mode mode)
 # define gen_casesi(a, b, c, d, e) (0)
 # define CODE_FOR_casesi CODE_FOR_nothing
 #endif
-
-/* If the machine does not have a case insn that compares the bounds,
-   this means extra overhead for dispatch tables, which raises the
-   threshold for using them.  */
-#ifndef CASE_VALUES_THRESHOLD
-#define CASE_VALUES_THRESHOLD (HAVE_casesi ? 4 : 5)
-#endif /* CASE_VALUES_THRESHOLD */
-
-unsigned int
-case_values_threshold (void)
-{
-  return CASE_VALUES_THRESHOLD;
-}
 
 /* Attempt to generate a casesi instruction.  Returns 1 if successful,
    0 otherwise (i.e. if there is no casesi instruction).  */

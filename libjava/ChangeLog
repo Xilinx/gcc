@@ -1,3 +1,61 @@
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* testsuite/libjava.jvmti/jvmti-interp.exp
+	(gcj_jni_compile_c_to_so):  Fix so extension to '.dll' on win32.
+	* testsuite/lib/libjava.exp (libjava_init):  Likewise.
+	* testsuite/libjava.jni/jni.exp
+	(gcj_jni_compile_c_to_so):  Likewise.
+	(gcj_jni_test_one):  Likewise.
+
+2009-04-28  Andrew Haley  <aph@redhat.com>
+
+	PR libgcj/39899
+	* Makefile.am (libgcj_tools_la_LDFLAGS): Add
+	-fno-bootstrap-classes to libgcj_tools_la_GCJFLAGS.
+	* Makefile.in: Regenerate.
+
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* interpret.cc (DEBUG):  Rename this ...
+	(__GCJ_DEBUG):  ... to this throughout.
+	* configure.ac:  Likewise.
+	* interpret-run.cc:  Likewise.
+	* prims.cc:  Likewise.
+	* gnu/classpath/natConfiguration.cc:  Likewise.
+	* include/java-assert.h:  Likewise.
+	* java/io/natVMObjectInputStream.cc:  Likewise.
+
+	* configure:  Regenerate.
+	* include/config.h.in:  Regenerate.
+
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* java/lang/natVMClassLoader.cc
+	(java::lang::VMClassLoader::defineClass):  Fix assert.
+
+2009-04-26  Matthias Klose <doko@ubuntu.com>
+
+	* contrib/aot-compile.in: Print diagnostics for malformed or invalid
+	class files.
+	* contrib/generate-cacerts.pl.in: New.
+	* configure.ac (AC_CONFIG_FILES): Add generate-cacerts.pl.
+
+2009-04-24  Matthias Klose  <doko@ubuntu.com>
+
+	* configure.ac: Create missing directory gnu/java/security/jce/prng.
+	* configure: Regenerate.
+
+2009-04-23  Matthias Klose  <doko@ubuntu.com>
+
+	* Makefile.am (install-data-local): Fix symlinks to header files.
+	* Makefile.in: Regenerate.
+
+2009-04-23  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gnu/classpath/jdwp/natVMVirtualMachine.cc (handle_single_step):  Use
+	casted pointer in debugging assert.
+	(jdwpBreakpointCB):  Likewise.
+
 2009-04-09  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	* configure.host: Restore match for darwin9 or later.

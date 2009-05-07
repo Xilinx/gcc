@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM S/390
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Hartmut Penner (hpenner@de.ibm.com) and
                   Ulrich Weigand (uweigand@de.ibm.com).
                   Andreas Krebbel (Andreas.Krebbel@de.ibm.com)
@@ -58,14 +58,14 @@ enum processor_flags
 };
 
 extern enum processor_type s390_tune;
-extern enum processor_flags s390_tune_flags;
+extern int s390_tune_flags;
 
 /* This is necessary to avoid a warning about comparing different enum
    types.  */
 #define s390_tune_attr ((enum attr_cpu)s390_tune)
 
 extern enum processor_type s390_arch;
-extern enum processor_flags s390_arch_flags;
+extern int s390_arch_flags;
 
 /* These flags indicate that the generated code should run on a cpu
    providing the respective hardware facility regardless of the
@@ -644,8 +644,6 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 
 /* Frame pointer and argument pointer elimination.  */
 
-#define FRAME_POINTER_REQUIRED 0
-
 #define ELIMINABLE_REGS						\
 {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM },		\
  { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM },		\
@@ -748,9 +746,6 @@ legitimate_address_p.  The constraint letter defined here must not be
 used in insn definitions or inline assemblies.  */
 #define TARGET_MEM_CONSTRAINT 'e'
 
-/* S/390 has no mode dependent addresses.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)
-
 /* GO_IF_LEGITIMATE_ADDRESS recognizes an RTL expression that is a
    valid memory address for an instruction.
    The MODE argument is the machine mode for the MEM expression
@@ -768,16 +763,6 @@ used in insn definitions or inline assemblies.  */
     goto ADDR;                                                          \
 }
 #endif
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.  */
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)                          \
-{                                                                       \
-  (X) = legitimize_address (X, OLDX, MODE);                             \
-  if (memory_address_p (MODE, X))                                       \
-    goto WIN;                                                           \
-}
 
 /* Try a machine-dependent way of reloading an illegitimate address
    operand.  If we find one, push the reload and jump to WIN.  This

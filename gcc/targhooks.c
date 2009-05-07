@@ -1,5 +1,6 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -108,6 +109,13 @@ default_return_in_memory (const_tree type,
 			  const_tree fntype ATTRIBUTE_UNUSED)
 {
   return (TYPE_MODE (type) == BLKmode);
+}
+
+rtx
+default_legitimize_address (rtx x, rtx orig_x ATTRIBUTE_UNUSED,
+			    enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return x;
 }
 
 rtx
@@ -575,6 +583,12 @@ default_internal_arg_pointer (void)
     return virtual_incoming_args_rtx;
 }
 
+enum reg_class
+default_branch_target_register_class (void)
+{
+  return NO_REGS;
+}
+
 #ifdef IRA_COVER_CLASSES
 const enum reg_class *
 default_ira_cover_classes (void)
@@ -763,6 +777,19 @@ default_target_option_can_inline_p (tree caller, tree callee)
     ret = (callee_opts == caller_opts);
 
   return ret;
+}
+
+#ifndef HAVE_casesi
+# define HAVE_casesi 0
+#endif
+
+/* If the machine does not have a case insn that compares the bounds,
+   this means extra overhead for dispatch tables, which raises the
+   threshold for using them.  */
+
+unsigned int default_case_values_threshold (void)
+{
+  return (HAVE_casesi ? 4 : 5);
 }
 
 #include "gt-targhooks.h"

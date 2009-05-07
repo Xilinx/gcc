@@ -640,9 +640,10 @@ package Opt is
    Inspector_Mode : Boolean renames Debug.Debug_Flag_Dot_II;
    --  GNAT
    --  True if compiling in inspector mode (-gnatd.I switch).
-   --  Only relevant when VM_Target /= None. The compiler will attempt to
-   --  generate code even in case of unsupported construct, so that the byte
-   --  code can be used by static analysis tools.
+   --  Enable inspector mode, in particular SCIL generation.
+   --  When VM_Target /= None, the compiler will also attempt to
+   --  generate code even in case of unsupported construct instead of
+   --  displaying an error.
 
    Invalid_Value_Used : Boolean := False;
    --  GNAT
@@ -1060,6 +1061,11 @@ package Opt is
    --  Set by -fno-inline. Suppresses all inlining, both front end and back end
    --  regardless of any other switches that are set.
 
+   Suppress_Control_Flow_Optimizations : Boolean := False;
+   --  GNAT
+   --  Set by -fpreserve-control-flow. Suppresses control flow optimizations
+   --  that interfere with coverage analysis based on the object code.
+
    System_Extend_Pragma_Arg : Node_Id := Empty;
    --  GNAT
    --  Set non-empty if and only if a correct Extend_System pragma was present
@@ -1159,6 +1165,12 @@ package Opt is
    --  occur. This will probably cause blowups at this stage in the game. On
    --  the other hand, most such blowups will be caught cleanly and simply
    --  say compilation abandoned. This flag is set to True by -gnatq or -gnatQ.
+
+   Unchecked_Shared_Lib_Imports : Boolean := False;
+   --  GPRBUILD
+   --  Set to True when shared library projects are allowed to import projects
+   --  that are not shared library projects. Set by switch
+   --  --unchecked-shared-lib-imports.
 
    Undefined_Symbols_Are_False : Boolean := False;
    --  GNAT, GNATPREP

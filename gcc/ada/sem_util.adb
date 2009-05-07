@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -5161,9 +5161,7 @@ package body Sem_Util is
 
    begin
       Save_Interps (N, New_Prefix);
-      Rewrite (N,
-        Make_Explicit_Dereference (Sloc (N),
-          Prefix => New_Prefix));
+      Rewrite (N, Make_Explicit_Dereference (Sloc (N), Prefix => New_Prefix));
 
       Set_Etype (N, Designated_Type (Etype (New_Prefix)));
 
@@ -5519,6 +5517,19 @@ package body Sem_Util is
 
       return False;
    end Is_Controlling_Limited_Procedure;
+
+   -----------------------------
+   -- Is_CPP_Constructor_Call --
+   -----------------------------
+
+   function Is_CPP_Constructor_Call (N : Node_Id) return Boolean is
+   begin
+      return Nkind (N) = N_Function_Call
+        and then Is_Class_Wide_Type (Etype (N))
+        and then Is_CPP_Class (Etype (Etype (N)))
+        and then Is_Constructor (Entity (Name (N)))
+        and then Is_Imported (Entity (Name (N)));
+   end Is_CPP_Constructor_Call;
 
    ----------------------------------------------
    -- Is_Dependent_Component_Of_Mutable_Object --
@@ -7261,23 +7272,58 @@ package body Sem_Util is
             return N = Prefix (P)
               and then Name_Implies_Lvalue_Prefix (Attribute_Name (P));
 
-         when N_Expanded_Name        |
-              N_Indexed_Component    |
-              N_Selected_Component   |
-              N_Slice                =>
-            if Is_Access_Type (Etype (N)) then
-               return False;  --  P is an implicit dereference
+         --  For an expanded name, the name is an lvalue if the expanded name
+         --  is an lvalue, but the prefix is never an lvalue, since it is just
+         --  the scope where the name is found.
+
+         when N_Expanded_Name        =>
+            if N = Prefix (P) then
+               return May_Be_Lvalue (P);
             else
-               return N = Prefix (P);
+               return False;
             end if;
 
+         --  For a selected component A.B, A is certainly an Lvalue if A.B is
+         --  an Lvalue. B is a little interesting, if we have A.B:=3, there is
+         --  some discussion as to whether B is an Lvalue or not, we choose to
+         --  say it is. Note however that A is not an Lvalue if it is of an
+         --  access type since this is an implicit dereference.
+
+         when N_Selected_Component   =>
+            if N = Prefix (P)
+              and then Present (Etype (N))
+              and then Is_Access_Type (Etype (N))
+            then
+               return False;
+            else
+               return May_Be_Lvalue (P);
+            end if;
+
+         --  For an indexed component or slice, the index or slice bounds is
+         --  never an Lvalue. The prefix is an lvalue if the indexed component
+         --  or slice is an Lvalue, except if it is an access type, where we
+         --  have an implicit dereference.
+
+         when N_Indexed_Component    =>
+            if N /= Prefix (P)
+              or else (Present (Etype (N)) and then Is_Access_Type (Etype (N)))
+            then
+               return False;
+            else
+               return May_Be_Lvalue (P);
+            end if;
+
+         --  Prefix of a reference is an Lvalue if the reference is an Lvalue
+
          when N_Reference            =>
-            return N = Prefix (P);
+            return May_Be_Lvalue (P);
+
+         --  Prefix of explicit dereference is never an Lvalue
 
          when N_Explicit_Dereference =>
             return False;
 
-         --  Function call arguments are never lvalues
+         --  Function call arguments are never Lvalues
 
          when N_Function_Call =>
             return False;

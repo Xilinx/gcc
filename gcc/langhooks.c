@@ -380,11 +380,11 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 	  if (TREE_CODE (TREE_TYPE (fndecl)) == METHOD_TYPE)
 	    pp_printf
 	      (context->printer, _("In member function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 	  else
 	    pp_printf
 	      (context->printer, _("In function %qs"),
-	       lang_hooks.decl_printable_name (fndecl, 2));
+	       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 
 	  while (abstract_origin)
 	    {
@@ -435,18 +435,18 @@ lhd_print_error_function (diagnostic_context *context, const char *file,
 		      if (flag_show_column && s.column != 0)
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line, s.column);
 		      else
 			pp_printf (context->printer,
 				   _("    inlined from %qs at %s:%d"),
-				   lang_hooks.decl_printable_name (fndecl, 2),
+				   identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)),
 				   s.file, s.line);
 
 		    }
 		  else
 		    pp_printf (context->printer, _("    inlined from %qs"),
-			       lang_hooks.decl_printable_name (fndecl, 2));
+			       identifier_to_locale (lang_hooks.decl_printable_name (fndecl, 2)));
 		}
 	    }
 	  pp_character (context->printer, ':');
@@ -530,9 +530,10 @@ add_builtin_function_common (const char *name,
   DECL_EXTERNAL (decl)       = 1;
   DECL_BUILT_IN_CLASS (decl) = cl;
 
-  DECL_FUNCTION_CODE (decl)  = -1;
-  gcc_assert (DECL_FUNCTION_CODE (decl) >= function_code);
-  DECL_FUNCTION_CODE (decl)  = function_code;
+  DECL_FUNCTION_CODE (decl)  = (enum built_in_function) function_code;
+
+  /* DECL_FUNCTION_CODE is a bitfield; verify that the value fits.  */
+  gcc_assert (DECL_FUNCTION_CODE (decl) == function_code);
 
   if (library_name)
     {

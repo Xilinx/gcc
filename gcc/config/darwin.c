@@ -281,7 +281,7 @@ machopic_gen_offset (rtx orig)
     {
       /* Play games to avoid marking the function as needing pic if we
 	 are being called as part of the cost-estimation process.  */
-      if (current_ir_type () != IR_GIMPLE)
+      if (current_ir_type () != IR_GIMPLE || currently_expanding_to_rtl)
 	crtl->uses_pic_offset_table = 1;
       orig = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, orig),
 			     UNSPEC_MACHOPIC_OFFSET);
@@ -314,7 +314,7 @@ machopic_output_function_base_name (FILE *file)
 /* The suffix attached to stub symbols.  */
 #define STUB_SUFFIX "$stub"
 
-typedef struct machopic_indirection GTY (())
+typedef struct GTY (()) machopic_indirection
 {
   /* The SYMBOL_REF for the entity referenced.  */
   rtx symbol;

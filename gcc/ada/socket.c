@@ -32,6 +32,15 @@
 /*  This file provides a portable binding to the sockets API                */
 
 #include "gsocket.h"
+#ifdef VMS
+/*
+ * For VMS, gsocket.h can't include sockets-related DEC C header files
+ * when building the runtime (because these files are in DEC C archives,
+ * not accessable to GCC). So, we generate a separate header file along
+ * with s-oscons.ads and include it here.
+ */
+# include "s-oscons.h"
+#endif
 
 #if defined(HAVE_SOCKETS)
 
@@ -62,8 +71,11 @@ extern void __gnat_insert_socket_in_set (fd_set *, int);
 extern int __gnat_is_socket_in_set (fd_set *, int);
 extern fd_set *__gnat_new_socket_set (fd_set *);
 extern void __gnat_remove_socket_from_set (fd_set *, int);
-extern void __gnat_reset_socket_set (fd_set *set);
+extern void __gnat_reset_socket_set (fd_set *);
 extern int  __gnat_get_h_errno (void);
+#if defined (__vxworks) || defined (_WIN32)
+extern int  __gnat_inet_pton (int, const char *, void *);
+#endif
 
 /* Disable the sending of SIGPIPE for writes on a broken stream */
 
@@ -351,36 +363,17 @@ __gnat_get_h_errno (void) {
     case 0:
       return 0;
 
-#ifdef S_resolvLib_HOST_NOT_FOUND
-    case S_resolvLib_HOST_NOT_FOUND:
-#endif
 #ifdef S_hostLib_HOST_NOT_FOUND
     case S_hostLib_HOST_NOT_FOUND:
 #endif
     case S_hostLib_UNKNOWN_HOST:
       return HOST_NOT_FOUND;
 
-#ifdef S_resolvLib_TRY_AGAIN
-    case S_resolvLib_TRY_AGAIN:
-      return TRY_AGAIN;
-#endif
 #ifdef S_hostLib_TRY_AGAIN
     case S_hostLib_TRY_AGAIN:
       return TRY_AGAIN;
 #endif
 
-#ifdef S_resolvLib_NO_RECOVERY
-    case S_resolvLib_NO_RECOVERY:
-#endif
-#ifdef S_resolvLib_BUFFER_2_SMALL
-    case S_resolvLib_BUFFER_2_SMALL:
-#endif
-#ifdef S_resolvLib_INVALID_PARAMETER
-    case S_resolvLib_INVALID_PARAMETER:
-#endif
-#ifdef S_resolvLib_INVALID_ADDRESS
-    case S_resolvLib_INVALID_ADDRESS:
-#endif
 #ifdef S_hostLib_NO_RECOVERY
     case S_hostLib_NO_RECOVERY:
 #endif
@@ -389,11 +382,6 @@ __gnat_get_h_errno (void) {
 #endif
     case S_hostLib_INVALID_PARAMETER:
       return NO_RECOVERY;
-
-#ifdef S_resolvLib_NO_DATA
-    case S_resolvLib_NO_DATA:
-      return NO_DATA;
-#endif
 
     default:
       return -1;
@@ -421,6 +409,73 @@ __gnat_get_h_errno (void) {
 #endif
 }
 
+#ifndef HAVE_INET_PTON
+
+#ifdef VMS
+# define in_addr_t int
+# define inet_addr decc$inet_addr
+#endif
+
+int
+__gnat_inet_pton (int af, const char *src, void *dst) {
+  switch (af) {
+#if defined (_WIN32) && defined (AF_INET6)
+    case AF_INET6:
+#endif
+    case AF_INET:
+      break;
+    default:
+      errno = EAFNOSUPPORT;
+      return -1;
+  }
+
+#if defined (__vxworks)
+  return (inet_aton (src, dst) == OK);
+
+#elif defined (_WIN32)
+  struct sockaddr_storage ss;
+  int sslen = sizeof ss;
+  int rc;
+
+  ss.ss_family = af;
+  rc = WSAStringToAddressA (src, af, NULL, (struct sockaddr *)&ss, &sslen);
+  if (rc == 0) {
+    switch (af) {
+      case AF_INET:
+        *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+        break;
+#ifdef AF_INET6
+      case AF_INET6:
+        *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+        break;
+#endif
+    }
+  }
+  return (rc == 0);
+
+#elif defined (__hpux__) || defined (VMS)
+  in_addr_t addr;
+  int rc = -1;
+
+  if (src == NULL || dst == NULL) {
+    errno = EINVAL;
+
+  } else if (!strcmp (src, "255.255.255.255")) {
+    addr = 0xffffffff;
+    rc = 1;
+
+  } else {
+    addr = inet_addr (src);
+    rc = (addr != 0xffffffff);
+  }
+  if (rc == 1) {
+    *(in_addr_t *)dst = addr;
+  }
+  return rc;
+#endif
+}
+#endif
+
 #else
-#warning Sockets are not supported on this platform
+# warning Sockets are not supported on this platform
 #endif /* defined(HAVE_SOCKETS) */

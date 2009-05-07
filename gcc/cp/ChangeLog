@@ -1,9 +1,218 @@
+2009-05-05  Shujing Zhao  <pearly.zhao@oracle.com>
+
+	* cp-tree.h:
+       	(opname_tab, assignop_tab, update_member_visibility, yyerror, yyhook,
+       	mangle_compound_literal): Remove unused declarations.
+       	(build_vfield_ref, cxx_print_statistics, clone_function_decl,
+       	adjust_clone_args, maybe_push_cleanup_level, pushtag, make_anon_name,
+       	pushdecl_top_level_maybe_friend, pushdecl_top_level_and_finish,
+       	check_for_out_of_scope_variable, print_other_binding_stack,
+       	maybe_push_decl, cxx_mark_addressable, force_target_expr,
+       	build_target_expr_with_type, finish_case_label,
+       	cxx_maybe_build_cleanup, begin_eh_spec_block, finish_eh_spec_block,
+       	check_template_keyword, cxx_omp_predetermined_sharing,
+       	cxx_omp_clause_default_ctor, cxx_omp_clause_copy_ctor,
+       	cxx_omp_clause_assign_op, cxx_omp_clause_dtor, cxx_omp_finish_clause,
+       	cxx_omp_privatize_by_reference): Rearrange the declarations line to
+       	match the comment that indicates the .c file which the functions are
+       	defined.
+       	(cxx_print_xnode, cxx_print_decl, cxx_print_type,
+       	cxx_print_identifier, cxx_print_error_function, pushdecl): Add comment.
+
+2009-05-05  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* typeck.c (cp_build_compound_expr): Require RHS to have a known
+	type.
+	* class.c (resolve_address_of_overloaded_function): Use
+	OVL_CURRENT for error message.
+	(instantiate_type): Forbid COMPOUND_EXPRs and remove code dealing
+	with them.  Do not copy the node.
+
+2009-05-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/40013
+	* pt.c (tsubst): If magic NOP_EXPR with side-effects has no type,
+	set it from its operand's type after tsubst_expr.
+
+2009-05-04  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/28152
+	* parser.c (cp_lexer_get_preprocessor_token):  Do not store the
+	canonical spelling for keywords.
+	(cp_parser_attribute_list): Use the canonical spelling for
+	keywords in attributes.
+
+2009-05-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* cxx-pretty-print.c (is_destructor_name, pp_cxx_unqualified_id,
+	pp_cxx_template_keyword_if_needed, pp_cxx_postfix_expression,
+	pp_cxx_new_expression, pp_cxx_delete_expression,
+	pp_cxx_unary_expression, pp_cxx_assignment_operator,
+	pp_cxx_assignment_expression, pp_cxx_expression,
+	pp_cxx_function_specifier, pp_cxx_decl_specifier_seq,
+	pp_cxx_simple_type_specifier, pp_cxx_type_specifier_seq,
+	pp_cxx_exception_specification, pp_cxx_direct_declarator,
+	pp_cxx_ctor_initializer, pp_cxx_type_id, pp_cxx_statement,
+	pp_cxx_namespace_alias_definition, pp_cxx_template_parameter,
+	pp_cxx_canonical_template_parameter, pp_cxx_template_declaration,
+	pp_cxx_declaration, pp_cxx_typeid_expression,
+	pp_cxx_va_arg_expression, pp_cxx_offsetof_expression,
+	pp_cxx_trait_expression): Mostly use pp_string and
+	pp_cxx_ws_string in place of pp_identifier and pp_cxx_identifier
+	for non-identifiers.  Mark English strings for translation.
+	* cxx-pretty-print.h (pp_cxx_ws_string): Define.
+	* error.c (dump_template_parameter, dump_template_bindings,
+	dump_type, dump_aggr_type, dump_type_prefix, dump_simple_decl,
+	dump_decl, dump_template_decl, dump_function_decl,
+	dump_parameters, dump_exception_spec, dump_template_parms,
+	dump_expr, dump_binary_op, dump_unary_op, op_to_string,
+	assop_to_string, args_to_string, cp_print_error_function,
+	print_instantiation_full_context,
+	print_instantiation_partial_context): Mostly use pp_string and
+	pp_cxx_ws_string in place of pp_identifier and pp_cxx_identifier
+	for non-identifiers.  Mark English strings for translation.
+	(dump_global_iord): Mark strings for translation; use longer
+	strings instead of substituting single words.
+	(function_category): Return a format string marked for
+	translation, not a single word or phrase to substitute in a longer
+	phrase.
+
+2009-04-28  Ben Elliston  <bje@au.ibm.com>
+
+	PR c++/35652
+	Revert:
+
+	2009-03-27  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	* typeck.c (cp_pointer_sum): Adjust call to pointer_int_sum.
+
+2009-04-27  Ian Lance Taylor  <iant@google.com>
+
+	* semantics.c (finish_omp_clauses): Change type of c_kind to enum
+	omp_clause_code.
+
+2009-04-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/39875
+	* cvt.c (convert_to_void) <case INDIRECT_REF>: Only warn about
+	-Wunused-value if implicit.
+
+2009-04-24  Ian Lance Taylor  <iant@google.com>
+
+	* call.c (build_temp): Change 0 to enum constant.
+	* cp-tree.h (cp_lvalue_kind): Typedef to int rather than enum
+	type.
+	* cp-gimplify.c (cp_gimplify_expr): Add cast to enum type.
+	* decl2.c (constrain_visibility): Likewise.
+	* parser.c (cp_lexer_get_preprocessor_token): Likewise.
+	(cp_parser_flags): Typedef to int rather than enum type.
+	(cp_parser_expression_stack_entry): Change prec field to enum
+	cp_parser_prec.
+
+	* typeck.c (build_modify_expr): Add lhs_origtype parameter.
+	Change all callers.
+
+2009-04-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/39639
+	* parser.c (cp_parser_template_argument_list): Display an error
+	when an ellipsis is not preceded by a parameter pack. Also, warn
+	about variadic templates usage without -std=c++0x.
+
+2009-04-21  Taras Glek <tglek@mozilla.com>
+
+	* cp-tree.h: Update GTY annotations to new syntax.
+	* decl.c: Likewise.
+	* mangle.c: Likewise.
+	* name-lookup.c: Likewise.
+	* name-lookup.h: Likewise.
+	* parser.c: Likewise.
+	* pt.c: Likewise.
+	* rtti.c: Likewise.
+	* semantics.c: Likewise.
+	* typeck2.c: Likewise.
+
+2009-04-22  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/14875
+	* parser.c (cp_parser_error): Pass token->flags to c_parse_error.
+
+2009-04-21  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/35711
+	* typeck.c (check_for_casting_away_constness): We diagnose casting
+	away any qualifiers not just constness.
+	(casts_away_constness): Mention that it handles more than just
+	constness.
+	
+2009-04-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* ChangeLog, ChangeLog-1993, ChangeLog-1994, ChangeLog-1995,
+	ChangeLog-1996, ChangeLog-1997, ChangeLog-1998, ChangeLog-1999,
+	ChangeLog-2000, ChangeLog-2001, ChangeLog-2002, ChangeLog-2003,
+	ChangeLog-2004, ChangeLog-2005, ChangeLog-2006, ChangeLog-2007,
+	ChangeLog-2008, ChangeLog.ptr, ChangeLog.tree-ssa, NEWS,
+	cfns.gperf: Add copyright and license notices.
+	* cfns.h: Regenerate.
+	* ChangeLog, ChangeLog-2004: Correct dates.
+
+2009-04-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 16202
+	* tree.c (lvalue_p_1): Use const_tree.
+	Use CONST_CAST_TREE to avoid warning.
+	(lvalue_p): Returns bool, receives const_tree.
+
+2009-04-21  Manuel Lopez-Ibanez  <manu@gcc.gnu.org>
+
+	PR c++/13358
+	* parser.c (cp_parser_check_decl_spec): Drop redundant flags.
+	* error.c (pedwarn_cxx98): New.
+	* cp-tree.h (pedwarn_cxx98): Declare.
+
+2009-04-20  Le-Chun Wu  <lcwu@google.com>
+
+	PR c++/39803
+	* init.c (build_vec_init): Set TREE_NO_WARNING on the
+	compiler-generated INDIRECT_REF expression.
+
+2009-04-20  Ian Lance Taylor  <iant@google.com>
+
+	* typeck.c (build_function_call_vec): New function.
+	(cp_build_function_call): Only pass first parameter to
+	objc_rewrite_function_call.
+	(build_modify_expr): Add rhs_origtype parameter.  Change all
+	callers.
+	* decl.c (finish_decl): Add origtype parameter.  Change all
+	callers.
+	* semantics.c (finish_call_expr): Pass VEC to
+	resolve_overloaded_builtin.
+
+2009-04-20  Ian Lance Taylor  <iant@google.com>
+
+	* cp-tree.h (base_access): Change typedef to int.
+	* parser.c (cp_parser_omp_flush): Change 0 to OMP_CLAUSE_ERROR.
+	(cp_parser_omp_threadprivate): Likewise.
+	* pt.c (unify_pack_expansion): Add casts to enum type.
+
+2009-04-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/32061
+	PR c++/36954
+	* call.c (build_new_op): Save the original codes of operands
+	before folding.
+
+2009-04-18  Kazu Hirata  <kazu@codesourcery.com>
+
+	* cp-tree.h: Remove the prototype for insert_block.
+	* decl.c (insert_block): Remove.
+
 2009-04-16  Ian Lance Taylor  <iant@google.com>
 
 	* cp-tree.h (enum tsubst_flags): Rename from enum tsubst_flags_t.
 	(tsubst_flags_t): Change typedef from enum type to int.
 
-2009-04-16  Le-Chun Wu  <lcwu@google.com>
+2009-04-16  Paolo Bonzini  <bonzini@gnu.org>
 
 	* decl.c (check_initializer): Use TYPE_VECTOR_OPAQUE
 	instead of targetm.vector_opaque_p.
@@ -56,7 +265,7 @@
 	* parser.c (cp_parser_skip_to_end_of_block_or_statement): Return
 	if we see a close brace without an open brace.
 
-2008-04-10  H.J. Lu  <hongjiu.lu@intel.com>
+2009-04-10  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* parser.c (cp_parser_class_specifier): Remove the unused
 	has_trailing_semicolon.
@@ -869,3 +1078,10 @@
 	PR c++/38684
 	* typeck2.c (digest_init_r): Don't use process_init_constructor
 	for non-aggregate classes.
+
+
+Copyright (C) 2009 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

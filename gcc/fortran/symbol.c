@@ -75,8 +75,7 @@ const mstring ifsrc_types[] =
 {
     minit ("UNKNOWN", IFSRC_UNKNOWN),
     minit ("DECL", IFSRC_DECL),
-    minit ("BODY", IFSRC_IFBODY),
-    minit ("USAGE", IFSRC_USAGE)
+    minit ("BODY", IFSRC_IFBODY)
 };
 
 const mstring save_status[] =
@@ -100,6 +99,18 @@ gfc_gsymbol *gfc_gsym_root = NULL;
 static gfc_symbol *changed_syms = NULL;
 
 gfc_dt_list *gfc_derived_types;
+
+
+/* List of tentative typebound-procedures.  */
+
+typedef struct tentative_tbp
+{
+  gfc_typebound_proc *proc;
+  struct tentative_tbp *next;
+}
+tentative_tbp;
+
+static tentative_tbp *tentative_tbp_list = NULL;
 
 
 /*********** IMPLICIT NONE and IMPLICIT statement handlers ***********/
@@ -2192,6 +2203,7 @@ gfc_get_namespace (gfc_namespace *parent, int parent_types)
   ns = XCNEW (gfc_namespace);
   ns->sym_root = NULL;
   ns->uop_root = NULL;
+  ns->tb_sym_root = NULL;
   ns->finalizers = NULL;
   ns->default_access = ACCESS_UNKNOWN;
   ns->parent = parent;
@@ -2259,7 +2271,6 @@ gfc_new_symtree (gfc_symtree **root, const char *name)
 
   st = XCNEW (gfc_symtree);
   st->name = gfc_get_string (name);
-  st->typebound = NULL;
 
   gfc_insert_bbt (root, st, compare_symtree);
   return st;
@@ -2692,6 +2703,7 @@ void
 gfc_undo_symbols (void)
 {
   gfc_symbol *p, *q, *old;
+  tentative_tbp *tbp, *tbq;
 
   for (p = changed_syms; p; p = q)
     {
@@ -2790,6 +2802,14 @@ gfc_undo_symbols (void)
     }
 
   changed_syms = NULL;
+
+  for (tbp = tentative_tbp_list; tbp; tbp = tbq)
+    {
+      tbq = tbp->next;
+      /* Procedure is already marked `error' by default.  */
+      gfc_free (tbp);
+    }
+  tentative_tbp_list = NULL;
 }
 
 
@@ -2827,6 +2847,7 @@ void
 gfc_commit_symbols (void)
 {
   gfc_symbol *p, *q;
+  tentative_tbp *tbp, *tbq;
 
   for (p = changed_syms; p; p = q)
     {
@@ -2837,6 +2858,14 @@ gfc_commit_symbols (void)
       free_old_symbol (p);
     }
   changed_syms = NULL;
+
+  for (tbp = tentative_tbp_list; tbp; tbp = tbq)
+    {
+      tbq = tbp->next;
+      tbp->proc->error = 0;
+      gfc_free (tbp);
+    }
+  tentative_tbp_list = NULL;
 }
 
 
@@ -2865,6 +2894,24 @@ gfc_commit_symbol (gfc_symbol *sym)
   sym->gfc_new = 0;
 
   free_old_symbol (sym);
+}
+
+
+/* Recursively free trees containing type-bound procedures.  */
+
+static void
+free_tb_tree (gfc_symtree *t)
+{
+  if (t == NULL)
+    return;
+
+  free_tb_tree (t->left);
+  free_tb_tree (t->right);
+
+  /* TODO: Free type-bound procedure structs themselves; probably needs some
+     sort of ref-counting mechanism.  */
+
+  gfc_free (t);
 }
 
 
@@ -3056,6 +3103,7 @@ gfc_free_namespace (gfc_namespace *ns)
   free_sym_tree (ns->sym_root);
   free_uop_tree (ns->uop_root);
   free_common_tree (ns->common_root);
+  free_tb_tree (ns->tb_sym_root);
   gfc_free_finalizer_list (ns->finalizers);
   gfc_free_charlen (ns->cl_list, NULL);
   free_st_labels (ns->st_labels);
@@ -3768,6 +3816,7 @@ gen_shape_param (gfc_formal_arglist **head,
   add_formal_arg (head, tail, formal_arg, param_sym);
 }
 
+
 /* Add a procedure interface to the given symbol (i.e., store a
    reference to the list of formal arguments).  */
 
@@ -3780,6 +3829,7 @@ add_proc_interface (gfc_symbol *sym, ifsrc source,
   sym->attr.if_source = source;
 }
 
+
 /* Copy the formal args from an existing symbol, src, into a new
    symbol, dest.  New formal args are created, and the description of
    each arg is set according to the existing ones.  This function is
@@ -3788,7 +3838,7 @@ add_proc_interface (gfc_symbol *sym, ifsrc source,
    args based on the args of a given named interface.  */
 
 void
-copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
+gfc_copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
 {
   gfc_formal_arglist *head = NULL;
   gfc_formal_arglist *tail = NULL;
@@ -3812,7 +3862,7 @@ copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
       formal_arg->sym->attr = curr_arg->sym->attr;
       formal_arg->sym->ts = curr_arg->sym->ts;
       formal_arg->sym->as = gfc_copy_array_spec (curr_arg->sym->as);
-      copy_formal_args (formal_arg->sym, curr_arg->sym);
+      gfc_copy_formal_args (formal_arg->sym, curr_arg->sym);
 
       /* If this isn't the first arg, set up the next ptr.  For the
         last arg built, the formal_arg->next will never get set to
@@ -3839,8 +3889,9 @@ copy_formal_args (gfc_symbol *dest, gfc_symbol *src)
   gfc_current_ns = parent_ns;
 }
 
+
 void
-copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
+gfc_copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
 {
   gfc_formal_arglist *head = NULL;
   gfc_formal_arglist *tail = NULL;
@@ -3863,9 +3914,8 @@ copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
       /* May need to copy more info for the symbol.  */
       formal_arg->sym->ts = curr_arg->ts;
       formal_arg->sym->attr.optional = curr_arg->optional;
-      /*formal_arg->sym->attr = curr_arg->sym->attr;
-      formal_arg->sym->as = gfc_copy_array_spec (curr_arg->sym->as);
-      copy_formal_args (formal_arg->sym, curr_arg->sym);*/
+      formal_arg->sym->attr.flavor = FL_VARIABLE;
+      formal_arg->sym->attr.dummy = 1;
 
       /* If this isn't the first arg, set up the next ptr.  For the
         last arg built, the formal_arg->next will never get set to
@@ -3891,6 +3941,7 @@ copy_formal_args_intr (gfc_symbol *dest, gfc_intrinsic_sym *src)
   /* Restore the current namespace to what it was on entry.  */
   gfc_current_ns = parent_ns;
 }
+
 
 /* Builds the parameter list for the iso_c_binding procedure
    c_f_pointer or c_f_procpointer.  The old_sym typically refers to a
@@ -4340,6 +4391,27 @@ gfc_check_symbol_typed (gfc_symbol* sym, gfc_namespace* ns,
 }
 
 
+/* Construct a typebound-procedure structure.  Those are stored in a tentative
+   list and marked `error' until symbols are committed.  */
+
+gfc_typebound_proc*
+gfc_get_typebound_proc (void)
+{
+  gfc_typebound_proc *result;
+  tentative_tbp *list_node;
+
+  result = XCNEW (gfc_typebound_proc);
+  result->error = 1;
+
+  list_node = XCNEW (tentative_tbp);
+  list_node->next = tentative_tbp_list;
+  list_node->proc = result;
+  tentative_tbp_list = list_node;
+
+  return result;
+}
+
+
 /* Get the super-type of a given derived type.  */
 
 gfc_symbol*
@@ -4371,15 +4443,15 @@ gfc_find_typebound_proc (gfc_symbol* derived, gfc_try* t,
 
   /* Try to find it in the current type's namespace.  */
   gcc_assert (derived->f2k_derived);
-  res = gfc_find_symtree (derived->f2k_derived->sym_root, name);
-  if (res && res->typebound)
+  res = gfc_find_symtree (derived->f2k_derived->tb_sym_root, name);
+  if (res && res->n.tb)
     {
       /* We found one.  */
       if (t)
 	*t = SUCCESS;
 
       if (!noaccess && derived->attr.use_assoc
-	  && res->typebound->access == ACCESS_PRIVATE)
+	  && res->n.tb->access == ACCESS_PRIVATE)
 	{
 	  gfc_error ("'%s' of '%s' is PRIVATE at %C", name, derived->name);
 	  if (t)
@@ -4400,4 +4472,25 @@ gfc_find_typebound_proc (gfc_symbol* derived, gfc_try* t,
 
   /* Nothing found.  */
   return NULL;
+}
+
+
+/* Get a typebound-procedure symtree or create and insert it if not yet
+   present.  This is like a very simplified version of gfc_get_sym_tree for
+   tbp-symtrees rather than regular ones.  */
+
+gfc_symtree*
+gfc_get_tbp_symtree (gfc_symtree **root, const char *name)
+{
+  gfc_symtree *result;
+
+  result = gfc_find_symtree (*root, name);
+  if (!result)
+    {
+      result = gfc_new_symtree (root, name);
+      gcc_assert (result);
+      result->n.tb = NULL;
+    }
+
+  return result;
 }

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -490,6 +490,7 @@ package Rtsfind is
      RE_Exception_Message,               -- Ada.Exceptions
      RE_Exception_Name_Simple,           -- Ada.Exceptions
      RE_Exception_Occurrence,            -- Ada.Exceptions
+     RE_Null_Id,                         -- Ada.Exceptions
      RE_Null_Occurrence,                 -- Ada.Exceptions
      RE_Poll,                            -- Ada.Exceptions
      RE_Raise_Exception,                 -- Ada.Exceptions
@@ -704,6 +705,15 @@ package Rtsfind is
      RE_Str_Concat_7,                    -- System.Concat_7
      RE_Str_Concat_8,                    -- System.Concat_8
      RE_Str_Concat_9,                    -- System.Concat_9
+
+     RE_Str_Concat_Bounds_2,             -- System.Concat_2
+     RE_Str_Concat_Bounds_3,             -- System.Concat_3
+     RE_Str_Concat_Bounds_4,             -- System.Concat_4
+     RE_Str_Concat_Bounds_5,             -- System.Concat_5
+     RE_Str_Concat_Bounds_6,             -- System.Concat_6
+     RE_Str_Concat_Bounds_7,             -- System.Concat_7
+     RE_Str_Concat_Bounds_8,             -- System.Concat_8
+     RE_Str_Concat_Bounds_9,             -- System.Concat_9
 
      RE_Get_Active_Partition_Id,         -- System.DSA_Services
      RE_Get_Local_Partition_Id,          -- System.DSA_Services
@@ -1643,6 +1653,7 @@ package Rtsfind is
      RE_Exception_Message                => Ada_Exceptions,
      RE_Exception_Name_Simple            => Ada_Exceptions,
      RE_Exception_Occurrence             => Ada_Exceptions,
+     RE_Null_Id                          => Ada_Exceptions,
      RE_Null_Occurrence                  => Ada_Exceptions,
      RE_Poll                             => Ada_Exceptions,
      RE_Raise_Exception                  => Ada_Exceptions,
@@ -1857,6 +1868,15 @@ package Rtsfind is
      RE_Str_Concat_7                     => System_Concat_7,
      RE_Str_Concat_8                     => System_Concat_8,
      RE_Str_Concat_9                     => System_Concat_9,
+
+     RE_Str_Concat_Bounds_2              => System_Concat_2,
+     RE_Str_Concat_Bounds_3              => System_Concat_3,
+     RE_Str_Concat_Bounds_4              => System_Concat_4,
+     RE_Str_Concat_Bounds_5              => System_Concat_5,
+     RE_Str_Concat_Bounds_6              => System_Concat_6,
+     RE_Str_Concat_Bounds_7              => System_Concat_7,
+     RE_Str_Concat_Bounds_8              => System_Concat_8,
+     RE_Str_Concat_Bounds_9              => System_Concat_9,
 
      RE_Get_Active_Partition_Id          => System_DSA_Services,
      RE_Get_Local_Partition_Id           => System_DSA_Services,
@@ -2902,7 +2922,7 @@ package Rtsfind is
    --  Returns True if the given Nam is an Expanded Name, whose Prefix is Ada,
    --  and whose selector is either Text_IO.xxx or Wide_Text_IO.xxx or
    --  Wide_Wide_Text_IO.xxx, where xxx is one of the subpackages of Text_IO
-   --  that is specially handled as described above for Text_IO_Kludge.
+   --  that is specially handled as described below for Text_IO_Kludge.
 
    function RTE (E : RE_Id) return Entity_Id;
    --  Given the entity defined in the above tables, as identified by the

@@ -2503,9 +2503,18 @@ added to another register (as well as added to a displacement).
 
 @defmac REGNO_OK_FOR_BASE_P (@var{num})
 A C expression which is nonzero if register number @var{num} is
-suitable for use as a base register in operand addresses.  It may be
-either a suitable hard register or a pseudo register that has been
-allocated such a hard register.
+suitable for use as a base register in operand addresses.
+Like @code{GO_IF_LEGITIMATE_ADDRESS}, this macro should also
+exist in strict or non-strict variants.  Both variants behave
+the same for hard register; for pseudos, the strict variant will
+pass only those that have been allocated to a valid hard registers,
+while the non-strict variant will pass all pseudos.
+
+@findex REG_OK_STRICT
+Compiler source files that want to use the strict variant of this and
+other macros define the macro @code{REG_OK_STRICT}.  You should use an
+@code{#ifdef REG_OK_STRICT} conditional to define the strict variant in
+that case and the non-strict variant otherwise.
 @end defmac
 
 @defmac REGNO_MODE_OK_FOR_BASE_P (@var{num}, @var{mode})
@@ -2518,6 +2527,7 @@ you define this macro, the compiler will use it instead of
 addresses that appear outside a @code{MEM}, i.e., as an
 @code{address_operand}.
 
+This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_MODE_OK_FOR_REG_BASE_P (@var{num}, @var{mode})
@@ -2530,6 +2540,8 @@ than other base register uses.
 
 Use of this macro is deprecated; please use the more general
 @code{REGNO_MODE_CODE_OK_FOR_BASE_P}.
+
+This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_MODE_CODE_OK_FOR_BASE_P (@var{num}, @var{mode}, @var{outer_code}, @var{index_code})
@@ -2542,6 +2554,8 @@ address, @code{ADDRESS} for something that occurs in an
 corresponding index expression if @var{outer_code} is @code{PLUS};
 @code{SCRATCH} otherwise.  The mode may be @code{VOIDmode} for addresses
 that appear outside a @code{MEM}, i.e., as an @code{address_operand}.
+
+This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac REGNO_OK_FOR_INDEX_P (@var{num})
@@ -2558,6 +2572,8 @@ labeling is used must fit the machine's constraints of which registers
 may serve in each capacity.  The compiler will try both labelings,
 looking for one that is valid, and will reload one or both registers
 only if neither labeling works.
+
+This macro also has strict and non-strict variants.
 @end defmac
 
 @defmac PREFERRED_RELOAD_CLASS (@var{x}, @var{class})
@@ -2641,7 +2657,7 @@ allow copying all registers to and from memory, but require a scratch
 register for stores to some memory locations (e.g., those with symbolic
 address on the RT, and those with certain symbolic address on the SPARC
 when compiling PIC)@.  Scratch registers need not have the same mode
-as the value being copied, and usually hold a different value that
+as the value being copied, and usually hold a different value than
 that being copied.  Special patterns in the md file are needed to
 describe how the copy is performed with the help of the scratch register;
 these patterns also describe the number, register class(es) and mode(s)
@@ -3030,7 +3046,7 @@ If the letter @samp{Q} is marked as @code{EXTRA_MEMORY_CONSTRAINT},
 a @samp{Q} constraint can handle any memory operand, because the
 reload pass knows it can be reloaded by copying the memory address
 into a base register if required.  This is analogous to the way
-a @samp{o} constraint can handle any memory operand.
+an @samp{o} constraint can handle any memory operand.
 @end defmac
 
 @defmac EXTRA_ADDRESS_CONSTRAINT (@var{c}, @var{str})
@@ -3722,15 +3738,16 @@ return @code{@var{regno}}.
 This is about eliminating the frame pointer and arg pointer.
 
 @defmac FRAME_POINTER_REQUIRED
-A C expression which is nonzero if a function must have and use a frame
+A C expression which is @code{true} if a function must have and use a frame
 pointer.  This expression is evaluated  in the reload pass.  If its value is
-nonzero the function will have a frame pointer.
+@code{true} the function will have a frame pointer.
 
 The expression can in principle examine the current function and decide
-according to the facts, but on most machines the constant 0 or the
-constant 1 suffices.  Use 0 when the machine allows code to be generated
-with no frame pointer, and doing so saves some time or space.  Use 1
-when there is no possible advantage to avoiding a frame pointer.
+according to the facts, but on most machines the constant @code{false} or the
+constant @code{true} suffices.  Use @code{false} when the machine allows code
+to be generated with no frame pointer, and doing so saves some time or space.
+Use @code{true} when there is no possible advantage to avoiding a frame
+pointer.
 
 In certain cases, the compiler does not know how to produce valid code
 without a frame pointer.  The compiler recognizes those cases and
@@ -3741,6 +3758,8 @@ them.
 In a function that does not require a frame pointer, the frame pointer
 register can be allocated for ordinary usage, unless you mark it as a
 fixed register.  See @code{FIXED_REGISTERS} for more information.
+
+Default value is @code{false}.
 @end defmac
 
 @findex get_frame_size
@@ -4301,7 +4320,7 @@ values---values that can fit in registers.
 
 Define this to return an RTX representing the place where a function
 returns or receives a value of data type @var{ret_type}, a tree node
-node representing a data type.  @var{fn_decl_or_type} is a tree node
+representing a data type.  @var{fn_decl_or_type} is a tree node
 representing @code{FUNCTION_DECL} or @code{FUNCTION_TYPE} of a
 function being called.  If @var{outgoing} is false, the hook should
 compute the register in which the caller will see the return value.
@@ -5424,32 +5443,26 @@ The typical use of this macro is to handle addresses containing
 a label_ref or symbol_ref within an UNSPEC@.
 @end defmac
 
-@defmac LEGITIMIZE_ADDRESS (@var{x}, @var{oldx}, @var{mode}, @var{win})
-A C compound statement that attempts to replace @var{x} with a valid
-memory address for an operand of mode @var{mode}.  @var{win} will be a
-C statement label elsewhere in the code; the macro definition may use
-
-@smallexample
-GO_IF_LEGITIMATE_ADDRESS (@var{mode}, @var{x}, @var{win});
-@end smallexample
-
-@noindent
-to avoid further processing if the address has become legitimate.
+@deftypefn {Target Hook} rtx TARGET_LEGITIMIZE_ADDRESS (rtx @var{x}, rtx @var{oldx}, enum machine_mode @var{mode})
+This hook is given an invalid memory address @var{x} for an
+operand of mode @var{mode} and should try to return a valid memory
+address.
 
 @findex break_out_memory_refs
 @var{x} will always be the result of a call to @code{break_out_memory_refs},
 and @var{oldx} will be the operand that was given to that function to produce
 @var{x}.
 
-The code generated by this macro should not alter the substructure of
+The code of the hook should not alter the substructure of
 @var{x}.  If it transforms @var{x} into a more legitimate form, it
-should assign @var{x} (which will always be a C variable) a new value.
+should return the new @var{x}.
 
-It is not necessary for this macro to come up with a legitimate
-address.  The compiler has standard ways of doing so in all cases.  In
-fact, it is safe to omit this macro.  But often a
-machine-dependent strategy can generate better code.
-@end defmac
+It is not necessary for this hook to come up with a legitimate address.
+The compiler has standard ways of doing so in all cases.  In fact, it
+is safe to omit this hook or make it return @var{x} if it cannot find
+a valid way to legitimize the address.  But often a machine-dependent
+strategy can generate better code.
+@end deftypefn
 
 @defmac LEGITIMIZE_RELOAD_ADDRESS (@var{x}, @var{mode}, @var{opnum}, @var{type}, @var{ind_levels}, @var{win})
 A C compound statement that attempts to replace @var{x}, which is an address
@@ -8962,7 +8975,7 @@ of compilation, which is correct for most machines.
 @defmac DBX_OUTPUT_NULL_N_SO_AT_MAIN_SOURCE_FILE_END
 Define this macro @emph{instead of} defining
 @code{DBX_OUTPUT_MAIN_SOURCE_FILE_END}, if what needs to be output at
-the end of compilation is a @code{N_SO} stab with an empty string,
+the end of compilation is an @code{N_SO} stab with an empty string,
 whose value is the highest absolute text address in the file.
 @end defmac
 
@@ -9712,12 +9725,12 @@ contain relative addresses only when @option{-fPIC} or @option{-fPIC}
 is in effect.
 @end defmac
 
-@defmac CASE_VALUES_THRESHOLD
-Define this to be the smallest number of different values for which it
+@deftypefn {Target Hook} unsigned int TARGET_CASE_VALUES_THRESHOLD (void)
+This function return the smallest number of different values for which it
 is best to use a jump-table instead of a tree of conditional branches.
 The default is four for machines with a @code{casesi} instruction and
 five otherwise.  This is best for most machines.
-@end defmac
+@end deftypefn
 
 @defmac CASE_USE_BIT_TESTS
 Define this macro to be a C expression to indicate whether C switch

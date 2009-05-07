@@ -29,6 +29,7 @@
 #ifndef _GLIBCXX_DEBUG_FORMATTER_H
 #define _GLIBCXX_DEBUG_FORMATTER_H 1
 
+#include <bits/c++config.h>
 #include <typeinfo>
 #include <debug/debug.h>
 
@@ -345,9 +346,9 @@ namespace __gnu_debug
     { _M_text = __text; return *this; }
 
     const _Error_formatter&
-    _M_message(_Debug_msg_id __id) const;
+    _M_message(_Debug_msg_id __id) const throw ();
 
-    void
+    _GLIBCXX_NORETURN void
     _M_error() const;
 
   private:
@@ -358,7 +359,7 @@ namespace __gnu_debug
 
     template<typename _Tp>
       void
-      _M_format_word(char*, int, const char*, _Tp) const;
+      _M_format_word(char*, int, const char*, _Tp) const throw ();
 
     void
     _M_print_word(const char* __word) const;
@@ -367,7 +368,7 @@ namespace __gnu_debug
     _M_print_string(const char* __string) const;
 
     void
-    _M_get_max_length() const;
+    _M_get_max_length() const throw ();
 
     enum { __max_parameters = 9 };
 

@@ -30,16 +30,16 @@ extern int avr_ret_register (void);
 extern enum reg_class class_likely_spilled_p (int c);
 extern enum reg_class avr_regno_reg_class (int r);
 extern enum reg_class avr_reg_class_from_letter (int c);
-extern int frame_pointer_required_p (void);
+extern bool avr_frame_pointer_required_p (void);
 extern void asm_globalize_label (FILE *file, const char *name);
 extern void avr_asm_declare_function_name (FILE *, const char *, tree);
 extern void order_regs_for_local_alloc (void);
-extern int initial_elimination_offset (int from, int to);
+extern bool avr_can_eliminate (int, int);
+extern int avr_initial_elimination_offset (int from, int to);
 extern int avr_simple_epilogue (void);
 extern void gas_output_limited_string (FILE *file, const char *str);
 extern void gas_output_ascii (FILE *file, const char *str, size_t length);
 extern int avr_hard_regno_rename_ok (unsigned int, unsigned int);
-extern unsigned int avr_case_values_threshold (void);
 
 #ifdef TREE_CODE
 extern void asm_output_external (FILE *file, tree decl, char *name);
@@ -98,7 +98,6 @@ extern const char *avr_out_sbxx_branch (rtx insn, rtx operands[]);
 
 extern enum reg_class preferred_reload_class (rtx x, enum reg_class rclass);
 extern int extra_constraint_Q (rtx x);
-extern rtx legitimize_address (rtx x, rtx oldx, enum machine_mode mode);
 extern int adjust_insn_length (rtx insn, int len);
 extern rtx avr_libcall_value (enum machine_mode mode);
 extern const char *output_reload_inhi (rtx insn, rtx *operands, int *len);

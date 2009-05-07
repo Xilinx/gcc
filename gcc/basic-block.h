@@ -119,8 +119,7 @@ extern regset regs_invalidated_by_call_regset;
 typedef HOST_WIDEST_INT gcov_type;
 
 /* Control flow edge information.  */
-struct edge_def GTY(())
-{
+struct GTY(()) edge_def {
   /* The two blocks at the ends of the edge.  */
   struct basic_block_def *src;
   struct basic_block_def *dest;
@@ -148,8 +147,6 @@ struct edge_def GTY(())
 				   in profile.c  */
 };
 
-typedef struct edge_def *edge;
-typedef const struct edge_def *const_edge;
 DEF_VEC_P(edge);
 DEF_VEC_ALLOC_P(edge,gc);
 DEF_VEC_ALLOC_P(edge,heap);
@@ -217,8 +214,7 @@ struct rtl_bb_info;
    basic blocks.  */
 
 /* Basic block information indexed by block number.  */
-struct basic_block_def GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb")))
-{
+struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_def {
   /* The edges into and out of the block.  */
   VEC(edge,gc) *preds;
   VEC(edge,gc) *succs;
@@ -257,8 +253,7 @@ struct basic_block_def GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb")
   int flags;
 };
 
-struct rtl_bb_info GTY(())
-{
+struct GTY(()) rtl_bb_info {
   /* The first and last insns of the block.  */
   rtx head_;
   rtx end_;
@@ -272,17 +267,13 @@ struct rtl_bb_info GTY(())
   int visited;
 };
 
-struct gimple_bb_info GTY(())
-{
+struct GTY(()) gimple_bb_info {
   /* Sequence of statements in this block.  */
   gimple_seq seq;
 
   /* PHI nodes for this block.  */
   gimple_seq phi_nodes;
 };
-
-typedef struct basic_block_def *basic_block;
-typedef const struct basic_block_def *const_basic_block;
 
 DEF_VEC_P(basic_block);
 DEF_VEC_ALLOC_P(basic_block,gc);
@@ -369,8 +360,7 @@ enum dom_state
    The x_* prefixing is necessary because otherwise references to the
    fields of this struct are interpreted as the defines for backward
    source compatibility following the definition of this struct.  */
-struct control_flow_graph GTY(())
-{
+struct GTY(()) control_flow_graph {
   /* Block pointers for the exit and entry of a function.
      These are always the head and tail of the basic block list.  */
   basic_block x_entry_block_ptr;
@@ -512,6 +502,7 @@ extern void update_bb_for_insn (basic_block);
 extern void insert_insn_on_edge (rtx, edge);
 basic_block split_edge_and_insert (edge, rtx);
 
+extern void commit_one_edge_insertion (edge e);
 extern void commit_edge_insertions (void);
 
 extern void remove_fake_edges (void);
@@ -896,7 +887,6 @@ extern bool purge_dead_edges (basic_block);
 /* In cfgbuild.c.  */
 extern void find_many_sub_basic_blocks (sbitmap);
 extern void rtl_make_eh_edge (sbitmap, basic_block, rtx);
-extern void find_basic_blocks (rtx);
 
 /* In cfgcleanup.c.  */
 extern bool cleanup_cfg (int);
@@ -938,6 +928,8 @@ extern VEC (basic_block, heap) *get_dominated_by (enum cdi_direction, basic_bloc
 extern VEC (basic_block, heap) *get_dominated_by_region (enum cdi_direction,
 							 basic_block *,
 							 unsigned);
+extern VEC (basic_block, heap) *get_all_dominated_blocks (enum cdi_direction,
+							  basic_block);
 extern void add_to_dominance_info (enum cdi_direction, basic_block);
 extern void delete_from_dominance_info (enum cdi_direction, basic_block);
 basic_block recompute_dominator (enum cdi_direction, basic_block);

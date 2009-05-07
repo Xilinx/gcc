@@ -45,6 +45,7 @@ package body Output is
 
    Indentation_Limit : constant Positive := 40;
    --  Indentation beyond this number of spaces wraps around
+
    pragma Assert (Indentation_Limit < Buffer_Max / 2);
    --  Make sure this is substantially shorter than the line length
 
@@ -111,14 +112,17 @@ package body Output is
 
       Len : constant Natural := Next_Col - 1;
 
+   --  Start of processing for Flush_Buffer
+
    begin
       if Len /= 0 then
          begin
             --  If there's no indentation, or if the line is too long with
-            --  indentation, just write the buffer.
+            --  indentation, or if it's a blank line, just write the buffer.
 
             if Cur_Indentation = 0
               or else Cur_Indentation + Len > Buffer_Max
+              or else Buffer (1 .. Len) = (1 => ASCII.LF)
             then
                Write_Buffer (Buffer (1 .. Len));
 
@@ -155,15 +159,26 @@ package body Output is
       end if;
    end Flush_Buffer;
 
+   -------------------
+   -- Ignore_Output --
+   -------------------
+
+   procedure Ignore_Output (S : String) is
+   begin
+      null;
+   end Ignore_Output;
+
    ------------
    -- Indent --
    ------------
 
    procedure Indent is
    begin
+      --  The "mod" in the following assignment is to cause a wrap around in
+      --  the case where there is too much indentation.
+
       Cur_Indentation :=
         (Cur_Indentation + Indentation_Amount) mod Indentation_Limit;
-      --  The "mod" is to wrap around in case there's too much indentation.
    end Indent;
 
    -------------
@@ -172,6 +187,8 @@ package body Output is
 
    procedure Outdent is
    begin
+      --  The "mod" here undoes the wrap around from Indent above
+
       Cur_Indentation :=
         (Cur_Indentation - Indentation_Amount) mod Indentation_Limit;
    end Outdent;

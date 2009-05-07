@@ -66,6 +66,10 @@ package Output is
    --  It is never an error to call Cancel_Special_Output. It has the same
    --  effect as calling Set_Special_Output (null).
 
+   procedure Ignore_Output (S : String);
+   --  Does nothing. To disable output, pass Ignore_Output'Access to
+   --  Set_Special_Output.
+
    procedure Set_Standard_Error;
    --  Sets subsequent output to appear on the standard error file (whatever
    --  that might mean for the host operating system, if anything) when
@@ -84,7 +88,7 @@ package Output is
    procedure Indent;
    --  Increases the current indentation level. Whenever a line is written
    --  (triggered by Eol), an appropriate amount of whitespace is added to the
-   --  beginning of the line, wrapping around if it gets to long.
+   --  beginning of the line, wrapping around if it gets too long.
 
    procedure Outdent;
    --  Decreases the current indentation level.
@@ -200,8 +204,8 @@ private
    --  Column about to be written
 
    type Saved_Output_Buffer is record
-      Buffer   : String (1 .. Buffer_Max + 1);
-      Next_Col : Positive;
+      Buffer          : String (1 .. Buffer_Max + 1);
+      Next_Col        : Positive;
       Cur_Indentation : Natural;
    end record;
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2001-2008, AdaCore                     --
+--                     Copyright (C) 2001-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -491,6 +491,13 @@ package GNAT.Sockets is
    Any_Inet_Addr       : constant Inet_Addr_Type;
    No_Inet_Addr        : constant Inet_Addr_Type;
    Broadcast_Inet_Addr : constant Inet_Addr_Type;
+   Loopback_Inet_Addr  : constant Inet_Addr_Type;
+
+   --  Useful constants for IPv4 multicast addresses
+
+   Unspecified_Group_Inet_Addr : constant Inet_Addr_Type;
+   All_Hosts_Group_Inet_Addr   : constant Inet_Addr_Type;
+   All_Routers_Group_Inet_Addr : constant Inet_Addr_Type;
 
    type Sock_Addr_Type (Family : Family_Type := Family_Inet) is record
       Addr : Inet_Addr_Type (Family);
@@ -603,6 +610,9 @@ package GNAT.Sockets is
    --  brackets and a string describing the error code.
 
    --  The name of the enumeration constant documents the error condition
+   --  Note that on some platforms, a single error value is used for both
+   --  EWOULDBLOCK and EAGAIN. Both errors are therefore always reported as
+   --  Resource_Temporarily_Unavailable.
 
    type Error_Type is
      (Success,
@@ -644,6 +654,7 @@ package GNAT.Sockets is
       Connection_Timed_Out,
       Too_Many_References,
       Resource_Temporarily_Unavailable,
+      Broken_Pipe,
       Unknown_Host,
       Host_Name_Lookup_Failure,
       Non_Recoverable_Error,
@@ -902,9 +913,11 @@ package GNAT.Sockets is
    procedure Receive_Vector
      (Socket : Socket_Type;
       Vector : Vector_Type;
-      Count  : out Ada.Streams.Stream_Element_Count);
+      Count  : out Ada.Streams.Stream_Element_Count;
+      Flags  : Request_Flag_Type := No_Request_Flag);
    --  Receive data from a socket and scatter it into the set of vector
    --  elements Vector. Count is set to the count of received stream elements.
+   --  Flags allow control over reception.
 
    function Resolve_Exception
      (Occurrence : Ada.Exceptions.Exception_Occurrence) return Error_Type;
@@ -931,10 +944,9 @@ package GNAT.Sockets is
       Item   : Ada.Streams.Stream_Element_Array;
       Last   : out Ada.Streams.Stream_Element_Offset;
       Flags  : Request_Flag_Type := No_Request_Flag);
-   --  Transmit a message over a socket. Note that Last is set to
-   --  Item'First-1 when socket has been closed by peer. This is not
-   --  considered an error and no exception is raised. Flags allows to control
-   --  the transmission. Raises Socket_Error on any other error condition.
+   --  Transmit a message over a socket. Upon return, Last is set to the index
+   --  within Item of the last element transmitted. Flags allows to control
+   --  the transmission. Raises Socket_Error on any detected error condition.
 
    procedure Send_Socket
      (Socket : Socket_Type;
@@ -949,9 +961,11 @@ package GNAT.Sockets is
    procedure Send_Vector
      (Socket : Socket_Type;
       Vector : Vector_Type;
-      Count  : out Ada.Streams.Stream_Element_Count);
+      Count  : out Ada.Streams.Stream_Element_Count;
+      Flags  : Request_Flag_Type := No_Request_Flag);
    --  Transmit data gathered from the set of vector elements Vector to a
    --  socket. Count is set to the count of transmitted stream elements.
+   --  Flags allow control over transmission.
 
    procedure Set_Socket_Option
      (Socket : Socket_Type;
@@ -971,14 +985,13 @@ package GNAT.Sockets is
    --  Same interface as Ada.Streams.Stream_IO
 
    function Stream (Socket : Socket_Type) return Stream_Access;
-   --  Create a stream associated with a stream-based socket that is
-   --  already connected.
+   --  Create a stream associated with an already connected stream-based socket
 
    function Stream
      (Socket  : Socket_Type;
       Send_To : Sock_Addr_Type) return Stream_Access;
-   --  Create a stream associated with a datagram-based socket that is already
-   --  bound. Send_To is the socket address to which messages are being sent.
+   --  Create a stream associated with an already bound datagram-based socket.
+   --  Send_To is the destination address to which messages are being sent.
 
    function Get_Address
      (Stream : not null Stream_Access) return Sock_Addr_Type;
@@ -992,9 +1005,10 @@ package GNAT.Sockets is
 
    type Socket_Set_Type is limited private;
    --  This type allows to manipulate sets of sockets. It allows to wait for
-   --  events on multiple endpoints at one time. This type used to contain
-   --  a pointer to dynamically allocated storage, but this is not the case
-   --  anymore, and no special precautions are required to avoid memory leaks.
+   --  events on multiple endpoints at one time.
+   --  Note: This type used to contain a pointer to dynamically allocated
+   --  storage, but this is not the case anymore, and no special precautions
+   --  are required to avoid memory leaks.
 
    procedure Clear (Item : in out Socket_Set_Type; Socket : Socket_Type);
    --  Remove Socket from Item
@@ -1034,13 +1048,15 @@ package GNAT.Sockets is
    --  that it does not watch for exception events. Note that on some
    --  platforms it is kept process blocking on purpose. The timeout parameter
    --  allows the user to have the behaviour he wants. Abort_Selector allows
-   --  to abort safely a Check_Selector that is blocked forever. A special
-   --  file descriptor is opened by Create_Selector and included in each call
-   --  to Check_Selector. Abort_Selector causes an event to occur on this
-   --  descriptor in order to unblock Check_Selector. The user must call
-   --  Close_Selector to discard this special file. A reason to abort a select
-   --  operation is typically to add a socket in one of the socket sets when
-   --  the timeout is set to forever.
+   --  to safely abort a blocked Check_Selector call. A special socket
+   --  is opened by Create_Selector and included in each call to
+   --  Check_Selector. Abort_Selector causes an event to occur on this
+   --  descriptor in order to unblock Check_Selector. Note that each call to
+   --  Abort_Selector will cause exactly one call to Check_Selector to return
+   --  with Aborted status. The special socket created by Create_Selector is
+   --  closed when Close_Selector is called.
+   --  A typical case where it is useful to abort a Check_Selector operation is
+   --  the situation where a change to the monitored sockets set must be made.
 
    procedure Create_Selector (Selector : out Selector_Type);
    --  Create a new selector
@@ -1077,10 +1093,10 @@ package GNAT.Sockets is
       E_Socket_Set : in out Socket_Set_Type;
       Status       : out Selector_Status;
       Timeout      : Selector_Duration := Forever);
-   --  This refined version of Check_Selector allows to watch for exception
-   --  events (that is notifications of out-of-band transmission and
-   --  reception). As above, all of R_Socket_Set, W_Socket_Set and
-   --  E_Socket_Set must be different objects.
+   --  This refined version of Check_Selector allows watching for exception
+   --  events (i.e. notifications of out-of-band transmission and reception).
+   --  As above, all of R_Socket_Set, W_Socket_Set and E_Socket_Set must be
+   --  different objects.
 
    procedure Abort_Selector (Selector : Selector_Type);
    --  Send an abort signal to the selector
@@ -1150,6 +1166,15 @@ private
                            (Family_Inet, (others => 0));
    Broadcast_Inet_Addr : constant Inet_Addr_Type :=
                            (Family_Inet, (others => 255));
+   Loopback_Inet_Addr  : constant Inet_Addr_Type :=
+                           (Family_Inet, (127, 0, 0, 1));
+
+   Unspecified_Group_Inet_Addr : constant Inet_Addr_Type :=
+                                   (Family_Inet, (224, 0, 0, 0));
+   All_Hosts_Group_Inet_Addr   : constant Inet_Addr_Type :=
+                                   (Family_Inet, (224, 0, 0, 1));
+   All_Routers_Group_Inet_Addr : constant Inet_Addr_Type :=
+                                   (Family_Inet, (224, 0, 0, 2));
 
    No_Sock_Addr : constant Sock_Addr_Type := (Family_Inet, No_Inet_Addr, 0);
 

@@ -1,5 +1,5 @@
 /* Vector API for GNU compiler.
-   Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2008, 2009 Free Software Foundation, Inc.
    Contributed by Nathan Sidwell <nathan@codesourcery.com>
 
 This file is part of GCC.
@@ -471,7 +471,7 @@ typedef struct VEC(T,B) 				 		  \
 } VEC(T,B)
 
 #define VEC_T_GTY(T,B)							  \
-typedef struct VEC(T,B) GTY(())				 		  \
+typedef struct GTY(()) VEC(T,B)				 		  \
 {									  \
   unsigned num;								  \
   unsigned alloc;							  \
@@ -480,7 +480,7 @@ typedef struct VEC(T,B) GTY(())				 		  \
 
 /* Derived vector type, user visible.  */
 #define VEC_TA_GTY(T,B,A,GTY)						  \
-typedef struct VEC(T,A) GTY						  \
+typedef struct GTY VEC(T,A)						  \
 {									  \
   VEC(T,B) base;							  \
 } VEC(T,A)
@@ -558,7 +558,7 @@ static inline int VEC_OP (T,base,iterate)			  	  \
     }									  \
   else									  \
     {									  \
-      *ptr = 0;								  \
+      *ptr = (T) 0;							  \
       return 0;								  \
     }									  \
 }									  \

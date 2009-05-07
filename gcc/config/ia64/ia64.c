@@ -737,7 +737,7 @@ ia64_depz_field_mask (rtx rop, rtx rshift)
 static enum tls_model
 tls_symbolic_operand_type (rtx addr)
 {
-  enum tls_model tls_kind = 0;
+  enum tls_model tls_kind = TLS_MODEL_NONE;
 
   if (GET_CODE (addr) == CONST)
     {
@@ -764,7 +764,8 @@ ia64_legitimate_constant_p (rtx x)
       return true;
 
     case CONST_DOUBLE:
-      if (GET_MODE (x) == VOIDmode)
+      if (GET_MODE (x) == VOIDmode || GET_MODE (x) == SFmode
+	  || GET_MODE (x) == DFmode)
 	return true;
       return satisfies_constraint_G (x);
 
@@ -1311,9 +1312,7 @@ ia64_split_tmode_move (rtx operands[])
       && (GET_CODE (XEXP (EXP, 0)) == POST_MODIFY			\
 	  || GET_CODE (XEXP (EXP, 0)) == POST_INC			\
 	  || GET_CODE (XEXP (EXP, 0)) == POST_DEC))			\
-    REG_NOTES (INSN) = gen_rtx_EXPR_LIST (REG_INC,			\
-					  XEXP (XEXP (EXP, 0), 0),	\
-					  REG_NOTES (INSN))
+    add_reg_note (insn, REG_INC, XEXP (XEXP (EXP, 0), 0))
 
   insn = emit_insn (gen_rtx_SET (VOIDmode, out[0], in[0]));
   MAYBE_ADD_REG_INC_NOTE (insn, in[0]);
@@ -1523,7 +1522,8 @@ ia64_expand_compare (enum rtx_code code, enum machine_mode mode)
 	QCMP_EQ = 4,
 	QCMP_LT = 8,
 	QCMP_GT = 16
-      } magic;
+      };
+      int magic;
       enum rtx_code ncode;
       rtx ret, insns;
       
@@ -2770,9 +2770,8 @@ spill_restore_mem (rtx reg, HOST_WIDE_INT cfa_off)
 				   gen_rtx_PLUS (DImode,
 						 spill_fill_data.iter_reg[iter],
 						 disp_rtx));
-	  REG_NOTES (spill_fill_data.prev_insn[iter])
-	    = gen_rtx_EXPR_LIST (REG_INC, spill_fill_data.iter_reg[iter],
-				 REG_NOTES (spill_fill_data.prev_insn[iter]));
+	  add_reg_note (spill_fill_data.prev_insn[iter],
+			REG_INC, spill_fill_data.iter_reg[iter]);
 	}
       else
 	{
@@ -2889,13 +2888,11 @@ do_spill (rtx (*move_fn) (rtx, rtx, rtx), rtx reg, HOST_WIDE_INT cfa_off,
 	  off = current_frame_info.total_size - cfa_off;
 	}
 
-      REG_NOTES (insn)
-	= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-		gen_rtx_SET (VOIDmode,
-			     gen_rtx_MEM (GET_MODE (reg),
-					  plus_constant (base, off)),
-			     frame_reg),
-		REG_NOTES (insn));
+      add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+		    gen_rtx_SET (VOIDmode,
+				 gen_rtx_MEM (GET_MODE (reg),
+					      plus_constant (base, off)),
+				 frame_reg));
     }
 }
 
@@ -3095,16 +3092,12 @@ ia64_expand_prologue (void)
 	{
 	  RTX_FRAME_RELATED_P (insn) = 1;
 	  if (GET_CODE (offset) != CONST_INT)
-	    {
-	      REG_NOTES (insn)
-		= gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			gen_rtx_SET (VOIDmode,
-				     stack_pointer_rtx,
-				     gen_rtx_PLUS (DImode,
-						   stack_pointer_rtx,
-						   frame_size_rtx)),
-			REG_NOTES (insn));
-	    }
+	    add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			  gen_rtx_SET (VOIDmode,
+				       stack_pointer_rtx,
+				       gen_rtx_PLUS (DImode,
+						     stack_pointer_rtx,
+						     frame_size_rtx)));
 	}
 
       /* ??? At this point we must generate a magic insn that appears to
@@ -3171,10 +3164,8 @@ ia64_expand_prologue (void)
 	  /* ??? Denote pr spill/fill by a DImode move that modifies all
 	     64 hard registers.  */
 	  RTX_FRAME_RELATED_P (insn) = 1;
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			gen_rtx_SET (VOIDmode, alt_reg, reg),
-			REG_NOTES (insn));
+	  add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+			gen_rtx_SET (VOIDmode, alt_reg, reg));
 
 	  /* Even if we're not going to generate an epilogue, we still
 	     need to save the register so that EH works.  */
@@ -3533,16 +3524,12 @@ ia64_expand_epilogue (int sibcall_p)
 
       RTX_FRAME_RELATED_P (insn) = 1;
       if (GET_CODE (offset) != CONST_INT)
-	{
-	  REG_NOTES (insn)
-	    = gen_rtx_EXPR_LIST (REG_FRAME_RELATED_EXPR,
-			gen_rtx_SET (VOIDmode,
-				     stack_pointer_rtx,
-				     gen_rtx_PLUS (DImode,
-						   stack_pointer_rtx,
-						   frame_size_rtx)),
-			REG_NOTES (insn));
-	}
+	add_reg_note (insn, REG_FRAME_RELATED_EXPR,
+		      gen_rtx_SET (VOIDmode,
+				   stack_pointer_rtx,
+				   gen_rtx_PLUS (DImode,
+						 stack_pointer_rtx,
+						 frame_size_rtx)));
     }
 
   if (cfun->machine->ia64_eh_epilogue_bsp)
@@ -4555,6 +4542,7 @@ ia64_print_operand_address (FILE * stream ATTRIBUTE_UNUSED,
    e    Print 64 - constant, for DImode rotates.
    F	A floating point constant 0.0 emitted as f0, or 1.0 emitted as f1, or
         a floating point register emitted normally.
+   G	A floating point constant.
    I	Invert a predicate register by adding 1.
    J    Select the proper predicate register for a condition.
    j    Select the inverse predicate register for a condition.
@@ -4640,6 +4628,24 @@ ia64_print_operand (FILE * file, rtx x, int code)
 	  str = reg_names [REGNO (x)];
 	}
       fputs (str, file);
+      return;
+
+    case 'G':
+      {
+	long val[4];
+	REAL_VALUE_TYPE rv;
+	REAL_VALUE_FROM_CONST_DOUBLE (rv, x);
+	real_to_target (val, &rv, GET_MODE (x));
+	if (GET_MODE (x) == SFmode)
+	  fprintf (file, "0x%08lx", val[0] & 0xffffffff);
+	else if (GET_MODE (x) == DFmode)
+	  fprintf (file, "0x%08lx%08lx", (WORDS_BIG_ENDIAN ? val[0] : val[1])
+					  & 0xffffffff,
+					 (WORDS_BIG_ENDIAN ? val[1] : val[0])
+					  & 0xffffffff);
+	else
+	  output_operand_lossage ("invalid %%G mode");
+      }
       return;
 
     case 'I':
@@ -7931,7 +7937,7 @@ insert_bundle_state (struct bundle_state *bundle_state)
 {
   void **entry_ptr;
 
-  entry_ptr = htab_find_slot (bundle_state_table, bundle_state, 1);
+  entry_ptr = htab_find_slot (bundle_state_table, bundle_state, INSERT);
   if (*entry_ptr == NULL)
     {
       bundle_state->next = index_to_bundle_states [bundle_state->insn_num];
@@ -8295,9 +8301,7 @@ ia64_add_bundle_selector_before (int template0, rtx insn)
 	      if (find_reg_note (insn, REG_EH_REGION, NULL_RTX))
 		note = NULL_RTX;
 	      else
-		REG_NOTES (insn)
-		  = gen_rtx_EXPR_LIST (REG_EH_REGION, XEXP (note, 0),
-				       REG_NOTES (insn));
+		add_reg_note (insn, REG_EH_REGION, XEXP (note, 0));
 	    }
 	}
     }

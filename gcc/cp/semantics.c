@@ -108,8 +108,7 @@ static tree finalize_nrv_r (tree *, int *, void *);
       In case of parsing error, we simply call `pop_deferring_access_checks'
       without `perform_deferred_access_checks'.  */
 
-typedef struct deferred_access GTY(())
-{
+typedef struct GTY(()) deferred_access {
   /* A VEC representing name-lookups for which we have deferred
      checking access controls.  We cannot check the accessibility of
      names used in a decl-specifier-seq until we know what is being
@@ -1987,7 +1986,15 @@ finish_call_expr (tree fn, tree args, bool disallow_virtual, bool koenig_p,
       if (TREE_CODE (fn) == FUNCTION_DECL
 	  && (DECL_BUILT_IN_CLASS (fn) == BUILT_IN_NORMAL
 	      || DECL_BUILT_IN_CLASS (fn) == BUILT_IN_MD))
-	result = resolve_overloaded_builtin (fn, args);
+	{
+	  VEC(tree,gc)* vec = VEC_alloc (tree, gc, list_length (args));
+	  tree p;
+
+	  for (p = args; p != NULL_TREE; p = TREE_CHAIN (p))
+	    VEC_quick_push (tree, vec, TREE_VALUE (p));
+	  result = resolve_overloaded_builtin (fn, vec);
+	  VEC_free (tree, gc, vec);
+	}
 
       if (!result)
 	/* A call to a namespace-scope function.  */
@@ -3641,7 +3648,7 @@ finish_omp_clauses (tree clauses)
 
   for (pc = &clauses, c = clauses; c ; c = *pc)
     {
-      enum tree_code c_kind = OMP_CLAUSE_CODE (c);
+      enum omp_clause_code c_kind = OMP_CLAUSE_CODE (c);
       bool remove = false;
       bool need_complete_non_reference = false;
       bool need_default_ctor = false;
@@ -4121,7 +4128,8 @@ handle_omp_for_class_iterator (int i, location_t locus, tree declv, tree initv,
   cond = cp_build_binary_op (elocus,
 			     TREE_CODE (cond), decl, diff,
 			     tf_warning_or_error);
-  incr = build_modify_expr (elocus, decl, PLUS_EXPR, incr);
+  incr = build_modify_expr (elocus, decl, NULL_TREE, PLUS_EXPR,
+			    incr, NULL_TREE);
 
   orig_body = *body;
   *body = push_stmt_list ();

@@ -409,9 +409,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
    pointers are eliminated wherever possible, by replacing them with
    offsets from the stack pointer. */
 
-/* We want to get rid of the frame pointer.  */
-#define FRAME_POINTER_REQUIRED 0
-
 #define ELIMINABLE_REGS 						\
   {{ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},				\
    {FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}}
@@ -507,10 +504,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #endif /* !REG_OK_STRICT */
 
-/* extern struct rtx_def *picochip_legitimize_address */
-/* 	PARAMS ((struct rtx_def *, struct rtx_def *, int)); */
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN);
-
 /* Legitimize reload address tries machine dependent means of
    reloading addresses.  There seems to be a strange error in gcc,
    which necessitates this macro.  Consider:
@@ -534,9 +527,6 @@ extern const enum reg_class picochip_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_LEVELS,WIN)	     \
 if (picochip_symbol_offset(X)) { X = gen_rtx_CONST(MODE, X); }
-
-/* There are no mode dependent addresses.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL) do {} while (0)
 
 /* Nonzero if the constant rtx X is a legitimate general operand.  X
    satisfies CONSTANT_P.  */

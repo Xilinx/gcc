@@ -79,10 +79,6 @@ pragma Style_Checks ("M32766");
  **
  **/
 
-#ifndef TARGET
-# error Please define TARGET
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -94,6 +90,26 @@ pragma Style_Checks ("M32766");
 #endif
 
 #include "gsocket.h"
+
+#ifdef DUMMY
+
+# if defined (TARGET)
+#   error TARGET may not be defined when generating the dummy version
+# else
+#   define TARGET "batch runtime compilation (dummy values)"
+# endif
+
+# if !(defined (HAVE_SOCKETS) && defined (HAVE_TERMIOS))
+#   error Features missing on platform
+# endif
+
+# define NATIVE
+
+#endif
+
+#ifndef TARGET
+# error Please define TARGET
+#endif
 
 #ifndef HAVE_SOCKETS
 # include <errno.h>
@@ -109,8 +125,16 @@ pragma Style_Checks ("M32766");
 
 #ifdef NATIVE
 #include <stdio.h>
+
+#ifdef DUMMY
+int counter = 0;
+# define _VAL(x) counter++
+#else
+# define _VAL(x) x
+#endif
+
 #define CND(name,comment) \
-  printf ("\n->CND:$%d:" #name ":$%d:" comment, __LINE__, ((int) name));
+  printf ("\n->CND:$%d:" #name ":$%d:" comment, __LINE__, ((int) _VAL (name)));
 
 #define CNS(name,comment) \
   printf ("\n->CNS:$%d:" #name ":" name ":" comment, __LINE__);
@@ -451,6 +475,11 @@ CND(ENOTSOCK, "Operation on non socket")
 #endif
 CND(EOPNOTSUPP, "Operation not supported")
 
+#ifndef EPIPE
+# define EPIPE -1
+#endif
+CND(EPIPE, "Broken pipe")
+
 #ifndef EPFNOSUPPORT
 # define EPFNOSUPPORT -1
 #endif
@@ -465,6 +494,11 @@ CND(EPROTONOSUPPORT, "Unknown protocol")
 # define EPROTOTYPE -1
 #endif
 CND(EPROTOTYPE, "Unknown protocol type")
+
+#ifndef ERANGE
+# define ERANGE -1
+#endif
+CND(ERANGE, "Result too large")
 
 #ifndef ESHUTDOWN
 # define ESHUTDOWN -1
@@ -1147,6 +1181,19 @@ TXT("   subtype H_Length_T   is Interfaces.C." h_length_t ";")
 
 /*
 
+   --  Fields of struct msghdr
+*/
+
+#if defined (__VMS) || defined (__sun__) || defined (__hpux__)
+# define msg_iovlen_t "int"
+#else
+# define msg_iovlen_t "size_t"
+#endif
+
+TXT("   subtype Msg_Iovlen_T is Interfaces.C." msg_iovlen_t ";")
+
+/*
+
    ----------------------------------------
    -- Properties of supported interfaces --
    ----------------------------------------
@@ -1163,15 +1210,25 @@ CND(Has_Sockaddr_Len,  "Sockaddr has sa_len field")
 TXT("   Thread_Blocking_IO  : constant Boolean := True;")
 /*
    --  Set False for contexts where socket i/o are process blocking
+
 */
+
+#ifdef HAVE_INET_PTON
+# define Inet_Pton_Linkname "inet_pton"
+#else
+# define Inet_Pton_Linkname "__gnat_inet_pton"
+#endif
+TXT("   Inet_Pton_Linkname  : constant String := \"" Inet_Pton_Linkname "\";")
 
 #endif /* HAVE_SOCKETS */
 
 /**
  **  System-specific constants follow
+ **  Each section should be activated if compiling for the corresponding
+ **  platform *or* generating the dummy version for runtime test compilation.
  **/
 
-#ifdef __vxworks
+#if defined (__vxworks) || defined (DUMMY)
 
 /*
 
@@ -1188,7 +1245,7 @@ CND(ERROR, "VxWorks generic error")
 
 #endif
 
-#ifdef __MINGW32__
+#if defined (__MINGW32__) || defined (DUMMY)
 /*
 
    ------------------------------
@@ -1210,7 +1267,7 @@ CND(WSAEDISCON,         "Disconnected")
    putchar ('\n');
 #endif
 
-#ifdef __APPLE__
+#if defined (__APPLE__) || defined (DUMMY)
 /*
 
    -------------------------------

@@ -70,7 +70,7 @@ Common Optimization
 Optimize for space rather than speed
 
 W
-Common RejectNegative
+Common RejectNegative Var(extra_warnings) Warning
 This switch is deprecated; use -Wextra instead
 
 Waggregate-return
@@ -106,7 +106,7 @@ Common Joined
 Treat specified warning as error
 
 Wextra
-Common Warning
+Common Var(extra_warnings) Warning
 Print extra (possibly unwanted) warnings
 
 Wfatal-errors
@@ -127,10 +127,6 @@ Common RejectNegative Joined UInteger Warning
 Wlarger-than=
 Common RejectNegative Joined UInteger Warning
 -Wlarger-than=<number>	Warn if an object is larger than <number> bytes
-
-Wlogical-op
-Common Warning Var(warn_logical_op)
-Warn when a logical operator is suspicously always evaluating to true or false
 
 Wunsafe-loop-optimizations
 Common Var(warn_unsafe_loop_optimizations) Warning
@@ -201,7 +197,7 @@ Common Var(warn_type_limits) Init(-1) Warning
 Warn if a comparison is always true or always false due to the limited range of the data type
 
 Wuninitialized
-Common Var(warn_uninitialized) Warning
+Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
 
 Wunreachable-code
@@ -401,8 +397,8 @@ Common Report Var(flag_cse_follow_jumps) Optimization
 When running CSE, follow jumps to their targets
 
 fcse-skip-blocks
-Common Report Var(flag_cse_skip_blocks) Optimization
-When running CSE, follow conditional jumps
+Common
+Does nothing.  Preserved for backward compatibility.
 
 fcx-limited-range
 Common Report Var(flag_cx_limited_range) Optimization

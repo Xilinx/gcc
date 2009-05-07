@@ -1054,6 +1054,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 	      || (callee_copies
 		  && !TREE_ADDRESSABLE (type)
 		  && (base = get_base_address (args[i].tree_value))
+		  && TREE_CODE (base) != SSA_NAME
 		  && (!DECL_P (base) || MEM_P (DECL_RTL (base)))))
 	    {
 	      /* We can't use sibcalls if a callee-copied argument is
@@ -4233,7 +4234,8 @@ store_one_arg (struct arg_data *arg, rtx argblock, int flags,
 		    - int_size_in_bytes (TREE_TYPE (pval))
 		    + partial);
 	  size_rtx = expand_expr (size_in_bytes (TREE_TYPE (pval)),
-				  NULL_RTX, TYPE_MODE (sizetype), 0);
+				  NULL_RTX, TYPE_MODE (sizetype),
+				  EXPAND_NORMAL);
 	}
 
       parm_align = arg->locate.boundary;

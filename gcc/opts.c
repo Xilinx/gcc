@@ -54,9 +54,6 @@ bool sel_sched_switch_set;
 /* True if we should exit after parsing options.  */
 bool exit_after_options;
 
-/* Print various extra warnings.  -W/-Wextra.  */
-bool extra_warnings;
-
 /* True to warn about any objects definitions whose size is larger
    than N bytes.  Also want about function definitions whose returned
    values are larger than N bytes, where N is `larger_than_size'.  */
@@ -339,11 +336,7 @@ enum symbol_visibility default_visibility = VISIBILITY_DEFAULT;
 struct visibility_flags visibility_options;
 
 /* What to print when a switch has no documentation.  */
-#ifdef ENABLE_CHECKING
 static const char undocumented_msg[] = N_("This switch lacks documentation");
-#else
-static const char undocumented_msg[] = "";
-#endif
 
 /* Used for bookkeeping on whether user set these flags so
    -fprofile-use/-fprofile-generate does not use them.  */
@@ -376,7 +369,6 @@ unsigned num_in_fnames;
 static int common_handle_option (size_t scode, const char *arg, int value,
 				 unsigned int lang_mask);
 static void handle_param (const char *);
-static void set_Wextra (int);
 static unsigned int handle_option (const char **argv, unsigned int lang_mask);
 static char *write_langs (unsigned int lang_mask);
 static void complain_wrong_lang (const char *, const struct cl_option *,
@@ -1576,17 +1568,8 @@ common_handle_option (size_t scode, const char *arg, int value,
       /* Currently handled in a prescan.  */
       break;
 
-    case OPT_W:
-      /* For backward compatibility, -W is the same as -Wextra.  */
-      set_Wextra (value);
-      break;
-
     case OPT_Werror_:
       enable_warning_as_error (arg, value, lang_mask);
-      break;
-
-    case OPT_Wextra:
-      set_Wextra (value);
       break;
 
     case OPT_Wlarger_than_:
@@ -2105,21 +2088,6 @@ handle_param (const char *carg)
   free (arg);
 }
 
-/* Handle -W and -Wextra.  */
-static void
-set_Wextra (int setting)
-{
-  extra_warnings = setting;
-
-  /* We save the value of warn_uninitialized, since if they put
-     -Wuninitialized on the command line, we need to generate a
-     warning about not using it without also specifying -O.  */
-  if (setting == 0)
-    warn_uninitialized = 0;
-  else if (warn_uninitialized != 1)
-    warn_uninitialized = 2;
-}
-
 /* Used to set the level of strict aliasing warnings, 
    when no level is specified (i.e., when -Wstrict-aliasing, and not
    -Wstrict-aliasing=level was given).
@@ -2229,15 +2197,17 @@ set_debug_level (enum debug_info_type type, int extended, const char *arg)
   if (*arg == '\0')
     {
       if (!debug_info_level)
-	debug_info_level = 2;
+	debug_info_level = DINFO_LEVEL_NORMAL;
     }
   else
     {
-      debug_info_level = integral_argument (arg);
-      if (debug_info_level == (unsigned int) -1)
+      int argval = integral_argument (arg);
+      if (argval == -1)
 	error ("unrecognised debug output level \"%s\"", arg);
-      else if (debug_info_level > 3)
+      else if (argval > 3)
 	error ("debug output level %s is too high", arg);
+      else
+	debug_info_level = (enum debug_info_level) argval;
     }
 }
 
@@ -2323,7 +2293,7 @@ enable_warning_as_error (const char *arg, int value, unsigned int lang_mask)
     }
   else
     {
-      int kind = value ? DK_ERROR : DK_WARNING;
+      diagnostic_t kind = value ? DK_ERROR : DK_WARNING;
       diagnostic_classify_diagnostic (global_dc, option_index, kind);
       
       /* -Werror=foo implies -Wfoo.  */

@@ -705,6 +705,13 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
       gcc_assert (new_decl);
       /* Replace this variable with the copy.  */
       STRIP_TYPE_NOPS (new_decl);
+      /* ???  The C++ frontend uses void * pointer zero to initialize
+         any other type.  This confuses the middle-end type verification.
+	 As cloned bodies do not go through gimplification again the fixup
+	 there doesn't trigger.  */
+      if (TREE_CODE (new_decl) == INTEGER_CST
+	  && !useless_type_conversion_p (TREE_TYPE (*tp), TREE_TYPE (new_decl)))
+	new_decl = fold_convert (TREE_TYPE (*tp), new_decl);
       *tp = new_decl;
       *walk_subtrees = 0;
     }
@@ -1608,8 +1615,6 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
 	gimple phi;
 	gimple_stmt_iterator si;
 
-	gcc_assert (e->flags & EDGE_ABNORMAL);
-
 	if (!nonlocal_goto)
 	  gcc_assert (e->flags & EDGE_EH);
 
@@ -1625,7 +1630,8 @@ update_ssa_across_abnormal_edges (basic_block bb, basic_block ret_bb,
 	    /* There shouldn't be any PHI nodes in the ENTRY_BLOCK.  */
 	    gcc_assert (!e->dest->aux);
 
-	    gcc_assert (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (PHI_RESULT (phi)));
+	    gcc_assert ((e->flags & EDGE_EH)
+			|| SSA_NAME_OCCURS_IN_ABNORMAL_PHI (PHI_RESULT (phi)));
 
 	    if (!is_gimple_reg (PHI_RESULT (phi)))
 	      {

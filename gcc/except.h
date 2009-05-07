@@ -25,7 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 struct function;
 
 /* Describes one exception region.  */
-struct eh_region GTY(())
+struct GTY(()) eh_region
 {
   /* The immediately surrounding region.  */
   struct eh_region *outer;
@@ -33,6 +33,9 @@ struct eh_region GTY(())
   /* The list of immediately contained regions.  */
   struct eh_region *inner;
   struct eh_region *next_peer;
+
+  /* List of regions sharing label.  */
+  struct eh_region *next_region_sharing_label;
 
   /* An identifier for this region.  */
   int region_number;
@@ -115,7 +118,7 @@ DEF_VEC_ALLOC_P(eh_region, heap);
 
 /* Per-function EH data.  Used to save exception status for each
    function.  */
-struct eh_status GTY(())
+struct GTY(()) eh_status
 {
   /* The tree of all regions for this function.  */
   struct eh_region *region_tree;
@@ -151,15 +154,12 @@ extern bool can_throw_external (const_rtx);
 /* Set TREE_NOTHROW and cfun->all_throwers_are_sibcalls.  */
 extern unsigned int set_nothrow_function_flags (void);
 
-/* After initial rtl generation, call back to finish generating
-   exception support code.  */
-extern void finish_eh_generation (void);
-
 extern void init_eh (void);
 extern void init_eh_for_function (void);
 
 extern rtx reachable_handlers (rtx);
-void remove_eh_region (int);
+extern void remove_eh_region (int);
+extern void remove_eh_region_and_replace_by_outer_of (int, int);
 
 extern void convert_from_eh_region_ranges (void);
 extern unsigned int convert_to_eh_region_ranges (void);
@@ -268,8 +268,7 @@ extern tree (*lang_eh_runtime_type) (tree);
 # define USING_SJLJ_EXCEPTIONS		MUST_USE_SJLJ_EXCEPTIONS
 #endif
 
-struct throw_stmt_node GTY(())
-{
+struct GTY(()) throw_stmt_node {
   gimple stmt;
   int region_nr;
 };
@@ -279,3 +278,5 @@ extern void set_eh_throw_stmt_table (struct function *, struct htab *);
 extern void remove_unreachable_regions (sbitmap, sbitmap);
 extern VEC(int,heap) * label_to_region_map (void);
 extern int num_eh_regions (void);
+extern struct eh_region *redirect_eh_edge_to_label (struct edge_def *, tree, bool, bool, int);
+extern int get_next_region_sharing_label (int);

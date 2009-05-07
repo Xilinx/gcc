@@ -89,7 +89,7 @@ struct iq2000_frame_info
   int  num_gp;			/* Number of gp registers saved.  */
 } iq2000_frame_info;
 
-struct machine_function GTY(())
+struct GTY(()) machine_function
 {
   /* Current frame information, calculated by compute_frame_size.  */
   long total_size;		/* # bytes that the entire frame takes up.  */
@@ -165,6 +165,7 @@ static void iq2000_setup_incoming_varargs (CUMULATIVE_ARGS *,
 static bool iq2000_rtx_costs          (rtx, int, int, int *, bool);
 static int  iq2000_address_cost       (rtx, bool);
 static section *iq2000_select_section (tree, int, unsigned HOST_WIDE_INT);
+static rtx  iq2000_legitimize_address (rtx, rtx, enum machine_mode);
 static bool iq2000_pass_by_reference  (CUMULATIVE_ARGS *, enum machine_mode,
 				       const_tree, bool);
 static int  iq2000_arg_partial_bytes  (CUMULATIVE_ARGS *, enum machine_mode,
@@ -185,6 +186,9 @@ static void iq2000_va_start	      (tree, rtx);
 #define TARGET_ADDRESS_COST		iq2000_address_cost
 #undef  TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION	iq2000_select_section
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS	iq2000_legitimize_address
 
 /* The assembler supports switchable .bss sections, but
    iq2000_select_section doesn't yet make use of them.  */
@@ -1175,6 +1179,11 @@ function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
       cum->arg_words += 2;
       break;
 
+    case TImode:
+      cum->gp_reg_found = 1;
+      cum->arg_words += 4;
+      break;
+
     case QImode:
     case HImode:
     case SImode:
@@ -1245,6 +1254,12 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, const_tree type,
     case DImode:
       cum->arg_words += (cum->arg_words & 1);
       regbase = GP_ARG_FIRST;
+      break;
+
+    case TImode:
+      cum->arg_words += (cum->arg_words & 3);
+      regbase = GP_ARG_FIRST;
+      break;
     }
 
   if (*arg_words >= (unsigned) MAX_ARGS_IN_REGISTERS)
@@ -3202,6 +3217,73 @@ print_operand (FILE *file, rtx op, int letter)
   else
     output_addr_const (file, op);
 }
+
+
+/* For the IQ2000, transform:
+
+        memory(X + <large int>)
+   into:
+        Y = <large int> & ~0x7fff;
+        Z = X + Y
+        memory (Z + (<large int> & 0x7fff));
+*/
+
+rtx
+iq2000_legitimize_address (rtx xinsn, rtx old_x ATTRIBUTE_UNUSED,
+			   enum machine_mode mode)
+{
+  if (TARGET_DEBUG_B_MODE)
+    {
+      GO_PRINTF ("\n========== LEGITIMIZE_ADDRESS\n");
+      GO_DEBUG_RTX (xinsn);
+    }
+
+  if (iq2000_check_split (xinsn, mode))
+    {
+      return gen_rtx_LO_SUM (Pmode,
+                             copy_to_mode_reg (Pmode,
+                                               gen_rtx_HIGH (Pmode, xinsn)),
+                             xinsn);
+    }
+
+  if (GET_CODE (xinsn) == PLUS)
+    {
+      rtx xplus0 = XEXP (xinsn, 0);
+      rtx xplus1 = XEXP (xinsn, 1);
+      enum rtx_code code0 = GET_CODE (xplus0);
+      enum rtx_code code1 = GET_CODE (xplus1);
+
+      if (code0 != REG && code1 == REG)
+        {
+          xplus0 = XEXP (xinsn, 1);
+          xplus1 = XEXP (xinsn, 0);
+          code0 = GET_CODE (xplus0);
+          code1 = GET_CODE (xplus1);
+        }
+
+      if (code0 == REG && REG_MODE_OK_FOR_BASE_P (xplus0, mode)
+          && code1 == CONST_INT && !SMALL_INT (xplus1))
+        {
+          rtx int_reg = gen_reg_rtx (Pmode);
+          rtx ptr_reg = gen_reg_rtx (Pmode);
+
+          emit_move_insn (int_reg,
+                          GEN_INT (INTVAL (xplus1) & ~ 0x7fff));
+
+          emit_insn (gen_rtx_SET (VOIDmode,
+                                  ptr_reg,
+                                  gen_rtx_PLUS (Pmode, xplus0, int_reg)));
+
+          return plus_constant (ptr_reg, INTVAL (xplus1) & 0x7fff);
+        }
+    }
+
+  if (TARGET_DEBUG_B_MODE)
+    GO_PRINTF ("LEGITIMIZE_ADDRESS could not fix.\n");
+
+  return xinsn;
+}
+
 
 static bool
 iq2000_rtx_costs (rtx x, int code, int outer_code ATTRIBUTE_UNUSED, int * total,

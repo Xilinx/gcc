@@ -948,25 +948,6 @@ typedef struct {
   } while (0);
 #endif
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.
-
-   OLDX is the address as it was before break_out_memory_refs was called.
-   In some cases it is useful to look at this to decide what needs to be done.
-
-   MODE and WIN are passed so that this macro can use
-   GO_IF_LEGITIMATE_ADDRESS.
-
-   It is always safe for this macro to do nothing.  It exists to recognize
-   opportunities to optimize the output.
- */
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)    \
-do {					       \
-   rtx _q = legitimize_address(X, OLDX, MODE); \
-   if (_q) { X = _q; goto WIN; }	       \
-} while (0)
-
 #define HAVE_POST_INCREMENT 1
 #define HAVE_POST_DECREMENT 1
 #define HAVE_PRE_DECREMENT  1
@@ -985,23 +966,6 @@ do {					       \
 (GET_CODE (X) == SYMBOL_REF						\
  || GET_CODE (X) == LABEL_REF						\
  || (GET_CODE (X) == CONST && symbolic_reference_mentioned_p (X)))
-
-/*
-     A C statement or compound statement with a conditional `goto
-     LABEL;' executed if memory address X (an RTX) can have different
-     meanings depending on the machine mode of the memory reference it
-     is used for or if the address is valid for some modes but not
-     others.
-
-     Autoincrement and autodecrement addresses typically have
-     mode-dependent effects because the amount of the increment or
-     decrement is the size of the operand being addressed.  Some
-     machines have other mode-dependent addresses.  Many RISC machines
-     have no mode-dependent addresses.
-
-     You may assume that ADDR is a valid address for the machine.
-*/
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)
 
 #define NOTICE_UPDATE_CC(EXPR, INSN) 0
 
@@ -1339,7 +1303,7 @@ extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
 
 #define SIZE_ASM_OP     "\t.size\t"
 
-extern int splitting_for_sched;
+extern int splitting_for_sched, splitting_loops;
 
 #define PRINT_OPERAND_PUNCT_VALID_P(CHAR) ((CHAR) == '!')
 

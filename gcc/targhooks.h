@@ -1,5 +1,6 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -18,6 +19,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 extern void default_external_libcall (rtx);
+extern rtx default_legitimize_address (rtx, rtx, enum machine_mode);
 
 extern int default_unspec_may_trap_p (const_rtx, unsigned);
 
@@ -88,6 +90,7 @@ extern const char *hook_invalid_arg_for_unprototyped_fn
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_internal_arg_pointer (void);
+extern enum reg_class default_branch_target_register_class (void);
 #ifdef IRA_COVER_CLASSES
 extern const enum reg_class *default_ira_cover_classes (void);
 #endif
@@ -104,3 +107,4 @@ extern bool default_hard_regno_scratch_ok (unsigned int);
 extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_option_can_inline_p (tree, tree);
+extern unsigned int default_case_values_threshold (void);

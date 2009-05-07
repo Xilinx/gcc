@@ -97,7 +97,7 @@ append_arg (int *index, LPWSTR value, char ***argv, int *last)
 #endif
 
 void
-__gnat_initialize (void *eh)
+__gnat_initialize (void *eh ATTRIBUTE_UNUSED)
 {
    /* Initialize floating-point coprocessor. This call is needed because
       the MS libraries default to 64-bit precision instead of 80-bit
@@ -114,10 +114,12 @@ __gnat_initialize (void *eh)
      CurrentCodePage = CP_UTF8;
 
      if (codepage != NULL)
-       if (strcmp (codepage, "CP_ACP") == 0)
-         CurrentCodePage = CP_ACP;
-       else if (strcmp (codepage, "CP_UTF8") == 0)
-         CurrentCodePage = CP_UTF8;
+       {
+	 if (strcmp (codepage, "CP_ACP") == 0)
+	   CurrentCodePage = CP_ACP;
+	 else if (strcmp (codepage, "CP_UTF8") == 0)
+	   CurrentCodePage = CP_UTF8;
+       }
    }
 
    /* Adjust gnat_argv to support Unicode characters. */
@@ -128,6 +130,7 @@ __gnat_initialize (void *eh)
      int last;
      int argc_expanded = 0;
      TCHAR result [MAX_PATH];
+     int quoted;
 
      wargv = CommandLineToArgvW (GetCommandLineW(), &wargc);
 
@@ -144,9 +147,12 @@ __gnat_initialize (void *eh)
 
 	 for (k=1; k<wargc; k++)
 	   {
-	     /* Check for wildcard expansion. */
-	     if (_tcsstr (wargv[k], _T("?")) != 0 ||
-		 _tcsstr (wargv[k], _T("*")) != 0)
+	     quoted = (wargv[k][0] == _T('\''));
+
+	     /* Check for wildcard expansion if the argument is not quoted. */
+	     if (!quoted
+		 && (_tcsstr (wargv[k], _T("?")) != 0 ||
+		     _tcsstr (wargv[k], _T("*")) != 0))
 	       {
 		 /* Wilcards are present, append all corresponding matches. */
 		 WIN32_FIND_DATA FileData;
@@ -171,8 +177,19 @@ __gnat_initialize (void *eh)
 	       }
 	     else
 	       {
-		 /*  No wildcard. Store parameter as-is. */
-		 append_arg (&argc_expanded, wargv[k], &gnat_argv, &last);
+		 /*  No wildcard. Store parameter as-is. Remove quote if
+		     needed. */
+		 if (quoted)
+		   {
+		     int len = _tcslen (wargv[k]);
+
+		     /* Remove ending quote */
+		     wargv[k][len-1] = _T('\0');
+		     append_arg
+		       (&argc_expanded, &wargv[k][1], &gnat_argv, &last);
+		   }
+		 else
+		   append_arg (&argc_expanded, wargv[k], &gnat_argv, &last);
 	       }
 	   }
 
