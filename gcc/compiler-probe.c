@@ -303,23 +303,21 @@ static hashval_t
 hash_info_tree (const void *d)
 {
   comprobe_ix_t lg = (comprobe_ix_t) d;
-  switch (lg)
+  if ( (const void*) d == (const void*) HTAB_EMPTY_ENTRY 
+       || (const void*) d == (const void*) HTAB_DELETED_ENTRY)
+    return (hashval_t) 0;
+  else if ( (const void*) d == (const void*) HTAB_SEEKED_ENTRY)
     {
-    case (comprobe_ix_t) HTAB_EMPTY_ENTRY:
-    case (comprobe_ix_t) HTAB_DELETED_ENTRY:
-      return (hashval_t) 0;
-    case (comprobe_ix_t) HTAB_SEEKED_ENTRY:
       lg = (comprobe_ix_t) unique_seeked_tree;
       return (hashval_t) (lg ^ (lg >> 10));
-    default:
-      if (lg > 2 && unique_tree_vector
-	  && lg < VEC_length (tree, unique_tree_vector))
-	{
-	  lg = (comprobe_ix_t) VEC_index (tree, unique_tree_vector, lg);
-	  return (hashval_t) (lg ^ (lg >> 10));
-	};
-      return 0;
-    }
+    };
+  if (lg > 2 && unique_tree_vector
+      && lg < VEC_length (tree, unique_tree_vector))
+    {
+      lg = (comprobe_ix_t) VEC_index (tree, unique_tree_vector, lg);
+      return (hashval_t) (lg ^ (lg >> 10));
+    };
+  return 0;
 }
 
 
@@ -408,23 +406,21 @@ static hashval_t
 hash_info_bb (const void *d)
 {
   comprobe_ix_t lg = (comprobe_ix_t) d;
-  switch (lg)
+  if ((const void*) d  ==  (const void*) HTAB_EMPTY_ENTRY
+      || (const void*) d  ==  (const void*) HTAB_DELETED_ENTRY)
+    return (hashval_t) 0;
+  else if ((const void*) d == (const void*) HTAB_SEEKED_ENTRY)
     {
-    case (comprobe_ix_t) HTAB_EMPTY_ENTRY:
-    case (comprobe_ix_t) HTAB_DELETED_ENTRY:
-      return (hashval_t) 0;
-    case (comprobe_ix_t) HTAB_SEEKED_ENTRY:
       lg = (comprobe_ix_t) unique_seeked_bb;
       return (hashval_t) (lg ^ (lg >> 10));
-    default:
-      if (lg > 2 && unique_bb_vector
-	  && lg < VEC_length (basic_block, unique_bb_vector))
-	{
-	  lg = (comprobe_ix_t) VEC_index (basic_block, unique_bb_vector, lg);
-	  return (hashval_t) (lg ^ (lg >> 10));
-	};
-      return 0;
     }
+  else if (lg > 2 && unique_bb_vector
+	  && lg < VEC_length (basic_block, unique_bb_vector))
+    {
+      lg = (comprobe_ix_t) VEC_index (basic_block, unique_bb_vector, lg);
+      return (hashval_t) (lg ^ (lg >> 10));
+    };
+      return 0;
 }
 
 
@@ -461,23 +457,21 @@ static hashval_t
 hash_info_gimple (const void *d)
 {
   comprobe_ix_t lg = (comprobe_ix_t) d;
-  switch (lg)
+  if ((const void*) d == (const void*) HTAB_EMPTY_ENTRY
+      || (const void*) d == HTAB_DELETED_ENTRY)
+    return (hashval_t) 0;
+  else if ((const void*) d == (const void*) HTAB_SEEKED_ENTRY)
     {
-    case (comprobe_ix_t) HTAB_EMPTY_ENTRY:
-    case (comprobe_ix_t) HTAB_DELETED_ENTRY:
-      return (hashval_t) 0;
-    case (comprobe_ix_t) HTAB_SEEKED_ENTRY:
       lg = (comprobe_ix_t) unique_seeked_gimple;
       return (hashval_t) (lg ^ (lg >> 10));
-    default:
-      if (lg > 2 && unique_gimple_vector
-	  && lg < VEC_length (gimple, unique_gimple_vector))
-	{
-	  lg = (comprobe_ix_t) VEC_index (gimple, unique_gimple_vector, lg);
-	  return (hashval_t) (lg ^ (lg >> 10));
-	};
-      return 0;
     }
+  else if (lg > 2 && unique_gimple_vector
+	   && lg < VEC_length (gimple, unique_gimple_vector))
+    {
+      lg = (comprobe_ix_t) VEC_index (gimple, unique_gimple_vector, lg);
+      return (hashval_t) (lg ^ (lg >> 10));
+    };
+  return 0;
 }
 
 
@@ -2403,7 +2397,7 @@ struct gimple_opt_pass pass_compiler_probe = {
    NULL,			/* sub */
    NULL,			/* next */
    0,				/* static_pass_number */
-   0,				/* tv_id */
+   TV_NONE,			/* tv_id */
    PROP_cfg,			/* properties_required */
    0,				/* properties_provided */
    0,				/* properties_destroyed */
