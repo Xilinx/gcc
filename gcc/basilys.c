@@ -5089,6 +5089,17 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
     }
   free (tmpath);
   tmpath = NULL;
+  /* look into the melt generated dir */
+  tmpath = concat (melt_generated_dir, "/", dupmodulnam, ".c", NULL);
+  debugeprintf ("basilysgc_load_melt_module trying in meltgenerateddir %s", tmpath);
+  if (tmpath && !access (tmpath, R_OK))
+    {
+      debugeprintf ("basilysgc_load_melt_module found source in meltgendir %s", tmpath);
+      srcpath = tmpath;
+      goto foundsrcpath;
+    }
+  free (tmpath);
+  tmpath = NULL;
   /* look into the melt source dir */
   tmpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
   debugeprintf ("basilysgc_load_melt_module trying in meltsrcdir %s", tmpath);
@@ -5111,8 +5122,10 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
     if (nbexplain <= 0) 
       {
 	if (basilys_gensrcdir_string && basilys_gensrcdir_string[0])
-	  inform (UNKNOWN_LOCATION, "MELT generated source directory is %s",
+	  inform (UNKNOWN_LOCATION, "MELT generated source given directory is %s",
 		  basilys_gensrcdir_string);
+	inform (UNKNOWN_LOCATION, "MELT builtin generated source directory is %s", 
+		melt_generated_dir);
 	inform (UNKNOWN_LOCATION, "MELT builtin source directory is %s", 
 		melt_source_dir);
       };

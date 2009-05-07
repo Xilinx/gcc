@@ -1,4 +1,8 @@
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_melt_module): look for the generated
+	source inside the generated directory, and more informative messages.
+
+2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_load_melt_module): gives more informative
 	messages when failed to load a melt module.
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
