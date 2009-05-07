@@ -817,6 +817,7 @@ build_scops_1 (basic_block current, loop_p outermost_loop,
   result.exit = NULL;
   open_scop.entry = NULL;
   open_scop.exit = NULL;
+  sinfo.exit = NULL;
 
   /* Loop over the dominance tree.  If we meet a difficult bb, close
      the current SCoP.  Loop and condition header start a new layer,

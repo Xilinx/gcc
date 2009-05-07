@@ -1,6 +1,9 @@
-Introduce layered SCoP detection and data reference building.
+2009-05-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
-2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+	* graphite-scop-detection (build_scops_1): Fix little bug introduced
+	by final cleanup.
+
+2009-05-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection.c (graphite_can_represent_scev): Only
 	allow integer constant strides.
