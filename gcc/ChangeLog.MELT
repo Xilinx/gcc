@@ -1,3 +1,7 @@
+2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilysgc_load_melt_module): Give more debug messages and
+	some inform messages when C source file not found.
+
 2009-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h: added careful include of <ppl_c.h>. See comment
 	around line 30.

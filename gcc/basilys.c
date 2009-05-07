@@ -5068,6 +5068,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   /***** first find the source path ******/
   /* look first in the temporary directory */
   tmpath = basilys_tempdir_path (dupmodulnam, ".c");
+  debugeprintf ("basilysgc_load_melt_module trying in tempdir %s", tmpath);
   if (!access (tmpath, R_OK))
     {
       debugeprintf ("basilysgc_load_melt_module found source in tempdir %s", tmpath);
@@ -5077,8 +5078,10 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   free(tmpath);
   tmpath = NULL;
   /* look in the generated source dir */
-  tmpath = concat (basilys_gensrcdir_string, "/", dupmodulnam, ".c", NULL);
-  if (!access (tmpath, R_OK))
+  if (basilys_gensrcdir_string && basilys_gensrcdir_string[0])
+    tmpath = concat (basilys_gensrcdir_string, "/", dupmodulnam, ".c", NULL);
+  debugeprintf ("basilysgc_load_melt_module trying in gensrcdir %s", tmpath);
+  if (tmpath && !access (tmpath, R_OK))
     {
       debugeprintf ("basilysgc_load_melt_module found source in gensrcdir %s", tmpath);
       srcpath = tmpath;
@@ -5088,7 +5091,8 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* look into the melt source dir */
   tmpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
-  if (!access (tmpath, R_OK))
+  debugeprintf ("basilysgc_load_melt_module trying in meltsrcdir %s", tmpath);
+  if (tmpath && !access (tmpath, R_OK))
     {
       debugeprintf ("basilysgc_load_melt_module found source in meltsrcdir %s", tmpath);
       srcpath = tmpath;
@@ -5098,7 +5102,22 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* we didn't found the source */
   debugeprintf ("basilysgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
-  error ("failed to find MELT module %s C source code", dupmodulnam);
+  error ("failed to find MELT module %s 's C source code; perhaps need -fmelt-gensrcdir=...", dupmodulnam);
+  inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
+	  basilys_tempdir_path (dupmodulnam, ".c"));
+  {
+    /* explain only once the directories we searched the C source code in */
+    static int nbexplain;
+    if (nbexplain <= 0) 
+      {
+	if (basilys_gensrcdir_string && basilys_gensrcdir_string[0])
+	  inform (UNKNOWN_LOCATION, "MELT generated source directory is %s",
+		  basilys_gensrcdir_string);
+	inform (UNKNOWN_LOCATION, "MELT builtin source directory is %s", 
+		melt_source_dir);
+      };
+    nbexplain++;
+  }
   goto end;
  foundsrcpath:  /* we found the source file */
   srcpathlen = strlen (srcpath);
