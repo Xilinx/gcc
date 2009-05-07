@@ -1,4 +1,7 @@
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilys_tempdir_path): all mkdir should be with 0700 mode!
+
+2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (basilysgc_load_melt_module): look for the generated
 	source inside the generated directory, and more informative messages.
 

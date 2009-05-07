@@ -4766,7 +4766,7 @@ basilys_tempdir_path (const char *srcnam, const char* suffix)
     {
       if (access (basilys_tempdir_string, F_OK))
 	{
-	  if (mkdir (basilys_tempdir_string, 0600))
+	  if (mkdir (basilys_tempdir_string, 0700))
 	    fatal_error ("failed to mkdir basilys_tempdir %s - %m",
 			 basilys_tempdir_string);
 	  made_tempdir_basilys = true;
@@ -4783,7 +4783,7 @@ basilys_tempdir_path (const char *srcnam, const char* suffix)
 	  snprintf (tempdir_basilys, sizeof(tempdir_basilys)-1, 
 		     "%s/GccMeltmpd%d-%d", choose_tmpdir (), (int) getpid (),
 		    n);
-	  if (!mkdir (tempdir_basilys, 0600))
+	  if (!mkdir (tempdir_basilys, 0700))
 	    {
 	      made_tempdir_basilys = true;
 	      break;
