@@ -1,3 +1,23 @@
+Introduce layered SCoP detection and data reference building.
+
+2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* graphite-scop-detection.c (graphite_can_represent_scev): Only
+	allow integer constant strides.
+	(graphite_can_represent_expr): Depend on outermost_loop.
+	(stmt_simple_memref_p, graphite_cannot_represent_loop,
+	harmful_stmt_in_bb, is_simple_operand, stmt_simple_for_scop_p,
+	build_scops_1): Same.
+	(scopdet_basic_block_info): Same and insert layered SCoP
+	detection.
+	(try_generate_gimple_bb): Cleanup.
+	(build_scops): Enable data references.
+
+	* testsuite/gcc.dg/graphite/id-5.c: New.
+	* testsuite/gcc.dg/graphite/id-9.c: New.
+	* tree-chrec.c (evolution_function_right_is_integer_cst): New.
+	* tree-chrec.h (evolution_function_right_is_integer_cst): New.
+
 2009-05-06  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* sese.c (expand_scalar_variables_ssa_name): Only build expressions,

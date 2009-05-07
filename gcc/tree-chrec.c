@@ -1491,3 +1491,27 @@ scev_is_linear_expression (tree scev)
       return false;
     }
 }
+
+/* Determines whether the expression CHREC contains only interger consts
+   in the right parts.  */
+
+bool
+evolution_function_right_is_integer_cst (const_tree chrec)
+{
+  if (chrec == NULL_TREE)
+    return false;
+
+  switch (TREE_CODE (chrec))
+    {
+    case INTEGER_CST:
+      return true;
+
+    case POLYNOMIAL_CHREC:
+      return evolution_function_right_is_integer_cst (CHREC_LEFT (chrec))
+	&& evolution_function_right_is_integer_cst (CHREC_RIGHT (chrec));
+
+    default:
+      return false;
+    }
+}
+

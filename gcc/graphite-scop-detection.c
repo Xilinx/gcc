@@ -152,30 +152,36 @@ move_sd_regions (VEC (sd_region, heap) **source, VEC (sd_region, heap) **target)
   VEC_free (sd_region, heap, *source);
 }
 
-/* Return true when EXPR can be represented in the polyhedral model.  
+/* Return true when SCEV can be represented in the polyhedral model.
 
-   This means an expression can be represented, if it is linear with
-   respect to the loops and the strides are non parametric.  */
+   An expression can be represented, if it can be expressed as an affine
+   expression.  For loops (i, j) and parameters (m, n) all affine expressions
+   are of the form:
+
+   x1 * i + x2 * j + x3 * m + x4 * n + x5 * 1 where x1..x5 element of Z
+
+   1 i + 20 j + (-2) m + 25
+
+   Something like i * n is not allowed.
+
+   OUTERMOST_LOOP defines the outermost loop that can variate.  */
 
 static bool
-graphite_can_represent_scev (tree scev, int loop)
+graphite_can_represent_scev (tree scev, int outermost_loop)
 {
-  tree zero; 
-
   if (chrec_contains_undetermined (scev))
     return false;
 
-  if (evolution_function_is_invariant_p (scev, loop))
-    return true;
-
-  if (!evolution_function_is_affine_multivariate_p (scev, loop))
+  /* Check for constant strides. With a non constant stride of 'n' we would
+     have a value of 'iv * n'.  */
+  if (TREE_CODE (scev) == POLYNOMIAL_CHREC
+      && !evolution_function_right_is_integer_cst (scev))
     return false;
 
-  zero = fold_convert (chrec_type (scev), integer_zero_node);
-  scev = chrec_replace_initial_condition (scev, zero);
+  if (evolution_function_is_invariant_p (scev, outermost_loop))
+    return true;
 
-  if (evolution_function_is_constant_p (scev)
-      || evolution_function_is_constant_p (CHREC_RIGHT (scev)))
+  if (evolution_function_is_affine_multivariate_p (scev, outermost_loop))
     return true;
 
   return false;
@@ -185,17 +191,20 @@ graphite_can_represent_scev (tree scev, int loop)
 /* Return true when EXPR can be represented in the polyhedral model.  
 
    This means an expression can be represented, if it is linear with
-   respect to the loops and the strides are non parametric.  */
+   respect to the loops and the strides are non parametric.
+   LOOP is the place where the expr will be evaluated and OUTERMOST_LOOP
+   defindes the outermost loop that can variate.  SCOP_ENTRY defines the
+   entry of the region we analyse.  */
 
 static bool
-graphite_can_represent_expr (basic_block scop_entry, struct loop *loop,
-			     tree expr)
+graphite_can_represent_expr (basic_block scop_entry, loop_p loop,
+			     loop_p outermost_loop, tree expr)
 {
   tree scev = analyze_scalar_evolution (loop, expr);
 
   scev = instantiate_scev (scop_entry, loop, scev);
 
-  return graphite_can_represent_scev (scev, loop->num);
+  return graphite_can_represent_scev (scev, outermost_loop->num);
 }
 
 /* Return false if the tree_code of the operand OP or any of its operands
@@ -225,10 +234,11 @@ exclude_component_ref (tree op)
   return true;
 }
 
-/* Return true if we can create an affine data-ref for OP in STMT.  */
+/* Return true if we can create an affine data-ref for OP in STMT
+   in regards to OUTERMOST_LOOP.  */
 
 static bool
-stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
+stmt_simple_memref_p (loop_p outermost_loop, gimple stmt, tree op)
 {
   data_reference_p dr;
   unsigned int i;
@@ -236,11 +246,11 @@ stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
   tree t;
   bool res = true;
 
-  dr = create_data_ref (loop, op, stmt, true);
+  dr = create_data_ref (outermost_loop, op, stmt, true);
   fns = DR_ACCESS_FNS (dr);
 
   for (i = 0; VEC_iterate (tree, fns, i, t); i++)
-    if (!graphite_can_represent_scev (t, loop->num))
+    if (!graphite_can_represent_scev (t, outermost_loop->num))
       {
 	res = false;
 	break;
@@ -250,33 +260,40 @@ stmt_simple_memref_p (struct loop *loop, gimple stmt, tree op)
   return res;
 }
 
-/* Return true if the operand OP is simple.  */
+/* Return true if the operand OP used in STMT is simple in regards to
+   OUTERMOST_LOOP.  */
 
 static bool
-is_simple_operand (loop_p loop, gimple stmt, tree op) 
+is_simple_operand (loop_p outermost_loop, gimple stmt, tree op)
 {
   /* It is not a simple operand when it is a declaration,  */
-  if (DECL_P (op)
+  if (DECL_P (op))
+      return false;
+
       /* or a structure,  */
-      || AGGREGATE_TYPE_P (TREE_TYPE (op))
+  if (AGGREGATE_TYPE_P (TREE_TYPE (op)))
+      return false;
+
       /* or a memory access that cannot be analyzed by the data
 	 reference analysis.  */
-      || ((handled_component_p (op) || INDIRECT_REF_P (op))
-	  && !stmt_simple_memref_p (loop, stmt, op)))
-    return false;
+  if (handled_component_p (op) || INDIRECT_REF_P (op))
+    if ( !stmt_simple_memref_p (outermost_loop, stmt, op))
+      return false;
 
   return exclude_component_ref (op);
 }
 
 /* Return true only when STMT is simple enough for being handled by
-   Graphite.  This depends on SCOP_ENTRY, as the parametetrs are
-   initialized relatively to this basic block.  */
+   Graphite.  This depends on SCOP_ENTRY, as the parameters are
+   initialized relatively to this basic block, the linear functions
+   are initialized to OUTERMOST_LOOP and BB is the place where we try
+   to evaluate the STMT.  */
 
 static bool
-stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
+stmt_simple_for_scop_p (basic_block scop_entry, loop_p outermost_loop,
+			gimple stmt, basic_block bb)
 {
-  basic_block bb = gimple_bb (stmt);
-  struct loop *loop = bb->loop_father;
+  loop_p loop = bb->loop_father;
 
   /* GIMPLE_ASM and GIMPLE_CALL may embed arbitrary side effects.
      Calls have side-effects, except those to const or pure
@@ -315,7 +332,8 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	  return false;
 
 	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
-	  if (!graphite_can_represent_expr (scop_entry, loop, op))
+	  if (!graphite_can_represent_expr (scop_entry, loop, outermost_loop,
+					    op))
 	    return false;
 
 	return true;
@@ -329,18 +347,19 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	  {
 	  case GIMPLE_UNARY_RHS:
 	  case GIMPLE_SINGLE_RHS:
-	    return (is_simple_operand (loop, stmt, gimple_assign_lhs (stmt))
+	    return (is_simple_operand (outermost_loop, stmt,
+				       gimple_assign_lhs (stmt))
 				       
-		    && is_simple_operand (loop, stmt,
+		    && is_simple_operand (outermost_loop, stmt,
 					  gimple_assign_rhs1 (stmt)));
 					  
 
 	  case GIMPLE_BINARY_RHS:
-	    return (is_simple_operand (loop, stmt,
+	    return (is_simple_operand (outermost_loop, stmt,
 				       gimple_assign_lhs (stmt))
-		    && is_simple_operand (loop, stmt,
+		    && is_simple_operand (outermost_loop, stmt,
 					  gimple_assign_rhs1 (stmt))
-		    && is_simple_operand (loop, stmt,
+		    && is_simple_operand (outermost_loop, stmt,
 					  gimple_assign_rhs2 (stmt)));
 
 	  case GIMPLE_INVALID_RHS:
@@ -355,11 +374,11 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 	size_t n = gimple_call_num_args (stmt);
 	tree lhs = gimple_call_lhs (stmt);
 
-	if (lhs && !is_simple_operand (loop, stmt, lhs))
+	if (lhs && !is_simple_operand (outermost_loop, stmt, lhs))
 	  return false;
 
 	for (i = 0; i < n; i++)
-	  if (!is_simple_operand (loop, stmt,
+	  if (!is_simple_operand (outermost_loop, stmt,
 				  gimple_call_arg (stmt, i)))
 	    return false;
 
@@ -377,11 +396,13 @@ stmt_simple_for_scop_p (basic_block scop_entry, gimple stmt)
 /* Returns the statement of BB that contains a harmful operation: that
    can be a function call with side effects, the induction variables
    are not linear with respect to SCOP_ENTRY, etc.  The current open
-   scop should end before this statement.  */
+   scop should end before this statement.  The evaluation is limited using
+   OUTERMOST_LOOP as outermost loop that may change.  */
 
 static gimple
-harmful_stmt_in_bb (basic_block scop_entry, loop_p loop, basic_block bb)
+harmful_stmt_in_bb (basic_block scop_entry, loop_p outer_loop, basic_block bb)
 {
+  loop_p loop = bb->loop_father;
   gimple_stmt_iterator psi;
   gimple_stmt_iterator gsi;
   gimple stmt;
@@ -398,7 +419,7 @@ harmful_stmt_in_bb (basic_block scop_entry, loop_p loop, basic_block bb)
       }
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
-    if (!stmt_simple_for_scop_p (scop_entry, gsi_stmt (gsi)))
+    if (!stmt_simple_for_scop_p (scop_entry, outer_loop, gsi_stmt (gsi), bb))
       return gsi_stmt (gsi);
 
   stmt = last_stmt (bb);
@@ -411,8 +432,8 @@ harmful_stmt_in_bb (basic_block scop_entry, loop_p loop, basic_block bb)
 	  || TREE_CODE (TREE_TYPE (rhs)) == REAL_TYPE)
 	return stmt;
 
-      if (!graphite_can_represent_expr (scop_entry, loop, lhs)
-	  || !graphite_can_represent_expr (scop_entry, loop, rhs))
+      if (!graphite_can_represent_expr (scop_entry, loop, outer_loop, lhs)
+	  || !graphite_can_represent_expr (scop_entry, loop, outer_loop, rhs))
 	return stmt;
     }
 
@@ -446,10 +467,12 @@ nb_reductions_in_loop (loop_p loop)
 }
 
 /* Return true when it is not possible to represent LOOP in the
-   polyhedral representation.  */
+   polyhedral representation.  This is evaluated taking SCOP_ENTRY and
+   OUTERMOST_LOOP in mind.  */
 
 static bool
-graphite_cannot_represent_loop (basic_block scop_entry, loop_p loop)
+graphite_cannot_represent_loop (basic_block scop_entry, loop_p outermost_loop,
+			      loop_p loop)
 {
   tree niter = number_of_latch_executions (loop);
 
@@ -457,7 +480,8 @@ graphite_cannot_represent_loop (basic_block scop_entry, loop_p loop)
   return (chrec_contains_undetermined (niter)
 
 	  /* Upper bound should be linear.   */
-	  || !graphite_can_represent_expr (scop_entry, loop, niter)
+	  || !graphite_can_represent_expr (scop_entry, loop, outermost_loop,
+					   niter)
 
 	  /* Code generation does not deal with scalar reductions.  */
 	  || nb_reductions_in_loop (loop) > 0);
@@ -481,23 +505,23 @@ struct scopdet_info
   bool difficult;
 };
 
-static struct scopdet_info build_scops_1 (basic_block, VEC (sd_region, heap) **,
-                                          loop_p);
+static struct scopdet_info build_scops_1 (basic_block, loop_p,
+					  VEC (sd_region, heap) **, loop_p);
 
 /* Calculates BB infos. If bb is difficult we add valid SCoPs dominated by BB
    to SCOPS.  TYPE is the gbb_type of BB.  */
 
 static struct scopdet_info 
-scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
-			  gbb_type type)
+scopdet_basic_block_info (basic_block bb, loop_p outermost_loop,
+			VEC (sd_region, heap) **scops, gbb_type type)
 {
-  struct loop *loop = bb->loop_father;
+  loop_p loop = bb->loop_father;
   struct scopdet_info result;
   gimple stmt;
 
   /* XXX: ENTRY_BLOCK_PTR could be optimized in later steps.  */
   basic_block entry_block = ENTRY_BLOCK_PTR;
-  stmt = harmful_stmt_in_bb (entry_block, loop, bb);
+  stmt = harmful_stmt_in_bb (entry_block, outermost_loop, bb);
   result.difficult = (stmt != NULL);
   result.exit = NULL;
 
@@ -524,35 +548,65 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 
     case GBB_LOOP_SING_EXIT_HEADER:
       {
-        VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap,3);
-        struct scopdet_info sinfo;
-	edge exit_e = single_exit (bb->loop_father);
+	VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
+	struct scopdet_info sinfo;
+	edge exit_e = single_exit (loop);
 
-        sinfo = build_scops_1 (bb, &regions, loop);
-	
-        result.exit = exit_e->dest;
-        result.next = exit_e->dest;
+	sinfo = build_scops_1 (bb, outermost_loop, &regions, loop);
 
-        /* If we do not dominate result.next, remove it.  It's either
-           the EXIT_BLOCK_PTR, or another bb dominates it and will
-           call the scop detection for this bb.  */
-        if (!dominated_by_p (CDI_DOMINATORS, result.next, bb))
-	  result.next = NULL;
+	if (graphite_cannot_represent_loop (entry_block, outermost_loop, loop))
+	  result.difficult = true;
 
-	if (exit_e->src->loop_father != loop)
-	  result.next = NULL;
+	result.difficult |= sinfo.difficult;
 
-        if (graphite_cannot_represent_loop (entry_block, loop))
-          result.difficult = true;
+	/* Try again with another loop level.  */
+	if (result.difficult
+	    && loop_depth (outermost_loop) + 1 == loop_depth (loop))
+	  {
+	    outermost_loop = loop;
 
-        if (sinfo.difficult)
-          move_sd_regions (&regions, scops);
-        else 
-          VEC_free (sd_region, heap, regions);
+	    VEC_free (sd_region, heap, regions);
+	    regions = VEC_alloc (sd_region, heap, 3);
 
-        result.exits = false;
-        result.difficult |= sinfo.difficult;
-        break;
+	    sinfo = scopdet_basic_block_info (bb, outermost_loop, scops, type);
+
+	    result = sinfo;
+	    result.difficult = true;
+
+	    if (sinfo.difficult)
+	      move_sd_regions (&regions, scops);
+	    else
+	      {
+		sd_region open_scop;
+		open_scop.entry = bb;
+		open_scop.exit = exit_e->dest;
+		VEC_safe_push (sd_region, heap, *scops, &open_scop);
+		VEC_free (sd_region, heap, regions);
+	      }
+	  }
+	else
+	  {
+	    result.exit = exit_e->dest;
+	    result.next = exit_e->dest;
+
+	    /* If we do not dominate result.next, remove it.  It's either
+	       the EXIT_BLOCK_PTR, or another bb dominates it and will
+	       call the scop detection for this bb.  */
+	    if (!dominated_by_p (CDI_DOMINATORS, result.next, bb))
+	      result.next = NULL;
+
+	    if (exit_e->src->loop_father != loop)
+	      result.next = NULL;
+
+	    result.exits = false;
+
+	    if (result.difficult)
+	      move_sd_regions (&regions, scops);
+	    else
+	      VEC_free (sd_region, heap, regions);
+	  }
+
+	break;
       }
 
     case GBB_LOOP_MULT_EXIT_HEADER:
@@ -563,7 +617,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
         VEC (edge, heap) *exits = get_loop_exit_edges (loop);
         edge e;
         int i;
-        build_scops_1 (bb, &regions, loop);
+	build_scops_1 (bb, loop, &regions, loop);
 
 	/* Scan the code dominated by this loop.  This means all bbs, that are
 	   are dominated by a bb in this loop, but are not part of this loop.
@@ -579,13 +633,17 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
           if (e->src->loop_father == loop
 	      && dominated_by_p (CDI_DOMINATORS, e->dest, e->src))
 	    {
+	      if (loop_outer (outermost_loop))
+		outermost_loop = loop_outer (outermost_loop);
+
 	      /* Pass loop_outer to recognize e->dest as loop header in
 		 build_scops_1.  */
 	      if (e->dest->loop_father->header == e->dest)
-		build_scops_1 (e->dest, &regions,
+		build_scops_1 (e->dest, outermost_loop, &regions,
 			       loop_outer (e->dest->loop_father));
 	      else
-		build_scops_1 (e->dest, &regions, e->dest->loop_father);
+		build_scops_1 (e->dest, outermost_loop, &regions,
+			       e->dest->loop_father);
 	    }
 
         result.next = NULL; 
@@ -651,7 +709,7 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 		continue;
 	      }
 
-	    sinfo = build_scops_1 (e->dest, &regions, loop);
+	    sinfo = build_scops_1 (e->dest, outermost_loop, &regions, loop);
 
 	    result.exits |= sinfo.exits;
 	    result.difficult |= sinfo.difficult; 
@@ -709,9 +767,10 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
 	      continue;
 
 	    if (loop_depth (loop) > loop_depth (dom_bb->loop_father))
-	      sinfo = build_scops_1 (dom_bb, &regions, loop_outer (loop));
+	      sinfo = build_scops_1 (dom_bb, outermost_loop, &regions,
+				     loop_outer (loop));
 	    else
-	      sinfo = build_scops_1 (dom_bb, &regions, loop);
+	      sinfo = build_scops_1 (dom_bb, outermost_loop, &regions, loop);
                                            
                                      
 	    result.exits |= sinfo.exits; 
@@ -734,10 +793,17 @@ scopdet_basic_block_info (basic_block bb, VEC (sd_region, heap) **scops,
   return result;
 }
 
-/* Creates the SCoPs and writes entry and exit points for every SCoP.  */
+/* Starting from CURRENT we walk the dominance tree and add new sd_regions to
+   SCOPS. The analyse if a sd_region can be handled is based on the value
+   of OUTERMOST_LOOP. Only loops inside OUTERMOST loops may change.  LOOP
+   is the loop in which CURRENT is handled.
+
+   TODO: These functions got a little bit big. They definitely should be cleaned
+	 up.  */
 
 static struct scopdet_info 
-build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
+build_scops_1 (basic_block current, loop_p outermost_loop,
+	       VEC (sd_region, heap) **scops, loop_p loop)
 {
   bool in_scop = false;
   sd_region open_scop;
@@ -751,14 +817,13 @@ build_scops_1 (basic_block current, VEC (sd_region, heap) **scops, loop_p loop)
   result.exit = NULL;
   open_scop.entry = NULL;
   open_scop.exit = NULL;
-  sinfo.exit = NULL;
 
   /* Loop over the dominance tree.  If we meet a difficult bb, close
      the current SCoP.  Loop and condition header start a new layer,
      and can only be added if all bbs in deeper layers are simple.  */
   while (current != NULL)
     {
-      sinfo = scopdet_basic_block_info (current, scops,
+      sinfo = scopdet_basic_block_info (current, outermost_loop, scops,
 					get_bb_type (current, loop));
 
       if (!in_scop && !(sinfo.exits || sinfo.difficult))
@@ -1260,7 +1325,8 @@ build_scops (VEC (scop_p, heap) **scops)
   VEC (sd_region, heap) *regions = VEC_alloc (sd_region, heap, 3);
 
   canonicalize_loop_closed_ssa_form ();
-  build_scops_1 (single_succ (ENTRY_BLOCK_PTR), &regions, loop);
+  build_scops_1 (single_succ (ENTRY_BLOCK_PTR), ENTRY_BLOCK_PTR->loop_father,
+			      &regions, loop);
   create_sese_edges (regions);
   build_graphite_scops (regions, scops);
   limit_scops (scops);

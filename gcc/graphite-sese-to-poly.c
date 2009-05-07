@@ -202,21 +202,17 @@ free_scops (VEC (scop_p, heap) *scops)
 static void
 try_generate_gimple_bb (scop_p scop, basic_block bb)
 {
-  sese region = SCOP_REGION (scop); 
   VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
-  struct loop *nest = outermost_loop_in_sese (region, bb);
+  loop_p nest = outermost_loop_in_sese (SCOP_REGION (scop), bb);
   gimple_stmt_iterator gsi;
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     graphite_find_data_references_in_stmt (nest, gsi_stmt (gsi), &drs);
 
-  if (!graphite_stmt_p (region, bb, drs))
-    {
-      free_data_refs (drs);
-      return;
-    }
-
-  new_poly_bb (scop, new_gimple_bb (bb, drs));
+  if (!graphite_stmt_p (SCOP_REGION(scop), bb, drs))
+    free_data_refs (drs);
+  else
+    new_poly_bb (scop, new_gimple_bb (bb, drs));
 }
 
 /* Returns true if all predecessors of BB, that are not dominated by BB, are
@@ -1391,12 +1387,10 @@ build_poly_scop (scop_p scop)
   build_scop_iteration_domain (scop);
   add_conditions_to_constraints (scop);
   build_scop_scattering (scop);
+  build_scop_drs (scop);
 
   if (0)
-    {
-      build_scop_drs (scop);
-      graphite_legal_transform (scop);
-    }
+    graphite_legal_transform (scop);
 
   return true;
 }
