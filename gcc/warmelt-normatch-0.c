@@ -1,5 +1,13 @@
 /* GCC BASILYS GENERATED FILE warmelt-normatch-3.c - DO NOT EDIT */
-/* generated on Tue May  5 15:51:56 2009 */
+/* generated on Fri May  8 09:32:18 2009 */
+
+
+#ifndef MELTGCC_DYNAMIC_OBJSTRUCT
+/* checksum of the gcc executable generating this file: */
+const unsigned char genchecksum_melt[16]=
+ { 0x7f, 0xf4, 0x33, 0xdb, 0xc0, 0x79, 0x2e, 0x41,
+    0xff, 0xa5, 0xfe, 0xfb, 0xcd, 0x43, 0x80, 0xef};
+#endif
 
 #include "run-basilys.h"
 
@@ -347,7 +355,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:66:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check nil recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(68)?(68):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:68:/ locexp");
+      basilys_assert_failed(( "check nil recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(68)?(68):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -383,7 +394,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:66:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(69)?(69):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:69:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(69)?(69):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -555,7 +569,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:76:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(78)?(78):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:78:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(78)?(78):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -591,7 +608,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:76:/ block");
    }
   ;
   
-  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V3*/ curfptr[2]), ( "unimplemented scan_pattern for any "), (basilys_ptr_t)(/*_.MYCLASSNAME__V12*/ curfptr[11]));
+  {
+  BASILYS_LOCATION("warmelt-normatch.melt:81:/ locexp");
+  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V3*/ curfptr[2]), ( "unimplemented scan_pattern for any "), (basilys_ptr_t)(/*_.MYCLASSNAME__V12*/ curfptr[11]));}
+  ;
   
   #if ENABLE_CHECKING
    BASILYS_LOCATION("warmelt-normatch.melt:83:/ cppif.then");
@@ -607,7 +627,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:76:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "catchall scan_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(83)?(83):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:83:/ locexp");
+       basilys_assert_failed(( "catchall scan_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(83)?(83):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V14*/ curfptr[13] = 0 ;}
       ;
       /*epilog*/}
@@ -786,7 +809,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:90:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(92)?(92):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:92:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(92)?(92):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -822,7 +848,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:90:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(93)?(93):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:93:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(93)?(93):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -858,7 +887,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:90:/ block");
    }
   ;
   
-  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V3*/ curfptr[2]), ( "unimplemented scan_pattern for pattern "), (basilys_ptr_t)(/*_.MYCLASSNAME__V14*/ curfptr[13]));
+  {
+  BASILYS_LOCATION("warmelt-normatch.melt:96:/ locexp");
+  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V3*/ curfptr[2]), ( "unimplemented scan_pattern for pattern "), (basilys_ptr_t)(/*_.MYCLASSNAME__V14*/ curfptr[13]));}
+  ;
   
   #if ENABLE_CHECKING
    BASILYS_LOCATION("warmelt-normatch.melt:98:/ cppif.then");
@@ -874,7 +906,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:90:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "catchall scan_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(98)?(98):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:98:/ locexp");
+       basilys_assert_failed(( "catchall scan_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(98)?(98):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -1055,7 +1090,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:105:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(107)?(107):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:107:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(107)?(107):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -1091,7 +1129,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:105:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(108)?(108):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:108:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(108)?(108):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -1349,7 +1390,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:124:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(126)?(126):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:126:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(126)?(126):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -1385,7 +1429,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:124:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(127)?(127):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:127:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(127)?(127):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -1643,7 +1690,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:143:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(145)?(145):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:145:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(145)?(145):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -1679,7 +1729,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:143:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(146)?(146):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:146:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(146)?(146):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -1722,7 +1775,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:143:/ block");
   BASILYS_LOCATION("warmelt-normatch.melt:152:/ block");
    /*block*/{
     
-     basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPVAR__V15*/ curfptr[14]), (basilysobject_ptr_t) (/*_.SVAR__V14*/ curfptr[13]), (basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:153:/ locexp");
+     basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPVAR__V15*/ curfptr[14]), (basilysobject_ptr_t) (/*_.SVAR__V14*/ curfptr[13]), (basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
+    ;
     
     #if ENABLE_CHECKING
      BASILYS_LOCATION("warmelt-normatch.melt:154:/ cppif.then");
@@ -2007,7 +2063,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:167:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(169)?(169):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:169:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(169)?(169):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -2043,7 +2102,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:167:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(170)?(170):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:170:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(170)?(170):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -2224,7 +2286,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:180:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(182)?(182):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:182:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(182)?(182):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -2260,7 +2325,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:180:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(183)?(183):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:183:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(183)?(183):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -2307,7 +2375,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:180:/ block");
   BASILYS_LOCATION("warmelt-normatch.melt:190:/ block");
    /*block*/{
     
-     basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPVAR__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.ASVAR__V14*/ curfptr[13]), (basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:192:/ locexp");
+     basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPVAR__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.ASVAR__V14*/ curfptr[13]), (basilys_ptr_t)(/*_.RECV__V2*/ curfptr[1]));}
+    ;
     
     #if ENABLE_CHECKING
      BASILYS_LOCATION("warmelt-normatch.melt:193:/ cppif.then");
@@ -2545,7 +2616,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(205)?(205):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:205:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(205)?(205):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -2581,7 +2655,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(206)?(206):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:206:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(206)?(206):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -2671,7 +2748,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check rectyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(216)?(216):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:216:/ locexp");
+       basilys_assert_failed(( "check rectyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(216)?(216):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V23*/ curfptr[22] = 0 ;}
       ;
       /*epilog*/}
@@ -2702,13 +2782,19 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.RECTYP__V21*/ curfptr[20]), 1, "NAMED_NAME");/*_.NAMED_NAME__V25*/ curfptr[24] = slot; };
     ;
     
-    basilys_error_str((basilys_ptr_t)(/*_.SLOC__V14*/ curfptr[13]), ( "invalid ctype in constant pattern - expecting"), (basilys_ptr_t)(/*_.NAMED_NAME__V25*/ curfptr[24]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:218:/ locexp");
+    basilys_error_str((basilys_ptr_t)(/*_.SLOC__V14*/ curfptr[13]), ( "invalid ctype in constant pattern - expecting"), (basilys_ptr_t)(/*_.NAMED_NAME__V25*/ curfptr[24]));}
+    ;
     BASILYS_LOCATION("warmelt-normatch.melt:221:/ getslot");
     { basilys_ptr_t slot=0;
      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), 1, "NAMED_NAME");/*_.NAMED_NAME__V26*/ curfptr[25] = slot; };
     ;
     
-    basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V14*/ curfptr[13]), ( "got ctype"), (basilys_ptr_t)(/*_.NAMED_NAME__V26*/ curfptr[25]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:220:/ locexp");
+    basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V14*/ curfptr[13]), ( "got ctype"), (basilys_ptr_t)(/*_.NAMED_NAME__V26*/ curfptr[25]));}
+    ;
     BASILYS_LOCATION("warmelt-normatch.melt:217:/ block");
     /*block*/{}
     ;
@@ -2740,7 +2826,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check bindlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(223)?(223):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:223:/ locexp");
+       basilys_assert_failed(( "check bindlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(223)?(223):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V28*/ curfptr[25] = 0 ;}
       ;
       /*epilog*/}
@@ -2887,7 +2976,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:203:/ block");
          #endif /*ENABLE_CHECKING*/
          ;
         
-         basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPCST__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.SCONST__V13*/ curfptr[12]), (basilys_ptr_t)(/*_.NCONST__V36*/ curfptr[32]));
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:234:/ locexp");
+         basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.MAPCST__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.SCONST__V13*/ curfptr[12]), (basilys_ptr_t)(/*_.NCONST__V36*/ curfptr[32]));}
+        ;
         BASILYS_LOCATION("warmelt-normatch.melt:235:/ cond");
         /*cond*/ if (/*_.NBINDCONST__V37*/ curfptr[36]) /*then*/ {
         BASILYS_LOCATION("warmelt-normatch.melt:235:/ cond.then");
@@ -3196,7 +3288,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:248:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(250)?(250):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:250:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(250)?(250):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -3232,7 +3327,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:248:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(251)?(251):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:251:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(251)?(251):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -3282,7 +3380,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:248:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check scla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(256)?(256):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:256:/ locexp");
+       basilys_assert_failed(( "check scla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(256)?(256):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
       ;
       /*epilog*/}
@@ -3318,7 +3419,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:248:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check sfields"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(257)?(257):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:257:/ locexp");
+       basilys_assert_failed(( "check sfields"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(257)?(257):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V19*/ curfptr[18] = 0 ;}
       ;
       /*epilog*/}
@@ -3362,7 +3466,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
       /*block*/{
        /*block*/{
         
-        basilys_assert_failed(( "check fldp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(261)?(261):__LINE__, __FUNCTION__);
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:261:/ locexp");
+        basilys_assert_failed(( "check fldp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(261)?(261):__LINE__, __FUNCTION__);}
+        ;
         /*clear*/ /*_.IFELSE___V22*/ curfptr[21] = 0 ;}
        ;
        /*epilog*/}
@@ -3414,7 +3521,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         /*block*/{
          /*block*/{
           
-          basilys_assert_failed(( "check fld"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(263)?(263):__LINE__, __FUNCTION__);
+          {
+          BASILYS_LOCATION("warmelt-normatch.melt:263:/ locexp");
+          basilys_assert_failed(( "check fld"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(263)?(263):__LINE__, __FUNCTION__);}
+          ;
           /*clear*/ /*_.IFELSE___V27*/ curfptr[26] = 0 ;}
          ;
          /*epilog*/}
@@ -3471,7 +3581,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        basilys_object_get_field(slot,(basilys_ptr_t)(/*_.FLD__V28*/ curfptr[26]), 1, "NAMED_NAME");/*_.NAMED_NAME__V32*/ curfptr[31] = slot; };
       ;
       
-      basilys_error_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "bad field in object pattern"), (basilys_ptr_t)(/*_.NAMED_NAME__V32*/ curfptr[31]));
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:269:/ locexp");
+      basilys_error_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "bad field in object pattern"), (basilys_ptr_t)(/*_.NAMED_NAME__V32*/ curfptr[31]));}
+      ;
       BASILYS_LOCATION("warmelt-normatch.melt:271:/ cond");
       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.SCLA__V14*/ curfptr[13]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[6])))) /*then*/ {
       BASILYS_LOCATION("warmelt-normatch.melt:271:/ cond.then");
@@ -3485,7 +3598,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        }
       ;
       
-      basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "class in pattern is"), (basilys_ptr_t)(/*_.NAMED_NAME__V33*/ curfptr[32]));
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:271:/ locexp");
+      basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "class in pattern is"), (basilys_ptr_t)(/*_.NAMED_NAME__V33*/ curfptr[32]));}
+      ;
       BASILYS_LOCATION("warmelt-normatch.melt:272:/ cond");
       /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.FLCLA__V29*/ curfptr[24]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[6])))) /*then*/ {
       BASILYS_LOCATION("warmelt-normatch.melt:272:/ cond.then");
@@ -3499,7 +3615,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        }
       ;
       
-      basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "class of field is"), (basilys_ptr_t)(/*_.NAMED_NAME__V34*/ curfptr[33]));
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:272:/ locexp");
+      basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "class of field is"), (basilys_ptr_t)(/*_.NAMED_NAME__V34*/ curfptr[33]));}
+      ;
       BASILYS_LOCATION("warmelt-normatch.melt:273:/ block");
       /*block*/{
        /*_.RETVAL___V1*/ curfptr[0] = NULL;;
@@ -3743,7 +3862,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(287)?(287):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:287:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(287)?(287):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -3779,7 +3901,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(288)?(288):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:288:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(288)?(288):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -3861,7 +3986,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
       /*block*/{
        /*block*/{
         
-        basilys_assert_failed(( "check soper"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(292)?(292):__LINE__, __FUNCTION__);
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:292:/ locexp");
+        basilys_assert_failed(( "check soper"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(292)?(292):__LINE__, __FUNCTION__);}
+        ;
         /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
        ;
        /*epilog*/}
@@ -3953,7 +4081,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
       /*block*/{
        /*block*/{
         
-        basilys_assert_failed(( "check matmb"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(298)?(298):__LINE__, __FUNCTION__);
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:298:/ locexp");
+        basilys_assert_failed(( "check matmb"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(298)?(298):__LINE__, __FUNCTION__);}
+        ;
         /*clear*/ /*_.IFELSE___V26*/ curfptr[25] = 0 ;}
        ;
        /*epilog*/}
@@ -4027,7 +4158,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check ctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(308)?(308):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:308:/ locexp");
+       basilys_assert_failed(( "check ctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(308)?(308):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V36*/ curfptr[35] = 0 ;}
       ;
       /*epilog*/}
@@ -4063,7 +4197,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check matctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(309)?(309):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:309:/ locexp");
+       basilys_assert_failed(( "check matctyp"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(309)?(309):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V38*/ curfptr[37] = 0 ;}
       ;
       /*epilog*/}
@@ -4094,13 +4231,19 @@ BASILYS_LOCATION("warmelt-normatch.melt:286:/ block");
      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.MATCTYP__V31*/ curfptr[30]), 1, "NAMED_NAME");/*_.NAMED_NAME__V40*/ curfptr[39] = slot; };
     ;
     
-    basilys_error_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "invalid ctype in composite partner - expecting"), (basilys_ptr_t)(/*_.NAMED_NAME__V40*/ curfptr[39]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:311:/ locexp");
+    basilys_error_str((basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "invalid ctype in composite partner - expecting"), (basilys_ptr_t)(/*_.NAMED_NAME__V40*/ curfptr[39]));}
+    ;
     BASILYS_LOCATION("warmelt-normatch.melt:314:/ getslot");
     { basilys_ptr_t slot=0;
      basilys_object_get_field(slot,(basilys_ptr_t)(/*_.CTYP__V4*/ curfptr[3]), 1, "NAMED_NAME");/*_.NAMED_NAME__V41*/ curfptr[40] = slot; };
     ;
     
-    basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "got ctype"), (basilys_ptr_t)(/*_.NAMED_NAME__V41*/ curfptr[40]));
+    {
+    BASILYS_LOCATION("warmelt-normatch.melt:313:/ locexp");
+    basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V13*/ curfptr[12]), ( "got ctype"), (basilys_ptr_t)(/*_.NAMED_NAME__V41*/ curfptr[40]));}
+    ;
     BASILYS_LOCATION("warmelt-normatch.melt:315:/ block");
     /*block*/{
      /*_.RETVAL___V1*/ curfptr[0] = NULL;;
@@ -4573,7 +4716,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check ntest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(407)?(407):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:407:/ locexp");
+      basilys_assert_failed(( "check ntest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(407)?(407):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -4609,7 +4755,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(408)?(408):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:408:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(408)?(408):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -4655,7 +4804,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check nmatched"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(412)?(412):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:412:/ locexp");
+       basilys_assert_failed(( "check nmatched"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(412)?(412):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -4691,7 +4843,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check stuffmap"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(413)?(413):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:413:/ locexp");
+       basilys_assert_failed(( "check stuffmap"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(413)?(413):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
       /*epilog*/}
@@ -4731,7 +4886,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
        /*_.NEWNTL__V24*/ curfptr[23] = 
         (basilysgc_new_list((basilysobject_ptr_t)((/*!DISCR_LIST*/ curfrout->tabval[3]))));;
        
-        basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.STUFFMAP__V14*/ curfptr[13]), (basilysobject_ptr_t) (/*_.NMATCHED__V13*/ curfptr[12]), (basilys_ptr_t)(/*_.NEWNTL__V24*/ curfptr[23]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:420:/ locexp");
+        basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.STUFFMAP__V14*/ curfptr[13]), (basilysobject_ptr_t) (/*_.NMATCHED__V13*/ curfptr[12]), (basilys_ptr_t)(/*_.NEWNTL__V24*/ curfptr[23]));}
+       ;
        /*_.LET___V23*/ curfptr[22] = /*_.NEWNTL__V24*/ curfptr[23];;
        /*epilog*/
        BASILYS_LOCATION("warmelt-normatch.melt:419:/ clear");
@@ -4771,7 +4929,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
       /*block*/{
        /*block*/{
         
-        basilys_assert_failed(( "check ntlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(424)?(424):__LINE__, __FUNCTION__);
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:424:/ locexp");
+        basilys_assert_failed(( "check ntlist"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(424)?(424):__LINE__, __FUNCTION__);}
+        ;
         /*clear*/ /*_.IFELSE___V27*/ curfptr[20] = 0 ;}
        ;
        /*epilog*/}
@@ -4791,7 +4952,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:404:/ block");
     #endif /*ENABLE_CHECKING*/
     ;
    
-   basilysgc_append_list((basilys_ptr_t)(/*_.NTLIST__V25*/ curfptr[23]), (basilys_ptr_t)(/*_.NTEST__V2*/ curfptr[1]));
+   {
+   BASILYS_LOCATION("warmelt-normatch.melt:425:/ locexp");
+   basilysgc_append_list((basilys_ptr_t)(/*_.NTLIST__V25*/ curfptr[23]), (basilys_ptr_t)(/*_.NTEST__V2*/ curfptr[1]));}
+   ;
    
    #if ENABLE_CHECKING
     BASILYS_LOCATION("warmelt-normatch.melt:426:/ cppif.then");
@@ -4968,7 +5132,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:433:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(434)?(434):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:434:/ locexp");
+      basilys_assert_failed(( "check newtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(434)?(434):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V5*/ curfptr[4] = 0 ;}
      ;
      /*epilog*/}
@@ -5004,7 +5171,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:433:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check testercont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(435)?(435):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:435:/ locexp");
+      basilys_assert_failed(( "check testercont"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(435)?(435):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -5191,7 +5361,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:433:/ block");
     }
    ;
    
-   basilysgc_append_list((basilys_ptr_t)(/*_.FROMNEW__V18*/ curfptr[16]), (basilys_ptr_t)(/*_.CURTESTER__V11*/ curfptr[10]));
+   {
+   BASILYS_LOCATION("warmelt-normatch.melt:448:/ locexp");
+   basilysgc_append_list((basilys_ptr_t)(/*_.FROMNEW__V18*/ curfptr[16]), (basilys_ptr_t)(/*_.CURTESTER__V11*/ curfptr[10]));}
+   ;
    /*epilog*/
    BASILYS_LOCATION("warmelt-normatch.melt:447:/ clear");
    /*clear*/ /*_.FROMNEW__V18*/ curfptr[16] = 0 ;}
@@ -5394,7 +5567,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:457:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(459)?(459):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:459:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(459)?(459):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -5454,7 +5630,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:457:/ block");
    }
   ;
   
-  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V14*/ curfptr[13]), ( "unimplemented normal_pattern for any "), (basilys_ptr_t)(/*_.MYCLASSNAME__V12*/ curfptr[11]));
+  {
+  BASILYS_LOCATION("warmelt-normatch.melt:464:/ locexp");
+  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V14*/ curfptr[13]), ( "unimplemented normal_pattern for any "), (basilys_ptr_t)(/*_.MYCLASSNAME__V12*/ curfptr[11]));}
+  ;
   
   #if ENABLE_CHECKING
    BASILYS_LOCATION("warmelt-normatch.melt:466:/ cppif.then");
@@ -5470,7 +5649,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:457:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "catchall normal_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(466)?(466):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:466:/ locexp");
+       basilys_assert_failed(( "catchall normal_pattern unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(466)?(466):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V16*/ curfptr[15] = 0 ;}
       ;
       /*epilog*/}
@@ -5653,7 +5835,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:473:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(475)?(475):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:475:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(475)?(475):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -5689,7 +5874,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:473:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(476)?(476):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:476:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(476)?(476):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -5749,7 +5937,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:473:/ block");
    }
   ;
   
-  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V16*/ curfptr[15]), ( "unimplemented NORMAL_PATTERN for pattern of "), (basilys_ptr_t)(/*_.MYCLASSNAME__V14*/ curfptr[13]));
+  {
+  BASILYS_LOCATION("warmelt-normatch.melt:481:/ locexp");
+  basilys_error_str((basilys_ptr_t)(/*_.PSLOC__V16*/ curfptr[15]), ( "unimplemented NORMAL_PATTERN for pattern of "), (basilys_ptr_t)(/*_.MYCLASSNAME__V14*/ curfptr[13]));}
+  ;
   
   #if ENABLE_CHECKING
    BASILYS_LOCATION("warmelt-normatch.melt:483:/ cppif.then");
@@ -5765,7 +5956,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:473:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "catchall normal_pattern unimplemented on pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(483)?(483):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:483:/ locexp");
+       basilys_assert_failed(( "catchall normal_pattern unimplemented on pattern"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(483)?(483):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V18*/ curfptr[17] = 0 ;}
       ;
       /*epilog*/}
@@ -5984,7 +6178,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:490:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(493)?(493):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:493:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(493)?(493):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -6020,7 +6217,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:490:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(494)?(494):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:494:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(494)?(494):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -6281,7 +6481,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:490:/ block");
         /*block*/{
          /*block*/{
           
-          basilys_assert_failed(( "check lococc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(515)?(515):__LINE__, __FUNCTION__);
+          {
+          BASILYS_LOCATION("warmelt-normatch.melt:515:/ locexp");
+          basilys_assert_failed(( "check lococc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(515)?(515):__LINE__, __FUNCTION__);}
+          ;
           /*clear*/ /*_.IFELSE___V37*/ curfptr[36] = 0 ;}
          ;
          /*epilog*/}
@@ -6533,7 +6736,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:490:/ block");
             BASILYS_LOCATION("warmelt-normatch.melt:543:/ compute");
             /*_.TESTER__V34*/ curfptr[33] = /*_.SETQ___V58*/ curfptr[56] = /*_.NEWTESTER__V53*/ curfptr[46];;
             
-            basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V25*/ curfptr[24]), (basilys_ptr_t)(/*_.NEWTESTER__V53*/ curfptr[46]));
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:544:/ locexp");
+            basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V25*/ curfptr[24]), (basilys_ptr_t)(/*_.NEWTESTER__V53*/ curfptr[46]));}
+            ;
             BASILYS_LOCATION("warmelt-normatch.melt:545:/ apply");
             /*apply*/{
              /*_.CURHDLER__V59*/ curfptr[58] =  basilys_apply ((basilysclosure_ptr_t)(/*_.CURHDLER__V35*/ curfptr[34]), (basilys_ptr_t)(/*_.NEWTESTER__V53*/ curfptr[46]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
@@ -6766,9 +6972,15 @@ BASILYS_LOCATION("warmelt-normatch.melt:490:/ block");
       }
      ;
      
-      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V70*/ curfptr[33]), (basilysobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (basilys_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));
+     {
+     BASILYS_LOCATION("warmelt-normatch.melt:569:/ locexp");
+      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V70*/ curfptr[33]), (basilysobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (basilys_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
+     ;
      
-      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.PVARMAP__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (basilys_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));
+     {
+     BASILYS_LOCATION("warmelt-normatch.melt:570:/ locexp");
+      basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.PVARMAP__V16*/ curfptr[15]), (basilysobject_ptr_t) (/*_.PATVAR__V20*/ curfptr[19]), (basilys_ptr_t)(/*_.CLOCC__V64*/ curfptr[56]));}
+     ;
      
      #if ENABLE_CHECKING
       BASILYS_LOCATION("warmelt-normatch.melt:571:/ cppif.then");
@@ -7047,7 +7259,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:526:/ block");
   }
  ;
  
- basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));
+ {
+ BASILYS_LOCATION("warmelt-normatch.melt:528:/ locexp");
+ basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
+ ;
  /*epilog*/
  BASILYS_LOCATION("warmelt-normatch.melt:526:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
@@ -7224,7 +7439,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:580:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(583)?(583):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:583:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(583)?(583):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -7260,7 +7478,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:580:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(584)?(584):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:584:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(584)?(584):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -7468,7 +7689,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:591:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(594)?(594):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:594:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(594)?(594):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -7504,7 +7728,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:591:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(595)?(595):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:595:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(595)?(595):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -7621,7 +7848,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:591:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check aspat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(603)?(603):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:603:/ locexp");
+       basilys_assert_failed(( "check aspat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(603)?(603):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V23*/ curfptr[22] = 0 ;}
       ;
       /*epilog*/}
@@ -8409,7 +8639,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:628:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check null recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(631)?(631):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:631:/ locexp");
+      basilys_assert_failed(( "check null recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(631)?(631):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -8445,7 +8678,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:628:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(632)?(632):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:632:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(632)?(632):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -8828,7 +9064,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:654:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(657)?(657):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:657:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(657)?(657):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -8864,7 +9103,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:654:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(658)?(658):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:658:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(658)?(658):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -9020,7 +9262,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:654:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check patcla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(675)?(675):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:675:/ locexp");
+       basilys_assert_failed(( "check patcla"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(675)?(675):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V30*/ curfptr[29] = 0 ;}
       ;
       /*epilog*/}
@@ -9295,7 +9540,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:654:/ block");
          BASILYS_LOCATION("warmelt-normatch.melt:715:/ compute");
          /*_.TESTER__V25*/ curfptr[24] = /*_.SETQ___V54*/ curfptr[53] = /*_.NEWTESTER__V49*/ curfptr[43];;
          
-         basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V27*/ curfptr[26]), (basilys_ptr_t)(/*_.NEWTESTER__V49*/ curfptr[43]));
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:716:/ locexp");
+         basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V27*/ curfptr[26]), (basilys_ptr_t)(/*_.NEWTESTER__V49*/ curfptr[43]));}
+         ;
          BASILYS_LOCATION("warmelt-normatch.melt:717:/ apply");
          /*apply*/{
           /*_.CURHDLER__V55*/ curfptr[54] =  basilys_apply ((basilysclosure_ptr_t)(/*_.CURHDLER__V26*/ curfptr[25]), (basilys_ptr_t)(/*_.NEWTESTER__V49*/ curfptr[43]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
@@ -9465,7 +9713,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:654:/ block");
       /*block*/{
        /*block*/{
         
-        basilys_assert_failed(( "check testbindl"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(725)?(725):__LINE__, __FUNCTION__);
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:725:/ locexp");
+        basilys_assert_failed(( "check testbindl"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(725)?(725):__LINE__, __FUNCTION__);}
+        ;
         /*clear*/ /*_.IFELSE___V62*/ curfptr[51] = 0 ;}
        ;
        /*epilog*/}
@@ -9543,7 +9794,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
        /*block*/{
         /*block*/{
          
-         basilys_assert_failed(( "check curpatf"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(730)?(730):__LINE__, __FUNCTION__);
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:730:/ locexp");
+         basilys_assert_failed(( "check curpatf"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(730)?(730):__LINE__, __FUNCTION__);}
+         ;
          /*clear*/ /*_.IFELSE___V67*/ curfptr[33] = 0 ;}
         ;
         /*epilog*/}
@@ -9702,7 +9956,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           }
          ;
          
-         basilys_error_str((basilys_ptr_t)(/*_.FLOC__V69*/ curfptr[39]), ( "bad field in instance pattern"), (basilys_ptr_t)(/*_.NAMED_NAME__V81*/ curfptr[80]));
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:741:/ locexp");
+         basilys_error_str((basilys_ptr_t)(/*_.FLOC__V69*/ curfptr[39]), ( "bad field in instance pattern"), (basilys_ptr_t)(/*_.NAMED_NAME__V81*/ curfptr[80]));}
+         ;
          BASILYS_LOCATION("warmelt-normatch.melt:741:/ block");
          /*block*/{}
          ;
@@ -9817,7 +10074,10 @@ basilys_magic_discr(/*_.TESTPAIR__V88*/ curfptr[86]) == OBMAG_PAIR;
           /*block*/{
            /*block*/{
             
-            basilys_assert_failed(( "check testlocsy"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(750)?(750):__LINE__, __FUNCTION__);
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:750:/ locexp");
+            basilys_assert_failed(( "check testlocsy"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(750)?(750):__LINE__, __FUNCTION__);}
+            ;
             /*clear*/ /*_.IFELSE___V91*/ curfptr[90] = 0 ;}
            ;
            /*epilog*/}
@@ -10079,7 +10339,10 @@ basilys_magic_discr(/*_.TESTPAIR__V88*/ curfptr[86]) == OBMAG_PAIR;
          /*_#GET_INT__L26*/ curfnum[25] = 
           (basilys_get_int((basilys_ptr_t)(/*_.CURFLD__V70*/ curfptr[42])));;
          
-          basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.NTINST_FIELDLOCS__V111*/ curfptr[110]), (/*_#GET_INT__L26*/ curfnum[25]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:778:/ locexp");
+          basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.NTINST_FIELDLOCS__V111*/ curfptr[110]), (/*_#GET_INT__L26*/ curfnum[25]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));}
+         ;
          BASILYS_LOCATION("warmelt-normatch.melt:783:/ cond");
          /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.NCX__V22*/ curfptr[21]), (basilys_ptr_t)((/*!CLASS_NORMCONTEXT*/ curfrout->tabval[27])))) /*then*/ {
          BASILYS_LOCATION("warmelt-normatch.melt:783:/ cond.then");
@@ -10093,7 +10356,10 @@ basilys_magic_discr(/*_.TESTPAIR__V88*/ curfptr[86]) == OBMAG_PAIR;
           }
          ;
          
-          basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V112*/ curfptr[111]), (basilysobject_ptr_t) (/*_.NEWSYM__V104*/ curfptr[103]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:783:/ locexp");
+          basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V112*/ curfptr[111]), (basilysobject_ptr_t) (/*_.NEWSYM__V104*/ curfptr[103]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));}
+         ;
          
          #if ENABLE_CHECKING
           BASILYS_LOCATION("warmelt-normatch.melt:784:/ cppif.then");
@@ -10129,7 +10395,10 @@ basilys_magic_discr(/*_.TESTPAIR__V88*/ curfptr[86]) == OBMAG_PAIR;
           #endif /*ENABLE_CHECKING*/
           ;
          
-         basilysgc_append_list((basilys_ptr_t)(/*_.TESTLOCCL__V60*/ curfptr[43]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));
+         {
+         BASILYS_LOCATION("warmelt-normatch.melt:785:/ locexp");
+         basilysgc_append_list((basilys_ptr_t)(/*_.TESTLOCCL__V60*/ curfptr[43]), (basilys_ptr_t)(/*_.NEWLOCC__V109*/ curfptr[108]));}
+         ;
          
          #if ENABLE_CHECKING
           BASILYS_LOCATION("warmelt-normatch.melt:786:/ cppif.then");
@@ -10608,7 +10877,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:689:/ block");
   }
  ;
  
- basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));
+ {
+ BASILYS_LOCATION("warmelt-normatch.melt:691:/ locexp");
+ basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
+ ;
  /*epilog*/
  BASILYS_LOCATION("warmelt-normatch.melt:689:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
@@ -10905,7 +11177,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:807:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(811)?(811):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:811:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(811)?(811):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -10941,7 +11216,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:807:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(812)?(812):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:812:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(812)?(812):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
      /*epilog*/}
@@ -11112,7 +11390,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "normpat_andpat not fully unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(829)?(829):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:829:/ locexp");
+       basilys_assert_failed(( "normpat_andpat not fully unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(829)?(829):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V32*/ curfptr[31] = 0 ;}
       ;
       /*epilog*/}
@@ -11543,7 +11824,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:836:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(840)?(840):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:840:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(840)?(840):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -11579,7 +11863,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:836:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(841)?(841):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:841:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(841)?(841):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
      /*epilog*/}
@@ -11613,7 +11900,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:836:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "normpat_orpat unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(842)?(842):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:842:/ locexp");
+      basilys_assert_failed(( "normpat_orpat unimplemented"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(842)?(842):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V17*/ curfptr[16] = 0 ;}
      ;
      /*epilog*/}
@@ -11864,7 +12154,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(856)?(856):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:856:/ locexp");
+      basilys_assert_failed(( "check pcn"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(856)?(856):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V13*/ curfptr[12] = 0 ;}
      ;
      /*epilog*/}
@@ -11900,7 +12193,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(857)?(857):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:857:/ locexp");
+      basilys_assert_failed(( "check recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(857)?(857):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V15*/ curfptr[14] = 0 ;}
      ;
      /*epilog*/}
@@ -12024,7 +12320,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
      /*block*/{
       /*block*/{
        
-       basilys_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(871)?(871):__LINE__, __FUNCTION__);
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:871:/ locexp");
+       basilys_assert_failed(( "check mat"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(871)?(871):__LINE__, __FUNCTION__);}
+       ;
        /*clear*/ /*_.IFELSE___V28*/ curfptr[27] = 0 ;}
       ;
       /*epilog*/}
@@ -12296,7 +12595,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
         }
        ;
        
-       basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "unexpected matched type"), (basilys_ptr_t)(/*_.NAMED_NAME__V49*/ curfptr[48]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:890:/ locexp");
+       basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "unexpected matched type"), (basilys_ptr_t)(/*_.NAMED_NAME__V49*/ curfptr[48]));}
+       ;
        BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond");
        /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATBIND__V45*/ curfptr[44]), (basilys_ptr_t)((/*!CLASS_FORMAL_BINDING*/ curfrout->tabval[9])))) /*then*/ {
        BASILYS_LOCATION("warmelt-normatch.melt:891:/ cond.then");
@@ -12322,7 +12624,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
         }
        ;
        
-       basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expecting type in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V51*/ curfptr[50]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:891:/ locexp");
+       basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expecting type in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V51*/ curfptr[50]));}
+       ;
        BASILYS_LOCATION("warmelt-normatch.melt:889:/ block");
        /*block*/{}
        ;
@@ -12430,7 +12735,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:852:/ block");
          }
         ;
         
-        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of input matching arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V56*/ curfptr[49]));
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:897:/ locexp");
+        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of input matching arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V56*/ curfptr[49]));}
+        ;
         /*epilog*/
         BASILYS_LOCATION("warmelt-normatch.melt:896:/ clear");
         /*clear*/ /*_.NAMED_NAME__V56*/ curfptr[49] = 0 ;}
@@ -12569,7 +12877,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               /*block*/{
                /*block*/{
                 
-                basilys_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(912)?(912):__LINE__, __FUNCTION__);
+                {
+                BASILYS_LOCATION("warmelt-normatch.melt:912:/ locexp");
+                basilys_assert_failed(( "check curmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(912)?(912):__LINE__, __FUNCTION__);}
+                ;
                 /*clear*/ /*_.IFELSE___V68*/ curfptr[67] = 0 ;}
                ;
                /*epilog*/}
@@ -12676,7 +12987,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "type mismatch for match argument in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V74*/ curfptr[73]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:918:/ locexp");
+             basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "type mismatch for match argument in matcher"), (basilys_ptr_t)(/*_.NAMED_NAME__V74*/ curfptr[73]));}
+             ;
              BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURMATCH__V62*/ curfptr[61]), (basilys_ptr_t)((/*!CLASS_ANY_BINDING*/ curfrout->tabval[12])))) /*then*/ {
              BASILYS_LOCATION("warmelt-normatch.melt:923:/ cond.then");
@@ -12702,7 +13016,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched formal name in matcher is"), (basilys_ptr_t)(/*_.NAMED_NAME__V76*/ curfptr[75]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:921:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched formal name in matcher is"), (basilys_ptr_t)(/*_.NAMED_NAME__V76*/ curfptr[75]));}
+             ;
              BASILYS_LOCATION("warmelt-normatch.melt:926:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURCTYPE__V63*/ curfptr[62]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
              BASILYS_LOCATION("warmelt-normatch.melt:926:/ cond.then");
@@ -12716,7 +13033,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched input type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V77*/ curfptr[76]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:924:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "mismatched input type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V77*/ curfptr[76]));}
+             ;
              BASILYS_LOCATION("warmelt-normatch.melt:929:/ cond");
              /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.MATCHTYPE__V64*/ curfptr[63]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[10])))) /*then*/ {
              BASILYS_LOCATION("warmelt-normatch.melt:929:/ cond.then");
@@ -12730,7 +13050,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expected match type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V78*/ curfptr[77]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:927:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "expected match type is"), (basilys_ptr_t)(/*_.NAMED_NAME__V78*/ curfptr[77]));}
+             ;
              BASILYS_LOCATION("warmelt-normatch.melt:917:/ block");
              /*block*/{}
              ;
@@ -13020,7 +13343,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          }
         ;
         
-        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of output matched arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V92*/ curfptr[62]));
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:949:/ locexp");
+        basilys_error_str((basilys_ptr_t)(/*_.SLOC__V16*/ curfptr[14]), ( "formal and actual number of output matched arguments differ for anymatch"), (basilys_ptr_t)(/*_.NAMED_NAME__V92*/ curfptr[62]));}
+        ;
         /*epilog*/
         BASILYS_LOCATION("warmelt-normatch.melt:948:/ clear");
         /*clear*/ /*_.NAMED_NAME__V92*/ curfptr[62] = 0 ;}
@@ -13311,7 +13637,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
               /*block*/{
                /*block*/{
                 
-                basilys_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(986)?(986):__LINE__, __FUNCTION__);
+                {
+                BASILYS_LOCATION("warmelt-normatch.melt:986:/ locexp");
+                basilys_assert_failed(( "normpat_anymatchpat incomplete found tstuff"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(986)?(986):__LINE__, __FUNCTION__);}
+                ;
                 /*clear*/ /*_.IFELSE___V117*/ curfptr[107] = 0 ;}
                ;
                /*epilog*/}
@@ -13541,7 +13870,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
               BASILYS_LOCATION("warmelt-normatch.melt:1043:/ compute");
               /*_.TESTER__V47*/ curfptr[46] = /*_.SETQ___V136*/ curfptr[135] = /*_.NEWTESTER__V131*/ curfptr[106];;
               
-              basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V26*/ curfptr[25]), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]));
+              {
+              BASILYS_LOCATION("warmelt-normatch.melt:1044:/ locexp");
+              basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V26*/ curfptr[25]), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]));}
+              ;
               BASILYS_LOCATION("warmelt-normatch.melt:1045:/ apply");
               /*apply*/{
                /*_.CURHDLER__V137*/ curfptr[136] =  basilys_apply ((basilysclosure_ptr_t)(/*_.CURHDLER__V95*/ curfptr[65]), (basilys_ptr_t)(/*_.NEWTESTER__V131*/ curfptr[106]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
@@ -13681,7 +14013,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
         /*block*/{
          /*block*/{
           
-          basilys_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1052)?(1052):__LINE__, __FUNCTION__);
+          {
+          BASILYS_LOCATION("warmelt-normatch.melt:1052:/ locexp");
+          basilys_assert_failed(( "check tester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1052)?(1052):__LINE__, __FUNCTION__);}
+          ;
           /*clear*/ /*_.IFELSE___V141*/ curfptr[73] = 0 ;}
          ;
          /*epilog*/}
@@ -13825,7 +14160,10 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
 
       
        
-       debugnum(( "normpat_anymatchpat ixm in outmatchs"), (/*_#IXM__L49*/ curfnum[18]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1061:/ locexp");
+       debugnum(( "normpat_anymatchpat ixm in outmatchs"), (/*_#IXM__L49*/ curfnum[18]));}
+       ;
        
        #if ENABLE_CHECKING
         BASILYS_LOCATION("warmelt-normatch.melt:1062:/ cppif.then");
@@ -14302,7 +14640,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:980:/ block");
   }
  ;
  
- basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));
+ {
+ BASILYS_LOCATION("warmelt-normatch.melt:982:/ locexp");
+ basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
+ ;
  /*epilog*/
  BASILYS_LOCATION("warmelt-normatch.melt:980:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
@@ -14403,7 +14744,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:991:/ block");
   }
  ;
  
- basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));
+ {
+ BASILYS_LOCATION("warmelt-normatch.melt:993:/ locexp");
+ basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V3*/ curfptr[2]), (basilys_ptr_t)((/*~TSTUFF*/ curfclos->tabval[0])));}
+ ;
  /*epilog*/
  BASILYS_LOCATION("warmelt-normatch.melt:991:/ clear");
  /*clear*/ /*_.NTEST_COMEFROM__V3*/ curfptr[2] = 0 ;}
@@ -14530,7 +14874,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1003)?(1003):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1003:/ locexp");
+      basilys_assert_failed(( "check curoutmatch"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1003)?(1003):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V6*/ curfptr[5] = 0 ;}
      ;
      /*epilog*/}
@@ -14651,7 +14998,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1001:/ block");
    }
   ;
   
-   basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14]), (basilysobject_ptr_t) (/*_.CSYM__V9*/ curfptr[8]), (basilys_ptr_t)(/*_.CLOCC__V13*/ curfptr[12]));
+  {
+  BASILYS_LOCATION("warmelt-normatch.melt:1022:/ locexp");
+   basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V15*/ curfptr[14]), (basilysobject_ptr_t) (/*_.CSYM__V9*/ curfptr[8]), (basilys_ptr_t)(/*_.CLOCC__V13*/ curfptr[12]));}
+  ;
   /*_.LET___V7*/ curfptr[5] = /*_.CLOCC__V13*/ curfptr[12];;
   /*epilog*/
   BASILYS_LOCATION("warmelt-normatch.melt:1004:/ clear");
@@ -14908,7 +15258,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1095)?(1095):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1095:/ locexp");
+      basilys_assert_failed(( "check match recv"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1095)?(1095):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V7*/ curfptr[6] = 0 ;}
      ;
      /*epilog*/}
@@ -14944,7 +15297,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1096)?(1096):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1096:/ locexp");
+      basilys_assert_failed(( "check env"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1096)?(1096):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V9*/ curfptr[8] = 0 ;}
      ;
      /*epilog*/}
@@ -14980,7 +15336,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
     /*block*/{
      /*block*/{
       
-      basilys_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1097)?(1097):__LINE__, __FUNCTION__);
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1097:/ locexp");
+      basilys_assert_failed(( "check nctxt"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1097)?(1097):__LINE__, __FUNCTION__);}
+      ;
       /*clear*/ /*_.IFELSE___V11*/ curfptr[10] = 0 ;}
      ;
      /*epilog*/}
@@ -15324,7 +15683,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
            /*block*/{
             /*block*/{
              
-             basilys_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1139)?(1139):__LINE__, __FUNCTION__);
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1139:/ locexp");
+             basilys_assert_failed(( "check no binding"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1139)?(1139):__LINE__, __FUNCTION__);}
+             ;
              /*clear*/ /*_.IFELSE___V47*/ curfptr[46] = 0 ;}
             ;
             /*epilog*/}
@@ -15356,7 +15718,10 @@ BASILYS_LOCATION("warmelt-normatch.melt:1094:/ block");
          }
         ;
         
-         basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46]), (basilysobject_ptr_t) (/*_.CSYM__V41*/ curfptr[40]), (basilys_ptr_t)(/*_.CLOCC__V44*/ curfptr[43]));
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:1141:/ locexp");
+         basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V48*/ curfptr[46]), (basilysobject_ptr_t) (/*_.CSYM__V41*/ curfptr[40]), (basilys_ptr_t)(/*_.CLOCC__V44*/ curfptr[43]));}
+        ;
         BASILYS_LOCATION("warmelt-normatch.melt:1142:/ apply");
         /*apply*/{
          /*_.LIST1__V49*/ curfptr[48] =  basilys_apply ((basilysclosure_ptr_t)((/*!LIST1*/ curfrout->tabval[13])), (basilys_ptr_t)(/*_.CBIND__V42*/ curfptr[41]), (""), (union basilysparam_un*)0, "", (union basilysparam_un*)0);
@@ -15477,7 +15842,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
          /*block*/{
           /*block*/{
            
-           basilys_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1151)?(1151):__LINE__, __FUNCTION__);
+           {
+           BASILYS_LOCATION("warmelt-normatch.melt:1151:/ locexp");
+           basilys_assert_failed(( "check curcas"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1151)?(1151):__LINE__, __FUNCTION__);}
+           ;
            /*clear*/ /*_.IFELSE___V59*/ curfptr[50] = 0 ;}
           ;
           /*epilog*/}
@@ -15695,11 +16063,20 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         #endif /*ENABLE_CHECKING*/
         ;
        
-        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPVARMAP__V18*/ curfptr[17]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1176:/ locexp");
+        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPVARMAP__V18*/ curfptr[17]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPVAR__V64*/ curfptr[50]));}
+       ;
        
-        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPCSTMAP__V19*/ curfptr[18]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1177:/ locexp");
+        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPCSTMAP__V19*/ curfptr[18]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.MAPCST__V65*/ curfptr[64]));}
+       ;
        
-        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPBINDLIST__V20*/ curfptr[19]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1178:/ locexp");
+        basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.TUPBINDLIST__V20*/ curfptr[19]), (/*_#IX__L16*/ curfnum[15]), (basilys_ptr_t)(/*_.BINDLIST__V22*/ curfptr[21]));}
+       ;
        
        #if ENABLE_CHECKING
         BASILYS_LOCATION("warmelt-normatch.melt:1179:/ cppif.then");
@@ -16097,7 +16474,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
           BASILYS_LOCATION("warmelt-normatch.melt:1212:/ block");
            /*block*/{
             
-            basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "joker case is not last"), (basilys_ptr_t)0);
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:1213:/ locexp");
+            basilys_warning_str(0, (basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "joker case is not last"), (basilys_ptr_t)0);}
+            ;
             /*epilog*/}
            ;
           } /*noelse*/
@@ -16151,7 +16531,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            /*block*/{
             /*block*/{
              
-             basilys_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1215)?(1215):__LINE__, __FUNCTION__);
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1215:/ locexp");
+             basilys_assert_failed(( "check curtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1215)?(1215):__LINE__, __FUNCTION__);}
+             ;
              /*clear*/ /*_.IFELSE___V105*/ curfptr[100] = 0 ;}
             ;
             /*epilog*/}
@@ -16254,9 +16637,15 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilys_warning_str(0, (basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "unreachable match case"), (basilys_ptr_t)0);
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1226:/ locexp");
+             basilys_warning_str(0, (basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "unreachable match case"), (basilys_ptr_t)0);}
+             ;
              
-             basilys_inform_str((basilys_ptr_t)(/*_.OTHERLOC__V112*/ curfptr[111]), ( "this is the other successful case"), (basilys_ptr_t)0);
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1227:/ locexp");
+             basilys_inform_str((basilys_ptr_t)(/*_.OTHERLOC__V112*/ curfptr[111]), ( "this is the other successful case"), (basilys_ptr_t)0);}
+             ;
              BASILYS_LOCATION("warmelt-normatch.melt:1228:/ block");
              /*block*/{
               BASILYS_LOCATION("warmelt-normatch.melt:1228:/ compute");
@@ -16502,7 +16891,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
              /*block*/{
               /*block*/{
                
-               basilys_assert_failed(( "check oldtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1247)?(1247):__LINE__, __FUNCTION__);
+               {
+               BASILYS_LOCATION("warmelt-normatch.melt:1247:/ locexp");
+               basilys_assert_failed(( "check oldtester"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1247)?(1247):__LINE__, __FUNCTION__);}
+               ;
                /*clear*/ /*_.IFELSE___V128*/ curfptr[110] = 0 ;}
               ;
               /*epilog*/}
@@ -16564,7 +16956,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
               }
              ;
              
-             basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V132*/ curfptr[110]), (basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1252:/ locexp");
+             basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V132*/ curfptr[110]), (basilys_ptr_t)(/*_.OLDTESTER__V25*/ curfptr[24]));}
+             ;
              
              #if ENABLE_CHECKING
               BASILYS_LOCATION("warmelt-normatch.melt:1253:/ cppif.then");
@@ -16694,7 +17089,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
            }
           ;
           
-          basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V137*/ curfptr[132]), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]));
+          {
+          BASILYS_LOCATION("warmelt-normatch.melt:1264:/ locexp");
+          basilysgc_append_list((basilys_ptr_t)(/*_.NTEST_COMEFROM__V137*/ curfptr[132]), (basilys_ptr_t)(/*_.CURTESTER__V88*/ curfptr[87]));}
+          ;
           BASILYS_LOCATION("warmelt-normatch.melt:1262:/ block");
           /*block*/{}
           ;
@@ -16705,7 +17103,10 @@ for (cit1__EACHTUP_ix = 0; cit1__EACHTUP_ix < cit1__EACHTUP_ln; cit1__EACHTUP_ix
         } /*noelse*/
         ;
         
-        basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V23*/ curfptr[22]), (basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]));
+        {
+        BASILYS_LOCATION("warmelt-normatch.melt:1266:/ locexp");
+        basilysgc_append_list((basilys_ptr_t)(/*_.TESTLIST__V23*/ curfptr[22]), (basilys_ptr_t)(/*_.NEWSUCTESTER__V90*/ curfptr[89]));}
+        ;
         
         #if ENABLE_CHECKING
          BASILYS_LOCATION("warmelt-normatch.melt:1267:/ cppif.then");
@@ -16955,7 +17356,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
               /*block*/{
                /*block*/{
                 
-                basilys_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1283)?(1283):__LINE__, __FUNCTION__);
+                {
+                BASILYS_LOCATION("warmelt-normatch.melt:1283:/ locexp");
+                basilys_assert_failed(( "check socc"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1283)?(1283):__LINE__, __FUNCTION__);}
+                ;
                 /*clear*/ /*_.IFELSE___V158*/ curfptr[157] = 0 ;}
                ;
                /*epilog*/}
@@ -17015,7 +17419,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
              #endif /*ENABLE_CHECKING*/
              ;
             
-             basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132]), (/*_#SVIX__L54*/ curfnum[32]), (basilys_ptr_t)(/*_.SBIND__V160*/ curfptr[159]));
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:1286:/ locexp");
+             basilysgc_multiple_put_nth((basilys_ptr_t)(/*_.SORTEDBINDINGS__V146*/ curfptr[132]), (/*_#SVIX__L54*/ curfnum[32]), (basilys_ptr_t)(/*_.SBIND__V160*/ curfptr[159]));}
+            ;
             BASILYS_LOCATION("warmelt-normatch.melt:1287:/ apply");
             /*apply*/{
              union basilysparam_un argtab[1];
@@ -17142,7 +17549,10 @@ for (cit2__EACHTUP_ix = 0; cit2__EACHTUP_ix < cit2__EACHTUP_ln; cit2__EACHTUP_ix
             /*block*/{
              /*block*/{
               
-              basilys_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1292)?(1292):__LINE__, __FUNCTION__);
+              {
+              BASILYS_LOCATION("warmelt-normatch.melt:1292:/ locexp");
+              basilys_assert_failed(( "check sortedbindings"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1292)?(1292):__LINE__, __FUNCTION__);}
+              ;
               /*clear*/ /*_.IFELSE___V169*/ curfptr[155] = 0 ;}
              ;
              /*epilog*/}
@@ -17224,7 +17634,10 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
               /*block*/{
                /*block*/{
                 
-                basilys_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1299)?(1299):__LINE__, __FUNCTION__);
+                {
+                BASILYS_LOCATION("warmelt-normatch.melt:1299:/ locexp");
+                basilys_assert_failed(( "check cursortbind"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1299)?(1299):__LINE__, __FUNCTION__);}
+                ;
                 /*clear*/ /*_.IFELSE___V176*/ curfptr[175] = 0 ;}
                ;
                /*epilog*/}
@@ -17244,7 +17657,10 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
             #endif /*ENABLE_CHECKING*/
             ;
            
-           basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURSORTBIND__V172*/ curfptr[153]));
+           {
+           BASILYS_LOCATION("warmelt-normatch.melt:1301:/ locexp");
+           basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURSORTBIND__V172*/ curfptr[153]));}
+           ;
           } /* end cit3__EACHTUP*/
           
            /*citerepilog*/
@@ -17363,7 +17779,10 @@ for (cit3__EACHTUP_ix = 0; cit3__EACHTUP_ix < cit3__EACHTUP_ln; cit3__EACHTUP_ix
                /*block*/{
                 /*block*/{
                  
-                 basilys_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1308)?(1308):__LINE__, __FUNCTION__);
+                 {
+                 BASILYS_LOCATION("warmelt-normatch.melt:1308:/ locexp");
+                 basilys_assert_failed(( "check bindsbody"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1308)?(1308):__LINE__, __FUNCTION__);}
+                 ;
                  /*clear*/ /*_.IFELSE___V185*/ curfptr[184] = 0 ;}
                 ;
                 /*epilog*/}
@@ -17425,7 +17844,10 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
               #endif /*ENABLE_CHECKING*/
               ;
              
-             basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURBINDBODY__V187*/ curfptr[186]));
+             {
+             BASILYS_LOCATION("warmelt-normatch.melt:1313:/ locexp");
+             basilysgc_append_list((basilys_ptr_t)(/*_.SUBINDLIST__V171*/ curfptr[160]), (basilys_ptr_t)(/*_.CURBINDBODY__V187*/ curfptr[186]));}
+             ;
             } /* end cit4__EACHLIST*/
 
             
@@ -17680,7 +18102,10 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
                       }
                      ;
                      
-                     basilys_error_str((basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "invalid type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V208*/ curfptr[207]));
+                     {
+                     BASILYS_LOCATION("warmelt-normatch.melt:1333:/ locexp");
+                     basilys_error_str((basilys_ptr_t)(/*_.CURLOC__V61*/ curfptr[41]), ( "invalid type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V208*/ curfptr[207]));}
+                     ;
                      BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond");
                      /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.WHOLECTYPE__V24*/ curfptr[23]), (basilys_ptr_t)((/*!CLASS_NAMED*/ curfrout->tabval[30])))) /*then*/ {
                      BASILYS_LOCATION("warmelt-normatch.melt:1336:/ cond.then");
@@ -17694,7 +18119,10 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
                       }
                      ;
                      
-                     basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "expected type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V209*/ curfptr[208]));
+                     {
+                     BASILYS_LOCATION("warmelt-normatch.melt:1335:/ locexp");
+                     basilys_inform_str((basilys_ptr_t)(/*_.SLOC__V15*/ curfptr[14]), ( "expected type of match case"), (basilys_ptr_t)(/*_.NAMED_NAME__V209*/ curfptr[208]));}
+                     ;
                      BASILYS_LOCATION("warmelt-normatch.melt:1332:/ block");
                      /*block*/{}
                      ;
@@ -18265,7 +18693,10 @@ basilys_magic_discr(/*_.BINDBODYPAIR__V186*/ curfptr[184]) == OBMAG_PAIR;
        }
       ;
       
-       basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V233*/ curfptr[146]), (basilysobject_ptr_t) (/*_.CSYM__V224*/ curfptr[182]), (basilys_ptr_t)(/*_.CLOCC__V225*/ curfptr[188]));
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1376:/ locexp");
+       basilysgc_put_mapobjects( (basilysmapobjects_ptr_t) (/*_.NCTX_SYMBCACHEMAP__V233*/ curfptr[146]), (basilysobject_ptr_t) (/*_.CSYM__V224*/ curfptr[182]), (basilys_ptr_t)(/*_.CLOCC__V225*/ curfptr[188]));}
+      ;
       /*citerblock FOREACH_IN_MULTIPLE*/ {
       long cit5__EACHTUP_ln = basilys_multiple_length((basilys_ptr_t)/*_.TESTSTUPL__V221*/ curfptr[200]);
 int cit5__EACHTUP_ix = 0;
@@ -18325,7 +18756,10 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
           /*block*/{
            /*block*/{
             
-            basilys_assert_failed(( "check curtest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1382)?(1382):__LINE__, __FUNCTION__);
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:1382:/ locexp");
+            basilys_assert_failed(( "check curtest"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1382)?(1382):__LINE__, __FUNCTION__);}
+            ;
             /*clear*/ /*_.IFELSE___V238*/ curfptr[157] = 0 ;}
            ;
            /*epilog*/}
@@ -18361,7 +18795,10 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
           /*block*/{
            /*block*/{
             
-            basilys_assert_failed(( "check tstix"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1383)?(1383):__LINE__, __FUNCTION__);
+            {
+            BASILYS_LOCATION("warmelt-normatch.melt:1383:/ locexp");
+            basilys_assert_failed(( "check tstix"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1383)?(1383):__LINE__, __FUNCTION__);}
+            ;
             /*clear*/ /*_.IFELSE___V240*/ curfptr[86] = 0 ;}
            ;
            /*epilog*/}
@@ -18381,9 +18818,15 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
         #endif /*ENABLE_CHECKING*/
         ;
        
-       debugnum(( "normexp_match testindex tstix"), (/*_#TSTIX__L84*/ curfnum[31]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1384:/ locexp");
+       debugnum(( "normexp_match testindex tstix"), (/*_#TSTIX__L84*/ curfnum[31]));}
+       ;
        
-       basilys_put_int((basilys_ptr_t)(/*_.CURTEST__V234*/ curfptr[147]), (/*_#TSTIX__L84*/ curfnum[31]));
+       {
+       BASILYS_LOCATION("warmelt-normatch.melt:1385:/ locexp");
+       basilys_put_int((basilys_ptr_t)(/*_.CURTEST__V234*/ curfptr[147]), (/*_#TSTIX__L84*/ curfnum[31]));}
+       ;
        BASILYS_LOCATION("warmelt-normatch.melt:1386:/ cond");
        /*cond*/ if (/*ifisa*/ basilys_is_instance_of((basilys_ptr_t)(/*_.CURTEST__V234*/ curfptr[147]), (basilys_ptr_t)((/*!CLASS_NORMTESTER_ANY*/ curfrout->tabval[22])))) /*then*/ {
        BASILYS_LOCATION("warmelt-normatch.melt:1386:/ cond.then");
@@ -18514,7 +18957,10 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
          /*block*/{
           /*block*/{
            
-           basilys_assert_failed(( "check nbindmatx"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1391)?(1391):__LINE__, __FUNCTION__);
+           {
+           BASILYS_LOCATION("warmelt-normatch.melt:1391:/ locexp");
+           basilys_assert_failed(( "check nbindmatx"),( "warmelt-normatch.melt")?( "warmelt-normatch.melt"):__FILE__,(1391)?(1391):__LINE__, __FUNCTION__);}
+           ;
            /*clear*/ /*_.IFELSE___V246*/ curfptr[94] = 0 ;}
           ;
           /*epilog*/}
@@ -18534,7 +18980,10 @@ for (cit5__EACHTUP_ix = 0; cit5__EACHTUP_ix < cit5__EACHTUP_ln; cit5__EACHTUP_ix
        #endif /*ENABLE_CHECKING*/
        ;
       
-      basilysgc_append_list((basilys_ptr_t)(/*_.NBINDMATX__V30*/ curfptr[29]), (basilys_ptr_t)(/*_.CBIND__V227*/ curfptr[177]));
+      {
+      BASILYS_LOCATION("warmelt-normatch.melt:1392:/ locexp");
+      basilysgc_append_list((basilys_ptr_t)(/*_.NBINDMATX__V30*/ curfptr[29]), (basilys_ptr_t)(/*_.CBIND__V227*/ curfptr[177]));}
+      ;
       
       #if ENABLE_CHECKING
        BASILYS_LOCATION("warmelt-normatch.melt:1393:/ cppif.then");
@@ -19263,7 +19712,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_3__CLASS_ROOT));
   basilys_assertmsg("iniobj checkdiscr dobj_5__CLASS_PATTERNCONTEXT", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_num = OBMAG_OBJECT;
-  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 1065815400;
+  cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_hash = 477894222;
   cdat->dobj_5__CLASS_PATTERNCONTEXT.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_5__CLASS_PATTERNCONTEXT));
  
@@ -19299,7 +19748,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_9__PCTN_NORMCTXT));
   basilys_assertmsg("iniobj checkdiscr dobj_11__PCTN_NORMCTXT", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_11__PCTN_NORMCTXT.obj_num = 0;
-  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 677581118;
+  cdat->dobj_11__PCTN_NORMCTXT.obj_hash = 668929984;
   cdat->dobj_11__PCTN_NORMCTXT.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_11__PCTN_NORMCTXT));
  
@@ -19327,7 +19776,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_13__PCTN_SRC));
   basilys_assertmsg("iniobj checkdiscr dobj_15__PCTN_SRC", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_15__PCTN_SRC.obj_num = 1;
-  cdat->dobj_15__PCTN_SRC.obj_hash = 789852084;
+  cdat->dobj_15__PCTN_SRC.obj_hash = 856457425;
   cdat->dobj_15__PCTN_SRC.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_15__PCTN_SRC));
  
@@ -19355,7 +19804,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_17__PCTN_ENV));
   basilys_assertmsg("iniobj checkdiscr dobj_19__PCTN_ENV", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_19__PCTN_ENV.obj_num = 2;
-  cdat->dobj_19__PCTN_ENV.obj_hash = 477894222;
+  cdat->dobj_19__PCTN_ENV.obj_hash = 650703638;
   cdat->dobj_19__PCTN_ENV.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_19__PCTN_ENV));
  
@@ -19383,7 +19832,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_21__PCTN_MAPATVAR))
   basilys_assertmsg("iniobj checkdiscr dobj_23__PCTN_MAPATVAR", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_23__PCTN_MAPATVAR.obj_num = 3;
-  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 668929984;
+  cdat->dobj_23__PCTN_MAPATVAR.obj_hash = 374729765;
   cdat->dobj_23__PCTN_MAPATVAR.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_23__PCTN_MAPATVAR));
  
@@ -19411,7 +19860,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_25__PCTN_MAPATCST))
   basilys_assertmsg("iniobj checkdiscr dobj_27__PCTN_MAPATCST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_27__PCTN_MAPATCST.obj_num = 4;
-  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 856457425;
+  cdat->dobj_27__PCTN_MAPATCST.obj_hash = 1012859877;
   cdat->dobj_27__PCTN_MAPATCST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_27__PCTN_MAPATCST));
  
@@ -19439,7 +19888,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_29__PCTN_BINDLIST))
   basilys_assertmsg("iniobj checkdiscr dobj_31__PCTN_BINDLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_31__PCTN_BINDLIST.obj_num = 5;
-  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 650703638;
+  cdat->dobj_31__PCTN_BINDLIST.obj_hash = 781536733;
   cdat->dobj_31__PCTN_BINDLIST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_31__PCTN_BINDLIST));
  
@@ -19467,7 +19916,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_33__PCTN_STUFFMAP))
   basilys_assertmsg("iniobj checkdiscr dobj_35__PCTN_STUFFMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_35__PCTN_STUFFMAP.obj_num = 6;
-  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 374729765;
+  cdat->dobj_35__PCTN_STUFFMAP.obj_hash = 624459626;
   cdat->dobj_35__PCTN_STUFFMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_35__PCTN_STUFFMAP));
  
@@ -19495,7 +19944,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_37__PCTN_PVARLOCMAP
   basilys_assertmsg("iniobj checkdiscr dobj_39__PCTN_PVARLOCMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_num = 7;
-  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 1012859877;
+  cdat->dobj_39__PCTN_PVARLOCMAP.obj_hash = 456380406;
   cdat->dobj_39__PCTN_PVARLOCMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_39__PCTN_PVARLOCMAP));
  
@@ -19523,7 +19972,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_41__PCTN_TESTS));
   basilys_assertmsg("iniobj checkdiscr dobj_43__PCTN_TESTS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_43__PCTN_TESTS.obj_num = 8;
-  cdat->dobj_43__PCTN_TESTS.obj_hash = 781536733;
+  cdat->dobj_43__PCTN_TESTS.obj_hash = 575023210;
   cdat->dobj_43__PCTN_TESTS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_43__PCTN_TESTS));
  
@@ -19563,7 +20012,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_47__CLASS_SELECTOR)
  if (!/*_.VALDATA___V112*/ curfptr[111]) /*_.VALDATA___V112*/ curfptr[111] = (void*)&cdat->dobj_49__SCAN_PATTERN;
   basilys_assertmsg("iniobj checkdiscr dobj_49__SCAN_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_49__SCAN_PATTERN.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_49__SCAN_PATTERN.obj_hash = 194111600;
+  cdat->dobj_49__SCAN_PATTERN.obj_hash = 162776777;
   cdat->dobj_49__SCAN_PATTERN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_49__SCAN_PATTERN));
  
@@ -20047,7 +20496,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_123__NORMAL_PATTERN
  if (!/*_.VALDATA___V188*/ curfptr[187]) /*_.VALDATA___V188*/ curfptr[187] = (void*)&cdat->dobj_125__NORMAL_PATTERN;
   basilys_assertmsg("iniobj checkdiscr dobj_125__NORMAL_PATTERN", NULL != (void*)/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
   cdat->dobj_125__NORMAL_PATTERN.obj_class = (basilysobject_ptr_t)(/*_.CLASS_SELECTOR__V8*/ curfptr[7]);
-  cdat->dobj_125__NORMAL_PATTERN.obj_hash = 1011788786;
+  cdat->dobj_125__NORMAL_PATTERN.obj_hash = 505053510;
   cdat->dobj_125__NORMAL_PATTERN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_125__NORMAL_PATTERN));
  
@@ -20088,7 +20537,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_129__CLASS_NREP_EXP
   basilys_assertmsg("iniobj checkdiscr dobj_131__CLASS_NORMTESTER_ANY", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_num = OBMAG_OBJECT;
-  cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_hash = 772936785;
+  cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_hash = 541776094;
   cdat->dobj_131__CLASS_NORMTESTER_ANY.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_131__CLASS_NORMTESTER_ANY));
  
@@ -20124,7 +20573,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_135__NTEST_MATCHED)
   basilys_assertmsg("iniobj checkdiscr dobj_137__NTEST_MATCHED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__NTEST_MATCHED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_137__NTEST_MATCHED.obj_num = 1;
-  cdat->dobj_137__NTEST_MATCHED.obj_hash = 287664945;
+  cdat->dobj_137__NTEST_MATCHED.obj_hash = 36097046;
   cdat->dobj_137__NTEST_MATCHED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_137__NTEST_MATCHED));
  
@@ -20152,7 +20601,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_139__NTEST_THEN));
   basilys_assertmsg("iniobj checkdiscr dobj_141__NTEST_THEN", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_141__NTEST_THEN.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_141__NTEST_THEN.obj_num = 2;
-  cdat->dobj_141__NTEST_THEN.obj_hash = 606009850;
+  cdat->dobj_141__NTEST_THEN.obj_hash = 1021659837;
   cdat->dobj_141__NTEST_THEN.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_141__NTEST_THEN));
  
@@ -20180,7 +20629,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_143__NTEST_ELSE));
   basilys_assertmsg("iniobj checkdiscr dobj_145__NTEST_ELSE", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_145__NTEST_ELSE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_145__NTEST_ELSE.obj_num = 3;
-  cdat->dobj_145__NTEST_ELSE.obj_hash = 541776094;
+  cdat->dobj_145__NTEST_ELSE.obj_hash = 144554871;
   cdat->dobj_145__NTEST_ELSE.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_145__NTEST_ELSE));
  
@@ -20208,7 +20657,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_147__NTEST_NORMATCH
   basilys_assertmsg("iniobj checkdiscr dobj_149__NTEST_NORMATCH", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__NTEST_NORMATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_149__NTEST_NORMATCH.obj_num = 4;
-  cdat->dobj_149__NTEST_NORMATCH.obj_hash = 36097046;
+  cdat->dobj_149__NTEST_NORMATCH.obj_hash = 475119342;
   cdat->dobj_149__NTEST_NORMATCH.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_149__NTEST_NORMATCH));
  
@@ -20236,7 +20685,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_151__NTEST_LOCCLIST
   basilys_assertmsg("iniobj checkdiscr dobj_153__NTEST_LOCCLIST", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__NTEST_LOCCLIST.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_153__NTEST_LOCCLIST.obj_num = 5;
-  cdat->dobj_153__NTEST_LOCCLIST.obj_hash = 1021659837;
+  cdat->dobj_153__NTEST_LOCCLIST.obj_hash = 51376243;
   cdat->dobj_153__NTEST_LOCCLIST.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_153__NTEST_LOCCLIST));
  
@@ -20264,7 +20713,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_155__NTEST_COMEFROM
   basilys_assertmsg("iniobj checkdiscr dobj_157__NTEST_COMEFROM", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_157__NTEST_COMEFROM.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_157__NTEST_COMEFROM.obj_num = 6;
-  cdat->dobj_157__NTEST_COMEFROM.obj_hash = 144554871;
+  cdat->dobj_157__NTEST_COMEFROM.obj_hash = 679010814;
   cdat->dobj_157__NTEST_COMEFROM.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_157__NTEST_COMEFROM));
  
@@ -20292,7 +20741,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_159__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_161__CLASS_NORMTESTER_SUCCESS", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_num = OBMAG_OBJECT;
-  cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_hash = 626688435;
+  cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_hash = 661341495;
   cdat->dobj_161__CLASS_NORMTESTER_SUCCESS.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_161__CLASS_NORMTESTER_SUCCESS));
  
@@ -20328,7 +20777,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_165__NTSUCCESS_DO))
   basilys_assertmsg("iniobj checkdiscr dobj_167__NTSUCCESS_DO", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_167__NTSUCCESS_DO.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_167__NTSUCCESS_DO.obj_num = 7;
-  cdat->dobj_167__NTSUCCESS_DO.obj_hash = 878630863;
+  cdat->dobj_167__NTSUCCESS_DO.obj_hash = 55778135;
   cdat->dobj_167__NTSUCCESS_DO.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_167__NTSUCCESS_DO));
  
@@ -20356,7 +20805,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_169__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_171__CLASS_NORMTESTER_SAME", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_num = OBMAG_OBJECT;
-  cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_hash = 873499400;
+  cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_hash = 8226813;
   cdat->dobj_171__CLASS_NORMTESTER_SAME.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_171__CLASS_NORMTESTER_SAME));
  
@@ -20392,7 +20841,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_175__NTSAME_IDENTIC
   basilys_assertmsg("iniobj checkdiscr dobj_177__NTSAME_IDENTICAL", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_177__NTSAME_IDENTICAL.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_177__NTSAME_IDENTICAL.obj_num = 7;
-  cdat->dobj_177__NTSAME_IDENTICAL.obj_hash = 261583072;
+  cdat->dobj_177__NTSAME_IDENTICAL.obj_hash = 63736537;
   cdat->dobj_177__NTSAME_IDENTICAL.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_177__NTSAME_IDENTICAL));
  
@@ -20420,7 +20869,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_179__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_181__CLASS_NORMTESTER_MATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_num = OBMAG_OBJECT;
-  cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_hash = 71489450;
+  cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_hash = 741227089;
   cdat->dobj_181__CLASS_NORMTESTER_MATCHER.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_181__CLASS_NORMTESTER_MATCHER));
  
@@ -20456,7 +20905,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_185__NTMATCH_MATCHE
   basilys_assertmsg("iniobj checkdiscr dobj_187__NTMATCH_MATCHER", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_187__NTMATCH_MATCHER.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_187__NTMATCH_MATCHER.obj_num = 7;
-  cdat->dobj_187__NTMATCH_MATCHER.obj_hash = 261871343;
+  cdat->dobj_187__NTMATCH_MATCHER.obj_hash = 804051808;
   cdat->dobj_187__NTMATCH_MATCHER.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_187__NTMATCH_MATCHER));
  
@@ -20484,7 +20933,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_189__NTMATCH_INARGS
   basilys_assertmsg("iniobj checkdiscr dobj_191__NTMATCH_INARGS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_191__NTMATCH_INARGS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_191__NTMATCH_INARGS.obj_num = 8;
-  cdat->dobj_191__NTMATCH_INARGS.obj_hash = 1017029673;
+  cdat->dobj_191__NTMATCH_INARGS.obj_hash = 551334524;
   cdat->dobj_191__NTMATCH_INARGS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_191__NTMATCH_INARGS));
  
@@ -20512,7 +20961,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_193__NTMATCH_OUTLOC
   basilys_assertmsg("iniobj checkdiscr dobj_195__NTMATCH_OUTLOCS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_num = 9;
-  cdat->dobj_195__NTMATCH_OUTLOCS.obj_hash = 741227089;
+  cdat->dobj_195__NTMATCH_OUTLOCS.obj_hash = 913176223;
   cdat->dobj_195__NTMATCH_OUTLOCS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_195__NTMATCH_OUTLOCS));
  
@@ -20540,7 +20989,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_197__CLASS_NORMTEST
   basilys_assertmsg("iniobj checkdiscr dobj_199__CLASS_NORMTESTER_INSTANCE", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_num = OBMAG_OBJECT;
-  cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_hash = 836019224;
+  cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_hash = 667260371;
   cdat->dobj_199__CLASS_NORMTESTER_INSTANCE.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_199__CLASS_NORMTESTER_INSTANCE));
  
@@ -20576,7 +21025,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_203__NTINST_CLASS))
   basilys_assertmsg("iniobj checkdiscr dobj_205__NTINST_CLASS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__NTINST_CLASS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_205__NTINST_CLASS.obj_num = 7;
-  cdat->dobj_205__NTINST_CLASS.obj_hash = 544522932;
+  cdat->dobj_205__NTINST_CLASS.obj_hash = 35825214;
   cdat->dobj_205__NTINST_CLASS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_205__NTINST_CLASS));
  
@@ -20604,7 +21053,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_207__NTINST_FIELDLO
   basilys_assertmsg("iniobj checkdiscr dobj_209__NTINST_FIELDLOCS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__NTINST_FIELDLOCS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_209__NTINST_FIELDLOCS.obj_num = 8;
-  cdat->dobj_209__NTINST_FIELDLOCS.obj_hash = 518342289;
+  cdat->dobj_209__NTINST_FIELDLOCS.obj_hash = 398488135;
   cdat->dobj_209__NTINST_FIELDLOCS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_209__NTINST_FIELDLOCS));
  
@@ -20645,7 +21094,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_213__CLASS_NREP_TYP
   basilys_assertmsg("iniobj checkdiscr dobj_215__CLASS_NREP_MATCH", NULL != (void*)((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NREP_MATCH.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_CLASS))));
   cdat->dobj_215__CLASS_NREP_MATCH.obj_num = OBMAG_OBJECT;
-  cdat->dobj_215__CLASS_NREP_MATCH.obj_hash = 583891571;
+  cdat->dobj_215__CLASS_NREP_MATCH.obj_hash = 729057222;
   cdat->dobj_215__CLASS_NREP_MATCH.obj_len = 9;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_215__CLASS_NREP_MATCH));
  
@@ -20681,7 +21130,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_219__NMATCH_TESTS))
   basilys_assertmsg("iniobj checkdiscr dobj_221__NMATCH_TESTS", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_221__NMATCH_TESTS.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_221__NMATCH_TESTS.obj_num = 2;
-  cdat->dobj_221__NMATCH_TESTS.obj_hash = 496260907;
+  cdat->dobj_221__NMATCH_TESTS.obj_hash = 451026238;
   cdat->dobj_221__NMATCH_TESTS.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_221__NMATCH_TESTS));
  
@@ -20709,7 +21158,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_223__NMATCH_STUFFMA
   basilys_assertmsg("iniobj checkdiscr dobj_225__NMATCH_STUFFMAP", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_225__NMATCH_STUFFMAP.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_225__NMATCH_STUFFMAP.obj_num = 3;
-  cdat->dobj_225__NMATCH_STUFFMAP.obj_hash = 368445665;
+  cdat->dobj_225__NMATCH_STUFFMAP.obj_hash = 792994703;
   cdat->dobj_225__NMATCH_STUFFMAP.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_225__NMATCH_STUFFMAP));
  
@@ -20737,7 +21186,7 @@ basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dsym_227__NMATCH_MATCHED
   basilys_assertmsg("iniobj checkdiscr dobj_229__NMATCH_MATCHED", NULL != (void*)((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__NMATCH_MATCHED.obj_class = (basilysobject_ptr_t)(((void*)(BASILYSG(CLASS_FIELD))));
   cdat->dobj_229__NMATCH_MATCHED.obj_num = 4;
-  cdat->dobj_229__NMATCH_MATCHED.obj_hash = 729057222;
+  cdat->dobj_229__NMATCH_MATCHED.obj_hash = 346450862;
   cdat->dobj_229__NMATCH_MATCHED.obj_len = 4;
 basilys_object_set_serial((basilysobject_ptr_t) (&cdat->dobj_229__NMATCH_MATCHED));
  

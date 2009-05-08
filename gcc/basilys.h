@@ -2646,6 +2646,12 @@ char* basilys_tempdir_path(const char* basnam, const char* suffix);
 basilys_ptr_t
 basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam);
 
+
+/* generate a loadable module from a MELT generated C source file; the
+   out is the dynloaded module without any *.so suffix */
+void
+basilysgc_generate_melt_module (basilys_ptr_t src_p, basilys_ptr_t out_p);
+
 /* load a list of modules from a file whose basename MODLISTBASE is
    given without its suffix '.modlis' */
 basilys_ptr_t

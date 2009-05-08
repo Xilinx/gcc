@@ -797,12 +797,17 @@
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
   "(basilysgc_new_string_tempname_suffixed((basilysobject_ptr_t)(" dis "), basilys_string_str((basilys_ptr_t)(" str ")), (" suff ")))")
 
-;;;; compile a C code file as module an load it. First argument is an
+;;;; compile a C code file as module and load it. First argument is an
 ;;;; environment, second argument is the string containing the C file
 ;;;; path. Return value is the new environment provided by the loaded
 ;;;; module.
 (defprimitive load_melt_module (env str) :value
   "(basilysgc_load_melt_module((basilys_ptr_t)(" env "), basilys_string_str((basilys_ptr_t)(" str "))))")
+
+;; generate a loadable module from a MELT generated C source file; the
+;;  out is the dynloaded module without any *.so suffix 
+(defprimitive generate_melt_module (src out) :void
+  #{basilysgc_generate_melt_module($src,$out);}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
@@ -3824,6 +3829,7 @@
  errormsg_plain
  errormsg_strv
  full_garbcoll
+ generate_melt_module
  get_globpredef
  get_int
  get_keywordstr

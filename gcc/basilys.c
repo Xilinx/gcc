@@ -50,6 +50,10 @@ along with GCC; see the file COPYING3.   If not see
 #include "prefix.h"
 #include "md5.h"
 
+/* executable_checksum is declared in c-common.h which we can't
+   include here.. */
+extern const unsigned char executable_checksum[16];
+
 #include "cppdefault.h"
 
 
@@ -4899,7 +4903,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 {
   int ix = 0;
   char *dynmd5 = NULL;
-  void *dlh = 0;
+  char *dynchecksum = NULL;
+  void *dlh = NULL;
   char *dyncomptimstamp = NULL;
   typedef basilys_ptr_t startroutine_t (basilys_ptr_t);
   typedef void markroutine_t (void *);
@@ -4929,7 +4934,11 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   debugeprintf ("dyncomptimstamp=%s", dyncomptimstamp);
   if (!dyncomptimstamp)
     goto bad;
-
+  /* check the checksum of the generating compiler with current */
+  dynchecksum  =
+    (char *) lt_dlsym ((lt_dlhandle) dlh, "genchecksum_melt");
+  if (dynchecksum && memcmp(dynchecksum, executable_checksum, 16))
+    warning(0, "loaded MELT plugin %s with a checksum mismatch!", dypath);
   PTR_UNION_AS_VOID_PTR(startrout_uf) =
     lt_dlsym ((lt_dlhandle) dlh, "start_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
@@ -5293,6 +5302,48 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   return (basilys_ptr_t) modulv;
 #undef mdatav
 #undef modulv
+}
+
+
+/* generate a loadable module from a MELT generated C source file; the
+   out is the dynloaded module without any *.so suffix */
+void
+basilysgc_generate_melt_module (basilys_ptr_t src_p, basilys_ptr_t out_p)
+{
+  char*srcdup = NULL;
+  char* outdup = NULL;
+  char* outso = NULL;
+  BASILYS_ENTERFRAME (2, NULL);
+#define srcv   curfram__.varptr[0]
+#define outv      curfram__.varptr[1]
+  srcv = src_p;
+  outv = out_p;
+  if (basilys_magic_discr((basilys_ptr_t) srcv) != OBMAG_STRING 
+      || basilys_magic_discr((basilys_ptr_t) outv) != OBMAG_STRING)
+    goto end;
+  srcdup = xstrdup(basilys_string_str((basilys_ptr_t) srcv));
+  outdup = xstrdup(basilys_string_str((basilys_ptr_t) outv));
+  outso = concat(outdup, ".so", NULL);
+  (void) remove (outso);
+  debugeprintf("basilysgc_generate_melt_module start srcdup %s outdup %s",
+	       srcdup, outdup);
+  if (access(srcdup, R_OK)) 
+    {
+      error("no MELT generated source file %s", srcdup);
+      goto end;
+    }
+  compile_to_dyl (srcdup, outdup);
+  debugeprintf ("basilysgc_generate_module did srcdup %s outdup %s",
+	       srcdup, outdup);
+  if (!access(outso, R_OK))
+    inform (UNKNOWN_LOCATION, "MELT generated module %s", outso);
+ end:
+  free (srcdup);
+  free (outdup);
+  free (outso);
+  BASILYS_EXITFRAME ();
+#undef srcv
+#undef outv
 }
 
 
@@ -9042,6 +9093,23 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
     if (strlen (nowtimstr) > 2)
       fprintf (cfil, "/* generated on %s */\n\n", nowtimstr);
   }
+  /* we protect genchecksum_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
+     for sure when compiling the warmelt*0.c it would mismatch, and we
+     want to avoid a useless warning */
+  fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
+	   "/* checksum of the gcc executable generating this file: */\n"
+	   "const unsigned char genchecksum_melt[16]=\n {");
+  {
+    int i;
+    for (i=0; i<16; i++) {
+      if (i>0) 
+	fputc(',', cfil);
+      if (i==8) 
+	fputs("\n   ", cfil);
+      fprintf (cfil, " %#x", executable_checksum[i]);
+    }
+  };
+  fprintf (cfil, "};\n" "#endif\n" "\n");
   fprintf (cfil, "#include \"run-basilys.h\"\n");
   fprintf (cfil, "\n/**** %s declarations ****/\n",
 	   basilys_string_str (unitnam));

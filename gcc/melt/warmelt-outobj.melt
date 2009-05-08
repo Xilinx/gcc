@@ -3091,6 +3091,7 @@
 (install_initial_command  (stringconst2val discr_string "compilefile") compilefile_command)
 (install_initial_command  (stringconst2val discr_string "translatefile") compilefile_command)
 
+
 ;;;;;;;;;;;;;;;;
 ;;;;;
 (defun runfile_command (dispatcher arg secarg moduldata)
@@ -3126,6 +3127,41 @@
       (ignore (load_melt_module curenv modulnam))
       )))
 (install_initial_command  (stringconst2val discr_string "runfile") runfile_command)
+
+;;;;;;;;;;;;;;;;
+;;;;;
+(defun genmod_command (dispatcher arg secarg moduldata)
+  (message_dbg "starting genmod_command")
+  (debug_msg arg "start genmod_command arg")
+  (debug_msg secarg "start genmod_command secarg")
+  (debug_msg moduldata "start genmod_command moduldata")
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	)
+    (debug_msg parmodenv "before read genmod_command parmodenv")
+    (debug_msg initial_environment "before read genmod_command initial_environment")
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let ( (modulnam ()) 
+	   (modsrcname
+	    (cond
+	     ( (is_string secarg) 
+	       (setq modulnam secarg)
+	       (make_string_tempname_suffixed discr_string secarg ".c"))
+	     ( (is_string arg) 
+	       (setq modulnam (make_string_nakedbasename discr_string arg))
+	       (make_string_tempname_suffixed discr_string arg ".c"))
+	     (:else
+	      (errormsg_plain "explicit -fmelt-secondarg should be specified with -fmelt-arglist")
+	      (return)
+	      )))
+	   )
+      (compile_one_or_more_files arg modsrcname curenv)
+      (debug_msg modsrcname "after compilation genmod_command modsrcname")
+      (debug_msg modulnam "after compilation genmod_command modulnam")
+      (generate_melt_module modsrcname modulnam)
+      )))
+(install_initial_command  (stringconst2val discr_string "genmod") genmod_command)
 
 ;;;;
 
