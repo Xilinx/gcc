@@ -1,4 +1,10 @@
 2009-05-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (load_checked_dynamic_module_index) can accept null
+	md5src. Added more warnings.
+	(basilysgc_load_melt_module) reindented, and accept to load a
+	module without finding its source.
+
+2009-05-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (basilysgc_generate_melt_module): added new
 	declaration.
 	* basilys.c (basilysgc_generate_melt_module): added new function.

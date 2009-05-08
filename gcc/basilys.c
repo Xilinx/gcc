@@ -4913,7 +4913,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   PTR_UNION_TYPE(void **) iniframe_up = {0};
   int i = 0, c = 0;
   char hbuf[4];
-  debugeprintf ("load_check_dynamic_module_index dypath=%s", dypath);
+  debugeprintf ("load_check_dynamic_module_index dypath=%s md5src=%s", dypath, md5src);
   dlh = (void *) lt_dlopenext (dypath);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
   if (!dlh)
@@ -4924,16 +4924,22 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!dynmd5)
     dynmd5 = (char *) lt_dlsym ((lt_dlhandle) dlh, "basilys_md5");
   debugeprintf ("dynmd5=%s", dynmd5);
-  if (!dynmd5)
-    goto bad;
+  if (!dynmd5) 
+    {
+      warning (0, "missing md5 signature in MELT module %s", dypath);
+      goto bad;
+  }
   dyncomptimstamp =
     (char *) lt_dlsym ((lt_dlhandle) dlh, "melt_compiled_timestamp");
   if (!dyncomptimstamp)
     dyncomptimstamp =
       (char *) lt_dlsym ((lt_dlhandle) dlh, "basilys_compiled_timestamp");
   debugeprintf ("dyncomptimstamp=%s", dyncomptimstamp);
-  if (!dyncomptimstamp)
-    goto bad;
+  if (!dyncomptimstamp) 
+    {
+      warning (0, "missing timestamp in MELT module %s", dypath);
+      goto bad;
+    };
   /* check the checksum of the generating compiler with current */
   dynchecksum  =
     (char *) lt_dlsym ((lt_dlhandle) dlh, "genchecksum_melt");
@@ -4944,26 +4950,32 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
     PTR_UNION_AS_VOID_PTR(startrout_uf) 
       = lt_dlsym ((lt_dlhandle) dlh, "start_module_basilys");
-  if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
-    goto bad;
-  
+  if (!PTR_UNION_AS_VOID_PTR(startrout_uf)) 
+    {
+      warning (0, "missing start_module routine in MELT module %s", dypath);
+      goto bad;
+    };
   PTR_UNION_AS_VOID_PTR(markrout_uf) =
     lt_dlsym ((lt_dlhandle) dlh, "mark_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
    PTR_UNION_AS_VOID_PTR(markrout_uf) =
      lt_dlsym ((lt_dlhandle) dlh, "mark_module_basilys");
   if (!PTR_UNION_AS_VOID_PTR(markrout_uf))
-    goto bad;
-  
+    {
+      warning (0, "missing mark_module routine in MELT module %s", dypath);
+      goto bad;
+    };
   PTR_UNION_AS_VOID_PTR(iniframe_up) 
     = lt_dlsym ((lt_dlhandle) dlh, "initial_frame_melt");
   if (!PTR_UNION_AS_VOID_PTR(iniframe_up) )
     PTR_UNION_AS_VOID_PTR(iniframe_up) =
       lt_dlsym ((lt_dlhandle) dlh, "initial_frame_basilys");
   if (!PTR_UNION_AS_VOID_PTR(iniframe_up))
-    goto bad;
-
-  if (md5src)
+    {
+      warning (0, "missing initial_frame routine in MELT module %s", dypath);
+      goto bad;
+    }
+  if (md5src && dynmd5)
     {
       for (i = 0; i < 16; i++)
 	{
@@ -4974,10 +4986,16 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 	      hbuf[2] = (char) 0;
 	      c = (int) strtol (hbuf, (char **) 0, 16);
 	      if (c != (int) (md5src[i] & 0xff))
-		goto bad;
+		{
+		  warning (0, "md5 source mismatch in MELT module %s", dypath);
+		  goto bad;
+		}
 	    }
 	  else
-	    goto bad;
+	    {
+	      warning (0, "md5 source invalid in MELT module %s", dypath);
+	      goto bad;
+	    }
 	}
     }
   {
@@ -5058,11 +5076,11 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
 	    specialsuffix = 1;
 	    break;
 	  };
-      if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
-	{
-	  error ("invalid MELT module name %s to load", modulnam);
-	  goto end;
-	}
+	if (!ISALNUM(*p) && *p != '+' && *p != '-' && *p != '_')
+	  {
+	    error ("invalid MELT module name %s to load", modulnam);
+	    goto end;
+	  }
       }
   }
   /* duplicate the module name for safety, i.e. because it was in MELT
@@ -5074,7 +5092,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
     gcc_assert (dupmodulnam[modulnamlen-2] == '.');
     dupmodulnam[modulnamlen-2] = '\0';
   }
-  /***** first find the source path ******/
+  /***** first find the source path if possible ******/
   /* look first in the temporary directory */
   tmpath = basilys_tempdir_path (dupmodulnam, ".c");
   debugeprintf ("basilysgc_load_melt_module trying in tempdir %s", tmpath);
@@ -5122,7 +5140,7 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
   tmpath = NULL;
   /* we didn't found the source */
   debugeprintf ("basilysgc_load_melt_module cannot find source for mudule %s", dupmodulnam);
-  error ("failed to find MELT module %s 's C source code; perhaps need -fmelt-gensrcdir=...", dupmodulnam);
+  warning (0, "Didn't find MELT module %s 's C source code; perhaps need -fmelt-gensrcdir=...", dupmodulnam);
   inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
 	  basilys_tempdir_path (dupmodulnam, ".c"));
   {
@@ -5140,25 +5158,27 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
       };
     nbexplain++;
   }
-  goto end;
- foundsrcpath:  /* we found the source file */
-  srcpathlen = strlen (srcpath);
-  debugeprintf ("basilysgc_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
-  /* compute the md5 hash of the source code */
-  srcfi = fopen (srcpath, "r");
-  if (!srcfi)
-    /* this really should not happen, we checked with access before
-       that the source file existed! */
-    fatal_error ("cannot open generated source file %s for MELT : %m",
-		 srcpath);
-  memset (md5srctab, 0, sizeof (md5srctab));
-  if (md5_stream (srcfi, &md5srctab))
-    fatal_error
-      ("failed to compute md5sum of generated source file %s for MELT",
-       srcpath);
-  md5src = md5srctab;
-  fclose (srcfi);
-  srcfi = NULL;
+  if (srcpath) 
+    {
+    foundsrcpath:  /* we found the source file */
+      srcpathlen = strlen (srcpath);
+      debugeprintf ("basilysgc_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
+      /* compute the md5 hash of the source code */
+      srcfi = fopen (srcpath, "r");
+      if (!srcfi)
+	/* this really should not happen, we checked with access before
+	   that the source file existed! */
+	fatal_error ("cannot open generated source file %s for MELT : %m",
+		     srcpath);
+      memset (md5srctab, 0, sizeof (md5srctab));
+      if (md5_stream (srcfi, &md5srctab))
+	fatal_error
+	  ("failed to compute md5sum of generated source file %s for MELT",
+	   srcpath);
+      md5src = md5srctab;
+      fclose (srcfi);
+      srcfi = NULL;
+    }
   /* if it had a special suffix, restore it */
   if (specialsuffix)
     {
@@ -5266,9 +5286,9 @@ basilysgc_load_melt_module (basilys_ptr_t modata_p, const char *modulnam)
 	  "not found dynamic stuff using tempdir %s", 
 	  basilys_tempdir_path (dupmodulnam, NULL));
   if (srcpath)
-  inform (UNKNOWN_LOCATION, 
-	  "not found dynamic stuff using srcpath %s", 
-	  srcpath);
+    inform (UNKNOWN_LOCATION, 
+	    "not found dynamic stuff using srcpath %s", 
+	    srcpath);
   fatal_error ("unable to continue since failed to load MELT module %s", 
 	       dupmodulnam);
  dylibfound:
