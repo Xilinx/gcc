@@ -1,3 +1,38 @@
+2009-05-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/37577
+	* intrinsics/pack_generic.c (pack_internal):  Use array access
+	macros for accessing array descriptors.
+	(pack_s_internal):  Likewise.
+	* intrinsics/transpose_generic.c (transpose_internal):  Remove
+	size argument, calculate from array descriptor. Use array
+	access macros for accessing array descriptors.
+	(transpose):  Remove size argument from call.
+	(transpoe_char):  Likewise.
+	(transpose_char4):  Likewise.
+	* intrinsics/move_alloc.c (move_alloc):  Use array access macros
+	for accessing array descriptors.
+	* intrinsics/spread_generic.c (spread_internal):  Remove size
+	argument, calculate from array descriptor.  Use array access
+	macros for accessing array descriptors.
+	(spread_internal_scalar):  Likewise.
+	(spread):  Remove size argument from call to spread_internal.
+	(spread_char):  Mark argument source_length as unused.
+	Remove size argument from call to spread_internal.
+	(spread_char4):  Likewise.
+	(spread_char_scalar):  Likewise.
+	(spread_char4_scalar):  Likewise.
+	* intrinsics/unpack_generic.c (unpack_internal):  Use array access
+	macros for accessing array descriptors.
+	* intrinsics/eoshift2.c (eoshift2):  Remove size argument, calculate
+	from array descriptor instead.  Use array access macros for
+	accessing array descriptors.
+	(eoshift2_##N):  Remove size argument from call to eoshift2.
+	(eoshift2_##N_##char):  Likewise.
+	(eoshift2_##N_##char4):  Likewise.
+	* intrinsics/reshape_generic.c (reshape_internal):  Use array
+	access macross for accessing array descriptors.
+	
 2009-04-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/37577
