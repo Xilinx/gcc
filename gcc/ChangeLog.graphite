@@ -1,3 +1,10 @@
+2009-05-08  Li Feng <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: New.
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-1.c: New.
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-2.c: New.
+	* testsuite/gcc.dg/graphite/graphite_autopar/force-parallel-3.c: New.
+
 2009-05-07  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* graphite-scop-detection (build_scops_1): Fix little bug introduced
