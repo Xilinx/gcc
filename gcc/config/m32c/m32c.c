@@ -442,14 +442,6 @@ m32c_init_expanders (void)
 
 /* Storage Layout */
 
-#undef TARGET_PROMOTE_FUNCTION_RETURN
-#define TARGET_PROMOTE_FUNCTION_RETURN m32c_promote_function_return
-bool
-m32c_promote_function_return (const_tree fntype ATTRIBUTE_UNUSED)
-{
-  return false;
-}
-
 /* Register Basics */
 
 /* Basic Characteristics of Registers */
@@ -1440,14 +1432,6 @@ m32c_initial_elimination_offset (int from, int to)
 
 /* Passing Function Arguments on the Stack */
 
-#undef TARGET_PROMOTE_PROTOTYPES
-#define TARGET_PROMOTE_PROTOTYPES m32c_promote_prototypes
-static bool
-m32c_promote_prototypes (const_tree fntype ATTRIBUTE_UNUSED)
-{
-  return 0;
-}
-
 /* Implements PUSH_ROUNDING.  The R8C and M16C have byte stacks, the
    M32C has word stacks.  */
 int
@@ -1954,33 +1938,33 @@ m32c_reg_ok_for_base_p (rtx x, int strict)
    displacement range.  We deal with this by attempting to reload $fb
    itself into an address register; that seems to result in the best
    code.  */
-int
-m32c_legitimize_address (rtx * x ATTRIBUTE_UNUSED,
-			 rtx oldx ATTRIBUTE_UNUSED,
-			 enum machine_mode mode ATTRIBUTE_UNUSED)
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS m32c_legitimize_address
+static rtx
+m32c_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+			 enum machine_mode mode)
 {
 #if DEBUG0
   fprintf (stderr, "m32c_legitimize_address for mode %s\n", mode_name[mode]);
-  debug_rtx (*x);
+  debug_rtx (x);
   fprintf (stderr, "\n");
 #endif
 
-  if (GET_CODE (*x) == PLUS
-      && GET_CODE (XEXP (*x, 0)) == REG
-      && REGNO (XEXP (*x, 0)) == FB_REGNO
-      && GET_CODE (XEXP (*x, 1)) == CONST_INT
-      && (INTVAL (XEXP (*x, 1)) < -128
-	  || INTVAL (XEXP (*x, 1)) > (128 - GET_MODE_SIZE (mode))))
+  if (GET_CODE (x) == PLUS
+      && GET_CODE (XEXP (x, 0)) == REG
+      && REGNO (XEXP (x, 0)) == FB_REGNO
+      && GET_CODE (XEXP (x, 1)) == CONST_INT
+      && (INTVAL (XEXP (x, 1)) < -128
+	  || INTVAL (XEXP (x, 1)) > (128 - GET_MODE_SIZE (mode))))
     {
       /* reload FB to A_REGS */
       rtx temp = gen_reg_rtx (Pmode);
-      *x = copy_rtx (*x);
-      emit_insn (gen_rtx_SET (VOIDmode, temp, XEXP (*x, 0)));
-      XEXP (*x, 0) = temp;
-      return 1;
+      x = copy_rtx (x);
+      emit_insn (gen_rtx_SET (VOIDmode, temp, XEXP (x, 0)));
+      XEXP (x, 0) = temp;
     }
 
-  return 0;
+  return x;
 }
 
 /* Implements LEGITIMIZE_RELOAD_ADDRESS.  See comment above.  */

@@ -423,8 +423,10 @@ package Sinput is
    -- Global Data --
    -----------------
 
-   Current_Source_File : Source_File_Index;
-   --  Source_File table index of source file currently being scanned
+   Current_Source_File : Source_File_Index := No_Source_File;
+   --  Source_File table index of source file currently being scanned.
+   --  Initialized so that some tools (such as gprbuild) can be built with
+   --  -gnatVa and pragma Initialized_Scalars without problems.
 
    Current_Source_Unit : Unit_Number_Type;
    --  Unit number of source file currently being scanned. The special value
@@ -468,6 +470,14 @@ package Sinput is
    --  ". The returned string is appended to the Name_Buffer, terminated by
    --  ASCII.NUL, with Name_Length indicating the length not including the
    --  terminating Nul.
+
+   function Expr_First_Char (Expr : Node_Id) return Source_Ptr;
+   --  Given a node for a subexpression, returns the source location of the
+   --  first character of the expression.
+
+   function Expr_Last_Char (Expr : Node_Id) return Source_Ptr;
+   --  Given a node for a subexpression, returns the source location of the
+   --  last character of the expression.
 
    function Get_Column_Number (P : Source_Ptr) return Column_Number;
    --  The ones-origin column number of the specified Source_Ptr value is

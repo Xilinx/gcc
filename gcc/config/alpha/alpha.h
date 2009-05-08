@@ -475,12 +475,6 @@ extern enum alpha_fp_trap_mode alpha_fptm;
 /* Base register for access to local variables of the function.  */
 #define HARD_FRAME_POINTER_REGNUM 15
 
-/* Value should be nonzero if functions must have frame pointers.
-   Zero means the frame pointer need not be set up (and parms
-   may be accessed via the stack pointer) in functions that seem suitable.
-   This is computed in `reload', in reload1.c.  */
-#define FRAME_POINTER_REQUIRED 0
-
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM 31
 
@@ -1014,20 +1008,6 @@ do {						\
     goto WIN;					\
 } while (0)
 #endif
-
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.
-   This macro is used in only one place: `memory_address' in explow.c.  */
-
-#define LEGITIMIZE_ADDRESS(X,OLDX,MODE,WIN)			\
-do {								\
-  rtx new_x = alpha_legitimize_address (X, NULL_RTX, MODE);	\
-  if (new_x)							\
-    {								\
-      X = new_x;						\
-      goto WIN;							\
-    }								\
-} while (0)
 
 /* Try a machine-dependent way of reloading an illegitimate address
    operand.  If we find one, push the reload and jump to WIN.  This

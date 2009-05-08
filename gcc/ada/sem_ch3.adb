@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1276,10 +1276,6 @@ package body Sem_Ch3 is
    procedure Access_Type_Declaration (T : Entity_Id; Def : Node_Id) is
       S : constant Node_Id := Subtype_Indication (Def);
       P : constant Node_Id := Parent (Def);
-
-      Desig : Entity_Id;
-      --  Designated type
-
    begin
       --  Check for permissible use of incomplete type
 
@@ -1329,22 +1325,6 @@ package body Sem_Ch3 is
 
       if not From_With_Type (T) then
          Init_Size_Align (T);
-      end if;
-
-      Desig := Designated_Type (T);
-
-      --  If designated type is an imported tagged type, indicate that the
-      --  access type is also imported, and therefore restricted in its use.
-      --  The access type may already be imported, so keep setting otherwise.
-
-      --  Ada 2005 (AI-50217): If the non-limited view of the designated type
-      --  is available, use it as the designated type of the access type, so
-      --  that the back-end gets a usable entity.
-
-      if From_With_Type (Desig)
-        and then Ekind (Desig) /= E_Access_Type
-      then
-         Set_From_With_Type (T);
       end if;
 
       --  Note that Has_Task is always false, since the access type itself
@@ -2656,6 +2636,7 @@ package body Sem_Ch3 is
          if (Is_Class_Wide_Type (Etype (E)) or else Is_Dynamically_Tagged (E))
            and then Is_Tagged_Type (T)
            and then not Is_Class_Wide_Type (T)
+           and then not Is_CPP_Constructor_Call (E)
          then
             Error_Msg_N ("dynamically tagged expression not allowed!", E);
          end if;
@@ -8321,7 +8302,9 @@ package body Sem_Ch3 is
                   --  Error message below needs rewording (remember comma
                   --  in -gnatj mode) ???
 
-                  if Ekind (First_Formal (Subp)) = E_In_Parameter then
+                  if Ekind (First_Formal (Subp)) = E_In_Parameter
+                    and then Ekind (Subp) /= E_Function
+                  then
                      if not Is_Predefined_Dispatching_Operation (Subp) then
                         Error_Msg_NE
                           ("first formal of & must be of mode `OUT`, " &
@@ -8337,6 +8320,27 @@ package body Sem_Ch3 is
                      Error_Msg_NE
                        ("interface subprogram & must be overridden",
                         T, Subp);
+
+                     --  Examine primitive operations of synchronized type,
+                     --  to find homonyms that have the wrong profile.
+
+                     declare
+                        Prim : Entity_Id;
+
+                     begin
+                        Prim :=
+                          First_Entity (Corresponding_Concurrent_Type (T));
+                        while Present (Prim) loop
+                           if Chars (Prim) = Chars (Subp) then
+                              Error_Msg_NE
+                                ("profile is not type conformant with "
+                                   & "prefixed view profile of "
+                                   & "inherited operation&", Prim, Subp);
+                           end if;
+
+                           Next_Entity (Prim);
+                        end loop;
+                     end;
                   end if;
                end if;
 
@@ -15288,9 +15292,10 @@ package body Sem_Ch3 is
 
    function OK_For_Limited_Init (Exp : Node_Id) return Boolean is
    begin
-      return Ada_Version >= Ada_05
-        and then not Debug_Flag_Dot_L
-        and then OK_For_Limited_Init_In_05 (Exp);
+      return Is_CPP_Constructor_Call (Exp)
+        or else (Ada_Version >= Ada_05
+                  and then not Debug_Flag_Dot_L
+                  and then OK_For_Limited_Init_In_05 (Exp));
    end OK_For_Limited_Init;
 
    -------------------------------
@@ -16239,7 +16244,6 @@ package body Sem_Ch3 is
                   declare
                      Conc_Typ  : constant Entity_Id :=
                                    Corresponding_Record_Type (Full_T);
-                     Loc       : constant Source_Ptr := Sloc (Conc_Typ);
                      Curr_Nod  : Node_Id := Parent (Conc_Typ);
                      Wrap_Spec : Node_Id;
 
@@ -16251,14 +16255,14 @@ package body Sem_Ch3 is
                           and then not Is_Abstract_Subprogram (Prim)
                         then
                            Wrap_Spec :=
-                             Make_Subprogram_Declaration (Loc,
+                             Make_Subprogram_Declaration (Sloc (Prim),
                                Specification =>
-                                 Build_Wrapper_Spec (Loc,
-                                   Subp_Id => Prim,
-                                   Obj_Typ => Conc_Typ,
-                                   Formals =>
-                                     Parameter_Specifications (
-                                       Parent (Prim))));
+                                 Build_Wrapper_Spec
+                                   (Subp_Id => Prim,
+                                    Obj_Typ => Conc_Typ,
+                                    Formals =>
+                                      Parameter_Specifications (
+                                        Parent (Prim))));
 
                            Insert_After (Curr_Nod, Wrap_Spec);
                            Curr_Nod := Wrap_Spec;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2618,8 +2618,8 @@ package body Sem_Ch6 is
    --  Start of processing for Analyze_Subprogram_Declaration
 
    begin
-      --  For a null procedure. capture the profile before analysis, for
-      --  expansion at the freeze point, and at each point of call.
+      --  For a null procedure, capture the profile before analysis, for
+      --  expansion at the freeze point and at each point of call.
       --  The body will only be used if the procedure has preconditions.
       --  In that case the body is analyzed at the freeze point.
 
@@ -2631,7 +2631,8 @@ package body Sem_Ch6 is
            Make_Subprogram_Body (Loc,
              Specification =>
                New_Copy_Tree (Specification (N)),
-             Declarations => New_List,
+             Declarations =>
+               New_List,
              Handled_Statement_Sequence =>
                Make_Handled_Sequence_Of_Statements (Loc,
                  Statements => New_List (Make_Null_Statement (Loc))));
@@ -2834,12 +2835,15 @@ package body Sem_Ch6 is
          --  inherited interface operation, and the controlling type is
          --  a synchronized type, replace the type with its corresponding
          --  record, to match the proper signature of an overriding operation.
+         --  Same processing for an access parameter whose designated type is
+         --  derived from a synchronized interface.
 
          if Ada_Version >= Ada_05 then
             declare
                Formal     : Entity_Id;
                Formal_Typ : Entity_Id;
                Rec_Typ    : Entity_Id;
+               Desig_Typ  : Entity_Id;
 
             begin
                Formal := First_Formal (Designator);
@@ -2853,6 +2857,19 @@ package body Sem_Ch6 is
 
                      if Present (Interfaces (Rec_Typ)) then
                         Set_Etype (Formal, Rec_Typ);
+                     end if;
+
+                  elsif Ekind (Formal_Typ) = E_Anonymous_Access_Type then
+                     Desig_Typ := Designated_Type (Formal_Typ);
+
+                     if Is_Concurrent_Type (Desig_Typ)
+                       and then Present (Corresponding_Record_Type (Desig_Typ))
+                     then
+                        Rec_Typ := Corresponding_Record_Type (Desig_Typ);
+
+                        if Present (Interfaces (Rec_Typ)) then
+                           Set_Directly_Designated_Type (Formal_Typ, Rec_Typ);
+                        end if;
                      end if;
                   end if;
 
@@ -3463,36 +3480,36 @@ package body Sem_Ch6 is
 
             case Ctype is
                when Type_Conformant =>
-                  Error_Msg_N
+                  Error_Msg_N -- CODEFIX
                     ("not type conformant with declaration#!", Enode);
 
                when Mode_Conformant =>
                   if Nkind (Parent (Old_Id)) = N_Full_Type_Declaration then
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX???
                        ("not mode conformant with operation inherited#!",
                          Enode);
                   else
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX???
                        ("not mode conformant with declaration#!", Enode);
                   end if;
 
                when Subtype_Conformant =>
                   if Nkind (Parent (Old_Id)) = N_Full_Type_Declaration then
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX???
                        ("not subtype conformant with operation inherited#!",
                          Enode);
                   else
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX???
                        ("not subtype conformant with declaration#!", Enode);
                   end if;
 
                when Fully_Conformant =>
                   if Nkind (Parent (Old_Id)) = N_Full_Type_Declaration then
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX
                        ("not fully conformant with operation inherited#!",
                          Enode);
                   else
-                     Error_Msg_N
+                     Error_Msg_N -- CODEFIX
                        ("not fully conformant with declaration#!", Enode);
                   end if;
             end case;
@@ -4140,7 +4157,8 @@ package body Sem_Ch6 is
       procedure Conformance_Error (Msg : String; N : Node_Id) is
       begin
          Error_Msg_Sloc := Sloc (Prev_Loc);
-         Error_Msg_N ("not fully conformant with declaration#!", N);
+         Error_Msg_N -- CODEFIX
+           ("not fully conformant with declaration#!", N);
          Error_Msg_NE (Msg, N, N);
       end Conformance_Error;
 
@@ -4424,10 +4442,10 @@ package body Sem_Ch6 is
          then
             Set_Is_Overriding_Operation (Subp);
 
-            --  If style checks are enabled, indicate that the indicator
-            --  is missing. However, at the point of declaration, the type
-            --  of which this is a primitive operation may be private, in
-            --  which case the indicator would be premature.
+            --  If style checks are enabled, indicate that the indicator is
+            --  missing. However, at the point of declaration, the type of
+            --  which this is a primitive operation may be private, in which
+            --  case the indicator would be premature.
 
             if Has_Private_Declaration (Etype (Subp))
               or else Has_Private_Declaration (Etype (First_Formal (Subp)))

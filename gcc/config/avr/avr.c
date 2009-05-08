@@ -62,6 +62,7 @@ static const char *cond_string (enum rtx_code);
 static int avr_num_arg_regs (enum machine_mode, tree);
 
 static RTX_CODE compare_condition (rtx insn);
+static rtx avr_legitimize_address (rtx, rtx, enum machine_mode);
 static int compare_sign_p (rtx insn);
 static tree avr_handle_progmem_attribute (tree *, tree, tree, int, bool *);
 static tree avr_handle_fndecl_attribute (tree *, tree, tree, int, bool *);
@@ -349,6 +350,9 @@ static const struct mcu_type_s avr_mcu_types[] = {
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG avr_reorg
 
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS avr_legitimize_address
+
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY avr_return_in_memory
 
@@ -545,10 +549,21 @@ avr_regs_to_save (HARD_REG_SET *set)
   return count;
 }
 
+/* Return true if register FROM can be eliminated via register TO.  */
+
+bool
+avr_can_eliminate (int from, int to)
+{
+  return ((from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
+	  || ((from == FRAME_POINTER_REGNUM 
+	       || from == FRAME_POINTER_REGNUM + 1)
+	      && !frame_pointer_needed));
+}
+
 /* Compute offset between arg_pointer and frame_pointer.  */
 
 int
-initial_elimination_offset (int from, int to)
+avr_initial_elimination_offset (int from, int to)
 {
   if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
     return 0;
@@ -1153,7 +1168,7 @@ legitimate_address_p (enum machine_mode mode, rtx x, int strict)
    memory address for an operand of mode MODE  */
 
 rtx
-legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
+avr_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
 {
   x = oldx;
   if (TARGET_ALL_DEBUG)
@@ -2843,8 +2858,8 @@ out_movhi_mr_r (rtx insn, rtx op[], int *l)
 
 /* Return 1 if frame pointer for current function required.  */
 
-int
-frame_pointer_required_p (void)
+bool
+avr_frame_pointer_required_p (void)
 {
   return (cfun->calls_alloca
 	  || crtl->args.info.nregs == 0

@@ -3135,11 +3135,12 @@ verify_types_in_gimple_min_lval (tree expr)
   return false;
 }
 
-/* Verify if EXPR is a valid GIMPLE reference expression.  Returns true
+/* Verify if EXPR is a valid GIMPLE reference expression.  If
+   REQUIRE_LVALUE is true verifies it is an lvalue.  Returns true
    if there is an error, otherwise false.  */
 
 static bool
-verify_types_in_gimple_reference (tree expr)
+verify_types_in_gimple_reference (tree expr, bool require_lvalue)
 {
   while (handled_component_p (expr))
     {
@@ -3211,7 +3212,8 @@ verify_types_in_gimple_reference (tree expr)
       expr = op;
     }
 
-  return verify_types_in_gimple_min_lval (expr);
+  return ((require_lvalue || !is_gimple_min_invariant (expr))
+	  && verify_types_in_gimple_min_lval (expr));
 }
 
 /* Returns true if there is one pointer type in TYPE_POINTER_TO (SRC_OBJ)
@@ -3558,7 +3560,8 @@ verify_gimple_assign_binary (gimple stmt)
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
 	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
-		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type)))
+		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type))
+		 || SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
 		&& (TREE_CODE (rhs2_type) != VECTOR_TYPE
 		    || !INTEGRAL_TYPE_P (TREE_TYPE (rhs2_type))))
@@ -3568,6 +3571,16 @@ verify_gimple_assign_binary (gimple stmt)
 	    debug_generic_expr (lhs_type);
 	    debug_generic_expr (rhs1_type);
 	    debug_generic_expr (rhs2_type);
+	    return true;
+	  }
+	/* For shifting a vector of floating point components we
+	   only allow shifting by a constant multiple of the element size.  */
+	if (SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type))
+	    && (TREE_CODE (rhs2) != INTEGER_CST
+		|| !div_if_zero_remainder (EXACT_DIV_EXPR, rhs2,
+					   TYPE_SIZE (TREE_TYPE (rhs1_type)))))
+	  {
+	    error ("non-element sized vector shift of floating point vector");
 	    return true;
 	  }
 
@@ -3747,7 +3760,7 @@ verify_gimple_assign_single (gimple stmt)
     }
 
   if (handled_component_p (lhs))
-    res |= verify_types_in_gimple_reference (lhs);
+    res |= verify_types_in_gimple_reference (lhs, true);
 
   /* Special codes we cannot handle via their class.  */
   switch (rhs_code)
@@ -3770,7 +3783,7 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	return verify_types_in_gimple_reference (op);
+	return verify_types_in_gimple_reference (op, true);
       }
 
     /* tcc_reference  */
@@ -3793,7 +3806,7 @@ verify_gimple_assign_single (gimple stmt)
 	  debug_generic_stmt (rhs1);
 	  return true;
 	}
-      return res || verify_types_in_gimple_reference (rhs1);
+      return res || verify_types_in_gimple_reference (rhs1, false);
 
     /* tcc_constant  */
     case SSA_NAME:

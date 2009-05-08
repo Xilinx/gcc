@@ -1,3 +1,38 @@
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* testsuite/libjava.jvmti/jvmti-interp.exp
+	(gcj_jni_compile_c_to_so):  Fix so extension to '.dll' on win32.
+	* testsuite/lib/libjava.exp (libjava_init):  Likewise.
+	* testsuite/libjava.jni/jni.exp
+	(gcj_jni_compile_c_to_so):  Likewise.
+	(gcj_jni_test_one):  Likewise.
+
+2009-04-28  Andrew Haley  <aph@redhat.com>
+
+	PR libgcj/39899
+	* Makefile.am (libgcj_tools_la_LDFLAGS): Add
+	-fno-bootstrap-classes to libgcj_tools_la_GCJFLAGS.
+	* Makefile.in: Regenerate.
+
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* interpret.cc (DEBUG):  Rename this ...
+	(__GCJ_DEBUG):  ... to this throughout.
+	* configure.ac:  Likewise.
+	* interpret-run.cc:  Likewise.
+	* prims.cc:  Likewise.
+	* gnu/classpath/natConfiguration.cc:  Likewise.
+	* include/java-assert.h:  Likewise.
+	* java/io/natVMObjectInputStream.cc:  Likewise.
+
+	* configure:  Regenerate.
+	* include/config.h.in:  Regenerate.
+
+2009-04-28  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* java/lang/natVMClassLoader.cc
+	(java::lang::VMClassLoader::defineClass):  Fix assert.
+
 2009-04-26  Matthias Klose <doko@ubuntu.com>
 
 	* contrib/aot-compile.in: Print diagnostics for malformed or invalid

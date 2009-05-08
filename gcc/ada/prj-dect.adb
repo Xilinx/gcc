@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -63,7 +63,8 @@ package body Prj.Dect is
       First_Attribute   : Attribute_Node_Id;
       Current_Project   : Project_Node_Id;
       Current_Package   : Project_Node_Id;
-      Packages_To_Check : String_List_Access);
+      Packages_To_Check : String_List_Access;
+      Is_Config_File    : Boolean);
    --  Parse a case construction
 
    procedure Parse_Declarative_Items
@@ -73,16 +74,22 @@ package body Prj.Dect is
       First_Attribute   : Attribute_Node_Id;
       Current_Project   : Project_Node_Id;
       Current_Package   : Project_Node_Id;
-      Packages_To_Check : String_List_Access);
+      Packages_To_Check : String_List_Access;
+      Is_Config_File    : Boolean);
    --  Parse declarative items. Depending on In_Zone, some declarative
    --  items may be forbidden.
+   --  Is_Config_File should be set to True if the project represents a config
+   --  file (.cgpr) since some specific checks apply.
 
    procedure Parse_Package_Declaration
      (In_Tree             : Project_Node_Tree_Ref;
       Package_Declaration : out Project_Node_Id;
       Current_Project     : Project_Node_Id;
-      Packages_To_Check   : String_List_Access);
-   --  Parse a package declaration
+      Packages_To_Check   : String_List_Access;
+      Is_Config_File      : Boolean);
+   --  Parse a package declaration.
+   --  Is_Config_File should be set to True if the project represents a config
+   --  file (.cgpr) since some specific checks apply.
 
    procedure Parse_String_Type_Declaration
      (In_Tree         : Project_Node_Tree_Ref;
@@ -108,7 +115,8 @@ package body Prj.Dect is
       Declarations      : out Project_Node_Id;
       Current_Project   : Project_Node_Id;
       Extends           : Project_Node_Id;
-      Packages_To_Check : String_List_Access)
+      Packages_To_Check : String_List_Access;
+      Is_Config_File    : Boolean)
    is
       First_Declarative_Item : Project_Node_Id := Empty_Node;
 
@@ -126,7 +134,8 @@ package body Prj.Dect is
          First_Attribute   => Prj.Attr.Attribute_First,
          Current_Project   => Current_Project,
          Current_Package   => Empty_Node,
-         Packages_To_Check => Packages_To_Check);
+         Packages_To_Check => Packages_To_Check,
+         Is_Config_File    => Is_Config_File);
       Set_First_Declarative_Item_Of
         (Declarations, In_Tree, To => First_Declarative_Item);
    end Parse;
@@ -605,7 +614,8 @@ package body Prj.Dect is
       First_Attribute   : Attribute_Node_Id;
       Current_Project   : Project_Node_Id;
       Current_Package   : Project_Node_Id;
-      Packages_To_Check : String_List_Access)
+      Packages_To_Check : String_List_Access;
+      Is_Config_File    : Boolean)
    is
       Current_Item    : Project_Node_Id := Empty_Node;
       Next_Item       : Project_Node_Id := Empty_Node;
@@ -728,7 +738,8 @@ package body Prj.Dect is
                First_Attribute   => First_Attribute,
                Current_Project   => Current_Project,
                Current_Package   => Current_Package,
-               Packages_To_Check => Packages_To_Check);
+               Packages_To_Check => Packages_To_Check,
+               Is_Config_File    => Is_Config_File);
 
             --  "when others =>" must be the last branch, so save the
             --  Case_Item and exit
@@ -754,7 +765,8 @@ package body Prj.Dect is
                First_Attribute   => First_Attribute,
                Current_Project   => Current_Project,
                Current_Package   => Current_Package,
-               Packages_To_Check => Packages_To_Check);
+               Packages_To_Check => Packages_To_Check,
+               Is_Config_File    => Is_Config_File);
 
             Set_First_Declarative_Item_Of
               (Current_Item, In_Tree, To => First_Declarative_Item);
@@ -799,7 +811,8 @@ package body Prj.Dect is
       First_Attribute   : Attribute_Node_Id;
       Current_Project   : Project_Node_Id;
       Current_Package   : Project_Node_Id;
-      Packages_To_Check : String_List_Access)
+      Packages_To_Check : String_List_Access;
+      Is_Config_File    : Boolean)
    is
       Current_Declarative_Item : Project_Node_Id := Empty_Node;
       Next_Declarative_Item    : Project_Node_Id := Empty_Node;
@@ -893,7 +906,8 @@ package body Prj.Dect is
                  (In_Tree             => In_Tree,
                   Package_Declaration => Current_Declaration,
                   Current_Project     => Current_Project,
-                  Packages_To_Check   => Packages_To_Check);
+                  Packages_To_Check   => Packages_To_Check,
+                  Is_Config_File      => Is_Config_File);
 
                Set_Previous_End_Node (Current_Declaration);
 
@@ -924,7 +938,8 @@ package body Prj.Dect is
                   First_Attribute   => First_Attribute,
                   Current_Project   => Current_Project,
                   Current_Package   => Current_Package,
-                  Packages_To_Check => Packages_To_Check);
+                  Packages_To_Check => Packages_To_Check,
+                  Is_Config_File    => Is_Config_File);
 
                Set_Previous_End_Node (Current_Declaration);
 
@@ -977,7 +992,8 @@ package body Prj.Dect is
      (In_Tree             : Project_Node_Tree_Ref;
       Package_Declaration : out Project_Node_Id;
       Current_Project     : Project_Node_Id;
-      Packages_To_Check   : String_List_Access)
+      Packages_To_Check   : String_List_Access;
+      Is_Config_File      : Boolean)
    is
       First_Attribute        : Attribute_Node_Id := Empty_Attribute;
       Current_Package        : Package_Node_Id   := Empty_Package;
@@ -1036,9 +1052,9 @@ package body Prj.Dect is
                   end if;
 
                   if Index /= 0 then
-                     Error_Msg ("\?possible misspelling of """ &
-                                List (Index).all & """",
-                                Token_Ptr);
+                     Error_Msg -- CODEFIX
+                       ("\?possible misspelling of """ &
+                        List (Index).all & """", Token_Ptr);
                   end if;
                end;
             end if;
@@ -1101,7 +1117,7 @@ package body Prj.Dect is
       end if;
 
       if Token = Tok_Renames then
-         if In_Configuration then
+         if Is_Config_File then
             Error_Msg
               ("no package renames in configuration projects", Token_Ptr);
          end if;
@@ -1216,7 +1232,8 @@ package body Prj.Dect is
             First_Attribute   => First_Attribute,
             Current_Project   => Current_Project,
             Current_Package   => Package_Declaration,
-            Packages_To_Check => Packages_To_Check);
+            Packages_To_Check => Packages_To_Check,
+            Is_Config_File    => Is_Config_File);
 
          Set_First_Declarative_Item_Of
            (Package_Declaration, In_Tree, To => First_Declarative_Item);

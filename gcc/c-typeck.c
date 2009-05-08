@@ -1634,21 +1634,6 @@ array_to_pointer_conversion (tree exp)
   if (TREE_CODE (exp) == INDIRECT_REF)
     return convert (ptrtype, TREE_OPERAND (exp, 0));
 
-  if (TREE_CODE (exp) == VAR_DECL)
-    {
-      /* We are making an ADDR_EXPR of ptrtype.  This is a valid
-	 ADDR_EXPR because it's the best way of representing what
-	 happens in C when we take the address of an array and place
-	 it in a pointer to the element type.  */
-      adr = build1 (ADDR_EXPR, ptrtype, exp);
-      if (!c_mark_addressable (exp))
-	return error_mark_node;
-      TREE_SIDE_EFFECTS (adr) = 0;   /* Default would be, same as EXP.  */
-      return adr;
-    }
-
-  /* This way is better for a COMPONENT_REF since it can
-     simplify the offset for a component.  */
   adr = build_unary_op (EXPR_LOCATION (exp), ADDR_EXPR, exp, 1);
   return convert (ptrtype, adr);
 }
@@ -4581,21 +4566,15 @@ convert_for_assignment (tree type, tree rhs, tree origtype,
 	  && TREE_CODE (type) == ENUMERAL_TYPE
 	  && TYPE_MAIN_VARIANT (checktype) != TYPE_MAIN_VARIANT (type))
 	{
-	  /* FIXME: Until the gcc source code is converted, we only
-	     warn about assignment and parameter passing.  We will add
-	     the other cases when bootstrap succeeds with them.  */
-	  if (errtype == ic_argpass || errtype == ic_assign)
-	    {
-	      WARN_FOR_ASSIGNMENT (input_location, OPT_Wc___compat,
-				   G_("enum conversion when passing argument "
-				      "%d of %qE is invalid in C++"),
-				   G_("enum conversion in assignment is "
-				      "invalid in C++"),
-				   G_("enum conversion in initialization is "
-				      "invalid in C++"),
-				   G_("enum conversion in return is "
-				      "invalid in C++"));
-	    }
+	  WARN_FOR_ASSIGNMENT (input_location, OPT_Wc___compat,
+			       G_("enum conversion when passing argument "
+				  "%d of %qE is invalid in C++"),
+			       G_("enum conversion in assignment is "
+				  "invalid in C++"),
+			       G_("enum conversion in initialization is "
+				  "invalid in C++"),
+			       G_("enum conversion in return is "
+				  "invalid in C++"));
 	}
     }
 
@@ -5167,7 +5146,9 @@ static void
 push_member_name (tree decl)
 {
   const char *const string
-    = DECL_NAME (decl) ? IDENTIFIER_POINTER (DECL_NAME (decl)) : "<anonymous>";
+    = (DECL_NAME (decl)
+       ? identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl)))
+       : _("<anonymous>"));
   PUSH_SPELLING (SPELLING_MEMBER, string, u.s);
 }
 
@@ -5786,13 +5767,13 @@ start_init (tree decl, tree asmspec_tree ATTRIBUTE_UNUSED, int top_level)
 	       || TREE_CODE (TREE_TYPE (decl)) == RECORD_TYPE
 	       || TREE_CODE (TREE_TYPE (decl)) == UNION_TYPE
 	       || TREE_CODE (TREE_TYPE (decl)) == QUAL_UNION_TYPE));
-      locus = IDENTIFIER_POINTER (DECL_NAME (decl));
+      locus = identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl)));
     }
   else
     {
       require_constant_value = 0;
       require_constant_elements = 0;
-      locus = "(anonymous)";
+      locus = _("(anonymous)");
     }
 
   constructor_stack = 0;
@@ -7023,6 +7004,24 @@ output_init_element (tree value, tree origtype, bool strict_string, tree type,
 	   && (require_constant_value || require_constant_elements))
     pedwarn_init (input_location, 0,
 		  "initializer element is not a constant expression");
+
+  /* Issue -Wc++-compat warnings about initializing a bitfield with
+     enum type.  */
+  if (warn_cxx_compat
+      && field != NULL_TREE
+      && TREE_CODE (field) == FIELD_DECL
+      && DECL_BIT_FIELD_TYPE (field) != NULL_TREE
+      && (TYPE_MAIN_VARIANT (DECL_BIT_FIELD_TYPE (field))
+	  != TYPE_MAIN_VARIANT (type))
+      && TREE_CODE (DECL_BIT_FIELD_TYPE (field)) == ENUMERAL_TYPE)
+    {
+      tree checktype = origtype != NULL_TREE ? origtype : TREE_TYPE (value);
+      if (checktype != error_mark_node
+	  && (TYPE_MAIN_VARIANT (checktype)
+	      != TYPE_MAIN_VARIANT (DECL_BIT_FIELD_TYPE (field))))
+	warning_init (OPT_Wc___compat,
+		      "enum conversion in initialization is invalid in C++");
+    }
 
   /* If this field is empty (and not at the end of structure),
      don't do anything other than checking the initializer.  */
@@ -8870,12 +8869,12 @@ build_binary_op (location_t location, enum tree_code code,
       /* Handle the pointer + int case.  */
       if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, PLUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (PLUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else if (code1 == POINTER_TYPE && code0 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, PLUS_EXPR, op1, op0);
+	  ret = pointer_int_sum (PLUS_EXPR, op1, op0);
 	  goto return_build_binary_op;
 	}
       else
@@ -8894,7 +8893,7 @@ build_binary_op (location_t location, enum tree_code code,
       /* Handle pointer minus int.  Just like pointer plus int.  */
       else if (code0 == POINTER_TYPE && code1 == INTEGER_TYPE)
 	{
-	  ret = pointer_int_sum (location, MINUS_EXPR, op0, op1);
+	  ret = pointer_int_sum (MINUS_EXPR, op0, op1);
 	  goto return_build_binary_op;
 	}
       else

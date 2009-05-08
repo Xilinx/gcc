@@ -427,9 +427,11 @@ announce_function (tree decl)
   if (!quiet_flag)
     {
       if (rtl_dump_and_exit)
-	fprintf (stderr, "%s ", IDENTIFIER_POINTER (DECL_NAME (decl)));
+	fprintf (stderr, "%s ",
+		 identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl))));
       else
-	fprintf (stderr, " %s", lang_hooks.decl_printable_name (decl, 2));
+	fprintf (stderr, " %s",
+		 identifier_to_locale (lang_hooks.decl_printable_name (decl, 2)));
       fflush (stderr);
       pp_needs_newline (global_dc->printer) = true;
       diagnostic_set_last_function (global_dc, (diagnostic_info *) NULL);
@@ -920,16 +922,16 @@ warn_deprecated_use (tree node)
     }
   else if (TYPE_P (node))
     {
-      const char *what = NULL;
+      tree what = NULL_TREE;
       tree decl = TYPE_STUB_DECL (node);
 
       if (TYPE_NAME (node))
 	{
 	  if (TREE_CODE (TYPE_NAME (node)) == IDENTIFIER_NODE)
-	    what = IDENTIFIER_POINTER (TYPE_NAME (node));
+	    what = TYPE_NAME (node);
 	  else if (TREE_CODE (TYPE_NAME (node)) == TYPE_DECL
 		   && DECL_NAME (TYPE_NAME (node)))
-	    what = IDENTIFIER_POINTER (DECL_NAME (TYPE_NAME (node)));
+	    what = DECL_NAME (TYPE_NAME (node));
 	}
 
       if (decl)
@@ -938,7 +940,7 @@ warn_deprecated_use (tree node)
 	    = expand_location (DECL_SOURCE_LOCATION (decl));
 	  if (what)
 	    warning (OPT_Wdeprecated_declarations,
-		     "%qs is deprecated (declared at %s:%d)", what,
+		     "%qE is deprecated (declared at %s:%d)", what,
 		     xloc.file, xloc.line);
 	  else
 	    warning (OPT_Wdeprecated_declarations,
@@ -948,7 +950,7 @@ warn_deprecated_use (tree node)
       else
 	{
 	  if (what)
-	    warning (OPT_Wdeprecated_declarations, "%qs is deprecated", what);
+	    warning (OPT_Wdeprecated_declarations, "%qE is deprecated", what);
 	  else
 	    warning (OPT_Wdeprecated_declarations, "type is deprecated");
 	}
@@ -1130,10 +1132,14 @@ print_version (FILE *file, const char *indent)
 	   indent, __VERSION__);
 
   /* We need to stringify the GMP macro values.  Ugh, gmp_version has
-     two string formats, "i.j.k" and "i.j" when k is zero.  */
+     two string formats, "i.j.k" and "i.j" when k is zero.  As of
+     gmp-4.3.0, GMP always uses the 3 number format.  */
 #define GCC_GMP_STRINGIFY_VERSION3(X) #X
 #define GCC_GMP_STRINGIFY_VERSION2(X) GCC_GMP_STRINGIFY_VERSION3(X)
-#if __GNU_MP_VERSION_PATCHLEVEL == 0
+#define GCC_GMP_VERSION_NUM(X,Y,Z) (((X) << 16L) | ((Y) << 8) | (Z))
+#define GCC_GMP_VERSION \
+  GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,0) && __GNU_MP_VERSION_PATCHLEVEL == 0
 #define GCC_GMP_STRINGIFY_VERSION GCC_GMP_STRINGIFY_VERSION2(__GNU_MP_VERSION) "." \
   GCC_GMP_STRINGIFY_VERSION2(__GNU_MP_VERSION_MINOR)
 #else
@@ -1507,7 +1513,7 @@ default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
       t = va_arg (*text->args_ptr, tree);
       if (TREE_CODE (t) == IDENTIFIER_NODE)
 	{
-	  pp_string (pp, IDENTIFIER_POINTER (t));
+	  pp_identifier (pp, IDENTIFIER_POINTER (t));
 	  return true;
 	}
       break;
@@ -1533,8 +1539,8 @@ default_tree_printer (pretty_printer * pp, text_info *text, const char *spec,
   if (DECL_P (t))
     {
       const char *n = DECL_NAME (t)
-        ? lang_hooks.decl_printable_name (t, 2)
-        : "<anonymous>";
+        ? identifier_to_locale (lang_hooks.decl_printable_name (t, 2))
+        : _("<anonymous>");
       pp_string (pp, n);
     }
   else
@@ -1683,6 +1689,10 @@ process_options (void)
     warn_unused_variable = warn_unused;
   if (warn_unused_value == -1)
     warn_unused_value = warn_unused;
+
+  /* This replaces set_Wextra.  */
+  if (warn_uninitialized == -1)
+    warn_uninitialized = extra_warnings;
 
   /* Allow the front end to perform consistency checks and do further
      initialization based on the command line options.  This hook also

@@ -4131,6 +4131,11 @@ eliminate (void)
 		  update_stmt (stmt);
 		  if (maybe_clean_or_replace_eh_stmt (stmt, stmt))
 		    gimple_purge_dead_eh_edges (b);
+
+		  /* Changing an indirect call to a direct call may
+		     have exposed different semantics.  This may
+		     require an SSA update.  */
+		  todo |= TODO_update_ssa;
 		}
 	    }
 	}
@@ -4210,7 +4215,9 @@ eliminate (void)
       /* If there is a single use only, propagate the equivalency
 	 instead of keeping the copy.  */
       if (TREE_CODE (lhs) == SSA_NAME
-	  && single_imm_use (lhs, &use_p, &use_stmt))
+	  && single_imm_use (lhs, &use_p, &use_stmt)
+	  && may_propagate_copy (USE_FROM_PTR (use_p),
+				 gimple_assign_rhs1 (stmt)))
 	{
 	  SET_USE (use_p, gimple_assign_rhs1 (stmt));
 	  update_stmt (use_stmt);

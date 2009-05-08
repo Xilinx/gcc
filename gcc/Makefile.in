@@ -286,6 +286,8 @@ CLOOGINC = @CLOOGINC@
 # Libs and linker option needed for plugin support
 PLUGINLIBS = @pluginlibs@
 
+enable_plugin = @enable_plugin@
+
 CPPLIB = ../libcpp/libcpp.a
 CPPINC = -I$(srcdir)/../libcpp/include
 
@@ -481,6 +483,8 @@ libexecdir = @libexecdir@
 libsubdir = $(libdir)/gcc/$(target_noncanonical)/$(version)
 # Directory in which the compiler finds executables
 libexecsubdir = $(libexecdir)/gcc/$(target_noncanonical)/$(version)
+# Directory in which plugin headers are installed
+plugin_includedir = $(libsubdir)/plugin/include
 # Used to produce a relative $(gcc_tooldir) in gcc.o
 unlibsubdir = ../../..
 # $(prefix), expressed as a path relative to $(libsubdir).
@@ -881,6 +885,7 @@ IPA_PROP_H = ipa-prop.h $(TREE_H) vec.h $(CGRAPH_H)
 GSTAB_H = gstab.h stab.def
 BITMAP_H = bitmap.h $(HASHTAB_H) statistics.h
 PLUGIN_H = plugin.h gcc-plugin.h
+PLUGIN_VERSION_H = plugin-version.h configargs.h
 
 #
 # Now figure out from those variables how to compile and link.
@@ -1158,7 +1163,6 @@ OBJS-common = \
 	params.o \
 	passes.o \
 	plugin.o \
-	plugin-version.o \
 	pointer-set.o \
 	postreload-gcse.o \
 	postreload.o \
@@ -1199,6 +1203,7 @@ OBJS-common = \
 	statistics.o \
 	stmt.o \
 	stor-layout.o \
+	store-motion.o \
 	stringpool.o \
 	targhooks.o \
 	timevar.o \
@@ -2475,13 +2480,7 @@ passes.o : passes.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    gt-passes.h $(DF_H) $(PREDICT_H)
 
 plugin.o : plugin.c $(PLUGIN_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-   $(TOPLEV_H) $(TREE_H) $(TREE_PASS_H) intl.h
-
-plugin-version.o : plugin-version.c $(SYSTEM_H) gcc-plugin.h configargs.h
-	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
-	-DBASEVER=$(BASEVER_s) -DDATESTAMP=$(DATESTAMP_s) \
-	-DREVISION=$(REVISION_s) -DDEVPHASE=$(DEVPHASE_s) -c \
-	-DPLUGIN $(srcdir)/plugin-version.c $(OUTPUT_OPTION)
+   $(TOPLEV_H) $(TREE_H) $(TREE_PASS_H) intl.h $(PLUGIN_VERSION_H)
 
 main.o : main.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TOPLEV_H)
 
@@ -2686,7 +2685,7 @@ cse.o : cse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) $(REGS_H) \
    $(EXCEPT_H) $(TARGET_H) $(PARAMS_H) rtlhooks-def.h $(TREE_PASS_H) \
    $(REAL_H) $(DF_H) $(DBGCNT_H)
 dce.o : dce.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
-   $(TREE_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) $(DF_H) cselib.h \
+   $(TREE_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) $(EXCEPT_H) $(DF_H) cselib.h \
    $(DBGCNT_H) dce.h $(TIMEVAR_H) $(TREE_PASS_H) $(DBGCNT_H) $(TM_P_H)
 dse.o : dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(TM_P_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h \
@@ -2704,6 +2703,11 @@ see.o : see.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(DF_H) $(OBSTACK_H) $(TIMEVAR_H) $(TREE_PASS_H) $(RECOG_H) $(EXPR_H) \
    $(SPLAY_TREE_H) $(HASHTAB_H) $(REGS_H) dce.h
 gcse.o : gcse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
+   $(REGS_H) hard-reg-set.h $(FLAGS_H) $(REAL_H) insn-config.h $(GGC_H) \
+   $(RECOG_H) $(EXPR_H) $(BASIC_BLOCK_H) $(FUNCTION_H) output.h $(TOPLEV_H) \
+   $(TM_P_H) $(PARAMS_H) $(EXCEPT_H) $(TREE_H) $(TIMEVAR_H) \
+   intl.h $(OBSTACK_H) $(TREE_PASS_H) $(DF_H) $(DBGCNT_H)
+store-motion.o : store-motion.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(REGS_H) hard-reg-set.h $(FLAGS_H) $(REAL_H) insn-config.h $(GGC_H) \
    $(RECOG_H) $(EXPR_H) $(BASIC_BLOCK_H) $(FUNCTION_H) output.h $(TOPLEV_H) \
    $(TM_P_H) $(PARAMS_H) $(EXCEPT_H) gt-gcse.h $(TREE_H) cselib.h $(TIMEVAR_H) \
@@ -2808,7 +2812,8 @@ cfgexpand.o : cfgexpand.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    value-prof.h $(TREE_INLINE_H) $(TARGET_H) $(SSAEXPAND_H)
 cfgrtl.o : cfgrtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(FLAGS_H) insn-config.h $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h \
-   output.h $(TOPLEV_H) $(FUNCTION_H) $(EXCEPT_H) $(TM_P_H) insn-config.h $(EXPR_H) \
+   output.h $(TOPLEV_H) $(FUNCTION_H) $(EXCEPT_H) $(TM_P_H) $(INSN_ATTR_H) \
+   insn-config.h $(EXPR_H) \
    $(CFGLAYOUT_H) $(CFGLOOP_H) $(OBSTACK_H) $(TARGET_H) $(TREE_H) \
    $(TREE_PASS_H) $(DF_H) $(GGC_H)
 cfganal.o : cfganal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
@@ -3067,7 +3072,7 @@ params.o : params.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(PARAMS_H) $(TO
 pointer-set.o: pointer-set.c pointer-set.h $(CONFIG_H) $(SYSTEM_H)
 hooks.o: hooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(HOOKS_H)
 pretty-print.o: $(CONFIG_H) $(SYSTEM_H) coretypes.h intl.h $(PRETTY_PRINT_H) \
-   $(TREE_H)
+   $(TREE_H) $(GGC_H)
 errors.o : errors.c $(CONFIG_H) $(SYSTEM_H) errors.h $(BCONFIG_H)
 dbgcnt.o: dbgcnt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h errors.h $(DBGCNT_H) \
    $(TM_H) $(RTL_H) output.h
@@ -3972,6 +3977,10 @@ install: install-common $(INSTALL_HEADERS) \
     install-cpp install-man install-info install-@POSUB@ \
     install-driver
 
+ifeq ($(enable_plugin),yes)
+install: install-plugin
+endif
+
 # Handle cpp installation.
 install-cpp: installdirs cpp$(exeext)
 	-rm -f $(DESTDIR)$(bindir)/$(CPP_INSTALL_NAME)$(exeext)
@@ -3992,6 +4001,36 @@ installdirs:
 	$(mkinstalldirs) $(DESTDIR)$(slibdir)
 	$(mkinstalldirs) $(DESTDIR)$(man1dir)
 	$(mkinstalldirs) $(DESTDIR)$(man7dir)
+
+PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(TOPLEV_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(TREE_PASS_H) gcc-plugin.h intl.h \
+  $(PLUGIN_VERSION_H)
+
+# Install the headers needed to build a plugin.
+install-plugin: installdirs
+# We keep the directory structure for files in config and .def files. All
+# other files are flattened to a single directory.
+	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
+	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\n' | sort -u`; \
+	for file in $$headers; do \
+	  if [ -f $$file ] ; then \
+	    path=$$file; \
+	  elif [ -f $(srcdir)/$$file ]; then \
+	    path=$(srcdir)/$$file; \
+	  else continue; \
+	  fi; \
+	  case $$path in \
+	  "$(srcdir)"*/config/* | "$(srcdir)"/*.def ) \
+	    srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
+	    base=`echo "$$path" | sed -e "s|$$srcdirstrip/||"`;; \
+	  *) base=`basename $$path` ;; \
+	  esac; \
+	  dest=$(plugin_includedir)/$$base; \
+	  echo $(INSTALL_DATA) $$path $(DESTDIR)/$$dest; \
+	  dir=`dirname $$dest`; \
+	  $(mkinstalldirs) $$dir; \
+	  $(INSTALL_DATA) $$path $(DESTDIR)/$$dest; \
+	done
 
 # Install the compiler executables built during cross compilation.
 install-common: native lang.install-common installdirs

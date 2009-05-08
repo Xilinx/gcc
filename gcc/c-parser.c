@@ -222,8 +222,8 @@ c_lex_one_token (c_parser *parser, c_token *token)
 	      {
 		warning_at (token->location,
 			    OPT_Wc___compat,
-			    "identifier %qs conflicts with C++ keyword",
-			    IDENTIFIER_POINTER (token->value));
+			    "identifier %qE conflicts with C++ keyword",
+			    token->value);
 	      }
 	    else if (c_dialect_objc ())
 	      {
@@ -5784,7 +5784,7 @@ c_parser_expression (c_parser *parser)
       next = default_function_array_conversion (next);
       expr.value = build_compound_expr (expr.value, next.value);
       expr.original_code = COMPOUND_EXPR;
-      expr.original_type = NULL;
+      expr.original_type = next.original_type;
     }
   return expr;
 }

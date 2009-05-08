@@ -112,6 +112,13 @@ default_return_in_memory (const_tree type,
 }
 
 rtx
+default_legitimize_address (rtx x, rtx orig_x ATTRIBUTE_UNUSED,
+			    enum machine_mode mode ATTRIBUTE_UNUSED)
+{
+  return x;
+}
+
+rtx
 default_expand_builtin_saveregs (void)
 {
   error ("__builtin_saveregs not supported by this target");
@@ -574,6 +581,12 @@ default_internal_arg_pointer (void)
     return copy_to_reg (virtual_incoming_args_rtx);
   else
     return virtual_incoming_args_rtx;
+}
+
+enum reg_class
+default_branch_target_register_class (void)
+{
+  return NO_REGS;
 }
 
 #ifdef IRA_COVER_CLASSES

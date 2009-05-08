@@ -224,7 +224,7 @@ static int sh_variable_issue (FILE *, int, rtx, int);
 static bool sh_function_ok_for_sibcall (tree, tree);
 
 static bool sh_cannot_modify_jumps_p (void);
-static int sh_target_reg_class (void);
+static enum reg_class sh_target_reg_class (void);
 static bool sh_optimize_target_register_callee_saved (bool);
 static bool sh_ms_bitfield_layout_p (const_tree);
 
@@ -245,6 +245,7 @@ static bool sh_rtx_costs (rtx, int, int, int *, bool);
 static int sh_address_cost (rtx, bool);
 static int sh_pr_n_sets (void);
 static rtx sh_allocate_initial_value (rtx);
+static rtx sh_legitimize_address (rtx, rtx, enum machine_mode);
 static int shmedia_target_regs_stack_space (HARD_REG_SET *);
 static int shmedia_reserve_space_for_target_registers_p (int, HARD_REG_SET *);
 static int shmedia_target_regs_stack_adjust (HARD_REG_SET *);
@@ -373,6 +374,9 @@ static int sh2a_function_vector_p (tree);
 
 #undef TARGET_SCHED_INIT
 #define TARGET_SCHED_INIT sh_md_init
+
+#undef TARGET_LEGITIMIZE_ADDRESS
+#define TARGET_LEGITIMIZE_ADDRESS sh_legitimize_address
 
 #undef TARGET_CANNOT_MODIFY_JUMPS_P
 #define TARGET_CANNOT_MODIFY_JUMPS_P sh_cannot_modify_jumps_p
@@ -1218,7 +1222,7 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
   if ((mode == SImode || mode == DImode)
       && flag_pic
       && ! ((mode == Pmode || mode == ptr_mode)
-	    && tls_symbolic_operand (operands[1], Pmode) != 0))
+	    && tls_symbolic_operand (operands[1], Pmode) != TLS_MODEL_NONE))
     {
       rtx temp;
       if (SYMBOLIC_CONST_P (operands[1]))
@@ -1290,7 +1294,8 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
       op1 = operands[1];
       if (GET_CODE (op1) == CONST
 	  && GET_CODE (XEXP (op1, 0)) == PLUS
-	  && tls_symbolic_operand (XEXP (XEXP (op1, 0), 0), Pmode))
+	  && (tls_symbolic_operand (XEXP (XEXP (op1, 0), 0), Pmode)
+	      != TLS_MODEL_NONE))
 	{
 	  opc = XEXP (XEXP (op1, 0), 1);
 	  op1 = XEXP (XEXP (op1, 0), 0);
@@ -1298,7 +1303,7 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
       else
 	opc = NULL_RTX;
 
-      if ((tls_kind = tls_symbolic_operand (op1, Pmode)))
+      if ((tls_kind = tls_symbolic_operand (op1, Pmode)) != TLS_MODEL_NONE)
 	{
 	  rtx tga_op1, tga_ret, tmp, tmp2;
 
@@ -5125,7 +5130,7 @@ sh_reorg (void)
 			  /* If we are not optimizing, then there may not be
 			     a note.  */
 			  if (note)
-			    PUT_MODE (note, REG_INC);
+			    PUT_REG_NOTE_KIND (note, REG_INC);
 
 			  *last_float_addr = r0_inc_rtx;
 			}
@@ -6348,7 +6353,7 @@ sh_expand_prologue (void)
       tmp_pnt = schedule.temps;
       for (entry = &schedule.entries[1]; entry->mode != VOIDmode; entry++)
         {
-	  enum machine_mode mode = entry->mode;
+	  enum machine_mode mode = (enum machine_mode) entry->mode;
 	  unsigned int reg = entry->reg;
 	  rtx reg_rtx, mem_rtx, pre_dec = NULL_RTX;
 	  rtx orig_reg_rtx;
@@ -6633,7 +6638,7 @@ sh_expand_epilogue (bool sibcall_p)
       tmp_pnt = schedule.temps;
       for (; entry->mode != VOIDmode; entry--)
 	{
-	  enum machine_mode mode = entry->mode;
+	  enum machine_mode mode = (enum machine_mode) entry->mode;
 	  int reg = entry->reg;
 	  rtx reg_rtx, mem_rtx, post_inc = NULL_RTX, insn;
 
@@ -8452,11 +8457,11 @@ tertiary_reload_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 }
 
 /* Return the TLS type for TLS symbols, 0 for otherwise.  */
-int
+enum tls_model
 tls_symbolic_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (op) != SYMBOL_REF)
-    return 0;
+    return TLS_MODEL_NONE;
   return SYMBOL_REF_TLS_MODEL (op);
 }
 
@@ -8696,7 +8701,7 @@ get_free_reg (HARD_REG_SET regs_live)
 void
 fpscr_set_from_mem (int mode, HARD_REG_SET regs_live)
 {
-  enum attr_fp_mode fp_mode = mode;
+  enum attr_fp_mode fp_mode = (enum attr_fp_mode) mode;
   enum attr_fp_mode norm_mode = ACTUAL_NORMAL_MODE (FP_MODE);
   rtx addr_reg;
 
@@ -8844,7 +8849,7 @@ rtx
 legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
 			rtx reg)
 {
-  if (tls_symbolic_operand (orig, Pmode))
+  if (tls_symbolic_operand (orig, Pmode) != TLS_MODEL_NONE)
     return orig;
 
   if (GET_CODE (orig) == LABEL_REF
@@ -8865,6 +8870,60 @@ legitimize_pic_address (rtx orig, enum machine_mode mode ATTRIBUTE_UNUSED,
       return reg;
     }
   return orig;
+}
+
+/* Try machine-dependent ways of modifying an illegitimate address
+   to be legitimate.  If we find one, return the new, valid address.
+   Otherwise, return X.
+
+   For the SH, if X is almost suitable for indexing, but the offset is
+   out of range, convert it into a normal form so that CSE has a chance
+   of reducing the number of address registers used.  */
+
+static rtx
+sh_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
+{
+  if (flag_pic)
+    x = legitimize_pic_address (oldx, mode, NULL_RTX);
+
+  if (GET_CODE (x) == PLUS
+      && (GET_MODE_SIZE (mode) == 4
+	  || GET_MODE_SIZE (mode) == 8)
+      && GET_CODE (XEXP (x, 1)) == CONST_INT
+      && BASE_REGISTER_RTX_P (XEXP (x, 0))
+      && ! TARGET_SHMEDIA
+      && ! ((TARGET_SH4 || TARGET_SH2A_DOUBLE) && mode == DFmode)
+      && ! (TARGET_SH2E && mode == SFmode))
+    {
+      rtx index_rtx = XEXP (x, 1);
+      HOST_WIDE_INT offset = INTVAL (index_rtx), offset_base;
+      rtx sum;
+
+      /* On rare occasions, we might get an unaligned pointer
+	 that is indexed in a way to give an aligned address.
+	 Therefore, keep the lower two bits in offset_base.  */
+      /* Instead of offset_base 128..131 use 124..127, so that
+	 simple add suffices.  */
+      if (offset > 127)
+	offset_base = ((offset + 4) & ~60) - 4;
+      else
+	offset_base = offset & ~60;
+
+      /* Sometimes the normal form does not suit DImode.  We
+	 could avoid that by using smaller ranges, but that
+	 would give less optimized code when SImode is
+	 prevalent.  */
+      if (GET_MODE_SIZE (mode) + offset - offset_base <= 64)
+	{
+	  sum = expand_binop (Pmode, add_optab, XEXP (x, 0),
+			      GEN_INT (offset_base), NULL_RTX, 0,
+			      OPTAB_LIB_WIDEN);
+
+	  return gen_rtx_PLUS (Pmode, sum, GEN_INT (offset - offset_base));
+	}
+    }
+
+  return x;
 }
 
 /* Mark the use of a constant in the literal table. If the constant
@@ -9623,7 +9682,7 @@ sh_cannot_modify_jumps_p (void)
   return (TARGET_SHMEDIA && (reload_in_progress || reload_completed));
 }
 
-static int
+static enum reg_class
 sh_target_reg_class (void)
 {
   return TARGET_SHMEDIA ? TARGET_REGS : NO_REGS;

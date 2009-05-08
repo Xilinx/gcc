@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -50,7 +50,6 @@ with Sem_Util; use Sem_Util;
 with Snames;   use Snames;
 with Stand;    use Stand;
 with Sinfo;    use Sinfo;
-with Targparm; use Targparm;
 with Tbuild;   use Tbuild;
 with Uintp;    use Uintp;
 
@@ -865,7 +864,14 @@ package body Sem_Disp is
                                 Prim    => Subp));
                            end if;
 
-                           Generate_Reference (Tagged_Type, Subp, 'p', False);
+                           --  Indicate that this is an overriding operation,
+                           --  and replace the overriden entry in the list of
+                           --  primitive operations, which is used for xref
+                           --  generation subsequently.
+
+                           Generate_Reference (Tagged_Type, Subp, 'P', False);
+                           Override_Dispatching_Operation
+                             (Tagged_Type, Old_Subp, Subp);
                         end if;
                      end if;
                   end if;
@@ -1735,7 +1741,7 @@ package body Sem_Disp is
       --  the VM back-ends directly handle the generation of dispatching
       --  calls and would have to undo any expansion to an indirect call.
 
-      if VM_Target = No_VM then
+      if Tagged_Type_Expansion then
          Expand_Dispatching_Call (Call_Node);
 
       --  Expansion of a dispatching call results in an indirect call, which in

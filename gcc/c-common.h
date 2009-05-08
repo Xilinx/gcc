@@ -63,6 +63,10 @@ enum rid
   /* ObjC */
   RID_IN, RID_OUT, RID_INOUT, RID_BYCOPY, RID_BYREF, RID_ONEWAY,
 
+  /* C (reserved and imaginary types not implemented, so any use is a
+     syntax error) */
+  RID_IMAGINARY,
+
   /* C */
   RID_INT,     RID_CHAR,   RID_FLOAT,    RID_DOUBLE, RID_VOID,
   RID_ENUM,    RID_STRUCT, RID_UNION,    RID_IF,     RID_ELSE,
@@ -817,7 +821,7 @@ extern tree shorten_binary_op (tree result_type, tree op0, tree op1, bool bitwis
    and, if so, perhaps change them both back to their original type.  */
 extern tree shorten_compare (tree *, tree *, tree *, enum tree_code *);
 
-extern tree pointer_int_sum (location_t, enum tree_code, tree, tree);
+extern tree pointer_int_sum (enum tree_code, tree, tree);
 
 /* Add qualifiers to a type, in the fashion for C.  */
 extern tree c_build_qualified_type (tree, int);

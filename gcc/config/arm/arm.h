@@ -537,7 +537,7 @@ extern int arm_arch_hwdiv;
 #define PREFERRED_STACK_BOUNDARY \
     (arm_abi == ARM_ABI_ATPCS ? 64 : STACK_BOUNDARY)
 
-#define FUNCTION_BOUNDARY  32
+#define FUNCTION_BOUNDARY  ((TARGET_THUMB && optimize_size) ? 16 : 32)
 
 /* The lowest bit is used to indicate Thumb-mode functions, so the
    vbit must go into the delta field of pointers to member
@@ -2204,36 +2204,6 @@ typedef struct
     THUMB1_GO_IF_LEGITIMATE_ADDRESS (MODE, X, WIN)
 
 
-/* Try machine-dependent ways of modifying an illegitimate address
-   to be legitimate.  If we find one, return the new, valid address.  */
-#define ARM_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = arm_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-/* ??? Implement LEGITIMIZE_ADDRESS for thumb2.  */
-#define THUMB2_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-} while (0)
-
-#define THUMB1_LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)	\
-do {							\
-  X = thumb_legitimize_address (X, OLDX, MODE);		\
-} while (0)
-
-#define LEGITIMIZE_ADDRESS(X, OLDX, MODE, WIN)		\
-do {							\
-  if (TARGET_ARM)					\
-    ARM_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else if (TARGET_THUMB2)				\
-    THUMB2_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-  else							\
-    THUMB1_LEGITIMIZE_ADDRESS (X, OLDX, MODE, WIN);	\
-							\
-  if (memory_address_p (MODE, X))			\
-    goto WIN;						\
-} while (0)
-
 /* Define this for compatibility reasons. */
 #define HANDLE_PRAGMA_PACK_PUSH_POP
 

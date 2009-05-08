@@ -57,7 +57,6 @@ extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
 extern int legitimate_pic_address_disp_p (rtx);
 extern int legitimate_address_p (enum machine_mode, rtx, int);
-extern rtx legitimize_address (rtx, rtx, enum machine_mode);
 
 extern void print_reg (rtx, int, FILE*);
 extern void print_operand (FILE*, rtx, int);
@@ -97,7 +96,6 @@ extern void ix86_expand_convert_uns_sixf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sidf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sisf_sse (rtx, rtx);
 extern void ix86_expand_convert_sign_didf_sse (rtx, rtx);
-extern rtx ix86_build_signbit_mask (enum machine_mode, bool, bool);
 extern void ix86_expand_fp_absneg_operator (enum rtx_code, enum machine_mode,
 					    rtx[]);
 extern void ix86_expand_copysign (rtx []);

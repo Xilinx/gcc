@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 2001-2008, AdaCore                     --
+--                     Copyright (C) 2001-2009, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -48,6 +48,11 @@ package GNAT.Sockets.Thin is
    use Thin_Common;
 
    package C renames Interfaces.C;
+
+   use type C.size_t;
+   type ssize_t is range -(2 ** (C.size_t'Size - 1))
+     .. +(2 ** (C.size_t'Size - 1) - 1);
+   --  Signed type of the same size as size_t
 
    function Socket_Errno return Integer;
    --  Returns last socket error number
@@ -124,11 +129,6 @@ package GNAT.Sockets.Thin is
      (S       : C.int;
       Backlog : C.int) return C.int;
 
-   function C_Readv
-     (Fd     : C.int;
-      Iov    : System.Address;
-      Iovcnt : C.int) return C.int;
-
    function C_Recv
      (S     : C.int;
       Msg   : System.Address;
@@ -140,8 +140,13 @@ package GNAT.Sockets.Thin is
       Msg     : System.Address;
       Len     : C.int;
       Flags   : C.int;
-      From    : Sockaddr_In_Access;
+      From    : System.Address;
       Fromlen : not null access C.int) return C.int;
+
+   function C_Recvmsg
+     (S     : C.int;
+      Msg   : System.Address;
+      Flags : C.int) return ssize_t;
 
    function C_Select
      (Nfds      : C.int;
@@ -150,12 +155,17 @@ package GNAT.Sockets.Thin is
       Exceptfds : access Fd_Set;
       Timeout   : Timeval_Access) return C.int;
 
+   function C_Sendmsg
+     (S     : C.int;
+      Msg   : System.Address;
+      Flags : C.int) return ssize_t;
+
    function C_Sendto
      (S     : C.int;
       Msg   : System.Address;
       Len   : C.int;
       Flags : C.int;
-      To    : Sockaddr_In_Access;
+      To    : System.Address;
       Tolen : C.int) return C.int;
 
    function C_Setsockopt
@@ -179,11 +189,6 @@ package GNAT.Sockets.Thin is
 
    function C_System
      (Command : System.Address) return C.int;
-
-   function C_Writev
-     (Fd     : C.int;
-      Iov    : System.Address;
-      Iovcnt : C.int) return C.int;
 
    function WSAStartup
      (WS_Version     : Interfaces.C.int;

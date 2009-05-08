@@ -480,11 +480,13 @@
 
 /* In hooks.c.  */
 #define TARGET_CANNOT_MODIFY_JUMPS_P hook_bool_void_false
-#define TARGET_BRANCH_TARGET_REGISTER_CLASS hook_int_void_no_regs
+#define TARGET_BRANCH_TARGET_REGISTER_CLASS \
+  default_branch_target_register_class
 #define TARGET_BRANCH_TARGET_REGISTER_CALLEE_SAVED hook_bool_bool_false
 #define TARGET_CANNOT_FORCE_CONST_MEM hook_bool_rtx_false
 #define TARGET_CANNOT_COPY_INSN_P NULL
 #define TARGET_COMMUTATIVE_P hook_bool_const_rtx_commutative_p
+#define TARGET_LEGITIMIZE_ADDRESS default_legitimize_address
 #define TARGET_DELEGITIMIZE_ADDRESS hook_rtx_rtx_identity
 #define TARGET_USE_BLOCKS_FOR_CONSTANT_P hook_bool_mode_const_rtx_false
 #define TARGET_MIN_ANCHOR_OFFSET 0
@@ -868,6 +870,7 @@
   TARGET_CANNOT_FORCE_CONST_MEM,		\
   TARGET_CANNOT_COPY_INSN_P,			\
   TARGET_COMMUTATIVE_P,				\
+  TARGET_LEGITIMIZE_ADDRESS,			\
   TARGET_DELEGITIMIZE_ADDRESS,			\
   TARGET_USE_BLOCKS_FOR_CONSTANT_P,		\
   TARGET_MIN_ANCHOR_OFFSET,			\
