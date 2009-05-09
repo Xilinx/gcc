@@ -1,3 +1,29 @@
+2009-05-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* cp/lex.c (cxx_make_type): Use typed GC allocation.
+	* cp/name-lookup.c (begin_scope, push_to_top_level): Likewise.
+	* cp/parser.c (cp_lexer_new_main, cp_lexer_new_from_tokens)
+	(cp_parser_context_new, cp_parser_new)
+	(cp_parser_nested_name_specifier_opt)
+	(cp_parser_template_id): Likewise
+	* cp/decl.c (make_label_decl, start_preparsed_function): Likewise.
+	* fortran/trans-decl.c (gfc_allocate_lang_decl)
+	(gfc_find_module): Likewise.
+	* fortran/trans-types.c (gfc_get_nodesc_array_type)
+	(gfc_get_array_type_bounds): Likewise.
+	* varpool.c (varpool_node): Likewise.
+	* cfgrtl.c (init_rtl_bb_info): Likewise.
+	* cfgloop.c (alloc_loop): Likewise.
+	* tree-ssa.c (init_tree_ssa): Likewise.
+	* graphite.c (if_region_set_false_region): Likewise.
+	* c-decl.c (push_scope, finish_struct, finish_enum): Likewise.
+	* loop-init.c (loop_optimizer_init): Likewise.
+	* tree-ssa-alias.c (get_ptr_info): Likewise.
+	* cfg.c (init_flow, alloc_block, unchecked_make_edge): Likewise.
+	* cgraph.c (cgraph_create_node, cgraph_add_asm_node): Likewise.
+	* tree-cfg.c (create_bb): Update comment not to refer to
+	ggc_alloc_cleared.  Use typed GC allocation.
+
 2009-05-07  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* doc/tm.texi (Per-Function Data): Replace reference to ggc_alloc

@@ -334,9 +334,9 @@ flow_loop_tree_node_remove (struct loop *loop)
 struct loop *
 alloc_loop (void)
 {
-  struct loop *loop = GGC_CNEW (struct loop);
+  struct loop *loop = ggc_alloc_cleared_loop();
 
-  loop->exits = GGC_CNEW (struct loop_exit);
+  loop->exits = ggc_alloc_cleared_loop_exit();
   loop->exits->next = loop->exits->prev = loop->exits;
 
   return loop;

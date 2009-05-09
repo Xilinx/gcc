@@ -429,7 +429,7 @@ cgraph_create_node (void)
     }
   else
     {
-      node = GGC_CNEW (struct cgraph_node);
+      node = ggc_alloc_cleared_cgraph_node();
       node->uid = cgraph_max_uid++;
     }
 
@@ -1308,7 +1308,7 @@ cgraph_add_asm_node (tree asm_str)
 {
   struct cgraph_asm_node *node;
 
-  node = GGC_CNEW (struct cgraph_asm_node);
+  node = ggc_alloc_cleared_cgraph_asm_node();
   node->asm_str = asm_str;
   node->order = cgraph_order++;
   node->next = NULL;

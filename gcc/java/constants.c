@@ -333,7 +333,7 @@ cpool_for_class (tree klass)
 
   if (cpool == NULL)
     {
-      cpool = GGC_CNEW (struct CPool);
+      cpool = ggc_alloc_cleared_CPool();
       TYPE_CPOOL (klass) = cpool;
     }
   return cpool;

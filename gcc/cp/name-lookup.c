@@ -1361,7 +1361,7 @@ begin_scope (scope_kind kind, tree entity)
       free_binding_level = scope->level_chain;
     }
   else
-    scope = GGC_CNEW (cxx_scope);
+    scope = ggc_alloc_cleared_cxx_scope();
 
   scope->this_entity = entity;
   scope->more_cleanups_ok = true;
@@ -5255,7 +5255,7 @@ push_to_top_level (void)
   bool need_pop;
 
   timevar_push (TV_NAME_LOOKUP);
-  s = GGC_CNEW (struct saved_scope);
+  s = ggc_alloc_cleared_saved_scope();
 
   b = scope_chain ? current_binding_level : 0;
 

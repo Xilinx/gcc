@@ -120,7 +120,7 @@ varpool_node (tree decl)
     htab_find_slot (varpool_hash, &key, INSERT);
   if (*slot)
     return *slot;
-  node = GGC_CNEW (struct varpool_node);
+  node = ggc_alloc_cleared_varpool_node();
   node->decl = decl;
   node->order = cgraph_order++;
   node->next = varpool_nodes;

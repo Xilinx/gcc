@@ -1255,7 +1255,7 @@ static struct binding_level *
 make_binding_level (void)
 {
   /* NOSTRICT */
-  return GGC_CNEW (struct binding_level);
+  return ggc_alloc_cleared_binding_level();
 }
 
 void
