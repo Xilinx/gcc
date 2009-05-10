@@ -254,6 +254,8 @@ extern void dump_ggc_loc_statistics (bool);
 #define ggc_internal_vec_sized_alloc(T, S, C) GGC_NEWVECVAR(T, S, C)
 #define ggc_internal_cleared_vec_sized_alloc(T, S, C) GGC_CNEWVECVAR(T, S, C)
 
+#define ggc_alloc_atomic(S)  (ggc_alloc (S))
+
 #define ggc_alloc_rtvec(NELT)						 \
   ((rtvec) ggc_alloc_zone (sizeof (struct rtvec_def) + ((NELT) - 1)	 \
 			   * sizeof (rtx), &rtl_zone))

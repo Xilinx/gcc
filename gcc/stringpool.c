@@ -90,7 +90,7 @@ ggc_alloc_string (const char *contents, int length)
   if (length == 1 && ISDIGIT (contents[0]))
     return digit_string (contents[0] - '0');
 
-  result = GGC_NEWVAR (char, length + 1);
+  result = (char *) ggc_alloc_atomic (length + 1);
   memcpy (result, contents, length);
   result[length] = '\0';
   return (const char *) result;

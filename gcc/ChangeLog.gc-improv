@@ -1,3 +1,9 @@
+2009-05-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* ggc.h (ggc_alloc_atomic): New.
+	* c-common.c (parse_optimize_options): Use it.
+	* stringpool.c (ggc_alloc_string): Likewise.
+
 2009-05-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* cp/lex.c (cxx_make_type): Use typed GC allocation.

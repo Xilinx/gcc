@@ -1,3 +1,8 @@
+2009-05-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* expr.c (add_type_assertion): Use typed GC alloation.
+	* jcf-reader.c (jcf_parse_constant_pool): Likewise.
+
 2009-05-08  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* java-tree.h (MAYBE_CREATE_VAR_LANG_DECL_SPECIFIC)
