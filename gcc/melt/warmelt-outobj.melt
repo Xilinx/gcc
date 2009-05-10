@@ -3161,10 +3161,18 @@
       (debug_msg modulnam "after compilation genmod_command modulnam")
       (generate_melt_module modsrcname modulnam)
       )))
-(install_initial_command  (stringconst2val discr_string "genmod") genmod_command)
+
+(initial_command_install genmod_command "genmod")
+
+;;;;;;;;;;;;;;;;
+;;;;;
+(defun noop_command (dispatcher arg secarg moduldata)
+  (message_dbg  "starting noop_command")
+)
+(initial_command_install noop_command "noop")
 
 ;;;;
-
+;;;;;;;;;;;;;;;;
 (defun compileinit_command (dispatcher arg secarg moduldata)
   (message_dbg "starting compileinit_command")
   (debug_msg arg "start compileinit_command arg")
@@ -3206,6 +3214,7 @@
     (compile_list_sexpr rlist initial_environment basnam)
     (return)
     ))
+
 
 (install_initial_command  (stringconst2val discr_string "compileinit") compileinit_command)
 (install_initial_command  (stringconst2val discr_string "translateinit") compileinit_command)

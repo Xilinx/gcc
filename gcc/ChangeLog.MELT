@@ -1,3 +1,6 @@
+2009-05-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: added noop command.
+
 2009-05-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.c (load_checked_dynamic_module_index) can accept null
 	md5src. Added more warnings.
