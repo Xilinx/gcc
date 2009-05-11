@@ -84,7 +84,7 @@ extern const unsigned char executable_checksum[16];
 
 
 #define MINOR_SIZE_KILOWORD PARAM_VALUE(PARAM_BASILYS_MINOR_ZONE)
-#define FULL_FREQ PARAM_VALUE(PARAM_BASILYS_FULL_FREQ)
+#define FULL_THRESHOLD PARAM_VALUE(PARAM_BASILYS_FULL_THRESHOLD)
 
 #ifndef MELT_PRIVATE_INCLUDE_DIR
 #error MELT_PRIVATE_INCLUDE_DIR is not defined thru compile flags
@@ -665,7 +665,7 @@ basilys_garbcoll (size_t wanted, bool needfull)
   basilys_storalz = NULL;
   basilys_kilowords_sincefull += wanted / (1024 * sizeof (void *));
   if (basilys_kilowords_sincefull >
-      (unsigned long) MINOR_SIZE_KILOWORD * FULL_FREQ)
+      (unsigned long) MINOR_SIZE_KILOWORD * FULL_THRESHOLD)
     needfull = TRUE;
   basilys_startalz = basilys_curalz =
     (char *) xcalloc (sizeof (void *), wanted / sizeof (void *));

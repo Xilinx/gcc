@@ -724,11 +724,12 @@ DEFPARAM (PARAM_BASILYS_MINOR_ZONE,
 	 "size in kilowords (one word = one pointer) of the minor zone for the specialized copying basilys collector",
 	 512, 256, 32768)
 
-/* paramater tuning the frequency of full garbage collection in Basilys */
-DEFPARAM (PARAM_BASILYS_FULL_FREQ,
-	 "basilys-full-freq",
-	 "tuning the frequency of full garbage collection in the specialized basilys collector",
-	 16, 8, 128)
+/* paramater tuning the frequency of full garbage collection in
+   Basilys - it is a threshold in kilowords */
+DEFPARAM (PARAM_BASILYS_FULL_THRESHOLD,
+	 "basilys-full-threshold",
+	 "tuning the frequency of full garbage collection in the specialized basilys collector (threshold in kilowords)",
+	 512, 2048, 65536)
 /**** end of Basilys stuff */
 
 
