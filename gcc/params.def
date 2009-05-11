@@ -729,7 +729,7 @@ DEFPARAM (PARAM_BASILYS_MINOR_ZONE,
 DEFPARAM (PARAM_BASILYS_FULL_THRESHOLD,
 	 "basilys-full-threshold",
 	 "tuning the frequency of full garbage collection in the specialized basilys collector (threshold in kilowords)",
-	 512, 2048, 65536)
+	  2048, 512, 65536)
 /**** end of Basilys stuff */
 
 
