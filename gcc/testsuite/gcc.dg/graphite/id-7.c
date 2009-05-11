@@ -1,4 +1,3 @@
-/* { dg-options "-Os -fdump-tree-graphite-all" } */
 void foo (int *BM_tab)
 {
   int *BM_tab_base;

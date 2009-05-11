@@ -1,3 +1,12 @@
+2009-05-11  Li Feng  <nemokingdom@gmail.com>
+
+	* testsuite/gcc.dg/graphite/graphite.exp: Set different default
+	compile options by file names.
+	* testsuite/gcc.dg/graphite/block{0-6}.c: Remove dg-option line.
+	* testsuite/gcc.dg/graphite/id-{1-9}.c: Ditto.
+	* testsuite/gcc.dg/graphite/scop-{0-20}.c: Ditto.
+	* testsuite/gcc.dg/graphite/scop-matmult.c: Ditto.
+
 2009-05-08  Li Feng <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite_autopar/graphite_autopar.exp: New.

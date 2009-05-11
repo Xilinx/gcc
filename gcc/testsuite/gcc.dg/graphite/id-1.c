@@ -1,5 +1,3 @@
-/* { dg-options "-O2 -fgraphite-identity" } */
-
 typedef int *lambda_vector;
 typedef lambda_vector *lambda_matrix;
 lambda_vector_add_mc (lambda_vector vec1, int const1,
@@ -18,3 +16,4 @@ lambda_matrix_add_mc (lambda_matrix mat1, int const1,
   for (i = 0; i < m; i++)
     lambda_vector_add_mc (mat1[i], const1, mat2[i], const2, mat3[i], n);
 }
+/* { dg-final { cleanup-tree-dump "graphite" } } */

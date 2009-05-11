@@ -1,5 +1,3 @@
-/* { dg-options "-O2 -fdump-tree-graphite-all" } */
-
 typedef unsigned char   UChar;
 typedef int             Int32;
 typedef unsigned int    UInt32;

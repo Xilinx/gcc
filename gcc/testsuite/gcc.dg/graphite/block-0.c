@@ -1,5 +1,3 @@
-/* { dg-options "-O2 -fdump-tree-graphite-all" } */
-
 #define N 1000
 
 int toto()

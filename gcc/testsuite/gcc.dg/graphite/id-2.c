@@ -1,4 +1,3 @@
-/* { dg-options "-O2" } */
 typedef _Complex float GFC_COMPLEX_4;
 matmul_c4 ()
 {
@@ -15,3 +14,4 @@ matmul_c4 ()
         dest_y[x] += abase_n[x] * bbase_yn;
     }
 }
+/* { dg-final { cleanup-tree-dump "graphite" } } */

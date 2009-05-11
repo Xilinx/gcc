@@ -1,5 +1,3 @@
-/* { dg-options "-O2 -fdump-tree-graphite-all" } */
-
 #define N 10000
 void foo (int);
 int test ()
@@ -29,6 +27,5 @@ int test ()
 
   return a[20];
 }
-
 /* { dg-final { scan-tree-dump-times "number of SCoPs: 1" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */

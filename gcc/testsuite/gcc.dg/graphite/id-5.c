@@ -1,4 +1,3 @@
-/* { dg-options "-O2 -fdump-tree-graphite-all" } */
 void matmul_i1 ()
 {
   int *abase;
@@ -15,3 +14,4 @@ void matmul_i1 ()
 }
 /* { dg-final { scan-tree-dump-times "number of SCoPs: 1" 1 "graphite"} } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */
+

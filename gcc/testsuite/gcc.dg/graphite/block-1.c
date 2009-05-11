@@ -1,5 +1,3 @@
-/* { dg-options "-O2 -fdump-tree-graphite-all" } */
-
 #define MAX 8192
 
 void bar (void);

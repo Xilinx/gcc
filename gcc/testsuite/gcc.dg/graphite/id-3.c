@@ -1,4 +1,3 @@
-/* { dg-options "-O2" } */
 struct {
 }
 mmaxloc0_4_i1 ()
@@ -10,3 +9,4 @@ mmaxloc0_4_i1 ()
   for (n = 0; n < rank; n++)
     dest[n * dstride] = 0;
 }
+/* { dg-final { cleanup-tree-dump "graphite" } } */

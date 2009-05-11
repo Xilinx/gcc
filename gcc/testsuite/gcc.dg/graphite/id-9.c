@@ -1,4 +1,3 @@
-/* { dg-options "-O2" } */
 typedef enum
 {
   no_op,
@@ -25,3 +24,4 @@ byte_register_info_type ()
 	(p) += 2;
       }
 }
+/* { dg-final { cleanup-tree-dump "graphite" } } */

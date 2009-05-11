@@ -1,4 +1,3 @@
-/* { dg-options "-Os -fdump-tree-graphite-all" } */
 int blah;
 foo()
 {
