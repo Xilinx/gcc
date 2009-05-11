@@ -609,13 +609,6 @@ init_optimization_passes (void)
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
       NEXT_PASS (pass_forwprop);
-      /* Ideally the function call conditional
-	 dead code elimination phase can be delayed
-	 till later where potentially more opportunities
-	 can be found.  Due to lack of good ways to
-	 update VDEFs associated with the shrink-wrapped
-	 calls, it is better to do the transformation
-	 here where memory SSA is not built yet.  */
       NEXT_PASS (pass_call_cdce);
       /* pass_build_alias is a dummy pass that ensures that we
 	 execute TODO_rebuild_alias at this point.  Re-building
@@ -875,7 +868,7 @@ do_per_function (void (*callback) (void *data), void *data)
     {
       struct cgraph_node *node;
       for (node = cgraph_nodes; node; node = node->next)
-	if (node->analyzed)
+	if (node->analyzed && gimple_has_body_p (node->decl))
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	    current_function_decl = node->decl;
@@ -985,7 +978,6 @@ execute_function_todo (void *data)
       if (!(flags & TODO_update_address_taken))
 	execute_update_addresses_taken (true);
       compute_may_aliases ();
-      cfun->curr_properties |= PROP_alias;
     }
   
   if (flags & TODO_remove_unused_locals)

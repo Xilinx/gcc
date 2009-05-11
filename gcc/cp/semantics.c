@@ -3038,7 +3038,7 @@ finish_id_expression (tree id_expression,
     }
 
   if (TREE_DEPRECATED (decl))
-    warn_deprecated_use (decl);
+    warn_deprecated_use (decl, NULL_TREE);
 
   return decl;
 }
@@ -5048,6 +5048,25 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 
   return (trait_expr_value (kind, type1, type2)
 	  ? boolean_true_node : boolean_false_node);
+}
+
+/* Do-nothing variants of functions to handle pragma FLOAT_CONST_DECIMAL64,
+   which is ignored for C++.  */
+
+void
+set_float_const_decimal64 (void)
+{
+}
+
+void
+clear_float_const_decimal64 (void)
+{
+}
+
+bool
+float_const_decimal64_p (void)
+{
+  return 0;
 }
 
 #include "gt-cp-semantics.h"

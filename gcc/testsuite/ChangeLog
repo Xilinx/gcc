@@ -1,3 +1,202 @@
+2009-05-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40089
+	* gfortran.dg/proc_ptr_comp_7.f90: New.
+
+2009-05-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/40074
+	* gcc.dg/vect/pr40074.c: New test.
+
+2009-05-10  Ian Lance Taylor  <iant@google.com>
+
+	* gcc.dg/Wcxx-compat-7.c: New testcase.
+	* gcc.dg/Wcxx-compat-8.c: New testcase.
+	* gcc.dg/c99-tag-1.c: Recognize new "originally defined here"
+	notes
+	* gcc.dg/pr17188-1.c: Likewise.
+	* gcc.dg/pr39084.c: Likewise.
+
+2009-05-10  Michael Matz  <matz@suse.de>
+
+	PR target/40031
+	* gcc.dg/pr40031.c: New test.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40018
+	* gfortran.dg/array_constructor_31.f90: New test.
+
+2009-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40081
+	* g++.dg/torture/pr40081.C: New testcase.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* gfortran.dg/dependency_24.f90: New test.
+	* gfortran.dg/dependency_23.f90: Clean up module files.
+
+2009-05-10  David Billinghurst <billingd@gcc.gnu.org>
+
+	PR fortran/38956
+	* gfortran.dg/chmod_1.f90: Don't run on *-*-cygwin*.
+	* gfortran.dg/chmod_2.f90: Likewise.
+	* gfortran.dg/chmod_3.f90: Likewise.
+	* gfortran.dg/open_errors.f90: Likewise.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40043
+	* g++.dg/eh/nested-try.C: New test.
+
+2009-05-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR tree-optimization/40049
+	* gcc.dg/vect/vect-shift-2.c: New test.
+
+2009-05-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/torture/complex-sign-mul-minus-one.c,
+	gcc.dg/torture/complex-sign-mul-one.c: New tests.
+
+2009-05-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c/36892
+	* g++.dg/warn/deprecated-6.C: New.
+	* gcc.dg/deprecated-4.c: Likewise.
+	* gcc.dg/deprecated-5.c: Likewise.
+	* gcc.dg/deprecated-6.c: Likewise.
+
+2009-05-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/vect/no-vfa-vect-37.c: Replace __aligned__(16) with
+	__aligned__(__BIGGEST_ALIGNMENT__).
+	* gcc.dg/vect/no-vfa-vect-43.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-49.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-53.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-57.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-61.c: Likewise.
+	* gcc.dg/vect/no-vfa-vect-79.c: Likewise.
+	* gcc.dg/vect/Os-vect-95.c: Likewise.
+	* gcc.dg/vect/pr20122.c: Likewise.
+	* gcc.dg/vect/pr36493.c: Likewise.
+	* gcc.dg/vect/pr37385.c: Likewise.
+	* gcc.dg/vect/slp-7.c: Likewise.
+	* gcc.dg/vect/slp-9.c: Likewise.
+	* gcc.dg/vect/slp-widen-mult-s16.c: Likewise.
+	* gcc.dg/vect/slp-widen-mult-u8.c: Likewise.
+	* gcc.dg/vect/vect-35.c: Likewise.
+	* gcc.dg/vect/vect-40.c: Likewise.
+	* gcc.dg/vect/vect-42.c: Likewise.
+	* gcc.dg/vect/vect-44.c: Likewise.
+	* gcc.dg/vect/vect-46.c: Likewise.
+	* gcc.dg/vect/vect-48.c: Likewise.
+	* gcc.dg/vect/vect-52.c: Likewise.
+	* gcc.dg/vect/vect-54.c: Likewise.
+	* gcc.dg/vect/vect-56.c: Likewise.
+	* gcc.dg/vect/vect-58.c: Likewise.
+	* gcc.dg/vect/vect-60.c: Likewise.
+	* gcc.dg/vect/vect-74.c: Likewise.
+	* gcc.dg/vect/vect-75.c: Likewise.
+	* gcc.dg/vect/vect-76.c: Likewise.
+	* gcc.dg/vect/vect-77-alignchecks.c: Likewise.
+	* gcc.dg/vect/vect-77.c: Likewise.
+	* gcc.dg/vect/vect-77-global.c: Likewise.
+	* gcc.dg/vect/vect-78-alignchecks.c: Likewise.
+	* gcc.dg/vect/vect-78.c: Likewise.
+	* gcc.dg/vect/vect-78-global.c: Likewise.
+	* gcc.dg/vect/vect-80.c: Likewise.
+	* gcc.dg/vect/vect-85.c: Likewise.
+	* gcc.dg/vect/vect-87.c: Likewise.
+	* gcc.dg/vect/vect-88.c: Likewise.
+	* gcc.dg/vect/vect-92.c: Likewise.
+	* gcc.dg/vect/vect-93.c: Likewise.
+	* gcc.dg/vect/vect-95.c: Likewise.
+	* gcc.dg/vect/vect-97.c: Likewise.
+	* gcc.dg/vect/vect-complex-1.c: Likewise.
+	* gcc.dg/vect/vect-complex-4.c: Likewise.
+	* gcc.dg/vect/vect-complex-5.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-10.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-11.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-12.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-13.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-14.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-15.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-16.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-17.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-3.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-6.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-7.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-8.c: Likewise.
+	* gcc.dg/vect/vect-multitypes-9.c: Likewise.
+	* gcc.dg/vect/vect-outer-1a.c: Likewise.
+	* gcc.dg/vect/vect-outer-1.c: Likewise.
+	* gcc.dg/vect/vect-outer-2a.c: Likewise.
+	* gcc.dg/vect/vect-outer-2b.c: Likewise.
+	* gcc.dg/vect/vect-outer-2.c: Likewise.
+	* gcc.dg/vect/vect-outer-2c.c: Likewise.
+	* gcc.dg/vect/vect-outer-2d.c: Likewise.
+	* gcc.dg/vect/vect-outer-3a.c: Likewise.
+	* gcc.dg/vect/vect-outer-3b.c: Likewise.
+	* gcc.dg/vect/vect-outer-3.c: Likewise.
+	* gcc.dg/vect/vect-outer-3c.c: Likewise.
+	* gcc.dg/vect/vect-outer-5.c: Likewise.
+	* gcc.dg/vect/vect-outer-6.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s16a.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s16b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8a.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-s8c.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u16a.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u16b.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u8a.c: Likewise.
+	* gcc.dg/vect/vect-reduc-dot-u8b.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-s16.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-s8.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-u16.c: Likewise.
+	* gcc.dg/vect/vect-widen-mult-u8.c: Likewise.
+	* gcc.dg/vect/wrapv-vect-reduc-dot-s8b.c: Likewise.
+
+2009-05-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/24581
+	* gcc.dg/torture/complex-sign.h: New header.
+	* gcc.dg/torture/complex-sign-add.c,
+	gcc.dg/torture/complex-sign-mixed-add.c,
+	gcc.dg/torture/complex-sign-mixed-div.c,
+	gcc.dg/torture/complex-sign-mixed-mul.c,
+	gcc.dg/torture/complex-sign-mixed-sub.c,
+	gcc.dg/torture/complex-sign-mul.c,
+	gcc.dg/torture/complex-sign-sub.c: New tests.
+
+2009-05-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39876
+	* gfortran.dg/intrinsic_3.f90: New.
+
+2009-05-07  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39037
+	* gcc.dg/Wunsuffixed-float-constants-1.c: New test.
+	* gcc.dg/cpp/pragma-float-const-decimal64-1.c: New test.
+	* gcc.dg/dfp/float-constant-double.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-1.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-2.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-3.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-4.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-5.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-6.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-7.c: New test.
+	* gcc.dg/dfp/pragma-float-const-decimal64-8.c: New test.
+	* g++.dg/cpp/pragma-float-const-decimal64-1.C: New test.
+
+2009-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40057
+	* gcc.c-torture/execute/pr40057.c: New test.
+
 2009-05-06  James E. Wilson  <wilson@codesourcery.com>
 
 	* gcc.c-torture/compile/const-high-part.c: New test.

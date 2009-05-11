@@ -848,6 +848,7 @@ decode_options (unsigned int argc, const char **argv)
 #endif
   flag_guess_branch_prob = opt1;
   flag_cprop_registers = opt1;
+  flag_forward_propagate = opt1;
   flag_if_conversion = opt1;
   flag_if_conversion2 = opt1;
   flag_ipa_pure_const = opt1;
@@ -873,7 +874,6 @@ decode_options (unsigned int argc, const char **argv)
   flag_thread_jumps = opt2;
   flag_crossjumping = opt2;
   flag_optimize_sibling_calls = opt2;
-  flag_forward_propagate = opt2;
   flag_cse_follow_jumps = opt2;
   flag_gcse = opt2;
   flag_expensive_optimizations = opt2;
@@ -960,6 +960,27 @@ decode_options (unsigned int argc, const char **argv)
 #endif
 
   handle_options (argc, argv, lang_mask);
+
+  /* Make DUMP_BASE_NAME relative to the AUX_BASE_NAME directory,
+     typically the directory to contain the object file.  */
+  if (aux_base_name && ! IS_ABSOLUTE_PATH (dump_base_name))
+    {
+      const char *aux_base;
+
+      base_of_path (aux_base_name, &aux_base);
+      if (aux_base_name != aux_base)
+	{
+	  int dir_len = aux_base - aux_base_name;
+	  char *new_dump_base_name =
+	    XNEWVEC (char, strlen(dump_base_name) + dir_len + 1);
+
+	  /* Copy directory component from AUX_BASE_NAME.  */
+	  memcpy (new_dump_base_name, aux_base_name, dir_len);
+	  /* Append existing DUMP_BASE_NAME.  */
+	  strcpy (new_dump_base_name + dir_len, dump_base_name);
+	  dump_base_name = new_dump_base_name;
+	}
+    }
 
   /* Handle related options for unit-at-a-time, toplevel-reorder, and
      section-anchors.  */

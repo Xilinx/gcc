@@ -344,6 +344,26 @@ outside_finally_tree (treemple start, gimple target)
    The eh region creation is straight-forward, but frobbing all the gotos
    and such into shape isn't.  */
 
+/* The GOTO_QUEUE is is an array of GIMPLE_GOTO and GIMPLE_RETURN
+   statements that are seen to escape this GIMPLE_TRY_FINALLY node.
+   The idea is to record a gimple statement for everything except for
+   the conditionals, which get their labels recorded. Since labels are
+   of type 'tree', we need this node to store both gimple and tree
+   objects.  REPL_STMT is the sequence used to replace the goto/return
+   statement.  CONT_STMT is used to store the statement that allows
+   the return/goto to jump to the original destination. */
+
+struct goto_queue_node
+{
+  treemple stmt;
+  gimple_seq repl_stmt;
+  gimple cont_stmt;
+  int index;
+  /* This is used when index >= 0 to indicate that stmt is a label (as
+     opposed to a goto stmt).  */
+  int is_label;
+};
+
 /* State of the world while lowering.  */
 
 struct leh_state
@@ -352,7 +372,6 @@ struct leh_state
      correspond to variables of the same name in cfun->eh, which we
      don't have easy access to.  */
   struct eh_region *cur_region;
-  struct eh_region *prev_try;
 
   /* Processing of TRY_FINALLY requires a bit more state.  This is
      split out into a separate structure so that we don't have to
@@ -378,23 +397,8 @@ struct leh_tf_state
   /* The exception region created for it.  */
   struct eh_region *region;
 
-  /* The GOTO_QUEUE is is an array of GIMPLE_GOTO and GIMPLE_RETURN statements
-     that are seen to escape this GIMPLE_TRY_FINALLY node.
-     The idea is to record a gimple statement for everything except for 
-     the conditionals, which get their labels recorded. Since labels are of
-     type 'tree', we need this node to store both gimple and tree objects.
-     REPL_STMT is the sequence used to replace the goto/return statement.
-     CONT_STMT is used to store the statement that allows the return/goto to
-     jump to the original destination. */
-  struct goto_queue_node {
-    treemple stmt;
-    gimple_seq repl_stmt;
-    gimple cont_stmt;
-    int index;
-    /* this is used when index >= 0 to indicate that stmt is a label(as
-       opposed to a goto stmt) */
-    int is_label;
-  } *goto_queue;
+  /* The goto queue.  */
+  struct goto_queue_node *goto_queue;
   size_t goto_queue_size;
   size_t goto_queue_active;
 
@@ -1566,12 +1570,11 @@ lower_try_finally (struct leh_state *state, gimple tp)
   this_tf.outer = state;
   if (using_eh_for_cleanups_p)
     this_tf.region
-      = gen_eh_region_cleanup (state->cur_region, state->prev_try);
+      = gen_eh_region_cleanup (state->cur_region);
   else
     this_tf.region = NULL;
 
   this_state.cur_region = this_tf.region;
-  this_state.prev_try = state->prev_try;
   this_state.tf = &this_tf;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval(tp));
@@ -1650,7 +1653,6 @@ lower_catch (struct leh_state *state, gimple tp)
 
   try_region = gen_eh_region_try (state->cur_region);
   this_state.cur_region = try_region;
-  this_state.prev_try = try_region;
   this_state.tf = state->tf;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval (tp));
@@ -1672,7 +1674,6 @@ lower_catch (struct leh_state *state, gimple tp)
                                           gimple_catch_types (gcatch));
 
       this_state.cur_region = catch_region;
-      this_state.prev_try = state->prev_try;
       lower_eh_constructs_1 (&this_state, gimple_catch_handler (gcatch));
 
       eh_label = create_artificial_label ();
@@ -1719,10 +1720,6 @@ lower_eh_filter (struct leh_state *state, gimple tp)
 					 gimple_eh_filter_types (inner));
   this_state = *state;
   this_state.cur_region = this_region;
-  /* For must not throw regions any cleanup regions inside it
-     can't reach outer catch regions.  */
-  if (gimple_eh_filter_must_not_throw (inner))
-    this_state.prev_try = NULL;
 
   lower_eh_constructs_1 (&this_state, gimple_try_eval (tp));
 
@@ -1759,7 +1756,7 @@ lower_cleanup (struct leh_state *state, gimple tp)
       return result;
     }
 
-  this_region = gen_eh_region_cleanup (state->cur_region, state->prev_try);
+  this_region = gen_eh_region_cleanup (state->cur_region);
   this_state = *state;
   this_state.cur_region = this_region;
 

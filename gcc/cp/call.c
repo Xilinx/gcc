@@ -342,7 +342,7 @@ build_call_a (tree function, int n, tree *argarray)
     current_function_returns_abnormally = 1;
 
   if (decl && TREE_DEPRECATED (decl))
-    warn_deprecated_use (decl);
+    warn_deprecated_use (decl, NULL_TREE);
   require_complete_eh_spec_types (fntype, decl);
 
   if (decl && DECL_CONSTRUCTOR_P (decl))
@@ -5457,7 +5457,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       /* Warn about deprecated virtual functions now, since we're about
 	 to throw away the decl.  */
       if (TREE_DEPRECATED (fn))
-	warn_deprecated_use (fn);
+	warn_deprecated_use (fn, NULL_TREE);
 
       argarray[0] = build_base_path (PLUS_EXPR, argarray[0], binfo, 1);
       if (TREE_SIDE_EFFECTS (argarray[0]))
@@ -5731,7 +5731,7 @@ name_as_c_string (tree name, tree type, bool *free_p)
   if (IDENTIFIER_CTOR_OR_DTOR_P (name))
     {
       pretty_name
-	= CONST_CAST (char *, IDENTIFIER_POINTER (constructor_name (type)));
+	= CONST_CAST (char *, identifier_to_locale (IDENTIFIER_POINTER (constructor_name (type))));
       /* For a destructor, add the '~'.  */
       if (name == complete_dtor_identifier
 	  || name == base_dtor_identifier
@@ -5745,14 +5745,14 @@ name_as_c_string (tree name, tree type, bool *free_p)
   else if (IDENTIFIER_TYPENAME_P (name))
     {
       pretty_name = concat ("operator ",
-			    type_as_string (TREE_TYPE (name),
-					    TFF_PLAIN_IDENTIFIER),
+			    type_as_string_translate (TREE_TYPE (name),
+						      TFF_PLAIN_IDENTIFIER),
 			    NULL);
       /* Remember that we need to free the memory allocated.  */
       *free_p = true;
     }
   else
-    pretty_name = CONST_CAST (char *, IDENTIFIER_POINTER (name));
+    pretty_name = CONST_CAST (char *, identifier_to_locale (IDENTIFIER_POINTER (name)));
 
   return pretty_name;
 }

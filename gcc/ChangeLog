@@ -1,7 +1,521 @@
+2009-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tree-vect-data-refs.c (vect_analyze_group_access): Use
+	HOST_WIDE_INT for gap.
+
+2009-05-11  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/40074
+	* tree-vect-data-refs.c (vect_analyze_group_access): Take gaps into
+	account in group size and step comparison.
+
+2009-05-11  Richard Guenther  <rguenther@suse.de>
+
+	* passes.c (init_optimization_passes): Strip now incorrect comment.
+	(execute_function_todo): Do not set PROP_alias.
+	* tree-pass.h (PROP_alias): Remove.
+	* tree-ssa-structalias.c (pass_build_alias): Do not provide PROP_alias.
+	* tree-if-conv.c (pass_if_conversion): Do not require PROP_alias.
+	* tree-nrv.c (pass_return_slot): Likewise.
+	* tree-object-size.c (pass_object_sizes): Likewise.
+	* tree-ssa-dom.c (pass_dominator): Likewise.
+	(pass_phi_only_cprop): Likewise.
+	* tree-ssa-dse.c (pass_dse): Likewise.
+	* tree-ssa-phiopt.c (pass_phiopt): Likewise.
+	(pass_cselim): Likewise.
+	* tree-ssa-pre.c (pass_pre): Likewise.
+	(pass_fre): Likewise.
+	* tree-ssa-reassoc.c (pass_reassoc): Likewise.
+	* tree-ssa-sink.c (pass_sink_code): Likewise.
+	* tree-stdarg.c (pass_stdarg): Likewise.
+	* tree-tailcall.c (pass_tail_calls): Likewise.
+	* tree-vrp.c (pass_vrp): Likewise.
+
+2009-05-10  Ian Lance Taylor  <iant@google.com>
+
+	* basic-block.h (enum profile_status): Break out of struct
+	control_flow_graph.
+	* cgraph.h (struct inline_summary): Break out of struct
+	cgraph_local_info.
+	* cgraphunit.c (enum cgraph_order_sort_kind): New enum, broken out
+	of struct cgraph_order_sort.
+	* combine.c (enum undo_kind): New enum, broken out of struct
+	undo.
+	* cse.c (struct branch_path): Break out of struct
+	cse_basic_block_data.
+	* except.h (enum eh_region_type): Break out of struct eh_region.
+	* gcc.c (enum add_del): Break out of struct modify_target.
+	* genrecog.c (enum decision_type): Break out of struct
+	decision_test.
+	* ggc-page.c (struct ggc_pch_ondisk): Break out of struct
+	ggc_pch_data.
+	* matrix-reorg.c (struct free_info): Break out of struct
+	matrix_info.
+	* regmove.c (enum match_use): New enum, broken out of struct
+	match.
+	* sched-int.h (enum post_call_group): New enum, broken out of
+	struct deps.
+	(struct deps_reg): Break out of struct deps.
+	* target.h (struct asm_int_op): Break out of struct gcc_target.
+	* tree-eh.c (struct goto_queue_node): Break out of struct
+	leh_tf_state.
+	* tree-inline.h (enum copy_body_cge_which): Break out of
+	copy_body_data.
+	* tree-pass.h (enum opt_pass_type): Break out of struct opt_pass.
+
+	* c-decl.c (in_struct, struct_types): New static variables.
+	(pushtag): Add loc parameter.  Change all callers.
+	(lookup_tag): Add ploc parameter.  Change all callers.
+	(check_compound_literal_type): New function.
+	(parser_xref_tag): Add loc parameter.  Change all callers.  If
+	-Wc++-compat, warn about struct/union/enum types defined within a
+	struct or union.
+	(start_struct): Add enclosing_in_struct, enclosing_struct_types,
+	and loc parameters.  Change all callers.  Change error calls to
+	error_at, using loc.  For a redefinition, if the location of the
+	original definition is known, report it.  Set in_struct and
+	struct_types.  If -Wc++-compat warn if in sizeof, typeof, or
+	alignof.
+	(finish_struct): Add new parameters enclosing_in_struct and
+	enclosing_struct_types.  Change all callers.  Set
+	C_TYPE_DEFINED_IN_STRUCT for all struct/union/enum types defined
+	in the struct.  If in a struct, add this struct to struct_types.
+	(start_enum): Add loc parameter.  Change all callers.  Use
+	error_at for errors, using loc.  For a redefinition, if the
+	location of the original definition is known, report it.  If in a
+	struct, add this enum type to struct_types.  If -Wc++-compat warn
+	if in sizeof, typeof, or alignof.
+	* c-parser.c (disable_extension_diagnostics): Disable
+	-Wc++-compat.
+	(enable_extension_diagnostics): Reenable -Wc++-compat if
+	appropriate.
+	(c_parser_enum_specifier): Get enum location for start_enum.
+	(c_parser_struct_or_union_specifier): Get struct location for
+	start_struct.  Save in_struct and struct_types status between
+	start_struct and finish_struct.
+	(c_parser_cast_expression): Get location of cast.
+	(c_parser_alignof_expression): Get location of type.
+	(c_parser_postfix_expression): Likewise.
+	(c_parser_postfix_expression_after_paren_type): Add type_loc
+	parameter.  Change all callers.  Call
+	check_compound_literal_type.  Use type_loc for error about
+	variable size type.
+	* c-typeck.c (build_external_ref): If -Wc++-compat, warn about a
+	use of an enum constant from an enum type defined in a struct or
+	union.
+	(c_cast_expr): Add loc parameter.  Change all callers.  If
+	-Wc++-compat, warn about defining a type in a cast.
+	* c-tree.h (C_TYPE_DEFINED_IN_STRUCT): Define.
+	(start_enum, start_struct, finish_struct): Update declarations.
+	(parser_xref_tag, c_cast_expr): Update declarations.
+	(check_compound_literal_type): Declare.
+
+2009-05-11  Ben Elliston  <bje@au.ibm.com>
+
+	* config/rs6000/rs6000-c.c (altivec_categorize_keyword): Update
+	for recent libcpp interface change.
+	(rs6000_macro_to_expand): Likewise.
+
+2009-05-10  Michael Matz  <matz@suse.de>
+
+	PR target/40031
+	* config/arm/arm.c (require_pic_register): Emit on entry edge,
+	not at entry of function.
+
+2009-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40081
+	Revert
+	* tree-sra.c (instantiate_element): Instantiate scalar replacements
+	using the main variant of the element type.  Do not fiddle with
+	TREE_THIS_VOLATILE or TREE_SIDE_EFFECTS.
+
+	* tree-sra.c (sra_type_can_be_decomposed_p): Do not decompose
+	structs with volatile fields.
+
+2009-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* tree-inline.c (delete_unreachable_blocks_update_callgraph): Declare.
+	(estimate_move_cost): Assert that it does not get called for VOID_TYPE_P.
+	(estimate_num_insns): Skip VOID types in argument handling.
+	(optimize_inline_calls): Delete unreachable blocks and verify that
+	callgraph is valid.
+
+2009-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (record_reference): Use cgraph_mark_address_taken_node.
+	* cgraph.c (cgraph_mark_address_taken_node): New function.
+	(dump_cgraph_node): Dump new flag.
+	* cgraph.h (struct cgraph_node): Add address_taken.
+	(cgraph_mark_address_taken_node): New function.
+	* ipa.c (cgraph_postorder): Prioritize functions with address taken
+	since new direct calls can be born.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* c-lex.c (c_lex_with_flags): Expect cpp_hashnode in
+	tok->val.node.node.
+
+2009-05-10  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40084
+	* cgraph.c (cgraph_update_edges_for_call_stmt_node): Take old_call
+	argument; rewrite.
+	(cgraph_update_edges_for_call_stmt): Take old_decl argument.
+	* cgraph.h (cgraph_update_edges_for_call_stmt): Update prototype.
+	* tree-inline.c (copy_bb): Set frequency correctly.
+	(fold_marked_statements): Update call to
+	cgraph_update_edges_for_call_stmt.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arc/arc.c (arc_handle_interrupt_attribute): Use %qE for
+	identifiers in diagnostics.
+	* config/arm/arm.c (arm_handle_fndecl_attribute,
+	arm_handle_isr_attribute): Likewise.
+	* config/avr/avr.c (avr_handle_progmem_attribute,
+	avr_handle_fndecl_attribute, avr_handle_fntype_attribute):
+	Likewise.
+	* config/bfin/bfin.c (handle_int_attribute,
+	bfin_handle_longcall_attribute, bfin_handle_l1_text_attribute,
+	bfin_handle_l1_data_attribute, bfin_handle_longcall_attribute,
+	bfin_handle_l1_text_attribute, bfin_handle_l1_data_attribute):
+	Likewise.
+	* config/darwin.c (darwin_handle_kext_attribute,
+	darwin_handle_weak_import_attribute): Likewise.
+	* config/h8300/h8300.c (h8300_handle_fndecl_attribute,
+	h8300_handle_eightbit_data_attribute,
+	h8300_handle_tiny_data_attribute): Likewise.
+	* config/i386/i386.c (ix86_handle_cconv_attribute,
+	ix86_handle_abi_attribute, ix86_handle_struct_attribute):
+	Likewise.
+	* config/i386/winnt.c (ix86_handle_shared_attribute,
+	ix86_handle_selectany_attribute): Likewise.
+	* config/ia64/ia64.c (ia64_handle_model_attribute): Likewise.
+	* config/m32c/m32c.c (function_vector_handler): Likewise.
+	* config/m68hc11/m68hc11.c (m68hc11_handle_page0_attribute,
+	m68hc11_handle_fntype_attribute): Likewise.
+	* config/m68k/m68k.c (m68k_handle_fndecl_attribute): Likewise.
+	* config/mcore/mcore.c (mcore_handle_naked_attribute): Likewise.
+	* config/mips/mips.c (mips_insert_attributes,
+	mips_merge_decl_attributes, mips_expand_builtin): Likewise.
+	* config/rs6000/rs6000.c (rs6000_handle_longcall_attribute,
+	rs6000_handle_struct_attribute): Likewise.
+	* config/sh/sh.c (sh_insert_attributes,
+	sh_handle_resbank_handler_attribute,
+	sh_handle_interrupt_handler_attribute,
+	sh2a_handle_function_vector_handler_attribute,
+	sh_handle_sp_switch_attribute, sh_handle_trap_exit_attribute):
+	Likewise.
+	* config/sh/symbian.c (sh_symbian_mark_dllimport): Likewise.
+	* config/spu/spu.c (spu_handle_fndecl_attribute,
+	spu_handle_vector_attribute): Likewise.
+	* config/stormy16/stormy16.c
+	(xstormy16_handle_interrupt_attribute): Likewise.
+	* config/v850/v850-c.c (ghs_pragma_section): Likewise.
+	* config/v850/v850.c (v850_handle_interrupt_attribute): Likewise.
+
+2009-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* pretty-print.h (struct pretty_print_info): Add
+	translate_identifiers.
+	(pp_translate_identifiers): New.
+	(pp_identifier): Only conditionally translate identifier to locale
+	character set.
+	* pretty-print.c (pp_construct): Set pp_translate_identifiers.
+	(pp_base_tree_identifier): Only conditionally translate identifier
+	to locale character set.
+	* c-pretty-print.c (M_): Define.
+	(pp_c_type_specifier, pp_c_primary_expression): Mark English
+	fragments for conditional translation with M_.
+	* tree-pretty-print.c (maybe_init_pretty_print): Disable
+	identifier translation.
+
+2009-05-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40081
+	* tree-sra.c (instantiate_element): Instantiate scalar replacements
+	using the main variant of the element type.  Do not fiddle with
+	TREE_THIS_VOLATILE or TREE_SIDE_EFFECTS.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40080
+	* cgraphunit.c (cgraph_materialize_all_clones): Do not redirect
+	indirect calls; verify cgraph afterwards.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	PR bootstrap/40082
+	* ipa.c (update_inlined_to_pointer): New function.
+	(cgraph_remove_unreachable_nodes): Use it.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	* tree-eh.c (struct leh_state): Remove prev_try.
+	(lower_try_finally, lower_catch, lower_eh_filter, lower_cleanup): Do
+	not track prev_try.
+	* except.c (gen_eh_region_cleanup, duplicate_eh_regions, 
+	copy_eh_region_1, copy_eh_region, redirect_eh_edge_to_label,
+	remove_eh_handler_and_replace, foreach_reachable_handler,
+	verify_eh_region, verify_eh_tree): Remove tracking of prev_try pointer.
+	* except.h (struct eh_region): Remove eh_region_u_cleanup.
+	(gen_eh_region_cleanup): Update prototype.
+
+2009-05-09  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/40043
+	* except.c (copy_eh_region): Always set prev_try.
+	(redirect_eh_edge_to_label): Find outer try.
+	(foreach_reachable_handler): When looking for prev try
+	handle case where previous try is not going to be taken.
+
+2009-05-07  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR tree-optimization/40049
+	* tree-vect-stmts.c (vectorizable_operation): If the machine has
+	only vector/vector shifts, convert the type of the constant to the
+	appropriate type to avoid building incorrect trees, which
+	eventually have problems with garbage collection.
+
+2009-05-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* fold-const.c (fold_binary): Do not fold multiplication by 1 or
+	-1 for complex floating-point types if honoring signed zeros.
+
+2009-05-08  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (compute_call_stmt_bb_frequency): Accept function
+	argument; handle correctly when profile is absent.
+	(build_cgraph_edges): Update.
+	(rebuild_cgraph_edges): Update.
+	* cgraph.c: Do not include varray.h.
+	(cgraph_set_call_stmt_including_clones): New function.
+	(cgraph_create_edge_including_clones): Likewise
+	(cgraph_update_edges_for_call_stmt_node): New static cfunction.
+	(cgraph_update_edges_for_call_stmt): Handle clones.
+	(cgraph_remove_node): Handle clone tree.
+	(cgraph_remove_node_and_inline_clones): New function.
+	(dump_cgraph_node): Dump clone tree.
+	(cgraph_clone_node): Handle clone tree.
+	(clone_function_name): Bring here from tree-inline.c.
+	(cgraph_create_virtual_clone): New function.
+	* cgraph.h (ipa_replace_map): Move here from ipa.h.
+	(cgraph_clone_info): New function.
+	(strut cgraph_node): Add clone_info and new clone tree pointers.
+	(cgraph_remove_node_and_inline_clones,
+	cgraph_set_call_stmt_including_clones,
+	cgraph_create_edge_including_clones,
+	cgraph_create_virtual_clone): Declare.
+	(cgraph_function_versioning): Use VEC argument.
+	(compute_call_stmt_bb_frequency): Update prototype.
+	(cgraph_materialize_all_clones): New function.
+	* ipa-cp.c (ipcp_update_cloned_node): Remove.
+	(ipcp_create_replace_map): Update to VECtors.
+	(ipcp_update_callgraph): Use virtual clones.
+	(ipcp_update_bb_counts, ipcp_update_edges_counts): Remove.
+	(ipcp_update_profiling): Do not update local profiling.
+	(ipcp_insert_stage): Use VECtors and virtual clones.
+	* cgraphunit.c (verify_cgraph_node): Verify clone tree.
+	(clone_of_p): New function.
+	(cgraph_preserve_function_body_p): Use clone tree.
+	(cgraph_optimize): Materialize clones.
+	(cgraph_function_versioning): Update for VECtors.
+	(save_inline_function_body): Use clone tree.
+	(cgraph_materialize_clone): New function.
+	(cgraph_materialize_all_clones): Likewise.
+	* ipa-inline.c (cgraph_default_inline_p): Use analyzed flags.
+	* ipa.c: Include gimple.h.
+	(cgraph_remove_unreachable_nodes): Use clone tree.
+	* ipa-prop.c (ipa_note_param_call): Update call to
+	compute_call_stmt_bb_frequencycall.
+	* ipa-prop.h (ipa_replace_map): Move to cgraph.h.
+	* tree-inline.c: Do not include varray.h or gt-tree-inline.h.
+	(copy_bb): Handle updating of clone tree; add new edge when new call
+	appears.
+	(expand_call_inline): Be strict about every call having edge.
+	(clone_fn_id_num, clone_function_name): Move to cgraph.c.
+	(delete_unreachable_blocks_update_callgraph): New function.
+	(tree_function_versioning): Use VECtors; always remove unreachable
+	blocks and fold conditionals.
+	* tree-inline.h: Do not include varray.h.
+	(tree_function_versioning): Remove.
+	* Makefile.in (GTFILES): Remove tree-inline.c
+	* passes.c (do_per_function): Do only functions having body.
+	* ipa-struct-reorg.c (do_reorg_1, collect_data_accesses): Handle clone
+	tree.
+
+2009-05-08  H.J. Lu  <hongjiu.lu@intel.com>
+	    Andrew Morrow  <acm@google.com>
+
+	PR c/36892
+	* c-common.c (c_common_attribute_table): Permit deprecated
+	attribute to take an optional argument.
+	(handle_deprecated_attribute): If the optional argument to
+	__attribute__((deprecated)) is not a string ignore the attribute
+	and emit a warning.
+
+	* c-decl.c (grokdeclarator): Updated warn_deprecated_use call.
+	* c-typeck.c (build_component_ref): Likewise.
+	(build_external_ref): Likewise.
+
+	* toplev.c (warn_deprecated_use): Add an attribute argument.
+	Emit the message associated with __attribute__((deprecated)).
+
+	* toplev.h (warn_deprecated_use): Updated.
+
+	* doc/extend.texi: Document new optional parameter to
+	__attribute__((deprecated))
+
+2009-05-08  Michael Eager <eager@eagercon.com>
+
+	* config/rs6000/rs6000.md (*movdf_softfloat32): replace
+	!TARGET_DOUBLE_FLOAT with TARGET_SINGLE_FLOAT.
+
+2009-05-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40062
+	* tree-scalar-evolution.c (follow_ssa_edge_in_condition_phi):
+	Avoid exponential behavior.
+
+2009-05-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/33928
+	PR 26854
+	* fwprop.c (use_def_ref, get_def_for_use, bitmap_only_bit_bitween,
+	process_uses, build_single_def_use_links): New.
+	(update_df): Update use_def_ref.
+	(forward_propagate_into): Use get_def_for_use instead of use-def
+	chains.
+	(fwprop_init): Call build_single_def_use_links and let it initialize
+	dataflow.
+	(fwprop_done): Free use_def_ref.
+	(fwprop_addr): Eliminate duplicate call to df_set_flags.
+	* df-problems.c (df_rd_simulate_artificial_defs_at_top, 
+	df_rd_simulate_one_insn): New.
+	(df_rd_bb_local_compute_process_def): Update head comment.
+	(df_chain_create_bb): Use the new RD simulation functions.
+	* df.h (df_rd_simulate_artificial_defs_at_top, 
+	df_rd_simulate_one_insn): New.
+	* opts.c (decode_options): Enable fwprop at -O1.
+	* doc/invoke.texi (-fforward-propagate): Document this.
+
+2009-05-08  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/24581
+	* c-typeck.c (build_binary_op): Handle arithmetic between one real
+	and one complex operand specially.
+	* tree-complex.c (some_nonzerop): Do not identify a real value as
+	zero if flag_signed_zeros.
+
+2009-05-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/33928
+	* loop-invariant.c (record_use): Fix && vs. || mishap.
+
+2009-05-08  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR rtl-optimization/33928
+	* loop-invariant.c (struct use): Add addr_use_p.
+	(struct def): Add n_addr_uses.
+	(struct invariant): Add cheap_address.
+	(create_new_invariant): Set cheap_address.
+	(record_use): Accept df_ref.  Set addr_use_p and update n_addr_uses.
+	(record_uses): Pass df_ref to record_use.
+	(get_inv_cost): Do not add inv->cost to comp_cost for cheap addresses
+	used only as such.
+
+2009-05-08  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c: Do not include c-pragma.h.
+
+2009-05-07  Andrew Pinski  <andrew_pinski@playstation.sony.com>
+
+	* config/spu/spu.c: Remove include of c-common.h.
+
+2009-05-07  Janis Johnson  <janis187@us.ibm.com>
+
+	PR c/39037
+	* c-common.h (mark_valid_location_for_stdc_pragma,
+	valid_location_for_stdc_pragma_p, set_float_const_decimal64,
+	clear_float_const_decimal64, float_const_decimal64_p): New.
+	* c.opt (Wunsuffixed-float-constants): New.
+	* c-lex.c (interpret_float): Use pragma FLOAT_CONST_DECIMAL64 for
+	unsuffixed float constant, handle new warning.
+	* c-cppbuiltin.c (c_cpp_builtins): Use cast for double constants.
+	* c-decl.c (c_scope): New flag float_const_decimal64.
+	(set_float_const_decimal64, clear_float_const_decimal64,
+	float_const_decimal64_p): New.
+	(push_scope): Set new flag.
+	* c-parser.c (c_parser_translation_unit): Mark when it's valid
+	to use STDC pragmas.
+	(c_parser_external_declaration): Ditto.
+	(c_parser_compound_statement_nostart): Ditto.
+	* c-pragma.c (valid_location_for_stdc_pragma,
+	mark_valid_location_for_stdc_pragma,
+	valid_location_for_stdc_pragma_p, handle_stdc_pragma,
+	handle_pragma_float_const_decimal64): New.
+	(init_pragma): Register new pragma FLOAT_CONST_DECIMAL64.
+	* cp/semantics.c (valid_location_for_stdc_pragma_p,
+	set_float_const_decimal64, clear_float_const_decimal64,
+	float_const_decimal64_p): New dummy functions.
+	* doc/extend.texi (Decimal Float): Remove statement that the
+	pragma, and suffix for double constants, are not supported.
+	* doc/invoke.texi (Warning Options): List new option.
+	(-Wunsuffixed-float-constants): New.
+
+2009-05-08  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/i386/i386.c: Do not include c-common.h.
+
+2009-05-07  Mark Heffernan  <meheff@google.com>
+
+	* doc/invoke.texi (Debugging Options): Document change of debugging
+	dump location.
+	* opts.c (decode_options): Make dump_base_name relative to
+	aux_base_name directory.
+
+2009-05-07  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.h (NO_DOLLAR_IN_LABEL): Added.
+	* config/picochip/libgccExtras/divmod15.asm : Removed redefiniton.
+
+2009-05-07  Rafael Avila de Espindola  <espindola@google.com>
+
+	* Makefile.in (install-plugin): Simplify a bit.
+
+2009-05-07  Paolo Bonzini  <bonzini@gnu.org>
+
+	* Makefile.in (OBJS-common): Add regcprop.o.
+	(regcprop.o): New.
+	* timevar.def (TV_CPROP_REGISTERS): New.
+	* regrename.c (regrename_optimize): Return 0.
+	(rest_of_handle_regrename): Delete.
+	(pass_rename_registers): Point to regrename_optimize.
+	(struct value_data_entry, struct value_data, 
+	kill_value_one_regno, kill_value_regno, kill_value,
+	set_value_regno, init_value_data, kill_clobbered_value,
+	kill_set_value, kill_autoinc_value, copy_value,
+	mode_change_ok, maybe_mode_change, find_oldest_value_reg,
+	replace_oldest_value_reg, replace_oldest_value_addr,
+	replace_oldest_value_mem, copyprop_hardreg_forward_1,
+	debug_value_data, validate_value_data): Move...
+	* regcprop.c: ... here.
+	(rest_of_handle_cprop): Delete.
+	(pass_cprop_hardreg): Point to copyprop_hardreg_forward.
+
+2009-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/40057
+	* dojump.c (prefer_and_bit_test): Use immed_double_const instead of
+	GEN_INT for 1 << bitnum.
+	(do_jump) <case BIT_AND_EXPR>: Use build_int_cst_wide_type instead of
+	build_int_cst_type.
+
 2009-05-07  Uros Bizjak  <ubizjak@gmail.com>
 
 	* doc/md.texi (Standard Pattern Names For Generation) [sync_nand]:
-	Remove wrong description of "nand" functionality.
+	Remove wrong description of "nand" operation.
 
 2009-05-06  Richard Guenther  <rguenther@suse.de>
 	    Adam Nemet  <anemet@caviumnetworks.com>
@@ -217,7 +731,7 @@
 
 2009-05-04  Paolo Bonzini  <bonzini@gnu.org>
 
- 	* doc/tm.texi (LEGITIMIZE_ADDRESS): Revise documentation.
+	* doc/tm.texi (LEGITIMIZE_ADDRESS): Revise documentation.
 	* gcc/defaults.h (LEGITIMIZE_ADDRESS): Delete.
 	* gcc/explow.c (memory_address): Use target hook.
 	* gcc/targhooks.c (default_legitimize_address): New.

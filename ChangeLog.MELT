@@ -1,6 +1,9 @@
 
+2009-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk r147379
+
 2009-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
-	MELT branch merged with trunk r147228 
+	MELT branch merged with trunk r147228
 
 2009-05-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* configure.ac: check for PPL version 0.10 or better since future

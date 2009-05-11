@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "tree-pass.h"
 #include "timevar.h"
+#include "gimple.h"
 #include "ggc.h"
 
 /* Fill array order with all nodes with output flag set in the reverse
@@ -37,6 +38,7 @@ cgraph_postorder (struct cgraph_node **order)
   int stack_size = 0;
   int order_pos = 0;
   struct cgraph_edge *edge, last;
+  int pass;
 
   struct cgraph_node **stack =
     XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
@@ -47,48 +49,65 @@ cgraph_postorder (struct cgraph_node **order)
      right through inline functions.  */
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = NULL;
-  for (node = cgraph_nodes; node; node = node->next)
-    if (!node->aux)
-      {
-	node2 = node;
-	if (!node->callers)
-	  node->aux = &last;
-	else
-	  node->aux = node->callers;
-	while (node2)
-	  {
-	    while (node2->aux != &last)
-	      {
-		edge = (struct cgraph_edge *) node2->aux;
-		if (edge->next_caller)
-		  node2->aux = edge->next_caller;
-		else
-		  node2->aux = &last;
-		if (!edge->caller->aux)
-		  {
-		    if (!edge->caller->callers)
-		      edge->caller->aux = &last;
-		    else
-		      edge->caller->aux = edge->caller->callers;
-		    stack[stack_size++] = node2;
-		    node2 = edge->caller;
-		    break;
-		  }
-	      }
-	    if (node2->aux == &last)
-	      {
-		order[order_pos++] = node2;
-		if (stack_size)
-		  node2 = stack[--stack_size];
-		else
-		  node2 = NULL;
-	      }
-	  }
-      }
+  for (pass = 0; pass < 2; pass++)
+    for (node = cgraph_nodes; node; node = node->next)
+      if (!node->aux
+	  && (pass || (node->needed && !node->address_taken)))
+	{
+	  node2 = node;
+	  if (!node->callers)
+	    node->aux = &last;
+	  else
+	    node->aux = node->callers;
+	  while (node2)
+	    {
+	      while (node2->aux != &last)
+		{
+		  edge = (struct cgraph_edge *) node2->aux;
+		  if (edge->next_caller)
+		    node2->aux = edge->next_caller;
+		  else
+		    node2->aux = &last;
+		  if (!edge->caller->aux)
+		    {
+		      if (!edge->caller->callers)
+			edge->caller->aux = &last;
+		      else
+			edge->caller->aux = edge->caller->callers;
+		      stack[stack_size++] = node2;
+		      node2 = edge->caller;
+		      break;
+		    }
+		}
+	      if (node2->aux == &last)
+		{
+		  order[order_pos++] = node2;
+		  if (stack_size)
+		    node2 = stack[--stack_size];
+		  else
+		    node2 = NULL;
+		}
+	    }
+	}
   free (stack);
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = NULL;
   return order_pos;
+}
+
+/* Look for all functions inlined to NODE and update their inlined_to pointers
+   to INLINED_TO.  */
+
+static void
+update_inlined_to_pointer (struct cgraph_node *node, struct cgraph_node *inlined_to)
+{
+  struct cgraph_edge *e;
+  for (e = node->callees; e; e = e->next_callee)
+    if (e->callee->global.inlined_to)
+      {
+        e->callee->global.inlined_to = inlined_to;
+	update_inlined_to_pointer (e->callee, inlined_to);
+      }
 }
 
 /* Perform reachability analysis and reclaim all unreachable nodes.
@@ -143,6 +162,12 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	    e->callee->aux = first;
 	    first = e->callee;
 	  }
+      while (node->clone_of && !node->clone_of->aux && !gimple_has_body_p (node->decl))
+        {
+	  node = node->clone_of;
+	  node->aux = first;
+	  first = node;
+	}
     }
 
   /* Remove unreachable nodes.  Extern inline functions need special care;
@@ -168,25 +193,29 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	    {
 	      struct cgraph_edge *e;
 
+	      /* See if there is reachable caller.  */
 	      for (e = node->callers; e; e = e->next_caller)
 		if (e->caller->aux)
 		  break;
+
+	      /* If so, we need to keep node in the callgraph.  */
 	      if (e || node->needed)
 		{
 		  struct cgraph_node *clone;
 
-		  for (clone = node->next_clone; clone;
-		       clone = clone->next_clone)
+		  /* If there are still clones, we must keep body around.
+		     Otherwise we can just remove the body but keep the clone.  */
+		  for (clone = node->clones; clone;
+		       clone = clone->next_sibling_clone)
 		    if (clone->aux)
 		      break;
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
+		      cgraph_node_remove_callees (node);
 		      node->analyzed = false;
+		      node->local.inlinable = false;
 		    }
-		  cgraph_node_remove_callees (node);
-		  node->analyzed = false;
-		  node->local.inlinable = false;
 		}
 	      else
 		cgraph_remove_node (node);
@@ -195,7 +224,19 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	}
     }
   for (node = cgraph_nodes; node; node = node->next)
-    node->aux = NULL;
+    {
+      /* Inline clones might be kept around so their materializing allows further
+         cloning.  If the function the clone is inlined into is removed, we need
+         to turn it into normal cone.  */
+      if (node->global.inlined_to
+	  && !node->callers)
+	{
+	  gcc_assert (node->clones);
+	  node->global.inlined_to = NULL;
+	  update_inlined_to_pointer (node, node);
+	}
+      node->aux = NULL;
+    }
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif

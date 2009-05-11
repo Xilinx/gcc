@@ -1,6 +1,6 @@
 /* Exception Handling interface routines.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007, 2008  Free Software Foundation, Inc.
+   2007, 2008, 2009  Free Software Foundation, Inc.
    Contributed by Mike Stump <mrs@cygnus.com>.
 
 This file is part of GCC.
@@ -24,6 +24,18 @@ along with GCC; see the file COPYING3.  If not see
 
 struct function;
 
+/* The type of an exception region.  */
+enum eh_region_type
+{
+  ERT_UNKNOWN = 0,
+  ERT_CLEANUP,
+  ERT_TRY,
+  ERT_CATCH,
+  ERT_ALLOWED_EXCEPTIONS,
+  ERT_MUST_NOT_THROW,
+  ERT_THROW
+};
+
 /* Describes one exception region.  */
 struct GTY(()) eh_region
 {
@@ -45,16 +57,7 @@ struct GTY(()) eh_region
   bitmap aka;
 
   /* Each region does exactly one thing.  */
-  enum eh_region_type
-  {
-    ERT_UNKNOWN = 0,
-    ERT_CLEANUP,
-    ERT_TRY,
-    ERT_CATCH,
-    ERT_ALLOWED_EXCEPTIONS,
-    ERT_MUST_NOT_THROW,
-    ERT_THROW
-  } type;
+  enum eh_region_type type;
 
   /* Holds the action to perform based on the preceding type.  */
   union eh_region_u {
@@ -85,12 +88,6 @@ struct GTY(()) eh_region
     struct eh_region_u_throw {
       tree type;
     } GTY ((tag ("ERT_THROW"))) eh_throw;
-
-    /* Retain the cleanup expression even after expansion so that
-       we can match up fixup regions.  */
-    struct eh_region_u_cleanup {
-      struct eh_region *prev_try;
-    } GTY ((tag ("ERT_CLEANUP"))) cleanup;
   } GTY ((desc ("%0.type"))) u;
 
   /* Entry point for this region's handler before landing pads are built.  */
@@ -185,8 +182,7 @@ extern int duplicate_eh_regions (struct function *, duplicate_eh_regions_map,
 extern void sjlj_emit_function_exit_after (rtx);
 extern void default_init_unwind_resume_libfunc (void);
 
-extern struct eh_region *gen_eh_region_cleanup (struct eh_region *,
-						struct eh_region *);
+extern struct eh_region *gen_eh_region_cleanup (struct eh_region *);
 extern struct eh_region *gen_eh_region_try (struct eh_region *);
 extern struct eh_region *gen_eh_region_catch (struct eh_region *, tree);
 extern struct eh_region *gen_eh_region_allowed (struct eh_region *, tree);

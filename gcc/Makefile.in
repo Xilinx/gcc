@@ -1204,6 +1204,7 @@ OBJS-common = \
 	real.o \
 	recog.o \
 	reg-stack.o \
+	regcprop.o \
 	reginfo.o \
 	regmove.o \
 	regrename.o \
@@ -3119,6 +3120,10 @@ cfglayout.o : cfglayout.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(DF_H)
 timevar.o : timevar.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TIMEVAR_H) $(FLAGS_H) intl.h $(TOPLEV_H) $(RTL_H) timevar.def
+regcprop.o : regcprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(RTL_H) insn-config.h $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h \
+   output.h $(RECOG_H) $(FUNCTION_H) $(OBSTACK_H) $(FLAGS_H) $(TM_P_H) \
+   addresses.h reload.h $(TOPLEV_H) $(TIMEVAR_H) $(TREE_PASS_H) $(DF_H)
 regrename.o : regrename.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) insn-config.h $(BASIC_BLOCK_H) $(REGS_H) hard-reg-set.h \
    output.h $(RECOG_H) $(FUNCTION_H) $(OBSTACK_H) $(FLAGS_H) $(TM_P_H) \
@@ -3407,7 +3412,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-propagate.c \
   $(srcdir)/tree-phinodes.c \
   $(srcdir)/ipa-reference.c \
-  $(srcdir)/tree-ssa-structalias.c $(srcdir)/tree-inline.c \
+  $(srcdir)/tree-ssa-structalias.c \
   $(srcdir)/tree-ssa-alias.h \
   $(COMPILER_PROBE_C) \
   $(BASILYS_C) \
@@ -4092,6 +4097,7 @@ install-plugin: installdirs
 # other files are flattened to a single directory.
 	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
 	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\n' | sort -u`; \
+	srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
 	for file in $$headers; do \
 	  if [ -f $$file ] ; then \
 	    path=$$file; \
@@ -4100,8 +4106,7 @@ install-plugin: installdirs
 	  else continue; \
 	  fi; \
 	  case $$path in \
-	  "$(srcdir)"*/config/* | "$(srcdir)"/*.def ) \
-	    srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
+	  "$(srcdir)"/config/* | "$(srcdir)"/*.def ) \
 	    base=`echo "$$path" | sed -e "s|$$srcdirstrip/||"`;; \
 	  *) base=`basename $$path` ;; \
 	  esac; \

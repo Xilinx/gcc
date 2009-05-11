@@ -1,3 +1,72 @@
+2009-05-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/40089
+	* resolve.c (resolve_fl_derived): Only return FAILURE if
+	gfc_notify_std fails.
+
+2009-05-10  Ian Lance Taylor  <iant@google.com>
+
+	* gfortran.h (enum gfc_omp_sched_kind): New enum, broken out of
+	gfc_omp_clauses.
+	(enum gfc_omp_default_sharing): Likewise.
+	* module.c (enum gfc_rsym_state): New enum, broken out of
+	pointer_info.
+	(enum gfc_wsym_state): Likewise.
+	* parse.c (enum state_order): New enum, broken out of st_state.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/40018
+	* trans-array.c (gfc_trans_array_constructor_value): Fold
+	convert numeric constants.
+	(gfc_build_constant_array_constructor): The same.
+
+2009-05-10  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/38863
+	* trans-expr.c (gfc_conv_operator_assign): Remove function.
+	* trans.h : Remove prototype for gfc_conv_operator_assign.
+	* trans-stmt.c (gfc_conv_elemental_dependencies): Initialize
+	derivde types with intent(out).
+	(gfc_trans_call): Add mask, count1 and invert arguments. Add
+	code to use mask for WHERE assignments.
+	(gfc_trans_forall_1): Use new arguments for gfc_trans_call.
+	(gfc_trans_where_assign): The gfc_symbol argument is replaced
+	by the corresponding code. If this has a resolved_sym, then
+	gfc_trans_call is called. The call to gfc_conv_operator_assign
+	is removed.
+	(gfc_trans_where_2): Change the last argument in the call to
+	gfc_trans_where_assign.
+	* trans-stmt.h : Modify prototype for gfc_trans_call.
+	* trans.c (gfc_trans_code): Use new args for gfc_trans_call.
+
+2009-05-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/39876
+	* intrinsic.c (gfc_is_intrinsic): Do not add the EXTERNAL attribute if
+	the symbol is a module procedure.
+
+2009-05-08  Tobias Burnus  <burnus@net-b.de>
+
+	* invoke.texi: Add do/recursion to the -fcheck= summary.
+
+2009-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/38830
+	* gfortran.texi: Document that we don't support variable FORMAT
+	expressions.
+
+2009-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/39576
+	* error.c (error_print): Add missing break statement.
+
+2009-05-07  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36382
+	* invoke.texi: Document that -fdollar-ok does not allow $ to be
+	used in IMPLICIT statement.
+
 2009-05-06  Janus Weil  <janus@gcc.gnu.org>
 	    Paul Thomas  <pault@gcc.gnu.org>
 

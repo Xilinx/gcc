@@ -820,12 +820,14 @@ disable_extension_diagnostics (void)
 	     | (warn_pointer_arith << 1)
 	     | (warn_traditional << 2)
 	     | (flag_iso << 3)
-	     | (warn_long_long << 4));
+	     | (warn_long_long << 4)
+	     | (warn_cxx_compat << 5));
   cpp_opts->pedantic = pedantic = 0;
   warn_pointer_arith = 0;
   cpp_opts->warn_traditional = warn_traditional = 0;
   flag_iso = 0;
   cpp_opts->warn_long_long = warn_long_long = 0;
+  warn_cxx_compat = 0;
   return ret;
 }
 
@@ -840,6 +842,7 @@ restore_extension_diagnostics (int flags)
   cpp_opts->warn_traditional = warn_traditional = (flags >> 2) & 1;
   flag_iso = (flags >> 3) & 1;
   cpp_opts->warn_long_long = warn_long_long = (flags >> 4) & 1;
+  warn_cxx_compat = (flags >> 5) & 1;
 }
 
 /* Possibly kinds of declarator to parse.  */
@@ -910,7 +913,8 @@ static struct c_expr c_parser_sizeof_expression (c_parser *);
 static struct c_expr c_parser_alignof_expression (c_parser *);
 static struct c_expr c_parser_postfix_expression (c_parser *);
 static struct c_expr c_parser_postfix_expression_after_paren_type (c_parser *,
-								   struct c_type_name *);
+								   struct c_type_name *,
+								   location_t);
 static struct c_expr c_parser_postfix_expression_after_primary (c_parser *,
 								struct c_expr);
 static struct c_expr c_parser_expression (c_parser *);
@@ -976,6 +980,7 @@ c_parser_translation_unit (c_parser *parser)
   else
     {
       void *obstack_position = obstack_alloc (&parser_obstack, 0);
+      mark_valid_location_for_stdc_pragma (false);
       do
 	{
 	  ggc_collect ();
@@ -1060,7 +1065,9 @@ c_parser_external_declaration (c_parser *parser)
       c_parser_consume_token (parser);
       break;
     case CPP_PRAGMA:
+      mark_valid_location_for_stdc_pragma (true);
       c_parser_pragma (parser, pragma_external);
+      mark_valid_location_for_stdc_pragma (false);
       break;
     case CPP_PLUS:
     case CPP_MINUS:
@@ -1617,8 +1624,10 @@ c_parser_enum_specifier (c_parser *parser)
   struct c_typespec ret;
   tree attrs;
   tree ident = NULL_TREE;
+  location_t enum_loc;
   location_t ident_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ENUM));
+  enum_loc = c_parser_peek_token (parser)->location;
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
   /* Set the location in case we create a decl now.  */
@@ -1627,13 +1636,14 @@ c_parser_enum_specifier (c_parser *parser)
     {
       ident = c_parser_peek_token (parser)->value;
       ident_loc = c_parser_peek_token (parser)->location;
+      enum_loc = ident_loc;
       c_parser_consume_token (parser);
     }
   if (c_parser_next_token_is (parser, CPP_OPEN_BRACE))
     {
       /* Parse an enum definition.  */
       struct c_enum_contents the_enum;
-      tree type = start_enum (&the_enum, ident);
+      tree type = start_enum (&the_enum, ident, enum_loc);
       tree postfix_attrs;
       /* We chain the enumerators in reverse order, then put them in
 	 forward order at the end.  */
@@ -1712,7 +1722,7 @@ c_parser_enum_specifier (c_parser *parser)
       ret.expr_const_operands = true;
       return ret;
     }
-  ret = parser_xref_tag (ENUMERAL_TYPE, ident);
+  ret = parser_xref_tag (ENUMERAL_TYPE, ident, ident_loc);
   /* In ISO C, enumerated types can be referred to only if already
      defined.  */
   if (pedantic && !COMPLETE_TYPE_P (ret.spec))
@@ -1769,6 +1779,8 @@ c_parser_struct_or_union_specifier (c_parser *parser)
   struct c_typespec ret;
   tree attrs;
   tree ident = NULL_TREE;
+  location_t struct_loc;
+  location_t ident_loc = UNKNOWN_LOCATION;
   enum tree_code code;
   switch (c_parser_peek_token (parser)->keyword)
     {
@@ -1781,6 +1793,7 @@ c_parser_struct_or_union_specifier (c_parser *parser)
     default:
       gcc_unreachable ();
     }
+  struct_loc = c_parser_peek_token (parser)->location;
   c_parser_consume_token (parser);
   attrs = c_parser_attributes (parser);
   /* Set the location in case we create a decl now.  */
@@ -1788,13 +1801,18 @@ c_parser_struct_or_union_specifier (c_parser *parser)
   if (c_parser_next_token_is (parser, CPP_NAME))
     {
       ident = c_parser_peek_token (parser)->value;
+      ident_loc = c_parser_peek_token (parser)->location;
+      struct_loc = ident_loc;
       c_parser_consume_token (parser);
     }
   if (c_parser_next_token_is (parser, CPP_OPEN_BRACE))
     {
       /* Parse a struct or union definition.  Start the scope of the
 	 tag before parsing components.  */
-      tree type = start_struct (code, ident);
+      bool in_struct;
+      VEC(tree,heap) *struct_types;
+      tree type = start_struct (code, ident, &in_struct, &struct_types,
+				struct_loc);
       tree postfix_attrs;
       /* We chain the components in reverse order, then put them in
 	 forward order at the end.  Each struct-declaration may
@@ -1884,7 +1902,8 @@ c_parser_struct_or_union_specifier (c_parser *parser)
 	}
       postfix_attrs = c_parser_attributes (parser);
       ret.spec = finish_struct (type, nreverse (contents),
-				chainon (attrs, postfix_attrs));
+				chainon (attrs, postfix_attrs),
+				in_struct, struct_types);
       ret.kind = ctsk_tagdef;
       ret.expr = NULL_TREE;
       ret.expr_const_operands = true;
@@ -1899,7 +1918,7 @@ c_parser_struct_or_union_specifier (c_parser *parser)
       ret.expr_const_operands = true;
       return ret;
     }
-  ret = parser_xref_tag (code, ident);
+  ret = parser_xref_tag (code, ident, ident_loc);
   return ret;
 }
 
@@ -3350,17 +3369,20 @@ c_parser_compound_statement_nostart (c_parser *parser)
 {
   bool last_stmt = false;
   bool last_label = false;
+  bool save_valid_for_pragma = valid_location_for_stdc_pragma_p ();
   location_t label_loc = UNKNOWN_LOCATION;  /* Quiet warning.  */
   if (c_parser_next_token_is (parser, CPP_CLOSE_BRACE))
     {
       c_parser_consume_token (parser);
       return;
     }
+  mark_valid_location_for_stdc_pragma (true);
   if (c_parser_next_token_is_keyword (parser, RID_LABEL))
     {
       location_t err_loc = c_parser_peek_token (parser)->location;
       /* Read zero or more forward-declarations for labels that nested
 	 functions can jump to.  */
+      mark_valid_location_for_stdc_pragma (false);
       while (c_parser_next_token_is_keyword (parser, RID_LABEL))
 	{
 	  c_parser_consume_token (parser);
@@ -3391,6 +3413,7 @@ c_parser_compound_statement_nostart (c_parser *parser)
   /* We must now have at least one statement, label or declaration.  */
   if (c_parser_next_token_is (parser, CPP_CLOSE_BRACE))
     {
+      mark_valid_location_for_stdc_pragma (save_valid_for_pragma);
       c_parser_error (parser, "expected declaration or statement");
       c_parser_consume_token (parser);
       return;
@@ -3409,12 +3432,14 @@ c_parser_compound_statement_nostart (c_parser *parser)
 	    label_loc = c_parser_peek_token (parser)->location;
 	  last_label = true;
 	  last_stmt = false;
+	  mark_valid_location_for_stdc_pragma (false);
 	  c_parser_label (parser);
 	}
       else if (!last_label
 	       && c_parser_next_token_starts_declspecs (parser))
 	{
 	  last_label = false;
+	  mark_valid_location_for_stdc_pragma (false);
 	  c_parser_declaration_or_fndef (parser, true, true, true, true);
 	  if (last_stmt)
 	    pedwarn_c90 (loc, 
@@ -3441,6 +3466,7 @@ c_parser_compound_statement_nostart (c_parser *parser)
 	      ext = disable_extension_diagnostics ();
 	      c_parser_consume_token (parser);
 	      last_label = false;
+	      mark_valid_location_for_stdc_pragma (false);
 	      c_parser_declaration_or_fndef (parser, true, true, true, true);
 	      /* Following the old parser, __extension__ does not
 		 disable this diagnostic.  */
@@ -3467,6 +3493,7 @@ c_parser_compound_statement_nostart (c_parser *parser)
 	}
       else if (c_parser_next_token_is (parser, CPP_EOF))
 	{
+	  mark_valid_location_for_stdc_pragma (save_valid_for_pragma);
 	  c_parser_error (parser, "expected declaration or statement");
 	  return;
 	}
@@ -3474,6 +3501,7 @@ c_parser_compound_statement_nostart (c_parser *parser)
         {
           if (parser->in_if_block) 
             {
+	      mark_valid_location_for_stdc_pragma (save_valid_for_pragma);
               error_at (loc, """expected %<}%> before %<else%>");
               return;
             }
@@ -3489,6 +3517,7 @@ c_parser_compound_statement_nostart (c_parser *parser)
 	statement:
 	  last_label = false;
 	  last_stmt = true;
+	  mark_valid_location_for_stdc_pragma (false);
 	  c_parser_statement_after_labels (parser);
 	}
 
@@ -3497,6 +3526,8 @@ c_parser_compound_statement_nostart (c_parser *parser)
   if (last_label)
     error_at (label_loc, "label at end of compound statement");
   c_parser_consume_token (parser);
+  /* Restore the value we started with.  */
+  mark_valid_location_for_stdc_pragma (save_valid_for_pragma);
 }
 
 /* Parse a label (C90 6.6.1, C99 6.8.1).
@@ -4828,10 +4859,12 @@ c_parser_cast_expression (c_parser *parser, struct c_expr *after)
   if (c_parser_next_token_is (parser, CPP_OPEN_PAREN)
       && c_token_starts_typename (c_parser_peek_2nd_token (parser)))
     {
+      location_t loc;
       struct c_type_name *type_name;
       struct c_expr ret;
       struct c_expr expr;
       c_parser_consume_token (parser);
+      loc = c_parser_peek_token (parser)->location;
       type_name = c_parser_type_name (parser);
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
       if (type_name == NULL)
@@ -4846,11 +4879,11 @@ c_parser_cast_expression (c_parser *parser, struct c_expr *after)
       used_types_insert (type_name->specs->type);
 
       if (c_parser_next_token_is (parser, CPP_OPEN_BRACE))
-	return c_parser_postfix_expression_after_paren_type (parser,
-							     type_name);
+	return c_parser_postfix_expression_after_paren_type (parser, type_name,
+							     loc);
       expr = c_parser_cast_expression (parser, NULL);
       expr = default_function_array_conversion (expr);
-      ret.value = c_cast_expr (type_name, expr.value);
+      ret.value = c_cast_expr (type_name, expr.value, loc);
       ret.original_code = ERROR_MARK;
       ret.original_type = NULL;
       return ret;
@@ -5021,7 +5054,8 @@ c_parser_sizeof_expression (c_parser *parser)
       if (c_parser_next_token_is (parser, CPP_OPEN_BRACE))
 	{
 	  expr = c_parser_postfix_expression_after_paren_type (parser,
-							       type_name);
+							       type_name,
+							       expr_loc);
 	  goto sizeof_expr;
 	}
       /* sizeof ( type-name ).  */
@@ -5058,9 +5092,11 @@ c_parser_alignof_expression (c_parser *parser)
     {
       /* Either __alignof__ ( type-name ) or __alignof__
 	 unary-expression starting with a compound literal.  */
+      location_t loc;
       struct c_type_name *type_name;
       struct c_expr ret;
       c_parser_consume_token (parser);
+      loc = c_parser_peek_token (parser)->location;
       type_name = c_parser_type_name (parser);
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
       if (type_name == NULL)
@@ -5076,7 +5112,8 @@ c_parser_alignof_expression (c_parser *parser)
       if (c_parser_next_token_is (parser, CPP_OPEN_BRACE))
 	{
 	  expr = c_parser_postfix_expression_after_paren_type (parser,
-							       type_name);
+							       type_name,
+							       loc);
 	  goto alignof_expr;
 	}
       /* alignof ( type-name ).  */
@@ -5247,8 +5284,10 @@ c_parser_postfix_expression (c_parser *parser)
 	     than going directly to
 	     c_parser_postfix_expression_after_paren_type from
 	     elsewhere?  */
+	  location_t loc;
 	  struct c_type_name *type_name;
 	  c_parser_consume_token (parser);
+	  loc = c_parser_peek_token (parser)->location;
 	  type_name = c_parser_type_name (parser);
 	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN,
 				     "expected %<)%>");
@@ -5258,7 +5297,8 @@ c_parser_postfix_expression (c_parser *parser)
 	    }
 	  else
 	    expr = c_parser_postfix_expression_after_paren_type (parser,
-								 type_name);
+								 type_name,
+								 loc);
 	}
       else
 	{
@@ -5576,11 +5616,14 @@ c_parser_postfix_expression (c_parser *parser)
    possible to tell until after the type name whether a cast
    expression has a cast or a compound literal, or whether the operand
    of sizeof is a parenthesized type name or starts with a compound
-   literal.  */
+   literal.  TYPE_LOC is the location where TYPE_NAME starts--the
+   location of the first token after the parentheses around the type
+   name.  */
 
 static struct c_expr
 c_parser_postfix_expression_after_paren_type (c_parser *parser,
-					      struct c_type_name *type_name)
+					      struct c_type_name *type_name,
+					      location_t type_loc)
 {
   tree type;
   struct c_expr init;
@@ -5589,12 +5632,13 @@ c_parser_postfix_expression_after_paren_type (c_parser *parser,
   location_t start_loc;
   tree type_expr = NULL_TREE;
   bool type_expr_const = true;
+  check_compound_literal_type (type_name, type_loc);
   start_init (NULL_TREE, NULL, 0);
   type = groktypename (type_name, &type_expr, &type_expr_const);
   start_loc = c_parser_peek_token (parser)->location;
   if (type != error_mark_node && C_TYPE_VARIABLE_SIZE (type))
     {
-      error_at (start_loc, "compound literal has variable size");
+      error_at (type_loc, "compound literal has variable size");
       type = error_mark_node;
     }
   init = c_parser_braced_init (parser, type, false);

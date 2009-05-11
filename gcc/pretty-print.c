@@ -726,6 +726,7 @@ pp_construct (pretty_printer *pp, const char *prefix, int maximum_length)
   pp_line_cutoff (pp) = maximum_length;
   pp_prefixing_rule (pp) = DIAGNOSTICS_SHOW_PREFIX_ONCE;
   pp_set_prefix (pp, prefix);
+  pp_translate_identifiers (pp) = true;
 }
 
 void
@@ -887,8 +888,14 @@ pp_base_maybe_space (pretty_printer *pp)
 void
 pp_base_tree_identifier (pretty_printer *pp, tree id)
 {
-  const char *text = identifier_to_locale (IDENTIFIER_POINTER (id));
-  pp_append_text (pp, text, text + strlen (text));
+  if (pp_translate_identifiers (pp))
+    {
+      const char *text = identifier_to_locale (IDENTIFIER_POINTER (id));
+      pp_append_text (pp, text, text + strlen (text));
+    }
+  else
+    pp_append_text (pp, IDENTIFIER_POINTER (id),
+		    IDENTIFIER_POINTER (id) + IDENTIFIER_LENGTH (id));
 }
 
 /* The string starting at P has LEN (at least 1) bytes left; if they
