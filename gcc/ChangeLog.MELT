@@ -1,4 +1,7 @@
 2009-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.h (callframe_basilys_st): updated comment!
+
+2009-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* params.def: renamed PARAM_BASILYS_FULL_FREQ as
 	PARAM_BASILYS_FULL_THRESHOLD so basilys-full-freq as
 	basilys-full-threshold.

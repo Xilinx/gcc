@@ -3056,7 +3056,11 @@ basilys_is_instance_of (basilys_ptr_t inst_p, basilys_ptr_t class_p)
 
 
 /* call frames for our copying garbage collector cannot be GTY-ed
-   because they are inside the C call stack */
+   because they are inside the C call stack; in reality, MELT call
+   frames may also contain other GTY-ed data -like tree-s, gimple-s,
+   ...-, and the MELT machinery generated code to mark each such
+   frame. See http://gcc.gnu.org/wiki/memory%20management%20in%20MELT
+   for more */
 struct callframe_basilys_st
 {
   unsigned nbvar;
