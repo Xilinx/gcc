@@ -1,5 +1,13 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (newivs_to_depth_to_newiv): New.
+	(graphite_create_new_loop): Pass the newivs vector.  Push the
+	newly created IV to newivs.
+	(translate_clast): Pass the newivs vector.
+	(gloog): Create and destroy the newivs vector.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (pbb_to_depth_to_oldiv): New.
 	(graphite_loop_normal_form): Initialize loop->aux with the unique
 	IV that has been created.
