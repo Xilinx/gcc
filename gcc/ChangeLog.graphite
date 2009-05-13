@@ -1,3 +1,9 @@
+2009-05-13 Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* tree-chrec.c (evolution_function_right_is_integer_cst): Allow
+	scev with parameters in the base part. They where forbidden
+	exidently.
+
 2009-05-11  Li Feng  <nemokingdom@gmail.com>
 
 	* testsuite/gcc.dg/graphite/graphite.exp: Set different default

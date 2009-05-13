@@ -1507,8 +1507,14 @@ evolution_function_right_is_integer_cst (const_tree chrec)
       return true;
 
     case POLYNOMIAL_CHREC:
-      return evolution_function_right_is_integer_cst (CHREC_LEFT (chrec))
-	&& evolution_function_right_is_integer_cst (CHREC_RIGHT (chrec));
+      if (!evolution_function_right_is_integer_cst (CHREC_RIGHT (chrec)))
+	return false;
+
+      if (TREE_CODE (CHREC_LEFT (chrec)) == POLYNOMIAL_CHREC
+	&& !evolution_function_right_is_integer_cst (CHREC_LEFT (chrec)))
+	return false;
+
+      return true;
 
     default:
       return false;
