@@ -577,15 +577,19 @@ gcc_type_for_iv_of_clast_loop (struct clast_for *stmt_for)
   return gcc_type_for_cloog_iv (cloog_iv, PBB_BLACK_BOX (pbb));
 }
 
-/* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an induction 
-   variable for the new LOOP.  New LOOP is attached to CFG starting at
-   ENTRY_EDGE.  LOOP is inserted into the loop tree and becomes the child
-   loop of the OUTER_LOOP.  */
+/* Creates a new LOOP corresponding to Cloog's STMT.  Inserts an
+   induction variable for the new LOOP.  New LOOP is attached to CFG
+   starting at ENTRY_EDGE.  LOOP is inserted into the loop tree and
+   becomes the child loop of the OUTER_LOOP.  NEWIVS_INDEX binds
+   CLooG's scattering name to the induction variable created for the
+   loop of STMT.  The new induction variable is inserted in the NEWIVS
+   vector.  */
 
 static struct loop *
 graphite_create_new_loop (sese region, edge entry_edge,
 			  struct clast_for *stmt, loop_iv_stack ivstack,
-			  loop_p outer, VEC (tree, heap) *newivs)
+			  loop_p outer, VEC (tree, heap) *newivs,
+			  htab_t newivs_index)
 {
   tree type = gcc_type_for_iv_of_clast_loop (stmt);
   VEC (name_tree, heap) *params = SESE_PARAMS (region);
@@ -600,6 +604,9 @@ graphite_create_new_loop (sese region, edge entry_edge,
 
   add_referenced_var (ivvar);
   loop_iv_stack_push_iv (ivstack, iv, stmt->iterator);
+
+  save_clast_name_index (newivs_index, stmt->iterator,
+			 VEC_length (tree, newivs));
   VEC_safe_push (tree, heap, newivs, iv);
   return loop;
 }
@@ -673,14 +680,14 @@ copy_renames (void **slot, void *s)
 static edge
 translate_clast (sese region, struct loop *context_loop,
 		 struct clast_stmt *stmt, edge next_e, loop_iv_stack ivstack,
-		 htab_t rename_map, VEC (tree, heap) *newivs)
+		 htab_t rename_map, VEC (tree, heap) *newivs, htab_t newivs_index)
 {
   if (!stmt)
     return next_e;
 
   if (CLAST_STMT_IS_A (stmt, stmt_root))
     return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			    rename_map, newivs);
+			    rename_map, newivs, newivs_index);
 
   if (CLAST_STMT_IS_A (stmt, stmt_user))
     {
@@ -701,14 +708,14 @@ translate_clast (sese region, struct loop *context_loop,
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			      rename_map, newivs);
+			      rename_map, newivs, newivs_index);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_for))
     {
       struct loop *loop
 	= graphite_create_new_loop (region, next_e, (struct clast_for *) stmt,
-				    ivstack, context_loop, newivs);
+				    ivstack, context_loop, newivs, newivs_index);
       edge last_e = single_exit (loop);
       edge to_body = single_succ_edge (loop->header);
       basic_block after = to_body->dest;
@@ -727,7 +734,7 @@ translate_clast (sese region, struct loop *context_loop,
       /* Translate the body of the loop.  */
       next_e = translate_clast (region, loop, ((struct clast_for *) stmt)->body,
 				single_succ_edge (loop->header), ivstack,
-				rename_map, newivs);
+				rename_map, newivs, newivs_index);
       redirect_edge_succ_nodup (next_e, after);
       set_immediate_dominator (CDI_DOMINATORS, next_e->dest, next_e->src);
       loop_iv_stack_pop (ivstack);
@@ -739,7 +746,7 @@ translate_clast (sese region, struct loop *context_loop,
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
-			      rename_map, newivs);
+			      rename_map, newivs, newivs_index);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_guard))
@@ -757,7 +764,7 @@ translate_clast (sese region, struct loop *context_loop,
       htab_traverse (rename_map, copy_renames, before_guard);
       next_e = translate_clast (region, context_loop, 
 				((struct clast_guard *) stmt)->then,
-				true_e, ivstack, rename_map, newivs);
+				true_e, ivstack, rename_map, newivs, newivs_index);
       insert_guard_phis (last_e->src, exit_true_e, exit_false_e,
 			 before_guard, rename_map);
 
@@ -765,18 +772,18 @@ translate_clast (sese region, struct loop *context_loop,
       graphite_verify ();
 
       return translate_clast (region, context_loop, stmt->next, last_e, ivstack,
-			      rename_map, newivs);
+			      rename_map, newivs, newivs_index);
     }
 
   if (CLAST_STMT_IS_A (stmt, stmt_block))
     {
       next_e = translate_clast (region, context_loop,
 				((struct clast_block *) stmt)->body,
-				next_e, ivstack, rename_map, newivs);
+				next_e, ivstack, rename_map, newivs, newivs_index);
       recompute_all_dominators ();
       graphite_verify ();
       return translate_clast (region, context_loop, stmt->next, next_e, ivstack,
-			      rename_map, newivs);
+			      rename_map, newivs, newivs_index);
     }
 
   gcc_unreachable ();
@@ -1288,7 +1295,7 @@ gloog (scop_p scop)
   loop_p context_loop;
   sese region = SCOP_REGION (scop);
   ifsese if_region = NULL;
-  htab_t rename_map;
+  htab_t rename_map, newivs_index;
   cloog_prog_clast pc = scop_to_clast (scop);
 
   build_graphite_loop_normal_form (region);
@@ -1308,10 +1315,12 @@ gloog (scop_p scop)
 
   init_sese_params_index (region);
   rename_map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
+  newivs_index = htab_create (10, clast_name_index_elt_info,
+			    eq_clast_name_indexes, free);
 
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
-					&ivstack, rename_map, newivs);
+					&ivstack, rename_map, newivs, newivs_index);
   graphite_verify ();
   sese_adjust_liveout_phis (region, rename_map,
 			    if_region->region->exit->src,
@@ -1322,6 +1331,7 @@ gloog (scop_p scop)
 
   htab_delete (rename_map);
   free_loop_iv_stack (&ivstack);
+  htab_delete (newivs_index);
   VEC_free (tree, heap, newivs);
   cloog_clast_free (pc.stmt);
   cloog_program_free (pc.prog);

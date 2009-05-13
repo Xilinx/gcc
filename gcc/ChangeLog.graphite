@@ -1,5 +1,12 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Pass newivs_index.
+	Call save_clast_name_index.
+	(translate_clast): Pass newivs_index.
+	(gloog): Create and free newivs_index.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (clast_name_index): New structure.
 	(clast_name_index_p): New type.
 	(debug_clast_name_index): New.
