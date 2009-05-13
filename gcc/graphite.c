@@ -67,13 +67,145 @@ along with GCC; see the file COPYING3.  If not see
 #include "graphite-clast-to-gimple.h"
 #include "graphite-sese-to-poly.h"
 
+/* Print global statistics to FILE.  */
+
+static void
+print_global_statistics (FILE* file)
+{
+  long n_bbs = 0;
+  long n_loops = 0;
+  long n_stmts = 0;
+  long n_conditions = 0;
+  long n_p_bbs = 0;
+  long n_p_loops = 0;
+  long n_p_stmts = 0;
+  long n_p_conditions = 0;
+
+  basic_block bb;
+
+  FOR_ALL_BB (bb)
+    {
+      gimple_stmt_iterator psi;
+
+      fprintf (stderr, "AAAA%ld ",bb->count);
+      n_bbs++;
+      n_p_bbs += bb->count;
+
+      /* Ignore artificial surrounding loop.  */
+      if (bb == bb->loop_father->header
+	  && bb->index != 0)
+	{
+	  n_loops++;
+	  n_p_loops += bb->count;
+	}
+
+      if (VEC_length (edge, bb->succs) > 1)
+	{
+	  n_conditions++;
+	  n_p_conditions += bb->count;
+	}
+
+      for (psi = gsi_start_bb (bb); !gsi_end_p (psi); gsi_next (&psi))
+	{
+	  n_stmts++;
+	  n_p_stmts += bb->count;
+	}
+    }
+
+  fprintf (file, "\nGlobal statistics (");
+  fprintf (file, "BBS:%ld, ", n_bbs);
+  fprintf (file, "LOOPS:%ld, ", n_loops);
+  fprintf (file, "CONDITIONS:%ld, ", n_conditions);
+  fprintf (file, "STMTS:%ld)\n", n_stmts);
+  fprintf (file, "\nGlobal profiling statistics (");
+  fprintf (file, "BBS:%ld, ", n_p_bbs);
+  fprintf (file, "LOOPS:%ld, ", n_p_loops);
+  fprintf (file, "CONDITIONS:%ld, ", n_p_conditions);
+  fprintf (file, "STMTS:%ld)\n", n_p_stmts);
+}
+
+/* Print statistics for SCOP to FILE.  */
+
+static void
+print_graphite_scop_statistics (FILE* file, scop_p scop)
+{
+  long n_bbs = 0;
+  long n_loops = 0;
+  long n_stmts = 0;
+  long n_conditions = 0;
+  long n_p_bbs = 0;
+  long n_p_loops = 0;
+  long n_p_stmts = 0;
+  long n_p_conditions = 0;
+
+  basic_block bb;
+
+  FOR_ALL_BB (bb)
+    {
+      gimple_stmt_iterator psi;
+      loop_p loop = bb->loop_father;
+
+      if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+	continue;
+
+      n_bbs++;
+      n_p_bbs += bb->count;
+
+      if (VEC_length (edge, bb->succs) > 1)
+	{
+	  n_conditions++;
+	  n_p_conditions += bb->count;
+	}
+
+      for (psi = gsi_start_bb (bb); !gsi_end_p (psi); gsi_next (&psi))
+	{
+	  n_stmts++;
+	  n_p_stmts += bb->count;
+	}
+
+      if (loop->header == bb && loop_in_sese_p (loop, SCOP_REGION (scop)))
+	{
+	  n_loops++;
+	  n_p_loops += bb->count;
+	}
+
+    }
+
+  fprintf (file, "\nSCoP statistics (");
+  fprintf (file, "BBS:%ld, ", n_bbs);
+  fprintf (file, "LOOPS:%ld, ", n_loops);
+  fprintf (file, "CONDITIONS:%ld, ", n_conditions);
+  fprintf (file, "STMTS:%ld)\n", n_stmts);
+  fprintf (file, "\nSCoP profiling statistics (");
+  fprintf (file, "BBS:%ld, ", n_p_bbs);
+  fprintf (file, "LOOPS:%ld, ", n_p_loops);
+  fprintf (file, "CONDITIONS:%ld, ", n_p_conditions);
+  fprintf (file, "STMTS:%ld)\n", n_p_stmts);
+}
+
+/* Print statistics for SCOPS to FILE.  */
+
+static void
+print_graphite_statistics (FILE* file, VEC (scop_p, heap) *scops)
+{
+  int i;
+  scop_p scop;
+
+  for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
+    print_graphite_scop_statistics (file, scop);
+}
+
 /* Initialize graphite: when there are no loops returns false.  */
 
 static bool
 graphite_initialize (void)
 {
   if (number_of_loops () <= 1)
-    return false;
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	print_global_statistics (dump_file);
+      return false;
+    }
 
   recompute_all_dominators ();
   initialize_original_copy_tables ();
@@ -115,6 +247,12 @@ graphite_transform_loops (void)
     return;
 
   build_scops (&scops);
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    {
+      print_graphite_statistics (dump_file, scops);
+      print_global_statistics (dump_file);
+    }
 
   for (i = 0; VEC_iterate (scop_p, scops, i, scop); i++)
     if (build_poly_scop (scop))
