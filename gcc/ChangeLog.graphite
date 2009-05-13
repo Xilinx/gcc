@@ -1,5 +1,10 @@
 2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
 
+	* graphite-clast-to-gimple.c (clast_name_to_gcc): Do not use strcmp.
+	Call clast_name_to_index.
+
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
 	* graphite-clast-to-gimple.c (clast_name_to_gcc): Pass region,
 	do not pass params.  Get params from SESE_PARAMS.
 	(clast_to_gcc_expression): Same.

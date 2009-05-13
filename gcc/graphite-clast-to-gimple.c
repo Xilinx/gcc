@@ -200,30 +200,23 @@ save_clast_name_index (htab_t index_table, const char *name, int index)
 
 /* Returns the tree variable from the name NAME that was given in
    Cloog representation.  All the loop induction variables are stored
-   in IVSTACK.
-
-   FIXME: This is a hack, and Cloog should be fixed to not work with
-   variable names represented as "char *string", but with void
-   pointers that could be casted back to a tree.  The only problem in
-   doing that is that Cloog's pretty printer still assumes that
-   variable names are char *strings.  The solution would be to have a
-   function pointer for pretty-printing that can be redirected to be
-   print_generic_stmt in our case, or fprintf by default.
-   ???  Too ugly to live.  */
+   in IVSTACK.  */
 
 static tree
 clast_name_to_gcc (const char *name, sese region,
 		   loop_iv_stack ivstack)
 {
-  int i;
-  name_tree t;
   tree iv;
   VEC (name_tree, heap) *params = SESE_PARAMS (region);
+  htab_t params_index = SESE_PARAMS_INDEX (region);
 
-  if (params)
-    for (i = 0; VEC_iterate (name_tree, params, i, t); i++)
-      if (!strcmp (name, t->name))
-	return t->t;
+  if (params && params_index)
+    {
+      int index = clast_name_to_index (name, params_index);
+
+      if (index >= 0)
+	return VEC_index (name_tree, params, index)->t;
+    }
 
   iv = loop_iv_stack_get_iv_from_name (ivstack, name);
   if (iv)
