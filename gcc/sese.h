@@ -45,6 +45,9 @@ typedef struct sese
   /* A collection of old induction variables*/ 
   VEC (name_tree, heap) *old_ivs;
 
+  /* Used to quickly retrieve the index of a parameter in PARAMS.  */
+  htab_t params_index;
+
   /* Loops completely contained in the SCOP.  */
   bitmap loops;
   VEC (loop_p, heap) *loop_nest;
@@ -60,6 +63,7 @@ typedef struct sese
 #define SESE_EXIT(S) (S->exit)
 #define SESE_EXIT_BB(S) (S->exit->dest)
 #define SESE_PARAMS(S) (S->params)
+#define SESE_PARAMS_INDEX(S) (S->params_index)
 #define SESE_LOOPS(S) (S->loops)
 #define SESE_LOOP_NEST(S) (S->loop_nest)
 #define SESE_ADD_PARAMS(S) (S->add_params)

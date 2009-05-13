@@ -448,6 +448,7 @@ new_sese (edge entry, edge exit)
   SESE_ADD_PARAMS (res) = true;
   SESE_PARAMS (res) = VEC_alloc (name_tree, heap, 3);
   SESE_OLDIVS (res) = VEC_alloc (name_tree, heap, 3);
+  SESE_PARAMS_INDEX (res) = NULL;
 
   return res;
 }
@@ -473,6 +474,9 @@ free_sese (sese region)
     free (iv);
 
   VEC_free (name_tree, heap, SESE_OLDIVS (region));
+
+  if (SESE_PARAMS_INDEX (region))
+    htab_delete (SESE_PARAMS_INDEX (region));
 
   XDELETE (region);
 }

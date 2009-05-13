@@ -96,6 +96,108 @@ newivs_to_depth_to_newiv (VEC (tree, heap) *newivs, int depth)
   return VEC_index (tree, newivs, depth);
 }
 
+
+
+/* Stores the INDEX in a vector for a given clast NAME.  */
+
+typedef struct clast_name_index {
+  int index;
+  const char *name;
+} *clast_name_index_p;
+
+/* Print to stderr the element ELT.  */
+
+static void
+debug_clast_name_index (clast_name_index_p elt)
+{
+  fprintf (stderr, "(index = %d, name = %s)\n", elt->index, elt->name);
+}
+
+/* Helper function for debug_rename_map.  */
+
+static int
+debug_clast_name_indexes_1 (void **slot, void *s ATTRIBUTE_UNUSED)
+{
+  struct clast_name_index *entry = (struct clast_name_index *) *slot;
+  debug_clast_name_index (entry);
+  return 1;
+}
+
+/* Print to stderr all the elements of MAP.  */
+
+void
+debug_clast_name_indexes (htab_t map)
+{
+  htab_traverse (map, debug_clast_name_indexes_1, NULL);
+}
+
+/* Computes a hash function for database element ELT.  */
+
+static hashval_t
+clast_name_index_elt_info (const void *elt)
+{
+  return htab_hash_pointer (((const struct clast_name_index *) elt)->name);
+}
+
+/* Compares database elements E1 and E2.  */
+
+static int
+eq_clast_name_indexes (const void *e1, const void *e2)
+{
+  const struct clast_name_index *elt1 = (const struct clast_name_index *) e1;
+  const struct clast_name_index *elt2 = (const struct clast_name_index *) e2;
+
+  return (elt1->name == elt2->name);
+}
+
+/* For a given clast NAME, returns -1 if it does not correspond to any
+   parameter, or otherwise, returns the index in the PARAMS or
+   SCATTERING_DIMENSIONS vector.  */
+
+static inline int
+clast_name_to_index (const char *name, htab_t index_table)
+{
+  struct clast_name_index tmp;
+  PTR *slot;
+
+  tmp.name = name;
+  slot = htab_find_slot (index_table, &tmp, NO_INSERT);
+
+  if (slot && *slot)
+    return ((struct clast_name_index *) *slot)->index;
+
+  return -1;
+}
+
+static clast_name_index_p
+new_clast_name_index (const char *name, int index)
+{
+  clast_name_index_p res = XNEW (struct clast_name_index);
+
+  res->name = name;
+  res->index = index;
+  return res;
+}
+
+/* Records INDEX for NAME in INDEX_TABLE.  */
+
+static inline int
+save_clast_name_index (htab_t index_table, const char *name, int index)
+{
+  struct clast_name_index tmp;
+  PTR *slot;
+
+  tmp.name = name;
+  slot = htab_find_slot (index_table, &tmp, INSERT);
+
+  if (slot)
+    *slot = new_clast_name_index (name, index);
+
+  return 1;
+}
+
+
+
 /* Returns the tree variable from the name NAME that was given in
    Cloog representation.  All the parameters are stored in PARAMS, and
    all the loop induction variables are stored in IVSTACK.
@@ -1156,6 +1258,23 @@ build_graphite_loop_normal_form (sese region)
     graphite_loop_normal_form (loop, region);
 }
 
+/* Initialize SESE_PARAMS_INDEX for REGION.  */
+
+static void
+init_sese_params_index (sese region)
+{
+  int i;
+  name_tree p;
+  htab_t map;
+
+  map = htab_create (10, clast_name_index_elt_info, eq_clast_name_indexes,
+		     free);
+  for (i = 0; VEC_iterate (name_tree, SESE_PARAMS (region), i, p); i++)
+    save_clast_name_index (map, p->name, i);
+
+  SESE_PARAMS_INDEX (region) = map;
+}
+
 /* GIMPLE Loop Generator: generates loops from STMT in GIMPLE form for
    the given SCOP.  Return true if code generation succeeded.  */
 
@@ -1187,7 +1306,9 @@ gloog (scop_p scop)
   context_loop = SESE_ENTRY (region)->src->loop_father;
   compute_cloog_iv_types (pc.stmt);
 
+  init_sese_params_index (region);
   rename_map = htab_create (10, rename_map_elt_info, eq_rename_map_elts, free);
+
   new_scop_exit_edge = translate_clast (region, context_loop, pc.stmt,
 					if_region->true_region->entry,
 					&ivstack, rename_map, newivs);
