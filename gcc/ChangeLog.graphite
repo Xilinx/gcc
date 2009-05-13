@@ -1,3 +1,9 @@
+2009-05-13  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (pbb_to_depth_to_oldiv): New.
+	(graphite_loop_normal_form): Initialize loop->aux with the unique
+	IV that has been created.
+
 2009-05-13 Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* tree-chrec.c (evolution_function_right_is_integer_cst): Allow

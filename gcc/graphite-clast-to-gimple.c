@@ -74,6 +74,19 @@ gmp_cst_to_tree (tree type, Value v)
   return build_int_cst (type, value_get_si (v));
 }
 
+/* For a given loop DEPTH in the loop nest of the original black box
+   PBB, return the old induction variable associated to that loop.  */
+
+static inline tree
+pbb_to_depth_to_oldiv (poly_bb_p pbb, int depth)
+{
+  gimple_bb_p gbb = PBB_BLACK_BOX (pbb);
+  sese region = SCOP_REGION (PBB_SCOP (pbb));
+  loop_p loop = gbb_loop_at_index (gbb, region, depth);
+
+  return (tree) loop->aux;
+}
+
 /* Returns the tree variable from the name NAME that was given in
    Cloog representation.  All the parameters are stored in PARAMS, and
    all the loop induction variables are stored in IVSTACK.
@@ -1112,6 +1125,7 @@ graphite_loop_normal_form (loop_p loop, sese region)
     gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
 
   iv = canonicalize_loop_ivs (loop, NULL, &nit);
+  loop->aux = iv;
 
   oldiv = XNEW (struct name_tree);
   oldiv->t = iv;
