@@ -1498,7 +1498,27 @@
 (install_method class_src_cmatchexpr normal_exp normexp_cmatchexpr)
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; normalize a funmatchexpr
+(defun normexp_funmatchexpr (recv env ncx psloc)
+  (debug_msg recv "normexp_funmatchexpr recv")
+  (assert_msg "check recv" (is_a recv class_src_funmatchexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normcontext))
+  (let ( (sloc (unsafe_get_field :src_loc recv)) 
+	 (sfmat (unsafe_get_field :sfmatx_fmatcher recv))
+	 (sargs (unsafe_get_field :sfmatx_args recv)) 
+	 )
+    (assert_msg "check sfmat" (is_a sfmat class_funmatcher))
+    (multicall 
+     (nargs nbind)
+     (normalize_tuple sargs env ncx sloc)
+     (debug_msg nargs "normexp_funmatchexpr nargs")
+     (debug_msg recv "@$@unimplemented normexp_funmatchexpr recv")
+     (assert_msg "@$@unimplemented normexp_funmatchexpr" ())
+     (compile_warning "@$@unimplemented normexp_funmatchexpr" ())
+)))
+(install_method class_src_funmatchexpr normal_exp normexp_funmatchexpr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize an application

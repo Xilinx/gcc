@@ -1,3 +1,15 @@
+
+2009-05-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* basilys.c (basilys_output_cfile_decl_impl): only print the date,
+	not the hour, in the comments of generated file.
+	* melt/warmelt-macro.melt: added class_src_funmatchexpr &
+	expand_funmatchexpr; removed duplicate definition of
+	class_srcpattern_cmatch.
+	* melt/warmelt-normal.melt: added normexp_funmatchexpr stub, still
+	incomplete.
+	* melt/warmelt-normatch.melt: removed warning about incomplete
+	normexp_match...
+
 2009-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* basilys.h (callframe_basilys_st): updated comment!
 

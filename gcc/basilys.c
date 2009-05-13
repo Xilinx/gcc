@@ -9099,17 +9099,17 @@ basilys_output_cfile_decl_impl (basilys_ptr_t unitnam,
   if (!cfil)
     fatal_error ("failed to open basilys generated file %s - %m", dotcnam);
   fprintf (cfil,
-	   "/* GCC BASILYS GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
+	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
   {
     time_t now = 0;
     char nowtimstr[64];
     char *nl = 0;
     time (&now);
     memset (nowtimstr, 0, sizeof (nowtimstr));
-    strncpy (nowtimstr, ctime (&now), sizeof (nowtimstr) - 1);
-    nl = strrchr (nowtimstr, '\n');
-    if (nl && nl[1] == (char) 0)
-      *nl = 0;
+    /* we only write the date (not the hour); the comment is for
+       humans only.  This might make ccache happier, when the same
+       file is generated several times in the same day */
+    strftime(nowtimstr, sizeof(nowtimstr)-1, "%Y %b %d", gmtime(&now));
     if (strlen (nowtimstr) > 2)
       fprintf (cfil, "/* generated on %s */\n\n", nowtimstr);
   }

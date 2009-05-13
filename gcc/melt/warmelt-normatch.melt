@@ -1337,8 +1337,6 @@
 			 )
 		   )
 		 )
-;;;
-		(compile_warning "@@incomplete normexp_match" ())
 		)
 	      )
 	    )
